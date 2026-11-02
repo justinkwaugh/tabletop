@@ -70,6 +70,12 @@ export const OathGameState = Type.Object({
     restResolvedForTurnStart: Type.Optional(Type.Number()),
     /** R-7.4 — carried from the Search to its resolve. */
     pendingSearchModifiers: Type.Optional(Type.Array(PowerUse, { maxItems: 8 })),
+    /**
+     * R-7.4.3 — the cards of every modifier the Search under way uses, kept from the Search to its resolve, which
+     * hands them to the questions it asks (`PendingQuestions.searchModifiersInUse`); and those an R-6.1 play uses,
+     * kept through that play. From revision 31.
+     */
+    searchModifiersInUse: Type.Optional(Type.Array(Type.String(), { maxItems: 16 })),
 
     /** Grand Scepter — "You cannot use this if you took it on this turn" (R-6.4, R-6.6.1, R-6.7). */
     grandScepterTakenOnTurnStart: Type.Optional(Type.Number()),
@@ -204,6 +210,7 @@ export class HydratedOathGameState
     declare oathRevision?: number
     declare restResolvedForTurnStart?: number
     declare pendingSearchModifiers?: PowerUse[]
+    declare searchModifiersInUse?: string[]
     declare grandScepterTakenOnTurnStart?: number
     declare grandScepterTakenBy?: string[]
     declare setupVariant?: SetupVariant

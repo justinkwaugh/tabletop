@@ -361,6 +361,8 @@ export function resolveModifiers(
             const unmet = reasonModifierDoesNotApply(state, playerId, declared, particulars)
             if (unmet) return { reason: unmet, active }
         }
+        const disagrees = reasonAnswersDisagree(state, playerId, declared, active, particulars)
+        if (disagrees) return { reason: disagrees, active }
         active.push(declared)
     }
     if (mode.destinationUnknown) return { active }
@@ -371,6 +373,89 @@ export function resolveModifiers(
         active.push(m)
     }
     return { active }
+}
+
+function sameDiscardTarget(a: DiscardTarget, b: DiscardTarget): boolean {
+    return (
+        a.region === b.region &&
+        a.bottom === b.bottom &&
+        (a.worldDeck === true) === (b.worldDeck === true)
+    )
+}
+
+/**
+ * R-7.4-H2 — the question `m` and `other` each give one answer to, and answer differently: the pile a Search
+ * draws from (Errand Boy, Observatory) or where its discards go (Bracken, Cracked Horn).
+ */
+function questionAnsweredDifferently(
+    m: ActiveModifier,
+    other: ActiveModifier,
+    contextOf: (declared: ActiveModifier) => EffectContext
+): string | undefined {
+    const pile = m.hooks.drawRegion?.(contextOf(m))
+    const otherPile = other.hooks.drawRegion?.(contextOf(other))
+    if (pile !== undefined && otherPile !== undefined && pile !== otherPile) {
+        return 'the pile drawn from'
+    }
+    const to = m.hooks.discardTo?.(contextOf(m))
+    const otherTo = other.hooks.discardTo?.(contextOf(other))
+    if (to !== undefined && otherTo !== undefined && !sameDiscardTarget(to, otherTo)) {
+        return 'where the discards go'
+    }
+    return undefined
+}
+
+/**
+ * R-7.4-H2 — from revision 31, a modifier declared after one that answers the same question is refused unless
+ * their answers agree, so none is paid for while another's answer overrides it. Before it (R-X.4), both are
+ * accepted and the first declared applies.
+ */
+export function reasonAnswersDisagree(
+    state: HydratedOathGameState,
+    playerId: string,
+    m: ActiveModifier,
+    earlier: readonly ActiveModifier[],
+    particulars: Partial<EffectContext['particulars']> = {}
+): string | undefined {
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes26)) return undefined
+    const contextOf = (declared: ActiveModifier): EffectContext => ({
+        ...modifierContext(state, playerId, declared),
+        particulars
+    })
+    for (const other of earlier) {
+        const question = questionAnsweredDifferently(m, other, contextOf)
+        if (question) {
+            return `${m.power.cardId} and ${other.power.cardId} give different answers to ${question} (R-7.4-H2)`
+        }
+    }
+    return undefined
+}
+
+/**
+ * R-7.4-H2 — the same check on uses in the order given, for a menu that offers a card beside the cards in use
+ * before the action is judged.
+ */
+export function reasonUsesDisagree(
+    state: HydratedOathGameState,
+    playerId: string,
+    uses: readonly ModifierUse[]
+): string | undefined {
+    const earlier: ActiveModifier[] = []
+    for (const use of uses) {
+        const power = powerInPlay(state, use.cardId, use.powerIndex)
+        const hooks = power ? effectFor(power)?.modifier : undefined
+        if (!power || !hooks) continue
+        const declared: ActiveModifier = {
+            power,
+            hooks,
+            choices: use.choices ?? [],
+            mandatory: false
+        }
+        const reason = reasonAnswersDisagree(state, playerId, declared, earlier)
+        if (reason) return reason
+        earlier.push(declared)
+    }
+    return undefined
 }
 
 /** A declared modifier's printed condition, and its cross-check, for the action's particulars. */
@@ -402,12 +487,86 @@ export function carriedModifiers(
     return active
 }
 
+/**
+ * R-7.4.3 — "A modifier cannot be discarded during the major action it is modifying": the cards of the modifiers
+ * a Search uses, or an R-6.1 play "as if you searched", from revision 31. Before it (R-X.4), none.
+ */
+export function modifierCardsInUse(
+    state: HydratedOathGameState,
+    active: readonly ActiveModifier[]
+): string[] {
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes26)) return []
+    return [...new Set(active.map((m) => m.power.cardId))]
+}
+
+/** R-7.4.3 — the Search, or the R-6.1 play, under way records its modifiers in use until it ends. */
+export function beginModifiersInUse(
+    state: HydratedOathGameState,
+    active: readonly ActiveModifier[]
+): void {
+    const inUse = modifierCardsInUse(state, active)
+    if (inUse.length > 0) state.searchModifiersInUse = inUse
+}
+
+/**
+ * R-7.4.3 — the Search, or the R-6.1 play, ends with its play, or with the last of the questions the play asked
+ * (Twin Brother's swap and the discard after it), whose queue keeps its modifiers barred until it closes.
+ */
+export function endModifiersInUse(state: HydratedOathGameState): void {
+    const inUse = state.searchModifiersInUse
+    state.searchModifiersInUse = undefined
+    if (inUse && state.pendingQuestions) state.pendingQuestions.searchModifiersInUse = inUse
+}
+
+/**
+ * R-7.4.3 — whether `cardId` is a modifier in use: one the action under way recorded, until it and the questions it
+ * asks are done, or one of `declared`, the cards in use of an R-6.1 play judged before it records them.
+ */
+export function reasonModifierInUse(
+    state: HydratedOathGameState,
+    cardId: string,
+    declared: readonly string[] = []
+): string | undefined {
+    const inUse = state.searchModifiersInUse ?? state.pendingQuestions?.searchModifiersInUse ?? []
+    return inUse.includes(cardId) || declared.includes(cardId)
+        ? `${cardId} is a modifier in use and cannot be discarded during the action it modifies`
+        : undefined
+}
+
+/**
+ * R-7.4, R-5.1.4 — a Search, or a power's draw played "as if you searched" (Oracle), carries the modifiers that act
+ * after its draw to its play, which reads and clears them (`SearchResolve`).
+ */
+export function carryToSearchPlay(
+    state: HydratedOathGameState,
+    active: readonly ActiveModifier[]
+): void {
+    const carried = active
+        .filter(
+            (m) =>
+                m.hooks.after !== undefined ||
+                m.hooks.discardTo !== undefined ||
+                m.hooks.discardFirstAtSitePlay === true ||
+                m.hooks.sitePlayGainsSecret === true ||
+                m.hooks.playAnywhere !== undefined ||
+                m.hooks.secondPlay === true ||
+                m.hooks.revealsDraw === true ||
+                m.hooks.swapsWithDispossessed === true
+        )
+        .map((m) => ({
+            cardId: m.power.cardId,
+            powerIndex: m.power.powerIndex,
+            choices: m.choices.length > 0 ? [...m.choices] : undefined
+        }))
+    state.pendingSearchModifiers = carried.length > 0 ? carried : undefined
+}
+
 /** R-7.4, R-5.1.4 — the modifiers a Search carries to its play. */
 export function searchPlayModifiers(state: HydratedOathGameState): ActiveModifier[] {
     return carriedModifiers(state, state.pendingSearchModifiers)
 }
 
-/** Bracken, Cracked Horn */
+/** Bracken, Cracked Horn — the first with an answer, which from revision 31 is the only one (R-7.4-H2). */
 export function discardTargetOf(
     state: HydratedOathGameState,
     playerId: string,
@@ -559,6 +718,14 @@ export function firstForbid(
         if (reason) return reason
     }
     return undefined
+}
+
+/**
+ * R-7.3.3-H3 — from revision 31 a Search's modifiers resolve once its played card has made its gains, before that
+ * card's When Played power; before it (R-X.4), after the power and any second play.
+ */
+export function modifiersResolveBeforePower(state: HydratedOathGameState): boolean {
+    return isAtLeastOathRevision(state, OathRevision.EngineFixes26)
 }
 
 export function runAfter(

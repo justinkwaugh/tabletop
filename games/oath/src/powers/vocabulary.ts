@@ -1,5 +1,6 @@
 import { assert, assertExists } from '@tabletop/common'
 import { isLockedFor } from '../util/locked.js'
+import { reasonModifierInUse } from '../util/modifiers.js'
 import { effectiveSiteCapacity } from '../util/capacity.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { Banner, Region, Suit } from '../model/oathEnums.js'
@@ -248,7 +249,9 @@ export function discardDenizensAtSites(
 
 /**
  * R-10.5, R-7.2.2 — the denizens `discardDenizensAtSites` takes: those that match and are not locked where they
- * stand. Given a play's `mapChanges`, on the map that play leaves, read from the state before the play or after it.
+ * stand. R-7.4.3, R-9.2 — nor a modifier the Search or R-6.1 play under way uses (from revision 31, when it records
+ * them): its "cannot" outweighs the discard's "must". Given a play's `mapChanges`, on the map that play leaves,
+ * read from the state before the play or after it.
  */
 export function denizensToDiscardAtSites(
     state: HydratedOathGameState,
@@ -259,7 +262,10 @@ export function denizensToDiscardAtSites(
 ): string[] {
     return siteIds.flatMap((siteId) =>
         denizensAfterPlay(state, siteId, mapChanges).filter(
-            (id) => matches(id) && !isLockedFor(state, actingPlayerId, id, siteId)
+            (id) =>
+                matches(id) &&
+                !isLockedFor(state, actingPlayerId, id, siteId) &&
+                reasonModifierInUse(state, id) === undefined
         )
     )
 }

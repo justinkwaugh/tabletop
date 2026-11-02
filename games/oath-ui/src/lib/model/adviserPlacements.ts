@@ -20,7 +20,7 @@ import {
     type Region,
     type SitePlayGain
 } from '@tabletop/oath'
-import { adviserRoom, type AdviserRoom } from './adviserDiscards.js'
+import { adviserRoom, firstDiscard, NO_ROOM, type AdviserRoom } from './adviserDiscards.js'
 import {
     FIRST_BRANCH,
     emptyPicks,
@@ -329,25 +329,41 @@ export function adviserDiscardFirstOptions(
         )
 }
 
+/**
+ * R-5.1.4.II, R-7.4.3 — the advisers turning a facedown adviser faceup must discard, as the engine judges them with
+ * the cards the play uses (`modifiers`): from revision 31 a modifier in use is never one of them.
+ */
+export function facedownPlayRoom(
+    state: HydratedOathGameState,
+    playerId: string,
+    cardId: string,
+    play: SearchPlay,
+    modifiers: readonly ModifierUse[]
+): AdviserRoom {
+    if (play !== SearchPlay.Adviser) return NO_ROOM
+    return adviserRoom(state, playerId, cardId, {
+        faceUp: true,
+        fromAdvisers: true,
+        modifiersInUse: HydratedPlayFacedownAdviser.cardsInUse(state, playerId, play, modifiers)
+    })
+}
+
 // Contract rule 2 — a placement the engine refuses is not offered; each is judged with the cards
-// its send carries at the start (its free gains).
+// its send carries at the start (its free gains), and its discards leave them out.
 export function adviserPlacements(
     state: HydratedOathGameState,
     playerId: string,
     cardId: string
 ): AdviserPlacement[] {
     return ADVISER_PLAYS.flatMap((option) => {
-        const room =
-            option.play === SearchPlay.Adviser
-                ? adviserRoom(state, playerId, cardId, { faceUp: true, fromAdvisers: true })
-                : { needed: 0, discardable: [] }
         const cards = facedownPlayCards(state, playerId, cardId, option.play)
         const carried = rowsAtStart(cards)
+        const room = facedownPlayRoom(state, playerId, cardId, option.play, carried)
         // R-7.3.3 — the When Played choices, and any discards, are asked after the placement.
         const refused = HydratedPlayFacedownAdviser.reasonCannotPlace(state, playerId, {
             cardId,
             play: option.play,
-            discardedAdviserCardIds: room.discardable.slice(0, room.needed),
+            discardedAdviserCardIds: firstDiscard(room),
             modifiers: carried
         })
         const openElsewhere =

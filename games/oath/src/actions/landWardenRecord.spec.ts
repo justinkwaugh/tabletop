@@ -266,7 +266,12 @@ describe("Land Warden — the Search records both cards' plays in full", () => {
         const s = table([WOLVES, DAZZLE, FILLER])
         new HydratedSearch(search).apply(s)
         expect(
-            reasonCannotPairSecondPlay(s, 'dana', SearchPlay.Adviser, faceupAdviser(DAZZLE))
+            reasonCannotPairSecondPlay(
+                s,
+                'dana',
+                { keptCardId: WOLVES, play: SearchPlay.Adviser, faceUp: true },
+                faceupAdviser(DAZZLE)
+            )
         ).toBeDefined()
     })
 })

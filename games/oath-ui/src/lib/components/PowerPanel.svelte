@@ -14,6 +14,7 @@
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
     import FavorCost from '$lib/components/FavorCost.svelte'
     import PowerMovesPicker from '$lib/components/PowerMovesPicker.svelte'
+    import ModifierPicker from '$lib/components/ModifierPicker.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { powerCardName } from '$lib/model/names.js'
     import { pickerWords } from '$lib/model/powerPickerWords.js'
@@ -206,6 +207,13 @@
                                 words={pickerWords(p.cardId)}
                                 siteOnMap={(spec) => draft.siteRow(p, spec)}
                             />
+                        </div>
+                    {/if}
+                    <!-- R-6.1, R-7.4 — Oracle declares the Search modifiers acting on its play before the draw. -->
+                    {@const modifierRows = draft.modifierRows(p)}
+                    {#if modifierRows}
+                        <div data-power-modifiers={p.cardId}>
+                            <ModifierPicker rows={modifierRows} tagUnder spacing="mt-1" />
                         </div>
                     {/if}
                     {@render useRow(p, complete, reason, cost)}

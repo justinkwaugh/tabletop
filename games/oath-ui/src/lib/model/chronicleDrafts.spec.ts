@@ -4,6 +4,7 @@ import {
     CHRONICLE_STORY_LIMIT,
     ChronicleStep,
     HydratedOathGameState,
+    OathRevision,
     OathType,
     Suit,
     chronicleSuitLeaders,
@@ -22,8 +23,10 @@ import {
     HERALD,
     LONGBOWS,
     RHYS,
+    SALT_THE_EARTH,
     gameOneAt,
-    gameTwoAt
+    gameTwoAt,
+    gameTwoSaltedAtBuild
 } from '$lib/testing/chronicleTables.js'
 import { disposeSessions, openSessionOn, type PlayedTable } from '$lib/testing/sessionHarness.js'
 
@@ -92,6 +95,26 @@ describe('each step’s offer, on the chooser’s served view and on the full st
             repair: false
         })
         expect(session.mapPick).toMatchObject({ kind: 'build', choosing: true })
+    })
+
+    it('the build: from revision 31 Salt the Earth on the Drowned City, capacity 0, is not ringed; at revision 30 it is', async () => {
+        const after = gameTwoSaltedAtBuild(OathRevision.EngineFixes26)
+        expect(edificeChoices(chooserView(after, ANN))).toEqual(edificeChoices(full(after)))
+        const build = (await openSessionOn(after)).chronicleBuild
+        expect(build.ringed).toEqual([LONGBOWS, HERALD, FAE_MERCHANT])
+        build.point(SALT_THE_EARTH)
+        expect(build.pointed).toBeUndefined()
+
+        const before = gameTwoSaltedAtBuild(OathRevision.Chronicle)
+        expect(edificeChoices(chooserView(before, ANN))).toEqual(edificeChoices(full(before)))
+        const old = (await openSessionOn(before)).chronicleBuild
+        expect(old.ringed).toEqual([LONGBOWS, HERALD, FAE_MERCHANT, SALT_THE_EARTH])
+        old.point(SALT_THE_EARTH)
+        expect(old.pointed).toMatchObject({
+            cardId: SALT_THE_EARTH,
+            edificeId: 'edifice.discord.festival-district',
+            repair: false
+        })
     })
 
     it('a ruin the winner rules is ringed for repair; its site’s denizens are not', async () => {

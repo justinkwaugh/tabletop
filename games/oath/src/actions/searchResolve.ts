@@ -8,20 +8,30 @@ import { discardRegionFor, HydratedOathGameState } from '../model/gameState.js'
 import { HiddenReveal } from '../model/hidden.js'
 import { PowerOutcome } from '../model/powerOutcome.js'
 import { ActionType } from '../definition/actions.js'
-import { effectiveSiteCapacity } from '../util/capacity.js'
+import { effectiveSiteCapacity, SALT_THE_EARTH } from '../util/capacity.js'
 import { discardCards } from '../util/discard.js'
 import { regionOfPawn, pawnSiteId } from '../util/pawn.js'
 import { isFaceupPlay, isIrreversible } from '../util/powerDoorway.js'
 import { PowerChoice } from '../util/powerChoice.js'
-import { discardTargetOf, runAfter, searchPlayModifiers } from '../util/modifiers.js'
+import {
+    discardTargetOf,
+    endModifiersInUse,
+    modifiersResolveBeforePower,
+    runAfter,
+    searchPlayModifiers
+} from '../util/modifiers.js'
 import { commitHiddenOutputs, revealForPlay } from '../util/hiddenInputs.js'
 import { discardWitnesses, forgetHand } from '../util/knowledge.js'
 import {
+    beginCardPlay,
+    type CardPlayOptions,
     FavorShort,
     favorShortOf,
+    finishCardPlay,
     playCard,
     playMapChanges,
     reasonCannotPlayCard,
+    reasonSiteFull,
     whenPlayedMapLeaving
 } from '../util/cardPlay.js'
 import type { PlayMapChanges } from '../powers/registry.js'
@@ -87,7 +97,13 @@ export type SearchSecondPlay = Type.Static<typeof SearchSecondPlay>
 export const SearchSecondPlay = Type.Object({
     cardId: Visibility.protect(Type.String(), { policy: Visibility.Policy.Actor }),
     play: Type.Enum(SearchPlay),
-    faceUp: Type.Optional(Type.Boolean())
+    faceUp: Type.Optional(Type.Boolean()),
+    /** R-5.1.4.II — at the adviser limit, as the kept card's; from revision 31 (R-X.4). */
+    discardedAdviserCardIds: Type.Optional(
+        Visibility.protect(Type.Array(Type.String(), { maxItems: 8 }), {
+            policy: Visibility.Policy.Actor
+        })
+    )
 })
 
 export type SearchResolve = Type.Static<typeof SearchResolve>
@@ -190,7 +206,7 @@ export class HydratedSearchResolve
         // R-5.1.4
         // Truthful Harp — "you must reveal every card you draw and the card you keep".
         const shown = carried.some((m) => m.hooks.revealsDraw)
-        const played = playCard(state, this.playerId, this.keptCardId, this.play, region, {
+        const keptOptions: CardPlayOptions = {
             faceUp: this.faceUp,
             seen: shown,
             conspiracy: this.conspiracy,
@@ -201,7 +217,32 @@ export class HydratedSearchResolve
             carried,
             discardFirstCardId: this.discardFirstCardId,
             toSiteId: this.toSiteId
-        })
+        }
+        // R-5.1.4, R-9.4 — a facedown adviser has no suit, so only a shown card reaches the hooks.
+        const runModifiers = () =>
+            runAfter(state, this.playerId, carried, {
+                playedCardId: playShowsCard(this.play, this.faceUp) ? this.keptCardId : undefined,
+                playedTo: this.play,
+                secondPlayedCardId: shownSecondCardForAfter(state, this.secondPlay)
+            })
+        const begun = beginCardPlay(
+            state,
+            this.playerId,
+            this.keptCardId,
+            this.play,
+            region,
+            keptOptions
+        )
+        // R-7.3.3-H3 — once, reading both cards, before the kept card's power and the second card's play.
+        const before = modifiersResolveBeforePower(state) ? runModifiers() : undefined
+        const played = finishCardPlay(
+            state,
+            this.playerId,
+            this.keptCardId,
+            this.play,
+            begun,
+            keptOptions
+        )
 
         // HIDDEN-016 — a hand of one card has nowhere else to go: whoever knew it knows the row it took.
         if (
@@ -219,6 +260,7 @@ export class HydratedSearchResolve
         const second = this.secondPlay
             ? playCard(state, this.playerId, this.secondPlay.cardId, this.secondPlay.play, region, {
                   faceUp: this.secondPlay.faceUp,
+                  discardedAdviserCardIds: this.secondPlay.discardedAdviserCardIds,
                   seen: shown,
                   discardTarget,
                   carried: secondPlayModifiers(state, carried),
@@ -226,12 +268,8 @@ export class HydratedSearchResolve
               })
             : undefined
 
-        // R-5.1.4, R-9.4 — a facedown adviser has no suit, so only a shown card reaches the hooks.
-        const after = runAfter(state, this.playerId, carried, {
-            playedCardId: playShowsCard(this.play, this.faceUp) ? this.keptCardId : undefined,
-            playedTo: this.play,
-            secondPlayedCardId: shownSecondCardForAfter(state, this.secondPlay)
-        })
+        // R-X.4 — before revision 31, after both plays.
+        const after = before ?? runModifiers()
 
         const pileDeposits = [
             ...(played.outcome.pileDeposits ?? []),
@@ -292,6 +330,8 @@ export class HydratedSearchResolve
             isIrreversible(this.metadata) ||
             reveal !== undefined
         commitHiddenOutputs(this, state, witnesses)
+
+        endModifiersInUse(state)
     }
 
     static reasonCannotResolve(
@@ -309,7 +349,7 @@ export class HydratedSearchResolve
         if (second) {
             const secondReason =
                 reasonCannotPlaySecondCard(state, playerId, choice.keptCardId, second, choice) ??
-                reasonCannotPairSecondPlay(state, playerId, choice.play, second, choice.toSiteId)
+                reasonCannotPairSecondPlay(state, playerId, choice, second)
             if (secondReason) return secondReason
         }
         const expected = player
@@ -367,8 +407,17 @@ export function reasonCannotPlaySecondCard(
         return `${second.cardId} is not a second drawn card`
     if (second.play !== SearchPlay.Site && second.play !== SearchPlay.Adviser)
         return 'the second card is played to your site or as an adviser'
+    // R-X.4 — before revision 31 the second card discarded no adviser, so at the limit it could not be an adviser.
+    if (
+        second.discardedAdviserCardIds !== undefined &&
+        !isAtLeastOathRevision(state, OathRevision.EngineFixes26)
+    )
+        return 'second card: an adviser is discarded for it only in a game created from revision 31'
+    // R-5.1.4.II — the kept card is played first, and only one of the two may be an adviser, so the second card's
+    // limit is counted on the advisers the kept card's play leaves: the same as before it.
     const reason = reasonCannotPlayCard(state, playerId, second.cardId, second.play, {
         faceUp: second.faceUp,
+        discardedAdviserCardIds: second.discardedAdviserCardIds,
         carried: secondPlayModifiers(state, searchPlayModifiers(state)),
         earlierMapChanges: kept && keptPlayMapChanges(state, playerId, keptCardId, kept)
     })
@@ -380,6 +429,9 @@ type KeptPlay = Pick<
     SearchResolveChoice,
     'play' | 'discardFirstCardId' | 'toSiteId' | 'faceUp' | 'discardedAdviserCardIds'
 >
+
+/** Land Warden — the kept card, and its play. */
+type KeptCard = KeptPlay & Pick<SearchResolveChoice, 'keptCardId'>
 
 /**
  * Land Warden — the kept card's play lands before the second card's When Played power resolves: its map changes,
@@ -432,28 +484,38 @@ function shownSecondCardForAfter(
 
 /**
  * Land Warden — "if you play at least one card to a site", with room for both at your site when both go there.
- * `keptToSiteId` is where the kept card goes: the People's Favor may send it to another site (R-5.1.4.I), and its
- * Q&A lets both cards use it.
+ * `kept` is the kept card and its play: the People's Favor may send it to another site (R-5.1.4.I), and its Q&A
+ * lets both cards use it; it may discard a card first (the People's Favor, the Great Slum, Crop Rotation), which
+ * the kept card's own check judges.
  */
 export function reasonCannotPairSecondPlay(
     state: HydratedOathGameState,
     playerId: string,
-    firstPlay: SearchPlay,
-    second: SearchSecondPlay,
-    keptToSiteId?: string
+    kept: KeptCard,
+    second: SearchSecondPlay
 ): string | undefined {
-    if (firstPlay !== SearchPlay.Site && second.play !== SearchPlay.Site)
+    if (kept.play !== SearchPlay.Site && second.play !== SearchPlay.Site)
         return 'Land Warden: at least one of the two cards must be played to a site'
-    if (firstPlay === SearchPlay.Site && second.play === SearchPlay.Site) {
-        const here = pawnSiteId(state, playerId)
-        // Each site's room counts the cards that go there; the second card's own check counts it alone. Before
-        // revision 16 (R-X.4), both counted at your site wherever the kept card went.
-        const keptHere =
-            keptToSiteId === undefined ||
-            keptToSiteId === here ||
-            !isAtLeastOathRevision(state, OathRevision.EngineFixes12)
-        if (keptHere && state.denizensAt(here).length + 2 > effectiveSiteCapacity(state, here))
-            return 'no room at your site for two cards'
+    if (kept.play !== SearchPlay.Site || second.play !== SearchPlay.Site) return undefined
+    const here = pawnSiteId(state, playerId)
+    // Each site's room counts the cards that go there; the second card's own check counts it alone. Before
+    // revision 16 (R-X.4), both counted at your site wherever the kept card went.
+    const keptHere =
+        kept.toSiteId === undefined ||
+        kept.toSiteId === here ||
+        !isAtLeastOathRevision(state, OathRevision.EngineFixes12)
+    if (!keptHere) return undefined
+    if (isAtLeastOathRevision(state, OathRevision.EngineFixes26)) {
+        // The kept card plays first, so the second card needs a space at your site as that play leaves it: the
+        // map its own check counts, after the card discarded first and the kept card's When Played power. Salt
+        // the Earth: "When Played, ignore this site's capacity."
+        const left = keptPlayMapChanges(state, playerId, kept.keptCardId, kept)
+        return second.cardId !== SALT_THE_EARTH && reasonSiteFull(state, here, left)
+            ? 'no room at your site for two cards'
+            : undefined
     }
-    return undefined
+    // R-X.4 — before revision 31, both were counted on your site as it stood before the kept card's play.
+    return state.denizensAt(here).length + 2 > effectiveSiteCapacity(state, here)
+        ? 'no room at your site for two cards'
+        : undefined
 }

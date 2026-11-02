@@ -2506,6 +2506,72 @@ describe('R-10.13 — each counted warband takes the owner its own words name, e
             )
         })
 
+        it('Land Warden’s second card Salt the Earth after the kept card: both plays, and what Salt the Earth discarded', () => {
+            const row = action({
+                type: ActionType.SearchResolve,
+                playerId: 'p2',
+                keptCardId: 'denizen.hearth.wayside-inn',
+                discardOrder: [],
+                play: SearchPlay.Site,
+                secondPlay: { cardId: 'denizen.discord.salt-the-earth', play: SearchPlay.Site },
+                metadata: {
+                    ...searched,
+                    favorGained: 2,
+                    playedCardId: 'denizen.hearth.wayside-inn',
+                    secondPlayedCardId: 'denizen.discord.salt-the-earth',
+                    secondWhenPlayed:
+                        'Salt the Earth: discarded 3 denizens at slot.provinces.0; its capacity is now 1'
+                }
+            })
+            expect(describeAction(row, nameOf)).toBe(
+                'kept Wayside Inn and played it to their site, gaining 2 favor; Salt the Earth: discarded 3 denizens at Provinces 1; its capacity is now 1'
+            )
+        })
+
+        it('Land Warden’s second card into the space the kept card’s When Played power freed: the kept play, the favor both plays gained, and what the kept card discarded', () => {
+            const row = action({
+                type: ActionType.SearchResolve,
+                playerId: 'p2',
+                keptCardId: 'denizen.arcane.dazzle',
+                discardOrder: ['denizen.order.wrestlers'],
+                play: SearchPlay.Site,
+                secondPlay: { cardId: 'denizen.beast.rangers', play: SearchPlay.Site },
+                metadata: {
+                    ...searched,
+                    favorGained: 2,
+                    playedCardId: 'denizen.arcane.dazzle',
+                    secondPlayedCardId: 'denizen.beast.rangers',
+                    whenPlayed: 'discarded 1 hearth and order cards in the region'
+                }
+            })
+            expect(describeAction(row, nameOf)).toBe(
+                'kept Dazzle and played it to their site, gaining 2 favor: discarded 1 hearth and order cards in the region'
+            )
+        })
+
+        it('Land Warden’s second card after the kept card discarded a card first: the kept play, the favor both plays gained, and the cards discarded with the one discarded first', () => {
+            const row = action({
+                type: ActionType.SearchResolve,
+                playerId: 'p2',
+                keptCardId: 'denizen.hearth.wayside-inn',
+                discardOrder: ['denizen.order.wrestlers'],
+                play: SearchPlay.Site,
+                discardFirstCardId: 'denizen.beast.wolves',
+                secondPlay: { cardId: 'denizen.order.longbows', play: SearchPlay.Site },
+                metadata: {
+                    ...searched,
+                    discardedCardIds: ['denizen.order.wrestlers', 'denizen.beast.wolves'],
+                    discardedCount: 2,
+                    favorGained: 2,
+                    playedCardId: 'denizen.hearth.wayside-inn',
+                    secondPlayedCardId: 'denizen.order.longbows'
+                }
+            })
+            expect(describeAction(row, nameOf)).toBe(
+                'kept Wayside Inn and played it to their site, gaining 2 favor; 2 cards went to the cradle discard pile'
+            )
+        })
+
         it('Land Warden’s second card, a triggered power, a Homeland and a modifier each follow as their own clause', () => {
             const row = action({
                 type: ActionType.SearchResolve,

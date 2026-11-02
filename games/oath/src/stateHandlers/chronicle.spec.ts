@@ -37,7 +37,7 @@ import { RollEndDie, isRollEndDie } from '../actions/rollEndDie.js'
 import { Travel } from '../actions/travel.js'
 import { TransferOathkeeper } from '../actions/transferOathkeeper.js'
 import { CHRONICLE_STEPS, stateAfterWin, tableRecordOf } from '../util/chronicle.js'
-import { OathRevision } from '../util/revision.js'
+import { CURRENT_OATH_REVISION, OathRevision } from '../util/revision.js'
 import { writeChronicleThrough } from '../testing/chronicle.js'
 import { ActionType } from '../definition/actions.js'
 
@@ -432,7 +432,7 @@ describe('the table record at the start', () => {
         const { initialState } = engine.startGame(game, {
             masterSeed: '0000000000000000000000000000beef'
         })
-        expect(initialState.oathRevision).toBe(AT)
+        expect(initialState.oathRevision).toBe(CURRENT_OATH_REVISION)
         expect(initialState.table).toEqual(tableRecordOf(game))
         for (const player of initialState.players) {
             expect(

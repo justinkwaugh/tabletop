@@ -56,11 +56,15 @@ describe('palette', () => {
     })
 
     it('every token variable a component styles with is declared', () => {
-        const unknown = Object.entries(components).flatMap(([path, source]) =>
-            [...source.matchAll(/var\(--(oath-[a-z-]+)\)/g)]
-                .filter((match) => !declaredTokens.has(match[1]))
+        const unknown = Object.entries(components).flatMap(([path, source]) => {
+            // A property the component registers itself with @property is declared there.
+            const registered = new Set(
+                [...source.matchAll(/@property\s+--(oath-[a-z-]+)/g)].map((match) => match[1])
+            )
+            return [...source.matchAll(/var\(--(oath-[a-z-]+)\)/g)]
+                .filter((match) => !declaredTokens.has(match[1]) && !registered.has(match[1]))
                 .map((match) => `${path}: ${match[0]}`)
-        )
+        })
         expect(unknown).toEqual([])
     })
 })

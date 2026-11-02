@@ -44,6 +44,30 @@ export function cannotPlaceWarbandsAtSites(
     return continuousHooksOf(state, playerId).some((h) => h.cannotPlaceWarbandsAtSites)
 }
 
+/** Ring of Devotion — why a move or a placement of the holder's warbands at a site is refused. */
+export function reasonCannotPlaceWarbandsAtSites(
+    state: HydratedOathGameState,
+    playerId: string
+): string | undefined {
+    return cannotPlaceWarbandsAtSites(state, playerId)
+        ? 'you cannot place warbands at sites (Ring of Devotion)'
+        : undefined
+}
+
+/**
+ * Ring of Devotion with Messenger's text (Messenger, Warning Signals): a warband reaching a site is
+ * placed there, so from revision 31 (R-X.4) the holder makes no move to a site, from the board or
+ * from another site (R-9.2). A move from a site to the board places nothing and stays allowed.
+ */
+export function reasonPowerMovesToSitesBarred(
+    state: HydratedOathGameState,
+    playerId: string
+): string | undefined {
+    return isAtLeastOathRevision(state, OathRevision.EngineFixes26)
+        ? reasonCannotPlaceWarbandsAtSites(state, playerId)
+        : undefined
+}
+
 /** Ring of Devotion — "When mustering, you gain two more warbands." */
 export function musterWarbandsBonus(state: HydratedOathGameState, playerId: string): number {
     return continuousHooksOf(state, playerId).reduce((n, h) => n + (h.musterWarbandsBonus ?? 0), 0)
@@ -165,6 +189,35 @@ export function adviserExcess(
             baseLimit: player.adviserLimit
         },
         receivedCardIds
+    )
+}
+
+/**
+ * R-5.1.4.II, R-7.6.4 — how many advisers a player holds above their limit once `discarded` are gone and `cardId`
+ * is played as an adviser, faceup or facedown; `fromAdvisers` when it was one of their facedown advisers (R-6.1).
+ * The card played is just received, so Pied Piper played faceup is not counted on its arrival.
+ */
+export function adviserExcessAfterPlay(
+    state: HydratedOathGameState,
+    playerId: string,
+    cardId: string,
+    options: { faceUp?: boolean; fromAdvisers?: boolean },
+    discarded: readonly string[]
+): number {
+    const player = state.getPlayerState(playerId)
+    const faceupLeaving = discarded.filter((id) => player.isFaceupAdviser(id))
+    const facedownLeaving = discarded.length - faceupLeaving.length + (options.fromAdvisers ? 1 : 0)
+    const faceup = player.faceupAdviserIds().filter((id) => !faceupLeaving.includes(id))
+    const facedown = player.advisers.filter((row) => !row.faceUp).length - facedownLeaving
+    return holdingExcess(
+        state,
+        {
+            faceup: options.faceUp ? [...faceup, cardId] : faceup,
+            facedown: options.faceUp ? facedown : facedown + 1,
+            relicIds: player.relicIds,
+            baseLimit: player.adviserLimit
+        },
+        [cardId]
     )
 }
 

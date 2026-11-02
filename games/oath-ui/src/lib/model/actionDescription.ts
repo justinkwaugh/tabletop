@@ -974,7 +974,9 @@ function describeActionCited(
             exchangeOffer(action, names) ??
             messengerMoves(action, names) ??
             powerEffect(action, names, viewerId)
-        return `used ${powerCardName(action.cardId, action.powerIndex)}${cost}${effect}${paying}`
+        // R-7.4 — Oracle's Search modifiers, in brackets after the cost, as a Search's row names its own.
+        const cards = cardsInBrackets(action.metadata?.modifiers, new Set())
+        return `used ${powerCardName(action.cardId, action.powerIndex)}${cost}${cards}${effect}${paying}`
     }
     if (isPeek(action)) {
         return 'peeked at a relic at their site'

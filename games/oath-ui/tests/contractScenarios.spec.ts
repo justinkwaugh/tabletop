@@ -7781,7 +7781,7 @@ test('the game end: "<winner> won as Usurper", without the reason', async ({ pag
     await expect(end).not.toContainText('an Exile holding')
 })
 
-type PanelFrame = { scale: number; box: number; drawn: number }
+type PanelFrame = { scale: number; box: number; drawn: number; column: number; window: number }
 type PanelRecord = { frames: PanelFrame[]; errors: string[] }
 
 /** Samples the last fitted panel on every animation frame from the first one it exists, and every error the window reports (a ResizeObserver loop error reaches the window, not `pageerror`). */
@@ -7797,7 +7797,9 @@ function installPanelRecorder() {
             record.frames.push({
                 scale: new DOMMatrixReadOnly(getComputedStyle(inner).transform).a,
                 box: box.getBoundingClientRect().height,
-                drawn: inner.getBoundingClientRect().height
+                drawn: inner.getBoundingClientRect().height,
+                column: box.parentElement?.clientHeight ?? 0,
+                window: window.innerHeight
             })
         }
         requestAnimationFrame(sample)
@@ -7832,9 +7834,40 @@ function expectFittedOnEveryFrame({ frames, errors }: PanelRecord) {
     expect(errors).toEqual([])
 }
 
-async function stepColumnHeight(page: Page, heights: number[]) {
+/**
+ * An upright phone: at full size on every frame, in a box never taller than its share (0.55) of the
+ * column, or of the window in full screen. A frame is sampled before that frame's layout, so its
+ * box may still be sized for the room of the frame before (as the scaled box on other windows is).
+ */
+function expectFullSizeInItsShareOnEveryFrame(
+    { frames, errors }: PanelRecord,
+    basis: 'column' | 'window'
+) {
+    expect(frames.length).toBeGreaterThan(0)
+    expect(frames.filter((frame) => frame.scale !== 1)).toEqual([])
+    const room = (index: number) =>
+        Math.max(frames[index][basis], frames[Math.max(0, index - 1)][basis])
+    expect(frames.filter((frame, index) => frame.box > room(index) * 0.55 + 2.5)).toEqual([])
+    expect(errors).toEqual([])
+}
+
+/**
+ * A phone upright (375 wide, scrolling inside its share) and held sideways (812 wide, scaled to fit),
+ * each with an Act Phase panel taller than its share.
+ */
+const PHONES = [
+    { name: 'upright', width: 375, heights: [540, 520, 500, 480, 460, 440], table: 'actPhase' },
+    {
+        name: 'held sideways',
+        width: 812,
+        heights: [375, 360, 345, 330, 320, 310],
+        table: 'everyMinor'
+    }
+] as const
+
+async function stepColumnHeight(page: Page, width: number, heights: readonly number[]) {
     for (const height of heights) {
-        await page.setViewportSize({ width: 375, height })
+        await page.setViewportSize({ width, height })
         await waitFrames(page, 8)
     }
 }
@@ -7846,67 +7879,79 @@ async function choosePowers(page: Page) {
     await waitFrames(page, 8)
 }
 
-test.describe('scenario 61: on a phone the panel is drawn at its fitted scale on every frame', () => {
-    test.use({ viewport: { width: 375, height: 540 } })
+for (const phone of PHONES) {
+    const [h0, h1, h2, h3, h4, h5] = phone.heights
+    const upright = phone.name === 'upright'
+    const expectEveryFrame = (record: PanelRecord, basis: 'column' | 'window') =>
+        upright
+            ? expectFullSizeInItsShareOnEveryFrame(record, basis)
+            : expectFittedOnEveryFrame(record)
 
-    test('the panel’s first frame on opening the table is already fitted', async ({ page }) => {
-        await page.addInitScript(installPanelRecorder)
-        await openTable(page, 'actPhase')
-        await expect(tile(page, 'Travel')).toBeVisible()
-        await panelImagesLoaded(page)
-        expectFittedOnEveryFrame(await panelRecord(page))
-    })
+    test.describe(`scenario 61: on a phone ${phone.name} the panel is drawn ${upright ? 'at full size inside its share' : 'at its fitted scale'} on every frame`, () => {
+        test.use({ viewport: { width: phone.width, height: h0 } })
 
-    test('the column’s height changing in steps, as an address bar slides, never draws the panel unscaled', async ({
-        page
-    }) => {
-        await openTable(page, 'actPhase')
-        await expect(tile(page, 'Travel')).toBeVisible()
-        await recordPanel(page)
-        await stepColumnHeight(page, [520, 500, 480, 460, 480, 500, 520, 540])
-        const record = await panelRecord(page)
-        expectFittedOnEveryFrame(record)
-        expect(new Set(record.frames.map((frame) => frame.box)).size).toBeGreaterThan(4)
-    })
+        test('the panel’s first frame on opening the table is already fitted', async ({ page }) => {
+            await page.addInitScript(installPanelRecorder)
+            await openTable(page, phone.table)
+            await expect(tile(page, 'Travel')).toBeVisible()
+            await panelImagesLoaded(page)
+            expectEveryFrame(await panelRecord(page), 'column')
+        })
 
-    test('a step with different content refits without an unscaled frame', async ({ page }) => {
-        await page.setViewportSize({ width: 375, height: 500 })
-        await openTable(page, 'cardsOpenTravel')
-        await expect(usePower(page)).toBeVisible()
-        await panelImagesLoaded(page)
-        await recordPanel(page)
-        await choosePowers(page)
-        await panelImagesLoaded(page)
-        const record = await panelRecord(page)
-        expectFittedOnEveryFrame(record)
-        expect(
-            record.frames[0].scale - record.frames[record.frames.length - 1].scale
-        ).toBeGreaterThan(0.03)
-    })
+        test('the column’s height changing in steps, as an address bar slides, keeps the panel fitted on every frame', async ({
+            page
+        }) => {
+            await openTable(page, phone.table)
+            await expect(tile(page, 'Travel')).toBeVisible()
+            await recordPanel(page)
+            await waitFrames(page, 2)
+            await stepColumnHeight(page, phone.width, [h1, h2, h3, h4, h3, h2, h1, h0])
+            const record = await panelRecord(page)
+            expectEveryFrame(record, 'column')
+            expect(new Set(record.frames.map((frame) => frame.box)).size).toBeGreaterThan(3)
+        })
 
-    test('in full screen, the window’s height changing and a new step never draw the panel unscaled', async ({
-        page
-    }) => {
-        await page.setViewportSize({ width: 375, height: 500 })
-        await openTable(page, 'cardsOpenTravel')
-        await expect(usePower(page)).toBeVisible()
-        await recordPanel(page)
-        await page.getByRole('button', { name: 'Enter full screen' }).click()
-        await expect(page.locator('.fullscreen-panel .fit__inner')).toBeVisible()
-        expect(
-            await page
-                .locator('.fit__inner')
-                .last()
-                .evaluate((inner) => inner.closest('.fullscreen-panel') !== null)
-        ).toBe(true)
-        await panelImagesLoaded(page)
-        await stepColumnHeight(page, [480, 460, 440, 460, 480, 500])
-        await choosePowers(page)
-        const record = await panelRecord(page)
-        expectFittedOnEveryFrame(record)
-        expect(new Set(record.frames.map((frame) => frame.box)).size).toBeGreaterThan(3)
+        test('a step with different content refits on its first frame', async ({ page }) => {
+            await page.setViewportSize({ width: phone.width, height: h2 })
+            await openTable(page, 'cardsOpenTravel')
+            await expect(usePower(page)).toBeVisible()
+            await panelImagesLoaded(page)
+            await recordPanel(page)
+            await choosePowers(page)
+            await panelImagesLoaded(page)
+            const record = await panelRecord(page)
+            expectEveryFrame(record, 'column')
+            const [first, last] = [record.frames[0], record.frames[record.frames.length - 1]]
+            // Taller content: upright, drawn taller inside its box; sideways, scaled further down.
+            if (upright) expect(last.drawn - first.drawn).toBeGreaterThan(20)
+            else expect(first.scale - last.scale).toBeGreaterThan(0.03)
+        })
+
+        test('in full screen, the window’s height changing and a new step keep the panel fitted on every frame', async ({
+            page
+        }) => {
+            await page.setViewportSize({ width: phone.width, height: h2 })
+            await openTable(page, 'cardsOpenTravel')
+            await expect(usePower(page)).toBeVisible()
+            await recordPanel(page)
+            await page.getByRole('button', { name: 'Enter full screen' }).click()
+            await expect(page.locator('.fullscreen-panel .fit__inner')).toBeVisible()
+            expect(
+                await page
+                    .locator('.fit__inner')
+                    .last()
+                    .evaluate((inner) => inner.closest('.fullscreen-panel') !== null)
+            ).toBe(true)
+            await panelImagesLoaded(page)
+            await stepColumnHeight(page, phone.width, [h3, h4, h5, h4, h3, h2])
+            await choosePowers(page)
+            const record = await panelRecord(page)
+            // Full screen's share is of the window, which is taller than the docked panel's column.
+            expectEveryFrame(record, 'window')
+            expect(new Set(record.frames.map((frame) => frame.box)).size).toBeGreaterThan(3)
+        })
     })
-})
+}
 
 test('scenario 61: a panel image that arrives after its panel changes nothing it was laid out with', async ({
     page

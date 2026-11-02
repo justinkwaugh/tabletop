@@ -859,6 +859,11 @@ export const PendingQuestions = Type.Object({
     queue: Type.Array(PowerQuestion, { maxItems: 64 }),
     askingPlayerId: Type.String(),
     resumeMachineState: Type.Enum(MachineState),
+    /**
+     * R-7.4.3 — the cards of the modifiers a Search, or an R-6.1 play, uses, while the questions of its play are
+     * open. From revision 31.
+     */
+    searchModifiersInUse: Type.Optional(Type.Array(Type.String(), { maxItems: 16 })),
     /** The Gathering — the second round is built once the first round's pawns have moved. */
     followUp: Type.Optional(
         Type.Object({

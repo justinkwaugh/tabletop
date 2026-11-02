@@ -244,7 +244,8 @@
 
 <style>
     /* 44 px on a phone, on the screen: `FitBox` scales a step taller than its share of the screen
-       down, so the step's own buttons start that much taller (`--fit-scale`). */
+       down, so the step's own buttons start that much taller (`--fit-scale`). An upright phone
+       never scales (`--fit-scale` 1, so 44 px); a phone this narrow held sideways still does. */
     @media (max-width: 639.98px) {
         .send {
             min-height: calc(2.75rem / var(--fit-scale, 1));

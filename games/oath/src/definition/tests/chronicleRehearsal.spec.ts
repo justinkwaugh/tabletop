@@ -20,7 +20,7 @@ import { BoardSide, ChronicleStep, OpeningChancellor } from '../../model/chronic
 import { WIN_KIND_OF_RULE, WinKind } from '../../model/ending.js'
 import { mapSlotsFor } from '../../data/mapSlots.js'
 import { vowableOaths } from '../../util/chronicleChoices.js'
-import { OathRevision } from '../../util/revision.js'
+import { CURRENT_OATH_REVISION, OathRevision } from '../../util/revision.js'
 import type { Search } from '../../actions/search.js'
 import { vaultOf } from '../../testing/engine.js'
 import { served, spectator } from '../../testing/projection.js'
@@ -315,7 +315,7 @@ describe('scene A — "The long table": three seats play to a win, Continue, and
                 })
                 expect(state.chronicle).toBeUndefined()
                 expect(state.result).toBeUndefined()
-                expect(state.oathRevision).toBe(OathRevision.Chronicle)
+                expect(state.oathRevision).toBe(CURRENT_OATH_REVISION)
                 expect(openingCensus(hydrated(state))).toEqual([])
             })
 

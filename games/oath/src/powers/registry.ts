@@ -99,11 +99,16 @@ export interface PlayGains {
      */
     favorTaken: readonly FavorTake[]
     /**
-     * R-7.4 — the favor a carried modifier gains once a site play is made (Welcoming Party), from the banks this
-     * plan leaves. It is gained after the power, so it is not taken from `favorBank`; a modifier gains once per
-     * action (R-7.4.2), so Land Warden's second card plans none.
+     * R-7.4 — the favor a carried modifier gains once the play is made (Welcoming Party), from the banks this plan
+     * leaves. From revision 31 it is gained before the power (R-7.3.3-H3), on a faceup play of a denizen, and taken
+     * from `favorBank`; before it, on a site play, after the power, so not taken from it. A modifier gains once per
+     * action (R-7.4.2): from revision 31 Land Warden's second card plans it only when the kept card's play did not
+     * (`modifiersPaid`), and takes it before its own gains, as the modifiers resolve before the second play; before
+     * revision 31 the second card plans none.
      */
     favorAfter: number
+    /** R-7.3.3-H3, R-7.4.2 — from revision 31, the Search's modifiers have paid by this play: on it, or on the kept card's. */
+    modifiersPaid: boolean
 }
 
 /** R-9.3 — one favor a play takes from a bank, and how much the bank gave: 0 when it was empty. */
@@ -461,6 +466,11 @@ export interface EffectDefinition {
     reasonCannotResolve?: (ctx: EffectContext) => string | undefined
     /** R-7.1.4 — the tolls its use owes, paid with its cost (Forced Labor on Oracle). */
     tollOccasion?: TollOccasion
+    /**
+     * R-6.1, R-7.4 — its draw is played or discarded "as if you searched" (Oracle), so from revision 31 its use
+     * declares the Search modifiers that act on that play (`UseActionPower.modifiers`).
+     */
+    playsAsIfSearched?: boolean
     resolve: (ctx: EffectContext) => EffectResult
     /**
      * R-5.1.4 — the denizens a When Played power that takes no choices puts off the map, on the map

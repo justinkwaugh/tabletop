@@ -6,6 +6,7 @@ import {
     disguisedAs,
     isFreeGain,
     offeredChoices,
+    reasonUsesDisagree,
     usableModifiers,
     type CardPower,
     type LegalChoice,
@@ -26,6 +27,7 @@ import type { ModifierDeclaration } from './oathSelection.svelte.js'
 import { powerUseKey, samePowerUse } from './powerUse.js'
 import { isHospitality } from './travelRows.js'
 import type { OathGameSession } from './session.svelte.js'
+import type { ModifierRows } from './modifierRows.js'
 import {
     CARD_ACTIONS,
     actionCardUses,
@@ -60,7 +62,7 @@ function unopened(m: ModifierDeclaration): ModifierDeclaration {
 }
 
 /** R-7.4 — the modifiers usable with the staged action, and the choices each one's text opens. */
-export class ModifierDeclarations {
+export class ModifierDeclarations implements ModifierRows {
     constructor(private readonly session: OathGameSession) {}
 
     /**
@@ -74,17 +76,44 @@ export class ModifierDeclarations {
         if (!playerId || !action) return []
         const state = this.session.gameState
         const staged = this.staged
-        const usable = usableModifiers(state, playerId, action, staged)
+        const usable = this.usableBeside(playerId, action, staged)
         return staged.reduce((kept, use) => {
             const power = usable.find((p) => samePowerUse(p, use))
             if (!power || this.picksInMenu(power)) return kept
             if (picksComplete(this.choicesOf(power), this.picksOf(use))) return kept
             const others = staged.filter((m) => !samePowerUse(m, use))
             const each = soleDeclarations(state, playerId, power).map((way) =>
-                usableModifiers(state, playerId, action, [...others, way])
+                this.usableBeside(playerId, action, [...others, way])
             )
             return kept.filter((p) => each.every((list) => list.some((q) => samePowerUse(q, p))))
         }, usable)
+    }
+
+    /**
+     * R-7.4-H2 — the cards usable beside `uses`, less each card not among them whose every way
+     * of being declared answers a question differently from a card that stays in use beside it
+     * (Bracken and the Cracked Horn). A card naming the pile puts down another that does
+     * (`declare`), so that one is not asked.
+     */
+    private usableBeside(
+        playerId: string,
+        action: ActionType,
+        uses: readonly ModifierUse[]
+    ): CardPower[] {
+        const state = this.session.gameState
+        const usable = usableModifiers(state, playerId, action, uses)
+        if (uses.length === 0) return usable
+        const namesPile = (p: CardPower) => this.drawPileChoice(p) !== undefined
+        return usable.filter((power) => {
+            if (uses.some((use) => samePowerUse(use, power))) return true
+            const kept = namesPile(power)
+                ? uses.filter((use) => !usable.some((p) => samePowerUse(p, use) && namesPile(p)))
+                : uses
+            if (kept.length === 0) return true
+            return soleDeclarations(state, playerId, power).some(
+                (way) => reasonUsesDisagree(state, playerId, [...kept, way]) === undefined
+            )
+        })
     }
 
     /** The cards in use, each with the choices its picks make, before they are judged. */

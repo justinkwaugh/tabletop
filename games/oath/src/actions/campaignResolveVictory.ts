@@ -14,7 +14,7 @@ import { concludeVictory } from '../util/campaignVictory.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 import { MachineState } from '../definition/states.js'
 import { afterRelicsTakenPersistent } from '../util/persistent.js'
-import { cannotPlaceWarbandsAtSites } from '../util/continuous.js'
+import { reasonCannotPlaceWarbandsAtSites } from '../util/continuous.js'
 import { ActionType } from '../definition/actions.js'
 import { Banner } from '../model/oathEnums.js'
 import { CampaignTargetKind, HospitalPlaced, type CampaignState } from '../model/campaign.js'
@@ -427,11 +427,9 @@ export class HydratedCampaignResolveVictory
             }
             // R-7.1.4-H1, R-9.2 — Ring of Devotion's "cannot place warbands at
             // sites"; "any number, even zero" (R-5.5.7.I) leaves zero legal.
-            if (
-                placement.count > 0 &&
-                cannotPlaceWarbandsAtSites(state, campaign.attackerPlayerId)
-            ) {
-                return 'you cannot place warbands at sites (Ring of Devotion)'
+            if (placement.count > 0) {
+                const barred = reasonCannotPlaceWarbandsAtSites(state, campaign.attackerPlayerId)
+                if (barred) return barred
             }
             if (!sites.includes(placement.siteId)) {
                 return `${placement.siteId} was not targeted, so no warbands may be placed there`

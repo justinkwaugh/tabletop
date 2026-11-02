@@ -161,6 +161,7 @@ import {
     adviserDiscardFirstOptions,
     adviserOtherSites,
     adviserPlacements,
+    facedownPlayRoom,
     pileCardRegions,
     pilePlaceUses,
     rowsAtStart,
@@ -207,7 +208,7 @@ import {
     type PowerChoicePicks
 } from './powerChoices.js'
 import { whenPlayedBanks, whenPlayedChoices } from './whenPlayed.js'
-import { toggledDiscard, type AdviserRoom } from './adviserDiscards.js'
+import { NO_ROOM, offeredDiscards, toggledDiscard, type AdviserRoom } from './adviserDiscards.js'
 import {
     NO_CONSPIRACY_PICK,
     conspiracyNoTake,
@@ -895,9 +896,21 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         return this.stagedAdviserPlacement?.play
     }
 
-    /** R-6.1, R-7.6.4 — the advisers a limiter turned faceup must discard. */
+    /**
+     * R-6.1, R-7.6.4 — the advisers a limiter turned faceup must discard. R-7.4.3 — never a card the play uses, as
+     * its rows stand now: a row put in use leaves the picker, and one put down joins it.
+     */
     get adviserPlayRoom(): AdviserRoom {
-        return this.stagedAdviserPlacement?.room ?? { needed: 0, discardable: [] }
+        const playerId = this.liveTurnSeatId
+        const cardId = this.adviserCardId
+        const play = this.adviserPlay
+        if (!playerId || !cardId || play === undefined) return NO_ROOM
+        return facedownPlayRoom(this.gameState, playerId, cardId, play, this.adviserModifiers)
+    }
+
+    /** The advisers offered to discard for the staged play, as the picks so far leave them. */
+    get adviserPlayDiscardable(): string[] {
+        return offeredDiscards(this.adviserPlayRoom, this.adviserPlayDiscards)
     }
 
     get adviserPlayDiscards(): string[] {
@@ -1310,17 +1323,20 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         )
     }
 
+    /** R-7.4 — `modifiers`: Oracle's, declared for its play "as if you searched". */
     async useActionPower(
         cardId: string,
         powerIndex: number,
-        choices: PowerChoice[]
+        choices: PowerChoice[],
+        modifiers: ModifierUse[] = []
     ): Promise<void> {
         await this.commit(
             this.createPlayerAction(UseActionPower, {
                 type: ActionType.UseActionPower,
                 cardId,
                 powerIndex,
-                choices
+                choices,
+                ...(modifiers.length > 0 ? { modifiers } : {})
             })
         )
     }

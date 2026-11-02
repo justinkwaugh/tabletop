@@ -189,6 +189,8 @@ registerEffect('denizen.nomad.convoys', powerIndexOf('denizen.nomad.convoys', Po
 registerEffect('denizen.nomad.oracle', powerIndexOf('denizen.nomad.oracle', PowerTiming.Action), {
     choices: [],
     tollOccasion: { kind: 'asIfSearched' },
+    // Its Q&A: the Cracked Horn may take the Vision discarded ("Yes!"); R-6.1: "Restrictions and modifiers apply".
+    playsAsIfSearched: true,
     hidden: () => ({ kind: 'worldDeckVision' }),
     resolve: (ctx) => {
         if (ctx.reveal?.kind !== 'vision')

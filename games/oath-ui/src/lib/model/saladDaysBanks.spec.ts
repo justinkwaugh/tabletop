@@ -395,9 +395,28 @@ describe('Salad Days’ picker beside the cards that change what the play gains 
         expectAgreement(picker)
     })
 
-    // Welcoming Party gains its Hearth favor once the play is done, after the When Played power: the engine's plan
-    // does not take it first, and neither does the picker.
-    it('Welcoming Party: its Hearth favor comes after the power, so only the site’s is taken first', async () => {
+    // R-7.3.3-H3 — from revision 31 a Search's modifiers resolve before the kept card's power.
+    const welcomed = (revision: OathRevision) =>
+        table({
+            banks: { ...TWO_LEFT, [Suit.Hearth]: 2 },
+            revision,
+            rhys: { advisers: [{ cardId: WELCOMING_PARTY, faceUp: true }] },
+            over: { pendingSearchModifiers: [modifier(WELCOMING_PARTY)] }
+        })
+
+    it('Welcoming Party: its Hearth favor is taken before the power, after the site’s', async () => {
+        const picker = await searching(welcomed(OathRevision.EngineFixes26))
+        expect(picker.banks).toEqual({ ...TWO_LEFT, [Suit.Hearth]: 0 })
+        expectAgreement(picker)
+    })
+
+    it('R-X.4 — before revision 31 Welcoming Party’s Hearth favor comes after the power, so only the site’s is taken first', async () => {
+        const picker = await searching(welcomed(OathRevision.Chronicle))
+        expect(picker.banks).toEqual({ ...TWO_LEFT, [Suit.Hearth]: 1 })
+        expectAgreement(picker)
+    })
+
+    it('Welcoming Party held but not declared for the Search: only the site’s favor is taken first', async () => {
         const banks = { ...TWO_LEFT, [Suit.Hearth]: 2 }
         const picker = await searching(
             table({ banks, rhys: { advisers: [{ cardId: WELCOMING_PARTY, faceUp: true }] } })

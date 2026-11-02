@@ -51,6 +51,7 @@ import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 import { TOTAL_MAP_SLOTS } from '../data/mapSlots.js'
 import { MAX_SITE_CAPACITY } from '../data/sites.js'
 import { SEIZE_MINIMUM, burnableFromBanner } from '../util/seize.js'
+import { reasonPowerMovesToSitesBarred } from '../util/continuous.js'
 
 const anyPlayer: ChoiceDomain = (state) =>
     state.players.map((p) => ({ kind: PowerChoiceKind.Player, playerId: p.playerId }))
@@ -294,6 +295,17 @@ registerEffect(
 )
 
 // "Action: Discard a faceup adviser of a player whose pawn is at your site."
+// R-7.2.2 — a locked adviser cannot be discarded.
+function assassinTargets(
+    state: HydratedOathGameState,
+    playerId: string,
+    targetId: string
+): string[] {
+    return state
+        .getPlayerState(targetId)
+        .faceupAdviserIds()
+        .filter((cardId) => !isLockedFor(state, playerId, cardId))
+}
 registerEffect(
     'denizen.discord.assassin',
     powerIndexOf('denizen.discord.assassin', PowerTiming.Action),
@@ -301,29 +313,27 @@ registerEffect(
         choices: [
             one(PowerChoiceKind.Player, {
                 what: 'a player at your site',
-                domain: playerChoicesAtYourSite
+                // A player with no adviser to discard is no target.
+                domain: (state, playerId) =>
+                    otherPlayersAtYourSite(state, playerId)
+                        .filter((id) => assassinTargets(state, playerId, id).length > 0)
+                        .map((id) => ({ kind: PowerChoiceKind.Player, playerId: id }))
             }),
             one(PowerChoiceKind.Card, {
                 what: "one of that player's faceup advisers",
-                // R-7.2.2 — a locked adviser cannot be discarded.
-                domain: (state, playerId) =>
-                    otherPlayersAtYourSite(state, playerId).flatMap((id) =>
-                        state
-                            .getPlayerState(id)
-                            .faceupAdviserIds()
-                            .filter((cardId) => !isLockedFor(state, playerId, cardId))
-                            .map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
+                // Once the player is picked, only their advisers: before it, those of every player offered.
+                readsEarlier: true,
+                domain: (state, playerId, _power, earlier = []) => {
+                    const [picked] = earlier.flatMap((c) =>
+                        c.kind === PowerChoiceKind.Player ? [c.playerId] : []
                     )
+                    return otherPlayersAtYourSite(state, playerId)
+                        .filter((id) => picked === undefined || id === picked)
+                        .flatMap((id) => assassinTargets(state, playerId, id))
+                        .map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
+                }
             })
         ],
-        reasonCannotResolve: (ctx) => {
-            const [target] = chosen(ctx, PowerChoiceKind.Player)
-            const [card] = chosen(ctx, PowerChoiceKind.Card)
-            const holds = ctx.state.getPlayerState(target.playerId).isFaceupAdviser(card.cardId)
-            return holds
-                ? undefined
-                : `${card.cardId} is not a faceup adviser of ${target.playerId}`
-        },
         resolve: (ctx) => {
             const [target] = chosen(ctx, PowerChoiceKind.Player)
             const [card] = chosen(ctx, PowerChoiceKind.Card)
@@ -548,7 +558,7 @@ registerEffect(
                   }),
             optional(PowerChoiceKind.Site, {
                 what: 'a site you rule to move them to',
-                domain: siteChoicesYouRule,
+                domain: messengerDestinations,
                 sequential: true
             })
         ]).flat(),
@@ -566,10 +576,12 @@ function messengerSources(
 ): ReturnType<ChoiceDomain> {
     const owners = rulingWarbandOwners(state, playerId)
     const player = state.getPlayerState(playerId)
+    // Warbands on the board can only go to a site, so none is offered where no site can be reached.
+    const toSitesBarred = reasonPowerMovesToSitesBarred(state, playerId) !== undefined
     const out: ReturnType<ChoiceDomain> = []
     for (const owner of owners) {
         const onBoard = countOf(player.warbandsOnBoard, owner)
-        if (onBoard > 0) {
+        if (onBoard > 0 && !toSitesBarred) {
             out.push({
                 kind: PowerChoiceKind.Warbands,
                 group: { at: { kind: 'board', playerId }, owner, count: onBoard }
@@ -591,6 +603,12 @@ function messengerSources(
     return out
 }
 
+function messengerDestinations(
+    ...[state, playerId]: Parameters<ChoiceDomain>
+): ReturnType<ChoiceDomain> {
+    return reasonPowerMovesToSitesBarred(state, playerId) ? [] : siteChoicesYouRule(state, playerId)
+}
+
 function messengerMovesChecked(ctx: EffectContext): {
     state: HydratedOathGameState
     reason?: string
@@ -610,6 +628,8 @@ export function applyMessengerMoves(
         if (c.kind !== PowerChoiceKind.Warbands) continue
         const next = choices[i + 1]
         const dest = next && next.kind === PowerChoiceKind.Site ? next : undefined
+        const barred = dest ? reasonPowerMovesToSitesBarred(state, playerId) : undefined
+        if (barred) return { reason: barred, summary: '' }
         const { at, owner, count } = c.group
         if (at.kind === 'board') {
             if (!dest)
