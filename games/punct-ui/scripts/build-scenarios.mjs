@@ -180,3 +180,12 @@ write(
         'BT N8 2'
     ])
 )
+
+// Towers either side of where a straight piece goes in at D6 (BoardSpace's names): turning it
+// from up the board to up and right sweeps over the tower at E8, and the long way round over
+// the one at C7, so it lifts clear, turns and comes back down.
+write(
+    'turning-past-towers',
+    'Turning past towers',
+    position(['WT E8 0', 'WT E8 0', 'WT E8 0', 'WT C7 3', 'WT C7 3', 'WT C7 3'])
+)

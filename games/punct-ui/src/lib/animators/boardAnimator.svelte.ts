@@ -16,6 +16,7 @@ import {
 } from '@tabletop/punct'
 import type { PunctGameSession } from '$lib/model/session.svelte.js'
 import { PIECE_THICKNESS, VIEW } from '$lib/board/geometry.js'
+import { StagedMotion } from './stagedMotion.svelte.js'
 
 // A page load, a sync with the server or a switch of view shows the board as it is, unmoved.
 const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
@@ -29,8 +30,9 @@ const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
 const MARK_FADE = 0.2
 // Undo and history play quickly, without the bounces.
 const QUICK = 0.18
-// A new piece falls about a row's height, gathering speed, and bounces a little as it lands.
-const DROP = { height: 46, fall: 0.26, bounce: 4, settle: 0.14 }
+// A new piece falls about a row's height, gathering speed, and bounces a little as it lands,
+// its shadow waiting on the space and darkening as it comes down, as DVONN's do.
+const DROP = { height: 46, fall: 0.26, bounce: 4, settle: 0.14, shadow: 0.25 }
 const LIFT_OFF = { rise: -30, duration: QUICK }
 // A moving piece lifts clear of everything on its way, glides and turns, and settles.
 const GLIDE = { duration: 0.5, clearance: 1.3 }
@@ -62,9 +64,12 @@ export class BoardAnimator {
     // it made lands.
     pieces: PlacedPiece[] = $derived.by(() => this.session.gameState.board.pieces)
     flier: Flier | undefined = $state()
+    // The piece you are placing or moving, hovering until you drop it.
+    readonly staged = new StagedMotion()
 
     // Each piece's drawing, and its level badge above the marks, which move together.
     private readonly pieceNodes = new Map<number, Set<SVGGElement>>()
+    private readonly shadowNodes = new Map<number, SVGElement>()
     private readonly markNodes = new Set<SVGGElement>()
     private readonly listener = (step: Step) => this.onGameStateChange(step)
 
@@ -93,6 +98,16 @@ export class BoardAnimator {
         }
     }
 
+    // Each piece's shadow, which stays on what it rests on as the piece moves.
+    pieceShadow(id: number): Attachment<SVGElement> {
+        return (node) => {
+            this.shadowNodes.set(id, node)
+            return () => {
+                if (this.shadowNodes.get(id) === node) this.shadowNodes.delete(id)
+            }
+        }
+    }
+
     // Everything that marks the choices of a move fades with it.
     marks(): Attachment<SVGGElement> {
         return (node) => {
@@ -117,13 +132,22 @@ export class BoardAnimator {
         })
         // Undo and state-only history steps carry no action and play quickly; a replay plays the move.
         const quick = action === undefined
-        // Your own move, and a move you take back, already stand where they end: staged.
-        const staged = kind === 'own-action' || kind === 'undo'
-
         const timeline = gsap.timeline()
         const drawing = performance.now()
-        if (staged) {
+        const hover = this.staged.hover
+        if (kind === 'own-action') {
+            // Your piece hovers where you put it: dropping it brings it down.
             this.pieces = to.board.pieces
+            const dropped = [...added, ...moved.map((change) => change.piece)]
+            if (hover && dropped.some((piece) => piece.id === hover.piece.id)) {
+                this.staged.land(timeline)
+            }
+        } else if (kind === 'undo') {
+            // A drop taken back rises into its hover again, where you can change it.
+            this.pieces = to.board.pieces
+            const pieceId = this.session.undoingMove?.metadata?.pieceId
+            const undone = pieceId === undefined ? undefined : from.board.pieceById(pieceId)
+            if (undone) this.staged.rise(undone, timeline)
         } else if (moved.length > 0) {
             const { was, piece } = moved[0]
             this.pieces = from.board.pieces
@@ -155,6 +179,8 @@ export class BoardAnimator {
         animationContext.afterAnimations(() => {
             this.pieces = to.board.pieces
             this.flier = undefined
+            if (kind === 'own-action') this.staged.clear()
+            for (const node of this.shadowNodes.values()) gsap.set(node, { opacity: 1 })
             for (const nodes of this.pieceNodes.values()) gsap.set([...nodes], { y: 0, opacity: 1 })
             if (this.markNodes.size > 0) gsap.set([...this.markNodes], { opacity: 1 })
         })
@@ -166,12 +192,21 @@ export class BoardAnimator {
         const node = [...nodes]
         timeline.fromTo(
             node,
-            { y: -DROP.height, opacity: 0 },
-            { y: 0, opacity: 1, duration: DROP.fall, ease: 'power2.in' },
+            { y: -DROP.height },
+            { y: 0, duration: DROP.fall, ease: 'power2.in' },
             0
         )
         timeline.to(node, { y: -DROP.bounce, duration: DROP.settle / 2, ease: 'power1.out' })
         timeline.to(node, { y: 0, duration: DROP.settle / 2, ease: 'power1.in' })
+        const shadow = this.shadowNodes.get(piece.id)
+        if (shadow) {
+            timeline.fromTo(
+                shadow,
+                { opacity: DROP.shadow },
+                { opacity: 1, duration: DROP.fall, ease: 'power2.in' },
+                0
+            )
+        }
     }
 
     private liftOff(piece: PlacedPiece, timeline: Timeline) {
@@ -182,6 +217,8 @@ export class BoardAnimator {
             { y: LIFT_OFF.rise, opacity: 0, duration: LIFT_OFF.duration, ease: 'power1.out' },
             0
         )
+        const shadow = this.shadowNodes.get(piece.id)
+        if (shadow) timeline.to(shadow, { opacity: 0, duration: LIFT_OFF.duration }, 0)
     }
 
     // Up clear of everything under its path, across while it turns, and down.

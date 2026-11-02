@@ -97,6 +97,17 @@ function side(points: Point[], width: number): Point[] {
     return out
 }
 
+// The bars the piece is built along, flat round its PÜNCT turned through an angle: what it
+// sweeps over as it turns or flies.
+export function spineSegments(kind: PieceKind, angle: number): [Point, Point][] {
+    const { points, closed } = spine(kind, dotPlan(kind, angle))
+    const segments: [Point, Point][] = points
+        .slice(0, -1)
+        .map((point, index) => [point, points[index + 1]])
+    if (closed) segments.push([points[points.length - 1], points[0]])
+    return segments
+}
+
 // The outline, clockwise on screen (y down).
 export function outlinePlan(kind: PieceKind, angle: number, width = PIECE_HALF_WIDTH): Point[] {
     const { points, closed } = spine(kind, dotPlan(kind, angle))
@@ -224,19 +235,6 @@ export function drawPiece(
             view.project(point, thickness)
         )
     }
-}
-
-// The outline's edges that face the viewer, by index.
-export function facingEdges(kind: PieceKind, angle: number): Set<number> {
-    const outline = outlinePlan(kind, angle)
-    const facing = new Set<number>()
-    outline.forEach((a, index) => {
-        const b = outline[(index + 1) % outline.length]
-        // Clockwise on screen, the outward normal of a→b points to its left: towards the viewer
-        // when b lies left of a.
-        if (b.x < a.x) facing.add(index)
-    })
-    return facing
 }
 
 export function dishOf(view: BoardView = VIEW): { rx: number; ry: number } {

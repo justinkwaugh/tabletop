@@ -104,6 +104,15 @@ export function rotationsOf(kind: PieceKind): readonly number[] {
     return SHAPES[kind].rotations
 }
 
-export function isRotationOf(kind: PieceKind, rotation: number): boolean {
-    return rotationsOf(kind).includes(rotation)
+// How many steps round before a piece covers the same spaces with its dots alike again. The
+// straight piece with its PÜNCT in the middle does so half a turn round; it is still the same
+// placement, but the piece lies the other way, as its flecks show, so a piece keeps whichever
+// of the six ways it was put.
+export function samePlacementPeriod(kind: PieceKind): number {
+    return rotationsOf(kind).length
+}
+
+export function sameOrientation(kind: PieceKind, a: number, b: number): boolean {
+    const period = samePlacementPeriod(kind)
+    return (((a - b) % period) + period) % period === 0
 }

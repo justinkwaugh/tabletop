@@ -1,6 +1,6 @@
 import { type AxialCoordinates, type Point } from '@tabletop/common'
 import { SPACES } from '@tabletop/punct'
-import { type BoardView } from './geometry.js'
+import { SPACING, type BoardView } from './geometry.js'
 import { pointInPolygon } from './pieceShape.js'
 
 // Columns A–Q left to right, each numbered up from 1 at its bottom space, as GIPF, ZÈRTZ and
@@ -37,6 +37,7 @@ const CHAR_WIDTH = 17
 const LABEL_HEIGHT = 30
 const FIRST_REACH = 0.5
 const REACH_STEP = 0.01
+const COARSE_STEP = 0.1
 
 type Wanted = { key: string; text: string; coords: AxialCoordinates; step: AxialCoordinates }
 
@@ -51,16 +52,24 @@ function boxEdge(at: Point, text: string): Point[] {
     ])
 }
 
+// Only the cells round a label's space can meet it.
+const NEAR = SPACING * 2.5
+
 function reachNeeded(view: BoardView, cells: Point[][], { text, coords, step }: Wanted): number {
-    let reach = FIRST_REACH
-    const crowded = () => {
+    const center = view.center(coords)
+    const near = cells.filter((cell) =>
+        cell.some((corner) => Math.hypot(corner.x - center.x, corner.y - center.y) < NEAR)
+    )
+    const crowded = (reach: number) => {
         const edge = boxEdge(view.labelBeside(coords, step, reach), text)
-        return cells.some((cell) => edge.some((point) => pointInPolygon(point, cell)))
+        return near.some((cell) => edge.some((point) => pointInPolygon(point, cell)))
     }
-    while (crowded()) reach += REACH_STEP
+    // Out in coarse steps until clear, then back in fine ones to just clear.
+    let reach = FIRST_REACH
+    while (crowded(reach)) reach += COARSE_STEP
+    while (reach - REACH_STEP >= FIRST_REACH && !crowded(reach - REACH_STEP)) reach -= REACH_STEP
     return reach
 }
-
 function placeRow(view: BoardView, row: Wanted[]): CoordinateLabel[] {
     const cells = SPACES.map((coords) => view.cell(coords))
     const reach = Math.max(...row.slice(1, -1).map((wanted) => reachNeeded(view, cells, wanted)))

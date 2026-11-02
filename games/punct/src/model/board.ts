@@ -13,7 +13,7 @@ import {
     SPACES,
     spaceKey
 } from './geometry.js'
-import { dotsOf, PieceKind, rotationsOf, spanOf } from './pieces.js'
+import { dotsOf, PieceKind, rotationsOf, sameOrientation, spanOf } from './pieces.js'
 
 // A piece in play: where its PÜNCT lies, which way its minor dots turn, and the level it rests
 // on (0 on the board). Ids are given as pieces enter the board.
@@ -175,7 +175,10 @@ export class HydratedPunctBoard extends Hydratable<typeof PunctBoard> implements
         }
         return this.targetsOf(piece).flatMap((punct) =>
             rotationsOf(piece.kind).flatMap((rotation) => {
-                if (sameCoordinates(punct, piece.punct) && rotation === piece.rotation) {
+                if (
+                    sameCoordinates(punct, piece.punct) &&
+                    sameOrientation(piece.kind, rotation, piece.rotation)
+                ) {
                     return []
                 }
                 const level = this.levelFor(piece.playerId, piece.kind, punct, rotation, piece.id)
@@ -198,7 +201,10 @@ export class HydratedPunctBoard extends Hydratable<typeof PunctBoard> implements
                 this.targetsOf(piece).some((punct) =>
                     rotationsOf(piece.kind).some(
                         (rotation) =>
-                            !(sameCoordinates(punct, piece.punct) && rotation === piece.rotation) &&
+                            !(
+                                sameCoordinates(punct, piece.punct) &&
+                                sameOrientation(piece.kind, rotation, piece.rotation)
+                            ) &&
                             this.levelFor(piece.playerId, piece.kind, punct, rotation, piece.id) !==
                                 undefined
                     )

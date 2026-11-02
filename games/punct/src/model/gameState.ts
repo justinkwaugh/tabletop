@@ -12,7 +12,7 @@ import { Compile } from 'typebox/compile'
 import { HydratedPunctPlayerState, PunctPlayerState } from './playerState.js'
 import { MachineState } from '../definition/states.js'
 import { HydratedPunctBoard, PunctBoard, type PlacedPiece, type Placement } from './board.js'
-import { isRotationOf, PieceKind, rotationsOf, SET_SIZE } from './pieces.js'
+import { PieceKind, rotationsOf, sameOrientation, SET_SIZE } from './pieces.js'
 import { SPACES } from './geometry.js'
 
 export enum Variant {
@@ -110,7 +110,6 @@ export class HydratedPunctGameState
     ): boolean {
         return (
             this.getPlayerState(playerId).reserve[kind] > 0 &&
-            isRotationOf(kind, rotation) &&
             this.board.canEnter(kind, punct, rotation, this.entersOutsideCentre(playerId))
         )
     }
@@ -134,9 +133,16 @@ export class HydratedPunctGameState
         to: AxialCoordinates,
         rotation: number
     ): Placement | undefined {
-        return this.movesOf(playerId, from).find(
-            (move) => sameCoordinates(move.punct, to) && move.rotation === rotation
-        )
+        const piece = this.pieceWithPunctAt(playerId, from)
+        if (piece === undefined) return undefined
+        const move = this.board
+            .movesOf(piece)
+            .find(
+                (candidate) =>
+                    sameCoordinates(candidate.punct, to) &&
+                    sameOrientation(piece.kind, candidate.rotation, rotation)
+            )
+        return move === undefined ? undefined : { ...move, rotation }
     }
 
     canPlace(playerId: string): boolean {

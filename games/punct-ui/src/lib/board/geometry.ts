@@ -58,6 +58,11 @@ export class BoardView {
         return this.turned ? { x: -point.x, y: -point.y } : point
     }
 
+    // A point of the unturned board's plane as this view lays it out.
+    orient(point: Point): Point {
+        return this.turned ? { x: -point.x, y: -point.y } : point
+    }
+
     // A point of the board's plane on screen, raised by a height.
     project(point: Point, height = 0): Point {
         return { x: point.x, y: point.y * this.tilt - height * this.rise }
@@ -155,6 +160,22 @@ export class BoardView {
         }
     }
 }
+// The space under a point of the unturned board's plane.
+export function spaceUnder(point: Point): AxialCoordinates {
+    const q = point.x / (1.5 * HEX_DIMENSIONS.xRadius)
+    const r = point.y / (2 * HEX_DIMENSIONS.yRadius) - q / 2
+    const s = -q - r
+    let rq = Math.round(q)
+    let rr = Math.round(r)
+    const rs = Math.round(s)
+    const dq = Math.abs(rq - q)
+    const dr = Math.abs(rr - r)
+    const ds = Math.abs(rs - s)
+    if (dq > dr && dq > ds) rq = -rr - rs
+    else if (dr > ds) rr = -rq - rs
+    return { q: rq, r: rr }
+}
+
 export const VIEW = new BoardView(TILT)
 export const TURNED_VIEW = new BoardView(TILT, true)
 

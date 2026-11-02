@@ -238,6 +238,16 @@ describe('PÜNCT moving a piece', () => {
         expect(inPlace.map((move) => move.rotation)).toEqual([1, 2])
     })
 
+    it('keeps the way round a centre-PÜNCT straight piece was put, half turns the same placement', () => {
+        const game = createGame()
+        const state = position(start(game), [[W, PieceKind.StraightCentre, 'C5', 0, 0]])
+        const turned = execute(game, state, moveAction(game, W, 'C5', 'C9', 4))
+        expect(hydrated(turned).board.pieces[0].rotation).toBe(4)
+        expect(() => execute(game, state, moveAction(game, W, 'C5', 'C5', 3))).toThrow()
+        const placed = execute(game, state, placeAction(game, W, PieceKind.StraightCentre, 'F4', 5))
+        expect(hydrated(placed).board.pieces[1].rotation).toBe(5)
+    })
+
     it('keeps minor dots on the board at its edge', () => {
         const game = createGame()
         const state = position(start(game), [[W, PieceKind.StraightEnd, 'C4', 0, 0]])

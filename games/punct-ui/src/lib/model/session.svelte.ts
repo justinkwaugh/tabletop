@@ -14,6 +14,8 @@ import {
     PieceKind,
     PlacePiece,
     PunctPreferenceDefinition,
+    sameOrientation,
+    samePlacementPeriod,
     type HydratedPunctGameState,
     type PlacedPiece,
     type Placement,
@@ -153,11 +155,18 @@ export class PunctGameSession extends GameSession<PunctGameState, HydratedPunctG
         return placements.filter((placement) => sameCoordinates(placement.punct, at))
     })
 
+    // The way the piece lies there: as turned, as it lay, or as you last put one, any of the six
+    // ways round that fits, since a piece whose dots match half a turn round still lies one way.
     chosenOption: Placement | undefined = $derived.by(() => {
         const options = this.options
+        const kind = this.chosenPiece?.kind ?? this.chosenKind
         const manual = this.selection.rotation?.value
         const preferred = manual ?? this.chosenPiece?.rotation ?? this.preferredRotation
-        return options.find((option) => option.rotation === preferred) ?? options[0]
+        const match =
+            kind === undefined || preferred === undefined
+                ? undefined
+                : options.find((option) => sameOrientation(kind, option.rotation, preferred))
+        return match && preferred !== undefined ? { ...match, rotation: preferred } : options[0]
     })
 
     staged: StagedPiece | undefined = $derived.by(() => {
@@ -281,15 +290,20 @@ export class PunctGameSession extends GameSession<PunctGameState, HydratedPunctG
     // Tapping the staged piece turns it to its next way of lying there, clockwise.
     turnStaged() {
         const current = this.chosenOption
-        if (current === undefined || this.options.length < 2) return
-        const ordered = this.options.toSorted(
-            (a, b) =>
-                ((a.rotation - current.rotation + 6) % 6) -
-                ((b.rotation - current.rotation + 6) % 6)
+        const kind = this.staged?.kind
+        if (current === undefined || kind === undefined || this.options.length < 2) return
+        // The fewest steps clockwise to the next way it fits.
+        const period = samePlacementPeriod(kind)
+        const steps = Math.min(
+            ...this.options
+                .map(
+                    (option) => (((option.rotation - current.rotation) % period) + period) % period
+                )
+                .filter((step) => step > 0)
         )
-        const next = ordered[1]
-        if (!this.chosenPiece) this.preferredRotation = next.rotation
-        this.selection = setPunctSelection(this.selection, 'rotation', next.rotation)
+        const next = (current.rotation + steps) % 6
+        if (!this.chosenPiece) this.preferredRotation = next
+        this.selection = setPunctSelection(this.selection, 'rotation', next)
     }
 
     // Tapping where there is nothing to choose lets go of a chosen piece or space.

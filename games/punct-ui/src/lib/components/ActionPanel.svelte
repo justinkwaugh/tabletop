@@ -8,12 +8,11 @@
     const lastEntry = $derived(historyEntries(session.actions).at(-1))
     const moving = $derived(session.staged?.from !== undefined)
 
-    // The button finishes the sentence, so a prompt and its button fit one row on a phone.
+    // The buttons finish the sentence, so a prompt and its buttons fit one row on a phone.
+    const TURNABLE = 'turnable'
     const prompt = $derived.by(() => {
         if (session.staged) {
-            return session.options.length > 1
-                ? 'Tap the piece to turn it, then'
-                : 'It fits one way:'
+            return session.options.length > 1 ? TURNABLE : 'It fits one way:'
         }
         if (session.chosenPiece) return 'Choose where its PÜNCT goes'
         if (session.canPlace) {
@@ -35,7 +34,18 @@
             <span>{session.isViewingHistory ? 'The game begins' : 'Waiting for turn'}</span>
         {/if}
     {:else}
-        <span>{prompt}</span>
+        {#if prompt === TURNABLE}
+            <!-- Turn is a button in the sentence; tapping the piece does the same. -->
+            <span class="sentence"
+                >Tap the piece to <button
+                    type="button"
+                    class="choice inline"
+                    onclick={() => session.turnStaged()}>turn</button
+                > it, then</span
+            >
+        {:else}
+            <span>{prompt}</span>
+        {/if}
         {#if session.staged}
             <button type="button" class="choice primary" onclick={() => session.confirm()}
                 >{moving ? 'Drop' : 'Place'}</button
@@ -59,13 +69,6 @@
         color: var(--punct-ink);
     }
 
-    @media (max-width: 639px) {
-        .panel {
-            font-size: 16px;
-            padding: 4px 8px;
-        }
-    }
-
     .choice {
         display: inline-flex;
         align-items: center;
@@ -74,6 +77,28 @@
         border: 2px solid var(--punct-panel-edge);
         color: var(--punct-ink);
         font-size: 15px;
+    }
+
+    .choice.inline {
+        padding: 0 10px;
+        margin: 0 2px;
+        font-size: inherit;
+    }
+
+    @media (max-width: 639px) {
+        .panel {
+            gap: 4px 6px;
+            font-size: 16px;
+            padding: 4px 8px;
+        }
+
+        .choice {
+            padding: 3px 11px;
+        }
+
+        .choice.inline {
+            padding: 0 8px;
+        }
     }
 
     .choice:hover {

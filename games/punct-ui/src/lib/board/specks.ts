@@ -2,7 +2,7 @@ import type { Point } from '@tabletop/common'
 import { PieceKind } from '@tabletop/punct'
 import { PIECE_HALF_WIDTH, PIECE_THICKNESS, type BoardView } from './geometry.js'
 import { DISH, dishDepth, dishPointSeen } from './dishShape.js'
-import { dotPlan, facingEdges, insetAt, outlinePlan, pointInPolygon, round } from './pieceShape.js'
+import { dotPlan, insetAt, outlinePlan, pointInPolygon, round } from './pieceShape.js'
 
 // The flecks in a piece's plastic, seeded by the piece's id so they stay its own as it moves
 // and turns: on its top and down into its minor dots' dishes, round its PÜNCT's smooth insert,
@@ -11,7 +11,9 @@ const TOP_DENSITY = 1 / 42
 const SIDE_DENSITY = 1 / 30
 
 type Speck = { x: number; y: number; r: number; stretch: number }
-type SideSpeck = { edge: number; along: number; height: number; r: number }
+// A fleck on the side: where it lies on the full outline, which way the side faces there, and
+// how far up it.
+type SideSpeck = { x: number; y: number; nx: number; ny: number; height: number; r: number }
 export type Specks = { top: Speck[]; side: SideSpeck[] }
 
 function random(seed: number): () => number {
@@ -63,12 +65,17 @@ export function specksOf(kind: PieceKind, seed: number): Specks {
     full.forEach((a, edge) => {
         const b = full[(edge + 1) % full.length]
         const length = Math.hypot(b.x - a.x, b.y - a.y)
+        if (length < 1e-9) return
+        // Clockwise on screen, the outward normal of a→b points to its left.
+        const normal = { nx: (b.y - a.y) / length, ny: -(b.x - a.x) / length }
         const count = length * PIECE_THICKNESS * SIDE_DENSITY
         const whole = Math.floor(count) + (next() < count % 1 ? 1 : 0)
         for (let index = 0; index < whole; index++) {
+            const along = next()
             side.push({
-                edge,
-                along: next(),
+                x: a.x + (b.x - a.x) * along,
+                y: a.y + (b.y - a.y) * along,
+                ...normal,
                 height: 0.18 + next() * 0.64,
                 r: speckRadius(next) * 0.55
             })
@@ -100,7 +107,6 @@ export function speckPaths(
     view: BoardView
 ): { top: string; side: string } {
     const specks = specksOf(kind, seed)
-    const facing = facingEdges(kind, angle)
     const dishes = dotPlan(kind, angle).slice(1)
     const top = specks.top
         .flatMap((speck) => {
@@ -125,14 +131,15 @@ export function speckPaths(
         })
         .join(' ')
     const side = specks.side
-        .filter((speck) => facing.has(speck.edge))
-        .map((speck) => {
+        .flatMap((speck) => {
+            // Only where the side faces the viewer.
+            const normal = turn({ x: speck.nx, y: speck.ny }, angle)
+            if (normal.y <= 0) return []
             const height = PIECE_THICKNESS * speck.height
-            const outline = outlinePlan(kind, angle, PIECE_HALF_WIDTH - insetAt(height))
-            const a = outline[speck.edge]
-            const b = outline[(speck.edge + 1) % outline.length]
-            const point = { x: a.x + (b.x - a.x) * speck.along, y: a.y + (b.y - a.y) * speck.along }
-            return ellipse(view.project(point, height), speck.r, speck.r)
+            const inset = insetAt(height)
+            const at = turn(speck, angle)
+            const point = { x: at.x - normal.x * inset, y: at.y - normal.y * inset }
+            return [ellipse(view.project(point, height), speck.r, speck.r)]
         })
         .join(' ')
     return { top, side }

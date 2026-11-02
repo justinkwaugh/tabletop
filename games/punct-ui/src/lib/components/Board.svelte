@@ -1,7 +1,16 @@
 <script lang="ts">
     import { Color, type AxialCoordinates, type Point } from '@tabletop/common'
-    import { CENTRE_SPACES, dotsOf, isCentre, SPACES, type PlacedPiece } from '@tabletop/punct'
+    import {
+        CENTRE_SPACES,
+        dotsOf,
+        isCentre,
+        SPACES,
+        type PieceKind,
+        type PlacedPiece
+    } from '@tabletop/punct'
+    import { untrack } from 'svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import type { Hover } from '$lib/animators/stagedMotion.svelte.js'
     import { includesCoords } from '$lib/model/session.svelte.js'
     import {
         coordsKey,
@@ -64,8 +73,8 @@
               cells: AxialCoordinates[]
               level: number
               piece: PlacedPiece
-              staged: boolean
           }
+        | { kind: 'hover'; key: string; cells: AxialCoordinates[]; level: number; hover: Hover }
         | {
               kind: 'marker'
               key: string
@@ -75,64 +84,67 @@
           }
 
     const staged = $derived(session.staged)
-    const movingId = $derived(staged?.from !== undefined ? staged.id : undefined)
+    const hover = $derived(animator.staged.hover)
+
+    // The piece you place or move hovers where you put it, moved by its own motion.
+    $effect(() => {
+        const next = session.staged
+        const board = session.gameState.board
+        untrack(() => animator.staged.follow(next, board))
+    })
 
     const drawn: Drawn[] = $derived.by(() => {
-        const pieces: Drawn[] = animator.pieces
-            .filter((piece) => piece.id !== movingId && piece.id !== animator.flier?.piece.id)
+        const entries: Drawn[] = animator.pieces
+            .filter(
+                (piece) => piece.id !== hover?.piece.id && piece.id !== animator.flier?.piece.id
+            )
             .map((piece) => ({
                 kind: 'piece',
                 key: `piece-${piece.id}`,
                 cells: dotsOf(piece.kind, piece.punct, piece.rotation),
                 level: piece.level,
-                piece,
-                staged: false
+                piece
             }))
-        // A new piece you placed stands staged until the state it made lands with it.
-        const landed = staged && animator.pieces.some((piece) => piece.id === staged.id)
-        if (staged && !(landed && staged.from === undefined)) {
-            const piece: PlacedPiece = {
-                id: staged.id,
-                playerId: staged.playerId,
-                kind: staged.kind,
-                punct: staged.punct,
-                rotation: staged.rotation,
-                level: staged.level
-            }
-            pieces.push({
-                kind: 'piece',
-                key: `piece-${staged.id}`,
-                cells: dotsOf(staged.kind, staged.punct, staged.rotation),
-                level: staged.level,
-                piece,
-                staged: true
+        // Lifted clear, it is drawn over everything instead.
+        if (hover && !hover.aloft) {
+            const { piece } = hover
+            entries.push({
+                kind: 'hover',
+                key: `hover-${piece.id}`,
+                cells: hover.cells,
+                level: piece.level + 1,
+                hover
             })
-            if (staged.from) {
-                pieces.push({
-                    kind: 'marker',
-                    key: 'marker',
-                    cells: [staged.from],
-                    level: session.gameState.board.heightAt(staged.from, staged.id),
-                    playerId: staged.playerId
-                })
-            }
         }
-        return drawOrder(pieces, view.turned)
+        if (staged?.from && hover) {
+            entries.push({
+                kind: 'marker',
+                key: 'marker',
+                cells: [staged.from],
+                level: session.gameState.board.heightAt(staged.from, staged.id),
+                playerId: staged.playerId
+            })
+        }
+        return drawOrder(entries, view.turned)
     })
 
-    // The board without the piece being moved: where marks for its PÜNCT lie.
+    // The board without the piece being moved: where marks for its PÜNCT lie. Once a space is
+    // chosen they stay, dimmed, so another can be chosen, except under the hovering piece.
     const destinationMarks = $derived.by(() => {
         const piece = session.chosenPiece
-        if (piece === undefined || session.chosenAt !== undefined) return []
-        return session.destinations.map((coords) => {
-            const top = session.gameState.board.topAt(coords, piece.id)
-            return {
-                coords,
-                onPieceId: top?.piece.id,
-                height: session.gameState.board.heightAt(coords, piece.id)
-            }
-        })
+        if (piece === undefined) return []
+        return session.destinations
+            .filter((coords) => !includesCoords(session.stagedCells, coords))
+            .map((coords) => {
+                const top = session.gameState.board.topAt(coords, piece.id)
+                return {
+                    coords,
+                    onPieceId: top?.piece.id,
+                    height: session.gameState.board.heightAt(coords, piece.id)
+                }
+            })
     })
+    const destinationsDimmed = $derived(session.chosenAt !== undefined)
 
     const chosenPieceCells = $derived(
         session.chosenPiece
@@ -156,9 +168,8 @@
         return session.gameState.board.heightAt(coords)
     }
 
-    function roleOf(entry: Drawn): 'staged' | 'chosen' | 'movable' | undefined {
+    function roleOf(entry: Drawn): 'chosen' | 'movable' | undefined {
         if (entry.kind !== 'piece') return undefined
-        if (entry.staged) return 'staged'
         if (session.chosenPiece?.id === entry.piece.id) return 'chosen'
         return session.movablePieces.some((piece) => piece.id === entry.piece.id)
             ? 'movable'
@@ -166,12 +177,12 @@
     }
 
     function chooseDrawn(entry: Drawn) {
-        if (entry.kind !== 'piece') return
-        if (entry.staged) {
-            session.turnStaged()
-            return
-        }
-        session.choosePiece(entry.piece)
+        if (entry.kind === 'piece') session.choosePiece(entry.piece)
+    }
+
+    // Under a hovering piece its shadow is lighter the higher it is.
+    function hoverShadow(hover: Hover): number {
+        return Math.max(0.3, 1 - (0.45 * (hover.base - hover.ground)) / (PIECE_THICKNESS * 1.15))
     }
 
     // A tap on nothing you can choose lets go of what is chosen.
@@ -194,14 +205,10 @@
 
     // Each piece's shadow at its feet. On the board it is soft; on a piece it falls on that
     // piece's top, across the seam between them, as a dark crease that parts the levels.
-    function shadowPath(piece: PlacedPiece): string {
-        const below = piece.level > 0 ? -SEAM : 0
-        const width = piece.level > 0 ? PIECE_HALF_WIDTH + 0.6 : SPACING * 0.45
-        return pathOf(
-            outlinePlan(piece.kind, animator.angleOf(piece), width).map((point) =>
-                view.project(point, below)
-            )
-        )
+    function shadowPath(kind: PieceKind, angle: number, onPiece: boolean): string {
+        const below = onPiece ? -SEAM : 0
+        const width = onPiece ? PIECE_HALF_WIDTH + 0.6 : SPACING * 0.45
+        return pathOf(outlinePlan(kind, angle, width).map((point) => view.project(point, below)))
     }
 
     function relative(cell: AxialCoordinates, punct: AxialCoordinates, height: number): Point {
@@ -301,7 +308,7 @@
     <g {@attach animator.marks()}>
         {#each destinationMarks.filter((mark) => mark.onPieceId === undefined && !includesCoords(chosenPieceCells, mark.coords)) as mark (coordsKey(mark.coords))}
             {@const center = view.center(mark.coords)}
-            <g class="target-ring">
+            <g class="target-ring" class:faded={destinationsDimmed}>
                 {#each ['under', 'over'] as layer (layer)}
                     <ellipse
                         cx={center.x}
@@ -315,12 +322,62 @@
         {/each}
     </g>
 
+    <!-- The piece you place or move, hovering until you drop it: its shadow on the surface
+         below, lighter the higher it is; tapping it turns it. -->
+    {#snippet hovering(hover: Hover)}
+        {@const plan = view.orient(hover.plan)}
+        {@const at = view.project(plan, hover.base)}
+        {@const ground = view.project(plan, hover.ground)}
+        {@const angle = hover.angle + view.turnSteps}
+        {@const piece = hover.piece}
+        {@const drawing = drawPiece(piece.kind, angle, view)}
+        {@const turnable = session.staged?.id === piece.id}
+        <path
+            d={shadowPath(piece.kind, angle, hover.ground > 0)}
+            transform="translate({ground.x} {ground.y})"
+            class="shadow"
+            class:crease={hover.ground > 0}
+            class:dark={toneOf(piece.playerId) === 'dark'}
+            style:opacity={hoverShadow(hover)}
+        ></path>
+        <g
+            transform="translate({at.x} {at.y})"
+            class="piece-place"
+            class:role-none={!turnable}
+            role="button"
+            tabindex={turnable ? 0 : -1}
+            aria-disabled={!turnable}
+            aria-label="piece at {spaceLabel(piece.punct)}"
+            onclick={() => turnable && session.turnStaged()}
+            onkeydown={(event) => turnable && onKey(event, () => session.turnStaged())}
+        >
+            <PieceSlab
+                kind={piece.kind}
+                {angle}
+                tone={toneOf(piece.playerId)}
+                seed={piece.id}
+                prefix="punct-board"
+                {view}
+            />
+            {#if turnable}
+                <g {@attach animator.marks()}>
+                    {#each ['under', 'over'] as layer (layer)}
+                        <path d={pathOf(drawing.topOutline)} class="top-ring role-staged {layer}"
+                        ></path>
+                    {/each}
+                </g>
+            {/if}
+        </g>
+    {/snippet}
+
     {#each drawn as entry (entry.key)}
         {#if entry.kind === 'marker'}
             {@const at = anchor(entry.cells[0], entry.level)}
             <g transform="translate({at.x} {at.y})" class="marker">
                 <PunctMarker tone={toneOf(entry.playerId)} />
             </g>
+        {:else if entry.kind === 'hover'}
+            {@render hovering(entry.hover)}
         {:else}
             {@const piece = entry.piece}
             {@const role = roleOf(entry)}
@@ -337,13 +394,14 @@
                 onclick={() => role && chooseDrawn(entry)}
                 onkeydown={(event) => role && onKey(event, () => chooseDrawn(entry))}
             >
+                <path
+                    d={shadowPath(piece.kind, angle, piece.level > 0)}
+                    class="shadow"
+                    class:crease={piece.level > 0}
+                    class:dark={toneOf(piece.playerId) === 'dark'}
+                    {@attach animator.pieceShadow(piece.id)}
+                ></path>
                 <g {@attach animator.pieceNode(piece.id)}>
-                    <path
-                        d={shadowPath(piece)}
-                        class="shadow"
-                        class:crease={piece.level > 0}
-                        class:dark={toneOf(piece.playerId) === 'dark'}
-                    ></path>
                     <PieceSlab
                         kind={piece.kind}
                         {angle}
@@ -365,7 +423,7 @@
                     {/if}
                     {#each destinationMarks.filter((mark) => mark.onPieceId === piece.id) as mark (coordsKey(mark.coords))}
                         {@const spot = relative(mark.coords, piece.punct, PIECE_THICKNESS)}
-                        <g class="target-ring">
+                        <g class="target-ring" class:faded={destinationsDimmed}>
                             {#each ['under', 'over'] as layer (layer)}
                                 <ellipse
                                     cx={spot.x}
@@ -409,12 +467,16 @@
         {/if}
     {/each}
 
+    {#if hover?.aloft}
+        {@render hovering(hover)}
+    {/if}
+
     {#if animator.flier}
         {@const flier = animator.flier}
         {@const at = view.project(flier.plan, flier.height)}
         <g transform="translate({at.x} {at.y})" class="flier">
             <path
-                d={shadowPath(flier.piece)}
+                d={shadowPath(flier.piece.kind, flier.angle, flier.groundHeight > 0)}
                 class="shadow"
                 transform="translate(0 {view.height(flier.height - flier.groundHeight)})"
             ></path>
@@ -437,7 +499,7 @@
             .toSorted((a, b) => view.center(a.coords).y - view.center(b.coords).y) as mark (coordsKey(mark.coords))}
             {@const spot = surface(mark.coords, mark.height)}
             {#if mark.onPieceId === undefined}
-                <g class="target-ring">
+                <g class="target-ring" class:faded={destinationsDimmed}>
                     {#each ['under', 'over'] as layer (layer)}
                         <ellipse
                             cx={spot.x}
@@ -579,6 +641,10 @@
 
     .target-ring {
         pointer-events: none;
+    }
+
+    .target-ring.faded {
+        opacity: 0.65;
     }
 
     .target-ring .under {
