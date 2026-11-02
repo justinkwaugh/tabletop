@@ -4,19 +4,21 @@
     import { isSpace, SPACES, spaceName } from '@tabletop/dvonn'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { includesCoords } from '$lib/model/session.svelte.js'
+    import { coordsKey, VIEW, viewFor } from '$lib/board/geometry.js'
     import {
-        coordsKey,
-        GRAPH_VIEW,
-        UNLABELLED_GRAPH_VIEW,
-        UNLABELLED_VIEW,
-        VIEW
-    } from '$lib/board/geometry.js'
-    import { PIECE_MODEL, stackDiscs, TILT, topFaceY } from '$lib/board/pieceGeometry.js'
-    import { markRing, outlinePath } from '$lib/board/pieceShape.js'
+        PIECE_MODEL,
+        stackDiscs,
+        TILT,
+        topFaceY,
+        type PieceModel
+    } from '$lib/board/pieceGeometry.js'
+    import { markRing, outlinePath, pieceDrawing } from '$lib/board/pieceShape.js'
     import sand from '$lib/images/sand.webp'
     import { BoardAnimator, type DrawnStack } from '$lib/animators/boardAnimator.svelte.js'
     import PieceDefs from './PieceDefs.svelte'
     import StackShape from './StackShape.svelte'
+    import { badgeSpot, type BadgeSpot } from '$lib/board/badgeSpot.js'
+    import HeightBadge from './HeightBadge.svelte'
 
     const session = getGameSession()
 
@@ -24,8 +26,7 @@
     const phone = new MediaQuery('width < 40rem')
     const layout = $derived.by(() => {
         const labelled = session.showCoordinates || !phone.current
-        if (session.graphBoard) return labelled ? GRAPH_VIEW : UNLABELLED_GRAPH_VIEW
-        return labelled ? VIEW : UNLABELLED_VIEW
+        return viewFor(session.graphBoard, labelled, session.turned)
     })
     const radius = VIEW.radius
 
@@ -66,6 +67,38 @@
         })
     )
 
+    // A stack's height shows on a badge while badges are on, and always on a stack shrunk past the
+    // full height, whose height cannot be seen.
+    function badgeShown(height: number): boolean {
+        return height > 1 && (session.heightBadges || height > session.pieceModel.cap)
+    }
+
+    // Where a badge's centre line sits: the top piece's hole opening.
+    function badgeTop(height: number, model: PieceModel = session.pieceModel): number {
+        const top = stackDiscs(height, radius, [], model).at(-1)
+        return (top?.base ?? 0) + pieceDrawing(radius, model).opening.y
+    }
+
+    // Each badge at the far right of its stack's top, or wherever nearer stacks leave it seen.
+    const badgeSpots = $derived.by(() => {
+        const base = stackDiscs(1, radius)[0].base
+        const standing = stacks.map((stack) => {
+            const center = layout.center(stack.coords)
+            const model = animator.modelAt(stack.key)
+            return {
+                center,
+                top: center.y + topFaceY(stack.pieces.length, radius, model),
+                base: center.y + base
+            }
+        })
+        const spots = new Map<string, BadgeSpot>()
+        stacks.forEach((stack, index) => {
+            if (!badgeShown(stack.pieces.length)) return
+            spots.set(stack.key, badgeSpot(standing[index], standing.slice(index + 1), radius))
+        })
+        return spots
+    })
+
     function stackId(key: string): string {
         return `dvonn-stack-${key.replace(',', '_')}`
     }
@@ -95,8 +128,9 @@
     // The outline of the stack standing there, or of a single piece on an empty space.
     function target(coords: AxialCoordinates): string {
         const height = Math.max(heightAt(coords), 1)
-        const base = stackDiscs(1, radius)[0].base
-        return outlinePath(base, topFaceY(height, radius), radius)
+        const model = session.pieceModel
+        const base = stackDiscs(1, radius, [], model)[0].base
+        return outlinePath(base, topFaceY(height, radius, model), radius)
     }
 
     function describe(coords: AxialCoordinates): string {
@@ -129,7 +163,8 @@
     // A mark recolors a ring just inside the rim of the stack's top piece.
     function markOn(height: number) {
         const ring = markRing(radius)
-        const base = stackDiscs(Math.max(height, 1), radius).at(-1)?.base ?? 0
+        const base =
+            stackDiscs(Math.max(height, 1), radius, [], session.pieceModel).at(-1)?.base ?? 0
         return { ...ring, y: ring.y + base }
     }
 </script>
@@ -168,6 +203,18 @@
                 {#each ['under', 'over'] as layer (layer)}
                     <ellipse cy={ring.y} rx={ring.rx} ry={ring.ry} class={layer}></ellipse>
                 {/each}
+            </g>
+        {/if}
+        <!-- The height badge over the ring, moving with the stack's body. -->
+        {#if badgeSpots.has(stack.key)}
+            {@const spot = badgeSpots.get(stack.key) ?? 'right'}
+            <g {@attach animator.stack(stack.key, 'badge')}>
+                <HeightBadge
+                    height={stack.pieces.length}
+                    {spot}
+                    top={badgeTop(stack.pieces.length, animator.modelAt(stack.key))}
+                    {radius}
+                />
             </g>
         {/if}
     </g>

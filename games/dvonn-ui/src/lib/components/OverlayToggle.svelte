@@ -1,10 +1,20 @@
 <script lang="ts">
+    import type { Snippet } from 'svelte'
+
+    // A text glyph, or an icon drawn by the caller.
     let {
         glyph,
         label,
         pressed,
-        onToggle
-    }: { glyph: string; label: string; pressed: boolean; onToggle: () => void } = $props()
+        onToggle,
+        children
+    }: {
+        glyph?: string
+        label: string
+        pressed: boolean
+        onToggle: () => void
+        children?: Snippet
+    } = $props()
 </script>
 
 <button
@@ -15,7 +25,9 @@
     aria-label={label}
     onclick={onToggle}
 >
-    <span class="glyph">{glyph}</span>
+    <span class="glyph"
+        >{#if children}{@render children()}{:else}{glyph}{/if}</span
+    >
 </button>
 
 <style>
@@ -36,11 +48,26 @@
     }
 
     .glyph {
+        display: flex;
+        align-items: center;
+        min-height: 17px;
         padding: 1px 5px;
         border-radius: 6px;
         border: 1px solid currentColor;
         font-weight: 700;
         letter-spacing: 0;
+    }
+
+    .glyph :global(text) {
+        fill: currentColor;
+    }
+
+    .glyph :global(.line) {
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
     }
 
     /* On, the glyph fills in dark; off, it is a faint outline. */

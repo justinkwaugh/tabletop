@@ -22,6 +22,7 @@ import {
     type DvonnSelection
 } from './stagedSelection.js'
 import { coordsKey } from '$lib/board/geometry.js'
+import { PIECE_MODEL, type PieceModel } from '$lib/board/pieceGeometry.js'
 import { pieceTone, toneOf, type Tone } from '$lib/board/pieceStyle.js'
 
 export function includesCoords(list: readonly AxialCoordinates[], coords: AxialCoordinates) {
@@ -50,6 +51,32 @@ export class DvonnGameSession extends GameSession<DvonnGameState, HydratedDvonnG
     toggleCoordinates() {
         this.preferences.set({ showCoordinates: !this.showCoordinates })
     }
+
+    // The board seen from the far side of the table, so what a stack hides comes in front of it.
+    turned: boolean = $derived(this.preferences.values.turned)
+
+    toggleTurned() {
+        this.preferences.set({ turned: !this.turned })
+    }
+
+    // Stacks past the full height shrink to it unless a player would rather see every piece
+    // stacked whole, turning the board to see past a tall one.
+    shrinkStacks: boolean = $derived(this.preferences.values.shrinkStacks)
+
+    toggleShrinkStacks() {
+        this.preferences.set({ shrinkStacks: !this.shrinkStacks })
+    }
+
+    // A badge on each stack with its height.
+    heightBadges: boolean = $derived(this.preferences.values.heightBadges)
+
+    toggleHeightBadges() {
+        this.preferences.set({ heightBadges: !this.heightBadges })
+    }
+
+    pieceModel: PieceModel = $derived(
+        this.shrinkStacks ? PIECE_MODEL : { ...PIECE_MODEL, cap: Number.POSITIVE_INFINITY }
+    )
 
     canPlace = $derived(this.canAct(ActionType.PlacePiece))
     canMove = $derived(this.canAct(ActionType.MoveStack))

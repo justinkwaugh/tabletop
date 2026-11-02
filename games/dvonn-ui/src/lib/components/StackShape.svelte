@@ -34,7 +34,6 @@
         seedKeys,
         radius,
         prefix,
-        showCount = true,
         catchLight = 0,
         model = PIECE_MODEL
     }: {
@@ -44,7 +43,6 @@
         seedKeys: readonly string[]
         radius: number
         prefix: string
-        showCount?: boolean
         // How bright a black piece's top edge shows under another black piece; 0 for none.
         catchLight?: number
         model?: PieceModel
@@ -130,9 +128,6 @@
             ? `M ${-radius * 3} ${-radius * 6} H ${radius * 3} V ${radius * 3} H ${-radius * 3} Z ${hole.through}`
             : undefined
     )
-    // The count sits in the top piece's hole, light on dark so it reads on every color; sized to
-    // read on a phone without crowding the hole.
-    const countSize = $derived(radius * (tones.length >= 10 ? 0.64 : 0.76))
 
     function speckAt(x: number, y: number) {
         const distance = Math.hypot(x, y)
@@ -248,9 +243,6 @@
             class="speck"
         ></ellipse>
     {/each}
-    {#if showCount && tones.length > 1}
-        <text y={hole.opening.y} font-size={countSize} class="count">{tones.length}</text>
-    {/if}
 {/if}
 
 <style>
@@ -271,18 +263,5 @@
 
     .hole-shadow {
         fill: rgb(0 0 0 / 0.85);
-    }
-
-    .count {
-        fill: #ffffff;
-        stroke: #000000;
-        stroke-width: 2.4;
-        paint-order: stroke;
-        stroke-linejoin: round;
-        font-weight: 700;
-        text-anchor: middle;
-        dominant-baseline: central;
-        font-variant-numeric: tabular-nums;
-        pointer-events: none;
     }
 </style>

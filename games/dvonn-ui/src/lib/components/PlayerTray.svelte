@@ -99,7 +99,6 @@
                             tones={stack.map((piece) => piece.tone)}
                             seedKeys={stack.map((piece) => piece.seedKey)}
                             radius={RADIUS}
-                            showCount={false}
                         />
                     </g>
                 {/each}

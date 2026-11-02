@@ -12,7 +12,7 @@ import type { DvonnGameSession } from '$lib/model/session.svelte.js'
 import { boardDiff, spacesBetween, type StackMotion } from '$lib/board/boardDiff.js'
 import { coordsKey, type BoardView } from '$lib/board/geometry.js'
 import { FALL_EASE, GROUND_EASE, hopPlan, RISE_EASE } from '$lib/board/hop.js'
-import { PIECE_MODEL, restingLift, type PieceModel } from '$lib/board/pieceGeometry.js'
+import { restingLift, type PieceModel } from '$lib/board/pieceGeometry.js'
 
 // A page load, a sync with the server or a switch of view shows the board as it is, unmoved.
 const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
@@ -64,7 +64,8 @@ export type Flier = {
 type Timeline = gsap.core.Timeline
 type Step = TransitionStep<HydratedDvonnGameState, AnimationContext>
 // A stack's drawing: the whole of it, its body and its shadow on the board.
-type Parts = { whole?: SVGGElement; body?: SVGGElement; shadow?: SVGGElement }
+// A stack's height badge, drawn over its selection ring, moves with its body.
+type Parts = { whole?: SVGGElement; body?: SVGGElement; shadow?: SVGGElement; badge?: SVGGElement }
 // A copy of a stack drawn over the flier: where it stands on screen, and how high its top is.
 type Occluder = { y: number; top: number }
 
@@ -132,7 +133,7 @@ export class BoardAnimator {
             const layout = this.layout()
             this.occluders.set(node, {
                 y: layout.center(stack.coords).y,
-                top: restingLift(stack.pieces.length, layout.radius)
+                top: restingLift(stack.pieces.length, layout.radius, this.session.pieceModel)
             })
             return () => {
                 this.occluders.delete(node)
@@ -250,9 +251,11 @@ export class BoardAnimator {
         const between = spacesBetween(moved.from, moved.to)
         const plan = hopPlan({
             spaces: between.length + 1,
-            startLift: restingLift(moved.leftBelow, radius),
-            endLift: restingLift(moved.landingOn, radius),
-            over: between.map((coords) => restingLift(before.board.stackAt(coords).length, radius)),
+            startLift: restingLift(moved.leftBelow, radius, this.session.pieceModel),
+            endLift: restingLift(moved.landingOn, radius, this.session.pieceModel),
+            over: between.map((coords) =>
+                restingLift(before.board.stackAt(coords).length, radius, this.session.pieceModel)
+            ),
             quick
         })
         const start = layout.center(moved.from)
@@ -298,7 +301,7 @@ export class BoardAnimator {
         timeline.to({}, { duration: plan.duration, onUpdate: occlude }, at)
 
         if (!quick) this.bounce(node, body, offset, plan.endLift, timeline, landed)
-        if (moved.landingOn + moved.pieces.length > PIECE_MODEL.cap) {
+        if (moved.landingOn + moved.pieces.length > this.session.pieceModel.cap) {
             this.shrink(before, moved, timeline, quick ? landed : landed + BOUNCE_TIME, quick)
         }
         return landed
@@ -322,7 +325,8 @@ export class BoardAnimator {
         quick: boolean
     ) {
         const key = coordsKey(moved.to)
-        const { cap } = PIECE_MODEL
+        const model = this.session.pieceModel
+        const { cap } = model
         const height = { cap: quick ? cap : Math.min(moved.landingOn, cap) + moved.pieces.length }
         timeline.call(
             () => {
@@ -349,9 +353,8 @@ export class BoardAnimator {
     // The model a stack is drawn with: the board's, or while it shrinks, one at the height it
     // has shrunk to. Other stacks keep the board's own model, so they are not redrawn.
     modelAt(key: string): PieceModel {
-        return this.shrinking?.key === key
-            ? { ...PIECE_MODEL, cap: this.shrinking.cap }
-            : PIECE_MODEL
+        const model = this.session.pieceModel
+        return this.shrinking?.key === key ? { ...model, cap: this.shrinking.cap } : model
     }
 
     // The landed stack drawn whole on its space.
@@ -404,11 +407,15 @@ export class BoardAnimator {
     ) {
         const duration = quick ? QUICK : CUT_OFF.duration
         stacks.forEach((stack, index) => {
-            const { body, shadow } = this.stackParts.get(coordsKey(stack.coords)) ?? {}
+            const { body, shadow, badge } = this.stackParts.get(coordsKey(stack.coords)) ?? {}
             if (body === undefined || shadow === undefined) return
-            touched.push(...scaledFromCentre(body, shadow))
+            touched.push(...scaledFromCentre(body, shadow, ...(badge ? [badge] : [])))
             const start = quick ? landed : landed + CUT_OFF.delay + index * CUT_OFF.stagger
-            timeline.to(body, { y: CUT_OFF.rise, opacity: 0, duration, ease: 'power1.out' }, start)
+            timeline.to(
+                withBadge(body, badge),
+                { y: CUT_OFF.rise, opacity: 0, duration, ease: 'power1.out' },
+                start
+            )
             timeline.to(
                 shadow,
                 { scale: CUT_OFF.shadow, opacity: 0, duration, ease: 'power1.out' },
@@ -426,11 +433,11 @@ export class BoardAnimator {
     ): number {
         if (stacks.length === 0) return 0
         for (const stack of stacks) {
-            const { body, shadow } = this.stackParts.get(coordsKey(stack.coords)) ?? {}
+            const { body, shadow, badge } = this.stackParts.get(coordsKey(stack.coords)) ?? {}
             if (body === undefined || shadow === undefined) continue
-            touched.push(...scaledFromCentre(body, shadow))
+            touched.push(...scaledFromCentre(body, shadow, ...(badge ? [badge] : [])))
             timeline.fromTo(
-                body,
+                withBadge(body, badge),
                 { y: CUT_OFF.rise, opacity: 0 },
                 { y: 0, opacity: 1, duration: QUICK, ease: 'power1.in', immediateRender: true },
                 0
@@ -446,9 +453,10 @@ export class BoardAnimator {
     }
 
     private drop(key: string, timeline: Timeline, touched: SVGGElement[], quick: boolean) {
-        const { body, shadow } = this.stackParts.get(key) ?? {}
-        if (body === undefined || shadow === undefined) return
-        touched.push(...scaledFromCentre(body, shadow))
+        const { body: stackBody, shadow, badge } = this.stackParts.get(key) ?? {}
+        if (stackBody === undefined || shadow === undefined) return
+        touched.push(...scaledFromCentre(stackBody, shadow, ...(badge ? [badge] : [])))
+        const body = withBadge(stackBody, badge)
         const fall = quick ? QUICK : DROP.fall
         timeline.fromTo(
             body,
@@ -474,14 +482,19 @@ export class BoardAnimator {
     // The drop in reverse: the piece is seen rising off its space before it fades, and its
     // shadow shrinks under it.
     private liftOff(key: string, timeline: Timeline, touched: SVGGElement[]) {
-        const { body, shadow } = this.stackParts.get(key) ?? {}
-        if (body === undefined || shadow === undefined) return
-        touched.push(...scaledFromCentre(body, shadow))
+        const { body: stackBody, shadow, badge } = this.stackParts.get(key) ?? {}
+        if (stackBody === undefined || shadow === undefined) return
+        touched.push(...scaledFromCentre(stackBody, shadow, ...(badge ? [badge] : [])))
+        const body = withBadge(stackBody, badge)
         const { duration, rise, scale } = LIFT_OFF
         timeline.to(body, { y: rise, scale, duration, ease: 'power1.out' }, 0)
         timeline.to(body, { opacity: 0, duration, ease: 'power2.in' }, 0)
         timeline.to(shadow, { opacity: 0, scale: DROP.shadow, duration, ease: 'power1.out' }, 0)
     }
+}
+
+function withBadge(body: SVGGElement, badge: SVGGElement | undefined): SVGGElement[] {
+    return badge ? [body, badge] : [body]
 }
 
 // Nodes about to grow or shrink, around their space's centre. Set only on the nodes a move

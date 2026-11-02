@@ -282,3 +282,43 @@ write(
         H3: 'd'
     })
 )
+
+// Stacks past the full height of 13: a 20-stack on F2 and a 16-stack on D3, with pieces in the
+// rows behind them. With the stack limit on, both shrink to 13 and thin their middles; turned
+// off, they stand whole. Alice's three on C2 can hop onto F2, making it 23.
+write(
+    'past-the-full-height',
+    'Past the full height',
+    position({
+        F2: 'bwbwbwbwbwdwbwbwbwbw',
+        D3: 'wbwbwbwbwbdbwbwb',
+        C2: 'wbw',
+        F3: 'b',
+        G3: 'wb',
+        D4: 'w',
+        E4: 'b',
+        B3: 'b',
+        H2: 'w',
+        K3: 'd'
+    })
+)
+
+// Height badges behind tall stacks: a badge sits at the far right of its stack's top unless a
+// nearer stack covers it there. D3's two-stack has a 10-stack in front on its right (D2), so its
+// badge goes to the far left; G3's has 10-stacks in front on both sides (F2 and G2), so its
+// badge goes to the middle; B3's has nothing in front and keeps the far right.
+write(
+    'badges-behind-stacks',
+    'Badges behind stacks',
+    position({
+        D2: 'wbwbwbwbwb',
+        D3: 'bw',
+        F2: 'bwbwbwbwbd',
+        G2: 'wbwbwbwbwb',
+        G3: 'wb',
+        B3: 'bw',
+        I3: 'd',
+        A1: 'd',
+        C1: 'w'
+    })
+)
