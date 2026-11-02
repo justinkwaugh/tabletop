@@ -129,7 +129,6 @@
             {/each}
         </tbody>
     </table>
-    <p class="key">count, and worth at today's price · score = cash + shares · ★ leads</p>
 </div>
 
 <style>
@@ -307,13 +306,5 @@
 
     .star {
         margin-right: 1px;
-    }
-
-    .key {
-        margin: 4px 2px 0;
-        font-family: 'Libre Caslon Text', serif;
-        font-style: italic;
-        font-size: 10.5px;
-        color: var(--pp-ink-sub);
     }
 </style>

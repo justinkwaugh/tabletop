@@ -48,7 +48,7 @@ The Players tab holds one **seat ledger** for the whole table (O-10): a paper ta
 - **Cash:** the seat's money (public, R-1.3-H1); a "+$4" or "−$6" chip rises from it.
 - **Score:** cash plus every share at today's price, summed as the final total is (R-6.2). ★ marks the seat ahead, and every seat tied ahead (R-6.2-H1); none while every seat is level.
 
-A key under the table reads "count, and worth at today's price · score = cash + shares · ★ leads". The row of the seat the state asks to decide is amber (R-X.1); during Repairs the seat whose turn waits carries the dashed outline (R-4.3-H4). The hand's pieces and the share cards are not drawn here: every seat holds its pieces, and the counts carry the shares.
+The row of the seat the state asks to decide is amber (R-X.1); during Repairs the seat whose turn waits carries the dashed outline (R-4.3-H4). The hand's pieces and the share cards are not drawn here: every seat holds its pieces, and the counts carry the shares.
 
 A press anywhere on a row opens that seat over the table. On a phone the same table is in the side column the table scrolls sideways to; the seat strip under the board stays as it is.
 
@@ -201,7 +201,7 @@ Silent restoration replaces the displayed state; every derived offer follows it 
 - **Full screen** is the wrapper's modal dialog; while open, the action panel and the seat strip (at every width) are drawn in its toolbar and the open seat and the enlarged view inside it, each in one place at a time.
 - **The Repairs row** is one component, read from the displayed state, in the panel and the waiting view alike.
 - **Hidden things** are drawn by one piece component that takes a `faceShown` decision from the perspective rule.
-- **Colour.** Amber means "yours to act on": lit ring, picked ring, the acting or deciding seat's ring and tag. Rose means "costs or threatens": Repairs chips, "short $3". The primary button is charcoal and Undo is brown, both from the map. Railroad colours come from the palette and appear only on railroad things (pieces, price markers, tags). Seat colours come from `gameSession.colors` and appear only on seat things (the seat card's double rule and dot, money markers, chips in the seat strip); the title's colour list avoids the railroad colours (O-1). A money marker is told by its colour alone, with seat order on a shared space and the colour-blind palette from `gameSession.colors`. Nothing else is amber or rose.
+- **Colour.** Amber means "yours to act on": lit ring, picked ring, the acting or deciding seat's ring and tag. Rose means "costs or threatens": Repairs chips, "short $3". The primary button is charcoal and Undo is brown, both from the map. Railroad colours come from the palette and appear only on railroad things (pieces, price markers, tags). Seat colours come from `gameSession.colors` and appear only on seat things (the open seat's double rule and dot, the ledger's seat dot, money markers, chips in the seat strip); the title's colour list avoids the railroad colours (O-1). A money marker is told by its colour alone, with seat order on a shared space and the colour-blind palette from `gameSession.colors`. Nothing else is amber or rose.
 
 ## Game log and history
 
