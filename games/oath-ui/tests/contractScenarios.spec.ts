@@ -3255,6 +3255,36 @@ async function boxOf(locator: Locator): Promise<Box> {
     return box
 }
 
+/**
+ * The box of the locator's first element once it has held still for two animation frames. A
+ * phone's map pick reframes the board in an animation, and boxes read a moment apart while it
+ * moves belong to different frames.
+ */
+async function settledBoxOf(locator: Locator): Promise<Box> {
+    return locator.first().evaluate(async (element) => {
+        const read = () => {
+            const { x, y, width, height } = element.getBoundingClientRect()
+            return { x, y, width, height }
+        }
+        const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve))
+        let last = read()
+        let stillFrames = 0
+        for (let frame = 0; frame < 300; frame++) {
+            await nextFrame()
+            const now = read()
+            const still =
+                now.x === last.x &&
+                now.y === last.y &&
+                now.width === last.width &&
+                now.height === last.height
+            stillFrames = still ? stillFrames + 1 : 0
+            if (stillFrames === 2) return now
+            last = now
+        }
+        throw Error('Still moving after 300 animation frames')
+    })
+}
+
 const inside = (inner: Box, outer: Box) =>
     inner.x >= outer.x - 0.5 &&
     inner.y >= outer.y - 0.5 &&
@@ -3278,7 +3308,7 @@ const litSlots = (page: Page) =>
         .evaluateAll((sites) => sites.map((site) => site.getAttribute('data-slot') ?? '').sort())
 
 async function onScreen(page: Page, locator: Locator): Promise<boolean> {
-    return inside(await boxOf(locator), await boxOf(boardView(page)))
+    return inside(await settledBoxOf(locator), await boxOf(boardView(page)))
 }
 
 async function chooseTravelOnThePhone(page: Page) {
@@ -3302,8 +3332,9 @@ test.describe('scenario 4 on a phone held upright', () => {
         expect(legal.length).toBeGreaterThan(1)
         expect(await litSlots(page)).toEqual([...legal].sort())
         for (const slotId of legal) {
+            const card = await settledBoxOf(siteCard(page, slotId))
             const chip = await boxOf(siteAt(page, slotId).locator('.travel-cost'))
-            expect(inside(chip, await boxOf(siteCard(page, slotId)))).toBe(true)
+            expect(inside(chip, card)).toBe(true)
         }
     })
 
