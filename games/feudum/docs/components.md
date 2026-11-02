@@ -2,7 +2,7 @@
 
 The inventory the data files transcribe. Ids are permanent: game state stores ids only, and an id once published is never reused or renamed.
 
-Built only from the rules digest (`rules-digest.md`, cited `R-x.y`), the rulebook's Royal Writ summary text (December 2018 rulebook), and the picture transcription in which every value is tagged [read] (clearly legible) or [unsure] (with a reason). A value no picture settled is written **unread** and listed under "Unread values". Nothing here is from memory of the game.
+Built only from the rules digest (`rules-digest.md`, cited `R-x.y`), the rulebook's Royal Writ summary text (December 2018 rulebook), and the picture transcription and the Tabletopia edition's textures and component manifest, in which every value is tagged [read] (clearly legible) or [unsure] (with a reason). A value no picture settled is written **unread** and listed under "Unread values". Nothing here is from memory of the game.
 
 ## Id scheme
 
@@ -19,8 +19,8 @@ Built only from the rules digest (`rules-digest.md`, cited `R-x.y`), the ruleboo
 Conventions and assumptions:
 
 - **Img id** is the S1, I1, F1 ... label used in the picture transcription.
-- **Confidence** copies the transcription's tag and reason. Source short names: FB = publisher flat board scan, DTL/DLR = publisher flat close-ups, DRG = pre-production close-up, SETUP-L/R and BEAVER/ZAND2 = player photos, AID = fan map-aid cards, FAN-GUILD = fan guild tracker, RB-pN = rulebook PDF page N, REF = player reference.
-- Merchant market spaces are numbered 1 to 4 in fill order (incoming goods fill left to right, R-4.6.3); space 4 is the "last" space the setup leaves empty in the saltpeter and sulfur bins. Which end of the printed bin is number 1 is an assumption, not read.
+- **Confidence** copies the transcription's tag and reason. Source short names: FB = publisher flat board scan, DTL/DLR = publisher flat close-ups, DRG = pre-production close-up, SETUP-L/R and BEAVER/ZAND2 = player photos, AID = fan map-aid cards, FAN-GUILD = fan guild tracker, RB-pN = rulebook PDF page N, REF = player reference, TT = the Tabletopia edition (v1.23): its textures, and its component manifest for copy counts.
+- Merchant market spaces are numbered 1 to 4 in fill order (incoming goods fill left to right, R-4.6.3); space 4 is the "last" space the setup leaves empty in the saltpeter and sulfur bins. TT prints each bin's prices from most to least expensive; space 1 is taken as the most expensive end, the only reading that fits saltpeter-4 = 2s and sulfur-4 = 1s [unsure: the direction rests on those two readings].
 - Prices are in shillings (written `Ns`).
 - The mandate numbers 1 to 8 are the transcription's own order (the rulebook's card layout), not printed on the cards.
 
@@ -55,74 +55,74 @@ A two-letter space counts for both directions. Region counts: sea 3, island 4, f
 
 ## Connections
 
-| Id                                          | Medium         | From             | To               | Img ids | Confidence                                                                                                                                                           | Digest  |
-| ------------------------------------------- | -------------- | ---------------- | ---------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| route.road.forest-1--forest-2               | road           | space.forest.1   | space.forest.2   | F1 - F2 | [unsure] AID only; FB confirms where visible (desert, island and forest roads are clear on FB)                                                                       | R-4.2.1 |
-| route.road.forest-2--forest-3               | road           | space.forest.2   | space.forest.3   | F2 - F3 | [unsure] AID only; FB confirms where visible (desert, island and forest roads are clear on FB); may be one junction near F3 rather than two roads                    | R-4.2.1 |
-| route.road.forest-2--badlands-1             | road           | space.forest.2   | space.badlands.1 | F2 - B1 | [unsure] AID only; FB confirms where visible (desert, island and forest roads are clear on FB)                                                                       | R-4.2.1 |
-| route.road.forest-3--badlands-1             | road           | space.forest.3   | space.badlands.1 | F3 - B1 | [unsure] AID only; FB confirms where visible (desert, island and forest roads are clear on FB); may be one junction near F3 rather than two roads                    | R-4.2.1 |
-| route.road.forest-3--desert-4               | road           | space.forest.3   | space.desert.4   | F3 - D4 | [unsure] AID only; FB confirms where visible (desert, island and forest roads are clear on FB)                                                                       | R-4.2.1 |
-| route.road.badlands-1--badlands-2           | road           | space.badlands.1 | space.badlands.2 | B1 - B2 | [unsure] AID only; FB confirms where visible (desert, island and forest roads are clear on FB)                                                                       | R-4.2.1 |
-| route.road.badlands-2--badlands-4           | road           | space.badlands.2 | space.badlands.4 | B2 - B4 | [unsure] AID only; FB confirms where visible (desert, island and forest roads are clear on FB)                                                                       | R-4.2.1 |
-| route.road.desert-3--desert-4               | road           | space.desert.3   | space.desert.4   | D3 - D4 | [unsure] AID only; FB confirms where visible (desert, island and forest roads are clear on FB)                                                                       | R-4.2.1 |
-| route.road.desert-1--desert-3               | road           | space.desert.1   | space.desert.3   | D1 - D3 | [unsure] AID only; FB confirms where visible (desert, island and forest roads are clear on FB)                                                                       | R-4.2.1 |
-| route.road.desert-2--desert-5               | road           | space.desert.2   | space.desert.5   | D2 - D5 | [unsure] AID only; FB confirms where visible (desert, island and forest roads are clear on FB)                                                                       | R-4.2.1 |
-| route.road.island-1--island-2               | road           | space.island.1   | space.island.2   | I1 - I2 | [unsure] AID only; FB confirms where visible (desert, island and forest roads are clear on FB)                                                                       | R-4.2.1 |
-| route.road.island-3--island-4               | road           | space.island.3   | space.island.4   | I3 - I4 | [unsure] AID only; FB confirms where visible (desert, island and forest roads are clear on FB)                                                                       | R-4.2.1 |
-| route.road.mountain-1--mountain-2           | road           | space.mountain.1 | space.mountain.2 | M1 - M2 | [unsure] AID only; FB confirms where visible (desert, island and forest roads are clear on FB); may link on to B4 (pale trail east of B4 on FB, not coloured on AID) | R-4.2.1 |
-| route.ship.sea-1--forest-1                  | ship           | space.sea.1      | space.forest.1   | S1 - F1 | [unsure] AID only; the river legs B3-B2-M2 follow the drawn river on FB, the sea legs follow FB's dashed lines                                                       | R-4.2.2 |
-| route.ship.sea-1--sea-2                     | ship           | space.sea.1      | space.sea.2      | S1 - S2 | [unsure] AID only; the river legs B3-B2-M2 follow the drawn river on FB, the sea legs follow FB's dashed lines                                                       | R-4.2.2 |
-| route.ship.sea-2--island-3                  | ship           | space.sea.2      | space.island.3   | S2 - I3 | [unsure] AID only; the river legs B3-B2-M2 follow the drawn river on FB, the sea legs follow FB's dashed lines                                                       | R-4.2.2 |
-| route.ship.island-3--desert-2               | ship           | space.island.3   | space.desert.2   | I3 - D2 | [unsure] AID only; the river legs B3-B2-M2 follow the drawn river on FB, the sea legs follow FB's dashed lines                                                       | R-4.2.2 |
-| route.ship.desert-1--desert-2               | ship           | space.desert.1   | space.desert.2   | D1 - D2 | [unsure] AID only; the river legs B3-B2-M2 follow the drawn river on FB, the sea legs follow FB's dashed lines                                                       | R-4.2.2 |
-| route.ship.desert-1--badlands-3             | ship           | space.desert.1   | space.badlands.3 | D1 - B3 | [unsure] AID only; the river legs B3-B2-M2 follow the drawn river on FB, the sea legs follow FB's dashed lines                                                       | R-4.2.2 |
-| route.ship.badlands-2--badlands-3           | ship           | space.badlands.2 | space.badlands.3 | B2 - B3 | [unsure] AID only; the river legs B3-B2-M2 follow the drawn river on FB, the sea legs follow FB's dashed lines                                                       | R-4.2.2 |
-| route.ship.badlands-2--mountain-2           | ship           | space.badlands.2 | space.mountain.2 | B2 - M2 | [unsure] AID only; the river legs B3-B2-M2 follow the drawn river on FB, the sea legs follow FB's dashed lines                                                       | R-4.2.2 |
-| route.submersible.sea-1--forest-1           | submersible    | space.sea.1      | space.forest.1   | S1 - F1 | [unsure] AID only; AID's purple bands overlap near D1 and D2                                                                                                         | R-4.2.2 |
-| route.submersible.island-1--forest-1        | submersible    | space.island.1   | space.forest.1   | I1 - F1 | [unsure] AID only; AID's purple bands overlap near D1 and D2                                                                                                         | R-4.2.2 |
-| route.submersible.sea-1--sea-2              | submersible    | space.sea.1      | space.sea.2      | S1 - S2 | [unsure] AID only; AID's purple bands overlap near D1 and D2                                                                                                         | R-4.2.2 |
-| route.submersible.sea-2--island-3           | submersible    | space.sea.2      | space.island.3   | S2 - I3 | [unsure] AID only; AID's purple bands overlap near D1 and D2                                                                                                         | R-4.2.2 |
-| route.submersible.sea-2--island-2           | submersible    | space.sea.2      | space.island.2   | S2 - I2 | [unsure] AID only; AID's purple bands overlap near D1 and D2                                                                                                         | R-4.2.2 |
-| route.submersible.sea-3--island-1           | submersible    | space.sea.3      | space.island.1   | S3 - I1 | [unsure] AID only; AID's purple bands overlap near D1 and D2                                                                                                         | R-4.2.2 |
-| route.submersible.sea-3--desert-1           | submersible    | space.sea.3      | space.desert.1   | S3 - D1 | [unsure] AID only; AID's purple bands overlap near D1 and D2                                                                                                         | R-4.2.2 |
-| route.submersible.island-2--desert-1        | submersible    | space.island.2   | space.desert.1   | I2 - D1 | [unsure] AID only; AID's purple bands overlap near D1 and D2                                                                                                         | R-4.2.2 |
-| route.submersible.desert-1--desert-2        | submersible    | space.desert.1   | space.desert.2   | D1 - D2 | [unsure] AID only; AID's purple bands overlap near D1 and D2                                                                                                         | R-4.2.2 |
-| route.submersible.island-3--desert-2        | submersible    | space.island.3   | space.desert.2   | I3 - D2 | [unsure] AID only; AID's purple bands overlap near D1 and D2                                                                                                         | R-4.2.2 |
-| route.flying-machine.island-2--desert-1     | flying-machine | space.island.2   | space.desert.1   | I2 - D1 | [unsure] AID only                                                                                                                                                    | R-4.2.2 |
-| route.flying-machine.island-2--island-4     | flying-machine | space.island.2   | space.island.4   | I2 - I4 | [unsure] AID only                                                                                                                                                    | R-4.2.2 |
-| route.flying-machine.island-4--desert-2     | flying-machine | space.island.4   | space.desert.2   | I4 - D2 | [unsure] AID only                                                                                                                                                    | R-4.2.2 |
-| route.flying-machine.desert-2--desert-5     | flying-machine | space.desert.2   | space.desert.5   | D2 - D5 | [unsure] AID only                                                                                                                                                    | R-4.2.2 |
-| route.flying-machine.desert-5--badlands-5   | flying-machine | space.desert.5   | space.badlands.5 | D5 - B5 | [unsure] AID only                                                                                                                                                    | R-4.2.2 |
-| route.flying-machine.badlands-5--mountain-2 | flying-machine | space.badlands.5 | space.mountain.2 | B5 - M2 | [unsure] AID only                                                                                                                                                    | R-4.2.2 |
-| route.flying-machine.mountain-1--mountain-2 | flying-machine | space.mountain.1 | space.mountain.2 | M1 - M2 | [unsure] AID only                                                                                                                                                    | R-4.2.2 |
-| route.flying-machine.badlands-2--mountain-1 | flying-machine | space.badlands.2 | space.mountain.1 | B2 - M1 | [unsure] AID only                                                                                                                                                    | R-4.2.2 |
-| route.ferry.island-1--forest-2              | ferry          | space.island.1   | space.forest.2   | I1 - F2 | [read] for both endpoints (ferry icons visible on DTL, DLR, SETUP-R); [unsure] pairing, which comes from AID                                                         | R-4.2.3 |
-| route.ferry.desert-4--desert-5              | ferry          | space.desert.4   | space.desert.5   | D4 - D5 | [read] for both endpoints (ferry icons visible on DTL, DLR, SETUP-R); [unsure] pairing, which comes from AID                                                         | R-4.2.3 |
-| route.ferry.badlands-4--mountain-2          | ferry          | space.badlands.4 | space.mountain.2 | B4 - M2 | [read] for both endpoints (ferry icons visible on DTL, DLR, SETUP-R); [unsure] pairing, which comes from AID                                                         | R-4.2.3 |
+| Id                                          | Medium         | From             | To               | Img ids | Confidence                                                                                                     | Digest  |
+| ------------------------------------------- | -------------- | ---------------- | ---------------- | ------- | -------------------------------------------------------------------------------------------------------------- | ------- |
+| route.road.forest-1--forest-2               | road           | space.forest.1   | space.forest.2   | F1 - F2 | [read] TT, AID, FB                                                                                             | R-4.2.1 |
+| route.road.forest-2--forest-3               | road           | space.forest.2   | space.forest.3   | F2 - F3 | [read] TT, AID, FB                                                                                             | R-4.2.1 |
+| route.road.forest-2--badlands-1             | road           | space.forest.2   | space.badlands.1 | F2 - B1 | [read] TT, AID, FB                                                                                             | R-4.2.1 |
+| route.road.forest-3--badlands-1             | road           | space.forest.3   | space.badlands.1 | F3 - B1 | [read] TT, AID, FB                                                                                             | R-4.2.1 |
+| route.road.forest-3--desert-4               | road           | space.forest.3   | space.desert.4   | F3 - D4 | [read] TT, AID, FB                                                                                             | R-4.2.1 |
+| route.road.badlands-1--badlands-2           | road           | space.badlands.1 | space.badlands.2 | B1 - B2 | [read] TT, AID, FB                                                                                             | R-4.2.1 |
+| route.road.badlands-2--badlands-4           | road           | space.badlands.2 | space.badlands.4 | B2 - B4 | [read] TT, AID, FB                                                                                             | R-4.2.1 |
+| route.road.desert-3--desert-4               | road           | space.desert.3   | space.desert.4   | D3 - D4 | [read] TT, AID, FB                                                                                             | R-4.2.1 |
+| route.road.desert-1--desert-3               | road           | space.desert.1   | space.desert.3   | D1 - D3 | [read] TT, AID, FB                                                                                             | R-4.2.1 |
+| route.road.desert-2--desert-5               | road           | space.desert.2   | space.desert.5   | D2 - D5 | [read] TT, AID, FB                                                                                             | R-4.2.1 |
+| route.road.island-1--island-2               | road           | space.island.1   | space.island.2   | I1 - I2 | [read] TT, AID, FB                                                                                             | R-4.2.1 |
+| route.road.island-3--island-4               | road           | space.island.3   | space.island.4   | I3 - I4 | [read] TT, AID, FB                                                                                             | R-4.2.1 |
+| route.road.mountain-1--mountain-2           | road           | space.mountain.1 | space.mountain.2 | M1 - M2 | [read] TT, AID, FB                                                                                             | R-4.2.1 |
+| route.ship.sea-1--forest-1                  | ship           | space.sea.1      | space.forest.1   | S1 - F1 | [unsure] AID only; the river legs B3-B2-M2 follow the drawn river on FB, the sea legs follow FB's dashed lines | R-4.2.2 |
+| route.ship.sea-1--sea-2                     | ship           | space.sea.1      | space.sea.2      | S1 - S2 | [unsure] AID only; the river legs B3-B2-M2 follow the drawn river on FB, the sea legs follow FB's dashed lines | R-4.2.2 |
+| route.ship.sea-2--island-3                  | ship           | space.sea.2      | space.island.3   | S2 - I3 | [unsure] AID only; the river legs B3-B2-M2 follow the drawn river on FB, the sea legs follow FB's dashed lines | R-4.2.2 |
+| route.ship.island-3--desert-2               | ship           | space.island.3   | space.desert.2   | I3 - D2 | [unsure] AID only; the river legs B3-B2-M2 follow the drawn river on FB, the sea legs follow FB's dashed lines | R-4.2.2 |
+| route.ship.desert-1--desert-2               | ship           | space.desert.1   | space.desert.2   | D1 - D2 | [unsure] AID only; the river legs B3-B2-M2 follow the drawn river on FB, the sea legs follow FB's dashed lines | R-4.2.2 |
+| route.ship.desert-1--badlands-3             | ship           | space.desert.1   | space.badlands.3 | D1 - B3 | [unsure] AID only; the river legs B3-B2-M2 follow the drawn river on FB, the sea legs follow FB's dashed lines | R-4.2.2 |
+| route.ship.badlands-2--badlands-3           | ship           | space.badlands.2 | space.badlands.3 | B2 - B3 | [unsure] AID only; the river legs B3-B2-M2 follow the drawn river on FB, the sea legs follow FB's dashed lines | R-4.2.2 |
+| route.ship.badlands-2--mountain-2           | ship           | space.badlands.2 | space.mountain.2 | B2 - M2 | [unsure] AID only; the river legs B3-B2-M2 follow the drawn river on FB, the sea legs follow FB's dashed lines | R-4.2.2 |
+| route.submersible.sea-1--forest-1           | submersible    | space.sea.1      | space.forest.1   | S1 - F1 | [unsure] AID only; AID's purple bands overlap near D1 and D2                                                   | R-4.2.2 |
+| route.submersible.island-1--forest-1        | submersible    | space.island.1   | space.forest.1   | I1 - F1 | [unsure] AID only; AID's purple bands overlap near D1 and D2                                                   | R-4.2.2 |
+| route.submersible.sea-1--sea-2              | submersible    | space.sea.1      | space.sea.2      | S1 - S2 | [unsure] AID only; AID's purple bands overlap near D1 and D2                                                   | R-4.2.2 |
+| route.submersible.sea-2--island-3           | submersible    | space.sea.2      | space.island.3   | S2 - I3 | [unsure] AID only; AID's purple bands overlap near D1 and D2                                                   | R-4.2.2 |
+| route.submersible.sea-2--island-2           | submersible    | space.sea.2      | space.island.2   | S2 - I2 | [unsure] AID only; AID's purple bands overlap near D1 and D2                                                   | R-4.2.2 |
+| route.submersible.sea-3--island-1           | submersible    | space.sea.3      | space.island.1   | S3 - I1 | [unsure] AID only; AID's purple bands overlap near D1 and D2                                                   | R-4.2.2 |
+| route.submersible.sea-3--desert-1           | submersible    | space.sea.3      | space.desert.1   | S3 - D1 | [unsure] AID only; AID's purple bands overlap near D1 and D2                                                   | R-4.2.2 |
+| route.submersible.island-2--desert-1        | submersible    | space.island.2   | space.desert.1   | I2 - D1 | [unsure] AID only; AID's purple bands overlap near D1 and D2                                                   | R-4.2.2 |
+| route.submersible.desert-1--desert-2        | submersible    | space.desert.1   | space.desert.2   | D1 - D2 | [unsure] AID only; AID's purple bands overlap near D1 and D2                                                   | R-4.2.2 |
+| route.submersible.island-3--desert-2        | submersible    | space.island.3   | space.desert.2   | I3 - D2 | [unsure] AID only; AID's purple bands overlap near D1 and D2                                                   | R-4.2.2 |
+| route.flying-machine.island-2--desert-1     | flying-machine | space.island.2   | space.desert.1   | I2 - D1 | [unsure] AID only                                                                                              | R-4.2.2 |
+| route.flying-machine.island-2--island-4     | flying-machine | space.island.2   | space.island.4   | I2 - I4 | [unsure] AID only                                                                                              | R-4.2.2 |
+| route.flying-machine.island-4--desert-2     | flying-machine | space.island.4   | space.desert.2   | I4 - D2 | [unsure] AID only                                                                                              | R-4.2.2 |
+| route.flying-machine.desert-2--desert-5     | flying-machine | space.desert.2   | space.desert.5   | D2 - D5 | [unsure] AID only                                                                                              | R-4.2.2 |
+| route.flying-machine.desert-5--badlands-5   | flying-machine | space.desert.5   | space.badlands.5 | D5 - B5 | [unsure] AID only                                                                                              | R-4.2.2 |
+| route.flying-machine.badlands-5--mountain-2 | flying-machine | space.badlands.5 | space.mountain.2 | B5 - M2 | [unsure] AID only                                                                                              | R-4.2.2 |
+| route.flying-machine.mountain-1--mountain-2 | flying-machine | space.mountain.1 | space.mountain.2 | M1 - M2 | [unsure] AID only                                                                                              | R-4.2.2 |
+| route.flying-machine.badlands-2--mountain-1 | flying-machine | space.badlands.2 | space.mountain.1 | B2 - M1 | [unsure] AID only                                                                                              | R-4.2.2 |
+| route.ferry.island-1--forest-2              | ferry          | space.island.1   | space.forest.2   | I1 - F2 | [read] TT: facing ferry icons across one stretch of water; DTL, DLR, SETUP-R                                   | R-4.2.3 |
+| route.ferry.desert-4--desert-5              | ferry          | space.desert.4   | space.desert.5   | D4 - D5 | [read] TT: facing ferry icons across one stretch of water; DTL, DLR, SETUP-R                                   | R-4.2.3 |
+| route.ferry.badlands-4--mountain-2          | ferry          | space.badlands.4 | space.mountain.2 | B4 - M2 | [read] TT: facing ferry icons across one stretch of water; DTL, DLR, SETUP-R                                   | R-4.2.3 |
 
-Spaces with no road: sea-1, sea-2, sea-3, badlands-3, badlands-5. Ship and submersible routes make their endpoints ports (R-1.2.2). The sea serpent uses ship and submersible routes; the behemoth uses roads and flying-machine routes (R-4.2.4).
+Spaces with no road: sea-1, sea-2, sea-3, badlands-3, badlands-5 [read] TT. TT draws no ship, submersible or flying-machine routes: those rows rest on AID alone, and whether the board defines vessel routes at all is open (`open-questions.md`, Q27). TT draws piers at sea-1, sea-2, island-1, island-2, island-3, forest-1, desert-1, desert-2, badlands-2, badlands-3, mountain-2, and one on the river between forest-3 and desert-4 [unsure which space it serves]. Ship and submersible routes make their endpoints ports (R-1.2.2). The sea serpent uses ship and submersible routes; the behemoth uses roads and flying-machine routes (R-4.2.4).
 
 ## Regions (6)
 
-| Id              | Name     | Spaces | Space names                                                | Stack base space                                                                                               | Stack (top to bottom)                              | Progress die face                                                   | Digest                   |
-| --------------- | -------- | ------ | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------- | ------------------------ |
-| region.sea      | sea      | 3      | sea-1, sea-2, sea-3                                        | printed V with the sea icon (left to right on the board: sea, island, forest, desert, badlands, mountain)      | tile.sea.i (top) to tile.sea.iv (bottom)           | unread (expected: the sea icon; no legible picture of the die)      | R-1.2.1, R-4.3.1, R-4.11 |
-| region.island   | island   | 4      | island-1, island-2, island-3, island-4                     | printed V with the island icon (left to right on the board: sea, island, forest, desert, badlands, mountain)   | tile.island.i (top) to tile.island.iv (bottom)     | unread (expected: the island icon; no legible picture of the die)   | R-1.2.1, R-4.3.1, R-4.11 |
-| region.forest   | forest   | 3      | forest-1, forest-2, forest-3                               | printed V with the forest icon (left to right on the board: sea, island, forest, desert, badlands, mountain)   | tile.forest.i (top) to tile.forest.iv (bottom)     | unread (expected: the forest icon; no legible picture of the die)   | R-1.2.1, R-4.3.1, R-4.11 |
-| region.desert   | desert   | 5      | desert-1, desert-2, desert-3, desert-4, desert-5           | printed V with the desert icon (left to right on the board: sea, island, forest, desert, badlands, mountain)   | tile.desert.i (top) to tile.desert.iv (bottom)     | unread (expected: the desert icon; no legible picture of the die)   | R-1.2.1, R-4.3.1, R-4.11 |
-| region.badlands | badlands | 5      | badlands-1, badlands-2, badlands-3, badlands-4, badlands-5 | printed V with the badlands icon (left to right on the board: sea, island, forest, desert, badlands, mountain) | tile.badlands.i (top) to tile.badlands.iv (bottom) | unread (expected: the badlands icon; no legible picture of the die) | R-1.2.1, R-4.3.1, R-4.11 |
-| region.mountain | mountain | 2      | mountain-1, mountain-2                                     | printed V with the mountain icon (left to right on the board: sea, island, forest, desert, badlands, mountain) | tile.mountain.i (top) to tile.mountain.iv (bottom) | unread (expected: the mountain icon; no legible picture of the die) | R-1.2.1, R-4.3.1, R-4.11 |
+| Id              | Name     | Spaces | Space names                                                | Stack base space                                                                                               | Stack (top to bottom)                              | Progress die face           | Digest                   |
+| --------------- | -------- | ------ | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- | --------------------------- | ------------------------ |
+| region.sea      | sea      | 3      | sea-1, sea-2, sea-3                                        | printed V with the sea icon (left to right on the board: sea, island, forest, desert, badlands, mountain)      | tile.sea.i (top) to tile.sea.iv (bottom)           | the sea icon [read] TT      | R-1.2.1, R-4.3.1, R-4.11 |
+| region.island   | island   | 4      | island-1, island-2, island-3, island-4                     | printed V with the island icon (left to right on the board: sea, island, forest, desert, badlands, mountain)   | tile.island.i (top) to tile.island.iv (bottom)     | the island icon [read] TT   | R-1.2.1, R-4.3.1, R-4.11 |
+| region.forest   | forest   | 3      | forest-1, forest-2, forest-3                               | printed V with the forest icon (left to right on the board: sea, island, forest, desert, badlands, mountain)   | tile.forest.i (top) to tile.forest.iv (bottom)     | the forest icon [read] TT   | R-1.2.1, R-4.3.1, R-4.11 |
+| region.desert   | desert   | 5      | desert-1, desert-2, desert-3, desert-4, desert-5           | printed V with the desert icon (left to right on the board: sea, island, forest, desert, badlands, mountain)   | tile.desert.i (top) to tile.desert.iv (bottom)     | the desert icon [read] TT   | R-1.2.1, R-4.3.1, R-4.11 |
+| region.badlands | badlands | 5      | badlands-1, badlands-2, badlands-3, badlands-4, badlands-5 | printed V with the badlands icon (left to right on the board: sea, island, forest, desert, badlands, mountain) | tile.badlands.i (top) to tile.badlands.iv (bottom) | the badlands icon [read] TT | R-1.2.1, R-4.3.1, R-4.11 |
+| region.mountain | mountain | 2      | mountain-1, mountain-2                                     | printed V with the mountain icon (left to right on the board: sea, island, forest, desert, badlands, mountain) | tile.mountain.i (top) to tile.mountain.iv (bottom) | the mountain icon [read] TT | R-1.2.1, R-4.3.1, R-4.11 |
 
 ## Guilds (6)
 
-| Id              | Name      | Pawn and feudum icon | Related location | Related location confidence                                                                 | Ring: left (pulls from) | Ring: right (pushes to) | Position on FB | Digest           |
-| --------------- | --------- | -------------------- | ---------------- | ------------------------------------------------------------------------------------------- | ----------------------- | ----------------------- | -------------- | ---------------- |
-| guild.farmer    | Farmer    | sheep                | farm             | [read]                                                                                      | guild.monk              | guild.merchant          | bottom-left    | R-1.2.3, R-1.2.4 |
-| guild.merchant  | Merchant  | coins (three plates) | town             | [read] FAN-GUILD; yellow town disc also visible on FB                                       | guild.farmer            | guild.alchemist         | left middle    | R-1.2.3, R-1.2.4 |
-| guild.alchemist | Alchemist | gear                 | outpost          | [unsure] FAN-GUILD only; fits the pattern that each location type serves exactly two guilds | guild.merchant          | guild.knight            | top-left       | R-1.2.3, R-1.2.4 |
-| guild.knight    | Knight    | axe                  | farm             | [read] FAN-GUILD; RB-p2 crop blurry but consistent                                          | guild.alchemist         | guild.noble             | top-right      | R-1.2.3, R-1.2.4 |
-| guild.noble     | Noble     | crown                | town             | [read]                                                                                      | guild.knight            | guild.monk              | right middle   | R-1.2.3, R-1.2.4 |
-| guild.monk      | Monk      | cross                | outpost          | [read]                                                                                      | guild.noble             | guild.farmer            | bottom-right   | R-1.2.3, R-1.2.4 |
+| Id              | Name      | Pawn and feudum icon | Related location | Related location confidence                                 | Ring: left (pulls from) | Ring: right (pushes to) | Position on FB | Digest           |
+| --------------- | --------- | -------------------- | ---------------- | ----------------------------------------------------------- | ----------------------- | ----------------------- | -------------- | ---------------- |
+| guild.farmer    | Farmer    | sheep                | farm             | [read]                                                      | guild.monk              | guild.merchant          | bottom-left    | R-1.2.3, R-1.2.4 |
+| guild.merchant  | Merchant  | coins (three plates) | town             | [read] FAN-GUILD; yellow town disc also visible on FB       | guild.farmer            | guild.alchemist         | left middle    | R-1.2.3, R-1.2.4 |
+| guild.alchemist | Alchemist | gear                 | outpost          | [read] TT (purple tower at 1★ in the status key), FAN-GUILD | guild.merchant          | guild.knight            | top-left       | R-1.2.3, R-1.2.4 |
+| guild.knight    | Knight    | axe                  | farm             | [read] FAN-GUILD; RB-p2 crop blurry but consistent          | guild.alchemist         | guild.noble             | top-right      | R-1.2.3, R-1.2.4 |
+| guild.noble     | Noble     | crown                | town             | [read]                                                      | guild.knight            | guild.monk              | right middle   | R-1.2.3, R-1.2.4 |
+| guild.monk      | Monk      | cross                | outpost          | [read]                                                      | guild.noble             | guild.farmer            | bottom-right   | R-1.2.3, R-1.2.4 |
 
 Ring order: Farmer, Merchant, Alchemist (up the left edge), Knight, Noble, Monk (down the right edge), back to Farmer. Status-star key printed on each guild: own pawn 1 star, own feudum 3 stars, related location 1 star [read] (R-4.5.1). Alchemist's push and trade, Knight's trade and so on are rules, not components: R-4.6.
 
@@ -173,49 +173,49 @@ Ring order: Farmer, Merchant, Alchemist (up the left edge), Knight, Noble, Monk 
 
 ### Merchant market spaces (20)
 
-| Id                               | Bin       | Space | Price  | Price confidence                                                   | Filled at setup | Digest         |
-| -------------------------------- | --------- | ----- | ------ | ------------------------------------------------------------------ | --------------- | -------------- |
-| guild.merchant.space.saltpeter-1 | saltpeter | 1     | unread | [unsure] covered by cubes in every photo; FB prices are about 3 px | yes             | R-1.3, R-4.6.3 |
-| guild.merchant.space.saltpeter-2 | saltpeter | 2     | unread | [unsure] covered by cubes in every photo; FB prices are about 3 px | yes             | R-1.3, R-4.6.3 |
-| guild.merchant.space.saltpeter-3 | saltpeter | 3     | unread | [unsure] covered by cubes in every photo; FB prices are about 3 px | yes             | R-1.3, R-4.6.3 |
-| guild.merchant.space.saltpeter-4 | saltpeter | 4     | 2s     | [read] SETUP-L, ZAND2: the space left empty at setup               | no (empty)      | R-1.3, R-4.6.3 |
-| guild.merchant.space.sulfur-1    | sulfur    | 1     | unread | [unsure] covered by cubes in every photo; FB prices are about 3 px | yes             | R-1.3, R-4.6.3 |
-| guild.merchant.space.sulfur-2    | sulfur    | 2     | unread | [unsure] covered by cubes in every photo; FB prices are about 3 px | yes             | R-1.3, R-4.6.3 |
-| guild.merchant.space.sulfur-3    | sulfur    | 3     | unread | [unsure] covered by cubes in every photo; FB prices are about 3 px | yes             | R-1.3, R-4.6.3 |
-| guild.merchant.space.sulfur-4    | sulfur    | 4     | 1s     | [read] SETUP-L, ZAND2: the space left empty at setup               | no (empty)      | R-1.3, R-4.6.3 |
-| guild.merchant.space.iron-1      | iron      | 1     | unread | [unsure] covered by cubes in every photo; FB prices are about 3 px | yes             | R-1.3, R-4.6.3 |
-| guild.merchant.space.iron-2      | iron      | 2     | unread | [unsure] covered by cubes in every photo; FB prices are about 3 px | yes             | R-1.3, R-4.6.3 |
-| guild.merchant.space.iron-3      | iron      | 3     | unread | [unsure] covered by cubes in every photo; FB prices are about 3 px | yes             | R-1.3, R-4.6.3 |
-| guild.merchant.space.iron-4      | iron      | 4     | unread | [unsure] covered by cubes in every photo; FB prices are about 3 px | yes             | R-1.3, R-4.6.3 |
-| guild.merchant.space.wood-1      | wood      | 1     | unread | [unsure] covered by cubes in every photo; FB prices are about 3 px | yes             | R-1.3, R-4.6.3 |
-| guild.merchant.space.wood-2      | wood      | 2     | unread | [unsure] covered by cubes in every photo; FB prices are about 3 px | yes             | R-1.3, R-4.6.3 |
-| guild.merchant.space.wood-3      | wood      | 3     | unread | [unsure] covered by cubes in every photo; FB prices are about 3 px | yes             | R-1.3, R-4.6.3 |
-| guild.merchant.space.wood-4      | wood      | 4     | unread | [unsure] covered by cubes in every photo; FB prices are about 3 px | yes             | R-1.3, R-4.6.3 |
-| guild.merchant.space.food-1      | food      | 1     | unread | [unsure] covered by cubes in every photo; FB prices are about 3 px | yes             | R-1.3, R-4.6.3 |
-| guild.merchant.space.food-2      | food      | 2     | unread | [unsure] covered by cubes in every photo; FB prices are about 3 px | yes             | R-1.3, R-4.6.3 |
-| guild.merchant.space.food-3      | food      | 3     | unread | [unsure] covered by cubes in every photo; FB prices are about 3 px | yes             | R-1.3, R-4.6.3 |
-| guild.merchant.space.food-4      | food      | 4     | unread | [unsure] covered by cubes in every photo; FB prices are about 3 px | yes             | R-1.3, R-4.6.3 |
+| Id                               | Bin       | Space | Price | Price confidence                                         | Filled at setup | Digest         |
+| -------------------------------- | --------- | ----- | ----- | -------------------------------------------------------- | --------------- | -------------- |
+| guild.merchant.space.saltpeter-1 | saltpeter | 1     | 4s    | [read] TT                                                | yes             | R-1.3, R-4.6.3 |
+| guild.merchant.space.saltpeter-2 | saltpeter | 2     | 3s    | [read] TT                                                | yes             | R-1.3, R-4.6.3 |
+| guild.merchant.space.saltpeter-3 | saltpeter | 3     | 2s    | [read] TT                                                | yes             | R-1.3, R-4.6.3 |
+| guild.merchant.space.saltpeter-4 | saltpeter | 4     | 2s    | [read] TT; SETUP-L, ZAND2: the space left empty at setup | no (empty)      | R-1.3, R-4.6.3 |
+| guild.merchant.space.sulfur-1    | sulfur    | 1     | 3s    | [read] TT                                                | yes             | R-1.3, R-4.6.3 |
+| guild.merchant.space.sulfur-2    | sulfur    | 2     | 3s    | [read] TT                                                | yes             | R-1.3, R-4.6.3 |
+| guild.merchant.space.sulfur-3    | sulfur    | 3     | 2s    | [read] TT                                                | yes             | R-1.3, R-4.6.3 |
+| guild.merchant.space.sulfur-4    | sulfur    | 4     | 1s    | [read] TT; SETUP-L, ZAND2: the space left empty at setup | no (empty)      | R-1.3, R-4.6.3 |
+| guild.merchant.space.iron-1      | iron      | 1     | 3s    | [read] TT                                                | yes             | R-1.3, R-4.6.3 |
+| guild.merchant.space.iron-2      | iron      | 2     | 2s    | [read] TT                                                | yes             | R-1.3, R-4.6.3 |
+| guild.merchant.space.iron-3      | iron      | 3     | 1s    | [read] TT                                                | yes             | R-1.3, R-4.6.3 |
+| guild.merchant.space.iron-4      | iron      | 4     | 1s    | [read] TT                                                | yes             | R-1.3, R-4.6.3 |
+| guild.merchant.space.wood-1      | wood      | 1     | 2s    | [read] TT                                                | yes             | R-1.3, R-4.6.3 |
+| guild.merchant.space.wood-2      | wood      | 2     | 2s    | [read] TT                                                | yes             | R-1.3, R-4.6.3 |
+| guild.merchant.space.wood-3      | wood      | 3     | 1s    | [read] TT                                                | yes             | R-1.3, R-4.6.3 |
+| guild.merchant.space.wood-4      | wood      | 4     | 1s    | [read] TT                                                | yes             | R-1.3, R-4.6.3 |
+| guild.merchant.space.food-1      | food      | 1     | 2s    | [read] TT                                                | yes             | R-1.3, R-4.6.3 |
+| guild.merchant.space.food-2      | food      | 2     | 1s    | [read] TT                                                | yes             | R-1.3, R-4.6.3 |
+| guild.merchant.space.food-3      | food      | 3     | 1s    | [read] TT                                                | yes             | R-1.3, R-4.6.3 |
+| guild.merchant.space.food-4      | food      | 4     | 1s    | [read] TT                                                | yes             | R-1.3, R-4.6.3 |
 
 ### Alchemist spaces (16)
 
-| Id                               | Part                                                          | Space | Filled at setup  | Confidence                                                                     | Digest         |
-| -------------------------------- | ------------------------------------------------------------- | ----- | ---------------- | ------------------------------------------------------------------------------ | -------------- |
-| guild.alchemist.cart.wood-1      | wood cart/pile                                                | 1     | yes              | [unsure] BEAVER photo shows 3                                                  | R-1.3          |
-| guild.alchemist.cart.wood-2      | wood cart/pile                                                | 2     | yes              | [unsure] BEAVER photo shows 3                                                  | R-1.3          |
-| guild.alchemist.cart.wood-3      | wood cart/pile                                                | 3     | yes              | [unsure] BEAVER photo shows 3                                                  | R-1.3          |
-| guild.alchemist.cart.iron-1      | iron cart/pile                                                | 1     | yes              | [unsure] BEAVER photo shows 3                                                  | R-1.3          |
-| guild.alchemist.cart.iron-2      | iron cart/pile                                                | 2     | yes              | [unsure] BEAVER photo shows 3                                                  | R-1.3          |
-| guild.alchemist.cart.iron-3      | iron cart/pile                                                | 3     | yes              | [unsure] BEAVER photo shows 3                                                  | R-1.3          |
-| guild.alchemist.cart.food-1      | food cart/pile                                                | 1     | yes              | [unsure] BEAVER photo; setup text leaves 2 empty, which fits capacity 3        | R-1.3          |
-| guild.alchemist.cart.food-2      | food cart/pile                                                | 2     | no (empty)       | [unsure] BEAVER photo; setup text leaves 2 empty, which fits capacity 3        | R-1.3          |
-| guild.alchemist.cart.food-3      | food cart/pile                                                | 3     | no (empty)       | [unsure] BEAVER photo; setup text leaves 2 empty, which fits capacity 3        | R-1.3          |
-| guild.alchemist.cart.sulfur-1    | sulfur cart/pile                                              | 1     | yes              | [unsure] BEAVER photo; setup text leaves 2 empty, which fits capacity 3        | R-1.3          |
-| guild.alchemist.cart.sulfur-2    | sulfur cart/pile                                              | 2     | no (empty)       | [unsure] BEAVER photo; setup text leaves 2 empty, which fits capacity 3        | R-1.3          |
-| guild.alchemist.cart.sulfur-3    | sulfur cart/pile                                              | 3     | no (empty)       | [unsure] BEAVER photo; setup text leaves 2 empty, which fits capacity 3        | R-1.3          |
-| guild.alchemist.cart.saltpeter-1 | saltpeter cart/pile                                           | 1     | yes              | [unsure] BEAVER photo; RB-p3 may show 4, too blurry. Capacity 3 or 4 is unread | R-1.3          |
-| guild.alchemist.cart.saltpeter-2 | saltpeter cart/pile                                           | 2     | yes              | [unsure] BEAVER photo; RB-p3 may show 4, too blurry. Capacity 3 or 4 is unread | R-1.3          |
-| guild.alchemist.cart.saltpeter-3 | saltpeter cart/pile                                           | 3     | yes              | [unsure] BEAVER photo; RB-p3 may show 4, too blurry. Capacity 3 or 4 is unread | R-1.3          |
-| guild.alchemist.vessel-space     | vessel space covering the ferryboat symbol (vessels for sale) | -     | 2 random vessels | [read] text and RB-p10                                                         | R-1.3, R-4.2.3 |
+| Id                               | Part                                                          | Space | Filled at setup  | Confidence                      | Digest         |
+| -------------------------------- | ------------------------------------------------------------- | ----- | ---------------- | ------------------------------- | -------------- |
+| guild.alchemist.cart.wood-1      | wood cart/pile                                                | 1     | yes              | [read] TT: 3 spaces; BEAVER     | R-1.3          |
+| guild.alchemist.cart.wood-2      | wood cart/pile                                                | 2     | yes              | [read] TT: 3 spaces; BEAVER     | R-1.3          |
+| guild.alchemist.cart.wood-3      | wood cart/pile                                                | 3     | yes              | [read] TT: 3 spaces; BEAVER     | R-1.3          |
+| guild.alchemist.cart.iron-1      | iron cart/pile                                                | 1     | yes              | [read] TT: 3 spaces; BEAVER     | R-1.3          |
+| guild.alchemist.cart.iron-2      | iron cart/pile                                                | 2     | yes              | [read] TT: 3 spaces; BEAVER     | R-1.3          |
+| guild.alchemist.cart.iron-3      | iron cart/pile                                                | 3     | yes              | [read] TT: 3 spaces; BEAVER     | R-1.3          |
+| guild.alchemist.cart.food-1      | food cart/pile                                                | 1     | yes              | [read] TT: 3 spaces; BEAVER     | R-1.3          |
+| guild.alchemist.cart.food-2      | food cart/pile                                                | 2     | no (empty)       | [read] TT: 3 spaces; BEAVER     | R-1.3          |
+| guild.alchemist.cart.food-3      | food cart/pile                                                | 3     | no (empty)       | [read] TT: 3 spaces; BEAVER     | R-1.3          |
+| guild.alchemist.cart.sulfur-1    | sulfur cart/pile                                              | 1     | yes              | [read] TT: 3 spaces; BEAVER     | R-1.3          |
+| guild.alchemist.cart.sulfur-2    | sulfur cart/pile                                              | 2     | no (empty)       | [read] TT: 3 spaces; BEAVER     | R-1.3          |
+| guild.alchemist.cart.sulfur-3    | sulfur cart/pile                                              | 3     | no (empty)       | [read] TT: 3 spaces; BEAVER     | R-1.3          |
+| guild.alchemist.cart.saltpeter-1 | saltpeter cart/pile                                           | 1     | yes              | [read] TT: 3 spaces on the pile | R-1.3          |
+| guild.alchemist.cart.saltpeter-2 | saltpeter cart/pile                                           | 2     | yes              | [read] TT: 3 spaces on the pile | R-1.3          |
+| guild.alchemist.cart.saltpeter-3 | saltpeter cart/pile                                           | 3     | yes              | [read] TT: 3 spaces on the pile | R-1.3          |
+| guild.alchemist.vessel-space     | vessel space covering the ferryboat symbol (vessels for sale) | -     | 2 random vessels | [read] text and RB-p10          | R-1.3, R-4.2.3 |
 
 ### Alchemist inventions (6)
 
@@ -228,27 +228,27 @@ Ring order: Farmer, Merchant, Alchemist (up the left edge), Knight, Noble, Monk 
 | guild.alchemist.invention.krud-2         | krud barrel 2                   | 1 saltpeter + 1 sulfur   | R-4.6.5, R-4.6.6 |
 | guild.alchemist.invention.krud-3         | krud barrel 3                   | 1 wood                   | R-4.6.5, R-4.6.6 |
 
-[read] BEAVER (printed production strip), matching the rule text. Whether the barrel discount counts barrels of this push or of the game is silent in the sources (R-4.6.5).
+[read] BEAVER and TT (printed production strip), matching the rule text. Whether the barrel discount counts barrels of this push or of the game is silent in the sources (R-4.6.5).
 
 ### Knight row sections (15)
 
-| Id                                | Row colour | Section | Spaces | Columns     | Setup (a row in play)            | Confidence                                                     | Digest         |
-| --------------------------------- | ---------- | ------- | ------ | ----------- | -------------------------------- | -------------------------------------------------------------- | -------------- |
-| guild.knight.row.red.section.1    | red        | 1       | 1      | column 1    | 1 marker (full)                  | [read] RB-p10 krud example; barrel icons under columns 1, 2, 4 | R-1.3, R-4.6.6 |
-| guild.knight.row.red.section.2    | red        | 2       | 2      | columns 2-3 | first space filled, second empty | [read] RB-p10 krud example; barrel icons under columns 1, 2, 4 | R-1.3, R-4.6.6 |
-| guild.knight.row.red.section.3    | red        | 3       | 3      | columns 4-6 | empty                            | [read] RB-p10 krud example; barrel icons under columns 1, 2, 4 | R-1.3, R-4.6.6 |
-| guild.knight.row.blue.section.1   | blue       | 1       | 1      | column 1    | 1 marker (full)                  | [read] RB-p10 krud example; barrel icons under columns 1, 2, 4 | R-1.3, R-4.6.6 |
-| guild.knight.row.blue.section.2   | blue       | 2       | 2      | columns 2-3 | first space filled, second empty | [read] RB-p10 krud example; barrel icons under columns 1, 2, 4 | R-1.3, R-4.6.6 |
-| guild.knight.row.blue.section.3   | blue       | 3       | 3      | columns 4-6 | empty                            | [read] RB-p10 krud example; barrel icons under columns 1, 2, 4 | R-1.3, R-4.6.6 |
-| guild.knight.row.yellow.section.1 | yellow     | 1       | 1      | column 1    | 1 marker (full)                  | [read] RB-p10 krud example; barrel icons under columns 1, 2, 4 | R-1.3, R-4.6.6 |
-| guild.knight.row.yellow.section.2 | yellow     | 2       | 2      | columns 2-3 | first space filled, second empty | [read] RB-p10 krud example; barrel icons under columns 1, 2, 4 | R-1.3, R-4.6.6 |
-| guild.knight.row.yellow.section.3 | yellow     | 3       | 3      | columns 4-6 | empty                            | [read] RB-p10 krud example; barrel icons under columns 1, 2, 4 | R-1.3, R-4.6.6 |
-| guild.knight.row.green.section.1  | green      | 1       | 1      | column 1    | 1 marker (full)                  | [read] RB-p10 krud example; barrel icons under columns 1, 2, 4 | R-1.3, R-4.6.6 |
-| guild.knight.row.green.section.2  | green      | 2       | 2      | columns 2-3 | first space filled, second empty | [read] RB-p10 krud example; barrel icons under columns 1, 2, 4 | R-1.3, R-4.6.6 |
-| guild.knight.row.green.section.3  | green      | 3       | 3      | columns 4-6 | empty                            | [read] RB-p10 krud example; barrel icons under columns 1, 2, 4 | R-1.3, R-4.6.6 |
-| guild.knight.row.purple.section.1 | purple     | 1       | 1      | column 1    | 1 marker (full)                  | [read] RB-p10 krud example; barrel icons under columns 1, 2, 4 | R-1.3, R-4.6.6 |
-| guild.knight.row.purple.section.2 | purple     | 2       | 2      | columns 2-3 | first space filled, second empty | [read] RB-p10 krud example; barrel icons under columns 1, 2, 4 | R-1.3, R-4.6.6 |
-| guild.knight.row.purple.section.3 | purple     | 3       | 3      | columns 4-6 | empty                            | [read] RB-p10 krud example; barrel icons under columns 1, 2, 4 | R-1.3, R-4.6.6 |
+| Id                                | Row colour | Section | Spaces | Columns     | Setup (a row in play)            | Confidence                                                   | Digest         |
+| --------------------------------- | ---------- | ------- | ------ | ----------- | -------------------------------- | ------------------------------------------------------------ | -------------- |
+| guild.knight.row.red.section.1    | red        | 1       | 1      | column 1    | 1 marker (full)                  | [read] RB-p10 krud example; one barrel icon per section (TT) | R-1.3, R-4.6.6 |
+| guild.knight.row.red.section.2    | red        | 2       | 2      | columns 2-3 | first space filled, second empty | [read] RB-p10 krud example; one barrel icon per section (TT) | R-1.3, R-4.6.6 |
+| guild.knight.row.red.section.3    | red        | 3       | 3      | columns 4-6 | empty                            | [read] RB-p10 krud example; one barrel icon per section (TT) | R-1.3, R-4.6.6 |
+| guild.knight.row.blue.section.1   | blue       | 1       | 1      | column 1    | 1 marker (full)                  | [read] RB-p10 krud example; one barrel icon per section (TT) | R-1.3, R-4.6.6 |
+| guild.knight.row.blue.section.2   | blue       | 2       | 2      | columns 2-3 | first space filled, second empty | [read] RB-p10 krud example; one barrel icon per section (TT) | R-1.3, R-4.6.6 |
+| guild.knight.row.blue.section.3   | blue       | 3       | 3      | columns 4-6 | empty                            | [read] RB-p10 krud example; one barrel icon per section (TT) | R-1.3, R-4.6.6 |
+| guild.knight.row.yellow.section.1 | yellow     | 1       | 1      | column 1    | 1 marker (full)                  | [read] RB-p10 krud example; one barrel icon per section (TT) | R-1.3, R-4.6.6 |
+| guild.knight.row.yellow.section.2 | yellow     | 2       | 2      | columns 2-3 | first space filled, second empty | [read] RB-p10 krud example; one barrel icon per section (TT) | R-1.3, R-4.6.6 |
+| guild.knight.row.yellow.section.3 | yellow     | 3       | 3      | columns 4-6 | empty                            | [read] RB-p10 krud example; one barrel icon per section (TT) | R-1.3, R-4.6.6 |
+| guild.knight.row.green.section.1  | green      | 1       | 1      | column 1    | 1 marker (full)                  | [read] RB-p10 krud example; one barrel icon per section (TT) | R-1.3, R-4.6.6 |
+| guild.knight.row.green.section.2  | green      | 2       | 2      | columns 2-3 | first space filled, second empty | [read] RB-p10 krud example; one barrel icon per section (TT) | R-1.3, R-4.6.6 |
+| guild.knight.row.green.section.3  | green      | 3       | 3      | columns 4-6 | empty                            | [read] RB-p10 krud example; one barrel icon per section (TT) | R-1.3, R-4.6.6 |
+| guild.knight.row.purple.section.1 | purple     | 1       | 1      | column 1    | 1 marker (full)                  | [read] RB-p10 krud example; one barrel icon per section (TT) | R-1.3, R-4.6.6 |
+| guild.knight.row.purple.section.2 | purple     | 2       | 2      | columns 2-3 | first space filled, second empty | [read] RB-p10 krud example; one barrel icon per section (TT) | R-1.3, R-4.6.6 |
+| guild.knight.row.purple.section.3 | purple     | 3       | 3      | columns 4-6 | empty                            | [read] RB-p10 krud example; one barrel icon per section (TT) | R-1.3, R-4.6.6 |
 
 Rows of unused colours are dummy rows (R-1.4.4). The transcription reads 5 rows on the final board; the digest says at least 4 rows are in play.
 
@@ -270,14 +270,14 @@ Rows of unused colours are dummy rows (R-1.4.4). The transcription reads 5 rows 
 
 ### Monk guild parts (2)
 
-| Id                | Part                                                | Capacity        | Confidence                                                                       | Setup                                   | Digest  |
-| ----------------- | --------------------------------------------------- | --------------- | -------------------------------------------------------------------------------- | --------------------------------------- | ------- |
-| guild.monk.rosary | rosary string of printed beads (about 6 or 7 drawn) | capacity unread | [unsure] whether the printed beads are spaces with a limit; the text states none | setup: 4 beads, bead side up            | R-1.3   |
-| guild.monk.coffer | church coffer (chest icon)                          | -               | [read] DRG, FB                                                                   | setup: empty (no setup contents stated) | R-4.6.2 |
+| Id                | Part                                                              | Capacity        | Confidence                                                                                     | Setup                                   | Digest  |
+| ----------------- | ----------------------------------------------------------------- | --------------- | ---------------------------------------------------------------------------------------------- | --------------------------------------- | ------- |
+| guild.monk.rosary | rosary string of printed beads (8 drawn, one cut off at the edge) | capacity unread | [read] TT: no spaces or capacity printed; the banner's "11" is the pull target, not a capacity | setup: 4 beads, bead side up            | R-1.3   |
+| guild.monk.coffer | church coffer (chest icon)                                        | -               | [read] DRG, FB                                                                                 | setup: empty (no setup contents stated) | R-4.6.2 |
 
 ### Apprentice's share (charity)
 
-The apprentice share of a trade or push goes to charity on the "opposite side of the board" (R-4.6.2). Read as: Farmer, Merchant and Alchemist pay the church coffer; Knight, Noble and Monk pay the farmer's purse. [unsure] inferred from the board layout, no per-guild icon was legible. Listed as unread for all six guilds.
+The apprentice share of a trade or push goes to charity on the "opposite side of the board" (R-4.6.2). Read as: Farmer, Merchant and Alchemist pay the church coffer; Knight, Noble and Monk pay the farmer's purse. [unsure] inferred from the board layout. TT prints only two charity icons: on the Farmer panel a share icon pointing to the farmer's purse, and on the Monk panel one pointing to the church coffer. Neither ties a guild to a charity unambiguously, and the other four guilds print none, so all six stay unread (R-4.6-H3, provisional).
 
 ## Tracks
 
@@ -319,13 +319,13 @@ Penalties are cumulative: a vassal who never serves loses 3, then 7, then 12 (22
 
 ### Region tile chart (5)
 
-| Id                   | Tile epoch | Farm vp     | Town vp     | Feudum vp   | Confidence        | Digest  |
-| -------------------- | ---------- | ----------- | ----------- | ----------- | ----------------- | ------- |
-| track.tile-chart.i   | I          | 2           | 3           | 4           | [read] RB-p6, DLR | R-4.3.2 |
-| track.tile-chart.ii  | II         | 3           | 4           | 5           | [read]            | R-4.3.2 |
-| track.tile-chart.iii | III        | 4           | 5           | 6           | [read]            | R-4.3.2 |
-| track.tile-chart.iv  | IV         | 5           | 6           | 7           | [read]            | R-4.3.2 |
-| track.tile-chart.v   | V          | crossed out | crossed out | crossed out | [read]            | R-4.3.2 |
+| Id                   | Tile epoch | Farm vp     | Town vp     | Feudum vp ("?") | Confidence        | Digest  |
+| -------------------- | ---------- | ----------- | ----------- | --------------- | ----------------- | ------- |
+| track.tile-chart.i   | I          | 2           | 3           | 4               | [read] RB-p6, DLR | R-4.3.2 |
+| track.tile-chart.ii  | II         | 3           | 4           | 5               | [read]            | R-4.3.2 |
+| track.tile-chart.iii | III        | 4           | 5           | 6               | [read]            | R-4.3.2 |
+| track.tile-chart.iv  | IV         | 5           | 6           | 7               | [read]            | R-4.3.2 |
+| track.tile-chart.v   | V          | crossed out | crossed out | crossed out     | [read]            | R-4.3.2 |
 
 ### Scoring track (1)
 
@@ -361,33 +361,33 @@ Printed text is quoted from the rulebook's Royal Writ summary. The star glyph in
 
 ### Mandates (8, play once at any time)
 
-| Id             | Alternative A (printed)                                      | Alternative B (printed)                            | Turned in for A    | Turned in for B             | Recipe / boxed picture                                                         | 3-star rewards                                                               | Confidence    | Digest       |
-| -------------- | ------------------------------------------------------------ | -------------------------------------------------- | ------------------ | --------------------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- | ------------- | ------------ |
-| writ.mandate.1 | Use bow for free: +1 attack                                  | Turn in wood: +2 attack                            | none (free)        | wood                        | bow / crossbow                                                                 | -                                                                            | [read] RB-p13 | R-4.4.2, R-7 |
-| writ.mandate.2 | Turn in food: flying machine*                                | Turn in wood: ship*                                | food               | wood                        | A recipe iron, wood, boxed food; B recipe food, wood, boxed wood               | -                                                                            | [read] RB-p13 | R-4.4.2, R-7 |
-| writ.mandate.3 | Use sword for free: +1 attack                                | Turn in iron: +2 attack                            | none (free)        | iron                        | sword / longsword                                                              | -                                                                            | [read] RB-p13 | R-4.4.2, R-7 |
-| writ.mandate.4 | Turn in wood: ship*                                          | Turn in iron: submersible*                         | wood               | iron                        | A recipe food, wood, boxed wood; B recipe food, iron, boxed iron               | -                                                                            | [read] RB-p13 | R-4.4.2, R-7 |
-| writ.mandate.5 | Turn in food: 3s                                             | Turn in wood & food: 7s                            | food               | wood + food                 | goods column saltpeter, sulfur, iron, wood, food with the turned-in ones boxed | -                                                                            | [read] RB-p13 | R-4.4.2, R-7 |
-| writ.mandate.6 | Reach 3★ in 1 guild to earn 3 goods, 3s or any vessel*       | (same card: the rewards are alternatives by guild) | none               | none                        | icons sheep, coins, gear, each 3★, under bag / 3s / ship                       | Farmer: 3 goods*; Merchant: 3s*; Alchemist: any vessel*. One reward per card | [read] RB-p13 | R-4.4.2, R-7 |
-| writ.mandate.7 | Turn in iron, wood & food: 9s                                | Turn in sulfur, iron, wood & food: 13s             | iron + wood + food | sulfur + iron + wood + food | goods column with the turned-in ones boxed                                     | -                                                                            | [read] RB-p13 | R-4.4.2, R-7 |
-| writ.mandate.8 | Reach 3★ in 1 guild to earn 3 influence*, 1 seal* or 1 bead* | (same card: the rewards are alternatives by guild) | none               | none                        | icons axe, crown, cross, each 3★                                               | Knight: 3 influence*; Noble: 1 seal*; Monk: 1 bead*. One reward per card     | [read] RB-p13 | R-4.4.2, R-7 |
+| Id             | Alternative A (printed)                                      | Alternative B (printed)                            | Turned in for A    | Turned in for B             | Recipe / boxed picture                                                         | 3-star rewards                                                               | Confidence                                                          | Digest       |
+| -------------- | ------------------------------------------------------------ | -------------------------------------------------- | ------------------ | --------------------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------ |
+| writ.mandate.1 | Use bow for free: +1 attack                                  | Turn in wood: +2 attack                            | none (free)        | wood                        | bow / crossbow                                                                 | -                                                                            | [read] RB-p13                                                       | R-4.4.2, R-7 |
+| writ.mandate.2 | Turn in food: flying machine*                                | Turn in wood: ship*                                | food               | wood                        | A recipe iron, wood, boxed food; B recipe food, wood, boxed wood               | -                                                                            | [read] RB-p13                                                       | R-4.4.2, R-7 |
+| writ.mandate.3 | Use sword for free: +1 attack                                | Turn in iron: +2 attack                            | none (free)        | iron                        | sword / longsword                                                              | -                                                                            | [read] RB-p13                                                       | R-4.4.2, R-7 |
+| writ.mandate.4 | Turn in wood: ship*                                          | Turn in iron: submersible*                         | wood               | iron                        | A recipe food, wood, boxed wood; B recipe food, iron, boxed iron               | -                                                                            | [read] RB-p13                                                       | R-4.4.2, R-7 |
+| writ.mandate.5 | Turn in food: 3s                                             | Turn in wood & food: 7s                            | food               | wood + food                 | goods column saltpeter, sulfur, iron, wood, food with the turned-in ones boxed | -                                                                            | [read] RB-p13                                                       | R-4.4.2, R-7 |
+| writ.mandate.6 | Reach 3★ in 1 guild to earn 3 goods, 3s or any vessel*       | (same card: the rewards are alternatives by guild) | none               | none                        | icons sheep, coins, gear, each 3★, under bag / 3s / ship                       | Farmer: 3 goods*; Merchant: 3s*; Alchemist: any vessel*. One reward per card | [read] RB-p13; TT prints a ship icon for the Alchemist reward (Q29) | R-4.4.2, R-7 |
+| writ.mandate.7 | Turn in iron, wood & food: 9s                                | Turn in sulfur, iron, wood & food: 13s             | iron + wood + food | sulfur + iron + wood + food | goods column with the turned-in ones boxed                                     | -                                                                            | [read] RB-p13                                                       | R-4.4.2, R-7 |
+| writ.mandate.8 | Reach 3★ in 1 guild to earn 3 influence*, 1 seal* or 1 bead* | (same card: the rewards are alternatives by guild) | none               | none                        | icons axe, crown, cross, each 3★                                               | Knight: 3 influence*; Noble: 1 seal*; Monk: 1 bead*. One reward per card     | [read] RB-p13                                                       | R-4.4.2, R-7 |
 
 The ship option appears on two cards (mandates 2 and 4). Mandates 6 and 8 are two printed alternatives on one card line, chosen by the guild where you hold 3 stars (R-4.4.2).
 
 ### Charters (8, score at game end only with a king's seal on them)
 
-Each card's map shows qualifying spaces as pink dots. The counts are [read]; mapping the dots to board spaces is a best fit and [unsure] (the exact spaces are listed as unread). "Per location ruled" counts ruled spaces only (R-4.4.3).
+Each card's map shows qualifying spaces as pink dots. The counts are [read]. The spaces are read from TT's card art: Western, Central and Eastern match the board space for space and together cover it, and the other three were matched against them. "Per location ruled" counts ruled spaces only (R-4.4.3).
 
-| Id                            | Printed text (verbatim)                           | Values                        | Dots | Qualifying spaces                                                                                            | Confidence                                   | Digest         |
-| ----------------------------- | ------------------------------------------------- | ----------------------------- | ---- | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------- | -------------- |
-| writ.charter.sulfur-barrel    | End game with 2 or 3 sulfur in barrel: 5/7 vp     | 2 sulfur 5 vp / 3 sulfur 7 vp | -    | none (no map)                                                                                                | [read] values; [unsure] dot-to-space mapping | R-4.4.3, R-6.2 |
-| writ.charter.eastern-kingdom  | Eastern Kingdom (per location ruled): 3/5/7/9 vp  | 3/5/7/9                       | 7    | candidate (count fits): badlands-1..5 and mountain-1..2 ("badlands and mountain side"); exact spaces unread  | [read] values; [unsure] dot-to-space mapping | R-4.4.3, R-6.2 |
-| writ.charter.monster-defeat   | If you defeat either monster during game: 7 vp    | 7                             | -    | none (no map)                                                                                                | [read] values; [unsure] dot-to-space mapping | R-4.4.3, R-6.2 |
-| writ.charter.western-kingdom  | Western Kingdom (per location ruled): 3/5/7/9 vp  | 3/5/7/9                       | 7    | candidate: space.sea.1-3 and space.island.1-4 (all sea and island spaces, count 7 fits); unsure              | [read] values; [unsure] dot-to-space mapping | R-4.4.3, R-6.2 |
-| writ.charter.northern-kingdom | Northern Kingdom (per location ruled): 3/5/7/9 vp | 3/5/7/9                       | 6    | "along the forest/badlands/mountain ridge"; exact spaces unread                                              | [read] values; [unsure] dot-to-space mapping | R-4.4.3, R-6.2 |
-| writ.charter.central-kingdom  | Central Kingdom (per location ruled): 3/5/7/9 vp  | 3/5/7/9                       | 8    | candidate (count fits): forest-1..3 and desert-1..5 ("forest and desert"); exact spaces unread               | [read] values; [unsure] dot-to-space mapping | R-4.4.3, R-6.2 |
-| writ.charter.southern-kingdom | Southern Kingdom (per location ruled): 3/5/7/9 vp | 3/5/7/9                       | 9    | "desert, badlands, south mountain"; exact spaces unread                                                      | [read] values; [unsure] dot-to-space mapping | R-4.4.3, R-6.2 |
-| writ.charter.isolated-kingdom | Isolated Kingdom (per location ruled): 5/11/17 vp | 5/11/17 (1/2/3 locations)     | 3    | one each in sea, badlands and mountain; probably sea-3, badlands-5, mountain-2 [unsure]; exact spaces unread | [read] values; [unsure] dot-to-space mapping | R-4.4.3, R-6.2 |
+| Id                            | Printed text (verbatim)                           | Values                        | Dots | Qualifying spaces                               | Confidence                                                                             | Digest         |
+| ----------------------------- | ------------------------------------------------- | ----------------------------- | ---- | ----------------------------------------------- | -------------------------------------------------------------------------------------- | -------------- |
+| writ.charter.sulfur-barrel    | End game with 2 or 3 sulfur in barrel: 5/7 vp     | 2 sulfur 5 vp / 3 sulfur 7 vp | -    | none (no map)                                   | [read] values, RB-p13, TT                                                              | R-4.4.3, R-6.2 |
+| writ.charter.eastern-kingdom  | Eastern Kingdom (per location ruled): 3/5/7/9 vp  | 3/5/7/9                       | 7    | badlands-1..5, mountain-1, mountain-2           | [read] values and spaces, TT                                                           | R-4.4.3, R-6.2 |
+| writ.charter.monster-defeat   | If you defeat either monster during game: 7 vp    | 7                             | -    | none (no map)                                   | [read] values, RB-p13, TT                                                              | R-4.4.3, R-6.2 |
+| writ.charter.western-kingdom  | Western Kingdom (per location ruled): 3/5/7/9 vp  | 3/5/7/9                       | 7    | sea-1..3, island-1..4                           | [read] values and spaces, TT                                                           | R-4.4.3, R-6.2 |
+| writ.charter.northern-kingdom | Northern Kingdom (per location ruled): 3/5/7/9 vp | 3/5/7/9                       | 6    | forest-1..3, badlands-1, badlands-2, mountain-1 | [read] values, TT; [unsure] badlands-2 and mountain-1 (the dots sit near those spaces) | R-4.4.3, R-6.2 |
+| writ.charter.central-kingdom  | Central Kingdom (per location ruled): 3/5/7/9 vp  | 3/5/7/9                       | 8    | forest-1..3, desert-1..5                        | [read] values and spaces, TT                                                           | R-4.4.3, R-6.2 |
+| writ.charter.southern-kingdom | Southern Kingdom (per location ruled): 3/5/7/9 vp | 3/5/7/9                       | 9    | desert-1..5, badlands-3..5, mountain-2          | [read] values and spaces, TT                                                           | R-4.4.3, R-6.2 |
+| writ.charter.isolated-kingdom | Isolated Kingdom (per location ruled): 5/11/17 vp | 5/11/17 (1/2/3 locations)     | 3    | sea-3, badlands-3, badlands-5 (no mountain dot) | [read] values and spaces, TT                                                           | R-4.4.3, R-6.2 |
 
 Only the six kingdom charters have names in the printed text; `sulfur-barrel` and `monster-defeat` are descriptive ids because the card prints no title in the rulebook list. "3/5/7/9" reads as 1/2/3/4 qualifying locations ruled giving 3/5/7/9 vp [read as printed; the per-count meaning is an interpretation].
 
@@ -397,115 +397,125 @@ Six stacks of four, one tile of each epoch I to IV, epoch I on top. The front sh
 
 | Id                | Region   | Epoch (front) | Stack position  | Landscape back | Score when taken (legal)   | Digest         |
 | ----------------- | -------- | ------------- | --------------- | -------------- | -------------------------- | -------------- |
-| tile.sea.i        | sea      | I             | 1 of 4 (top)    | unread         | farm 2 / town 3 / feudum 4 | R-4.3, R-1.4.3 |
-| tile.sea.ii       | sea      | II            | 2 of 4 (middle) | unread         | farm 3 / town 4 / feudum 5 | R-4.3, R-1.4.3 |
-| tile.sea.iii      | sea      | III           | 3 of 4 (middle) | unread         | farm 4 / town 5 / feudum 6 | R-4.3, R-1.4.3 |
-| tile.sea.iv       | sea      | IV            | 4 of 4 (bottom) | unread         | farm 5 / town 6 / feudum 7 | R-4.3, R-1.4.3 |
-| tile.island.i     | island   | I             | 1 of 4 (top)    | unread         | farm 2 / town 3 / feudum 4 | R-4.3, R-1.4.3 |
-| tile.island.ii    | island   | II            | 2 of 4 (middle) | unread         | farm 3 / town 4 / feudum 5 | R-4.3, R-1.4.3 |
-| tile.island.iii   | island   | III           | 3 of 4 (middle) | unread         | farm 4 / town 5 / feudum 6 | R-4.3, R-1.4.3 |
-| tile.island.iv    | island   | IV            | 4 of 4 (bottom) | unread         | farm 5 / town 6 / feudum 7 | R-4.3, R-1.4.3 |
-| tile.forest.i     | forest   | I             | 1 of 4 (top)    | unread         | farm 2 / town 3 / feudum 4 | R-4.3, R-1.4.3 |
-| tile.forest.ii    | forest   | II            | 2 of 4 (middle) | unread         | farm 3 / town 4 / feudum 5 | R-4.3, R-1.4.3 |
-| tile.forest.iii   | forest   | III           | 3 of 4 (middle) | unread         | farm 4 / town 5 / feudum 6 | R-4.3, R-1.4.3 |
-| tile.forest.iv    | forest   | IV            | 4 of 4 (bottom) | unread         | farm 5 / town 6 / feudum 7 | R-4.3, R-1.4.3 |
-| tile.desert.i     | desert   | I             | 1 of 4 (top)    | unread         | farm 2 / town 3 / feudum 4 | R-4.3, R-1.4.3 |
-| tile.desert.ii    | desert   | II            | 2 of 4 (middle) | unread         | farm 3 / town 4 / feudum 5 | R-4.3, R-1.4.3 |
-| tile.desert.iii   | desert   | III           | 3 of 4 (middle) | unread         | farm 4 / town 5 / feudum 6 | R-4.3, R-1.4.3 |
-| tile.desert.iv    | desert   | IV            | 4 of 4 (bottom) | unread         | farm 5 / town 6 / feudum 7 | R-4.3, R-1.4.3 |
-| tile.badlands.i   | badlands | I             | 1 of 4 (top)    | unread         | farm 2 / town 3 / feudum 4 | R-4.3, R-1.4.3 |
-| tile.badlands.ii  | badlands | II            | 2 of 4 (middle) | unread         | farm 3 / town 4 / feudum 5 | R-4.3, R-1.4.3 |
-| tile.badlands.iii | badlands | III           | 3 of 4 (middle) | unread         | farm 4 / town 5 / feudum 6 | R-4.3, R-1.4.3 |
-| tile.badlands.iv  | badlands | IV            | 4 of 4 (bottom) | unread         | farm 5 / town 6 / feudum 7 | R-4.3, R-1.4.3 |
-| tile.mountain.i   | mountain | I             | 1 of 4 (top)    | unread         | farm 2 / town 3 / feudum 4 | R-4.3, R-1.4.3 |
-| tile.mountain.ii  | mountain | II            | 2 of 4 (middle) | unread         | farm 3 / town 4 / feudum 5 | R-4.3, R-1.4.3 |
-| tile.mountain.iii | mountain | III           | 3 of 4 (middle) | unread         | farm 4 / town 5 / feudum 6 | R-4.3, R-1.4.3 |
-| tile.mountain.iv  | mountain | IV            | 4 of 4 (bottom) | unread         | farm 5 / town 6 / feudum 7 | R-4.3, R-1.4.3 |
+| tile.sea.i        | sea      | I             | 1 of 4 (top)    | see below      | farm 2 / town 3 / feudum 4 | R-4.3, R-1.4.3 |
+| tile.sea.ii       | sea      | II            | 2 of 4 (middle) | see below      | farm 3 / town 4 / feudum 5 | R-4.3, R-1.4.3 |
+| tile.sea.iii      | sea      | III           | 3 of 4 (middle) | see below      | farm 4 / town 5 / feudum 6 | R-4.3, R-1.4.3 |
+| tile.sea.iv       | sea      | IV            | 4 of 4 (bottom) | see below      | farm 5 / town 6 / feudum 7 | R-4.3, R-1.4.3 |
+| tile.island.i     | island   | I             | 1 of 4 (top)    | see below      | farm 2 / town 3 / feudum 4 | R-4.3, R-1.4.3 |
+| tile.island.ii    | island   | II            | 2 of 4 (middle) | see below      | farm 3 / town 4 / feudum 5 | R-4.3, R-1.4.3 |
+| tile.island.iii   | island   | III           | 3 of 4 (middle) | see below      | farm 4 / town 5 / feudum 6 | R-4.3, R-1.4.3 |
+| tile.island.iv    | island   | IV            | 4 of 4 (bottom) | see below      | farm 5 / town 6 / feudum 7 | R-4.3, R-1.4.3 |
+| tile.forest.i     | forest   | I             | 1 of 4 (top)    | see below      | farm 2 / town 3 / feudum 4 | R-4.3, R-1.4.3 |
+| tile.forest.ii    | forest   | II            | 2 of 4 (middle) | see below      | farm 3 / town 4 / feudum 5 | R-4.3, R-1.4.3 |
+| tile.forest.iii   | forest   | III           | 3 of 4 (middle) | see below      | farm 4 / town 5 / feudum 6 | R-4.3, R-1.4.3 |
+| tile.forest.iv    | forest   | IV            | 4 of 4 (bottom) | see below      | farm 5 / town 6 / feudum 7 | R-4.3, R-1.4.3 |
+| tile.desert.i     | desert   | I             | 1 of 4 (top)    | see below      | farm 2 / town 3 / feudum 4 | R-4.3, R-1.4.3 |
+| tile.desert.ii    | desert   | II            | 2 of 4 (middle) | see below      | farm 3 / town 4 / feudum 5 | R-4.3, R-1.4.3 |
+| tile.desert.iii   | desert   | III           | 3 of 4 (middle) | see below      | farm 4 / town 5 / feudum 6 | R-4.3, R-1.4.3 |
+| tile.desert.iv    | desert   | IV            | 4 of 4 (bottom) | see below      | farm 5 / town 6 / feudum 7 | R-4.3, R-1.4.3 |
+| tile.badlands.i   | badlands | I             | 1 of 4 (top)    | see below      | farm 2 / town 3 / feudum 4 | R-4.3, R-1.4.3 |
+| tile.badlands.ii  | badlands | II            | 2 of 4 (middle) | see below      | farm 3 / town 4 / feudum 5 | R-4.3, R-1.4.3 |
+| tile.badlands.iii | badlands | III           | 3 of 4 (middle) | see below      | farm 4 / town 5 / feudum 6 | R-4.3, R-1.4.3 |
+| tile.badlands.iv  | badlands | IV            | 4 of 4 (bottom) | see below      | farm 5 / town 6 / feudum 7 | R-4.3, R-1.4.3 |
+| tile.mountain.i   | mountain | I             | 1 of 4 (top)    | see below      | farm 2 / town 3 / feudum 4 | R-4.3, R-1.4.3 |
+| tile.mountain.ii  | mountain | II            | 2 of 4 (middle) | see below      | farm 3 / town 4 / feudum 5 | R-4.3, R-1.4.3 |
+| tile.mountain.iii | mountain | III           | 3 of 4 (middle) | see below      | farm 4 / town 5 / feudum 6 | R-4.3, R-1.4.3 |
+| tile.mountain.iv  | mountain | IV            | 4 of 4 (bottom) | see below      | farm 5 / town 6 / feudum 7 | R-4.3, R-1.4.3 |
 
-[read] for the numeral and stack order (RB-p3 callout 8, TILE). The only backs seen are one epoch III tile with an archery butt and one epoch IV tile with a silver mine, region not known. Landscapes are orchard (food), silver mine (shillings), archery butt (targets), sulfur mine (sulfur) (R-4.3.4); presumed 6 of each is not shown anywhere.
+[read] for the numeral and stack order (RB-p3 callout 8, TILE). Landscapes are orchard (3 food), silver mine (3 shillings), archery butt (3 targets) and sulfur deposit (3 sulfur) (R-4.3.4) [read] TT.
+
+No region is printed on either face [read] TT, so a tile's landscape is a property of the epoch's mix, not of its region. TT keeps each epoch's six tiles in one shuffled bag; how the stacks are built is open (`open-questions.md`, Q26). Each epoch's mix [read] TT manifest:
+
+| Epoch | Orchard | Silver mine | Sulfur deposit | Archery butt |
+| ----- | ------- | ----------- | -------------- | ------------ |
+| I     | 2       | 2           | 1              | 1            |
+| II    | 1       | 1           | 2              | 2            |
+| III   | 2       | 2           | 1              | 1            |
+| IV    | 1       | 1           | 2              | 2            |
+| All   | 6       | 6           | 6              | 6            |
 
 ## Location discs (44)
 
-The 44 are outposts, farms, towns and feudums. Setup uses 22 placed on the map (circle-marked ones on the six starting spaces) and 22 double-sided in the general supply, which include the 12 feudums (R-1.4.3). The 22 / 22 split is arithmetic [read]. The type of each starting disc, the faces of each double-sided disc and the count of outposts, farms and towns are shown in no picture, so `disc.start.<n>` and `disc.double.<n>` are numbered slots, not typed: the numbers carry no meaning and a type is added to a slot's row when a picture reads it. Colours: outpost lilac with a tower, farm green with field stripes, town yellow with two houses, feudum teal with a guild icon [read] RB-p6, LOC.
+The 44 are outposts, farms, towns and feudums. Setup uses 22 placed on the map (circle-marked ones on the six starting spaces) and 22 double-sided in the general supply, which include the 12 feudums (R-1.4.3). The 22 / 22 split is arithmetic [read]. TT's manifest gives the 22 placed at setup: 6 with the circle (2 farms, 2 towns, 2 outposts) for the six starting spaces, and 16 plain (5 farms, 3 towns, 8 outposts) for the rest; which disc lands on which space is random. The numbering of `disc.start.<n>` within a type is a convention. The double-sided discs pair farm/town, outpost/farm and outpost/town [read] TT, but how many of each pair is printed nowhere, so `disc.double.<n>` stay untyped slots. Colours: outpost lilac with a tower, farm green with field stripes, town yellow with two houses, feudum teal with a guild icon [read] RB-p6, LOC.
 
-| Id            | Group                   | Type   | Circle marker                         | Digest  |
-| ------------- | ----------------------- | ------ | ------------------------------------- | ------- |
-| disc.start.1  | starting-placement disc | unread | unread (6 of the 22 carry the circle) | R-1.4.3 |
-| disc.start.2  | starting-placement disc | unread | unread (6 of the 22 carry the circle) | R-1.4.3 |
-| disc.start.3  | starting-placement disc | unread | unread (6 of the 22 carry the circle) | R-1.4.3 |
-| disc.start.4  | starting-placement disc | unread | unread (6 of the 22 carry the circle) | R-1.4.3 |
-| disc.start.5  | starting-placement disc | unread | unread (6 of the 22 carry the circle) | R-1.4.3 |
-| disc.start.6  | starting-placement disc | unread | unread (6 of the 22 carry the circle) | R-1.4.3 |
-| disc.start.7  | starting-placement disc | unread | unread (6 of the 22 carry the circle) | R-1.4.3 |
-| disc.start.8  | starting-placement disc | unread | unread (6 of the 22 carry the circle) | R-1.4.3 |
-| disc.start.9  | starting-placement disc | unread | unread (6 of the 22 carry the circle) | R-1.4.3 |
-| disc.start.10 | starting-placement disc | unread | unread (6 of the 22 carry the circle) | R-1.4.3 |
-| disc.start.11 | starting-placement disc | unread | unread (6 of the 22 carry the circle) | R-1.4.3 |
-| disc.start.12 | starting-placement disc | unread | unread (6 of the 22 carry the circle) | R-1.4.3 |
-| disc.start.13 | starting-placement disc | unread | unread (6 of the 22 carry the circle) | R-1.4.3 |
-| disc.start.14 | starting-placement disc | unread | unread (6 of the 22 carry the circle) | R-1.4.3 |
-| disc.start.15 | starting-placement disc | unread | unread (6 of the 22 carry the circle) | R-1.4.3 |
-| disc.start.16 | starting-placement disc | unread | unread (6 of the 22 carry the circle) | R-1.4.3 |
-| disc.start.17 | starting-placement disc | unread | unread (6 of the 22 carry the circle) | R-1.4.3 |
-| disc.start.18 | starting-placement disc | unread | unread (6 of the 22 carry the circle) | R-1.4.3 |
-| disc.start.19 | starting-placement disc | unread | unread (6 of the 22 carry the circle) | R-1.4.3 |
-| disc.start.20 | starting-placement disc | unread | unread (6 of the 22 carry the circle) | R-1.4.3 |
-| disc.start.21 | starting-placement disc | unread | unread (6 of the 22 carry the circle) | R-1.4.3 |
-| disc.start.22 | starting-placement disc | unread | unread (6 of the 22 carry the circle) | R-1.4.3 |
+| Id            | Group                   | Type    | Circle marker (TT manifest) | Digest  |
+| ------------- | ----------------------- | ------- | --------------------------- | ------- |
+| disc.start.1  | starting-placement disc | farm    | yes                         | R-1.4.3 |
+| disc.start.2  | starting-placement disc | farm    | yes                         | R-1.4.3 |
+| disc.start.3  | starting-placement disc | town    | yes                         | R-1.4.3 |
+| disc.start.4  | starting-placement disc | town    | yes                         | R-1.4.3 |
+| disc.start.5  | starting-placement disc | outpost | yes                         | R-1.4.3 |
+| disc.start.6  | starting-placement disc | outpost | yes                         | R-1.4.3 |
+| disc.start.7  | starting-placement disc | farm    | no                          | R-1.4.3 |
+| disc.start.8  | starting-placement disc | farm    | no                          | R-1.4.3 |
+| disc.start.9  | starting-placement disc | farm    | no                          | R-1.4.3 |
+| disc.start.10 | starting-placement disc | farm    | no                          | R-1.4.3 |
+| disc.start.11 | starting-placement disc | farm    | no                          | R-1.4.3 |
+| disc.start.12 | starting-placement disc | town    | no                          | R-1.4.3 |
+| disc.start.13 | starting-placement disc | town    | no                          | R-1.4.3 |
+| disc.start.14 | starting-placement disc | town    | no                          | R-1.4.3 |
+| disc.start.15 | starting-placement disc | outpost | no                          | R-1.4.3 |
+| disc.start.16 | starting-placement disc | outpost | no                          | R-1.4.3 |
+| disc.start.17 | starting-placement disc | outpost | no                          | R-1.4.3 |
+| disc.start.18 | starting-placement disc | outpost | no                          | R-1.4.3 |
+| disc.start.19 | starting-placement disc | outpost | no                          | R-1.4.3 |
+| disc.start.20 | starting-placement disc | outpost | no                          | R-1.4.3 |
+| disc.start.21 | starting-placement disc | outpost | no                          | R-1.4.3 |
+| disc.start.22 | starting-placement disc | outpost | no                          | R-1.4.3 |
 
-| Id             | Group                                      | Face A | Face B | Digest  |
-| -------------- | ------------------------------------------ | ------ | ------ | ------- |
-| disc.double.1  | double-sided, general supply, not a feudum | unread | unread | R-1.4.3 |
-| disc.double.2  | double-sided, general supply, not a feudum | unread | unread | R-1.4.3 |
-| disc.double.3  | double-sided, general supply, not a feudum | unread | unread | R-1.4.3 |
-| disc.double.4  | double-sided, general supply, not a feudum | unread | unread | R-1.4.3 |
-| disc.double.5  | double-sided, general supply, not a feudum | unread | unread | R-1.4.3 |
-| disc.double.6  | double-sided, general supply, not a feudum | unread | unread | R-1.4.3 |
-| disc.double.7  | double-sided, general supply, not a feudum | unread | unread | R-1.4.3 |
-| disc.double.8  | double-sided, general supply, not a feudum | unread | unread | R-1.4.3 |
-| disc.double.9  | double-sided, general supply, not a feudum | unread | unread | R-1.4.3 |
-| disc.double.10 | double-sided, general supply, not a feudum | unread | unread | R-1.4.3 |
+| Id             | Group                                      | Face A                                       | Face B              | Digest  |
+| -------------- | ------------------------------------------ | -------------------------------------------- | ------------------- | ------- |
+| disc.double.1  | double-sided, general supply, not a feudum | one of farm/town, outpost/farm, outpost/town | (pair count unread) | R-1.4.3 |
+| disc.double.2  | double-sided, general supply, not a feudum | one of farm/town, outpost/farm, outpost/town | (pair count unread) | R-1.4.3 |
+| disc.double.3  | double-sided, general supply, not a feudum | one of farm/town, outpost/farm, outpost/town | (pair count unread) | R-1.4.3 |
+| disc.double.4  | double-sided, general supply, not a feudum | one of farm/town, outpost/farm, outpost/town | (pair count unread) | R-1.4.3 |
+| disc.double.5  | double-sided, general supply, not a feudum | one of farm/town, outpost/farm, outpost/town | (pair count unread) | R-1.4.3 |
+| disc.double.6  | double-sided, general supply, not a feudum | one of farm/town, outpost/farm, outpost/town | (pair count unread) | R-1.4.3 |
+| disc.double.7  | double-sided, general supply, not a feudum | one of farm/town, outpost/farm, outpost/town | (pair count unread) | R-1.4.3 |
+| disc.double.8  | double-sided, general supply, not a feudum | one of farm/town, outpost/farm, outpost/town | (pair count unread) | R-1.4.3 |
+| disc.double.9  | double-sided, general supply, not a feudum | one of farm/town, outpost/farm, outpost/town | (pair count unread) | R-1.4.3 |
+| disc.double.10 | double-sided, general supply, not a feudum | one of farm/town, outpost/farm, outpost/town | (pair count unread) | R-1.4.3 |
 
-| Id                      | Face A | Icon                                             | Face B | Confidence                                                | Digest           |
-| ----------------------- | ------ | ------------------------------------------------ | ------ | --------------------------------------------------------- | ---------------- |
-| disc.feudum.farmer-1    | feudum | teal, sheep icon (guild farmer)                  | unread | [unsure] 2 per guild inferred from 12 / 6; no count image | R-1.2.4, R-1.4.3 |
-| disc.feudum.farmer-2    | feudum | teal, sheep icon (guild farmer)                  | unread | [unsure] 2 per guild inferred from 12 / 6; no count image | R-1.2.4, R-1.4.3 |
-| disc.feudum.merchant-1  | feudum | teal, coins (three plates) icon (guild merchant) | unread | [unsure] 2 per guild inferred from 12 / 6; no count image | R-1.2.4, R-1.4.3 |
-| disc.feudum.merchant-2  | feudum | teal, coins (three plates) icon (guild merchant) | unread | [unsure] 2 per guild inferred from 12 / 6; no count image | R-1.2.4, R-1.4.3 |
-| disc.feudum.alchemist-1 | feudum | teal, gear icon (guild alchemist)                | unread | [unsure] 2 per guild inferred from 12 / 6; no count image | R-1.2.4, R-1.4.3 |
-| disc.feudum.alchemist-2 | feudum | teal, gear icon (guild alchemist)                | unread | [unsure] 2 per guild inferred from 12 / 6; no count image | R-1.2.4, R-1.4.3 |
-| disc.feudum.knight-1    | feudum | teal, axe icon (guild knight)                    | unread | [unsure] 2 per guild inferred from 12 / 6; no count image | R-1.2.4, R-1.4.3 |
-| disc.feudum.knight-2    | feudum | teal, axe icon (guild knight)                    | unread | [unsure] 2 per guild inferred from 12 / 6; no count image | R-1.2.4, R-1.4.3 |
-| disc.feudum.noble-1     | feudum | teal, crown icon (guild noble)                   | unread | [unsure] 2 per guild inferred from 12 / 6; no count image | R-1.2.4, R-1.4.3 |
-| disc.feudum.noble-2     | feudum | teal, crown icon (guild noble)                   | unread | [unsure] 2 per guild inferred from 12 / 6; no count image | R-1.2.4, R-1.4.3 |
-| disc.feudum.monk-1      | feudum | teal, cross icon (guild monk)                    | unread | [unsure] 2 per guild inferred from 12 / 6; no count image | R-1.2.4, R-1.4.3 |
-| disc.feudum.monk-2      | feudum | teal, cross icon (guild monk)                    | unread | [unsure] 2 per guild inferred from 12 / 6; no count image | R-1.2.4, R-1.4.3 |
+| Id                      | Face A | Icon                                             | Face B             | Confidence                                                                                                | Digest           |
+| ----------------------- | ------ | ------------------------------------------------ | ------------------ | --------------------------------------------------------------------------------------------------------- | ---------------- |
+| disc.feudum.farmer-1    | feudum | teal, sheep icon (guild farmer)                  | feudum (same icon) | [read] TT: the guild icon on both faces; [unsure] 2 per guild inferred from 12 / 6, no copy count printed | R-1.2.4, R-1.4.3 |
+| disc.feudum.farmer-2    | feudum | teal, sheep icon (guild farmer)                  | feudum (same icon) | [read] TT: the guild icon on both faces; [unsure] 2 per guild inferred from 12 / 6, no copy count printed | R-1.2.4, R-1.4.3 |
+| disc.feudum.merchant-1  | feudum | teal, coins (three plates) icon (guild merchant) | feudum (same icon) | [read] TT: the guild icon on both faces; [unsure] 2 per guild inferred from 12 / 6, no copy count printed | R-1.2.4, R-1.4.3 |
+| disc.feudum.merchant-2  | feudum | teal, coins (three plates) icon (guild merchant) | feudum (same icon) | [read] TT: the guild icon on both faces; [unsure] 2 per guild inferred from 12 / 6, no copy count printed | R-1.2.4, R-1.4.3 |
+| disc.feudum.alchemist-1 | feudum | teal, gear icon (guild alchemist)                | feudum (same icon) | [read] TT: the guild icon on both faces; [unsure] 2 per guild inferred from 12 / 6, no copy count printed | R-1.2.4, R-1.4.3 |
+| disc.feudum.alchemist-2 | feudum | teal, gear icon (guild alchemist)                | feudum (same icon) | [read] TT: the guild icon on both faces; [unsure] 2 per guild inferred from 12 / 6, no copy count printed | R-1.2.4, R-1.4.3 |
+| disc.feudum.knight-1    | feudum | teal, axe icon (guild knight)                    | feudum (same icon) | [read] TT: the guild icon on both faces; [unsure] 2 per guild inferred from 12 / 6, no copy count printed | R-1.2.4, R-1.4.3 |
+| disc.feudum.knight-2    | feudum | teal, axe icon (guild knight)                    | feudum (same icon) | [read] TT: the guild icon on both faces; [unsure] 2 per guild inferred from 12 / 6, no copy count printed | R-1.2.4, R-1.4.3 |
+| disc.feudum.noble-1     | feudum | teal, crown icon (guild noble)                   | feudum (same icon) | [read] TT: the guild icon on both faces; [unsure] 2 per guild inferred from 12 / 6, no copy count printed | R-1.2.4, R-1.4.3 |
+| disc.feudum.noble-2     | feudum | teal, crown icon (guild noble)                   | feudum (same icon) | [read] TT: the guild icon on both faces; [unsure] 2 per guild inferred from 12 / 6, no copy count printed | R-1.2.4, R-1.4.3 |
+| disc.feudum.monk-1      | feudum | teal, cross icon (guild monk)                    | feudum (same icon) | [read] TT: the guild icon on both faces; [unsure] 2 per guild inferred from 12 / 6, no copy count printed | R-1.2.4, R-1.4.3 |
+| disc.feudum.monk-2      | feudum | teal, cross icon (guild monk)                    | feudum (same icon) | [read] TT: the guild icon on both faces; [unsure] 2 per guild inferred from 12 / 6, no copy count printed | R-1.2.4, R-1.4.3 |
 
 The N/S/E/W letters are printed on the board beside the space, not on the discs [read].
 
 ## King's seals / rosary beads (17)
 
-One two-sided disc: seal side red with a white crown, no number; bead side striped teal and yellow with "+N". Bead value range +2 to +5 (text, R-1.1). Seen on pictures: +3 (RB-p2) and +4 (BEAD), not tied to any one of the 17. Which discs carry which value, and how many of each, is unread.
+One two-sided disc: seal side red with a white crown, no number; bead side striped teal and yellow with "+N". Bead value range +2 to +5 (text, R-1.1). TT's manifest holds 9 at +2, 5 at +3, 2 at +4 and 1 at +5 [read]. The discs carry no id, so which numbered seal has which value is a convention: seal.1-9 +2, seal.10-14 +3, seal.15-16 +4, seal.17 +5.
 
-| Id      | Seal side        | Bead side value   | Digest       |
-| ------- | ---------------- | ----------------- | ------------ |
-| seal.1  | red, white crown | unread (+2 to +5) | R-1.1, R-5.1 |
-| seal.2  | red, white crown | unread (+2 to +5) | R-1.1, R-5.1 |
-| seal.3  | red, white crown | unread (+2 to +5) | R-1.1, R-5.1 |
-| seal.4  | red, white crown | unread (+2 to +5) | R-1.1, R-5.1 |
-| seal.5  | red, white crown | unread (+2 to +5) | R-1.1, R-5.1 |
-| seal.6  | red, white crown | unread (+2 to +5) | R-1.1, R-5.1 |
-| seal.7  | red, white crown | unread (+2 to +5) | R-1.1, R-5.1 |
-| seal.8  | red, white crown | unread (+2 to +5) | R-1.1, R-5.1 |
-| seal.9  | red, white crown | unread (+2 to +5) | R-1.1, R-5.1 |
-| seal.10 | red, white crown | unread (+2 to +5) | R-1.1, R-5.1 |
-| seal.11 | red, white crown | unread (+2 to +5) | R-1.1, R-5.1 |
-| seal.12 | red, white crown | unread (+2 to +5) | R-1.1, R-5.1 |
-| seal.13 | red, white crown | unread (+2 to +5) | R-1.1, R-5.1 |
-| seal.14 | red, white crown | unread (+2 to +5) | R-1.1, R-5.1 |
-| seal.15 | red, white crown | unread (+2 to +5) | R-1.1, R-5.1 |
-| seal.16 | red, white crown | unread (+2 to +5) | R-1.1, R-5.1 |
-| seal.17 | red, white crown | unread (+2 to +5) | R-1.1, R-5.1 |
+| Id      | Seal side        | Bead side value | Digest       |
+| ------- | ---------------- | --------------- | ------------ |
+| seal.1  | red, white crown | +2              | R-1.1, R-5.1 |
+| seal.2  | red, white crown | +2              | R-1.1, R-5.1 |
+| seal.3  | red, white crown | +2              | R-1.1, R-5.1 |
+| seal.4  | red, white crown | +2              | R-1.1, R-5.1 |
+| seal.5  | red, white crown | +2              | R-1.1, R-5.1 |
+| seal.6  | red, white crown | +2              | R-1.1, R-5.1 |
+| seal.7  | red, white crown | +2              | R-1.1, R-5.1 |
+| seal.8  | red, white crown | +2              | R-1.1, R-5.1 |
+| seal.9  | red, white crown | +2              | R-1.1, R-5.1 |
+| seal.10 | red, white crown | +3              | R-1.1, R-5.1 |
+| seal.11 | red, white crown | +3              | R-1.1, R-5.1 |
+| seal.12 | red, white crown | +3              | R-1.1, R-5.1 |
+| seal.13 | red, white crown | +3              | R-1.1, R-5.1 |
+| seal.14 | red, white crown | +3              | R-1.1, R-5.1 |
+| seal.15 | red, white crown | +4              | R-1.1, R-5.1 |
+| seal.16 | red, white crown | +4              | R-1.1, R-5.1 |
+| seal.17 | red, white crown | +5              | R-1.1, R-5.1 |
 
 ## Other components
 
@@ -550,7 +560,7 @@ One two-sided disc: seal side red with a white crown, no number; bead side strip
 | shilling.1              | Shilling, silver "1"     | 43    | value 1                                                                                      | rulebook: "43 silver 1s" | R-1.1          |
 | shilling.5              | Shilling, gold "5"       | 7     | value 5                                                                                      | rulebook: "7 gold 5s"    | R-1.1          |
 | target.archery          | Archery target           | 12    | -                                                                                            |                          | R-1.1, R-4.3.4 |
-| die.progress            | Progress die             | 1     | six faces, one per region (see `region.*`)                                                   |                          | R-4.11         |
+| die.progress            | Progress die             | 1     | six faces, one per region (see `region.*`)                                                   | [read] TT                | R-4.11         |
 | marker.epoch            | Epoch marker             | 1     | -                                                                                            |                          | R-4.11         |
 | marker.start-player     | Starting player marker   | 1     | -                                                                                            |                          | R-2.2          |
 | bag.haversack           | Haversack                | 1     | bag for random draws of goods                                                                |                          | R-1.1          |
@@ -570,77 +580,71 @@ One two-sided disc: seal side red with a white crown, no number; bead side strip
 
 "Rows above" counts components (the sum of the Count column where a row stands for identical pieces, otherwise the number of rows). "Not stated" means the rulebook gives no count, so the row count is recorded as the inventory's own figure. Where a breakdown is unread, the note says so.
 
-| Kind                                             | Rulebook says                                                       | Rows above | Note                                                                                                  |
-| ------------------------------------------------ | ------------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------- |
-| Board spaces                                     | 22 (sea 3, island 4, forest 3, desert 5, badlands 5, mountain 2)    | 22         | matches                                                                                               |
-| Routes: roads                                    | not stated (picture only)                                           | 13         | all unsure, AID only                                                                                  |
-| Routes: ship                                     | not stated                                                          | 8          | all unsure                                                                                            |
-| Routes: submersible                              | not stated                                                          | 10         | all unsure                                                                                            |
-| Routes: flying machine                           | not stated                                                          | 8          | all unsure                                                                                            |
-| Routes: ferry                                    | 3 ferryboat routes (R-1.2.2)                                        | 3          | matches                                                                                               |
-| Regions                                          | 6                                                                   | 6          | matches                                                                                               |
-| Guilds                                           | 6                                                                   | 6          | matches                                                                                               |
-| Guild track spaces                               | 3 per guild = 18                                                    | 18         | matches                                                                                               |
-| Farmer chicken spaces                            | 4 (counted from the chickens drawn; unsure)                         | 4          | count is unsure                                                                                       |
-| Farmer barn + purse                              | 1 + 1                                                               | 2          | matches                                                                                               |
-| Merchant market spaces                           | 5 bins x 4 = 20                                                     | 20         | 18 prices unread                                                                                      |
-| Alchemist spaces (15 cart/pile + 1 vessel space) | carts 3+3+3+3+3 (saltpeter capacity 3 or 4 unread) + 1 vessel space | 16         | saltpeter capacity unread                                                                             |
-| Alchemist inventions                             | 6 (3 vessels, 3 krud barrels)                                       | 6          | matches                                                                                               |
-| Knight row sections                              | 5 rows x 3 sections = 15                                            | 15         | matches                                                                                               |
-| Knight monster icons                             | 2                                                                   | 2          | matches                                                                                               |
-| Noble scroll spaces                              | 6 (rows of 3, 2, 1)                                                 | 6          | matches                                                                                               |
-| Monk rosary + coffer                             | 1 + 1                                                               | 2          | rosary capacity unread                                                                                |
-| Epic voyage spaces                               | 7 in 4 sections                                                     | 7          | matches                                                                                               |
-| Military service spaces                          | 3                                                                   | 3          | matches                                                                                               |
-| Epoch sunrays                                    | 5 (I-V)                                                             | 5          | matches                                                                                               |
-| Region tile chart rows                           | 5 (I-V; V crossed out)                                              | 5          | matches                                                                                               |
-| Scoring track                                    | 0-149 (150 spaces)                                                  | 1          | one row for the whole track                                                                           |
-| Action cards                                     | 55 (11 per colour x 5)                                              | 55         | 11 kinds x 5; one card kind per row                                                                   |
-| Royal Writ mandates                              | 8                                                                   | 8          | each card carries 2 alternative effects                                                               |
-| Royal Writ charters                              | 8                                                                   | 8          | qualifying-space identities unread for 6                                                              |
-| Royal Writs (mandates + charters)                | 16                                                                  | 16         | matches                                                                                               |
-| Region tiles                                     | 24 (6 stacks x 4)                                                   | 24         | 24 landscape backs unread                                                                             |
-| Location discs: placed at setup                  | 22                                                                  | 22         | types unread                                                                                          |
-| Location discs: double-sided, non-feudum         | 22 double-sided less the 12 feudums = 10                            | 10         | faces unread                                                                                          |
-| Location discs: feudums                          | 12 (one icon per guild)                                             | 12         | 2 per guild is inferred                                                                               |
-| Location discs (all)                             | 44                                                                  | 44         | matches                                                                                               |
-| King's seals / rosary beads                      | 17                                                                  | 17         | 17 bead values unread                                                                                 |
-| Game board                                       | 1                                                                   | 1          | matches                                                                                               |
-| Pawns                                            | 15 (3 x 5)                                                          | 15         | matches                                                                                               |
-| Player discs                                     | 20 (4 x 5)                                                          | 20         | matches                                                                                               |
-| Influence markers                                | 100 (20 x 5)                                                        | 100        | matches                                                                                               |
-| Player pouches                                   | 5                                                                   | 5          | matches                                                                                               |
-| Wine barrels                                     | 5 (printed on the board)                                            | 5          | matches                                                                                               |
-| Vessels                                          | 9 (3 + 3 + 3)                                                       | 9          | matches                                                                                               |
-| Monsters                                         | 2                                                                   | 2          | matches                                                                                               |
-| Goods                                            | 170 (30 x 4 + 50 food)                                              | 170        | matches                                                                                               |
-| Shillings                                        | 50 (43 silver + 7 gold)                                             | 50         | the digest's component table says "57 in all", which does not equal 43 + 7; the rulebook list says 50 |
-| Archery targets                                  | 12                                                                  | 12         | matches                                                                                               |
-| Progress die                                     | 1                                                                   | 1          | matches                                                                                               |
-| Epoch marker                                     | 1                                                                   | 1          | matches                                                                                               |
-| Starting player marker                           | 1                                                                   | 1          | matches                                                                                               |
-| Haversack                                        | 1                                                                   | 1          | matches                                                                                               |
-| Pawn faces                                       | 6 characters                                                        | 6          | matches                                                                                               |
+| Kind                                             | Rulebook says                                                    | Rows above | Note                                                                                                  |
+| ------------------------------------------------ | ---------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------- |
+| Board spaces                                     | 22 (sea 3, island 4, forest 3, desert 5, badlands 5, mountain 2) | 22         | matches                                                                                               |
+| Routes: roads                                    | not stated (picture only)                                        | 13         | [read] TT, AID, FB                                                                                    |
+| Routes: ship                                     | not stated                                                       | 8          | AID only; TT draws no vessel routes (Q27)                                                             |
+| Routes: submersible                              | not stated                                                       | 10         | AID only; TT draws no vessel routes (Q27)                                                             |
+| Routes: flying machine                           | not stated                                                       | 8          | all unsure                                                                                            |
+| Routes: ferry                                    | 3 ferryboat routes (R-1.2.2)                                     | 3          | matches                                                                                               |
+| Regions                                          | 6                                                                | 6          | matches                                                                                               |
+| Guilds                                           | 6                                                                | 6          | matches                                                                                               |
+| Guild track spaces                               | 3 per guild = 18                                                 | 18         | matches                                                                                               |
+| Farmer chicken spaces                            | 4 (counted from the chickens drawn; unsure)                      | 4          | count is unsure                                                                                       |
+| Farmer barn + purse                              | 1 + 1                                                            | 2          | matches                                                                                               |
+| Merchant market spaces                           | 5 bins x 4 = 20                                                  | 20         | [read] TT                                                                                             |
+| Alchemist spaces (15 cart/pile + 1 vessel space) | carts 3+3+3+3+3 + 1 vessel space                                 | 16         | saltpeter 3, [read] TT                                                                                |
+| Alchemist inventions                             | 6 (3 vessels, 3 krud barrels)                                    | 6          | matches                                                                                               |
+| Knight row sections                              | 5 rows x 3 sections = 15                                         | 15         | matches                                                                                               |
+| Knight monster icons                             | 2                                                                | 2          | matches                                                                                               |
+| Noble scroll spaces                              | 6 (rows of 3, 2, 1)                                              | 6          | matches                                                                                               |
+| Monk rosary + coffer                             | 1 + 1                                                            | 2          | rosary capacity unread                                                                                |
+| Epic voyage spaces                               | 7 in 4 sections                                                  | 7          | matches                                                                                               |
+| Military service spaces                          | 3                                                                | 3          | matches                                                                                               |
+| Epoch sunrays                                    | 5 (I-V)                                                          | 5          | matches                                                                                               |
+| Region tile chart rows                           | 5 (I-V; V crossed out)                                           | 5          | matches                                                                                               |
+| Scoring track                                    | 0-149 (150 spaces)                                               | 1          | one row for the whole track                                                                           |
+| Action cards                                     | 55 (11 per colour x 5)                                           | 55         | 11 kinds x 5; one card kind per row                                                                   |
+| Royal Writ mandates                              | 8                                                                | 8          | each card carries 2 alternative effects                                                               |
+| Royal Writ charters                              | 8                                                                | 8          | spaces [read] TT; two of Northern's unsure                                                            |
+| Royal Writs (mandates + charters)                | 16                                                               | 16         | matches                                                                                               |
+| Region tiles                                     | 24 (6 stacks x 4)                                                | 24         | 6 of each landscape; per-epoch mix [read] TT (Q26)                                                    |
+| Location discs: placed at setup                  | 22                                                               | 22         | 7 farms, 5 towns, 10 outposts [read] TT                                                               |
+| Location discs: double-sided, non-feudum         | 22 double-sided less the 12 feudums = 10                         | 10         | three pairs; count per pair unread                                                                    |
+| Location discs: feudums                          | 12 (one icon per guild)                                          | 12         | 2 per guild is inferred                                                                               |
+| Location discs (all)                             | 44                                                               | 44         | matches                                                                                               |
+| King's seals / rosary beads                      | 17                                                               | 17         | 9 × +2, 5 × +3, 2 × +4, 1 × +5 [read] TT                                                              |
+| Game board                                       | 1                                                                | 1          | matches                                                                                               |
+| Pawns                                            | 15 (3 x 5)                                                       | 15         | matches                                                                                               |
+| Player discs                                     | 20 (4 x 5)                                                       | 20         | matches                                                                                               |
+| Influence markers                                | 100 (20 x 5)                                                     | 100        | matches                                                                                               |
+| Player pouches                                   | 5                                                                | 5          | matches                                                                                               |
+| Wine barrels                                     | 5 (printed on the board)                                         | 5          | matches                                                                                               |
+| Vessels                                          | 9 (3 + 3 + 3)                                                    | 9          | matches                                                                                               |
+| Monsters                                         | 2                                                                | 2          | matches                                                                                               |
+| Goods                                            | 170 (30 x 4 + 50 food)                                           | 170        | matches                                                                                               |
+| Shillings                                        | 50 (43 silver + 7 gold)                                          | 50         | the digest's component table says "57 in all", which does not equal 43 + 7; the rulebook list says 50 |
+| Archery targets                                  | 12                                                               | 12         | matches                                                                                               |
+| Progress die                                     | 1                                                                | 1          | matches                                                                                               |
+| Epoch marker                                     | 1                                                                | 1          | matches                                                                                               |
+| Starting player marker                           | 1                                                                | 1          | matches                                                                                               |
+| Haversack                                        | 1                                                                | 1          | matches                                                                                               |
+| Pawn faces                                       | 6 characters                                                     | 6          | matches                                                                                               |
 
 ## Unread values
 
-| Component                                                           | What is unread                                                                     | Values | Picture that would settle it                                                                                                                              |
-| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| guild.merchant.space.* (all but saltpeter-4 = 2s and sulfur-4 = 1s) | shilling price of 18 market spaces                                                 | 18     | a high-resolution close-up of the Merchant market with no goods on it (every photo covers the prices with cubes; the flat scan prints each at about 3 px) |
-| guild.alchemist.cart.saltpeter-*                                    | saltpeter pile capacity, 3 or 4                                                    | 1      | a photo or high-resolution scan of the empty Alchemist saltpeter pile, or RB-p3's setup diagram at legible size                                           |
-| guild.monk.rosary                                                   | rosary capacity, and whether the printed beads are spaces                          | 1      | a high-resolution Monk guild close-up, or a designer ruling                                                                                               |
-| guild.farmer.chicken.*                                              | whether the board has exactly 4 chicken spaces, and which one takes the setup bead | 1      | a high-resolution Farmer guild close-up                                                                                                                   |
-| guild.* (6 guilds)                                                  | which charity (purse or coffer) receives each guild's apprentice share             | 6      | a close-up of each guild's trade area showing the charity icon, or the designer's ruling                                                                  |
-| seal.1 to seal.17                                                   | bead value (+2 to +5) of each disc                                                 | 17     | a render or photo of the bead side of all 17 discs, or the count per value                                                                                |
-| tile.<region>.<epoch> (24)                                          | landscape on the back of each tile                                                 | 24     | a picture of all 24 tile backs, or the per-landscape and per-region assignment                                                                            |
-| disc.start.1 to disc.start.22                                       | type of each starting disc and which 6 carry the circle                            | 22     | a render of the 22 non-double-sided location discs, fronts and circle marks                                                                               |
-| disc.double.1 to disc.double.10                                     | both faces of each non-feudum double-sided disc                                    | 10     | a render of the double-sided discs, both sides                                                                                                            |
-| disc.feudum.* (12)                                                  | the non-feudum face of each feudum disc                                            | 12     | the same render, both sides of the 12 feudums                                                                                                             |
-| disc.feudum.*                                                       | that there are 2 feudums per guild (inferred from 12 / 6)                          | 1      | a render of all 12 feudum fronts                                                                                                                          |
-| card.action.repeat                                                  | whether the Repeat card carries the either/or marker                               | 1      | the Repeat card at legible size (RB card pictures or REF)                                                                                                 |
-| region.* progress die face                                          | the printed face for each region                                                   | 6      | a photo or render of the progress die showing all six faces                                                                                               |
-| writ.charter.* (six kingdom charters)                               | which board spaces the pink dots mark on each map                                  | 6      | the charter card pictures at legible size, matched against the board                                                                                      |
+| Component                       | What is unread                                                                     | Values | What would settle it                                           |
+| ------------------------------- | ---------------------------------------------------------------------------------- | ------ | -------------------------------------------------------------- |
+| guild.monk.rosary               | rosary capacity, and whether the printed beads are spaces                          | 1      | a designer ruling (no capacity is printed)                     |
+| guild.farmer.chicken.*          | whether the board has exactly 4 chicken spaces, and which one takes the setup bead | 1      | a designer ruling (4 chickens are drawn; no spaces are marked) |
+| guild.* (6 guilds)              | which charity (purse or coffer) receives each guild's apprentice share             | 6      | the designer's ruling (R-4.6-H3)                               |
+| disc.double.1 to disc.double.10 | how many of each face pair (farm/town, outpost/farm, outpost/town)                 | 10     | a photo of the physical discs                                  |
+| disc.feudum.*                   | that there are 2 feudums per guild (inferred from 12 / 6)                          | 1      | a photo of the physical discs                                  |
+| card.action.repeat              | whether the Repeat card carries the either/or marker                               | 1      | the Repeat card at legible size (RB card pictures or REF)      |
+| writ.charter.northern-kingdom   | whether two dots mark badlands-2 and mountain-1                                    | 2      | the physical card beside the board                             |
+| tile.<region>.<epoch> (24)      | which landscape lies under each region's tile (Q26)                                | 24     | the rulebook's setup text, or a designer ruling                |
 
-Total unread values: 126.
+Total unread values: 46.
 
-Also open but not unread: every route except the ferry endpoints rests on the fan map aid (listed per row under Confidence), and the Alchemist related-location icon rests on the fan guild tracker. Both are unsure, not unread.
+Also open but not unread: every ship, submersible and flying-machine route rests on the fan map aid alone, since the board draws none (Q27); the provisional placeholders for values printed nowhere are Q28.
