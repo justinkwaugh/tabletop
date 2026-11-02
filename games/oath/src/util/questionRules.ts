@@ -98,6 +98,7 @@ import { relicKnownToOthers } from './knowledge.js'
 import { OathRevision, isAtLeastOathRevision } from './revision.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
+import { playOrDiscardVision, reasonCannotPlayOrDiscardVision } from './falseProphet.js'
 
 /**
  * The Travel out of a Shrouded Wood has landed. Second Wind out of turn judges its free Campaign
@@ -728,40 +729,15 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
         }
     },
     [PowerQuestionKind.PlayOrDiscardVision]: {
-        reasonCannotAnswer: (state, playerId, matched) => {
-            return reasonCannotPlayCard(
+        reasonCannotAnswer: (state, playerId, matched) =>
+            reasonCannotPlayOrDiscardVision(
                 state,
                 playerId,
                 matched.question.visionCardId,
-                matched.answer.play,
-                {
-                    faceUp: false,
-                    discardedAdviserCardIds: listOf(matched.answer.discardedAdviserCardId)
-                }
-            )
-        },
-        apply: (state, playerId, matched) => {
-            const { visionCardId } = matched.question
-            const { play, discardedAdviserCardId } = matched.answer
-            const region = regionOfPawn(state, playerId)
-            // R-5.1.4 — "as if you had searched": the same play a Search's kept card gets.
-            const played = playCard(state, playerId, visionCardId, play, region, {
-                faceUp: false,
-                // The Vision was revealed; played facedown, the table still knows it.
-                seen: true,
-                discardedAdviserCardIds: listOf(discardedAdviserCardId)
-            })
-            const summary =
-                play === SearchPlay.Discard
-                    ? `discarded ${visionCardId}`
-                    : `played ${visionCardId} (${play})`
-            if (played.discarded.length === 0) return summary
-            return {
-                summary,
-                discardedCardIds: played.discarded,
-                discardPileRegion: discardRegionFor(region)
-            }
-        }
+                matched.answer
+            ),
+        apply: (state, playerId, matched) =>
+            playOrDiscardVision(state, playerId, matched.question.visionCardId, matched.answer)
     },
     [PowerQuestionKind.DiscardInstead]: {
         reasonCannotAnswer: (state, playerId, matched) => {

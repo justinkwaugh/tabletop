@@ -51,6 +51,16 @@ export const AnswerQuestionMetadata = Type.Object({
         Visibility.protect(Type.Array(Type.String()), { policy: Visibility.Policy.Actor })
     ),
     discardPileRegion: Type.Optional(Type.Enum(Region)),
+    /** Bracken — the discards went under that pile. */
+    discardToBottom: Type.Optional(Type.Boolean()),
+    /** Cracked Horn — the discards went under the world deck. */
+    discardToWorldDeck: Type.Optional(Type.Boolean()),
+    /** R-7.4 — False Prophet's play, from revision 32: the cards whose Search modifiers applied to it. */
+    modifiers: Type.Optional(Type.Array(Type.String())),
+    /** R-7.1.4 — False Prophet's play, from revision 32: each toll paid. */
+    tollsPaid: Type.Optional(Type.Array(Type.String())),
+    /** R-7.1.4 — False Prophet's play, from revision 32: the tolls it could not pay (the usual pile). */
+    tollsUnpaid: Type.Optional(Type.Array(Type.String())),
     pileDeposits: Type.Optional(Type.Array(PileDeposit, { maxItems: 8 })),
     // Skeleton Key
     relicTakenFromSlotId: Type.Optional(Type.String()),
@@ -144,6 +154,11 @@ export class HydratedAnswerQuestion
             relicToDeckBottom: outcome.relicToDeckBottom,
             discardedCardIds: outcome.discardedCardIds,
             discardPileRegion: outcome.discardPileRegion,
+            discardToBottom: outcome.discardToBottom,
+            discardToWorldDeck: outcome.discardToWorldDeck,
+            modifiers: outcome.modifiers,
+            tollsPaid: outcome.tollsPaid,
+            tollsUnpaid: outcome.tollsUnpaid,
             pileDeposits: outcome.pileDeposits,
             relicTakenFromSlotId: outcome.relicTakenFromSlotId,
             woodPick: outcome.woodPick,
