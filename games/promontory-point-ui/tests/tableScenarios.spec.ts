@@ -49,19 +49,17 @@ const turnEntry = (log: Locator, turnNumber: number) =>
         has: log.page().locator('.turn-number', { hasText: new RegExp(`^Turn ${turnNumber}$`) })
     })
 
-// The seat's money as its row in the seat ledger reads it (desktop) or its seat-strip chip (phone).
-function seatMoney(page: Page, width: Width, seat: SeatName): Locator {
-    return width.name === 'desktop'
-        ? seatRow(page, seat).locator('[data-seat-money]')
-        : page.locator('[data-seat-strip] button').filter({ hasText: seat })
+// The seat's money as its row in the seat ledger reads it (the side column, at both widths).
+function seatMoney(page: Page, seat: SeatName): Locator {
+    return seatRow(page, seat).locator('[data-seat-money]')
 }
 
-// The seat opened over the table: from its row in the seat ledger on a desktop, from its chip in
-// the seat strip on a phone.
+// The seat opened over the table from its row in the seat ledger: anywhere on the row on a
+// desktop, its name on a phone, where the side column is scrolled to it.
 async function seatCard(page: Page, width: Width, seat: SeatName): Promise<Locator> {
     const playerId = await playerIdOf(page, seat)
     if (width.name === 'desktop') await press(seatRow(page, seat))
-    else await press(page.locator(`[data-seat-chip="${playerId}"]`))
+    else await press(seatRow(page, seat).locator('[data-ledger-seat]'))
     await expect(openSeat(page)).toHaveAttribute('data-open-seat', playerId)
     return openSeat(page)
 }
@@ -168,7 +166,7 @@ for (const width of WIDTHS) {
             const marker = board(page).locator(`[data-money-marker="${MARA}"]`)
             await expect(marker).toHaveAttribute('transform', restingOn(97))
             await expect(marker).toHaveAttribute('data-plus-100', 'false')
-            await expect(seatMoney(page, width, 'Mara')).toContainText('$97')
+            await expect(seatMoney(page, 'Mara')).toContainText('$97')
 
             await traceMoneyMarker(page, MARA)
             await press(shareEntry(page, 'Union Pacific').getByRole('button', { name: /^Sell/ }))
@@ -177,7 +175,7 @@ for (const width of WIDTHS) {
             expect(await tracedSpaces(page)).toEqual([97, 98, 99, 0, 1, 2])
             await expect(marker).toHaveAttribute('data-plus-100', 'true')
             await expect(marker.locator('text').filter({ hasText: '+100' })).toHaveCount(1)
-            await expect(seatMoney(page, width, 'Mara')).toContainText('$102')
+            await expect(seatMoney(page, 'Mara')).toContainText('$102')
             expect((await facts(page)).players[0].money).toBe(102)
 
             await press(undoButton(page))
@@ -185,7 +183,7 @@ for (const width of WIDTHS) {
             await expect(marker).toHaveAttribute('transform', restingOn(97))
             await expect(marker).toHaveAttribute('data-plus-100', 'false')
             await expect(marker.locator('text').filter({ hasText: '+100' })).toHaveCount(0)
-            await expect(seatMoney(page, width, 'Mara')).toContainText('$97')
+            await expect(seatMoney(page, 'Mara')).toContainText('$97')
         })
 
         test('scenario 26 (contract, "The principle"): a share stack, a deck and a town tile enlarge; the next press or Escape only closes', async ({
@@ -245,21 +243,14 @@ for (const width of WIDTHS) {
         }) => {
             await openTable(page, 'Opening turn')
             const playerId = await playerIdOf(page, 'Ines')
-            if (width.name === 'desktop') {
-                await press(page.getByRole('button', { name: "Open Ines's seat", exact: true }))
-            } else {
-                await press(page.locator(`[data-seat-chip="${playerId}"]`))
-            }
+            const ines = page.getByRole('button', { name: "Open Ines's seat", exact: true })
+            await press(ines)
             await expect(openSeat(page)).toHaveAttribute('data-open-seat', playerId)
             await expect(openSeat(page)).toContainText('Money this turn')
             await page.keyboard.press('Escape')
             await expect(openSeat(page)).toHaveCount(0)
 
-            if (width.name === 'desktop') {
-                await press(page.getByRole('button', { name: "Open Ines's seat", exact: true }))
-            } else {
-                await press(page.locator(`[data-seat-chip="${playerId}"]`))
-            }
+            await press(ines)
             await press(openSeat(page).locator('[data-seat-share="railroad.up"]'))
             await expect(enlarged(page)).toHaveAttribute('data-enlarged-view', 'Share')
             // The enlarged share is drawn above the open seat: its middle belongs to the share.

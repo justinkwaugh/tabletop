@@ -24,8 +24,6 @@ import {
 // Where several seats decide, each seat is its own browser context in the harness's protected
 // mode: it holds only its own projection, and what it sends reaches the others by `handOver`.
 
-type Width = (typeof WIDTHS)[number]
-
 // A further seat's client: a fresh browser context at the test's width, failing on page errors.
 const test = base.extend<{ seatClient: () => Promise<Page> }>({
     seatClient: async ({ browser, baseURL }, use, testInfo) => {
@@ -116,29 +114,19 @@ async function maraPlacesOnRepairs(
     return town
 }
 
-// The seat's money as its row in the seat ledger reads it (desktop) or its seat-strip chip (phone).
-function seatMoney(page: Page, width: Width, seat: SeatName) {
-    return width.name === 'desktop'
-        ? seatRow(page, seat).locator('[data-seat-money]')
-        : page.locator('[data-seat-strip] button').filter({ hasText: seat })
+// The seat's money as its row in the seat ledger reads it (the side column, at both widths).
+function seatMoney(page: Page, seat: SeatName) {
+    return seatRow(page, seat).locator('[data-seat-money]')
 }
 
 // R-X.1: the seat is the one the state asks to decide: its amber row with the "repairs" tag in
-// the seat ledger on desktop, its seat-strip chip marked active on a phone.
-async function expectDecidingSeat(page: Page, width: Width, seat: SeatName) {
-    const playerId = await playerIdOf(page, seat)
-    if (width.name === 'desktop') {
-        await expect(seatRow(page, seat)).toHaveAttribute('data-active', 'true')
-        await expect(seatRow(page, seat).locator('[data-seat-tag]')).toHaveAttribute(
-            'data-seat-tag',
-            'repairs'
-        )
-    } else {
-        await expect(page.locator(`[data-seat-chip="${playerId}"]`)).toHaveAttribute(
-            'data-active',
-            'true'
-        )
-    }
+// the seat ledger, at both widths.
+async function expectDecidingSeat(page: Page, seat: SeatName) {
+    await expect(seatRow(page, seat)).toHaveAttribute('data-active', 'true')
+    await expect(seatRow(page, seat).locator('[data-seat-tag]')).toHaveAttribute(
+        'data-seat-tag',
+        'repairs'
+    )
 }
 
 for (const width of WIDTHS) {
@@ -197,7 +185,7 @@ for (const width of WIDTHS) {
 
             // Royce decides out of Mara's turn: his header, his tag, his shares at half price.
             await expect(header(royce)).toHaveText('Your turn')
-            await expectDecidingSeat(royce, width, 'Royce')
+            await expectDecidingSeat(royce, 'Royce')
             await expect(repairsPanel(royce)).toContainText(
                 'Mara placed SP on a Repairs town. You owe $10 (5 SP shares × $2) and have $7.'
             )
@@ -269,7 +257,7 @@ for (const width of WIDTHS) {
             expect(sent.deck[SP]).toBe(deckBefore + 1)
             expect((await playerOf(royce, 'Royce')).money).toBe(0)
             expect((await playerOf(royce, 'Royce')).shares[SP]).toBe(4)
-            await expect(seatMoney(royce, width, 'Royce')).toContainText('$0')
+            await expect(seatMoney(royce, 'Royce')).toContainText('$0')
             await expect(header(royce)).toHaveText("Mara's turn")
 
             // Mara's turn continues where it stood.
@@ -389,7 +377,7 @@ for (const width of WIDTHS) {
             expect(table.turnOrder).toContain(royceId)
             expect(table.machineState).toBe('Placing')
             await expect(header(mara)).toHaveText('Your turn')
-            await expect(seatMoney(mara, width, 'Royce')).toContainText('$0')
+            await expect(seatMoney(mara, 'Royce')).toContainText('$0')
             await expect(await history(mara)).toContainText(
                 'sold all (4 SP) at half price ($4), paid $5, $3 forgiven'
             )

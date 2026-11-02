@@ -22,8 +22,6 @@ export type LedgerRow = {
     shareWorth: number
     // R-6.2: money plus each share at its railroad's price, summed as the final score sums it.
     score: number
-    // The seat or seats ahead on score; none while every seat is level.
-    leader: boolean
     // R-X.1: the state asks this seat to decide (the amber row).
     active: boolean
     // R-4.3-H4: the seat whose turn waits while a debtor decides.
@@ -44,9 +42,6 @@ export function seatLedger(
     viewerId: string | undefined
 ): SeatLedger {
     const totals = new Map(finalTotals(state).map((total) => [total.playerId, total]))
-    const scores = [...totals.values()].map((total) => total.total)
-    const top = Math.max(...scores)
-    const level = scores.every((score) => score === top)
     const rows = seatViews(state, viewerId).map((view): LedgerRow => {
         const total = totals.get(view.playerId)
         const score = total?.total ?? view.money
@@ -61,7 +56,6 @@ export function seatLedger(
             })),
             shareWorth: total?.shareValue ?? view.worth,
             score,
-            leader: !level && score === top,
             active: view.active,
             waitingTurn: view.waitingTurn,
             ...(view.tag === undefined ? {} : { tag: view.tag }),

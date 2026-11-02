@@ -259,9 +259,9 @@ test.describe('phone', () => {
         const boardColumn = await page
             .locator('svg.board')
             .evaluate((node) => node.closest('[style*="flex:1"]')?.getBoundingClientRect().bottom)
-        const seats = await box(page, '[data-seat-strip]')
+        const tracker = await box(page, '[data-end-tracker-bar]')
         expect(Math.abs(bar.y - (boardColumn ?? 0))).toBeLessThanOrEqual(2)
-        expect(bar.y + bar.height).toBeLessThanOrEqual(seats.y + 1)
+        expect(bar.y + bar.height).toBeLessThanOrEqual(tracker.y + 1)
 
         const piece = page.locator('[aria-label="Turn pieces"] button:not([disabled])').first()
         await piece.tap()

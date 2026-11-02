@@ -51,7 +51,7 @@ test('contract, "Seat ledger": a row per seat in seat order, a column per railro
     await expect(page.locator('[data-seat-card]')).toHaveCount(0)
 })
 
-test('R-6.2: each seat’s count and worth by railroad, its cash and its score (cash + shares at today’s price); ★ on the leader', async ({
+test('R-6.2: each seat’s count and worth by railroad, its cash and its score (cash + shares at today’s price), with no leader mark', async ({
     page
 }) => {
     await openTable(page, 'Repairs one short')
@@ -65,7 +65,6 @@ test('R-6.2: each seat’s count and worth by railroad, its cash and its score (
                 0
             )
     )
-    const top = Math.max(...scores)
     expect(new Set(scores).size).toBeGreaterThan(1)
 
     for (const playerId of table.turnOrder) {
@@ -86,11 +85,11 @@ test('R-6.2: each seat’s count and worth by railroad, its cash and its score (
             'data-ledger-score',
             String(score)
         )
-        await expect(row.locator('[data-ledger-score]')).toHaveText(
-            score === top ? `★$${score}` : `$${score}`
-        )
-        await expect(row).toHaveAttribute('data-leader', String(score === top))
+        // The score is the figure alone: no star marks the seat ahead.
+        await expect(row.locator('[data-ledger-score]')).toHaveText(`$${score}`)
     }
+    await expect(ledger(page)).not.toContainText('★')
+    await expect(ledger(page).locator('[data-leader]')).toHaveCount(0)
 })
 
 test('R-X.1, R-2.2 step 1: the acting seat’s row is amber and names its revealed hand to every seat; no other hand is named', async ({

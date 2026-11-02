@@ -92,29 +92,6 @@ describe('seat ledger (contract, "Seat ledger")', () => {
         for (const row of ledger.rows) expect(row.score).toBe(totals.get(row.playerId))
     })
 
-    it('R-6.2-H1: the star goes to the seat ahead, to every tied leader, and to no one while all are level', () => {
-        const ahead = seatLedger(hydrated(midGame()), undefined)
-        expect(ahead.rows.map((row) => row.leader)).toEqual([false, true, false, false])
-
-        const tied = withHoldings(midGame(), [
-            { money: 82 },
-            { money: 22, shares: { [CP]: 1, [UP]: 1, [KP]: 3, [SP]: 2 } },
-            { money: 8 },
-            { money: 31 }
-        ])
-        expect(seatLedger(hydrated(tied), undefined).rows.map((row) => row.leader)).toEqual([
-            true,
-            true,
-            false,
-            false
-        ])
-
-        const level = startGame({ playerCount: 4 }).state
-        const opening = seatLedger(hydrated(level), undefined)
-        expect(new Set(opening.rows.map((row) => row.score)).size).toBe(1)
-        expect(opening.rows.some((row) => row.leader)).toBe(false)
-    })
-
     it('R-X.1, R-2.2 step 1: the turn player’s row is active and carries its revealed hand; no other row does', () => {
         const state = hydrated(midGame())
         const ledger = seatLedger(state, seatOf(state, 1))

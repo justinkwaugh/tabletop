@@ -17,12 +17,13 @@
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import Board from '$lib/components/Board.svelte'
     import ActionPanel from '$lib/components/ActionPanel.svelte'
+    import EndTrackerBar from '$lib/components/EndTrackerBar.svelte'
     import EnlargedView from '$lib/components/EnlargedView.svelte'
     import FlightLayer from '$lib/components/FlightLayer.svelte'
     import HandBar from '$lib/components/HandBar.svelte'
     import OpenSeat from '$lib/components/OpenSeat.svelte'
     import PickFramingWatch from '$lib/components/PickFramingWatch.svelte'
-    import SeatStrip from '$lib/components/SeatStrip.svelte'
+    import SeatsSheet from '$lib/components/SeatsSheet.svelte'
     import type { SpaceId } from '@tabletop/promontory-point'
     import {
         HEX_FIELD_RECT,
@@ -82,11 +83,14 @@
 
     // The shared wrapper exposes full screen only as its dialog becoming modal.
     let expanded = $state(false)
+    // Contract, "Full screen": the seat ledger over the board, opened from the toolbar's Seats.
+    let seatsOpen = $state(false)
     const watchExpansion: Attachment<HTMLElement> = (node) => {
         const dialog = node.closest('dialog')
         if (!dialog) return
         const read = () => {
             expanded = dialog.matches(':modal')
+            if (!expanded) seatsOpen = false
         }
         const observer = new MutationObserver(read)
         observer.observe(dialog, { attributes: true, attributeFilter: ['role'] })
@@ -184,8 +188,22 @@
                                     {#if layout.phone}
                                         <HandBar />
                                     {/if}
-                                    <SeatStrip everyWidth />
+                                    <!-- The side column is hidden here: Seats opens its ledger; a phone
+                                         keeps the end tracker beside it. -->
+                                    <div class="pp-fullscreen-foot">
+                                        {#if layout.phone}
+                                            <div class="min-w-0 flex-1"><EndTrackerBar /></div>
+                                        {/if}
+                                        <button
+                                            type="button"
+                                            class="pp-seats-button"
+                                            aria-haspopup="dialog"
+                                            aria-expanded={seatsOpen}
+                                            onclick={() => (seatsOpen = !seatsOpen)}>Seats</button
+                                        >
+                                    </div>
                                 </div>
+                                <SeatsSheet bind:open={seatsOpen} />
                                 <OpenSeat />
                                 <EnlargedView />
                                 <FlightLayer />
@@ -194,12 +212,12 @@
                     {/snippet}
                 </ScalingWrapper>
             </div>
-            <!-- Contract, "Phone layout": the hand right under the board; a desktop draws it in
-                 the strip beside the map. -->
+            <!-- Contract, "Phone layout": the hand right under the board, then the end tracker; a
+                 desktop draws both in the strip beside the map. -->
             {#if layout.phone && !expanded}
                 <HandBar />
+                <EndTrackerBar />
             {/if}
-            <SeatStrip />
         {/snippet}
     </DefaultTableLayout>
     {#if !expanded}
@@ -228,6 +246,44 @@
         margin: -8px 0 -8px -8px;
         padding: 8px;
         background: var(--pp-column);
+    }
+
+    /* Full screen's foot: the Seats button, beside the end tracker on a phone. */
+    .pp-fullscreen-foot {
+        display: flex;
+        align-items: center;
+        background: var(--pp-column);
+    }
+
+    .pp-seats-button {
+        flex: none;
+        margin: 4px 8px 4px auto;
+        min-height: 32px;
+        padding: 2px 12px;
+        border: 1.5px solid var(--pp-charcoal);
+        border-radius: 3px;
+        background: var(--pp-paper);
+        color: var(--pp-charcoal);
+        font-family: Oswald, sans-serif;
+        font-size: 14px;
+        font-weight: 500;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    @media (width >= 40rem) {
+        .pp-fullscreen-foot {
+            border-top: 1px solid var(--pp-halo);
+        }
+    }
+
+    /* Contract, "Phone layout": a 44 px target beside the tracker. */
+    @media (width < 40rem) {
+        .pp-seats-button {
+            min-height: 44px;
+            margin: 0 8px 0 0;
+            padding: 0 10px;
+        }
     }
 
     .pp-side :global(.pp-tab) {

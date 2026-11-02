@@ -125,8 +125,7 @@ function deciderOfRepairs(state: HydratedPromontoryPointGameState): string | und
         : undefined
 }
 
-// Contract, "Open seat": one derivation of a seat, read by the seat ledger, the seat strip and
-// the open seat.
+// Contract, "Open seat": one derivation of a seat, read by the seat ledger and the open seat.
 export function seatView(
     state: HydratedPromontoryPointGameState,
     playerId: string,

@@ -4,11 +4,11 @@
     import { repairsRow } from '$lib/model/repairsRow.js'
     import { scoreView } from '$lib/model/score.js'
     import { waitingView } from '$lib/model/waitingView.js'
+    import EndTurnChoices from './EndTurnChoices.svelte'
     import RepairsPanel from './RepairsPanel.svelte'
     import RepairsRow from './RepairsRow.svelte'
     import ScoreTable from './ScoreTable.svelte'
     import ShareBlock from './ShareBlock.svelte'
-    import StatusStrip from './StatusStrip.svelte'
     import TurnHeader from './TurnHeader.svelte'
     import TurnChoices from './TurnChoices.svelte'
     import WaitingView from './WaitingView.svelte'
@@ -34,16 +34,14 @@
 
 <div class="flex flex-col gap-1.5 text-pp-ink max-sm:gap-1">
     <TurnHeader />
-    <StatusStrip />
     {#if score}
         <div class="action-area px-3 pt-2 pb-2.5 max-sm:px-2">
             <ScoreTable {score} />
         </div>
     {:else if repairs}
         <div class="action-area px-3 pt-2 pb-2.5 max-sm:px-2">
-            <!-- A phone shows the deciding seat's ring and the turn's dashed chip in the seat strip. -->
             {#if row}
-                <div class="mb-2 max-sm:hidden">
+                <div class="mb-2 max-sm:mb-1">
                     <RepairsRow {row} />
                 </div>
             {/if}
@@ -59,6 +57,11 @@
                     <span class="pp-aside ml-2 text-[13px] max-sm:hidden">{panel.prompt.note}</span>
                 {/if}
             </p>
+            {#if panel.endTurn.length > 0}
+                <div class="mb-2 max-sm:mb-1">
+                    <EndTurnChoices choices={panel.endTurn} />
+                </div>
+            {/if}
             <!-- The hand is beside the map (a bar under the board on a phone), not here. -->
             <div class="flex flex-wrap items-stretch gap-4 max-sm:flex-col max-sm:gap-2">
                 <ShareBlock shares={panel.shares} />

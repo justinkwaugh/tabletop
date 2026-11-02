@@ -6,6 +6,9 @@
     import { railroadColour, railroadInk } from '$lib/utils/railroadPalette.js'
     import MoneyChange from './MoneyChange.svelte'
 
+    // Called after a row press opens its seat, so a sheet holding the ledger can give way to it.
+    let { onopenseat }: { onopenseat?: () => void } = $props()
+
     const gameSession = getGameSession()
 
     // Contract, "Seat ledger": one row per seat in seat order (R-2.1), from the displayed state.
@@ -27,7 +30,7 @@
 {/snippet}
 
 <!-- O-10: the brokerage ledger, one table for the whole table: shares by railroad at today's
-     price, cash and score; ★ on the seat ahead; the seat the state asks to decide in amber. -->
+     price, cash and score; the seat the state asks to decide in amber. -->
 <div class="ledger" data-seat-ledger>
     <table>
         <caption class="sr-only">Seats: shares, cash and score at today's prices</caption>
@@ -57,7 +60,6 @@
                     class:waiting={row.waitingTurn}
                     data-ledger-row={row.playerId}
                     data-active={row.active}
-                    data-leader={row.leader}
                     data-waiting-turn={row.waitingTurn}
                 >
                     <th scope="row" class="seat">
@@ -68,7 +70,10 @@
                             data-ledger-seat
                             aria-expanded={gameSession.openSeat.playerId === row.playerId}
                             aria-label="Open {name}'s seat"
-                            onclick={() => gameSession.openSeat.toggle(row.playerId)}
+                            onclick={() => {
+                                gameSession.openSeat.toggle(row.playerId)
+                                onopenseat?.()
+                            }}
                         >
                             <span
                                 class="dot"
@@ -121,10 +126,7 @@
                     <td class="num cash" data-seat-money={row.money}
                         >${row.money}<MoneyChange playerId={row.playerId} /></td
                     >
-                    <td class="num score" data-ledger-score={row.score}>
-                        {#if row.leader}<span class="star" aria-label="leads">★</span
-                            >{/if}${row.score}
-                    </td>
+                    <td class="num score" data-ledger-score={row.score}>${row.score}</td>
                 </tr>
             {/each}
         </tbody>
@@ -302,9 +304,5 @@
         font-weight: 600;
         font-size: 16px;
         white-space: nowrap;
-    }
-
-    .star {
-        margin-right: 1px;
     }
 </style>

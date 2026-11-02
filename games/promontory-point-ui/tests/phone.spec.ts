@@ -70,42 +70,81 @@ async function restingHexWidth(page: Page): Promise<number> {
     return hexWidth(page, 'space.0.0')
 }
 
-test('O-4: the status strip tells the four prices, the bag and the red tiles uncovered from data', async ({
+const trackerBar = (page: Page) => page.locator('[data-end-tracker-bar]')
+
+async function boxOf(page: Page, selector: string) {
+    const box = await page.locator(selector).boundingBox()
+    if (box === null) throw Error(`${selector} has a box`)
+    return box
+}
+
+test('R-6.1, R-6.1-H1, R-6.1-H2: under the board the end tracker takes the seat strip’s place: both conditions with their ticks, "or", and the bag', async ({
     page
 }) => {
     await createGame(page)
-    const strip = page.locator('[data-status-strip]')
-    await expect(strip).toBeVisible()
-    await expect(strip.locator('[data-strip-price]')).toHaveText([
-        /CP \$\d+/,
-        /UP \$\d+/,
-        /KP \$\d+/,
-        /SP \$\d+/
-    ])
+    await expect(page.locator('[data-seat-strip], [data-seat-chip]')).toHaveCount(0)
+    const bar = trackerBar(page)
+    await expect(bar).toBeVisible()
+
+    // The same reading as the tracker in the strip beside the map.
+    const tracker = board(page).locator('[data-end-tracker]')
+    const red = await tracker.getAttribute('data-red-tiles-uncovered')
+    await expect(bar).toHaveAttribute('data-red-tiles-uncovered', red ?? '')
+    await expect(bar).toHaveAttribute('data-promontory-taken', 'false')
+    await expect(bar.locator('[data-end-line="red"]')).toHaveText(`Red towns open: ${red}`)
+    await expect(bar.locator('[data-end-line="promontory"]')).toHaveText('Promontory open')
+    await expect(bar.locator('[data-end-tick="open"]')).toHaveCount(2)
+    await expect(bar.locator('[data-end-tick="met"]')).toHaveCount(0)
+    await expect(bar.locator('[data-end-or]')).toHaveText('or')
     const bag = await board(page).locator('[data-bag]').getAttribute('data-bag')
-    const red = await board(page)
-        .locator('[data-end-tracker]')
-        .getAttribute('data-red-tiles-uncovered')
-    await expect(strip.locator('[data-strip-bag]')).toHaveText(`bag ${bag} · red ${red}`)
-    expect((await strip.boundingBox())?.height).toBe(30)
+    await expect(bar.locator('[data-bag]')).toHaveAttribute('data-bag', bag ?? '')
+    await expect(bar.locator('[data-bag]')).toHaveText(`${bag} pieces left in the bag`)
+
+    // Right under the hand bar, inside the window.
+    const hand = await boxOf(page, '[data-your-hand]')
+    const placed = await boxOf(page, '[data-end-tracker-bar]')
+    expect(Math.abs(placed.y - (hand.y + hand.height))).toBeLessThanOrEqual(2)
+    expect(placed.y + placed.height).toBeLessThanOrEqual(844)
 
     await page.setViewportSize({ width: 1280, height: 900 })
-    await expect(strip).toBeHidden()
-    await expect(page.locator('[data-seat-strip]')).toBeHidden()
+    await expect(bar).toHaveCount(0)
 })
 
-test('R-X.1, R-1.3-H1: the seat strip rings the deciding seat; a press opens its seat as a bottom sheet', async ({
+test('contract, "Phone layout": no status line under the turn header; the action area follows it', async ({
     page
 }) => {
     await createGame(page)
-    const chips = page.locator('[data-seat-chip]')
-    await expect(chips).toHaveCount(4)
-    await expect(chips.first()).toHaveAttribute('data-active', 'true')
-    await expect(chips.nth(1)).toHaveAttribute('data-active', 'false')
-    await expect(chips.first()).toContainText('$20')
+    await expect(page.locator('[data-status-strip]')).toHaveCount(0)
+    const headerBottom = await page
+        .locator('h2')
+        .first()
+        .evaluate((node) => node.closest('.turn')?.getBoundingClientRect().bottom ?? 0)
+    const area = await boxOf(page, '.action-area')
+    expect(headerBottom).toBeGreaterThan(0)
+    expect(area.y - headerBottom).toBeLessThanOrEqual(8)
+    // The panel is the header and the action area, nothing between: prices are read from the
+    // share block, the price track and the ledger's column headers.
+    const panelParts = await page
+        .locator('h2')
+        .first()
+        .evaluate((node) =>
+            [...(node.closest('.turn')?.parentElement?.children ?? [])].map((child) =>
+                child.classList.contains('turn') ? 'header' : child.className.split(' ')[0]
+            )
+        )
+    expect(panelParts).toEqual(['header', 'action-area'])
+})
 
-    await chips.nth(1).tap()
-    const sheet = page.locator('[data-open-seat]')
+test('contract, "Open seat": on a phone a seat ledger row opens its seat as a bottom sheet', async ({
+    page
+}) => {
+    await createGame(page)
+    const rows = page.locator('[data-seat-ledger] [data-ledger-row]')
+    await expect(rows).toHaveCount(4)
+    const playerId = await rows.nth(1).getAttribute('data-ledger-row')
+
+    await rows.nth(1).locator('[data-ledger-seat]').tap()
+    const sheet = page.locator(`[data-open-seat="${playerId}"]`)
     await expect(sheet).toBeVisible()
     const box = await sheet.boundingBox()
     expect(box).not.toBeNull()
@@ -118,14 +157,14 @@ test('R-X.1, R-1.3-H1: the seat strip rings the deciding seat; a press opens its
     await expect(sheet).toHaveCount(0)
 })
 
-test('contract, "Phone layout": every button in the panel, header and seat strip is at least 44 px tall', async ({
+test('contract, "Phone layout": every button in the panel, header and hand bar is at least 44 px tall', async ({
     page
 }) => {
     await createGame(page)
     await firstPiece(page).tap()
     await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible()
     const heights = await page
-        .locator('.action-area button, [data-your-hand] button, [data-seat-strip] button')
+        .locator('.action-area button, [data-your-hand] button')
         .or(page.getByRole('button', { name: 'Undo' }))
         .evaluateAll((nodes) =>
             nodes
@@ -183,10 +222,9 @@ test('R-3.3: a hand pan clears the framing, and the pick ending leaves the view 
     const promontory = board(page).locator('[data-layer="hit-targets"] [data-space-id="space.0.0"]')
     const before = await promontory.boundingBox()
 
-    // A one-finger pan on the board, as a phone sends it.
-    const area = await page.locator('[data-seat-strip]').boundingBox()
-    expect(area).not.toBeNull()
-    await fingerPan(page, { x: 195, y: (area?.y ?? 800) - 120 }, { x: 60, y: 40 })
+    // A one-finger pan on the board, as a phone sends it, a little above the hand bar.
+    const hand = await boxOf(page, '[data-your-hand]')
+    await fingerPan(page, { x: 195, y: hand.y - 64 }, { x: 60, y: 40 })
     await expect.poll(async () => (await promontory.boundingBox())?.x).not.toBe(before?.x)
     await expect(board(page).locator('[data-track-piece]')).toHaveCount(0)
 
@@ -236,4 +274,25 @@ test('R-3.3: the view holds while a placed piece flies, then the pick ends', asy
     await expect(board(page).locator(`[data-track-piece][data-space-id="${spaceId}"]`)).toHaveCount(
         1
     )
+})
+
+test('contract, "Full screen": on a phone the toolbar keeps the end tracker and a Seats button; the ledger opens there and a row opens its seat', async ({
+    page
+}) => {
+    await createGame(page)
+    await page.getByRole('button', { name: 'Enter full screen' }).tap()
+    const dialog = page.locator('dialog[aria-label="Full screen view"]')
+    await expect(dialog.locator('[data-fullscreen-panel]')).toBeVisible()
+    await expect(dialog.locator('[data-seat-chip]')).toHaveCount(0)
+    await expect(dialog.locator('[data-end-tracker-bar]')).toBeVisible()
+    await expect(dialog.locator('[data-end-tracker-bar] [data-end-or]')).toHaveText('or')
+
+    await dialog.getByRole('button', { name: 'Seats', exact: true }).tap()
+    const ledger = dialog.locator('[data-seats-sheet] [data-seat-ledger]')
+    await expect(ledger).toBeVisible()
+    const row = ledger.locator('[data-ledger-row]').nth(2)
+    const playerId = await row.getAttribute('data-ledger-row')
+    await row.locator('[data-ledger-seat]').tap()
+    await expect(dialog.locator(`[data-open-seat="${playerId}"]`)).toBeVisible()
+    await expect(dialog.locator('[data-seats-sheet]')).toHaveCount(0)
 })
