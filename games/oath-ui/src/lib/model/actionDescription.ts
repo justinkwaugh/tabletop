@@ -60,6 +60,7 @@ import {
     IMPERIAL_WARBANDS,
     OBSIDIAN_CAGE_ID,
     type AnswerConsentMetadata,
+    type AnswerQuestionMetadata,
     type Banner,
     type CitizenshipTransfer,
     type ExchangeTerms,
@@ -1119,14 +1120,21 @@ function describeActionCited(
             const { withPlayerId, terms } = answer.proposal
             return `${cardName(meta.cardId)}: ${offerText(withPlayerId, terms, action.playerId, names)}`
         }
-        // False Prophet — its warband on the Vision died, then the Vision was played or discarded.
+        // False Prophet — its warband on the Vision died, then the Vision was played or discarded; from revision 32
+        // with the Search cards acting on it and Forced Labor's toll, or none when that could not be paid.
         const vision = PROPHESIED.exec(meta.summary)?.[0]
         if (answer.kind === PowerQuestionKind.PlayOrDiscardVision && vision) {
             const play =
                 answer.play === SearchPlay.Adviser
                     ? `${describePlay(answer.play)}, facedown`
                     : describePlay(answer.play)
-            return `${cardName(meta.cardId)}: 1 warband on ${cardName(vision)} died; ${play}`
+            return (
+                `${cardName(meta.cardId)}: 1 warband on ${cardName(vision)} died; ${play}` +
+                (answer.play === SearchPlay.Discard ? prophesiedDiscardWhere(meta) : '') +
+                cardsInBrackets(meta.modifiers, new Set()) +
+                (meta.tollsUnpaid ?? []).map((id) => `; no favor for ${cardName(id)}`).join('') +
+                tollClauses(meta.tollsPaid, nameOf)
+            )
         }
         // Inquisitor — the Conspiracy it found, played faceup with a take: what it took, from the answer.
         if (answer.kind === PowerQuestionKind.PlayOrDiscardConspiracy && answer.conspiracy) {
@@ -1208,6 +1216,17 @@ const CRACKED_HORN = 'relic.cracked-horn'
 const SNEAK_ATTACK = 'denizen.discord.sneak-attack'
 // False Prophet's answer names the Vision it played or discarded.
 const PROPHESIED = /\bvision\.[a-z0-9-]+/
+
+/**
+ * False Prophet's discard, where it went when a card chose it or a toll went unpaid: "under the world deck", or
+ * "to [the bottom of] the <region> discard pile". Otherwise the usual pile, unsaid.
+ */
+function prophesiedDiscardWhere(meta: AnswerQuestionMetadata): string {
+    if (meta.discardToWorldDeck) return ' under the world deck'
+    const chosen = (meta.modifiers?.length ?? 0) > 0 || (meta.tollsUnpaid?.length ?? 0) > 0
+    if (!chosen || meta.discardPileRegion === undefined) return ''
+    return ` to ${meta.discardToBottom ? 'the bottom of ' : ''}the ${meta.discardPileRegion} discard pile`
+}
 
 /**
  * What a play gained: "gaining 1 secret", "gaining 2 favor". R-9.3 — a site play whose favor came up short says

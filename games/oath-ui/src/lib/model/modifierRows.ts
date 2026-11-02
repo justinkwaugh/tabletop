@@ -44,13 +44,16 @@ export type DeclaredModifier = { use: PowerUseKey; picks: PowerChoicePicks }
 /** The power whose use declares the cards: its key, and the choices it is sent with. */
 export type DeclaringPower = PowerUseKey & { choices: readonly PowerChoice[] }
 
+/** Whether the play or discard is accepted with these cards in use. */
+export type ModifierJudge = (uses: readonly ModifierUse[]) => boolean
+
 /**
- * R-6.1, R-7.4 — Oracle: "Play or discard it as if you searched". Its use declares the Search modifiers
- * that act on that play, before the draw, in the Search's own "Cards" rows. Listed: each Search modifier
- * in reach that can act on a Vision's play or discard and that the use accepts beside the cards in use,
- * so one refused beside them is hidden (R-7.4-H2: Bracken once the Cracked Horn is in use, and the other
- * way round). A card that never acts on a Vision is hidden too (Great Spire, Wild Cry), though the use
- * accepts it. Nothing starts in use.
+ * R-6.1, R-7.4 — a Vision played or discarded "as if you searched": Oracle's draw, whose use declares the Search
+ * modifiers that act on that play before the draw, and False Prophet's Vision, whose answer declares them with the
+ * play. Both in the Search's own "Cards" rows. Listed: each Search modifier in reach that can act on a Vision's play
+ * or discard and that the judge accepts beside the cards in use, so one refused beside them is hidden (R-7.4-H2:
+ * Bracken once the Cracked Horn is in use, and the other way round). A card that never acts on a Vision is hidden too
+ * (Great Spire, Wild Cry), though the judge accepts it. Nothing starts in use.
  */
 export class AsIfSearchedRows implements ModifierRows {
     private acting?: CardPower[]
@@ -58,7 +61,7 @@ export class AsIfSearchedRows implements ModifierRows {
     constructor(
         private readonly state: HydratedOathGameState,
         private readonly playerId: string,
-        private readonly power: DeclaringPower,
+        private readonly accepts: ModifierJudge,
         private readonly declared: readonly DeclaredModifier[],
         private readonly change: (declared: DeclaredModifier[]) => void
     ) {}
@@ -68,8 +71,27 @@ export class AsIfSearchedRows implements ModifierRows {
         return HydratedUseActionPower.takesSearchModifiers(state, power.cardId, power.powerIndex)
     }
 
+    /** Oracle's rows: judged by the power's use, with its choices. */
+    static forPower(
+        state: HydratedOathGameState,
+        playerId: string,
+        power: DeclaringPower,
+        declared: readonly DeclaredModifier[],
+        change: (declared: DeclaredModifier[]) => void
+    ): AsIfSearchedRows {
+        const accepts: ModifierJudge = (uses) =>
+            HydratedUseActionPower.reasonCannotUse(
+                state,
+                playerId,
+                power.cardId,
+                power.powerIndex,
+                power.choices,
+                uses
+            ) === undefined
+        return new AsIfSearchedRows(state, playerId, accepts, declared, change)
+    }
+
     get listed(): CardPower[] {
-        if (!AsIfSearchedRows.offered(this.state, this.power)) return []
         const acting = this.actingOnTheVision()
         return usableModifiers(this.state, this.playerId, ActionType.Search, []).filter(
             (card) =>
@@ -102,19 +124,6 @@ export class AsIfSearchedRows implements ModifierRows {
                 return sets.flatMap((set) => ways.map((way) => [...set, way]))
             },
             [[]]
-        )
-    }
-
-    private accepts(uses: readonly ModifierUse[]): boolean {
-        return (
-            HydratedUseActionPower.reasonCannotUse(
-                this.state,
-                this.playerId,
-                this.power.cardId,
-                this.power.powerIndex,
-                this.power.choices,
-                uses
-            ) === undefined
         )
     }
 

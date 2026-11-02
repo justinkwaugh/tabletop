@@ -581,7 +581,7 @@ export class ActionPowersDraft extends TapHistoryDraft<ActionPowerPicks> {
         const playerId = this.playerId
         if (!playerId || !AsIfSearchedRows.offered(this.session.gameState, power)) return undefined
         const key = powerKey(power.cardId, power.powerIndex)
-        return new AsIfSearchedRows(
+        return AsIfSearchedRows.forPower(
             this.session.gameState,
             playerId,
             { cardId: power.cardId, powerIndex: power.powerIndex, choices: this.choicesFor(power) },
