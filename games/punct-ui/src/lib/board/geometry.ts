@@ -40,13 +40,22 @@ export class BoardView {
     // How much of a height shows on screen.
     readonly rise: number
 
-    constructor(readonly tilt: number) {
+    // How many sixths of a turn pieces lie turned on screen beyond their own rotation.
+    readonly turnSteps: number
+
+    // Turned, the board is seen from the far side of the table: a half turn.
+    constructor(
+        readonly tilt: number,
+        readonly turned = false
+    ) {
         this.rise = Math.sqrt(1 - tilt ** 2)
+        this.turnSteps = turned ? 3 : 0
     }
 
     // A point on the board's plane, flat: y runs towards the viewer.
     plan(coords: AxialCoordinates): Point {
-        return flatHexCoordsToCenterPoint(coords, HEX_DIMENSIONS)
+        const point = flatHexCoordsToCenterPoint(coords, HEX_DIMENSIONS)
+        return this.turned ? { x: -point.x, y: -point.y } : point
     }
 
     // A point of the board's plane on screen, raised by a height.
@@ -147,6 +156,7 @@ export class BoardView {
     }
 }
 export const VIEW = new BoardView(TILT)
+export const TURNED_VIEW = new BoardView(TILT, true)
 
 export function coordsKey(coords: AxialCoordinates): string {
     return `${coords.q},${coords.r}`

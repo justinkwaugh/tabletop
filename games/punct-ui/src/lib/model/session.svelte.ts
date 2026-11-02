@@ -11,7 +11,6 @@ import {
     isMovePiece,
     isPlacePiece,
     MovePiece,
-    PIECE_KINDS,
     PieceKind,
     PlacePiece,
     PunctPreferenceDefinition,
@@ -27,7 +26,7 @@ import {
     setPunctSelection,
     type PunctSelection
 } from './stagedSelection.js'
-import { coordsKey } from '$lib/board/geometry.js'
+import { coordsKey, TURNED_VIEW, VIEW, type BoardView } from '$lib/board/geometry.js'
 
 export function includesCoords(list: readonly AxialCoordinates[], coords: AxialCoordinates) {
     return list.some((candidate) => sameCoordinates(candidate, coords))
@@ -81,6 +80,20 @@ export class PunctGameSession extends GameSession<PunctGameState, HydratedPunctG
 
     toggleCoordinates() {
         this.preferences.set({ showCoordinates: !this.showCoordinates })
+    }
+
+    // A badge on each raised piece with the level it stands on.
+    showLevels: boolean = $derived(this.preferences.values.showLevels)
+
+    toggleLevels() {
+        this.preferences.set({ showLevels: !this.showLevels })
+    }
+
+    // The board seen from the far side of the table, so what a pile hides comes in front of it.
+    view: BoardView = $derived(this.preferences.values.turned ? TURNED_VIEW : VIEW)
+
+    toggleTurned() {
+        this.preferences.set({ turned: !this.preferences.values.turned })
     }
 
     canPlace = $derived(this.canAct(ActionType.PlacePiece))
@@ -182,10 +195,6 @@ export class PunctGameSession extends GameSession<PunctGameState, HydratedPunctG
                 ? 1
                 : 0
         return this.gameState.getPlayerState(playerId).reserve[kind] - staged
-    }
-
-    reserveTotal(playerId: string): number {
-        return PIECE_KINDS.reduce((total, kind) => total + this.inReserve(playerId, kind), 0)
     }
 
     private canAct(type: ActionType): boolean {

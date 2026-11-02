@@ -63,7 +63,8 @@ export class BoardAnimator {
     pieces: PlacedPiece[] = $derived.by(() => this.session.gameState.board.pieces)
     flier: Flier | undefined = $state()
 
-    private readonly pieceNodes = new Map<number, SVGGElement>()
+    // Each piece's drawing, and its level badge above the marks, which move together.
+    private readonly pieceNodes = new Map<number, Set<SVGGElement>>()
     private readonly markNodes = new Set<SVGGElement>()
     private readonly listener = (step: Step) => this.onGameStateChange(step)
 
@@ -74,15 +75,20 @@ export class BoardAnimator {
         return () => this.session.removeGameStateChangeListener(this.listener)
     }
 
+    // How a piece lies on screen: its rotation, turned with the board.
     angleOf(piece: PlacedPiece): number {
-        return piece.rotation
+        return piece.rotation + this.session.view.turnSteps
     }
 
     pieceNode(id: number): Attachment<SVGGElement> {
         return (node) => {
-            this.pieceNodes.set(id, node)
+            const nodes = this.pieceNodes.get(id) ?? new Set()
+            nodes.add(node)
+            this.pieceNodes.set(id, nodes)
             return () => {
-                if (this.pieceNodes.get(id) === node) this.pieceNodes.delete(id)
+                nodes.delete(node)
+                if (nodes.size === 0 && this.pieceNodes.get(id) === nodes)
+                    this.pieceNodes.delete(id)
             }
         }
     }
@@ -123,10 +129,10 @@ export class BoardAnimator {
             this.pieces = from.board.pieces
             this.flier = {
                 piece: was,
-                plan: VIEW.plan(was.punct),
+                plan: this.session.view.plan(was.punct),
                 height: VIEW.levelBase(was.level),
                 groundHeight: VIEW.levelBase(was.level),
-                angle: was.rotation
+                angle: this.angleOf(was)
             }
             await tick()
             this.glide(from, was, piece, timeline, quick)
@@ -149,14 +155,15 @@ export class BoardAnimator {
         animationContext.afterAnimations(() => {
             this.pieces = to.board.pieces
             this.flier = undefined
-            for (const node of this.pieceNodes.values()) gsap.set(node, { y: 0, opacity: 1 })
+            for (const nodes of this.pieceNodes.values()) gsap.set([...nodes], { y: 0, opacity: 1 })
             if (this.markNodes.size > 0) gsap.set([...this.markNodes], { opacity: 1 })
         })
     }
 
     private drop(piece: PlacedPiece, timeline: Timeline) {
-        const node = this.pieceNodes.get(piece.id)
-        if (node === undefined) return
+        const nodes = this.pieceNodes.get(piece.id)
+        if (nodes === undefined) return
+        const node = [...nodes]
         timeline.fromTo(
             node,
             { y: -DROP.height, opacity: 0 },
@@ -168,10 +175,10 @@ export class BoardAnimator {
     }
 
     private liftOff(piece: PlacedPiece, timeline: Timeline) {
-        const node = this.pieceNodes.get(piece.id)
-        if (node === undefined) return
+        const nodes = this.pieceNodes.get(piece.id)
+        if (nodes === undefined) return
         timeline.to(
-            node,
+            [...nodes],
             { y: LIFT_OFF.rise, opacity: 0, duration: LIFT_OFF.duration, ease: 'power1.out' },
             0
         )
@@ -185,8 +192,8 @@ export class BoardAnimator {
         timeline: Timeline,
         quick: boolean
     ) {
-        const start = VIEW.plan(was.punct)
-        const end = VIEW.plan(piece.punct)
+        const start = this.session.view.plan(was.punct)
+        const end = this.session.view.plan(piece.punct)
         const path = this.pathCells(was, piece)
         const highest = Math.max(
             was.level + 1,
@@ -218,7 +225,7 @@ export class BoardAnimator {
                         },
                         height: Math.max(ground, ground + (peak - ground) * lift),
                         groundHeight: ground,
-                        angle: was.rotation + turn * along
+                        angle: this.angleOf(was) + turn * along
                     }
                 }
             },

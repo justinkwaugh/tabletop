@@ -116,6 +116,45 @@
                                 pressed={gameSession.showCoordinates}
                                 onToggle={() => gameSession.toggleCoordinates()}>A1</OverlayToggle
                             >
+                            <OverlayToggle
+                                label="Levels"
+                                pressed={gameSession.showLevels}
+                                onToggle={() => gameSession.toggleLevels()}
+                            >
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="-8 -8 16 16"
+                                    aria-hidden="true"
+                                >
+                                    <circle r="6.5" class="badge-ring"></circle>
+                                    <text
+                                        y="3.6"
+                                        text-anchor="middle"
+                                        font-size="10"
+                                        font-weight="700">2</text
+                                    >
+                                </svg>
+                            </OverlayToggle>
+                            <OverlayToggle
+                                label="Far side"
+                                pressed={gameSession.preferences.values.turned}
+                                onToggle={() => gameSession.toggleTurned()}
+                            >
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="-8 -8 16 16"
+                                    aria-hidden="true"
+                                >
+                                    <path d="M -5.5 -1 A 5.5 5.5 0 0 1 4.5 -3.2" class="turn-arrow"
+                                    ></path>
+                                    <path d="M 2 -5 L 4.8 -3 L 2.2 -0.8" class="turn-arrow"></path>
+                                    <path d="M 5.5 1 A 5.5 5.5 0 0 1 -4.5 3.2" class="turn-arrow"
+                                    ></path>
+                                    <path d="M -2 5 L -4.8 3 L -2.2 0.8" class="turn-arrow"></path>
+                                </svg>
+                            </OverlayToggle>
                         </div>
                     {/snippet}
                     {#snippet toolbar()}

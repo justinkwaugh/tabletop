@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { SPACES, spaceAt } from '@tabletop/punct'
-import { BOARD_LABELS, spaceLabel } from './coordinates.js'
+import { boardLabels, spaceLabel } from './coordinates.js'
+import { TURNED_VIEW, VIEW } from './geometry.js'
 
 describe('space names', () => {
     it('numbers each column up from 1 at its bottom space', () => {
@@ -14,7 +15,7 @@ describe('space names', () => {
     })
 
     it('labels each column with its bottom space below it and its top number above it', () => {
-        const texts = BOARD_LABELS.map((label) => label.text)
+        const texts = boardLabels(VIEW).map((label) => label.text)
         expect(texts.slice(0, 17)).toEqual([...'ABCDEFGHIJKLMNOPQ'].map((column) => `${column}1`))
         expect(texts.slice(17)).toEqual([
             '7',
@@ -35,5 +36,13 @@ describe('space names', () => {
             '10',
             '7'
         ])
+    })
+
+    it('puts the bottom labels at the far side once the board is turned', () => {
+        const below = boardLabels(VIEW).find((label) => label.text === 'A1')
+        const turned = boardLabels(TURNED_VIEW).find((label) => label.text === 'A1')
+        expect(below?.at.y).toBeGreaterThan(0)
+        expect(turned?.at.y).toBeLessThan(0)
+        expect(turned?.at.x).toBeGreaterThan(0)
     })
 })

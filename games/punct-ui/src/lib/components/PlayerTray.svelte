@@ -13,7 +13,6 @@
             session.gameState.winningPlayerIds.length === 1 &&
             session.gameState.winningPlayerIds.includes(playerState.playerId)
     )
-    const left = $derived(session.reserveTotal(playerState.playerId))
     const standard = $derived(session.gameState.variant === Variant.Standard)
     const centre = $derived(session.gameState.board.centreCount(playerState.playerId))
 </script>
@@ -30,24 +29,17 @@
         </span>
     </div>
     <div class="lines">
-        <div class="line">
-            <strong class="count">{left}</strong>
-            <span class="caption">left</span>
-            <span class="kinds">
-                {#each PIECE_KINDS as kind (kind)}
-                    {@const count = session.inReserve(playerState.playerId, kind)}
-                    <span class="kind" class:empty={count === 0}>
-                        <PieceIcon color={playerState.color} {kind} scale={0.15} />
-                        <span class="kind-count">{count}</span>
-                    </span>
-                {/each}
-            </span>
+        <div class="kinds">
+            {#each PIECE_KINDS as kind (kind)}
+                {@const count = session.inReserve(playerState.playerId, kind)}
+                <span class="kind" class:empty={count === 0}>
+                    <PieceIcon color={playerState.color} {kind} scale={0.24} />
+                    <span class="kind-count">{count}</span>
+                </span>
+            {/each}
         </div>
         {#if standard}
-            <div class="line">
-                <strong class="count">{centre}</strong>
-                <span class="caption">centre</span>
-            </div>
+            <div class="centre"><strong>{centre}</strong> in centre</div>
         {/if}
     </div>
 </div>
@@ -73,42 +65,41 @@
     .lines {
         display: flex;
         flex-direction: column;
-        gap: 2px;
-        padding: 6px 10px 8px;
+        gap: 4px;
+        padding: 8px 10px;
     }
 
-    .line {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        min-height: 30px;
+    /* One row of six: each kind with its count under it. */
+    .kinds {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        align-items: end;
+        gap: 4px;
     }
 
-    .count {
-        min-width: 2ch;
-        font-size: 19px;
-        text-align: end;
-        font-variant-numeric: tabular-nums;
-    }
-
-    .caption {
-        font-size: 13px;
-        letter-spacing: 0.08em;
+    .centre {
+        text-align: center;
+        font-size: 14px;
+        letter-spacing: 0.04em;
         color: var(--punct-card-quiet);
     }
 
-    .kinds {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: flex-end;
-        gap: 0 4px;
-        margin-left: auto;
+    .centre strong {
+        font-size: 17px;
+        color: var(--punct-card-ink);
+        font-variant-numeric: tabular-nums;
     }
 
     .kind {
-        display: inline-flex;
+        display: flex;
+        flex-direction: column;
         align-items: center;
         gap: 1px;
+    }
+
+    .kind :global(svg) {
+        max-width: 100%;
+        height: auto;
     }
 
     .kind.empty {
@@ -116,7 +107,7 @@
     }
 
     .kind-count {
-        font-size: 12px;
+        font-size: 14px;
         font-weight: 700;
         font-variant-numeric: tabular-nums;
     }

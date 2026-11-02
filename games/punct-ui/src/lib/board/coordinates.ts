@@ -1,6 +1,6 @@
 import { type AxialCoordinates, type Point } from '@tabletop/common'
 import { SPACES } from '@tabletop/punct'
-import { VIEW } from './geometry.js'
+import { type BoardView } from './geometry.js'
 import { pointInPolygon } from './pieceShape.js'
 
 // Columns A–Q left to right, each numbered up from 1 at its bottom space, as GIPF, ZÈRTZ and
@@ -40,8 +40,6 @@ const REACH_STEP = 0.01
 
 type Wanted = { key: string; text: string; coords: AxialCoordinates; step: AxialCoordinates }
 
-const CELLS = SPACES.map((coords) => VIEW.cell(coords))
-
 function boxEdge(at: Point, text: string): Point[] {
     const halfWidth = (CHAR_WIDTH * text.length) / 2 + LABEL_PADDING
     const halfHeight = LABEL_HEIGHT / 2 + LABEL_PADDING
@@ -53,37 +51,53 @@ function boxEdge(at: Point, text: string): Point[] {
     ])
 }
 
-function reachNeeded({ text, coords, step }: Wanted): number {
+function reachNeeded(view: BoardView, cells: Point[][], { text, coords, step }: Wanted): number {
     let reach = FIRST_REACH
     const crowded = () => {
-        const edge = boxEdge(VIEW.labelBeside(coords, step, reach), text)
-        return CELLS.some((cell) => edge.some((point) => pointInPolygon(point, cell)))
+        const edge = boxEdge(view.labelBeside(coords, step, reach), text)
+        return cells.some((cell) => edge.some((point) => pointInPolygon(point, cell)))
     }
     while (crowded()) reach += REACH_STEP
     return reach
 }
 
-function placeRow(row: Wanted[]): CoordinateLabel[] {
-    const reach = Math.max(...row.slice(1, -1).map(reachNeeded))
+function placeRow(view: BoardView, row: Wanted[]): CoordinateLabel[] {
+    const cells = SPACES.map((coords) => view.cell(coords))
+    const reach = Math.max(...row.slice(1, -1).map((wanted) => reachNeeded(view, cells, wanted)))
     return row.map(({ key, text, coords, step }) => ({
         key,
         text,
-        at: VIEW.labelBeside(coords, step, reach)
+        at: view.labelBeside(coords, step, reach)
     }))
 }
 
 // Below each column its bottom space's name, above it only the number of its top space.
-export const BOARD_LABELS: CoordinateLabel[] = [
-    ...placeRow(
-        columns.map((q) => {
-            const coords = { q, r: bottomOf.get(q) ?? 0 }
-            return { key: `bottom-${q}`, text: spaceLabel(coords), coords, step: BELOW }
-        })
-    ),
-    ...placeRow(
-        columns.map((q) => {
-            const coords = { q, r: topOf.get(q) ?? 0 }
-            return { key: `top-${q}`, text: spaceLabel(coords).slice(1), coords, step: ABOVE }
-        })
-    )
-]
+function labelsFor(view: BoardView): CoordinateLabel[] {
+    return [
+        ...placeRow(
+            view,
+            columns.map((q) => {
+                const coords = { q, r: bottomOf.get(q) ?? 0 }
+                return { key: `bottom-${q}`, text: spaceLabel(coords), coords, step: BELOW }
+            })
+        ),
+        ...placeRow(
+            view,
+            columns.map((q) => {
+                const coords = { q, r: topOf.get(q) ?? 0 }
+                return { key: `top-${q}`, text: spaceLabel(coords).slice(1), coords, step: ABOVE }
+            })
+        )
+    ]
+}
+
+const LABELS = new Map<BoardView, CoordinateLabel[]>()
+
+export function boardLabels(view: BoardView): CoordinateLabel[] {
+    let labels = LABELS.get(view)
+    if (labels === undefined) {
+        labels = labelsFor(view)
+        LABELS.set(view, labels)
+    }
+    return labels
+}

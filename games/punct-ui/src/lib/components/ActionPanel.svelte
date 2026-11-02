@@ -38,7 +38,7 @@
         <span>{prompt}</span>
         {#if session.staged}
             <button type="button" class="choice primary" onclick={() => session.confirm()}
-                >{moving ? 'Move' : 'Place'}</button
+                >{moving ? 'Drop' : 'Place'}</button
             >
         {/if}
     {/if}

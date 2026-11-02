@@ -4,15 +4,18 @@ import { spaceKey } from '@tabletop/punct'
 // Something standing over spaces at a level: a piece, or a mark lying on one.
 export type Stander = { key: string; cells: readonly AxialCoordinates[]; level: number }
 
-// How far towards the viewer a space lies.
-function depth(coords: AxialCoordinates): number {
-    return coords.r + coords.q / 2
+type Depth = (coords: AxialCoordinates) => number
+
+// How far towards the viewer a space lies; turned, the far side of the table is near.
+function depthOf(turned: boolean): Depth {
+    const towards = turned ? -1 : 1
+    return (coords) => towards * (coords.r + coords.q / 2)
 }
 
 // Whether a must be drawn before b, after it, or either way. Over a shared space, the lower
 // stands under the higher. Otherwise, of their nearest spaces in neighbouring columns, the
 // farther is behind the nearer.
-function compare(a: Stander, b: Stander): number {
+function compare(a: Stander, b: Stander, depth: Depth): number {
     const bKeys = new Set(b.cells.map(spaceKey))
     if (a.cells.some((cell) => bKeys.has(spaceKey(cell)))) {
         return a.level - b.level
@@ -33,11 +36,12 @@ function compare(a: Stander, b: Stander): number {
 }
 
 // Farthest first, every piece after anything it rests on.
-export function drawOrder<T extends Stander>(standers: readonly T[]): T[] {
+export function drawOrder<T extends Stander>(standers: readonly T[], turned = false): T[] {
+    const depth = depthOf(turned)
     const before = new Map<string, Set<string>>(standers.map((s) => [s.key, new Set()]))
     for (let i = 0; i < standers.length; i++) {
         for (let j = i + 1; j < standers.length; j++) {
-            const order = compare(standers[i], standers[j])
+            const order = compare(standers[i], standers[j], depth)
             if (order < 0) before.get(standers[j].key)?.add(standers[i].key)
             else if (order > 0) before.get(standers[i].key)?.add(standers[j].key)
         }

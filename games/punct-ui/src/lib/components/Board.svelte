@@ -11,10 +11,9 @@
         PIECE_THICKNESS,
         SEAM,
         pointsAttribute,
-        SPACING,
-        VIEW
+        SPACING
     } from '$lib/board/geometry.js'
-    import { BOARD_LABELS, spaceLabel } from '$lib/board/coordinates.js'
+    import { boardLabels, spaceLabel } from '$lib/board/coordinates.js'
     import { drawOrder } from '$lib/board/drawOrder.js'
     import { drawPiece, outlinePlan, pathOf, type Tone } from '$lib/board/pieceShape.js'
     import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
@@ -23,17 +22,18 @@
     import PunctMarker from './PunctMarker.svelte'
 
     const session = getGameSession()
-    const view = VIEW
-    const frame = view.frame(BOARD_LABELS.map((label) => label.at))
+    const view = $derived(session.view)
+    const labels = $derived(boardLabels(view))
+    const frame = $derived(view.frame(labels.map((label) => label.at)))
     const animator = new BoardAnimator(session)
 
     // The printed board: a honeycomb cell round every hole, the pale area ending at the outer
     // cells' edges, the central hexagon's cells tinted.
     const cellPath = (coords: AxialCoordinates) =>
         `M ${pointsAttribute(view.cell(coords)).replaceAll(' ', ' L ')} Z`
-    const gridPath = SPACES.map(cellPath).join(' ')
-    const centrePath = CENTRE_SPACES.map(cellPath).join(' ')
-    const plateSides = view.plateSides()
+    const gridPath = $derived(SPACES.map(cellPath).join(' '))
+    const centrePath = $derived(CENTRE_SPACES.map(cellPath).join(' '))
+    const plateSides = $derived(view.plateSides())
 
     function plateSideFill(light: number): string {
         const lit = [178, 192, 182]
@@ -43,6 +43,10 @@
         )
         return `rgb(${r} ${g} ${b})`
     }
+
+    // As large as fits inside the piece at the near right of its PÜNCT, over the dish's rim.
+    const BADGE_RADIUS = PIECE_HALF_WIDTH * 0.42
+    const BADGE_OFFSET = { x: PIECE_HALF_WIDTH * 0.5, y: PIECE_HALF_WIDTH * 0.3 }
 
     function toneOf(playerId: string): Tone {
         return session.gameState.getPlayerState(playerId).color === Color.White ? 'light' : 'dark'
@@ -113,7 +117,7 @@
                 })
             }
         }
-        return drawOrder(pieces)
+        return drawOrder(pieces, view.turned)
     })
 
     // The board without the piece being moved: where marks for its PÜNCT lie.
@@ -251,7 +255,7 @@
     <path d={gridPath} class="grid"></path>
 
     {#if session.showCoordinates}
-        {#each BOARD_LABELS as label (label.key)}
+        {#each labels as label (label.key)}
             <text x={label.at.x} y={label.at.y} class="coordinate-label">{label.text}</text>
         {/each}
     {/if}
@@ -386,6 +390,21 @@
                         {/each}
                     {/if}
                 </g>
+                {#if session.showLevels && piece.level > 0}
+                    {@const badge = view.project(BADGE_OFFSET, PIECE_THICKNESS)}
+                    <!-- Over the piece's marks, moving with the piece. -->
+                    <g {@attach animator.pieceNode(piece.id)}>
+                        <!-- The level, on a badge at the near right of the PÜNCT, as TZAAR's
+                             counts: set ten times larger and scaled down, as small text is
+                             snapped to whole pixels. -->
+                        <g transform="translate({badge.x} {badge.y})" class="level-badge">
+                            <circle r={BADGE_RADIUS}></circle>
+                            <text transform="scale(0.1)" font-size={BADGE_RADIUS * 13.7} dy="0.36em"
+                                >{piece.level + 1}</text
+                            >
+                        </g>
+                    </g>
+                {/if}
             </g>
         {/if}
     {/each}
@@ -582,6 +601,23 @@
         fill: transparent;
         cursor: pointer;
         outline: none;
+    }
+
+    .level-badge {
+        pointer-events: none;
+    }
+
+    .level-badge circle {
+        fill: #ffffff;
+        stroke: #000000;
+        stroke-width: 1.2;
+    }
+
+    .level-badge text {
+        fill: #000000;
+        font-weight: 700;
+        text-anchor: middle;
+        font-variant-numeric: tabular-nums;
     }
 
     .win-spot {
