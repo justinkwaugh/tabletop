@@ -6,6 +6,7 @@ import {
     hexTarget,
     lit,
     openTable,
+    placeOnOpenCountry,
     press,
     settled,
     trackPiece,
@@ -127,6 +128,32 @@ test.describe('desktop', () => {
         await expect(resting.first()).toHaveCSS('opacity', '0.5')
         await resting.first().click()
         expect(await lit(page)).toEqual([])
+    })
+
+    test('R-6.3, contract, "Your hand": in the variant, the piece left after three placements takes no press or key', async ({
+        page
+    }) => {
+        await openTable(page, 'Variant opening turn')
+        await placeOnOpenCountry(page, 'CP')
+        await placeOnOpenCountry(page, 'UP')
+        await placeOnOpenCountry(page, 'KP')
+        const keep = page.getByRole('button', { name: 'Keep SP · draw 3', exact: true })
+        const giveBack = page.getByRole('button', { name: 'Return it · draw 4', exact: true })
+        await expect(keep).toBeVisible()
+        const leftover = stripHand(page).locator('[data-turn-piece]')
+        await expect(leftover).toHaveCount(1)
+        await expect(leftover).toHaveAttribute('aria-disabled', 'true')
+
+        // A forced click reaches the piece even though it is marked disabled.
+        await leftover.click({ force: true })
+        await leftover.focus()
+        await page.keyboard.press('Enter')
+        await page.keyboard.press(' ')
+
+        await expect(leftover).toHaveAttribute('aria-pressed', 'false')
+        expect(await lit(page)).toEqual([])
+        await expect(keep).toBeVisible()
+        await expect(giveBack).toBeVisible()
     })
 
     test('O-6: every town tile, the Dividend and Repairs tiles too, turns a quarter turn on the board, enlarged and in the end tracker', async ({

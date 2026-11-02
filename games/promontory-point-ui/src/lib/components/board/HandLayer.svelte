@@ -21,10 +21,16 @@
     const box = STRIP_SLOTS.hand
     const labelGap = 46
 
-    function onKey(event: KeyboardEvent, railroadId: RailroadId) {
+    // A piece the seat may not pick now (the variant's leftover after three placements) takes no
+    // press, as the phone bar's disabled button does.
+    function press(slot: { railroadId: RailroadId; pickable: boolean }) {
+        if (slot.pickable) gameSession.pressPiece(slot.railroadId)
+    }
+
+    function onKey(event: KeyboardEvent, slot: { railroadId: RailroadId; pickable: boolean }) {
         if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault()
-            gameSession.pressPiece(railroadId)
+            press(slot)
         }
     }
 </script>
@@ -87,8 +93,8 @@
                         class:pickable={slot.pickable}
                         data-hand-slot={index}
                         data-turn-piece={slot.railroadId}
-                        onclick={() => gameSession.pressPiece(slot.railroadId)}
-                        onkeydown={(event) => onKey(event, slot.railroadId)}
+                        onclick={() => press(slot)}
+                        onkeydown={(event) => onKey(event, slot)}
                         onpointerenter={(event) => pointer.enter(event, slot.railroadId)}
                         onpointerleave={(event) => pointer.leave(event)}
                         onfocus={(event) => pointer.focus(event, slot.railroadId)}
