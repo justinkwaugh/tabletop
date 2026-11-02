@@ -330,14 +330,15 @@ follows once the company is within its limit).
 ### Rulings (not settled by the rulebook)
 
 - A refused offer ends that corporation's attempt for the step (§11: "may attempt one
-  takeover").
+  takeover"; confirmed by the designer).
 - The step's order is the stock price order when it begins.
 - A share in the Stock Market may be redeemed by swap; the acquirer's share then goes to the
-  Stock Market.
+  Stock Market. The designer confirmed that §5.25 applies: a swap may not leave more than 5 of
+  the acquirer's shares there.
 - A target with no president (receivership) cannot refuse.
 - Only takeovers a corporation does itself raise its train limit; rights (§11.7) pass on
   through later takeovers.
-- The golden spike payment does not pass to an acquirer.
+- The golden spike payment does not pass to an acquirer (confirmed by the designer).
 - No takeover step follows the last set: the game ends after the round sequence (§10.1).
 - No step is held when no corporation can attempt a takeover.
 - A corporation whose President certificate is in the Stock Market cannot attempt a takeover

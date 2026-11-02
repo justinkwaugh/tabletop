@@ -4,6 +4,7 @@ import {
     finiteCashOwnedBy,
     floatedCompaniesInMarketOrder,
     inReceivership,
+    openShares,
     sameOwner,
     sharesOwned,
     stateWith,
@@ -20,6 +21,9 @@ import { TrainRules1833NE } from './trains.js'
 
 /** No player may own more than 60% of a corporation, by purchase or by swap (§5.35, §11.1). */
 const OwnershipLimitShares = 6
+
+/** Swaps obey the sale limit of 50% in the Stock Market (§5.25, confirmed by the designer). */
+const MarketLimitShares = 5
 
 /** A holder's outstanding target shares and how many of them it may swap. */
 export type Holding = { holder: Owner; shares: number; maximumSwaps: number }
@@ -59,11 +63,19 @@ export function unissuedShareIds(state: State1833NE, companyId: string): string[
     )
 }
 
-/** How many of the acquirer's shares a holder may take without passing 60% (§11.1). */
+function sharesInMarket(state: State1833NE, companyId: string): number {
+    return totalShares(
+        openShares(state, companyId).filter((share) => share.poolId === MarketPoolId)
+    )
+}
+
+/** §11.1 limits a player; §5.25 limits the Stock Market. */
 function swapCapacity(state: State1833NE, acquirerId: string, holder: Owner): number {
-    return holder.kind === 'player'
-        ? Math.max(0, OwnershipLimitShares - sharesOwned(state, acquirerId, holder))
-        : Infinity
+    const room =
+        holder.kind === 'player'
+            ? OwnershipLimitShares - sharesOwned(state, acquirerId, holder)
+            : MarketLimitShares - sharesInMarket(state, acquirerId)
+    return Math.max(0, room)
 }
 
 /** Each holder of the target's outstanding shares, with the most it may take in swaps. */
@@ -192,7 +204,9 @@ export function offerReason(state: State1833NE, offer: TakeoverOffer): string | 
         if (offer.swaps.filter((other) => sameOwner(other.holder, swap.holder)).length > 1)
             return 'Each holder is listed once.'
         if (swap.shares > holding.maximumSwaps)
-            return 'No player may own more than 60% of the acquiring corporation.'
+            return swap.holder.kind === 'player'
+                ? 'No player may own more than 60% of the acquiring corporation.'
+                : 'No more than half of the acquiring corporation may be in the Stock Market.'
     }
     const terms = redemptionTerms(state, offer)
     if (terms.swapped > unissuedShareIds(state, offer.companyId).length)

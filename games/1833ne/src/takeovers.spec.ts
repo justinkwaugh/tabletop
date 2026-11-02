@@ -6,8 +6,13 @@ import {
     sharesOwned,
     trainsOwnedBy
 } from '@tabletop/18xx'
-import { rulebookTakeoverExample, setCash, takeoverExample } from '../test/takeover.js'
-import { Market1833NE, StockRules1833NE } from './stock.js'
+import {
+    rulebookTakeoverExample,
+    setCash,
+    splitSharesBetweenMarketAndTreasury,
+    takeoverExample
+} from '../test/takeover.js'
+import { Market1833NE, MarketPoolId, StockRules1833NE } from './stock.js'
 import { fewestSwaps, offerReason, takeoverTargets, unissuedShareIds } from './takeoverRules.js'
 import { TrainDepot1833NE, TrainRules1833NE, trainLimit } from './trains.js'
 import { CompanyRules1833NE, variableStartHomes } from './variableStart.js'
@@ -120,6 +125,69 @@ describe('the takeover step (§11)', () => {
                 swaps: [{ holder: player(president), shares: 3 }]
             })
         ).toBe('A holder gives up only the shares it holds.')
+    })
+
+    describe('swapping into the Stock Market (the designer: §5.25 applies)', () => {
+        const bank = { kind: 'bank' as const }
+        const marketLimitReason =
+            'No more than half of the acquiring corporation may be in the Stock Market.'
+        const inMarket = (game: Table, companyId: string) =>
+            game.state.certificates.filter(
+                (certificate) =>
+                    certificate.companyId === companyId && certificate.poolId === MarketPoolId
+            ).length
+        const positionWith = (acquirerInMarket: number) => {
+            const { game } = takeoverExample()
+            splitSharesBetweenMarketAndTreasury(game, 'B&W', acquirerInMarket)
+            splitSharesBetweenMarketAndTreasury(game, 'HR', 2)
+            setCash(game, 'B&W', 500)
+            return game
+        }
+        const swapOf = (shares: number) => ({
+            companyId: 'B&W',
+            targetId: 'HR',
+            swaps: shares ? [{ holder: bank, shares }] : []
+        })
+
+        it('rejects a swap that leaves more than five shares there', () => {
+            const game = positionWith(4)
+            expect(offerReason(game.state, swapOf(2))).toBe(marketLimitReason)
+            expect(offerReason(game.state, swapOf(1))).toBeUndefined()
+        })
+
+        it('settles a swap that leaves exactly five there', () => {
+            const game = positionWith(4)
+            game.act('OfferTakeover', swapOf(1))
+            expect(inMarket(game, 'B&W')).toBe(5)
+        })
+
+        it('allows only cash when funding already left more than five there (§7.1)', () => {
+            const game = positionWith(6)
+            expect(offerReason(game.state, swapOf(1))).toBe(marketLimitReason)
+            expect(fewestSwaps(game.state, 'B&W', 'HR')).toEqual([])
+            game.act('OfferTakeover', swapOf(0))
+            expect(inMarket(game, 'B&W')).toBe(6)
+        })
+
+        it('counts the limit when finding the fewest swaps', () => {
+            const positionNeedingFiveSwaps = (acquirerInMarket: number) => {
+                const { game, president } = takeoverExample()
+                splitSharesBetweenMarketAndTreasury(game, 'B&W', acquirerInMarket)
+                splitSharesBetweenMarketAndTreasury(game, 'HR', 5)
+                setCash(game, 'B&W', 2 * price(game, 'HR'))
+                return { game, president }
+            }
+            const within = positionNeedingFiveSwaps(2)
+            expect(fewestSwaps(within.game.state, 'B&W', 'HR')).toEqual([
+                { holder: player(within.president), shares: 2 },
+                { holder: bank, shares: 3 }
+            ])
+            expect(takeoverTargets(within.game.state, 'B&W')).toEqual(['HR'])
+
+            const over = positionNeedingFiveSwaps(3).game
+            expect(fewestSwaps(over.state, 'B&W', 'HR')).toBeUndefined()
+            expect(takeoverTargets(over.state, 'B&W')).toEqual([])
+        })
     })
 
     it('lets the target’s president refuse unless it is vulnerable (§11.4)', () => {
