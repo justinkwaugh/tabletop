@@ -9,15 +9,14 @@ import {
     type LeagueHeldPlace,
     type LeagueAllocatedGroup,
     type LeagueSeasonPlacement,
-    type LeagueShape,
-    type TournamentScore
+    type LeagueShape
 } from '@tabletop/common'
-import { compareTournamentScores } from './tournamentScoring.js'
+import { compareTournamentScores, type ComparableScore } from './tournamentScoring.js'
 
 export interface LeagueGroupResult {
     groupId: string
     level: number
-    standings: (Pick<TournamentScore, 'score' | 'tiebreak'> & {
+    standings: (ComparableScore & {
         userId: string
         playedBy?: string
     })[]

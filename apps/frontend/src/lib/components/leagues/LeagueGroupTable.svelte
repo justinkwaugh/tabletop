@@ -1,7 +1,9 @@
 <script lang="ts">
     import { leagueLevelText } from '$lib/utils/leaguePresentation'
     import { accountName } from '$lib/utils/accountName'
+    import { tournamentTiebreakText } from '$lib/utils/tournamentPresentation'
     import {
+        tournamentTiebreakDescription,
         leagueLevelName,
         type LeagueGroupDetail,
         type LeagueGroupStanding
@@ -19,6 +21,7 @@
         userId?: string
     } = $props()
     let showTiebreak = $derived(group.standings.some((row) => row.tiebreak !== undefined))
+    let tiebreakDescription = $derived(tournamentTiebreakDescription(group.standings))
     const share = (games: number) => (group.totalGames ? (games / group.totalGames) * 100 : 0)
     const movementLabel = { promoted: 'Promoted', relegated: 'Relegated' }
 
@@ -97,9 +100,8 @@
                 >
                 <th class="w-12 pb-1.5 text-right font-normal">Games</th>
                 {#if showTiebreak}
-                    <th class="w-9 pb-1.5 text-right font-normal"
-                        ><abbr class="no-underline" title="Tiebreak: sum of final scores">TB</abbr
-                        ></th
+                    <th class="w-12 pb-1.5 text-right font-normal"
+                        ><abbr class="no-underline" title={tiebreakDescription}>TB</abbr></th
                     >
                 {/if}
             </tr>
@@ -172,7 +174,7 @@
                     </td>
                     {#if showTiebreak}
                         <td class="py-1.5 text-right tabular-nums text-gray-400"
-                            >{row.tiebreak ?? '—'}</td
+                            >{tournamentTiebreakText(row)}</td
                         >
                     {/if}
                 </tr>

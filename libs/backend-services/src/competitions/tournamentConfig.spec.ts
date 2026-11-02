@@ -7,6 +7,7 @@ import {
     UserStatus,
     type GameConfig,
     type GameConfigOptions,
+    type GameScoring,
     type TournamentDraft,
     type User
 } from '@tabletop/common'
@@ -39,7 +40,7 @@ const admin: User = {
     externalIds: []
 }
 
-function createService(supportsStartingPositions = true) {
+function createService(supportsStartingPositions = true, scoring?: GameScoring) {
     const { initializer } = SyntheticRuntime
     const store: TournamentStore = {
         create: vi.fn(async (tournament) => tournament),
@@ -78,6 +79,7 @@ function createService(supportsStartingPositions = true) {
                 },
                 runtime: {
                     ...SyntheticRuntime,
+                    scoring,
                     initializer: {
                         supportsStartingPositions,
                         initializeGame: initializer.initializeGame.bind(initializer),
@@ -117,6 +119,16 @@ it('translates a legacy tournament draft before merging current defaults', async
     const saved = await createService().create('event', input, admin)
     expect(saved.rules.gameConfig).toEqual({ privateMoney: true })
     expect(input.rules.gameConfig).toEqual({ publicMoney: false })
+})
+
+it("freezes the title's tiebreak rule into the rules and ignores what the client sent", async () => {
+    const scoring: GameScoring = { finalScores: () => ({}), tiebreakRule: 'pointsBehind' }
+    const declared = await createService(true, scoring).create('declared', draft(), admin)
+    expect(declared.rules.tiebreakRule).toBe('pointsBehind')
+    const claimed = draft()
+    claimed.rules.tiebreakRule = 'pointsBehind'
+    const undeclared = await createService().create('undeclared', claimed, admin)
+    expect(undeclared.rules.tiebreakRule).toBeUndefined()
 })
 
 it('offers only titles that support assigned starting positions', async () => {

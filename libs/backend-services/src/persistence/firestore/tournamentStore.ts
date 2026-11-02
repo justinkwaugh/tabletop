@@ -18,7 +18,8 @@ import {
     type TournamentGameLink,
     tournamentAccountIds,
     tournamentEntrantIndex,
-    tournamentTableReference
+    tournamentTableReference,
+    type TiebreakRule
 } from '@tabletop/common'
 import { requestForKey } from './cacheRequests.js'
 import * as Value from 'typebox/value'
@@ -461,7 +462,8 @@ export class FirestoreTournamentStore implements TournamentStore {
         id: string,
         revision: number,
         user: User,
-        now: number
+        now: number,
+        tiebreakRule: TiebreakRule | undefined
     ): Promise<Tournament> {
         return this.cache.lockWhileWriting([this.cacheKeys.key('event', id)], (locks) =>
             this.firestore.runTransaction(async (transaction) => {
@@ -498,6 +500,9 @@ export class FirestoreTournamentStore implements TournamentStore {
                             'tournament'
                         )
                 )
+                // A running event adopts its title's rule here; a finished one keeps its placements.
+                if (tiebreakRule && tournament.status !== 'finished')
+                    tournament.rules.tiebreakRule = tiebreakRule
                 const standings = createTournamentStandings(tournament)
                 const finished: string[] = []
                 for (const document of games.docs) {

@@ -119,10 +119,12 @@ export const ResultPanel = ({ children }: { children: ReactNode }) => (
 export const StandingsTable = ({
     label,
     rows,
+    tiebreakDescription,
     starWinner = true,
 }: {
     label: string
     rows: StandingsRow[]
+    tiebreakDescription: string
     starWinner?: boolean
 }) => {
     const showTiebreak = rows.some((row) => row.tiebreak !== undefined)
@@ -192,11 +194,7 @@ export const StandingsTable = ({
                     </Row>
                 ))}
             </Section>
-            {showTiebreak && (
-                <Text style={styles.footnote}>
-                    Tiebreak is the sum of each player's final scores from their games.
-                </Text>
-            )}
+            {showTiebreak && <Text style={styles.footnote}>{tiebreakDescription}</Text>}
         </>
     )
 }

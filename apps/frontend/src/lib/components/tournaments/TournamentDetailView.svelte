@@ -3,6 +3,7 @@
     import { LatestRequest } from '$lib/utils/latestRequest'
     import { onMount } from 'svelte'
     import {
+        tournamentTiebreakDescription,
         Role,
         tournamentAccountIds,
         tournamentCapacity,
@@ -20,7 +21,8 @@
         tournamentRegistrationText,
         tournamentRegistrationOpen,
         tournamentStatusText,
-        tournamentStatusColor
+        tournamentStatusColor,
+        tournamentTiebreakText
     } from '$lib/utils/tournamentPresentation'
     import { accountName } from '$lib/utils/accountName'
     import TournamentScheduleView from './TournamentScheduleView.svelte'
@@ -55,6 +57,7 @@
     let showTiebreak = $derived(
         detail?.standings?.some((row) => row.tiebreak !== undefined) ?? false
     )
+    let tiebreakDescription = $derived(tournamentTiebreakDescription(detail?.standings ?? []))
     let scheduleFirst = $derived(Boolean(tournament?.stages[0]?.scheduleId))
     let title = $derived(
         tournament ? libraryService.titlesById[tournament.rules.titleId] : undefined
@@ -414,7 +417,7 @@
                                     {#if showTiebreak}
                                         <th
                                             class="w-24 pb-2 text-right font-normal"
-                                            title="Sum of final scores from each game">Tiebreak</th
+                                            title={tiebreakDescription}>Tiebreak</th
                                         >
                                     {/if}
                                 {:else if joined && registrationOpen}
@@ -486,9 +489,9 @@
                                             <td
                                                 class="py-2.5 text-right tabular-nums text-gray-400"
                                                 aria-label="Tiebreak"
-                                                >{standing?.tiebreak?.toLocaleString(undefined, {
-                                                    maximumFractionDigits: 3
-                                                }) ?? '—'}</td
+                                                >{standing
+                                                    ? tournamentTiebreakText(standing)
+                                                    : '—'}</td
                                             >
                                         {/if}
                                     {:else if joined && registrationOpen}

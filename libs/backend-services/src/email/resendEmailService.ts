@@ -7,6 +7,8 @@ import {
     Game,
     GameDefinition,
     TournamentDetail,
+    rankedTiebreak,
+    tournamentTiebreakDescription,
     User
 } from '@tabletop/common'
 import {
@@ -184,6 +186,7 @@ export class ResendEmailService implements EmailService {
                 tournamentName: detail.tournament.name,
                 title: definition.info.metadata.name,
                 winners: standings.filter((row) => row.champion).map((row) => name(row.userId)),
+                tiebreakDescription: tournamentTiebreakDescription(standings),
                 standings: standings
                     .filter((row) => !row.withdrawn)
                     .map((row) => ({
@@ -191,7 +194,7 @@ export class ResendEmailService implements EmailService {
                         name: name(row.playedBy ?? row.userId),
                         wins: row.wins,
                         score: row.score,
-                        ...(row.tiebreak !== undefined ? { tiebreak: row.tiebreak } : {}),
+                        tiebreak: rankedTiebreak(row),
                         recipient: (row.playedBy ?? row.userId) === recipientId,
                         champion: row.champion === true
                     })),

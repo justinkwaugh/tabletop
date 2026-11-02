@@ -2,6 +2,7 @@ import {
     assert,
     assertExists,
     GameResult,
+    rankedTiebreak,
     tournamentEntrantIndex,
     type Game,
     type Tournament,
@@ -25,11 +26,26 @@ export function withTournamentCredit(
     }
 }
 
-export function compareTournamentScores(
-    a: Pick<TournamentScore, 'score' | 'tiebreak'>,
-    b: Pick<TournamentScore, 'score' | 'tiebreak'>
-): number {
-    return b.score - a.score || (b.tiebreak ?? 0) - (a.tiebreak ?? 0)
+export type ComparableScore = Pick<
+    TournamentScore,
+    'score' | 'completed' | 'tiebreak' | 'pointsBehind'
+>
+
+// A League season's Groups can straddle a title adopting a rule. Average final score is the one
+// measure both rules hold.
+function compareAcrossTiebreakRules(a: ComparableScore, b: ComparableScore): number {
+    if (!a.completed || !b.completed) return b.completed - a.completed
+    return (b.tiebreak ?? 0) / b.completed - (a.tiebreak ?? 0) / a.completed
+}
+
+function compareTiebreaks(a: ComparableScore, b: ComparableScore): number {
+    if ((a.pointsBehind === undefined) !== (b.pointsBehind === undefined))
+        return compareAcrossTiebreakRules(a, b)
+    return (rankedTiebreak(b) ?? 0) - (rankedTiebreak(a) ?? 0)
+}
+
+export function compareTournamentScores(a: ComparableScore, b: ComparableScore): number {
+    return b.score - a.score || compareTiebreaks(a, b)
 }
 
 export function applyTournamentGameScore(
@@ -61,6 +77,10 @@ export function applyTournamentGameScore(
         scale = (scale / a) * divisor
     }
     const points = scale / game.winningPlayerIds.length
+    const topScore =
+        finalScores && tournament.rules.tiebreakRule === 'pointsBehind'
+            ? Math.max(...game.players.map((player) => finalScores[player.id]))
+            : undefined
     for (const player of game.players) {
         assertExists(player.userId, 'Tournament seat has no account')
         const row = standings[tournamentEntrantIndex(tournament, player.userId)]
@@ -71,6 +91,10 @@ export function applyTournamentGameScore(
             row.score = (Math.round(row.score * scale) + direction * points) / scale
         }
         if (finalScores) row.tiebreak = (row.tiebreak ?? 0) + direction * finalScores[player.id]
+        if (finalScores && topScore !== undefined) {
+            row.pointsBehind =
+                (row.pointsBehind ?? 0) + direction * (topScore - finalScores[player.id])
+        }
     }
 }
 

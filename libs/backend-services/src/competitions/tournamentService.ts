@@ -588,7 +588,14 @@ export class TournamentService {
     async rebuildStandings(id: string, revision: number, user: User) {
         requireAdministrator(user)
         const before = await this.store.read(id)
-        let tournament = await this.store.rebuildStandings(id, revision, user, this.now())
+        const title = before && lookupTitle(this.titles, before.rules.titleId)
+        let tournament = await this.store.rebuildStandings(
+            id,
+            revision,
+            user,
+            this.now(),
+            title?.runtime.scoring?.tiebreakRule
+        )
         if (before?.status !== 'finished') tournament = await this.completed(tournament)
         await this.notify(tournament)
         return tournament
@@ -765,6 +772,9 @@ export class TournamentService {
         if (!title) throw new TournamentError('This game title is unavailable', 400)
         if (!seatsAssignedStartingOrder(title))
             throw new TournamentError('This game is not available for tournaments yet', 400)
+        delete rules.tiebreakRule
+        const tiebreakRule = title.runtime.scoring?.tiebreakRule
+        if (tiebreakRule) rules.tiebreakRule = tiebreakRule
         rules.gameConfig = normalizeGameConfig({
             ...defaultGameConfig(title.info.configurator?.options ?? []),
             ...normalizeGameConfig(rules.gameConfig, title.info.configurator)
