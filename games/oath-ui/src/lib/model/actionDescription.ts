@@ -876,7 +876,11 @@ function describeActionCited(
             discardedFirstClause(action.play, discardFirstCardIdsOf(action)) +
             gaining(meta?.secretsGained ?? 0, meta?.favorGained ?? 0, meta?.favorShort) +
             conspiracyTakeClause(action.conspiracy, action.playerId, names, viewerId) +
-            whenPlayedClause(meta?.whenPlayed, kept, action.playerId, names, viewerId)
+            whenPlayedClause(meta?.whenPlayed, kept, action.playerId, names, viewerId) +
+            // Land Warden — a Vision revealed as the second card, named as a revealed Vision is.
+            (action.secondPlay?.play === SearchPlay.RevealedVision && meta?.secondPlayedCardId
+                ? `; ${describeAdviserPlay(SearchPlay.RevealedVision, cardName(meta.secondPlayedCardId))}`
+                : '')
         )
     }
     if (isSearchSwap(action)) return describeSearchSwap(action)

@@ -119,6 +119,10 @@ const PLACEMENTS: (SearchPlacement & { label: string })[] = [
     { play: SearchPlay.Discard, label: PLAY_LABELS[SearchPlay.Discard] }
 ]
 
+// Land Warden — the second card's row says the kept card's words in its own lower case.
+const lowerFirst = (label: string) => label.charAt(0).toLowerCase() + label.slice(1)
+const SECOND_VISION_MODE = lowerFirst(PLAY_LABELS[SearchPlay.RevealedVision])
+
 /** R-5.1.2 to R-5.1.5 — the kept card, how it is played, and the order the rest are discarded in. */
 export class SearchDraft implements PanelDraft {
     private flow = new StagedFlow<SearchValueByStage>(SEARCH_STAGE_ORDER)
@@ -474,7 +478,9 @@ export class SearchDraft implements PanelDraft {
             .flatMap((cardId) => [
                 this.secondPlay(playerId, cardId, SearchPlay.Site, 'to your site'),
                 this.secondPlay(playerId, cardId, SearchPlay.Adviser, 'adviser, faceup', true),
-                this.secondPlay(playerId, cardId, SearchPlay.Adviser, 'adviser, facedown', false)
+                this.secondPlay(playerId, cardId, SearchPlay.Adviser, 'adviser, facedown', false),
+                // R-5.1.4.III — an Exile's Vision, offered where the engine accepts it (from revision 32).
+                this.secondPlay(playerId, cardId, SearchPlay.RevealedVision, SECOND_VISION_MODE)
             ])
             .filter((option) => this.pairsWithAnOpenPlacement(playerId, kept, option))
     }
