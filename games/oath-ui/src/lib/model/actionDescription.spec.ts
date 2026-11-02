@@ -663,6 +663,23 @@ describe('the history tab describes every action', () => {
                 third: 'with Bob, gave 1 secret for 2 favor and 0 favor for 0 secrets; with you, gave 0 secrets for 0 favor and 2 favor for 1 secret'
             },
             {
+                // From revision 32: the steps in order, and only the exchanges made.
+                card: 'denizen.arcane.witchs-bargain',
+                summary:
+                    "Witch's Bargain: gave p2 1 secrets for 2 favor, then gave p3 2 favor for 1 secrets",
+                actor: 'gave Bob 1 secret for 2 favor, then gave Cass 2 favor for 1 secret',
+                target: 'gave you 1 secret for 2 favor, then gave Cass 2 favor for 1 secret',
+                third: 'gave Bob 1 secret for 2 favor, then gave you 2 favor for 1 secret'
+            },
+            {
+                card: 'denizen.arcane.witchs-bargain',
+                summary:
+                    "Witch's Bargain: gave p2 1 secrets for 2 favor, then gave p3 2 favor for 1 secrets, then gave p2 2 secrets for 4 favor, then gave p2 2 favor for 1 secrets",
+                actor: 'gave Bob 1 secret for 2 favor, then gave Cass 2 favor for 1 secret, then gave Bob 2 secrets for 4 favor, then gave Bob 2 favor for 1 secret',
+                target: 'gave you 1 secret for 2 favor, then gave Cass 2 favor for 1 secret, then gave you 2 secrets for 4 favor, then gave you 2 favor for 1 secret',
+                third: 'gave Bob 1 secret for 2 favor, then gave you 2 favor for 1 secret, then gave Bob 2 secrets for 4 favor, then gave Bob 2 favor for 1 secret'
+            },
+            {
                 card: 'denizen.discord.relic-thief',
                 summary: 'Relic Thief: rolled 1 shields; relic.brass-horse stayed with p2',
                 actor: 'rolled 1 shield; Brass Horse stayed with Bob',

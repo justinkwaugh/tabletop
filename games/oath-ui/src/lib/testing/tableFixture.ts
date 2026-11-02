@@ -339,6 +339,7 @@ export type TableName =
     | 'witchsBargain'
     | 'witchsBargainSilenced'
     | 'witchsBargainOneOther'
+    | 'witchsBargainSteps'
     | 'drumAsked'
     | 'drumAskedCitizen'
     | 'drumAfterToll'
@@ -2628,6 +2629,55 @@ function witchsBargainTable(silenced: boolean, annAway: boolean): PlayedTable {
             siteCards: fixtureSitesOnTheBoard(),
             denizensBySite: { [home]: [] },
             oathRevision: OathRevision.EngineFixes3
+        }
+    )
+    openTurn(state, 'dana')
+    state.activePlayerIds = ['dana']
+    return tableOf(state)
+}
+
+/**
+ * Witch's Bargain from revision 32, its exchanges steps in order: Dana (Exile) holds it, 2 secrets
+ * (1 to give after the cost) and no favor; Rhys (Exile) 2 favor and 1 secret; Ann, the Chancellor,
+ * 1 favor and 1 secret. All three pawns are at the top Cradle site.
+ */
+function witchsBargainStepsTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: home,
+                favor: 0,
+                secrets: 2,
+                advisers: [{ cardId: 'denizen.arcane.witchs-bargain', faceUp: true }]
+            }),
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Blue,
+                status: PlayerStatus.Exile,
+                siteId: home,
+                favor: 2,
+                secrets: 1
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: home,
+                favor: 1,
+                secrets: 1
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: [] },
+            oathRevision: OathRevision.EngineFixes27
         }
     )
     openTurn(state, 'dana')
@@ -5533,6 +5583,7 @@ const TABLES: Record<TableName, () => PlayedTable | Promise<PlayedTable>> = {
     witchsBargain: () => witchsBargainTable(false, false),
     witchsBargainSilenced: () => witchsBargainTable(true, false),
     witchsBargainOneOther: () => witchsBargainTable(false, true),
+    witchsBargainSteps: witchsBargainStepsTable,
     modifierTravel: () => modifierTable('modifierTravel'),
     modifierMuster: () => modifierTable('modifierMuster'),
     modifierTrade: () => modifierTable('modifierTrade'),

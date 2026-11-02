@@ -9895,6 +9895,133 @@ test.describe('Witch’s Bargain: the players at your site, then your pieces for
     }
 })
 
+const thenChip = (page: Page, name: string) =>
+    bargainEntry(page).locator('[data-bargain-then]').getByRole('button', { name, exact: true })
+const doneLines = (page: Page) => bargainEntry(page).locator('[data-bargain-done]')
+
+/**
+ * Witch's Bargain from revision 32: the exchanges are steps in order, each using what Dana holds
+ * then. Dana (no favor, 2 secrets, 1 to give after the cost), Rhys (2 favor, 1 secret) and Ann
+ * (1 favor, 1 secret) share one site.
+ */
+test.describe('Witch’s Bargain from revision 32: steps in order, each on what you hold then', () => {
+    test('Rhys’s secret, then “Then: Ann”: Rhys’s step becomes a line, Ann’s rows show the favor Rhys gave; Use makes both in order', async ({
+        page
+    }) => {
+        await openTable(page, 'witchsBargainSteps')
+        await usePower(page).click()
+        await expect(bargainEntry(page)).toContainText('With:')
+        await bargainChip(page, 'rhys').click()
+        // 2 secrets, the 2nd the cost's; no favor yet, so no pairs row and no "Then:".
+        await expect(secretPieces(page, 'rhys')).toHaveCount(2)
+        await expect(secretPieces(page, 'rhys').nth(1)).toBeDisabled()
+        await expect(bargainEntry(page).locator('[data-bargain-row="pairs"]')).toHaveCount(0)
+        await expect(bargainEntry(page).locator('[data-bargain-then]')).toHaveCount(0)
+
+        await answer(page, 'give rhys 1 secret for 2 favor').click()
+        await expect(favorPairs(page, 'rhys')).toHaveCount(1)
+        await expect(bargainEntry(page).locator('[data-bargain-then]')).toContainText('Then:')
+        await expect(thenChip(page, 'ann')).toHaveCount(1)
+        await expect(thenChip(page, 'rhys')).toHaveCount(0)
+
+        await thenChip(page, 'ann').click()
+        await expect(doneLines(page)).toHaveCount(1)
+        await expect(doneLines(page)).toContainText(/rhys\s*:\s*give 1\s*for 2/)
+        await expect(doneLines(page).locator('img')).toHaveCount(2)
+        await expect(bargainChip(page, 'ann')).toHaveAttribute('aria-pressed', 'true')
+        await expect(bargainEntry(page)).not.toContainText('With:')
+        // Dana holds no secret at this step: that row is hidden; the 2 favor Rhys gave make a pair.
+        await expect(bargainEntry(page).locator('[data-bargain-row="secrets"]')).toHaveCount(0)
+        await expect(favorPairs(page, 'ann')).toHaveCount(1)
+        await answer(page, 'give ann 2 favor for 1 secret').click()
+        // Nothing is left to exchange with Rhys.
+        await expect(bargainEntry(page).locator('[data-bargain-then]')).toHaveCount(0)
+
+        await bargainUse(page).click()
+        await expect
+            .poll(async () => (await call(page, 'tableFacts')).secretsOn[WITCHS_BARGAIN])
+            .toBe(1)
+        const facts = await call(page, 'tableFacts')
+        expect(facts.secretsOf).toEqual({ dana: 1, rhys: 2, ann: 0 })
+        expect(facts.favorOf).toEqual({ dana: 0, rhys: 0, ann: 3 })
+        await page.getByRole('tab', { name: 'History' }).click()
+        await expect(page.locator('.history')).toContainText(
+            /gave\s*rhys\s*1\s*for 2\s*, then gave\s*ann\s*2\s*for 1/
+        )
+        await expect(page.locator('.history')).not.toContainText('0 favor')
+    })
+
+    test('Undo takes back one tap at a time; a tap on the open step’s chip drops it', async ({
+        page
+    }) => {
+        await openTable(page, 'witchsBargainSteps')
+        await usePower(page).click()
+        await bargainChip(page, 'rhys').click()
+        await answer(page, 'give rhys 1 secret for 2 favor').click()
+        await thenChip(page, 'ann').click()
+        await answer(page, 'give ann 2 favor for 1 secret').click()
+
+        await undoButton(page).click()
+        await expect(answer(page, 'give ann 2 favor for 1 secret')).toHaveAttribute(
+            'aria-pressed',
+            'false'
+        )
+        await expect(bargainUse(page)).toBeVisible()
+        await undoButton(page).click()
+        await expect(doneLines(page)).toHaveCount(0)
+        await expect(thenChip(page, 'ann')).toHaveCount(1)
+        await thenChip(page, 'ann').click()
+        // Ann's chip, picked for the open step, drops it: Rhys's step is open again.
+        await bargainChip(page, 'ann').first().click()
+        await expect(doneLines(page)).toHaveCount(0)
+        await expect(answer(page, 'give rhys 1 secret for 2 favor')).toHaveAttribute(
+            'aria-pressed',
+            'true'
+        )
+        // Back: the drop, the tap on Ann, then Rhys's secret.
+        await undoButton(page).click()
+        await expect(doneLines(page)).toHaveCount(1)
+        await undoButton(page).click()
+        await expect(doneLines(page)).toHaveCount(0)
+        await undoButton(page).click()
+        await expect(answer(page, 'give rhys 1 secret for 2 favor')).toHaveAttribute(
+            'aria-pressed',
+            'false'
+        )
+        await expect(bargainUse(page)).toHaveCount(0)
+    })
+
+    test('at 375: every chip, piece and pair a 44 px target inside the panel; Use 44 px', async ({
+        page
+    }) => {
+        await page.setViewportSize({ width: 375, height: 812 })
+        await openTable(page, 'witchsBargainSteps')
+        await usePower(page).click()
+        await bargainChip(page, 'rhys').click()
+        await answer(page, 'give rhys 1 secret for 2 favor').click()
+        const panel = await boxOf(grid(page))
+        const targets = [
+            bargainChip(page, 'rhys'),
+            thenChip(page, 'ann'),
+            secretPieces(page, 'rhys').first(),
+            favorPairs(page, 'rhys').first()
+        ]
+        for (const target of targets) {
+            expect((await layoutSizeOf(target))?.height).toBeGreaterThanOrEqual(44)
+            expect(inside(await boxOf(target), panel)).toBe(true)
+        }
+        await thenChip(page, 'ann').click()
+        const pair = favorPairs(page, 'ann').first()
+        expect(await layoutSizeOf(pair)).toEqual({ width: 66, height: 44 })
+        expect(inside(await boxOf(pair), panel)).toBe(true)
+        const use = bargainUse(page)
+        await use.scrollIntoViewIfNeeded()
+        expect((await layoutSizeOf(use))?.height).toBeGreaterThanOrEqual(44)
+        expect(inside(await boxOf(use), await boxOf(grid(page)))).toBe(true)
+        expect(await clippedLabels(page)).toEqual([])
+    })
+})
+
 /** Dragonskin Drum when a power moves its holder (revision 7): one question after the move, in the Toll Roads form. */
 test.describe('Dragonskin Drum when a power moves its holder', () => {
     const answers = (page: Page) => ({
