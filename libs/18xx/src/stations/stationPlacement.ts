@@ -79,7 +79,7 @@ export class StationPlacement {
     ) {
         this.mapState = new RailwayMapState(rules.map, rules.tileSet, state.tileInventory)
     }
-    canAct(playerId: string, companyId: string): boolean {
+    canAct(playerId: string | undefined, companyId: string): boolean {
         const step = this.state.stationStep
         return (
             step?.companyId === companyId &&

@@ -16,6 +16,7 @@ import {
     type StationPlacementState,
     type StationRules
 } from './stationPlacement.js'
+import { actionMayOperate, automaticStepCredit } from '../finance/receivership.js'
 
 type State = HydratedGameState & OperatingState & StationPlacementState & ConstructionState
 
@@ -51,7 +52,7 @@ export class StationsWithTrackHandler<S extends State> implements MachineStateHa
         if (state.trackStep?.completed)
             context.addSystemAction(FinishStations, {
                 companyId,
-                playerId: state.activePlayerIds[0]
+                ...automaticStepCredit(state, companyId)
             })
     }
     validActionsForPlayer(playerId: string, context: MachineContext<S>): string[] {
@@ -71,7 +72,7 @@ export class StationsWithTrackHandler<S extends State> implements MachineStateHa
                 !!state.trackStep?.completed &&
                 state.stationStep?.companyId === action.companyId &&
                 !state.stationStep.completed &&
-                state.isActivePlayer(action.playerId)
+                actionMayOperate(state, action, action.companyId)
             )
         if (!isPlaceStation(action)) return this.handler.isValidAction(action, context)
         const placement = new StationPlacement(state, this.rules)

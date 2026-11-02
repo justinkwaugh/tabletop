@@ -215,6 +215,23 @@ describe('1846 bankruptcy and receivership', () => {
         expect(finiteCashOwnedBy(table.state, treasury)).toBe(0)
         expect(inReceivership(table.state, 'IC')).toBe(true)
     })
+    it('credits no player with what the System did for a receiver', () => {
+        const { table } = funding(40, 20)
+        const { actions, declared } = goBankrupt(table)
+        const automatic = actions.slice(actions.indexOf(declared) + 1)
+        for (const type of ['BuyTrain', 'FinishOperatingTurn']) {
+            const action = automatic.find((action) => action.type === type)
+            expect(action?.source).toBe(ActionSource.System)
+            expect(action).not.toHaveProperty('playerId')
+        }
+    })
+    it('records a new president’s funded purchase as theirs', () => {
+        const { table } = funding()
+        giveShares(table, 'IC', 'p2', 2)
+        setCash(table, { kind: 'player', playerId: 'p2' }, 500)
+        const { actions } = goBankrupt(table)
+        expect(actions.find((action) => action.type === 'BuyTrain')?.playerId).toBe('p2')
+    })
     it('buys the cheaper phase-II face and resumes receiver completion after advancing phase', () => {
         const { table } = funding(40, 100)
         table.state.trainInventory.trains = table.state.trainInventory.trains.filter(
@@ -235,6 +252,9 @@ describe('1846 bankruptcy and receivership', () => {
         ])
         expect(table.state.phaseId).toBe('II')
         expect(table.state.phaseChange).toBeUndefined()
+        expect(actions.find((action) => action.type === 'AdvancePhase')).not.toHaveProperty(
+            'playerId'
+        )
         expect(trainsOwnedBy(table.state, treasury).map((train) => train.definitionId)).toEqual([
             '3/5'
         ])
@@ -257,14 +277,22 @@ describe('1846 bankruptcy and receivership', () => {
             const result = table.act('FinishTrack', { companyId: 'MS' })
             const types = result.processedActions.map((action) => action.type)
             expect(types).toContain('StartOperatingTurn')
-            expect(result.processedActions).toContainEqual(
-                expect.objectContaining({
-                    type: 'DistributeEarnings',
-                    source: ActionSource.System,
-                    companyId: 'IC',
-                    choice: 'withhold'
-                })
+            const withheld = result.processedActions.find(
+                (action) => action.type === 'DistributeEarnings'
             )
+            expect(withheld).toMatchObject({
+                source: ActionSource.System,
+                companyId: 'IC',
+                choice: 'withhold'
+            })
+            expect(withheld).not.toHaveProperty('playerId')
+            for (const step of result.processedActions.filter(
+                (action) =>
+                    'companyId' in action &&
+                    action.companyId === 'IC' &&
+                    action.source === ActionSource.System
+            ))
+                expect(step).not.toHaveProperty('playerId')
             expect(getCompany(table.state, 'IC').closed ?? false).toBe(closed)
             if (after !== undefined) {
                 expect(Market1846.companySpace(table.state.stockMarket, 'IC').price).toBe(after)

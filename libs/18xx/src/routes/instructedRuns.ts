@@ -152,18 +152,19 @@ export function nextInstructedRun(
 
 export function isInstructedRun(
     state: RunInstructionState,
-    action: { playerId: string; companyId: string; routes: readonly TrainRoute[] }
+    action: { playerId?: string; companyId: string; routes: readonly TrainRoute[] }
 ): boolean {
+    if (action.playerId === undefined) return false
     const run = nextInstructedRun(state, action.playerId, action.companyId)
     return !!run && Value.Equal(run.routes, action.routes)
 }
 
 export function isInstructedPayout(
     state: RunInstructionState,
-    action: { playerId: string; companyId: string; choice: EarningsChoice }
+    action: { playerId?: string; companyId: string; choice: EarningsChoice }
 ): boolean {
     const standing = standingRunInstructionFor(state, action.companyId)
-    return standing?.playerId === action.playerId && standing.payout === action.choice
+    return !!standing && standing.playerId === action.playerId && standing.payout === action.choice
 }
 
 /** The last run stays for a later turn whose client attached none. */

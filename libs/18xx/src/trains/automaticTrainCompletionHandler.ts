@@ -42,6 +42,7 @@ export class AutomaticTrainCompletionHandler<
             (isFinishOperatingTurn(action) || isFinishTrains(action)) &&
             action.source === ActionSource.System &&
             action.companyId === context.gameState.trainPurchaseStep?.companyId &&
+            action.playerId !== undefined &&
             this.onlyFinish(context, action.playerId) === action.type
         )
             return true

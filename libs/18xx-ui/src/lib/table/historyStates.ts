@@ -1,9 +1,4 @@
-import {
-    inReceivership,
-    type EighteenXXState,
-    type EndingRules,
-    type GameEnding
-} from '@tabletop/18xx'
+import type { EighteenXXState, EndingRules, GameEnding } from '@tabletop/18xx'
 import { assert, RecordedHistory, type GameAction, type RecordedTransition } from '@tabletop/common'
 
 function selectHistoryState(
@@ -28,9 +23,6 @@ function selectHistoryState(
         set: state.operatingSet?.number ?? 1,
         round: state.operatingSet?.roundNumber ?? 1,
         order: state.operatingSet?.companyOrder ?? [],
-        receiverCompanyIds: state.companies
-            .filter((company) => inReceivership(state, company.id))
-            .map((company) => company.id),
         bankBroken: !!state.bank.broken,
         ending: ending ? { lastRound: lastOperatingRound(state, ending) } : undefined,
         auction: !!(

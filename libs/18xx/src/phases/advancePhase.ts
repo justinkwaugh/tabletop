@@ -23,6 +23,8 @@ import {
 } from './phaseChange.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
 import { NoTitleChanges } from '../actions/titleChanges.js'
+import { automaticStepCredit } from '../finance/receivership.js'
+import { nextOperatingCompany } from '../operating/operatingSet.js'
 export type AdvancePhaseSchema<Changes extends Type.TSchema = NoTitleChanges> = Type.TObject<
     Omit<typeof GameAction.properties, 'type'> & {
         type: Type.TLiteral<'AdvancePhase'>
@@ -124,7 +126,14 @@ export class AdvancingPhaseHandler implements MachineStateHandler<
         return []
     }
     enter(context: MachineContext<HydratedGameState & PhaseChangeState>): void {
-        context.addSystemAction(AdvancePhase, { playerId: context.gameState.activePlayerIds[0] })
+        const state = context.gameState
+        const companyId = nextOperatingCompany(state)
+        context.addSystemAction(
+            AdvancePhase,
+            companyId
+                ? automaticStepCredit(state, companyId)
+                : { playerId: state.activePlayerIds[0] }
+        )
     }
     onAction(action: HydratedAdvancePhase): string {
         assert(action.metadata, 'Phase advancement requires its outcome')

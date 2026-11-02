@@ -34,6 +34,7 @@ export type GoBankruptSchema<Changes extends Type.TSchema = TitleChanges> = Type
                 changes: Changes
                 forgiven: Type.TInteger
                 surrendered: Type.TOptional<typeof CashPayment>
+                presidedCompanyId: Type.TOptional<Type.TString>
                 continuation: Type.TOptional<Type.TString>
                 roundEnd: Type.TOptional<typeof RoundEnd>
             }>
@@ -54,6 +55,7 @@ export function goBankruptSchema<Changes extends Type.TSchema>(
                         changes,
                         forgiven: Type.Integer({ minimum: 1 }),
                         surrendered: Type.Optional(CashPayment),
+                        presidedCompanyId: Type.Optional(Type.String()),
                         continuation: Type.Optional(Type.String()),
                         roundEnd: Type.Optional(RoundEnd)
                     },
@@ -93,6 +95,18 @@ export class HydratedGoBankrupt extends HydratableAction<typeof GoBankrupt> impl
             this.source === ActionSource.User && debt?.playerId === this.playerId,
             'Only the player in debt may go bankrupt'
         )
+        const operatingCompany = () =>
+            crisis.continuation !== BetweenCompaniesState &&
+            state.operatingSet &&
+            !state.operatingSet.completed
+                ? nextOperatingCompany(state)
+                : undefined
+        const operatingAtBankruptcy = operatingCompany()
+        const presidedCompanyId =
+            operatingAtBankruptcy &&
+            controllingOwner(state, operatingAtBankruptcy)?.playerId === this.playerId
+                ? operatingAtBankruptcy
+                : undefined
         const { changes, surrendered } = eliminatePlayer(
             state,
             this.playerId,
@@ -100,12 +114,7 @@ export class HydratedGoBankrupt extends HydratableAction<typeof GoBankrupt> impl
             { kind: 'bank' }
         )
         // A company left without a president cannot finish its own turn.
-        const companyId =
-            crisis.continuation !== BetweenCompaniesState &&
-            state.operatingSet &&
-            !state.operatingSet.completed
-                ? nextOperatingCompany(state)
-                : undefined
+        const companyId = operatingCompany()
         const abandoned = !!companyId && !controllingOwner(state, companyId)
         if (companyId && abandoned) {
             abandonOperatingTurn(state, companyId)
@@ -118,6 +127,7 @@ export class HydratedGoBankrupt extends HydratableAction<typeof GoBankrupt> impl
             changes,
             forgiven,
             ...(surrendered ? { surrendered } : {}),
+            ...(presidedCompanyId ? { presidedCompanyId } : {}),
             ...(continuation ? { continuation } : {}),
             ...(ended ? { roundEnd: ended } : {})
         }

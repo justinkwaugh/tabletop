@@ -1,6 +1,6 @@
-import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
+import { EighteenXXOperatingAction } from '../actions/eighteenXXPlayerAction.js'
 import { CompanyChanges, CompanyChangeRecorder } from '../company/companyChanges.js'
-import { inReceivership } from '../finance/receivership.js'
+import { actionMayOperate, inReceivership } from '../finance/receivership.js'
 import { completesFundedPurchase, type FundingState } from '../funding/trainFunding.js'
 import { preparePhaseChange, type PhaseState } from '../phases/phaseChange.js'
 import * as Type from 'typebox'
@@ -29,7 +29,7 @@ import {
 } from './trainDepartures.js'
 export const BuyTrain = Type.Object(
     {
-        ...EighteenXXPlayerAction.properties,
+        ...EighteenXXOperatingAction.properties,
         ...TrainPurchaseRequest.properties,
         type: Type.Literal('BuyTrain'),
         expectedPrice: Type.Integer({ minimum: 0 }),
@@ -56,7 +56,7 @@ export function isBuyTrain(action: GameAction): action is BuyTrain {
 }
 export class HydratedBuyTrain extends HydratableAction<typeof BuyTrain> implements BuyTrain {
     declare type: 'BuyTrain'
-    declare playerId: string
+    declare playerId?: string
     declare companyId: string
     declare trainId: string
     declare definitionId: string
@@ -80,7 +80,7 @@ export class HydratedBuyTrain extends HydratableAction<typeof BuyTrain> implemen
                 (this.source === ActionSource.System &&
                     (inReceivership(state, this.companyId) ||
                         completesFundedPurchase(state, this.companyId)))) &&
-                state.activePlayerIds.includes(this.playerId) &&
+                actionMayOperate(state, this, this.companyId) &&
                 purchase.canAct(this.playerId, this.companyId),
             'Only the operating company’s controlling owner may buy trains'
         )

@@ -1374,7 +1374,7 @@ Spreadsheet's Current / Income toggle switches to chronological OR rows with pla
 
 Income calculation receives only visible context actions; it does not read or reconstruct game states.
 
-Current ownership cells show the shared President badge for the company's canonical president in either orientation. Corporate presidencies are marked in that company's cell (such as Union Bank), never its controlling player's cell. Share numbers stay centered independently of the badge. The visible top of the P aligns with the top of the share number.
+Current ownership cells show the shared President badge for the company's canonical president in either orientation. Corporate presidencies are marked in that company's cell (such as Union Bank), never its controlling player's cell. A company in receivership has its badge in the Market cell, and on the Market row of its company card, because the president's certificate lies there; the cell keeps it while the shares are on offer. The card has no other mark of receivership. Share numbers stay centered independently of the badge. The visible top of the P aligns with the top of the share number.
 
 Where a title has an IPO pool, a Par line sits between the owners and the IPO: a row in Player view and a column in Company view, ruled off by the stronger divider on both sides like Value. It shows a company's par, the price of an IPO share, only while that company is started, not closed and has shares in the IPO; other companies show a dash. The line is absent when no company has IPO shares for sale, and for titles whose price presentation hides par. Its blank intersections with owner statistics carry the pool divider once, on the Par line. Par is not a sort header.
 
@@ -1462,12 +1462,14 @@ Groups follow the selected history order, with events chronological inside each 
 turn completion ends a group even if the same player acts next. A funding sale's
 company identifies the shares sold, not the operating company; it remains with
 that company's funding sequence. Actor changes within an operation remain visible.
-What a company in receivership does automatically credits no player, although the System
-records it under one of the players acting for it: the row names no actor, and says in its
-detail that it was automatic because the company has no president. A choice a player makes
-for such a company still names them. A company with no operating player has no actor in its
-header. The operation in which a president goes bankrupt keeps that president in its header,
-including when a new president or a receiver finishes it.
+The System takes a company in receivership's automatic steps with no player, so their rows name
+no actor; the train it buys and the earnings it withholds also say in their detail that they
+were automatic because the company has no president. A choice a player makes for a company in receivership still names them.
+An operation's header names who finished it, the controlling player while it is under way, and
+no one when the System finished it with no player. The operation in which its
+president goes bankrupt keeps that president in its header, including when a new president or
+a receiver finishes it, and so does an operation that ends with the company closing. An Action
+recorded with a player keeps that credit.
 
 Summaries use processed action outcomes for money, dividends, purchases, phase
 changes and rusting. Bookkeeping finish steps are omitted from the displayed history. Stock actions

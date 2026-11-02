@@ -99,6 +99,12 @@ export function closeCorporationSchema<Closure extends Type.TProperties>(
 const CloseCorporationBase = closeCorporationSchema(CompanyClosure.properties, true)
 export type CloseCorporation = Type.Static<typeof CloseCorporationBase>
 const CloseCorporationValidator = Compile(CloseCorporationBase)
+export function isCloseCorporation(action: GameAction): action is CloseCorporation {
+    return (
+        action instanceof HydratedCloseCorporation ||
+        (action.type === 'CloseCorporation' && CloseCorporationValidator.Check(action))
+    )
+}
 
 export class HydratedCloseCorporation extends HydratableAction<typeof CloseCorporationBase> {
     declare companyId: string

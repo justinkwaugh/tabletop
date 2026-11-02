@@ -106,7 +106,7 @@ function runPositions<State>(
     for (const { action, after } of cascade.transitions) {
         if (action.source === ActionSource.System && isRunTrains(action)) {
             const standing = standingRunInstructionFor(read(before), action.companyId)
-            if (standing?.playerId === action.playerId)
+            if (standing && standing.playerId === action.playerId)
                 add(action.companyId, before, standing.runs[0])
         }
         before = after

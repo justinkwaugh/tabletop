@@ -9,6 +9,11 @@ export const EighteenXXPlayerAction = Type.Object({
     instructedRuns: Type.Optional(InstructedRunAttachments)
 })
 
+export const EighteenXXOperatingAction = Type.Object({
+    ...EighteenXXPlayerAction.properties,
+    playerId: Type.Optional(Type.String())
+})
+
 const AttachmentsValidator = Compile(InstructedRunAttachments)
 
 export function instructedRunsOf(action: GameAction): InstructedRunAttachment[] | undefined {

@@ -7,8 +7,8 @@
     import { entryOrderChanges, historyOperatingOrder } from './historyOperatingOrder.js'
     import { historyRounds } from './historyRounds.js'
     import { auctionLotName } from './auctionHistory.js'
-    import { historyGroups } from './historyGroups.js'
-    import { withoutReceiverActor } from './historyReceiver.js'
+    import { historyGroups, operatingPlayerOf } from './historyGroups.js'
+    import { describeAutomaticStep } from './historyAutomaticStep.js'
     import {
         companyLabels,
         historyDescription,
@@ -97,10 +97,9 @@
     }
     function describe(action: GameAction) {
         const shared = () => describeShared(action)
-        const description = withoutReceiverActor(
+        const description = describeAutomaticStep(
             action,
-            describeAction?.(action, titleNames, shared) ?? shared(),
-            states
+            describeAction?.(action, titleNames, shared) ?? shared()
         )
         return entryOrders.has(action.id) ? { ...description, important: true } : description
     }
@@ -168,7 +167,13 @@
                                 : undefined}
                             playerName={(id) => session.getPlayerName(id)}
                             playerColor={(id) => session.colors.getPlayerBgColorValue(id)}
-                            currentController={(id) => controllingOwner(gameState, id)?.playerId}
+                            operatingPlayerId={entry.kind === 'operation'
+                                ? operatingPlayerOf(
+                                      entry,
+                                      actions,
+                                      (id) => controllingOwner(gameState, id)?.playerId
+                                  )
+                                : entry.playerId}
                             phasePalette={session.phaseChangePalette}
                             {trainColors}
                             shareCards={(action) => session.shareCards(action)}

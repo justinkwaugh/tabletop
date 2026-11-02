@@ -1,7 +1,6 @@
 import {
     Phases1846,
     TrainDepot1846,
-    inReceivership,
     MarketZoneColors1846,
     ownsTunnelBlasting,
     TunnelBlastingDiscount,
@@ -100,7 +99,5 @@ export const Presentation1846: TitlePresentation<EighteenFortySixProjectedState>
         abbreviation: 'Draft',
         inProgress: (state) =>
             ['Drafting', 'RevealingDraft', 'BuyingOpeningCompanies'].includes(state.machineState)
-    },
-    companyFacts: (state, id) =>
-        inReceivership(state, id) ? [{ label: 'Control', value: 'Receivership' }] : []
+    }
 }

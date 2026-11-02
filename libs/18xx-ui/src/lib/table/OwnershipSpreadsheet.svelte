@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { holdsReceiverPresidentCertificate } from '../finance/companyOwnership.js'
     import { chainSidewaysScroll } from '@tabletop/frontend-components'
     import CertificateCount from '../stock/CertificateCount.svelte'
     import { cashText, optionalMoney } from '../presentation/money.js'
@@ -453,7 +454,9 @@
                   ? `player:${company.president.playerId}`
                   : company.president?.kind === 'company'
                     ? `company:${company.president.companyId}`
-                    : undefined,
+                    : holdsReceiverPresidentCertificate(session.gameState, company.id, marketPoolId)
+                      ? 'market'
+                      : undefined,
             shares: owners.map((owner) => owner.count(company.id)),
             shareNumbers: owners.map((owner) => playerShareNumbers(owner.id, company.id))
         }))
@@ -687,7 +690,7 @@
                 aria-label={`Buy ${session.companyName(companyId)} from ${owners.find((owner) => owner.id === ownerId)?.name}`}
                 onclick={(event) =>
                     openShareConfirmation(event, { kind: 'buy', request: purchase.request })}
-                ><span class="share-value">{shares}</span></button
+                >{@render shareValue(String(shares), president)}</button
             >
         {:else if saleChoices.length}
             <button

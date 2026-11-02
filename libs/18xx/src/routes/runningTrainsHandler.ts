@@ -11,6 +11,7 @@ import {
 import { RunTrains, isRunTrains, type HydratedRunTrains } from './runTrains.js'
 import { RouteEvaluation, type RouteRules } from './routeEvaluation.js'
 import type { TrainRunningState } from './route.js'
+import { actionMayOperate, automaticStepCredit } from '../finance/receivership.js'
 type State = HydratedGameState & OperatingState & TrainRunningState
 export class RunningTrainsHandler implements MachineStateHandler<HydratedRunTrains, State> {
     constructor(
@@ -27,8 +28,7 @@ export class RunningTrainsHandler implements MachineStateHandler<HydratedRunTrai
                     action.routes.length === 0 &&
                     new RouteEvaluation(state, this.rules).cannotRun(action.companyId)
                 )) ||
-            !action.playerId ||
-            !state.activePlayerIds.includes(action.playerId)
+            !actionMayOperate(state, action, action.companyId)
         )
             return false
         const running = new RouteEvaluation(state, this.rules)
@@ -61,7 +61,7 @@ export class RunningTrainsHandler implements MachineStateHandler<HydratedRunTrai
         ) {
             context.addSystemAction(RunTrains, {
                 companyId,
-                playerId: state.activePlayerIds[0],
+                ...automaticStepCredit(state, companyId),
                 routes: []
             })
         }

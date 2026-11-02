@@ -43,6 +43,7 @@ export class FundingTrainHandler<
         const next = new EmergencyTrainFunding(state, this.rules, this.stocks, this.trains).next()
         return (
             action instanceof HydratedBuyTrain &&
+            action.playerId !== undefined &&
             action.playerId === state.trainFunding?.playerId &&
             state.activePlayerIds.includes(action.playerId) &&
             next.kind === 'buy' &&

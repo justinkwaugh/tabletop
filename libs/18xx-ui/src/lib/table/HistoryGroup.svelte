@@ -14,7 +14,7 @@
         isDistributeEarnings,
         isFloatCompany
     } from '@tabletop/18xx'
-    import { operatingPlayerOf, type HistoryGroup } from './historyGroups.js'
+    import type { HistoryGroup } from './historyGroups.js'
     import { afterPlayerName, type HistoryDescription } from './historyDescription.js'
     import ShareCardStrip from './ShareCardStrip.svelte'
     import { shareSign, type ShareCard } from './shareCards.js'
@@ -42,7 +42,7 @@
         appearance,
         playerName,
         playerColor,
-        currentController,
+        operatingPlayerId,
         describe,
         companyName,
         companyLabels,
@@ -76,7 +76,7 @@
         appearance?: StationAppearance
         playerName: (id: string) => string
         playerColor: (id: string) => string
-        currentController: (companyId: string) => string | undefined
+        operatingPlayerId: string | undefined
         describe: (action: GameAction) => HistoryDescription
         companyName: (id: string) => string
         companyLabels: readonly string[]
@@ -90,11 +90,6 @@
         group.kind === 'operation' && group.companyId
             ? cash.get(group.actions.at(-1)!.id)?.after.get(group.companyId)
             : undefined
-    )
-    const operatingPlayerId = $derived(
-        group.kind === 'operation'
-            ? operatingPlayerOf(group, (action) => !!describe(action).omitActor, currentController)
-            : group.playerId
     )
     const operatingCompanyId = $derived(group.kind === 'operation' ? group.companyId : undefined)
     const rows = $derived(
@@ -253,7 +248,7 @@
                             {/if}
                         </span>
                         {#if group.companyId && operatingPlayerId}<span class="actor"
-                                >{playerName(operatingPlayerId ?? '')}</span
+                                >{playerName(operatingPlayerId)}</span
                             >{/if}
                     </span>
                 </div>
