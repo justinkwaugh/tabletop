@@ -1,30 +1,35 @@
 <script lang="ts">
     import type { BoundingBox } from '@tabletop/common'
-    import { UNCOVERED_RED_TILES_AT_END } from '@tabletop/promontory-point'
     import { townTileImage } from '$lib/images/tileImages.js'
+    import { BAG_COUNT_X, END_TRACKER_ROWS } from '$lib/utils/boardGeometry.js'
     import type { EndTrackerStatus } from '$lib/utils/boardLayout.js'
-    import { localHexPoints, pointsAttribute } from '$lib/utils/boardLayout.js'
+    import {
+        TOWN_TILE_ROTATION,
+        endTrackerLines,
+        localHexPoints,
+        pointsAttribute
+    } from '$lib/utils/boardLayout.js'
     import StripCard from './StripCard.svelte'
 
-    let { status, box }: { status: EndTrackerStatus; box: BoundingBox } = $props()
+    let {
+        status,
+        bagRemaining,
+        box
+    }: { status: EndTrackerStatus; bagRemaining: number; box: BoundingBox } = $props()
 
     const uid = $props.id()
     const clipId = `pp-end-tracker-${uid}`
-    const icon = pointsAttribute(localHexPoints(0.42))
-    const rows = { red: 170, promontory: 320 }
-    const iconX = 80
-    const textX = 160
-    const lineGap = 30
+    const icon = pointsAttribute(localHexPoints(0.36))
+    const tickX = 68
+    const tickRadius = 30
+    const iconX = 152
+    const textX = 212
     const redTile = townTileImage('tile.red.dividend')
-    const redLine = $derived(
-        `${status.redTilesUncovered} red ${status.redTilesUncovered === 1 ? 'town' : 'towns'} open`
-    )
-    const redNote = $derived(
-        `at most ${UNCOVERED_RED_TILES_AT_END}${status.redTilesMet ? ' ✓' : ''}`
-    )
+    const lines = $derived(endTrackerLines(status))
 </script>
 
-<!-- R-6.1, R-6.1-H1: the game ends after a turn once both lines are met. -->
+<!-- R-6.1, R-6.1-H1: the game ends after a turn once both lines are ticked; R-6.1-H2: or once
+     the bag runs out, its count at the foot. A tick is a ✓ in a filled ring, never colour alone. -->
 <g
     data-end-tracker
     data-red-tiles-uncovered={status.redTilesUncovered}
@@ -37,44 +42,120 @@
                 <polygon points={icon}></polygon>
             </clipPath>
         </defs>
-        <g transform="translate({iconX} {rows.red})">
-            <g clip-path="url(#{clipId})">
-                <image href={redTile.src} x="-52" y="-52" width="104" height="104"></image>
+        {#each lines as line (line.key)}
+            {@const y = END_TRACKER_ROWS[line.key]}
+            <g data-end-condition={line.key} data-met={line.met}>
+                <g
+                    transform="translate({tickX} {y})"
+                    role="img"
+                    aria-label={line.met ? 'met' : 'not met'}
+                    data-end-tick={line.met ? 'met' : 'open'}
+                >
+                    {#if line.met}
+                        <circle r={tickRadius} fill="var(--pp-ok)"></circle>
+                        <path
+                            d="M-14 1 L-4 12 L15 -11"
+                            fill="none"
+                            stroke="var(--pp-rr-ink)"
+                            stroke-width="8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        ></path>
+                    {:else}
+                        <circle
+                            r={tickRadius - 3}
+                            fill="none"
+                            stroke="var(--pp-ink-sub)"
+                            stroke-width="6"
+                        ></circle>
+                    {/if}
+                </g>
+                <g transform="translate({iconX} {y})">
+                    {#if line.key === 'red'}
+                        <g clip-path="url(#{clipId})">
+                            <image
+                                href={redTile.src}
+                                x="-46"
+                                y="-46"
+                                width="92"
+                                height="92"
+                                transform="rotate({TOWN_TILE_ROTATION})"
+                                data-end-icon="red"
+                            ></image>
+                        </g>
+                    {:else}
+                        <polygon
+                            points={icon}
+                            fill="var(--pp-charcoal)"
+                            stroke="var(--pp-ink)"
+                            stroke-width="5"
+                        ></polygon>
+                    {/if}
+                </g>
+                <text
+                    x={textX}
+                    {y}
+                    class="pp-board-line"
+                    font-size="48"
+                    fill="var(--pp-ink)"
+                    data-end-line={line.key}>{line.text}</text
+                >
             </g>
+        {/each}
+
+        <!-- The other way the game ends. -->
+        <g data-end-or>
+            <line
+                x1="50"
+                x2={box.width / 2 - 50}
+                y1={END_TRACKER_ROWS.or}
+                y2={END_TRACKER_ROWS.or}
+                stroke="var(--pp-brown)"
+                stroke-opacity="0.6"
+                stroke-width="4"
+            ></line>
+            <text
+                x={box.width / 2}
+                y={END_TRACKER_ROWS.or}
+                class="pp-board-figure pp-board-italic"
+                font-size="46"
+                fill="var(--pp-ink-sub)">or</text
+            >
+            <line
+                x1={box.width / 2 + 50}
+                x2={box.width - 50}
+                y1={END_TRACKER_ROWS.or}
+                y2={END_TRACKER_ROWS.or}
+                stroke="var(--pp-brown)"
+                stroke-opacity="0.6"
+                stroke-width="4"
+            ></line>
         </g>
-        <text
-            x={textX}
-            y={rows.red - lineGap}
-            class="pp-board-line"
-            font-size="50"
-            fill="var(--pp-ink)"
-            data-end-line="red">{redLine}</text
-        >
-        <text
-            x={textX}
-            y={rows.red + lineGap}
-            class="pp-board-line pp-board-italic"
-            font-size="44"
-            fill="var(--pp-ink-sub)">{redNote}</text
-        >
-        <g transform="translate({iconX} {rows.promontory})">
-            <polygon points={icon} fill="var(--pp-charcoal)" stroke="var(--pp-ink)" stroke-width="5"
-            ></polygon>
+
+        <!-- R-1.3, R-5: the bag shows how many pieces are left, never which. -->
+        <g data-bag={bagRemaining}>
+            <text
+                x={BAG_COUNT_X}
+                y={END_TRACKER_ROWS.bag}
+                class="pp-board-figure"
+                font-size="120"
+                fill="var(--pp-ink)"
+                data-bag-count>{bagRemaining}</text
+            >
+            <text
+                x={textX + 20}
+                y={END_TRACKER_ROWS.bag - 28}
+                class="pp-board-line pp-board-italic"
+                font-size="46"
+                fill="var(--pp-ink-sub)">{bagRemaining === 1 ? 'piece left' : 'pieces left'}</text
+            >
+            <text
+                x={textX + 20}
+                y={END_TRACKER_ROWS.bag + 30}
+                class="pp-board-line pp-board-italic"
+                font-size="46"
+                fill="var(--pp-ink-sub)">in the bag</text
+            >
         </g>
-        <text
-            x={textX}
-            y={rows.promontory - lineGap}
-            class="pp-board-line"
-            font-size="50"
-            fill="var(--pp-ink)"
-            data-end-line="promontory">Promontory</text
-        >
-        <text
-            x={textX}
-            y={rows.promontory + lineGap}
-            class="pp-board-line pp-board-italic"
-            font-size="44"
-            fill="var(--pp-ink-sub)">{status.promontoryTaken ? 'taken ✓' : 'open'}</text
-        >
     </StripCard>
 </g>

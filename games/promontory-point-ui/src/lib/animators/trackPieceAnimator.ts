@@ -35,11 +35,12 @@ function placedSpaces(state: HydratedPromontoryPointGameState): Map<SpaceId, Rai
     )
 }
 
-// R-3.3: the placed piece flies from the action panel (the deciding seat's own view) or the
-// placing seat's card to its hex and settles at pieceSettlesAt(), when its town acts. R-3.3-H1: a
-// set-aside piece fades out of the hand. Undo and history fade pieces in or out within 200 ms.
+// R-3.3: the placed piece flies from the viewer's own hand beside the map (the deciding seat's
+// own view; the phone's bar) or the placing seat's open seat to its hex, or drops onto it with
+// neither on screen, and settles at pieceSettlesAt(), when its town acts. R-3.3-H1: a set-aside
+// piece fades out of the hand. Undo and history fade pieces in or out within 200 ms.
 export class TrackPieceAnimator extends FlightAnimator {
-    // The hand piece in the panel, for the seat on screen, and in the placing seat's card.
+    // The hand piece beside the map, for the seat on screen, and in the placing seat's open seat.
     private handSpots(playerId: string, railroadId: RailroadId): StageSpot[] {
         const panel = this.viewerId() === playerId ? this.stage.turnPiece(railroadId) : undefined
         const seat = this.stage.seatPiece(playerId, railroadId)

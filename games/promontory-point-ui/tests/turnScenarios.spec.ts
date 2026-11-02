@@ -11,6 +11,8 @@ import {
     openTable,
     placeOnOpenCountry,
     press,
+    revealedHand,
+    seatRow,
     settled,
     shareEntry,
     sharesHeading,
@@ -36,12 +38,16 @@ const buy = (page: Page, name: string) =>
 const sell = (page: Page, name: string) =>
     shareEntry(page, name).getByRole('button', { name: /^Sell/ })
 const tradeButtons = (page: Page) => page.locator('.entry .trade button')
-const seatHand = (page: Page, name: string) =>
-    page.locator(`[aria-label="${name}'s seat"] [data-hand-piece]`)
-const handFaces = (page: Page, name: string) =>
-    seatHand(page, name).evaluateAll((nodes) =>
-        nodes.map((node) => node.getAttribute('data-hand-piece'))
-    )
+// The viewer's own pieces beside the map (the phone's bar under the board), in order.
+const yourPieces = (page: Page) =>
+    page
+        .locator('[data-your-hand] [data-turn-piece], [data-your-hand] [data-own-piece]')
+        .evaluateAll((nodes) =>
+            nodes.map(
+                (node) =>
+                    node.getAttribute('data-turn-piece') ?? node.getAttribute('data-own-piece')
+            )
+        )
 const pressedPieces = (page: Page) =>
     page.locator('[aria-label="Turn pieces"] [data-turn-piece][aria-pressed="true"]')
 const panelPieces = (page: Page) => page.locator('[aria-label="Turn pieces"] [data-turn-piece]')
@@ -73,7 +79,8 @@ for (const width of WIDTHS) {
             page
         }) => {
             await openTable(page, 'Pieces placed')
-            expect(await handFaces(page, 'Royce')).toEqual(['hidden', 'hidden', 'hidden'])
+            // R-5: a concealed hand is never named in the seat ledger.
+            expect(await revealedHand(page, 'Royce')).toEqual([])
 
             await press(page.getByRole('button', { name: 'End turn · draw 3', exact: true }))
             await expect(header(page)).toHaveText('Your turn')
@@ -81,18 +88,20 @@ for (const width of WIDTHS) {
             const table = await facts(page)
             expect(table.activePlayerIds).toEqual([ROYCE])
             await expect(panelPieces(page)).toHaveCount(3)
-            const revealed = await handFaces(page, 'Royce')
+            expect(await yourPieces(page)).toEqual(table.turnPieces)
+            const revealed = await revealedHand(page, 'Royce')
             expect(revealed).toEqual(table.turnPieces)
-            expect(await handFaces(page, 'Mara')).toEqual(['hidden', 'hidden', 'hidden'])
-            expect(await handFaces(page, 'Ines')).toEqual(['hidden', 'hidden', 'hidden'])
+            expect(await revealedHand(page, 'Mara')).toEqual([])
+            expect(await revealedHand(page, 'Ines')).toEqual([])
+            await expect(page.locator('[data-ledger-kept]')).toHaveCount(0)
             await expect(undoButton(page)).toHaveCount(0)
 
-            // Any other seat sees the same: the header names Royce, his hand face up.
+            // Any other seat sees the same: the header names Royce, his hand named in his row.
             await page.evaluate(() =>
                 window.promontoryPointTableSession.setViewingAsNonActivePlayer(true)
             )
             await expect(header(page)).toHaveText("Royce's turn")
-            expect(await handFaces(page, 'Royce')).toEqual(revealed)
+            expect(await revealedHand(page, 'Royce')).toEqual(revealed)
             await expect(undoButton(page)).toHaveCount(0)
         })
 
@@ -108,9 +117,10 @@ for (const width of WIDTHS) {
             await press(buy(page, 'Union Pacific'))
             await settled(page)
             await expect(sharesHeading(page)).toHaveText('Shares · 1 action left')
-            await expect(
-                page.locator('[aria-label="Mara\'s seat"] [data-seat-money]')
-            ).toHaveAttribute('data-seat-money', '15')
+            await expect(seatRow(page, 'Mara').locator('[data-seat-money]')).toHaveAttribute(
+                'data-seat-money',
+                '15'
+            )
             const after = await playerOf(page, MARA)
             expect([after.money, after.shares[UP], (await facts(page)).deck[UP]]).toEqual([
                 15,
@@ -326,8 +336,12 @@ for (const width of WIDTHS) {
             await settled(page)
             expect((await facts(page)).priceIndex[SP]).toBe(14)
             await expect(tracker).toHaveAttribute('data-promontory-taken', 'true')
-            await expect(tracker.locator('[data-end-line="promontory"]')).toHaveText('Promontory')
-            await expect(tracker).toContainText(/Promontory\s*taken ✓/)
+            await expect(tracker.locator('[data-end-line="promontory"]')).toHaveText(
+                'Promontory taken'
+            )
+            await expect(
+                tracker.locator('[data-end-condition="promontory"] [data-end-tick="met"]')
+            ).toHaveCount(1)
         })
 
         test('scenario 12 (R-4.2): a Dividend pays every holder $2 a share, logged by name; Undo reverses every payment', async ({
@@ -386,7 +400,8 @@ for (const width of WIDTHS) {
             let table = await facts(page)
             expect(table.turnPieces.toSorted()).toEqual([CP, CP, KP])
             expect(table.bag).toBe(0)
-            expect((await handFaces(page, 'Mara')).toSorted()).toEqual([CP, CP, KP])
+            expect((await revealedHand(page, 'Mara')).toSorted()).toEqual([CP, CP, KP])
+            expect((await yourPieces(page)).toSorted()).toEqual([CP, CP, KP])
             await expect(undoButton(page)).toHaveCount(0)
             // R-2.2-H2: a scrap before the first placement keeps buying and selling closed.
             expect(table.machineState).toBe('Placing')
@@ -415,16 +430,13 @@ for (const width of WIDTHS) {
         }) => {
             await openTable(page, 'Pieces placed')
             await press(page.getByRole('button', { name: 'End turn · draw 3', exact: true }))
-            if (width.name === 'desktop') {
-                // Three pieces fly from the bag to Mara's seat card.
-                await expect(page.locator('[data-flight-layer] [data-flight="Piece"]')).toHaveCount(
-                    3
-                )
-            }
+            // Three pieces fly from the bag into Mara's own hand beside the map.
+            await expect(page.locator('[data-flight-layer] [data-flight="Piece"]')).toHaveCount(3)
             await expect(header(page)).toHaveText('Your turn')
             await settled(page)
             expect((await playerOf(page, MARA)).handCount).toBe(3)
-            expect(await handFaces(page, 'Mara')).toEqual(['hidden', 'hidden', 'hidden'])
+            // R-5: once Royce's turn opens, Mara's new hand is named nowhere on his screen.
+            expect(await revealedHand(page, 'Mara')).toEqual([])
             await expect(maraTurn(await history(page))).toContainText('ended the turn and drew 3')
             await expect(undoButton(page)).toHaveCount(0)
         })
@@ -450,12 +462,15 @@ for (const width of WIDTHS) {
             const mara = await playerOf(page, MARA)
             expect([mara.handCount, mara.keptPiece]).toEqual([3, SP])
             expect((await facts(page)).bag).toBe(bag - 3)
-            expect((await handFaces(page, 'Mara')).toSorted()).toEqual([
-                'hidden',
-                'hidden',
-                'hidden',
+            // R-6.3-H2: the kept piece is a tag in Mara's row, face up for every seat.
+            await expect(seatRow(page, 'Mara').locator('[data-ledger-kept]')).toHaveAttribute(
+                'data-ledger-kept',
                 SP
-            ])
+            )
+            await expect(seatRow(page, 'Mara').locator('[data-ledger-kept]')).toContainText(
+                'keeps SP'
+            )
+            expect(await revealedHand(page, 'Mara')).toEqual([])
             await expect(maraTurn(await history(page))).toContainText(
                 'ended the turn, kept SP and drew 3'
             )
@@ -475,7 +490,8 @@ for (const width of WIDTHS) {
             await settled(page)
             expect((await playerOf(page, MARA)).handCount).toBe(4)
             expect((await facts(page)).bag).toBe(bag + 1 - 4)
-            expect(await handFaces(page, 'Mara')).toEqual(['hidden', 'hidden', 'hidden', 'hidden'])
+            expect(await revealedHand(page, 'Mara')).toEqual([])
+            await expect(page.locator('[data-ledger-kept]')).toHaveCount(0)
             await expect(maraTurn(await history(page))).toContainText(
                 'ended the turn, returned SP to the bag and drew 4'
             )

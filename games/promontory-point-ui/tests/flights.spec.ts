@@ -117,26 +117,38 @@ const hidden = (page: Page) =>
         () =>
             [
                 ...document.querySelectorAll<HTMLElement | SVGElement>(
-                    '[data-turn-piece] svg, [data-hand-piece], [data-seat-share] img, [data-share-deck] image'
+                    '[data-turn-piece-art], [data-hand-piece], [data-seat-share] img, [data-share-deck] image'
                 )
             ].filter((node) => node.style.visibility === 'hidden').length
     )
 
-test('R-3.3: a placed piece flies from the panel, its hand piece hidden, and lands on its hex', async ({
+test('R-3.3: a placed piece flies from the hand beside the map, its hand piece hidden, and lands on its hex', async ({
     page
 }) => {
     await createGame(page)
     const target = await pickTarget(page)
+    const picked = await board(page)
+        .locator('[data-your-hand] [aria-pressed="true"] [data-piece-disc]')
+        .boundingBox()
+    await recordFlights(page, 'Piece')
     await board(page).locator(`[data-layer="hit-targets"] [data-space-id="${target}"]`).click()
 
     const copy = copies(page, 'Piece')
     await expect(copy).toHaveCount(1)
-    // While it flies the hex is empty and the panel's piece is hidden.
+    // It leaves the picked piece in the hand at the top of the strip.
+    await expect.poll(() => flightLog(page).then((log) => log.length)).toBeGreaterThan(0)
+    const start = (await flightLog(page))[0].centre
+    expect(picked).not.toBeNull()
+    if (picked && start) {
+        expect(Math.abs(start.x - (picked.x + picked.width / 2))).toBeLessThan(picked.width / 2)
+        expect(Math.abs(start.y - (picked.y + picked.height / 2))).toBeLessThan(picked.height / 2)
+    }
+    // While it flies the hex is empty and the hand's piece is hidden.
     await expect(board(page).locator(`[data-track-piece][data-space-id="${target}"]`)).toHaveCount(
         0
     )
     await expect.poll(() => hidden(page)).toBeGreaterThan(0)
-    // The copy moves between the panel and the board.
+    // The copy moves between the hand and the hex.
     const first = await copy.evaluate((node) => node.getBoundingClientRect().top)
     await expect
         .poll(() => copy.evaluate((node) => node.getBoundingClientRect().top))
@@ -149,15 +161,19 @@ test('R-3.3: a placed piece flies from the panel, its hand piece hidden, and lan
     await expect.poll(() => hidden(page)).toBe(0)
 })
 
-test('R-3.1: a bought share flies from its deck to the seat card; the counts change on landing', async ({
+test('R-3.1: a bought share flies from its deck to the buyer’s row in the seat ledger; the counts change on landing', async ({
     page
 }) => {
     await createGame(page)
-    const seat = page.locator('[data-seat-card][data-active="true"]').first()
+    const seat = page.locator('[data-seat-ledger] [data-ledger-row][data-active="true"]')
     const before = await seat
-        .locator('[data-seat-share]')
+        .locator('[data-ledger-share]')
         .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-count')))
-    await recordFlights(page, 'Share', '[data-seat-card][data-active="true"] [data-seat-share]')
+    await recordFlights(
+        page,
+        'Share',
+        '[data-seat-ledger] [data-ledger-row][data-active="true"] [data-ledger-share]'
+    )
     await page.getByRole('button', { name: /^Buy/ }).first().click()
 
     // One copy flies, and in flight the buyer's stack still shows what it held; then it lands.
@@ -172,7 +188,7 @@ test('R-3.1: a bought share flies from its deck to the seat card; the counts cha
     await expect
         .poll(() =>
             seat
-                .locator('[data-seat-share]')
+                .locator('[data-ledger-share]')
                 .evaluateAll((nodes) =>
                     nodes.map((node) => Number(node.getAttribute('data-count')))
                 )
@@ -181,7 +197,7 @@ test('R-3.1: a bought share flies from its deck to the seat card; the counts cha
     await expect.poll(() => hidden(page)).toBe(0)
 })
 
-test('R-2.2, R-5: End turn flies the draw from the bag, then the next hand turns face up', async ({
+test('R-2.2, R-5: End turn flies the draw from the bag into the hand, then the ledger names the next hand', async ({
     page
 }) => {
     await createGame(page)
@@ -199,16 +215,20 @@ test('R-2.2, R-5: End turn flies the draw from the bag, then the next hand turns
     await recordFlights(page, 'Piece')
     await page.getByRole('button', { name: /^End turn/ }).click()
 
-    // Three discs leave the bag; then the next seat's discs turn over, two copies each.
+    // Three discs leave the bag for the drawer's own hand beside the map. No seat is open, so
+    // nothing turns over: the ledger names the next seat's revealed hand once it shows.
     await expect.poll(() => flightLog(page).then((log) => log.at(-1)?.copies)).toBe(0)
     const log = await flightLog(page)
     const counts = log.map((entry) => entry.copies)
     expect(counts.indexOf(3)).toBeGreaterThanOrEqual(0)
-    // O-8: the draw leaves the bag's card in the strip left of the map.
-    expect(await inside(page, 'svg.board [data-bag]', log[0].centre)).toBe(true)
-    expect(counts.indexOf(6)).toBeGreaterThan(counts.indexOf(3))
+    expect(Math.max(...counts)).toBe(3)
+    // O-8: the draw leaves the bag at the end tracker's foot, in the strip left of the map.
+    expect(await inside(page, 'svg.board [data-end-tracker] [data-bag]', log[0].centre)).toBe(true)
     await expect(copies(page)).toHaveCount(0)
     await expect.poll(() => hidden(page)).toBe(0)
+    await expect(
+        page.locator('[data-ledger-row][data-active="true"] [data-ledger-hand] [data-railroad-tag]')
+    ).toHaveCount(3)
 })
 
 test('contract, "Flight layer": in full screen the flights fly inside the dialog', async ({
@@ -220,7 +240,7 @@ test('contract, "Flight layer": in full screen the flights fly inside the dialog
     await expect(dialog.locator('[data-flight-layer]')).toHaveCount(1)
     await expect(page.locator('[data-flight-layer]')).toHaveCount(1)
 
-    // The piece leaves the panel drawn inside the dialog.
+    // The piece leaves the hand beside the map, drawn inside the dialog.
     const target = await pickTarget(page)
     await dialog.locator(`[data-layer="hit-targets"] [data-space-id="${target}"]`).click()
     await expect(dialog.locator('[data-flight-layer] [data-flight="Piece"]')).toHaveCount(1)

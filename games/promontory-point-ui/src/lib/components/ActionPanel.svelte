@@ -10,7 +10,7 @@
     import ShareBlock from './ShareBlock.svelte'
     import StatusStrip from './StatusStrip.svelte'
     import TurnHeader from './TurnHeader.svelte'
-    import TurnPieces from './TurnPieces.svelte'
+    import TurnChoices from './TurnChoices.svelte'
     import WaitingView from './WaitingView.svelte'
 
     const gameSession = getGameSession()
@@ -59,9 +59,10 @@
                     <span class="pp-aside ml-2 text-[13px] max-sm:hidden">{panel.prompt.note}</span>
                 {/if}
             </p>
+            <!-- The hand is beside the map (a bar under the board on a phone), not here. -->
             <div class="flex flex-wrap items-stretch gap-4 max-sm:flex-col max-sm:gap-2">
-                <TurnPieces {panel} />
                 <ShareBlock shares={panel.shares} />
+                <TurnChoices {panel} />
             </div>
         </div>
     {:else if waiting}

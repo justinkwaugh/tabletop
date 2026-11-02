@@ -2,6 +2,7 @@
     import { BOARD_DRAWN_SCALE as DRAWN_SCALE } from '$lib/model/boardFraming.js'
     import { BOARD_BOUNDS } from '$lib/utils/boardGeometry.js'
     import ChipLayer from './board/ChipLayer.svelte'
+    import HandLayer from './board/HandLayer.svelte'
     import HitTargetLayer from './board/HitTargetLayer.svelte'
     import MapLayer from './board/MapLayer.svelte'
     import MoneyMarkerLayer from './board/MoneyMarkerLayer.svelte'
@@ -29,6 +30,7 @@
     <g data-layer="strip" class="pointer-events-none"><StripLayer /></g>
     <g data-layer="pick-chrome"><PickChrome /></g>
     <g data-layer="hit-targets"><HitTargetLayer /></g>
+    <g data-layer="hand"><HandLayer /></g>
     <g data-layer="chips"><ChipLayer /></g>
 </svg>
 

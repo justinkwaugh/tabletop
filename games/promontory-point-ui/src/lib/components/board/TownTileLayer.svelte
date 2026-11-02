@@ -5,11 +5,11 @@
     import { townTileImage } from '$lib/images/tileImages.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import {
+        TOWN_TILE_ROTATION,
         TOWN_TILE_SCALE,
         localHexPoints,
         pointsAttribute,
-        spaceCentre,
-        townTileRotation
+        spaceCentre
     } from '$lib/utils/boardLayout.js'
 
     const gameSession = getGameSession()
@@ -38,7 +38,7 @@
         <polygon points={pointsAttribute(tileHex)}></polygon>
     </clipPath>
 </defs>
-<!-- R-1.3: every town tile stays face up, under a piece too; O-6: the number tiles turn upright. -->
+<!-- R-1.3: every town tile stays face up, under a piece too; O-6: every tile turns upright. -->
 {#each towns as { spaceId, kindId } (spaceId)}
     {@const centre = spaceCentre(spaceId)}
     <g transform="translate({centre.x} {centre.y})" data-town-tile={kindId}>
@@ -50,7 +50,7 @@
                     y={-side / 2}
                     width={side}
                     height={side}
-                    transform="rotate({townTileRotation(kindId)})"
+                    transform="rotate({TOWN_TILE_ROTATION})"
                 ></image>
             </g>
             <polygon

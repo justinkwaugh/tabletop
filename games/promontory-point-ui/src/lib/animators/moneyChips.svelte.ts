@@ -1,6 +1,6 @@
 import type { gsap } from 'gsap'
 
-// R-1.3-H1: "+$4" or "−$6" rising from a seat card's money while its marker moves.
+// R-1.3-H1: "+$4" or "−$6" rising from a seat's cash in the seat ledger while its marker moves.
 export type MoneyChip = { id: string; playerId: string; change: number }
 
 // An element, or in a spec any object GSAP can tween.

@@ -155,8 +155,16 @@ export const hexTarget = (page: Page, spaceId: string) =>
     board(page).locator(`[data-layer="hit-targets"] [data-space-id="${spaceId}"]`)
 export const trackPiece = (page: Page, spaceId: string) =>
     board(page).locator(`[data-track-piece][data-space-id="${spaceId}"]`)
+// The seat's row in the seat ledger (the side column's Players tab, at every width).
+export const seatRow = (page: Page, seat: SeatName) =>
+    page.locator('[data-seat-ledger] [data-ledger-row]').filter({ hasText: seat })
+// R-2.2 step 1: the railroads the seat's row names as its revealed hand, in order.
+export const revealedHand = (page: Page, seat: SeatName) =>
+    seatRow(page, seat)
+        .locator('[data-ledger-hand] [data-railroad-tag]')
+        .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-railroad-tag')))
 
-// Opens the side column's History tab (it replaces the seat cards) and returns the log.
+// Opens the side column's History tab (it replaces the seat ledger) and returns the log.
 export async function history(page: Page): Promise<Locator> {
     const tab = page.getByRole('tab', { name: 'History' })
     if ((await tab.getAttribute('aria-selected')) !== 'true') await press(tab)

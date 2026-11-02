@@ -23,9 +23,10 @@
         RAILROAD_IDS.map((railroadId) => space.slots[railroadId])
     )
     const stripSlots = [
-        STRIP_SLOTS.bag,
+        STRIP_SLOTS.hand,
         STRIP_SLOTS.shares,
         STRIP_SLOTS.endTracker,
+        STRIP_SLOTS.bag,
         ...RAILROAD_IDS.map((railroadId) => STRIP_SLOTS.decks[railroadId])
     ]
     const points = (outline: Point[]) => outline.map(({ x, y }) => `${x},${y}`).join(' ')

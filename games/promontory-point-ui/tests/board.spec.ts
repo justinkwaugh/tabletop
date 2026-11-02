@@ -70,6 +70,7 @@ test('contract, "Render ownership": the board draws its layers back to front', a
         'strip',
         'pick-chrome',
         'hit-targets',
+        'hand',
         'chips'
     ])
     await expect(board(page).locator('[data-layer="town-tiles"] [data-town-tile]')).toHaveCount(48)
@@ -220,7 +221,7 @@ test('R-1.2, R-1.3-H1, R-6.1: markers and the strip read the displayed state', a
     await expect(tracker).toHaveAttribute('data-promontory-taken', 'false')
 })
 
-test('O-8: the strip left of the map shows the bag, each deck with its price and count, and both end conditions', async ({
+test('O-8: the strip left of the map shows each deck with its price and count, and the end tracker with the bag', async ({
     page
 }) => {
     await createGame(page)
@@ -251,10 +252,11 @@ test('O-8: the strip left of the map shows the bag, each deck with its price and
         expect(stripBox.y + stripBox.height).toBeLessThanOrEqual(map.y + map.height)
     }
 
-    const bag = strip.locator('[data-bag]')
+    // R-6.1-H2: the bag is the other way the game ends, at the end tracker's foot.
+    const bag = strip.locator('[data-end-tracker] [data-bag]')
     await expect(bag).toHaveAttribute('data-bag', String(state.bag))
-    await expect(bag).toContainText('THE BAG')
-    await expect(bag).toContainText(new RegExp(`${state.bag}\\s*pieces left`))
+    await expect(bag).toContainText(new RegExp(`${state.bag}\\s*pieces left\\s*in the bag`))
+    await expect(strip).not.toContainText('THE BAG')
 
     await expect(strip.locator('[data-strip-shares]')).toContainText('SHARES FOR SALE')
     for (const { railroadId, count, price } of state.decks) {
@@ -268,11 +270,14 @@ test('O-8: the strip left of the map shows the bag, each deck with its price and
     const tracker = strip.locator('[data-end-tracker]')
     await expect(tracker).toContainText('GAME ENDS WHEN BOTH')
     await expect(tracker.locator('[data-end-line="red"]')).toHaveText(
-        `${state.redTowns} red towns open`
+        `Red towns open: ${state.redTowns}`
     )
-    await expect(tracker).toContainText('at most 1')
-    await expect(tracker.locator('[data-end-line="promontory"]')).toHaveText('Promontory')
-    await expect(tracker).toContainText(/Promontory\s*open/)
+    await expect(tracker.locator('[data-end-line="promontory"]')).toHaveText('Promontory open')
+    await expect(tracker.locator('[data-end-tick="open"]')).toHaveCount(2)
+    await expect(tracker.locator('[data-end-or]')).toHaveText('or')
+    // No helper line, count or verdict: two conditions, "or", the bag.
+    await expect(tracker).not.toContainText('at most')
+    await expect(tracker).not.toContainText(/of 2|game ends after/i)
 })
 
 test('R-1.3-H1: a money marker is a disc in its seat colour with no letter on it', async ({

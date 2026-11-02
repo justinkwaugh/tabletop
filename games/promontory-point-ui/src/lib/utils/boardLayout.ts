@@ -14,12 +14,10 @@ import {
     BOARD_GRID,
     PROMONTORY,
     UNCOVERED_RED_TILES_AT_END,
-    isRedTile,
     uncoveredRedTileCount,
     type PromontoryPointProjectedState,
     type RailroadId,
-    type SpaceId,
-    type TownTileKindId
+    type SpaceId
 } from '@tabletop/promontory-point'
 import {
     BORDER_TRACK_LENGTH,
@@ -51,11 +49,10 @@ export function pointsAttribute(points: readonly Point[]): string {
     return points.map(({ x, y }) => `${x},${y}`).join(' ')
 }
 
-// O-6: the number tiles print their number sideways, so they turn a quarter turn clockwise; the
-// red tiles are drawn as supplied.
-export function townTileRotation(kindId: TownTileKindId): number {
-    return isRedTile(kindId) ? 0 : 90
-}
+// O-6: the supplied tiles print their face sideways, so every tile turns a quarter turn
+// clockwise: the numbers read upright, the $ stands up, the hammer's head is up, and each
+// tile's inner hex lines up with the board's hexes.
+export const TOWN_TILE_ROTATION = 90
 
 export function spaceCentre(spaceId: SpaceId): Point {
     const centre = SPACE_CENTRES.get(spaceId)
@@ -132,6 +129,24 @@ export function endTrackerStatus(
         redTilesMet: redTilesUncovered <= UNCOVERED_RED_TILES_AT_END,
         promontoryTaken: PROMONTORY.spaceId in state.track
     }
+}
+
+export type EndTrackerLine = { key: 'red' | 'promontory'; text: string; met: boolean }
+
+// R-6.1, R-6.1-H1: the two conditions that end the game together, each ticked once met.
+export function endTrackerLines(status: EndTrackerStatus): EndTrackerLine[] {
+    return [
+        {
+            key: 'red',
+            text: `Red towns open: ${status.redTilesUncovered}`,
+            met: status.redTilesMet
+        },
+        {
+            key: 'promontory',
+            text: `Promontory ${status.promontoryTaken ? 'taken' : 'open'}`,
+            met: status.promontoryTaken
+        }
+    ]
 }
 
 export enum ChipPlacement {

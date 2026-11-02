@@ -15,16 +15,17 @@ test.afterEach(({ page }) => {
     expect(pageErrors.get(page)).toEqual([])
 })
 
+// Set up by touch too, so no mouse is left resting where a later layout puts a piece.
 async function createGame(page: Page) {
     await page.goto('/')
-    await page.getByRole('button', { name: 'New game', exact: true }).click()
+    await page.getByRole('button', { name: 'New game', exact: true }).tap()
     await page.getByPlaceholder('choose a name for your game').fill('Phone')
     await page
         .getByPlaceholder('optional reproduction seed')
         .fill('0123456789abcdef0123456789abcdef')
     const names = page.getByPlaceholder('player name')
     for (let i = 1; i < (await names.count()); i++) await names.nth(i).fill(`Player ${i + 1}`)
-    await page.getByRole('button', { name: 'Create Game', exact: true }).click()
+    await page.getByRole('button', { name: 'Create Game', exact: true }).tap()
     await expect(page.locator('svg.board')).toBeVisible()
 }
 
@@ -124,7 +125,7 @@ test('contract, "Phone layout": every button in the panel, header and seat strip
     await firstPiece(page).tap()
     await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible()
     const heights = await page
-        .locator('.action-area button, [data-seat-strip] button')
+        .locator('.action-area button, [data-your-hand] button, [data-seat-strip] button')
         .or(page.getByRole('button', { name: 'Undo' }))
         .evaluateAll((nodes) =>
             nodes

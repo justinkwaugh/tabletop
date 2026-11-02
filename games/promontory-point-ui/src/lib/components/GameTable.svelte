@@ -19,6 +19,7 @@
     import ActionPanel from '$lib/components/ActionPanel.svelte'
     import EnlargedView from '$lib/components/EnlargedView.svelte'
     import FlightLayer from '$lib/components/FlightLayer.svelte'
+    import HandBar from '$lib/components/HandBar.svelte'
     import OpenSeat from '$lib/components/OpenSeat.svelte'
     import PickFramingWatch from '$lib/components/PickFramingWatch.svelte'
     import SeatStrip from '$lib/components/SeatStrip.svelte'
@@ -180,6 +181,9 @@
                             {#if expanded}
                                 <div data-fullscreen-panel>
                                     <ActionPanel />
+                                    {#if layout.phone}
+                                        <HandBar />
+                                    {/if}
                                     <SeatStrip everyWidth />
                                 </div>
                                 <OpenSeat />
@@ -190,6 +194,11 @@
                     {/snippet}
                 </ScalingWrapper>
             </div>
+            <!-- Contract, "Phone layout": the hand right under the board; a desktop draws it in
+                 the strip beside the map. -->
+            {#if layout.phone && !expanded}
+                <HandBar />
+            {/if}
             <SeatStrip />
         {/snippet}
     </DefaultTableLayout>

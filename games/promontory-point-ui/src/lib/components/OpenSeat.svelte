@@ -16,7 +16,7 @@
             : undefined
     )
 
-    // The same derivation as the seat card, from the displayed state (History View included).
+    // The same derivation as the seat ledger, from the displayed state (History View included).
     const view = $derived(
         playerId === undefined
             ? undefined
@@ -71,7 +71,7 @@
         aria-label="{gameSession.getPlayerName(view.playerId)}'s seat"
         data-open-seat={view.playerId}
     >
-        <SeatCard {view} large {moneyLines} />
+        <SeatCard {view} {moneyLines} />
         {#if final}
             <table class="final" data-open-seat-final>
                 <caption>Final total</caption>
@@ -124,7 +124,7 @@
         overflow-y: auto;
     }
 
-    /* Contract, "Phone layout": the seat card rises as a bottom sheet, up to 85 % of the
+    /* Contract, "Phone layout": the open seat rises as a bottom sheet, up to 85 % of the
        dynamic viewport. */
     @media (width < 40rem) {
         .sheet {

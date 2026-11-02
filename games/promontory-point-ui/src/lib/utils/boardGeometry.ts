@@ -173,10 +173,10 @@ export const BORDER_TRACK_SPACES: readonly BorderTrackSpace[] = borderBoxes().ma
     (space, value) => ({ value, box: space, sharingSlots: quarters(space) })
 )
 
-// O-8: the bag, the share decks and the end tracker sit in a strip directly left of the map,
-// inside the board's one scaled surface, so full screen, the phone's panning view and the
-// flight layer keep a single set of coordinates. The strip is about 0.18 of the map's width and
-// its boxes are in map units, left of the map's x = 0.
+// O-8: the viewer's hand, the share decks and the end tracker (with the bag) sit in a strip
+// directly left of the map, inside the board's one scaled surface, so full screen, the phone's
+// panning view and the flight layer keep a single set of coordinates. The strip is about 0.18 of
+// the map's width and its boxes are in map units, left of the map's x = 0.
 export const STRIP_WIDTH = 650
 export const STRIP_GAP = 40
 
@@ -189,10 +189,13 @@ export const BOARD_BOUNDS: BoundingBox = {
 }
 
 export type StripSlots = {
-    // The three paper cards, top to bottom.
-    bag: BoundingBox
+    // The three paper cards, top to bottom: the hand nearest the board's top, then the decks,
+    // then the end tracker.
+    hand: BoundingBox
     shares: BoundingBox
     endTracker: BoundingBox
+    // The bag's line at the end tracker's foot: the other way the game ends (R-6.1-H2).
+    bag: BoundingBox
     // Each deck inside the shares card, a 2×2 grid in railroad order.
     decks: Readonly<Record<RailroadId, BoundingBox>>
 }
@@ -200,8 +203,21 @@ export type StripSlots = {
 // The supplied share face is 675 × 1050.
 const DECK_SIZE: RectangleDimensions = { width: 265, height: 412 }
 const STRIP_PADDING = 40
+const CARD_GAP = 40
 const DECK_GRID = { top: 140, columnGap: 40, rowGap: 70 }
-const SHARES_CARD: BoundingBox = { x: BOARD_BOUNDS.x, y: 400, width: STRIP_WIDTH, height: 1090 }
+const HAND_CARD: BoundingBox = { x: BOARD_BOUNDS.x, y: 0, width: STRIP_WIDTH, height: 420 }
+const SHARES_CARD: BoundingBox = {
+    x: BOARD_BOUNDS.x,
+    y: HAND_CARD.y + HAND_CARD.height + CARD_GAP,
+    width: STRIP_WIDTH,
+    height: 1090
+}
+const END_TRACKER_CARD: BoundingBox = {
+    x: BOARD_BOUNDS.x,
+    y: SHARES_CARD.y + SHARES_CARD.height + CARD_GAP,
+    width: STRIP_WIDTH,
+    height: 600
+}
 
 function deckBox(column: number, row: number): BoundingBox {
     return {
@@ -218,12 +234,42 @@ const DECK_CELLS: Record<RailroadId, [number, number]> = {
     'railroad.sp': [1, 1]
 }
 
-// The bag card's count, from the card's top; draws leave the bag here.
-export const BAG_COUNT_Y = 185
+// The end tracker's rows, from the card's top: the two conditions, the "or", the bag.
+export const END_TRACKER_ROWS = { red: 160, promontory: 280, or: 380, bag: 490 }
+
+// The bag's count, from the end tracker's left edge; draws leave the bag here.
+export const BAG_COUNT_X = 130
+
+const BAG_LINE: BoundingBox = {
+    x: END_TRACKER_CARD.x + 20,
+    y: END_TRACKER_CARD.y + END_TRACKER_ROWS.bag - 80,
+    width: STRIP_WIDTH - 40,
+    height: 160
+}
 
 export const STRIP_SLOTS: StripSlots = {
-    bag: { x: BOARD_BOUNDS.x, y: 0, width: STRIP_WIDTH, height: 360 },
+    hand: HAND_CARD,
     shares: SHARES_CARD,
-    endTracker: { x: BOARD_BOUNDS.x, y: 1530, width: STRIP_WIDTH, height: 420 },
+    endTracker: END_TRACKER_CARD,
+    bag: BAG_LINE,
     decks: perRailroad((railroadId) => deckBox(...DECK_CELLS[railroadId]))
+}
+
+// The hand card's pieces in a row, centred: three as large as the card allows, four (the
+// variant's hand, R-6.3) a little smaller.
+const HAND_ROW = { y: 200, maxRadius: 74, gap: 34 }
+
+export function handSlotCentres(count: number): { centres: Point[]; radius: number } {
+    const inner = STRIP_WIDTH - 2 * STRIP_PADDING
+    const slots = Math.max(count, 3)
+    const radius = Math.min(HAND_ROW.maxRadius, (inner - (slots - 1) * HAND_ROW.gap) / slots / 2)
+    const pitch = 2 * radius + HAND_ROW.gap
+    const first = HAND_CARD.x + STRIP_WIDTH / 2 - ((count - 1) * pitch) / 2
+    return {
+        centres: Array.from({ length: count }, (_, index) => ({
+            x: first + index * pitch,
+            y: HAND_CARD.y + HAND_ROW.y
+        })),
+        radius
+    }
 }

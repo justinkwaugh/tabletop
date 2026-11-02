@@ -1,16 +1,9 @@
 <script lang="ts">
-    import SeatCard from '$lib/components/SeatCard.svelte'
-    import { seatViews } from '$lib/model/seatView.js'
-    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-
-    const gameSession = getGameSession()
-
-    // Contract, "Seat card": one seat card per seat, in seat order (R-2.1).
-    const seats = $derived(seatViews(gameSession.gameState, gameSession.myPlayer?.id))
+    import SeatLedger from '$lib/components/SeatLedger.svelte'
 </script>
 
-<div class="flex flex-col gap-3 grow-0 shrink-0 p-1 pt-2.5" data-seat-cards>
-    {#each seats as view (view.playerId)}
-        <SeatCard {view} />
-    {/each}
+<!-- Contract, "Seat ledger": the side column's Players tab at every width (on a phone, the
+     column the table scrolls sideways to). -->
+<div class="grow-0 shrink-0 p-1 pt-2.5">
+    <SeatLedger />
 </div>

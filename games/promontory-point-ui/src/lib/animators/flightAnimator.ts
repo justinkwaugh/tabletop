@@ -1,6 +1,6 @@
 import type { BoundingBox, Point } from '@tabletop/common'
 import { TRACK_PIECE_RADIUS } from '$lib/utils/boardLayout.js'
-import { BAG_COUNT_Y, STRIP_SLOTS } from '$lib/utils/boardGeometry.js'
+import { BAG_COUNT_X, END_TRACKER_ROWS, STRIP_SLOTS } from '$lib/utils/boardGeometry.js'
 import type { Flights } from './flights.svelte.js'
 import { FlightPlan } from './flightPlan.js'
 import { PIECE_EXTENT, type FlightStage } from './flightStage.js'
@@ -23,10 +23,10 @@ export function pieceBox(centre: Point): BoundingBox {
     return { x: centre.x - half, y: centre.y - half, width: half * 2, height: half * 2 }
 }
 
-// R-5: drawn pieces leave the bag at its mouth: the count on the strip's bag card.
+// R-5: drawn pieces leave the bag at its mouth: the count on the end tracker's bag line.
 export const BAG_MOUTH: Point = {
-    x: STRIP_SLOTS.bag.x + STRIP_SLOTS.bag.width / 2,
-    y: STRIP_SLOTS.bag.y + BAG_COUNT_Y
+    x: STRIP_SLOTS.endTracker.x + BAG_COUNT_X,
+    y: STRIP_SLOTS.endTracker.y + END_TRACKER_ROWS.bag
 }
 
 // One state-change animator whose motion crosses the scaling wrapper through the flight layer.

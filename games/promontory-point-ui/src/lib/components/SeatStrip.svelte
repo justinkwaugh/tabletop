@@ -6,11 +6,11 @@
     // Contract, "Full screen": the strip also shows inside full screen at every width.
     let { everyWidth = false }: { everyWidth?: boolean } = $props()
 
-    // Contract, "Seat card": the same derivation as the seat cards, so the two never differ.
+    // Contract, "Open seat": the same derivation as the ledger and the open seat, so they never differ.
     const seats = $derived(seatViews(gameSession.gameState, gameSession.myPlayer?.id))
 </script>
 
-<!-- Contract, "Phone layout": one chip per seat in seat order; a press opens that seat card. -->
+<!-- Contract, "Phone layout": one chip per seat in seat order; a press opens that seat. -->
 <div
     class="strip flex h-[50px] shrink-0 gap-1.5 px-2 py-[3px] {everyWidth ? '' : 'sm:hidden'}"
     data-seat-strip

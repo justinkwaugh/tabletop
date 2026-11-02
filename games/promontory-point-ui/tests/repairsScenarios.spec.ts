@@ -10,6 +10,7 @@ import {
     openTable,
     playerIdOf,
     press,
+    seatRow,
     settled,
     trackPiece,
     turnPiece,
@@ -115,19 +116,20 @@ async function maraPlacesOnRepairs(
     return town
 }
 
-// The seat's money as its seat card reads it (desktop) or its seat-strip chip (phone).
+// The seat's money as its row in the seat ledger reads it (desktop) or its seat-strip chip (phone).
 function seatMoney(page: Page, width: Width, seat: SeatName) {
     return width.name === 'desktop'
-        ? page.locator(`[aria-label="${seat}'s seat"] [data-seat-money]`)
+        ? seatRow(page, seat).locator('[data-seat-money]')
         : page.locator('[data-seat-strip] button').filter({ hasText: seat })
 }
 
-// R-X.1: the seat is the one the state asks to decide: its card's "repairs" tag on desktop,
-// its seat-strip chip marked active on a phone.
+// R-X.1: the seat is the one the state asks to decide: its amber row with the "repairs" tag in
+// the seat ledger on desktop, its seat-strip chip marked active on a phone.
 async function expectDecidingSeat(page: Page, width: Width, seat: SeatName) {
     const playerId = await playerIdOf(page, seat)
     if (width.name === 'desktop') {
-        await expect(page.locator(`[aria-label="${seat}'s seat"] [data-seat-tag]`)).toHaveAttribute(
+        await expect(seatRow(page, seat)).toHaveAttribute('data-active', 'true')
+        await expect(seatRow(page, seat).locator('[data-seat-tag]')).toHaveAttribute(
             'data-seat-tag',
             'repairs'
         )
@@ -152,7 +154,7 @@ for (const width of WIDTHS) {
             const town = await litRepairsTown(page)
             await press(hexTarget(page, town))
             if (width.name === 'desktop') {
-                // Each payer's loss rises from its seat card as the bill is paid.
+                // Each payer's loss rises from its row in the seat ledger as the bill is paid.
                 for (const change of ['-4', '-2', '-6']) {
                     await expect(page.locator(`[data-money-chip="${change}"]`)).toBeAttached()
                 }

@@ -12,7 +12,7 @@ import { FlightKind, type FlightItem, type Hideable } from './flights.svelte.js'
 import type { FlightPlan } from './flightPlan.js'
 import type { BoardStateChange } from './markerMotion.js'
 
-// R-3.1, R-3.2: a share card's flight between its deck and a seat card.
+// R-3.1, R-3.2: a share card's flight between its deck and a seat (its ledger row or open seat).
 export const SHARE_FLIGHT_SECONDS = 0.5
 // R-4.3: the debtor's cards leave one after another, in the order they were sold.
 export const SALE_STAGGER_SECONDS = 0.15
@@ -30,8 +30,9 @@ type Move = {
     fromTop: number
 }
 
-// R-3.1: a bought card flies from its deck in the strip to the buyer's seat card; R-3.2, R-4.3: a
-// sold or distress-sold card flies back. Each count changes as its card lands; the card it
+// R-3.1: a bought card flies from its deck in the strip to the buyer's row in the seat ledger
+// (its stack in the open seat, when that is open); R-3.2, R-4.3: a sold or distress-sold card
+// flies back. With neither on screen the count changes with no flight. Each count changes as its card lands; the card it
 // leaves behind is hidden while it flies. Undo and history change counts with the state.
 export class ShareCardAnimator extends FlightAnimator {
     protected async onGameStateChange(change: BoardStateChange) {
@@ -97,9 +98,11 @@ export class ShareCardAnimator extends FlightAnimator {
     ) {
         const { railroadId, start } = move
         const deck = this.stage.mapRect(STRIP_SLOTS.decks[railroadId])
+        // The open seat's stack when it is open, else the seat's row in the ledger.
         const cards = this.stage.seatShareCards(playerId, railroadId)
         const card = cards.at(-1 - Math.min(move.fromTop, cards.length - 1))
-        if (!deck || !card) {
+        const seat = card?.rect ?? this.stage.seatShareCell(playerId, railroadId)
+        if (!deck || !seat) {
             plan.at(start + SHARE_FLIGHT_SECONDS, land(move, []))
             return
         }
@@ -110,11 +113,11 @@ export class ShareCardAnimator extends FlightAnimator {
                 ? move.deckBefore === 1 && deckFace
                     ? [deckFace.element]
                     : []
-                : move.seatBefore <= STACK_CARDS && move.seatBefore > 0
+                : card && move.seatBefore <= STACK_CARDS && move.seatBefore > 0
                   ? [card.element]
                   : []
         const item: FlightItem = { kind: FlightKind.Share, railroadId }
-        const [source, target] = way === 'buy' ? [deck, card.rect] : [card.rect, deck]
+        const [source, target] = way === 'buy' ? [deck, seat] : [seat, deck]
         plan.fly(item, source, target, {
             start,
             duration: SHARE_FLIGHT_SECONDS,

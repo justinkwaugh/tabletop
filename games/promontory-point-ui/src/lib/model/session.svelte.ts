@@ -64,7 +64,7 @@ export class PromontoryPointGameSession extends GameSession<
 
     readonly openSeat = new OpenSeat()
 
-    // R-1.3-H1: the money changes rising from the seat cards while a transition plays.
+    // R-1.3-H1: the money changes rising from the seat ledger while a transition plays.
     readonly moneyChips = new MoneyChips()
 
     // R-1.3-H1: each stepping money marker's "+100" until the state it reaches is shown.

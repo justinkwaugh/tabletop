@@ -11,7 +11,7 @@
     )
 </script>
 
-<!-- R-1.3-H1: the change rises from the seat card's money; the money animator moves it. -->
+<!-- R-1.3-H1: the change rises from the seat's cash; the money animator moves it. -->
 <span class="anchor" aria-hidden="true">
     {#each chips as chip (chip.id)}
         <span

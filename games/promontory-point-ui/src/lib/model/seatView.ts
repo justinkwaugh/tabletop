@@ -80,7 +80,7 @@ export function handPerspective(
     return viewerId === playerId ? HandPerspective.Own : HandPerspective.Hidden
 }
 
-// A seat card's share stack draws at most this many cards, however many are held.
+// The open seat's share stack draws at most this many cards, however many are held.
 export const STACK_CARDS = 4
 
 const faceUp = (railroadId: RailroadId): HandPieceView => ({ faceShown: true, railroadId })
@@ -125,7 +125,8 @@ function deciderOfRepairs(state: HydratedPromontoryPointGameState): string | und
         : undefined
 }
 
-// Contract, "Seat card": one derivation of a seat, read by the seat card and the open seat.
+// Contract, "Open seat": one derivation of a seat, read by the seat ledger, the seat strip and
+// the open seat.
 export function seatView(
     state: HydratedPromontoryPointGameState,
     playerId: string,
@@ -140,7 +141,7 @@ export function seatView(
         const price = sharePrice(state, railroadId)
         return { railroadId, count, price, countLabel: `×${count}`, priceLabel: `$${price} ea` }
     })
-    // Contract, "Seat card": a tag only on the seat that decides, so none on a turn that waits.
+    // Contract, "Open seat": a tag only on the seat that decides, so none on a turn that waits.
     const tag =
         debtorId === playerId
             ? SeatTag.Repairs
@@ -159,7 +160,7 @@ export function seatView(
     }
 }
 
-// Contract, "Seat card": every seat in seat order (R-2.1).
+// Contract, "Seat ledger": every seat in seat order (R-2.1).
 export function seatViews(
     state: HydratedPromontoryPointGameState,
     viewerId: string | undefined
@@ -211,7 +212,7 @@ function moneyLine(action: GameAction, playerId: string): MoneyLine | undefined 
     return undefined
 }
 
-// Contract, "Seat card": the open seat's money history of the turn on display.
+// Contract, "Open seat": the money history of the turn on display.
 export function moneyLinesOfTurn(
     turnActions: readonly GameAction[],
     playerId: string

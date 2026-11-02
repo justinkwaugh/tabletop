@@ -36,7 +36,7 @@ function moneyMotion(page: Page) {
 
 const AT_REST = 'translate(0 0) scale(1)'
 
-test('R-1.3-H1: a buy steps the money marker and raises a cost chip from the seat card', async ({
+test('R-1.3-H1: a buy steps the money marker and raises a cost chip from the seat ledger’s cash', async ({
     page
 }) => {
     await createGame(page)
@@ -47,6 +47,9 @@ test('R-1.3-H1: a buy steps the money marker and raises a cost chip from the sea
     const chip = page.locator('[data-money-chip]')
     await expect(chip).toHaveCount(1)
     await expect(chip).toHaveText(/^−\$\d+$/)
+    await expect(
+        page.locator('[data-seat-ledger] [data-ledger-row][data-active="true"] [data-money-chip]')
+    ).toHaveCount(1)
     // While it steps, the marker stands away from its place in the state on screen.
     await expect.poll(async () => (await moneyMotion(page)).some((t) => t !== AT_REST)).toBe(true)
 

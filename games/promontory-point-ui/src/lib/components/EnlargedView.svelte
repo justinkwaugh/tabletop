@@ -4,7 +4,7 @@
     import { townTileImage } from '$lib/images/tileImages.js'
     import { PreviewKind } from '$lib/model/cardPreview.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { townTileRotation } from '$lib/utils/boardLayout.js'
+    import { TOWN_TILE_ROTATION } from '$lib/utils/boardLayout.js'
 
     const gameSession = getGameSession()
     const preview = gameSession.cardPreview
@@ -64,7 +64,7 @@
                         alt="{shown.name} town tile"
                         width="160"
                         height="160"
-                        style:transform="rotate({townTileRotation(shown.kindId)}deg)"
+                        style:transform="rotate({TOWN_TILE_ROTATION}deg)"
                     />
                 </div>
                 <figcaption class="text-sm text-pp-text">{shown.name} town tile</figcaption>

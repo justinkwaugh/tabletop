@@ -49,7 +49,7 @@ describe('phone board framing (contract, "Phone layout")', () => {
         for (const space of BOARD_GRID.spaces()) {
             expect(centreInside(space.spaceId, HEX_FIELD_RECT), space.spaceId).toBe(true)
         }
-        for (const slot of [STRIP_SLOTS.bag, STRIP_SLOTS.shares, STRIP_SLOTS.endTracker]) {
+        for (const slot of [STRIP_SLOTS.hand, STRIP_SLOTS.shares, STRIP_SLOTS.endTracker]) {
             expect(overlaps(HEX_FIELD_RECT, drawn(slot))).toBe(false)
             expect(drawn(slot).x + drawn(slot).width).toBeLessThan(HEX_FIELD_RECT.x)
         }

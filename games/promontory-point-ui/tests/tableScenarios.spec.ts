@@ -13,6 +13,7 @@ import {
     placeOnOpenCountry,
     playerIdOf,
     press,
+    seatRow,
     settled,
     shareEntry,
     trackPiece,
@@ -48,20 +49,19 @@ const turnEntry = (log: Locator, turnNumber: number) =>
         has: log.page().locator('.turn-number', { hasText: new RegExp(`^Turn ${turnNumber}$`) })
     })
 
-// The seat's money as its seat card reads it (desktop) or its seat-strip chip (phone).
+// The seat's money as its row in the seat ledger reads it (desktop) or its seat-strip chip (phone).
 function seatMoney(page: Page, width: Width, seat: SeatName): Locator {
     return width.name === 'desktop'
-        ? page.locator(`[aria-label="${seat}'s seat"] [data-seat-money]`)
+        ? seatRow(page, seat).locator('[data-seat-money]')
         : page.locator('[data-seat-strip] button').filter({ hasText: seat })
 }
 
-// The seat as a seat card: the card in the side column on a desktop, the bottom sheet the seat
-// strip opens on a phone.
+// The seat opened over the table: from its row in the seat ledger on a desktop, from its chip in
+// the seat strip on a phone.
 async function seatCard(page: Page, width: Width, seat: SeatName): Promise<Locator> {
-    if (width.name === 'desktop')
-        return page.locator(`[data-seat-cards] [aria-label="${seat}'s seat"]`)
     const playerId = await playerIdOf(page, seat)
-    await press(page.locator(`[data-seat-chip="${playerId}"]`))
+    if (width.name === 'desktop') await press(seatRow(page, seat))
+    else await press(page.locator(`[data-seat-chip="${playerId}"]`))
     await expect(openSeat(page)).toHaveAttribute('data-open-seat', playerId)
     return openSeat(page)
 }
@@ -161,7 +161,7 @@ for (const width of WIDTHS) {
     test.describe(width.name, () => {
         test.use(width.use)
 
-        test('scenario 23 (R-1.3-H1): money past 99 steps forward through 0 and shows "+100" by the marker; the seat card shows the true amount', async ({
+        test('scenario 23 (R-1.3-H1): money past 99 steps forward through 0 and shows "+100" by the marker; the seat ledger shows the true amount', async ({
             page
         }) => {
             await openTable(page, 'Money wrap')
@@ -210,13 +210,10 @@ for (const width of WIDTHS) {
             )
             await press(enlarged(page))
             await expect(enlarged(page)).toHaveCount(0)
-            // The closing press did nothing else: the seat stays as it was, nothing changed.
-            if (width.name === 'desktop') await expect(openSeat(page)).toHaveCount(0)
-            else await expect(openSeat(page)).toBeVisible()
-            if (width.name === 'phone') {
-                await page.keyboard.press('Escape')
-                await expect(openSeat(page)).toHaveCount(0)
-            }
+            // The closing press did nothing else: the seat stays open, nothing changed.
+            await expect(openSeat(page)).toBeVisible()
+            await page.keyboard.press('Escape')
+            await expect(openSeat(page)).toHaveCount(0)
 
             await page.locator('[data-deck-target="railroad.kp"]').dispatchEvent('click')
             await expect(enlarged(page).getByRole('img')).toHaveAttribute(
@@ -587,7 +584,7 @@ for (const width of WIDTHS) {
                 () =>
                     [
                         ...document.querySelectorAll<HTMLElement | SVGElement>(
-                            '[data-turn-piece] svg, [data-hand-piece], [data-seat-share] img, [data-share-deck] image'
+                            '[data-turn-piece-art], [data-hand-piece], [data-seat-share] img, [data-share-deck] image'
                         )
                     ].filter((node) => node.style.visibility === 'hidden').length
             )

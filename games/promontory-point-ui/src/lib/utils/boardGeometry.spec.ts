@@ -75,7 +75,7 @@ const borderBoxes = BORDER_TRACK_SPACES.map((space) => ({
 }))
 
 const stripCards = [
-    { name: 'bag', box: STRIP_SLOTS.bag },
+    { name: 'hand', box: STRIP_SLOTS.hand },
     { name: 'shares', box: STRIP_SLOTS.shares },
     { name: 'end tracker', box: STRIP_SLOTS.endTracker }
 ]
@@ -219,7 +219,7 @@ describe('border track (R-1.3-H1)', () => {
     })
 })
 
-describe('the strip left of the map: bag, decks and end tracker (R-1.3, O-8)', () => {
+describe('the strip left of the map: hand, decks and end tracker with the bag (R-1.3, O-8)', () => {
     const STRIP: BoundingBox = {
         x: BOARD_BOUNDS.x,
         y: 0,
@@ -234,7 +234,7 @@ describe('the strip left of the map: bag, decks and end tracker (R-1.3, O-8)', (
         expect(STRIP_WIDTH / MAP_SIZE.width).toBeCloseTo(0.18, 1)
     })
 
-    it('stacks its three cards in the strip, off the map, top to bottom without overlap', () => {
+    it('stacks its three cards in the strip, off the map, the hand on top, without overlap', () => {
         for (const { name, box } of [...stripCards, ...deckBoxes]) {
             expect(contains(STRIP, box), name).toBe(true)
             expect(overlaps(MAP_BOX, box), name).toBe(false)

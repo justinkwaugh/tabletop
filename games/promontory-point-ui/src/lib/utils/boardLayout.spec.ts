@@ -12,14 +12,15 @@ import {
 import { BORDER_TRACK_SPACES, HEX } from './boardGeometry.js'
 import {
     ChipPlacement,
+    TOWN_TILE_ROTATION,
     TOWN_TILE_SCALE,
     TRACK_PIECE_RADIUS,
     chipPlacement,
+    endTrackerLines,
     endTrackerStatus,
     localHexPoints,
     moneyMarkers,
     priceMarkerSlot,
-    townTileRotation,
     veilPath
 } from './boardLayout.js'
 
@@ -31,18 +32,9 @@ function townsOf(kinds: [SpaceId, TownTileKindId][]): Record<SpaceId, TownTileKi
 }
 
 describe('town tiles (R-1.3, O-6)', () => {
-    it('O-6: turns the six number tiles a quarter turn and leaves the red tiles as supplied', () => {
-        const turned = TOWN_TILE_KIND_IDS.filter((kindId) => townTileRotation(kindId) === 90)
-        expect(turned).toEqual([
-            'tile.price.plus-1',
-            'tile.price.plus-2',
-            'tile.price.plus-3',
-            'tile.price.minus-1',
-            'tile.price.minus-2',
-            'tile.price.minus-3'
-        ])
-        expect(townTileRotation('tile.red.dividend')).toBe(0)
-        expect(townTileRotation('tile.red.hammer')).toBe(0)
+    it('O-6: turns every tile, the Dividend and Repairs tiles too, a quarter turn clockwise', () => {
+        expect(TOWN_TILE_KIND_IDS).toHaveLength(8)
+        expect(TOWN_TILE_ROTATION).toBe(90)
     })
 
     it('R-X.4, O-5: a track piece fits inside a town tile, so a covered red tile still reads', () => {
@@ -147,6 +139,24 @@ describe('end tracker (R-6.1, R-6.1-H1)', () => {
                 track: { 'space.2.-6': CP, 'space.4.-6': KP, [PROMONTORY.spaceId]: KP }
             })
         ).toEqual({ redTilesUncovered: 1, redTilesMet: true, promontoryTaken: true })
+    })
+
+    it('R-6.1: two lines, each ticked only when met, in the neither, one and both states', () => {
+        const neither = { redTilesUncovered: 16, redTilesMet: false, promontoryTaken: false }
+        expect(endTrackerLines(neither)).toEqual([
+            { key: 'red', text: 'Red towns open: 16', met: false },
+            { key: 'promontory', text: 'Promontory open', met: false }
+        ])
+        const one = { redTilesUncovered: 5, redTilesMet: false, promontoryTaken: true }
+        expect(endTrackerLines(one)).toEqual([
+            { key: 'red', text: 'Red towns open: 5', met: false },
+            { key: 'promontory', text: 'Promontory taken', met: true }
+        ])
+        const both = { redTilesUncovered: 1, redTilesMet: true, promontoryTaken: true }
+        expect(endTrackerLines(both)).toEqual([
+            { key: 'red', text: 'Red towns open: 1', met: true },
+            { key: 'promontory', text: 'Promontory taken', met: true }
+        ])
     })
 })
 

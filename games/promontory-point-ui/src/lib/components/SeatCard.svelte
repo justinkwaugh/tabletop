@@ -7,13 +7,9 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { RAILROAD_TAGS } from '$lib/model/railroadTags.js'
     import HandPiece from './HandPiece.svelte'
-    import MoneyChange from './MoneyChange.svelte'
 
-    let {
-        view,
-        large = false,
-        moneyLines
-    }: { view: SeatView; large?: boolean; moneyLines?: MoneyLine[] } = $props()
+    // Contract, "Open seat": the seat at a readable size over the table.
+    let { view, moneyLines }: { view: SeatView; moneyLines?: MoneyLine[] } = $props()
 
     const gameSession = getGameSession()
 
@@ -22,7 +18,7 @@
     const seatNumber = $derived(
         gameSession.gameState.players.findIndex((player) => player.playerId === view.playerId) + 1
     )
-    const pieceSize = $derived(large ? 30 : 16)
+    const pieceSize = 30
 
     // While a transition plays, a hand or share count shows what has landed (Pattern C).
     const hand = $derived(gameSession.flights.hands[view.playerId] ?? view.hand)
@@ -41,7 +37,6 @@
 <!-- O-10: the stock certificate: a paper card with an engraved double rule in the seat colour. -->
 <section
     class="seat"
-    class:large
     class:active={view.active}
     class:waiting={view.waitingTurn}
     style:--seat={seatColour}
@@ -58,14 +53,12 @@
                     type="button"
                     class="n"
                     aria-expanded={gameSession.openSeat.playerId === view.playerId}
-                    aria-label={large ? `Close ${name}'s seat` : `Open ${name}'s seat`}
+                    aria-label="Close {name}'s seat"
                     onclick={() => gameSession.openSeat.toggle(view.playerId)}>{name}</button
                 >
             </span>
             <!-- R-1.3-H1: money is public. -->
-            <span class="m" data-seat-money={view.money}
-                >${view.money}{#if !large}<MoneyChange playerId={view.playerId} />{/if}</span
-            >
+            <span class="m" data-seat-money={view.money}>${view.money}</span>
         </header>
 
         <div class="shares">
@@ -144,19 +137,14 @@
 
 <style>
     .seat {
-        --u: 1px;
+        --u: 1.7px;
         position: relative;
         background: var(--pp-paper);
         color: var(--pp-ink);
         border-radius: 4px;
-        padding: 5px;
+        padding: 7px;
         text-align: left;
         box-shadow: 0 2px 0 color-mix(in srgb, var(--pp-halo) 35%, transparent);
-    }
-
-    .seat.large {
-        --u: 1.7px;
-        padding: 7px;
     }
 
     .seat.active {
