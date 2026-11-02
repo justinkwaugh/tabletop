@@ -90,7 +90,7 @@
     import WealthChart from './WealthChart.svelte'
     import { seatOrderFrom } from './spreadsheetSort.js'
     import { LabelStacking } from './labelStacking.svelte.js'
-    import type { PhaseChartData } from '../phases/phaseChart.js'
+    import { currentDepotCertificates, type PhaseChartData } from '../phases/phaseChart.js'
     const MapHexDiameter = 140
     const FocusRadius = 220
     const RevealMargin = 24
@@ -142,7 +142,6 @@
     const phaseChart = $derived(
         session.presentation.phaseChartFor?.(session.gameState) ?? defaultPhaseChart
     )
-    const operatingRules = $derived(session.operatingRules)
     const gameOver = $derived(session.gameState.result !== undefined)
     const readOnlyPosition = $derived(
         session.isViewingHistory || gameOver || !session.myPlayer || !session.isMyTurn
@@ -160,11 +159,7 @@
         inventory: session.gameState.trainInventory,
         availableDefinitionIds: session.availableTrainDefinitionIds
     })
-    const currentDepotIds = $derived(
-        session.availableTrainDefinitionIds.filter(
-            (id) => session.trainDepot.remaining(session.gameState.trainInventory, id) !== 0
-        )
-    )
+    const currentCertificates = $derived(currentDepotCertificates(depotState))
 
     const publishedArtwork = $derived(session.publishedArtwork)
     const boardArtwork = $derived(publishedArtwork ? session.mapView.boardArtwork : undefined)
@@ -699,7 +694,7 @@
     const headerPlayerId = $derived(
         gameState.activePlayerIds.length === 1 ? gameState.activePlayerIds[0] : undefined
     )
-    const operating = $derived(gameState.stockRound.completed && !!gameState.operatingSet)
+    const operating = $derived(session.operatingSetUnderway)
     const operatedCompanyIds = $derived(
         operating ? (gameState.operatingSet?.completedCompanyIds ?? []) : []
     )
@@ -712,12 +707,7 @@
             ? session.presentation.terrainDiscounts?.(gameState, operatingCompanyId)
             : undefined
     )
-    const companyOrder = $derived(
-        (operating && gameState.operatingSet
-            ? gameState.operatingSet.companyOrder
-            : operatingRules.companyOrder(gameState)
-        ).map((id) => getCompany(gameState, id))
-    )
+    const companyOrder = $derived(session.operatingOrder.map((id) => getCompany(gameState, id)))
     // Company cards and the spreadsheet follow the operating order.
     const displayedCompanyOrder = $derived(companyOrder.map((company) => company.id))
     const startedCompanies = $derived(
@@ -1025,16 +1015,14 @@
         </span>
         <span class="game-information-item depot-information">
             <span class="information-label">Depot</span>
-            {#each currentDepotIds as currentDepotId (currentDepotId)}
-                {@const remaining = session.trainDepot.remaining(
-                    session.gameState.trainInventory,
-                    currentDepotId
-                )}
+            {#each currentCertificates as { definitionIds, remaining } (definitionIds[0])}
                 <span class="depot-type"
-                    ><TrainBadge
-                        name={session.trainDepot.trainDefinition(currentDepotId).name}
-                        color={trainColors[currentDepotId]}
-                    />
+                    >{#each definitionIds as definitionId, index (definitionId)}{#if index > 0}<span
+                                class="depot-face-separator">/</span
+                            >{/if}<TrainBadge
+                            name={session.trainDepot.trainDefinition(definitionId).name}
+                            color={trainColors[definitionId]}
+                        />{/each}
                     <span class="depot-count"
                         >{remaining === 'unlimited' ? '∞' : `×${remaining}`}</span
                     ></span
@@ -1785,6 +1773,9 @@
         align-items: center;
         gap: 3px;
     }
+    .depot-face-separator {
+        color: var(--rail-muted, #887969);
+    }
     .depot-information {
         flex-wrap: wrap;
         justify-content: flex-end;
@@ -1852,8 +1843,13 @@
         border-radius: 0;
         background: transparent;
     }
+    /* Its bottom padding keeps the panel clear of the instruction bar's rule on short panes. */
     .action-panel :global(.centered-panel) {
         margin-block: auto;
+        padding-bottom: 16px;
+    }
+    .action-panel :global(.centered-panel .centered-panel) {
+        padding-bottom: 0;
     }
     @container action-pane (min-width: 500px) {
         .action-panel:has(:global(.sales-sidebar)) {
@@ -1864,6 +1860,7 @@
         .action-panel :global(section.stock-trading:has(.sales-sidebar)) {
             flex: 1;
             margin-block: 0;
+            padding-bottom: 0;
         }
     }
     .action-panel :global(h2) {

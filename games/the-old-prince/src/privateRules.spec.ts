@@ -1,9 +1,12 @@
 import { expect, it } from 'vitest'
 import { assertExists, Prng } from '@tabletop/common'
+import { liftedPrivateBlocks } from '@tabletop/18xx'
 import { createTheOldPrinceOpening } from './openingAuction.js'
 import { theOldPrinceRole } from './companies.js'
 import { TheOldPrinceNames } from './names.js'
 import { TheOldPrincePrivateRules, unionBankStartingCompanyIds } from './privateRules.js'
+import { TheOldPrinceMap } from './map.js'
+import { TheOldPrinceTrackRules } from './trackRules.js'
 
 function opening() {
     const players = ['a', 'b', 'c'].map((playerId) => ({ playerId, color: 'blue' as const }))
@@ -57,4 +60,37 @@ it('keeps naming the starting pair after Union Bank buys or sells shares', () =>
 it('falls back to the railway Union Bank holds in games set up before the draw was recorded', () => {
     const { unionBankDrawnCompanyId: drawn, ...state } = opening()
     expect(unionBankStartingCompanyIds(state)).toEqual([theOldPrinceRole(state, 'mainline'), drawn])
+})
+
+it('lifts the Vernon River Bridge marker on N18 once the private closes', () => {
+    const state = opening()
+    const lifted = () =>
+        liftedPrivateBlocks(TheOldPrinceMap.markedPrivateIds, TheOldPrincePrivateRules, state)
+    expect(lifted()).not.toContain('VR')
+    const bridge = state.companies.find((company) => company.id === 'VR')
+    assertExists(bridge, 'The opening has the Vernon River Bridge')
+    bridge.closed = true
+    expect(lifted()).toContain('VR')
+})
+
+it('asks the Vernon River Bridge owner to consent to N18 construction until VR closes', () => {
+    const state = opening()
+    const certificate = state.certificates.find((item) => item.companyId === 'VR')
+    assertExists(certificate, 'The opening has the Vernon River Bridge certificate')
+    certificate.owner = { kind: 'player', playerId: 'a' }
+    certificate.poolId = undefined
+    const consent = (locationId: string) =>
+        TheOldPrinceTrackRules.consentPlayerId?.(state, {
+            companyId: theOldPrinceRole(state, 'mainline'),
+            locationId,
+            definitionId: '18xx:7',
+            rotation: 0,
+            nodeMapping: {}
+        })
+    expect(consent('N18')).toBe('a')
+    expect(consent('M17')).toBeUndefined()
+    const bridge = state.companies.find((company) => company.id === 'VR')
+    assertExists(bridge, 'The opening has the Vernon River Bridge')
+    bridge.closed = true
+    expect(consent('N18')).toBeUndefined()
 })

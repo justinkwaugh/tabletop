@@ -8,6 +8,7 @@
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import { companyOwnership } from '../finance/companyOwnership.js'
     import { playerPurchaseContribution } from '../stock/purchaseContribution.js'
+    import { marketSourcesFirst } from '../stock/purchaseSources.js'
     import SlidingToggle from './SlidingToggle.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import PrivatePurchaseOffers from '../stock/PrivatePurchaseOffers.svelte'
@@ -152,8 +153,11 @@
                 {#if menu === 'buy'}
                     {#each purchaseCompanies as company (company.id)}
                         {@const ownership = companyOwnership(session.gameState, company.id)}
-                        {@const options = buyerPurchases.filter(
-                            (choice) => choice.certificate.companyId === company.id
+                        {@const options = marketSourcesFirst(
+                            buyerPurchases.filter(
+                                (choice) => choice.certificate.companyId === company.id
+                            ),
+                            session.presentation.marketPoolId
                         )}
                         {@const prices = [
                             ...new Set(options.map((choice) => choice.result.details?.price))

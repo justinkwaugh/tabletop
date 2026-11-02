@@ -10,7 +10,7 @@
     } from '@tabletop/common'
     import type { GameSession } from '@tabletop/frontend-components'
     import { getAppContext } from '$lib/stores/appContext.svelte'
-    import { bugReportRequest } from '$lib/utils/bugReport'
+    import { bugReportFailureMessage, bugReportRequest } from '$lib/utils/bugReport'
     import {
         pastedImages,
         releaseScreenshot,
@@ -23,7 +23,7 @@
         session
     }: { open: boolean; session: GameSession<GameState, HydratedGameState> } = $props()
 
-    const { api, manifestService } = getAppContext()
+    const { api, gameService, manifestService } = getAppContext()
 
     let description = $state('')
     let screenshots = $state<Screenshot[]>([])
@@ -87,10 +87,11 @@
         submitting = true
         try {
             await api.reportBug(
-                bugReportRequest({
+                await bugReportRequest({
                     session,
                     description,
                     screenshots: screenshots.map((screenshot) => screenshot.base64),
+                    localGameStore: gameService.localGameStore,
                     manifestService
                 })
             )
@@ -100,7 +101,7 @@
             toast.success('Thanks! Your bug report was sent.')
         } catch (error) {
             console.error('Could not send the bug report', error)
-            toast.error('Could not send your bug report. Please try again in a few minutes.')
+            toast.error(bugReportFailureMessage(error))
         } finally {
             submitting = false
         }

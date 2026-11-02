@@ -3,5 +3,5 @@ import { completeDiscordAuthorization } from '$lib/utils/discordAuthorization'
 import type { PageLoad } from './$types.js'
 
 export const load: PageLoad = async ({ url }) => {
-    await completeDiscordAuthorization({ url, purpose: 'login', api: getAppContext().api })
+    await completeDiscordAuthorization({ url, api: getAppContext().api })
 }

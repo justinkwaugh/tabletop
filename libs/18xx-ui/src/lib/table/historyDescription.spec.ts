@@ -4,6 +4,7 @@ import type {
     AuctionAwardDetails,
     BuyAuctionLot,
     BuyShares,
+    CorporateFinance,
     DeclareBankruptcy,
     DiscardTrain,
     FundTrain,
@@ -299,6 +300,30 @@ it('names who went bankrupt, and for which company’s train', () => {
     ).toEqual({ text: 'ALEX went bankrupt', detail: '$139 short of R’s train', important: true })
 })
 
+it('says how much of a bankrupt player’s stock reached the company’s treasury', () => {
+    const bankruptcy: DeclareBankruptcy = {
+        id: 'bankrupt',
+        gameId: 'history',
+        source: ActionSource.System,
+        type: 'DeclareBankruptcy',
+        metadata: {
+            companyId: 'R',
+            playerId: 'alex',
+            shortfall: 287,
+            surrendered: {
+                from: { kind: 'player', playerId: 'alex' },
+                to: { kind: 'company', companyId: 'R' },
+                amount: 270
+            }
+        }
+    }
+    expect(
+        historyDescription(bankruptcy, historyStateFixture(), TestMarket, undefined, (id) =>
+            id.toUpperCase()
+        ).detail
+    ).toBe('$287 short of R’s train · $270 from their remaining shares to its treasury')
+})
+
 it('names the company that discarded a train and where the train went', () => {
     const discard: DiscardTrain = {
         id: 'discard',
@@ -313,6 +338,31 @@ it('names the company that discarded a train and where the train went', () => {
     expect(historyDescription(discard, historyStateFixture(), TestMarket)).toEqual({
         text: 'R discarded a train',
         detail: 'To the open market'
+    })
+})
+
+it('describes issuing and redeeming treasury shares by what changed hands', () => {
+    const finance = (
+        operation: CorporateFinance['operation'],
+        shares: number
+    ): CorporateFinance => ({
+        id: operation,
+        gameId: 'history',
+        source: ActionSource.User,
+        playerId: 'alex',
+        type: 'CorporateFinance',
+        companyId: 'R',
+        operation,
+        shares,
+        amount: shares * 50
+    })
+    expect(historyDescription(finance('issue', 2), historyStateFixture(), TestMarket)).toEqual({
+        text: 'Issued 2 shares',
+        value: '$100'
+    })
+    expect(historyDescription(finance('redeem', 1), historyStateFixture(), TestMarket)).toEqual({
+        text: 'Redeemed 1 share',
+        value: '$50'
     })
 })
 

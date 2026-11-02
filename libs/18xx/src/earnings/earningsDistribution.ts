@@ -109,7 +109,7 @@ export class EarningsDistribution {
             ? 'withhold'
             : undefined
     }
-    canAct(playerId: string, companyId: string): boolean {
+    canAct(playerId: string | undefined, companyId: string): boolean {
         return (
             this.state.routeStep?.companyId === companyId &&
             !!this.state.routeStep.result &&

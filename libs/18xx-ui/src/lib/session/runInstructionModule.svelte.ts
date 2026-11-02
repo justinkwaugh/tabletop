@@ -14,6 +14,7 @@ import {
     type StandingRunInstruction
 } from '@tabletop/18xx'
 import type { ModuleSession } from './moduleSession.js'
+import { orderedAs } from '../table/spreadsheetSort.js'
 
 type RunInstructionView = Pick<
     HydratedEighteenXXState,
@@ -25,14 +26,18 @@ const RunInstructionDeclaration = {
     supersessionScope: 'companyId'
 } as const
 
-export type RunInstructionSession = ModuleSession<RunInstructionView, unknown>
+export type RunInstructionSession = ModuleSession<
+    RunInstructionView,
+    { operatingRules: { companyOrder(state: RunInstructionView): readonly string[] } }
+>
 export type InstructedRunSolve = (companyId: string) => Promise<InstructedRun>
 type RunInstructionFailure = { companyId: string; message: string }
 
 export class RunInstructionModule {
     constructor(
         private readonly session: RunInstructionSession,
-        private readonly solve: () => InstructedRunSolve | undefined
+        private readonly solve: () => InstructedRunSolve | undefined,
+        private readonly operatingOrder: () => readonly string[]
     ) {}
 
     changing = $state<{ companyId: string; on: boolean }>()
@@ -57,7 +62,11 @@ export class RunInstructionModule {
     presided = $derived.by((): string[] => {
         const playerId = this.session.playerId
         if (!this.available || !playerId) return []
-        return instructableCompanyIds(this.state, playerId)
+        return instructableCompanyIds(
+            this.state,
+            this.session.rules.operatingRules,
+            playerId
+        ).toSorted(orderedAs(this.operatingOrder()))
     })
     shown = $derived(this.presided.length > 0)
     declared = $derived.by((): StandingRunInstruction[] =>

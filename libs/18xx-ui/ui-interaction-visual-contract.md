@@ -605,6 +605,11 @@ History and updatingVisibleState hide the selection; beforeNewState clears it. A
 choice cannot confirm without passing the same evaluator as the BuyTrain Action.
 The component calls session methods; only explicit confirmation buys the train.
 
+Published card art, on depot trains and on the auction's lot card, replaces the generic
+button or card only once its image has loaded. Until then, or for good if it fails, the
+generic presentation names the train or lot. It stays invisible for its first 200 ms, so
+art that arrives from cache replaces it unseen.
+
 The preview highlights a selected depot rank and states its price. Money, supply,
 rosters and purchase history remain canonical until confirmation. History restores
 those values, and returning Live does not restore a cleared selection. Map inspection,
@@ -737,7 +742,8 @@ the price the protection restores, with Protect and Decline committed at once.
 ### Combined construction, share issues and presidency claims
 
 These switch on from the title rules the session is created with; a title renders them through
-`OperatingActions` and the table's stock strip, with no title UI code.
+`OperatingActions` and the table's stock strip, with no title UI code, except for its own title
+modes.
 
 - **Operating mode** (`session.operatingMode`). For a title with `stationsWithTrack` or
   `corporateFinanceRules`, the operating actions show one of track building, station placement
@@ -751,7 +757,20 @@ These switch on from the title rules the session is created with; a title render
   stays available; a selected private tile power always selects track. Lifetime: the choice
   lasts through the step's actions and resets on leaving the step, on a change of perspective or
   in history; a choice no longer available falls back to the derived mode. A view choice, not a
-  step: Undo never changes it, and a derived mode consumes no Undo step.
+  step: Undo never changes it, and a derived mode consumes no Undo step. When the switch has
+  three entries and its width is at most 360px, or four or more at 460px, each entry shows its
+  short label ("Track", "Station", "Ferry", "Issue", "Redeem", "Run"); every short label is part
+  of its full label, which stays the button's accessible name.
+- **Title modes** (`session.titleOperatingModes`, `OperatingActions`' `titleMode` snippet). A
+  title's own optional actions in the operating turn are entries in the same switch, between
+  construction (or "Run trains") and share issues, listed only while legal; 1833NE's "Buy ferry"
+  (or "Luxury ferry" when only the Luxury Ferry Service is open) is the first. The snippet draws
+  the chosen mode's panel by id, and a title listing a mode must pass it. When a title mode is
+  all that is left in construction, the switch selects it. A construction panel's prompt comes
+  from `ConstructionPrompt`, which offers skip while construction can finish. Design survey:
+  optional purchases beside construction also appear as 1894's ferry markers (bought access to
+  London), 1849's purchasable tokens option and 18Scan's ferries; each is a title-owned action
+  with its own panel, so the family supplies the switch entry and panel slot, not the action.
 - **Combined construction.** With `stationsWithTrack`, track and station placement share the
   track step and the step bar shows Build, Run, Payout and Trains (and Loans), Build's status
   joining shares issued or redeemed, tiles laid and a station placed. Placing a station does
@@ -764,7 +783,8 @@ These switch on from the title rules the session is created with; a title render
 - **Share issues** (`session.corporateFinance`). The panel shows the company's cash, treasury
   and market shares, and one button per legal count to issue or redeem, each committed at once;
   the first locks the turn to issuing or to redeeming. When share issues are all that is left
-  in construction, the switch selects them and the panel offers skip to end construction. The
+  in construction, the switch selects them and the panel offers skip to end construction (its
+  prompt reads "Issue shares or skip", without a comma). The
   panel gives way to a purchase offer, a private-power selection, a private track-power
   selection and a company decision.
 - **Receivership** (`session.presidencyClaims`, `session.familyStockPanels`). With a
@@ -784,6 +804,11 @@ proceeds, as immediately committed buttons, or says none is possible. Go bankrup
 stages a confirmation that explains the consequences; Back or Undo withdraws it, and
 history, reload and state replacement discard it. History records sales to pay the
 bank and the bankruptcy with the companies it liquidated and the debt forgiven.
+
+A bankruptcy from a forced train purchase records its row with the shortfall against the
+train the president chose, and, when the player's remaining shares raised money for the
+operating company, how much reached its treasury. The train the company then buys has its
+own row, so the two together show how it could pay.
 
 Bankrupt players leave the turn order. The players panel lists them after the others,
 marked Bankrupt, and the ownership spreadsheet's turn-order sort places them last.
@@ -945,15 +970,23 @@ A private power that marks a location (a title's `markerTerms`, such as 1817's
 bridges) appears under Use privates as one immediately committed button per location,
 "Place [marker] on [location] ([private])". Placed markers join the map's printed
 markers, by the names the title's map view gives them, in the live and historical maps.
-Printed `revenueSymbol` markers (1832's and 1846's port anchors) take the clear corner
-farthest from the hex's drawn revenues, keeping room for a token that may cover them, or
-the title's `symbolPositions` (1832's New Orleans and Norfolk at the bottom,
-Miami at its right side), and are left out where the tile prints the symbol itself.
-A token a private places (a title's `token` marker art: 1832's Cotton, Port and Key West)
-is drawn alone, without its company, at radius 10.5, never shrunk. `'corner'` takes the
-clear corner farthest from the hex's drawn revenues (Cotton), `'centre'` the hex's middle
-(Key West in Miami), and `{ covers }` lies over the symbol the hex shows (Port over the
-port anchor), or in a corner where it shows none. In a crowded hex it covers track before
+Printed `revenueSymbol` markers (1832's and 1846's port anchors, 1846's meat-packing
+horns) take the clear corner farthest from the hex's drawn revenues, keeping room for a
+token that may cover them, or the title's `symbolPositions` (1832's New Orleans and
+Norfolk at the bottom, Miami at its right side), and are left out where the tile prints
+the symbol itself. `symbolPositions` are fitted to the printed hex: a laid tile keeps them
+only where its stops, revenues and labels leave them clear, and otherwise its symbols take
+clear corners, a symbol row that fits no corner together splitting into a corner each
+(1846's two ports on a green Wheeling).
+A token a private places (a title's `token` marker art: 1832's Cotton, Port and Key West,
+1846's Steamboat, Meat Packing and Boomtown) is drawn alone, without its company, at
+radius 10.5, never shrunk. `'corner'` takes the clear corner farthest from the hex's drawn
+revenues (Cotton, Boomtown), `'centre'` the hex's middle (Key West in Miami), and
+`{ covers }` takes the place of the symbol the hex shows (Port over the port anchor, the
+Steamboat over both of a hex's ports), hiding every copy of it, or a corner where it shows
+none. Marker art that changes with play (a title's `markerArtFor`) is read from the state
+shown: each historical map uses its own snapshot's, so 1846's horns are hidden on the
+other meat-packing hex only from the moment its marker was placed. In a crowded hex it covers track before
 a station, revenue or label. Its tooltip, inspection and history name it with its company.
 A title's reusable private lays (1817's coal mines and ranches) stay offered until its
 terms end them. A lay can also clear markers (1817's city tiles clear the ranches beside
@@ -1341,7 +1374,7 @@ Spreadsheet's Current / Income toggle switches to chronological OR rows with pla
 
 Income calculation receives only visible context actions; it does not read or reconstruct game states.
 
-Current ownership cells show the shared President badge for the company's canonical president in either orientation. Corporate presidencies are marked in that company's cell (such as Union Bank), never its controlling player's cell. Share numbers stay centered independently of the badge. The visible top of the P aligns with the top of the share number.
+Current ownership cells show the shared President badge for the company's canonical president in either orientation. Corporate presidencies are marked in that company's cell (such as Union Bank), never its controlling player's cell. A company in receivership has its badge in the Market cell, and on the Market row of its company card, because the president's certificate lies there; the cell keeps it while the shares are on offer. The card has no other mark of receivership. Share numbers stay centered independently of the badge. The visible top of the P aligns with the top of the share number.
 
 Where a title has an IPO pool, a Par line sits between the owners and the IPO: a row in Player view and a column in Company view, ruled off by the stronger divider on both sides like Value. It shows a company's par, the price of an IPO share, only while that company is started, not closed and has shares in the IPO; other companies show a dash. The line is absent when no company has IPO shares for sale, and for titles whose price presentation hides par. Its blank intersections with owner statistics carry the pool divider once, on the Par line. Par is not a sort header.
 
@@ -1429,6 +1462,14 @@ Groups follow the selected history order, with events chronological inside each 
 turn completion ends a group even if the same player acts next. A funding sale's
 company identifies the shares sold, not the operating company; it remains with
 that company's funding sequence. Actor changes within an operation remain visible.
+The System takes a company in receivership's automatic steps with no player, so their rows name
+no actor; the train it buys and the earnings it withholds also say in their detail that they
+were automatic because the company has no president. A choice a player makes for a company in receivership still names them.
+An operation's header names who finished it, the controlling player while it is under way, and
+no one when the System finished it with no player. The operation in which its
+president goes bankrupt keeps that president in its header, including when a new president or
+a receiver finishes it, and so does an operation that ends with the company closing. An Action
+recorded with a player keeps that credit.
 
 Summaries use processed action outcomes for money, dividends, purchases, phase
 changes and rusting. Bookkeeping finish steps are omitted from the displayed history. Stock actions
@@ -1875,7 +1916,7 @@ Stock choices appear only after selecting Buy or Sell. Compact company pills
 show the token beside the price above compact source rows. Buy lists only legal sources for the selected buyer,
 side by side beneath the shaded token/price header, with a tiny source label
 above its larger share count. A single source fills the width; multiple sources
-have short vertical dividers. Differing purchase prices remain explicit. Clicking a source commits the purchase. Sell lists only companies with legal sales, using the same token/market-value
+have short vertical dividers, the market always first and the rest in certificate order. Differing purchase prices remain explicit. Clicking a source commits the purchase. Sell lists only companies with legal sales, using the same token/market-value
 header as Buy. Company headers remain visible with the selected company highlighted. Its legal
 quantities appear in a separate row below with proceeds. Selecting a quantity
 stages the sale; switching company clears the previous quantity;

@@ -38,6 +38,7 @@ import {
     isFundTrain,
     isSellFundingShares,
     isIssueTreasuryShares,
+    isCorporateFinance,
     isFloatCompany,
     isEndGame,
     isScheduleGameEnd,
@@ -460,6 +461,11 @@ function describeShared(
                 : undefined
         }
     }
+    if (isCorporateFinance(action))
+        return {
+            text: `${action.operation === 'issue' ? 'Issued' : 'Redeemed'} ${shareCount(action.shares)}`,
+            value: money(action.amount)
+        }
     if (isPayInterest(action)) {
         assertExists(action.metadata, 'Recorded interest requires its payments')
         const { interest, loansTaken, default: unpaid } = action.metadata
@@ -506,10 +512,14 @@ function describeShared(
     // The System records it, so the row has no actor of its own to name.
     if (isDeclareBankruptcy(action)) {
         assertExists(action.metadata, 'Recorded bankruptcy requires its company and shortfall')
-        const { playerId, companyId, shortfall } = action.metadata
+        const { playerId, companyId, shortfall, surrendered } = action.metadata
         return {
             text: `${playerName(playerId)} went bankrupt`,
-            detail: `${money(shortfall)} short of ${companyName(companyId)}’s train`,
+            detail: joinDetails(
+                `${money(shortfall)} short of ${companyName(companyId)}’s train`,
+                surrendered &&
+                    `${money(surrendered.amount)} from their remaining shares to its treasury`
+            ),
             important: true
         }
     }

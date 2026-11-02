@@ -216,6 +216,8 @@ Built on branch `feat/implement-1833ne`. Family changes beyond the plan above:
   bankrupt player's forced sales (`issueFirstTrainFunding`, `marketReceivership`,
   `sellBankruptHoldings`), and treasury-share stock and launch rules
   (`treasuryShareStockRules`, `treasuryShareCompanyRules`). 1846 selects all of them.
+  A later sale of a company in the same turn or funding extends its first block
+  (2026-10-31; see [1846 personal emergency funding](1846-personal-emergency-funding-design.md#repeat-sales-2026-10-31)).
 - **Terminals:** Boston's and Portland's triangles are offboard nodes worth their city's
   value. An offboard terminal may become a city of a tile with fewer terminals
   (`tileUpgradeMappings`), which is how Portland's two triangles become a city and a triangle

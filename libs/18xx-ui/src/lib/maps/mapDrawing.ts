@@ -127,20 +127,10 @@ export type MapMarkerArt =
     | { revenueLead: { amount: number; caption: string } }
     /**
      * A token placed during play, drawn whole: in the clear corner farthest from the hex's
-     * revenue, in its centre, or over a symbol the hex shows (in a corner where it shows none).
+     * revenue, in its centre, or over a symbol the hex shows, in place of every copy of it (in a
+     * corner where it shows none).
      */
     | { token: { imageUrl: string; place: TokenPlacement; tab?: TokenTab } }
-    /**
-     * A marker placed during play: the hex is outlined in the colour, with a badge on its top
-     * corner showing the owning company's token and the marker's icon.
-     */
-    | {
-          placed: {
-              color: string
-              companyId: string
-              icon: { tileSymbol: TileSymbolName } | { imageUrl: string }
-          }
-      }
 
 export type TokenPlacement = 'corner' | 'centre' | { covers: TileSymbolName }
 /** A tab tucked behind a token's right side, such as a bonus marker that moves between tokens. */
@@ -623,6 +613,7 @@ export function createMapDrawing(
                     markerArt,
                     hexVertices,
                     symbolPositions[location.id],
+                    !!placement,
                     face.symbols ?? [],
                     [
                         ...badges.map((badge) =>
@@ -1000,6 +991,7 @@ function clearSpaceMarks(
     markerArt: Readonly<Record<string, MapMarkerArt>>,
     vertices: readonly Point[],
     positions: LocationSymbolPositions | undefined,
+    tileLaid: boolean,
     printedSymbols: readonly string[],
     printed: readonly Obstacle[]
 ): RevenueAnnotation[] {
@@ -1009,7 +1001,15 @@ function clearSpaceMarks(
     )?.revenuePosition ?? { x: 0, y: 0 }
     const drawn = drawnRevenues(drawing).map(({ revenuePosition }) => revenuePosition)
     const revenues = drawn.length ? drawn : [anchor]
-    const symbols = revenueSymbols(space, markers, markerArt, positions, printedSymbols, revenues)
+    const symbols = revenueSymbols(
+        space,
+        markers,
+        markerArt,
+        positions,
+        tileLaid,
+        printedSymbols,
+        revenues
+    )
     const tokens = placedTokens(
         space,
         markers,
@@ -1017,7 +1017,14 @@ function clearSpaceMarks(
         [...printedSymbols.map((symbol) => ({ symbol, ...drawing.symbolPosition })), ...symbols],
         revenues
     )
-    return [...symbols, ...tokens]
+    const covered = markers.flatMap((marker) => coveredSymbol(markerArt[marker.id]) ?? [])
+    return [...symbols.filter((symbol) => !covered.includes(symbol.symbol)), ...tokens]
+}
+
+function coveredSymbol(art: MapMarkerArt | undefined): TileSymbolName | undefined {
+    return art && 'token' in art && typeof art.token.place === 'object'
+        ? art.token.place.covers
+        : undefined
 }
 
 function revenueSymbols(
@@ -1025,6 +1032,7 @@ function revenueSymbols(
     markers: NonNullable<MapLocation['markers']>,
     markerArt: Readonly<Record<string, MapMarkerArt>>,
     positions: LocationSymbolPositions | undefined,
+    tileLaid: boolean,
     printedSymbols: readonly string[],
     revenues: readonly Point[]
 ): Extract<RevenueAnnotation, { kind: 'symbol' }>[] {
@@ -1044,12 +1052,14 @@ function revenueSymbols(
                 x: at.x + (index - (count - 1) / 2) * (room * 2 + 1),
                 y: at.y
             }))
-        const points = fixed
-            ? 'x' in fixed
-                ? row(fixed)
-                : fixed.slice(0, count)
-            : cornerSpot(space, row, room, revenues)?.points
-        for (const point of points ?? []) {
+        const fixedPoints = fixed && ('x' in fixed ? row(fixed) : fixed.slice(0, count))
+        // Positions are fitted to the printed hex; a laid tile's stops or revenues may cover them.
+        const points =
+            fixedPoints &&
+            (!tileLaid || fixedPoints.every((point) => isClearPoint(space, point, room)))
+                ? fixedPoints
+                : cornerRowOrSplit(space, row, count, room, revenues)
+        for (const point of points) {
             symbols.push({
                 kind: 'symbol',
                 markerId: marker.id,
@@ -1064,13 +1074,27 @@ function revenueSymbols(
     return symbols
 }
 
+function cornerRowOrSplit(
+    space: HexSpace,
+    row: (at: Point) => Point[],
+    count: number,
+    room: number,
+    revenues: readonly Point[]
+): Point[] {
+    const together = cornerSpot(space, row, room, revenues)
+    if (count === 1 || (together && isClearSpot(together))) return together?.points ?? []
+    const apart: Point[] = []
+    for (let index = 0; index < count; index++) {
+        const spot = cornerSpot(space, (at) => [at], room, revenues)
+        if (!spot) continue
+        apart.push(spot.points[0])
+        space.obstacles.push(disc(spot.points[0], room))
+    }
+    return apart
+}
+
 function coveringTokenArt(markerArt: Readonly<Record<string, MapMarkerArt>>, symbol: string) {
-    return Object.values(markerArt).some(
-        (art) =>
-            'token' in art &&
-            typeof art.token.place === 'object' &&
-            art.token.place.covers === symbol
-    )
+    return Object.values(markerArt).some((art) => coveredSymbol(art) === symbol)
 }
 
 function placedTokens(
@@ -1181,6 +1205,10 @@ function searchSpot(
             if (!best || betterSpot(spot, best)) best = spot
         }
     return best
+}
+
+function isClearPoint(space: HexSpace, point: Point, radius: number): boolean {
+    return space.obstacles.every((obstacle) => clearance(point, obstacle) >= radius)
 }
 
 function isClearSpot(spot: Spot): boolean {

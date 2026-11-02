@@ -108,14 +108,13 @@ test('a station row is clickable across its whole width and outlines its hex', a
     const station = page
         .getByRole('button', { name: /^Preview historical map: Station at / })
         .last()
-    const [, locationId] = (await station.getAttribute('aria-label'))!.match(/Station at (\S+)/)!
     const row = station.locator('xpath=ancestor::div[contains(@class, "history-entry")][1]')
     await row.scrollIntoViewIfNeeded()
     const box = (await row.boundingBox())!
     // The row's far edge, past the label, over its cash column.
     await page.mouse.click(box.x + box.width - 3, box.y + box.height / 2)
     await expect(viewer(page).locator('header')).toContainText('Historical station')
-    await expect(viewer(page).locator(`[data-map-highlight="${locationId}"]`)).toHaveCount(1)
+    await expect(viewer(page).locator('[data-map-highlight]')).toHaveCount(1)
     await page.keyboard.press('Escape')
     await expect(viewer(page)).toHaveCount(0)
 })

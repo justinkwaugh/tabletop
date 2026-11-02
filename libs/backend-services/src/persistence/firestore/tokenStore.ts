@@ -1,3 +1,4 @@
+import { isValidStorageId } from '../stores/storageId.js'
 import {
     CollectionReference,
     Firestore,
@@ -11,6 +12,7 @@ import { DataToken } from '../../tokens/dataToken.js'
 import { TokenStore } from '../stores/tokenStore.js'
 import { AlreadyExistsError, InvalidIdError, UnknownStorageError } from '../stores/errors.js'
 import { BaseError } from '@tabletop/common'
+import { concealedCause, secretReference } from '../../security/secretReference.js'
 import { isFirestoreError } from './errors.js'
 
 export class FirestoreTokenStore implements TokenStore {
@@ -44,8 +46,8 @@ export class FirestoreTokenStore implements TokenStore {
         newToken.createdAt = new Date()
         newToken.updatedAt = new Date()
 
-        if (!this.isValidId(newToken.id)) {
-            throw new InvalidIdError({ type: 'DataToken', id: newToken.id })
+        if (!isValidStorageId(newToken.id)) {
+            throw new InvalidIdError({ type: 'DataToken', id: secretReference(newToken.id) })
         }
 
         try {
@@ -57,38 +59,28 @@ export class FirestoreTokenStore implements TokenStore {
     }
 
     async delete(id: string, transaction?: Transaction): Promise<void> {
-        const doc = this.tokens.doc(id)
-        if (transaction) {
-            transaction.delete(doc)
-        } else {
-            await doc.delete()
+        try {
+            const doc = this.tokens.doc(id)
+            if (transaction) {
+                transaction.delete(doc)
+            } else {
+                await doc.delete()
+            }
+        } catch (error) {
+            this.handleError(error, id)
         }
     }
 
-    private isValidId(id: string): boolean {
-        return /^(?!\.\.?$)(?!.*__.*__)([^/]{1,1500})$/.test(id)
-    }
-
-    private handleError(error: unknown, id: string): never {
-        console.log(error)
+    private handleError(error: unknown, token: string): never {
         if (error instanceof BaseError) {
             throw error
-        } else if (isFirestoreError(error) && error.code === 6) {
-            // Extract the field from the error message
-            const field = 'id'
-            throw new AlreadyExistsError({
-                type: 'DataToken',
-                id,
-                field,
-                cause: error instanceof Error ? error : undefined
-            })
-        } else {
-            throw new UnknownStorageError({
-                type: 'DataToken',
-                id,
-                cause: error instanceof Error ? error : undefined
-            })
         }
+        const id = secretReference(token)
+        const cause = concealedCause(error, [token])
+        if (isFirestoreError(error) && error.code === 6) {
+            throw new AlreadyExistsError({ type: 'DataToken', id, field: 'id', cause })
+        }
+        throw new UnknownStorageError({ type: 'DataToken', id, cause })
     }
 }
 

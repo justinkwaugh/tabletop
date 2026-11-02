@@ -98,17 +98,9 @@ function sellToFund(play: Play, companyId: string, shares: number) {
 
 function completeFunding(play: Play) {
     for (let step = 0; play.state.trainFunding && step < 10; step++) {
+        // Contributions and the purchase follow a decision by themselves; only sales rest.
         const choice = funding(play).next()
-        if (choice.kind === 'contribute')
-            play.act('ContributeTrainFunds', { owner: choice.owner, amount: choice.amount })
-        else if (choice.kind === 'buy')
-            play.act('BuyTrain', {
-                companyId: choice.purchase.companyId,
-                trainId: choice.purchase.trainId,
-                definitionId: choice.purchase.definitionId,
-                expectedPrice: choice.purchase.price
-            })
-        else if (choice.kind === 'sell') {
+        if (choice.kind === 'sell') {
             const sale = choice.sales.at(-1)
             assertExists(sale, 'A funding sale choice has a sale')
             play.act('SellFundingShares', {

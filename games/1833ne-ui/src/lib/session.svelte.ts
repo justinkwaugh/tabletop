@@ -100,6 +100,14 @@ export class Session1833NE extends BaseSession {
               })
             : []
     )
+    // Buying a ferry is optional, beside track and stations (§6.2 B).
+    override get titleOperatingModes() {
+        if (this.ferryOffers.length)
+            return [{ id: 'ferries', label: 'Buy ferry', shortLabel: 'Ferry' }]
+        if (this.luxuryOffers.length)
+            return [{ id: 'ferries', label: 'Luxury ferry', shortLabel: 'Luxury' }]
+        return []
+    }
     private operatingCompanyId(): string {
         const companyId = nextOperatingCompany(this.gameState)
         assertExists(companyId, 'Ferries belong to the operating corporation')

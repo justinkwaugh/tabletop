@@ -16,6 +16,15 @@ export const EmailVerificationClaim = Type.Object({
     email: Type.String()
 })
 
+export type EmailChangeClaim = Static<typeof EmailChangeClaim>
+export const EmailChangeClaim = Type.Object({
+    type: Type.Literal(TokenType.EmailChange),
+    userId: Type.String(),
+    email: Type.String(),
+    newEmail: Type.String(),
+    sessionGeneration: Type.Integer({ minimum: 0 })
+})
+
 export type SensitiveChangeClaim = Static<typeof SensitiveChangeClaim>
 export const SensitiveChangeClaim = Type.Object({
     type: Type.Literal(TokenType.SensitiveChange),
@@ -28,6 +37,7 @@ export type AuthenticationChallengeClaim = Static<typeof AuthenticationChallenge
 export const AuthenticationChallengeClaim = Type.Union([
     SetPasswordClaim,
     EmailVerificationClaim,
+    EmailChangeClaim,
     SensitiveChangeClaim
 ])
 

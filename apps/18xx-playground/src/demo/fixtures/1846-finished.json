@@ -2742,25 +2742,6 @@
       "playerId": "hoolaking"
     },
     {
-      "type": "IssueTreasuryShares",
-      "expectedProceeds": 40,
-      "id": "recorded:129.2",
-      "gameId": "1846-12666",
-      "source": "user",
-      "playerId": "hoolaking"
-    },
-    {
-      "type": "BuyTrain",
-      "companyId": "IC",
-      "trainId": "1846/4/9",
-      "definitionId": "3/5",
-      "expectedPrice": 160,
-      "id": "recorded:129.3",
-      "gameId": "1846-12666",
-      "source": "user",
-      "playerId": "hoolaking"
-    },
-    {
       "id": "recorded:130",
       "gameId": "1846-12666",
       "type": "FinishOperatingTurn",
@@ -4742,37 +4723,6 @@
       "playerId": "hoolaking"
     },
     {
-      "type": "IssueTreasuryShares",
-      "expectedProceeds": 150,
-      "id": "recorded:280.2",
-      "gameId": "1846-12666",
-      "source": "user",
-      "playerId": "hoolaking"
-    },
-    {
-      "type": "ContributeTrainFunds",
-      "owner": {
-        "kind": "player",
-        "playerId": "hoolaking"
-      },
-      "amount": 23,
-      "id": "recorded:280.3",
-      "gameId": "1846-12666",
-      "source": "user",
-      "playerId": "hoolaking"
-    },
-    {
-      "type": "BuyTrain",
-      "companyId": "NYC",
-      "trainId": "1846/5/15",
-      "definitionId": "4/6",
-      "expectedPrice": 450,
-      "id": "recorded:280.4",
-      "gameId": "1846-12666",
-      "source": "user",
-      "playerId": "hoolaking"
-    },
-    {
       "id": "recorded:283",
       "gameId": "1846-12666",
       "type": "LayTile",
@@ -6390,14 +6340,6 @@
       "playerId": "hoolaking"
     },
     {
-      "type": "IssueTreasuryShares",
-      "expectedProceeds": 40,
-      "id": "recorded:363.2",
-      "gameId": "1846-12666",
-      "source": "user",
-      "playerId": "hoolaking"
-    },
-    {
       "type": "SellFundingShares",
       "seller": {
         "kind": "player",
@@ -6407,29 +6349,6 @@
       "shares": 1,
       "expectedProceeds": 195,
       "id": "recorded:364.1",
-      "gameId": "1846-12666",
-      "source": "user",
-      "playerId": "hoolaking"
-    },
-    {
-      "type": "ContributeTrainFunds",
-      "owner": {
-        "kind": "player",
-        "playerId": "hoolaking"
-      },
-      "amount": 249,
-      "id": "recorded:365.1",
-      "gameId": "1846-12666",
-      "source": "user",
-      "playerId": "hoolaking"
-    },
-    {
-      "type": "BuyTrain",
-      "companyId": "IC",
-      "trainId": "1846/6/20",
-      "definitionId": "6",
-      "expectedPrice": 800,
-      "id": "recorded:365.2",
       "gameId": "1846-12666",
       "source": "user",
       "playerId": "hoolaking"
@@ -6639,37 +6558,6 @@
       "definitionId": "7/8",
       "expectedPrice": 900,
       "id": "recorded:377.1",
-      "gameId": "1846-12666",
-      "source": "user",
-      "playerId": "gragatrim"
-    },
-    {
-      "type": "IssueTreasuryShares",
-      "expectedProceeds": 180,
-      "id": "recorded:377.2",
-      "gameId": "1846-12666",
-      "source": "user",
-      "playerId": "gragatrim"
-    },
-    {
-      "type": "ContributeTrainFunds",
-      "owner": {
-        "kind": "player",
-        "playerId": "gragatrim"
-      },
-      "amount": 149,
-      "id": "recorded:377.3",
-      "gameId": "1846-12666",
-      "source": "user",
-      "playerId": "gragatrim"
-    },
-    {
-      "type": "BuyTrain",
-      "companyId": "GT",
-      "trainId": "1846/6/21",
-      "definitionId": "7/8",
-      "expectedPrice": 900,
-      "id": "recorded:377.4",
       "gameId": "1846-12666",
       "source": "user",
       "playerId": "gragatrim"

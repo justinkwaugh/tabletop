@@ -57,6 +57,7 @@ const context: BugReportPostContext = {
     titleName: 'Santiago',
     reporter: { username: 'alice', discordUserId: 'discord-1' },
     liveActionCount: 142,
+    storedLocally: false,
     appliedTagIds: ['tag-open'],
     reportedAt: new Date('2026-10-02T18:30:00.000Z'),
     attachedFilenames: [],
@@ -163,6 +164,17 @@ describe('bugReportPost', () => {
         expect(post.message.attachments).toEqual([{ id: 0, filename: 'bug-report-game-1.json' }])
         expect(fieldValue(post, 'Scenario')).toBe(
             "Open `bug-report-game-1.json` with **Load from file…** in the title's dev harness; it is a real game, so keep it out of the repository"
+        )
+    })
+
+    it("neither links nor investigates a game kept in the reporter's browser", () => {
+        const post = bugReportPost(game, report, { ...context, storedLocally: true })
+
+        expect(post.message.embeds?.[0].url).toBeUndefined()
+        expect(post.message.components).toBeUndefined()
+        expect(fieldValue(post, 'Investigate')).toBeUndefined()
+        expect(fieldValue(post, 'Hotseat')).toBe(
+            "Kept only in the reporter's browser, so the scenario is the only copy"
         )
     })
 

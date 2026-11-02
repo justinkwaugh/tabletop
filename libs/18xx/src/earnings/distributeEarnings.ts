@@ -1,6 +1,6 @@
-import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
+import { EighteenXXOperatingAction } from '../actions/eighteenXXPlayerAction.js'
 import { OperatingRoundIdentity } from '../operating/operatingRoundSnapshot.js'
-import type { ReceivershipRules } from '../finance/receivership.js'
+import { actionMayOperate, type ReceivershipRules } from '../finance/receivership.js'
 import type { MapStateData } from '../map/mapState.js'
 import { PrivateEffect, type PrivateRules } from '../privates/privateRules.js'
 import { applyPrivateEffects } from '../privates/privateLifecycle.js'
@@ -30,7 +30,7 @@ import {
 } from './earningsDistribution.js'
 export const DistributeEarnings = Type.Object(
     {
-        ...EighteenXXPlayerAction.properties,
+        ...EighteenXXOperatingAction.properties,
         type: Type.Literal('DistributeEarnings'),
         companyId: Type.String(),
         choice: EarningsChoice,
@@ -61,7 +61,7 @@ export class HydratedDistributeEarnings
     implements DistributeEarnings
 {
     declare type: 'DistributeEarnings'
-    declare playerId: string
+    declare playerId?: string
     declare companyId: string
     declare choice: EarningsChoice
     declare metadata?: DistributeEarnings['metadata']
@@ -98,7 +98,7 @@ export class HydratedDistributeEarnings
                 (this.source === ActionSource.System &&
                     (distribution.automaticChoice(this.companyId) === this.choice ||
                         isInstructedPayout(state, this)))) &&
-                state.activePlayerIds.includes(this.playerId) &&
+                actionMayOperate(state, this, this.companyId) &&
                 distribution.canAct(this.playerId, this.companyId),
             'Only the operating company’s controlling owner may distribute earnings'
         )

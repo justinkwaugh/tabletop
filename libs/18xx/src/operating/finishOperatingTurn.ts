@@ -1,6 +1,6 @@
-import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
+import { EighteenXXOperatingAction } from '../actions/eighteenXXPlayerAction.js'
 import { OperatingRoundSnapshot, operatingRoundSnapshot } from './operatingRoundSnapshot.js'
-import { actsFor, inReceivership } from '../finance/receivership.js'
+import { actionMayOperate, inReceivership } from '../finance/receivership.js'
 import type { ValuationRules } from '../ending/finalWealth.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
@@ -47,7 +47,7 @@ export function finishOperatingTurnReason(
 }
 export const FinishOperatingTurn = Type.Object(
     {
-        ...EighteenXXPlayerAction.properties,
+        ...EighteenXXOperatingAction.properties,
         type: Type.Literal('FinishOperatingTurn'),
         companyId: Type.String(),
         metadata: Type.Optional(OperatingRoundSnapshot)
@@ -69,7 +69,7 @@ export class HydratedFinishOperatingTurn
     declare type: 'FinishOperatingTurn'
     declare metadata?: OperatingRoundSnapshot
     declare companyId: string
-    declare playerId: string
+    declare playerId?: string
     readonly #rules: TrainRules
     readonly #valuationRules: ValuationRules
     constructor(data: FinishOperatingTurn, rules: TrainRules, valuationRules: ValuationRules) {
@@ -80,8 +80,7 @@ export class HydratedFinishOperatingTurn
     apply(state: HydratedGameState & OperatingTurnState): void {
         assert(
             (this.source === ActionSource.User || this.source === ActionSource.System) &&
-                state.activePlayerIds.includes(this.playerId) &&
-                actsFor(state, this.playerId, this.companyId),
+                actionMayOperate(state, this, this.companyId),
             'Only the operating company’s controlling owner may finish its turn'
         )
         const reason = finishOperatingTurnReason(state, this.#rules, this.companyId)

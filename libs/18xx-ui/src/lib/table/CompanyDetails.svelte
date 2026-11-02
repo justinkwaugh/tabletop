@@ -24,7 +24,11 @@
         CompanyShareStatus,
         EighteenXXSessionView
     } from '../session/eighteenXXSession.svelte.js'
-    import { type CompanyOwnership, companyOwnership } from '../finance/companyOwnership.js'
+    import {
+        type CompanyOwnership,
+        companyOwnership,
+        holdsReceiverPresidentCertificate
+    } from '../finance/companyOwnership.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import PrivateDescription from '../privates/PrivateDescription.svelte'
@@ -256,11 +260,20 @@
                 <table aria-label={`${session.companyName(company.id)} share ownership`}>
                     <tbody>
                         {#each ownership as entry, index (index)}
-                            {@const president =
-                                !!company.president && sameOwner(entry.owner, company.president)}
+                            {@const presidency =
+                                entry.poolId &&
+                                holdsReceiverPresidentCertificate(
+                                    gameState,
+                                    company.id,
+                                    entry.poolId
+                                )
+                                    ? 'Holds the president’s certificate'
+                                    : company.president && sameOwner(entry.owner, company.president)
+                                      ? 'President'
+                                      : undefined}
                             <tr
                                 class:pool-divider={index > 0 && index === sharePoolsStart}
-                                class:president
+                                class:president={!!presidency}
                                 class:sold={sellers.some((seller) =>
                                     sameOwner(seller, entry.owner)
                                 )}
@@ -275,10 +288,10 @@
                                         >{@render purchaseSources(entry)}</td
                                     >
                                 {:else}
-                                    <th scope="row" title={president ? 'President' : undefined}
+                                    <th scope="row" title={presidency}
                                         ><PresidentName
                                             name={ownershipName(entry)}
-                                            {president}
+                                            president={!!presidency}
                                         /></th
                                     >
                                     {#if numberedShares}<td

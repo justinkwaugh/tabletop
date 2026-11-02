@@ -1,0 +1,9 @@
+/* Held back so artwork that arrives quickly from cache replaces the stand-in unseen. */
+.artwork-stand-in {
+    animation: reveal-artwork-stand-in 1ms 200ms backwards;
+}
+@keyframes reveal-artwork-stand-in {
+    from {
+        visibility: hidden;
+    }
+}

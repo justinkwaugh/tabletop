@@ -4,6 +4,8 @@ import { EarningsChoice } from '../earnings/earningsDistribution.js'
 import { TrainRoute } from './route.js'
 import { orderedSubset } from '../game/orderedSubset.js'
 import { controllingOwner, type FinancialState } from '../finance/finance.js'
+import type { OperatingRules } from '../operating/operatingSet.js'
+import type { RouteRules } from './routeEvaluation.js'
 
 const Id = Type.String({ minLength: 1 })
 /** Identifies the solver input a run was solved for; only clients read it. */
@@ -67,18 +69,21 @@ export const RunInstructionFields = {
 }
 export type RunInstructionState = Type.Static<Type.TObject<typeof RunInstructionFields>>
 
-export function instructableCompanyIds(
-    state: Pick<FinancialState, 'companies' | 'certificates'>,
+export type InstructedRunRules = {
+    routeRules: RouteRules
+    operatingRules: Pick<OperatingRules, 'companyOrder'>
+}
+
+export function instructableCompanyIds<
+    S extends Pick<FinancialState, 'companies' | 'certificates'>
+>(
+    state: S,
+    operatingRules: { companyOrder(state: S): readonly string[] },
     playerId: string
 ): string[] {
-    return state.companies
-        .filter(
-            (company) =>
-                company.kind !== 'private' &&
-                !company.closed &&
-                controllingOwner(state, company.id)?.playerId === playerId
-        )
-        .map((company) => company.id)
+    return operatingRules
+        .companyOrder(state)
+        .filter((companyId) => controllingOwner(state, companyId)?.playerId === playerId)
 }
 
 export function isSolvedRun(run: InstructedRun): run is SolvedRun {
@@ -147,18 +152,19 @@ export function nextInstructedRun(
 
 export function isInstructedRun(
     state: RunInstructionState,
-    action: { playerId: string; companyId: string; routes: readonly TrainRoute[] }
+    action: { playerId?: string; companyId: string; routes: readonly TrainRoute[] }
 ): boolean {
+    if (action.playerId === undefined) return false
     const run = nextInstructedRun(state, action.playerId, action.companyId)
     return !!run && Value.Equal(run.routes, action.routes)
 }
 
 export function isInstructedPayout(
     state: RunInstructionState,
-    action: { playerId: string; companyId: string; choice: EarningsChoice }
+    action: { playerId?: string; companyId: string; choice: EarningsChoice }
 ): boolean {
     const standing = standingRunInstructionFor(state, action.companyId)
-    return standing?.playerId === action.playerId && standing.payout === action.choice
+    return !!standing && standing.playerId === action.playerId && standing.payout === action.choice
 }
 
 /** The last run stays for a later turn whose client attached none. */

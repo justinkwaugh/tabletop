@@ -20,14 +20,36 @@ const brokenBank = {
     bank: { broken: true }
 }
 
+const operatingSet = (number: number) => ({
+    number,
+    roundNumber: 1,
+    roundCount: 3,
+    companyOrder: [],
+    completedCompanyIds: [],
+    privateIncomePaid: true,
+    completed: false
+})
+
 it('reports the broken bank’s last set as final', () => {
     expect(
         progressAt({
             ...brokenBank,
             phaseId: '6',
+            operatingSet: operatingSet(9),
             gameEnding: { reason: BankBroken, finalOperatingSet: 9 }
         })
     ).toEqual({ fraction: 0.8, label: 'Bank broken · Final OR set', final: true })
+})
+
+it('names the broken bank’s last set before it starts', () => {
+    expect(
+        progressAt({
+            ...brokenBank,
+            phaseId: '6',
+            operatingSet: operatingSet(8),
+            gameEnding: { reason: BankBroken, finalOperatingSet: 9 }
+        })
+    ).toEqual({ fraction: 0.8, label: 'Bank broken · Ends after OR 9', final: true })
 })
 
 it('names the bank only when the broken bank scheduled the end', () => {
@@ -35,6 +57,7 @@ it('names the bank only when the broken bank scheduled the end', () => {
         progressAt({
             ...brokenBank,
             phaseId: 'D',
+            operatingSet: operatingSet(9),
             gameEnding: { reason: 'Bankruptcy', finalOperatingSet: 9 }
         })
     ).toEqual({ fraction: 1, label: 'Final OR set', final: true })

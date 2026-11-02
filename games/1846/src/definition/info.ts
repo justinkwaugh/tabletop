@@ -1,5 +1,5 @@
 import { EighteenXXPreferenceDefinition } from '@tabletop/18xx'
-import { GameVisibility, type GameInfo } from '@tabletop/common'
+import type { GameInfo } from '@tabletop/common'
 import { GAME_VERSION } from './version.js'
 export const EighteenFortySixInfo: GameInfo = {
     preferences: EighteenXXPreferenceDefinition,
@@ -11,12 +11,11 @@ export const EighteenFortySixInfo: GameInfo = {
         designer: 'Thomas Lehmann',
         year: '2005',
         description:
-            'GMT second-printing rules for 2–5 players: recurring stock and operating rounds, phase-I–IV construction and trains, routes and earnings, East–West scoring, corporate private purchases, independent absorption and private revenue/construction/station powers. Includes train trading, emergency funding and personal share sales, bankruptcy, receivership, presidency recovery and the last-survivor ending. Includes phase closures, phased-out trains, compulsory discards, bank resale, unlimited final trains and gray construction. Includes bank-break and all-companies-closed endings, final scoring and tied winners. Includes the two-player public opening, preliminary operations, adjusted stock limits, blocking stations, finite final trains and the last-train ending.',
+            'Five eastern railroads crossed the Appalachians in search of midwestern grain, and the land-grant Illinois Central is forming to meet them. Draft private companies, then launch and steer the great lines toward Chicago and St. Louis, linking East and West in this 18xx for 2–5 players. Issue shares to fund your railroads and buy trains from your rivals, but a company with no train must get one, and if its treasury can’t pay, its president must.',
         minPlayers: 2,
         maxPlayers: 5,
         defaultPlayerCount: 3,
         version: GAME_VERSION,
-        beta: true,
-        visibility: GameVisibility.Beta
+        beta: false
     }
 }

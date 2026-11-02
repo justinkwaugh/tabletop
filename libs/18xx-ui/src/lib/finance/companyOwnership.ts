@@ -1,5 +1,7 @@
 import {
     controllingOwner,
+    inReceivership,
+    presidentCertificate,
     sameOwner,
     signedShares,
     type FinancialState,
@@ -11,6 +13,17 @@ export type CompanyOwnership = {
     poolId?: string
     shares: number
     certificateNumbers: number[]
+}
+
+export function holdsReceiverPresidentCertificate(
+    state: FinancialState,
+    companyId: string,
+    poolId: string
+): boolean {
+    return (
+        inReceivership(state, companyId) &&
+        presidentCertificate(state, companyId)?.poolId === poolId
+    )
 }
 
 export function companyOwnership(

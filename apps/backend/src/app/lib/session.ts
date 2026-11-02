@@ -3,6 +3,7 @@ import { Value } from 'typebox/value'
 import { User } from '@tabletop/common'
 import {
     AuthenticatedSession,
+    AuthenticationProof,
     ProviderAuthorizationAttempt,
     SessionService
 } from '@tabletop/backend-services'
@@ -18,14 +19,16 @@ declare module '@fastify/secure-session' {
 export async function authSession({
     session,
     user,
+    proof,
     sessions
 }: {
     session: Session
     user: User
+    proof: AuthenticationProof
     sessions: SessionService
 }): Promise<AuthenticatedSession> {
     const previousSessionId = session.get('sessionId')
-    const authenticated = await sessions.establish(user)
+    const authenticated = await sessions.establish(user, proof)
     if (previousSessionId) {
         await sessions.revoke(previousSessionId)
     }

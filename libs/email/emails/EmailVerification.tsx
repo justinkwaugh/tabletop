@@ -26,7 +26,7 @@ export const EmailVerification = ({
     <DarkCardEmail
         preview={`Your email verification code is ${token}`}
         heading="Confirm your email address"
-        subline="Enter this code on the verification screen to finish signing in."
+        subline="Enter this code where you requested it to verify this email address."
         footer="If you did not request this, you can safely ignore this email."
     >
         <Section style={{ ...styles.panel, textAlign: 'center' }}>

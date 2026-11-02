@@ -1,6 +1,5 @@
 import { FastifyInstance } from 'fastify'
 import { SensitiveChangeRequest } from '@tabletop/common'
-import { authenticatedAccountSubject, operationBudget } from '../../../lib/operationBudget.js'
 
 export default async function (fastify: FastifyInstance) {
     fastify.post<{ Body: SensitiveChangeRequest }>(
@@ -8,24 +7,12 @@ export default async function (fastify: FastifyInstance) {
         {
             config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
             schema: { body: SensitiveChangeRequest },
-            onRequest: fastify.auth([fastify.verifyActiveUser], { relation: 'and' }),
-            preHandler: operationBudget(fastify, {
-                operation: 'sensitive change email',
-                max: 10,
-                timeWindow: '15 minutes',
-                subject: authenticatedAccountSubject
-            })
+            onRequest: fastify.auth([fastify.verifyActiveUser], { relation: 'and' })
         },
-        async function (request, _reply) {
-            if (!request.user) {
-                throw Error('No user found for create request')
-            }
-            const { expiresAt } = await fastify.userService.sendSensitiveChangeChallenge(
-                request.user,
-                request.body
+        async function () {
+            throw fastify.httpErrors.gone(
+                'Profile changes now use identity confirmation. Reload the site and submit your change again.'
             )
-
-            return { status: 'ok', payload: { expiresAt } }
         }
     )
 }

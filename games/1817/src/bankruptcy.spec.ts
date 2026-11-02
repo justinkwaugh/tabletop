@@ -60,7 +60,7 @@ describe('a cash crisis', () => {
             debts: [{ playerId: 'alex', amount: 20 }],
             continuation: 'RepayingLoans'
         })
-        expect(play.valid('alex')).toEqual(['SellSharesToPay', 'GoBankrupt', 'SetRunInstruction'])
+        expect(play.valid('alex')).toEqual(['SellSharesToPay', 'GoBankrupt'])
     })
 
     it('is settled by selling only as many shares as needed, at no price drop', () => {
@@ -118,6 +118,13 @@ describe('crisis sales', () => {
 })
 
 describe('bankruptcy', () => {
+    it('records the company a bankrupt player presided over in its operation', () => {
+        const play = pleDefaults()
+        play.act('GoBankrupt')
+        expect(
+            play.processed.find((action) => action.type === 'GoBankrupt')?.metadata
+        ).toMatchObject({ presidedCompanyId: 'PLE' })
+    })
     it('takes the player’s shares and cash, liquidates their companies and removes them', () => {
         const play = pleDefaults()
         play.act('GoBankrupt')

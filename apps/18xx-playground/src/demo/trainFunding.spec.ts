@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { ActionSource, type GameAction } from '@tabletop/common'
+import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
 import {
     Definition as Top,
     TheOldPrinceTrainFundingRules,
@@ -19,6 +19,9 @@ import {
     cashOwnedBy,
     getCompany,
     companyMarketSpaceId,
+    isBuyTrain,
+    isContributeTrainFunds,
+    isIssueTreasuryShares,
     type EighteenXXState,
     type FundingChoice
 } from '@tabletop/18xx'
@@ -43,6 +46,9 @@ const Titles = [
         trains: Shikoku1889TrainRules
     }
 ]
+function contributionsIn(actions: readonly GameAction[]) {
+    return actions.filter(isContributeTrainFunds).map(({ owner, amount }) => ({ owner, amount }))
+}
 function action(state: EighteenXXState, type: string, fields: object = {}): GameAction {
     return {
         id: `${type}:${state.actionCount}`,
@@ -269,7 +275,7 @@ it('uses company, Union Bank, and player balances in order, contributing only th
             TheOldPrinceTrainRules
         )
     const purchase = funding(state).purchases()[0]
-    let current = engine.executeCanonicalAction({
+    let result = engine.executeCanonicalAction({
         game,
         state,
         action: action(state, 'FundTrain', {
@@ -278,24 +284,24 @@ it('uses company, Union Bank, and player balances in order, contributing only th
             definitionId: purchase.definitionId,
             expectedPrice: purchase.price
         })
-    }).updatedState
-    expect(current.trainFunding?.contributors).toEqual([
+    })
+    expect(result.updatedState.trainFunding?.contributors).toEqual([
         union,
         { kind: 'player', playerId: 'alex' }
     ])
-    const payments: { owner: object; amount: number }[] = []
-    for (let i = 0; current.trainFunding && !current.bankruptcy && i < 20; i++) {
-        const next = funding(current).next()
-        if (next.kind === 'contribute') payments.push({ owner: next.owner, amount: next.amount })
-        current = engine.executeCanonicalAction({
+    const payments = contributionsIn(result.processedActions)
+    for (let i = 0; result.updatedState.trainFunding && i < 20; i++) {
+        result = engine.executeCanonicalAction({
             game,
-            state: current,
-            action: nextAction(current, next)
-        }).updatedState
+            state: result.updatedState,
+            action: nextAction(result.updatedState, funding(result.updatedState).next())
+        })
+        payments.push(...contributionsIn(result.processedActions))
     }
+    const current = result.updatedState
     expect(current.bankruptcy).toBeUndefined()
     expect(payments[0]).toEqual({ owner: union, amount: 10 })
-    expect(payments.slice(1).every((payment) => 'playerId' in payment.owner)).toBe(true)
+    expect(payments.slice(1).every((payment) => payment.owner.kind === 'player')).toBe(true)
     expect(cashOwnedBy(current, union)).toBe(0)
     expect(cashOwnedBy(current, { kind: 'company', companyId: 'ML' })).toBe(0)
     expect(payments.reduce((sum, payment) => sum + payment.amount, 0)).toBe(
@@ -393,7 +399,7 @@ it('issues every TOP treasury share as one block even above 30%, then keeps any 
             TheOldPrinceTrainRules
         )
     const purchase = model(state).purchases()[0]
-    const started = engine.executeCanonicalAction({
+    const result = engine.executeCanonicalAction({
         game,
         state,
         action: action(state, 'FundTrain', {
@@ -402,20 +408,14 @@ it('issues every TOP treasury share as one block even above 30%, then keeps any 
             definitionId: purchase.definitionId,
             expectedPrice: purchase.price
         })
-    }).updatedState
-    const next = model(started).next()
-    expect(next.kind).toBe('issue')
-    if (next.kind !== 'issue') throw Error('Expected issuance')
-    expect(next.details.sales[0].shares).toBe(7)
-    const issued = engine.executeCanonicalAction({
-        game,
-        state: started,
-        action: nextAction(started, next)
-    }).updatedState
-    expect(model(issued).next().kind).toBe('buy')
-    expect(cashOwnedBy(issued, { kind: 'player', playerId: 'alex' })).toBe(40)
-    expect(companyMarketSpaceId(issued.stockMarket, 'ML')).toBe(
-        next.details.sales[0].toMarketSpaceId
+    })
+    const issued = result.processedActions.find(isIssueTreasuryShares)
+    assertExists(issued?.metadata, 'Funding issues the treasury shares')
+    expect(issued.metadata.sales[0].shares).toBe(7)
+    expect(result.processedActions.some(isBuyTrain)).toBe(true)
+    expect(cashOwnedBy(result.updatedState, { kind: 'player', playerId: 'alex' })).toBe(40)
+    expect(companyMarketSpaceId(result.updatedState.stockMarket, 'ML')).toBe(
+        issued.metadata.sales[0].toMarketSpaceId
     )
 })
 it('rejects excessive contributions and sales after the shortfall is covered', () => {
@@ -431,7 +431,7 @@ it('rejects excessive contributions and sales after the shortfall is covered', (
             Shikoku1889TrainRules
         )
     const purchase = model(state).purchases()[0]
-    const started = engine.executeCanonicalAction({
+    const fund = engine.executeCanonicalAction({
         game,
         state,
         action: action(state, 'FundTrain', {
@@ -440,7 +440,15 @@ it('rejects excessive contributions and sales after the shortfall is covered', (
             definitionId: purchase.definitionId,
             expectedPrice: purchase.price
         })
-    }).updatedState
+    })
+    // A game recorded before the engine took these steps can still be resting on one.
+    const started = fund.processedActions
+        .slice(1)
+        .toReversed()
+        .reduce(
+            (undone, processed) => engine.undoProcessedAction({ state: undone, action: processed }),
+            fund.updatedState
+        )
     const next = model(started).next()
     expect(next).toMatchObject({ kind: 'contribute', amount: 230 })
     const contribution = nextAction(started, next)
@@ -458,12 +466,13 @@ it('rejects excessive contributions and sales after the shortfall is covered', (
         game,
         state: started,
         action: contribution
-    }).updatedState
-    expect(cashOwnedBy(funded, { kind: 'player', playerId: 'blair' })).toBe(770)
-    expect(engine.getValidActionTypesForPlayer(game, funded, 'blair')).toEqual([
-        'BuyTrain',
-        'SetRunInstruction'
+    })
+    expect(cashOwnedBy(funded.updatedState, { kind: 'player', playerId: 'blair' })).toBe(770)
+    expect(funded.processedActions.map((processed) => processed.type).slice(0, 2)).toEqual([
+        'ContributeTrainFunds',
+        'BuyTrain'
     ])
+    expect(funded.updatedState.trainFunding).toBeUndefined()
 })
 it('requires 1889 excess ownership sales even when they raise more than the train shortfall', () => {
     const { game, engine, state } = example(Shikoku, 'funding')
@@ -515,7 +524,7 @@ it.each(Titles)(
         const model = (value: EighteenXXState) =>
             new EmergencyTrainFunding(value, rules, stocks, trains)
         const purchase = model(state).purchases()[0]
-        const started = engine.executeCanonicalAction({
+        const result = engine.executeCanonicalAction({
             game,
             state,
             action: action(state, 'FundTrain', {
@@ -524,13 +533,9 @@ it.each(Titles)(
                 definitionId: purchase.definitionId,
                 expectedPrice: purchase.price
             })
-        }).updatedState
-        const result = engine.executeCanonicalAction({
-            game,
-            state: started,
-            action: nextAction(started, model(started).next())
         })
         expect(result.processedActions.map((action) => action.type)).toEqual([
+            'FundTrain',
             'ContributeTrainFunds',
             'DeclareBankruptcy',
             'ScheduleGameEnd',
@@ -544,7 +549,7 @@ it.each(Titles)(
         let undone = result.updatedState
         for (const processed of [...result.processedActions].reverse())
             undone = engine.undoProcessedAction({ state: undone, action: processed })
-        expect(undone).toEqual(started)
+        expect(undone).toEqual(state)
     }
 )
 it('reevaluates 1889 ownership limits when an emergency sale moves into the Orange Zone', () => {
@@ -641,7 +646,7 @@ it.each(Titles)(
         const preview = funding.preview(purchase)
         expect(state).toEqual(before)
         expect(preview.requiresSales).toBe(false)
-        let result = engine.executeCanonicalAction({
+        const result = engine.executeCanonicalAction({
             game,
             state,
             action: action(state, 'FundTrain', {
@@ -651,25 +656,11 @@ it.each(Titles)(
                 expectedPrice: purchase.price
             })
         })
-        const contributions: { owner: Owner; amount: number }[] = []
-        let treasuryProceeds = 0
-        while (result.updatedState.trainFunding) {
-            const choice = new EmergencyTrainFunding(
-                result.updatedState,
-                rules,
-                stocks,
-                trains
-            ).next()
-            expect(['issue', 'contribute', 'buy']).toContain(choice.kind)
-            if (choice.kind === 'contribute')
-                contributions.push({ owner: choice.owner, amount: choice.amount })
-            if (choice.kind === 'issue') treasuryProceeds += choice.details.proceeds
-            result = engine.executeCanonicalAction({
-                game,
-                state: result.updatedState,
-                action: nextAction(result.updatedState, choice)
-            })
-        }
+        expect(result.updatedState.trainFunding).toBeUndefined()
+        const contributions = contributionsIn(result.processedActions)
+        const treasuryProceeds = result.processedActions
+            .filter(isIssueTreasuryShares)
+            .reduce((total, issue) => total + issue.expectedProceeds, 0)
         expect(preview).toMatchObject({
             contributions,
             treasuryProceeds,
@@ -719,17 +710,14 @@ it('the funding-chain example exhausts Union Bank before its owner sells and buy
         })
         recorded.push(...result.processedActions)
     }
-    expect(choices.map((choice) => choice.kind)).toEqual([
-        'sell',
-        'contribute',
-        'sell',
-        'contribute',
-        'buy'
-    ])
+    expect(choices.map((choice) => choice.kind)).toEqual(['sell', 'sell'])
     expect(choices[0]).toMatchObject({ owner: union })
-    expect(choices[1]).toMatchObject({ owner: union })
-    expect(choices[2]).toMatchObject({ owner: alex })
-    expect(choices[3]).toMatchObject({ owner: alex })
+    expect(choices[1]).toMatchObject({ owner: alex })
+    expect(contributionsIn(recorded).map((contribution) => contribution.owner)).toEqual([
+        union,
+        alex
+    ])
+    expect(recorded.some(isBuyTrain)).toBe(true)
     expect(cashOwnedBy(result.updatedState, union)).toBe(0)
     expect(result.updatedState.bankruptcy).toBeUndefined()
     expect(

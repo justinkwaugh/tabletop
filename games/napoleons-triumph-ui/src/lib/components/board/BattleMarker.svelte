@@ -11,7 +11,7 @@
 </script>
 
 {#if mark}
-    <AttackArrow {mark} {scale} />
+    <AttackArrow {mark} {scale} slide={gameSession.arrowSlideOf(mark.approach)} />
 {/if}
 {#each gameSession.retreatArrows as retreat (retreat.locale)}
     <g

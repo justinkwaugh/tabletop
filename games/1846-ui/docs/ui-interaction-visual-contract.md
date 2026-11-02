@@ -43,6 +43,14 @@ physical board artwork is claimed for 1846.
 - **Steamboat and revenue markers.** The Steamboat's railroad, then its port, and a
   revenue marker's location are chosen on the map from the eligible locations, with their
   bonuses shown; placed markers are drawn on the shared map with title-owned names.
+- **Revenue tokens on the map.** A placed Steamboat, Meat Packing or Boomtown marker is a
+  dark token showing the private's icon and its bonus, never the owning railroad, whose
+  name is only in the token's title. The Steamboat's token takes the place of every port
+  icon its hex prints and counts them in its bonus; Meat Packing's takes the place of the
+  horns, and the other meat-packing hex stops showing them once it is placed; Boomtown's
+  sits in Cincinnati's clear corner. Port and meat-packing icons keep their hand-placed
+  spots on a laid tile unless its cities or revenues cover them; then they move to clear
+  corners, a pair splitting when it fits nowhere together.
 - **Independent absorption.** Buying an independent uses the shared negotiated-purchase
   selection, price and response controls.
 - **Emergency funding.** The shared compulsory-funding panel, under 1846's rules: shares
@@ -147,9 +155,13 @@ which order the Receivership panel, share issues and station placement themselve
 11. Replay the recorded finished game: it reaches phase IV and the reference final values,
     history uses canonical replay and Undo patches, and every mutation control is disabled
     at the end and in history. Automated (`apps/18xx-playground` finished-game spec).
-12. On desktop and narrow viewports, every action stays reachable and the board stays
+12. Open the **Steamboat on green Wheeling** and **Steamboat in Holland** scenarios. On
+    green Wheeling and Toledo the port icons and tokens clear the cities and revenues;
+    the Steamboat's one token shows +40 in Wheeling or Holland; Meat Packing's token
+    replaces the horns in Chicago or St. Louis and the other hex shows none. Manual.
+13. On desktop and narrow viewports, every action stays reachable and the board stays
     navigable. Manual.
-13. Open **Companies in this game** in a hidden draft for three, four and five players and
+14. Open **Companies in this game** in a hidden draft for three, four and five players and
     in the two-player opening. The kept and removed companies and the Pass count match
     setup (`companyLineup.spec.ts`); every seat sees the link; the modal closes with its
     close button, a backdrop click or Escape. The history's oldest entry names the kept

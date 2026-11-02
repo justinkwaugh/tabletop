@@ -111,12 +111,12 @@ export class RouteEvaluation {
             !hasStationRoute(this.network.mapState, this.state, companyId)
         )
     }
-    canAct(playerId: string, companyId: string): boolean {
+    canAct(playerId: string | undefined, companyId: string): boolean {
         return (
             this.state.routeStep?.companyId === companyId &&
             !this.state.routeStep.result &&
             !getCompany(this.state, companyId).closed &&
-            (this.rules.canOperate
+            (playerId && this.rules.canOperate
                 ? this.rules.canOperate(this.state, playerId, companyId)
                 : actsFor(this.state, playerId, companyId))
         )

@@ -11,7 +11,7 @@
     "BuyOwedStations": "c873d00fd4b8c831d5f51106b095a76a7094f6d376d511c90c57f5718fac085b",
     "BuyPrivateTrain": "91b0b0052458f1f6cbbcfce68ed22baafbb1410e69ca6ac86263a0b4318d3ce0",
     "BuyShares": "ea32f0c8f1d4ef09bcfceae831c752c10cc989a03646740d5987a8b841342e0e",
-    "BuyTrain": "2b1b48783347c512fdd3039030e89ccaf804882b5cceaa84a4f9ec825a5afafa",
+    "BuyTrain": "67db41a89629078c0a016eb92e68f08d9e2cbb905cf469d9824897e55d7b7fed",
     "CloseCompanySale": "8e7da990405a3d252ace0de46bc69e8f32170aee87858f5696e25c3ef802717f",
     "CloseMarketShorts": "e7a95564c786becb6cf7a14c147bf205070c60de16fa335c2234273049db60c3",
     "CloseTrainStation": "02e60e6908c37b973f6736ff9954d08454a3041e250d1a0c1c04fbff96769563",
@@ -24,7 +24,7 @@
     "DeclinePrivateTile": "9d347b9c716993c5f027fe1e6acdc8e0f4d65d71d9a74d391e40d06e1f6115dd",
     "DiscardMergedTrain": "9a85475c4dda87b8ec4a6ee919d11f06e3a95385da0755359a70be39d16ba95a",
     "DiscardTrain": "5d1a970100fabffbe644562b9d090a757dc8600817bcace18db3ee3e5537bf13",
-    "DistributeEarnings": "6e8cc02305a328ea8536f0a64e471b0aa9c529dfad9bcd54b79abae8200a5d23",
+    "DistributeEarnings": "6749609e82de407753d6d563448dc04d5b91de8bb5b425b868ee4c3572907480",
     "EndAcquisitionRound": "594322eaa667c0c9c5b787dcdfe025833049602bbd4d237db05c945aafde6c06",
     "EndGame": "238dcf7a19fbab27e738c27d9ebf77b8e048aefc539a5514fe186ac32889e49e",
     "EndMergerRound": "c116703d63fee9c3ea0a584f38e2c0dcdc72dba103b869b2b3e59d68b80c7752",
@@ -32,15 +32,15 @@
     "ExportTrains": "4d90e5878388ba8dcbcf048793fc8666b439834e602a4db755344ef8f3844647",
     "FinishAcquisitionLoans": "066953ca1f4e3aa3be9188fc5f36de9d9ac53541a00ca0132f38c5b1376d1d05",
     "FinishConversionLoans": "ce583d36afaca1dec11b41c93e6b31be1d61ceab42f2723c30aaaf1ca2f2348c",
-    "FinishOperatingTurn": "ed2e5d16e5d43034d795bf090e4191321de52f53c29e8dfd2a2bf6055b8363e1",
-    "FinishStations": "3056f1dcfaefad0851d0bf9eeab23f295e9263c47574f766b21b5634cff2c0b1",
+    "FinishOperatingTurn": "b653940dd0621cbe3c462eac1732da050c2e6425ff1bdbfbc4dc01b07fe1a4de",
+    "FinishStations": "258ec9a61f997c96475a6d9fd4ee5de918640128aa4949ce721a388fea7a41be",
     "FinishStockTurn": "739e1c6386055439b031b34dae3f9cb9fd2b8b8901c100395b0f675e201733a5",
-    "FinishTrack": "a8d4d639efc90d8243838a817fa16bcdaf67397a569c897508b4c6cc8c092fae",
+    "FinishTrack": "7ae429d56b33034c6bf55f6167db28e6f2e6ae33a15a0c42e0ef422bd316443e",
     "FinishTrains": "5e60ea89af68b7f73e1419f3a012b43d3babb5cee3b63ce06fc31ae35e417e1c",
     "FloatCompany": "fe40eddcc820c104eac6d3cb5441d5c814542f3e3cbf6dc503dfd14beaec0634",
     "FormCompany": "69da91ad29cb6b2bf2f2a4f88321ce7a7d3d9d23519435023e6e4689a86cf83e",
     "FundTrain": "e7c9d823dbfac75958205395e0042a381fdd600d3251714a052b40306b30dd7b",
-    "GoBankrupt": "00453a6c2d34a17321dd9752b85e67c0343d2e69a817e113facd36df93e08fe8",
+    "GoBankrupt": "a5b6df8e51fde8e57119c260f2d791e1c70d612d2f910d15395fca7e1b4aca07",
     "IssueTreasuryShares": "279bff01f9fccd7d55c16a13b95aad4074974d1b87ae8bfd3052380b36af1786",
     "LayPrivateTile": "1404c555285a822cb1983d86deb8ec815c268ee852f6f6809c549414c55207c5",
     "LayTile": "174dc0d6144f117b548a9b4dee01e7434e13d0e7c43c35877dba1bfb41bcd172",
@@ -66,7 +66,7 @@
     "ResolveSelectionAuction": "18ba62abb69cfa2e0f0c4970d237fb62a42e825f52006fb719ed3aa14ea4435c",
     "RespondToPurchaseOffer": "3750e29e4505cbce5f65efe310687f638d05f3123780dd6a0779679ea7657e00",
     "RespondToTrackConsent": "723a0508d5a63c9693fc24e8fc5647bd2ad1dfe098daa711345a3ce9870a6f10",
-    "RunTrains": "63aad66060b22710c17da2893ff8afe2a7f8991cfb9639a1993692e7a065e80c",
+    "RunTrains": "2c2acc1e37f0747f108f4cde5ded277fea110974d0ac82261fa3847e80171daa",
     "RustTrains": "04877126159679eab415b42c62724c9a3f1ce24f2765a37d077ab2f791101d64",
     "ScheduleGameEnd": "9fe8533e7967cbf7186df25d65592a7571e9caa1e561d18674ab008e1a503ab2",
     "SellConvertedShares": "e89e34327c4b835a0506e5181a27d9d0c3ee1be2b1fa49743958d7ecf03a38ec",
@@ -4282,6 +4282,33 @@
             "items": {
               "additionalProperties": false,
               "properties": {
+                "block": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "direction": {
+                      "type": "string"
+                    },
+                    "movement": {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "price": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "shares": {
+                      "minimum": 1,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "direction",
+                    "movement",
+                    "price",
+                    "shares"
+                  ],
+                  "type": "object"
+                },
                 "companyId": {
                   "type": "string"
                 },

@@ -10,9 +10,15 @@ import type { ModuleSession } from './moduleSession.js'
 import type { OperatingStepCompletion } from './operatingTurnModule.svelte.js'
 import type { PrivateActionsModule } from './privateActionsModule.svelte.js'
 
-export type OperatingMode = 'track' | 'stations' | 'finance'
-export type OperatingModeOption = {
-    label: string
+/**
+ * A title's own optional action in the operating turn, such as buying one of 1833NE's ferries:
+ * an entry in the operating mode switch whose panel the table draws by `id`.
+ */
+export type TitleOperatingMode = ModeLabel & { id: string }
+/** A mode's switch label, and the shorter one shown when the switch is pressed for room. */
+export type ModeLabel = { label: string; shortLabel: string }
+export type OperatingMode = 'track' | 'stations' | 'finance' | { titleModeId: string }
+export type OperatingModeOption = ModeLabel & {
     selected: boolean
     choose(): void
 }
@@ -25,27 +31,41 @@ type Construction = {
     finishTrack(): Promise<void>
 }
 
+const LayTrack: ModeLabel = { label: 'Lay track', shortLabel: 'Track' }
+const PlaceStation: ModeLabel = { label: 'Place station', shortLabel: 'Station' }
+const RunTrains: ModeLabel = { label: 'Run trains', shortLabel: 'Run' }
+
+function titleModeId(mode: OperatingMode): string | undefined {
+    return typeof mode === 'object' ? mode.titleModeId : undefined
+}
+
 /**
  * Which panel the operating company's turn shows when a step offers more than one kind of
- * action: track or stations in a combined construction step, and issuing or redeeming shares
- * beside construction or the run. The player's choice is a view choice that Undo never changes.
+ * action: track or stations in a combined construction step, a title's own optional actions,
+ * and issuing or redeeming shares beside construction or the run. The player's choice is a view
+ * choice that Undo never changes.
  */
 export class OperatingModeModule {
     constructor(
         private readonly session: OperatingModeSession,
-        private readonly finance: Pick<CorporateFinanceModule, 'choices' | 'label'>,
+        private readonly finance: Pick<CorporateFinanceModule, 'choices' | 'modeLabel'>,
         private readonly privateActions: Pick<
             PrivateActionsModule,
             'titlePower' | 'selection' | 'trackPowerSelection'
         >,
         private readonly decisions: Pick<CompanyDecisionsModule, 'selection'>,
-        private readonly construction: Construction
+        private readonly construction: Construction,
+        /** The title's modes open to the operating company now. */
+        private readonly titleModes: () => readonly TitleOperatingMode[]
     ) {}
 
     private stationsWithTrack = $derived.by(() => !!this.session.rules.stationsWithTrack)
-    /** Whether the title has more than one kind of action in a step. */
+    /** Whether a step can offer more than one kind of action. */
     enabled = $derived.by(
-        () => this.stationsWithTrack || !!this.session.rules.corporateFinanceRules
+        () =>
+            this.stationsWithTrack ||
+            !!this.session.rules.corporateFinanceRules ||
+            this.titleModes().length > 0
     )
     private scope = $derived.by(() =>
         [
@@ -63,6 +83,8 @@ export class OperatingModeModule {
         return this.session.validActionTypes.includes(type)
     }
     private available(mode: OperatingMode): boolean {
+        const titleId = titleModeId(mode)
+        if (titleId) return this.titleModes().some((title) => title.id === titleId)
         if (mode === 'finance') return this.finance.choices.length > 0
         if (mode === 'stations') return this.stationsWithTrack && this.hasAction('PlaceStation')
         return this.hasAction('LayTile')
@@ -76,12 +98,20 @@ export class OperatingModeModule {
         if (this.available('stations')) return 'stations'
         const { machineState } = this.session.state
         if (machineState === 'LayingTrack' && this.available('finance')) return 'finance'
+        const [title] = this.titleModes()
+        if (machineState === 'LayingTrack' && title) return { titleModeId: title.id }
         return this.stationsWithTrack ? 'stations' : 'track'
     })
+    private selectedTitleId = $derived.by(() => titleModeId(this.mode))
     options = $derived.by((): readonly OperatingModeOption[] => {
         const { machineState } = this.session.state
-        const option = (label: string, mode: OperatingMode | undefined, selected: boolean) => ({
+        const option = (
+            { label, shortLabel }: ModeLabel,
+            mode: OperatingMode | undefined,
+            selected: boolean
+        ) => ({
             label,
+            shortLabel,
             selected,
             choose: () => this.choose(mode)
         })
@@ -89,24 +119,27 @@ export class OperatingModeModule {
             machineState === 'LayingTrack'
                 ? [
                       ...(this.available('track')
-                          ? [option('Lay track', 'track', this.mode === 'track')]
+                          ? [option(LayTrack, 'track', this.mode === 'track')]
                           : []),
                       ...(this.available('stations')
-                          ? [option('Place station', 'stations', this.mode === 'stations')]
+                          ? [option(PlaceStation, 'stations', this.mode === 'stations')]
                           : [])
                   ]
-                : [option('Run trains', undefined, this.mode !== 'finance')]
+                : [option(RunTrains, undefined, this.mode !== 'finance' && !this.selectedTitleId)]
+        const titles = this.titleModes().map((title) =>
+            option(title, { titleModeId: title.id }, this.selectedTitleId === title.id)
+        )
         const finance = this.available('finance')
-            ? [option(this.finance.label, 'finance', this.mode === 'finance')]
+            ? [option(this.finance.modeLabel, 'finance', this.mode === 'finance')]
             : []
-        return [...construction, ...finance]
+        return [...construction, ...titles, ...finance]
     })
     switchVisible = $derived.by(() => {
         const { machineState, purchaseOffer } = this.session.state
         return (
             this.enabled &&
             (machineState === 'LayingTrack' || machineState === 'RunningTrains') &&
-            (this.options.length > 1 || this.mode === 'finance') &&
+            (this.options.length > 1 || this.mode === 'finance' || !!this.titleModeShown) &&
             !purchaseOffer &&
             !this.decisions.selection &&
             !this.privateActions.selection
@@ -115,17 +148,23 @@ export class OperatingModeModule {
     canChoose = $derived.by(
         () =>
             this.session.interactive &&
-            (this.hasAction('FinishTrack') || this.hasAction('CorporateFinance'))
+            (this.hasAction('FinishTrack') ||
+                this.hasAction('CorporateFinance') ||
+                this.titleModes().length > 0)
     )
-    financeShown = $derived.by(
+    /** No offer, selection or decision takes the panel from the chosen mode. */
+    private panelFree = $derived.by(
         () =>
-            this.mode === 'finance' &&
-            this.finance.choices.length > 0 &&
             !this.session.state.purchaseOffer &&
             !this.privateActions.selection &&
             !this.privateActions.trackPowerSelection &&
             !this.decisions.selection
     )
+    financeShown = $derived.by(
+        () => this.mode === 'finance' && this.finance.choices.length > 0 && this.panelFree
+    )
+    /** Set to the title mode's id while its panel replaces the family's. */
+    titleModeShown = $derived.by(() => (this.panelFree ? this.selectedTitleId : undefined))
     stationsShown = $derived.by(
         () =>
             this.stationsWithTrack &&
@@ -144,14 +183,18 @@ export class OperatingModeModule {
               !this.decisions.selection
             : this.session.state.machineState === 'PlacingStation'
     )
-    /** Nothing left to lay, place, issue or redeem, though construction is still open. */
+    /** Nothing left to lay, place, issue or redeem, nor a title mode, though construction is open. */
     nothingToBuild = $derived.by(
         () =>
-            this.session.state.machineState === 'LayingTrack' &&
-            this.hasAction('FinishTrack') &&
+            this.constructionOpen &&
             !this.hasAction('LayTile') &&
             !this.hasAction('PlaceStation') &&
-            !this.finance.choices.length
+            !this.finance.choices.length &&
+            !this.titleModes().length
+    )
+    /** Construction can still be finished, whoever is looking. */
+    constructionOpen = $derived.by(
+        () => this.session.state.machineState === 'LayingTrack' && this.hasAction('FinishTrack')
     )
     canFinish = $derived.by(() => this.session.interactive && this.hasAction('FinishTrack'))
     /** Finishing a combined construction step skips straight to the run. */

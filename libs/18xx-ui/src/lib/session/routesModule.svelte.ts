@@ -14,7 +14,7 @@ import { routeBonusArrows, trainRouteOverlays } from '../routes/routePresentatio
 import type { MapRoute, MapSelection } from '../maps/mapDrawing.js'
 import { RouteEditor } from './routeEditor.svelte.js'
 import type { ModuleSession } from './moduleSession.js'
-import type { LocalSelection } from './localSelections.js'
+import type { LocalSelection } from '@tabletop/frontend-components'
 
 type RoutesState = ConstructorParameters<typeof RouteEvaluation>[0] &
     Pick<EighteenXXState, 'machineState'>

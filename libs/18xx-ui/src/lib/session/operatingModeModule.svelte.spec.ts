@@ -3,7 +3,11 @@ import { minimalPlayState } from '@tabletop/18xx/testing'
 import type { FinanceChoice } from '@tabletop/18xx'
 import type { StagedSelectionEntry } from '@tabletop/frontend-components'
 import type { PrivateTrackPower } from './privateActionsModule.svelte.js'
-import { OperatingModeModule, type OperatingModeSession } from './operatingModeModule.svelte.js'
+import {
+    OperatingModeModule,
+    type OperatingModeSession,
+    type TitleOperatingMode
+} from './operatingModeModule.svelte.js'
 import { testSession } from './moduleTestSession.js'
 
 const issue: FinanceChoice = { companyId: 'A', operation: 'issue', shares: 1, amount: 10 }
@@ -16,6 +20,7 @@ function operating(
 ) {
     let valid = $state(initialValid)
     let trackPowerSelection = $state<StagedSelectionEntry<PrivateTrackPower>>()
+    let titleModes = $state<readonly TitleOperatingMode[]>([])
     const state: OperatingModeSession['state'] = { ...minimalPlayState(), machineState }
     const harness = testSession(state, rules, [])
     const session: OperatingModeSession = {
@@ -28,7 +33,10 @@ function operating(
     let finished = 0
     const module = new OperatingModeModule(
         session,
-        { choices: financeChoices, label: 'Issue shares' },
+        {
+            choices: financeChoices,
+            modeLabel: { label: 'Issue shares', shortLabel: 'Issue' }
+        },
         {
             titlePower: undefined,
             selection: undefined,
@@ -42,11 +50,13 @@ function operating(
             finishTrack: async () => {
                 finished++
             }
-        }
+        },
+        () => titleModes
     )
     return {
         module,
         setValid: (types: string[]) => (valid = types),
+        setTitleModes: (modes: readonly TitleOperatingMode[]) => (titleModes = modes),
         selectTrackPower: (power: PrivateTrackPower) =>
             (trackPowerSelection = { value: power, source: 'manual' }),
         cleared: () => cleared,
@@ -130,6 +140,53 @@ describe('OperatingModeModule', () => {
         expect(module.mode).toBe('finance')
         module.options[0].choose()
         expect(module.mode).not.toBe('finance')
+    })
+
+    it('sets a title mode between construction and share issues', () => {
+        const { module, setTitleModes } = operating(
+            'LayingTrack',
+            ['LayTile', 'FinishTrack', 'CorporateFinance'],
+            { stationsWithTrack: true },
+            [issue]
+        )
+        setTitleModes([{ id: 'ferries', label: 'Buy ferry', shortLabel: 'Ferry' }])
+        expect(module.options.map((option) => [option.label, option.selected])).toEqual([
+            ['Lay track', true],
+            ['Buy ferry', false],
+            ['Issue shares', false]
+        ])
+        expect(module.titleModeShown).toBeUndefined()
+        module.options[1].choose()
+        expect(module.mode).toEqual({ titleModeId: 'ferries' })
+        expect(module.titleModeShown).toBe('ferries')
+        expect(module.trackActive).toBe(false)
+        setTitleModes([])
+        expect(module.mode).toBe('track')
+        expect(module.titleModeShown).toBeUndefined()
+    })
+
+    it('shows a title mode alone when nothing else is left to build', () => {
+        const { module, setTitleModes } = operating('LayingTrack', ['FinishTrack'])
+        setTitleModes([{ id: 'ferries', label: 'Buy ferry', shortLabel: 'Ferry' }])
+        expect(module.mode).toEqual({ titleModeId: 'ferries' })
+        expect(module.titleModeShown).toBe('ferries')
+        expect(module.switchVisible).toBe(true)
+        expect(module.nothingToBuild).toBe(false)
+        expect(module.constructionOpen).toBe(true)
+    })
+
+    it('sets a title mode beside the run', () => {
+        const { module, setTitleModes } = operating('RunningTrains', ['RunTrains'])
+        setTitleModes([{ id: 'ferries', label: 'Luxury ferry', shortLabel: 'Luxury' }])
+        expect(module.options.map((option) => [option.label, option.selected])).toEqual([
+            ['Run trains', true],
+            ['Luxury ferry', false]
+        ])
+        expect(module.canChoose).toBe(true)
+        module.options[1].choose()
+        expect(module.titleModeShown).toBe('ferries')
+        module.options[0].choose()
+        expect(module.titleModeShown).toBeUndefined()
     })
 
     it('lays a selected private tile power through track', () => {

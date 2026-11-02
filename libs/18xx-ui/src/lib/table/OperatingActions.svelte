@@ -18,23 +18,34 @@
     import NothingToBuild from '../maps/NothingToBuild.svelte'
     import PresidencyClaims from '../stock/PresidencyClaims.svelte'
     import OperatingModeSwitch from './OperatingModeSwitch.svelte'
+    import type { Snippet } from 'svelte'
+    import { assertExists } from '@tabletop/common'
     import { fade } from 'svelte/transition'
     import { prefersReducedMotion } from 'svelte/motion'
     let {
         session,
         createRouteWorker,
         onFocusRoute,
-        privateOperationDescription
+        privateOperationDescription,
+        titleMode
     }: {
         createRouteWorker: () => Worker
         onFocusRoute: (trainId: string) => void
         privateOperationDescription: (id: string, companyId: string) => string | undefined
         session: EighteenXXSessionView
+        /** The panel of one of the session's `titleOperatingModes`, by its id. */
+        titleMode?: Snippet<[string]>
     } = $props()
     const { trainColors, privateTilePrompts } = $derived(session.presentation)
     const gameState = $derived(session.gameState)
     const trainBuying = $derived(gameState.machineState === 'BuyingTrains')
     const trainOffer = $derived(trainBuying && gameState.purchaseOffer?.asset.kind === 'train')
+    const titleModePanel = $derived.by(() => {
+        const id = session.operatingMode.titleModeShown
+        if (!id) return undefined
+        assertExists(titleMode, `Title operating mode ${id} requires the table's titleMode panel`)
+        return { id, panel: titleMode }
+    })
 </script>
 
 {#snippet actionControls()}
@@ -108,6 +119,8 @@
         <PresidencyClaims {session} />
     {:else if session.operatingMode.financeShown}
         <CorporateFinance {session} />
+    {:else if titleModePanel}
+        {@render titleModePanel.panel(titleModePanel.id)}
     {:else if session.operatingMode.stationsShown}
         {@render stationsWithTrack()}
     {:else if gameState.machineState === 'StockRound'}

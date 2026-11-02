@@ -9,7 +9,10 @@ import { BankBroken, GameEnding } from './gameEnding.js'
 export const ProgressState = Type.Object({
     phaseId: Type.String(),
     cash: FinanceFields.cash,
-    gameEnding: Type.Optional(GameEnding)
+    gameEnding: Type.Optional(GameEnding),
+    operatingSet: Type.Optional(
+        Type.Object({ number: Type.Integer({ minimum: 1 }), completed: Type.Boolean() })
+    )
 })
 export type ProgressState = Type.Static<typeof ProgressState>
 export const ProgressStateValidator = Compile(ProgressState)
@@ -20,15 +23,18 @@ export function eighteenXXProgress(
     money: MoneyFormat
 ): GameProgress {
     const fraction = phases.share(state.phaseId)
-    if (state.gameEnding)
+    if (state.gameEnding) {
+        const { reason, finalOperatingSet } = state.gameEnding
+        const inFinalSet =
+            finalOperatingSet === undefined ||
+            (state.operatingSet?.number === finalOperatingSet && !state.operatingSet.completed)
+        const ending = inFinalSet ? 'Final OR set' : `Ends after OR ${finalOperatingSet}`
         return {
             fraction,
-            label:
-                state.gameEnding.reason === BankBroken
-                    ? `${BankBroken} · Final OR set`
-                    : 'Final OR set',
+            label: reason === BankBroken ? `${BankBroken} · ${ending}` : ending,
             final: true
         }
+    }
     const bank = cashOwnedBy(state, { kind: 'bank' })
     return {
         fraction,

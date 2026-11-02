@@ -90,8 +90,8 @@ These change shared presentation without adding interaction:
 - A committed split appears in history as the branch split from its parent with the
   branch capital.
 - Vernon River's unbuilt map marker is title artwork: a large VR above two small
-  connected circles. It disappears when a tile is laid and adds no route nodes or
-  station slots.
+  connected circles. It disappears when a tile is laid or the Vernon River Bridge
+  private closes, and adds no route nodes or station slots.
 - The published artwork option uses the packaged board image, the Boda Games charter
   tokens (icon discs in the wood-specification colours, which also tint routes and
   market entries), the published private cards and second-variant PEIR certificates in

@@ -34,7 +34,12 @@ async function createServer(initialStatus: UserStatus) {
     await server.register(logout, { prefix: '/auth' })
     await server.register(logoutAll, { prefix: '/auth' })
     server.post('/session', async (request) => {
-        await authSession({ session: request.session, user: current, sessions: sessionService })
+        await authSession({
+            session: request.session,
+            user: current,
+            proof: 'authentication-method',
+            sessions: sessionService
+        })
         return {}
     })
     server.post('/legacy-session', async (request) => {
@@ -228,7 +233,7 @@ describe('revocable Authenticated Sessions', () => {
         expect((await get('/active', cookie)).statusCode).toBe(401)
     })
 
-    it('refuses a session after its thirty-day absolute lifetime', async () => {
+    it('refuses a session after its 180-day absolute lifetime', async () => {
         const { get, advance, sessionStore } = await fixture()
         advance(SESSION_LIFETIME_SECONDS - 60)
         expect((await get('/any')).statusCode).toBe(200)

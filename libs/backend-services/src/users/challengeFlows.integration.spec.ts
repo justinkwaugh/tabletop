@@ -14,11 +14,12 @@ import { FirestoreSessionStore } from '../persistence/firestore/sessionStore.js'
 import { FirestoreUserStore } from '../persistence/firestore/userStore.js'
 import { isolatedFirestore } from '../persistence/firestore/tests/isolatedFirestore.js'
 import type { TokenStore } from '../persistence/stores/tokenStore.js'
-import { UnknownStorageError } from '../persistence/stores/errors.js'
-import { SessionService } from '../sessions/sessionService.js'
+import { InvalidIdError, UnknownStorageError } from '../persistence/stores/errors.js'
+import { SessionNotLiveError, SessionService } from '../sessions/sessionService.js'
+import { RecentAuthenticationRequiredError } from '../sessions/recentAuthentication.js'
 import type { TaskService } from '../tasks/taskService.js'
-import { UnauthenticatedUpdateError } from './errors.js'
 import { UserService } from './userService.js'
+import { EmailChangeError } from './errors.js'
 
 const ORIGINAL_PASSWORD = 'original-password-value'
 const NEW_PASSWORD = 'replacement-password-value'
@@ -50,7 +51,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
         const tokenStore = new FailingOnceTokenStore(firestore)
         let now = new Date('2026-10-27T12:00:00.000Z')
         const challenges = new TokenService(tokenStore, { now: () => now })
-        const mails: { kind: string; userId: string; token: string }[] = []
+        const mails: { kind: string; userId: string; token: string; email?: string }[] = []
         const notifications: { email: string; changeType: string }[] = []
         let noticeQueueRejects = false
         const tasks: TaskService = Object.create(null)
@@ -58,6 +59,9 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             mails.push({ kind: 'reset', ...mail })
         }
         tasks.sendVerificationEmail = async (mail) => {
+            mails.push({ kind: 'verification', ...mail })
+        }
+        tasks.sendEmailChangeVerificationEmail = async (mail) => {
             mails.push({ kind: 'verification', ...mail })
         }
         tasks.sendAuthVerificationEmail = async (mail) => {
@@ -121,7 +125,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
 
         async function login(username: string, password: string) {
             const user = await userStore.findByUsernameAndPassword(username, password)
-            return user ? sessions.establish(user) : undefined
+            return user ? sessions.establish(user, 'authentication-method') : undefined
         }
 
         async function stored(id: string) {
@@ -133,6 +137,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 [
                     TokenType.PasswordReset,
                     TokenType.EmailVerification,
+                    TokenType.EmailChange,
                     TokenType.SensitiveChange
                 ].map((type) => firestore.collection('tokens').doc(`${type}:${userId}`).get())
             )
@@ -403,10 +408,8 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 await users.sendVerificationEmail(account)
                 const stale = lastMail('verification').token
                 const moved = await users.updateUser(
-                    account.id,
-                    { email: `moved-${account.id}@example.test` },
-                    undefined,
-                    ORIGINAL_PASSWORD
+                    await sessions.establish(account, 'authentication-method'),
+                    { email: `moved-${account.id}@example.test` }
                 )
                 const fresh = lastMail('verification').token
                 expect(fresh).not.toBe(stale)
@@ -418,94 +421,295 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             })
         })
 
-        describe('Sensitive Change', () => {
-            it('commits the bound email and password change, the uniqueness entries and the challenge together', async () => {
+        describe('profile changes with Recent Authentication', () => {
+            it('sets a provider Account password without changing its verified address or status', async () => {
                 const account = await createAccount(
                     { externalIds: ['google:g-2'] },
                     { withPassword: false }
                 )
-                const copied = await sessions.establish(account)
-                const newEmail = `next-${account.id}@example.test`
-                const issued = await users.sendSensitiveChangeChallenge(account, {
-                    email: newEmail.toUpperCase(),
-                    password: true
-                })
-                expect(issued.expiresAt).toEqual(new Date('2026-10-27T12:15:00.000Z'))
-                const code = lastMail('sensitive').token
-
-                await expect(
-                    users.updateUser(
-                        account.id,
-                        { email: newEmail },
-                        NEW_PASSWORD,
-                        undefined,
-                        undefined
-                    )
-                ).rejects.toThrow(UnauthenticatedUpdateError)
-                await expect(
-                    users.updateUser(
-                        account.id,
-                        { email: `else-${account.id}@example.test` },
-                        NEW_PASSWORD,
-                        undefined,
-                        code
-                    )
-                ).rejects.toThrow(InvalidChallengeError)
-                await expect(
-                    users.updateUser(account.id, { email: newEmail }, undefined, undefined, code)
-                ).rejects.toThrow(InvalidChallengeError)
-                expect(await stored(account.id)).toMatchObject({ email: account.email })
-
-                const updated = await users.updateUser(
-                    account.id,
-                    { email: newEmail },
-                    NEW_PASSWORD,
-                    undefined,
-                    code
-                )
+                const copied = await sessions.establish(account, 'authentication-method')
+                const updated = await users.updateUser(copied, {}, NEW_PASSWORD)
                 expect(updated).toMatchObject({
-                    email: newEmail,
-                    emailVerified: false,
+                    email: account.email,
+                    emailVerified: true,
+                    status: UserStatus.Active,
                     hasPassword: true,
                     sessionGeneration: 1
                 })
-                expect(await challengeDocuments(account.id)).toEqual([
-                    `${TokenType.EmailVerification}:${account.id}`
-                ])
-                expect((await firestore.collection('userEmails').doc(newEmail).get()).exists).toBe(
-                    true
+                expect(await challengeDocuments(account.id)).toEqual([])
+                expect(
+                    (await firestore.collection('userEmails').doc(account.email).get()).exists
+                ).toBe(true)
+                await expect(authorize(copied.id)).resolves.toBeUndefined()
+                await expect(login(account.username, NEW_PASSWORD)).resolves.toBeDefined()
+                expect(notifications).toContainEqual({
+                    email: account.email,
+                    changeType: 'password'
+                })
+            })
+
+            it('leaves the Account, uniqueness entries and sessions unchanged when proof is stale', async () => {
+                const account = await createAccount()
+                const session = await sessions.establish(account, 'authentication-method')
+                const original = await stored(account.id)
+                const email = `refused-${account.id}@example.test`
+                await expect(
+                    users.updateUser(
+                        { ...session, authenticatedAt: new Date(Date.now() - 16 * 60_000) },
+                        { email, username: `Refused-${account.id}` },
+                        NEW_PASSWORD
+                    )
+                ).rejects.toThrow(RecentAuthenticationRequiredError)
+                expect(await stored(account.id)).toEqual(original)
+                expect((await firestore.collection('userEmails').doc(email).get()).exists).toBe(
+                    false
                 )
                 expect(
                     (await firestore.collection('userEmails').doc(account.email).get()).exists
-                ).toBe(false)
-                await expect(authorize(copied.id)).resolves.toBeUndefined()
-                await expect(login(account.username, NEW_PASSWORD)).resolves.toBeDefined()
-                await expect(
-                    users.updateUser(account.id, {}, 'another-password-value-1', undefined, code)
-                ).rejects.toThrow(UnauthenticatedUpdateError)
+                ).toBe(true)
+                await expect(authorize(session.id)).resolves.toBeDefined()
             })
 
-            it('does not accept a Set Password or verification challenge as a Sensitive Change proof', async () => {
-                const account = await createAccount(
-                    { externalIds: ['google:g-3'] },
-                    { withPassword: false }
-                )
-                await users.sendPasswordResetEmail(account)
-                const { secret } = lastResetSecret()
+            it('refuses an update authorized before another credential change committed', async () => {
+                const account = await createAccount()
+                const staleRequest = await sessions.establish(account, 'authentication-method')
+                await users.updateUser(staleRequest, {}, NEW_PASSWORD)
+                const committed = await stored(account.id)
+                const email = `late-${account.id}@example.test`
                 await expect(
-                    users.updateUser(account.id, {}, NEW_PASSWORD, undefined, secret)
+                    users.updateUser(staleRequest, { email }, ORIGINAL_PASSWORD)
+                ).rejects.toThrow(SessionNotLiveError)
+                expect(await stored(account.id)).toEqual(committed)
+                expect((await firestore.collection('userEmails').doc(email).get()).exists).toBe(
+                    false
+                )
+            })
+        })
+
+        describe('Pending Email Address', () => {
+            async function pendingChange() {
+                const account = await createAccount()
+                const session = await sessions.establish(account, 'authentication-method')
+                const email = `next-${account.id}@example.test`
+                const original = await stored(account.id)
+                const pending = await users.requestEmailChange(session, email.toUpperCase())
+                const secret = lastMail('verification').token
+                return { account, session, email, original, pending, secret }
+            }
+
+            it('refuses an unstoreable address before replacing the pending code or queuing email', async () => {
+                const { account, session, email, original, pending, secret } = await pendingChange()
+                const mailCount = mails.length
+                const noticeCount = notifications.length
+
+                await expect(
+                    users.requestEmailChange(session, 'first__middle__last@example.test')
+                ).rejects.toThrow(InvalidIdError)
+
+                expect(mails).toHaveLength(mailCount)
+                expect(notifications).toHaveLength(noticeCount)
+                expect(await stored(account.id)).toEqual(original)
+                expect(await users.pendingEmailChange(account)).toEqual(pending)
+                await expect(
+                    users.confirmEmailChange(session, email, secret)
+                ).resolves.toMatchObject({
+                    email,
+                    status: UserStatus.Active
+                })
+            })
+
+            it('keeps the verified address, Active status, cache, reservation and sessions until verification', async () => {
+                const { account, session, original, pending, email } = await pendingChange()
+                expect(await stored(account.id)).toEqual(original)
+                expect(await users.getUser(account.id)).toMatchObject({
+                    email: account.email,
+                    emailVerified: true,
+                    status: UserStatus.Active
+                })
+                expect(await users.getUserByEmail(account.email)).toMatchObject({ id: account.id })
+                expect(await users.getUserByEmail(email)).toBeUndefined()
+                expect(
+                    (await firestore.collection('userEmails').doc(account.email).get()).exists
+                ).toBe(true)
+                expect((await firestore.collection('userEmails').doc(email).get()).exists).toBe(
+                    false
+                )
+                expect(await authorize(session.id)).toBeDefined()
+                expect(lastMail('verification')).toMatchObject({ userId: account.id, email })
+                expect(await users.pendingEmailChange(account)).toEqual(pending)
+                expect(notifications).toContainEqual({
+                    email: account.email,
+                    changeType: 'emailChangeRequested'
+                })
+                await users.sendPasswordResetEmail(account)
+                expect(
+                    (await tokenStore.find(`${TokenType.PasswordReset}:${account.id}`))?.data.email
+                ).toBe(account.email)
+            })
+
+            it('promotes the verified replacement, consumes its challenge and ends old sessions in one commit', async () => {
+                const { account, session, email, secret } = await pendingChange()
+                const copied = await sessions.establish(account, 'authentication-method')
+                const updated = await users.confirmEmailChange(session, email.toUpperCase(), secret)
+                expect(updated).toMatchObject({
+                    email,
+                    emailVerified: true,
+                    status: UserStatus.Active,
+                    sessionGeneration: 1
+                })
+                expect(await users.getUser(account.id)).toMatchObject({
+                    email,
+                    emailVerified: true,
+                    status: UserStatus.Active
+                })
+                expect(await challengeDocuments(account.id)).toEqual([])
+                expect(
+                    (await firestore.collection('userEmails').doc(account.email).get()).exists
+                ).toBe(false)
+                expect((await firestore.collection('userEmails').doc(email).get()).exists).toBe(
+                    true
+                )
+                expect(await authorize(session.id)).toBeUndefined()
+                expect(await authorize(copied.id)).toBeUndefined()
+                expect(notifications).toContainEqual({ email: account.email, changeType: 'email' })
+                expect(await users.pendingEmailChange(updated)).toBeUndefined()
+                const renewed = await sessions.establish(updated, {
+                    authenticatedAt: session.authenticatedAt
+                })
+                expect(await authorize(renewed.id)).toBeDefined()
+                await expect(users.confirmEmailChange(renewed, email, secret)).rejects.toThrow(
+                    InvalidChallengeError
+                )
+            })
+
+            it('refuses wrong codes, destinations, accounts and onboarding-purpose codes without changing the Account', async () => {
+                const { account, session, email, original, secret } = await pendingChange()
+                await expect(users.confirmEmailChange(session, email, 'incorrect')).rejects.toThrow(
+                    InvalidChallengeError
+                )
+                await expect(
+                    users.confirmEmailChange(session, `wrong-${email}`, secret)
                 ).rejects.toThrow(InvalidChallengeError)
+                const other = await createAccount()
+                const otherSession = await sessions.establish(other, 'authentication-method')
+                await expect(users.confirmEmailChange(otherSession, email, secret)).rejects.toThrow(
+                    InvalidChallengeError
+                )
                 await users.sendVerificationEmail(account)
                 await expect(
-                    users.updateUser(
-                        account.id,
-                        {},
-                        NEW_PASSWORD,
-                        undefined,
-                        lastMail('verification').token
-                    )
+                    users.confirmEmailChange(session, email, lastMail('verification').token)
                 ).rejects.toThrow(InvalidChallengeError)
-                expect((await stored(account.id))?.passwordHash).toBeUndefined()
+                expect(await stored(account.id)).toEqual(original)
+                await expect(
+                    users.confirmEmailChange(session, email, secret)
+                ).resolves.toMatchObject({ email, status: UserStatus.Active })
+            })
+
+            it('reissuing or cancelling leaves the current address untouched and invalidates the earlier code', async () => {
+                const { account, session, email, original, secret } = await pendingChange()
+                const replacement = `replacement-${email}`
+                await users.requestEmailChange(session, replacement)
+                const newSecret = lastMail('verification').token
+                await expect(users.confirmEmailChange(session, email, secret)).rejects.toThrow(
+                    InvalidChallengeError
+                )
+                await users.cancelEmailChange(account.id)
+                expect(await users.pendingEmailChange(account)).toBeUndefined()
+                await expect(
+                    users.confirmEmailChange(session, replacement, newSecret)
+                ).rejects.toThrow(InvalidChallengeError)
+                expect(await stored(account.id)).toEqual(original)
+                expect(await authorize(session.id)).toBeDefined()
+            })
+
+            it('expired requests disappear and cannot change a verified address', async () => {
+                const { account, session, email, original, secret } = await pendingChange()
+                const before = now
+                now = new Date(now.getTime() + 16 * 60_000)
+                try {
+                    expect(await users.pendingEmailChange(account)).toBeUndefined()
+                    await expect(users.confirmEmailChange(session, email, secret)).rejects.toThrow(
+                        InvalidChallengeError
+                    )
+                    expect(await stored(account.id)).toEqual(original)
+                } finally {
+                    now = before
+                }
+            })
+
+            it('checks recent proof at request and confirmation and refuses the old direct-update path', async () => {
+                const { account, session, email, original, secret } = await pendingChange()
+                const stale = { ...session, authenticatedAt: new Date(Date.now() - 16 * 60_000) }
+                await expect(users.requestEmailChange(stale, email)).rejects.toThrow(
+                    RecentAuthenticationRequiredError
+                )
+                await expect(users.confirmEmailChange(stale, email, secret)).rejects.toThrow(
+                    RecentAuthenticationRequiredError
+                )
+                await expect(users.updateUser(session, { email }, NEW_PASSWORD)).rejects.toThrow(
+                    EmailChangeError
+                )
+                expect(await stored(account.id)).toEqual(original)
+                expect(await authorize(session.id)).toBeDefined()
+            })
+
+            it('rolls back the entire confirmation if challenge storage fails', async () => {
+                const { account, session, email, original, secret } = await pendingChange()
+                tokenStore.failNextFind = true
+                await expect(users.confirmEmailChange(session, email, secret)).rejects.toThrow()
+                expect(await stored(account.id)).toEqual(original)
+                expect(
+                    (await firestore.collection('userEmails').doc(account.email).get()).exists
+                ).toBe(true)
+                expect((await firestore.collection('userEmails').doc(email).get()).exists).toBe(
+                    false
+                )
+                expect(await users.pendingEmailChange(account)).toBeDefined()
+                expect(await authorize(session.id)).toBeDefined()
+                await expect(
+                    users.confirmEmailChange(session, email, secret)
+                ).resolves.toMatchObject({ email, status: UserStatus.Active })
+            })
+
+            it('keeps the old address and code when another Account acquires the proposed address', async () => {
+                const { account, session, email, original, secret } = await pendingChange()
+                await createAccount({ email })
+                await expect(users.confirmEmailChange(session, email, secret)).rejects.toThrow()
+                expect(await stored(account.id)).toEqual(original)
+                expect(await users.pendingEmailChange(account)).toBeDefined()
+                expect(await authorize(session.id)).toBeDefined()
+            })
+
+            it('admits exactly one concurrent confirmation', async () => {
+                const { session, email, secret } = await pendingChange()
+                const results = await Promise.allSettled(
+                    Array.from({ length: 4 }, () =>
+                        users.confirmEmailChange(session, email, secret)
+                    )
+                )
+                expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1)
+                expect(results.filter((result) => result.status === 'rejected')).toHaveLength(3)
+                expect(await users.getUser(session.userId)).toMatchObject({
+                    email,
+                    emailVerified: true,
+                    status: UserStatus.Active,
+                    sessionGeneration: 1
+                })
+            })
+
+            it('a later password change makes a pending email change unusable even in a fresh session', async () => {
+                const { account, session, email, secret } = await pendingChange()
+                const updated = await users.updateUser(session, {}, NEW_PASSWORD)
+                const renewed = await sessions.establish(updated, 'authentication-method')
+                expect(await users.pendingEmailChange(updated)).toBeUndefined()
+                await expect(users.confirmEmailChange(renewed, email, secret)).rejects.toThrow(
+                    InvalidChallengeError
+                )
+                expect(await users.getUser(account.id)).toMatchObject({
+                    email: account.email,
+                    emailVerified: true,
+                    status: UserStatus.Active
+                })
             })
         })
 

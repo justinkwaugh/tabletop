@@ -5,21 +5,31 @@
     const modes = $derived(session.operatingMode)
 </script>
 
-<nav aria-label="Operating mode" class="operating-mode">
+<nav
+    aria-label="Operating mode"
+    class="operating-mode"
+    class:crowded={modes.options.length === 3}
+    class:packed={modes.options.length > 3}
+>
     <SlidingToggle
         count={modes.options.length}
         selectedIndex={modes.options.findIndex((option) => option.selected)}
     >
         {#each modes.options as option (option.label)}<button
                 aria-pressed={option.selected}
+                aria-label={option.label}
                 disabled={!modes.canChoose}
-                onclick={option.choose}>{option.label}</button
+                onclick={option.choose}
+                ><span class="long">{option.label}</span><span class="short"
+                    >{option.shortLabel}</span
+                ></button
             >{/each}
     </SlidingToggle>
 </nav>
 
 <style>
     .operating-mode {
+        container: operating-mode / inline-size;
         display: flex;
         justify-content: center;
         margin-bottom: 16px;
@@ -48,6 +58,26 @@
         background: transparent;
         color: #ffffff;
         font-weight: 600;
+    }
+    .short {
+        display: none;
+    }
+    /* Three or more modes outgrow a phone's action pane; short labels keep them on one line. */
+    @container operating-mode (max-width: 360px) {
+        .crowded .long {
+            display: none;
+        }
+        .crowded .short {
+            display: inline;
+        }
+    }
+    @container operating-mode (max-width: 460px) {
+        .packed .long {
+            display: none;
+        }
+        .packed .short {
+            display: inline;
+        }
     }
     .operating-mode :global(.sliding-toggle > button:focus-visible) {
         outline: 2px solid #a87948;

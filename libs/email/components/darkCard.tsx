@@ -127,10 +127,10 @@ const wordmarkStyles = {
 
 const Wordmark = ({ href }: { href: string }) => (
     <Section style={wordmarkStyles.section}>
-        <Link href={href} style={wordmarkStyles.board}>
+        <Link href={href} style={wordmarkStyles.board} data-wordmark="true">
             BOARD
         </Link>
-        <Link href={href} style={wordmarkStyles.together}>
+        <Link href={href} style={wordmarkStyles.together} data-wordmark="true">
             {' '}
             TOGETHER
         </Link>

@@ -36,10 +36,11 @@ import {
     type HistoricalMapState,
     type HistoricalMap
 } from '../maps/historicalMap.js'
-import type {
-    MapViewDefinition,
-    StationAppearance,
-    TokenTiles
+import {
+    withPlayedMarkerArt,
+    type MapViewDefinition,
+    type StationAppearance,
+    type TokenTiles
 } from '../maps/stationPresentation.js'
 import { createTileDrawing } from '../tiles/tileDrawing.js'
 import { ownerPortfolio } from '../finance/ownerPortfolio.js'
@@ -51,7 +52,6 @@ import {
 } from '../finance/draftedCompanies.js'
 import { placedTileLayout } from '../tiles/standardTileLayouts.js'
 import { terrainIconAppearance } from '../maps/terrainIcons.js'
-import type { MapMarkerArt } from '../maps/mapDrawing.js'
 import { createMarketAnimationSource } from '../stock/marketAnimationSource.js'
 import { companySharePrice } from '../table/companyPresentation.js'
 import {
@@ -73,7 +73,6 @@ import { CompanyDecisionsModule } from './companyDecisionsModule.svelte.js'
 import { DiscardModule } from './discardModule.svelte.js'
 import { EarningsModule } from './earningsModule.svelte.js'
 import { LoanModule } from './loanModule.svelte.js'
-import { LocalSelections } from './localSelections.js'
 import { TitleStockPanels, type TitleStockPanel } from './titleStockPanels.svelte.js'
 import { MapModule, MapStyleAppearances } from './mapModule.svelte.js'
 import type { ModuleSession } from './moduleSession.js'
@@ -101,7 +100,7 @@ import { TrackModule } from './trackModule.svelte.js'
 import { TrainBuyingModule } from './trainBuyingModule.svelte.js'
 import { TrainFundingModule } from './trainFundingModule.svelte.js'
 import { CorporateFinanceModule } from './corporateFinanceModule.svelte.js'
-import { OperatingModeModule } from './operatingModeModule.svelte.js'
+import { OperatingModeModule, type TitleOperatingMode } from './operatingModeModule.svelte.js'
 import { PresidencyClaimModule } from './presidencyClaimModule.svelte.js'
 import { WaterfallAuctionModule } from './waterfallAuctionModule.svelte.js'
 
@@ -212,7 +211,6 @@ export class EighteenXXSession<
     readonly preferences: TitlePreferences<typeof EighteenXXPreferences> = this.createPreferences(
         EighteenXXPreferenceDefinition
     )
-    protected readonly localSelections = new LocalSelections()
     private get localHotseat() {
         return !!this.game.hotseat && this.game.storage === GameStorage.Local
     }
@@ -350,7 +348,8 @@ export class EighteenXXSession<
                 this.stations.stages.clear()
             },
             finishTrack: () => this.track.finish()
-        }
+        },
+        () => this.titleOperatingModes
     )
     readonly routes = new RoutesModule(
         this.moduleSession,
@@ -434,10 +433,14 @@ export class EighteenXXSession<
         )
         return this.#instructedRuns
     }
-    readonly runInstructions = new RunInstructionModule(this.moduleSession, () => {
-        const solver = this.instructedRuns
-        return solver ? (companyId) => solver.solveNow(this.gameState, companyId) : undefined
-    })
+    readonly runInstructions = new RunInstructionModule(
+        this.moduleSession,
+        () => {
+            const solver = this.instructedRuns
+            return solver ? (companyId) => solver.solveNow(this.gameState, companyId) : undefined
+        },
+        () => this.operatingOrder
+    )
     protected override prepareAction(action: GameAction): GameAction | Promise<GameAction> {
         return this.instructedRuns?.withRuns(action, this.actionTarget) ?? action
     }
@@ -528,31 +531,9 @@ export class EighteenXXSession<
     private playedMarkerArt = $derived.by(() =>
         JSON.stringify(this.presentationDefinition.markerArtFor?.(this.gameState) ?? {})
     )
-    /** The map view for the current presentation: published token art replaces the generic set when selected. */
-    readonly mapView: MapViewDefinition = $derived.by(() => {
-        const printed = this.mapViewDefinition
-        const played: Readonly<Record<string, Readonly<Record<string, MapMarkerArt>>>> = JSON.parse(
-            this.playedMarkerArt
-        )
-        const base = Object.keys(played).length
-            ? {
-                  ...printed,
-                  locationMarkerArt: Object.fromEntries(
-                      [
-                          ...new Set([
-                              ...Object.keys(printed.locationMarkerArt ?? {}),
-                              ...Object.keys(played)
-                          ])
-                      ].map((locationId) => [
-                          locationId,
-                          {
-                              ...printed.locationMarkerArt?.[locationId],
-                              ...played[locationId]
-                          }
-                      ])
-                  )
-              }
-            : printed
+    /** The map view before art that changes with play, which each historical map lays its own over. */
+    private presentedMapView: MapViewDefinition = $derived.by(() => {
+        const base = this.mapViewDefinition
         const overrides = this.stationAppearanceOverrides
         const definition = overrides
             ? { ...base, stations: { ...base.stations, ...overrides } }
@@ -572,6 +553,10 @@ export class EighteenXXSession<
             placements: { ...definition.placements, ...definition.publishedPlacements }
         }
     })
+    /** The map view for the current presentation: published token art replaces the generic set when selected. */
+    readonly mapView: MapViewDefinition = $derived.by(() =>
+        withPlayedMarkerArt(this.presentedMapView, JSON.parse(this.playedMarkerArt))
+    )
     /** The title presentation for the current mode: published badge colours and market zones replace the generic ones when selected. */
     readonly presentation: TitlePresentation<EighteenXXState<Schema>> = $derived.by(() => {
         const definition = this.presentationDefinition
@@ -603,13 +588,17 @@ export class EighteenXXSession<
             'The map view must present the title’s map and tile set'
         )
         this.historicalMaps = new HistoricalMaps(
-            () => this.mapView,
+            () => this.presentedMapView,
             (companyId) => this.companyName(companyId),
             (state) =>
                 this.projectMapState(this.rules.state.hydrate(state, titleComponents(this.rules))),
             (state) => this.stations.openReservations(state),
             (action) => this.presentationDefinition.historyMapPlacement?.(action),
-            (state) => liftedPrivateBlocks(map.markedPrivateIds, this.rules.privateRules, state)
+            (state) => liftedPrivateBlocks(map.markedPrivateIds, this.rules.privateRules, state),
+            (state) =>
+                this.presentationDefinition.markerArtFor?.(
+                    this.rules.state.hydrate(state, titleComponents(this.rules))
+                ) ?? {}
         )
         this.registerLocalSelections()
         this.addGameStateChangeListener(async ({ action }) => this.notices.observe(action))
@@ -693,6 +682,13 @@ export class EighteenXXSession<
         const train = state.trainInventory.trains.find((train) => train.id === trainId)
         assertExists(train, `Train ${trainId} requires its inventory record`)
         return this.trainDepot.trainDefinition(train.definitionId).name
+    }
+    /**
+     * A title's own optional actions in the operating turn, each an entry in the operating mode
+     * switch whose panel the table's `titleMode` snippet draws. List only those open now.
+     */
+    get titleOperatingModes(): readonly TitleOperatingMode[] {
+        return []
     }
     /** A title's own placements in the station step, offered as buttons beside its stations. */
     get titleStationActions(): readonly TitleStationAction[] {
@@ -829,6 +825,15 @@ export class EighteenXXSession<
     get operatingRules() {
         return this.rules.operatingRules
     }
+    get operatingSetUnderway(): boolean {
+        return this.gameState.stockRound.completed && !!this.gameState.operatingSet
+    }
+    get operatingOrder(): readonly string[] {
+        const state = this.gameState
+        return this.operatingSetUnderway && state.operatingSet
+            ? state.operatingSet.companyOrder
+            : this.operatingRules.companyOrder(state)
+    }
     get valuationRules() {
         return this.rules.endingRules
     }
@@ -953,16 +958,10 @@ export class EighteenXXSession<
     override beforeNewState(transition: PresentedTransition) {
         this.restoredSilently = transition.intent === 'silent'
         this.map.clearInspection()
-        this.localSelections.clear()
     }
-    get hasLocalSelection(): boolean {
-        return this.localSelections.hasManual()
-    }
-    override async undo() {
-        if (this.busy || this.isViewingHistory) return
-        if (this.localSelections.undo()) return
+    override async undoCommittedAction() {
         this.stock.menu.clear()
-        await super.undo()
+        await super.undoCommittedAction()
     }
     private registerLocalSelections() {
         const { localSelections } = this

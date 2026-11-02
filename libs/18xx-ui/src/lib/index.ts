@@ -94,10 +94,13 @@ export type {
 } from './session/titlePresentation.js'
 export { constructionOperatingSteps } from './table/operatingStep.js'
 export type { TileSymbolName } from './tiles/tileSymbols.js'
+export { tileSymbolMarkup } from './tiles/tileSymbols.js'
 export { moneyFormat, type MoneyFormat } from './presentation/money.js'
 export { clickedBackdrop } from './presentation/modalDialog.js'
+export { svgDataUrl } from './presentation/svgDataUrl.js'
 export { default as OperatingActions } from './table/OperatingActions.svelte'
 export { default as OperatingModeSwitch } from './table/OperatingModeSwitch.svelte'
+export { default as ConstructionPrompt } from './table/ConstructionPrompt.svelte'
 export { default as CorporateFinance } from './finance/CorporateFinance.svelte'
 export { default as NothingToBuild } from './maps/NothingToBuild.svelte'
 export { default as PresidencyClaims } from './stock/PresidencyClaims.svelte'
@@ -110,7 +113,9 @@ export {
     OperatingModeModule,
     type OperatingMode,
     type OperatingModeOption,
-    type OperatingModeSession
+    type ModeLabel,
+    type OperatingModeSession,
+    type TitleOperatingMode
 } from './session/operatingModeModule.svelte.js'
 export {
     PresidencyClaimModule,

@@ -42,27 +42,57 @@ function standing(stop?: StandingRunInstruction['stopReason']): StandingRunInstr
 
 function module(
     state: RunInstructionSession['state'],
-    solved: InstructedRun = { routes: [], key: 'k' },
-    validActionTypes = ['SetRunInstruction'],
-    supersedes?: string
+    {
+        solved = { routes: [], key: 'k' },
+        validActionTypes = ['SetRunInstruction'],
+        supersedes,
+        operatingCompanies = ['IR', 'AR'],
+        operatingOrder = []
+    }: {
+        solved?: InstructedRun
+        validActionTypes?: string[]
+        supersedes?: string
+        operatingCompanies?: readonly string[]
+        operatingOrder?: readonly string[]
+    } = {}
 ) {
-    const { session, applied } = testSession(state, undefined, validActionTypes, { supersedes })
+    const rules = { operatingRules: { companyOrder: () => operatingCompanies } }
+    const { session, applied } = testSession(state, rules, validActionTypes, { supersedes })
     const solves: string[] = []
-    const runs = new RunInstructionModule(session, () => async (companyId) => {
-        solves.push(companyId)
-        return solved
-    })
+    const runs = new RunInstructionModule(
+        session,
+        () => async (companyId) => {
+            solves.push(companyId)
+            return solved
+        },
+        () => operatingOrder
+    )
     return { runs, applied, solves, session }
 }
 
 describe('Run instruction module', () => {
-    it('lists the open companies the viewer presides over', () => {
+    it('lists the operating companies the viewer presides over', () => {
         const { runs } = module(instructionState([standing()]))
         expect(runs.presided).toEqual(['IR'])
         expect(runs.declared).toEqual([standing()])
-        const unavailable = module(instructionState(), undefined, []).runs
+        const unavailable = module(instructionState(), { validActionTypes: [] }).runs
         expect([unavailable.presided, unavailable.declared]).toEqual([[], []])
         expect(module(instructionState()).runs.declared).toEqual([])
+    })
+
+    it('lists the companies in operating order, any floated since the order was set last', () => {
+        const president = { kind: 'player', playerId: 'alex' } as const
+        const state = instructionState()
+        state.companies = [
+            { id: 'IR', kind: 'major', president },
+            { id: 'UR', kind: 'major', president },
+            { id: 'TR', kind: 'major', president }
+        ]
+        const { runs } = module(state, {
+            operatingCompanies: ['UR', 'IR', 'TR'],
+            operatingOrder: ['AR', 'TR', 'IR']
+        })
+        expect(runs.presided).toEqual(['TR', 'IR', 'UR'])
     })
 
     it('declares with the company’s solved run', async () => {
@@ -78,7 +108,9 @@ describe('Run instruction module', () => {
     })
 
     it('declares nothing when the best run cannot be proven in time', async () => {
-        const { runs, applied, session } = module(instructionState(), { unsolved: true, key: 'k' })
+        const { runs, applied, session } = module(instructionState(), {
+            solved: { unsolved: true, key: 'k' }
+        })
         await runs.declare('IR')
         expect(applied).toEqual([])
         expect(runs.failure?.companyId).toBe('IR')
@@ -96,7 +128,7 @@ describe('Run instruction module', () => {
     })
 
     it('names the declaration a cancel replaces, so toggling does not grow history', async () => {
-        const { runs, applied } = module(instructionState([standing()]), undefined, undefined, 'on')
+        const { runs, applied } = module(instructionState([standing()]), { supersedes: 'on' })
         await runs.cancel('IR')
         expect(applied[0].supersedesActionId).toBe('on')
     })

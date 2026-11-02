@@ -2,13 +2,17 @@ import {
     isFinishOperatingTurn,
     isFinishStockTurn,
     isAdvancePhase,
+    isCloseCorporation,
+    isDeclareBankruptcy,
+    isGoBankrupt,
+    type FinishOperatingTurn,
     isFloatCompany,
     isCompleteStockRound,
     isStartOperatingSet,
     isStartOperatingRound,
     isSellFundingShares
 } from '@tabletop/18xx'
-import type { GameAction } from '@tabletop/common'
+import { assertExists, type GameAction } from '@tabletop/common'
 import type { ActionHistoryEntry } from './auctionHistory.js'
 import { isGameEndAction } from './historyNavigation.js'
 
@@ -85,4 +89,32 @@ export function historyGroups(
         if (isFinishOperatingTurn(action) || isFinishStockTurn(action)) current = undefined
     }
     return groups.toReversed()
+}
+
+export function operatingPlayerOf(
+    group: HistoryGroup,
+    actions: readonly GameAction[],
+    currentController: (companyId: string) => string | undefined
+): string | undefined {
+    const { companyId } = group
+    for (const action of group.actions) {
+        if (isDeclareBankruptcy(action)) {
+            assertExists(action.metadata, 'Recorded bankruptcy requires its president')
+            return action.metadata.playerId
+        }
+        if (isGoBankrupt(action) && action.metadata?.presidedCompanyId === companyId)
+            return action.playerId
+        if (isCloseCorporation(action) && action.companyId === companyId) {
+            const president = action.metadata?.president
+            return president?.kind === 'player' ? president.playerId : undefined
+        }
+    }
+    const finish = actions
+        .slice(actions.indexOf(group.actions[group.actions.length - 1]))
+        .find(
+            (action): action is FinishOperatingTurn =>
+                isFinishOperatingTurn(action) && action.companyId === companyId
+        )
+    if (finish) return finish.playerId
+    return companyId ? currentController(companyId) : undefined
 }

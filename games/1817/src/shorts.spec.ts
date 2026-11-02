@@ -168,6 +168,9 @@ describe('dividends on shorts', () => {
             continuation: 'BuyingTrains'
         })
         play.act('GoBankrupt', {}, 'casey')
+        expect(
+            play.processed.find((action) => action.type === 'GoBankrupt')?.metadata
+        ).not.toHaveProperty('presidedCompanyId')
         expect(play.state.activePlayerIds).toEqual(['alex'])
         play.act('GoBankrupt', {}, 'alex')
         expect(play.state.machineState).toBe('GameOver')

@@ -9,6 +9,7 @@ import {
 import { TheOldPrinceMap } from './map.js'
 import { TheOldPrinceTileSet } from './tiles.js'
 import { TheOldPrincePhases } from './trains.js'
+import { TheOldPrincePrivateCatalog } from './privates.js'
 export const TheOldPrinceTrackRules: TrackRules = {
     map: TheOldPrinceMap,
     tileSet: TheOldPrinceTileSet,
@@ -30,9 +31,8 @@ export const TheOldPrinceTrackRules: TrackRules = {
     homeLocations: (companyId) =>
         TheOldPrinceMap.reservedLocationIds(companyId === 'ML' ? 'C' : companyId),
     consentPlayerId(state, request) {
-        const bridge = state.companies.find((company) => company.id === 'VR')
-        if (request.locationId !== 'N18' || !bridge || bridge.closed) return undefined
-        return controllingOwner(state, 'VR')?.playerId
+        const bridge = TheOldPrincePrivateCatalog.blockedBy(state, request.locationId)
+        return bridge ? controllingOwner(state, bridge.id)?.playerId : undefined
     },
     restriction(state, request) {
         const controller = controllingOwner(state, request.companyId)

@@ -1,5 +1,6 @@
 import type { StationAppearance } from '../maps/stationPresentation.js'
 import type { TileAppearance } from './tileAppearance.js'
+import { svgDataUrl } from '../presentation/svgDataUrl.js'
 
 export type TileSymbolName = 'port' | 'horns'
 
@@ -20,7 +21,7 @@ export const HornsSymbol = {
     ]
 }
 
-function symbolMarkup(symbol: TileSymbolName, ink: string): string {
+export function tileSymbolMarkup(symbol: TileSymbolName, ink: string): string {
     if (symbol === 'horns')
         return HornsSymbol.paths
             .map((path) => `<path fill="${ink}" stroke="none" d="${path}"/>`)
@@ -34,10 +35,10 @@ export function tileSymbolAppearance(
     { ink, paper }: Pick<TileAppearance, 'ink' | 'paper'>
 ): StationAppearance {
     const { radius } = PortSymbol
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-radius} ${-radius} ${radius * 2} ${radius * 2}"><circle r="${radius}" fill="${paper}"/>${symbolMarkup(symbol, ink)}</svg>`
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-radius} ${-radius} ${radius * 2} ${radius * 2}"><circle r="${radius}" fill="${paper}"/>${tileSymbolMarkup(symbol, ink)}</svg>`
     return {
         label: symbol,
         color: 'transparent',
-        imageUrl: `data:image/svg+xml,${encodeURIComponent(svg)}`
+        imageUrl: svgDataUrl(svg)
     }
 }

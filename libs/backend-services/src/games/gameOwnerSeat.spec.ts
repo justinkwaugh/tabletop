@@ -53,6 +53,7 @@ function fixture() {
     const tasks: TaskService = {
         createPushTask: unused,
         sendVerificationEmail: unused,
+        sendEmailChangeVerificationEmail: unused,
         sendPasswordResetEmail: unused,
         sendAuthVerificationEmail: unused,
         sendAccountChangeNotificationEmail: unused,

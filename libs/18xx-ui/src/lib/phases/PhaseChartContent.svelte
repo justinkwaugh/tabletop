@@ -4,7 +4,11 @@
     import type { MoneyFormat } from '../presentation/money.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import { TileColors } from '../tiles/tilePresentation.js'
-    import type { PhaseChartData, PhaseChartDepotState } from './phaseChart.js'
+    import {
+        trainRosterRows,
+        type PhaseChartData,
+        type PhaseChartDepotState
+    } from './phaseChart.js'
     let {
         money,
         chart,
@@ -31,6 +35,7 @@
         bank?: { cash: Cash['amount']; broken: boolean }
     } = $props()
     const currentPhase = $derived(chart.phases.find((phase) => phase.id === currentPhaseId))
+    const rosterRows = $derived(trainRosterRows(chart.trains))
 </script>
 
 <div class="phase-chart-content" class:depot={depotOnly} class:on-board={onBoard}>
@@ -118,14 +123,11 @@
                 <thead
                     ><tr
                         ><th>Train</th><th class="money">Price</th><th class="number">Remaining</th
-                        ><th>Rusted by</th></tr
+                        ><th class="number">Rusted by</th></tr
                     ></thead
                 >
                 <tbody>
-                    {#each chart.trains as train, index (train.id)}
-                        {@const faces = chart.trains.filter(
-                            (face) => face.supplyId === train.supplyId
-                        )}
+                    {#each rosterRows as { train, remainingRowSpan, rustRowSpan } (train.id)}
                         {@const remaining = depotState.depot.remaining(
                             depotState.inventory,
                             train.id
@@ -141,26 +143,28 @@
                                 ><TrainBadge name={train.name} color={trainColors[train.id]} /></th
                             >
                             <td class="money">{money(train.price)}</td>
-                            {#if index === 0 || chart.trains[index - 1].supplyId !== train.supplyId}
+                            {#if remainingRowSpan}
                                 <td
                                     class="number"
-                                    rowspan={faces.length}
-                                    title={faces.length > 1
+                                    rowspan={remainingRowSpan}
+                                    title={remainingRowSpan > 1
                                         ? 'Shared certificates: choose either face'
                                         : undefined}
                                     >{remaining === 'unlimited' ? '∞' : remaining}</td
                                 >
                             {/if}
-                            <td
-                                >{#if train.rustTrainIds.length}<span class="badges"
-                                        >{#each train.rustTrainIds as trainId (trainId)}<TrainBadge
-                                                name={trainId}
-                                                color={trainColors[trainId]}
-                                            />{/each}{#if train.rustNote}<span class="rust-mark"
-                                                >*</span
-                                            >{/if}</span
-                                    >{:else}<span class="muted">Permanent</span>{/if}</td
-                            >
+                            {#if rustRowSpan}
+                                <td class="number" rowspan={rustRowSpan}
+                                    >{#if train.rustTrainIds.length}<span class="badges"
+                                            >{#each train.rustTrainIds as trainId (trainId)}<TrainBadge
+                                                    name={trainId}
+                                                    color={trainColors[trainId]}
+                                                />{/each}{#if train.rustNote}<span class="rust-mark"
+                                                    >*</span
+                                                >{/if}</span
+                                        >{:else}<span class="muted">Permanent</span>{/if}</td
+                                >
+                            {/if}
                         </tr>
                     {/each}
                 </tbody>
@@ -280,6 +284,9 @@
         display: flex;
         gap: 3px;
         align-items: center;
+    }
+    .number .badges {
+        justify-content: center;
     }
     /* An asterisk sits at cap height; drop it to the middle of the badges beside it. */
     .rust-mark {

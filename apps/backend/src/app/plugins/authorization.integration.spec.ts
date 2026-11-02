@@ -89,6 +89,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 await authSession({
                     session: request.session,
                     user,
+                    proof: 'authentication-method',
                     sessions: server.sessionService
                 })
                 return {}
@@ -234,10 +235,9 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expectCacheHit(lastTrace())
 
             await userService.updateUser(
-                account.id,
+                await server.sessionService.establish(account, 'authentication-method'),
                 {},
-                'replacement-password-value',
-                'original-password-value'
+                'replacement-password-value'
             )
 
             await expectNoCachedAccount(account.id)

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { GameVisibility, Role, UserStatus, type GameCatalogEntry } from '@tabletop/common'
-import { availableCatalogEntries } from './libraryTitles.js'
+import { availableCatalogEntries, titleMaturityLabel } from './libraryTitles.js'
 
 const base: GameCatalogEntry = {
     id: 'public',
@@ -38,5 +38,15 @@ describe('catalog visibility after merging alpha support', () => {
     ])('preserves role visibility and title sorting for $roles', ({ roles, ids }) => {
         const user = { id: 'test', roles, status: UserStatus.Active, externalIds: [] }
         expect(availableCatalogEntries(entries, user).map((entry) => entry.id)).toEqual(ids)
+    })
+})
+
+describe('titleMaturityLabel', () => {
+    it('names the maturity of a title that is not public yet', () => {
+        expect(entries.map((entry) => titleMaturityLabel(entry.metadata))).toEqual([
+            undefined,
+            'Beta',
+            'Alpha'
+        ])
     })
 })

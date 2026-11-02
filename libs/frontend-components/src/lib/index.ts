@@ -58,6 +58,7 @@ export type {
 export * from './model/gameSessionContext.js'
 export * from './model/appContext.js'
 export * from './model/stagedSelection.js'
+export * from './model/localSelections.js'
 export * from './transition/fadeScale.js'
 export * from './definition/gameUiDefinition.js'
 export * from './definition/gameColorizer.js'

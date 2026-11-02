@@ -240,12 +240,17 @@ it('prints a bonus badge beneath the revenue and each port clear of it inside th
 })
 
 it('places tokens over the symbol they cover, in the corner farthest from revenue, or centred', () => {
-    const tokenHex = (id: string, q: number, markers: readonly string[]) => ({
+    const tokenHex = (id: string, q: number, markers: readonly string[], portCount = 1) => ({
         id,
         coordinates: { q, r: 0 },
         buildable: true,
         preprintedTile: createCityTileFace('white', [1, 4], 30, 1),
-        markers: markers.map((marker) => ({ id: marker, label: marker, description: marker }))
+        markers: markers.map((marker) => ({
+            id: marker,
+            label: marker,
+            description: marker,
+            ...(marker === 'port' ? { count: portCount } : {})
+        }))
     })
     const map = new RailwayMap({
         id: 'tokens',
@@ -254,10 +259,12 @@ it('places tokens over the symbol they cover, in the corner farthest from revenu
         locations: [
             tokenHex('coast', 0, ['port', 'port-token']),
             tokenHex('inland', 1, ['cotton', 'port-token']),
-            tokenHex('miami', 2, ['key-west'])
+            tokenHex('miami', 2, ['key-west']),
+            tokenHex('bare-coast', 3, ['port']),
+            tokenHex('harbour', 4, ['port', 'port-token'], 2)
         ]
     })
-    const [coast, inland, miami] = createMapDrawing(map, undefined, {
+    const [coast, inland, miami, bareCoast, harbour] = createMapDrawing(map, undefined, {
         markerArt: {
             port: { revenueSymbol: 'port' },
             'port-token': { token: { imageUrl: 'port.svg', place: { covers: 'port' } } },
@@ -265,10 +272,13 @@ it('places tokens over the symbol they cover, in the corner farthest from revenu
             'key-west': { token: { imageUrl: 'key-west.svg', place: 'centre' } }
         }
     }).locations
-    const [symbol, portToken] = coast.revenueAnnotations
+    const [symbol] = bareCoast.revenueAnnotations
+    const [portToken, ...uncovered] = coast.revenueAnnotations
     assert(symbol.kind === 'symbol' && portToken.kind === 'token')
+    expect(uncovered).toEqual([])
     expect([portToken.x, portToken.y]).toEqual([symbol.x, symbol.y])
     expect(portToken.radius).toBeGreaterThan(symbol.radius)
+    expect(harbour.revenueAnnotations.map((annotation) => annotation.kind)).toEqual(['token'])
 
     const corners = Array.from({ length: 6 }, (_, index) => ({
         x: 50 * Math.cos(((index * 60 - 90) * Math.PI) / 180),
@@ -294,6 +304,51 @@ it('places tokens over the symbol they cover, in the corner farthest from revenu
     const [keyWest] = miami.revenueAnnotations
     assert(keyWest.kind === 'token')
     expect([keyWest.x, keyWest.y]).toEqual([0, 0])
+})
+
+it('keeps a fixed symbol position on a laid tile only while its stops and revenue leave it clear', () => {
+    const map = new RailwayMap({
+        id: 'laid-ports',
+        name: 'Laid ports',
+        orientation: HexOrientation.Pointy,
+        locations: ['printed', 'laid'].map((id, q) => ({
+            id,
+            coordinates: { q, r: 0 },
+            buildable: true,
+            preprintedTile: createCityTileFace('white', [], 0, 1),
+            markers: [{ id: 'ports', label: 'Ports', description: 'Ports', count: 2 }]
+        }))
+    })
+    const tileSet = new TileSet(
+        { id: 'greens', entries: [{ id: '14', faceDefinitionIds: ['18xx:14'], count: 1 }] },
+        [StandardTileCatalog]
+    )
+    const inPlace = [
+        { x: 0, y: 0 },
+        { x: 28.6, y: -16.5 }
+    ]
+    const [printed, laid] = createMapDrawing(
+        map,
+        {
+            tileSet,
+            inventory: tileSet.createInventory([
+                { locationId: 'laid', definitionId: '18xx:14', rotation: 0 }
+            ])
+        },
+        {
+            markerArt: { ports: { revenueSymbol: 'port' } },
+            symbolPositions: { printed: inPlace, laid: inPlace }
+        }
+    ).locations
+    const points = (entry: typeof printed) =>
+        entry.revenueAnnotations.map((annotation) => ({ x: annotation.x, y: annotation.y }))
+    expect(points(printed)).toEqual(inPlace)
+    const stops = laid.drawing.nodes.flatMap((node) => node.slots)
+    const moved = points(laid)
+    expect(moved).toHaveLength(2)
+    for (const port of moved)
+        for (const slot of stops)
+            expect(Math.hypot(port.x - slot.x, port.y - slot.y)).toBeGreaterThanOrEqual(8.7 + 10.5)
 })
 
 it('shows a border cost until track meets across the border from both sides', () => {

@@ -1,4 +1,5 @@
-import type { BugReportRequest, BugReportView, Game } from '@tabletop/common'
+import { Game, Player, type BugReportRequest, type BugReportView } from '@tabletop/common'
+import { Type } from 'typebox'
 import {
     ButtonStyle,
     ComponentType,
@@ -15,11 +16,18 @@ export type BugReporter = {
 export type ScenarioAttachment =
     { attached: true; filename: string } | { attached: false; bytes: number }
 
+export type ReportedGame = Type.Static<typeof ReportedGame>
+export const ReportedGame = Type.Object({
+    ...Type.Pick(Game, ['id', 'typeId', 'name', 'status', 'activePlayerIds']).properties,
+    players: Type.Array(Type.Pick(Player, ['id', 'name']))
+})
+
 export type BugReportPostContext = {
     frontendHost: string
     titleName: string
     reporter: BugReporter
     liveActionCount: number | undefined
+    storedLocally: boolean
     appliedTagIds: string[]
     reportedAt: Date
     scenario?: ScenarioAttachment
@@ -39,11 +47,13 @@ const Limit = {
 } as const
 
 export function bugReportPost(
-    game: Game,
+    game: ReportedGame,
     report: BugReportRequest,
     context: BugReportPostContext
 ): RESTPostAPIGuildForumThreadsJSONBody {
-    const gameUrl = siteUrl(`/game/${game.id}`, context.frontendHost)
+    const gameUrl = context.storedLocally
+        ? undefined
+        : siteUrl(`/game/${game.id}`, context.frontendHost)
 
     return {
         name: truncate(`${context.titleName}: ${firstLine(report.description)}`, Limit.ThreadName),
@@ -60,19 +70,21 @@ export function bugReportPost(
                     timestamp: context.reportedAt.toISOString()
                 }
             ],
-            components: [
-                {
-                    type: ComponentType.ActionRow,
-                    components: [
-                        {
-                            type: ComponentType.Button,
-                            style: ButtonStyle.Link,
-                            label: 'Open game',
-                            url: gameUrl
-                        }
-                    ]
-                }
-            ],
+            components: gameUrl
+                ? [
+                      {
+                          type: ComponentType.ActionRow,
+                          components: [
+                              {
+                                  type: ComponentType.Button,
+                                  style: ButtonStyle.Link,
+                                  label: 'Open game',
+                                  url: gameUrl
+                              }
+                          ]
+                      }
+                  ]
+                : undefined,
             attachments:
                 context.attachedFilenames.length > 0
                     ? context.attachedFilenames.map((filename, id) => ({ id, filename }))
@@ -83,7 +95,7 @@ export function bugReportPost(
 }
 
 function reportFields(
-    game: Game,
+    game: ReportedGame,
     report: BugReportRequest,
     context: BugReportPostContext
 ): APIEmbedField[] {
@@ -108,10 +120,15 @@ function reportFields(
         },
         ...scenarioFields(context.scenario),
         ...screenshotFields(context.screenshotsLeftOut),
-        {
-            name: 'Investigate',
-            value: `\`node tools/investigate/src/cli.mjs game ${game.id}\``
-        }
+        context.storedLocally
+            ? {
+                  name: 'Hotseat',
+                  value: "Kept only in the reporter's browser, so the scenario is the only copy"
+              }
+            : {
+                  name: 'Investigate',
+                  value: `\`node tools/investigate/src/cli.mjs game ${game.id}\``
+              }
     ]
 }
 
@@ -147,7 +164,7 @@ function viewLabel(view: BugReportView, liveActionCount: number | undefined): st
     return 'Live'
 }
 
-function activePlayerNames(game: Game): string {
+function activePlayerNames(game: ReportedGame): string {
     const activeIds = game.activePlayerIds ?? []
     const names = game.players
         .filter((player) => activeIds.includes(player.id))

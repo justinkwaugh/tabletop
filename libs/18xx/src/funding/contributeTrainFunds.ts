@@ -1,13 +1,7 @@
 import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import {
-    ActionSource,
-    type GameAction,
-    HydratableAction,
-    assert,
-    type HydratedGameState
-} from '@tabletop/common'
+import { type GameAction, HydratableAction, assert, type HydratedGameState } from '@tabletop/common'
 import { EmergencyTrainFunding, type FundingState, type TrainFundingRules } from './trainFunding.js'
 import type { StockRules } from '../stock/stockRules.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
@@ -58,7 +52,7 @@ export class HydratedContributeTrainFunds
     }
     isValid(state: FundingState): boolean {
         const funding = new EmergencyTrainFunding(state, this.#rules, this.#stocks, this.#trains)
-        if (this.source !== ActionSource.User || !funding.canAct(this.playerId)) return false
+        if (!funding.canAct(this.playerId)) return false
         const next = funding.next()
         return (
             next.kind === 'contribute' &&

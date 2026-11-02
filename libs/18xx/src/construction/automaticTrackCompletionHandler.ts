@@ -68,6 +68,7 @@ export class AutomaticTrackCompletionHandler<
             isFinishTrack(action) &&
             action.source === ActionSource.System &&
             action.companyId === context.gameState.trackStep?.companyId &&
+            action.playerId !== undefined &&
             this.canFinish(context, action.playerId)
         )
             return true

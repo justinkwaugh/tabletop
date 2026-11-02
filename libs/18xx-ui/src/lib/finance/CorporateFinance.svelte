@@ -2,6 +2,7 @@
     import type { FinanceChoice } from '@tabletop/18xx'
     import { assertExists } from '@tabletop/common'
     import CompanyToken from '../tokens/CompanyToken.svelte'
+    import ConstructionPrompt from '../table/ConstructionPrompt.svelte'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     let { session }: { session: EighteenXXSessionView } = $props()
     const money = $derived(session.presentation.money)
@@ -19,10 +20,6 @@
             .filter(({ choices }) => choices.length)
     )
     const appearance = $derived(session.mapView.stations[holdings.companyId])
-    const canFinishConstruction = $derived(
-        session.gameState.machineState === 'LayingTrack' &&
-            session.validActionTypes.includes('FinishTrack')
-    )
 </script>
 
 {#snippet group(choices: readonly FinanceChoice[], label: string, sign: string)}
@@ -45,15 +42,8 @@
 {/snippet}
 
 <section class="corporate-finance centered-panel" aria-label="Corporate finance">
-    {#if canFinishConstruction}
-        <header class="finance-prompt">
-            <span>{finance.prompt}, or</span>
-            <button
-                class="action-button inline-action"
-                disabled={!session.operatingMode.canFinish}
-                onclick={() => session.operatingMode.finish()}>skip</button
-            >
-        </header>
+    {#if session.operatingMode.constructionOpen}
+        <ConstructionPrompt {session} prompt={finance.prompt} />
     {/if}
     <dl class="finance-strip">
         <div class="finance-identity">
@@ -90,11 +80,6 @@
         flex-direction: column;
         align-items: center;
         gap: 14px;
-    }
-    .finance-prompt {
-        display: flex;
-        align-items: center;
-        gap: 10px;
     }
     button {
         font: inherit;

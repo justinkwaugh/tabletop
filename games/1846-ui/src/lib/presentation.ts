@@ -1,7 +1,6 @@
 import {
     Phases1846,
     TrainDepot1846,
-    inReceivership,
     MarketZoneColors1846,
     ownsTunnelBlasting,
     TunnelBlastingDiscount,
@@ -16,6 +15,7 @@ import {
 } from '@tabletop/18xx-ui'
 import { CompanyNames1846 } from './companyPresentation.js'
 import { mapPlacement1846 } from './history.js'
+import { revenueTokenArt } from './revenueTokens.js'
 import BoomtownToken from './images/tokens/boomtown.svg'
 import MailToken from './images/tokens/mail.svg'
 import MeatPackingToken from './images/tokens/meat-packing.svg'
@@ -28,6 +28,7 @@ export const Presentation1846: TitlePresentation<EighteenFortySixProjectedState>
     companyNames: CompanyNames1846,
     marketPoolId: 'open-market',
     historyMapPlacement: mapPlacement1846,
+    markerArtFor: revenueTokenArt,
     privateTokens: {
         SC: { tileSymbol: 'port' },
         MAIL: { imageUrl: MailToken },
@@ -98,7 +99,5 @@ export const Presentation1846: TitlePresentation<EighteenFortySixProjectedState>
         abbreviation: 'Draft',
         inProgress: (state) =>
             ['Drafting', 'RevealingDraft', 'BuyingOpeningCompanies'].includes(state.machineState)
-    },
-    companyFacts: (state, id) =>
-        inReceivership(state, id) ? [{ label: 'Control', value: 'Receivership' }] : []
+    }
 }

@@ -16,7 +16,7 @@ import cors from '@fastify/cors'
 import FastifyFormbody from '@fastify/formbody'
 import fastifyPrintRoutes from 'fastify-print-routes'
 import fastifyStatic from '@fastify/static'
-import { errorStatusCode } from './lib/errorStatusCode.js'
+import { replyStatusCode } from './lib/errorStatusCode.js'
 import { FastifySSEPlugin } from 'fastify-sse-v2'
 import AuthorizationPlugin from './plugins/authorization.js'
 import FirestorePlugin from './plugins/firestore.js'
@@ -64,9 +64,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
     })
 
     fastify.setErrorHandler(async function (error, req, rep) {
-        if (!rep.statusCode || rep.statusCode < 400) {
-            void rep.code(errorStatusCode(error))
-        }
+        void rep.code(replyStatusCode(error, rep.statusCode))
 
         if (rep.statusCode >= 500) {
             req.log.error({ err: error }, 'Request failed')
@@ -97,7 +95,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         origin: [FRONTEND_HOST],
         credentials: true,
         methods: ['GET', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-        exposedHeaders: ['X-Tabletop-Version', 'ETag']
+        exposedHeaders: ['X-Tabletop-Version', 'ETag', 'Retry-After']
     })
 
     assertExists(SESSION_KEY, 'The backend supervisor provides SESSION_KEY')
@@ -224,7 +222,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
             if (request.url.startsWith(API_PREFIX) || request.url.startsWith(TASKS_PREFIX)) {
                 await reply.code(404).send({ message: 'Not Found' })
             } else if (service === 'local') {
-                console.log('Serving index.html for unknown frontend path:', request.url)
+                request.log.info('Serving index.html for an unknown frontend path')
                 setNoCacheHeaders(reply)
                 await reply.sendFile('index.html', { cacheControl: false })
             } else {

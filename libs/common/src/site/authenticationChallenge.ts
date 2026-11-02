@@ -1,6 +1,13 @@
 import * as Type from 'typebox'
+import { DateType } from '../util/typebox.js'
 
 export const AUTHENTICATION_CHALLENGE_LIFETIME_SECONDS = 15 * 60
+
+export type PendingEmailChange = Type.Static<typeof PendingEmailChange>
+export const PendingEmailChange = Type.Object({
+    email: Type.String(),
+    expiresAt: DateType()
+})
 
 export function normalizeEmailAddress(email: string): string {
     return email.trim().toLowerCase()

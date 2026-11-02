@@ -12,8 +12,7 @@
         isSellFundingShares,
         sameOwner,
         isDistributeEarnings,
-        isFloatCompany,
-        isFinishOperatingTurn
+        isFloatCompany
     } from '@tabletop/18xx'
     import type { HistoryGroup } from './historyGroups.js'
     import { afterPlayerName, type HistoryDescription } from './historyDescription.js'
@@ -43,7 +42,7 @@
         appearance,
         playerName,
         playerColor,
-        currentController,
+        operatingPlayerId,
         describe,
         companyName,
         companyLabels,
@@ -77,7 +76,7 @@
         appearance?: StationAppearance
         playerName: (id: string) => string
         playerColor: (id: string) => string
-        currentController: (companyId: string) => string | undefined
+        operatingPlayerId: string | undefined
         describe: (action: GameAction) => HistoryDescription
         companyName: (id: string) => string
         companyLabels: readonly string[]
@@ -91,12 +90,6 @@
         group.kind === 'operation' && group.companyId
             ? cash.get(group.actions.at(-1)!.id)?.after.get(group.companyId)
             : undefined
-    )
-    const operatingPlayerId = $derived(
-        group.kind === 'operation'
-            ? (group.actions.findLast(isFinishOperatingTurn)?.playerId ??
-                  (group.companyId ? currentController(group.companyId) : undefined))
-            : group.playerId
     )
     const operatingCompanyId = $derived(group.kind === 'operation' ? group.companyId : undefined)
     const rows = $derived(
@@ -254,8 +247,8 @@
                                 />
                             {/if}
                         </span>
-                        {#if group.companyId}<span class="actor"
-                                >{playerName(operatingPlayerId ?? '')}</span
+                        {#if group.companyId && operatingPlayerId}<span class="actor"
+                                >{playerName(operatingPlayerId)}</span
                             >{/if}
                     </span>
                 </div>

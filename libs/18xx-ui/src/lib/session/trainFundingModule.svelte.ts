@@ -1,12 +1,10 @@
 import { assert } from '@tabletop/common'
 import {
-    BuyTrain,
-    ContributeTrainFunds,
     DeclareBankruptcy,
     EmergencyTrainFunding,
     FundTrain,
-    IssueTreasuryShares,
     SellFundingShares,
+    settlingFundingAction,
     isContributeTrainFunds,
     isIssueTreasuryShares,
     isSellFundingShares,
@@ -83,7 +81,12 @@ export class TrainFundingModule {
             : []
     })
     plan = $derived.by(() => (this.purchase ? this.model?.preview(this.purchase) : undefined))
-    sales = $derived.by(() => (this.plan?.choice.kind === 'sell' ? this.plan.choice.sales : []))
+    /** Sales are chosen once funding has begun, so each press records one Action. */
+    sales = $derived.by(() =>
+        this.session.state.trainFunding && this.plan?.choice.kind === 'sell'
+            ? this.plan.choice.sales
+            : []
+    )
     private actionsSinceFunding = $derived.by(() => {
         const actions = this.session.recordedActions
         const start = actions.findLastIndex((action) => action.type === 'FundTrain')
@@ -98,7 +101,8 @@ export class TrainFundingModule {
         )
     )
 
-    async fund(purchase: TrainPurchaseDetails, buy = true) {
+    /** Begins funding the purchase; the engine settles every step that is not a sale. */
+    async fund(purchase: TrainPurchaseDetails) {
         assert(this.canFund, 'Train funding is unavailable')
         await this.session.applyAction(
             this.session.createPlayerAction(FundTrain, {
@@ -108,98 +112,42 @@ export class TrainFundingModule {
                 expectedPrice: purchase.price
             })
         )
-        await this.completeCashFunding(buy)
     }
-    async fundOption(purchase: TrainPurchaseDetails) {
-        const option = this.options.find((option) => option.purchase === purchase)
-        assert(option, 'Choose a fundable train')
-        await this.fund(purchase, !option.plan.requiresSales)
-    }
+    /**
+     * Takes the funding's next step: begins it, or makes the sale or declaration it waits for.
+     * Each press records one Action, so one Undo reverses it.
+     */
     async resolve(sale?: ShareSaleDetails) {
-        if (sale)
-            assert(
-                (this.canFund || this.canResolve) && this.sales.includes(sale),
-                'Choose a legal funding sale'
-            )
-        const purchase = this.purchase
-        assert(purchase, 'Funding requires a train')
         if (!this.session.state.trainFunding) {
-            await this.fund(purchase, !sale)
-            if (!sale) return
+            assert(!sale, 'Begin funding before choosing a sale')
+            const purchase = this.purchase
+            assert(purchase, 'Funding requires a train')
+            await this.fund(purchase)
+            return
         }
-        if (sale) {
-            await this.applyChoice(sale)
-            await this.completeCashFunding(false)
-        } else if (this.choice?.kind === 'bankrupt') await this.applyChoice()
-        else await this.completeCashFunding(true)
-    }
-
-    private async applyChoice(sale?: ShareSaleDetails) {
         const choice = this.choice
         assert(this.canResolve && choice, 'Train funding is unavailable')
         const { applyAction, createPlayerAction } = this.session
-        switch (choice.kind) {
-            case 'bankrupt':
-                await applyAction(createPlayerAction(DeclareBankruptcy, {}))
-                break
-            case 'issue':
-                await applyAction(
-                    createPlayerAction(IssueTreasuryShares, {
-                        expectedProceeds: choice.details.proceeds
-                    })
-                )
-                break
-            case 'contribute':
-                await applyAction(
-                    createPlayerAction(ContributeTrainFunds, {
-                        owner: choice.owner,
-                        amount: choice.amount
-                    })
-                )
-                break
-            case 'sell':
-                assert(sale, 'Choose shares to sell')
-                await applyAction(
-                    createPlayerAction(SellFundingShares, {
-                        seller: sale.seller,
-                        companyId: sale.sales[0].companyId,
-                        shares: sale.sales[0].shares,
-                        expectedProceeds: sale.proceeds
-                    })
-                )
-                break
-            case 'buy':
-                await applyAction(
-                    createPlayerAction(BuyTrain, {
-                        companyId: choice.purchase.companyId,
-                        trainId: choice.purchase.trainId,
-                        definitionId: choice.purchase.definitionId,
-                        expectedPrice: choice.purchase.price
-                    })
-                )
-                break
+        // Games recorded before the engine settled these steps may still wait on them.
+        const settling = settlingFundingAction(choice)
+        if (settling) await applyAction(createPlayerAction(settling.schema, settling.data))
+        else if (choice.kind === 'bankrupt')
+            await applyAction(createPlayerAction(DeclareBankruptcy, {}))
+        else {
+            assert(sale && this.sales.includes(sale), 'Choose a legal funding sale')
+            await applyAction(
+                createPlayerAction(SellFundingShares, {
+                    seller: sale.seller,
+                    companyId: sale.sales[0].companyId,
+                    shares: sale.sales[0].shares,
+                    expectedProceeds: sale.proceeds
+                })
+            )
         }
     }
     private fromMarket(purchase: TrainPurchaseDetails) {
         return this.session.state.trainInventory.trains.some(
             (train) => train.id === purchase.trainId && train.status === 'market'
         )
-    }
-    private continuesAutomatically(buy: boolean) {
-        const kind = this.choice?.kind
-        return (
-            kind === 'issue' ||
-            (buy && (kind === 'contribute' || kind === 'buy')) ||
-            (!buy && kind === 'contribute' && this.plan?.requiresSales === true)
-        )
-    }
-    private async completeCashFunding(buy: boolean) {
-        await this.session.settled()
-        while (this.canResolve && this.continuesAutomatically(buy)) {
-            const actionCount = this.session.state.actionCount
-            await this.applyChoice()
-            await this.session.settled()
-            if (this.session.state.actionCount === actionCount) break
-        }
     }
 }

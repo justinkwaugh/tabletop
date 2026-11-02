@@ -19,7 +19,7 @@ export const Info1833NE: GameInfo = {
         defaultPlayerCount: 4,
         version: GAME_VERSION,
         beta: true,
-        visibility: GameVisibility.Alpha
+        visibility: GameVisibility.Beta
     },
     configurator: new Configurator1833NE()
 }

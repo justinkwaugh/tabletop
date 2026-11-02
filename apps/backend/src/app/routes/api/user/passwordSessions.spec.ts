@@ -114,7 +114,7 @@ describe('sessions across a Password Credential change', () => {
         expect(await signIn(NEW_PASSWORD)).toBeDefined()
     })
 
-    it('revokes a copied session when the password is changed with the current password', async () => {
+    it('revokes a copied session when the password is changed with Recent Authentication', async () => {
         const { server, sessionStore, signIn, active } = await fixture()
         const copied = await signIn()
         const victim = await signIn()
@@ -123,7 +123,7 @@ describe('sessions across a Password Credential change', () => {
             method: 'POST',
             url: '/user/update',
             headers: { cookie: victim },
-            payload: { password: NEW_PASSWORD, currentPassword: ORIGINAL_PASSWORD }
+            payload: { password: NEW_PASSWORD }
         })
         expect(change.statusCode).toBe(200)
         const renewed = sessionCookieHeader(change)
@@ -162,7 +162,7 @@ describe('sessions across a Password Credential change', () => {
             method: 'POST',
             url: '/user/update',
             headers: { cookie: victim },
-            payload: { password: NEW_PASSWORD, currentPassword: ORIGINAL_PASSWORD }
+            payload: { password: NEW_PASSWORD }
         })
         expect(change.statusCode).toBe(200)
         expect(await active(copied)).toBe(401)
@@ -182,7 +182,7 @@ describe('sessions across a Password Credential change', () => {
             method: 'POST',
             url: '/user/update',
             headers: { cookie: victim },
-            payload: { password: NEW_PASSWORD, currentPassword: ORIGINAL_PASSWORD }
+            payload: { password: NEW_PASSWORD }
         })
         expect(change.statusCode).toBe(200)
 

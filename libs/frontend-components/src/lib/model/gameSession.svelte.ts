@@ -53,6 +53,7 @@ import {
     type TransitionListener
 } from './transitionPresenter.js'
 import { GameUndo } from './gameUndo.js'
+import { LocalSelections } from './localSelections.js'
 import { viewedHistoryPosition, type ViewedHistoryPosition } from './viewedHistoryPosition.js'
 import { GameNotifications } from './gameNotifications.js'
 import { GameRepresentations, HostViewUnsupportedError } from './gameRepresentations.svelte.js'
@@ -246,6 +247,12 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             playerId: this.myPlayer.id
         })
     })
+
+    protected readonly localSelections = new LocalSelections()
+
+    get hasLocalSelection(): boolean {
+        return this.localSelections.hasManual()
+    }
 
     undoableAction: GameAction | undefined = $derived.by(() => {
         const superUserAccess =
@@ -866,6 +873,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     private publishState(state: U, transition: PresentedTransition, actions: GameAction[]) {
+        if (!this.keepsLocalSelections(transition)) this.localSelections.clear()
         this.beforeNewState(transition)
         this.reconcilePlayerPerspective(state)
         this.gameState = state
@@ -886,6 +894,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             case 'silent-swap':
                 return 'silent'
         }
+    }
+
+    protected keepsLocalSelections(_transition: PresentedTransition): boolean {
+        return false
     }
 
     beforeNewState(_transition: PresentedTransition) {}
@@ -1287,6 +1299,12 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     async undo() {
+        if (this.isViewingHistory) return
+        if (this.localSelections.undo()) return
+        await this.undoCommittedAction()
+    }
+
+    async undoCommittedAction() {
         if (!this.isPlayable || this.isViewingHistory || !this.undoableAction || this.busy) {
             return
         }

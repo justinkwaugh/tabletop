@@ -6,7 +6,14 @@ export const TheOldPrincePrivateCatalog = new PrivateCatalog(
         closurePhaseId: '4+',
         privates: [
             { id: 'MC', name: 'Merchants and Co.', faceValue: 40, revenue: 5, sale: 'never' },
-            { id: 'VR', name: 'Vernon River Bridge', faceValue: 40, revenue: 5, sale: 'never' },
+            {
+                id: 'VR',
+                name: 'Vernon River Bridge',
+                faceValue: 40,
+                revenue: 5,
+                sale: 'never',
+                blocks: { locationIds: ['N18'], until: 'closed' }
+            },
             {
                 id: 'IB',
                 name: 'Ice Boats',
