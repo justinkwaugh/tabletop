@@ -1,0 +1,169 @@
+{
+    "game": {
+        "id": "scenario-opening",
+        "isPublic": false,
+        "status": "started",
+        "typeId": "punct",
+        "deleted": false,
+        "name": "Opening",
+        "ownerId": "owner",
+        "players": [
+            {
+                "id": "player-1",
+                "name": "White",
+                "isHuman": true,
+                "status": "joined"
+            },
+            {
+                "id": "player-2",
+                "name": "Black",
+                "isHuman": true,
+                "status": "joined"
+            }
+        ],
+        "config": {
+            "variant": "Standard",
+            "whitePlayer": "Random"
+        },
+        "hotseat": false,
+        "winningPlayerIds": [],
+        "seed": 971174872,
+        "activePlayerIds": ["player-1"],
+        "createdAt": "2026-11-02T01:07:55.128Z",
+        "storage": "remote",
+        "category": "standard",
+        "startedAt": "2026-11-02T01:07:55.128Z"
+    },
+    "state": {
+        "systemVersion": 3,
+        "id": "MdTcMoesJF4HxhXA6b6gZ",
+        "gameId": "scenario-opening",
+        "seed": 971174872,
+        "prng": {
+            "seed": 971174872,
+            "invocations": 1
+        },
+        "protectedPrng": {
+            "seed": 1925995900,
+            "invocations": 0
+        },
+        "activePlayerIds": ["player-1"],
+        "winningPlayerIds": [],
+        "actionCount": 0,
+        "actionChecksum": 0,
+        "players": [
+            {
+                "playerId": "player-1",
+                "color": "white",
+                "reserve": {
+                    "triangle": 5,
+                    "straightEnd": 3,
+                    "straightCentre": 2,
+                    "angleCorner": 1,
+                    "angleLeft": 2,
+                    "angleRight": 2
+                }
+            },
+            {
+                "playerId": "player-2",
+                "color": "black",
+                "reserve": {
+                    "triangle": 5,
+                    "straightEnd": 3,
+                    "straightCentre": 2,
+                    "angleCorner": 2,
+                    "angleLeft": 1,
+                    "angleRight": 2
+                }
+            }
+        ],
+        "machineState": "TakingTurn",
+        "turnManager": {
+            "series": [
+                {
+                    "type": "turn",
+                    "playerId": "player-1",
+                    "start": 0
+                }
+            ],
+            "turnOrder": ["player-1", "player-2"],
+            "turnCounts": {
+                "player-1": 0,
+                "player-2": 0
+            }
+        },
+        "variant": "Standard",
+        "board": {
+            "pieces": [
+                {
+                    "id": 0,
+                    "playerId": "player-1",
+                    "kind": "straightEnd",
+                    "punct": {
+                        "q": -6,
+                        "r": 5
+                    },
+                    "rotation": 0,
+                    "level": 0
+                },
+                {
+                    "id": 1,
+                    "playerId": "player-2",
+                    "kind": "triangle",
+                    "punct": {
+                        "q": 4,
+                        "r": -3
+                    },
+                    "rotation": 3,
+                    "level": 0
+                },
+                {
+                    "id": 2,
+                    "playerId": "player-1",
+                    "kind": "angleCorner",
+                    "punct": {
+                        "q": -3,
+                        "r": 0
+                    },
+                    "rotation": 1,
+                    "level": 0
+                },
+                {
+                    "id": 3,
+                    "playerId": "player-2",
+                    "kind": "straightEnd",
+                    "punct": {
+                        "q": 2,
+                        "r": 4
+                    },
+                    "rotation": 5,
+                    "level": 0
+                },
+                {
+                    "id": 4,
+                    "playerId": "player-1",
+                    "kind": "triangle",
+                    "punct": {
+                        "q": -5,
+                        "r": -2
+                    },
+                    "rotation": 2,
+                    "level": 0
+                },
+                {
+                    "id": 5,
+                    "playerId": "player-2",
+                    "kind": "angleLeft",
+                    "punct": {
+                        "q": 1,
+                        "r": -4
+                    },
+                    "rotation": 4,
+                    "level": 0
+                }
+            ]
+        },
+        "nextPieceId": 6
+    },
+    "actions": []
+}
