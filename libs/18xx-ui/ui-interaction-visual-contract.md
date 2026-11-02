@@ -805,6 +805,11 @@ stages a confirmation that explains the consequences; Back or Undo withdraws it,
 history, reload and state replacement discard it. History records sales to pay the
 bank and the bankruptcy with the companies it liquidated and the debt forgiven.
 
+A bankruptcy from a forced train purchase records its row with the shortfall against the
+train the president chose, and, when the player's remaining shares raised money for the
+operating company, how much reached its treasury. The train the company then buys has its
+own row, so the two together show how it could pay.
+
 Bankrupt players leave the turn order. The players panel lists them after the others,
 marked Bankrupt, and the ownership spreadsheet's turn-order sort places them last.
 History also shows system events that change no company's cash when they matter:
@@ -1457,6 +1462,12 @@ Groups follow the selected history order, with events chronological inside each 
 turn completion ends a group even if the same player acts next. A funding sale's
 company identifies the shares sold, not the operating company; it remains with
 that company's funding sequence. Actor changes within an operation remain visible.
+What a company in receivership does automatically credits no player, although the System
+records it under one of the players acting for it: the row names no actor, and says in its
+detail that it was automatic because the company has no president. A choice a player makes
+for such a company still names them. A company with no operating player has no actor in its
+header. The operation in which a president goes bankrupt keeps that president in its header,
+including when a new president or a receiver finishes it.
 
 Summaries use processed action outcomes for money, dividends, purchases, phase
 changes and rusting. Bookkeeping finish steps are omitted from the displayed history. Stock actions

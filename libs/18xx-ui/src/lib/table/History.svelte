@@ -8,6 +8,7 @@
     import { historyRounds } from './historyRounds.js'
     import { auctionLotName } from './auctionHistory.js'
     import { historyGroups } from './historyGroups.js'
+    import { withoutReceiverActor } from './historyReceiver.js'
     import {
         companyLabels,
         historyDescription,
@@ -96,7 +97,11 @@
     }
     function describe(action: GameAction) {
         const shared = () => describeShared(action)
-        const description = describeAction?.(action, titleNames, shared) ?? shared()
+        const description = withoutReceiverActor(
+            action,
+            describeAction?.(action, titleNames, shared) ?? shared(),
+            states
+        )
         return entryOrders.has(action.id) ? { ...description, important: true } : description
     }
 

@@ -2,6 +2,7 @@ import {
     isFinishOperatingTurn,
     isFinishStockTurn,
     isAdvancePhase,
+    isDeclareBankruptcy,
     isFloatCompany,
     isCompleteStockRound,
     isStartOperatingSet,
@@ -85,4 +86,18 @@ export function historyGroups(
         if (isFinishOperatingTurn(action) || isFinishStockTurn(action)) current = undefined
     }
     return groups.toReversed()
+}
+
+/** The president who went bankrupt ran the operation, whoever then finished it for the company. */
+export function operatingPlayerOf(
+    group: HistoryGroup,
+    isAutomatic: (action: GameAction) => boolean,
+    currentController: (companyId: string) => string | undefined
+): string | undefined {
+    return (
+        group.actions.find(isDeclareBankruptcy)?.metadata?.playerId ??
+        group.actions.findLast((action) => isFinishOperatingTurn(action) && !isAutomatic(action))
+            ?.playerId ??
+        (group.companyId ? currentController(group.companyId) : undefined)
+    )
 }

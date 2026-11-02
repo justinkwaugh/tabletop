@@ -12,10 +12,9 @@
         isSellFundingShares,
         sameOwner,
         isDistributeEarnings,
-        isFloatCompany,
-        isFinishOperatingTurn
+        isFloatCompany
     } from '@tabletop/18xx'
-    import type { HistoryGroup } from './historyGroups.js'
+    import { operatingPlayerOf, type HistoryGroup } from './historyGroups.js'
     import { afterPlayerName, type HistoryDescription } from './historyDescription.js'
     import ShareCardStrip from './ShareCardStrip.svelte'
     import { shareSign, type ShareCard } from './shareCards.js'
@@ -94,8 +93,7 @@
     )
     const operatingPlayerId = $derived(
         group.kind === 'operation'
-            ? (group.actions.findLast(isFinishOperatingTurn)?.playerId ??
-                  (group.companyId ? currentController(group.companyId) : undefined))
+            ? operatingPlayerOf(group, (action) => !!describe(action).omitActor, currentController)
             : group.playerId
     )
     const operatingCompanyId = $derived(group.kind === 'operation' ? group.companyId : undefined)
@@ -254,7 +252,7 @@
                                 />
                             {/if}
                         </span>
-                        {#if group.companyId}<span class="actor"
+                        {#if group.companyId && operatingPlayerId}<span class="actor"
                                 >{playerName(operatingPlayerId ?? '')}</span
                             >{/if}
                     </span>

@@ -1,6 +1,7 @@
-import { expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { ActionSource, GameCallKind, type CallGameAction, type GameAction } from '@tabletop/common'
-import { historyGroups } from './historyGroups.js'
+import type { DeclareBankruptcy, FinishOperatingTurn } from '@tabletop/18xx'
+import { historyGroups, operatingPlayerOf } from './historyGroups.js'
 
 const action = (id: string, type: string, companyId: string, source: ActionSource) =>
     ({ id, gameId: 'history', type, source, companyId, playerId: 'alex' }) as GameAction
@@ -56,4 +57,65 @@ it('groups a called game as its own event after the last turn', () => {
         { kind: 'event', id: 'call', playerId: undefined, companyId: undefined, actions: [call] },
         { kind: 'turn', id: 'turn', playerId: 'alex', companyId: undefined, actions: [turn] }
     ])
+})
+
+describe('the player heading an operation', () => {
+    const operation = (...actions: GameAction[]) => ({
+        kind: 'operation' as const,
+        id: 'operation',
+        companyId: 'R',
+        actions
+    })
+    const finish = (playerId: string): FinishOperatingTurn => ({
+        id: `finish-${playerId}`,
+        gameId: 'history',
+        source: ActionSource.User,
+        type: 'FinishOperatingTurn',
+        playerId,
+        companyId: 'R'
+    })
+    const bankruptcy = (playerId: string): DeclareBankruptcy => ({
+        id: `bankrupt-${playerId}`,
+        gameId: 'history',
+        source: ActionSource.System,
+        type: 'DeclareBankruptcy',
+        metadata: { companyId: 'R', playerId, shortfall: 10 }
+    })
+
+    it('is the president who went bankrupt, not the next president or the receivers', () => {
+        expect(
+            operatingPlayerOf(
+                operation(bankruptcy('first'), bankruptcy('second'), finish('receiver')),
+                () => false,
+                () => 'current'
+            )
+        ).toBe('first')
+    })
+
+    it('is who finished the operation, unless it finished automatically for no president', () => {
+        expect(
+            operatingPlayerOf(
+                operation(finish('alex')),
+                () => false,
+                () => 'current'
+            )
+        ).toBe('alex')
+        expect(
+            operatingPlayerOf(
+                operation(finish('receiver')),
+                () => true,
+                () => undefined
+            )
+        ).toBeUndefined()
+    })
+
+    it('is the company’s controller while the operation is under way', () => {
+        expect(
+            operatingPlayerOf(
+                operation(),
+                () => false,
+                () => 'current'
+            )
+        ).toBe('current')
+    })
 })

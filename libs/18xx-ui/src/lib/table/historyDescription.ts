@@ -512,10 +512,14 @@ function describeShared(
     // The System records it, so the row has no actor of its own to name.
     if (isDeclareBankruptcy(action)) {
         assertExists(action.metadata, 'Recorded bankruptcy requires its company and shortfall')
-        const { playerId, companyId, shortfall } = action.metadata
+        const { playerId, companyId, shortfall, surrendered } = action.metadata
         return {
             text: `${playerName(playerId)} went bankrupt`,
-            detail: `${money(shortfall)} short of ${companyName(companyId)}’s train`,
+            detail: joinDetails(
+                `${money(shortfall)} short of ${companyName(companyId)}’s train`,
+                surrendered &&
+                    `${money(surrendered.amount)} from their remaining shares to its treasury`
+            ),
             important: true
         }
     }
