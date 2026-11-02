@@ -1,6 +1,9 @@
 import {
     canDiscoverTitle,
+    GameVisibility,
+    getTitleVisibility,
     type GameCatalogEntry,
+    type GameMetadata,
     type GameState,
     type HydratedGameState,
     type User
@@ -9,6 +12,17 @@ import type { GameUiDefinition } from '@tabletop/frontend-components'
 
 function titleSortName(name: string): string {
     return name.replace(/^(a|an|the)\s+/i, '')
+}
+
+export function titleMaturityLabel(metadata: GameMetadata): 'Alpha' | 'Beta' | undefined {
+    switch (getTitleVisibility(metadata)) {
+        case GameVisibility.Alpha:
+            return 'Alpha'
+        case GameVisibility.Beta:
+            return 'Beta'
+        case GameVisibility.Public:
+            return undefined
+    }
 }
 
 export function availableLibraryTitles(

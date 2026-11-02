@@ -3,8 +3,6 @@
     import { GameEditForm, type GameUiDefinition } from '@tabletop/frontend-components'
     import {
         GameStorage,
-        GameVisibility,
-        getTitleVisibility,
         type Game,
         type GameState,
         type HydratedGameState
@@ -13,13 +11,14 @@
     import { ArrowLeftOutline, ArrowRightOutline, UsersOutline } from 'flowbite-svelte-icons'
     import TitleGames from '$lib/components/TitleGames.svelte'
     import TitleTournaments from '$lib/components/TitleTournaments.svelte'
+    import { titleMaturityLabel } from '$lib/utils/libraryTitles'
 
     let { title }: { title: GameUiDefinition<GameState, HydratedGameState> } = $props()
     let creating = $state(false)
     let created = $state(false)
     let gamesSection: ReturnType<typeof TitleGames> | undefined = $state()
     const metadata = $derived(title.info.metadata)
-    const visibility = $derived(getTitleVisibility(metadata))
+    const maturityLabel = $derived(titleMaturityLabel(metadata))
     const paragraphs = $derived(metadata.description.split('\n').filter((line) => line.trim()))
 
     async function onGameCreated(game: Game) {
@@ -52,9 +51,8 @@
                     ><UsersOutline class="h-4 w-4" />
                     {metadata.minPlayers}{#if metadata.maxPlayers !== metadata.minPlayers}–{metadata.maxPlayers}{/if}
                     players</span
-                ><span>{metadata.year}</span>{#if visibility !== GameVisibility.Public}<span
-                        class="visibility"
-                        >{visibility === GameVisibility.Alpha ? 'Alpha' : 'Beta'}</span
+                ><span>{metadata.year}</span>{#if maturityLabel}<span class="maturity-label"
+                        >{maturityLabel}</span
                     >{/if}
             </div>
             <h1 id="title-heading">{metadata.name}</h1>
@@ -149,7 +147,7 @@
         align-items: center;
         gap: 7px;
     }
-    .facts .visibility {
+    .facts .maturity-label {
         color: var(--color-orange-300);
     }
     h1 {

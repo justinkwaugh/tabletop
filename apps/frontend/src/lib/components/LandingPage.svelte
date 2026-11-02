@@ -1,6 +1,7 @@
 <script lang="ts">
+    import { getTitleVisibility } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
-    import { availableCatalogEntries } from '$lib/utils/libraryTitles'
+    import { availableCatalogEntries, titleMaturityLabel } from '$lib/utils/libraryTitles'
     import { getLoginModal } from '$lib/stores/loginModal'
     import { ArrowRightOutline, ArrowDownOutline, UsersOutline } from 'flowbite-svelte-icons'
     import PayItForwardFooter from '$lib/components/project/PayItForwardFooter.svelte'
@@ -100,6 +101,7 @@
                 {:else}
                     <ul id="game-shelf" class="game-shelf">
                         {#each shelfTitles as title (title.id)}
+                            {@const maturityLabel = titleMaturityLabel(title.metadata)}
                             <li>
                                 {#snippet cover()}
                                     <div class="cover-stage">
@@ -109,6 +111,13 @@
                                             loading="lazy"
                                             data-game-cover={title.id}
                                         />
+                                        {#if maturityLabel}
+                                            <span
+                                                class="maturity-label"
+                                                data-visibility={getTitleVisibility(title.metadata)}
+                                                >{maturityLabel}</span
+                                            >
+                                        {/if}
                                         <span class="play-arrow"
                                             ><ArrowRightOutline class="h-5 w-5" /></span
                                         >
@@ -125,7 +134,7 @@
                                     <a
                                         class="game"
                                         href={`/library/${title.id}`}
-                                        aria-label={`View ${title.metadata.name}`}
+                                        aria-label={`View ${title.metadata.name}${maturityLabel ? `, ${maturityLabel}` : ''}`}
                                     >
                                         {@render cover()}
                                     </a>
@@ -431,6 +440,31 @@
         object-fit: contain;
         filter: drop-shadow(0 8px 6px #0006);
         transition: transform 180ms;
+    }
+
+    .cover-stage:has(.maturity-label) {
+        overflow: hidden;
+    }
+
+    .maturity-label {
+        position: absolute;
+        top: 16px;
+        left: -34px;
+        width: 130px;
+        padding: 4px 0;
+        transform: rotate(-45deg);
+        color: var(--color-gray-900);
+        font-size: 13px;
+        font-weight: 700;
+        text-align: center;
+    }
+
+    .maturity-label[data-visibility='alpha'] {
+        background: var(--color-orange-500);
+    }
+
+    .maturity-label[data-visibility='beta'] {
+        background: var(--color-amber-400);
     }
 
     .play-arrow {
