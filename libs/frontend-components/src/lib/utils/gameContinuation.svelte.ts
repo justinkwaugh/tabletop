@@ -31,7 +31,7 @@ export function continuationGame(
         ...(source.unlisted ? { unlisted: true } : {}),
         hotseat: source.hotseat,
         ownerId: user.id,
-        config: structuredClone(source.config)
+        config: $state.snapshot(source.config)
     }
 }
 
