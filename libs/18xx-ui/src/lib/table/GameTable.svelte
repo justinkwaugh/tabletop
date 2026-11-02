@@ -1860,6 +1860,7 @@
         .action-panel :global(section.stock-trading:has(.sales-sidebar)) {
             flex: 1;
             margin-block: 0;
+            padding-bottom: 0;
         }
     }
     .action-panel :global(h2) {

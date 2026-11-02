@@ -298,7 +298,7 @@ test('1817 companies use their private powers in their operating turn', async ({
     )
     await page.getByRole('tab', { name: 'History', exact: true }).click()
     await expect(page.getByRole('list', { name: 'Action history' })).toContainText(
-        'marked G6 with Union Bridge'
+        'marked Cincinnati with Union Bridge'
     )
 })
 

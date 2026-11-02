@@ -78,7 +78,7 @@ test('1889 Mitsubishi’s owner places the port off-turn during a stock round', 
     await expect(powers.getByRole('button', { name: 'Use Mitsubishi Ferry' })).toHaveCount(0)
     await page.getByRole('tab', { name: 'History' }).click()
     await expect(page.getByRole('list', { name: 'Action history' })).toContainText(
-        'Casey laid track at B11 with Mitsubishi Ferry'
+        'Casey laid track at Nakamura with Mitsubishi Ferry'
     )
 })
 

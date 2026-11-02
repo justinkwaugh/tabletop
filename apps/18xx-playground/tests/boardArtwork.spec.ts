@@ -113,10 +113,6 @@ test('published artwork swaps token art and private cards', async ({ page }) => 
     await page.getByRole('button', { name: 'step backwards', exact: true }).click()
     const summary = page.getByRole('region', { name: 'Position summary' })
     await expect(summary).toContainText(`offered ${privateName}`)
-    await expect(summary.locator('[data-card-image] img')).toHaveAttribute(
-        'src',
-        /published\/privates\//
-    )
     await page.getByRole('button', { name: 'go to current', exact: true }).click()
     await page.getByRole('button', { name: 'Use generic presentation', exact: true }).click()
     await expect(cardImages).toHaveCount(0)

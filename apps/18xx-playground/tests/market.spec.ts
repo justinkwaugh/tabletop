@@ -8,9 +8,24 @@ const Markets: Readonly<
     >
 > = {
     TOP: { companyId: 'ML', residentId: 'So', initialSpace: '1:1', destination: '2:1' },
-    '1889': { companyId: 'IR', residentId: 'AR', initialSpace: '0:3', destination: '1:3' },
-    '1832': { companyId: 'CG', residentId: 'ACL', initialSpace: '0:6', destination: '1:6' }
+    '1889': { companyId: 'IR', residentId: 'AR', initialSpace: '0:3', destination: '1:3' }
 }
+
+test('1832 holds a sale’s market move until the protection decision', async ({ page }) => {
+    await page.goto('/table')
+    await page.getByLabel('Game', { exact: true }).selectOption('1832')
+    await page.getByLabel('Position', { exact: true }).selectOption('trading')
+    const token = page.locator('[data-market-company="CG"]')
+    await expect(token).toHaveAttribute('data-market-token-space', '0:6')
+    await page
+        .getByRole('navigation', { name: 'Stock actions' })
+        .getByRole('button', { name: 'Sell', exact: true })
+        .click()
+    await page.locator('[data-sale-company="CG"]').first().click()
+    await page.locator('[data-sale-shares="1"]').first().click()
+    await expect(page.getByRole('complementary', { name: 'Sales summary' })).toBeVisible()
+    await expect(token).toHaveAttribute('data-market-token-space', '0:6')
+})
 
 for (const [title, { companyId, residentId, initialSpace, destination }] of Object.entries(
     Markets
