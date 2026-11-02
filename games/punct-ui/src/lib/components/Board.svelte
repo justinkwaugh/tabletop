@@ -5,8 +5,11 @@
     import { includesCoords } from '$lib/model/session.svelte.js'
     import {
         coordsKey,
+        BOARD_DEPTH,
         HOLE_RADIUS,
+        PIECE_HALF_WIDTH,
         PIECE_THICKNESS,
+        SEAM,
         pointsAttribute,
         SPACING,
         VIEW
@@ -15,6 +18,7 @@
     import { drawOrder } from '$lib/board/drawOrder.js'
     import { drawPiece, outlinePlan, pathOf, type Tone } from '$lib/board/pieceShape.js'
     import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
+    import PieceDefs from './PieceDefs.svelte'
     import PieceSlab from './PieceSlab.svelte'
     import PunctMarker from './PunctMarker.svelte'
 
@@ -29,6 +33,16 @@
         `M ${pointsAttribute(view.cell(coords)).replaceAll(' ', ' L ')} Z`
     const gridPath = SPACES.map(cellPath).join(' ')
     const centrePath = CENTRE_SPACES.map(cellPath).join(' ')
+    const plateSides = view.plateSides()
+
+    function plateSideFill(light: number): string {
+        const lit = [178, 192, 182]
+        const shaded = [104, 116, 108]
+        const [r, g, b] = lit.map((value, index) =>
+            Math.round(shaded[index] + (value - shaded[index]) * light)
+        )
+        return `rgb(${r} ${g} ${b})`
+    }
 
     function toneOf(playerId: string): Tone {
         return session.gameState.getPlayerState(playerId).color === Color.White ? 'light' : 'dark'
@@ -128,7 +142,7 @@
 
     // Where a mark lies on a space's top surface, on screen.
     function surface(coords: AxialCoordinates, height: number): Point {
-        return view.project(view.plan(coords), height * PIECE_THICKNESS)
+        return view.project(view.plan(coords), view.surface(height))
     }
 
     // The connection that won, marked on its spaces' top dots.
@@ -174,10 +188,14 @@
     // Once a piece is chosen, the others you could move fade.
     const chosen = $derived(session.chosenPiece !== undefined || session.chosenAt !== undefined)
 
+    // Each piece's shadow at its feet. On the board it is soft; on a piece it falls on that
+    // piece's top, across the seam between them, as a dark crease that parts the levels.
     function shadowPath(piece: PlacedPiece): string {
+        const below = piece.level > 0 ? -SEAM : 0
+        const width = piece.level > 0 ? PIECE_HALF_WIDTH + 0.6 : SPACING * 0.45
         return pathOf(
-            outlinePlan(piece.kind, animator.angleOf(piece), SPACING * 0.45).map((point) =>
-                view.project(point, 0)
+            outlinePlan(piece.kind, animator.angleOf(piece), width).map((point) =>
+                view.project(point, below)
             )
         )
     }
@@ -201,6 +219,33 @@
     onclick={onBoardClick}
     {@attach animator.attach}
 >
+    <defs>
+        <PieceDefs prefix="punct-board" />
+        <!-- Seen through each hole: its far wall, in shade under the plate's top, and below it the
+             base, lit in the middle. -->
+        <linearGradient id="punct-hole-wall" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" stop-color="var(--punct-hole-wall-top)"></stop>
+            <stop offset="0.6" stop-color="var(--punct-hole-wall-bottom)"></stop>
+        </linearGradient>
+        <radialGradient id="punct-hole-floor" cy="0.6">
+            <stop offset="0.3" stop-color="var(--punct-hole-floor)"></stop>
+            <stop offset="1" stop-color="var(--punct-hole-floor-edge)"></stop>
+        </radialGradient>
+        <clipPath id="punct-holes">
+            {#each SPACES as coords (coordsKey(coords))}
+                {@const center = view.center(coords)}
+                <ellipse cx={center.x} cy={center.y} rx={HOLE_RADIUS} ry={HOLE_RADIUS * view.tilt}
+                ></ellipse>
+            {/each}
+        </clipPath>
+    </defs>
+
+    <!-- The plate: its shadow on the table, its edge where it faces you, then its top. -->
+    <path d={gridPath} class="plate-shadow" transform="translate(3 {view.height(BOARD_DEPTH) + 3})"
+    ></path>
+    {#each plateSides as side, index (index)}
+        <polygon points={pointsAttribute(side.points)} fill={plateSideFill(side.light)}></polygon>
+    {/each}
     <path d={gridPath} class="play-area"></path>
     <path d={centrePath} class="centre"></path>
     <path d={gridPath} class="grid"></path>
@@ -219,16 +264,8 @@
             cy={center.y}
             rx={HOLE_RADIUS}
             ry={HOLE_RADIUS * view.tilt}
-            class="hole"
-            class:centre-hole={isCentre(coords)}
+            fill="url(#punct-hole-wall)"
         ></ellipse>
-        <path
-            d="M {center.x - HOLE_RADIUS} {center.y} A {HOLE_RADIUS} {HOLE_RADIUS *
-                view.tilt} 0 0 1 {center.x + HOLE_RADIUS} {center.y} A {HOLE_RADIUS} {HOLE_RADIUS *
-                view.tilt *
-                0.7} 0 0 0 {center.x - HOLE_RADIUS} {center.y} Z"
-            class="hole-wall"
-        ></path>
         <polygon
             points={pointsAttribute(view.cell(coords))}
             class="cell"
@@ -241,6 +278,20 @@
             onkeydown={(event) => choosable && onKey(event, () => session.chooseSpace(coords))}
         ></polygon>
     {/each}
+
+    <!-- The base below each hole, as deep down as the plate is thick, seen through the hole. -->
+    <g clip-path="url(#punct-holes)" class="hole-floors">
+        {#each SPACES as coords (coordsKey(coords))}
+            {@const center = view.center(coords)}
+            <ellipse
+                cx={center.x}
+                cy={center.y + view.height(BOARD_DEPTH)}
+                rx={HOLE_RADIUS}
+                ry={HOLE_RADIUS * view.tilt}
+                fill="url(#punct-hole-floor)"
+            ></ellipse>
+        {/each}
+    </g>
 
     <!-- Marks for the chosen piece's PÜNCT on empty spaces lie on the board, under the pieces. -->
     <g {@attach animator.marks()}>
@@ -283,12 +334,18 @@
                 onkeydown={(event) => role && onKey(event, () => chooseDrawn(entry))}
             >
                 <g {@attach animator.pieceNode(piece.id)}>
-                    <path d={shadowPath(piece)} class="shadow"></path>
+                    <path
+                        d={shadowPath(piece)}
+                        class="shadow"
+                        class:crease={piece.level > 0}
+                        class:dark={toneOf(piece.playerId) === 'dark'}
+                    ></path>
                     <PieceSlab
                         kind={piece.kind}
                         {angle}
                         tone={toneOf(piece.playerId)}
                         seed={piece.id}
+                        prefix="punct-board"
                         {view}
                     />
                 </g>
@@ -347,6 +404,7 @@
                 angle={flier.angle}
                 tone={toneOf(flier.piece.playerId)}
                 seed={flier.piece.id}
+                prefix="punct-board"
                 {view}
             />
         </g>
@@ -407,7 +465,7 @@
     .grid {
         fill: none;
         stroke: var(--punct-grid);
-        stroke-width: 1;
+        stroke-width: 0.8;
     }
 
     .coordinate-label {
@@ -420,12 +478,12 @@
         pointer-events: none;
     }
 
-    .hole {
-        fill: var(--punct-hole);
+    .plate-shadow {
+        fill: rgb(20 40 28 / 0.22);
     }
 
-    .hole-wall {
-        fill: var(--punct-hole-wall);
+    .hole-floors {
+        pointer-events: none;
     }
 
     .cell {
@@ -443,6 +501,15 @@
 
     .piece-place:not(.role-none) {
         cursor: pointer;
+    }
+
+    .shadow.crease {
+        fill: rgb(30 34 40 / 0.62);
+        stroke: none;
+    }
+
+    .shadow.crease.dark {
+        fill: rgb(0 0 0 / 0.9);
     }
 
     .shadow {

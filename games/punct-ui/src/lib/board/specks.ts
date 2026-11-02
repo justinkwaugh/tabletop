@@ -1,10 +1,12 @@
 import type { Point } from '@tabletop/common'
 import { PieceKind } from '@tabletop/punct'
-import { PIECE_HALF_WIDTH, PIECE_THICKNESS, PUNCT_RADIUS, type BoardView } from './geometry.js'
-import { dotPlan, outlinePlan, pointInPolygon, round } from './pieceShape.js'
+import { PIECE_HALF_WIDTH, PIECE_THICKNESS, type BoardView } from './geometry.js'
+import { DISH, dishDepth, dishPointSeen } from './dishShape.js'
+import { dotPlan, facingEdges, insetAt, outlinePlan, pointInPolygon, round } from './pieceShape.js'
 
 // The flecks in a piece's plastic, seeded by the piece's id so they stay its own as it moves
-// and turns: on its top, round its PÜNCT's smooth insert, and on its side.
+// and turns: on its top and down into its minor dots' dishes, round its PÜNCT's smooth insert,
+// and on its side.
 const TOP_DENSITY = 1 / 42
 const SIDE_DENSITY = 1 / 30
 
@@ -53,7 +55,7 @@ export function specksOf(kind: PieceKind, seed: number): Specks {
         const r = speckRadius(next)
         const stretch = 0.6 + next() * 0.8
         if (!pointInPolygon(point, outline)) continue
-        if (Math.hypot(point.x - punct.x, point.y - punct.y) < PUNCT_RADIUS + r) continue
+        if (Math.hypot(point.x - punct.x, point.y - punct.y) < DISH.top + r) continue
         top.push({ ...point, r, stretch })
     }
     const full = outlinePlan(kind, 0)
@@ -67,8 +69,8 @@ export function specksOf(kind: PieceKind, seed: number): Specks {
             side.push({
                 edge,
                 along: next(),
-                height: 0.12 + next() * 0.76,
-                r: speckRadius(next) * 0.85
+                height: 0.18 + next() * 0.64,
+                r: speckRadius(next) * 0.55
             })
         }
     })
@@ -89,33 +91,48 @@ function ellipse(center: Point, rx: number, ry: number): string {
     return `M ${x} ${round(center.y)} a ${round(rx)} ${round(ry)} 0 1 0 ${round(2 * rx)} 0 a ${round(rx)} ${round(ry)} 0 1 0 ${round(-2 * rx)} 0`
 }
 
-// One path for the flecks on the top face, and one for those on the side panels that face
-// the viewer, given each panel's outline index.
+// One path for the flecks on the top face, and one for those on the side where it faces the
+// viewer, each drawn in from the full width as far as the rounding there takes it.
 export function speckPaths(
     kind: PieceKind,
     seed: number,
     angle: number,
-    view: BoardView,
-    facing: ReadonlySet<number>
+    view: BoardView
 ): { top: string; side: string } {
     const specks = specksOf(kind, seed)
+    const facing = facingEdges(kind, angle)
+    const dishes = dotPlan(kind, angle).slice(1)
     const top = specks.top
-        .map((speck) =>
-            ellipse(
-                view.project(turn(speck, angle), PIECE_THICKNESS),
-                speck.r * speck.stretch,
-                (speck.r / speck.stretch) * view.tilt
+        .flatMap((speck) => {
+            const point = turn(speck, angle)
+            // Down in a dish, a fleck lies on its surface, unless the lip hides it.
+            const dish = dishes.find(
+                (dot) => Math.hypot(point.x - dot.x, point.y - dot.y) < DISH.top
             )
-        )
+            let depth = 0
+            if (dish) {
+                const offset = { x: point.x - dish.x, y: point.y - dish.y }
+                if (!dishPointSeen(offset.x, offset.y, view)) return []
+                depth = dishDepth(Math.hypot(offset.x, offset.y))
+            }
+            return [
+                ellipse(
+                    view.project(point, PIECE_THICKNESS - depth),
+                    speck.r * speck.stretch,
+                    (speck.r / speck.stretch) * view.tilt
+                )
+            ]
+        })
         .join(' ')
-    const outline = outlinePlan(kind, angle)
     const side = specks.side
         .filter((speck) => facing.has(speck.edge))
         .map((speck) => {
+            const height = PIECE_THICKNESS * speck.height
+            const outline = outlinePlan(kind, angle, PIECE_HALF_WIDTH - insetAt(height))
             const a = outline[speck.edge]
             const b = outline[(speck.edge + 1) % outline.length]
             const point = { x: a.x + (b.x - a.x) * speck.along, y: a.y + (b.y - a.y) * speck.along }
-            return ellipse(view.project(point, PIECE_THICKNESS * speck.height), speck.r, speck.r)
+            return ellipse(view.project(point, height), speck.r, speck.r)
         })
         .join(' ')
     return { top, side }

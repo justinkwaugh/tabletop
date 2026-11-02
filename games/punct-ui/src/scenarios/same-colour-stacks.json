@@ -1,0 +1,235 @@
+{
+    "game": {
+        "id": "scenario-same-colour-stacks",
+        "isPublic": false,
+        "status": "started",
+        "typeId": "punct",
+        "deleted": false,
+        "name": "Same-colour stacks",
+        "ownerId": "owner",
+        "players": [
+            {
+                "id": "player-1",
+                "name": "White",
+                "isHuman": true,
+                "status": "joined"
+            },
+            {
+                "id": "player-2",
+                "name": "Black",
+                "isHuman": true,
+                "status": "joined"
+            }
+        ],
+        "config": {
+            "variant": "Standard",
+            "whitePlayer": "Random"
+        },
+        "hotseat": false,
+        "winningPlayerIds": [],
+        "seed": 3994819395,
+        "activePlayerIds": ["player-1"],
+        "createdAt": "2026-11-02T03:25:34.099Z",
+        "storage": "remote",
+        "category": "standard",
+        "startedAt": "2026-11-02T03:25:34.099Z"
+    },
+    "state": {
+        "systemVersion": 3,
+        "id": "HQUIRGljZadbdwkqtcseo",
+        "gameId": "scenario-same-colour-stacks",
+        "seed": 3994819395,
+        "prng": {
+            "seed": 3994819395,
+            "invocations": 1
+        },
+        "protectedPrng": {
+            "seed": 3842501260,
+            "invocations": 0
+        },
+        "activePlayerIds": ["player-1"],
+        "winningPlayerIds": [],
+        "actionCount": 0,
+        "actionChecksum": 0,
+        "players": [
+            {
+                "playerId": "player-1",
+                "color": "white",
+                "reserve": {
+                    "triangle": 5,
+                    "straightEnd": 0,
+                    "straightCentre": 1,
+                    "angleCorner": 2,
+                    "angleLeft": 2,
+                    "angleRight": 2
+                }
+            },
+            {
+                "playerId": "player-2",
+                "color": "black",
+                "reserve": {
+                    "triangle": 5,
+                    "straightEnd": 0,
+                    "straightCentre": 1,
+                    "angleCorner": 2,
+                    "angleLeft": 2,
+                    "angleRight": 2
+                }
+            }
+        ],
+        "machineState": "TakingTurn",
+        "turnManager": {
+            "series": [
+                {
+                    "type": "turn",
+                    "playerId": "player-1",
+                    "start": 0
+                }
+            ],
+            "turnOrder": ["player-1", "player-2"],
+            "turnCounts": {
+                "player-1": 0,
+                "player-2": 0
+            }
+        },
+        "variant": "Standard",
+        "board": {
+            "pieces": [
+                {
+                    "id": 0,
+                    "playerId": "player-1",
+                    "kind": "straightEnd",
+                    "punct": {
+                        "q": -6,
+                        "r": 7
+                    },
+                    "rotation": 0,
+                    "level": 0
+                },
+                {
+                    "id": 1,
+                    "playerId": "player-1",
+                    "kind": "straightCentre",
+                    "punct": {
+                        "q": -6,
+                        "r": 6
+                    },
+                    "rotation": 0,
+                    "level": 1
+                },
+                {
+                    "id": 2,
+                    "playerId": "player-1",
+                    "kind": "straightEnd",
+                    "punct": {
+                        "q": -6,
+                        "r": 7
+                    },
+                    "rotation": 0,
+                    "level": 2
+                },
+                {
+                    "id": 3,
+                    "playerId": "player-2",
+                    "kind": "straightEnd",
+                    "punct": {
+                        "q": -1,
+                        "r": 6
+                    },
+                    "rotation": 0,
+                    "level": 0
+                },
+                {
+                    "id": 4,
+                    "playerId": "player-2",
+                    "kind": "straightCentre",
+                    "punct": {
+                        "q": -1,
+                        "r": 5
+                    },
+                    "rotation": 0,
+                    "level": 1
+                },
+                {
+                    "id": 5,
+                    "playerId": "player-2",
+                    "kind": "straightEnd",
+                    "punct": {
+                        "q": -1,
+                        "r": 6
+                    },
+                    "rotation": 0,
+                    "level": 2
+                },
+                {
+                    "id": 6,
+                    "playerId": "player-1",
+                    "kind": "straightEnd",
+                    "punct": {
+                        "q": 2,
+                        "r": 5
+                    },
+                    "rotation": 0,
+                    "level": 0
+                },
+                {
+                    "id": 7,
+                    "playerId": "player-1",
+                    "kind": "straightEnd",
+                    "punct": {
+                        "q": 3,
+                        "r": 5
+                    },
+                    "rotation": 0,
+                    "level": 0
+                },
+                {
+                    "id": 8,
+                    "playerId": "player-1",
+                    "kind": "triangle",
+                    "punct": {
+                        "q": 2,
+                        "r": 4
+                    },
+                    "rotation": 2,
+                    "level": 1
+                },
+                {
+                    "id": 9,
+                    "playerId": "player-2",
+                    "kind": "straightEnd",
+                    "punct": {
+                        "q": 5,
+                        "r": 2
+                    },
+                    "rotation": 0,
+                    "level": 0
+                },
+                {
+                    "id": 10,
+                    "playerId": "player-2",
+                    "kind": "straightEnd",
+                    "punct": {
+                        "q": 6,
+                        "r": 2
+                    },
+                    "rotation": 0,
+                    "level": 0
+                },
+                {
+                    "id": 11,
+                    "playerId": "player-2",
+                    "kind": "triangle",
+                    "punct": {
+                        "q": 5,
+                        "r": 1
+                    },
+                    "rotation": 2,
+                    "level": 1
+                }
+            ]
+        },
+        "nextPieceId": 12
+    },
+    "actions": []
+}

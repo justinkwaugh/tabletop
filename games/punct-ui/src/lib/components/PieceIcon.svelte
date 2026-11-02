@@ -3,6 +3,7 @@
     import { PIECE_KINDS, PieceKind } from '@tabletop/punct'
     import { PIECE_HALF_WIDTH, VIEW } from '$lib/board/geometry.js'
     import { drawPiece, outlinePlan, pathOf } from '$lib/board/pieceShape.js'
+    import PieceDefs from './PieceDefs.svelte'
     import PieceSlab from './PieceSlab.svelte'
 
     // A piece drawn small, as on the board, lying the way it reads best: straight pieces across,
@@ -24,6 +25,8 @@
         [PieceKind.AngleRight]: 1.5
     }
     const RING_REACH = 7
+    const iconId = $props.id()
+    const prefix = `punct-icon-${iconId}`
 
     const angle = $derived(ANGLES[kind])
     const ringPath = $derived(
@@ -65,7 +68,8 @@
         <path d={ringPath} class="ring under"></path>
         <path d={ringPath} class="ring over"></path>
     {/if}
-    <PieceSlab {kind} {angle} {tone} {seed} />
+    <defs><PieceDefs {prefix} /></defs>
+    <PieceSlab {kind} {angle} {tone} {seed} {prefix} />
 </svg>
 
 <style>

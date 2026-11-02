@@ -89,10 +89,10 @@
     }
 
     .player-dot.dark {
-        background: #25282b;
+        background: #2c3034;
         box-shadow:
             inset 0 0 0 1px #0b0c0d,
-            inset 0 0 0 4px #25282b,
+            inset 0 0 0 4px #2c3034,
             inset 0 0 0 7px #111315;
     }
 

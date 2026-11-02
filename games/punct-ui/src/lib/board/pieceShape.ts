@@ -146,21 +146,57 @@ export function round(value: number): number {
     return Math.round(value * 100) / 100
 }
 
-// A piece drawn standing on a level: its top face, the strips of its side that face the
-// viewer (far first), each with how much it faces the light, and its dots on the top.
-export type SidePanel = { edge: number; points: Point[]; light: number; depth: number }
+// A straight, upright side with only slightly rounded edges at the base and the rim. Rounded as
+// much as GIPF's discs (a quarter and a third of the thickness), the shading ran from light to
+// dark down most of the side, which read as a sloping, trapezoidal side.
+const BASE_ROUND = PIECE_THICKNESS * 0.1
+const RIM_ROUND = PIECE_THICKNESS * 0.13
+// The top face reaches a little over the rim's rounding, as GIPF's does.
+const TOP_INSET = RIM_ROUND * 0.6
+const SLICES = 16
 
-export type PieceDrawing = {
-    top: Point[]
-    base: Point[]
-    sides: SidePanel[]
-    dots: Point[]
-    // From the top face's lowest point on screen to its highest, for marks and click areas.
-    topOutline: Point[]
+// How far the outline draws in from the piece's full width at a height up its side, and which
+// way the side faces there: -1 straight down, 0 out, 1 straight up.
+export function profileAt(
+    height: number,
+    thickness = PIECE_THICKNESS
+): { inset: number; facing: number } {
+    if (height < BASE_ROUND) {
+        const from = BASE_ROUND - height
+        return {
+            inset: BASE_ROUND - Math.sqrt(Math.max(0, BASE_ROUND ** 2 - from ** 2)),
+            facing: -from / BASE_ROUND
+        }
+    }
+    const rimStart = thickness - RIM_ROUND
+    if (height > rimStart) {
+        const into = height - rimStart
+        return {
+            inset: RIM_ROUND - Math.sqrt(Math.max(0, RIM_ROUND ** 2 - into ** 2)),
+            facing: into / RIM_ROUND
+        }
+    }
+    return { inset: 0, facing: 0 }
 }
 
-// Light comes from above, a little from the left and from the viewer's side.
-const LIGHT = { x: -0.45, y: 0.89 }
+export function insetAt(height: number, thickness = PIECE_THICKNESS): number {
+    return profileAt(height, thickness).inset
+}
+
+// How many shades a slice can take, from facing straight down to facing straight up.
+export const SHADE_LEVELS = 9
+
+// A slice of the side, drawn bottom first: each leaves only its front edge showing, up to the
+// next. Its shade level says which way it faces, up or down.
+export type SideSlice = { points: Point[]; shade: number }
+
+export type PieceDrawing = {
+    slices: SideSlice[]
+    top: Point[]
+    dots: Point[]
+    // Just inside the top face's edge, for marks.
+    topOutline: Point[]
+}
 
 export function drawPiece(
     kind: PieceKind,
@@ -168,40 +204,39 @@ export function drawPiece(
     view: BoardView = VIEW,
     thickness = PIECE_THICKNESS
 ): PieceDrawing {
-    const outline = outlinePlan(kind, angle)
-    const top = outline.map((point) => view.project(point, thickness))
-    const base = outline.map((point) => view.project(point, 0))
-    const sides: SidePanel[] = []
-    for (let index = 0; index < outline.length; index++) {
-        const a = outline[index]
-        const b = outline[(index + 1) % outline.length]
-        // Clockwise on screen, the outward normal of a→b points to its left.
-        const length = Math.hypot(b.x - a.x, b.y - a.y)
-        if (length < 1e-9) continue
-        const normal = { x: (b.y - a.y) / length, y: -(b.x - a.x) / length }
-        if (normal.y <= 0) continue
-        sides.push({
-            edge: index,
-            points: [
-                view.project(a, thickness),
-                view.project(b, thickness),
-                view.project(b, 0),
-                view.project(a, 0)
-            ],
-            light: Math.max(0, normal.x * LIGHT.x + normal.y * LIGHT.y),
-            depth: (a.y + b.y) / 2
-        })
-    }
-    sides.sort((a, b) => a.depth - b.depth)
+    const slices = Array.from({ length: SLICES + 1 }, (_, index) => {
+        const height = (thickness * index) / SLICES
+        const { inset, facing } = profileAt(height, thickness)
+        return {
+            points: outlinePlan(kind, angle, PIECE_HALF_WIDTH - inset).map((point) =>
+                view.project(point, height)
+            ),
+            shade: Math.round(((facing + 1) / 2) * (SHADE_LEVELS - 1))
+        }
+    })
     return {
-        top,
-        base,
-        sides,
+        slices,
+        top: outlinePlan(kind, angle, PIECE_HALF_WIDTH - TOP_INSET).map((point) =>
+            view.project(point, thickness)
+        ),
         dots: dotPlan(kind, angle).map((dot) => view.project(dot, thickness)),
-        topOutline: outlinePlan(kind, angle, PIECE_HALF_WIDTH - 3).map((point) =>
+        topOutline: outlinePlan(kind, angle, PIECE_HALF_WIDTH - TOP_INSET - 2).map((point) =>
             view.project(point, thickness)
         )
     }
+}
+
+// The outline's edges that face the viewer, by index.
+export function facingEdges(kind: PieceKind, angle: number): Set<number> {
+    const outline = outlinePlan(kind, angle)
+    const facing = new Set<number>()
+    outline.forEach((a, index) => {
+        const b = outline[(index + 1) % outline.length]
+        // Clockwise on screen, the outward normal of a→b points to its left: towards the viewer
+        // when b lies left of a.
+        if (b.x < a.x) facing.add(index)
+    })
+    return facing
 }
 
 export function dishOf(view: BoardView = VIEW): { rx: number; ry: number } {

@@ -40,18 +40,21 @@
 }
 
 :root {
-    /* The printed board: a pale play area of honeycomb cells round the holes, and the green of the
-       surround as the table, the coordinates standing on it in dark ink; white panels. */
+    /* The board as the HUCH edition makes it: a plate of pale mint cells with thin dark outlines,
+       holes cut through it to a pale base, the central cells green, standing on the green of the
+       surround as the table, the coordinates on it in dark ink; white panels. */
     --punct-table: #86a08d;
     --punct-panel: #f7f9f6;
     --punct-panel-edge: #b4c2b8;
     --punct-panel-shadow: 0 2px 6px rgb(0 0 0 / 0.14);
     --punct-panel-hover: color-mix(in srgb, var(--punct-panel), #1d2329 6%);
-    --punct-play: #e6e7e2;
-    --punct-centre: #d7dbd1;
-    --punct-grid: #b3b7ad;
-    --punct-hole: #a9aaa6;
-    --punct-hole-wall: #7d7f7a;
+    --punct-play: #dde5df;
+    --punct-centre: #97b69f;
+    --punct-grid: #5f6863;
+    --punct-hole-wall-top: #4b524e;
+    --punct-hole-wall-bottom: #7d857f;
+    --punct-hole-floor: #c6ccc8;
+    --punct-hole-floor-edge: #8f9792;
     --punct-label: #1d2329;
     --punct-ink: #1d2329;
     --punct-ink-quiet: #4f5b55;

@@ -48,7 +48,7 @@
     }
 
     .dark .top {
-        fill: #25282b;
+        fill: #2c3034;
         stroke: #0b0c0d;
         stroke-width: 0.8;
     }

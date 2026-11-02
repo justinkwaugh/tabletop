@@ -159,3 +159,24 @@ write(
     'Opening',
     position(['WE C4 0', 'BT M12 3', 'WA F9 1', 'BE K5 5', 'WT D11 2', 'BL J13 4'])
 )
+
+// Pieces on pieces of their own colour: three-high towers of each colour, and a triangle on two
+// straight pieces of each colour, for judging how the levels part.
+write(
+    'same-colour-stacks',
+    'Same-colour stacks',
+    position([
+        'WE C2 0',
+        'WC C3 0',
+        'WE C2 0',
+        'BE H3 0',
+        'BC H4 0',
+        'BE H3 0',
+        'WE K4 0',
+        'WE L4 0',
+        'WT K5 2',
+        'BE N7 0',
+        'BE O7 0',
+        'BT N8 2'
+    ])
+)

@@ -8,16 +8,29 @@ export const HOLE_RADIUS = SPACING * 0.29
 export const PIECE_HALF_WIDTH = SPACING * 0.42
 export const DISH_RADIUS = SPACING * 0.25
 export const PUNCT_RADIUS = SPACING * 0.23
-// How thick a piece is: a level's rise.
-export const PIECE_THICKNESS = SPACING * 0.24
+// How thick a piece is; a piece on another rests this far above it, so a seam shows between them.
+export const PIECE_THICKNESS = SPACING * 0.19
+export const SEAM = PIECE_THICKNESS * 0.12
 
 // The board is seen from the near side of the table: depth shrinks to TILT of its length, and
 // heights show at the matching fraction.
 export const TILT = 0.75
 
+// The board is a plate this thick, its holes cut through to the base below, as the HUCH
+// edition's is.
+export const BOARD_DEPTH = SPACING * 0.12
+
 // The frame reaches a margin beyond the cells and the coordinate labels.
 const FRAME_MARGIN = SPACING * 0.4
 const CELL_RADIUS = SPACING / Math.sqrt(3)
+const NEIGHBOUR_STEPS: AxialCoordinates[] = [
+    { q: 0, r: -1 },
+    { q: 1, r: -1 },
+    { q: 1, r: 0 },
+    { q: 0, r: 1 },
+    { q: -1, r: 1 },
+    { q: -1, r: 0 }
+]
 
 const HEX_DIMENSIONS = { xRadius: SPACING / Math.sqrt(3), yRadius: SPACING / 2 }
 
@@ -52,12 +65,14 @@ export class BoardView {
     }
 
     // How high the top of a piece resting on a level stands.
-    levelTop(level: number): number {
-        return (level + 1) * PIECE_THICKNESS
+    // Where a piece resting on a level stands.
+    levelBase(level: number): number {
+        return level * (PIECE_THICKNESS + SEAM)
     }
 
-    levelBase(level: number): number {
-        return level * PIECE_THICKNESS
+    // The top of a space where this many levels stand.
+    surface(levels: number): number {
+        return levels === 0 ? 0 : this.levelBase(levels - 1) + PIECE_THICKNESS
     }
 
     // The printed honeycomb cell round a space's hole.
@@ -68,6 +83,39 @@ export class BoardView {
             return this.project({
                 x: center.x + CELL_RADIUS * Math.cos(angle),
                 y: center.y + CELL_RADIUS * Math.sin(angle)
+            })
+        })
+    }
+
+    // The plate's edge where it faces the viewer: a strip down from each outer cell edge with no
+    // cell beyond it, and how much that strip faces the light, from the left and the front.
+    plateSides(): { points: Point[]; light: number }[] {
+        const keys = new Set(SPACES.map((coords) => `${coords.q},${coords.r}`))
+        return SPACES.flatMap((coords) => {
+            const center = this.plan(coords)
+            return NEIGHBOUR_STEPS.flatMap((step) => {
+                if (keys.has(`${coords.q + step.q},${coords.r + step.r}`)) return []
+                const toward = this.plan({ q: coords.q + step.q, r: coords.r + step.r })
+                const facing = Math.atan2(toward.y - center.y, toward.x - center.x)
+                const normal = { x: Math.cos(facing), y: Math.sin(facing) }
+                if (normal.y <= 1e-6) return []
+                const corner = (offset: number) => ({
+                    x: center.x + CELL_RADIUS * Math.cos(facing + offset),
+                    y: center.y + CELL_RADIUS * Math.sin(facing + offset)
+                })
+                const a = corner(-Math.PI / 6)
+                const b = corner(Math.PI / 6)
+                return [
+                    {
+                        points: [
+                            this.project(a),
+                            this.project(b),
+                            this.project(b, -BOARD_DEPTH),
+                            this.project(a, -BOARD_DEPTH)
+                        ],
+                        light: Math.max(0, normal.x * -0.45 + normal.y * 0.89)
+                    }
+                ]
             })
         })
     }

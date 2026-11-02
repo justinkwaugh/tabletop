@@ -124,8 +124,8 @@ export class BoardAnimator {
             this.flier = {
                 piece: was,
                 plan: VIEW.plan(was.punct),
-                height: was.level * PIECE_THICKNESS,
-                groundHeight: was.level * PIECE_THICKNESS,
+                height: VIEW.levelBase(was.level),
+                groundHeight: VIEW.levelBase(was.level),
                 angle: was.rotation
             }
             await tick()
@@ -193,12 +193,12 @@ export class BoardAnimator {
             piece.level + 1,
             ...path.map((cell) => board.board.heightAt(cell, was.id))
         )
-        const peak = (highest + GLIDE.clearance) * PIECE_THICKNESS
+        const peak = VIEW.surface(highest) + GLIDE.clearance * PIECE_THICKNESS
         const turn = ((piece.rotation - was.rotation + 9) % 6) - 3
         const progress = { t: 0 }
         const duration = quick ? QUICK : GLIDE.duration
-        const startHeight = was.level * PIECE_THICKNESS
-        const endHeight = piece.level * PIECE_THICKNESS
+        const startHeight = VIEW.levelBase(was.level)
+        const endHeight = VIEW.levelBase(piece.level)
         timeline.to(
             progress,
             {
