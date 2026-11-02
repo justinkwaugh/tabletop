@@ -160,7 +160,8 @@
                 <PlayToSites playTo={gameSession.playTo} />
             </div>
         {/if}
-        {#if search.secondAllowed && search.drawn.length > 1}
+        <!-- Land Warden — shown only when a drawn card can be the second; no label over an empty row. -->
+        {#if search.secondAllowed && search.secondCandidates.length > 0}
             {@const second = search.second}
             <div class="mb-2 text-xs">
                 <span class="text-oath-text-muted">Also play:</span>

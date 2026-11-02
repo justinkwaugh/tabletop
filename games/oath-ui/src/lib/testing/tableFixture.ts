@@ -95,7 +95,7 @@ import {
 import { shroudedWoodState } from './shroudedWoodTable.js'
 import { gamblingHallUsed } from './gamblingHallTable.js'
 import { wrestlersDefends } from './wrestlersTable.js'
-import { landWardenSecondAdviser } from './landWardenTable.js'
+import { landWardenSecondAdviser, landWardenVisionKept } from './landWardenTable.js'
 import { facedownPickerTable } from './facedownPickerTables.js'
 import { RELIC_HUNTER, campaignSteps } from './campaignStepsTable.js'
 import { campaignLedgerTable } from './campaignLedgerTable.js'
@@ -351,6 +351,7 @@ export type TableName =
     | 'wrestlersPick'
     | 'wrestlersOnePlace'
     | 'landWardenSecondAdviser'
+    | 'landWardenVisionKept'
     | 'facedownDreamThief'
     | 'facedownInquisitor'
     | 'facedownIvoryEye'
@@ -5786,6 +5787,8 @@ const TABLES: Record<TableName, () => PlayedTable | Promise<PlayedTable>> = {
     wrestlersOnePlace: () => wrestlersDefends({ annBoard: 0, rhysBoard: 0 }),
     // R-5.1.4.II — Dana searched with Land Warden at 3 of 3 advisers: the Inn, Longbows and Wrestlers drawn.
     landWardenSecondAdviser,
+    // R-5.1.4.III — Dana searched with Land Warden at the full Great Slum: Alchemist, then the Vision of Conquest.
+    landWardenVisionKept,
     // R-9.4 — Dana's facedown adviser picks: Dream Thief, Inquisitor (all at the Plains), the Ivory Eye.
     facedownDreamThief: () => facedownPickerTable('dreamThief'),
     facedownInquisitor: () => facedownPickerTable('inquisitor'),

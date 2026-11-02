@@ -11,7 +11,8 @@ import {
     SearchSource,
     allMapSlots,
     mapSlotsFor,
-    powerIndexOf
+    powerIndexOf,
+    type HydratedOathGameState
 } from '@tabletop/oath'
 import { openTurn, testPlayer, testState } from '@tabletop/oath/testing'
 import { played, tableOf, type PlayedTable } from './sessionHarness.js'
@@ -75,6 +76,69 @@ export function landWardenSecondAdviser(): PlayedTable {
     openTurn(state, 'Dana')
     const vault = state.requireVault()
     vault.worldDeck = [INN, LONGBOWS, WRESTLERS, ...vault.worldDeck]
+    return searchedWithLandWarden(state)
+}
+
+export const ALCHEMIST = 'denizen.arcane.alchemist'
+export const CONQUEST = 'vision.conquest'
+const TENTS = 'denizen.nomad.tents'
+const SONGS = 'denizen.hearth.tavern-songs'
+
+/**
+ * R-5.1.4.III, Land Warden — round 3, Dana's Act Phase. Dana (an Exile) holds Land Warden faceup and stands at the
+ * Great Slum (capacity 3), full with the Wolves, the Tents and Tavern Songs, which they rule with one warband. Rhys
+ * is the Chancellor and Oathkeeper, at the River. Dana searches the world deck with Land Warden declared and draws
+ * Alchemist, then the Vision of Conquest, where the draw stops (R-5.1.2). Kept, the Vision cannot go to a site, and
+ * then neither can Alchemist go there second, so no card can be the second.
+ */
+export function landWardenVisionKept(): PlayedTable {
+    const [slum, river] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'Dana',
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: slum,
+                favor: 3,
+                secrets: 2,
+                supply: 6,
+                warbandsOnBoard: { Dana: 3 },
+                warbandsInPersonalBank: { Dana: 10 },
+                advisers: [{ cardId: LAND_WARDEN, faceUp: true }]
+            }),
+            testPlayer({
+                playerId: 'Rhys',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: river,
+                favor: 2,
+                secrets: 1,
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 4 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 18 }
+            })
+        ],
+        {
+            oathRevision: CURRENT_OATH_REVISION,
+            chancellorPlayerId: 'Rhys',
+            round: 3,
+            machineState: MachineState.ActPhase,
+            map: allMapSlots(),
+            denizensBySite: { [slum]: [WOLVES, TENTS, SONGS], [river]: [] },
+            warbandsBySite: { [slum]: { Dana: 1 }, [river]: { [IMPERIAL_WARBANDS]: 2 } },
+            siteCards: { [slum]: 'site.great-slums', [river]: 'site.river' },
+            oathType: OathType.Supremacy,
+            oathkeeperPlayerId: 'Rhys'
+        }
+    )
+    openTurn(state, 'Dana')
+    const vault = state.requireVault()
+    vault.worldDeck = [ALCHEMIST, CONQUEST, LONGBOWS, ...vault.worldDeck]
+    return searchedWithLandWarden(state)
+}
+
+/** Dana's Search of the world deck, with Land Warden declared. */
+function searchedWithLandWarden(state: HydratedOathGameState): PlayedTable {
     const table = tableOf(state)
     return played(table, [
         createAction(Search, {

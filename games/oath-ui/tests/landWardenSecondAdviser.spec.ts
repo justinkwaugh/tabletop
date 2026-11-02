@@ -204,4 +204,41 @@ for (const { name, viewport, phone } of SIZES) {
             ])
         })
     })
+
+    /**
+     * R-5.1.4.III, Land Warden — Dana (an Exile) searched with Land Warden at the Great Slum, full, drawing Alchemist
+     * and the Vision of Conquest.
+     */
+    test.describe(`Land Warden's second card when none can be played, on a ${name}`, () => {
+        test.use({ viewport, hasTouch: phone })
+
+        const alsoPlay = (page: Page) => step(page, 'Also play:')
+
+        async function drawn(page: Page) {
+            await page.goto('/')
+            await call(page, 'open', 'landWardenVisionKept')
+            await expect.poll(async () => (await call(page, 'tableFacts')).seatId).toBe('Dana')
+            await expect(step(page, 'Keep one.')).toBeVisible()
+        }
+
+        test('the Vision kept: no card can be second, so "Also play:" is not shown', async ({
+            page
+        }) => {
+            await drawn(page)
+            await card(page, 'Vision of Conquest').click()
+            await expect(step(page, 'How do you play it?')).toBeVisible()
+            await expect(alsoPlay(page)).toHaveCount(0)
+            await shot(page, 'warden-5-vision-kept', phone)
+        })
+
+        test('control: Alchemist kept, "Also play:" offers the Vision of Conquest', async ({
+            page
+        }) => {
+            await drawn(page)
+            await card(page, 'Alchemist').click()
+            await expect(step(page, 'How do you play it?')).toBeVisible()
+            await expect(alsoPlay(page)).toBeVisible()
+            await expect(card(page, 'Vision of Conquest')).toBeVisible()
+        })
+    })
 }
