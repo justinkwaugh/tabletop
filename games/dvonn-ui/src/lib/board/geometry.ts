@@ -72,17 +72,21 @@ export class BoardView {
             .map((point) => `${point.x},${point.y}`)
             .join(' ')
         this.sandOutline = roundedOutline(this.flatCorners, SAND_MARGIN, tilt)
-        this.labels = this.labelsAs(turned)
+        this.labels = boardLabels(
+            SPACES,
+            (coords, toward) => this.labelBeside(coords, toward),
+            turned
+        )
 
-        // The board's edge, the labels, and a full-height stack standing in the top row, either
-        // way round, so the board keeps its size when it is turned.
+        // The board's edge, the labels, and a full-height stack standing in the top row. The board
+        // and the labels lie the same way round, so the board keeps its size when it is turned.
         const board = this.flatCorners.flatMap((corner) =>
             [
                 { x: corner.x - edge, y: corner.y - edge },
                 { x: corner.x + edge, y: corner.y + edge }
             ].map((point) => this.project(point))
         )
-        const labelCorners = [...this.labels, ...this.labelsAs(!turned)].flatMap(({ at }) => [
+        const labelCorners = this.labels.flatMap(({ at }) => [
             { x: at.x - LABEL_HALF.x, y: at.y - LABEL_HALF.y },
             { x: at.x + LABEL_HALF.x, y: at.y + LABEL_HALF.y }
         ])
@@ -109,16 +113,8 @@ export class BoardView {
 
     // A space's centre on the board's plane, as this view lays the board out.
     plan(coords: AxialCoordinates): Point {
-        return this.planAs(coords, this.turned)
-    }
-
-    private planAs(coords: AxialCoordinates, turned: boolean): Point {
         const point = flatCenter(coords)
-        return turned ? { x: -point.x, y: -point.y } : point
-    }
-
-    private labelsAs(turned: boolean): CoordinateLabel[] {
-        return boardLabels(SPACES, (coords, toward) => this.labelBeside(coords, toward, turned))
+        return this.turned ? { x: -point.x, y: -point.y } : point
     }
 
     // The centre of a space on the board's surface.
@@ -132,21 +128,17 @@ export class BoardView {
     }
 
     // A label beside an outer space, toward a neighbour it does not have, a gap beyond the
-    // board's edge on screen. Labels on the same side all reach as far as the farthest of them,
-    // so they stay in line.
-    private labelBeside(
-        coords: AxialCoordinates,
-        toward: AxialCoordinates,
-        turned: boolean
-    ): Point {
+    // board's edge on screen, as the board lies unturned. Labels on the same side all reach as far
+    // as the farthest of them, so they stay in line.
+    private labelBeside(coords: AxialCoordinates, toward: AxialCoordinates): Point {
         const step = { q: toward.q - coords.q, r: toward.r - coords.r }
-        const from = this.planAs(coords, turned)
-        const to = this.planAs(toward, turned)
+        const from = flatCenter(coords)
+        const to = flatCenter(toward)
         const length = Math.hypot(to.x - from.x, to.y - from.y)
         const along = { x: (to.x - from.x) / length, y: (to.y - from.y) / length }
         const reach = Math.max(
             ...SPACES.filter((space) => !isSpace(addAxial(space, step))).map((space) =>
-                edgeReach(this.flatCorners, this.edge, this.planAs(space, turned), along)
+                edgeReach(this.flatCorners, this.edge, flatCenter(space), along)
             )
         )
         const edge = this.project({ x: from.x + along.x * reach, y: from.y + along.y * reach })

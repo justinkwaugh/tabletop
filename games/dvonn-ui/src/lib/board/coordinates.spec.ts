@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { AxialCoordinates } from '@tabletop/common'
 import { spaceFromName } from '@tabletop/dvonn'
-import { VIEW } from './geometry.js'
+import { VIEW, viewFor } from './geometry.js'
 
 describe('boardLabels', () => {
     const spaceCenter = (coords: AxialCoordinates) => VIEW.center(coords)
@@ -35,5 +35,18 @@ describe('boardLabels', () => {
         )
         for (const y of bottom) expect(y).toBeCloseTo(bottom[0])
         for (const distance of before) expect(distance).toBeCloseTo(before[0])
+    })
+
+    it('keeps the labels in place on the turned board and names the spaces there now', () => {
+        const turned = viewFor(false, true, true)
+        expect(turned.labels.map((label) => label.at)).toEqual(labels.map((label) => label.at))
+        expect(turned.labels.map((label) => label.text)).toEqual([
+            ...'KJIHGFEDCBA'.split(''),
+            ...['1', '2', '3', '4', '5']
+        ])
+        const two = turned.labels.find((label) => label.text === '2')
+        const e2 = turned.center(spaceFromName('E2'))
+        expect(two?.at.x).toBeLessThan(e2.x)
+        expect(two?.at.y).toBeCloseTo(e2.y)
     })
 })

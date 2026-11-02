@@ -2,7 +2,8 @@ import { addAxial, type AxialCoordinates, type Point } from '@tabletop/common'
 import { spaceName } from '@tabletop/dvonn'
 
 // BoardSpace style: each diagonal column's letter below and right of its bottom space, and each
-// row's number before its first space on the left.
+// row's number before its first space on the left. On a board turned half round the labels stay
+// where they are, below and on the left, and name the spaces that are there now: the opposite ones.
 export type CoordinateLabel = {
     key: string
     text: string
@@ -16,8 +17,11 @@ const BEFORE_LINE: AxialCoordinates = { q: -1, r: 0 }
 export function boardLabels(
     positions: readonly AxialCoordinates[],
     // Where a label goes beside an outer space, toward a neighbour it does not have.
-    beside: (coords: AxialCoordinates, toward: AxialCoordinates) => Point
+    beside: (coords: AxialCoordinates, toward: AxialCoordinates) => Point,
+    turned = false
 ): CoordinateLabel[] {
+    const shownName = (coords: AxialCoordinates) =>
+        spaceName(turned ? { q: -coords.q, r: -coords.r } : coords)
     const extreme = (
         group: (coords: AxialCoordinates) => number,
         along: (coords: AxialCoordinates) => number,
@@ -48,10 +52,10 @@ export function boardLabels(
     ): CoordinateLabel => ({ key, text, at: beside(coords, addAxial(coords, direction)) })
     return [
         ...columnBottoms.map((coords) =>
-            label(`column-${coords.q}`, spaceName(coords).slice(0, 1), coords, BELOW)
+            label(`column-${coords.q}`, shownName(coords).slice(0, 1), coords, BELOW)
         ),
         ...lineStarts.map((coords) =>
-            label(`line-${coords.r}`, spaceName(coords).slice(1), coords, BEFORE_LINE)
+            label(`line-${coords.r}`, shownName(coords).slice(1), coords, BEFORE_LINE)
         )
     ]
 }
