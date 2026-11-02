@@ -24,6 +24,8 @@
     let busy = $derived(gameSession.busy)
     // Great Spire — Swap and No swap share the wider one's width.
     const swapWidth = new ChoiceWidth()
+    // Land Warden — the second card's buttons share the widest one's width.
+    const secondWidth = new ChoiceWidth()
 
     const discardLine = (needed: number) =>
         needed === 1 ? 'Discard 1 adviser.' : `Discard ${needed} advisers.`
@@ -171,17 +173,21 @@
                 >
                     {#snippet under(choice)}
                         {#each search.secondPlays.filter((o) => o.cardId === choice.cardId) as option (option.key)}
+                            {@const on = second?.key === option.key}
                             <button
                                 type="button"
-                                class="rounded border px-1 text-[10px] {second?.key === option.key
+                                class="rounded border px-1 text-[10px] max-sm:min-h-11 {on
                                     ? 'border-oath-accent bg-oath-accent-soft'
                                     : 'border-oath-divider hover:border-oath-accent'}"
-                                aria-pressed={second?.key === option.key}
+                                style:min-width="{secondWidth.widest}px"
+                                aria-pressed={on}
                                 disabled={busy}
                                 onclick={() =>
                                     search.setSecondPlay(toggleSingle(second?.key, option.key))}
                             >
-                                {option.mode}
+                                <span class="inline-block w-max" {@attach secondWidth.measure}
+                                    >{option.mode}</span
+                                >
                             </button>
                         {/each}
                     {/snippet}
