@@ -41,6 +41,11 @@ export interface ChoiceSpec {
      * follow those picks: Assassin's card is one of the picked player's advisers.
      */
     readsEarlier?: true
+    /**
+     * Its choices are steps in order, so an option may be named again, though never twice in a
+     * row (Witch's Bargain from revision 32: each exchange uses what the user holds then).
+     */
+    inOrder?: true
     what?: string
     allows?: ExchangeAllowance
     /** R-X.4 — asked only in a game created at this revision or later. */
@@ -396,13 +401,18 @@ export function reasonChoicesInvalid(
         }
 
         const seen = new Set<string>()
+        let previous: string | undefined
         for (const choice of taken) {
             const key = keyOf(choice)
             const option = optionsOf().get(key)
             if (!option) {
                 return `${describe(choice)} is not among the options for ${describe(spec)}`
             }
-            if (seen.has(key)) {
+            if (spec.inOrder && key === previous) {
+                return `${describe(choice)} was chosen twice in a row for ${describe(spec)}`
+            }
+            previous = key
+            if (!spec.inOrder && seen.has(key)) {
                 return `${describe(choice)} was chosen twice for ${describe(spec)}`
             }
             seen.add(key)
