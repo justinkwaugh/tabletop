@@ -226,9 +226,13 @@ registerEffect(ROVING, powerIndexOf(ROVING, PowerTiming.Action), {
         }
         const to = siteHolding(ctx.state, target.cardId)
         assertExists(to, `${target.cardId} is a denizen at another site`)
+        // R-7.2.1 — Roving Terror can only be at a site: no swap puts it among a player's advisers (the Horned
+        // Mask refuses it), so its power is used only where it stands at a site.
         const from = siteHolding(ctx.state, ROVING)
-        // Horned Mask can swap Roving Terror into a player's advisers, and then it has no site to leave.
-        if (!from) return { summary: 'Roving Terror: nothing to move between', pileDeposits }
+        assertExists(
+            from,
+            'Roving Terror can only be at a site (R-7.2.1), so its power is used from one'
+        )
         const gone = discardDenizensAtSites(
             ctx.state,
             ctx.playerId,
