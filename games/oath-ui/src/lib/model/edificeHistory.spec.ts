@@ -152,7 +152,7 @@ describe('Great Spire’s swap: its own row, per seat (R-9.4)', () => {
         )
     })
 
-    it('the Search row is today’s, naming Great Spire as any modifier', () => {
+    it('the Search row names Great Spire by the secret placed on it (R-7.1.2)', () => {
         expect(
             row({
                 type: ActionType.Search,
@@ -162,7 +162,7 @@ describe('Great Spire’s swap: its own row, per seat (R-9.4)', () => {
                 modifiers: [{ cardId: SPIRE, powerIndex: INTACT }],
                 metadata: { supplySpent: 2, modifiers: [SPIRE] }
             })
-        ).toBe('searched the world deck, spending 2 Supply (Great Spire)')
+        ).toBe('searched the world deck, spending 2 Supply and placing a secret on Great Spire')
     })
 })
 

@@ -87,6 +87,8 @@ import {
     type WarbandMove,
     type WarbandOwner,
     type HeldForHospital,
+    type ModifierUse,
+    type PowerCost,
     secretsFlipped
 } from '@tabletop/oath'
 import { assertExists, type GameAction } from '@tabletop/common'
@@ -536,8 +538,13 @@ function inBrackets(cards: readonly string[]): string {
 }
 
 /** The Supply a row spent, and the cards that changed it; "spending 0 Supply (Special Envoy)". */
-function costWith(spent: number | undefined, cards: string): string {
-    return cards ? `, spending ${spent ?? 0} Supply${cards}` : supply(spent)
+/**
+ * R-7.1.2 — the Supply spent, the cards that set it in brackets, then each card in use's own cost
+ * ("spending 2 Supply and placing a secret on Great Spire").
+ */
+function costWith(spent: number | undefined, cards: string, paid: readonly string[] = []): string {
+    const placing = paid.length > 0 ? ` and ${paid.join(' and ')}` : ''
+    return cards || placing ? `, spending ${spent ?? 0} Supply${cards}${placing}` : supply(spent)
 }
 
 /** R-7.3.3 — the kept card's When Played follows it: "…: gained 4 Imperial warbands". */
@@ -841,9 +848,15 @@ function describeActionCited(
         const meta = action.metadata
         const shown = meta?.revealedDraw
         const shownBy = shown ? new Set([...named, cardName(TRUTHFUL_HARP)]) : named
+        // R-7.1.2 — a card in use that cost something is named by its cost, not again in brackets.
+        const paid = paidModifiers(action.modifiers, meta?.modifiers)
         return (
             `searched ${from}` +
-            costWith(meta?.supplySpent, cardsInBrackets(meta?.modifiers, shownBy)) +
+            costWith(
+                meta?.supplySpent,
+                cardsInBrackets(meta?.modifiers, new Set([...shownBy, ...paid.named])),
+                paid.clauses
+            ) +
             tollClauses(meta?.tollsPaid, nameOf) +
             (shown ? `; showed ${shown.map(cardName).join(', ')} (Truthful Harp)` : '') +
             (searchStoppedOnVision(action) ? '; the draw stopped on a Vision' : '')
@@ -956,14 +969,20 @@ function describeActionCited(
         const rotated = usedFor(CROP_ROTATION, firsts.length > 0)
         const horn = usedFor(CRACKED_HORN, meta?.discardToWorldDeck === true)
         const played = shownCard(meta?.playedCardId)
+        // R-7.1.2 — a card in use that cost something is named by its cost, not again in brackets.
+        const paid = paidModifiers(action.modifiers, meta?.modifiers)
         return (
             (action.play === SearchPlay.Site && elsewhere !== undefined
                 ? `played ${played} to ${names.site(elsewhere)}${inBrackets(grew)}`
                 : describeAdviserPlay(action.play, played)) +
             (meta?.discardToWorldDeck ? ` under the world deck${inBrackets(horn)}` : '') +
             discardedFirstClause(action.play, firsts, rotated) +
+            paid.clauses.map((clause) => `, ${clause}`).join('') +
             gaining(meta?.secretsGained ?? 0, meta?.favorGained ?? 0, meta?.favorShort) +
-            cardsInBrackets(meta?.modifiers, new Set([...named, ...grew, ...rotated, ...horn])) +
+            cardsInBrackets(
+                meta?.modifiers,
+                new Set([...named, ...grew, ...rotated, ...horn, ...paid.named])
+            ) +
             conspiracyTakeClause(action.conspiracy, action.playerId, names, viewerId) +
             whenPlayedClause(
                 meta?.whenPlayed,
@@ -976,7 +995,9 @@ function describeActionCited(
         )
     }
     if (isUseActionPower(action)) {
-        const cost = printedCost(action.cardId, action.powerIndex)
+        // R-7.1.2 — Oracle's declared Search cards are paid with its use, so each is named by its cost.
+        const paid = paidModifiers(action.modifiers, action.metadata?.modifiers)
+        const cost = printedCost(action.cardId, action.powerIndex, paid.clauses)
         const toll = action.metadata?.tollMove
         if (toll) return tollMoveText(toll, names, viewerId, cost)
         // Forced Labor on Oracle — what the power did, then the toll with its card.
@@ -988,7 +1009,7 @@ function describeActionCited(
             messengerMoves(action, names) ??
             powerEffect(action, names, viewerId)
         // R-7.4 — Oracle's Search modifiers, in brackets after the cost, as a Search's row names its own.
-        const cards = cardsInBrackets(action.metadata?.modifiers, new Set())
+        const cards = cardsInBrackets(action.metadata?.modifiers, new Set(paid.named))
         return `used ${powerCardName(action.cardId, action.powerIndex)}${cost}${cards}${effect}${paying}`
     }
     if (isPeek(action)) {
@@ -1366,10 +1387,8 @@ export function searchStoppedOnVision(action: Search): boolean {
     )
 }
 
-/** R-7.1.2 — the cost printed on the card, as the History says it was paid. */
-function printedCost(cardId: string, powerIndex: number): string {
-    const cost = cardPower(cardId, powerIndex)?.cost
-    if (!cost) return ''
+/** R-7.1.2 — a printed cost as the History says it was paid, placed on `on` ("it", or a card's name). */
+function costClauses(cost: PowerCost, on: string): string[] {
     const counted = (count: number, noun: string) =>
         count === 1 ? `a ${noun}` : `${count} ${noun}${noun === 'secret' ? 's' : ''}`
     const placed = [
@@ -1380,11 +1399,41 @@ function printedCost(cardId: string, powerIndex: number): string {
         ...(cost.burnFavor > 0 ? [counted(cost.burnFavor, 'favor')] : []),
         ...(cost.burnSecret > 0 ? [counted(cost.burnSecret, 'secret')] : [])
     ]
-    const clauses = [
-        ...(placed.length > 0 ? [`placing ${placed.join(' and ')} on it`] : []),
+    return [
+        ...(placed.length > 0 ? [`placing ${placed.join(' and ')} on ${on}`] : []),
         ...(burned.length > 0 ? [`burning ${burned.join(' and ')}`] : [])
     ]
+}
+
+/**
+ * R-7.1.2 — the cost printed on the card, as the History says it was paid, then the costs of the
+ * cards in use beside it (`paid`): "placing 2 secrets on it and placing a secret on Great Spire".
+ */
+function printedCost(cardId: string, powerIndex: number, paid: readonly string[] = []): string {
+    const cost = cardPower(cardId, powerIndex)?.cost
+    const clauses = [...(cost ? costClauses(cost, 'it') : []), ...paid]
     return clauses.length > 0 ? `, ${clauses.join(' and ')}` : ''
+}
+
+/**
+ * R-7.1.2, R-7.4 — the cards in use whose printed cost was paid, each by its cost ("placing a secret on
+ * Great Spire"): those declared that the record says acted, a mandatory one aside (it is not paid for).
+ * `named` holds the cards a clause names, which the brackets then leave out.
+ */
+function paidModifiers(
+    declared: readonly ModifierUse[] | undefined,
+    acted: readonly string[] | undefined
+): { clauses: string[]; named: string[] } {
+    const paid = new Set((acted ?? []).filter((entry) => !entry.endsWith(' (must)')))
+    const clauses: string[] = []
+    const named: string[] = []
+    for (const use of declared ?? []) {
+        const cost = paid.has(use.cardId) ? cardPower(use.cardId, use.powerIndex)?.cost : undefined
+        if (!cost) continue
+        clauses.push(...costClauses(cost, cardName(use.cardId)))
+        if (cost.placeFavor + cost.placeSecret > 0) named.push(cardName(use.cardId))
+    }
+    return { clauses, named }
 }
 
 function powerEffect(
