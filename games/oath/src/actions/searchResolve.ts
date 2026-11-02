@@ -416,7 +416,13 @@ export function reasonCannotPlaySecondCard(
     const hand = state.getPlayerState(playerId).knownHand()
     if (second.cardId === keptCardId || !hand.includes(second.cardId))
         return `${second.cardId} is not a second drawn card`
-    if (second.play !== SearchPlay.Site && second.play !== SearchPlay.Adviser)
+    // R-5.1.4 — "You may play two cards you draw": from revision 32 an Exile's Vision may also go to the Revealed
+    // Vision space (R-5.1.4.III), judged by `reasonCannotPlayCard` as the kept card's is. Before it (R-X.4), only
+    // your site or your advisers.
+    const revealedVision =
+        second.play === SearchPlay.RevealedVision &&
+        isAtLeastOathRevision(state, OathRevision.EngineFixes27)
+    if (second.play !== SearchPlay.Site && second.play !== SearchPlay.Adviser && !revealedVision)
         return 'the second card is played to your site or as an adviser'
     // R-X.4 — before revision 31 the second card discarded no adviser, so at the limit it could not be an adviser.
     if (
