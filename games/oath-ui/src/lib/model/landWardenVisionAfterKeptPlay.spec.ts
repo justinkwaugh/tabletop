@@ -38,6 +38,7 @@ const CONQUEST = 'vision.conquest'
 
 const AS_YOUR_VISION = 'as your Vision'
 const VISION_KEY = `${CONQUEST}|${SearchPlay.RevealedVision}|`
+const FACEDOWN_KEY = `${CONQUEST}|${SearchPlay.Adviser}|false`
 
 interface Table {
     /** The Great Slum's cards (capacity 3). */
@@ -172,5 +173,57 @@ describe("Land Warden: the Vision second is offered on the state the kept card's
         draft.keep(BEWITCH)
         draft.setDiscardFirst(WOLVES)
         expect(modesOf(draft, CONQUEST)).toEqual(['adviser, facedown', AS_YOUR_VISION])
+    })
+})
+
+// Bewitch: "When played, if you're an Exile and have more secrets (even on cards) than the Chancellor, you may become
+// a Citizen". A Citizen plays no Vision faceup (Law 5.1.4.III), and the second card is played after Bewitch's power,
+// so with the Vision "as your Vision" the yes cannot be taken and is not asked: Dana stays an Exile.
+describe('Land Warden: Bewitch kept with the Vision second', () => {
+    const bewitchKept = async () => {
+        const opened = await searchDraftOn(searched({ top: [BEWITCH, CONQUEST, LONGBOWS] }))
+        opened.draft.keep(BEWITCH)
+        opened.draft.setDiscardFirst(WOLVES)
+        return opened
+    }
+    const asksCitizen = (draft: {
+        whenPlayed: { spec: { what?: string }; options: unknown[] }[]
+    }) => draft.whenPlayed.some((c) => c.spec.what === 'becoming a Citizen' && c.options.length > 0)
+
+    it('"as your Vision": "becoming a Citizen" is not asked, and the play goes on with Dana an Exile', async () => {
+        const { session, draft, sent } = await bewitchKept()
+        draft.setSecondPlay(VISION_KEY)
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(asksCitizen(draft)).toBe(false)
+        expect(draft.needsWhenPlayed).toBe(false)
+        expect(sent).toHaveBeenCalledTimes(1)
+        const [choice] = sent.mock.calls[0]
+        expect(choice).toEqual({
+            keptCardId: BEWITCH,
+            discardOrder: [],
+            play: SearchPlay.Site,
+            discardFirstCardId: WOLVES,
+            secondPlay: { cardId: CONQUEST, play: SearchPlay.RevealedVision }
+        })
+        expect(
+            HydratedSearchResolve.reasonCannotResolve(session.gameState, 'dana', choice)
+        ).toBeUndefined()
+    })
+
+    it('the Vision "adviser, facedown": "becoming a Citizen" is still asked', async () => {
+        const { draft, sent } = await bewitchKept()
+        draft.setSecondPlay(FACEDOWN_KEY)
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(draft.needsWhenPlayed).toBe(true)
+        expect(asksCitizen(draft)).toBe(true)
+        expect(sent).not.toHaveBeenCalled()
+    })
+
+    it('no second card: "becoming a Citizen" is still asked', async () => {
+        const { draft, sent } = await bewitchKept()
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(draft.needsWhenPlayed).toBe(true)
+        expect(asksCitizen(draft)).toBe(true)
+        expect(sent).not.toHaveBeenCalled()
     })
 })

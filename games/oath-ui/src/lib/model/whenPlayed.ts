@@ -37,7 +37,8 @@ export function whenPlayedChoices(
 
 /**
  * R-7.3.3 — `whenPlayedChoices`, and the picks as they read back on them: a pick made on `shown`, the choices shown
- * when it was made, is kept only while the option it named is still offered (`choicesOnPicks`).
+ * when it was made, is kept only while the option it named is still offered (`choicesOnPicks`). An option `allowed`
+ * refuses is not offered (Land Warden's second card, played on the status the pick would leave).
  */
 export function whenPlayedOnPicks(
     state: HydratedOathGameState,
@@ -47,16 +48,18 @@ export function whenPlayedOnPicks(
     faceUp: boolean | undefined,
     mapChanges: PlayMapChanges | undefined,
     picks: PowerChoicePicks,
-    shown?: readonly LegalChoice[]
+    shown?: readonly LegalChoice[],
+    allowed?: (option: PowerChoice) => boolean
 ): { choices: LegalChoice[]; picks: PowerChoicePicks } {
     const power = playShowsCard(play, faceUp)
         ? powersWithTiming(cardId, PowerTiming.WhenPlayed)[0]
         : undefined
     if (!power) return { choices: [], picks }
     const read = (earlier: readonly PowerChoice[] = []) =>
-        offeredChoices(state, playerId, power, mapChanges, earlier).map((legal) =>
-            withoutLeaving(legal, mapChanges?.leaving ?? [])
-        )
+        offeredChoices(state, playerId, power, mapChanges, earlier).map((legal) => {
+            const left = withoutLeaving(legal, mapChanges?.leaving ?? [])
+            return allowed ? { ...left, options: left.options.filter(allowed) } : left
+        })
     const offered = read()
     if (!offered.some((legal) => legal.spec.min > 0 || legal.options.length > 0)) {
         return { choices: [], picks }

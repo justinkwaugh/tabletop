@@ -302,8 +302,26 @@ export class SearchDraft implements PanelDraft {
             placement.faceUp,
             this.playChanges,
             picks,
-            shown
+            shown,
+            this.secondAllowsOption(playerId, cardId, placement)
         )
+    }
+
+    // R-7.3.3-H3, R-5.1.4.III — the second card is played after the kept card's power, on the status its picks
+    // leave: with a Vision "as your Vision", an option that would refuse it (Bewitch's "becoming a Citizen") is
+    // not offered. Only that play reads the status, so every other second play asks what it asked before.
+    private secondAllowsOption(
+        playerId: string,
+        kept: string,
+        placement: SearchPlacement
+    ): ((option: PowerChoice) => boolean) | undefined {
+        const second = this.second
+        if (second?.play !== SearchPlay.RevealedVision) return undefined
+        if (this.reasonSecondCannotFollow(playerId, kept, placement, second) !== undefined) {
+            return undefined
+        }
+        return (option) =>
+            this.reasonSecondCannotFollow(playerId, kept, placement, second, [option]) === undefined
     }
 
     /** R-7.3.3 — the favor banks the When Played picks are judged on (Salad Days'). */
@@ -818,12 +836,13 @@ export class SearchDraft implements PanelDraft {
     // Land Warden — the second card as the engine judges it after the kept card's play: its When Played
     // power counts the map that play leaves (Riots), and the kept card's own When Played power when it is
     // played faceup; the room for both at your site is counted on that map too. At the adviser limit it is judged
-    // with the first advisers that may go, as a placement is.
+    // with the first advisers that may go, as a placement is. With `choices`, the kept card's When Played picks.
     private reasonSecondCannotFollow(
         playerId: string,
         kept: string,
         first: SearchPlacement,
-        option: SecondPlay
+        option: SecondPlay,
+        choices?: PowerChoice[]
     ): string | undefined {
         const state = this.session.gameState
         const { room } = option
@@ -841,7 +860,8 @@ export class SearchDraft implements PanelDraft {
             play: first.play,
             faceUp: first.faceUp,
             ...(first.play === SearchPlay.Site ? discardFirstFields(this.discardFirsts) : {}),
-            toSiteId: keptTo
+            toSiteId: keptTo,
+            ...(choices ? { choices } : {})
         }
         return (
             reasonCannotPairSecondPlay(state, playerId, keptPlay, second) ??
