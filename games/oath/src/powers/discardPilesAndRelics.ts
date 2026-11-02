@@ -12,6 +12,7 @@ import {
 import {
     becameImperialWords,
     becomeCitizenByPower,
+    citizenOnYes,
     exileRefusal,
     visionDeposits
 } from '../util/citizenship.js'
@@ -261,6 +262,7 @@ function citizenshipWithRelic(
                 return `${name}: name the Reliquary relic to take`
             return condition(ctx.state, ctx.playerId)
         },
+        statusAfter: citizenOnYes,
         resolve: (ctx) => {
             if (chosen(ctx, PowerChoiceKind.Yes).length === 0)
                 return { summary: `${name}: stayed an Exile` }

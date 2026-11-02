@@ -5,6 +5,7 @@ import { one, optional, PowerChoiceKind, type ChoiceDomain } from '../util/power
 import {
     becameImperialWords,
     becomeCitizenByPower,
+    citizenOnYes,
     exileRefusal,
     visionDeposits
 } from '../util/citizenship.js'
@@ -169,6 +170,7 @@ registerEffect(
             chosen(ctx, PowerChoiceKind.Yes).length > 0
                 ? exileRefusal(ctx.state, ctx.playerId)
                 : undefined,
+        statusAfter: citizenOnYes,
         resolve: (ctx) => {
             if (chosen(ctx, PowerChoiceKind.Yes).length === 0)
                 return { summary: 'Long-Lost Heir: stayed an Exile' }
@@ -235,6 +237,7 @@ registerEffect(
             chosen(ctx, PowerChoiceKind.Yes).length > 0
                 ? bewitchRefusal(ctx.state, ctx.playerId, ctx.mapChanges)
                 : undefined,
+        statusAfter: citizenOnYes,
         resolve: (ctx) => {
             if (chosen(ctx, PowerChoiceKind.Yes).length === 0)
                 return { summary: 'Bewitch: stayed an Exile' }

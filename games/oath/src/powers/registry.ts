@@ -1,5 +1,5 @@
 import { HydratedOathGameState } from '../model/gameState.js'
-import type { Banner, Region, Suit } from '../model/oathEnums.js'
+import type { Banner, PlayerStatus, Region, Suit } from '../model/oathEnums.js'
 import type { PersistentContext } from '../util/persistent.js'
 import type { BannerTake } from '../util/seize.js'
 import type { HiddenRequest, HiddenReveal, PileDeposit } from '../model/hidden.js'
@@ -79,6 +79,11 @@ export interface PlayMapChanges {
      * Played choice never offers one to discard (Great Herd's card discarded first at the Great Slum).
      */
     modifiersInUse?: readonly string[]
+    /**
+     * R-7.3.3-H3 — Land Warden's kept card: the player's status once its When Played power has resolved, when the
+     * choices made change it (Bewitch's "become a Citizen"). The second card is played on that status.
+     */
+    status?: PlayerStatus
     /**
      * R-7.3.3 — what the play gains before its When Played power, planned on the state before the play. Unlike the
      * map, these are not set-like: a check adds them to the state it reads, while the resolve's state holds them.
@@ -483,6 +488,11 @@ export interface EffectDefinition {
      * after the kept card's power.
      */
     mapLeaving?: (ctx: EffectContext) => string[]
+    /**
+     * R-7.3.3-H3 — the status a When Played power leaves its player in with `ctx.choices`, `ctx.state` unchanged;
+     * undefined when it leaves the status as it is. Land Warden's second card is played on it.
+     */
+    statusAfter?: (ctx: EffectContext) => PlayerStatus | undefined
     /** The state `ctx.choices` leave, `ctx.state` unchanged: what `sequential` choices read. */
     stateAfter?: (ctx: EffectContext) => HydratedOathGameState
     /** R-7.4 — never read by the doorway. */

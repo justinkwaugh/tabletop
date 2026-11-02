@@ -21,6 +21,8 @@ import { MAX_SUPPLY } from './rest.js'
 import { holdsTheTurn } from './turn.js'
 import { OathRevision, isAtLeastOathRevision } from './revision.js'
 import { cannotPlaceWarbandsAtSites } from './continuous.js'
+import { PowerChoiceKind } from '../model/powerChoice.js'
+import type { EffectContext } from '../powers/registry.js'
 
 export interface ConversionResult {
     replaced: WarbandGroup[]
@@ -228,6 +230,16 @@ export function exileRefusal(state: HydratedOathGameState, playerId: string): st
     return state.getPlayerState(playerId).status === PlayerStatus.Exile
         ? undefined
         : 'only an Exile can become a Citizen'
+}
+
+/**
+ * R-7.3.3-H3 — a When Played "you may become a Citizen": the status it leaves, `ctx.state` unchanged. A Citizen on
+ * its yes; with no yes the status is as it was.
+ */
+export function citizenOnYes(ctx: Pick<EffectContext, 'choices'>): PlayerStatus | undefined {
+    return ctx.choices.some((choice) => choice.kind === PowerChoiceKind.Yes)
+        ? PlayerStatus.Citizen
+        : undefined
 }
 
 export function becomeCitizenByPower(

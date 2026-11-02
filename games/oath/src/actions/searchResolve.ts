@@ -32,7 +32,8 @@ import {
     playMapChanges,
     reasonCannotPlayCard,
     reasonSiteFull,
-    whenPlayedMapLeaving
+    whenPlayedMapLeaving,
+    whenPlayedStatusAfter
 } from '../util/cardPlay.js'
 import type { PlayMapChanges } from '../powers/registry.js'
 import type { ActiveModifier } from '../util/modifiers.js'
@@ -401,8 +402,9 @@ export class HydratedSearchResolve
 }
 
 /**
- * Land Warden — the second drawn card and how it is played. Given the kept card's play, its When Played power is
- * judged on the map that play leaves; without it, on the map as it is.
+ * Land Warden — the second drawn card and how it is played. Given the kept card's play, it is judged on the map that
+ * play leaves, and with the kept card's When Played choices on the status they give (R-7.3.3-H3); without it, on the
+ * state as it is.
  */
 export function reasonCannotPlaySecondCard(
     state: HydratedOathGameState,
@@ -450,6 +452,7 @@ type KeptPlay = Pick<
     | 'toSiteId'
     | 'faceUp'
     | 'discardedAdviserCardIds'
+    | 'choices'
 >
 
 /** Land Warden — the kept card, and its play. */
@@ -459,7 +462,8 @@ type KeptCard = KeptPlay & Pick<SearchResolveChoice, 'keptCardId'>
  * Land Warden — the kept card's play lands before the second card's When Played power resolves: its map changes,
  * and what it gains first (R-7.3.3), with the Search's carried modifiers, as `playCard` plays it. From revision 26
  * the kept card's own When Played power has resolved too, so the cards it puts off the map are gone (Riots' Q&A
- * counts the cards at all sites as it resolves).
+ * counts the cards at all sites as it resolves), and with its choices the status it gives is the player's (Bewitch's
+ * "become a Citizen", R-7.3.3-H3), which only a Vision played second to the Revealed Vision space reads.
  */
 function keptPlayMapChanges(
     state: HydratedOathGameState,
@@ -478,10 +482,20 @@ function keptPlayMapChanges(
     // R-X.4 — before revision 26 the second card was judged on the map before the kept card's power.
     if (!isAtLeastOathRevision(state, OathRevision.EngineFixes22)) return changes
     const gone = whenPlayedMapLeaving(state, playerId, keptCardId, kept.play, kept.faceUp, changes)
+    const status = whenPlayedStatusAfter(
+        state,
+        playerId,
+        keptCardId,
+        kept.play,
+        kept.faceUp,
+        kept.choices ?? [],
+        changes
+    )
     return {
         ...changes,
         leaving: [...changes.leaving, ...gone],
-        arriving: changes.arriving.filter((id) => !gone.includes(id))
+        arriving: changes.arriving.filter((id) => !gone.includes(id)),
+        ...(status !== undefined ? { status } : {})
     }
 }
 

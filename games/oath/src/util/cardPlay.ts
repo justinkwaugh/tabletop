@@ -716,6 +716,27 @@ export function whenPlayedMapLeaving(
     return mapLeaving({ state, playerId, power, choices: [], mapChanges })
 }
 
+/**
+ * R-7.3.3-H3 — the status a faceup play's When Played power leaves the player in with `choices`, the state
+ * unchanged: undefined when it leaves it as it is. A power that declares none changes none.
+ */
+export function whenPlayedStatusAfter(
+    state: HydratedOathGameState,
+    playerId: string,
+    cardId: string,
+    play: SearchPlay,
+    faceUp: boolean | undefined,
+    choices: readonly PowerChoice[],
+    mapChanges: PlayMapChanges
+): PlayerStatus | undefined {
+    const power = isFaceupPlay(play, faceUp)
+        ? powersWithTiming(cardId, PowerTiming.WhenPlayed)[0]
+        : undefined
+    const statusAfter = power ? effectFor(power)?.statusAfter : undefined
+    if (!power || !statusAfter) return undefined
+    return statusAfter({ state, playerId, power, choices, mapChanges })
+}
+
 export function reasonWhenPlayedChoicesInvalid(
     state: HydratedOathGameState,
     playerId: string,
@@ -1159,15 +1180,19 @@ export function reasonCannotPlaceCard(
             if (cardId === CONSPIRACY_ID) {
                 return 'the Conspiracy is not played to the Revealed Vision space (R-5.1.4.IV)'
             }
-            if (player.status !== PlayerStatus.Exile) {
-                return `a ${player.status} cannot play a Vision faceup`
+            // R-7.3.3-H3 — Land Warden's second card is played after the kept card's power, on the status it gives
+            // and the cards at sites that play leaves.
+            const earlier = options.earlierMapChanges
+            const status = earlier?.status ?? player.status
+            if (status !== PlayerStatus.Exile) {
+                return `a ${status} cannot play a Vision faceup`
             }
             // R-7.1.4-H1, R-9.2 — Vow of Obedience's "cannot play Visions faceup".
             if (cannotPlayVisionsFaceup(state, playerId)) {
                 return 'you cannot play Visions faceup (Vow of Obedience)'
             }
             // R-7.1.4 — Secret Police, Sacred Ground.
-            return reasonPersistentForbidsFaceupVision(state, playerId, cardId)
+            return reasonPersistentForbidsFaceupVision(state, playerId, cardId, earlier)
         }
 
         case SearchPlay.Discard:

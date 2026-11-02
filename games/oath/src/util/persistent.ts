@@ -5,7 +5,7 @@ import type { CampaignParties } from './campaign.js'
 import type { CampaignTarget } from '../model/campaign.js'
 import { areEnemies, rulersOfSite, rulesSite, type ImperialScope } from './rule.js'
 import { persistentsOfCard, relicPersistentsHeldBy } from './heldPersistents.js'
-import type { PersistentHooks } from '../powers/registry.js'
+import type { PersistentHooks, PlayMapChanges } from '../powers/registry.js'
 import type { BannerTake } from './seize.js'
 import { isAtLeastOathRevision, OathRevision } from './revision.js'
 
@@ -64,10 +64,18 @@ export function ownersRuleSite(ctx: PersistentContext, siteId: string): boolean 
     return ctx.ownerIds.some((owner) => rulesSite(ctx.state, owner, siteId, ctx.scope))
 }
 
-/** `parties`: the Campaign's, from a caller that holds them before the Campaign is open. */
+/** What a play does to the cards at sites, read before it is made (`PlayMapChanges`). */
+type InPlayMapChanges = Pick<PlayMapChanges, 'leaving' | 'arriving' | 'siteId'>
+
+/**
+ * `parties`: the Campaign's, from a caller that holds them before the Campaign is open. `mapChanges`: a play's, from a
+ * check made before the play: the cards at sites as it leaves them, its card at `siteId` and the cards it takes off
+ * the map gone (Land Warden's second card, played after the kept card's, R-7.3.3-H3).
+ */
 export function persistentsInPlay(
     state: HydratedOathGameState,
-    parties?: ScopedParties
+    parties?: ScopedParties,
+    mapChanges?: InPlayMapChanges
 ): PersistentInPlay[] {
     const scope = powerScopeOf(state, parties)
     const found: PersistentInPlay[] = []
@@ -77,8 +85,16 @@ export function persistentsInPlay(
         }
         found.push(...relicPersistentsHeldBy(state, player, scope))
     }
-    for (const [siteId, cards] of Object.entries(state.denizensBySite)) {
+    const leaving = mapChanges?.leaving ?? []
+    const playedTo = mapChanges?.siteId
+    const siteIds = new Set(Object.keys(state.denizensBySite))
+    if (playedTo !== undefined) siteIds.add(playedTo)
+    for (const siteId of siteIds) {
         if (!state.isSiteFaceup(siteId)) continue
+        const arriving = siteId === playedTo ? (mapChanges?.arriving ?? []) : []
+        const cards = [...state.denizensAt(siteId), ...arriving].filter(
+            (cardId) => !leaving.includes(cardId)
+        )
         const rulers = rulersOfSite(state, siteId, scope)
         for (const cardId of cards) {
             found.push(...persistentsOfCard(state, cardId, rulers, { siteId, scope }))
@@ -93,12 +109,14 @@ export interface PersistentRefusal {
     reason: string
 }
 
+/** `mapChanges` as `persistentsInPlay` reads them. */
 export function firstPersistentRefusal(
     state: HydratedOathGameState,
     ask: (hooks: PersistentHooks, ctx: PersistentContext) => string | undefined,
-    parties?: ScopedParties
+    parties?: ScopedParties,
+    mapChanges?: InPlayMapChanges
 ): PersistentRefusal | undefined {
-    for (const { ctx, hooks } of persistentsInPlay(state, parties)) {
+    for (const { ctx, hooks } of persistentsInPlay(state, parties, mapChanges)) {
         const reason = ask(hooks, ctx)
         if (reason) return { cardId: ctx.cardId, reason }
     }
@@ -108,9 +126,10 @@ export function firstPersistentRefusal(
 export function firstPersistentReason(
     state: HydratedOathGameState,
     ask: (hooks: PersistentHooks, ctx: PersistentContext) => string | undefined,
-    parties?: ScopedParties
+    parties?: ScopedParties,
+    mapChanges?: InPlayMapChanges
 ): string | undefined {
-    return firstPersistentRefusal(state, ask, parties)?.reason
+    return firstPersistentRefusal(state, ask, parties, mapChanges)?.reason
 }
 
 export function runPersistent(
@@ -185,12 +204,19 @@ export function endDieAdjuster(
     return undefined
 }
 
+/** Secret Police, Sacred Ground — `mapChanges`: an earlier play's, judged before it is made (`persistentsInPlay`). */
 export function reasonPersistentForbidsFaceupVision(
     state: HydratedOathGameState,
     actorId: string,
-    cardId: string
+    cardId: string,
+    mapChanges?: InPlayMapChanges
 ) {
-    return firstPersistentReason(state, (h, ctx) => h.forbidsFaceupVision?.(ctx, actorId, cardId))
+    return firstPersistentReason(
+        state,
+        (h, ctx) => h.forbidsFaceupVision?.(ctx, actorId, cardId),
+        undefined,
+        mapChanges
+    )
 }
 export function persistentRefusesBannerTake(
     state: HydratedOathGameState,
