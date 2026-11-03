@@ -358,6 +358,7 @@ export type TableName =
     | 'landWardenSecondAdviser'
     | 'landWardenVisionKept'
     | 'facedownDreamThief'
+    | 'facedownDreamThiefSecond'
     | 'facedownInquisitor'
     | 'facedownIvoryEye'
     | 'warningSignals'
@@ -5812,8 +5813,10 @@ const TABLES: Record<TableName, () => PlayedTable | Promise<PlayedTable>> = {
     landWardenSecondAdviser,
     // R-5.1.4.III — Dana searched with Land Warden at the full Great Slum: Alchemist, then the Vision of Conquest.
     landWardenVisionKept,
-    // R-9.4 — Dana's facedown adviser picks: Dream Thief, Inquisitor (all at the Plains), the Ivory Eye.
+    // R-9.4 — Dana's facedown adviser picks: Dream Thief (first, or second among the advisers),
+    // Inquisitor (all at the Plains), the Ivory Eye.
     facedownDreamThief: () => facedownPickerTable('dreamThief'),
+    facedownDreamThiefSecond: () => facedownPickerTable('dreamThief', 1),
     facedownInquisitor: () => facedownPickerTable('inquisitor'),
     facedownIvoryEye: () => facedownPickerTable('ivoryEye'),
     warningSignals: () => warningSignalsTable(),

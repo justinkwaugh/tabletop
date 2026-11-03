@@ -14,6 +14,7 @@ async function openTable(page: Page, name: TableFixture.TableName) {
 const ORACLE = 'denizen.nomad.oracle'
 const ALCHEMIST = 'denizen.arcane.alchemist'
 const IVORY_EYE = 'relic.ivory-eye'
+const DREAM_THIEF = 'denizen.arcane.dream-thief'
 const NOT_BADGED = [
     'denizen.beast.birdsong',
     'denizen.hearth.awaited-return',
@@ -98,10 +99,9 @@ for (const viewport of [
             await expect(usePower(page)).toBeVisible()
 
             const size = await badgeSize(page, ORACLE)
-            // It fits its label: as wide as its face.
+            // It fits its label: as wide as its face, and 44 px tall at every width.
             expect(size.area.width).toBeCloseTo(size.face.width, 0)
-            if (phone) expect(size.area.height).toBeCloseTo(44, 0)
-            else expect(size.area.height).toBeCloseTo(size.face.height, 0)
+            expect(size.area.height).toBeCloseTo(44, 0)
             // The tap area runs down from the face, so the card above keeps its own tap.
             expect(size.area.top).toBeCloseTo(size.face.top, 0)
 
@@ -112,6 +112,70 @@ for (const viewport of [
             expect(face.y).toBeLessThan(card.y + card.height)
             expect(face.y + face.height).toBeGreaterThan(card.y + card.height)
         })
+
+        test('every badge, on the board and in the seat, is 44 px tall from its face down; a disabled one too', async ({
+            page
+        }) => {
+            await openBadgeTable(page, 'useBadge', phone)
+            await expect(badges(page)).toHaveCount(3)
+            for (const cardId of [ORACLE, ALCHEMIST, IVORY_EYE]) {
+                await badge(page, cardId).scrollIntoViewIfNeeded()
+                const size = await badgeSize(page, cardId)
+                expect(size.area.height).toBeCloseTo(44, 0)
+                expect(size.area.top).toBeCloseTo(size.face.top, 0)
+            }
+            // Disabled while a move is sent: the same tap area, no pointer.
+            const disabled = await badge(page, ALCHEMIST).evaluate((button) => {
+                if (!(button instanceof HTMLButtonElement)) return { height: 0, cursor: '' }
+                button.disabled = true
+                const result = {
+                    height: button.getBoundingClientRect().height,
+                    cursor: getComputedStyle(button).cursor
+                }
+                button.disabled = false
+                return result
+            })
+            expect(disabled.height).toBeCloseTo(44, 0)
+            expect(disabled.cursor).toBe('default')
+        })
+
+        for (const { name, slot } of [
+            { name: 'facedownDreamThief', slot: 0 },
+            { name: 'facedownDreamThiefSecond', slot: 1 }
+        ] as const) {
+            test(`with the badged adviser ${slot === 0 ? 'first' : 'second'} in the seat, no badge's tap area covers Let another peek`, async ({
+                page
+            }) => {
+                await openTable(page, name)
+                const peek = page.getByRole('button', { name: 'Let another peek', exact: true })
+                await expect(peek).toHaveCount(1)
+                // The badged card stands in the slot this scene names.
+                const slotOf = await badge(page, DREAM_THIEF).evaluate((button) => {
+                    const thumb = button.closest('figure')
+                    return thumb ? [...(thumb.parentElement?.children ?? [])].indexOf(thumb) : -1
+                })
+                expect(slotOf).toBe(slot)
+
+                const button = await peek.evaluate((element) => {
+                    const r = element.getBoundingClientRect()
+                    return { left: r.left, top: r.top, right: r.right, bottom: r.bottom }
+                })
+                const covered = await badges(page).evaluateAll(
+                    (all, button) =>
+                        all.map((element) => {
+                            const r = element.getBoundingClientRect()
+                            const width =
+                                Math.min(r.right, button.right) - Math.max(r.left, button.left)
+                            const height =
+                                Math.min(r.bottom, button.bottom) - Math.max(r.top, button.top)
+                            return width > 0 && height > 0 ? width * height : 0
+                        }),
+                    button
+                )
+                expect(covered.length).toBeGreaterThan(0)
+                for (const area of covered) expect(area).toBeLessThan(0.5)
+            })
+        }
 
         test('the badge opens Use a power with just that card; the card itself still enlarges', async ({
             page
@@ -231,6 +295,52 @@ for (const viewport of [
     })
 
     if (!phone) {
+        test.describe('the Use badge at the board’s zoom, at 1280 × 900', () => {
+            /** The badge's height and the board's zoom at it, once the board stands still. */
+            async function zoomedBadge(page: Page) {
+                const read: { last: string } = { last: '' }
+                await expect
+                    .poll(async () => {
+                        const now = JSON.stringify(await badge(page, ORACLE).boundingBox())
+                        const still = now === read.last
+                        read.last = now
+                        return still
+                    })
+                    .toBe(true)
+                return badge(page, ORACLE).evaluate((button) => ({
+                    height: button.getBoundingClientRect().height,
+                    zoom: parseFloat(getComputedStyle(button).getPropertyValue('--board-zoom'))
+                }))
+            }
+
+            test('zoomed in and out, a board card’s badge is 44 screen px tall', async ({
+                page
+            }) => {
+                await openTable(page, 'useBadge')
+                const rest = await zoomedBadge(page)
+                expect(rest.height).toBeCloseTo(44, 0)
+
+                await page
+                    .getByRole('group', { name: 'Focus the board' })
+                    .getByRole('button', { name: 'Cradle' })
+                    .click()
+                await expect
+                    .poll(async () => (await zoomedBadge(page)).zoom)
+                    .toBeGreaterThan(rest.zoom * 1.5)
+                const zoomedIn = await zoomedBadge(page)
+                expect(zoomedIn.height).toBeCloseTo(44, 0)
+
+                // Zoomed out by hand, between the two.
+                const board = await box(page.locator('.scaling-surface').first())
+                await page.mouse.move(board.x + board.width / 2, board.y + board.height / 2)
+                await page.mouse.wheel(0, 200)
+                await expect
+                    .poll(async () => (await zoomedBadge(page)).zoom)
+                    .toBeLessThan(zoomedIn.zoom)
+                expect((await zoomedBadge(page)).height).toBeCloseTo(44, 0)
+            })
+        })
+
         test.describe('the Use badge on a held relic, at 1280 × 900', () => {
             const WHISTLE = 'relic.whistle'
 

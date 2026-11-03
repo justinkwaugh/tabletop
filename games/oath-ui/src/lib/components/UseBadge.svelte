@@ -38,14 +38,15 @@
 
 <style>
     /* Centred on the card's foot, the face from 12 px above its edge to 6 px past it. The tap area
-       is the face, on a phone 44 px tall from the face down, so the card above keeps its own tap;
-       as wide as its label. */
+       is 44 px tall from the face down, at every width, so the card above keeps its own tap; as
+       wide as its label. */
     .use-badge {
         position: absolute;
         left: 50%;
         top: calc(100% - 12px);
         z-index: 7;
         display: flex;
+        min-height: 44px;
         align-items: flex-start;
         justify-content: center;
         padding: 0;
@@ -80,12 +81,5 @@
     }
     .use-badge:disabled .use-badge__face {
         opacity: 0.6;
-    }
-
-    @media (max-width: 640px) and (orientation: portrait),
-        (max-height: 520px) and (orientation: landscape) {
-        .use-badge {
-            min-height: 44px;
-        }
     }
 </style>

@@ -608,7 +608,10 @@
         text-align: center;
         color: #fde68a;
     }
+    /* Starts below the 44 px tap area of a Use badge on an adviser above, so that tap stays the
+       badge's. */
     .let-peek {
+        margin-top: 7px;
         padding: 0 8px 6px;
     }
 
