@@ -25,9 +25,6 @@ export function tileUpgradeMappings(
     const count = (face: TileFace, kind: TileNode['kind']) =>
         face.nodes.filter((node) => node.kind === kind).length
     const citiesMerge = count(before, 'city') > count(after, 'city')
-    // A terminal inside a tile, such as Boston's or Portland's, may become a city of a tile
-    // with fewer terminals.
-    const terminalsJoinCities = count(after, 'offboard') < count(before, 'offboard')
     function visit(index: number, mapping: Record<string, string>) {
         const node = before.nodes[index]
         if (!node) {
@@ -36,8 +33,8 @@ export function tileUpgradeMappings(
             return
         }
         for (const target of after.nodes) {
-            const joinsCity =
-                terminalsJoinCities && node.kind === 'offboard' && target.kind === 'city'
+            // A terminal inside a tile, such as Boston's or Portland's, may become a city.
+            const joinsCity = node.kind === 'offboard' && target.kind === 'city'
             if (
                 node.kind !== target.kind &&
                 !joinsCity &&

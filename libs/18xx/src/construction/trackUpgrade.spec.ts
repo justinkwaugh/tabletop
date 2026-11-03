@@ -5,7 +5,7 @@ import {
     createSeparateCitiesTileFace
 } from '../tiles/faces.js'
 import { tileUpgradeMappings, preservesPath } from './trackUpgrade.js'
-import type { TileFace } from '../tiles/tile.js'
+import type { TileEdge, TileFace } from '../tiles/tile.js'
 it('preserves independent tracks, not merely their exits', () => {
     const before = createTrackTileFace('yellow', [
         [0, 3],
@@ -69,4 +69,47 @@ it('keeps the order of cities that have no track', () => {
     expect(tileUpgradeMappings(cities('yellow', [0], []), cities('green', [2], [0]))).toEqual([
         { 'city-0': 'city-1', 'city-1': 'city-0' }
     ])
+})
+
+it('lets a terminal inside a tile join a city, with or without a terminal left', () => {
+    const stops = (color: string, city: number, terminal: number): TileFace => ({
+        color,
+        labels: [],
+        nodes: [
+            { id: 'city', kind: 'city', stationSlots: 1, revenue: { kind: 'fixed', amount: 10 } },
+            { id: 'terminal', kind: 'offboard', revenue: { kind: 'fixed', amount: 10 } }
+        ],
+        paths: [
+            {
+                id: 'city-track',
+                endpoints: [
+                    { kind: 'edge', edge: city as TileEdge },
+                    { kind: 'node', nodeId: 'city' }
+                ]
+            },
+            {
+                id: 'terminal-track',
+                endpoints: [
+                    { kind: 'edge', edge: terminal as TileEdge },
+                    { kind: 'node', nodeId: 'terminal' }
+                ]
+            }
+        ]
+    })
+    const after = stops('green', 0, 2)
+    expect(
+        tileUpgradeMappings(stops('yellow', 1, 0), {
+            ...after,
+            paths: [
+                ...after.paths,
+                {
+                    id: 'city-track-1',
+                    endpoints: [
+                        { kind: 'edge', edge: 1 },
+                        { kind: 'node', nodeId: 'city' }
+                    ]
+                }
+            ]
+        })
+    ).toEqual([{ city: 'city', terminal: 'city' }])
 })

@@ -22,6 +22,11 @@ import { holdsRightsOf } from './takeoverState.js'
 
 const TrackData = { map: Map1833NE, tileSet: TileSet1833NE }
 const SherbrookeTile = '1833ne:N11'
+const BostonGreenTile = '1833ne:N23'
+/** Keeping the south terminal (§6.46), or as the rulebook prints it, the terminal north-west (p. 9). */
+const BostonGreenRotations: readonly number[] = [0, 4]
+/** The two-spot city of Boston's green tile, which prints the B&P's reserved spot. */
+const BostonReservedCity = 'city-0'
 
 /** The two corporations of the golden spike and their joint Sherbrooke token. */
 export const StLawrenceCompanies = ['StL&A', 'A&StL'] as const
@@ -103,6 +108,9 @@ export const TrackRules1833NE: TrackRules = {
     useful: ({ newTrack, connectedCity, connectedTerminal }) =>
         newTrack || connectedCity || connectedTerminal,
     homeLocations: (companyId) => Map1833NE.reservedLocationIds(companyId),
+    // Whichever way Boston's green tile lies, the B&P's spot is the one it prints.
+    printedReservationNode: ({ companyId }, definitionId) =>
+        definitionId === BostonGreenTile && companyId === 'B&P' ? BostonReservedCity : undefined,
     // Manchester's green tiles become unlabelled brown cities (p. 21).
     relabels: (locationId, definitionId) =>
         locationId === 'F17' &&
@@ -113,6 +121,11 @@ export const TrackRules1833NE: TrackRules = {
         // Sherbrooke's tile has an orientation arrow: it joins north, north-east and south (§6.46).
         if (request.definitionId === SherbrookeTile && request.rotation !== 0)
             return 'Sherbrooke’s tile is laid as its arrow shows, joining north, north-east and south.'
+        if (
+            request.definitionId === BostonGreenTile &&
+            !BostonGreenRotations.includes(request.rotation)
+        )
+            return 'Boston’s green tile keeps its terminal south or lies as the rulebook prints it.'
         const reserved = FirstRoundReservedHexes[request.locationId]
         if (reserved && reserved !== request.companyId && firstOperatingRound(state))
             return `Only the ${reserved} may build here in the first operating round.`
