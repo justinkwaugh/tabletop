@@ -1,7 +1,7 @@
 import { HydratedOathGameState, discardRegionFor } from '../model/gameState.js'
 import { SearchPlay } from '../model/oathEnums.js'
 import type { AnswerOf, PowerQuestionKind } from '../model/question.js'
-import { HydratedPlayFacedownAdviser } from '../actions/playFacedownAdviser.js'
+import { AsIfSearchedCard, HydratedPlayFacedownAdviser } from '../actions/playFacedownAdviser.js'
 import { playCard, reasonCannotPlayCard } from './cardPlay.js'
 import { regionOfPawn } from './pawn.js'
 import {
@@ -53,7 +53,8 @@ export function falseProphetTollsUnpaid(state: HydratedOathGameState, playerId: 
 
 /**
  * R-6.1 — the modifiers acting on the play: those declared and the holder's mandatory ones, judged as a facedown
- * adviser's play judges its own. None before revision 32, and none on the plain discard left when a toll is unpaid.
+ * adviser's play judges its own, with a Vision as the card played. None before revision 32, and none on the plain
+ * discard left when a toll is unpaid.
  */
 function modifiersOf(
     state: HydratedOathGameState,
@@ -74,7 +75,13 @@ function modifiersOf(
             ? { reason: NO_FAVOR, active: [] }
             : { active: [] }
     }
-    return HydratedPlayFacedownAdviser.playModifiers(state, playerId, answer.play, answer.modifiers)
+    return HydratedPlayFacedownAdviser.playModifiers(
+        state,
+        playerId,
+        answer.play,
+        answer.modifiers,
+        AsIfSearchedCard.Vision
+    )
 }
 
 /** R-5.1.4 — the play or discard "as if you had searched", with its modifiers and tolls. */

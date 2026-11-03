@@ -56,6 +56,12 @@ const FACEDOWN_PLAY: TollOccasion = { kind: 'facedownPlay' }
  */
 export const PLAY_NOT_YET_KNOWN = 'notYetKnown'
 
+/** R-6.1 — what a play "as if you searched" shows: a facedown adviser, or a Vision (Oracle's, False Prophet's). */
+export enum AsIfSearchedCard {
+    FacedownAdviser = 'facedownAdviser',
+    Vision = 'vision'
+}
+
 export type PlayFacedownAdviserMetadata = Type.Static<typeof PlayFacedownAdviserMetadata>
 export const PlayFacedownAdviserMetadata = Type.Object({
     /** R-7.3.3 — after this play's own discards. */
@@ -386,12 +392,15 @@ export class HydratedPlayFacedownAdviser
      * `PLAY_NOT_YET_KNOWN`: a power's draw played "as if you searched" (Oracle), whose modifiers are
      * declared at its use (R-7.4), before the draw and so before its play is picked; no card is a
      * facedown adviser there, and of the mandatory ones only those acting on any play or discard apply.
+     * `card`: what the play shows, a facedown adviser (R-6.1) or a Vision (False Prophet's); Oracle's draw is a
+     * Vision.
      */
     static playModifiers(
         state: HydratedOathGameState,
         playerId: string,
         play: SearchPlay | typeof PLAY_NOT_YET_KNOWN,
-        uses: readonly ModifierUse[] | undefined
+        uses: readonly ModifierUse[] | undefined,
+        card: AsIfSearchedCard = AsIfSearchedCard.FacedownAdviser
     ): { reason?: string; active: ActiveModifier[] } {
         // R-X.4 — a game created before this revision played a facedown adviser with no modifier.
         if (!isAtLeastOathRevision(state, OathRevision.CostsAndFacedownModifiers)) {
@@ -402,25 +411,30 @@ export class HydratedPlayFacedownAdviser
                   }
                 : { active: [] }
         }
+        const vision = play === PLAY_NOT_YET_KNOWN || card === AsIfSearchedCard.Vision
+        // R-7.4, R-X.4 — from revision 33 every declared modifier that cannot act on this play or draw is refused;
+        // before it, only one that changes the draw (and not Great Spire's swap).
+        const everyOne = isAtLeastOathRevision(state, OathRevision.EngineFixes28)
         for (const use of uses ?? []) {
             const power = powerInPlay(state, use.cardId, use.powerIndex)
             const hooks = power ? effectFor(power)?.modifier : undefined
-            if (hooks && HydratedPlayFacedownAdviser.changesTheDraw(hooks)) {
-                return {
-                    reason:
-                        play === PLAY_NOT_YET_KNOWN
-                            ? `${use.cardId} changes a Search's draw, and this power draws by its own text`
-                            : `${use.cardId} changes a Search's draw, and this play draws nothing`,
-                    active: []
-                }
-            }
+            const reason = hooks
+                ? HydratedPlayFacedownAdviser.reasonCannotAct(use.cardId, hooks, play, {
+                      vision,
+                      everyOne
+                  })
+                : undefined
+            if (reason) return { reason, active: [] }
         }
+        // Only a facedown adviser's play shows a facedown adviser (Welcoming Party); before revision 33, False
+        // Prophet's Vision was judged as one too.
+        const facedownAdviserPlay = card === AsIfSearchedCard.FacedownAdviser || !everyOne
         const resolved = resolveModifiers(
             state,
             playerId,
             ActionType.Search,
             uses,
-            play === PLAY_NOT_YET_KNOWN ? {} : { facedownAdviserPlay: true, playedTo: play }
+            play === PLAY_NOT_YET_KNOWN ? {} : { facedownAdviserPlay, playedTo: play }
         )
         if (resolved.reason) return resolved
         return {
@@ -430,7 +444,45 @@ export class HydratedPlayFacedownAdviser
         }
     }
 
-    private static changesTheDraw(hooks: ModifierHooks): boolean {
+    /**
+     * R-7.4 — why a declared modifier cannot act on this play or draw, read from its hooks and the play: it changes
+     * a Search's draw, and this play draws nothing or draws by its power's own text; it acts only on a play to a site,
+     * and this play is not one; or it acts only when a denizen is played, and the card played is a Vision. Before
+     * revision 33 (`everyOne` false), only the first, without Great Spire's swap.
+     */
+    private static reasonCannotAct(
+        cardId: string,
+        hooks: ModifierHooks,
+        play: SearchPlay | typeof PLAY_NOT_YET_KNOWN,
+        { vision, everyOne }: { vision: boolean; everyOne: boolean }
+    ): string | undefined {
+        if (HydratedPlayFacedownAdviser.changesTheDraw(hooks, everyOne)) {
+            return play === PLAY_NOT_YET_KNOWN
+                ? `${cardId} changes a Search's draw, and this power draws by its own text`
+                : `${cardId} changes a Search's draw, and this play draws nothing`
+        }
+        if (!everyOne) return undefined
+        if (
+            HydratedPlayFacedownAdviser.actsAtSite(hooks) &&
+            !HydratedPlayFacedownAdviser.actsOnPlay(hooks, play)
+        ) {
+            const why =
+                play === PLAY_NOT_YET_KNOWN
+                    ? 'the Vision this power draws is never played to a site'
+                    : vision
+                      ? 'this Vision is not played to a site'
+                      : 'this play is not to a site'
+            return `${cardId} acts on a play to a site, and ${why}`
+        }
+        // Welcoming Party's bank is read only once a denizen is played.
+        if (hooks.playFavorFrom !== undefined && vision) {
+            return `${cardId} acts when a denizen is played, and the card played is a Vision`
+        }
+        return undefined
+    }
+
+    /** `swapsDrawn`: Great Spire's swap of the denizens drawn counts, from revision 33. */
+    private static changesTheDraw(hooks: ModifierHooks, swapsDrawn: boolean): boolean {
         return (
             hooks.supplyCost !== undefined ||
             hooks.spendsNoSupply !== undefined ||
@@ -439,8 +491,18 @@ export class HydratedPlayFacedownAdviser
             hooks.drawRegion !== undefined ||
             hooks.drawsFromBottom === true ||
             hooks.revealsDraw === true ||
+            (swapsDrawn && hooks.swapsWithDispossessed === true) ||
             hooks.secondPlay === true ||
             hooks.forbids !== undefined
+        )
+    }
+
+    /** New Growth, Crop Rotation, the Book of Records. */
+    private static actsAtSite(hooks: ModifierHooks): boolean {
+        return (
+            hooks.sitePlayGainsSecret === true ||
+            hooks.playAnywhere !== undefined ||
+            hooks.discardFirstAtSitePlay === true
         )
     }
 
@@ -448,12 +510,8 @@ export class HydratedPlayFacedownAdviser
         hooks: ModifierHooks,
         play: SearchPlay | typeof PLAY_NOT_YET_KNOWN
     ): boolean {
-        const atSite =
-            hooks.sitePlayGainsSecret === true ||
-            hooks.playAnywhere !== undefined ||
-            hooks.discardFirstAtSitePlay === true
         return (
-            (atSite && play === SearchPlay.Site) ||
+            (HydratedPlayFacedownAdviser.actsAtSite(hooks) && play === SearchPlay.Site) ||
             hooks.discardTo !== undefined ||
             hooks.after !== undefined
         )
