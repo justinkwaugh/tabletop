@@ -340,6 +340,7 @@ export type TableName =
     | 'witchsBargainSilenced'
     | 'witchsBargainOneOther'
     | 'witchsBargainSteps'
+    | 'witchsBargainStepsShort'
     | 'drumAsked'
     | 'drumAskedCitizen'
     | 'drumAfterToll'
@@ -2640,9 +2641,11 @@ function witchsBargainTable(silenced: boolean, annAway: boolean): PlayedTable {
 /**
  * Witch's Bargain from revision 32, its exchanges steps in order: Dana (Exile) holds it, 2 secrets
  * (1 to give after the cost) and no favor; Rhys (Exile) 2 favor and 1 secret; Ann, the Chancellor,
- * 1 favor and 1 secret. All three pawns are at the top Cradle site.
+ * 1 favor and 1 secret. All three pawns are at the top Cradle site. `short`: from revision 33, each
+ * step taking as many as the other player holds, Dana holds 2 favor, Rhys 1 favor and no secret,
+ * Ann nothing.
  */
-function witchsBargainStepsTable(): PlayedTable {
+function witchsBargainStepsTable(short: boolean): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
     const state = testState(
         [
@@ -2651,7 +2654,7 @@ function witchsBargainStepsTable(): PlayedTable {
                 color: Color.Red,
                 status: PlayerStatus.Exile,
                 siteId: home,
-                favor: 0,
+                favor: short ? 2 : 0,
                 secrets: 2,
                 advisers: [{ cardId: 'denizen.arcane.witchs-bargain', faceUp: true }]
             }),
@@ -2660,16 +2663,16 @@ function witchsBargainStepsTable(): PlayedTable {
                 color: Color.Blue,
                 status: PlayerStatus.Exile,
                 siteId: home,
-                favor: 2,
-                secrets: 1
+                favor: short ? 1 : 2,
+                secrets: short ? 0 : 1
             }),
             testPlayer({
                 playerId: 'ann',
                 color: Color.Purple,
                 status: PlayerStatus.Chancellor,
                 siteId: home,
-                favor: 1,
-                secrets: 1
+                favor: short ? 0 : 1,
+                secrets: short ? 0 : 1
             })
         ],
         {
@@ -2678,7 +2681,7 @@ function witchsBargainStepsTable(): PlayedTable {
             map: allMapSlots(),
             siteCards: fixtureSitesOnTheBoard(),
             denizensBySite: { [home]: [] },
-            oathRevision: OathRevision.EngineFixes27
+            oathRevision: short ? OathRevision.EngineFixes28 : OathRevision.EngineFixes27
         }
     )
     openTurn(state, 'dana')
@@ -5584,7 +5587,8 @@ const TABLES: Record<TableName, () => PlayedTable | Promise<PlayedTable>> = {
     witchsBargain: () => witchsBargainTable(false, false),
     witchsBargainSilenced: () => witchsBargainTable(true, false),
     witchsBargainOneOther: () => witchsBargainTable(false, true),
-    witchsBargainSteps: witchsBargainStepsTable,
+    witchsBargainSteps: () => witchsBargainStepsTable(false),
+    witchsBargainStepsShort: () => witchsBargainStepsTable(true),
     modifierTravel: () => modifierTable('modifierTravel'),
     modifierMuster: () => modifierTable('modifierMuster'),
     modifierTrade: () => modifierTable('modifierTrade'),

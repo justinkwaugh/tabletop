@@ -10053,6 +10053,64 @@ test.describe('Witch’s Bargain from revision 32: steps in order, each on what 
     })
 })
 
+/**
+ * Witch's Bargain from revision 33: a step takes as many as the other player holds, down to 0, and
+ * the pieces and the done line name what it takes, as History does. Dana (2 favor, 2 secrets, 1 to
+ * give after the cost), Rhys (1 favor, no secret) and Ann (nothing) share one site.
+ */
+test.describe('Witch’s Bargain from revision 33: the words name what each step takes', () => {
+    test('Rhys first: 1 secret for Rhys’s 1 favor, then 2 favor for Ann’s 0 secrets; the done line and History agree', async ({
+        page
+    }) => {
+        await openTable(page, 'witchsBargainStepsShort')
+        await usePower(page).click()
+        await bargainChip(page, 'rhys').click()
+        await expect(answer(page, 'give rhys 1 secret for 1 favor')).toBeEnabled()
+        await expect(answer(page, 'give rhys 2 favor for 0 secrets')).toBeEnabled()
+        await answer(page, 'give rhys 1 secret for 1 favor').click()
+        // The pair would take back the secret this step gives.
+        await expect(answer(page, 'give rhys 2 favor for 1 secret')).toBeEnabled()
+
+        await thenChip(page, 'ann').click()
+        await expect(doneLines(page)).toHaveCount(1)
+        await expect(doneLines(page)).toContainText(/rhys\s*:\s*give 1\s*for 1/)
+        await expect(doneLines(page).locator('img')).toHaveCount(2)
+        await expect(favorPairs(page, 'ann')).toHaveCount(1)
+        await answer(page, 'give ann 2 favor for 0 secrets').click()
+
+        // Undo puts Ann's pair back as it was.
+        await undoButton(page).click()
+        await expect(answer(page, 'give ann 2 favor for 0 secrets')).toHaveAttribute(
+            'aria-pressed',
+            'false'
+        )
+        await answer(page, 'give ann 2 favor for 0 secrets').click()
+        await bargainUse(page).click()
+        await expect
+            .poll(async () => (await call(page, 'tableFacts')).secretsOn[WITCHS_BARGAIN])
+            .toBe(1)
+        const facts = await call(page, 'tableFacts')
+        expect(facts.secretsOf).toEqual({ dana: 0, rhys: 1, ann: 0 })
+        expect(facts.favorOf).toEqual({ dana: 1, rhys: 0, ann: 2 })
+        await page.getByRole('tab', { name: 'History' }).click()
+        await expect(page.locator('.history')).toContainText(
+            /gave\s*rhys\s*1\s*for 1\s*, then gave\s*ann\s*2\s*for 0/
+        )
+    })
+
+    test('Ann first: 2 favor for 0 secrets, then 1 secret for Rhys’s 1 favor', async ({ page }) => {
+        await openTable(page, 'witchsBargainStepsShort')
+        await usePower(page).click()
+        await bargainChip(page, 'ann').click()
+        await answer(page, 'give ann 2 favor for 0 secrets').click()
+        await thenChip(page, 'rhys').click()
+        await expect(doneLines(page)).toHaveCount(1)
+        await expect(doneLines(page)).toContainText(/ann\s*:\s*give 2\s*for 0/)
+        await expect(doneLines(page).locator('img')).toHaveCount(2)
+        await expect(answer(page, 'give rhys 1 secret for 1 favor')).toBeEnabled()
+    })
+})
+
 /** Dragonskin Drum when a power moves its holder (revision 7): one question after the move, in the Toll Roads form. */
 test.describe('Dragonskin Drum when a power moves its holder', () => {
     const answers = (page: Page) => ({

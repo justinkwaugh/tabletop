@@ -2,15 +2,17 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
 import {
     ActionType,
+    HydratedOathGameState,
     MachineState,
     OathRevision,
     PlayerStatus,
     PowerChoiceKind,
-    type HydratedOathGameState
+    Suit
 } from '@tabletop/oath'
-import { openTurn, required, testPlayer, testState } from '@tabletop/oath/testing'
+import { openTurn, required, served, testPlayer, testState } from '@tabletop/oath/testing'
 import { emptyPicks } from './powerChoices.js'
 import {
+    bargainCountLabel,
     bargainStepLine,
     bargainStepPlayers,
     bargainStepRows,
@@ -26,6 +28,7 @@ afterEach(() => disposeSessions())
 
 const WITCHS_BARGAIN = 'denizen.arcane.witchs-bargain'
 const SILENCE = 'denizen.arcane.vow-of-silence'
+const KINSHIP = 'denizen.nomad.vow-of-kinship'
 const DANA = 'dana'
 const RHYS = 'rhys'
 const ANN = 'ann'
@@ -38,7 +41,7 @@ type Seat = { favor?: number; secrets?: number; siteId?: string; advisers?: stri
  * and 1 secret; Ann, the Chancellor, 1 favor and 1 secret. All three pawns are at c1.
  */
 function scene(
-    v: { dana?: Seat; rhys?: Seat; ann?: Seat; revision?: OathRevision } = {}
+    v: { dana?: Seat; rhys?: Seat; ann?: Seat; revision?: OathRevision; nomadBank?: number } = {}
 ): HydratedOathGameState {
     const seat = (id: string, color: Color, status: PlayerStatus, base: Seat, over: Seat = {}) =>
         testPlayer({
@@ -77,6 +80,7 @@ function scene(
             oathRevision: v.revision ?? OathRevision.EngineFixes27
         }
     )
+    if (v.nomadBank !== undefined) state.favorBank[Suit.Nomad] = v.nomadBank
     openTurn(state, DANA)
     state.activePlayerIds = [DANA]
     return state
@@ -147,11 +151,16 @@ describe("Witch's Bargain's steps, in order (revision 32)", () => {
         expect(draft.reasonCannotUse(power)).toBeUndefined()
     })
 
-    it('the done line names the step’s exchanges with their tokens, in order', () => {
-        expect(bargainStepLine(step(RHYS, 1, 0))).toBe('give 1 secret for 2 favor')
-        expect(bargainStepLine(step(ANN, 0, 2))).toBe('give 4 favor for 2 secret')
-        expect(bargainStepLine(step(RHYS, 1, 1))).toBe(
-            'give 1 secret for 2 favor, then give 2 favor for 1 secret'
+    it('the done line names the step’s exchanges with their tokens, in order', async () => {
+        const { state } = await bargaining({ dana: { secrets: 3 }, rhys: { favor: 4, secrets: 2 } })
+        expect(bargainStepLine(state(), DANA, [step(RHYS, 1, 0)], 0)).toBe(
+            'give 1 secret for 2 favor'
+        )
+        expect(bargainStepLine(state(), DANA, [step(RHYS, 2, 2)], 0)).toBe(
+            'give 2 secret for 4 favor, then give 4 favor for 2 secret'
+        )
+        expect(bargainStepLine(state(), DANA, [step(RHYS, 1, 0), step(ANN, 0, 1)], 1)).toBe(
+            'give 2 favor for 1 secret'
         )
     })
 
@@ -296,5 +305,194 @@ describe("Witch's Bargain's steps from revision 33 — each takes as many as the
         expect(draft.reasonCannotUse(power)).toMatch(/rhys has 1 favor, not the 2 you would take/)
         pick([step(ANN, 0, 1)])
         expect(draft.reasonCannotUse(power)).toMatch(/ann has 0 secrets, not the 1 you would take/)
+    })
+})
+
+/**
+ * Dana holds 2 favor and 2 secrets (1 to give after the cost), Rhys 1 favor and no secret, Ann
+ * nothing. The tap labels and the done line name what each step takes, as the engine counts it
+ * after the steps above it, as History does.
+ */
+describe("Witch's Bargain's words from revision 33 — each names what its step takes", () => {
+    const short = {
+        revision: OathRevision.EngineFixes28,
+        dana: { favor: 2 },
+        rhys: { favor: 1, secrets: 0 },
+        ann: { favor: 0, secrets: 0 }
+    }
+    const label = (
+        s: HydratedOathGameState,
+        steps: readonly BargainPick[],
+        name: string,
+        term: 'secretsGiven' | 'pairsGiven',
+        n: number
+    ) => bargainCountLabel(s, DANA, steps, name, term, n)
+
+    it('Rhys first: 1 secret takes Rhys’s 1 favor, then 2 favor take none of Ann’s secrets; the done lines say so', async () => {
+        const { draft, picked, state, tapPlayer, tapCount } = await bargaining(short)
+        tapPlayer(0, RHYS)
+        expect(label(state(), picked(), 'Rhys', 'secretsGiven', 1)).toBe(
+            'give Rhys 1 secret for 1 favor'
+        )
+        // Before the secret, Rhys holds none for Dana's pair.
+        expect(label(state(), picked(), 'Rhys', 'pairsGiven', 1)).toBe(
+            'give Rhys 2 favor for 0 secrets'
+        )
+        tapCount('secretsGiven', 1)
+        // The secret just given in this step is the one a pair takes back.
+        expect(label(state(), picked(), 'Rhys', 'pairsGiven', 1)).toBe(
+            'give Rhys 2 favor for 1 secret'
+        )
+        tapPlayer(1, ANN)
+        expect(bargainStepLine(state(), DANA, picked(), 0)).toBe('give 1 secret for 1 favor')
+        expect(label(state(), picked(), 'Ann', 'pairsGiven', 1)).toBe(
+            'give Ann 2 favor for 0 secrets'
+        )
+        tapCount('pairsGiven', 1)
+        expect(bargainStepLine(state(), DANA, picked(), 1)).toBe('give 2 favor for 0 secret')
+        // Undo back to Rhys's open step: the words read on the steps then.
+        expect(draft.back()).toBe(true)
+        expect(draft.back()).toBe(true)
+        expect(picked()).toEqual([step(RHYS, 1, 0)])
+        expect(label(state(), picked(), 'Rhys', 'secretsGiven', 1)).toBe(
+            'give Rhys 1 secret for 1 favor'
+        )
+    })
+
+    it('Ann first: 2 favor take 0 secrets, then 1 secret takes Rhys’s 1 favor', async () => {
+        const { picked, state, tapPlayer, tapCount } = await bargaining(short)
+        tapPlayer(0, ANN)
+        expect(label(state(), picked(), 'Ann', 'pairsGiven', 1)).toBe(
+            'give Ann 2 favor for 0 secrets'
+        )
+        tapCount('pairsGiven', 1)
+        tapPlayer(1, RHYS)
+        expect(bargainStepLine(state(), DANA, picked(), 0)).toBe('give 2 favor for 0 secret')
+        expect(label(state(), picked(), 'Rhys', 'secretsGiven', 1)).toBe(
+            'give Rhys 1 secret for 1 favor'
+        )
+        tapCount('secretsGiven', 1)
+        expect(bargainStepLine(state(), DANA, picked(), 1)).toBe('give 1 secret for 1 favor')
+    })
+
+    it('a later step with the same player reads what the earlier one left them', async () => {
+        const { picked, state, tapPlayer, tapCount } = await bargaining({
+            ...short,
+            dana: { favor: 4, secrets: 3 }
+        })
+        tapPlayer(0, RHYS)
+        tapCount('secretsGiven', 1)
+        tapPlayer(1, ANN)
+        tapCount('pairsGiven', 1)
+        tapPlayer(2, RHYS)
+        // Rhys's favor went in the first step; the secret given them then is there to take.
+        expect(label(state(), picked(), 'Rhys', 'secretsGiven', 1)).toBe(
+            'give Rhys 1 secret for 0 favor'
+        )
+        expect(label(state(), picked(), 'Rhys', 'pairsGiven', 1)).toBe(
+            'give Rhys 2 favor for 1 secret'
+        )
+    })
+
+    it('Vow of Kinship on Rhys: only the favor on their board is taken, none of the Nomad bank', async () => {
+        const { picked, state, tapPlayer } = await bargaining({
+            ...short,
+            rhys: { favor: 1, secrets: 0, advisers: [KINSHIP] },
+            nomadBank: 3
+        })
+        tapPlayer(0, RHYS)
+        expect(label(state(), picked(), 'Rhys', 'secretsGiven', 1)).toBe(
+            'give Rhys 1 secret for 1 favor'
+        )
+    })
+
+    it('Vow of Kinship on Dana: the favor taken goes to the Nomad bank and pays the next step, which takes Ann’s none', async () => {
+        const { picked, state, tapPlayer, tapCount } = await bargaining({
+            ...short,
+            dana: { favor: 0, advisers: [KINSHIP] },
+            nomadBank: 1
+        })
+        tapPlayer(0, RHYS)
+        expect(label(state(), picked(), 'Rhys', 'secretsGiven', 1)).toBe(
+            'give Rhys 1 secret for 1 favor'
+        )
+        tapCount('secretsGiven', 1)
+        tapPlayer(1, ANN)
+        expect(bargainStepLine(state(), DANA, picked(), 0)).toBe('give 1 secret for 1 favor')
+        expect(label(state(), picked(), 'Ann', 'pairsGiven', 1)).toBe(
+            'give Ann 2 favor for 0 secrets'
+        )
+    })
+
+    it('Vow of Silence: no secrets row, and the pair names the 0 it takes', async () => {
+        const { picked, state, tapPlayer } = await bargaining({
+            ...short,
+            dana: { favor: 2, advisers: [SILENCE] }
+        })
+        tapPlayer(0, ANN)
+        expect(bargainStepRows(state(), DANA, picked()).secrets).toBeUndefined()
+        expect(label(state(), picked(), 'Ann', 'pairsGiven', 1)).toBe(
+            'give Ann 2 favor for 0 secrets'
+        )
+    })
+
+    it('the secret the cost places cannot be tapped, and its piece names the exchange asked, as before', async () => {
+        const { picked, state, tapPlayer } = await bargaining(short)
+        tapPlayer(0, RHYS)
+        expect(bargainStepRows(state(), DANA, picked()).secrets?.addable).toBe(1)
+        expect(label(state(), picked(), 'Rhys', 'secretsGiven', 2)).toBe(
+            'give Rhys 2 secrets for 4 favor'
+        )
+    })
+
+    it('on Dana’s own view the words are the same', async () => {
+        const { picked, state, tapPlayer, tapCount } = await bargaining(short)
+        const own = () =>
+            new HydratedOathGameState(served(state(), { kind: 'player', playerId: DANA }))
+        tapPlayer(0, RHYS)
+        expect(label(own(), picked(), 'Rhys', 'secretsGiven', 1)).toBe(
+            'give Rhys 1 secret for 1 favor'
+        )
+        tapCount('secretsGiven', 1)
+        tapPlayer(1, ANN)
+        expect(bargainStepLine(own(), DANA, picked(), 0)).toBe('give 1 secret for 1 favor')
+        expect(label(own(), picked(), 'Ann', 'pairsGiven', 1)).toBe(
+            'give Ann 2 favor for 0 secrets'
+        )
+    })
+
+    it('when the other player holds enough the words read as before, at revision 33 and at 32', async () => {
+        for (const revision of [OathRevision.EngineFixes28, OathRevision.EngineFixes27]) {
+            const { picked, state, tapPlayer, tapCount } = await bargaining({ revision })
+            tapPlayer(0, RHYS)
+            expect(label(state(), picked(), 'Rhys', 'secretsGiven', 1)).toBe(
+                'give Rhys 1 secret for 2 favor'
+            )
+            tapCount('secretsGiven', 1)
+            expect(label(state(), picked(), 'Rhys', 'pairsGiven', 1)).toBe(
+                'give Rhys 2 favor for 1 secret'
+            )
+            tapPlayer(1, ANN)
+            expect(bargainStepLine(state(), DANA, picked(), 0)).toBe('give 1 secret for 2 favor')
+            expect(label(state(), picked(), 'Ann', 'pairsGiven', 1)).toBe(
+                'give Ann 2 favor for 1 secret'
+            )
+            disposeSessions()
+        }
+    })
+
+    it('at revision 32 the short seats’ pieces cannot be tapped, and name the exchange asked', async () => {
+        const { picked, state, tapPlayer } = await bargaining({
+            ...short,
+            revision: OathRevision.EngineFixes27
+        })
+        tapPlayer(0, RHYS)
+        expect(bargainStepRows(state(), DANA, picked()).secrets?.addable).toBe(0)
+        expect(label(state(), picked(), 'Rhys', 'secretsGiven', 1)).toBe(
+            'give Rhys 1 secret for 2 favor'
+        )
+        expect(label(state(), picked(), 'Rhys', 'pairsGiven', 1)).toBe(
+            'give Rhys 2 favor for 1 secret'
+        )
     })
 })

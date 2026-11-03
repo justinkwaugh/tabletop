@@ -6,6 +6,7 @@
     import TokenText from '$lib/components/TokenText.svelte'
     import { favorToken, secretToken } from '$lib/images/tileImages.js'
     import {
+        bargainCountLabel,
         bargainPlayers,
         bargainRows,
         bargainStepLine,
@@ -30,7 +31,9 @@
     // From revision 32 (the spec's `inOrder`) the picks are steps in order, each using what the user
     // holds then: each step above the open one is one line, the open step has its chips ("With:"
     // first, "Then:" after) and its rows read after the steps above, a row with no pieces hidden,
-    // and once it has a count "Then:" offers whom a next step can deal with.
+    // and once it has a count "Then:" offers whom a next step can deal with. A piece's spoken name and
+    // a step's line say what the step takes, as the engine counts it then (from revision 33 as many
+    // as the other player holds, down to 0), as History does.
     let {
         legal,
         picks,
@@ -73,7 +76,7 @@
                 {#if k < steps.length - 1}
                     <p class={k > 0 ? 'mt-1 text-sm' : 'text-sm'} data-bargain-done={k}>
                         <PlayerName playerId={step.playerId} />: <TokenText
-                            text={bargainStepLine(step)}
+                            text={bargainStepLine(gameSession.gameState, me, steps, k)}
                         />
                     </p>
                 {:else}
@@ -105,7 +108,14 @@
                                     image={secretToken()}
                                     {...rows.secrets}
                                     label={(n) =>
-                                        `give ${name} ${n} ${n === 1 ? 'secret' : 'secrets'} for ${2 * n} favor`}
+                                        bargainCountLabel(
+                                            gameSession.gameState,
+                                            me,
+                                            steps,
+                                            name,
+                                            'secretsGiven',
+                                            n
+                                        )}
                                     ontap={(n) =>
                                         onchange(
                                             withBargainStepCount(
@@ -131,7 +141,14 @@
                                     {...rows.pairs}
                                     per={2}
                                     label={(n) =>
-                                        `give ${name} ${2 * n} favor for ${n} ${n === 1 ? 'secret' : 'secrets'}`}
+                                        bargainCountLabel(
+                                            gameSession.gameState,
+                                            me,
+                                            steps,
+                                            name,
+                                            'pairsGiven',
+                                            n
+                                        )}
                                     ontap={(n) =>
                                         onchange(
                                             withBargainStepCount(

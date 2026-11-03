@@ -1,5 +1,6 @@
 import {
     PowerChoiceKind,
+    reasonCannotBargainInOrder,
     usableFavor,
     witchsBargainBounds,
     witchsBargainStepBounds,
@@ -250,14 +251,93 @@ export function withBargainStepCount(
     return [...before, { ...next, pairsGiven: Math.min(next.pairsGiven, pairs.addable) }]
 }
 
-/** A finished step as its one line reads: its secrets given, then its pairs, with their tokens. */
-export function bargainStepLine(step: BargainPick): string {
+/** Favor and secrets: what the user holds, or what a step takes from the other player. */
+type FavorAndSecrets = { favor: number; secrets: number }
+
+/**
+ * What the user holds once the steps are made, as the engine counts them: the secrets and the
+ * favor a step after them starts with. That step's player is read only for its own bounds, so the
+ * user's own seat stands in.
+ */
+function heldAfter(
+    state: HydratedOathGameState,
+    playerId: string,
+    steps: readonly BargainPick[]
+): FavorAndSecrets {
+    const bounds = witchsBargainStepBounds(state, playerId, steps, playerId)
+    return { favor: bounds.favorHeld, secrets: bounds.secretsHeld }
+}
+
+/**
+ * From revision 32, what the step after `before` takes, read on the engine's counts after the
+ * steps above it (from revision 33 as many as the other player holds then, down to 0; at 32 all it
+ * names, as a short step is refused there): the favor its secrets bring the user, then the secrets
+ * its pairs do. Vow of Kinship, Vow of Silence and a secret this step gave first are counted as the
+ * engine counts them. A step the engine refuses takes nothing, and its words name what it asks, as
+ * before: the pieces the rows do not let the count reach.
+ */
+function stepTaken(
+    state: HydratedOathGameState,
+    playerId: string,
+    before: readonly BargainPick[],
+    step: BargainPick
+): FavorAndSecrets {
+    const asked = { favor: 2 * step.secretsGiven, secrets: step.pairsGiven }
+    if (reasonCannotBargainInOrder(state, playerId, [...before, step]) !== undefined) return asked
+    const none = heldAfter(state, playerId, [
+        ...before,
+        { ...step, secretsGiven: 0, pairsGiven: 0 }
+    ])
+    const secretsOnly = heldAfter(state, playerId, [...before, { ...step, pairsGiven: 0 }])
+    const all = heldAfter(state, playerId, [...before, step])
+    return { favor: secretsOnly.favor - none.favor, secrets: all.secrets - secretsOnly.secrets }
+}
+
+/**
+ * The spoken name of the open (last) step's Nth piece or pair: what it gives and what the step
+ * would take with that count, the secrets first, then the pairs once those secrets are given.
+ */
+export function bargainCountLabel(
+    state: HydratedOathGameState,
+    playerId: string,
+    steps: readonly BargainPick[],
+    name: string,
+    term: 'secretsGiven' | 'pairsGiven',
+    n: number
+): string {
+    const open = steps.length - 1
+    const step = steps[open]
+    const before = steps.slice(0, open)
+    if (term === 'secretsGiven') {
+        const { favor } = stepTaken(state, playerId, before, {
+            ...step,
+            secretsGiven: n,
+            pairsGiven: 0
+        })
+        return `give ${name} ${n} ${n === 1 ? 'secret' : 'secrets'} for ${favor} favor`
+    }
+    const { secrets } = stepTaken(state, playerId, before, { ...step, pairsGiven: n })
+    return `give ${name} ${2 * n} favor for ${secrets} ${secrets === 1 ? 'secret' : 'secrets'}`
+}
+
+/**
+ * Step `k`, finished, as its one line reads: its secrets given, then its pairs, with their tokens,
+ * each with what it takes after the steps above it.
+ */
+export function bargainStepLine(
+    state: HydratedOathGameState,
+    playerId: string,
+    steps: readonly BargainPick[],
+    k: number
+): string {
+    const step = steps[k]
+    const taken = stepTaken(state, playerId, steps.slice(0, k), step)
     return [
         ...(step.secretsGiven > 0
-            ? [`give ${step.secretsGiven} secret for ${2 * step.secretsGiven} favor`]
+            ? [`give ${step.secretsGiven} secret for ${taken.favor} favor`]
             : []),
         ...(step.pairsGiven > 0
-            ? [`give ${2 * step.pairsGiven} favor for ${step.pairsGiven} secret`]
+            ? [`give ${2 * step.pairsGiven} favor for ${taken.secrets} secret`]
             : [])
     ].join(', then ')
 }
