@@ -38,20 +38,26 @@ import { IssuingCorporations1833NE, Market1833NE, MarketPoolId, StockRules1833NE
 import { JointTokenSource } from './track.js'
 import { Phases1833NE } from './trains.js'
 
+const PrivateNames = Object.fromEntries(Privates1833NE.map((company) => [company.id, company.name]))
+
 export const Names1833NE = titleNames(
-    Object.fromEntries([
-        ...[...Corporations1833NE, ...VariableStartCorporations1833NE].map((company) => [
-            company.id,
-            company.name
-        ]),
-        ...Privates1833NE.map((company) => [company.id, company.name])
-    ]),
+    {
+        ...Object.fromEntries(
+            [...Corporations1833NE, ...VariableStartCorporations1833NE].map((company) => [
+                company.id,
+                company.name
+            ])
+        ),
+        ...PrivateNames
+    },
     (poolId) =>
         poolId === MarketPoolId ? 'Market' : isTreasuryPoolId(poolId) ? 'Treasury' : undefined,
     {
         direct: 'Direct connection',
         interconnection: 'Interconnection',
-        ferry: 'Ferry'
+        ferry: 'Ferry',
+        // The Ogdensburg, the D&H and the Luxury Ferry Service earn their route bonuses by name.
+        ...PrivateNames
     }
 )
 
