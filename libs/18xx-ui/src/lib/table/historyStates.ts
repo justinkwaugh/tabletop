@@ -9,13 +9,17 @@ function selectHistoryState(
     // in a later step.
     const ending = state.gameEnding ?? (state.bank.broken ? endingRules?.trigger(state) : undefined)
     const cash = new Map<string, number>()
+    const playerCash = new Map<string, number>()
     for (const entry of state.cash) {
+        if (entry.owner.kind === 'player' && typeof entry.amount === 'number')
+            playerCash.set(entry.owner.playerId, entry.amount)
         if (entry.owner.kind !== 'company') continue
         assert(typeof entry.amount === 'number', 'Company history requires finite cash')
         cash.set(entry.owner.companyId, entry.amount)
     }
     return {
         cash,
+        playerCash,
         phase: state.phaseId,
         stock: state.stockRound.number,
         operating: state.stockRound.completed,

@@ -3,14 +3,17 @@
     import './historyCard.css'
     import './playerTint.css'
     import type { AuctionLot } from '@tabletop/18xx'
+    import type { GameAction } from '@tabletop/common'
     import type { AuctionHistoryCard } from './auctionHistory.js'
+    import type { HistoryDescription } from './historyDescription.js'
     let {
         money,
         card,
         lot,
         lotName,
         playerName,
-        playerColor
+        playerColor,
+        describe
     }: {
         money: MoneyFormat
         card: AuctionHistoryCard
@@ -18,6 +21,7 @@
         lotName: string
         playerName: (id: string) => string
         playerColor: (id: string) => string
+        describe: (action: GameAction) => HistoryDescription
     } = $props()
 </script>
 
@@ -39,6 +43,15 @@
                         >bid <strong>{money(event.amount)}</strong></span
                     >{:else}<span class="passed">passed</span>{/if}
             </div>
+        {/each}
+        {#each card.income as action (action.id)}
+            {@const { text, detail, routine } = describe(action)}
+            {#if !routine}
+                <div class="history-entry income">
+                    <strong>{text}</strong>
+                    <span>{detail}</span>
+                </div>
+            {/if}
         {/each}
         {#if card.award && card.resolution}
             <div class="history-entry winner">
@@ -93,6 +106,13 @@
     }
     .passed,
     .initial {
+        color: var(--rail-muted, #887664);
+    }
+    .events .history-entry.income {
+        display: block;
+    }
+    .income span {
+        display: block;
         color: var(--rail-muted, #887664);
     }
     .events .history-entry.winner {

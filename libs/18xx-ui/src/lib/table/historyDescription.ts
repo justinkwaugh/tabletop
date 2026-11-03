@@ -78,6 +78,7 @@ import {
     type EighteenXXState,
     type StockMarketChart
 } from '@tabletop/18xx'
+import type { HistoryIncome } from './historyCash.js'
 import type { HistoryCompanyChanges } from './historyCompanyChanges.js'
 import { trainCount } from './awaitedDecision.js'
 import { counted } from '../presentation/count.js'
@@ -264,7 +265,8 @@ export function historyDescription(
     place: (locationId: string) => string = (locationId) => locationId,
     poolName: (poolId: string) => string = (poolId) => {
         throw new Error(`Certificate pool ${poolId} needs the title's names`)
-    }
+    },
+    auctionIncome?: readonly HistoryIncome[]
 ): HistoryDescription {
     const description = describeShared(
         action,
@@ -277,7 +279,8 @@ export function historyDescription(
         lotName,
         routeBonusName,
         place,
-        poolName
+        poolName,
+        auctionIncome
     )
     const paid = departurePaymentsDetail(
         departurePayments(action),
@@ -298,7 +301,8 @@ function describeShared(
     lotName: (id: string) => string,
     routeBonusName: (sourceId: string) => string,
     place: (locationId: string) => string,
-    poolName: (poolId: string) => string
+    poolName: (poolId: string) => string,
+    auctionIncome: readonly HistoryIncome[] | undefined
 ): HistoryDescription {
     const layEffects = (effects: TrackLayEffects | undefined) =>
         effects
@@ -325,6 +329,14 @@ function describeShared(
                 : `${share.shares} ${companyName(share.companyId)}`
         )
         return extras.length ? `, with ${extras.join(' and ')}` : ''
+    }
+    function privateIncome(income: readonly HistoryIncome[]): HistoryDescription {
+        return {
+            text: 'Private income',
+            detail: income
+                .map(({ owner, amount }) => `${nameOf(owner)} ${money(amount)}`)
+                .join(' · ')
+        }
     }
     function marketPrice(id: string) {
         return chart.space(id).price
@@ -662,6 +674,7 @@ function describeShared(
     if (isPassAuction(action)) return { text: 'Passed' }
     if (isResolveAuction(action)) {
         if (!action.metadata) return { text: 'Auction resolved', routine: true }
+        if (auctionIncome) return privateIncome(auctionIncome)
         const awards = action.metadata.kind === 'award' ? [action.metadata.award] : []
         return {
             text: awards.length ? 'Auction awarded' : 'Auction continued',
@@ -774,20 +787,13 @@ function describeShared(
         return { text: `Started ${companyName(action.companyId)}’s turn`, routine: true }
     if (isStartOperatingRound(action)) {
         assertExists(action.metadata, 'A recorded operating round has its payments')
-        const income: { owner: Owner; amount: number }[] = []
+        const income: HistoryIncome[] = []
         for (const payment of action.metadata.payments) {
             const entry = income.find(({ owner }) => sameOwner(owner, payment.to))
             if (entry) entry.amount += payment.amount
             else income.push({ owner: payment.to, amount: payment.amount })
         }
-        return income.length
-            ? {
-                  text: 'Private income',
-                  detail: income
-                      .map(({ owner, amount }) => `${nameOf(owner)} ${money(amount)}`)
-                      .join(' · ')
-              }
-            : { text: 'Operating order', important: true }
+        return income.length ? privateIncome(income) : { text: 'Operating order', important: true }
     }
     if (isScheduleGameEnd(action)) {
         assertExists(action.metadata, 'Recorded game end requires its ending')
