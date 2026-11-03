@@ -15,7 +15,7 @@ import {
     type TrainRunningState,
     type RouteRules
 } from '@tabletop/18xx'
-import { Autorouter } from './autorouter.js'
+import { Autorouter, routeProblemKey } from './autorouter.js'
 import { exhaustiveRevenue } from './testing/exhaustiveRevenue.js'
 
 let router: Autorouter
@@ -512,4 +512,46 @@ it('builds the solver with a 64 MiB memory maximum', async () => {
     memory.grow(64 * 16 - memory.buffer.byteLength / page)
     expect(memory.buffer.byteLength).toBe(64 * 2 ** 20)
     expect(() => memory.grow(1)).toThrow(RangeError)
+})
+it('runs a required route between its stops, the rest of the fleet beside it', () => {
+    // A line: home city, a $10 town, a $30 city, then a $90 town past it.
+    const { state, rules } = position(
+        [
+            city('yellow', [0], 20, 1),
+            town('yellow', [[3, 0]], 10),
+            city('yellow', [3, 0], 30, 1),
+            town('yellow', [[3]], 90)
+        ],
+        [
+            { measure: 'revenue-centers', maximum: 4 },
+            { measure: 'revenue-centers', maximum: 2 }
+        ],
+        {},
+        {
+            requiredRouteEnds: () => [
+                { locationId: '0', nodeId: 'city' },
+                { locationId: '2', nodeId: 'city' }
+            ]
+        }
+    )
+    const free = router.solve(state, { ...rules, requiredRouteEnds: undefined }, 'A')
+    expect(free.result.revenue).toBe(150)
+    const required = router.solve(state, rules, 'A')
+    expect(required.exhaustive).toBe(true)
+    // The whole line would earn more, but one train must stop at the $30 city.
+    expect(required.result.routes.map((route) => route.revenue).sort((a, b) => b - a)).toEqual([60])
+    expect(required.result.routes[0].visits.at(-1)?.locationId).toBe('2')
+})
+it('keys a required run apart from an ordinary run of the same network', () => {
+    const ends = [
+        { locationId: '0', nodeId: 'city' },
+        { locationId: '1', nodeId: 'city' }
+    ]
+    const { state, rules } = position(
+        [city('yellow', [0], 20, 1), city('yellow', [3], 30, 1)],
+        [{ measure: 'revenue-centers', maximum: 2 }]
+    )
+    expect(routeProblemKey(state, rules, 'A')).not.toBe(
+        routeProblemKey(state, { ...rules, requiredRouteEnds: () => ends }, 'A')
+    )
 })

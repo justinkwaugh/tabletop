@@ -188,7 +188,7 @@
                                     >{session.companyName(power.privateCompanyId)}</button
                                 >
                             {/each}
-                            {#each session.privateActions.titlePowers as power (`${power.playerId}:${power.privateCompanyId}`)}
+                            {#each session.privateActions.titlePowers as power (`${power.playerId}:${power.privateCompanyId}:${power.label}`)}
                                 <button
                                     disabled={!session.decisions.canResolve}
                                     onclick={() => session.privateActions.chooseTitlePower(power)}

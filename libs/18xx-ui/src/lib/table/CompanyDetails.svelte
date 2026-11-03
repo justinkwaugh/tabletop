@@ -409,8 +409,16 @@
                     fullName={session.companyFullName(item.id)}
                     description={item.description}
                     income={item.closed ? undefined : item.revenue}
-                />{#each session.privateActions.powersFor(item.id) as power (power.playerId)}<span
-                        class="private-power"><PrivateTrackPowerButton {session} {power} /></span
+                />{#each session.privateActions.powersFor(item.id) as power, index (index)}<span
+                        class="private-power"
+                        ><PrivateTrackPowerButton
+                            {session}
+                            {power}
+                            label={session.privateActions.powersFor(item.id).length > 1 &&
+                            'label' in power
+                                ? power.label
+                                : undefined}
+                        /></span
                     >{/each}
             </div>
             <span

@@ -670,6 +670,21 @@
             </g>
         {/if}
     {/each}
+    <g data-map-layer="printed-lines" fill="none" pointer-events="none" aria-hidden="true">
+        {#each entries
+            .filter((entry) => !entry.placed && !entry.hidden)
+            .flatMap((entry) => entry.printedLines.map((line) => ({ entry, line })))
+            .sort((a, b) => a.line.width - b.line.width) as { entry, line } (`${entry.location.id}:${line.d}`)}
+            <path
+                transform={`translate(${entry.center.x} ${entry.center.y})`}
+                d={line.d}
+                stroke={line.color}
+                stroke-width={line.width}
+                stroke-linecap="round"
+                data-map-printed-line
+            ></path>
+        {/each}
+    </g>
     {#if !artwork}
         <g data-map-layer="outlines" fill="none" pointer-events="none" aria-hidden="true">
             {#each entries as entry (entry.location.id)}

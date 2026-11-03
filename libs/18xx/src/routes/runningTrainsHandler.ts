@@ -48,9 +48,9 @@ export class RunningTrainsHandler implements MachineStateHandler<HydratedRunTrai
     }
     enter(context: MachineContext<State>): void {
         const state = context.gameState
-        const operatingCompanyId = nextOperatingCompany(state)
-        assertExists(operatingCompanyId, 'Step entry requires an operating company')
         if (!state.routeStep) {
+            const operatingCompanyId = nextOperatingCompany(state)
+            assertExists(operatingCompanyId, 'Step entry requires an operating company')
             state.routeStep = { companyId: operatingCompanyId }
         }
         const companyId = state.routeStep?.companyId

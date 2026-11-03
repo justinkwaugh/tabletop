@@ -16,6 +16,7 @@ import type { PhaseRules } from '../phases/phaseChange.js'
 import type { PhaseTable } from '../phases/phaseTable.js'
 import type { PrivatePowerRules } from '../privates/privatePowers.js'
 import type { PrivateRules } from '../privates/privateRules.js'
+import type { TrainRunningState } from '../routes/route.js'
 import type { RouteRules } from '../routes/routeEvaluation.js'
 import type { StationRules } from '../stations/stationPlacement.js'
 import type { StockRules } from '../stock/stockRules.js'
@@ -113,4 +114,6 @@ export interface EighteenXXTitleRules<
      */
     zeroPriceClosure?: ZeroPriceClosureRules
     runInstructions?: true
+    /** Whether standing run instructions wait, as during a connection run between turns. */
+    runInstructionsHeld?(state: TrainRunningState): boolean
 }

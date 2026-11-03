@@ -13,7 +13,7 @@ import {
 } from './routeScoring.js'
 import { getCompany, sameOwner } from '../finance/finance.js'
 import { RailwayMapState } from '../map/mapState.js'
-import { cityIsBlocked, usesStationAt } from '../map/station.js'
+import { cityIsBlocked, sameCenter, usesStationAt } from '../map/station.js'
 import type { RailwayMap } from '../map/map.js'
 import type { TileSet } from '../tiles/inventory.js'
 import type { TrainDefinition, Train } from '../trains/train.js'
@@ -58,6 +58,14 @@ export interface RouteRules {
     ): number
     /** Whether the company may visit or pass through a revenue center, such as a rights hex. */
     stopAllowed?(state: TrainRunningState, companyId: string, center: RevenueCenter): boolean
+    /**
+     * Stops one route must run between, ending at both, before the rest of the fleet may run, as a
+     * connection run from a company's home to its destination; other trains run as usual.
+     */
+    requiredRouteEnds?(
+        state: TrainRunningState,
+        companyId: string
+    ): readonly RevenueCenter[] | undefined
     /** A route may visit only one revenue center in each hex. */
     oneStopPerHex?: true
     /** What a route earns for each hex it passes through or stops in, once per route. */
@@ -90,6 +98,11 @@ export function stopValue(
 ): number {
     const printed = routeRevenue(node.revenue, rules.revenueStage(state, train))
     return rules.stopRevenue?.(state, companyId, center, printed) ?? printed
+}
+function endsWithin(visits: readonly RevenueCenter[], ends: readonly RevenueCenter[]): boolean {
+    const within = (stop: RevenueCenter | undefined) =>
+        !!stop && ends.some((end) => sameCenter(end, stop))
+    return visits.length >= 2 && within(visits[0]) && within(visits[visits.length - 1])
 }
 export type RouteEvaluationResult =
     { result: RouteResult; reason?: never } | { result?: never; reason: string }
@@ -261,6 +274,9 @@ export class RouteEvaluation {
             for (const key of trace.resources) resources.add(key)
             results.push(evaluation.result)
         }
+        const requiredEnds = this.rules.requiredRouteEnds?.(this.state, companyId)
+        if (requiredEnds && !results.some((route) => endsWithin(route.visits, requiredEnds)))
+            return { reason: 'One train must run between the required stops, and no further.' }
         const bonusPerStop = this.rules.longestRouteBonusPerStop?.(this.state, companyId) ?? 0
         const longest = results.reduce<RouteResult | undefined>(
             (best, route) =>

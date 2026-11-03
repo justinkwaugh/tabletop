@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { playExample } from '@tabletop/18xx/scenarios'
+import {
+    EighteenThirtyTwoPriceProtection,
+    EighteenThirtyTwoRedemption,
+    type HydratedEighteenThirtyTwoState
+} from '@tabletop/1832'
 import { EighteenThirtyTwoScenarios } from '@tabletop/1832/scenarios'
+import { ShareActions } from '@tabletop/18xx-ui'
 import { awaitedDecision1832 } from './awaitedDecision.js'
 
 const names = {
@@ -23,7 +29,22 @@ describe('awaitedDecision1832', () => {
     })
 
     it('describes the sale its president may protect, and the price either way', () => {
-        expect(awaitedDecision1832(scenarioState('price-protection'), names)).toEqual({
+        const state = scenarioState('price-protection')
+        const shareActions = new ShareActions<HydratedEighteenThirtyTwoState>(
+            {
+                gameState: state,
+                validActionTypes: [],
+                canChooseAction: false,
+                createPlayerAction: () => {
+                    throw new Error('Not acting')
+                },
+                applyAction: async () => undefined,
+                companyName: names.companyName
+            },
+            EighteenThirtyTwoPriceProtection,
+            EighteenThirtyTwoRedemption
+        )
+        expect(shareActions.awaitedDecision(state, names)).toEqual({
             title: 'Price protection',
             companyId: 'CG',
             text: 'alex sold 2 CG shares for $200. blair may buy them to keep the price at $100, or let it drop to $82'

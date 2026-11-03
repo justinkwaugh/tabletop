@@ -95,6 +95,15 @@ export type MapPlacement = {
     hidden?: boolean
 }
 
+/** A line the board prints on a hex, in the hex's own coordinates. */
+export type PrintedLine = {
+    d: string
+    color: string
+    width: number
+    /** Points along the line, which marks placed in its hex keep clear of. */
+    points?: readonly Point[]
+}
+
 export type MapMarkerArt =
     | { imageUrl: string }
     | { tileSymbol: TileSymbolName }
@@ -132,7 +141,7 @@ export type MapMarkerArt =
      */
     | { token: { imageUrl: string; place: TokenPlacement; tab?: TokenTab } }
 
-export type TokenPlacement = 'corner' | 'centre' | { covers: TileSymbolName }
+export type TokenPlacement = 'corner' | 'centre' | { covers: TileSymbolName } | { at: Point }
 /** A tab tucked behind a token's right side, such as a bonus marker that moves between tokens. */
 export type TokenTab = { label: string; caption: string; fill?: string; left?: true }
 
@@ -167,6 +176,8 @@ export type MapDrawnLocation = {
     markerArt: Readonly<Record<string, MapMarkerArt>>
     /** Whether the hex's towns are ringed, as a medium city is printed. */
     townRing: boolean
+    /** Lines printed on the hex until a tile covers it, such as a river. */
+    printedLines: readonly PrintedLine[]
     drawing: TileDrawing
     borders: readonly {
         start: Point
@@ -326,6 +337,7 @@ export function createMapDrawing(
         layouts = {},
         markerArt: sharedMarkerArt = {},
         locationMarkerArt = {},
+        printedLines = {},
         placements = {},
         joinedEdges = {},
         locationMarkerNames = {},
@@ -352,6 +364,7 @@ export function createMapDrawing(
         | 'layouts'
         | 'markerArt'
         | 'locationMarkerArt'
+        | 'printedLines'
         | 'placements'
         | 'joinedEdges'
         | 'locationMarkerNames'
@@ -589,6 +602,7 @@ export function createMapDrawing(
             drawing,
             markerArt,
             townRing,
+            printedLines: printedLines[location.id] ?? [],
             borders,
             outline: TileEdges.filter((edge) => !joined.includes(edge) && !divides(edge)).map(
                 segment
@@ -616,6 +630,9 @@ export function createMapDrawing(
                     !!placement,
                     face.symbols ?? [],
                     [
+                        ...(placement ? [] : (printedLines[location.id] ?? [])).flatMap((line) =>
+                            (line.points ?? []).map((point) => disc(point, line.width / 2))
+                        ),
                         ...badges.map((badge) =>
                             box(
                                 badge,
@@ -1022,7 +1039,10 @@ function clearSpaceMarks(
 }
 
 function coveredSymbol(art: MapMarkerArt | undefined): TileSymbolName | undefined {
-    return art && 'token' in art && typeof art.token.place === 'object'
+    return art &&
+        'token' in art &&
+        typeof art.token.place === 'object' &&
+        'covers' in art.token.place
         ? art.token.place.covers
         : undefined
 }
@@ -1114,8 +1134,9 @@ function placedTokens(
             (side: 1 | -1) =>
             (at: Point): Point[] =>
                 tab ? [at, { x: at.x + side * TokenTabReach, y: at.y }] : [at]
+        const pinned = typeof place === 'object' && 'at' in place ? place.at : undefined
         const covered =
-            typeof place === 'object'
+            typeof place === 'object' && 'covers' in place
                 ? shownSymbols.find(({ symbol }) => symbol === place.covers)
                 : undefined
         const right = cornerSpot(space, row(1), TokenRadius, revenues, TokenEdgeGap)
@@ -1125,11 +1146,12 @@ function placedTokens(
                 : undefined
         const side: 1 | -1 = left && isClearSpot(left) ? -1 : 1
         const point =
-            place === 'centre'
+            pinned ??
+            (place === 'centre'
                 ? { x: 0, y: 0 }
                 : covered
                   ? { x: covered.x, y: covered.y }
-                  : (side === 1 ? right : left)?.points[0]
+                  : (side === 1 ? right : left)?.points[0])
         if (!point) continue
         tokens.push({
             kind: 'token',

@@ -30,7 +30,7 @@
         RailwayMapState,
         cashOwnedBy,
         getCompany,
-        nextOperatingCompany,
+        actingOperatingCompany,
         type Company,
         type OperatingRules,
         type CertificatePool
@@ -699,7 +699,7 @@
         operating ? (gameState.operatingSet?.completedCompanyIds ?? []) : []
     )
     const operatingCompanyId = $derived(
-        operating && !gameState.result ? nextOperatingCompany(gameState) : undefined
+        operating && !gameState.result ? actingOperatingCompany(gameState) : undefined
     )
     // The current operating company's terrain costs, while play is live.
     const terrainDiscounts = $derived(

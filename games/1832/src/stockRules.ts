@@ -9,10 +9,14 @@ import {
     type StockRules
 } from '@tabletop/18xx'
 import { EighteenThirtyTwoStockRoundRules } from './roundRules.js'
-import { isClosingSpace, saleDescent, EighteenThirtyTwoMarket } from './stockMarket.js'
+import {
+    EighteenThirtyTwoLedgeMarket,
+    EighteenThirtyTwoMarket,
+    isClosingSpace
+} from './stockMarket.js'
 import { EighteenThirtyTwoMajors } from './majors.js'
 import { londonTradable } from './londonInvestment.js'
-import { OwnershipPercent, requiredSellDown, withHeldExcess } from './ownershipExcess.js'
+import { OwnershipPercent, withHeldExcess, withSellDown } from './ownershipExcess.js'
 import { holdsProtectableMove, recordProtectableSale, sellerLimitState } from './priceProtection.js'
 import { isReissuedShare, lockReissueProceeds } from './redemption.js'
 import { systemOf } from './systems.js'
@@ -28,21 +32,12 @@ const Trading = ipoMarketTrading({
 
 // Sales fall one space per share, stopping on the soft ledge when one space remains (§5.8.1).
 function withSoftLedge(saleTerms: StockRules['saleTerms']): StockRules['saleTerms'] {
+    const falling = EighteenThirtyTwoLedgeMarket.withSaleDescent(saleTerms)
     return (state, companyId, shares, seller) => {
-        const terms = saleTerms(state, companyId, shares, seller)
+        const terms = falling(state, companyId, shares, seller)
         if (typeof terms === 'string') return terms
-        const from = EighteenThirtyTwoMarket.companySpace(state.stockMarket, companyId)
-        if (isClosingSpace(from)) return 'This company is closing.'
-        return { ...terms, movement: saleDescent(from.id, shares) }
-    }
-}
-
-function withSellDown(saleTerms: StockRules['saleTerms']): StockRules['saleTerms'] {
-    return (state, companyId, shares, seller) => {
-        const terms = saleTerms(state, companyId, shares, seller)
-        if (typeof terms === 'string') return terms
-        return shares < requiredSellDown(state, companyId, seller)
-            ? 'Sell down to 60% of this company.'
+        return isClosingSpace(EighteenThirtyTwoMarket.companySpace(state.stockMarket, companyId))
+            ? 'This company is closing.'
             : terms
     }
 }

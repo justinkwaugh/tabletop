@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { GameAction } from '@tabletop/common'
     import {
-        nextOperatingCompany,
+        actingOperatingCompany,
         isOfferAuctionLot,
         isBidOnAuctionLot,
         isPassAuction,
@@ -60,7 +60,7 @@
     // Stored form: callouts replay the step from a copy, which the hydrated state's functions prevent.
     const recordedState = $derived(session.gameState.dehydrate())
     const company = $derived(
-        gameState.companies.find((company) => company.id === nextOperatingCompany(gameState))
+        gameState.companies.find((company) => company.id === actingOperatingCompany(gameState))
     )
     const statusLabels: Readonly<Record<string, string>> = {
         OfferingLot: 'Auction offerings',

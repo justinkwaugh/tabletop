@@ -20,6 +20,7 @@ import {
     saleBlockAfter,
     type ShareSaleDetails
 } from '../stock/shareSale.js'
+import { ProtectingPriceState } from '../stock/priceProtection.js'
 import { SaleBlockTerms } from '../stock/stockTurn.js'
 import type { RepeatSales, StockRules, ShareSaleTerms } from '../stock/stockRules.js'
 import type { CompanyDecisionState } from '../privates/companyDecision.js'
@@ -399,8 +400,9 @@ export function validateTrainFunding(state: {
     const funding = state.trainFunding
     if (funding) {
         assert(
-            ['FundingTrain', 'Bankrupt', 'GameOver'].includes(state.machineState) &&
-                funding.purchase.companyId === state.trainPurchaseStep?.companyId,
+            ['FundingTrain', 'Bankrupt', 'GameOver', ProtectingPriceState].includes(
+                state.machineState
+            ) && funding.purchase.companyId === state.trainPurchaseStep?.companyId,
             'Funding must belong to the operating train purchase'
         )
         assert(
@@ -417,6 +419,8 @@ export function validateTrainFunding(state: {
     }
     assert(
         state.machineState === 'GameOver' ||
+            // Presidents decide on what a bankrupt seller sold before the game ends.
+            state.machineState === ProtectingPriceState ||
             (state.machineState === 'Bankrupt') === Boolean(state.bankruptcy),
         'Bankruptcy must match the terminal state'
     )

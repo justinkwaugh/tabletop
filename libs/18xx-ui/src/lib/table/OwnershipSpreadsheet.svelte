@@ -13,7 +13,7 @@
     import { companyLastRun } from './companyLastRun.js'
     import {
         cashOwnedBy,
-        nextOperatingCompany,
+        actingOperatingCompany,
         certificatesInPool,
         signedShares,
         controllingOwner,
@@ -124,7 +124,7 @@
         session.gameState.stockRound.completed &&
             session.gameState.operatingSet &&
             !session.gameState.result
-            ? nextOperatingCompany(session.gameState)
+            ? actingOperatingCompany(session.gameState)
             : undefined
     )
     const currentPlayerOwners = $derived(

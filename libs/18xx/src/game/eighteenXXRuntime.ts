@@ -267,7 +267,8 @@ export function createEighteenXXRuntime<
         routeRules: options.routeRules,
         trainRules: options.trainRules,
         earningsRules: options.earningsRules,
-        ...(receivershipRules ? { receivershipRules } : {})
+        ...(receivershipRules ? { receivershipRules } : {}),
+        ...(options.runInstructionsHeld ? { instructionsHeld: options.runInstructionsHeld } : {})
     }
     const followsRunInstructions = (step: RunInstructionStep, handler: Handler): Handler =>
         options.runInstructions

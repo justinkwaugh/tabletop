@@ -1,7 +1,13 @@
 import type { MapBonusArrow } from './bonusArrows.js'
 import { assertExists, type BoundingBox, type HexOrientation, type Point } from '@tabletop/common'
 import type { StationState, RailwayMap, TileEdge, TileFace, TileSet } from '@tabletop/18xx'
-import type { BoardArtwork, MapMarkerArt, MapPlacement, MapToken } from './mapDrawing.js'
+import type {
+    BoardArtwork,
+    MapMarkerArt,
+    MapPlacement,
+    MapToken,
+    PrintedLine
+} from './mapDrawing.js'
 import type { TileDrawing, TileDrawingStyle, TileLayout } from '../tiles/tileDrawing.js'
 import type { TileAppearance } from '../tiles/tileAppearance.js'
 import type { RevenueStageColors } from '../colors/revenueStageColors.js'
@@ -36,6 +42,8 @@ export type MapViewDefinition = {
     bonusArrows?: readonly MapBonusArrow[]
     /** Empty map regions, in map units, where the board view draws table panels. */
     boardAreas?: BoardAreas
+    /** Lines the board prints on untiled hexes, such as a river, by location id. */
+    printedLines?: Readonly<Record<string, readonly PrintedLine[]>>
     map: RailwayMap
     tileSet: TileSet
     stations: Readonly<Record<string, StationAppearance>>

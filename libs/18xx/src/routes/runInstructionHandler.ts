@@ -54,6 +54,7 @@ export class RunInstructionHandler<S extends State> implements MachineStateHandl
 
     private evaluate(context: MachineContext<S>): Evaluation | undefined {
         const state = context.gameState
+        if (this.rules.instructionsHeld?.(state)) return undefined
         const companyId = nextOperatingCompany(state)
         const declared = companyId ? declaredRunInstructionFor(state, companyId) : undefined
         if (!declared) return undefined

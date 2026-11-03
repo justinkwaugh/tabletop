@@ -268,6 +268,9 @@ Investment's share and closure.
 
 ## Slice 3 design: closure and price protection
 
+Price protection, redemption, the soft ledge and holdings above 60% now live in the family, lifted for
+1870; see [its note](1870-title-design.md). This section records why they took this shape.
+
 ### Shared changes
 
 - `closeShareCompany` (company/companyClosure.ts) closes a share company: treasury to the bank,

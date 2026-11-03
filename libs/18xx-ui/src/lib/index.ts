@@ -143,6 +143,15 @@ export { default as CompanyAuctionBidding } from './stock/CompanyAuctionBidding.
 export { default as CompanyFormation } from './stock/CompanyFormation.svelte'
 export { default as CompanyPar } from './stock/CompanyPar.svelte'
 export { default as CompanyActionCard, type CardAction } from './stock/CompanyActionCard.svelte'
+export { default as CompanyShareActions } from './stock/CompanyShareActions.svelte'
+export { default as PendingShareDecision } from './stock/PendingShareDecision.svelte'
+export {
+    ShareActions,
+    redemptionHolderName,
+    type CompanyShareOptions,
+    type ShareActionNames
+} from './stock/shareActions.svelte.js'
+export { describeShareAction } from './stock/shareActionHistory.js'
 export { default as StockPanelHeading } from './stock/StockPanelHeading.svelte'
 export { default as CompanyActionPanel } from './stock/CompanyActionPanel.svelte'
 
