@@ -210,6 +210,7 @@ describe('Boston (§6.48, §6.62)', () => {
         const choices = trackChoices(state, 'B&P', 'G22')
         expect(choices.map(({ definitionId, rotation }) => ({ definitionId, rotation }))).toEqual([
             { definitionId: '1833ne:N23', rotation: 0 },
+            { definitionId: '1833ne:N23', rotation: 3 },
             { definitionId: '1833ne:N23', rotation: 4 }
         ])
     })
@@ -228,7 +229,7 @@ describe('Boston (§6.48, §6.62)', () => {
         function greenBostonChoice(
             state: ReturnType<typeof position>,
             companyId: string,
-            rotation: 0 | 4
+            rotation: 0 | 3 | 4
         ) {
             const choice = trackChoices(state, companyId, 'G22').find(
                 (entry) => entry.definitionId === '1833ne:N23' && entry.rotation === rotation
@@ -236,7 +237,7 @@ describe('Boston (§6.48, §6.62)', () => {
             assertExists(choice, `The green tile lies at rotation ${rotation}`)
             return choice
         }
-        function layGreenBoston(rotation: 0 | 4) {
+        function layGreenBoston(rotation: 0 | 3 | 4) {
             const state = bostonHomes()
             const choice = greenBostonChoice(state, 'B&W', rotation)
             const hydrated = table(4).engine.runtime.hydrator.hydrateState(state)
@@ -271,13 +272,16 @@ describe('Boston (§6.48, §6.62)', () => {
             expect(openSlots(state, 'FRR')).toEqual([])
         })
 
-        it('still lets the terminal stay south, the B&P’s spot beside the B&L (§6.46)', () => {
-            const state = layGreenBoston(4)
-            expect(tokenOf(state, 'B&L')).toMatchObject({ position: { nodeId: 'city-0' } })
-            expect(tokenOf(state, 'B&W')).toMatchObject({ position: { nodeId: 'city-1' } })
-            expect(openSlots(state, 'B&P')).toHaveLength(1)
-            expect(openSlots(state, 'FRR')).toEqual([])
-        })
+        it.each([3, 4] as const)(
+            'also lies at rotation %i, the B&P’s spot beside the B&L and the B&W alone',
+            (rotation) => {
+                const state = layGreenBoston(rotation)
+                expect(tokenOf(state, 'B&L')).toMatchObject({ position: { nodeId: 'city-0' } })
+                expect(tokenOf(state, 'B&W')).toMatchObject({ position: { nodeId: 'city-1' } })
+                expect(openSlots(state, 'B&P')).toHaveLength(1)
+                expect(openSlots(state, 'FRR')).toEqual([])
+            }
+        )
 
         it('keeps the B&P’s printed spot even with a token elsewhere in Boston (§6.53)', () => {
             const state = position(
@@ -297,10 +301,10 @@ describe('Boston (§6.48, §6.62)', () => {
             ])
         })
 
-        it('keeps no other orientation', () => {
+        it('keeps the B&W and the B&L on their own track, each in its own city', () => {
             expect(
                 trackChoices(bostonHomes(), 'B&W', 'G22').map(({ rotation }) => rotation)
-            ).toEqual([0, 4])
+            ).toEqual([0, 3, 4])
         })
     })
 })

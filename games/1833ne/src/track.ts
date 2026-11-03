@@ -11,7 +11,6 @@ import {
     type CashPayment,
     type ConstructionState,
     type TileFace,
-    type TileRotation,
     type TrackRequest,
     type TrackRules
 } from '@tabletop/18xx'
@@ -24,8 +23,6 @@ import { holdsRightsOf } from './takeoverState.js'
 const TrackData = { map: Map1833NE, tileSet: TileSet1833NE }
 const SherbrookeTile = '1833ne:N11'
 const BostonGreenTile = '1833ne:N23'
-/** Keeping the south terminal (§6.46), or as the rulebook prints it, the terminal north-west (p. 9). */
-const BostonGreenRotations: readonly TileRotation[] = [0, 4]
 /** The two-spot city of Boston's green tile, which prints the B&P's reserved spot (p. 21). */
 const BostonReservedCity = 'city-0'
 
@@ -121,11 +118,6 @@ export const TrackRules1833NE: TrackRules = {
         // Sherbrooke's tile has an orientation arrow: it joins north, north-east and south (§6.46).
         if (request.definitionId === SherbrookeTile && request.rotation !== 0)
             return 'Sherbrooke’s tile is laid as its arrow shows, joining north, north-east and south.'
-        if (
-            request.definitionId === BostonGreenTile &&
-            !BostonGreenRotations.includes(request.rotation)
-        )
-            return 'Boston’s green tile keeps its terminal south or lies as the rulebook prints it.'
         const reserved = FirstRoundReservedHexes[request.locationId]
         if (reserved && reserved !== request.companyId && firstOperatingRound(state))
             return `Only the ${reserved} may build here in the first operating round.`
