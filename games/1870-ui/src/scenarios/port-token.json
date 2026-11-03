@@ -90,8 +90,8 @@
     "id": "phase:1870/3/8",
     "trainId": "1870/3/8",
     "definitionId": "3",
-    "fromPhaseId": "1",
-    "toPhaseId": "2"
+    "fromPhaseId": "2",
+    "toPhaseId": "3"
    }
   ],
   "usedPrivatePowerIds": [
@@ -1950,7 +1950,7 @@
    ],
    "nextTrainNumber": 31
   },
-  "phaseId": "2",
+  "phaseId": "3",
   "variants": {},
   "revenueTokens": [
    {

@@ -12,6 +12,7 @@ import SPLogo from './images/logos/SP.svg'
 import SSWLogo from './images/logos/SSW.svg'
 import TPLogo from './images/logos/TP.svg'
 import { RiverTerrainPositions, riverLines } from './river.js'
+import { TrainColors1870 } from './trainPresentation.js'
 import CattleToken from './images/tokens/cattle.svg'
 import ClosedPortToken from './images/tokens/closed-port.svg'
 import OpenPortToken from './images/tokens/open-port.svg'
@@ -54,6 +55,7 @@ const TokenKinds = {
  * destination in the two corners between its spikes, the Santa Fe's below the lowest spike.
  */
 const SouthwestHome: TileLayout = {
+    revenueCaptionsAfter: true,
     printedTokens: [
         {
             imageUrl: SPLogo,
@@ -83,10 +85,24 @@ export const MapView1870: MapViewDefinition = {
         depot: { x: 1920, y: 400, width: 381, height: 187 }
     },
     stations: Stations,
-    layouts: { ...TileLayouts1870, [OffboardHomeLocationId]: SouthwestHome },
+    layouts: {
+        ...TileLayouts1870,
+        A2: { revenueCaptionsAfter: true },
+        [OffboardHomeLocationId]: SouthwestHome
+    },
+    // Each value in the colours of the phases it pays in. Gray tiles come with the 6s, a phase before
+    // the bottom value, so that one prints white with the train that brings it in, as the board does.
+    revenueStageColors: {
+        yellow: [TrainColors1870['2'], TrainColors1870['3']],
+        brown: TrainColors1870['5'],
+        gray: '#ffffff'
+    },
+    revenueStageCaptions: { gray: '8' },
+    revenueStageCaptionColors: { gray: TrainColors1870['8'] },
     printedLines: riverLines(),
     terrainPositions: RiverTerrainPositions,
     locationMarkerNames: {
+        port: 'On the Gulf or the river: the Gulf Shipping Company’s port may be placed here.',
         ...Object.fromEntries(
             Companies1870.flatMap((company) => [
                 [`destination:${company.id}`, `${Stations[company.id].label} destination`],

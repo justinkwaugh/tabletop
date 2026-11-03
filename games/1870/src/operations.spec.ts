@@ -69,27 +69,28 @@ describe('half dividends (p. 20)', () => {
 })
 
 describe('phases (pp. 4-6)', () => {
-    it('reads red off-board values top to phase 3, middle to 5, then bottom', () => {
-        expect(revenueStages('3')).toEqual(['yellow'])
-        expect(revenueStages('4')).toEqual(['yellow', 'brown'])
+    it('reads red off-board values top to the 4s, middle to the 6s, then bottom', () => {
+        expect(revenueStages('4')).toEqual(['yellow'])
         expect(revenueStages('5')).toEqual(['yellow', 'brown'])
-        expect(revenueStages('6')).toEqual(['yellow', 'brown', 'gray'])
+        expect(revenueStages('6')).toEqual(['yellow', 'brown'])
+        expect(revenueStages('8')).toEqual(['yellow', 'brown', 'gray'])
+        expect(revenueStages('D')).toEqual(['yellow', 'brown', 'gray'])
     })
 
-    it('scraps 2s at 3, 3s at 5, 4s at 6 and 5s at 8', () => {
-        expect(Phases1870.rustTiming('3', '2')).toBe('immediate')
-        expect(Phases1870.rustTiming('2', '2')).toBeUndefined()
-        expect(Phases1870.rustTiming('5', '3')).toBe('immediate')
-        expect(Phases1870.rustTiming('6', '4')).toBe('immediate')
-        expect(Phases1870.rustTiming('8', '5')).toBe('immediate')
-        expect(Phases1870.rustTiming('8', '6')).toBeUndefined()
+    it('scraps 2s with the first 4, 3s with the 6, 4s with the 8 and 5s with the 12', () => {
+        expect(Phases1870.rustTiming('4', '2')).toBe('immediate')
+        expect(Phases1870.rustTiming('3', '2')).toBeUndefined()
+        expect(Phases1870.rustTiming('6', '3')).toBe('immediate')
+        expect(Phases1870.rustTiming('8', '4')).toBe('immediate')
+        expect(Phases1870.rustTiming('12', '5')).toBe('immediate')
+        expect(Phases1870.rustTiming('12', '6')).toBeUndefined()
     })
 
     it('limits trains and rounds as the table says', () => {
-        expect(['1', '2', '3', '4', '5'].map((id) => Phases1870.phase(id).trainLimit)).toEqual([
+        expect(['2', '3', '4', '5', '6'].map((id) => Phases1870.phase(id).trainLimit)).toEqual([
             4, 4, 3, 2, 2
         ])
-        expect(['1', '2', '3', '4'].map((id) => Phases1870.phase(id).operatingRounds)).toEqual([
+        expect(['2', '3', '4', '5'].map((id) => Phases1870.phase(id).operatingRounds)).toEqual([
             1, 2, 2, 3
         ])
     })
@@ -103,16 +104,16 @@ describe('buying privates (pp. 8, 18)', () => {
         })
         return TransferRules1870.priceRange(game.hydrated, companyId, asset(privateId))
     }
-    it('allows only the bridge to the river companies in phase 1, for $20 to $40', () => {
-        expect(range('1', 'MP', 'MRBC')).toEqual({ minimum: 20, maximum: 40 })
-        expect(range('1', 'SSW', 'MRBC')).toEqual({ minimum: 20, maximum: 40 })
-        expect(range('1', 'IC', 'MRBC')).toBeUndefined()
-        expect(range('1', 'MP', 'GRSC')).toBeUndefined()
+    it('allows only the bridge to the river companies before the 3s, for $20 to $40', () => {
+        expect(range('2', 'MP', 'MRBC')).toEqual({ minimum: 20, maximum: 40 })
+        expect(range('2', 'SSW', 'MRBC')).toEqual({ minimum: 20, maximum: 40 })
+        expect(range('2', 'IC', 'MRBC')).toBeUndefined()
+        expect(range('2', 'MP', 'GRSC')).toBeUndefined()
     })
-    it('allows any private for half to double from phase 2, none from phase 4', () => {
-        expect(range('2', 'IC', 'MRBC')).toEqual({ minimum: 20, maximum: 80 })
-        expect(range('3', 'IC', 'GSC')).toEqual({ minimum: 40, maximum: 160 })
-        expect(range('4', 'IC', 'GSC')).toBeUndefined()
+    it('allows any private for half to double from the 3s, none from the 5s', () => {
+        expect(range('3', 'IC', 'MRBC')).toEqual({ minimum: 20, maximum: 80 })
+        expect(range('4', 'IC', 'GSC')).toEqual({ minimum: 40, maximum: 160 })
+        expect(range('5', 'IC', 'GSC')).toBeUndefined()
     })
     it('lets companies buy each other’s trains for at least $1', () => {
         const game = prepared(() => undefined)
@@ -190,7 +191,7 @@ describe('the bridge company (p. 9)', () => {
     it('cannot upgrade the free starting city in the same operating round', () => {
         const game = river('SSW', false)
         layBridgeTile(game, 'H17')
-        game.state.phaseId = '2'
+        game.state.phaseId = '3'
         const hasGreen = new TrackConstruction(game.hydrated, TrackRules1870).choices('H17')
         expect(hasGreen).toEqual([])
     })
@@ -203,7 +204,7 @@ describe('the bridge company (p. 9)', () => {
             ownPrivate(state, 'MRBC', 'MP')
             state.usedPrivatePowerIds?.push('MRBC')
             giveTrain(state, 'SSW', '2')
-            state.phaseId = '2'
+            state.phaseId = '3'
         })
         toCompanyTurn(game, 'SSW')
         expect(new TrackConstruction(game.hydrated, TrackRules1870).choices('H17')).not.toEqual([])
@@ -255,7 +256,7 @@ describe('the bridge company (p. 9)', () => {
     it('cannot upgrade the discounted tile in the same operating round', () => {
         const game = river('SSW', true)
         const state = structuredClone(game.state)
-        state.phaseId = '2'
+        state.phaseId = '3'
         game.state = state
         const hex = laidBridgeHex(game)
         const choices = () => new TrackConstruction(game.hydrated, TrackRules1870).choices(hex)

@@ -48,7 +48,7 @@ const p = (playerId: string): Owner => ({ kind: 'player', playerId })
 function imaSwindler(): Table {
     const game = prepared((state) => {
         state.stockRound.number = 2
-        state.phaseId = '8'
+        state.phaseId = '12'
         state.trainInventory.trains = state.trainInventory.trains.filter(
             (train) => train.status !== 'depot' || train.definitionId === '12'
         )

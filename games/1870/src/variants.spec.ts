@@ -10,7 +10,7 @@ import { giveTrain, operated, prepared } from '../test/position.js'
 import { table } from '../test/table.js'
 import { placeWarStation, stationWarsAfterLay } from './destinations.js'
 import { Definition } from './definition/gameDefinition.js'
-import { EndingRules1870 } from './operating.js'
+import { EndingRules1870, PhaseRules1870 } from './operating.js'
 import type { State1870 } from './state.js'
 import { Market1870 } from './stockMarket.js'
 import { TileSet1870 } from './tiles.js'
@@ -79,22 +79,36 @@ describe('1830 diesels (p. 24)', () => {
         ).state
     }
 
-    it('goes on sale with phase 5, beside the next train and never beside a 12', () => {
-        const before = TrainRules1870.availableDefinitions(inPhase('4', { diesels: true }))
+    it('goes on sale with the first 6, beside the next train and never beside a 12', () => {
+        const before = TrainRules1870.availableDefinitions(inPhase('5', { diesels: true }))
         expect(before).toEqual(['6'])
-        const after = TrainRules1870.availableDefinitions(inPhase('5', { diesels: true }))
+        const after = TrainRules1870.availableDefinitions(inPhase('6', { diesels: true }))
         expect(after).toEqual(['6', 'D'])
-        expect(TrainRules1870.availableDefinitions(inPhase('5'))).toEqual(['6'])
+        expect(TrainRules1870.availableDefinitions(inPhase('6'))).toEqual(['6'])
     })
 
     it('scraps the 4s with the first diesel and never the 5s', () => {
-        expect(Phases1870.rustTiming('5', '4')).toBeUndefined()
-        expect(Phases1870.rustTiming('6', '4')).toBe('immediate')
-        expect(Phases1870.rustTiming('6', '5')).toBeUndefined()
+        const rust = (phaseId: string, definitionId: string) => {
+            const state = inPhase(phaseId, { diesels: true })
+            return PhaseRules1870.rustTiming(state, {
+                ...state.trainInventory.trains[0],
+                definitionId
+            })
+        }
+        expect(rust('6', '4')).toBeUndefined()
+        expect(rust('D', '4')).toBe('immediate')
+        expect(rust('D', '5')).toBeUndefined()
+    })
+
+    it('counts a game ending on the 12 or the diesel as finished', () => {
+        expect(Phases1870.share('2')).toBe(0)
+        expect(Phases1870.share('12')).toBe(1)
+        expect(Phases1870.share('D')).toBe(1)
+        expect(Phases1870.share('6')).toBeCloseTo(4 / 7)
     })
 
     it('costs $800 trading in a 4, 5 or 6, not a 3', () => {
-        const state = inPhase('5', { diesels: true })
+        const state = inPhase('6', { diesels: true })
         const train = (definitionId: string) => ({
             ...state.trainInventory.trains[0],
             definitionId
@@ -105,7 +119,7 @@ describe('1830 diesels (p. 24)', () => {
         expect(price('5')).toBe(800)
         expect(price('6')).toBe(800)
         expect(price('3')).toBeUndefined()
-        expect(TrainRules1870.exchangePrice?.(inPhase('5'), 'IC', 'D', train('4'))).toBeUndefined()
+        expect(TrainRules1870.exchangePrice?.(inPhase('6'), 'IC', 'D', train('4'))).toBeUndefined()
     })
 })
 

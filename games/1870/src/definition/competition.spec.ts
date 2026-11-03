@@ -73,7 +73,7 @@ describe.each(counts)('1870 tournaments with %i players', (count) => {
 
     it('scores every player from a finished game', () => {
         const game = prepared((state) => {
-            state.phaseId = '8'
+            state.phaseId = '12'
             state.trainInventory.trains = state.trainInventory.trains.filter(
                 (train) => train.status !== 'depot' || train.definitionId === '12'
             )

@@ -8,24 +8,24 @@ export const PortPrivateId = 'GSC'
 export const FriscoPrivateId = 'FRISCO'
 export const KatyPrivateId = 'KATY'
 
-// The six private companies, offered in this order (p. 2, pp. 8-10). All close with phase 4.
+// The six private companies, offered in this order (p. 2, pp. 8-10). All close with the first 5-train.
 export const PrivateCatalog1870 = new PrivateCatalog(
     {
-        closurePhaseId: '4',
+        closurePhaseId: '5',
         privates: [
             {
                 id: GreatRiverPrivateId,
                 name: 'Great River Shipping Company',
                 faceValue: 20,
                 revenue: 5,
-                description: 'No special abilities. Closes at phase 4.'
+                description: 'No special abilities. Closes with the first 5-train.'
             },
             {
                 id: BridgePrivateId,
                 name: 'Mississippi River Bridge Company',
                 faceValue: 40,
                 revenue: 10,
-                description: `Until a company buys it or it closes, no company may bridge the Mississippi. Its owning company may once build a tile in one hex along the river for $40 less, besides its ordinary lays. The Missouri Pacific or the St. Louis Southwestern may buy it in phase 1 for $20 to $40; bought in its first operating round, that company may instead lay a tile on its starting city free. Closes at phase 4.`
+                description: `Until a company buys it or it closes, no company may bridge the Mississippi. Its owning company may once build a tile in one hex along the river for $40 less, besides its ordinary lays. The Missouri Pacific or the St. Louis Southwestern may buy it before the first 3-train for $20 to $40; bought in its first operating round, that company may instead lay a tile on its starting city free. Closes with the first 5-train.`
             },
             {
                 id: CattlePrivateId,
@@ -33,14 +33,14 @@ export const PrivateCatalog1870 = new PrivateCatalog(
                 faceValue: 50,
                 revenue: 10,
                 description:
-                    'Its owning company may place a token on a city west of the Mississippi, not in a hex the river passes through, adding $10 there for that company alone. Placing it does not close the company. Closes at phase 4; the token stays until phase 5.'
+                    'Its owning company may place a token on a city west of the Mississippi, not in a hex the river passes through, adding $10 there for that company alone. Placing it does not close the company. Closes with the first 5-train; the token stays until the first 6-train.'
             },
             {
                 id: PortPrivateId,
                 name: 'The Gulf Shipping Company',
                 faceValue: 80,
                 revenue: 15,
-                description: `Its owning company may place a port on ${['H17', 'M14', 'M20', 'N7', 'N17'].map(place).join(', ')}, adding $20 there for that company. An open port also adds $10 for others; a closed port, placed at once or replacing the open port in a later operating round, closes this company. Closes at phase 4; the port stays until phase 5.`
+                description: `Its owning company may place a port on ${['H17', 'M14', 'M20', 'N7', 'N17'].map(place).join(', ')}, adding $20 there for that company. An open port also adds $10 for others; a closed port, placed at once or replacing the open port in a later operating round, closes this company. Closes with the first 5-train; the port stays until the first 6-train.`
             },
             {
                 id: FriscoPrivateId,
@@ -57,7 +57,7 @@ export const PrivateCatalog1870 = new PrivateCatalog(
                 faceValue: 160,
                 revenue: 20,
                 description:
-                    'Comes with a 10% share of the Missouri-Kansas-Texas Railroad. Closes at phase 4.'
+                    'Comes with a 10% share of the Missouri-Kansas-Texas Railroad. Closes with the first 5-train.'
             }
         ]
     },

@@ -90,22 +90,22 @@
     "id": "phase:1870/3/8",
     "trainId": "1870/3/8",
     "definitionId": "3",
-    "fromPhaseId": "1",
-    "toPhaseId": "2"
+    "fromPhaseId": "2",
+    "toPhaseId": "3"
    },
    {
     "id": "phase:1870/4/14",
     "trainId": "1870/4/14",
     "definitionId": "4",
-    "fromPhaseId": "2",
-    "toPhaseId": "3"
+    "fromPhaseId": "3",
+    "toPhaseId": "4"
    },
    {
     "id": "phase:1870/5/19",
     "trainId": "1870/5/19",
     "definitionId": "5",
-    "fromPhaseId": "3",
-    "toPhaseId": "4"
+    "fromPhaseId": "4",
+    "toPhaseId": "5"
    }
   ],
   "usedPrivatePowerIds": [
@@ -2071,7 +2071,7 @@
    ],
    "nextTrainNumber": 31
   },
-  "phaseId": "4",
+  "phaseId": "5",
   "variants": {},
   "revenueTokens": [
    {

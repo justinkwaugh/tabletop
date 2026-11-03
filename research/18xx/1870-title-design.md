@@ -49,6 +49,26 @@ standing [18xx design rule](../../docs/agents/18xx-design.md).
   connection route, port token, late game.
 - 2 to 7 players, in beta (`beta: true`, `GameVisibility.Beta`), in the 18xx series. Mayfair prints 2 to 6; the seventh is the designer's row (certificates 9, then 7) with $300 each, by the owner's ruling (2026-11-03).
 
+## Family additions after the first release
+
+- **Caption badges (`revenueStageCaptionColors`).** Surveyed: 1833NE prints plain phase captions
+  beside its values, and no other title prints captions. A caption may take a badge colour; titles
+  setting none draw as before. 1870 sets one so its 8 reads like the train chips.
+- **Captions by game (`revenueStageCaptionsFor`).** Surveyed: `markerArtFor` and `phaseChartFor` are the
+  family's state-driven presentation seams. This follows `markerArtFor`, held as text so the map redraws
+  only when the captions change. 1870 uses it for the D in diesel games; 1832's diesels, printed on its
+  12s, could use it.
+- **`variantEnd` on a phase.** Surveyed: 1830, 1889 and The Old Prince end on D in every game, and 1832
+  reuses its 12 row. 1870 lists D after 12, as only diesel games reach it, so `share()` leaves it out of
+  the ordinary progression and counts it as the end.
+
+## Phases
+
+The rulebook numbers its phases one to eight. They are named here by the train that starts each,
+as on the board's off-board markers and in the sibling titles: 2, 3, 4, 5, 6, 8, 10, 12, with D for
+the diesel variant's last phase. The owner chose this on 2026-11-03. Page citations still read the
+rulebook's own numbers: its phase four is phase 5 here.
+
 ## Rulings
 
 Where the rulebook is silent or contradicts itself.

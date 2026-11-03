@@ -16,12 +16,13 @@ export const TrainColors1870: Readonly<Record<string, string>> = {
 }
 
 export const PhaseColors1870: Readonly<Record<string, string>> = {
-    '1': Yellow,
-    '2': Green,
+    '2': Yellow,
     '3': Green,
-    '4': Brown,
-    '5': Gray,
+    '4': Green,
+    '5': Brown,
     '6': Gray,
-    '7': Gray,
-    '8': Gray
+    '8': Gray,
+    '10': Gray,
+    '12': Gray,
+    D: Gray
 }

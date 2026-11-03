@@ -23,9 +23,9 @@ import { requireState1870, type HydratedState1870, type State1870 } from './stat
 import { RevenueTokenKind, type RevenueToken } from './titleState.js'
 import { Phases1870 } from './trains.js'
 
-/** Port and Cattle tokens leave the map as phase 5 begins (p. 5). */
+/** Port and Cattle tokens leave the map with the first 6-train (p. 5). */
 export function revenueTokensExpire(phaseId: string): boolean {
-    return Phases1870.isAtLeast(phaseId, '5')
+    return Phases1870.isAtLeast(phaseId, '6')
 }
 
 export type StopBonus = { amount: number; sourceId: 'cattle' | 'port' }

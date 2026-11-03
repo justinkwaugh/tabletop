@@ -23,7 +23,7 @@ const dieselsOption: BooleanConfigOption = {
     type: ConfigOptionType.Boolean,
     name: '1830 diesels',
     description:
-        'No 8-, 10- or 12-trains: diesels run any distance from phase 5 for $1100, or $800 trading in a 4, 5 or 6.',
+        'No 8-, 10- or 12-trains: diesels run any distance from the first 6-train for $1100, or $800 trading in a 4, 5 or 6.',
     default: false
 }
 

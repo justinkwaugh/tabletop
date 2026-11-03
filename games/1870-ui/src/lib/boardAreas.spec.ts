@@ -45,7 +45,7 @@ describe('1870 board', () => {
     })
 
     it('keeps a port clear of the river', () => {
-        const entry = entryFor(drawing([]), 'H17')
+        const entry = entryFor(drawing([{ locationId: 'H17', kind: 'port' }]), 'H17')
         const port = entry.revenueAnnotations.find((mark) => mark.kind === 'symbol')
         if (!port) throw new Error('Memphis shows its port')
         const line = entry.printedLines[0]

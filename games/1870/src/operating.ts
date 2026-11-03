@@ -149,7 +149,11 @@ export const ZeroPriceClosure1870: ZeroPriceClosureRules<typeof ClosureFields> =
 }
 
 export const PhaseRules1870: PhaseRules = {
-    rustTiming: (state, train) => Phases1870.rustTiming(state.phaseId, train.definitionId),
+    // With diesels, 5-trains are permanent; the first diesel scraps the 4s (p. 24).
+    rustTiming: (state, train) =>
+        requireState1870(state).variants.diesels && train.definitionId === '5'
+            ? undefined
+            : Phases1870.rustTiming(state.phaseId, train.definitionId),
     discardOrder: (state, companyId) => marketDiscardOrder(Market1870, state, companyId),
     discardDestination: 'market',
     changes: {
@@ -170,15 +174,15 @@ export const PhaseRules1870: PhaseRules = {
 
 export const PrivateRules1870: PrivateRules = {
     exchangeTerms: () => undefined,
-    // Every private closes when the first 5-train is bought; the tokens stay until phase 5 (p. 5).
+    // Every private closes when the first 5-train is bought; the tokens stay until the first 6-train (p. 5).
     phaseEffects: (state) => PrivateCatalog1870.closureEffects(state),
     operationEffects: () => [],
     description: (_state, id) => privateDescription(id)
 }
 
-// A company buys a player's private from phase 2 for half to double its price; in phase 1 only the
+// A company buys a player's private from the first 3-train for half to double its price; before it only the
 // Missouri Pacific or St. Louis Southwestern, and only the bridge, for $20 to $40 (pp. 18, 9).
-const BridgePhaseOnePrice = { minimum: 20, maximum: 40 }
+const BridgeEarlyPrice = { minimum: 20, maximum: 40 }
 
 export const TransferRules1870: TransferRules = {
     ...EighteenXXTransferTiming,
@@ -191,13 +195,13 @@ export const TransferRules1870: TransferRules = {
         const { privateCompanyId } = asset
         if (
             privateOwner(state, privateCompanyId)?.kind !== 'player' ||
-            Phases1870.isAtLeast(state.phaseId, '4')
+            Phases1870.isAtLeast(state.phaseId, '5')
         )
             return undefined
-        if (Phases1870.isAtLeast(state.phaseId, '2'))
+        if (Phases1870.isAtLeast(state.phaseId, '3'))
             return PrivateCatalog1870.priceRange(privateCompanyId)
         return privateCompanyId === BridgePrivateId && RiverCompanyIds.includes(companyId)
-            ? BridgePhaseOnePrice
+            ? BridgeEarlyPrice
             : undefined
     }
 }

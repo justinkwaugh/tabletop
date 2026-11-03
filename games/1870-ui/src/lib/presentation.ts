@@ -16,6 +16,8 @@ export const Presentation1870: TitlePresentation<State1870> = {
     money: moneyFormat(TitleRules1870.currencySymbol),
     phaseChart: PhaseChart1870,
     phaseChartFor: phaseChart1870,
+    // With diesels, the first diesel brings in the bottom off-board values (p. 24).
+    revenueStageCaptionsFor: (state) => (state.variants.diesels ? { gray: 'D' } : undefined),
     trainColors: TrainColors1870,
     phaseColors: PhaseColors1870,
     marketPoolId: 'open-market',

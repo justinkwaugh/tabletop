@@ -7,7 +7,6 @@ import {
     createStagedTileRevenue as revenue,
     createTownTileFace as town,
     createTrackTileFace as track,
-    type MapLocation,
     type TileEdge
 } from '@tabletop/18xx'
 
@@ -61,15 +60,6 @@ export const CattleLocationIds: readonly string[] = 'B9 B11 D5 E12 F5 H13 J3 J5 
     ' '
 )
 
-const Port = {
-    id: 'port',
-    label: '⚓',
-    description: 'On the Gulf or the river: the Gulf Shipping Company’s port may be placed here.'
-}
-const Markers: Readonly<Record<string, NonNullable<MapLocation['markers']>>> = Object.fromEntries(
-    PortLocationIds.map((id) => [id, [Port]])
-)
-
 /**
  * What the Mississippi divides in a hex until the bridge company is sold or closed: the hex edges
  * on each side. Track may not join the two. A hex with a city or towns on one bank allows only
@@ -105,10 +95,10 @@ export const RiverLocationIds: readonly string[] = Object.keys(RiverHexes)
 const locations = createLetterNumberLocationFactory({
     orientation: HexOrientation.Pointy,
     numberOffset: 0,
+    markers: {},
     fixedColors: ['red'],
     names: Names,
-    homes: Homes,
-    markers: Markers
+    homes: Homes
 })
 
 const terrain = (cost: number, kind: 'mountain' | 'water' = 'water') => ({

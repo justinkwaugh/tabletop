@@ -158,7 +158,7 @@ export function createOpening1870({
         ],
         tileInventory: TileSet1870.createInventory(),
         trainInventory: createTrainInventory1870(variants),
-        phaseId: '1'
+        phaseId: '2'
     }
     return {
         position,

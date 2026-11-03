@@ -58,7 +58,7 @@ const Scenarios = [
         slug: 'late-game',
         name: 'Late game',
         reached: (state) =>
-            state.phaseId === '6' &&
+            state.phaseId === '8' &&
             state.machineState === 'LayingTrack' &&
             state.destinationRunsMade.length >= 4
     }

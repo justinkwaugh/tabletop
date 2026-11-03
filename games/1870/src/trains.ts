@@ -60,34 +60,44 @@ const green = ['yellow', 'green']
 const brown = ['yellow', 'green', 'brown']
 const gray = ['yellow', 'green', 'brown', 'gray']
 
-// The eight phases (pp. 4-6, p. 31). With diesels the first diesel starts the last phase.
+// The rulebook's phases one to eight (pp. 4-6, p. 31), named by the train that starts each, with
+// the diesel variant's last phase after them (p. 24).
 export const Phases1870 = new PhaseTable(
     [
-        { id: '1', startedBy: [], tileColors: yellow, operatingRounds: 1, trainLimit: 4 },
-        { id: '2', startedBy: ['3'], tileColors: green, operatingRounds: 2, trainLimit: 4 },
-        { id: '3', startedBy: ['4'], tileColors: green, operatingRounds: 2, trainLimit: 3 },
-        { id: '4', startedBy: ['5'], tileColors: brown, operatingRounds: 3, trainLimit: 2 },
-        { id: '5', startedBy: ['6'], tileColors: gray, operatingRounds: 3, trainLimit: 2 },
-        { id: '6', startedBy: ['8', 'D'], tileColors: gray, operatingRounds: 3, trainLimit: 2 },
-        { id: '7', startedBy: ['10'], tileColors: gray, operatingRounds: 3, trainLimit: 2 },
-        { id: '8', startedBy: ['12'], tileColors: gray, operatingRounds: 3, trainLimit: 2 }
+        { id: '2', startedBy: [], tileColors: yellow, operatingRounds: 1, trainLimit: 4 },
+        { id: '3', startedBy: ['3'], tileColors: green, operatingRounds: 2, trainLimit: 4 },
+        { id: '4', startedBy: ['4'], tileColors: green, operatingRounds: 2, trainLimit: 3 },
+        { id: '5', startedBy: ['5'], tileColors: brown, operatingRounds: 3, trainLimit: 2 },
+        { id: '6', startedBy: ['6'], tileColors: gray, operatingRounds: 3, trainLimit: 2 },
+        { id: '8', startedBy: ['8'], tileColors: gray, operatingRounds: 3, trainLimit: 2 },
+        { id: '10', startedBy: ['10'], tileColors: gray, operatingRounds: 3, trainLimit: 2 },
+        { id: '12', startedBy: ['12'], tileColors: gray, operatingRounds: 3, trainLimit: 2 },
+        {
+            id: 'D',
+            startedBy: ['D'],
+            tileColors: gray,
+            operatingRounds: 3,
+            trainLimit: 2,
+            variantEnd: true
+        }
     ],
     TrainDepot1870
 )
 
-// Red off-board values: the top until phase 4, the middle until phase 6, then the bottom (p. 31).
+// Red off-board values: the top until the first 5-train, the middle until the first 8-train or
+// diesel, then the bottom (p. 31).
 export function revenueStages(phaseId: string): readonly string[] {
-    if (Phases1870.isAtLeast(phaseId, '6')) return ['yellow', 'brown', 'gray']
-    if (Phases1870.isAtLeast(phaseId, '4')) return ['yellow', 'brown']
+    if (Phases1870.isAtLeast(phaseId, '8')) return ['yellow', 'brown', 'gray']
+    if (Phases1870.isAtLeast(phaseId, '5')) return ['yellow', 'brown']
     return ['yellow']
 }
 
-// Diesels go on sale with phase 5, $1100 or $800 by trading in a 4, 5 or 6 (p. 24).
+// Diesels go on sale with the first 6-train, $1100 or $800 by trading in a 4, 5 or 6 (p. 24).
 const Diesels = dieselTrains({
     depot: TrainDepot1870,
     phases: Phases1870,
     dieselId: 'D',
-    fromPhaseId: '5',
+    fromPhaseId: '6',
     tradeInIds: ['4', '5', '6'],
     credit: 300
 })

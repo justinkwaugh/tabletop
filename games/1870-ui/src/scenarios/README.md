@@ -39,7 +39,7 @@ The same company choosing its routes.
 
 ## Late game
 
-A company's track step in phase 6, opened without history: bottom off-board values, reached destinations, destination stations beside their cities.
+A company's track step in phase 8, opened without history: bottom off-board values, reached destinations, destination stations beside their cities.
 
 ## Port token
 

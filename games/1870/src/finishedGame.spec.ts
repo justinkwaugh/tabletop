@@ -25,7 +25,7 @@ it('plays a recorded game through to the broken bank', () => {
         stockMarket: Parameters<typeof Market1870.companySpace>[0]
     } = state
     expect(final.machineState).toBe('GameOver')
-    expect(final.phaseId).toBe('8')
+    expect(final.phaseId).toBe('12')
     expect(final.destinationRunsMade.length).toBeGreaterThan(5)
     expect(
         Object.fromEntries(

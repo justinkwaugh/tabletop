@@ -90,8 +90,8 @@
     "id": "phase:1870/3/8",
     "trainId": "1870/3/8",
     "definitionId": "3",
-    "fromPhaseId": "1",
-    "toPhaseId": "2"
+    "fromPhaseId": "2",
+    "toPhaseId": "3"
    }
   ],
   "usedPrivatePowerIds": [
@@ -2256,7 +2256,7 @@
    ],
    "nextTrainNumber": 31
   },
-  "phaseId": "2",
+  "phaseId": "3",
   "variants": {},
   "revenueTokens": [
    {
@@ -2358,7 +2358,7 @@
    "type": "ReserveBid",
    "lotId": "MRBC",
    "amount": 45,
-   "createdAt": "2026-11-03T15:16:10.580Z",
+   "createdAt": "2026-11-03T16:24:27.303Z",
    "index": 0,
    "undoPatch": [
     {
@@ -2408,7 +2408,7 @@
    "type": "ReserveBid",
    "lotId": "SCC",
    "amount": 55,
-   "createdAt": "2026-11-03T15:16:10.585Z",
+   "createdAt": "2026-11-03T16:24:27.308Z",
    "index": 1,
    "undoPatch": [
     {
@@ -2458,7 +2458,7 @@
    "type": "ReserveBid",
    "lotId": "FRISCO",
    "amount": 145,
-   "createdAt": "2026-11-03T15:16:10.590Z",
+   "createdAt": "2026-11-03T16:24:27.313Z",
    "index": 2,
    "undoPatch": [
     {
@@ -2508,7 +2508,7 @@
    "type": "ReserveBid",
    "lotId": "MRBC",
    "amount": 50,
-   "createdAt": "2026-11-03T15:16:10.595Z",
+   "createdAt": "2026-11-03T16:24:27.318Z",
    "index": 3,
    "undoPatch": [
     {
@@ -2558,7 +2558,7 @@
    "type": "ReserveBid",
    "lotId": "GSC",
    "amount": 85,
-   "createdAt": "2026-11-03T15:16:10.599Z",
+   "createdAt": "2026-11-03T16:24:27.323Z",
    "index": 4,
    "undoPatch": [
     {
@@ -2608,7 +2608,7 @@
    "type": "ReserveBid",
    "lotId": "GSC",
    "amount": 90,
-   "createdAt": "2026-11-03T15:16:10.604Z",
+   "createdAt": "2026-11-03T16:24:27.328Z",
    "index": 5,
    "undoPatch": [
     {
@@ -2658,7 +2658,7 @@
    "type": "BuyAuctionLot",
    "lotId": "GRSC",
    "expectedPrice": 20,
-   "createdAt": "2026-11-03T15:16:10.609Z",
+   "createdAt": "2026-11-03T16:24:27.332Z",
    "metadata": {
     "playerId": "4395",
     "lotId": "GRSC",
@@ -2722,7 +2722,7 @@
    "gameId": "scenario-price-protection",
    "source": "system",
    "type": "ResolveAuction",
-   "createdAt": "2026-11-03T15:16:10.609Z",
+   "createdAt": "2026-11-03T16:24:27.332Z",
    "metadata": {
     "kind": "open-bidding",
     "lotId": "MRBC"
@@ -2822,7 +2822,7 @@
    "source": "user",
    "playerId": "9263",
    "type": "PassAuction",
-   "createdAt": "2026-11-03T15:16:10.616Z",
+   "createdAt": "2026-11-03T16:24:27.340Z",
    "index": 8,
    "undoPatch": [
     {
@@ -2852,7 +2852,7 @@
    "gameId": "scenario-price-protection",
    "source": "system",
    "type": "ResolveAuction",
-   "createdAt": "2026-11-03T15:16:10.616Z",
+   "createdAt": "2026-11-03T16:24:27.340Z",
    "metadata": {
     "kind": "award",
     "award": {
@@ -2944,7 +2944,7 @@
    "gameId": "scenario-price-protection",
    "source": "system",
    "type": "ResolveAuction",
-   "createdAt": "2026-11-03T15:16:10.618Z",
+   "createdAt": "2026-11-03T16:24:27.342Z",
    "metadata": {
     "kind": "award",
     "award": {
@@ -3015,7 +3015,7 @@
    "gameId": "scenario-price-protection",
    "source": "system",
    "type": "ResolveAuction",
-   "createdAt": "2026-11-03T15:16:10.620Z",
+   "createdAt": "2026-11-03T16:24:27.345Z",
    "metadata": {
     "kind": "open-bidding",
     "lotId": "GSC"
@@ -3067,7 +3067,7 @@
    "source": "user",
    "playerId": "9263",
    "type": "PassAuction",
-   "createdAt": "2026-11-03T15:16:10.627Z",
+   "createdAt": "2026-11-03T16:24:27.352Z",
    "index": 12,
    "undoPatch": [
     {
@@ -3097,7 +3097,7 @@
    "gameId": "scenario-price-protection",
    "source": "system",
    "type": "ResolveAuction",
-   "createdAt": "2026-11-03T15:16:10.627Z",
+   "createdAt": "2026-11-03T16:24:27.352Z",
    "metadata": {
     "kind": "award",
     "award": {
@@ -3189,7 +3189,7 @@
    "gameId": "scenario-price-protection",
    "source": "system",
    "type": "ResolveAuction",
-   "createdAt": "2026-11-03T15:16:10.630Z",
+   "createdAt": "2026-11-03T16:24:27.354Z",
    "metadata": {
     "kind": "award",
     "award": {
@@ -3295,7 +3295,7 @@
    "type": "ParCompany",
    "companyId": "SLSF",
    "marketSpaceId": "0:6",
-   "createdAt": "2026-11-03T15:16:10.636Z",
+   "createdAt": "2026-11-03T16:24:27.361Z",
    "index": 15,
    "undoPatch": [
     {
@@ -3359,7 +3359,7 @@
    "source": "user",
    "playerId": "18843",
    "type": "PassAuction",
-   "createdAt": "2026-11-03T15:16:10.641Z",
+   "createdAt": "2026-11-03T16:24:27.366Z",
    "index": 16,
    "undoPatch": [
     {
@@ -3409,7 +3409,7 @@
    "type": "BuyAuctionLot",
    "lotId": "KATY",
    "expectedPrice": 160,
-   "createdAt": "2026-11-03T15:16:10.647Z",
+   "createdAt": "2026-11-03T16:24:27.371Z",
    "metadata": {
     "playerId": "9263",
     "lotId": "KATY",
@@ -3499,7 +3499,7 @@
    "gameId": "scenario-price-protection",
    "source": "system",
    "type": "ResolveAuction",
-   "createdAt": "2026-11-03T15:16:10.647Z",
+   "createdAt": "2026-11-03T16:24:27.371Z",
    "metadata": {
     "kind": "complete",
     "roundEnd": {
@@ -3586,7 +3586,7 @@
    "type": "FloatCompany",
    "companyId": "SLSF",
    "playerId": "7438",
-   "createdAt": "2026-11-03T15:16:10.649Z",
+   "createdAt": "2026-11-03T16:24:27.373Z",
    "metadata": {
     "companyId": "SLSF",
     "payments": [
@@ -3653,7 +3653,7 @@
    "companyId": "MKT",
    "marketSpaceId": "5:6",
    "expectedPrice": 136,
-   "createdAt": "2026-11-03T15:16:10.658Z",
+   "createdAt": "2026-11-03T16:24:27.383Z",
    "metadata": {
     "certificateId": "MKT:president",
     "companyId": "MKT",
@@ -3762,7 +3762,7 @@
    "source": "system",
    "type": "FinishStockTurn",
    "playerId": "7438",
-   "createdAt": "2026-11-03T15:16:10.659Z",
+   "createdAt": "2026-11-03T16:24:27.384Z",
    "metadata": {
     "passed": false
    },
@@ -3830,7 +3830,7 @@
    },
    "certificateId": "MKT:share:2",
    "expectedPrice": 68,
-   "createdAt": "2026-11-03T15:16:10.669Z",
+   "createdAt": "2026-11-03T16:24:27.394Z",
    "metadata": {
     "certificateId": "MKT:share:2",
     "companyId": "MKT",
@@ -3920,7 +3920,7 @@
    "source": "system",
    "type": "FinishStockTurn",
    "playerId": "4395",
-   "createdAt": "2026-11-03T15:16:10.669Z",
+   "createdAt": "2026-11-03T16:24:27.394Z",
    "metadata": {
     "passed": false
    },
@@ -3990,7 +3990,7 @@
    "companyId": "MP",
    "marketSpaceId": "3:6",
    "expectedPrice": 152,
-   "createdAt": "2026-11-03T15:16:10.679Z",
+   "createdAt": "2026-11-03T16:24:27.404Z",
    "metadata": {
     "certificateId": "MP:president",
     "companyId": "MP",
@@ -4099,7 +4099,7 @@
    "source": "system",
    "type": "FinishStockTurn",
    "playerId": "18843",
-   "createdAt": "2026-11-03T15:16:10.680Z",
+   "createdAt": "2026-11-03T16:24:27.405Z",
    "metadata": {
     "passed": false
    },
@@ -4161,7 +4161,7 @@
    "source": "user",
    "playerId": "9263",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:10.689Z",
+   "createdAt": "2026-11-03T16:24:27.414Z",
    "metadata": {
     "passed": true
    },
@@ -4213,7 +4213,7 @@
    },
    "certificateId": "MKT:share:3",
    "expectedPrice": 68,
-   "createdAt": "2026-11-03T15:16:10.696Z",
+   "createdAt": "2026-11-03T16:24:27.421Z",
    "metadata": {
     "certificateId": "MKT:share:3",
     "companyId": "MKT",
@@ -4308,7 +4308,7 @@
    "source": "system",
    "type": "FinishStockTurn",
    "playerId": "7438",
-   "createdAt": "2026-11-03T15:16:10.696Z",
+   "createdAt": "2026-11-03T16:24:27.422Z",
    "metadata": {
     "passed": false
    },
@@ -4377,7 +4377,7 @@
    },
    "certificateId": "MKT:share:4",
    "expectedPrice": 68,
-   "createdAt": "2026-11-03T15:16:10.706Z",
+   "createdAt": "2026-11-03T16:24:27.431Z",
    "metadata": {
     "certificateId": "MKT:share:4",
     "companyId": "MKT",
@@ -4468,7 +4468,7 @@
    "type": "FloatCompany",
    "companyId": "MKT",
    "playerId": "4395",
-   "createdAt": "2026-11-03T15:16:10.706Z",
+   "createdAt": "2026-11-03T16:24:27.431Z",
    "metadata": {
     "companyId": "MKT",
     "payments": [
@@ -4533,7 +4533,7 @@
    "source": "system",
    "type": "FinishStockTurn",
    "playerId": "4395",
-   "createdAt": "2026-11-03T15:16:10.709Z",
+   "createdAt": "2026-11-03T16:24:27.434Z",
    "metadata": {
     "passed": false
    },
@@ -4602,7 +4602,7 @@
    },
    "certificateId": "MP:share:1",
    "expectedPrice": 76,
-   "createdAt": "2026-11-03T15:16:10.718Z",
+   "createdAt": "2026-11-03T16:24:27.443Z",
    "metadata": {
     "certificateId": "MP:share:1",
     "companyId": "MP",
@@ -4692,7 +4692,7 @@
    "source": "system",
    "type": "FinishStockTurn",
    "playerId": "18843",
-   "createdAt": "2026-11-03T15:16:10.719Z",
+   "createdAt": "2026-11-03T16:24:27.444Z",
    "metadata": {
     "passed": false
    },
@@ -4755,7 +4755,7 @@
    "source": "user",
    "playerId": "9263",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:10.728Z",
+   "createdAt": "2026-11-03T16:24:27.453Z",
    "metadata": {
     "passed": true
    },
@@ -4807,7 +4807,7 @@
    },
    "certificateId": "MKT:share:5",
    "expectedPrice": 68,
-   "createdAt": "2026-11-03T15:16:10.735Z",
+   "createdAt": "2026-11-03T16:24:27.460Z",
    "metadata": {
     "certificateId": "MKT:share:5",
     "companyId": "MKT",
@@ -4902,7 +4902,7 @@
    "source": "system",
    "type": "FinishStockTurn",
    "playerId": "7438",
-   "createdAt": "2026-11-03T15:16:10.735Z",
+   "createdAt": "2026-11-03T16:24:27.460Z",
    "metadata": {
     "passed": false
    },
@@ -4965,7 +4965,7 @@
    "source": "user",
    "playerId": "4395",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:10.745Z",
+   "createdAt": "2026-11-03T16:24:27.470Z",
    "metadata": {
     "passed": true
    },
@@ -5017,7 +5017,7 @@
    },
    "certificateId": "MP:share:2",
    "expectedPrice": 76,
-   "createdAt": "2026-11-03T15:16:10.752Z",
+   "createdAt": "2026-11-03T16:24:27.476Z",
    "metadata": {
     "certificateId": "MP:share:2",
     "companyId": "MP",
@@ -5112,7 +5112,7 @@
    "source": "system",
    "type": "FinishStockTurn",
    "playerId": "18843",
-   "createdAt": "2026-11-03T15:16:10.752Z",
+   "createdAt": "2026-11-03T16:24:27.477Z",
    "metadata": {
     "passed": false
    },
@@ -5175,7 +5175,7 @@
    "source": "user",
    "playerId": "9263",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:10.762Z",
+   "createdAt": "2026-11-03T16:24:27.487Z",
    "metadata": {
     "passed": true
    },
@@ -5227,7 +5227,7 @@
    },
    "certificateId": "MKT:share:6",
    "expectedPrice": 68,
-   "createdAt": "2026-11-03T15:16:10.771Z",
+   "createdAt": "2026-11-03T16:24:27.495Z",
    "metadata": {
     "certificateId": "MKT:share:6",
     "companyId": "MKT",
@@ -5322,7 +5322,7 @@
    "source": "system",
    "type": "FinishStockTurn",
    "playerId": "7438",
-   "createdAt": "2026-11-03T15:16:10.772Z",
+   "createdAt": "2026-11-03T16:24:27.496Z",
    "metadata": {
     "passed": false
    },
@@ -5391,7 +5391,7 @@
    },
    "certificateId": "SLSF:share:1",
    "expectedPrice": 100,
-   "createdAt": "2026-11-03T15:16:10.781Z",
+   "createdAt": "2026-11-03T16:24:27.506Z",
    "metadata": {
     "certificateId": "SLSF:share:1",
     "companyId": "SLSF",
@@ -5481,7 +5481,7 @@
    "source": "system",
    "type": "FinishStockTurn",
    "playerId": "4395",
-   "createdAt": "2026-11-03T15:16:10.782Z",
+   "createdAt": "2026-11-03T16:24:27.507Z",
    "metadata": {
     "passed": false
    },
@@ -5550,7 +5550,7 @@
    },
    "certificateId": "MP:share:3",
    "expectedPrice": 76,
-   "createdAt": "2026-11-03T15:16:10.791Z",
+   "createdAt": "2026-11-03T16:24:27.516Z",
    "metadata": {
     "certificateId": "MP:share:3",
     "companyId": "MP",
@@ -5640,7 +5640,7 @@
    "source": "system",
    "type": "FinishStockTurn",
    "playerId": "18843",
-   "createdAt": "2026-11-03T15:16:10.792Z",
+   "createdAt": "2026-11-03T16:24:27.517Z",
    "metadata": {
     "passed": false
    },
@@ -5703,7 +5703,7 @@
    "source": "user",
    "playerId": "9263",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:10.801Z",
+   "createdAt": "2026-11-03T16:24:27.527Z",
    "metadata": {
     "passed": true
    },
@@ -5749,7 +5749,7 @@
    "source": "user",
    "playerId": "7438",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:10.813Z",
+   "createdAt": "2026-11-03T16:24:27.538Z",
    "metadata": {
     "passed": true
    },
@@ -5801,7 +5801,7 @@
    },
    "certificateId": "MP:share:4",
    "expectedPrice": 76,
-   "createdAt": "2026-11-03T15:16:10.822Z",
+   "createdAt": "2026-11-03T16:24:27.547Z",
    "metadata": {
     "certificateId": "MP:share:4",
     "companyId": "MP",
@@ -5902,7 +5902,7 @@
    "type": "FloatCompany",
    "companyId": "MP",
    "playerId": "4395",
-   "createdAt": "2026-11-03T15:16:10.822Z",
+   "createdAt": "2026-11-03T16:24:27.548Z",
    "metadata": {
     "companyId": "MP",
     "payments": [
@@ -5967,7 +5967,7 @@
    "source": "system",
    "type": "FinishStockTurn",
    "playerId": "4395",
-   "createdAt": "2026-11-03T15:16:10.825Z",
+   "createdAt": "2026-11-03T16:24:27.551Z",
    "metadata": {
     "passed": false
    },
@@ -6030,7 +6030,7 @@
    "source": "user",
    "playerId": "18843",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:10.837Z",
+   "createdAt": "2026-11-03T16:24:27.563Z",
    "metadata": {
     "passed": true
    },
@@ -6076,7 +6076,7 @@
    "source": "user",
    "playerId": "9263",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:10.844Z",
+   "createdAt": "2026-11-03T16:24:27.570Z",
    "metadata": {
     "passed": true
    },
@@ -6122,7 +6122,7 @@
    "source": "user",
    "playerId": "7438",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:10.854Z",
+   "createdAt": "2026-11-03T16:24:27.580Z",
    "metadata": {
     "passed": true
    },
@@ -6168,7 +6168,7 @@
    "source": "user",
    "playerId": "4395",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:10.865Z",
+   "createdAt": "2026-11-03T16:24:27.591Z",
    "metadata": {
     "passed": true
    },
@@ -6210,7 +6210,7 @@
    "source": "system",
    "type": "CompleteStockRound",
    "playerId": "4395",
-   "createdAt": "2026-11-03T15:16:10.865Z",
+   "createdAt": "2026-11-03T16:24:27.591Z",
    "metadata": {
     "nextPlayerOrder": [
      "18843",
@@ -6288,7 +6288,7 @@
    "gameId": "scenario-price-protection",
    "source": "system",
    "type": "StartOperatingSet",
-   "createdAt": "2026-11-03T15:16:10.867Z",
+   "createdAt": "2026-11-03T16:24:27.593Z",
    "metadata": {
     "number": 1,
     "roundNumber": 1,
@@ -6335,7 +6335,7 @@
    "gameId": "scenario-price-protection",
    "source": "system",
    "type": "StartOperatingRound",
-   "createdAt": "2026-11-03T15:16:10.870Z",
+   "createdAt": "2026-11-03T16:24:27.596Z",
    "metadata": {
     "operatingSet": {
      "number": 1,
@@ -6473,7 +6473,7 @@
    "gameId": "scenario-price-protection",
    "source": "system",
    "type": "PlaceHomeStations",
-   "createdAt": "2026-11-03T15:16:10.872Z",
+   "createdAt": "2026-11-03T16:24:27.598Z",
    "metadata": [
     {
      "companyId": "SLSF",
@@ -6529,7 +6529,7 @@
    "source": "system",
    "type": "StartOperatingTurn",
    "companyId": "SLSF",
-   "createdAt": "2026-11-03T15:16:10.875Z",
+   "createdAt": "2026-11-03T16:24:27.601Z",
    "index": 60,
    "undoPatch": [
     {
@@ -6575,7 +6575,7 @@
     "city": "city"
    },
    "expectedCost": 60,
-   "createdAt": "2026-11-03T15:16:10.884Z",
+   "createdAt": "2026-11-03T16:24:27.610Z",
    "metadata": {
     "companyId": "SLSF",
     "locationId": "E12",
@@ -6638,7 +6638,7 @@
    "rotation": 0,
    "nodeMapping": {},
    "expectedCost": 60,
-   "createdAt": "2026-11-03T15:16:10.889Z",
+   "createdAt": "2026-11-03T16:24:27.616Z",
    "metadata": {
     "companyId": "SLSF",
     "locationId": "F13",
@@ -6699,7 +6699,7 @@
    "type": "FinishTrack",
    "companyId": "SLSF",
    "playerId": "4395",
-   "createdAt": "2026-11-03T15:16:10.891Z",
+   "createdAt": "2026-11-03T16:24:27.617Z",
    "index": 63,
    "undoPatch": [
     {
@@ -6740,7 +6740,7 @@
    "type": "FinishStations",
    "companyId": "SLSF",
    "playerId": "4395",
-   "createdAt": "2026-11-03T15:16:10.895Z",
+   "createdAt": "2026-11-03T16:24:27.621Z",
    "index": 64,
    "undoPatch": [
     {
@@ -6782,7 +6782,7 @@
    "companyId": "SLSF",
    "routes": [],
    "playerId": "4395",
-   "createdAt": "2026-11-03T15:16:10.899Z",
+   "createdAt": "2026-11-03T16:24:27.625Z",
    "metadata": {
     "companyId": "SLSF",
     "routes": [],
@@ -6828,7 +6828,7 @@
    "companyId": "SLSF",
    "choice": "withhold",
    "playerId": "4395",
-   "createdAt": "2026-11-03T15:16:10.901Z",
+   "createdAt": "2026-11-03T16:24:27.628Z",
    "metadata": {
     "companyId": "SLSF",
     "choice": "withhold",
@@ -6921,7 +6921,7 @@
    "trainId": "1870/2/1",
    "definitionId": "2",
    "expectedPrice": 80,
-   "createdAt": "2026-11-03T15:16:10.910Z",
+   "createdAt": "2026-11-03T16:24:27.636Z",
    "metadata": {
     "companyChanges": {
      "presidents": [],
@@ -6976,7 +6976,7 @@
    "playerId": "4395",
    "companyId": "SLSF",
    "type": "FinishOperatingTurn",
-   "createdAt": "2026-11-03T15:16:10.915Z",
+   "createdAt": "2026-11-03T16:24:27.642Z",
    "metadata": {
     "number": 1,
     "roundNumber": 1,
@@ -7104,7 +7104,7 @@
    "source": "system",
    "type": "PlaceHomeStations",
    "playerId": "4395",
-   "createdAt": "2026-11-03T15:16:10.915Z",
+   "createdAt": "2026-11-03T16:24:27.642Z",
    "metadata": [
     {
      "companyId": "MP",
@@ -7160,7 +7160,7 @@
    "source": "system",
    "type": "StartOperatingTurn",
    "companyId": "MP",
-   "createdAt": "2026-11-03T15:16:10.918Z",
+   "createdAt": "2026-11-03T16:24:27.645Z",
    "index": 70,
    "undoPatch": [
     {
@@ -7209,7 +7209,7 @@
     "playerId": "18843"
    },
    "price": 40,
-   "createdAt": "2026-11-03T15:16:10.927Z",
+   "createdAt": "2026-11-03T16:24:27.653Z",
    "metadata": {
     "companyChanges": {
      "presidents": [],
@@ -7288,7 +7288,7 @@
     "city": "city"
    },
    "expectedCost": 0,
-   "createdAt": "2026-11-03T15:16:10.935Z",
+   "createdAt": "2026-11-03T16:24:27.661Z",
    "metadata": {
     "companyId": "MP",
     "locationId": "C18",
@@ -7345,7 +7345,7 @@
    "rotation": 1,
    "nodeMapping": {},
    "expectedCost": 0,
-   "createdAt": "2026-11-03T15:16:10.941Z",
+   "createdAt": "2026-11-03T16:24:27.668Z",
    "metadata": {
     "companyId": "MP",
     "locationId": "C20",
@@ -7396,7 +7396,7 @@
    "rotation": 0,
    "nodeMapping": {},
    "expectedCost": 0,
-   "createdAt": "2026-11-03T15:16:10.947Z",
+   "createdAt": "2026-11-03T16:24:27.674Z",
    "metadata": {
     "companyId": "MP",
     "locationId": "B21",
@@ -7447,7 +7447,7 @@
    "type": "FinishTrack",
    "companyId": "MP",
    "playerId": "18843",
-   "createdAt": "2026-11-03T15:16:10.948Z",
+   "createdAt": "2026-11-03T16:24:27.675Z",
    "index": 75,
    "undoPatch": [
     {
@@ -7493,7 +7493,7 @@
    "type": "FinishStations",
    "companyId": "MP",
    "playerId": "18843",
-   "createdAt": "2026-11-03T15:16:10.953Z",
+   "createdAt": "2026-11-03T16:24:27.680Z",
    "index": 76,
    "undoPatch": [
     {
@@ -7535,7 +7535,7 @@
    "companyId": "MP",
    "routes": [],
    "playerId": "18843",
-   "createdAt": "2026-11-03T15:16:10.957Z",
+   "createdAt": "2026-11-03T16:24:27.684Z",
    "metadata": {
     "companyId": "MP",
     "routes": [],
@@ -7581,7 +7581,7 @@
    "companyId": "MP",
    "choice": "withhold",
    "playerId": "18843",
-   "createdAt": "2026-11-03T15:16:10.960Z",
+   "createdAt": "2026-11-03T16:24:27.686Z",
    "metadata": {
     "companyId": "MP",
     "choice": "withhold",
@@ -7664,7 +7664,7 @@
    "trainId": "1870/2/2",
    "definitionId": "2",
    "expectedPrice": 80,
-   "createdAt": "2026-11-03T15:16:10.969Z",
+   "createdAt": "2026-11-03T16:24:27.695Z",
    "metadata": {
     "companyChanges": {
      "presidents": [],
@@ -7722,7 +7722,7 @@
    "trainId": "1870/2/3",
    "definitionId": "2",
    "expectedPrice": 80,
-   "createdAt": "2026-11-03T15:16:10.975Z",
+   "createdAt": "2026-11-03T16:24:27.701Z",
    "metadata": {
     "companyChanges": {
      "presidents": [],
@@ -7777,7 +7777,7 @@
    "playerId": "18843",
    "companyId": "MP",
    "type": "FinishOperatingTurn",
-   "createdAt": "2026-11-03T15:16:10.980Z",
+   "createdAt": "2026-11-03T16:24:27.707Z",
    "metadata": {
     "number": 1,
     "roundNumber": 1,
@@ -7906,7 +7906,7 @@
    "source": "system",
    "type": "PlaceHomeStations",
    "playerId": "18843",
-   "createdAt": "2026-11-03T15:16:10.981Z",
+   "createdAt": "2026-11-03T16:24:27.707Z",
    "metadata": [
     {
      "companyId": "MKT",
@@ -7962,7 +7962,7 @@
    "source": "system",
    "type": "StartOperatingTurn",
    "companyId": "MKT",
-   "createdAt": "2026-11-03T15:16:10.984Z",
+   "createdAt": "2026-11-03T16:24:27.710Z",
    "index": 83,
    "undoPatch": [
     {
@@ -8009,7 +8009,7 @@
     "city": "city"
    },
    "expectedCost": 40,
-   "createdAt": "2026-11-03T15:16:10.993Z",
+   "createdAt": "2026-11-03T16:24:27.719Z",
    "metadata": {
     "companyId": "MKT",
     "locationId": "B11",
@@ -8074,7 +8074,7 @@
     "city": "city"
    },
    "expectedCost": 0,
-   "createdAt": "2026-11-03T15:16:10.999Z",
+   "createdAt": "2026-11-03T16:24:27.726Z",
    "metadata": {
     "companyId": "MKT",
     "locationId": "B9",
@@ -8127,7 +8127,7 @@
    "type": "FinishTrack",
    "companyId": "MKT",
    "playerId": "7438",
-   "createdAt": "2026-11-03T15:16:11.000Z",
+   "createdAt": "2026-11-03T16:24:27.727Z",
    "index": 86,
    "undoPatch": [
     {
@@ -8168,7 +8168,7 @@
    "type": "FinishStations",
    "companyId": "MKT",
    "playerId": "7438",
-   "createdAt": "2026-11-03T15:16:11.005Z",
+   "createdAt": "2026-11-03T16:24:27.732Z",
    "index": 87,
    "undoPatch": [
     {
@@ -8210,7 +8210,7 @@
    "companyId": "MKT",
    "routes": [],
    "playerId": "7438",
-   "createdAt": "2026-11-03T15:16:11.009Z",
+   "createdAt": "2026-11-03T16:24:27.736Z",
    "metadata": {
     "companyId": "MKT",
     "routes": [],
@@ -8256,7 +8256,7 @@
    "companyId": "MKT",
    "choice": "withhold",
    "playerId": "7438",
-   "createdAt": "2026-11-03T15:16:11.012Z",
+   "createdAt": "2026-11-03T16:24:27.738Z",
    "metadata": {
     "companyId": "MKT",
     "choice": "withhold",
@@ -8349,7 +8349,7 @@
    "trainId": "1870/2/4",
    "definitionId": "2",
    "expectedPrice": 80,
-   "createdAt": "2026-11-03T15:16:11.021Z",
+   "createdAt": "2026-11-03T16:24:27.747Z",
    "metadata": {
     "companyChanges": {
      "presidents": [],
@@ -8407,7 +8407,7 @@
    "trainId": "1870/2/5",
    "definitionId": "2",
    "expectedPrice": 80,
-   "createdAt": "2026-11-03T15:16:11.026Z",
+   "createdAt": "2026-11-03T16:24:27.753Z",
    "metadata": {
     "companyChanges": {
      "presidents": [],
@@ -8462,7 +8462,7 @@
    "playerId": "7438",
    "companyId": "MKT",
    "type": "FinishOperatingTurn",
-   "createdAt": "2026-11-03T15:16:11.032Z",
+   "createdAt": "2026-11-03T16:24:27.759Z",
    "metadata": {
     "number": 1,
     "roundNumber": 1,
@@ -8591,7 +8591,7 @@
    "source": "system",
    "type": "StartStockRound",
    "playerId": "7438",
-   "createdAt": "2026-11-03T15:16:11.032Z",
+   "createdAt": "2026-11-03T16:24:27.759Z",
    "index": 93,
    "undoPatch": [
     {
@@ -8661,7 +8661,7 @@
    "source": "user",
    "playerId": "18843",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:11.043Z",
+   "createdAt": "2026-11-03T16:24:27.770Z",
    "metadata": {
     "passed": true
    },
@@ -8713,7 +8713,7 @@
    },
    "certificateId": "MP:share:5",
    "expectedPrice": 76,
-   "createdAt": "2026-11-03T15:16:11.051Z",
+   "createdAt": "2026-11-03T16:24:27.777Z",
    "metadata": {
     "certificateId": "MP:share:5",
     "companyId": "MP",
@@ -8803,7 +8803,7 @@
    "source": "user",
    "playerId": "9263",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:11.057Z",
+   "createdAt": "2026-11-03T16:24:27.784Z",
    "metadata": {
     "passed": false
    },
@@ -8868,7 +8868,7 @@
    "type": "RedeemShare",
    "companyId": "MKT",
    "certificateId": "MKT:share:3",
-   "createdAt": "2026-11-03T15:16:11.069Z",
+   "createdAt": "2026-11-03T16:24:27.796Z",
    "metadata": {
     "holder": {
      "kind": "player",
@@ -8948,7 +8948,7 @@
    "source": "system",
    "type": "FinishStockTurn",
    "playerId": "7438",
-   "createdAt": "2026-11-03T15:16:11.074Z",
+   "createdAt": "2026-11-03T16:24:27.801Z",
    "metadata": {
     "passed": false
    },
@@ -9002,7 +9002,7 @@
    "source": "user",
    "playerId": "4395",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:11.094Z",
+   "createdAt": "2026-11-03T16:24:27.822Z",
    "metadata": {
     "passed": true
    },
@@ -9048,7 +9048,7 @@
    "source": "user",
    "playerId": "18843",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:11.102Z",
+   "createdAt": "2026-11-03T16:24:27.830Z",
    "metadata": {
     "passed": true
    },
@@ -9100,7 +9100,7 @@
    },
    "certificateId": "MP:share:6",
    "expectedPrice": 76,
-   "createdAt": "2026-11-03T15:16:11.110Z",
+   "createdAt": "2026-11-03T16:24:27.838Z",
    "metadata": {
     "certificateId": "MP:share:6",
     "companyId": "MP",
@@ -9195,7 +9195,7 @@
    "source": "user",
    "playerId": "9263",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:11.116Z",
+   "createdAt": "2026-11-03T16:24:27.844Z",
    "metadata": {
     "passed": false
    },
@@ -9264,7 +9264,7 @@
    },
    "certificateId": "MKT:share:7",
    "expectedPrice": 68,
-   "createdAt": "2026-11-03T15:16:11.126Z",
+   "createdAt": "2026-11-03T16:24:27.855Z",
    "metadata": {
     "certificateId": "MKT:share:7",
     "companyId": "MKT",
@@ -9349,7 +9349,7 @@
    "source": "user",
    "playerId": "7438",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:11.132Z",
+   "createdAt": "2026-11-03T16:24:27.861Z",
    "metadata": {
     "passed": false
    },
@@ -9412,7 +9412,7 @@
    "source": "user",
    "playerId": "4395",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:11.145Z",
+   "createdAt": "2026-11-03T16:24:27.874Z",
    "metadata": {
     "passed": true
    },
@@ -9464,7 +9464,7 @@
    },
    "certificateId": "MP:share:7",
    "expectedPrice": 76,
-   "createdAt": "2026-11-03T15:16:11.153Z",
+   "createdAt": "2026-11-03T16:24:27.882Z",
    "metadata": {
     "certificateId": "MP:share:7",
     "companyId": "MP",
@@ -9554,7 +9554,7 @@
    "source": "user",
    "playerId": "18843",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:11.159Z",
+   "createdAt": "2026-11-03T16:24:27.889Z",
    "metadata": {
     "passed": false
    },
@@ -9623,7 +9623,7 @@
    },
    "certificateId": "MKT:share:8",
    "expectedPrice": 68,
-   "createdAt": "2026-11-03T15:16:11.167Z",
+   "createdAt": "2026-11-03T16:24:27.896Z",
    "metadata": {
     "certificateId": "MKT:share:8",
     "companyId": "MKT",
@@ -9708,7 +9708,7 @@
    "source": "user",
    "playerId": "9263",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:11.173Z",
+   "createdAt": "2026-11-03T16:24:27.903Z",
    "metadata": {
     "passed": false
    },
@@ -9771,7 +9771,7 @@
    "source": "user",
    "playerId": "7438",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:11.185Z",
+   "createdAt": "2026-11-03T16:24:27.915Z",
    "metadata": {
     "passed": true
    },
@@ -9817,7 +9817,7 @@
    "source": "user",
    "playerId": "4395",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:11.196Z",
+   "createdAt": "2026-11-03T16:24:27.927Z",
    "metadata": {
     "passed": true
    },
@@ -9863,7 +9863,7 @@
    "source": "user",
    "playerId": "18843",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:11.208Z",
+   "createdAt": "2026-11-03T16:24:27.939Z",
    "metadata": {
     "passed": true
    },
@@ -9915,7 +9915,7 @@
    },
    "certificateId": "MP:share:8",
    "expectedPrice": 76,
-   "createdAt": "2026-11-03T15:16:11.215Z",
+   "createdAt": "2026-11-03T16:24:27.947Z",
    "metadata": {
     "certificateId": "MP:share:8",
     "companyId": "MP",
@@ -10015,7 +10015,7 @@
    "source": "user",
    "playerId": "9263",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:11.221Z",
+   "createdAt": "2026-11-03T16:24:27.953Z",
    "metadata": {
     "passed": false
    },
@@ -10078,7 +10078,7 @@
    "source": "user",
    "playerId": "7438",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:11.233Z",
+   "createdAt": "2026-11-03T16:24:27.965Z",
    "metadata": {
     "passed": true
    },
@@ -10124,7 +10124,7 @@
    "source": "user",
    "playerId": "4395",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:11.244Z",
+   "createdAt": "2026-11-03T16:24:27.977Z",
    "metadata": {
     "passed": true
    },
@@ -10172,7 +10172,7 @@
    "type": "RedeemShare",
    "companyId": "MP",
    "certificateId": "MP:share:1",
-   "createdAt": "2026-11-03T15:16:11.256Z",
+   "createdAt": "2026-11-03T16:24:27.989Z",
    "metadata": {
     "holder": {
      "kind": "player",
@@ -10262,7 +10262,7 @@
    "source": "system",
    "type": "FinishStockTurn",
    "playerId": "18843",
-   "createdAt": "2026-11-03T15:16:11.259Z",
+   "createdAt": "2026-11-03T16:24:27.992Z",
    "metadata": {
     "passed": false
    },
@@ -10316,7 +10316,7 @@
    "source": "user",
    "playerId": "9263",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:11.276Z",
+   "createdAt": "2026-11-03T16:24:28.010Z",
    "metadata": {
     "passed": true
    },
@@ -10362,7 +10362,7 @@
    "source": "user",
    "playerId": "7438",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:11.287Z",
+   "createdAt": "2026-11-03T16:24:28.021Z",
    "metadata": {
     "passed": true
    },
@@ -10408,7 +10408,7 @@
    "source": "user",
    "playerId": "4395",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:11.298Z",
+   "createdAt": "2026-11-03T16:24:28.033Z",
    "metadata": {
     "passed": true
    },
@@ -10460,7 +10460,7 @@
    },
    "certificateId": "SLSF:share:2",
    "expectedPrice": 100,
-   "createdAt": "2026-11-03T15:16:11.307Z",
+   "createdAt": "2026-11-03T16:24:28.042Z",
    "metadata": {
     "certificateId": "SLSF:share:2",
     "companyId": "SLSF",
@@ -10560,7 +10560,7 @@
    "source": "user",
    "playerId": "18843",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:11.313Z",
+   "createdAt": "2026-11-03T16:24:28.048Z",
    "metadata": {
     "passed": false
    },
@@ -10623,7 +10623,7 @@
    "source": "user",
    "playerId": "9263",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:11.324Z",
+   "createdAt": "2026-11-03T16:24:28.060Z",
    "metadata": {
     "passed": true
    },
@@ -10669,7 +10669,7 @@
    "source": "user",
    "playerId": "7438",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:11.336Z",
+   "createdAt": "2026-11-03T16:24:28.072Z",
    "metadata": {
     "passed": true
    },
@@ -10715,7 +10715,7 @@
    "source": "user",
    "playerId": "4395",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:11.347Z",
+   "createdAt": "2026-11-03T16:24:28.084Z",
    "metadata": {
     "passed": true
    },
@@ -10761,7 +10761,7 @@
    "source": "user",
    "playerId": "18843",
    "type": "FinishStockTurn",
-   "createdAt": "2026-11-03T15:16:11.358Z",
+   "createdAt": "2026-11-03T16:24:28.095Z",
    "metadata": {
     "passed": true
    },
@@ -10803,7 +10803,7 @@
    "source": "system",
    "type": "CompleteStockRound",
    "playerId": "18843",
-   "createdAt": "2026-11-03T15:16:11.358Z",
+   "createdAt": "2026-11-03T16:24:28.095Z",
    "metadata": {
     "nextPlayerOrder": [
      "9263",
@@ -10910,7 +10910,7 @@
    "gameId": "scenario-price-protection",
    "source": "system",
    "type": "StartOperatingSet",
-   "createdAt": "2026-11-03T15:16:11.361Z",
+   "createdAt": "2026-11-03T16:24:28.098Z",
    "metadata": {
     "number": 2,
     "roundNumber": 1,
@@ -10983,7 +10983,7 @@
    "gameId": "scenario-price-protection",
    "source": "system",
    "type": "StartOperatingRound",
-   "createdAt": "2026-11-03T15:16:11.364Z",
+   "createdAt": "2026-11-03T16:24:28.100Z",
    "metadata": {
     "operatingSet": {
      "number": 2,
@@ -11122,7 +11122,7 @@
    "source": "system",
    "type": "StartOperatingTurn",
    "companyId": "SLSF",
-   "createdAt": "2026-11-03T15:16:11.366Z",
+   "createdAt": "2026-11-03T16:24:28.103Z",
    "index": 131,
    "undoPatch": [
     {
@@ -11166,7 +11166,7 @@
    "rotation": 3,
    "nodeMapping": {},
    "expectedCost": 0,
-   "createdAt": "2026-11-03T15:16:11.376Z",
+   "createdAt": "2026-11-03T16:24:28.113Z",
    "metadata": {
     "companyId": "SLSF",
     "locationId": "D11",
@@ -11217,7 +11217,7 @@
    "rotation": 0,
    "nodeMapping": {},
    "expectedCost": 0,
-   "createdAt": "2026-11-03T15:16:11.382Z",
+   "createdAt": "2026-11-03T16:24:28.119Z",
    "metadata": {
     "companyId": "SLSF",
     "locationId": "C12",
@@ -11268,7 +11268,7 @@
    "type": "FinishTrack",
    "companyId": "SLSF",
    "playerId": "4395",
-   "createdAt": "2026-11-03T15:16:11.383Z",
+   "createdAt": "2026-11-03T16:24:28.120Z",
    "index": 134,
    "undoPatch": [
     {
@@ -11309,7 +11309,7 @@
    "type": "FinishStations",
    "companyId": "SLSF",
    "playerId": "4395",
-   "createdAt": "2026-11-03T15:16:11.388Z",
+   "createdAt": "2026-11-03T16:24:28.125Z",
    "index": 135,
    "undoPatch": [
     {
@@ -11372,7 +11372,7 @@
      ]
     }
    ],
-   "createdAt": "2026-11-03T15:16:11.397Z",
+   "createdAt": "2026-11-03T16:24:28.135Z",
    "metadata": {
     "companyId": "SLSF",
     "routes": [
@@ -11465,7 +11465,7 @@
    "type": "DistributeEarnings",
    "companyId": "SLSF",
    "choice": "pay",
-   "createdAt": "2026-11-03T15:16:11.405Z",
+   "createdAt": "2026-11-03T16:24:28.143Z",
    "metadata": {
     "companyId": "SLSF",
     "choice": "pay",
@@ -11604,7 +11604,7 @@
    "trainId": "1870/2/6",
    "definitionId": "2",
    "expectedPrice": 80,
-   "createdAt": "2026-11-03T15:16:11.411Z",
+   "createdAt": "2026-11-03T16:24:28.149Z",
    "metadata": {
     "companyChanges": {
      "presidents": [],
@@ -11659,7 +11659,7 @@
    "playerId": "4395",
    "companyId": "SLSF",
    "type": "FinishOperatingTurn",
-   "createdAt": "2026-11-03T15:16:11.417Z",
+   "createdAt": "2026-11-03T16:24:28.155Z",
    "metadata": {
     "number": 2,
     "roundNumber": 1,
@@ -11869,7 +11869,7 @@
    "source": "system",
    "type": "StartOperatingTurn",
    "companyId": "MP",
-   "createdAt": "2026-11-03T15:16:11.417Z",
+   "createdAt": "2026-11-03T16:24:28.156Z",
    "index": 140,
    "undoPatch": [
     {
@@ -11916,7 +11916,7 @@
     "city": "city"
    },
    "expectedCost": 0,
-   "createdAt": "2026-11-03T15:16:11.426Z",
+   "createdAt": "2026-11-03T16:24:28.165Z",
    "metadata": {
     "companyId": "MP",
     "locationId": "B19",
@@ -11969,7 +11969,7 @@
    "rotation": 4,
    "nodeMapping": {},
    "expectedCost": 0,
-   "createdAt": "2026-11-03T15:16:11.433Z",
+   "createdAt": "2026-11-03T16:24:28.172Z",
    "metadata": {
     "companyId": "MP",
     "locationId": "A20",
@@ -12020,7 +12020,7 @@
    "type": "FinishTrack",
    "companyId": "MP",
    "playerId": "18843",
-   "createdAt": "2026-11-03T15:16:11.434Z",
+   "createdAt": "2026-11-03T16:24:28.173Z",
    "index": 143,
    "undoPatch": [
     {
@@ -12063,7 +12063,7 @@
     "slot": 0
    },
    "expectedCost": 40,
-   "createdAt": "2026-11-03T15:16:11.444Z",
+   "createdAt": "2026-11-03T16:24:28.183Z",
    "metadata": {
     "companyId": "MP",
     "stationId": "MP:station:1",
@@ -12123,7 +12123,7 @@
    "type": "FinishStations",
    "companyId": "MP",
    "playerId": "18843",
-   "createdAt": "2026-11-03T15:16:11.444Z",
+   "createdAt": "2026-11-03T16:24:28.184Z",
    "index": 145,
    "undoPatch": [
     {
@@ -12207,7 +12207,7 @@
      ]
     }
    ],
-   "createdAt": "2026-11-03T15:16:11.453Z",
+   "createdAt": "2026-11-03T16:24:28.193Z",
    "metadata": {
     "companyId": "MP",
     "routes": [
@@ -12346,7 +12346,7 @@
    "type": "DistributeEarnings",
    "companyId": "MP",
    "choice": "pay",
-   "createdAt": "2026-11-03T15:16:11.460Z",
+   "createdAt": "2026-11-03T16:24:28.200Z",
    "metadata": {
     "companyId": "MP",
     "choice": "pay",
@@ -12500,7 +12500,7 @@
    "trainId": "1870/2/7",
    "definitionId": "2",
    "expectedPrice": 80,
-   "createdAt": "2026-11-03T15:16:11.466Z",
+   "createdAt": "2026-11-03T16:24:28.206Z",
    "metadata": {
     "companyChanges": {
      "presidents": [],
@@ -12555,7 +12555,7 @@
    "playerId": "18843",
    "companyId": "MP",
    "type": "FinishOperatingTurn",
-   "createdAt": "2026-11-03T15:16:11.472Z",
+   "createdAt": "2026-11-03T16:24:28.212Z",
    "metadata": {
     "number": 2,
     "roundNumber": 1,
@@ -12823,7 +12823,7 @@
    "source": "system",
    "type": "StartOperatingTurn",
    "companyId": "MKT",
-   "createdAt": "2026-11-03T15:16:11.472Z",
+   "createdAt": "2026-11-03T16:24:28.213Z",
    "index": 150,
    "undoPatch": [
     {
@@ -12868,7 +12868,7 @@
    "rotation": 0,
    "nodeMapping": {},
    "expectedCost": 0,
-   "createdAt": "2026-11-03T15:16:11.481Z",
+   "createdAt": "2026-11-03T16:24:28.222Z",
    "metadata": {
     "companyId": "MKT",
     "locationId": "C8",
@@ -12919,7 +12919,7 @@
    "rotation": 0,
    "nodeMapping": {},
    "expectedCost": 0,
-   "createdAt": "2026-11-03T15:16:11.488Z",
+   "createdAt": "2026-11-03T16:24:28.229Z",
    "metadata": {
     "companyId": "MKT",
     "locationId": "D7",
@@ -12970,7 +12970,7 @@
    "type": "FinishTrack",
    "companyId": "MKT",
    "playerId": "7438",
-   "createdAt": "2026-11-03T15:16:11.489Z",
+   "createdAt": "2026-11-03T16:24:28.230Z",
    "index": 153,
    "undoPatch": [
     {
@@ -13011,7 +13011,7 @@
    "type": "FinishStations",
    "companyId": "MKT",
    "playerId": "7438",
-   "createdAt": "2026-11-03T15:16:11.494Z",
+   "createdAt": "2026-11-03T16:24:28.235Z",
    "index": 154,
    "undoPatch": [
     {
@@ -13091,7 +13091,7 @@
      ]
     }
    ],
-   "createdAt": "2026-11-03T15:16:11.504Z",
+   "createdAt": "2026-11-03T16:24:28.245Z",
    "metadata": {
     "companyId": "MKT",
     "routes": [
@@ -13226,7 +13226,7 @@
    "type": "DistributeEarnings",
    "companyId": "MKT",
    "choice": "pay",
-   "createdAt": "2026-11-03T15:16:11.510Z",
+   "createdAt": "2026-11-03T16:24:28.251Z",
    "metadata": {
     "companyId": "MKT",
     "choice": "pay",
@@ -13380,7 +13380,7 @@
    "trainId": "1870/3/8",
    "definitionId": "3",
    "expectedPrice": 180,
-   "createdAt": "2026-11-03T15:16:11.517Z",
+   "createdAt": "2026-11-03T16:24:28.259Z",
    "metadata": {
     "companyChanges": {
      "presidents": [],
@@ -13448,7 +13448,7 @@
    "source": "system",
    "type": "AdvancePhase",
    "playerId": "7438",
-   "createdAt": "2026-11-03T15:16:11.518Z",
+   "createdAt": "2026-11-03T16:24:28.260Z",
    "metadata": {
     "companyChanges": {
      "presidents": [],
@@ -13458,8 +13458,8 @@
      "id": "phase:1870/3/8",
      "trainId": "1870/3/8",
      "definitionId": "3",
-     "fromPhaseId": "1",
-     "toPhaseId": "2",
+     "fromPhaseId": "2",
+     "toPhaseId": "3",
      "privateEffects": [],
      "rustedTrains": [],
      "pendingRustTrainIds": []
@@ -13493,7 +13493,7 @@
     {
      "op": "replace",
      "path": "/phaseId",
-     "value": "1"
+     "value": "2"
     },
     {
      "op": "add",
@@ -13503,8 +13503,8 @@
        "id": "phase:1870/3/8",
        "trainId": "1870/3/8",
        "definitionId": "3",
-       "fromPhaseId": "1",
-       "toPhaseId": "2"
+       "fromPhaseId": "2",
+       "toPhaseId": "3"
       },
       "continuation": {
        "machineState": "BuyingTrains",
@@ -13531,7 +13531,7 @@
     "playerId": "7438"
    },
    "price": 100,
-   "createdAt": "2026-11-03T15:16:11.527Z",
+   "createdAt": "2026-11-03T16:24:28.270Z",
    "metadata": {
     "companyChanges": {
      "presidents": [],
@@ -13604,7 +13604,7 @@
    "companyId": "MKT",
    "kind": "cattle",
    "locationId": "B11",
-   "createdAt": "2026-11-03T15:16:11.534Z",
+   "createdAt": "2026-11-03T16:24:28.276Z",
    "index": 160,
    "undoPatch": [
     {
@@ -13630,7 +13630,7 @@
    "playerId": "7438",
    "companyId": "MKT",
    "type": "FinishOperatingTurn",
-   "createdAt": "2026-11-03T15:16:11.541Z",
+   "createdAt": "2026-11-03T16:24:28.283Z",
    "metadata": {
     "number": 2,
     "roundNumber": 1,
@@ -13892,7 +13892,7 @@
    "source": "system",
    "type": "StartStockRound",
    "playerId": "7438",
-   "createdAt": "2026-11-03T15:16:11.541Z",
+   "createdAt": "2026-11-03T16:24:28.284Z",
    "index": 162,
    "undoPatch": [
     {
@@ -13973,7 +13973,7 @@
     }
    ],
    "expectedProceeds": 246,
-   "createdAt": "2026-11-03T15:16:11.556Z",
+   "createdAt": "2026-11-03T16:24:28.299Z",
    "metadata": {
     "seller": {
      "kind": "player",
@@ -14110,7 +14110,7 @@
     }
    ],
    "expectedProceeds": 72,
-   "createdAt": "2026-11-03T15:16:11.574Z",
+   "createdAt": "2026-11-03T16:24:28.317Z",
    "metadata": {
     "seller": {
      "kind": "player",
@@ -14208,7 +14208,7 @@
    "companyId": "ATSF",
    "marketSpaceId": "5:6",
    "expectedPrice": 136,
-   "createdAt": "2026-11-03T15:16:11.590Z",
+   "createdAt": "2026-11-03T16:24:28.334Z",
    "metadata": {
     "certificateId": "ATSF:president",
     "companyId": "ATSF",
@@ -14317,7 +14317,7 @@
    "source": "system",
    "type": "FinishStockTurn",
    "playerId": "9263",
-   "createdAt": "2026-11-03T15:16:11.591Z",
+   "createdAt": "2026-11-03T16:24:28.335Z",
    "metadata": {
     "passed": false
    },
@@ -14398,7 +14398,7 @@
    "gameId": "scenario-price-protection",
    "source": "system",
    "type": "StartPriceProtection",
-   "createdAt": "2026-11-03T15:16:11.595Z",
+   "createdAt": "2026-11-03T16:24:28.339Z",
    "metadata": {
     "protectable": true,
     "marketMoves": [
