@@ -223,14 +223,14 @@ Built on branch `feat/implement-1833ne`. Family changes beyond the plan above:
   Portland's two triangles become a city and a triangle in green and every tile's cities and
   triangles merge in brown. The title's `preservesStops` lets only the B, Mo and Po tiles
   combine stops. No other implemented title has a buildable terminal.
-- **Green Boston's orientation:** any rotation that keeps the B&W and B&L on their own track,
-  each in its own city (ruled 2026-11-03): rotations 0, 3 and 4. §6.46's "type" cannot bind
-  triangles, since Portland's green tile prints a city on a yellow triangle's track, and the
-  Fitchburg example (p. 9) prints rotation 0: the triangle north-west, the B&W and B&P in the
-  two-spot city and the B&L alone to the north. The rulebook fixes no orientation of its own.
+- **Green Boston's orientation:** rotation 0 only (ruled 2026-11-03): the physical tile has a
+  north indicator (§6.46's orientation arrows), and the Fitchburg example (p. 9) prints it this
+  way: the triangle north-west, the B&W and B&P in the two-spot city and the B&L alone to the
+  north. The south triangle's track becomes the two-spot city's, as Portland's south-west
+  triangle becomes a city in green.
 - **Printed reservations** (`TrackRules.printedReservationNode`): a reservation normally
   follows the node mapping of a lay. Green Boston prints the B&P's spot in its two-spot city,
-  which the yellow tile's cities cannot decide at every rotation, so the tile names it. Only
+  which started games hold on the B&L's yellow city, so the tile names it. Only
   1833NE selects it; the other implemented titles' reservations stay on the mapped node.
 - **Station access** (`StationFields.stationAccess`): the A&StL's use of the joint
   Sherbrooke token, and a corporation's use of the Ogdensburg or D&H offboard, which may not

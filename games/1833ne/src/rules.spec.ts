@@ -209,9 +209,7 @@ describe('Boston (§6.48, §6.62)', () => {
         )
         const choices = trackChoices(state, 'B&P', 'G22')
         expect(choices.map(({ definitionId, rotation }) => ({ definitionId, rotation }))).toEqual([
-            { definitionId: '1833ne:N23', rotation: 0 },
-            { definitionId: '1833ne:N23', rotation: 3 },
-            { definitionId: '1833ne:N23', rotation: 4 }
+            { definitionId: '1833ne:N23', rotation: 0 }
         ])
     })
 
@@ -226,20 +224,16 @@ describe('Boston (§6.48, §6.62)', () => {
                 {},
                 'II'
             )
-        function greenBostonChoice(
-            state: ReturnType<typeof position>,
-            companyId: string,
-            rotation: 0 | 3 | 4
-        ) {
+        function greenBostonChoice(state: ReturnType<typeof position>, companyId: string) {
             const choice = trackChoices(state, companyId, 'G22').find(
-                (entry) => entry.definitionId === '1833ne:N23' && entry.rotation === rotation
+                (entry) => entry.definitionId === '1833ne:N23' && entry.rotation === 0
             )
-            assertExists(choice, `The green tile lies at rotation ${rotation}`)
+            assertExists(choice, 'The green tile lies as printed')
             return choice
         }
-        function layGreenBoston(rotation: 0 | 3 | 4) {
+        function layGreenBoston() {
             const state = bostonHomes()
-            const choice = greenBostonChoice(state, 'B&W', rotation)
+            const choice = greenBostonChoice(state, 'B&W')
             const hydrated = table(4).engine.runtime.hydrator.hydrateState(state)
             applyTrackLay(
                 hydrated,
@@ -262,7 +256,7 @@ describe('Boston (§6.48, §6.62)', () => {
             )
 
         it('shares the two-spot city between the B&W and the B&P, the B&L alone to the north', () => {
-            const state = layGreenBoston(0)
+            const state = layGreenBoston()
             expect(tokenOf(state, 'B&W')).toMatchObject({ position: { nodeId: 'city-0' } })
             expect(tokenOf(state, 'B&L')).toMatchObject({ position: { nodeId: 'city-1' } })
             expect(reservedForBP(state.stationReservations)).toEqual([
@@ -272,17 +266,6 @@ describe('Boston (§6.48, §6.62)', () => {
             expect(openSlots(state, 'FRR')).toEqual([])
         })
 
-        it.each([3, 4] as const)(
-            'also lies at rotation %i, the B&P’s spot beside the B&L and the B&W alone',
-            (rotation) => {
-                const state = layGreenBoston(rotation)
-                expect(tokenOf(state, 'B&L')).toMatchObject({ position: { nodeId: 'city-0' } })
-                expect(tokenOf(state, 'B&W')).toMatchObject({ position: { nodeId: 'city-1' } })
-                expect(openSlots(state, 'B&P')).toHaveLength(1)
-                expect(openSlots(state, 'FRR')).toEqual([])
-            }
-        )
-
         it('keeps the B&P’s printed spot even with a token elsewhere in Boston (§6.53)', () => {
             const state = position(
                 [],
@@ -290,7 +273,7 @@ describe('Boston (§6.48, §6.62)', () => {
                 {},
                 'II'
             )
-            const choice = greenBostonChoice(state, 'B&P', 0)
+            const choice = greenBostonChoice(state, 'B&P')
             const hydrated = table(4).engine.runtime.hydrator.hydrateState(state)
             const { stationReservations } = new TrackConstruction(
                 hydrated,
@@ -301,10 +284,10 @@ describe('Boston (§6.48, §6.62)', () => {
             ])
         })
 
-        it('keeps the B&W and the B&L on their own track, each in its own city', () => {
+        it('lies only as its arrow shows (§6.46)', () => {
             expect(
                 trackChoices(bostonHomes(), 'B&W', 'G22').map(({ rotation }) => rotation)
-            ).toEqual([0, 3, 4])
+            ).toEqual([0])
         })
     })
 })
