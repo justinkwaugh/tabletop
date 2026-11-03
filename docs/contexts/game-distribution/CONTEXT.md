@@ -12,6 +12,10 @@ _Avoid_: Game package, Game type, Title release
 A lightweight, non-executable discovery description of a Game Title, including its presentation metadata and availability. It can be consumed without loading title-specific executable code.
 _Avoid_: Game definition, UI definition
 
+**Series**:
+A named group of related Game Titles that the library shelves together behind one tile with its own page. A Game Title declares its Series in its Catalog Entry; the Site Frontend owns the Series' name and description, and leaves a title on the main shelf if it does not know the Series or the viewer can discover only one of its titles. It is a library grouping, separate from the 18xx Game Family context, which owns shared 18xx code and vocabulary.
+_Avoid_: Category, Collection
+
 **Beta**:
 An expectation-setting maturity label for a Game Title. It is not an access-control or resource-authorization boundary.
 _Avoid_: Restricted, prerelease entitlement

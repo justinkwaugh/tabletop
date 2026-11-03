@@ -1,4 +1,4 @@
-import { EighteenXXPreferenceDefinition } from '@tabletop/18xx'
+import { EighteenXXPreferenceDefinition, EighteenXXSeries } from '@tabletop/18xx'
 import { GameVisibility, type GameInfo } from '@tabletop/common'
 import { Configurator1833NE } from './gameConfig.js'
 import { GAME_VERSION } from './version.js'
@@ -18,6 +18,7 @@ export const Info1833NE: GameInfo = {
         maxPlayers: 5,
         defaultPlayerCount: 4,
         version: GAME_VERSION,
+        series: EighteenXXSeries,
         beta: true,
         visibility: GameVisibility.Beta
     },

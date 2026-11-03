@@ -1,9 +1,9 @@
 <script lang="ts">
-    import { getTitleVisibility } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
-    import { availableCatalogEntries, titleMaturityLabel } from '$lib/utils/libraryTitles'
+    import { availableCatalogEntries, gameCount, libraryShelfItems } from '$lib/utils/libraryTitles'
+    import LibraryShelf from '$lib/components/LibraryShelf.svelte'
     import { getLoginModal } from '$lib/stores/loginModal'
-    import { ArrowRightOutline, ArrowDownOutline, UsersOutline } from 'flowbite-svelte-icons'
+    import { ArrowRightOutline, ArrowDownOutline } from 'flowbite-svelte-icons'
     import PayItForwardFooter from '$lib/components/project/PayItForwardFooter.svelte'
 
     let { signedIn = false, scrollTop = $bindable(0) }: { signedIn?: boolean; scrollTop?: number } =
@@ -19,7 +19,10 @@
     )
     let showAllGames = $state(false)
     const shelfSize = 10
-    let shelfTitles = $derived(signedIn || showAllGames ? titles : titles.slice(0, shelfSize))
+    let shelfItems = $derived(libraryShelfItems(titles))
+    let visibleShelfItems = $derived(
+        signedIn || showAllGames ? shelfItems : shelfItems.slice(0, shelfSize)
+    )
     const featuredIds = ['bus', 'indonesia', 'sol']
     let featuredTitles = $derived(
         featuredIds.flatMap((id) => titles.filter((title) => title.id === id))
@@ -78,9 +81,7 @@
                 </div>
                 {#if !catalogService.loading && titles.length > 0}
                     <span class="library-note" aria-live="polite"
-                        >{titles.length}
-                        {titles.length === 1 ? 'game' : 'games'}
-                        in the library</span
+                        >{gameCount(titles.length)} in the library</span
                     >
                 {/if}
             </div>
@@ -99,58 +100,8 @@
                         The game shelf couldn’t load. Please refresh to try again.
                     </p>
                 {:else}
-                    <ul id="game-shelf" class="game-shelf">
-                        {#each shelfTitles as title (title.id)}
-                            {@const maturityLabel = titleMaturityLabel(title.metadata)}
-                            <li>
-                                {#snippet cover()}
-                                    <div class="cover-stage">
-                                        <img
-                                            src={title.thumbnailUrl}
-                                            alt=""
-                                            loading="lazy"
-                                            data-game-cover={title.id}
-                                        />
-                                        {#if maturityLabel}
-                                            <span
-                                                class="maturity-label"
-                                                data-visibility={getTitleVisibility(title.metadata)}
-                                                >{maturityLabel}</span
-                                            >
-                                        {/if}
-                                        <span class="play-arrow"
-                                            ><ArrowRightOutline class="h-5 w-5" /></span
-                                        >
-                                    </div>
-                                    <h3>{title.metadata.name}</h3>
-                                    <p class="player-count">
-                                        <UsersOutline class="h-3.5 w-3.5" />
-                                        {title.metadata
-                                            .minPlayers}{#if title.metadata.maxPlayers !== title.metadata.minPlayers}–{title
-                                                .metadata.maxPlayers}{/if} players
-                                    </p>
-                                {/snippet}
-                                {#if signedIn}
-                                    <a
-                                        class="game"
-                                        href={`/library/${title.id}`}
-                                        aria-label={`View ${title.metadata.name}${maturityLabel ? `, ${maturityLabel}` : ''}`}
-                                    >
-                                        {@render cover()}
-                                    </a>
-                                {:else}
-                                    <button
-                                        class="game"
-                                        onclick={openLoginModal}
-                                        aria-label={`Sign in to play ${title.metadata.name}`}
-                                    >
-                                        {@render cover()}
-                                    </button>
-                                {/if}
-                            </li>
-                        {/each}
-                    </ul>
-                    {#if !signedIn && titles.length > shelfSize}
+                    <LibraryShelf id="game-shelf" items={visibleShelfItems} {signedIn} />
+                    {#if !signedIn && shelfItems.length > shelfSize}
                         <button
                             class="expand-shelf"
                             aria-expanded={showAllGames}
@@ -394,130 +345,6 @@
         font-size: 13px;
     }
 
-    .game-shelf {
-        display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 30px 20px;
-    }
-
-    .game {
-        display: block;
-        width: 100%;
-        text-align: left;
-        cursor: pointer;
-    }
-
-    .cover-stage {
-        position: relative;
-        isolation: isolate;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 186px;
-        padding: 16px;
-        border: 1px solid #ffffff0a;
-        border-radius: 10px;
-        background: linear-gradient(145deg, #263244, var(--color-gray-800));
-        transition: border-color 250ms ease;
-    }
-
-    .cover-stage::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        z-index: -1;
-        border-radius: inherit;
-        background: #293950;
-        opacity: 0;
-        transition: opacity 250ms ease;
-    }
-
-    .cover-stage img {
-        max-width: 100%;
-        max-height: 100%;
-        height: auto;
-        border-radius: 5px;
-        object-fit: contain;
-        filter: drop-shadow(0 8px 6px #0006);
-        transition: transform 180ms;
-    }
-
-    .cover-stage:has(.maturity-label) {
-        overflow: hidden;
-    }
-
-    .maturity-label {
-        position: absolute;
-        top: 16px;
-        left: -34px;
-        width: 130px;
-        padding: 4px 0;
-        transform: rotate(-45deg);
-        color: var(--color-gray-900);
-        font-size: 13px;
-        font-weight: 700;
-        text-align: center;
-    }
-
-    .maturity-label[data-visibility='alpha'] {
-        background: var(--color-orange-500);
-    }
-
-    .maturity-label[data-visibility='beta'] {
-        background: var(--color-amber-400);
-    }
-
-    .play-arrow {
-        position: absolute;
-        bottom: 10px;
-        right: 10px;
-        display: grid;
-        place-items: center;
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        background: var(--color-blue-600);
-        color: white;
-        opacity: 0;
-        transition: opacity 180ms;
-    }
-
-    .game:hover .cover-stage,
-    .game:focus-visible .cover-stage {
-        border-color: var(--color-highlight-border);
-    }
-
-    .game:hover .cover-stage::before,
-    .game:focus-visible .cover-stage::before {
-        opacity: 1;
-    }
-
-    .game:hover img,
-    .game:focus-visible img {
-        transform: translateY(-4px) rotate(-2deg);
-    }
-
-    .game:hover .play-arrow,
-    .game:focus-visible .play-arrow {
-        opacity: 1;
-    }
-
-    h3 {
-        margin-top: 12px;
-        font-size: 15px;
-        font-weight: 600;
-        line-height: 1.3;
-    }
-
-    .player-count {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        margin-top: 5px;
-        color: var(--color-gray-400);
-        font-size: 12px;
-    }
-
     .library-status {
         padding: 48px 0;
         color: var(--color-gray-400);
@@ -549,12 +376,6 @@
         }
         .actions {
             gap: 16px;
-        }
-        .game-shelf {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-        .cover-stage {
-            height: 210px;
         }
     }
 
@@ -589,30 +410,6 @@
         }
         .library-note {
             max-width: 96px;
-        }
-        .game-shelf {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 24px 16px;
-        }
-        .cover-stage {
-            height: clamp(142px, 40vw, 230px);
-            padding: 12px;
-        }
-        h3 {
-            font-size: 14px;
-        }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-        .cover-stage,
-        .cover-stage::before,
-        .cover-stage img,
-        .play-arrow {
-            transition: none;
-        }
-        .game:hover img,
-        .game:focus-visible img {
-            transform: none;
         }
     }
 </style>

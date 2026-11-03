@@ -1,13 +1,14 @@
 <script lang="ts">
     import { ArrowRightOutline } from 'flowbite-svelte-icons'
     import { getAppContext } from '$lib/stores/appContext.svelte'
+    import { libraryUrl } from '$lib/utils/libraryTitles'
 
     let { label }: { label: string } = $props()
     const { authorizationService } = getAppContext()
-    const libraryUrl = $derived(authorizationService.getSessionUser() ? '/library' : '/#games')
+    const href = $derived(libraryUrl(authorizationService.getSessionUser()))
 </script>
 
-<a class="library-link" href={libraryUrl}>
+<a class="library-link" {href}>
     {label}
     <ArrowRightOutline class="h-4 w-4" />
 </a>

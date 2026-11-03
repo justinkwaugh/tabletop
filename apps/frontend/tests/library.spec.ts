@@ -1,7 +1,7 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import type { Game, Tournament, User } from '@tabletop/common'
 import { GameResult, GameStatus, PlayerStatus, UserStatus, Role } from '@tabletop/common'
-import { mockLibrary } from './fixtures/library'
+import { mockLibrary, mockTitles } from './fixtures/library'
 
 const player: User = {
     id: 'library-player',
@@ -278,6 +278,144 @@ test('the library shows its count beside the heading and returns from game detai
     await expect(page.getByRole('heading', { name: 'Tournaments', exact: true })).toBeVisible()
     await page.goBack()
     await expect(page.locator('.game-shelf > li')).toHaveCount(12)
+})
+
+test.describe('a library series', () => {
+    const covers = (page: Page) => page.locator('.cover-cycle .cover')
+
+    test.beforeEach(async ({ page }) => {
+        await mockTitles(page, 4)
+    })
+
+    async function advanceToSecondCover(page: Page) {
+        await expect(async () => {
+            await page.clock.runFor(2000)
+            await expect(covers(page).nth(1)).toHaveClass(/shown/, { timeout: 100 })
+        }).toPass()
+    }
+
+    test('takes one tile on the shelf and has its own page', async ({ page }) => {
+        await page.goto('/library')
+        await expect(page.locator('.game-shelf > li')).toHaveCount(9)
+        await expect(page.getByText('12 games in the library')).toBeVisible()
+        await expect(page.locator('.game-shelf > li').first()).toContainText('4 games')
+
+        await page.getByRole('link', { name: 'View 18xx, 4 games' }).click()
+        await expect(page).toHaveURL(/\/library\/series\/18xx$/)
+        await expect(page.getByRole('heading', { name: '18xx', exact: true })).toBeVisible()
+        await expect(page.locator('.game-shelf > li')).toHaveCount(4)
+
+        await page.getByRole('link', { name: 'View Game 01' }).click()
+        await expect(page).toHaveURL(/\/library\/landing-0$/)
+        await page.getByRole('link', { name: '18xx', exact: true }).click()
+        await expect(page).toHaveURL(/\/library\/series\/18xx$/)
+
+        await page.getByRole('link', { name: 'All games', exact: true }).click()
+        await expect(page).toHaveURL(/\/library$/)
+        await expect(page.locator('.game-shelf > li')).toHaveCount(9)
+    })
+
+    test('shows one cover at a time, every two seconds, and holds while hovered', async ({
+        page
+    }) => {
+        await page.clock.install()
+        await page.goto('/library')
+        await expect(covers(page)).toHaveCount(2)
+        await expect(covers(page).nth(0)).toHaveClass(/shown/)
+
+        await advanceToSecondCover(page)
+        await page.clock.runFor(1900)
+        await expect(covers(page).nth(1)).toHaveClass(/shown/)
+        await expect(covers(page)).toHaveCount(3)
+
+        const tile = page.getByRole('link', { name: 'View 18xx, 4 games' })
+        await tile.hover()
+        await page.clock.runFor(10000)
+        await expect(covers(page).nth(1)).toHaveClass(/shown/)
+
+        await page.mouse.move(0, 0)
+        await expect(async () => {
+            await page.clock.runFor(2000)
+            await expect(covers(page).nth(1)).not.toHaveClass(/shown/, { timeout: 100 })
+        }).toPass()
+        await expect(page.locator('.cover-cycle .cover.shown')).toHaveCount(1)
+    })
+
+    test('holds one cover still and loads no other with reduced motion', async ({ page }) => {
+        await page.emulateMedia({ reducedMotion: 'reduce' })
+        await page.clock.install()
+        await page.goto('/library')
+        await expect(covers(page).nth(0)).toHaveClass(/shown/)
+        await page.clock.runFor(10000)
+        await expect(covers(page)).toHaveCount(1)
+        await expect(covers(page).nth(0)).toHaveClass(/shown/)
+    })
+
+    async function expectHeldOnFirstCover(page: Page) {
+        await expect(covers(page)).toHaveCount(1)
+        await page.clock.runFor(10000)
+        await expect(covers(page)).toHaveCount(1)
+        await expect(covers(page).nth(0)).toHaveClass(/shown/)
+    }
+
+    test('holds its cover while focused', async ({ page }) => {
+        await page.clock.install()
+        await page.goto('/library')
+        await expect(covers(page)).toHaveCount(2)
+        await page.getByRole('link', { name: 'View 18xx, 4 games' }).focus()
+        await expectHeldOnFirstCover(page)
+    })
+
+    test('holds its cover while scrolled out of view', async ({ page }) => {
+        await page.setViewportSize({ width: 390, height: 500 })
+        await page.clock.install()
+        await page.goto('/library')
+        await expect(covers(page)).toHaveCount(2)
+        await page.locator('.library-results').evaluate((results) => {
+            results.scrollTop = results.scrollHeight
+        })
+        await expectHeldOnFirstCover(page)
+        await page.locator('.library-results').evaluate((results) => {
+            results.scrollTop = 0
+        })
+        await expect(covers(page)).toHaveCount(2)
+    })
+
+    test('holds its cover while the tab is hidden', async ({ page }) => {
+        await page.clock.install()
+        await page.goto('/library')
+        await expect(covers(page)).toHaveCount(2)
+        await page.evaluate(() => {
+            Object.defineProperty(document, 'visibilityState', {
+                configurable: true,
+                value: 'hidden'
+            })
+            document.dispatchEvent(new Event('visibilitychange'))
+        })
+        await expectHeldOnFirstCover(page)
+    })
+
+    test('a failed catalog asks for a refresh instead of saying the series is missing', async ({
+        page
+    }) => {
+        await page.route('**/api/v1/catalog', (route) => route.fulfill({ status: 500 }))
+        await page.goto('/library/series/18xx')
+        await expect(page.getByRole('status')).toHaveText(
+            'The game shelf couldn’t load. Please refresh to try again.'
+        )
+        await expect(page.getByRole('heading', { name: '18xx', exact: true })).toBeVisible()
+    })
+
+    test('a series this player cannot see any of is not found', async ({ page }) => {
+        await mockTitles(page)
+        await page.goto('/library/series/18xx')
+        await expect(page.getByText('This series is not available in the library.')).toBeVisible()
+    })
+
+    test('an unknown series is not found', async ({ page }) => {
+        await page.goto('/library/series/constructor')
+        await expect(page.getByText('This series is not available in the library.')).toBeVisible()
+    })
 })
 
 test('the game page shows current games, joinable tables and paginated tournaments', async ({
