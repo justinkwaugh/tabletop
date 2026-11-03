@@ -15,7 +15,7 @@ import { holdsRightsOf } from './takeoverState.js'
 
 /**
  * The B&W's spot in Worcester and the B&P's in Boston's green tile, kept from others until
- * phase IV (§6.53). Boston's green tile prints which of its cities holds the B&P's spot.
+ * phase IV (§6.53).
  */
 export const ReservedCitySpots: readonly StationReservation[] = [
     { companyId: 'B&W', locationId: Places.worcester, nodeId: 'city' },

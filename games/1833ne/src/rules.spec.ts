@@ -6,6 +6,7 @@ import {
     TrackConstruction,
     applyTrackLay,
     rotateTileFace,
+    type StationReservation,
     type TileFace,
     privateTrackConstruction,
     usesStationAt,
@@ -214,8 +215,8 @@ describe('Boston (§6.48, §6.62)', () => {
     })
 
     describe('its green tile as the rulebook prints it (p. 9)', () => {
-        function layGreenBoston(rotation: 0 | 4) {
-            const state = position(
+        const bostonHomes = () =>
+            position(
                 [],
                 [
                     { companyId: 'B&W', locationId: 'G22', nodeId: 'city-0' },
@@ -224,10 +225,20 @@ describe('Boston (§6.48, §6.62)', () => {
                 {},
                 'II'
             )
-            const choice = trackChoices(state, 'B&W', 'G22').find(
+        function greenBostonChoice(
+            state: ReturnType<typeof position>,
+            companyId: string,
+            rotation: 0 | 4
+        ) {
+            const choice = trackChoices(state, companyId, 'G22').find(
                 (entry) => entry.definitionId === '1833ne:N23' && entry.rotation === rotation
             )
             assertExists(choice, `The green tile lies at rotation ${rotation}`)
+            return choice
+        }
+        function layGreenBoston(rotation: 0 | 4) {
+            const state = bostonHomes()
+            const choice = greenBostonChoice(state, 'B&W', rotation)
             const hydrated = table(4).engine.runtime.hydrator.hydrateState(state)
             applyTrackLay(
                 hydrated,
@@ -238,70 +249,58 @@ describe('Boston (§6.48, §6.62)', () => {
             )
             return hydrated
         }
-        const tokenNode = (state: ReturnType<typeof layGreenBoston>, companyId: string) =>
+        const tokenOf = (state: ReturnType<typeof layGreenBoston>, companyId: string) =>
             state.stations.find(
                 (station) => station.companyId === companyId && station.status === 'placed'
             )
         const openSlots = (state: ReturnType<typeof layGreenBoston>, companyId: string) =>
             new StationPlacement(state, StationRules1833NE).openSlots(companyId, 'G22', 'city-0')
+        const reservedForBP = (reservations: readonly StationReservation[]) =>
+            reservations.filter(
+                ({ companyId, locationId }) => companyId === 'B&P' && locationId === 'G22'
+            )
 
         it('shares the two-spot city between the B&W and the B&P, the B&L alone to the north', () => {
             const state = layGreenBoston(0)
-            expect(tokenNode(state, 'B&W')).toMatchObject({ position: { nodeId: 'city-0' } })
-            expect(tokenNode(state, 'B&L')).toMatchObject({ position: { nodeId: 'city-1' } })
-            expect(
-                state.stationReservations.filter(
-                    ({ companyId, locationId }) => companyId === 'B&P' && locationId === 'G22'
-                )
-            ).toEqual([{ companyId: 'B&P', locationId: 'G22', nodeId: 'city-0' }])
+            expect(tokenOf(state, 'B&W')).toMatchObject({ position: { nodeId: 'city-0' } })
+            expect(tokenOf(state, 'B&L')).toMatchObject({ position: { nodeId: 'city-1' } })
+            expect(reservedForBP(state.stationReservations)).toEqual([
+                { companyId: 'B&P', locationId: 'G22', nodeId: 'city-0' }
+            ])
             expect(openSlots(state, 'B&P')).toHaveLength(1)
             expect(openSlots(state, 'FRR')).toEqual([])
         })
 
         it('still lets the terminal stay south, the B&P’s spot beside the B&L (§6.46)', () => {
             const state = layGreenBoston(4)
-            expect(tokenNode(state, 'B&L')).toMatchObject({ position: { nodeId: 'city-0' } })
-            expect(tokenNode(state, 'B&W')).toMatchObject({ position: { nodeId: 'city-1' } })
+            expect(tokenOf(state, 'B&L')).toMatchObject({ position: { nodeId: 'city-0' } })
+            expect(tokenOf(state, 'B&W')).toMatchObject({ position: { nodeId: 'city-1' } })
             expect(openSlots(state, 'B&P')).toHaveLength(1)
             expect(openSlots(state, 'FRR')).toEqual([])
         })
 
-        it('leaves the B&P’s spot with a token it already has in Boston', () => {
+        it('keeps the B&P’s printed spot even with a token elsewhere in Boston (§6.53)', () => {
             const state = position(
                 [],
                 [{ companyId: 'B&P', locationId: 'G22', nodeId: 'city-1' }],
                 {},
                 'II'
             )
-            const choice = trackChoices(state, 'B&P', 'G22').find(
-                (entry) => entry.definitionId === '1833ne:N23' && entry.rotation === 0
-            )
-            assertExists(choice, 'The green tile lies as printed')
+            const choice = greenBostonChoice(state, 'B&P', 0)
             const hydrated = table(4).engine.runtime.hydrator.hydrateState(state)
             const { stationReservations } = new TrackConstruction(
                 hydrated,
                 TrackRules1833NE
             ).stationsAfter(choice)
-            expect(
-                stationReservations.filter(
-                    ({ companyId, locationId }) => companyId === 'B&P' && locationId === 'G22'
-                )
-            ).toEqual([{ companyId: 'B&P', locationId: 'G22', nodeId: 'city-1' }])
+            expect(reservedForBP(stationReservations)).toEqual([
+                { companyId: 'B&P', locationId: 'G22', nodeId: 'city-0' }
+            ])
         })
 
         it('keeps no other orientation', () => {
-            const state = position(
-                [],
-                [
-                    { companyId: 'B&W', locationId: 'G22', nodeId: 'city-0' },
-                    { companyId: 'B&L', locationId: 'G22', nodeId: 'city-1' }
-                ],
-                {},
-                'II'
-            )
-            expect(trackChoices(state, 'B&W', 'G22').map(({ rotation }) => rotation)).toEqual([
-                0, 4
-            ])
+            expect(
+                trackChoices(bostonHomes(), 'B&W', 'G22').map(({ rotation }) => rotation)
+            ).toEqual([0, 4])
         })
     })
 })

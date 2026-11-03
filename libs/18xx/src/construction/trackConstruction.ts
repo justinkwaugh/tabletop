@@ -526,7 +526,7 @@ export class TrackConstruction {
 export function stationsAfterLay(
     state: StationState,
     details: TrackLayDetails,
-    rules: Pick<TrackRules, 'printedReservationNode'> = {}
+    rules: Pick<TrackRules, 'printedReservationNode'>
 ): StationState {
     return {
         stations: state.stations.map(
@@ -541,25 +541,15 @@ function reservationsAfterLay(
     rules: Pick<TrackRules, 'printedReservationNode'>,
     lay: Pick<TrackRequest, 'locationId' | 'definitionId' | 'nodeMapping'>
 ): StationReservation[] {
-    return state.stationReservations.map((reservation) => {
-        if (reservation.locationId !== lay.locationId) return reservation
-        const printed = rules.printedReservationNode?.(reservation, lay.definitionId)
-        return {
-            ...reservation,
-            nodeId:
-                printed && !hasTokenAt(state, reservation)
-                    ? printed
-                    : lay.nodeMapping[reservation.nodeId]
-        }
-    })
-}
-
-function hasTokenAt(state: StationState, { companyId, locationId }: StationReservation): boolean {
-    return state.stations.some(
-        (station) =>
-            station.status === 'placed' &&
-            station.companyId === companyId &&
-            station.position.locationId === locationId
+    return state.stationReservations.map((reservation) =>
+        reservation.locationId === lay.locationId
+            ? {
+                  ...reservation,
+                  nodeId:
+                      rules.printedReservationNode?.(reservation, lay.definitionId) ??
+                      lay.nodeMapping[reservation.nodeId]
+              }
+            : reservation
     )
 }
 

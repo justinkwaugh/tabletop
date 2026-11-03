@@ -11,6 +11,7 @@ import {
     type CashPayment,
     type ConstructionState,
     type TileFace,
+    type TileRotation,
     type TrackRequest,
     type TrackRules
 } from '@tabletop/18xx'
@@ -24,8 +25,8 @@ const TrackData = { map: Map1833NE, tileSet: TileSet1833NE }
 const SherbrookeTile = '1833ne:N11'
 const BostonGreenTile = '1833ne:N23'
 /** Keeping the south terminal (§6.46), or as the rulebook prints it, the terminal north-west (p. 9). */
-const BostonGreenRotations: readonly number[] = [0, 4]
-/** The two-spot city of Boston's green tile, which prints the B&P's reserved spot. */
+const BostonGreenRotations: readonly TileRotation[] = [0, 4]
+/** The two-spot city of Boston's green tile, which prints the B&P's reserved spot (p. 21). */
 const BostonReservedCity = 'city-0'
 
 /** The two corporations of the golden spike and their joint Sherbrooke token. */
@@ -108,7 +109,6 @@ export const TrackRules1833NE: TrackRules = {
     useful: ({ newTrack, connectedCity, connectedTerminal }) =>
         newTrack || connectedCity || connectedTerminal,
     homeLocations: (companyId) => Map1833NE.reservedLocationIds(companyId),
-    // Whichever way Boston's green tile lies, the B&P's spot is the one it prints.
     printedReservationNode: ({ companyId }, definitionId) =>
         definitionId === BostonGreenTile && companyId === 'B&P' ? BostonReservedCity : undefined,
     // Manchester's green tiles become unlabelled brown cities (p. 21).

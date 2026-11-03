@@ -219,10 +219,18 @@ Built on branch `feat/implement-1833ne`. Family changes beyond the plan above:
   A later sale of a company in the same turn or funding extends its first block
   (2026-10-31; see [1846 personal emergency funding](1846-personal-emergency-funding-design.md#repeat-sales-2026-10-31)).
 - **Terminals:** Boston's and Portland's triangles are offboard nodes worth their city's
-  value. An offboard terminal may become a city of a tile with fewer terminals
-  (`tileUpgradeMappings`), which is how Portland's two triangles become a city and a triangle
-  in green and every tile's cities and triangles merge in brown. The title's
-  `preservesStops` lets only the B, Mo and Po tiles combine stops.
+  value. An offboard terminal may become a city (`tileUpgradeMappings`), which is how
+  Portland's two triangles become a city and a triangle in green and every tile's cities and
+  triangles merge in brown. The title's `preservesStops` lets only the B, Mo and Po tiles
+  combine stops. No other implemented title has a buildable terminal.
+- **Green Boston's orientation:** rotation 4 keeps the south triangle as §6.46 reads; rotation
+  0 is how the Fitchburg example prints the tile (p. 9), the triangle north-west, the B&W and
+  B&P in the two-spot city and the B&L alone to the north. Both are offered (2026-11-03); the
+  other mappable rotation, 3, has no source and is refused.
+- **Printed reservations** (`TrackRules.printedReservationNode`): a reservation normally
+  follows the node mapping of a lay. Green Boston prints the B&P's spot in its two-spot city,
+  which the yellow tile's cities cannot decide at both rotations, so the tile names it. Only
+  1833NE selects it; the other implemented titles' reservations stay on the mapped node.
 - **Station access** (`StationFields.stationAccess`): the A&StL's use of the joint
   Sherbrooke token, and a corporation's use of the Ogdensburg or D&H offboard, which may not
   be used to trace new stations (`placesStations: false`). A closing St. Lawrence corporation
