@@ -784,3 +784,45 @@ describe('from revision 33 on a player’s own view', () => {
         expect(JSON.stringify(s.dehydrate())).toBe(server)
     })
 })
+
+describe("Witch's Bargain at revisions 32 and 33 — a player is named again only after another player", () => {
+    const TWICE = 'the exchanges with rhys was chosen twice in a row for a player at your site'
+    for (const revision of [OathRevision.EngineFixes27, OathRevision.EngineFixes28]) {
+        it(`revision ${revision}: Rhys named in two steps in a row is refused, and nothing is paid or exchanged`, () => {
+            for (const [over, choices] of [
+                [{ rhys: { favor: 4 } }, steps([RHYS, 1, 0], [RHYS, 0, 1])],
+                // Rhys's secret bought with Dana's 2 favor, then given back for 2 favor.
+                [{ dana: { favor: 2, secrets: 1 } }, steps([RHYS, 0, 1], [RHYS, 1, 0])]
+            ] as const) {
+                const s = scene({ ...over, revision })
+                expect(refusal(s, [...choices])).toBe(TWICE)
+                const before = JSON.stringify(s.dehydrate())
+                expect(() => actionPowerUse(DANA, WITCHS_BARGAIN, [...choices]).apply(s)).toThrow(
+                    TWICE
+                )
+                expect(JSON.stringify(s.dehydrate())).toBe(before)
+            }
+        })
+
+        it(`revision ${revision}: Rhys named again after Ann is accepted, each step using what Dana holds then`, () => {
+            const s = scene({ rhys: { favor: 4 }, revision })
+            const action = use(s, steps([RHYS, 1, 0], [ANN, 0, 1], [RHYS, 1, 0]))
+            expect(holdings(s)).toEqual({
+                [DANA]: { favor: 2, secrets: 0 },
+                [RHYS]: { favor: 0, secrets: 3 },
+                [ANN]: { favor: 3, secrets: 0 }
+            })
+            expect(action.metadata?.summary).toMatch(/^Witch's Bargain: gave rhys .*ann.*rhys/)
+        })
+
+        it(`revision ${revision}: both exchanges with Rhys go in one step, the secret first`, () => {
+            const s = scene({ rhys: { favor: 4 }, revision })
+            use(s, steps([RHYS, 1, 1]))
+            expect(holdings(s)).toEqual({
+                [DANA]: { favor: 0, secrets: 1 },
+                [RHYS]: { favor: 4, secrets: 1 },
+                [ANN]: { favor: 1, secrets: 1 }
+            })
+        })
+    }
+})
