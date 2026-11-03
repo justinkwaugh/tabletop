@@ -5,7 +5,6 @@ import {
     createCompanyStations,
     createOrdinaryShareCertificates,
     privateIncomePayments,
-    settleCashPayments,
     type InitialPosition,
     type Opening,
     type OpeningSetup,
@@ -25,8 +24,8 @@ export const Shikoku1889AuctionRules: WaterfallAuctionRules = {
     increment: 5,
     bidOrder: 'clockwise-from-highest',
     award: awardPrivate,
-    payIncome(state) {
-        settleCashPayments(state, privateIncomePayments(state, { charters: Shikoku1889Charters }))
+    incomePayments(state) {
+        return privateIncomePayments(state, { charters: Shikoku1889Charters })
     }
 }
 export function shikoku1889StartingCash({ playerCount }: StartingCashSetup): number {

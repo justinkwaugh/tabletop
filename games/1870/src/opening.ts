@@ -8,7 +8,6 @@ import {
     homeStationId,
     privateIncomePayments,
     requirePar,
-    settleCashPayments,
     startingCashByPlayerCount,
     type InitialPosition,
     type Opening,
@@ -61,8 +60,8 @@ export const AuctionRules1870: WaterfallAuctionRules = {
             requirePar(state, FriscoCompanyId, award.playerId)
         }
     },
-    payIncome(state) {
-        settleCashPayments(state, privateIncomePayments(state, { charters: Charters1870 }))
+    incomePayments(state) {
+        return privateIncomePayments(state, { charters: Charters1870 })
     }
 }
 

@@ -49,5 +49,19 @@ describe('1833NE opening', () => {
         expect(game.state.machineState).toBe('WaterfallAuction')
         expect(cash(buyer)).toBe(before.buyer + 10)
         expect(cash(bidder)).toBe(before.bidder - 50 + 20)
+        const payment = (playerId: string, amount: number) => ({
+            from: { kind: 'bank' },
+            to: { kind: 'player', playerId },
+            amount
+        })
+        expect(game.actions.at(-1)?.metadata).toEqual({
+            kind: 'income',
+            payments: [
+                payment(buyer, 5),
+                payment(bidder, 10),
+                payment(buyer, 5),
+                payment(bidder, 10)
+            ]
+        })
     })
 })

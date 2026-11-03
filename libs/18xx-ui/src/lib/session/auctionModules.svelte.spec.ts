@@ -54,7 +54,7 @@ function openAuction(
                 increment: 5,
                 bidOrder: 'clockwise-from-highest' as const,
                 award: () => {},
-                payIncome: () => {}
+                incomePayments: () => []
             }
         },
         valid,

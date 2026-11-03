@@ -10,7 +10,6 @@ import {
     treasuryPool,
     type StockMarket,
     privateIncomePayments,
-    settleCashPayments,
     type InitialPosition,
     type MapStateData,
     type OfferPileAuctionRules,
@@ -66,12 +65,9 @@ export const TheOldPrinceAuctionRules: OfferPileAuctionRules = {
                 playerId: award.playerId
             }
     },
-    payIncome(state) {
-        settleCashPayments(
-            state,
-            privateIncomePayments(state, { charters: TheOldPrinceCharters }).filter(
-                (payment) => payment.to.kind === 'player'
-            )
+    incomePayments(state) {
+        return privateIncomePayments(state, { charters: TheOldPrinceCharters }).filter(
+            (payment) => payment.to.kind === 'player'
         )
     },
     firstStockOrder(state) {

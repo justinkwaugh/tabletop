@@ -3,7 +3,7 @@
     import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
     import { controllingOwner } from '@tabletop/18xx'
     import { historyCompanyChanges } from './historyCompanyChanges.js'
-    import { historyAuctionIncome, historyCash } from './historyCash.js'
+    import { historyCash } from './historyCash.js'
     import { entryOrderChanges, historyOperatingOrder } from './historyOperatingOrder.js'
     import { historyRounds } from './historyRounds.js'
     import { auctionLotName } from './auctionHistory.js'
@@ -47,7 +47,6 @@
     const states = $derived(historyStates(actions, gameState, session.endingRules))
     const orderChanges = $derived(historyOperatingOrder(actions, states))
     const cash = $derived(historyCash(states))
-    const auctionIncome = $derived(historyAuctionIncome(actions, states))
     const entryOrders = $derived(entryOrderChanges(actions, orderChanges))
     const bankBreaks = $derived(historyBankBreaks(states))
     const companyChanges = $derived(historyCompanyChanges(actions))
@@ -93,8 +92,7 @@
             (id) => auctionLotName(id, gameState, session.auctionLotsFor(gameState), companyName),
             (id) => session.names.routeBonus(id),
             session.placeName,
-            (id) => session.poolName(id),
-            auctionIncome.get(action.id)
+            (id) => session.poolName(id)
         )
     }
     function describe(action: GameAction) {
