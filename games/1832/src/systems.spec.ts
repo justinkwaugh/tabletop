@@ -97,6 +97,17 @@ describe('System formation', () => {
 })
 
 describe('System formation edge cases', () => {
+    it('stops at the soft ledge when the leftmost row’s box at the price lies past it', () => {
+        const { state } = trading()
+        placeStockMarker(state.stockMarket, 'ACL', '5:6')
+        placeStockMarker(state.stockMarket, 'CG', '3:10')
+        // $68 and $110 average $89, which rounds to $90. Row 5's $90 is below the ledge.
+        expect(systemMarketSpace(state.stockMarket, ['ACL', 'CG'])).toMatchObject({
+            id: '4:9',
+            price: 90
+        })
+    })
+
     it('rounds to the market’s nearest price, not the leftmost row’s', () => {
         const { state } = trading()
         placeStockMarker(state.stockMarket, 'ACL', '7:6')
