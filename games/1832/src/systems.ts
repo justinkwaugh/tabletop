@@ -92,11 +92,9 @@ function nearestPrice(prices: readonly number[], target: number): number {
 /**
  * The System's market space: the average of the two prices, rounded to the nearest value on the
  * market with a tie upward, then down and right along that price's diagonal to the soft or hard
- * ledge (§11.6.3). **Ruling:** the leftmost component (the lower when they share a column) decides
- * which ledge: the System never crosses the soft ledge, even when that component's row has its
- * box at the price past it, so it takes the diagonal's last box on the component's side of the
- * ledge, or the diagonal's last box when that side has none. Every price above $0 runs along one
- * diagonal.
+ * ledge (§11.6.3). **Ruling:** the System never crosses the soft ledge from the leftmost
+ * component's side (the lower component's when they share a column), even when that row's box at
+ * the price lies past it. Every price above $0 runs along one diagonal.
  */
 export function systemMarketSpace(
     market: StockMarket,

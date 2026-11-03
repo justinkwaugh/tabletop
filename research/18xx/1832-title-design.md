@@ -447,8 +447,8 @@ stay in 1832.
   shares of the components, their president's certificates included.
 - **Formation.** The initiator, or the first player clockwise from them with four shares of the
   two components, becomes president; another player holding more then takes over as usual. The
-  price is the average of the two, rounded to a market value with a tie upward, placed in the
-  leftmost component's row and moved down-right along its diagonal to the soft or hard ledge;
+  price is the average of the two, rounded to a market value with a tie upward, moved
+  down-right along its diagonal to the leftmost component's ledge, soft or hard (see Rulings);
   its par is that price, at most $275. The System takes both components' cash, trains,
   privates, WVCF rights (one returned if both had one), revenue tokens and stations (a second
   in one city returns to its charter); its unplaced stations cost $100. The components close
@@ -480,7 +480,7 @@ stay in 1832.
   that phase.
 - The System chosen is the first unused of A–E.
 - Sales to fund a takeover may be protected like other sales, once the takeover completes.
-- If the leftmost components share a column, the System starts from the lower one's row. The
+- If the leftmost components share a column, the lower one is the leftmost component. The
   average rounds to the nearest value on the whole market, a tie rounding up. The System never
   crosses the soft ledge: "until it hits either the soft ledge or the hard ledge" takes the
   price diagonal's last box on the leftmost component's side of the ledge, even when that
