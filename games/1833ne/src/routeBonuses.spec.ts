@@ -5,6 +5,7 @@ import { rotationFor, route } from '../test/flow.js'
 import { ferryValue } from './ferries.js'
 import { Names1833NE } from './operating.js'
 import { RouteRules1833NE, routeBonusPolicy } from './routes.js'
+import { Phases1833NE } from './trains.js'
 
 const tile = (locationId: string, definitionId: string, edges: number[]): Placement => ({
     locationId,
@@ -201,10 +202,12 @@ describe('bonus arrows paying each bonus', () => {
     })
 
     it('names what earned each bonus, as the history prints it', () => {
-        const { connectionBonuses, interconnections } = policy('II', { P4: 'FRR' })
-        const sourceIds = [...(connectionBonuses ?? []), ...(interconnections ?? [])].flatMap(
-            (bonus) => bonus.sourceId ?? []
-        )
+        const sourceIds = Phases1833NE.phases.flatMap(({ id }) => {
+            const { connectionBonuses, interconnections } = policy(id, { P4: 'FRR' })
+            return [...(connectionBonuses ?? []), ...(interconnections ?? [])].flatMap(
+                (bonus) => bonus.sourceId ?? []
+            )
+        })
         expect(new Set(sourceIds.map((id) => Names1833NE.routeBonus(id)))).toEqual(
             new Set([
                 'Direct connection',
