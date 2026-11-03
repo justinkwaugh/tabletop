@@ -34,10 +34,12 @@
     import PrivateDescription from '../privates/PrivateDescription.svelte'
     import PrivateTrackPowerButton from '../privates/PrivateTrackPowerButton.svelte'
     import { companyLastRun } from './companyLastRun.js'
+    import type { PlaceConnection } from '../session/titlePresentation.js'
     import PresidentName from '../finance/PresidentName.svelte'
     let {
         session,
         onPreviewMap,
+        onFocusConnection,
         company,
         pricePresentation = DefaultCompanyPricePresentation,
         layout = 'wide',
@@ -53,6 +55,7 @@
         canPurchase?: (entry: CompanyOwnership) => boolean
         purchaseSources?: Snippet<[CompanyOwnership]>
         onPreviewMap?: (action: GameAction) => void
+        onFocusConnection?: (connection: PlaceConnection) => void
         session: EighteenXXSessionView
         trainColors: Readonly<Record<string, string>>
         company: Company
@@ -234,15 +237,25 @@
             </div>
         </div>
     </header>
-    {#if origin}
+    {#if origin && 'connection' in origin && onFocusConnection}
+        {@const connection = origin.connection}
+        <button
+            type="button"
+            class="origin connection"
+            title={`Show ${session.placeName(connection.from)} and ${session.placeName(connection.to)} on the map`}
+            onclick={() => onFocusConnection(connection)}><span>{origin.text}</span></button
+        >
+    {:else if origin}
         <p class="origin">
             {origin.text}
-            {#each origin.companyIds as id, index (id)}{#if index}<span>&amp;</span>{/if}<span
-                    class="origin-company"
-                    ><CompanyToken appearance={session.mapView.stations[id]} size={15} /><strong
-                        >{session.companyInitials(id)}</strong
-                    ></span
-                >{/each}
+            {#if 'companyIds' in origin}
+                {#each origin.companyIds as id, index (id)}{#if index}<span>&amp;</span>{/if}<span
+                        class="origin-company"
+                        ><CompanyToken appearance={session.mapView.stations[id]} size={15} /><strong
+                            >{session.companyInitials(id)}</strong
+                        ></span
+                    >{/each}
+            {/if}
         </p>
     {/if}
     <div class="financial-summary">{@render prices()}</div>
@@ -603,6 +616,23 @@
         border-bottom: 1px solid var(--rail-border, #e3d9cd);
         color: var(--rail-muted, #887664);
         font-size: 11px;
+    }
+    .connection {
+        width: 100%;
+        border: 0;
+        border-bottom: 1px solid var(--rail-border, #e3d9cd);
+        background: none;
+        font-family: inherit;
+        cursor: pointer;
+    }
+    .connection span {
+        text-decoration: underline dotted;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 2px;
+    }
+    .connection:hover span {
+        color: var(--rail-text, #514536);
+        text-decoration-style: solid;
     }
     .origin-company {
         display: inline-flex;

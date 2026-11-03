@@ -7,11 +7,6 @@ import { PhaseColors1870, TrainColors1870 } from './trainPresentation.js'
 import CattleToken from './images/tokens/cattle.svg'
 import OpenPortToken from './images/tokens/open-port.svg'
 
-const destinationName = (companyId: string) => {
-    const destination = company1870(companyId)?.destination
-    return destination ? (Map1870.location(destination).name ?? destination) : ''
-}
-
 export const Presentation1870: TitlePresentation<State1870> = {
     money: moneyFormat(TitleRules1870.currencySymbol),
     phaseChart: PhaseChart1870,
@@ -36,16 +31,15 @@ export const Presentation1870: TitlePresentation<State1870> = {
     },
     // Each company's destination, and whether it has made its connection run (p. 22).
     companyOrigin: (state, companyId) => {
-        const name = destinationName(companyId)
-        if (!name) return undefined
+        const company = company1870(companyId)
+        if (!company) return undefined
+        const name = Map1870.location(company.destination).name ?? company.destination
+        const connection = { from: company.home, to: company.destination }
         if (state.destinationStations.includes(companyId))
-            return {
-                text: `Reached ${name}: its value counts double at a run’s end`,
-                companyIds: []
-            }
+            return { connection, text: `Reached ${name}: its value counts double at a run’s end` }
         if (state.destinationRunsMade.includes(companyId))
-            return { text: `Reached ${name}`, companyIds: [] }
-        return { text: `Destination: ${name}`, companyIds: [] }
+            return { connection, text: `Reached ${name}` }
+        return { connection, text: `Destination: ${name}` }
     },
     marketZones: [
         { color: 'pink', name: 'Par', description: 'A price a company may start at.' },

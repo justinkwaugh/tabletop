@@ -18,7 +18,7 @@ type DestinationFacts = Pick<TitleState1870, 'destinationRunsMade' | 'destinatio
     stationAccess?: StationAccess[]
 }
 
-// A company's destination station takes the place of its printed mark, from the moment it is placed.
+// With Station Marker Wars a destination station may stand in one of the city's spaces (p. 25).
 export function destinationMarkers({
     destinationRunsMade,
     destinationStations,
@@ -30,7 +30,9 @@ export function destinationMarkers({
                 access.companyId === company.id && access.sourceId === DestinationStationSource
         )
         if (beside) return [{ locationId: beside.locationId, kind: `station:${company.id}` }]
-        return destinationRunsMade.includes(company.id) || destinationStations.includes(company.id)
+        if (destinationStations.includes(company.id))
+            return [{ locationId: company.destination, kind: `station-space:${company.id}` }]
+        return destinationRunsMade.includes(company.id)
             ? []
             : [{ locationId: company.destination, kind: `destination:${company.id}` }]
     })

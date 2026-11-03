@@ -838,7 +838,11 @@ A title's `companyMarks` appear after a company's trains as small dark chips, su
 "Coal" for West Virginia Coal Fields rights, whose description shows on hover and is their
 accessible name. A title's `companyOrigin` appears as a band under the card's header naming
 what the company was formed from, such as "System of [CoG] CoG & [GRR] GRR" with each
-company's token. Neither belongs in the summary row of figures.
+company's token. Neither belongs in the summary row of figures. An origin that names a connection,
+such as 1870's "Destination: Denver", is a dotted link on a live card: pressing it frames the two
+places with no margin beyond their hexes, so that the map can pan even where it cannot zoom, and
+outlines the second place. Pressing it again fits the map and clears the outline, as does any other
+map focus or a place link. A read-only card, such as one in the Lightbox, shows it as plain text.
 
 ### Title rounds
 
@@ -988,6 +992,11 @@ none. Marker art that changes with play (a title's `markerArtFor`) is read from 
 shown: each historical map uses its own snapshot's, so 1846's horns are hidden on the
 other meat-packing hex only from the moment its marker was placed. In a crowded hex it covers track before
 a station, revenue or label. Its tooltip, inspection and history name it with its company.
+A title may outline such a token, or the station standing in a city space through a
+`stationOutline` marker on its hex, so that it reads apart from the tokens around it. The outline
+comes from the hex's markers, so it shows on previews and historical maps alike. 1870 outlines each
+destination station in amber from the moment it is placed; gold is lost on yellow tiles, and black
+reads as an ordinary station's city circle.
 A title's reusable private lays (1817's coal mines and ranches) stay offered until its
 terms end them. A lay can also clear markers (1817's city tiles clear the ranches beside
 them), which leave the live and historical maps with it. History notes what a lay paid

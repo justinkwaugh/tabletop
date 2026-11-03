@@ -139,7 +139,8 @@ export type MapMarkerArt =
      * revenue, in its centre, or over a symbol the hex shows, in place of every copy of it (in a
      * corner where it shows none).
      */
-    | { token: { imageUrl: string; place: TokenPlacement; tab?: TokenTab } }
+    | { token: { imageUrl: string; place: TokenPlacement; tab?: TokenTab; outline?: string } }
+    | { stationOutline: { stationId: string; color: string } }
 
 export type TokenPlacement = 'corner' | 'centre' | { covers: TileSymbolName } | { at: Point }
 /** A tab tucked behind a token's right side, such as a bonus marker that moves between tokens. */
@@ -148,7 +149,7 @@ export type TokenTab = { label: string; caption: string; fill?: string; left?: t
 export type RevenueAnnotation = { markerId: string; label: string; x: number; y: number } & (
     | { kind: 'badge'; width: number; height: number; arrows: boolean }
     | { kind: 'symbol'; symbol: TileSymbolName; radius: number }
-    | { kind: 'token'; imageUrl: string; radius: number; tab?: TokenTab }
+    | { kind: 'token'; imageUrl: string; radius: number; tab?: TokenTab; outline?: string }
     | { kind: 'caption'; caption: string }
 )
 type RevenueBadge = Extract<RevenueAnnotation, { kind: 'badge' }>
@@ -1136,7 +1137,7 @@ function placedTokens(
     for (const marker of markers) {
         const art = markerArt[marker.id]
         if (!art || !('token' in art)) continue
-        const { place, imageUrl, tab } = art.token
+        const { place, imageUrl, tab, outline } = art.token
         // A tab's room is kept as a second token's beside the first, on its right where clear.
         const row =
             (side: 1 | -1) =>
@@ -1168,7 +1169,8 @@ function placedTokens(
             imageUrl,
             ...point,
             radius: TokenRadius,
-            ...(tab ? { tab: side === 1 ? tab : { ...tab, left: true as const } } : {})
+            ...(tab ? { tab: side === 1 ? tab : { ...tab, left: true as const } } : {}),
+            ...(outline ? { outline } : {})
         })
         for (const at of row(side)(point)) space.obstacles.push(disc(at, TokenRadius))
     }

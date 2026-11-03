@@ -20,6 +20,7 @@
     import PositionPanel from './PositionPanel.svelte'
     import TurnRecap from './TurnRecap.svelte'
     import { setPlaceLinks } from '../places/placeLinks.js'
+    import type { PlaceConnection } from '../session/titlePresentation.js'
     import InstructionBar from './InstructionBar.svelte'
     import TurnHeading from './TurnHeading.svelte'
     import {
@@ -91,7 +92,9 @@
     import { seatOrderFrom } from './spreadsheetSort.js'
     import { LabelStacking } from './labelStacking.svelte.js'
     import { currentDepotCertificates, type PhaseChartData } from '../phases/phaseChart.js'
+    type MapFocus = { key: string; outlinedLocationId?: string }
     const MapHexDiameter = 140
+    const HexRadius = MapHexDiameter / 2
     const FocusRadius = 220
     const RevealMargin = 24
     let {
@@ -216,31 +219,32 @@
         mapBroughtForward = true
         if (!boardWrapper?.isVisible()) selectedView = 'Map'
     }
-    let focusedLocation: string | undefined = $derived.by(() => {
+    let mapFocus = $derived.by((): MapFocus | undefined => {
         session.gameState
+        session.updatingVisibleState
         return undefined
     })
-    async function focusLocation(locationId: string) {
+    async function toggleMapFocus(target: MapFocus, focus: () => void) {
         session.closeHistoricalMap()
-        focusedRoute = undefined
-        focusedCompany = undefined
-        const restore = focusedLocation === locationId
-        focusedLocation = restore ? undefined : locationId
+        const restore = mapFocus?.key === target.key
+        mapFocus = restore ? undefined : target
         showMap()
-        session.map.inspect({ kind: 'hex', locationId })
         await tick()
-        if (restore) {
-            fitMaps({ animate: true })
-            return
-        }
-        focusLocations([locationId])
+        if (restore) fitMaps({ animate: true })
+        else focus()
+    }
+    function focusLocation(locationId: string) {
+        session.map.inspect({ kind: 'hex', locationId })
+        void toggleMapFocus({ key: `location:${locationId}` }, () => focusLocations([locationId]))
     }
     let revealedLocationId: string | undefined = $derived.by(() => {
         session.gameState
         return undefined
     })
+    const outlinedLocationId = $derived(revealedLocationId ?? mapFocus?.outlinedLocationId)
     async function revealLocation(locationId: string) {
         session.closeHistoricalMap()
+        if (mapFocus?.outlinedLocationId) mapFocus = undefined
         if (revealedLocationId === locationId) {
             revealedLocationId = undefined
             return
@@ -249,65 +253,43 @@
         showMap()
         await tick()
         for (const { wrapper, extents } of mapViewers())
-            wrapper.revealRect(hexViewRect(locationId, MapHexDiameter / 2, extents), {
+            wrapper.revealRect(hexViewRect(locationId, HexRadius, extents), {
                 padding: RevealMargin,
                 animate: true
             })
+    }
+    function focusConnection({ from, to }: PlaceConnection) {
+        revealedLocationId = undefined
+        void toggleMapFocus({ key: `connection:${from}:${to}`, outlinedLocationId: to }, () =>
+            focusLocations([from, to], { radius: HexRadius })
+        )
     }
     setPlaceLinks({
         name: (locationId) => session.placeName(locationId),
         reveal: (locationId) => void revealLocation(locationId)
     })
-    let focusedCompany: string | undefined = $derived.by(() => {
-        session.gameState
-        return undefined
-    })
-    async function focusCompany(companyId: string) {
-        session.closeHistoricalMap()
-        focusedRoute = undefined
-        const restore = focusedCompany === companyId
-        focusedCompany = restore ? undefined : companyId
-        focusedLocation = undefined
-        showMap()
-        await tick()
-        if (restore) {
-            fitMaps({ animate: true })
-            return
-        }
-        const locations = companyNetworkFocusLocations(
-            new RailwayMapState(
-                session.mapView.map,
-                session.mapView.tileSet,
-                session.gameState.tileInventory
-            ),
-            session.stations.displayState,
-            companyId
-        )
-        if (!locations.length) return
-        focusLocations(locations)
+    function focusCompany(companyId: string) {
+        void toggleMapFocus({ key: `company:${companyId}` }, () => {
+            const locations = companyNetworkFocusLocations(
+                new RailwayMapState(
+                    session.mapView.map,
+                    session.mapView.tileSet,
+                    session.gameState.tileInventory
+                ),
+                session.stations.displayState,
+                companyId
+            )
+            if (locations.length) focusLocations(locations)
+        })
     }
-    let focusedRoute: string | undefined = $derived.by(() => {
-        session.gameState
-        session.updatingVisibleState
-        return undefined
-    })
-    async function focusRoute(trainId: string) {
-        session.closeHistoricalMap()
+    function focusRoute(trainId: string) {
         const route = (
             session.routes.solved?.result ?? session.projectedRun.latest?.solution.result
         )?.routes.find((route) => route.trainId === trainId)
         if (!route) return
-        const restore = focusedRoute === trainId
-        focusedRoute = restore ? undefined : trainId
-        focusedLocation = undefined
-        focusedCompany = undefined
-        showMap()
-        await tick()
-        if (restore) {
-            fitMaps({ animate: true })
-            return
-        }
-        focusLocations([...new Set(route.paths.map((path) => path.locationId))])
+        void toggleMapFocus({ key: `route:${trainId}` }, () =>
+            focusLocations([...new Set(route.paths.map((path) => path.locationId))])
+        )
     }
     function previewHistoryMap(action: GameAction) {
         session.previewHistoryMap(action)
@@ -414,11 +396,14 @@
                 onSelect: () => focusBoard(target, area)
             }))
     )
-    function focusLocations(locations: readonly string[], animate = true, viewers = mapViewers()) {
-        for (const viewer of viewers) focusViewerLocations(viewer, locations, animate)
+    function focusLocations(
+        locations: readonly string[],
+        { animate = true, viewers = mapViewers(), radius = FocusRadius } = {}
+    ) {
+        for (const viewer of viewers) focusViewerLocations(viewer, locations, animate, radius)
     }
     function autoFocusLocations(locations: readonly string[], animate = true) {
-        focusLocations(locations, animate, autoZoomViewers())
+        focusLocations(locations, { animate, viewers: autoZoomViewers() })
     }
     function hexViewRect(locationId: string, radius: number, extents: readonly BoundingBox[]) {
         return mapSelectionRect(
@@ -433,11 +418,10 @@
     function focusViewerLocations(
         { wrapper, extents }: ReturnType<typeof mapViewers>[number],
         locations: readonly string[],
-        animate: boolean
+        animate: boolean,
+        radius: number
     ) {
-        const rectangles = locations.map((locationId) =>
-            hexViewRect(locationId, FocusRadius, extents)
-        )
+        const rectangles = locations.map((locationId) => hexViewRect(locationId, radius, extents))
         const x = Math.min(...rectangles.map((rect) => rect.x))
         const y = Math.min(...rectangles.map((rect) => rect.y))
         const right = Math.max(...rectangles.map((rect) => rect.x + rect.width))
@@ -531,9 +515,7 @@
             const current = ++request
             const preview = next.preview
             if (!preview) return
-            focusedRoute = undefined
-            focusedLocation = undefined
-            focusedCompany = undefined
+            mapFocus = undefined
             showMap()
             void tick().then(() => {
                 if (current !== request) return
@@ -842,7 +824,8 @@
 
 {#snippet companyCard(
     company: Company,
-    layout: 'wide-fill' | 'vertical' = 'vertical'
+    layout: 'wide-fill' | 'vertical' = 'vertical',
+    onFocusConnection?: (connection: PlaceConnection) => void
 )}<CompanyDetails
         pricePresentation={companyPricePresentation}
         {layout}
@@ -850,6 +833,7 @@
         {session}
         {trainColors}
         onPreviewMap={previewHistoryMap}
+        {onFocusConnection}
     />{/snippet}
 
 {#snippet sidebarTabIcon(id: string)}
@@ -901,7 +885,7 @@
         translucentLocationId={consentPreview?.details.locationId}
         appearance={tileAppearance}
         hexDiameter={MapHexDiameter}
-        outlinedLocationIds={revealedLocationId ? [revealedLocationId] : []}
+        outlinedLocationIds={outlinedLocationId ? [outlinedLocationId] : []}
         {extents}
         {terrainDiscounts}
         onselect={interactive && !consentPreview
@@ -1182,6 +1166,7 @@
                                     {#snippet companyDetails(company)}
                                         <CompanyDetails
                                             pricePresentation={companyPricePresentation}
+                                            onFocusConnection={focusConnection}
                                             onPreviewMap={previewHistoryMap}
                                             {trainColors}
                                             {session}
@@ -1424,7 +1409,8 @@
                                 {#each startedCompanies as company (company.id)}
                                     {@render companyCard(
                                         company,
-                                        companyCardsWide ? 'wide-fill' : 'vertical'
+                                        companyCardsWide ? 'wide-fill' : 'vertical',
+                                        focusConnection
                                     )}
                                 {:else}<p class="widget-empty">No companies have started.</p>{/each}
                             </CompanyCardLayout>

@@ -9,7 +9,7 @@
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import type { StationAppearance } from './stationPresentation.js'
     import type { StationReservation } from '@tabletop/18xx'
-    import type { BoundingBox } from '@tabletop/common'
+    import type { BoundingBox, Point } from '@tabletop/common'
     import TileArtwork from '../tiles/TileArtwork.svelte'
     import TileSymbol from '../tiles/TileSymbol.svelte'
     import { PortSymbol } from '../tiles/tileSymbols.js'
@@ -91,11 +91,22 @@
                 )
         )
     ])
+    const TokenOutlineWidth = 2.1
     // A token's tab tucks behind its right side and reaches out to the room kept for it.
     const TabTuck = 3
     const TabHeight = 13
     const TabWidth = TokenTabReach
     const reservedAppearances = $derived({ ...scene.sharedStations, ...stationAppearances })
+    const stationOutlines = $derived.by(() => {
+        const outlines = new Map<string, string>()
+        for (const entry of scene.locations)
+            for (const marker of entry.location.markers ?? []) {
+                const art = entry.markerArt[marker.id]
+                if (art && 'stationOutline' in art)
+                    outlines.set(art.stationOutline.stationId, art.stationOutline.color)
+            }
+        return outlines
+    })
     const entries = $derived.by(() => {
         assertMapOverlays(scene, tokens, routes, currentReservations)
         return scene.locations
@@ -138,6 +149,19 @@
         onselect?.(target)
     }
 </script>
+
+{#snippet tokenOutline(center: Point, radius: number, color: string | undefined)}
+    {#if color}
+        <circle
+            cx={center.x}
+            cy={center.y}
+            r={radius + TokenOutlineWidth / 2}
+            fill="none"
+            stroke={color}
+            stroke-width={TokenOutlineWidth}
+        ></circle>
+    {/if}
+{/snippet}
 
 <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -312,6 +336,11 @@
                                     x={point.x - tokenSize / 2}
                                     y={point.y - tokenSize / 2}
                                 />
+                                {@render tokenOutline(
+                                    point,
+                                    node.slotRadius,
+                                    stationOutlines.get(token.id)
+                                )}
                             </g>
                         {/if}
                         {@const reservedAppearance = reservedAppearances[reservedBySlot[slot]]}
@@ -580,6 +609,11 @@
                                     height={annotation.radius * 2}
                                     ><title>{annotation.label}</title></image
                                 >
+                                {@render tokenOutline(
+                                    annotation,
+                                    annotation.radius,
+                                    annotation.outline
+                                )}
                             {:else}
                                 <g
                                     data-map-revenue-symbol={annotation.markerId}

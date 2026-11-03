@@ -61,6 +61,17 @@ standing [18xx design rule](../../docs/agents/18xx-design.md).
 - **`variantEnd` on a phase.** Surveyed: 1830, 1889 and The Old Prince end on D in every game, and 1832
   reuses its 12 row. 1870 lists D after 12, as only diesel games reach it, so `share()` leaves it out of
   the ordinary progression and counts it as the end.
+- **History milestone rows (`milestone`).** Surveyed: phase changes and callouts are the history's
+  other emphasis, both table-wide. A milestone is one company's, a band of its colour with contrasting
+  ink. 1870 uses it for reaching a destination.
+- **Connections on company origins (`PlaceConnection`).** Surveyed: `companyOrigin` has two users. 1832's
+  names the companies a System was formed from; 1870's names a destination. The type is a union, so a
+  title has one or the other. It frames both places with no margin, which lets far-apart hexes pan on a
+  small panel, and outlines the second. 1870 is the family's first title with connection runs; a later
+  one could use it.
+- **Token outlines (`outline`, `stationOutline`).** Surveyed: 1846 and 1833NE also use token marker art,
+  and neither needs an outline. A badge was mocked up and set aside, as tokens are about 9 px across at
+  a usual zoom. The colour is the title's. 1870 uses amber.
 
 ## Phases
 

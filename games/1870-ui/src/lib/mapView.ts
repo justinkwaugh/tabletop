@@ -1,4 +1,5 @@
 import { assertExists } from '@tabletop/common'
+import { destinationStationId } from '@tabletop/18xx'
 import { Companies1870, Map1870, OffboardHomeLocationId, TileSet1870 } from '@tabletop/1870'
 import { StandardTileLayouts, type MapViewDefinition, type TileLayout } from '@tabletop/18xx-ui'
 import ATSFLogo from './images/logos/ATSF.svg'
@@ -43,6 +44,9 @@ function destinationMark(label: string): string {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="40" height="40"><circle cx="20" cy="20" r="18.5" fill="#fff" stroke="#111" stroke-width="3"/><text x="20" y="20" dy="0.35em" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="800" font-size="${size}" fill="#111">${label.replace('&', '&amp;')}</text></svg>`
     return `data:image/svg+xml,${encodeURIComponent(svg)}`
 }
+
+// Stands out from the black city circles of ordinary stations, on every colour of hex.
+const DestinationStationOutline = '#f59a00'
 
 const TokenKinds = {
     cattle: { name: 'Cattle', imageUrl: CattleToken },
@@ -116,6 +120,10 @@ export const MapView1870: MapViewDefinition = {
             Companies1870.flatMap((company) => [
                 [`destination:${company.id}`, `${Stations[company.id].label} destination`],
                 [`station:${company.id}`, `${Stations[company.id].label} destination station`],
+                [
+                    `station-space:${company.id}`,
+                    `${Stations[company.id].label} destination station`
+                ],
                 ...Object.entries(TokenKinds).map(([kind, token]) => [
                     `${company.id}:${kind}`,
                     `${Stations[company.id].label} ${token.name}`
@@ -141,7 +149,17 @@ export const MapView1870: MapViewDefinition = {
                     {
                         token: {
                             imageUrl: stationImage(company.id),
-                            place: markerPlace(company.id)
+                            place: markerPlace(company.id),
+                            outline: DestinationStationOutline
+                        }
+                    }
+                ],
+                [
+                    `station-space:${company.id}`,
+                    {
+                        stationOutline: {
+                            stationId: destinationStationId(company.id),
+                            color: DestinationStationOutline
                         }
                     }
                 ],

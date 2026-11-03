@@ -87,6 +87,7 @@ export type {
     MarketZone,
     MarketZoneBanner,
     MarketZoneFill,
+    PlaceConnection,
     PrivateTokenPresentation,
     TitleFact,
     TitleOperatingStep,

@@ -53,6 +53,11 @@ describe('the destination markers', () => {
     it('keep the station there after the run', () => {
         expect(atDenver({ ...placed, destinationRunsMade: ['FW'] })).toEqual(['station:FW'])
     })
+    it('name the station in a city space under Station Marker Wars', () => {
+        expect(atDenver({ destinationRunsMade: [], destinationStations: ['FW'] })).toEqual([
+            'station-space:FW'
+        ])
+    })
     it('show nothing once a company that kept its station has run', () => {
         expect(atDenver({ destinationRunsMade: ['FW'], destinationStations: [] })).toEqual([])
     })

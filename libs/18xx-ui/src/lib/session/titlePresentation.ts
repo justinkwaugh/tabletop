@@ -42,8 +42,11 @@ export type TitleFact = { label: string; value: string }
 /** A right or marker a company holds, shown beside its trains, such as access to coal fields. */
 /** A mark beside a company's name; one with an image, such as a ferry it owns, shows the image. */
 export type CompanyMark = { label: string; description: string; imageUrl?: string }
-/** The companies a company was formed from, shown under its header, such as a System's shells. */
-export type CompanyOrigin = { text: string; companyIds: readonly string[] }
+export type PlaceConnection = { from: string; to: string }
+
+/** Shown under a company's header: the companies it was formed from, such as a System's shells, or a connection it can show on the map. */
+export type CompanyOrigin =
+    { text: string; companyIds: readonly string[] } | { text: string; connection: PlaceConnection }
 
 /**
  * A label above a market zone, drawn across its spaces as an arrow toward its far end or as a span
