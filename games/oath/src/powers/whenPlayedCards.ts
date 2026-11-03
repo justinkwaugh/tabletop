@@ -7,7 +7,9 @@ import { gainSupply } from '../util/rest.js'
 import { cannotPlaceWarbandsAtSites } from '../util/continuous.js'
 import { one, optional, PowerChoiceKind, type ChoiceDomain } from '../util/powerChoice.js'
 import { registerEffect, chosen, type PlayMapChanges } from './registry.js'
-import { sitesRuledBy } from '../util/rule.js'
+import { sitesRuledBy, warbandsAt } from '../util/rule.js'
+import { adjustCount, countOf } from '../util/warbands.js'
+import type { WarbandCounts } from '../model/warbandCounts.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 import { persistentMatchingAdvisers } from '../util/persistent.js'
 import { siteHolding } from '../util/access.js'
@@ -341,6 +343,28 @@ registerEffect(
             return {
                 summary: `gained ${words} and placed ${placed} across ${ruled.length} ruled sites`
             }
+        },
+        // R-7.3.3-H3 — the warbands `resolve` places, planned before the play.
+        warbandsAfter: (ctx) => {
+            const { state, playerId } = ctx
+            if (cannotPlaceWarbandsAtSites(state, playerId)) return {}
+            const ruled = sitesRuledBy(state, playerId)
+            const owner = warbandOwnerGainedByPower(state, playerId)
+            const bank = state.getPlayerState(
+                state.warbandBankHolderOf(owner)
+            ).warbandsInPersonalBank
+            let onBoard =
+                countOf(state.getPlayerState(playerId).warbandsOnBoard, owner) +
+                Math.min(ruled.length, countOf(bank, owner))
+            const after: Record<string, WarbandCounts> = {}
+            for (const siteId of ruled) {
+                if (onBoard === 0) break
+                const here = { ...warbandsAt(state, siteId) }
+                adjustCount(here, owner, 1)
+                after[siteId] = here
+                onBoard -= 1
+            }
+            return after
         }
     }
 )

@@ -6,6 +6,7 @@ import type { CampaignTarget } from '../model/campaign.js'
 import { areEnemies, rulersOfSite, rulesSite, type ImperialScope } from './rule.js'
 import { persistentsOfCard, relicPersistentsHeldBy } from './heldPersistents.js'
 import type { PersistentHooks, PlayMapChanges } from '../powers/registry.js'
+import { siteWarbandsOverlay } from '../powers/vocabulary.js'
 import type { BannerTake } from './seize.js'
 import { isAtLeastOathRevision, OathRevision } from './revision.js'
 
@@ -65,18 +66,22 @@ export function ownersRuleSite(ctx: PersistentContext, siteId: string): boolean 
 }
 
 /** What a play does to the cards at sites, read before it is made (`PlayMapChanges`). */
-type InPlayMapChanges = Pick<PlayMapChanges, 'leaving' | 'arriving' | 'siteId'>
+type InPlayMapChanges = Pick<PlayMapChanges, 'leaving' | 'arriving' | 'siteId' | 'warbandsBySite'>
 
 /**
  * `parties`: the Campaign's, from a caller that holds them before the Campaign is open. `mapChanges`: a play's, from a
  * check made before the play: the cards at sites as it leaves them, its card at `siteId` and the cards it takes off
- * the map gone (Land Warden's second card, played after the kept card's, R-7.3.3-H3).
+ * the map gone, and the warbands at sites as its power leaves them, so who rules each site and what the powers read
+ * are those (Land Warden's second card, played after the kept card's, R-7.3.3-H3).
  */
 export function persistentsInPlay(
-    state: HydratedOathGameState,
+    table: HydratedOathGameState,
     parties?: ScopedParties,
     mapChanges?: InPlayMapChanges
 ): PersistentInPlay[] {
+    const state = mapChanges?.warbandsBySite
+        ? siteWarbandsOverlay(table, mapChanges.warbandsBySite)
+        : table
     const scope = powerScopeOf(state, parties)
     const found: PersistentInPlay[] = []
     for (const player of state.players) {

@@ -24,7 +24,8 @@ afterEach(() => {
 // Land Warden's second card is played after the kept card's play, on the state that play leaves, so a Vision second
 // "as your Vision" is offered where the engine accepts it on that state: Secret Police kept to a site its ruler's
 // enemy stands on refuses it ("Enemies cannot play Visions faceup while their pawn is at any site ruled by Secret
-// Police's ruler"), and Secret Police discarded first by the kept card's play no longer does.
+// Police's ruler"), and Secret Police discarded first by the kept card's play no longer does. The ruler is read on
+// the warbands that play leaves: Key to the City kills Rhys's warbands at the Great Slum and places Dana's.
 
 const LAND_WARDEN = 'denizen.hearth.land-warden'
 const WOLVES = 'denizen.beast.wolves'
@@ -34,6 +35,7 @@ const ALCHEMIST = 'denizen.arcane.alchemist'
 const LONGBOWS = 'denizen.order.longbows'
 const BEWITCH = 'denizen.arcane.bewitch'
 const SECRET_POLICE = 'denizen.order.secret-police'
+const KEY = 'denizen.discord.key-to-the-city'
 const CONQUEST = 'vision.conquest'
 
 const AS_YOUR_VISION = 'as your Vision'
@@ -168,6 +170,33 @@ describe("Land Warden: the Vision second is offered on the state the kept card's
         ).toBeUndefined()
     })
 
+    it('Key to the City kept to the Great Slum Rhys rules, with Secret Police there: "as your Vision" is offered, as Dana rules it after the play', async () => {
+        const { session, draft, sent } = await searchDraftOn(
+            searched({
+                c1: [SECRET_POLICE, TENTS, SONGS],
+                c1Warbands: ruledByRhys,
+                top: [KEY, CONQUEST, LONGBOWS]
+            })
+        )
+        draft.keep(KEY)
+        draft.setDiscardFirst(TENTS)
+        expect(modesOf(draft, CONQUEST)).toEqual(['adviser, facedown', AS_YOUR_VISION])
+        draft.setSecondPlay(VISION_KEY)
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(sent).toHaveBeenCalledTimes(1)
+        const [choice] = sent.mock.calls[0]
+        expect(choice).toEqual({
+            keptCardId: KEY,
+            discardOrder: [],
+            play: SearchPlay.Site,
+            discardFirstCardId: TENTS,
+            secondPlay: { cardId: CONQUEST, play: SearchPlay.RevealedVision }
+        })
+        expect(
+            HydratedSearchResolve.reasonCannotResolve(session.gameState, 'dana', choice)
+        ).toBeUndefined()
+    })
+
     it('Bewitch kept: "as your Vision" is still offered, as Bewitch may leave Dana an Exile', async () => {
         const { draft } = await searchDraftOn(searched({ top: [BEWITCH, CONQUEST, LONGBOWS] }))
         draft.keep(BEWITCH)
@@ -196,6 +225,31 @@ describe('Land Warden: Bewitch kept with the Vision second', () => {
         await draft.choosePlacement({ play: SearchPlay.Site })
         expect(asksCitizen(draft)).toBe(false)
         expect(draft.needsWhenPlayed).toBe(false)
+        expect(sent).toHaveBeenCalledTimes(1)
+        const [choice] = sent.mock.calls[0]
+        expect(choice).toEqual({
+            keptCardId: BEWITCH,
+            discardOrder: [],
+            play: SearchPlay.Site,
+            discardFirstCardId: WOLVES,
+            secondPlay: { cardId: CONQUEST, play: SearchPlay.RevealedVision }
+        })
+        expect(
+            HydratedSearchResolve.reasonCannotResolve(session.gameState, 'dana', choice)
+        ).toBeUndefined()
+    })
+
+    it('"becoming a Citizen" picked with the Vision facedown, then the Vision switched to "as your Vision": the pick is not sent, and Dana stays an Exile', async () => {
+        const { session, draft, sent } = await bewitchKept()
+        draft.setSecondPlay(FACEDOWN_KEY)
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(asksCitizen(draft)).toBe(true)
+        const spec = draft.whenPlayed.findIndex((c) => c.spec.what === 'becoming a Citizen')
+        draft.setPicks({ ...draft.picks, option: { ...draft.picks.option, [spec]: 0 } })
+        expect(draft.whenPlayedComplete).toBe(true)
+        draft.setSecondPlay(VISION_KEY)
+        await draft.choosePlacement({ play: SearchPlay.Site })
+        expect(asksCitizen(draft)).toBe(false)
         expect(sent).toHaveBeenCalledTimes(1)
         const [choice] = sent.mock.calls[0]
         expect(choice).toEqual({

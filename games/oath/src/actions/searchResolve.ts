@@ -33,7 +33,8 @@ import {
     reasonCannotPlayCard,
     reasonSiteFull,
     whenPlayedMapLeaving,
-    whenPlayedStatusAfter
+    whenPlayedStatusAfter,
+    whenPlayedWarbandsAfter
 } from '../util/cardPlay.js'
 import type { PlayMapChanges } from '../powers/registry.js'
 import type { ActiveModifier } from '../util/modifiers.js'
@@ -463,7 +464,8 @@ type KeptCard = KeptPlay & Pick<SearchResolveChoice, 'keptCardId'>
  * and what it gains first (R-7.3.3), with the Search's carried modifiers, as `playCard` plays it. From revision 26
  * the kept card's own When Played power has resolved too, so the cards it puts off the map are gone (Riots' Q&A
  * counts the cards at all sites as it resolves), and with its choices the status it gives is the player's (Bewitch's
- * "become a Citizen", R-7.3.3-H3), which only a Vision played second to the Revealed Vision space reads.
+ * "become a Citizen", R-7.3.3-H3) and the warbands at sites are the ones it leaves (Key to the City's, Bandit
+ * Chief's kills), which only a Vision played second to the Revealed Vision space reads.
  */
 function keptPlayMapChanges(
     state: HydratedOathGameState,
@@ -491,11 +493,21 @@ function keptPlayMapChanges(
         kept.choices ?? [],
         changes
     )
+    const warbandsBySite = whenPlayedWarbandsAfter(
+        state,
+        playerId,
+        keptCardId,
+        kept.play,
+        kept.faceUp,
+        kept.choices ?? [],
+        changes
+    )
     return {
         ...changes,
         leaving: [...changes.leaving, ...gone],
         arriving: changes.arriving.filter((id) => !gone.includes(id)),
-        ...(status !== undefined ? { status } : {})
+        ...(status !== undefined ? { status } : {}),
+        ...(warbandsBySite !== undefined ? { warbandsBySite } : {})
     }
 }
 

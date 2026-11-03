@@ -8,6 +8,7 @@ import { isLockedFor, siteLockedFor } from './locked.js'
 import { assertExists } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { HiddenReveal } from '../model/hidden.js'
+import type { WarbandCounts } from '../model/warbandCounts.js'
 import { PowerOutcome } from '../model/powerOutcome.js'
 import { cardDefinition, CONSPIRACY_ID, kindOf } from '../data/cardRegistry.js'
 import { SALT_THE_EARTH, siteCapacityAfterPlay } from './capacity.js'
@@ -735,6 +736,27 @@ export function whenPlayedStatusAfter(
     const statusAfter = power ? effectFor(power)?.statusAfter : undefined
     if (!power || !statusAfter) return undefined
     return statusAfter({ state, playerId, power, choices, mapChanges })
+}
+
+/**
+ * R-7.3.3-H3 — the warbands at each site a faceup play's When Played power changes with `choices`, as it leaves
+ * them, the state unchanged: undefined when the power declares none, so it changes none.
+ */
+export function whenPlayedWarbandsAfter(
+    state: HydratedOathGameState,
+    playerId: string,
+    cardId: string,
+    play: SearchPlay,
+    faceUp: boolean | undefined,
+    choices: readonly PowerChoice[],
+    mapChanges: PlayMapChanges
+): Record<string, WarbandCounts> | undefined {
+    const power = isFaceupPlay(play, faceUp)
+        ? powersWithTiming(cardId, PowerTiming.WhenPlayed)[0]
+        : undefined
+    const warbandsAfter = power ? effectFor(power)?.warbandsAfter : undefined
+    if (!power || !warbandsAfter) return undefined
+    return warbandsAfter({ state, playerId, power, choices, mapChanges })
 }
 
 export function reasonWhenPlayedChoicesInvalid(

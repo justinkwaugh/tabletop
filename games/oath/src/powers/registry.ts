@@ -17,7 +17,7 @@ import type {
     RollRules,
     WarbandGroup
 } from '../model/campaign.js'
-import type { WarbandOwner } from '../model/warbandCounts.js'
+import type { WarbandCounts, WarbandOwner } from '../model/warbandCounts.js'
 import type { PowerOutcome } from '../model/powerOutcome.js'
 import type { DiscardTarget } from '../util/discard.js'
 import type { TollOccasion } from '../util/tolls.js'
@@ -84,6 +84,11 @@ export interface PlayMapChanges {
      * choices made change it (Bewitch's "become a Citizen"). The second card is played on that status.
      */
     status?: PlayerStatus
+    /**
+     * R-7.3.3-H3 — Land Warden's kept card: the warbands at the sites its When Played power changes, as it leaves
+     * them (Key to the City's, Bandit Chief's kills). The second card is played on the rule they give.
+     */
+    warbandsBySite?: Readonly<Record<string, WarbandCounts>>
     /**
      * R-7.3.3 — what the play gains before its When Played power, planned on the state before the play. Unlike the
      * map, these are not set-like: a check adds them to the state it reads, while the resolve's state holds them.
@@ -493,6 +498,12 @@ export interface EffectDefinition {
      * undefined when it leaves the status as it is. Land Warden's second card is played on it.
      */
     statusAfter?: (ctx: EffectContext) => PlayerStatus | undefined
+    /**
+     * R-7.3.3-H3 — the warbands at each site a When Played power changes, as it leaves them, on the map
+     * `ctx.mapChanges` says its play leaves, `ctx.state` unchanged. Land Warden's second card is played on the rule
+     * they give.
+     */
+    warbandsAfter?: (ctx: EffectContext) => Record<string, WarbandCounts>
     /** The state `ctx.choices` leave, `ctx.state` unchanged: what `sequential` choices read. */
     stateAfter?: (ctx: EffectContext) => HydratedOathGameState
     /** R-7.4 — never read by the doorway. */
