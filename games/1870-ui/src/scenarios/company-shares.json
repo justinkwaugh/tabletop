@@ -1,0 +1,8596 @@
+{
+ "game": {
+  "id": "scenario-company-shares",
+  "isPublic": false,
+  "status": "waitingForPlayers",
+  "typeId": "1870",
+  "deleted": false,
+  "name": "Company shares",
+  "ownerId": "user",
+  "players": [
+   {
+    "id": "9263",
+    "name": "Player 1",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "7438",
+    "name": "Player 2",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "4395",
+    "name": "Player 3",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "18843",
+    "name": "Player 4",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "config": {
+   "examplePosition": "opening"
+  },
+  "hotseat": true,
+  "winningPlayerIds": [],
+  "seed": 111,
+  "activePlayerIds": [
+   "7438"
+  ],
+  "createdAt": "2026-10-01T00:00:00.000Z",
+  "storage": "local",
+  "category": "standard"
+ },
+ "state": {
+  "systemVersion": 3,
+  "id": "1I6UdZRDSmjTsaObpcDQB",
+  "gameId": "scenario-company-shares",
+  "seed": 3648447560,
+  "prng": {
+   "seed": 3648447560,
+   "invocations": 1541
+  },
+  "protectedPrng": {
+   "algorithm": "chacha20-v1",
+   "seed": "9bb84d562343fc21d47b959c221204e14cd834f883133ff8341fa85f5957178a",
+   "invocations": 0
+  },
+  "masterSeed": "bae126857e5afee17f59df673a71c64c",
+  "activePlayerIds": [
+   "7438"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 97,
+  "actionChecksum": 720857529,
+  "players": [
+   {
+    "playerId": "9263",
+    "color": "blue"
+   },
+   {
+    "playerId": "7438",
+    "color": "red"
+   },
+   {
+    "playerId": "4395",
+    "color": "green"
+   },
+   {
+    "playerId": "18843",
+    "color": "yellow"
+   }
+  ],
+  "phaseEvents": [],
+  "usedPrivatePowerIds": [
+   "MRBC"
+  ],
+  "machineState": "StockRound",
+  "stockRound": {
+   "number": 2,
+   "completed": false,
+   "passedPlayerIds": [],
+   "turn": {
+    "acted": false,
+    "bought": false,
+    "soldBeforeBuying": false,
+    "companiesSold": []
+   },
+   "sales": [],
+   "companyPurchases": []
+  },
+  "turnManager": {
+   "series": [
+    {
+     "type": "turn",
+     "playerId": "9263",
+     "start": 0,
+     "end": 2
+    },
+    {
+     "type": "turn",
+     "playerId": "7438",
+     "start": 2,
+     "end": 3
+    },
+    {
+     "type": "turn",
+     "playerId": "4395",
+     "start": 3,
+     "end": 4
+    },
+    {
+     "type": "turn",
+     "playerId": "18843",
+     "start": 4,
+     "end": 5
+    },
+    {
+     "type": "turn",
+     "playerId": "9263",
+     "start": 5,
+     "end": 6
+    },
+    {
+     "type": "turn",
+     "playerId": "7438",
+     "start": 6,
+     "end": 7
+    },
+    {
+     "type": "turn",
+     "playerId": "4395",
+     "start": 7,
+     "end": 9
+    },
+    {
+     "type": "turn",
+     "playerId": "9263",
+     "start": 9,
+     "end": 17
+    },
+    {
+     "type": "turn",
+     "playerId": "18843",
+     "start": 17,
+     "end": 18
+    },
+    {
+     "type": "turn",
+     "playerId": "9263",
+     "start": 18,
+     "end": 19
+    },
+    {
+     "type": "turn",
+     "playerId": "7438",
+     "start": 19,
+     "end": 22
+    },
+    {
+     "type": "turn",
+     "playerId": "4395",
+     "start": 22,
+     "end": 24
+    },
+    {
+     "type": "turn",
+     "playerId": "18843",
+     "start": 24,
+     "end": 26
+    },
+    {
+     "type": "turn",
+     "playerId": "9263",
+     "start": 26,
+     "end": 27
+    },
+    {
+     "type": "turn",
+     "playerId": "7438",
+     "start": 27,
+     "end": 29
+    },
+    {
+     "type": "turn",
+     "playerId": "4395",
+     "start": 29,
+     "end": 32
+    },
+    {
+     "type": "turn",
+     "playerId": "18843",
+     "start": 32,
+     "end": 34
+    },
+    {
+     "type": "turn",
+     "playerId": "9263",
+     "start": 34,
+     "end": 35
+    },
+    {
+     "type": "turn",
+     "playerId": "7438",
+     "start": 35,
+     "end": 37
+    },
+    {
+     "type": "turn",
+     "playerId": "4395",
+     "start": 37,
+     "end": 38
+    },
+    {
+     "type": "turn",
+     "playerId": "18843",
+     "start": 38,
+     "end": 40
+    },
+    {
+     "type": "turn",
+     "playerId": "9263",
+     "start": 40,
+     "end": 41
+    },
+    {
+     "type": "turn",
+     "playerId": "7438",
+     "start": 41,
+     "end": 43
+    },
+    {
+     "type": "turn",
+     "playerId": "4395",
+     "start": 43,
+     "end": 45
+    },
+    {
+     "type": "turn",
+     "playerId": "18843",
+     "start": 45,
+     "end": 47
+    },
+    {
+     "type": "turn",
+     "playerId": "9263",
+     "start": 47,
+     "end": 48
+    },
+    {
+     "type": "turn",
+     "playerId": "7438",
+     "start": 48,
+     "end": 49
+    },
+    {
+     "type": "turn",
+     "playerId": "4395",
+     "start": 49,
+     "end": 52
+    },
+    {
+     "type": "turn",
+     "playerId": "18843",
+     "start": 52,
+     "end": 53
+    },
+    {
+     "type": "turn",
+     "playerId": "9263",
+     "start": 53,
+     "end": 54
+    },
+    {
+     "type": "turn",
+     "playerId": "7438",
+     "start": 54,
+     "end": 55
+    },
+    {
+     "type": "turn",
+     "playerId": "4395",
+     "start": 55,
+     "end": 56
+    },
+    {
+     "type": "turn",
+     "playerId": "4395",
+     "start": 61,
+     "end": 69
+    },
+    {
+     "type": "turn",
+     "playerId": "18843",
+     "start": 71,
+     "end": 82
+    },
+    {
+     "type": "turn",
+     "playerId": "7438",
+     "start": 84,
+     "end": 93
+    },
+    {
+     "type": "turn",
+     "playerId": "18843",
+     "start": 94,
+     "end": 95
+    },
+    {
+     "type": "turn",
+     "playerId": "9263",
+     "start": 95,
+     "end": 97
+    },
+    {
+     "type": "turn",
+     "playerId": "7438",
+     "start": 97
+    }
+   ],
+   "turnOrder": [
+    "18843",
+    "9263",
+    "7438",
+    "4395"
+   ],
+   "turnCounts": {
+    "4395": 9,
+    "7438": 9,
+    "9263": 10,
+    "18843": 9
+   }
+  },
+  "stockMarket": {
+   "stacks": [
+    {
+     "spaceId": "0:5",
+     "companyIds": [
+      "SLSF"
+     ]
+    },
+    {
+     "spaceId": "3:5",
+     "companyIds": [
+      "MP"
+     ]
+    },
+    {
+     "spaceId": "5:5",
+     "companyIds": [
+      "MKT"
+     ]
+    }
+   ]
+  },
+  "bank": {},
+  "companies": [
+   {
+    "id": "ATSF",
+    "kind": "major",
+    "started": false,
+    "floated": false,
+    "funded": false,
+    "operated": false
+   },
+   {
+    "id": "FW",
+    "kind": "major",
+    "started": false,
+    "floated": false,
+    "funded": false,
+    "operated": false
+   },
+   {
+    "id": "GMO",
+    "kind": "major",
+    "started": false,
+    "floated": false,
+    "funded": false,
+    "operated": false
+   },
+   {
+    "id": "IC",
+    "kind": "major",
+    "started": false,
+    "floated": false,
+    "funded": false,
+    "operated": false
+   },
+   {
+    "id": "MP",
+    "kind": "major",
+    "started": true,
+    "floated": true,
+    "funded": true,
+    "operated": true,
+    "parPrice": 76,
+    "president": {
+     "kind": "player",
+     "playerId": "18843"
+    },
+    "lastRunRevenue": 0
+   },
+   {
+    "id": "MKT",
+    "kind": "major",
+    "started": true,
+    "floated": true,
+    "funded": true,
+    "operated": true,
+    "parPrice": 68,
+    "president": {
+     "kind": "player",
+     "playerId": "7438"
+    },
+    "lastRunRevenue": 0
+   },
+   {
+    "id": "SP",
+    "kind": "major",
+    "started": false,
+    "floated": false,
+    "funded": false,
+    "operated": false
+   },
+   {
+    "id": "SSW",
+    "kind": "major",
+    "started": false,
+    "floated": false,
+    "funded": false,
+    "operated": false
+   },
+   {
+    "id": "SLSF",
+    "kind": "major",
+    "started": true,
+    "floated": true,
+    "funded": true,
+    "operated": true,
+    "parPrice": 100,
+    "president": {
+     "kind": "player",
+     "playerId": "4395"
+    },
+    "lastRunRevenue": 0
+   },
+   {
+    "id": "TP",
+    "kind": "major",
+    "started": false,
+    "floated": false,
+    "funded": false,
+    "operated": false
+   },
+   {
+    "id": "GRSC",
+    "kind": "private"
+   },
+   {
+    "id": "MRBC",
+    "kind": "private"
+   },
+   {
+    "id": "SCC",
+    "kind": "private"
+   },
+   {
+    "id": "GSC",
+    "kind": "private"
+   },
+   {
+    "id": "FRISCO",
+    "kind": "private",
+    "closed": true
+   },
+   {
+    "id": "KATY",
+    "kind": "private"
+   }
+  ],
+  "cash": [
+   {
+    "owner": {
+     "kind": "bank"
+    },
+    "amount": 9588
+   },
+   {
+    "owner": {
+     "kind": "player",
+     "playerId": "9263"
+    },
+    "amount": 309
+   },
+   {
+    "owner": {
+     "kind": "player",
+     "playerId": "7438"
+    },
+    "amount": 65
+   },
+   {
+    "owner": {
+     "kind": "player",
+     "playerId": "4395"
+    },
+    "amount": 53
+   },
+   {
+    "owner": {
+     "kind": "player",
+     "playerId": "18843"
+    },
+    "amount": 145
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "ATSF"
+    },
+    "amount": 0
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "FW"
+    },
+    "amount": 0
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "GMO"
+    },
+    "amount": 0
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "IC"
+    },
+    "amount": 0
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "MP"
+    },
+    "amount": 560
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "MKT"
+    },
+    "amount": 480
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "SP"
+    },
+    "amount": 0
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "SSW"
+    },
+    "amount": 0
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "SLSF"
+    },
+    "amount": 800
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "TP"
+    },
+    "amount": 0
+   }
+  ],
+  "certificatePools": [
+   {
+    "id": "initial-offering",
+    "owner": {
+     "kind": "bank"
+    }
+   },
+   {
+    "id": "open-market",
+    "owner": {
+     "kind": "bank"
+    }
+   }
+  ],
+  "certificates": [
+   {
+    "id": "ATSF:president",
+    "companyId": "ATSF",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "ATSF:share:1",
+    "companyId": "ATSF",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "ATSF:share:2",
+    "companyId": "ATSF",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "ATSF:share:3",
+    "companyId": "ATSF",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "ATSF:share:4",
+    "companyId": "ATSF",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "ATSF:share:5",
+    "companyId": "ATSF",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "ATSF:share:6",
+    "companyId": "ATSF",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "ATSF:share:7",
+    "companyId": "ATSF",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "ATSF:share:8",
+    "companyId": "ATSF",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "FW:president",
+    "companyId": "FW",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "FW:share:1",
+    "companyId": "FW",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "FW:share:2",
+    "companyId": "FW",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "FW:share:3",
+    "companyId": "FW",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "FW:share:4",
+    "companyId": "FW",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "FW:share:5",
+    "companyId": "FW",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "FW:share:6",
+    "companyId": "FW",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "FW:share:7",
+    "companyId": "FW",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "FW:share:8",
+    "companyId": "FW",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "GMO:president",
+    "companyId": "GMO",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "GMO:share:1",
+    "companyId": "GMO",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "GMO:share:2",
+    "companyId": "GMO",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "GMO:share:3",
+    "companyId": "GMO",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "GMO:share:4",
+    "companyId": "GMO",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "GMO:share:5",
+    "companyId": "GMO",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "GMO:share:6",
+    "companyId": "GMO",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "GMO:share:7",
+    "companyId": "GMO",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "GMO:share:8",
+    "companyId": "GMO",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "IC:president",
+    "companyId": "IC",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "IC:share:1",
+    "companyId": "IC",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "IC:share:2",
+    "companyId": "IC",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "IC:share:3",
+    "companyId": "IC",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "IC:share:4",
+    "companyId": "IC",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "IC:share:5",
+    "companyId": "IC",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "IC:share:6",
+    "companyId": "IC",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "IC:share:7",
+    "companyId": "IC",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "IC:share:8",
+    "companyId": "IC",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "MP:president",
+    "companyId": "MP",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "player",
+     "playerId": "18843"
+    }
+   },
+   {
+    "id": "MP:share:1",
+    "companyId": "MP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "18843"
+    }
+   },
+   {
+    "id": "MP:share:2",
+    "companyId": "MP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "18843"
+    }
+   },
+   {
+    "id": "MP:share:3",
+    "companyId": "MP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "18843"
+    }
+   },
+   {
+    "id": "MP:share:4",
+    "companyId": "MP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "4395"
+    }
+   },
+   {
+    "id": "MP:share:5",
+    "companyId": "MP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "9263"
+    }
+   },
+   {
+    "id": "MP:share:6",
+    "companyId": "MP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "MP:share:7",
+    "companyId": "MP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "MP:share:8",
+    "companyId": "MP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "MKT:president",
+    "companyId": "MKT",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "player",
+     "playerId": "7438"
+    }
+   },
+   {
+    "id": "MKT:share:1",
+    "companyId": "MKT",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "9263"
+    }
+   },
+   {
+    "id": "MKT:share:2",
+    "companyId": "MKT",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "4395"
+    }
+   },
+   {
+    "id": "MKT:share:3",
+    "companyId": "MKT",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "7438"
+    }
+   },
+   {
+    "id": "MKT:share:4",
+    "companyId": "MKT",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "4395"
+    }
+   },
+   {
+    "id": "MKT:share:5",
+    "companyId": "MKT",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "7438"
+    }
+   },
+   {
+    "id": "MKT:share:6",
+    "companyId": "MKT",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "7438"
+    }
+   },
+   {
+    "id": "MKT:share:7",
+    "companyId": "MKT",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "MKT:share:8",
+    "companyId": "MKT",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SP:president",
+    "companyId": "SP",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SP:share:1",
+    "companyId": "SP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SP:share:2",
+    "companyId": "SP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SP:share:3",
+    "companyId": "SP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SP:share:4",
+    "companyId": "SP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SP:share:5",
+    "companyId": "SP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SP:share:6",
+    "companyId": "SP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SP:share:7",
+    "companyId": "SP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SP:share:8",
+    "companyId": "SP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SSW:president",
+    "companyId": "SSW",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SSW:share:1",
+    "companyId": "SSW",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SSW:share:2",
+    "companyId": "SSW",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SSW:share:3",
+    "companyId": "SSW",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SSW:share:4",
+    "companyId": "SSW",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SSW:share:5",
+    "companyId": "SSW",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SSW:share:6",
+    "companyId": "SSW",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SSW:share:7",
+    "companyId": "SSW",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SSW:share:8",
+    "companyId": "SSW",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SLSF:president",
+    "companyId": "SLSF",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "player",
+     "playerId": "4395"
+    }
+   },
+   {
+    "id": "SLSF:share:1",
+    "companyId": "SLSF",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "4395"
+    }
+   },
+   {
+    "id": "SLSF:share:2",
+    "companyId": "SLSF",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SLSF:share:3",
+    "companyId": "SLSF",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SLSF:share:4",
+    "companyId": "SLSF",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SLSF:share:5",
+    "companyId": "SLSF",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SLSF:share:6",
+    "companyId": "SLSF",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SLSF:share:7",
+    "companyId": "SLSF",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "SLSF:share:8",
+    "companyId": "SLSF",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "TP:president",
+    "companyId": "TP",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "TP:share:1",
+    "companyId": "TP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "TP:share:2",
+    "companyId": "TP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "TP:share:3",
+    "companyId": "TP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "TP:share:4",
+    "companyId": "TP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "TP:share:5",
+    "companyId": "TP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "TP:share:6",
+    "companyId": "TP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "TP:share:7",
+    "companyId": "TP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "TP:share:8",
+    "companyId": "TP",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "GRSC:charter",
+    "companyId": "GRSC",
+    "kind": "private",
+    "owner": {
+     "kind": "player",
+     "playerId": "4395"
+    }
+   },
+   {
+    "id": "MRBC:charter",
+    "companyId": "MRBC",
+    "kind": "private",
+    "owner": {
+     "kind": "company",
+     "companyId": "MP"
+    }
+   },
+   {
+    "id": "SCC:charter",
+    "companyId": "SCC",
+    "kind": "private",
+    "owner": {
+     "kind": "player",
+     "playerId": "7438"
+    }
+   },
+   {
+    "id": "GSC:charter",
+    "companyId": "GSC",
+    "kind": "private",
+    "owner": {
+     "kind": "player",
+     "playerId": "7438"
+    }
+   },
+   {
+    "id": "KATY:charter",
+    "companyId": "KATY",
+    "kind": "private",
+    "owner": {
+     "kind": "player",
+     "playerId": "9263"
+    }
+   }
+  ],
+  "stations": [
+   {
+    "id": "ATSF:home",
+    "companyId": "ATSF",
+    "status": "available"
+   },
+   {
+    "id": "ATSF:station:1",
+    "companyId": "ATSF",
+    "status": "available"
+   },
+   {
+    "id": "ATSF:station:2",
+    "companyId": "ATSF",
+    "status": "available"
+   },
+   {
+    "id": "ATSF:destination",
+    "companyId": "ATSF",
+    "status": "removed"
+   },
+   {
+    "id": "FW:home",
+    "companyId": "FW",
+    "status": "available"
+   },
+   {
+    "id": "FW:station:1",
+    "companyId": "FW",
+    "status": "available"
+   },
+   {
+    "id": "FW:destination",
+    "companyId": "FW",
+    "status": "removed"
+   },
+   {
+    "id": "GMO:home",
+    "companyId": "GMO",
+    "status": "available"
+   },
+   {
+    "id": "GMO:station:1",
+    "companyId": "GMO",
+    "status": "available"
+   },
+   {
+    "id": "GMO:destination",
+    "companyId": "GMO",
+    "status": "removed"
+   },
+   {
+    "id": "IC:home",
+    "companyId": "IC",
+    "status": "available"
+   },
+   {
+    "id": "IC:station:1",
+    "companyId": "IC",
+    "status": "available"
+   },
+   {
+    "id": "IC:destination",
+    "companyId": "IC",
+    "status": "removed"
+   },
+   {
+    "id": "MP:home",
+    "companyId": "MP",
+    "status": "placed",
+    "position": {
+     "locationId": "C18",
+     "nodeId": "city",
+     "slot": 0
+    }
+   },
+   {
+    "id": "MP:station:1",
+    "companyId": "MP",
+    "status": "available"
+   },
+   {
+    "id": "MP:station:2",
+    "companyId": "MP",
+    "status": "available"
+   },
+   {
+    "id": "MP:destination",
+    "companyId": "MP",
+    "status": "removed"
+   },
+   {
+    "id": "MKT:home",
+    "companyId": "MKT",
+    "status": "placed",
+    "position": {
+     "locationId": "B11",
+     "nodeId": "city",
+     "slot": 0
+    }
+   },
+   {
+    "id": "MKT:station:1",
+    "companyId": "MKT",
+    "status": "available"
+   },
+   {
+    "id": "MKT:station:2",
+    "companyId": "MKT",
+    "status": "available"
+   },
+   {
+    "id": "MKT:destination",
+    "companyId": "MKT",
+    "status": "removed"
+   },
+   {
+    "id": "SP:home",
+    "companyId": "SP",
+    "status": "removed"
+   },
+   {
+    "id": "SP:station:1",
+    "companyId": "SP",
+    "status": "available"
+   },
+   {
+    "id": "SP:station:2",
+    "companyId": "SP",
+    "status": "available"
+   },
+   {
+    "id": "SP:destination",
+    "companyId": "SP",
+    "status": "removed"
+   },
+   {
+    "id": "SSW:home",
+    "companyId": "SSW",
+    "status": "available"
+   },
+   {
+    "id": "SSW:station:1",
+    "companyId": "SSW",
+    "status": "available"
+   },
+   {
+    "id": "SSW:destination",
+    "companyId": "SSW",
+    "status": "removed"
+   },
+   {
+    "id": "SLSF:home",
+    "companyId": "SLSF",
+    "status": "placed",
+    "position": {
+     "locationId": "E12",
+     "nodeId": "city",
+     "slot": 0
+    }
+   },
+   {
+    "id": "SLSF:station:1",
+    "companyId": "SLSF",
+    "status": "available"
+   },
+   {
+    "id": "SLSF:station:2",
+    "companyId": "SLSF",
+    "status": "available"
+   },
+   {
+    "id": "SLSF:destination",
+    "companyId": "SLSF",
+    "status": "removed"
+   },
+   {
+    "id": "TP:home",
+    "companyId": "TP",
+    "status": "available"
+   },
+   {
+    "id": "TP:station:1",
+    "companyId": "TP",
+    "status": "available"
+   },
+   {
+    "id": "TP:destination",
+    "companyId": "TP",
+    "status": "removed"
+   }
+  ],
+  "stationReservations": [
+   {
+    "companyId": "ATSF",
+    "nodeId": "city",
+    "locationId": "B9"
+   },
+   {
+    "companyId": "IC",
+    "nodeId": "city",
+    "locationId": "K16"
+   },
+   {
+    "companyId": "GMO",
+    "nodeId": "city",
+    "locationId": "M20"
+   },
+   {
+    "companyId": "FW",
+    "nodeId": "city",
+    "locationId": "J3"
+   },
+   {
+    "companyId": "TP",
+    "nodeId": "city",
+    "locationId": "J5"
+   },
+   {
+    "companyId": "SSW",
+    "nodeId": "city",
+    "locationId": "H17"
+   }
+  ],
+  "stationAccess": [
+   {
+    "companyId": "SP",
+    "locationId": "N1",
+    "nodeId": "offboard",
+    "sourceId": "home"
+   }
+  ],
+  "tileInventory": {
+   "placements": {
+    "E12": {
+     "pieceId": "1870:standard/57/1",
+     "definitionId": "18xx:57",
+     "rotation": 2
+    },
+    "F13": {
+     "pieceId": "1870:standard/8/1",
+     "definitionId": "18xx:8",
+     "rotation": 0
+    },
+    "C18": {
+     "pieceId": "1870:standard/5/1",
+     "definitionId": "18xx:5",
+     "rotation": 3
+    },
+    "C20": {
+     "pieceId": "1870:standard/8/2",
+     "definitionId": "18xx:8",
+     "rotation": 1
+    },
+    "B21": {
+     "pieceId": "1870:standard/9/1",
+     "definitionId": "18xx:9",
+     "rotation": 0
+    },
+    "B11": {
+     "pieceId": "1870:standard/6/1",
+     "definitionId": "18xx:6",
+     "rotation": 5
+    },
+    "B9": {
+     "pieceId": "1870:standard/6/2",
+     "definitionId": "18xx:6",
+     "rotation": 4
+    }
+   },
+   "retiredPieceIds": []
+  },
+  "trainInventory": {
+   "trains": [
+    {
+     "id": "1870/2/1",
+     "definitionId": "2",
+     "status": "owned",
+     "owner": {
+      "kind": "company",
+      "companyId": "SLSF"
+     }
+    },
+    {
+     "id": "1870/2/2",
+     "definitionId": "2",
+     "status": "owned",
+     "owner": {
+      "kind": "company",
+      "companyId": "MP"
+     }
+    },
+    {
+     "id": "1870/2/3",
+     "definitionId": "2",
+     "status": "owned",
+     "owner": {
+      "kind": "company",
+      "companyId": "MP"
+     }
+    },
+    {
+     "id": "1870/2/4",
+     "definitionId": "2",
+     "status": "owned",
+     "owner": {
+      "kind": "company",
+      "companyId": "MKT"
+     }
+    },
+    {
+     "id": "1870/2/5",
+     "definitionId": "2",
+     "status": "owned",
+     "owner": {
+      "kind": "company",
+      "companyId": "MKT"
+     }
+    },
+    {
+     "id": "1870/2/6",
+     "definitionId": "2",
+     "status": "depot"
+    },
+    {
+     "id": "1870/2/7",
+     "definitionId": "2",
+     "status": "depot"
+    },
+    {
+     "id": "1870/3/8",
+     "definitionId": "3",
+     "status": "depot"
+    },
+    {
+     "id": "1870/3/9",
+     "definitionId": "3",
+     "status": "depot"
+    },
+    {
+     "id": "1870/3/10",
+     "definitionId": "3",
+     "status": "depot"
+    },
+    {
+     "id": "1870/3/11",
+     "definitionId": "3",
+     "status": "depot"
+    },
+    {
+     "id": "1870/3/12",
+     "definitionId": "3",
+     "status": "depot"
+    },
+    {
+     "id": "1870/3/13",
+     "definitionId": "3",
+     "status": "depot"
+    },
+    {
+     "id": "1870/4/14",
+     "definitionId": "4",
+     "status": "depot"
+    },
+    {
+     "id": "1870/4/15",
+     "definitionId": "4",
+     "status": "depot"
+    },
+    {
+     "id": "1870/4/16",
+     "definitionId": "4",
+     "status": "depot"
+    },
+    {
+     "id": "1870/4/17",
+     "definitionId": "4",
+     "status": "depot"
+    },
+    {
+     "id": "1870/4/18",
+     "definitionId": "4",
+     "status": "depot"
+    },
+    {
+     "id": "1870/5/19",
+     "definitionId": "5",
+     "status": "depot"
+    },
+    {
+     "id": "1870/5/20",
+     "definitionId": "5",
+     "status": "depot"
+    },
+    {
+     "id": "1870/5/21",
+     "definitionId": "5",
+     "status": "depot"
+    },
+    {
+     "id": "1870/5/22",
+     "definitionId": "5",
+     "status": "depot"
+    },
+    {
+     "id": "1870/6/23",
+     "definitionId": "6",
+     "status": "depot"
+    },
+    {
+     "id": "1870/6/24",
+     "definitionId": "6",
+     "status": "depot"
+    },
+    {
+     "id": "1870/6/25",
+     "definitionId": "6",
+     "status": "depot"
+    },
+    {
+     "id": "1870/8/26",
+     "definitionId": "8",
+     "status": "depot"
+    },
+    {
+     "id": "1870/8/27",
+     "definitionId": "8",
+     "status": "depot"
+    },
+    {
+     "id": "1870/8/28",
+     "definitionId": "8",
+     "status": "depot"
+    },
+    {
+     "id": "1870/10/29",
+     "definitionId": "10",
+     "status": "depot"
+    },
+    {
+     "id": "1870/10/30",
+     "definitionId": "10",
+     "status": "depot"
+    }
+   ],
+   "nextTrainNumber": 31
+  },
+  "phaseId": "1",
+  "variants": {},
+  "revenueTokens": [],
+  "destinationRunsMade": [],
+  "destinationStations": [],
+  "openingAuction": {
+   "remainingLotIds": [],
+   "reservations": [],
+   "nextPlayerId": "7438",
+   "passedPlayerIds": [],
+   "discount": 0,
+   "awards": [
+    {
+     "playerId": "4395",
+     "lotId": "GRSC",
+     "price": 20
+    },
+    {
+     "lotId": "MRBC",
+     "playerId": "18843",
+     "price": 50
+    },
+    {
+     "lotId": "SCC",
+     "playerId": "7438",
+     "price": 55
+    },
+    {
+     "lotId": "GSC",
+     "playerId": "7438",
+     "price": 90
+    },
+    {
+     "lotId": "FRISCO",
+     "playerId": "4395",
+     "price": 145
+    },
+    {
+     "playerId": "9263",
+     "lotId": "KATY",
+     "price": 160
+    }
+   ],
+   "completed": true
+  },
+  "operatingSet": {
+   "number": 1,
+   "roundNumber": 1,
+   "roundCount": 1,
+   "companyOrder": [
+    "SLSF",
+    "MP",
+    "MKT"
+   ],
+   "completedCompanyIds": [
+    "SLSF",
+    "MP",
+    "MKT"
+   ],
+   "privateIncomePaid": true,
+   "completed": true
+  }
+ },
+ "actions": [
+  {
+   "id": "recorded:0",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "9263",
+   "type": "ReserveBid",
+   "lotId": "MRBC",
+   "amount": 45,
+   "createdAt": "2026-11-03T15:16:11.604Z",
+   "index": 0,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "9263"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 0
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 0
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/0/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/1"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/9263",
+     "value": 0
+    },
+    {
+     "op": "remove",
+     "path": "/openingAuction/reservations/0"
+    },
+    {
+     "op": "replace",
+     "path": "/openingAuction/nextPlayerId",
+     "value": "9263"
+    }
+   ]
+  },
+  {
+   "id": "recorded:1",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "7438",
+   "type": "ReserveBid",
+   "lotId": "SCC",
+   "amount": 55,
+   "createdAt": "2026-11-03T15:16:11.609Z",
+   "index": 1,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "7438"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 1
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 900146823
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/1/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/2"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/7438",
+     "value": 0
+    },
+    {
+     "op": "remove",
+     "path": "/openingAuction/reservations/1"
+    },
+    {
+     "op": "replace",
+     "path": "/openingAuction/nextPlayerId",
+     "value": "7438"
+    }
+   ]
+  },
+  {
+   "id": "recorded:2",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "4395",
+   "type": "ReserveBid",
+   "lotId": "FRISCO",
+   "amount": 145,
+   "createdAt": "2026-11-03T15:16:11.613Z",
+   "index": 2,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "4395"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 2
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 97062855
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/2/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/3"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/4395",
+     "value": 0
+    },
+    {
+     "op": "remove",
+     "path": "/openingAuction/reservations/2"
+    },
+    {
+     "op": "replace",
+     "path": "/openingAuction/nextPlayerId",
+     "value": "4395"
+    }
+   ]
+  },
+  {
+   "id": "recorded:3",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "18843",
+   "type": "ReserveBid",
+   "lotId": "MRBC",
+   "amount": 50,
+   "createdAt": "2026-11-03T15:16:11.618Z",
+   "index": 3,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "18843"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 3
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 995237557
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/3/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/4"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/18843",
+     "value": 0
+    },
+    {
+     "op": "remove",
+     "path": "/openingAuction/reservations/3"
+    },
+    {
+     "op": "replace",
+     "path": "/openingAuction/nextPlayerId",
+     "value": "18843"
+    }
+   ]
+  },
+  {
+   "id": "recorded:4",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "9263",
+   "type": "ReserveBid",
+   "lotId": "GSC",
+   "amount": 85,
+   "createdAt": "2026-11-03T15:16:11.624Z",
+   "index": 4,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "9263"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 4
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 32432652
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/4/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/5"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/9263",
+     "value": 1
+    },
+    {
+     "op": "remove",
+     "path": "/openingAuction/reservations/4"
+    },
+    {
+     "op": "replace",
+     "path": "/openingAuction/nextPlayerId",
+     "value": "9263"
+    }
+   ]
+  },
+  {
+   "id": "recorded:5",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "7438",
+   "type": "ReserveBid",
+   "lotId": "GSC",
+   "amount": 90,
+   "createdAt": "2026-11-03T15:16:11.630Z",
+   "index": 5,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "7438"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 5
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 601612082
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/5/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/6"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/7438",
+     "value": 1
+    },
+    {
+     "op": "remove",
+     "path": "/openingAuction/reservations/5"
+    },
+    {
+     "op": "replace",
+     "path": "/openingAuction/nextPlayerId",
+     "value": "7438"
+    }
+   ]
+  },
+  {
+   "id": "recorded:6",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "4395",
+   "type": "BuyAuctionLot",
+   "lotId": "GRSC",
+   "expectedPrice": 20,
+   "createdAt": "2026-11-03T15:16:11.635Z",
+   "metadata": {
+    "playerId": "4395",
+    "lotId": "GRSC",
+    "price": 20,
+    "shares": []
+   },
+   "index": 6,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 1
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 6
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 1059556017
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 9900
+    },
+    {
+     "op": "replace",
+     "path": "/cash/3/amount",
+     "value": 525
+    },
+    {
+     "op": "replace",
+     "path": "/certificates/90/owner/kind",
+     "value": "bank"
+    },
+    {
+     "op": "remove",
+     "path": "/certificates/90/owner/playerId"
+    },
+    {
+     "op": "add",
+     "path": "/openingAuction/remainingLotIds/0",
+     "value": "GRSC"
+    },
+    {
+     "op": "replace",
+     "path": "/openingAuction/nextPlayerId",
+     "value": "4395"
+    },
+    {
+     "op": "remove",
+     "path": "/openingAuction/awards/0"
+    }
+   ]
+  },
+  {
+   "id": "GFhEkmaipRBwdLWPBKXbw",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "ResolveAuction",
+   "createdAt": "2026-11-03T15:16:11.635Z",
+   "metadata": {
+    "kind": "open-bidding",
+    "lotId": "MRBC"
+   },
+   "index": 7,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "4395"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 7
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 336494484
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "WaterfallAuction"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/6/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/7"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/4395",
+     "value": 1
+    },
+    {
+     "op": "replace",
+     "path": "/openingAuction/reservations/0/playerId",
+     "value": "9263"
+    },
+    {
+     "op": "replace",
+     "path": "/openingAuction/reservations/0/lotId",
+     "value": "MRBC"
+    },
+    {
+     "op": "replace",
+     "path": "/openingAuction/reservations/0/amount",
+     "value": 45
+    },
+    {
+     "op": "replace",
+     "path": "/openingAuction/reservations/1/playerId",
+     "value": "7438"
+    },
+    {
+     "op": "replace",
+     "path": "/openingAuction/reservations/1/lotId",
+     "value": "SCC"
+    },
+    {
+     "op": "replace",
+     "path": "/openingAuction/reservations/1/amount",
+     "value": 55
+    },
+    {
+     "op": "add",
+     "path": "/openingAuction/reservations/2",
+     "value": {
+      "playerId": "4395",
+      "lotId": "FRISCO",
+      "amount": 145
+     }
+    },
+    {
+     "op": "add",
+     "path": "/openingAuction/reservations/3",
+     "value": {
+      "playerId": "18843",
+      "lotId": "MRBC",
+      "amount": 50
+     }
+    },
+    {
+     "op": "remove",
+     "path": "/openingAuction/bidding"
+    }
+   ]
+  },
+  {
+   "id": "recorded:7",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "9263",
+   "type": "PassAuction",
+   "createdAt": "2026-11-03T15:16:11.644Z",
+   "index": 8,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 36
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 8
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -1747727275
+    },
+    {
+     "op": "replace",
+     "path": "/openingAuction/bidding/auction/participants/0/passed",
+     "value": false
+    }
+   ]
+  },
+  {
+   "id": "2vByoDaKh4z3NmRnyQKWt",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "ResolveAuction",
+   "createdAt": "2026-11-03T15:16:11.644Z",
+   "metadata": {
+    "kind": "award",
+    "award": {
+     "lotId": "MRBC",
+     "playerId": "18843",
+     "price": 50,
+     "shares": []
+    }
+   },
+   "index": 9,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 71
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 9
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -1311502312
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "AuctionBidding"
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 9920
+    },
+    {
+     "op": "replace",
+     "path": "/cash/4/amount",
+     "value": 525
+    },
+    {
+     "op": "replace",
+     "path": "/certificates/91/owner/kind",
+     "value": "bank"
+    },
+    {
+     "op": "remove",
+     "path": "/certificates/91/owner/playerId"
+    },
+    {
+     "op": "add",
+     "path": "/openingAuction/remainingLotIds/0",
+     "value": "MRBC"
+    },
+    {
+     "op": "remove",
+     "path": "/openingAuction/awards/1"
+    },
+    {
+     "op": "add",
+     "path": "/openingAuction/bidding",
+     "value": {
+      "lotId": "MRBC",
+      "playerId": "9263",
+      "auction": {
+       "id": "GFhEkmaipRBwdLWPBKXbw",
+       "type": "simple",
+       "highBid": 50,
+       "participants": [
+        {
+         "playerId": "9263",
+         "bid": 45,
+         "passed": true
+        },
+        {
+         "playerId": "18843",
+         "bid": 50,
+         "passed": false
+        }
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "UaytsJIKnuj5HGlH3Tmyh",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "ResolveAuction",
+   "createdAt": "2026-11-03T15:16:11.646Z",
+   "metadata": {
+    "kind": "award",
+    "award": {
+     "lotId": "SCC",
+     "playerId": "7438",
+     "price": 55,
+     "shares": []
+    }
+   },
+   "index": 10,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 106
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 10
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 640477369
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 9970
+    },
+    {
+     "op": "replace",
+     "path": "/cash/2/amount",
+     "value": 525
+    },
+    {
+     "op": "replace",
+     "path": "/certificates/92/owner/kind",
+     "value": "bank"
+    },
+    {
+     "op": "remove",
+     "path": "/certificates/92/owner/playerId"
+    },
+    {
+     "op": "add",
+     "path": "/openingAuction/remainingLotIds/0",
+     "value": "SCC"
+    },
+    {
+     "op": "add",
+     "path": "/openingAuction/reservations/0",
+     "value": {
+      "playerId": "7438",
+      "lotId": "SCC",
+      "amount": 55
+     }
+    },
+    {
+     "op": "remove",
+     "path": "/openingAuction/awards/2"
+    }
+   ]
+  },
+  {
+   "id": "ADIcJqrfe5bSLw7U40qCM",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "ResolveAuction",
+   "createdAt": "2026-11-03T15:16:11.649Z",
+   "metadata": {
+    "kind": "open-bidding",
+    "lotId": "GSC"
+   },
+   "index": 11,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 11
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -157696072
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "WaterfallAuction"
+    },
+    {
+     "op": "add",
+     "path": "/openingAuction/reservations/1",
+     "value": {
+      "playerId": "9263",
+      "lotId": "GSC",
+      "amount": 85
+     }
+    },
+    {
+     "op": "add",
+     "path": "/openingAuction/reservations/2",
+     "value": {
+      "playerId": "7438",
+      "lotId": "GSC",
+      "amount": 90
+     }
+    },
+    {
+     "op": "remove",
+     "path": "/openingAuction/bidding"
+    }
+   ]
+  },
+  {
+   "id": "recorded:8",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "9263",
+   "type": "PassAuction",
+   "createdAt": "2026-11-03T15:16:11.657Z",
+   "index": 12,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 141
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 12
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -2093001508
+    },
+    {
+     "op": "replace",
+     "path": "/openingAuction/bidding/auction/participants/0/passed",
+     "value": false
+    }
+   ]
+  },
+  {
+   "id": "ixshIwtFCzE7GEeVcILOi",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "ResolveAuction",
+   "createdAt": "2026-11-03T15:16:11.657Z",
+   "metadata": {
+    "kind": "award",
+    "award": {
+     "lotId": "GSC",
+     "playerId": "7438",
+     "price": 90,
+     "shares": []
+    }
+   },
+   "index": 13,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 176
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 13
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 1912862707
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "AuctionBidding"
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 10025
+    },
+    {
+     "op": "replace",
+     "path": "/cash/2/amount",
+     "value": 470
+    },
+    {
+     "op": "replace",
+     "path": "/certificates/93/owner/kind",
+     "value": "bank"
+    },
+    {
+     "op": "remove",
+     "path": "/certificates/93/owner/playerId"
+    },
+    {
+     "op": "add",
+     "path": "/openingAuction/remainingLotIds/0",
+     "value": "GSC"
+    },
+    {
+     "op": "remove",
+     "path": "/openingAuction/awards/3"
+    },
+    {
+     "op": "add",
+     "path": "/openingAuction/bidding",
+     "value": {
+      "lotId": "GSC",
+      "playerId": "9263",
+      "auction": {
+       "id": "ADIcJqrfe5bSLw7U40qCM",
+       "type": "simple",
+       "highBid": 90,
+       "participants": [
+        {
+         "playerId": "9263",
+         "bid": 85,
+         "passed": true
+        },
+        {
+         "playerId": "7438",
+         "bid": 90,
+         "passed": false
+        }
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "DV1GWbuuqILAfNXAhAKR7",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "ResolveAuction",
+   "createdAt": "2026-11-03T15:16:11.659Z",
+   "metadata": {
+    "kind": "award",
+    "award": {
+     "lotId": "FRISCO",
+     "playerId": "4395",
+     "price": 145,
+     "shares": [
+      {
+       "certificateId": "SLSF:president",
+       "companyId": "SLSF",
+       "shares": 2,
+       "president": true
+      }
+     ]
+    }
+   },
+   "index": 14,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "9263"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 14
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -1891590720
+    },
+    {
+     "op": "remove",
+     "path": "/companies/14/closed"
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 10115
+    },
+    {
+     "op": "replace",
+     "path": "/cash/3/amount",
+     "value": 505
+    },
+    {
+     "op": "replace",
+     "path": "/certificates/72/owner/kind",
+     "value": "bank"
+    },
+    {
+     "op": "remove",
+     "path": "/certificates/72/owner/playerId"
+    },
+    {
+     "op": "add",
+     "path": "/certificates/72/poolId",
+     "value": "initial-offering"
+    },
+    {
+     "op": "add",
+     "path": "/certificates/94",
+     "value": {
+      "id": "FRISCO:charter",
+      "companyId": "FRISCO",
+      "kind": "private",
+      "owner": {
+       "kind": "bank"
+      }
+     }
+    },
+    {
+     "op": "add",
+     "path": "/openingAuction/remainingLotIds/0",
+     "value": "FRISCO"
+    },
+    {
+     "op": "add",
+     "path": "/openingAuction/reservations/0",
+     "value": {
+      "playerId": "4395",
+      "lotId": "FRISCO",
+      "amount": 145
+     }
+    },
+    {
+     "op": "remove",
+     "path": "/openingAuction/awards/4"
+    },
+    {
+     "op": "remove",
+     "path": "/pendingPar"
+    }
+   ]
+  },
+  {
+   "id": "recorded:9",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "4395",
+   "type": "ParCompany",
+   "companyId": "SLSF",
+   "marketSpaceId": "0:6",
+   "createdAt": "2026-11-03T15:16:11.665Z",
+   "index": 15,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "4395"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 15
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 1221880438
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/7/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/8"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/9263",
+     "value": 2
+    },
+    {
+     "op": "remove",
+     "path": "/stockMarket/stacks/0"
+    },
+    {
+     "op": "replace",
+     "path": "/companies/8/started",
+     "value": false
+    },
+    {
+     "op": "remove",
+     "path": "/companies/8/parPrice"
+    },
+    {
+     "op": "remove",
+     "path": "/companies/8/president"
+    },
+    {
+     "op": "add",
+     "path": "/pendingPar",
+     "value": {
+      "companyId": "SLSF",
+      "playerId": "4395"
+     }
+    }
+   ]
+  },
+  {
+   "id": "recorded:10",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "18843",
+   "type": "PassAuction",
+   "createdAt": "2026-11-03T15:16:11.670Z",
+   "index": 16,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "18843"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 16
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 1501073149
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/8/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/9"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/18843",
+     "value": 1
+    },
+    {
+     "op": "replace",
+     "path": "/openingAuction/nextPlayerId",
+     "value": "18843"
+    },
+    {
+     "op": "remove",
+     "path": "/openingAuction/passedPlayerIds/0"
+    }
+   ]
+  },
+  {
+   "id": "recorded:11",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "9263",
+   "type": "BuyAuctionLot",
+   "lotId": "KATY",
+   "expectedPrice": 160,
+   "createdAt": "2026-11-03T15:16:11.674Z",
+   "metadata": {
+    "playerId": "9263",
+    "lotId": "KATY",
+    "price": 160,
+    "shares": [
+     {
+      "certificateId": "MKT:share:1",
+      "companyId": "MKT",
+      "shares": 1,
+      "president": false
+     }
+    ]
+   },
+   "index": 17,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 211
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 17
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 538247207
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 10260
+    },
+    {
+     "op": "replace",
+     "path": "/cash/1/amount",
+     "value": 525
+    },
+    {
+     "op": "replace",
+     "path": "/certificates/46/owner/kind",
+     "value": "bank"
+    },
+    {
+     "op": "remove",
+     "path": "/certificates/46/owner/playerId"
+    },
+    {
+     "op": "add",
+     "path": "/certificates/46/poolId",
+     "value": "initial-offering"
+    },
+    {
+     "op": "replace",
+     "path": "/certificates/94/owner/kind",
+     "value": "bank"
+    },
+    {
+     "op": "remove",
+     "path": "/certificates/94/owner/playerId"
+    },
+    {
+     "op": "add",
+     "path": "/openingAuction/remainingLotIds/0",
+     "value": "KATY"
+    },
+    {
+     "op": "replace",
+     "path": "/openingAuction/nextPlayerId",
+     "value": "9263"
+    },
+    {
+     "op": "add",
+     "path": "/openingAuction/passedPlayerIds/0",
+     "value": "18843"
+    },
+    {
+     "op": "remove",
+     "path": "/openingAuction/awards/5"
+    }
+   ]
+  },
+  {
+   "id": "qoY2LfEisN0Rx33t4ChNa",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "ResolveAuction",
+   "createdAt": "2026-11-03T15:16:11.674Z",
+   "metadata": {
+    "kind": "complete",
+    "roundEnd": {
+     "round": "opening",
+     "playerNetWorth": {
+      "4395": 580,
+      "7438": 510,
+      "9263": 525,
+      "18843": 515
+     }
+    }
+   },
+   "index": 18,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 246
+    },
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "9263"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 18
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -991365437
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "WaterfallAuction"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/9/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/10"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnOrder/0",
+     "value": "9263"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnOrder/1",
+     "value": "7438"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnOrder/2",
+     "value": "4395"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnOrder/3",
+     "value": "18843"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/9263",
+     "value": 3
+    },
+    {
+     "op": "replace",
+     "path": "/openingAuction/completed",
+     "value": false
+    }
+   ]
+  },
+  {
+   "id": "V0Yu6nZqkeTflHCyEBVYL",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "FloatCompany",
+   "companyId": "SLSF",
+   "playerId": "7438",
+   "createdAt": "2026-11-03T15:16:11.677Z",
+   "metadata": {
+    "companyId": "SLSF",
+    "payments": [
+     {
+      "from": {
+       "kind": "bank"
+      },
+      "to": {
+       "kind": "company",
+       "companyId": "SLSF"
+      },
+      "amount": 1000
+     }
+    ],
+    "companyChanges": {
+     "presidents": [],
+     "closedCompanyIds": []
+    }
+   },
+   "index": 19,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 19
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -498652699
+    },
+    {
+     "op": "replace",
+     "path": "/companies/8/floated",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/companies/8/funded",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 10420
+    },
+    {
+     "op": "replace",
+     "path": "/cash/13/amount",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "recorded:12",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "7438",
+   "type": "StartCompany",
+   "buyer": {
+    "kind": "player",
+    "playerId": "7438"
+   },
+   "companyId": "MKT",
+   "marketSpaceId": "5:6",
+   "expectedPrice": 136,
+   "createdAt": "2026-11-03T15:16:11.692Z",
+   "metadata": {
+    "certificateId": "MKT:president",
+    "companyId": "MKT",
+    "shares": 2,
+    "buyer": {
+     "kind": "player",
+     "playerId": "7438"
+    },
+    "seller": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering",
+    "price": 136,
+    "payments": [
+     {
+      "from": {
+       "kind": "player",
+       "playerId": "7438"
+      },
+      "to": {
+       "kind": "bank"
+      },
+      "amount": 136
+     }
+    ],
+    "marketSpaceId": "5:6",
+    "parPrice": 68
+   },
+   "index": 20,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 281
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 20
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 1566916288
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": false
+    },
+    {
+     "op": "remove",
+     "path": "/stockMarket/stacks/1"
+    },
+    {
+     "op": "replace",
+     "path": "/companies/5/started",
+     "value": false
+    },
+    {
+     "op": "remove",
+     "path": "/companies/5/parPrice"
+    },
+    {
+     "op": "remove",
+     "path": "/companies/5/president"
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 9420
+    },
+    {
+     "op": "replace",
+     "path": "/cash/2/amount",
+     "value": 380
+    },
+    {
+     "op": "replace",
+     "path": "/certificates/45/owner/kind",
+     "value": "bank"
+    },
+    {
+     "op": "remove",
+     "path": "/certificates/45/owner/playerId"
+    },
+    {
+     "op": "add",
+     "path": "/certificates/45/poolId",
+     "value": "initial-offering"
+    },
+    {
+     "op": "remove",
+     "path": "/stockTurnPurchases"
+    }
+   ]
+  },
+  {
+   "id": "Cc7RbM7fXm1vZBeQBCh1W",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "FinishStockTurn",
+   "playerId": "7438",
+   "createdAt": "2026-11-03T15:16:11.693Z",
+   "metadata": {
+    "passed": false
+   },
+   "index": 21,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "7438"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 21
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -731481995
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": true
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": true
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/10/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/11"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/7438",
+     "value": 2
+    },
+    {
+     "op": "add",
+     "path": "/stockTurnPurchases",
+     "value": [
+      {
+       "kind": "start",
+       "companyId": "MKT"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:13",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "4395",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4395"
+   },
+   "certificateId": "MKT:share:2",
+   "expectedPrice": 68,
+   "createdAt": "2026-11-03T15:16:11.707Z",
+   "metadata": {
+    "certificateId": "MKT:share:2",
+    "companyId": "MKT",
+    "shares": 1,
+    "buyer": {
+     "kind": "player",
+     "playerId": "4395"
+    },
+    "seller": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering",
+    "price": 68,
+    "payments": [
+     {
+      "from": {
+       "kind": "player",
+       "playerId": "4395"
+      },
+      "to": {
+       "kind": "bank"
+      },
+      "amount": 68
+     }
+    ]
+   },
+   "index": 22,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 316
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 22
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 1649983837
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 9556
+    },
+    {
+     "op": "replace",
+     "path": "/cash/3/amount",
+     "value": 360
+    },
+    {
+     "op": "replace",
+     "path": "/certificates/47/owner/kind",
+     "value": "bank"
+    },
+    {
+     "op": "remove",
+     "path": "/certificates/47/owner/playerId"
+    },
+    {
+     "op": "add",
+     "path": "/certificates/47/poolId",
+     "value": "initial-offering"
+    },
+    {
+     "op": "remove",
+     "path": "/stockTurnPurchases"
+    }
+   ]
+  },
+  {
+   "id": "YO8sEl91AM3CPksUYSgwV",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "FinishStockTurn",
+   "playerId": "4395",
+   "createdAt": "2026-11-03T15:16:11.708Z",
+   "metadata": {
+    "passed": false
+   },
+   "index": 23,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "4395"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 23
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -223015856
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": true
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": true
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/11/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/12"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/4395",
+     "value": 2
+    },
+    {
+     "op": "add",
+     "path": "/stockTurnPurchases",
+     "value": [
+      {
+       "kind": "share",
+       "companyId": "MKT",
+       "poolId": "initial-offering"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:14",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "18843",
+   "type": "StartCompany",
+   "buyer": {
+    "kind": "player",
+    "playerId": "18843"
+   },
+   "companyId": "MP",
+   "marketSpaceId": "3:6",
+   "expectedPrice": 152,
+   "createdAt": "2026-11-03T15:16:11.723Z",
+   "metadata": {
+    "certificateId": "MP:president",
+    "companyId": "MP",
+    "shares": 2,
+    "buyer": {
+     "kind": "player",
+     "playerId": "18843"
+    },
+    "seller": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering",
+    "price": 152,
+    "payments": [
+     {
+      "from": {
+       "kind": "player",
+       "playerId": "18843"
+      },
+      "to": {
+       "kind": "bank"
+      },
+      "amount": 152
+     }
+    ],
+    "marketSpaceId": "3:6",
+    "parPrice": 76
+   },
+   "index": 24,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 351
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 24
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 2043727585
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": false
+    },
+    {
+     "op": "remove",
+     "path": "/stockMarket/stacks/2"
+    },
+    {
+     "op": "replace",
+     "path": "/companies/4/started",
+     "value": false
+    },
+    {
+     "op": "remove",
+     "path": "/companies/4/parPrice"
+    },
+    {
+     "op": "remove",
+     "path": "/companies/4/president"
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 9624
+    },
+    {
+     "op": "replace",
+     "path": "/cash/4/amount",
+     "value": 475
+    },
+    {
+     "op": "replace",
+     "path": "/certificates/36/owner/kind",
+     "value": "bank"
+    },
+    {
+     "op": "remove",
+     "path": "/certificates/36/owner/playerId"
+    },
+    {
+     "op": "add",
+     "path": "/certificates/36/poolId",
+     "value": "initial-offering"
+    },
+    {
+     "op": "remove",
+     "path": "/stockTurnPurchases"
+    }
+   ]
+  },
+  {
+   "id": "hz8V44SSkgGPXtKJLiZNL",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "FinishStockTurn",
+   "playerId": "18843",
+   "createdAt": "2026-11-03T15:16:11.724Z",
+   "metadata": {
+    "passed": false
+   },
+   "index": 25,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "18843"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 25
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -2090774321
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": true
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": true
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/12/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/13"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/18843",
+     "value": 2
+    },
+    {
+     "op": "add",
+     "path": "/stockTurnPurchases",
+     "value": [
+      {
+       "kind": "start",
+       "companyId": "MP"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:15",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "9263",
+   "type": "FinishStockTurn",
+   "createdAt": "2026-11-03T15:16:11.737Z",
+   "metadata": {
+    "passed": true
+   },
+   "index": 26,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "9263"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 26
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 1556912232
+    },
+    {
+     "op": "remove",
+     "path": "/stockRound/passedPlayerIds/0"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/13/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/14"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/9263",
+     "value": 4
+    }
+   ]
+  },
+  {
+   "id": "recorded:16",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "7438",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "7438"
+   },
+   "certificateId": "MKT:share:3",
+   "expectedPrice": 68,
+   "createdAt": "2026-11-03T15:16:11.748Z",
+   "metadata": {
+    "certificateId": "MKT:share:3",
+    "companyId": "MKT",
+    "shares": 1,
+    "buyer": {
+     "kind": "player",
+     "playerId": "7438"
+    },
+    "seller": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering",
+    "price": 68,
+    "payments": [
+     {
+      "from": {
+       "kind": "player",
+       "playerId": "7438"
+      },
+      "to": {
+       "kind": "bank"
+      },
+      "amount": 68
+     }
+    ]
+   },
+   "index": 27,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 386
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 27
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -2037650984
+    },
+    {
+     "op": "add",
+     "path": "/stockRound/passedPlayerIds/0",
+     "value": "9263"
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 9776
+    },
+    {
+     "op": "replace",
+     "path": "/cash/2/amount",
+     "value": 244
+    },
+    {
+     "op": "replace",
+     "path": "/certificates/48/owner/kind",
+     "value": "bank"
+    },
+    {
+     "op": "remove",
+     "path": "/certificates/48/owner/playerId"
+    },
+    {
+     "op": "add",
+     "path": "/certificates/48/poolId",
+     "value": "initial-offering"
+    },
+    {
+     "op": "remove",
+     "path": "/stockTurnPurchases"
+    }
+   ]
+  },
+  {
+   "id": "MgDVRxjG2larGWK3M4SKE",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "FinishStockTurn",
+   "playerId": "7438",
+   "createdAt": "2026-11-03T15:16:11.749Z",
+   "metadata": {
+    "passed": false
+   },
+   "index": 28,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "7438"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 28
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 1258535229
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": true
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": true
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/14/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/15"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/7438",
+     "value": 3
+    },
+    {
+     "op": "add",
+     "path": "/stockTurnPurchases",
+     "value": [
+      {
+       "kind": "share",
+       "companyId": "MKT",
+       "poolId": "initial-offering"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:17",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "4395",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4395"
+   },
+   "certificateId": "MKT:share:4",
+   "expectedPrice": 68,
+   "createdAt": "2026-11-03T15:16:11.763Z",
+   "metadata": {
+    "certificateId": "MKT:share:4",
+    "companyId": "MKT",
+    "shares": 1,
+    "buyer": {
+     "kind": "player",
+     "playerId": "4395"
+    },
+    "seller": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering",
+    "price": 68,
+    "payments": [
+     {
+      "from": {
+       "kind": "player",
+       "playerId": "4395"
+      },
+      "to": {
+       "kind": "bank"
+      },
+      "amount": 68
+     }
+    ]
+   },
+   "index": 29,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 421
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 29
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -64052649
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 9844
+    },
+    {
+     "op": "replace",
+     "path": "/cash/3/amount",
+     "value": 292
+    },
+    {
+     "op": "replace",
+     "path": "/certificates/49/owner/kind",
+     "value": "bank"
+    },
+    {
+     "op": "remove",
+     "path": "/certificates/49/owner/playerId"
+    },
+    {
+     "op": "add",
+     "path": "/certificates/49/poolId",
+     "value": "initial-offering"
+    },
+    {
+     "op": "remove",
+     "path": "/stockTurnPurchases"
+    }
+   ]
+  },
+  {
+   "id": "bvqEyDndwoHBbOMBYFiiy",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "FloatCompany",
+   "companyId": "MKT",
+   "playerId": "4395",
+   "createdAt": "2026-11-03T15:16:11.763Z",
+   "metadata": {
+    "companyId": "MKT",
+    "payments": [
+     {
+      "from": {
+       "kind": "bank"
+      },
+      "to": {
+       "kind": "company",
+       "companyId": "MKT"
+      },
+      "amount": 680
+     }
+    ],
+    "companyChanges": {
+     "presidents": [],
+     "closedCompanyIds": []
+    }
+   },
+   "index": 30,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 456
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 30
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 2048192347
+    },
+    {
+     "op": "replace",
+     "path": "/companies/5/floated",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/companies/5/funded",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 9912
+    },
+    {
+     "op": "replace",
+     "path": "/cash/10/amount",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "em0mtTQ2Tk8yujjaqFPyl",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "FinishStockTurn",
+   "playerId": "4395",
+   "createdAt": "2026-11-03T15:16:11.766Z",
+   "metadata": {
+    "passed": false
+   },
+   "index": 31,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "4395"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 31
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 2055779838
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": true
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": true
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/15/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/16"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/4395",
+     "value": 3
+    },
+    {
+     "op": "add",
+     "path": "/stockTurnPurchases",
+     "value": [
+      {
+       "kind": "share",
+       "companyId": "MKT",
+       "poolId": "initial-offering"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:18",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "18843",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "18843"
+   },
+   "certificateId": "MP:share:1",
+   "expectedPrice": 76,
+   "createdAt": "2026-11-03T15:16:11.780Z",
+   "metadata": {
+    "certificateId": "MP:share:1",
+    "companyId": "MP",
+    "shares": 1,
+    "buyer": {
+     "kind": "player",
+     "playerId": "18843"
+    },
+    "seller": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering",
+    "price": 76,
+    "payments": [
+     {
+      "from": {
+       "kind": "player",
+       "playerId": "18843"
+      },
+      "to": {
+       "kind": "bank"
+      },
+      "amount": 76
+     }
+    ]
+   },
+   "index": 32,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 491
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 32
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -37268535
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 9232
+    },
+    {
+     "op": "replace",
+     "path": "/cash/4/amount",
+     "value": 323
+    },
+    {
+     "op": "replace",
+     "path": "/certificates/37/owner/kind",
+     "value": "bank"
+    },
+    {
+     "op": "remove",
+     "path": "/certificates/37/owner/playerId"
+    },
+    {
+     "op": "add",
+     "path": "/certificates/37/poolId",
+     "value": "initial-offering"
+    },
+    {
+     "op": "remove",
+     "path": "/stockTurnPurchases"
+    }
+   ]
+  },
+  {
+   "id": "82gvpg9eDVqoyP6VG5yKM",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "FinishStockTurn",
+   "playerId": "18843",
+   "createdAt": "2026-11-03T15:16:11.781Z",
+   "metadata": {
+    "passed": false
+   },
+   "index": 33,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "18843"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 33
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -1021654431
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": true
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": true
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/16/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/17"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/18843",
+     "value": 3
+    },
+    {
+     "op": "add",
+     "path": "/stockTurnPurchases",
+     "value": [
+      {
+       "kind": "share",
+       "companyId": "MP",
+       "poolId": "initial-offering"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:19",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "9263",
+   "type": "FinishStockTurn",
+   "createdAt": "2026-11-03T15:16:11.794Z",
+   "metadata": {
+    "passed": true
+   },
+   "index": 34,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "9263"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 34
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 1678275352
+    },
+    {
+     "op": "remove",
+     "path": "/stockRound/passedPlayerIds/0"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/17/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/18"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/9263",
+     "value": 5
+    }
+   ]
+  },
+  {
+   "id": "recorded:20",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "7438",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "7438"
+   },
+   "certificateId": "MKT:share:5",
+   "expectedPrice": 68,
+   "createdAt": "2026-11-03T15:16:11.805Z",
+   "metadata": {
+    "certificateId": "MKT:share:5",
+    "companyId": "MKT",
+    "shares": 1,
+    "buyer": {
+     "kind": "player",
+     "playerId": "7438"
+    },
+    "seller": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering",
+    "price": 68,
+    "payments": [
+     {
+      "from": {
+       "kind": "player",
+       "playerId": "7438"
+      },
+      "to": {
+       "kind": "bank"
+      },
+      "amount": 68
+     }
+    ]
+   },
+   "index": 35,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 526
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 35
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 2059551281
+    },
+    {
+     "op": "add",
+     "path": "/stockRound/passedPlayerIds/0",
+     "value": "9263"
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 9308
+    },
+    {
+     "op": "replace",
+     "path": "/cash/2/amount",
+     "value": 176
+    },
+    {
+     "op": "replace",
+     "path": "/certificates/50/owner/kind",
+     "value": "bank"
+    },
+    {
+     "op": "remove",
+     "path": "/certificates/50/owner/playerId"
+    },
+    {
+     "op": "add",
+     "path": "/certificates/50/poolId",
+     "value": "initial-offering"
+    },
+    {
+     "op": "remove",
+     "path": "/stockTurnPurchases"
+    }
+   ]
+  },
+  {
+   "id": "W25ihcwgrXCkgSUAnS3DJ",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "FinishStockTurn",
+   "playerId": "7438",
+   "createdAt": "2026-11-03T15:16:11.806Z",
+   "metadata": {
+    "passed": false
+   },
+   "index": 36,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "7438"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 36
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 1355470376
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": true
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": true
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/18/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/19"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/7438",
+     "value": 4
+    },
+    {
+     "op": "add",
+     "path": "/stockTurnPurchases",
+     "value": [
+      {
+       "kind": "share",
+       "companyId": "MKT",
+       "poolId": "initial-offering"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:21",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "4395",
+   "type": "FinishStockTurn",
+   "createdAt": "2026-11-03T15:16:11.819Z",
+   "metadata": {
+    "passed": true
+   },
+   "index": 37,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "4395"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 37
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 1117249469
+    },
+    {
+     "op": "remove",
+     "path": "/stockRound/passedPlayerIds/0"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/19/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/20"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/4395",
+     "value": 4
+    }
+   ]
+  },
+  {
+   "id": "recorded:22",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "18843",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "18843"
+   },
+   "certificateId": "MP:share:2",
+   "expectedPrice": 76,
+   "createdAt": "2026-11-03T15:16:11.830Z",
+   "metadata": {
+    "certificateId": "MP:share:2",
+    "companyId": "MP",
+    "shares": 1,
+    "buyer": {
+     "kind": "player",
+     "playerId": "18843"
+    },
+    "seller": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering",
+    "price": 76,
+    "payments": [
+     {
+      "from": {
+       "kind": "player",
+       "playerId": "18843"
+      },
+      "to": {
+       "kind": "bank"
+      },
+      "amount": 76
+     }
+    ]
+   },
+   "index": 38,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 561
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 38
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -48621741
+    },
+    {
+     "op": "add",
+     "path": "/stockRound/passedPlayerIds/0",
+     "value": "4395"
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 9376
+    },
+    {
+     "op": "replace",
+     "path": "/cash/4/amount",
+     "value": 247
+    },
+    {
+     "op": "replace",
+     "path": "/certificates/38/owner/kind",
+     "value": "bank"
+    },
+    {
+     "op": "remove",
+     "path": "/certificates/38/owner/playerId"
+    },
+    {
+     "op": "add",
+     "path": "/certificates/38/poolId",
+     "value": "initial-offering"
+    },
+    {
+     "op": "remove",
+     "path": "/stockTurnPurchases"
+    }
+   ]
+  },
+  {
+   "id": "3xO57g51FNJ15Ih3V8v4g",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "FinishStockTurn",
+   "playerId": "18843",
+   "createdAt": "2026-11-03T15:16:11.831Z",
+   "metadata": {
+    "passed": false
+   },
+   "index": 39,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "18843"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 39
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 685873874
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": true
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": true
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/20/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/21"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/18843",
+     "value": 4
+    },
+    {
+     "op": "add",
+     "path": "/stockTurnPurchases",
+     "value": [
+      {
+       "kind": "share",
+       "companyId": "MP",
+       "poolId": "initial-offering"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:23",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "9263",
+   "type": "FinishStockTurn",
+   "createdAt": "2026-11-03T15:16:11.844Z",
+   "metadata": {
+    "passed": true
+   },
+   "index": 40,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "9263"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 40
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 428738611
+    },
+    {
+     "op": "remove",
+     "path": "/stockRound/passedPlayerIds/0"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/21/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/22"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/9263",
+     "value": 6
+    }
+   ]
+  },
+  {
+   "id": "recorded:24",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "7438",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "7438"
+   },
+   "certificateId": "MKT:share:6",
+   "expectedPrice": 68,
+   "createdAt": "2026-11-03T15:16:11.860Z",
+   "metadata": {
+    "certificateId": "MKT:share:6",
+    "companyId": "MKT",
+    "shares": 1,
+    "buyer": {
+     "kind": "player",
+     "playerId": "7438"
+    },
+    "seller": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering",
+    "price": 68,
+    "payments": [
+     {
+      "from": {
+       "kind": "player",
+       "playerId": "7438"
+      },
+      "to": {
+       "kind": "bank"
+      },
+      "amount": 68
+     }
+    ]
+   },
+   "index": 41,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 596
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 41
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -704266403
+    },
+    {
+     "op": "add",
+     "path": "/stockRound/passedPlayerIds/0",
+     "value": "9263"
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 9452
+    },
+    {
+     "op": "replace",
+     "path": "/cash/2/amount",
+     "value": 108
+    },
+    {
+     "op": "replace",
+     "path": "/certificates/51/owner/kind",
+     "value": "bank"
+    },
+    {
+     "op": "remove",
+     "path": "/certificates/51/owner/playerId"
+    },
+    {
+     "op": "add",
+     "path": "/certificates/51/poolId",
+     "value": "initial-offering"
+    },
+    {
+     "op": "remove",
+     "path": "/stockTurnPurchases"
+    }
+   ]
+  },
+  {
+   "id": "hGlQnDenvXYecNcx4zQtA",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "FinishStockTurn",
+   "playerId": "7438",
+   "createdAt": "2026-11-03T15:16:11.861Z",
+   "metadata": {
+    "passed": false
+   },
+   "index": 42,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "7438"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 42
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -153168237
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": true
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": true
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/22/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/23"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/7438",
+     "value": 5
+    },
+    {
+     "op": "add",
+     "path": "/stockTurnPurchases",
+     "value": [
+      {
+       "kind": "share",
+       "companyId": "MKT",
+       "poolId": "initial-offering"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:25",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "4395",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4395"
+   },
+   "certificateId": "SLSF:share:1",
+   "expectedPrice": 100,
+   "createdAt": "2026-11-03T15:16:11.875Z",
+   "metadata": {
+    "certificateId": "SLSF:share:1",
+    "companyId": "SLSF",
+    "shares": 1,
+    "buyer": {
+     "kind": "player",
+     "playerId": "4395"
+    },
+    "seller": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering",
+    "price": 100,
+    "payments": [
+     {
+      "from": {
+       "kind": "player",
+       "playerId": "4395"
+      },
+      "to": {
+       "kind": "bank"
+      },
+      "amount": 100
+     }
+    ]
+   },
+   "index": 43,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 631
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 43
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 538313986
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 9520
+    },
+    {
+     "op": "replace",
+     "path": "/cash/3/amount",
+     "value": 224
+    },
+    {
+     "op": "replace",
+     "path": "/certificates/73/owner/kind",
+     "value": "bank"
+    },
+    {
+     "op": "remove",
+     "path": "/certificates/73/owner/playerId"
+    },
+    {
+     "op": "add",
+     "path": "/certificates/73/poolId",
+     "value": "initial-offering"
+    },
+    {
+     "op": "remove",
+     "path": "/stockTurnPurchases"
+    }
+   ]
+  },
+  {
+   "id": "6SczCenGZOZIVGzvNQD0J",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "FinishStockTurn",
+   "playerId": "4395",
+   "createdAt": "2026-11-03T15:16:11.875Z",
+   "metadata": {
+    "passed": false
+   },
+   "index": 44,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "4395"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 44
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -1791490247
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": true
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": true
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/23/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/24"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/4395",
+     "value": 5
+    },
+    {
+     "op": "add",
+     "path": "/stockTurnPurchases",
+     "value": [
+      {
+       "kind": "share",
+       "companyId": "SLSF",
+       "poolId": "initial-offering"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:26",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "18843",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "18843"
+   },
+   "certificateId": "MP:share:3",
+   "expectedPrice": 76,
+   "createdAt": "2026-11-03T15:16:11.889Z",
+   "metadata": {
+    "certificateId": "MP:share:3",
+    "companyId": "MP",
+    "shares": 1,
+    "buyer": {
+     "kind": "player",
+     "playerId": "18843"
+    },
+    "seller": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering",
+    "price": 76,
+    "payments": [
+     {
+      "from": {
+       "kind": "player",
+       "playerId": "18843"
+      },
+      "to": {
+       "kind": "bank"
+      },
+      "amount": 76
+     }
+    ]
+   },
+   "index": 45,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 666
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 45
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -1421922943
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 9620
+    },
+    {
+     "op": "replace",
+     "path": "/cash/4/amount",
+     "value": 171
+    },
+    {
+     "op": "replace",
+     "path": "/certificates/39/owner/kind",
+     "value": "bank"
+    },
+    {
+     "op": "remove",
+     "path": "/certificates/39/owner/playerId"
+    },
+    {
+     "op": "add",
+     "path": "/certificates/39/poolId",
+     "value": "initial-offering"
+    },
+    {
+     "op": "remove",
+     "path": "/stockTurnPurchases"
+    }
+   ]
+  },
+  {
+   "id": "82uFXh6cJo81FgHdbqkHx",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "FinishStockTurn",
+   "playerId": "18843",
+   "createdAt": "2026-11-03T15:16:11.890Z",
+   "metadata": {
+    "passed": false
+   },
+   "index": 46,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "18843"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 46
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 1617828875
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": true
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": true
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/24/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/25"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/18843",
+     "value": 5
+    },
+    {
+     "op": "add",
+     "path": "/stockTurnPurchases",
+     "value": [
+      {
+       "kind": "share",
+       "companyId": "MP",
+       "poolId": "initial-offering"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:27",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "9263",
+   "type": "FinishStockTurn",
+   "createdAt": "2026-11-03T15:16:11.904Z",
+   "metadata": {
+    "passed": true
+   },
+   "index": 47,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "9263"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 47
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 1438505130
+    },
+    {
+     "op": "remove",
+     "path": "/stockRound/passedPlayerIds/0"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/25/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/26"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/9263",
+     "value": 7
+    }
+   ]
+  },
+  {
+   "id": "recorded:28",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "7438",
+   "type": "FinishStockTurn",
+   "createdAt": "2026-11-03T15:16:11.923Z",
+   "metadata": {
+    "passed": true
+   },
+   "index": 48,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "7438"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 48
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 1176554874
+    },
+    {
+     "op": "remove",
+     "path": "/stockRound/passedPlayerIds/1"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/26/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/27"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/7438",
+     "value": 6
+    }
+   ]
+  },
+  {
+   "id": "recorded:29",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "4395",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "4395"
+   },
+   "certificateId": "MP:share:4",
+   "expectedPrice": 76,
+   "createdAt": "2026-11-03T15:16:11.939Z",
+   "metadata": {
+    "certificateId": "MP:share:4",
+    "companyId": "MP",
+    "shares": 1,
+    "buyer": {
+     "kind": "player",
+     "playerId": "4395"
+    },
+    "seller": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering",
+    "price": 76,
+    "payments": [
+     {
+      "from": {
+       "kind": "player",
+       "playerId": "4395"
+      },
+      "to": {
+       "kind": "bank"
+      },
+      "amount": 76
+     }
+    ]
+   },
+   "index": 49,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 701
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 49
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 571713071
+    },
+    {
+     "op": "add",
+     "path": "/stockRound/passedPlayerIds/0",
+     "value": "9263"
+    },
+    {
+     "op": "add",
+     "path": "/stockRound/passedPlayerIds/1",
+     "value": "7438"
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 9696
+    },
+    {
+     "op": "replace",
+     "path": "/cash/3/amount",
+     "value": 124
+    },
+    {
+     "op": "replace",
+     "path": "/certificates/40/owner/kind",
+     "value": "bank"
+    },
+    {
+     "op": "remove",
+     "path": "/certificates/40/owner/playerId"
+    },
+    {
+     "op": "add",
+     "path": "/certificates/40/poolId",
+     "value": "initial-offering"
+    },
+    {
+     "op": "remove",
+     "path": "/stockTurnPurchases"
+    }
+   ]
+  },
+  {
+   "id": "qoC1DVQ8s68OQJKz6FI5j",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "FloatCompany",
+   "companyId": "MP",
+   "playerId": "4395",
+   "createdAt": "2026-11-03T15:16:11.939Z",
+   "metadata": {
+    "companyId": "MP",
+    "payments": [
+     {
+      "from": {
+       "kind": "bank"
+      },
+      "to": {
+       "kind": "company",
+       "companyId": "MP"
+      },
+      "amount": 760
+     }
+    ],
+    "companyChanges": {
+     "presidents": [],
+     "closedCompanyIds": []
+    }
+   },
+   "index": 50,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 736
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 50
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -1499021914
+    },
+    {
+     "op": "replace",
+     "path": "/companies/4/floated",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/companies/4/funded",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 9772
+    },
+    {
+     "op": "replace",
+     "path": "/cash/9/amount",
+     "value": 0
+    }
+   ]
+  },
+  {
+   "id": "k1NRkrudRUBZh9HR3Aydl",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "FinishStockTurn",
+   "playerId": "4395",
+   "createdAt": "2026-11-03T15:16:11.942Z",
+   "metadata": {
+    "passed": false
+   },
+   "index": 51,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "4395"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 51
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -463718389
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": true
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": true
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/27/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/28"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/4395",
+     "value": 6
+    },
+    {
+     "op": "add",
+     "path": "/stockTurnPurchases",
+     "value": [
+      {
+       "kind": "share",
+       "companyId": "MP",
+       "poolId": "initial-offering"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "recorded:30",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "18843",
+   "type": "FinishStockTurn",
+   "createdAt": "2026-11-03T15:16:11.960Z",
+   "metadata": {
+    "passed": true
+   },
+   "index": 52,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "18843"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 52
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 1372414238
+    },
+    {
+     "op": "remove",
+     "path": "/stockRound/passedPlayerIds/0"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/28/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/29"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/18843",
+     "value": 6
+    }
+   ]
+  },
+  {
+   "id": "recorded:31",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "9263",
+   "type": "FinishStockTurn",
+   "createdAt": "2026-11-03T15:16:11.971Z",
+   "metadata": {
+    "passed": true
+   },
+   "index": 53,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "9263"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 53
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 510746434
+    },
+    {
+     "op": "remove",
+     "path": "/stockRound/passedPlayerIds/1"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/29/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/30"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/9263",
+     "value": 8
+    }
+   ]
+  },
+  {
+   "id": "recorded:32",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "7438",
+   "type": "FinishStockTurn",
+   "createdAt": "2026-11-03T15:16:11.990Z",
+   "metadata": {
+    "passed": true
+   },
+   "index": 54,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "7438"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 54
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 380279110
+    },
+    {
+     "op": "remove",
+     "path": "/stockRound/passedPlayerIds/2"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/30/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/31"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/7438",
+     "value": 7
+    }
+   ]
+  },
+  {
+   "id": "recorded:33",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "4395",
+   "type": "FinishStockTurn",
+   "createdAt": "2026-11-03T15:16:12.010Z",
+   "metadata": {
+    "passed": true
+   },
+   "index": 55,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 771
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 55
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -404252146
+    },
+    {
+     "op": "remove",
+     "path": "/stockRound/passedPlayerIds/3"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/31/end"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/4395",
+     "value": 7
+    }
+   ]
+  },
+  {
+   "id": "0fHz4OH9ZVv6mHfMwSB5w",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "CompleteStockRound",
+   "playerId": "4395",
+   "createdAt": "2026-11-03T15:16:12.010Z",
+   "metadata": {
+    "nextPlayerOrder": [
+     "18843",
+     "9263",
+     "7438",
+     "4395"
+    ],
+    "marketMoves": [],
+    "roundEnd": {
+     "round": "stock",
+     "playerNetWorth": {
+      "4395": 580,
+      "7438": 510,
+      "9263": 593,
+      "18843": 515
+     }
+    }
+   },
+   "index": 56,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 806
+    },
+    {
+     "op": "add",
+     "path": "/activePlayerIds/0",
+     "value": "4395"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 56
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 924080931
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "StockRound"
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/completed",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnOrder/0",
+     "value": "7438"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnOrder/1",
+     "value": "4395"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnOrder/2",
+     "value": "18843"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnOrder/3",
+     "value": "9263"
+    }
+   ]
+  },
+  {
+   "id": "fobero0VgdlHezXBs0uGF",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "StartOperatingSet",
+   "createdAt": "2026-11-03T15:16:12.012Z",
+   "metadata": {
+    "number": 1,
+    "roundNumber": 1,
+    "roundCount": 1,
+    "companyOrder": [
+     "SLSF",
+     "MP",
+     "MKT"
+    ],
+    "completedCompanyIds": [],
+    "privateIncomePaid": false,
+    "completed": false
+   },
+   "index": 57,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 841
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 57
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 11449595
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "StartingOperatingSet"
+    },
+    {
+     "op": "remove",
+     "path": "/operatingSet"
+    }
+   ]
+  },
+  {
+   "id": "Rq8Jaf6eTB52ttBtsLtDA",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "StartOperatingRound",
+   "createdAt": "2026-11-03T15:16:12.015Z",
+   "metadata": {
+    "operatingSet": {
+     "number": 1,
+     "roundNumber": 1,
+     "roundCount": 1,
+     "companyOrder": [
+      "SLSF",
+      "MP",
+      "MKT"
+     ],
+     "completedCompanyIds": [],
+     "privateIncomePaid": true,
+     "completed": false
+    },
+    "payments": [
+     {
+      "from": {
+       "kind": "bank"
+      },
+      "to": {
+       "kind": "player",
+       "playerId": "4395"
+      },
+      "amount": 5
+     },
+     {
+      "from": {
+       "kind": "bank"
+      },
+      "to": {
+       "kind": "player",
+       "playerId": "18843"
+      },
+      "amount": 10
+     },
+     {
+      "from": {
+       "kind": "bank"
+      },
+      "to": {
+       "kind": "player",
+       "playerId": "7438"
+      },
+      "amount": 10
+     },
+     {
+      "from": {
+       "kind": "bank"
+      },
+      "to": {
+       "kind": "player",
+       "playerId": "7438"
+      },
+      "amount": 15
+     },
+     {
+      "from": {
+       "kind": "bank"
+      },
+      "to": {
+       "kind": "player",
+       "playerId": "9263"
+      },
+      "amount": 20
+     }
+    ],
+    "snapshot": {
+     "number": 1,
+     "roundNumber": 1,
+     "complete": false,
+     "playerNetWorth": {
+      "4395": 585,
+      "7438": 535,
+      "9263": 613,
+      "18843": 525
+     },
+     "companyIds": [
+      "MP",
+      "MKT",
+      "SLSF"
+     ]
+    }
+   },
+   "index": 58,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 876
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 58
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 856549497
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 9012
+    },
+    {
+     "op": "replace",
+     "path": "/cash/1/amount",
+     "value": 365
+    },
+    {
+     "op": "replace",
+     "path": "/cash/2/amount",
+     "value": 40
+    },
+    {
+     "op": "replace",
+     "path": "/cash/3/amount",
+     "value": 48
+    },
+    {
+     "op": "replace",
+     "path": "/cash/4/amount",
+     "value": 95
+    },
+    {
+     "op": "replace",
+     "path": "/operatingSet/privateIncomePaid",
+     "value": false
+    }
+   ]
+  },
+  {
+   "id": "E44z3rd6VfTwvPb1zFgXL",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "PlaceHomeStations",
+   "createdAt": "2026-11-03T15:16:12.017Z",
+   "metadata": [
+    {
+     "companyId": "SLSF",
+     "stationId": "SLSF:home",
+     "position": {
+      "locationId": "E12",
+      "nodeId": "city",
+      "slot": 0
+     },
+     "cost": 0
+    }
+   ],
+   "index": 59,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 911
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 59
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 604799507
+    },
+    {
+     "op": "replace",
+     "path": "/stations/28/status",
+     "value": "available"
+    },
+    {
+     "op": "remove",
+     "path": "/stations/28/position"
+    },
+    {
+     "op": "add",
+     "path": "/stationReservations/8",
+     "value": {
+      "companyId": "SLSF",
+      "nodeId": "city",
+      "locationId": "E12"
+     }
+    }
+   ]
+  },
+  {
+   "id": "9yoeJYJsvkMvtTE9Isja5",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "StartOperatingTurn",
+   "companyId": "SLSF",
+   "createdAt": "2026-11-03T15:16:12.019Z",
+   "index": 60,
+   "undoPatch": [
+    {
+     "op": "remove",
+     "path": "/activePlayerIds/0"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 60
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -169638369
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "OperatingSet"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/32"
+    },
+    {
+     "op": "remove",
+     "path": "/trackStep"
+    }
+   ]
+  },
+  {
+   "id": "recorded:34",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "4395",
+   "type": "LayTile",
+   "companyId": "SLSF",
+   "locationId": "E12",
+   "definitionId": "18xx:57",
+   "rotation": 2,
+   "nodeMapping": {
+    "city": "city"
+   },
+   "expectedCost": 60,
+   "createdAt": "2026-11-03T15:16:12.027Z",
+   "metadata": {
+    "companyId": "SLSF",
+    "locationId": "E12",
+    "definitionId": "18xx:57",
+    "rotation": 2,
+    "nodeMapping": {
+     "city": "city"
+    },
+    "placement": {
+     "pieceId": "1870:standard/57/1",
+     "definitionId": "18xx:57",
+     "rotation": 2
+    },
+    "cost": 60,
+    "terrainCost": 60,
+    "allowanceCost": 0,
+    "movedStations": []
+   },
+   "index": 61,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 61
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -428839796
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 8952
+    },
+    {
+     "op": "replace",
+     "path": "/cash/13/amount",
+     "value": 1000
+    },
+    {
+     "op": "remove",
+     "path": "/tileInventory/placements/E12"
+    },
+    {
+     "op": "remove",
+     "path": "/trackStep/lays/0"
+    }
+   ]
+  },
+  {
+   "id": "recorded:35",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "4395",
+   "type": "LayTile",
+   "companyId": "SLSF",
+   "locationId": "F13",
+   "definitionId": "18xx:8",
+   "rotation": 0,
+   "nodeMapping": {},
+   "expectedCost": 60,
+   "createdAt": "2026-11-03T15:16:12.033Z",
+   "metadata": {
+    "companyId": "SLSF",
+    "locationId": "F13",
+    "definitionId": "18xx:8",
+    "rotation": 0,
+    "nodeMapping": {},
+    "placement": {
+     "pieceId": "1870:standard/8/1",
+     "definitionId": "18xx:8",
+     "rotation": 0
+    },
+    "cost": 60,
+    "terrainCost": 60,
+    "allowanceCost": 0,
+    "movedStations": []
+   },
+   "index": 62,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 946
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 62
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -1713628860
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 9012
+    },
+    {
+     "op": "replace",
+     "path": "/cash/13/amount",
+     "value": 940
+    },
+    {
+     "op": "remove",
+     "path": "/tileInventory/placements/F13"
+    },
+    {
+     "op": "remove",
+     "path": "/trackStep/lays/1"
+    }
+   ]
+  },
+  {
+   "id": "FE8KQM52oGjCRSD9Zgjjg",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "FinishTrack",
+   "companyId": "SLSF",
+   "playerId": "4395",
+   "createdAt": "2026-11-03T15:16:12.034Z",
+   "index": 63,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 981
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 63
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -1949096964
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "LayingTrack"
+    },
+    {
+     "op": "replace",
+     "path": "/trackStep/completed",
+     "value": false
+    },
+    {
+     "op": "remove",
+     "path": "/stationStep"
+    }
+   ]
+  },
+  {
+   "id": "KwNGrZX8mNmTnSMfBh1ZU",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "FinishStations",
+   "companyId": "SLSF",
+   "playerId": "4395",
+   "createdAt": "2026-11-03T15:16:12.038Z",
+   "index": 64,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 1016
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 64
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -809974445
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "PlacingStation"
+    },
+    {
+     "op": "replace",
+     "path": "/stationStep/completed",
+     "value": false
+    },
+    {
+     "op": "remove",
+     "path": "/routeStep"
+    }
+   ]
+  },
+  {
+   "id": "vdRO1hx4VAC0a3Fs2zzG8",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "RunTrains",
+   "companyId": "SLSF",
+   "routes": [],
+   "playerId": "4395",
+   "createdAt": "2026-11-03T15:16:12.041Z",
+   "metadata": {
+    "companyId": "SLSF",
+    "routes": [],
+    "revenue": 0
+   },
+   "index": 65,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 1051
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 65
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -413785809
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "RunningTrains"
+    },
+    {
+     "op": "remove",
+     "path": "/companies/8/lastRunRevenue"
+    },
+    {
+     "op": "remove",
+     "path": "/routeStep/result"
+    }
+   ]
+  },
+  {
+   "id": "0REvp2d6C2cc2WTgJzsxL",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "DistributeEarnings",
+   "companyId": "SLSF",
+   "choice": "withhold",
+   "playerId": "4395",
+   "createdAt": "2026-11-03T15:16:12.044Z",
+   "metadata": {
+    "companyId": "SLSF",
+    "choice": "withhold",
+    "revenue": 0,
+    "retained": 0,
+    "dividendPerShare": 0,
+    "bonusPerShare": 0,
+    "bankAdjustment": 0,
+    "payments": [],
+    "marketMove": {
+     "companyId": "SLSF",
+     "fromMarketSpaceId": "0:6",
+     "toMarketSpaceId": "0:5"
+    },
+    "privateEffects": [],
+    "round": {
+     "number": 1,
+     "roundNumber": 1
+    }
+   },
+   "index": 66,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 66
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -1133923255
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "DistributingEarnings"
+    },
+    {
+     "op": "replace",
+     "path": "/stockMarket/stacks/0/spaceId",
+     "value": "0:6"
+    },
+    {
+     "op": "replace",
+     "path": "/stockMarket/stacks/0/companyIds/0",
+     "value": "SLSF"
+    },
+    {
+     "op": "replace",
+     "path": "/stockMarket/stacks/1/spaceId",
+     "value": "5:6"
+    },
+    {
+     "op": "replace",
+     "path": "/stockMarket/stacks/1/companyIds/0",
+     "value": "MKT"
+    },
+    {
+     "op": "replace",
+     "path": "/stockMarket/stacks/2/spaceId",
+     "value": "3:6"
+    },
+    {
+     "op": "replace",
+     "path": "/stockMarket/stacks/2/companyIds/0",
+     "value": "MP"
+    },
+    {
+     "op": "replace",
+     "path": "/companies/8/operated",
+     "value": false
+    },
+    {
+     "op": "remove",
+     "path": "/earningsDistribution"
+    },
+    {
+     "op": "remove",
+     "path": "/trainPurchaseStep"
+    }
+   ]
+  },
+  {
+   "id": "recorded:36",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "4395",
+   "type": "BuyTrain",
+   "companyId": "SLSF",
+   "trainId": "1870/2/1",
+   "definitionId": "2",
+   "expectedPrice": 80,
+   "createdAt": "2026-11-03T15:16:12.051Z",
+   "metadata": {
+    "companyChanges": {
+     "presidents": [],
+     "closedCompanyIds": []
+    },
+    "companyId": "SLSF",
+    "trainId": "1870/2/1",
+    "definitionId": "2",
+    "price": 80
+   },
+   "index": 67,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 67
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -1216350415
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 9072
+    },
+    {
+     "op": "replace",
+     "path": "/cash/13/amount",
+     "value": 880
+    },
+    {
+     "op": "replace",
+     "path": "/trainInventory/trains/0/status",
+     "value": "depot"
+    },
+    {
+     "op": "remove",
+     "path": "/trainInventory/trains/0/owner"
+    },
+    {
+     "op": "remove",
+     "path": "/trainPurchaseStep/purchasedTrainIds/0"
+    }
+   ]
+  },
+  {
+   "id": "recorded:37",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "4395",
+   "companyId": "SLSF",
+   "type": "FinishOperatingTurn",
+   "createdAt": "2026-11-03T15:16:12.057Z",
+   "metadata": {
+    "number": 1,
+    "roundNumber": 1,
+    "complete": false,
+    "playerNetWorth": {
+     "4395": 555,
+     "7438": 535,
+     "9263": 613,
+     "18843": 525
+    },
+    "companyIds": [
+     "MP",
+     "MKT",
+     "SLSF"
+    ]
+   },
+   "index": 68,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 1086
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 68
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 1288549181
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "BuyingTrains"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/32/end"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/4395",
+     "value": 8
+    },
+    {
+     "op": "remove",
+     "path": "/operatingSet/completedCompanyIds/0"
+    },
+    {
+     "op": "add",
+     "path": "/trackStep",
+     "value": {
+      "companyId": "SLSF",
+      "lays": [
+       {
+        "locationId": "E12",
+        "definitionId": "18xx:57"
+       },
+       {
+        "locationId": "F13",
+        "definitionId": "18xx:8"
+       }
+      ],
+      "completed": true
+     }
+    },
+    {
+     "op": "add",
+     "path": "/stationStep",
+     "value": {
+      "companyId": "SLSF",
+      "placedStationIds": [],
+      "completed": true
+     }
+    },
+    {
+     "op": "add",
+     "path": "/routeStep",
+     "value": {
+      "companyId": "SLSF",
+      "result": {
+       "companyId": "SLSF",
+       "routes": [],
+       "revenue": 0
+      }
+     }
+    },
+    {
+     "op": "add",
+     "path": "/earningsDistribution",
+     "value": {
+      "companyId": "SLSF",
+      "choice": "withhold",
+      "revenue": 0,
+      "retained": 0,
+      "dividendPerShare": 0,
+      "bonusPerShare": 0,
+      "bankAdjustment": 0,
+      "payments": [],
+      "marketMove": {
+       "companyId": "SLSF",
+       "fromMarketSpaceId": "0:6",
+       "toMarketSpaceId": "0:5"
+      }
+     }
+    },
+    {
+     "op": "add",
+     "path": "/trainPurchaseStep",
+     "value": {
+      "companyId": "SLSF",
+      "purchasedTrainIds": [
+       "1870/2/1"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "I1KAOOcREXYZhYnC2Gz7s",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "PlaceHomeStations",
+   "playerId": "4395",
+   "createdAt": "2026-11-03T15:16:12.057Z",
+   "metadata": [
+    {
+     "companyId": "MP",
+     "stationId": "MP:home",
+     "position": {
+      "locationId": "C18",
+      "nodeId": "city",
+      "slot": 0
+     },
+     "cost": 0
+    }
+   ],
+   "index": 69,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 1121
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 69
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -1757355298
+    },
+    {
+     "op": "replace",
+     "path": "/stations/13/status",
+     "value": "available"
+    },
+    {
+     "op": "remove",
+     "path": "/stations/13/position"
+    },
+    {
+     "op": "add",
+     "path": "/stationReservations/6",
+     "value": {
+      "companyId": "MP",
+      "nodeId": "city",
+      "locationId": "C18"
+     }
+    }
+   ]
+  },
+  {
+   "id": "yHaiQ1G6FQTzkWjdGkAwu",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "StartOperatingTurn",
+   "companyId": "MP",
+   "createdAt": "2026-11-03T15:16:12.060Z",
+   "index": 70,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "4395"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 70
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -916433038
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "OperatingSet"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/33"
+    },
+    {
+     "op": "remove",
+     "path": "/trackStep"
+    }
+   ]
+  },
+  {
+   "id": "recorded:38",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "18843",
+   "type": "OfferPurchase",
+   "companyId": "MP",
+   "asset": {
+    "kind": "private",
+    "privateCompanyId": "MRBC"
+   },
+   "seller": {
+    "kind": "player",
+    "playerId": "18843"
+   },
+   "price": 40,
+   "createdAt": "2026-11-03T15:16:12.068Z",
+   "metadata": {
+    "companyChanges": {
+     "presidents": [],
+     "closedCompanyIds": []
+    },
+    "offer": {
+     "id": "recorded:38",
+     "buyer": {
+      "kind": "company",
+      "companyId": "MP"
+     },
+     "asset": {
+      "kind": "private",
+      "privateCompanyId": "MRBC"
+     },
+     "seller": {
+      "kind": "player",
+      "playerId": "18843"
+     },
+     "price": 40,
+     "buyerPlayerId": "18843",
+     "sellerPlayerId": "18843"
+    },
+    "accepted": true
+   },
+   "index": 71,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 71
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -1813429685
+    },
+    {
+     "op": "replace",
+     "path": "/cash/4/amount",
+     "value": 105
+    },
+    {
+     "op": "replace",
+     "path": "/cash/9/amount",
+     "value": 760
+    },
+    {
+     "op": "replace",
+     "path": "/certificates/91/owner/kind",
+     "value": "player"
+    },
+    {
+     "op": "remove",
+     "path": "/certificates/91/owner/companyId"
+    },
+    {
+     "op": "add",
+     "path": "/certificates/91/owner/playerId",
+     "value": "18843"
+    }
+   ]
+  },
+  {
+   "id": "recorded:39",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "18843",
+   "type": "LayPrivateTile",
+   "privateCompanyId": "MRBC",
+   "companyId": "MP",
+   "locationId": "C18",
+   "definitionId": "18xx:5",
+   "rotation": 3,
+   "nodeMapping": {
+    "city": "city"
+   },
+   "expectedCost": 0,
+   "createdAt": "2026-11-03T15:16:12.074Z",
+   "metadata": {
+    "companyId": "MP",
+    "locationId": "C18",
+    "definitionId": "18xx:5",
+    "rotation": 3,
+    "nodeMapping": {
+     "city": "city"
+    },
+    "placement": {
+     "pieceId": "1870:standard/5/1",
+     "definitionId": "18xx:5",
+     "rotation": 3
+    },
+    "cost": 0,
+    "terrainCost": 0,
+    "allowanceCost": 0,
+    "movedStations": []
+   },
+   "index": 72,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 72
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 430265912
+    },
+    {
+     "op": "remove",
+     "path": "/usedPrivatePowerIds/0"
+    },
+    {
+     "op": "remove",
+     "path": "/tileInventory/placements/C18"
+    },
+    {
+     "op": "remove",
+     "path": "/bridgeLayLocationId"
+    }
+   ]
+  },
+  {
+   "id": "recorded:40",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "18843",
+   "type": "LayTile",
+   "companyId": "MP",
+   "locationId": "C20",
+   "definitionId": "18xx:8",
+   "rotation": 1,
+   "nodeMapping": {},
+   "expectedCost": 0,
+   "createdAt": "2026-11-03T15:16:12.080Z",
+   "metadata": {
+    "companyId": "MP",
+    "locationId": "C20",
+    "definitionId": "18xx:8",
+    "rotation": 1,
+    "nodeMapping": {},
+    "placement": {
+     "pieceId": "1870:standard/8/2",
+     "definitionId": "18xx:8",
+     "rotation": 1
+    },
+    "cost": 0,
+    "terrainCost": 0,
+    "allowanceCost": 0,
+    "movedStations": []
+   },
+   "index": 73,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 73
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 1521153223
+    },
+    {
+     "op": "remove",
+     "path": "/tileInventory/placements/C20"
+    },
+    {
+     "op": "remove",
+     "path": "/trackStep/lays/0"
+    }
+   ]
+  },
+  {
+   "id": "recorded:41",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "18843",
+   "type": "LayTile",
+   "companyId": "MP",
+   "locationId": "B21",
+   "definitionId": "18xx:9",
+   "rotation": 0,
+   "nodeMapping": {},
+   "expectedCost": 0,
+   "createdAt": "2026-11-03T15:16:12.086Z",
+   "metadata": {
+    "companyId": "MP",
+    "locationId": "B21",
+    "definitionId": "18xx:9",
+    "rotation": 0,
+    "nodeMapping": {},
+    "placement": {
+     "pieceId": "1870:standard/9/1",
+     "definitionId": "18xx:9",
+     "rotation": 0
+    },
+    "cost": 0,
+    "terrainCost": 0,
+    "allowanceCost": 0,
+    "movedStations": []
+   },
+   "index": 74,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 1156
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 74
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 448126080
+    },
+    {
+     "op": "remove",
+     "path": "/tileInventory/placements/B21"
+    },
+    {
+     "op": "remove",
+     "path": "/trackStep/lays/1"
+    }
+   ]
+  },
+  {
+   "id": "yrliiTsNArhwgf1rpd73V",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "FinishTrack",
+   "companyId": "MP",
+   "playerId": "18843",
+   "createdAt": "2026-11-03T15:16:12.087Z",
+   "index": 75,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 1191
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 75
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -1672843026
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "LayingTrack"
+    },
+    {
+     "op": "replace",
+     "path": "/trackStep/completed",
+     "value": false
+    },
+    {
+     "op": "remove",
+     "path": "/stationStep"
+    },
+    {
+     "op": "add",
+     "path": "/bridgeLayLocationId",
+     "value": "C18"
+    }
+   ]
+  },
+  {
+   "id": "AZppnjWSJ54qH9fgrCIdB",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "FinishStations",
+   "companyId": "MP",
+   "playerId": "18843",
+   "createdAt": "2026-11-03T15:16:12.091Z",
+   "index": 76,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 1226
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 76
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -968215189
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "PlacingStation"
+    },
+    {
+     "op": "replace",
+     "path": "/stationStep/completed",
+     "value": false
+    },
+    {
+     "op": "remove",
+     "path": "/routeStep"
+    }
+   ]
+  },
+  {
+   "id": "AMM3g6tBxYvYMxLzlzjFP",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "RunTrains",
+   "companyId": "MP",
+   "routes": [],
+   "playerId": "18843",
+   "createdAt": "2026-11-03T15:16:12.094Z",
+   "metadata": {
+    "companyId": "MP",
+    "routes": [],
+    "revenue": 0
+   },
+   "index": 77,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 1261
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 77
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -844279229
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "RunningTrains"
+    },
+    {
+     "op": "remove",
+     "path": "/companies/4/lastRunRevenue"
+    },
+    {
+     "op": "remove",
+     "path": "/routeStep/result"
+    }
+   ]
+  },
+  {
+   "id": "VFgx6yKCzC07exL27wHJ0",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "DistributeEarnings",
+   "companyId": "MP",
+   "choice": "withhold",
+   "playerId": "18843",
+   "createdAt": "2026-11-03T15:16:12.097Z",
+   "metadata": {
+    "companyId": "MP",
+    "choice": "withhold",
+    "revenue": 0,
+    "retained": 0,
+    "dividendPerShare": 0,
+    "bonusPerShare": 0,
+    "bankAdjustment": 0,
+    "payments": [],
+    "marketMove": {
+     "companyId": "MP",
+     "fromMarketSpaceId": "3:6",
+     "toMarketSpaceId": "3:5"
+    },
+    "privateEffects": [],
+    "round": {
+     "number": 1,
+     "roundNumber": 1
+    }
+   },
+   "index": 78,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 78
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 347187622
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "DistributingEarnings"
+    },
+    {
+     "op": "replace",
+     "path": "/stockMarket/stacks/1/spaceId",
+     "value": "3:6"
+    },
+    {
+     "op": "replace",
+     "path": "/stockMarket/stacks/1/companyIds/0",
+     "value": "MP"
+    },
+    {
+     "op": "replace",
+     "path": "/stockMarket/stacks/2/spaceId",
+     "value": "0:5"
+    },
+    {
+     "op": "replace",
+     "path": "/stockMarket/stacks/2/companyIds/0",
+     "value": "SLSF"
+    },
+    {
+     "op": "replace",
+     "path": "/companies/4/operated",
+     "value": false
+    },
+    {
+     "op": "remove",
+     "path": "/earningsDistribution"
+    },
+    {
+     "op": "remove",
+     "path": "/trainPurchaseStep"
+    }
+   ]
+  },
+  {
+   "id": "recorded:42",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "18843",
+   "type": "BuyTrain",
+   "companyId": "MP",
+   "trainId": "1870/2/2",
+   "definitionId": "2",
+   "expectedPrice": 80,
+   "createdAt": "2026-11-03T15:16:12.105Z",
+   "metadata": {
+    "companyChanges": {
+     "presidents": [],
+     "closedCompanyIds": []
+    },
+    "companyId": "MP",
+    "trainId": "1870/2/2",
+    "definitionId": "2",
+    "price": 80
+   },
+   "index": 79,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 79
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 1986958316
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 9152
+    },
+    {
+     "op": "replace",
+     "path": "/cash/9/amount",
+     "value": 720
+    },
+    {
+     "op": "replace",
+     "path": "/trainInventory/trains/1/status",
+     "value": "depot"
+    },
+    {
+     "op": "remove",
+     "path": "/trainInventory/trains/1/owner"
+    },
+    {
+     "op": "remove",
+     "path": "/trainPurchaseStep/purchasedTrainIds/0"
+    }
+   ]
+  },
+  {
+   "id": "recorded:43",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "18843",
+   "type": "BuyTrain",
+   "companyId": "MP",
+   "trainId": "1870/2/3",
+   "definitionId": "2",
+   "expectedPrice": 80,
+   "createdAt": "2026-11-03T15:16:12.110Z",
+   "metadata": {
+    "companyChanges": {
+     "presidents": [],
+     "closedCompanyIds": []
+    },
+    "companyId": "MP",
+    "trainId": "1870/2/3",
+    "definitionId": "2",
+    "price": 80
+   },
+   "index": 80,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 80
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 2118454529
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 9232
+    },
+    {
+     "op": "replace",
+     "path": "/cash/9/amount",
+     "value": 640
+    },
+    {
+     "op": "replace",
+     "path": "/trainInventory/trains/2/status",
+     "value": "depot"
+    },
+    {
+     "op": "remove",
+     "path": "/trainInventory/trains/2/owner"
+    },
+    {
+     "op": "remove",
+     "path": "/trainPurchaseStep/purchasedTrainIds/1"
+    }
+   ]
+  },
+  {
+   "id": "recorded:44",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "18843",
+   "companyId": "MP",
+   "type": "FinishOperatingTurn",
+   "createdAt": "2026-11-03T15:16:12.116Z",
+   "metadata": {
+    "number": 1,
+    "roundNumber": 1,
+    "complete": false,
+    "playerNetWorth": {
+     "4395": 551,
+     "7438": 535,
+     "9263": 613,
+     "18843": 505
+    },
+    "companyIds": [
+     "MP",
+     "MKT",
+     "SLSF"
+    ]
+   },
+   "index": 81,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 1296
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 81
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 1446953816
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "BuyingTrains"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/33/end"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/18843",
+     "value": 7
+    },
+    {
+     "op": "remove",
+     "path": "/operatingSet/completedCompanyIds/1"
+    },
+    {
+     "op": "add",
+     "path": "/trackStep",
+     "value": {
+      "companyId": "MP",
+      "lays": [
+       {
+        "locationId": "C20",
+        "definitionId": "18xx:8"
+       },
+       {
+        "locationId": "B21",
+        "definitionId": "18xx:9"
+       }
+      ],
+      "completed": true
+     }
+    },
+    {
+     "op": "add",
+     "path": "/stationStep",
+     "value": {
+      "companyId": "MP",
+      "placedStationIds": [],
+      "completed": true
+     }
+    },
+    {
+     "op": "add",
+     "path": "/routeStep",
+     "value": {
+      "companyId": "MP",
+      "result": {
+       "companyId": "MP",
+       "routes": [],
+       "revenue": 0
+      }
+     }
+    },
+    {
+     "op": "add",
+     "path": "/earningsDistribution",
+     "value": {
+      "companyId": "MP",
+      "choice": "withhold",
+      "revenue": 0,
+      "retained": 0,
+      "dividendPerShare": 0,
+      "bonusPerShare": 0,
+      "bankAdjustment": 0,
+      "payments": [],
+      "marketMove": {
+       "companyId": "MP",
+       "fromMarketSpaceId": "3:6",
+       "toMarketSpaceId": "3:5"
+      }
+     }
+    },
+    {
+     "op": "add",
+     "path": "/trainPurchaseStep",
+     "value": {
+      "companyId": "MP",
+      "purchasedTrainIds": [
+       "1870/2/2",
+       "1870/2/3"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "tqTL0tvTUVnYA1DOprEln",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "PlaceHomeStations",
+   "playerId": "18843",
+   "createdAt": "2026-11-03T15:16:12.116Z",
+   "metadata": [
+    {
+     "companyId": "MKT",
+     "stationId": "MKT:home",
+     "position": {
+      "locationId": "B11",
+      "nodeId": "city",
+      "slot": 0
+     },
+     "cost": 0
+    }
+   ],
+   "index": 82,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 1331
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 82
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 520472184
+    },
+    {
+     "op": "replace",
+     "path": "/stations/17/status",
+     "value": "available"
+    },
+    {
+     "op": "remove",
+     "path": "/stations/17/position"
+    },
+    {
+     "op": "add",
+     "path": "/stationReservations/5",
+     "value": {
+      "companyId": "MKT",
+      "nodeId": "city",
+      "locationId": "B11"
+     }
+    }
+   ]
+  },
+  {
+   "id": "H13jHxFjL3JtoucPyKnQs",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "StartOperatingTurn",
+   "companyId": "MKT",
+   "createdAt": "2026-11-03T15:16:12.119Z",
+   "index": 83,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "18843"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 83
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -631207846
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "OperatingSet"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/34"
+    },
+    {
+     "op": "remove",
+     "path": "/trackStep"
+    }
+   ]
+  },
+  {
+   "id": "recorded:45",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "7438",
+   "type": "LayTile",
+   "companyId": "MKT",
+   "locationId": "B11",
+   "definitionId": "18xx:6",
+   "rotation": 5,
+   "nodeMapping": {
+    "city": "city"
+   },
+   "expectedCost": 40,
+   "createdAt": "2026-11-03T15:16:12.127Z",
+   "metadata": {
+    "companyId": "MKT",
+    "locationId": "B11",
+    "definitionId": "18xx:6",
+    "rotation": 5,
+    "nodeMapping": {
+     "city": "city"
+    },
+    "placement": {
+     "pieceId": "1870:standard/6/1",
+     "definitionId": "18xx:6",
+     "rotation": 5
+    },
+    "cost": 40,
+    "terrainCost": 40,
+    "allowanceCost": 0,
+    "movedStations": []
+   },
+   "index": 84,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 84
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -1135991052
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 9312
+    },
+    {
+     "op": "replace",
+     "path": "/cash/10/amount",
+     "value": 680
+    },
+    {
+     "op": "remove",
+     "path": "/tileInventory/placements/B11"
+    },
+    {
+     "op": "remove",
+     "path": "/trackStep/lays/0"
+    }
+   ]
+  },
+  {
+   "id": "recorded:46",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "7438",
+   "type": "LayTile",
+   "companyId": "MKT",
+   "locationId": "B9",
+   "definitionId": "18xx:6",
+   "rotation": 4,
+   "nodeMapping": {
+    "city": "city"
+   },
+   "expectedCost": 0,
+   "createdAt": "2026-11-03T15:16:12.133Z",
+   "metadata": {
+    "companyId": "MKT",
+    "locationId": "B9",
+    "definitionId": "18xx:6",
+    "rotation": 4,
+    "nodeMapping": {
+     "city": "city"
+    },
+    "placement": {
+     "pieceId": "1870:standard/6/2",
+     "definitionId": "18xx:6",
+     "rotation": 4
+    },
+    "cost": 0,
+    "terrainCost": 0,
+    "allowanceCost": 0,
+    "movedStations": []
+   },
+   "index": 85,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 1366
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 85
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 176888967
+    },
+    {
+     "op": "remove",
+     "path": "/tileInventory/placements/B9"
+    },
+    {
+     "op": "remove",
+     "path": "/trackStep/lays/1"
+    }
+   ]
+  },
+  {
+   "id": "l8iKyidLEgWbk4jGt8kOA",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "FinishTrack",
+   "companyId": "MKT",
+   "playerId": "7438",
+   "createdAt": "2026-11-03T15:16:12.134Z",
+   "index": 86,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 1401
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 86
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 407850147
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "LayingTrack"
+    },
+    {
+     "op": "replace",
+     "path": "/trackStep/completed",
+     "value": false
+    },
+    {
+     "op": "remove",
+     "path": "/stationStep"
+    }
+   ]
+  },
+  {
+   "id": "r5DmVc3XJ6u0RlVcxQGyW",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "FinishStations",
+   "companyId": "MKT",
+   "playerId": "7438",
+   "createdAt": "2026-11-03T15:16:12.138Z",
+   "index": 87,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 1436
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 87
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -432705262
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "PlacingStation"
+    },
+    {
+     "op": "replace",
+     "path": "/stationStep/completed",
+     "value": false
+    },
+    {
+     "op": "remove",
+     "path": "/routeStep"
+    }
+   ]
+  },
+  {
+   "id": "w57jTRy4sKiAfhguCuLQn",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "RunTrains",
+   "companyId": "MKT",
+   "routes": [],
+   "playerId": "7438",
+   "createdAt": "2026-11-03T15:16:12.142Z",
+   "metadata": {
+    "companyId": "MKT",
+    "routes": [],
+    "revenue": 0
+   },
+   "index": 88,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 1471
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 88
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 1058900430
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "RunningTrains"
+    },
+    {
+     "op": "remove",
+     "path": "/companies/5/lastRunRevenue"
+    },
+    {
+     "op": "remove",
+     "path": "/routeStep/result"
+    }
+   ]
+  },
+  {
+   "id": "5qKxE8qhMaK758q9O9tGw",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "DistributeEarnings",
+   "companyId": "MKT",
+   "choice": "withhold",
+   "playerId": "7438",
+   "createdAt": "2026-11-03T15:16:12.145Z",
+   "metadata": {
+    "companyId": "MKT",
+    "choice": "withhold",
+    "revenue": 0,
+    "retained": 0,
+    "dividendPerShare": 0,
+    "bonusPerShare": 0,
+    "bankAdjustment": 0,
+    "payments": [],
+    "marketMove": {
+     "companyId": "MKT",
+     "fromMarketSpaceId": "5:6",
+     "toMarketSpaceId": "5:5"
+    },
+    "privateEffects": [],
+    "round": {
+     "number": 1,
+     "roundNumber": 1
+    }
+   },
+   "index": 89,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 89
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 231536812
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "DistributingEarnings"
+    },
+    {
+     "op": "replace",
+     "path": "/stockMarket/stacks/0/spaceId",
+     "value": "5:6"
+    },
+    {
+     "op": "replace",
+     "path": "/stockMarket/stacks/0/companyIds/0",
+     "value": "MKT"
+    },
+    {
+     "op": "replace",
+     "path": "/stockMarket/stacks/1/spaceId",
+     "value": "0:5"
+    },
+    {
+     "op": "replace",
+     "path": "/stockMarket/stacks/1/companyIds/0",
+     "value": "SLSF"
+    },
+    {
+     "op": "replace",
+     "path": "/stockMarket/stacks/2/spaceId",
+     "value": "3:5"
+    },
+    {
+     "op": "replace",
+     "path": "/stockMarket/stacks/2/companyIds/0",
+     "value": "MP"
+    },
+    {
+     "op": "replace",
+     "path": "/companies/5/operated",
+     "value": false
+    },
+    {
+     "op": "remove",
+     "path": "/earningsDistribution"
+    },
+    {
+     "op": "remove",
+     "path": "/trainPurchaseStep"
+    }
+   ]
+  },
+  {
+   "id": "recorded:47",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "7438",
+   "type": "BuyTrain",
+   "companyId": "MKT",
+   "trainId": "1870/2/4",
+   "definitionId": "2",
+   "expectedPrice": 80,
+   "createdAt": "2026-11-03T15:16:12.153Z",
+   "metadata": {
+    "companyChanges": {
+     "presidents": [],
+     "closedCompanyIds": []
+    },
+    "companyId": "MKT",
+    "trainId": "1870/2/4",
+    "definitionId": "2",
+    "price": 80
+   },
+   "index": 90,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 90
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -677567838
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 9352
+    },
+    {
+     "op": "replace",
+     "path": "/cash/10/amount",
+     "value": 640
+    },
+    {
+     "op": "replace",
+     "path": "/trainInventory/trains/3/status",
+     "value": "depot"
+    },
+    {
+     "op": "remove",
+     "path": "/trainInventory/trains/3/owner"
+    },
+    {
+     "op": "remove",
+     "path": "/trainPurchaseStep/purchasedTrainIds/0"
+    }
+   ]
+  },
+  {
+   "id": "recorded:48",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "7438",
+   "type": "BuyTrain",
+   "companyId": "MKT",
+   "trainId": "1870/2/5",
+   "definitionId": "2",
+   "expectedPrice": 80,
+   "createdAt": "2026-11-03T15:16:12.159Z",
+   "metadata": {
+    "companyChanges": {
+     "presidents": [],
+     "closedCompanyIds": []
+    },
+    "companyId": "MKT",
+    "trainId": "1870/2/5",
+    "definitionId": "2",
+    "price": 80
+   },
+   "index": 91,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 91
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -459355575
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 9432
+    },
+    {
+     "op": "replace",
+     "path": "/cash/10/amount",
+     "value": 560
+    },
+    {
+     "op": "replace",
+     "path": "/trainInventory/trains/4/status",
+     "value": "depot"
+    },
+    {
+     "op": "remove",
+     "path": "/trainInventory/trains/4/owner"
+    },
+    {
+     "op": "remove",
+     "path": "/trainPurchaseStep/purchasedTrainIds/1"
+    }
+   ]
+  },
+  {
+   "id": "recorded:49",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "7438",
+   "companyId": "MKT",
+   "type": "FinishOperatingTurn",
+   "createdAt": "2026-11-03T15:16:12.164Z",
+   "metadata": {
+    "number": 1,
+    "roundNumber": 1,
+    "complete": true,
+    "playerNetWorth": {
+     "4395": 543,
+     "7438": 515,
+     "9263": 609,
+     "18843": 505
+    },
+    "companyIds": [
+     "MP",
+     "MKT",
+     "SLSF"
+    ]
+   },
+   "index": 92,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/prng/invocations",
+     "value": 1506
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 92
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": -1630736245
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "BuyingTrains"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/34/end"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/7438",
+     "value": 8
+    },
+    {
+     "op": "remove",
+     "path": "/operatingSet/completedCompanyIds/2"
+    },
+    {
+     "op": "add",
+     "path": "/trackStep",
+     "value": {
+      "companyId": "MKT",
+      "lays": [
+       {
+        "locationId": "B11",
+        "definitionId": "18xx:6"
+       },
+       {
+        "locationId": "B9",
+        "definitionId": "18xx:6"
+       }
+      ],
+      "completed": true
+     }
+    },
+    {
+     "op": "add",
+     "path": "/stationStep",
+     "value": {
+      "companyId": "MKT",
+      "placedStationIds": [],
+      "completed": true
+     }
+    },
+    {
+     "op": "add",
+     "path": "/routeStep",
+     "value": {
+      "companyId": "MKT",
+      "result": {
+       "companyId": "MKT",
+       "routes": [],
+       "revenue": 0
+      }
+     }
+    },
+    {
+     "op": "add",
+     "path": "/earningsDistribution",
+     "value": {
+      "companyId": "MKT",
+      "choice": "withhold",
+      "revenue": 0,
+      "retained": 0,
+      "dividendPerShare": 0,
+      "bonusPerShare": 0,
+      "bankAdjustment": 0,
+      "payments": [],
+      "marketMove": {
+       "companyId": "MKT",
+       "fromMarketSpaceId": "5:6",
+       "toMarketSpaceId": "5:5"
+      }
+     }
+    },
+    {
+     "op": "add",
+     "path": "/trainPurchaseStep",
+     "value": {
+      "companyId": "MKT",
+      "purchasedTrainIds": [
+       "1870/2/4",
+       "1870/2/5"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "0Dh2dx2nJCueGhSLpwxO5",
+   "gameId": "scenario-company-shares",
+   "source": "system",
+   "type": "StartStockRound",
+   "playerId": "7438",
+   "createdAt": "2026-11-03T15:16:12.165Z",
+   "index": 93,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "7438"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 93
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 1606092071
+    },
+    {
+     "op": "replace",
+     "path": "/machineState",
+     "value": "OperatingSet"
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/number",
+     "value": 1
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/completed",
+     "value": true
+    },
+    {
+     "op": "add",
+     "path": "/stockRound/passedPlayerIds/0",
+     "value": "18843"
+    },
+    {
+     "op": "add",
+     "path": "/stockRound/passedPlayerIds/1",
+     "value": "9263"
+    },
+    {
+     "op": "add",
+     "path": "/stockRound/passedPlayerIds/2",
+     "value": "7438"
+    },
+    {
+     "op": "add",
+     "path": "/stockRound/passedPlayerIds/3",
+     "value": "4395"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/35"
+    },
+    {
+     "op": "replace",
+     "path": "/operatingSet/completed",
+     "value": false
+    }
+   ]
+  },
+  {
+   "id": "recorded:50",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "18843",
+   "type": "FinishStockTurn",
+   "createdAt": "2026-11-03T15:16:12.179Z",
+   "metadata": {
+    "passed": true
+   },
+   "index": 94,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "18843"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 94
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 1449006805
+    },
+    {
+     "op": "remove",
+     "path": "/stockRound/passedPlayerIds/0"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/35/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/36"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/18843",
+     "value": 8
+    }
+   ]
+  },
+  {
+   "id": "recorded:51",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "9263",
+   "type": "BuyShares",
+   "buyer": {
+    "kind": "player",
+    "playerId": "9263"
+   },
+   "certificateId": "MP:share:5",
+   "expectedPrice": 76,
+   "createdAt": "2026-11-03T15:16:12.190Z",
+   "metadata": {
+    "certificateId": "MP:share:5",
+    "companyId": "MP",
+    "shares": 1,
+    "buyer": {
+     "kind": "player",
+     "playerId": "9263"
+    },
+    "seller": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering",
+    "price": 76,
+    "payments": [
+     {
+      "from": {
+       "kind": "player",
+       "playerId": "9263"
+      },
+      "to": {
+       "kind": "bank"
+      },
+      "amount": 76
+     }
+    ]
+   },
+   "index": 95,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 95
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 534941571
+    },
+    {
+     "op": "add",
+     "path": "/stockRound/passedPlayerIds/0",
+     "value": "18843"
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": false
+    },
+    {
+     "op": "replace",
+     "path": "/cash/0/amount",
+     "value": 9512
+    },
+    {
+     "op": "replace",
+     "path": "/cash/1/amount",
+     "value": 385
+    },
+    {
+     "op": "replace",
+     "path": "/certificates/41/owner/kind",
+     "value": "bank"
+    },
+    {
+     "op": "remove",
+     "path": "/certificates/41/owner/playerId"
+    },
+    {
+     "op": "add",
+     "path": "/certificates/41/poolId",
+     "value": "initial-offering"
+    },
+    {
+     "op": "remove",
+     "path": "/stockTurnPurchases"
+    }
+   ]
+  },
+  {
+   "id": "recorded:52",
+   "gameId": "scenario-company-shares",
+   "source": "user",
+   "playerId": "9263",
+   "type": "FinishStockTurn",
+   "createdAt": "2026-11-03T15:16:12.199Z",
+   "metadata": {
+    "passed": false
+   },
+   "index": 96,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "9263"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 96
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 917434710
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/acted",
+     "value": true
+    },
+    {
+     "op": "replace",
+     "path": "/stockRound/turn/bought",
+     "value": true
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/36/end"
+    },
+    {
+     "op": "remove",
+     "path": "/turnManager/series/37"
+    },
+    {
+     "op": "replace",
+     "path": "/turnManager/turnCounts/9263",
+     "value": 9
+    },
+    {
+     "op": "add",
+     "path": "/stockTurnPurchases",
+     "value": [
+      {
+       "kind": "share",
+       "companyId": "MP",
+       "poolId": "initial-offering"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
