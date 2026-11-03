@@ -227,7 +227,8 @@ Built on branch `feat/implement-1833ne`. Family changes beyond the plan above:
   north indicator (§6.46's orientation arrows), and the Fitchburg example (p. 9) prints it this
   way: the triangle north-west, the B&W and B&P in the two-spot city and the B&L alone to the
   north. The south triangle's track becomes the two-spot city's, as Portland's south-west
-  triangle becomes a city in green.
+  triangle becomes a city in green. N11, N21, N23 and N26 are the tiles with arrows; the rulebook
+  images are too small to show them, so this comes from the physical tiles.
 - **Printed reservations** (`TrackRules.printedReservationNode`): a reservation normally
   follows the node mapping of a lay. Green Boston prints the B&P's spot in its two-spot city,
   which started games hold on the B&L's yellow city, so the tile names it. Only

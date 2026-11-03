@@ -23,13 +23,7 @@ import { holdsRightsOf } from './takeoverState.js'
 const TrackData = { map: Map1833NE, tileSet: TileSet1833NE }
 const BostonGreenTile = '1833ne:N23'
 /** The tiles with an orientation arrow, each laid only as it shows (§6.46). */
-const ArrowTiles: Readonly<Record<string, string>> = {
-    '1833ne:N11':
-        'Sherbrooke’s tile is laid as its arrow shows, joining north, north-east and south.',
-    // The physical tile's arrow keeps the B&L alone to the north and its triangle north-west (p. 9).
-    [BostonGreenTile]:
-        'Boston’s green tile is laid as its arrow shows, with the B&L alone to the north.'
-}
+const ArrowTiles: readonly string[] = ['1833ne:N11', '1833ne:N21', BostonGreenTile, '1833ne:N26']
 /** The two-spot city of Boston's green tile, which prints the B&P's reserved spot (p. 21). */
 const BostonReservedCity = 'city-0'
 
@@ -122,8 +116,8 @@ export const TrackRules1833NE: TrackRules = {
     restriction(state, request) {
         if (blockedByPrivate(state, request.locationId))
             return 'A player-owned private company blocks this hex.'
-        const arrow = ArrowTiles[request.definitionId]
-        if (arrow && request.rotation !== 0) return arrow
+        if (ArrowTiles.includes(request.definitionId) && request.rotation !== 0)
+            return 'This tile is laid as its arrow shows, matching the compass rose.'
         const reserved = FirstRoundReservedHexes[request.locationId]
         if (reserved && reserved !== request.companyId && firstOperatingRound(state))
             return `Only the ${reserved} may build here in the first operating round.`

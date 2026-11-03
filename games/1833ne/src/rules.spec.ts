@@ -8,6 +8,7 @@ import {
     rotateTileFace,
     type StationReservation,
     type TileFace,
+    type TileRotation,
     privateTrackConstruction,
     usesStationAt,
     type TrackLayDetails
@@ -289,6 +290,29 @@ describe('Boston (§6.48, §6.62)', () => {
                 trackChoices(bostonHomes(), 'B&W', 'G22').map(({ rotation }) => rotation)
             ).toEqual([0])
         })
+    })
+})
+
+describe('tiles with an orientation arrow (§6.46)', () => {
+    it.each([
+        ['F5', '1833ne:N11'],
+        ['F5', '1833ne:N21'],
+        ['G22', '1833ne:N23'],
+        ['B11', '1833ne:N26']
+    ])('lays %s’s %s only as its arrow shows', (locationId, definitionId) => {
+        const reason = (rotation: TileRotation) =>
+            TrackRules1833NE.restriction?.(position([], [], {}, 'II'), {
+                companyId: 'CV',
+                locationId,
+                definitionId,
+                rotation,
+                nodeMapping: {}
+            })
+        expect(reason(0)).toBeUndefined()
+        for (const rotation of [1, 2, 3, 4, 5] as const)
+            expect(reason(rotation)).toBe(
+                'This tile is laid as its arrow shows, matching the compass rose.'
+            )
     })
 })
 
