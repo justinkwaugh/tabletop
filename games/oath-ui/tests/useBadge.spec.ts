@@ -156,22 +156,31 @@ for (const viewport of [
                 })
                 expect(slotOf).toBe(slot)
 
-                const button = await peek.evaluate((element) => {
-                    const r = element.getBoundingClientRect()
-                    return { left: r.left, top: r.top, right: r.right, bottom: r.bottom }
+                // The supply track's art has no height until it loads, and the rows below it move
+                // down when it does: wait for the seat's images, then measure the button and every
+                // badge in one frame.
+                await expect
+                    .poll(() =>
+                        page
+                            .locator('.seat')
+                            .filter({ has: peek })
+                            .locator('img')
+                            .evaluateAll((all) =>
+                                all.every((img) => img instanceof HTMLImageElement && img.complete)
+                            )
+                    )
+                    .toBe(true)
+                const covered = await peek.evaluate((element) => {
+                    const button = element.getBoundingClientRect()
+                    return [...document.querySelectorAll('[data-use-badge]')].map((badge) => {
+                        const r = badge.getBoundingClientRect()
+                        const width =
+                            Math.min(r.right, button.right) - Math.max(r.left, button.left)
+                        const height =
+                            Math.min(r.bottom, button.bottom) - Math.max(r.top, button.top)
+                        return width > 0 && height > 0 ? width * height : 0
+                    })
                 })
-                const covered = await badges(page).evaluateAll(
-                    (all, button) =>
-                        all.map((element) => {
-                            const r = element.getBoundingClientRect()
-                            const width =
-                                Math.min(r.right, button.right) - Math.max(r.left, button.left)
-                            const height =
-                                Math.min(r.bottom, button.bottom) - Math.max(r.top, button.top)
-                            return width > 0 && height > 0 ? width * height : 0
-                        }),
-                    button
-                )
                 expect(covered.length).toBeGreaterThan(0)
                 for (const area of covered) expect(area).toBeLessThan(0.5)
             })
