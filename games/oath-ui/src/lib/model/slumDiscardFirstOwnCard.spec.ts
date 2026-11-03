@@ -23,7 +23,7 @@ const TENTS = 'denizen.nomad.tents'
 const SCOUTS = 'denizen.order.scouts'
 const DANA = 'dana'
 
-/** Dana at c1, a full Great Slum she rules holding `atC1`, with `advisers` faceup. */
+/** Dana at c1, a full Great Slum Dana rules holding `atC1`, with `advisers` faceup. */
 function table(revision: OathRevision, atC1: string[], advisers: string[]): HydratedOathGameState {
     const s = testState(
         withChancellor([
