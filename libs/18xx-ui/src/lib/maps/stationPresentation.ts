@@ -67,6 +67,7 @@ export type MapViewDefinition = {
     revenueStageLabels?: Readonly<Record<string, string>>
     /** Phases printed beside each revenue stage's value, such as I-II. */
     revenueStageCaptions?: Readonly<Record<string, string>>
+    revenueStageCaptionColors?: Readonly<Record<string, string>>
     /** How staged values line up where a location's layout does not say. */
     revenueStack?: 'column' | 'row'
     /** Printed before terrain costs, such as ¥. */

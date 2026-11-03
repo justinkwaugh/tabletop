@@ -141,6 +141,8 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
      * such as a marker hidden once its rule lapses, or one a private has marked.
      */
     markerArtFor?(state: State): LocationMarkerArt
+    /** The off-board captions a game's variants print, in place of the map view's. */
+    revenueStageCaptionsFor?(state: State): Readonly<Record<string, string>> | undefined
     companyColumns?: readonly CompanyColumn<State>[]
     /** Facts of the title's own about a company, such as its size or interest due. */
     companyFacts?(state: State, companyId: string): readonly TitleFact[]

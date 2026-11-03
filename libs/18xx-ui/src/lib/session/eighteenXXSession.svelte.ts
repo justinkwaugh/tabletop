@@ -531,9 +531,17 @@ export class EighteenXXSession<
     private playedMarkerArt = $derived.by(() =>
         JSON.stringify(this.presentationDefinition.markerArtFor?.(this.gameState) ?? {})
     )
+    private gameRevenueCaptions = $derived.by(() =>
+        JSON.stringify(
+            this.presentationDefinition.revenueStageCaptionsFor?.(this.gameState) ?? null
+        )
+    )
     /** The map view before art that changes with play, which each historical map lays its own over. */
     private presentedMapView: MapViewDefinition = $derived.by(() => {
-        const base = this.mapViewDefinition
+        const captions = JSON.parse(this.gameRevenueCaptions)
+        const base = captions
+            ? { ...this.mapViewDefinition, revenueStageCaptions: captions }
+            : this.mapViewDefinition
         const overrides = this.stationAppearanceOverrides
         const definition = overrides
             ? { ...base, stations: { ...base.stations, ...overrides } }

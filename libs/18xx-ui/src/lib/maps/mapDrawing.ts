@@ -346,6 +346,7 @@ export function createMapDrawing(
         drawingStyle,
         revenueStageLabels,
         revenueStageCaptions,
+        revenueStageCaptionColors,
         revenueStack,
         terrainCostPrefix = '',
         borderWidths = {},
@@ -373,6 +374,7 @@ export function createMapDrawing(
         | 'drawingStyle'
         | 'revenueStageLabels'
         | 'revenueStageCaptions'
+        | 'revenueStageCaptionColors'
         | 'revenueStack'
         | 'terrainCostPrefix'
         | 'borderWidths'
@@ -548,7 +550,13 @@ export function createMapDrawing(
                         : [])
                 ]
             },
-            { ...locationStyle, revenueStageLabels, revenueStageCaptions, revenueStack }
+            {
+                ...locationStyle,
+                revenueStageLabels,
+                revenueStageCaptions,
+                revenueStageCaptionColors,
+                revenueStack
+            }
         )
         const markers = location.markers ?? []
         const lifted = markers.some((marker) => {

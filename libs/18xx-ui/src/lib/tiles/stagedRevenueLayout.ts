@@ -11,6 +11,7 @@ export type RevenueCell = Point & {
     height: number
     /** Printed beside the value, as its phases. */
     caption?: string
+    captionColor?: string
     captionWidth: number
     /** The caption prints after the value rather than before it. */
     captionAfter?: true
@@ -34,6 +35,7 @@ export function stagedRevenueLayout(
     {
         stageLabels = {},
         captions = {},
+        captionColors = {},
         captionAfter = false,
         stack,
         fixed = false
@@ -41,6 +43,7 @@ export function stagedRevenueLayout(
         stageLabels?: Readonly<Record<string, string>>
         /** Phases printed beside each of several values, which then stack in a column. */
         captions?: Readonly<Record<string, string>>
+        captionColors?: Readonly<Record<string, string>>
         /** Prints the captions after the values, as on a board's east edge. */
         captionAfter?: boolean
         stack?: 'column' | 'row'
@@ -80,6 +83,9 @@ export function stagedRevenueLayout(
                 ...value,
                 text: text(value),
                 ...(captioned && captions[value.stage] ? { caption: captions[value.stage] } : {}),
+                ...(captioned && captionColors[value.stage]
+                    ? { captionColor: captionColors[value.stage] }
+                    : {}),
                 captionWidth,
                 ...(captionAfter ? { captionAfter: true as const } : {}),
                 width,

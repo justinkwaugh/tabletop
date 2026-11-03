@@ -14,7 +14,7 @@
     } = $props()
 </script>
 
-<section aria-label={label}>
+<section class="centered-panel" aria-label={label}>
     <StockPanelHeading text={heading} />
     <div class="cards">
         {@render children()}
