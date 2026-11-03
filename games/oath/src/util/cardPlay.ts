@@ -990,6 +990,24 @@ function reasonDiscardFirstListInvalid(
     return new Set(list).size === list.length ? undefined : 'a card is discarded first once'
 }
 
+/**
+ * R-5.1.4.II, R-7.6.4 — only a card played as an adviser discards one to make room, so from revision 33 an adviser
+ * named for any other play (to a site, the Revealed Vision space, the Conspiracy's, or a discard) is refused: the
+ * kept card's, Land Warden's second card's, a facedown adviser's (R-6.1) and False Prophet's alike. Before it
+ * (R-X.4) such a play was accepted and the adviser stayed. An empty list names none.
+ */
+function reasonAdviserDiscardNotForAdviserPlay(
+    state: HydratedOathGameState,
+    play: SearchPlay,
+    options: CardPlayOptions
+): string | undefined {
+    if (play === SearchPlay.Adviser || (options.discardedAdviserCardIds?.length ?? 0) === 0)
+        return undefined
+    return isAtLeastOathRevision(state, OathRevision.EngineFixes28)
+        ? 'an adviser is discarded only for a card played as an adviser'
+        : undefined
+}
+
 /** R-11.10 the Great Slum, R-5.1.4.I the People's Favor, Crop Rotation — a card discarded before a site play. */
 function reasonDiscardFirstInvalid(
     state: HydratedOathGameState,
@@ -1067,6 +1085,8 @@ export function reasonCannotPlaceCard(
     const definition = cardDefinition(cardId)
     const listInvalid = reasonDiscardFirstListInvalid(state, options)
     if (listInvalid) return listInvalid
+    const adviserDiscardInvalid = reasonAdviserDiscardNotForAdviserPlay(state, play, options)
+    if (adviserDiscardInvalid) return adviserDiscardInvalid
 
     switch (play) {
         case SearchPlay.Site: {
