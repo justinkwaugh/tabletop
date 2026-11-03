@@ -244,3 +244,57 @@ describe("Witch's Bargain's steps, in order (revision 32)", () => {
         expect(legal.spec.max).toBe(5)
     })
 })
+
+describe("Witch's Bargain's steps from revision 33 — each takes as many as the other player holds", () => {
+    const at33 = { revision: OathRevision.EngineFixes28 }
+
+    it('a secret is offered to a player with 1 favor, and a pair to one with no secret; Use sends both', async () => {
+        const { draft, power, legal, picked, state, tapPlayer, tapCount } = await bargaining({
+            ...at33,
+            dana: { favor: 2 },
+            rhys: { favor: 1, secrets: 0 },
+            ann: { favor: 0, secrets: 0 }
+        })
+        tapPlayer(0, RHYS)
+        expect(bargainStepRows(state(), DANA, picked())).toEqual({
+            secrets: { held: 2, addable: 1, picked: 0 },
+            pairs: { held: 2, addable: 1, picked: 0 }
+        })
+        tapCount('secretsGiven', 1)
+        // Rhys's 1 favor taken: 3 held, still 1 pair.
+        expect(bargainStepRows(state(), DANA, picked())).toEqual({
+            secrets: { held: 2, addable: 1, picked: 1 },
+            pairs: { held: 3, addable: 1, picked: 0 }
+        })
+        // Ann, with nothing, can still be given a pair.
+        expect(bargainThenPlayers(state(), DANA, legal, picked())).toEqual([ANN])
+        tapPlayer(1, ANN)
+        expect(bargainStepRows(state(), DANA, picked())).toEqual({
+            secrets: { held: 0, addable: 0, picked: 0 },
+            pairs: { held: 3, addable: 1, picked: 0 }
+        })
+        tapCount('pairsGiven', 1)
+        expect(draft.choicesFor(power)).toEqual([
+            { kind: PowerChoiceKind.Bargain, playerId: RHYS, secretsGiven: 1, pairsGiven: 0 },
+            { kind: PowerChoiceKind.Bargain, playerId: ANN, secretsGiven: 0, pairsGiven: 1 }
+        ])
+        expect(draft.reasonCannotUse(power)).toBeUndefined()
+    })
+
+    it('at revision 32 the same seats are offered neither, and the engine refuses both', async () => {
+        const { draft, power, picked, pick, state, tapPlayer } = await bargaining({
+            dana: { favor: 2 },
+            rhys: { favor: 1, secrets: 0 },
+            ann: { favor: 0, secrets: 0 }
+        })
+        tapPlayer(0, RHYS)
+        expect(bargainStepRows(state(), DANA, picked())).toEqual({
+            secrets: { held: 2, addable: 0, picked: 0 },
+            pairs: { held: 2, addable: 0, picked: 0 }
+        })
+        pick([step(RHYS, 1, 0)])
+        expect(draft.reasonCannotUse(power)).toMatch(/rhys has 1 favor, not the 2 you would take/)
+        pick([step(ANN, 0, 1)])
+        expect(draft.reasonCannotUse(power)).toMatch(/ann has 0 secrets, not the 1 you would take/)
+    })
+})
