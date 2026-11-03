@@ -339,6 +339,10 @@ export type TableName =
     | 'witchsBargain'
     | 'witchsBargainSilenced'
     | 'witchsBargainOneOther'
+    | 'witchsBargainOlder'
+    | 'witchsBargainOlderOneFavor'
+    | 'witchsBargainOlderCostOnly'
+    | 'witchsBargainOlderSilencedOneFavor'
     | 'witchsBargainSteps'
     | 'witchsBargainStepsShort'
     | 'drumAsked'
@@ -2587,11 +2591,16 @@ function usePowerTable(): PlayedTable {
 }
 
 /**
- * Witch's Bargain in Dana's advisers, in a game created at revision 7: Dana (5 favor, 3 secrets),
- * Rhys (4, 2) and Ann (1, 1) all stand at the top Cradle site, or Ann at the next one, leaving Rhys
- * the only player there. With Vow of Silence too, Dana cannot give anyone secrets.
+ * Witch's Bargain in Dana's advisers, in a game created at revision 7 (or `revision`): Dana
+ * (5 favor, 3 secrets, or `favor` and `secrets`), Rhys (4, 2) and Ann (1, 1) all stand at the top
+ * Cradle site, or Ann at the next one, leaving Rhys the only player there. With Vow of Silence
+ * too, Dana cannot give anyone secrets.
  */
-function witchsBargainTable(silenced: boolean, annAway: boolean): PlayedTable {
+function witchsBargainTable(
+    silenced: boolean,
+    annAway: boolean,
+    dana: { favor?: number; secrets?: number; revision?: OathRevision } = {}
+): PlayedTable {
     const [home, next] = mapSlotsFor(Region.Cradle)
     const state = testState(
         [
@@ -2600,8 +2609,8 @@ function witchsBargainTable(silenced: boolean, annAway: boolean): PlayedTable {
                 color: Color.Purple,
                 status: PlayerStatus.Chancellor,
                 siteId: home,
-                favor: 5,
-                secrets: 3,
+                favor: dana.favor ?? 5,
+                secrets: dana.secrets ?? 3,
                 advisers: [
                     { cardId: 'denizen.arcane.witchs-bargain', faceUp: true },
                     ...(silenced ? [{ cardId: 'denizen.arcane.vow-of-silence', faceUp: true }] : [])
@@ -2630,7 +2639,7 @@ function witchsBargainTable(silenced: boolean, annAway: boolean): PlayedTable {
             map: allMapSlots(),
             siteCards: fixtureSitesOnTheBoard(),
             denizensBySite: { [home]: [] },
-            oathRevision: OathRevision.EngineFixes3
+            oathRevision: dana.revision ?? OathRevision.EngineFixes3
         }
     )
     openTurn(state, 'dana')
@@ -5587,6 +5596,16 @@ const TABLES: Record<TableName, () => PlayedTable | Promise<PlayedTable>> = {
     witchsBargain: () => witchsBargainTable(false, false),
     witchsBargainSilenced: () => witchsBargainTable(true, false),
     witchsBargainOneOther: () => witchsBargainTable(false, true),
+    // Revision 31, the last before the steps in order: Dana as above, with 1 favor, with only the
+    // secret the cost places, or with Vow of Silence and 1 favor.
+    witchsBargainOlder: () =>
+        witchsBargainTable(false, false, { revision: OathRevision.EngineFixes26 }),
+    witchsBargainOlderOneFavor: () =>
+        witchsBargainTable(false, false, { favor: 1, revision: OathRevision.EngineFixes26 }),
+    witchsBargainOlderCostOnly: () =>
+        witchsBargainTable(false, false, { secrets: 1, revision: OathRevision.EngineFixes26 }),
+    witchsBargainOlderSilencedOneFavor: () =>
+        witchsBargainTable(true, false, { favor: 1, revision: OathRevision.EngineFixes26 }),
     witchsBargainSteps: () => witchsBargainStepsTable(false),
     witchsBargainStepsShort: () => witchsBargainStepsTable(true),
     modifierTravel: () => modifierTable('modifierTravel'),

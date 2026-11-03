@@ -714,7 +714,7 @@ describe("Witch's Bargain's picks (revision 7)", () => {
             )
         ).toEqual(['rhys', 'ann'])
         expect(draft.picksComplete(power)).toBe(false)
-        pick(withBargainPlayer(legal, picked(), 'rhys'))
+        pick(withBargainPlayer(session.gameState, ME, legal, picked(), 'rhys'))
         expect(draft.picksComplete(power)).toBe(false)
         // The 3rd secret is the cost's; the 5th favor makes no pair.
         expect(bargainRows(session.gameState, ME, picked(), 'rhys')).toEqual({
@@ -726,7 +726,7 @@ describe("Witch's Bargain's picks (revision 7)", () => {
             secrets: { held: 3, addable: 0, picked: 0 },
             pairs: { held: 5, addable: 1, picked: 0 }
         })
-        pick(withBargainCount(legal, picked(), 'rhys', 'secretsGiven', 1))
+        pick(withBargainCount(session.gameState, ME, legal, picked(), 'rhys', 'secretsGiven', 1))
         expect(draft.picksComplete(power)).toBe(true)
         expect(draft.choicesFor(power)).toEqual([
             { kind: PowerChoiceKind.Bargain, playerId: 'rhys', secretsGiven: 1, pairsGiven: 0 }
@@ -736,15 +736,15 @@ describe("Witch's Bargain's picks (revision 7)", () => {
 
     it('several players: each gets their own rows, held to what the others leave, and is sent in the order picked', async () => {
         const { session, draft, power, pick, picked, legal } = await bargaining()
-        pick(withBargainPlayer(legal, picked(), 'rhys'))
-        pick(withBargainCount(legal, picked(), 'rhys', 'secretsGiven', 2))
-        pick(withBargainCount(legal, picked(), 'rhys', 'pairsGiven', 1))
-        pick(withBargainPlayer(legal, picked(), 'ann'))
+        pick(withBargainPlayer(session.gameState, ME, legal, picked(), 'rhys'))
+        pick(withBargainCount(session.gameState, ME, legal, picked(), 'rhys', 'secretsGiven', 2))
+        pick(withBargainCount(session.gameState, ME, legal, picked(), 'rhys', 'pairsGiven', 1))
+        pick(withBargainPlayer(session.gameState, ME, legal, picked(), 'ann'))
         expect(bargainRows(session.gameState, ME, picked(), 'ann')).toEqual({
             secrets: { held: 3, addable: 0, picked: 0 },
             pairs: { held: 5, addable: 1, picked: 0 }
         })
-        pick(withBargainCount(legal, picked(), 'ann', 'pairsGiven', 1))
+        pick(withBargainCount(session.gameState, ME, legal, picked(), 'ann', 'pairsGiven', 1))
         expect(draft.choicesFor(power)).toEqual([
             { kind: PowerChoiceKind.Bargain, playerId: 'rhys', secretsGiven: 2, pairsGiven: 1 },
             { kind: PowerChoiceKind.Bargain, playerId: 'ann', secretsGiven: 0, pairsGiven: 1 }
@@ -764,14 +764,14 @@ describe("Witch's Bargain's picks (revision 7)", () => {
     })
 
     it('a tap on the piece at the count sets none; a tap on a picked chip drops the player and their counts', async () => {
-        const { draft, power, pick, picked, legal } = await bargaining()
-        pick(withBargainPlayer(legal, picked(), 'rhys'))
-        pick(withBargainCount(legal, picked(), 'rhys', 'secretsGiven', 2))
-        pick(withBargainCount(legal, picked(), 'rhys', 'secretsGiven', 2))
+        const { session, draft, power, pick, picked, legal } = await bargaining()
+        pick(withBargainPlayer(session.gameState, ME, legal, picked(), 'rhys'))
+        pick(withBargainCount(session.gameState, ME, legal, picked(), 'rhys', 'secretsGiven', 2))
+        pick(withBargainCount(session.gameState, ME, legal, picked(), 'rhys', 'secretsGiven', 2))
         expect(picked()).toEqual([{ playerId: 'rhys', secretsGiven: 0, pairsGiven: 0 }])
         expect(draft.picksComplete(power)).toBe(false)
-        pick(withBargainCount(legal, picked(), 'rhys', 'pairsGiven', 1))
-        pick(withBargainPlayer(legal, picked(), 'rhys'))
+        pick(withBargainCount(session.gameState, ME, legal, picked(), 'rhys', 'pairsGiven', 1))
+        pick(withBargainPlayer(session.gameState, ME, legal, picked(), 'rhys'))
         expect(picked()).toEqual([])
         expect(draft.choicesFor(power)).toEqual([])
     })
@@ -783,35 +783,40 @@ describe("Witch's Bargain's picks (revision 7)", () => {
         ).toEqual(['rhys'])
         // Shown picked, never stored: nothing for Undo to take back.
         expect(picked()).toEqual([])
-        expect(shownBargainPicks(legal, picked())).toEqual([
+        expect(shownBargainPicks(session.gameState, ME, legal, picked())).toEqual([
             { playerId: 'rhys', secretsGiven: 0, pairsGiven: 0 }
         ])
         expect(
-            bargainRows(session.gameState, ME, shownBargainPicks(legal, picked()), 'rhys')
+            bargainRows(
+                session.gameState,
+                ME,
+                shownBargainPicks(session.gameState, ME, legal, picked()),
+                'rhys'
+            )
         ).toEqual({
             secrets: { held: 3, addable: 2, picked: 0 },
             pairs: { held: 5, addable: 2, picked: 0 }
         })
         expect(draft.picksComplete(power)).toBe(false)
         // The pick is required: a tap on the one chip changes nothing.
-        pick(withBargainPlayer(legal, picked(), 'rhys'))
+        pick(withBargainPlayer(session.gameState, ME, legal, picked(), 'rhys'))
         expect(picked()).toEqual([])
-        expect(shownBargainPicks(legal, picked())).toEqual([
+        expect(shownBargainPicks(session.gameState, ME, legal, picked())).toEqual([
             { playerId: 'rhys', secretsGiven: 0, pairsGiven: 0 }
         ])
         expect(draft.picksComplete(power)).toBe(false)
-        pick(withBargainCount(legal, picked(), 'rhys', 'pairsGiven', 1))
+        pick(withBargainCount(session.gameState, ME, legal, picked(), 'rhys', 'pairsGiven', 1))
         expect(picked()).toEqual([{ playerId: 'rhys', secretsGiven: 0, pairsGiven: 1 }])
         expect(draft.picksComplete(power)).toBe(true)
         expect(draft.choicesFor(power)).toEqual([
             { kind: PowerChoiceKind.Bargain, playerId: 'rhys', secretsGiven: 0, pairsGiven: 1 }
         ])
-        pick(withBargainPlayer(legal, picked(), 'rhys'))
+        pick(withBargainPlayer(session.gameState, ME, legal, picked(), 'rhys'))
         expect(picked()).toEqual([{ playerId: 'rhys', secretsGiven: 0, pairsGiven: 1 }])
         // Undo takes back the pair; Rhys stays shown picked.
         expect(draft.back()).toBe(true)
         expect(picked()).toEqual([])
-        expect(shownBargainPicks(legal, picked())).toEqual([
+        expect(shownBargainPicks(session.gameState, ME, legal, picked())).toEqual([
             { playerId: 'rhys', secretsGiven: 0, pairsGiven: 0 }
         ])
         expect(draft.picksComplete(power)).toBe(false)

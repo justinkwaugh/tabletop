@@ -1,7 +1,11 @@
 import {
+    HydratedUseActionPower,
     PowerChoiceKind,
+    PowerTiming,
+    powerIndexOf,
     reasonCannotBargainInOrder,
     usableFavor,
+    WITCHS_BARGAIN,
     witchsBargainBounds,
     witchsBargainStepBounds,
     type BargainEntry,
@@ -76,24 +80,67 @@ export function bargainPlayers(legal: LegalChoice): string[] {
     )
 }
 
+/**
+ * "With:": the players the spec offers with whom an exchange can be made now, as the engine judges
+ * a use naming one exchange with them alone, a secret given or a pair of favor. Every exchange gives
+ * one or the other, and giving more only asks more, so a player the engine refuses both for is one
+ * nothing can be exchanged with. Before revision 32 the entries share only what the user holds, so
+ * these are the players any entry can name; from it they are the players a first step can name
+ * ("Then:" offers those of later steps). From revision 33 a step that takes 0 is still one.
+ */
+export function bargainWithPlayers(
+    state: HydratedOathGameState,
+    playerId: string,
+    legal: LegalChoice
+): string[] {
+    const powerIndex = powerIndexOf(WITCHS_BARGAIN, PowerTiming.Action)
+    const allowed = (entry: BargainPick) =>
+        HydratedUseActionPower.reasonCannotUse(state, playerId, WITCHS_BARGAIN, powerIndex, [
+            entryOf(entry)
+        ]) === undefined
+    return bargainPlayers(legal).filter(
+        (withId) =>
+            allowed({ playerId: withId, secretsGiven: 1, pairsGiven: 0 }) ||
+            allowed({ playerId: withId, secretsGiven: 0, pairsGiven: 1 })
+    )
+}
+
+/**
+ * Witch's Bargain with no player "With:" can offer (Vow of Silence and under 2 favor, say): every
+ * use of it is refused, so the power list leaves it out.
+ */
+export function offersNoBargain(
+    state: HydratedOathGameState,
+    playerId: string,
+    choices: readonly LegalChoice[]
+): boolean {
+    return choices.some(
+        (legal) =>
+            legal.spec.kind === PowerChoiceKind.Bargain &&
+            legal.spec.min > 0 &&
+            bargainWithPlayers(state, playerId, legal).length === 0
+    )
+}
+
 /** The one player a required pick allows: shown picked from the start, as every one-option pick is. */
-function onlyPlayer(legal: LegalChoice): string | undefined {
-    const players = bargainPlayers(legal)
+function onlyPlayer(legal: LegalChoice, players: readonly string[]): string | undefined {
     return legal.spec.min > 0 && players.length === 1 ? players[0] : undefined
 }
 
 /**
- * The picks the picker shows: those of players the spec offers, or, with nothing picked and one
+ * The picks the picker shows: those of players "With:" offers, or, with nothing picked and one
  * player offered, that player with nothing given. Derived and never stored, so Undo has nothing
  * to take back until a count is tapped.
  */
 export function shownBargainPicks(
+    state: HydratedOathGameState,
+    playerId: string,
     legal: LegalChoice,
     picks: readonly BargainPick[]
 ): BargainPick[] {
-    const players = bargainPlayers(legal)
+    const players = bargainWithPlayers(state, playerId, legal)
     const shown = picks.filter((pick) => players.includes(pick.playerId))
-    const only = onlyPlayer(legal)
+    const only = onlyPlayer(legal, players)
     return shown.length === 0 && only !== undefined
         ? [{ playerId: only, secretsGiven: 0, pairsGiven: 0 }]
         : shown
@@ -104,41 +151,49 @@ export function shownBargainPicks(
  * given; the one player a required pick allows is never dropped.
  */
 export function withBargainPlayer(
+    state: HydratedOathGameState,
+    playerId: string,
     legal: LegalChoice,
     picks: readonly BargainPick[],
-    playerId: string
+    withId: string
 ): BargainPick[] {
-    if (onlyPlayer(legal) === playerId) return [...picks]
-    return picks.some((pick) => pick.playerId === playerId)
-        ? picks.filter((pick) => pick.playerId !== playerId)
-        : [...picks, { playerId, secretsGiven: 0, pairsGiven: 0 }]
+    if (onlyPlayer(legal, bargainWithPlayers(state, playerId, legal)) === withId) return [...picks]
+    return picks.some((pick) => pick.playerId === withId)
+        ? picks.filter((pick) => pick.playerId !== withId)
+        : [...picks, { playerId: withId, secretsGiven: 0, pairsGiven: 0 }]
 }
 
 /** A tap on the Nth piece (or pair) sets N, and a tap on the one at the count sets 0. */
 export function withBargainCount(
+    state: HydratedOathGameState,
+    playerId: string,
     legal: LegalChoice,
     picks: readonly BargainPick[],
-    playerId: string,
+    withId: string,
     term: 'secretsGiven' | 'pairsGiven',
     count: number
 ): BargainPick[] {
-    return shownBargainPicks(legal, picks).map((pick) =>
-        pick.playerId === playerId ? { ...pick, [term]: pick[term] === count ? 0 : count } : pick
+    return shownBargainPicks(state, playerId, legal, picks).map((pick) =>
+        pick.playerId === withId ? { ...pick, [term]: pick[term] === count ? 0 : count } : pick
     )
 }
 
 /**
- * From revision 32, the steps the picker shows: those named, up to the first player the spec no
- * longer offers; or, with none named and one player offered, that player with nothing given.
+ * From revision 32, the steps the picker shows: those named, up to the first whose player is no
+ * longer offered (the first step's by "With:", a later one's by the spec); or, with none named and
+ * one player offered by "With:", that player with nothing given.
  */
 export function shownBargainSteps(
+    state: HydratedOathGameState,
+    playerId: string,
     legal: LegalChoice,
     picks: readonly BargainPick[]
 ): BargainPick[] {
+    const first = bargainWithPlayers(state, playerId, legal)
     const players = bargainPlayers(legal)
-    const gone = picks.findIndex((pick) => !players.includes(pick.playerId))
+    const gone = picks.findIndex((pick, k) => !(k === 0 ? first : players).includes(pick.playerId))
     const shown = gone < 0 ? [...picks] : picks.slice(0, gone)
-    const only = onlyPlayer(legal)
+    const only = onlyPlayer(legal, first)
     return shown.length === 0 && only !== undefined
         ? [{ playerId: only, secretsGiven: 0, pairsGiven: 0 }]
         : shown
@@ -201,7 +256,7 @@ export function bargainThenPlayers(
     )
 }
 
-/** The chips of step `k`: "With:" offers every player there, a later step what "Then:" offered it. */
+/** The chips of step `k`: "With:" offers those a first step can name, a later step what "Then:" offered it. */
 export function bargainStepPlayers(
     state: HydratedOathGameState,
     playerId: string,
@@ -210,7 +265,7 @@ export function bargainStepPlayers(
     k: number
 ): string[] {
     return k === 0
-        ? bargainPlayers(legal)
+        ? bargainWithPlayers(state, playerId, legal)
         : bargainThenPlayers(state, playerId, legal, steps.slice(0, k))
 }
 
@@ -219,15 +274,19 @@ export function bargainStepPlayers(
  * picked chip drops it and them. The one player a required pick allows is never dropped.
  */
 export function withBargainStep(
+    state: HydratedOathGameState,
+    playerId: string,
     legal: LegalChoice,
     picks: readonly BargainPick[],
     k: number,
-    playerId: string
+    withId: string
 ): BargainPick[] {
-    const shown = shownBargainSteps(legal, picks)
-    if (shown[k]?.playerId === playerId)
-        return k === 0 && onlyPlayer(legal) === playerId ? [...picks] : shown.slice(0, k)
-    return [...shown.slice(0, k), { playerId, secretsGiven: 0, pairsGiven: 0 }]
+    const shown = shownBargainSteps(state, playerId, legal, picks)
+    if (shown[k]?.playerId === withId)
+        return k === 0 && onlyPlayer(legal, bargainWithPlayers(state, playerId, legal)) === withId
+            ? [...picks]
+            : shown.slice(0, k)
+    return [...shown.slice(0, k), { playerId: withId, secretsGiven: 0, pairsGiven: 0 }]
 }
 
 /**
@@ -242,7 +301,7 @@ export function withBargainStepCount(
     term: 'secretsGiven' | 'pairsGiven',
     count: number
 ): BargainPick[] {
-    const shown = shownBargainSteps(legal, picks)
+    const shown = shownBargainSteps(state, playerId, legal, picks)
     const open = shown.length - 1
     const step = shown[open]
     const next = { ...step, [term]: step[term] === count ? 0 : count }

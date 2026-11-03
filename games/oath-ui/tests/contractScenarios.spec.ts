@@ -9926,6 +9926,66 @@ test.describe('Witch’s Bargain: the players at your site, then your pieces for
     }
 })
 
+/**
+ * Witch's Bargain at revision 31, the last before the steps in order: Dana (5 favor, 3 secrets, or
+ * 1 favor, or only the secret the cost places), Rhys (4, 2) and Ann (1, 1) share one site. As from
+ * revision 32, a row with no pieces to give is hidden, and "With:" offers only the players an
+ * exchange can be made with.
+ */
+test.describe('Witch’s Bargain at revision 31: what you hold, and whom you can deal with', () => {
+    const secretsRow = (page: Page) => bargainEntry(page).locator('[data-bargain-row="secrets"]')
+    const pairsRow = (page: Page) => bargainEntry(page).locator('[data-bargain-row="pairs"]')
+
+    test('Dana has 1 favor: no pairs row, and “With:” offers Rhys alone, shown picked', async ({
+        page
+    }) => {
+        await openTable(page, 'witchsBargainOlderOneFavor')
+        await usePower(page).click()
+        // The one player offered is never dropped: the tap keeps Rhys picked.
+        await bargainChip(page, 'rhys').click()
+        await expect(secretsRow(page)).toHaveCount(1)
+        await expect(secretPieces(page, 'rhys')).toHaveCount(3)
+        await expect(pairsRow(page)).toHaveCount(0)
+        await expect(favorPairs(page, 'rhys')).toHaveCount(0)
+        await expect(leftoverPieces(page)).toHaveCount(0)
+        // Ann's 1 favor buys no secret, and Dana's 1 favor makes no pair.
+        await expect(bargainChip(page, 'ann')).toHaveCount(0)
+        await expect(bargainChip(page, 'rhys')).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    test('only the cost secret: the secrets row keeps the untappable cost piece, as from revision 32', async ({
+        page
+    }) => {
+        await openTable(page, 'witchsBargainOlderCostOnly')
+        await usePower(page).click()
+        await bargainChip(page, 'rhys').click()
+        await expect(secretsRow(page)).toHaveCount(1)
+        await expect(secretPieces(page, 'rhys')).toHaveCount(1)
+        await expect(secretPieces(page, 'rhys')).toBeDisabled()
+        await expect(pairsRow(page)).toHaveCount(1)
+        await expect(favorPairs(page, 'rhys')).toHaveCount(2)
+    })
+
+    test('Dana holds both: both rows, as before', async ({ page }) => {
+        await openTable(page, 'witchsBargainOlder')
+        await usePower(page).click()
+        await expect(bargainChip(page, 'ann')).toHaveCount(1)
+        await bargainChip(page, 'rhys').click()
+        await expect(secretsRow(page)).toHaveCount(1)
+        await expect(secretPieces(page, 'rhys')).toHaveCount(3)
+        await expect(pairsRow(page)).toHaveCount(1)
+        await expect(favorPairs(page, 'rhys')).toHaveCount(2)
+    })
+
+    test('Vow of Silence and 1 favor: nothing can be exchanged, so Use a power is not offered', async ({
+        page
+    }) => {
+        await openTable(page, 'witchsBargainOlderSilencedOneFavor')
+        await expect(tile(page, 'Travel')).toBeVisible()
+        await expect(usePower(page)).toHaveCount(0)
+    })
+})
+
 const thenChip = (page: Page, name: string) =>
     bargainEntry(page).locator('[data-bargain-then]').getByRole('button', { name, exact: true })
 const doneLines = (page: Page) => bargainEntry(page).locator('[data-bargain-done]')
