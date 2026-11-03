@@ -96,6 +96,8 @@ export type HistoryDescription = {
     important?: boolean
     /** A company whose token leads the row, such as one that floated or closed. */
     companyToken?: string
+    /** A company's turning point, its row a band of the company's colour. */
+    milestone?: boolean
     /** A change to every player's certificate limit, called out below the row. */
     certificateLimit?: CertificateLimitChange
     /**

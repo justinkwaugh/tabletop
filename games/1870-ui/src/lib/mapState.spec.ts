@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { DestinationStationSource } from '@tabletop/18xx'
 import { PortLocationIds, type RevenueToken } from '@tabletop/1870'
-import { portLocationIds } from './mapState.js'
+import { destinationMarkers, portLocationIds } from './mapState.js'
 
 const portsShown = (revenueTokens: RevenueToken[], closed = false) =>
     portLocationIds({ revenueTokens, companies: [{ id: 'GSC', kind: 'private', closed }] })
@@ -22,5 +23,37 @@ describe('the port anchors', () => {
     })
     it('go once the Gulf Shipping Company has closed with no port placed', () => {
         expect(portsShown([], true)).toEqual([])
+    })
+})
+
+describe('the destination markers', () => {
+    const atDenver = (facts: Parameters<typeof destinationMarkers>[0]) =>
+        destinationMarkers(facts)
+            .filter((marker) => marker.locationId === 'A2')
+            .map((marker) => marker.kind)
+    const none = { destinationRunsMade: [], destinationStations: [] }
+    const placed = {
+        destinationStations: ['FW'],
+        stationAccess: [
+            {
+                companyId: 'FW',
+                locationId: 'A2',
+                nodeId: 'offboard',
+                sourceId: DestinationStationSource
+            }
+        ]
+    }
+
+    it('show the mark until the company reaches its destination', () => {
+        expect(atDenver(none)).toEqual(['destination:FW'])
+    })
+    it('put the station in the mark’s place during the connection run', () => {
+        expect(atDenver({ ...placed, destinationRunsMade: [] })).toEqual(['station:FW'])
+    })
+    it('keep the station there after the run', () => {
+        expect(atDenver({ ...placed, destinationRunsMade: ['FW'] })).toEqual(['station:FW'])
+    })
+    it('show nothing once a company that kept its station has run', () => {
+        expect(atDenver({ destinationRunsMade: ['FW'], destinationStations: [] })).toEqual([])
     })
 })

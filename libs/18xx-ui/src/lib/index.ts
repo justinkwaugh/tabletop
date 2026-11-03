@@ -39,6 +39,7 @@ export { default as StockMarket } from './stock/StockMarket.svelte'
 
 export * from './maps/stationPresentation.js'
 export type { BonusArrowFooter, MapBonusArrow } from './maps/bonusArrows.js'
+export { contrastingTextColor } from './colors/contrastingTextColor.js'
 export type { RevenueStageColor, RevenueStageColors } from './colors/revenueStageColors.js'
 export { default as MapViewer } from './maps/MapViewer.svelte'
 export { default as FinanceMap } from './maps/FinanceMap.svelte'

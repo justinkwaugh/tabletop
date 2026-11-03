@@ -54,17 +54,18 @@ export function describe1870Action(
         const destination = company1870(action.companyId)?.destination
         assertExists(destination, 'A connection run reaches its company’s destination')
         return {
-            text: `${companyName(action.companyId)} reached ${place(destination)}`,
+            text: `${companyName(action.companyId)} reached its destination, ${place(destination)}`,
             companyToken: action.companyId,
             omitActor: true,
-            important: true
+            important: true,
+            milestone: true
         }
     }
     if (isChooseDestinationStation(action))
         return {
             text: action.onMap
-                ? `placed ${companyName(action.companyId)}’s destination station, doubling that city`
-                : `kept ${companyName(action.companyId)}’s destination station as a $100 station`
+                ? 'Placed destination station'
+                : 'Kept destination station as a $100 station'
         }
     if (isPlaceRevenueToken(action))
         return {

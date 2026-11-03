@@ -23,6 +23,15 @@ A president's stock turn with a company that may redeem (p. 16).
 - **Company action** in the stock panel lists the shares it may redeem: a Market share while there is one, otherwise each holder's, who may refuse.
 - Redeeming is the turn's only action.
 
+## Connection turn
+
+The start of the Fort Worth's turn, when it can earn a connection run. It needs two more tiles to reach Denver and a longer train: the route is four stops (J3, F5, D5, A2) and it owns only a 3-train.
+
+- Lay straight #9 tiles on C4 and B3, then take the turn as usual: place a station if wanted, run, pay out.
+- In the buy-trains step, buy the 4-train from MKT, which has the same president, at any price. That ends the turn.
+- The connection run follows, its extra run, before the Texas & Pacific's turn.
+- End the turn without the tiles or the 4-train and no connection run comes.
+
 ## Connection run
 
 A company has just become able to run a train from its home to its destination, between companies' turns (p. 22).

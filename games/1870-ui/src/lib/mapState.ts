@@ -14,25 +14,36 @@ export function portLocationIds({ revenueTokens, companies }: PortFacts): readon
     return company.closed ? [] : PortLocationIds
 }
 
+type DestinationFacts = Pick<TitleState1870, 'destinationRunsMade' | 'destinationStations'> & {
+    stationAccess?: StationAccess[]
+}
+
+// A company's destination station takes the place of its printed mark, from the moment it is placed.
+export function destinationMarkers({
+    destinationRunsMade,
+    destinationStations,
+    stationAccess
+}: DestinationFacts) {
+    return Companies1870.flatMap((company) => {
+        const beside = stationAccess?.find(
+            (access) =>
+                access.companyId === company.id && access.sourceId === DestinationStationSource
+        )
+        if (beside) return [{ locationId: beside.locationId, kind: `station:${company.id}` }]
+        return destinationRunsMade.includes(company.id) || destinationStations.includes(company.id)
+            ? []
+            : [{ locationId: company.destination, kind: `destination:${company.id}` }]
+    })
+}
+
 export function mapState1870<
     State extends MapStateData & TitleState1870 & PortFacts & { stationAccess?: StationAccess[] }
 >(state: State) {
-    const beside = (state.stationAccess ?? []).filter(
-        (access) => access.sourceId === DestinationStationSource
-    )
     return {
         ...state,
         locationMarkers: [
             ...portLocationIds(state).map((locationId) => ({ locationId, kind: 'port' })),
-            ...Companies1870.flatMap((company) =>
-                state.destinationRunsMade.includes(company.id)
-                    ? []
-                    : [{ locationId: company.destination, kind: `destination:${company.id}` }]
-            ),
-            ...beside.map((access) => ({
-                locationId: access.locationId,
-                kind: `station:${access.companyId}`
-            })),
+            ...destinationMarkers(state),
             ...state.revenueTokens.map((token) => ({
                 locationId: token.locationId,
                 kind: `${token.companyId}:${token.kind}`

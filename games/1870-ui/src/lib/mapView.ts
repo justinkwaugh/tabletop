@@ -84,6 +84,15 @@ export const MapView1870: MapViewDefinition = {
         market: { x: 1010, y: -40, width: 1314, height: 760 },
         depot: { x: 1920, y: 400, width: 381, height: 187 }
     },
+    offboardNames: { fontSize: 11, color: '#4a0b0b' },
+    // Low enough for the hex to be wide enough, and short where the name would not otherwise fit.
+    namePositions: {
+        A2: { x: 0, y: -27 },
+        A22: { x: 0, y: -27 },
+        N1: { x: -8, y: -27 },
+        M22: { x: 8, y: -27 }
+    },
+    nameLines: { N1: ['SW'], M22: ['SE'] },
     stations: Stations,
     layouts: {
         ...TileLayouts1870,

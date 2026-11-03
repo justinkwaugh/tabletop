@@ -36,6 +36,16 @@ const Scenarios = [
                 .includes('RedeemShare')
     },
     {
+        slug: 'connection-turn',
+        name: 'Connection turn',
+        reached: (state) =>
+            state.machineState === 'LayingTrack' &&
+            state.trackStep?.companyId === 'FW' &&
+            state.trackStep.lays.length === 0 &&
+            state.operatingSet?.number === 5 &&
+            state.operatingSet.roundNumber === 1
+    },
+    {
         slug: 'connection-run',
         name: 'Connection run',
         reached: (state) => state.machineState === 'PlacingDestinationStation'
