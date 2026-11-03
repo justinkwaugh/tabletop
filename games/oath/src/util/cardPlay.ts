@@ -31,7 +31,7 @@ import {
     type PlayMapChanges
 } from '../powers/registry.js'
 import { pawnSiteId } from './pawn.js'
-import { denizensAfterPlay } from '../powers/vocabulary.js'
+import { denizensAfterPlay, playerStatusOverlay } from '../powers/vocabulary.js'
 import { isFaceupPlay, powerOutcomeOf } from './powerDoorway.js'
 import { PowerChoice, reasonChoicesInvalid } from './powerChoice.js'
 import {
@@ -1030,6 +1030,29 @@ export function reasonSiteFull(
         : undefined
 }
 
+/**
+ * R-7.3.3-H3 — the persistent powers a site or adviser play is judged on. Land Warden's second card is played after
+ * the kept card's power, so from revision 33 it is judged on the state that play leaves, as one played second to the
+ * Revealed Vision space is: the cards in play and the rulers the warbands give (`persistentsInPlay`), and the status
+ * the kept card's When Played power gives, which says whose enemy the player is (R-10.12). Before revision 33
+ * (R-X.4), and for every other play, on the state as it is.
+ */
+function persistentsAfterEarlierPlay(
+    state: HydratedOathGameState,
+    playerId: string,
+    options: CardPlayOptions
+): { state: HydratedOathGameState; mapChanges?: PlayMapChanges } {
+    const earlier = options.earlierMapChanges
+    if (!earlier || !isAtLeastOathRevision(state, OathRevision.EngineFixes28)) return { state }
+    return {
+        state:
+            earlier.status !== undefined
+                ? playerStatusOverlay(state, playerId, earlier.status)
+                : state,
+        mapChanges: earlier
+    }
+}
+
 export function reasonCannotPlaceCard(
     state: HydratedOathGameState,
     playerId: string,
@@ -1055,7 +1078,13 @@ export function reasonCannotPlaceCard(
                 return `${cardId} can only be played to your advisers`
             }
             // R-7.1.4 — Ruined Temple: enemies of its ruler cannot play beast cards faceup.
-            const barred = reasonPersistentForbidsFaceupPlay(state, playerId, cardId)
+            const inPlay = persistentsAfterEarlierPlay(state, playerId, options)
+            const barred = reasonPersistentForbidsFaceupPlay(
+                inPlay.state,
+                playerId,
+                cardId,
+                inPlay.mapChanges
+            )
             if (barred) return barred
             const target = options.toSiteId ?? here
             // R-5.1.4.I — the People's Favor's holder may play to any site in their region;
@@ -1143,6 +1172,7 @@ export function reasonCannotPlaceCard(
         }
 
         case SearchPlay.Adviser: {
+            const inPlay = persistentsAfterEarlierPlay(state, playerId, options)
             if (options.faceUp) {
                 if (kind !== CardKind.Denizen) {
                     return 'only denizens can be faceup advisers'
@@ -1152,13 +1182,22 @@ export function reasonCannotPlaceCard(
                     return `${cardId} can only be played to a site`
                 }
                 // R-7.1.4 — Ruined Temple: enemies of its ruler cannot play beast cards faceup.
-                const barred = reasonPersistentForbidsFaceupPlay(state, playerId, cardId)
+                const barred = reasonPersistentForbidsFaceupPlay(
+                    inPlay.state,
+                    playerId,
+                    cardId,
+                    inPlay.mapChanges
+                )
                 if (barred) return barred
             } else if (kind !== CardKind.Denizen && kind !== CardKind.Vision) {
                 return 'only denizens and Visions can be advisers'
             } else {
                 // R-7.1.4 — Gossip: enemies of its ruler cannot play facedown advisers.
-                const gagged = reasonPersistentForbidsFacedownAdviser(state, playerId)
+                const gagged = reasonPersistentForbidsFacedownAdviser(
+                    inPlay.state,
+                    playerId,
+                    inPlay.mapChanges
+                )
                 if (gagged) return gagged
             }
 
