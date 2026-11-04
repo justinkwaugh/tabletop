@@ -7,7 +7,8 @@
         "./logic-factory": {
             "types": "./logic-factory.d.ts",
             "default": "./logic-factory.js"
-        }
+        },
+        "./postcss": "./postcss.js"
     },
     "scripts": {
         "test": "node --test *.test.mjs"
@@ -16,6 +17,7 @@
         "@tabletop/games-config": "workspace:*",
         "@rollup/plugin-url": "8.0.2",
         "@sveltejs/vite-plugin-svelte": "^7.3.1",
+        "@tailwindcss/postcss": "^4.1.18",
         "rollup-plugin-brotli": "3.1.0",
         "rollup-plugin-postcss": "^4.0.2",
         "svelte": "^5.0.0",
