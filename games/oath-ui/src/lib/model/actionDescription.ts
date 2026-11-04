@@ -877,6 +877,21 @@ function describeActionCited(
             meta?.playedCardId === undefined
         // The searcher's own site and Vision: "your own" to them, "their own" to every other seat.
         const theirs = (words: string) => namedNote(words, action.playerId, names, viewerId)
+        // Land Warden — the second card, worded as the kept card is and named only by the metadata, which holds it
+        // only when the play showed it (R-9.4).
+        const secondPlayed = ({ play, faceUp }: { play: SearchPlay; faceUp?: boolean }): string => {
+            const shown = meta?.secondPlayedCardId
+            // A Vision revealed as the second card, named as a revealed Vision is.
+            if (play === SearchPlay.RevealedVision)
+                return shown
+                    ? `; ${theirs(`revealed ${cardName(shown)} as ${action.playerId}'s Vision`)}`
+                    : ''
+            const facedown = play === SearchPlay.Adviser && faceUp !== true && shown === undefined
+            return (
+                `; ${theirs(describePlay(play, `${action.playerId}'s`, shownCard(shown)))}` +
+                (facedown ? ', facedown' : '')
+            )
+        }
         return (
             `kept ${shownCard(kept)} and ${theirs(describePlay(action.play, `${action.playerId}'s`))}` +
             (facedown ? ', facedown' : '') +
@@ -884,10 +899,7 @@ function describeActionCited(
             gaining(meta?.secretsGained ?? 0, meta?.favorGained ?? 0, meta?.favorShort) +
             conspiracyTakeClause(action.conspiracy, action.playerId, names, viewerId) +
             whenPlayedClause(meta?.whenPlayed, kept, action.playerId, names, viewerId) +
-            // Land Warden — a Vision revealed as the second card, named as a revealed Vision is.
-            (action.secondPlay?.play === SearchPlay.RevealedVision && meta?.secondPlayedCardId
-                ? `; ${theirs(`revealed ${cardName(meta.secondPlayedCardId)} as ${action.playerId}'s Vision`)}`
-                : '')
+            (action.secondPlay ? secondPlayed(action.secondPlay) : '')
         )
     }
     if (isSearchSwap(action)) return describeSearchSwap(action)
@@ -1586,19 +1598,22 @@ function describeAdviserPlay(play: SearchPlay, card: string): string {
     }
 }
 
-/** A card's play; a Search names whose site by the searcher's id (`p1's`), for `namedNote` to word. */
-function describePlay(play: SearchPlay, whose = 'their'): string {
+/**
+ * A card's play; a Search names whose site by the searcher's id (`p1's`), for `namedNote` to word, and Land Warden's
+ * second card by its name in place of "it".
+ */
+function describePlay(play: SearchPlay, whose = 'their', card = 'it'): string {
     switch (play) {
         case SearchPlay.Site:
-            return `played it to ${whose} site`
+            return `played ${card} to ${whose} site`
         case SearchPlay.Adviser:
-            return 'played it as an adviser'
+            return `played ${card} as an adviser`
         case SearchPlay.RevealedVision:
-            return 'revealed it as a Vision'
+            return `revealed ${card} as a Vision`
         case SearchPlay.Conspiracy:
             return 'played the Conspiracy'
         case SearchPlay.Discard:
-            return 'discarded it'
+            return `discarded ${card}`
     }
 }
 

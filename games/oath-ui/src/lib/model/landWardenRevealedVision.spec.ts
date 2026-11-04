@@ -235,16 +235,16 @@ describe('the History names the Vision revealed second', () => {
         )
     })
 
-    it('control: the Vision second as a facedown adviser adds no clause and names no card', async () => {
+    it('control: the Vision second as a facedown adviser is "a card", facedown, and names no card', async () => {
         const lines = await linesFor({
             ...ALCHEMIST_TO_SITE,
             secondPlay: { cardId: CONQUEST, play: SearchPlay.Adviser, faceUp: false }
         })
         expect(lines.rhys).toBe(
-            'kept Alchemist and played it to their own site, discarding Wolves first, gaining 1 favor; 1 card went to the Provinces discard pile'
+            'kept Alchemist and played it to their own site, discarding Wolves first, gaining 1 favor; played a card as an adviser, facedown; 1 card went to the Provinces discard pile'
         )
         expect(lines.dana).toBe(
-            'kept Alchemist and played it to your own site, discarding Wolves first, gaining 1 favor; Wolves went to the Provinces discard pile'
+            'kept Alchemist and played it to your own site, discarding Wolves first, gaining 1 favor; played a card as an adviser, facedown; Wolves went to the Provinces discard pile'
         )
         expect(lines.rhys).not.toContain('Vision of Conquest')
     })

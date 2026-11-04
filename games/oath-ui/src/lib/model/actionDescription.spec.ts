@@ -3,6 +3,7 @@ import {
     ActionType,
     AnswerQuestion,
     Banner,
+    CURRENT_OATH_REVISION,
     CampaignTargetKind,
     type ConspiracyPlay,
     type ConspiracyTake,
@@ -10,6 +11,7 @@ import {
     HydratedAnswerQuestion,
     HydratedExileCitizen,
     MachineState,
+    OathVisibility,
     PowerQuestionKind,
     type OathPlayerState,
     type PowerQuestion,
@@ -45,7 +47,7 @@ import {
 } from './actionDescription.js'
 import { tokenParts } from './tokenText.js'
 import { ActionSource, Color, type GameAction } from '@tabletop/common'
-import { buildAction, testBanners, testPlayer, testState } from '@tabletop/oath/testing'
+import { buildAction, openTurn, testBanners, testPlayer, testState } from '@tabletop/oath/testing'
 import { siteName, slotLabel } from './names.js'
 import { chronicleRowsOf, shownInHistory } from './chronicleHistory.js'
 
@@ -1821,10 +1823,10 @@ describe('the history tab describes every action', () => {
             }
 
             expect(row(OathRevision.PlanCostsAndSearchPlays)).toBe(
-                'kept Wolves and played it to their own site, gaining 2 secrets; 1 card went to the Provinces discard pile'
+                'kept Wolves and played it to their own site, gaining 2 secrets; played Wayside Inn to their own site; 1 card went to the Provinces discard pile'
             )
             expect(row(OathRevision.CostsAndFacedownModifiers)).toBe(
-                'kept Wolves and played it to their own site, gaining 1 secret; 1 card went to the Provinces discard pile'
+                'kept Wolves and played it to their own site, gaining 1 secret; played Wayside Inn to their own site; 1 card went to the Provinces discard pile'
             )
         })
 
@@ -1888,10 +1890,10 @@ describe('the history tab describes every action', () => {
             }
 
             expect(row(INN)).toBe(
-                'kept Longbows and played it to their own site, gaining 2 favor; Bob gained 2 favor from the Order bank (Saddle Makers); gained 1 hearth favor (Fertile Valley, Homeland); 1 card went to the Provinces discard pile'
+                'kept Longbows and played it to their own site, gaining 2 favor; played Wayside Inn to their own site; Bob gained 2 favor from the Order bank (Saddle Makers); gained 1 hearth favor (Fertile Valley, Homeland); 1 card went to the Provinces discard pile'
             )
             expect(row(TENTS)).toBe(
-                'kept Longbows and played it to their own site, gaining 2 favor; Bob gained 2 favor from the Order bank (Saddle Makers); Bob gained 2 favor from the Nomad bank (Saddle Makers); 1 card went to the Provinces discard pile'
+                'kept Longbows and played it to their own site, gaining 2 favor; played Tents to their own site; Bob gained 2 favor from the Order bank (Saddle Makers); Bob gained 2 favor from the Nomad bank (Saddle Makers); 1 card went to the Provinces discard pile'
             )
         })
 
@@ -2563,7 +2565,7 @@ describe('R-10.13 — each counted warband takes the owner its own words name, e
                 }
             })
             expect(describeAction(row, nameOf)).toBe(
-                'kept Wayside Inn and played it to their own site, gaining 2 favor; Salt the Earth: discarded 3 denizens at Provinces 1; its capacity is now 1'
+                'kept Wayside Inn and played it to their own site, gaining 2 favor; played Salt the Earth to their own site; Salt the Earth: discarded 3 denizens at Provinces 1; its capacity is now 1'
             )
         })
 
@@ -2584,7 +2586,7 @@ describe('R-10.13 — each counted warband takes the owner its own words name, e
                 }
             })
             expect(describeAction(row, nameOf)).toBe(
-                'kept Dazzle and played it to their own site, gaining 2 favor: discarded 1 hearth and order cards in the region'
+                'kept Dazzle and played it to their own site, gaining 2 favor: discarded 1 hearth and order cards in the region; played Rangers to their own site'
             )
         })
 
@@ -2607,7 +2609,7 @@ describe('R-10.13 — each counted warband takes the owner its own words name, e
                 }
             })
             expect(describeAction(row, nameOf)).toBe(
-                'kept Wayside Inn and played it to their own site, discarding Wolves first, gaining 2 favor; 2 cards went to the Cradle discard pile'
+                'kept Wayside Inn and played it to their own site, discarding Wolves first, gaining 2 favor; played Longbows to their own site; 2 cards went to the Cradle discard pile'
             )
         })
 
@@ -3397,6 +3399,191 @@ describe('a History line names a discard pile by its region as the board prints 
         })
         expect(describeAction(used, nameOf, 'p2')).toContain(
             'the Provinces discard pile went onto the Hinterland pile'
+        )
+    })
+})
+
+// Land Warden: "You may play two cards you draw (instead of one) if you play at least one card to a site."
+describe('Land Warden — a Search names its second card as it names the kept one', () => {
+    const LAND_WARDEN = 'denizen.hearth.land-warden'
+    const ALCHEMIST = 'denizen.arcane.alchemist'
+    const WOLVES = 'denizen.beast.wolves'
+    const LONGBOWS = 'denizen.order.longbows'
+    const seats = {
+        player: (playerId: string) => ({ dana: 'Dana', rhys: 'Rhys' })[playerId] ?? playerId,
+        site: slotLabel,
+        seats: ['dana', 'rhys']
+    }
+
+    /** Today's game: Dana, at the empty Plains with Land Warden faceup, has searched Alchemist, Wolves and Longbows. */
+    function searched() {
+        const state = testState(
+            [
+                testPlayer({
+                    playerId: 'dana',
+                    color: Color.Red,
+                    siteId: 'c1',
+                    favor: 3,
+                    supply: 6,
+                    advisers: [{ cardId: LAND_WARDEN, faceUp: true }]
+                }),
+                testPlayer({
+                    playerId: 'rhys',
+                    color: Color.Purple,
+                    status: PlayerStatus.Chancellor,
+                    siteId: 'c2',
+                    favor: 2
+                })
+            ],
+            {
+                oathRevision: CURRENT_OATH_REVISION,
+                round: 3,
+                denizensBySite: { c1: [], c2: [], p1: [], h1: [] },
+                siteCards: {
+                    c1: 'site.plains',
+                    c2: 'site.river',
+                    p1: 'site.marshes',
+                    h1: 'site.mountain'
+                }
+            }
+        )
+        openTurn(state, 'dana')
+        state.requireVault().worldDeck = [ALCHEMIST, WOLVES, LONGBOWS]
+        new HydratedSearch(
+            buildAction(Search, {
+                playerId: 'dana',
+                drawFrom: SearchSource.WorldDeck,
+                revealsInfo: true,
+                modifiers: [
+                    {
+                        cardId: LAND_WARDEN,
+                        powerIndex: powerIndexOf(LAND_WARDEN, PowerTiming.Modifier)
+                    }
+                ]
+            })
+        ).apply(state)
+        state.machineState = MachineState.Searching
+        return state
+    }
+
+    /** The resolve as the engine records it, then as Dana, Rhys and a spectator each receive it. */
+    function rows(fields: Record<string, unknown>) {
+        const state = searched()
+        const resolve = new HydratedSearchResolve(
+            buildAction(SearchResolve, { playerId: 'dana', discardOrder: [LONGBOWS], ...fields })
+        )
+        resolve.apply(state)
+        const record = resolve.dehydrate()
+        const seen = (perspective: Parameters<typeof OathVisibility.actions.project>[1]) =>
+            OathVisibility.actions.project(record, perspective) as GameAction
+        return {
+            dana: describeAction(seen({ kind: 'player', playerId: 'dana' }), seats, 'dana'),
+            rhys: describeAction(seen({ kind: 'player', playerId: 'rhys' }), seats, 'rhys'),
+            spectator: describeAction(seen({ kind: 'spectator' }), seats)
+        }
+    }
+
+    const ALCHEMIST_TO_SITE = { keptCardId: ALCHEMIST, play: SearchPlay.Site }
+
+    it('Wolves to the site: "; played Wolves to your own site" to Dana, "their own site" to every other seat', () => {
+        const lines = rows({
+            ...ALCHEMIST_TO_SITE,
+            secondPlay: { cardId: WOLVES, play: SearchPlay.Site }
+        })
+        expect(lines.dana).toBe(
+            'kept Alchemist and played it to your own site, gaining 2 favor; played Wolves to your own site; Longbows went to the Provinces discard pile'
+        )
+        expect(lines.rhys).toBe(
+            'kept Alchemist and played it to their own site, gaining 2 favor; played Wolves to their own site; 1 card went to the Provinces discard pile'
+        )
+        expect(lines.spectator).toBe(lines.rhys)
+    })
+
+    it('Wolves faceup as an adviser: "; played Wolves as an adviser"', () => {
+        const lines = rows({
+            ...ALCHEMIST_TO_SITE,
+            secondPlay: { cardId: WOLVES, play: SearchPlay.Adviser, faceUp: true }
+        })
+        expect(lines.dana).toBe(
+            'kept Alchemist and played it to your own site, gaining 1 favor; played Wolves as an adviser; Longbows went to the Provinces discard pile'
+        )
+        expect(lines.rhys).toBe(
+            'kept Alchemist and played it to their own site, gaining 1 favor; played Wolves as an adviser; 1 card went to the Provinces discard pile'
+        )
+        expect(lines.spectator).toBe(lines.rhys)
+    })
+
+    it('R-9.4 — Wolves facedown as an adviser: "; played a card as an adviser, facedown", to Dana as well', () => {
+        const lines = rows({
+            ...ALCHEMIST_TO_SITE,
+            secondPlay: { cardId: WOLVES, play: SearchPlay.Adviser, faceUp: false }
+        })
+        expect(lines.rhys).toBe(
+            'kept Alchemist and played it to their own site, gaining 1 favor; played a card as an adviser, facedown; 1 card went to the Provinces discard pile'
+        )
+        expect(lines.spectator).toBe(lines.rhys)
+        // A facedown kept card is "a card" to its own player too: the row names only what the play showed.
+        expect(lines.dana).toBe(
+            'kept Alchemist and played it to your own site, gaining 1 favor; played a card as an adviser, facedown; Longbows went to the Provinces discard pile'
+        )
+        for (const line of Object.values(lines)) expect(line).not.toContain('Wolves')
+    })
+
+    it('R-9.4 — a facedown kept card and Wolves to the site: each card is named only where its play showed it', () => {
+        const lines = rows({
+            keptCardId: ALCHEMIST,
+            play: SearchPlay.Adviser,
+            faceUp: false,
+            secondPlay: { cardId: WOLVES, play: SearchPlay.Site }
+        })
+        expect(lines.dana).toBe(
+            'kept a card and played it as an adviser, facedown, gaining 1 favor; played Wolves to your own site; Longbows went to the Provinces discard pile'
+        )
+        expect(lines.rhys).toBe(
+            'kept a card and played it as an adviser, facedown, gaining 1 favor; played Wolves to their own site; 1 card went to the Provinces discard pile'
+        )
+        expect(lines.spectator).toBe(lines.rhys)
+        for (const line of Object.values(lines)) expect(line).not.toContain('Alchemist')
+    })
+
+    it('a record that does not name the second card reads "a card"', () => {
+        const row = action({
+            type: ActionType.SearchResolve,
+            playerId: 'dana',
+            keptCardId: ALCHEMIST,
+            discardOrder: [],
+            play: SearchPlay.Site,
+            secondPlay: { cardId: WOLVES, play: SearchPlay.Site },
+            metadata: {
+                playedCardId: ALCHEMIST,
+                favorGained: 2,
+                discardedCount: 0,
+                discardPileRegion: 'provinces'
+            }
+        })
+        expect(describeAction(row, seats, 'rhys')).toBe(
+            'kept Alchemist and played it to their own site, gaining 2 favor; played a card to their own site'
+        )
+    })
+
+    it('the Vision second card keeps its own clause, once', () => {
+        const row = action({
+            type: ActionType.SearchResolve,
+            playerId: 'dana',
+            keptCardId: ALCHEMIST,
+            discardOrder: [],
+            play: SearchPlay.Site,
+            secondPlay: { cardId: 'vision.conquest', play: SearchPlay.RevealedVision },
+            metadata: {
+                playedCardId: ALCHEMIST,
+                secondPlayedCardId: 'vision.conquest',
+                favorGained: 1,
+                discardedCount: 0,
+                discardPileRegion: 'provinces'
+            }
+        })
+        expect(describeAction(row, seats, 'rhys')).toBe(
+            'kept Alchemist and played it to their own site, gaining 1 favor; revealed Vision of Conquest as their own Vision'
         )
     })
 })
