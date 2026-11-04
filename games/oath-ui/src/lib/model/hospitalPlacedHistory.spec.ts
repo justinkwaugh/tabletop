@@ -48,6 +48,14 @@ describe('Hospital — History says where the warbands it saved went (the step t
         expect(row.match(/Hospital's site/g)).toHaveLength(1)
     })
 
+    it("Ring of Devotion (revision 32): Ann cannot place them, so the spoils row sends none to Hospital's site", async () => {
+        const table = battleLossTable({ hospital: true, ended: true, ring: true })
+        const spoils = stepOf(table, isCampaignResolveVictory)
+        expect(spoils.metadata?.hospitalPlaced).toBeUndefined()
+        const row = await rowOf(table, spoils)
+        expect(row).not.toContain('Hospital')
+    })
+
     it('control: with no Hospital the same Campaign says nothing of it', async () => {
         const table = battleLossTable({ ended: true })
         const row = await rowOf(table, stepOf(table, isCampaignResolveVictory))

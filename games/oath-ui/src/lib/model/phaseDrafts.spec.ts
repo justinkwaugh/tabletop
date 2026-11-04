@@ -51,6 +51,8 @@ const OAK = 'denizen.beast.the-old-oak'
 const SNARE = 'denizen.arcane.spirit-snare'
 const WITCHS_BARGAIN = 'denizen.arcane.witchs-bargain'
 
+const RING_OF_DEVOTION = 'relic.ring-of-devotion'
+
 function table(
     machineState: MachineState,
     me: Parameters<typeof testPlayer>[0] = {},
@@ -1402,11 +1404,14 @@ describe('the Citizenship answer draft (docs/user-interactions.md)', () => {
     const BOARD = { kind: 'board', playerId: ME } as const
     const SITE = { kind: 'site', siteId: 'c1' } as const
 
-    const answering = async (imperial: number) => {
+    const answering = async (imperial: number, ring = false) => {
         const state = table(
             MachineState.ActPhase,
-            { warbandsOnBoard: { [ME]: 3 } },
-            { warbandsBySite: { c1: { [ME]: 2 } } }
+            { warbandsOnBoard: { [ME]: 3 }, ...(ring ? { relicIds: [RING_OF_DEVOTION] } : {}) },
+            {
+                warbandsBySite: { c1: { [ME]: 2 } },
+                ...(ring ? { oathRevision: OathRevision.EngineFixes27 } : {})
+            }
         )
         state.getPlayerState(CHANCELLOR).warbandsInPersonalBank = { [IMPERIAL_WARBANDS]: imperial }
         state.pendingConsent = {
@@ -1502,6 +1507,38 @@ describe('the Citizenship answer draft (docs/user-interactions.md)', () => {
         expect(pieceKeys(session).every((key) => consent.isImperial(key))).toBe(true)
         expect(consent.replacementChoice).toBeUndefined()
         expect(consent.blockedBecause).toBeUndefined()
+    })
+
+    describe("Ring of Devotion's holder (revision 32): the 2 at the site are removed, so only the board's 3 are listed", () => {
+        it('short: the board alone competes, and the picks the panel sends are the ones the engine accepts', async () => {
+            const session = await answering(2, true)
+            const { consent } = session
+            expect(consent.conversion).toEqual({
+                kind: 'short',
+                warbands: 3,
+                imperial: 2,
+                removed: 1
+            })
+            expect(consent.places.map((place) => [place.at, place.pieces.length])).toEqual([
+                [BOARD, 3]
+            ])
+            expect(consent.picksComplete).toBe(true)
+            expect(consent.blockedBecause).toBeUndefined()
+            expect(consent.replacementChoice).toEqual([{ at: BOARD, owner: ME, count: 2 }])
+        })
+
+        it('enough for the board: nothing to pick, though the site holds 2 more', async () => {
+            const { consent } = await answering(3, true)
+            expect(consent.conversion).toEqual({
+                kind: 'enough',
+                warbands: 3,
+                imperial: 3,
+                removed: 0
+            })
+            expect(consent.canPick).toBe(false)
+            expect(consent.replacementChoice).toBeUndefined()
+            expect(consent.blockedBecause).toBeUndefined()
+        })
     })
 
     it('Accept sends the picks as warband groups by place, as the engine reads them; Refuse sends none', async () => {

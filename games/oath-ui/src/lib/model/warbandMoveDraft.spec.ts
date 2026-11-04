@@ -63,3 +63,38 @@ describe('what a warband move row names on the table', () => {
         await expect(draft.sendNow(onto, onto.max + 1)).rejects.toThrow('a count its row offers')
     })
 })
+
+/** Ring of Devotion: "You cannot place warbands at sites"; the panel lists only what the engine accepts. */
+describe('moving warbands while holding the Ring of Devotion', () => {
+    async function holdingTheRing(atSite: number) {
+        const state = testState(
+            [
+                testPlayer({
+                    playerId: 'me',
+                    color: Color.Red,
+                    siteId: 'c1',
+                    warbandsOnBoard: { me: 3 },
+                    relicIds: ['relic.ring-of-devotion']
+                })
+            ],
+            { machineState: MachineState.ActPhase, warbandsBySite: { c1: { me: atSite } } }
+        )
+        openTurn(state, 'me')
+        return openSessionOn(tableOf(state))
+    }
+
+    it('shows no row onto the site, and the lift from it', async () => {
+        const session = await holdingTheRing(2)
+        expect(session.validActionTypes).toContain(ActionType.MoveWarbands)
+        session.chooseAction(ActionType.MoveWarbands)
+        expect(session.warbandMoves.options.map((o) => [o.move.kind, o.max])).toEqual([
+            [WarbandMoveKind.SiteToBoard, 1]
+        ])
+    })
+
+    it('does not offer the action when the only move would be onto the site', async () => {
+        const session = await holdingTheRing(1)
+        expect(session.validActionTypes).not.toContain(ActionType.MoveWarbands)
+        expect(session.validActionTypes).toContain(ActionType.EndActPhase)
+    })
+})

@@ -32,7 +32,9 @@ import {
     playMapChanges,
     reasonCannotPlayCard,
     reasonSiteFull,
-    whenPlayedMapLeaving
+    whenPlayedMapLeaving,
+    whenPlayedStatusAfter,
+    whenPlayedWarbandsAfter
 } from '../util/cardPlay.js'
 import type { PlayMapChanges } from '../powers/registry.js'
 import type { ActiveModifier } from '../util/modifiers.js'
@@ -132,6 +134,13 @@ export const SearchResolve = Type.Evaluate(
             choices: Type.Optional(Type.Array(PowerChoice, { maxItems: 16 })),
             /** R-11.10 (Great Slum) — discarded before the site play. */
             discardFirstCardId: Type.Optional(Type.String()),
+            /**
+             * R-11.10, Crop Rotation, R-5.1.4.I — from revision 32, one card per power that gives one, in place of
+             * `discardFirstCardId`.
+             */
+            discardFirstCardIds: Type.Optional(
+                Type.Array(Type.String(), { minItems: 1, maxItems: 3 })
+            ),
             /** New Growth */
             toSiteId: Type.Optional(Type.String()),
             secondPlay: Type.Optional(SearchSecondPlay),
@@ -152,6 +161,7 @@ export type SearchResolveChoice = Pick<
     | 'discardedAdviserCardIds'
     | 'choices'
     | 'discardFirstCardId'
+    | 'discardFirstCardIds'
     | 'toSiteId'
     | 'secondPlay'
 >
@@ -174,6 +184,7 @@ export class HydratedSearchResolve
     declare discardedAdviserCardIds?: string[]
     declare choices?: PowerChoice[]
     declare discardFirstCardId?: string
+    declare discardFirstCardIds?: string[]
     declare toSiteId?: string
     declare secondPlay?: SearchSecondPlay
     declare metadata?: SearchResolveMetadata
@@ -216,6 +227,7 @@ export class HydratedSearchResolve
             discardTarget,
             carried,
             discardFirstCardId: this.discardFirstCardId,
+            discardFirstCardIds: this.discardFirstCardIds,
             toSiteId: this.toSiteId
         }
         // R-5.1.4, R-9.4 — a facedown adviser has no suit, so only a shown card reaches the hooks.
@@ -363,6 +375,7 @@ export class HydratedSearchResolve
         return reasonCannotPlayCard(state, playerId, choice.keptCardId, choice.play, {
             carried: searchPlayModifiers(state),
             discardFirstCardId: choice.discardFirstCardId,
+            discardFirstCardIds: choice.discardFirstCardIds,
             toSiteId: choice.toSiteId,
             faceUp: choice.faceUp,
             conspiracy: choice.conspiracy,
@@ -390,8 +403,9 @@ export class HydratedSearchResolve
 }
 
 /**
- * Land Warden — the second drawn card and how it is played. Given the kept card's play, its When Played power is
- * judged on the map that play leaves; without it, on the map as it is.
+ * Land Warden — the second drawn card and how it is played. Given the kept card's play, it is judged on the map that
+ * play leaves, and with the kept card's When Played choices on the status they give (R-7.3.3-H3); without it, on the
+ * state as it is.
  */
 export function reasonCannotPlaySecondCard(
     state: HydratedOathGameState,
@@ -405,7 +419,13 @@ export function reasonCannotPlaySecondCard(
     const hand = state.getPlayerState(playerId).knownHand()
     if (second.cardId === keptCardId || !hand.includes(second.cardId))
         return `${second.cardId} is not a second drawn card`
-    if (second.play !== SearchPlay.Site && second.play !== SearchPlay.Adviser)
+    // R-5.1.4 — "You may play two cards you draw": from revision 32 an Exile's Vision may also go to the Revealed
+    // Vision space (R-5.1.4.III), judged by `reasonCannotPlayCard` as the kept card's is. Before it (R-X.4), only
+    // your site or your advisers.
+    const revealedVision =
+        second.play === SearchPlay.RevealedVision &&
+        isAtLeastOathRevision(state, OathRevision.EngineFixes27)
+    if (second.play !== SearchPlay.Site && second.play !== SearchPlay.Adviser && !revealedVision)
         return 'the second card is played to your site or as an adviser'
     // R-X.4 — before revision 31 the second card discarded no adviser, so at the limit it could not be an adviser.
     if (
@@ -427,7 +447,13 @@ export function reasonCannotPlaySecondCard(
 /** Land Warden — the kept card's play, which comes before the second card's. */
 type KeptPlay = Pick<
     SearchResolveChoice,
-    'play' | 'discardFirstCardId' | 'toSiteId' | 'faceUp' | 'discardedAdviserCardIds'
+    | 'play'
+    | 'discardFirstCardId'
+    | 'discardFirstCardIds'
+    | 'toSiteId'
+    | 'faceUp'
+    | 'discardedAdviserCardIds'
+    | 'choices'
 >
 
 /** Land Warden — the kept card, and its play. */
@@ -437,7 +463,9 @@ type KeptCard = KeptPlay & Pick<SearchResolveChoice, 'keptCardId'>
  * Land Warden — the kept card's play lands before the second card's When Played power resolves: its map changes,
  * and what it gains first (R-7.3.3), with the Search's carried modifiers, as `playCard` plays it. From revision 26
  * the kept card's own When Played power has resolved too, so the cards it puts off the map are gone (Riots' Q&A
- * counts the cards at all sites as it resolves).
+ * counts the cards at all sites as it resolves), and with its choices the status it gives is the player's (Bewitch's
+ * "become a Citizen", R-7.3.3-H3) and the warbands at sites are the ones it leaves (Key to the City's, Bandit
+ * Chief's kills), which only a Vision played second to the Revealed Vision space reads.
  */
 function keptPlayMapChanges(
     state: HydratedOathGameState,
@@ -448,6 +476,7 @@ function keptPlayMapChanges(
     const changes = playMapChanges(state, playerId, keptCardId, kept.play, {
         carried: searchPlayModifiers(state),
         discardFirstCardId: kept.discardFirstCardId,
+        discardFirstCardIds: kept.discardFirstCardIds,
         toSiteId: kept.toSiteId,
         faceUp: kept.faceUp,
         discardedAdviserCardIds: kept.discardedAdviserCardIds
@@ -455,10 +484,30 @@ function keptPlayMapChanges(
     // R-X.4 — before revision 26 the second card was judged on the map before the kept card's power.
     if (!isAtLeastOathRevision(state, OathRevision.EngineFixes22)) return changes
     const gone = whenPlayedMapLeaving(state, playerId, keptCardId, kept.play, kept.faceUp, changes)
+    const status = whenPlayedStatusAfter(
+        state,
+        playerId,
+        keptCardId,
+        kept.play,
+        kept.faceUp,
+        kept.choices ?? [],
+        changes
+    )
+    const warbandsBySite = whenPlayedWarbandsAfter(
+        state,
+        playerId,
+        keptCardId,
+        kept.play,
+        kept.faceUp,
+        kept.choices ?? [],
+        changes
+    )
     return {
         ...changes,
         leaving: [...changes.leaving, ...gone],
-        arriving: changes.arriving.filter((id) => !gone.includes(id))
+        arriving: changes.arriving.filter((id) => !gone.includes(id)),
+        ...(status !== undefined ? { status } : {}),
+        ...(warbandsBySite !== undefined ? { warbandsBySite } : {})
     }
 }
 

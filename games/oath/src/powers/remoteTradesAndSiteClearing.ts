@@ -32,7 +32,13 @@ import { reasonPersistentForbidsGivingSecrets } from '../util/persistent.js'
 import { siteHolding } from '../util/access.js'
 import { handedOver } from '../model/playerState.js'
 import { isAtLeastOathRevision, OathRevision } from '../util/revision.js'
-import { secretsToGiveAfterCost, WITCHS_BARGAIN, type BargainEntry } from '../util/witchsBargain.js'
+import {
+    BARGAIN_MAX_STEPS,
+    reasonCannotBargainInOrder,
+    secretsToGiveAfterCost,
+    WITCHS_BARGAIN,
+    type BargainEntry
+} from '../util/witchsBargain.js'
 
 // "After you're victorious, you may travel and then may campaign, spending no Supply for either." Attacker. Cost: burn 1 favor, place 1 secret.
 const SECOND_WIND = SECOND_WIND_ID
@@ -96,6 +102,8 @@ registerEffect(DREAM_THIEF, powerIndexOf(DREAM_THIEF, PowerTiming.Action), {
 // From revision 7 one use deals with several players at the site (its Q&A: "Can I affect multiple
 // players at my site with one use of this card power? A: Yes!"), one entry each, and the secret
 // the cost places cannot be given (R-7.1.2). Before it, one player and two counts (R-X.4).
+// From revision 32 each exchange uses what the user holds at that moment, so the entries are
+// steps in order and a player may come again after another (`reasonCannotBargainInOrder`).
 const ONE_PLAYER_ONLY = { beforeRevision: OathRevision.EngineFixes3 }
 registerEffect(WITCHS_BARGAIN, powerIndexOf(WITCHS_BARGAIN, PowerTiming.Action), {
     choices: [
@@ -119,7 +127,17 @@ registerEffect(WITCHS_BARGAIN, powerIndexOf(WITCHS_BARGAIN, PowerTiming.Action),
             max: 5,
             what: 'a player at your site',
             domain: bargainChoicesAtYourSite,
-            fromRevision: OathRevision.EngineFixes3
+            fromRevision: OathRevision.EngineFixes3,
+            beforeRevision: OathRevision.EngineFixes27
+        },
+        {
+            kind: PowerChoiceKind.Bargain,
+            min: 1,
+            max: BARGAIN_MAX_STEPS,
+            inOrder: true,
+            what: 'a player at your site',
+            domain: bargainChoicesAtYourSite,
+            fromRevision: OathRevision.EngineFixes27
         }
     ],
     reasonCannotResolve: (ctx) =>
@@ -132,12 +150,16 @@ registerEffect(WITCHS_BARGAIN, powerIndexOf(WITCHS_BARGAIN, PowerTiming.Action),
             : [oneEntryOf(ctx)]
         for (const entry of entries) bargainWith(ctx, entry)
         return {
-            summary: `Witch's Bargain: ${entries
-                .map(
-                    (e) =>
-                        `with ${e.playerId}, gave ${e.secretsGiven} secrets for ${2 * e.secretsGiven} favor and ${2 * e.pairsGiven} favor for ${e.pairsGiven} secrets`
-                )
-                .join('; ')}`,
+            summary: `Witch's Bargain: ${
+                isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes27)
+                    ? stepsMade(entries)
+                    : entries
+                          .map(
+                              (e) =>
+                                  `with ${e.playerId}, gave ${e.secretsGiven} secrets for ${2 * e.secretsGiven} favor and ${2 * e.pairsGiven} favor for ${e.pairsGiven} secrets`
+                          )
+                          .join('; ')
+            }`,
             targetPlayerId: entries[0].playerId
         }
     }
@@ -176,7 +198,11 @@ function reasonCannotBargainWithOne(ctx: EffectContext): string | undefined {
     return undefined
 }
 
-/** The totals are held together: the user's against what they hold after the cost, each player's against theirs. */
+/**
+ * Each entry names an exchange. From revision 32 the entries are steps made in order, each on what
+ * the steps before it leave; before it, the totals are held together: the user's against what they
+ * hold after the cost, each player's against theirs.
+ */
 function reasonCannotBargain(ctx: EffectContext): string | undefined {
     const entries = chosen(ctx, PowerChoiceKind.Bargain)
     const whole = (n: number) => Number.isInteger(n) && n >= 0
@@ -186,6 +212,8 @@ function reasonCannotBargain(ctx: EffectContext): string | undefined {
         return 'name at least one exchange'
     const idle = entries.find((e) => e.secretsGiven + e.pairsGiven === 0)
     if (idle) return `name at least one exchange with ${idle.playerId}`
+    if (isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes27))
+        return reasonCannotBargainInOrder(ctx.state, ctx.playerId, entries, ctx.power)
     const give = entries.reduce((n, e) => n + e.secretsGiven, 0)
     const pairs = entries.reduce((n, e) => n + e.pairsGiven, 0)
     const left = secretsToGiveAfterCost(ctx.state, ctx.playerId, ctx.power)
@@ -205,6 +233,20 @@ function reasonCannotBargain(ctx: EffectContext): string | undefined {
             return `${e.playerId} has ${other.secrets} secrets, not the ${e.pairsGiven} you would take`
     }
     return undefined
+}
+
+/** From revision 32, the exchanges made, in order: only those that were. */
+function stepsMade(steps: readonly BargainEntry[]): string {
+    return steps
+        .flatMap((e) => [
+            ...(e.secretsGiven > 0
+                ? [`gave ${e.playerId} ${e.secretsGiven} secrets for ${2 * e.secretsGiven} favor`]
+                : []),
+            ...(e.pairsGiven > 0
+                ? [`gave ${e.playerId} ${2 * e.pairsGiven} favor for ${e.pairsGiven} secrets`]
+                : [])
+        ])
+        .join(', then ')
 }
 
 /** In the order named: the secrets given and their favor taken, then the favor given and their secrets taken. */

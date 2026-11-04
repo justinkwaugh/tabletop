@@ -4,6 +4,7 @@ import {
     HydratedSearchSwap,
     MachineState,
     SearchPlay,
+    discardFirstReach,
     kindOf,
     playMapChanges,
     reasonCannotPairSecondPlay,
@@ -21,6 +22,14 @@ import {
 } from '@tabletop/oath'
 import { FACEDOWN_ADVISER_LABEL, PLAY_LABELS } from './adviserPlacements.js'
 import { discardOrderOf, isDiscardOrderComplete } from './discardOrder.js'
+import {
+    discardFirstFields,
+    discardFirstRow,
+    opensWithSomeFirsts,
+    rowReach,
+    tapDiscardFirst,
+    type DiscardFirstRow
+} from './discardFirstPicks.js'
 import { cardName } from './names.js'
 import {
     emptyPicks,
@@ -28,7 +37,7 @@ import {
     powerChoicesFrom,
     type PowerChoicePicks
 } from './powerChoices.js'
-import { whenPlayedBanks, whenPlayedChoices } from './whenPlayed.js'
+import { whenPlayedBanks, whenPlayedOnPicks } from './whenPlayed.js'
 import {
     adviserRoom,
     firstDiscard,
@@ -66,8 +75,8 @@ export type SecondPlay = SearchSecondPlay & {
     room: AdviserRoom
 }
 
-/** Chosen beside the placement: another site, a Great Slum discard, a Land Warden second play. */
-type SearchExtras = { toSiteId?: string; discardFirstCardId?: string; secondKey?: string }
+/** Chosen beside the placement: another site, the cards discarded first, a Land Warden second play. */
+type SearchExtras = { toSiteId?: string; discardFirsts?: string[]; secondKey?: string }
 
 /** R-7.3.3 — the picks stay editable until the player plays the card with them. */
 type WhenPlayedPicks = { picks: PowerChoicePicks; confirmed: boolean }
@@ -109,6 +118,10 @@ const PLACEMENTS: (SearchPlacement & { label: string })[] = [
     { play: SearchPlay.Conspiracy, label: PLAY_LABELS[SearchPlay.Conspiracy] },
     { play: SearchPlay.Discard, label: PLAY_LABELS[SearchPlay.Discard] }
 ]
+
+// Land Warden — the second card's row says the kept card's words in its own lower case.
+const lowerFirst = (label: string) => label.charAt(0).toLowerCase() + label.slice(1)
+const SECOND_VISION_MODE = lowerFirst(PLAY_LABELS[SearchPlay.RevealedVision])
 
 /** R-5.1.2 to R-5.1.5 — the kept card, how it is played, and the order the rest are discarded in. */
 export class SearchDraft implements PanelDraft {
@@ -267,20 +280,48 @@ export class SearchDraft implements PanelDraft {
         })
     }
 
-    /** R-7.3.3 */
+    /** R-7.3.3 — read on the picks made so far. */
     get whenPlayed(): LegalChoice[] {
+        return this.whenPlayedOn(this.picks).choices
+    }
+
+    /** R-7.3.3 — the When Played choices on `picks`, and the picks as they read back (`whenPlayedOnPicks`). */
+    private whenPlayedOn(
+        picks: PowerChoicePicks,
+        shown?: readonly LegalChoice[]
+    ): { choices: LegalChoice[]; picks: PowerChoicePicks } {
         const cardId = this.kept
         const playerId = this.playerId
         const placement = this.placement
-        if (!cardId || !playerId || !placement) return []
-        return whenPlayedChoices(
+        if (!cardId || !playerId || !placement) return { choices: [], picks }
+        return whenPlayedOnPicks(
             this.session.gameState,
             playerId,
             cardId,
             placement.play,
             placement.faceUp,
-            this.playChanges
+            this.playChanges,
+            picks,
+            shown,
+            this.secondAllowsOption(playerId, cardId, placement)
         )
+    }
+
+    // R-7.3.3-H3, R-5.1.4.III — the second card is played after the kept card's power, on the status its picks
+    // leave: with a Vision "as your Vision", an option that would refuse it (Bewitch's "becoming a Citizen") is
+    // not offered. Only that play reads the status, so every other second play asks what it asked before.
+    private secondAllowsOption(
+        playerId: string,
+        kept: string,
+        placement: SearchPlacement
+    ): ((option: PowerChoice) => boolean) | undefined {
+        const second = this.second
+        if (second?.play !== SearchPlay.RevealedVision) return undefined
+        if (this.reasonSecondCannotFollow(playerId, kept, placement, second) !== undefined) {
+            return undefined
+        }
+        return (option) =>
+            this.reasonSecondCannotFollow(playerId, kept, placement, second, [option]) === undefined
     }
 
     /** R-7.3.3 — the favor banks the When Played picks are judged on (Salad Days'). */
@@ -419,7 +460,7 @@ export class SearchDraft implements PanelDraft {
     private playExtras(play: SearchPlay) {
         const carried = searchPlayModifiers(this.session.gameState)
         return play === SearchPlay.Site
-            ? { carried, toSiteId: this.toSite, discardFirstCardId: this.discardFirst }
+            ? { carried, toSiteId: this.toSite, ...discardFirstFields(this.discardFirsts) }
             : { carried }
     }
 
@@ -455,7 +496,9 @@ export class SearchDraft implements PanelDraft {
             .flatMap((cardId) => [
                 this.secondPlay(playerId, cardId, SearchPlay.Site, 'to your site'),
                 this.secondPlay(playerId, cardId, SearchPlay.Adviser, 'adviser, faceup', true),
-                this.secondPlay(playerId, cardId, SearchPlay.Adviser, 'adviser, facedown', false)
+                this.secondPlay(playerId, cardId, SearchPlay.Adviser, 'adviser, facedown', false),
+                // R-5.1.4.III — an Exile's Vision, offered where the engine accepts it (from revision 32).
+                this.secondPlay(playerId, cardId, SearchPlay.RevealedVision, SECOND_VISION_MODE)
             ])
             .filter((option) => this.pairsWithAnOpenPlacement(playerId, kept, option))
     }
@@ -511,38 +554,66 @@ export class SearchDraft implements PanelDraft {
         return isDiscardOrderComplete(this.tapped, this.others)
     }
 
-    private sitePlayOpen(toSiteId: string | undefined, discardFirstCardId?: string): boolean {
+    private sitePlayOpen(toSiteId: string | undefined, firsts: readonly string[] = []): boolean {
         const cardId = this.kept
         const playerId = this.playerId
         if (!cardId || !playerId) return false
         return (
             reasonCannotPlaceCard(this.session.gameState, playerId, cardId, SearchPlay.Site, {
                 toSiteId,
-                discardFirstCardId,
+                ...discardFirstFields(firsts),
                 carried: searchPlayModifiers(this.session.gameState)
             }) === undefined
         )
     }
 
-    // R-11.10 the Great Slum, R-5.1.4.I the People's Favor, Crop Rotation — a denizen discarded before a
-    // site play, offered wherever the engine accepts it for the site being played to.
-    get discardFirstOptions(): string[] {
-        return this.discardFirstOptionsFor(this.toSite)
+    /** R-11.10, Crop Rotation, R-5.1.4.I — the play to `toSiteId` opens with no card first, or with some. */
+    private sitePlayCanOpen(toSiteId: string | undefined): boolean {
+        const playerId = this.playerId
+        if (!playerId) return false
+        return opensWithSomeFirsts(this.discardFirstReachFor(playerId, toSiteId), (firsts) =>
+            this.sitePlayOpen(toSiteId, firsts)
+        )
     }
 
-    private discardFirstOptionsFor(target: string | undefined): string[] {
+    /** The cards the "Discard first" row judges for a play to `toSiteId`, with the Search's carried modifiers. */
+    private discardFirstReachFor(playerId: string, toSiteId: string | undefined) {
         const state = this.session.gameState
-        return state
-            .allSiteIds()
-            .flatMap((siteId) => state.denizensAt(siteId))
-            .filter((first) => this.sitePlayOpen(target, first))
+        return rowReach(
+            state,
+            discardFirstReach(state, playerId, { toSiteId, carried: searchPlayModifiers(state) })
+        )
     }
 
+    // R-11.10 the Great Slum, R-5.1.4.I the People's Favor, Crop Rotation — the denizens discarded before a
+    // site play, one per power that gives one, offered wherever the engine accepts them for the site played to.
+    private discardFirstRowFor(target: string | undefined): DiscardFirstRow {
+        const playerId = this.playerId
+        if (!playerId || !this.kept) return { offered: [], picked: [], several: false }
+        return discardFirstRow(
+            this.discardFirstReachFor(playerId, target),
+            this.extras.discardFirsts ?? [],
+            (firsts) => this.sitePlayOpen(target, firsts)
+        )
+    }
+
+    private get discardFirstPicks(): DiscardFirstRow {
+        return this.discardFirstRowFor(this.toSite)
+    }
+
+    /** The cards the "Discard first" row shows: those picked, and each that can still go with them. */
+    get discardFirstOptions(): string[] {
+        return this.discardFirstPicks.offered
+    }
+
+    /** The cards picked to discard first that can still go together. */
+    get discardFirsts(): string[] {
+        return this.discardFirstPicks.picked
+    }
+
+    /** The first card picked to discard first. */
     get discardFirst(): string | undefined {
-        const cardId = this.extras.discardFirstCardId
-        return cardId !== undefined && this.discardFirstOptions.includes(cardId)
-            ? cardId
-            : undefined
+        return this.discardFirsts[0]
     }
 
     // R-5.1.4.I the People's Favor, New Growth — another site to play to, counting a site a
@@ -552,13 +623,7 @@ export class SearchDraft implements PanelDraft {
         const state = this.session.gameState
         return state
             .allSiteIds()
-            .filter(
-                (siteId) =>
-                    siteId !== here &&
-                    [undefined, ...state.denizensAt(siteId)].some((first) =>
-                        this.sitePlayOpen(siteId, first)
-                    )
-            )
+            .filter((siteId) => siteId !== here && this.sitePlayCanOpen(siteId))
     }
 
     get toSite(): string | undefined {
@@ -574,8 +639,17 @@ export class SearchDraft implements PanelDraft {
         this.setExtras({ ...this.extras, toSiteId: siteId })
     }
 
+    /** One card discarded first in place of the picks, or none. */
     setDiscardFirst(cardId: string | undefined): void {
-        this.setExtras({ ...this.extras, discardFirstCardId: cardId })
+        this.setExtras({ ...this.extras, discardFirsts: cardId === undefined ? [] : [cardId] })
+    }
+
+    /** A tap in the "Discard first" row: added, taken back, or, where one card may go, in place of the pick. */
+    tapDiscardFirst(cardId: string): void {
+        this.setExtras({
+            ...this.extras,
+            discardFirsts: tapDiscardFirst(this.discardFirstPicks, cardId)
+        })
     }
 
     setSecondPlay(key: string | undefined): void {
@@ -603,8 +677,14 @@ export class SearchDraft implements PanelDraft {
         await this.resolveWhenOrdered()
     }
 
+    // A pick whose options follow an earlier one is kept only while the option it named is offered.
     setPicks(picks: PowerChoicePicks): void {
-        if (this.whenPlayed.length > 0) this.flow.set('whenPlayed', { picks, confirmed: false })
+        const shown = this.whenPlayed
+        if (shown.length === 0) return
+        this.flow.set('whenPlayed', {
+            picks: this.whenPlayedOn(picks, shown).picks,
+            confirmed: false
+        })
     }
 
     async confirmWhenPlayed(): Promise<void> {
@@ -673,7 +753,7 @@ export class SearchDraft implements PanelDraft {
             ...(displaced.length > 0 ? { discardedAdviserCardIds: displaced } : {}),
             ...(conspiracy ? { conspiracy } : {}),
 
-            ...(siteAt && this.discardFirst ? { discardFirstCardId: this.discardFirst } : {}),
+            ...(siteAt ? discardFirstFields(this.discardFirsts) : {}),
             ...(siteAt && this.toSite ? { toSiteId: this.toSite } : {}),
             ...(second
                 ? {
@@ -733,7 +813,7 @@ export class SearchDraft implements PanelDraft {
         const openElsewhere =
             option.play === SearchPlay.Site &&
             refused !== undefined &&
-            (this.otherSites.length > 0 || this.discardFirstOptionsFor(undefined).length > 0)
+            (this.otherSites.length > 0 || this.sitePlayCanOpen(undefined))
         return { ...option, room, blockedBecause: openElsewhere ? undefined : refused }
     }
 
@@ -756,12 +836,13 @@ export class SearchDraft implements PanelDraft {
     // Land Warden — the second card as the engine judges it after the kept card's play: its When Played
     // power counts the map that play leaves (Riots), and the kept card's own When Played power when it is
     // played faceup; the room for both at your site is counted on that map too. At the adviser limit it is judged
-    // with the first advisers that may go, as a placement is.
+    // with the first advisers that may go, as a placement is. With `choices`, the kept card's When Played picks.
     private reasonSecondCannotFollow(
         playerId: string,
         kept: string,
         first: SearchPlacement,
-        option: SecondPlay
+        option: SecondPlay,
+        choices?: PowerChoice[]
     ): string | undefined {
         const state = this.session.gameState
         const { room } = option
@@ -773,14 +854,14 @@ export class SearchDraft implements PanelDraft {
         }
         // R-5.1.4.I — the kept card may go to another site, which leaves your site's room to the second card.
         const keptTo = first.play === SearchPlay.Site ? this.toSite : undefined
-        // R-5.1.4.I, R-11.10 — a card the kept card discards first at your site leaves its space.
-        const discardFirst = first.play === SearchPlay.Site ? this.discardFirst : undefined
+        // R-5.1.4.I, R-11.10 — each card the kept card discards first at your site leaves its space.
         const keptPlay = {
             keptCardId: kept,
             play: first.play,
             faceUp: first.faceUp,
-            discardFirstCardId: discardFirst,
-            toSiteId: keptTo
+            ...(first.play === SearchPlay.Site ? discardFirstFields(this.discardFirsts) : {}),
+            toSiteId: keptTo,
+            ...(choices ? { choices } : {})
         }
         return (
             reasonCannotPairSecondPlay(state, playerId, keptPlay, second) ??

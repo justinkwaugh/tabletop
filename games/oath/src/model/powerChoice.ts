@@ -1,7 +1,7 @@
 import * as Type from 'typebox'
 import { Region, Suit } from './oathEnums.js'
 import { WarbandGroup } from './campaign.js'
-import { ExchangeTerms } from './question.js'
+import { ExchangeTerms } from './exchangeTerms.js'
 
 // R-7.1.3, R-X.1 — the engine never infers a choice, so every choice a power opens arrives on the action.
 

@@ -1,5 +1,5 @@
 import { isLockedFor, ownCardLockedFor } from '../util/locked.js'
-import { categoryAt } from '../util/sitePowers.js'
+import { categoryAt, greatSlumDenizensToDiscardFirst } from '../util/sitePowers.js'
 import { Banner, Suit } from '../model/oathEnums.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 import type { PileDeposit } from '../model/hidden.js'
@@ -78,22 +78,13 @@ const ownFaceupDenizenAdvisers: ChoiceDomain = (state, playerId) =>
         )
         .map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
 
-/**
- * R-11.10 — the denizens a power may discard first at a Great Slum before it moves a card there. R-7.2.2 — never one
- * locked for its user.
- */
-function slumDenizensAt(state: HydratedOathGameState, playerId: string, siteId: string): string[] {
-    if (!state.isSiteFaceup(siteId) || categoryAt(state, siteId) !== 'greatSlum') return []
-    return state.denizensAt(siteId).filter((id) => !isLockedFor(state, playerId, id))
-}
-
 // R-11.10 — the Great Slum lets a card here be discarded before one is moved here. From revision 31 (R-X.4) a locked
 // card is not offered, so naming it is refused with the choices, before anything is paid; before, it is offered too.
 const slumCardsAtYourSite: ChoiceDomain = (state, playerId) => {
     const here = pawnSiteId(state, playerId)
     let cards: string[]
     if (isAtLeastOathRevision(state, OathRevision.EngineFixes26)) {
-        cards = slumDenizensAt(state, playerId, here)
+        cards = greatSlumDenizensToDiscardFirst(state, playerId, here)
     } else {
         cards = categoryAt(state, here) === 'greatSlum' ? state.denizensAt(here) : []
     }
@@ -160,7 +151,12 @@ function reasonNoRoomForRovingTerror(
     if (!isAtLeastOathRevision(state, OathRevision.EngineFixes26)) return undefined
     const to = siteHolding(state, targetId)
     assertExists(to, `${targetId} is a denizen at another site`)
-    return reasonSiteFull(state, to, { leaving: [targetId], arriving: [] }, firstId)
+    return reasonSiteFull(
+        state,
+        to,
+        { leaving: [targetId], arriving: [] },
+        firstId === undefined ? [] : [firstId]
+    )
 }
 const denizensAtOtherSites: ChoiceDomain = (state, playerId) => {
     const here = siteHolding(state, ROVING)
@@ -176,7 +172,9 @@ const denizensAtOtherSites: ChoiceDomain = (state, playerId) => {
                     reasonNoRoomForRovingTerror(
                         state,
                         id,
-                        slumDenizensAt(state, playerId, siteId).find((first) => first !== id)
+                        greatSlumDenizensToDiscardFirst(state, playerId, siteId).find(
+                            (first) => first !== id
+                        )
                     ) === undefined
             )
         )
@@ -186,7 +184,7 @@ const denizensAtOtherSites: ChoiceDomain = (state, playerId) => {
 const slumCardsElsewhere: ChoiceDomain = (state, playerId) =>
     state
         .allSiteIds()
-        .flatMap((siteId) => slumDenizensAt(state, playerId, siteId))
+        .flatMap((siteId) => greatSlumDenizensToDiscardFirst(state, playerId, siteId))
         .filter((cardId) => cardId !== ROVING)
         .map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
 registerEffect(ROVING, powerIndexOf(ROVING, PowerTiming.Action), {
@@ -228,9 +226,13 @@ registerEffect(ROVING, powerIndexOf(ROVING, PowerTiming.Action), {
         }
         const to = siteHolding(ctx.state, target.cardId)
         assertExists(to, `${target.cardId} is a denizen at another site`)
+        // R-7.2.1 — Roving Terror can only be at a site: no swap puts it among a player's advisers (the Horned
+        // Mask refuses it), so its power is used only where it stands at a site.
         const from = siteHolding(ctx.state, ROVING)
-        // Horned Mask can swap Roving Terror into a player's advisers, and then it has no site to leave.
-        if (!from) return { summary: 'Roving Terror: nothing to move between', pileDeposits }
+        assertExists(
+            from,
+            'Roving Terror can only be at a site (R-7.2.1), so its power is used from one'
+        )
         const gone = discardDenizensAtSites(
             ctx.state,
             ctx.playerId,

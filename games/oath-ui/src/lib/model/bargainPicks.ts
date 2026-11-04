@@ -2,6 +2,7 @@ import {
     PowerChoiceKind,
     usableFavor,
     witchsBargainBounds,
+    witchsBargainStepBounds,
     type BargainEntry,
     type HydratedOathGameState,
     type LegalChoice,
@@ -10,7 +11,9 @@ import {
 
 /**
  * Witch's Bargain from revision 7: the players picked at the user's site, in the order picked,
- * each with the secrets and the pairs of favor given them.
+ * each with the secrets and the pairs of favor given them. From revision 32 (the spec's
+ * `inOrder`) the picks are steps in order, each made with what the user holds after the steps
+ * above it: a player may come again after another, never twice in a row.
  */
 export type BargainPick = { playerId: string; secretsGiven: number; pairsGiven: number }
 
@@ -121,4 +124,140 @@ export function withBargainCount(
     return shownBargainPicks(legal, picks).map((pick) =>
         pick.playerId === playerId ? { ...pick, [term]: pick[term] === count ? 0 : count } : pick
     )
+}
+
+/**
+ * From revision 32, the steps the picker shows: those named, up to the first player the spec no
+ * longer offers; or, with none named and one player offered, that player with nothing given.
+ */
+export function shownBargainSteps(
+    legal: LegalChoice,
+    picks: readonly BargainPick[]
+): BargainPick[] {
+    const players = bargainPlayers(legal)
+    const gone = picks.findIndex((pick) => !players.includes(pick.playerId))
+    const shown = gone < 0 ? [...picks] : picks.slice(0, gone)
+    const only = onlyPlayer(legal)
+    return shown.length === 0 && only !== undefined
+        ? [{ playerId: only, secretsGiven: 0, pairsGiven: 0 }]
+        : shown
+}
+
+/**
+ * The open (last) step's two rows, read on what the steps above it leave. Secrets: those held
+ * then, before the first step the one the cost places too (drawn, never given). Pairs: the favor
+ * held once the step's own secrets are given.
+ */
+export function bargainStepRows(
+    state: HydratedOathGameState,
+    playerId: string,
+    steps: readonly BargainPick[]
+): BargainRows {
+    const open = steps.length - 1
+    const step = steps[open]
+    const bounds = witchsBargainStepBounds(
+        state,
+        playerId,
+        steps.slice(0, open),
+        step.playerId,
+        step.secretsGiven
+    )
+    return {
+        secrets: bounds.silenced
+            ? undefined
+            : { held: bounds.secretsHeld, addable: bounds.secrets, picked: step.secretsGiven },
+        pairs: { held: bounds.favorHeld, addable: bounds.pairs, picked: step.pairsGiven }
+    }
+}
+
+/** Whether a step with `withId` after `steps` could exchange anything. */
+function canExchangeThen(
+    state: HydratedOathGameState,
+    playerId: string,
+    steps: readonly BargainPick[],
+    withId: string
+): boolean {
+    const bounds = witchsBargainStepBounds(state, playerId, steps, withId)
+    return bounds.secrets + bounds.pairs > 0
+}
+
+/**
+ * "Then:": the players a next step may name once the open step has a count, and while the spec
+ * allows another: never the player just dealt with (twice in a row is one step), nor one with
+ * whom nothing can be exchanged then.
+ */
+export function bargainThenPlayers(
+    state: HydratedOathGameState,
+    playerId: string,
+    legal: LegalChoice,
+    steps: readonly BargainPick[]
+): string[] {
+    const last = steps[steps.length - 1]
+    if (!last || last.secretsGiven + last.pairsGiven === 0 || steps.length >= legal.spec.max)
+        return []
+    return bargainPlayers(legal).filter(
+        (id) => id !== last.playerId && canExchangeThen(state, playerId, steps, id)
+    )
+}
+
+/** The chips of step `k`: "With:" offers every player there, a later step what "Then:" offered it. */
+export function bargainStepPlayers(
+    state: HydratedOathGameState,
+    playerId: string,
+    legal: LegalChoice,
+    steps: readonly BargainPick[],
+    k: number
+): string[] {
+    return k === 0
+        ? bargainPlayers(legal)
+        : bargainThenPlayers(state, playerId, legal, steps.slice(0, k))
+}
+
+/**
+ * A tap on a chip of step `k` names that player for it, and drops the steps after it; a tap on its
+ * picked chip drops it and them. The one player a required pick allows is never dropped.
+ */
+export function withBargainStep(
+    legal: LegalChoice,
+    picks: readonly BargainPick[],
+    k: number,
+    playerId: string
+): BargainPick[] {
+    const shown = shownBargainSteps(legal, picks)
+    if (shown[k]?.playerId === playerId)
+        return k === 0 && onlyPlayer(legal) === playerId ? [...picks] : shown.slice(0, k)
+    return [...shown.slice(0, k), { playerId, secretsGiven: 0, pairsGiven: 0 }]
+}
+
+/**
+ * A tap on the Nth piece (or pair) of the open step sets N, and a tap on the one at the count sets
+ * 0; its pairs then drop to what its secrets leave the user.
+ */
+export function withBargainStepCount(
+    state: HydratedOathGameState,
+    playerId: string,
+    legal: LegalChoice,
+    picks: readonly BargainPick[],
+    term: 'secretsGiven' | 'pairsGiven',
+    count: number
+): BargainPick[] {
+    const shown = shownBargainSteps(legal, picks)
+    const open = shown.length - 1
+    const step = shown[open]
+    const next = { ...step, [term]: step[term] === count ? 0 : count }
+    const before = shown.slice(0, open)
+    const { pairs } = bargainStepRows(state, playerId, [...before, next])
+    return [...before, { ...next, pairsGiven: Math.min(next.pairsGiven, pairs.addable) }]
+}
+
+/** A finished step as its one line reads: its secrets given, then its pairs, with their tokens. */
+export function bargainStepLine(step: BargainPick): string {
+    return [
+        ...(step.secretsGiven > 0
+            ? [`give ${step.secretsGiven} secret for ${2 * step.secretsGiven} favor`]
+            : []),
+        ...(step.pairsGiven > 0
+            ? [`give ${2 * step.pairsGiven} favor for ${step.pairsGiven} secret`]
+            : [])
+    ].join(', then ')
 }

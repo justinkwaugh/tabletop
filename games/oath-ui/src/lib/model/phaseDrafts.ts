@@ -55,6 +55,7 @@ import {
     type PiecePlace
 } from './citizenshipAnswer.js'
 import {
+    choicesOnPicks,
     emptyPicks,
     favorBankSuits,
     hasPicks,
@@ -508,12 +509,7 @@ export function listedActionPowers(
     })
 }
 
-/**
- * R-7.1.3 — a listed power's choices read on its picks, and the picks as they read back. A spec
- * whose options follow the picks before it (`readsEarlier`: Assassin's card, one of the player
- * picked) offers what those picks leave. Its pick names an option of `shown`, the choices it was
- * made on, and is kept only while that option is still offered.
- */
+/** R-7.1.3 — a listed power's choices read on its picks, and the picks as they read back (`choicesOnPicks`). */
 function readOnPicks(
     state: HydratedOathGameState,
     playerId: string,
@@ -524,23 +520,13 @@ function readOnPicks(
     if (!listed.choices.some((legal) => legal.spec.readsEarlier)) return { power: listed, picks }
     const printed = cardPower(listed.cardId, listed.powerIndex)
     assertExists(printed, `${listed.cardId} prints no power ${listed.powerIndex}`)
-    let kept = picks
-    const choices = listed.choices.reduce<LegalChoice[]>((read, legal, spec) => {
-        if (!legal.spec.readsEarlier) return [...read, legal]
-        const earlier = powerChoicesFrom(read, kept)
-        const reread = offeredChoices(state, playerId, printed, undefined, earlier)[spec]
-        const pick = kept.option[spec]
-        if (shown && pick !== undefined) {
-            const named = JSON.stringify(shown[spec].options[pick])
-            const index = reread.options.findIndex((option) => JSON.stringify(option) === named)
-            const option = Object.fromEntries(
-                Object.entries(kept.option).filter(([key]) => Number(key) !== spec)
-            )
-            kept = { ...kept, option: index < 0 ? option : { ...option, [spec]: index } }
-        }
-        return [...read, reread]
-    }, [])
-    return { power: { ...listed, choices }, picks: kept }
+    const read = choicesOnPicks(
+        listed.choices,
+        picks,
+        (earlier) => offeredChoices(state, playerId, printed, undefined, earlier),
+        shown
+    )
+    return { power: { ...listed, choices: read.choices }, picks: read.picks }
 }
 
 /**
@@ -595,7 +581,7 @@ export class ActionPowersDraft extends TapHistoryDraft<ActionPowerPicks> {
         const playerId = this.playerId
         if (!playerId || !AsIfSearchedRows.offered(this.session.gameState, power)) return undefined
         const key = powerKey(power.cardId, power.powerIndex)
-        return new AsIfSearchedRows(
+        return AsIfSearchedRows.forPower(
             this.session.gameState,
             playerId,
             { cardId: power.cardId, powerIndex: power.powerIndex, choices: this.choicesFor(power) },

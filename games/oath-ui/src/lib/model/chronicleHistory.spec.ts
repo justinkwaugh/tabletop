@@ -9,6 +9,7 @@ import {
 } from '@tabletop/common'
 import {
     ActionType,
+    AnswerChronicleCitizenship,
     BoardSide,
     BuildOrRepairEdifice,
     OathRuntime,
@@ -363,5 +364,35 @@ describe('R-1.7-H1, R-1.9-H1 — how a continued game’s seats were settled', (
         ]
         for (const view of views)
             expect(openingLines(served(state, view))).toEqual(openingLines(state))
+    })
+})
+
+describe('R-8.2-H2 — a winner holding Ring of Devotion places none of theirs (revision 32)', () => {
+    const answered = (winnerPlacedNone?: boolean) =>
+        buildAction(AnswerChronicleCitizenship, {
+            playerId: 'ann',
+            accept: true,
+            metadata: {
+                siteIds: ['p1', 'p2'],
+                siteCardIds: ['site.ancient-city', 'site.steppe'],
+                winnerPlayerId: 'dana',
+                ...(winnerPlacedNone ? { winnerPlacedNone } : {})
+            }
+        })
+
+    // The History names the card ids, as `lines` does.
+    const row = (winnerPlacedNone?: boolean) =>
+        nameIds(chronicleActionWords(answered(winnerPlacedNone)) ?? '', (slotId) => slotId)
+
+    it('the row says the warbands left the sites and the winner placed none, naming the Ring', () => {
+        expect(row(true)).toBe(
+            'accepted Citizenship; their warbands left Ancient City and Steppe, and dana placed none there (Ring of Devotion).'
+        )
+    })
+
+    it('control: a record without it reads as before', () => {
+        expect(row()).toBe(
+            'accepted Citizenship; their warbands at Ancient City and Steppe became dana’s.'
+        )
     })
 })

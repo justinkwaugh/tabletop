@@ -675,3 +675,34 @@ export function powerChoicesFrom(
     })
     return out
 }
+
+/**
+ * R-7.1.3 — choices read on their picks, and the picks as they read back. A spec whose options follow the picks
+ * before it (`readsEarlier`: Assassin's card, one of the player picked) offers what those picks leave, as `reread`
+ * reads the choices on them. Its pick names an option of `shown`, the choices it was made on, and is kept only while
+ * that option is still offered.
+ */
+export function choicesOnPicks(
+    choices: readonly LegalChoice[],
+    picks: PowerChoicePicks,
+    reread: (earlier: PowerChoice[]) => readonly LegalChoice[],
+    shown?: readonly LegalChoice[]
+): { choices: LegalChoice[]; picks: PowerChoicePicks } {
+    if (!choices.some((legal) => legal.spec.readsEarlier)) return { choices: [...choices], picks }
+    let kept = picks
+    const read = choices.reduce<LegalChoice[]>((read, legal, spec) => {
+        if (!legal.spec.readsEarlier) return [...read, legal]
+        const again = reread(powerChoicesFrom(read, kept))[spec]
+        const pick = kept.option[spec]
+        if (shown && pick !== undefined) {
+            const named = JSON.stringify(shown[spec].options[pick])
+            const index = again.options.findIndex((option) => JSON.stringify(option) === named)
+            const option = Object.fromEntries(
+                Object.entries(kept.option).filter(([key]) => Number(key) !== spec)
+            )
+            kept = { ...kept, option: index < 0 ? option : { ...option, [spec]: index } }
+        }
+        return [...read, again]
+    }, [])
+    return { choices: read, picks: kept }
+}

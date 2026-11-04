@@ -1,10 +1,12 @@
 import {
     ActionType,
+    CONSPIRACY_ID,
     HydratedOathGameState,
     HydratedPlayFacedownAdviser,
     HydratedSearch,
     PowerChoiceKind,
     SearchPlay,
+    discardFirstReach,
     discardRegionFor,
     discardTargetOf,
     isFreeGain,
@@ -28,7 +30,16 @@ import {
     powerChoicesFrom,
     type PowerChoicePicks
 } from './powerChoices.js'
-import { powerUseKey } from './powerUse.js'
+import { powerUseKey, samePowerUse } from './powerUse.js'
+import {
+    discardFirstFields,
+    discardFirstRow,
+    opensWithSomeFirsts,
+    rowReach,
+    type DiscardFirstReach,
+    type DiscardFirstRow,
+    type OpensWith
+} from './discardFirstPicks.js'
 
 // R-5.1.4 — the plays a Search and a facedown adviser print alike; an adviser play reads differently in each.
 export const PLAY_LABELS = {
@@ -232,6 +243,38 @@ export function facedownPlayCards(
     return cards
 }
 
+// R-2.7 — the Vision a power draws is not known before its use. Every Vision, the Conspiracy included,
+// has no suit and is not a denizen, so the Search cards read any goal Vision alike: this one stands in.
+// The Conspiracy's own play (R-5.1.4.IV) is its own entry below.
+const ANY_GOAL_VISION = 'vision.sanctuary'
+
+// R-5.1.4 — the plays a drawn Vision has, with the card each shows: never to a site (R-5.1.4.III);
+// the Conspiracy has its own play (R-5.1.4.IV).
+const VISION_PLAYS: { play: SearchPlay; cardId: string }[] = [
+    { play: SearchPlay.Discard, cardId: ANY_GOAL_VISION },
+    { play: SearchPlay.Adviser, cardId: ANY_GOAL_VISION },
+    { play: SearchPlay.RevealedVision, cardId: ANY_GOAL_VISION },
+    { play: SearchPlay.Conspiracy, cardId: CONSPIRACY_ID }
+]
+
+/**
+ * R-6.1, R-7.4 — the Search cards that can act on a Vision drawn and played or discarded "as if you
+ * searched" (Oracle), before it is drawn: those the facedown play offers under a play a Vision has,
+ * by the same engine hooks (where a discard goes, the pile it goes to, what the play adds once made).
+ * So the Cracked Horn and Bracken act; Great Spire, Welcoming Party, Wild Cry, New Growth and Crop
+ * Rotation never do.
+ */
+export function visionPlayCards(state: HydratedOathGameState, playerId: string): CardPower[] {
+    const acting: CardPower[] = []
+    for (const { play, cardId } of VISION_PLAYS) {
+        const cards = facedownPlayCards(state, playerId, cardId, play)
+        for (const power of [...cards.rows, ...cards.places, ...(cards.pile ? [cards.pile] : [])]) {
+            if (!acting.some((p) => samePowerUse(p, power))) acting.push(power)
+        }
+    }
+    return acting
+}
+
 /** The rows in use when the play is chosen: its free gains (Wild Cry). */
 export function rowsAtStart(cards: FacedownPlayCards): ModifierUse[] {
     return cards.rows.filter(isFreeGain).map(powerUseKey)
@@ -246,7 +289,7 @@ function fewestFirst(cards: readonly ModifierUse[]): ModifierUse[][] {
     return all.sort((a, b) => a.length - b.length)
 }
 
-export type SitePick = { toSiteId?: string; discardFirstCardId?: string }
+export type SitePick = { toSiteId?: string; discardFirsts?: readonly string[] }
 
 /**
  * R-6.1, R-7.4 — the placing cards a site play needs to go where it is sent: the fewest the
@@ -267,13 +310,60 @@ export function sitePlayUses(
             HydratedPlayFacedownAdviser.reasonCannotPlace(state, playerId, {
                 cardId,
                 play: SearchPlay.Site,
-                ...pick,
+                toSiteId: pick.toSiteId,
+                ...discardFirstFields(pick.discardFirsts ?? []),
                 modifiers: [...carried, ...uses]
             }) === undefined
     )
 }
 
-// R-5.1.4.I the People's Favor, New Growth — another site to play to, counting a site a discard
+/**
+ * R-11.10 the Great Slum, Crop Rotation, R-5.1.4.I the People's Favor — the cards some power lets the play to
+ * `toSiteId` discard first, with the cards it carries and any placing cards it may use, and how many may go.
+ */
+function adviserDiscardFirstReach(
+    state: HydratedOathGameState,
+    playerId: string,
+    toSiteId: string | undefined,
+    placing: readonly ModifierUse[],
+    carried: readonly ModifierUse[]
+): DiscardFirstReach {
+    const reaches = fewestFirst(placing).flatMap((uses) => {
+        const { reason, active } = HydratedPlayFacedownAdviser.playModifiers(
+            state,
+            playerId,
+            SearchPlay.Site,
+            [...carried, ...uses]
+        )
+        return reason === undefined
+            ? [discardFirstReach(state, playerId, { toSiteId, carried: active })]
+            : []
+    })
+    const reached = new Set(reaches.flatMap((reach) => reach.cardIds))
+    return rowReach(state, {
+        cardIds: state
+            .allSiteIds()
+            .flatMap((siteId) => state.denizensAt(siteId))
+            .filter((id) => reached.has(id)),
+        most: Math.max(0, ...reaches.map((reach) => reach.most))
+    })
+}
+
+/** The engine opens the play to `toSiteId` with these cards discarded first, with the placing cards it needs. */
+function adviserOpensWith(
+    state: HydratedOathGameState,
+    playerId: string,
+    cardId: string,
+    toSiteId: string | undefined,
+    placing: readonly ModifierUse[],
+    carried: readonly ModifierUse[]
+): OpensWith {
+    return (discardFirsts) =>
+        sitePlayUses(state, playerId, cardId, { toSiteId, discardFirsts }, placing, carried) !==
+        undefined
+}
+
+// R-5.1.4.I the People's Favor, New Growth — another site to play to, counting a site discards
 // there would open.
 export function adviserOtherSites(
     state: HydratedOathGameState,
@@ -283,28 +373,38 @@ export function adviserOtherSites(
     carried: readonly ModifierUse[] = []
 ): string[] {
     const here = state.getPlayerState(playerId).siteId
-    const firsts = [undefined, ...state.allSiteIds().flatMap((siteId) => state.denizensAt(siteId))]
     return state
         .allSiteIds()
         .filter(
             (toSiteId) =>
                 toSiteId !== here &&
-                firsts.some(
-                    (discardFirstCardId) =>
-                        sitePlayUses(
-                            state,
-                            playerId,
-                            cardId,
-                            { toSiteId, discardFirstCardId },
-                            placing,
-                            carried
-                        ) !== undefined
+                opensWithSomeFirsts(
+                    adviserDiscardFirstReach(state, playerId, toSiteId, placing, carried),
+                    adviserOpensWith(state, playerId, cardId, toSiteId, placing, carried)
                 )
         )
 }
 
-// R-11.10 the Great Slum, R-5.1.4.I the People's Favor, Crop Rotation — a denizen discarded
-// before the site play, offered wherever the engine accepts it for the site being played to.
+// R-11.10 the Great Slum, R-5.1.4.I the People's Favor, Crop Rotation — the denizens discarded
+// before the site play, one per power that gives one, offered wherever the engine accepts them for
+// the site being played to.
+export function adviserDiscardFirstRow(
+    state: HydratedOathGameState,
+    playerId: string,
+    cardId: string,
+    toSiteId: string | undefined,
+    wanted: readonly string[] = [],
+    placing: readonly ModifierUse[] = [],
+    carried: readonly ModifierUse[] = []
+): DiscardFirstRow {
+    return discardFirstRow(
+        adviserDiscardFirstReach(state, playerId, toSiteId, placing, carried),
+        wanted,
+        adviserOpensWith(state, playerId, cardId, toSiteId, placing, carried)
+    )
+}
+
+/** The cards the "Discard first" row offers before any is picked. */
 export function adviserDiscardFirstOptions(
     state: HydratedOathGameState,
     playerId: string,
@@ -313,20 +413,7 @@ export function adviserDiscardFirstOptions(
     placing: readonly ModifierUse[] = [],
     carried: readonly ModifierUse[] = []
 ): string[] {
-    return state
-        .allSiteIds()
-        .flatMap((siteId) => state.denizensAt(siteId))
-        .filter(
-            (discardFirstCardId) =>
-                sitePlayUses(
-                    state,
-                    playerId,
-                    cardId,
-                    { toSiteId, discardFirstCardId },
-                    placing,
-                    carried
-                ) !== undefined
-        )
+    return adviserDiscardFirstRow(state, playerId, cardId, toSiteId, [], placing, carried).offered
 }
 
 /**

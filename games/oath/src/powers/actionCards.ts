@@ -45,7 +45,7 @@ import { RerolledRollKind } from '../model/question.js'
 import { offerReroll, rolledShields, settleRoll } from '../util/reroll.js'
 import { defenseShieldsFromFaces, rollDefenseDice } from '../data/dice.js'
 import { isLockedFor, reasonCannotMoveCardTo } from '../util/locked.js'
-import { categoryAt } from '../util/sitePowers.js'
+import { categoryAt, greatSlumDenizensToDiscardFirst } from '../util/sitePowers.js'
 import { siteHolding } from '../util/access.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 import { TOTAL_MAP_SLOTS } from '../data/mapSlots.js'
@@ -400,10 +400,10 @@ registerEffect(
                 what: 'a denizen at the Great Slum to discard first',
                 domain: (state, playerId) =>
                     state
-                        .faceupSiteIds()
-                        .filter((siteId) => categoryAt(state, siteId) === 'greatSlum')
-                        .flatMap((siteId) => state.denizensAt(siteId))
-                        .filter((cardId) => !isLockedFor(state, playerId, cardId))
+                        .allSiteIds()
+                        .flatMap((siteId) =>
+                            greatSlumDenizensToDiscardFirst(state, playerId, siteId)
+                        )
                         .map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
             })
         ],

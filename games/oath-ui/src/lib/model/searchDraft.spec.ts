@@ -417,7 +417,7 @@ describe('Land Warden — the second play is picked on the cards', () => {
         expect(draft.second).toBeUndefined()
     })
 
-    it('offers only the second plays the engine accepts: a Vision only as a facedown adviser, and none without the Warden', async () => {
+    it('offers only the second plays the engine accepts: in a game before revision 32 a Vision only as a facedown adviser, and none without the Warden', async () => {
         const { draft } = await searchingWith([TENTS, VISION], [], WARDEN_CARRIED)
         draft.keep(TENTS)
         expect(draft.secondPlays.map((option) => option.mode)).toEqual(['adviser, facedown'])

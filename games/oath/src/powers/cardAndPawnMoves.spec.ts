@@ -98,6 +98,39 @@ describe('Beast', () => {
         expect(() => actionPowerUse('ruler', ROVING, [card(INN)]).apply(own)).toThrow()
     })
 
+    it('Roving Terror can only be at a site (R-7.2.1): the Horned Mask cannot swap it into advisers', () => {
+        const HORNED = 'relic.horned-mask'
+        const masked = () =>
+            rulerTable(
+                [ROVING, WOLVES],
+                [INN],
+                { ruler: { relicIds: [HORNED] } },
+                { denizensBySite: { c1: [ROVING, WOLVES], c2: [ELDERS], p1: [], h1: [] } }
+            )
+        const refused = masked()
+        expect(() =>
+            actionPowerUse('ruler', HORNED, [card(INN), card(ROVING)]).apply(refused)
+        ).toThrow(/not among the options/)
+        expect(refused.denizensBySite['c1']).toEqual([ROVING, WOLVES])
+        expect(refused.getPlayerState('ruler').advisers.map((a) => a.cardId)).toEqual([INN])
+        // Another card at the same site is swapped, so the refusal is Roving Terror's own.
+        const swapped = masked()
+        actionPowerUse('ruler', HORNED, [card(INN), card(WOLVES)]).apply(swapped)
+        expect(swapped.getPlayerState('ruler').advisers.map((a) => a.cardId)).toEqual([WOLVES])
+
+        // So its power always has a site to leave: one held as an adviser, which no move can make, is an error,
+        // not a use that moves nothing.
+        const held = rulerTable(
+            [],
+            [ROVING],
+            {},
+            { denizensBySite: { c1: [], c2: [ELDERS], p1: [], h1: [] } }
+        )
+        expect(() => actionPowerUse('ruler', ROVING, [card(ELDERS)]).apply(held)).toThrow(
+            /can only be at a site/
+        )
+    })
+
     it('Pied Piper — ignores the adviser limit, and moves to another player taking two favor', () => {
         // Its Q&A: played, it prompts no discard; held, it "still counts toward your total number of advisers".
         const s = rulerTable(

@@ -35,6 +35,40 @@ const panelCardNames = (page: Page) =>
 const secondMode = (page: Page, mode: string) =>
     panel(page).getByRole('button', { name: mode, exact: true })
 const toYourSite = (page: Page) => panel(page).getByRole('button', { name: /^To your site/ })
+
+/**
+ * The second card's buttons under "Also play:", in order: each one's label, its width and height in layout pixels
+ * (the panel may be drawn scaled), its height on the screen, and the width its own label alone would give it, with
+ * its padding and border.
+ */
+const secondModeBoxes = (page: Page) =>
+    panel(page)
+        .locator('div', { has: page.getByText('Also play:', { exact: true }) })
+        .last()
+        .locator('button:not(:has(img)):not(.magnifier)')
+        .evaluateAll((buttons) =>
+            buttons.map((button) => {
+                const box = button as HTMLElement
+                const scale = box.getBoundingClientRect().width / box.offsetWidth
+                const words = document.createRange()
+                words.selectNodeContents(box)
+                const style = getComputedStyle(box)
+                const around = [
+                    style.paddingLeft,
+                    style.paddingRight,
+                    style.borderLeftWidth,
+                    style.borderRightWidth
+                ].reduce((sum, length) => sum + parseFloat(length), 0)
+                const label = words.getBoundingClientRect().width / scale
+                return {
+                    label: (box.textContent ?? '').trim(),
+                    width: box.offsetWidth,
+                    height: box.offsetHeight,
+                    drawnHeight: box.getBoundingClientRect().height,
+                    fits: Math.ceil(Math.round((label + around) * 100) / 100)
+                }
+            })
+        )
 const undo = (page: Page) => page.getByRole('button', { name: 'Undo', exact: true })
 
 async function searched(page: Page) {
@@ -74,6 +108,30 @@ for (const { name, viewport, phone } of SIZES) {
             await expect(secondMode(page, 'adviser, faceup')).toHaveCount(2)
             await expect(secondMode(page, 'adviser, facedown')).toHaveCount(2)
             await shot(page, 'warden-1-offered', phone)
+        })
+
+        test(`the second card's buttons are as wide as the widest label${phone ? ' and 44 px tall' : ''}`, async ({
+            page
+        }) => {
+            await searched(page)
+            await expect(secondMode(page, 'adviser, facedown')).toHaveCount(2)
+            const boxes = await secondModeBoxes(page)
+            expect(boxes.map((box) => box.label)).toEqual([
+                'to your site',
+                'adviser, faceup',
+                'adviser, facedown',
+                'to your site',
+                'adviser, faceup',
+                'adviser, facedown'
+            ])
+            if (phone) {
+                expect(boxes.map((box) => box.height)).toEqual(boxes.map(() => 44))
+                for (const box of boxes) expect(box.drawnHeight).toBeGreaterThanOrEqual(43.5)
+            }
+            // One width, the widest label's (to a pixel's rounding): no button narrower, none stretched wider.
+            const widest = Math.max(...boxes.map((box) => box.fits))
+            expect(new Set(boxes.map((box) => box.width)).size).toBe(1)
+            expect(Math.abs(boxes[0].width - widest)).toBeLessThanOrEqual(1)
         })
 
         for (const faceUp of [true, false]) {
@@ -144,6 +202,43 @@ for (const { name, viewport, phone } of SIZES) {
                 'denizen.beast.wolves',
                 RANGERS
             ])
+        })
+    })
+
+    /**
+     * R-5.1.4.III, Land Warden — Dana (an Exile) searched with Land Warden at the Great Slum, full, drawing Alchemist
+     * and the Vision of Conquest.
+     */
+    test.describe(`Land Warden's second card when none can be played, on a ${name}`, () => {
+        test.use({ viewport, hasTouch: phone })
+
+        const alsoPlay = (page: Page) => step(page, 'Also play:')
+
+        async function drawn(page: Page) {
+            await page.goto('/')
+            await call(page, 'open', 'landWardenVisionKept')
+            await expect.poll(async () => (await call(page, 'tableFacts')).seatId).toBe('Dana')
+            await expect(step(page, 'Keep one.')).toBeVisible()
+        }
+
+        test('the Vision kept: no card can be second, so "Also play:" is not shown', async ({
+            page
+        }) => {
+            await drawn(page)
+            await card(page, 'Vision of Conquest').click()
+            await expect(step(page, 'How do you play it?')).toBeVisible()
+            await expect(alsoPlay(page)).toHaveCount(0)
+            await shot(page, 'warden-5-vision-kept', phone)
+        })
+
+        test('control: Alchemist kept, "Also play:" offers the Vision of Conquest', async ({
+            page
+        }) => {
+            await drawn(page)
+            await card(page, 'Alchemist').click()
+            await expect(step(page, 'How do you play it?')).toBeVisible()
+            await expect(alsoPlay(page)).toBeVisible()
+            await expect(card(page, 'Vision of Conquest')).toBeVisible()
         })
     })
 }

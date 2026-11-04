@@ -8,6 +8,9 @@ import {
     adviserLimitDiscardCount,
     adviserLimitDiscards,
     banksWithFavor,
+    falseProphetPlayAsSearched,
+    falseProphetTolls,
+    falseProphetTollsUnpaid,
     favorHomeBankOf,
     favorTakenFrom,
     homeBankPayable,
@@ -29,11 +32,13 @@ import {
     warbandOwnerGainedByPower,
     woodTravelPaysAtPick,
     type ConspiracyPlay,
+    type ModifierUse,
     type OpenDeal,
     PowerQuestionValidator,
     type PowerQuestion,
     type ProjectedPowerQuestion,
-    type QuestionAnswer
+    type QuestionAnswer,
+    type Toll
 } from '@tabletop/oath'
 import { answerCostText } from './actionCards.js'
 import type { TravelPick } from './actionOffers.js'
@@ -48,6 +53,7 @@ import {
     stackOrderAnswer
 } from './questionChoices.js'
 import { togglePick } from './cardChoice.js'
+import { AsIfSearchedRows, type DeclaredModifier } from './modifierRows.js'
 import { cageCeilingAt, cageCountsAfterTap, cagePlacementOf } from './cagePlacement.js'
 import { StagedFlow, type PanelDraft, type StagesCover } from './stagedFlow.svelte.js'
 import {
@@ -70,6 +76,7 @@ type QuestionValueByStage = {
     takeTarget: string
     takePrize: number
     conspiracyDiscard: string
+    visionModifiers: DeclaredModifier[]
     visionDiscard: string
     instead: string
     stackOrder: string[]
@@ -87,6 +94,7 @@ const QUESTION_STAGE_ORDER = [
     'takeTarget',
     'takePrize',
     'conspiracyDiscard',
+    'visionModifiers',
     'visionDiscard',
     'instead',
     'stackOrder',
@@ -293,8 +301,65 @@ export class QuestionDraft implements PanelDraft {
     get visionDiscards(): string[] {
         const playerId = this.playerId
         return this.question?.kind === PowerQuestionKind.PlayOrDiscardVision && playerId
-            ? advisersToDiscardForVision(this.session.gameState, playerId)
+            ? advisersToDiscardForVision(this.session.gameState, playerId, this.visionModifiers)
             : []
+    }
+
+    /**
+     * False Prophet, from revision 32 — "as if you had searched": the Search's "Cards" rows for the cards acting on
+     * the play or discard (the Cracked Horn, Bracken), judged by the answer itself: a card is listed if some play
+     * accepts it beside the cards in use. None while a toll cannot be paid, when only the plain discard is left.
+     */
+    get visionRows(): AsIfSearchedRows | undefined {
+        const playerId = this.playerId
+        const state = this.session.gameState
+        if (this.question?.kind !== PowerQuestionKind.PlayOrDiscardVision || !playerId)
+            return undefined
+        if (!falseProphetPlayAsSearched(state)) return undefined
+        if (falseProphetTollsUnpaid(state, playerId).length > 0) return undefined
+        const accepts = (uses: readonly ModifierUse[]) =>
+            VISION_PLAYS.some(
+                (play) =>
+                    HydratedAnswerQuestion.reasonCannotAnswer(
+                        state,
+                        playerId,
+                        playVisionAnswer(play, undefined, uses)
+                    ) === undefined
+            )
+        return new AsIfSearchedRows(
+            state,
+            playerId,
+            accepts,
+            this.flow.value('visionModifiers') ?? [],
+            (declared) => this.flow.set('visionModifiers', declared)
+        )
+    }
+
+    /** The cards in use on the Vision's play, as the answer sends them. */
+    private get visionModifiers(): ModifierUse[] {
+        return this.visionRows?.uses ?? []
+    }
+
+    /** The plays wait for each card in use to have its picks (Bracken's pile and side). */
+    get visionRowsComplete(): boolean {
+        return this.visionRows?.complete ?? true
+    }
+
+    /** R-7.1.4 — Forced Labor: the tolls the play or discard pays, whichever is picked. */
+    get visionTolls(): Toll[] {
+        const playerId = this.playerId
+        if (this.question?.kind !== PowerQuestionKind.PlayOrDiscardVision || !playerId) return []
+        const state = this.session.gameState
+        return falseProphetTollsUnpaid(state, playerId).length > 0
+            ? []
+            : falseProphetTolls(state, playerId)
+    }
+
+    /** The tolls the asked player cannot pay: the Vision then goes to the usual pile, with no choice left. */
+    get visionTollsUnpaid(): string[] {
+        const playerId = this.playerId
+        if (this.question?.kind !== PowerQuestionKind.PlayOrDiscardVision || !playerId) return []
+        return falseProphetTollsUnpaid(this.session.gameState, playerId)
     }
 
     get visionDiscard(): string | undefined {
@@ -802,7 +867,11 @@ export class QuestionDraft implements PanelDraft {
     }
 
     private visionAnswer(play: SearchPlay): QuestionAnswer {
-        return playVisionAnswer(play, play === SearchPlay.Adviser ? this.visionDiscard : undefined)
+        return playVisionAnswer(
+            play,
+            play === SearchPlay.Adviser ? this.visionDiscard : undefined,
+            this.visionModifiers
+        )
     }
 
     private answer(question: PowerQuestion, yes: boolean): QuestionAnswer {

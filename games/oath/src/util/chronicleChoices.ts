@@ -19,6 +19,7 @@ import { countOf } from './warbands.js'
 import { returnTokensFrom } from './discard.js'
 import { printedSiteCapacity, SALT_THE_EARTH } from './capacity.js'
 import { isAtLeastOathRevision, OathRevision } from './revision.js'
+import { cannotPlaceWarbandsAtSites } from './continuous.js'
 
 // Every offer here reads public state only: a player's projection computes the same offer.
 
@@ -208,27 +209,41 @@ export function sitesChangingHands(state: HydratedOathGameState, playerId: strin
     return state.allSiteIds().filter((siteId) => rulesSite(state, playerId, siteId))
 }
 
+/** R-8.2 — an accepter's answer: the sites they ruled, and whether the winner placed none there. */
+export interface ChronicleAcceptance {
+    siteIds: string[]
+    /** R-8.2-H2 — Ring of Devotion's holder won: the accepter's warbands only left. */
+    winnerPlacedNone: boolean
+}
+
 /**
  * R-8.2 — the accepter's board flips to Citizen, and at each site they rule their warbands are
  * replaced with one of the winner's. "One of your warbands" names no source and the winner never
  * runs short (an Exile has 14, the map eight sites), so none is taken from a bank: R-8.3.4 clears
- * the map before anything counts warbands again. The accepter's go back to their bank.
+ * the map before anything counts warbands again. The accepter's go back to their bank. From
+ * revision 32 a winner holding Ring of Devotion cannot place warbands at sites (R-9.2), so their
+ * warbands leave and none replaces them (R-8.2-H2): R-8.3.2 keeps those sites only for another
+ * reason, such as an intact edifice.
  */
 export function acceptChronicleCitizenship(
     state: HydratedOathGameState,
     playerId: string
-): string[] {
+): ChronicleAcceptance {
     const siteIds = sitesChangingHands(state, playerId)
     const owner = ownWarbandOwner(state, playerId)
-    const winnerOwner = ownWarbandOwner(state, chronicleWinnerOf(state))
+    const winnerId = chronicleWinnerOf(state)
+    const winnerOwner = ownWarbandOwner(state, winnerId)
+    const winnerPlacedNone =
+        isAtLeastOathRevision(state, OathRevision.EngineFixes27) &&
+        cannotPlaceWarbandsAtSites(state, winnerId)
     for (const siteId of siteIds) {
         const theirs = countOf(state.warbandsBySite[siteId] ?? {}, owner)
         removeWarbandsFrom(state, { kind: 'site', siteId }, owner, theirs)
         killWarbands(state, owner, theirs)
-        addWarbandsToSite(state, siteId, winnerOwner, 1)
+        if (!winnerPlacedNone) addWarbandsToSite(state, siteId, winnerOwner, 1)
     }
     state.getPlayerState(playerId).status = PlayerStatus.Citizen
-    return siteIds
+    return { siteIds, winnerPlacedNone }
 }
 
 // ---------------------------------------------------------------------------------------------

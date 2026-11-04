@@ -12,6 +12,7 @@ import {
     SearchPlay,
     UseActionPower,
     powerIndexOf,
+    usableModifiers,
     type HydratedOathGameState,
     type LegalPowerUse,
     type ModifierUse
@@ -19,6 +20,7 @@ import {
 import {
     buildAction,
     openTurn,
+    placeEdifice,
     required,
     served,
     testPlayer,
@@ -50,6 +52,11 @@ const WOLVES = 'denizen.beast.wolves'
 const ELDERS = 'denizen.nomad.elders'
 const INN = 'denizen.hearth.wayside-inn'
 const SUPREMACY = 'vision.supremacy'
+const SPIRE = 'edifice.arcane.great-spire'
+const WILD_CRY = 'denizen.beast.wild-cry'
+const WELCOMING_PARTY = 'denizen.hearth.welcoming-party'
+const NEW_GROWTH = 'denizen.beast.new-growth'
+const CROP_ROTATION = 'denizen.hearth.crop-rotation'
 
 const FIXED = OathRevision.EngineFixes26
 const BEFORE = OathRevision.Chronicle
@@ -232,6 +239,89 @@ describe("Oracle's row lists the Search modifiers its use takes (revision 31)", 
         expect(session.actionPowers.back()).toBe(true)
         expect(rowsOf(session)?.isDeclared(BRACKEN_KEY)).toBe(false)
         expect(listed(session)).toEqual([BRACKEN, HORN])
+    })
+})
+
+/** The table with the intact Great Spire at c1 beside Oracle, so Dana may use both (Law 7.1.1). */
+function withSpire(revision: OathRevision, advisers: string[]): HydratedOathGameState {
+    const s = table(revision, advisers)
+    placeEdifice(s, 'c1', SPIRE)
+    return s
+}
+
+/**
+ * Each card is a Search modifier in reach that Oracle's use accepts alone, as the row listed it before
+ * this change (the hide is not for another reason).
+ */
+function expectAcceptedAlone(session: OathGameSession, cardIds: string[]): void {
+    const state = session.gameState
+    const inReach = usableModifiers(state, 'dana', ActionType.Search, [])
+    const use = oracle(session)
+    for (const cardId of cardIds) {
+        const power = required(
+            inReach.find((p) => p.cardId === cardId),
+            `${cardId} is in reach`
+        )
+        expect(
+            HydratedUseActionPower.reasonCannotUse(
+                state,
+                'dana',
+                ORACLE,
+                use.powerIndex,
+                [],
+                [{ cardId, powerIndex: power.powerIndex }]
+            ),
+            `Oracle's use accepts ${cardId}`
+        ).toBeUndefined()
+    }
+}
+
+describe("Oracle's row hides the Search cards that can never act on its Vision (R-7.4)", () => {
+    // Dana, at c1 with Oracle and Great Spire, holds the Cracked Horn and has Bracken and Wild Cry
+    // faceup. A Vision has no suit, is not a denizen and never goes to a site (Law 2.7, 5.1.4.III).
+    for (const [name, played] of views(withSpire(FIXED, [BRACKEN, WILD_CRY]))) {
+        it(`on ${name}: Great Spire and Wild Cry are hidden; the Horn and Bracken are listed`, async () => {
+            const { session } = await usingPowers(played)
+            expectAcceptedAlone(session, [SPIRE, WILD_CRY, HORN])
+            expect(listed(session)).toEqual([BRACKEN, HORN])
+            const rows = required(rowsOf(session), 'Oracle has its rows')
+            expect(rows.isDeclared(HORN_USE)).toBe(false)
+            expect(rows.isDeclared(BRACKEN_KEY)).toBe(false)
+        })
+
+        it(`on ${name}: the Horn in use still hides Bracken, and the other way round`, async () => {
+            const { session } = await usingPowers(played)
+            tapCard(session, HORN)
+            expect(listed(session)).toEqual([HORN])
+            tapCard(session, HORN)
+            tapCard(session, BRACKEN)
+            expect(listed(session)).toEqual([BRACKEN])
+            expect(session.actionPowers.picksComplete(oracle(session))).toBe(false)
+        })
+
+        it(`on ${name}: the Search's own rows still list Great Spire and Wild Cry`, async () => {
+            const session = await openSessionOn(played)
+            session.chooseAction(ActionType.Search)
+            const searchRows = session.modifiers.listed.map((power) => power.cardId)
+            expect(searchRows).toContain(SPIRE)
+            expect(searchRows).toContain(WILD_CRY)
+        })
+    }
+
+    // The same, with Welcoming Party, New Growth and Crop Rotation as Dana's advisers (3 of 3).
+    for (const [name, played] of views(
+        withSpire(FIXED, [WELCOMING_PARTY, NEW_GROWTH, CROP_ROTATION])
+    )) {
+        it(`on ${name}: Welcoming Party, New Growth, Crop Rotation and Great Spire are hidden; the Horn is listed`, async () => {
+            const { session } = await usingPowers(played)
+            expectAcceptedAlone(session, [WELCOMING_PARTY, NEW_GROWTH, CROP_ROTATION, SPIRE, HORN])
+            expect(listed(session)).toEqual([HORN])
+        })
+    }
+
+    it('before revision 31, with the five in reach: no rows', async () => {
+        const { session } = await usingPowers(tableOf(withSpire(BEFORE, [BRACKEN, WILD_CRY])))
+        expect(rowsOf(session)).toBeUndefined()
     })
 })
 

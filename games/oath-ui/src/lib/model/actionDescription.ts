@@ -5,6 +5,7 @@ import {
     PowerQuestionKind,
     RecoverTargetKind,
     SearchPlay,
+    discardFirstCardIdsOf,
     SearchSource,
     WarbandMoveKind,
     isAnswerConsent,
@@ -59,6 +60,7 @@ import {
     IMPERIAL_WARBANDS,
     OBSIDIAN_CAGE_ID,
     type AnswerConsentMetadata,
+    type AnswerQuestionMetadata,
     type Banner,
     type CitizenshipTransfer,
     type ExchangeTerms,
@@ -86,6 +88,8 @@ import {
     type WarbandMove,
     type WarbandOwner,
     type HeldForHospital,
+    type ModifierUse,
+    type PowerCost,
     secretsFlipped
 } from '@tabletop/oath'
 import { assertExists, type GameAction } from '@tabletop/common'
@@ -313,6 +317,7 @@ export function describeAction(
 }
 
 const HOSPITAL = 'denizen.hearth.hospital'
+const RING_OF_DEVOTION = 'relic.ring-of-devotion'
 
 /** Hospital — the warbands it placed on its site, recorded by the step that ended the Campaign. */
 export function recordedHospitalPlaced(action: GameAction): readonly HeldForHospital[] {
@@ -392,6 +397,16 @@ export function recordedNotes(action: GameAction): readonly string[] {
     // R-5.5.8 — the plans and the end that waited on a banish's answer (Toll Roads, the Shrouded Wood).
     if (isAnswerQuestion(action)) return action.metadata?.triggered ?? []
     return []
+}
+
+/** R-11.10, Crop Rotation, R-5.1.4.I — the cards a site play discarded first, named in its line. */
+function discardedFirstClause(
+    play: SearchPlay,
+    firsts: readonly string[],
+    by: readonly string[] = []
+): string {
+    if (play !== SearchPlay.Site || firsts.length === 0) return ''
+    return `, discarding ${listed(firsts.map(cardName))} first${inBrackets(by)}`
 }
 
 /** Land Warden — the second card's When Played, under that card's name once, as the kept card's is. */
@@ -523,9 +538,14 @@ function inBrackets(cards: readonly string[]): string {
     return cards.length > 0 ? ` (${cards.join(', ')})` : ''
 }
 
-/** The Supply a row spent, and the cards that changed it; "spending 0 Supply (Special Envoy)". */
-function costWith(spent: number | undefined, cards: string): string {
-    return cards ? `, spending ${spent ?? 0} Supply${cards}` : supply(spent)
+/**
+ * R-7.1.2 — the Supply spent, then each card in use's own cost, then the other cards in brackets
+ * after the cost ("spending 2 Supply and placing a secret on Great Spire (Wild Cry)"; with no
+ * card cost, "spending 0 Supply (Special Envoy)").
+ */
+function costWith(spent: number | undefined, cards: string, paid: readonly string[] = []): string {
+    const placing = paid.length > 0 ? ` and ${paid.join(' and ')}` : ''
+    return cards || placing ? `, spending ${spent ?? 0} Supply${placing}${cards}` : supply(spent)
 }
 
 /** R-7.3.3 — the kept card's When Played follows it: "…: gained 4 Imperial warbands". */
@@ -829,9 +849,15 @@ function describeActionCited(
         const meta = action.metadata
         const shown = meta?.revealedDraw
         const shownBy = shown ? new Set([...named, cardName(TRUTHFUL_HARP)]) : named
+        // R-7.1.2 — a card in use that cost something is named by its cost, not again in brackets.
+        const paid = paidModifiers(action.modifiers, meta?.modifiers)
         return (
             `searched ${from}` +
-            costWith(meta?.supplySpent, cardsInBrackets(meta?.modifiers, shownBy)) +
+            costWith(
+                meta?.supplySpent,
+                cardsInBrackets(meta?.modifiers, new Set([...shownBy, ...paid.named])),
+                paid.clauses
+            ) +
             tollClauses(meta?.tollsPaid, nameOf) +
             (shown ? `; showed ${shown.map(cardName).join(', ')} (Truthful Harp)` : '') +
             (searchStoppedOnVision(action) ? '; the draw stopped on a Vision' : '')
@@ -845,12 +871,19 @@ function describeActionCited(
             action.play === SearchPlay.Adviser &&
             action.faceUp !== true &&
             meta?.playedCardId === undefined
+        // The searcher's own site and Vision: "your own" to them, "their own" to every other seat.
+        const theirs = (words: string) => namedNote(words, action.playerId, names, viewerId)
         return (
-            `kept ${shownCard(kept)} and ${describePlay(action.play)}` +
+            `kept ${shownCard(kept)} and ${theirs(describePlay(action.play, `${action.playerId}'s`))}` +
             (facedown ? ', facedown' : '') +
+            discardedFirstClause(action.play, discardFirstCardIdsOf(action)) +
             gaining(meta?.secretsGained ?? 0, meta?.favorGained ?? 0, meta?.favorShort) +
             conspiracyTakeClause(action.conspiracy, action.playerId, names, viewerId) +
-            whenPlayedClause(meta?.whenPlayed, kept, action.playerId, names, viewerId)
+            whenPlayedClause(meta?.whenPlayed, kept, action.playerId, names, viewerId) +
+            // Land Warden — a Vision revealed as the second card, named as a revealed Vision is.
+            (action.secondPlay?.play === SearchPlay.RevealedVision && meta?.secondPlayedCardId
+                ? `; ${theirs(`revealed ${cardName(meta.secondPlayedCardId)} as ${action.playerId}'s Vision`)}`
+                : '')
         )
     }
     if (isSearchSwap(action)) return describeSearchSwap(action)
@@ -939,18 +972,24 @@ function describeActionCited(
             did ? gainCards(meta?.modifiers, new Set([cardId]), named) : []
         const elsewhere = action.toSiteId
         const grew = usedFor(NEW_GROWTH, elsewhere !== undefined)
-        const first = action.discardFirstCardId
-        const rotated = usedFor(CROP_ROTATION, first !== undefined)
+        const firsts = discardFirstCardIdsOf(action)
+        const rotated = usedFor(CROP_ROTATION, firsts.length > 0)
         const horn = usedFor(CRACKED_HORN, meta?.discardToWorldDeck === true)
         const played = shownCard(meta?.playedCardId)
+        // R-7.1.2 — a card in use that cost something is named by its cost, not again in brackets.
+        const paid = paidModifiers(action.modifiers, meta?.modifiers)
         return (
             (action.play === SearchPlay.Site && elsewhere !== undefined
                 ? `played ${played} to ${names.site(elsewhere)}${inBrackets(grew)}`
                 : describeAdviserPlay(action.play, played)) +
             (meta?.discardToWorldDeck ? ` under the world deck${inBrackets(horn)}` : '') +
-            (first ? `, discarding ${cardName(first)} first${inBrackets(rotated)}` : '') +
+            discardedFirstClause(action.play, firsts, rotated) +
+            paid.clauses.map((clause) => `, ${clause}`).join('') +
             gaining(meta?.secretsGained ?? 0, meta?.favorGained ?? 0, meta?.favorShort) +
-            cardsInBrackets(meta?.modifiers, new Set([...named, ...grew, ...rotated, ...horn])) +
+            cardsInBrackets(
+                meta?.modifiers,
+                new Set([...named, ...grew, ...rotated, ...horn, ...paid.named])
+            ) +
             conspiracyTakeClause(action.conspiracy, action.playerId, names, viewerId) +
             whenPlayedClause(
                 meta?.whenPlayed,
@@ -963,7 +1002,9 @@ function describeActionCited(
         )
     }
     if (isUseActionPower(action)) {
-        const cost = printedCost(action.cardId, action.powerIndex)
+        // R-7.1.2 — Oracle's declared Search cards are paid with its use, so each is named by its cost.
+        const paid = paidModifiers(action.modifiers, action.metadata?.modifiers)
+        const cost = printedCost(action.cardId, action.powerIndex, paid.clauses)
         const toll = action.metadata?.tollMove
         if (toll) return tollMoveText(toll, names, viewerId, cost)
         // Forced Labor on Oracle — what the power did, then the toll with its card.
@@ -975,7 +1016,7 @@ function describeActionCited(
             messengerMoves(action, names) ??
             powerEffect(action, names, viewerId)
         // R-7.4 — Oracle's Search modifiers, in brackets after the cost, as a Search's row names its own.
-        const cards = cardsInBrackets(action.metadata?.modifiers, new Set())
+        const cards = cardsInBrackets(action.metadata?.modifiers, new Set(paid.named))
         return `used ${powerCardName(action.cardId, action.powerIndex)}${cost}${cards}${effect}${paying}`
     }
     if (isPeek(action)) {
@@ -1016,10 +1057,15 @@ function describeActionCited(
     }
     if (isResolveCitizenshipOffer(action)) {
         const unreplaced = action.metadata?.outcome?.unreplacedCount ?? 0
+        // R-6.6.2-H1 — Ring of Devotion's holder places no purple warbands at sites.
+        const removedFromSites = action.metadata?.outcome?.removedFromSitesCount ?? 0
         return action.granted
             ? 'accepted Citizenship' +
                   (unreplaced > 0
                       ? `, removing ${plural(unreplaced, 'warband')} for want of Imperial ones`
+                      : '') +
+                  (removedFromSites > 0
+                      ? `; ${plural(removedFromSites, 'warband')} on the map ${removedFromSites === 1 ? 'was' : 'were'} removed (${cardName(RING_OF_DEVOTION)})`
                       : '')
             : 'refused Citizenship'
     }
@@ -1076,14 +1122,21 @@ function describeActionCited(
             const { withPlayerId, terms } = answer.proposal
             return `${cardName(meta.cardId)}: ${offerText(withPlayerId, terms, action.playerId, names)}`
         }
-        // False Prophet — its warband on the Vision died, then the Vision was played or discarded.
+        // False Prophet — its warband on the Vision died, then the Vision was played or discarded; from revision 32
+        // with the Search cards acting on it and Forced Labor's toll, or none when that could not be paid.
         const vision = PROPHESIED.exec(meta.summary)?.[0]
         if (answer.kind === PowerQuestionKind.PlayOrDiscardVision && vision) {
             const play =
                 answer.play === SearchPlay.Adviser
                     ? `${describePlay(answer.play)}, facedown`
                     : describePlay(answer.play)
-            return `${cardName(meta.cardId)}: 1 warband on ${cardName(vision)} died; ${play}`
+            return (
+                `${cardName(meta.cardId)}: 1 warband on ${cardName(vision)} died; ${play}` +
+                (answer.play === SearchPlay.Discard ? prophesiedDiscardWhere(meta) : '') +
+                cardsInBrackets(meta.modifiers, new Set()) +
+                (meta.tollsUnpaid ?? []).map((id) => `; no favor for ${cardName(id)}`).join('') +
+                tollClauses(meta.tollsPaid, nameOf)
+            )
         }
         // Inquisitor — the Conspiracy it found, played faceup with a take: what it took, from the answer.
         if (answer.kind === PowerQuestionKind.PlayOrDiscardConspiracy && answer.conspiracy) {
@@ -1165,6 +1218,17 @@ const CRACKED_HORN = 'relic.cracked-horn'
 const SNEAK_ATTACK = 'denizen.discord.sneak-attack'
 // False Prophet's answer names the Vision it played or discarded.
 const PROPHESIED = /\bvision\.[a-z0-9-]+/
+
+/**
+ * False Prophet's discard, where it went when a card chose it or a toll went unpaid: "under the world deck", or
+ * "to [the bottom of] the <region> discard pile". Otherwise the usual pile, unsaid.
+ */
+function prophesiedDiscardWhere(meta: AnswerQuestionMetadata): string {
+    if (meta.discardToWorldDeck) return ' under the world deck'
+    const chosen = (meta.modifiers?.length ?? 0) > 0 || (meta.tollsUnpaid?.length ?? 0) > 0
+    if (!chosen || meta.discardPileRegion === undefined) return ''
+    return ` to ${meta.discardToBottom ? 'the bottom of ' : ''}the ${meta.discardPileRegion} discard pile`
+}
 
 /**
  * What a play gained: "gaining 1 secret", "gaining 2 favor". R-9.3 — a site play whose favor came up short says
@@ -1348,10 +1412,8 @@ export function searchStoppedOnVision(action: Search): boolean {
     )
 }
 
-/** R-7.1.2 — the cost printed on the card, as the History says it was paid. */
-function printedCost(cardId: string, powerIndex: number): string {
-    const cost = cardPower(cardId, powerIndex)?.cost
-    if (!cost) return ''
+/** R-7.1.2 — a printed cost as the History says it was paid, placed on `on` ("it", or a card's name). */
+function costClauses(cost: PowerCost, on: string): string[] {
     const counted = (count: number, noun: string) =>
         count === 1 ? `a ${noun}` : `${count} ${noun}${noun === 'secret' ? 's' : ''}`
     const placed = [
@@ -1362,11 +1424,41 @@ function printedCost(cardId: string, powerIndex: number): string {
         ...(cost.burnFavor > 0 ? [counted(cost.burnFavor, 'favor')] : []),
         ...(cost.burnSecret > 0 ? [counted(cost.burnSecret, 'secret')] : [])
     ]
-    const clauses = [
-        ...(placed.length > 0 ? [`placing ${placed.join(' and ')} on it`] : []),
+    return [
+        ...(placed.length > 0 ? [`placing ${placed.join(' and ')} on ${on}`] : []),
         ...(burned.length > 0 ? [`burning ${burned.join(' and ')}`] : [])
     ]
+}
+
+/**
+ * R-7.1.2 — the cost printed on the card, as the History says it was paid, then the costs of the
+ * cards in use beside it (`paid`): "placing 2 secrets on it and placing a secret on Great Spire".
+ */
+function printedCost(cardId: string, powerIndex: number, paid: readonly string[] = []): string {
+    const cost = cardPower(cardId, powerIndex)?.cost
+    const clauses = [...(cost ? costClauses(cost, 'it') : []), ...paid]
     return clauses.length > 0 ? `, ${clauses.join(' and ')}` : ''
+}
+
+/**
+ * R-7.1.2, R-7.4 — the cards in use whose printed cost was paid, each by its cost ("placing a secret on
+ * Great Spire"): those declared that the record says acted, a mandatory one aside (it is not paid for).
+ * `named` holds the cards a clause names, which the brackets then leave out.
+ */
+function paidModifiers(
+    declared: readonly ModifierUse[] | undefined,
+    acted: readonly string[] | undefined
+): { clauses: string[]; named: string[] } {
+    const paid = new Set((acted ?? []).filter((entry) => !entry.endsWith(' (must)')))
+    const clauses: string[] = []
+    const named: string[] = []
+    for (const use of declared ?? []) {
+        const cost = paid.has(use.cardId) ? cardPower(use.cardId, use.powerIndex)?.cost : undefined
+        if (!cost) continue
+        clauses.push(...costClauses(cost, cardName(use.cardId)))
+        if (cost.placeFavor + cost.placeSecret > 0) named.push(cardName(use.cardId))
+    }
+    return { clauses, named }
 }
 
 function powerEffect(
@@ -1490,10 +1582,11 @@ function describeAdviserPlay(play: SearchPlay, card: string): string {
     }
 }
 
-function describePlay(play: SearchPlay): string {
+/** A card's play; a Search names whose site by the searcher's id (`p1's`), for `namedNote` to word. */
+function describePlay(play: SearchPlay, whose = 'their'): string {
     switch (play) {
         case SearchPlay.Site:
-            return 'played it to their site'
+            return `played it to ${whose} site`
         case SearchPlay.Adviser:
             return 'played it as an adviser'
         case SearchPlay.RevealedVision:
