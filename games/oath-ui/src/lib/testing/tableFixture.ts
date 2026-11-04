@@ -98,6 +98,7 @@ import { shroudedWoodState } from './shroudedWoodTable.js'
 import { gamblingHallUsed } from './gamblingHallTable.js'
 import { wrestlersDefends } from './wrestlersTable.js'
 import { landWardenSecondAdviser, landWardenVisionKept } from './landWardenTable.js'
+import { searchFullSiteTable } from './searchFullSiteTable.js'
 import { greatSlumPowers } from './greatSlumPowersTable.js'
 import { facedownPickerTable } from './facedownPickerTables.js'
 import { RELIC_HUNTER, campaignSteps } from './campaignStepsTable.js'
@@ -247,6 +248,8 @@ export type TableName =
     | 'searchConspiracy'
     | 'searchConspiracyNoTake'
     | 'searchPlayTo'
+    | 'searchFullSite'
+    | 'searchFullSiteRoom'
     | 'flipConspiracy'
     | 'flipConspiracyNoTake'
     | 'campaignTwoDefenders'
@@ -5851,6 +5854,9 @@ const TABLES: Record<TableName, () => PlayedTable | Promise<PlayedTable>> = {
     searchConspiracy: searchConspiracyTable,
     searchConspiracyNoTake: searchConspiracyNoTakeTable,
     searchPlayTo: searchPlayToTable,
+    // R-5.1.4.I, Crop Rotation — Dana searched with Crop Rotation at the full Plains, holding the People's Favor.
+    searchFullSite: () => searchFullSiteTable(),
+    searchFullSiteRoom: () => searchFullSiteTable(true),
     flipConspiracy: flipConspiracyTable,
     flipConspiracyNoTake: flipConspiracyNoTakeTable,
     campaignTwoDefenders: () => campaignTable(false),
