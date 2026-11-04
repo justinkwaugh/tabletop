@@ -5,17 +5,28 @@ import { reasonTollsUnpaid, tollsFor, travelFreeByToll, wayStationRuled } from '
 import {
     reasonFlipInvalid,
     reasonSitesForbidTravel,
+    secretsFlipped,
     shroudedWoodChooser,
-    siteTravelTerms
+    siteTravelTerms,
+    type TravelFlip
 } from './siteTravel.js'
 import { baseTravelCost } from './travelCost.js'
-import { foldSupplyCost, resolveModifiers, type ActionPlan, type ModifierUse } from './modifiers.js'
+import {
+    foldSupplyCost,
+    resolveModifiers,
+    usableModifiers,
+    type ActionPlan,
+    type ModifierUse
+} from './modifiers.js'
 import {
     isFreeTravelNow,
     payableWoodPicks,
+    resolveWoodDeclaration,
     tollPayableWoodSites,
     woodPick,
-    woodTravelPaysAtPick
+    woodChooserForTravel,
+    woodTravelPaysAtPick,
+    woodTravelTakesCards
 } from './shroudedWood.js'
 import { usableFavor } from './favor.js'
 import { pawnSiteId, regionOfPawn } from './pawn.js'
@@ -26,20 +37,25 @@ import {
     tollPayment
 } from './actionPayment.js'
 
-/** The optional payments a Travel carries: the tolls paid and the Buried Giant's flip. */
-export type TravelTerms = { tolls: string[]; flipSecret: boolean }
+/**
+ * The optional payments a Travel carries: the tolls paid and the secrets flipped for the Buried
+ * Giant and The Hidden Place, as the action records them (`TravelFlip`).
+ */
+export type TravelTerms = { tolls: string[]; flipSecret: TravelFlip }
 
 /** R-11.7 — before `UiBatch1`: 2 Supply to leave, or none on a free Travel. */
 export function shroudedWoodTravelCost(state: HydratedOathGameState, playerId: string): number {
     return isFreeTravelNow(state, playerId)
         ? 0
-        : siteTravelTerms(state, pawnSiteId(state, playerId), pawnSiteId(state, playerId), 0, false)
+        : siteTravelTerms(state, pawnSiteId(state, playerId), pawnSiteId(state, playerId), 0, 0)
               .cost
 }
 
 /**
- * R-11.7 — leaving an enemy's Shrouded Wood names no destination and declares nothing on it,
- * and the ruler must have a site the traveller can pay for.
+ * R-11.7 — leaving an enemy's Shrouded Wood names no destination, and the ruler must have a site the
+ * traveller can pay for. R-11.7-H2 (revision 15): the optional cards are declared and paid at the
+ * start, and counted for each pick; no toll or flip is declared, as the destination is unknown and
+ * the Wood ignores The Hidden Place and the Narrow Pass. Before revision 15 nothing is declared.
  */
 export function reasonCannotLeaveShroudedWood(
     state: HydratedOathGameState,
@@ -48,34 +64,50 @@ export function reasonCannotLeaveShroudedWood(
         siteId?: string
         modifiers?: readonly ModifierUse[]
         tolls?: readonly string[]
-        flipSecret?: boolean
+        flipSecret?: TravelFlip
     }
 ): string | undefined {
     const chooser = shroudedWoodChooser(state, playerId)
     if (chooser === undefined) {
         return 'no enemy rules the Shrouded Wood you stand at'
     }
+    // R-11.7-H4 — Portal from its own site ignores the Wood: a normal Travel, with its site named.
+    if (woodChooserForTravel(state, playerId, choice.modifiers) === undefined) {
+        return 'Portal ignores the Shrouded Wood: name the site you travel to'
+    }
     if (choice.siteId !== undefined) return "the Shrouded Wood's ruler chooses where you go"
+    const cardsDeclared = (choice.modifiers?.length ?? 0) > 0
     if (
-        (choice.modifiers?.length ?? 0) > 0 ||
+        (cardsDeclared && !woodTravelTakesCards(state)) ||
         (choice.tolls?.length ?? 0) > 0 ||
         choice.flipSecret
     ) {
-        return "nothing is declared on a Travel whose destination the Shrouded Wood's ruler chooses"
+        return woodTravelTakesCards(state)
+            ? "no toll or flip is declared on a Travel whose destination the Shrouded Wood's ruler chooses"
+            : "nothing is declared on a Travel whose destination the Shrouded Wood's ruler chooses"
     }
     const supply = state.getPlayerState(playerId).supply
     if (!woodTravelPaysAtPick(state)) {
         const cost = shroudedWoodTravelCost(state, playerId)
         return supply < cost ? `costs ${cost} Supply, player has ${supply}` : undefined
     }
-    const free = isFreeTravelNow(state, playerId)
-    if (payableWoodPicks(state, playerId, free).length > 0) return undefined
-    const sites = tollPayableWoodSites(state, playerId)
+    const declared = resolveWoodDeclaration(state, playerId, choice.modifiers)
+    if (declared.reason) return declared.reason
+    // R-7.1.2 — the cards' costs are paid before the ruler picks, so their favor is not there for a toll.
+    const committed = modifierPayment(declared.active).favor
+    const travel = {
+        free: isFreeTravelNow(state, playerId),
+        ...(cardsDeclared ? { modifiers: choice.modifiers } : {})
+    }
+    if (payableWoodPicks(state, playerId, travel, committed).length > 0) return undefined
+    const sites = tollPayableWoodSites(state, playerId, committed)
     if (sites.length === 0) {
-        const favor = usableFavor(state, playerId)
+        const favor = usableFavor(state, playerId) - committed
         return `${chooser} would pick where you go, and every site takes a favor for its toll: you have ${favor}`
     }
-    const cheapest = Math.min(...sites.map((siteId) => woodPick(state, playerId, siteId, free).cost))
+    const cheapest = Math.min(
+        ...sites.map((siteId) => woodPick(state, playerId, siteId, travel).cost)
+    )
     return `${chooser} would pick where you go, and you can pay for no site: the cheapest is ${cheapest} Supply, you have ${supply}`
 }
 
@@ -85,10 +117,11 @@ export function travelPlan(
     siteId: string,
     modifiers?: readonly ModifierUse[],
     tolls?: readonly string[],
-    flipSecret = false
+    flipSecret: TravelFlip = false
 ): ActionPlan & { siteNotes: string[] } {
     const player = state.getPlayerState(playerId)
-    if (shroudedWoodChooser(state, playerId) !== undefined) {
+    const flips = secretsFlipped(flipSecret)
+    if (woodChooserForTravel(state, playerId, modifiers) !== undefined) {
         return {
             reason: "the Shrouded Wood's ruler chooses where you go",
             cost: 0,
@@ -125,13 +158,13 @@ export function travelPlan(
     const sitesIgnored = resolved.active.some((m) => m.hooks.ignoresSitePowers === true)
     // R-11.8, R-11.13 — the Narrow Pass's must and The Hidden Place's cannot.
     const barred = sitesIgnored
-        ? reasonFlipInvalid(state, playerId, false, flipSecret)
-        : reasonSitesForbidTravel(state, playerId, here, siteId, flipSecret)
+        ? reasonFlipInvalid(state, playerId, 0, flips)
+        : reasonSitesForbidTravel(state, playerId, here, siteId, flips)
     if (barred) return { reason: barred, cost: base, active: [], siteNotes: [] }
     // R-11.3, R-11.6, R-11.7, R-11.12 — the sites' own prices.
     const siteTerms = sitesIgnored
         ? { cost: base, spendsNoSupply: false, notes: [] }
-        : siteTravelTerms(state, here, siteId, base, flipSecret)
+        : siteTravelTerms(state, here, siteId, base, flips)
     let cost = foldSupplyCost(
         siteTerms.cost,
         state,
@@ -146,7 +179,7 @@ export function travelPlan(
     const unaffordable = reasonCannotPayInAll(state, playerId, [
         modifierPayment(resolved.active),
         tollPayment(tolls),
-        secretPayment(flipSecret ? 1 : 0)
+        secretPayment(flips)
     ])
     if (unaffordable)
         return {
@@ -179,7 +212,7 @@ export function reasonCannotTravel(
     siteId: string,
     modifiers?: readonly ModifierUse[],
     tolls?: readonly string[],
-    flipSecret = false
+    flipSecret: TravelFlip = false
 ): string | undefined {
     return travelPlan(state, playerId, siteId, modifiers, tolls, flipSecret).reason
 }
@@ -194,9 +227,9 @@ export function travelCostFor(
 }
 
 /**
- * R-7.1.4, R-11.12, R-X.1 — every legal pairing of the player's optional travel payments:
- * Way Station's favor instead of Supply, and the Buried Giant's flipped secret. Demanded
- * tolls are in every pairing.
+ * R-7.1.4, R-11.12, R-11.13-H2, R-X.1 — every legal pairing of the player's optional travel
+ * payments: Way Station's favor instead of Supply, and the secrets flipped (none, one, or from
+ * the Buried Giant to The Hidden Place two). Demanded tolls are in every pairing.
  */
 export function legalTravelTerms(
     state: HydratedOathGameState,
@@ -211,13 +244,15 @@ export function legalTravelTerms(
         ...available.filter((t) => t.discount).map((t) => [...demanded, t.cardId])
     ]
     return tollSets
-        .flatMap((tolls) => [false, true].map((flipSecret) => ({ tolls, flipSecret })))
+        .flatMap((tolls) => TRAVEL_FLIPS.map((flipSecret): TravelTerms => ({ tolls, flipSecret })))
         .filter(
             (terms) =>
                 travelPlan(state, playerId, siteId, modifiers, terms.tolls, terms.flipSecret)
                     .reason === undefined
         )
 }
+
+const TRAVEL_FLIPS: readonly TravelFlip[] = [false, true, 2]
 
 /** R-5.6.1 */
 export function legalTravelDestinations(
@@ -230,9 +265,28 @@ export function legalTravelDestinations(
         .filter((siteId) => legalTravelTerms(state, playerId, siteId, modifiers).length > 0)
 }
 
+/**
+ * R-11.7-H2 — the declarations a Travel out of an enemy's Wood may make, as far as opening it goes:
+ * none, or each usable card alone. A pick one card makes payable needs no other card (one "spend no
+ * Supply" sets the price to 0), and a second card only places more favor, so no larger set opens a
+ * Travel that these do not.
+ */
+function woodDeclarationsToTry(state: HydratedOathGameState, playerId: string): ModifierUse[][] {
+    if (!woodTravelTakesCards(state)) return [[]]
+    const cards = usableModifiers(state, playerId, ActionType.Travel).map((power) => [
+        { cardId: power.cardId, powerIndex: power.powerIndex }
+    ])
+    return [[], ...cards]
+}
+
 export function canTravel(state: HydratedOathGameState, playerId: string): boolean {
     if (shroudedWoodChooser(state, playerId) !== undefined) {
-        return reasonCannotLeaveShroudedWood(state, playerId, {}) === undefined
+        // R-11.7-H4 — a declaration with Portal from its own site is a normal Travel.
+        return woodDeclarationsToTry(state, playerId).some((modifiers) =>
+            woodChooserForTravel(state, playerId, modifiers) === undefined
+                ? legalTravelDestinations(state, playerId, modifiers).length > 0
+                : reasonCannotLeaveShroudedWood(state, playerId, { modifiers }) === undefined
+        )
     }
     return legalTravelDestinations(state, playerId).length > 0
 }

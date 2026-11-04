@@ -2,11 +2,15 @@ import path from 'node:path'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { access, readFile, stat } from 'node:fs/promises'
 import { GameDefinition } from '@tabletop/common'
-import type { SiteManifest, SiteManifestGame } from '@tabletop/games-config'
+import {
+    gamePublicationSignature,
+    type SiteManifest,
+    type SiteManifestGame
+} from '@tabletop/games-config'
 import { RedisCacheService } from '../cache/cacheService.js'
 import { EnvService } from '../env/envService.js'
 import { STATIC_ROOT } from '../env/staticRoot.js'
-import { importLogicModule, loadLogicFactory } from './logicFactory.js'
+import { evaluateLogicDefinition, importLogicModule } from './logicFactory.js'
 
 const DEFAULT_CACHE_KEY = 'site-manifest'
 
@@ -38,24 +42,39 @@ export type TitleScope = {
     released: boolean
 }
 
+type TitleLoadTimings = {
+    locateMs?: number
+    readMs?: number
+    bytes?: number
+    evaluateMs?: number
+    importMs?: number
+}
+
+// Wraps the load of one title's logic, which blocks the event loop while the artifact evaluates.
+export type WhileLoadingTitle = <T>(load: () => Promise<T>) => Promise<T>
+
 export type LibraryServiceOptions = {
     manifestPath?: string
+    readManifest?: () => Promise<SiteManifest>
     cacheKey?: string
     useCache?: boolean
     fallbackManifest?: () => Promise<SiteManifest>
     logicRoot?: string
     // Runs for every generation before it is installed; a failure keeps the previous titles.
     prepare?: (generation: TitleGeneration) => Promise<void>
+    whileLoadingTitle?: WhileLoadingTitle
 }
 
 export class LibraryService {
     private readonly cacheService: RedisCacheService
     private readonly manifestPath: string
+    private readonly readManifest?: () => Promise<SiteManifest>
     private readonly manifestCacheKey: string
     private readonly useCache: boolean
     private readonly fallbackManifest?: () => Promise<SiteManifest>
     private readonly logicRoot: string
     private readonly prepare?: (generation: TitleGeneration) => Promise<void>
+    private readonly whileLoadingTitle: WhileLoadingTitle
     private manifestSnapshot?: SiteManifest
     private manifestRefreshQueue: Promise<void> = Promise.resolve()
     private activationQueue: Promise<void> = Promise.resolve()
@@ -68,11 +87,13 @@ export class LibraryService {
     constructor(cacheService: RedisCacheService, options: LibraryServiceOptions = {}) {
         this.cacheService = cacheService
         this.manifestPath = options.manifestPath ?? MANIFEST_PATH
+        this.readManifest = options.readManifest
         this.manifestCacheKey = options.cacheKey ?? DEFAULT_CACHE_KEY
         this.useCache = options.useCache ?? true
         this.fallbackManifest = options.fallbackManifest
         this.logicRoot = options.logicRoot ?? GAMES_ROOT
         this.prepare = options.prepare
+        this.whileLoadingTitle = options.whileLoadingTitle ?? ((load) => load())
     }
 
     async invalidateManifestCache(): Promise<void> {
@@ -137,7 +158,7 @@ export class LibraryService {
         const manifest = this.manifestSnapshot
         if (!manifest) return
         if (this.loadedManifest && this.publicationsMatch(this.loadedManifest, manifest)) return
-        const signature = this.publicationSignature(manifest)
+        const signature = gamePublicationSignature(manifest.games)
         const failure = this.activationFailure
         if (
             failure &&
@@ -163,13 +184,12 @@ export class LibraryService {
         return this.refreshManifest()
     }
 
-    // The manifest whose titles this instance runs; it trails the bucket manifest only while an
-    // activation is in progress.
+    // Only the games wait for an activation: a frontend-only release starts none.
     async getServedManifest(): Promise<SiteManifest> {
-        if (!this.loadedManifest) {
+        if (!this.loadedManifest || !this.manifestSnapshot) {
             throw new Error('Game titles have not been loaded; there is no served manifest')
         }
-        return this.loadedManifest
+        return { ...this.manifestSnapshot, games: this.loadedManifest.games }
     }
 
     createScope(): TitleScope {
@@ -246,7 +266,7 @@ export class LibraryService {
                 next.set(entry.gameId, { ...current, publication: entry })
                 continue
             }
-            const generation = await this.loadGeneration(entry)
+            const generation = await this.whileLoadingTitle(() => this.loadGeneration(entry))
             await this.prepare?.(generation)
             next.set(entry.gameId, generation)
         }
@@ -255,19 +275,79 @@ export class LibraryService {
     }
 
     private async loadGeneration(entry: SiteManifestGame): Promise<TitleGeneration> {
-        const { factory, legacy } = await this.logicLocation(entry)
-        const definition = factory
-            ? await loadLogicFactory(factory)
-            : await importLogicModule(legacy, entry.packageId)
-        if (
-            definition.info.id !== entry.gameId ||
-            definition.info.metadata.version !== entry.logicVersion
-        ) {
-            throw new Error(
-                `Logic artifact identity differs from publication: ${entry.packageId} ${entry.logicVersion}`
-            )
+        const timings: TitleLoadTimings = {}
+        const startedAt = performance.now()
+        try {
+            const { factory, legacy } = await this.logicLocation(entry)
+            timings.locateMs = this.elapsedMs(startedAt)
+            const definition = factory
+                ? await this.evaluateFactory(factory, timings)
+                : await this.importLegacyModule(legacy, entry.packageId, timings)
+            if (
+                definition.info.id !== entry.gameId ||
+                definition.info.metadata.version !== entry.logicVersion
+            ) {
+                throw new Error(
+                    `Logic artifact identity differs from publication: ${entry.packageId} ${entry.logicVersion}`
+                )
+            }
+            this.logTitleLoad('loaded', entry, timings)
+            return { definition, publication: entry }
+        } catch (error) {
+            this.logTitleLoad('failed', entry, timings)
+            throw error
         }
-        return { definition, publication: entry }
+    }
+
+    private async evaluateFactory(
+        filename: string,
+        timings: TitleLoadTimings
+    ): Promise<GameDefinition> {
+        const readStartedAt = performance.now()
+        const source = await readFile(filename)
+        timings.readMs = this.elapsedMs(readStartedAt)
+        timings.bytes = source.byteLength
+        const evaluateStartedAt = performance.now()
+        try {
+            return evaluateLogicDefinition(source.toString('utf8'), filename)
+        } finally {
+            timings.evaluateMs = this.elapsedMs(evaluateStartedAt)
+        }
+    }
+
+    private async importLegacyModule(
+        filename: string,
+        packageId: string,
+        timings: TitleLoadTimings
+    ): Promise<GameDefinition> {
+        const importStartedAt = performance.now()
+        try {
+            return await importLogicModule(filename, packageId)
+        } finally {
+            timings.importMs = this.elapsedMs(importStartedAt)
+        }
+    }
+
+    private logTitleLoad(
+        outcome: 'loaded' | 'failed',
+        entry: SiteManifestGame,
+        timings: TitleLoadTimings
+    ): void {
+        console.log(
+            JSON.stringify({
+                severity: outcome === 'loaded' ? 'INFO' : 'WARNING',
+                event: 'title_logic_load',
+                message: `Title logic ${outcome}: ${entry.gameId} ${entry.logicVersion}`,
+                outcome,
+                titleId: entry.gameId,
+                logicVersion: entry.logicVersion,
+                ...timings
+            })
+        )
+    }
+
+    private elapsedMs(since: number): number {
+        return Math.round(performance.now() - since)
     }
 
     // A published artifact is its collectible factory, or for artifacts published before the
@@ -344,9 +424,9 @@ export class LibraryService {
             const manifest = this.useCache
                 ? await this.cacheService.cachingGet<SiteManifest>(
                       this.manifestCacheKey,
-                      readManifest
+                      this.readManifest ?? readManifest
                   )
-                : await readManifest()
+                : await (this.readManifest ?? readManifest)()
             if (manifest) return manifest
         } catch (error) {
             if (error !== unavailable) throw error
@@ -362,19 +442,6 @@ export class LibraryService {
     }
 
     private publicationsMatch(loaded: SiteManifest, manifest: SiteManifest): boolean {
-        return this.publicationSignature(loaded) === this.publicationSignature(manifest)
-    }
-
-    private publicationSignature(manifest: SiteManifest): string {
-        return JSON.stringify(
-            (manifest.games ?? [])
-                .map((entry) => [
-                    entry.gameId,
-                    entry.packageId,
-                    entry.logicVersion,
-                    entry.uiVersion
-                ])
-                .sort(([left], [right]) => left.localeCompare(right))
-        )
+        return gamePublicationSignature(loaded.games) === gamePublicationSignature(manifest.games)
     }
 }

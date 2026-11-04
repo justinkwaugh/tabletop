@@ -37,7 +37,7 @@ function trading() {
 describe('System formation', () => {
     it('averages the prices, rounding a tie up, and slides down the diagonal to a ledge', () => {
         const { state } = trading()
-        // ACL $90 and CG $100 average $95, which rounds up to $100, placed from ACL's row.
+        // ACL $90 and CG $100 average $95, which rounds up to $100, on ACL's side of the ledge.
         expect(systemMarketSpace(state.stockMarket, ['ACL', 'CG']).id).toBe('4:10')
     })
 
@@ -97,15 +97,80 @@ describe('System formation', () => {
 })
 
 describe('System formation edge cases', () => {
-    it('takes the nearest price its leftmost component’s row has', () => {
+    it('stops at the soft ledge when the leftmost row’s box at the price lies past it', () => {
+        const { state } = trading()
+        placeStockMarker(state.stockMarket, 'ACL', '5:6')
+        placeStockMarker(state.stockMarket, 'CG', '3:10')
+        // $68 and $110 average $89, which rounds to $90. Row 5's $90 is below the ledge.
+        expect(systemMarketSpace(state.stockMarket, ['ACL', 'CG'])).toMatchObject({
+            id: '4:9',
+            price: 90
+        })
+    })
+
+    it('rounds to the market’s nearest price, not the leftmost row’s', () => {
+        const { state } = trading()
+        placeStockMarker(state.stockMarket, 'ACL', '7:6')
+        placeStockMarker(state.stockMarket, 'CG', '3:8')
+        // $60 and $90 average $75, which rounds to $76, not the $72 beyond the ledge on row 7.
+        expect(systemMarketSpace(state.stockMarket, ['ACL', 'CG'])).toMatchObject({
+            id: '5:8',
+            price: 76
+        })
+    })
+
+    it('stays above the soft ledge when the leftmost row has no box at the price', () => {
         const { state } = trading()
         placeStockMarker(state.stockMarket, 'ACL', '5:9')
         placeStockMarker(state.stockMarket, 'CG', '0:12')
-        // $82 and $200 average $141; row 5 tops out at $110.
+        // $82 and $200 average $141, which rounds to $140, a price row 5 lacks.
         expect(systemMarketSpace(state.stockMarket, ['ACL', 'CG'])).toMatchObject({
-            id: '5:12',
-            price: 110
+            id: '3:12',
+            price: 140
         })
+    })
+
+    it('reaches the soft ledge when the leftmost row lies above the price’s diagonal', () => {
+        const { state } = trading()
+        placeStockMarker(state.stockMarket, 'ACL', '0:0')
+        placeStockMarker(state.stockMarket, 'CG', '6:1')
+        // $64 and $30 average $47, which rounds to $50, a price row 0 lacks.
+        expect(systemMarketSpace(state.stockMarket, ['ACL', 'CG'])).toMatchObject({
+            id: '9:6',
+            price: 50
+        })
+    })
+
+    it('keeps a lower-area leftmost row below the soft ledge when its row lacks the price', () => {
+        const { state } = trading()
+        placeStockMarker(state.stockMarket, 'ACL', '5:10')
+        placeStockMarker(state.stockMarket, 'CG', '0:15')
+        // $90 below the ledge and $275 average $182.50, which rounds to $180, a price row 5 lacks.
+        expect(systemMarketSpace(state.stockMarket, ['ACL', 'CG'])).toMatchObject({
+            id: '4:15',
+            price: 180
+        })
+    })
+
+    it('ends the price’s diagonal when it has no box on the leftmost component’s side', () => {
+        const { state } = trading()
+        placeStockMarker(state.stockMarket, 'ACL', '3:20')
+        placeStockMarker(state.stockMarket, 'CG', '0:20')
+        // $325 and $400 average $362.50, which rounds to $375, found only above the ledge.
+        expect(systemMarketSpace(state.stockMarket, ['ACL', 'CG'])).toMatchObject({
+            id: '1:20',
+            price: 375
+        })
+    })
+
+    it('finds each price above $0 along one diagonal', () => {
+        const spaces = EighteenThirtyTwoMarket.spaces.filter((space) => space.price > 0)
+        for (const space of spaces) {
+            const next = spaces.find(
+                (other) => other.price === space.price && other.row === space.row + 1
+            )
+            if (next) expect(next.column).toBe(space.column + 1)
+        }
     })
 
     it('passes the presidency on with the vice-president’s certificate in the exchange', () => {

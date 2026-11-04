@@ -233,7 +233,8 @@ it('1889 exchanges during another stock turn without changing passes, purchases 
     expect(passed.activePlayerIds).not.toContain('alex')
     expect(engine.getValidActionTypesForPlayer(game, passed, 'alex')).toEqual([
         'ExchangePrivateOutOfTurn',
-        'SetStockInstruction'
+        'SetStockInstruction',
+        'SetRunInstruction'
     ])
     expect(() =>
         engine.executeCanonicalAction({

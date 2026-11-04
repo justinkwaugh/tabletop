@@ -39,6 +39,23 @@ export type SiteManifest = {
     games: SiteManifestGame[]
 }
 
+export function gamePublicationSignature(games: SiteManifestGame[]): string {
+    return JSON.stringify(
+        games
+            .map(({ gameId, packageId, logicVersion, uiVersion }) => [
+                gameId,
+                packageId,
+                logicVersion,
+                uiVersion
+            ])
+            .sort(([left], [right]) => left.localeCompare(right))
+    )
+}
+
+export function manifestPublicationSignature(manifest: SiteManifest): string {
+    return JSON.stringify([manifest.frontend.version, gamePublicationSignature(manifest.games)])
+}
+
 const DEFAULT_SCOPE = '@tabletop'
 
 export const GameCatalogue: GameCatalogueEntry[] = games

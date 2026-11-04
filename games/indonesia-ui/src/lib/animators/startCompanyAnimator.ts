@@ -1,6 +1,11 @@
 import type { GameAction } from '@tabletop/common'
 import type { AnimationContext } from '@tabletop/frontend-components'
-import { CompanyType, isExpand, isStartCompany, type HydratedIndonesiaGameState } from '@tabletop/indonesia'
+import {
+    CompanyType,
+    isExpand,
+    isStartCompany,
+    type HydratedIndonesiaGameState
+} from '@tabletop/indonesia'
 import { gsap } from 'gsap'
 import { tick, untrack } from 'svelte'
 import type { IndonesiaGameSession } from '$lib/model/session.svelte.js'
@@ -187,7 +192,8 @@ export class StartCompanyAnimator {
             const shipEntries = startedShipMarkerEntryForAction({
                 gameState: from,
                 action,
-                ownerColorForPlayerId: (playerId) => this.gameSession.colors.getPlayerUiColor(playerId),
+                ownerColorForPlayerId: (playerId) =>
+                    this.gameSession.colors.getPlayerUiColor(playerId),
                 ownerPlayerColorForPlayerId: (playerId) =>
                     this.gameSession.colors.getPlayerColor(playerId)
             })
@@ -437,7 +443,8 @@ export class StartCompanyAnimator {
             gameState: from,
             action,
             ownerColorForPlayerId: (playerId) => this.gameSession.colors.getPlayerUiColor(playerId),
-            ownerPlayerColorForPlayerId: (playerId) => this.gameSession.colors.getPlayerColor(playerId)
+            ownerPlayerColorForPlayerId: (playerId) =>
+                this.gameSession.colors.getPlayerColor(playerId)
         })
         const moveEntries = shipEntries.filter((entry) => entry.animationRole === 'move')
         const popEntries = shipEntries.filter((entry) => entry.animationRole === 'pop')

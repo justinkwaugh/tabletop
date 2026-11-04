@@ -10,7 +10,13 @@ export type RouteVisitor = {
     blocked?(locationId: string, node: TileNode): void
 }
 
-type Stop = { center: RevenueCenter; node: TileNode; pair: [number, number]; passable: boolean }
+type Stop = {
+    center: RevenueCenter
+    node: TileNode
+    pair: [number, number]
+    passable: boolean
+    track: number[]
+}
 type Side = {
     locationId: string
     edge: TileEdge
@@ -29,7 +35,8 @@ type Side = {
 // - each path is a matched pair between its ends, so following it in either direction reaches the
 //   vertex at the far end;
 // - the start joins the first vertex of each origin's pair, so a route leaves an origin unless it
-//   is blocked.
+//   is blocked; an offboard origin, which no route may pass, has a matched pair of its own for
+//   leaving by its track.
 // A vertex is reached by an alternating path ending in its matched edge exactly when Edmonds' search
 // from the start labels it outer.
 export function reachRoutes(
@@ -92,7 +99,8 @@ export function reachRoutes(
             center: { locationId, nodeId },
             node,
             pair,
-            passable: node.kind !== 'offboard' && !blocked(locationId, node)
+            passable: node.kind !== 'offboard' && !blocked(locationId, node),
+            track: []
         }
         stops.set(key, created)
         return created
@@ -103,7 +111,8 @@ export function reachRoutes(
             graph.join(vertex, sideVertex(locationId, end.edge))
             return
         }
-        const { pair, passable } = stop(locationId, end.nodeId)
+        const { pair, passable, track } = stop(locationId, end.nodeId)
+        track.push(vertex)
         graph.join(vertex, pair[0])
         if (passable) graph.join(vertex, pair[1])
     }
@@ -118,8 +127,16 @@ export function reachRoutes(
             paths.push({ locationId, pathId: path.id, ends })
         }
     }
-    for (const { locationId, nodeId } of origins)
-        graph.join(start, stop(locationId, nodeId).pair[0])
+    for (const { locationId, nodeId } of origins) {
+        const origin = stop(locationId, nodeId)
+        graph.join(start, origin.pair[0])
+        if (origin.node.kind !== 'offboard') continue
+        const entry = graph.vertex()
+        const exit = graph.vertex()
+        graph.match(entry, exit)
+        graph.join(start, entry)
+        for (const vertex of origin.track) graph.join(exit, vertex)
+    }
 
     const outer = graph.outerFrom(start)
 

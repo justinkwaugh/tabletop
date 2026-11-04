@@ -50,7 +50,9 @@ function ready(playerOverrides = {}, stateOverrides = {}) {
 }
 
 describe('Banner of the Darkest Secret — "spend 2 Supply if you\'re drawing from the world deck"', () => {
-    const holding = (holderId: string) => ({ banners: testBanners({ [Banner.DarkestSecret]: holderId }) })
+    const holding = (holderId: string) => ({
+        banners: testBanners({ [Banner.DarkestSecret]: holderId })
+    })
 
     it('charges its holder 2 for the world deck at every space of the track', () => {
         for (const visionsDrawn of VISIONS_DRAWN_SUPPLY_COST.keys()) {
@@ -67,7 +69,7 @@ describe('Banner of the Darkest Secret — "spend 2 Supply if you\'re drawing fr
         expect(HydratedSearch.supplyCost(state, 'p2', SearchSource.WorldDeck)).toBe(4)
     })
 
-    it('is its holder\'s alone: a Citizen pays the track while the Chancellor holds it (R-10.28)', () => {
+    it("is its holder's alone: a Citizen pays the track while the Chancellor holds it (R-10.28)", () => {
         const state = testState(
             [
                 testPlayer({ playerId: 'ch', status: PlayerStatus.Chancellor, siteId: 'c1' }),
@@ -151,16 +153,16 @@ describe('Search draw count (R-5.1.2, R-11.11)', () => {
 describe('Search legality (R-5.1.1, R-5.1.2)', () => {
     it('refuses when the player cannot afford the cost', () => {
         const state = ready({ supply: 1 }, { visionsDrawn: 0 })
-        expect(
-            HydratedSearch.reasonCannotSearch(state, 'p1', SearchSource.WorldDeck)
-        ).toBe('costs 2 Supply, player has 1')
+        expect(HydratedSearch.reasonCannotSearch(state, 'p1', SearchSource.WorldDeck)).toBe(
+            'costs 2 Supply, player has 1'
+        )
     })
 
     it('treats a pawn off the map as a broken invariant, not a refusal (R-1.23.1)', () => {
         const state = ready({ siteId: undefined })
-        expect(() => HydratedSearch.reasonCannotSearch(state, 'p1', SearchSource.WorldDeck)).toThrow(
-            "p1's pawn must be at a site"
-        )
+        expect(() =>
+            HydratedSearch.reasonCannotSearch(state, 'p1', SearchSource.WorldDeck)
+        ).toThrow("p1's pawn must be at a site")
     })
 
     it('refuses a world deck search once the deck is empty', () => {
@@ -232,10 +234,18 @@ describe('Search draws from the world deck (R-5.1.2)', () => {
 
     it('records the stop on a Vision for the whole table, and the card for the drawer alone (R-5.1.2, R-9.4)', () => {
         const state = ready()
-        const action = serverSearch(state, vaultWith([D1, VISION, D2, D3]), 'p1', SearchSource.WorldDeck)
+        const action = serverSearch(
+            state,
+            vaultWith([D1, VISION, D2, D3]),
+            'p1',
+            SearchSource.WorldDeck
+        )
         expect(action.metadata?.stoppedOnVision).toBe(true)
 
-        const seenByOther = OathVisibility.actions.project(action.dehydrate(), { kind: 'player', playerId: 'p2' })
+        const seenByOther = OathVisibility.actions.project(action.dehydrate(), {
+            kind: 'player',
+            playerId: 'p2'
+        })
         expect(seenByOther).toHaveProperty('metadata.stoppedOnVision', true)
         expect(seenByOther).not.toHaveProperty('metadata.draw')
         expect(JSON.stringify(seenByOther)).not.toContain(VISION)

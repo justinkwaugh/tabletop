@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { holdsReceiverPresidentCertificate } from '../finance/companyOwnership.js'
+    import { chainSidewaysScroll } from '@tabletop/frontend-components'
     import CertificateCount from '../stock/CertificateCount.svelte'
     import { cashText, optionalMoney } from '../presentation/money.js'
     import './playerTint.css'
@@ -11,7 +13,7 @@
     import { companyLastRun } from './companyLastRun.js'
     import {
         cashOwnedBy,
-        nextOperatingCompany,
+        actingOperatingCompany,
         certificatesInPool,
         signedShares,
         controllingOwner,
@@ -23,12 +25,10 @@
         type Company,
         type Owner,
         type PurchaseRequest,
-        type ValuationRules,
         isObsoleteTrain
     } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
-    import type { CompanyNameVariants, NumberedShareNames } from './companyPresentation.js'
-    import { ownerPortfolio } from '../finance/ownerPortfolio.js'
+    import type { NumberedShareNames } from './companyPresentation.js'
     import PlayerName from './PlayerName.svelte'
     import OperatingHistory from './OperatingHistory.svelte'
     import { spreadsheetCompanies } from './spreadsheetCompanies.js'
@@ -58,9 +58,7 @@
         marketPoolId,
         ipoPoolId,
         exchangePoolId,
-        valuationRules,
         trainColors,
-        companyNames = {},
         numberedShareNames = {},
         includedCompanyIds = [],
         includedPortfolioCompanyIds = [],
@@ -75,8 +73,6 @@
         ipoPoolId?: string
         exchangePoolId?: string
         trainColors: Readonly<Record<string, string>>
-        valuationRules: ValuationRules
-        companyNames?: Readonly<Record<string, CompanyNameVariants>>
         numberedShareNames?: NumberedShareNames
         includedCompanyIds?: readonly string[]
         portfolioCompanyIds?: readonly string[]
@@ -128,7 +124,7 @@
         session.gameState.stockRound.completed &&
             session.gameState.operatingSet &&
             !session.gameState.result
-            ? nextOperatingCompany(session.gameState)
+            ? actingOperatingCompany(session.gameState)
             : undefined
     )
     const currentPlayerOwners = $derived(
@@ -189,9 +185,7 @@
         exchange: 'Exch.'
     }
     const portfolioColumnLabels = $derived(
-        new Map(
-            portfolioCompanyIds.map((id) => [`company:${id}`, companyNames[id]?.initials ?? id])
-        )
+        new Map(portfolioCompanyIds.map((id) => [`company:${id}`, session.companyInitials(id)]))
     )
     // A pool's shorts, such as the market's, count against its shares.
     function poolShares(poolId: string, companyId: string): number {
@@ -284,12 +278,7 @@
         certs?: { count: number; limit: number }
     }
     function ownerStatisticsFor(owner: Owner, certs?: OwnerStatistics['certs']): OwnerStatistics {
-        const { cash, netWorth, shares } = ownerPortfolio(
-            session.gameState,
-            owner,
-            valuationRules,
-            session.charters
-        )
+        const { cash, netWorth, shares } = session.portfolio(owner)
         return { cash, shares, netWorth, certs }
     }
     function firstSortDirection(column: SpreadsheetSortColumn<never>): SpreadsheetSortDirection {
@@ -368,8 +357,7 @@
                 {
                     id: `player:${playerId}`,
                     name: session.getPlayerName(playerId),
-                    count: (companyId: string) =>
-                        sharesOwned(session.gameState, companyId, { kind: 'player', playerId })
+                    count: (companyId: string) => session.playerShares(companyId, playerId)
                 },
                 ...portfolioOwners.filter((owner) => owner.controllerId === playerId)
             ]),
@@ -446,12 +434,13 @@
                 session.gameState.stockMarket,
                 company.id
             ),
-            // Par is the IPO purchase price, so it only matters while the IPO is selling.
+            // Par is the IPO purchase price, so it only matters while the IPO is selling,
+            // unless the title still prices company actions from it.
             par:
                 ipoPoolId &&
                 company.started &&
                 !company.closed &&
-                poolShares(ipoPoolId, company.id) > 0
+                (pricePresentation.parWithoutIpoShares || poolShares(ipoPoolId, company.id) > 0)
                     ? company.parPrice
                     : undefined,
             stations: session.gameState.stations.filter(
@@ -459,11 +448,14 @@
             ),
             cash: cashOwnedBy(session.gameState, { kind: 'company', companyId: company.id }),
             lastRun: companyLastRun(session.actions, session.gameState.actionCount, company.id),
-            presidentId:
-                company.president?.kind === 'player'
-                    ? `player:${company.president.playerId}`
-                    : company.president?.kind === 'company'
-                      ? `company:${company.president.companyId}`
+            presidentId: session.drafterOf(company.id)
+                ? `player:${session.drafterOf(company.id)}`
+                : company.president?.kind === 'player'
+                  ? `player:${company.president.playerId}`
+                  : company.president?.kind === 'company'
+                    ? `company:${company.president.companyId}`
+                    : holdsReceiverPresidentCertificate(session.gameState, company.id, marketPoolId)
+                      ? 'market'
                       : undefined,
             shares: owners.map((owner) => owner.count(company.id)),
             shareNumbers: owners.map((owner) => playerShareNumbers(owner.id, company.id))
@@ -640,13 +632,16 @@
     {cashText(money, cash)}
 {/snippet}
 
-{#snippet lastRunCell(company: Company, run: ReturnType<typeof companyLastRun>)}
+{#snippet lastRunCell(row: CompanyRow)}
+    {@const company = row.company}
     {#if company.lastRunRevenue === undefined}<span class="empty">—</span>
-    {:else if run}
+    {:else if row.lastRun}
+        {@const { run, withheld } = row.lastRun}
         <button
             class="last-run"
+            class:withheld
             disabled={session.busy || session.updatingVisibleState}
-            aria-label={`View ${session.companyName(company.id)}'s last run for ${money(company.lastRunRevenue)}`}
+            aria-label={`View ${session.companyName(company.id)}'s last run for ${money(company.lastRunRevenue)}${withheld ? ', withheld' : ''}`}
             onclick={() => onPreviewMap(run)}>{money(company.lastRunRevenue)}</button
         >
     {:else}<span class="last-run-revenue">{money(company.lastRunRevenue)}</span>{/if}
@@ -656,7 +651,7 @@
     <span class="company-trains">
         {#each trainsOwnedBy(session.gameState, { kind: 'company', companyId }) as train (train.id)}
             <TrainBadge
-                name={session.trainShortLabel(train.definitionId)}
+                name={session.trainDepot.trainDefinition(train.definitionId).name}
                 color={trainColors[train.definitionId]}
                 obsolete={isObsoleteTrain(train)}
             />
@@ -695,7 +690,7 @@
                 aria-label={`Buy ${session.companyName(companyId)} from ${owners.find((owner) => owner.id === ownerId)?.name}`}
                 onclick={(event) =>
                     openShareConfirmation(event, { kind: 'buy', request: purchase.request })}
-                ><span class="share-value">{shares}</span></button
+                >{@render shareValue(String(shares), president)}</button
             >
         {:else if saleChoices.length}
             <button
@@ -743,9 +738,7 @@
         {#if session.mapView.stations[company.id]}
             <CompanyToken appearance={session.mapView.stations[company.id]} size={22} />
         {/if}
-        <span title={session.companyName(company.id)}
-            >{companyNames[company.id]?.initials ?? company.id}</span
-        >
+        <span title={session.companyName(company.id)}>{session.companyInitials(company.id)}</span>
     </span>
 {/snippet}
 
@@ -799,13 +792,14 @@
                 }))}
                 appearances={session.mapView.stations}
                 view={period === 'Player income' ? 'Player' : 'Company'}
-                {companyNames}
+                companyInitials={(companyId) => session.companyInitials(companyId)}
                 companyName={(companyId) => session.companyName(companyId)}
                 {onPreviewMap}
             />
         {:else}
             <div
                 class="table-scroll"
+                {@attach chainSidewaysScroll}
                 class:scrolled
                 class:pin-label-column={pinLabelColumn}
                 bind:clientWidth={scrollViewportWidth}
@@ -945,7 +939,7 @@
                                             ).length}/{row.stations.length}</td
                                         >
                                         <td class="company-stat-start"
-                                            >{@render lastRunCell(row.company, row.lastRun)}</td
+                                            >{@render lastRunCell(row)}</td
                                         >
                                         {#each titleColumns as column (column.id)}<td
                                                 class="company-stat-start bright-cell"
@@ -1111,8 +1105,7 @@
                                     {@render companySortHeader('row', 'Last run', 'lastRun')}
                                     {#each rows as row (row.company.id)}<td
                                             class:operating-column={row.company.id ===
-                                                operatingCompanyId}
-                                            >{@render lastRunCell(row.company, row.lastRun)}</td
+                                                operatingCompanyId}>{@render lastRunCell(row)}</td
                                         >{/each}
                                     {#each ownerStatisticKeys as _, index (index)}<td
                                             class:stat-start={index === 0}
@@ -1198,12 +1191,9 @@
                                     data-purchase-buyer={ownerIdFor(choice.request.buyer)}
                                     onclick={() => confirmBuy(choice.request.buyer)}
                                 >
-                                    As {choice.request.buyer.kind === 'company'
-                                        ? (companyNames[choice.request.buyer.companyId]?.short ??
-                                          session.ownerName(choice.request.buyer))
-                                        : session.ownerName(
-                                              choice.request.buyer
-                                          )}{#if contribution > 0}{' + '}{money(contribution)}{/if}
+                                    As {session.ownerName(
+                                        choice.request.buyer
+                                    )}{#if contribution > 0}{' + '}{money(contribution)}{/if}
                                 </button>
                             {/if}
                         {/each}
@@ -1525,6 +1515,9 @@
     }
     .last-run:disabled {
         cursor: default;
+    }
+    .withheld {
+        color: var(--rail-negative, #b33a32);
     }
 
     thead th,

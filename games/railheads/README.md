@@ -4,9 +4,9 @@
 
 ## Editions
 
-One package serves the series. An edition (`src/editions/`) is data: its companies, hex map, Lay Track rules, track costs, revenue values, obsolescence bands, round timer and starting cash. `src/editions/germany/` is the first; the game configuration's `edition` option selects it. The shared rules (action-space pricing, share and sealed-bid auctions, track laying, payouts, the round loop) read only the edition definition.
+One package serves the series. An edition (`src/editions/`) holds its companies, hex map (orientation, sites, states, demand areas and lakes), round timer and starting cash, and supplies its rule differences as functions: track cost, site capacity, whether a company may build an industry site, and the game-end payout per share. `src/editions/germany/` and `src/editions/midwest/` are implemented; the game configuration's `edition` option selects one. The shared rules (action-space pricing, share and sealed-bid auctions, track laying, payouts, the round loop) read only the edition definition.
 
-Germany is the only edition implemented. The Midwest, Switzerland, Denmark and England & Wales need rule extensions the Germany rules do not use: demand areas and per-disc site pricing, loans and tunnels, bridges and government bonds with wealth tax, and per-action track costs with a Tube connection bonus. Each belongs in its own state, action and payout modules beside the shared ones, with its edition registered in `src/editions/editions.ts`.
+Switzerland, Denmark and England & Wales need further extensions: loans and tunnels, bridges and government bonds with wealth tax, and per-action track costs with a Tube connection bonus. Where one changes a rule the shared modules apply, it belongs in a new edition function; where it adds a mechanism, in its own state, action and payout modules beside the shared ones.
 
 ## Rules
 

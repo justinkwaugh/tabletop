@@ -171,10 +171,9 @@ describe('variants', () => {
             expectedPrice: train.price
         })
         for (let step = 0; play.state.trainFunding && step < 12; step++) {
+            // Contributions and the purchase follow a decision by themselves; only sales rest.
             const choice = funding().next()
-            if (choice.kind === 'contribute')
-                play.act('ContributeTrainFunds', { owner: choice.owner, amount: choice.amount })
-            else if (choice.kind === 'sell') {
+            if (choice.kind === 'sell') {
                 const sale = choice.sales.at(-1)
                 assertExists(sale, 'A sale choice has a sale')
                 play.act('SellFundingShares', {
@@ -183,14 +182,7 @@ describe('variants', () => {
                     shares: sale.sales[0].shares,
                     expectedProceeds: sale.proceeds
                 })
-            } else if (choice.kind === 'buy')
-                play.act('BuyTrain', {
-                    companyId: choice.purchase.companyId,
-                    trainId: choice.purchase.trainId,
-                    definitionId: choice.purchase.definitionId,
-                    expectedPrice: choice.purchase.price
-                })
-            else throw Error(`Unexpected funding choice ${choice.kind}`)
+            } else throw Error(`Unexpected funding choice ${choice.kind}`)
         }
         expect(play.state.gameEnding?.reason).toBe('$400 share price')
         expect(play.state.machineState).toBe('GameOver')

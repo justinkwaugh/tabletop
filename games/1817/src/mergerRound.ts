@@ -18,7 +18,6 @@ import { Compile } from 'typebox/compile'
 import {
     ActionSource,
     GameAction,
-    PlayerAction,
     HydratableAction,
     assert,
     assertExists,
@@ -46,7 +45,11 @@ import {
     applyShareSale,
     evaluateShareDisposal,
     sharesOwned,
-    SystemActionFirstHandler
+    SystemActionFirstHandler,
+    RoundEnd,
+    roundEnd,
+    type ValuationRules,
+    EighteenXXPlayerAction
 } from '@tabletop/18xx'
 import { liquidate } from './liquidation.js'
 import { EighteenSeventeenLoanRules } from './loanRules.js'
@@ -188,7 +191,10 @@ export class HydratedStartMergerRound
     }
 }
 
-const EndFields = Type.Object({ type: Type.Literal('EndMergerRound') })
+const EndFields = Type.Object({
+    type: Type.Literal('EndMergerRound'),
+    metadata: Type.Optional(Type.Object({ roundEnd: RoundEnd }, { additionalProperties: false }))
+})
 export const EndMergerRound: Type.TObject<
     Omit<typeof GameAction.properties, 'type'> & typeof EndFields.properties
 > = Type.Object(
@@ -208,8 +214,11 @@ export class HydratedEndMergerRound
     implements EndMergerRound
 {
     declare type: 'EndMergerRound'
-    constructor(data: EndMergerRound) {
+    declare metadata?: EndMergerRound['metadata']
+    readonly #valuationRules: ValuationRules
+    constructor(data: EndMergerRound, valuationRules: ValuationRules) {
         super(data instanceof HydratedEndMergerRound ? data.dehydrate() : data, EndValidator)
+        this.#valuationRules = valuationRules
     }
     apply(state: State): void {
         const round = requireRound(state)
@@ -219,6 +228,7 @@ export class HydratedEndMergerRound
         )
         round.completed = true
         state.activePlayerIds = []
+        this.metadata = { roundEnd: roundEnd(state, this.#valuationRules, 'title') }
     }
 }
 
@@ -234,7 +244,7 @@ export function startsMergerRounds(
     )
 }
 
-const CompanyFields = { ...PlayerAction.properties, companyId: Type.String() }
+const CompanyFields = { ...EighteenXXPlayerAction.properties, companyId: Type.String() }
 
 export const ConvertCompany = Type.Object(
     {

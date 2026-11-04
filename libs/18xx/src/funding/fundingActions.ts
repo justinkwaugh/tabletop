@@ -1,3 +1,4 @@
+import type { ValuationRules } from '../ending/finalWealth.js'
 import { defineAction, type ActionDefinition } from '../actions/actionDefinition.js'
 import type { ReceivershipRules } from '../finance/receivership.js'
 import type { StockRules } from '../stock/stockRules.js'
@@ -30,6 +31,7 @@ export function fundingActions(
     funding: TrainFundingRules,
     stock: StockRules,
     trains: TrainRules,
+    valuationRules: ValuationRules,
     receivership?: ReceivershipRules
 ): ActionDefinition[] {
     return [
@@ -58,7 +60,15 @@ export function fundingActions(
                 ? declareBankruptcySchema(funding.elimination.schema)
                 : DeclareBankruptcy,
             isDeclareBankruptcy,
-            (action) => new HydratedDeclareBankruptcy(action, funding, stock, trains, receivership)
+            (action) =>
+                new HydratedDeclareBankruptcy(
+                    action,
+                    funding,
+                    stock,
+                    trains,
+                    valuationRules,
+                    receivership
+                )
         )
     ]
 }

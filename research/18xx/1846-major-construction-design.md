@@ -78,7 +78,6 @@ and finished at the route boundary with $80 remaining. Undo reopened constructio
 then reversed the tile and station, restoring $200, the reservation and the remote
 station choice. Mobile and physical-artwork presentation were not verified.
 
-
 Follow-up compatibility fix: the shared station price callback’s placement context
 is optional because the existing generic station UI displays/sorts base token
 prices before a destination is chosen. 1846 returns the ordinary $80 base price

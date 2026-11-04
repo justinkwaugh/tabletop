@@ -1,3 +1,4 @@
+import type { DestinationRunState } from '../destinations/destinationRuns.js'
 import * as Type from 'typebox'
 import { assert } from '@tabletop/common'
 import { getCompany } from '../finance/finance.js'
@@ -71,6 +72,13 @@ export function nextOperatingCompany(
             !set.completedCompanyIds.includes(id) &&
             state.companies.some((company) => company.id === id && !company.closed)
     )
+}
+
+export function actingOperatingCompany(
+    state: Pick<OperatingState, 'operatingSet' | 'companies'> &
+        Pick<DestinationRunState, 'destinationRun'>
+): string | undefined {
+    return state.destinationRun?.companyId ?? nextOperatingCompany(state)
 }
 
 export function validateOperatingSet(state: {

@@ -29,7 +29,11 @@ import { stagedRevenueLayout, type RevenueCell } from './stagedRevenueLayout.js'
 
 export type { TileDrawnPath } from './tileTrackGeometry.js'
 
+/** Corner radius of every tile and map hex, in the units tiles are drawn in about their centre. */
+export const TileRadius = 50
+
 const OffboardSpikeReach = 0.6
+const PierReach = 0.6
 
 export type TileLayout = {
     annotationExclusions?: readonly Point[]
@@ -40,11 +44,43 @@ export type TileLayout = {
     revenuePositionsByRotation?: Partial<Record<TileRotation, Readonly<Record<string, Point>>>>
     revenuePositionsByOrientation?: Partial<Record<HexOrientation, Readonly<Record<string, Point>>>>
     labelPosition?: Point
+    /**
+     * Degrees clockwise to turn a city's row of station spaces off the tile's own axis, by node
+     * id, such as to level a two-space city under a row of revenues.
+     */
+    slotRowTurns?: Readonly<Record<string, number>>
     hideRevenue?: true | readonly string[]
     /** Lays staged revenue boxes out in a column or a row rather than whichever fits best. */
     revenueStack?: 'column' | 'row'
     /** Centres the revenue, with any badge beneath it on a map, on the hex's middle line. */
     revenueAlign?: 'middle'
+    /**
+     * How the print draws a connection to the board's edge, by path id: a spike, or a port's
+     * dashes from the edge to an anchor.
+     */
+    printedPaths?: Readonly<Record<string, 'spike' | 'pier'>>
+    /**
+     * Tokens the tile prints, such as a reservation in a city's space or a private's mark on
+     * its track: in a station space by node and slot, or at a point before the tile's rotation.
+     */
+    printedTokens?: readonly TilePrintedToken[]
+    /** Prints staged values' phase captions after them, as on a board's east edge. */
+    revenueCaptionsAfter?: boolean
+    /** How far an offboard spike runs from its edge toward its stop, as a share of the way. */
+    spikeReach?: number
+}
+
+export type TilePrintedToken = {
+    imageUrl: string
+    title: string
+} & ({ nodeId: string; slot: number } | { at: Point; radius: number })
+/** A printed token placed on the drawn tile, with a station space's size where it fills one. */
+export type TileDrawnToken = {
+    imageUrl: string
+    title: string
+    center: Point
+    radius: number
+    space: boolean
 }
 
 export type TileDrawnNode = {
@@ -57,7 +93,10 @@ export type TileDrawnNode = {
     /** Station circle radius: the style's size, reduced so neighbouring cities on the tile stay apart. */
     slotRadius: number
     townAngle?: number
-    /** Radius of a town, or a city without station spaces, drawn as a dot: larger where three or more tracks meet. */
+    /**
+     * Radius of a node drawn as a dot: a town's is larger where three or more tracks meet, and a
+     * city without station spaces fills a station circle, since it is still a city.
+     */
     dotRadius: number
 }
 
@@ -68,8 +107,15 @@ export type TileDrawingStyle = {
     longLabelFontSize?: number
     /** Printed prefixes for revenue stages that are not phases, such as D for diesel. */
     revenueStageLabels?: Readonly<Record<string, string>>
+    /** Phases printed beside each revenue stage's value, such as I-II. */
+    revenueStageCaptions?: Readonly<Record<string, string>>
+    revenueStageCaptionColors?: Readonly<Record<string, string>>
+    /** How staged values line up where a location's layout does not say. */
+    revenueStack?: 'column' | 'row'
     /** Curves a lone one-station city's name over the top of the city. */
     cityNameArcs?: boolean
+    /** Draws every town as a dot, never a bar across its track. */
+    townDots?: boolean
 }
 
 export type TileDrawing = {
@@ -82,6 +128,7 @@ export type TileDrawing = {
     labelPosition: Point
     symbolPosition: Point
     upgradeCostPosition: Point
+    printedTokens: readonly TileDrawnToken[]
 }
 
 export function createTileDrawing(
@@ -95,11 +142,21 @@ export function createTileDrawing(
     // Annotations keep the same distance from larger station circles.
     const markerRadius = MarkerRadius + citySlotRadius - DefaultCitySlotRadius
     const geometry = calculateHexGeometry(
-        { orientation, dimensions: { radius: 50 } },
+        { orientation, dimensions: { radius: TileRadius } },
         { q: 0, r: 0 }
     )
     const angle =
         ((rotation * 60 + (orientation === HexOrientation.Pointy ? 30 : 0)) * Math.PI) / 180
+    // Four slots form a square, which a hex turn would tilt, so it stays upright, filled from
+    // the top left.
+    const citySlots = (node: Extract<TileNode, { kind: 'city' }>, center: Point) =>
+        stationPositions(
+            node.stationSlots,
+            center,
+            (node.stationSlots === 4 ? -Math.PI / 4 : angle) +
+                ((layout.slotRowTurns?.[node.id] ?? 0) * Math.PI) / 180,
+            citySlotRadius
+        )
     const centers = new Map<string, Point>()
     const automaticTownPaths = new Map<string, readonly TilePath[]>()
     for (const node of face.nodes) {
@@ -176,14 +233,18 @@ export function createTileDrawing(
                     (endpoint) => endpoint.kind === 'node' && endpoint.nodeId === node.id
                 )
         )
-        if (!offboard) return drawn
+        const printed = layout.printedPaths?.[path.id]
+        if (!offboard && !printed) return drawn
         const [base, center] =
             path.endpoints[0].kind === 'edge' ? [drawn.start, drawn.end] : [drawn.end, drawn.start]
+        const reach = printed === 'pier' ? PierReach : (layout.spikeReach ?? OffboardSpikeReach)
         const tip = {
-            x: base.x + (center.x - base.x) * OffboardSpikeReach,
-            y: base.y + (center.y - base.y) * OffboardSpikeReach
+            x: base.x + (center.x - base.x) * reach,
+            y: base.y + (center.y - base.y) * reach
         }
-        return { ...drawn, spike: { base, tip } }
+        return printed === 'pier'
+            ? { ...drawn, pier: { base, tip } }
+            : { ...drawn, spike: { base, tip } }
     }
     const paths = face.paths.map((path): TileDrawnPath => {
         const start = endpointPosition(path.endpoints[0])
@@ -207,7 +268,7 @@ export function createTileDrawing(
     const stationSlots = face.nodes.flatMap((node) => {
         const center = centers.get(node.id)
         return center && node.kind === 'city' && node.stationSlots > 0
-            ? stationPositions(node.stationSlots, center, angle, citySlotRadius)
+            ? citySlots(node, center)
             : []
     })
     const occupied: Point[] = [
@@ -216,7 +277,7 @@ export function createTileDrawing(
             const center = centers.get(node.id)
             assertExists(center, `Unknown tile node ${node.id}`)
             return node.kind === 'city' && node.stationSlots > 0
-                ? stationPositions(node.stationSlots, center, angle, citySlotRadius)
+                ? citySlots(node, center)
                 : [center]
         })
     ]
@@ -261,9 +322,14 @@ export function createTileDrawing(
                       geometry.vertices,
                       paths,
                       occupied,
-                      style.revenueStageLabels,
-                      layout.revenueStack,
-                      !!hint
+                      {
+                          stageLabels: style.revenueStageLabels,
+                          captions: style.revenueStageCaptions,
+                          captionColors: style.revenueStageCaptionColors,
+                          captionAfter: layout.revenueCaptionsAfter,
+                          stack: layout.revenueStack ?? style.revenueStack,
+                          fixed: !!hint
+                      }
                   )
         if (node.kind !== 'junction' && !revenueHidden)
             occupied.push(...(revenueCells.length ? revenueCells : [revenuePosition]))
@@ -274,17 +340,16 @@ export function createTileDrawing(
         ).length
         // A town on through track, or ending a single track, is a bar across that track.
         const townAngle =
-            node.kind === 'town' && (automaticTownPaths.has(node.id) || tracks === 1)
+            !style.townDots &&
+            node.kind === 'town' &&
+            (automaticTownPaths.has(node.id) || tracks === 1)
                 ? townMarkerAngle(center, paths)
                 : undefined
         const dotRadius = townAngle !== undefined ? 4.2 : tracks >= 3 ? 9 : 6.3
         return {
             node,
             center,
-            slots:
-                node.kind === 'city'
-                    ? stationPositions(node.stationSlots, center, angle, citySlotRadius)
-                    : [],
+            slots: node.kind === 'city' ? citySlots(node, center) : [],
             revenuePosition,
             revenueCells,
             revenueHidden,
@@ -303,7 +368,13 @@ export function createTileDrawing(
                 others.map((other) => Math.hypot(point.x - other.x, point.y - other.y))
             )
         )
-        return { ...drawn, slotRadius: Math.min(citySlotRadius, nearest / 2 - 0.75) }
+        const slotRadius = Math.min(citySlotRadius, nearest / 2 - 0.75)
+        return {
+            ...drawn,
+            slotRadius,
+            dotRadius:
+                drawn.node.kind === 'city' && !drawn.slots.length ? slotRadius : drawn.dotRadius
+        }
     })
     const labelPosition = layout.labelPosition
         ? orientPoint(layout.labelPosition, angle)
@@ -343,7 +414,32 @@ export function createTileDrawing(
         nodes,
         labelPosition,
         symbolPosition,
-        upgradeCostPosition
+        upgradeCostPosition,
+        printedTokens: (layout.printedTokens ?? []).flatMap((token): TileDrawnToken[] => {
+            if ('at' in token)
+                return [
+                    {
+                        imageUrl: token.imageUrl,
+                        title: token.title,
+                        center: orientPoint(token.at, angle),
+                        radius: token.radius,
+                        space: false
+                    }
+                ]
+            const node = nodes.find((entry) => entry.node.id === token.nodeId)
+            const center = node?.slots[token.slot]
+            return node && center
+                ? [
+                      {
+                          imageUrl: token.imageUrl,
+                          title: token.title,
+                          center,
+                          radius: node.slotRadius,
+                          space: true
+                      }
+                  ]
+                : []
+        })
     }
 }
 

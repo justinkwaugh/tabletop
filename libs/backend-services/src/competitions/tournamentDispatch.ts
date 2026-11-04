@@ -1,8 +1,8 @@
-import {
-    type Tournament,
-    type TournamentSchedule,
-    type TournamentDispatch,
-    type TournamentTable
+import type {
+    Tournament,
+    TournamentSchedule,
+    TournamentDispatch,
+    TournamentTable
 } from '@tabletop/common'
 
 export function reserveTournamentTables(

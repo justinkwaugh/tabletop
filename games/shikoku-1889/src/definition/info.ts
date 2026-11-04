@@ -1,4 +1,4 @@
-import { EighteenXXPreferenceDefinition } from '@tabletop/18xx'
+import { EighteenXXPreferenceDefinition, EighteenXXSeries } from '@tabletop/18xx'
 import { GameVisibility, type GameInfo } from '@tabletop/common'
 import { GAME_VERSION } from './version.js'
 
@@ -7,6 +7,8 @@ export const Shikoku1889Info: GameInfo = {
     id: 'shikoku-1889',
     metadata: {
         name: 'Shikoku 1889',
+        bggId: 23540,
+        hasScores: true,
         designer: 'Yasutaka Ikeda',
         year: '2004',
         description: 'Railway companies on Shikoku, with a prototype interface.',
@@ -14,6 +16,7 @@ export const Shikoku1889Info: GameInfo = {
         maxPlayers: 6,
         defaultPlayerCount: 3,
         version: GAME_VERSION,
+        series: EighteenXXSeries,
         beta: true,
         visibility: GameVisibility.Beta
     }

@@ -6,8 +6,14 @@
         textColor,
         initial,
         size = 30
-    }: { x: number; y: number; color: string; textColor: string; initial: string; size?: number } =
-        $props()
+    }: {
+        x: number
+        y: number
+        color: string
+        textColor: string
+        initial: string
+        size?: number
+    } = $props()
 </script>
 
 <g transform="translate({x} {y})">
@@ -20,7 +26,7 @@
         fill={color}
         stroke="#1d140b"
         stroke-width="1.6"
-    />
+    ></rect>
     <text y={size * 0.2} fill={textColor} font-size={size * 0.6}>{initial}</text>
 </g>
 

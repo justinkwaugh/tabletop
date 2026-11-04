@@ -1,12 +1,7 @@
-import {
-    ActionSpaceId,
-    CompanyId,
-    EditionId,
-    HexKind,
-    SiteKind,
-    type EditionDefinition
-} from '../types.js'
+import { CompanyId, EditionId, HexKind, SiteKind, type EditionDefinition } from '../types.js'
+import { STANDARD_LAY_TRACK, STANDARD_OBSOLESCENCE } from '../standard.js'
 import { GERMANY_MAP } from './map.js'
+import { railroadBonus } from './railroadBonus.js'
 
 const GERMANY_TRACK_COST: Record<HexKind, number> = {
     [HexKind.Countryside]: 2,
@@ -71,41 +66,14 @@ export const GERMANY: EditionDefinition = {
     rounds: 4,
     startingCash: { 3: 40, 4: 30, 5: 24 },
     roundTimer: { 3: 18, 4: 15, 5: 15 },
-    layTrack: {
-        [ActionSpaceId.LayTrackI]: {
-            maxCompanies: 1,
-            placementsPerCompany: 4,
-            requiresShare: true,
-            halfPriceWithoutShare: false,
-            allowsCrossingCubes: true
-        },
-        [ActionSpaceId.LayTrackII]: {
-            maxCompanies: 2,
-            placementsPerCompany: 2,
-            requiresShare: false,
-            halfPriceWithoutShare: true,
-            allowsCrossingCubes: false
-        },
-        [ActionSpaceId.LayTrackIII]: {
-            maxCompanies: 1,
-            placementsPerCompany: 4,
-            requiresShare: true,
-            halfPriceWithoutShare: false,
-            allowsCrossingCubes: false
-        }
-    },
+    layTrack: STANDARD_LAY_TRACK,
     trackCost: (hexKind) => GERMANY_TRACK_COST[hexKind],
     siteRevenue: { [SiteKind.City]: 5, [SiteKind.Town]: 3 },
     crossingCubeCost: 1,
     siteCapacity: (round) => round,
-    // The arrows printed along the Revenue Track; the board marks no band above 60.
-    obsolescence: [
-        { from: 11, drop: 3 },
-        { from: 21, drop: 6 },
-        { from: 31, drop: 9 },
-        { from: 41, drop: 12 },
-        { from: 51, drop: 15 }
-    ],
+    industryInDemand: () => true,
+    endBonusPerShare: railroadBonus,
+    obsolescence: STANDARD_OBSOLESCENCE,
     industryTokensPerType: 4,
     developmentTrackLength: 20,
     // The board's "$6 per industry site reached" with four sites a type, rather than the

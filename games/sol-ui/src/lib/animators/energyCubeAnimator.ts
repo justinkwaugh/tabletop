@@ -477,13 +477,13 @@ export class EnergyCubeAnimator extends StateAnimator<
                 }
             }
 
-        const gateCrossingTimes = getGateCrossingTimes({
-            action,
-            toState,
-            fromState,
-            gateLocations,
-            gameSession: this.gameSession
-        })
+            const gateCrossingTimes = getGateCrossingTimes({
+                action,
+                toState,
+                fromState,
+                gateLocations,
+                gameSession: this.gameSession
+            })
             for (const playerId of paidPlayerIds) {
                 const gate = gateByPlayerId.get(playerId)
                 if (!gate?.innerCoords || !gate?.outerCoords) {

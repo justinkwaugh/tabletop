@@ -7,15 +7,15 @@ description: Work player bug reports in the Discord bug-reports forum through to
 
 Players report bugs with the in-game bug button, and the site's bot opens a post in the Discord
 `bug-reports` forum. Everything here goes through `node tools/bug-reports/src/cli.mjs`; its
-`--help` lists the commands and what each milestone needs. Work one post at a time, from start
+`--help` lists the commands and what each milestone needs. A thread works one post, from start
 to finish.
 
 The reporter hears from you at each **milestone**: `investigating`, `reproduced`, then `fixed`,
 `wont fix` or `not a bug`; or `suggestion` alone. Setting one sends them its fixed wording plus
 your `--note`. Most reporters are not in the Discord server, so the message is their only answer.
 
-The note goes to the reporter alone; the forum gets the status, and for a reproduced bug the
-`--finding`. Write the note as the site to a player, in plain words about what they saw and
+The note goes to the reporter alone; the forum gets the status, and for a reproduced bug or
+not a bug the `--finding`. Write the note as the site to a player, in plain words about what they saw and
 what changes. Keep opponents' hidden information out of both (hands, hidden stacks, secret
 choices); the scenario holds all of it. Send each milestone as you reach it and tell the user
 what went out; `not a bug` alone waits for their approval (step 3). A command that updated the
@@ -23,7 +23,18 @@ post but could not reach the reporter says so; `notify` sends the message again.
 
 ## 1. Read
 
-Run `check`, then `list`, or take the post the user named. Read the post with `show`, and save
+Run `check`, then `list`, or take the post the user named. When `list` shows more than one post
+to work, keep one and give each of the rest its own thread, so they run in parallel:
+
+1. Find the posts that already have a thread: `t3_thread_search` for the post id. Those stay
+   with their thread.
+2. For each other post, `t3_thread_launch` with a title naming the post, a new worktree
+   (`workspaceStrategy: {type: "worktree", baseRef: "main", branch: "bug/<post id>",
+   startFromOrigin: true}`), and the message "Work bug report <post link> with the bug-reports
+   skill. Other threads have the other posts."
+3. Tell the user which threads you launched, linked as `[title](t3-thread://v1/<threadId>)`.
+
+Read the post with `show`, and save
 its files with `download`: the scenario `bug-report-<gameId>.json` and any screenshots. Look at
 every screenshot.
 
@@ -63,8 +74,11 @@ Each outcome has its milestone:
   behaves that way for a good reason: `close <post> --as "not a bug"`. This message disagrees
   with the player, so the note is **gentle**: take their concern seriously, then explain in a
   positive way why the game works like this, or give the tip for doing what they were after.
-  Run it with `--dry-run` first and show the user the message and its email preview; it goes
-  out with `--approved`, which you add once they agree, every time.
+  The `--finding` gives the same reasoning to the forum, for the developer and for players who
+  wonder the same: what the player expected, what the game does instead, and the rule or reason
+  behind it, citing the rulebook where it decides. Run it with `--dry-run` first and show the
+  user the message, the forum post and the email preview; it goes out with `--approved`, which
+  you add once they agree, every time.
 - **Won't fix**, a real fault that will stay as it is: `close <post> --as "wont fix"` with a note
   saying why.
 

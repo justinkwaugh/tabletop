@@ -2,7 +2,15 @@ import { nanoid } from 'nanoid'
 
 import { Resend } from 'resend'
 import { SecretsService } from '../secrets/secretsService'
-import { Game, GameDefinition, TournamentDetail, User } from '@tabletop/common'
+import {
+    AUTHENTICATION_CHALLENGE_LIFETIME_SECONDS,
+    Game,
+    GameDefinition,
+    TournamentDetail,
+    rankedTiebreak,
+    tournamentTiebreakDescription,
+    User
+} from '@tabletop/common'
 import {
     AccountChangeType,
     EmailService,
@@ -11,6 +19,8 @@ import {
     type LeagueSignUpEmail
 } from './emailService.js'
 import { NullEmailService } from './nullEmailService.js'
+
+const CHALLENGE_LIFETIME_MINUTES = AUTHENTICATION_CHALLENGE_LIFETIME_SECONDS / 60
 
 type EmailRendering = {
     render: (typeof import('@react-email/components'))['render']
@@ -33,11 +43,15 @@ export class ResendEmailService implements EmailService {
     }
 
     private async send(to: string, subject: string, html: string): Promise<void> {
+        const { templates } = await this.loadRendering()
         await this.resend.emails.send({
             from: 'noreply@boardtogether.games',
             to,
             subject,
             html,
+            // Sent rather than left for Resend to derive from the HTML, for clients that cannot
+            // show the HTML, such as old Eudora.
+            text: templates.emailPlainText(html),
             headers: {
                 'X-Entity-Ref-ID': nanoid()
             }
@@ -56,13 +70,17 @@ export class ResendEmailService implements EmailService {
 
     async sendVerificationEmail(token: string, toEmail: string): Promise<void> {
         const { render, templates } = await this.loadRendering()
-        const emailHTML = await render(templates.EmailVerification({ token }))
+        const emailHTML = await render(
+            templates.EmailVerification({ token, expiresInMinutes: CHALLENGE_LIFETIME_MINUTES })
+        )
         await this.send(toEmail, 'Verify your email address', emailHTML)
     }
 
     async sendPasswordResetEmail(token: string, url: string, toEmail: string): Promise<void> {
         const { render, templates } = await this.loadRendering()
-        const emailHTML = await render(templates.PasswordReset({ url }))
+        const emailHTML = await render(
+            templates.PasswordReset({ url, expiresInMinutes: CHALLENGE_LIFETIME_MINUTES })
+        )
         await this.send(toEmail, 'Reset your password', emailHTML)
     }
 
@@ -130,6 +148,7 @@ export class ResendEmailService implements EmailService {
             templates.GameEnd({
                 result: game.result,
                 winners: winners.map((w) => w.username || 'A Player'),
+                callKind: game.call?.kind,
                 gameName: game.name,
                 title: definition.info.metadata.name,
                 url
@@ -167,6 +186,7 @@ export class ResendEmailService implements EmailService {
                 tournamentName: detail.tournament.name,
                 title: definition.info.metadata.name,
                 winners: standings.filter((row) => row.champion).map((row) => name(row.userId)),
+                tiebreakDescription: tournamentTiebreakDescription(standings),
                 standings: standings
                     .filter((row) => !row.withdrawn)
                     .map((row) => ({
@@ -174,7 +194,7 @@ export class ResendEmailService implements EmailService {
                         name: name(row.playedBy ?? row.userId),
                         wins: row.wins,
                         score: row.score,
-                        ...(row.tiebreak !== undefined ? { tiebreak: row.tiebreak } : {}),
+                        tiebreak: rankedTiebreak(row),
                         recipient: (row.playedBy ?? row.userId) === recipientId,
                         champion: row.champion === true
                     })),

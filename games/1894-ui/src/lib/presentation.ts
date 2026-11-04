@@ -1,5 +1,9 @@
 import { holdsAccessRight } from '@tabletop/18xx'
-import { FerryRightId, holdsLondonShippingStation } from '@tabletop/1894'
+import {
+    EighteenNinetyFourTitleRules,
+    FerryRightId,
+    holdsLondonShippingStation
+} from '@tabletop/1894'
 import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
 import { EighteenNinetyFourCompanyNames } from './companyPresentation.js'
 import { EighteenNinetyFourPhaseChart } from './phaseChart.js'
@@ -9,8 +13,7 @@ import {
 } from './trainPresentation.js'
 
 export const EighteenNinetyFourPresentation: TitlePresentation = {
-    money: moneyFormat('F'),
-    trainShortLabels: { D: 'D' },
+    money: moneyFormat(EighteenNinetyFourTitleRules.currencySymbol),
     phaseChart: EighteenNinetyFourPhaseChart,
     trainColors: EighteenNinetyFourTrainColors,
     phaseColors: EighteenNinetyFourPhaseColors,

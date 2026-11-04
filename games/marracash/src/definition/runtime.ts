@@ -11,6 +11,7 @@ import { MarracashApiActions } from './apiActions.js'
 import { MarracashStateHandlers } from './stateHandlers.js'
 import { MarracashColors } from './colors.js'
 import { MarracashScoring } from './scoring.js'
+import { MarracashProgression } from './progression.js'
 import { MarracashActionSchemas } from './actionSchemas.js'
 import { MarracashGameExploration } from './gameExploration.js'
 
@@ -25,6 +26,7 @@ export const MarracashRuntime = {
     playerColors: MarracashColors,
     stateLogger: new DefaultStateLogger(),
     scoring: new MarracashScoring(),
+    progression: new MarracashProgression(),
     visibility: {
         state: Visibility.createProjector(MarracashGameState),
         actions: Visibility.createActionProjector(MarracashActionSchemas)

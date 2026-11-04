@@ -9,7 +9,10 @@ import {
     settleCashPayments,
     endOperatingTurn,
     nextOperatingCompany,
-    type EarningsRules
+    operatingRoundEnd,
+    RoundEnd,
+    type EarningsRules,
+    type ValuationRules
 } from '@tabletop/18xx'
 import type { HydratedEighteenFortySixState } from './state.js'
 
@@ -29,7 +32,12 @@ const SettlementFields = Type.Object({
     type: Type.Literal('SettleIndependent'),
     source: Type.Literal(ActionSource.System),
     companyId: Type.String(),
-    metadata: Type.Optional(EarningsDetails)
+    metadata: Type.Optional(
+        Type.Object(
+            { ...EarningsDetails.properties, roundEnd: Type.Optional(RoundEnd) },
+            { additionalProperties: false }
+        )
+    )
 })
 export const SettleIndependent: Type.TObject<
     Omit<typeof GameAction.properties, 'type' | 'source'> & typeof SettlementFields.properties
@@ -41,9 +49,11 @@ export const SettleIndependentValidator: ReturnType<typeof Compile<typeof Settle
     Compile(SettleIndependent)
 export class SettleIndependentAction extends HydratableAction<typeof SettleIndependent> {
     declare companyId: string
-    declare metadata?: Type.Static<typeof EarningsDetails>
-    constructor(data: Type.Static<typeof SettleIndependent>) {
+    declare metadata?: Type.Static<typeof SettleIndependent>['metadata']
+    readonly #valuationRules: ValuationRules
+    constructor(data: Type.Static<typeof SettleIndependent>, valuationRules: ValuationRules) {
         super(data, SettleIndependentValidator)
+        this.#valuationRules = valuationRules
     }
     apply(state: HydratedEighteenFortySixState): void {
         assert(
@@ -63,8 +73,9 @@ export class SettleIndependentAction extends HydratableAction<typeof SettleIndep
         )
         settleCashPayments(state, evaluation.details.payments)
         getCompany(state, this.companyId).operated = true
-        this.metadata = evaluation.details
         endOperatingTurn(state, this.companyId)
+        const ended = operatingRoundEnd(state, this.#valuationRules)
+        this.metadata = { ...evaluation.details, ...(ended ? { roundEnd: ended } : {}) }
         state.activePlayerIds = []
     }
 }

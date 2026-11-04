@@ -1,11 +1,17 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext, assert, assertExists } from '@tabletop/common'
+import {
+    GameAction,
+    HydratableAction,
+    MachineContext,
+    assert,
+    assertExists
+} from '@tabletop/common'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { CompanyType } from '../definition/companyType.js'
 import { Good } from '../definition/goods.js'
-import { type Company } from '../components/company.js'
+import type { Company } from '../components/company.js'
 import { AreaType, isCultivatedArea, isSeaArea } from '../components/area.js'
 import {
     activeAuctionParticipantCount,
@@ -191,11 +197,12 @@ export class HydratedMergeCompanies
                 }
             }
             if (proposal.isSiapSaji) {
-                autoRemovedTouchingSiapSajiCount = this.autoRemoveMergedAreasTouchingExistingSiapSaji(
-                    state,
-                    mergedCompanyId,
-                    mergedCultivatedAreaIds
-                )
+                autoRemovedTouchingSiapSajiCount =
+                    this.autoRemoveMergedAreasTouchingExistingSiapSaji(
+                        state,
+                        mergedCompanyId,
+                        mergedCultivatedAreaIds
+                    )
             }
         }
 

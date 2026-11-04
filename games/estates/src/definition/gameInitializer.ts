@@ -19,7 +19,7 @@ import { EstatesPlayerState, StartingMoney } from '../model/playerState.js'
 import { MachineState } from './states.js'
 import { BoardRow, EstatesGameBoard, Site } from '../components/gameBoard.js'
 import { Company } from './companies.js'
-import { HydratedRoofBag } from '../components/roofBag.js'
+import { HydratedRoofBag, RoofCount } from '../components/roofBag.js'
 import { Cube } from '../components/cube.js'
 import { PieceType } from '../components/pieceType.js'
 
@@ -61,7 +61,7 @@ export class EstatesGameInitializer
             ],
             cubes: this.intializeCubes(prng.random),
             roofs: HydratedRoofBag.create(roofPrng.random),
-            visibleRoofs: new Array(12).fill(true),
+            visibleRoofs: new Array(RoofCount).fill(true),
             mayor: true,
             barrierOne: true,
             barrierTwo: true,

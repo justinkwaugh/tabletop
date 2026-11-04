@@ -46,10 +46,55 @@ interface Scene {
 function table(scene: Scene): HydratedOathGameState {
     const s = testState(
         [
-            testPlayer({ playerId: DANA, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', supply: 6, favor: 4, secrets: 3, warbandsOnBoard: { [DANA]: 6 }, warbandsInPersonalBank: { [DANA]: 4 } }),
-            testPlayer({ playerId: BEA, color: Color.Blue, status: PlayerStatus.Citizen, siteId: 'c1', supply: 6, favor: 8, secrets: 3, warbandsOnBoard: {}, warbandsInPersonalBank: {}, advisers: [adviser(PEACE_ENVOY)], ...scene.bea }),
-            testPlayer({ playerId: ANN, color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', supply: 6, favor: 4, secrets: 3, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 }, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 10 }, advisers: [adviser(FIELD_PROMOTION)], ...scene.ann }),
-            testPlayer({ playerId: RHYS, color: Color.Yellow, status: PlayerStatus.Citizen, siteId: 'p2', supply: 6, favor: 4, secrets: 3, warbandsOnBoard: {}, warbandsInPersonalBank: {}, ...scene.rhys })
+            testPlayer({
+                playerId: DANA,
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: 'c1',
+                supply: 6,
+                favor: 4,
+                secrets: 3,
+                warbandsOnBoard: { [DANA]: 6 },
+                warbandsInPersonalBank: { [DANA]: 4 }
+            }),
+            testPlayer({
+                playerId: BEA,
+                color: Color.Blue,
+                status: PlayerStatus.Citizen,
+                siteId: 'c1',
+                supply: 6,
+                favor: 8,
+                secrets: 3,
+                warbandsOnBoard: {},
+                warbandsInPersonalBank: {},
+                advisers: [adviser(PEACE_ENVOY)],
+                ...scene.bea
+            }),
+            testPlayer({
+                playerId: ANN,
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'h1',
+                supply: 6,
+                favor: 4,
+                secrets: 3,
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 10 },
+                advisers: [adviser(FIELD_PROMOTION)],
+                ...scene.ann
+            }),
+            testPlayer({
+                playerId: RHYS,
+                color: Color.Yellow,
+                status: PlayerStatus.Citizen,
+                siteId: 'p2',
+                supply: 6,
+                favor: 4,
+                secrets: 3,
+                warbandsOnBoard: {},
+                warbandsInPersonalBank: {},
+                ...scene.rhys
+            })
         ],
         {
             oathRevision: scene.revision,
@@ -64,25 +109,41 @@ function table(scene: Scene): HydratedOathGameState {
 }
 
 function attack(s: HydratedOathGameState) {
-    new HydratedCampaign(buildAction(Campaign, { playerId: DANA, defender: { kind: 'player', playerId: BEA }, targets: [siteTarget('c1')], attackDice: 3 })).apply(s)
+    new HydratedCampaign(
+        buildAction(Campaign, {
+            playerId: DANA,
+            defender: { kind: 'player', playerId: BEA },
+            targets: [siteTarget('c1')],
+            attackDice: 3
+        })
+    ).apply(s)
 }
 
 function answer(s: HydratedOathGameState, playerId: string, cardIds: string[] = []) {
-    defend(cardIds.map((cardId) => battlePlanUse(cardId)), playerId).apply(s)
+    defend(
+        cardIds.map((cardId) => battlePlanUse(cardId)),
+        playerId
+    ).apply(s)
 }
 
 /** Dana sacrifices nothing; the battle, decided by Peace Envoy, settles. */
 function finish(s: HydratedOathGameState): HydratedCampaignSacrifice {
     const sacrifice = new HydratedCampaignSacrifice(
-        buildAction(CampaignSacrifice, { playerId: DANA, sacrifice: 0, defeatKills: HydratedCampaignSacrifice.attackerDefeatKills(s, 0) })
+        buildAction(CampaignSacrifice, {
+            playerId: DANA,
+            sacrifice: 0,
+            defeatKills: HydratedCampaignSacrifice.attackerDefeatKills(s, 0)
+        })
     )
     sacrifice.apply(s)
     defendingSideChooses(s)
     return sacrifice
 }
 
-const offered = (s: HydratedOathGameState, playerId: string) => HydratedCampaignDefend.usablePlans(s, playerId).map((power) => power.cardId)
-const imperialOnBoard = (s: HydratedOathGameState, playerId: string) => s.getPlayerState(playerId).warbandsOnBoard[IMPERIAL_WARBANDS] ?? 0
+const offered = (s: HydratedOathGameState, playerId: string) =>
+    HydratedCampaignDefend.usablePlans(s, playerId).map((power) => power.cardId)
+const imperialOnBoard = (s: HydratedOathGameState, playerId: string) =>
+    s.getPlayerState(playerId).warbandsOnBoard[IMPERIAL_WARBANDS] ?? 0
 const danaOnBoard = (s: HydratedOathGameState) => s.getPlayerState(DANA).warbandsOnBoard[DANA] ?? 0
 
 describe('R-10.28-H1 — Peace Envoy’s “you cannot use other battle plans” binds its user alone', () => {
@@ -115,7 +176,11 @@ describe('R-10.28-H1 — Peace Envoy’s “you cannot use other battle plans”
     })
 
     it('Vow of Peace, ruled by Bea, forbids Dana’s sacrifice but not Ann’s Bear Traps, which is no sacrifice', () => {
-        const s = table({ revision: atRevision, bea: { advisers: [adviser(PEACE_ENVOY), adviser(VOW_OF_PEACE)] }, ann: { advisers: [adviser(BEAR_TRAPS)] } })
+        const s = table({
+            revision: atRevision,
+            bea: { advisers: [adviser(PEACE_ENVOY), adviser(VOW_OF_PEACE)] },
+            ann: { advisers: [adviser(BEAR_TRAPS)] }
+        })
         attack(s)
         answer(s, BEA, [PEACE_ENVOY])
         answer(s, ANN, [BEAR_TRAPS])
@@ -124,7 +189,12 @@ describe('R-10.28-H1 — Peace Envoy’s “you cannot use other battle plans”
     })
 
     it('an Ally’s Peace Envoy decides the battle, and Rhys, admitted after Ann, may still use a plan', () => {
-        const s = table({ revision: atRevision, bea: { advisers: [] }, ann: { advisers: [adviser(PEACE_ENVOY)] }, rhys: { siteId: 'c1', advisers: [adviser(FIELD_PROMOTION)] } })
+        const s = table({
+            revision: atRevision,
+            bea: { advisers: [] },
+            ann: { advisers: [adviser(PEACE_ENVOY)] },
+            rhys: { siteId: 'c1', advisers: [adviser(FIELD_PROMOTION)] }
+        })
         attack(s)
         joinDefence(s, RHYS, BEA)
         expect(ongoingCampaign(s).pendingDefenderPlans?.queue).toEqual([ANN, RHYS])

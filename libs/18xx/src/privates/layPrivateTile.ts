@@ -1,7 +1,7 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import {
     ActionSource,
     HydratableAction,
-    PlayerAction,
     assert,
     type GameAction,
     type HydratedGameState
@@ -23,12 +23,12 @@ import {
     type CompanyDecisionState
 } from './companyDecision.js'
 import { closePrivate } from './privateCompany.js'
-import { endPrivatePowerRequest } from './privatePowerRequest.js'
+import { endPrivatePowerRequest, hasLegalPrivateTrackUse } from './privatePowerRequest.js'
 import { evaluatePrivateTrack, type PrivatePowerRules } from './privatePowers.js'
 import { privateStationPositions } from './privateStation.js'
 export const LayPrivateTile = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         ...TrackRequest.properties,
         type: Type.Literal('LayPrivateTile'),
         privateCompanyId: Type.String(),
@@ -73,6 +73,15 @@ function applyPrivateLay(
         for (const privateId of powerEffects.closedPrivateIds) closePrivate(state, privateId)
     }
     delete state.privateTrackLay
+    if (
+        terms.together &&
+        hasLegalPrivateTrackUse(state, lay.privateCompanyId, lay.playerId, powers, track)
+    )
+        state.privateTrackLay = {
+            privateCompanyId: lay.privateCompanyId,
+            playerId: lay.playerId,
+            required: true
+        }
     const station = {
         privateCompanyId: lay.privateCompanyId,
         companyId: terms.companyId,
@@ -138,6 +147,9 @@ export class HydratedLayPrivateTile
             !state.purchaseOffer &&
             !state.trackConsent &&
             state.activePlayerIds.includes(this.playerId) &&
+            (!state.privateTrackLay ||
+                (state.privateTrackLay.privateCompanyId === this.privateCompanyId &&
+                    state.privateTrackLay.playerId === this.playerId)) &&
             costMatches(state, this, this.#rules.powers, this.#rules.track)
         )
     }
@@ -210,7 +222,7 @@ export class HydratedLayPrivateTileOutOfTurn
 }
 export const DeclinePrivateTile = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('DeclinePrivateTile'),
         privateCompanyId: Type.String()
     },
@@ -236,7 +248,8 @@ export class HydratedDeclinePrivateTile
             this.source === ActionSource.User &&
             state.activePlayerIds.includes(this.playerId) &&
             state.privateTrackLay?.privateCompanyId === this.privateCompanyId &&
-            state.privateTrackLay.playerId === this.playerId
+            state.privateTrackLay.playerId === this.playerId &&
+            !state.privateTrackLay.required
         )
     }
     apply(state: HydratedGameState & CompanyDecisionState): void {

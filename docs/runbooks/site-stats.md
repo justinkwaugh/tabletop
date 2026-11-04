@@ -51,6 +51,7 @@ If the tab says **Behind by N days**, the job has not run; check its last attemp
 ## What the numbers mean
 
 - Range figures leave out hotseat, forked and exploration games. History only covers games that still exist; deleted games and undone actions are gone.
+- **New users** are accounts that became active that day: a username chosen and the email verified. The day is the user's `activatedAt`, stamped the first time the account turns active. Accounts activated before that field existed count on the day they were created, and take their creation time as `activatedAt` the next time they are updated. Sign-ups that never finish are left out; the **Right now** incomplete count shows them.
 - **Active users** took at least one action. Range totals are distinct users across the range, not sums of days.
 - **User actions** are moves by human players. Automatic actions and bot moves are counted apart.
 - **"vs previous N days"** is shown only when the previous period lies wholly inside the rolled-up history.

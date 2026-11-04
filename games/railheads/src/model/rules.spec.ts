@@ -3,9 +3,19 @@ import { sameCoordinates } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { isEndRound } from '../actions/endRound.js'
+import { isScoreGame } from '../actions/scoreGame.js'
 import { isResolveIndustryAuction } from '../actions/resolveIndustryAuction.js'
 import { edition, hexKey } from '../editions/editions.js'
-import { ActionSpaceId, CompanyId, EditionId, Industry, printedHex } from '../editions/types.js'
+import { STATE_SUBSIDIES } from '../editions/midwest/rules.js'
+import {
+    ActionSpaceId,
+    CompanyId,
+    EditionId,
+    INDUSTRIES,
+    Industry,
+    printedHex,
+    printedPointyHex
+} from '../editions/types.js'
 import { Table } from '../testing/table.js'
 import { finalRoundReduction, pileCoins, selectionCost } from './economy.js'
 import { IndustryBoost, PlacementKind, networkKeys, trackAt } from './track.js'
@@ -597,9 +607,9 @@ describe('the end of the game', () => {
             ]
         })
         const state = table.hydrated
-        expect(state.railroadBonus(CompanyId.GBSE)).toBe(2)
-        expect(state.railroadBonus(CompanyId.KSSE)).toBe(1)
-        expect(state.railroadBonus(CompanyId.KPEV)).toBe(0)
+        expect(state.endBonusPerShare(CompanyId.GBSE)).toBe(2)
+        expect(state.endBonusPerShare(CompanyId.KSSE)).toBe(1)
+        expect(state.endBonusPerShare(CompanyId.KPEV)).toBe(0)
     })
 
     it('shares $6 per industry site reached among that industry’s tokens, rounded up', () => {
@@ -636,5 +646,272 @@ describe('the end of the game', () => {
         expect(
             state.winningPlayerIds.every((playerId) => state.getPlayerState(playerId).cash === best)
         ).toBe(true)
+    })
+})
+
+describe('the Midwest', () => {
+    const MIDWEST = { edition: EditionId.Midwest }
+    const INDIANAPOLIS = printedPointyHex(12, 30)
+    const ST_LOUIS = printedPointyHex(13, 23)
+    const STEEL_IN_INDIANA = printedPointyHex(10, 28)
+    const BETWEEN_INDIANAPOLIS_AND_STEEL = printedPointyHex(11, 29)
+    const BESIDE_TEXAS = printedPointyHex(13, 21)
+    const BESIDE_WASHINGTON = printedPointyHex(12, 36)
+    const BESIDE_STEEL_IN_ILLINOIS = printedPointyHex(11, 27)
+
+    // p0 opens; every opening share goes to the named buyer at its minimum.
+    const MIDWEST_BUYERS = {
+        [CompanyId.NYC]: 'p0',
+        [CompanyId.ERIE]: 'p1',
+        [CompanyId.IC]: 'p2',
+        [CompanyId.BO]: 'p3',
+        [CompanyId.PRR]: 'p1'
+    }
+
+    function openedMidwest(config: Record<string, boolean | string> = {}): Table {
+        const table = new Table(4, { ...MIDWEST, ...config })
+        table.playInitialAuction(MIDWEST_BUYERS)
+        return table
+    }
+
+    function targetAt(
+        state: Table['hydrated'],
+        companyId: CompanyId,
+        coords: typeof INDIANAPOLIS,
+        space: ActionSpaceId.LayTrackII | ActionSpaceId.LayTrackIII = ActionSpaceId.LayTrackIII
+    ) {
+        return state
+            .placementTargets('p1', space, companyId)
+            .find((target) => sameCoordinates(target.coords, coords))
+    }
+
+    describe('setup', () => {
+        it('auctions the charters right to left from the NYC, each company holding $10', () => {
+            const table = new Table(4, MIDWEST)
+            const state = table.hydrated
+            expect(state.initialOffers.map((offer) => offer.companyId)).toEqual([
+                CompanyId.NYC,
+                CompanyId.ERIE,
+                CompanyId.IC,
+                CompanyId.BO,
+                CompanyId.PRR
+            ])
+            expect(state.shareAuction?.minimum).toBe(5)
+            expect(state.companies.every((company) => company.treasury === 10)).toBe(true)
+        })
+
+        it('starts each company on its home with that site’s revenue', () => {
+            const state = new Table(4, MIDWEST).hydrated
+            const homes = state.companies.map((company) => ({
+                companyId: company.id,
+                site: state.edition.company(company.id).homeSiteId,
+                revenue: company.revenue
+            }))
+            expect(homes).toEqual([
+                { companyId: CompanyId.PRR, site: 'lincoln', revenue: 3 },
+                { companyId: CompanyId.BO, site: 'indianapolis', revenue: 5 },
+                { companyId: CompanyId.IC, site: 'st-louis', revenue: 5 },
+                { companyId: CompanyId.ERIE, site: 'toledo', revenue: 3 },
+                { companyId: CompanyId.NYC, site: 'detroit', revenue: 5 }
+            ])
+            expect(trackAt(state.track, INDIANAPOLIS)?.discs).toEqual([CompanyId.BO])
+        })
+
+        it('gives the PRR buyer the Start Player token and the first turn', () => {
+            const state = openedMidwest().hydrated
+            expect(state.turnManager.turnOrder[0]).toBe('p1')
+            expect(state.company(CompanyId.NYC).treasury).toBe(10 + 5)
+            expect(state.company(CompanyId.PRR).treasury).toBe(10 + 3)
+            expect(state.roundTimer).toBe(15)
+        })
+    })
+
+    describe('the map', () => {
+        const map = edition(EditionId.Midwest).map
+
+        it('puts every land hex in exactly one of the twelve states', () => {
+            expect(map.regions).toHaveLength(12)
+            const keys = map.regions.flatMap((region) => region.hexes.map(hexKey))
+            expect(new Set(keys).size).toBe(keys.length)
+            expect(map.hexes().every((place) => place.regionId !== undefined)).toBe(true)
+            expect(map.hexes()).toHaveLength(keys.length)
+        })
+
+        it('has the four demand areas printed off the map edge', () => {
+            expect(
+                map.demandAreas.map((area) => ({ id: area.id, industries: area.industries }))
+            ).toEqual([
+                { id: 'texas', industries: [Industry.Steel, Industry.Grain] },
+                { id: 'atlanta', industries: [Industry.Cloth, Industry.Brick] },
+                { id: 'washington', industries: [Industry.Steel, Industry.Brick] },
+                { id: 'new-england', industries: [Industry.Grain, Industry.Cloth] }
+            ])
+        })
+
+        it('has three sites of each industry and two demand areas wanting each', () => {
+            for (const industry of INDUSTRIES) {
+                expect(map.hexes().filter((place) => place.industry === industry)).toHaveLength(3)
+                expect(
+                    map.demandAreas.filter((area) => area.industries.includes(industry))
+                ).toHaveLength(2)
+            }
+        })
+
+        it('keeps the lakes and demand areas off the playable map', () => {
+            for (const coords of [...map.water, ...map.demandAreas.map((area) => area.hex)]) {
+                expect(map.nodeAt(coords)).toBeUndefined()
+            }
+        })
+    })
+
+    describe('Lay Track', () => {
+        it('holds three discs on a site from the first round, each $2 dearer than the last', () => {
+            const table = openedMidwest()
+            table.edit((state) => {
+                state.track.push(
+                    { coords: printedPointyHex(12, 28), discs: [CompanyId.IC] },
+                    { coords: printedPointyHex(12, 32), discs: [CompanyId.NYC] },
+                    { coords: printedPointyHex(11, 31), discs: [CompanyId.ERIE] }
+                )
+            })
+            const state = table.hydrated
+            expect(state.round()).toBe(1)
+            expect(targetAt(state, CompanyId.IC, INDIANAPOLIS)?.cost).toBe(4 + 2)
+            state.placeTrack('p1', ActionSpaceId.LayTrackIII, {
+                companyId: CompanyId.IC,
+                coords: INDIANAPOLIS,
+                kind: PlacementKind.Disc
+            })
+            expect(targetAt(state, CompanyId.NYC, INDIANAPOLIS)?.cost).toBe(4 + 4)
+            state.placeTrack('p1', ActionSpaceId.LayTrackIII, {
+                companyId: CompanyId.NYC,
+                coords: INDIANAPOLIS,
+                kind: PlacementKind.Disc
+            })
+            expect(targetAt(state, CompanyId.ERIE, INDIANAPOLIS)).toBeUndefined()
+            expect(state.company(CompanyId.IC).revenue).toBe(5 + 5)
+            expect(state.company(CompanyId.IC).treasury).toBe(15 - 6)
+        })
+
+        it('halves a site’s price on Lay Track II for a company the player holds no share in', () => {
+            const table = openedMidwest()
+            table.edit((state) => {
+                state.track.push({ coords: printedPointyHex(12, 28), discs: [CompanyId.IC] })
+            })
+            expect(
+                targetAt(table.hydrated, CompanyId.IC, INDIANAPOLIS, ActionSpaceId.LayTrackII)?.cost
+            ).toBe(3)
+        })
+
+        it('builds an industry site only once the network touches a demand area wanting it', () => {
+            const table = openedMidwest()
+            table.edit((state) => {
+                state.track.push({ coords: BETWEEN_INDIANAPOLIS_AND_STEEL, discs: [CompanyId.BO] })
+            })
+            expect(targetAt(table.hydrated, CompanyId.BO, STEEL_IN_INDIANA)).toBeUndefined()
+            table.edit((state) => {
+                state.track.push({ coords: BESIDE_WASHINGTON, discs: [CompanyId.BO] })
+            })
+            expect(targetAt(table.hydrated, CompanyId.BO, STEEL_IN_INDIANA)?.cost).toBe(4)
+        })
+    })
+
+    describe('rulings recorded in the interpretations', () => {
+        it('counts demand established earlier in the same Lay Track action', () => {
+            const table = openedMidwest()
+            table.edit((state) => {
+                state.track.push({ coords: BESIDE_STEEL_IN_ILLINOIS, discs: [CompanyId.IC] })
+            })
+            expect(targetAt(table.hydrated, CompanyId.IC, STEEL_IN_INDIANA)).toBeUndefined()
+            choose(table, ActionSpaceId.LayTrackII)
+            table.act('p1', {
+                type: ActionType.LayTrack,
+                placements: [
+                    { companyId: CompanyId.IC, coords: BESIDE_TEXAS, kind: PlacementKind.Disc },
+                    { companyId: CompanyId.IC, coords: STEEL_IN_INDIANA, kind: PlacementKind.Disc }
+                ]
+            })
+            const state = table.hydrated
+            expect(state.industry(Industry.Steel).level).toBe(2)
+            expect(state.company(CompanyId.IC).revenue).toBe(5 + 2)
+            expect(state.company(CompanyId.IC).treasury).toBe(15 - 1 - 2)
+        })
+
+        it('lets a crossing cube beside a demand area establish demand', () => {
+            const table = openedMidwest()
+            table.edit((state) => {
+                state.track.push(
+                    { coords: BETWEEN_INDIANAPOLIS_AND_STEEL, discs: [CompanyId.BO] },
+                    { coords: BESIDE_WASHINGTON, discs: [CompanyId.NYC], cube: CompanyId.BO }
+                )
+            })
+            expect(targetAt(table.hydrated, CompanyId.BO, STEEL_IN_INDIANA)).toBeDefined()
+        })
+
+        it('places St. Louis in Illinois, where the printed border runs', () => {
+            const state = openedMidwest().hydrated
+            expect(state.edition.map.hex(ST_LOUIS).regionId).toBe('IL')
+            expect(state.regionsReached(CompanyId.IC)).toBe(1)
+        })
+
+        it('counts the home hex and crossing cubes among the states a company has track in', () => {
+            const table = openedMidwest()
+            table.edit((state) => {
+                state.track.push(
+                    { coords: printedPointyHex(9, 37), discs: [CompanyId.NYC] },
+                    { coords: printedPointyHex(10, 30), discs: [CompanyId.NYC] },
+                    { coords: printedPointyHex(11, 25), discs: [CompanyId.IC], cube: CompanyId.NYC }
+                )
+            })
+            const state = table.hydrated
+            expect(state.regionsReached(CompanyId.NYC)).toBe(4)
+            expect(state.endBonusPerShare(CompanyId.NYC)).toBe(3)
+            expect(state.endBonusPerShare(CompanyId.ERIE)).toBe(0)
+        })
+
+        it('pays the board’s $8 Establishment Bonus per site reached, shared and rounded up', () => {
+            const table = openedMidwest()
+            table.edit((state) => {
+                state.track.push({ coords: STEEL_IN_INDIANA, discs: [CompanyId.BO] })
+                state.track.push({ coords: printedPointyHex(1, 1), discs: [CompanyId.PRR] })
+                for (const player of state.players) {
+                    player.industryTokens = player.industryTokens.filter(
+                        (token) => token !== Industry.Steel
+                    )
+                }
+                state.getPlayerState('p0').industryTokens.push(Industry.Steel, Industry.Steel)
+                state.getPlayerState('p2').industryTokens.push(Industry.Steel)
+            })
+            expect(table.hydrated.industryBonusPerToken(Industry.Steel)).toBe(Math.ceil(16 / 3))
+        })
+    })
+
+    describe('the end of the game', () => {
+        it('reads State Subsidies per share from the board’s table', () => {
+            expect(STATE_SUBSIDIES.slice(1)).toEqual([0, 1, 2, 3, 5, 7, 9, 12, 15, 20, 27, 36])
+        })
+
+        it('pays State Subsidies on every share after the fourth payout', () => {
+            const table = openedMidwest()
+            table.edit((state) => {
+                for (let round = 1; round < 4; round++) {
+                    state.rounds.endRound(state.actionCount)
+                    state.rounds.startRound(state.actionCount)
+                }
+                state.roundTimer = 1
+                state.track.push(
+                    { coords: printedPointyHex(9, 37), discs: [CompanyId.NYC] },
+                    { coords: printedPointyHex(10, 30), discs: [CompanyId.NYC] }
+                )
+            })
+            choose(table, ActionSpaceId.LayTrackII)
+            table.act('p1', { type: ActionType.LayTrack, placements: [] })
+            const scoring = table.processed.find(isScoreGame)
+            expect(
+                scoring?.metadata?.rates.companies.find((rate) => rate.companyId === CompanyId.NYC)
+                    ?.perShare
+            ).toBe(2)
+            expect(table.state.machineState).toBe(MachineState.EndOfGame)
+        })
     })
 })

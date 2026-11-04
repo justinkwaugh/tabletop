@@ -109,7 +109,7 @@ export class EarningsDistribution {
             ? 'withhold'
             : undefined
     }
-    canAct(playerId: string, companyId: string): boolean {
+    canAct(playerId: string | undefined, companyId: string): boolean {
         return (
             this.state.routeStep?.companyId === companyId &&
             !!this.state.routeStep.result &&
@@ -209,12 +209,14 @@ export function validateEarningsDistribution(
         machineState: string
         routeStep?: { result?: { companyId: string; revenue: number } }
         trainPurchaseStep?: { companyId: string }
-    }
+    },
+    operatingInterruptions: readonly string[] = []
 ): void {
     const earnings = state.earningsDistribution
     if (!earnings) return
     assert(
-        AfterEarningsStates.includes(state.machineState) &&
+        (AfterEarningsStates.includes(state.machineState) ||
+            operatingInterruptions.includes(state.machineState)) &&
             earnings.companyId === state.routeStep?.result?.companyId &&
             earnings.revenue === state.routeStep.result.revenue &&
             (!state.trainPurchaseStep || state.trainPurchaseStep.companyId === earnings.companyId),

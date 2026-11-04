@@ -208,13 +208,7 @@
             return null
         }
 
-        const localTarget = rotatePointAroundCenter(
-            targetX,
-            targetY,
-            x,
-            y,
-            -bodyRotationDegrees
-        )
+        const localTarget = rotatePointAroundCenter(targetX, targetY, x, y, -bodyRotationDegrees)
         const localBoundaryPoint = closestPointOnRoundedRectBoundary(
             localTarget.x - x,
             localTarget.y - y
@@ -264,7 +258,12 @@
                 stroke-width={connectorHaloStrokeWidth}
                 opacity="0.24"
             ></path>
-            <path d={connectorPath} fill="none" stroke={borderColor} stroke-width={connectorMainStrokeWidth}></path>
+            <path
+                d={connectorPath}
+                fill="none"
+                stroke={borderColor}
+                stroke-width={connectorMainStrokeWidth}
+            ></path>
             <circle
                 cx={targetX}
                 cy={targetY}
@@ -283,7 +282,8 @@
                     <path d={bodyPath}></path>
                 </clipPath>
             </defs>
-            <path d={bodyPath} fill={shadowColor} opacity="0.28" transform="translate(1.8 2.1)"></path>
+            <path d={bodyPath} fill={shadowColor} opacity="0.28" transform="translate(1.8 2.1)"
+            ></path>
             {#if highlighted}
                 <path
                     d={bodyPath}
@@ -294,11 +294,7 @@
                     opacity="0.86"
                 ></path>
             {/if}
-            <path
-                d={bodyPath}
-                fill={playerColor}
-                stroke="none"
-            ></path>
+            <path d={bodyPath} fill={playerColor} stroke="none"></path>
             <rect
                 x={iconSquareX}
                 y={iconSquareY}
@@ -327,9 +323,19 @@
 
         <g transform={contentScaleTransform}>
             {#if goodType === 'spice'}
-                <SpiceMarker x={iconCenterX} y={iconCenterY} height={spiceIconHeight} outline={false} />
+                <SpiceMarker
+                    x={iconCenterX}
+                    y={iconCenterY}
+                    height={spiceIconHeight}
+                    outline={false}
+                />
             {:else if goodType === 'siapsaji'}
-                <SiapSajiMarker x={iconCenterX} y={iconCenterY} height={siapSajiIconHeight} outline={false} />
+                <SiapSajiMarker
+                    x={iconCenterX}
+                    y={iconCenterY}
+                    height={siapSajiIconHeight}
+                    outline={false}
+                />
             {:else if goodType === 'oil'}
                 <OilMarker x={iconCenterX} y={iconCenterY} height={iconHeight} outline={false} />
             {:else if goodType === 'rice'}
@@ -404,7 +410,8 @@
                 opacity={maskedTargetOpacity}
             ></circle>
         {/if}
-        <path d={bodyPath} fill="#000000" opacity={maskedOpacity} transform={bodyScaleTransform}></path>
+        <path d={bodyPath} fill="#000000" opacity={maskedOpacity} transform={bodyScaleTransform}
+        ></path>
     {/if}
 
     {#if onClick}

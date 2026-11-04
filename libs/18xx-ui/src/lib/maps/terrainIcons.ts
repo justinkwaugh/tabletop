@@ -1,4 +1,5 @@
 import type { StationAppearance } from './stationPresentation.js'
+import { svgDataUrl } from '../presentation/svgDataUrl.js'
 
 export type TerrainIconName = 'mountain'
 
@@ -18,6 +19,6 @@ export function terrainIconAppearance(icon: TerrainIconName): StationAppearance 
     return {
         label: icon,
         color: 'transparent',
-        imageUrl: `data:image/svg+xml,${encodeURIComponent(svg)}`
+        imageUrl: svgDataUrl(svg)
     }
 }

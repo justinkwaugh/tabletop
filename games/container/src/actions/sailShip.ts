@@ -44,10 +44,7 @@ export class HydratedSailShip extends HydratableAction<typeof SailShip> implemen
             case 'open_sea': {
                 assert(this.destination.type !== 'open_sea', 'Must move to a new area')
                 if (this.destination.type === 'harbor') {
-                    assert(
-                        this.destination.ownerId !== this.playerId,
-                        'Cannot move to own harbor'
-                    )
+                    assert(this.destination.ownerId !== this.playerId, 'Cannot move to own harbor')
                 }
                 if (this.destination.type === 'investment_bank') {
                     assert(state.investmentBank, 'Investment Bank not enabled')

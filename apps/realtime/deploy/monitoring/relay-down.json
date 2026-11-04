@@ -11,9 +11,7 @@
                         "alignmentPeriod": "1200s",
                         "perSeriesAligner": "ALIGN_NEXT_OLDER",
                         "crossSeriesReducer": "REDUCE_COUNT_FALSE",
-                        "groupByFields": [
-                            "resource.label.host"
-                        ]
+                        "groupByFields": ["resource.label.host"]
                     }
                 ],
                 "comparison": "COMPARISON_GT",
@@ -32,7 +30,5 @@
         "mimeType": "text/markdown",
         "content": "The relay or its Redis subscriber has been unreachable for about 10 minutes. Check `systemctl status realtime caddy` and `journalctl -u realtime` on the `realtime` VM over IAP. Clients fall back to reconnecting with backoff."
     },
-    "notificationChannels": [
-        "CHANNEL"
-    ]
+    "notificationChannels": ["CHANNEL"]
 }

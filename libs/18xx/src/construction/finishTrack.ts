@@ -1,9 +1,9 @@
+import { EighteenXXOperatingAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
-import { actsFor } from '../finance/receivership.js'
+import { actionMayOperate } from '../finance/receivership.js'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     type GameAction,
@@ -12,7 +12,11 @@ import {
 import type { ConstructionState } from './trackConstruction.js'
 
 export const FinishTrack = Type.Object(
-    { ...PlayerAction.properties, type: Type.Literal('FinishTrack'), companyId: Type.String() },
+    {
+        ...EighteenXXOperatingAction.properties,
+        type: Type.Literal('FinishTrack'),
+        companyId: Type.String()
+    },
     { additionalProperties: false }
 )
 export type FinishTrack = Type.Static<typeof FinishTrack>
@@ -28,7 +32,7 @@ export class HydratedFinishTrack
     implements FinishTrack
 {
     declare type: 'FinishTrack'
-    declare playerId: string
+    declare playerId?: string
     declare companyId: string
     constructor(data: FinishTrack) {
         super(data instanceof HydratedFinishTrack ? data.dehydrate() : data, Validator)
@@ -37,10 +41,9 @@ export class HydratedFinishTrack
         const turn = state.trackStep
         assert(
             (this.source === ActionSource.User || this.source === ActionSource.System) &&
-                state.activePlayerIds.includes(this.playerId) &&
+                actionMayOperate(state, this, this.companyId) &&
                 turn?.companyId === this.companyId &&
-                !turn.completed &&
-                actsFor(state, this.playerId, this.companyId),
+                !turn.completed,
             'Only the operating company’s controlling owner may finish track'
         )
         turn.completed = true

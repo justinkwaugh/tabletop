@@ -25,6 +25,8 @@ import { payTolls, reasonTollsUnpaid } from '../util/tolls.js'
 import { modifierPayment, reasonCannotPayInAll, tollPayment } from '../util/actionPayment.js'
 import { defaultTolls } from '../util/tollDefaults.js'
 import {
+    beginModifiersInUse,
+    carryToSearchPlay,
     firstForbid,
     foldDrawCount,
     foldSupplyCost,
@@ -39,6 +41,7 @@ import {
 } from '../util/modifiers.js'
 import { pawnSiteId, regionOfPawn } from '../powers/vocabulary.js'
 import { bannerHolder } from '../util/oathkeeper.js'
+import { isAtLeastOathRevision, OathRevision } from '../util/revision.js'
 
 /** R-5.1.2 — before any modifier. */
 export const SEARCH_DRAW_COUNT = 3
@@ -167,23 +170,9 @@ export class HydratedSearch extends HydratableAction<typeof Search> implements S
         }
 
         // R-7.4, R-5.1.4 — carried to the play, which clears them.
-        state.pendingSearchModifiers = active
-            .filter(
-                (m) =>
-                    m.hooks.after !== undefined ||
-                    m.hooks.discardTo !== undefined ||
-                    m.hooks.discardFirstAtSitePlay === true ||
-                    m.hooks.sitePlayGainsSecret === true ||
-                    m.hooks.playAnywhere !== undefined ||
-                    m.hooks.secondPlay === true ||
-                    m.hooks.revealsDraw === true
-            )
-            .map((m) => ({
-                cardId: m.power.cardId,
-                powerIndex: m.power.powerIndex,
-                choices: m.choices.length > 0 ? [...m.choices] : undefined
-            }))
-        if (state.pendingSearchModifiers.length === 0) state.pendingSearchModifiers = undefined
+        carryToSearchPlay(state, active)
+        // R-7.4.3 — every modifier the Search uses, the draw's and cost's too, cannot be discarded until it ends.
+        beginModifiersInUse(state, active)
 
         this.metadata = {
             draw,
@@ -276,6 +265,7 @@ export class HydratedSearch extends HydratableAction<typeof Search> implements S
         return !resolved.reason && resolved.active.some((m) => m.hooks.drawsFromBottom)
     }
 
+    /** Errand Boy, Observatory — the first with an answer, which from revision 31 is the only one (R-7.4-H2). */
     static drawRegionFor(
         state: HydratedOathGameState,
         playerId: string,
@@ -297,8 +287,6 @@ export class HydratedSearch extends HydratableAction<typeof Search> implements S
         modifiers?: readonly ModifierUse[],
         source?: SearchSource
     ): number {
-        const category = sitePowerCategory(state.siteCardAt(pawnSiteId(state, playerId)))
-        const base = category === 'marshes' ? SEARCH_DRAW_COUNT - 1 : SEARCH_DRAW_COUNT
         const particulars = source ? { drawFrom: source } : {}
         const resolved = resolveModifiers(
             state,
@@ -307,8 +295,29 @@ export class HydratedSearch extends HydratableAction<typeof Search> implements S
             modifiers,
             particulars
         )
-        if (resolved.reason) return base
-        return foldDrawCount(base, state, playerId, resolved.active, particulars)
+        const active = resolved.reason ? [] : resolved.active
+        return HydratedSearch.countWith(state, playerId, active, particulars)
+    }
+
+    /** R-5.1.2, R-11.11 — the cards drawn with these modifiers in force. */
+    private static countWith(
+        state: HydratedOathGameState,
+        playerId: string,
+        active: readonly ActiveModifier[],
+        particulars: { drawFrom?: SearchSource }
+    ): number {
+        const category = sitePowerCategory(state.siteCardAt(pawnSiteId(state, playerId)))
+        const marshes = category === 'marshes'
+        // R-X.4 — before revision 16 the Marshes' one fewer was in the base, which a count a card
+        // sets (Mushrooms) replaced.
+        if (!isAtLeastOathRevision(state, OathRevision.EngineFixes12)) {
+            const base = marshes ? SEARCH_DRAW_COUNT - 1 : SEARCH_DRAW_COUNT
+            return foldDrawCount(base, state, playerId, active, particulars)
+        }
+        // R-11.11-H1 — the one fewer comes off whatever the cards make the count, Mushrooms' one
+        // included.
+        const count = foldDrawCount(SEARCH_DRAW_COUNT, state, playerId, active, particulars)
+        return marshes ? Math.max(0, count - 1) : count
     }
 
     static plan(
@@ -356,6 +365,11 @@ export class HydratedSearch extends HydratableAction<typeof Search> implements S
             if (state.discardPileCounts[pile] === 0) {
                 return { cost, active, reason: `the ${pile} discard pile is empty` }
             }
+        }
+        // R-11.11-H1 — Mushrooms alone at the Marshes draws no card, which leaves the Search
+        // nothing to keep, so it is not offered. No count reaches 0 before revision 16.
+        if (HydratedSearch.countWith(state, playerId, active, particulars) === 0) {
+            return { cost, active, reason: 'this Search would draw no card' }
         }
 
         return { cost, active }

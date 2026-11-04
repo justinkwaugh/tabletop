@@ -10,7 +10,8 @@ interface BugReportUpdateProps {
     note?: string
     closing?: string
     quote: string
-    gameUrl: string
+    /** Absent for a hotseat game, which lives only in the reporter's browser. */
+    gameUrl?: string
     postUrl: string
     inviteUrl: string
     footer: string
@@ -82,7 +83,7 @@ export const BugReportUpdate = ({
                 <Text style={styles.quoteText}>“{quote}”</Text>
             </Section>
 
-            <CardButton href={gameUrl}>Back to your game</CardButton>
+            {gameUrl && <CardButton href={gameUrl}>Back to your game</CardButton>}
             <Section style={{ textAlign: 'center', padding: '8px 0 0' }}>
                 <Link href={postUrl} style={styles.secondaryLink}>
                     Follow your report on Discord →

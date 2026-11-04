@@ -6,7 +6,7 @@ import {
     createOrdinaryShareCertificates,
     privateIncomePayments,
     requirePar,
-    settleCashPayments,
+    startingCashByPlayerCount,
     type InitialPosition,
     type Opening,
     type OpeningSetup,
@@ -28,6 +28,9 @@ import { EighteenNinetyFourTileSet } from './tiles.js'
 import { EighteenNinetyFourTrainDepot } from './trains.js'
 
 export const EighteenNinetyFourStartingCash: Readonly<Record<number, number>> = { 3: 570, 4: 480 }
+export const eighteenNinetyFourStartingCash = startingCashByPlayerCount(
+    EighteenNinetyFourStartingCash
+)
 
 /** The Nord share that comes with the Nord minor shareholding (§3, §11.2.2.7). */
 export const NordMinorShareId = 'Nord:share:8'
@@ -49,13 +52,10 @@ export const EighteenNinetyFourAuctionRules: WaterfallAuctionRules = {
         ])
         if (companyId) requirePar(state, companyId, award.playerId)
     },
-    payIncome(state) {
-        settleCashPayments(
-            state,
-            // Players own every private and the map is unbuilt, so each pays its printed
-            // revenue: Saint-Quentin à Guise nothing yet.
-            privateIncomePayments(state, { charters: EighteenNinetyFourCharters })
-        )
+    incomePayments(state) {
+        // Players own every private and the map is unbuilt, so each pays its printed revenue:
+        // Saint-Quentin à Guise nothing yet.
+        return privateIncomePayments(state, { charters: EighteenNinetyFourCharters })
     }
 }
 

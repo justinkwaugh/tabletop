@@ -92,9 +92,7 @@ describe('awardHillPowerPoints', () => {
         // nobody, which is the whole point of walling territory in.
         const board = blankBoard()
         board.squares[5][5] = { type: SquareType.Hill } // (5,5), in no region
-        const state = buildState(board, [
-            { id: 'r1', owner: 'p1', squareKeys: ['0,0'] }
-        ])
+        const state = buildState(board, [{ id: 'r1', owner: 'p1', squareKeys: ['0,0'] }])
 
         expect(awardHillPowerPoints(state)).toEqual([
             { playerId: 'p1', points: 0 },
@@ -146,9 +144,7 @@ describe('awardHillPowerPoints', () => {
     it('adds to power points already earned rather than replacing them', () => {
         const board = blankBoard()
         board.squares[0][0] = { type: SquareType.Hill }
-        const state = buildState(board, [
-            { id: 'r1', owner: 'p1', squareKeys: ['0,0'] }
-        ])
+        const state = buildState(board, [{ id: 'r1', owner: 'p1', squareKeys: ['0,0'] }])
         state.getPlayerState('p1').powerPoints = 17
 
         awardHillPowerPoints(state)
@@ -162,9 +158,7 @@ describe('awardHillPowerPoints', () => {
         // a fresh card would double-pay, so this pins the behaviour a caller has to respect.
         const board = blankBoard()
         board.squares[0][0] = { type: SquareType.Hill }
-        const state = buildState(board, [
-            { id: 'r1', owner: 'p1', squareKeys: ['0,0'] }
-        ])
+        const state = buildState(board, [{ id: 'r1', owner: 'p1', squareKeys: ['0,0'] }])
 
         awardHillPowerPoints(state)
         awardHillPowerPoints(state)

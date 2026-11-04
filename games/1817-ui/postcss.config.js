@@ -10,7 +10,10 @@ const scopeGameCssPlugin = {
         // the library, so each title scopes them to itself as it does its own styles.
         if (
             !sourceFile.endsWith('/src/lib/styles.css') &&
-            !(/\/18xx-ui\/(?:dist|src\/lib)\/.+\.css$/.test(sourceFile) && !sourceFile.includes('.svelte'))
+            !(
+                /\/18xx-ui\/(?:dist|src\/lib)\/.+\.css$/.test(sourceFile) &&
+                !sourceFile.includes('.svelte')
+            )
         ) {
             return
         }

@@ -1,12 +1,9 @@
 import {
     AnswerMerger,
-    AnswerRedemption,
-    DiscardMergedTrain,
     MergingState,
     PassMerger,
     ProposeMerger,
     SellTakeoverShares,
-    mergedTrainDiscards,
     mergerDecision,
     mergerOptions,
     mergerTerms,
@@ -16,17 +13,10 @@ import {
     takeoverPayments,
     type MergerOption,
     BuyCoalRights,
-    ConsentingRedemptionState,
-    DeclineProtection,
+    EighteenThirtyTwoPriceProtection,
+    EighteenThirtyTwoRedemption,
     EighteenThirtyTwoTitleRules,
     PlaceRevenueToken,
-    ProtectShares,
-    ProtectingPriceState,
-    RedeemShare,
-    ReissueShares,
-    protectionDecision,
-    redemptionChoices,
-    reissueChoices,
     RevenueTokenPrivateIds,
     TakeLondonShare,
     londonShareCompanies,
@@ -34,20 +24,26 @@ import {
     revenueTokenUnplaced,
     type EighteenThirtyTwoState,
     type HydratedEighteenThirtyTwoState,
-    type RedemptionChoice,
-    type ReissueChoice,
-    type RevenueTokenChoice,
-    EighteenThirtyTwoMarket
+    type RevenueTokenChoice
 } from '@tabletop/1832'
 import { assertExists } from '@tabletop/common'
 import { undoableStagedSelection } from '@tabletop/frontend-components'
-import { cashOwnedBy, sameOwner, type Owner, type ShareSaleDetails } from '@tabletop/18xx'
 import {
+    cashOwnedBy,
+    sameOwner,
+    type Owner,
+    type ShareSaleDetails,
+    DiscardMergedTrain
+} from '@tabletop/18xx'
+import {
+    ShareActions,
     createEighteenXXSessionClass,
     type HistoricalMapState,
     type TitlePrivatePower
 } from '@tabletop/18xx-ui'
 import { mapState1832 } from './mapState.js'
+import { createRouteWorker } from './routeWorker.js'
+import { awaitedDecision1832, mergedDiscardTerms } from './awaitedDecision.js'
 import { EighteenThirtyTwoMapView } from './mapView.js'
 import { EighteenThirtyTwoPresentation } from './presentation.js'
 import { PrivateOperatingPowers } from './privatePowers.js'
@@ -73,20 +69,14 @@ const BaseSession: ReturnType<
 > = createEighteenXXSessionClass<typeof EighteenThirtyTwoState, HydratedEighteenThirtyTwoState>(
     EighteenThirtyTwoTitleRules,
     EighteenThirtyTwoMapView,
-    EighteenThirtyTwoPresentation
+    EighteenThirtyTwoPresentation,
+    createRouteWorker
 )
 
 const TokenPrivates = [
     { kind: 'port', name: 'Port' },
     { kind: 'cotton', name: 'Cotton' }
 ] as const
-
-/** What a president may do for one company in place of their own stock action (§5.3). */
-export type CompanyShareOptions = {
-    companyId: string
-    redemptions: RedemptionChoice[]
-    reissue?: ReissueChoice
-}
 
 export class EighteenThirtyTwoSession extends BaseSession {
     constructor(options: ConstructorParameters<typeof BaseSession>[0]) {
@@ -118,33 +108,14 @@ export class EighteenThirtyTwoSession extends BaseSession {
         {
             id: 'company',
             label: 'Company action',
-            available: () => this.companyShareOptions.length > 0
+            available: () => this.shareActions.companyOptions.length > 0
         }
     ])
-    readonly companyShareOptions = $derived.by((): CompanyShareOptions[] => {
-        const playerId = this.gameState.activePlayerIds[0]
-        if (
-            !playerId ||
-            !(
-                this.validActionTypes.includes('RedeemShare') ||
-                this.validActionTypes.includes('ReissueShares')
-            )
-        )
-            return []
-        const redemptions = redemptionChoices(this.gameState, playerId)
-        const reissues = reissueChoices(this.gameState, playerId)
-        const companyIds = [
-            ...new Set([...redemptions, ...reissues].map((choice) => choice.companyId))
-        ]
-        return companyIds.map((companyId) => {
-            const reissue = reissues.find((choice) => choice.companyId === companyId)
-            return {
-                companyId,
-                redemptions: redemptions.filter((choice) => choice.companyId === companyId),
-                ...(reissue ? { reissue } : {})
-            }
-        })
-    })
+    readonly shareActions = new ShareActions<HydratedEighteenThirtyTwoState>(
+        this,
+        EighteenThirtyTwoPriceProtection,
+        EighteenThirtyTwoRedemption
+    )
     /** The merger phase's open decision, and who makes it. */
     readonly mergerDecision = $derived(
         this.gameState.machineState === MergingState ? mergerDecision(this.gameState) : undefined
@@ -315,13 +286,12 @@ export class EighteenThirtyTwoSession extends BaseSession {
     readonly mergedTrainDiscards = $derived.by(() => {
         const discards =
             this.myMergerDecision?.kind === 'discard'
-                ? mergedTrainDiscards(this.gameState, this.myMergerDecision.playerId)
+                ? mergedDiscardTerms(this.gameState, this.myMergerDecision.playerId)
                 : undefined
         if (!discards) return undefined
         const definitionIds = [...new Set(discards.trains.map((train) => train.definitionId))]
         return {
             ...discards,
-            limit: discards.trains.length - discards.excess,
             // Trains of one kind are interchangeable, so each kind is one choice.
             kinds: definitionIds.map((definitionId) => ({
                 definitionId,
@@ -364,15 +334,6 @@ export class EighteenThirtyTwoSession extends BaseSession {
     async discardMergedTrain(companyId: string, trainId: string): Promise<void> {
         await this.applyAction(this.createPlayerAction(DiscardMergedTrain, { companyId, trainId }))
     }
-    /** A redemption awaiting a holder's consent. */
-    readonly redemptionPrompt = $derived.by(() => {
-        const request = this.gameState.redemptionRequest
-        if (this.gameState.machineState !== ConsentingRedemptionState || !request) return undefined
-        return { ...request, companyName: this.companyName(request.companyId) }
-    })
-    readonly canAnswerRedemption = $derived(
-        this.canChooseAction && this.validActionTypes.includes('AnswerRedemption')
-    )
     readonly revenueTokenChoices = $derived(
         this.myPlayer && !this.isViewingHistory
             ? revenueTokenChoices(this.gameState, this.myPlayer.id)
@@ -381,6 +342,15 @@ export class EighteenThirtyTwoSession extends BaseSession {
     readonly keyWestChoice = $derived(
         this.revenueTokenChoices.find((choice) => choice.kind === 'key-west')
     )
+    protected override titleAwaitedDecision(state: HydratedEighteenThirtyTwoState) {
+        const names = {
+            companyName: (companyId: string) => this.companyName(companyId),
+            companyInitials: (companyId: string) => this.companyInitials(companyId),
+            playerName: (playerId: string) => this.getPlayerName(playerId),
+            money: this.presentation.money
+        }
+        return this.shareActions.awaitedDecision(state, names) ?? awaitedDecision1832(state, names)
+    }
     // The FEC places its Key West token in Miami instead of a station (§7.5).
     override get titleStationActions() {
         const choice = this.keyWestChoice
@@ -401,24 +371,6 @@ export class EighteenThirtyTwoSession extends BaseSession {
         this.myPlayer && this.canChooseAction
             ? londonShareCompanies(this.gameState, this.myPlayer.id)
             : []
-    )
-    /** The sale whose president is deciding whether to protect its price, and its terms. */
-    readonly protectionPrompt = $derived.by(() => {
-        const record = this.gameState.priceProtection
-        const decision =
-            this.gameState.machineState === ProtectingPriceState
-                ? protectionDecision(this.gameState)
-                : undefined
-        if (!record || !decision) return undefined
-        return {
-            ...decision.sale,
-            sellerPlayerId: record.sellerPlayerId,
-            presidentPlayerId: decision.playerId,
-            restoredPrice: EighteenThirtyTwoMarket.space(decision.sale.fromMarketSpaceId).price
-        }
-    })
-    readonly canDecideProtection = $derived(
-        this.canChooseAction && this.validActionTypes.includes('ProtectShares')
     )
     /** What a private lets its owning company do, while that power remains to be used. */
     privateOperationDescription(privateCompanyId: string): string | undefined {
@@ -469,26 +421,6 @@ export class EighteenThirtyTwoSession extends BaseSession {
     }
     async takeLondonShare(certificateId: string): Promise<void> {
         await this.applyAction(this.createPlayerAction(TakeLondonShare, { certificateId }))
-    }
-    async redeemShare(choice: RedemptionChoice): Promise<void> {
-        await this.applyAction(
-            this.createPlayerAction(RedeemShare, {
-                companyId: choice.companyId,
-                certificateId: choice.certificateId
-            })
-        )
-    }
-    async answerRedemption(accept: boolean): Promise<void> {
-        await this.applyAction(this.createPlayerAction(AnswerRedemption, { accept }))
-    }
-    async reissueShares(companyId: string): Promise<void> {
-        await this.applyAction(this.createPlayerAction(ReissueShares, { companyId }))
-    }
-    async protectShares(companyId: string): Promise<void> {
-        await this.applyAction(this.createPlayerAction(ProtectShares, { companyId }))
-    }
-    async declineProtection(companyId: string): Promise<void> {
-        await this.applyAction(this.createPlayerAction(DeclineProtection, { companyId }))
     }
     protected override projectMapState(state: HydratedEighteenThirtyTwoState): HistoricalMapState {
         return mapState1832(state)

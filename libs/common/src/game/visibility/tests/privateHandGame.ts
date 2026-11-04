@@ -421,3 +421,28 @@ export class PrivateHandHost {
         })
     }
 }
+
+export function playPrivateHand(
+    host: PrivateHandHost,
+    prefix: string,
+    turns = Infinity
+): ReturnType<PrivateHandHost['apply']>[] {
+    const results: ReturnType<PrivateHandHost['apply']>[] = []
+    for (let turn = 0; turn < turns; turn++) {
+        const playerId = host.state.activePlayerIds[0]
+        const hydrated = runtime.hydrator.hydrateState(structuredClone(host.state))
+        const [cardId] = hydrated.choices(playerId)
+        const base = {
+            id: `${prefix}-${turn}`,
+            gameId: host.game.id,
+            source: ActionSource.User,
+            playerId
+        }
+        const play = { ...base, type: 'play', cardId }
+        const draw = { ...base, type: 'draw', revealsInfo: true }
+        if (cardId !== undefined) results.push(host.apply(play))
+        else if (hydrated.drawPile.count() > 0) results.push(host.apply(draw))
+        else break
+    }
+    return results
+}

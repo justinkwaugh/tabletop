@@ -3,8 +3,6 @@ import {
     HydratedTrade,
     TradeOption,
     defaultTolls,
-    disguisedAs,
-    suitOf,
     type HydratedOathGameState,
     type ModifierUse,
     type Suit
@@ -40,12 +38,10 @@ export function tradeModifiers(
     option: TradeOption,
     declared: readonly ModifierUse[]
 ): ModifierUse[] {
-    // Master of Disguise — whose advisers the Trade acts with is read from the cards judged with it.
-    return fittingModifiers(state, playerId, ActionType.Trade, declared, (uses) => ({
-        cardId,
-        tradeOption: option,
-        advisersOf: disguisedAs(ActionType.Trade, uses)
-    }))
+    // Master of Disguise's player and Small Friends' site are read from the cards judged with it.
+    return fittingModifiers(state, playerId, ActionType.Trade, declared, (uses) =>
+        HydratedTrade.particulars(state, playerId, cardId, option, uses)
+    )
 }
 
 /** Every trade the player can make now, read from the engine's own plan (R-5.3.2, R-7.4). */
@@ -60,7 +56,8 @@ export function tradeRows(
     const sites = [own, ...state.faceupSiteIds().filter((siteId) => siteId !== own)]
     return sites.flatMap((siteId) =>
         state.denizensAt(siteId).flatMap((cardId): TradeRow[] => {
-            const suit = suitOf(cardId)
+            // R-2.9 — a ruin shows no suit, so it is never listed.
+            const suit = state.suitInPlay(cardId)
             if (!suit) return []
             const tolls = defaultTolls(state, playerId, { kind: 'trade', cardId })
             const choices = OPTIONS.flatMap((option): TradeChoice[] => {

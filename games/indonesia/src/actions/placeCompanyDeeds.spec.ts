@@ -13,10 +13,7 @@ import { describe, expect, it } from 'vitest'
 import { Deeds } from '../components/deed.js'
 import { Era } from '../definition/eras.js'
 import { IndonesiaGameInitializer } from '../definition/initializer.js'
-import {
-    HydratedPlaceCompanyDeeds,
-    PlaceCompanyDeeds
-} from './placeCompanyDeeds.js'
+import { HydratedPlaceCompanyDeeds, PlaceCompanyDeeds } from './placeCompanyDeeds.js'
 
 function createTestState() {
     const players: Player[] = [

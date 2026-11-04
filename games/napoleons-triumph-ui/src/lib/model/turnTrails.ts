@@ -146,7 +146,7 @@ export function turnTrails(
             if (!start || !end || owner === undefined) {
                 continue
             }
-            const bends = movement.road.slice(0, -1).map((locale) => LOCALE_GEOMETRY[locale].anchor)
+            const bends = movement.via.map((locale) => LOCALE_GEOMETRY[locale].anchor)
             const [tail, ...onwards] = arrowAlong([start, ...bends, end], stayed, here)
             if (tail) {
                 trails.push(...numbered(order, owner, [onBoard(tail), ...onwards], view.rotation))

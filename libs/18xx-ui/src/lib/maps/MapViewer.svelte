@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { RevenueStageColors } from '../colors/revenueStageColors.js'
     import { ScalingWrapper } from '@tabletop/frontend-components'
     import type { StationReservation } from '@tabletop/18xx'
     import MapScene from './MapScene.svelte'
@@ -37,7 +38,7 @@
         routes?: readonly MapRoute[]
         reservations?: readonly StationReservation[]
         stationAppearances?: Readonly<Record<string, StationAppearance>>
-        revenueStageColors?: Readonly<Record<string, string>>
+        revenueStageColors?: RevenueStageColors
         appearance?: TileAppearance
         onselect?: (selection: MapSelection) => void
     } = $props()

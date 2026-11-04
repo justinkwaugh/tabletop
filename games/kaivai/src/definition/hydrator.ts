@@ -1,8 +1,4 @@
-import {
-    GameAction,
-    type GameHydrator,
-    type HydratedAction
-} from '@tabletop/common'
+import { GameAction, type GameHydrator, type HydratedAction } from '@tabletop/common'
 import { KaivaiProjectedState, HydratedKaivaiGameState } from '../model/gameState.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
 import { HydratedPlaceBid, isPlaceBid } from '../actions/placeBid.js'

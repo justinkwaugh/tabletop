@@ -48,7 +48,7 @@ export const withArticle = (word: string): string => `${/^[aeiou]/.test(word) ? 
 const counted = (count: number, word: string) =>
     count === 1 ? withArticle(word) : `${count === 2 ? 'two' : count} ${word}s`
 
-const polyp = (color: CoralColor, count = 1, consumed = false): PhraseIcon => ({
+export const polyp = (color: CoralColor, count = 1, consumed = false): PhraseIcon => ({
     icon: 'polyp',
     color,
     count,
@@ -67,7 +67,7 @@ export function polypsLabel(colors: readonly CoralColor[]): string {
     return listed([...counts].map(([color, count]) => counted(count, `${color} polyp`)))
 }
 
-const cube = (color: CoralColor, count = 1): PhraseIcon => ({
+export const cube = (color: CoralColor, count = 1): PhraseIcon => ({
     icon: 'cube',
     color,
     count,
@@ -76,7 +76,7 @@ const cube = (color: CoralColor, count = 1): PhraseIcon => ({
 
 export type BoardName = (boardId: number) => string
 
-const parrotfish = (own: 'your' | 'their'): PhraseIcon => ({
+export const parrotfish = (own: 'your' | 'their'): PhraseIcon => ({
     icon: 'parrotfish',
     label: `${own} parrotfish`
 })
@@ -88,7 +88,7 @@ function phraseText(parts: readonly PhrasePart[]): string {
 }
 
 // A phrase whose sentence differs from its parts' labels where icons cannot say it alike.
-function phrase(parts: PhrasePart[], text = phraseText(parts)): Omit<Phrase, 'playerId'> {
+export function phrase(parts: PhrasePart[], text = phraseText(parts)): Omit<Phrase, 'playerId'> {
     return { text, parts }
 }
 

@@ -1,14 +1,7 @@
 import { assert, assertExists } from '@tabletop/common'
 import { GOOD_REVENUE_BY_GOOD } from '../definition/operationsEconomy.js'
-import {
-    isIndonesiaNodeId,
-    type IndonesiaNodeId
-} from '../utils/indonesiaNodes.js'
-import type {
-    CityDemand,
-    ShippingCompanyNetwork,
-    ZoneSupply
-} from './deliveryPlan.js'
+import { isIndonesiaNodeId, type IndonesiaNodeId } from '../utils/indonesiaNodes.js'
+import type { CityDemand, ShippingCompanyNetwork, ZoneSupply } from './deliveryPlan.js'
 import type {
     AtomicDeliveryCandidate,
     AtomicDeliveryChoice,
@@ -128,10 +121,7 @@ function buildSeaAdjacencyByAreaId(
     }
 
     for (const [seaAreaId, neighbors] of adjacency.entries()) {
-        adjacency.set(
-            seaAreaId,
-            sortNodeIds(neighbors)
-        )
+        adjacency.set(seaAreaId, sortNodeIds(neighbors))
     }
 
     return adjacency
@@ -257,8 +247,7 @@ export function listAtomicDeliveryCandidatesFromContext(
 
         const availableCultivatedAreaIds = sortNodeIds(
             zoneSupply.areaIds.filter(
-                (cultivatedAreaId) =>
-                    !context.deliveredCultivatedAreaIdSet.has(cultivatedAreaId)
+                (cultivatedAreaId) => !context.deliveredCultivatedAreaIdSet.has(cultivatedAreaId)
             )
         )
         if (availableCultivatedAreaIds.length === 0) {

@@ -13,6 +13,7 @@
         type WayTarget
     } from '$lib/model/targets.js'
     import { WayStepKind } from '$lib/model/ways.js'
+    import { targetBarBox } from '$lib/utils/targetBar.js'
     import {
         WAY_SIGN_EDGE,
         WAY_SIGN_HEAD,
@@ -22,6 +23,7 @@
     import {
         ARROW_EDGE_WIDTH,
         ATTACK_ARROW_PATH,
+        arrowCentre,
         attackMarkerAngle,
         attackMarkerScale
     } from '$lib/utils/attackMarker.js'
@@ -44,7 +46,7 @@
     const arrowScale = $derived(attackMarkerScale(gameSession.zoom))
 
     function arrowPlacement(approach: number): string {
-        const { centre } = APPROACH_GEOMETRY[approach]
+        const centre = arrowCentre(APPROACH_GEOMETRY[approach], gameSession.arrowSlideOf(approach))
         return `translate(${centre.x} ${centre.y}) scale(${arrowScale})`
     }
 
@@ -52,17 +54,6 @@
         event.stopPropagation()
         gameSession.wayUnderPointer = undefined
         gameSession.chooseTarget(target)
-    }
-
-    // Threat arrows are drawn over the pieces they belong to, so the session decides from where the tap fell whether it was meant for a block under the arrow.
-    function threaten(event: MouseEvent & { currentTarget: SVGGElement }, target: AttackTarget) {
-        event.stopPropagation()
-        const board = event.currentTarget.ownerSVGElement
-        const toBoard = board?.getScreenCTM()?.inverse()
-        if (toBoard) {
-            const at = new DOMPoint(event.clientX, event.clientY).matrixTransform(toBoard)
-            gameSession.tapThreatArrow(target, { x: at.x, y: at.y })
-        }
     }
 
     function label(target: ReserveTarget | RetreatTarget): string {
@@ -87,14 +78,14 @@
 {/snippet}
 
 {#snippet approachBar(approach: number, look: string)}
-    {@const bar = APPROACH_GEOMETRY[approach]}
+    {@const box = targetBarBox(approach)}
     <rect
-        transform="translate({bar.centre.x + bar.inward.x * 14} {bar.centre.y +
-            bar.inward.y * 14}) rotate({bar.angle})"
-        x={-bar.length / 2}
-        y="-13"
-        width={bar.length}
-        height="26"
+        transform="matrix({box.along.x} {box.along.y} {-box.along.y} {box.along.x} {box.centre
+            .x} {box.centre.y})"
+        x={-box.halfLength}
+        y={-box.halfWidth}
+        width={box.halfLength * 2}
+        height={box.halfWidth * 2}
         rx="3"
         class={look}
     ></rect>
@@ -150,6 +141,7 @@
             onkeydown={(event) => event.key === 'Enter' && choose(event, target)}
         ></polygon>
     {/each}
+{:else}
     {#each approaches as target (target.key)}
         <g
             role="button"
@@ -162,7 +154,6 @@
             {@render approachBar(target.position.approach, 'nt-target-approach')}
         </g>
     {/each}
-{:else}
     {#each gameSession.waySigns as { target, at, arrow } (target.key)}
         {@const shaft = `M${arrow.tail.x} ${arrow.tail.y} Q${arrow.knee.x} ${arrow.knee.y} ${arrow.shaftEnd.x} ${arrow.shaftEnd.y}`}
         {@const head = `translate(${arrow.tip.x} ${arrow.tip.y}) rotate(${arrow.angle})`}
@@ -210,7 +201,8 @@
             tabindex="0"
             aria-label="Threaten an attack across this approach"
             class="nt-target-attack"
-            onclick={(event) => threaten(event, target)}
+            data-threat={target.position.approach}
+            onclick={(event) => choose(event, target)}
             onkeydown={(event) => event.key === 'Enter' && choose(event, target)}
         >
             <title>Threaten an attack across this approach</title>
@@ -282,7 +274,7 @@
     .nt-target-approach {
         fill: var(--nt-approach-fill);
         stroke: var(--nt-move-line);
-        stroke-width: 2;
+        stroke-width: 3;
         cursor: pointer;
     }
 

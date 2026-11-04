@@ -11,10 +11,14 @@ import { CashPayment } from '../finance/cashPayments.js'
 import { controllingOwner } from '../finance/finance.js'
 import { abandonOperatingTurn, type OperatingTurnState } from '../operating/finishOperatingTurn.js'
 import { BetweenCompaniesState } from '../operating/operatingSteps.js'
+import { operatingRoundEnd } from '../operating/operatingRoundSnapshot.js'
+import { RoundEnd } from '../ending/roundEnd.js'
+import type { ValuationRules } from '../ending/finalWealth.js'
 import type { StockRules } from '../stock/stockRules.js'
 import type { TrainRules } from '../trains/trainPurchase.js'
 import { eliminatePlayer } from './elimination.js'
 import { NoTitleChanges } from '../actions/titleChanges.js'
+import { InstructedRunAttachments } from '../routes/instructedRuns.js'
 import { inReceivership, type ReceivershipRules } from '../finance/receivership.js'
 import {
     Bankruptcy,
@@ -26,12 +30,14 @@ import {
 export type DeclareBankruptcySchema<Changes extends Type.TSchema = NoTitleChanges> = Type.TObject<
     Omit<typeof GameAction.properties, 'type'> & {
         type: Type.TLiteral<'DeclareBankruptcy'>
+        instructedRuns: Type.TOptional<typeof InstructedRunAttachments>
         metadata: Type.TOptional<
             Type.TObject<
                 typeof Bankruptcy.properties & {
                     changes: Changes
                     surrendered: Type.TOptional<typeof CashPayment>
                     continuation: Type.TOptional<Type.TString>
+                    roundEnd: Type.TOptional<typeof RoundEnd>
                 }
             >
         >
@@ -48,13 +54,16 @@ export function declareBankruptcySchema<Changes extends Type.TSchema>(
         {
             ...GameAction.properties,
             type: Type.Literal('DeclareBankruptcy'),
+            // The president declares it, or the System does when no choice remains.
+            instructedRuns: Type.Optional(InstructedRunAttachments),
             metadata: Type.Optional(
                 Type.Object(
                     {
                         ...Bankruptcy.properties,
                         changes,
                         surrendered: Type.Optional(CashPayment),
-                        continuation: Type.Optional(Type.String())
+                        continuation: Type.Optional(Type.String()),
+                        roundEnd: Type.Optional(RoundEnd)
                     },
                     { additionalProperties: false }
                 )
@@ -97,11 +106,13 @@ export class HydratedDeclareBankruptcy
     readonly #stocks: StockRules
     readonly #trains: TrainRules
     readonly #receivership?: ReceivershipRules
+    readonly #valuationRules: ValuationRules
     constructor(
         data: DeclareBankruptcy,
         rules: TrainFundingRules,
         stocks: StockRules,
         trains: TrainRules,
+        valuationRules: ValuationRules,
         receivership?: ReceivershipRules
     ) {
         super(
@@ -112,6 +123,7 @@ export class HydratedDeclareBankruptcy
         this.#stocks = stocks
         this.#trains = trains
         this.#receivership = receivership
+        this.#valuationRules = valuationRules
     }
     isValid(state: FundingState): boolean {
         const funding = new EmergencyTrainFunding(state, this.#rules, this.#stocks, this.#trains)
@@ -147,11 +159,18 @@ export class HydratedDeclareBankruptcy
             kind: 'company',
             companyId: bankruptcy.companyId
         })
+        const continuation = bankruptcyContinuation(state, bankruptcy.companyId, this.#receivership)
+        // An abandoned turn may have been its operating round's last.
+        const ended =
+            continuation === BetweenCompaniesState
+                ? operatingRoundEnd(state, this.#valuationRules)
+                : undefined
         this.metadata = {
             ...bankruptcy,
             changes,
             ...(surrendered ? { surrendered } : {}),
-            continuation: bankruptcyContinuation(state, bankruptcy.companyId, this.#receivership)
+            continuation,
+            ...(ended ? { roundEnd: ended } : {})
         }
     }
 }

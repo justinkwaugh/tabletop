@@ -2,7 +2,12 @@
     import { PlayerName } from '@tabletop/frontend-components'
     import TokenText from '$lib/components/TokenText.svelte'
     import { regionName } from '$lib/model/names.js'
-    import { woodCommonCost, woodCostNoteShort, type WoodRegion } from '$lib/model/woodTravel.js'
+    import {
+        woodCommonCost,
+        woodCostNoteShort,
+        woodRegionKey,
+        type WoodRegion
+    } from '$lib/model/woodTravel.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     // R-11.7 — the ruler picks the site and the traveller pays then; the button names the ruler,
@@ -23,13 +28,14 @@
     {:else if common !== undefined}
         <p class="mb-3"><span class="font-bold text-oath-accent">{common}</span> Supply.</p>
     {:else if regions}
-        <!-- Each price as wide as its content, the cells sharing the widest one's width. -->
+        <!-- Each price as wide as its content, the cells sharing the widest one's width; on a phone
+             they wrap two to a row, so a region split by the cards in use never runs off the screen. -->
         <div
-            class="mb-3 grid w-max auto-cols-fr grid-flow-col gap-1.5"
+            class="mb-3 grid w-max auto-cols-fr grid-flow-col gap-1.5 max-sm:w-full max-sm:grid-flow-row max-sm:grid-cols-2"
             role="list"
             aria-label="What you pay, by region"
         >
-            {#each regions as row (`${row.region}:${row.cost}`)}
+            {#each regions as row (woodRegionKey(row))}
                 <div
                     role="listitem"
                     class="rounded-md border border-oath-divider bg-oath-surface-raised px-3 py-1.5 whitespace-nowrap"

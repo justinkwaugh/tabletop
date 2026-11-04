@@ -42,7 +42,7 @@
     <g class="select-none" aria-label="Shipping expansion sea highlights">
         {#each shippingExpansionSeaHighlightAreaIds as areaId (areaId)}
             <Area
-                areaId={areaId}
+                {areaId}
                 fill={SEA_HIGHLIGHT_FILL}
                 stroke="none"
                 fillOpacity={SEA_HIGHLIGHT_FILL_OPACITY}

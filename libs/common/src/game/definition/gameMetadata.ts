@@ -8,6 +8,8 @@ export enum GameVisibility {
 
 export const GameMetadata = Type.Object({
     name: Type.String(),
+    bggId: Type.Optional(Type.Integer({ minimum: 1 })),
+    hasScores: Type.Optional(Type.Boolean()),
     designer: Type.String(),
     description: Type.String(),
     year: Type.String(),
@@ -16,6 +18,7 @@ export const GameMetadata = Type.Object({
     defaultPlayerCount: Type.Number(),
     version: Type.String(),
     beta: Type.Boolean(),
-    visibility: Type.Optional(Type.Enum(GameVisibility))
+    visibility: Type.Optional(Type.Enum(GameVisibility)),
+    series: Type.Optional(Type.String({ minLength: 1 }))
 })
 export type GameMetadata = Type.Static<typeof GameMetadata>

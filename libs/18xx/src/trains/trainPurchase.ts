@@ -72,7 +72,7 @@ export class TrainPurchase {
         private readonly state: TrainPurchaseState,
         private readonly rules: TrainRules
     ) {}
-    canAct(playerId: string, companyId: string): boolean {
+    canAct(playerId: string | undefined, companyId: string): boolean {
         return (
             this.state.trainPurchaseStep?.companyId === companyId &&
             !getCompany(this.state, companyId).closed &&

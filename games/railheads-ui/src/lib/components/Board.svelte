@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { BOARD_HEIGHT, BOARD_WIDTH } from '$lib/utils/boardLayout.js'
+    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { boardLayout } from '$lib/utils/boardLayout.js'
     import BoostPicker from './board/BoostPicker.svelte'
     import EndgamePanel from './board/EndgamePanel.svelte'
     import Legend from './board/Legend.svelte'
@@ -8,13 +9,17 @@
     import RevenueTrack from './board/RevenueTrack.svelte'
     import TargetLayer from './board/TargetLayer.svelte'
     import TrackLayer from './board/TrackLayer.svelte'
+
+    const gameSession = getGameSession()
+
+    const layout = $derived(boardLayout(gameSession.gameState.editionId))
 </script>
 
 <svg
     class="board"
-    width={BOARD_WIDTH}
-    height={BOARD_HEIGHT}
-    viewBox="0 0 {BOARD_WIDTH} {BOARD_HEIGHT}"
+    width={layout.width}
+    height={layout.height}
+    viewBox="0 0 {layout.width} {layout.height}"
     role="img"
     aria-label="Map of the railroads"
 >

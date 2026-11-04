@@ -1,5 +1,6 @@
 import { settleCashPayments } from '../finance/cashPayments.js'
-import { copyStockState } from '../stock/stockState.js'
+import { stockStateCopies } from '../stock/stockState.js'
+import { stateWith } from '../game/stateWith.js'
 import * as Type from 'typebox'
 import { assert, assertExists } from '@tabletop/common'
 import {
@@ -12,8 +13,16 @@ import {
 } from '../finance/finance.js'
 import { TrainPurchase, TrainPurchaseDetails, type TrainRules } from '../trains/trainPurchase.js'
 import { trainsOwnedBy } from '../trains/train.js'
-import { evaluateShareDisposal, applyShareSale, type ShareSaleDetails } from '../stock/shareSale.js'
-import type { StockRules, ShareSaleTerms } from '../stock/stockRules.js'
+import {
+    evaluateShareDisposal,
+    applyShareSale,
+    extendingSaleTerms,
+    saleBlockAfter,
+    type ShareSaleDetails
+} from '../stock/shareSale.js'
+import { ProtectingPriceState } from '../stock/priceProtection.js'
+import { SaleBlockTerms } from '../stock/stockTurn.js'
+import type { RepeatSales, StockRules, ShareSaleTerms } from '../stock/stockRules.js'
 import type { CompanyDecisionState } from '../privates/companyDecision.js'
 import type { EliminationRules } from './elimination.js'
 
@@ -28,7 +37,9 @@ export const TrainFunding = Type.Object(
                     seller: Owner,
                     companyId: Type.String(),
                     // Stored games from before this stopped being recorded may hold it; never read.
-                    shares: Type.Optional(Type.Unsafe<never>(Type.Integer({ minimum: 1 })))
+                    shares: Type.Optional(Type.Unsafe<never>(Type.Integer({ minimum: 1 }))),
+                    /** The block later sales of the company extend, where the title extends them. */
+                    block: Type.Optional(SaleBlockTerms)
                 },
                 { additionalProperties: false }
             )
@@ -54,7 +65,8 @@ export interface TrainFundingRules {
      */
     afterShareSale?(state: FundingState, details: ShareSaleDetails): void
     includeMarketTrains: boolean
-    sellInBlocks: boolean
+    /** A second sale of a company in the same funding. */
+    repeatSales?: RepeatSales
     contributors(state: FundingState, companyId: string): Owner[]
     /**
      * Terms for issuing the company's treasury shares, given how many it holds; it issues
@@ -117,13 +129,23 @@ export class EmergencyTrainFunding {
     }
     applySale(details: ShareSaleDetails): void {
         assertExists(this.state.trainFunding, 'Funding sale requires active train funding')
+        const funding = this.state.trainFunding
+        const extendsBlocks = this.extendsBlocks(details.seller)
+        const records = details.sales.map((sale) => {
+            const previous = this.fundingSale(details.seller, sale.companyId)
+            const block = extendsBlocks
+                ? saleBlockAfter(this.state, this.saleTerms, details.seller, sale, previous?.block)
+                : undefined
+            return { companyId: sale.companyId, previous, block }
+        })
         applyShareSale(this.state, details)
         this.rules.afterShareSale?.(this.state, details)
-        if (!this.rules.sellInBlocks) return
-        const funding = this.state.trainFunding
-        for (const { companyId } of details.sales)
-            if (!this.soldInFunding(details.seller, companyId))
-                funding.sales.push({ seller: details.seller, companyId })
+        if (this.rules.repeatSales === 'separate') return
+        for (const { companyId, previous, block } of records) {
+            if (!previous)
+                funding.sales.push({ seller: details.seller, companyId, ...(block && { block }) })
+            else if (block) previous.block = block
+        }
     }
     purchases(): TrainPurchaseDetails[] {
         const companyId = this.state.trainPurchaseStep?.companyId
@@ -135,14 +157,13 @@ export class EmergencyTrainFunding {
                 : !this.trains.requiresTrain(this.state, companyId)
         )
             return []
-        const projected = {
-            ...this.state,
+        const projected = stateWith(this.state, {
             cash: this.state.cash.map((cash) =>
                 sameOwner(cash.owner, { kind: 'company', companyId })
                     ? { ...cash, amount: 'unlimited' as const }
                     : cash
             )
-        }
+        })
         const purchase = new TrainPurchase(projected, this.trains)
         const offers = [
             ...purchase
@@ -168,16 +189,15 @@ export class EmergencyTrainFunding {
         return fundable.filter((offer) => offer.price > treasury)
     }
     preview(purchase: TrainPurchaseDetails) {
-        const state: FundingState = {
-            ...this.state,
-            ...copyStockState(this.state),
+        const state: FundingState = stateWith(this.state, {
+            ...stockStateCopies(this.state),
             operatingSet: this.state.operatingSet
                 ? structuredClone(this.state.operatingSet)
                 : undefined,
             trainFunding: this.state.trainFunding
                 ? structuredClone(this.state.trainFunding)
                 : this.begin(purchase)
-        }
+        })
         const funding = new EmergencyTrainFunding(state, this.rules, this.stocks, this.trains)
         const contributions: { owner: Owner; amount: number }[] = []
         let treasuryProceeds = 0
@@ -281,18 +301,36 @@ export class EmergencyTrainFunding {
         assert(typeof amount === 'number', 'Funding requires a finite balance sheet')
         return amount
     }
-    private soldInFunding(seller: Owner, companyId: string): boolean {
-        return !!this.state.trainFunding?.sales.some(
+    /** Whether the owner's sales extend blocks: a contributor's, never the treasury's issuance. */
+    private extendsBlocks(seller: Owner): boolean {
+        return (
+            this.rules.repeatSales === 'extend-block' &&
+            !!this.state.trainFunding?.contributors.some((owner) => sameOwner(owner, seller))
+        )
+    }
+    /** The record of the seller's earlier sale of the company in this funding, if any. */
+    private fundingSale(
+        seller: Owner,
+        companyId: string
+    ): TrainFunding['sales'][number] | undefined {
+        return this.state.trainFunding?.sales.find(
             (sale) => sameOwner(sale.seller, seller) && sale.companyId === companyId
         )
     }
+    private readonly saleTerms: StockRules['saleTerms'] = (_state, companyId, shares, seller) =>
+        this.rules.saleTerms(this.state, companyId, shares, seller)
     private sales(owner: Owner, requiredOnly: boolean): ShareSaleDetails[] {
         const funding = this.state.trainFunding!
         const shortfall = this.shortfall()
         return this.state.companies.flatMap((company) => {
             const required = this.rules.requiredSaleShares(this.state, owner, company.id)
             if (requiredOnly && !required) return []
-            if (this.rules.sellInBlocks && this.soldInFunding(owner, company.id)) return []
+            const previous =
+                this.rules.repeatSales === 'separate'
+                    ? undefined
+                    : this.fundingSale(owner, company.id)
+            const soldOnce = previous && !previous.block
+            if (soldOnce) return []
             const owned = sharesOwned(this.state, company.id, owner)
             const results: ShareSaleDetails[] = []
             for (let shares = 1; shares <= owned; shares++) {
@@ -304,8 +342,10 @@ export class EmergencyTrainFunding {
                         market: this.stocks.market,
                         charters: this.stocks.charters,
                         presidencyCandidates: this.stocks.presidencyCandidates,
-                        saleTerms: (_state, id, count, seller) =>
-                            this.rules.saleTerms(this.state, id, count, seller)
+                        holdsMarketMove: this.stocks.holdsMarketMove,
+                        saleTerms: previous?.block
+                            ? extendingSaleTerms(this.saleTerms, previous.block)
+                            : this.saleTerms
                     }
                 )
                 if (
@@ -322,7 +362,7 @@ export class EmergencyTrainFunding {
                 )
                     continue
                 if (required) {
-                    const projected = { ...this.state, ...copyStockState(this.state) }
+                    const projected = stateWith(this.state, stockStateCopies(this.state))
                     applyShareSale(projected, result.details)
                     if (this.rules.requiredSaleShares(projected, owner, company.id)) continue
                 }
@@ -339,6 +379,17 @@ export class EmergencyTrainFunding {
     }
 }
 
+/** Whether the company is buying the train its funding has raised the price of. */
+export function completesFundedPurchase(
+    state: Pick<FundingState, 'trainFunding'> & { machineState: string },
+    companyId: string
+): boolean {
+    return (
+        state.machineState === 'FundingTrain' &&
+        state.trainFunding?.purchase.companyId === companyId
+    )
+}
+
 export function validateTrainFunding(state: {
     machineState: string
     trainFunding?: TrainFunding
@@ -349,8 +400,9 @@ export function validateTrainFunding(state: {
     const funding = state.trainFunding
     if (funding) {
         assert(
-            ['FundingTrain', 'Bankrupt', 'GameOver'].includes(state.machineState) &&
-                funding.purchase.companyId === state.trainPurchaseStep?.companyId,
+            ['FundingTrain', 'Bankrupt', 'GameOver', ProtectingPriceState].includes(
+                state.machineState
+            ) && funding.purchase.companyId === state.trainPurchaseStep?.companyId,
             'Funding must belong to the operating train purchase'
         )
         assert(
@@ -367,6 +419,8 @@ export function validateTrainFunding(state: {
     }
     assert(
         state.machineState === 'GameOver' ||
+            // Presidents decide on what a bankrupt seller sold before the game ends.
+            state.machineState === ProtectingPriceState ||
             (state.machineState === 'Bankrupt') === Boolean(state.bankruptcy),
         'Bankruptcy must match the terminal state'
     )

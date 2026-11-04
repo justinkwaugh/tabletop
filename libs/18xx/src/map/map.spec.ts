@@ -13,6 +13,29 @@ const base: MapLocation = {
 }
 
 describe('railway map', () => {
+    it('lists each private its markers name once', () => {
+        const marker = (id: string, privateCompanyId?: string) => ({
+            id,
+            label: id,
+            description: id,
+            ...(privateCompanyId ? { privateCompanyId } : {})
+        })
+        const map = new RailwayMap({
+            id: 'test',
+            name: 'Test',
+            orientation: HexOrientation.Flat,
+            locations: [
+                { ...base, markers: [marker('port'), marker('blocks-B', 'B')] },
+                {
+                    ...base,
+                    id: 'neighbor',
+                    coordinates: { q: 0, r: 1 },
+                    markers: [marker('blocks-B', 'B'), marker('blocks-H', 'H')]
+                }
+            ]
+        })
+        expect(map.markedPrivateIds).toEqual(['B', 'H'])
+    })
     it.each([HexOrientation.Flat, HexOrientation.Pointy])(
         'uses Common adjacency independently of map labels, %s',
         (orientation) => {
@@ -59,6 +82,19 @@ describe('railway map', () => {
                     locations: [{ ...base, reservations: [{ companyId: 'A', nodeId: 'missing' }] }]
                 })
         ).toThrow('city')
+    })
+    it('names a location by its printed name, or by its coordinate when it has none', () => {
+        const map = new RailwayMap({
+            id: 'test',
+            name: 'Test',
+            orientation: HexOrientation.Flat,
+            locations: [
+                { ...base, name: 'Altoona' },
+                { ...base, id: 'plain', coordinates: { q: 0, r: 1 } }
+            ]
+        })
+        expect(map.placeName('center')).toBe('Altoona')
+        expect(map.placeName('plain')).toBe('plain')
     })
     it('decodes explicit letter-number conventions without using labels as graph coordinates', () => {
         expect(letterNumberHexCoordinates('K19', HexOrientation.Flat, 1)).toEqual({ q: 10, r: 4 })

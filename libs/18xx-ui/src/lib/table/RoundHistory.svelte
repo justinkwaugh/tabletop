@@ -1,8 +1,9 @@
 <script lang="ts">
     import { contrastingTextColor } from '../colors/contrastingTextColor.js'
     import HistoryHeaderJump from './HistoryHeaderJump.svelte'
-    import { tick, type Snippet } from 'svelte'
+    import type { Snippet } from 'svelte'
     import { assertExists } from '@tabletop/common'
+    import { chainSidewaysScroll, pinToNewest } from '@tabletop/frontend-components'
     import type { HistoryRound } from './historyRounds.js'
     import type { HistoryOperatingOrder } from './historyOperatingOrder.js'
     let {
@@ -16,7 +17,8 @@
         currentHeaderId,
         jumpDisabled = false,
         onOrderChange,
-        orderContent
+        orderContent,
+        setup
     }: {
         onJump: (index: number) => void
         onReturn: () => void
@@ -29,6 +31,8 @@
         historyComplete?: boolean
         onOrderChange: (newestFirst: boolean) => void
         orderContent?: Snippet<[HistoryOperatingOrder]>
+        /** The title's setup, the oldest entry, before the first round. */
+        setup?: Snippet
     } = $props()
     const indexId = $props.id()
     let indexPanel: HTMLDivElement | undefined = $state()
@@ -61,40 +65,6 @@
         indexButton?.focus()
     }
     let scrollElement: HTMLDivElement | undefined = $state()
-    function pinToNewest(
-        element: HTMLDivElement,
-        pin: { newestFirst: boolean; historyComplete: boolean }
-    ) {
-        let current = pin
-        let atNewest = true
-        const showNewest = () => {
-            element.scrollTop = current.newestFirst ? 0 : element.scrollHeight
-        }
-        const onScroll = () => {
-            atNewest = current.newestFirst
-                ? element.scrollTop <= 8
-                : element.scrollHeight - element.scrollTop - element.clientHeight <= 8
-        }
-        function scrollToNewest(next: typeof pin) {
-            current = next
-            if (!next.historyComplete) return
-            atNewest = true
-            void tick().then(showNewest)
-        }
-        const content = new ResizeObserver(() => {
-            if (atNewest && current.historyComplete) showNewest()
-        })
-        for (const child of element.children) content.observe(child)
-        element.addEventListener('scroll', onScroll, { passive: true })
-        scrollToNewest(pin)
-        return {
-            update: scrollToNewest,
-            destroy() {
-                content.disconnect()
-                element.removeEventListener('scroll', onScroll)
-            }
-        }
-    }
     function phaseBackground(round: HistoryRound) {
         const colors = round.phases
             .map((phase) => {
@@ -193,6 +163,10 @@
         aria-label="Scrollable history"
     >
         <ol class="history-content" class:newest-last={!newestFirst} aria-label="Action history">
+            {#snippet setupEntry()}{#if setup}<li class="history-setup">
+                        {@render setup()}
+                    </li>{/if}{/snippet}
+            {#if !newestFirst}{@render setupEntry()}{/if}
             {#each newestFirst ? rounds : rounds.toReversed() as round (round.id)}
                 <li class="round-section" data-round-id={round.id} aria-label={round.label}>
                     {#snippet divider()}
@@ -218,6 +192,7 @@
                             </span>
                             {#if round.operatingOrder && orderContent}<span
                                     class="round-order"
+                                    {@attach chainSidewaysScroll}
                                     aria-label="Operating order"
                                     >{@render orderContent(round.operatingOrder)}</span
                                 >{/if}
@@ -228,7 +203,8 @@
                     {@render children(round)}
                     {#if newestFirst}{@render divider()}{/if}
                 </li>
-            {:else}<li class="empty">No actions yet.</li>{/each}
+            {:else}{#if !setup}<li class="empty">No actions yet.</li>{/if}{/each}
+            {#if newestFirst}{@render setupEntry()}{/if}
         </ol>
     </div>
 </div>
@@ -259,9 +235,9 @@
         flex-direction: column;
         flex: 1;
         min-height: 0;
-        overflow-y: auto;
+        overflow: hidden auto;
         scrollbar-width: thin;
-        overscroll-behavior: contain;
+        overscroll-behavior-y: contain;
     }
     .history-toolbar {
         display: grid;
@@ -347,6 +323,15 @@
     }
     .history-content.newest-last {
         margin-top: auto;
+    }
+    .history-setup {
+        margin: var(--history-item-gap, 0.417em) 0;
+        padding: 0.25em 0.5em 0.417em;
+        border-bottom: 1px solid var(--rail-shadow, #b9ac994f);
+    }
+    .newest-first .history-setup {
+        border-top: 1px solid var(--rail-shadow, #b9ac994f);
+        border-bottom: 0;
     }
     .round-section {
         display: flow-root;

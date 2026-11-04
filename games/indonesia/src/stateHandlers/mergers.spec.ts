@@ -23,10 +23,7 @@ import { AreaType, isCultivatedArea } from '../components/area.js'
 import { HydratedProposeMerger, ProposeMerger } from '../actions/proposeMerger.js'
 import { HydratedPlaceMergerBid, PlaceMergerBid } from '../actions/placeMergerBid.js'
 import { HydratedPassMergerBid, isPassMergerBid } from '../actions/passMergerBid.js'
-import {
-    HydratedMergeCompanies,
-    isMergeCompanies
-} from '../actions/mergeCompanies.js'
+import { HydratedMergeCompanies, isMergeCompanies } from '../actions/mergeCompanies.js'
 
 function createTestState() {
     const players: Player[] = [
@@ -108,7 +105,12 @@ describe('MergersStateHandler', () => {
         )
         expect(riceDeeds.length).toBeGreaterThanOrEqual(2)
         const [deedA, deedB] = riceDeeds
-        if (!deedA || !deedB || deedA.type !== CompanyType.Production || deedB.type !== CompanyType.Production) {
+        if (
+            !deedA ||
+            !deedB ||
+            deedA.type !== CompanyType.Production ||
+            deedB.type !== CompanyType.Production
+        ) {
             return
         }
 
@@ -173,7 +175,12 @@ describe('MergersStateHandler', () => {
         )
         expect(riceDeeds.length).toBeGreaterThanOrEqual(2)
         const [deedA, deedB] = riceDeeds
-        if (!deedA || !deedB || deedA.type !== CompanyType.Production || deedB.type !== CompanyType.Production) {
+        if (
+            !deedA ||
+            !deedB ||
+            deedA.type !== CompanyType.Production ||
+            deedB.type !== CompanyType.Production
+        ) {
             return
         }
         state.companies = [
@@ -248,7 +255,12 @@ describe('MergersStateHandler', () => {
         )
         expect(riceDeeds.length).toBeGreaterThanOrEqual(2)
         const [deedA, deedB] = riceDeeds
-        if (!deedA || !deedB || deedA.type !== CompanyType.Production || deedB.type !== CompanyType.Production) {
+        if (
+            !deedA ||
+            !deedB ||
+            deedA.type !== CompanyType.Production ||
+            deedB.type !== CompanyType.Production
+        ) {
             return
         }
 
@@ -349,7 +361,12 @@ describe('MergersStateHandler', () => {
         )
         expect(riceDeeds.length).toBeGreaterThanOrEqual(2)
         const [deedA, deedB] = riceDeeds
-        if (!deedA || !deedB || deedA.type !== CompanyType.Production || deedB.type !== CompanyType.Production) {
+        if (
+            !deedA ||
+            !deedB ||
+            deedA.type !== CompanyType.Production ||
+            deedB.type !== CompanyType.Production
+        ) {
             return
         }
 
@@ -494,7 +511,12 @@ describe('MergersStateHandler', () => {
         )
         expect(riceDeeds.length).toBeGreaterThanOrEqual(2)
         const [deedA, deedB] = riceDeeds
-        if (!deedA || !deedB || deedA.type !== CompanyType.Production || deedB.type !== CompanyType.Production) {
+        if (
+            !deedA ||
+            !deedB ||
+            deedA.type !== CompanyType.Production ||
+            deedB.type !== CompanyType.Production
+        ) {
             return
         }
 

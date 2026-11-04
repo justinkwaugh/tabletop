@@ -1,31 +1,43 @@
+import { stateWith } from '../game/stateWith.js'
 import * as Type from 'typebox'
-import { copyFinances, getCompany, type President } from '../finance/finance.js'
+import {
+    copyFinances,
+    finiteCashOwnedBy,
+    sameOwner,
+    getCompany,
+    type FinancialState,
+    type President
+} from '../finance/finance.js'
+import { settleCashPayments } from '../finance/cashPayments.js'
+import { homeStationId, sameCenter, type StationState } from '../map/station.js'
+import {
+    StationPlacementDetails,
+    applyStationPlacement,
+    type HomePosition
+} from '../stations/stationPlacement.js'
 import { SharePurchaseDetails, evaluateShareAcquisition } from '../stock/sharePurchase.js'
 import type { StockMarketChart } from '../stock/stockMarket.js'
 import type { Owner } from '../finance/finance.js'
 import type { FormationState } from './companyState.js'
 import type { StockRules } from '../stock/stockRules.js'
-import type { CompanyRules, HomeOption } from './companyRules.js'
-import type { MapStateData } from '../map/mapState.js'
+import type { CompanyRules, StartHomeClaim } from './companyRules.js'
 
 export type CompanyStartRequest = {
     playerId: string
     buyer: Owner
     companyId: string
     marketSpaceId: string
-    /** The home chosen for a company whose title offers home choices. */
-    homeLocationId?: string
+    home?: HomePosition
 }
-export const CompanyHome = Type.Object(
-    { locationId: Type.String(), nodeId: Type.Optional(Type.String()) },
-    { additionalProperties: false }
-)
 export const CompanyStartDetails = Type.Object(
     {
         ...SharePurchaseDetails.properties,
         marketSpaceId: Type.String(),
         parPrice: Type.Integer({ minimum: 1 }),
-        home: Type.Optional(CompanyHome)
+        /** The home its president placed or claimed as the company started. */
+        home: Type.Optional(StationPlacementDetails),
+        /** The home is only claimed, on its city or hex, until the company first operates. */
+        homeClaim: Type.Optional(Type.Union([Type.Literal('city'), Type.Literal('hex')]))
     },
     { additionalProperties: false }
 )
@@ -33,27 +45,8 @@ export type CompanyStartDetails = Type.Static<typeof CompanyStartDetails>
 export type CompanyStartResult =
     { details: CompanyStartDetails; reason?: never } | { details?: never; reason: string }
 
-/** The homes a company may start with: its choices, or none to choose when its home is printed. */
-export function companyHomeOptions(
-    state: FormationState & MapStateData,
-    rules: CompanyRules,
-    companyId: string
-): readonly HomeOption[] | undefined {
-    return rules.homeChoices?.(state, companyId)
-}
-
-/** The home locations a start may name: each choice, or none for a printed home. */
-export function startHomeLocationIds(
-    state: FormationState & MapStateData,
-    rules: CompanyRules,
-    companyId: string
-): (string | undefined)[] {
-    const homes = companyHomeOptions(state, rules, companyId)
-    return homes ? homes.map((home) => home.locationId) : [undefined]
-}
-
 export function evaluateCompanyStart(
-    state: FormationState & MapStateData,
+    state: FormationState,
     request: CompanyStartRequest,
     stockRules: StockRules,
     rules: CompanyRules
@@ -64,11 +57,6 @@ export function evaluateCompanyStart(
     if (request.buyer.kind === 'bank') return { reason: 'The Bank cannot start a company.' }
     if (!rules.startMarketSpaces(state, company.id).includes(request.marketSpaceId))
         return { reason: 'Choose an available starting price.' }
-    const homes = companyHomeOptions(state, rules, company.id)
-    const home = homes?.find((option) => option.locationId === request.homeLocationId)
-    if (homes && !home) return { reason: 'Choose a home for the company.' }
-    if (!homes && request.homeLocationId !== undefined)
-        return { reason: 'This company’s home is printed on the map.' }
     const space = stockRules.market.spaces.find((space) => space.id === request.marketSpaceId)
     if (!space) return { reason: 'Unknown stock market space.' }
     const certificate = state.certificates.find(
@@ -82,11 +70,12 @@ export function evaluateCompanyStart(
         return { reason: 'A company cannot be started after this turn’s purchase.' }
     const terms = rules.startTerms(state, company.id, request.buyer, space.id)
     if (typeof terms === 'string') return { reason: terms }
-    const projected: FormationState = {
-        ...state,
+    const projected: FormationState = stateWith(state, {
         ...copyFinances(state),
         stockMarket: structuredClone(state.stockMarket)
-    }
+    })
+    const { home, homeClaim, reason } = startHome(state, request, rules)
+    if (reason) return { reason }
     startCompanyAtPar(projected, stockRules.market, company.id, space.id, request.buyer)
     const result = evaluateShareAcquisition(
         projected,
@@ -94,16 +83,80 @@ export function evaluateCompanyStart(
         stockRules,
         terms
     )
-    return result.details
-        ? {
-              details: {
-                  ...result.details,
-                  marketSpaceId: space.id,
-                  parPrice: space.price,
-                  ...(home ? { home: { ...home } } : {})
-              }
-          }
-        : { reason: result.reason }
+    if (!result.details) return { reason: result.reason }
+    const details = {
+        ...result.details,
+        marketSpaceId: space.id,
+        parPrice: space.price,
+        ...(home ? { home } : {}),
+        ...(homeClaim ? { homeClaim } : {})
+    }
+    if (home && treasuryAfterStart(state, details) < home.cost)
+        return { reason: 'The company cannot pay for this home.' }
+    return { details }
+}
+
+type StartHomeResult =
+    | { home?: StationPlacementDetails; homeClaim?: StartHomeClaim; reason?: never }
+    | { home?: never; homeClaim?: never; reason: string }
+
+/** The home the request names, where the company's president chooses it as it starts. */
+function startHome(
+    state: FormationState,
+    request: CompanyStartRequest,
+    rules: CompanyRules
+): StartHomeResult {
+    const homes = rules.startHomes?.(state, request.companyId, request.marketSpaceId)
+    if (!homes)
+        return request.home ? { reason: 'This company’s home is not chosen as it starts.' } : {}
+    const chosen = request.home
+    if (!chosen) return { reason: 'Choose the company’s home.' }
+    const home = homes.find((entry) => sameCenter(entry, chosen))
+    if (!home) return { reason: 'This city cannot be the company’s home.' }
+    const { cost, claims, ...position } = home
+    return {
+        home: {
+            companyId: request.companyId,
+            stationId: homeStationId(request.companyId),
+            position,
+            cost
+        },
+        ...(claims ? { homeClaim: claims } : {})
+    }
+}
+
+function treasuryAfterStart(state: FinancialState, details: CompanyStartDetails): number {
+    const treasury = { kind: 'company' as const, companyId: details.companyId }
+    const paid = details.payments
+        .filter((payment) => sameOwner(payment.to, treasury))
+        .reduce((sum, payment) => sum + payment.amount, 0)
+    return finiteCashOwnedBy(state, treasury) + paid
+}
+
+/** Reserves the home chosen as the company started, which it places as it first operates. */
+export function claimStartHome(
+    state: StationState,
+    { companyId, position: { locationId, nodeId } }: StationPlacementDetails,
+    claim: StartHomeClaim
+): void {
+    if (claim === 'city') state.stationReservations.push({ companyId, locationId, nodeId })
+    else state.hexReservations = [...(state.hexReservations ?? []), { companyId, locationId }]
+}
+
+/** Places the home chosen as the company started and pays for it from its treasury. */
+export function placeStartHome(
+    state: FinancialState & StationState,
+    home: StationPlacementDetails
+): void {
+    applyStationPlacement(state, home)
+    if (home.cost)
+        settleCashPayments(state, [
+            {
+                from: { kind: 'company', companyId: home.companyId },
+                to: { kind: 'bank' },
+                amount: home.cost
+            }
+        ])
 }
 
 export function startCompanyAtPar(

@@ -10,10 +10,7 @@ import { HydratedProposeMerger, isProposeMerger } from '../actions/proposeMerger
 import { HydratedPlaceMergerBid, isPlaceMergerBid } from '../actions/placeMergerBid.js'
 import { HydratedPassMergerBid, isPassMergerBid } from '../actions/passMergerBid.js'
 import { HydratedMergeCompanies, isMergeCompanies } from '../actions/mergeCompanies.js'
-import {
-    HydratedRemoveSiapSajiArea,
-    isRemoveSiapSajiArea
-} from '../actions/removeSiapSajiArea.js'
+import { HydratedRemoveSiapSajiArea, isRemoveSiapSajiArea } from '../actions/removeSiapSajiArea.js'
 import { HydratedResearch, isResearch } from '../actions/research.js'
 import { HydratedDeliverGood, isDeliverGood } from '../actions/deliverGood.js'
 import {
@@ -22,10 +19,7 @@ import {
 } from '../actions/chooseOperatingCompany.js'
 import { HydratedExpand, isExpand } from '../actions/expand.js'
 import { HydratedGrowCity, isGrowCity } from '../actions/growCity.js'
-import {
-    HydratedRemoveCompanyDeed,
-    isRemoveCompanyDeed
-} from '../actions/removeCompanyDeed.js'
+import { HydratedRemoveCompanyDeed, isRemoveCompanyDeed } from '../actions/removeCompanyDeed.js'
 
 // This is essentially a factory that knows how to take raw action and state data
 // and return the correct hydrated class instances for the Sample game.  Used by the game engine

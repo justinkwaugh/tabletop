@@ -5,8 +5,8 @@ import { EighteenThirtyTwoSystems } from './systems.js'
 import { RevenueTokenBonusNames } from './revenueTokens.js'
 
 const PoolNames: Readonly<Record<string, string>> = {
-    'initial-offering': 'Initial offering',
-    'open-market': 'Open market'
+    'initial-offering': 'IPO',
+    'open-market': 'Market'
 }
 
 export const EighteenThirtyTwoNames = titleNames(

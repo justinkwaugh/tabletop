@@ -22,20 +22,24 @@ import { onActivateEffect } from './postActionHelper.js'
 
 type DrawingCardsActions = HydratedDrawCards | HydratedActivateEffect
 
-export class DrawingCardsStateHandler implements MachineStateHandler<DrawingCardsActions, HydratedSolGameState> {
-    isValidAction(action: HydratedAction, _context: MachineContext<HydratedSolGameState>): action is DrawingCardsActions {
+export class DrawingCardsStateHandler implements MachineStateHandler<
+    DrawingCardsActions,
+    HydratedSolGameState
+> {
+    isValidAction(
+        action: HydratedAction,
+        _context: MachineContext<HydratedSolGameState>
+    ): action is DrawingCardsActions {
         if (!action.playerId) return false
         return isDrawCards(action) || isActivateEffect(action)
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext<HydratedSolGameState>): ActionType[] {
+    validActionsForPlayer(
+        playerId: string,
+        context: MachineContext<HydratedSolGameState>
+    ): ActionType[] {
         const actions = [ActionType.DrawCards]
-        if (
-            HydratedActivateEffect.canActivateHeldEffect(
-                context.gameState,
-                playerId
-            )
-        ) {
+        if (HydratedActivateEffect.canActivateHeldEffect(context.gameState, playerId)) {
             actions.push(ActionType.ActivateEffect)
         }
         return actions
@@ -43,7 +47,10 @@ export class DrawingCardsStateHandler implements MachineStateHandler<DrawingCard
 
     enter(_context: MachineContext<HydratedSolGameState>) {}
 
-    onAction(action: DrawingCardsActions, context: MachineContext<HydratedSolGameState>): MachineState {
+    onAction(
+        action: DrawingCardsActions,
+        context: MachineContext<HydratedSolGameState>
+    ): MachineState {
         const gameState = context.gameState
 
         if (isActivateEffect(action)) {

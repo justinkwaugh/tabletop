@@ -1,3 +1,4 @@
+import * as Type from 'typebox'
 import { assertExists } from '@tabletop/common'
 import {
     certificatesInPool,
@@ -15,9 +16,16 @@ import type { ShareCertificate, SharePurchaseDetails, SharePurchaseTerms } from 
 import type { StockInstructionRules } from './stockInstruction.js'
 import type { StockMarketChart } from './stockMarket.js'
 import type { StockRoundRules } from './stockRoundRules.js'
-import type { ShareSaleDetails } from './shareSale.js'
+import type { ShareSaleDetails, ShareSaleSettlement } from './shareSale.js'
 import type { StockState } from './stockState.js'
 import type { MultipleBuyRules } from './turnPurchases.js'
+
+/** A change to every player's certificate limit, such as a company closing lowers it to. */
+export const CertificateLimitChange = Type.Object(
+    { from: Type.Integer({ minimum: 0 }), to: Type.Integer({ minimum: 0 }) },
+    { additionalProperties: false }
+)
+export type CertificateLimitChange = Type.Static<typeof CertificateLimitChange>
 
 export type ShareSaleTerms = {
     payer: Owner
@@ -28,6 +36,12 @@ export type ShareSaleTerms = {
     movement: number
     direction: string
 }
+/**
+ * A second sale of a company by the same seller in one turn or funding: extending the first
+ * block at its price, or a separate sale at the current price. Without it, each company sells once.
+ */
+export type RepeatSales = 'extend-block' | 'separate'
+
 export interface StockRules {
     market: StockMarketChart
     charters: CompanyCharters
@@ -60,15 +74,19 @@ export interface StockRules {
      * previews may run it on a shallow copy of the state, so it replaces nested state it changes.
      */
     afterSale?(state: StockState, details: ShareSaleDetails): void
+    /**
+     * Whether a sale leaves the company's marker where it is, for the title to move later, as
+     * price protection in 1832, 1850 and 1870 waits for the president's decision. A held sale
+     * records the space it was sold from as its destination, and later sales of the company
+     * fetch the unmoved price. It sees the sale's certificates in the market, marker unmoved.
+     */
+    holdsMarketMove?(state: StockState, sale: ShareSaleSettlement, seller: Owner): boolean
     /** What follows a share purchase on a stock turn, such as recording a company's proceeds. */
     afterSharePurchase?(state: StockState, details: SharePurchaseDetails): void
     /** When a turn's sales may come relative to its purchase. */
     turnOrder: 'sell-buy' | 'sell-buy-or-buy-sell' | 'sell-buy-sell'
-    /**
-     * A second sale of a company in the same turn: extending the first block at its price, or
-     * a separate sale at the current price. Without it, each company sells once per turn.
-     */
-    repeatSales?: 'extend-block' | 'separate'
+    /** A second sale of a company in the same turn. */
+    repeatSales?: RepeatSales
     /** Further share purchases in a turn after the first. */
     multipleBuys?: MultipleBuyRules
     /** Private sales between players, offered and answered like a company's purchase offer. */

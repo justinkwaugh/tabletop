@@ -101,11 +101,13 @@ describe('finishOperatingCompany', () => {
             'still-startable'
         ])
         expect(
-            context.getPendingActions().some(
-                (pendingAction) =>
-                    isRemoveCompanyDeed(pendingAction) &&
-                    pendingAction.deedId === 'unst-startable'
-            )
+            context
+                .getPendingActions()
+                .some(
+                    (pendingAction) =>
+                        isRemoveCompanyDeed(pendingAction) &&
+                        pendingAction.deedId === 'unst-startable'
+                )
         ).toBe(true)
     })
 
@@ -130,9 +132,9 @@ describe('finishOperatingCompany', () => {
         expect(state.phaseManager.currentPhase?.name).not.toBe(PhaseName.NewEra)
         expect(state.getPlayerState(playerId).cash).toBe(64)
         expect(state.operationsEarningsByPlayerId).toBeUndefined()
-        expect(context.getPendingActions().some((pendingAction) => isRemoveCompanyDeed(pendingAction))).toBe(
-            false
-        )
+        expect(
+            context.getPendingActions().some((pendingAction) => isRemoveCompanyDeed(pendingAction))
+        ).toBe(false)
     })
 
     it('settles operations earnings into cash when operations phase ends', () => {

@@ -1,15 +1,12 @@
 import * as Type from 'typebox'
-import {
-    GameConfigOptions,
-    BooleanConfigOption,
-    ConfigOptionType
-} from '@tabletop/common'
+import { GameConfigOptions, BooleanConfigOption, ConfigOptionType } from '@tabletop/common'
 
 const randomizeSpringOption: BooleanConfigOption = {
     id: 'randomizeSpring',
     type: ConfigOptionType.Boolean,
     name: 'Randomize Spring Location',
-    description: 'Randomly place the spring instead of letting the first player choose where to place it',
+    description:
+        'Randomly place the spring instead of letting the first player choose where to place it',
     default: true
 }
 

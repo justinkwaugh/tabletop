@@ -1,7 +1,7 @@
 import { assertExists } from '@tabletop/common'
 import { Suit } from '../model/oathEnums.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
-import { CONSPIRACY_ID, suitOf } from '../data/cardRegistry.js'
+import { CONSPIRACY_ID } from '../data/cardRegistry.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import {
@@ -24,6 +24,7 @@ import { battleScopeOf } from '../util/campaign.js'
 import { partiesOf } from '../util/campaignRoll.js'
 import { receiveFavor } from '../util/favor.js'
 import { areEnemies } from '../util/persistent.js'
+import { reasonPowerMovesToSitesBarred } from '../util/continuous.js'
 import {
     registerBattlePlan,
     registerEffect,
@@ -34,6 +35,7 @@ import {
 import {
     moveWarbandsBoardToSite,
     moveWarbandsSiteToBoard,
+    warbandMovesOverlay,
     otherPlayersAtYourSite,
     regionOfPawn
 } from './vocabulary.js'
@@ -118,7 +120,7 @@ registerModifier(NEW_GROWTH, powerIndexOf(NEW_GROWTH, PowerTiming.Modifier), {
     hooks: {
         playAnywhere: (ctx) => {
             const suit = ctx.particulars?.playedCardId
-                ? suitOf(ctx.particulars.playedCardId)
+                ? ctx.state.suitInPlay(ctx.particulars.playedCardId)
                 : undefined
             return suit === Suit.Beast || suit === Suit.Hearth
         }
@@ -155,17 +157,22 @@ const ruledSiteGroups: ChoiceDomain = (state, playerId) => {
     )
 }
 const ruledSites: ChoiceDomain = (state, playerId) =>
-    sitesRuledBy(state, playerId, defendedCampaignScope(state)).map((siteId) => ({
-        kind: PowerChoiceKind.Site,
-        siteId
-    }))
+    reasonPowerMovesToSitesBarred(state, playerId)
+        ? []
+        : sitesRuledBy(state, playerId, defendedCampaignScope(state)).map((siteId) => ({
+              kind: PowerChoiceKind.Site,
+              siteId
+          }))
+/** Warbands on the board can only go to a site, so none is offered where no site can be reached. */
 const boardGroups: ChoiceDomain = (state, playerId) =>
-    warbandEntries(state.getPlayerState(playerId).warbandsOnBoard)
-        .filter(([, count]) => count > 0)
-        .map(([owner, count]) => ({
-            kind: PowerChoiceKind.Warbands,
-            group: { at: { kind: 'board' as const, playerId }, owner, count }
-        }))
+    reasonPowerMovesToSitesBarred(state, playerId)
+        ? []
+        : warbandEntries(state.getPlayerState(playerId).warbandsOnBoard)
+              .filter(([, count]) => count > 0)
+              .map(([owner, count]) => ({
+                  kind: PowerChoiceKind.Warbands,
+                  group: { at: { kind: 'board' as const, playerId }, owner, count }
+              }))
 /** The board first, as Messenger offers it. */
 const warningSignalsSources: ChoiceDomain = (state, playerId, power) => [
     ...boardGroups(state, playerId, power),
@@ -184,10 +191,11 @@ registerBattlePlan(WARNING_SIGNALS, powerIndexOf(WARNING_SIGNALS, PowerTiming.Ba
             sequential: true
         })
     ]).flat(),
-    stateAfter: (ctx) => warningSignalsOnCopy(ctx.state, ctx.playerId, ctx.choices).state,
+    stateAfter: (ctx) => warningSignalsChecked(ctx.state, ctx.playerId, ctx.choices).state,
     hooks: {
         discardAtEnd: true,
-        reasonCannotUse: (ctx) => warningSignalsOnCopy(ctx.state, ctx.playerId, ctx.choices).reason,
+        reasonCannotUse: (ctx) =>
+            warningSignalsChecked(ctx.state, ctx.playerId, ctx.choices).reason,
         onUse: (ctx) => {
             const { playerId, choices } = ctx
             const notes: string[] = []
@@ -228,21 +236,21 @@ function isBoardGroup(choice: PowerChoice | undefined): boolean {
     return choice?.kind === PowerChoiceKind.Warbands && choice.group.at.kind === 'board'
 }
 
-function warningSignalsOnCopy(
+function warningSignalsChecked(
     state: HydratedOathGameState,
     playerId: string,
     choices: readonly PowerChoice[]
 ): { state: HydratedOathGameState; reason?: string } {
-    const copy = new HydratedOathGameState(state.dehydrate())
-    return { state: copy, reason: applyWarningSignals(copy, playerId, choices, true).reason }
+    const after = warbandMovesOverlay(state, playerId)
+    return { state: after, reason: applyWarningSignals(after, playerId, choices, true).reason }
 }
 
 /**
- * R-6.5 with the card's text — the moves in turn. Checked (the declaration, on a copy): refused at
- * the first move the rules or the warbands there do not allow. Unchecked (the plan's use, as it
- * always was): each move moves what it can.
+ * R-6.5 with the card's text — the moves in turn. Checked (the declaration, on an overlay of the
+ * warbands): refused at the first move the rules or the warbands there do not allow. Unchecked (the
+ * plan's use, as it always was): each move moves what it can.
  */
-function applyWarningSignals(
+export function applyWarningSignals(
     state: HydratedOathGameState,
     playerId: string,
     choices: readonly PowerChoice[],
@@ -253,6 +261,11 @@ function applyWarningSignals(
     const refused = (reason: string) => ({ reason, notes })
     for (const { group, to } of warningSignalsMoves(choices)) {
         const { at, owner, count } = group
+        const barred = to !== undefined ? reasonPowerMovesToSitesBarred(state, playerId) : undefined
+        if (barred) {
+            if (checked) return refused(barred)
+            continue
+        }
         if (checked && to !== undefined && !rulesSite(state, playerId, to, scope)) {
             return refused(`you do not rule ${to}`)
         }

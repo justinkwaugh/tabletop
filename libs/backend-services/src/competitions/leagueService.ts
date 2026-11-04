@@ -16,6 +16,8 @@ import {
     type LeagueSignUpPolicy,
     type LeagueHeldPlace,
     tournamentEntrantAccount,
+    rankedTiebreak,
+    tournamentTiebreakDescription,
     type LeagueFinalPlacement,
     type LeagueGroupStanding,
     type LeagueSeasonGroup,
@@ -546,12 +548,13 @@ export class LeagueService {
         })
     }
 
-    private scoreFields(row: Pick<TournamentScore, 'wins' | 'score' | 'completed' | 'tiebreak'>) {
+    private scoreFields(row: TournamentScore) {
         return {
             wins: row.wins,
             score: row.score,
             completed: row.completed,
-            ...(row.tiebreak !== undefined ? { tiebreak: row.tiebreak } : {})
+            ...(row.tiebreak !== undefined ? { tiebreak: row.tiebreak } : {}),
+            ...(row.pointsBehind !== undefined ? { pointsBehind: row.pointsBehind } : {})
         }
     }
 
@@ -602,6 +605,7 @@ export class LeagueService {
                     tournamentStatus: result.tournament.status,
                     finishedGames: result.tournament.stages[0]?.dispatch?.finished.length ?? 0,
                     activeGames: result.activeTableIds.length,
+                    activeProgress: result.activeProgress,
                     totalGames:
                         (group.entrantIds.length * season.rules.gamesPerEntrant) /
                             season.rules.tableSize -
@@ -796,12 +800,13 @@ export class LeagueService {
                       nextLevel: leagueLevelName(placement.nextLevel)
                   }),
             ...(champion ? { champion: name(champion.userId) } : {}),
+            tiebreakDescription: tournamentTiebreakDescription(group),
             standings: group.map((value) => ({
                 rank: value.place,
                 name: name(account(value)),
                 wins: value.wins,
                 score: value.score,
-                ...(value.tiebreak !== undefined ? { tiebreak: value.tiebreak } : {}),
+                tiebreak: rankedTiebreak(value),
                 recipient: account(value) === userId
             }))
         }

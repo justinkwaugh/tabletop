@@ -1,5 +1,136 @@
 import { describe, expect, it } from 'vitest'
-import { humanizeReason, listed, nameSeats, reasonParts, type Seats } from './names.js'
+import {
+    ageName,
+    chipCased,
+    defenseWords,
+    humanizeReason,
+    listed,
+    nameSeats,
+    reasonParts,
+    romanNumeral,
+    type Seats
+} from './names.js'
+
+describe('romanNumeral — standard subtractive capitals, with no cap', () => {
+    it('writes one to ten', () => {
+        expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(romanNumeral)).toEqual([
+            'I',
+            'II',
+            'III',
+            'IV',
+            'V',
+            'VI',
+            'VII',
+            'VIII',
+            'IX',
+            'X'
+        ])
+    })
+
+    it('subtracts before five and ten of each place: 14, 19, 40, 49, 90, 99', () => {
+        expect([14, 19, 40, 49, 90, 99].map(romanNumeral)).toEqual([
+            'XIV',
+            'XIX',
+            'XL',
+            'XLIX',
+            'XC',
+            'XCIX'
+        ])
+    })
+
+    it('carries on past twenty without switching to digits', () => {
+        expect([20, 21, 24, 29, 38, 50, 88, 100, 400, 944, 1994, 3999].map(romanNumeral)).toEqual([
+            'XX',
+            'XXI',
+            'XXIV',
+            'XXIX',
+            'XXXVIII',
+            'L',
+            'LXXXVIII',
+            'C',
+            'CD',
+            'CMXLIV',
+            'MCMXCIV',
+            'MMMCMXCIX'
+        ])
+    })
+
+    it('has no numeral for zero, a fraction or a negative number', () => {
+        for (const n of [0, -1, 1.5, Number.NaN]) expect(() => romanNumeral(n)).toThrow()
+    })
+})
+
+describe('ageName — a chronicle’s game by its number', () => {
+    it('is “Age” and its Roman numeral, from Age I', () => {
+        expect(ageName(1)).toBe('Age I')
+        expect(ageName(2)).toBe('Age II')
+        expect(ageName(38)).toBe('Age XXXVIII')
+    })
+})
+
+describe('chipCased — a seat named in plain words as its chip shows it', () => {
+    it('capitalizes each word and leaves the rest', () => {
+        expect(chipCased('rhys')).toBe('Rhys')
+        expect(chipCased('ann marie')).toBe('Ann Marie')
+        expect(chipCased('McBride')).toBe('McBride')
+    })
+})
+
+describe('the five-deal refusal as the red line reads it (R-7.6.3-H1)', () => {
+    const seats: Seats = { player: (id) => (id === 'p2' ? 'Rhys' : 'Dana'), seats: ['p1', 'p2'] }
+    it('names the other seat, and agrees with "you" for the seat on screen', () => {
+        expect(humanizeReason('p2 already has five open deals', seats, 'p1')).toBe(
+            'Rhys already has five open deals'
+        )
+        expect(humanizeReason('p1 already has five open deals', seats, 'p1')).toBe(
+            'you already have five open deals'
+        )
+    })
+})
+
+/** The line as read: the dice drawn as `[N dice]`, the counts as their words. */
+function readDefense(dice: number, counts: Parameters<typeof defenseWords>[0]): string {
+    const words = defenseWords(counts)
+    const tail = words.counts.map((part) => `${part.joiner}${part.count} ${part.noun}`).join('')
+    const drawn = dice === 0 ? 'no dice' : `[blue × ${dice}]`
+    return `Defense so far: ${drawn}${words.comma ? ',' : ''} ${tail}.`
+}
+
+/** R-5.5.2, R-10.3 — the Defense so far line's words after its dice. */
+describe('defenseWords — the defense so far in words', () => {
+    it('names the warbands after the dice with "and", as drawn', () => {
+        expect(readDefense(6, [{ count: 6, noun: 'warband' }])).toBe(
+            'Defense so far: [blue × 6] and 6 warbands.'
+        )
+        expect(readDefense(1, [{ count: 1, noun: 'warband' }])).toBe(
+            'Defense so far: [blue × 1] and 1 warband.'
+        )
+    })
+
+    it('says "no dice" in words when there are none', () => {
+        expect(readDefense(0, [{ count: 3, noun: 'warband' }])).toBe(
+            'Defense so far: no dice and 3 warbands.'
+        )
+    })
+
+    it('names the bandits, never as warbands (R-10.3)', () => {
+        expect(readDefense(2, [{ count: 2, noun: 'bandit' }])).toBe(
+            'Defense so far: [blue × 2] and 2 bandits.'
+        )
+        expect(
+            readDefense(3, [
+                { count: 3, noun: 'warband' },
+                { count: 1, noun: 'bandit' }
+            ])
+        ).toBe('Defense so far: [blue × 3], 3 warbands and 1 bandit.')
+        expect(
+            readDefense(0, [
+                { count: 0, noun: 'warband' },
+                { count: 3, noun: 'bandit' }
+            ])
+        ).toBe('Defense so far: no dice, 0 warbands and 3 bandits.')
+    })
+})
 
 const ALICE = 'p1'
 const BOB = 'Qx7_pL2mWb9-Rk4tYc1nZ'
@@ -32,8 +163,12 @@ describe('a refusal as its reader sees it', () => {
         const reason = `${ALICE} is the Chancellor, not an Exile`
         expect(humanizeReason(reason, seats, ALICE)).toBe('you are the Chancellor, not an Exile')
         expect(humanizeReason(reason, seats, BOB)).toBe('Alice is the Chancellor, not an Exile')
-        expect(humanizeReason(`${ALICE} has no favor to burn`, seats, ALICE)).toBe('you have no favor to burn')
-        expect(humanizeReason(`${ALICE} has no favor to burn`, seats, BOB)).toBe('Alice has no favor to burn')
+        expect(humanizeReason(`${ALICE} has no favor to burn`, seats, ALICE)).toBe(
+            'you have no favor to burn'
+        )
+        expect(humanizeReason(`${ALICE} has no favor to burn`, seats, BOB)).toBe(
+            'Alice has no favor to burn'
+        )
     })
 
     it('a spectator reads every seat by name', () => {
@@ -47,9 +182,9 @@ describe('a refusal as its reader sees it', () => {
             seats: ['ab', 'ab-c', '-x_'],
             player: (id) => ({ ab: 'Ann', 'ab-c': 'Cal', '-x_': 'Xia' })[id] ?? id
         }
-        expect(humanizeReason("ab-c has 0 favor; ab's relics; -x_ is here", prefixed, undefined)).toBe(
-            "Cal has 0 favor; Ann's relics; Xia is here"
-        )
+        expect(
+            humanizeReason("ab-c has 0 favor; ab's relics; -x_ is here", prefixed, undefined)
+        ).toBe("Cal has 0 favor; Ann's relics; Xia is here")
     })
 
     it('a name with “$” in it is inserted as written', () => {
@@ -59,9 +194,9 @@ describe('a refusal as its reader sees it', () => {
     })
 
     it('strips the rule citations and names cards as before', () => {
-        expect(
-            humanizeReason(`${BOB} holds relic.cup-of-plenty (R-5.5.2)`, seats, ALICE)
-        ).toBe('Bob holds Cup of Plenty')
+        expect(humanizeReason(`${BOB} holds relic.cup-of-plenty (R-5.5.2)`, seats, ALICE)).toBe(
+            'Bob holds Cup of Plenty'
+        )
     })
 })
 
@@ -70,24 +205,25 @@ describe('a refusal with each other seat as its chip', () => {
     const chip = (playerId: string, possessive = false) => ({ kind: 'seat', playerId, possessive })
 
     it('reads as `humanizeReason` does, with another seat apart, and the reader still “you”', () => {
-        expect(reasonParts(`${BOB} has 0 favor, not the 2 ${ALICE} would take (R-5.5.2)`, seats.seats, ALICE)).toEqual([
-            chip(BOB),
-            text(' has 0 favor, not the 2 you would take')
-        ])
-        expect(reasonParts(`${ALICE} is the Chancellor; ${BOB}'s relics stay`, seats.seats, ALICE)).toEqual([
-            text('you are the Chancellor; '),
-            chip(BOB, true),
-            text(' relics stay')
-        ])
+        expect(
+            reasonParts(
+                `${BOB} has 0 favor, not the 2 ${ALICE} would take (R-5.5.2)`,
+                seats.seats,
+                ALICE
+            )
+        ).toEqual([chip(BOB), text(' has 0 favor, not the 2 you would take')])
+        expect(
+            reasonParts(`${ALICE} is the Chancellor; ${BOB}'s relics stay`, seats.seats, ALICE)
+        ).toEqual([text('you are the Chancellor; '), chip(BOB, true), text(' relics stay')])
     })
 
     it('a spectator reads every seat as its chip; a reason with no seat is one run of text', () => {
-        expect(reasonParts(`${ALICE} gave relic.cup-of-plenty to ${BOB}`, seats.seats, undefined)).toEqual([
-            chip(ALICE),
-            text(' gave Cup of Plenty to '),
-            chip(BOB)
+        expect(
+            reasonParts(`${ALICE} gave relic.cup-of-plenty to ${BOB}`, seats.seats, undefined)
+        ).toEqual([chip(ALICE), text(' gave Cup of Plenty to '), chip(BOB)])
+        expect(reasonParts('the world deck is empty', seats.seats, ALICE)).toEqual([
+            text('the world deck is empty')
         ])
-        expect(reasonParts('the world deck is empty', seats.seats, ALICE)).toEqual([text('the world deck is empty')])
     })
 })
 
@@ -102,7 +238,9 @@ describe('a summary as its reader sees it', () => {
     })
 
     it('every other seat is named, and the viewer is “you”', () => {
-        expect(nameSeats(`took 2 favor from ${BOB}`, seats, BOB, ALICE)).toBe('took 2 favor from you')
+        expect(nameSeats(`took 2 favor from ${BOB}`, seats, BOB, ALICE)).toBe(
+            'took 2 favor from you'
+        )
         expect(nameSeats(`took 2 favor from ${BOB}`, seats, undefined, ALICE)).toBe(
             'took 2 favor from Bob'
         )

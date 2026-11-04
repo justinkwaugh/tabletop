@@ -32,6 +32,10 @@ export class GameCacheKeys {
         return `games-public-${titleId}`
     }
 
+    static titleActivity(titleId: string): string {
+        return `title-activity-v1-${titleId}`
+    }
+
     static finishedGamesGeneration(userId: string, older = false): string {
         return `game-history-${older ? 'older' : 'head'}-${userId}`
     }
@@ -42,6 +46,15 @@ export class GameCacheKeys {
 
     static stats(userId: string): string {
         return `finished-games-stats-${userId}`
+    }
+
+    static projectedHistory(
+        gameId: string,
+        perspective: string,
+        logicVersion: string,
+        recordFormat: number
+    ): string {
+        return `projected-history-${gameId}:${perspective}:${logicVersion}:${recordFormat}`
     }
 
     static chatRevision(gameId: string): string {

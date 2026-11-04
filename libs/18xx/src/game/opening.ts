@@ -1,5 +1,5 @@
 import type { GameConfig, PlayerState, Prng, StartingPositionAssignment } from '@tabletop/common'
-import { assert } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 import type * as Type from 'typebox'
 import type { OfferPileAuction } from '../auctions/offerPileAuction.js'
 import type { SelectionAuctionRules } from '../auctions/selectionAuction.js'
@@ -20,6 +20,18 @@ export type OpeningSetup = {
     prng: Prng
     config: GameConfig
     startingPositions?: StartingPositionAssignment
+}
+/** What a title's starting cash can depend on, which the table also knows. */
+export type StartingCashSetup = { playerCount: number; config: GameConfig }
+/** The starting cash rule of a title whose cash depends only on the player count. */
+export function startingCashByPlayerCount(
+    cash: Readonly<Record<number, number>>
+): (setup: StartingCashSetup) => number {
+    return ({ playerCount }) => {
+        const amount = cash[playerCount]
+        assertExists(amount, `No starting cash for ${playerCount} players`)
+        return amount
+    }
 }
 export type InitialPosition = CompanyState &
     MapStateData &

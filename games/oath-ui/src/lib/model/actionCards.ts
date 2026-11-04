@@ -5,6 +5,8 @@ import {
     freeActionTypesNow,
     powerKey,
     usableModifiers,
+    woodChooserForTravel,
+    woodPicksBeforeTravel,
     type CardPower,
     type HydratedOathGameState,
     type ModifierUse,
@@ -25,6 +27,7 @@ import { recoverRows } from './recoverRows.js'
 import { searchRows } from './searchRows.js'
 import { tradeRows } from './tradeRows.js'
 import { travelOffer, travelRows } from './travelRows.js'
+import { hospitalityGainsAt, woodTravelCards } from './woodTravel.js'
 
 /** R-7.4 — the major actions a modifier card is declared on. */
 export const CARD_ACTIONS = [
@@ -60,6 +63,8 @@ export const ACTION_CARD_CONSEQUENCES: Readonly<Record<string, string>> = {
     'denizen.hearth.awaited-return': 'sacrifice 1 warband',
     'relic.truthful-harp': 'reveal them'
 }
+
+const GREAT_SPIRE = 'edifice.arcane.great-spire'
 
 /**
  * R-7.4 — each optional modifier's one line, what it gives, as its menu row and its Use a power
@@ -107,12 +112,20 @@ export const ACTION_CARD_LINES: Readonly<Record<string, string>> = {
     'denizen.hearth.land-warden': 'play 2 cards',
     'denizen.hearth.crop-rotation': 'discard one there first',
     'denizen.order.hunting-party': 'then a free Campaign',
+    [GREAT_SPIRE]: 'swap with the Dispossessed',
     // Recover
     'denizen.arcane.magicians-code': '+2 secrets on the Darkest Secret'
 }
 
-/** The line a card's row says, empty for a card the table does not know. */
-export function actionCardLine(cardId: string): string {
+/**
+ * The line a card's row says, empty for a card the table does not know. Great Spire may be declared
+ * with the Dispossessed empty (R-8.5: the Chronicle fills it), so its line then says so.
+ */
+export function actionCardLine(
+    cardId: string,
+    state?: Pick<HydratedOathGameState, 'dispossessedCount'>
+): string {
+    if (cardId === GREAT_SPIRE && state?.dispossessedCount === 0) return 'the Dispossessed is empty'
     return ACTION_CARD_LINES[cardId] ?? ''
 }
 
@@ -174,6 +187,24 @@ export function actionMenu(
         case ActionType.Search:
             return rows(searchRows(state, playerId, modifiers, []))
         case ActionType.Travel:
+            // R-11.7-H2 — out of an enemy's Shrouded Wood each pick the ruler may make is a row, priced
+            // with the cards in use that the Wood's Travel declares, each fitting the cards that
+            // count there, and Hospitality where a bank there would give its favor. Portal from its
+            // own site leaves the ruler out (R-11.7-H4): an ordinary Travel, below.
+            if (woodChooserForTravel(state, playerId, modifiers) !== undefined) {
+                const cards = woodTravelCards(state, playerId, modifiers)
+                return woodPicksBeforeTravel(state, playerId, cards).map(({ pick, counted }) => ({
+                    key: rowKey({
+                        siteId: pick.siteId,
+                        cost: pick.cost,
+                        foldedBy: pick.foldedBy
+                    }),
+                    modifiers: [
+                        ...counted,
+                        ...hospitalityGainsAt(state, playerId, cards, pick.siteId)
+                    ]
+                }))
+            }
             // R-7.4 — Hospitality's gain comes after the move, so a destination offers the same
             // Travel with its bank as without; the card fits the row where a way carries it.
             return travelRows(state, playerId, modifiers).map((row) => ({

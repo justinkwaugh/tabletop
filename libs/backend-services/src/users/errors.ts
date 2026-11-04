@@ -1,11 +1,22 @@
-import { BaseError } from '@tabletop/common'
+import { BaseError, UserStatus } from '@tabletop/common'
 
 enum UserServiceError {
+    AccountUnavailable = 'AccountUnavailableError',
     InvalidPassword = 'InvalidPasswordError',
-    InvalidToken = 'InvalidTokenError',
     EmailVerification = 'EmailVerificationError',
-    UnauthenticatedUpdate = 'UnauthenticatedUpdateError',
     InvalidTimeZone = 'InvalidTimeZoneError'
+}
+
+export class AccountUnavailableError extends BaseError {
+    readonly statusCode = 401
+
+    constructor(status: UserStatus) {
+        super({
+            name: UserServiceError.AccountUnavailable,
+            message: 'Account cannot hold an Authenticated Session',
+            metadata: { status }
+        })
+    }
 }
 
 export class InvalidPasswordError extends BaseError {
@@ -13,15 +24,6 @@ export class InvalidPasswordError extends BaseError {
         super({
             name: UserServiceError.InvalidPassword,
             message: 'Password must be at least 12 characters'
-        })
-    }
-}
-
-export class InvalidTokenError extends BaseError {
-    constructor() {
-        super({
-            name: UserServiceError.InvalidToken,
-            message: 'Invalid or expired token'
         })
     }
 }
@@ -35,13 +37,11 @@ export class EmailVerificationError extends BaseError {
     }
 }
 
-export class UnauthenticatedUpdateError extends BaseError {
-    constructor(field: string) {
-        super({
-            name: UserServiceError.UnauthenticatedUpdate,
-            message: `Current password required to update ${field}`,
-            metadata: { field }
-        })
+export class EmailChangeError extends BaseError {
+    readonly statusCode = 400
+
+    constructor(message: string) {
+        super({ name: 'EmailChangeError', message })
     }
 }
 

@@ -9,25 +9,21 @@
         getCompany,
         isBankrupt,
         playersWithBankruptLast,
-        type Owner,
-        type ValuationRules
+        type Owner
     } from '@tabletop/18xx'
     import { auctionLotDetail, auctionLotDetails } from '../auctions/auctionLotDetails.js'
     import { assertExists } from '@tabletop/common'
     import { numberedSharesOwned } from './numberedShares.js'
-    import type { CompanyNameVariants, NumberedShareNames } from './companyPresentation.js'
+    import type { NumberedShareNames } from './companyPresentation.js'
     import PrivateDescription from '../privates/PrivateDescription.svelte'
     import PrivateExchangeButton from '../privates/PrivateExchangeButton.svelte'
     import PrivateTrackPowerButton from '../privates/PrivateTrackPowerButton.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
-    import PresidentBadge from '../finance/PresidentBadge.svelte'
-    import { ownerPortfolio } from '../finance/ownerPortfolio.js'
+    import PresidentName from '../finance/PresidentName.svelte'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
 
     let {
         session,
-        companyNames = {},
-        valuationRules,
         auctionLotDescription,
         numberedShareNames = {},
         numberedShareLocation,
@@ -37,9 +33,7 @@
         onShowCompanyCard,
         portfolioCompanyIds = []
     }: {
-        companyNames?: Readonly<Record<string, CompanyNameVariants>>
         session: EighteenXXSessionView
-        valuationRules: ValuationRules
         auctionLotDescription?: (id: string) => string
         numberedShareNames?: NumberedShareNames
         numberedShareLocation?: (companyId: string, number: number) => string | undefined
@@ -67,13 +61,9 @@
             name: session.getPlayerName(playerId),
             liquidity: session.playerLiquidity(playerId),
             certs: session.playerCertificates(playerId),
-            ...ownerPortfolio(
-                session.gameState,
+            ...session.portfolio(
                 { kind: 'player', playerId },
-                valuationRules,
-                session.charters,
-                !!session.presentation.minorsAsPrivates,
-                (privateId) => session.privateIncome(privateId)
+                !!session.presentation.minorsAsPrivates
             )
         })),
         ...portfolioCompanyIds.map((companyId) => {
@@ -89,14 +79,7 @@
                 bankrupt: false,
                 liquidity: undefined,
                 certs: undefined,
-                ...ownerPortfolio(
-                    session.gameState,
-                    { kind: 'company', companyId },
-                    valuationRules,
-                    session.charters,
-                    false,
-                    (privateId) => session.privateIncome(privateId)
-                )
+                ...session.portfolio({ kind: 'company', companyId })
             }
         })
     ])
@@ -213,13 +196,19 @@
                         ></span>{/if}{#if player.description}<PrivateDescription
                             {money}
                             phaseColors={session.presentation.phaseColors}
-                            token={player.owner.kind === 'company'
-                                ? session.privateCompanyTokens[player.owner.companyId]
+                            tokens={player.owner.kind === 'company'
+                                ? session.privateCardTokens[player.owner.companyId]
                                 : undefined}
                             imageUrl={session.publishedCardImage(
                                 player.owner.kind === 'company' ? player.owner.companyId : undefined
                             )}
-                            name={player.name}
+                            plate={session.publishedCardPlate(
+                                player.owner.kind === 'company' ? player.owner.companyId : undefined
+                            )}
+                            shortName={player.name}
+                            fullName={player.owner.kind === 'company'
+                                ? session.companyFullName(player.owner.companyId)
+                                : player.name}
                             description={player.description}
                         />{:else}<span>{player.name}</span>{/if}
                 </h3>
@@ -329,13 +318,15 @@
                                         {#if description}<PrivateDescription
                                                 {money}
                                                 phaseColors={session.presentation.phaseColors}
-                                                token={lot.token}
+                                                tokens={lot.cardTokens}
                                                 imageUrl={session.publishedCardImage(lot.id)}
-                                                name={lot.name}
+                                                plate={session.publishedCardPlate(lot.id)}
+                                                shortName={session.lotName(lot)}
+                                                fullName={lot.name}
                                                 {description}
                                                 value={lot.price}
                                                 income={lot.company?.revenue}
-                                            />{:else}{lot.name}{/if}
+                                            />{:else}{session.lotName(lot)}{/if}
                                     </th>
                                     <td class="amount">{money(amount)}</td>
                                 </tr>
@@ -379,8 +370,7 @@
                                                 class="company-focus"
                                                 title={session.companyName(entry.company.id)}
                                                 {...companyButton(entry.company.id)}
-                                                >{companyNames[entry.company.id]?.initials ??
-                                                    entry.company.id}</button
+                                                >{session.companyInitials(entry.company.id)}</button
                                             >
                                             {#if entry.president}<span
                                                     class="compact-president"
@@ -442,8 +432,11 @@
                                             ><button
                                                 class="company-focus"
                                                 {...companyButton(entry.company.id)}
-                                                >{session.companyName(entry.company.id)}</button
-                                            >{#if entry.president}<PresidentBadge />{/if}</th
+                                                ><PresidentName
+                                                    name={session.companyName(entry.company.id)}
+                                                    president={entry.president}
+                                                /></button
+                                            ></th
                                         >
                                         <td class="amount">{percent.format(entry.percentage)}%</td>
                                     </tr>
@@ -488,15 +481,19 @@
                                         ><PrivateDescription
                                             {money}
                                             phaseColors={session.presentation.phaseColors}
-                                            token={session.privateCompanyTokens[entry.company.id]}
+                                            tokens={session.privateCardTokens[entry.company.id]}
                                             imageUrl={session.publishedCardImage(entry.company.id)}
-                                            name={session.companyName(entry.company.id)}
+                                            plate={session.publishedCardPlate(entry.company.id)}
+                                            shortName={session.companyName(entry.company.id)}
+                                            fullName={session.companyFullName(entry.company.id)}
                                             value={entry.value}
                                             income={entry.income}
                                             description={session.privates.companies.find(
                                                 (company) => company.id === entry.company.id
                                             )?.description ?? ''}
-                                        />{#each session.privates.allExchangeOptions.filter((option) => option.playerId === player.playerId && option.privateCompanyId === entry.company.id) as option (option.certificateId)}<span
+                                        />{#if player.draftedCompanyIds.includes(entry.company.id)}<span
+                                                class="drafted">Drafted</span
+                                            >{/if}{#each session.privates.allExchangeOptions.filter((option) => option.playerId === player.playerId && option.privateCompanyId === entry.company.id) as option (option.certificateId)}<span
                                                 class="private-power"
                                                 ><PrivateExchangeButton {session} {option} /></span
                                             >{/each}{#each session.privateActions
@@ -668,6 +665,12 @@
     .controller {
         color: var(--rail-muted, #887664);
         font-size: 10px;
+    }
+    .drafted {
+        margin-left: 6px;
+        color: var(--rail-muted, #887664);
+        font-size: 10px;
+        font-weight: 400;
     }
     .turn-position {
         display: flex;

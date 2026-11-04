@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { createRouteWorker } from './routeWorker.js'
     import type { GameSession } from '@tabletop/frontend-components'
     import type { EighteenSeventeenState, HydratedEighteenSeventeenState } from '@tabletop/1817'
     import {
@@ -15,21 +16,19 @@
     import MergerRound from './MergerRound.svelte'
     import ShortSelling from './ShortSelling.svelte'
     import { requireEighteenSeventeenSession } from './session.svelte.js'
-    function createRouteWorker() {
-        return new Worker(new URL('./autorouter.worker.js', import.meta.url), { type: 'module' })
-    }
     let {
         gameSession
     }: { gameSession: GameSession<EighteenSeventeenState, HydratedEighteenSeventeenState> } =
         $props()
     const session = $derived(requireEighteenSeventeenSession(gameSession))
     const privateOperationDescription = () => undefined
-    const historyDescription: TitleActionDescription = (action, companyName, shared) => {
+    const historyDescription: TitleActionDescription = (action, { companyName }, shared) => {
         return eighteenSeventeenHistoryDescription(
             action,
             {
                 companyName,
                 playerName: (id) => session.getPlayerName(id),
+                poolName: (id) => session.poolName(id),
                 bankName: 'Bank'
             },
             session.presentation.money,
@@ -41,6 +40,7 @@
 <GameTable
     {session}
     {privateOperationDescription}
+    {createRouteWorker}
     {historyDescription}
     additionalStockActions={session.stockPanels.menuOptions}
 >

@@ -89,7 +89,8 @@ for (const mode of ['failed', 'older'] as const) {
         await page.goto('/session-test.html')
         const result = await page.evaluate(async (mode) => {
             const fixture = await import(
-                new URL('/src/lib/preferences/tests/preferences.fixture.svelte.ts', location.href).href
+                new URL('/src/lib/preferences/tests/preferences.fixture.svelte.ts', location.href)
+                    .href
             )
             return fixture.verifyPreferenceReadiness(mode)
         }, mode)

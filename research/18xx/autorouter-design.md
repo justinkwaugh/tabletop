@@ -1,5 +1,29 @@
 # Shared client autorouter
 
+## Compact candidate storage
+
+Candidate storage preserves the full route-trait survey below: counted visits,
+paid stops, route orientation, extension track, and the fleet's longest-route
+bonus remain distinct. This changes representation and partner lookup within the
+existing encoding; it adds no title policy or support for the fleet connectivity
+and track-sharing counterexamples in the survey. TOP, 1889, 1846, and 1817 still
+supply their existing rules.
+
+Each candidate records scoring metadata, a resource fingerprint, and an arena
+span. Connection and extension-arc IDs share a narrow arena with a checked wide
+fallback; resources are recovered from the existing compiled network. Equal
+fingerprints require exact resource-set equality before dominance removes a
+candidate. Arena compaction recovers cut and duplicate spans without another
+arena allocation. Capacity, reallocation peaks, and temporary exact-comparison
+storage count against the working budget.
+
+Streaming can use the ordinary selector's resource-column representation for a
+bounded prefix of its stored list, with connection-level conflict caching beyond
+that prefix. This offsets the CPU cost of reconstructing resource usage while
+retaining the first-partner-search and second-pass proof guarantees. Exhaustive
+oracles cover mixed profiles, extensions, fleet bonuses, and wide connection IDs;
+focused tests force hash collisions, repeated cuts, and partial index coverage.
+
 ## Placement and interface
 
 `@tabletop/18xx-autorouter` owns the independent Rust solver, WASM build, and a
@@ -145,3 +169,136 @@ the full 1846 game, paid-station selection, paid-only connection bonuses, identi
 and distinct train profiles, and longest-route bonus assignment. The independent
 native permutation oracle now also checks 200 graphs with payment limits,
 connection bonuses and fleet bonuses, in addition to their ordinary profiles.
+
+## Exact fleet selection
+
+The encoded fleet problem is partitioned maximum-weight set packing: each route
+consumes track resources and one train slot. Equivalently, legal fleets are
+cliques in a graph joining disjoint routes of different trains. Exact
+branch-and-bound with bitset intersections and weighted independent-set bounds
+is a practical algorithm family for this problem; see
+[the independent-set-cover approach to maximum weighted clique](https://doi.org/10.1016/j.cor.2019.05.017).
+There is no universally fastest algorithm for this NP-hard problem.
+
+Selection indexes candidates by resource once. A candidate's compatibility row
+is then the complement of the union of its resource indexes, computed on first
+use and cached. Rows contain only the remaining train profiles. Each search depth
+reuses its own available-candidate bitset, intersects it with the cached row, and
+records the first occupied word for each profile. Conflict checks no longer scan
+every route's resources on every visit to a branch.
+
+Profiles are ordered by descending maximum revenue, then candidate count, with
+stable input order breaking ties. A branch's upper bound sums the best remaining
+candidate revenues for the remaining train slots, ignoring conflicts between
+those candidates. This is an admissible weighted independent-set bound because a
+train can select at most one route. Identical profiles share a domain; their bound
+uses the best distinct candidates, and their choices have increasing candidate
+indices. Any feasible assignment of identical trains can be permuted into this
+order. Skipping a profile therefore skips its remaining identical train slots.
+Original train identities and output ordering are restored when emitting routes.
+
+The longest-route bonus remains a fleet maximum. Bounds include the greatest
+possible remaining visit count, using precomputed suffix maxima in revenue order;
+they never assume that the highest-revenue route is also the longest. The loop
+over a profile reuses the bound for later profiles, taking the maximum visit
+count across both parts before adding the bonus once. These bounds may
+overestimate, but cannot discard a better fleet. Fixed ordering, bit iteration,
+and strict incumbent improvement keep completed searches deterministic.
+Deadline checks retain the existing
+nonexhaustive-result contract. The wire format and TypeScript interface are
+unchanged.
+
+This changes selection procedure only. The full route-trait survey above still
+governs the supported policy: TOP's H/+ distances, 1889's ordinary/diesel revenue,
+and 1846's payment selection and longest-route bonus all produce the same candidate
+data as before. Track sharing, repeated-stop payment, or connected service sets
+in 1862, 1877 Stockholm, 1860 and 18GB would require a different encoded policy;
+the compatibility graph does not add support for those mechanisms.
+
+Verification adds mixed fleets with nonadjacent identical profiles, candidate and
+resource sets crossing multiple bitset words, and a longest-route bonus that
+outweighs higher-base-revenue routes. A large-bonus case checks that the bound
+does not overflow by counting the fleet bonus twice. The recorded six-title corpus
+provides an additional differential check against the preserved native executable; benchmark
+inputs and generated measurements remain outside the repository.
+
+## Two-train streaming
+
+For exactly two distinct candidate profiles, the solver materializes the train
+with the smaller distance (then the tighter major-stop limit, then input order)
+and streams the other through the stored routes in descending revenue order.
+Distance is a heuristic for candidate count, especially across different distance
+measures. Choosing the less favorable side affects memory and runtime, not the
+completed search's optimum. The stored list retains the existing deduplication and
+memory-cut policy, with no reservation for unused compatibility matrices or rows.
+Identical profiles and larger fleets retain the previous selection algorithm.
+
+This uses the same route generation and scoring as the full-catalog survey above:
+TOP's crossing and zero-cost-town measures, 1889's revenue profiles, and 1846's
+paid-stop and longest-route policies remain distinct. Profiles include whether
+connection bonuses apply along the route or only at paid stops. Interconnection
+extensions use the same encoded alternatives and consume their track during
+partner selection. No additional family rules or wire fields are introduced;
+the private protocol remains version 6. The existing limits for connected service
+sets, shared track and shared-stop payment still apply.
+
+Each streamed route is paired with the best compatible stored route or runs
+alone. With no fleet bonus, the first compatible partner in revenue order is
+optimal. With a longest-route bonus, suffix maxima bound the remaining partners;
+the search can continue past the first compatible one to find a longer partner.
+Bounds add the maximum route length's bonus once. Only incumbent improvements
+copy the streamed route. Stored routes alone seed the incumbent; the first
+partner search finishes even if the deadline passes. Later partner scans and DFS
+steps check the same solve deadline. Interruptions and stored-candidate cuts
+remain non-exhaustive.
+
+Verification covers both input orders, trains running alone, memory cuts and a
+previously memory-limited fixture that now completes, longest-route bounds after
+a compatible partner, deterministic interruption during partner selection, the
+200-graph permutation oracle, and canonical exhaustive extension tests. Recorded
+1817 positions compare both completed and deadline-interrupted results.
+
+## N+s trains, end-only destinations and interconnections
+
+The family route model added three mechanisms that the encoder and native core
+now carry, so final `RouteEvaluation` agrees with the solver's revenue. The
+private wire protocol is version 5; workers and WASM are rebuilt together.
+
+An N+s train (`TrainDistance.extraTowns`) keeps its single visit budget at N+s
+and gains a second budget, `major_limit`, of N stops that are not towns. Stops
+carry a town flag and their map location. Only revenue-center trains may carry
+extra towns; the encoder rejects other measures rather than guessing what an
+H or + train with extra towns would mean.
+
+`RouteRules.revenuePolicy` receives the state and the operating company. A
+connection bonus with `destinationAtEnd` is encoded with `ends_only`: its
+destination side counts only for a paid stop that is the route's first or last
+visit. The ends are the counted route's, not an extension's.
+
+An interconnection pays a route that extends, beyond its counted stops and on
+track of its own, from one end to a destination location. The extension passes
+through any stops, blocked cities included, without counting them, but not
+through an offboard; its track belongs to the route for fleet disjointness. For
+each candidate route of a train whose policy has interconnections and whose stops
+include an origin, the native search runs a breadth-first search over directed
+track arcs from each end, avoiding the route's track. The first simple arrival at
+each destination location, the fewest paths, becomes an extra candidate with the
+best interconnection its paid stops earn, chosen together with the express paid
+subset. An extension off the route's start reverses the route so that
+`TrainRoute.extension` follows its last stop. A candidate is offered only when the
+interconnection raises the paid revenue, which also guarantees that the canonical
+evaluator's paid-subset choice earns it; an extension that earns nothing is invalid.
+
+This is a deliberate limit. The breadth-first search relaxes the extension's own
+track reuse and junction rule, checks them on the found path, and tries later
+arrivals at that location only when the first is not simple. A longer extension
+that leaves the shortest one's track to another train is never tried, so a fleet
+that needs one is missed even when the search reports `exhaustive`; that flag
+covers the encoded policy. Constrained shortest paths over all disjoint
+alternatives would multiply candidate generation for one title's bonus.
+
+Verification compares the solver with exhaustive canonical enumeration, extended
+to enumerate every extension, for N+s limits, end-only destinations, an extension
+through a blocked city, and two-train fleets where the best extension hangs off a
+route's start and must stay clear of another train's track. The native suite adds
+the second budget and end-only destinations to the 200-graph permutation oracle.

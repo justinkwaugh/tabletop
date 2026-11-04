@@ -115,23 +115,23 @@ export function tagCentre(tag: SymbolTag, scale: number): Point {
     }
 }
 
-export function printedMarksCovered(tag: SymbolTag, arrows: readonly ConvexOutline[]): boolean {
+export function printedMarksCovered(tag: SymbolTag, drawnOver: readonly ConvexOutline[]): boolean {
     const printed = cornersOf(tag.printed)
-    return arrows.some((arrow) => outlinesOverlap(printed, arrow))
+    return drawnOver.some((outline) => outlinesOverlap(printed, outline))
 }
 
 export interface PlacedSymbolTag extends SymbolTag {
     centre: Point
-    /** Moved along its line out from under an arrow. */
+    /** Moved along its line out from under an arrow or off a plate. */
     slid: boolean
     cover: OrientedBox
 }
 
-/** Each tag beside its bar, slid along its line by as little as takes it out from under the arrows. */
+/** Each tag beside its bar, slid along its line by as little as takes it clear of the obstacles. */
 export function placeSymbolTags(
     tags: readonly SymbolTag[],
     scale: number,
-    arrows: readonly ConvexOutline[]
+    obstacles: readonly ConvexOutline[]
 ): PlacedSymbolTag[] {
     return tags.map((tag) => {
         const beside = tagCentre(tag, scale)
@@ -145,7 +145,7 @@ export function placeSymbolTags(
                 halfLength: halfLength + clearance,
                 halfWidth: halfWidth + clearance
             }),
-            arrows,
+            obstacles,
             tag.along
         )
         const centre = { x: beside.x + tag.along.x * slide, y: beside.y + tag.along.y * slide }

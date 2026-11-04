@@ -4,7 +4,7 @@ import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { afterTravelPersistent } from '../util/persistent.js'
 import { payTolls } from '../util/tolls.js'
-import { flipSecretFacedown, shroudedWoodChooser } from '../util/siteTravel.js'
+import { flipSecretFacedown, secretsFlipped, type TravelFlip } from '../util/siteTravel.js'
 import { ActionType } from '../definition/actions.js'
 import {
     modifierSummary,
@@ -14,8 +14,13 @@ import {
     runAfter
 } from '../util/modifiers.js'
 import { flipSiteFromVault } from '../util/hiddenInputs.js'
-import { isFreeTravelNow, woodTravelPaysAtPick } from '../util/shroudedWood.js'
-import { nextActionIndex } from '../util/freeActions.js'
+import {
+    isFreeTravelNow,
+    resolveWoodDeclaration,
+    woodChooserForTravel,
+    woodTravelPaysAtPick
+} from '../util/shroudedWood.js'
+import { clearFreeTravel, freeTravelNowGrantedBy, nextActionIndex } from '../util/freeActions.js'
 import {
     endStepOutOfTurn,
     freeActionOutOfTurnOfferedTo,
@@ -61,8 +66,12 @@ export const TravelMetadata = Type.Object({
     tollsPaid: Type.Optional(Type.Array(Type.String())),
     /** R-11 */
     siteNotes: Type.Optional(Type.Array(Type.String())),
-    secretFlipped: Type.Optional(Type.Boolean()),
-    /** Second Wind out of turn (revision 7) — the card whose free Travel this was. */
+    /** R-11.12, R-11.13 — as `flipSecret` records it: `true` one secret, `2` two. */
+    secretFlipped: Type.Optional(Type.Union([Type.Boolean(), Type.Literal(2)])),
+    /**
+     * The card whose free Travel this was: Second Wind out of turn (revision 7); from revision 27 any grant
+     * (Second Wind, Brass Horse).
+     */
     freeActionOf: Type.Optional(Type.String()),
     /** Second Wind out of turn — where the held turn resumes once nothing more is asked. */
     resumeMachineState: Type.Optional(Type.Enum(MachineState))
@@ -81,8 +90,12 @@ export const Travel = Type.Evaluate(
             modifiers: ModifierUses,
             /** R-7.1.4 (Toll Roads, Way Station) */
             tolls: Type.Optional(Type.Array(Type.String(), { maxItems: 8 })),
-            /** R-11.12, R-11.13 — for the site that asks. */
-            flipSecret: Type.Optional(Type.Boolean()),
+            /**
+             * R-11.12, R-11.13 — the secrets flipped for the sites that ask: `true` one, as every
+             * recorded Travel has it; `2` two, from the Buried Giant to The Hidden Place, one for
+             * each site's power (R-11.13-H2, revision 20 on).
+             */
+            flipSecret: Type.Optional(Type.Union([Type.Boolean(), Type.Literal(2)])),
             metadata: Type.Optional(TravelMetadata)
         })
     ])
@@ -100,7 +113,7 @@ export class HydratedTravel extends HydratableAction<typeof Travel> implements T
     declare siteId?: string
     declare modifiers?: ModifierUse[]
     declare tolls?: string[]
-    declare flipSecret?: boolean
+    declare flipSecret?: TravelFlip
     declare metadata?: TravelMetadata
 
     constructor(data: Travel) {
@@ -111,7 +124,8 @@ export class HydratedTravel extends HydratableAction<typeof Travel> implements T
         this.revealsInfo = false
         // Second Wind out of turn (revision 7) — the Travel is the holder's answer to "Travel now?".
         const outOfTurn = freeActionOutOfTurnOfferedTo(state, this.playerId, ActionType.Travel)
-        const chooser = shroudedWoodChooser(state, this.playerId)
+        // R-11.7-H4 — Portal declared at its own site leaves the Wood's ruler nothing to pick.
+        const chooser = woodChooserForTravel(state, this.playerId, this.modifiers)
         if (chooser !== undefined) {
             this.leaveShroudedWood(state, chooser, outOfTurn?.cardId)
             return
@@ -132,8 +146,9 @@ export class HydratedTravel extends HydratableAction<typeof Travel> implements T
         }
         const { cost, active } = plan
         if (outOfTurn) holdTurnForFreeActionOutOfTurn(state, this.playerId, ActionType.Travel)
-        // R-11.12, R-11.13
-        if (this.flipSecret) flipSecretFacedown(state, this.playerId)
+        // R-11.12, R-11.13, R-11.13-H2 — each a different faceup secret.
+        const flips = secretsFlipped(this.flipSecret)
+        if (flips > 0) flipSecretFacedown(state, this.playerId, flips)
 
         const fromSiteId = pawnSiteId(state, this.playerId)
 
@@ -148,6 +163,7 @@ export class HydratedTravel extends HydratableAction<typeof Travel> implements T
         )
 
         player.spendSupply(cost)
+        const freeActionOf = outOfTurn?.cardId ?? freeTravelNowGrantedBy(state, this.playerId)
         HydratedTravel.useFreeTravel(state, this.playerId)
 
         // R-5.6.2
@@ -165,7 +181,8 @@ export class HydratedTravel extends HydratableAction<typeof Travel> implements T
             fromSiteId,
             supplySpent: cost,
             supplyRemaining: player.supply,
-            ...HydratedTravel.afterStepOutOfTurn(state, this.playerId, outOfTurn?.cardId),
+            ...(freeActionOf === undefined ? {} : { freeActionOf }),
+            ...HydratedTravel.afterStepOutOfTurn(state, this.playerId, outOfTurn !== undefined),
             revealedSiteCardId: revealed?.siteCardId,
             relicsRevealed: revealed?.relicsRevealed ?? 0,
             modifiers: active.length > 0 ? modifierSummary(active) : undefined,
@@ -189,21 +206,34 @@ export class HydratedTravel extends HydratableAction<typeof Travel> implements T
     ) {
         const reason = HydratedTravel.reasonCannotLeaveShroudedWood(state, this.playerId, this)
         if (reason) throw Error(`Cannot travel: ${reason}`)
+        const declared = resolveWoodDeclaration(state, this.playerId, this.modifiers).active
         if (outOfTurnBy) holdTurnForFreeActionOutOfTurn(state, this.playerId, ActionType.Travel)
         const player = state.getPlayerState(this.playerId)
         const fromSiteId = pawnSiteId(state, this.playerId)
         const paysAtPick = woodTravelPaysAtPick(state)
         const free = isFreeTravelNow(state, this.playerId)
+        // R-11.7-H2 — the declared cards are paid now, whatever the ruler picks (R-7.1.2, R-7.4).
+        payModifierCosts(state, this.playerId, declared)
         const cost = paysAtPick ? 0 : HydratedTravel.shroudedWoodCost(state, this.playerId)
         player.spendSupply(cost)
+        const freeActionOf = outOfTurnBy ?? freeTravelNowGrantedBy(state, this.playerId)
         HydratedTravel.useFreeTravel(state, this.playerId)
+        const cards =
+            declared.length > 0
+                ? {
+                      modifiers: declared.map(({ power }) => ({
+                          cardId: power.cardId,
+                          powerIndex: power.powerIndex
+                      }))
+                  }
+                : {}
         askQuestion(state, this.playerId, {
             kind: PowerQuestionKind.ShroudedWoodDestination,
             cardId: state.siteCardAt(fromSiteId) ?? fromSiteId,
             askedPlayerId: chooser,
             travelerPlayerId: this.playerId,
             fromSiteId,
-            ...(paysAtPick ? { travel: { free } } : {})
+            ...(paysAtPick ? { travel: { free, ...cards } } : {})
         })
         this.metadata = {
             fromSiteId,
@@ -211,13 +241,12 @@ export class HydratedTravel extends HydratableAction<typeof Travel> implements T
             paysAtPick: paysAtPick || undefined,
             supplySpent: cost,
             supplyRemaining: player.supply,
+            modifiers: declared.length > 0 ? modifierSummary(declared) : undefined,
+            ...(freeActionOf === undefined ? {} : { freeActionOf }),
             // Second Wind out of turn — the free Campaign is judged once the pick lands the pawn.
             ...(outOfTurnBy === undefined
                 ? {}
-                : {
-                      freeActionOf: outOfTurnBy,
-                      resumeMachineState: holdTravelOutOfTurnUntilItLands(state)
-                  })
+                : { resumeMachineState: holdTravelOutOfTurnUntilItLands(state) })
         }
     }
 
@@ -225,20 +254,16 @@ export class HydratedTravel extends HydratableAction<typeof Travel> implements T
     private static afterStepOutOfTurn(
         state: HydratedOathGameState,
         playerId: string,
-        outOfTurnBy: string | undefined
-    ): Pick<TravelMetadata, 'freeActionOf' | 'resumeMachineState'> {
-        if (outOfTurnBy === undefined) return {}
-        return {
-            freeActionOf: outOfTurnBy,
-            resumeMachineState: endStepOutOfTurn(state, playerId)
-        }
+        outOfTurn: boolean
+    ): Pick<TravelMetadata, 'resumeMachineState'> {
+        return outOfTurn ? { resumeMachineState: endStepOutOfTurn(state, playerId) } : {}
     }
 
     // Second Wind, Brass Horse — the free Travel is this action; a free Campaign may follow it.
     private static useFreeTravel(state: HydratedOathGameState, playerId: string) {
         const player = state.getPlayerState(playerId)
         if (player.freeTravelAtAction !== state.actionCount) return
-        delete player.freeTravelAtAction
+        clearFreeTravel(state, playerId)
         if (player.freeCampaignAtAction === state.actionCount) {
             player.freeCampaignAtAction = nextActionIndex(state)
         }

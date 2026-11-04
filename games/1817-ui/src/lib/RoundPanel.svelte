@@ -35,7 +35,7 @@
             value={money(
                 EighteenSeventeenMarket.companySpace(gameState.stockMarket, companyId).price
             )}
-            facts={companyRoundFacts(gameState, companyId, money)}
+            facts={companyRoundFacts(gameState, companyId, money, (id) => session.companyName(id))}
             {actions}
         />
     </div>

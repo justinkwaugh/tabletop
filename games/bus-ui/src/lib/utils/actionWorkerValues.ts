@@ -20,7 +20,8 @@ export function resolvePlacedActionValue({
         (playerState) => playerState.playerId === state.busAction
     )
     const busesActionIncreasesMax =
-        busesActionPlayerState !== undefined && busesActionPlayerState.buses + 1 > currentMaxBusValue
+        busesActionPlayerState !== undefined &&
+        busesActionPlayerState.buses + 1 > currentMaxBusValue
 
     const projectedPassengerAndBuildingBase =
         state.roundStartMaxBusValue + (busesActionIncreasesMax ? 1 : 0)
@@ -57,17 +58,11 @@ export function resolvePlacedActionValue({
             }
 
             const baseValue = Math.max(0, lineExpansionBaseValue - resolvedSelectionIndex)
-            const remainingSticks = Math.max(
-                0,
-                remainingSticksByPlayer.get(resolvedPlayerId) ?? 0
-            )
+            const remainingSticks = Math.max(0, remainingSticksByPlayer.get(resolvedPlayerId) ?? 0)
             const value = Math.min(baseValue, remainingSticks)
 
             values.set(resolvedSelectionIndex, value)
-            remainingSticksByPlayer.set(
-                resolvedPlayerId,
-                Math.max(0, remainingSticks - value)
-            )
+            remainingSticksByPlayer.set(resolvedPlayerId, Math.max(0, remainingSticks - value))
         }
 
         return values

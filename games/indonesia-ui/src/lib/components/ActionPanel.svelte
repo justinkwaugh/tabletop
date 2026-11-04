@@ -50,7 +50,9 @@
     let placingMergerBid = $state(false)
     let passingMergerBid = $state(false)
     let selectedMergerOptionKeyDraft = $state('')
-    type PlannedDeliveryHoverTarget = Parameters<typeof gameSession.setHoveredPlannedDeliveryRoute>[0]
+    type PlannedDeliveryHoverTarget = Parameters<
+        typeof gameSession.setHoveredPlannedDeliveryRoute
+    >[0]
     let pendingPlannedDeliveryHoverTimeout: ReturnType<typeof setTimeout> | undefined
 
     function clearPendingPlannedDeliveryHoverTimeout(): void {
@@ -238,43 +240,42 @@
         return gameSession.gameState.turnManager.turnOrder.map((playerId) => ({
             playerId,
             bidMultiplier:
-                BID_RESEARCH_MULTIPLIERS[gameSession.gameState.getPlayerState(playerId).research.bid] ??
-                1,
+                BID_RESEARCH_MULTIPLIERS[
+                    gameSession.gameState.getPlayerState(playerId).research.bid
+                ] ?? 1,
             turnOrderBid: bidByPlayerId[playerId] ?? null
         }))
     })
 
-    const submittedTurnOrderBidEntries: TurnOrderBidEntry[] = $derived.by(() =>
-        {
-            const bidByPlayerId = gameSession.gameState.turnOrderBids ?? {}
-            const lastTurnOrderBidAction = gameSession.actions.findLast((action) =>
-                isPlaceTurnOrderBid(action)
-            )
+    const submittedTurnOrderBidEntries: TurnOrderBidEntry[] = $derived.by(() => {
+        const bidByPlayerId = gameSession.gameState.turnOrderBids ?? {}
+        const lastTurnOrderBidAction = gameSession.actions.findLast((action) =>
+            isPlaceTurnOrderBid(action)
+        )
 
-            if (typeof lastTurnOrderBidAction?.index !== 'number') {
-                return turnOrderBidEntries
-            }
-
-            const summarizedEntries = summarizeConsecutiveTurnOrderBids(
-                gameSession.actions,
-                lastTurnOrderBidAction.index
-            ).map((entry) => ({
-                playerId: entry.playerId,
-                bidMultiplier:
-                    BID_RESEARCH_MULTIPLIERS[
-                        gameSession.gameState.getPlayerState(entry.playerId).research.bid
-                    ] ?? 1,
-                turnOrderBid: bidByPlayerId[entry.playerId] ?? null
-            }))
-
-            const summarizedPlayerIds = new Set(summarizedEntries.map((entry) => entry.playerId))
-            const remainingEntries = turnOrderBidEntries.filter(
-                (entry) => !summarizedPlayerIds.has(entry.playerId)
-            )
-
-            return [...summarizedEntries, ...remainingEntries]
+        if (typeof lastTurnOrderBidAction?.index !== 'number') {
+            return turnOrderBidEntries
         }
-    )
+
+        const summarizedEntries = summarizeConsecutiveTurnOrderBids(
+            gameSession.actions,
+            lastTurnOrderBidAction.index
+        ).map((entry) => ({
+            playerId: entry.playerId,
+            bidMultiplier:
+                BID_RESEARCH_MULTIPLIERS[
+                    gameSession.gameState.getPlayerState(entry.playerId).research.bid
+                ] ?? 1,
+            turnOrderBid: bidByPlayerId[entry.playerId] ?? null
+        }))
+
+        const summarizedPlayerIds = new Set(summarizedEntries.map((entry) => entry.playerId))
+        const remainingEntries = turnOrderBidEntries.filter(
+            (entry) => !summarizedPlayerIds.has(entry.playerId)
+        )
+
+        return [...summarizedEntries, ...remainingEntries]
+    })
 
     const showOperatingCompanyPicker = $derived.by(() => {
         return (
@@ -311,16 +312,12 @@
 
     const showOptionalProductionExpansionDoneButton = $derived.by(() => {
         return (
-            showProductionOperationsPanel &&
-            gameSession.validActionTypes.includes(ActionType.Pass)
+            showProductionOperationsPanel && gameSession.validActionTypes.includes(ActionType.Pass)
         )
     })
 
     const showOptionalShippingExpansionDoneButton = $derived.by(() => {
-        return (
-            showShippingOperationsPanel &&
-            gameSession.validActionTypes.includes(ActionType.Pass)
-        )
+        return showShippingOperationsPanel && gameSession.validActionTypes.includes(ActionType.Pass)
     })
 
     const productionOperationCanExpand = $derived.by(
@@ -331,8 +328,7 @@
 
     const shippingOperationCanExpand = $derived.by(
         () =>
-            showShippingOperationsPanel &&
-            gameSession.validActionTypes.includes(ActionType.Expand)
+            showShippingOperationsPanel && gameSession.validActionTypes.includes(ActionType.Expand)
     )
 
     const showAcquisitionsPassButton = $derived.by(() => {
@@ -365,7 +361,8 @@
     )
 
     const isSiapSajiReductionSelection = $derived.by(
-        () => showMergersPanel && gameSession.validActionTypes.includes(ActionType.RemoveSiapSajiArea)
+        () =>
+            showMergersPanel && gameSession.validActionTypes.includes(ActionType.RemoveSiapSajiArea)
     )
 
     const canPassMergerAnnouncementOnly = $derived.by(
@@ -395,7 +392,9 @@
     const companyById: Map<string, (typeof gameSession.gameState.companies)[number]> = $derived.by(
         () => new Map(gameSession.gameState.companies.map((company) => [company.id, company]))
     )
-    const styleByShippingCompanyId = $derived.by(() => shippingStyleByCompanyId(gameSession.gameState))
+    const styleByShippingCompanyId = $derived.by(() =>
+        shippingStyleByCompanyId(gameSession.gameState)
+    )
     const cityAreaByCityId: Map<string, string> = $derived.by(
         () => new Map(gameSession.gameState.board.cities.map((city) => [city.id, city.area]))
     )
@@ -571,7 +570,9 @@
         }
     })
 
-    const selectedMergerParticipantIds = $derived.by(() => selectedMergerOption?.eligibleBidderIds ?? [])
+    const selectedMergerParticipantIds = $derived.by(
+        () => selectedMergerOption?.eligibleBidderIds ?? []
+    )
 
     const selectedMergerOtherParticipantIds = $derived.by(() => {
         const myPlayerId = gameSession.myPlayer?.id
@@ -687,15 +688,21 @@
         () => canPlaceMergerBid && !mergerActionPending && !mergerBidInvalid
     )
 
-    const canSubmitPassMergerBid = $derived.by(
-        () => canPassMergerBid && !mergerActionPending
-    )
+    const canSubmitPassMergerBid = $derived.by(() => canPassMergerBid && !mergerActionPending)
 
     const mergerBidIncrement = $derived.by(() => activeMergerProposal?.bidIncrement ?? 1)
     const mergerBidNominalValue = $derived.by(() => activeMergerProposal?.nominalValue ?? 0)
 
-    function legalBidFloorAtOrBelow(limit: number, nominalValue: number, increment: number): number | null {
-        if (!Number.isFinite(limit) || !Number.isFinite(nominalValue) || !Number.isFinite(increment)) {
+    function legalBidFloorAtOrBelow(
+        limit: number,
+        nominalValue: number,
+        increment: number
+    ): number | null {
+        if (
+            !Number.isFinite(limit) ||
+            !Number.isFinite(nominalValue) ||
+            !Number.isFinite(increment)
+        ) {
             return null
         }
         if (increment <= 0) {
@@ -740,7 +747,9 @@
         }
 
         const maxBid = mergerBidMaxAmount
-        const rawBidAmount = Number.isFinite(mergerBidAmount) ? mergerBidAmount : mergerMinimumNextBid
+        const rawBidAmount = Number.isFinite(mergerBidAmount)
+            ? mergerBidAmount
+            : mergerMinimumNextBid
         const flooredBid =
             legalBidFloorAtOrBelow(rawBidAmount, mergerBidNominalValue, mergerBidIncrement) ??
             mergerBidNominalValue
@@ -901,7 +910,7 @@
                     ? shadeHexColor(hullFillColor, SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT_YELLOW)
                     : ownerPlayerColor === Color.Blue
                       ? shadeHexColor(hullFillColor, SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT_BLUE)
-                    : 'none'
+                      : 'none'
         }
     }
 
@@ -962,7 +971,8 @@
                 }
             }
         }
-        const ownerHullSize = (gameSession.gameState.getPlayerState(company.owner).research.hull ?? 0) + 1
+        const ownerHullSize =
+            (gameSession.gameState.getPlayerState(company.owner).research.hull ?? 0) + 1
         return {
             id: company.id,
             type: CompanyType.Shipping,
@@ -994,7 +1004,8 @@
     const remainingGoodsToShipForCurrentProductionOperation = $derived.by(() => {
         return Math.max(
             0,
-            maxGoodsToShipForCurrentProductionOperation - shippedGoodsCountForCurrentProductionOperation
+            maxGoodsToShipForCurrentProductionOperation -
+                shippedGoodsCountForCurrentProductionOperation
         )
     })
 
@@ -1092,7 +1103,11 @@
             }
 
             if (operationStartIndex >= 0) {
-                for (let index = operationStartIndex + 1; index < gameSession.actions.length; index += 1) {
+                for (
+                    let index = operationStartIndex + 1;
+                    index < gameSession.actions.length;
+                    index += 1
+                ) {
                     const action = gameSession.actions[index]
                     if (isChooseOperatingCompany(action)) {
                         break
@@ -1151,7 +1166,7 @@
                             shipCount: action.seaAreaIds.length,
                             shippingCost:
                                 action.metadata?.shippingCost ??
-                                    action.seaAreaIds.length * SHIPPING_FEE_PER_SHIP_USE
+                                action.seaAreaIds.length * SHIPPING_FEE_PER_SHIP_USE
                         }
                     })
                 }
@@ -1189,7 +1204,11 @@
                 )
                 if (customSelectedRouteOption.cultivatedAreaId) {
                     deliveredCultivatedAreaIdSet.add(
-                        customSelectedRouteOption.cultivatedAreaId as (typeof tentativeDeliveryContext.deliveredCultivatedAreaIdSet extends Set<infer T> ? T : never)
+                        customSelectedRouteOption.cultivatedAreaId as typeof tentativeDeliveryContext.deliveredCultivatedAreaIdSet extends Set<
+                            infer T
+                        >
+                            ? T
+                            : never
                     )
                 }
                 candidateContextForDisplay = {
@@ -1257,93 +1276,94 @@
             }
         }
 
-        const baseRemainingRows = deliveryPlanForDisplay.deliveries
-            .flatMap((delivery, index) => {
-                const rowKey = plannedDeliveryRowKey({
-                    zoneId: delivery.zoneId,
-                    cityId: delivery.cityId,
-                    shippingCompanyId: delivery.shippingCompanyId,
-                    seaPathAreaIds: delivery.seaPathAreaIds
-                })
-                const requiredQuantity = requiredQuantityByKey.get(rowKey) ?? 0
-                const plannedRouteOptionKey = plannedDeliveryRouteOptionKey({
-                    shippingCompanyId: delivery.shippingCompanyId,
-                    seaAreaIds: delivery.seaPathAreaIds
-                })
-                const alternativeCandidates = safeCandidatesForDisplay
-                    .filter(
-                        (candidate) =>
-                            candidate.zoneId === delivery.zoneId &&
-                            candidate.cityId === delivery.cityId &&
-                            candidate.seaAreaIds.length === delivery.seaPathAreaIds.length
-                    )
-                    .sort((left, right) => {
-                        const leftIsPlanned =
-                            left.shippingCompanyId === delivery.shippingCompanyId &&
-                            left.seaAreaIds.length === delivery.seaPathAreaIds.length &&
-                            left.seaAreaIds.every(
-                                (seaAreaId, candidateIndex) =>
-                                    seaAreaId === delivery.seaPathAreaIds[candidateIndex]
-                            )
-                        const rightIsPlanned =
-                            right.shippingCompanyId === delivery.shippingCompanyId &&
-                            right.seaAreaIds.length === delivery.seaPathAreaIds.length &&
-                            right.seaAreaIds.every(
-                                (seaAreaId, candidateIndex) =>
-                                    seaAreaId === delivery.seaPathAreaIds[candidateIndex]
-                            )
-                        if (leftIsPlanned !== rightIsPlanned) {
-                            return leftIsPlanned ? -1 : 1
-                        }
-                        if (left.shippingCompanyId !== right.shippingCompanyId) {
-                            return left.shippingCompanyId.localeCompare(right.shippingCompanyId)
-                        }
-                        return left.seaAreaIds.join('>').localeCompare(right.seaAreaIds.join('>'))
-                    })
-
-                const routeOptionByShippingCompanyId = new Map<string, PlannedDeliveryRouteOption>()
-                for (const candidate of alternativeCandidates) {
-                    if (routeOptionByShippingCompanyId.has(candidate.shippingCompanyId)) {
-                        continue
-                    }
-                    routeOptionByShippingCompanyId.set(candidate.shippingCompanyId, {
-                        key: plannedDeliveryRouteOptionKey({
-                            shippingCompanyId: candidate.shippingCompanyId,
-                            seaAreaIds: candidate.seaAreaIds
-                        }),
-                        zoneId: candidate.zoneId,
-                        cityId: candidate.cityId,
-                        shippingCompanyId: candidate.shippingCompanyId,
-                        seaAreaIds: candidate.seaAreaIds,
-                        cultivatedAreaId: candidate.cultivatedAreaId,
-                        shipCount: candidate.seaAreaIds.length,
-                        shippingCost: candidate.seaAreaIds.length * SHIPPING_FEE_PER_SHIP_USE,
-                        candidate
-                    })
-                }
-
-                return splitQuantifiedPlannedDeliveryRow({
-                    key: rowKey,
-                    zoneId: delivery.zoneId,
-                    cityId: delivery.cityId,
-                    quantity: delivery.quantity,
-                    destinationLabel: cityDestinationLabel(delivery.cityId),
-                    requiredQuantity,
-                    plannedRouteOptionKey,
-                    routeOptions: [...routeOptionByShippingCompanyId.values()].sort((left, right) => {
-                        const leftIsPlanned = left.key === plannedRouteOptionKey
-                        const rightIsPlanned = right.key === plannedRouteOptionKey
-                        if (leftIsPlanned !== rightIsPlanned) {
-                            return leftIsPlanned ? -1 : 1
-                        }
-                        return left.shippingCompanyId.localeCompare(right.shippingCompanyId)
-                    }),
-                    index
-                })
+        const baseRemainingRows = deliveryPlanForDisplay.deliveries.flatMap((delivery, index) => {
+            const rowKey = plannedDeliveryRowKey({
+                zoneId: delivery.zoneId,
+                cityId: delivery.cityId,
+                shippingCompanyId: delivery.shippingCompanyId,
+                seaPathAreaIds: delivery.seaPathAreaIds
             })
+            const requiredQuantity = requiredQuantityByKey.get(rowKey) ?? 0
+            const plannedRouteOptionKey = plannedDeliveryRouteOptionKey({
+                shippingCompanyId: delivery.shippingCompanyId,
+                seaAreaIds: delivery.seaPathAreaIds
+            })
+            const alternativeCandidates = safeCandidatesForDisplay
+                .filter(
+                    (candidate) =>
+                        candidate.zoneId === delivery.zoneId &&
+                        candidate.cityId === delivery.cityId &&
+                        candidate.seaAreaIds.length === delivery.seaPathAreaIds.length
+                )
+                .sort((left, right) => {
+                    const leftIsPlanned =
+                        left.shippingCompanyId === delivery.shippingCompanyId &&
+                        left.seaAreaIds.length === delivery.seaPathAreaIds.length &&
+                        left.seaAreaIds.every(
+                            (seaAreaId, candidateIndex) =>
+                                seaAreaId === delivery.seaPathAreaIds[candidateIndex]
+                        )
+                    const rightIsPlanned =
+                        right.shippingCompanyId === delivery.shippingCompanyId &&
+                        right.seaAreaIds.length === delivery.seaPathAreaIds.length &&
+                        right.seaAreaIds.every(
+                            (seaAreaId, candidateIndex) =>
+                                seaAreaId === delivery.seaPathAreaIds[candidateIndex]
+                        )
+                    if (leftIsPlanned !== rightIsPlanned) {
+                        return leftIsPlanned ? -1 : 1
+                    }
+                    if (left.shippingCompanyId !== right.shippingCompanyId) {
+                        return left.shippingCompanyId.localeCompare(right.shippingCompanyId)
+                    }
+                    return left.seaAreaIds.join('>').localeCompare(right.seaAreaIds.join('>'))
+                })
+
+            const routeOptionByShippingCompanyId = new Map<string, PlannedDeliveryRouteOption>()
+            for (const candidate of alternativeCandidates) {
+                if (routeOptionByShippingCompanyId.has(candidate.shippingCompanyId)) {
+                    continue
+                }
+                routeOptionByShippingCompanyId.set(candidate.shippingCompanyId, {
+                    key: plannedDeliveryRouteOptionKey({
+                        shippingCompanyId: candidate.shippingCompanyId,
+                        seaAreaIds: candidate.seaAreaIds
+                    }),
+                    zoneId: candidate.zoneId,
+                    cityId: candidate.cityId,
+                    shippingCompanyId: candidate.shippingCompanyId,
+                    seaAreaIds: candidate.seaAreaIds,
+                    cultivatedAreaId: candidate.cultivatedAreaId,
+                    shipCount: candidate.seaAreaIds.length,
+                    shippingCost: candidate.seaAreaIds.length * SHIPPING_FEE_PER_SHIP_USE,
+                    candidate
+                })
+            }
+
+            return splitQuantifiedPlannedDeliveryRow({
+                key: rowKey,
+                zoneId: delivery.zoneId,
+                cityId: delivery.cityId,
+                quantity: delivery.quantity,
+                destinationLabel: cityDestinationLabel(delivery.cityId),
+                requiredQuantity,
+                plannedRouteOptionKey,
+                routeOptions: [...routeOptionByShippingCompanyId.values()].sort((left, right) => {
+                    const leftIsPlanned = left.key === plannedRouteOptionKey
+                    const rightIsPlanned = right.key === plannedRouteOptionKey
+                    if (leftIsPlanned !== rightIsPlanned) {
+                        return leftIsPlanned ? -1 : 1
+                    }
+                    return left.shippingCompanyId.localeCompare(right.shippingCompanyId)
+                }),
+                index
+            })
+        })
 
         const displayedRowsRemainStableAfterSelection = (
-            problemAfterSelection: NonNullable<ReturnType<typeof buildDeliveryOperationContext>>['problem'],
+            problemAfterSelection: NonNullable<
+                ReturnType<typeof buildDeliveryOperationContext>
+            >['problem'],
             selectionCountAfterSelection: number,
             selectedRowKeys: ReadonlySet<string>
         ) => {
@@ -1384,7 +1404,9 @@
         const baseRemainingRowByKey = new Map(baseRemainingRows.map((row) => [row.key, row]))
         const acceptedTentativeRouteOptionByRowKey = new Map<string, PlannedDeliveryRouteOption>()
         const explicitlySelectedRouteOptions: ExplicitlySelectedRouteOption[] = []
-        for (const [rowKey, routeOptionKey] of Object.entries(selectedPlannedRouteOptionKeyByRowKey)) {
+        for (const [rowKey, routeOptionKey] of Object.entries(
+            selectedPlannedRouteOptionKeyByRowKey
+        )) {
             const row = baseRemainingRowByKey.get(rowKey)
             if (!row) {
                 continue
@@ -1415,10 +1437,7 @@
                     tentativeDeliveryContext.shippedSoFar,
                     acceptedTentativeSelectionCount,
                     selection.routeOption,
-                    Math.max(
-                        0,
-                        baselineRemainingRowCount - (acceptedTentativeSelectionCount + 1)
-                    )
+                    Math.max(0, baselineRemainingRowCount - (acceptedTentativeSelectionCount + 1))
                 )
                 if (!nextProblem) {
                     continue
@@ -1446,7 +1465,10 @@
             let problemAfterOtherTentativeSelections = baseTentativeProblem
             let otherTentativeSelectionCount = baseTentativeSelectionCount
             if (problemAfterOtherTentativeSelections && tentativeDeliveryContext) {
-                for (const [selectedRowKey, selectedRouteOption] of acceptedTentativeRouteOptionByRowKey) {
+                for (const [
+                    selectedRowKey,
+                    selectedRouteOption
+                ] of acceptedTentativeRouteOptionByRowKey) {
                     if (selectedRowKey === baseRow.key) {
                         continue
                     }
@@ -1473,29 +1495,27 @@
                     return true
                 }
 
-                return (
-                    (() => {
-                        const nextProblem = applyTentativeRouteOptionIfCompatible(
-                            problemAfterOtherTentativeSelections,
-                            tentativeDeliveryContext.originalTarget,
-                            tentativeDeliveryContext.shippedSoFar,
-                            otherTentativeSelectionCount,
-                            routeOption,
-                            Math.max(0, baselineRemainingRowCount - (otherTentativeSelectionCount + 1))
-                        )
-                        if (!nextProblem) {
-                            return false
-                        }
+                return (() => {
+                    const nextProblem = applyTentativeRouteOptionIfCompatible(
+                        problemAfterOtherTentativeSelections,
+                        tentativeDeliveryContext.originalTarget,
+                        tentativeDeliveryContext.shippedSoFar,
+                        otherTentativeSelectionCount,
+                        routeOption,
+                        Math.max(0, baselineRemainingRowCount - (otherTentativeSelectionCount + 1))
+                    )
+                    if (!nextProblem) {
+                        return false
+                    }
 
-                        const selectedRowKeys = new Set(acceptedTentativeRouteOptionByRowKey.keys())
-                        selectedRowKeys.add(baseRow.key)
-                        return displayedRowsRemainStableAfterSelection(
-                            nextProblem,
-                            otherTentativeSelectionCount + 1,
-                            selectedRowKeys
-                        )
-                    })()
-                )
+                    const selectedRowKeys = new Set(acceptedTentativeRouteOptionByRowKey.keys())
+                    selectedRowKeys.add(baseRow.key)
+                    return displayedRowsRemainStableAfterSelection(
+                        nextProblem,
+                        otherTentativeSelectionCount + 1,
+                        selectedRowKeys
+                    )
+                })()
             })
             const selectedRoute =
                 acceptedTentativeRouteOptionByRowKey.get(baseRow.key) ??
@@ -1634,14 +1654,10 @@
             )[0]
             if (newestSelection) {
                 const [newestRowKey] = newestSelection
-                const {
-                    [newestRowKey]: _removedRouteKey,
-                    ...remainingSelections
-                } = selectedPlannedRouteOptionKeyByRowKey
-                const {
-                    [newestRowKey]: _removedOrder,
-                    ...remainingSelectionOrders
-                } = selectedPlannedRouteOptionOrderByRowKey
+                const { [newestRowKey]: _removedRouteKey, ...remainingSelections } =
+                    selectedPlannedRouteOptionKeyByRowKey
+                const { [newestRowKey]: _removedOrder, ...remainingSelectionOrders } =
+                    selectedPlannedRouteOptionOrderByRowKey
                 selectedPlannedRouteOptionKeyByRowKey = remainingSelections
                 selectedPlannedRouteOptionOrderByRowKey = remainingSelectionOrders
             }
@@ -1665,7 +1681,11 @@
             nextSelectionOrders[rowKey] = selectedPlannedRouteOptionOrderByRowKey[rowKey] ?? 0
         }
 
-        if (changed || Object.keys(nextSelections).length !== Object.keys(selectedPlannedRouteOptionKeyByRowKey).length) {
+        if (
+            changed ||
+            Object.keys(nextSelections).length !==
+                Object.keys(selectedPlannedRouteOptionKeyByRowKey).length
+        ) {
             selectedPlannedRouteOptionKeyByRowKey = nextSelections
         }
         if (
@@ -1779,7 +1799,10 @@
             case MachineState.Operations:
                 return 'Choose a company to operate.'
             case MachineState.ShippingOperations:
-                if (!shippingOperationCanExpand && gameSession.validActionTypes.includes(ActionType.Pass)) {
+                if (
+                    !shippingOperationCanExpand &&
+                    gameSession.validActionTypes.includes(ActionType.Pass)
+                ) {
                     return 'No legal shipping expansion available. Finish operation.'
                 }
                 return 'You may expand the shipping company or finish.'
@@ -2123,7 +2146,6 @@
             passingMergerBid = false
         }
     }
-
 </script>
 
 <div
@@ -2139,7 +2161,9 @@
             <div class="bid-tracker-content">
                 {#if showTurnOrderBidFormula}
                     <form class="bid-formula" onsubmit={submitTurnOrderBid}>
-                        <label class="sr-only" for="turn-order-bid-input">Turn order bid amount</label>
+                        <label class="sr-only" for="turn-order-bid-input"
+                            >Turn order bid amount</label
+                        >
                         <span class="formula-equation">
                             <span class={`bid-slot ${bidInputInvalid ? 'is-invalid' : ''}`}>
                                 <input
@@ -2256,7 +2280,9 @@
                         <span class="planned-delivery-title">Delivery Plan</span>
                         <span class="planned-delivery-header-spacer"></span>
                         <span class="planned-delivery-header-spacer"></span>
-                        <span class="planned-delivery-column-title planned-delivery-column-title-profit">
+                        <span
+                            class="planned-delivery-column-title planned-delivery-column-title-profit"
+                        >
                             Profit
                         </span>
                     </div>
@@ -2339,26 +2365,33 @@
                                     </button>
                                 {/if}
                                 <span class="planned-delivery-city">
-                                    <span class="planned-delivery-city-name">{row.destinationLabel}</span>
+                                    <span class="planned-delivery-city-name"
+                                        >{row.destinationLabel}</span
+                                    >
                                     {#if row.required && !row.shipped}
                                         <span class="planned-delivery-city-required">required</span>
                                     {/if}
                                 </span>
                                 {#if row.quantity > 1}
                                     <span class="planned-delivery-quantity">
-                                        {row.quantity} {currentProductionGoodLabel ?? 'goods'}
+                                        {row.quantity}
+                                        {currentProductionGoodLabel ?? 'goods'}
                                     </span>
                                 {:else}
                                     <span></span>
                                 {/if}
                                 <span class="planned-delivery-ships">
-                                    <span class="planned-delivery-ships-count">{row.shipCount}x</span>
+                                    <span class="planned-delivery-ships-count"
+                                        >{row.shipCount}x</span
+                                    >
                                     <span class="planned-delivery-ship-options">
                                         {#each row.routeOptions as routeOption, routeOptionIndex (routeOption.key)}
-                                            {@const routeMarkerVisual = shippingMarkerVisualForCompany(
-                                                routeOption.shippingCompanyId
-                                            )}
-                                            {@const isSelectedRouteOption = routeOption.key === row.selectedRoute.key}
+                                            {@const routeMarkerVisual =
+                                                shippingMarkerVisualForCompany(
+                                                    routeOption.shippingCompanyId
+                                                )}
+                                            {@const isSelectedRouteOption =
+                                                routeOption.key === row.selectedRoute.key}
                                             {#if row.shipped}
                                                 <span
                                                     class="planned-delivery-ship-option is-static"
@@ -2393,40 +2426,51 @@
                                                         setPlannedDeliveryHover({
                                                             zoneId: routeOption.zoneId,
                                                             cityId: routeOption.cityId,
-                                                            shippingCompanyId: routeOption.shippingCompanyId,
+                                                            shippingCompanyId:
+                                                                routeOption.shippingCompanyId,
                                                             seaAreaIds: routeOption.seaAreaIds,
-                                                            cultivatedAreaId: routeOption.cultivatedAreaId
+                                                            cultivatedAreaId:
+                                                                routeOption.cultivatedAreaId
                                                         })
                                                     }}
                                                     onmouseleave={() => {
                                                         schedulePlannedDeliveryHover({
                                                             zoneId: row.selectedRoute.zoneId,
                                                             cityId: row.selectedRoute.cityId,
-                                                            shippingCompanyId: row.selectedRoute.shippingCompanyId,
-                                                            seaAreaIds: row.selectedRoute.seaAreaIds,
-                                                            cultivatedAreaId: row.selectedRoute.cultivatedAreaId
+                                                            shippingCompanyId:
+                                                                row.selectedRoute.shippingCompanyId,
+                                                            seaAreaIds:
+                                                                row.selectedRoute.seaAreaIds,
+                                                            cultivatedAreaId:
+                                                                row.selectedRoute.cultivatedAreaId
                                                         })
                                                     }}
                                                     onfocus={() => {
                                                         setPlannedDeliveryHover({
                                                             zoneId: routeOption.zoneId,
                                                             cityId: routeOption.cityId,
-                                                            shippingCompanyId: routeOption.shippingCompanyId,
+                                                            shippingCompanyId:
+                                                                routeOption.shippingCompanyId,
                                                             seaAreaIds: routeOption.seaAreaIds,
-                                                            cultivatedAreaId: routeOption.cultivatedAreaId
+                                                            cultivatedAreaId:
+                                                                routeOption.cultivatedAreaId
                                                         })
                                                     }}
                                                     onblur={() => {
                                                         schedulePlannedDeliveryHover({
                                                             zoneId: row.selectedRoute.zoneId,
                                                             cityId: row.selectedRoute.cityId,
-                                                            shippingCompanyId: row.selectedRoute.shippingCompanyId,
-                                                            seaAreaIds: row.selectedRoute.seaAreaIds,
-                                                            cultivatedAreaId: row.selectedRoute.cultivatedAreaId
+                                                            shippingCompanyId:
+                                                                row.selectedRoute.shippingCompanyId,
+                                                            seaAreaIds:
+                                                                row.selectedRoute.seaAreaIds,
+                                                            cultivatedAreaId:
+                                                                row.selectedRoute.cultivatedAreaId
                                                         })
                                                     }}
                                                     onclick={() => {
-                                                        const nextOrder = nextPlannedRouteOptionOrder + 1
+                                                        const nextOrder =
+                                                            nextPlannedRouteOptionOrder + 1
                                                         nextPlannedRouteOptionOrder = nextOrder
                                                         selectedPlannedRouteOptionKeyByRowKey = {
                                                             ...selectedPlannedRouteOptionKeyByRowKey,
@@ -2439,13 +2483,18 @@
                                                         setPlannedDeliveryHover({
                                                             zoneId: routeOption.zoneId,
                                                             cityId: routeOption.cityId,
-                                                            shippingCompanyId: routeOption.shippingCompanyId,
+                                                            shippingCompanyId:
+                                                                routeOption.shippingCompanyId,
                                                             seaAreaIds: routeOption.seaAreaIds,
-                                                            cultivatedAreaId: routeOption.cultivatedAreaId
+                                                            cultivatedAreaId:
+                                                                routeOption.cultivatedAreaId
                                                         })
                                                     }}
                                                 >
-                                                    <span class={`planned-delivery-ship-icon-wrap ${isSelectedRouteOption ? 'is-selected' : ''}`} aria-hidden="true">
+                                                    <span
+                                                        class={`planned-delivery-ship-icon-wrap ${isSelectedRouteOption ? 'is-selected' : ''}`}
+                                                        aria-hidden="true"
+                                                    >
                                                         <svg
                                                             class={`planned-delivery-ship-icon-svg ${isSelectedRouteOption ? 'is-selected' : ''}`}
                                                             viewBox="0 0 60 42"
@@ -2456,18 +2505,24 @@
                                                                 x={30}
                                                                 y={21}
                                                                 style={routeMarkerVisual.style}
-                                                                height={isSelectedRouteOption ? 34 : 32}
+                                                                height={isSelectedRouteOption
+                                                                    ? 34
+                                                                    : 32}
                                                                 outline={false}
                                                                 hullFillColor={routeMarkerVisual.hullFillColor}
                                                                 hullStrokeColor={routeMarkerVisual.hullStrokeColor}
-                                                                hullStrokeWidth={isSelectedRouteOption ? 10 : 8}
+                                                                hullStrokeWidth={isSelectedRouteOption
+                                                                    ? 10
+                                                                    : 8}
                                                             />
                                                         </svg>
                                                     </span>
                                                 </button>
                                             {/if}
                                             {#if routeOptionIndex < row.routeOptions.length - 1}
-                                                <span class="planned-delivery-ship-option-separator">/</span>
+                                                <span class="planned-delivery-ship-option-separator"
+                                                    >/</span
+                                                >
                                             {/if}
                                         {/each}
                                     </span>
@@ -2485,7 +2540,9 @@
                         <span class="planned-delivery-title">Custom Delivery</span>
                         <span class="planned-delivery-header-spacer"></span>
                         <span class="planned-delivery-header-spacer"></span>
-                        <span class="planned-delivery-column-title planned-delivery-column-title-profit">
+                        <span
+                            class="planned-delivery-column-title planned-delivery-column-title-profit"
+                        >
                             Profit
                         </span>
                     </div>
@@ -2494,7 +2551,9 @@
                             class="planned-delivery-row"
                             role="presentation"
                             onmouseenter={() => {
-                                gameSession.setHoveredDeliveryRoute(customDeliveryRow.selectedRoute.key)
+                                gameSession.setHoveredDeliveryRoute(
+                                    customDeliveryRow.selectedRoute.key
+                                )
                             }}
                             onmouseleave={() => {
                                 gameSession.setHoveredDeliveryRoute(undefined)
@@ -2505,7 +2564,9 @@
                                 class="planned-delivery-ship-button"
                                 disabled={deliveringGood}
                                 onclick={() => {
-                                    submitDeliveryShippingChoice(customDeliveryRow.selectedRoute.key)
+                                    submitDeliveryShippingChoice(
+                                        customDeliveryRow.selectedRoute.key
+                                    )
                                 }}
                             >
                                 Ship
@@ -2528,8 +2589,12 @@
                                         {@const isSelectedRouteOption =
                                             routeOption.key === customDeliveryRow.selectedRoute.key}
                                         {#if customDeliveryRow.routeOptions.length === 1}
-                                            <span class="planned-delivery-ship-option is-static is-selected">
-                                                <span class="planned-delivery-ship-icon-wrap is-selected">
+                                            <span
+                                                class="planned-delivery-ship-option is-static is-selected"
+                                            >
+                                                <span
+                                                    class="planned-delivery-ship-icon-wrap is-selected"
+                                                >
                                                     <svg
                                                         class="planned-delivery-ship-icon-svg is-selected"
                                                         viewBox="0 0 60 42"
@@ -2556,10 +2621,13 @@
                                                 aria-label={`Use ${routeOption.shipCount} ships from shipping company ${routeOption.shippingCompanyId}`}
                                                 aria-pressed={isSelectedRouteOption}
                                                 onclick={() => {
-                                                    selectedCustomDeliveryRouteKeyDraft = routeOption.key
+                                                    selectedCustomDeliveryRouteKeyDraft =
+                                                        routeOption.key
                                                 }}
                                                 onmouseenter={() => {
-                                                    gameSession.setHoveredDeliveryRoute(routeOption.key)
+                                                    gameSession.setHoveredDeliveryRoute(
+                                                        routeOption.key
+                                                    )
                                                 }}
                                                 onmouseleave={() => {
                                                     gameSession.setHoveredDeliveryRoute(
@@ -2567,7 +2635,9 @@
                                                     )
                                                 }}
                                                 onfocus={() => {
-                                                    gameSession.setHoveredDeliveryRoute(routeOption.key)
+                                                    gameSession.setHoveredDeliveryRoute(
+                                                        routeOption.key
+                                                    )
                                                 }}
                                                 onblur={() => {
                                                     gameSession.setHoveredDeliveryRoute(
@@ -2575,7 +2645,10 @@
                                                     )
                                                 }}
                                             >
-                                                <span class={`planned-delivery-ship-icon-wrap ${isSelectedRouteOption ? 'is-selected' : ''}`} aria-hidden="true">
+                                                <span
+                                                    class={`planned-delivery-ship-icon-wrap ${isSelectedRouteOption ? 'is-selected' : ''}`}
+                                                    aria-hidden="true"
+                                                >
                                                     <svg
                                                         class={`planned-delivery-ship-icon-svg ${isSelectedRouteOption ? 'is-selected' : ''}`}
                                                         viewBox="0 0 60 42"
@@ -2590,14 +2663,18 @@
                                                             outline={false}
                                                             hullFillColor={routeMarkerVisual.hullFillColor}
                                                             hullStrokeColor={routeMarkerVisual.hullStrokeColor}
-                                                            hullStrokeWidth={isSelectedRouteOption ? 10 : 8}
+                                                            hullStrokeWidth={isSelectedRouteOption
+                                                                ? 10
+                                                                : 8}
                                                         />
                                                     </svg>
                                                 </span>
                                             </button>
                                         {/if}
                                         {#if routeOptionIndex < customDeliveryRow.routeOptions.length - 1}
-                                            <span class="planned-delivery-ship-option-separator">/</span>
+                                            <span class="planned-delivery-ship-option-separator"
+                                                >/</span
+                                            >
                                         {/if}
                                     {/each}
                                 </span>
@@ -2637,7 +2714,9 @@
                         <button
                             type="button"
                             class="merger-carousel-nav merger-carousel-nav-left"
-                            disabled={mergerActionPending || mergerOptionRows.length <= 1 || selectedMergerOptionIndex <= 0}
+                            disabled={mergerActionPending ||
+                                mergerOptionRows.length <= 1 ||
+                                selectedMergerOptionIndex <= 0}
                             aria-label="Previous merger"
                             onclick={selectPreviousMergerOption}
                         >
@@ -2672,11 +2751,17 @@
                                                     additionalClasses="text-[11px] leading-[1.1] py-[1px] tracking-[0.02em]"
                                                 />
                                             {/if}
-                                            <span class="merger-option-mini-card-wrap" aria-hidden="true">
+                                            <span
+                                                class="merger-option-mini-card-wrap"
+                                                aria-hidden="true"
+                                            >
                                                 <PlayerCompanyCompactCard card={row.companyACard} />
                                             </span>
                                         </span>
-                                        <span class="merger-option-plus merger-option-plus-proposal" aria-hidden="true">+</span>
+                                        <span
+                                            class="merger-option-plus merger-option-plus-proposal"
+                                            aria-hidden="true">+</span
+                                        >
                                         <span class="merger-option-company-stack">
                                             {#if companyBOwnerId}
                                                 <PlayerName
@@ -2685,7 +2770,10 @@
                                                     additionalClasses="text-[11px] leading-[1.1] py-[1px] tracking-[0.02em]"
                                                 />
                                             {/if}
-                                            <span class="merger-option-mini-card-wrap" aria-hidden="true">
+                                            <span
+                                                class="merger-option-mini-card-wrap"
+                                                aria-hidden="true"
+                                            >
                                                 <PlayerCompanyCompactCard card={row.companyBCard} />
                                             </span>
                                         </span>
@@ -2696,7 +2784,9 @@
                         <button
                             type="button"
                             class="merger-carousel-nav merger-carousel-nav-right"
-                            disabled={mergerActionPending || mergerOptionRows.length <= 1 || selectedMergerOptionIndex >= mergerOptionRows.length - 1}
+                            disabled={mergerActionPending ||
+                                mergerOptionRows.length <= 1 ||
+                                selectedMergerOptionIndex >= mergerOptionRows.length - 1}
                             aria-label="Next merger"
                             onclick={selectNextMergerOption}
                         >
@@ -2798,7 +2888,9 @@
                                 />
                             {/if}
                             <span class="merger-option-mini-card-wrap">
-                                <PlayerCompanyCompactCard card={activeMergerBidCompanyCards.companyACard} />
+                                <PlayerCompanyCompactCard
+                                    card={activeMergerBidCompanyCards.companyACard}
+                                />
                             </span>
                         </span>
                         <span class="merger-option-plus merger-option-plus-bid">+</span>
@@ -2811,7 +2903,9 @@
                                 />
                             {/if}
                             <span class="merger-option-mini-card-wrap">
-                                <PlayerCompanyCompactCard card={activeMergerBidCompanyCards.companyBCard} />
+                                <PlayerCompanyCompactCard
+                                    card={activeMergerBidCompanyCards.companyBCard}
+                                />
                             </span>
                         </span>
                     </div>
@@ -2849,7 +2943,9 @@
                             -
                         </button>
                         <label class="sr-only" for="merger-bid-input">Merger bid amount</label>
-                        <span class={`merger-bid-input-slot ${mergerBidInvalid ? 'is-invalid' : ''}`}>
+                        <span
+                            class={`merger-bid-input-slot ${mergerBidInvalid ? 'is-invalid' : ''}`}
+                        >
                             <input
                                 id="merger-bid-input"
                                 class="merger-bid-input indonesia-font"
@@ -3127,11 +3223,7 @@
         border: 0;
         border-right: 1px solid rgba(96, 71, 43, 0.44);
         border-radius: 0;
-        background: linear-gradient(
-            180deg,
-            rgba(250, 241, 220, 0.86),
-            rgba(219, 198, 163, 0.78)
-        );
+        background: linear-gradient(180deg, rgba(250, 241, 220, 0.86), rgba(219, 198, 163, 0.78));
         box-shadow: inset 0 1px 0 rgba(255, 251, 242, 0.7);
         color: #3d2d1d;
         font-family: inherit;
@@ -3147,11 +3239,7 @@
 
     .planned-delivery-ship-button:hover:enabled,
     .planned-delivery-ship-button:focus-visible {
-        background: linear-gradient(
-            180deg,
-            rgba(255, 246, 226, 0.92),
-            rgba(228, 208, 174, 0.82)
-        );
+        background: linear-gradient(180deg, rgba(255, 246, 226, 0.92), rgba(228, 208, 174, 0.82));
         outline: none;
     }
 
@@ -3642,7 +3730,9 @@
         min-width: 38px;
         height: 28px;
         padding: 0 10px;
-        transition: background 140ms ease, opacity 140ms ease;
+        transition:
+            background 140ms ease,
+            opacity 140ms ease;
     }
 
     .merger-bid-stepper:hover:enabled {
@@ -3878,25 +3968,19 @@
     .commit-bid {
         border: 1px solid rgba(96, 71, 43, 0.44);
         border-radius: 999px;
-        background: linear-gradient(
-            180deg,
-            rgba(250, 241, 220, 0.86),
-            rgba(219, 198, 163, 0.78)
-        );
+        background: linear-gradient(180deg, rgba(250, 241, 220, 0.86), rgba(219, 198, 163, 0.78));
         color: #3d2d1d;
         text-transform: uppercase;
         letter-spacing: 0.08em;
         font-size: 12px;
         padding: 7px 12px 6px;
-        transition: background 140ms ease, opacity 140ms ease;
+        transition:
+            background 140ms ease,
+            opacity 140ms ease;
     }
 
     .commit-bid:hover:enabled {
-        background: linear-gradient(
-            180deg,
-            rgba(255, 246, 226, 0.92),
-            rgba(228, 208, 174, 0.82)
-        );
+        background: linear-gradient(180deg, rgba(255, 246, 226, 0.92), rgba(228, 208, 174, 0.82));
     }
 
     .commit-bid:disabled {
@@ -3907,25 +3991,19 @@
     .finish-production-expansion {
         border: 1px solid rgba(96, 71, 43, 0.44);
         border-radius: 999px;
-        background: linear-gradient(
-            180deg,
-            rgba(250, 241, 220, 0.86),
-            rgba(219, 198, 163, 0.78)
-        );
+        background: linear-gradient(180deg, rgba(250, 241, 220, 0.86), rgba(219, 198, 163, 0.78));
         color: #3d2d1d;
         text-transform: uppercase;
         letter-spacing: 0.08em;
         font-size: 12px;
         padding: 7px 12px 6px;
-        transition: background 140ms ease, opacity 140ms ease;
+        transition:
+            background 140ms ease,
+            opacity 140ms ease;
     }
 
     .finish-production-expansion:hover:enabled {
-        background: linear-gradient(
-            180deg,
-            rgba(255, 246, 226, 0.92),
-            rgba(228, 208, 174, 0.82)
-        );
+        background: linear-gradient(180deg, rgba(255, 246, 226, 0.92), rgba(228, 208, 174, 0.82));
     }
 
     .finish-production-expansion:disabled {

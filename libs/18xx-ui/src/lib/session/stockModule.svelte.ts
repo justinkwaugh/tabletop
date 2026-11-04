@@ -2,8 +2,6 @@ import { assert, assertExists, type GameAction } from '@tabletop/common'
 import {
     BuyShares,
     awardParSpaces,
-    companyHomeOptions,
-    startHomeLocationIds,
     FinishStockTurn,
     OfferPrivatePurchase,
     ParCompany,
@@ -24,10 +22,13 @@ import {
     privateSaleChoices,
     privateSaleOfferReason,
     suggestedPrivateSalePrice,
+    sameCenter,
     sameOwner,
     sharesOwned,
     type CompanyStartRequest,
     type EighteenXXState,
+    type HomePosition,
+    type StartHome,
     type EighteenXXTitleRules,
     type Owner,
     type PurchaseRequest,
@@ -42,7 +43,7 @@ import {
     type StockActionStages
 } from '../stock/stockActionSelection.js'
 import { CompanyStartStageOrder, type CompanyStartStages } from './companyStartSelection.js'
-import type { LocalSelection } from './localSelections.js'
+import type { LocalSelection } from '@tabletop/frontend-components'
 import type { ModuleSession } from './moduleSession.js'
 import { StagedSelection, singleChoice } from './stagedSelection.svelte.js'
 
@@ -71,8 +72,7 @@ export class StockModule implements LocalSelection {
     constructor(
         private readonly session: StockSession,
         private readonly onCancel: () => void,
-        private readonly exchangeAvailable: () => boolean = () => false,
-        private readonly additionalMenuCount: () => number = () => 0
+        private readonly exchangeAvailable: () => boolean = () => false
     ) {}
 
     private trading = $derived.by(
@@ -96,20 +96,9 @@ export class StockModule implements LocalSelection {
         if (this.privateChoices.length) choices.push({ menu: 'privates' })
         return choices
     })
-    private menuSelection = $derived.by(() => {
-        if (!this.trading) return undefined
-        const selected = this.menu.entry('action')
-        if (selected) return selected
-        if (
-            !this.session.interactive ||
-            !this.session.playerId ||
-            !this.session.state.activePlayerIds.includes(this.session.playerId) ||
-            this.additionalMenuCount() ||
-            this.availableMenus.length !== 1
-        )
-            return undefined
-        return { value: this.availableMenus[0], source: 'auto' as const }
-    })
+    private menuSelection = $derived.by(() =>
+        this.trading ? this.menu.entry('action') : undefined
+    )
     openMenu = $derived.by(() => this.menuSelection?.value.menu)
     menuBuyer = $derived.by(() => this.menuSelection?.value.buyer)
     selectedSaleCompany = $derived.by(() => this.menu.value('saleCompany'))
@@ -134,6 +123,25 @@ export class StockModule implements LocalSelection {
         () => this.trading && this.auctionsCompanies && this.unstartedCompanies().length > 0
     )
 
+    private startHomes(companyId: string, marketSpaceId: string): StartHome[] | undefined {
+        return this.session.rules.companyRules.startHomes?.(
+            this.session.state,
+            companyId,
+            marketSpaceId
+        )
+    }
+    /**
+     * The home a start at this price would use: the chosen one, or before a choice the cheapest,
+     * so a price is offered when some home makes it possible.
+     */
+    private startHome(companyId: string, marketSpaceId: string): HomePosition | undefined {
+        const homes = this.startHomes(companyId, marketSpaceId)
+        if (!homes) return undefined
+        const chosen = this.selectedStartHome
+        if (chosen && this.selectedStartCompany?.companyId === companyId) return chosen
+        const cheapest = homes.toSorted((a, b) => a.cost - b.cost)[0]
+        return cheapest ? { locationId: cheapest.locationId, nodeId: cheapest.nodeId } : undefined
+    }
     startChoices = $derived.by(() => {
         const { state, rules, playerId } = this.session
         if (!playerId || !this.trading || state.stockRound.turn.bought) return []
@@ -141,26 +149,20 @@ export class StockModule implements LocalSelection {
             this.unstartedCompanies()
                 .map((company) => {
                     const request = { playerId, buyer, companyId: company.id }
-                    const [homeLocationId] = startHomeLocationIds(
-                        state,
-                        rules.companyRules,
-                        company.id
-                    )
                     const prices = rules.companyRules
                         .startMarketSpaces(state, company.id)
-                        .map((marketSpaceId) => ({
-                            marketSpaceId,
-                            result: evaluateCompanyStart(
-                                state,
-                                {
-                                    ...request,
-                                    marketSpaceId,
-                                    ...(homeLocationId ? { homeLocationId } : {})
-                                },
-                                rules.stockRules,
-                                rules.companyRules
-                            )
-                        }))
+                        .map((marketSpaceId) => {
+                            const home = this.startHome(company.id, marketSpaceId)
+                            return {
+                                marketSpaceId,
+                                result: evaluateCompanyStart(
+                                    state,
+                                    { ...request, marketSpaceId, ...(home ? { home } : {}) },
+                                    rules.stockRules,
+                                    rules.companyRules
+                                )
+                            }
+                        })
                     return { request, prices }
                 })
                 .filter((choice) => choice.prices.length > 0)
@@ -169,29 +171,38 @@ export class StockModule implements LocalSelection {
     selectedStartCompany = $derived.by(() =>
         this.session.selectionsVisible ? this.start.value('company') : undefined
     )
-    /** The homes the selected company's president chooses from, when its home is not printed. */
-    startHomes = $derived.by(() => {
-        const company = this.selectedStartCompany
-        return company
-            ? companyHomeOptions(
-                  this.session.state,
-                  this.session.rules.companyRules,
-                  company.companyId
-              )
-            : undefined
-    })
-    /** The homes offered on the map once a price is chosen and before the start is confirmed. */
-    offeredStartHomeLocationIds = $derived.by(() =>
-        this.startHomes && this.start.value('marketSpaceId') && this.session.interactive
-            ? this.startHomes.map((home) => home.locationId)
-            : []
+    selectedStartHome = $derived.by(() =>
+        this.session.selectionsVisible ? this.start.value('home') : undefined
     )
+    /** Every city offered for the chosen company's home, at any of its prices. */
+    private offeredStartHomes = $derived.by((): StartHome[] => {
+        const company = this.selectedStartCompany
+        if (!company || !this.trading) return []
+        const homes: StartHome[] = []
+        for (const marketSpaceId of this.session.rules.companyRules.startMarketSpaces(
+            this.session.state,
+            company.companyId
+        ))
+            for (const home of this.startHomes(company.companyId, marketSpaceId) ?? [])
+                if (!homes.some((entry) => sameCenter(entry, home))) homes.push(home)
+        return homes
+    })
+    /** The cities offered on the map for the chosen company's home, until one is chosen. */
+    homePositions = $derived.by(() => (this.selectedStartHome ? [] : this.offeredStartHomes))
+    /** Whether the chosen company still needs its home before its price. */
+    awaitingStartHome = $derived.by(() => this.homePositions.length > 0)
+    /** The chosen home and what it costs its company. */
+    selectedStartHomeChoice = $derived.by(() => {
+        const home = this.selectedStartHome
+        return home ? this.offeredStartHomes.find((entry) => sameCenter(entry, home)) : undefined
+    })
     private selectedStartRequest = $derived.by((): CompanyStartRequest | undefined => {
         const company = this.selectedStartCompany
         const marketSpaceId = this.start.value('marketSpaceId')
-        const homeLocationId = this.start.value('homeLocationId')
-        if (!company || !marketSpaceId || (this.startHomes && !homeLocationId)) return undefined
-        return { ...company, marketSpaceId, ...(homeLocationId ? { homeLocationId } : {}) }
+        const home = this.selectedStartHome
+        return company && marketSpaceId
+            ? { ...company, marketSpaceId, ...(home ? { home } : {}) }
+            : undefined
     })
     selectedStartPrices = $derived.by(() => {
         const company = this.selectedStartCompany
@@ -374,18 +385,18 @@ export class StockModule implements LocalSelection {
         this.start.clear()
         this.start.choose('company', request)
     }
+    chooseHome(home: HomePosition) {
+        this.assertAvailable(this.session.playerId)
+        assert(
+            this.homePositions.some((position) => sameCenter(position, home)),
+            'Choose an offered home city'
+        )
+        this.start.choose('home', { locationId: home.locationId, nodeId: home.nodeId })
+    }
     selectStartPrice(marketSpaceId: string) {
         this.assertAvailable(this.session.playerId)
         assert(this.start.value('company'), 'Choose a company before its starting price')
         this.start.choose('marketSpaceId', marketSpaceId)
-    }
-    selectStartHome(locationId: string) {
-        this.assertAvailable(this.session.playerId)
-        assert(
-            this.offeredStartHomeLocationIds.includes(locationId),
-            'Choose one of the offered homes'
-        )
-        this.start.choose('homeLocationId', locationId)
     }
     backFromStart() {
         assert(this.start.value('company'), 'No company start selected')
@@ -430,7 +441,14 @@ export class StockModule implements LocalSelection {
                 companyId: details.companyId,
                 marketSpaceId: details.marketSpaceId,
                 expectedPrice: details.price,
-                ...(details.home ? { homeLocationId: details.home.locationId } : {})
+                ...(details.home
+                    ? {
+                          home: {
+                              locationId: details.home.position.locationId,
+                              nodeId: details.home.position.nodeId
+                          }
+                      }
+                    : {})
             })
         )
     }

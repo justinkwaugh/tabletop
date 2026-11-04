@@ -1,23 +1,21 @@
 <script lang="ts">
+    import { createRouteWorker } from './routeWorker.js'
     import { assert } from '@tabletop/common'
     import type { GameSession } from '@tabletop/frontend-components'
     import type { EighteenThirtyTwoState, HydratedEighteenThirtyTwoState } from '@tabletop/1832'
     import {
         CompanyPar,
+        CompanyShareActions,
         GameTable,
         OperatingActions,
+        PendingShareDecision,
         type TitleActionDescription,
         WaterfallAuctionLots
     } from '@tabletop/18xx-ui'
     import { EighteenThirtyTwoSession } from './session.svelte.js'
     import { describe1832Action } from './history.js'
     import TitleActions from './TitleActions.svelte'
-    import PendingDecision from './PendingDecision.svelte'
-    import CompanyShareActions from './CompanyShareActions.svelte'
     import MergerPhase from './MergerPhase.svelte'
-    function createRouteWorker() {
-        return new Worker(new URL('./autorouter.worker.js', import.meta.url), { type: 'module' })
-    }
     let {
         gameSession
     }: { gameSession: GameSession<EighteenThirtyTwoState, HydratedEighteenThirtyTwoState> } =
@@ -26,11 +24,12 @@
         assert(gameSession instanceof EighteenThirtyTwoSession, '1832 requires its title session')
         return gameSession
     })
-    const historyDescription: TitleActionDescription = (action, companyName) =>
+    const historyDescription: TitleActionDescription = (action, { companyName, place }) =>
         describe1832Action(
             action,
             {
                 companyName,
+                place,
                 playerName: (id) => session.getPlayerName(id),
                 bankName: 'Bank'
             },
@@ -43,6 +42,7 @@
 <GameTable
     {session}
     {privateOperationDescription}
+    {createRouteWorker}
     {historyDescription}
     additionalStockActions={session.stockPanels.menuOptions}
 >
@@ -51,12 +51,12 @@
             <CompanyPar {session} />
         {:else if session.waterfall.model && !session.waterfall.model.auction.completed}
             <WaterfallAuctionLots {session} />
-        {:else if session.redemptionPrompt || session.protectionPrompt}
-            <PendingDecision {session} />
+        {:else if session.shareActions.pending}
+            <PendingShareDecision {session} actions={session.shareActions} />
         {:else if session.mergerDecision}
             <MergerPhase {session} />
         {:else if session.stockPanels.open === 'company'}
-            <CompanyShareActions {session} />
+            <CompanyShareActions {session} actions={session.shareActions} />
         {:else}
             <TitleActions {session} />
             <OperatingActions

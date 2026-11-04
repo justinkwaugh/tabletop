@@ -1,6 +1,5 @@
 import { assertExists } from '@tabletop/common'
 import { BattlePlanSide, PowerTiming, powerIndexOf } from '../data/cardPowers.js'
-import { suitOf } from '../data/cardRegistry.js'
 import { Banner } from '../model/oathEnums.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { giveFavor, usableFavor } from '../util/favor.js'
@@ -23,6 +22,7 @@ import {
     registerModifier,
     registerPersistent,
     chosen,
+    type EffectDefinition,
     type PlayerPlanContext
 } from './registry.js'
 import {
@@ -40,9 +40,10 @@ import { settleAdviserLimitsAfterMove } from '../util/adviserLimit.js'
 import { releaseRelic } from '../util/relics.js'
 import { reasonCannotMoveCardTo } from '../util/locked.js'
 import { reasonCannotTravelByPower, travelByPower } from '../util/powerTravel.js'
-import { askPowerMoveToll, giveWhistleSecret, powerMoveToll } from '../util/powerMoveTolls.js'
+import { askBeforePowerMove, giveWhistleSecret } from '../util/powerMoveTolls.js'
 import { PowerMoveKind, PowerMoveTollOutcome } from '../model/powerMoveToll.js'
 import { WHISTLE_ID } from '../data/relics.js'
+import { askWoodPickForPower, woodChooserForPower } from '../util/shroudedWood.js'
 import { seeWorldDeckTop } from '../util/knowledge.js'
 
 // "Action: Put this relic on the bottom of the relic deck to gain 4 Supply."
@@ -81,9 +82,12 @@ registerModifier('relic.cup-of-plenty', powerIndexOf('relic.cup-of-plenty', Powe
     hooks: {
         condition: (ctx) => {
             const cardId = ctx.particulars?.cardId
-            const suit = cardId ? suitOf(cardId) : undefined
-            const matches =
-                suit !== undefined && hasFaceupAdviserOfSuit(ctx.state, ctx.playerId, suit)
+            const suit = cardId ? ctx.state.suitInPlay(cardId) : undefined
+            // R-7.4-H1 — from revision 23, the advisers the Trade acts with (Master of Disguise).
+            const holder = isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes19)
+                ? (ctx.particulars?.advisersOf ?? ctx.playerId)
+                : ctx.playerId
+            const matches = suit !== undefined && hasFaceupAdviserOfSuit(ctx.state, holder, suit)
             return matches ? undefined : `${ctx.particulars?.cardId} matches none of your advisers`
         },
         spendsNoSupply: () => true
@@ -102,25 +106,37 @@ registerContinuous(
 
 // "Action: Draw a relic. Take it or put it on the bottom of the relic deck." Cost: burn 2 favor, place 1 secret.
 const DOWSING_STICKS = 'relic.dowsing-sticks'
-registerEffect(DOWSING_STICKS, powerIndexOf(DOWSING_STICKS, PowerTiming.Action), {
-    choices: [],
-    hidden: () => ({ kind: 'relicDraw', count: 1 }),
-    resolve: (ctx) => {
-        const drawn = ctx.reveal?.kind === 'relics' ? ctx.reveal.relicCardIds[0] : undefined
-        if (!drawn) return { summary: 'Dowsing Sticks: no relic was drawn' }
-        askQuestion(ctx.state, ctx.playerId, {
-            kind: PowerQuestionKind.KeepOrBottomRelic,
-            cardId: DOWSING_STICKS,
-            askedPlayerId: ctx.playerId,
-            ...knownDraw(ctx.reveal),
-            relicCardId: drawn
-        })
-        return {
-            summary: 'Dowsing Sticks: drew a relic — take it, or put it on the bottom',
-            peeked: [drawn]
+registerEffect(
+    DOWSING_STICKS,
+    powerIndexOf(DOWSING_STICKS, PowerTiming.Action),
+    drawRelicToKeepOrBottom(DOWSING_STICKS, 'Dowsing Sticks')
+)
+
+/**
+ * "Draw a relic. Take it or put it on the bottom of the relic deck." (Dowsing Sticks, Ancient Forge):
+ * the drawer alone sees it until it is taken (R-X.3), and an empty relic deck draws nothing.
+ */
+export function drawRelicToKeepOrBottom(cardId: string, name: string): EffectDefinition {
+    return {
+        choices: [],
+        hidden: () => ({ kind: 'relicDraw', count: 1 }),
+        resolve: (ctx) => {
+            const drawn = ctx.reveal?.kind === 'relics' ? ctx.reveal.relicCardIds[0] : undefined
+            if (!drawn) return { summary: `${name}: no relic was drawn` }
+            askQuestion(ctx.state, ctx.playerId, {
+                kind: PowerQuestionKind.KeepOrBottomRelic,
+                cardId,
+                askedPlayerId: ctx.playerId,
+                ...knownDraw(ctx.reveal),
+                relicCardId: drawn
+            })
+            return {
+                summary: `${name}: drew a relic — take it, or put it on the bottom`,
+                peeked: [drawn]
+            }
         }
     }
-})
+}
 
 // "Action: Swap one of your faceup advisers with a card at your site." Cost: place 1 secret.
 const HORNED_MASK = 'relic.horned-mask'
@@ -198,22 +214,42 @@ registerEffect(WHISTLE, powerIndexOf(WHISTLE, PowerTiming.Action), {
                 targetPlayerId: them.playerId
             }
         }
-        // Toll Roads — the pulled player gives the favor or refuses, and a refusal leaves them where they are.
-        const toll = powerMoveToll(ctx.state, them.playerId, here)
-        if (toll) {
-            const move = {
-                move: PowerMoveKind.Whistle,
+        // R-11.7-H1 — out of a Shrouded Wood an enemy rules, its ruler picks the site; a toll follows the pick.
+        const chooser = woodChooserForPower(ctx.state, them.playerId)
+        if (chooser !== undefined) {
+            askWoodPickForPower(ctx.state, ctx.playerId, chooser, them.playerId, {
                 powerCardId: WHISTLE,
-                moverPlayerId: ctx.playerId,
-                movedPlayerId: them.playerId,
-                toSiteId: here
+                userPlayerId: ctx.playerId
+            })
+            return {
+                summary: `Whistle: the Shrouded Wood's ruler chooses ${them.playerId}'s destination`,
+                targetPlayerId: them.playerId
             }
-            const tollMove = askPowerMoveToll(ctx.state, move, toll, ctx.playerId)
+        }
+        // The Hidden Place, Toll Roads — the pulled player flips a secret, gives the favor, or
+        // refuses, and a refusal leaves them where they are (its Q&A: "They have to be willing to flip it over").
+        const move = {
+            move: PowerMoveKind.Whistle,
+            powerCardId: WHISTLE,
+            moverPlayerId: ctx.playerId,
+            movedPlayerId: them.playerId,
+            toSiteId: here
+        }
+        const waits = askBeforePowerMove(ctx.state, move, ctx.playerId)
+        if (waits?.kind === 'flip') {
+            return {
+                summary: `Whistle: ${them.playerId} is asked to flip a secret to travel to ${here}`,
+                targetPlayerId: them.playerId
+            }
+        }
+        if (waits?.kind === 'toll') {
+            const { tollMove } = waits
+            const card = tollMove.toll.cardId
             return {
                 summary:
                     tollMove.outcome === PowerMoveTollOutcome.Asked
-                        ? `Whistle: ${them.playerId} is asked for ${toll.cardId}'s favor`
-                        : `Whistle: ${them.playerId} had no favor for ${toll.cardId} and stayed`,
+                        ? `Whistle: ${them.playerId} is asked for ${card}'s favor`
+                        : `Whistle: ${them.playerId} had no favor for ${card} and stayed`,
                 targetPlayerId: them.playerId,
                 tollMove
             }

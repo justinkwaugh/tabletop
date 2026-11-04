@@ -21,7 +21,7 @@ off-centre city such as 1830's Altoona and TOP's Wellington, Summerside and Char
 
 ## Local lines above stops (`MapMarkerArt.localLine.above`)
 
-A blocker drawn ``above`` sits clear of whatever is printed over the hex's stops: a name
+A blocker drawn `above` sits clear of whatever is printed over the hex's stops: a name
 curved over a city, a straight name across the top, or the terrain cost of a hex without
 stops. 1830's six blockers and 1889's Takamatsu use it.
 

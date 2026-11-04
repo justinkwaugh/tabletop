@@ -3,9 +3,135 @@ import * as Value from 'typebox/value'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 import { VersionChange } from './versionChecker.js'
 import { TabletopApi } from './tabletopApi.svelte.js'
+import { toast } from 'svelte-sonner'
+
+vi.mock('svelte-sonner', () => ({ toast: { error: vi.fn() } }))
 
 afterEach(() => {
     vi.unstubAllGlobals()
+})
+
+describe('TabletopApi unauthorized responses', () => {
+    test('keeps the session when password reauthentication refuses only the supplied proof', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi
+                .fn<typeof globalThis.fetch>()
+                .mockResolvedValue(
+                    Response.json(
+                        { error: { name: 'ReauthenticationFailedError', message: 'Wrong proof' } },
+                        { status: 401 }
+                    )
+                )
+        )
+        const onUnauthorized = vi.fn()
+        const api = new TabletopApi(undefined, undefined, undefined, onUnauthorized, () => true)
+        await expect(api.reauthenticateWithPassword('incorrect')).rejects.toMatchObject({
+            name: 'ReauthenticationFailedError'
+        })
+        expect(onUnauthorized).not.toHaveBeenCalled()
+    })
+
+    test('preserves the confirmation throttle delay from the server', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi
+                .fn<typeof globalThis.fetch>()
+                .mockResolvedValue(
+                    Response.json(
+                        { error: { message: 'Limited' } },
+                        { status: 429, headers: { 'retry-after': '780' } }
+                    )
+                )
+        )
+        const api = new TabletopApi()
+        await expect(api.reauthenticateWithPassword('correct')).rejects.toMatchObject({
+            name: 'ReauthenticationRateLimitError',
+            message: 'Too many confirmation attempts. Try again in 780 seconds.'
+        })
+    })
+
+    test('reject quietly once no one is signed in', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn<typeof globalThis.fetch>().mockResolvedValue(new Response(null, { status: 401 }))
+        )
+        const onUnauthorized = vi.fn()
+        const api = new TabletopApi(undefined, undefined, undefined, onUnauthorized, () => false)
+
+        await expect(api.unsubscribeFromPushNotifications('endpoint')).rejects.toMatchObject({
+            name: 'Unauthorized'
+        })
+        expect(onUnauthorized).not.toHaveBeenCalled()
+        expect(toast.error).not.toHaveBeenCalled()
+    })
+
+    test('report an expired session while someone is signed in', async () => {
+        vi.useFakeTimers()
+        try {
+            vi.stubGlobal(
+                'fetch',
+                vi
+                    .fn<typeof globalThis.fetch>()
+                    .mockResolvedValue(new Response(null, { status: 401 }))
+            )
+            const reload = vi.fn()
+            vi.stubGlobal('window', { location: { reload } })
+            const onUnauthorized = vi.fn()
+            const api = new TabletopApi(undefined, undefined, undefined, onUnauthorized, () => true)
+
+            void api.unsubscribeFromPushNotifications('endpoint')
+            await vi.advanceTimersByTimeAsync(0)
+
+            expect(onUnauthorized).toHaveBeenCalledTimes(1)
+            expect(toast.error).toHaveBeenCalledTimes(1)
+            expect(reload).toHaveBeenCalledTimes(1)
+        } finally {
+            vi.useRealTimers()
+        }
+    })
+})
+
+describe('TabletopApi title activity', () => {
+    test('aborts an unanswered request and permits a successful retry', async () => {
+        vi.useFakeTimers()
+        try {
+            const fetch = vi.fn<typeof globalThis.fetch>()
+            fetch.mockImplementationOnce((_input, init) => {
+                const signal = init?.signal
+                return new Promise<Response>((_resolve, reject) => {
+                    signal?.addEventListener('abort', () => reject(signal.reason), { once: true })
+                })
+            })
+            fetch.mockResolvedValueOnce(
+                new Response(
+                    JSON.stringify({
+                        payload: { activity: { inProgress: [], recentlyFinished: [] } }
+                    })
+                )
+            )
+            vi.stubGlobal('fetch', fetch)
+            const api = new TabletopApi()
+            let rejection: unknown
+            let settled = false
+            const request = api
+                .getTitleActivity('freshfish')
+                .catch((error: unknown) => (rejection = error))
+                .finally(() => (settled = true))
+            await vi.advanceTimersByTimeAsync(10_000)
+            expect(settled).toBe(true)
+            await request
+            expect(rejection).toMatchObject({ name: 'TitleActivityUnavailable' })
+            expect(fetch.mock.calls[0][1]?.signal?.aborted).toBe(true)
+            await expect(api.getTitleActivity('freshfish')).resolves.toEqual({
+                inProgress: [],
+                recentlyFinished: []
+            })
+            expect(vi.getTimerCount()).toBe(0)
+        } finally {
+            vi.useRealTimers()
+        }
+    })
 })
 
 describe('TabletopApi undo compatibility', () => {

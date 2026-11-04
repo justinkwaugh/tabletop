@@ -1,9 +1,9 @@
+import { EighteenXXOperatingAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
-import { actsFor } from '../finance/receivership.js'
+import { actionMayOperate } from '../finance/receivership.js'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     type GameAction,
@@ -11,7 +11,11 @@ import {
 } from '@tabletop/common'
 import type { StationPlacementState } from './stationPlacement.js'
 export const FinishStations = Type.Object(
-    { ...PlayerAction.properties, type: Type.Literal('FinishStations'), companyId: Type.String() },
+    {
+        ...EighteenXXOperatingAction.properties,
+        type: Type.Literal('FinishStations'),
+        companyId: Type.String()
+    },
     { additionalProperties: false }
 )
 export type FinishStations = Type.Static<typeof FinishStations>
@@ -27,7 +31,7 @@ export class HydratedFinishStations
     implements FinishStations
 {
     declare type: 'FinishStations'
-    declare playerId: string
+    declare playerId?: string
     declare companyId: string
     constructor(data: FinishStations) {
         super(data instanceof HydratedFinishStations ? data.dehydrate() : data, Validator)
@@ -36,10 +40,9 @@ export class HydratedFinishStations
         const step = state.stationStep
         assert(
             (this.source === ActionSource.User || this.source === ActionSource.System) &&
-                state.activePlayerIds.includes(this.playerId) &&
+                actionMayOperate(state, this, this.companyId) &&
                 step?.companyId === this.companyId &&
-                !step.completed &&
-                actsFor(state, this.playerId, this.companyId),
+                !step.completed,
             'Only the controlling owner may finish station placement'
         )
         step.completed = true

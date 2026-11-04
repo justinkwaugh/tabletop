@@ -2,6 +2,7 @@ import { assert, assertExists } from '@tabletop/common'
 import {
     RouteNetwork,
     cityIsBlocked,
+    usesStationAt,
     routePathResources,
     stopValue,
     RouteEvaluation,
@@ -18,14 +19,22 @@ export class EncodedRoutes {
     readonly problem: SolverProblem
     private readonly centers: RevenueCenter[]
     private readonly paths: RoutePath[] = []
+    private readonly locationIds: string[]
+    private readonly hexIds: Map<string, number>
+    private readonly resourceKeys: string[]
+    private readonly junctionKeys: string[]
+    private readonly groupKeys: string[]
+    private readonly unlimitedTrainIds: Set<string>
+    private readonly requiredEnds: readonly RevenueCenter[] | undefined
 
     constructor(
         state: TrainRunningState,
         rules: RouteRules,
         companyId: string,
         network: RouteNetwork,
-        timeLimitMs: number
+        budget: { timeLimitMs: number; memoryBudgetBytes: number }
     ) {
+        this.requiredEnds = rules.requiredRouteEnds?.(state, companyId)
         this.centers = network.centers()
         const centerIds = new Map(
             this.centers.map((center, index) => [this.centerKey(center), index])
@@ -33,7 +42,8 @@ export class EncodedRoutes {
         const resources = new Map<string, number>()
         const junctions = new Map<string, number>()
         const locations = rules.map.definition.locations
-        const hexIds = new Map(locations.map((location, index) => [location.id, index]))
+        this.locationIds = locations.map((location) => location.id)
+        this.hexIds = new Map(locations.map((location, index) => [location.id, index]))
         const tracks = locations.flatMap(({ id: locationId }) =>
             network.face(locationId).paths.map((path) => ({ locationId, path }))
         )
@@ -79,8 +89,7 @@ export class EncodedRoutes {
                         (arc) => Math.floor(arc / 2) !== id
                     )
                 }
-                const hex = hexIds.get(locationId)
-                assertExists(hex, 'Track requires a map location')
+                const hex = this.hexOf(locationId)
                 arcs.push({
                     from:
                         departure.kind === 'node'
@@ -130,13 +139,9 @@ export class EncodedRoutes {
                     : []
             return {
                 city: node.kind === 'city',
-                token: state.stations.some(
-                    (station) =>
-                        station.status === 'placed' &&
-                        station.companyId === companyId &&
-                        station.position.locationId === center.locationId &&
-                        station.position.nodeId === center.nodeId
-                ),
+                town: node.kind === 'town',
+                hex: this.hexOf(center.locationId),
+                token: usesStationAt(state, companyId, center.locationId, center.nodeId),
                 blocked:
                     node.kind === 'offboard' ||
                     cityIsBlocked(state, companyId, center.locationId, node),
@@ -148,24 +153,31 @@ export class EncodedRoutes {
                 ]
             }
         })
-        const trains = new RouteEvaluation(state, rules).runnableTrains(companyId).map((train) => {
+        const runnable = new RouteEvaluation(state, rules).runnableTrains(companyId)
+        this.unlimitedTrainIds = new Set(
+            runnable
+                .filter(
+                    (train) =>
+                        rules.depot.trainDefinition(train.definitionId).distance.maximum ===
+                        'unlimited'
+                )
+                .map((train) => train.id)
+        )
+        const trains = runnable.map((train) => {
             const definition = rules.depot.trainDefinition(train.definitionId)
             const countsCrossings = definition.distance.measure === 'hex-edges'
-            const { maximum, extraTowns = 0 } = definition.distance
-            const weighted =
-                extraTowns && maximum !== 'unlimited'
-                    ? extraTownWeights(maximum, extraTowns)
-                    : undefined
-            const visitCosts = nodes.map((node) => {
-                if (
-                    countsCrossings ||
-                    (definition.distance.measure === 'cities-and-offboards' && node.kind === 'town')
-                )
-                    return 0
-                if (!weighted) return 1
-                return node.kind === 'town' ? weighted.town : weighted.other
-            })
-            const policy = rules.revenuePolicy?.(definition)
+            const visitCosts = nodes.map((node) =>
+                countsCrossings ||
+                (definition.distance.measure === 'cities-and-offboards' && node.kind === 'town')
+                    ? 0
+                    : 1
+            )
+            const policy = rules.revenuePolicy?.(definition, state, companyId)
+            const { measure, maximum, extraTowns = 0 } = definition.distance
+            assert(
+                !extraTowns || measure === 'revenue-centers',
+                'Only revenue-center trains may visit extra towns'
+            )
             const values = nodes.map((node, index) => {
                 const center = this.centers[index]
                 assertExists(center, 'Revenue center requires a location')
@@ -183,7 +195,8 @@ export class EncodedRoutes {
                     ignoredLocationIds.includes(center.locationId)
                         ? null
                         : (values[index] ?? null)
-                )
+                ),
+                ends_only: false
             }))
             return {
                 id: train.id,
@@ -191,19 +204,27 @@ export class EncodedRoutes {
                     maximum === 'unlimited'
                         ? visitCosts.reduce<number>((sum, cost) => sum + cost, 0) +
                           arcs.reduce((sum, arc) => sum + arc.crossings, 0)
-                        : (weighted?.limit ?? maximum),
+                        : maximum + extraTowns,
+                major_limit: extraTowns && maximum !== 'unlimited' ? maximum : null,
                 counts_crossings: countsCrossings,
                 visit_costs: visitCosts,
                 requires_city: rules.requiresCity(definition),
                 paying_stop_limit: policy?.payingStopLimit ?? null,
                 require_paying_token: policy?.requirePayingStation ?? false,
+                bonuses_along_route: policy?.bonusesAlongRoute ?? false,
                 connection_bonuses: [
-                    ...(policy?.connectionBonuses ?? []).map(({ from, to }) => ({
+                    ...(policy?.connectionBonuses ?? []).map(({ from, to, destinationAtEnd }) => ({
                         from: this.centers.map((center) => from[center.locationId] ?? null),
-                        to: this.centers.map((center) => to[center.locationId] ?? null)
+                        to: this.centers.map((center) => to[center.locationId] ?? null),
+                        ends_only: destinationAtEnd ?? false
                     })),
                     ...bestStopBonuses
                 ],
+                interconnections: (policy?.interconnections ?? []).map(({ from, to, amount }) => ({
+                    from: from.map((locationId) => this.hexOf(locationId)),
+                    to: to.map((locationId) => this.hexOf(locationId)),
+                    amount
+                })),
                 revenues: nodes.map((_, index) => {
                     const center = this.centers[index]
                     assertExists(center, 'Revenue center requires a location')
@@ -215,8 +236,11 @@ export class EncodedRoutes {
                 first_bonus: nodes.map(() => 0)
             }
         })
+        this.resourceKeys = [...resources.keys()]
+        this.junctionKeys = [...junctions.keys()]
+        this.groupKeys = [...groupIds.keys()]
         this.problem = {
-            version: 4,
+            version: 6,
             stops,
             arcs,
             trains,
@@ -225,13 +249,18 @@ export class EncodedRoutes {
             group_count: groupIds.size,
             hex_bonuses: locations.map((location) => rules.hexBonus?.(state, location.id) ?? 0),
             longest_route_bonus_per_stop: rules.longestRouteBonusPerStop?.(state, companyId) ?? 0,
-            budget_ms: timeLimitMs
+            budget_ms: budget.timeLimitMs,
+            memory_budget_bytes: budget.memoryBudgetBytes
         }
     }
 
     decode(solution: SolverSolution): TrainRoute[] {
+        return this.decodeRoutes(this.problem.trains, solution)
+    }
+
+    private decodeRoutes(trains: SolverProblem['trains'], solution: SolverSolution): TrainRoute[] {
         return solution.routes.map((route) => {
-            const train = this.problem.trains[route.train]
+            const train = trains[route.train]
             const connection = route.connections[0]
             assertExists(train, 'Solver returned an unknown train')
             assertExists(connection, 'Solver returned an empty route')
@@ -241,16 +270,138 @@ export class EncodedRoutes {
                 trainId: train.id,
                 start: { ...start },
                 paths: route.connections.flatMap((connection) =>
-                    connection.paths.map((id) => {
-                        const path = this.paths[id]
-                        assertExists(path, 'Solver returned an unknown path')
-                        return { ...path }
-                    })
-                )
+                    this.decodePaths(connection.paths)
+                ),
+                ...(route.extension.length ? { extension: this.decodePaths(route.extension) } : {})
             }
         })
     }
 
+    beside(
+        trainId: string,
+        usedResources: readonly string[]
+    ): { problem: SolverProblem; decode(solution: SolverSolution): TrainRoute[] } {
+        const used = new Set(usedResources)
+        const banned = new Set(
+            this.problem.arcs.flatMap((arc, id) =>
+                arc.resources.some((resource) => used.has(this.resourceKeys[resource])) ? [id] : []
+            )
+        )
+        const trains = this.problem.trains.filter((train) => train.id !== trainId)
+        return {
+            problem: {
+                ...this.problem,
+                trains,
+                arcs: this.problem.arcs.map((arc, id) =>
+                    banned.has(id)
+                        ? { ...arc, from: null, to: null, next: [] }
+                        : { ...arc, next: arc.next.filter((next) => !banned.has(next)) }
+                )
+            },
+            decode: (solution) => this.decodeRoutes(trains, solution)
+        }
+    }
+
+    // Indices shift whenever a tile is laid anywhere, so the key names stops and paths instead.
+    networkKey(): string {
+        const { stops, arcs, trains } = this.problem
+        const departures = new Map<number, number[]>()
+        for (const [id, arc] of arcs.entries())
+            if (arc.from !== null)
+                departures.set(arc.from, [...(departures.get(arc.from) ?? []), id])
+        const extendsPastBlocked = trains.some((train) => train.interconnections.length > 0)
+        const reachedStops = new Set<number>()
+        const reachedArcs = new Set<number>()
+        const pending: ({ stop: number } | { arc: number })[] = stops.flatMap((stop, index) =>
+            stop.token ? [{ stop: index }] : []
+        )
+        for (let next = pending.pop(); next; next = pending.pop()) {
+            if ('stop' in next) {
+                if (reachedStops.has(next.stop)) continue
+                reachedStops.add(next.stop)
+                const stop = stops[next.stop]
+                if (!stop.allowed || (stop.blocked && !stop.token && !extendsPastBlocked)) continue
+                for (const arc of departures.get(next.stop) ?? []) pending.push({ arc })
+                continue
+            }
+            if (reachedArcs.has(next.arc)) continue
+            reachedArcs.add(next.arc)
+            const arc = arcs[next.arc]
+            if (arc.to !== null) pending.push({ stop: arc.to })
+            else for (const following of arc.next) pending.push({ arc: following })
+        }
+        const stopName = (index: number) => this.centerKey(this.centers[index])
+        const arcName = (index: number) => JSON.stringify([this.paths[arcs[index].path], index % 2])
+        const stopIndices = [...reachedStops].sort((a, b) => stopName(a).localeCompare(stopName(b)))
+        const arcIndices = [...reachedArcs].sort((a, b) => arcName(a).localeCompare(arcName(b)))
+        const hexes = new Set(arcIndices.map((index) => arcs[index].hex))
+        return JSON.stringify({
+            version: this.problem.version,
+            required_ends: this.requiredEnds?.map((end) => this.centerKey(end)),
+            stops: stopIndices.map((index) => {
+                const { groups, hex, ...flags } = stops[index]
+                return [stopName(index), flags, groups.map((group) => this.groupKeys[group])]
+            }),
+            arcs: arcIndices.map((index) => {
+                const { from, to, next, resources, junctions, path, hex, ...flags } = arcs[index]
+                return [
+                    arcName(index),
+                    from === null ? null : stopName(from),
+                    to === null ? null : stopName(to),
+                    next.map(arcName).sort(),
+                    resources.map((resource) => this.resourceKeys[resource]).sort(),
+                    junctions.map((junction) => this.junctionKeys[junction]),
+                    flags
+                ]
+            }),
+            trains: trains.map((train) => {
+                const perStop = (values: readonly (number | null)[]) =>
+                    stopIndices.map((index) => values[index])
+                const locations = (hexes: readonly number[]) =>
+                    hexes.map((hex) => this.locationIds[hex])
+                return {
+                    id: train.id,
+                    distance: this.unlimitedTrainIds.has(train.id) ? 'unlimited' : train.distance,
+                    counts_crossings: train.counts_crossings,
+                    requires_city: train.requires_city,
+                    major_limit: train.major_limit,
+                    paying_stop_limit: train.paying_stop_limit,
+                    require_paying_token: train.require_paying_token,
+                    bonuses_along_route: train.bonuses_along_route,
+                    visit_costs: perStop(train.visit_costs),
+                    revenues: perStop(train.revenues),
+                    first_bonus: perStop(train.first_bonus),
+                    connection_bonuses: train.connection_bonuses.map(({ from, to, ends_only }) => ({
+                        from: perStop(from),
+                        to: perStop(to),
+                        ends_only
+                    })),
+                    interconnections: train.interconnections.map(({ from, to, amount }) => ({
+                        from: locations(from),
+                        to: locations(to),
+                        amount
+                    }))
+                }
+            }),
+            hex_bonuses: [...hexes]
+                .sort((a, b) => a - b)
+                .map((hex) => [this.locationIds[hex], this.problem.hex_bonuses[hex]]),
+            longest_route_bonus_per_stop: this.problem.longest_route_bonus_per_stop
+        })
+    }
+
+    private hexOf(locationId: string): number {
+        const hex = this.hexIds.get(locationId)
+        assertExists(hex, 'Route rules name an unknown map location')
+        return hex
+    }
+    private decodePaths(ids: readonly number[]): RoutePath[] {
+        return ids.map((id) => {
+            const path = this.paths[id]
+            assertExists(path, 'Solver returned an unknown path')
+            return { ...path }
+        })
+    }
     private indexFor(indices: Map<string, number>, key: string): number {
         const existing = indices.get(key)
         if (existing !== undefined) return existing
@@ -268,19 +419,4 @@ export class EncodedRoutes {
             endpoint.kind === 'edge' ? endpoint.edge : endpoint.nodeId
         ])
     }
-}
-
-/**
- * Stop costs and a limit that hold a train to its maximum stops plus one extra town in one
- * distance, as the solver counts only one: no more than the maximum non-town stops, and no more
- * than one more stop in all.
- */
-export function extraTownWeights(
-    maximum: number,
-    extraTowns: number
-): { town: number; other: number; limit: number } {
-    assert(extraTowns === 1, 'The autorouter encodes at most one extra town')
-    const town = maximum + 1
-    const other = town + 1
-    return { town, other, limit: other * maximum + town }
 }

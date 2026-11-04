@@ -42,7 +42,8 @@ export class AllianceFormAnimator extends StateAnimator {
         const allianceId =
             action && isPlayAllianceCard(action)
                 ? action.metadata?.allianceId
-                : to.alliances.find((alliance) => !from.alliances.some((a) => a.id === alliance.id))?.id
+                : to.alliances.find((alliance) => !from.alliances.some((a) => a.id === alliance.id))
+                      ?.id
         if (!allianceId) return
 
         const walls = allianceWalls(to, allianceId)
@@ -67,10 +68,19 @@ export class AllianceFormAnimator extends StateAnimator {
             gsap.set(node, { scale: INITIAL_SCALE, opacity: 0, transformOrigin: 'center center' })
             timeline.to(
                 node,
-                { scale: OVERSHOOT_SCALE, opacity: 1, duration: POP * scale, ease: 'back.out(2.2)' },
+                {
+                    scale: OVERSHOOT_SCALE,
+                    opacity: 1,
+                    duration: POP * scale,
+                    ease: 'back.out(2.2)'
+                },
                 0
             )
-            timeline.to(node, { scale: 1, duration: SETTLE * scale, ease: 'power2.out' }, POP * scale)
+            timeline.to(
+                node,
+                { scale: 1, duration: SETTLE * scale, ease: 'power2.out' },
+                POP * scale
+            )
         }
 
         animationContext.afterAnimations(() => {

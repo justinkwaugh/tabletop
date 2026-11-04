@@ -1,15 +1,16 @@
-import type { CompanyNameVariants } from '@tabletop/18xx-ui'
+import { companyNameVariants } from '@tabletop/18xx-ui'
+import { EighteenNinetyFourNames } from '@tabletop/1894'
 
-export const EighteenNinetyFourCompanyNames: Readonly<Record<string, CompanyNameVariants>> = {
-    PLM: { short: 'Paris–Lyon–Méditerranée', initials: 'PLM', history: 'PLM' },
-    CFOR: { short: 'Orléans à Rouen', initials: 'CFOR', history: 'CFOR' },
-    Nord: { short: 'Nord', initials: 'Nord', history: 'Nord' },
-    Ouest: { short: 'Ouest', initials: 'Ouest', history: 'Ouest' },
-    Est: { short: 'Est', initials: 'Est', history: 'Est' },
-    AG: { short: 'Anvers à Gand', initials: 'AG', history: 'AG' },
-    Belge: { short: 'État belge', initials: 'Belge', history: 'Belge' },
-    LF: { short: 'Late French', initials: 'LF', history: 'LF' },
-    LB: { short: 'Late Belgian', initials: 'LB', history: 'LB' },
+export const EighteenNinetyFourCompanyNames = companyNameVariants(EighteenNinetyFourNames, {
+    PLM: { short: 'Paris–Lyon–Méditerranée', initials: 'PLM' },
+    CFOR: { short: 'Orléans à Rouen', initials: 'CFOR' },
+    Nord: { short: 'Nord', initials: 'Nord' },
+    Ouest: { short: 'Ouest', initials: 'Ouest' },
+    Est: { short: 'Est', initials: 'Est' },
+    AG: { short: 'Anvers à Gand', initials: 'AG' },
+    Belge: { short: 'État belge', initials: 'Belge' },
+    LF: { short: 'Late French', initials: 'LF' },
+    LB: { short: 'Late Belgian', initials: 'LB' },
     LRC: { short: 'Reims à Charleville', initials: 'LRC' },
     AR: { short: 'Antwerpen-Rotterdam', initials: 'AR' },
     GLG: { short: 'Liège-Guillemins', initials: 'GLG' },
@@ -23,4 +24,4 @@ export const EighteenNinetyFourCompanyNames: Readonly<Record<string, CompanyName
     CMS: { short: 'CFOR major shareholding', initials: 'CFOR M.' },
     EMS: { short: 'Est major shareholding', initials: 'Est M.' },
     BMS: { short: 'Belge major shareholding', initials: 'Belge M.' }
-}
+})

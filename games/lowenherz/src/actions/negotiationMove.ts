@@ -113,10 +113,15 @@ export class HydratedNegotiationMove
                     // nothing is binding until both sides land on the same terms.
                     this.revealsInfo = true
 
-                    const toPlayerId = negotiation.playerIds.find((id) => id !== standing.fromPlayerId)!
+                    const toPlayerId = negotiation.playerIds.find(
+                        (id) => id !== standing.fromPlayerId
+                    )!
                     state.getPlayerState(standing.fromPlayerId).adjustMoney(-standing.amount)
                     state.getPlayerState(toPlayerId).adjustMoney(standing.amount)
-                    state.resolvedSlots.push({ slot: negotiation.slot, winnerPlayerId: standing.fromPlayerId })
+                    state.resolvedSlots.push({
+                        slot: negotiation.slot,
+                        winnerPlayerId: standing.fromPlayerId
+                    })
                     state.negotiation = undefined
                     this.metadata = {
                         executedOffer: {
@@ -158,7 +163,10 @@ export class HydratedNegotiationMove
                 // until the other side has moved - undoing their own proposal is the
                 // only way back to it being their turn again.
                 if (negotiation.lastProposedBy === this.playerId) return false
-                if (this.fromPlayerId === undefined || !negotiation.playerIds.includes(this.fromPlayerId)) {
+                if (
+                    this.fromPlayerId === undefined ||
+                    !negotiation.playerIds.includes(this.fromPlayerId)
+                ) {
                     return false
                 }
                 if (

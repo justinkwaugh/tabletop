@@ -1,9 +1,8 @@
 import * as Type from 'typebox'
+import { PriceProtectionFields, ShareRedemptionFields } from '@tabletop/18xx'
 
 const Id = Type.String({ minLength: 1 })
 
-export const ProtectingPriceState = 'ProtectingPrice'
-export const ConsentingRedemptionState = 'ConsentingRedemption'
 export const MergingState = 'Merging'
 
 export const RevenueTokenKind = Type.Union([
@@ -19,57 +18,6 @@ export const RevenueToken = Type.Object(
     { additionalProperties: false }
 )
 export type RevenueToken = Type.Static<typeof RevenueToken>
-
-/** One company's shares a player sold, which its president may buy back at the sale price. */
-export const ProtectableSale = Type.Object(
-    {
-        companyId: Id,
-        shares: Type.Integer({ minimum: 1 }),
-        proceeds: Type.Integer({ minimum: 1 }),
-        certificateIds: Type.Array(Id, { minItems: 1 }),
-        fromMarketSpaceId: Id
-    },
-    { additionalProperties: false }
-)
-export type ProtectableSale = Type.Static<typeof ProtectableSale>
-
-/**
- * A seller's sales awaiting their presidents' decisions, in the order sold, the last president
- * to protect, and the state play returns to (§5.9).
- */
-export const PriceProtection = Type.Object(
-    {
-        sellerPlayerId: Id,
-        sales: Type.Array(ProtectableSale),
-        /** Each space sold from, its stack as it stood before the seller's first sale from it. */
-        stacks: Type.Array(
-            Type.Object(
-                { spaceId: Id, companyIds: Type.Array(Id) },
-                { additionalProperties: false }
-            )
-        ),
-        lastProtectorId: Type.Optional(Id),
-        resume: Type.Optional(Type.Object({ machineState: Id }, { additionalProperties: false }))
-    },
-    { additionalProperties: false }
-)
-export type PriceProtection = Type.Static<typeof PriceProtection>
-
-/** A redemption from another player's holding, awaiting their consent (§5.10.4). */
-export const RedemptionRequest = Type.Object(
-    {
-        companyId: Id,
-        certificateId: Id,
-        holderPlayerId: Id,
-        presidentPlayerId: Id,
-        price: Type.Integer({ minimum: 1 })
-    },
-    { additionalProperties: false }
-)
-export type RedemptionRequest = Type.Static<typeof RedemptionRequest>
-
-const StockRoundNumber = Type.Integer({ minimum: 1 })
-const Amounts = Type.Record(Id, Type.Integer({ minimum: 1 }))
 
 export const MergerKind = Type.Union([Type.Literal('system'), Type.Literal('takeover')])
 export type MergerKind = Type.Static<typeof MergerKind>
@@ -121,18 +69,8 @@ export const MergerPhase = Type.Object(
 export type MergerPhase = Type.Static<typeof MergerPhase>
 
 export const EighteenThirtyTwoTitleFields = {
-    priceProtection: Type.Optional(PriceProtection),
-    /** How many shares each company has redeemed this stock round (§5.10.1). */
-    redemptions: Type.Optional(Amounts),
-    redemptionRequest: Type.Optional(RedemptionRequest),
-    /** Holders who refused a company's redemption this stock turn (§5.10.4). */
-    redemptionRefusals: Type.Optional(
-        Type.Array(Type.Object({ companyId: Id, playerId: Id }, { additionalProperties: false }))
-    ),
-    /** The stock round in which each company last reissued its redeemed shares (§5.11). */
-    reissues: Type.Optional(Type.Record(Id, StockRoundNumber)),
-    /** Reissued shares' proceeds this stock round, unspendable until it ends (§5.11). */
-    lockedProceeds: Type.Optional(Amounts),
+    ...PriceProtectionFields,
+    ...ShareRedemptionFields,
     /** The variants chosen before the game began (§17). */
     variants: Type.Object(
         {

@@ -201,11 +201,16 @@ function buildFlowNetwork(problem: DeliveryProblem): {
     nodeIndexByKey.set('sink', sinkIndex)
 
     const totalSupply = problem.zoneSupplies.reduce((sum, zoneSupply) => sum + zoneSupply.supply, 0)
-    const totalDemand = problem.cityDemands.reduce((sum, cityDemand) => sum + cityDemand.remainingDemand, 0)
+    const totalDemand = problem.cityDemands.reduce(
+        (sum, cityDemand) => sum + cityDemand.remainingDemand,
+        0
+    )
     const unrestrictedCapacity = Math.max(1, totalSupply, totalDemand)
 
     const zoneNodeIndexByZoneId = new Map<string, number>()
-    const sortedZoneSupplies = [...problem.zoneSupplies].sort((a, b) => a.zoneId.localeCompare(b.zoneId))
+    const sortedZoneSupplies = [...problem.zoneSupplies].sort((a, b) =>
+        a.zoneId.localeCompare(b.zoneId)
+    )
     for (const zoneSupply of sortedZoneSupplies) {
         const node: NetworkNode = {
             kind: 'zone',
@@ -218,7 +223,9 @@ function buildFlowNetwork(problem: DeliveryProblem): {
     }
 
     const cityNodeIndexByCityId = new Map<string, number>()
-    const sortedCityDemands = [...problem.cityDemands].sort((a, b) => a.cityId.localeCompare(b.cityId))
+    const sortedCityDemands = [...problem.cityDemands].sort((a, b) =>
+        a.cityId.localeCompare(b.cityId)
+    )
     for (const cityDemand of sortedCityDemands) {
         const node: NetworkNode = {
             kind: 'city',
@@ -227,17 +234,10 @@ function buildFlowNetwork(problem: DeliveryProblem): {
         const cityNodeIndex = addNode(network, node)
         nodeIndexByKey.set(nodeKey(node), cityNodeIndex)
         cityNodeIndexByCityId.set(cityDemand.cityId, cityNodeIndex)
-        addEdge(
-            network,
-            cityNodeIndex,
-            sinkIndex,
-            cityDemand.remainingDemand,
-            0,
-            {
-                kind: 'city-to-sink',
-                cityId: cityDemand.cityId
-            }
-        )
+        addEdge(network, cityNodeIndex, sinkIndex, cityDemand.remainingDemand, 0, {
+            kind: 'city-to-sink',
+            cityId: cityDemand.cityId
+        })
     }
 
     const sortedShippingNetworks = [...problem.shippingCompanyNetworks].sort((a, b) =>
@@ -573,7 +573,8 @@ function decomposeFinalFlowIntoPaths(
         )
 
         for (const pathEdge of pathEdges) {
-            const currentRemainingFlow = remainingFlowByEdge[pathEdge.from]?.[pathEdge.edgeIndex] ?? 0
+            const currentRemainingFlow =
+                remainingFlowByEdge[pathEdge.from]?.[pathEdge.edgeIndex] ?? 0
             remainingFlowByEdge[pathEdge.from]![pathEdge.edgeIndex] = currentRemainingFlow - amount
         }
 
@@ -643,7 +644,10 @@ function solveFromFinalFlow(
 
         assertExists(zoneId, 'Zone should be resolved from augmentation path')
         assertExists(cityId, 'City should be resolved from augmentation path')
-        assertExists(shippingCompanyId, 'Shipping company should be resolved from augmentation path')
+        assertExists(
+            shippingCompanyId,
+            'Shipping company should be resolved from augmentation path'
+        )
 
         const deliveryKey = `${zoneId}|${cityId}|${shippingCompanyId}|${seaPathAreaIds.join('>')}`
         const existingDelivery = deliveryByKey.get(deliveryKey)
@@ -726,7 +730,10 @@ function cloneDeliveryProblem(problem: DeliveryProblem): DeliveryProblem {
     }
 }
 
-function reducePathCapacityForDelivery(problem: DeliveryProblem, delivery: CityDelivery): DeliveryProblem {
+function reducePathCapacityForDelivery(
+    problem: DeliveryProblem,
+    delivery: CityDelivery
+): DeliveryProblem {
     const reduced = cloneDeliveryProblem(problem)
     const pathSeaAreaIds = new Set(delivery.seaPathAreaIds)
 
@@ -771,7 +778,10 @@ function reducePathCapacityForDelivery(problem: DeliveryProblem, delivery: CityD
     return reduced
 }
 
-function computeCriticalDeliveries(problem: DeliveryProblem, plan: DeliveryPlan): CriticalDelivery[] {
+function computeCriticalDeliveries(
+    problem: DeliveryProblem,
+    plan: DeliveryPlan
+): CriticalDelivery[] {
     if (plan.deliveries.length === 0) {
         return []
     }
@@ -859,9 +869,7 @@ export function solveDeliveryProblemWithStats(
     return {
         plan: {
             ...planWithoutCritical,
-            ...(criticalDeliveries && criticalDeliveries.length > 0
-                ? { criticalDeliveries }
-                : {})
+            ...(criticalDeliveries && criticalDeliveries.length > 0 ? { criticalDeliveries } : {})
         },
         stats: {
             iterations: solved.augmentations.length,

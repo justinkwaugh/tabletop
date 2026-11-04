@@ -15,7 +15,7 @@ export const ChooseFirstPlayer = Type.Evaluate(
             type: Type.Literal(ActionType.ChooseFirstPlayer),
             playerId: Type.String(),
             startingPlayerId: Type.String(),
-            metadata: Type.Optional(ChooseFirstPlayerMetadata),
+            metadata: Type.Optional(ChooseFirstPlayerMetadata)
         })
     ])
 )

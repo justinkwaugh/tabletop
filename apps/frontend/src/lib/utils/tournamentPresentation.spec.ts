@@ -4,7 +4,8 @@ import {
     tournamentStatusText,
     tournamentRegistrationOpen,
     tournamentRegistrationText,
-    tournamentStatusColor
+    tournamentStatusColor,
+    tournamentTiebreakText
 } from './tournamentPresentation'
 
 const locked: Tournament = {
@@ -110,4 +111,14 @@ it('keeps the paused label when a failed start is paused by an administrator', (
     expect(tournamentStatusText({ ...locked, paused: true, schedulingError: 'Setup failed' })).toBe(
         'Scheduling paused'
     )
+})
+
+describe('tournamentTiebreakText', () => {
+    it('shows a total, a combined value or a dash for no value', () => {
+        expect(tournamentTiebreakText({ completed: 4, tiebreak: -10 })).toBe('-10')
+        expect(tournamentTiebreakText({ completed: 4, tiebreak: -10, pointsBehind: 7 })).toBe(
+            '-1.775'
+        )
+        expect(tournamentTiebreakText({ completed: 0 })).toBe('—')
+    })
 })

@@ -2,6 +2,7 @@
     import type { CompanyId } from '@tabletop/railheads'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { COMPANY_STYLE } from '$lib/utils/companyStyle.js'
+    import { editionStyle } from '$lib/utils/editionStyle.js'
     import ShareCertificate, {
         CERTIFICATE_HEIGHT,
         CERTIFICATE_WIDTH
@@ -26,6 +27,8 @@
     const sharesLeft = $derived(state.unsoldShares(companyId))
     const stackSteps = $derived(definition.shares - 1)
     const drop = $derived(state.edition.obsolescenceDrop(company.revenue))
+    const bonus = $derived(editionStyle(state.editionId))
+    const countsRegions = $derived(state.edition.map.regions.length > 0)
 </script>
 
 {#snippet body()}
@@ -87,11 +90,19 @@
             </div>
             <div
                 class="entry"
-                title="Game-end Railroad Bonus if the game ended now: at every city, town or industry site where this railroad has the top disc, $1 a share for each disc beneath it"
+                title="Game-end {bonus.endBonusName} if the game ended now: {bonus.endBonusRule}"
             >
-                <span>End bonus / share</span><span class="money"
-                    >${state.railroadBonus(companyId)}</span
-                >
+                {#if countsRegions}
+                    <span>States · end / share</span><span class="money"
+                        >{state.regionsReached(companyId)} · ${state.endBonusPerShare(
+                            companyId
+                        )}</span
+                    >
+                {:else}
+                    <span>End bonus / share</span><span class="money"
+                        >${state.endBonusPerShare(companyId)}</span
+                    >
+                {/if}
             </div>
             <div class="entry" title="Track discs and crossing cubes still on the charter">
                 <span>Discs · cubes</span><span class="money"

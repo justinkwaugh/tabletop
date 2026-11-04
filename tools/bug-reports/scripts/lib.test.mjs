@@ -175,6 +175,18 @@ test('reporterMessage puts the heading, the opening, the note, the quote and the
     )
 })
 
+test('reporterMessage names a hotseat game without a link, since it lives in the browser', () => {
+    const { gameUrl, text } = reporterMessage(
+        'investigating',
+        { ...report, gameUrl: undefined },
+        undefined,
+        'https://discord.com/channels/1/2'
+    )
+    assert.equal(gameUrl, undefined)
+    assert.match(text, /\n\nYour game: Sol: Last Days of a Star · Sol Sweet Sol\n\n/)
+    assert.doesNotMatch(text, /undefined/)
+})
+
 test('reporterMessage calls a not-a-bug report a report', () => {
     const message = reporterMessage('not a bug', report, 'Tip', 'https://discord.com/channels/1/2')
     assert.equal(message.eyebrow, 'Your report')
@@ -200,16 +212,21 @@ test('reporterMessage thanks a suggestion as a suggestion', () => {
     assert.doesNotThrow(() => checkStageInputs('suggestion', {}))
 })
 
-test('checkForumInputs asks reproduced for a finding and keeps it off other milestones', () => {
-    assert.throws(() => checkForumInputs('reproduced', {}), /--finding/)
+test('checkForumInputs asks reproduced and not a bug for a finding and keeps it off the rest', () => {
+    assert.throws(() => checkForumInputs('reproduced', {}), /--finding saying what was reproduced/)
     assert.doesNotThrow(() => checkForumInputs('reproduced', { finding: 'Undo leaves the ferry' }))
+    assert.throws(() => checkForumInputs('not a bug', {}), /--finding saying why/)
+    assert.doesNotThrow(() => checkForumInputs('not a bug', { finding: 'Trains rust in phase 4' }))
     assert.throws(() => checkForumInputs('fixed', { finding: 'x' }), /does not go with fixed/)
     assert.doesNotThrow(() => checkForumInputs('fixed', {}))
 })
 
-test('forumRecord names the status, with the version for a fix and the finding for a repro', () => {
+test('forumRecord names the status, with the version for a fix and any finding', () => {
     assert.equal(forumRecord('fixed', { version: 'Sol UI 6.4.2' }), '**Fixed in Sol UI 6.4.2.**')
-    assert.equal(forumRecord('not a bug'), '**Not a bug.**')
+    assert.equal(
+        forumRecord('not a bug', { finding: 'Trains rust when phase 4 begins.' }),
+        '**Not a bug.**\n\nTrains rust when phase 4 begins.'
+    )
     assert.equal(forumRecord('suggestion'), '**Suggestion.**')
     assert.equal(
         forumRecord('reproduced', { finding: ' Undo after a ferry move leaves the ferry. ' }),

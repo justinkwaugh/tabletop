@@ -3,7 +3,7 @@ import { Type, type Static } from 'typebox'
 import { Compile } from 'typebox/compile'
 import { ActionType } from '../definition/actions.js'
 import { HydratedContainerGameState } from '../model/gameState.js'
-import { type PricedContainer } from '../model/container.js'
+import type { PricedContainer } from '../model/container.js'
 
 export type BuyContainersForHarbor = Static<typeof BuyContainersForHarbor>
 export const BuyContainersForHarbor = Type.Evaluate(
@@ -21,9 +21,7 @@ export const BuyContainersForHarbor = Type.Evaluate(
 
 export const BuyContainersForHarborValidator = Compile(BuyContainersForHarbor)
 
-export function isBuyContainersForHarbor(
-    action: GameAction
-): action is BuyContainersForHarbor {
+export function isBuyContainersForHarbor(action: GameAction): action is BuyContainersForHarbor {
     return action.type === ActionType.BuyContainersForHarbor
 }
 

@@ -6,10 +6,13 @@ export const NapoleonsTriumphPreferences = Type.Object(
         darkBorders: Type.Boolean(),
         movementTrails: Type.Boolean(),
         localeCapacities: Type.Boolean(),
-        actionPanelFolded: Type.Boolean()
+        actionPanelFolded: Type.Boolean(),
+        historyOrder: Type.Union([Type.Literal('newestFirst'), Type.Literal('newestLast')])
     },
     { additionalProperties: false }
 )
+
+export type HistoryOrder = Type.Static<typeof NapoleonsTriumphPreferences>['historyOrder']
 
 export const NapoleonsTriumphPreferenceDefinition = {
     title: {
@@ -18,7 +21,8 @@ export const NapoleonsTriumphPreferenceDefinition = {
             darkBorders: false,
             movementTrails: false,
             localeCapacities: false,
-            actionPanelFolded: false
+            actionPanelFolded: false,
+            historyOrder: 'newestLast'
         },
         version: 1
     }

@@ -9,6 +9,7 @@ import {
     GameChat,
     GameChatMessage,
     GameSyncStatus,
+    PendingEmailChange,
     User,
     Visibility
 } from '@tabletop/common'
@@ -26,6 +27,54 @@ export const UserResponse = Type.Evaluate(
         Type.Omit(ApiResponse, ['payload']),
         Type.Object({
             payload: Type.Object({ user: User })
+        })
+    ])
+)
+
+export type PendingEmailChangeResponse = Static<typeof PendingEmailChangeResponse>
+export const PendingEmailChangeResponse = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(ApiResponse, ['payload']),
+        Type.Object({
+            payload: Type.Object({ pending: Type.Union([PendingEmailChange, Type.Null()]) })
+        })
+    ])
+)
+
+export type EmailChangeRequestedResponse = Static<typeof EmailChangeRequestedResponse>
+export const EmailChangeRequestedResponse = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(ApiResponse, ['payload']),
+        Type.Object({ payload: Type.Object({ pending: PendingEmailChange }) })
+    ])
+)
+
+export const DISCORD_AUTHORIZATION_PURPOSES = ['login', 'link', 'reauthenticate'] as const
+export type DiscordAuthorizationPurpose = (typeof DISCORD_AUTHORIZATION_PURPOSES)[number]
+
+export type DiscordAuthorizationStart = Static<typeof DiscordAuthorizationStart>
+export const DiscordAuthorizationStart = Type.Object({
+    state: Type.String(),
+    authorizationUrl: Type.String(),
+    expiresInSeconds: Type.Integer({ minimum: 1 })
+})
+
+export type ChallengeIssuedResponse = Static<typeof ChallengeIssuedResponse>
+export const ChallengeIssuedResponse = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(ApiResponse, ['payload']),
+        Type.Object({
+            payload: Type.Object({ expiresAt: Type.String() })
+        })
+    ])
+)
+
+export type DiscordAuthorizationStartResponse = Static<typeof DiscordAuthorizationStartResponse>
+export const DiscordAuthorizationStartResponse = Type.Evaluate(
+    Type.Intersect([
+        Type.Omit(ApiResponse, ['payload']),
+        Type.Object({
+            payload: DiscordAuthorizationStart
         })
     ])
 )
@@ -179,12 +228,23 @@ export const TokenResponse = Type.Evaluate(
     ])
 )
 
+export type AblyTokenRequest = Static<typeof AblyTokenRequest>
+export const AblyTokenRequest = Type.Object({
+    keyName: Type.String(),
+    nonce: Type.String(),
+    mac: Type.String(),
+    timestamp: Type.Number(),
+    capability: Type.String(),
+    clientId: Type.Optional(Type.String()),
+    ttl: Type.Optional(Type.Number())
+})
+
 export type AblyTokenResponse = Static<typeof AblyTokenResponse>
 export const AblyTokenResponse = Type.Evaluate(
     Type.Intersect([
         Type.Omit(ApiResponse, ['payload']),
         Type.Object({
-            payload: Type.Object({ token: Type.Unknown() })
+            payload: Type.Object({ token: AblyTokenRequest })
         })
     ])
 )

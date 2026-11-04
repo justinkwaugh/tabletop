@@ -7,6 +7,7 @@ import {
     favorHomeBankOf,
     holdsTheTurn,
     resolveModifiers,
+    secretsFlipped,
     suitOf,
     tollsFor,
     type HydratedOathGameState,
@@ -120,8 +121,7 @@ function banksAfterPayments(
         const taker = burnedFavorTaker(state)
         if (taker) into(favorHomeBankOf(state, taker), count)
     }
-    const paid =
-        costs.reduce((n, cost) => n + cost.placeFavor + cost.burnFavor, 0) + tolls.length
+    const paid = costs.reduce((n, cost) => n + cost.placeFavor + cost.burnFavor, 0) + tolls.length
     const fromBank = Math.max(0, paid - state.getPlayerState(playerId).favor)
     into(favorHomeBankOf(state, playerId), -fromBank)
     const outOfTurn = !holdsTheTurn(state, playerId)
@@ -194,9 +194,7 @@ export function travelRows(
         const ways = terms.flatMap((way): TravelChoice[] => {
             const choice = {
                 ...way,
-                favorTo: way.tolls.map(
-                    (cardId) => tolls.find((t) => t.cardId === cardId)?.payeeId
-                ),
+                favorTo: way.tolls.map((cardId) => tolls.find((t) => t.cardId === cardId)?.payeeId),
                 modifiers
             }
             if (!hospitality) return [choice]
@@ -241,6 +239,20 @@ export function samePayment(a: TravelWay, b: TravelWay): boolean {
 /** Each way to pay once, whatever banks Hospitality splits it into. */
 export function waysToPay<Way extends TravelWay>(ways: readonly Way[]): Way[] {
     return ways.filter((way, index) => !ways.slice(0, index).some((w) => samePayment(w, way)))
+}
+
+/** A way that costs nothing: no Supply, no toll and no secret flipped. A Hospitality gain is no cost. */
+export function costsNothing(way: TravelWay): boolean {
+    return way.cost === 0 && way.tolls.length === 0 && secretsFlipped(way.flipSecret) === 0
+}
+
+/**
+ * The ways a destination shows: where one costs nothing, only that way (once per bank Hospitality
+ * could gain from), the dearer ways hidden; else every way. The engine still accepts any legal way.
+ */
+export function waysToShow<Way extends TravelWay>(ways: readonly Way[]): Way[] {
+    const free = ways.filter(costsNothing)
+    return free.length > 0 ? free : [...ways]
 }
 
 /** The banks Hospitality could gain from at a destination, each once, in the banks' order. */

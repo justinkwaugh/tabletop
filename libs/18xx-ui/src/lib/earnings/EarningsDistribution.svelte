@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { type EarningsChoice } from '@tabletop/18xx'
+    import type { EarningsChoice } from '@tabletop/18xx'
     import EarningsCard from './EarningsCard.svelte'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSessionView } =

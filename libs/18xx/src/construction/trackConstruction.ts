@@ -13,7 +13,13 @@ import {
 } from '../map/station.js'
 import { CashPayment } from '../finance/cashPayments.js'
 import { TilePlacement, type TileInventory, type TileSet } from '../tiles/inventory.js'
-import { TileRotation, type TileDefinition, type TileFace, type TileEdge } from '../tiles/tile.js'
+import {
+    TileRotation,
+    type TileDefinition,
+    type TileFace,
+    type TileEdge,
+    type TileNode
+} from '../tiles/tile.js'
 import { rotateTileEdge, rotateTileFace } from '../tiles/topology.js'
 import { ConstructionReachability } from './constructionReachability.js'
 import { preservesPath, fixedNodeRevenue, type TileNodeMapping } from './trackUpgrade.js'
@@ -161,8 +167,9 @@ export interface TrackRules {
     restriction(state: ConstructionState, request: TrackRequest): string | undefined
     /**
      * Whether a lay is allowed: on a home hex, touching the company's network (``connected``),
-     * adding connected track, raising a connected city's revenue, or putting a city or town on
-     * the company's network.
+     * adding connected track, raising a connected city's revenue, or putting a city, town or
+     * terminal (an off-board node, such as the triangle inside Boston's tile) on the company's
+     * network.
      */
     useful(change: {
         home: boolean
@@ -171,6 +178,7 @@ export interface TrackRules {
         increasedCityRevenue: boolean
         connectedCity: boolean
         connectedTown: boolean
+        connectedTerminal: boolean
     }): boolean
     homeLocations(companyId: string): readonly string[]
     consentPlayerId?(state: ConstructionState, request: TrackRequest): string | undefined
@@ -183,6 +191,11 @@ export interface TrackRules {
     terrainCost?(state: ConstructionState, request: TrackRequest, cost: number): number
     afterLay?(state: ConstructionState, details: TrackLayDetails, payer: Owner): TrackLayEffects
     relabels?(locationId: string, definitionId: string): boolean
+    /** The city of a tile that prints this reserved spot; laying the tile moves the spot there. */
+    printedReservationNode?(
+        reservation: StationReservation,
+        definitionId: string
+    ): string | undefined
 }
 const Rotations: readonly TileRotation[] = [0, 1, 2, 3, 4, 5]
 
@@ -218,7 +231,8 @@ export class TrackConstruction {
                     newTrack: false,
                     increasedCityRevenue: false,
                     connectedCity: false,
-                    connectedTown: false
+                    connectedTown: false,
+                    connectedTerminal: false
                 }))
         )
     }
@@ -390,9 +404,8 @@ export class TrackConstruction {
             )
         if (!piece) return { reason: 'No tile remains in the supply' }
         const migrated = this.migrateStations(
-            locationId,
+            request,
             after,
-            nodeMapping,
             reconfiguring && !Object.keys(nodeMapping).length
         )
         if (!migrated) return { reason: 'The upgrade cannot preserve all station spaces' }
@@ -413,6 +426,8 @@ export class TrackConstruction {
                         network.nodes.has(target.id)
                 )
         )
+        const onNetwork = (kind: TileNode['kind']) =>
+            after.nodes.some((node) => node.kind === kind && network.nodes.has(node.id))
         if (
             !this.rules.useful({
                 home: this.rules.homeLocations(companyId).includes(locationId),
@@ -425,12 +440,9 @@ export class TrackConstruction {
                     ),
                 newTrack,
                 increasedCityRevenue,
-                connectedCity: after.nodes.some(
-                    (node) => node.kind === 'city' && network.nodes.has(node.id)
-                ),
-                connectedTown: after.nodes.some(
-                    (node) => node.kind === 'town' && network.nodes.has(node.id)
-                )
+                connectedCity: onNetwork('city'),
+                connectedTown: onNetwork('town'),
+                connectedTerminal: onNetwork('offboard')
             })
         )
             return {
@@ -456,7 +468,7 @@ export class TrackConstruction {
         }
     }
     stationsAfter(details: TrackLayDetails): StationState {
-        return stationsAfterLay(this.state, details)
+        return stationsAfterLay(this.state, details, this.rules)
     }
     inventoryAfter(details: TrackLayDetails): TileInventory {
         return this.rules.tileSet.replace(this.state.tileInventory, {
@@ -534,13 +546,13 @@ export class TrackConstruction {
         )
     }
     private migrateStations(
-        locationId: string,
+        request: TrackRequest,
         after: TileFace,
-        mapping: TileNodeMapping,
         reconfigured = false
     ):
         | (StationState & { moved: PlacedStation[]; displaced: string[]; reconfigured: boolean })
         | undefined {
+        const { locationId, nodeMapping: mapping } = request
         if (reconfigured) {
             const displaced = this.state.stations.filter(
                 (station) =>
@@ -587,7 +599,7 @@ export class TrackConstruction {
             moved,
             displaced: [],
             reconfigured: false,
-            stationReservations: reservationsAfterLay(this.state, locationId, mapping),
+            stationReservations: reservationsAfterLay(this.state, this.rules, request),
             hexReservations: this.state.hexReservations
         }
     }
@@ -628,7 +640,11 @@ function stationsAfterReconfiguration(
     }
 }
 
-export function stationsAfterLay(state: StationState, details: TrackLayDetails): StationState {
+export function stationsAfterLay(
+    state: StationState,
+    details: TrackLayDetails,
+    rules: Pick<TrackRules, 'printedReservationNode'>
+): StationState {
     if (details.reconfigured)
         return stationsAfterReconfiguration(
             state,
@@ -639,19 +655,24 @@ export function stationsAfterLay(state: StationState, details: TrackLayDetails):
         stations: state.stations.map(
             (station) => details.movedStations.find((moved) => moved.id === station.id) ?? station
         ),
-        stationReservations: reservationsAfterLay(state, details.locationId, details.nodeMapping),
+        stationReservations: reservationsAfterLay(state, rules, details),
         ...(state.hexReservations ? { hexReservations: state.hexReservations } : {})
     }
 }
 
 function reservationsAfterLay(
     state: StationState,
-    locationId: string,
-    mapping: TileNodeMapping
+    rules: Pick<TrackRules, 'printedReservationNode'>,
+    lay: Pick<TrackRequest, 'locationId' | 'definitionId' | 'nodeMapping'>
 ): StationReservation[] {
     return state.stationReservations.map((reservation) =>
-        reservation.locationId === locationId
-            ? { ...reservation, nodeId: mapping[reservation.nodeId] }
+        reservation.locationId === lay.locationId
+            ? {
+                  ...reservation,
+                  nodeId:
+                      rules.printedReservationNode?.(reservation, lay.definitionId) ??
+                      lay.nodeMapping[reservation.nodeId]
+              }
             : reservation
     )
 }

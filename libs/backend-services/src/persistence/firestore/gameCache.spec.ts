@@ -122,15 +122,12 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
         }
 
         it('caches history pages without database reads and preserves older pages on completion', async () => {
-            const records = Array.from(
-                { length: 28 },
-                (_, index): Game => ({
-                    ...game,
-                    id: `${prefix}-history-${index}`,
-                    status: GameStatus.Finished,
-                    finishedAt: new Date(1700000000000 - index * 1000)
-                })
-            )
+            const records = Array.from({ length: 28 }, (_, index): Game => ({
+                ...game,
+                id: `${prefix}-history-${index}`,
+                status: GameStatus.Finished,
+                finishedAt: new Date(1700000000000 - index * 1000)
+            }))
             try {
                 const batch = db.batch()
                 for (const record of records) batch.set(store.games.doc(record.id), record)

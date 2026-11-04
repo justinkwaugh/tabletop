@@ -2,14 +2,15 @@ import {
     StationPlacement,
     hexReservationFulfilled,
     reservationFulfilled,
-    type CompanyRules,
-    type HomeOption
+    type FormationState,
+    type MapStateData,
+    type StartHome
 } from '@tabletop/18xx'
 import { LateCompanies } from './majors.js'
 import { LateHomeLocationIds } from './map.js'
 import { EighteenNinetyFourStationRules } from './stationRules.js'
 
-type HomeState = Parameters<NonNullable<CompanyRules['homeChoices']>>[0]
+type HomeState = FormationState & MapStateData
 
 /** Whether the hex is the home of another company that has not yet placed it. */
 function anotherHome(state: HomeState, companyId: string, locationId: string): boolean {
@@ -31,10 +32,11 @@ function anotherHome(state: HomeState, companyId: string, locationId: string): b
 
 /**
  * A late company's possible homes (§11.3.3): hexes of its country with an empty station space
- * that are not another unoperated company's home, preferring hexes without track. Its home is
- * the city when only one city is open, otherwise any city of the hex.
+ * that are not another unoperated company's home, preferring hexes without track. Its president
+ * claims the hex as the company starts: the one open city, or any city of it when several are
+ * open, for the station it places as it first operates (§7.3.1).
  */
-export function lateCompanyHomes(state: HomeState, companyId: string): HomeOption[] | undefined {
+export function lateCompanyHomes(state: HomeState, companyId: string): StartHome[] | undefined {
     const country = LateCompanies[companyId]
     if (!country) return undefined
     const placement = new StationPlacement(state, EighteenNinetyFourStationRules)
@@ -46,11 +48,17 @@ export function lateCompanyHomes(state: HomeState, companyId: string): HomeOptio
                 node.kind === 'city' &&
                 placement.openSlots(companyId, locationId, node.id).length > 0
         )
-        if (!open.length) return []
-        const option: HomeOption =
-            open.length === 1 ? { locationId, nodeId: open[0].id } : { locationId }
-        return [{ option, tracked: face.paths.length > 0 }]
+        const [city] = open
+        if (!city) return []
+        const home: StartHome = {
+            locationId,
+            nodeId: city.id,
+            slot: placement.openSlots(companyId, locationId, city.id)[0],
+            cost: 0,
+            claims: open.length === 1 ? 'city' : 'hex'
+        }
+        return [{ home, tracked: face.paths.length > 0 }]
     })
     const untracked = options.filter((entry) => !entry.tracked)
-    return (untracked.length ? untracked : options).map((entry) => entry.option)
+    return (untracked.length ? untracked : options).map((entry) => entry.home)
 }

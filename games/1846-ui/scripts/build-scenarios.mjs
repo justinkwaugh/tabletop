@@ -8,6 +8,7 @@ import { startingPositionFile } from '@tabletop/common/testing'
 import { nextOperatingCompany } from '@tabletop/18xx'
 import {
     Definition,
+    EighteenFortySixTileSet,
     Runtime,
     hydrateEighteenFortySixState,
     trainBuyingChoices1846
@@ -164,3 +165,46 @@ soldOut(phaseIV, ['5'])
 untilBuying(phaseIV)
 phaseChange(phaseIV, '6')
 write('obsolete-4-and-3-5-trains-in-phase-iv', 'Obsolete 4 and 3/5 trains in phase IV', phaseIV)
+
+// Green tiles crowd the printed port and meat-packing spots in Wheeling, Toledo and Chicago.
+function withRevenueTokens({ markers, steamboat }) {
+    const position = soldOut(
+        phaseIIPurchase([
+            { depotId: '2', definitionId: '2' },
+            { depotId: '4', definitionId: '4' }
+        ]),
+        ['2', '4']
+    )
+    phaseChange(position, '5')
+    position.state.tileInventory = EighteenFortySixTileSet.createInventory([
+        { locationId: 'G19', definitionId: '18xx:14', rotation: 1 },
+        { locationId: 'D14', definitionId: '18xx:15', rotation: 1 },
+        { locationId: 'D6', definitionId: '1846:298', rotation: 0 }
+    ])
+    position.state.revenueMarkers = markers.map(([privateCompanyId, locationId]) => ({
+        privateCompanyId,
+        companyId: position.companyId,
+        locationId,
+        setNumber: 1,
+        roundNumber: 1
+    }))
+    position.state.steamboat = { companyId: position.companyId, locationId: steamboat }
+    return position
+}
+
+write(
+    'steamboat-on-green-wheeling',
+    'Steamboat on green Wheeling',
+    withRevenueTokens({ markers: [['MPC', 'D6']], steamboat: 'G19' })
+)
+write(
+    'steamboat-in-holland',
+    'Steamboat in Holland',
+    withRevenueTokens({
+        markers: [
+            ['MPC', 'I1'],
+            ['BT', 'H12']
+        ],
+        steamboat: 'B8'
+    })
+)

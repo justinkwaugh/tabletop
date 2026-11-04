@@ -1,6 +1,8 @@
 import * as Type from 'typebox'
 import { GameResult } from '../game/model/gameResult.js'
+import { GameProgress } from '../game/model/gameProgress.js'
 import { GameConfig } from '../game/model/gameConfig.js'
+import { TiebreakRule } from '../game/definition/gameScoring.js'
 import { TournamentGameReference } from './tournamentGameReference.js'
 import { LeagueGroupReference } from './leagueGroupReference.js'
 import { assertExists } from '../util/assertions.js'
@@ -84,7 +86,8 @@ export const TournamentRules = Type.Object(
         registration: TournamentRegistrationPolicy,
         concurrency: Type.Integer({ minimum: 1, maximum: 256 }),
         gameConfig: GameConfig,
-        scoring: Type.Literal('splitWinsV1')
+        scoring: Type.Literal('splitWinsV1'),
+        tiebreakRule: Type.Optional(TiebreakRule)
     },
     { additionalProperties: false }
 )
@@ -222,9 +225,29 @@ export const TournamentScore = Type.Object({
     wins: Type.Integer({ minimum: 0 }),
     score: Type.Number({ minimum: 0 }),
     completed: Type.Integer({ minimum: 0 }),
-    tiebreak: Type.Optional(Type.Number())
+    tiebreak: Type.Optional(Type.Number()),
+    pointsBehind: Type.Optional(Type.Number())
 })
 export type TournamentScore = Type.Static<typeof TournamentScore>
+
+const FINAL_SCORE_DIVISOR = 100
+
+export function rankedTiebreak(
+    row: Pick<TournamentScore, 'completed' | 'tiebreak' | 'pointsBehind'>
+): number | undefined {
+    const { completed, tiebreak, pointsBehind } = row
+    if (pointsBehind === undefined || tiebreak === undefined || completed === 0) return tiebreak
+    // One division of whole numbers, so values that are mathematically equal compare equal.
+    return (tiebreak - FINAL_SCORE_DIVISOR * pointsBehind) / (FINAL_SCORE_DIVISOR * completed)
+}
+
+export function tournamentTiebreakDescription(
+    rows: Pick<TournamentScore, 'pointsBehind'>[]
+): string {
+    return rows.some((row) => row.pointsBehind !== undefined)
+        ? "Tiebreak is the average points behind the top score at each player's tables, as a negative, plus one hundredth of their average final score. Higher is better."
+        : "Tiebreak is the sum of each player's final scores from their games."
+}
 
 export const TournamentStanding = Type.Object({
     ...TournamentScore.properties,
@@ -246,7 +269,8 @@ export const TournamentResultCorrection = Type.Object({
     administratorId: Type.String(),
     reason: Type.String({ minLength: 1, maxLength: 1000 }),
     createdAt: Type.Integer(),
-    gameActionCount: Type.Integer({ minimum: 0 })
+    // Written by older backends only
+    gameActionCount: Type.Optional(Type.Integer({ minimum: 0 }))
 })
 export type TournamentResultCorrection = Type.Static<typeof TournamentResultCorrection>
 
@@ -349,7 +373,8 @@ export const TournamentGameLink = Type.Object({
     // The accounts seated at the Game, by position.
     userIds: Type.Optional(Type.Array(Type.String())),
     result: Type.Optional(Type.Enum(GameResult)),
-    winningUserIds: Type.Optional(Type.Array(Type.String()))
+    winningUserIds: Type.Optional(Type.Array(Type.String())),
+    progress: Type.Optional(GameProgress)
 })
 export type TournamentGameLink = Type.Static<typeof TournamentGameLink>
 

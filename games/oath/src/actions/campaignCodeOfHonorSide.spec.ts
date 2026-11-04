@@ -48,28 +48,59 @@ interface Scene {
 
 /**
  * Dana and Bea stand at c1, which the Empire rules with two warbands; Ann, the Chancellor, is at
- * h1 and Rhys at p2, away from the battle unless a scene moves him. By default Bea holds Bear
+ * h1 and Rhys at p2, away from the battle unless a scene moves them. By default Bea holds Bear
  * Traps and Ann Code of Honor.
  */
 function table(scene: Scene): HydratedOathGameState {
     const s = testState(
         [
             testPlayer({
-                playerId: DANA, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', supply: 6, favor: 4, secrets: 3,
-                warbandsOnBoard: { [DANA]: 6 }, warbandsInPersonalBank: { [DANA]: 4 }, ...scene.dana
+                playerId: DANA,
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: 'c1',
+                supply: 6,
+                favor: 4,
+                secrets: 3,
+                warbandsOnBoard: { [DANA]: 6 },
+                warbandsInPersonalBank: { [DANA]: 4 },
+                ...scene.dana
             }),
             testPlayer({
-                playerId: BEA, color: Color.Blue, status: PlayerStatus.Citizen, siteId: 'c1', supply: 6, favor: 4, secrets: 3,
-                warbandsInPersonalBank: { [BEA]: 8 }, advisers: [adviser(BEAR_TRAPS)], ...scene.bea
+                playerId: BEA,
+                color: Color.Blue,
+                status: PlayerStatus.Citizen,
+                siteId: 'c1',
+                supply: 6,
+                favor: 4,
+                secrets: 3,
+                warbandsInPersonalBank: { [BEA]: 8 },
+                advisers: [adviser(BEAR_TRAPS)],
+                ...scene.bea
             }),
             testPlayer({
-                playerId: ANN, color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', supply: 6, favor: 4, secrets: 3,
-                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 }, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 10 },
-                advisers: [adviser(CODE_OF_HONOR)], ...scene.ann
+                playerId: ANN,
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'h1',
+                supply: 6,
+                favor: 4,
+                secrets: 3,
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 10 },
+                advisers: [adviser(CODE_OF_HONOR)],
+                ...scene.ann
             }),
             testPlayer({
-                playerId: RHYS, color: Color.Yellow, status: PlayerStatus.Citizen, siteId: 'p2', supply: 6, favor: 4, secrets: 3,
-                warbandsInPersonalBank: { [RHYS]: 8 }, ...scene.rhys
+                playerId: RHYS,
+                color: Color.Yellow,
+                status: PlayerStatus.Citizen,
+                siteId: 'p2',
+                supply: 6,
+                favor: 4,
+                secrets: 3,
+                warbandsInPersonalBank: { [RHYS]: 8 },
+                ...scene.rhys
             })
         ],
         {
@@ -86,7 +117,11 @@ function table(scene: Scene): HydratedOathGameState {
 }
 
 /** Dana's Campaign against `defender` (Bea) at c1, with three attack dice. */
-function attack(s: HydratedOathGameState, defender = BEA, plans: BattlePlanUse[] = []): HydratedCampaign {
+function attack(
+    s: HydratedOathGameState,
+    defender = BEA,
+    plans: BattlePlanUse[] = []
+): HydratedCampaign {
     const action = new HydratedCampaign(
         buildAction(Campaign, {
             playerId: DANA,
@@ -100,8 +135,15 @@ function attack(s: HydratedOathGameState, defender = BEA, plans: BattlePlanUse[]
     return action
 }
 
-function answer(s: HydratedOathGameState, playerId: string, cardIds: string[] = []): HydratedCampaignDefend {
-    const action = defend(cardIds.map((cardId) => battlePlanUse(cardId)), playerId)
+function answer(
+    s: HydratedOathGameState,
+    playerId: string,
+    cardIds: string[] = []
+): HydratedCampaignDefend {
+    const action = defend(
+        cardIds.map((cardId) => battlePlanUse(cardId)),
+        playerId
+    )
     action.apply(s)
     return action
 }
@@ -117,7 +159,9 @@ describe('Code of Honor cannot be used once its side has used another battle pla
         expect(ongoingCampaign(s).pendingDefenderPlans?.queue).toEqual([BEA, ANN])
         answer(s, BEA, [BEAR_TRAPS])
         expect(HydratedCampaignDefend.reasonCannotDefend(s, ANN, honor)).toBe(HONOR_REFUSAL)
-        expect(() => answer(s, ANN, [CODE_OF_HONOR])).toThrow(/your side has already used another battle plan/)
+        expect(() => answer(s, ANN, [CODE_OF_HONOR])).toThrow(
+            /your side has already used another battle plan/
+        )
         expect(offered(s, ANN)).toEqual([])
         expect(HydratedCampaignDefend.reasonCannotDefend(s, ANN, [])).toBeUndefined()
         const rolls = s.prng.invocations
@@ -127,7 +171,7 @@ describe('Code of Honor cannot be used once its side has used another battle pla
         expect(ongoingCampaign(s).plansUsed).toEqual([BEAR_TRAPS])
     })
 
-    it('Ann defends and uses a plan; Rhys, admitted as her Ally, cannot use his Code of Honor', () => {
+    it('Ann defends and uses a plan; Rhys, admitted as their Ally, cannot use their Code of Honor', () => {
         const s = table({
             revision: atRevision,
             bea: { siteId: 'p2', advisers: [] },
@@ -177,7 +221,11 @@ describe('Code of Honor cannot be used once its side has used another battle pla
             [WRESTLERS, {}]
         ]
         for (const [plan, state] of scenes) {
-            const s = table({ revision: atRevision, bea: { advisers: plan === WRESTLERS ? [adviser(WRESTLERS)] : [] }, state })
+            const s = table({
+                revision: atRevision,
+                bea: { advisers: plan === WRESTLERS ? [adviser(WRESTLERS)] : [] },
+                state
+            })
             attack(s)
             answer(s, BEA, [plan])
             expect(ongoingCampaign(s).plansUsed).toEqual([plan])
@@ -199,8 +247,12 @@ describe('what Code of Honor still allows, and what it still locks', () => {
         expect(used.metadata?.attackPool).toBe(1)
     })
 
-    it('Bea uses Code of Honor first: the rest of her side is locked out, as before', () => {
-        const s = table({ revision: atRevision, bea: { advisers: [adviser(CODE_OF_HONOR)] }, ann: { advisers: [adviser(BEAR_TRAPS)] } })
+    it('Bea uses Code of Honor first: the rest of their side is locked out, as before', () => {
+        const s = table({
+            revision: atRevision,
+            bea: { advisers: [adviser(CODE_OF_HONOR)] },
+            ann: { advisers: [adviser(BEAR_TRAPS)] }
+        })
         attack(s)
         answer(s, BEA, [CODE_OF_HONOR])
         expect(ongoingCampaign(s).defenderPlansLocked).toBe(true)
@@ -214,7 +266,12 @@ describe('what Code of Honor still allows, and what it still locks', () => {
             state: { denizensBySite: { c1: [HOSPITAL], c2: [], p1: [], h1: [] } }
         })
         attack(s)
-        expect(HydratedCampaignDefend.reasonCannotDefend(s, BEA, [battlePlanUse(HOSPITAL), battlePlanUse(CODE_OF_HONOR)])).toMatch(/you cannot use other battle plans with it/)
+        expect(
+            HydratedCampaignDefend.reasonCannotDefend(s, BEA, [
+                battlePlanUse(HOSPITAL),
+                battlePlanUse(CODE_OF_HONOR)
+            ])
+        ).toMatch(/you cannot use other battle plans with it/)
     })
 
     it("the attacker's plans are the other side's: after Dana's Longbows, Ann's Code of Honor, and Bea's own, are accepted", () => {
@@ -226,7 +283,12 @@ describe('what Code of Honor still allows, and what it still locks', () => {
         expect(HydratedCampaignDefend.reasonCannotDefend(s, ANN, honor)).toBeUndefined()
         expect(answer(s, ANN, [CODE_OF_HONOR]).metadata?.plansUsed).toEqual([CODE_OF_HONOR])
 
-        const own = table({ revision: atRevision, dana, bea: { advisers: [adviser(CODE_OF_HONOR)] }, ann: { advisers: [] } })
+        const own = table({
+            revision: atRevision,
+            dana,
+            bea: { advisers: [adviser(CODE_OF_HONOR)] },
+            ann: { advisers: [] }
+        })
         attack(own, BEA, [battlePlanUse(LONGBOWS)])
         expect(HydratedCampaignDefend.reasonCannotDefend(own, BEA, honor)).toBeUndefined()
         expect(answer(own, BEA, [CODE_OF_HONOR]).metadata?.plansUsed).toEqual([CODE_OF_HONOR])
@@ -237,7 +299,9 @@ describe('what Code of Honor still allows, and what it still locks', () => {
         attack(s)
         answer(s, BEA, [BEAR_TRAPS])
         expect(offered(s, ANN)).toEqual([PEACE_ENVOY])
-        expect(HydratedCampaignDefend.reasonCannotDefend(s, ANN, [battlePlanUse(PEACE_ENVOY)])).toBeUndefined()
+        expect(
+            HydratedCampaignDefend.reasonCannotDefend(s, ANN, [battlePlanUse(PEACE_ENVOY)])
+        ).toBeUndefined()
         answer(s, ANN, [PEACE_ENVOY])
         expect(ongoingCampaign(s).plansUsed).toEqual([BEAR_TRAPS, PEACE_ENVOY])
         expect(ongoingCampaign(s).decidedVictor).toBe('defender')
@@ -266,7 +330,7 @@ describe('revision 12 (R-X.4)', () => {
 
 describe("the defending side's checks on Ann's own view, where hidden values cannot be read", () => {
     const ann = { kind: 'player', playerId: ANN } as const
-    /** Ann's own view as her table judges on it: projected, then guarded. */
+    /** Ann's own view as their table judges on it: projected, then guarded. */
     const ownView = (s: HydratedOathGameState) =>
         OathVisibility.state.guardForExecution(new HydratedOathGameState(served(s, ann)), ann)
 

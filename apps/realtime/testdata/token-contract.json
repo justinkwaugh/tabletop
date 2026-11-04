@@ -1,11 +1,7 @@
 {
     "signingKey": "contract:cmVhbHRpbWUtcmVsYXktY29udHJhY3QtdGVzdC1rZXk",
     "userId": "u1",
-    "topics": [
-        "user-u1",
-        "global",
-        "game-g1"
-    ],
+    "topics": ["user-u1", "global", "game-g1"],
     "nowMillis": 1800000000000,
     "tokenId": "contract-jti",
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImNvbnRyYWN0In0.eyJzdWIiOiJ1MSIsInRvcGljcyI6WyJ1c2VyLXUxIiwiZ2xvYmFsIiwiZ2FtZS1nMSJdLCJhdWQiOiJyZWFsdGltZSIsImlhdCI6MTgwMDAwMDAwMCwiZXhwIjoxODAwMDAwMDYwLCJqdGkiOiJjb250cmFjdC1qdGkifQ._KiXlnitt3Dst-hu7WcTaLx7h9rtK7I5UZutk7B0rUE"

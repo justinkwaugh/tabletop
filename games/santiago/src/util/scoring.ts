@@ -1,4 +1,11 @@
-import { SantiagoBoard, CropType, FieldSquare, isFieldSquare, fieldStrength, orthogonalNeighbors } from '../model/board.js'
+import {
+    SantiagoBoard,
+    CropType,
+    FieldSquare,
+    isFieldSquare,
+    fieldStrength,
+    orthogonalNeighbors
+} from '../model/board.js'
 import { connectedSpringIntersections, isIrrigated } from './irrigation.js'
 
 export type PlayerScores = Record<string, number>
@@ -23,7 +30,7 @@ export function calculateLiveScores(board: SantiagoBoard): PlayerScores {
         for (const { fields } of groups) {
             const size = fields.length
             for (const field of fields) {
-                if (!field.playerId) continue  // neutral plantation
+                if (!field.playerId) continue // neutral plantation
                 scores[field.playerId] = (scores[field.playerId] ?? 0) + fieldStrength(field) * size
             }
         }
@@ -54,7 +61,8 @@ function findConnectedGroupsAny(board: SantiagoBoard, crop: CropType): FieldGrou
                 if (!isFieldSquare(s) || s.crop !== crop || s.dried) continue
                 fields.push(s)
                 for (const [nc, nr] of orthogonalNeighbors(c, r)) {
-                    if (nc >= 0 && nc < 8 && nr >= 0 && nr < 6 && !visited.has(`${nc},${nr}`)) queue.push([nc, nr])
+                    if (nc >= 0 && nc < 8 && nr >= 0 && nr < 6 && !visited.has(`${nc},${nr}`))
+                        queue.push([nc, nr])
                 }
             }
             if (fields.length > 0) groups.push({ fields })
@@ -88,7 +96,7 @@ export function calculateScores(board: SantiagoBoard): PlayerScores {
             const { fields } = groups[i]
             const size = plantationSize[i]
             for (const field of fields) {
-                if (!field.playerId) continue  // neutral plantation — counts toward size but has no owner
+                if (!field.playerId) continue // neutral plantation — counts toward size but has no owner
                 const strength = fieldStrength(field)
                 scores[field.playerId] = (scores[field.playerId] ?? 0) + strength * size
             }

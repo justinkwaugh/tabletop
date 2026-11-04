@@ -1,6 +1,15 @@
 import type { Point } from '@tabletop/common'
+import type { Face } from '@tabletop/napoleons-triumph'
 import { APPROACH_GEOMETRY, type ApproachGeometry } from '$lib/map/boardGeometry.js'
-import { aroundArc, grownOutline, type ConvexOutline } from './convexOutline.js'
+import { blockOutline, faceOutline, type BlockFootprint } from './blockShape.js'
+import { FACE_SYMBOL_GAP } from './faceLayout.js'
+import {
+    aroundArc,
+    clearSlides,
+    grownOutline,
+    outlinesOverlap,
+    type ConvexOutline
+} from './convexOutline.js'
 
 const TAIL = -24
 const NECK = 2
@@ -8,6 +17,8 @@ const TIP = 28
 const SHAFT_HALF_WIDTH = 12
 const HEAD_HALF_WIDTH = 24
 const SAMPLE_STEP = 6
+// Deliberate: arrows slid off a face stop a symbol's gap short of it, so the two are not read as touching.
+const FACE_CLEARANCE = FACE_SYMBOL_GAP
 
 export const ATTACK_ARROW_PATH = `M${TAIL} ${-SHAFT_HALF_WIDTH} H${NECK} V${-HEAD_HALF_WIDTH} L${TIP} 0 L${NECK} ${HEAD_HALF_WIDTH} V${SHAFT_HALF_WIDTH} H${TAIL} Z`
 
@@ -52,6 +63,12 @@ export interface ArrowDrawing {
 }
 
 export const THREAT_ARROW: ArrowDrawing = { feint: false, countered: false }
+
+export interface ArrowOnApproach {
+    approach: number
+    drawing: ArrowDrawing
+    slide: number
+}
 
 export const ARROW_EDGE_WIDTH = 2.5
 const EDGE_OUTSIDE = ARROW_EDGE_WIDTH / 2
@@ -109,21 +126,84 @@ function piecesOf({ feint, countered }: ArrowDrawing): ConvexOutline[] {
         : own
 }
 
+function alongTheBar(bar: ApproachGeometry): Point {
+    const radians = (bar.angle * Math.PI) / 180
+    return { x: Math.cos(radians), y: Math.sin(radians) }
+}
+
+export function arrowCentre(bar: ApproachGeometry, slide: number): Point {
+    const along = alongTheBar(bar)
+    return { x: bar.centre.x + along.x * slide, y: bar.centre.y + along.y * slide }
+}
+
 /** The convex pieces on the board that the arrows drawn on an approach cover, edge included. */
 export function arrowOutlines(
     approach: number,
     scale: number,
-    drawing: ArrowDrawing
+    drawing: ArrowDrawing,
+    slide = 0
 ): ConvexOutline[] {
     const bar = APPROACH_GEOMETRY[approach]
+    const centre = arrowCentre(bar, slide)
     const radians = (attackMarkerAngle(bar) * Math.PI) / 180
     const [cos, sin] = [Math.cos(radians), Math.sin(radians)]
     return piecesOf(drawing).map((piece) =>
         grownOutline(piece, EDGE_OUTSIDE).map(({ x, y }) => ({
-            x: bar.centre.x + (x * cos - y * sin) * scale,
-            y: bar.centre.y + (x * sin + y * cos) * scale
+            x: centre.x + (x * cos - y * sin) * scale,
+            y: centre.y + (x * sin + y * cos) * scale
         }))
     )
+}
+
+export interface UnderTheArrows {
+    faces: readonly ConvexOutline[]
+    others: readonly ConvexOutline[]
+}
+
+export function underTheArrows(
+    blocks: readonly { block: BlockFootprint; face?: Face }[],
+    drawnWith: readonly ConvexOutline[] = []
+): UnderTheArrows {
+    return {
+        faces: blocks.flatMap(({ block, face }) =>
+            face ? [faceOutline(block, face.strength)] : []
+        ),
+        others: [...blocks.map(({ block }) => blockOutline(block)), ...drawnWith]
+    }
+}
+
+export function arrowSlide(
+    approach: number,
+    scale: number,
+    drawing: ArrowDrawing,
+    { faces, others }: UnderTheArrows
+): number {
+    const bar = APPROACH_GEOMETRY[approach]
+    const reach = bar.length / 2
+    const clear = clearSlides(
+        arrowOutlines(approach, scale, drawing),
+        faces.map((face) => grownOutline(face, FACE_CLEARANCE)),
+        alongTheBar(bar)
+    ).filter((slide) => Math.abs(slide) <= reach)
+    if (clear.includes(0)) {
+        return 0
+    }
+    const nearestEachWay = [-1, 1].flatMap((way) => {
+        const thisWay = clear.filter((slide) => slide * way > 0).map(Math.abs)
+        return thisWay.length > 0 ? [way * Math.min(...thisWay)] : []
+    })
+    const candidates = nearestEachWay.length > 0 ? nearestEachWay : [-reach, reach]
+    const covered = (slide: number) => {
+        const slid = arrowOutlines(approach, scale, drawing, slide)
+        return others.filter((other) => slid.some((piece) => outlinesOverlap(piece, other))).length
+    }
+    return candidates.reduce((best, slide) => {
+        const [slideCovers, bestCovers] = [covered(slide), covered(best)]
+        if (slideCovers !== bestCovers) {
+            return slideCovers < bestCovers ? slide : best
+        }
+        return Math.abs(slide) < Math.abs(best) ? slide : best
+    })
 }
 
 export function attackMarkerScale(zoom: number): number {
@@ -138,7 +218,8 @@ function halfWidthAt(reach: number): number {
     return reach <= NECK ? SHAFT_HALF_WIDTH : (HEAD_HALF_WIDTH * (TIP - reach)) / (TIP - NECK)
 }
 
-export function attackMarkerSamples(bar: ApproachGeometry, scale: number): Point[] {
+export function attackMarkerSamples(bar: ApproachGeometry, scale: number, slide = 0): Point[] {
+    const centre = arrowCentre(bar, slide)
     const radians = (attackMarkerAngle(bar) * Math.PI) / 180
     const forward = { x: Math.cos(radians), y: Math.sin(radians) }
     const sideways = { x: -forward.y, y: forward.x }
@@ -147,8 +228,8 @@ export function attackMarkerSamples(bar: ApproachGeometry, scale: number): Point
         const halfWidth = halfWidthAt(reach)
         for (let offset = -halfWidth; offset <= halfWidth; offset += SAMPLE_STEP) {
             samples.push({
-                x: bar.centre.x + (forward.x * reach + sideways.x * offset) * scale,
-                y: bar.centre.y + (forward.y * reach + sideways.y * offset) * scale
+                x: centre.x + (forward.x * reach + sideways.x * offset) * scale,
+                y: centre.y + (forward.y * reach + sideways.y * offset) * scale
             })
         }
     }

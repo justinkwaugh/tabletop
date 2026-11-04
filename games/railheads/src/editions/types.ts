@@ -1,7 +1,10 @@
-import type { AxialCoordinates } from '@tabletop/common'
+import type { AxialCoordinates, HexOrientation } from '@tabletop/common'
+import type { TrackHex } from '../model/components.js'
+import type { EditionMap } from './editions.js'
 
 export enum EditionId {
-    Germany = 'Germany'
+    Germany = 'Germany',
+    Midwest = 'Midwest'
 }
 
 export enum CompanyId {
@@ -9,7 +12,12 @@ export enum CompanyId {
     GBSE = 'GBSE',
     KSSE = 'KSSE',
     KWSE = 'KWSE',
-    KBSB = 'KBSB'
+    KBSB = 'KBSB',
+    PRR = 'PRR',
+    BO = 'BO',
+    IC = 'IC',
+    ERIE = 'ERIE',
+    NYC = 'NYC'
 }
 
 export enum Industry {
@@ -85,10 +93,27 @@ export type IndustrySiteDefinition = {
     hex: AxialCoordinates
 }
 
+export type RegionDefinition = {
+    id: string
+    name: string
+    hexes: readonly AxialCoordinates[]
+}
+
+export type DemandAreaDefinition = {
+    id: string
+    name: string
+    hex: AxialCoordinates
+    industries: readonly Industry[]
+}
+
 export type MapDefinition = {
-    countrysideRowsByColumn: readonly (readonly number[])[]
+    orientation: HexOrientation
+    countryside: readonly AxialCoordinates[]
     sites: readonly SiteDefinition[]
     industrySites: readonly IndustrySiteDefinition[]
+    regions: readonly RegionDefinition[]
+    demandAreas: readonly DemandAreaDefinition[]
+    water: readonly AxialCoordinates[]
 }
 
 export type ObsolescenceBand = { from: number; drop: number }
@@ -108,6 +133,13 @@ export type EditionDefinition = {
     siteRevenue: Readonly<Record<SiteKind, number>>
     crossingCubeCost: number
     siteCapacity: (round: number, siteId: string | undefined) => number
+    industryInDemand: (
+        industry: Industry,
+        companyId: CompanyId,
+        track: readonly TrackHex[],
+        map: EditionMap
+    ) => boolean
+    endBonusPerShare: (companyId: CompanyId, track: readonly TrackHex[], map: EditionMap) => number
     obsolescence: readonly ObsolescenceBand[]
     industryTokensPerType: number
     developmentTrackLength: number
@@ -127,4 +159,16 @@ export function isLayTrackSpace(space: ActionSpaceId): space is LayTrackSpace {
 
 export function printedHex(col: number, row: number): AxialCoordinates {
     return { q: col, r: (row - col) / 2 }
+}
+
+export function printedPointyHex(row: number, col: number): AxialCoordinates {
+    return { q: (col - row) / 2, r: row }
+}
+
+export function printedPointyRow(row: number, fromCol: number, toCol: number): AxialCoordinates[] {
+    const hexes: AxialCoordinates[] = []
+    for (let col = fromCol; col <= toCol; col += 2) {
+        hexes.push(printedPointyHex(row, col))
+    }
+    return hexes
 }

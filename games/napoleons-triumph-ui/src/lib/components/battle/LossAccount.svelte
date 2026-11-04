@@ -5,6 +5,7 @@
         lossSummary,
         owedByAttacker,
         owedByDefender,
+        stepLines,
         type AttackLosses,
         type OwedLine,
         type SideLosses
@@ -23,7 +24,7 @@
         [Side.Allied]: 'The Allies'
     }
 
-    function owedBy(side: SideLosses): OwedLine[] {
+    function owedForResult(side: SideLosses): OwedLine[] {
         if (!attack || attack.finalResult === undefined || !accounts.initial) {
             return []
         }
@@ -51,7 +52,7 @@
         the fight, or retreats, pays morale for the steps it loses.
     {/snippet}
     {#each [losses.attacker, losses.defender] as side (side.playerId)}
-        {@const owed = owedBy(side)}
+        {@const owed = stepLines(owedForResult(side), side)}
         <section>
             <h3>
                 <span>{ARMIES[gameSession.gameState.sideOf(side.playerId)]}</span>
@@ -67,7 +68,9 @@
                     {/each}
                     {#if side.owed > 0}
                         <tr>
-                            <th scope="row">Of these, still to be taken once the units are chosen</th>
+                            <th scope="row"
+                                >Of these, still to be taken once the units are chosen</th
+                            >
                             <td>{side.owed}</td>
                         </tr>
                     {/if}

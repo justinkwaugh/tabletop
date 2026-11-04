@@ -1,13 +1,5 @@
-import {
-    ActionSource,
-    GameEngine,
-    GameResult,
-    PlayerStatus,
-    assert,
-    validateGameResult
-} from '@tabletop/common'
+import { ActionSource, GameEngine, GameResult, assert, validateGameResult } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
-import { Definition } from './gameDefinition.js'
 import { SantiagoRuntime } from './runtime.js'
 import { SantiagoGameStateValidator, type SantiagoProjectedState } from '../model/gameState.js'
 import { ActionType } from './actions.js'
@@ -16,27 +8,10 @@ import type { PlaceSpring } from '../actions/placeSpring.js'
 import type { PlaceBid } from '../actions/placeBid.js'
 import type { RevealTiles } from '../actions/revealTiles.js'
 import { nextAction } from '../testing/autoplay.js'
+import { createTestGame } from '../testing/testGame.js'
 
 const engine = new GameEngine(SantiagoRuntime)
 const masterSeed = '0123456789abcdef0123456789abcdef'
-
-function createGame(count: number, randomizeSpring: boolean, palmTrees = true) {
-    return SantiagoRuntime.initializer.initializeGame(
-        {
-            id: 'santiago-competition',
-            typeId: Definition.info.id,
-            ownerId: 'owner',
-            config: { randomizeSpring, palmTrees },
-            players: Array.from({ length: count }, (_, index) => ({
-                id: `p${index}`,
-                name: `Player ${index}`,
-                isHuman: true,
-                status: PlayerStatus.Joined
-            }))
-        },
-        Definition
-    )
-}
 
 describe.each([3, 4, 5])('Santiago tournament initialization with %i players', (count) => {
     // Every option that changes setup or the first actor: the spring's placement and palm trees.
@@ -50,7 +25,7 @@ describe.each([3, 4, 5])('Santiago tournament initialization with %i players', (
     it.each(setups)(
         'honors assigned positions with random spring %s and palm trees %s',
         (randomizeSpring, palmTrees) => {
-            const game = createGame(count, randomizeSpring, palmTrees)
+            const game = createTestGame(count, { randomizeSpring, palmTrees })
             const ids = game.players.map((player) => player.id)
             for (let offset = 0; offset < count; offset++) {
                 const order = [...ids.slice(offset), ...ids.slice(0, offset)]
@@ -123,7 +98,7 @@ describe.each([3, 4, 5])('Santiago tournament initialization with %i players', (
     it.each(setups)(
         'preserves seeded setup with random spring %s and palm trees %s',
         (randomizeSpring, palmTrees) => {
-            const game = createGame(count, randomizeSpring, palmTrees)
+            const game = createTestGame(count, { randomizeSpring, palmTrees })
             const raw = engine.generateUninitializedState(game, masterSeed)
             const initialize = (playerIds?: string[]) =>
                 SantiagoRuntime.initializer
@@ -160,7 +135,7 @@ describe.each([3, 4, 5])('Santiago tournament initialization with %i players', (
     )
 
     it('plays a game in an assigned order to a valid result', () => {
-        const game = createGame(count, true)
+        const game = createTestGame(count, { randomizeSpring: true, palmTrees: true })
         const ids = game.players.map((player) => player.id)
         const order = [...ids.slice(1), ids[0]]
         const { startedGame, initialState } = engine.startGame(game, {
@@ -191,10 +166,13 @@ describe.each([3, 4, 5])('Santiago tournament initialization with %i players', (
         'rejects invalid assignment %j',
         (...playerIds) => {
             expect(() =>
-                engine.startGame(createGame(count, true), {
-                    masterSeed,
-                    startingPositions: { playerIds }
-                })
+                engine.startGame(
+                    createTestGame(count, { randomizeSpring: true, palmTrees: true }),
+                    {
+                        masterSeed,
+                        startingPositions: { playerIds }
+                    }
+                )
             ).toThrow()
         }
     )

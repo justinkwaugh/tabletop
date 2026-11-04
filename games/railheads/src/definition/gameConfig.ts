@@ -15,7 +15,10 @@ export const RailheadsGameConfigOptions: GameConfigOptions = [
         name: 'Map',
         description: 'Which title of the Railheads series to play',
         default: EditionId.Germany,
-        options: [{ name: 'Germany', value: EditionId.Germany }],
+        options: [
+            { name: 'Germany', value: EditionId.Germany },
+            { name: 'The Midwest', value: EditionId.Midwest }
+        ],
         alwaysShow: true
     },
     {

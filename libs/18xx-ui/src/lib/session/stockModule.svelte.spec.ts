@@ -79,49 +79,22 @@ describe('StockModule', () => {
             expectedPrice: 10
         })
     })
-    it('opens a sole non-pass menu automatically without consuming Undo or committing an action', async () => {
+    it('leaves a sole menu closed until the player chooses it', async () => {
         const { session, applied } = trading(['FinishStockTurn'])
         const module = new StockModule(
             session,
             () => {},
             () => true
         )
-        expect(module.openMenu).toBe('exchange')
-        expect(module.hasManual()).toBe(false)
-        expect(module.undo()).toBe(false)
-        expect(applied).toEqual([])
-        module.clear()
-        expect(module.openMenu).toBe('exchange')
-        await module.finishTurn()
-        expect(applied.map((action) => action.type)).toEqual(['FinishStockTurn'])
-    })
-
-    it('counts title-specific options and respects manual choices', () => {
-        const { session } = trading()
-        const module = new StockModule(
-            session,
-            () => {},
-            () => true,
-            () => 1
-        )
+        expect(module.availableMenus.map((choice) => choice.menu)).toEqual(['exchange'])
         expect(module.openMenu).toBeUndefined()
         module.chooseMenu('exchange')
         expect(module.openMenu).toBe('exchange')
         expect(module.hasManual()).toBe(true)
         expect(module.undo()).toBe(true)
         expect(module.openMenu).toBeUndefined()
-    })
-
-    it('does not auto-open a menu when interaction or selections are unavailable', () => {
-        for (const availability of [{ interactive: false }, { selectionsVisible: false }]) {
-            const { session } = trading([], availability)
-            const module = new StockModule(
-                session,
-                () => {},
-                () => true
-            )
-            expect(module.openMenu).toBeUndefined()
-        }
+        await module.finishTurn()
+        expect(applied.map((action) => action.type)).toEqual(['FinishStockTurn'])
     })
 
     it('Undo steps back from the sale company to the menu, then closes the menu', () => {
@@ -195,6 +168,57 @@ describe('StockModule', () => {
         expect(module.undo()).toBe(true)
         expect(module.hasSelection).toBe(false)
         expect(() => module.selectStartPrice('0:1')).toThrow()
+    })
+
+    it('stages a chosen home between company and price, and Undo unwinds it', async () => {
+        const { session, applied } = trading(['StartCompany'])
+        const treasury = { kind: 'company', companyId: TestCompanyId } as const
+        session.state.cash.push({ owner: player, amount: 1000 }, { owner: treasury, amount: 0 })
+        session.state.certificates.push({
+            id: 'president',
+            companyId: TestCompanyId,
+            kind: 'share',
+            shares: 2,
+            president: true,
+            owner: treasury
+        })
+        const homes = [
+            { locationId: 'A1', nodeId: 'city', slot: 0, cost: 80 },
+            { locationId: 'B1', nodeId: 'city', slot: 0, cost: 120 }
+        ]
+        const rules = {
+            ...session.rules,
+            companyRules: {
+                ...minimalCompanyRules,
+                startMarketSpaces: () => ['0:1'],
+                startTerms: () => ({ price: 240, recipient: treasury, payers: [player] }),
+                startHomes: () => homes
+            }
+        }
+        const module = new StockModule({ ...session, rules }, () => {})
+        expect(module.homePositions).toEqual([])
+        module.selectCompanyStart(start)
+        expect(module.awaitingStartHome).toBe(true)
+        expect(module.homePositions).toEqual(homes)
+        expect(() => module.chooseHome({ locationId: 'C1', nodeId: 'city' })).toThrow()
+        module.chooseHome({ locationId: 'A1', nodeId: 'city' })
+        expect(module.awaitingStartHome).toBe(false)
+        expect(module.homePositions).toEqual([])
+        expect(module.selectedStartHomeChoice).toEqual(homes[0])
+        expect(module.undo()).toBe(true)
+        expect(module.awaitingStartHome).toBe(true)
+        module.chooseHome({ locationId: 'B1', nodeId: 'city' })
+        module.selectStartPrice('0:1')
+        expect(module.selectedStartResult?.reason).toBeUndefined()
+        expect(module.selectedStartResult?.details?.home).toMatchObject({
+            position: { locationId: 'B1', nodeId: 'city' },
+            cost: 120
+        })
+        await module.confirmStart()
+        expect(applied[0]).toMatchObject({
+            type: 'StartCompany',
+            home: { locationId: 'B1', nodeId: 'city' }
+        })
     })
 
     it('stages one company per sale and removes it by company', () => {

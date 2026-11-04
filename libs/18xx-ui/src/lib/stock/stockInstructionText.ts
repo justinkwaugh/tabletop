@@ -1,4 +1,8 @@
-import type { StockInstruction, StockInstructionStopReason } from '@tabletop/18xx'
+import type {
+    IgnorableStockInstructionStop,
+    StockInstruction,
+    StockInstructionStopReason
+} from '@tabletop/18xx'
 import type { TitleStopReason } from '../session/titlePresentation.js'
 
 export type StockInstructionNames = {
@@ -22,6 +26,31 @@ export function stockInstructionText(
             : `until I own ${instruction.until.count}`
     const follow = instruction.thenPass ? ' · then pass' : ''
     return `${stockInstructionKindLabel('buy')} ${names.companyName(instruction.companyId)} · ${names.poolName(instruction.preferredPoolId)} preferred · ${goal}${follow}`
+}
+
+export const ignorableStopCondition: Record<IgnorableStockInstructionStop, string> = {
+    'company-started': 'a company has been started',
+    'president-changed': 'a company changed president, other than to you',
+    'shares-sold': 'shares of any company were sold to the bank',
+    'presidency-threatened':
+        'a rival gained shares in a company you preside over without a majority'
+}
+
+export const limitStopCondition = 'you must sell shares to meet a limit'
+export const goalStopCondition = 'it is no longer possible to meet your Autobuy goal'
+
+export const ignorableStopNoun: Record<IgnorableStockInstructionStop, string> = {
+    'company-started': 'company starts',
+    'president-changed': 'president changes',
+    'shares-sold': 'sales',
+    'presidency-threatened': 'presidency threats'
+}
+
+export function ignoredStopsText(
+    ignoredStops: readonly IgnorableStockInstructionStop[] | undefined
+): string | undefined {
+    if (!ignoredStops?.length) return undefined
+    return `ignores ${ignoredStops.map((stop) => ignorableStopNoun[stop]).join(', ')}`
 }
 
 export function stopReasonText(

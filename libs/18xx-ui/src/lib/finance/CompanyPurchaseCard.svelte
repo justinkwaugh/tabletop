@@ -23,8 +23,8 @@
     <PrivateCard
         {money}
         phaseColors={session.presentation.phaseColors}
-        token={session.privateCompanyTokens[company.id]}
-        name={session.companyName(company.id)}
+        tokens={session.privateCardTokens[company.id]}
+        name={session.companyFullName(company.id)}
         description=""
         income={session.privateIncome(company.id)}
         {purchaseRange}

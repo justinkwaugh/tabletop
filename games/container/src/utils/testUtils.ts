@@ -81,10 +81,7 @@ export function createActionBase<T extends TSchema>(
     })
 }
 
-export function createMachineContext(
-    state: HydratedContainerGameState,
-    config: GameConfig = {}
-) {
+export function createMachineContext(state: HydratedContainerGameState, config: GameConfig = {}) {
     return new MachineContext({
         gameConfig: config,
         gameState: state

@@ -2,6 +2,7 @@ import {
     type EighteenFortySixProjectedState,
     type HydratedEighteenFortySixState,
     BuyOpeningCompany,
+    isBlank,
     PassOpeningPurchase,
     openingPurchaseChoices,
     unboughtOpeningCompanies,
@@ -12,23 +13,17 @@ import {
     BuildPrivateTrack,
     chicagoPrivateStation,
     PlaceCWIStation,
-    draftCompany,
     ConstructionPrivateIds,
     type ConstructionPrivateId,
     AssignRevenueMarker,
     revenueMarkerChoices,
     type RevenuePrivateId,
-    CorporateFinance,
-    corporateFinanceChoices,
-    type FinanceChoice,
     AssignSteamboat,
     PortSymbols,
     type SteamboatAssignment,
     ChooseDraftCard,
     PassFinalCompany,
     choicesFor,
-    StockRules1846,
-    ReceivershipRules1846,
     TitleRules1846
 } from '@tabletop/1846'
 import { assertExists } from '@tabletop/common'
@@ -39,18 +34,15 @@ import {
     type TitlePrivatePower
 } from '@tabletop/18xx-ui'
 import {
-    ClaimPresidency,
     isOfferPurchase,
     isRespondToPurchaseOffer,
-    nextOperatingCompany,
-    presidencyClaims,
-    type PresidencyClaimOffer,
     stationsAfterLay,
     type OfferPurchase,
     type RespondToPurchaseOffer,
     type TrackRequest
 } from '@tabletop/18xx'
 import { mapState1846 } from './mapState.js'
+import { createRouteWorker } from './routeWorker.js'
 import { undoableStagedSelection, type PresentedTransition } from '@tabletop/frontend-components'
 import {
     PrivateLayStageOrder,
@@ -65,6 +57,7 @@ import {
 } from './stagedSelection.js'
 import { MapView1846 } from './mapView.js'
 import { Presentation1846 } from './presentation.js'
+import { DraftPacketGate } from './draftPacketGate.svelte.js'
 
 const PrivateTrackPrompts: Readonly<Record<ConstructionPrivateId, string>> = {
     MC: 'Lay up to two connected yellow tiles for free',
@@ -84,47 +77,8 @@ const BaseSession: ReturnType<
 > = createEighteenXXSessionClass<
     typeof EighteenFortySixProjectedState,
     HydratedEighteenFortySixState
->(TitleRules1846, MapView1846, Presentation1846)
-type ConstructionMode = 'track' | 'stations' | 'finance'
-export type StockPanel1846 = 'receivership'
+>(TitleRules1846, MapView1846, Presentation1846, createRouteWorker)
 export class EighteenFortySixSession extends BaseSession {
-    readonly stockPanels = this.titleStockPanels<StockPanel1846>([
-        {
-            id: 'receivership',
-            label: 'Receivership',
-            available: () =>
-                this.gameState.machineState === 'StockRound' && this.presidencyClaims.length > 0
-        }
-    ])
-    private readonly constructionModeScope = $derived(
-        [
-            this.gameState.machineState,
-            nextOperatingCompany(this.gameState),
-            this.myPlayer?.id,
-            this.isViewingHistory
-        ].join(':')
-    )
-    private manualConstructionMode = $derived.by((): ConstructionMode | undefined => {
-        void this.constructionModeScope
-        return undefined
-    })
-    constructionMode = $derived.by((): ConstructionMode => {
-        if (this.privateDraft) return 'track'
-        const manual = this.manualConstructionMode
-        if (manual && this.constructionModeAvailable(manual)) return manual
-        if (this.validActionTypes.includes('LayTile')) return 'track'
-        if (this.validActionTypes.includes('PlaceStation')) return 'stations'
-        return this.gameState.machineState === 'LayingTrack' && this.financeChoices.length
-            ? 'finance'
-            : 'stations'
-    })
-    readonly nothingToBuild = $derived.by(
-        () =>
-            this.gameState.machineState === 'LayingTrack' &&
-            this.validActionTypes.includes('FinishTrack') &&
-            !this.validActionTypes.some((type) => type === 'LayTile' || type === 'PlaceStation') &&
-            !this.financeChoices.length
-    )
     private steamboatSelection = $derived.by((): SteamboatSelection => {
         void this.gameState.machineState
         void this.gameState.actionCount
@@ -165,40 +119,9 @@ export class EighteenFortySixSession extends BaseSession {
             )
         )
     }
-    protected override get trackBuildingActive() {
-        return this.constructionMode === 'track' && !this.decisions.selection
-    }
-    protected override get stationPlacementActive() {
-        return (
-            this.gameState.machineState === 'LayingTrack' &&
-            this.constructionMode === 'stations' &&
-            !this.privateActions.selection &&
-            !this.decisions.selection
-        )
-    }
     protected override get sharedActionsBlocked() {
         return !!this.gameState.pendingRevenueMarker
     }
-    private constructionModeAvailable(mode: ConstructionMode): boolean {
-        if (mode === 'finance') return this.financeChoices.length > 0
-        return this.validActionTypes.includes(mode === 'track' ? 'LayTile' : 'PlaceStation')
-    }
-    chooseConstructionMode(mode: ConstructionMode | undefined) {
-        this.track.stages.clear()
-        this.stations.stages.clear()
-        this.manualConstructionMode = mode
-    }
-
-    protected override get operatingStepCompletion() {
-        if (this.validActionTypes.includes('FinishTrack'))
-            return { lastTarget: 1, finish: () => this.finishConstruction() }
-        return undefined
-    }
-
-    async finishConstruction() {
-        await this.track.finish()
-    }
-
     private privateLaySelection = $derived.by((): PrivateLaySelection => {
         void [
             this.gameState,
@@ -273,7 +196,7 @@ export class EighteenFortySixSession extends BaseSession {
                     kind: 'track',
                     privateCompanyId,
                     playerId,
-                    label: draftCompany(privateCompanyId).name,
+                    label: this.companyName(privateCompanyId),
                     prompt: lays.length
                         ? 'Lay a second tile connected to the first'
                         : PrivateTrackPrompts[privateCompanyId],
@@ -295,7 +218,8 @@ export class EighteenFortySixSession extends BaseSession {
                                 placement: details.placement,
                                 returnPrevious: true
                             }),
-                        stationsAfter: (details) => stationsAfterLay(inventory, details)
+                        stationsAfter: (details) =>
+                            stationsAfterLay(inventory, details, TrackRules1846)
                     },
                     commit: async (details) => {
                         const { companyId, locationId, definitionId, rotation, nodeMapping } =
@@ -338,7 +262,7 @@ export class EighteenFortySixSession extends BaseSession {
                 kind: 'confirm',
                 privateCompanyId: 'C&WI',
                 playerId,
-                label: draftCompany('C&WI').name,
+                label: this.companyName('C&WI'),
                 prompt: 'Place your reserved token in Chicago?',
                 confirmLabel: 'yes',
                 // The token can only go in the C&WI's own city, shown as it will be placed.
@@ -359,7 +283,7 @@ export class EighteenFortySixSession extends BaseSession {
         const choices = revenueMarkerChoices(this.gameState, playerId)
         return [...new Set(choices.map((choice) => choice.privateCompanyId))].map(
             (privateCompanyId) => {
-                const name = draftCompany(privateCompanyId).name
+                const name = this.companyName(privateCompanyId)
                 const placed = this.gameState.revenueMarkers.some(
                     (marker) => marker.privateCompanyId === privateCompanyId
                 )
@@ -444,42 +368,23 @@ export class EighteenFortySixSession extends BaseSession {
             })
         )
     }
-    readonly presidencyClaims = $derived(
-        this.myPlayer
-            ? presidencyClaims(
-                  this.gameState,
-                  { stockRules: StockRules1846, receivershipRules: ReceivershipRules1846 },
-                  this.myPlayer.id
-              )
-            : []
-    )
-    async claimPresidency(offer: PresidencyClaimOffer): Promise<void> {
-        await this.applyAction(
-            this.createPlayerAction(ClaimPresidency, {
-                companyId: offer.companyId,
-                expectedPrice: offer.price
-            })
-        )
-    }
-    readonly financeChoices = $derived(corporateFinanceChoices(this.gameState))
-    readonly financeLabel = $derived.by(() => {
-        const operations = new Set(this.financeChoices.map((choice) => choice.operation))
-        if (operations.size > 1) return 'Issue / redeem'
-        return operations.has('issue') ? 'Issue shares' : 'Redeem shares'
+    readonly packetGate = new DraftPacketGate({
+        ordinaryHotseatPlay: () => this.ordinaryHotseatPlay,
+        seatTurnKey: () =>
+            `${this.gameState.id}:${this.gameState.actionCount}:${this.myPlayer?.id}`,
+        publishing: () => this.updatingVisibleState
     })
-    readonly financePrompt = $derived(
-        this.financeLabel === 'Issue / redeem' ? 'Issue or redeem shares' : this.financeLabel
-    )
-    async corporateFinance(choice: FinanceChoice): Promise<void> {
-        await this.applyAction(this.createPlayerAction(CorporateFinance, choice))
+    protected override get draftedCompanies() {
+        const draft = this.gameState.draft
+        const playerId = this.myPlayer?.id
+        if (draft?.kind !== 'hidden' || !playerId || !this.packetGate.visible) return []
+        const selections =
+            draft.participants.find((participant) => participant.playerId === playerId)
+                ?.selections ?? []
+        return selections
+            .filter((selection) => !isBlank(selection.cardId))
+            .map((selection) => ({ companyId: selection.cardId, price: selection.price }))
     }
-    private openedPacketKey = $state<string>()
-    private readonly packetKey = $derived(
-        `${this.gameState.id}:${this.gameState.actionCount}:${this.myPlayer?.id}`
-    )
-    readonly packetVisible = $derived(
-        !this.updatingVisibleState && this.openedPacketKey === this.packetKey
-    )
     readonly draftChoices = $derived(
         this.myPlayer ? choicesFor(this.gameState, this.myPlayer.id) : []
     )
@@ -510,14 +415,8 @@ export class EighteenFortySixSession extends BaseSession {
             this.createPlayerAction(AssignSteamboat, assignment ? { assignment } : {})
         )
     }
-    revealPacket(): void {
-        this.openedPacketKey = this.packetKey
-    }
-    hidePacket(): void {
-        this.openedPacketKey = undefined
-    }
     async choose(cardId: string): Promise<void> {
-        this.hidePacket()
+        this.packetGate.hide()
         await this.applyAction(this.createPlayerAction(ChooseDraftCard, { cardId }))
     }
     async buyOpeningCompany(choice: (typeof this.openingChoices)[number]): Promise<void> {
@@ -527,11 +426,11 @@ export class EighteenFortySixSession extends BaseSession {
         await this.applyAction(this.createPlayerAction(PassOpeningPurchase))
     }
     async passFinalCompany(): Promise<void> {
-        this.hidePacket()
+        this.packetGate.hide()
         await this.applyAction(this.createPlayerAction(PassFinalCompany))
     }
     override beforeNewState(transition: PresentedTransition): void {
         super.beforeNewState(transition)
-        this.hidePacket()
+        this.packetGate.hide()
     }
 }

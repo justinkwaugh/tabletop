@@ -300,3 +300,33 @@ it('uses the actual asset owner for directional sales, independently of the acti
     )
     expect(extended.details?.sales[0].toMarketSpaceId).toBe('0:0')
 })
+
+it('leaves the marker in place for a held sale, so the next sale fetches the same price', () => {
+    const state = example()
+    const held: StockRules = {
+        ...rules,
+        saleTerms: (current, companyId) => ({
+            payer: bank,
+            price: market.companySpace(current.stockMarket, companyId).price,
+            destinationPoolId: 'market',
+            marketLimit: 80,
+            maximumShares: 3,
+            direction: 'down',
+            movement: 1
+        }),
+        holdsMarketMove: (_current, _sale, owner) => owner.kind === 'player'
+    }
+    const first = evaluateShareDisposal(state, seller, [{ companyId: 'R', shares: 1 }], held)
+    if (!first.details) throw new Error('Expected a legal sale')
+    expect(first.details.sales[0]).toMatchObject({
+        fromMarketSpaceId: '0:0',
+        toMarketSpaceId: '0:0'
+    })
+    applyShareSale(state, first.details)
+    expect(market.companySpace(state.stockMarket, 'R').id).toBe('0:0')
+    expect(
+        state.certificates.filter((certificate) => certificate.poolId === 'market')
+    ).toHaveLength(2)
+    const second = evaluateShareDisposal(state, seller, [{ companyId: 'R', shares: 1 }], held)
+    expect(second.details?.proceeds).toBe(100)
+})

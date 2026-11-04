@@ -1,4 +1,4 @@
-import { type StockMarket } from '@tabletop/18xx'
+import type { StockMarket } from '@tabletop/18xx'
 import type { ClosingZone } from './state.js'
 import { isAcquisitionSpace, isLiquidationSpace, EighteenSeventeenMarket } from './stockMarket.js'
 

@@ -124,7 +124,9 @@
                     )}
                     facts={[
                         ...companyFinanceFacts(gameState, target.companyId, money),
-                        ...companyAssetFacts(gameState, target.companyId)
+                        ...companyAssetFacts(gameState, target.companyId, (id) =>
+                            session.companyName(id)
+                        )
                     ]}
                     actions={[
                         {

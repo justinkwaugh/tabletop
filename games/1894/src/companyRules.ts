@@ -2,7 +2,12 @@ import { EighteenNinetyFourCharters } from './charters.js'
 import { LateCompanies } from './majors.js'
 import { EighteenNinetyFourMarket, ReissueParSpaceId } from './stockMarket.js'
 import { EighteenNinetyFourPhases } from './trains.js'
-import { fullCapitalizationCompanyRules, type CompanyRules } from '@tabletop/18xx'
+import {
+    fullCapitalizationCompanyRules,
+    type CompanyRules,
+    type FormationState,
+    type MapStateData
+} from '@tabletop/18xx'
 import { lateCompanyHomes } from './lateCompanies.js'
 
 const fullCapitalization = fullCapitalizationCompanyRules({
@@ -33,6 +38,7 @@ export const EighteenNinetyFourCompanyRules: CompanyRules = {
     // The two shareholding companies' buyers may also choose F100 (§5.3).
     awardParSpaces: () => [...ParSpaceIds, ReissueParSpaceId],
     // A late company's president chooses its home as it starts (§11.3.3).
-    homeChoices: lateCompanyHomes,
+    startHomes: (state: FormationState & MapStateData, companyId) =>
+        lateCompanyHomes(state, companyId),
     parAfterAward: true
 }

@@ -9,8 +9,10 @@ import {
     registerEffect,
     registerModifier,
     type EffectContext,
+    type PlayMapChanges,
     chosen
 } from './registry.js'
+import { tokensReturnedBy } from '../util/discard.js'
 import { gainFavorFromBank, siteHasCardOfSuit, hasFaceupAdviserOfSuit } from './vocabulary.js'
 import { ownerIfAny } from '../util/warbands.js'
 import { ruledFaceupCardIds, siteHolding } from '../util/access.js'
@@ -29,6 +31,7 @@ registerModifier(
             })
         ],
         hooks: {
+            bankChosenOnArrival: true,
             condition: (ctx) => {
                 const [bank] = chosen(ctx, PowerChoiceKind.FavorBank)
                 const to = ctx.particulars?.destinationSiteId
@@ -175,7 +178,11 @@ registerEffect(
 )
 
 // "When played, if you're an Exile and have more secrets (even on cards) than the Chancellor, you may become a Citizen — …"
-function secretsOf(state: HydratedOathGameState, playerId: string): number {
+function secretsOf(
+    state: HydratedOathGameState,
+    playerId: string,
+    leaving: readonly string[] = []
+): number {
     const p = state.getPlayerState(playerId)
     // R-7.3.3-H1 — "even on cards": every card that is theirs, the relics they hold and the cards they
     // rule (R-10.21). Before revision 8 (R-X.4), their faceup advisers only. R-7.1.2 places tokens on
@@ -183,14 +190,27 @@ function secretsOf(state: HydratedOathGameState, playerId: string): number {
     const cards = isAtLeastOathRevision(state, OathRevision.EngineFixes4)
         ? [...ruledFaceupCardIds(state, playerId), ...p.relicIds]
         : p.faceupAdviserIds()
-    const onCards = cards.reduce((n, cardId) => n + state.tokensOn(cardId).secrets, 0)
+    const onCards = cards
+        .filter((cardId) => !leaving.includes(cardId))
+        .reduce((n, cardId) => n + state.tokensOn(cardId).secrets, 0)
     return p.secrets + p.secretsFacedown + onCards
 }
-function bewitchRefusal(state: HydratedOathGameState, playerId: string): string | undefined {
+// R-7.3.3 — from revision 16, judged once the play has gained its secrets (Book of Records, a secret Homeland) and
+// the cards it discards first have given theirs to the player (R-10.5), as the power resolves.
+function bewitchRefusal(
+    state: HydratedOathGameState,
+    playerId: string,
+    mapChanges: PlayMapChanges | undefined
+): string | undefined {
     const exile = exileRefusal(state, playerId)
     if (exile) return exile
-    const mine = secretsOf(state, playerId)
-    const theirs = secretsOf(state, state.chancellorId())
+    const gains = isAtLeastOathRevision(state, OathRevision.EngineFixes12)
+        ? mapChanges?.gains
+        : undefined
+    const leaving = gains?.returning ?? []
+    const returned = leaving.reduce((n, cardId) => n + tokensReturnedBy(state, cardId).secrets, 0)
+    const mine = secretsOf(state, playerId, leaving) + (gains?.secrets ?? 0) + returned
+    const theirs = secretsOf(state, state.chancellorId(), leaving)
     return mine > theirs
         ? undefined
         : `you have ${mine} secrets, not more than the Chancellor's ${theirs}`
@@ -202,12 +222,13 @@ registerEffect(
         choices: [
             optional(PowerChoiceKind.Yes, {
                 what: 'becoming a Citizen',
-                offered: (state, playerId) => bewitchRefusal(state, playerId) === undefined
+                offered: (state, playerId, mapChanges) =>
+                    bewitchRefusal(state, playerId, mapChanges) === undefined
             })
         ],
         reasonCannotResolve: (ctx) =>
             chosen(ctx, PowerChoiceKind.Yes).length > 0
-                ? bewitchRefusal(ctx.state, ctx.playerId)
+                ? bewitchRefusal(ctx.state, ctx.playerId, ctx.mapChanges)
                 : undefined,
         resolve: (ctx) => {
             if (chosen(ctx, PowerChoiceKind.Yes).length === 0)

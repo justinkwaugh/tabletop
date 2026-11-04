@@ -10,16 +10,18 @@
         COUNTER_ARROW_PATH,
         FEINT_ARROW_FOLD_PATH,
         FEINT_ARROW_PATH,
+        arrowCentre,
         attackMarkerAngle
     } from '$lib/utils/attackMarker.js'
 
-    let { mark, scale }: { mark: AttackMark; scale: number } = $props()
+    let { mark, scale, slide = 0 }: { mark: AttackMark; scale: number; slide?: number } = $props()
 
     const gameSession = getGameSession()
 
     const THREAT = { block: '#2b2620', shade: '#14110e' }
 
     const bar = $derived(APPROACH_GEOMETRY[mark.approach])
+    const centre = $derived(arrowCentre(bar, slide))
     const paint = $derived(
         mark.kind === AttackMarkKind.Threat ? THREAT : gameSession.armyColors(mark.attackerId)
     )
@@ -31,7 +33,7 @@
 </script>
 
 <g
-    transform="translate({bar.centre.x} {bar.centre.y}) scale({scale})"
+    transform="translate({centre.x} {centre.y}) scale({scale})"
     class="pointer-events-none"
     data-attack-arrow={mark.kind}
 >

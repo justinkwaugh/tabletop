@@ -4,15 +4,18 @@ import { hasStationRoute } from '../trains/trainRequirement.js'
 import { routeRevenue } from './routeRevenue.js'
 import {
     payingRouteStops,
+    bonusRoute,
     routeBestStopBonuses,
-    routeConnectionBonuses,
+    routeInterconnectionBonus,
+    routeStopBonuses,
     type BestStopBonus,
     type RouteRevenueStop,
-    type RouteRevenuePolicy
+    type RouteRevenuePolicy,
+    type RouteShape
 } from './routeScoring.js'
 import { getCompany, sameOwner } from '../finance/finance.js'
 import { RailwayMapState } from '../map/mapState.js'
-import { cityIsBlocked } from '../map/station.js'
+import { cityIsBlocked, sameCenter, usesStationAt } from '../map/station.js'
 import type { RailwayMap } from '../map/map.js'
 import type { TileSet } from '../tiles/inventory.js'
 import type { TrainDefinition, Train } from '../trains/train.js'
@@ -34,7 +37,11 @@ export interface RouteRules {
     /** What earns the longest route's per-stop bonus, by the id the title names. */
     longestRouteBonusSourceId?: string
     canRunTrain?(state: TrainRunningState, train: Train): boolean
-    revenuePolicy?(train: TrainDefinition): RouteRevenuePolicy
+    revenuePolicy?(
+        train: TrainDefinition,
+        state: TrainRunningState,
+        companyId: string
+    ): RouteRevenuePolicy
     /**
      * Stops worth the best value among the route's other paying stops, for this company. A
      * title with a paying-stop limit chooses the paying stops without these bonuses.
@@ -62,6 +69,14 @@ export interface RouteRules {
     ): number
     /** Whether the company may visit or pass through a revenue center, such as a rights hex. */
     stopAllowed?(state: TrainRunningState, companyId: string, center: RevenueCenter): boolean
+    /**
+     * Stops one route must run between, ending at both, before the rest of the fleet may run, as a
+     * connection run from a company's home to its destination; other trains run as usual.
+     */
+    requiredRouteEnds?(
+        state: TrainRunningState,
+        companyId: string
+    ): readonly RevenueCenter[] | undefined
     /** A route may visit only one revenue center in each hex. */
     oneStopPerHex?: true
     /** What a route earns for each hex it passes through or stops in, once per route. */
@@ -95,6 +110,11 @@ export function stopValue(
     const printed = routeRevenue(node.revenue, rules.revenueStage(state, train))
     return rules.stopRevenue?.(state, companyId, center, printed) ?? printed
 }
+function endsWithin(visits: readonly RevenueCenter[], ends: readonly RevenueCenter[]): boolean {
+    const within = (stop: RevenueCenter | undefined) =>
+        !!stop && ends.some((end) => sameCenter(end, stop))
+    return visits.length >= 2 && within(visits[0]) && within(visits[visits.length - 1])
+}
 export type RouteEvaluationResult =
     { result: RouteResult; reason?: never } | { result?: never; reason: string }
 export type OperatingEvaluation =
@@ -115,12 +135,12 @@ export class RouteEvaluation {
             !hasStationRoute(this.network.mapState, this.state, companyId)
         )
     }
-    canAct(playerId: string, companyId: string): boolean {
+    canAct(playerId: string | undefined, companyId: string): boolean {
         return (
             this.state.routeStep?.companyId === companyId &&
             !this.state.routeStep.result &&
             !getCompany(this.state, companyId).closed &&
-            (this.rules.canOperate
+            (playerId && this.rules.canOperate
                 ? this.rules.canOperate(this.state, playerId, companyId)
                 : actsFor(this.state, playerId, companyId))
         )
@@ -194,13 +214,7 @@ export class RouteEvaluation {
                 return { reason: 'This train must visit a city.' }
             if (
                 !trace.visits.some((visit) =>
-                    this.state.stations.some(
-                        (station) =>
-                            station.status === 'placed' &&
-                            station.companyId === companyId &&
-                            station.position.locationId === visit.locationId &&
-                            station.position.nodeId === visit.nodeId
-                    )
+                    usesStationAt(this.state, companyId, visit.locationId, visit.nodeId)
                 )
             )
                 return { reason: 'The route must include a station of this company.' }
@@ -214,30 +228,33 @@ export class RouteEvaluation {
                 amount: this.revenue(companyId, visit, definition),
                 bonus: this.rules.stopBonus?.(this.state, definition, companyId, visit) ?? 0,
                 ...(bonusSourceIds.length ? { bonusSourceIds } : {}),
-                companyStation: this.state.stations.some(
-                    (station) =>
-                        station.status === 'placed' &&
-                        station.companyId === companyId &&
-                        station.position.locationId === visit.locationId &&
-                        station.position.nodeId === visit.nodeId
-                )
+                companyStation: usesStationAt(this.state, companyId, visit.locationId, visit.nodeId)
             }
         })
-        const policy = this.rules.revenuePolicy?.(definition) ?? {}
-        const paying = payingRouteStops(visits, policy)
+        const policy = this.rules.revenuePolicy?.(definition, this.state, companyId) ?? {}
+        const extension = route.extension ? this.extension(companyId, route) : undefined
+        if (extension?.reason) return { reason: extension.reason }
+        const shape: RouteShape = {
+            ends: [trace.visits[0], trace.visits[trace.visits.length - 1]],
+            ...(extension?.locationId ? { extensionLocationId: extension.locationId } : {})
+        }
+        const paying = payingRouteStops(visits, policy, shape)
         const payments = paying.map(({ locationId, nodeId, amount }) => ({
             locationId,
             nodeId,
             amount
         }))
+        const bonused = bonusRoute(visits, paying, policy, shape)
         const bonuses = [
             ...this.bonuses(route, paying),
-            ...routeConnectionBonuses(paying, policy),
+            ...routeStopBonuses(bonused.stops, policy, bonused.shape),
             ...routeBestStopBonuses(
                 paying,
                 this.rules.bestStopBonuses?.(this.state, companyId, definition) ?? []
             )
         ]
+        if (extension && !routeInterconnectionBonus(bonused.stops, policy, bonused.shape))
+            return { reason: 'The extension earns no interconnection.' }
         return {
             result: {
                 ...route,
@@ -263,12 +280,18 @@ export class RouteEvaluation {
             trains.add(route.trainId)
             const evaluation = this.evaluateRoute(companyId, route)
             if (!evaluation.result) return evaluation
-            const trace = this.network.trace(route.start, route.paths).trace!
+            const trace = this.network.trace(route.start, [
+                ...route.paths,
+                ...(route.extension ?? [])
+            ]).trace!
             if (trace.resources.some((key) => resources.has(key)))
                 return { reason: 'The submitted routes share track or a hex border.' }
             for (const key of trace.resources) resources.add(key)
             results.push(evaluation.result)
         }
+        const requiredEnds = this.rules.requiredRouteEnds?.(this.state, companyId)
+        if (requiredEnds && !results.some((route) => endsWithin(route.visits, requiredEnds)))
+            return { reason: 'One train must run between the required stops, and no further.' }
         const bonusPerStop = this.rules.longestRouteBonusPerStop?.(this.state, companyId) ?? 0
         const longest = results.reduce<RouteResult | undefined>(
             (best, route) =>
@@ -332,6 +355,38 @@ export class RouteEvaluation {
             (visit) => this.rules.map.location(visit.locationId).stopGroup ?? []
         )
         return groups.find((group, index) => groups.indexOf(group) !== index)
+    }
+    /**
+     * Where a route's extension ends: it runs on from the route's end through any stops,
+     * blocked or not, without counting them, and ends at a revenue center past no offboard.
+     */
+    private extension(
+        companyId: string,
+        route: TrainRoute
+    ): { locationId: string; reason?: never } | { reason: string; locationId?: never } {
+        const base = this.network.trace(route.start, route.paths).trace
+        const extended = this.network.trace(route.start, [
+            ...route.paths,
+            ...(route.extension ?? [])
+        ])
+        if (!base || !extended.trace) return { reason: extended.reason ?? 'The route is invalid.' }
+        const visits = extended.trace.visits.slice(base.visits.length)
+        const end = extended.trace.end
+        const last = visits.at(-1)
+        if (
+            !last ||
+            end.endpoint.kind !== 'node' ||
+            end.locationId !== last.locationId ||
+            end.endpoint.nodeId !== last.nodeId
+        )
+            return { reason: 'End the extension at a revenue center.' }
+        if (visits.slice(0, -1).some((visit) => visit.node.kind === 'offboard'))
+            return { reason: 'An extension cannot pass through an offboard.' }
+        if (
+            visits.some((visit) => this.rules.stopAllowed?.(this.state, companyId, visit) === false)
+        )
+            return { reason: 'This company may not use that revenue center.' }
+        return { locationId: last.locationId }
     }
     private exceedsDistance(train: TrainDefinition, trace: RouteTrace): boolean {
         const { maximum, extraTowns = 0 } = train.distance

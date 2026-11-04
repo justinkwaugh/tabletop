@@ -30,11 +30,12 @@
 </script>
 
 {#snippet boxContent(entry: (typeof boxes)[number])}
-    <rect width={ACTION_BOX_WIDTH} height={ACTION_BOX_HEIGHT} rx="10" class="panel" />
+    <rect width={ACTION_BOX_WIDTH} height={ACTION_BOX_HEIGHT} rx="10" class="panel"></rect>
     <path
-        d="M0 10 Q0 0 10 0 L{ACTION_BOX_WIDTH - 10} 0 Q{ACTION_BOX_WIDTH} 0 {ACTION_BOX_WIDTH} 10 L{ACTION_BOX_WIDTH} 34 L0 34 Z"
+        d="M0 10 Q0 0 10 0 L{ACTION_BOX_WIDTH -
+            10} 0 Q{ACTION_BOX_WIDTH} 0 {ACTION_BOX_WIDTH} 10 L{ACTION_BOX_WIDTH} 34 L0 34 Z"
         class="band"
-    />
+    ></path>
     <text x={ACTION_BOX_WIDTH / 2} y="23" class="title">{SPACE_NAMES[entry.space]}</text>
     {#each entry.pawns as player, index (player.playerId)}
         <PlayerToken
@@ -101,5 +102,4 @@
         fill: #fdf3dc;
         text-anchor: middle;
     }
-
 </style>

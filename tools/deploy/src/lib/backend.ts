@@ -1,5 +1,5 @@
 import { isObject } from './json.js'
-import { BackendManifest, DeployConfig } from './types.js'
+import { BackendAdminConfig, BackendManifest, DeployConfig } from './types.js'
 
 export type BackendManifestResult = {
     manifest?: BackendManifest
@@ -93,24 +93,6 @@ const extractCookieHeader = (setCookieHeaders: string[]): string | null => {
     return cookies.join('; ')
 }
 
-const loginWithToken = async (apiRoot: string, token: string, signal?: AbortSignal) => {
-    const url = new URL('/api/v1/auth/token/login', apiRoot)
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', accept: 'application/json' },
-        body: JSON.stringify({ token }),
-        signal
-    })
-    if (!response.ok) {
-        throw new Error(`backend token login ${response.status} ${response.statusText}`)
-    }
-    const cookie = extractCookieHeader(getSetCookieHeaders(response))
-    if (!cookie) {
-        throw new Error('backend token login missing session cookie')
-    }
-    return cookie
-}
-
 const loginWithCredentials = async (
     apiRoot: string,
     username: string,
@@ -134,47 +116,79 @@ const loginWithCredentials = async (
     return cookie
 }
 
+export type BackendAdminCredentials =
+    | { method: 'cookie'; cookie: string }
+    | { method: 'password'; username: string; password: string }
+
+const BACKEND_ADMIN_MIGRATION =
+    'The backend no longer accepts token login (security audit S06). Sign the deploy tool in with ' +
+    'backendAdmin.username and backendAdmin.password (TABLETOP_BACKEND_ADMIN_USER and ' +
+    'TABLETOP_BACKEND_ADMIN_PASSWORD) or an existing session cookie (backendAdmin.cookie or ' +
+    'TABLETOP_BACKEND_ADMIN_COOKIE), and remove the token setting.'
+
+export const resolveBackendAdminCredentials = (
+    backendAdmin: BackendAdminConfig | undefined
+): BackendAdminCredentials => {
+    if (backendAdmin?.cookie) {
+        return { method: 'cookie', cookie: backendAdmin.cookie }
+    }
+    if (backendAdmin?.username && backendAdmin?.password) {
+        return {
+            method: 'password',
+            username: backendAdmin.username,
+            password: backendAdmin.password
+        }
+    }
+    const unsupported = backendAdmin?.unsupportedSettings ?? []
+    if (unsupported.length > 0) {
+        throw new Error(
+            `Backend admin credentials are given only as ${unsupported.join(' and ')}, which the ` +
+                `deploy tool no longer supports. ${BACKEND_ADMIN_MIGRATION}`
+        )
+    }
+    throw new Error(
+        'Missing backend admin credentials for cache invalidation (set backendAdmin.username and ' +
+            'backendAdmin.password, or TABLETOP_BACKEND_ADMIN_COOKIE)'
+    )
+}
+
+export const describeIgnoredBackendAdminSettings = (
+    backendAdmin: BackendAdminConfig | undefined
+): string | undefined => {
+    const unsupported = backendAdmin?.unsupportedSettings ?? []
+    if (unsupported.length === 0) return undefined
+    return `${unsupported.join(' and ')} ${unsupported.length === 1 ? 'is' : 'are'} ignored: ${BACKEND_ADMIN_MIGRATION}`
+}
+
 const BackendReplacements = ['none', 'activated', 'superseded', 'replacement-failed'] as const
 export type BackendReplacement = (typeof BackendReplacements)[number]
 
 const isBackendReplacement = (value: unknown): value is BackendReplacement =>
     BackendReplacements.some((replacement) => replacement === value)
 
+const backendAdminSessionCookie = async (
+    config: DeployConfig,
+    credentials: BackendAdminCredentials,
+    signal?: AbortSignal
+): Promise<string> => {
+    if (credentials.method === 'cookie') return credentials.cookie
+    const apiRoot = resolveApiRoot(config)
+    if (!apiRoot) {
+        throw new Error('Missing backend API base for login')
+    }
+    return loginWithCredentials(apiRoot, credentials.username, credentials.password, signal)
+}
+
 export const invalidateBackendManifestCache = async (
     config: DeployConfig,
-    options?: { signal?: AbortSignal }
+    options?: { signal?: AbortSignal; expectedPublication?: string }
 ) => {
     const adminUrl = resolveAdminInvalidateUrl(config)
     if (!adminUrl) {
         throw new Error('Missing backend admin URL for manifest invalidation')
     }
-    const apiRoot = resolveApiRoot(config)
-    const backendAdmin = config.backendAdmin
-    const authCookie = backendAdmin?.cookie
-    let cookie = authCookie ?? null
-
-    if (!cookie && backendAdmin?.token) {
-        if (!apiRoot) {
-            throw new Error('Missing backend API base for token login')
-        }
-        cookie = await loginWithToken(apiRoot, backendAdmin.token, options?.signal)
-    }
-
-    if (!cookie && backendAdmin?.username && backendAdmin?.password) {
-        if (!apiRoot) {
-            throw new Error('Missing backend API base for login')
-        }
-        cookie = await loginWithCredentials(
-            apiRoot,
-            backendAdmin.username,
-            backendAdmin.password,
-            options?.signal
-        )
-    }
-
-    if (!cookie) {
-        throw new Error('Missing backend admin credentials for cache invalidation')
-    }
+    const credentials = resolveBackendAdminCredentials(config.backendAdmin)
+    const cookie = await backendAdminSessionCookie(config, credentials, options?.signal)
 
     const response = await fetch(adminUrl, {
         method: 'POST',
@@ -185,6 +199,16 @@ export const invalidateBackendManifestCache = async (
         throw new Error(`manifest invalidate ${response.status} ${response.statusText}`)
     }
     const body: unknown = await response.json()
+    if (options?.expectedPublication !== undefined) {
+        if (!isObject(body) || typeof body.publication !== 'string') {
+            throw new Error(
+                'Backend cannot confirm the published manifest; release the backend first'
+            )
+        }
+        if (body.activation !== 'complete' || body.publication !== options.expectedPublication) {
+            throw new Error('Backend activated a different publication than the uploaded manifest')
+        }
+    }
     if (
         typeof body === 'object' &&
         body !== null &&

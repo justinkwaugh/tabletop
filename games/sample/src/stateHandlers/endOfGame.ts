@@ -7,12 +7,21 @@ import {
 import { HydratedSampleGameState } from '../model/gameState.js'
 
 // Terminal state
-export class EndOfGameStateHandler implements MachineStateHandler<HydratedAction, HydratedSampleGameState> {
-    isValidAction(_action: HydratedAction, _context: MachineContext<HydratedSampleGameState>): boolean {
+export class EndOfGameStateHandler implements MachineStateHandler<
+    HydratedAction,
+    HydratedSampleGameState
+> {
+    isValidAction(
+        _action: HydratedAction,
+        _context: MachineContext<HydratedSampleGameState>
+    ): boolean {
         // No actions are valid for this state
         return false
     }
-    validActionsForPlayer(_playerId: string, _context: MachineContext<HydratedSampleGameState>): string[] {
+    validActionsForPlayer(
+        _playerId: string,
+        _context: MachineContext<HydratedSampleGameState>
+    ): string[] {
         // No actions are valid at the end of the game
         return []
     }

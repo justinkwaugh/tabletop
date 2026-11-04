@@ -172,17 +172,14 @@ export class HydratedIndonesiaBoard
         allowedCompanyId?: string
     ): boolean {
         const node = this.getNodeForArea(area)
-        return this.graph
-            .neighborsOf(node, IndonesiaNeighborDirection.Land)
-            .some((neighbor) => {
-                const neighborArea = this.getArea(neighbor.id)
-                return (
-                    isCultivatedArea(neighborArea) &&
-                    neighborArea.good === good &&
-                    (allowedCompanyId === undefined ||
-                        neighborArea.companyId !== allowedCompanyId)
-                )
-            })
+        return this.graph.neighborsOf(node, IndonesiaNeighborDirection.Land).some((neighbor) => {
+            const neighborArea = this.getArea(neighbor.id)
+            return (
+                isCultivatedArea(neighborArea) &&
+                neighborArea.good === good &&
+                (allowedCompanyId === undefined || neighborArea.companyId !== allowedCompanyId)
+            )
+        })
     }
 
     public canBeNewlyCultivated(

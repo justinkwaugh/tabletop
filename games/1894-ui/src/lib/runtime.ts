@@ -9,6 +9,7 @@ import {
 } from '@tabletop/frontend-components'
 import type { EighteenNinetyFourState, HydratedEighteenNinetyFourState } from '@tabletop/1894'
 import { EighteenNinetyFourPresentation } from './presentation.js'
+import { createRouteWorker } from './routeWorker.js'
 import Table from './Table.svelte'
 
 export const UiRuntime: GameUIRuntime<EighteenNinetyFourState, HydratedEighteenNinetyFourState> = {
@@ -17,7 +18,8 @@ export const UiRuntime: GameUIRuntime<EighteenNinetyFourState, HydratedEighteenN
     sessionClass: createEighteenXXSessionClass(
         EighteenNinetyFourTitleRules,
         EighteenNinetyFourMapView,
-        EighteenNinetyFourPresentation
+        EighteenNinetyFourPresentation,
+        createRouteWorker
     ),
     colorizer: new DefaultColorizer()
 }

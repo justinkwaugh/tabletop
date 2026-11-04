@@ -1,3 +1,4 @@
+import { stateWith } from '../game/stateWith.js'
 import {
     TrackConstruction,
     type TrackEvaluation,
@@ -19,6 +20,11 @@ export interface PrivateTrackTerms {
     countsAsOrdinaryLay?: true
     // Several lays: the title's terms, not the family, decide when the power is used up.
     reusable?: true
+    /**
+     * The open places are laid together: the power starts only when each has a lay, and once
+     * one is laid the rest must follow before the player does anything else.
+     */
+    together?: true
     terrainDiscount?: number
     /** What a lay beside the ordinary lays costs beyond terrain, such as 1894's F60. */
     cost?: number
@@ -89,7 +95,7 @@ export function privateTrackConstruction(
             : { companyId: terms.companyId, lays: [], completed: false }
     const discount = terms.terrainDiscount ?? 0
     return new TrackConstruction(
-        { ...state, trackStep },
+        stateWith(state, { trackStep }),
         {
             ...rules,
             allowance: terms.countsAsOrdinaryLay
@@ -131,5 +137,21 @@ export function evaluatePrivateTrack(
         privatePowerUsed(state, privateCompanyId)
     )
         return { reason: 'This private tile lay is unavailable.' }
-    return privateTrackConstruction(state, terms, track).evaluate(request)
+    const construction = privateTrackConstruction(state, terms, track)
+    if (!togetherLaysOpen(state, terms, construction))
+        return { reason: 'These tiles are laid together, and one of them has no lay.' }
+    return construction.evaluate(request)
+}
+
+/** Whether a power laid together may start: each of its open places has a lay. */
+export function togetherLaysOpen(
+    state: Pick<CompanyDecisionState, 'privateTrackLay'>,
+    terms: PrivateTrackTerms,
+    construction: TrackConstruction
+): boolean {
+    return (
+        !terms.together ||
+        !!state.privateTrackLay?.required ||
+        terms.locationIds.every((locationId) => construction.choices(locationId).length > 0)
+    )
 }

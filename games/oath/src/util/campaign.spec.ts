@@ -79,7 +79,10 @@ function table(overrides: Record<string, unknown> = {}) {
     )
 }
 
-function parties(targets: CampaignTarget[], overrides: Partial<CampaignParties> = {}): CampaignParties {
+function parties(
+    targets: CampaignTarget[],
+    overrides: Partial<CampaignParties> = {}
+): CampaignParties {
     return {
         attackerPlayerId: ATTACKER,
         defenderPlayerId: DEFENDER,
@@ -108,9 +111,9 @@ describe('collecting the defense pool (R-5.5.2)', () => {
         state.getPlayerState(DEFENDER).relicIds = ['relic.crown', 'relic.cup']
 
         expect(collectDefensePool(state, parties([relic('relic.crown')]))).toBe(2)
-        expect(
-            collectDefensePool(state, parties([relic('relic.crown'), relic('relic.cup')]))
-        ).toBe(3)
+        expect(collectDefensePool(state, parties([relic('relic.crown'), relic('relic.cup')]))).toBe(
+            3
+        )
     })
 
     it('refuses a relic whose shield is not recorded, rather than counting zero', () => {
@@ -118,12 +121,12 @@ describe('collecting the defense pool (R-5.5.2)', () => {
         state.getPlayerState(DEFENDER).siteId = 'c1'
         state.getPlayerState(DEFENDER).relicIds = ['relic.unknown.noShield']
 
-        expect(() =>
-            collectDefensePool(state, parties([relic('relic.unknown.noShield')]))
-        ).toThrow(/no recorded defense dice/)
+        expect(() => collectDefensePool(state, parties([relic('relic.unknown.noShield')]))).toThrow(
+            /no recorded defense dice/
+        )
     })
 
-    it('adds a banner\'s dice equal to what is stacked on it (R-2.5.2)', () => {
+    it("adds a banner's dice equal to what is stacked on it (R-2.5.2)", () => {
         const state = table()
         state.getPlayerState(DEFENDER).siteId = 'c1'
         state.banners[Banner.PeoplesFavor] = { holderPlayerId: DEFENDER, value: 4 }
@@ -145,7 +148,12 @@ describe('collecting the defense pool (R-5.5.2)', () => {
 
         const pool = collectDefensePool(
             state,
-            parties([siteTarget('p1'), relic('relic.crown'), banner(Banner.DarkestSecret), pawnAndFavor])
+            parties([
+                siteTarget('p1'),
+                relic('relic.crown'),
+                banner(Banner.DarkestSecret),
+                pawnAndFavor
+            ])
         )
         expect(pool).toBe(1 + 2 + 3 + 2)
     })
@@ -225,9 +233,7 @@ describe('collecting the defending force (R-5.5.4, R-10.9)', () => {
         expect(multiOwnerSites(state)).toHaveLength(1)
 
         const force = collectDefendingForce(state, parties([siteTarget('c1')]))
-        expect(force).toEqual([
-            { at: { kind: 'site', siteId: 'c1' }, owner: DEFENDER, count: 1 }
-        ])
+        expect(force).toEqual([{ at: { kind: 'site', siteId: 'c1' }, owner: DEFENDER, count: 1 }])
     })
 
     it('holds the one-player-per-site invariant on its own fixtures', () => {
@@ -288,12 +294,10 @@ describe('collecting the defending force (R-5.5.4, R-10.9)', () => {
             table(),
             parties([siteTarget('p1')], { allyPlayerIds: [CHANCELLOR] })
         )
-        expect(force.some((g) => g.at.kind === 'board' && g.at.playerId === CHANCELLOR)).toBe(
-            false
-        )
+        expect(force.some((g) => g.at.kind === 'board' && g.at.playerId === CHANCELLOR)).toBe(false)
     })
 
-    it('counts an Imperial defence through Imperial warbands, not the Citizen\'s own', () => {
+    it("counts an Imperial defence through Imperial warbands, not the Citizen's own", () => {
         const state = table({
             warbandsBySite: { c1: { [ATTACKER]: 2 }, p1: { [IMPERIAL_WARBANDS]: 4 } }
         })
@@ -368,12 +372,12 @@ describe('declaring targets (R-5.5.2)', () => {
     })
 
     it('rejects a site the defender does not rule', () => {
-        expect(reasonCannotDeclareTargets(table(), parties([siteTarget('c1'), siteTarget('h3')]))).toMatch(
-            /h3/
-        )
+        expect(
+            reasonCannotDeclareTargets(table(), parties([siteTarget('c1'), siteTarget('h3')]))
+        ).toMatch(/h3/)
     })
 
-    it('requires at least one target at the attacker\'s site (R-5.5.2)', () => {
+    it("requires at least one target at the attacker's site (R-5.5.2)", () => {
         expect(reasonCannotDeclareTargets(table(), parties([siteTarget('p1')]))).toMatch(
             /at least one target at your site/
         )
@@ -383,7 +387,7 @@ describe('declaring targets (R-5.5.2)', () => {
         expect(reasonCannotDeclareTargets(table(), parties([]))).toMatch(/at least one target/)
     })
 
-    it("forces targeting your own site when the defender rules it (R-5.5.2)", () => {
+    it('forces targeting your own site when the defender rules it (R-5.5.2)', () => {
         const state = table()
         state.getPlayerState(DEFENDER).siteId = 'c1'
         state.getPlayerState(DEFENDER).relicIds = ['relic.cup']
@@ -408,15 +412,15 @@ describe('declaring targets (R-5.5.2)', () => {
         ).toMatch(/pawn is not at your site/)
     })
 
-    it("rejects a banner the defender does not hold", () => {
+    it('rejects a banner the defender does not hold', () => {
         const state = table()
         state.getPlayerState(DEFENDER).siteId = 'c1'
-        expect(
-            reasonCannotDeclareTargets(state, parties([banner(Banner.PeoplesFavor)]))
-        ).toMatch(/does not hold/)
+        expect(reasonCannotDeclareTargets(state, parties([banner(Banner.PeoplesFavor)]))).toMatch(
+            /does not hold/
+        )
     })
 
-    it("rejects pawn-and-favor when the pawn is elsewhere", () => {
+    it('rejects pawn-and-favor when the pawn is elsewhere', () => {
         expect(
             reasonCannotDeclareTargets(table(), parties([siteTarget('c1'), pawnAndFavor]))
         ).toMatch(/pawn is not at your site/)

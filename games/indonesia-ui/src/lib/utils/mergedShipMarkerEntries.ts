@@ -44,8 +44,15 @@ function shipCapacityPresentation(args: {
     capacityBadgeTextColor: string
     ownerStrokeColor: string
 } {
-    const { gameState, companyId, ownerId, seaAreaId, companyShipOrdinal, ownerColor, ownerPlayerColor } =
-        args
+    const {
+        gameState,
+        companyId,
+        ownerId,
+        seaAreaId,
+        companyShipOrdinal,
+        ownerColor,
+        ownerPlayerColor
+    } = args
     const ownerHullLevel = gameState.getPlayerState(ownerId).research.hull
     const capacityPerShip = 1 + ownerHullLevel
     const usedCapacity = gameState.operatingCompanyShipUseCount(companyId, seaAreaId)
@@ -81,13 +88,25 @@ function mergedShippingCompanyForAction(args: {
     action: GameAction
 }): Extract<(typeof args.to.companies)[number], { type: CompanyType.Shipping }> | null {
     const { from, to, action } = args
-    if (!isMergeCompanies(action) || action.metadata?.proposal.companyType !== CompanyType.Shipping) {
+    if (
+        !isMergeCompanies(action) ||
+        action.metadata?.proposal.companyType !== CompanyType.Shipping
+    ) {
         return null
     }
 
-    const companyA = from.companies.find((company) => company.id === action.metadata?.proposal.companyAId)
-    const companyB = from.companies.find((company) => company.id === action.metadata?.proposal.companyBId)
-    if (!companyA || !companyB || companyA.type !== CompanyType.Shipping || companyB.type !== CompanyType.Shipping) {
+    const companyA = from.companies.find(
+        (company) => company.id === action.metadata?.proposal.companyAId
+    )
+    const companyB = from.companies.find(
+        (company) => company.id === action.metadata?.proposal.companyBId
+    )
+    if (
+        !companyA ||
+        !companyB ||
+        companyA.type !== CompanyType.Shipping ||
+        companyB.type !== CompanyType.Shipping
+    ) {
         return null
     }
 
@@ -99,7 +118,10 @@ function mergedShippingCompanyForAction(args: {
         to.companies.find(
             (
                 company
-            ): company is Extract<(typeof args.to.companies)[number], { type: CompanyType.Shipping }> =>
+            ): company is Extract<
+                (typeof args.to.companies)[number],
+                { type: CompanyType.Shipping }
+            > =>
                 company.type === CompanyType.Shipping &&
                 !fromCompanyIdSet.has(company.id) &&
                 company.owner === winnerId &&
@@ -119,7 +141,10 @@ export function mergedShipMarkerEntriesForAction(args: {
     ownerPlayerColorForPlayerId: (playerId: string) => Color
 }): MergedShipMarkerEntry[] {
     const { from, to, action, ownerColorForPlayerId, ownerPlayerColorForPlayerId } = args
-    if (!isMergeCompanies(action) || action.metadata?.proposal.companyType !== CompanyType.Shipping) {
+    if (
+        !isMergeCompanies(action) ||
+        action.metadata?.proposal.companyType !== CompanyType.Shipping
+    ) {
         return []
     }
 
@@ -151,7 +176,12 @@ export function mergedShipMarkerEntriesForAction(args: {
 
         const oldPoints = markerPointsForSeaAreaShipList(area.id, area.ships)
         const newPoints = markerPointsForSeaAreaShipList(toArea.id, toArea.ships)
-        const markerCount = Math.min(area.ships.length, toArea.ships.length, oldPoints.length, newPoints.length)
+        const markerCount = Math.min(
+            area.ships.length,
+            toArea.ships.length,
+            oldPoints.length,
+            newPoints.length
+        )
         const oldOrdinalByCompanyId = new Map<string, number>()
         const newOrdinalByCompanyId = new Map<string, number>()
 
@@ -163,7 +193,11 @@ export function mergedShipMarkerEntriesForAction(args: {
             const newCompanyOrdinal = newOrdinalByCompanyId.get(newCompanyId) ?? 0
             newOrdinalByCompanyId.set(newCompanyId, newCompanyOrdinal + 1)
 
-            if (oldCompanyId === newCompanyId || !oldCompanyIds.has(oldCompanyId) || newCompanyId !== mergedCompany.id) {
+            if (
+                oldCompanyId === newCompanyId ||
+                !oldCompanyIds.has(oldCompanyId) ||
+                newCompanyId !== mergedCompany.id
+            ) {
                 continue
             }
 
@@ -204,34 +238,33 @@ export function mergedShipMarkerEntriesForAction(args: {
                                       )
                                     : 'none'
                       }
-            const mergedCapacityPresentation =
-                isIndonesiaNodeId(toArea.id)
-                    ? shipCapacityPresentation({
-                          gameState: to,
-                          companyId: mergedCompany.id,
-                          ownerId: mergedCompany.owner,
-                          seaAreaId: toArea.id as IndonesiaNodeId,
-                          companyShipOrdinal: newCompanyOrdinal,
-                          ownerColor: mergedOwnerColor,
-                          ownerPlayerColor: mergedOwnerPlayerColor
-                      })
-                    : {
-                          remainingCapacity: undefined,
-                          capacityBadgeTextColor:
-                              mergedOwnerPlayerColor === Color.Yellow ? '#111827' : '#f8fafc',
-                          ownerStrokeColor:
-                              mergedOwnerPlayerColor === Color.Yellow
-                                  ? shadeHexColor(
-                                        mergedOwnerColor,
-                                        SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT_YELLOW
-                                    )
-                                  : mergedOwnerPlayerColor === Color.Blue
-                                    ? shadeHexColor(
-                                          mergedOwnerColor,
-                                          SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT_BLUE
-                                      )
-                                    : 'none'
-                      }
+            const mergedCapacityPresentation = isIndonesiaNodeId(toArea.id)
+                ? shipCapacityPresentation({
+                      gameState: to,
+                      companyId: mergedCompany.id,
+                      ownerId: mergedCompany.owner,
+                      seaAreaId: toArea.id as IndonesiaNodeId,
+                      companyShipOrdinal: newCompanyOrdinal,
+                      ownerColor: mergedOwnerColor,
+                      ownerPlayerColor: mergedOwnerPlayerColor
+                  })
+                : {
+                      remainingCapacity: undefined,
+                      capacityBadgeTextColor:
+                          mergedOwnerPlayerColor === Color.Yellow ? '#111827' : '#f8fafc',
+                      ownerStrokeColor:
+                          mergedOwnerPlayerColor === Color.Yellow
+                              ? shadeHexColor(
+                                    mergedOwnerColor,
+                                    SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT_YELLOW
+                                )
+                              : mergedOwnerPlayerColor === Color.Blue
+                                ? shadeHexColor(
+                                      mergedOwnerColor,
+                                      SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT_BLUE
+                                  )
+                                : 'none'
+                  }
             const baseShipKey = shipSlotKey(area.id, markerIndex)
 
             entries.push({

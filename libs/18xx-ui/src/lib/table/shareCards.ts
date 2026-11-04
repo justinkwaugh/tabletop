@@ -18,18 +18,15 @@ export type ShareCard = {
 }
 
 /**
- * Certificates to show for a share purchase, sale or issue, in display order. When the trade
- * moved a presidency, the president's certificate stands in for the shares exchanged for it and
- * comes last, so it is the fully visible top card of a stack.
+ * Certificates to show for a share purchase, sale or issue, in display order. A purchase shows
+ * the certificate bought. When a sale moved a presidency, the president's certificate stands in
+ * for the shares exchanged for it and comes last, so it is the fully visible top card of a stack.
  */
 export function tradedCertificateIds(
     action: GameAction,
     certificateShares: (id: string) => number
 ): readonly string[] {
-    if (isBuyShares(action)) {
-        const presidency = action.metadata?.presidency
-        return presidency ? [presidency.presidentCertificateId] : [action.certificateId]
-    }
+    if (isBuyShares(action)) return [action.certificateId]
     if (isSellShares(action) || isSellFundingShares(action) || isIssueTreasuryShares(action))
         return (
             action.metadata?.sales.flatMap((sale) => {

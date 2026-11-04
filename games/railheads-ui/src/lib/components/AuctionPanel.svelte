@@ -12,7 +12,9 @@
 
     const view = $derived(gameSession.shareAuctionView)
     const cash = $derived(
-        gameSession.myPlayerId ? gameSession.gameState.getPlayerState(gameSession.myPlayerId).cash : 0
+        gameSession.myPlayerId
+            ? gameSession.gameState.getPlayerState(gameSession.myPlayerId).cash
+            : 0
     )
     const myBid = $derived(gameSession.bidding && view?.currentBidderId === gameSession.myPlayerId)
 </script>
@@ -53,7 +55,9 @@
             {#if view.kind === ShareAuctionKind.Initial && view.openerId}
                 · unbid, it goes free to <PlayerName
                     playerId={view.openerId}
-                    capitalization={view.openerId === gameSession.myPlayerId ? 'none' : 'capitalize'}
+                    capitalization={view.openerId === gameSession.myPlayerId
+                        ? 'none'
+                        : 'capitalize'}
                 />
             {/if}
         </div>

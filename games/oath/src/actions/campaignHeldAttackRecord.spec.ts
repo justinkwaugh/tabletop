@@ -4,7 +4,7 @@ import { Campaign, isCampaign } from './campaign.js'
 import { CampaignDefend, isCampaignDefend } from './campaignDefend.js'
 import { AnswerQuestion, isAnswerQuestion } from './answerQuestion.js'
 import { type CampaignTarget, CampaignTargetKind } from '../model/campaign.js'
-import { type OathProjectedState } from '../model/gameState.js'
+import type { OathProjectedState } from '../model/gameState.js'
 import { PlayerStatus } from '../model/oathEnums.js'
 import type { OathPlayerState } from '../model/playerState.js'
 import { PowerQuestionKind } from '../model/question.js'
@@ -40,6 +40,8 @@ interface Scene {
     c1?: string[]
     c2?: string[]
     defender?: Partial<OathPlayerState>
+    /** The prng's seed; 1 unless a scene needs other dice. */
+    seed?: number
 }
 
 /**
@@ -49,20 +51,51 @@ interface Scene {
  * attack rolls 2 swords and no skull.
  */
 function table(scene: Scene = {}): OathProjectedState {
-    const advisers = (playerId: string) => ((scene.jinx ?? [BEA]).includes(playerId) ? [{ cardId: JINX, faceUp: true }] : [])
+    const advisers = (playerId: string) =>
+        (scene.jinx ?? [BEA]).includes(playerId) ? [{ cardId: JINX, faceUp: true }] : []
     const s = testState(
         [
-            testPlayer({ playerId: DANA, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', supply: 6, favor: 4, secrets: 2, advisers: advisers(DANA), warbandsOnBoard: { [DANA]: 5 }, warbandsInPersonalBank: { [DANA]: 6 } }),
-            testPlayer({ playerId: BEA, color: Color.Yellow, status: PlayerStatus.Exile, siteId: 'c1', supply: 6, favor: 4, secrets: 2, advisers: advisers(BEA), warbandsOnBoard: { [BEA]: 3 }, warbandsInPersonalBank: { [BEA]: 6 }, ...scene.defender }),
-            testPlayer({ playerId: ANN, color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'p1' })
+            testPlayer({
+                playerId: DANA,
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: 'c1',
+                supply: 6,
+                favor: 4,
+                secrets: 2,
+                advisers: advisers(DANA),
+                warbandsOnBoard: { [DANA]: 5 },
+                warbandsInPersonalBank: { [DANA]: 6 }
+            }),
+            testPlayer({
+                playerId: BEA,
+                color: Color.Yellow,
+                status: PlayerStatus.Exile,
+                siteId: 'c1',
+                supply: 6,
+                favor: 4,
+                secrets: 2,
+                advisers: advisers(BEA),
+                warbandsOnBoard: { [BEA]: 3 },
+                warbandsInPersonalBank: { [BEA]: 6 },
+                ...scene.defender
+            }),
+            testPlayer({
+                playerId: ANN,
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'p1'
+            })
         ],
         {
             oathRevision: scene.revision ?? atRevision,
             chancellorPlayerId: ANN,
             denizensBySite: { c1: scene.c1 ?? [], c2: scene.c2 ?? [], p1: [], h1: [] },
             warbandsBySite: { c1: { [BEA]: 2 }, c2: { [DANA]: 1 } },
-            siteCards: Object.fromEntries([...CRADLE, ...PROVINCES, ...HINTERLAND].map((slotId) => [slotId, slotId])),
-            prng: { seed: 1, invocations: 0 }
+            siteCards: Object.fromEntries(
+                [...CRADLE, ...PROVINCES, ...HINTERLAND].map((slotId) => [slotId, slotId])
+            ),
+            prng: { seed: scene.seed ?? 1, invocations: 0 }
         }
     )
     s.turnManager.series = [{ type: 'turn', playerId: DANA, start: 0 }]
@@ -75,17 +108,44 @@ const game = testGame([DANA, BEA, ANN])
 
 const pawnAndFavor: CampaignTarget = { kind: CampaignTargetKind.PawnAndFavor }
 
-function declare(state: OathProjectedState, fields: { attackDice?: number; plans?: string[] } = {}) {
+function declare(
+    state: OathProjectedState,
+    fields: { attackDice?: number; plans?: string[] } = {}
+) {
     const plans = (fields.plans ?? []).map((cardId) => battlePlanUse(cardId))
-    return engine.runNext(buildAction(Campaign, { playerId: DANA, defender: { kind: 'player', playerId: BEA }, targets: [siteTarget('c1'), pawnAndFavor], attackDice: fields.attackDice ?? 4, plans }), state, game)
+    return engine.runNext(
+        buildAction(Campaign, {
+            playerId: DANA,
+            defender: { kind: 'player', playerId: BEA },
+            targets: [siteTarget('c1'), pawnAndFavor],
+            attackDice: fields.attackDice ?? 4,
+            plans
+        }),
+        state,
+        game
+    )
 }
 
 function defend(state: OathProjectedState, plans: string[]) {
-    return engine.runNext(buildAction(CampaignDefend, { playerId: BEA, plans: plans.map((cardId) => battlePlanUse(cardId)) }), state, game)
+    return engine.runNext(
+        buildAction(CampaignDefend, {
+            playerId: BEA,
+            plans: plans.map((cardId) => battlePlanUse(cardId))
+        }),
+        state,
+        game
+    )
 }
 
 function answer(state: OathProjectedState, playerId: string, reroll: boolean) {
-    return engine.runNext(buildAction(AnswerQuestion, { playerId, answer: { kind: PowerQuestionKind.RerollDice, reroll } }), state, game)
+    return engine.runNext(
+        buildAction(AnswerQuestion, {
+            playerId,
+            answer: { kind: PowerQuestionKind.RerollDice, reroll }
+        }),
+        state,
+        game
+    )
 }
 
 function only(processed: readonly GameAction[]): GameAction {
@@ -108,25 +168,41 @@ function defendRecord(processed: readonly GameAction[]) {
 
 /** The answer's record of the attack it rolled. */
 function heldAttackOf(processed: readonly GameAction[]) {
+    return answerRecord(processed)?.heldAttack
+}
+
+function answerRecord(processed: readonly GameAction[]) {
     const action = only(processed)
     if (!isAnswerQuestion(action)) throw Error(`expected an answer, not ${action.type}`)
-    return action.metadata?.heldAttack
+    return action.metadata
 }
 
 const danaBoard = (state: OathProjectedState) => state.players[0].warbandsOnBoard[DANA] ?? 0
-const asked = (state: OathProjectedState) => (state.pendingQuestions?.queue ?? []).map((question) => question.askedPlayerId)
+const asked = (state: OathProjectedState) =>
+    (state.pendingQuestions?.queue ?? []).map((question) => question.askedPlayerId)
 
 describe('R-5.5.4-H1 — the attack held for the defender’s reroll, as History reads it', () => {
     it('the Campaign records the 4 attack dice held, with the defense rolled and no swords', () => {
         const declared = declare(table())
         expect(asked(declared.updatedState)).toEqual([BEA])
-        expect(campaignBattle(declared.processedActions)).toMatchObject({ attackPool: 4, heldAttackDice: 4, defense: 6, swords: 0, skullsKilled: 0 })
+        expect(campaignBattle(declared.processedActions)).toMatchObject({
+            attackPool: 4,
+            heldAttackDice: 4,
+            defense: 6,
+            swords: 0,
+            skullsKilled: 0
+        })
     })
 
     it('Bea keeps the roll: the answer records 4 swords against 6 defense and 1 warband lost to a skull', () => {
         const atQuestion = declare(table()).updatedState
         const kept = answer(atQuestion, BEA, false)
-        expect(heldAttackOf(kept.processedActions)).toEqual({ attackerPlayerId: DANA, swords: 4, defense: 6, skullsKilled: 1 })
+        expect(heldAttackOf(kept.processedActions)).toEqual({
+            attackerPlayerId: DANA,
+            swords: 4,
+            defense: 6,
+            skullsKilled: 1
+        })
         expect(danaBoard(kept.updatedState)).toBe(4)
         const campaign = ongoingCampaign(kept.updatedState)
         expect([campaign.swords, campaign.defense]).toEqual([4, 6])
@@ -135,7 +211,12 @@ describe('R-5.5.4-H1 — the attack held for the defender’s reroll, as History
     it('Bea rerolls: the answer records 2 swords against the rerolled 7 defense, and no loss', () => {
         const atQuestion = declare(table()).updatedState
         const rerolled = answer(atQuestion, BEA, true)
-        expect(heldAttackOf(rerolled.processedActions)).toEqual({ attackerPlayerId: DANA, swords: 2, defense: 7, skullsKilled: 0 })
+        expect(heldAttackOf(rerolled.processedActions)).toEqual({
+            attackerPlayerId: DANA,
+            swords: 2,
+            defense: 7,
+            skullsKilled: 0
+        })
         expect(danaBoard(rerolled.updatedState)).toBe(5)
     })
 
@@ -145,9 +226,19 @@ describe('R-5.5.4-H1 — the attack held for the defender’s reroll, as History
         expect(campaignBattle(declared.processedActions)?.heldAttackDice).toBeUndefined()
         const defended = defend(declared.updatedState, [])
         expect(asked(defended.updatedState)).toEqual([BEA])
-        expect(defendRecord(defended.processedActions)).toMatchObject({ heldAttackDice: 4, defense: 6, swords: 0, skullsKilled: 0 })
+        expect(defendRecord(defended.processedActions)).toMatchObject({
+            heldAttackDice: 4,
+            defense: 6,
+            swords: 0,
+            skullsKilled: 0
+        })
         const kept = answer(defended.updatedState, BEA, false)
-        expect(heldAttackOf(kept.processedActions)).toEqual({ attackerPlayerId: DANA, swords: 4, defense: 6, skullsKilled: 1 })
+        expect(heldAttackOf(kept.processedActions)).toEqual({
+            attackerPlayerId: DANA,
+            swords: 4,
+            defense: 6,
+            skullsKilled: 1
+        })
     })
 
     it('Mounted Patrol: the dice held are the half that will be rolled, in the Campaign and in the rows', () => {
@@ -156,7 +247,10 @@ describe('R-5.5.4-H1 — the attack held for the defender’s reroll, as History
         expect(asked(defended.updatedState)).toEqual([BEA])
         // The panel draws the Campaign's pool while the attack is held.
         expect(ongoingCampaign(defended.updatedState).attackPool).toBe(2)
-        expect(defendRecord(defended.processedActions)).toMatchObject({ attackPool: 2, heldAttackDice: 2 })
+        expect(defendRecord(defended.processedActions)).toMatchObject({
+            attackPool: 2,
+            heldAttackDice: 2
+        })
         const kept = answer(defended.updatedState, BEA, false)
         expect(ongoingCampaign(kept.updatedState).attackRoll).toHaveLength(2)
         expect(heldAttackOf(kept.processedActions)?.attackerPlayerId).toBe(DANA)
@@ -182,7 +276,9 @@ describe('R-5.5.4-H1 — the attack held for the defender’s reroll, as History
         const declared = declare(table({ jinx: [DANA] }))
         expect(asked(declared.updatedState)).toEqual([DANA])
         expect(campaignBattle(declared.processedActions)?.heldAttackDice).toBeUndefined()
-        expect(heldAttackOf(answer(declared.updatedState, DANA, false).processedActions)).toBeUndefined()
+        expect(
+            heldAttackOf(answer(declared.updatedState, DANA, false).processedActions)
+        ).toBeUndefined()
     })
 
     it('a battle plan that decides the battle rolls nothing, so nothing is held or asked', () => {
@@ -199,9 +295,16 @@ describe('R-5.5.4-H1 — the attack held for the defender’s reroll, as History
         const declared = declare(table({ c2: [HOSPITAL] }), { plans: [HOSPITAL] })
         expect(asked(declared.updatedState)).toEqual([BEA])
         const kept = answer(declared.updatedState, BEA, false)
-        expect(heldAttackOf(kept.processedActions)).toEqual({ attackerPlayerId: DANA, swords: 4, defense: 6, skullsKilled: 1 })
+        expect(heldAttackOf(kept.processedActions)).toEqual({
+            attackerPlayerId: DANA,
+            swords: 4,
+            defense: 6,
+            skullsKilled: 1
+        })
         expect(danaBoard(kept.updatedState)).toBe(4)
-        expect(ongoingCampaign(kept.updatedState).heldForHospital).toEqual([{ playerId: DANA, siteId: 'c2', owner: DANA, count: 1 }])
+        expect(ongoingCampaign(kept.updatedState).heldForHospital).toEqual([
+            { playerId: DANA, siteId: 'c2', owner: DANA, count: 1 }
+        ])
     })
 
     /**
@@ -214,7 +317,12 @@ describe('R-5.5.4-H1 — the attack held for the defender’s reroll, as History
         expect(asked(atQuestion)).toEqual([BEA])
         const kept = answer(atQuestion, BEA, false)
         expect(asked(kept.updatedState)).toEqual([DANA])
-        expect(heldAttackOf(kept.processedActions)).toEqual({ attackerPlayerId: DANA, swords: 4, defense: 6, skullsKilled: 0 })
+        expect(heldAttackOf(kept.processedActions)).toEqual({
+            attackerPlayerId: DANA,
+            swords: 4,
+            defense: 6,
+            skullsKilled: 0
+        })
         expect(danaBoard(kept.updatedState)).toBe(5)
         const danaKept = answer(kept.updatedState, DANA, false)
         expect(heldAttackOf(danaKept.processedActions)).toBeUndefined()
@@ -227,6 +335,59 @@ describe('R-5.5.4-H1 — the attack held for the defender’s reroll, as History
         expect(battle?.heldAttackDice).toBeUndefined()
         expect(battle?.swords).toBe(ongoingCampaign(declared.updatedState).swords)
         expect(asked(declared.updatedState)).toEqual([BEA])
-        expect(heldAttackOf(answer(declared.updatedState, BEA, false).processedActions)).toBeUndefined()
+        expect(
+            heldAttackOf(answer(declared.updatedState, BEA, false).processedActions)
+        ).toBeUndefined()
+    })
+})
+
+/**
+ * Seed 6 with Dana's own Jinx: both rolls are made, 8 defense against 3 swords and a skull; Dana is asked
+ * before the skull kills. Rerolled, the attack makes 5 swords and 2 skulls.
+ */
+describe('R-5.5.5 — Jinx: the skulls’ kills the attacker’s own answer settles, as History reads them', () => {
+    const atQuestion = () => {
+        const declared = declare(table({ jinx: [DANA], seed: 6 }))
+        expect(asked(declared.updatedState)).toEqual([DANA])
+        expect(campaignBattle(declared.processedActions)?.skullsKilled).toBe(0)
+        expect(danaBoard(declared.updatedState)).toBe(5)
+        return declared.updatedState
+    }
+
+    it('Dana keeps the roll: the answer records the 1 warband its skull killed', () => {
+        const kept = answer(atQuestion(), DANA, false)
+        expect(danaBoard(kept.updatedState)).toBe(4)
+        expect(answerRecord(kept.processedActions)).toMatchObject({ skullsKilled: 1 })
+        expect(heldAttackOf(kept.processedActions)).toBeUndefined()
+    })
+
+    it('Dana rerolls: the answer records the 2 warbands the rerolled skulls killed', () => {
+        const rerolled = answer(atQuestion(), DANA, true)
+        const campaign = ongoingCampaign(rerolled.updatedState)
+        expect(campaign.attackRoll.reduce((sum, face) => sum + face.skulls, 0)).toBe(2)
+        expect(danaBoard(rerolled.updatedState)).toBe(3)
+        expect(answerRecord(rerolled.processedActions)).toMatchObject({ skullsKilled: 2 })
+    })
+
+    it('two copies: Bea’s answer leaves the kills waiting and records none; Dana’s records the kill', () => {
+        const kept = answer(declare(table({ jinx: [DANA, BEA] })).updatedState, BEA, false)
+        expect(answerRecord(kept.processedActions)?.skullsKilled).toBeUndefined()
+        const danaKept = answer(kept.updatedState, DANA, false)
+        expect(danaBoard(danaKept.updatedState)).toBe(4)
+        expect(answerRecord(danaKept.processedActions)).toMatchObject({ skullsKilled: 1 })
+    })
+
+    it('an answer that settles no held kills records none: Bea’s reroll of the held attack', () => {
+        const rerolled = answer(declare(table()).updatedState, BEA, true)
+        expect(answerRecord(rerolled.processedActions)?.skullsKilled).toBeUndefined()
+    })
+
+    it('the record is the action’s alone: the state the answer leaves names no kill count, at any revision', () => {
+        for (const revision of [before, OathRevision.EngineFixes10, atRevision]) {
+            const declared = declare(table({ jinx: [DANA], seed: 6, revision }))
+            const kept = answer(declared.updatedState, DANA, false)
+            expect(answerRecord(kept.processedActions)).toMatchObject({ skullsKilled: 1 })
+            expect(JSON.stringify(kept.updatedState)).not.toContain('skullsKilled')
+        }
     })
 })

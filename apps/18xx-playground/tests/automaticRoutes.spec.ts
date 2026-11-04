@@ -10,7 +10,7 @@ for (const [title, revenue, paths] of [
         const errors: string[] = []
         page.on('pageerror', (error) => errors.push(error.message))
         await page.goto('/table')
-        await page.getByRole('tab', { name: 'Map', exact: true }).waitFor()
+        await page.getByRole('tab', { name: 'Board', exact: true }).waitFor()
         await page.getByLabel('Game', { exact: true }).selectOption(title)
         await page.getByLabel('Position', { exact: true }).selectOption('routes')
         const panel = page.getByRole('region', { name: 'Run trains', exact: true })
@@ -46,7 +46,7 @@ for (const [title, revenue, paths] of [
         await expect(page.locator('[data-map-route]')).toHaveCount(paths)
         await expect(page.locator('[data-map-layer="unavailable"]')).toHaveCount(0)
         await page.reload()
-        await page.getByRole('tab', { name: 'Map', exact: true }).waitFor()
+        await page.getByRole('tab', { name: 'Board', exact: true }).waitFor()
         await page.getByLabel('Game', { exact: true }).selectOption(title)
         await page.getByLabel('Position', { exact: true }).selectOption('routes')
         await expect(page.locator('[data-map-route]')).toHaveCount(paths)
@@ -68,12 +68,20 @@ test('leaving a running search discards its result', async ({ page }) => {
         await route.continue().catch(() => {})
     })
     await page.goto('/table')
-    await page.getByRole('tab', { name: 'Map', exact: true }).waitFor()
+    await page.getByRole('tab', { name: 'Board', exact: true }).waitFor()
     await page.getByLabel('Position', { exact: true }).selectOption('routes')
     await expect(page.getByRole('status').filter({ hasText: 'Calculating routes' })).toBeVisible()
     await page.getByLabel('Position', { exact: true }).selectOption('construction')
     await expect(page.getByRole('region', { name: 'Run trains', exact: true })).toHaveCount(0)
-    await expect(page.locator('[data-map-route]')).toHaveCount(0)
+    // Construction projects its own run; the abandoned search must not replace it.
+    await expect(
+        page
+            .getByRole('table', { name: 'Projected train income' })
+            .getByRole('row', { name: /Total/ })
+            .getByRole('cell')
+    ).toHaveText('$30')
+    await expect(page.locator('[data-map-route]')).toHaveCount(2)
+    await expect(page.locator('[data-map-route="route-selection"]')).toHaveCount(0)
     await page.getByLabel('Position', { exact: true }).selectOption('routes')
     await expect(page.getByRole('button', { name: 'Run trains', exact: true })).toBeEnabled()
     await expect(
@@ -85,7 +93,8 @@ test('leaving a running search discards its result', async ({ page }) => {
 })
 
 test('a failed solver load offers a working retry', async ({ page }) => {
-    let fail = true
+    // The opening position may already be projecting a run, so fail the run step's own load.
+    let fail = false
     await page.route('**/*.wasm*', async (route) => {
         if (fail) {
             fail = false
@@ -93,7 +102,8 @@ test('a failed solver load offers a working retry', async ({ page }) => {
         } else await route.continue()
     })
     await page.goto('/table')
-    await page.getByRole('tab', { name: 'Map', exact: true }).waitFor()
+    await page.getByRole('tab', { name: 'Board', exact: true }).waitFor()
+    fail = true
     await page.getByLabel('Position', { exact: true }).selectOption('routes')
     const panel = page.getByRole('region', { name: 'Run trains', exact: true })
     await expect(panel.getByRole('alert')).toBeVisible()

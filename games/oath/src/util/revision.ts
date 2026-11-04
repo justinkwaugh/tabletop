@@ -15,10 +15,28 @@ export enum OathRevision {
     EngineFixes7 = 11,
     EngineFixes8 = 12,
     EngineFixes9 = 13,
-    EngineFixes10 = 14
+    EngineFixes10 = 14,
+    EngineFixes11 = 15,
+    EngineFixes12 = 16,
+    EngineFixes13 = 17,
+    EngineFixes14 = 18,
+    EngineFixes15 = 19,
+    EngineFixes16 = 20,
+    EngineFixes17 = 21,
+    EngineFixes18 = 22,
+    EngineFixes19 = 23,
+    EngineFixes20 = 24,
+    EngineFixes21 = 25,
+    EngineFixes22 = 26,
+    EngineFixes23 = 27,
+    EngineFixes24 = 28,
+    EngineFixes25 = 29,
+    /** R-8 — a won game writes its chronicle before the result (R-3, R-8). */
+    Chronicle = 30,
+    EngineFixes26 = 31
 }
 
-export const CURRENT_OATH_REVISION = OathRevision.EngineFixes10
+export const CURRENT_OATH_REVISION = OathRevision.EngineFixes26
 
 export function isAtLeastOathRevision(
     state: Pick<OathGameState, 'oathRevision'>,

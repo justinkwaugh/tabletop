@@ -20,7 +20,6 @@ See [complete-game verification](../../research/18xx/complete-game-verification.
 and the [client autorouter design](../../research/18xx/autorouter-design.md).
 The title is listed as Beta.
 
-
 ## Rule evidence
 
 - Supplied rulebook: `Shikoku 1889 Rulebook.pdf`, 32 pages, available locally at

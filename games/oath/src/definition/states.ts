@@ -28,6 +28,8 @@ export enum MachineState {
     /** R-X.1 — the asked player is on the clock; the asking turn is held. */
     ConsentRequest = 'ConsentRequest',
     PowerQuestion = 'PowerQuestion',
+    /** R-8 — from the chronicle revision, the won game's chronicle is written before the result. */
+    Chronicle = 'Chronicle',
     EndOfGame = 'EndOfGame'
 }
 

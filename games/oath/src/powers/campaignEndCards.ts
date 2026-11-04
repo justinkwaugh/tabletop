@@ -1,7 +1,7 @@
 import { HydratedOathGameState } from '../model/gameState.js'
 import { Suit } from '../model/oathEnums.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
-import { cardDefinition, suitOf } from '../data/cardRegistry.js'
+import { cardDefinition } from '../data/cardRegistry.js'
 import { ruledFaceupCardIds } from '../util/access.js'
 import { banditsRuleSite, type ImperialScope } from '../util/rule.js'
 import { battleScopeOf } from '../util/campaign.js'
@@ -19,7 +19,7 @@ function beastCardsToDiscard(
     scope: ImperialScope | undefined
 ): string[] {
     return ruledFaceupCardIds(state, playerId, scope).filter(
-        (cardId) => suitOf(cardId) === Suit.Beast && !isLockedFor(state, playerId, cardId)
+        (cardId) => state.suitInPlay(cardId) === Suit.Beast && !isLockedFor(state, playerId, cardId)
     )
 }
 
@@ -32,7 +32,10 @@ function banditsFirstBeastCard(state: HydratedOathGameState): string | undefined
         if (!banditsRuleSite(state, siteId)) continue
         const found = state
             .denizensAt(siteId)
-            .find((cardId) => suitOf(cardId) === Suit.Beast && !cardDefinition(cardId)?.locked)
+            .find(
+                (cardId) =>
+                    state.suitInPlay(cardId) === Suit.Beast && !cardDefinition(cardId)?.locked
+            )
         if (found) return found
     }
     return undefined
@@ -42,7 +45,9 @@ function banditsFirstBeastCard(state: HydratedOathGameState): string | undefined
 registerBattlePlan(WILD_MOUNTS, powerIndexOf(WILD_MOUNTS, PowerTiming.BattlePlan), {
     hooks: {
         sparesEndDiscards: (ctx, owedCardIds) => {
-            const planCardIds = owedCardIds.filter((cardId) => suitOf(cardId) === Suit.Nomad)
+            const planCardIds = owedCardIds.filter(
+                (cardId) => ctx.state.suitInPlay(cardId) === Suit.Nomad
+            )
             const insteadCardIds = beastCardsToDiscard(
                 ctx.state,
                 ctx.playerId,
@@ -54,7 +59,9 @@ registerBattlePlan(WILD_MOUNTS, powerIndexOf(WILD_MOUNTS, PowerTiming.BattlePlan
         },
         // Its Q&A: "If they would discard two or more Nomads, they discard the first Beast card they rule."
         banditSparesEndDiscards: (ctx, owedCardIds) => {
-            const planCardIds = owedCardIds.filter((cardId) => suitOf(cardId) === Suit.Nomad)
+            const planCardIds = owedCardIds.filter(
+                (cardId) => ctx.state.suitInPlay(cardId) === Suit.Nomad
+            )
             if (planCardIds.length < 2) return undefined
             const insteadCardId = banditsFirstBeastCard(ctx.state)
             return insteadCardId ? { planCardIds, insteadCardId } : undefined

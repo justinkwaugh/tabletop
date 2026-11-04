@@ -4,6 +4,7 @@
     import { prefersReducedMotion } from 'svelte/motion'
     import type { Snippet } from 'svelte'
     import { assertExists } from '@tabletop/common'
+    import { chainSidewaysScroll } from '@tabletop/frontend-components'
     import {
         cashOwnedBy,
         trainsOwnedBy,
@@ -156,7 +157,11 @@
             <CompanyOrderOverview {companies} {appearances} {firstVisible} {lastVisible} />
         </div>
     {/if}
-    <ol use:trackVisibleCompanies use:revealCurrentCompany={currentCompanyId}>
+    <ol
+        use:trackVisibleCompanies
+        use:revealCurrentCompany={currentCompanyId}
+        {@attach chainSidewaysScroll}
+    >
         {#each entries as { company, appearance, amount, trains, remainingTokens } (company.id)}
             {@const completed = completedCompanyIds.includes(company.id)}
             {@const detailed = showDetails || currentCompanyId === company.id}

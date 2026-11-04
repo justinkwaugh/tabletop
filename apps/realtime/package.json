@@ -1,6 +1,6 @@
 {
     "name": "@tabletop/realtime",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "private": true,
     "scripts": {
         "build": "go build -trimpath -o dist/realtime ./cmd/realtime",

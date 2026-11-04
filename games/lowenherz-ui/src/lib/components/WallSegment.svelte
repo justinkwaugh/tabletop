@@ -14,8 +14,11 @@
         orientation,
         hideStartJunction = false,
         hideEndJunction = false
-    }: { orientation: 'horizontal' | 'vertical'; hideStartJunction?: boolean; hideEndJunction?: boolean } =
-        $props()
+    }: {
+        orientation: 'horizontal' | 'vertical'
+        hideStartJunction?: boolean
+        hideEndJunction?: boolean
+    } = $props()
 
     // One wall spans one square edge, so this IS the cell size - it was a hardcoded 44 that
     // silently became two thirds of an edge when the board scaled up. Everything else here is a

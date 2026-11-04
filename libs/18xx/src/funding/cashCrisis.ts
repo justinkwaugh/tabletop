@@ -32,7 +32,7 @@ export type CashCrisisState = OperatingState &
 /** A sale to raise cash is refused if it would pass a presidency to another player. */
 export interface CashCrisisRules extends Pick<
     StockRules,
-    'market' | 'charters' | 'presidencyCandidates' | 'afterSale'
+    'market' | 'charters' | 'presidencyCandidates' | 'afterSale' | 'holdsMarketMove'
 > {
     saleTerms(
         state: StockState,

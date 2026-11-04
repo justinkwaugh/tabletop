@@ -22,6 +22,7 @@ import {
     type LayTrackRules,
     type LayTrackSpace,
     type Placement,
+    type PlacementEffect,
     type PlacementTarget,
     type RailheadsProjectedState
 } from '@tabletop/railheads'
@@ -252,18 +253,25 @@ export class RailheadsGameSession extends GameSession<
 
     placements: Placement[] = $derived(this.laySpace ? stagedPlacements(this.trackSelection) : [])
 
-    shownState: HydratedRailheadsGameState = $derived.by(() => {
-        const space = this.laySpace
-        const playerId = this.myPlayerId
-        if (!space || !playerId || this.placements.length === 0) {
-            return this.gameState
-        }
-        const preview = new HydratedRailheadsGameState(structuredClone(this.gameState.dehydrate()))
-        for (const placement of this.placements) {
-            preview.placeTrack(playerId, space, placement)
-        }
-        return preview
-    })
+    // Placements apply in order, as the action does, because a disc's cost can
+    // depend on the discs staged before it.
+    private trackPreview: { state: HydratedRailheadsGameState; effects: PlacementEffect[] } =
+        $derived.by(() => {
+            const space = this.laySpace
+            const playerId = this.myPlayerId
+            if (!space || !playerId || this.placements.length === 0) {
+                return { state: this.gameState, effects: [] }
+            }
+            const preview = new HydratedRailheadsGameState(
+                structuredClone(this.gameState.dehydrate())
+            )
+            const effects = this.placements.map((placement) =>
+                preview.placeTrack(playerId, space, placement)
+            )
+            return { state: preview, effects }
+        })
+
+    shownState: HydratedRailheadsGameState = $derived(this.trackPreview.state)
 
     private companiesWithTargets(
         state: HydratedRailheadsGameState,
@@ -351,25 +359,9 @@ export class RailheadsGameSession extends GameSession<
             : undefined
     })
 
-    stagedCost: number = $derived.by(() => {
-        const playerId = this.myPlayerId
-        const space = this.laySpace
-        if (!playerId || !space) {
-            return 0
-        }
-        return this.placements.reduce(
-            (sum, placement) =>
-                sum +
-                this.gameState.placementCost(
-                    playerId,
-                    space,
-                    placement.companyId,
-                    placement.coords,
-                    placement.kind
-                ),
-            0
-        )
-    })
+    stagedCost: number = $derived(
+        this.trackPreview.effects.reduce((sum, effect) => sum + effect.cost, 0)
+    )
 
     chooseTrackCompany(companyId: CompanyId) {
         if (this.placements.length === 0 && this.firstCompanyOptions.includes(companyId)) {

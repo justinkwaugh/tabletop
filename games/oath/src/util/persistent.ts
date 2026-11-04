@@ -1,8 +1,8 @@
 import { HydratedOathGameState } from '../model/gameState.js'
 import { Banner, Suit } from '../model/oathEnums.js'
 import { BattlePlanSide, type CardPower, type PowerCost } from '../data/cardPowers.js'
-import { suitOf } from '../data/cardRegistry.js'
 import type { CampaignParties } from './campaign.js'
+import type { CampaignTarget } from '../model/campaign.js'
 import { areEnemies, rulersOfSite, rulesSite, type ImperialScope } from './rule.js'
 import { persistentsOfCard, relicPersistentsHeldBy } from './heldPersistents.js'
 import type { PersistentHooks } from '../powers/registry.js'
@@ -155,6 +155,36 @@ export function reasonPersistentForbidsFacedownAdviser(
 ) {
     return firstPersistentReason(state, (h, ctx) => h.forbidsFacedownAdviser?.(ctx, actorId))
 }
+/** Ruined Temple */
+export function reasonPersistentForbidsFaceupPlay(
+    state: HydratedOathGameState,
+    actorId: string,
+    cardId: string
+) {
+    return firstPersistentReason(state, (h, ctx) => h.forbidsFaceupPlay?.(ctx, actorId, cardId))
+}
+
+/**
+ * Forest Temple — "In the Chronicle, do not discard sites with any [beast] cards": whether R-8.3.2's
+ * site discard leaves this site, on the state as given.
+ */
+export function forestTempleKeepsSite(state: HydratedOathGameState, siteId: string): boolean {
+    return persistentsInPlay(state).some(
+        ({ ctx, hooks }) => hooks.keepsSiteInChronicle?.(ctx, siteId) === true
+    )
+}
+
+/** Squalid District — who is asked to raise, lower or leave the end die, and the card that asks. */
+export function endDieAdjuster(
+    state: HydratedOathGameState
+): { cardId: string; playerId: string } | undefined {
+    for (const { ctx, hooks } of persistentsInPlay(state)) {
+        const playerId = hooks.endDieAdjuster?.(ctx)
+        if (playerId !== undefined) return { cardId: ctx.cardId, playerId }
+    }
+    return undefined
+}
+
 export function reasonPersistentForbidsFaceupVision(
     state: HydratedOathGameState,
     actorId: string,
@@ -268,6 +298,19 @@ export function reasonPersistentForbidsTargets(
     )
 }
 
+/** Hall of Debate — asked of each target a Campaign declares. */
+export function reasonPersistentForbidsCampaignTarget(
+    state: HydratedOathGameState,
+    parties: CampaignParties,
+    target: CampaignTarget
+) {
+    return firstPersistentReason(
+        state,
+        (h, ctx) => h.forbidsCampaignTarget?.(ctx, parties, target),
+        parties
+    )
+}
+
 /** Gleaming Armor, Insect Swarm */
 export function extraBattlePlanCost(
     state: HydratedOathGameState,
@@ -295,6 +338,14 @@ export function persistentRelicDefenseBonus(
 ): number {
     return sumPersistent(state, (h, ctx) => h.relicDefenseBonus?.(ctx, holderId), parties)
 }
+/** Sprawling Rampart — judged in the Campaign's scope (R-5.5.1.a-H2). */
+export function persistentSiteDefenseBonus(
+    state: HydratedOathGameState,
+    siteId: string,
+    parties?: ScopedParties
+): number {
+    return sumPersistent(state, (h, ctx) => h.siteDefenseBonus?.(ctx, siteId), parties)
+}
 export function persistentPawnDefenseBonus(
     state: HydratedOathGameState,
     holderId: string,
@@ -315,13 +366,20 @@ export function advisersOfSuit(
     state: HydratedOathGameState,
     holderId: string,
     suit: Suit,
-    suitIn: (cardId: string) => Suit | undefined = suitOf
+    suitIn: (cardId: string) => Suit | undefined = (cardId) => state.suitInPlay(cardId)
 ): number {
     const faceup = state
         .getPlayerState(holderId)
         .faceupAdviserIds()
         .filter((cardId) => suitIn(cardId) === suit).length
     return faceup + persistentMatchingAdvisers(state, holderId, suit)
+}
+
+/** Hall of Mockery — whoever rules it, and whoever recovers. */
+export function recoverFlipsPeoplesFavorToMob(state: HydratedOathGameState): boolean {
+    return persistentsInPlay(state).some(
+        ({ hooks }) => hooks.recoverFlipsPeoplesFavorToMob === true
+    )
 }
 
 export function afterTravelPersistent(

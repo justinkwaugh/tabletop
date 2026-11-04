@@ -1,5 +1,5 @@
 import {
-    ActionSource,
+    isCascadedSystemAction,
     GameNotificationAddProjectedActionsData,
     GameNotificationReplaceProjectedActionsData,
     GameNotificationAction,
@@ -27,6 +27,7 @@ import {
     createUndoResultsRepresentationForPerspective
 } from './gameRepresentation.js'
 import { gameTopic, userTopic } from '../notifications/topics.js'
+import type { ProjectedHistoryCache } from './projectedHistoryCache.js'
 
 type NotificationSender = Pick<NotificationService, 'sendNotification'>
 
@@ -49,7 +50,8 @@ export async function publishActionResults({
     priorState,
     runtime,
     visibility: registeredVisibility,
-    notificationService
+    notificationService,
+    projectedHistory
 }: {
     game: Game
     result: ActionCascadeResult
@@ -58,13 +60,14 @@ export async function publishActionResults({
     runtime?: GameRuntime
     visibility?: Visibility.GameVisibility<GameState>
     notificationService: NotificationSender
+    projectedHistory?: { cache: ProjectedHistoryCache; logicVersion: string }
 }): Promise<void> {
     const visibility = Visibility.getGameVisibility(game, { visibility: registeredVisibility })
     if (game.hotseat || visibility === undefined) {
         await publish({
             data: {
                 game: omitGameState(game),
-                actions: storedActions.filter((action) => action.source === ActionSource.User)
+                actions: storedActions.filter((action) => !isCascadedSystemAction(action))
             },
             action: GameNotificationAction.AddActions,
             notificationService,
@@ -97,6 +100,10 @@ export async function publishActionResults({
             notificationService,
             topics: [topic]
         })
+        await projectedHistory?.cache.append(
+            { gameId: game.id, perspective, logicVersion: projectedHistory.logicVersion },
+            representation.actions
+        )
     }
 
     await publishForGamePerspectives({ game, publishForPerspective })
@@ -134,7 +141,7 @@ export async function publishUndoResults({
                     startIndex: actionReplay.startIndex,
                     actionIds: actionReplay.actions.map((action) => action.id),
                     userActionIds: actionReplay.actions
-                        .filter((action) => action.source === ActionSource.User)
+                        .filter((action) => !isCascadedSystemAction(action))
                         .map((action) => action.id)
                 },
                 checksum: currentState.actionChecksum

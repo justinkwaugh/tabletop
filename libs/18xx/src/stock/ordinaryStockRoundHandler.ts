@@ -14,7 +14,7 @@ import {
 } from '@tabletop/common'
 import { FloatCompany, isFloatCompany, type HydratedFloatCompany } from '../company/floatCompany.js'
 import { isStartCompany, type HydratedStartCompany } from '../company/startCompany.js'
-import { evaluateCompanyStart, startHomeLocationIds } from '../company/companyStart.js'
+import { evaluateCompanyStart } from '../company/companyStart.js'
 import { nextCompanyToFloat } from '../company/companyFlotation.js'
 import type { CompanyRules } from '../company/companyRules.js'
 import { isBuyShares, type HydratedBuyShares } from './buyShares.js'
@@ -99,8 +99,14 @@ export class OrdinaryStockRoundHandler implements MachineStateHandler<Action, St
                         this.companyRules
                             .startMarketSpaces(state, company.id)
                             .some((marketSpaceId) =>
-                                startHomeLocationIds(state, this.companyRules, company.id).some(
-                                    (homeLocationId) =>
+                                (
+                                    this.companyRules.startHomes?.(
+                                        state,
+                                        company.id,
+                                        marketSpaceId
+                                    ) ?? [undefined]
+                                ).some(
+                                    (home) =>
                                         evaluateCompanyStart(
                                             state,
                                             {
@@ -108,7 +114,7 @@ export class OrdinaryStockRoundHandler implements MachineStateHandler<Action, St
                                                 buyer,
                                                 companyId: company.id,
                                                 marketSpaceId,
-                                                ...(homeLocationId ? { homeLocationId } : {})
+                                                ...(home ? { home } : {})
                                             },
                                             this.rules,
                                             this.companyRules

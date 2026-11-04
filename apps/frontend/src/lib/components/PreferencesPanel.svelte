@@ -98,4 +98,15 @@
             </div>
         {/if}
     </div>
+    <div>
+        <Toggle
+            checked={preferences.bgStatsEnabled ?? false}
+            onchange={(event) => editor.update({ bgStatsEnabled: event.currentTarget.checked })}
+            >Log plays to BG Stats</Toggle
+        >
+        <Helper class="mt-2" color="gray">
+            Show a link on your completed online games to import the game, players, scores, and
+            winners into the BG Stats app. You confirm each import in BG Stats.
+        </Helper>
+    </div>
 </div>

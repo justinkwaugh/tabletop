@@ -1,10 +1,11 @@
-import { type GameDefinition } from '@tabletop/common'
+import type { GameDefinition } from '@tabletop/common'
 import { createEighteenXXRuntime, type EighteenXXTitleRules } from '@tabletop/18xx'
 import { EighteenNinetyFourNames } from '../names.js'
 import { EighteenNinetyFourEndingRules } from '../endingRules.js'
 import {
     EighteenNinetyFourAuctionRules,
-    createEighteenNinetyFourOpening
+    createEighteenNinetyFourOpening,
+    eighteenNinetyFourStartingCash
 } from '../openingAuction.js'
 import { EighteenNinetyFourTrainFundingRules } from '../trainFundingRules.js'
 import { EighteenNinetyFourTransferRules } from '../transferRules.js'
@@ -41,6 +42,8 @@ export const EighteenNinetyFourTitleRules: EighteenXXTitleRules<
     transferRules: EighteenNinetyFourTransferRules,
     privatePowerRules: EighteenNinetyFourPrivatePowerRules,
     createOpening: createEighteenNinetyFourOpening,
+    startingCash: eighteenNinetyFourStartingCash,
+    currencySymbol: 'F',
     stockRules: EighteenNinetyFourStockRules,
     companyRules: EighteenNinetyFourCompanyRules,
     operatingRules: EighteenNinetyFourOperatingRules,
@@ -52,6 +55,7 @@ export const EighteenNinetyFourTitleRules: EighteenXXTitleRules<
     phases: EighteenNinetyFourPhases,
     phaseRules: EighteenNinetyFourPhaseRules,
     trainRules: EighteenNinetyFourTrainRules,
+    runInstructions: true,
     accessRightRules: EighteenNinetyFourAccessRightRules,
     treasuryShareRules: EighteenNinetyFourTreasuryShareRules,
     operatingSteps: [

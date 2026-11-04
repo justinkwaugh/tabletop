@@ -28,6 +28,13 @@ CATALOGUE_PATH = "config/config-games/src/games.json"
 LOCKFILE_PATH = "pnpm-lock.yaml"
 PLATFORM_PACKAGES = {"@tabletop/common", "@tabletop/frontend-components"}
 ACTION_PATCH_READ = re.compile(r"\b(?:undoPatch|forwardPatch)\b")
+GAME_CONTEXT_READ = re.compile(
+    r"\b(?:visibleContext|explorationContext|getCurrentExploration|createExplorationSource|capturePosition|"
+    r"incomingGameState|GameContext)\b|\bhistory\??\.(?:currentAction|actionIndex)\b"
+)
+
+# Production patterns whose hits in a shared family library count against every title shipping it.
+FAMILY_LIBRARY_PATTERNS = ("action_patch_read", "game_context_read")
 
 
 def git(*args: str, cwd: Path | None = None) -> str:
@@ -1084,6 +1091,7 @@ def main() -> int:
             r"createElement\(['\"]style|adoptedStyleSheets|insertRule\("
         ),
         "action_patch_read": ACTION_PATCH_READ,
+        "game_context_read": GAME_CONTEXT_READ,
     }
     logic_patterns = {
         "nondeterminism": re.compile(
@@ -1135,7 +1143,9 @@ def main() -> int:
         "production_hits": find_hits(production_sources, production_patterns),
         "logic_hits": find_hits(logic_sources, logic_patterns),
         "family_libraries": [root.relative_to(repo).as_posix() for root in family_roots],
-        "family_library_hits": find_hits(family_sources, {"action_patch_read": ACTION_PATCH_READ}),
+        "family_library_hits": find_hits(
+            family_sources, {name: production_patterns[name] for name in FAMILY_LIBRARY_PATTERNS}
+        ),
         "versions": {
             "logic_package": package_version(logic_root),
             "ui_package": package_version(ui_root),

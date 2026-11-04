@@ -13,7 +13,7 @@ import {
 } from './tileReplacement.js'
 
 export type TileUpgradeRules = TileReplacementRules &
-    Pick<TrackRules, 'map' | 'tileSet' | 'mostExits'>
+    Pick<TrackRules, 'map' | 'tileSet' | 'mostExits' | 'relabels'>
 
 /**
  * Which tiles of the set may replace which on some hex of the map, by the colour, stop, label
@@ -70,10 +70,12 @@ export class TileUpgrades {
         const printed = location.preprintedTile
         return (
             colorOrder.indexOf(tile.face.color) > colorOrder.indexOf(printed.color) &&
-            sameLabels(
-                requiredLabels(location, tile.face.color, colorOrder, printed.labels),
-                tile.face.labels
-            )
+            // A title may relabel a hex's later tiles, as construction allows.
+            (!!this.rules.relabels?.(location.id, tile.id) ||
+                sameLabels(
+                    requiredLabels(location, tile.face.color, colorOrder, printed.labels),
+                    tile.face.labels
+                ))
         )
     }
 

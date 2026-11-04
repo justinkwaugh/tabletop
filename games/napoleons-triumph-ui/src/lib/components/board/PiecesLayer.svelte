@@ -1,11 +1,15 @@
 <script lang="ts">
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { lossMark } from '$lib/model/roleMark.js'
+    import { BLOCK_LENGTH, BLOCK_THICKNESS } from '$lib/utils/blockShape.js'
     import type { GroupSprite } from '$lib/utils/pieceLayout.js'
     import Block from './Block.svelte'
 
     const gameSession = getGameSession()
 
     const sprites = $derived(gameSession.sprites)
+
+    const POINTED_MARGIN = 4
 
     function tap(event: Event, sprite: GroupSprite, unitId: string, pickable: boolean) {
         if (pickable) {
@@ -14,6 +18,26 @@
         } else if (gameSession.canSelect(sprite.group)) {
             event.stopPropagation()
             gameSession.tapBlock(sprite.group, unitId)
+        } else if (pointsAtLoss(sprite, unitId, pickable)) {
+            event.stopPropagation()
+            gameSession.toggleLoss(unitId)
+        }
+    }
+
+    function pointsAtLoss(sprite: GroupSprite, unitId: string, pickable: boolean): boolean {
+        return !pickable && taskOf(sprite) === undefined && gameSession.marksLoss(unitId)
+    }
+
+    function hover(event: PointerEvent, unitId: string | undefined) {
+        if (event.pointerType === 'mouse') {
+            gameSession.hoverLoss(unitId)
+        }
+    }
+
+    function onKey(event: KeyboardEvent, act: () => void) {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            act()
         }
     }
 
@@ -68,13 +92,24 @@
                 dimmed,
                 moved
             } = gameSession.blockMark(block.unit, sprite.group.key)}
+            {@const pointing = pointsAtLoss(sprite, block.unit.id, pickable)}
             <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
             <g
-                class:nt-selectable={pickable}
-                role={pickable ? 'button' : undefined}
-                tabindex={pickable ? 0 : undefined}
-                aria-label={pickable ? 'Choose this unit' : undefined}
-                aria-pressed={pickable ? battleRole !== undefined : undefined}
+                class:nt-selectable={pickable || pointing}
+                role={pickable || pointing ? 'button' : undefined}
+                tabindex={pickable || pointing ? 0 : undefined}
+                aria-label={pickable
+                    ? 'Choose this unit'
+                    : pointing
+                      ? 'A unit that lost steps'
+                      : undefined}
+                aria-pressed={pickable
+                    ? battleRole !== undefined
+                    : pointing
+                      ? gameSession.pointedLossId === block.unit.id
+                      : undefined}
+                onpointerenter={(event) => pointing && hover(event, block.unit.id)}
+                onpointerleave={(event) => pointing && hover(event, undefined)}
                 onclick={(event) => tap(event, sprite, block.unit.id, pickable)}
                 onkeydown={(event) =>
                     event.key === 'Enter' && tap(event, sprite, block.unit.id, pickable)}
@@ -88,9 +123,47 @@
                     {dimmed}
                     {moved}
                     {roleMark}
+                    viewRotation={gameSession.boardRotation}
                 />
             </g>
         {/each}
+    </g>
+{/each}
+{#each gameSession.ghostLinks as link (link.unitId)}
+    <g class="nt-ghost-link" data-ghost-link>
+        <line x1={link.line[0].x} y1={link.line[0].y} x2={link.line[1].x} y2={link.line[1].y}
+        ></line>
+        <circle cx={link.line[1].x} cy={link.line[1].y} r="3"></circle>
+    </g>
+{/each}
+{#each gameSession.battleGhosts as ghost (ghost.block.unit.id)}
+    {@const unitId = ghost.block.unit.id}
+    <g
+        class="nt-selectable"
+        role="button"
+        tabindex="0"
+        aria-label="Where a unit lost steps"
+        aria-pressed={gameSession.pointedLossId === unitId}
+        data-battle-ghost={unitId}
+        onpointerenter={(event) => hover(event, unitId)}
+        onpointerleave={(event) => hover(event, undefined)}
+        onclick={(event) => {
+            event.stopPropagation()
+            gameSession.toggleLoss(unitId)
+        }}
+        onkeydown={(event) => onKey(event, () => gameSession.toggleLoss(unitId))}
+    >
+        <Block
+            x={ghost.block.centre.x}
+            y={ghost.block.centre.y}
+            angle={ghost.block.angle}
+            colors={gameSession.armyColors(ghost.block.unit.playerId)}
+            face={gameSession.knownFaceOnTheMap(ghost.loss.face)}
+            ghost
+            struck={ghost.loss.eliminated}
+            roleMark={lossMark(ghost.loss.steps)}
+            viewRotation={gameSession.boardRotation}
+        />
     </g>
 {/each}
 {#snippet ring(sprite: GroupSprite, guard: boolean)}
@@ -112,6 +185,18 @@
 {#if gameSession.guardSprite}
     {@render ring(gameSession.guardSprite, true)}
 {/if}
+{#each gameSession.pointedLossBlocks as block, index (index)}
+    <rect
+        transform="translate({block.centre.x} {block.centre.y}) rotate({block.angle})"
+        x={-BLOCK_LENGTH / 2 - POINTED_MARGIN}
+        y={-BLOCK_THICKNESS / 2 - POINTED_MARGIN}
+        width={BLOCK_LENGTH + POINTED_MARGIN * 2}
+        height={BLOCK_THICKNESS + POINTED_MARGIN * 2}
+        rx="3"
+        class="nt-selection-ring"
+        data-pointed-loss
+    ></rect>
+{/each}
 
 <style>
     .nt-selectable {
@@ -124,6 +209,23 @@
         stroke-width: 3;
         stroke-dasharray: 4 6;
         pointer-events: none;
+    }
+
+    .nt-ghost-link {
+        fill: #2b2620;
+        stroke: #2b2620;
+        opacity: 0.75;
+        pointer-events: none;
+    }
+
+    .nt-ghost-link circle {
+        stroke: none;
+    }
+
+    .nt-ghost-link line {
+        stroke-width: 2;
+        stroke-dasharray: 5 4;
+        stroke-linecap: round;
     }
 
     .nt-guard-ring {

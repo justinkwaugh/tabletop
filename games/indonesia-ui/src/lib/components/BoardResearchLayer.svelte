@@ -88,23 +88,23 @@
         () => !showResearchAdvanceHighlights
     )
 
-    const selectedResearchPlayerState: (typeof gameSession.gameState.players)[number] | null = $derived.by(
-        () =>
+    const selectedResearchPlayerState: (typeof gameSession.gameState.players)[number] | null =
+        $derived.by(() =>
             selectedPlayerId
-                ? gameSession.gameState.players.find(
+                ? (gameSession.gameState.players.find(
                       (playerState) => playerState.playerId === selectedPlayerId
-                  ) ?? null
+                  ) ?? null)
                 : null
-    )
+        )
 
-    const hoveredResearchPlayerState: (typeof gameSession.gameState.players)[number] | null = $derived.by(
-        () =>
+    const hoveredResearchPlayerState: (typeof gameSession.gameState.players)[number] | null =
+        $derived.by(() =>
             allowHoveredResearchValuePreview && hoveredPlayerId
-                ? gameSession.gameState.players.find(
+                ? (gameSession.gameState.players.find(
                       (playerState) => playerState.playerId === hoveredPlayerId
-                  ) ?? null
+                  ) ?? null)
                 : null
-    )
+        )
 
     const researchNextCellHighlightColor: string = $derived.by(() => {
         if (!selectedPlayerId) {
@@ -140,7 +140,9 @@
 
         const highlights: ResearchNextCellHighlight[] = []
         for (const row of RESEARCH_ROWS) {
-            const currentColumnIndex = clampResearchColumnIndex(hoveredResearchPlayerState.research[row])
+            const currentColumnIndex = clampResearchColumnIndex(
+                hoveredResearchPlayerState.research[row]
+            )
             const currentCell = researchCellsByRow[row][currentColumnIndex]
             if (!currentCell) {
                 continue
@@ -166,11 +168,15 @@
 
         const selectedCurrentPlayer =
             !!selectedPlayerId && !!currentPlayerId && selectedPlayerId === currentPlayerId
-        const rowsToHighlight: readonly ResearchRow[] = selectedCurrentPlayer ? RESEARCH_ROWS : ['hull']
+        const rowsToHighlight: readonly ResearchRow[] = selectedCurrentPlayer
+            ? RESEARCH_ROWS
+            : ['hull']
 
         const highlights: ResearchNextCellHighlight[] = []
         for (const row of rowsToHighlight) {
-            const currentColumnIndex = clampResearchColumnIndex(selectedResearchPlayerState.research[row])
+            const currentColumnIndex = clampResearchColumnIndex(
+                selectedResearchPlayerState.research[row]
+            )
             if (currentColumnIndex >= RESEARCH_COLUMN_COUNT - 1) {
                 continue
             }
@@ -221,7 +227,7 @@
                     `${row}-${columnIndex}`
                 )
                 for (let offsetIndex = 0; offsetIndex < playerIds.length; offsetIndex += 1) {
-                const playerId = playerIds[offsetIndex]
+                    const playerId = playerIds[offsetIndex]
                     if (
                         allowHoveredResearchValuePreview &&
                         hoveredPlayerId &&
@@ -268,7 +274,9 @@
         )
     })
 
-    async function handleResearchHighlightClick(highlight: ResearchNextCellHighlight): Promise<void> {
+    async function handleResearchHighlightClick(
+        highlight: ResearchNextCellHighlight
+    ): Promise<void> {
         if (!canSubmitResearchAction || !selectedPlayerId) {
             return
         }

@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { sameCoordinates } from '@tabletop/common'
+import {
+    ActionSource,
+    CALL_GAME_ACTION_TYPE,
+    assert,
+    GameCallKind,
+    sameCoordinates,
+    type CallGameAction
+} from '@tabletop/common'
 import { GameSession } from '@tabletop/frontend-components'
 import {
     ActionSpaceId,
@@ -8,8 +15,10 @@ import {
     Industry,
     IndustryBoost,
     MachineState,
+    EditionId,
     PlacementKind,
-    printedHex
+    printedHex,
+    printedPointyHex
 } from '@tabletop/railheads'
 import {
     choose,
@@ -17,10 +26,13 @@ import {
     firstTurnTable,
     invest,
     layNothing,
+    onTheClock,
     openSessionOn,
+    SEATS,
+    sealedBid,
     type PlayedTable
 } from '$lib/testing/sessionHarness.js'
-import { historyEntries } from '$lib/utils/history.js'
+import { historyEntries, historyLines } from '$lib/utils/history.js'
 import {
     addPiece,
     pickBoostHex,
@@ -266,6 +278,67 @@ describe('history', () => {
         expect(turn?.kind === 'turn' && turn.actions).toHaveLength(2)
     })
 
+    it('lists a turn newest first, with the revealed bids under the sale, highest first', () => {
+        const invested = invest(
+            choose(firstTurnTable(), ActionSpaceId.IndustryInvestment),
+            Industry.Grain
+        )
+        const investor = onTheClock(invested)
+        const others = SEATS.filter((playerId) => playerId !== investor)
+        const resolved = sealedBid(
+            sealedBid(sealedBid(invested, investor, 2), others[0], 5),
+            others[1],
+            3
+        )
+        const turn = historyEntries(resolved.actions).at(-1)
+        assert(turn?.kind === 'turn')
+        const lines = historyLines(turn)
+
+        expect(lines.map((line) => (line.kind === 'line' ? line.playerId : 'bids'))).toEqual([
+            others[0],
+            'bids',
+            others[1],
+            others[0],
+            investor,
+            investor
+        ])
+        expect(lines[0]).toMatchObject({ kind: 'line', tone: 'result' })
+        expect(lines[1]).toMatchObject({
+            kind: 'bids',
+            bids: [
+                { playerId: others[0], amount: 5 },
+                { playerId: others[1], amount: 3 },
+                { playerId: investor, amount: 2 }
+            ]
+        })
+        const investment = lines.at(-1)
+        assert(investment?.kind === 'line')
+        expect(investment.description.slice(0, 2)).toEqual([
+            'invested in ',
+            { industry: Industry.Grain }
+        ])
+    })
+
+    it('shows a called game as its own entry, not as a step of the turn it cut short', () => {
+        const { actions } = playedRound()
+        const call: CallGameAction = {
+            id: 'call',
+            gameId: 'game',
+            source: ActionSource.System,
+            type: CALL_GAME_ACTION_TYPE,
+            index: actions.length,
+            call: {
+                kind: GameCallKind.Called,
+                initiatorPlayerId: 'p1',
+                approvingPlayerIds: ['p1', 'p2'],
+                decliningPlayerIds: []
+            }
+        }
+        const entries = historyEntries([...actions, call])
+        expect(entries.at(-1)).toEqual({ kind: 'call', key: 'call', action: call })
+        expect(entries.at(-2)).toEqual(historyEntries(actions).at(-1))
+    })
+
     it('jumps to an entry and withholds every move while viewing it', async () => {
         const table = playedRound()
         const session = openSessionOn(table)
@@ -285,5 +358,99 @@ describe('history', () => {
         await session.chooseSpace(ActionSpaceId.LayTrackII)
         expect(session.isViewingHistory).toBe(true)
         expect(session.gameState.machineState).toBe(MachineState.LayingTrack)
+    })
+})
+
+describe('the Midwest', () => {
+    const STEEL_IN_INDIANA = printedPointyHex(10, 28)
+    const BESIDE_WASHINGTON = printedPointyHex(12, 36)
+
+    function withTrack(table: PlayedTable, companyId: CompanyId, rows: [number, number][]) {
+        const track = [
+            ...table.state.track,
+            ...rows.map(([row, col]) => ({
+                coords: printedPointyHex(row, col),
+                discs: [companyId]
+            }))
+        ]
+        return { ...table, state: { ...table.state, track } }
+    }
+
+    function besideSteel(): PlayedTable {
+        const table = withTrack(firstTurnTable({ edition: EditionId.Midwest }), CompanyId.BO, [
+            [11, 29],
+            [12, 32],
+            [12, 34]
+        ])
+        return choose(table, ActionSpaceId.LayTrackIII)
+    }
+
+    const offersSteel = (session: ReturnType<typeof openSessionOn>) =>
+        session.trackTargets.some((target) => sameCoordinates(target.coords, STEEL_IN_INDIANA))
+
+    it('opens with the NYC and gives the Start Player token with the PRR', () => {
+        const { actions, state } = firstTurnTable({ edition: EditionId.Midwest })
+        const offerings = historyEntries(actions).filter((entry) => entry.kind === 'offering')
+        expect(offerings.map((entry) => entry.kind === 'offering' && entry.companyId)).toEqual([
+            CompanyId.NYC,
+            CompanyId.ERIE,
+            CompanyId.IC,
+            CompanyId.BO,
+            CompanyId.PRR
+        ])
+        expect(state.turnManager.turnOrder[0]).toBe('p1')
+    })
+
+    it('rings an industry site once a staged disc reaches a demand area that wants it', async () => {
+        const session = openSessionOn(besideSteel())
+        const actionUndo = spyOnActionUndo()
+        session.chooseTrackCompany(CompanyId.BO)
+        expect(offersSteel(session)).toBe(false)
+
+        await session.clickHex(BESIDE_WASHINGTON)
+        expect(offersSteel(session)).toBe(true)
+
+        await session.undo()
+        expect(session.placements).toEqual([])
+        expect(offersSteel(session)).toBe(false)
+        expect(actionUndo).not.toHaveBeenCalled()
+    })
+
+    it('prices a second disc on a site $2 above the first', async () => {
+        const table = withTrack(firstTurnTable({ edition: EditionId.Midwest }), CompanyId.NYC, [
+            [11, 31]
+        ])
+        const session = openSessionOn(choose(table, ActionSpaceId.LayTrackIII))
+        session.chooseTrackCompany(CompanyId.NYC)
+        const indianapolis = session.trackTargets.find((target) =>
+            sameCoordinates(target.coords, printedPointyHex(12, 30))
+        )
+        expect(indianapolis?.cost).toBe(6)
+    })
+
+    it('totals two companies’ discs on one site at the price each one pays', async () => {
+        const nyc = withTrack(firstTurnTable({ edition: EditionId.Midwest }), CompanyId.NYC, [
+            [11, 31]
+        ])
+        const table = withTrack(nyc, CompanyId.ERIE, [[11, 31]])
+        const session = openSessionOn(choose(table, ActionSpaceId.LayTrackII))
+        const indianapolis = printedPointyHex(12, 30)
+        const companies = [CompanyId.NYC, CompanyId.ERIE]
+        for (const companyId of companies) {
+            session.chooseTrackCompany(companyId)
+            await session.clickHex(indianapolis)
+        }
+        expect(session.placements).toHaveLength(2)
+        const paid = companies.reduce(
+            (sum, companyId) =>
+                sum +
+                session.gameState.company(companyId).treasury -
+                session.shownState.company(companyId).treasury,
+            0
+        )
+        // Over the B&O's home disc the NYC pays $6; the ERIE's disc then sits on
+        // two and costs $8, halved to $4 without an ERIE share.
+        expect(paid).toBe(10)
+        expect(session.stagedCost).toBe(paid)
     })
 })

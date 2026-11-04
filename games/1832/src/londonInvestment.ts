@@ -3,7 +3,6 @@ import { Compile } from 'typebox/compile'
 import {
     ActionSource,
     HydratableAction,
-    PlayerAction,
     assert,
     assertExists,
     type GameAction,
@@ -21,7 +20,8 @@ import {
     type CompanyRules,
     type PrivateRules,
     type StockState,
-    stepAction
+    stepAction,
+    EighteenXXPlayerAction
 } from '@tabletop/18xx'
 import type { TitleStepAction } from './titleActions.js'
 import {
@@ -101,7 +101,7 @@ function evaluateLondonShare(
 
 export const TakeLondonShare = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('TakeLondonShare'),
         certificateId: Type.String(),
         metadata: Type.Optional(

@@ -53,7 +53,10 @@ export class ChatService {
 
     constructor(
         private readonly authorizationService: Pick<AuthorizationService, 'getSessionUser'>,
-        private readonly notificationService: Pick<NotificationService, 'addListener' | 'isUserChannelReady'>,
+        private readonly notificationService: Pick<
+            NotificationService,
+            'addListener' | 'isUserChannelReady'
+        >,
         private readonly api: TabletopApi
     ) {
         notificationService.addListener(this.NotificationListener)
@@ -233,7 +236,10 @@ export class ChatService {
 
         if (isDataEvent(event)) {
             const notification = event.notification
-            if (!this.isGameChatNotification(notification) || notification.data.game.id !== this.currentGameId) {
+            if (
+                !this.isGameChatNotification(notification) ||
+                notification.data.game.id !== this.currentGameId
+            ) {
                 return
             }
 

@@ -3,6 +3,7 @@ import {
     ActionSource,
     GameStatus,
     PlayerStatus,
+    Role,
     UserStatus,
     type BugReportRequest,
     type Game,
@@ -11,6 +12,7 @@ import {
     type User
 } from '@tabletop/common'
 import { BugReportService } from './bugReportService.js'
+import { InvalidLocalGameError } from './errors.js'
 import { DiscordBotApi, type DiscordFile } from './discordBotApi.js'
 import { GameService } from '../games/gameService.js'
 import { UserService } from '../users/userService.js'
@@ -96,6 +98,7 @@ describe('BugReportService', () => {
     beforeEach(() => {
         gameService = Object.create(GameService.prototype)
         vi.spyOn(gameService, 'getGameData').mockResolvedValue({ game, actions: [] })
+        vi.spyOn(gameService, 'getGame').mockResolvedValue(undefined)
         vi.spyOn(gameService, 'getTitle').mockReturnValue(undefined)
         discordBotApi = new DiscordBotApi('token')
         vi.spyOn(discordBotApi, 'post').mockResolvedValue(new Response('{}', { status: 201 }))
@@ -307,6 +310,15 @@ describe('BugReportService', () => {
         expect(discordBotApi.post).not.toHaveBeenCalled()
     })
 
+    it('accepts a report from an admin who is not a player in the game', async () => {
+        await service.reportBug({ user: { ...reporter, id: 'u-9', roles: [Role.Admin] }, report })
+
+        expect(discordBotApi.post).toHaveBeenCalledWith(
+            '/channels/forum-1/threads',
+            expect.anything()
+        )
+    })
+
     it('refuses a game that does not exist', async () => {
         vi.mocked(gameService.getGameData).mockResolvedValue(undefined)
 
@@ -314,6 +326,85 @@ describe('BugReportService', () => {
             GameNotFoundError
         )
         expect(discordBotApi.post).not.toHaveBeenCalled()
+    })
+
+    describe("a game kept in the reporter's browser", () => {
+        const localGame: Game = { ...game, hotseat: true, activePlayerIds: ['p-1'] }
+        const scenarioJson = JSON.stringify({ game: localGame, state, actions: [action] })
+
+        it('attaches the scenario the reporter sent without looking the game up', async () => {
+            await service.reportBug({
+                user: { ...reporter, id: 'u-9' },
+                report: { ...report, localGame: scenarioJson }
+            })
+
+            expect(gameService.getGameData).not.toHaveBeenCalled()
+            const [path, post, files] = vi.mocked(discordBotApi.postWithFiles).mock.calls[0]
+            expect(path).toBe('/channels/forum-1/threads')
+            expect(files).toEqual([
+                {
+                    filename: 'bug-report-game-1.json',
+                    contentType: 'application/json',
+                    content: scenarioJson
+                }
+            ])
+            expect(post).toEqual(
+                expect.objectContaining({
+                    message: expect.objectContaining({ components: undefined })
+                })
+            )
+            expect(post).toEqual(
+                expect.objectContaining({
+                    message: expect.objectContaining({
+                        embeds: [
+                            expect.objectContaining({
+                                title: 'Friday night',
+                                url: undefined,
+                                fields: expect.arrayContaining([
+                                    { name: 'Actions', value: '1', inline: true },
+                                    { name: 'Active players', value: 'Alice' },
+                                    {
+                                        name: 'Hotseat',
+                                        value: "Kept only in the reporter's browser, so the scenario is the only copy"
+                                    }
+                                ])
+                            })
+                        ]
+                    })
+                })
+            )
+        })
+
+        it('refuses a scenario of a hosted game', async () => {
+            vi.mocked(gameService.getGame).mockResolvedValue(game)
+
+            await expect(
+                service.reportBug({
+                    user: { ...reporter, id: 'u-9' },
+                    report: { ...report, localGame: scenarioJson }
+                })
+            ).rejects.toBeInstanceOf(InvalidLocalGameError)
+            expect(discordBotApi.postWithFiles).not.toHaveBeenCalled()
+        })
+
+        it('refuses a scenario of another game', async () => {
+            await expect(
+                service.reportBug({
+                    user: reporter,
+                    report: { ...report, gameId: 'game-2', localGame: scenarioJson }
+                })
+            ).rejects.toBeInstanceOf(InvalidLocalGameError)
+            expect(discordBotApi.postWithFiles).not.toHaveBeenCalled()
+        })
+
+        it('refuses a local game that is not a scenario', async () => {
+            for (const sent of ['{not json', JSON.stringify({ game: localGame })]) {
+                await expect(
+                    service.reportBug({ user: reporter, report: { ...report, localGame: sent } })
+                ).rejects.toBeInstanceOf(InvalidLocalGameError)
+            }
+            expect(discordBotApi.postWithFiles).not.toHaveBeenCalled()
+        })
     })
 
     it('fails when Discord rejects the thread', async () => {

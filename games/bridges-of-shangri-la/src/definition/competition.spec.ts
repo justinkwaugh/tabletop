@@ -1,117 +1,11 @@
-import {
-    ActionSource,
-    assertExists,
-    defaultGameConfig,
-    GameEngine,
-    GameResult,
-    PlayerStatus,
-    validateGameResult,
-    type Game
-} from '@tabletop/common'
+import { assertExists, GameResult, validateGameResult } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
-import { HydratedBeginJourney, type BeginJourney } from '../actions/beginJourney.js'
-import type { Pass } from '../actions/pass.js'
-import { HydratedPlaceMaster, type PlaceMaster } from '../actions/placeMaster.js'
-import { HydratedRecruitStudents, type RecruitStudents } from '../actions/recruitStudents.js'
-import type { Placement } from '../components/gameBoard.js'
-import type { BridgesGameState, HydratedBridgesGameState } from '../model/gameState.js'
+import { chooseAction, createGame, engine, playToEnd } from '../util/testPlaythrough.js'
 import { ActionType } from './actions.js'
-import { Definition } from './gameDefinition.js'
-import { BridgesInfo } from './info.js'
-import { MasterType } from './masterType.js'
 import { BridgesRuntime } from './runtime.js'
-import { MachineState } from './states.js'
-
-type BridgesAction = PlaceMaster | RecruitStudents | BeginJourney | Pass
-
-const engine = new GameEngine(BridgesRuntime)
-const maxActions = 2000
-
-function createGame(count: number) {
-    return BridgesRuntime.initializer.initializeGame(
-        {
-            id: 'bridges-competition',
-            typeId: BridgesInfo.id,
-            ownerId: 'owner',
-            seed: 101,
-            config: defaultGameConfig(BridgesInfo.configurator?.options ?? []),
-            players: Array.from({ length: count }, (_, index) => ({
-                id: `p${index}`,
-                name: `Player ${index}`,
-                isHuman: true,
-                status: PlayerStatus.Joined
-            }))
-        },
-        Definition
-    )
-}
 
 function rotations(playerIds: string[]): string[][] {
     return playerIds.map((_, offset) => [...playerIds.slice(offset), ...playerIds.slice(0, offset)])
-}
-
-function placements(state: HydratedBridgesGameState): Placement[] {
-    return state.board.villages.flatMap((_, village) =>
-        Object.values(MasterType).map((masterType) => ({ masterType, village }))
-    )
-}
-
-function journey(state: HydratedBridgesGameState, playerId: string) {
-    for (const [from, village] of state.board.villages.entries()) {
-        if (!HydratedBeginJourney.isValidSourceVillage(state, playerId, from).valid) continue
-        const to = village.neighbors.find(
-            (neighbor) =>
-                HydratedBeginJourney.isValidDestinationVillage(state, neighbor, from).valid
-        )
-        if (to !== undefined) return { from, to }
-    }
-    return undefined
-}
-
-function recruitment(state: HydratedBridgesGameState, playerId: string) {
-    if (state.turnManager.turnCount(playerId) < 7) return undefined
-    return placements(state).find(
-        (placement) => HydratedRecruitStudents.isValidPlacement(state, playerId, placement).valid
-    )
-}
-
-function masterPlacement(state: HydratedBridgesGameState, playerId: string) {
-    return placements(state).find(
-        (placement) => HydratedPlaceMaster.isValidPlacement(state, playerId, placement).valid
-    )
-}
-
-function chooseAction(state: HydratedBridgesGameState, index: number): BridgesAction {
-    const playerId = state.activePlayerIds[0]
-    assertExists(playerId, 'Expected an active player')
-    const base = {
-        id: `action-${index}`,
-        gameId: state.gameId,
-        source: ActionSource.User,
-        playerId
-    }
-    const recruit = recruitment(state, playerId)
-    if (state.machineState === MachineState.RecruitingStudents) {
-        return recruit
-            ? { ...base, type: ActionType.RecruitStudents, placement: recruit }
-            : { ...base, type: ActionType.Pass }
-    }
-    const route = state.turnManager.turnCount(playerId) >= 7 ? journey(state, playerId) : undefined
-    if (route) return { ...base, type: ActionType.BeginJourney, ...route }
-    if (recruit) return { ...base, type: ActionType.RecruitStudents, placement: recruit }
-    const placement = masterPlacement(state, playerId)
-    if (placement) return { ...base, type: ActionType.PlaceMaster, placement }
-    return { ...base, type: ActionType.Pass }
-}
-
-function playToEnd(game: Game, initialState: BridgesGameState): BridgesGameState {
-    let state = initialState
-    for (let index = 0; state.machineState !== MachineState.EndOfGame; index++) {
-        expect(index).toBeLessThan(maxActions)
-        const action = chooseAction(BridgesRuntime.hydrator.hydrateState(state), index)
-        state = engine.executeCanonicalAction({ game, state, action }).updatedState
-    }
-    return state
 }
 
 describe.each([3, 4])('Bridges of Shangri-La tournaments with %i players', (count) => {

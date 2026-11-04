@@ -5,6 +5,8 @@ export const BUG_REPORT_SCREENSHOT_MAX_COUNT = 3
 export const BUG_REPORT_SCREENSHOT_MAX_BYTES = 500_000
 export const BUG_REPORT_SCREENSHOT_MAX_BASE64_LENGTH =
     Math.ceil(BUG_REPORT_SCREENSHOT_MAX_BYTES / 3) * 4
+// Long 18xx games measure 1–2.5 MB; this keeps one beside every screenshot under Discord's 10 MB upload limit.
+export const BUG_REPORT_LOCAL_GAME_MAX_LENGTH = 4_000_000
 
 export type BugReportView = Type.Static<typeof BugReportView>
 export const BugReportView = Type.Object({
@@ -51,6 +53,9 @@ export const BugReportRequest = Type.Object(
                 minItems: 1,
                 maxItems: BUG_REPORT_SCREENSHOT_MAX_COUNT
             })
+        ),
+        localGame: Type.Optional(
+            Type.String({ minLength: 1, maxLength: BUG_REPORT_LOCAL_GAME_MAX_LENGTH })
         )
     },
     { additionalProperties: false }

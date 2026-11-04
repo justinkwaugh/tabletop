@@ -21,8 +21,10 @@ export function createCoordinatedNode<T extends Coordinates>(coords: T) {
     return { id: coordinatesToNumber(coords), coords }
 }
 
-export interface CoordinatedGraph<T extends CoordinatedNode<U>, U extends Coordinates>
-    extends Graph<T> {
+export interface CoordinatedGraph<
+    T extends CoordinatedNode<U>,
+    U extends Coordinates
+> extends Graph<T> {
     nodeAt(coords: U): T | undefined
     neighborsAt(coords: U, direction?: Direction): T[]
     hasAt(coords: U): boolean

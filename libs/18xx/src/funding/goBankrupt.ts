@@ -1,8 +1,8 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     assertExists,
@@ -14,6 +14,9 @@ import { controllingOwner } from '../finance/finance.js'
 import { abandonOperatingTurn, type OperatingTurnState } from '../operating/finishOperatingTurn.js'
 import { BetweenCompaniesState } from '../operating/operatingSteps.js'
 import { nextOperatingCompany } from '../operating/operatingSet.js'
+import { operatingRoundEnd } from '../operating/operatingRoundSnapshot.js'
+import { RoundEnd } from '../ending/roundEnd.js'
+import type { ValuationRules } from '../ending/finalWealth.js'
 import {
     currentDebt,
     settleCurrentDebt,
@@ -24,14 +27,16 @@ import { eliminatePlayer } from './elimination.js'
 import { TitleChanges } from '../actions/titleChanges.js'
 
 export type GoBankruptSchema<Changes extends Type.TSchema = TitleChanges> = Type.TObject<
-    Omit<typeof PlayerAction.properties, 'type'> & {
+    Omit<typeof EighteenXXPlayerAction.properties, 'type'> & {
         type: Type.TLiteral<'GoBankrupt'>
         metadata: Type.TOptional<
             Type.TObject<{
                 changes: Changes
                 forgiven: Type.TInteger
                 surrendered: Type.TOptional<typeof CashPayment>
+                presidedCompanyId: Type.TOptional<Type.TString>
                 continuation: Type.TOptional<Type.TString>
+                roundEnd: Type.TOptional<typeof RoundEnd>
             }>
         >
     }
@@ -42,7 +47,7 @@ export function goBankruptSchema<Changes extends Type.TSchema>(
 ): GoBankruptSchema<Changes> {
     return Type.Object(
         {
-            ...PlayerAction.properties,
+            ...EighteenXXPlayerAction.properties,
             type: Type.Literal('GoBankrupt'),
             metadata: Type.Optional(
                 Type.Object(
@@ -50,7 +55,9 @@ export function goBankruptSchema<Changes extends Type.TSchema>(
                         changes,
                         forgiven: Type.Integer({ minimum: 1 }),
                         surrendered: Type.Optional(CashPayment),
-                        continuation: Type.Optional(Type.String())
+                        presidedCompanyId: Type.Optional(Type.String()),
+                        continuation: Type.Optional(Type.String()),
+                        roundEnd: Type.Optional(RoundEnd)
                     },
                     { additionalProperties: false }
                 )
@@ -74,9 +81,11 @@ export class HydratedGoBankrupt extends HydratableAction<typeof GoBankrupt> impl
     declare playerId: string
     declare metadata?: GoBankrupt['metadata']
     readonly #rules: CashCrisisRules
-    constructor(data: GoBankrupt, rules: CashCrisisRules) {
+    readonly #valuationRules: ValuationRules
+    constructor(data: GoBankrupt, rules: CashCrisisRules, valuationRules: ValuationRules) {
         super(data instanceof HydratedGoBankrupt ? data.dehydrate() : data, Validator)
         this.#rules = rules
+        this.#valuationRules = valuationRules
     }
     apply(state: HydratedGameState & CashCrisisState & OperatingTurnState): void {
         const crisis = state.cashCrisis
@@ -86,6 +95,18 @@ export class HydratedGoBankrupt extends HydratableAction<typeof GoBankrupt> impl
             this.source === ActionSource.User && debt?.playerId === this.playerId,
             'Only the player in debt may go bankrupt'
         )
+        const operatingCompany = () =>
+            crisis.continuation !== BetweenCompaniesState &&
+            state.operatingSet &&
+            !state.operatingSet.completed
+                ? nextOperatingCompany(state)
+                : undefined
+        const operatingAtBankruptcy = operatingCompany()
+        const presidedCompanyId =
+            operatingAtBankruptcy &&
+            controllingOwner(state, operatingAtBankruptcy)?.playerId === this.playerId
+                ? operatingAtBankruptcy
+                : undefined
         const { changes, surrendered } = eliminatePlayer(
             state,
             this.playerId,
@@ -93,23 +114,22 @@ export class HydratedGoBankrupt extends HydratableAction<typeof GoBankrupt> impl
             { kind: 'bank' }
         )
         // A company left without a president cannot finish its own turn.
-        const companyId =
-            crisis.continuation !== BetweenCompaniesState &&
-            state.operatingSet &&
-            !state.operatingSet.completed
-                ? nextOperatingCompany(state)
-                : undefined
-        if (companyId && !controllingOwner(state, companyId)) {
+        const companyId = operatingCompany()
+        const abandoned = !!companyId && !controllingOwner(state, companyId)
+        if (companyId && abandoned) {
             abandonOperatingTurn(state, companyId)
             crisis.continuation = BetweenCompaniesState
         }
         const forgiven = debt.amount
         const continuation = settleCurrentDebt(state)
+        const ended = abandoned ? operatingRoundEnd(state, this.#valuationRules) : undefined
         this.metadata = {
             changes,
             forgiven,
             ...(surrendered ? { surrendered } : {}),
-            ...(continuation ? { continuation } : {})
+            ...(presidedCompanyId ? { presidedCompanyId } : {}),
+            ...(continuation ? { continuation } : {}),
+            ...(ended ? { roundEnd: ended } : {})
         }
     }
 }

@@ -91,13 +91,19 @@ function trade(cardId: string, option: TradeOption, modifiers?: ModifierUse[]) {
 describe('the modifier framework (R-7.4)', () => {
     it('refuses a modifier declared on the wrong major action', () => {
         const s = board([TENTS])
-        expect(() => muster(INN, [modifierUse(TENTS)]).apply(board([TENTS, INN]))).toThrow(/modifies travel, not muster/)
-        expect(HydratedTravel.reasonCannotTravel(s, 'ruler', 'c2', [modifierUse(TENTS)])).toBeUndefined()
+        expect(() => muster(INN, [modifierUse(TENTS)]).apply(board([TENTS, INN]))).toThrow(
+            /modifies travel, not muster/
+        )
+        expect(
+            HydratedTravel.reasonCannotTravel(s, 'ruler', 'c2', [modifierUse(TENTS)])
+        ).toBeUndefined()
     })
 
     it('refuses the same modifier declared twice on one action (R-7.4.2)', () => {
         const s = board([ENVOY])
-        expect(() => travel('c2', [modifierUse(ENVOY), modifierUse(ENVOY)]).apply(s)).toThrow(/declared twice/)
+        expect(() => travel('c2', [modifierUse(ENVOY), modifierUse(ENVOY)]).apply(s)).toThrow(
+            /declared twice/
+        )
     })
 
     it('refuses a modifier the player has no access to (R-7.1.1)', () => {
@@ -108,7 +114,11 @@ describe('the modifier framework (R-7.4)', () => {
     it('refuses a modifier used through UseActionPower', () => {
         const s = board([ENVOY])
         const action = new HydratedUseActionPower(
-            buildAction(UseActionPower, { playerId: 'ruler', cardId: ENVOY, powerIndex: modifierUse(ENVOY).powerIndex })
+            buildAction(UseActionPower, {
+                playerId: 'ruler',
+                cardId: ENVOY,
+                powerIndex: modifierUse(ENVOY).powerIndex
+            })
         )
         expect(() => action.apply(s)).toThrow()
     })
@@ -174,7 +184,9 @@ describe('Travel modifiers', () => {
         const s = board([], [TYRANT])
         travel('c2').apply(s)
         expect(s.warbandsBySite.c2).toEqual({ other: 2, ruler: 1 })
-        expect(() => travel('c2', [modifierUse(TYRANT)]).apply(board([], [TYRANT]))).toThrow(/mandatory/)
+        expect(() => travel('c2', [modifierUse(TYRANT)]).apply(board([], [TYRANT]))).toThrow(
+            /mandatory/
+        )
     })
 
     it('Tyrant: "if able" — an empty destination kills nothing and the Travel still resolves', () => {
@@ -197,7 +209,9 @@ describe('Muster modifiers', () => {
         muster(PUB, [modifierUse(PUB)]).apply(s)
         expect(s.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(5)
         expect(s.getPlayerState('ruler').supply).toBe(2)
-        expect(() => muster(INN, [modifierUse(PUB)]).apply(board([PUB, INN]))).toThrow(/not mustering on Rowdy Pub/)
+        expect(() => muster(INN, [modifierUse(PUB)]).apply(board([PUB, INN]))).toThrow(
+            /not mustering on Rowdy Pub/
+        )
     })
 
     it('Animal Playmates: no Supply on a beast card, refused on a hearth card', () => {
@@ -205,19 +219,26 @@ describe('Muster modifiers', () => {
         muster(BIRDSONG, [modifierUse(PLAYMATES)]).apply(s)
         expect(s.getPlayerState('ruler').supply).toBe(3)
         expect(s.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(4)
-        expect(() => muster(INN, [modifierUse(PLAYMATES)]).apply(board([BIRDSONG, INN], [PLAYMATES]))).toThrow(/not a beast card/)
+        expect(() =>
+            muster(INN, [modifierUse(PLAYMATES)]).apply(board([BIRDSONG, INN], [PLAYMATES]))
+        ).toThrow(/not a beast card/)
     })
 
-    it('Downtrodden: two more warbands only when the card\'s bank is strictly least', () => {
-        const least = { ...Object.fromEntries(Object.values(Suit).map((x) => [x, 3])), [Suit.Hearth]: 1 }
+    it("Downtrodden: two more warbands only when the card's bank is strictly least", () => {
+        const least = {
+            ...Object.fromEntries(Object.values(Suit).map((x) => [x, 3])),
+            [Suit.Hearth]: 1
+        }
         const s = board([DOWNTRODDEN, INN], [], { favorBank: least })
         muster(INN, [modifierUse(DOWNTRODDEN)]).apply(s)
         expect(s.getPlayerState('ruler').warbandsOnBoard['ruler']).toBe(6)
 
         const tied = { ...least, [Suit.Beast]: 1 }
-        expect(() => muster(INN, [modifierUse(DOWNTRODDEN)]).apply(board([DOWNTRODDEN, INN], [], { favorBank: tied }))).toThrow(
-            /not strictly the least/
-        )
+        expect(() =>
+            muster(INN, [modifierUse(DOWNTRODDEN)]).apply(
+                board([DOWNTRODDEN, INN], [], { favorBank: tied })
+            )
+        ).toThrow(/not strictly the least/)
     })
 
     it('Pressgangs: lifts R-7.1.2.a so an occupied card can be mustered on', () => {
@@ -242,16 +263,20 @@ describe('Trade modifiers', () => {
         expect(action.metadata?.modifierNotes?.[0]).toMatch(/sacrificed/)
 
         const none = board([RETURN, INN], [], {}, { warbandsOnBoard: {} })
-        expect(() => trade(INN, TradeOption.ForFavor, [modifierUse(RETURN)]).apply(none)).toThrow(/no warband/)
+        expect(() => trade(INN, TradeOption.ForFavor, [modifierUse(RETURN)]).apply(none)).toThrow(
+            /no warband/
+        )
     })
 
     it('Birdsong: no Supply trading with a beast or nomad card, refused on hearth', () => {
         const s = board([OAK, INN], [BIRDSONG])
         trade(OAK, TradeOption.ForFavor, [modifierUse(BIRDSONG)]).apply(s)
         expect(s.getPlayerState('ruler').supply).toBe(3)
-        expect(() => trade(INN, TradeOption.ForFavor, [modifierUse(BIRDSONG)]).apply(board([OAK, INN], [BIRDSONG]))).toThrow(
-            /neither a beast nor a nomad/
-        )
+        expect(() =>
+            trade(INN, TradeOption.ForFavor, [modifierUse(BIRDSONG)]).apply(
+                board([OAK, INN], [BIRDSONG])
+            )
+        ).toThrow(/neither a beast nor a nomad/)
     })
 
     it('Secret Signal: a one-favor gain becomes two; a larger gain is untouched', () => {
@@ -263,9 +288,9 @@ describe('Trade modifiers', () => {
         trade(INN, TradeOption.ForFavor, [modifierUse(SIGNAL)]).apply(matching)
         expect(matching.getPlayerState('ruler').favor).toBe(5)
 
-        expect(() => trade(INN, TradeOption.ForSecrets, [modifierUse(SIGNAL)]).apply(board([INN], [SIGNAL]))).toThrow(
-            /not trading for favor/
-        )
+        expect(() =>
+            trade(INN, TradeOption.ForSecrets, [modifierUse(SIGNAL)]).apply(board([INN], [SIGNAL]))
+        ).toThrow(/not trading for favor/)
     })
 
     it('The Old Oak: one more secret trading with it for secrets with a beast adviser', () => {
@@ -273,19 +298,30 @@ describe('Trade modifiers', () => {
         trade(OAK, TradeOption.ForSecrets, [modifierUse(OAK)]).apply(s)
         expect(s.getPlayerState('ruler').secrets).toBe(4)
 
-        expect(() => trade(OAK, TradeOption.ForSecrets, [modifierUse(OAK)]).apply(board([OAK]))).toThrow(/no beast adviser/)
-        expect(() => trade(OAK, TradeOption.ForFavor, [modifierUse(OAK)]).apply(board([OAK], [BIRDSONG]))).toThrow(
-            /not trading for secrets/
-        )
+        expect(() =>
+            trade(OAK, TradeOption.ForSecrets, [modifierUse(OAK)]).apply(board([OAK]))
+        ).toThrow(/no beast adviser/)
+        expect(() =>
+            trade(OAK, TradeOption.ForFavor, [modifierUse(OAK)]).apply(board([OAK], [BIRDSONG]))
+        ).toThrow(/not trading for secrets/)
     })
 
     it('a declared modifier that asks which trade leaves its cards among the cards to trade with', () => {
-        expect(HydratedTrade.legalCards(board([INN], [SIGNAL]), 'ruler', [modifierUse(SIGNAL)])).toEqual([INN])
-        expect(HydratedTrade.legalCards(board([OAK], [BIRDSONG]), 'ruler', [modifierUse(OAK)])).toEqual([OAK])
+        expect(
+            HydratedTrade.legalCards(board([INN], [SIGNAL]), 'ruler', [modifierUse(SIGNAL)])
+        ).toEqual([INN])
+        expect(
+            HydratedTrade.legalCards(board([OAK], [BIRDSONG]), 'ruler', [modifierUse(OAK)])
+        ).toEqual([OAK])
     })
 
     it('the wanted count a client reads before a trade is what the trade then asks for', () => {
-        const wantedOf = (state: ReturnType<typeof board>, cardId: string, option: TradeOption, used: ModifierUse[]) => {
+        const wantedOf = (
+            state: ReturnType<typeof board>,
+            cardId: string,
+            option: TradeOption,
+            used: ModifierUse[]
+        ) => {
             const { active } = HydratedTrade.plan(state, 'ruler', cardId, option, used)
             const matching = HydratedTrade.matchingAdvisers(state, 'ruler', cardId, active)
             return HydratedTrade.wanted(state, 'ruler', cardId, option, active, matching)
@@ -340,7 +376,9 @@ describe('Search modifiers', () => {
     it('Welcoming Party rides the Search to its resolve and pays on a denizen play', () => {
         const s = board([PARTY])
         search([modifierUse(PARTY)], [RETURN, TENTS]).apply(s)
-        expect(s.pendingSearchModifiers).toEqual([{ cardId: PARTY, powerIndex: modifierUse(PARTY).powerIndex }])
+        expect(s.pendingSearchModifiers).toEqual([
+            { cardId: PARTY, powerIndex: modifierUse(PARTY).powerIndex }
+        ])
         const before = s.favorBank[Suit.Hearth]
         const action = resolve(RETURN, [TENTS])
         action.apply(s)
@@ -354,7 +392,12 @@ describe('Search modifiers', () => {
         const s = board([PARTY])
         search([modifierUse(PARTY)], [INN, TENTS]).apply(s)
         const action = new HydratedSearchResolve(
-            buildAction(SearchResolve, { playerId: 'ruler', keptCardId: INN, discardOrder: [TENTS], play: SearchPlay.Discard })
+            buildAction(SearchResolve, {
+                playerId: 'ruler',
+                keptCardId: INN,
+                discardOrder: [TENTS],
+                play: SearchPlay.Discard
+            })
         )
         action.apply(s)
         expect(s.getPlayerState('ruler').favor).toBe(3)
@@ -365,7 +408,13 @@ describe('Search modifiers', () => {
         search([modifierUse(PARTY)], [RETURN, TENTS]).apply(s)
         const before = s.favorBank[Suit.Hearth]
         new HydratedSearchResolve(
-            buildAction(SearchResolve, { playerId: 'ruler', keptCardId: RETURN, discardOrder: [TENTS], play: SearchPlay.Adviser, faceUp: false })
+            buildAction(SearchResolve, {
+                playerId: 'ruler',
+                keptCardId: RETURN,
+                discardOrder: [TENTS],
+                play: SearchPlay.Adviser,
+                faceUp: false
+            })
         ).apply(s)
         expect(s.getPlayerState('ruler').favor).toBe(3)
         expect(s.favorBank[Suit.Hearth]).toBe(before)
@@ -396,14 +445,40 @@ describe('a ruled card at another site is in reach (R-7.1.1)', () => {
     it("the Chancellor at the Mine sees A Fast Steed at Fertile Valley, where the Chancellor's warbands rule, and travels free with it", () => {
         const STEED = 'denizen.nomad.a-fast-steed'
         const s = testState(
-            [testPlayer({ playerId: 'chan', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'p3', favor: 2, secrets: 1, supply: 6, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 } })],
-            { chancellorPlayerId: 'chan', denizensBySite: { c1: [STEED], p3: [] }, warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 2 } }, siteCards: { c1: 'site.fertile-valley', p3: 'site.mine' } }
+            [
+                testPlayer({
+                    playerId: 'chan',
+                    color: Color.Purple,
+                    status: PlayerStatus.Chancellor,
+                    siteId: 'p3',
+                    favor: 2,
+                    secrets: 1,
+                    supply: 6,
+                    warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 }
+                })
+            ],
+            {
+                chancellorPlayerId: 'chan',
+                denizensBySite: { c1: [STEED], p3: [] },
+                warbandsBySite: { c1: { [IMPERIAL_WARBANDS]: 2 } },
+                siteCards: { c1: 'site.fertile-valley', p3: 'site.mine' }
+            }
         )
         openTurn(s, 'chan')
         expect(usableModifiers(s, 'chan', ActionType.Travel).map((p) => p.cardId)).toContain(STEED)
-        const use = [{ cardId: STEED, powerIndex: required(usableModifiers(s, 'chan', ActionType.Travel).find((p) => p.cardId === STEED), 'the Steed modifier').powerIndex }]
+        const use = [
+            {
+                cardId: STEED,
+                powerIndex: required(
+                    usableModifiers(s, 'chan', ActionType.Travel).find((p) => p.cardId === STEED),
+                    'the Steed modifier'
+                ).powerIndex
+            }
+        ]
         expect(HydratedTravel.plan(s, 'chan', 'c1', use).cost).toBe(0)
         s.warbandsBySite['c1'] = {}
-        expect(usableModifiers(s, 'chan', ActionType.Travel).map((p) => p.cardId)).not.toContain(STEED)
+        expect(usableModifiers(s, 'chan', ActionType.Travel).map((p) => p.cardId)).not.toContain(
+            STEED
+        )
     })
 })

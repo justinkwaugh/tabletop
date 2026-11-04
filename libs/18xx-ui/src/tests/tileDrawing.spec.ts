@@ -72,6 +72,29 @@ describe('tile drawing geometry', () => {
         expect(first.revenuePosition.x).toBeCloseTo(second.revenuePosition.x)
         expect(first.revenuePosition.y).toBeCloseTo(-second.revenuePosition.y)
     })
+    it('draws a town on through track as a bar, or as a dot when the style asks', () => {
+        const tile = StandardTileCatalog.get('18xx:4')
+        const [bar] = createTileDrawing(tile.face, HexOrientation.Flat, 0).nodes
+        expect(bar.townAngle).toBeDefined()
+        const [dot] = createTileDrawing(tile.face, HexOrientation.Flat, 0, undefined, {
+            townDots: true
+        }).nodes
+        expect(dot.townAngle).toBeUndefined()
+        expect(dot.dotRadius).toBeGreaterThan(bar.dotRadius)
+    })
+
+    it('draws a city without station spaces as a dot the size of a station', () => {
+        const [city] = createTileDrawing(
+            createCityTileFace('gray', [0, 4, 5], 20, 0),
+            HexOrientation.Flat,
+            0,
+            undefined,
+            { citySlotRadius: 14.4 }
+        ).nodes
+        expect(city.slots).toEqual([])
+        expect(city.dotRadius).toBe(14.4)
+    })
+
     it('draws a continuous curve through a town with matching tangents', () => {
         const drawing = createTileDrawing(StandardTileCatalog.get('18xx:3').face)
         const [a, b] = drawing.paths
@@ -181,6 +204,22 @@ describe('tile drawing geometry', () => {
             const gap = Math.hypot(a.center.x - b.center.x, a.center.y - b.center.y)
             expect(a.slotRadius).toBe(Math.min(radius, gap / 2 - 0.75))
             expect(a.slotRadius + b.slotRadius).toBeLessThan(gap)
+        }
+    })
+
+    it('keeps a four-slot city an upright square filled from the top left at every rotation', () => {
+        const face = createCityTileFace('brown', [0, 1, 2, 3, 4, 5], 60, 4, ['A'])
+        for (const orientation of [HexOrientation.Flat, HexOrientation.Pointy]) {
+            for (const rotation of rotations) {
+                const { center, slots } = createTileDrawing(face, orientation, rotation).nodes[0]
+                const [topLeft, topRight, bottomRight, bottomLeft] = slots
+                expect(topLeft.x).toBeLessThan(center.x)
+                expect(topLeft.y).toBeLessThan(center.y)
+                expect(topRight.y).toBeCloseTo(topLeft.y)
+                expect(bottomRight.x).toBeCloseTo(topRight.x)
+                expect(bottomLeft.y).toBeCloseTo(bottomRight.y)
+                expect(bottomLeft.x).toBeCloseTo(topLeft.x)
+            }
         }
     })
 

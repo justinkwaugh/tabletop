@@ -46,7 +46,7 @@ export class UrbinoGameInitializer
             architectsPlaced: 0,
             consecutivePasses: 0,
             hasRepositionedThisTurn: false,
-            monumentsVariant: config?.monuments ?? false,
+            monumentsVariant: config?.monuments ?? false
         })
 
         return new HydratedUrbinoGameState(urbinoGameState)
@@ -63,7 +63,7 @@ export class UrbinoGameInitializer
                 houses: 18,
                 palaces: 6,
                 towers: 3,
-                score: 0,
+                score: 0
             })
         })
     }

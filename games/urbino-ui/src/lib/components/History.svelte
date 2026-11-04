@@ -24,7 +24,9 @@
         replaying = { entryId: entry.id, entries: liveEntries }
         try {
             const [first, last] =
-                entry.kind === 'turn' ? [entry.firstIndex, entry.lastIndex] : [entry.actionIndex, entry.actionIndex]
+                entry.kind === 'turn'
+                    ? [entry.firstIndex, entry.lastIndex]
+                    : [entry.actionIndex, entry.actionIndex]
             await session.history.replayRange(first, last)
         } finally {
             replaying = undefined
@@ -32,7 +34,9 @@
     }
 </script>
 
-<div class="h-full min-h-[300px] w-full overflow-auto rounded-lg bg-(--slate-panel) p-2 shadow-[inset_0_0_0_1px_var(--slate-edge)]">
+<div
+    class="h-full min-h-[300px] w-full overflow-auto rounded-lg bg-(--slate-panel) p-2 shadow-[inset_0_0_0_1px_var(--slate-edge)]"
+>
     {#if session.gameState.result && !session.isViewingHistory}
         <div class="divider urbino-display">Game over</div>
     {/if}
@@ -40,28 +44,36 @@
         {#if index === firstTurnIndex + 1 && firstTurnIndex >= 0}
             <div class="divider urbino-display">Setup</div>
         {/if}
-        <button
-            type="button"
-            class="entry"
-            class:replaying={replaying?.entryId === entry.id}
-            class:light-entry={isDarkColor(session.colors.getPlayerUiColor(entry.playerId))}
-            disabled={!replayable(entry)}
-            title={replayable(entry) ? 'Replay on the board' : undefined}
-            onclick={() => replay(entry)}
-            in:fade={{ duration: 200 }}
-        >
-            <span class="mt-0.5">
-                <PieceIcon
-                    buildingType={BuildingType.Tower}
-                    color={session.colors.getPlayerUiColor(entry.playerId)}
-                    buildingStyle={BuildingStyle.TowerRoofs}
-                    size={18}
-                />
-            </span>
-            <span class="text-left text-[16px] leading-snug">
-                <HistoryEntryLine {entry} viewerId={session.myPlayer?.id} />
-            </span>
-        </button>
+        {#if entry.kind === 'gameCall'}
+            <div class="entry" in:fade={{ duration: 200 }}>
+                <span class="text-left text-[16px] leading-snug">
+                    <HistoryEntryLine {entry} viewerId={session.myPlayer?.id} />
+                </span>
+            </div>
+        {:else}
+            <button
+                type="button"
+                class="entry"
+                class:replaying={replaying?.entryId === entry.id}
+                class:light-entry={isDarkColor(session.colors.getPlayerUiColor(entry.playerId))}
+                disabled={!replayable(entry)}
+                title={replayable(entry) ? 'Replay on the board' : undefined}
+                onclick={() => replay(entry)}
+                in:fade={{ duration: 200 }}
+            >
+                <span class="mt-0.5">
+                    <PieceIcon
+                        buildingType={BuildingType.Tower}
+                        color={session.colors.getPlayerUiColor(entry.playerId)}
+                        buildingStyle={BuildingStyle.TowerRoofs}
+                        size={18}
+                    />
+                </span>
+                <span class="text-left text-[16px] leading-snug">
+                    <HistoryEntryLine {entry} viewerId={session.myPlayer?.id} />
+                </span>
+            </button>
+        {/if}
     {:else}
         <div class="p-3 text-center italic text-(--cream-quiet)">No moves yet</div>
     {/each}

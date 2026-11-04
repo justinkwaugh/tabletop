@@ -6,6 +6,8 @@ export const OathInfo: GameInfo = {
     id: 'oath',
     metadata: {
         name: 'Oath',
+        bggId: 291572,
+        hasScores: false,
         designer: 'Cole Wehrle',
         description:
             'A game of empire and exile. The Chancellor defends an Oath while Exiles gather followers, campaign across the realm and chase Visions of a different future.',

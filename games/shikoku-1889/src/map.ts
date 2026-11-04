@@ -52,6 +52,7 @@ const Markers: Readonly<Record<string, NonNullable<MapLocation['markers']>>> = {
     K4: [
         {
             id: 'takamatsu-electric-track',
+            privateCompanyId: 'TE',
             label: 'TR',
             description: 'No upgrades while Takamatsu Electric Track is player-owned.'
         }
@@ -59,6 +60,7 @@ const Markers: Readonly<Record<string, NonNullable<MapLocation['markers']>>> = {
     C4: [
         {
             id: 'ehime-railroad',
+            privateCompanyId: 'ER',
             label: 'ER',
             description:
                 'No upgrades while Ehime Railroad is player-owned; selling it grants its seller an immediate upgrade opportunity.'

@@ -2,6 +2,8 @@ import { expect, it } from 'vitest'
 import { assert, HexOrientation } from '@tabletop/common'
 import {
     RailwayMap,
+    StandardTileCatalog,
+    TileSet,
     createCityTileFace,
     createOffboardTileFace,
     createTrackTileFace,
@@ -123,6 +125,35 @@ it('leaves joined edges out of the outline and hides a duplicate revenue', () =>
     expect(plain.outline).toHaveLength(6)
 })
 
+it('leaves off the markers of a private whose block has lifted', () => {
+    const map = new RailwayMap({
+        id: 'blocks',
+        name: 'Blocks',
+        orientation: HexOrientation.Pointy,
+        locations: [
+            {
+                id: 'blocked',
+                coordinates: { q: 0, r: 0 },
+                buildable: true,
+                preprintedTile: createTrackTileFace('white', []),
+                markers: [
+                    { id: 'port', label: 'Port', description: 'Port' },
+                    { id: 'blocks-B', label: 'B', description: 'Blocked', privateCompanyId: 'B' }
+                ]
+            }
+        ]
+    })
+    const tileSet = new TileSet({ id: 'none', entries: [] }, [StandardTileCatalog])
+    const markerIds = (liftedPrivateBlocks: string[]) =>
+        createMapDrawing(map, {
+            tileSet,
+            inventory: tileSet.createInventory(),
+            liftedPrivateBlocks
+        }).locations[0].location.markers?.map((marker) => marker.id)
+    expect(markerIds([])).toEqual(['port', 'blocks-B'])
+    expect(markerIds(['B'])).toEqual(['port'])
+})
+
 it('divides neighbouring offboard areas and joins the hexes of one area', () => {
     const map = new RailwayMap({
         id: 'offboards',
@@ -193,7 +224,10 @@ it('prints a bonus badge beneath the revenue and each port clear of it inside th
     expect(ports).toHaveLength(2)
     for (const port of ports) {
         assert(port.kind === 'symbol')
-        expect(Math.hypot(port.x, port.y) + port.radius).toBeLessThan(43.3)
+        for (const normal of [0, 60, 120].map((angle) => (angle * Math.PI) / 180))
+            expect(
+                Math.abs(port.x * Math.cos(normal) + port.y * Math.sin(normal)) + port.radius
+            ).toBeLessThan(43.3)
         for (const cell of cells)
             expect(
                 Math.abs(port.x - cell.x) > port.radius + cell.width / 2 ||
@@ -203,6 +237,118 @@ it('prints a bonus badge beneath the revenue and each port clear of it inside th
     expect(Math.hypot(ports[0].x - ports[1].x, ports[0].y - ports[1].y)).toBeGreaterThanOrEqual(
         2 * 8.7
     )
+})
+
+it('places tokens over the symbol they cover, in the corner farthest from revenue, or centred', () => {
+    const tokenHex = (id: string, q: number, markers: readonly string[], portCount = 1) => ({
+        id,
+        coordinates: { q, r: 0 },
+        buildable: true,
+        preprintedTile: createCityTileFace('white', [1, 4], 30, 1),
+        markers: markers.map((marker) => ({
+            id: marker,
+            label: marker,
+            description: marker,
+            ...(marker === 'port' ? { count: portCount } : {})
+        }))
+    })
+    const map = new RailwayMap({
+        id: 'tokens',
+        name: 'Tokens',
+        orientation: HexOrientation.Pointy,
+        locations: [
+            tokenHex('coast', 0, ['port', 'port-token']),
+            tokenHex('inland', 1, ['cotton', 'port-token']),
+            tokenHex('miami', 2, ['key-west']),
+            tokenHex('bare-coast', 3, ['port']),
+            tokenHex('harbour', 4, ['port', 'port-token'], 2)
+        ]
+    })
+    const [coast, inland, miami, bareCoast, harbour] = createMapDrawing(map, undefined, {
+        markerArt: {
+            port: { revenueSymbol: 'port' },
+            'port-token': { token: { imageUrl: 'port.svg', place: { covers: 'port' } } },
+            cotton: { token: { imageUrl: 'cotton.svg', place: 'corner' } },
+            'key-west': { token: { imageUrl: 'key-west.svg', place: 'centre' } }
+        }
+    }).locations
+    const [symbol] = bareCoast.revenueAnnotations
+    const [portToken, ...uncovered] = coast.revenueAnnotations
+    assert(symbol.kind === 'symbol' && portToken.kind === 'token')
+    expect(uncovered).toEqual([])
+    expect([portToken.x, portToken.y]).toEqual([symbol.x, symbol.y])
+    expect(portToken.radius).toBeGreaterThan(symbol.radius)
+    expect(harbour.revenueAnnotations.map((annotation) => annotation.kind)).toEqual(['token'])
+
+    const corners = Array.from({ length: 6 }, (_, index) => ({
+        x: 50 * Math.cos(((index * 60 - 90) * Math.PI) / 180),
+        y: 50 * Math.sin(((index * 60 - 90) * Math.PI) / 180)
+    }))
+    const revenue = inland.drawing.nodes[0].revenuePosition
+    const farthest = corners.reduce((best, corner) =>
+        Math.hypot(corner.x - revenue.x, corner.y - revenue.y) >
+        Math.hypot(best.x - revenue.x, best.y - revenue.y)
+            ? corner
+            : best
+    )
+    const [cotton, uncoveredPort] = inland.revenueAnnotations
+    assert(cotton.kind === 'token' && uncoveredPort.kind === 'token')
+    expect(Math.hypot(cotton.x - farthest.x, cotton.y - farthest.y)).toBeLessThanOrEqual(20)
+    expect(Math.hypot(cotton.x - revenue.x, cotton.y - revenue.y)).toBeGreaterThan(
+        cotton.radius + 8.7
+    )
+    expect(Math.hypot(uncoveredPort.x - cotton.x, uncoveredPort.y - cotton.y)).toBeGreaterThan(
+        2 * cotton.radius
+    )
+
+    const [keyWest] = miami.revenueAnnotations
+    assert(keyWest.kind === 'token')
+    expect([keyWest.x, keyWest.y]).toEqual([0, 0])
+})
+
+it('keeps a fixed symbol position on a laid tile only while its stops and revenue leave it clear', () => {
+    const map = new RailwayMap({
+        id: 'laid-ports',
+        name: 'Laid ports',
+        orientation: HexOrientation.Pointy,
+        locations: ['printed', 'laid'].map((id, q) => ({
+            id,
+            coordinates: { q, r: 0 },
+            buildable: true,
+            preprintedTile: createCityTileFace('white', [], 0, 1),
+            markers: [{ id: 'ports', label: 'Ports', description: 'Ports', count: 2 }]
+        }))
+    })
+    const tileSet = new TileSet(
+        { id: 'greens', entries: [{ id: '14', faceDefinitionIds: ['18xx:14'], count: 1 }] },
+        [StandardTileCatalog]
+    )
+    const inPlace = [
+        { x: 0, y: 0 },
+        { x: 28.6, y: -16.5 }
+    ]
+    const [printed, laid] = createMapDrawing(
+        map,
+        {
+            tileSet,
+            inventory: tileSet.createInventory([
+                { locationId: 'laid', definitionId: '18xx:14', rotation: 0 }
+            ])
+        },
+        {
+            markerArt: { ports: { revenueSymbol: 'port' } },
+            symbolPositions: { printed: inPlace, laid: inPlace }
+        }
+    ).locations
+    const points = (entry: typeof printed) =>
+        entry.revenueAnnotations.map((annotation) => ({ x: annotation.x, y: annotation.y }))
+    expect(points(printed)).toEqual(inPlace)
+    const stops = laid.drawing.nodes.flatMap((node) => node.slots)
+    const moved = points(laid)
+    expect(moved).toHaveLength(2)
+    for (const port of moved)
+        for (const slot of stops)
+            expect(Math.hypot(port.x - slot.x, port.y - slot.y)).toBeGreaterThanOrEqual(8.7 + 10.5)
 })
 
 it('shows a border cost until track meets across the border from both sides', () => {
@@ -226,4 +372,114 @@ it('shows a border cost until track meets across the border from both sides', ()
     expect(
         mapBorderCosts(createMapDrawing(map)).map(({ amount, kind }) => ({ amount, kind }))
     ).toEqual([{ amount: 60, kind: 'mountain' }])
+})
+
+it('stacks values that change by phase with their phases beside them, a lone value bare', () => {
+    const offboard = (id: string, q: number, values: { stage: string; amount: number }[]) => ({
+        id,
+        coordinates: { q, r: 0 },
+        buildable: false,
+        preprintedTile: createOffboardTileFace([1], { kind: 'staged' as const, values })
+    })
+    const map = new RailwayMap({
+        id: 'captions',
+        name: 'Captions',
+        orientation: HexOrientation.Flat,
+        locations: [
+            offboard('phased', 0, [
+                { stage: 'yellow', amount: 30 },
+                { stage: 'brown', amount: 50 },
+                { stage: 'gray', amount: 40 }
+            ]),
+            offboard('lone', 4, [{ stage: 'yellow', amount: 0 }])
+        ]
+    })
+    const [phased, lone] = createMapDrawing(map, undefined, {
+        revenueStageCaptions: { yellow: 'I-II', brown: 'III-IV', gray: 'V' }
+    }).locations.map((entry) => entry.drawing.nodes[0].revenueCells)
+    expect(phased.map((cell) => cell.caption)).toEqual(['I-II', 'III-IV', 'V'])
+    expect(new Set(phased.map((cell) => cell.x)).size).toBe(1)
+    expect(phased.map((cell) => cell.y)).toEqual(
+        phased.map((cell) => cell.y).toSorted((a, b) => a - b)
+    )
+    for (const cell of phased)
+        expect(Math.abs(cell.x - cell.width / 2 - cell.captionWidth)).toBeLessThan(50)
+    expect(lone.map((cell) => cell.caption)).toEqual([undefined])
+})
+
+it('draws a printed port connection as a pier and a junction track as a spike', () => {
+    const map = new RailwayMap({
+        id: 'printed',
+        name: 'Printed',
+        orientation: HexOrientation.Flat,
+        locations: [
+            {
+                id: 'port',
+                coordinates: { q: 0, r: 0 },
+                buildable: false,
+                preprintedTile: createOffboardTileFace([2, 3], {
+                    kind: 'staged',
+                    values: [{ stage: 'yellow', amount: 0 }]
+                })
+            },
+            {
+                id: 'cape',
+                coordinates: { q: 3, r: 0 },
+                buildable: false,
+                preprintedTile: {
+                    color: 'blue',
+                    labels: [],
+                    nodes: [{ id: 'junction', kind: 'junction' }],
+                    paths: [
+                        {
+                            id: 'edge-1',
+                            endpoints: [
+                                { kind: 'edge', edge: 1 },
+                                { kind: 'node', nodeId: 'junction' }
+                            ]
+                        }
+                    ]
+                }
+            }
+        ]
+    })
+    const [port, cape] = createMapDrawing(map, undefined, {
+        layouts: {
+            port: { printedPaths: { 'edge-3': 'pier' } },
+            cape: { printedPaths: { 'edge-1': 'spike' } }
+        }
+    }).locations.map((entry) => entry.drawing.paths)
+    expect(port.map((path) => [path.id, !!path.spike, !!path.pier])).toEqual([
+        ['edge-2', true, false],
+        ['edge-3', false, true]
+    ])
+    expect(cape.map((path) => [path.id, !!path.spike, !!path.pier])).toEqual([
+        ['edge-1', true, false]
+    ])
+})
+
+it('draws one marker in each location’s own art', () => {
+    const port = (id: string, q: number) => ({
+        id,
+        coordinates: { q, r: 0 },
+        buildable: true,
+        preprintedTile: createCityTileFace('white', [], 0, 1),
+        markers: [{ id: 'ferry', label: 'Ferry', description: 'Ferry' }]
+    })
+    const map = new RailwayMap({
+        id: 'ferries',
+        name: 'Ferries',
+        orientation: HexOrientation.Flat,
+        locations: [port('east', 0), port('west', 4)]
+    })
+    const token = (imageUrl: string) => ({ token: { imageUrl, place: 'corner' as const } })
+    const tokens = createMapDrawing(map, undefined, {
+        markerArt: { ferry: token('shared.svg') },
+        locationMarkerArt: { west: { ferry: token('west.svg') } }
+    }).locations.map((entry) =>
+        entry.revenueAnnotations.flatMap((annotation) =>
+            annotation.kind === 'token' ? [annotation.imageUrl] : []
+        )
+    )
+    expect(tokens).toEqual([['shared.svg'], ['west.svg']])
 })

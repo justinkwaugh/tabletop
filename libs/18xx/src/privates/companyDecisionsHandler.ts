@@ -1,8 +1,8 @@
-import {
-    type HydratedAction,
-    type HydratedGameState,
-    type MachineContext,
-    type MachineStateHandler
+import type {
+    HydratedAction,
+    HydratedGameState,
+    MachineContext,
+    MachineStateHandler
 } from '@tabletop/common'
 import { nextCompanyToFloat } from '../company/companyFlotation.js'
 import type { CompanyRules } from '../company/companyRules.js'
@@ -18,7 +18,7 @@ import {
     HydratedRespondToPurchaseOffer
 } from '../transfers/offerPurchase.js'
 import { purchaseOfferActions } from '../transfers/purchaseOffersHandler.js'
-import { type TransferRules } from '../transfers/purchaseOffer.js'
+import type { TransferRules } from '../transfers/purchaseOffer.js'
 import { HydratedBuyPrivateTrain, privateTrainPurchase } from './buyPrivateTrain.js'
 import {
     pendingCompanyDecision,
@@ -106,9 +106,11 @@ export class CompanyDecisionsHandler<
                 ? ['RespondToTrackConsent']
                 : []
         if (state.privateTrackLay)
-            return state.privateTrackLay.playerId === playerId
-                ? ['LayPrivateTile', 'DeclinePrivateTile']
-                : []
+            return state.privateTrackLay.playerId !== playerId
+                ? []
+                : state.privateTrackLay.required
+                  ? ['LayPrivateTile']
+                  : ['LayPrivateTile', 'DeclinePrivateTile']
         if (state.privateStation)
             return state.privateStation.playerId === playerId
                 ? ['PlacePrivateStation', 'DeclinePrivateStation']
@@ -135,9 +137,10 @@ export class CompanyDecisionsHandler<
         for (const company of state.companies.filter(
             (company) => company.kind === 'private' && !company.closed
         )) {
+            // Only a lay the private can make now, so a company out of lays finishes its track.
             if (
                 !privatePowerUsed(state, company.id) &&
-                this.powers.trackTerms(state, company.id, playerId)
+                hasLegalPrivateTrackUse(state, company.id, playerId, this.powers, this.track)
             )
                 actions.push('LayPrivateTile')
             if (this.powers.markerTerms?.(state, company.id, playerId)?.locationIds.length)

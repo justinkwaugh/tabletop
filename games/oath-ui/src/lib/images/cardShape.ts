@@ -6,7 +6,8 @@ export const CARD_ASPECT: Readonly<Record<CardKind, number>> = {
     [CardKind.Denizen]: 651 / 1016,
     [CardKind.Vision]: 651 / 1016,
     [CardKind.Relic]: 1,
-    [CardKind.Site]: 1313 / 1016
+    [CardKind.Site]: 1313 / 1016,
+    [CardKind.Edifice]: 651 / 1016
 }
 
 // A Vision's front is printed landscape (1016 x 651); its back is portrait.

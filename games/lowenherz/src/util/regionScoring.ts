@@ -107,7 +107,8 @@ export function removeInteriorWalls(board: LowenherzBoard, region: Region) {
         const otherCol = wall.edge === WallEdge.West ? wall.col - 1 : wall.col
         const otherRow = wall.edge === WallEdge.North ? wall.row - 1 : wall.row
         const bothInside =
-            squareKeys.has(squareKey(wall.col, wall.row)) && squareKeys.has(squareKey(otherCol, otherRow))
+            squareKeys.has(squareKey(wall.col, wall.row)) &&
+            squareKeys.has(squareKey(otherCol, otherRow))
         return !bothInside
     })
 }

@@ -5,7 +5,6 @@ import { EighteenNinetyFourShareTrading, EighteenNinetyFourStockRules } from './
 // The president funds a needed train, selling shares as ordinary sales allow, but cannot sell
 // away the operating company's presidency (§7.3.7.3).
 export const EighteenNinetyFourTrainFundingRules = presidentTrainFundingRules({
-    sellInBlocks: false,
     companyOrder: EighteenNinetyFourOperatingRules.companyOrder,
     saleTerms: EighteenNinetyFourShareTrading.emergencySaleTerms,
     stockRules: EighteenNinetyFourStockRules,

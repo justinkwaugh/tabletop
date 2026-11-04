@@ -14,6 +14,8 @@ export const DeclareDefense = Type.Evaluate(
             type: Type.Literal(ActionType.DeclareDefense),
             playerId: Type.String(),
             unitIds: Type.Array(Type.String(), { minItems: 1 }),
+            /** Absent on records from before commanders were named: then every named unit's commander defends. */
+            commanderIds: Type.Optional(Type.Array(Type.String())),
             /** Kept so that records from before leaders were named in a step of their own stay hidden from the attacker. */
             leaderIds: Visibility.protect(
                 Type.Optional(Type.Array(Type.String(), { maxItems: 2 })),
@@ -38,6 +40,7 @@ export class HydratedDeclareDefense
     declare type: ActionType.DeclareDefense
     declare playerId: string
     declare unitIds: string[]
+    declare commanderIds?: string[]
     declare leaderIds?: string[]
 
     constructor(data: DeclareDefense) {
@@ -45,6 +48,6 @@ export class HydratedDeclareDefense
     }
 
     protected perform(state: HydratedNapoleonsTriumphGameState) {
-        declareDefense(state, this.unitIds)
+        declareDefense(state, this.unitIds, this.commanderIds)
     }
 }

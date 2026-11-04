@@ -23,18 +23,43 @@ const TENTS = 'denizen.nomad.tents'
 const ELDERS = 'denizen.nomad.elders'
 const FOREST_COUNCIL = 'denizen.beast.forest-council'
 const BLOODLINE = 'denizen.nomad.ancient-bloodline'
-const POOL = ['denizen.arcane.tutor', 'denizen.hearth.storyteller', 'denizen.discord.scryer', 'denizen.order.scouts']
+const POOL = [
+    'denizen.arcane.tutor',
+    'denizen.hearth.storyteller',
+    'denizen.discord.scryer',
+    'denizen.order.scouts'
+]
 
 const ME = 'me'
 const FOE = 'foe'
 const POWER = powersWithTiming(PILGRIMAGE, PowerTiming.WhenPlayed)[0]
 
 /** `me` stands on c1 in the Cradle, which `foe` rules. */
-function board(denizens: Record<string, string[]> = {}, over: Record<string, Record<string, unknown>> = {}, dispossessed: string[] = POOL) {
+function board(
+    denizens: Record<string, string[]> = {},
+    over: Record<string, Record<string, unknown>> = {},
+    dispossessed: string[] = POOL
+) {
     const s = testState(
         [
-            testPlayer({ playerId: ME, color: Color.Red, siteId: 'c1', favor: 3, secrets: 2, warbandsOnBoard: { [ME]: 2 }, ...over[ME] }),
-            testPlayer({ playerId: FOE, color: Color.Blue, siteId: 'p1', favor: 3, secrets: 2, warbandsOnBoard: { [FOE]: 2 }, ...over[FOE] })
+            testPlayer({
+                playerId: ME,
+                color: Color.Red,
+                siteId: 'c1',
+                favor: 3,
+                secrets: 2,
+                warbandsOnBoard: { [ME]: 2 },
+                ...over[ME]
+            }),
+            testPlayer({
+                playerId: FOE,
+                color: Color.Blue,
+                siteId: 'p1',
+                favor: 3,
+                secrets: 2,
+                warbandsOnBoard: { [FOE]: 2 },
+                ...over[FOE]
+            })
         ],
         {
             denizensBySite: { c1: [WOLVES, INN], c2: [TENTS], p1: [ELDERS], ...denizens },
@@ -51,14 +76,26 @@ function board(denizens: Record<string, string[]> = {}, over: Record<string, Rec
 function play(s: ReturnType<typeof board>, fields: Record<string, unknown> = {}) {
     s.getPlayerState(ME).handIds = [PILGRIMAGE, FILLER]
     const a = new HydratedSearchResolve(
-        buildAction(SearchResolve, { playerId: ME, keptCardId: PILGRIMAGE, discardOrder: [FILLER], play: SearchPlay.Adviser, faceUp: true, ...fields })
+        buildAction(SearchResolve, {
+            playerId: ME,
+            keptCardId: PILGRIMAGE,
+            discardOrder: [FILLER],
+            play: SearchPlay.Adviser,
+            faceUp: true,
+            ...fields
+        })
     )
     a.apply(s)
     return a
 }
 
 function stack(s: ReturnType<typeof board>, order: number[], playerId = ME) {
-    const a = new HydratedAnswerQuestion(buildAction(AnswerQuestion, { playerId, answer: { kind: PowerQuestionKind.OrderDrawnCards, order } }))
+    const a = new HydratedAnswerQuestion(
+        buildAction(AnswerQuestion, {
+            playerId,
+            answer: { kind: PowerQuestionKind.OrderDrawnCards, order }
+        })
+    )
     a.apply(s)
     return a
 }
@@ -77,7 +114,9 @@ describe('Pilgrimage — registered, adviser only, no choices', () => {
     })
 
     it('cannot be played to a site (R-7.2.1), and does nothing played facedown (R-7.2)', () => {
-        expect(() => play(board(), { play: SearchPlay.Site })).toThrow(/can only be played to your advisers/)
+        expect(() => play(board(), { play: SearchPlay.Site })).toThrow(
+            /can only be played to your advisers/
+        )
         const s = board()
         const a = play(s, { faceUp: false })
         expect(a.metadata?.whenPlayed).toBeUndefined()
@@ -92,8 +131,12 @@ describe('"move all denizens at your site to the Dispossessed"', () => {
         const a = play(s)
         expect(s.denizensBySite['c1']).toEqual([])
         const drawn = peekedBy(a)
-        expect([...s.requireVault().dispossessed, ...drawn].sort()).toEqual([...POOL, WOLVES, INN].sort())
-        expect(a.metadata?.whenPlayed).toMatch(/moved denizen\.beast\.wolves, denizen\.hearth\.wayside-inn from c1 to the Dispossessed/)
+        expect([...s.requireVault().dispossessed, ...drawn].sort()).toEqual(
+            [...POOL, WOLVES, INN].sort()
+        )
+        expect(a.metadata?.whenPlayed).toMatch(
+            /moved denizen\.beast\.wolves, denizen\.hearth\.wayside-inn from c1 to the Dispossessed/
+        )
     })
 
     it('to the Dispossessed: into an empty pool the same cards go in and come out, so the draw is never short', () => {
@@ -112,7 +155,10 @@ describe('"move all denizens at your site to the Dispossessed"', () => {
         expect(s.denizensBySite['p1']).toEqual([ELDERS])
         expect(peekedBy(a)).toHaveLength(2)
         const vault = s.requireVault()
-        for (const elsewhere of [TENTS, ELDERS]) expect([...vault.dispossessed, ...vault.discardPiles[Region.Cradle]]).not.toContain(elsewhere)
+        for (const elsewhere of [TENTS, ELDERS])
+            expect([...vault.dispossessed, ...vault.discardPiles[Region.Cradle]]).not.toContain(
+                elsewhere
+            )
     })
 
     it('a locked denizen cannot be moved (R-7.2.2, R-9.2): it stays and is not counted', () => {
@@ -170,7 +216,9 @@ describe('"Shuffle and draw denizens from the Dispossessed equal to the number y
     it('the effect refuses to run on a draw that does not match what it moved', () => {
         const s = board()
         const effect = effectFor(POWER)
-        expect(() => effect?.resolve({ state: s, playerId: ME, power: POWER, choices: [] })).toThrow(/moved 2 denizens but the Dispossessed gave 0/)
+        expect(() =>
+            effect?.resolve({ state: s, playerId: ME, power: POWER, choices: [] })
+        ).toThrow(/moved 2 denizens but the Dispossessed gave 0/)
     })
 })
 
@@ -197,7 +245,11 @@ describe('"Peek at them and put them on your region\'s discard pile"', () => {
         // R-10.5 — the Search's own discard goes one region along; the drawn cards do not.
         expect(vault.discardPiles[Region.Provinces]).toEqual([FILLER])
         expect([...vault.discardPiles[Region.Cradle]].sort()).toEqual([...drawn].sort())
-        expect(s.discardPileCounts).toEqual({ [Region.Cradle]: 2, [Region.Provinces]: 1, [Region.Hinterland]: 0 })
+        expect(s.discardPileCounts).toEqual({
+            [Region.Cradle]: 2,
+            [Region.Provinces]: 1,
+            [Region.Hinterland]: 0
+        })
         expect(s.discardTopBackType?.[Region.Cradle]).toBe(CardKind.Denizen)
         expect(answer.metadata?.pileDeposits).toEqual([{ region: Region.Cradle, cardIds: drawn }])
         expect(answer.revealsInfo).toBe(true)
@@ -208,14 +260,21 @@ describe('"Peek at them and put them on your region\'s discard pile"', () => {
         const drawn = peekedBy(play(s))
         expect(drawn.toSorted()).toEqual([WOLVES, INN].toSorted())
         const question = s.pendingQuestions?.queue[0]
-        expect(question).toMatchObject({ kind: PowerQuestionKind.OrderDrawnCards, among: [WOLVES, INN].toSorted(), cardCount: 2 })
+        expect(question).toMatchObject({
+            kind: PowerQuestionKind.OrderDrawnCards,
+            among: [WOLVES, INN].toSorted(),
+            cardCount: 2
+        })
         const seen = served(s, { kind: 'player', playerId: FOE }).pendingQuestions?.queue[0]
         expect(seen).toMatchObject({ among: [WOLVES, INN].toSorted() })
         expect(seen).not.toHaveProperty('cardIds')
         stack(s, [1, 0])
         const set = { among: [WOLVES, INN].toSorted(), back: CardKind.Denizen }
         expect(s.seenDiscardPiles[Region.Cradle]).toEqual([set, set])
-        expect(s.getPlayerState(ME).knownDiscardPiles?.[Region.Cradle]).toEqual([drawn[1], drawn[0]])
+        expect(s.getPlayerState(ME).knownDiscardPiles?.[Region.Cradle]).toEqual([
+            drawn[1],
+            drawn[0]
+        ])
     })
 
     it('from a Dispossessed holding other cards, the table learns nothing of what came back', () => {
@@ -224,18 +283,32 @@ describe('"Peek at them and put them on your region\'s discard pile"', () => {
         expect(s.pendingQuestions?.queue[0]).not.toHaveProperty('among')
         stack(s, [1, 0])
         // Only the backs, which the table always sees.
-        expect(s.seenDiscardPiles[Region.Cradle]).toEqual([{ back: CardKind.Denizen }, { back: CardKind.Denizen }])
+        expect(s.seenDiscardPiles[Region.Cradle]).toEqual([
+            { back: CardKind.Denizen },
+            { back: CardKind.Denizen }
+        ])
     })
 
     it('in an order of the player’s choice (Law Glossary "Discard"): the drawn cards wait, off the pile, on a question to the player', () => {
         const s = board()
         const a = play(s)
         const drawn = peekedBy(a)
-        expect(s.pendingQuestions?.queue).toEqual([{ kind: PowerQuestionKind.OrderDrawnCards, cardId: PILGRIMAGE, askedPlayerId: ME, region: Region.Cradle, cardCount: drawn.length, cardIds: drawn }])
+        expect(s.pendingQuestions?.queue).toEqual([
+            {
+                kind: PowerQuestionKind.OrderDrawnCards,
+                cardId: PILGRIMAGE,
+                askedPlayerId: ME,
+                region: Region.Cradle,
+                cardCount: drawn.length,
+                cardIds: drawn
+            }
+        ])
         expect(s.requireVault().discardPiles[Region.Cradle]).toEqual([])
         expect(s.discardPileCounts[Region.Cradle]).toBe(0)
         expect(a.metadata?.pileDeposits).toBeUndefined()
-        expect(a.metadata?.whenPlayed).toMatch(/drew 2 from it, peeked, and will stack them on the cradle discard pile/)
+        expect(a.metadata?.whenPlayed).toMatch(
+            /drew 2 from it, peeked, and will stack them on the cradle discard pile/
+        )
     })
 
     it('stacked in the chosen order on top of what the pile held: the last listed ends on top', () => {
@@ -257,7 +330,11 @@ describe('"Peek at them and put them on your region\'s discard pile"', () => {
     it('the order is a permutation of the drawn cards: a card twice, one left out, one too many or a position off the list is refused; only the player answers', () => {
         const s = board({ c1: [WOLVES, INN, TENTS], c2: [] })
         play(s)
-        const reason = (order: number[], playerId = ME) => HydratedAnswerQuestion.reasonCannotAnswer(s, playerId, { kind: PowerQuestionKind.OrderDrawnCards, order })
+        const reason = (order: number[], playerId = ME) =>
+            HydratedAnswerQuestion.reasonCannotAnswer(s, playerId, {
+                kind: PowerQuestionKind.OrderDrawnCards,
+                order
+            })
         const refusal = 'the order must name each of the 3 cards once'
         expect(reason([0, 0, 1])).toBe(refusal)
         expect(reason([0, 1])).toBe(refusal)
@@ -294,7 +371,13 @@ describe('the negative, the other route, and the host as the only author of the 
 
     it('the R-6.1 flip fires it the same way, and is an Undo barrier though it discards nothing of its own', () => {
         const s = board({}, { [ME]: { advisers: [{ cardId: PILGRIMAGE, faceUp: false }] } })
-        const a = new HydratedPlayFacedownAdviser(buildAction(PlayFacedownAdviser, { playerId: ME, cardId: PILGRIMAGE, play: SearchPlay.Adviser }))
+        const a = new HydratedPlayFacedownAdviser(
+            buildAction(PlayFacedownAdviser, {
+                playerId: ME,
+                cardId: PILGRIMAGE,
+                play: SearchPlay.Adviser
+            })
+        )
         a.apply(s)
         const drawn = peekedBy(a)
         expect(drawn).toHaveLength(2)

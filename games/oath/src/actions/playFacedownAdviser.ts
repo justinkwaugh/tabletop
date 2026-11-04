@@ -10,16 +10,29 @@ import { ActionType } from '../definition/actions.js'
 import { Region } from '../model/oathEnums.js'
 import { ConspiracyPlay } from '../model/conspiracy.js'
 import { playShowsCard, SearchPlay } from './searchResolve.js'
-import { playCard, reasonCannotPlaceCard, reasonCannotPlayCard } from '../util/cardPlay.js'
+import {
+    beginCardPlay,
+    type CardPlayOptions,
+    FavorShort,
+    favorShortOf,
+    finishCardPlay,
+    playMapChanges,
+    reasonCannotPlaceCard,
+    reasonCannotPlayCard
+} from '../util/cardPlay.js'
 import { commitHiddenOutputs, revealForPlay } from '../util/hiddenInputs.js'
 import { discardWitnesses } from '../util/knowledge.js'
 import { regionOfPawn } from '../powers/vocabulary.js'
-import { cardPowers } from '../data/cardPowers.js'
-import { effectFor, type ModifierHooks } from '../powers/registry.js'
+import { powerInPlay } from '../util/powersInPlay.js'
+import { effectFor, type ModifierHooks, type PlayMapChanges } from '../powers/registry.js'
 import {
+    beginModifiersInUse,
     discardTargetOf,
+    endModifiersInUse,
+    modifierCardsInUse,
     ModifierUse,
     ModifierUses,
+    modifiersResolveBeforePower,
     payModifierCosts,
     resolveModifiers,
     runAfter,
@@ -36,6 +49,12 @@ import { defaultTolls } from '../util/tollDefaults.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 
 const FACEDOWN_PLAY: TollOccasion = { kind: 'facedownPlay' }
+
+/**
+ * R-7.4 — the play "as if you searched" of a power's draw (Oracle), judged at the power's use: the draw is not
+ * yet made, so neither is the choice of play.
+ */
+export const PLAY_NOT_YET_KNOWN = 'notYetKnown'
 
 export type PlayFacedownAdviserMetadata = Type.Static<typeof PlayFacedownAdviserMetadata>
 export const PlayFacedownAdviserMetadata = Type.Object({
@@ -55,6 +74,8 @@ export const PlayFacedownAdviserMetadata = Type.Object({
     /** R-9.4 — only when the play shows it. */
     playedCardId: Type.Optional(Type.String()),
     favorGained: Type.Number(),
+    /** R-9.3 — the banks that could not give the favor a site play takes, the site's or a Homeland's. */
+    favorShort: Type.Optional(Type.Array(FavorShort)),
     /** Book of Records */
     secretsGained: Type.Optional(Type.Number()),
     /** R-7.4 — the cards whose Search modifiers applied to this play. */
@@ -146,6 +167,8 @@ export class HydratedPlayFacedownAdviser
 
         // R-7.1.2, R-7.4 — paid at declaration.
         payModifierCosts(state, this.playerId, active)
+        // R-7.4.3 — "as if you searched": the play's modifiers cannot be discarded until it ends.
+        beginModifiersInUse(state, active)
         const tollNotes = payTolls(state, this.playerId, FACEDOWN_PLAY, this.tolls)
         const discardTarget = discardTargetOf(state, this.playerId, active)
 
@@ -153,7 +176,7 @@ export class HydratedPlayFacedownAdviser
         player.removeAdviser(this.cardId)
 
         // R-6.1: "as if you searched" (R-5.1.4), faceup.
-        const played = playCard(state, this.playerId, this.cardId, this.play, region, {
+        const options: CardPlayOptions = {
             faceUp: true,
             conspiracy: this.conspiracy,
             choices: this.choices,
@@ -163,9 +186,16 @@ export class HydratedPlayFacedownAdviser
             discardFirstCardId: this.discardFirstCardId,
             carried: active,
             discardTarget
-        })
+        }
         const playedCardId = playShowsCard(this.play, true) ? this.cardId : undefined
-        const after = runAfter(state, this.playerId, active, { playedCardId, playedTo: this.play })
+        const runModifiers = () =>
+            runAfter(state, this.playerId, active, { playedCardId, playedTo: this.play })
+        const begun = beginCardPlay(state, this.playerId, this.cardId, this.play, region, options)
+        // R-7.3.3-H3 — before its When Played power; before revision 31 (R-X.4), after it.
+        const before = modifiersResolveBeforePower(state) ? runModifiers() : undefined
+        const played = finishCardPlay(state, this.playerId, this.cardId, this.play, begun, options)
+        const after = before ?? runModifiers()
+        const short = favorShortOf(played.favorTaken)
 
         this.metadata = {
             ...played.outcome,
@@ -176,6 +206,7 @@ export class HydratedPlayFacedownAdviser
             discardToWorldDeck: discardTarget?.worldDeck || undefined,
             playedCardId,
             favorGained: played.favorGained,
+            favorShort: short.length > 0 ? short : undefined,
             secretsGained: played.secretsGained || undefined,
             modifiers: active.length > 0 ? active.map((m) => m.power.cardId) : undefined,
             modifierNotes: after.notes.length > 0 ? after.notes : undefined,
@@ -192,6 +223,8 @@ export class HydratedPlayFacedownAdviser
             isIrreversible(this.metadata) ||
             reveal !== undefined
         commitHiddenOutputs(this, state, witnesses)
+
+        endModifiersInUse(state)
     }
 
     static reasonCannotPlay(
@@ -234,7 +267,8 @@ export class HydratedPlayFacedownAdviser
                 discardedAdviserCardIds: choice.discardedAdviserCardIds,
                 toSiteId: choice.toSiteId,
                 discardFirstCardId: choice.discardFirstCardId,
-                carried: active
+                carried: active,
+                modifiersInUse: modifierCardsInUse(state, active)
             }) ??
             reasonCannotPayInAll(state, playerId, [
                 modifierPayment(active),
@@ -243,6 +277,20 @@ export class HydratedPlayFacedownAdviser
                 tollPayment(choice.tolls)
             ])
         )
+    }
+
+    /**
+     * R-7.4.3 — the cards a play declaring `uses` puts in use, as its checks judge them before the play records them:
+     * the declared modifiers and the mandatory ones acting on the play, from revision 31; none before it (R-X.4).
+     */
+    static cardsInUse(
+        state: HydratedOathGameState,
+        playerId: string,
+        play: SearchPlay,
+        uses: readonly ModifierUse[] | undefined
+    ): string[] {
+        const { active } = HydratedPlayFacedownAdviser.playModifiers(state, playerId, play, uses)
+        return modifierCardsInUse(state, active)
     }
 
     /** R-6.1 — where the adviser may go, judged apart from its When Played choices. */
@@ -278,19 +326,55 @@ export class HydratedPlayFacedownAdviser
                 discardedAdviserCardIds: choice.discardedAdviserCardIds,
                 toSiteId: choice.toSiteId,
                 discardFirstCardId: choice.discardFirstCardId,
-                carried: active
+                carried: active,
+                modifiersInUse: modifierCardsInUse(state, active)
             })
         )
     }
 
     /**
+     * R-6.1, R-7.3.3 — what the play does to the map and gains before its When Played power, as its check plans
+     * it: with the modifiers that act on the play (Book of Records) and the advisers it discards.
+     */
+    static playMapChanges(
+        state: HydratedOathGameState,
+        playerId: string,
+        choice: {
+            cardId: string
+            play: SearchPlay
+            discardedAdviserCardIds?: readonly string[]
+            toSiteId?: string
+            discardFirstCardId?: string
+            modifiers?: readonly ModifierUse[]
+        }
+    ): PlayMapChanges {
+        const { active } = HydratedPlayFacedownAdviser.playModifiers(
+            state,
+            playerId,
+            choice.play,
+            choice.modifiers
+        )
+        return playMapChanges(state, playerId, choice.cardId, choice.play, {
+            faceUp: true,
+            fromAdvisers: true,
+            discardedAdviserCardIds: choice.discardedAdviserCardIds,
+            toSiteId: choice.toSiteId,
+            discardFirstCardId: choice.discardFirstCardId,
+            carried: active
+        })
+    }
+
+    /**
      * R-6.1 — "as if you searched (5.1.4). (Restrictions and modifiers apply.)": the declared
      * Search modifiers and the holder's mandatory ones (R-7.4.1) that act on the play itself.
+     * `PLAY_NOT_YET_KNOWN`: a power's draw played "as if you searched" (Oracle), whose modifiers are
+     * declared at its use (R-7.4), before the draw and so before its play is picked; no card is a
+     * facedown adviser there, and of the mandatory ones only those acting on any play or discard apply.
      */
     static playModifiers(
         state: HydratedOathGameState,
         playerId: string,
-        play: SearchPlay,
+        play: SearchPlay | typeof PLAY_NOT_YET_KNOWN,
         uses: readonly ModifierUse[] | undefined
     ): { reason?: string; active: ActiveModifier[] } {
         // R-X.4 — a game created before this revision played a facedown adviser with no modifier.
@@ -303,19 +387,25 @@ export class HydratedPlayFacedownAdviser
                 : { active: [] }
         }
         for (const use of uses ?? []) {
-            const power = cardPowers(use.cardId)[use.powerIndex]
+            const power = powerInPlay(state, use.cardId, use.powerIndex)
             const hooks = power ? effectFor(power)?.modifier : undefined
             if (hooks && HydratedPlayFacedownAdviser.changesTheDraw(hooks)) {
                 return {
-                    reason: `${use.cardId} changes a Search's draw, and this play draws nothing`,
+                    reason:
+                        play === PLAY_NOT_YET_KNOWN
+                            ? `${use.cardId} changes a Search's draw, and this power draws by its own text`
+                            : `${use.cardId} changes a Search's draw, and this play draws nothing`,
                     active: []
                 }
             }
         }
-        const resolved = resolveModifiers(state, playerId, ActionType.Search, uses, {
-            facedownAdviserPlay: true,
-            playedTo: play
-        })
+        const resolved = resolveModifiers(
+            state,
+            playerId,
+            ActionType.Search,
+            uses,
+            play === PLAY_NOT_YET_KNOWN ? {} : { facedownAdviserPlay: true, playedTo: play }
+        )
         if (resolved.reason) return resolved
         return {
             active: resolved.active.filter(
@@ -338,7 +428,10 @@ export class HydratedPlayFacedownAdviser
         )
     }
 
-    private static actsOnPlay(hooks: ModifierHooks, play: SearchPlay): boolean {
+    private static actsOnPlay(
+        hooks: ModifierHooks,
+        play: SearchPlay | typeof PLAY_NOT_YET_KNOWN
+    ): boolean {
         const atSite =
             hooks.sitePlayGainsSecret === true ||
             hooks.playAnywhere !== undefined ||

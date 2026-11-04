@@ -2,6 +2,8 @@ import { TheOldPrinceKingsMail } from '../index.js'
 import { assert, type PlayerState } from '@tabletop/common'
 import {
     createOrdinaryShareCertificates,
+    treasuryPool,
+    treasuryPoolId,
     type Certificate,
     type Owner,
     type President,
@@ -50,10 +52,7 @@ export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]
         ],
         certificatePools: [
             { id: 'market', owner: bank },
-            {
-                id: 'treasury:ML',
-                owner: { kind: 'company', companyId: 'ML' }
-            },
+            treasuryPool('ML'),
             { id: 'reserved', owner: bank }
         ],
         cash: [
@@ -77,7 +76,7 @@ export function createTheOldPrinceFinanceExample(players: readonly PlayerState[]
                     { owner: blair },
                     market,
                     market,
-                    { owner: { kind: 'company', companyId: 'ML' }, poolId: 'treasury:ML' },
+                    { owner: { kind: 'company', companyId: 'ML' }, poolId: treasuryPoolId('ML') },
                     { owner: bank, poolId: 'reserved' }
                 ],
                 alex

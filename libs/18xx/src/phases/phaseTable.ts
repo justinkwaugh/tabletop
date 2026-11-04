@@ -10,7 +10,9 @@ export const PhaseDefinition = Type.Object(
         startedBy: Type.Array(Id, { uniqueItems: true }),
         tileColors: Type.Array(Id, { uniqueItems: true }),
         operatingRounds: Type.Integer({ minimum: 1 }),
-        trainLimit: Type.Integer({ minimum: 0 })
+        trainLimit: Type.Integer({ minimum: 0 }),
+        // A variant's last phase, reached in place of the phases before it, so no game goes past it.
+        variantEnd: Type.Optional(Type.Literal(true))
     },
     { additionalProperties: false }
 )
@@ -46,6 +48,13 @@ export class PhaseTable {
         const phase = this.phases.find((phase) => phase.id === phaseId)
         assertExists(phase, `Unknown phase ${phaseId}`)
         return phase
+    }
+    share(phaseId: string): number {
+        if (this.phase(phaseId).variantEnd) return 1
+        const ordinary = this.phases.filter((phase) => !phase.variantEnd)
+        return ordinary.length === 1
+            ? 1
+            : ordinary.findIndex((phase) => phase.id === phaseId) / (ordinary.length - 1)
     }
     isAtLeast(currentPhaseId: string, phaseId: string): boolean {
         return this.position(currentPhaseId) >= this.position(phaseId)

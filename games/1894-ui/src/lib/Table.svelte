@@ -6,6 +6,7 @@
         type HydratedEighteenNinetyFourState
     } from '@tabletop/1894'
     import { describe1894Action } from './history.js'
+    import { createRouteWorker } from './routeWorker.js'
     import {
         CompanyPar,
         GameTable,
@@ -13,9 +14,6 @@
         WaterfallAuctionLots,
         requireEighteenXXSession
     } from '@tabletop/18xx-ui'
-    function createRouteWorker() {
-        return new Worker(new URL('./autorouter.worker.js', import.meta.url), { type: 'module' })
-    }
     let {
         gameSession
     }: { gameSession: GameSession<EighteenNinetyFourState, HydratedEighteenNinetyFourState> } =
@@ -26,7 +24,12 @@
         EighteenNinetyFourPrivateCatalog.definition(id).description
 </script>
 
-<GameTable {session} {privateOperationDescription} historyDescription={describe1894Action}>
+<GameTable
+    {session}
+    {privateOperationDescription}
+    {createRouteWorker}
+    historyDescription={describe1894Action}
+>
     {#snippet actions(_focusLocation, focusRoute)}
         {#if session.gameState.pendingPar}
             <CompanyPar {session} />

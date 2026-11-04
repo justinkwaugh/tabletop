@@ -215,7 +215,7 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     isTributing = $derived(this.gameState.machineState === MachineState.Tributing)
     isMetamorphosizing = $derived(this.gameState.machineState === MachineState.Metamorphosizing)
     isChaining = $derived(this.gameState.machineState === MachineState.Chaining)
-    isEndOfGame = $derived(this.gameState.machineState === MachineState.EndOfGame)
+    isEndOfGame = $derived(this.gameState.result !== undefined)
     canDeconstruct = $derived(this.validActionTypes.includes(ActionType.Deconstruct))
 
     acting = $derived(
@@ -817,18 +817,13 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
                 number,
                 { coords: OffsetCoordinates; divers: Sundiver[] }
             > = new Map()
-            const secondCells = this.gameState.board.neighborsAt(this.chosenSource, Direction.Out)
-            for (const cell of secondCells) {
-                const divers = this.gameState.board.sundiversForPlayerAt(
-                    this.myPlayer.id,
-                    cell.coords
-                )
-                if (divers.length > 0) {
-                    sundiversByCoords.set(coordinatesToNumber(cell.coords), {
-                        coords: cell.coords,
-                        divers
-                    })
-                }
+            const secondCells = this.gameState.board.transmitTowerSecondCells(
+                this.myPlayer.id,
+                this.chosenSource
+            )
+            for (const coords of secondCells) {
+                const divers = this.gameState.board.sundiversForPlayerAt(this.myPlayer.id, coords)
+                sundiversByCoords.set(coordinatesToNumber(coords), { coords, divers })
             }
 
             if (sundiversByCoords.size > 1) {
@@ -859,18 +854,13 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
                 number,
                 { coords: OffsetCoordinates; divers: Sundiver[] }
             > = new Map()
-            const thirdCells = this.gameState.board.neighborsAt(this.chosenDiverCell, Direction.Out)
-            for (const cell of thirdCells) {
-                const divers = this.gameState.board.sundiversForPlayerAt(
-                    this.myPlayer.id,
-                    cell.coords
-                )
-                if (divers.length > 0) {
-                    sundiversByCoords.set(coordinatesToNumber(cell.coords), {
-                        coords: cell.coords,
-                        divers
-                    })
-                }
+            const thirdCells = this.gameState.board.transmitTowerThirdCells(
+                this.myPlayer.id,
+                this.chosenDiverCell
+            )
+            for (const coords of thirdCells) {
+                const divers = this.gameState.board.sundiversForPlayerAt(this.myPlayer.id, coords)
+                sundiversByCoords.set(coordinatesToNumber(coords), { coords, divers })
             }
 
             if (sundiversByCoords.size > 1) {

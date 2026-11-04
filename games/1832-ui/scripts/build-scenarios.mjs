@@ -3,10 +3,15 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { startingPositionFile } from '@tabletop/common/testing'
-import { getCompany } from '@tabletop/18xx'
+import { ActionSource, assertExists, scenarioJson } from '@tabletop/common'
+import { startingPosition, startingPositionFile } from '@tabletop/common/testing'
+import { evaluateShareSale, getCompany } from '@tabletop/18xx'
 import { playExample } from '@tabletop/18xx/scenarios'
-import { EighteenThirtyTwoTrainDepot, formSystem } from '@tabletop/1832'
+import {
+    EighteenThirtyTwoStockRules,
+    EighteenThirtyTwoTrainDepot,
+    formSystem
+} from '@tabletop/1832'
 import { EighteenThirtyTwoScenarios } from '@tabletop/1832/scenarios'
 
 const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'scenarios')
@@ -14,6 +19,58 @@ const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'scenario
 function write(slug, name, play) {
     const file = startingPositionFile({ slug, name, game: play.game, state: play.state })
     writeFileSync(join(OUT, file.fileName), file.contents)
+}
+
+function writePlayed(slug, name, play, steps) {
+    const start = startingPosition({ slug, name, game: play.game, state: play.state })
+    let state = start.state
+    const actions = []
+    const act = (type, fields = {}, playerId = state.activePlayerIds[0]) => {
+        const action = {
+            id: `${slug}-${state.actionCount}`,
+            gameId: start.game.id,
+            source: ActionSource.User,
+            playerId,
+            type,
+            ...fields
+        }
+        const result = play.engine.executeCanonicalAction({ game: start.game, state, action })
+        actions.push(...result.processedActions)
+        state = result.updatedState
+    }
+    steps(act, () => state)
+    const game = { ...start.game, activePlayerIds: [...state.activePlayerIds] }
+    writeFileSync(join(OUT, `${slug}.json`), scenarioJson({ game, state, actions }))
+}
+
+function priceProtection(act, state) {
+    const playerId = state().activePlayerIds[0]
+    const seller = { kind: 'player', playerId }
+    const request = { playerId, seller, sales: [{ companyId: 'CG', shares: 2 }] }
+    const { details, reason } = evaluateShareSale(state(), request, EighteenThirtyTwoStockRules)
+    assertExists(details, reason)
+    act('SellShares', { ...request, expectedProceeds: details.proceeds })
+    act('FinishStockTurn')
+}
+
+function excessTrains(act) {
+    const price = EighteenThirtyTwoTrainDepot.trainDefinition('5').price
+    act('BuyTrain', {
+        companyId: 'CG',
+        trainId: '1832/5/18',
+        definitionId: '5',
+        expectedPrice: price
+    })
+    act('DiscardTrain', { companyId: 'CG', trainId: '1832/3/8' })
+}
+
+function trainOffer(act) {
+    act('OfferPurchase', {
+        companyId: 'CG',
+        asset: { kind: 'train', trainId: '1832/4/15' },
+        seller: { kind: 'company', companyId: 'ACL' },
+        price: 300
+    })
 }
 
 /**
@@ -44,3 +101,21 @@ function systemTrainHelp() {
 
 mkdirSync(OUT, { recursive: true })
 write('system-train-help', 'System train help', systemTrainHelp())
+writePlayed(
+    'price-protection',
+    'Price protection',
+    playExample(EighteenThirtyTwoScenarios, 'trading', 3),
+    priceProtection
+)
+writePlayed(
+    'excess-trains',
+    'Excess trains',
+    playExample(EighteenThirtyTwoScenarios, 'phases', 3),
+    excessTrains
+)
+writePlayed(
+    'train-offer',
+    'Train offer',
+    playExample(EighteenThirtyTwoScenarios, 'phases', 3),
+    trainOffer
+)

@@ -3,23 +3,17 @@
     import { cashText, optionalMoney } from '../presentation/money.js'
     import { marketSpaceColor, marketZone } from '../stock/marketColors.js'
     import { assertExists } from '@tabletop/common'
+    import { chainSidewaysScroll } from '@tabletop/frontend-components'
     import { cashOwnedBy, getCompany, sharesOwned, sameOwner, type Owner } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import { companyOwnership } from '../finance/companyOwnership.js'
     import { playerPurchaseContribution } from '../stock/purchaseContribution.js'
-    import type { CertificatePool } from '@tabletop/18xx'
+    import { marketSourcesFirst } from '../stock/purchaseSources.js'
     import SlidingToggle from './SlidingToggle.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
-    import StandingInstruction from '../stock/StandingInstruction.svelte'
     import PrivatePurchaseOffers from '../stock/PrivatePurchaseOffers.svelte'
     import CompanyAuctionOpening from '../stock/CompanyAuctionOpening.svelte'
-    let {
-        session,
-        poolName
-    }: {
-        session: EighteenXXSessionView
-        poolName?: (pool: CertificatePool) => string
-    } = $props()
+    let { session }: { session: EighteenXXSessionView } = $props()
     const money = $derived(session.presentation.money)
     const disabled = $derived(
         session.busy ||
@@ -154,12 +148,16 @@
                 class="choices"
                 class:buy-choices={menu === 'buy'}
                 class:exchange-list={menu === 'exchange'}
+                {@attach chainSidewaysScroll}
             >
                 {#if menu === 'buy'}
                     {#each purchaseCompanies as company (company.id)}
                         {@const ownership = companyOwnership(session.gameState, company.id)}
-                        {@const options = buyerPurchases.filter(
-                            (choice) => choice.certificate.companyId === company.id
+                        {@const options = marketSourcesFirst(
+                            buyerPurchases.filter(
+                                (choice) => choice.certificate.companyId === company.id
+                            ),
+                            session.presentation.marketPoolId
                         )}
                         {@const prices = [
                             ...new Set(options.map((choice) => choice.result.details?.price))
@@ -207,9 +205,9 @@
                                                 (pool) => pool.id === choice.certificate.poolId
                                             )}
                                             {@const source = pool
-                                                ? (
-                                                      poolName?.(pool) ?? session.poolName(pool.id)
-                                                  ).replace('Treasury shares', 'Treasury')
+                                                ? session
+                                                      .poolName(pool.id)
+                                                      .replace('Treasury shares', 'Treasury')
                                                 : sameOwner(choice.certificate.owner, {
                                                         kind: 'company',
                                                         companyId: company.id
@@ -282,10 +280,23 @@
                                 </button>
                             {/each}
                         </div>
-                        {#if session.stock.selectedStartCompany}
+                        {#if session.stock.selectedStartCompany && session.stock.awaitingStartHome}
+                            <p class="start-home">
+                                Choose a highlighted city on the map for {session.companyName(
+                                    session.stock.selectedStartCompany.companyId
+                                )}’s home.
+                            </p>
+                        {:else if session.stock.selectedStartCompany}
                             {@const sharesToFloat = session.sharesToFloat(
                                 session.stock.selectedStartCompany.companyId
                             )}
+                            {@const home = session.stock.selectedStartHomeChoice}
+                            {#if home}
+                                <p class="start-home">
+                                    Home: {session.placeName(home.locationId)}, {money(home.cost)} from
+                                    its treasury
+                                </p>
+                            {/if}
                             <div class="choices par-choices">
                                 {#each session.stock.selectedStartPrices as price (price.marketSpaceId)}
                                     {#if price.result.details}
@@ -304,8 +315,7 @@
                                             data-start-price={price.result.details.parPrice}
                                             onclick={() => {
                                                 session.stock.selectStartPrice(price.marketSpaceId)
-                                                if (!session.stock.startHomes)
-                                                    void session.stock.confirmStart()
+                                                void session.stock.confirmStart()
                                             }}
                                         >
                                             <span class="par-value"
@@ -324,13 +334,6 @@
                                     {/if}
                                 {/each}
                             </div>
-                            {#if session.stock.offeredStartHomeLocationIds.length}
-                                <p class="start-home">
-                                    Choose {session.companyName(
-                                        session.stock.selectedStartCompany.companyId
-                                    )}’s home on the map.
-                                </p>
-                            {/if}
                         {/if}
                     </div>
                 {:else if menu === 'auction'}
@@ -476,7 +479,6 @@
         </aside>
     {/if}
 </section>
-<StandingInstruction {session} />
 
 <style>
     section {

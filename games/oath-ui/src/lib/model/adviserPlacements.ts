@@ -11,14 +11,16 @@ import {
     offeredChoices,
     playShowsCard,
     runAfter,
+    sitePlayGain,
     usableModifiers,
     type ActiveModifier,
     type CardPower,
     type LegalChoice,
     type ModifierUse,
-    type Region
+    type Region,
+    type SitePlayGain
 } from '@tabletop/oath'
-import { adviserRoom, type AdviserRoom } from './adviserDiscards.js'
+import { adviserRoom, firstDiscard, NO_ROOM, type AdviserRoom } from './adviserDiscards.js'
 import {
     FIRST_BRANCH,
     emptyPicks,
@@ -72,6 +74,8 @@ export type AdviserPlacement = {
     /** R-7.6.4 — a limiter turned faceup may put its holder over the limit. */
     room: AdviserRoom
     cards: FacedownPlayCards
+    /** R-5.1.4.I, R-11.2 — "To your site" only: what the play gains there, as the engine plans it. */
+    gain?: SitePlayGain
 }
 
 /** The card's own part of the play, without the mandatory modifiers the engine adds by itself. */
@@ -325,25 +329,41 @@ export function adviserDiscardFirstOptions(
         )
 }
 
+/**
+ * R-5.1.4.II, R-7.4.3 — the advisers turning a facedown adviser faceup must discard, as the engine judges them with
+ * the cards the play uses (`modifiers`): from revision 31 a modifier in use is never one of them.
+ */
+export function facedownPlayRoom(
+    state: HydratedOathGameState,
+    playerId: string,
+    cardId: string,
+    play: SearchPlay,
+    modifiers: readonly ModifierUse[]
+): AdviserRoom {
+    if (play !== SearchPlay.Adviser) return NO_ROOM
+    return adviserRoom(state, playerId, cardId, {
+        faceUp: true,
+        fromAdvisers: true,
+        modifiersInUse: HydratedPlayFacedownAdviser.cardsInUse(state, playerId, play, modifiers)
+    })
+}
+
 // Contract rule 2 — a placement the engine refuses is not offered; each is judged with the cards
-// its send carries at the start (its free gains).
+// its send carries at the start (its free gains), and its discards leave them out.
 export function adviserPlacements(
     state: HydratedOathGameState,
     playerId: string,
     cardId: string
 ): AdviserPlacement[] {
     return ADVISER_PLAYS.flatMap((option) => {
-        const room =
-            option.play === SearchPlay.Adviser
-                ? adviserRoom(state, playerId, cardId, { faceUp: true, fromAdvisers: true })
-                : { needed: 0, discardable: [] }
         const cards = facedownPlayCards(state, playerId, cardId, option.play)
         const carried = rowsAtStart(cards)
+        const room = facedownPlayRoom(state, playerId, cardId, option.play, carried)
         // R-7.3.3 — the When Played choices, and any discards, are asked after the placement.
         const refused = HydratedPlayFacedownAdviser.reasonCannotPlace(state, playerId, {
             cardId,
             play: option.play,
-            discardedAdviserCardIds: room.discardable.slice(0, room.needed),
+            discardedAdviserCardIds: firstDiscard(room),
             modifiers: carried
         })
         const openElsewhere =
@@ -358,6 +378,17 @@ export function adviserPlacements(
                     cards.placing,
                     carried
                 ).length > 0)
-        return refused === undefined || openElsewhere ? [{ ...option, room, cards }] : []
+        if (refused !== undefined && !openElsewhere) return []
+        const gain =
+            option.play === SearchPlay.Site
+                ? sitePlayGain(
+                      HydratedPlayFacedownAdviser.playMapChanges(state, playerId, {
+                          cardId,
+                          play: option.play,
+                          modifiers: carried
+                      })
+                  )
+                : undefined
+        return [{ ...option, room, cards, ...(gain ? { gain } : {}) }]
     })
 }

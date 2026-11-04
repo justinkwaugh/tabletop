@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import {
+    AUSTERLITZ,
     CommandKind,
     Side,
     UnitType,
@@ -11,7 +12,8 @@ import {
     failOnPageErrors,
     leadDefence,
     rearrange,
-    tap
+    tap,
+    threaten
 } from './table.js'
 
 failOnPageErrors()
@@ -128,7 +130,7 @@ test('a unit standing beside cavalry that is riding on takes a command of its ow
 
     await leftOut.click()
     await tap(page, 'svg [aria-label^="Move to"]')
-    await expect(page.getByText('Choose a corps or unit on the map')).toBeVisible()
+    await expect(page.getByText(/^Choose a corps/)).toBeVisible()
 })
 
 test('reinforcement cavalry that is riding on takes its second command and presses an attack', async ({
@@ -152,9 +154,9 @@ test('reinforcement cavalry that is riding on takes its second command and press
     await expect(ridingOn).toHaveAttribute('aria-pressed', 'true')
 
     await newCommand.click()
-    await tap(page, 'svg [aria-label="Threaten an attack across this approach"]')
+    await threaten(page, 38, 52)
     await page.locator('button[aria-label="Choose this unit"]:not([disabled])').first().click()
-    await page.getByRole('button', { name: /^Defend/ }).click()
+    await page.getByRole('button', { name: 'Defend', exact: true }).click()
 
     await page.getByRole('button', { name: 'Call it a feint' }).click()
     await expect(newCommand).toHaveAttribute('aria-pressed', 'true')
@@ -168,4 +170,27 @@ test('reinforcement cavalry that is riding on takes its second command and press
     await expect(page.getByText('In reserve', { exact: true })).toBeVisible()
     await expect(rideSwitch).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Attack with no leading unit' })).toBeEnabled()
+})
+
+test('cavalry riding on stays in hand while a locale is aimed at, and the threat starts from the ride', async ({
+    page
+}) => {
+    await frenchTurnWith(page, reinforcementCavalryRidesIn)
+    const rideSwitch = page.getByRole('group', { name: RIDE_SWITCH })
+    await expect(page.getByRole('group', { name: 'Bernadotte’s corps, riding on' })).toBeVisible()
+    await expect(page.getByText('Tap an enemy locale to threaten an attack.')).toBeVisible()
+
+    await tap(page, '[data-aim-locale="52"]')
+    await expect(
+        page.getByText('The pieces you chose will join the attack where they can.')
+    ).toBeVisible()
+    await tap(page, `svg [data-threat="${AUSTERLITZ.approachBetween(38, 52).id}"]`)
+    await page.locator('button[aria-label="Choose this unit"]:not([disabled])').first().click()
+    await page.getByRole('button', { name: 'Defend', exact: true }).click()
+
+    await page.getByRole('button', { name: 'Call it a feint' }).click()
+    await expect(rideSwitch.getByRole('button', { name: 'Riding on' })).toHaveAttribute(
+        'aria-pressed',
+        'true'
+    )
 })

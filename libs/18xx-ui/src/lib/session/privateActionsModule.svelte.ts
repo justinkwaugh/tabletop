@@ -1,7 +1,7 @@
 import { assert } from '@tabletop/common'
 import type { EighteenXXState, TrackConstruction, TrackLayDetails } from '@tabletop/18xx'
 import type { CompanyDecisionsModule } from './companyDecisionsModule.svelte.js'
-import type { LocalSelection } from './localSelections.js'
+import type { LocalSelection } from '@tabletop/frontend-components'
 import type { PrivatesModule } from './privatesModule.svelte.js'
 import type { ModuleSession } from './moduleSession.js'
 import { StagedSelection } from './stagedSelection.svelte.js'
@@ -43,7 +43,8 @@ export type TitlePrivatePower = PrivateTrackPower & { label: string; prompt: str
         | { kind: 'immediate'; run(): Promise<void> }
     )
 export type PrivateActionSource = 'mine' | 'other' | 'powers'
-type PrivateActionStages = { source: PrivateActionSource; power: PrivateTrackPower }
+type ChosenPower = PrivateTrackPower & { label?: string }
+type PrivateActionStages = { source: PrivateActionSource; power: ChosenPower }
 const PrivateActionStageOrder = ['source', 'power'] as const
 
 export type PrivateActionsSession = ModuleSession<
@@ -163,12 +164,22 @@ export class PrivateActionsModule implements LocalSelection {
     })
     /** The chosen power when the title applies its rules. */
     titlePower = $derived.by(() => {
-        const selected = this.powerSelection?.value
-        return selected ? this.titlePowers.find((power) => samePower(power, selected)) : undefined
+        const selected: ChosenPower | undefined = this.powerSelection?.value
+        return selected
+            ? this.titlePowers.find(
+                  (power) =>
+                      samePower(power, selected) &&
+                      (selected.label === undefined || selected.label === power.label)
+              )
+            : undefined
     })
 
     choosePowers() {
         this.chooseSource('powers')
+    }
+    // Buying from another player is rare, so purchases open on the player's own privates.
+    openPurchases() {
+        this.chooseSource('mine')
     }
     choosePurchaseSource(source: 'mine' | 'other') {
         this.chooseSource(source)
@@ -208,7 +219,8 @@ export class PrivateActionsModule implements LocalSelection {
         this.track.clear()
         this.stages.choose('power', {
             privateCompanyId: power.privateCompanyId,
-            playerId: power.playerId
+            playerId: power.playerId,
+            label: power.label
         })
     }
 

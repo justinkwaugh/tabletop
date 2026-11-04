@@ -1,3 +1,5 @@
+import { zstdDecompressSync } from 'node:zlib'
+
 const REDACTED_KEYS =
     /^(auth|p256dh|keys|password|passwordHash|token|tokens|secret|secrets|privateKey|accessToken|refreshToken|sessionSecret|apiKey)$/i
 
@@ -5,6 +7,7 @@ export function redact(value, key = '') {
     if (REDACTED_KEYS.test(key)) return '<REDACTED>'
     if (key === 'endpoint' && typeof value === 'string') return endpointHost(value)
     if (Array.isArray(value)) return value.map((item) => redact(item))
+    if (value instanceof Uint8Array) return redactBytes(value, key)
     if (value && typeof value === 'object') {
         if (typeof value.toDate === 'function') return value.toDate().toISOString()
         if (value instanceof Date) return value.toISOString()
@@ -16,6 +19,21 @@ export function redact(value, key = '') {
     }
     if (typeof value === 'string' && key === 'data') return redact(parseJsonOr(value, value))
     return value
+}
+
+// The game store may write a State (`dataZstd`) or action chunk (`actionsZstd`) zstd-compressed.
+function redactBytes(bytes, key) {
+    const text = key.endsWith('Zstd') ? decompressedText(bytes) : undefined
+    if (text === undefined) return `<${bytes.byteLength} bytes>`
+    return key === 'dataZstd' ? redact(parseJsonOr(text, text)) : text
+}
+
+function decompressedText(bytes) {
+    try {
+        return zstdDecompressSync(bytes).toString('utf8')
+    } catch {
+        return undefined
+    }
 }
 
 // The token store keys each token document by the token value, so its ID is itself a secret.
@@ -50,6 +68,12 @@ export function parseJsonOr(text, fallback) {
     } catch {
         return fallback
     }
+}
+
+// Reads a game store payload kept as JSON text or as zstd-compressed bytes beside it.
+export function parseStoredJsonOr(text, compressed, fallback) {
+    if (compressed instanceof Uint8Array) return parseJsonOr(decompressedText(compressed), fallback)
+    return parseJsonOr(text ?? '', fallback)
 }
 
 const DURATION = /^(\d+)([smhd])$/

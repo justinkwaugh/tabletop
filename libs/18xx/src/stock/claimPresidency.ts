@@ -1,8 +1,8 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     assertExists,
@@ -65,7 +65,7 @@ const ClaimDetails = Type.Object(
 )
 export const ClaimPresidency = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('ClaimPresidency'),
         companyId: Type.String(),
         expectedPrice: Type.Integer({ minimum: 1 }),

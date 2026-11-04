@@ -24,7 +24,11 @@ function group(groupId: string, level: number, scores: number[]): LeagueGroupRes
     return {
         groupId,
         level,
-        standings: scores.map((score, index) => ({ userId: `${groupId}-${index + 1}`, score })),
+        standings: scores.map((score, index) => ({
+            userId: `${groupId}-${index + 1}`,
+            score,
+            completed: 3
+        })),
         tables: []
     }
 }
@@ -176,6 +180,16 @@ describe('leagueSeasonPlacements', () => {
         expect(promotedFromB(tied([undefined, undefined], []), 7)).toEqual(
             promotedFromB(tied([undefined, undefined], []), 7)
         )
+    })
+})
+
+describe('groups on different tiebreak rules', () => {
+    it('orders seeding across them by average final score, not their different scales', () => {
+        const groups = [group('A', 0, [1]), group('B', 0, [1])]
+        Object.assign(groups[0].standings[0], { completed: 4, tiebreak: -60 })
+        Object.assign(groups[1].standings[0], { completed: 4, tiebreak: -8, pointsBehind: 8 })
+        const placed = leagueSeedingPlacements('ladder', sevens, groups, 1).flat()
+        expect(placed.map((placement) => placement.userId)).toEqual(['B-1', 'A-1'])
     })
 })
 

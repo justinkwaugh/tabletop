@@ -1,42 +1,10 @@
-import {
-    ActionSource,
-    assertExists,
-    GameEngine,
-    GameResult,
-    MachineContext,
-    PlayerStatus,
-    validateGameResult
-} from '@tabletop/common'
+import { assertExists, GameResult, MachineContext, validateGameResult } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
-import { HydratedPlaceCity, type PlaceCity } from '../actions/placeCity.js'
 import { resolvePostOperationsState } from '../stateHandlers/operationsFlow.js'
-import { ActionType } from './actions.js'
-import { Definition } from './definition.js'
+import { createGame, engine, placeNewEraCities } from '../utils/testGame.js'
 import { Era } from './eras.js'
-import { IndonesiaInfo } from './info.js'
 import { IndonesiaRuntime } from './runtime.js'
 import { MachineState } from './states.js'
-
-const engine = new GameEngine(IndonesiaRuntime)
-
-function createGame(count: number) {
-    return IndonesiaRuntime.initializer.initializeGame(
-        {
-            id: 'indonesia-competition',
-            typeId: IndonesiaInfo.id,
-            ownerId: 'owner',
-            seed: 101,
-            config: {},
-            players: Array.from({ length: count }, (_, index) => ({
-                id: `p${index}`,
-                name: `Player ${index}`,
-                isHuman: true,
-                status: PlayerStatus.Joined
-            }))
-        },
-        Definition
-    )
-}
 
 function rotations(playerIds: string[]): string[][] {
     return playerIds.map((_, offset) => [...playerIds.slice(offset), ...playerIds.slice(0, offset)])
@@ -59,23 +27,7 @@ describe.each([3, 4, 5])('Indonesia tournaments with %i players', (count) => {
             expect(initialState.placingCities).toEqual(order)
             expect(initialState.turnManager.series[0].playerId).toBe(order[0])
 
-            let state = initialState
-            while (state.machineState === MachineState.NewEra) {
-                const [playerId] = state.activePlayerIds
-                assertExists(playerId, 'Expected an active player placing a city')
-                const hydrated = IndonesiaRuntime.hydrator.hydrateState(state)
-                const [areaId] = HydratedPlaceCity.validAreaIds(hydrated, playerId)
-                assertExists(areaId, `Expected a city placement for ${playerId}`)
-                const action: PlaceCity = {
-                    id: `city-${playerId}`,
-                    gameId: game.id,
-                    source: ActionSource.User,
-                    type: ActionType.PlaceCity,
-                    playerId,
-                    areaId
-                }
-                state = engine.executeCanonicalAction({ game, state, action }).updatedState
-            }
+            const state = placeNewEraCities(game, initialState)
             expect(state.turnManager.series.slice(0, count).map((turn) => turn.playerId)).toEqual(
                 order
             )

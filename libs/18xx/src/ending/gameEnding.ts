@@ -26,10 +26,11 @@ export interface EndingRules extends ValuationRules {
     /** Whether a round of the title's own is still to follow the final operating round. */
     roundPending?(state: EndingState): boolean
 }
+export const BankBroken = 'Bank broken'
 export function bankExhaustionAtSetEnd(state: OperatingState): GameEnding | undefined {
     if (!state.bank.broken) return undefined
     return {
-        reason: 'Bank broken',
+        reason: BankBroken,
         finalOperatingSet:
             (state.operatingSet?.number ?? 0) +
             (!state.operatingSet || state.operatingSet.completed ? 1 : 0)

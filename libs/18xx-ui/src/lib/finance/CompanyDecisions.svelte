@@ -1,13 +1,15 @@
 <script lang="ts">
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
-    import { getCompany, isCompanyPurchaseOffer } from '@tabletop/18xx'
+    import { getCompany, isCompanyPurchaseOffer, placeReference } from '@tabletop/18xx'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import { privateMarkerLabel } from '../maps/mapDrawing.js'
     import CompanyBuying from './CompanyBuying.svelte'
     import DecisionResponse from './DecisionResponse.svelte'
     import Tile from '../tiles/Tile.svelte'
+    import { placedTileLayout } from '../tiles/standardTileLayouts.js'
     import PrivateTrainBuying from '../trains/PrivateTrainBuying.svelte'
     import PrivateExchangeButton from '../privates/PrivateExchangeButton.svelte'
+    import PlaceText from '../places/PlaceText.svelte'
     let {
         session,
         trainColors,
@@ -53,11 +55,16 @@
     >
         <CompanyToken appearance={session.mapView.stations[request.companyId]} size={24} />
         <strong>{session.companyName(request.companyId)}</strong>
-        <span>requests permission to lay track at {request.locationId}</span>
+        <span
+            ><PlaceText
+                text={`requests permission to lay track at ${placeReference(request.locationId)}`}
+            /></span
+        >
         {#if definition}
             <Tile
                 face={definition.face}
                 appearance={session.tileAppearance}
+                layout={placedTileLayout(session.mapView.layouts, definition.id)}
                 orientation={session.mapView.map.definition.orientation}
                 rotation={request.rotation}
                 size={48}
@@ -90,16 +97,7 @@
                         appearance={session.mapView.stations[offer.buyer.companyId]}
                         size={24}
                     />{/if}
-                <span
-                    >{isCompanyPurchaseOffer(offer)
-                        ? session.companyName(offer.buyer.companyId)
-                        : session.getPlayerName(offer.buyerPlayerId)} offers {money(offer.price)} for
-                    {offer.asset.kind === 'private'
-                        ? session.companyName(offer.asset.privateCompanyId)
-                        : offer.asset.kind === 'company'
-                          ? session.companyName(offer.asset.companyId)
-                          : offer.asset.trainId}</span
-                >
+                <span>{session.purchaseOfferText(offer)}</span>
             </DecisionResponse>
         {:else}
             <CompanyBuying {session} showEntry={session.operating.step === undefined} />
@@ -170,7 +168,7 @@
                                     >{privateTilePrompts[power.privateCompanyId] ??
                                         `Place a tile using ${session.companyName(power.privateCompanyId)}`}</span
                                 >
-                                {#if gameState.privateTrackLay}
+                                {#if gameState.privateTrackLay && !gameState.privateTrackLay.required}
                                     <span>or</span>
                                     <button
                                         class="action-button inline-action"
@@ -190,7 +188,7 @@
                                     >{session.companyName(power.privateCompanyId)}</button
                                 >
                             {/each}
-                            {#each session.privateActions.titlePowers as power (`${power.playerId}:${power.privateCompanyId}`)}
+                            {#each session.privateActions.titlePowers as power (`${power.playerId}:${power.privateCompanyId}:${power.label}`)}
                                 <button
                                     disabled={!session.decisions.canResolve}
                                     onclick={() => session.privateActions.chooseTitlePower(power)}
@@ -276,6 +274,7 @@
                     {#if definition}<Tile
                             face={definition.face}
                             appearance={session.tileAppearance}
+                            layout={placedTileLayout(session.mapView.layouts, definition.id)}
                             orientation={session.mapView.map.definition.orientation}
                             rotation={selection.details.rotation}
                         />{/if}

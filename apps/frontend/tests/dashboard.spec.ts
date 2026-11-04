@@ -110,7 +110,9 @@ test('an installed PWA offers a header refresh for a minor frontend update', asy
     await expect(menu).toBeVisible()
 })
 
-test('a browser tab does not show the PWA refresh for a minor frontend update', async ({ page }) => {
+test('a browser tab does not show the PWA refresh for a minor frontend update', async ({
+    page
+}) => {
     await page.route('**/api/v1/games/mine*', (route) =>
         route.fulfill({
             headers: { 'X-Tabletop-Version': '21.1.0' },
@@ -569,7 +571,9 @@ test('loads local and hosted games together with hotseat after other active game
     await page.route('**/api/v1/games/mine*', async (route) => {
         requested.resolve()
         await released.promise
-        await route.fulfill({ json: { payload: { games: [{ ...game(0), activePlayerIds: ['p2'] }] } } })
+        await route.fulfill({
+            json: { payload: { games: [{ ...game(0), activePlayerIds: ['p2'] }] } }
+        })
     })
     await page.goto('/about')
     await page.evaluate(

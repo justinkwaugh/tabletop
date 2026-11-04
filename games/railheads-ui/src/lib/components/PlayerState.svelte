@@ -4,6 +4,7 @@
     import IndustryToken from './IndustryToken.svelte'
     import ShareCertificate from './ShareCertificate.svelte'
     import TrainIcon from './TrainIcon.svelte'
+    import { editionStyle } from '$lib/utils/editionStyle.js'
 
     let { playerState }: { playerState: HydratedRailheadsPlayerState } = $props()
 
@@ -34,15 +35,16 @@
             return []
         }
         const { companies, industries } = state.finalPayouts()
+        const style = editionStyle(state.editionId)
         return [
             {
-                label: 'Game End Railroad',
-                title: 'Game-end Railroad Bonus on your shares, if the game ended now',
+                label: `Game End ${style.endBonusShort}`,
+                title: `Game-end ${style.endBonusName} on your shares, if the game ended now`,
                 amount: state.playerIncome(playerId, { companies, industries: [] })
             },
             {
-                label: 'Game End Industry',
-                title: 'Game-end Industry Bonus on your tokens, if the game ended now',
+                label: `Game End ${style.industryBonusShort}`,
+                title: `Game-end ${style.industryBonusName} on your tokens, if the game ended now`,
                 amount: state.playerIncome(playerId, { companies: [], industries })
             }
         ]

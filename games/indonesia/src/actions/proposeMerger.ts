@@ -78,7 +78,10 @@ function toActiveProposal(option: LegalMergerOption): ActiveMergerProposal {
     }
 }
 
-export class HydratedProposeMerger extends HydratableAction<typeof ProposeMerger> implements ProposeMerger {
+export class HydratedProposeMerger
+    extends HydratableAction<typeof ProposeMerger>
+    implements ProposeMerger
+{
     declare type: ActionType.ProposeMerger
     declare playerId: string
     declare metadata?: ProposeMergerMetadata
@@ -148,7 +151,11 @@ export class HydratedProposeMerger extends HydratableAction<typeof ProposeMerger
             return false
         }
 
-        if (state.activeMergerProposal || state.activeMergerAuction || state.pendingSiapSajiReduction) {
+        if (
+            state.activeMergerProposal ||
+            state.activeMergerAuction ||
+            state.pendingSiapSajiReduction
+        ) {
             return false
         }
 

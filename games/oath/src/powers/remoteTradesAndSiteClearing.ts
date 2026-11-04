@@ -10,7 +10,7 @@ import {
 } from '../util/powerChoice.js'
 import { askQuestion } from '../util/questions.js'
 import { knownDraw } from '../util/knowledge.js'
-import { SECOND_WIND_ID, nextActionIndex } from '../util/freeActions.js'
+import { SECOND_WIND_ID, grantFreeCampaign, grantFreeTravel } from '../util/freeActions.js'
 import {
     registerBattlePlan,
     registerEffect,
@@ -20,13 +20,14 @@ import {
 } from './registry.js'
 import { giveFavor, takeFavorFromPlayer, usableFavor } from '../util/favor.js'
 import {
+    denizensToDiscardAtSites,
     discardDenizensAtSites,
     faceupSitesInYourRegion,
-    pawnSiteId,
+    siteOfPlayedCard,
     faceupSitesWithCardOfSuit
 } from './vocabulary.js'
 import { bargainChoicesAtYourSite, playerChoicesAtYourSite } from './choiceDomains.js'
-import { SALT_THE_EARTH } from '../util/capacity.js'
+import { SALT_THE_EARTH, SALTED_SITE_CAPACITY } from '../util/capacity.js'
 import { reasonPersistentForbidsGivingSecrets } from '../util/persistent.js'
 import { siteHolding } from '../util/access.js'
 import { handedOver } from '../model/playerState.js'
@@ -39,10 +40,9 @@ registerBattlePlan(SECOND_WIND, powerIndexOf(SECOND_WIND, PowerTiming.BattlePlan
     hooks: {
         onOutcome: (ctx, victorious) => {
             if (!victorious) return undefined
-            const me = ctx.state.getPlayerState(ctx.playerId)
             // A free Travel taken at that action moves the Campaign's along by one.
-            me.freeTravelAtAction = nextActionIndex(ctx.state)
-            me.freeCampaignAtAction = nextActionIndex(ctx.state)
+            grantFreeTravel(ctx.state, ctx.playerId, SECOND_WIND)
+            grantFreeCampaign(ctx.state, ctx.playerId, SECOND_WIND)
             return 'Second Wind: the next Travel, and then a Campaign, cost no Supply'
         }
     }
@@ -223,22 +223,55 @@ function bargainWith(ctx: EffectContext, entry: BargainEntry): void {
 const MAP_LIBRARY = 'denizen.arcane.map-library'
 registerModifier(MAP_LIBRARY, powerIndexOf(MAP_LIBRARY, PowerTiming.Modifier), {
     hooks: {
+        // Small Friends from revision 19: the pawn acts as if at its site (`actsAsAt`).
         condition: (ctx) => {
             const here = siteHolding(ctx.state, MAP_LIBRARY)
-            return here && ctx.state.getPlayerState(ctx.playerId).siteId === here
-                ? undefined
-                : 'your pawn is not at the Map Library'
+            const at = ctx.particulars?.actsAsAt ?? ctx.state.getPlayerState(ctx.playerId).siteId
+            return here && at === here ? undefined : 'your pawn is not at the Map Library'
         },
-        tradeSites: (ctx) => faceupSitesInYourRegion(ctx.state, ctx.playerId)
+        tradeSites: (ctx) => {
+            const at = ctx.particulars?.actsAsAt
+            if (at === undefined) return faceupSitesInYourRegion(ctx.state, ctx.playerId)
+            const region = ctx.state.regionOf(at)
+            return ctx.state
+                .faceupSiteIds()
+                .filter((siteId) => ctx.state.regionOf(siteId) === region)
+        }
     }
 })
 
 // "Act as if your pawn is at any site with a [suit:beast] card." Adviser.
 const SMALL_FRIENDS = 'denizen.beast.small-friends'
-const beastSites = (ctx: EffectContext) => faceupSitesWithCardOfSuit(ctx.state, Suit.Beast)
+// R-X.4 — before revision 19 every such site at once; from it, the one site its use names, and
+// only there (its Q&A: "Can I use Trade modifiers at the site my pawn is physically at, in
+// addition to the site I am acting as if I am at? Nope! Only the new site.").
+const actedAt = (ctx: EffectContext) =>
+    isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes15)
+        ? chosen(ctx, PowerChoiceKind.Site).map((choice) => choice.siteId)
+        : faceupSitesWithCardOfSuit(ctx.state, Suit.Beast)
 registerModifier(SMALL_FRIENDS, powerIndexOf(SMALL_FRIENDS, PowerTiming.Modifier), {
+    choices: [
+        one(PowerChoiceKind.Site, {
+            what: 'the site you act as if you are at',
+            domain: (state) =>
+                faceupSitesWithCardOfSuit(state, Suit.Beast).map((siteId) => ({
+                    kind: PowerChoiceKind.Site,
+                    siteId
+                })),
+            fromRevision: OathRevision.EngineFixes15
+        })
+    ],
     // "(You may use Trade modifiers there.)"
-    hooks: { tradeSites: beastSites, actsAsAtSites: beastSites }
+    hooks: {
+        tradeSites: actedAt,
+        actsAsAtSites: actedAt,
+        // From revision 19 its use names a site: with none to name, it is not usable.
+        reasonUnusable: (ctx) =>
+            isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes15) &&
+            faceupSitesWithCardOfSuit(ctx.state, Suit.Beast).length === 0
+                ? 'no faceup site has a Beast card'
+                : undefined
+    }
 })
 
 // "When played, draw a relic. Take it or put it on the bottom of the relic deck." Adviser, locked.
@@ -274,8 +307,21 @@ registerModifier(CROP_ROTATION, powerIndexOf(CROP_ROTATION, PowerTiming.Modifier
 //  capacity. Discard all other denizens at this site. This site's capacity is now 1." Site, locked.
 registerEffect(SALT_THE_EARTH, powerIndexOf(SALT_THE_EARTH, PowerTiming.WhenPlayed), {
     choices: [],
+    // Before its play the card is at no site: the play names the one it goes to.
+    mapLeaving: (ctx) => {
+        const siteId = ctx.mapChanges?.siteId
+        assertExists(siteId, 'Salt the Earth is only played to a site')
+        return denizensToDiscardAtSites(
+            ctx.state,
+            ctx.playerId,
+            [siteId],
+            (id) => id !== SALT_THE_EARTH,
+            ctx.mapChanges
+        )
+    },
     resolve: (ctx) => {
-        const siteId = pawnSiteId(ctx.state, ctx.playerId)
+        // "This site": where it was played, which the People's Favor or New Growth may make another site.
+        const siteId = siteOfPlayedCard(ctx.state, ctx.playerId, SALT_THE_EARTH)
         const { discarded, pileDeposits } = discardDenizensAtSites(
             ctx.state,
             ctx.playerId,
@@ -283,7 +329,10 @@ registerEffect(SALT_THE_EARTH, powerIndexOf(SALT_THE_EARTH, PowerTiming.WhenPlay
             (id) => id !== SALT_THE_EARTH,
             ctx.power.cardId
         )
-        ctx.state.siteCapacityOverrides = { ...ctx.state.siteCapacityOverrides, [siteId]: 1 }
+        ctx.state.siteCapacityOverrides = {
+            ...ctx.state.siteCapacityOverrides,
+            [siteId]: SALTED_SITE_CAPACITY
+        }
         return {
             summary: `Salt the Earth: discarded ${discarded.length} denizens at ${siteId}; its capacity is now 1`,
             pileDeposits

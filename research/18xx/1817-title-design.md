@@ -25,8 +25,9 @@ rule may differ, follow the engine and record the difference.
 
 - **Hosting:** 18xx playground only, like 1889 and 1830. Not added to `games.json`.
 - **Artwork:** none. Boardless map, generic share and private presentation.
-- **Players:** 3 to 12, as the reference. The reference warns that more than 7 is
-  untested. Prepared playground positions use 3 or 4 players.
+- **Players:** 3 to 7, the published game's range. The reference allows 12 but warns that
+  more than 7 is untested, and the 18xx family has seven player colours. The rules keep the
+  reference's tables for 8 to 12. Prepared playground positions use 3 or 4 players.
 - **Optional rules:** all four of the reference's [options][meta] (project decision,
   2026-10-01):
     - Short Squeeze;
@@ -1063,8 +1064,7 @@ shares, and the company may borrow and buy the stations its size needs.
   then comes the next OR or the stock round. The MR runs after the OR's export. Its
   companies are the floated ones outside the acquisition and liquidation zones, in
   operating order, fixed when it starts. No interest is charged; the OR's rate stands.
-- **Conversion** ([conversion]). A 2-share company becomes 5 shares, a 5-share company
-  10. Every existing certificate keeps its shares, so the president's 2 become 40%,
+- **Conversion** ([conversion]). A 2-share company becomes 5 shares, a 5-share company 10. Every existing certificate keeps its shares, so the president's 2 become 40%,
   then 20%; shorts carry over. New shares, 3 or 5, go to the treasury. The price and
   loans are unchanged. The company then needs one more station (to 5 shares, while it
   has fewer than 8) or up to two (to 10, towards 8), at $50 each, bought after trading
@@ -1074,19 +1074,19 @@ shares, and the company may borrow and buy the stations its size needs.
   player must hold at least 40% net of both together, counting each share as 20%; for 2+2 under different
   presidents, the survivor's president must afford the new price. The new price is the
   sum (2+2) or the floored average (5+5), at the highest market space not above it.
-  - The survivor takes the target's cash, privates, loans and trains, and its stations,
-    placed or not; where both share a city, one token leaves the map and returns to the
-    survivor's charter. Over 8 stations, unplaced ones go first and its president
-    removes placed ones.
-  - 2+2: the survivor converts to 5. Under different presidents, the survivor's
-    president pays the new price into its treasury and the target's president receives
-    a treasury share.
-  - 5+5: the survivor converts to 10, and each share (or short) of the target becomes
-    one of the survivor's for the same holder. The largest net holder presides; a tie
-    keeps the survivor's president, or else goes to the next tied player in seat order.
-    Each holder's shorts then cancel against their shares.
-  - The target returns to its charter, unstarted, and may be started again. A merger
-    buys no stations. Trains over the limit are discarded.
+    - The survivor takes the target's cash, privates, loans and trains, and its stations,
+      placed or not; where both share a city, one token leaves the map and returns to the
+      survivor's charter. Over 8 stations, unplaced ones go first and its president
+      removes placed ones.
+    - 2+2: the survivor converts to 5. Under different presidents, the survivor's
+      president pays the new price into its treasury and the target's president receives
+      a treasury share.
+    - 5+5: the survivor converts to 10, and each share (or short) of the target becomes
+      one of the survivor's for the same holder. The largest net holder presides; a tie
+      keeps the survivor's president, or else goes to the next tied player in seat order.
+      Each holder's shorts then cancel against their shares.
+    - The target returns to its charter, unstarted, and may be started again. A merger
+      buys no stations. Trains over the limit are discarded.
 - **After a conversion or merger** ([post-conversion], [post-conversion-loans]).
   Starting with the president, players in seat order may buy the company's treasury
   shares at its price, one each, though the president may keep buying; a non-president
@@ -1519,7 +1519,7 @@ playground's replay specs.
       `lay_tile`, `discard_train` → their counterparts, and `end_game` ends the
       conversion;
     - `pass` → whichever pass, finish or decline the replayed state offers.
-  It skips recorded passes our engine already made for the player.
+      It skips recorded passes our engine already made for the player.
 - **Verification.** 15528 must reach game over with the recorded final values; the
   three games ended by hand replay every action and their players' wealth, valued as at
   the game's end, must equal the recorded values.
@@ -1674,16 +1674,16 @@ are rules of the 1817 family.
       in the resolution so history can name them;
     - `nominationFollowsWinner(state)`, whether the player after the winner rather than
       after the nominator nominates next.
-  Under Volatility 1817 leaves seed money out, opens bids at $0 and pays the
-  difference from the bank at formation as before. The table shows the pyramid's rows,
-  and a nomination works without a pass.
+      Under Volatility 1817 leaves seed money out, opens bids at $0 and pays the
+      difference from the bank at formation as before. The table shows the pyramid's rows,
+      and a nomination works without a pass.
 - **Private powers:**
     - Loan Shark: 1817's formation pays the $60; a new optional
       `LoanRules.extraInterest(state, companyId)` adds the $10 to the interest owed, so
       a company without loans also pays, borrows or defaults.
     - Ponzi Scheme: closes at formation.
     - Inventor and Scrapper: a new optional `TrainRules.afterTrainsDepart(state,
-      departures)` returns payments for trains bought, sold between companies, exported,
+departures)` returns payments for trains bought, sold between companies, exported,
       rusted or discarded; each action records them; 1817 pays the Inventor's unclaimed
       types, recorded in title state, and the Scrapper's rust values.
     - Express and Efficient Track: in 1817's `allowance`.

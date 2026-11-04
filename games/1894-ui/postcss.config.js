@@ -1,6 +1,6 @@
 import tailwindcss from '@tailwindcss/postcss'
 
-const scopePrefix = '[data-game-ui="1894"]'
+const scopePrefix = '[data-game-ui="1870"]'
 
 const scopeGameCssPlugin = {
     postcssPlugin: 'scope-game-css-plugin',
@@ -10,7 +10,10 @@ const scopeGameCssPlugin = {
         // the library, so each title scopes them to itself as it does its own styles.
         if (
             !sourceFile.endsWith('/src/lib/styles.css') &&
-            !(/\/18xx-ui\/(?:dist|src\/lib)\/.+\.css$/.test(sourceFile) && !sourceFile.includes('.svelte'))
+            !(
+                /\/18xx-ui\/(?:dist|src\/lib)\/.+\.css$/.test(sourceFile) &&
+                !sourceFile.includes('.svelte')
+            )
         ) {
             return
         }
@@ -50,8 +53,5 @@ const scopeGameCssPlugin = {
 }
 
 export default {
-    plugins: [
-        tailwindcss(),
-        scopeGameCssPlugin
-    ]
+    plugins: [tailwindcss(), scopeGameCssPlugin]
 }

@@ -9,7 +9,13 @@
     import { bribePillKey } from '$lib/animators/bribePopAnimator.svelte.js'
     import { DUST_PARTICLES, dustParticleKey } from '$lib/animators/droughtDustAnimator.svelte.js'
     import { groupProposalsBySegment } from '$lib/model/turnRules.js'
-    import { SquareType, isFieldSquare, MachineState, isSameSegment, type CanalSegment } from '@tabletop/santiago'
+    import {
+        SquareType,
+        isFieldSquare,
+        MachineState,
+        isSameSegment,
+        type CanalSegment
+    } from '@tabletop/santiago'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
     import BirdLayer from '$lib/birds/BirdLayer.svelte'
     import SunWash from './SunWash.svelte'
@@ -18,10 +24,29 @@
     import { fieldImageUrl } from '$lib/utils/cropImages.js'
     import { boardUrl, desertUrl, palmtreeUrl } from '$lib/utils/imageUrls.js'
     import {
-        W, H, BORDER_X, BORDER_Y, FIELD_W, FIELD_H, CELL_W, CELL_H,
-        GRID_TEMPLATE_COLUMNS, GRID_TEMPLATE_ROWS, COL_STARTS, gridLine, intersectionX, intersectionY
+        W,
+        H,
+        BORDER_X,
+        BORDER_Y,
+        FIELD_W,
+        FIELD_H,
+        CELL_W,
+        CELL_H,
+        GRID_TEMPLATE_COLUMNS,
+        GRID_TEMPLATE_ROWS,
+        COL_STARTS,
+        gridLine,
+        intersectionX,
+        intersectionY
     } from '$lib/utils/boardGeometry.js'
-    import { CANAL_HALF_THICKNESS, intersectionKey, segmentEndpointKeys, segmentEnds, segmentKey, waterEntersAtFarEnd } from '$lib/utils/canalGeometry.js'
+    import {
+        CANAL_HALF_THICKNESS,
+        intersectionKey,
+        segmentEndpointKeys,
+        segmentEnds,
+        segmentKey,
+        waterEntersAtFarEnd
+    } from '$lib/utils/canalGeometry.js'
 
     const session = getGameSession()
     const canalBuild = session.canalBuild
@@ -31,12 +56,11 @@
     const boardCanals = $derived(canalBuild.canals ?? session.gameState.board.canals)
     const waterNetwork = $derived({ spring: session.gameState.board.spring, canals: boardCanals })
 
-
     const fieldImage = fieldImageUrl
 
     // Deterministic pseudo-random tilt per cell — looks like a real piece placed on a board
     function fieldRotation(col: number, row: number): number {
-        return ((col * 7 + row * 11 + col * row * 3) % 17 - 8) * 0.125
+        return (((col * 7 + row * 11 + col * row * 3) % 17) - 8) * 0.125
     }
 
     function swayPhase(seg: CanalSegment): number {
@@ -50,7 +74,7 @@
     }
 
     function cubeRotation(col: number, row: number, i: number): number {
-        return ((col * 5 + row * 7 + i * 13) % 9 - 4) * 0.25
+        return (((col * 5 + row * 7 + i * 13) % 9) - 4) * 0.25
     }
 
     // Deterministic 90° multiple per cell — simulates someone flipping the tile to desert
@@ -106,20 +130,28 @@
     const proposedSegments = $derived(
         groupProposalsBySegment(bribePop.proposals ?? session.canalProposals).map((sp) => ({
             segment: sp.segment,
-            contributions: sp.contributions.map(c => ({ playerId: c.playerId, color: playerColor(c.playerId), amount: c.amount })),
+            contributions: sp.contributions.map((c) => ({
+                playerId: c.playerId,
+                color: playerColor(c.playerId),
+                amount: c.amount
+            }))
         }))
     )
 
     const isOverseerDeciding = $derived(
         session.gameState.machineState === MachineState.CanalBuilding &&
-        session.isMyTurn &&
-        session.isOverseerDecisionPhase
+            session.isMyTurn &&
+            session.isOverseerDecisionPhase
     )
 
-    const bribeColorsByKey = $derived(new Map(proposedSegments.map((ps) => [
-        segmentKey(ps.segment),
-        ps.contributions.map((c) => c.color)
-    ])))
+    const bribeColorsByKey = $derived(
+        new Map(
+            proposedSegments.map((ps) => [
+                segmentKey(ps.segment),
+                ps.contributions.map((c) => c.color)
+            ])
+        )
+    )
 
     const BRIBE_PILL_HALF_WIDTH = 20
     const BANK_PILL_HALF_WIDTH = 32
@@ -132,7 +164,12 @@
     // Nothing outside the board's top and right edges is visible, so spots there put their pills
     // below the twine or to its left, and a horizontal spot's row of pills shifts to stay on the
     // board.
-    function pillCenter(seg: CanalSegment, index: number, count: number, halfWidth: number): { cx: number; cy: number } {
+    function pillCenter(
+        seg: CanalSegment,
+        index: number,
+        count: number,
+        halfWidth: number
+    ): { cx: number; cy: number } {
         const c = segmentEnds(seg)
         if (seg.orientation === 'H') {
             const rowHalfSpan = ((count - 1) / 2) * PILL_SPACING_ALONG_H + halfWidth
@@ -144,7 +181,9 @@
         }
         const onRightEdge = seg.col === COL_STARTS.length
         return {
-            cx: onRightEdge ? c.x1 - PENNANT_SIDE_CLEARANCE - halfWidth : c.x1 + PILL_GAP + halfWidth,
+            cx: onRightEdge
+                ? c.x1 - PENNANT_SIDE_CLEARANCE - halfWidth
+                : c.x1 + PILL_GAP + halfWidth,
             cy: (c.y1 + c.y2) / 2 + (index - (count - 1) / 2) * PILL_SPACING_ALONG_V
         }
     }
@@ -284,13 +323,21 @@
     // beyond it — the overshoot extends into that corner instead of relying on the other
     // segment to cover it, which it geometrically can't).
     function roundedSegmentPath(
-        ax: number, ay: number, bx: number, by: number, r: number,
-        startFree: boolean, endFree: boolean
+        ax: number,
+        ay: number,
+        bx: number,
+        by: number,
+        r: number,
+        startFree: boolean,
+        endFree: boolean
     ): string {
-        const dx = bx - ax, dy = by - ay
+        const dx = bx - ax,
+            dy = by - ay
         const len = Math.hypot(dx, dy)
-        const ux = dx / len, uy = dy / len // unit vector along the segment, A→B
-        const px = -uy, py = ux           // unit perpendicular
+        const ux = dx / len,
+            uy = dy / len // unit vector along the segment, A→B
+        const px = -uy,
+            py = ux // unit perpendicular
 
         // Free ends inset by r (room for the rounded cap to bulge back out to the true
         // point); joined ends overshoot by r past the true point in the same direction.
@@ -305,12 +352,21 @@
         let d = `M ${startTop.x} ${startTop.y} L ${endTop.x} ${endTop.y} `
         d += endFree ? `A ${r} ${r} 0 0 0 ${endBot.x} ${endBot.y} ` : `L ${endBot.x} ${endBot.y} `
         d += `L ${startBot.x} ${startBot.y} `
-        d += startFree ? `A ${r} ${r} 0 0 0 ${startTop.x} ${startTop.y} ` : `L ${startTop.x} ${startTop.y} `
+        d += startFree
+            ? `A ${r} ${r} 0 0 0 ${startTop.x} ${startTop.y} `
+            : `L ${startTop.x} ${startTop.y} `
         return d + 'Z'
     }
 
-
-    type Sparkle = { x: number; y: number; dx: number; dy: number; scale: number; rotate: number; id: number }
+    type Sparkle = {
+        x: number
+        y: number
+        dx: number
+        dy: number
+        scale: number
+        rotate: number
+        id: number
+    }
     let sparkles = $state<Sparkle[]>([])
     let sparkleId = 0
     const SPARKLE_LIFETIME_MS = 1200
@@ -357,8 +413,14 @@
             const count = session.gameState.board.canals.length
             // Scale from ~1500ms at 1 canal down to ~300ms at 20+ canals
             const clamped = Math.max(1, Math.min(count, 20))
-            const base = 1500 - 1200 * (clamped - 1) / 19
-            timeout = setTimeout(() => { spawnSparkle(); schedule() }, base * (0.5 + Math.random() * 0.5))
+            const base = 1500 - (1200 * (clamped - 1)) / 19
+            timeout = setTimeout(
+                () => {
+                    spawnSparkle()
+                    schedule()
+                },
+                base * (0.5 + Math.random() * 0.5)
+            )
         }
         schedule()
         return () => clearTimeout(timeout)
@@ -387,232 +449,210 @@
 
         let timeout: ReturnType<typeof setTimeout>
         function schedule() {
-            timeout = setTimeout(() => { spawnSpringSparkle(); schedule() }, 5000 + Math.random() * 5000)
+            timeout = setTimeout(
+                () => {
+                    spawnSpringSparkle()
+                    schedule()
+                },
+                5000 + Math.random() * 5000
+            )
         }
         schedule()
         return () => clearTimeout(timeout)
     })
 </script>
 
-<style>
-.board-shell :global(.survey .bank-pill) {
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.15s ease-out;
-}
-.board-shell :global(.survey:hover .bank-pill),
-.board-shell :global(.survey .bank-pill.revealed) {
-    opacity: 1;
-    pointer-events: all;
-}
-@keyframes palm-sway {
-    0%, 100% { transform: rotate(-1.5deg) skewX(0.6deg); }
-    50%      { transform: rotate(1.8deg) skewX(-0.8deg); }
-}
-.palm-sway {
-    transform-origin: 50% 92%;
-    animation-name: palm-sway;
-    animation-timing-function: ease-in-out;
-    animation-iteration-count: infinite;
-}
-@media (prefers-reduced-motion: reduce) {
-    .palm-sway { animation: none; }
-}
-@keyframes sparkle-pop {
-    0%   { opacity: 0;   transform: translate(0px, 0px) scale(0.2); }
-    25%  { opacity: 1;   transform: translate(calc(var(--dx) * 0.25px), calc(var(--dy) * 0.25px)) scale(1.1); }
-    60%  { opacity: 0.9; transform: translate(calc(var(--dx) * 0.6px),  calc(var(--dy) * 0.6px))  scale(1); }
-    100% { opacity: 0;   transform: translate(calc(var(--dx) * 1px),    calc(var(--dy) * 1px))    scale(0.6); }
-}
-.canal-sparkle {
-    animation: sparkle-pop 1.2s ease-out forwards;
-    transform-box: fill-box;
-    transform-origin: center;
-    pointer-events: none;
-}
-@media (prefers-reduced-motion: reduce) {
-    .canal-sparkle { display: none; }
-}
-
-.board-shell {
-    position: relative;
-    display: inline-flex;
-    padding: 10px;
-    border-radius: 20px;
-    background:
-        radial-gradient(980px 620px at 14% 10%, rgba(255, 226, 180, 0.34), transparent 64%),
-        repeating-linear-gradient(
-            -30deg,
-            rgba(80, 40, 15, 0.03) 0 2px,
-            rgba(255, 255, 255, 0.02) 2px 7px
-        ),
-        #8a4a2e;
-}
-
-.board-surface {
-    border-radius: 14px;
-    overflow: hidden;
-    /* Its own stacking context, so a square lifted above its neighbours while it pops still
-       sits beneath the sunlight drawn over the whole board. */
-    isolation: isolate;
-    box-shadow:
-        0 0 0 5px rgba(58, 28, 10, 0.32),
-        0 10px 22px rgba(30, 14, 4, 0.35);
-}
-
-/* Saved for later — Justin wants to see the placement arrow without the bounce for now,
-   but may want it back. Re-add class="hover-arrow-bounce" to the arrow's <svg> to restore. */
-@keyframes hoverArrowBounce {
-    0%, 100% { transform: translateY(0); }
-    50%      { transform: translateY(4px); }
-}
-.hover-arrow-bounce {
-    animation: hoverArrowBounce 0.8s ease-in-out infinite;
-}
-
-@keyframes springPulse {
-    0%     { r: 0px;    opacity: 0.85; }
-    33.33% { opacity: 0.85; }
-    66.67% { r: 34px;   opacity: 0; }
-    100%   { r: 34px;   opacity: 0; }
-}
-.spring-pulse {
-    animation: springPulse 6s ease-out infinite;
-}
-
-/* Once a canal is placed, the ripple becomes a much rarer ambient effect (5x longer
-   period) — same active growth/fade speed as springPulse, just a far longer idle gap. */
-@keyframes springPulseSlow {
-    0%      { r: 0px;    opacity: 0.85; }
-    6.667%  { opacity: 0.85; }
-    13.333% { r: 34px;   opacity: 0; }
-    100%    { r: 34px;   opacity: 0; }
-}
-.spring-pulse-slow {
-    animation: springPulseSlow 30s ease-out infinite;
-}
-</style>
-
 <div class="board-shell">
-<div class="board-surface relative"
-     style="width: {W}px; height: {H}px; background-image: url('{boardUrl}'); background-size: 100% 100%; background-position: center center">
-
-    <!-- Cell grid — inset to match board image's stone border -->
-    <div class="absolute grid"
-         style="left: {BORDER_X}px; top: {BORDER_Y}px; width: {FIELD_W}px; height: {FIELD_H}px; grid-template-columns: {GRID_TEMPLATE_COLUMNS}; grid-template-rows: {GRID_TEMPLATE_ROWS}">
-        {#each Array(6) as _, row (row)}
-            {#each Array(8) as _, col (col)}
-                {@const sq = (session.boardPreview.squares ?? session.gameState.board.squares)[col][row]}
-                {@const highlight = fieldHighlight(col, row)}
-                {@const neutralOk = isValidNeutralPlacement(col, row)}
-                <button
-                    class="group block w-full h-full select-none relative overflow-hidden transition-opacity cursor-default"
-                    style="grid-column: {gridLine(col)}; grid-row: {gridLine(row)}"
-                    onclick={() => handleCellClick(col, row)}
-                    tabindex={highlight !== null || neutralOk ? 0 : -1}
-                    aria-label="Square {col},{row}"
-                >
-                    {#if highlight !== null || neutralOk}
-                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                            <svg class="h-2/3 w-2/3 opacity-60" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path d="M12 3v14m0 0-5-5m5 5 5-5" stroke="#4ade80" stroke-width="3"
-                                      stroke-linecap="round" stroke-linejoin="round"
-                                      style="filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6))" />
-                            </svg>
-                        </div>
-                    {/if}
-                    {#if !isFieldSquare(sq)}
-                        {#if sq.hasPalmTree}
-                            <img src={palmtreeUrl} alt="palm tree" class="palm-sway absolute inset-0 w-full h-full object-contain p-1" style={palmSwayStyle(col, row)} />
+    <div
+        class="board-surface relative"
+        style="width: {W}px; height: {H}px; background-image: url('{boardUrl}'); background-size: 100% 100%; background-position: center center"
+    >
+        <!-- Cell grid — inset to match board image's stone border -->
+        <div
+            class="absolute grid"
+            style="left: {BORDER_X}px; top: {BORDER_Y}px; width: {FIELD_W}px; height: {FIELD_H}px; grid-template-columns: {GRID_TEMPLATE_COLUMNS}; grid-template-rows: {GRID_TEMPLATE_ROWS}"
+        >
+            {#each Array(6) as _, row (row)}
+                {#each Array(8) as _, col (col)}
+                    {@const sq = (session.boardPreview.squares ?? session.gameState.board.squares)[
+                        col
+                    ][row]}
+                    {@const highlight = fieldHighlight(col, row)}
+                    {@const neutralOk = isValidNeutralPlacement(col, row)}
+                    <button
+                        class="group block w-full h-full select-none relative overflow-hidden transition-opacity cursor-default"
+                        style="grid-column: {gridLine(col)}; grid-row: {gridLine(row)}"
+                        onclick={() => handleCellClick(col, row)}
+                        tabindex={highlight !== null || neutralOk ? 0 : -1}
+                        aria-label="Square {col},{row}"
+                    >
+                        {#if highlight !== null || neutralOk}
+                            <div
+                                class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                            >
+                                <svg
+                                    class="h-2/3 w-2/3 opacity-60"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    aria-hidden="true"
+                                >
+                                    <path
+                                        d="M12 3v14m0 0-5-5m5 5 5-5"
+                                        stroke="#4ade80"
+                                        stroke-width="3"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        style="filter:drop-shadow(0 1px 2px rgba(0,0,0,0.6))"
+                                    ></path>
+                                </svg>
+                            </div>
                         {/if}
-                    {:else if sq.dried}
-                        <img src={desertUrl} alt="desert"
-                             class="absolute object-cover"
-                             style="inset:3px; width:calc(100% - 6px); height:calc(100% - 6px); border-radius:3px; transform:rotate({desertRotation(col,row)}deg) scale(1.03); filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.55))" />
-                    {:else}
-                        <div class="absolute inset-0" {@attach fieldPop.field(col, row)}>
-                            {#if droughtDust.flipping.includes(intersectionKey(col, row))}
-                                <!-- Drying: the field's card turns over to its desert side. -->
-                                <div class="absolute" style="inset:3px; perspective: 600px">
-                                    <div class="relative w-full h-full" style="transform-style: preserve-3d"
-                                         {@attach droughtDust.flipCard(col, row)}>
-                                        <img src={fieldImage(sq.crop, sq.farmerCapacity)}
-                                             alt=""
-                                             class="absolute inset-0 w-full h-full object-cover"
-                                             style="backface-visibility: hidden; border-radius:3px; transform:rotate({fieldRotation(col,row)}deg) scale(1.03); filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.55))" />
-                                        <img src={desertUrl}
-                                             alt=""
-                                             class="absolute inset-0 w-full h-full object-cover"
-                                             style="backface-visibility: hidden; border-radius:3px; transform:rotateY(180deg) rotate({desertRotation(col,row)}deg) scale(1.03); filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.55))" />
-                                    </div>
-                                </div>
-                            {:else}
-                                <img src={fieldImage(sq.crop, sq.farmerCapacity)}
-                                     alt=""
-                                     class="absolute object-cover"
-                                     style="inset:3px; width:calc(100% - 6px); height:calc(100% - 6px); border-radius:3px; transform:rotate({fieldRotation(col,row)}deg) scale(1.03); filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.55))" />
-                            {/if}
-                            <!-- Farmer cubes — only for owned fields -->
-                            {#if sq.playerId}
-                                <div class="absolute flex gap-[2px]" style="left: calc(20% - 7px); bottom: calc(20% - 6px)">
-                                    {#each Array(sq.farmerCount) as _, i (i)}
-                                        <div class="w-[18px] h-[18px] rounded-[4px]"
-                                             style="background-color: {playerColor(sq.playerId)}; border: 1px solid rgba(0,0,0,0.85); box-shadow: 1px 2px 3px rgba(0,0,0,0.65); transform: rotate({cubeRotation(col, row, i)}deg)">
-                                        </div>
-                                    {/each}
-                                </div>
-                            {/if}
+                        {#if !isFieldSquare(sq)}
                             {#if sq.hasPalmTree}
-                                <img src={palmtreeUrl} alt="palm tree" class="palm-sway absolute bottom-0.5 right-0.5 w-8 h-8 object-contain" style={palmSwayStyle(col, row)} />
+                                <img
+                                    src={palmtreeUrl}
+                                    alt="palm tree"
+                                    class="palm-sway absolute inset-0 w-full h-full object-contain p-1"
+                                    style={palmSwayStyle(col, row)}
+                                />
                             {/if}
-                        </div>
-                    {/if}
-                </button>
+                        {:else if sq.dried}
+                            <img
+                                src={desertUrl}
+                                alt="desert"
+                                class="absolute object-cover"
+                                style="inset:3px; width:calc(100% - 6px); height:calc(100% - 6px); border-radius:3px; transform:rotate({desertRotation(
+                                    col,
+                                    row
+                                )}deg) scale(1.03); filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.55))"
+                            />
+                        {:else}
+                            <div class="absolute inset-0" {@attach fieldPop.field(col, row)}>
+                                {#if droughtDust.flipping.includes(intersectionKey(col, row))}
+                                    <!-- Drying: the field's card turns over to its desert side. -->
+                                    <div class="absolute" style="inset:3px; perspective: 600px">
+                                        <div
+                                            class="relative w-full h-full"
+                                            style="transform-style: preserve-3d"
+                                            {@attach droughtDust.flipCard(col, row)}
+                                        >
+                                            <img
+                                                src={fieldImage(sq.crop, sq.farmerCapacity)}
+                                                alt=""
+                                                class="absolute inset-0 w-full h-full object-cover"
+                                                style="backface-visibility: hidden; border-radius:3px; transform:rotate({fieldRotation(
+                                                    col,
+                                                    row
+                                                )}deg) scale(1.03); filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.55))"
+                                            />
+                                            <img
+                                                src={desertUrl}
+                                                alt=""
+                                                class="absolute inset-0 w-full h-full object-cover"
+                                                style="backface-visibility: hidden; border-radius:3px; transform:rotateY(180deg) rotate({desertRotation(
+                                                    col,
+                                                    row
+                                                )}deg) scale(1.03); filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.55))"
+                                            />
+                                        </div>
+                                    </div>
+                                {:else}
+                                    <img
+                                        src={fieldImage(sq.crop, sq.farmerCapacity)}
+                                        alt=""
+                                        class="absolute object-cover"
+                                        style="inset:3px; width:calc(100% - 6px); height:calc(100% - 6px); border-radius:3px; transform:rotate({fieldRotation(
+                                            col,
+                                            row
+                                        )}deg) scale(1.03); filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.55))"
+                                    />
+                                {/if}
+                                <!-- Farmer cubes — only for owned fields -->
+                                {#if sq.playerId}
+                                    <div
+                                        class="absolute flex gap-[2px]"
+                                        style="left: calc(20% - 7px); bottom: calc(20% - 6px)"
+                                    >
+                                        {#each Array(sq.farmerCount) as _, i (i)}
+                                            <div
+                                                class="w-[18px] h-[18px] rounded-[4px]"
+                                                style="background-color: {playerColor(
+                                                    sq.playerId
+                                                )}; border: 1px solid rgba(0,0,0,0.85); box-shadow: 1px 2px 3px rgba(0,0,0,0.65); transform: rotate({cubeRotation(
+                                                    col,
+                                                    row,
+                                                    i
+                                                )}deg)"
+                                            ></div>
+                                        {/each}
+                                    </div>
+                                {/if}
+                                {#if sq.hasPalmTree}
+                                    <img
+                                        src={palmtreeUrl}
+                                        alt="palm tree"
+                                        class="palm-sway absolute bottom-0.5 right-0.5 w-8 h-8 object-contain"
+                                        style={palmSwayStyle(col, row)}
+                                    />
+                                {/if}
+                            </div>
+                        {/if}
+                    </button>
+                {/each}
             {/each}
-        {/each}
+        </div>
     </div>
-</div>
 
     <!-- SVG canal overlay — a sibling of .board-surface (not nested inside it) so its
          overflow:hidden (needed to round the board image's corners) doesn't clip labels
          that land near the board's edges; positioned to match .board-surface exactly. -->
-    <svg class="absolute" width={W} height={H} viewBox="0 0 {W} {H}"
-         style="left: 10px; top: 10px; pointer-events: none; overflow: visible; user-select: none"
-         {@attach attachAnimator(canalBuild)}
-         {@attach attachAnimator(bribePop)}
-         {@attach attachAnimator(fieldPop)}
-         {@attach attachAnimator(droughtDust)}
-         {@attach attachAnimator(session.landMoodAnimator)}>
+    <svg
+        class="absolute"
+        width={W}
+        height={H}
+        viewBox="0 0 {W} {H}"
+        style="left: 10px; top: 10px; pointer-events: none; overflow: visible; user-select: none"
+        {@attach attachAnimator(canalBuild)}
+        {@attach attachAnimator(bribePop)}
+        {@attach attachAnimator(fieldPop)}
+        {@attach attachAnimator(droughtDust)}
+        {@attach attachAnimator(session.landMoodAnimator)}
+    >
         <defs>
             <clipPath id={svgId('canalReveal')}>
-                <rect x="0" y="0" width={W} height={H}
-                      {@attach (el: SVGRectElement) => {
-                          canalBuild.setRevealRect(el)
-                          return () => canalBuild.setRevealRect(undefined)
-                      }} />
+                <rect
+                    x="0"
+                    y="0"
+                    width={W}
+                    height={H}
+                    {@attach (el: SVGRectElement) => {
+                        canalBuild.setRevealRect(el)
+                        return () => canalBuild.setRevealRect(undefined)
+                    }}
+                ></rect>
             </clipPath>
             <radialGradient id={svgId('droughtDust')}>
-                <stop offset="0%" stop-color="rgb(238, 214, 172)" stop-opacity="1"/>
-                <stop offset="60%" stop-color="rgb(228, 200, 154)" stop-opacity="0.75"/>
-                <stop offset="100%" stop-color="rgb(218, 188, 140)" stop-opacity="0"/>
+                <stop offset="0%" stop-color="rgb(238, 214, 172)" stop-opacity="1"></stop>
+                <stop offset="60%" stop-color="rgb(228, 200, 154)" stop-opacity="0.75"></stop>
+                <stop offset="100%" stop-color="rgb(218, 188, 140)" stop-opacity="0"></stop>
             </radialGradient>
             <linearGradient id={svgId('surveyStakeWood')} x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stop-color="#f0c48a"/>
-                <stop offset="100%" stop-color="#b47a42"/>
+                <stop offset="0%" stop-color="#f0c48a"></stop>
+                <stop offset="100%" stop-color="#b47a42"></stop>
             </linearGradient>
             <!-- Horizontal piece: lighter on top edge (light from above) -->
             <linearGradient id={svgId('canalH')} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%"   stop-color="#8888cc"/>
-                <stop offset="18%"  stop-color="#2222aa"/>
-                <stop offset="65%"  stop-color="#0000a0"/>
-                <stop offset="100%" stop-color="#000081"/>
+                <stop offset="0%" stop-color="#8888cc"></stop>
+                <stop offset="18%" stop-color="#2222aa"></stop>
+                <stop offset="65%" stop-color="#0000a0"></stop>
+                <stop offset="100%" stop-color="#000081"></stop>
             </linearGradient>
             <!-- Vertical piece: lighter on left edge -->
             <linearGradient id={svgId('canalV')} x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%"   stop-color="#8888cc"/>
-                <stop offset="18%"  stop-color="#2222aa"/>
-                <stop offset="65%"  stop-color="#0000a0"/>
-                <stop offset="100%" stop-color="#000081"/>
+                <stop offset="0%" stop-color="#8888cc"></stop>
+                <stop offset="18%" stop-color="#2222aa"></stop>
+                <stop offset="65%" stop-color="#0000a0"></stop>
+                <stop offset="100%" stop-color="#000081"></stop>
             </linearGradient>
             <!-- Fades a flat, orientation-independent color in near each segment's ends
                  (over the main gradient) so an H piece and a V piece meeting at a joint
@@ -620,25 +660,25 @@
                  -oriented tube-shading clashing there. Fully transparent in the middle,
                  so the shading still shows along most of a segment's length. -->
             <linearGradient id={svgId('canalFadeH')} x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%"   stop-color="#0000a0" stop-opacity="1"/>
-                <stop offset="15%"  stop-color="#0000a0" stop-opacity="0"/>
-                <stop offset="85%"  stop-color="#0000a0" stop-opacity="0"/>
-                <stop offset="100%" stop-color="#0000a0" stop-opacity="1"/>
+                <stop offset="0%" stop-color="#0000a0" stop-opacity="1"></stop>
+                <stop offset="15%" stop-color="#0000a0" stop-opacity="0"></stop>
+                <stop offset="85%" stop-color="#0000a0" stop-opacity="0"></stop>
+                <stop offset="100%" stop-color="#0000a0" stop-opacity="1"></stop>
             </linearGradient>
             <linearGradient id={svgId('canalFadeV')} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%"   stop-color="#0000a0" stop-opacity="1"/>
-                <stop offset="15%"  stop-color="#0000a0" stop-opacity="0"/>
-                <stop offset="85%"  stop-color="#0000a0" stop-opacity="0"/>
-                <stop offset="100%" stop-color="#0000a0" stop-opacity="1"/>
+                <stop offset="0%" stop-color="#0000a0" stop-opacity="1"></stop>
+                <stop offset="15%" stop-color="#0000a0" stop-opacity="0"></stop>
+                <stop offset="85%" stop-color="#0000a0" stop-opacity="0"></stop>
+                <stop offset="100%" stop-color="#0000a0" stop-opacity="1"></stop>
             </linearGradient>
             <!-- Self-similar radial gradient — since it's relative to the pulse circle's
                  own (animated) radius, the light band always sits near its current outer
                  edge, reading as a wavefront rippling outward as the circle grows. -->
             <radialGradient id={svgId('springPulseGradient')}>
-                <stop offset="0%"   stop-color="#7dd3fc" stop-opacity="0"/>
-                <stop offset="55%"  stop-color="#7dd3fc" stop-opacity="0"/>
-                <stop offset="80%"  stop-color="#bee7fd" stop-opacity="0.85"/>
-                <stop offset="100%" stop-color="#e0f2fe" stop-opacity="0"/>
+                <stop offset="0%" stop-color="#7dd3fc" stop-opacity="0"></stop>
+                <stop offset="55%" stop-color="#7dd3fc" stop-opacity="0"></stop>
+                <stop offset="80%" stop-color="#bee7fd" stop-opacity="0.85"></stop>
+                <stop offset="100%" stop-color="#e0f2fe" stop-opacity="0"></stop>
             </radialGradient>
             <!-- Cuts a small quarter-circle notch out of the canal rendering at each exposed
                  junction corner (see canalCornerFillets) — the mask is white (fully visible)
@@ -647,15 +687,29 @@
                  only the small sliver between the sharp point and the fillet arc is actually
                  hidden. What shows through there is the board's own background underneath the
                  canal overlay — a natural look for a rounded canal bend. -->
-            <mask id={svgId('canalCornerMask')} maskUnits="userSpaceOnUse" x="0" y="0" width={W} height={H}>
-                <rect x="0" y="0" width={W} height={H} fill="white" />
+            <mask
+                id={svgId('canalCornerMask')}
+                maskUnits="userSpaceOnUse"
+                x="0"
+                y="0"
+                width={W}
+                height={H}
+            >
+                <rect x="0" y="0" width={W} height={H} fill="white"></rect>
                 {#each canalCornerFillets as f, i (i)}
-                    <rect x={Math.min(f.cx, f.cx + f.ox * CANAL_FILLET_RADIUS)}
-                          y={Math.min(f.cy, f.cy + f.oy * CANAL_FILLET_RADIUS)}
-                          width={CANAL_FILLET_RADIUS} height={CANAL_FILLET_RADIUS}
-                          fill="black" />
-                    <circle cx={f.cx + f.ox * CANAL_FILLET_RADIUS} cy={f.cy + f.oy * CANAL_FILLET_RADIUS}
-                            r={CANAL_FILLET_RADIUS} fill="white" />
+                    <rect
+                        x={Math.min(f.cx, f.cx + f.ox * CANAL_FILLET_RADIUS)}
+                        y={Math.min(f.cy, f.cy + f.oy * CANAL_FILLET_RADIUS)}
+                        width={CANAL_FILLET_RADIUS}
+                        height={CANAL_FILLET_RADIUS}
+                        fill="black"
+                    ></rect>
+                    <circle
+                        cx={f.cx + f.ox * CANAL_FILLET_RADIUS}
+                        cy={f.cy + f.oy * CANAL_FILLET_RADIUS}
+                        r={CANAL_FILLET_RADIUS}
+                        fill="white"
+                    ></circle>
                 {/each}
             </mask>
         </defs>
@@ -669,9 +723,17 @@
             {#each boardCanals as seg (segmentKey(seg))}
                 {@const isH = seg.orientation === 'H'}
                 {@const d = canalPathD(seg, canalJunctionKeys)}
-                <g clip-path={segmentKey(seg) === canalBuild.revealingKey ? `url(#${svgId('canalReveal')})` : undefined}>
-                    <path {d} fill={isH ? `url(#${svgId('canalH')})` : `url(#${svgId('canalV')})`}/>
-                    <path {d} fill={isH ? `url(#${svgId('canalFadeH')})` : `url(#${svgId('canalFadeV')})`}/>
+                <g
+                    clip-path={segmentKey(seg) === canalBuild.revealingKey
+                        ? `url(#${svgId('canalReveal')})`
+                        : undefined}
+                >
+                    <path {d} fill={isH ? `url(#${svgId('canalH')})` : `url(#${svgId('canalV')})`}
+                    ></path>
+                    <path
+                        {d}
+                        fill={isH ? `url(#${svgId('canalFadeH')})` : `url(#${svgId('canalFadeV')})`}
+                    ></path>
                 </g>
             {/each}
         </g>
@@ -691,8 +753,12 @@
         {#each droughtDust.puffs as puff (puff.key)}
             <g transform="translate({puff.x} {puff.y})">
                 {#each { length: DUST_PARTICLES } as _, i (i)}
-                    <circle r={7 + (i % 3) * 2.5} fill="url(#{svgId('droughtDust')})" opacity="0"
-                            {@attach droughtDust.particle(dustParticleKey(puff.key, i))} />
+                    <circle
+                        r={7 + (i % 3) * 2.5}
+                        fill="url(#{svgId('droughtDust')})"
+                        opacity="0"
+                        {@attach droughtDust.particle(dustParticleKey(puff.key, i))}
+                    ></circle>
                 {/each}
             </g>
         {/each}
@@ -702,27 +768,87 @@
             <g transform="translate({s.x},{s.y}) scale({s.scale})">
                 <g class="canal-sparkle" style="--dx:{s.dx};--dy:{s.dy}">
                     <g transform="rotate({s.rotate})">
-                        <line x1="0" y1="-1.5" x2="0" y2="1.5" stroke="white" stroke-width="0.5" stroke-linecap="round" opacity="0.9"/>
-                        <line x1="-1.5" y1="0" x2="1.5" y2="0" stroke="white" stroke-width="0.5" stroke-linecap="round" opacity="0.9"/>
-                        <line x1="-1" y1="-1" x2="1" y2="1" stroke="white" stroke-width="0.3" stroke-linecap="round" opacity="0.5"/>
-                        <line x1="1" y1="-1" x2="-1" y2="1" stroke="white" stroke-width="0.3" stroke-linecap="round" opacity="0.5"/>
-                        <circle r="0.4" fill="white" opacity="0.95"/>
+                        <line
+                            x1="0"
+                            y1="-1.5"
+                            x2="0"
+                            y2="1.5"
+                            stroke="white"
+                            stroke-width="0.5"
+                            stroke-linecap="round"
+                            opacity="0.9"
+                        ></line>
+                        <line
+                            x1="-1.5"
+                            y1="0"
+                            x2="1.5"
+                            y2="0"
+                            stroke="white"
+                            stroke-width="0.5"
+                            stroke-linecap="round"
+                            opacity="0.9"
+                        ></line>
+                        <line
+                            x1="-1"
+                            y1="-1"
+                            x2="1"
+                            y2="1"
+                            stroke="white"
+                            stroke-width="0.3"
+                            stroke-linecap="round"
+                            opacity="0.5"
+                        ></line>
+                        <line
+                            x1="1"
+                            y1="-1"
+                            x2="-1"
+                            y2="1"
+                            stroke="white"
+                            stroke-width="0.3"
+                            stroke-linecap="round"
+                            opacity="0.5"
+                        ></line>
+                        <circle r="0.4" fill="white" opacity="0.95"></circle>
                     </g>
                 </g>
             </g>
         {/each}
 
-        {#snippet bribeLabel(segment: CanalSegment, contrib: { playerId: string; color: string; amount: number }, cx: number, cy: number, hovered: boolean)}
+        {#snippet bribeLabel(
+            segment: CanalSegment,
+            contrib: { playerId: string; color: string; amount: number },
+            cx: number,
+            cy: number,
+            hovered: boolean
+        )}
             <g transform="translate({cx} {cy})">
                 <g {@attach bribePop.pill(bribePillKey(segment, contrib.playerId))}>
-                    <g style="transform: scale({hovered ? 1.15 : 1}); transition: transform 0.12s ease-out">
-                        <rect x={-BRIBE_PILL_HALF_WIDTH} y="-14" width={BRIBE_PILL_HALF_WIDTH * 2} height="28" rx="6"
-                              fill={contrib.color}
-                              stroke="black" stroke-width="1"
-                              opacity="0.9" />
-                        <text x="0" y="0" text-anchor="middle" dominant-baseline="middle"
-                              fill={isYellowPlayer(contrib.playerId) ? 'black' : 'white'} font-size="16" font-weight="bold"
-                              style="font-family:sans-serif">{contrib.amount}</text>
+                    <g
+                        style="transform: scale({hovered
+                            ? 1.15
+                            : 1}); transition: transform 0.12s ease-out"
+                    >
+                        <rect
+                            x={-BRIBE_PILL_HALF_WIDTH}
+                            y="-14"
+                            width={BRIBE_PILL_HALF_WIDTH * 2}
+                            height="28"
+                            rx="6"
+                            fill={contrib.color}
+                            stroke="black"
+                            stroke-width="1"
+                            opacity="0.9"
+                        ></rect>
+                        <text
+                            x="0"
+                            y="0"
+                            text-anchor="middle"
+                            dominant-baseline="middle"
+                            fill={isYellowPlayer(contrib.playerId) ? 'black' : 'white'}
+                            font-size="16"
+                            font-weight="bold"
+                            style="font-family:sans-serif">{contrib.amount}</text
+                        >
                     </g>
                 </g>
             </g>
@@ -732,10 +858,12 @@
             {#if isOverseerDeciding}
                 {@const key = segmentKey(ps.segment)}
                 {@const hovered = hoveredLabelKey === key}
-                <g style="pointer-events: all; cursor: pointer; touch-action: manipulation"
-                   onclick={() => session.acceptProposal(ps.segment)}
-                   onmouseenter={() => hoveredLabelKey = key}
-                   onmouseleave={() => hoveredLabelKey = null}>
+                <g
+                    style="pointer-events: all; cursor: pointer; touch-action: manipulation"
+                    onclick={() => session.acceptProposal(ps.segment)}
+                    onmouseenter={() => (hoveredLabelKey = key)}
+                    onmouseleave={() => (hoveredLabelKey = null)}
+                >
                     {#each ps.contributions as contrib, i (i)}
                         {@const { cx, cy } = pillCenter(ps.segment, i, n, BRIBE_PILL_HALF_WIDTH)}
                         {@render bribeLabel(ps.segment, contrib, cx, cy, hovered)}
@@ -753,25 +881,28 @@
             {@const c = segmentEnds(seg)}
             {@const key = segmentKey(seg)}
             {@const bribeColors = bribeColorsByKey.get(key)}
-            <g {@attach (el: SVGGElement) => {
-                   canalBuild.setSurveyNode(key, el)
-                   return () => canalBuild.setSurveyNode(key, undefined)
-               }}>
-            <SurveyLine
-                stakeWood={`url(#${svgId('surveyStakeWood')})`}
-                {...c}
-                selected={session.selectedBribeSegment !== undefined && isSameSegment(seg, session.selectedBribeSegment)}
-                selectedColor={session.myPlayer ? playerColor(session.myPlayer.id) : undefined}
-                fillsFromFarEnd={waterEntersAtFarEnd(seg, waterNetwork)}
-                phase={swayPhase(seg)}
-                bunting={bribeColors}
+            <g
+                {@attach (el: SVGGElement) => {
+                    canalBuild.setSurveyNode(key, el)
+                    return () => canalBuild.setSurveyNode(key, undefined)
+                }}
             >
-                <!-- Drawn from visibleSegments (everyone, all through the bribe phase) but only
+                <SurveyLine
+                    stakeWood={`url(#${svgId('surveyStakeWood')})`}
+                    {...c}
+                    selected={session.selectedBribeSegment !== undefined &&
+                        isSameSegment(seg, session.selectedBribeSegment)}
+                    selectedColor={session.myPlayer ? playerColor(session.myPlayer.id) : undefined}
+                    fillsFromFarEnd={waterEntersAtFarEnd(seg, waterNetwork)}
+                    phase={swayPhase(seg)}
+                    bunting={bribeColors}
+                >
+                    <!-- Drawn from visibleSegments (everyone, all through the bribe phase) but only
                      given a hit area when this player can actually act on it - see
                      SantiagoGameSession.validSegments. An observer sees where the bribes are
                      pointing without the lines inviting a click that would be rejected. -->
-                {#if session.isMyTurn}
-                    <!-- Wider transparent hit area. 34 user units rather than 16: the board is
+                    {#if session.isMyTurn}
+                        <!-- Wider transparent hit area. 34 user units rather than 16: the board is
                          drawn in a 768x576 viewBox and scaled to fit, so on a phone (~350px
                          wide) 16 units came out around 7 physical pixels - fine for a mouse,
                          essentially unhittable with a fingertip, which is what an Android
@@ -779,29 +910,52 @@
                          leaves a wide gap between neighbouring hit areas.
                          touch-action stops Android from holding the tap back to see whether a
                          double-tap zoom is coming. -->
-                    <line {...c} stroke="transparent" stroke-width="34"
-                          style="pointer-events: all; cursor: pointer; touch-action: manipulation"
-                          onpointerdown={(event) => (lastSegmentPointer = event.pointerType)}
-                          onclick={() => tapSegment(seg, isOverseerDeciding && !bribeColors)} />
-                {/if}
-                {#if isOverseerDeciding && !bribeColors}
-                    {@const { cx, cy } = pillCenter(seg, 0, 1, BANK_PILL_HALF_WIDTH)}
-                    <!-- Shown only while this spot is hovered, or on touch after a first tap on its
+                        <line
+                            {...c}
+                            stroke="transparent"
+                            stroke-width="34"
+                            style="pointer-events: all; cursor: pointer; touch-action: manipulation"
+                            onpointerdown={(event) => (lastSegmentPointer = event.pointerType)}
+                            onclick={() => tapSegment(seg, isOverseerDeciding && !bribeColors)}
+                        ></line>
+                    {/if}
+                    {#if isOverseerDeciding && !bribeColors}
+                        {@const { cx, cy } = pillCenter(seg, 0, 1, BANK_PILL_HALF_WIDTH)}
+                        <!-- Shown only while this spot is hovered, or on touch after a first tap on its
                          twine: the action bar already states the cost of rejecting every bribe and
                          building here. -->
-                    <g class="bank-pill" class:revealed={revealedBankKey === segmentKey(seg)}
-                       style="cursor: pointer; touch-action: manipulation"
-                       onclick={() => session.rejectAndBuild(seg)}>
-                        <rect x={cx - BANK_PILL_HALF_WIDTH} y={cy - 14} width={BANK_PILL_HALF_WIDTH * 2} height="28" rx="6"
-                              fill="#666666" stroke="black" stroke-width="1" opacity="0.85" />
-                        <text x={cx} y={cy} text-anchor="middle" dominant-baseline="middle"
-                              fill="white" font-size="12" font-weight="bold"
-                              style="font-family:sans-serif">
-                            {session.rejectPenalty} → bank
-                        </text>
-                    </g>
-                {/if}
-            </SurveyLine>
+                        <g
+                            class="bank-pill"
+                            class:revealed={revealedBankKey === segmentKey(seg)}
+                            style="cursor: pointer; touch-action: manipulation"
+                            onclick={() => session.rejectAndBuild(seg)}
+                        >
+                            <rect
+                                x={cx - BANK_PILL_HALF_WIDTH}
+                                y={cy - 14}
+                                width={BANK_PILL_HALF_WIDTH * 2}
+                                height="28"
+                                rx="6"
+                                fill="#666666"
+                                stroke="black"
+                                stroke-width="1"
+                                opacity="0.85"
+                            ></rect>
+                            <text
+                                x={cx}
+                                y={cy}
+                                text-anchor="middle"
+                                dominant-baseline="middle"
+                                fill="white"
+                                font-size="12"
+                                font-weight="bold"
+                                style="font-family:sans-serif"
+                            >
+                                {session.rejectPenalty} → bank
+                            </text>
+                        </g>
+                    {/if}
+                </SurveyLine>
             </g>
         {/each}
 
@@ -814,7 +968,7 @@
                 fill="#000081"
                 stroke="#cccccc"
                 stroke-width="2.5"
-            />
+            ></circle>
             <!-- Spring pulse idle animation — disabled per Justin's feedback (didn't like it).
                  Left commented out rather than deleted in case we want it back.
             <circle
@@ -831,12 +985,15 @@
                 {@const px = intersectionX(col)}
                 {@const py = intersectionY(row)}
                 <circle
-                    cx={px} cy={py} r="11"
+                    cx={px}
+                    cy={py}
+                    r="11"
                     fill="rgba(125,211,252,0.55)"
-                    stroke="#e0f2fe" stroke-width="1.5"
+                    stroke="#e0f2fe"
+                    stroke-width="1.5"
                     style="pointer-events: all; cursor: pointer"
                     onclick={() => session.placeSpring(col, row)}
-                />
+                ></circle>
             {/each}
         {/if}
     </svg>
@@ -844,3 +1001,150 @@
     <SunWash />
     <DustMotes />
 </div>
+
+<style>
+    .board-shell :global(.survey .bank-pill) {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.15s ease-out;
+    }
+    .board-shell :global(.survey:hover .bank-pill),
+    .board-shell :global(.survey .bank-pill.revealed) {
+        opacity: 1;
+        pointer-events: all;
+    }
+    @keyframes palm-sway {
+        0%,
+        100% {
+            transform: rotate(-1.5deg) skewX(0.6deg);
+        }
+        50% {
+            transform: rotate(1.8deg) skewX(-0.8deg);
+        }
+    }
+    .palm-sway {
+        transform-origin: 50% 92%;
+        animation-name: palm-sway;
+        animation-timing-function: ease-in-out;
+        animation-iteration-count: infinite;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .palm-sway {
+            animation: none;
+        }
+    }
+    @keyframes sparkle-pop {
+        0% {
+            opacity: 0;
+            transform: translate(0px, 0px) scale(0.2);
+        }
+        25% {
+            opacity: 1;
+            transform: translate(calc(var(--dx) * 0.25px), calc(var(--dy) * 0.25px)) scale(1.1);
+        }
+        60% {
+            opacity: 0.9;
+            transform: translate(calc(var(--dx) * 0.6px), calc(var(--dy) * 0.6px)) scale(1);
+        }
+        100% {
+            opacity: 0;
+            transform: translate(calc(var(--dx) * 1px), calc(var(--dy) * 1px)) scale(0.6);
+        }
+    }
+    .canal-sparkle {
+        animation: sparkle-pop 1.2s ease-out forwards;
+        transform-box: fill-box;
+        transform-origin: center;
+        pointer-events: none;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .canal-sparkle {
+            display: none;
+        }
+    }
+
+    .board-shell {
+        position: relative;
+        display: inline-flex;
+        padding: 10px;
+        border-radius: 20px;
+        background:
+            radial-gradient(980px 620px at 14% 10%, rgba(255, 226, 180, 0.34), transparent 64%),
+            repeating-linear-gradient(
+                -30deg,
+                rgba(80, 40, 15, 0.03) 0 2px,
+                rgba(255, 255, 255, 0.02) 2px 7px
+            ),
+            #8a4a2e;
+    }
+
+    .board-surface {
+        border-radius: 14px;
+        overflow: hidden;
+        /* Its own stacking context, so a square lifted above its neighbours while it pops still
+       sits beneath the sunlight drawn over the whole board. */
+        isolation: isolate;
+        box-shadow:
+            0 0 0 5px rgba(58, 28, 10, 0.32),
+            0 10px 22px rgba(30, 14, 4, 0.35);
+    }
+
+    /* Saved for later — Justin wants to see the placement arrow without the bounce for now,
+   but may want it back. Re-add class="hover-arrow-bounce" to the arrow's <svg> to restore. */
+    @keyframes hoverArrowBounce {
+        0%,
+        100% {
+            transform: translateY(0);
+        }
+        50% {
+            transform: translateY(4px);
+        }
+    }
+    .hover-arrow-bounce {
+        animation: hoverArrowBounce 0.8s ease-in-out infinite;
+    }
+
+    @keyframes springPulse {
+        0% {
+            r: 0px;
+            opacity: 0.85;
+        }
+        33.33% {
+            opacity: 0.85;
+        }
+        66.67% {
+            r: 34px;
+            opacity: 0;
+        }
+        100% {
+            r: 34px;
+            opacity: 0;
+        }
+    }
+    .spring-pulse {
+        animation: springPulse 6s ease-out infinite;
+    }
+
+    /* Once a canal is placed, the ripple becomes a much rarer ambient effect (5x longer
+   period) — same active growth/fade speed as springPulse, just a far longer idle gap. */
+    @keyframes springPulseSlow {
+        0% {
+            r: 0px;
+            opacity: 0.85;
+        }
+        6.667% {
+            opacity: 0.85;
+        }
+        13.333% {
+            r: 34px;
+            opacity: 0;
+        }
+        100% {
+            r: 34px;
+            opacity: 0;
+        }
+    }
+    .spring-pulse-slow {
+        animation: springPulseSlow 30s ease-out infinite;
+    }
+</style>

@@ -25,15 +25,18 @@
     <!-- Everyone feeds their parrotfish at once. -->
     <p class="prompt">
         {#each game.activePlayerIds as playerId, index (playerId)}
-            {#if index > 0}{index === game.activePlayerIds.length - 1 ? ' and ' : ', '}{/if}<PlayerName
-                {playerId}
-            />
+            {#if index > 0}{index === game.activePlayerIds.length - 1
+                    ? ' and '
+                    : ', '}{/if}<PlayerName {playerId} />
         {/each}
         are feeding their parrotfish.
     </p>
 {:else}
     {#each game.activePlayerIds as playerId (playerId)}
-        {@const activity = waitingActivity(game.machineState, playerId === gameSession.myPlayer?.id)}
+        {@const activity = waitingActivity(
+            game.machineState,
+            playerId === gameSession.myPlayer?.id
+        )}
         {#if activity}
             <p class="prompt"><PlayerName {playerId} /> {activity}</p>
         {/if}
@@ -49,13 +52,13 @@
 {/if}
 
 <style>
-    /* One line; the History tab holds the rest. */
+    /* At most two lines; the History tab holds the rest. */
     .summary {
         display: -webkit-box;
         overflow: hidden;
         -webkit-box-orient: vertical;
-        -webkit-line-clamp: 1;
-        line-clamp: 1;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
         line-height: 1.55;
     }
 </style>

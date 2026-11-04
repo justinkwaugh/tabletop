@@ -48,7 +48,7 @@ describe('the objective stars line of the armies panel', () => {
                 { star: 'Red', hold: 'held', explanation: 'Red star held at locale 126' },
                 { star: 'Black', hold: 'held', explanation: 'Black star held at locale 126' }
             ],
-            terms: 'Any one wins'
+            terms: 'Any one stops the Allies winning'
         })
     })
 
@@ -71,6 +71,6 @@ describe('the objective stars line of the armies panel', () => {
         expect(seenBy(game, Side.French, Side.French).terms).toBe(
             'All three win if the Allies hold none'
         )
-        expect(seenBy(game, Side.French, Side.Allied).terms).toBe('One wins')
+        expect(seenBy(game, Side.French, Side.Allied).terms).toBe('One stops the French winning')
     })
 })

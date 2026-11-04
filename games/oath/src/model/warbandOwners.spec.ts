@@ -29,36 +29,40 @@ function table(): HydratedOathGameState {
 }
 
 describe('whose warbands are whose (R-1.8, R-1.9, R-10.13)', () => {
-    it('the Chancellor\'s own warbands are the Empire\'s; every other player\'s are keyed by their id', () => {
+    it("the Chancellor's own warbands are the Empire's; every other player's are keyed by their id", () => {
         const state = table()
         expect(ownWarbandOwner(state, CHANCELLOR)).toBe(IMPERIAL_WARBANDS)
         expect(ownWarbandOwner(state, CITIZEN)).toBe(CITIZEN)
         expect(ownWarbandOwner(state, EXILE)).toBe(EXILE)
     })
 
-    it('an Imperial player rules with the Empire\'s warbands too, unless a Campaign suspends it (R-6.6.3, R-5.5.1.a)', () => {
+    it("an Imperial player rules with the Empire's warbands too, unless a Campaign suspends it (R-6.6.3, R-5.5.1.a)", () => {
         const state = table()
         expect(rulingWarbandOwners(state, CHANCELLOR)).toEqual([IMPERIAL_WARBANDS])
         expect(rulingWarbandOwners(state, CITIZEN)).toEqual([CITIZEN, IMPERIAL_WARBANDS])
-        expect(rulingWarbandOwners(state, CITIZEN, { nonImperialPlayerIds: [CITIZEN] })).toEqual([CITIZEN])
+        expect(rulingWarbandOwners(state, CITIZEN, { nonImperialPlayerIds: [CITIZEN] })).toEqual([
+            CITIZEN
+        ])
         expect(rulingWarbandOwners(state, EXILE)).toEqual([EXILE])
     })
 
-    it('the Empire\'s warbands bank with the Chancellor; an Exile\'s with that Exile; nobody else\'s exist', () => {
+    it("the Empire's warbands bank with the Chancellor; an Exile's with that Exile; nobody else's exist", () => {
         const state = table()
         expect(state.warbandBankHolderOf(IMPERIAL_WARBANDS)).toBe(CHANCELLOR)
         expect(state.warbandBankHolderOf(EXILE)).toBe(EXILE)
-        expect(() => state.warbandBankHolderOf('nobody')).toThrow('Player state for player nobody not found')
+        expect(() => state.warbandBankHolderOf('nobody')).toThrow(
+            'Player state for player nobody not found'
+        )
     })
 
-    it('a Citizen musters the Empire\'s warbands; everyone else their own', () => {
+    it("a Citizen musters the Empire's warbands; everyone else their own", () => {
         const state = table()
         expect(HydratedMuster.warbandOwnerFor(state, CITIZEN)).toBe(IMPERIAL_WARBANDS)
         expect(HydratedMuster.warbandOwnerFor(state, CHANCELLOR)).toBe(IMPERIAL_WARBANDS)
         expect(HydratedMuster.warbandOwnerFor(state, EXILE)).toBe(EXILE)
     })
 
-    it('no player may take the Empire\'s key as an id', () => {
+    it("no player may take the Empire's key as an id", () => {
         const game = testGame([IMPERIAL_WARBANDS, 'p2'])
         expect(() =>
             new OathGameInitializer().initializeGameState(game, {
@@ -89,7 +93,7 @@ describe('a player\'s colour is presentation only (DESIGN "Player relationships"
         return { ...raw, players: raw.players.map(({ color: _color, ...rest }) => rest) }
     }
 
-    it('swapping every seat\'s colour changes no holding, rule or status', () => {
+    it("swapping every seat's colour changes no holding, rule or status", () => {
         const plain = play(table())
         const swapped = table()
         const shown = [Color.Yellow, Color.Red, Color.Purple, Color.Blue]
@@ -101,7 +105,10 @@ describe('a player\'s colour is presentation only (DESIGN "Player relationships"
             expect(rulersOfSite(swapped, siteId)).toEqual(rulersOfSite(plain, siteId))
         }
         expect(swapped.getPlayerState(EXILE).status).toBe(PlayerStatus.Citizen)
-        expect(swapped.getPlayerState(EXILE).warbandsOnBoard).toEqual({ [EXILE]: 0, [IMPERIAL_WARBANDS]: 5 })
+        expect(swapped.getPlayerState(EXILE).warbandsOnBoard).toEqual({
+            [EXILE]: 0,
+            [IMPERIAL_WARBANDS]: 5
+        })
         expect(swapped.warbandsBySite['c2']).toEqual({ [EXILE]: 0, [IMPERIAL_WARBANDS]: 2 })
     })
 })

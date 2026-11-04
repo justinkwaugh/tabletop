@@ -1,7 +1,6 @@
 import { assertExists } from '@tabletop/common'
 import { Banner, Suit } from '../model/oathEnums.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
-import { suitOf } from '../data/cardRegistry.js'
 import { gainSupply } from '../util/rest.js'
 import { citizenshipEndsActPhase } from '../util/citizenship.js'
 import {
@@ -34,6 +33,7 @@ import {
     moveFavorBetweenBanks,
     moveWarbandsBoardToSite,
     moveWarbandsSiteToBoard,
+    warbandMovesOverlay,
     favorObtainableFromPicks,
     discardDenizensAtSites
 } from './vocabulary.js'
@@ -42,7 +42,8 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import { totalWarbands, countOf, soleOwnerOf } from '../util/warbands.js'
 import { ANY_WARBANDS_MOVES, playerChoicesAtYourSite, siteChoicesYouRule } from './choiceDomains.js'
 import { RerolledRollKind } from '../model/question.js'
-import { offerReroll, settleRoll } from '../util/reroll.js'
+import { offerReroll, rolledShields, settleRoll } from '../util/reroll.js'
+import { defenseShieldsFromFaces, rollDefenseDice } from '../data/dice.js'
 import { isLockedFor, reasonCannotMoveCardTo } from '../util/locked.js'
 import { categoryAt } from '../util/sitePowers.js'
 import { siteHolding } from '../util/access.js'
@@ -50,6 +51,7 @@ import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 import { TOTAL_MAP_SLOTS } from '../data/mapSlots.js'
 import { MAX_SITE_CAPACITY } from '../data/sites.js'
 import { SEIZE_MINIMUM, burnableFromBanner } from '../util/seize.js'
+import { reasonPowerMovesToSitesBarred } from '../util/continuous.js'
 
 const anyPlayer: ChoiceDomain = (state) =>
     state.players.map((p) => ({ kind: PowerChoiceKind.Player, playerId: p.playerId }))
@@ -150,7 +152,7 @@ registerEffect(
         reasonCannotResolve: (ctx) => {
             const picks = chosen(ctx, PowerChoiceKind.FavorBank).map((b) => b.suit)
             const required = alchemistFavor(ctx.state).total
-            const obtainable = favorObtainableFromPicks(ctx.state, picks)
+            const obtainable = favorObtainableFromPicks(ctx.state.favorBank, picks)
             return obtainable < required
                 ? `Alchemist gains four favor: the banks named yield ${obtainable}, and ${required} can be had`
                 : undefined
@@ -254,12 +256,29 @@ registerEffect(
 
 // "Action: Roll 4[defenseDie] and take X[favor] equal to the total [shield]
 // result from any one favor bank."
+// From revision 21 the bank is chosen once the roll stands, after any Jinx reroll (R-7.1.3-H2);
+// before it, the bank was named at the use, and recorded uses carry it (R-X.4).
+const BANK_AT_USE = { beforeRevision: OathRevision.EngineFixes17 }
 registerEffect(
     'denizen.discord.gambling-hall',
     powerIndexOf('denizen.discord.gambling-hall', PowerTiming.Action),
     {
-        choices: [one(PowerChoiceKind.FavorBank, { what: 'a favor bank' })],
+        choices: [one(PowerChoiceKind.FavorBank, { what: 'a favor bank', ...BANK_AT_USE })],
         resolve: (ctx) => {
+            if (isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes17)) {
+                const faces = rollDefenseDice(ctx.state.getProtectedPrng(), 4)
+                const shields = defenseShieldsFromFaces(faces)
+                const roll = { kind: RerolledRollKind.GamblingHallDice as const, shields, faces }
+                // Jinx — the bank waits on the reroll's answer.
+                if (offerReroll(ctx.state, ctx.playerId, ctx.playerId, roll)) {
+                    return {
+                        summary: `${rolledShields(shields)}; Jinx may reroll them`,
+                        rolled: true
+                    }
+                }
+                const settled = settleRoll(ctx.state, ctx.playerId, ctx.playerId, roll)
+                return { summary: settled.summary, rolled: true }
+            }
             const [bank] = chosen(ctx, PowerChoiceKind.FavorBank)
             const shields = rollDefenseShields(ctx.state.getProtectedPrng(), 4)
             const roll = { kind: RerolledRollKind.GamblingHall as const, bank: bank.suit, shields }
@@ -267,12 +286,26 @@ registerEffect(
             if (offerReroll(ctx.state, ctx.playerId, ctx.playerId, roll)) {
                 return { summary: `rolled ${shields} shields; Jinx may reroll them`, rolled: true }
             }
-            return { summary: settleRoll(ctx.state, ctx.playerId, roll).summary, rolled: true }
+            return {
+                summary: settleRoll(ctx.state, ctx.playerId, ctx.playerId, roll).summary,
+                rolled: true
+            }
         }
     }
 )
 
 // "Action: Discard a faceup adviser of a player whose pawn is at your site."
+// R-7.2.2 — a locked adviser cannot be discarded.
+function assassinTargets(
+    state: HydratedOathGameState,
+    playerId: string,
+    targetId: string
+): string[] {
+    return state
+        .getPlayerState(targetId)
+        .faceupAdviserIds()
+        .filter((cardId) => !isLockedFor(state, playerId, cardId))
+}
 registerEffect(
     'denizen.discord.assassin',
     powerIndexOf('denizen.discord.assassin', PowerTiming.Action),
@@ -280,29 +313,27 @@ registerEffect(
         choices: [
             one(PowerChoiceKind.Player, {
                 what: 'a player at your site',
-                domain: playerChoicesAtYourSite
+                // A player with no adviser to discard is no target.
+                domain: (state, playerId) =>
+                    otherPlayersAtYourSite(state, playerId)
+                        .filter((id) => assassinTargets(state, playerId, id).length > 0)
+                        .map((id) => ({ kind: PowerChoiceKind.Player, playerId: id }))
             }),
             one(PowerChoiceKind.Card, {
                 what: "one of that player's faceup advisers",
-                // R-7.2.2 — a locked adviser cannot be discarded.
-                domain: (state, playerId) =>
-                    otherPlayersAtYourSite(state, playerId).flatMap((id) =>
-                        state
-                            .getPlayerState(id)
-                            .faceupAdviserIds()
-                            .filter((cardId) => !isLockedFor(state, playerId, cardId))
-                            .map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
+                // Once the player is picked, only their advisers: before it, those of every player offered.
+                readsEarlier: true,
+                domain: (state, playerId, _power, earlier = []) => {
+                    const [picked] = earlier.flatMap((c) =>
+                        c.kind === PowerChoiceKind.Player ? [c.playerId] : []
                     )
+                    return otherPlayersAtYourSite(state, playerId)
+                        .filter((id) => picked === undefined || id === picked)
+                        .flatMap((id) => assassinTargets(state, playerId, id))
+                        .map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
+                }
             })
         ],
-        reasonCannotResolve: (ctx) => {
-            const [target] = chosen(ctx, PowerChoiceKind.Player)
-            const [card] = chosen(ctx, PowerChoiceKind.Card)
-            const holds = ctx.state.getPlayerState(target.playerId).isFaceupAdviser(card.cardId)
-            return holds
-                ? undefined
-                : `${card.cardId} is not a faceup adviser of ${target.playerId}`
-        },
         resolve: (ctx) => {
             const [target] = chosen(ctx, PowerChoiceKind.Player)
             const [card] = chosen(ctx, PowerChoiceKind.Card)
@@ -345,7 +376,7 @@ registerEffect(
                             .faceupAdviserIds()
                             .filter(
                                 (cardId) =>
-                                    suitOf(cardId) === Suit.Nomad &&
+                                    state.suitInPlay(cardId) === Suit.Nomad &&
                                     reasonCannotMoveCardTo(state, playerId, cardId, 'site') ===
                                         undefined
                             )
@@ -490,7 +521,7 @@ registerEffect(
                 return 'the beast bank cannot be a source for itself'
             const required = memoryOfNatureFavor(ctx.state).total
             const obtainable = favorObtainableFromPicks(
-                ctx.state,
+                ctx.state.favorBank,
                 picks.map((b) => b.suit)
             )
             if (obtainable < required) {
@@ -527,12 +558,12 @@ registerEffect(
                   }),
             optional(PowerChoiceKind.Site, {
                 what: 'a site you rule to move them to',
-                domain: siteChoicesYouRule,
+                domain: messengerDestinations,
                 sequential: true
             })
         ]).flat(),
-        reasonCannotResolve: (ctx) => messengerMovesOnCopy(ctx).reason,
-        stateAfter: (ctx) => messengerMovesOnCopy(ctx).state,
+        reasonCannotResolve: (ctx) => messengerMovesChecked(ctx).reason,
+        stateAfter: (ctx) => messengerMovesChecked(ctx).state,
         resolve: (ctx) => ({
             summary: applyMessengerMoves(ctx.state, ctx.playerId, ctx.choices).summary
         })
@@ -545,10 +576,12 @@ function messengerSources(
 ): ReturnType<ChoiceDomain> {
     const owners = rulingWarbandOwners(state, playerId)
     const player = state.getPlayerState(playerId)
+    // Warbands on the board can only go to a site, so none is offered where no site can be reached.
+    const toSitesBarred = reasonPowerMovesToSitesBarred(state, playerId) !== undefined
     const out: ReturnType<ChoiceDomain> = []
     for (const owner of owners) {
         const onBoard = countOf(player.warbandsOnBoard, owner)
-        if (onBoard > 0) {
+        if (onBoard > 0 && !toSitesBarred) {
             out.push({
                 kind: PowerChoiceKind.Warbands,
                 group: { at: { kind: 'board', playerId }, owner, count: onBoard }
@@ -570,15 +603,21 @@ function messengerSources(
     return out
 }
 
-function messengerMovesOnCopy(ctx: EffectContext): {
+function messengerDestinations(
+    ...[state, playerId]: Parameters<ChoiceDomain>
+): ReturnType<ChoiceDomain> {
+    return reasonPowerMovesToSitesBarred(state, playerId) ? [] : siteChoicesYouRule(state, playerId)
+}
+
+function messengerMovesChecked(ctx: EffectContext): {
     state: HydratedOathGameState
     reason?: string
 } {
-    const copy = new HydratedOathGameState(ctx.state.dehydrate())
-    return { state: copy, reason: applyMessengerMoves(copy, ctx.playerId, ctx.choices).reason }
+    const after = warbandMovesOverlay(ctx.state, ctx.playerId)
+    return { state: after, reason: applyMessengerMoves(after, ctx.playerId, ctx.choices).reason }
 }
 
-function applyMessengerMoves(
+export function applyMessengerMoves(
     state: EffectContext['state'],
     playerId: string,
     choices: EffectContext['choices']
@@ -589,6 +628,8 @@ function applyMessengerMoves(
         if (c.kind !== PowerChoiceKind.Warbands) continue
         const next = choices[i + 1]
         const dest = next && next.kind === PowerChoiceKind.Site ? next : undefined
+        const barred = dest ? reasonPowerMovesToSitesBarred(state, playerId) : undefined
+        if (barred) return { reason: barred, summary: '' }
         const { at, owner, count } = c.group
         if (at.kind === 'board') {
             if (!dest)

@@ -39,7 +39,7 @@ describe('splitting a green city (§12.3.2, §7.3.8)', () => {
         expect(stationAt(play.state, 'Belge:home')?.status).toBe('displaced')
         expect(stationAt(play.state, 'PLM:station:1')?.status).toBe('displaced')
         const president = play.state.activePlayerIds[0]
-        expect(play.valid(president)).toEqual(['ReturnStation'])
+        expect(play.valid(president)).toEqual(['ReturnStation', 'SetRunInstruction'])
         play.act('ReturnStation', {
             stationId: 'Belge:home',
             position: { locationId: 'E16', nodeId: 'city-1', slot: 0 }
@@ -76,7 +76,7 @@ describe('splitting a green city (§12.3.2, §7.3.8)', () => {
             else throw new Error(`Unexpected actions ${actions.join(',')}`)
         }
         const plmPresident = play.state.activePlayerIds[0]
-        expect(play.valid(plmPresident)).toEqual(['ReturnStation'])
+        expect(play.valid(plmPresident)).toEqual(['ReturnStation', 'SetRunInstruction'])
         play.act('ReturnStation', {
             stationId: 'PLM:station:1',
             position: { locationId: 'E16', nodeId: 'city-0', slot: 1 }

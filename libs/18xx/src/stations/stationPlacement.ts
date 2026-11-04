@@ -1,3 +1,4 @@
+import { stateWith } from '../game/stateWith.js'
 import type { RevenueCenter } from '../routes/route.js'
 import { actsFor } from '../finance/receivership.js'
 import * as Type from 'typebox'
@@ -85,7 +86,7 @@ export class StationPlacement {
     ) {
         this.mapState = new RailwayMapState(rules.map, rules.tileSet, state.tileInventory)
     }
-    canAct(playerId: string, companyId: string): boolean {
+    canAct(playerId: string | undefined, companyId: string): boolean {
         const step = this.state.stationStep
         return (
             step?.companyId === companyId &&
@@ -128,7 +129,11 @@ export class StationPlacement {
             return { reason: 'This city slot is occupied, reserved, or unavailable.' }
         const network = new TrackNetwork(
             this.mapState,
-            this.state,
+            stateWith(this.state, {
+                stationAccess: this.state.stationAccess?.filter(
+                    (access) => access.placesStations !== false
+                )
+            }),
             companyId,
             undefined,
             undefined,
@@ -159,6 +164,9 @@ export class StationPlacement {
                     station.status === 'placed' &&
                     station.companyId === companyId &&
                     station.position.locationId === locationId
+            ) ||
+            (this.state.stationAccess ?? []).some(
+                (access) => access.companyId === companyId && access.locationId === locationId
             )
         )
             return []
@@ -231,11 +239,10 @@ export class StationPlacement {
         }, 0)
     }
     homePlacements(): StationPlacementDetails[] {
-        const planned = {
-            ...this.state,
+        const planned = stateWith(this.state, {
             stations: [...this.state.stations],
             stationReservations: [...this.state.stationReservations]
-        }
+        })
         const placements: StationPlacementDetails[] = []
         for (const home of this.rules.pendingHomes(this.state)) {
             const station = planned.stations.find((station) => station.id === home.stationId)

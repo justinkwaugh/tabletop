@@ -3,13 +3,20 @@ import { Compile } from 'typebox/compile'
 import {
     ActionSource,
     GameAction,
-    PlayerAction,
     HydratableAction,
     assert,
     assertExists,
     type MachineStateHandler
 } from '@tabletop/common'
-import { canStartStockRound, defineAction, finiteCashOwnedBy } from '@tabletop/18xx'
+import {
+    RoundEnd,
+    canStartStockRound,
+    defineAction,
+    finiteCashOwnedBy,
+    roundEnd,
+    type ValuationRules,
+    EighteenXXPlayerAction
+} from '@tabletop/18xx'
 import { Purchase, Selection, type HydratedEighteenFortySixState } from './state.js'
 import { draftCompany } from './catalog.js'
 import { nextDistributionPlayer, priceFor, purchaseOpeningCompany } from './distribution.js'
@@ -55,11 +62,15 @@ function updateOpeningOffer(state: State): void {
         draft.finalOffer = { cardId: remaining[0], price: priceFor(state, remaining[0]) }
 }
 
-function finishOpeningPurchase(state: State): void {
+/** Offers the next company, or ends the opening once every company is bought. */
+function finishOpeningPurchase(
+    state: State,
+    valuationRules: ValuationRules
+): { roundEnd?: RoundEnd } {
     if (unboughtOpeningCompanies(state).length) {
         nextDistributionPlayer(state)
         updateOpeningOffer(state)
-        return
+        return {}
     }
     state.turnManager.endTurn(state.actionCount)
     state.turnManager.turnOrder = state.players.map((player) => player.playerId)
@@ -69,16 +80,22 @@ function finishOpeningPurchase(state: State): void {
     delete state.draft
     delete state.purchases
     delete state.operatingSet
+    return { roundEnd: roundEnd(state, valuationRules, 'opening') }
 }
 
 export const BuyOpeningCompany = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('BuyOpeningCompany'),
         source: Type.Literal(ActionSource.User),
         companyId: Type.String(),
         expectedPrice: Type.Integer({ minimum: 0 }),
-        metadata: Type.Optional(Purchase)
+        metadata: Type.Optional(
+            Type.Object(
+                { ...Purchase.properties, roundEnd: Type.Optional(RoundEnd) },
+                { additionalProperties: false }
+            )
+        )
     },
     { additionalProperties: false }
 )
@@ -87,9 +104,11 @@ export class BuyOpeningCompanyAction extends HydratableAction<typeof BuyOpeningC
     declare playerId: string
     declare companyId: string
     declare expectedPrice: number
-    declare metadata?: Type.Static<typeof Purchase>
-    constructor(data: Type.Static<typeof BuyOpeningCompany>) {
+    declare metadata?: Type.Static<typeof BuyOpeningCompany>['metadata']
+    readonly #valuationRules: ValuationRules
+    constructor(data: Type.Static<typeof BuyOpeningCompany>, valuationRules: ValuationRules) {
         super(data, BuyValidator)
+        this.#valuationRules = valuationRules
     }
     isValid(state: State): boolean {
         return (
@@ -108,28 +127,29 @@ export class BuyOpeningCompanyAction extends HydratableAction<typeof BuyOpeningC
             draft?.kind === 'public' && draft.stage === 'buying',
             'Purchasing requires a public offer'
         )
-        this.metadata = {
+        const purchase = {
             playerId: this.playerId,
             cardId: this.companyId,
             price: this.expectedPrice
         }
-        purchaseOpeningCompany(state, this.playerId, this.metadata)
+        purchaseOpeningCompany(state, this.playerId, purchase)
         draft.passedPlayerIds = []
         delete draft.finalOffer
-        finishOpeningPurchase(state)
+        this.metadata = { ...purchase, ...finishOpeningPurchase(state, this.#valuationRules) }
     }
 }
 
 export const PassOpeningPurchase = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('PassOpeningPurchase'),
         source: Type.Literal(ActionSource.User),
         metadata: Type.Optional(
             Type.Object(
                 {
                     reducedOffer: Type.Optional(Selection),
-                    purchase: Type.Optional(Purchase)
+                    purchase: Type.Optional(Purchase),
+                    roundEnd: Type.Optional(RoundEnd)
                 },
                 { additionalProperties: false }
             )
@@ -141,8 +161,10 @@ const PassValidator = Compile(PassOpeningPurchase)
 export class PassOpeningPurchaseAction extends HydratableAction<typeof PassOpeningPurchase> {
     declare playerId: string
     declare metadata?: Type.Static<typeof PassOpeningPurchase>['metadata']
-    constructor(data: Type.Static<typeof PassOpeningPurchase>) {
+    readonly #valuationRules: ValuationRules
+    constructor(data: Type.Static<typeof PassOpeningPurchase>, valuationRules: ValuationRules) {
         super(data, PassValidator)
+        this.#valuationRules = valuationRules
     }
     isValid(state: State): boolean {
         return this.source === ActionSource.User && canPassOpeningPurchase(state, this.playerId)
@@ -166,7 +188,7 @@ export class PassOpeningPurchaseAction extends HydratableAction<typeof PassOpeni
                 const playerId = state.activePlayerIds[0]
                 this.metadata.purchase = { ...offer, playerId }
                 purchaseOpeningCompany(state, playerId, offer)
-                finishOpeningPurchase(state)
+                Object.assign(this.metadata, finishOpeningPurchase(state, this.#valuationRules))
             }
             return
         }
@@ -217,16 +239,16 @@ export class ResumeOpeningPurchasesAction extends HydratableAction<typeof Resume
     }
 }
 
-export const PublicDistributionActions = [
+export const publicDistributionActions = (valuationRules: ValuationRules) => [
     defineAction(
         BuyOpeningCompany,
         (action): action is Type.Static<typeof BuyOpeningCompany> => BuyValidator.Check(action),
-        (data) => new BuyOpeningCompanyAction(data)
+        (data) => new BuyOpeningCompanyAction(data, valuationRules)
     ),
     defineAction(
         PassOpeningPurchase,
         (action): action is Type.Static<typeof PassOpeningPurchase> => PassValidator.Check(action),
-        (data) => new PassOpeningPurchaseAction(data)
+        (data) => new PassOpeningPurchaseAction(data, valuationRules)
     ),
     defineAction(
         ResumeOpeningPurchases,

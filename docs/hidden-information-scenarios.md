@@ -141,7 +141,7 @@ These examples motivate possible reusable hidden-zone helpers; they do not estab
 | --- | ---------------------------------------- | ------------------------------------------------------------------------------------ |
 | U1  | Local History Step backward              | Navigation uses only the stored visible undo patch                                   |
 | U2  | Local History Step forward               | Navigation replays the stored visible Action or applies its visible forward patch    |
-| U3  | Server-authorized Undo                   | The backend reverses canonical history and supplies the permitted replacement suffix         |
+| U3  | Server-authorized Undo                   | The backend reverses canonical history and supplies the permitted replacement suffix |
 | U4  | Undo reapplies simultaneous submissions  | Every retained or redone User and System Action is projected again for the recipient |
 | U5  | Undo crosses an information reveal       | Existing information-reveal policy prevents unauthorized reversal                    |
 | U6  | Reveal has perspective-specific undo     | An informed Player and uninformed opponents receive different inverse changes        |
@@ -149,17 +149,17 @@ These examples motivate possible reusable hidden-zone helpers; they do not estab
 
 ### Knowledge and lifecycle
 
-| ID  | Scenario                            | Question exercised                                                                                                    |
-| --- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| K1  | Player sees a card that later moves | Where is the Player's retained knowledge recorded?                                                                    |
-| K2  | Player forgets information by rule  | Can knowledge entitlement be explicitly removed?                                                                      |
-| K3  | Player Perspective changes          | Is a complete projection derived from canonical data and substituted without merging the prior perspective's secrets? |
-| K4  | Spectator observes                  | Does the public perspective have a complete safe projection?                                                          |
-| K5  | Developer or administrator inspects | Is explicit Host View canonical access isolated from ordinary Player delivery?                                        |
-| K6  | Game Instance finishes              | Which secrets reveal, and which remain hidden permanently?                                                            |
-| K7  | Exploration begins                  | It may reveal only hypothetical unknowns consistent with permitted knowledge; see [Exploration](hidden-information-exploration.md).                   |
-| K8  | Hosted Fork is created              | The host copies the real canonical fork point, including hidden state and random cursors.                                                 |
-| K9  | Game Title publication changes      | Do delivered visible Action records and current projection rules remain compatible?                                   |
+| ID  | Scenario                            | Question exercised                                                                                                                  |
+| --- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| K1  | Player sees a card that later moves | Where is the Player's retained knowledge recorded?                                                                                  |
+| K2  | Player forgets information by rule  | Can knowledge entitlement be explicitly removed?                                                                                    |
+| K3  | Player Perspective changes          | Is a complete projection derived from canonical data and substituted without merging the prior perspective's secrets?               |
+| K4  | Spectator observes                  | Does the public perspective have a complete safe projection?                                                                        |
+| K5  | Developer or administrator inspects | Is explicit Host View canonical access isolated from ordinary Player delivery?                                                      |
+| K6  | Game Instance finishes              | Which secrets reveal, and which remain hidden permanently?                                                                          |
+| K7  | Exploration begins                  | It may reveal only hypothetical unknowns consistent with permitted knowledge; see [Exploration](hidden-information-exploration.md). |
+| K8  | Hosted Fork is created              | The host copies the real canonical fork point, including hidden state and random cursors.                                           |
+| K9  | Game Title publication changes      | Do delivered visible Action records and current projection rules remain compatible?                                                 |
 
 ## Conformance checks for title adoption
 
@@ -185,4 +185,3 @@ Evaluate participating Action fixtures for each relevant Player and spectator Pe
 18. The same submission against canonical states with the same submitting-Player projection does not produce distinguishable acceptance or rejection because of unavailable protected information, unless that distinction is an intentional rules-defined reveal.
 19. The Game Title treats Processed Action existence, identity, index, order, and count as public and does not encode a protected fact into variable cascade length unless that disclosure is permitted.
 20. An ordinary state projection contains neither the protected PRNG seed nor its invocation position; a patched hidden cascade advances the public cursor, and a later replayable cascade produces canonical System Action identities and checksum.
-

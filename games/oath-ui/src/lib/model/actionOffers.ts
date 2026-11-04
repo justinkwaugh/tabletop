@@ -31,13 +31,49 @@ export type BoardPick = {
 /** A choice made by tapping the map, as a phone frames it: the sites its frame and chips count. */
 export type MapPick = {
     /**
-     * Setup's start site, a Travel destination, where the spoils banish the defeated pawn, or a
-     * site for the powers in Use a power.
+     * Setup's start site, a Travel destination, where the spoils banish the defeated pawn, a site
+     * for the powers in Use a power, the Shrouded Wood ruler's pick for another player's pawn, or
+     * where a site play goes (`playTo`).
      */
-    kind: 'start' | 'travel' | 'banish' | 'power'
+    kind: 'start' | 'travel' | 'banish' | 'power' | 'ruler' | 'playTo' | 'build'
     sites: string[]
     /** More than one site to choose among; Setup's one legal site is shown, not chosen. */
     choosing: boolean
+    /**
+     * Whose pawn the pick moves, so the map opens on its region: the seat's own, the defender's
+     * for a banish, the traveller's or the moved player's for the Shrouded Wood ruler's pick.
+     */
+    moverId: string | undefined
+}
+
+/**
+ * R-11.7, R-11.13-H1 — a site the open Travel question lets the asked seat pick on the map: what
+ * the pawn's owner pays there in Supply (none when nothing is paid at the pick), the cards that
+ * set it (Decadent, Tents), whether Toll Roads will ask them (R-7.1.4), and whether the move flips
+ * a secret (The Hidden Place).
+ */
+export type TravelPickSite = {
+    siteId: string
+    cost: number | undefined
+    foldedBy: string[]
+    toll: boolean
+    /** R-11.13-H1 — the secrets the move flips: The Hidden Place's, and the Buried Giant's past a Narrow Pass. */
+    flips: number
+}
+
+/**
+ * R-11.7, R-11.13-H1 — a Travel question answered on the map: the Shrouded Wood ruler's pick (for
+ * the traveller's own Travel, or for a pawn the Whistle, the Brass Horse, Palanquin or a banish
+ * moves) or the Brass Horse user's own pick.
+ */
+export type TravelPick = {
+    /** Whose pawn moves. */
+    moverId: string
+    /** The Shrouded Wood's ruler picks for another player. */
+    ruler: boolean
+    /** The move spends no Supply: the line says so once, and the sites carry no price. */
+    free: boolean
+    sites: TravelPickSite[]
 }
 
 export type SiteOffer =
@@ -60,21 +96,26 @@ export type SiteOffer =
           /** Its ways to pay are open in the panel, as a map pick opens them. */
           picked: boolean
       }
-    | { slotId: string; intent: 'target'; targeted: boolean }
+    /**
+     * R-5.5.2 — a site the Campaign can target; `pickable` while its Sites row is listed, that is
+     * targeted or allowed with the targets chosen.
+     */
+    | { slotId: string; intent: 'target'; targeted: boolean; pickable: boolean }
     | { slotId: string; intent: 'moveWarbands' }
     /** R-5.5.7.III — a tap on the map banishes the defeated pawn there. */
     | { slotId: string; intent: 'banish' }
-    /**
-     * R-11.7 — a site the Shrouded Wood's ruler may send the traveller to on their own Travel: what
-     * the traveller pays there, the cards that changed it (Decadent), and whether Toll Roads will
-     * ask them (R-7.1.4). A tap on the map sends the pick; a desktop lights these, a phone does not.
-     */
-    | { slotId: string; intent: 'wood'; cost: number; foldedBy: string[]; toll: boolean }
+    /** R-11.7, R-11.13-H1 — a site the open Travel question offers: a tap on the map sends it. */
+    | ({ slotId: string; intent: 'question' } & Omit<TravelPickSite, 'siteId'>)
     /**
      * R-7.1.3 — a site a power in Use a power can take: the words of every row a tap there
      * fills, and whether the panel's one ring is on it.
      */
     | { slotId: string; intent: 'power'; rows: string[]; picked: boolean }
+    /**
+     * R-5.1.4.I the People's Favor, New Growth — a site an open site play may go to: a tap there
+     * picks it, and the ring is on the site the play goes to (the seat's own until another).
+     */
+    | { slotId: string; intent: 'playTo'; picked: boolean }
 
 /** Choosing among sites dims the rest of the map: Setup only while its start site is open to a pick. */
 export function dimsTheMap(offers: readonly SiteOffer[]): boolean {

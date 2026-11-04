@@ -1,5 +1,10 @@
 <script lang="ts">
-    import { applyBusLineSegment, isBusNodeId, type BusLineSegment, type BusNodeId } from '@tabletop/bus'
+    import {
+        applyBusLineSegment,
+        isBusNodeId,
+        type BusLineSegment,
+        type BusNodeId
+    } from '@tabletop/bus'
     import { BUS_BOARD_NODE_POINTS } from '$lib/definitions/busBoardGraph.js'
     import {
         ROUTE_OUTLINE_WIDTH,
@@ -467,7 +472,7 @@
                         stroke="#020617"
                         stroke-width={ROUTE_STROKE_WIDTH + ROUTE_OUTLINE_WIDTH * 2}
                         stroke-linecap="round"
-                    />
+                    ></line>
                 {/if}
             {/each}
 
@@ -479,7 +484,7 @@
                     stroke-linecap="round"
                     stroke-linejoin="round"
                     fill="none"
-                />
+                ></path>
             {/each}
 
             {#each layer.segments as segment (`${segment.key}:fill`)}
@@ -493,7 +498,7 @@
                         stroke-width={ROUTE_STROKE_WIDTH}
                         stroke-linecap="round"
                         stroke-linejoin="round"
-                    />
+                    ></line>
                 {/if}
             {/each}
 
@@ -505,12 +510,12 @@
                     stroke-linecap="round"
                     stroke-linejoin="round"
                     fill="none"
-                />
+                ></path>
             {/each}
 
             {#each layer.terminalArrows as arrow (arrow.key)}
                 {#if !shouldHideAnimatedRouteArrow(layer, arrow.key)}
-                    <path d={arrow.d} fill="#ffffff" />
+                    <path d={arrow.d} fill="#ffffff"></path>
                 {/if}
             {/each}
         {/each}
@@ -524,7 +529,7 @@
                 stroke="#020617"
                 stroke-width={ROUTE_STROKE_WIDTH + ROUTE_OUTLINE_WIDTH * 2}
                 stroke-linecap="butt"
-            />
+            ></line>
             <line
                 x1={animatedGrowingBusLineSegmentPoints.x1}
                 y1={animatedGrowingBusLineSegmentPoints.y1}
@@ -533,14 +538,14 @@
                 stroke={animatedGrowingBusLineSegmentColor}
                 stroke-width={ROUTE_STROKE_WIDTH}
                 stroke-linecap="butt"
-            />
+            ></line>
             {#if animatedGrowingBusLineSegmentPoints.progress > 0}
                 <circle
                     cx={animatedGrowingBusLineSegmentPoints.x2}
                     cy={animatedGrowingBusLineSegmentPoints.y2}
                     r={ROUTE_STROKE_WIDTH / 2}
                     fill={animatedGrowingBusLineSegmentColor}
-                />
+                ></circle>
             {/if}
         {/if}
 
@@ -556,7 +561,7 @@
                         stroke-width={ROUTE_STROKE_WIDTH + ROUTE_OUTLINE_WIDTH * 2}
                         stroke-linecap="round"
                         stroke-linejoin="round"
-                    />
+                    ></line>
                 {/each}
 
                 {#each layer.connectors as connector (`${connector.key}:ambiguous-outline`)}
@@ -567,7 +572,7 @@
                         stroke-linecap="round"
                         stroke-linejoin="round"
                         fill="none"
-                    />
+                    ></path>
                 {/each}
 
                 {#each layer.segments as segment (`${segment.key}:ambiguous-fill`)}
@@ -580,7 +585,7 @@
                         stroke-width={ROUTE_STROKE_WIDTH}
                         stroke-linecap="round"
                         stroke-linejoin="round"
-                    />
+                    ></line>
                 {/each}
 
                 {#each layer.connectors as connector (`${connector.key}:ambiguous-fill`)}
@@ -591,11 +596,11 @@
                         stroke-linecap="round"
                         stroke-linejoin="round"
                         fill="none"
-                    />
+                    ></path>
                 {/each}
 
                 {#each layer.terminalArrows as arrow (arrow.key)}
-                    <path d={arrow.d} fill="#ffffff" />
+                    <path d={arrow.d} fill="#ffffff"></path>
                 {/each}
             </g>
         {/each}
@@ -636,8 +641,9 @@
                             }
                         }}
                         onclick={() => chooseStartingSegment(segment)}
-                        onkeydown={(event) => onKeyboardActivate(event, () => chooseStartingSegment(segment))}
-                    />
+                        onkeydown={(event) =>
+                            onKeyboardActivate(event, () => chooseStartingSegment(segment))}
+                    ></line>
                 {/each}
             </g>
         {:else}
@@ -673,7 +679,7 @@
                         onclick={() => chooseExtensionSegment(segment)}
                         onkeydown={(event) =>
                             onKeyboardActivate(event, () => chooseExtensionSegment(segment))}
-                    />
+                    ></line>
                 {/each}
 
                 {#if pendingTargetNodeId}
@@ -688,7 +694,7 @@
                         opacity="0.34"
                         pointer-events="none"
                         style="transition: opacity 120ms ease-out;"
-                    />
+                    ></circle>
                     <circle
                         cx={pendingPoint.x}
                         cy={pendingPoint.y}
@@ -699,7 +705,7 @@
                         opacity="0.95"
                         pointer-events="none"
                         style="transition: stroke 120ms ease-out, stroke-width 120ms ease-out;"
-                    />
+                    ></circle>
                     <circle
                         cx={pendingPoint.x}
                         cy={pendingPoint.y}
@@ -709,7 +715,7 @@
                         stroke-width="3"
                         pointer-events="none"
                         style="transition: fill 120ms ease-out, stroke 120ms ease-out;"
-                    />
+                    ></circle>
 
                     {#each gameSession.pendingBusLineSourceNodeIds as sourceNodeId (sourceNodeId)}
                         {@const sourcePoint = BUS_BOARD_NODE_POINTS[sourceNodeId]}
@@ -724,18 +730,20 @@
                             opacity={isSourceHovered ? 0.32 : 0.22}
                             pointer-events="none"
                             style="transition: opacity 120ms ease-out, stroke-width 120ms ease-out;"
-                        />
+                        ></circle>
                         <circle
                             cx={sourcePoint.x}
                             cy={sourcePoint.y}
                             r={SOURCE_OUTER_RADIUS}
                             fill="none"
                             stroke={isSourceHovered ? '#ffffff' : '#333'}
-                            stroke-width={isSourceHovered ? NODE_HIGHLIGHT_OUTER_BORDER_WIDTH + 1 : NODE_HIGHLIGHT_OUTER_BORDER_WIDTH}
+                            stroke-width={isSourceHovered
+                                ? NODE_HIGHLIGHT_OUTER_BORDER_WIDTH + 1
+                                : NODE_HIGHLIGHT_OUTER_BORDER_WIDTH}
                             opacity="0.95"
                             pointer-events="none"
                             style="transition: stroke 120ms ease-out, stroke-width 120ms ease-out;"
-                        />
+                        ></circle>
                         <circle
                             cx={sourcePoint.x}
                             cy={sourcePoint.y}
@@ -745,7 +753,7 @@
                             stroke-width="3"
                             pointer-events="none"
                             style="transition: fill 120ms ease-out, stroke 120ms ease-out;"
-                        />
+                        ></circle>
                         <circle
                             cx={sourcePoint.x}
                             cy={sourcePoint.y}
@@ -766,13 +774,15 @@
                                 }
                             }}
                             onclick={() => chooseSourceNode(sourceNodeId)}
-                            onkeydown={(event) => onKeyboardActivate(event, () => chooseSourceNode(sourceNodeId))}
-                        />
+                            onkeydown={(event) =>
+                                onKeyboardActivate(event, () => chooseSourceNode(sourceNodeId))}
+                        ></circle>
                     {/each}
                 {:else}
                     {#each gameSession.selectableBusLineTargetNodeIds as targetNodeId (targetNodeId)}
                         {@const point = BUS_BOARD_NODE_POINTS[targetNodeId]}
-                        {@const isAmbiguous = gameSession.isAmbiguousBusLineTargetNode(targetNodeId)}
+                        {@const isAmbiguous =
+                            gameSession.isAmbiguousBusLineTargetNode(targetNodeId)}
                         {@const isHovered = effectiveHoveredTargetNodeId === targetNodeId}
                         <circle
                             cx={point.x}
@@ -784,18 +794,20 @@
                             opacity={isHovered ? 0.3 : isAmbiguous ? 0.18 : 0.12}
                             pointer-events="none"
                             style="transition: opacity 120ms ease-out, stroke-width 120ms ease-out, stroke 120ms ease-out;"
-                        />
+                        ></circle>
                         <circle
                             cx={point.x}
                             cy={point.y}
                             r={TARGET_OUTER_RADIUS}
                             fill="none"
                             stroke={isHovered ? '#ffffff' : '#333'}
-                            stroke-width={isHovered ? NODE_HIGHLIGHT_OUTER_BORDER_WIDTH + 1 : NODE_HIGHLIGHT_OUTER_BORDER_WIDTH}
+                            stroke-width={isHovered
+                                ? NODE_HIGHLIGHT_OUTER_BORDER_WIDTH + 1
+                                : NODE_HIGHLIGHT_OUTER_BORDER_WIDTH}
                             opacity="0.95"
                             pointer-events="none"
                             style="transition: stroke 120ms ease-out, stroke-width 120ms ease-out;"
-                        />
+                        ></circle>
                         <circle
                             cx={point.x}
                             cy={point.y}
@@ -805,7 +817,7 @@
                             stroke-width="3"
                             pointer-events="none"
                             style="transition: fill 120ms ease-out, stroke 120ms ease-out;"
-                        />
+                        ></circle>
                         <circle
                             cx={point.x}
                             cy={point.y}
@@ -826,8 +838,9 @@
                                 }
                             }}
                             onclick={() => chooseTargetNode(targetNodeId)}
-                            onkeydown={(event) => onKeyboardActivate(event, () => chooseTargetNode(targetNodeId))}
-                        />
+                            onkeydown={(event) =>
+                                onKeyboardActivate(event, () => chooseTargetNode(targetNodeId))}
+                        ></circle>
                     {/each}
                 {/if}
             </g>

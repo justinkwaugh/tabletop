@@ -14,8 +14,7 @@ export type PlayerPanelView = {
     larvaCubes?: ColorCount[]
     consumed: ColorCount[]
     shrimpsInSupply?: number
-    shrimpOnOpenSea: boolean
-    shrimpsInParrotfish?: number
+    shrimpsEaten?: string
     parrotfish?: ColorCount[]
     parrotfishPoints?: number
     hiddenParrotfishPolyps: number
@@ -35,12 +34,22 @@ export function playerPanelView(
         larvaCubes: player.larvaCubes ? colorCounts(player.larvaCubes) : undefined,
         consumed: colorCounts(player.consumedPolyps),
         shrimpsInSupply: player.shrimpsInSupply,
-        shrimpOnOpenSea: player.shrimpOnOpenSea,
-        shrimpsInParrotfish: player.shrimpsInParrotfish,
+        shrimpsEaten: shrimpsEaten(player.shrimpOnOpenSea, player.shrimpsInParrotfish),
         parrotfish: parrotfish ? colorCounts(parrotfish) : undefined,
         parrotfishPoints: parrotfish ? parrotfishPoints(parrotfish, values) : undefined,
         hiddenParrotfishPolyps: !player.secretParrotfishPolyps && parrotfishFed ? 1 : 0
     }
+}
+
+// Only the first shrimp, on the open sea, is public; a Concealed game hides the rest.
+export function shrimpsEaten(
+    onOpenSea: boolean,
+    inParrotfish: number | undefined
+): string | undefined {
+    if (!onOpenSea) return undefined
+    if (inParrotfish === undefined) return 'Ate at least 1 shrimp'
+    const count = 1 + inParrotfish
+    return `ate ${count} shrimp${count > 1 ? 's' : ''}`
 }
 
 function colorCounts(counts: CoralCounts): ColorCount[] {

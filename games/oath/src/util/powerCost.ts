@@ -3,7 +3,6 @@ import { spendFavor, usableFavor } from './favor.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { reasonPersistentForbidsSecretCost, type ScopedParties } from './persistent.js'
 import { isFree, PowerTiming, type CardPower, type PowerCost } from '../data/cardPowers.js'
-import { suitOf } from '../data/cardRegistry.js'
 import { holdsTheTurn } from './turn.js'
 
 /** R-7.1.2.a — the bar is on the card; R-7.5.3's exemption is `reasonCannotPayPowerCost`'s. */
@@ -42,12 +41,16 @@ export function addCosts(a: PowerCost, b: PowerCost): PowerCost {
     }
 }
 
-/** `parties`: a battle plan's Campaign, whose scope Spell Breaker is judged in (R-5.5.1.a-H2). */
+/**
+ * `parties`: a battle plan's Campaign, whose scope Spell Breaker is judged in (R-5.5.1.a-H2).
+ * `advisersOf`: whose Vow of Kinship a Trade modifier's favor follows (`favorHomeBankOf`).
+ */
 export function reasonCannotPayPowerCost(
     state: HydratedOathGameState,
     playerId: string,
     power: CardPower,
-    parties?: ScopedParties
+    parties?: ScopedParties,
+    advisersOf?: string
 ): string | undefined {
     const player = state.getPlayerState(playerId)
 
@@ -56,7 +59,7 @@ export function reasonCannotPayPowerCost(
 
     // R-7.1.2.a — facedown secrets cannot pay; `player.secrets` counts faceup ones only.
     const favor = favorNeeded(cost)
-    const usable = usableFavor(state, playerId)
+    const usable = usableFavor(state, playerId, advisersOf)
     if (usable < favor) {
         return `costs ${favor} favor, player has ${usable}`
     }
@@ -73,7 +76,7 @@ export function reasonCannotPayPowerCost(
     if (placedTokens(cost) === 0) return undefined
 
     // R-7.1.2.a — a suitless card has no bank to take an out-of-turn placement; R-7.5.3 does not lift that.
-    if (cost.placeFavor > 0 && !holdsTheTurn(state, playerId) && !suitOf(power.cardId)) {
+    if (cost.placeFavor > 0 && !holdsTheTurn(state, playerId) && !state.suitInPlay(power.cardId)) {
         return (
             `${power.cardId} shows no suit, so R-7.1.2.a has no matching ` +
             `favor bank for an out-of-turn payment`
@@ -87,25 +90,33 @@ export function reasonCannotPayPowerCost(
     return reasonCannotPlaceOn(state, power.cardId)
 }
 
-/** R-7.1.2, R-7.1.2.a, R-10.4. Throws: paying half a cost would leave the board wrong. */
+/**
+ * R-7.1.2, R-7.1.2.a, R-10.4. Throws: paying half a cost would leave the board wrong.
+ * `advisersOf` as for `reasonCannotPayPowerCost`.
+ */
 export function payPowerCost(
     state: HydratedOathGameState,
     playerId: string,
-    power: CardPower
+    power: CardPower,
+    advisersOf?: string
 ): void {
-    const reason = reasonCannotPayPowerCost(state, playerId, power)
+    const reason = reasonCannotPayPowerCost(state, playerId, power, undefined, advisersOf)
     if (reason) {
         throw Error(`Cannot pay power cost: ${reason}`)
     }
-    payCostOnCard(state, playerId, power.cardId, power.cost)
+    payCostOnCard(state, playerId, power.cardId, power.cost, advisersOf)
 }
 
-/** R-7.1.2, R-7.1.2.a, R-10.4 — onto the card on your turn; out of turn, to its bank and your board. */
+/**
+ * R-7.1.2, R-7.1.2.a, R-10.4 — onto the card on your turn; out of turn, to its bank and your board.
+ * `advisersOf` as for `reasonCannotPayPowerCost`.
+ */
 export function payCostOnCard(
     state: HydratedOathGameState,
     playerId: string,
     cardId: string,
-    cost: PowerCost
+    cost: PowerCost,
+    advisersOf?: string
 ): void {
     if (isFree(cost)) return
 
@@ -113,14 +124,14 @@ export function payCostOnCard(
     const outOfTurn = !holdsTheTurn(state, playerId)
 
     // R-10.4, R-9.3 — burned favor returns to the shared bank; a burned secret leaves play.
-    spendFavor(state, playerId, favorNeeded(cost))
+    spendFavor(state, playerId, favorNeeded(cost), advisersOf)
     player.secrets -= secretsNeeded(cost)
     burnFavor(state, cost.burnFavor)
 
     if (cost.placeFavor > 0) {
         if (outOfTurn) {
             // R-7.1.2.a — "the matching favor bank" is the card's suit, as in R-10.5.
-            const suit = suitOf(cardId)
+            const suit = state.suitInPlay(cardId)
             if (!suit) {
                 throw Error(
                     `Cannot pay power cost: ${cardId} shows no suit, so ` +

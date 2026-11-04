@@ -1,8 +1,8 @@
+import { isDiscardMergedTrain } from '@tabletop/18xx'
 import {
     isAnswerMerger,
     isCompleteMergerPhase,
     isCompleteTakeover,
-    isDiscardMergedTrain,
     isPassMerger,
     isProposeMerger,
     isSellTakeoverShares,
@@ -11,35 +11,62 @@ import {
     isBuyCoalRights,
     isCapitalizeCompany,
     isCloseCompany,
-    isCompletePriceProtection,
-    isDeclineProtection,
-    isProtectShares,
-    isAnswerRedemption,
-    isRedeemShare,
-    isReissueShares,
-    isStartPriceProtection,
+    type CloseCompany,
     isPlaceRevenueToken,
     isRecordMiamiRun,
     isTakeLondonShare,
-    EighteenThirtyTwoMap
+    EighteenThirtyTwoMarket
 } from '@tabletop/1832'
-import type { GameAction } from '@tabletop/common'
-import type { HistoryDescription, HistoryNames, MoneyFormat } from '@tabletop/18xx-ui'
-import { redemptionHolderName } from './companyShareFacts.js'
+import { assertExists, type GameAction } from '@tabletop/common'
+import type {
+    HistoryDescription,
+    HistoryMapPlacement,
+    HistoryNames,
+    MoneyFormat,
+    TitleHistoryNames
+} from '@tabletop/18xx-ui'
+import { companyClosureDetails, describeShareAction, ownerName } from '@tabletop/18xx-ui'
 
 const TokenNames = { port: 'Port', cotton: 'Cotton', 'key-west': 'Key West' } as const
 
-/** 1832's own actions, as history rows. */
-const placeName = (locationId: string) =>
-    EighteenThirtyTwoMap.definition.locations.find((location) => location.id === locationId)
-        ?.name ?? locationId
+/** 1832's revenue tokens, for their history rows' map previews. */
+export function eighteenThirtyTwoMapPlacement(action: GameAction): HistoryMapPlacement | undefined {
+    if (isPlaceRevenueToken(action))
+        return {
+            kind: `${TokenNames[action.kind]} token`,
+            companyId: action.companyId,
+            locationIds: [action.locationId]
+        }
+    return undefined
+}
 
-export function describe1832Action(
-    action: GameAction,
+/** 1832 adds its revenue and coal tokens and a funding president's lost cash to a closure. */
+function closureDetail(
+    closure: NonNullable<CloseCompany['metadata']>,
     names: HistoryNames,
     money: MoneyFormat
+): string {
+    return [
+        ...companyClosureDetails(closure, names.companyName),
+        ...(closure.removedRevenueTokens ?? []).map(
+            (token) => `${TokenNames[token.kind]} token removed`
+        ),
+        ...(closure.returnedCoalRights ? ['Coal token back to the supply'] : []),
+        ...(closure.forfeit
+            ? [`${ownerName(closure.forfeit.from, names)} lost ${money(closure.forfeit.amount)}`]
+            : [])
+    ].join(' · ')
+}
+
+/** 1832's own actions, as history rows. */
+export function describe1832Action(
+    action: GameAction,
+    names: HistoryNames & Pick<TitleHistoryNames, 'place'>,
+    money: MoneyFormat
 ): HistoryDescription | undefined {
-    const { companyName, playerName } = names
+    const { companyName, place } = names
+    const shareAction = describeShareAction(action, names, money, EighteenThirtyTwoMarket)
+    if (shareAction) return shareAction
     if (isCapitalizeCompany(action))
         return {
             text: `${companyName(action.companyId)} received its capital`,
@@ -59,36 +86,13 @@ export function describe1832Action(
         }
     if (isPlaceRevenueToken(action))
         return {
-            text: `${companyName(action.companyId)} placed the ${TokenNames[action.kind]} token in ${placeName(action.locationId)}`
+            text: `${companyName(action.companyId)} placed the ${TokenNames[action.kind]} token in ${place(action.locationId)}`
         }
     if (isTakeLondonShare(action))
         return {
             text: action.metadata
                 ? `took a free ${companyName(action.metadata.companyId)} share with the London Investment Company`
                 : 'took a free share with the London Investment Company'
-        }
-    if (isRedeemShare(action)) {
-        const holder = action.metadata?.holder
-        const from = holder ? redemptionHolderName(holder, playerName) : 'the market'
-        return action.metadata?.payment
-            ? {
-                  text: `redeemed a ${companyName(action.companyId)} share from ${from}`,
-                  value: money(action.metadata.payment.amount)
-              }
-            : { text: `asked ${from} to let ${companyName(action.companyId)} redeem a share` }
-    }
-    if (isAnswerRedemption(action))
-        return {
-            text: action.accept
-                ? `allowed ${action.metadata ? companyName(action.metadata.request.companyId) : 'the company'} to redeem their share`
-                : `refused to let ${action.metadata ? companyName(action.metadata.request.companyId) : 'the company'} redeem their share`,
-            ...(action.metadata?.payment ? { value: money(action.metadata.payment.amount) } : {})
-        }
-    if (isReissueShares(action))
-        return {
-            text: action.metadata
-                ? `reissued ${action.metadata.certificateIds.length} ${companyName(action.companyId)} ${action.metadata.certificateIds.length === 1 ? 'share' : 'shares'} at ${money(action.metadata.parPrice)}`
-                : `reissued ${companyName(action.companyId)} shares`
         }
     const merged = (outcome: MergerOutcome): HistoryDescription => {
         const [first, second] = outcome.companyIds.map(companyName)
@@ -104,6 +108,7 @@ export function describe1832Action(
         return {
             text: `${first} took over ${second}`,
             value: money(paid),
+            ...(outcome.certificateLimit ? { certificateLimit: outcome.certificateLimit } : {}),
             omitActor: true,
             important: true
         }
@@ -137,31 +142,21 @@ export function describe1832Action(
             ...(action.metadata ? { value: money(action.metadata.proceeds) } : {})
         }
     if (isDiscardMergedTrain(action)) return { text: 'discarded a train after the takeover' }
-    if (isCloseCompany(action))
+    if (isCloseCompany(action)) {
+        assertExists(action.metadata, 'A recorded closure carries its effects')
+        const detail = closureDetail(action.metadata, names, money)
         return {
-            text: `${companyName(action.companyId)} closed, its price in the black area`,
-            ...(action.metadata?.forfeit
-                ? { detail: `Its president lost ${money(action.metadata.forfeit.amount)}` }
+            text: `${companyName(action.companyId)} closed`,
+            companyToken: action.companyId,
+            consequence: true,
+            ...(detail ? { detail } : {}),
+            ...(action.metadata.certificateLimit
+                ? { certificateLimit: action.metadata.certificateLimit }
                 : {}),
             omitActor: true,
             important: true
         }
-    if (isProtectShares(action))
-        return {
-            text: action.metadata
-                ? `protected the ${companyName(action.companyId)} price, buying the ${action.metadata.shares} ${action.metadata.shares === 1 ? 'share' : 'shares'} sold`
-                : `protected the ${companyName(action.companyId)} price`,
-            ...(action.metadata ? { value: money(action.metadata.payment.amount) } : {})
-        }
-    if (isDeclineProtection(action))
-        return { text: `declined to protect the ${companyName(action.companyId)} price` }
-    if (isCompletePriceProtection(action) && action.metadata?.nextPlayerId)
-        return {
-            text: 'Play resumed to the left of the last protecting president',
-            omitActor: true
-        }
-    if (isStartPriceProtection(action) || isCompletePriceProtection(action))
-        return { text: 'Price protection', omitActor: true, routine: true }
+    }
     if (isRecordMiamiRun(action))
         return {
             text: 'Miami has been run to; it now pays its value',

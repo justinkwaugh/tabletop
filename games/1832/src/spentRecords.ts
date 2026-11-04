@@ -1,7 +1,5 @@
 import type { HydratedAction, MachineContext } from '@tabletop/common'
 import {
-    isCompleteStockRound,
-    isFinishStockTurn,
     isPlaceStation,
     isStartOperatingRound,
     isStartOperatingSet,
@@ -12,9 +10,8 @@ import type { EighteenThirtyTwoStateHandler, HydratedEighteenThirtyTwoState } fr
 
 /**
  * Clears the title's records of a turn, round or step once it is over: an operating turn's WVCF
- * purchase and Key West placement as the next turn or round starts, a stock turn's redemption
- * refusals as it finishes, a stock round's redemptions and locked proceeds as it completes, its
- * merger phase as the operating set begins, and a returned station once it is placed again.
+ * purchase and Key West placement as the next turn or round starts, a stock round's merger phase
+ * as the operating set begins, and a returned station once it is placed again.
  */
 function clearSpentRecords(state: HydratedEighteenThirtyTwoState, action: HydratedAction): void {
     if (
@@ -24,11 +21,6 @@ function clearSpentRecords(state: HydratedEighteenThirtyTwoState, action: Hydrat
     ) {
         delete state.coalTokenBought
         delete state.keyWestPlaced
-    }
-    if (isFinishStockTurn(action)) delete state.redemptionRefusals
-    if (isCompleteStockRound(action)) {
-        delete state.redemptions
-        delete state.lockedProceeds
     }
     if (isStartOperatingSet(action)) delete state.mergerPhaseHeld
     if (isPlaceStation(action) && state.returnedStationIds) {

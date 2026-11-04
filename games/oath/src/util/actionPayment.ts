@@ -37,14 +37,18 @@ export function tollPayment(tolls: readonly string[] | undefined): ActionPayment
     return favorPayment(new Set(tolls).size)
 }
 
-/** R-7.1.2, R-7.1.2.a — every payment is checked against one holding before any of it is made. */
+/**
+ * R-7.1.2, R-7.1.2.a — every payment is checked against one holding before any of it is made.
+ * `advisersOf`: whose Vow of Kinship a Trade's favor follows (`favorHomeBankOf`).
+ */
 export function reasonCannotPayInAll(
     state: HydratedOathGameState,
     playerId: string,
-    payments: readonly ActionPayment[]
+    payments: readonly ActionPayment[],
+    advisersOf?: string
 ): string | undefined {
     const favor = payments.reduce((n, p) => n + p.favor, 0)
-    const heldFavor = usableFavor(state, playerId)
+    const heldFavor = usableFavor(state, playerId, advisersOf)
     if (favor > heldFavor) return `costs ${favor} favor in all, you hold ${heldFavor}`
     const secrets = payments.reduce((n, p) => n + p.secrets, 0)
     const heldSecrets = state.getPlayerState(playerId).secrets

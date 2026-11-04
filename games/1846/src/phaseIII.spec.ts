@@ -24,8 +24,7 @@ import {
     setCompanyInReceivership,
     fundablePurchases,
     fundingModel,
-    fundTrain,
-    resolveFunding
+    fundTrain
 } from '../test/testSupport.js'
 import { TrainDepot1846, TrainRules1846, trainBuyingChoices1846 } from './trains.js'
 import { StationRules1846 } from './stations.js'
@@ -222,7 +221,6 @@ describe('1846 Phase III trains and lifecycle', () => {
         })
         const beforePurchase = structuredClone(table.state)
         fundTrain(table, '3/5')
-        resolveFunding(table)
         expect(
             table.state.trainInventory.trains.find((train) => train.id === choice.trainId)
         ).toMatchObject({ status: 'owned', definitionId: '3/5' })

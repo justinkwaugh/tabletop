@@ -49,13 +49,7 @@
     const DEMAND_TAG_DISTANCE = 62
     const DEMAND_TAG_MAX_OFFSET = 14
 
-    const DEMAND_GOOD_ORDER = [
-        Good.Rice,
-        Good.Spice,
-        Good.Rubber,
-        Good.SiapSaji,
-        Good.Oil
-    ] as const
+    const DEMAND_GOOD_ORDER = [Good.Rice, Good.Spice, Good.Rubber, Good.SiapSaji, Good.Oil] as const
     const OPERATIONS_MACHINE_STATES = new Set<MachineState>([
         MachineState.Operations,
         MachineState.ShippingOperations,
@@ -143,7 +137,10 @@
         return hash
     }
 
-    function fallbackDemandTagPosition(markerPosition: { x: number; y: number }, cityId: string): {
+    function fallbackDemandTagPosition(
+        markerPosition: { x: number; y: number },
+        cityId: string
+    ): {
         x: number
         y: number
     } {
@@ -193,7 +190,8 @@
                 continue
             }
 
-            const demands = demandViewMode === 'delivered' && !isDemandMet ? deliveredDemands : remainingDemands
+            const demands =
+                demandViewMode === 'delivered' && !isDemandMet ? deliveredDemands : remainingDemands
 
             const regionId = areaRegionById.get(city.area)
             const regionPosition = regionId
@@ -277,7 +275,11 @@
     })
 </script>
 
-<g class="pointer-events-none select-none" aria-label="Cities layer" {@attach attachCityPlacementAnimator(cityPlacementAnimator)}></g>
+<g
+    class="pointer-events-none select-none"
+    aria-label="Cities layer"
+    {@attach attachCityPlacementAnimator(cityPlacementAnimator)}
+></g>
 
 <g class="pointer-events-none select-none" aria-label="Cities layer">
     {#each placedCityMarkers as marker (marker.key)}
@@ -287,7 +289,9 @@
             {@const isHoveredSelectableDeliveryCity =
                 isSelectableDeliveryCity && hoveredDeliveryCityAreaId === marker.areaId}
             {@const isHoveredRouteCity = hoveredRouteCityAreaId === marker.areaId}
-            {@const isDimmedForRoutePreview = hoveredRoutePreviewDimmedCityAreaIdSet.has(marker.areaId)}
+            {@const isDimmedForRoutePreview = hoveredRoutePreviewDimmedCityAreaIdSet.has(
+                marker.areaId
+            )}
             <g
                 transform={`translate(${marker.x} ${marker.y})`}
                 opacity={hasHoveredRouteCity
@@ -303,17 +307,23 @@
                     x={0}
                     y={0}
                     tone={marker.tone}
-                    height={isHoveredSelectableDeliveryCity || isHoveredRouteCity ? CITY_MARKER_HEIGHT * 1.1 : CITY_MARKER_HEIGHT}
+                    height={isHoveredSelectableDeliveryCity || isHoveredRouteCity
+                        ? CITY_MARKER_HEIGHT * 1.1
+                        : CITY_MARKER_HEIGHT}
                 />
             </g>
             {#if isSelectableDeliveryCity || isHoveredRouteCity}
                 <circle
                     cx={marker.x}
                     cy={marker.y}
-                    r={isHoveredSelectableDeliveryCity || isHoveredRouteCity ? CITY_SELECTION_BEAD_RING_RADIUS * 1.06 : CITY_SELECTION_BEAD_RING_RADIUS}
+                    r={isHoveredSelectableDeliveryCity || isHoveredRouteCity
+                        ? CITY_SELECTION_BEAD_RING_RADIUS * 1.06
+                        : CITY_SELECTION_BEAD_RING_RADIUS}
                     fill="none"
                     stroke="#fff8d7"
-                    stroke-width={(isHoveredSelectableDeliveryCity || isHoveredRouteCity) ? CITY_SELECTION_BEAD_RING_STROKE * 1.14 : CITY_SELECTION_BEAD_RING_STROKE}
+                    stroke-width={isHoveredSelectableDeliveryCity || isHoveredRouteCity
+                        ? CITY_SELECTION_BEAD_RING_STROKE * 1.14
+                        : CITY_SELECTION_BEAD_RING_STROKE}
                     stroke-linecap="round"
                     stroke-linejoin="round"
                     opacity="0.94"
@@ -321,10 +331,12 @@
                 <circle
                     cx={marker.x}
                     cy={marker.y}
-                    r={isHoveredSelectableDeliveryCity || isHoveredRouteCity ? CITY_SELECTION_BEAD_RING_RADIUS * 1.06 : CITY_SELECTION_BEAD_RING_RADIUS}
+                    r={isHoveredSelectableDeliveryCity || isHoveredRouteCity
+                        ? CITY_SELECTION_BEAD_RING_RADIUS * 1.06
+                        : CITY_SELECTION_BEAD_RING_RADIUS}
                     fill="none"
                     stroke="#1f2937"
-                    stroke-width={(isHoveredSelectableDeliveryCity || isHoveredRouteCity) ? 3 : 2.4}
+                    stroke-width={isHoveredSelectableDeliveryCity || isHoveredRouteCity ? 3 : 2.4}
                     stroke-linecap="round"
                     stroke-linejoin="round"
                     opacity="0.92"
@@ -355,17 +367,23 @@
                 x={0}
                 y={0}
                 tone={marker.tone}
-                height={isHoveredSelectableDeliveryCity || isHoveredRouteCity ? CITY_MARKER_HEIGHT * 1.1 : CITY_MARKER_HEIGHT}
+                height={isHoveredSelectableDeliveryCity || isHoveredRouteCity
+                    ? CITY_MARKER_HEIGHT * 1.1
+                    : CITY_MARKER_HEIGHT}
             />
         </g>
         {#if isSelectableDeliveryCity || isHoveredRouteCity}
             <circle
                 cx={marker.x}
                 cy={marker.y}
-                r={isHoveredSelectableDeliveryCity || isHoveredRouteCity ? CITY_SELECTION_BEAD_RING_RADIUS * 1.06 : CITY_SELECTION_BEAD_RING_RADIUS}
+                r={isHoveredSelectableDeliveryCity || isHoveredRouteCity
+                    ? CITY_SELECTION_BEAD_RING_RADIUS * 1.06
+                    : CITY_SELECTION_BEAD_RING_RADIUS}
                 fill="none"
                 stroke="#fff8d7"
-                stroke-width={(isHoveredSelectableDeliveryCity || isHoveredRouteCity) ? CITY_SELECTION_BEAD_RING_STROKE * 1.14 : CITY_SELECTION_BEAD_RING_STROKE}
+                stroke-width={isHoveredSelectableDeliveryCity || isHoveredRouteCity
+                    ? CITY_SELECTION_BEAD_RING_STROKE * 1.14
+                    : CITY_SELECTION_BEAD_RING_STROKE}
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 opacity="0.94"
@@ -373,10 +391,12 @@
             <circle
                 cx={marker.x}
                 cy={marker.y}
-                r={isHoveredSelectableDeliveryCity || isHoveredRouteCity ? CITY_SELECTION_BEAD_RING_RADIUS * 1.06 : CITY_SELECTION_BEAD_RING_RADIUS}
+                r={isHoveredSelectableDeliveryCity || isHoveredRouteCity
+                    ? CITY_SELECTION_BEAD_RING_RADIUS * 1.06
+                    : CITY_SELECTION_BEAD_RING_RADIUS}
                 fill="none"
                 stroke="#1f2937"
-                stroke-width={(isHoveredSelectableDeliveryCity || isHoveredRouteCity) ? 3 : 2.4}
+                stroke-width={isHoveredSelectableDeliveryCity || isHoveredRouteCity ? 3 : 2.4}
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 opacity="0.92"
@@ -391,18 +411,16 @@
             {@const isHoveredSelectableDeliveryCity =
                 isSelectableDeliveryCity && hoveredDeliveryCityAreaId === tag.areaId}
             {@const isHoveredRouteCity = hoveredRouteCityAreaId === tag.areaId}
-            {@const darkened =
-                shouldDimCitiesForCityReferenceCardPreview
-                    ? true
-                    : hasHoveredRouteCity
-                    ? !isHoveredRouteCity
-                    : isSelectingDeliveryCity
-                      ? false
-                      : shouldDimDemandTagsForCompanyHover}
-            {@const darkenedBrightness =
-                shouldDimCitiesForCityReferenceCardPreview
-                    ? CITY_REFERENCE_CARD_PREVIEW_DEMAND_TAG_BRIGHTNESS
-                    : HOVER_COMPANY_DEMAND_TAG_BRIGHTNESS}
+            {@const darkened = shouldDimCitiesForCityReferenceCardPreview
+                ? true
+                : hasHoveredRouteCity
+                  ? !isHoveredRouteCity
+                  : isSelectingDeliveryCity
+                    ? false
+                    : shouldDimDemandTagsForCompanyHover}
+            {@const darkenedBrightness = shouldDimCitiesForCityReferenceCardPreview
+                ? CITY_REFERENCE_CARD_PREVIEW_DEMAND_TAG_BRIGHTNESS
+                : HOVER_COMPANY_DEMAND_TAG_BRIGHTNESS}
             <CityDemandMarker
                 x={tag.x}
                 y={tag.y}
@@ -412,7 +430,7 @@
                 demands={tag.demands}
                 highlighted={isSelectableDeliveryCity || isHoveredRouteCity}
                 hovered={isHoveredSelectableDeliveryCity || isHoveredRouteCity}
-                darkened={darkened}
+                {darkened}
                 {darkenedBrightness}
                 emptyLabel="DEMAND MET"
             />

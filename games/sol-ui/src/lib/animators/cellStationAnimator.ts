@@ -162,10 +162,7 @@ export class CellStationAnimator extends StateAnimator<
             return
         }
 
-        const location = this.getStationLocation(
-            toState.board.cellAt(this.coords),
-            toState.board
-        )
+        const location = this.getStationLocation(toState.board.cellAt(this.coords), toState.board)
         if (!location) {
             return
         }

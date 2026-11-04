@@ -74,6 +74,10 @@ export function trainsOwnedBy(state: TrainState, owner: Owner): Train[] {
     )
 }
 
+export function trainIdsOwnedBy(state: TrainState, owner: Owner): string[] {
+    return trainsOwnedBy(state, owner).map((train) => train.id)
+}
+
 export function isObsoleteTrain(train: Train): boolean {
     return train.status === 'owned' && train.rustsAfterOperation === true
 }
@@ -83,7 +87,8 @@ export function trainCanBeTraded(train: Train): boolean {
 }
 
 /** Where trains go when they leave a company: the bank's market, or out of play. */
-export type TrainDestination = 'market' | 'removed'
+export const TrainDestination = Type.Union([Type.Literal('market'), Type.Literal('removed')])
+export type TrainDestination = Type.Static<typeof TrainDestination>
 
 export function releaseTrains(
     inventory: TrainInventory,

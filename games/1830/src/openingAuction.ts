@@ -6,10 +6,10 @@ import {
     createOrdinaryShareCertificates,
     privateIncomePayments,
     requirePar,
-    settleCashPayments,
     type InitialPosition,
     type Opening,
     type OpeningSetup,
+    startingCashByPlayerCount,
     type WaterfallAuctionRules
 } from '@tabletop/18xx'
 import { assert } from '@tabletop/common'
@@ -31,6 +31,8 @@ export const EighteenThirtyStartingCash: Readonly<Record<number, number>> = {
     6: 400
 }
 
+export const eighteenThirtyStartingCash = startingCashByPlayerCount(EighteenThirtyStartingCash)
+
 // C&A's first buyer receives a PRR share; B&O's receives B&O's president's certificate.
 const EighteenThirtyAwardedShares: Readonly<Record<string, readonly string[]>> = {
     CA: ['PRR:share:1'],
@@ -48,11 +50,8 @@ export const EighteenThirtyAuctionRules: WaterfallAuctionRules = {
         ])
         if (award.lotId === 'BOP') requirePar(state, 'BO', award.playerId)
     },
-    payIncome(state) {
-        settleCashPayments(
-            state,
-            privateIncomePayments(state, { charters: EighteenThirtyCharters })
-        )
+    incomePayments(state) {
+        return privateIncomePayments(state, { charters: EighteenThirtyCharters })
     }
 }
 export function createEighteenThirtyOpening({
@@ -63,7 +62,7 @@ export function createEighteenThirtyOpening({
     assert(players.length >= 2 && players.length <= 6, '1830 supports two through six players')
     const options = EighteenThirtyGameConfig.options(config)
     const majors = Object.values(EighteenThirtyMajors)
-    const capital = EighteenThirtyStartingCash[players.length]
+    const capital = eighteenThirtyStartingCash({ playerCount: players.length, config })
     const ipo = { owner: { kind: 'bank' } as const, poolId: 'initial-offering' }
     const position: InitialPosition = {
         stockMarket: { stacks: [] },

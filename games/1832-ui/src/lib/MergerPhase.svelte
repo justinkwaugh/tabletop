@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { type ShareSaleDetails } from '@tabletop/18xx'
+    import type { ShareSaleDetails } from '@tabletop/18xx'
     import { nextSystemId } from '@tabletop/1832'
     import {
         CompanyActionCard,
@@ -7,6 +7,7 @@
         CompanyToken,
         DecisionResponse,
         TrainBadge,
+        trainCount,
         type CardAction
     } from '@tabletop/18xx-ui'
     import type { EighteenThirtyTwoSession } from './session.svelte.js'
@@ -14,8 +15,7 @@
     const money = $derived(session.presentation.money)
     const gameState = $derived(session.gameState)
     const busy = $derived(session.busy || session.updatingVisibleState || session.isViewingHistory)
-    const initials = (companyId: string) =>
-        session.presentation.companyNames?.[companyId]?.initials ?? companyId
+    const initials = (companyId: string) => session.companyInitials(companyId)
     const name = (playerId: string) => session.getPlayerName(playerId)
     const presides = (playerId: string, proposerPlayerId: string) =>
         playerId === proposerPlayerId ? 'you preside' : `${name(playerId)} presides`
@@ -127,7 +127,7 @@
         <h3 class="sentence">
             <CompanyToken appearance={session.mapView.stations[discards.companyId]} size={24} />
             <strong>{session.companyName(discards.companyId)}</strong>
-            <span>discards {discards.excess} {discards.excess === 1 ? 'train' : 'trains'}</span>
+            <span>discards {trainCount(discards.excess)}</span>
         </h3>
         <p class="note">
             Its train limit is {discards.limit}. Discarded trains go to the open market.

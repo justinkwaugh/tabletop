@@ -1,6 +1,6 @@
 <script lang="ts">
     import { Card, Hr } from 'flowbite-svelte'
-    import { ExternalAuthService } from '@tabletop/common'
+    import { ExternalAuthService, externalIdentityProvider } from '@tabletop/common'
     import DiscordSignIn, {
         isEnabled as isDiscordSigninEnabled
     } from '$lib/components/DiscordSignIn.svelte'
@@ -14,13 +14,7 @@
     })
 
     let linkedAccountIdsByType: Map<string, string> = $derived.by(() => {
-        return new Map(
-            user?.externalIds?.map((id) => {
-                const split = id.split(':', 2)
-                const type = split[0]
-                return [type, id]
-            }) ?? []
-        )
+        return new Map(user?.externalIds?.map((id) => [externalIdentityProvider(id), id]) ?? [])
     })
 </script>
 

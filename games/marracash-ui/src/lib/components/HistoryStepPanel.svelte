@@ -11,7 +11,7 @@
 
     // A step is its player action, but the state shown also holds what the game resolved just
     // before it (an auction or an antique set), so that comes first, quietly, on its own line.
-    let step = $derived(viewedHistoryStep(gameSession.shownActions))
+    let step = $derived(viewedHistoryStep(gameSession.actions))
     let played = $derived(step.findLast((action) => action.source === ActionSource.User))
     let resolved = $derived(
         step.filter((action) => isResolveAuction(action) || isCompleteAntiqueSet(action))

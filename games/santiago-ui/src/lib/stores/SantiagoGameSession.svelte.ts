@@ -27,7 +27,7 @@ import {
     validNeutralTilePlacements,
     validSpringPlacements
 } from '@tabletop/santiago'
-import { type GameAction } from '@tabletop/common'
+import type { GameAction } from '@tabletop/common'
 import { TileDealAnimator } from '$lib/animators/tileDealAnimator.svelte.js'
 import { ActionBarAnimator } from '$lib/animators/actionBarAnimator.svelte.js'
 import { CanalBuildAnimator } from '$lib/animators/canalBuildAnimator.svelte.js'
@@ -43,6 +43,7 @@ import {
     canRevealTiles,
     isNeutralPlacementTurn,
     isOverseerDecisionPhase,
+    isPlantTurn,
     isSpringPlacementTurn,
     projectedOverseerId,
     rejectPenalty,
@@ -241,8 +242,7 @@ export class SantiagoGameSession extends GameSession<
             this.selectedTileIndex >= 0 ? state.revealedTiles[this.selectedTileIndex] : undefined
         const myId = this.myPlayer?.id
         if (!tile || !myId) return new Map()
-        if (state.machineState !== MachineState.PlantingPhase) return new Map()
-        if (state.plantersOrder[state.planterIndex] !== myId) return new Map()
+        if (!isPlantTurn(state, myId)) return new Map()
 
         const connected = connectedSpringIntersections(state.board)
         const result = new Map<string, boolean>()

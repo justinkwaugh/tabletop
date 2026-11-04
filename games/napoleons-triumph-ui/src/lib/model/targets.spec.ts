@@ -12,6 +12,7 @@ import {
     reserveTarget,
     retreatTargets,
     threatenedApproaches,
+    threatsOn,
     wayTargets
 } from './targets.js'
 import { WayStepKind, type WayStep } from './ways.js'
@@ -157,5 +158,41 @@ describe('the ways to a place by road (rule 10)', () => {
             { key: 'entry:F5', kind: TargetKind.Way, position: { locale: 89 }, step: comingOn }
         ])
         expect(marksOn(steps)).toEqual([TargetMark.Way])
+    })
+})
+
+describe('a threat', () => {
+    const FRENCH_LOCALE = 93
+    const ALLIED_LOCALE = 94
+
+    function besideTheEnemy() {
+        const game = frenchTurn([
+            {
+                id: 'F-1',
+                side: Side.French,
+                face: infantry(2),
+                locale: FRENCH_LOCALE,
+                commanderId: 'lannes'
+            },
+            { id: 'A-1', side: Side.Allied, face: infantry(2), locale: ALLIED_LOCALE }
+        ])
+        const french = game.playerOf(Side.French)
+        const across = game.hydrated.map.approachBetween(FRENCH_LOCALE, ALLIED_LOCALE).id
+        return { game, french, across }
+    }
+
+    it('is not offered to pieces picked up beside the enemy, which only names the approach', () => {
+        const { game, french } = besideTheEnemy()
+        const order = { kind: CommandKind.Corps, commanderId: 'lannes', unitIds: ['F-1'] }
+        const targets = moveTargets(game.hydrated, french, order)
+        expect(targets.length).toBeGreaterThan(0)
+        expect(threatenedApproaches(targets)).toEqual([])
+    })
+
+    it('is offered across each approach into the locale it is aimed at', () => {
+        const { game, french, across } = besideTheEnemy()
+        expect(
+            threatsOn(game.hydrated, french, ALLIED_LOCALE).map((target) => target.position)
+        ).toEqual(expect.arrayContaining([{ locale: FRENCH_LOCALE, approach: across }]))
     })
 })

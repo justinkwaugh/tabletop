@@ -7,7 +7,7 @@ import { join, resolve } from 'node:path'
 import { workspaceRequire } from './workspace_compilers.mjs'
 
 const uiRoot = resolve(process.argv[2])
-const repoRequire = createRequire(join(uiRoot, '../../config/config-rollup/package.json'))
+const repoRequire = createRequire(join(uiRoot, '../../config/config-rolldown/package.json'))
 const pluginRequire = createRequire(repoRequire.resolve('rollup-plugin-postcss'))
 const postcss = pluginRequire('postcss')
 const { SourceMapConsumer } = pluginRequire('source-map')
@@ -80,8 +80,27 @@ for (const file of readdirSync(bundleDir).filter((name) => name.endsWith('.js'))
     const map = existsSync(mapPath)
         ? new SourceMapConsumer(JSON.parse(readFileSync(mapPath, 'utf8')))
         : undefined
+    // Compiled Svelte CSS strings have no mapping of their own, and Rolldown writes them as
+    // unmapped segments, so a stylesheet takes the source of the nearest mapping before it.
+    const sourcedMappings = []
+    map?.eachMapping((mapping) => {
+        if (mapping.originalLine != null) sourcedMappings.push(mapping)
+    })
+    const nearestSource = (line, column) => {
+        let [low, high, found] = [0, sourcedMappings.length - 1, undefined]
+        while (low <= high) {
+            const middle = (low + high) >> 1
+            const mapping = sourcedMappings[middle]
+            const before =
+                mapping.generatedLine < line ||
+                (mapping.generatedLine === line && mapping.generatedColumn <= column)
+            if (before) [found, low] = [mapping.source, middle + 1]
+            else high = middle - 1
+        }
+        return found
+    }
     const origin = (line, column) => {
-        const original = map?.originalPositionFor({ line, column })?.source
+        const original = nearestSource(line, column)
         return original
             ? original
                   .replace(/^(\.\.\/)+/, '')

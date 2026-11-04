@@ -5,26 +5,31 @@
     import PrivateCard from './PrivateCard.svelte'
     import CardLightbox from './CardLightbox.svelte'
     import type { StationAppearance } from '../maps/stationPresentation.js'
+    import type { PublishedCardPlate } from '../session/eighteenXXSession.svelte.js'
     import { Floater } from '@tabletop/frontend-components'
 
     let {
         money,
-        name,
+        shortName,
+        fullName,
         description,
         value,
         income,
-        token,
+        tokens,
         phaseColors = {},
-        imageUrl
+        imageUrl,
+        plate
     }: {
         money: MoneyFormat
-        name: string
+        shortName: string
+        fullName: string
         description: string
         value?: number
         income?: number
-        token?: StationAppearance
+        tokens?: readonly StationAppearance[]
         phaseColors?: Readonly<Record<string, string>>
         imageUrl?: string
+        plate?: PublishedCardPlate
     } = $props()
     const id = $props.id()
     let open = $state(false)
@@ -63,12 +68,13 @@
     class="name"
     use:triggerRow
     aria-expanded={open}
-    aria-describedby={open ? `${id}-description` : undefined}>{name}</button
+    aria-describedby={open ? `${id}-description` : undefined}>{shortName}</button
 >
 {#if open && imageUrl}
     <CardLightbox
         {imageUrl}
-        {name}
+        {plate}
+        name={fullName}
         onclose={() => {
             open = false
         }}
@@ -91,7 +97,15 @@
         }}
     >
         <div id={`${id}-description`} class="description" role="tooltip">
-            <PrivateCard {money} {phaseColors} {name} {description} {value} {income} {token} />
+            <PrivateCard
+                {money}
+                {phaseColors}
+                name={fullName}
+                {description}
+                {value}
+                {income}
+                {tokens}
+            />
         </div>
     </Floater>
 {/if}

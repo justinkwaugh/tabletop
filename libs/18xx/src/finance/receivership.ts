@@ -1,4 +1,4 @@
-import { assert } from '@tabletop/common'
+import { ActionSource, assert } from '@tabletop/common'
 import type { DistributionState, EarningsChoice } from '../earnings/earningsDistribution.js'
 import type { MapStateData } from '../map/mapState.js'
 import type { PresidencyClaim } from '../stock/presidency.js'
@@ -53,9 +53,31 @@ export function inReceivership(state: FinancialState, companyId: string): boolea
  * Whether the player may act for the company: its controlling owner, or anyone while it is in
  * receivership, where the step's active players say which receivers act.
  */
-export function actsFor(state: FinancialState, playerId: string, companyId: string): boolean {
+export function actsFor(
+    state: FinancialState,
+    playerId: string | undefined,
+    companyId: string
+): boolean {
     const owner = controllingOwner(state, companyId)
     return owner ? owner.playerId === playerId : inReceivership(state, companyId)
+}
+
+export function actionMayOperate(
+    state: FinancialState & { activePlayerIds: readonly string[] },
+    action: { source: ActionSource; playerId?: string },
+    companyId: string
+): boolean {
+    return action.playerId === undefined
+        ? action.source === ActionSource.System && inReceivership(state, companyId)
+        : state.activePlayerIds.includes(action.playerId) &&
+              actsFor(state, action.playerId, companyId)
+}
+
+export function automaticStepCredit(
+    state: FinancialState & { activePlayerIds: readonly string[] },
+    companyId: string
+): { playerId?: string } {
+    return inReceivership(state, companyId) ? {} : { playerId: state.activePlayerIds[0] }
 }
 
 /** The players who operate the company: its controlling owner, or its receivers. */

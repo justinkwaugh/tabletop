@@ -1,9 +1,8 @@
 import { bannerHolder } from '../util/oathkeeper.js'
-import { spendFavor, usableFavor } from '../util/favor.js'
-import { isLockedFor, reasonCannotMoveCardTo } from '../util/locked.js'
+import { askRestFromHomeBanks, payOwedFavor } from '../util/homeBankPayment.js'
+import { isLockedFor, ownCardLockedFor, reasonCannotMoveCardTo } from '../util/locked.js'
 import { Banner, Suit } from '../model/oathEnums.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
-import { suitOf } from '../data/cardRegistry.js'
 import { gainSupply, returnFavorFromCards, returnSecretsToBoard } from '../util/rest.js'
 import { rulersOfSite, sitesRuledBy } from '../util/rule.js'
 import { cannotPlaceWarbandsAtSites } from '../util/continuous.js'
@@ -41,24 +40,24 @@ import type { WarbandGroup } from '../model/campaign.js'
 
 // "Action: Each player (even you) places one favor per site they rule into
 // the arcane bank." (R-7.1.3: as much as each has.)
-registerEffect(
-    'denizen.arcane.plague-engines',
-    powerIndexOf('denizen.arcane.plague-engines', PowerTiming.Action),
-    {
-        choices: [],
-        resolve: (ctx) => {
-            let placed = 0
-            for (const p of ctx.state.players) {
-                const owed = sitesRuledBy(ctx.state, p.playerId).length
-                const paid = Math.min(owed, usableFavor(ctx.state, p.playerId))
-                spendFavor(ctx.state, p.playerId, paid)
-                ctx.state.favorBank[Suit.Arcane] += paid
-                placed += paid
-            }
-            return { summary: `Plague Engines: ${placed} favor placed into the arcane bank` }
+const PLAGUE_ENGINES = 'denizen.arcane.plague-engines'
+registerEffect(PLAGUE_ENGINES, powerIndexOf(PLAGUE_ENGINES, PowerTiming.Action), {
+    choices: [],
+    resolve: (ctx) => {
+        let placed = 0
+        const unpaid = new Map<string, number>()
+        for (const p of ctx.state.players) {
+            const owed = sitesRuledBy(ctx.state, p.playerId).length
+            const paid = payOwedFavor(ctx.state, p.playerId, owed)
+            ctx.state.favorBank[Suit.Arcane] += paid
+            placed += paid
+            unpaid.set(p.playerId, owed - paid)
         }
+        // Vow of Kinship — the rest from its bank only as its holder chooses (R-10.10-H1).
+        askRestFromHomeBanks(ctx.state, ctx.playerId, PLAGUE_ENGINES, unpaid, Suit.Arcane)
+        return { summary: `Plague Engines: ${placed} favor placed into the arcane bank` }
     }
-)
+})
 
 // "Action: Kill any two warbands in your region (at sites or on boards, even
 // yours) if you hold the Darkest Secret."
@@ -102,10 +101,12 @@ registerEffect(
                 : `Terror Spells kills two warbands: ${named} named, ${required} to kill`
         },
         resolve: (ctx) => {
-            const killed: WarbandGroup[] = chosen(ctx, PowerChoiceKind.Warbands).map(({ group }) => ({
-                ...group,
-                count: killWarbandGroup(ctx.state, group)
-            }))
+            const killed: WarbandGroup[] = chosen(ctx, PowerChoiceKind.Warbands).map(
+                ({ group }) => ({
+                    ...group,
+                    count: killWarbandGroup(ctx.state, group)
+                })
+            )
             const total = killed.reduce((n, group) => n + group.count, 0)
             return {
                 summary: `Terror Spells: killed ${total} warbands in ${ctx.playerId}'s region`,
@@ -144,7 +145,7 @@ registerModifier(
         hooks: {
             forbids: (ctx) => {
                 const cardId = ctx.particulars?.cardId
-                const suit = cardId ? suitOf(cardId) : undefined
+                const suit = cardId ? ctx.state.suitInPlay(cardId) : undefined
                 const matches =
                     suit !== undefined && hasFaceupAdviserOfSuit(ctx.state, ctx.playerId, suit)
                 return matches
@@ -163,7 +164,7 @@ const playersWithOrderOrDiscordAdviser: ChoiceDomain = (state) =>
         .filter((p) =>
             p
                 .faceupAdviserIds()
-                .some((cardId) => cardSuitIsOneOf(cardId, [Suit.Order, Suit.Discord]))
+                .some((cardId) => cardSuitIsOneOf(state, cardId, [Suit.Order, Suit.Discord]))
         )
         .map((p) => ({ kind: PowerChoiceKind.Player, playerId: p.playerId }))
 
@@ -219,6 +220,8 @@ const ENCHANTRESS = 'denizen.discord.enchantress'
 // R-7.2.1, R-7.2.2 — the adviser goes where Enchantress was. From revision 10, held as an adviser
 // it leaves out its holder's own advisers: swapped among one player's advisers, nothing moves.
 const faceupAdvisersOfAnyone: ChoiceDomain = (state, playerId) => {
+    // R-7.2.2 — from revision 16, it does not swap itself out of a site where it is locked for its user.
+    if (ownCardLockedFor(state, playerId, ENCHANTRESS)) return []
     const to = siteHolding(state, ENCHANTRESS) ? 'site' : 'advisers'
     const holderLeftOut =
         to === 'advisers' && isAtLeastOathRevision(state, OathRevision.EngineFixes6)
@@ -465,7 +468,8 @@ const tameable: ChoiceDomain = (state, playerId) => {
     return denizensAtYourSite(state, playerId)
         .filter(
             (id) =>
-                cardSuitIsOneOf(id, [Suit.Beast, Suit.Nomad]) && !isLockedFor(state, playerId, id)
+                cardSuitIsOneOf(state, id, [Suit.Beast, Suit.Nomad]) &&
+                !isLockedFor(state, playerId, id)
         )
         .map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
 }
@@ -490,7 +494,7 @@ registerEffect(
                 ctx.power.cardId
             )
             assert(discarded.length > 0, `${card.cardId} is unlocked, so it is discarded`)
-            const suit = suitOf(card.cardId)
+            const suit = ctx.state.suitInPlay(card.cardId)
             assertExists(suit, `${card.cardId} prints no suit to match a favor bank`)
             const gained = gainFavorFromBank(ctx.state, ctx.playerId, suit, 2)
             return {

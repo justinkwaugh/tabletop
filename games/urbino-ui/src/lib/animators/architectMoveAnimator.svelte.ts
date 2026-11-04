@@ -56,7 +56,11 @@ export class ArchitectMoveAnimator extends StateAnimator<
             const timeline = animationContext.actionTimeline
 
             if (action) {
-                timeline.to(pawn, { scale: LIFT_SCALE, duration: LIFT_DURATION, ease: 'power1.out' }, 0)
+                timeline.to(
+                    pawn,
+                    { scale: LIFT_SCALE, duration: LIFT_DURATION, ease: 'power1.out' },
+                    0
+                )
                 timeline.to(
                     pawn,
                     { x: offset.x, y: offset.y, duration: GLIDE_DURATION, ease: 'power2.inOut' },
@@ -68,11 +72,17 @@ export class ArchitectMoveAnimator extends StateAnimator<
                     GLIDE_START + GLIDE_DURATION - LAND_DURATION
                 )
             } else {
-                timeline.to(pawn, { x: offset.x, y: offset.y, duration: FALLBACK_DURATION, ease: 'power2.out' }, 0)
+                timeline.to(
+                    pawn,
+                    { x: offset.x, y: offset.y, duration: FALLBACK_DURATION, ease: 'power2.out' },
+                    0
+                )
             }
 
             animationContext.afterAnimations(() => {
-                this.positions = this.positions.map((position, other) => (other === index ? destination : position))
+                this.positions = this.positions.map((position, other) =>
+                    other === index ? destination : position
+                )
                 gsap.set(pawn, { x: 0, y: 0, scale: 1 })
             })
         })

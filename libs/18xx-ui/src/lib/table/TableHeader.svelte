@@ -1,16 +1,15 @@
 <script lang="ts">
     import { assert } from '@tabletop/common'
-    import { tableHeaderState } from './tableHeaderState.js'
+    import { actingOperatingCompany } from '@tabletop/18xx'
     import { currentRoundHeading } from './roundHeading.js'
     import { isHistoryBookkeeping } from './historyNavigation.js'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
-    import type { CompanyNameVariants } from './companyPresentation.js'
     let {
         session,
-        companyNames = {},
         bordered = true,
         centered = false,
+        attention = false,
         artworkAvailable = false,
         publishedArtwork = false,
         onToggleArtwork
@@ -20,8 +19,8 @@
         onToggleArtwork?: () => void
         bordered?: boolean
         centered?: boolean
+        attention?: boolean
         session: EighteenXXSessionView
-        companyNames?: Readonly<Record<string, CompanyNameVariants>>
     } = $props()
     let compact = $state(false)
     function fitRoundLabel(header: HTMLElement) {
@@ -49,7 +48,7 @@
         for (const element of [header, phase, turn]) observer.observe(element)
         return { destroy: () => observer.disconnect() }
     }
-    const gameState = $derived(tableHeaderState(session))
+    const gameState = $derived(session.gameState)
     const titleRounds = $derived(session.presentation.titleRounds)
     const opening = $derived(
         session.presentation.openingRound?.inProgress(gameState)
@@ -64,16 +63,17 @@
         )
     )
     const companyId = $derived(
-        gameState.operatingSet?.companyOrder.find(
-            (id) => !gameState.operatingSet?.completedCompanyIds.includes(id)
-        )
+        actingOperatingCompany(gameState) ??
+            gameState.operatingSet?.companyOrder.find(
+                (id) => !gameState.operatingSet?.completedCompanyIds.includes(id)
+            )
     )
     const company = $derived(gameState.companies.find((company) => company.id === companyId))
     const turnPlayerIds = $derived.by(() => {
         if (!session.isViewingHistory) return gameState.activePlayerIds
-        const actorId = session.history.visibleContext.actions.findLast(
-            (action) => !isHistoryBookkeeping(action)
-        )?.playerId
+        const actorId = session.actions
+            .slice(0, gameState.actionCount)
+            .findLast((action) => !isHistoryBookkeeping(action))?.playerId
         return actorId ? [actorId] : gameState.activePlayerIds
     })
 </script>
@@ -95,6 +95,7 @@
     class:compact
     class:centered
     class:borderless={!bordered}
+    class:attention
 >
     <div class="phase">
         <strong>
@@ -126,8 +127,7 @@
             ><span class="company" title={session.companyName(company.id)}
                 ><CompanyToken appearance={session.mapView.stations[company.id]} size={22} /><span
                     class="max-sm:hidden">{session.companyName(company.id)}</span
-                ><span class="sm:hidden">{companyNames[company.id]?.initials ?? company.id}</span
-                ></span
+                ><span class="sm:hidden">{session.companyInitials(company.id)}</span></span
             >{/if}
         {#if centered && turnPlayerIds.length}<span class="separator" aria-hidden="true">/</span
             >{@render turnLabel()}{/if}
@@ -184,8 +184,16 @@
     header.borderless {
         border-bottom: 0;
     }
+    header.attention {
+        --rail-text: var(--rail-surface-inset, #1b232d);
+        --rail-muted: var(--rail-surface-inset, #1b232d);
+        --rail-hover: #00000014;
+        border-bottom-color: var(--rail-focus, #b8cddd);
+        background: var(--rail-focus, #b8cddd);
+    }
     header:not(.centered) {
         width: 100%;
+        padding-left: 8px;
         flex-wrap: wrap;
         row-gap: 0;
     }

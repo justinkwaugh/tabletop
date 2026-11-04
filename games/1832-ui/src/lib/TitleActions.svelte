@@ -1,8 +1,7 @@
 <script lang="ts">
     import type { EighteenThirtyTwoSession } from './session.svelte.js'
     let { session }: { session: EighteenThirtyTwoSession } = $props()
-    const companyName = (companyId: string) =>
-        session.presentation.companyNames?.[companyId]?.initials ?? companyId
+    const companyName = (companyId: string) => session.companyInitials(companyId)
 </script>
 
 {#if session.canBuyCoalRights}

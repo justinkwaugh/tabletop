@@ -30,8 +30,6 @@ function funding(play: ExamplePlay) {
 
 function act(play: ExamplePlay, choice: FundingChoice) {
     switch (choice.kind) {
-        case 'contribute':
-            return play.act('ContributeTrainFunds', { owner: choice.owner, amount: choice.amount })
         case 'sell': {
             const sale = choice.sales.at(-1)!
             return play.act('SellFundingShares', {
@@ -41,13 +39,7 @@ function act(play: ExamplePlay, choice: FundingChoice) {
                 expectedProceeds: sale.proceeds
             })
         }
-        case 'buy':
-            return play.act('BuyTrain', {
-                companyId: choice.purchase.companyId,
-                trainId: choice.purchase.trainId,
-                definitionId: choice.purchase.definitionId,
-                expectedPrice: choice.purchase.price
-            })
+        // Contributions and the purchase follow a decision by themselves; only sales rest.
         default:
             throw Error(`Unexpected funding choice ${choice.kind}`)
     }

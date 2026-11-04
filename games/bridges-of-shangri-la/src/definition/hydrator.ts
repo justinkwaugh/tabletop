@@ -1,17 +1,11 @@
-import {
-    GameAction,
-    type GameHydrator,
-    type HydratedAction
-} from '@tabletop/common'
+import { GameAction, type GameHydrator, type HydratedAction } from '@tabletop/common'
 import { BridgesGameState, HydratedBridgesGameState } from '../model/gameState.js'
 import { HydratedPlaceMaster, isPlaceMaster } from '../actions/placeMaster.js'
 import { HydratedRecruitStudents, isRecruitStudents } from '../actions/recruitStudents.js'
 import { HydratedBeginJourney, isBeginJourney } from '../actions/beginJourney.js'
 import { HydratedPass, isPass } from '../actions/pass.js'
 
-export class BridgesHydrator
-    implements GameHydrator<BridgesGameState, HydratedBridgesGameState>
-{
+export class BridgesHydrator implements GameHydrator<BridgesGameState, HydratedBridgesGameState> {
     hydrateAction(data: GameAction): HydratedAction {
         switch (true) {
             case isPlaceMaster(data): {

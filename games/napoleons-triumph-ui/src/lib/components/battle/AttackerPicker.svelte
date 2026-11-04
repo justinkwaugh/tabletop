@@ -17,6 +17,7 @@
     {#if !folded}
         <div class="nt-battle-faint">{group.label}</div>
         <Force
+            byCorps
             units={group.units}
             selected={stage.attackers}
             roles={stage.roles}

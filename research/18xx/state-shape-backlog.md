@@ -99,7 +99,7 @@ mechanism below, plus the six implemented titles.
    `StockMarketChart` (its spaces, colours and move graph), carried on `StockRules.market`
    and in `TitleComponents`, so hydration validates the stacks against it. Chart methods
    read spaces, moves, company positions and market order and validate a placement;
-   `placeStockMarker` and `restoreStockMarker` stay chart-free for recorded moves whose
+   `placeStockMarker` stays chart-free for recorded moves whose
    spaces the chart already produced. Family helpers that need prices or order take the
    chart; the UI reads it from the session (`stockMarketChart`), title UIs from their
    title. Movement remains the chart's graph, which title rules may bypass (1832's sale

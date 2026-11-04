@@ -19,6 +19,8 @@ import {
     sameOwner,
     sharesOwned,
     trainsOwnedBy,
+    treasuryPool,
+    treasuryPoolId,
     type Owner,
     type Portfolio,
     type Station,
@@ -181,7 +183,7 @@ export class TheOldPrinceBranchSplit {
                 certificateTransfers.push({
                     certificateId,
                     owner: treasury,
-                    poolId: `treasury:${parentId}`
+                    poolId: treasuryPoolId(parentId)
                 })
             const receivesPresident = sameOwner(owner, player)
             const received = certificatesForShares(
@@ -351,11 +353,8 @@ export class TheOldPrinceBranchSplit {
         const childOwner: Owner = { kind: 'company', companyId: child.id }
         const tranche = availableTheOldPrinceTranche(state)
         assert(tranche, 'A split requires an available tranche')
-        if (!state.certificatePools.some((pool) => pool.id === `treasury:${parent.id}`))
-            state.certificatePools.push({
-                id: `treasury:${parent.id}`,
-                owner: treasury
-            })
+        if (!state.certificatePools.some((pool) => pool.id === treasuryPoolId(parent.id)))
+            state.certificatePools.push(treasuryPool(parent.id))
         settleCashPayments(state, details.payments)
         for (const transfer of details.certificateTransfers) {
             const certificate = state.certificates.find(

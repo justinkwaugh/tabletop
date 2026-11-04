@@ -3,10 +3,11 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import type { HydratedOathPlayerState } from '../model/playerState.js'
 import { PowerQuestionKind, type PowerQuestion, type QuestionOf } from '../model/question.js'
 import { CONSPIRACY_ID } from '../data/cardRegistry.js'
-import { cardPowers } from '../data/cardPowers.js'
-import { banksWithFavor, gainFavorFromBank, usableFavor } from './favor.js'
+import { powerInPlay } from './powersInPlay.js'
+import { banksWithFavor, gainFavorFromBank, homeBankPayable, usableFavor } from './favor.js'
 import { takeNotes, takeRelicsFrom } from './relics.js'
 import { reasonExchangeInvalid } from './exchange.js'
+import { reasonDealKeptInvalid } from './deals.js'
 import { playersAt } from './pawn.js'
 import { reliquarySlot } from './imperial.js'
 import { reasonCannotPayPowerCost } from './powerCost.js'
@@ -18,6 +19,8 @@ import { canTravel } from './travelPlan.js'
 import { reasonDrumBankEmpty } from './dragonskinDrum.js'
 import { reasonPersistentForbidsCampaign } from './persistent.js'
 import { pawnSiteId } from './pawn.js'
+import { reasonFlipInvalid } from './siteTravel.js'
+import { gainOnArrival } from './shroudedWood.js'
 
 type ForcedOutcome<K extends PowerQuestionKind> = (
     state: HydratedOathGameState,
@@ -85,7 +88,7 @@ const FORCED_OUTCOMES: { [K in PowerQuestionKind]: ForcedOutcome<K> } = {
     [PowerQuestionKind.TravelFreeTo]: (_state, question) =>
         question.siteIds.length === 0 ? 'no site to travel to' : undefined,
     [PowerQuestionKind.RerollDice]: (state, question) => {
-        const power = cardPowers(question.cardId)[question.powerIndex]
+        const power = powerInPlay(state, question.cardId, question.powerIndex)
         assertExists(power, `${question.cardId} has a power at index ${question.powerIndex}`)
         const cost = reasonCannotPayPowerCost(state, question.askedPlayerId, power)
         return cost ? `${question.askedPlayerId} cannot use Jinx: ${cost}` : undefined
@@ -107,7 +110,7 @@ const FORCED_OUTCOMES: { [K in PowerQuestionKind]: ForcedOutcome<K> } = {
             )
             .find((reason) => reason !== undefined)
         if (forbidden) return `${question.askedPlayerId} cannot use Relic Thief: ${forbidden}`
-        const power = cardPowers(question.cardId)[question.powerIndex]
+        const power = powerInPlay(state, question.cardId, question.powerIndex)
         const cost = power
             ? reasonCannotPayPowerCost(state, question.askedPlayerId, power)
             : 'the power is not in play'
@@ -142,7 +145,41 @@ const FORCED_OUTCOMES: { [K in PowerQuestionKind]: ForcedOutcome<K> } = {
             : undefined
     },
     // R-10.5 — the discards are the asked player's to choose and order, and their pile is secret.
-    [PowerQuestionKind.DiscardAdvisers]: () => undefined
+    [PowerQuestionKind.DiscardAdvisers]: () => undefined,
+    // R-11.7-H3 — asked only while both ways are open; with one, the pick takes it unasked.
+    [PowerQuestionKind.WayStationFavor]: () => undefined,
+    // R-11.7-H2 — one bank matches: Hospitality gains from it, with nothing to choose.
+    [PowerQuestionKind.HospitalityBank]: (state, question) => {
+        const [only, ...more] = question.banks
+        if (only === undefined || more.length > 0) return undefined
+        const card = { cardId: question.cardId, powerIndex: question.powerIndex }
+        return gainOnArrival(state, question.askedPlayerId, card, only, question.siteId).join('; ')
+    },
+    // Vow of Kinship — asked only while their bank can pay; should it no longer, nothing more is paid.
+    [PowerQuestionKind.PayFromHomeBank]: (state, question) =>
+        homeBankPayable(state, question.askedPlayerId, question.owed) <= 0
+            ? `${question.askedPlayerId} has no favor in a bank to pay from`
+            : undefined,
+    // R-7.1.3-H2 — nothing rolled or no bank with favor gains nothing; one bank is taken from unasked.
+    [PowerQuestionKind.GamblingHallBank]: (state, question) => {
+        const [only, ...more] = question.banks
+        if (question.shields === 0 || only === undefined) return 'gained nothing'
+        if (more.length > 0) return undefined
+        const gained = gainFavorFromBank(state, question.askedPlayerId, only, question.shields)
+        return `gained ${gained} favor from the ${only} bank`
+    },
+    // R-11.13-H1 — without the faceup secrets to flip (or under Spell Breaker) the move is unable.
+    [PowerQuestionKind.FlipToTravel]: (state, question) => {
+        const flips = question.flips ?? 1
+        const invalid = reasonFlipInvalid(state, question.askedPlayerId, flips, flips)
+        return invalid
+            ? `${question.askedPlayerId} cannot flip a secret to travel to ${question.siteId}: ${invalid}`
+            : undefined
+    },
+    // R-7.6.3-H1 — a claim names an open deal; one closed meanwhile is not asked about.
+    [PowerQuestionKind.DealKept]: (state, question) => reasonDealKeptInvalid(state, question),
+    // Squalid District — its ruler is always asked: each of the three answers is theirs to give.
+    [PowerQuestionKind.AdjustEndDie]: () => undefined
 }
 
 /** Second Wind out of turn — asked for the next action, so judged as that action will be: free. */

@@ -6,12 +6,16 @@ import {
     PowerQuestionValidator,
     type Answered,
     type AnswerOf,
+    type EndDieAdjusted,
+    type OpenDeal,
     type QuestionAnswer,
     type QuestionOf,
     type ShroudedWoodPick,
+    type ShroudedWoodStay,
     type WarbandGain
 } from '../model/question.js'
 import type { PileDeposit } from '../model/hidden.js'
+import type { HeldForHospital } from '../model/campaign.js'
 import type { PowerMoveToll } from '../model/powerMoveToll.js'
 import type { MachineState } from '../definition/states.js'
 import type { HydratedOathPlayerState } from '../model/playerState.js'
@@ -51,10 +55,14 @@ export interface AnswerOutcome {
     disclosed?: boolean
     /** R-11.7 */
     woodPick?: ShroudedWoodPick
+    /** R-11.7-H2 */
+    woodStay?: ShroudedWoodStay
     /** Toll Roads on a power's move. */
     tollMove?: PowerMoveToll
     /** R-5.5.8 — a waiting banish settled: its burn, the "if you're victorious" plans and the end. */
     triggered?: string[]
+    /** Hospital — the warbands placed on its site when a waiting banish ended the Campaign. */
+    hospitalPlaced?: HeldForHospital[]
     /** Where the turn resumes once a waiting banish has ended the Campaign. */
     resumeMachineState?: MachineState
     /** Dragonskin Drum on a power's move. */
@@ -65,6 +73,12 @@ export interface AnswerOutcome {
      * Jinx's answer when the roll waited on it).
      */
     titleMoment?: boolean
+    /** R-7.6.3-H1 — the deal an accepted Tribunal offer with a promise opened, public from here. */
+    openedDeal?: OpenDeal
+    /** R-7.6.3-H1 — the deal a claim asked about, as it stood when answered. */
+    answeredDeal?: OpenDeal
+    /** Squalid District — the end die as rolled and as the answer left it, and what it decided. */
+    endDie?: EndDieAdjusted
 }
 
 function rulesOf<K extends PowerQuestionKind>(kind: K): QuestionRules<K> {
@@ -110,7 +124,8 @@ function applyAnswerOf<K extends PowerQuestionKind>(
 /**
  * `settled`: the action being settled. When its answer empties the queue and so rolls the attack held
  * for the defender's reroll, it reveals information and cannot be undone (R-X.3), and the answer's
- * record (`answered`) keeps what the attack rolled for History.
+ * record (`answered`) keeps what the attack rolled for History, and the warbands the skulls held for
+ * Jinx killed once it settles them.
  */
 export function settleQueue(
     state: HydratedOathGameState,
@@ -127,7 +142,10 @@ export function settleQueue(
         if (answered) answered.heldAttack = heldAttack
     }
     // Jinx — the skulls' kills are held back until every reroll is answered.
-    if (pending.queue.length === 0 && !pending.followUp) settleSkullKills(state)
+    if (pending.queue.length === 0 && !pending.followUp) {
+        const skullsKilled = settleSkullKills(state)
+        if (answered && skullsKilled !== undefined) answered.skullsKilled = skullsKilled
+    }
     if (pending.queue.length === 0 && pending.followUp) {
         const { cardId, siteId } = pending.followUp
         pending.followUp = undefined

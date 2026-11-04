@@ -78,9 +78,7 @@ export class ScorePopupAnimator extends StateAnimator {
             if (region.points === 0) continue
             // Slate rather than the gray prince's #888888 - an unowned region's popup shouldn't
             // read as that player's (see NEUTRAL_ZONE_PAINT).
-            const color = region.owner
-                ? this.gameSession.uiColorForOwner(region.owner)
-                : '#3f3f46'
+            const color = region.owner ? this.gameSession.uiColorForOwner(region.owner) : '#3f3f46'
             entries.push({ anchorKey: region.anchorSquareKey, amount: region.points, color })
         }
 
@@ -150,7 +148,11 @@ export class ScorePopupAnimator extends StateAnimator {
             const node = this.nodes.get(popup.id)
             if (!node) continue
             gsap.set(node, { xPercent: -50, yPercent: -50, scale: INITIAL_SCALE, opacity: 0 })
-            timeline.to(node, { scale: OVERSHOOT_SCALE, opacity: 1, duration: POP, ease: 'back.out(2.2)' }, 0)
+            timeline.to(
+                node,
+                { scale: OVERSHOOT_SCALE, opacity: 1, duration: POP, ease: 'back.out(2.2)' },
+                0
+            )
             timeline.to(node, { scale: 1, duration: SETTLE, ease: 'power2.out' }, POP)
             timeline.to(
                 node,

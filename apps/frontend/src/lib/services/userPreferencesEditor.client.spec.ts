@@ -41,20 +41,23 @@ afterEach(() => {
     vi.useRealTimers()
 })
 
-it('saves a change after a short pause', async () => {
-    const { editor, requests, onSaved } = fixture()
-    editor.update({ colorBlindPalette: true })
-    vi.advanceTimersByTime(499)
-    expect(requests).toEqual([])
+it.each([{ colorBlindPalette: true }, { bgStatsEnabled: true }, { bgStatsEnabled: false }])(
+    'saves a preference change after a short pause: %j',
+    async (change) => {
+        const { editor, requests, onSaved } = fixture()
+        editor.update(change)
+        vi.advanceTimersByTime(499)
+        expect(requests).toEqual([])
 
-    vi.advanceTimersByTime(1)
-    expect(requests.map((request) => request.preferences)).toEqual([
-        { ...preferences, colorBlindPalette: true }
-    ])
-    const saved = { ...user, preferences: requests[0].preferences }
-    requests[0].result.resolve(saved)
-    await vi.waitFor(() => expect(onSaved).toHaveBeenCalledWith(saved))
-})
+        vi.advanceTimersByTime(1)
+        expect(requests.map((request) => request.preferences)).toEqual([
+            { ...preferences, ...change }
+        ])
+        const saved = { ...user, preferences: requests[0].preferences }
+        requests[0].result.resolve(saved)
+        await vi.waitFor(() => expect(onSaved).toHaveBeenCalledWith(saved))
+    }
+)
 
 it('combines changes made during the pause into one save', () => {
     const { editor, requests } = fixture()

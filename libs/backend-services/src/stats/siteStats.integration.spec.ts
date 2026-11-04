@@ -193,22 +193,31 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             ])
             const created = game('created', { createdAt: at('05:00:00'), startedAt: undefined })
             await games.games.doc(created.id).set(created)
-            await db
-                .collection('users')
-                .doc(`${prefix}-new`)
-                .set({
-                    id: `${prefix}-new`,
+            const seedUser = (suffix: string, fields: Record<string, unknown>) =>
+                db
+                    .collection('users')
+                    .doc(`${prefix}-${suffix}`)
+                    .set({ id: `${prefix}-${suffix}`, roles: [], externalIds: [], ...fields })
+            await Promise.all([
+                seedUser('legacy', { status: UserStatus.Active, createdAt: at('03:00:00') }),
+                seedUser('activated', {
                     status: UserStatus.Active,
-                    createdAt: at('03:00:00'),
-                    roles: [],
-                    externalIds: []
-                })
+                    createdAt: dayBefore('23:00:00'),
+                    activatedAt: at('00:10:00')
+                }),
+                seedUser('activated-later', {
+                    status: UserStatus.Active,
+                    createdAt: at('04:00:00'),
+                    activatedAt: new Date('2026-10-18T01:00:00Z')
+                }),
+                seedUser('incomplete', { status: UserStatus.Incomplete, createdAt: at('06:00:00') })
+            ])
 
             await service.rollupDay('2026-09-30')
             await service.rollupDay('2026-10-16')
             const stats = await service.rollupDay(DAY)
             expect(stats).toMatchObject({
-                newUsers: 1,
+                newUsers: 2,
                 games: { created: 1, started: 0, finished: 0, abandoned: 0 },
                 userActions: 1,
                 activeUsers: 1,

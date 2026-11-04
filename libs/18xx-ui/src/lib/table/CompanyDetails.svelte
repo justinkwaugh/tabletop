@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { chainSidewaysScroll } from '@tabletop/frontend-components'
     import { privatePowerUsed, isObsoleteTrain } from '@tabletop/18xx'
     import type { Snippet } from 'svelte'
     import {
@@ -6,7 +7,7 @@
         DefaultCompanyPricePresentation,
         type CompanyPricePresentation
     } from './companyPresentation.js'
-    import { assertExists, type GameAction } from '@tabletop/common'
+    import type { GameAction } from '@tabletop/common'
     import {
         cashOwnedBy,
         certificatesOwnedBy,
@@ -17,45 +18,49 @@
         trainsOwnedBy,
         sharesOwned,
         type Company,
-        type Owner,
-        type CertificatePool
+        type Owner
     } from '@tabletop/18xx'
     import type {
         CompanyShareStatus,
         EighteenXXSessionView
     } from '../session/eighteenXXSession.svelte.js'
-    import { type CompanyOwnership, companyOwnership } from '../finance/companyOwnership.js'
+    import {
+        type CompanyOwnership,
+        companyOwnership,
+        holdsReceiverPresidentCertificate
+    } from '../finance/companyOwnership.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import PrivateDescription from '../privates/PrivateDescription.svelte'
     import PrivateTrackPowerButton from '../privates/PrivateTrackPowerButton.svelte'
     import { companyLastRun } from './companyLastRun.js'
-    import PresidentBadge from '../finance/PresidentBadge.svelte'
+    import type { PlaceConnection } from '../session/titlePresentation.js'
+    import PresidentName from '../finance/PresidentName.svelte'
     let {
         session,
         onPreviewMap,
+        onFocusConnection,
         company,
         pricePresentation = DefaultCompanyPricePresentation,
-        displayName = session.companyName(company.id),
-        vertical = false,
+        layout = 'wide',
         unavailable = false,
         purchaseSources,
         canPurchase,
-        trainColors,
-        poolName = (pool) => session.poolName(pool.id)
+        trainColors
     }: {
         pricePresentation?: CompanyPricePresentation
         unavailable?: boolean
-        vertical?: boolean
+        /** `wide-fill` is the wide card stretched to its container's width. */
+        layout?: 'wide' | 'wide-fill' | 'vertical'
         canPurchase?: (entry: CompanyOwnership) => boolean
         purchaseSources?: Snippet<[CompanyOwnership]>
         onPreviewMap?: (action: GameAction) => void
+        onFocusConnection?: (connection: PlaceConnection) => void
         session: EighteenXXSessionView
         trainColors: Readonly<Record<string, string>>
-        displayName?: string
         company: Company
-        poolName?: (pool: CertificatePool) => string
     } = $props()
+    const vertical = $derived(layout === 'vertical')
     const shareStatusLabels: Record<CompanyShareStatus, string> = {
         unfloated: 'Unfloated',
         soldOut: 'Sold out'
@@ -138,13 +143,8 @@
                 : []
         })
     )
-    function poolLabel(poolId: string): string {
-        const pool = gameState.certificatePools.find((entry) => entry.id === poolId)
-        assertExists(pool, 'Unknown certificate pool')
-        return poolName(pool)
-    }
     function ownershipName(entry: (typeof ownership)[number]): string {
-        if (entry.poolId) return poolLabel(entry.poolId)
+        if (entry.poolId) return session.poolName(entry.poolId)
         return sameOwner(entry.owner, owner) ? 'Treasury' : session.ownerName(entry.owner)
     }
 </script>
@@ -152,14 +152,20 @@
 <article
     class="company-detail"
     class:vertical
+    class:wide-fill={layout === 'wide-fill'}
     class:unavailable
     aria-label={`${session.companyName(company.id)} details`}
 >
     <header>
         <div class="identity">
-            <CompanyToken appearance={session.mapView.stations[company.id]} size={28} />
+            <CompanyToken
+                appearance={session.mapView.stations[company.id]}
+                size={vertical ? 32 : 36}
+            />
             <div>
-                <h2>{displayName}</h2>
+                <h2 title={session.companyFullName(company.id)}>
+                    {session.companyName(company.id)}
+                </h2>
                 <div class="train-roster" aria-label="Trains">
                     {#each trains as train (train.id)}
                         {@const definition = session.trainDepot.trainDefinition(train.definitionId)}
@@ -178,11 +184,16 @@
                                 ? 'Must buy a train when operating'
                                 : undefined}>No trains</span
                         >{/each}
-                    {#each marks as mark (mark.label)}<span
-                            class="company-mark"
-                            title={mark.description}
-                            aria-label={mark.description}>{mark.label}</span
-                        >{/each}
+                    {#each marks as mark (mark.label)}{#if mark.imageUrl}<img
+                                class="company-mark-image"
+                                src={mark.imageUrl}
+                                alt={mark.description}
+                                title={mark.description}
+                            />{:else}<span
+                                class="company-mark"
+                                title={mark.description}
+                                aria-label={mark.description}>{mark.label}</span
+                            >{/if}{/each}
                 </div>
                 {#if company.closed}<p class="subtitle">Closed</p>{/if}
             </div>
@@ -226,23 +237,32 @@
             </div>
         </div>
     </header>
-    {#if origin}
+    {#if origin && 'connection' in origin && onFocusConnection}
+        {@const connection = origin.connection}
+        <button
+            type="button"
+            class="origin connection"
+            title={`Show ${session.placeName(connection.from)} and ${session.placeName(connection.to)} on the map`}
+            onclick={() => onFocusConnection(connection)}><span>{origin.text}</span></button
+        >
+    {:else if origin}
         <p class="origin">
             {origin.text}
-            {#each origin.companyIds as id, index (id)}{#if index}<span>&amp;</span>{/if}<span
-                    class="origin-company"
-                    ><CompanyToken appearance={session.mapView.stations[id]} size={15} /><strong
-                        >{session.presentation.companyNames?.[id]?.initials ??
-                            session.companyName(id)}</strong
-                    ></span
-                >{/each}
+            {#if 'companyIds' in origin}
+                {#each origin.companyIds as id, index (id)}{#if index}<span>&amp;</span>{/if}<span
+                        class="origin-company"
+                        ><CompanyToken appearance={session.mapView.stations[id]} size={15} /><strong
+                            >{session.companyInitials(id)}</strong
+                        ></span
+                    >{/each}
+            {/if}
         </p>
     {/if}
     <div class="financial-summary">{@render prices()}</div>
-    <div class="detail-columns">
+    <div class="detail-columns" {@attach chainSidewaysScroll}>
         <section aria-label="Company ownership">
             <div class="ownership-heading">
-                <h3>Ownership</h3>
+                <h3>Owners</h3>
                 {#if shareStatus}<span
                         class="share-status"
                         class:unfloated={shareStatus === 'unfloated'}
@@ -253,11 +273,20 @@
                 <table aria-label={`${session.companyName(company.id)} share ownership`}>
                     <tbody>
                         {#each ownership as entry, index (index)}
-                            {@const president =
-                                company.president && sameOwner(entry.owner, company.president)}
+                            {@const presidency =
+                                entry.poolId &&
+                                holdsReceiverPresidentCertificate(
+                                    gameState,
+                                    company.id,
+                                    entry.poolId
+                                )
+                                    ? 'Holds the president’s certificate'
+                                    : company.president && sameOwner(entry.owner, company.president)
+                                      ? 'President'
+                                      : undefined}
                             <tr
                                 class:pool-divider={index > 0 && index === sharePoolsStart}
-                                class:president
+                                class:president={!!presidency}
                                 class:sold={sellers.some((seller) =>
                                     sameOwner(seller, entry.owner)
                                 )}
@@ -272,12 +301,18 @@
                                         >{@render purchaseSources(entry)}</td
                                     >
                                 {:else}
-                                    <th scope="row" title={president ? 'President' : undefined}
-                                        >{ownershipName(entry)}{#if president}<PresidentBadge
-                                            />{/if}</th
+                                    <th scope="row" title={presidency}
+                                        ><PresidentName
+                                            name={ownershipName(entry)}
+                                            president={!!presidency}
+                                        /></th
                                     >
-                                    {#if numberedShares}<td title="Certificate numbers"
-                                            >{entry.certificateNumbers.join(', ') || '—'}</td
+                                    {#if numberedShares}<td
+                                            class="certificate-numbers"
+                                            title="Certificate numbers"
+                                            >{#if entry.certificateNumbers.length}#{entry.certificateNumbers.join(
+                                                    ', '
+                                                )}{/if}</td
                                         >{/if}
                                     <td title="Shares">{entry.shares || '—'}</td>
                                 {/if}
@@ -345,12 +380,15 @@
                 {:else if lastRun && onPreviewMap}
                     <button
                         class="last-run"
+                        class:withheld={lastRun.withheld}
                         disabled={session.busy || session.updatingVisibleState}
-                        aria-label={`View ${session.companyName(company.id)}'s last run for ${money(company.lastRunRevenue)}`}
-                        onclick={() => onPreviewMap?.(lastRun!)}
+                        aria-label={`View ${session.companyName(company.id)}'s last run for ${money(company.lastRunRevenue)}${lastRun.withheld ? ', withheld' : ''}`}
+                        onclick={() => onPreviewMap?.(lastRun!.run)}
                         >{money(company.lastRunRevenue)}</button
                     >
-                {:else}<strong>{money(company.lastRunRevenue)}</strong>{/if}
+                {:else}<strong class:withheld={lastRun?.withheld}
+                        >{money(company.lastRunRevenue)}</strong
+                    >{/if}
             </div>
         {/if}
     </div>
@@ -377,16 +415,32 @@
                 <PrivateDescription
                     {money}
                     phaseColors={session.presentation.phaseColors}
-                    token={session.privateCompanyTokens[item.id]}
+                    tokens={session.privateCardTokens[item.id]}
                     imageUrl={session.publishedCardImage(item.id)}
-                    name={session.companyName(item.id)}
+                    plate={session.publishedCardPlate(item.id)}
+                    shortName={session.companyName(item.id)}
+                    fullName={session.companyFullName(item.id)}
                     description={item.description}
                     income={item.closed ? undefined : item.revenue}
-                />{#each session.privateActions.powersFor(item.id) as power (power.playerId)}<span
-                        class="private-power"><PrivateTrackPowerButton {session} {power} /></span
+                />{#each session.privateActions.powersFor(item.id) as power, index (index)}<span
+                        class="private-power"
+                        ><PrivateTrackPowerButton
+                            {session}
+                            {power}
+                            label={session.privateActions.powersFor(item.id).length > 1 &&
+                            'label' in power
+                                ? power.label
+                                : undefined}
+                        /></span
                     >{/each}
             </div>
-            <span>{purchasePrice ?? (item.closed ? 'Closed' : `${money(item.revenue)} / OR`)}</span>
+            <span
+                >{purchasePrice ??
+                    (item.closed
+                        ? 'Closed'
+                        : (session.presentation.privateStatus?.(gameState, item.id) ??
+                          `${money(item.revenue)} / OR`))}</span
+            >
         </div>
         {#if privatePowerUsed(gameState, item.id)}<span class="status">One-time power used</span
             >{/if}
@@ -420,7 +474,6 @@
     .vertical header {
         align-items: flex-start;
         gap: 5px;
-        background: var(--rail-surface-raised, #e5dccf);
     }
     .vertical .identity {
         flex: 1;
@@ -428,13 +481,12 @@
         align-items: flex-start;
         gap: 7px;
     }
-    .vertical .identity > :global(svg) {
+    .identity > :global(svg) {
         flex-shrink: 0;
     }
     .vertical h2 {
         white-space: normal;
         font-size: 13px;
-        line-height: 1.2;
     }
     .vertical .header-summary {
         padding-left: 0;
@@ -520,6 +572,7 @@
         gap: 10px;
         padding: 5px 10px;
         border-bottom: 1px solid var(--rail-border, #e3d9cd);
+        background: var(--rail-surface-raised, #e5dccf);
     }
     .identity {
         display: flex;
@@ -531,7 +584,13 @@
         margin: 0;
         font-size: 15px;
         font-weight: 650;
+        line-height: 1.2;
         white-space: nowrap;
+    }
+    .company-mark-image {
+        width: 24px;
+        height: 24px;
+        cursor: help;
     }
     .company-mark {
         padding: 0 5px;
@@ -557,6 +616,23 @@
         border-bottom: 1px solid var(--rail-border, #e3d9cd);
         color: var(--rail-muted, #887664);
         font-size: 11px;
+    }
+    .connection {
+        width: 100%;
+        border: 0;
+        border-bottom: 1px solid var(--rail-border, #e3d9cd);
+        background: none;
+        font-family: inherit;
+        cursor: pointer;
+    }
+    .connection span {
+        text-decoration: underline dotted;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 2px;
+    }
+    .connection:hover span {
+        color: var(--rail-text, #514536);
+        text-decoration-style: solid;
     }
     .origin-company {
         display: inline-flex;
@@ -650,6 +726,9 @@
     .last-run:disabled {
         cursor: default;
     }
+    .withheld {
+        color: var(--rail-negative, #b33a32);
+    }
     .prices strong {
         line-height: 16px;
         font-size: 14px;
@@ -662,6 +741,50 @@
         min-width: 390px;
         max-height: 320px;
         overflow: auto;
+    }
+    .company-detail.wide-fill {
+        width: 100%;
+        margin: 0;
+        container-type: inline-size;
+    }
+    .wide-fill .identity {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    .wide-fill h2 {
+        white-space: normal;
+    }
+    .vertical .identity > div,
+    .wide-fill .identity > div {
+        min-width: 0;
+    }
+    .vertical h2,
+    .wide-fill h2 {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .wide-fill .financial-summary .prices {
+        flex-wrap: wrap;
+    }
+    .wide-fill .financial-summary .prices div {
+        padding-inline: 6px;
+    }
+    .wide-fill .ownership-heading {
+        flex-wrap: wrap;
+        column-gap: 8px;
+    }
+    .wide-fill .share-status {
+        white-space: nowrap;
+    }
+    .wide-fill .detail-columns {
+        min-width: 0;
+        max-height: none;
+        overflow: visible;
+    }
+    @container (width < 380px) {
+        .wide-fill .detail-columns {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
     }
     .detail-columns > section {
         min-width: 0;
@@ -745,6 +868,10 @@
     }
     td {
         padding-left: 12px;
+    }
+    /* Dimmed from the row's own colour so sold and tinted rows keep their tone. */
+    td.certificate-numbers {
+        color: color-mix(in srgb, currentColor 65%, transparent);
     }
     .empty {
         margin: 0;

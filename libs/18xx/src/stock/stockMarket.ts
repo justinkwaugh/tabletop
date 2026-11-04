@@ -70,6 +70,26 @@ export function createRectangularStockMarketSpaces(
     return spaces
 }
 
+/**
+ * A one-row market. Family round-end and sale moves go up and down, so on one row those are
+ * aliases of right and left.
+ */
+export function createLinearStockMarketSpaces(
+    prices: readonly number[],
+    color: (price: number) => string
+): StockMarketSpace[] {
+    return createRectangularStockMarketSpaces([prices], (_, column) => color(prices[column])).map(
+        (space) => ({
+            ...space,
+            moves: {
+                ...space.moves,
+                ...(space.moves.right ? { up: space.moves.right } : {}),
+                ...(space.moves.left ? { down: space.moves.left } : {})
+            }
+        })
+    )
+}
+
 /** A title's printed stock market; the State records only where company markers stand. */
 export class StockMarketChart {
     readonly spaces: readonly StockMarketSpace[]
@@ -172,20 +192,6 @@ export function placeStockMarker(market: StockMarket, companyId: string, spaceId
     }
     target.companyIds.push(companyId)
     market.stacks = market.stacks.filter((stack) => stack.companyIds.length > 0)
-}
-
-/** Returns a company's marker to a recorded space at a given place in its stack. */
-export function restoreStockMarker(
-    market: StockMarket,
-    companyId: string,
-    spaceId: string,
-    index: number
-): void {
-    placeStockMarker(market, companyId, spaceId)
-    const stack = market.stacks.find((stack) => stack.spaceId === spaceId)
-    assertExists(stack, 'A placed marker has a stack')
-    stack.companyIds.splice(stack.companyIds.indexOf(companyId), 1)
-    stack.companyIds.splice(Math.min(index, stack.companyIds.length), 0, companyId)
 }
 
 /** A company's place in its space's stack, counting from the top. */

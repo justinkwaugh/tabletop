@@ -77,10 +77,10 @@ export class TimeStoneSelectionAnimator extends StateAnimator<
             }
 
             const visibleToCount = Math.max(0, Math.min(to.stones, this.renderOrder.length))
-            const visibleToKeys = new Set(this.renderOrder.slice(0, visibleToCount).map((stone) => stone.key))
-            return this.clickPriority.find(
-                (key) => visibleKeys.has(key) && !visibleToKeys.has(key)
+            const visibleToKeys = new Set(
+                this.renderOrder.slice(0, visibleToCount).map((stone) => stone.key)
             )
+            return this.clickPriority.find((key) => visibleKeys.has(key) && !visibleToKeys.has(key))
         })()
         if (!selectedKey) {
             return

@@ -2,9 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { WorkerActionType, type HydratedBusGameState } from '@tabletop/bus'
 import { resolvePlacedActionValue } from './actionWorkerValues.js'
 
-function createState(
-    overrides: Partial<HydratedBusGameState> = {}
-): HydratedBusGameState {
+function createState(overrides: Partial<HydratedBusGameState> = {}): HydratedBusGameState {
     return {
         players: [
             { playerId: 'p1', buses: 2, sticks: 5 },

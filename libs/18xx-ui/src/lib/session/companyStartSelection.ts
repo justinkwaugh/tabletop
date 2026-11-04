@@ -1,9 +1,9 @@
-import type { CompanyStartRequest } from '@tabletop/18xx'
+import type { CompanyStartRequest, HomePosition } from '@tabletop/18xx'
 
 export type CompanyStartStages = {
-    company: Omit<CompanyStartRequest, 'marketSpaceId' | 'homeLocationId'>
+    company: Omit<CompanyStartRequest, 'marketSpaceId' | 'home'>
+    /** Chosen on the map for a company whose president places its home as it starts. */
+    home: HomePosition
     marketSpaceId: string
-    /** The home hex, for a company whose president chooses one as it starts. */
-    homeLocationId: string
 }
-export const CompanyStartStageOrder = ['company', 'marketSpaceId', 'homeLocationId'] as const
+export const CompanyStartStageOrder = ['company', 'home', 'marketSpaceId'] as const

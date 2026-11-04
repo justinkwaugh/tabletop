@@ -2,7 +2,7 @@ import { TrackNetwork } from '../construction/trackNetwork.js'
 import type { RailwayMap } from '../map/map.js'
 import { RailwayMapState, type MapStateData } from '../map/mapState.js'
 import type { TileSet } from '../tiles/inventory.js'
-import type { StationState } from '../map/station.js'
+import { companyStationCenters, type StationState } from '../map/station.js'
 import type { RevenueCenter } from '../routes/route.js'
 import type { AccessRightState } from '../rights/accessRights.js'
 
@@ -15,9 +15,7 @@ export function hasStationRoute(
     companyId: string,
     closedStop: ClosedStop = () => false
 ): boolean {
-    return state.stations.some((station) => {
-        if (station.status !== 'placed' || station.companyId !== companyId) return false
-        const origin = station.position
+    return companyStationCenters(state, companyId).some((origin) => {
         const network = new TrackNetwork(mapState, state, companyId, undefined, origin, closedStop)
         return mapState.map.definition.locations.some((location) =>
             mapState

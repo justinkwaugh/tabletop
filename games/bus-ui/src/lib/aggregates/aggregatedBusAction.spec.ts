@@ -1,10 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ActionSource, type GameAction } from '@tabletop/common'
 import { ActionType } from '@tabletop/bus'
-import {
-    aggregateBusActions,
-    isAggregatedBusAction
-} from './aggregatedBusAction.js'
+import { aggregateBusActions, isAggregatedBusAction } from './aggregatedBusAction.js'
 
 function createBusAction(
     overrides: Partial<GameAction> & Pick<GameAction, 'id' | 'gameId' | 'type'>

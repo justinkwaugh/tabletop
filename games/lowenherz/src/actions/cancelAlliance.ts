@@ -56,7 +56,10 @@ export function isCancelAlliance(action?: GameAction): action is CancelAlliance 
 // platform limit rather than a rules judgment: GameEngine.isPlayerAllowed rejects any
 // action from a player who isn't in activePlayerIds, so out-of-turn actions aren't
 // expressible for any game here.
-export class HydratedCancelAlliance extends HydratableAction<typeof CancelAlliance> implements CancelAlliance {
+export class HydratedCancelAlliance
+    extends HydratableAction<typeof CancelAlliance>
+    implements CancelAlliance
+{
     declare type: ActionType.CancelAlliance
     declare playerId: string
     declare allianceId: string

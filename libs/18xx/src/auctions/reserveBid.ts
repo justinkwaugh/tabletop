@@ -1,19 +1,19 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     type GameAction,
     HydratableAction,
     assert,
     type HydratedGameState
 } from '@tabletop/common'
 import { activeAuction, canActInAuction, type OpeningAuctionState } from './auctionProcedure.js'
-import { type WaterfallAuctionRules } from './waterfallAuction.js'
+import type { WaterfallAuctionRules } from './waterfallAuction.js'
 
 export const ReserveBid = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('ReserveBid'),
         lotId: Type.String(),
         amount: Type.Integer({ minimum: 1 })

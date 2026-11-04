@@ -28,6 +28,7 @@
         GameStorage,
         isBooleanConfigOption,
         isListConfigOption,
+        isListedPublicGame,
         listOptionDescription,
         isNumberInputConfigOption,
         isStringInputConfigOption,
@@ -46,19 +47,27 @@
     import { APIError } from '$lib/network/errors.js'
     import { trim } from '$lib/utils/trimInput.js'
     import Typeahead from '$lib/components/Typeahead.svelte'
+    import SegmentedControl from '$lib/components/SegmentedControl.svelte'
     import { getAppContext } from '$lib/model/appContext.js'
+    import { continuationGame, type EditableGame } from '$lib/utils/gameContinuation.svelte.js'
 
-    type EditableGame = Pick<
-        Game,
-        'id' | 'typeId' | 'name' | 'players' | 'isPublic' | 'hotseat' | 'ownerId' | 'config'
-    >
-    enum EditMode {
-        Create = 'create',
-        Edit = 'edit'
-    }
+    const EditMode = {
+        Create: 'create',
+        Edit: 'edit'
+    } as const
+    type EditMode = (typeof EditMode)[keyof typeof EditMode]
+    const GameAccess = {
+        Private: 'private',
+        Public: 'public',
+        Unlisted: 'unlisted',
+        Hotseat: 'hotseat'
+    } as const
+    type GameAccess = (typeof GameAccess)[keyof typeof GameAccess]
+    type GameAccessOption = { value: GameAccess; label: string; description: string }
 
     let {
         game,
+        continueFrom,
         title,
         hotseatOnly = false,
         showHeading = true,
@@ -66,6 +75,7 @@
         onsave
     }: {
         game?: Game
+        continueFrom?: Game
         title?: GameUiDefinition<GameState, HydratedGameState>
         hotseatOnly?: boolean
         showHeading?: boolean
@@ -80,8 +90,9 @@
     let mode = game ? EditMode.Edit : EditMode.Create
     let gameTitle = $derived.by(() => {
         let gameTitle = title
-        if (!gameTitle && game) {
-            gameTitle = titlesById[game.typeId]
+        const existingGame = game ?? continueFrom
+        if (!gameTitle && existingGame) {
+            gameTitle = titlesById[existingGame.typeId]
         }
         assertExists(gameTitle, 'No title found for the game being edited')
         return gameTitle
@@ -89,16 +100,18 @@
 
     let editedGame: EditableGame = game
         ? $state.snapshot(game)
-        : <EditableGame>{
-              id: nanoid(),
-              typeId: '',
-              name: '',
-              players: [ownerPlayer()],
-              isPublic: false,
-              hotseat: false,
-              ownerId: sessionUser?.id,
-              config: {}
-          }
+        : continueFrom
+          ? continuationGame(continueFrom, sessionUser, ownerPlayer)
+          : <EditableGame>{
+                id: nanoid(),
+                typeId: '',
+                name: '',
+                players: [ownerPlayer()],
+                isPublic: false,
+                hotseat: false,
+                ownerId: sessionUser?.id,
+                config: {}
+            }
 
     // State
     let unexpectedError = $state(false)
@@ -109,26 +122,44 @@
     )
     let seed = $state('')
     let numPlayers = $state(
-        mode === EditMode.Edit
+        mode === EditMode.Edit || continueFrom
             ? editedGame.players.length
             : (gameTitle.info.metadata.defaultPlayerCount ?? 1)
     )
     let players: Player[] = $state(editedGame.players)
-    let isPublic: boolean = $state(editedGame.isPublic)
-    let isHotseat: boolean = $state(hotseatOnly || editedGame.hotseat)
-    let isUnlisted: boolean = $state(false)
+    let access: GameAccess = $state(initialAccess())
     let includeOwner: boolean = $state(true)
-    let publicGame = $derived(isPublic || isUnlisted)
-    let showUnlistedToggle = $derived(
-        authorizationService.canUseDeveloperTools && mode === EditMode.Create && !isHotseat
+    let isHotseat = $derived(access === GameAccess.Hotseat)
+    let publicGame = $derived(access === GameAccess.Public || access === GameAccess.Unlisted)
+    let accessOptions = $derived.by(() => {
+        const options: GameAccessOption[] = []
+        if (canListPublicly()) {
+            options.push({
+                value: GameAccess.Public,
+                label: 'Public',
+                description: 'Listed for anyone to join'
+            })
+        }
+        options.push({
+            value: GameAccess.Unlisted,
+            label: 'Unlisted',
+            description: 'Not listed; anyone with the link can join'
+        })
+        if (!continueFrom && includeOwner) {
+            options.push({
+                value: GameAccess.Hotseat,
+                label: 'Hotseat',
+                description: 'Everyone plays on this device'
+            })
+        }
+        return options
+    })
+    let accessDescription = $derived(
+        accessOptions.find((option) => option.value === access)?.description
     )
-    let showPublicToggle = $derived(
-        getTitleVisibility(gameTitle.info.metadata) === GameVisibility.Public &&
-            mode === EditMode.Create &&
-            !isHotseat &&
-            !isUnlisted
+    let showAccessControl = $derived(
+        mode === EditMode.Create && !hotseatOnly && !continueFrom?.hotseat
     )
-    let showHotseatToggle = $derived(!hotseatOnly && !publicGame && includeOwner)
     let reclaimableOwnerSeat = $derived.by(() => {
         const ownNameSeat = players.findIndex((player) => player.name === sessionUser?.username)
         return ownNameSeat !== -1
@@ -144,6 +175,22 @@
     )
     let minPlayers: number = $derived(gameTitle?.info.metadata.minPlayers ?? 1)
     let maxPlayers: number = $derived(gameTitle?.info.metadata.maxPlayers ?? 1)
+
+    function initialAccess(): GameAccess {
+        if (hotseatOnly || editedGame.hotseat) return GameAccess.Hotseat
+        if (mode === EditMode.Edit) return existingGameAccess()
+        if (continueFrom && !isListedPublicGame(continueFrom)) return GameAccess.Unlisted
+        return canListPublicly() ? GameAccess.Public : GameAccess.Unlisted
+    }
+
+    function existingGameAccess(): GameAccess {
+        if (!editedGame.isPublic) return GameAccess.Private
+        return editedGame.unlisted ? GameAccess.Unlisted : GameAccess.Public
+    }
+
+    function canListPublicly(): boolean {
+        return getTitleVisibility(gameTitle.info.metadata) === GameVisibility.Public
+    }
 
     function generateDefaultOptions() {
         return defaultGameConfig(gameTitle.info.configurator?.options ?? [])
@@ -252,14 +299,16 @@
             name: (formData.get('name') as string).trim(),
             players: playersToUpload,
             isPublic: publicGame,
-            ...(isUnlisted ? { unlisted: true } : {}),
-            hotseat: !publicGame && isHotseat,
-            storage: !publicGame && isHotseat ? GameStorage.Local : GameStorage.Remote,
+            ...(access === GameAccess.Unlisted ? { unlisted: true } : {}),
+            hotseat: isHotseat,
+            storage: isHotseat ? GameStorage.Local : GameStorage.Remote,
             ownerId: editedGame.ownerId,
             config: mergedConfig
         }
 
-        let options: GameCreationOptions | undefined
+        let options: GameCreationOptions | undefined = continueFrom
+            ? { continueFromGameId: continueFrom.id }
+            : undefined
         if (mode === EditMode.Create) {
             gameData.typeId = gameTitle.info.id
             if (seed.trim().length > 0) {
@@ -270,7 +319,7 @@
                             errors['seed'] = ['Reload the site to use reproduction seeds']
                             return
                         }
-                        options = { masterSeed: normalizeMasterSeed(seed) }
+                        options = { ...options, masterSeed: normalizeMasterSeed(seed) }
                     } else {
                         const numericSeed = Number(seed)
                         if (!Number.isInteger(numericSeed)) throw Error('Invalid numeric seed')
@@ -323,6 +372,7 @@
 
     async function handleNameInput(player: Player, event: Event) {
         trim(event)
+        delete player.userId
         player.status = !player.name ? PlayerStatus.Open : PlayerStatus.Reserved
     }
 
@@ -398,6 +448,11 @@
     <h1 class="text-2xl font-medium text-gray-900 dark:text-gray-200 mb-4">
         {gameTitle.info.metadata.name}
     </h1>
+{/if}
+{#if continueFrom}
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+        Continues from {continueFrom.name}
+    </p>
 {/if}
 {#if unexpectedError}
     <Alert class="dark:bg-red-200 dark:text-red-700 mb-4">
@@ -492,6 +547,7 @@
                                 onclick={(event: Event) => {
                                     event.stopPropagation()
                                     player.name = ''
+                                    delete player.userId
                                     player.status = PlayerStatus.Open
                                 }}
                             >
@@ -516,26 +572,25 @@
             {/if}
         {/each}
     </div>
-    {#if showPublicToggle || showUnlistedToggle || showHotseatToggle || showIncludeOwnerToggle}
-        <div class="flex flex-row items-center gap-6">
-            {#if showIncludeOwnerToggle}
-                <Toggle
-                    bind:checked={includeOwner}
-                    disabled={!canIncludeOwner}
-                    onchange={() => setOwnerIncluded(includeOwner)}>Include me</Toggle
-                >
-            {/if}
-            {#if showPublicToggle}
-                <Toggle bind:checked={isPublic}>Public</Toggle>
-            {/if}
-            {#if showUnlistedToggle}
-                <Toggle bind:checked={isUnlisted}>Unlisted</Toggle>
-            {/if}
-            {#if showHotseatToggle}
-                <Toggle bind:checked={isHotseat}>Hotseat</Toggle>
-            {/if}
+    {#if showAccessControl}
+        <div class="flex flex-col gap-2">
+            <Label>Game type</Label>
+            <SegmentedControl
+                name="access"
+                ariaLabel="Game type"
+                options={accessOptions}
+                bind:value={access}
+            />
+            <Helper class="dark:text-gray-400">{accessDescription}</Helper>
         </div>
-        {#if showIncludeOwnerToggle && !canIncludeOwner}
+    {/if}
+    {#if showIncludeOwnerToggle}
+        <Toggle
+            bind:checked={includeOwner}
+            disabled={!canIncludeOwner}
+            onchange={() => setOwnerIncluded(includeOwner)}>Include me</Toggle
+        >
+        {#if !canIncludeOwner}
             <Helper>Clear a seat to include yourself</Helper>
         {/if}
     {/if}

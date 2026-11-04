@@ -3,23 +3,24 @@
     import { GameEditForm, type GameUiDefinition } from '@tabletop/frontend-components'
     import {
         GameStorage,
-        GameVisibility,
-        getTitleVisibility,
         type Game,
         type GameState,
         type HydratedGameState
     } from '@tabletop/common'
     import { Modal } from 'flowbite-svelte'
-    import { ArrowLeftOutline, ArrowRightOutline, UsersOutline } from 'flowbite-svelte-icons'
+    import { ArrowRightOutline, UsersOutline } from 'flowbite-svelte-icons'
     import TitleGames from '$lib/components/TitleGames.svelte'
     import TitleTournaments from '$lib/components/TitleTournaments.svelte'
+    import BackLink from '$lib/components/BackLink.svelte'
+    import { seriesUrl, titleMaturityLabel, titleSeries } from '$lib/utils/libraryTitles'
 
     let { title }: { title: GameUiDefinition<GameState, HydratedGameState> } = $props()
     let creating = $state(false)
     let created = $state(false)
     let gamesSection: ReturnType<typeof TitleGames> | undefined = $state()
     const metadata = $derived(title.info.metadata)
-    const visibility = $derived(getTitleVisibility(metadata))
+    const maturityLabel = $derived(titleMaturityLabel(metadata))
+    const series = $derived(titleSeries(metadata))
     const paragraphs = $derived(metadata.description.split('\n').filter((line) => line.trim()))
 
     async function onGameCreated(game: Game) {
@@ -36,7 +37,10 @@
 <svelte:head><title>{metadata.name} — Board Together</title></svelte:head>
 
 <main class="title-page collection-page">
-    <a class="back-link" href="/library"><ArrowLeftOutline class="h-4 w-4" /> All games</a>
+    <BackLink
+        href={series ? seriesUrl(series) : '/library'}
+        label={series ? series.name : 'All games'}
+    />
     <section class="title-intro" aria-labelledby="title-heading">
         <div class="title-cover">
             <img
@@ -52,9 +56,8 @@
                     ><UsersOutline class="h-4 w-4" />
                     {metadata.minPlayers}{#if metadata.maxPlayers !== metadata.minPlayers}–{metadata.maxPlayers}{/if}
                     players</span
-                ><span>{metadata.year}</span>{#if visibility !== GameVisibility.Public}<span
-                        class="visibility"
-                        >{visibility === GameVisibility.Alpha ? 'Alpha' : 'Beta'}</span
+                ><span>{metadata.year}</span>{#if maturityLabel}<span class="maturity-label"
+                        >{maturityLabel}</span
                     >{/if}
             </div>
             <h1 id="title-heading">{metadata.name}</h1>
@@ -101,16 +104,6 @@
         padding-bottom: 64px;
         color: var(--color-gray-200);
     }
-    .back-link {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        color: var(--color-gray-400);
-        font-size: 14px;
-    }
-    .back-link:hover {
-        color: var(--color-blue-300);
-    }
     .title-intro {
         display: grid;
         grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr);
@@ -149,7 +142,7 @@
         align-items: center;
         gap: 7px;
     }
-    .facts .visibility {
+    .facts .maturity-label {
         color: var(--color-orange-300);
     }
     h1 {
@@ -195,7 +188,6 @@
     .start-game:hover {
         background: var(--color-blue-700);
     }
-    a:focus-visible,
     button:focus-visible {
         outline: 2px solid var(--color-blue-300);
         outline-offset: 4px;

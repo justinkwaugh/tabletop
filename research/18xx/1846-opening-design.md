@@ -45,9 +45,18 @@ price are public; their controls coexist with owner-only viewing of earlier
 commitments. Public offer visibility must not suppress that private inspection.
 Its price cannot fall below the independent's debt; at that
 floor the next player takes it automatically. Revealing the next packet or all
-purchases is an information barrier. Projected Exploration is intentionally
-unavailable until a history-constrained population algorithm exists; it must not
-invent a deck inconsistent with previously observed packets.
+purchases is an information barrier.
+
+Projected Exploration replays the draft from the viewer's recorded history. Each
+deal is taken from the top of a hypothetical deck and each other player's pick is
+random. Cards the viewer has never seen form one group; each packet the viewer
+passes forms another, appended to the bottom, because the viewer never sees the
+order of returned cards. Cards stay unnamed within their group until a packet
+the viewer is dealt names them. A replay is kept only if every packet the viewer
+saw matches, the final offer is the public card, every deck dealt from held a
+company, and every player could afford their picks. The viewer's earlier packets
+come from the undo patches of their projected history; without them Exploration
+refuses rather than guess.
 
 The handoff records ordinary cash/ownership, independent capital and assets,
 public removals and initial clockwise stock priority. Remaining railway features

@@ -23,6 +23,7 @@ const WILD_CRY = 'denizen.beast.wild-cry'
 const BRACKEN = 'denizen.beast.bracken'
 const PARTY = 'denizen.hearth.welcoming-party'
 const AUGURY = 'denizen.arcane.augury'
+const MUSHROOMS = 'denizen.beast.mushrooms'
 const WOLVES = 'denizen.beast.wolves'
 
 const atRevision = OathRevision.CostsAndFacedownModifiers
@@ -47,7 +48,10 @@ function table(
                 relicIds,
                 warbandsOnBoard: { me: 2 },
                 warbandsInPersonalBank: { me: 6 },
-                advisers: [{ cardId: facedown, faceUp: false }, ...faceup.map((cardId) => ({ cardId, faceUp: true }))]
+                advisers: [
+                    { cardId: facedown, faceUp: false },
+                    ...faceup.map((cardId) => ({ cardId, faceUp: true }))
+                ]
             }),
             testPlayer({ playerId: 'foe', color: Color.Blue, siteId: 'c2', favor: 2, secrets: 2 })
         ]),
@@ -61,8 +65,14 @@ function table(
     return s
 }
 
-function play(cardId: string, to: SearchPlay, extra: { modifiers?: ModifierUse[]; toSiteId?: string; discardFirstCardId?: string } = {}) {
-    return new HydratedPlayFacedownAdviser(buildAction(PlayFacedownAdviser, { playerId: 'me', cardId, play: to, ...extra }))
+function play(
+    cardId: string,
+    to: SearchPlay,
+    extra: { modifiers?: ModifierUse[]; toSiteId?: string; discardFirstCardId?: string } = {}
+) {
+    return new HydratedPlayFacedownAdviser(
+        buildAction(PlayFacedownAdviser, { playerId: 'me', cardId, play: to, ...extra })
+    )
 }
 
 describe('R-6.1 — a facedown adviser’s play takes the Search modifiers a Search’s play would', () => {
@@ -91,7 +101,14 @@ describe('R-6.1 — a facedown adviser’s play takes the Search modifiers a Sea
         expect(a.metadata?.secretsGained).toBeUndefined()
         expect(a.metadata?.modifiers).toBeUndefined()
         const declared = table(WOLVES, [NEW_GROWTH], [], OathRevision.TurnFlow)
-        expect(HydratedPlayFacedownAdviser.reasonCannotPlay(declared, 'me', { cardId: WOLVES, play: SearchPlay.Site, toSiteId: 'p1', modifiers: [modifierUse(NEW_GROWTH)] })).toMatch(/before revision 2/)
+        expect(
+            HydratedPlayFacedownAdviser.reasonCannotPlay(declared, 'me', {
+                cardId: WOLVES,
+                play: SearchPlay.Site,
+                toSiteId: 'p1',
+                modifiers: [modifierUse(NEW_GROWTH)]
+            })
+        ).toMatch(/before revision 2/)
     })
 
     it('Book of Records changes nothing on a play that is not to a site, and is not named there', () => {
@@ -104,9 +121,22 @@ describe('R-6.1 — a facedown adviser’s play takes the Search modifiers a Sea
 
     it('New Growth: a beast card goes to another site', () => {
         const s = table(WOLVES, [NEW_GROWTH])
-        expect(HydratedPlayFacedownAdviser.reasonCannotPlay(s, 'me', { cardId: WOLVES, play: SearchPlay.Site, toSiteId: 'p1' })).toMatch(/only be played to your own site/)
+        expect(
+            HydratedPlayFacedownAdviser.reasonCannotPlay(s, 'me', {
+                cardId: WOLVES,
+                play: SearchPlay.Site,
+                toSiteId: 'p1'
+            })
+        ).toMatch(/only be played to your own site/)
         const growth = [modifierUse(NEW_GROWTH)]
-        expect(HydratedPlayFacedownAdviser.reasonCannotPlace(s, 'me', { cardId: WOLVES, play: SearchPlay.Site, toSiteId: 'p1', modifiers: growth })).toBeUndefined()
+        expect(
+            HydratedPlayFacedownAdviser.reasonCannotPlace(s, 'me', {
+                cardId: WOLVES,
+                play: SearchPlay.Site,
+                toSiteId: 'p1',
+                modifiers: growth
+            })
+        ).toBeUndefined()
         const a = play(WOLVES, SearchPlay.Site, { toSiteId: 'p1', modifiers: growth })
         a.apply(s)
         expect(s.denizensBySite['p1']).toEqual([WOLVES])
@@ -115,8 +145,17 @@ describe('R-6.1 — a facedown adviser’s play takes the Search modifiers a Sea
 
     it('Crop Rotation: a denizen at the site is discarded first', () => {
         const s = table(TENTS, [CROP_ROTATION], [], atRevision, [INN])
-        expect(HydratedPlayFacedownAdviser.reasonCannotPlay(s, 'me', { cardId: TENTS, play: SearchPlay.Site, discardFirstCardId: INN })).toMatch(/only the Great Slum, Crop Rotation/)
-        const a = play(TENTS, SearchPlay.Site, { discardFirstCardId: INN, modifiers: [modifierUse(CROP_ROTATION)] })
+        expect(
+            HydratedPlayFacedownAdviser.reasonCannotPlay(s, 'me', {
+                cardId: TENTS,
+                play: SearchPlay.Site,
+                discardFirstCardId: INN
+            })
+        ).toMatch(/only the Great Slum, Crop Rotation/)
+        const a = play(TENTS, SearchPlay.Site, {
+            discardFirstCardId: INN,
+            modifiers: [modifierUse(CROP_ROTATION)]
+        })
         a.apply(s)
         expect(s.denizensBySite['c1']).toEqual([TENTS])
         expect(a.metadata?.discardedCardIds).toEqual([INN])
@@ -134,7 +173,9 @@ describe('R-6.1 — a facedown adviser’s play takes the Search modifiers a Sea
 
     it('Bracken and Cracked Horn: the discard branch sends the card where they say', () => {
         const bracken = table(WOLVES, [BRACKEN])
-        const toBottom = play(WOLVES, SearchPlay.Discard, { modifiers: [modifierUse(BRACKEN, [region(Region.Hinterland), yes])] })
+        const toBottom = play(WOLVES, SearchPlay.Discard, {
+            modifiers: [modifierUse(BRACKEN, [region(Region.Hinterland), yes])]
+        })
         toBottom.apply(bracken)
         expect(toBottom.metadata?.discardPileRegion).toBe(Region.Hinterland)
         expect(toBottom.metadata?.discardToBottom).toBe(true)
@@ -154,7 +195,13 @@ describe('R-6.1 — a facedown adviser’s play takes the Search modifiers a Sea
 
     it('Welcoming Party still pays nothing: its text excludes a facedown adviser', () => {
         const s = table(INN, [PARTY])
-        expect(HydratedPlayFacedownAdviser.reasonCannotPlay(s, 'me', { cardId: INN, play: SearchPlay.Site, modifiers: [modifierUse(PARTY)] })).toBe(`${PARTY}: the card played is a facedown adviser`)
+        expect(
+            HydratedPlayFacedownAdviser.reasonCannotPlay(s, 'me', {
+                cardId: INN,
+                play: SearchPlay.Site,
+                modifiers: [modifierUse(PARTY)]
+            })
+        ).toBe(`${PARTY}: the card played is a facedown adviser`)
         const bank = s.favorBank[Suit.Hearth]
         play(INN, SearchPlay.Site).apply(s)
         expect(s.favorBank[Suit.Hearth]).toBe(bank - 1)
@@ -163,15 +210,45 @@ describe('R-6.1 — a facedown adviser’s play takes the Search modifiers a Sea
 
     it('a modifier that changes the draw is refused: this play draws nothing', () => {
         const s = table(INN, [AUGURY])
-        expect(HydratedPlayFacedownAdviser.reasonCannotPlay(s, 'me', { cardId: INN, play: SearchPlay.Site, modifiers: [modifierUse(AUGURY)] })).toBe(`${AUGURY} changes a Search's draw, and this play draws nothing`)
-        expect(() => play(INN, SearchPlay.Site, { modifiers: [modifierUse(AUGURY)] }).apply(s)).toThrow(/this play draws nothing/)
+        expect(
+            HydratedPlayFacedownAdviser.reasonCannotPlay(s, 'me', {
+                cardId: INN,
+                play: SearchPlay.Site,
+                modifiers: [modifierUse(AUGURY)]
+            })
+        ).toBe(`${AUGURY} changes a Search's draw, and this play draws nothing`)
+        expect(() =>
+            play(INN, SearchPlay.Site, { modifiers: [modifierUse(AUGURY)] }).apply(s)
+        ).toThrow(/this play draws nothing/)
+    })
+
+    it('R-11.11-H1 — at the Marshes, Mushrooms is refused for the same reason, not for its count', () => {
+        const s = table(INN, [MUSHROOMS], [], OathRevision.EngineFixes12)
+        s.siteCards = { ...s.siteCards, c1: 'site.marshes' }
+        expect(
+            HydratedPlayFacedownAdviser.reasonCannotPlay(s, 'me', {
+                cardId: INN,
+                play: SearchPlay.Site,
+                modifiers: [modifierUse(MUSHROOMS)]
+            })
+        ).toBe(`${MUSHROOMS} changes a Search's draw, and this play draws nothing`)
+        expect(
+            HydratedPlayFacedownAdviser.reasonCannotPlay(s, 'me', {
+                cardId: INN,
+                play: SearchPlay.Site
+            })
+        ).toBeUndefined()
     })
 
     it('R-9.4 — another seat sees the modifier named on a discard, never the card discarded', () => {
         const s = table(WOLVES, [BRACKEN])
-        const a = play(WOLVES, SearchPlay.Discard, { modifiers: [modifierUse(BRACKEN, [region(Region.Hinterland)])] })
+        const a = play(WOLVES, SearchPlay.Discard, {
+            modifiers: [modifierUse(BRACKEN, [region(Region.Hinterland)])]
+        })
         a.apply(s)
-        const seen = JSON.stringify(OathVisibility.actions.project(a.dehydrate(), { kind: 'player', playerId: 'foe' }))
+        const seen = JSON.stringify(
+            OathVisibility.actions.project(a.dehydrate(), { kind: 'player', playerId: 'foe' })
+        )
         expect(seen).toContain(BRACKEN)
         expect(seen).not.toContain(WOLVES)
     })
@@ -180,12 +257,26 @@ describe('R-6.1 — a facedown adviser’s play takes the Search modifiers a Sea
         for (const revision of [OathRevision.TurnFlow, atRevision]) {
             const before = table(INN, [], [BOOK], revision).dehydrate()
             const game = testGame(['me', 'foe', 'chancellor'])
-            const recorded = engine.runNext(buildAction(PlayFacedownAdviser, { playerId: 'me', cardId: INN, play: SearchPlay.Site }), structuredClone(before), game)
+            const recorded = engine.runNext(
+                buildAction(PlayFacedownAdviser, {
+                    playerId: 'me',
+                    cardId: INN,
+                    play: SearchPlay.Site
+                }),
+                structuredClone(before),
+                game
+            )
             const me = recorded.updatedState.players.find((p) => p.playerId === 'me')
             expect(me?.secrets).toBe(revision === atRevision ? 3 : 2)
 
             let replayed = structuredClone(before)
-            for (const action of recorded.processedActions) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+            for (const action of recorded.processedActions)
+                replayed = engine.run(
+                    structuredClone(action),
+                    replayed,
+                    game,
+                    RunMode.Single
+                ).updatedState
             expect(replayed).toEqual(recorded.updatedState)
         }
     })

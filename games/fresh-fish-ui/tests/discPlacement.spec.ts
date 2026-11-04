@@ -64,3 +64,27 @@ test('a disc shown by stepping through History still grows in', async ({ page })
     const firstShown = frames.find((width) => width > 0)
     expect(firstShown, JSON.stringify(frames)).toBeLessThan(placedWidth * 0.5)
 })
+
+test('stepping back through History marks the square of the piece just placed', async ({
+    page
+}) => {
+    await openProtectedGame(page)
+    const first = await firstLegalCell(page)
+    await first.click()
+    await expect(page.getByText('placed a disc')).toBeVisible()
+    const second = await firstLegalCell(page)
+    await second.click()
+    await page.mouse.move(0, 0)
+    const marked = page.locator('.land .cell:has(.target.hover)')
+    await expect(marked).toHaveCount(0)
+
+    // One step back shows the board as the first disc left it, with that disc marked.
+    await page.getByRole('button', { name: 'step backwards' }).click()
+    await expect(second.locator('svg')).toHaveCount(0)
+    await expect(first.locator('.target.hover')).toHaveCount(1)
+    await expect(marked).toHaveCount(1)
+
+    await page.getByRole('button', { name: 'step forwards' }).click()
+    await expect(second.locator('.target.hover')).toHaveCount(1)
+    await expect(marked).toHaveCount(1)
+})
