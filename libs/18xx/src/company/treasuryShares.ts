@@ -38,7 +38,7 @@ export const TreasuryShareMachineStates = ['ManagingShares'] as const
 export const TreasuryShareChoice = Type.Object(
     {
         operation: TreasuryShareOperation,
-        certificateIds: Type.Array(Id, { minItems: 1, uniqueItems: true }),
+        certificateIds: Type.Array(Id, { minItems: 1, uniqueItems: true, default: [] }),
         amount: Type.Integer({ minimum: 0 }),
         poolId: Type.Optional(Id),
         parPrice: Type.Optional(Type.Integer({ minimum: 1 }))
