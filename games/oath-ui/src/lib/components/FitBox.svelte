@@ -215,22 +215,26 @@
        the panel is drawn over the page, but opaque, with a shadow above it. In a panel that fits
        it stays where it is, drawn as the rest. Its strip reaches 6 px past the buttons each way
        into the space around them, so pinning leaves the panel's height, which decides whether
-       it pins, unchanged. */
+       it pins, unchanged. It is drawn above everything else in the panel, which shares one
+       stacking context with it: the badges on its cards are layers of their own (Magnifier 10,
+       SiteMagnifier 20, UseBadge 7), and one scrolled under the row must not cover the answers.
+       The box is a layer itself (z-index 1), so this order stays inside it. */
     .fit--more :global([data-answer-row][data-pinned]) {
         position: sticky;
         bottom: 0;
-        z-index: 2;
+        z-index: 30;
         padding-block: 6px;
         margin-block: -6px;
         background: linear-gradient(var(--oath-surface), var(--oath-surface)), var(--oath-page);
         box-shadow: 0 -10px 12px -6px rgb(0 0 0 / 0.7);
     }
     /* Below the smallest scale, the turn bar (and its Undo) stays at the box's top while the step
-       scrolls under it, opaque as the pinned answer row. An upright phone scrolls it away. */
+       scrolls under it, opaque as the pinned answer row and above the same badges. An upright
+       phone scrolls it away. */
     .fit--clamped :global([data-turn-bar]) {
         position: sticky;
         top: 0;
-        z-index: 2;
+        z-index: 30;
         background: linear-gradient(var(--oath-surface), var(--oath-surface)), var(--oath-page);
     }
 </style>

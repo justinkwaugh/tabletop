@@ -577,6 +577,51 @@ const scrolledEdges = (page: Page) =>
         }
     })
 
+/**
+ * Scrolls each card magnifier and Use badge in a box scrolling at 0.75 under the given part that
+ * stays in view (the turn bar, a pinned answer row), and returns how many reached it and every
+ * point where they overlap at which something other than that part is drawn on top.
+ */
+const drawnOverStickyPart = (page: Page, part: string) =>
+    fit(page).evaluate(async (box, part) => {
+        const inner = box.querySelector(':scope > .fit__inner')
+        const sticky = [...box.querySelectorAll(part)].at(-1)
+        if (!(inner instanceof HTMLElement) || !sticky) throw new Error(`no ${part} in the box`)
+        const scale = parseFloat(inner.style.getPropertyValue('--fit-scale'))
+        const room = inner.scrollHeight - inner.clientHeight
+        const badges = [
+            ...inner.querySelectorAll('.magnifier, .site-magnifier, .use-badge')
+        ].filter((badge) => !sticky.contains(badge))
+        let reached = 0
+        const over: string[] = []
+        for (const badge of badges) {
+            const at = sticky.getBoundingClientRect()
+            const drawn = badge.getBoundingClientRect()
+            // The scaled panel scrolls in its own space: a screen pixel is 1 / scale of it.
+            const shift = (drawn.top + drawn.bottom - at.top - at.bottom) / 2 / scale
+            inner.scrollTop = Math.min(room, Math.max(0, inner.scrollTop + shift))
+            for (let frame = 0; frame < 2; frame++) await new Promise(requestAnimationFrame)
+            const a = sticky.getBoundingClientRect()
+            const b = badge.getBoundingClientRect()
+            const left = Math.max(a.left, b.left) + 1
+            const right = Math.min(a.right, b.right) - 1
+            const top = Math.max(a.top, b.top) + 1
+            const bottom = Math.min(a.bottom, b.bottom) - 1
+            if (right <= left || bottom <= top) continue
+            reached++
+            let covered = 0
+            for (const x of [left, (left + right) / 2, right]) {
+                for (const y of [top, (top + bottom) / 2, bottom]) {
+                    const hit = document.elementFromPoint(x, y)
+                    if (!hit || !sticky.contains(hit)) covered++
+                }
+            }
+            const name = badge.getAttribute('aria-label') ?? badge.classList[0]
+            if (covered > 0) over.push(`${name}: drawn over ${covered} of 9 points`)
+        }
+        return { reached, over }
+    }, part)
+
 for (const window of [
     { name: 'a desktop at 1280 by 900', viewport: { width: 1280, height: 900 }, phone: false },
     {
@@ -645,6 +690,10 @@ for (const window of [
                 (button) => button.getBoundingClientRect().top
             )
             expect(undoTop).toBeGreaterThanOrEqual(top.top)
+            // Scrolled under the turn bar, a card's magnifier is drawn below it, not over Undo.
+            const underBar = await drawnOverStickyPart(page, '[data-turn-bar]')
+            expect(underBar.reached).toBeGreaterThan(0)
+            expect(underBar.over).toEqual([])
         })
     })
 }
@@ -700,6 +749,27 @@ test.describe('a phone held sideways at 812 by 375: a step scrolling at 0.75 kee
                 expect(view.answers).toBeGreaterThan(0)
                 expect(view.answersOutOfView, `scrolled to ${at} of its room`).toEqual([])
                 expect(view.bar?.top, `scrolled to ${at} of its room`).toBeCloseTo(view.top, 0)
+            }
+        })
+    }
+
+    // Each step's one card magnifier can be scrolled under one of the two: a card at the step's
+    // end reaches the pinned row, and one near its top reaches the turn bar.
+    for (const { table, reaches } of [
+        { table: 'battleDefenderPlans', reaches: '[data-answer-row][data-pinned]' },
+        { table: 'wrestlersPick', reaches: '[data-answer-row][data-pinned]' },
+        { table: 'citizenshipEnough', reaches: '[data-turn-bar]' },
+        { table: 'tribunalAnswerLong', reaches: '[data-turn-bar]' }
+    ] as const) {
+        test(`${table}: a card scrolled under the turn bar or the pinned answer row has its magnifier drawn below them`, async ({
+            page
+        }) => {
+            await openScene(page, { name: table, table })
+            expect((await page.evaluate(measureFit)).clamped).toBe(true)
+            for (const part of ['[data-turn-bar]', '[data-answer-row][data-pinned]']) {
+                const under = await drawnOverStickyPart(page, part)
+                if (part === reaches) expect(under.reached, part).toBeGreaterThan(0)
+                expect(under.over, part).toEqual([])
             }
         })
     }
