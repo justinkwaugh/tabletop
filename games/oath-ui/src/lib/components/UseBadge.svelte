@@ -39,14 +39,22 @@
 <style>
     /* Centred on the card's foot, the face from 12 px above its edge to 6 px past it. The tap area
        is 44 px tall from the face down, at every width, so the card above keeps its own tap; as
-       wide as its label. */
+       wide as its label.
+       In a seat the button is no layer of its own (no z-index, no transform): an item that comes
+       later in the seat, such as a held relic or banner on the next line or under an adviser, is
+       drawn over the transparent part of the area and keeps its own tap, while the face, a layer
+       of its own, stays drawn on top. The face centres itself with the transform the button had,
+       so it is drawn as before. On the board each card is a layer, and a card that comes later
+       covers the area there. */
     .use-badge {
         position: absolute;
-        left: 50%;
+        left: 0;
+        right: 0;
         top: calc(100% - 12px);
-        z-index: 7;
         display: flex;
+        width: max-content;
         min-height: 44px;
+        margin-inline: auto;
         align-items: flex-start;
         justify-content: center;
         padding: 0;
@@ -54,14 +62,21 @@
         background: transparent;
         line-height: 1;
         cursor: pointer;
-        transform: translateX(-50%);
-        transform-origin: 50% 0;
     }
     .use-badge--board {
+        left: 50%;
+        right: auto;
         top: calc(100% - 12px / var(--board-zoom, 1));
+        z-index: 7;
+        margin-inline: 0;
         transform: translateX(-50%) scale(calc(1 / var(--board-zoom, 1)));
+        transform-origin: 50% 0;
     }
     .use-badge__face {
+        position: relative;
+        left: 50%;
+        z-index: 7;
+        transform: translateX(-50%);
         display: block;
         padding: 3px 8px;
         border-radius: 5px;
@@ -72,6 +87,10 @@
         line-height: 1;
         white-space: nowrap;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.53);
+    }
+    .use-badge--board .use-badge__face {
+        left: 0;
+        transform: none;
     }
     .use-badge:hover .use-badge__face {
         background: #fde047;

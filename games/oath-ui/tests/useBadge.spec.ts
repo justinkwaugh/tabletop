@@ -186,6 +186,100 @@ for (const viewport of [
             })
         }
 
+        for (const { name, cardId, where } of [
+            {
+                name: 'useBadgeWrappedHeld',
+                cardId: IVORY_EYE,
+                where: 'on the first of two relics, the held row wrapped under it with both banners'
+            },
+            {
+                name: 'useBadgeOverHeld',
+                cardId: ALCHEMIST,
+                where: 'on the first adviser, over the third held item, with no hand and no Let another peek'
+            }
+        ] as const) {
+            test(`a badge ${where}: a tap on that item's top strip enlarges the item; the badge's face still opens Use a power`, async ({
+                page
+            }) => {
+                await openTable(page, name)
+                const held = seat(page)
+                await expect(badge(page, cardId)).toHaveCount(1)
+                if (name === 'useBadgeOverHeld') {
+                    await expect(held.locator('.hand')).toHaveCount(0)
+                    await expect(
+                        page.getByRole('button', { name: 'Let another peek', exact: true })
+                    ).toHaveCount(0)
+                }
+                await held.locator('.row--held').scrollIntoViewIfNeeded()
+                // The supply track's art has no height until it loads, and the rows below it move
+                // down when it does: wait for the seat's images, then measure in one frame.
+                await expect
+                    .poll(() =>
+                        held
+                            .locator('img')
+                            .evaluateAll((all) =>
+                                all.every((img) => img instanceof HTMLImageElement && img.complete)
+                            )
+                    )
+                    .toBe(true)
+                const found = await badge(page, cardId).evaluate((button) => {
+                    const area = button.getBoundingClientRect()
+                    const face = button.querySelector('.use-badge__face')?.getBoundingClientRect()
+                    const own = button.closest('figure')
+                    const items = [...document.querySelectorAll('.row--held > figure')]
+                    // The held items, other than the badge's own card, its tap area reaches.
+                    const under = items.flatMap((item, index) => {
+                        if (item === own) return []
+                        const r = item.getBoundingClientRect()
+                        const left = Math.max(r.left, area.left)
+                        const right = Math.min(r.right, area.right)
+                        const top = Math.max(r.top, area.top)
+                        const bottom = Math.min(r.bottom, area.bottom)
+                        if (right <= left || bottom <= top) return []
+                        return [
+                            {
+                                index,
+                                below: r.top >= (own?.getBoundingClientRect().bottom ?? 0),
+                                strip: { x: (left + right) / 2, y: (top + bottom) / 2 },
+                                alt: item.querySelector('img')?.getAttribute('alt') ?? ''
+                            }
+                        ]
+                    })
+                    return {
+                        under,
+                        face: face
+                            ? { x: face.left + face.width / 2, y: face.top + face.height / 2 }
+                            : { x: 0, y: 0 }
+                    }
+                })
+                // The scene: the badge's tap area reaches the top of exactly one held item, below
+                // its own card.
+                expect(found.under).toHaveLength(1)
+                const item = found.under[0] ?? {
+                    index: -1,
+                    below: false,
+                    strip: { x: 0, y: 0 },
+                    alt: ''
+                }
+                expect(item.below).toBe(true)
+                if (name === 'useBadgeOverHeld') expect(item.index).toBe(2)
+
+                // That strip is the item's: a tap there enlarges it, and Use a power stays shut.
+                await page.mouse.click(item.strip.x, item.strip.y)
+                await expect(
+                    page.locator('.card-preview').getByRole('img', { name: item.alt, exact: true })
+                ).toBeVisible()
+                await expect(powerRows(page)).toHaveCount(0)
+                await page.keyboard.press('Escape')
+                await expect(page.locator('.card-preview')).toHaveCount(0)
+
+                // The badge's face, drawn on top, still takes its own tap.
+                await page.mouse.click(found.face.x, found.face.y)
+                await expect(powerRows(page)).toHaveCount(1)
+                await expect(panel(page).locator(`[data-action-power="${cardId}"]`)).toBeVisible()
+            })
+        }
+
         test('the badge opens Use a power with just that card; the card itself still enlarges', async ({
             page
         }) => {

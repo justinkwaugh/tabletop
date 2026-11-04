@@ -365,6 +365,8 @@ export type TableName =
     | 'warningSignalsNothingToMove'
     | 'useBadge'
     | 'useBadgeNothingToPick'
+    | 'useBadgeWrappedHeld'
+    | 'useBadgeOverHeld'
     | 'useBadgeTribunal'
     | PickerScene
     | PowerSitesScene
@@ -3600,9 +3602,15 @@ function modifierTable(scene: ModifierScene): PlayedTable {
  * R-6.2 — the "Use" badge: the Trade menu's table (Oracle at the seat's site, 2 secrets to pay
  * for it), with Alchemist in place of Master of Disguise and the Ivory Eye held. With
  * `facedown` Ann, the Chancellor, holds a facedown adviser for the Ivory Eye to peek at;
- * without, nothing is facedown and the Ivory Eye has nothing to pick.
+ * without, nothing is facedown and the Ivory Eye has nothing to pick. With `held` 'wrapped' the
+ * seat also holds the Circlet of Command and both banners, so its held row runs onto a second
+ * line below the Ivory Eye; with 'underAdviser' Alchemist stands first among the advisers and the
+ * seat holds the Circlet of Command, the Cup of Plenty and the People's Favor, the third under it.
  */
-function useBadgeTable(facedown: boolean): PlayedTable {
+function useBadgeTable(
+    facedown: boolean,
+    held: 'relic' | 'wrapped' | 'underAdviser' = 'relic'
+): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
     const state = testState(
         [
@@ -3614,12 +3622,24 @@ function useBadgeTable(facedown: boolean): PlayedTable {
                 favor: 3,
                 secrets: 2,
                 warbandsOnBoard: { me: 3 },
-                relicIds: ['relic.ivory-eye'],
-                advisers: [
-                    faceup('denizen.beast.birdsong'),
-                    faceup('denizen.hearth.awaited-return'),
-                    faceup('denizen.arcane.alchemist')
-                ]
+                relicIds:
+                    held === 'wrapped'
+                        ? ['relic.ivory-eye', 'relic.circlet-of-command']
+                        : held === 'underAdviser'
+                          ? ['relic.circlet-of-command', 'relic.cup-of-plenty']
+                          : ['relic.ivory-eye'],
+                advisers:
+                    held === 'underAdviser'
+                        ? [
+                              faceup('denizen.arcane.alchemist'),
+                              faceup('denizen.beast.birdsong'),
+                              faceup('denizen.hearth.awaited-return')
+                          ]
+                        : [
+                              faceup('denizen.beast.birdsong'),
+                              faceup('denizen.hearth.awaited-return'),
+                              faceup('denizen.arcane.alchemist')
+                          ]
             }),
             testPlayer({
                 playerId: 'ann',
@@ -3642,6 +3662,16 @@ function useBadgeTable(facedown: boolean): PlayedTable {
                 ],
                 [mapSlotId(Region.Provinces, 0)]: ['denizen.beast.wolves']
             },
+            ...(held === 'wrapped'
+                ? {
+                      banners: testBanners({
+                          [Banner.PeoplesFavor]: 'me',
+                          [Banner.DarkestSecret]: 'me'
+                      })
+                  }
+                : held === 'underAdviser'
+                  ? { banners: testBanners({ [Banner.PeoplesFavor]: 'me' }) }
+                  : {}),
             discardPileCounts: { cradle: 2, provinces: 0, hinterland: 0 },
             vault: testVaultWithDiscards({
                 [Region.Cradle]: ['denizen.hearth.book-binders', 'denizen.order.council-seat']
@@ -5823,6 +5853,8 @@ const TABLES: Record<TableName, () => PlayedTable | Promise<PlayedTable>> = {
     warningSignalsNothingToMove: () => warningSignalsTable(true),
     useBadge: () => useBadgeTable(true),
     useBadgeNothingToPick: () => useBadgeTable(false),
+    useBadgeWrappedHeld: () => useBadgeTable(true, 'wrapped'),
+    useBadgeOverHeld: () => useBadgeTable(false, 'underAdviser'),
     useBadgeTribunal: useBadgeTribunalTable,
     pickerWhistle: () => powerPickerTable('pickerWhistle'),
     pickerTerror: () => powerPickerTable('pickerTerror'),
