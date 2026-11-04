@@ -184,7 +184,7 @@ describe('Search legality (R-5.1.1, R-5.1.2)', () => {
             }
         )
         expect(HydratedSearch.reasonCannotSearch(state, 'p1', SearchSource.Discard)).toBe(
-            'the cradle discard pile is empty'
+            'the Cradle discard pile is empty'
         )
     })
 

@@ -1,5 +1,6 @@
 import { assert } from '@tabletop/common'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
+import { regionName } from '../data/mapSlots.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { discardCards, returnTokensFrom } from '../util/discard.js'
 import { isLockedFor } from '../util/locked.js'
@@ -54,7 +55,7 @@ registerEffect(PILGRIMAGE, powerIndexOf(PILGRIMAGE, PowerTiming.WhenPlayed), {
         const moved = `Pilgrimage: moved ${leaving.join(', ')} from ${siteId} to the Dispossessed; drew ${drawn.length} from it, peeked`
         if (drawn.length === 1) {
             return {
-                summary: `${moved}, and put it on the ${region} discard pile`,
+                summary: `${moved}, and put it on the ${regionName(region)} discard pile`,
                 peeked: drawn,
                 pileDeposits: discardCards(ctx.state, ctx.playerId, drawn, region, {
                     region,
@@ -73,7 +74,7 @@ registerEffect(PILGRIMAGE, powerIndexOf(PILGRIMAGE, PowerTiming.WhenPlayed), {
             cardIds: drawn
         })
         return {
-            summary: `${moved}, and will stack them on the ${region} discard pile`,
+            summary: `${moved}, and will stack them on the ${regionName(region)} discard pile`,
             peeked: drawn
         }
     }
