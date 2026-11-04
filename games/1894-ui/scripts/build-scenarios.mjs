@@ -10,13 +10,14 @@ import { EighteenNinetyFourScenarios } from '@tabletop/1894/scenarios'
 
 const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'scenarios')
 const SEED = 7
+const NordSeed = 12
 
-function gameData(config) {
+function gameData(config, seed = SEED) {
     return {
         id: '1894-scenario',
         typeId: '1894',
         ownerId: 'p1',
-        seed: SEED,
+        seed,
         config,
         players: Array.from({ length: 3 }, (_, index) => ({
             id: `p${index + 1}`,
@@ -41,6 +42,20 @@ function prepared(examplePosition) {
     )
     const plain = Definition.runtime.initializer.initializeGame(gameData(undefined), Definition)
     return { engine, game: { ...startedGame, config: plain.config }, state: initialState }
+}
+
+/** A real game from its deal, on a seed that draws the Nord as the French company. */
+function dealtWithNord() {
+    const engine = new GameEngine(Definition.runtime)
+    const game = Definition.runtime.initializer.initializeGame(
+        gameData(undefined, NordSeed),
+        Definition
+    )
+    const { startedGame, initialState } = engine.startGame(
+        game,
+        NordSeed.toString(16).padStart(32, '0')
+    )
+    return { engine, game: startedGame, state: initialState }
 }
 
 function play(position, type, fields = {}) {
@@ -82,6 +97,9 @@ function owns(state, companyId, privateIds) {
         delete certificate.poolId
     }
 }
+
+const inventory = (...tiles) => EighteenNinetyFourTileSet.createInventory(tiles)
+const placed = (locationId, definitionId) => ({ locationId, definitionId, rotation: 0 })
 
 mkdirSync(OUT, { recursive: true })
 
@@ -148,6 +166,110 @@ mkdirSync(OUT, { recursive: true })
     state.machineState = 'LayingTrack'
     state.activePlayerIds = [state.players[0].playerId]
     write('share-operations', 'Redeem or reissue shares', position)
+    state.trackStep.lays = [
+        { locationId: 'E18', definitionId: '18xx:9' },
+        { locationId: 'F17', definitionId: '18xx:9' }
+    ]
+    state.stations = state.stations.map((station) =>
+        station.id === 'PLM:station:1'
+            ? { id: station.id, companyId: 'PLM', status: 'displaced', locationId: 'E16' }
+            : station
+    )
+    write('share-operations-set-aside', 'Share operations beside a set-aside station', position)
+}
+
+// One position for each private company's power (§11.2.2).
+function companyOwning(examplePosition, privateId, arrange = () => {}) {
+    const position = prepared(examplePosition)
+    owns(position.state, 'Belge', [privateId])
+    arrange(position.state)
+    return position
+}
+write(
+    'private-ligne-de-reims',
+    'Ligne de Reims à Charleville',
+    companyOwning('construction', 'LRC')
+)
+{
+    const position = companyOwning('construction', 'LRC')
+    owns(position.state, 'Belge', ['LS'])
+    write('private-two-powers', 'Choosing between two private powers', position)
+}
+write('private-antwerpen-rotterdam', 'Antwerpen-Rotterdam income', prepared('trading'))
+write('private-gare-de-liege', 'Gare de Liège: lay', companyOwning('construction', 'GLG'))
+write(
+    'private-gare-de-liege-upgrade',
+    'Gare de Liège: upgrade',
+    companyOwning('construction', 'GLG', (state) => {
+        state.tileInventory = inventory(placed('H17', '18xx:57'))
+    })
+)
+write(
+    'private-station-antwerpen',
+    'Station Antwerpen Centraal',
+    companyOwning('construction', 'SAC')
+)
+{
+    const position = prepared('trading')
+    position.state.tileInventory = inventory(placed('G10', '18xx:14'))
+    write('private-saint-quentin-green', 'Saint-Quentin à Guise: green', position)
+}
+{
+    const position = prepared('trading')
+    position.state.phaseId = '5+1'
+    position.state.tileInventory = inventory(placed('G10', '1894:X16'))
+    write('private-saint-quentin-brown', 'Saint-Quentin à Guise: brown', position)
+}
+write('private-saint-quentin-closes', 'Saint-Quentin à Guise closes', prepared('diesel'))
+{
+    const position = prepared('phases')
+    position.state.trainInventory.trains = position.state.trainInventory.trains.filter(
+        (train) => !(train.status === 'depot' && train.definitionId === '5+1')
+    )
+    write('privates-close', 'Privates close at phase 6', position)
+}
+{
+    const position = companyOwning('routes', 'LS')
+    const { state } = position
+    state.tileInventory = inventory(placed('B9', '18xx:57'))
+    state.accessRights = [{ rightId: 'ferry', companyId: 'Belge' }]
+    state.stations = state.stations.map((station) =>
+        station.id === 'Belge:home'
+            ? {
+                  ...station,
+                  status: 'placed',
+                  position: { locationId: 'B9', nodeId: 'city', slot: 0 }
+              }
+            : station.id === 'Belge:station:1'
+              ? {
+                    ...station,
+                    status: 'placed',
+                    position: { locationId: 'A12', nodeId: 'city', slot: 0 }
+                }
+              : station
+    )
+    write('private-london-shipping-bonus', 'London shipping bonus', position)
+}
+{
+    const position = dealtWithNord()
+    for (const [lotId, expectedPrice] of [
+        ['LRC', 20],
+        ['AR', 25],
+        ['SAC', 50],
+        ['SQG', 70],
+        ['LS', 90]
+    ])
+        play(position, 'BuyAuctionLot', { lotId, expectedPrice })
+    write('private-nord-minor', 'Nord minor and major shareholdings', position)
+    for (const [lotId, expectedPrice] of [
+        ['NMinorS', 140],
+        ['NMS', 180]
+    ])
+        play(position, 'BuyAuctionLot', { lotId, expectedPrice })
+    play(position, 'ParCompany', { companyId: 'Nord', marketSpaceId: '3:5' })
+    play(position, 'BuyAuctionLot', { lotId: 'BMS', expectedPrice: 200 })
+    play(position, 'ParCompany', { companyId: 'Belge', marketSpaceId: '3:5' })
+    write('private-major-shareholdings', 'Major shareholdings close', position)
 }
 
 // The Belge's home is Calais, whose tile runs to London: it may buy a ferry marker, and its
@@ -155,9 +277,7 @@ mkdirSync(OUT, { recursive: true })
 {
     const position = prepared('construction')
     const { state } = position
-    state.tileInventory = EighteenNinetyFourTileSet.createInventory([
-        { locationId: 'B9', definitionId: '18xx:57', rotation: 0 }
-    ])
+    state.tileInventory = inventory(placed('B9', '18xx:57'))
     state.stations = state.stations.map((station) =>
         station.id === 'Belge:home'
             ? {

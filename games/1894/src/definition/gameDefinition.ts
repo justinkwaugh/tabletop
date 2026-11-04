@@ -43,7 +43,7 @@ export const EighteenNinetyFourTitleRules: EighteenXXTitleRules<
     privatePowerRules: EighteenNinetyFourPrivatePowerRules,
     createOpening: createEighteenNinetyFourOpening,
     startingCash: eighteenNinetyFourStartingCash,
-    currencySymbol: 'F',
+    currencySymbol: '₣',
     stockRules: EighteenNinetyFourStockRules,
     companyRules: EighteenNinetyFourCompanyRules,
     operatingRules: EighteenNinetyFourOperatingRules,

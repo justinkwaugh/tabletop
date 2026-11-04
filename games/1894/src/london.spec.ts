@@ -93,6 +93,18 @@ describe('London (§12.3.3, §14)', () => {
         }
     })
 
+    it('offers London shipping’s free station only while the company has one left', () => {
+        const play = playExample(EighteenNinetyFourScenarios, 'construction', 3, (state) => {
+            const charter = state.certificates.find((item) => item.id === 'LS:charter')
+            assertExists(charter, 'London shipping is in the example')
+            charter.owner = { kind: 'company', companyId: 'Belge' }
+            state.stations = state.stations.filter(
+                (station) => station.companyId !== 'Belge' || station.status !== 'available'
+            )
+        })
+        expect(play.valid(play.state.activePlayerIds[0])).not.toContain('PlacePrivateToken')
+    })
+
     it('sells a ferry marker to a company whose track reaches London', () => {
         const play = playExample(EighteenNinetyFourScenarios, 'construction', 3, (state) =>
             atCalais(state)

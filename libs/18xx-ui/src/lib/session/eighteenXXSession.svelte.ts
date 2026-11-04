@@ -357,7 +357,7 @@ export class EighteenXXSession<
         },
         () => this.titleOperatingModes,
         () =>
-            this.stationReturn.waiting.length > 0 ||
+            !!this.stationReturn.pending ||
             !!this.moduleSession.state.privateStation ||
             !!this.stations.homeChoice
     )
@@ -442,6 +442,10 @@ export class EighteenXXSession<
             (state) => this.rules.state.hydrate(state, components)
         )
         return this.#instructedRuns
+    }
+    // Starts off the main thread, so the first move after an Autorun is set doesn't wait for it.
+    private warmRouteSolver() {
+        if (this.myPlayer && this.gameState.runInstructions?.length) this.instructedRuns?.warm()
     }
     readonly runInstructions = new RunInstructionModule(
         this.moduleSession,
@@ -621,7 +625,11 @@ export class EighteenXXSession<
                 ) ?? {}
         )
         this.registerLocalSelections()
-        this.addGameStateChangeListener(async ({ action }) => this.notices.observe(action))
+        this.addGameStateChangeListener(async ({ action }) => {
+            this.notices.observe(action)
+            this.warmRouteSolver()
+        })
+        this.warmRouteSolver()
     }
     private noticeText(action: GameAction): string | undefined {
         if (isPrivateTileLay(action))

@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { stationToReturn } from '@tabletop/18xx'
+import { Definition } from './definition/gameDefinition.js'
 import { playExample } from '@tabletop/18xx/scenarios'
 import { EighteenNinetyFourScenarios } from './scenarios/index.js'
 import { EighteenNinetyFourTileSet } from './tiles.js'
@@ -86,5 +88,41 @@ describe('splitting a green city (§12.3.2, §7.3.8)', () => {
             position: { locationId: 'E16', nodeId: 'city-0', slot: 1 }
         })
         expect(play.state.stations.some((station) => station.status === 'displaced')).toBe(false)
+        // The shared city must still load, or the game could not go on.
+        expect(play.valid(play.state.activePlayerIds[0]).length).toBeGreaterThan(0)
     })
+})
+
+describe('returning set-aside stations', () => {
+    it('takes them in operating order, whatever order the stations are listed in', () => {
+        const displaced = (companyId: string) => ({
+            id: `${companyId}:station:1`,
+            companyId,
+            status: 'displaced' as const,
+            locationId: 'E16'
+        })
+        const play = playExample(EighteenNinetyFourScenarios, 'construction', 3)
+        expect(
+            stationToReturn({
+                ...play.state,
+                machineState: 'OperatingSet',
+                stations: [displaced('PLM'), displaced('Belge')],
+                operatingSet: {
+                    ...play.state.operatingSet!,
+                    companyOrder: ['Belge', 'PLM']
+                }
+            })?.companyId
+        ).toBe('Belge')
+    })
+})
+
+describe('actions a player takes between operating turns', () => {
+    it.each(['ReturnStation', 'BuyAccessRight', 'PlacePrivateToken'])(
+        '%s can carry the instructed runs its cascade may reach',
+        (type) => {
+            expect(Object.keys(Definition.runtime.apiActions[type].properties)).toContain(
+                'instructedRuns'
+            )
+        }
+    )
 })

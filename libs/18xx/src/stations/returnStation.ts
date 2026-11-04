@@ -3,11 +3,11 @@ import { Compile } from 'typebox/compile'
 import {
     ActionSource,
     HydratableAction,
-    PlayerAction,
     assert,
     type GameAction,
     type HydratedGameState
 } from '@tabletop/common'
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import { controllingOwner, type FinancialState } from '../finance/finance.js'
 import { RailwayMapState, type MapStateData } from '../map/mapState.js'
 import {
@@ -17,12 +17,32 @@ import {
     type StationState
 } from '../map/station.js'
 import type { StationRules } from './stationPlacement.js'
+import { nextOperatingCompany, type OperatingState } from '../operating/operatingSet.js'
+import { BetweenCompaniesState } from '../operating/operatingSteps.js'
 
 type State = FinancialState & MapStateData & { activePlayerIds: string[] }
 
 /** Stations set aside by reconfiguring upgrades, waiting for their owners. */
 export function displacedStations(state: Pick<StationState, 'stations'>): DisplacedStation[] {
     return state.stations.filter((station) => station.status === 'displaced')
+}
+
+/** The station whose owner must act now, if any. */
+export function stationToReturn(
+    state: Pick<StationState, 'stations'> & OperatingState & { machineState: string }
+): DisplacedStation | undefined {
+    const displaced = displacedStations(state)
+    if (!displaced.length) return undefined
+    if (state.machineState !== BetweenCompaniesState) {
+        const companyId = nextOperatingCompany(state)
+        return displaced.find((station) => station.companyId === companyId)
+    }
+    const order = state.operatingSet?.companyOrder ?? []
+    const rank = (companyId: string) => {
+        const index = order.indexOf(companyId)
+        return index < 0 ? order.length : index
+    }
+    return [...displaced].sort((a, b) => rank(a.companyId) - rank(b.companyId))[0]
 }
 
 /**
@@ -53,7 +73,7 @@ export function returnPositions(
 
 export const ReturnStation = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('ReturnStation'),
         stationId: Type.String(),
         position: StationPosition

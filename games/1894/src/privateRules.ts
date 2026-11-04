@@ -45,6 +45,7 @@ export function privateIncome1894(
 
 export const EighteenNinetyFourPrivateRules: PrivateRules = {
     exchangeTerms: () => undefined,
+    blocking: EighteenNinetyFourPrivateCatalog.blocking.bind(EighteenNinetyFourPrivateCatalog),
     // Privates close as phase 6 begins, Saint-Quentin à Guise as phase D (§11.2.1).
     phaseEffects(state) {
         const effects = EighteenNinetyFourPrivateCatalog.closureEffects(state)

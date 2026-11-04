@@ -24,7 +24,7 @@ export const EighteenNinetyFourEndingRules: EndingRules = {
     trigger(state) {
         if (state.bankruptcy) return { reason: 'Bankruptcy' }
         if (state.stockMarket.stacks.some((stack) => stack.spaceId === EndingSpaceId))
-            return { reason: 'Share price of F450' }
+            return { reason: 'Share price of ₣450' }
         if (state.phaseId === 'D')
             return {
                 reason: 'Phase D',

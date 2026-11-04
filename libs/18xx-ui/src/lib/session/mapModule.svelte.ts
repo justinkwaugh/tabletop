@@ -8,7 +8,12 @@ import {
     type StationState,
     type TileFace
 } from '@tabletop/18xx'
-import { createMapDrawing, isMapSelectionValid, type MapSelection } from '../maps/mapDrawing.js'
+import {
+    createMapDrawing,
+    isMapSelectionValid,
+    overfullCityKeys,
+    type MapSelection
+} from '../maps/mapDrawing.js'
 import { stationMapTokens, type MapViewDefinition } from '../maps/stationPresentation.js'
 import type { ModuleSession } from './moduleSession.js'
 import {
@@ -126,6 +131,17 @@ export class MapModule {
     // Held apart so a display state that only moves tokens doesn't redraw the board.
     private tileInventory = $derived.by(() => this.displayState().tileInventory)
     private locationMarkers = $derived.by(() => this.displayState().locationMarkers)
+    private overfullCityKey = $derived.by(() =>
+        overfullCityKeys(
+            this.displayState().stations,
+            new RailwayMapState(
+                this.view().map,
+                this.view().tileSet,
+                this.displayState().tileInventory
+            )
+        ).join('|')
+    )
+    private overfullCities = $derived(this.overfullCityKey ? this.overfullCityKey.split('|') : [])
     private companies = $derived.by(() => this.displayState().companies)
     private certificates = $derived.by(() => this.displayState().certificates)
     private liftedPrivateBlocks = $derived.by(() =>
@@ -335,7 +351,8 @@ export class MapModule {
                 tileSet: view.tileSet,
                 inventory,
                 markers: this.locationMarkers,
-                liftedPrivateBlocks: this.liftedPrivateBlocks
+                liftedPrivateBlocks: this.liftedPrivateBlocks,
+                overfullCities: this.overfullCities
             },
             view
         )

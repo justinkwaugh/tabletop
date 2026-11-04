@@ -2,9 +2,10 @@ import { holdsAccessRight } from '@tabletop/18xx'
 import {
     EighteenNinetyFourTitleRules,
     FerryRightId,
+    SaintQuentinPrivateId,
     holdsLondonShippingStation
 } from '@tabletop/1894'
-import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
+import { moneyFormat, type LocationMarkerArt, type TitlePresentation } from '@tabletop/18xx-ui'
 import { EighteenNinetyFourCompanyNames } from './companyPresentation.js'
 import { EighteenNinetyFourPhaseChart } from './phaseChart.js'
 import { EighteenNinetyFourTrainColors } from './trainPresentation.js'
@@ -14,9 +15,15 @@ export const EighteenNinetyFourPresentation: TitlePresentation = {
     phaseChart: EighteenNinetyFourPhaseChart,
     trainColors: EighteenNinetyFourTrainColors,
     phaseColors: EighteenNinetyFourTrainColors,
+    // Saint-Quentin à Guise blocks nothing, so its marker goes when the private closes.
+    markerArtFor(state): LocationMarkerArt {
+        return state.companies.find((company) => company.id === SaintQuentinPrivateId)?.closed
+            ? { G10: { SQG: { hidden: true } } }
+            : {}
+    },
     corporateFinance: {
         issue: 'Reissue',
-        issueNote: 'par becomes F100',
+        issueNote: 'par becomes ₣100',
         issuePool: { label: 'IPO', poolId: 'initial-offering' }
     },
     marketPoolId: 'open-market',
@@ -62,6 +69,6 @@ export const EighteenNinetyFourPresentation: TitlePresentation = {
                 'Shares do not count toward the certificate limit and may exceed 60%; the president may buy two at a time; a sold-out company rises one more space.',
             fill: { kind: 'solid', color: '#b4b8bb' }
         },
-        { color: 'red', name: 'End', description: 'A share price reaching F450 ends the game.' }
+        { color: 'red', name: 'End', description: 'A share price reaching ₣450 ends the game.' }
     ]
 }

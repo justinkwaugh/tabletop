@@ -3,12 +3,12 @@ import { Compile } from 'typebox/compile'
 import {
     ActionSource,
     HydratableAction,
-    PlayerAction,
     assert,
     assertExists,
     type GameAction,
     type HydratedGameState
 } from '@tabletop/common'
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
 import type { FinancialState } from '../finance/finance.js'
 import {
@@ -19,7 +19,7 @@ import {
 
 export const BuyAccessRight = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('BuyAccessRight'),
         companyId: Type.String(),
         rightId: Type.String(),

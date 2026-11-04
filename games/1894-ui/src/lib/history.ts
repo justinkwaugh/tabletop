@@ -7,7 +7,7 @@ export const describe1894Action: TitleActionDescription = (action, _companyName,
         return {
             ...shared(),
             text: `Reissued ${counted(action.shares, 'share')}`,
-            detail: 'Par becomes F100'
+            detail: 'Par becomes ₣100'
         }
     return undefined
 }

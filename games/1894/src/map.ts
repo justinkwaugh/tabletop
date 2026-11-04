@@ -79,6 +79,7 @@ const Markers: Readonly<Record<string, NonNullable<MapLocation['markers']>>> = {
         {
             id: 'blocks-LRC',
             label: 'LRC',
+            privateCompanyId: 'LRC',
             description: 'No track while Ligne de Reims à Charleville is player-owned.'
         }
     ],
@@ -86,6 +87,7 @@ const Markers: Readonly<Record<string, NonNullable<MapLocation['markers']>>> = {
         {
             id: 'blocks-GLG',
             label: 'GLG',
+            privateCompanyId: 'GLG',
             description: 'No track while Gare de Liège-Guillemins is player-owned.'
         }
     ],
@@ -93,6 +95,7 @@ const Markers: Readonly<Record<string, NonNullable<MapLocation['markers']>>> = {
         {
             id: 'blocks-SAC',
             label: 'SAC',
+            privateCompanyId: 'SAC',
             description: 'No track while Station Antwerpen Centraal is player-owned.'
         }
     ],
@@ -101,14 +104,14 @@ const Markers: Readonly<Record<string, NonNullable<MapLocation['markers']>>> = {
             id: 'SQG',
             label: 'LSQG',
             description:
-                'Ligne de Saint-Quentin à Guise earns 70 while Saint-Quentin is green and 100 while it is brown.'
+                'Ligne de Saint-Quentin à Guise earns ₣70 while Saint-Quentin is green and ₣100 while it is brown.'
         }
     ],
     A12: [
         {
             id: 'ferry',
-            label: 'Ferry',
-            description: 'Four ferry markers, F80 each, open London to the companies owning them.',
+            label: 'Ferry +₣80',
+            description: 'Four ferry markers, ₣80 each, open London to the companies owning them.',
             count: 4
         }
     ],
@@ -122,8 +125,8 @@ const Markers: Readonly<Record<string, NonNullable<MapLocation['markers']>>> = {
     C18: [
         {
             id: 'netherlands-bonus',
-            label: '+100',
-            description: 'A route to the Netherlands and another offboard location earns F100 more.'
+            label: '+₣100 to offboard',
+            description: 'A route to the Netherlands and another offboard location earns ₣100 more.'
         }
     ]
 }

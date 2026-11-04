@@ -40,6 +40,7 @@ export const EighteenNinetyFourTrackRules: TrackRules = {
     },
     preservesStops: sameStopCounts,
     // A non-big green city's brown tile splits it into two cities, keeping its exits (§12.3.2).
+    sharesFullCities: true,
     reconfigures: (_locationId, before, after) =>
         isSplittingGreenCity(before) && isSplitBrownCity(after),
     useful: ({ home, connected }) => home || connected,

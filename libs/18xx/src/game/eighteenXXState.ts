@@ -218,9 +218,9 @@ export type StateValidation<State> = (state: State, components: TitleComponents)
 
 export const validateRailwayComponents: StateValidation<EighteenXXState> = (
     state,
-    { map, tileSet, depot, market }
+    { map, tileSet, depot, market, sharesFullCities }
 ) => {
-    new RailwayMapState(map, tileSet, state.tileInventory).validateStations(state)
+    new RailwayMapState(map, tileSet, state.tileInventory).validateStations(state, sharesFullCities)
     const companyIds = state.companies.map((company) => company.id)
     const playerIds = state.players.map((player) => player.playerId)
     depot.validateInventory(state.trainInventory, companyIds, playerIds)

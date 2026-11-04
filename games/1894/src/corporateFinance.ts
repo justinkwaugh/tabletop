@@ -33,7 +33,7 @@ function ownedShares(state: FinancialState, companyId: string) {
 /**
  * A company's one financial operation a round (§7.3.2): redeem a share from the bank pool at its
  * price, or two in the set's first round; or reissue every share it owns to the IPO for F100
- * each, which sets its par to F100, when it owns more than the IPO holds. The drawn French
+ * each, which sets its par to ₣100, when it owns more than the IPO holds. The drawn French
  * company and the Belge do neither.
  */
 export const EighteenNinetyFourCorporateFinanceRules: CorporateFinanceRules = {

@@ -3,12 +3,12 @@ import { Compile } from 'typebox/compile'
 import {
     ActionSource,
     HydratableAction,
-    PlayerAction,
     assert,
     assertExists,
     type GameAction,
     type HydratedGameState
 } from '@tabletop/common'
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import { StationPosition, sameStationPosition } from '../map/station.js'
 import { StationPlacementDetails, applyStationPlacement } from '../stations/stationPlacement.js'
 import { recordPrivatePowerUse, type CompanyDecisionState } from './companyDecision.js'
@@ -16,7 +16,7 @@ import type { PrivatePowerRules, PrivateTokenTerms } from './privatePowers.js'
 
 export const PlacePrivateToken = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('PlacePrivateToken'),
         privateCompanyId: Type.String(),
         position: StationPosition,

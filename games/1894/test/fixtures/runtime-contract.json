@@ -1,7 +1,7 @@
 {
   "actionSchemaDigests": {
     "AdvancePhase": "013a149f604147b529e1bc9ee94806b4697070f2d18e1e1a15c0a4d9c2fbc0c6",
-    "BuyAccessRight": "3af8c0bc1e0778129455dd0ef6bcec426c888f79962625318e63a1c2946af212",
+    "BuyAccessRight": "e5add64316bb77d0ccd09d7450534c0a4f872d1aa95086eee87b7867ce832ce7",
     "BuyAuctionLot": "df80f4b640533164abba9db13143745a1855e1b333d6df8899119feef8a2ed9b",
     "BuyPrivateTrain": "91b0b0052458f1f6cbbcfce68ed22baafbb1410e69ca6ac86263a0b4318d3ce0",
     "BuyShares": "ea32f0c8f1d4ef09bcfceae831c752c10cc989a03646740d5987a8b841342e0e",
@@ -32,7 +32,7 @@
     "PassAuction": "8f80db14291be75adbc7a2ac100d007b389a0f925a9bdca6308769d9b093ec87",
     "PlaceHomeStations": "bdbe821f15683c4ed63a6f6f385accb49beee48d2727d3df382533750fec7d0a",
     "PlacePrivateStation": "45653cf9ae1bb8e018214799a735efc02bb4f9324cbc715873f8bc551f475e71",
-    "PlacePrivateToken": "1a95d7330bed707b214ab0b6b94fd55ccf9b1bd8396fd64fc78f5dbfcdc5bde4",
+    "PlacePrivateToken": "08333f3551191c8c3e332e026b0e31552058d527207bfe337dfa1edf2c4e21d9",
     "PlaceStation": "642f3ab37cd70c2294fd3704f13f035b5678061c83c47ab5318f791c9d8cfee1",
     "RaiseAuctionBid": "b7a3c42f3ba48036ce2e086754d8e398190b772e6d4dc7c3d2f380d626b4941e",
     "RequestTrackConsent": "d707e81670fcfd54f376f8cc7d602a7a9b1b3c964f0fc61238601ab1446d0118",
@@ -40,7 +40,7 @@
     "ResolveAuction": "9c8f176314018029b7c625d56a546a68de6645aa264ff9a89e554ad3eb358b87",
     "RespondToPurchaseOffer": "3750e29e4505cbce5f65efe310687f638d05f3123780dd6a0779679ea7657e00",
     "RespondToTrackConsent": "61bc3d23824f13246e4b924e82e3c9c552ef8efe19a1668becdd1a31dfd41f7b",
-    "ReturnStation": "f48df06daabb45c69fc89a56b323faa9bdac6cfcfa631bdfbc1e0d181be60a4a",
+    "ReturnStation": "2a5d523a7a7dde8491390115e2f71c1110f0c96d56ad91ae4bea1f5a5c38b347",
     "RunTrains": "2c2acc1e37f0747f108f4cde5ded277fea110974d0ac82261fa3847e80171daa",
     "RustTrains": "04877126159679eab415b42c62724c9a3f1ce24f2765a37d077ab2f791101d64",
     "ScheduleGameEnd": "9fe8533e7967cbf7186df25d65592a7571e9caa1e561d18674ab008e1a503ab2",

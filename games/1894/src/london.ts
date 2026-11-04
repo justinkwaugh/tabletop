@@ -63,7 +63,7 @@ export function londonBonus(state: StationState, companyId: string) {
         : []
 }
 
-// Four ferry markers: F80, or F40 for London shipping's owner, for a company whose track
+// Four ferry markers: ₣80, or ₣40 for London shipping's owner, for a company whose track
 // reaches London from one of its stations (§14.1).
 export const EighteenNinetyFourAccessRightRules: AccessRightRules = {
     rights: [{ id: FerryRightId, name: 'Ferry marker', supply: 4 }],
@@ -105,6 +105,9 @@ export function londonShippingTokenTerms(
             (station) =>
                 station.status === 'placed' &&
                 station.position.locationId === LondonShippingLocationId
+        ) ||
+        !state.stations.some(
+            (station) => station.companyId === companyId && station.status === 'available'
         )
     )
         return undefined

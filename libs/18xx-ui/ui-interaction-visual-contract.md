@@ -967,12 +967,33 @@ round. Continuing declines only that window, retaining the unused power. The cho
 and resulting automatic company start form a normal Undo history step. Automatic
 private income and required home stations resolve before this optional window.
 
+Use privates selects a lone private tile, location or confirm power for the player only when no
+other power of any kind is open; with a train, marker, station or exchange power beside it, the panel lists them
+all and waits for a choice. A station power's button reads "Place the [private] station for
+free".
+
+The prompt to return a set-aside station shows that station's token above its text, and stays
+on screen for the acting player until the next choice appears, including while the return and
+any instructed runs it needs are applied.
+
+A province border draws as three rounded dashes on each hex side, with a dark edge, as printed;
+the pattern is centred on the side, so the hexes on both sides draw the same dashes.
+
+A local-line marker with `onTile` (1894's LSQG) stays once a tile is laid, as a small boxed tag
+in the hex's bottom corner, or its top corner when a city or revenue is close to the bottom.
+
+A one-space city holding a second station (1894 §7.3.8) draws as a two-space city in the map
+view's `sharedCityLayouts`, with its track running to the pair and its revenue placed clear of it.
+While it holds one station it keeps its own layout, so the first token moves when the second
+arrives. A city with no shared layout falls back to the second token beside the first.
+
 A private lay that offers a station (a title's `stationPrivateIds`, such as 1830's D&H)
 leaves a committed private station decision in Game State. While it is pending the
 track picker gives up map clicks, the placement mask and focus show the laid hex, and
-the action panel prompts "[company]: click the highlighted city for [private]'s free
-station, or Decline". A click anywhere on a one-city tile, or on an offered city of a
-multi-city tile, submits PlacePrivateStation directly; Decline submits
+the action panel asks "Place the [private] station for free?" with Place and Decline when one
+city is offered, or "Click a highlighted city to place the [private] station for free, or
+Decline" when several are. Place, a click anywhere on a one-city tile, or a click on an offered
+city of a multi-city tile submits PlacePrivateStation directly; Decline submits
 DeclinePrivateStation. There is no confirmation stage. A placed station shows the
 station step as Placed and the step completes automatically.
 

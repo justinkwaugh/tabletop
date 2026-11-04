@@ -49,14 +49,14 @@ export const EighteenNinetyFourPrivateCatalog = new PrivateCatalog(
                 revenue: 5,
                 blocks: { locationIds: ['I14'], until: 'company-owned' },
                 description:
-                    'Once per game the owning company may pay F60 to lay an extra yellow tile, which it cannot upgrade that round. Blocks I14 while player-owned. Closes at phase 6.'
+                    'Once per game the owning company may pay ₣60 to lay an extra yellow tile, which it cannot upgrade that round. Blocks I14 while player-owned. Closes at phase 6.'
             },
             {
                 id: 'AR',
                 name: 'Antwerpen-Rotterdamsche Spoorwegmaatschappij',
                 faceValue: 25,
                 revenue: 5,
-                description: 'Earns F10 while a company owns it. Closes at phase 6.'
+                description: 'Earns ₣10 while a company owns it. Closes at phase 6.'
             },
             {
                 id: 'GLG',
@@ -83,7 +83,7 @@ export const EighteenNinetyFourPrivateCatalog = new PrivateCatalog(
                 revenue: 0,
                 closure: 'never',
                 description:
-                    'Earns F70 while Saint-Quentin (G10) is green, F100 while it is brown, otherwise nothing. Companies cannot buy it in phases 6 and 7. Closes at phase D.'
+                    'Earns ₣70 while Saint-Quentin (G10) is green, ₣100 while it is brown, otherwise nothing. Companies cannot buy it in phases 6 and 7. Closes at phase D.'
             },
             {
                 id: 'LS',
@@ -91,7 +91,7 @@ export const EighteenNinetyFourPrivateCatalog = new PrivateCatalog(
                 faceValue: 90,
                 revenue: 15,
                 description:
-                    'The owning company pays F40 for a ferry marker and may place its cheapest station free in A12. A company with a station in A12 adds the route’s largest other revenue, besides Luxembourg, to London. Closes at phase 6.'
+                    'The owning company pays ₣40 for a ferry marker and may place its cheapest station free in A12. A company with a station in A12 adds the route’s largest other revenue, besides Luxembourg, to London. Closes at phase 6.'
             },
             {
                 id: 'NMinorS',

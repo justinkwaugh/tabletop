@@ -48,6 +48,35 @@ describe('private auction (§5)', () => {
         expect(buyer?.kind === 'player' ? table.cash(buyer.playerId) : 0).toBe(before + 5)
     })
 
+    it('gives the Nord minor shareholding a Nord share without the presidency, even when the Nord is drawn', () => {
+        const table = startTable(3, 12)
+        expect(startingFrenchCompanyId(table.state)).toBe('Nord')
+        for (const [lotId, expectedPrice] of [
+            ['LRC', 20],
+            ['AR', 25],
+            ['SAC', 50],
+            ['SQG', 70],
+            ['LS', 90],
+            ['NMinorS', 140]
+        ])
+            table.act('BuyAuctionLot', { lotId, expectedPrice })
+        const buyer = privateOwner(table.hydrated, 'NMinorS')
+        expect(
+            table.state.certificates.filter(
+                (certificate) =>
+                    certificate.companyId === 'Nord' &&
+                    buyer?.kind === 'player' &&
+                    certificate.owner.kind === 'player' &&
+                    certificate.owner.playerId === buyer.playerId
+            )
+        ).toHaveLength(2)
+        expect(getCompany(table.hydrated, 'Nord').president).toBeUndefined()
+        table.act('BuyAuctionLot', { lotId: 'NMS', expectedPrice: 180 })
+        const major = privateOwner(table.hydrated, 'NMS')
+        table.act('ParCompany', { companyId: 'Nord', marketSpaceId: '3:5' })
+        expect(getCompany(table.hydrated, 'Nord').president).toEqual(major)
+    })
+
     it('rejects a bid that is not a multiple of F5', () => {
         const table = startTable(3)
         expect(() => table.act('ReserveBid', { lotId: 'AR', amount: 32 })).toThrow()

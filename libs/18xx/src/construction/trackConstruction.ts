@@ -159,6 +159,8 @@ export interface TrackRules {
      * owners to place again, and turns its reservations into claims on any of its cities.
      */
     reconfigures?(locationId: string, before: TileFace, after: TileFace): boolean
+    /** A set-aside station may join a full city, beside the one already there (1894 §7.3.8). */
+    sharesFullCities?: true
     /** Whether the company's network may continue through a revenue center, as its routes may. */
     stopAllowed?(state: ConstructionState, companyId: string, center: RevenueCenter): boolean
     preservesStops(before: TileFace, after: TileFace): boolean

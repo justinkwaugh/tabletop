@@ -9,6 +9,7 @@ import type { ActionTarget } from '@tabletop/frontend-components'
 import {
     atRunningStep,
     isSetRunInstruction,
+    trainIdsOwnedBy,
     trainRoutesOf,
     type EighteenXXState,
     type HydratedEighteenXXState,
@@ -42,6 +43,10 @@ export class InstructedRunSolver<
         this.#queue.destroy()
     }
 
+    warm() {
+        this.#queue.warm()
+    }
+
     solveNow(state: HydratedEighteenXXState, companyId: string): Promise<InstructedRun> {
         return this.solve(
             state.dehydrate(),
@@ -73,6 +78,8 @@ export class InstructedRunSolver<
         companyId: string,
         key: string
     ): Promise<InstructedRun> {
+        if (!trainIdsOwnedBy(state, { kind: 'company', companyId }).length)
+            return { routes: [], key }
         const { result } = await this.#queue.solve({
             state: atRunningStep(state, companyId),
             companyId,

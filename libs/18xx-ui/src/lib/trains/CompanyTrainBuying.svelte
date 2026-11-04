@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { currencyAffixes } from '../presentation/money.js'
     import { assert, assertExists } from '@tabletop/common'
     import { getCompany, isCompanyPurchaseOffer } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
@@ -81,7 +82,7 @@
         </div>
         <div class="controls">
             <label
-                >Price <span>$</span><input
+                >Price <span>{currencyAffixes(money).before}</span><input
                     aria-label="Train price"
                     type="number"
                     min="1"

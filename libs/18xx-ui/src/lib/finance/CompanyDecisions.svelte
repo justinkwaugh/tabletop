@@ -219,11 +219,8 @@
                             <button
                                 disabled={!session.decisions.canResolve}
                                 onclick={() => session.decisions.placePrivateToken(option)}
-                                >Place a {session.companyName(option.companyId)} station in {session.mapView.map.location(
-                                    option.position.locationId
-                                ).name ?? option.position.locationId} ({session.companyName(
-                                    option.privateCompanyId
-                                )})</button
+                                >Place the {session.companyName(option.privateCompanyId)} station for
+                                free</button
                             >
                         {/each}
                     </div>

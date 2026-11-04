@@ -32,10 +32,12 @@ import {
     type TileRotation,
     type TileSet,
     type TileInventory,
-    type LocationMarker
+    type LocationMarker,
+    type Station
 } from '@tabletop/18xx'
 import {
     createTileDrawing,
+    type TileLayout,
     DefaultCitySlotRadius,
     TileRadius,
     type TileDrawing,
@@ -109,8 +111,11 @@ export type MapMarkerArt =
     | { tileSymbol: TileSymbolName }
     /** Not drawn, where the location's name or artwork already says it. */
     | { hidden: true }
-    /** Two linked circles after the marker's label, low in the hex or ``above`` its stops and name. */
-    | { localLine: true; above?: true }
+    /**
+     * Two linked circles after the marker's label, low in the hex or ``above`` its stops and name,
+     * and on any tile laid there when ``onTile``, for a marker that outlasts the print.
+     */
+    | { localLine: true; above?: true; onTile?: true }
     /** The same, ``at`` a point from the hex's centre where the print is too busy for either. */
     | { localLine: true; at: Point }
     /** The marker's label, large in the centre of an unbuilt hex. */
@@ -119,6 +124,11 @@ export type MapMarkerArt =
     | { terrainNote: true }
     /** The marker's label as a printed note across an unbuilt hex's lower half, such as a reservation. */
     | { notice: true }
+    /**
+     * The marker's label, or its own ``lines``, at a point from the hex's centre, clear of its
+     * track; ``offHex`` when that point is on the table beside the hex, not on the hex's colour.
+     */
+    | { note: { at: Point; fontSize: number; lines?: readonly string[]; offHex?: true } }
     /** A ring around the hex's towns, drawn as dots, as a medium city is printed. */
     | { townRing: true }
     /**
@@ -126,6 +136,8 @@ export type MapMarkerArt =
      * point the badge both ways, as for an east–west bonus.
      */
     | { revenueBadge: true; arrows?: true }
+    /** The marker's label boxed where the hex's revenue stands, for a value no number states. */
+    | { revenueBox: true }
     /**
      * The marker's symbol, once per count, at revenue size in the clear corner farthest from the
      * hex's revenue, unless the tile prints it.
@@ -150,6 +162,7 @@ export type TokenTab = { label: string; caption: string; fill?: string; left?: t
 
 export type RevenueAnnotation = { markerId: string; label: string; x: number; y: number } & (
     | { kind: 'badge'; width: number; height: number; arrows: boolean }
+    | { kind: 'box'; width: number; height: number }
     | { kind: 'symbol'; symbol: TileSymbolName; radius: number }
     | { kind: 'token'; imageUrl: string; radius: number; tab?: TokenTab; outline?: string }
     | { kind: 'caption'; caption: string }
@@ -216,6 +229,8 @@ export type MapDrawnLocation = {
     terrainPosition: Point
     /** Height of a local line drawn ``above``: over the hex's stops and any name curved on them. */
     localLineAboveY?: number
+    /** Where an ``onTile`` local line stands once a tile is laid, clear of that tile. */
+    localLineOnTile?: Point
 }
 export type NameArc = {
     text: string
@@ -328,6 +343,19 @@ export function privateMarkerLabel(
     return `${locationMarkerName(view, kind).toLowerCase()} on ${view.map.placeName(locationId)}`
 }
 
+/** The cities holding more stations than they have spaces, as `locationId nodeId`. */
+export function overfullCityKeys(
+    stations: readonly Station[],
+    mapState: Pick<RailwayMapState, 'tile'>
+): string[] {
+    return stations.flatMap((station) => {
+        if (station.status !== 'placed' || !station.position.slot) return []
+        const { locationId, nodeId, slot } = station.position
+        const node = mapState.tile(locationId).face.nodes.find((entry) => entry.id === nodeId)
+        return node?.kind === 'city' && slot >= node.stationSlots ? [`${locationId} ${nodeId}`] : []
+    })
+}
+
 export function createMapDrawing(
     map: RailwayMap,
     supply?: {
@@ -335,6 +363,7 @@ export function createMapDrawing(
         inventory: TileInventory
         markers?: readonly Pick<LocationMarker, 'kind' | 'locationId'>[]
         liftedPrivateBlocks?: readonly string[]
+        overfullCities?: readonly string[]
     },
     {
         layouts = {},
@@ -362,6 +391,8 @@ export function createMapDrawing(
         symbolPositions = {},
         nameLines = {},
         offboardNames,
+        nameStyles = {},
+        sharedCityLayouts = {},
         terrainPositions = {},
         bonusArrows = []
     }: Pick<
@@ -391,6 +422,8 @@ export function createMapDrawing(
         | 'symbolPositions'
         | 'nameLines'
         | 'offboardNames'
+        | 'nameStyles'
+        | 'sharedCityLayouts'
         | 'terrainPositions'
         | 'bonusArrows'
     > = {}
@@ -423,16 +456,23 @@ export function createMapDrawing(
         const placement = tile?.placement
         const relocation = placement ? undefined : placements[location.id]
         const leads = revenueLeads(location.markers ?? [], markerArt)
-        const face = withRevenueLeads(
+        const printedFace = withRevenueLeads(
             relocation?.edges
                 ? remapFaceEdges(tile?.face ?? location.preprintedTile, relocation.edges)
                 : (tile?.face ?? location.preprintedTile),
             leads
         )
+        const sharedCityIds = printedFace.nodes
+            .map((node) => node.id)
+            .filter((id) => supply?.overfullCities?.includes(`${location.id} ${id}`))
+        const face = withSharedCities(printedFace, sharedCityIds)
         const rotation = tile?.rotation ?? 0
-        const layout = placement
-            ? placedTileLayout(layouts, placement.definitionId)
-            : layouts[location.id]
+        const layout = withSharedCityLayouts(
+            placement ? placedTileLayout(layouts, placement.definitionId) : layouts[location.id],
+            sharedCityIds.map((id) =>
+                placement ? sharedCityLayouts[placement.definitionId]?.[id] : undefined
+            )
+        )
         const separatedTowns =
             face.nodes.length > 1 &&
             face.paths.length === 0 &&
@@ -456,10 +496,11 @@ export function createMapDrawing(
             !placement &&
             !!location.name
         const nameStyle =
-            face.nodes.length &&
+            nameStyles[location.id] ??
+            (face.nodes.length &&
             (face.color === 'red' || face.nodes.every((node) => node.kind === 'offboard'))
                 ? offboardNames
-                : undefined
+                : undefined)
         const nameScale = (nameStyle?.fontSize ?? NameFontSize) / NameFontSize
         const nameBaseline = namePositions[location.id] ?? { x: 0, y: -35 }
         const nameRows = nameLines[location.id] ?? splitName(location.name ?? '', 18 / nameScale)
@@ -633,8 +674,12 @@ export function createMapDrawing(
             nameArcs,
             terrainPosition: terrainRow,
             localLineAboveY,
+            ...(placement && markers.some((marker) => hasOnTileLine(markerArt[marker.id]))
+                ? { localLineOnTile: clearLocalLinePoint(hexSpace(drawing, hexVertices, [])) }
+                : {}),
             revenueAnnotations: [
                 ...badges,
+                ...revenueBoxes(drawing, markers, markerArt),
                 ...captions,
                 ...clearSpaceMarks(
                     drawing,
@@ -727,6 +772,36 @@ export function createMapDrawing(
             height: Math.max(...vertices.map((point) => point.y)) - y + 26
         })
     }
+}
+
+function withSharedCities(face: TileFace, cityIds: readonly string[]): TileFace {
+    if (!cityIds.length) return face
+    return {
+        ...face,
+        nodes: face.nodes.map((node) =>
+            node.kind === 'city' && cityIds.includes(node.id)
+                ? { ...node, stationSlots: node.stationSlots + 1 }
+                : node
+        )
+    }
+}
+
+function withSharedCityLayouts(
+    layout: TileLayout | undefined,
+    shared: readonly (TileLayout | undefined)[]
+): TileLayout | undefined {
+    return shared.reduce<TileLayout | undefined>(
+        (merged, cityLayout) =>
+            cityLayout
+                ? {
+                      ...merged,
+                      ...cityLayout,
+                      nodePositions: { ...merged?.nodePositions, ...cityLayout.nodePositions },
+                      slotRowTurns: { ...merged?.slotRowTurns, ...cityLayout.slotRowTurns }
+                  }
+                : merged,
+        layout
+    )
 }
 
 function liftRevenue(drawing: TileDrawing, lift: number): TileDrawing {
@@ -834,6 +909,30 @@ function revenueCaptions(drawing: TileDrawing, leads: readonly RevenueLead[]): R
                       caption,
                       x: cell.x,
                       y: cell.y - cell.height / 2 - CaptionRise
+                  }
+              ]
+            : []
+    })
+}
+
+function revenueBoxes(
+    drawing: TileDrawing,
+    markers: NonNullable<MapLocation['markers']>,
+    markerArt: Readonly<Record<string, MapMarkerArt>>
+): RevenueAnnotation[] {
+    const stop = drawing.nodes.find(({ node }) => node.kind !== 'junction')
+    if (!stop) return []
+    return markers.flatMap((marker) => {
+        const art = markerArt[marker.id]
+        return art && 'revenueBox' in art
+            ? [
+                  {
+                      kind: 'box' as const,
+                      markerId: marker.id,
+                      label: marker.label,
+                      ...stop.revenuePosition,
+                      width: marker.label.length * 4.6 + 6,
+                      height: 13
                   }
               ]
             : []
@@ -1245,6 +1344,49 @@ function searchSpot(
     return best
 }
 
+function hasOnTileLine(art: MapMarkerArt | undefined): boolean {
+    return !!art && 'localLine' in art && 'onTile' in art
+}
+
+const OnTileTag = { halfWidth: 17, halfHeight: 4.5 }
+const OnTileTagHome = { x: 0, y: 34 }
+
+function insideHex({ x, y }: Point, vertices: readonly Point[]): boolean {
+    return vertices.every((a, index) => {
+        const b = vertices[(index + 1) % vertices.length]
+        return (b.x - a.x) * (y - a.y) - (b.y - a.y) * (x - a.x) >= 0
+    })
+}
+
+/** The open space nearest the bottom of the hex, or that spot itself on a tile with none. */
+function clearLocalLinePoint(space: HexSpace): Point {
+    const { halfWidth, halfHeight } = OnTileTag
+    const fits = ({ x, y }: Point) =>
+        [-halfWidth, -halfWidth / 2, 0, halfWidth / 2, halfWidth].every((across) =>
+            [-halfHeight, 0, halfHeight].every((down) => {
+                const point = { x: x + across, y: y + down }
+                return (
+                    insideHex(point, space.vertices) &&
+                    space.inset(point) >= 1.5 &&
+                    isClearPoint(space, point, 4.5) &&
+                    space.track.every((disc) => clearance(point, disc) >= 2)
+                )
+            })
+        )
+    let best: Point | undefined
+    for (let y = -38; y <= 38; y += 1)
+        for (let x = -28; x <= 28; x += 1) {
+            const point = { x, y }
+            if (
+                fits(point) &&
+                (!best ||
+                    distanceBetween(point, OnTileTagHome) < distanceBetween(best, OnTileTagHome))
+            )
+                best = point
+        }
+    return best ?? OnTileTagHome
+}
+
 function isClearPoint(space: HexSpace, point: Point, radius: number): boolean {
     return space.obstacles.every((obstacle) => clearance(point, obstacle) >= radius)
 }
@@ -1432,6 +1574,19 @@ function isOffboard(location: MapLocation | undefined): boolean {
 export type MapBorderCost = { key: string; x: number; y: number; amount: number; kind: string }
 
 /** Where a hex's local line stands, from the hex's centre. */
+const BorderDashesPerEdge = 3
+const BorderDashShare = 0.46
+
+/**
+ * A dashed border's pattern along one hex side, centred so the hex on either side of it draws
+ * the same dashes, whichever way round it draws the side.
+ */
+export function borderDash(start: Point, end: Point): { array: string; offset: number } {
+    const period = Math.hypot(end.x - start.x, end.y - start.y) / BorderDashesPerEdge
+    const dash = period * BorderDashShare
+    return { array: `${dash} ${period - dash}`, offset: -(period - dash) / 2 }
+}
+
 export function localLinePosition(
     art: MapMarkerArt | undefined,
     aboveY: number | undefined

@@ -5,7 +5,11 @@ import {
     type TitlePrivatePower
 } from './privateActionsModule.svelte.js'
 import { singleChoice } from './stagedSelection.svelte.js'
-import type { CompanyDecision, PrivateTileOption } from './companyDecisionsModule.svelte.js'
+import type {
+    CompanyDecision,
+    PrivateTileOption,
+    PrivateTokenOption
+} from './companyDecisionsModule.svelte.js'
 import { testSession } from './moduleTestSession.js'
 
 const Alpha = { privateCompanyId: 'alpha', playerId: 'alex' }
@@ -17,7 +21,8 @@ function privateActions(
     availability = {},
     exchangeOptions: { playerId: string; privateCompanyId: string; certificateId: string }[] = [],
     titlePowers: TitlePrivatePower[] = [],
-    offered?: { privateCompanyId: string; playerId: string }
+    offered?: { privateCompanyId: string; playerId: string },
+    privateTokenOptions: PrivateTokenOption[] = []
 ) {
     let trackSelected = false
     let trackCleared = 0
@@ -29,7 +34,7 @@ function privateActions(
         ]),
         privateTrainOptions: [],
         privateMarkerOptions: [],
-        privateTokenOptions: []
+        privateTokenOptions
     }
     const track = {
         undo: () => {
@@ -124,6 +129,20 @@ describe('PrivateActionsModule', () => {
         expect(() =>
             module.chooseTrackPower({ privateCompanyId: 'gamma', playerId: 'alex' })
         ).toThrow()
+    })
+
+    it('waits for a manual choice between a tile power and a station power', () => {
+        const { module } = privateActions([Alpha], {}, {}, [], [], undefined, [
+            {
+                ...Beta,
+                companyId: 'R',
+                position: { locationId: 'A12', nodeId: 'city', slot: 0 }
+            }
+        ])
+        module.choosePowers()
+        expect(module.trackPowerSelection).toBeUndefined()
+        module.chooseTrackPower(Alpha)
+        expect(module.trackPowerSelection).toEqual({ value: Alpha, source: 'manual' })
     })
 
     it('offers the power without opening a source while the state awaits a private tile lay', () => {

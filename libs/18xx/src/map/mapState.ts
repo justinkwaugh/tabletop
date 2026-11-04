@@ -75,13 +75,13 @@ export class RailwayMapState {
         }
         return connections
     }
-    validateStations(state: StationState): void {
+    validateStations(state: StationState, sharesFullCities = false): void {
         for (const station of state.stations) {
             if (station.status !== 'placed') continue
             const { locationId, nodeId, slot } = station.position
             const node = this.tile(locationId).face.nodes.find((node) => node.id === nodeId)
             assert(
-                node?.kind === 'city' && slot < node.stationSlots,
+                node?.kind === 'city' && slot < node.stationSlots + (sharesFullCities ? 1 : 0),
                 'Station requires an existing city slot'
             )
         }

@@ -5,6 +5,7 @@ import {
     controllingOwner,
     displacedStations,
     returnPositions,
+    stationToReturn,
     type DisplacedStation,
     type EighteenXXState,
     type EighteenXXTitleRules,
@@ -21,16 +22,22 @@ export type StationReturnSession = ModuleSession<
 export class StationReturnModule {
     constructor(private readonly session: StationReturnSession) {}
 
-    pending = $derived.by((): DisplacedStation | undefined => {
-        if (!this.session.interactive || !this.session.validActionTypes.includes('ReturnStation'))
-            return undefined
-        const actor = this.session.state.activePlayerIds[0]
-        return displacedStations(this.session.state).find(
-            (station) => controllingOwner(this.session.state, station.companyId)?.playerId === actor
-        )
-    })
+    private next = $derived.by(() => stationToReturn(this.session.state))
+    pending = $derived.by((): DisplacedStation | undefined =>
+        this.session.interactive && this.session.validActionTypes.includes('ReturnStation')
+            ? this.next
+            : undefined
+    )
     /** Set-aside stations waiting for anyone, for presentation. */
     waiting = $derived.by(() => displacedStations(this.session.state))
+    /** Stays on screen for the acting player while a return and its instructed runs apply. */
+    prompted = $derived.by((): DisplacedStation | undefined => {
+        const station = this.next
+        const owner = station && controllingOwner(this.session.state, station.companyId)?.playerId
+        return !this.session.viewingHistory && owner && this.session.canActFor(owner)
+            ? station
+            : this.pending
+    })
     positions = $derived.by((): StationPosition[] => {
         const station = this.pending
         if (!station) return []
