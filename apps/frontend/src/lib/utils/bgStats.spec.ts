@@ -77,9 +77,10 @@ function playData(game: Game, title: GameMetadata = metadata): unknown {
 describe('BG Stats play links', () => {
     it('encodes the BGG identity and final scores without adding elapsed duration', () => {
         expect(playData(game())).toEqual({
-            sourceName: 'Tabletop',
+            sourceName: 'BoardTogether',
             sourcePlayId: 'play-1',
             playDate: '2026-10-26 23:02:03',
+            location: 'BoardTogether',
             game: {
                 name: 'Game & Title',
                 sourceGameId: 'test-title',
@@ -92,6 +93,7 @@ describe('BG Stats play links', () => {
                     name: 'Alice & Zoë',
                     sourcePlayerId: 'user:alice',
                     score: 12,
+                    rank: 1,
                     winner: true,
                     startPlayer: false
                 },
@@ -99,6 +101,7 @@ describe('BG Stats play links', () => {
                     name: 'Bob',
                     sourcePlayerId: 'user:bob',
                     score: -4.5,
+                    rank: 2,
                     winner: false,
                     startPlayer: false
                 }
@@ -159,8 +162,8 @@ describe('BG Stats play links', () => {
             )
         ).toMatchObject({
             players: [
-                { sourcePlayerId: 'user:alice', score: 1, winner: true },
-                { sourcePlayerId: 'user:bob', score: 1, winner: true }
+                { sourcePlayerId: 'user:alice', score: 1, rank: 1, winner: true },
+                { sourcePlayerId: 'user:bob', score: 1, rank: 1, winner: true }
             ]
         })
     })
@@ -168,10 +171,59 @@ describe('BG Stats play links', () => {
     it('retains zero scores and authoritative winners when equal scores have a tiebreaker', () => {
         expect(playData(game({ finalScores: { 'seat-alice': 0, 'seat-bob': 0 } }))).toMatchObject({
             players: [
-                { score: 0, winner: true },
-                { score: 0, winner: false }
+                { score: 0, rank: 1, winner: true },
+                { score: 0, rank: 2, winner: false }
             ]
         })
+    })
+
+    it('ranks non-winners by score behind the winners, sharing a rank when tied', () => {
+        const players = ['alice', 'bob', 'carol', 'dave'].map((id) => ({
+            id: `seat-${id}`,
+            userId: id,
+            name: id,
+            status: PlayerStatus.Joined,
+            isHuman: true
+        }))
+        expect(
+            playData(
+                game({
+                    players,
+                    winningPlayerIds: ['seat-bob'],
+                    finalScores: {
+                        'seat-alice': 7,
+                        'seat-bob': 20,
+                        'seat-carol': 20,
+                        'seat-dave': 7
+                    }
+                })
+            )
+        ).toMatchObject({
+            players: [
+                { name: 'alice', rank: 3 },
+                { name: 'bob', rank: 1 },
+                { name: 'carol', rank: 2 },
+                { name: 'dave', rank: 3 }
+            ]
+        })
+    })
+
+    it('leaves rank unset whenever scores are not exported', () => {
+        const conceded = {
+            kind: GameCallKind.Conceded,
+            initiatorPlayerId: 'seat-bob',
+            declaredWinnerId: 'seat-alice',
+            approvingPlayerIds: ['seat-bob'],
+            decliningPlayerIds: []
+        }
+        for (const play of [
+            playData(game(), { ...metadata, hasScores: false }),
+            playData(game(), { ...metadata, hasScores: undefined }),
+            playData(game({ finalScores: undefined })),
+            playData(game({ call: conceded }))
+        ]) {
+            expect(JSON.stringify(play)).not.toContain('"rank":')
+        }
     })
 
     it('omits synthetic scores for titles that declare win/loss-only scoring', () => {
