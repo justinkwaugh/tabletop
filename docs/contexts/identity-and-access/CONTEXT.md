@@ -19,7 +19,7 @@ The case-insensitively unique login name and public handle of a User Account. It
 _Avoid_: Display name, login ID
 
 **Offensive Username**:
-A Username containing a slur or offensive language, by the word list in `libs/backend-services/src/users/usernamePolicy.ts`. The check runs only when a person sets or changes the letters of their Username, so an existing Account is not locked out by a later change to the list, and an Administrator's rename is not subject to it: renaming is how a false match gets resolved.
+A Username containing a slur or offensive language, by the word list in `libs/backend-services/src/moderation/offensiveLanguage.ts`. The check runs only when a person sets or changes the letters of their Username, so an existing Account is not locked out by a later change to the list, and an Administrator's rename is not subject to it: renaming is how a false match gets resolved.
 
 **Administrative Rename**:
 An Administrator's change to another Account's Username. Because the old name may be why it is being changed, it also rewrites the Player name in every Game the Account has a seat in, and because the Username is the login name, it emails the Account the new one.

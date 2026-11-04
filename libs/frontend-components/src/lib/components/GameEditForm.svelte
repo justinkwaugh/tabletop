@@ -363,6 +363,9 @@
                         }
                     }
                     unexpectedError = false
+                } else if (e.name === 'GameNameNotAllowedError') {
+                    errors['name'] = [e.message]
+                    unexpectedError = false
                 }
             } else {
                 console.log(e)

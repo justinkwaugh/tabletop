@@ -23,7 +23,7 @@ import {
     InvalidTimeZoneError,
     UsernameNotAllowedError
 } from './errors.js'
-import { isOffensiveUsername } from './usernamePolicy.js'
+import { isOffensiveUsername } from '../moderation/offensiveLanguage.js'
 import { requireSessionEligibleAccount } from './accountEligibility.js'
 import { AccountChangeType } from '../email/emailService.js'
 import { nanoid } from 'nanoid'

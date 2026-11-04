@@ -58,6 +58,10 @@ A Game Instance with Open Players that eligible Users may claim. It is listed fo
 A Public Game absent from public discovery, whose Open Players any User holding its link may claim. Any User may create one, for a Game Title of any catalog visibility.
 _Avoid_: Hidden public game, private game
 
+**Offensive Game Name**:
+A name containing a slur or offensive language, by the word list in `libs/backend-services/src/moderation/offensiveLanguage.ts`, which a Public Game listed for public discovery may not take. Unlisted and Invite-Only Games are not checked. The check runs when a Player or owner creates or forks a Game Instance, or changes its name or Public setting, so a game already named is not caught by a later change to the list. An Administrator is exempt, which is how a false match gets resolved, and Tournament and League tables are named after their Administrator-created competitions, so they are not checked.
+_Avoid_: Bad name, banned name
+
 **Invite-Only Game**:
 A Game Instance absent from public discovery, with Players offered to specific Users. Invite-only governs discovery and participation, not confidentiality.
 _Avoid_: Private Game

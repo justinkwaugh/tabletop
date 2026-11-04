@@ -89,6 +89,7 @@ import {
 import { TaskService } from '../tasks/taskService.js'
 import { TokenService, TokenType } from '../tokens/tokenService.js'
 import { UserService } from '../users/userService.js'
+import { isOffensiveGameName } from '../moderation/offensiveLanguage.js'
 import type { PlayerRemovedEmailTask } from './playerRemovedEmail.js'
 import {
     NotificationDistributionMethod,
@@ -113,6 +114,7 @@ import {
     InvalidPlayerUserError,
     OwnerNotPlayingError,
     UnlistedGameNotPublicError,
+    GameNameNotAllowedError,
     PlayersNotFoundError,
     PrivateGameNotFullError,
     UnauthorizedAccessError,
@@ -239,6 +241,7 @@ export class GameService {
         // Titles bundle their own initializer, which may predate unlisted games.
         if (game.unlisted) newGame.unlisted = true
         else delete newGame.unlisted
+        this.assertGameNameAllowed(newGame, owner)
 
         // Check the specified players and populate them with user data
         const usersByPlayerId = await this.validateAndPopulatePlayers(newGame.players, owner)
@@ -285,6 +288,20 @@ export class GameService {
         await this.notifyGameAudience(GameNotificationAction.Create, { game: createdGame })
 
         return createdGame
+    }
+
+    // An Administrator is exempt so that a false match can be resolved.
+    private assertGameNameAllowed(
+        game: Pick<Game, 'name' | 'isPublic' | 'unlisted'>,
+        user: User
+    ): void {
+        if (
+            isListedPublicGame(game) &&
+            isOffensiveGameName(game.name) &&
+            !user.roles.includes(Role.Admin)
+        ) {
+            throw new GameNameNotAllowedError()
+        }
     }
 
     private async findContinuationSource(
@@ -611,6 +628,7 @@ export class GameService {
             runtime: definition.runtime,
             name
         })
+        this.assertGameNameAllowed(fork.game, owner)
         fork.game.ownerId = owner.id
         fork.game.storage = GameStorage.Remote
         fork.game.status = GameStatus.WaitingForPlayers
@@ -992,6 +1010,11 @@ export class GameService {
                 if (existingGame.unlisted && fieldsToUpdate.isPublic === false) {
                     throw new UnlistedGameNotPublicError({ id: gameId })
                 }
+
+                const updated = { ...existingGame, ...fieldsToUpdate }
+                const nameOrPublicSettingChanged =
+                    updated.name !== existingGame.name || updated.isPublic !== existingGame.isPublic
+                if (nameOrPublicSettingChanged) this.assertGameNameAllowed(updated, user)
 
                 if (fieldsToUpdate.isPublic === false && fieldsToUpdate.players === undefined) {
                     if (existingGame.players.find((p) => !p.userId)) {

@@ -54,20 +54,29 @@ const ADDED_PHRASES: Record<string, Phrase> = {
     hitler: { patterns: ['hitler'], allowed: ['whitler', 'whittler'] },
     homo: { patterns: ['|homo|', '|homos|'] },
     jigaboo: { patterns: ['jigaboo'] },
-    jews: { patterns: ['killjews', 'killthejews', 'hatejews'] },
+    jews: {
+        patterns: [
+            'killjews',
+            'killthejews',
+            'hatejews',
+            '|kill jews',
+            '|kill the jews',
+            '|hate jews'
+        ]
+    },
     nazi: { patterns: ['|nazi|', '|nazis|', 'nazism'] },
     paki: { patterns: ['|paki|', '|pakis|'] },
     pedo: { patterns: ['|pedo|', '|pedos|', 'pedophile', 'paedophile'] },
-    porchmonkey: { patterns: ['porchmonkey'] },
-    raghead: { patterns: ['raghead'] },
+    porchmonkey: { patterns: ['porchmonkey', '|porch monkey'] },
+    raghead: { patterns: ['raghead', '|rag head'] },
     sambo: { patterns: ['|sambo|'] },
-    shemale: { patterns: ['|shemale|'] },
-    siegheil: { patterns: ['siegheil'] },
+    shemale: { patterns: ['|shemale|', '|she male|'] },
+    siegheil: { patterns: ['siegheil', '|sieg heil'] },
     spic: { patterns: ['|spic|', '|spics|'] },
-    towelhead: { patterns: ['towelhead'] },
-    wetback: { patterns: ['wetback'] },
-    whitepower: { patterns: ['whitepower'] },
-    zipperhead: { patterns: ['ziperhead'] }
+    towelhead: { patterns: ['towelhead', '|towel head'] },
+    wetback: { patterns: ['wetback', '|wet back'] },
+    whitepower: { patterns: ['whitepower', '|white power'] },
+    zipperhead: { patterns: ['ziperhead', '|ziper head'] }
 }
 
 // These are whole-word above because they begin or end real names (`Coonrod`, `Raccoon`), so a
@@ -141,7 +150,30 @@ function compoundPatterns(term: string): string[] {
     ]
 }
 
-const HATE_NUMBERS_AND_LETTERS = /kkk|(?<!\d)1488(?!\d)/i
+const HATE_NUMBERS_AND_LETTERS = /kkk|(?<!\d)14\s*88(?!\d)/i
+
+// The matcher reads `f*ck` but not these, whose masked letters are more than one wildcard allows.
+const MASKED_SWEARING = /(?<![\p{L}\p{N}])(?:f[*#]{2,}k?|s(?:h[*#]+|[*#]{2})t)/iu
+
+const INNOCENT_TERMS = [
+    'bastard sword',
+    'cock and bull',
+    'cum laude',
+    'homo sapiens',
+    'mishit',
+    'moby dick',
+    'pissarro',
+    'pussycat',
+    'rio negro',
+    'spic and span',
+    'tit for tat'
+]
+
+const SEPARATORS = /[\s\p{P}\p{S}]/gu
+const PUNCTUATION_INSIDE_A_WORD = /(?<=[\p{L}\p{N}])[\p{P}\p{S}]+(?=[\p{L}\p{N}])/gu
+const DIGITS_ENDING_A_WORD = /(?<=\p{L})\d+(?![\p{L}\p{N}])/gu
+const SPACED_OUT_CHARACTERS =
+    /(?<![\p{L}\p{N}])[\p{L}\p{N}](?:[\s\p{P}\p{S}]+[\p{L}\p{N}](?![\p{L}\p{N}]))+/gu
 
 const dataset = new DataSet<{ originalWord: string }>()
     .addAll(englishDataset)
@@ -166,24 +198,35 @@ for (const term of COMPOUNDED_TERMS) {
         return phrase
     })
 }
-dataset.addPhrase((phrase) =>
-    phrase
-        .setMetadata({ originalWord: 'shit and pussy allowances' })
-        .addWhitelistedTerm('mishit')
-        .addWhitelistedTerm('pussycat')
-)
+dataset.addPhrase((phrase) => {
+    phrase.setMetadata({ originalWord: 'innocent terms' })
+    for (const term of INNOCENT_TERMS) phrase.addWhitelistedTerm(term)
+    return phrase
+})
 
 const matcher = new RegExpMatcher({ ...dataset.build(), ...englishRecommendedTransformers })
 
-function withoutMarksAndInvisibles(username: string): string {
-    return username.normalize('NFKD').replace(/[\p{M}\p{Cf}\p{Cc}]/gu, '')
+function withoutMarksAndInvisibles(text: string): string {
+    return text.normalize('NFKD').replace(/[\p{M}\p{Cf}\p{Cc}]/gu, '')
+}
+
+function isOffensiveInAnyForm(forms: string[]): boolean {
+    return forms.some((form) => matcher.hasMatch(form) || HATE_NUMBERS_AND_LETTERS.test(form))
 }
 
 export function isOffensiveUsername(username: string): boolean {
     const visible = withoutMarksAndInvisibles(username)
-    const withoutSeparators = visible.replace(/[\s\p{P}\p{S}]/gu, '')
+    const withoutSeparators = visible.replace(SEPARATORS, '')
     const withoutTrailingDigits = withoutSeparators.replace(/\d+$/, '')
-    return [visible, withoutSeparators, withoutTrailingDigits].some(
-        (form) => matcher.hasMatch(form) || HATE_NUMBERS_AND_LETTERS.test(form)
-    )
+    return isOffensiveInAnyForm([visible, withoutSeparators, withoutTrailingDigits])
+}
+
+// A game name is several words, so removing every separator would read `Is this it` as `shit`.
+export function isOffensiveGameName(name: string): boolean {
+    const visible = withoutMarksAndInvisibles(name)
+    const tightened = visible
+        .replace(PUNCTUATION_INSIDE_A_WORD, '')
+        .replace(DIGITS_ENDING_A_WORD, '')
+        .replace(SPACED_OUT_CHARACTERS, (characters) => characters.replace(SEPARATORS, ''))
+    return MASKED_SWEARING.test(visible) || isOffensiveInAnyForm([visible, tightened])
 }

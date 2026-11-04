@@ -1,5 +1,5 @@
 import { Type, type Static } from 'typebox'
-import { isOffensiveUsername } from '../users/usernamePolicy.js'
+import { isOffensiveUsername } from '../moderation/offensiveLanguage.js'
 
 export const PlayerRemovedEmailTask = Type.Object(
     {
