@@ -6,7 +6,6 @@ import {
     createOrdinaryShareCertificates,
     privateIncomePayments,
     requirePar,
-    settleCashPayments,
     type InitialPosition,
     type Opening,
     type OpeningSetup,
@@ -60,11 +59,8 @@ export const EighteenThirtyTwoAuctionRules: WaterfallAuctionRules = {
         ])
         if (award.lotId === 'P7') requirePar(state, 'CG', award.playerId)
     },
-    payIncome(state) {
-        settleCashPayments(
-            state,
-            privateIncomePayments(state, { charters: EighteenThirtyTwoCharters })
-        )
+    incomePayments(state) {
+        return privateIncomePayments(state, { charters: EighteenThirtyTwoCharters })
     }
 }
 

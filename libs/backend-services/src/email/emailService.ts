@@ -25,7 +25,8 @@ export interface EmailService {
     sendAccountChangedNotificationEmail(
         changeType: AccountChangeType,
         timestamp: Date,
-        toEmail: string
+        toEmail: string,
+        username?: string
     ): Promise<void>
     sendGameInvitationEmail({
         owner,
@@ -35,6 +36,13 @@ export interface EmailService {
         toEmail
     }: {
         owner: User
+        game: Game
+        definition: GameDefinition
+        url: string
+        toEmail: string
+    }): Promise<void>
+    sendPlayerRemovedEmail(email: {
+        playerName: string
         game: Game
         definition: GameDefinition
         url: string

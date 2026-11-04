@@ -1,5 +1,6 @@
 <script lang="ts">
     import { assert } from '@tabletop/common'
+    import { actingOperatingCompany } from '@tabletop/18xx'
     import { currentRoundHeading } from './roundHeading.js'
     import { isHistoryBookkeeping } from './historyNavigation.js'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
@@ -62,9 +63,10 @@
         )
     )
     const companyId = $derived(
-        gameState.operatingSet?.companyOrder.find(
-            (id) => !gameState.operatingSet?.completedCompanyIds.includes(id)
-        )
+        actingOperatingCompany(gameState) ??
+            gameState.operatingSet?.companyOrder.find(
+                (id) => !gameState.operatingSet?.completedCompanyIds.includes(id)
+            )
     )
     const company = $derived(gameState.companies.find((company) => company.id === companyId))
     const turnPlayerIds = $derived.by(() => {

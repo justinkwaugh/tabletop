@@ -109,6 +109,7 @@ export type TileDrawingStyle = {
     revenueStageLabels?: Readonly<Record<string, string>>
     /** Phases printed beside each revenue stage's value, such as I-II. */
     revenueStageCaptions?: Readonly<Record<string, string>>
+    revenueStageCaptionColors?: Readonly<Record<string, string>>
     /** How staged values line up where a location's layout does not say. */
     revenueStack?: 'column' | 'row'
     /** Curves a lone one-station city's name over the top of the city. */
@@ -324,6 +325,7 @@ export function createTileDrawing(
                       {
                           stageLabels: style.revenueStageLabels,
                           captions: style.revenueStageCaptions,
+                          captionColors: style.revenueStageCaptionColors,
                           captionAfter: layout.revenueCaptionsAfter,
                           stack: layout.revenueStack ?? style.revenueStack,
                           fixed: !!hint

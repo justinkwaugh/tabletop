@@ -1493,7 +1493,7 @@
    {
     "companyId": "B&P",
     "locationId": "G22",
-    "nodeId": "city-1"
+    "nodeId": "city-0"
    }
   ],
   "tileInventory": {
@@ -1526,7 +1526,7 @@
     "G22": {
      "pieceId": "1833ne/N23/1",
      "definitionId": "1833ne:N23",
-     "rotation": 4
+     "rotation": 0
     }
    },
    "retiredPieceIds": []

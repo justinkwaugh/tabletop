@@ -91,11 +91,10 @@ function nearestPrice(prices: readonly number[], target: number): number {
 
 /**
  * The System's market space: the average of the two prices, rounded to the nearest value on the
- * market with a tie upward, placed on that price's diagonal in the row of the leftmost component
- * (the lower when they share a column), then down and right to the soft or hard ledge
- * (§11.6.3). **Ruling:** when that row has no box at the price, the System starts from the
- * diagonal's first box on the leftmost component's side of the soft ledge, or its last box when
- * that side has none. Every price above $0 runs along one diagonal.
+ * market with a tie upward, then down and right along that price's diagonal to the soft or hard
+ * ledge (§11.6.3). **Ruling:** the System never crosses the soft ledge from the leftmost
+ * component's side (the lower component's when they share a column), even when that row's box at
+ * the price lies past it. Every price above $0 runs along one diagonal.
  */
 export function systemMarketSpace(
     market: StockMarket,
@@ -115,16 +114,8 @@ export function systemMarketSpace(
     const diagonal = EighteenThirtyTwoMarket.spaces
         .filter((entry) => entry.price === price)
         .sort((a, b) => a.row - b.row)
-    let index = diagonal.findIndex((entry) => entry.row === leftmost.row)
-    if (index < 0)
-        index = diagonal.findIndex((entry) => isLowerArea(entry) === isLowerArea(leftmost))
-    if (index < 0) index = diagonal.length - 1
-    while (
-        index + 1 < diagonal.length &&
-        isLowerArea(diagonal[index + 1]) === isLowerArea(diagonal[index])
-    )
-        index++
-    return diagonal[index]
+    const onLeftmostSide = diagonal.filter((entry) => isLowerArea(entry) === isLowerArea(leftmost))
+    return onLeftmostSide.at(-1) ?? diagonal[diagonal.length - 1]
 }
 
 export const SystemFormation = Type.Object(

@@ -25,6 +25,7 @@ export class EncodedRoutes {
     private readonly junctionKeys: string[]
     private readonly groupKeys: string[]
     private readonly unlimitedTrainIds: Set<string>
+    private readonly requiredEnds: readonly RevenueCenter[] | undefined
 
     constructor(
         state: TrainRunningState,
@@ -33,6 +34,7 @@ export class EncodedRoutes {
         network: RouteNetwork,
         budget: { timeLimitMs: number; memoryBudgetBytes: number }
     ) {
+        this.requiredEnds = rules.requiredRouteEnds?.(state, companyId)
         this.centers = network.centers()
         const centerIds = new Map(
             this.centers.map((center, index) => [this.centerKey(center), index])
@@ -234,8 +236,12 @@ export class EncodedRoutes {
     }
 
     decode(solution: SolverSolution): TrainRoute[] {
+        return this.decodeRoutes(this.problem.trains, solution)
+    }
+
+    private decodeRoutes(trains: SolverProblem['trains'], solution: SolverSolution): TrainRoute[] {
         return solution.routes.map((route) => {
-            const train = this.problem.trains[route.train]
+            const train = trains[route.train]
             const connection = route.connections[0]
             assertExists(train, 'Solver returned an unknown train')
             assertExists(connection, 'Solver returned an empty route')
@@ -250,6 +256,31 @@ export class EncodedRoutes {
                 ...(route.extension.length ? { extension: this.decodePaths(route.extension) } : {})
             }
         })
+    }
+
+    beside(
+        trainId: string,
+        usedResources: readonly string[]
+    ): { problem: SolverProblem; decode(solution: SolverSolution): TrainRoute[] } {
+        const used = new Set(usedResources)
+        const banned = new Set(
+            this.problem.arcs.flatMap((arc, id) =>
+                arc.resources.some((resource) => used.has(this.resourceKeys[resource])) ? [id] : []
+            )
+        )
+        const trains = this.problem.trains.filter((train) => train.id !== trainId)
+        return {
+            problem: {
+                ...this.problem,
+                trains,
+                arcs: this.problem.arcs.map((arc, id) =>
+                    banned.has(id)
+                        ? { ...arc, from: null, to: null, next: [] }
+                        : { ...arc, next: arc.next.filter((next) => !banned.has(next)) }
+                )
+            },
+            decode: (solution) => this.decodeRoutes(trains, solution)
+        }
     }
 
     // Indices shift whenever a tile is laid anywhere, so the key names stops and paths instead.
@@ -287,6 +318,7 @@ export class EncodedRoutes {
         const hexes = new Set(arcIndices.map((index) => arcs[index].hex))
         return JSON.stringify({
             version: this.problem.version,
+            required_ends: this.requiredEnds?.map((end) => this.centerKey(end)),
             stops: stopIndices.map((index) => {
                 const { groups, hex, ...flags } = stops[index]
                 return [stopName(index), flags, groups.map((group) => this.groupKeys[group])]

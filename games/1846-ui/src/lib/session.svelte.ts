@@ -218,7 +218,8 @@ export class EighteenFortySixSession extends BaseSession {
                                 placement: details.placement,
                                 returnPrevious: true
                             }),
-                        stationsAfter: (details) => stationsAfterLay(inventory, details)
+                        stationsAfter: (details) =>
+                            stationsAfterLay(inventory, details, TrackRules1846)
                     },
                     commit: async (details) => {
                         const { companyId, locationId, definitionId, rotation, nodeMapping } =

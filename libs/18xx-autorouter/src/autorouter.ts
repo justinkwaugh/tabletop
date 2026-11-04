@@ -2,8 +2,11 @@ import { addToChecksum, assert, assertExists } from '@tabletop/common'
 import {
     RouteEvaluation,
     atRunningStep,
+    routesBetween,
     type OperatingResult,
+    type RevenueCenter,
     type RouteRules,
+    type TrainRoute,
     type TrainRunningState
 } from '@tabletop/18xx'
 import { Compile } from 'typebox/compile'
@@ -18,6 +21,8 @@ const SolverMemoryBudgetBytes = 40 * 2 ** 20
 // WebAssembly memory never shrinks, so an instance that grew past this is replaced after its solve
 // rather than holding the memory until the next one.
 const InstanceMemoryReleaseBytes = 32 * 2 ** 20
+// More routes between one pair of stops than a run is worth trying; the search reports the cut.
+const RequiredRouteLimit = 2000
 export type AutoroutingResult = {
     result: OperatingResult
     exhaustive: boolean
@@ -94,6 +99,9 @@ export class Autorouter {
             Number.isFinite(timeLimitMs) && timeLimitMs > 0,
             'Routing time limit must be positive'
         )
+        const requiredEnds = rules.requiredRouteEnds?.(state, companyId)
+        if (requiredEnds)
+            return this.solveRequired(state, rules, companyId, requiredEnds, timeLimitMs)
         const started = performance.now()
         const evaluation = new RouteEvaluation(state, rules)
         const available = evaluation.evaluate(companyId, [])
@@ -138,6 +146,88 @@ export class Autorouter {
                 candidates: solution.candidates,
                 expansions: solution.expansions,
                 connections: solution.connections
+            }
+        }
+    }
+
+    private solveRequired(
+        state: TrainRunningState,
+        rules: RouteRules,
+        companyId: string,
+        [from, to]: readonly RevenueCenter[],
+        timeLimitMs: number
+    ): AutoroutingResult {
+        const started = performance.now()
+        const deadline = started + timeLimitMs
+        const evaluation = new RouteEvaluation(state, rules)
+        const { network } = evaluation
+        const encoded = new EncodedRoutes(state, rules, companyId, network, {
+            timeLimitMs,
+            memoryBudgetBytes: SolverMemoryBudgetBytes
+        })
+        const trains = evaluation.runnableTrains(companyId)
+        const profiles = new Map(trains.map((train) => [train.definitionId, train]))
+        const stopAllowed = (center: RevenueCenter) =>
+            rules.stopAllowed?.(state, companyId, center) !== false
+        let best: OperatingResult | undefined
+        let exhaustive = true
+        let solves = 0
+        const encodeMs = performance.now() - started
+        for (const train of profiles.values()) {
+            const { maximum } = rules.depot.trainDefinition(train.definitionId).distance
+            const found = routesBetween(
+                network,
+                state,
+                companyId,
+                from,
+                to,
+                maximum === 'unlimited' ? Infinity : maximum,
+                { stopAllowed, limit: RequiredRouteLimit }
+            )
+            exhaustive &&= found.exhausted
+            for (const paths of found.routes) {
+                if (performance.now() > deadline) {
+                    exhaustive = false
+                    break
+                }
+                const route = { trainId: train.id, start: { ...from }, paths }
+                const trace = network.trace(route.start, paths).trace
+                if (!trace) continue
+                const rest = encoded.beside(train.id, trace.resources)
+                let others: TrainRoute[] = []
+                if (rest.problem.trains.length) {
+                    const solution = this.solveEncoded({
+                        ...rest.problem,
+                        budget_ms: Math.max(1, deadline - performance.now())
+                    })
+                    solves++
+                    exhaustive &&= solution.exhaustive
+                    others = rest.decode(solution)
+                }
+                const result = evaluation.evaluate(companyId, [route, ...others]).result
+                if (result && (!best || result.revenue > best.revenue)) best = result
+            }
+        }
+        assertExists(best, 'A company making this run has a route between the stops')
+        if (this.memory.buffer.byteLength > InstanceMemoryReleaseBytes) this.instantiate()
+        const solveMs = performance.now() - started - encodeMs
+        return {
+            result: best,
+            exhaustive,
+            metrics: {
+                encodeMs,
+                solveMs,
+                validateMs: 0,
+                compileMs: 0,
+                pathMs: 0,
+                combinationMs: 0,
+                pathExhaustive: exhaustive,
+                combinationExhaustive: exhaustive,
+                memoryLimited: false,
+                memoryBytes: this.memory.buffer.byteLength,
+                candidates: [],
+                expansions: solves,
+                connections: 0
             }
         }
     }

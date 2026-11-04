@@ -5,7 +5,6 @@ import {
     createCompanyStations,
     createOrdinaryShareCertificates,
     privateIncomePayments,
-    settleCashPayments,
     startingCashByPlayerCount,
     treasuryPool,
     treasuryPoolId,
@@ -41,8 +40,8 @@ export const AuctionRules1833NE: WaterfallAuctionRules = {
     award(state, award) {
         awardCertificates(state, award, [`${award.lotId}:charter`])
     },
-    payIncome(state) {
-        settleCashPayments(state, privateIncomePayments(state, { charters: Charters1833NE }))
+    incomePayments(state) {
+        return privateIncomePayments(state, { charters: Charters1833NE })
     }
 }
 

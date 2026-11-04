@@ -10,6 +10,7 @@ import {
 } from '@tabletop/common'
 import * as Type from 'typebox'
 import { PendingParFields } from '../company/pendingPar.js'
+import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
 import { finiteCashOwnedBy, type FinancialState } from '../finance/finance.js'
 
 export const AuctionLot = Type.Object(
@@ -70,7 +71,7 @@ export interface WaterfallAuctionRules {
      */
     firstStockPlayer?: 'after-last-actor' | 'after-last-purchase'
     award(state: AuctionState, award: AuctionAward): void
-    payIncome(state: AuctionState): void
+    incomePayments(state: AuctionState): CashPayment[]
 }
 export type AuctionResolution =
     | { kind: 'award'; award: AuctionAward }
@@ -78,6 +79,8 @@ export type AuctionResolution =
     | { kind: 'discount' }
     | { kind: 'income' }
     | { kind: 'complete' }
+export type ResolvedAuction =
+    Exclude<AuctionResolution, { kind: 'income' }> | { kind: 'income'; payments: CashPayment[] }
 export class ReserveBidAuction {
     constructor(
         private readonly state: AuctionState,
@@ -247,7 +250,7 @@ export class ReserveBidAuction {
             ? this.nextPlayer(purchaser)
             : this.auction.nextPlayerId
     }
-    resolve(actionId: string): AuctionResolution {
+    resolve(actionId: string): ResolvedAuction {
         const result = this.resolution()
         assertExists(result, 'No auction consequence is pending')
         switch (result.kind) {
@@ -293,11 +296,16 @@ export class ReserveBidAuction {
                 }
                 break
             }
-            case 'income':
-                for (let round = 0; round < (this.rules.incomeRounds ?? 1); round++)
-                    this.rules.payIncome(this.state)
+            case 'income': {
+                const payments: CashPayment[] = []
+                for (let round = 0; round < (this.rules.incomeRounds ?? 1); round++) {
+                    const paid = this.rules.incomePayments(this.state)
+                    settleCashPayments(this.state, paid)
+                    payments.push(...paid)
+                }
                 this.auction.passedPlayerIds = []
-                break
+                return { kind: 'income', payments }
+            }
             case 'complete':
                 this.auction.completed = true
                 break

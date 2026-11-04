@@ -13,6 +13,7 @@ import {
     type OpeningAuctionState,
     type OpeningAuctionRules
 } from './auctionProcedure.js'
+import { CashPayment } from '../finance/cashPayments.js'
 import { OfferAuction } from './offerPileAuction.js'
 import { startFirstStockRound } from './startFirstStockRound.js'
 import type { ValuationRules } from '../ending/finalWealth.js'
@@ -27,8 +28,9 @@ const Resolution = Type.Union([
         { kind: Type.Literal('open-bidding'), lotId: Type.String() },
         { additionalProperties: false }
     ),
+    Type.Object({ kind: Type.Literal('discount') }, { additionalProperties: false }),
     Type.Object(
-        { kind: Type.Union([Type.Literal('discount'), Type.Literal('income')]) },
+        { kind: Type.Literal('income'), payments: Type.Optional(Type.Array(CashPayment)) },
         { additionalProperties: false }
     ),
     Type.Object(

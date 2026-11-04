@@ -22,7 +22,7 @@ import {
 } from '../tiles/tile.js'
 import { rotateTileEdge, rotateTileFace } from '../tiles/topology.js'
 import { ConstructionReachability } from './constructionReachability.js'
-import { preservesPath, fixedNodeRevenue, type TileNodeMapping } from './trackUpgrade.js'
+import { preservesPath, fixedNodeRevenue } from './trackUpgrade.js'
 import {
     replacementMappings,
     replacesColorAndStops,
@@ -157,6 +157,11 @@ export interface TrackRules {
     terrainCost?(state: ConstructionState, request: TrackRequest, cost: number): number
     afterLay?(state: ConstructionState, details: TrackLayDetails, payer: Owner): TrackLayEffects
     relabels?(locationId: string, definitionId: string): boolean
+    /** The city of a tile that prints this reserved spot; laying the tile moves the spot there. */
+    printedReservationNode?(
+        reservation: StationReservation,
+        definitionId: string
+    ): string | undefined
 }
 const Rotations: readonly TileRotation[] = [0, 1, 2, 3, 4, 5]
 
@@ -358,7 +363,7 @@ export class TrackConstruction {
                     piece.faceDefinitionIds.includes(definitionId)
             )
         if (!piece) return { reason: 'No tile remains in the supply' }
-        const migrated = this.migrateStations(locationId, after, nodeMapping)
+        const migrated = this.migrateStations(request, after)
         if (!migrated) return { reason: 'The upgrade cannot preserve all station spaces' }
         const network = this.network(companyId).connections(locationId, after, migrated)
         const reverse = Object.fromEntries(
@@ -411,7 +416,7 @@ export class TrackConstruction {
         }
     }
     stationsAfter(details: TrackLayDetails): StationState {
-        return stationsAfterLay(this.state, details)
+        return stationsAfterLay(this.state, details, this.rules)
     }
     inventoryAfter(details: TrackLayDetails): TileInventory {
         return this.rules.tileSet.replace(this.state.tileInventory, {
@@ -477,10 +482,10 @@ export class TrackConstruction {
         )
     }
     private migrateStations(
-        locationId: string,
-        after: TileFace,
-        mapping: TileNodeMapping
+        request: TrackRequest,
+        after: TileFace
     ): (StationState & { moved: PlacedStation[] }) | undefined {
+        const { locationId, nodeMapping: mapping } = request
         const occupied = new Map<string, Set<number>>()
         const stations: Station[] = []
         const moved: PlacedStation[] = []
@@ -513,28 +518,37 @@ export class TrackConstruction {
         return {
             stations,
             moved,
-            stationReservations: reservationsAfterLay(this.state, locationId, mapping)
+            stationReservations: reservationsAfterLay(this.state, this.rules, request)
         }
     }
 }
 
-export function stationsAfterLay(state: StationState, details: TrackLayDetails): StationState {
+export function stationsAfterLay(
+    state: StationState,
+    details: TrackLayDetails,
+    rules: Pick<TrackRules, 'printedReservationNode'>
+): StationState {
     return {
         stations: state.stations.map(
             (station) => details.movedStations.find((moved) => moved.id === station.id) ?? station
         ),
-        stationReservations: reservationsAfterLay(state, details.locationId, details.nodeMapping)
+        stationReservations: reservationsAfterLay(state, rules, details)
     }
 }
 
 function reservationsAfterLay(
     state: StationState,
-    locationId: string,
-    mapping: TileNodeMapping
+    rules: Pick<TrackRules, 'printedReservationNode'>,
+    lay: Pick<TrackRequest, 'locationId' | 'definitionId' | 'nodeMapping'>
 ): StationReservation[] {
     return state.stationReservations.map((reservation) =>
-        reservation.locationId === locationId
-            ? { ...reservation, nodeId: mapping[reservation.nodeId] }
+        reservation.locationId === lay.locationId
+            ? {
+                  ...reservation,
+                  nodeId:
+                      rules.printedReservationNode?.(reservation, lay.definitionId) ??
+                      lay.nodeMapping[reservation.nodeId]
+              }
             : reservation
     )
 }

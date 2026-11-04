@@ -3,6 +3,7 @@
     import { UserStatus, type User } from '@tabletop/common'
     import { getAppContext } from '@tabletop/frontend-components'
     import { challengeExpiryText } from '$lib/utils/challengeExpiry'
+    import { isAlreadyExists, isUsernameNotAllowed } from '$lib/utils/accountErrors'
     import {
         reauthentication,
         requiresRecentAuthentication
@@ -49,7 +50,9 @@
             }
         } catch (e) {
             if (requiresRecentAuthentication(e)) throw e
-            if (e instanceof Error && e.name === 'AlreadyExistsError') {
+            if (isUsernameNotAllowed(e)) {
+                errors.username = [e.message]
+            } else if (isAlreadyExists(e)) {
                 if (e.message.includes('username')) {
                     errors.username = ['Username already exists']
                 } else if (e.message.includes('email')) {

@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
 import {
+    StationPlacement,
     TileUpgrades,
     TrackConstruction,
+    applyTrackLay,
     rotateTileFace,
+    type StationReservation,
     type TileFace,
+    type TileRotation,
     privateTrackConstruction,
     usesStationAt,
     type TrackLayDetails
@@ -16,6 +20,7 @@ import { PrivatePowerRules1833NE, blockedByPrivate, privatePhaseEffects } from '
 import { trainRetirement } from './trains.js'
 import { Map1833NE } from './map.js'
 import { TileSet1833NE } from './tiles.js'
+import { StationRules1833NE } from './stations.js'
 import { TrackRules1833NE } from './track.js'
 
 describe('phases (§9)', () => {
@@ -205,8 +210,109 @@ describe('Boston (§6.48, §6.62)', () => {
         )
         const choices = trackChoices(state, 'B&P', 'G22')
         expect(choices.map(({ definitionId, rotation }) => ({ definitionId, rotation }))).toEqual([
-            { definitionId: '1833ne:N23', rotation: 4 }
+            { definitionId: '1833ne:N23', rotation: 0 }
         ])
+    })
+
+    describe('its green tile as the rulebook prints it (p. 9)', () => {
+        const bostonHomes = () =>
+            position(
+                [],
+                [
+                    { companyId: 'B&W', locationId: 'G22', nodeId: 'city-0' },
+                    { companyId: 'B&L', locationId: 'G22', nodeId: 'city-1' }
+                ],
+                {},
+                'II'
+            )
+        function greenBostonChoice(state: ReturnType<typeof position>, companyId: string) {
+            const choice = trackChoices(state, companyId, 'G22').find(
+                (entry) => entry.definitionId === '1833ne:N23' && entry.rotation === 0
+            )
+            assertExists(choice, 'The green tile lies as printed')
+            return choice
+        }
+        function layGreenBoston() {
+            const state = bostonHomes()
+            const choice = greenBostonChoice(state, 'B&W')
+            const hydrated = table(4).engine.runtime.hydrator.hydrateState(state)
+            applyTrackLay(
+                hydrated,
+                TrackRules1833NE,
+                choice,
+                { kind: 'company', companyId: 'B&W' },
+                true
+            )
+            return hydrated
+        }
+        const tokenOf = (state: ReturnType<typeof layGreenBoston>, companyId: string) =>
+            state.stations.find(
+                (station) => station.companyId === companyId && station.status === 'placed'
+            )
+        const openSlots = (state: ReturnType<typeof layGreenBoston>, companyId: string) =>
+            new StationPlacement(state, StationRules1833NE).openSlots(companyId, 'G22', 'city-0')
+        const reservedForBP = (reservations: readonly StationReservation[]) =>
+            reservations.filter(
+                ({ companyId, locationId }) => companyId === 'B&P' && locationId === 'G22'
+            )
+
+        it('shares the two-spot city between the B&W and the B&P, the B&L alone to the north', () => {
+            const state = layGreenBoston()
+            expect(tokenOf(state, 'B&W')).toMatchObject({ position: { nodeId: 'city-0' } })
+            expect(tokenOf(state, 'B&L')).toMatchObject({ position: { nodeId: 'city-1' } })
+            expect(reservedForBP(state.stationReservations)).toEqual([
+                { companyId: 'B&P', locationId: 'G22', nodeId: 'city-0' }
+            ])
+            expect(openSlots(state, 'B&P')).toHaveLength(1)
+            expect(openSlots(state, 'FRR')).toEqual([])
+        })
+
+        it('keeps the B&P’s printed spot even with a token elsewhere in Boston (§6.53)', () => {
+            const state = position(
+                [],
+                [{ companyId: 'B&P', locationId: 'G22', nodeId: 'city-1' }],
+                {},
+                'II'
+            )
+            const choice = greenBostonChoice(state, 'B&P')
+            const hydrated = table(4).engine.runtime.hydrator.hydrateState(state)
+            const { stationReservations } = new TrackConstruction(
+                hydrated,
+                TrackRules1833NE
+            ).stationsAfter(choice)
+            expect(reservedForBP(stationReservations)).toEqual([
+                { companyId: 'B&P', locationId: 'G22', nodeId: 'city-0' }
+            ])
+        })
+
+        it('lies only as its arrow shows (§6.46)', () => {
+            expect(
+                trackChoices(bostonHomes(), 'B&W', 'G22').map(({ rotation }) => rotation)
+            ).toEqual([0])
+        })
+    })
+})
+
+describe('tiles with an orientation arrow (§6.46)', () => {
+    it.each([
+        ['F5', '1833ne:N11'],
+        ['F5', '1833ne:N21'],
+        ['G22', '1833ne:N23'],
+        ['B11', '1833ne:N26']
+    ])('lays %s’s %s only as its arrow shows', (locationId, definitionId) => {
+        const reason = (rotation: TileRotation) =>
+            TrackRules1833NE.restriction?.(position([], [], {}, 'II'), {
+                companyId: 'CV',
+                locationId,
+                definitionId,
+                rotation,
+                nodeMapping: {}
+            })
+        expect(reason(0)).toBeUndefined()
+        for (const rotation of [1, 2, 3, 4, 5] as const)
+            expect(reason(rotation)).toBe(
+                'This tile is laid as its arrow shows, matching the compass rose.'
+            )
     })
 })
 

@@ -1,40 +1,12 @@
 import {
-    ConsentingRedemptionState,
-    EighteenThirtyTwoMarket,
     MergingState,
-    ProtectingPriceState,
-    declinedMarketSpaceId,
     mergedTrainDiscards,
     mergerDecision,
     mergerTerms,
-    protectionDecision,
     takeoverShortfall,
     type EighteenThirtyTwoState
 } from '@tabletop/1832'
-import { trainCount, type AwaitedDecision, type MoneyFormat } from '@tabletop/18xx-ui'
-
-export type EighteenThirtyTwoDecisionNames = {
-    companyName(companyId: string): string
-    companyInitials(companyId: string): string
-    playerName(playerId: string): string
-    money: MoneyFormat
-}
-
-export function protectionTerms(state: EighteenThirtyTwoState) {
-    const record = state.priceProtection
-    const decision =
-        state.machineState === ProtectingPriceState ? protectionDecision(state) : undefined
-    if (!record || !decision) return undefined
-    return {
-        ...decision.sale,
-        sellerPlayerId: record.sellerPlayerId,
-        presidentPlayerId: decision.playerId,
-        price: EighteenThirtyTwoMarket.companySpace(state.stockMarket, decision.sale.companyId)
-            .price,
-        declinedPrice: EighteenThirtyTwoMarket.space(declinedMarketSpaceId(state, decision.sale))
-            .price
-    }
-}
+import { trainCount, type AwaitedDecision, type ShareActionNames } from '@tabletop/18xx-ui'
 
 export function mergedDiscardTerms(state: EighteenThirtyTwoState, playerId: string) {
     const discards = mergedTrainDiscards(state, playerId)
@@ -43,38 +15,15 @@ export function mergedDiscardTerms(state: EighteenThirtyTwoState, playerId: stri
 
 export function awaitedDecision1832(
     state: EighteenThirtyTwoState,
-    names: EighteenThirtyTwoDecisionNames
+    names: ShareActionNames
 ): AwaitedDecision | undefined {
-    if (state.machineState === ProtectingPriceState) return protection(state, names)
-    if (state.machineState === ConsentingRedemptionState && state.redemptionRequest) {
-        const { companyId, holderPlayerId, price } = state.redemptionRequest
-        return {
-            title: 'Share redemption',
-            companyId,
-            text: `${names.companyName(companyId)} asks to redeem one of ${names.playerName(holderPlayerId)}’s shares for ${names.money(price)}`
-        }
-    }
     if (state.machineState === MergingState) return merger(state, names)
     return undefined
 }
 
-function protection(
-    state: EighteenThirtyTwoState,
-    names: EighteenThirtyTwoDecisionNames
-): AwaitedDecision | undefined {
-    const terms = protectionTerms(state)
-    if (!terms) return undefined
-    const shares = `${terms.shares} ${names.companyInitials(terms.companyId)} ${terms.shares === 1 ? 'share' : 'shares'}`
-    return {
-        title: 'Price protection',
-        companyId: terms.companyId,
-        text: `${names.playerName(terms.sellerPlayerId)} sold ${shares} for ${names.money(terms.proceeds)}. ${names.playerName(terms.presidentPlayerId)} may buy ${terms.shares === 1 ? 'it' : 'them'} to keep the price at ${names.money(terms.price)}${terms.declinedPrice === terms.price ? '' : `, or let it drop to ${names.money(terms.declinedPrice)}`}`
-    }
-}
-
 function merger(
     state: EighteenThirtyTwoState,
-    names: EighteenThirtyTwoDecisionNames
+    names: ShareActionNames
 ): AwaitedDecision | undefined {
     const decision = mergerDecision(state)
     const initials = names.companyInitials

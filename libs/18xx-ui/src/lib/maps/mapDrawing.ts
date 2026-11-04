@@ -95,6 +95,15 @@ export type MapPlacement = {
     hidden?: boolean
 }
 
+/** A line the board prints on a hex, in the hex's own coordinates. */
+export type PrintedLine = {
+    d: string
+    color: string
+    width: number
+    /** Points along the line, which marks placed in its hex keep clear of. */
+    points?: readonly Point[]
+}
+
 export type MapMarkerArt =
     | { imageUrl: string }
     | { tileSymbol: TileSymbolName }
@@ -102,6 +111,8 @@ export type MapMarkerArt =
     | { hidden: true }
     /** Two linked circles after the marker's label, low in the hex or ``above`` its stops and name. */
     | { localLine: true; above?: true }
+    /** The same, ``at`` a point from the hex's centre where the print is too busy for either. */
+    | { localLine: true; at: Point }
     /** The marker's label, large in the centre of an unbuilt hex. */
     | { centeredLabel: true }
     /** The marker's label under an unbuilt hex's terrain cost, such as a lower cost it prints. */
@@ -130,16 +141,17 @@ export type MapMarkerArt =
      * revenue, in its centre, or over a symbol the hex shows, in place of every copy of it (in a
      * corner where it shows none).
      */
-    | { token: { imageUrl: string; place: TokenPlacement; tab?: TokenTab } }
+    | { token: { imageUrl: string; place: TokenPlacement; tab?: TokenTab; outline?: string } }
+    | { stationOutline: { stationId: string; color: string } }
 
-export type TokenPlacement = 'corner' | 'centre' | { covers: TileSymbolName }
+export type TokenPlacement = 'corner' | 'centre' | { covers: TileSymbolName } | { at: Point }
 /** A tab tucked behind a token's right side, such as a bonus marker that moves between tokens. */
 export type TokenTab = { label: string; caption: string; fill?: string; left?: true }
 
 export type RevenueAnnotation = { markerId: string; label: string; x: number; y: number } & (
     | { kind: 'badge'; width: number; height: number; arrows: boolean }
     | { kind: 'symbol'; symbol: TileSymbolName; radius: number }
-    | { kind: 'token'; imageUrl: string; radius: number; tab?: TokenTab }
+    | { kind: 'token'; imageUrl: string; radius: number; tab?: TokenTab; outline?: string }
     | { kind: 'caption'; caption: string }
 )
 type RevenueBadge = Extract<RevenueAnnotation, { kind: 'badge' }>
@@ -167,6 +179,8 @@ export type MapDrawnLocation = {
     markerArt: Readonly<Record<string, MapMarkerArt>>
     /** Whether the hex's towns are ringed, as a medium city is printed. */
     townRing: boolean
+    /** Lines printed on the hex until a tile covers it, such as a river. */
+    printedLines: readonly PrintedLine[]
     drawing: TileDrawing
     borders: readonly {
         start: Point
@@ -326,6 +340,7 @@ export function createMapDrawing(
         layouts = {},
         markerArt: sharedMarkerArt = {},
         locationMarkerArt = {},
+        printedLines = {},
         placements = {},
         joinedEdges = {},
         locationMarkerNames = {},
@@ -334,6 +349,7 @@ export function createMapDrawing(
         drawingStyle,
         revenueStageLabels,
         revenueStageCaptions,
+        revenueStageCaptionColors,
         revenueStack,
         terrainCostPrefix = '',
         borderWidths = {},
@@ -342,6 +358,7 @@ export function createMapDrawing(
         namePositions = {},
         cityNames = {},
         namesBelow = [],
+        nameTurns = {},
         symbolPositions = {},
         nameLines = {},
         offboardNames,
@@ -352,6 +369,7 @@ export function createMapDrawing(
         | 'layouts'
         | 'markerArt'
         | 'locationMarkerArt'
+        | 'printedLines'
         | 'placements'
         | 'joinedEdges'
         | 'locationMarkerNames'
@@ -360,6 +378,7 @@ export function createMapDrawing(
         | 'drawingStyle'
         | 'revenueStageLabels'
         | 'revenueStageCaptions'
+        | 'revenueStageCaptionColors'
         | 'revenueStack'
         | 'terrainCostPrefix'
         | 'borderWidths'
@@ -368,6 +387,7 @@ export function createMapDrawing(
         | 'namePositions'
         | 'cityNames'
         | 'namesBelow'
+        | 'nameTurns'
         | 'symbolPositions'
         | 'nameLines'
         | 'offboardNames'
@@ -436,7 +456,8 @@ export function createMapDrawing(
             !placement &&
             !!location.name
         const nameStyle =
-            face.nodes.length && face.nodes.every((node) => node.kind === 'offboard')
+            face.nodes.length &&
+            (face.color === 'red' || face.nodes.every((node) => node.kind === 'offboard'))
                 ? offboardNames
                 : undefined
         const nameScale = (nameStyle?.fontSize ?? NameFontSize) / NameFontSize
@@ -465,15 +486,16 @@ export function createMapDrawing(
         const [loneNode, ...otherNodes] = face.nodes
         const ownCityNames = cityNames[location.id]
         const arcAround = (text: string, center: Point, obstacles: readonly Point[] = []) =>
-            arcAroundCity(
-                text,
-                (drawingStyle?.citySlotRadius ?? DefaultCitySlotRadius) + NameArcGap,
-                namesBelow.includes(location.id),
-                stopDrawing().paths,
-                symbolPoints(symbolPositions[location.id]),
+            arcAroundCity({
+                name: text,
+                clearance: (drawingStyle?.citySlotRadius ?? DefaultCitySlotRadius) + NameArcGap,
+                below: namesBelow.includes(location.id),
+                fixedTurn: nameTurns[location.id],
+                paths: stopDrawing().paths,
+                symbols: symbolPoints(symbolPositions[location.id]),
                 center,
                 obstacles
-            )
+            })
         const nameArcs =
             !nameShown ||
             !location.name ||
@@ -493,7 +515,7 @@ export function createMapDrawing(
         )
         const localLineAboveY = (location.markers ?? []).some((marker) => {
             const art = markerArt[marker.id]
-            return !!art && 'localLine' in art && !!art.above
+            return !!art && 'localLine' in art && 'above' in art
         })
             ? aboveStops(
                   stopDrawing(),
@@ -535,7 +557,13 @@ export function createMapDrawing(
                         : [])
                 ]
             },
-            { ...locationStyle, revenueStageLabels, revenueStageCaptions, revenueStack }
+            {
+                ...locationStyle,
+                revenueStageLabels,
+                revenueStageCaptions,
+                revenueStageCaptionColors,
+                revenueStack
+            }
         )
         const markers = location.markers ?? []
         const lifted = markers.some((marker) => {
@@ -589,6 +617,7 @@ export function createMapDrawing(
             drawing,
             markerArt,
             townRing,
+            printedLines: printedLines[location.id] ?? [],
             borders,
             outline: TileEdges.filter((edge) => !joined.includes(edge) && !divides(edge)).map(
                 segment
@@ -616,6 +645,9 @@ export function createMapDrawing(
                     !!placement,
                     face.symbols ?? [],
                     [
+                        ...(placement ? [] : (printedLines[location.id] ?? [])).flatMap((line) =>
+                            (line.points ?? []).map((point) => disc(point, line.width / 2))
+                        ),
                         ...badges.map((badge) =>
                             box(
                                 badge,
@@ -1022,7 +1054,10 @@ function clearSpaceMarks(
 }
 
 function coveredSymbol(art: MapMarkerArt | undefined): TileSymbolName | undefined {
-    return art && 'token' in art && typeof art.token.place === 'object'
+    return art &&
+        'token' in art &&
+        typeof art.token.place === 'object' &&
+        'covers' in art.token.place
         ? art.token.place.covers
         : undefined
 }
@@ -1108,14 +1143,15 @@ function placedTokens(
     for (const marker of markers) {
         const art = markerArt[marker.id]
         if (!art || !('token' in art)) continue
-        const { place, imageUrl, tab } = art.token
+        const { place, imageUrl, tab, outline } = art.token
         // A tab's room is kept as a second token's beside the first, on its right where clear.
         const row =
             (side: 1 | -1) =>
             (at: Point): Point[] =>
                 tab ? [at, { x: at.x + side * TokenTabReach, y: at.y }] : [at]
+        const pinned = typeof place === 'object' && 'at' in place ? place.at : undefined
         const covered =
-            typeof place === 'object'
+            typeof place === 'object' && 'covers' in place
                 ? shownSymbols.find(({ symbol }) => symbol === place.covers)
                 : undefined
         const right = cornerSpot(space, row(1), TokenRadius, revenues, TokenEdgeGap)
@@ -1125,11 +1161,12 @@ function placedTokens(
                 : undefined
         const side: 1 | -1 = left && isClearSpot(left) ? -1 : 1
         const point =
-            place === 'centre'
+            pinned ??
+            (place === 'centre'
                 ? { x: 0, y: 0 }
                 : covered
                   ? { x: covered.x, y: covered.y }
-                  : (side === 1 ? right : left)?.points[0]
+                  : (side === 1 ? right : left)?.points[0])
         if (!point) continue
         tokens.push({
             kind: 'token',
@@ -1138,7 +1175,8 @@ function placedTokens(
             imageUrl,
             ...point,
             radius: TokenRadius,
-            ...(tab ? { tab: side === 1 ? tab : { ...tab, left: true as const } } : {})
+            ...(tab ? { tab: side === 1 ? tab : { ...tab, left: true as const } } : {}),
+            ...(outline ? { outline } : {})
         })
         for (const at of row(side)(point)) space.obstacles.push(disc(at, TokenRadius))
     }
@@ -1323,15 +1361,25 @@ function nameArcBand(arc: NameArc): Point[] {
 }
 
 // The name centres over the top of the city, turning the least it can to stay off the track.
-function arcAroundCity(
-    name: string,
-    clearance: number,
-    below: boolean,
-    paths: readonly TileDrawnPath[],
-    symbols: readonly Point[],
-    center: Point,
-    obstacles: readonly Point[] = []
-): NameArc {
+function arcAroundCity({
+    name,
+    clearance,
+    below,
+    fixedTurn,
+    paths,
+    symbols,
+    center,
+    obstacles
+}: {
+    name: string
+    clearance: number
+    below: boolean
+    fixedTurn: number | undefined
+    paths: readonly TileDrawnPath[]
+    symbols: readonly Point[]
+    center: Point
+    obstacles: readonly Point[]
+}): NameArc {
     // Under the city the letters stand inside their baseline, so the baseline moves out by their height.
     const radius = below ? clearance + NameArcCapHeight : clearance
     const span = Math.min((Math.PI * 4) / 3, (name.length * 4) / radius)
@@ -1372,7 +1420,8 @@ function arcAroundCity(
     const turns = Array.from({ length: 37 }, (_, index) =>
         index % 2 ? ((index + 1) / 2) * 5 : (-index / 2) * 5
     )
-    const rotation = turns.reduce((best, turn) => (crossings(turn) < crossings(best) ? turn : best))
+    const rotation =
+        fixedTurn ?? turns.reduce((best, turn) => (crossings(turn) < crossings(best) ? turn : best))
     return { text: name, center, radius, rotation, span, below }
 }
 
@@ -1381,6 +1430,15 @@ function isOffboard(location: MapLocation | undefined): boolean {
 }
 
 export type MapBorderCost = { key: string; x: number; y: number; amount: number; kind: string }
+
+/** Where a hex's local line stands, from the hex's centre. */
+export function localLinePosition(
+    art: MapMarkerArt | undefined,
+    aboveY: number | undefined
+): Point {
+    if (art && 'localLine' in art && 'at' in art) return art.at
+    return { x: 4, y: art && 'above' in art && aboveY !== undefined ? aboveY : 32 }
+}
 
 /**
  * Each costed border's cost, once per shared edge, at the middle of that edge, until track meets

@@ -219,10 +219,20 @@ Built on branch `feat/implement-1833ne`. Family changes beyond the plan above:
   A later sale of a company in the same turn or funding extends its first block
   (2026-10-31; see [1846 personal emergency funding](1846-personal-emergency-funding-design.md#repeat-sales-2026-10-31)).
 - **Terminals:** Boston's and Portland's triangles are offboard nodes worth their city's
-  value. An offboard terminal may become a city of a tile with fewer terminals
-  (`tileUpgradeMappings`), which is how Portland's two triangles become a city and a triangle
-  in green and every tile's cities and triangles merge in brown. The title's
-  `preservesStops` lets only the B, Mo and Po tiles combine stops.
+  value. An offboard terminal may become a city (`tileUpgradeMappings`), which is how
+  Portland's two triangles become a city and a triangle in green and every tile's cities and
+  triangles merge in brown. The title's `preservesStops` lets only the B, Mo and Po tiles
+  combine stops. No other implemented title has a buildable terminal.
+- **Green Boston's orientation:** rotation 0 only (ruled 2026-11-03): the physical tile has a
+  north indicator (§6.46's orientation arrows), and the Fitchburg example (p. 9) prints it this
+  way: the triangle north-west, the B&W and B&P in the two-spot city and the B&L alone to the
+  north. The south triangle's track becomes the two-spot city's, as Portland's south-west
+  triangle becomes a city in green. N11, N21, N23 and N26 are the tiles with arrows; the rulebook
+  images are too small to show them, so this comes from the physical tiles.
+- **Printed reservations** (`TrackRules.printedReservationNode`): a reservation normally
+  follows the node mapping of a lay. Green Boston prints the B&P's spot in its two-spot city,
+  which started games hold on the B&L's yellow city, so the tile names it. Only
+  1833NE selects it; the other implemented titles' reservations stay on the mapped node.
 - **Station access** (`StationFields.stationAccess`): the A&StL's use of the joint
   Sherbrooke token, and a corporation's use of the Ogdensburg or D&H offboard, which may not
   be used to trace new stations (`placesStations: false`). A closing St. Lawrence corporation
@@ -330,14 +340,15 @@ follows once the company is within its limit).
 ### Rulings (not settled by the rulebook)
 
 - A refused offer ends that corporation's attempt for the step (§11: "may attempt one
-  takeover").
+  takeover"; confirmed by the designer).
 - The step's order is the stock price order when it begins.
 - A share in the Stock Market may be redeemed by swap; the acquirer's share then goes to the
-  Stock Market.
+  Stock Market. The designer confirmed that §5.25 applies: a swap may not leave more than 5 of
+  the acquirer's shares there.
 - A target with no president (receivership) cannot refuse.
 - Only takeovers a corporation does itself raise its train limit; rights (§11.7) pass on
   through later takeovers.
-- The golden spike payment does not pass to an acquirer.
+- The golden spike payment does not pass to an acquirer (confirmed by the designer).
 - No takeover step follows the last set: the game ends after the round sequence (§10.1).
 - No step is held when no corporation can attempt a takeover.
 - A corporation whose President certificate is in the Stock Market cannot attempt a takeover

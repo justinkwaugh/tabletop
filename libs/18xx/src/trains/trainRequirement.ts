@@ -1,16 +1,19 @@
 import { TrackNetwork } from '../construction/trackNetwork.js'
 import type { RailwayMap } from '../map/map.js'
 import { RailwayMapState, type MapStateData } from '../map/mapState.js'
+import type { RevenueCenter } from '../routes/route.js'
 import type { TileSet } from '../tiles/inventory.js'
 import { companyStationCenters, type StationState } from '../map/station.js'
 
 export function hasStationRoute(
     mapState: RailwayMapState,
     state: StationState,
-    companyId: string
+    companyId: string,
+    stopAllowed: (center: RevenueCenter) => boolean = () => true
 ): boolean {
+    const closedStop = (locationId: string, nodeId: string) => !stopAllowed({ locationId, nodeId })
     return companyStationCenters(state, companyId).some((origin) => {
-        const network = new TrackNetwork(mapState, state, companyId, undefined, origin)
+        const network = new TrackNetwork(mapState, state, companyId, undefined, origin, closedStop)
         return mapState.map.definition.locations.some((location) =>
             mapState
                 .tile(location.id)
@@ -18,16 +21,24 @@ export function hasStationRoute(
                     (node) =>
                         node.kind !== 'junction' &&
                         (location.id !== origin.locationId || node.id !== origin.nodeId) &&
+                        !closedStop(location.id, node.id) &&
                         network.reaches(location.id, { kind: 'node', nodeId: node.id })
                 )
         )
     })
 }
 
-export function requiresStationRoute(
+/** With ``stopAllowed``, a stop closed to the company gives it no route, as a route would not run there. */
+export function requiresStationRoute<State extends MapStateData = MapStateData>(
     map: RailwayMap,
-    tileSet: TileSet
-): (state: MapStateData, companyId: string) => boolean {
+    tileSet: TileSet,
+    stopAllowed?: (state: State, companyId: string, center: RevenueCenter) => boolean
+): (state: State, companyId: string) => boolean {
     return (state, companyId) =>
-        hasStationRoute(new RailwayMapState(map, tileSet, state.tileInventory), state, companyId)
+        hasStationRoute(
+            new RailwayMapState(map, tileSet, state.tileInventory),
+            state,
+            companyId,
+            stopAllowed && ((center) => stopAllowed(state, companyId, center))
+        )
 }

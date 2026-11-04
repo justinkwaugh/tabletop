@@ -267,7 +267,8 @@ export function createEighteenXXRuntime<
         routeRules: options.routeRules,
         trainRules: options.trainRules,
         earningsRules: options.earningsRules,
-        ...(receivershipRules ? { receivershipRules } : {})
+        ...(receivershipRules ? { receivershipRules } : {}),
+        ...(options.runInstructionsHeld ? { instructionsHeld: options.runInstructionsHeld } : {})
     }
     const followsRunInstructions = (step: RunInstructionStep, handler: Handler): Handler =>
         options.runInstructions
@@ -328,7 +329,8 @@ export function createEighteenXXRuntime<
                                       options.privateRules,
                                       options.outOfTurnPrivatePowers === true
                                   ),
-                                  (_state, next) => next ?? 'FundingTrain'
+                                  (state, next) =>
+                                      next ?? (state.trainFunding ? 'FundingTrain' : 'OperatingSet')
                               )
                           )
                       )

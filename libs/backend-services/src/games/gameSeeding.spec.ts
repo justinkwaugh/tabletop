@@ -52,6 +52,7 @@ function fixture() {
         unregisterNotificationSubscription: unused,
         sendNotification: vi.fn(async () => {})
     }
+    vi.spyOn(UserService.prototype, 'getUser').mockResolvedValue(undefined)
     const service = new GameService(
         store,
         UserService.prototype,

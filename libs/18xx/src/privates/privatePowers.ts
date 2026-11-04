@@ -25,6 +25,8 @@ export interface PrivateTrackTerms {
      */
     together?: true
     terrainDiscount?: number
+    /** What the lay itself costs, beyond its terrain, such as a construction company's charge. */
+    layFee?: number
     free?: true
     restriction?(request: TrackRequest): string | undefined
     relabels?: true
@@ -76,7 +78,9 @@ export function privateTrackConstruction(
         stateWith(state, { trackStep }),
         {
             ...rules,
-            allowance: terms.countsAsOrdinaryLay ? rules.allowance : () => ({ cost: 0 }),
+            allowance: terms.countsAsOrdinaryLay
+                ? rules.allowance
+                : () => ({ cost: terms.layFee ?? 0 }),
             restriction: (_state, request) =>
                 terms.locationIds.includes(request.locationId) &&
                 terms.definitionIds.includes(request.definitionId)

@@ -43,7 +43,8 @@ export type TitlePrivatePower = PrivateTrackPower & { label: string; prompt: str
         | { kind: 'immediate'; run(): Promise<void> }
     )
 export type PrivateActionSource = 'mine' | 'other' | 'powers'
-type PrivateActionStages = { source: PrivateActionSource; power: PrivateTrackPower }
+type ChosenPower = PrivateTrackPower & { label?: string }
+type PrivateActionStages = { source: PrivateActionSource; power: ChosenPower }
 const PrivateActionStageOrder = ['source', 'power'] as const
 
 export type PrivateActionsSession = ModuleSession<
@@ -158,8 +159,14 @@ export class PrivateActionsModule implements LocalSelection {
     })
     /** The chosen power when the title applies its rules. */
     titlePower = $derived.by(() => {
-        const selected = this.powerSelection?.value
-        return selected ? this.titlePowers.find((power) => samePower(power, selected)) : undefined
+        const selected: ChosenPower | undefined = this.powerSelection?.value
+        return selected
+            ? this.titlePowers.find(
+                  (power) =>
+                      samePower(power, selected) &&
+                      (selected.label === undefined || selected.label === power.label)
+              )
+            : undefined
     })
 
     choosePowers() {
@@ -207,7 +214,8 @@ export class PrivateActionsModule implements LocalSelection {
         this.track.clear()
         this.stages.choose('power', {
             privateCompanyId: power.privateCompanyId,
-            playerId: power.playerId
+            playerId: power.playerId,
+            label: power.label
         })
     }
 

@@ -36,7 +36,6 @@
         NumberInputConfigOption,
         Player,
         PlayerStatus,
-        type User,
         range,
         StringInputConfigOption,
         type HydratedGameState
@@ -50,19 +49,8 @@
     import Typeahead from '$lib/components/Typeahead.svelte'
     import SegmentedControl from '$lib/components/SegmentedControl.svelte'
     import { getAppContext } from '$lib/model/appContext.js'
+    import { continuationGame, type EditableGame } from '$lib/utils/gameContinuation.svelte.js'
 
-    type EditableGame = Pick<
-        Game,
-        | 'id'
-        | 'typeId'
-        | 'name'
-        | 'players'
-        | 'isPublic'
-        | 'unlisted'
-        | 'hotseat'
-        | 'ownerId'
-        | 'config'
-    >
     const EditMode = {
         Create: 'create',
         Edit: 'edit'
@@ -113,7 +101,7 @@
     let editedGame: EditableGame = game
         ? $state.snapshot(game)
         : continueFrom
-          ? continuationGame(continueFrom)
+          ? continuationGame(continueFrom, sessionUser, ownerPlayer)
           : <EditableGame>{
                 id: nanoid(),
                 typeId: '',
@@ -236,38 +224,6 @@
             isHuman: true,
             name: sessionUser.username,
             status: PlayerStatus.Joined
-        }
-    }
-
-    function continuationGame(source: Game): EditableGame {
-        assertExists(sessionUser, 'Continuing a game requires a signed-in user')
-        const user = sessionUser
-        return {
-            id: nanoid(),
-            typeId: source.typeId,
-            name: source.name,
-            players: source.players.map((player) =>
-                isUsersSeat(source, player, user) ? ownerPlayer() : continuedPlayer(source, player)
-            ),
-            isPublic: source.isPublic,
-            ...(source.unlisted ? { unlisted: true } : {}),
-            hotseat: source.hotseat,
-            ownerId: sessionUser.id,
-            config: structuredClone(source.config)
-        }
-    }
-
-    function isUsersSeat(source: Game, player: Player, user: User) {
-        return source.hotseat ? player.name === user.username : player.userId === user.id
-    }
-
-    function continuedPlayer(source: Game, player: Player): Player {
-        return {
-            id: nanoid(),
-            isHuman: player.isHuman,
-            ...(source.hotseat || !player.userId ? {} : { userId: player.userId }),
-            name: player.name,
-            status: player.name ? PlayerStatus.Reserved : PlayerStatus.Open
         }
     }
 
@@ -406,6 +362,9 @@
                             errors[player.id] = ['A player cannot be added more than once']
                         }
                     }
+                    unexpectedError = false
+                } else if (e.name === 'GameNameNotAllowedError') {
+                    errors['name'] = [e.message]
                     unexpectedError = false
                 }
             } else {

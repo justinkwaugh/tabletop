@@ -1,6 +1,6 @@
 import { assert } from '@tabletop/common'
 import {
-    nextOperatingCompany,
+    actingOperatingCompany,
     type EighteenXXState,
     type EighteenXXTitleRules
 } from '@tabletop/18xx'
@@ -70,7 +70,7 @@ export class OperatingModeModule {
     private scope = $derived.by(() =>
         [
             this.session.state.machineState,
-            nextOperatingCompany(this.session.state),
+            actingOperatingCompany(this.session.state),
             this.session.playerId,
             this.session.viewingHistory
         ].join(':')

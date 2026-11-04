@@ -201,8 +201,11 @@ function interconnectionToBoston() {
         tile('E20', '18xx:14', [1, 2, 4, 5]),
         tile('F21', '18xx:4', [2, 5]),
         tile('F19', '18xx:57', [1, 4]),
-        { locationId: 'G22', definitionId: '1833ne:N23', rotation: 4 }
+        { locationId: 'G22', definitionId: '1833ne:N23', rotation: 0 }
     ])
+    for (const reservation of position.state.stationReservations)
+        if (reservation.companyId === 'B&P' && reservation.locationId === 'G22')
+            reservation.nodeId = 'city-0'
     return position
 }
 

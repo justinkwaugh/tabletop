@@ -21,7 +21,11 @@ import { Phases1833NE } from './trains.js'
 import { holdsRightsOf } from './takeoverState.js'
 
 const TrackData = { map: Map1833NE, tileSet: TileSet1833NE }
-const SherbrookeTile = '1833ne:N11'
+const BostonGreenTile = '1833ne:N23'
+/** The tiles with an orientation arrow, each laid only as it shows (§6.46). */
+const ArrowTiles: readonly string[] = ['1833ne:N11', '1833ne:N21', BostonGreenTile, '1833ne:N26']
+/** The two-spot city of Boston's green tile, which prints the B&P's reserved spot (p. 21). */
+const BostonReservedCity = 'city-0'
 
 /** The two corporations of the golden spike and their joint Sherbrooke token. */
 export const StLawrenceCompanies = ['StL&A', 'A&StL'] as const
@@ -103,6 +107,8 @@ export const TrackRules1833NE: TrackRules = {
     useful: ({ newTrack, connectedCity, connectedTerminal }) =>
         newTrack || connectedCity || connectedTerminal,
     homeLocations: (companyId) => Map1833NE.reservedLocationIds(companyId),
+    printedReservationNode: ({ companyId }, definitionId) =>
+        definitionId === BostonGreenTile && companyId === 'B&P' ? BostonReservedCity : undefined,
     // Manchester's green tiles become unlabelled brown cities (p. 21).
     relabels: (locationId, definitionId) =>
         locationId === 'F17' &&
@@ -110,9 +116,8 @@ export const TrackRules1833NE: TrackRules = {
     restriction(state, request) {
         if (blockedByPrivate(state, request.locationId))
             return 'A player-owned private company blocks this hex.'
-        // Sherbrooke's tile has an orientation arrow: it joins north, north-east and south (§6.46).
-        if (request.definitionId === SherbrookeTile && request.rotation !== 0)
-            return 'Sherbrooke’s tile is laid as its arrow shows, joining north, north-east and south.'
+        if (ArrowTiles.includes(request.definitionId) && request.rotation !== 0)
+            return 'This tile is laid as its arrow shows, matching the compass rose.'
         const reserved = FirstRoundReservedHexes[request.locationId]
         if (reserved && reserved !== request.companyId && firstOperatingRound(state))
             return `Only the ${reserved} may build here in the first operating round.`

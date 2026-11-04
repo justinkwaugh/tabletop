@@ -11,7 +11,7 @@ import {
 import { requireEighteenThirtyTwoState, type EighteenThirtyTwoState } from './state.js'
 import { EighteenThirtyTwoMap, MediumCityLocationIds } from './map.js'
 import { EighteenThirtyTwoTileSet } from './tiles.js'
-import { coalFieldsOpen } from './coalAccess.js'
+import { CoalAccess } from './coalAccess.js'
 import { currentTileFace } from './tileState.js'
 import { EighteenThirtyTwoPhases } from './trains.js'
 import { migrateRevenueTokens } from './revenueTokens.js'
@@ -117,7 +117,7 @@ export const EighteenThirtyTwoTrackRules: TrackRules = {
             : { reason: 'A company lays two yellow tiles or upgrades one tile.' }
     },
     upgradesWithinColor: promotesMediumCity,
-    stopAllowed: coalFieldsOpen,
+    stopAllowed: CoalAccess.open,
     preservesStops: (before, after) =>
         sameStopCounts(before, after) || atlantaJoinsCities(before, after),
     // New track must be usable, or the new tile's city or town on the company's route (§6.1–6.2).

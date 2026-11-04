@@ -162,6 +162,26 @@ describe('PrivateActionsModule', () => {
         expect(module.trackPowerSelection).toBeUndefined()
     })
 
+    it('keeps apart two powers of one private', () => {
+        const place = (label: string): TitlePrivatePower => ({
+            privateCompanyId: 'gamma',
+            playerId: 'alex',
+            kind: 'location',
+            label,
+            prompt: `Place ${label}`,
+            locationIds: ['C3'],
+            choose: async () => {}
+        })
+        const open = place('Open')
+        const closed = place('Closed')
+        const { module } = privateActions([], {}, {}, [], [open, closed])
+        module.choosePowers()
+        module.chooseTitlePower(closed)
+        expect(module.titlePower).toBe(closed)
+        module.chooseTitlePower(open)
+        expect(module.titlePower).toBe(open)
+    })
+
     it('offers title powers, lists track ones with the tile powers, and never auto-selects past a map choice', () => {
         let staged = 1
         const titleTrack: TitlePrivatePower = {
@@ -199,7 +219,7 @@ describe('PrivateActionsModule', () => {
         expect(module.undo()).toBe(true)
         module.chooseTitlePower(titleTrack)
         expect(module.titlePower).toBe(titleTrack)
-        expect(module.trackPowerSelection?.value).toEqual(Beta)
+        expect(module.trackPowerSelection?.value).toEqual({ ...Beta, label: 'Beta' })
         // A staged lay steps back before the power itself.
         expect(module.undo()).toBe(true)
         expect(module.titlePower).toBe(titleTrack)

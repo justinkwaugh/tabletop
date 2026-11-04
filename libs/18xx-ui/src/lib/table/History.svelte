@@ -145,6 +145,7 @@
                             lotName={session.lotName(offered)}
                             playerName={(id) => session.getPlayerName(id)}
                             playerColor={(id) => session.colors.getPlayerBgColorValue(id)}
+                            {describe}
                         />
                     </li>
                 {:else}

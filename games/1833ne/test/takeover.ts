@@ -1,10 +1,11 @@
 import {
     corporateFinanceChoices,
     purchaseChoices,
+    treasuryPoolId,
     type CorporateFinanceRequest
 } from '@tabletop/18xx'
 import { TrainDepot1833NE, TrainRules1833NE } from '../src/trains.js'
-import { CorporateFinanceRules1833NE, Market1833NE } from '../src/stock.js'
+import { CorporateFinanceRules1833NE, Market1833NE, MarketPoolId } from '../src/stock.js'
 import { TransferRules1833NE } from '../src/privates.js'
 import { table, type Table } from './table.js'
 import {
@@ -29,6 +30,25 @@ export function setCash(game: Table, companyId: string, amount: number): void {
         throw new Error('Finite cash expected')
     bank.amount -= amount - account.amount
     account.amount = amount
+    game.state = state
+}
+
+export function splitSharesBetweenMarketAndTreasury(
+    game: Table,
+    companyId: string,
+    marketShares: number
+): void {
+    const state = structuredClone(game.state)
+    const shares = state.certificates.filter(
+        (certificate) =>
+            certificate.kind === 'share' &&
+            certificate.companyId === companyId &&
+            !certificate.president
+    )
+    shares.forEach((share, index) => {
+        share.owner = index < marketShares ? { kind: 'bank' } : { kind: 'company', companyId }
+        share.poolId = index < marketShares ? MarketPoolId : treasuryPoolId(companyId)
+    })
     game.state = state
 }
 

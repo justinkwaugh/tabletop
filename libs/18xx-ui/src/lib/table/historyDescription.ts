@@ -6,6 +6,7 @@ import type {
 } from '@tabletop/18xx'
 import { moneyFormat, type MoneyFormat } from '../presentation/money.js'
 import {
+    isCloseCorporation,
     isLayTile,
     isPrivateTileLay,
     isPlacePrivateMarker,
@@ -75,6 +76,7 @@ import {
     type DeparturePayment,
     type Owner,
     type PresidencyChange,
+    type CashPayment,
     type EighteenXXState,
     type StockMarketChart
 } from '@tabletop/18xx'
@@ -96,6 +98,8 @@ export type HistoryDescription = {
     important?: boolean
     /** A company whose token leads the row, such as one that floated or closed. */
     companyToken?: string
+    /** A company's turning point, its row a band of the company's colour. */
+    milestone?: boolean
     /** A change to every player's certificate limit, called out below the row. */
     certificateLimit?: CertificateLimitChange
     /**
@@ -138,6 +142,35 @@ export function ownerName(owner: Owner, names: HistoryNames): string {
 
 function shareCount(shares: number): string {
     return counted(shares, 'share')
+}
+
+/** A company's closure, as its own row, with whatever else the closure did. */
+export function companyClosedRow(
+    companyId: string,
+    companyName: (companyId: string) => string,
+    details: readonly string[]
+): HistoryDescription {
+    return {
+        text: `${companyName(companyId)} closed`,
+        ...(details.length ? { detail: details.join(' · ') } : {}),
+        companyToken: companyId,
+        omitActor: true,
+        important: true
+    }
+}
+
+/** A bought right to run through a stop, valued at what its payments came to. */
+export function stopRightsBoughtRow(
+    text: string,
+    metadata: { readonly payments: readonly { readonly amount: number }[] } | undefined,
+    money: MoneyFormat
+): HistoryDescription {
+    return {
+        text,
+        ...(metadata
+            ? { value: money(metadata.payments.reduce((sum, { amount }) => sum + amount, 0)) }
+            : {})
+    }
 }
 
 /**
@@ -323,6 +356,20 @@ function describeShared(
                 : `${share.shares} ${companyName(share.companyId)}`
         )
         return extras.length ? `, with ${extras.join(' and ')}` : ''
+    }
+    function privateIncome(payments: readonly CashPayment[]): HistoryDescription {
+        const income: { owner: Owner; amount: number }[] = []
+        for (const payment of payments) {
+            const entry = income.find(({ owner }) => sameOwner(owner, payment.to))
+            if (entry) entry.amount += payment.amount
+            else income.push({ owner: payment.to, amount: payment.amount })
+        }
+        return {
+            text: 'Private income',
+            detail: income
+                .map(({ owner, amount }) => `${nameOf(owner)} ${money(amount)}`)
+                .join(' · ')
+        }
     }
     function marketPrice(id: string) {
         return chart.space(id).price
@@ -660,6 +707,8 @@ function describeShared(
     if (isPassAuction(action)) return { text: 'Passed' }
     if (isResolveAuction(action)) {
         if (!action.metadata) return { text: 'Auction resolved', routine: true }
+        if (action.metadata.kind === 'income' && action.metadata.payments?.length)
+            return privateIncome(action.metadata.payments)
         const awards = action.metadata.kind === 'award' ? [action.metadata.award] : []
         return {
             text: awards.length ? 'Auction awarded' : 'Auction continued',
@@ -772,19 +821,8 @@ function describeShared(
         return { text: `Started ${companyName(action.companyId)}’s turn`, routine: true }
     if (isStartOperatingRound(action)) {
         assertExists(action.metadata, 'A recorded operating round has its payments')
-        const income: { owner: Owner; amount: number }[] = []
-        for (const payment of action.metadata.payments) {
-            const entry = income.find(({ owner }) => sameOwner(owner, payment.to))
-            if (entry) entry.amount += payment.amount
-            else income.push({ owner: payment.to, amount: payment.amount })
-        }
-        return income.length
-            ? {
-                  text: 'Private income',
-                  detail: income
-                      .map(({ owner, amount }) => `${nameOf(owner)} ${money(amount)}`)
-                      .join(' · ')
-              }
+        return action.metadata.payments.length
+            ? privateIncome(action.metadata.payments)
             : { text: 'Operating order', important: true }
     }
     if (isScheduleGameEnd(action)) {
@@ -847,6 +885,12 @@ function describeShared(
         return {
             text: `Offered ${money(action.price)} for ${companyName(action.privateCompanyId)}`
         }
+    if (isCloseCorporation(action))
+        return companyClosedRow(
+            action.companyId,
+            companyName,
+            action.metadata ? companyClosureDetails(action.metadata, companyName) : []
+        )
     if (isFinishTrack(action)) return { text: 'Finished track', routine: true }
     if (isFinishStations(action)) return { text: 'Finished stations', routine: true }
     if (isFinishOperatingTurn(action)) return { text: 'Finished operating', routine: true }

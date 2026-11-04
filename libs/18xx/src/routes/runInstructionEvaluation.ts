@@ -41,6 +41,8 @@ export type RunInstructionRules = {
     trainRules: TrainRules
     earningsRules: EarningsRules
     receivershipRules?: ReceivershipRules
+    /** Whether instructions wait, as during a connection run outside the company's turn. */
+    instructionsHeld?(state: TrainRunningState): boolean
 }
 export type RunInstructionEvaluationState = TrainRunningState &
     RunInstructionState &

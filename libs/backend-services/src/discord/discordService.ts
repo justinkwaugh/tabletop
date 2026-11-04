@@ -1,4 +1,4 @@
-import { ExternalAuthService } from '@tabletop/common'
+import { canHoldAuthenticatedSession, ExternalAuthService } from '@tabletop/common'
 import {
     APIBaseInteraction,
     APIApplicationCommandInteraction,
@@ -131,7 +131,7 @@ export class DiscordService {
             discordUserId,
             ExternalAuthService.Discord
         )
-        if (!user) {
+        if (!user || !canHoldAuthenticatedSession(user)) {
             return false
         }
 

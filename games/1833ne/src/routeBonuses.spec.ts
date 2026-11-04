@@ -3,7 +3,9 @@ import { RouteEvaluation, type TrainRoute } from '@tabletop/18xx'
 import { position, type Placement } from '../test/position.js'
 import { rotationFor, route } from '../test/flow.js'
 import { ferryValue } from './ferries.js'
+import { Names1833NE } from './operating.js'
 import { RouteRules1833NE, routeBonusPolicy } from './routes.js'
+import { Phases1833NE } from './trains.js'
 
 const tile = (locationId: string, definitionId: string, edges: number[]): Placement => ({
     locationId,
@@ -36,7 +38,7 @@ describe('interconnections (§6.66)', () => {
                 tile('E20', '18xx:14', [1, 2, 4, 5]),
                 tile('F21', '18xx:4', [2, 5]),
                 tile('F19', '18xx:57', [1, 4]),
-                { locationId: 'G22', definitionId: '1833ne:N23', rotation: 4 }
+                { locationId: 'G22', definitionId: '1833ne:N23', rotation: 0 }
             ],
             [{ companyId: 'FRR', locationId: 'E20' }],
             { FRR: ['2+1', '2+1'] }
@@ -103,7 +105,7 @@ describe('direct connections (§6.66)', () => {
                 tile('D19', '18xx:4', [2, 5]),
                 tile('E20', '18xx:14', [1, 2, 4, 5]),
                 tile('F21', '18xx:4', [2, 5]),
-                { locationId: 'G22', definitionId: '1833ne:N23', rotation: 4 }
+                { locationId: 'G22', definitionId: '1833ne:N23', rotation: 0 }
             ],
             [{ companyId: 'FRR', locationId: 'E20' }],
             { FRR: ['3/5'] },
@@ -198,6 +200,23 @@ describe('bonus arrows paying each bonus', () => {
             arrowIds: ['ogdensburg-to-boston']
         })
     })
+
+    it('names what earned each bonus, as the history prints it', () => {
+        const sourceIds = Phases1833NE.phases.flatMap(({ id }) => {
+            const { connectionBonuses, interconnections } = policy(id, { P4: 'FRR' })
+            return [...(connectionBonuses ?? []), ...(interconnections ?? [])].flatMap(
+                (bonus) => bonus.sourceId ?? []
+            )
+        })
+        expect(new Set(sourceIds.map((id) => Names1833NE.routeBonus(id)))).toEqual(
+            new Set([
+                'Direct connection',
+                'Interconnection',
+                'Ogdensburg Railroad',
+                'Delaware & Hudson RR'
+            ])
+        )
+    })
 })
 
 describe('ferry bonus (§6.56–6.57)', () => {
@@ -227,5 +246,25 @@ describe('ferry bonus (§6.56–6.57)', () => {
             )
         ).toBe(60)
         expect(ferryValue({ ...state, phaseId: 'IV' }, 'B&P', 'F27')).toBe(0)
+    })
+
+    it('names the ferry and the Luxury Ferry Service on a doubled ferry’s route', () => {
+        const state = position(
+            [tile('F27', '18xx:3', [2, 3])],
+            [{ companyId: 'B&P', locationId: 'F25' }],
+            { 'B&P': ['2'] }
+        )
+        state.ferries = [{ locationId: 'F27', companyId: 'B&P', luxury: true }]
+        const [train] = trainIds(state, 'B&P')
+        const result = run(state, 'B&P', [
+            route(state, train, { locationId: 'F25', nodeId: 'city' }, ['F27'])
+        ])
+        expect(result.reason).toBeUndefined()
+        const [bonus] = result.result?.routes[0].bonuses ?? []
+        expect(bonus).toMatchObject({ locationId: 'F27', amount: 40 })
+        expect(bonus.sourceIds?.map((id) => Names1833NE.routeBonus(id))).toEqual([
+            'Ferry',
+            'Luxury Ferry Service'
+        ])
     })
 })

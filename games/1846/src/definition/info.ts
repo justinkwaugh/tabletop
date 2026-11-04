@@ -1,4 +1,4 @@
-import { EighteenXXPreferenceDefinition } from '@tabletop/18xx'
+import { EighteenXXPreferenceDefinition, EighteenXXSeries } from '@tabletop/18xx'
 import type { GameInfo } from '@tabletop/common'
 import { GAME_VERSION } from './version.js'
 export const EighteenFortySixInfo: GameInfo = {
@@ -16,6 +16,7 @@ export const EighteenFortySixInfo: GameInfo = {
         maxPlayers: 5,
         defaultPlayerCount: 3,
         version: GAME_VERSION,
+        series: EighteenXXSeries,
         beta: false
     }
 }

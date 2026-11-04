@@ -1,9 +1,11 @@
 import {
     AuctionFields,
     composeEighteenXXState,
+    ConsentingRedemptionState,
     defineEighteenXXState,
     PendingParFields,
     PrivatePowerFields,
+    ProtectingPriceState,
     RailwayFields,
     RailwayMachineStates,
     railwayStateValidation,
@@ -16,12 +18,7 @@ import {
 } from '@tabletop/18xx'
 import { assert } from '@tabletop/common'
 import type * as Type from 'typebox'
-import {
-    ConsentingRedemptionState,
-    EighteenThirtyTwoTitleFields,
-    MergingState,
-    ProtectingPriceState
-} from './titleState.js'
+import { EighteenThirtyTwoTitleFields, MergingState } from './titleState.js'
 
 export const EighteenThirtyTwoState = composeEighteenXXState(
     {

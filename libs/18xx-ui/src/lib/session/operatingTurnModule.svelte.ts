@@ -2,7 +2,7 @@ import { assert } from '@tabletop/common'
 import {
     FinishOperatingTurn,
     FinishTrains,
-    nextOperatingCompany,
+    actingOperatingCompany,
     finishOperatingTurnReason,
     type EighteenXXState,
     type EighteenXXTitleRules
@@ -142,7 +142,7 @@ export class OperatingTurnModule {
     }
     private operatingCompany(state: OperatingTurnState) {
         return (
-            nextOperatingCompany(state) ??
+            actingOperatingCompany(state) ??
             state.trackStep?.companyId ??
             state.stationStep?.companyId
         )

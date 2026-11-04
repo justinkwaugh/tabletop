@@ -95,9 +95,10 @@ function familyPositionChange(
         if (watches('shares-sold') && current.bankShares > before.bankShares)
             return { code: 'shares-sold', companyId }
         const presides = current.president !== undefined && sameOwner(current.president, owner)
+        // A rival can only tie a president holding half, and a tie keeps the president.
         const secure =
             rules.instructions?.securePresidency?.(state, current.companyId, owner) ??
-            current.ownerShares * 2 >
+            current.ownerShares * 2 >=
                 (companyShareCount(state, rules.charters, current.companyId) ?? 0)
         if (
             watches('presidency-threatened') &&

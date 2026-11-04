@@ -327,6 +327,9 @@ export class SolGameSession extends GameSession<SolGameState, HydratedSolGameSta
     }
 
     locationForStationInCell(cell: Cell): Point | undefined {
+        if (sameCoordinates(cell.coords, CENTER_COORDS)) {
+            return { x: 0, y: 0 }
+        }
         const cellLayout = getCellLayout(cell, this.numPlayers, this.gameState.board)
         return cellLayout.station?.point
     }

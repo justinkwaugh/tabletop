@@ -1,7 +1,13 @@
 import type { MapBonusArrow } from './bonusArrows.js'
 import { assertExists, type BoundingBox, type HexOrientation, type Point } from '@tabletop/common'
 import type { StationState, RailwayMap, TileEdge, TileFace, TileSet } from '@tabletop/18xx'
-import type { BoardArtwork, MapMarkerArt, MapPlacement, MapToken } from './mapDrawing.js'
+import type {
+    BoardArtwork,
+    MapMarkerArt,
+    MapPlacement,
+    MapToken,
+    PrintedLine
+} from './mapDrawing.js'
 import type { TileDrawing, TileDrawingStyle, TileLayout } from '../tiles/tileDrawing.js'
 import type { TileAppearance } from '../tiles/tileAppearance.js'
 import type { RevenueStageColors } from '../colors/revenueStageColors.js'
@@ -36,6 +42,8 @@ export type MapViewDefinition = {
     bonusArrows?: readonly MapBonusArrow[]
     /** Empty map regions, in map units, where the board view draws table panels. */
     boardAreas?: BoardAreas
+    /** Lines the board prints on untiled hexes, such as a river, by location id. */
+    printedLines?: Readonly<Record<string, readonly PrintedLine[]>>
     map: RailwayMap
     tileSet: TileSet
     stations: Readonly<Record<string, StationAppearance>>
@@ -59,6 +67,7 @@ export type MapViewDefinition = {
     revenueStageLabels?: Readonly<Record<string, string>>
     /** Phases printed beside each revenue stage's value, such as I-II. */
     revenueStageCaptions?: Readonly<Record<string, string>>
+    revenueStageCaptionColors?: Readonly<Record<string, string>>
     /** How staged values line up where a location's layout does not say. */
     revenueStack?: 'column' | 'row'
     /** Printed before terrain costs, such as ¥. */
@@ -72,7 +81,7 @@ export type MapViewDefinition = {
     cityNames?: Readonly<Record<string, Readonly<Record<string, string>>>>
     /** Explicit lines for a location's name, by location id; long names otherwise split in two. */
     nameLines?: Readonly<Record<string, readonly string[]>>
-    /** Offboards' names in their own larger type, as a board printing them for its connections. */
+    /** Offboards' and red towns' names in their own larger type, as a board printing them for its connections. */
     offboardNames?: OffboardNameStyle
     /**
      * Where a location's revenue-sized symbols go on its printed hex, by location id, in place of
@@ -84,6 +93,11 @@ export type MapViewDefinition = {
     >
     /** Locations whose curved city name runs under the city, reading along its foot. */
     namesBelow?: readonly string[]
+    /**
+     * Degrees clockwise to turn a hex's curved name from centred on its city, by location id, in
+     * place of the least turn that clears its track.
+     */
+    nameTurns?: Readonly<Record<string, number>>
     /** Centre of a location's terrain cost row, by location id, where it is not placed below the stops. */
     terrainPositions?: Readonly<Record<string, Point>>
     markerArt?: Readonly<Record<string, MapMarkerArt>>

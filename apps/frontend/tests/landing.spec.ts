@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { mockLibrary } from './fixtures/library'
+import { mockLibrary, mockTitles } from './fixtures/library'
 
 test.beforeEach(async ({ page }) => {
     await mockLibrary(page)
@@ -45,6 +45,19 @@ test('visitors can browse an expanding public collection before signing in', asy
     await page.keyboard.press('Escape')
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await expect(game).toBeFocused()
+})
+
+test('visitors can open a series and are asked to sign in from its games', async ({ page }) => {
+    await mockTitles(page, 4)
+    await page.goto('/')
+    await page.getByRole('link', { name: 'View 18xx, 4 games' }).click()
+    await expect(page).toHaveURL(/\/library\/series\/18xx$/)
+    await expect(page.locator('.game-shelf > li')).toHaveCount(4)
+    await page.getByRole('button', { name: 'Sign in to play Game 01' }).click()
+    await expect(page.getByRole('dialog')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await page.getByRole('link', { name: 'All games', exact: true }).click()
+    await expect(page).toHaveURL(/\/#games$/)
 })
 
 test('signup and sign-in switch within the same modal on a narrow screen', async ({ page }) => {

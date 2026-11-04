@@ -63,22 +63,7 @@ import {
 } from '../revenueTokens.js'
 import { TitleActionsHandler } from '../titleActions.js'
 import { CloseCompany, HydratedCloseCompany, closesCompanies, isCloseCompany } from '../closure.js'
-import {
-    CompletePriceProtection,
-    DeclineProtection,
-    HydratedCompletePriceProtection,
-    HydratedDeclineProtection,
-    HydratedProtectShares,
-    HydratedStartPriceProtection,
-    ProtectShares,
-    ProtectingPriceHandler,
-    StartPriceProtection,
-    isCompletePriceProtection,
-    isDeclineProtection,
-    isProtectShares,
-    isStartPriceProtection,
-    startsPriceProtection
-} from '../priceProtection.js'
+import { EighteenThirtyTwoPriceProtection, startsPriceProtection } from '../priceProtection.js'
 import type { EighteenThirtyTwoStateHandler } from '../state.js'
 import {
     AnswerMerger,
@@ -106,19 +91,7 @@ import {
     MergedTrainDiscards1832,
     startsMergerPhase
 } from '../mergers.js'
-import {
-    AnswerRedemption,
-    ConsentingRedemptionHandler,
-    HydratedAnswerRedemption,
-    HydratedRedeemShare,
-    HydratedReissueShares,
-    RedeemShare,
-    ReissueShares,
-    redeemsAndReissues,
-    isAnswerRedemption,
-    isRedeemShare,
-    isReissueShares
-} from '../redemption.js'
+import { EighteenThirtyTwoRedemption, redeemsAndReissues } from '../redemption.js'
 import { clearsSpentRecords } from '../spentRecords.js'
 
 // A company closes as its price enters the black area; once a seller finishes, the presidents
@@ -172,8 +145,8 @@ export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
         DistributingEarnings: recordsMiamiRun
     },
     titleStateHandlers: {
-        ProtectingPrice: closesCompanies(new ProtectingPriceHandler()),
-        ConsentingRedemption: new ConsentingRedemptionHandler(),
+        ProtectingPrice: closesCompanies(EighteenThirtyTwoPriceProtection.handler()),
+        ConsentingRedemption: EighteenThirtyTwoRedemption.consentHandler(),
         Merging: closesAndProtects(new MergingHandler())
     },
     titleActions: [
@@ -182,7 +155,8 @@ export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
             isCloseCompany,
             (action) => new HydratedCloseCompany(action, EighteenThirtyTwoEndingRules)
         ),
-        defineAction(RedeemShare, isRedeemShare, (action) => new HydratedRedeemShare(action)),
+        ...EighteenThirtyTwoRedemption.actions(),
+        ...EighteenThirtyTwoPriceProtection.actions(),
         defineAction(
             StartMergerPhase,
             isStartMergerPhase,
@@ -215,28 +189,6 @@ export const EighteenThirtyTwoTitleRules: EighteenXXTitleRules<
             CompleteMergerPhase,
             isCompleteMergerPhase,
             (action) => new HydratedCompleteMergerPhase(action, EighteenThirtyTwoEndingRules)
-        ),
-        defineAction(
-            AnswerRedemption,
-            isAnswerRedemption,
-            (action) => new HydratedAnswerRedemption(action)
-        ),
-        defineAction(ReissueShares, isReissueShares, (action) => new HydratedReissueShares(action)),
-        defineAction(
-            StartPriceProtection,
-            isStartPriceProtection,
-            (action) => new HydratedStartPriceProtection(action)
-        ),
-        defineAction(ProtectShares, isProtectShares, (action) => new HydratedProtectShares(action)),
-        defineAction(
-            DeclineProtection,
-            isDeclineProtection,
-            (action) => new HydratedDeclineProtection(action)
-        ),
-        defineAction(
-            CompletePriceProtection,
-            isCompletePriceProtection,
-            (action) => new HydratedCompletePriceProtection(action)
         ),
         defineAction(
             CapitalizeCompany,

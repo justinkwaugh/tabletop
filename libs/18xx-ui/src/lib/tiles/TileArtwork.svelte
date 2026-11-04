@@ -495,7 +495,28 @@
                                     font-weight="650"
                                     aria-label={`${cell.stage}: ${cell.amount}`}>{cell.text}</text
                                 >
-                                {#if cell.caption}
+                                {#if cell.caption && cell.captionColor}
+                                    {@const badgeX = cell.captionAfter
+                                        ? cell.width / 2 + 1.5
+                                        : -cell.width / 2 - 1.5 - cell.captionWidth}
+                                    <rect
+                                        data-revenue-caption-badge
+                                        x={badgeX}
+                                        y={-5}
+                                        width={cell.captionWidth}
+                                        height={10}
+                                        rx={1.5}
+                                        fill={cell.captionColor}
+                                    ></rect>
+                                    <text
+                                        data-revenue-caption
+                                        x={badgeX + cell.captionWidth / 2}
+                                        style:text-anchor="middle"
+                                        fill={contrastingTextColor(cell.captionColor)}
+                                        font-size="7.5"
+                                        font-weight="700">{cell.caption}</text
+                                    >
+                                {:else if cell.caption}
                                     <text
                                         data-revenue-caption
                                         x={cell.captionAfter

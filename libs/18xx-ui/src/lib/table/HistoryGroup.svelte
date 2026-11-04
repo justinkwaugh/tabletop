@@ -111,6 +111,10 @@
                     description.companyToken === operatingCompanyId
                         ? undefined
                         : description.companyToken,
+                milestoneColor:
+                    description.milestone && description.companyToken
+                        ? stations[description.companyToken]?.color
+                        : undefined,
                 stockPlayerId,
                 callouts: [
                     ...(description.certificateLimit
@@ -271,6 +275,11 @@
                     style:--phase-color={row.phase?.color}
                     style:--phase-ink={row.phase
                         ? contrastingTextColor(row.phase.color)
+                        : undefined}
+                    class:milestone={row.milestone}
+                    style:--milestone-color={row.milestoneColor}
+                    style:--milestone-ink={row.milestoneColor
+                        ? contrastingTextColor(row.milestoneColor)
                         : undefined}
                     class:important={row.important}
                     class:routine={row.routine}
@@ -492,6 +501,15 @@
             var(--rail-surface, #f7f5f0)
         );
         color: var(--rail-text, #302c27);
+    }
+    .history-entry.milestone {
+        --rail-text: var(--milestone-ink);
+        --rail-muted: var(--milestone-ink);
+        margin: 0.25em 0;
+        padding: 0.333em 0.5em;
+        border-radius: 3px;
+        background: var(--milestone-color);
+        color: var(--milestone-ink);
     }
     .phase-colors {
         display: inline-block;

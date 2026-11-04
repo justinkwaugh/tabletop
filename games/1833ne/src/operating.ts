@@ -38,20 +38,23 @@ import { IssuingCorporations1833NE, Market1833NE, MarketPoolId, StockRules1833NE
 import { JointTokenSource } from './track.js'
 import { Phases1833NE } from './trains.js'
 
+const CompanyNames: Readonly<Record<string, string>> = Object.fromEntries(
+    [...Corporations1833NE, ...VariableStartCorporations1833NE, ...Privates1833NE].map(
+        (company) => [company.id, company.name]
+    )
+)
+
 export const Names1833NE = titleNames(
-    Object.fromEntries([
-        ...[...Corporations1833NE, ...VariableStartCorporations1833NE].map((company) => [
-            company.id,
-            company.name
-        ]),
-        ...Privates1833NE.map((company) => [company.id, company.name])
-    ]),
+    CompanyNames,
     (poolId) =>
         poolId === MarketPoolId ? 'Market' : isTreasuryPoolId(poolId) ? 'Treasury' : undefined,
     {
         direct: 'Direct connection',
         interconnection: 'Interconnection',
-        ferry: 'Ferry'
+        ferry: 'Ferry',
+        P4: CompanyNames.P4,
+        P5: CompanyNames.P5,
+        P6: CompanyNames.P6
     }
 )
 

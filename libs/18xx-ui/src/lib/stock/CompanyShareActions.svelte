@@ -1,13 +1,33 @@
 <script lang="ts">
-    import { EighteenThirtyTwoMarket, type RedemptionChoice } from '@tabletop/1832'
-    import { CompanyActionCard, CompanyActionPanel } from '@tabletop/18xx-ui'
-    import { companyShareFacts, redemptionHolderName } from './companyShareFacts.js'
-    import type { EighteenThirtyTwoSession } from './session.svelte.js'
-    let { session }: { session: EighteenThirtyTwoSession } = $props()
+    import type { RedemptionChoice } from '@tabletop/18xx'
+    import CompanyActionCard from './CompanyActionCard.svelte'
+    import CompanyActionPanel from './CompanyActionPanel.svelte'
+    import { redemptionHolderName } from './shareActions.svelte.js'
+    import type { ComponentProps } from 'svelte'
+    import type { MoneyFormat } from '../presentation/money.js'
+    import type { CompanyShareOptions, ShareActions } from './shareActions.svelte.js'
+    let {
+        session,
+        actions
+    }: {
+        session: ComponentProps<typeof CompanyActionCard>['session'] & {
+            readonly presentation: { money: MoneyFormat }
+            readonly busy: boolean
+            readonly updatingVisibleState: boolean
+            readonly isViewingHistory: boolean
+            readonly gameState: { players: readonly { playerId: string }[] }
+            readonly colors: { getPlayerBgColorValue(playerId: string): string }
+            companyName(companyId: string): string
+            getPlayerName(playerId: string): string
+        }
+        actions: Pick<
+            ShareActions<never>,
+            'companyPrice' | 'companyFacts' | 'reissueShares' | 'redeemShare'
+        > & { readonly companyOptions: readonly CompanyShareOptions[] }
+    } = $props()
     const money = $derived(session.presentation.money)
     const gameState = $derived(session.gameState)
     const busy = $derived(session.busy || session.updatingVisibleState || session.isViewingHistory)
-    // Holders in seat order, as in the players panel.
     const bySeat = (choices: readonly RedemptionChoice[]) =>
         choices.toSorted((left, right) => seat(left) - seat(right))
     const seat = ({ holder }: RedemptionChoice) =>
@@ -17,15 +37,13 @@
 </script>
 
 <CompanyActionPanel label="Company share actions" heading="Act for a company">
-    {#each session.companyShareOptions as { companyId, redemptions, reissue } (companyId)}
+    {#each actions.companyOptions as { companyId, redemptions, reissue } (companyId)}
         {@const name = session.companyName(companyId)}
         <CompanyActionCard
             {session}
             {companyId}
-            value={money(
-                EighteenThirtyTwoMarket.companySpace(gameState.stockMarket, companyId).price
-            )}
-            facts={companyShareFacts(gameState, companyId, money)}
+            value={money(actions.companyPrice(companyId))}
+            facts={actions.companyFacts(companyId, money)}
             actions={reissue
                 ? [
                       {
@@ -33,7 +51,7 @@
                           detail: `at ${money(reissue.parPrice)}`,
                           ariaLabel: `Reissue ${name}'s redeemed shares at ${money(reissue.parPrice)}`,
                           disabled: busy,
-                          onclick: () => session.reissueShares(companyId)
+                          onclick: () => actions.reissueShares(companyId)
                       }
                   ]
                 : []}
@@ -58,7 +76,7 @@
                                     : undefined}
                                 disabled={busy}
                                 aria-label={`Redeem a ${name} share from ${from} for ${money(choice.price)}`}
-                                onclick={() => session.redeemShare(choice)}
+                                onclick={() => actions.redeemShare(choice)}
                                 >{#if playerId}<span class="player-color"></span>{/if}{playerId
                                     ? from
                                     : 'Market'}</button
@@ -72,7 +90,6 @@
 </CompanyActionPanel>
 
 <style>
-    /* The holders widen the card up to the panel's width, then wrap. */
     .redemption {
         width: max-content;
         max-width: calc(100cqw - 2px);

@@ -15,6 +15,8 @@ export {
 export { TileColors } from './tiles/tilePresentation.js'
 export { StandardTileLayouts, towardTileEdge } from './tiles/standardTileLayouts.js'
 export * from './maps/mapDrawing.js'
+export * from './maps/printedLinePath.js'
+export * from './maps/companyMark.js'
 export { default as MapScene } from './maps/MapScene.svelte'
 export { default as MapInspector } from './maps/MapInspector.svelte'
 export {
@@ -39,6 +41,7 @@ export { default as StockMarket } from './stock/StockMarket.svelte'
 
 export * from './maps/stationPresentation.js'
 export type { BonusArrowFooter, MapBonusArrow } from './maps/bonusArrows.js'
+export { contrastingTextColor } from './colors/contrastingTextColor.js'
 export type { RevenueStageColor, RevenueStageColors } from './colors/revenueStageColors.js'
 export { default as MapViewer } from './maps/MapViewer.svelte'
 export { default as FinanceMap } from './maps/FinanceMap.svelte'
@@ -73,7 +76,9 @@ export type {
     TitleHistoryNames
 } from './table/historyDescription.js'
 export {
+    companyClosedRow,
     companyClosureDetails,
+    stopRightsBoughtRow,
     departurePaymentsDetail,
     joinDetails,
     ownerName
@@ -86,6 +91,7 @@ export type {
     MarketZone,
     MarketZoneBanner,
     MarketZoneFill,
+    PlaceConnection,
     PrivateTokenPresentation,
     TitleFact,
     TitleOperatingStep,
@@ -143,11 +149,24 @@ export { default as CompanyAuctionBidding } from './stock/CompanyAuctionBidding.
 export { default as CompanyFormation } from './stock/CompanyFormation.svelte'
 export { default as CompanyPar } from './stock/CompanyPar.svelte'
 export { default as CompanyActionCard, type CardAction } from './stock/CompanyActionCard.svelte'
+export { default as CompanyShareActions } from './stock/CompanyShareActions.svelte'
+export { default as PendingShareDecision } from './stock/PendingShareDecision.svelte'
+export {
+    ShareActions,
+    redemptionHolderName,
+    type CompanyShareOptions,
+    type ShareActionNames
+} from './stock/shareActions.svelte.js'
+export { describeShareAction } from './stock/shareActionHistory.js'
 export { default as StockPanelHeading } from './stock/StockPanelHeading.svelte'
 export { default as CompanyActionPanel } from './stock/CompanyActionPanel.svelte'
 
 export { default as PrivateCard } from './privates/PrivateCard.svelte'
-export { createPhaseChart, type PhaseChartData } from './phases/phaseChart.js'
+export {
+    createDieselPhaseChart,
+    createPhaseChart,
+    type PhaseChartData
+} from './phases/phaseChart.js'
 
 export * from './stock/marketAnimationSource.js'
 
@@ -158,6 +177,9 @@ export { default as BoardInset } from './maps/BoardInset.svelte'
 
 export { RoutesModule, type RoutesSession } from './session/routesModule.svelte.js'
 export { TitleStockPanels, type TitleStockPanel } from './session/titleStockPanels.svelte.js'
+export { StopRightsActions } from './session/stopRightsActions.svelte.js'
+export { default as TitlePrompt } from './table/TitlePrompt.svelte'
+export { default as ShareTitleActions } from './table/ShareTitleActions.svelte'
 export { default as RouteBuilding } from './routes/RouteBuilding.svelte'
 export { runForHistoryStep } from './routes/runForHistoryStep.js'
 

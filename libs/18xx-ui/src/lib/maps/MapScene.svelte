@@ -9,7 +9,7 @@
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import type { StationAppearance } from './stationPresentation.js'
     import type { StationReservation } from '@tabletop/18xx'
-    import type { BoundingBox } from '@tabletop/common'
+    import type { BoundingBox, Point } from '@tabletop/common'
     import TileArtwork from '../tiles/TileArtwork.svelte'
     import TileSymbol from '../tiles/TileSymbol.svelte'
     import { PortSymbol } from '../tiles/tileSymbols.js'
@@ -20,6 +20,7 @@
         mapViewport,
         type BoardArtwork,
         printedMapReservations,
+        localLinePosition,
         mapBorderCosts,
         terrainRowWidths,
         type MapDrawing,
@@ -77,8 +78,8 @@
         onselect?: (selection: MapSelection) => void
     } = $props()
     const viewport = $derived(mapViewport(scene, hexDiameter, artwork, extents))
-    const perimeterMaskId = $props.id()
-    const perimeterRoundingId = `${perimeterMaskId}-rounding`
+    const sceneId = $props.id()
+    const perimeterRoundingId = `${sceneId}-rounding`
     const currentReservations = $derived([
         ...(reservations ?? printedMapReservations(scene)),
         // A printed space stays held until any token stands in its city.
@@ -91,11 +92,22 @@
                 )
         )
     ])
+    const TokenOutlineWidth = 2.1
     // A token's tab tucks behind its right side and reaches out to the room kept for it.
     const TabTuck = 3
     const TabHeight = 13
     const TabWidth = TokenTabReach
     const reservedAppearances = $derived({ ...scene.sharedStations, ...stationAppearances })
+    const stationOutlines = $derived.by(() => {
+        const outlines = new Map<string, string>()
+        for (const entry of scene.locations)
+            for (const marker of entry.location.markers ?? []) {
+                const art = entry.markerArt[marker.id]
+                if (art && 'stationOutline' in art)
+                    outlines.set(art.stationOutline.stationId, art.stationOutline.color)
+            }
+        return outlines
+    })
     const entries = $derived.by(() => {
         assertMapOverlays(scene, tokens, routes, currentReservations)
         return scene.locations
@@ -139,6 +151,19 @@
     }
 </script>
 
+{#snippet tokenOutline(center: Point, radius: number, color: string | undefined)}
+    {#if color}
+        <circle
+            cx={center.x}
+            cy={center.y}
+            r={radius + TokenOutlineWidth / 2}
+            fill="none"
+            stroke={color}
+            stroke-width={TokenOutlineWidth}
+        ></circle>
+    {/if}
+{/snippet}
+
 <svg
     xmlns="http://www.w3.org/2000/svg"
     width={viewport.width}
@@ -171,7 +196,7 @@
                     <feFuncA type="linear" slope="20" intercept="-9.5"></feFuncA>
                 </feComponentTransfer>
             </filter>
-            <mask id={perimeterMaskId} maskUnits="userSpaceOnUse" {...scene.bounds}>
+            <mask id={sceneId} maskUnits="userSpaceOnUse" {...scene.bounds}>
                 <g
                     fill="white"
                     stroke="white"
@@ -198,7 +223,7 @@
         </defs>
         <rect
             {...scene.bounds}
-            mask={`url(#${perimeterMaskId})`}
+            mask={`url(#${sceneId})`}
             fill="#24272b"
             fill-opacity="0.45"
             pointer-events="none"
@@ -312,6 +337,11 @@
                                     x={point.x - tokenSize / 2}
                                     y={point.y - tokenSize / 2}
                                 />
+                                {@render tokenOutline(
+                                    point,
+                                    node.slotRadius,
+                                    stationOutlines.get(token.id)
+                                )}
                             </g>
                         {/if}
                         {@const reservedAppearance = reservedAppearances[reservedBySlot[slot]]}
@@ -580,6 +610,11 @@
                                     height={annotation.radius * 2}
                                     ><title>{annotation.label}</title></image
                                 >
+                                {@render tokenOutline(
+                                    annotation,
+                                    annotation.radius,
+                                    annotation.outline
+                                )}
                             {:else}
                                 <g
                                     data-map-revenue-symbol={annotation.markerId}
@@ -670,6 +705,27 @@
             </g>
         {/if}
     {/each}
+    <g data-map-layer="printed-lines" fill="none" pointer-events="none" aria-hidden="true">
+        {#each entries
+            .filter((entry) => !entry.placed && !entry.hidden)
+            .flatMap((entry) => entry.printedLines.map((line, index) => ({ entry, line, index })))
+            .sort((a, b) => a.line.width - b.line.width) as { entry, line, index } (`${entry.location.id}:${line.d}`)}
+            {@const clipId = `${sceneId}-printed-line-${entry.location.id}-${index}`}
+            <!-- A line's round cap and width stop at its hex, so they never reach a tile next door. -->
+            <clipPath id={clipId}>
+                <polygon points={entry.drawing.polygon}></polygon>
+            </clipPath>
+            <path
+                transform={`translate(${entry.center.x} ${entry.center.y})`}
+                clip-path={`url(#${clipId})`}
+                d={line.d}
+                stroke={line.color}
+                stroke-width={line.width}
+                stroke-linecap="round"
+                data-map-printed-line
+            ></path>
+        {/each}
+    </g>
     {#if !artwork}
         <g data-map-layer="outlines" fill="none" pointer-events="none" aria-hidden="true">
             {#each entries as entry (entry.location.id)}
@@ -724,7 +780,7 @@
         <g data-map-layer="names" pointer-events="none" aria-hidden="true">
             {#each entries.filter((entry) => entry.nameShown) as entry (entry.location.id)}
                 {#each entry.nameArcs as arc, index (index)}
-                    {@const pathId = `${perimeterMaskId}-name-${entry.location.id}-${index}`}
+                    {@const pathId = `${sceneId}-name-${entry.location.id}-${index}`}
                     <!-- Over the top the path runs clockwise; under the foot it runs back so the letters stay upright. -->
                     {@const middle = (arc.below ? 90 : -90) + arc.rotation}
                     {@const from = middle + (arc.below ? 120 : -120)}
@@ -819,9 +875,13 @@
                 const art = entry.markerArt[marker.id]
                 return art && 'localLine' in art
             }) as marker (marker.id)}
+                {@const position = localLinePosition(
+                    entry.markerArt[marker.id],
+                    entry.localLineAboveY
+                )}
                 <g
                     data-map-marker-local-line={marker.id}
-                    transform={`translate(${entry.center.x + 4} ${entry.center.y + (entry.localLineAboveY !== undefined && entry.markerArt[marker.id] && 'above' in entry.markerArt[marker.id] ? entry.localLineAboveY : 32)})`}
+                    transform={`translate(${entry.center.x + position.x} ${entry.center.y + position.y})`}
                     fill={appearance.ink}
                 >
                     <text

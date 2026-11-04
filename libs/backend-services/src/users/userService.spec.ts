@@ -2,7 +2,15 @@ import { TokenType } from '../tokens/dataToken.js'
 import { describe, expect, it, vi } from 'vitest'
 import { ExternalAuthService, Role, UserStatus, type User } from '@tabletop/common'
 import { UserService } from './userService.js'
-import { AccountUnavailableError, InvalidPasswordError, InvalidTimeZoneError } from './errors.js'
+import {
+    AccountModerationError,
+    AccountUnavailableError,
+    InvalidPasswordError,
+    InvalidTimeZoneError,
+    UsernameNotAllowedError
+} from './errors.js'
+import { AccountChangeType } from '../email/emailService.js'
+import type { AuthenticatedSession } from '../sessions/authenticatedSession.js'
 import type { UserStore } from '../persistence/stores/userStore.js'
 import type { TaskService } from '../tasks/taskService.js'
 import { UpdateValidationResult } from '../persistence/stores/validator.js'
@@ -321,5 +329,266 @@ describe('Password Credential changes', () => {
             service.setPassword({ userId: 'a', secret, password: 'a-new-password-value' })
         ).rejects.toThrow(InvalidChallengeError)
         expect(updatePassword).not.toHaveBeenCalled()
+    })
+})
+
+describe('account moderation', () => {
+    const session: AuthenticatedSession = {
+        id: 'session',
+        userId: 'a',
+        generation: 0,
+        createdAt: new Date(0),
+        expiresAt: new Date(Date.now() + 60_000)
+    }
+
+    describe('username restrictions', () => {
+        it('refuses an offensive username at sign up', async () => {
+            const createUser = vi.fn<UserStore['createUser']>()
+            const store: UserStore = Object.create(null)
+            store.createUser = createUser
+            const service = new UserService(
+                store,
+                TokenService.prototype,
+                LocalTaskService.prototype
+            )
+
+            await expect(
+                service.createUser({ ...user, username: 'n1gger' }, 'a long enough password')
+            ).rejects.toThrow(UsernameNotAllowedError)
+            expect(createUser).not.toHaveBeenCalled()
+        })
+
+        it('refuses renaming yourself to an offensive username', async () => {
+            const { service } = fixture()
+            await expect(service.updateUser(session, { username: 'n1gger' })).rejects.toThrow(
+                UsernameNotAllowedError
+            )
+        })
+
+        it('lets an existing account keep its username while changing something else', async () => {
+            const { service } = fixture({ ...user, username: 'Fuckface' })
+            await expect(service.updateUser(session, { username: 'fuckFACE' })).resolves.toEqual(
+                expect.objectContaining({ username: 'fuckFACE' })
+            )
+        })
+    })
+
+    describe('renameAccount', () => {
+        function renameFixture(existing: User) {
+            const notifications = vi.fn(async () => undefined)
+            const updateUser = vi.fn<UserStore['updateUser']>(async ({ fields, validator }) => {
+                const stored: StoredUser = {
+                    ...existing,
+                    createdAt: existing.createdAt,
+                    updatedAt: existing.updatedAt
+                }
+                validator?.(stored, fields)
+                const updatedUser = { ...existing, ...fields, updatedAt: new Date(5) }
+                return [updatedUser, ['username', 'updatedAt'], existing]
+            })
+            const store: UserStore = Object.create(null)
+            store.updateUser = updateUser
+            const tasks = Object.create(LocalTaskService.prototype)
+            tasks.sendAccountChangeNotificationEmail = notifications
+            return {
+                service: new UserService(store, TokenService.prototype, tasks),
+                notifications
+            }
+        }
+
+        it('applies an administrator choice past the word filter and tells the account', async () => {
+            const { service, notifications } = renameFixture({
+                ...user,
+                username: 'Old',
+                email: 'a@example.test'
+            })
+
+            const renamed = await service.renameAccount('a', 'Fuckface')
+
+            expect(renamed.username).toBe('Fuckface')
+            expect(notifications).toHaveBeenCalledExactlyOnceWith({
+                email: 'a@example.test',
+                changeType: AccountChangeType.Username,
+                timestamp: new Date(5),
+                username: 'Fuckface'
+            })
+        })
+
+        it('refuses a deleted account', async () => {
+            const { service } = renameFixture({ ...user, status: UserStatus.Deleted })
+            await expect(service.renameAccount('a', 'New')).rejects.toThrow(AccountModerationError)
+        })
+    })
+
+    describe('banAccount', () => {
+        it('refuses your own account before touching the store', async () => {
+            const { service, updateUser } = fixture()
+            await expect(service.banAccount('a', 'a')).rejects.toThrow(AccountModerationError)
+            expect(updateUser).not.toHaveBeenCalled()
+        })
+
+        it('refuses an administrator', async () => {
+            const { service } = fixture({ ...user, roles: [Role.User, Role.Admin] })
+            await expect(service.banAccount('a', 'other')).rejects.toThrow(AccountModerationError)
+        })
+
+        it('refuses a deleted account', async () => {
+            const { service } = fixture({ ...user, status: UserStatus.Deleted })
+            await expect(service.banAccount('a', 'other')).rejects.toThrow(AccountModerationError)
+        })
+
+        it('makes the account Inactive', async () => {
+            const { service, updateUser } = fixture()
+            await expect(service.banAccount('a', 'other')).resolves.toMatchObject({
+                status: UserStatus.Inactive
+            })
+            expect(updateUser).toHaveBeenCalledExactlyOnceWith(
+                expect.objectContaining({ fields: { status: UserStatus.Inactive } })
+            )
+        })
+    })
+
+    describe('unbanAccount', () => {
+        it('leaves an account that is not banned untouched', async () => {
+            const deleted = { ...user, status: UserStatus.Deleted }
+            const { service } = fixture(deleted)
+            await expect(service.unbanAccount('a')).resolves.toEqual(deleted)
+        })
+    })
+
+    describe('username search', () => {
+        function searchFixture() {
+            const store: UserStore = Object.create(null)
+            store.findActiveUsernames = vi.fn(async () => ['alice', 'alina'])
+            store.findAllUsernames = vi.fn(async () => ['alice', 'alina', 'alibanned'])
+            store.findByUsername = vi.fn(async (username: string) => ({ ...user, username }))
+            store.updateUser = vi.fn<UserStore['updateUser']>(async ({ fields }) => {
+                const updated = { ...user, username: 'alina', ...fields }
+                return [updated, Object.keys(fields), { ...user, username: 'alina' }]
+            })
+            return {
+                store,
+                service: new UserService(store, TokenService.prototype, LocalTaskService.prototype)
+            }
+        }
+
+        // The first search loads the list, and that load would overwrite anything added before it.
+        async function loadListedUsernames(service: UserService) {
+            await service.searchUsernames('any')
+        }
+
+        it('offers players only Active accounts', async () => {
+            const { service } = searchFixture()
+            expect(await service.searchUsernames('ali')).toEqual(
+                expect.not.arrayContaining(['alibanned'])
+            )
+        })
+
+        it('lets an administrator find a banned account', async () => {
+            const { service } = searchFixture()
+            const found = await service.searchUsers('alib')
+            expect(found.map((account) => account.username)).toEqual(['alibanned'])
+        })
+
+        it('drops a banned account from the players search at once', async () => {
+            const { service } = searchFixture()
+            expect(await service.searchUsernames('alina')).toEqual(['alina'])
+            await service.banAccount('a', 'other')
+            expect(await service.searchUsernames('alina')).toEqual([])
+        })
+
+        it('does not offer a new account until it is Active', async () => {
+            const { service, store } = searchFixture()
+            await loadListedUsernames(service)
+            store.createUser = vi.fn(async (created: User) => created)
+
+            await service.createUser(
+                { ...user, status: UserStatus.Incomplete, username: 'Newcomer' },
+                'a long enough password'
+            )
+
+            expect(await service.searchUsernames('newcomer')).toEqual([])
+        })
+
+        it('does not offer a username an Incomplete account chooses in onboarding', async () => {
+            const { service, store } = searchFixture()
+            await loadListedUsernames(service)
+            const incomplete = { ...user, status: UserStatus.Incomplete }
+            store.updateUser = vi.fn<UserStore['updateUser']>(async ({ fields }) => [
+                { ...incomplete, ...fields },
+                ['username'],
+                incomplete
+            ])
+
+            await service.updateUser(session, { username: 'Newcomer' })
+
+            expect(await service.searchUsernames('newcomer')).toEqual([])
+        })
+
+        it('offers an account once verifying its email makes it Active', async () => {
+            const { service, store } = searchFixture()
+            await loadListedUsernames(service)
+            const account = {
+                ...user,
+                status: UserStatus.Incomplete,
+                username: 'Newcomer',
+                email: 'a@example.test'
+            }
+            store.updateUser = vi.fn<UserStore['updateUser']>(async () => [
+                { ...account, status: UserStatus.Active },
+                ['emailVerified', 'status'],
+                account
+            ])
+            const consume = vi
+                .spyOn(TokenService.prototype, 'consumeChallenge')
+                .mockReturnValue(async () => {})
+
+            await service.verifyEmail(account, 'code')
+            expect(await service.searchUsernames('newcomer')).toEqual(['newcomer'])
+
+            await service.verifyEmail(account, 'code')
+            expect(await service.searchUsernames('newcomer')).toEqual(['newcomer'])
+            consume.mockRestore()
+        })
+
+        it('offers an account once choosing a username makes it Active', async () => {
+            const { service, store } = searchFixture()
+            await loadListedUsernames(service)
+            const account = {
+                ...user,
+                status: UserStatus.Incomplete,
+                email: 'a@example.test',
+                emailVerified: true
+            }
+            store.updateUser = vi.fn<UserStore['updateUser']>(async () => [
+                { ...account, status: UserStatus.Active, username: 'Newcomer' },
+                ['username', 'status'],
+                account
+            ])
+
+            await service.updateUser(session, { username: 'Newcomer' })
+
+            expect(await service.searchUsernames('newcomer')).toEqual(['newcomer'])
+        })
+
+        it('offers an Active account under its new name after it renames itself', async () => {
+            const { service } = searchFixture()
+            await loadListedUsernames(service)
+
+            await service.updateUser(session, { username: 'Zelda' })
+
+            expect(await service.searchUsernames('zelda')).toEqual(['zelda'])
+            expect(await service.searchUsernames('alina')).toEqual([])
+        })
+
+        it("reloads the players list once it is old, picking up another instance's changes", async () => {
+            const { service, store } = searchFixture()
+            const now = vi.spyOn(Date, 'now').mockReturnValue(1_000)
+            await service.searchUsernames('ali')
+            now.mockReturnValue(1_000 + 5 * 60 * 1000 + 1)
+            await service.searchUsernames('ali')
+            expect(store.findActiveUsernames).toHaveBeenCalledTimes(2)
+            now.mockRestore()
+        })
     })
 })

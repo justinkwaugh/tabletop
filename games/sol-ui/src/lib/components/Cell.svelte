@@ -157,7 +157,8 @@
                             destination: cell.coords,
                             cluster: gameSession.clusterChoice,
                             juggernaut: gameSession.juggernautStationId !== undefined,
-                            catapult: gameSession.catapultChoice ?? false
+                            catapult: gameSession.catapultChoice ?? false,
+                            hurling: isCenterCell
                         })
                     }
                 }
@@ -168,11 +169,11 @@
                 )
 
                 if (
-                    gameSession.gameState.activeEffect === EffectType.Juggernaut &&
-                    gameSession.gameState.board.hasStationAt(cell.coords, myPlayerState.playerId) &&
-                    (gameSession.gameState.getEffectTracking().flownStationId === undefined ||
-                        gameSession.gameState.getEffectTracking().flownStationId ===
-                            gameSession.gameState.board.cellAt(cell.coords).station?.id)
+                    HydratedFly.isMovableJuggernautStation(
+                        gameSession.gameState,
+                        myPlayerState.playerId,
+                        gameSession.gameState.board.cellAt(cell.coords).station
+                    )
                 ) {
                     return true
                 }
