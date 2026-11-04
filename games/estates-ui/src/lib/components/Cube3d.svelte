@@ -21,6 +21,10 @@
         opacity?: number
     } & Props<typeof Group> = $props()
 
+    const numberColor = $derived(
+        gameSession.hasDarkCubeNumber(cube.company) ? '#222222' : '#CCCCCC'
+    )
+
     const material = new MeshBasicMaterial({
         toneMapped: false,
         transparent: opacity !== 1,
@@ -42,7 +46,7 @@
 
     {#if singleNumber}
         <Text
-            color="#CCCCCC"
+            color={numberColor}
             position.y={0.5}
             rotation.x={-Math.PI / 2}
             depthOffset={-1}
@@ -58,7 +62,7 @@
 
     {#if !singleNumber}
         <Text
-            color="#CCCCCC"
+            color={numberColor}
             position.z={0.5}
             depthOffset={-1}
             fontSize={0.8}
@@ -70,7 +74,7 @@
             {material}
         />
         <Text
-            color="#CCCCCC"
+            color={numberColor}
             rotation.y={Math.PI}
             position.z={-0.5}
             depthOffset={-1}
@@ -83,7 +87,7 @@
             {material}
         />
         <Text
-            color="#CCCCCC"
+            color={numberColor}
             rotation.y={-Math.PI / 2}
             position.x={-0.5}
             depthOffset={-1}
@@ -96,7 +100,7 @@
             {material}
         />
         <Text
-            color="#CCCCCC"
+            color={numberColor}
             rotation.y={Math.PI / 2}
             position.x={0.5}
             depthOffset={-1}

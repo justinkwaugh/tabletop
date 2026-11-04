@@ -79,6 +79,10 @@ export class EstatesGameSession extends GameSession<
         }
     }
 
+    hasDarkCubeNumber(company: Company): boolean {
+        return this.getCompanyColor(company) === Color.Yellow
+    }
+
     cancel() {}
 
     override willUndo() {
