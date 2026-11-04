@@ -16,6 +16,7 @@
         type MajorEntry
     } from '$lib/model/actionCatalogue.js'
     import {
+        facedownTollLine,
         freeActionDueLine,
         gridRefusal,
         refusalWords,
@@ -144,6 +145,9 @@
     }
 
     let freeActionDue = $derived(freeActionDueLine(gameState, seat.playerId))
+    // R-6.1, R-7.1.4 — where the Adviser chip would stand: plain words, not a chip, so no chip
+    // count or width reads it.
+    let tollLine = $derived(facedownTollLine(gameState, seat.playerId))
 
     function send(type: ActionType) {
         if (type === ActionType.EndActPhase) void gameSession.endActPhase()
@@ -236,42 +240,49 @@
         {/each}
     </div>
 
-    {#if minors.length > 0}
-        <div
-            class="minors flex flex-wrap"
-            style:--chip-gap="{CHIP_GAP}px"
-            style:--columns={chips?.columns}
-        >
-            {#each minors as entry (entry.type)}
-                {@const ring = ringed(entry)}
-                <!-- The ring is drawn inside the chip's edge, so no parent can clip it. -->
-                <button
-                    class="chip {CHIP} transition-colors hover:border-oath-accent cursor-pointer
-                           {ring
-                        ? 'border-oath-accent text-oath-accent ring-1 ring-inset ring-oath-accent'
-                        : 'border-oath-frame'}"
-                    {...pointing(entry)}
-                    aria-describedby={ring ? reasonId : undefined}
-                    style:width={chipWidth > 0 ? `${chipWidth}px` : undefined}
-                    onclick={() => take(entry)}
-                >
-                    {entry.label}
-                </button>
-            {/each}
+    {#if minors.length > 0 || tollLine}
+        <div class="minor-col" style:--chip-gap="{CHIP_GAP}px">
+            {#if tollLine}
+                <p data-toll-line class="toll-line text-[11px] leading-snug text-oath-text-muted">
+                    {tollLine}
+                </p>
+            {/if}
+            {#if minors.length > 0}
+                <div class="minors flex flex-wrap" style:--columns={chips?.columns}>
+                    {#each minors as entry (entry.type)}
+                        {@const ring = ringed(entry)}
+                        <!-- The ring is drawn inside the chip's edge, so no parent can clip it. -->
+                        <button
+                            class="chip {CHIP} transition-colors hover:border-oath-accent cursor-pointer
+                                   {ring
+                                ? 'border-oath-accent text-oath-accent ring-1 ring-inset ring-oath-accent'
+                                : 'border-oath-frame'}"
+                            {...pointing(entry)}
+                            aria-describedby={ring ? reasonId : undefined}
+                            style:width={chipWidth > 0 ? `${chipWidth}px` : undefined}
+                            onclick={() => take(entry)}
+                        >
+                            {entry.label}
+                        </button>
+                    {/each}
+                </div>
+            {/if}
         </div>
-        <!-- Each label measured on one line and at its longest word, in a chip's padding and border. -->
-        <div class="ruler" aria-hidden="true">
-            {#each minors as entry (entry.type)}
-                <span class="chip {CHIP}"
-                    ><span class="block w-max" {@attach labelWidth.measure}>{entry.label}</span
-                    ></span
-                >
-                <span class="chip {CHIP}"
-                    ><span class="block w-min" {@attach wordWidth.measure}>{entry.label}</span
-                    ></span
-                >
-            {/each}
-        </div>
+        {#if minors.length > 0}
+            <!-- Each label measured on one line and at its longest word, in a chip's padding and border. -->
+            <div class="ruler" aria-hidden="true">
+                {#each minors as entry (entry.type)}
+                    <span class="chip {CHIP}"
+                        ><span class="block w-max" {@attach labelWidth.measure}>{entry.label}</span
+                        ></span
+                    >
+                    <span class="chip {CHIP}"
+                        ><span class="block w-min" {@attach wordWidth.measure}>{entry.label}</span
+                        ></span
+                    >
+                {/each}
+            </div>
+        {/if}
     {/if}
 </div>
 
@@ -297,8 +308,15 @@
         width: calc(100cqw - 26px);
         height: 0;
     }
-    .minors {
+    /* The toll line stands first in the minors' row, before the chips. */
+    .minor-col {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--chip-gap);
         margin-top: var(--chip-gap);
+    }
+    .minors {
         gap: var(--chip-gap);
     }
     .ruler {
@@ -319,6 +337,9 @@
             grid-template-columns: repeat(var(--columns, 1), max-content);
             justify-content: start;
         }
+        .toll-line {
+            font-size: 12px;
+        }
         .chip {
             min-height: 44px;
             padding: 0 10px;
@@ -338,7 +359,14 @@
             column-gap: var(--beside-gap);
             align-items: start;
         }
-        .actions--beside .minors {
+        /* Upright, the line wraps in the minors' column, above the chips. */
+        .minor-col {
+            display: block;
+        }
+        .toll-line {
+            margin-bottom: var(--chip-gap);
+        }
+        .actions--beside .minor-col {
             margin-top: 0;
         }
         .majors {

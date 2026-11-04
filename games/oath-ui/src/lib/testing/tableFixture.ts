@@ -46,6 +46,8 @@ import {
     SetupChoice,
     Suit,
     TOP_CRADLE_SLOT,
+    Trade,
+    TradeOption,
     Travel,
     UseActionPower,
     PowerChoiceKind,
@@ -276,6 +278,7 @@ export type TableName =
     | 'usePower'
     | ModifierScene
     | FacedownScene
+    | FacedownTollScene
     | 'greatHerdFlip'
     | 'showOne'
     | 'exileCitizens'
@@ -4223,6 +4226,94 @@ function conspiracyNoTakeTable(machineState: MachineState, me: Partial<Seat>): P
 /** R-6.1, R-7.4 — the scenes for the Search cards a facedown adviser's play may use. */
 type FacedownScene = 'facedownCards' | 'facedownFullSite' | 'facedownNewGrowth'
 
+/** R-6.1, R-7.1.4 — the scenes for Forced Labor's toll on a facedown adviser's play. */
+type FacedownTollScene =
+    | 'facedownToll'
+    | 'facedownTollPaid'
+    | 'facedownTollCitizen'
+    | 'facedownTollFreeTravel'
+    | 'facedownTollTraded'
+
+/**
+ * R-6.1, R-7.1.4 — Mara's Act Phase at the Plains, which Rhys, the Chancellor, rules with Forced
+ * Labor there. Mara is an Exile with 0 favor, 1 secret and Supply 4, holding the Vision of Conquest
+ * facedown and Animal Playmates faceup, so the toll bars every facedown play. Dana is an Exile at
+ * the Steppe. `facedownTollPaid`: Mara holds 1 favor. `facedownTollCitizen`: Mara is a Citizen,
+ * no enemy of the ruler. `facedownTollFreeTravel`: a free Travel is due first. `facedownTollTraded`:
+ * Mara has traded with Forced Labor for favor.
+ */
+function facedownTollTable(scene: FacedownTollScene): PlayedTable {
+    const plains = mapSlotsFor(Region.Provinces)[1]
+    const steppe = mapSlotsFor(Region.Hinterland)[0]
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'mara',
+                color: Color.Red,
+                status: scene === 'facedownTollCitizen' ? PlayerStatus.Citizen : PlayerStatus.Exile,
+                siteId: plains,
+                supply: 4,
+                favor: scene === 'facedownTollPaid' ? 1 : 0,
+                secrets: 1,
+                advisers: [
+                    { cardId: 'vision.conquest', faceUp: false },
+                    { cardId: 'denizen.beast.animal-playmates', faceUp: true }
+                ],
+                warbandsInPersonalBank: { mara: 14 }
+            }),
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotsFor(Region.Provinces)[0],
+                favor: 3,
+                secrets: 1,
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 12 }
+            }),
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Blue,
+                status: PlayerStatus.Exile,
+                siteId: steppe,
+                favor: 2,
+                secrets: 2,
+                warbandsInPersonalBank: { dana: 14 }
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            oathRevision: CURRENT_OATH_REVISION,
+            chancellorPlayerId: 'rhys',
+            map: allMapSlots(),
+            siteCards: {
+                ...fixtureSitesOnTheBoard(),
+                [plains]: 'site.plains',
+                [steppe]: 'site.steppe'
+            },
+            denizensBySite: { [plains]: [FORCED_LABOR] },
+            warbandsBySite: { [plains]: { [IMPERIAL_WARBANDS]: 2 } }
+        }
+    )
+    if (scene === 'facedownTollFreeTravel') {
+        state.getPlayerState('mara').freeTravelAtAction = state.actionCount
+    }
+    openTurn(state, 'mara')
+    state.activePlayerIds = ['mara']
+    const names = { mara: 'Mara', rhys: 'Rhys', dana: 'Dana' }
+    const table = { ...tableOf(state), names }
+    if (scene !== 'facedownTollTraded') return table
+    const traded = played(table, [
+        createAction(Trade, {
+            ...envelope(table),
+            playerId: 'mara',
+            cardId: FORCED_LABOR,
+            option: TradeOption.ForFavor,
+            modifiers: []
+        })
+    ])
+    return { ...traded, names }
+}
+
 /**
  * R-6.1, R-7.4 — the seat's one facedown adviser, War Tortoise (a beast card), with Wild Cry and
  * Crop Rotation faceup and the Cracked Horn; its site holds Book Binders and Fabled Feast, with
@@ -5648,6 +5739,11 @@ const TABLES: Record<TableName, () => PlayedTable | Promise<PlayedTable>> = {
     facedownCards: () => facedownTable('facedownCards'),
     facedownFullSite: () => facedownTable('facedownFullSite'),
     facedownNewGrowth: () => facedownTable('facedownNewGrowth'),
+    facedownToll: () => facedownTollTable('facedownToll'),
+    facedownTollPaid: () => facedownTollTable('facedownTollPaid'),
+    facedownTollCitizen: () => facedownTollTable('facedownTollCitizen'),
+    facedownTollFreeTravel: () => facedownTollTable('facedownTollFreeTravel'),
+    facedownTollTraded: () => facedownTollTable('facedownTollTraded'),
     greatHerdFlip: greatHerdFlipTable,
     modifierPair: () => modifierTable('modifierPair'),
     smallFriendsSites: () => tradeSitesTable('smallFriendsSites'),
