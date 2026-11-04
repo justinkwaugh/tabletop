@@ -2,28 +2,24 @@ import {
     ActionSource,
     createAction,
     GameCategory,
+    GameEngine,
     GameStatus,
     GameStorage,
     PlayerStatus,
     type Game,
-    type Player,
-    type UninitializedGameState
+    type Player
 } from '@tabletop/common'
 import type { Static, TSchema } from 'typebox'
-import { SolGameInitializer } from '../definition/gameInitializer.js'
+import { SolRuntime } from '../definition/runtime.js'
 import type { SolGameConfig } from '../definition/gameConfig.js'
 import type { HydratedSolGameState } from '../model/gameState.js'
 
-const initializer = new SolGameInitializer()
+const engine = new GameEngine(SolRuntime)
 let actionCounter = 0
 
-export function createTestGameState({
-    playerCount = 3
-}: {
-    playerCount?: 2 | 3 | 4 | 5
-} = {}): HydratedSolGameState {
-    const players: Player[] = Array.from({ length: playerCount }, (_, index) => ({
-        id: `p${index + 1}`,
+export function createTestGameState(): HydratedSolGameState {
+    const players: Player[] = ['p1', 'p2', 'p3'].map((id, index) => ({
+        id,
         isHuman: true,
         name: `Player ${index + 1}`,
         status: PlayerStatus.Joined,
@@ -55,17 +51,7 @@ export function createTestGameState({
         category: GameCategory.Standard
     }
 
-    const state: UninitializedGameState = {
-        id: 'state-1',
-        gameId: game.id,
-        activePlayerIds: [],
-        actionCount: 0,
-        actionChecksum: 0,
-        prng: { seed: 42, invocations: 0 },
-        winningPlayerIds: []
-    }
-
-    return initializer.initializeGameState(game, state)
+    return SolRuntime.initializer.initializeGameState(game, engine.generateUninitializedState(game))
 }
 
 export function createActionBase<T extends TSchema>(

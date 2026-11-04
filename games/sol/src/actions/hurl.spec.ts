@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { OffsetCoordinates } from '@tabletop/common'
 import { HydratedHurl, Hurl } from './hurl.js'
 import { Fly, HydratedFly } from './fly.js'
 import { createActionBase, createTestGameState } from '../utils/testUtils.js'
@@ -34,45 +35,59 @@ function placeSundiverAtCore(state: HydratedSolGameState, player: HydratedSolPla
     return sundiver
 }
 
+type FlightPieces = { sundiverIds?: string[]; stationId?: string; teleport?: boolean }
+
+function flightFromCore(
+    player: HydratedSolPlayerState,
+    destination: OffsetCoordinates,
+    { sundiverIds = [], stationId, teleport = false }: FlightPieces
+) {
+    return {
+        playerId: player.playerId,
+        sundiverIds,
+        stationId,
+        gates: [],
+        start: CORE_COORDS,
+        destination,
+        cluster: false,
+        teleport,
+        catapult: false,
+        passage: false
+    }
+}
+
 function hurlFromCore(
     state: HydratedSolGameState,
     player: HydratedSolPlayerState,
-    pieces: { sundiverIds?: string[]; stationId?: string }
+    pieces: FlightPieces
 ) {
     return new HydratedHurl({
         ...createActionBase(Hurl, state),
-        playerId: player.playerId,
-        sundiverIds: pieces.sundiverIds ?? [],
-        stationId: pieces.stationId,
-        gates: [],
-        start: CORE_COORDS,
-        destination: CENTER_COORDS,
-        cluster: false,
-        teleport: false,
-        catapult: false,
-        passage: false
+        ...flightFromCore(player, CENTER_COORDS, pieces)
     })
 }
 
 function flyFromCore(
     state: HydratedSolGameState,
     player: HydratedSolPlayerState,
-    destination: { row: number; col: number },
-    pieces: { sundiverIds?: string[]; stationId?: string }
+    destination: OffsetCoordinates,
+    pieces: FlightPieces
 ) {
     return new HydratedFly({
         ...createActionBase(Fly, state),
-        playerId: player.playerId,
-        sundiverIds: pieces.sundiverIds ?? [],
-        stationId: pieces.stationId,
-        gates: [],
-        start: CORE_COORDS,
-        destination,
-        cluster: false,
-        teleport: false,
-        catapult: false,
-        passage: false
+        ...flightFromCore(player, destination, pieces)
     })
+}
+
+function removeSundiversFromBoard(state: HydratedSolGameState, player: HydratedSolPlayerState) {
+    for (const cell of state.board) {
+        const sundiverIds = state.board
+            .sundiversForPlayerAt(player.playerId, cell.coords)
+            .map((sundiver) => sundiver.id)
+        if (sundiverIds.length > 0) {
+            state.board.removeSundiversAt(sundiverIds, cell.coords)
+        }
+    }
 }
 
 describe('Hurl', () => {
@@ -107,6 +122,37 @@ describe('Hurl', () => {
         })
     })
 
+    describe('with Teleport', () => {
+        it('requires the Teleport effect', () => {
+            const { state, player } = setupMovingPlayer()
+            const sundiver = placeSundiverAtCore(state, player)
+            const pieces = { sundiverIds: [sundiver.id], teleport: true }
+
+            expect(
+                HydratedHurl.isValidHurl(state, hurlFromCore(state, player, pieces))
+            ).toBeUndefined()
+
+            state.activeEffect = EffectType.Teleport
+
+            expect(
+                HydratedHurl.isValidHurl(state, hurlFromCore(state, player, pieces))
+            ).toBeDefined()
+        })
+
+        it('cannot fly a sundiver onto the center', () => {
+            const { state, player } = setupMovingPlayer()
+            const sundiver = placeSundiverAtCore(state, player)
+            state.activeEffect = EffectType.Teleport
+
+            const fly = flyFromCore(state, player, CENTER_COORDS, {
+                sundiverIds: [sundiver.id],
+                teleport: true
+            })
+
+            expect(HydratedFly.isValidFlight(state, fly)).toBeUndefined()
+        })
+    })
+
     describe('with a Juggernaut station', () => {
         it('cannot hurl a station without Juggernaut', () => {
             const { state, player } = setupMovingPlayer()
@@ -131,7 +177,7 @@ describe('Hurl', () => {
             const { state, player } = setupMovingPlayer()
             const station = placeStationAtCore(state, player)
             state.activeEffect = EffectType.Juggernaut
-            state.getEffectTracking().flownStationId = 'another-station'
+            state.ensureEffectTracking().flownStationId = 'another-station'
 
             expect(HydratedHurl.canHurl(state, player.playerId)).toBe(false)
             const hurl = hurlFromCore(state, player, { stationId: station.id })
@@ -180,6 +226,31 @@ describe('Hurl', () => {
             expect(() => fly.apply(state)).toThrow()
             expect(state.board.cellAt(CENTER_COORDS).station).toBeUndefined()
             expect(state.board.findStation(station.id)?.coords).toEqual(CORE_COORDS)
+        })
+
+        it('cannot teleport a station onto the center', () => {
+            const { state, player } = setupMovingPlayer()
+            const station = placeStationAtCore(state, player)
+            state.activeEffect = EffectType.Juggernaut
+
+            const pieces = { stationId: station.id, teleport: true }
+            expect(
+                HydratedFly.isValidFlight(state, flyFromCore(state, player, CENTER_COORDS, pieces))
+            ).toBeUndefined()
+            expect(
+                HydratedHurl.isValidHurl(state, hurlFromCore(state, player, pieces))
+            ).toBeUndefined()
+        })
+
+        it('keeps a station movable when the player has no sundivers on the board', () => {
+            const { state, player } = setupMovingPlayer()
+            placeStationAtCore(state, player)
+            removeSundiversFromBoard(state, player)
+            expect(HydratedFly.canFly(state, player.playerId)).toBe(false)
+
+            state.activeEffect = EffectType.Juggernaut
+
+            expect(HydratedFly.canFly(state, player.playerId)).toBe(true)
         })
 
         it('can still fly a station to a normal cell while Juggernaut is active', () => {

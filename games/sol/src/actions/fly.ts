@@ -5,11 +5,13 @@ import {
     GameAction,
     HydratableAction,
     MachineContext,
-    OffsetCoordinates
+    OffsetCoordinates,
+    sameCoordinates
 } from '@tabletop/common'
 import { HydratedSolGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { gateKey, SolarGate } from '../components/solarGate.js'
+import { CENTER_COORDS } from '../components/gameBoard.js'
 import { EffectType } from '../components/effects.js'
 import { Direction, Ring } from '../utils/solGraph.js'
 import { CARDS_DRAWN_PER_RING } from '../utils/solConstants.js'
@@ -225,6 +227,10 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         }
 
         for (const cell of state.board) {
+            if (HydratedFly.isMovableJuggernautStation(state, playerId, cell.station)) {
+                return true
+            }
+
             const sundiversInCell = state.board.sundiversForPlayerAt(playerId, cell.coords)
             if (
                 state.activeEffect === EffectType.Hyperdrive &&
@@ -256,11 +262,22 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         return flownStationId === undefined || flownStationId === station.id
     }
 
+    static numMovingPieces(flyOrHurl: Fly | Hurl): number {
+        return flyOrHurl.stationId ? 1 : flyOrHurl.sundiverIds.length
+    }
+
     static isValidFlight(
         state: HydratedSolGameState,
         flyOrHurl: Fly | Hurl
     ): OffsetCoordinates[] | undefined {
         const playerState = state.getPlayerState(flyOrHurl.playerId)
+
+        if (
+            flyOrHurl.type === ActionType.Fly &&
+            sameCoordinates(flyOrHurl.destination, CENTER_COORDS)
+        ) {
+            return
+        }
 
         if (
             flyOrHurl.passage &&
@@ -280,7 +297,11 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
         }
 
         if (flyOrHurl.teleport) {
-            if (playerState.movementPoints < 3 || flyOrHurl.sundiverIds.length > 1) {
+            if (
+                state.activeEffect !== EffectType.Teleport ||
+                playerState.movementPoints < 3 ||
+                flyOrHurl.sundiverIds.length > 1
+            ) {
                 return
             }
             return [flyOrHurl.start, flyOrHurl.destination]
@@ -322,8 +343,6 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
             return [flyOrHurl.start, flyOrHurl.destination]
         }
 
-        const numMovingPieces = flyOrHurl.stationId ? 1 : flyOrHurl.sundiverIds.length
-
         const illegalCoordinates: OffsetCoordinates[] = []
 
         if (
@@ -339,7 +358,7 @@ export class HydratedFly extends HydratableAction<typeof Fly> implements Fly {
             start: flyOrHurl.start,
             destination: flyOrHurl.destination,
             range:
-                playerState.movementPoints / numMovingPieces +
+                playerState.movementPoints / HydratedFly.numMovingPieces(flyOrHurl) +
                 (flyOrHurl.catapult && flyOrHurl.gates && flyOrHurl.gates.length > 0 ? 1 : 0),
             requiredGates: flyOrHurl.gates,
             portal: state.activeEffect === EffectType.Portal,
