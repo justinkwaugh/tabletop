@@ -22,9 +22,16 @@
     const appearance = $derived(session.mapView.stations[holdings.companyId])
 </script>
 
-{#snippet group(choices: readonly FinanceChoice[], label: string, sign: string)}
+{#snippet group(choices: readonly FinanceChoice[], label: string, sign: string, note?: string)}
     <div class="finance-group" aria-label={label}>
-        <h3>{label} <small>{money(choices[0].amount / choices[0].shares)} each</small></h3>
+        <h3>
+            {label}
+            <small
+                >{money(choices[0].amount / choices[0].shares)} each{note
+                    ? ` · ${note}`
+                    : ''}</small
+            >
+        </h3>
         <div class="finance-choices">
             {#each choices as choice (choice.shares)}
                 <button
@@ -62,13 +69,20 @@
             <dt>Market</dt>
             <dd>{holdings.marketShares}</dd>
         </div>
+        {#if finance.terms.issuePool}
+            <div>
+                <dt>{finance.terms.issuePool.label}</dt>
+                <dd>{holdings.issuePoolShares}</dd>
+            </div>
+        {/if}
     </dl>
     <div class="finance-groups">
         {#each groups as { operation, choices } (operation)}
             {@render group(
                 choices,
-                operation === 'issue' ? 'Issue' : 'Redeem',
-                operation === 'issue' ? '+' : '−'
+                operation === 'issue' ? finance.terms.issue : 'Redeem',
+                operation === 'issue' ? '+' : '−',
+                operation === 'issue' ? finance.terms.issueNote : undefined
             )}
         {/each}
     </div>

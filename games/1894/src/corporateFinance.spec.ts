@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { playExample } from '@tabletop/18xx/scenarios'
-import { cashOwnedBy, getCompany } from '@tabletop/18xx'
+import { cashOwnedBy, corporateFinanceChoices, getCompany } from '@tabletop/18xx'
+import { EighteenNinetyFourCorporateFinanceRules } from './corporateFinance.js'
 import { EighteenNinetyFourScenarios } from './scenarios/index.js'
 import { EighteenNinetyFourMarket } from './stockMarket.js'
 import type { EighteenNinetyFourState } from './state.js'
@@ -51,59 +52,55 @@ function cforFinances(
             companyOrder: ['CFOR', 'Belge', 'PLM'],
             roundNumber
         }
-        delete state.trackStep
-        state.shareStep = { companyId: 'CFOR', trades: [], completed: false }
-        state.machineState = 'ManagingShares'
+        state.trackStep = { companyId: 'CFOR', lays: [], completed: false }
+        state.machineState = 'LayingTrack'
     }
 }
 
 describe('financial operations (§7.3.2)', () => {
-    it('redeems two bank-pool shares at the share price in the set’s first round', () => {
+    const redeem = (shares: number, amount: number) => ({
+        companyId: 'CFOR',
+        operation: 'redeem',
+        shares,
+        amount
+    })
+    const offered = (play: { state: EighteenNinetyFourState }) =>
+        corporateFinanceChoices(play.state, EighteenNinetyFourCorporateFinanceRules)
+    const pool = { 'CFOR:share:1': 'pool', 'CFOR:share:2': 'pool', 'CFOR:share:3': 'pool' } as const
+
+    it('redeems up to two bank-pool shares at the share price in the set’s first round', () => {
+        const play = playExample(EighteenNinetyFourScenarios, 'construction', 3, cforFinances(pool))
+        expect(offered(play).map((choice) => choice.shares)).toEqual([1, 2])
+        play.act('CorporateFinance', redeem(2, 160))
+        expect(play.state.machineState).toBe('LayingTrack')
+        expect(cashOwnedBy(play.state, cfor)).toBe(340)
+        const held = play.state.certificates.filter(
+            (certificate) =>
+                certificate.owner.kind === 'company' && certificate.owner.companyId === 'CFOR'
+        )
+        expect(held).toHaveLength(2)
+        expect(held.every((certificate) => certificate.poolId === undefined)).toBe(true)
+    })
+
+    it('makes one operation a round, so nothing follows a redemption', () => {
+        const play = playExample(EighteenNinetyFourScenarios, 'construction', 3, cforFinances(pool))
+        play.act('CorporateFinance', redeem(1, 80))
+        expect(offered(play)).toEqual([])
+        expect(() => play.act('CorporateFinance', redeem(1, 80))).toThrow()
+    })
+
+    it('redeems one share in later rounds', () => {
         const play = playExample(
             EighteenNinetyFourScenarios,
             'construction',
             3,
-            cforFinances({ 'CFOR:share:1': 'pool', 'CFOR:share:2': 'pool', 'CFOR:share:3': 'pool' })
+            cforFinances(pool, 2)
         )
-        play.act('TradeTreasuryShares', {
-            companyId: 'CFOR',
-            operation: 'redeem',
-            certificateIds: ['CFOR:share:1'],
-            amount: 80
-        })
-        expect(play.state.machineState).toBe('ManagingShares')
-        play.act('TradeTreasuryShares', {
-            companyId: 'CFOR',
-            operation: 'redeem',
-            certificateIds: ['CFOR:share:2'],
-            amount: 80
-        })
-        expect(play.state.machineState).toBe('LayingTrack')
-        expect(cashOwnedBy(play.state, cfor)).toBe(340)
-        expect(
-            play.state.certificates.filter(
-                (certificate) =>
-                    certificate.owner.kind === 'company' && certificate.owner.companyId === 'CFOR'
-            )
-        ).toHaveLength(2)
+        expect(offered(play).map((choice) => choice.shares)).toEqual([1])
     })
 
-    it('redeems one share in later rounds, and reissues all owned shares to the IPO at F100', () => {
-        const later = playExample(
-            EighteenNinetyFourScenarios,
-            'construction',
-            3,
-            cforFinances({ 'CFOR:share:1': 'pool', 'CFOR:share:2': 'pool' }, 2)
-        )
-        later.act('TradeTreasuryShares', {
-            companyId: 'CFOR',
-            operation: 'redeem',
-            certificateIds: ['CFOR:share:1'],
-            amount: 80
-        })
-        expect(later.state.machineState).toBe('LayingTrack')
-
-        const reissue = playExample(
+    it('reissues all owned shares to the IPO at F100 and sets par to F100', () => {
+        const play = playExample(
             EighteenNinetyFourScenarios,
             'construction',
             3,
@@ -115,24 +112,54 @@ describe('financial operations (§7.3.2)', () => {
                 'CFOR:share:5': 'ipo'
             })
         )
-        reissue.act('TradeTreasuryShares', {
+        expect(offered(play)).toEqual([
+            { companyId: 'CFOR', operation: 'issue', shares: 3, amount: 300 }
+        ])
+        play.act('CorporateFinance', {
             companyId: 'CFOR',
             operation: 'issue',
-            certificateIds: ['CFOR:share:1', 'CFOR:share:2', 'CFOR:share:3'],
-            amount: 300,
-            poolId: 'initial-offering',
-            parPrice: 100
+            shares: 3,
+            amount: 300
         })
-        expect(reissue.state.machineState).toBe('LayingTrack')
-        expect(cashOwnedBy(reissue.state, cfor)).toBe(800)
-        expect(getCompany(reissue.state, 'CFOR').parPrice).toBe(100)
+        expect(play.state.machineState).toBe('LayingTrack')
+        expect(cashOwnedBy(play.state, cfor)).toBe(800)
+        expect(getCompany(play.state, 'CFOR').parPrice).toBe(100)
+        expect(
+            play.state.certificates.filter(
+                (certificate) =>
+                    certificate.companyId === 'CFOR' && certificate.poolId === 'initial-offering'
+            )
+        ).toHaveLength(5)
+        expect(offered(play)).toEqual([])
     })
 
-    it('passes the starting companies and a company with nothing to do straight to track', () => {
-        const play = playExample(EighteenNinetyFourScenarios, 'construction', 3, cforFinances({}))
-        expect(play.valid(play.state.activePlayerIds[0])).toContain('FinishTreasuryShares')
-        expect(play.valid(play.state.activePlayerIds[0])).not.toContain('TradeTreasuryShares')
-        play.act('FinishTreasuryShares', { companyId: 'CFOR' })
-        expect(play.state.machineState).toBe('LayingTrack')
+    it('stays open until routes are run, then closes', () => {
+        const during = (machineState: string) =>
+            playExample(EighteenNinetyFourScenarios, 'construction', 3, (state) => {
+                cforFinances(pool)(state)
+                state.machineState = machineState
+            })
+        for (const open of ['LayingTrack', 'RunningTrains']) {
+            expect(offered(during(open))).not.toEqual([])
+        }
+        for (const closed of ['DistributingEarnings', 'BuyingTrains']) {
+            expect(offered(during(closed))).toEqual([])
+        }
+        const stations = playExample(EighteenNinetyFourScenarios, 'construction', 3, (state) => {
+            cforFinances(pool)(state)
+            state.trackStep = { companyId: 'CFOR', lays: [], completed: true }
+            state.stationStep = { companyId: 'CFOR', placedStationIds: [], completed: false }
+            state.machineState = 'PlacingStation'
+        })
+        expect(stations.valid(stations.state.activePlayerIds[0])).toContain('CorporateFinance')
+        stations.act('CorporateFinance', redeem(1, 80))
+        expect(cashOwnedBy(stations.state, cfor)).toBe(420)
+    })
+
+    it('offers the starting companies nothing', () => {
+        const play = playExample(EighteenNinetyFourScenarios, 'construction', 3, cforFinances(pool))
+        const state = play.state
+        state.operatingSet = { ...state.operatingSet!, companyOrder: ['Belge', 'CFOR', 'PLM'] }
+        expect(offered(play)).toEqual([])
     })
 })

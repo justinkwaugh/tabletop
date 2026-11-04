@@ -27,7 +27,6 @@ import type { ExplorationPopulation, Visibility } from '@tabletop/common'
 import type { OperatingStepState } from '../operating/operatingSteps.js'
 import type { ReceivershipRules } from '../finance/receivership.js'
 import type { AccessRightRules } from '../rights/accessRights.js'
-import type { TreasuryShareRules } from '../company/treasuryShares.js'
 import type { CorporateFinanceRules } from '../finance/corporateFinance.js'
 import type { ZeroPriceClosureRules } from '../company/zeroPriceClosure.js'
 import type {
@@ -110,8 +109,6 @@ export interface EighteenXXTitleRules<
     receivershipRules?: ReceivershipRules
     /** Rights a company may buy during its operating turn, such as 1894's ferry markers. */
     accessRightRules?: AccessRightRules
-    /** The share operations of a title whose operating steps include ``ManagingShares``. */
-    treasuryShareRules?: TreasuryShareRules
     /** Issuing and redeeming treasury shares while laying track or before running trains. */
     corporateFinanceRules?: CorporateFinanceRules
     /**

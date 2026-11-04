@@ -5,12 +5,11 @@ import {
     defineEighteenXXState,
     PendingParFields,
     PrivatePowerFields,
+    CorporateFinanceFields,
     PrivateStationFields,
     RailwayFields,
     RailwayMachineStates,
     StockTurnPurchaseFields,
-    TreasuryShareFields,
-    TreasuryShareMachineStates,
     validatePendingPar,
     validateRailwayState,
     validateWaterfallAuction,
@@ -28,9 +27,9 @@ export const EighteenNinetyFourState = composeEighteenXXState(
         ...StockTurnPurchaseFields,
         ...AuctionFields,
         ...AccessRightFields,
-        ...TreasuryShareFields
+        ...CorporateFinanceFields
     },
-    [...RailwayMachineStates, ...WaterfallAuctionMachineStates, ...TreasuryShareMachineStates]
+    [...RailwayMachineStates, ...WaterfallAuctionMachineStates]
 )
 export type EighteenNinetyFourState = Type.Static<typeof EighteenNinetyFourState>
 export type HydratedEighteenNinetyFourState = HydratedEighteenXXState<

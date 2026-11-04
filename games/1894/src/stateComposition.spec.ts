@@ -22,7 +22,7 @@ stateCompositionTests(
 
 it('exposes only this title’s declared state at compile time', () => {
     expectTypeOf<EighteenNinetyFourState>().toHaveProperty('pendingPar')
-    expectTypeOf<EighteenNinetyFourState>().toHaveProperty('shareStep')
+    expectTypeOf<EighteenNinetyFourState>().toHaveProperty('financeStep')
     expectTypeOf<EighteenNinetyFourState>().toHaveProperty('accessRights')
     expectTypeOf<EighteenNinetyFourState>().not.toHaveProperty('offerAuction')
     expectTypeOf<EighteenNinetyFourState>().not.toHaveProperty('loanStep')

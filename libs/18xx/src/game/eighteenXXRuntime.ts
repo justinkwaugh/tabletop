@@ -27,11 +27,8 @@ import { loanActions } from '../loans/loanActions.js'
 import { LoanTakingHandler } from '../loans/loanTakingHandler.js'
 import { AccessRightsHandler } from '../rights/accessRightsHandler.js'
 import { accessRightActions } from '../rights/rightsActions.js'
-import { ManagingSharesHandler } from '../company/managingSharesHandler.js'
-import { treasuryShareActions } from '../company/treasuryShareActions.js'
 import { DisplacedStationsHandler } from '../stations/displacedStationsHandler.js'
 import { HydratedReturnStation, ReturnStation, isReturnStation } from '../stations/returnStation.js'
-import type { TreasuryShareRules } from '../company/treasuryShares.js'
 import { RepayingLoansHandler } from '../loans/repayingLoansHandler.js'
 import { operatingActions } from '../operating/operatingActions.js'
 import {
@@ -110,7 +107,6 @@ function validateStateComposition(
         | 'privatePowerRules'
         | 'trainFundingRules'
         | 'accessRightRules'
-        | 'treasuryShareRules'
         | 'corporateFinanceRules'
         | 'runInstructions'
     >,
@@ -133,7 +129,6 @@ function validateStateComposition(
         ['privateStation', !!options.privatePowerRules.stationPrivateIds?.length],
         ['locationMarkers', !!options.privatePowerRules.markerTerms],
         ['accessRights', !!options.accessRightRules],
-        ['shareStep', !!options.treasuryShareRules],
         ['financeStep', !!options.corporateFinanceRules]
     ]
     for (const [field, supported] of features)
@@ -162,10 +157,6 @@ function validateStateComposition(
     }
     for (const name of Object.keys(handlers))
         assert(declared.has(name), `${name} handler requires its declared machine state`)
-}
-function requireTreasuryShareRules(rules: TreasuryShareRules | undefined): TreasuryShareRules {
-    assert(rules, 'A title with a share step supplies its share rules')
-    return rules
 }
 export function createEighteenXXRuntime<
     Schema extends TitleStateSchema,
@@ -458,22 +449,6 @@ export function createEighteenXXRuntime<
                 constructionActions
             )
         ),
-        ...(familySteps.includes('ManagingShares')
-            ? {
-                  ManagingShares: operatingStep(
-                      operatesReceivership(
-                          'ManagingShares',
-                          decides(
-                              'ManagingShares',
-                              new ManagingSharesHandler(
-                                  requireTreasuryShareRules(options.treasuryShareRules),
-                                  after('ManagingShares')
-                              )
-                          )
-                      )
-                  )
-              }
-            : {}),
         ...(familySteps.includes('PlacingStation')
             ? {
                   PlacingStation: followsRunInstructions(
@@ -483,9 +458,11 @@ export function createEighteenXXRuntime<
                               'PlacingStation',
                               decides(
                                   'PlacingStation',
-                                  new PlacingStationHandler(
-                                      options.stationRules,
-                                      after('PlacingStation')
+                                  allowsCorporateFinance(
+                                      new PlacingStationHandler(
+                                          options.stationRules,
+                                          after('PlacingStation')
+                                      )
                                   )
                               )
                           )
@@ -634,7 +611,6 @@ export function createEighteenXXRuntime<
         ),
         ...loanActions(loanRules, rules),
         ...accessRightActions(accessRightRules),
-        ...treasuryShareActions(options.treasuryShareRules),
         ...cashCrisisActions(options.cashCrisisRules, options.endingRules),
         ...stockActions(rules, options.endingRules),
         ...companyActions(companyRules, rules),

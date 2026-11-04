@@ -37,10 +37,10 @@
   "activePlayerIds": [
    "p1"
   ],
-  "createdAt": "2026-11-04T16:20:37.168Z",
+  "createdAt": "2026-11-04T16:46:52.910Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-11-04T16:20:37.168Z",
+  "startedAt": "2026-11-04T16:46:52.910Z",
   "progress": {
    "fraction": 0,
    "label": "Phase 2"
@@ -48,7 +48,7 @@
  },
  "state": {
   "systemVersion": 3,
-  "id": "lpU2Rbqhq1wBMn03In_8Y",
+  "id": "0yycU_d0qD2iHljDEY2_S",
   "gameId": "scenario-late-companies",
   "seed": 1450899060,
   "prng": {

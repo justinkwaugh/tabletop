@@ -14,6 +14,11 @@ export const EighteenNinetyFourPresentation: TitlePresentation = {
     phaseChart: EighteenNinetyFourPhaseChart,
     trainColors: EighteenNinetyFourTrainColors,
     phaseColors: EighteenNinetyFourTrainColors,
+    corporateFinance: {
+        issue: 'Reissue',
+        issueNote: 'par becomes F100',
+        issuePool: { label: 'IPO', poolId: 'initial-offering' }
+    },
     marketPoolId: 'open-market',
     ipoPoolId: 'initial-offering',
     companyNames: EighteenNinetyFourCompanyNames,

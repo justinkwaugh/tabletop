@@ -14,7 +14,6 @@
     import CompanyFormation from '../stock/CompanyFormation.svelte'
     import LoanRepayment from '../loans/LoanRepayment.svelte'
     import CashCrisis from '../funding/CashCrisis.svelte'
-    import TreasuryShares from '../treasury/TreasuryShares.svelte'
     import StationReturnChoice from '../maps/StationReturnChoice.svelte'
     import CorporateFinance from '../finance/CorporateFinance.svelte'
     import NothingToBuild from '../maps/NothingToBuild.svelte'
@@ -72,7 +71,6 @@
             <StockRoundActions {session} />
         {:else if session.stations.homeChoice}<HomeStationChoice {session} />
         {:else if session.stations.privateStation}<PrivateStationChoice {session} />
-        {:else if gameState.machineState === 'ManagingShares'}<TreasuryShares {session} />
         {:else if gameState.machineState === 'LayingTrack'}<TrackBuilding
                 {session}
                 showUndo={false}

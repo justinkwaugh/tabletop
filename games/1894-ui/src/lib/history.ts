@@ -1,5 +1,13 @@
-import { isBuyAccessRight } from '@tabletop/18xx'
-import type { TitleActionDescription } from '@tabletop/18xx-ui'
+import { isBuyAccessRight, isCorporateFinance } from '@tabletop/18xx'
+import { counted, type TitleActionDescription } from '@tabletop/18xx-ui'
 
-export const describe1894Action: TitleActionDescription = (action, _companyName, shared) =>
-    isBuyAccessRight(action) ? { ...shared(), text: 'Bought a ferry marker' } : undefined
+export const describe1894Action: TitleActionDescription = (action, _companyName, shared) => {
+    if (isBuyAccessRight(action)) return { ...shared(), text: 'Bought a ferry marker' }
+    if (isCorporateFinance(action) && action.operation === 'issue')
+        return {
+            ...shared(),
+            text: `Reissued ${counted(action.shares, 'share')}`,
+            detail: 'Par becomes F100'
+        }
+    return undefined
+}

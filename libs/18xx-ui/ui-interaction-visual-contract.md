@@ -749,9 +749,12 @@ modes.
   `corporateFinanceRules`, the operating actions show one of track building, station placement
   or issuing/redeeming shares, chosen with the operating-mode switch above them. The switch
   lists only modes available now ("Lay track", "Place station", and "Issue shares", "Redeem
-  shares" or "Issue / redeem") and appears when there are at least two, or when share issues
-  are selected; before routes are run, share issues also sit beside "Run trains". It hides for a
-  purchase offer, a company decision or a private selection. Choosing a mode clears the other
+  shares" or "Issue / redeem", with the title's word in place of "Issue", such as 1894's
+  "Reissue") and appears when there are at least two, or when share issues are selected; before
+  routes are run, share issues also sit beside "Run trains", and beside "Place station" in a
+  title with a separate station step. It hides for a purchase offer, a company decision, a
+  private selection or a pending station decision (a set-aside station's return, a private's
+  free station, or a home choice). Choosing a mode clears the other
   mode's pending selection. Meaning: which construction panel and map targets are active.
   Produced from the legal actions, with the player's choice taking priority while that mode
   stays available; a selected private tile power always selects track. Lifetime: the choice
@@ -781,12 +784,15 @@ modes.
   shows the decisions above "<company> can't lay track or place a station" with an inline
   **finish**; a selection in progress replaces the message.
 - **Share issues** (`session.corporateFinance`). The panel shows the company's cash, treasury
-  and market shares, and one button per legal count to issue or redeem, each committed at once;
-  the first locks the turn to issuing or to redeeming. When share issues are all that is left
+  and market shares, plus a pool the title names when its holding decides whether the company
+  may issue, such as 1894's IPO, and one button per legal count to issue or redeem, each
+  committed at once; the first locks the turn to issuing or to redeeming. A title's rules may
+  offer less: 1894 reissues all owned shares or none, with a note that par becomes F100, and its
+  one operation a round closes the panel after the first press. When share issues are all that is left
   in construction, the switch selects them and the panel offers skip to end construction (its
   prompt reads "Issue shares or skip", without a comma). The
   panel gives way to a purchase offer, a private-power selection, a private track-power
-  selection and a company decision.
+  selection, a company decision and a pending station decision.
 - **Receivership** (`session.presidencyClaims`, `session.familyStockPanels`). With a
   `receivershipRules.presidencyClaim`, when the player may take a company out of receivership
   the stock strip offers **Receivership** beside Buy and Sell, before any of the title's own
@@ -2118,7 +2124,7 @@ Auction share cards use the issuing company’s token in their upper-right corne
 
 Schreiber and Burpee Construction uses a yellow straight-track tile icon, exported from the standard tile 9 geometry and classic palette, in auction lists and the card corner. Card titles balance within 22ch so this long title occupies two lines.
 
-TOP private closure and forced-exchange conditions appear in the final paragraph. Phase references in that paragraph use the title-supplied phase colors and shared TrainBadge; timing text and exceptions remain intact. Introductory bold formatting is explicit, so splitting an ordinary description does not make its first paragraph bold.
+TOP private closure and forced-exchange conditions appear in the final paragraph. Phase references in that paragraph, and in phase chart notes, use the title-supplied phase colors and shared TrainBadge wherever the text names one of the title's phase ids after "phase" or "at", or later in a list or range; timing text and exceptions remain intact. Introductory bold formatting is explicit, so splitting an ordinary description does not make its first paragraph bold.
 
 The auction offer table centers within the action panel when narrower than the panel. It omits the redundant player-name / offer-instruction heading; the round header retains acting-player context.
 

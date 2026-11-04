@@ -1,4 +1,3 @@
-import type { TreasuryShareState } from '../company/treasuryShares.js'
 import { EighteenXXOperatingAction } from '../actions/eighteenXXPlayerAction.js'
 import { OperatingRoundSnapshot, operatingRoundSnapshot } from './operatingRoundSnapshot.js'
 import { actionMayOperate, inReceivership } from '../finance/receivership.js'
@@ -25,8 +24,7 @@ export type OperatingTurnState = OperatingState &
     DistributionState &
     ConstructionState &
     StationPlacementState &
-    Pick<LoanState, 'loanStep'> &
-    Pick<TreasuryShareState, 'shareStep'>
+    Pick<LoanState, 'loanStep'>
 export function finishOperatingTurnReason(
     state: OperatingTurnState,
     rules: TrainRules,
@@ -114,5 +112,4 @@ export function endOperatingTurn(
     delete state.routeStep
     delete state.earningsDistribution
     delete state.loanStep
-    delete state.shareStep
 }

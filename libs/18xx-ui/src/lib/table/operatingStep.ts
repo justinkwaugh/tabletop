@@ -19,12 +19,8 @@ const indices: Readonly<Record<string, number>> = {
     RaisingCash: 5
 }
 
-/** The step's place in the strip, after a share step first when the title has one. */
-export function operatingStepIndex(machineState: string, shareStep = false): number | undefined {
-    if (!shareStep) return indices[machineState]
-    if (machineState === 'ManagingShares') return 0
-    const index = indices[machineState]
-    return index === undefined ? undefined : index + 1
+export function operatingStepIndex(machineState: string): number | undefined {
+    return indices[machineState]
 }
 
 const actionIndices: Readonly<Record<string, number>> = {
@@ -50,25 +46,18 @@ const actionIndices: Readonly<Record<string, number>> = {
 
 export function historicalOperatingStepIndex(
     action: GameAction | undefined,
-    machineState: string,
-    shareStep = false
+    machineState: string
 ): number | undefined {
-    const offset = shareStep ? 1 : 0
     if (action) {
-        if (
-            shareStep &&
-            (action.type === 'TradeTreasuryShares' || action.type === 'FinishTreasuryShares')
-        )
-            return 0
         if (
             (isOfferPurchase(action) || isRespondToPurchaseOffer(action)) &&
             action.metadata?.offer.asset.kind === 'train'
         )
-            return 4 + offset
+            return 4
         const index = actionIndices[action.type]
-        if (index !== undefined) return index + offset
+        if (index !== undefined) return index
     }
-    return operatingStepIndex(machineState, shareStep)
+    return operatingStepIndex(machineState)
 }
 
 type ConstructionLayoutStep = 'build' | 'run' | 'payout' | 'trains' | 'loans'

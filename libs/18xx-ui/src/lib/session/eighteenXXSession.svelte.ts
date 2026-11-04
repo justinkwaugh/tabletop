@@ -74,7 +74,6 @@ import { CompanyDecisionsModule } from './companyDecisionsModule.svelte.js'
 import { DiscardModule } from './discardModule.svelte.js'
 import { EarningsModule } from './earningsModule.svelte.js'
 import { LoanModule } from './loanModule.svelte.js'
-import { TreasurySharesModule } from './treasurySharesModule.svelte.js'
 import { AccessRightsModule } from './accessRightsModule.svelte.js'
 import { StationReturnModule } from './stationReturnModule.svelte.js'
 import { TitleStockPanels, type TitleStockPanel } from './titleStockPanels.svelte.js'
@@ -340,7 +339,10 @@ export class EighteenXXSession<
         () => this.requiresStationTokenChoice,
         () => this.stationPlacementActive
     )
-    readonly corporateFinance = new CorporateFinanceModule(this.moduleSession)
+    readonly corporateFinance = new CorporateFinanceModule(
+        this.moduleSession,
+        () => this.presentation.corporateFinance
+    )
     readonly operatingMode: OperatingModeModule = new OperatingModeModule(
         this.moduleSession,
         this.corporateFinance,
@@ -353,7 +355,11 @@ export class EighteenXXSession<
             },
             finishTrack: () => this.track.finish()
         },
-        () => this.titleOperatingModes
+        () => this.titleOperatingModes,
+        () =>
+            this.stationReturn.waiting.length > 0 ||
+            !!this.moduleSession.state.privateStation ||
+            !!this.stations.homeChoice
     )
     readonly routes = new RoutesModule(
         this.moduleSession,
@@ -394,7 +400,7 @@ export class EighteenXXSession<
         () => this.operatingStepCompletion,
         (state) => {
             const steps = this.operatingSteps
-            if (!steps) return operatingStepIndex(state, !!this.rules.treasuryShareRules)
+            if (!steps) return operatingStepIndex(state)
             const index = steps.findIndex((step) => step.states.includes(state))
             return index < 0 ? undefined : index
         }
@@ -451,7 +457,6 @@ export class EighteenXXSession<
     readonly earnings = new EarningsModule(this.moduleSession)
     readonly discard = new DiscardModule(this.moduleSession)
     readonly loans = new LoanModule(this.moduleSession)
-    readonly treasuryShares = new TreasurySharesModule(this.moduleSession)
     readonly accessRights = new AccessRightsModule(this.moduleSession)
     readonly stationReturn = new StationReturnModule(this.moduleSession)
     readonly cashCrisis = new CashCrisisModule(this.moduleSession)
@@ -653,10 +658,7 @@ export class EighteenXXSession<
         if (this.operatingSteps) return undefined
         return OperatingTurnModule.defaultCompletion(this.moduleSession, {
             finishTrack: () => this.track.finish(),
-            finishStations: () => this.stations.finish(),
-            ...(this.rules.treasuryShareRules
-                ? { finishShares: () => this.treasuryShares.finish() }
-                : {})
+            finishStations: () => this.stations.finish()
         })
     }
     protected onStockSelectionCancelled() {

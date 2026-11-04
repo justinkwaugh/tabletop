@@ -23,7 +23,7 @@ import { EighteenNinetyFourCompanyRules } from '../companyRules.js'
 import { EighteenNinetyFourStockRules } from '../stockRules.js'
 import { EighteenNinetyFourInfo } from './info.js'
 import { EighteenNinetyFourAccessRightRules } from '../london.js'
-import { EighteenNinetyFourTreasuryShareRules } from '../corporateFinance.js'
+import { EighteenNinetyFourCorporateFinanceRules } from '../corporateFinance.js'
 import {
     EighteenNinetyFourStateDefinition,
     EighteenNinetyFourState,
@@ -57,15 +57,7 @@ export const EighteenNinetyFourTitleRules: EighteenXXTitleRules<
     trainRules: EighteenNinetyFourTrainRules,
     runInstructions: true,
     accessRightRules: EighteenNinetyFourAccessRightRules,
-    treasuryShareRules: EighteenNinetyFourTreasuryShareRules,
-    operatingSteps: [
-        'ManagingShares',
-        'LayingTrack',
-        'PlacingStation',
-        'RunningTrains',
-        'DistributingEarnings',
-        'BuyingTrains'
-    ]
+    corporateFinanceRules: EighteenNinetyFourCorporateFinanceRules
 }
 
 export const Definition: GameDefinition<EighteenNinetyFourState, HydratedEighteenNinetyFourState> =

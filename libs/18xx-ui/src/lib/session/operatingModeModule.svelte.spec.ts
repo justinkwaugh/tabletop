@@ -21,6 +21,7 @@ function operating(
     let valid = $state(initialValid)
     let trackPowerSelection = $state<StagedSelectionEntry<PrivateTrackPower>>()
     let titleModes = $state<readonly TitleOperatingMode[]>([])
+    let stationDecisionPending = $state(false)
     const state: OperatingModeSession['state'] = { ...minimalPlayState(), machineState }
     const harness = testSession(state, rules, [])
     const session: OperatingModeSession = {
@@ -51,10 +52,12 @@ function operating(
                 finished++
             }
         },
-        () => titleModes
+        () => titleModes,
+        () => stationDecisionPending
     )
     return {
         module,
+        setStationDecisionPending: (pending: boolean) => (stationDecisionPending = pending),
         setValid: (types: string[]) => (valid = types),
         setTitleModes: (modes: readonly TitleOperatingMode[]) => (titleModes = modes),
         selectTrackPower: (power: PrivateTrackPower) =>
@@ -65,6 +68,23 @@ function operating(
 }
 
 describe('OperatingModeModule', () => {
+    it('gives the panel to a pending station decision over share operations', () => {
+        const { module, setStationDecisionPending, setValid } = operating(
+            'LayingTrack',
+            ['CorporateFinance', 'FinishTrack'],
+            undefined,
+            [issue]
+        )
+        expect(module.mode).toBe('finance')
+        expect(module.financeShown).toBe(true)
+        setStationDecisionPending(true)
+        setValid(['ReturnStation'])
+        expect(module.mode).not.toBe('finance')
+        expect(module.financeShown).toBe(false)
+        expect(module.switchVisible).toBe(false)
+        expect(module.options.map((option) => option.label)).not.toContain('Issue shares')
+    })
+
     it('stays out of the way of titles with separate steps and no share issues', () => {
         const { module } = operating('PlacingStation', ['PlaceStation'], {})
         expect(module.enabled).toBe(false)

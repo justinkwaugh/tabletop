@@ -29,16 +29,11 @@
             return current >= 0 ? current : undefined
         }
         return session.isViewingHistory
-            ? historicalOperatingStepIndex(
-                  session.actions.at(-1),
-                  gameState.machineState,
-                  !!session.treasuryShares.rules
-              )
-            : operatingStepIndex(gameState.machineState, !!session.treasuryShares.rules)
+            ? historicalOperatingStepIndex(session.actions.at(-1), gameState.machineState)
+            : operatingStepIndex(gameState.machineState)
     })
     const steps = $derived(
         titleSteps?.map((step) => step.label) ?? [
-            ...(session.treasuryShares.rules ? ['Shares'] : []),
             'Track',
             'Station',
             'Run',
@@ -52,7 +47,6 @@
         return titleSteps
             ? titleSteps.map((step) => step.status?.(gameState, session.actions, summaries))
             : [
-                  ...(session.treasuryShares.rules ? [undefined] : []),
                   summaries.track,
                   summaries.station,
                   summaries.run,

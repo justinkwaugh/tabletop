@@ -153,8 +153,8 @@ export const FullGameTitles = [
         routes: EighteenNinetyFourRouteRules,
         funding: EighteenNinetyFourTrainFundingRules,
         waterfall: EighteenNinetyFourAuctionRules,
-        ending: 'Purple phase',
-        finalPhaseId: 'purple',
+        ending: 'Phase D',
+        finalPhaseId: 'D',
         // Companies withhold to afford their next train, which keeps prices under F450 while
         // the trains run out.
         policy: {
@@ -234,11 +234,6 @@ export class CompleteGameRun {
                 station
             )[0]
             this.act('ReturnStation', { stationId: station.id, position })
-            return
-        }
-        if (state.machineState === 'ManagingShares') {
-            assertExists(state.shareStep, 'The share step names its company')
-            this.act('FinishTreasuryShares', { companyId: state.shareStep.companyId })
             return
         }
         if (available.includes('DeclinePrivateTile')) {

@@ -13,8 +13,6 @@ import {
     isPlacePrivateToken,
     isReturnStation,
     isBuyAccessRight,
-    isTradeTreasuryShares,
-    isFinishTreasuryShares,
     type TrackLayEffects,
     isRequestTrackConsent,
     isRespondToTrackConsent,
@@ -416,21 +414,6 @@ function describeShared(
         return { text: `Station placed again at ${place(action.position.locationId)}` }
     if (isBuyAccessRight(action))
         return { text: `Bought ${action.rightId} rights`, value: money(action.expectedPrice) }
-    if (isTradeTreasuryShares(action)) {
-        const count = action.certificateIds.length
-        const shares = `${count} share${count === 1 ? '' : 's'}`
-        return action.operation === 'redeem'
-            ? { text: `Redeemed ${shares}`, value: money(action.amount) }
-            : {
-                  text: `Issued ${shares}`,
-                  value: money(action.amount),
-                  detail:
-                      action.parPrice !== undefined &&
-                      action.metadata?.previousParPrice !== undefined
-                          ? `Par ${money(action.metadata.previousParPrice)} → ${money(action.parPrice)}`
-                          : undefined
-              }
-    }
     if (isChooseHomeStation(action))
         return {
             text: `Home station at ${place(action.locationId)}`,
@@ -925,7 +908,6 @@ function describeShared(
             action.metadata ? companyClosureDetails(action.metadata, companyName) : []
         )
     if (isFinishTrack(action)) return { text: 'Finished track', routine: true }
-    if (isFinishTreasuryShares(action)) return { text: 'Finished shares', routine: true }
     if (isFinishStations(action)) return { text: 'Finished stations', routine: true }
     if (isFinishOperatingTurn(action)) return { text: 'Finished operating', routine: true }
     if (isFinishStockTurn(action))

@@ -1,3 +1,4 @@
+import type { CorporateFinanceTerms } from './corporateFinanceModule.svelte.js'
 import type { OperatingStepStatuses } from '../table/operatingStepStatuses.js'
 import type { MarketCellDimensions } from '../stock/marketTokenLayout.js'
 import type { EighteenXXState, StockInstructionStopReason, TileRotation } from '@tabletop/18xx'
@@ -135,6 +136,7 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     /** Lists minor companies a player owns among their privates, as 1846 sells them in its draft. */
     minorsAsPrivates?: true
     operatingSteps?: readonly TitleOperatingStep<State>[]
+    corporateFinance?: CorporateFinanceTerms
     openingRound?: Pick<TitleRound<State>, 'name' | 'abbreviation' | 'inProgress'>
     titleRounds?: readonly TitleRound<State>[]
     /** Facts of the title's own for the game information, such as money left to subsidise. */

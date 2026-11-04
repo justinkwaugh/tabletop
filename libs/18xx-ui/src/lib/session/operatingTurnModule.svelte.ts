@@ -126,27 +126,18 @@ export class OperatingTurnModule {
 
     static defaultCompletion(
         session: OperatingTurnSession,
-        steps: Pick<Steps, 'finishTrack' | 'finishStations'> & {
-            finishShares?: () => Promise<void>
-        }
+        steps: Pick<Steps, 'finishTrack' | 'finishStations'>
     ): OperatingStepCompletion | undefined {
-        const lastTarget = steps.finishShares ? 3 : 2
-        if (
-            steps.finishShares &&
-            session.state.machineState === 'ManagingShares' &&
-            session.validActionTypes.includes('FinishTreasuryShares')
-        )
-            return { lastTarget, finish: steps.finishShares }
         if (
             session.state.machineState === 'LayingTrack' &&
             session.validActionTypes.includes('FinishTrack')
         )
-            return { lastTarget, finish: () => steps.finishTrack() }
+            return { lastTarget: 2, finish: () => steps.finishTrack() }
         if (
             session.state.machineState === 'PlacingStation' &&
             session.validActionTypes.includes('FinishStations')
         )
-            return { lastTarget, finish: () => steps.finishStations() }
+            return { lastTarget: 2, finish: () => steps.finishStations() }
         return undefined
     }
     private operatingCompany(state: OperatingTurnState) {

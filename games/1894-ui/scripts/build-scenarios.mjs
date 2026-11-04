@@ -144,9 +144,8 @@ mkdirSync(OUT, { recursive: true })
         companyOrder: ['CFOR', 'Belge', 'PLM'],
         roundNumber: 1
     }
-    delete state.trackStep
-    state.shareStep = { companyId: 'CFOR', trades: [], completed: false }
-    state.machineState = 'ManagingShares'
+    state.trackStep = { companyId: 'CFOR', lays: [], completed: false }
+    state.machineState = 'LayingTrack'
     state.activePlayerIds = [state.players[0].playerId]
     write('share-operations', 'Redeem or reissue shares', position)
 }

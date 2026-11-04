@@ -37,10 +37,10 @@
   "activePlayerIds": [
    "p1"
   ],
-  "createdAt": "2026-11-04T16:20:37.123Z",
+  "createdAt": "2026-11-04T16:46:52.865Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-11-04T16:20:37.123Z",
+  "startedAt": "2026-11-04T16:46:52.865Z",
   "progress": {
    "fraction": 0.167,
    "label": "Phase 3"
@@ -48,7 +48,7 @@
  },
  "state": {
   "systemVersion": 3,
-  "id": "W8xn2DbhLPaPxiFXfeiMW",
+  "id": "eVwLy2jF0_aq0XXQuDeFn",
   "gameId": "scenario-share-operations",
   "seed": 1450899060,
   "prng": {
@@ -84,7 +84,7 @@
   "phaseEvents": [],
   "usedPrivatePowerIds": [],
   "accessRights": [],
-  "machineState": "ManagingShares",
+  "machineState": "LayingTrack",
   "stockRound": {
    "number": 2,
    "completed": true,
@@ -1643,9 +1643,9 @@
    "privateIncomePaid": true,
    "completed": false
   },
-  "shareStep": {
+  "trackStep": {
    "companyId": "CFOR",
-   "trades": [],
+   "lays": [],
    "completed": false
   }
  },

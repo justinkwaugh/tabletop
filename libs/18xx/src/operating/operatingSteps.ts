@@ -7,15 +7,12 @@ export const OperatingStepStates = [
     'DistributingEarnings',
     'BuyingTrains'
 ] as const
-/** Steps a title may add to its turn, such as share operations before construction. */
-export const OptionalOperatingStepStates = ['ManagingShares'] as const
-export type OperatingStepState =
-    (typeof OperatingStepStates)[number] | (typeof OptionalOperatingStepStates)[number]
+export type OperatingStepState = (typeof OperatingStepStates)[number]
 export const BetweenCompaniesState = 'OperatingSet'
 
 export function isOperatingStep(
     machineState: string,
-    steps: readonly string[] = [...OperatingStepStates, ...OptionalOperatingStepStates]
+    steps: readonly string[] = OperatingStepStates
 ): boolean {
     return steps.includes(machineState)
 }
