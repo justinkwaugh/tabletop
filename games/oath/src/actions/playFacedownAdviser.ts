@@ -44,7 +44,13 @@ import {
     secretPayment,
     tollPayment
 } from '../util/actionPayment.js'
-import { payTolls, reasonTollsUnpaid, type TollOccasion } from '../util/tolls.js'
+import {
+    payTolls,
+    reasonTollsUnpaid,
+    tollsFor,
+    type Toll,
+    type TollOccasion
+} from '../util/tolls.js'
 import { defaultTolls } from '../util/tollDefaults.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 
@@ -258,6 +264,16 @@ export class HydratedPlayFacedownAdviser
             tolls?: readonly string[]
         }
     ): string | undefined {
+        return HydratedPlayFacedownAdviser.reasonRefused(state, playerId, choice, true)
+    }
+
+    /** `judgeTolls` false: the play judged as if its tolls were paid (`tollsAloneBarPlay`). */
+    private static reasonRefused(
+        state: HydratedOathGameState,
+        playerId: string,
+        choice: Parameters<typeof HydratedPlayFacedownAdviser.reasonCannotPlay>[2],
+        judgeTolls: boolean
+    ): string | undefined {
         const notFacedown = HydratedPlayFacedownAdviser.reasonNotFacedown(
             state,
             playerId,
@@ -272,7 +288,9 @@ export class HydratedPlayFacedownAdviser
         )
         if (reason) return reason
         // R-7.1.4 — Forced Labor's Q&A: a facedown play or discard pays its toll too.
-        const unpaid = reasonTollsUnpaid(state, playerId, FACEDOWN_PLAY, choice.tolls)
+        const unpaid = judgeTolls
+            ? reasonTollsUnpaid(state, playerId, FACEDOWN_PLAY, choice.tolls)
+            : undefined
         if (unpaid) return unpaid
         return (
             reasonCannotPlayCard(state, playerId, choice.cardId, choice.play, {
@@ -291,7 +309,7 @@ export class HydratedPlayFacedownAdviser
                 modifierPayment(active),
                 // R-5.1.4.IV — the Conspiracy's take burns a secret.
                 secretPayment(choice.conspiracy ? 1 : 0),
-                tollPayment(choice.tolls)
+                tollPayment(judgeTolls ? choice.tolls : undefined)
             ])
         )
     }
@@ -549,6 +567,30 @@ export class HydratedPlayFacedownAdviser
                         tolls: HydratedPlayFacedownAdviser.tolls(state, playerId)
                     }) === undefined
             )
+    }
+
+    /**
+     * R-6.1, R-7.1.4 — the tolls that alone keep the player from playing or discarding any facedown adviser: every
+     * one is refused with them listed and would be offered were they paid. Empty while a card is offered, when a card
+     * is refused for another cause, or when no toll is asked. It reads only the player's own facedown advisers, as
+     * `legalCards` does, and the tolls in play.
+     */
+    static tollsAloneBarPlay(state: HydratedOathGameState, playerId: string): Toll[] {
+        const cardIds = state.getPlayerState(playerId).facedownAdviserIds()
+        const tolls = HydratedPlayFacedownAdviser.tolls(state, playerId)
+        if (cardIds.length === 0 || tolls.length === 0) return []
+        const refused = (cardId: string, judgeTolls: boolean) =>
+            HydratedPlayFacedownAdviser.reasonRefused(
+                state,
+                playerId,
+                { cardId, play: SearchPlay.Discard, tolls },
+                judgeTolls
+            ) !== undefined
+        const barred = cardIds.every((cardId) => refused(cardId, true) && !refused(cardId, false))
+        if (!barred) return []
+        return tollsFor(state, playerId, FACEDOWN_PLAY).filter((toll) =>
+            tolls.includes(toll.cardId)
+        )
     }
 
     /** R-7.1.4 — never optional: without them the play is refused. */
