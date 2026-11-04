@@ -154,7 +154,7 @@ export class UserService {
         if (createdUser.email && !createdUser.emailVerified) {
             await this.sendVerificationEmail(createdUser)
         }
-        this.addListedUsername(createdUser.username)
+        this.addListedUsernameIfActive(createdUser)
         return createdUser
     }
 
@@ -250,7 +250,7 @@ export class UserService {
 
         if (updatedFields.includes('username')) {
             this.removeListedUsername(originalUser.username)
-            this.addListedUsername(updatedUser.username)
+            this.addListedUsernameIfActive(updatedUser)
         }
 
         return updatedUser
@@ -509,6 +509,7 @@ export class UserService {
             },
             participant: this.tokenService.consumeChallenge(code, claim)
         })
+        this.addListedUsernameIfActive(updatedUser)
         return updatedUser
     }
 
@@ -583,8 +584,7 @@ export class UserService {
         })
         if (updatedFields.includes('username')) {
             this.removeListedUsername(originalUser.username)
-            if (updatedUser.status === UserStatus.Active)
-                this.addListedUsername(updatedUser.username)
+            this.addListedUsernameIfActive(updatedUser)
             if (updatedUser.email) {
                 await this.notifyAccountChange(userId, {
                     email: updatedUser.email,
@@ -626,7 +626,7 @@ export class UserService {
                     ? UpdateValidationResult.Proceed
                     : UpdateValidationResult.Cancel
         })
-        if (updatedUser.status === UserStatus.Active) this.addListedUsername(updatedUser.username)
+        this.addListedUsernameIfActive(updatedUser)
         return updatedUser
     }
 
@@ -670,8 +670,10 @@ export class UserService {
         return this.listedUsernames
     }
 
-    private addListedUsername(username: string | undefined): void {
-        if (username) this.listedUsernames.push(username.toLowerCase())
+    private addListedUsernameIfActive(user: User): void {
+        if (user.status !== UserStatus.Active || !user.username) return
+        const listed = user.username.toLowerCase()
+        if (!this.listedUsernames.includes(listed)) this.listedUsernames.push(listed)
     }
 
     private removeListedUsername(username: string | undefined): void {
