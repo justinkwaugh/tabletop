@@ -1,1395 +1,335 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Pay it forward: placement ideas</title>
-        <link
-            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;600;700&display=swap"
-            rel="stylesheet"
-        />
-        <style>
-            :root {
-                --bt-bg: #101828;
-                --bt-nav: #1e2939;
-                --bt-card: rgba(30, 41, 57, 0.55);
-                --bt-border: rgba(54, 65, 83, 0.7);
-                --bt-text: #e5e7eb;
-                --bt-muted: #99a1af;
-                --bt-dim: #6a7282;
-                --bt-link: #8ec5ff;
-                --bt-blue: #155dfc;
-                --bt-blue-hover: #1447e6;
-                --bt-logo: #4f8fe8;
-                --bt-highlight: #6496df80;
-            }
-            html,
-            body {
-                margin: 0;
-                padding: 0;
-                background: transparent;
-                color: var(--foreground, #e5e7eb);
-                font:
-                    15px/1.55 Inter,
-                    system-ui,
-                    sans-serif;
-            }
-            .page {
-                max-width: 100%;
-            }
-            h2 {
-                font:
-                    600 20px/1.25 'Source Sans 3',
-                    sans-serif;
-                letter-spacing: -0.01em;
-                margin: 36px 0 6px;
-            }
-            h2 small {
-                font:
-                    400 13px/1.4 Inter,
-                    sans-serif;
-                color: var(--muted-foreground, #99a1af);
-                display: block;
-                margin-top: 4px;
-                letter-spacing: 0;
-            }
-            .lede {
-                color: var(--muted-foreground, #99a1af);
-                font-size: 14px;
-                margin: 0 0 8px;
-                max-width: 64ch;
-            }
-            .cap {
-                font-size: 12.5px;
-                color: var(--muted-foreground, #99a1af);
-                margin: 8px 0 0;
-                line-height: 1.5;
-                max-width: 70ch;
-            }
-            .cap b {
-                color: var(--foreground, #e5e7eb);
-                font-weight: 600;
-            }
-            .row {
-                display: grid;
-                gap: 16px;
-                grid-template-columns: 1fr;
-            }
-            @media (min-width: 640px) {
-                .row.two {
-                    grid-template-columns: 1fr 1fr;
-                }
-                .row.side {
-                    grid-template-columns: minmax(0, 1fr) 336px;
-                    align-items: start;
-                }
-            }
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pay it forward: placement ideas</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bt-bg:#101828; --bt-nav:#1e2939; --bt-card:rgba(30,41,57,.55); --bt-border:rgba(54,65,83,.7);
+    --bt-text:#e5e7eb; --bt-muted:#99a1af; --bt-dim:#6a7282; --bt-link:#8ec5ff; --bt-blue:#155dfc; --bt-blue-hover:#1447e6;
+    --bt-logo:#4f8fe8; --bt-highlight:#6496df80;
+  }
+  html,body{margin:0;padding:0;background:transparent;color:var(--foreground,#e5e7eb);font:15px/1.55 Inter,system-ui,sans-serif}
+  .page{max-width:100%;}
+  h2{font:600 20px/1.25 'Source Sans 3',sans-serif;letter-spacing:-.01em;margin:36px 0 6px}
+  h2 small{font:400 13px/1.4 Inter,sans-serif;color:var(--muted-foreground,#99a1af);display:block;margin-top:4px;letter-spacing:0}
+  .lede{color:var(--muted-foreground,#99a1af);font-size:14px;margin:0 0 8px;max-width:64ch}
+  .cap{font-size:12.5px;color:var(--muted-foreground,#99a1af);margin:8px 0 0;line-height:1.5;max-width:70ch}
+  .cap b{color:var(--foreground,#e5e7eb);font-weight:600}
+  .row{display:grid;gap:16px;grid-template-columns:1fr}
+  @media(min-width:640px){.row.two{grid-template-columns:1fr 1fr}.row.side{grid-template-columns:minmax(0,1fr) 336px;align-items:start}}
 
-            /* site mock frame */
-            .mock {
-                background: var(--bt-bg);
-                border-radius: var(--radius, 10px);
-                padding: 16px;
-                color: var(--bt-text);
-                font:
-                    14px/1.5 Inter,
-                    system-ui,
-                    sans-serif;
-                overflow: hidden;
-                position: relative;
-                border: 1px solid rgba(255, 255, 255, 0.06);
-            }
-            .mock.tight {
-                padding: 16px;
-            }
-            .mock a {
-                color: var(--bt-link);
-                text-decoration: none;
-            }
-            .mock .h {
-                font-family: 'Source Sans 3', sans-serif;
-            }
-            .tag {
-                position: absolute;
-                top: 10px;
-                right: 12px;
-                font:
-                    600 10.5px/1 Inter,
-                    sans-serif;
-                letter-spacing: 0.06em;
-                text-transform: uppercase;
-                color: var(--bt-dim);
-            }
+  /* site mock frame */
+  .mock{background:var(--bt-bg);border-radius:var(--radius,10px);padding:16px;color:var(--bt-text);font:14px/1.5 Inter,system-ui,sans-serif;overflow:hidden;position:relative;border:1px solid rgba(255,255,255,.06)}
+  .mock.tight{padding:16px}
+  .mock a{color:var(--bt-link);text-decoration:none}
+  .mock .h{font-family:'Source Sans 3',sans-serif}
+  .tag{position:absolute;top:10px;right:12px;font:600 10.5px/1 Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--bt-dim)}
 
-            /* navbar */
-            .navwrap {
-                overflow-x: auto;
-                padding-bottom: 40px;
-            }
-            .nav {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                background: var(--bt-nav);
-                border-radius: 8px;
-                padding: 10px 16px;
-                min-width: 540px;
-            }
-            .logo {
-                display: flex;
-                flex-direction: column;
-                line-height: 0.86;
-                font:
-                    800 15px 'Source Sans 3',
-                    sans-serif;
-                letter-spacing: -0.02em;
-            }
-            .logo .b {
-                color: var(--bt-logo);
-            }
-            .logo .t {
-                color: #fff;
-                font-weight: 300;
-                letter-spacing: 0;
-            }
-            .navlinks {
-                display: flex;
-                align-items: center;
-                gap: 14px;
-                font-size: 13px;
-                color: #d1d5dc;
-                position: relative;
-            }
-            .navlinks .ico {
-                width: 18px;
-                height: 18px;
-                fill: #d1d5dc;
-            }
-            .btn {
-                display: inline-flex;
-                align-items: center;
-                gap: 8px;
-                background: var(--bt-blue);
-                color: #fff;
-                border-radius: 8px;
-                padding: 7px 14px;
-                font-weight: 500;
-                font-size: 13px;
-                border: 1px solid #2b7fff33;
-            }
-            .btn.light {
-                background: transparent;
-                color: #d1d5dc;
-                border: 1px solid #4a5565;
-            }
-            .btn.xs {
-                padding: 5px 11px;
-                font-size: 12px;
-            }
-            .pif {
-                display: inline-flex;
-                align-items: center;
-                gap: 6px;
-                position: relative;
-            }
-            .pif svg {
-                width: 15px;
-                height: 15px;
-                stroke: currentColor;
-                fill: none;
-                stroke-width: 1.9;
-                stroke-linecap: round;
-                stroke-linejoin: round;
-            }
-            .tip {
-                position: absolute;
-                top: 30px;
-                left: 50%;
-                transform: translateX(-50%);
-                background: #2a3647;
-                color: #e5e7eb;
-                border: 1px solid #3b4a60;
-                border-radius: 7px;
-                padding: 7px 10px;
-                font-size: 12px;
-                white-space: nowrap;
-                box-shadow: 0 6px 20px #0008;
-            }
-            .tip:before {
-                content: '';
-                position: absolute;
-                top: -5px;
-                left: 50%;
-                width: 8px;
-                height: 8px;
-                background: #2a3647;
-                border-left: 1px solid #3b4a60;
-                border-top: 1px solid #3b4a60;
-                transform: translateX(-50%) rotate(45deg);
-            }
+  /* navbar */
+  .navwrap{overflow-x:auto;padding-bottom:40px}
+  .nav{display:flex;align-items:center;justify-content:space-between;background:var(--bt-nav);border-radius:8px;padding:10px 16px;min-width:540px}
+  .logo{display:flex;flex-direction:column;line-height:.86;font:800 15px 'Source Sans 3',sans-serif;letter-spacing:-.02em}
+  .logo .b{color:var(--bt-logo)} .logo .t{color:#fff;font-weight:300;letter-spacing:0}
+  .navlinks{display:flex;align-items:center;gap:14px;font-size:13px;color:#d1d5dc;position:relative}
+  .navlinks .ico{width:18px;height:18px;fill:#d1d5dc}
+  .btn{display:inline-flex;align-items:center;gap:8px;background:var(--bt-blue);color:#fff;border-radius:8px;padding:7px 14px;font-weight:500;font-size:13px;border:1px solid #2b7fff33}
+  .btn.light{background:transparent;color:#d1d5dc;border:1px solid #4a5565}
+  .btn.xs{padding:5px 11px;font-size:12px}
+  .pif{display:inline-flex;align-items:center;gap:6px;position:relative}
+  .pif svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .tip{position:absolute;top:30px;left:50%;transform:translateX(-50%);background:#2a3647;color:#e5e7eb;border:1px solid #3b4a60;border-radius:7px;padding:7px 10px;font-size:12px;white-space:nowrap;box-shadow:0 6px 20px #0008}
+  .tip:before{content:"";position:absolute;top:-5px;left:50%;width:8px;height:8px;background:#2a3647;border-left:1px solid #3b4a60;border-top:1px solid #3b4a60;transform:translateX(-50%) rotate(45deg)}
 
-            /* hero */
-            .hero h1 {
-                font:
-                    700 40px/1.02 Inter,
-                    sans-serif;
-                letter-spacing: -0.03em;
-                margin: 8px 0 14px;
-                color: #f3f4f6;
-            }
-            .hero h1 span {
-                color: #5e9cf0;
-            }
-            .hero .intro {
-                color: var(--bt-muted);
-                font-size: 14px;
-                margin: 0 0 18px;
-            }
-            .hero .actions {
-                display: flex;
-                gap: 18px;
-                align-items: center;
-            }
-            .hero .browse {
-                color: #d1d5dc;
-                font-weight: 600;
-                font-size: 13px;
-            }
-            .hero .small {
-                margin-top: 22px;
-                color: var(--bt-muted);
-                font-size: 11px;
-            }
-            .hero .small b {
-                color: #d1d5dc;
-            }
+  /* hero */
+  .hero h1{font:700 40px/1.02 Inter,sans-serif;letter-spacing:-.03em;margin:8px 0 14px;color:#f3f4f6}
+  .hero h1 span{color:#5e9cf0}
+  .hero .intro{color:var(--bt-muted);font-size:14px;margin:0 0 18px}
+  .hero .actions{display:flex;gap:18px;align-items:center}
+  .hero .browse{color:#d1d5dc;font-weight:600;font-size:13px}
+  .hero .small{margin-top:22px;color:var(--bt-muted);font-size:11px}
+  .hero .small b{color:#d1d5dc}
 
-            /* about */
-            .principles {
-                border-left: 2px solid var(--bt-highlight);
-                padding-left: 16px;
-                display: grid;
-                gap: 6px;
-                font:
-                    400 17px/1.35 'Source Sans 3',
-                    sans-serif;
-            }
-            .principles b {
-                font-weight: 600;
-            }
-            .aboutintro {
-                display: grid;
-                grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
-                gap: 24px;
-                align-items: start;
-                padding-bottom: 16px;
-                border-bottom: 1px solid #364153;
-            }
-            @media (max-width: 560px) {
-                .aboutintro {
-                    grid-template-columns: 1fr;
-                    gap: 14px;
-                }
-            }
-            .cards {
-                display: grid;
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-                gap: 12px;
-                margin-top: 14px;
-            }
-            @media (max-width: 560px) {
-                .cards {
-                    grid-template-columns: 1fr;
-                }
-            }
-            .card {
-                background: var(--bt-card);
-                border: 1px solid var(--bt-border);
-                border-radius: 10px;
-                padding: 16px;
-                min-width: 0;
-            }
-            .card .ch {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                color: var(--bt-link);
-                margin-bottom: 8px;
-            }
-            .card .ch svg {
-                width: 18px;
-                height: 18px;
-                stroke: currentColor;
-                fill: none;
-                stroke-width: 1.8;
-                stroke-linecap: round;
-                stroke-linejoin: round;
-                flex: none;
-            }
-            .card .ch svg.fill {
-                fill: currentColor;
-                stroke: none;
-            }
-            .card h3 {
-                font:
-                    600 17px/1.2 'Source Sans 3',
-                    sans-serif;
-                margin: 0;
-                color: var(--bt-text);
-                letter-spacing: -0.01em;
-            }
-            .card p {
-                color: var(--bt-muted);
-                font-size: 12.5px;
-                line-height: 1.6;
-                margin: 0;
-            }
-            .card .lnk {
-                display: inline-flex;
-                align-items: center;
-                gap: 8px;
-                margin-top: 14px;
-                font-size: 12.5px;
-            }
-            .card.new {
-                outline: 1px dashed #5e9cf066;
-                outline-offset: 3px;
-            }
+  /* about */
+  .principles{border-left:2px solid var(--bt-highlight);padding-left:16px;display:grid;gap:6px;font:400 17px/1.35 'Source Sans 3',sans-serif}
+  .principles b{font-weight:600}
+  .aboutintro{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:24px;align-items:start;padding-bottom:16px;border-bottom:1px solid #364153}
+  @media(max-width:560px){.aboutintro{grid-template-columns:1fr;gap:14px}}
+  .cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+  @media(max-width:560px){.cards{grid-template-columns:1fr}}
+  .card{background:var(--bt-card);border:1px solid var(--bt-border);border-radius:10px;padding:16px;min-width:0}
+  .card .ch{display:flex;align-items:center;gap:8px;color:var(--bt-link);margin-bottom:8px}
+  .card .ch svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+  .card .ch svg.fill{fill:currentColor;stroke:none}
+  .card h3{font:600 17px/1.2 'Source Sans 3',sans-serif;margin:0;color:var(--bt-text);letter-spacing:-.01em}
+  .card p{color:var(--bt-muted);font-size:12.5px;line-height:1.6;margin:0}
+  .card .lnk{display:inline-flex;align-items:center;gap:8px;margin-top:14px;font-size:12.5px}
+  .card.new{outline:1px dashed #5e9cf066;outline-offset:3px}
 
-            /* footer line */
-            .foot {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                gap: 12px;
-                border-top: 1px solid #364153;
-                padding-top: 12px;
-                margin-top: 8px;
-                color: var(--bt-dim);
-                font-size: 12px;
-                flex-wrap: wrap;
-            }
-            .ghost {
-                height: 10px;
-                border-radius: 5px;
-                background: #1e2939;
-                margin: 8px 0;
-            }
-            .ghost.w60 {
-                width: 60%;
-            }
-            .ghost.w40 {
-                width: 40%;
-            }
-            .ghost.w80 {
-                width: 80%;
-            }
+  /* footer line */
+  .foot{display:flex;justify-content:space-between;align-items:center;gap:12px;border-top:1px solid #364153;padding-top:12px;margin-top:8px;color:var(--bt-dim);font-size:12px;flex-wrap:wrap}
+  .ghost{height:10px;border-radius:5px;background:#1e2939;margin:8px 0}
+  .ghost.w60{width:60%}.ghost.w40{width:40%}.ghost.w80{width:80%}
 
-            /* dropdown */
-            .menu {
-                width: 200px;
-                margin-top: 22px;
-                background: #1e2939;
-                border: 1px solid #364153;
-                border-radius: 8px;
-                padding: 4px 0;
-                font-size: 13px;
-                box-shadow: 0 10px 30px #0008;
-                margin-left: auto;
-            }
-            .menu div {
-                padding: 8px 14px;
-            }
-            .menu .hd {
-                color: #fff;
-                font-size: 12.5px;
-            }
-            .menu hr {
-                border: 0;
-                border-top: 1px solid #364153;
-                margin: 2px 0;
-            }
-            .menu .nt {
-                background: #162a4a;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            }
-            .menu .nt span {
-                background: #1e3a8a;
-                color: #bfdbfe;
-                border-radius: 999px;
-                font-size: 11px;
-                padding: 1px 7px;
-                font-weight: 600;
-            }
-            .menu .hi {
-                background: #1b2a3f;
-                border-left: 2px solid #5e9cf0;
-            }
+  /* dropdown */
+  .menu{width:200px;margin-top:22px;background:#1e2939;border:1px solid #364153;border-radius:8px;padding:4px 0;font-size:13px;box-shadow:0 10px 30px #0008;margin-left:auto}
+  .menu div{padding:8px 14px}
+  .menu .hd{color:#fff;font-size:12.5px}
+  .menu hr{border:0;border-top:1px solid #364153;margin:2px 0}
+  .menu .nt{background:#162a4a;display:flex;justify-content:space-between;align-items:center}
+  .menu .nt span{background:#1e3a8a;color:#bfdbfe;border-radius:999px;font-size:11px;padding:1px 7px;font-weight:600}
+  .menu .hi{background:#1b2a3f;border-left:2px solid #5e9cf0}
 
-            /* game card */
-            .gcard {
-                display: grid;
-                grid-template-columns: 64px 1fr;
-                gap: 14px;
-                max-width: 420px;
-                background: var(--bt-card);
-                border: 1px solid var(--bt-border);
-                border-radius: 10px;
-                padding: 12px;
-            }
-            .thumb {
-                width: 64px;
-                height: 64px;
-                border-radius: 8px;
-                background: linear-gradient(0deg, #3a4a1c, #5c6b2b);
-                display: grid;
-                place-items: center;
-                font: 700 12px 'Source Sans 3';
-                color: #d7dcb8;
-            }
-            .gcard .t {
-                font-weight: 600;
-                font-size: 15px;
-            }
-            .gcard .m {
-                color: var(--bt-muted);
-                font-size: 12.5px;
-                margin-top: 2px;
-            }
-            .pill {
-                display: inline-block;
-                background: #1e3a8a44;
-                color: #9fc3ff;
-                border: 1px solid #1e3a8a;
-                border-radius: 999px;
-                padding: 1px 8px;
-                font-size: 11px;
-                font-weight: 600;
-                margin-right: 6px;
-            }
-            .pill.gray {
-                background: #36415344;
-                color: #c1c7d0;
-                border-color: #4a5565;
-            }
-            .passon {
-                margin-top: 10px;
-                padding-top: 10px;
-                border-top: 1px dashed #364153;
-                font-size: 12.5px;
-                color: var(--bt-muted);
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            }
-            .passon svg {
-                width: 14px;
-                height: 14px;
-                stroke: #8ec5ff;
-                fill: none;
-                stroke-width: 1.9;
-                stroke-linecap: round;
-                stroke-linejoin: round;
-                flex: none;
-            }
+  /* game card */
+  .gcard{display:grid;grid-template-columns:64px 1fr;gap:14px;max-width:420px;background:var(--bt-card);border:1px solid var(--bt-border);border-radius:10px;padding:12px}
+  .thumb{width:64px;height:64px;border-radius:8px;background:linear-gradient(0deg,#3a4a1c,#5c6b2b);display:grid;place-items:center;font:700 12px 'Source Sans 3';color:#d7dcb8}
+  .gcard .t{font-weight:600;font-size:15px}
+  .gcard .m{color:var(--bt-muted);font-size:12.5px;margin-top:2px}
+  .pill{display:inline-block;background:#1e3a8a44;color:#9fc3ff;border:1px solid #1e3a8a;border-radius:999px;padding:1px 8px;font-size:11px;font-weight:600;margin-right:6px}
+  .pill.gray{background:#36415344;color:#c1c7d0;border-color:#4a5565}
+  .passon{margin-top:10px;padding-top:10px;border-top:1px dashed #364153;font-size:12.5px;color:var(--bt-muted);display:flex;align-items:center;gap:8px}
+  .passon svg{width:14px;height:14px;stroke:#8ec5ff;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
 
-            /* milestone */
-            .mile {
-                background: var(--bt-card);
-                border: 1px solid var(--bt-border);
-                border-left: 3px solid #5e9cf0;
-                border-radius: 10px;
-                padding: 16px 18px;
-                display: grid;
-                grid-template-columns: 1fr auto;
-                gap: 16px;
-                align-items: center;
-            }
-            @media (max-width: 560px) {
-                .mile {
-                    grid-template-columns: 1fr;
-                }
-            }
-            .mile h3 {
-                font:
-                    600 19px/1.2 'Source Sans 3',
-                    sans-serif;
-                margin: 0 0 6px;
-                letter-spacing: -0.01em;
-            }
-            .mile p {
-                margin: 0;
-                color: var(--bt-muted);
-                font-size: 13px;
-                line-height: 1.55;
-                max-width: 52ch;
-            }
-            .mile .acts {
-                display: flex;
-                gap: 10px;
-                align-items: center;
-                flex-wrap: wrap;
-            }
+  /* milestone */
+  .mile{background:var(--bt-card);border:1px solid var(--bt-border);border-left:3px solid #5e9cf0;border-radius:10px;padding:16px 18px;display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center}
+  @media(max-width:560px){.mile{grid-template-columns:1fr}}
+  .mile h3{font:600 19px/1.2 'Source Sans 3',sans-serif;margin:0 0 6px;letter-spacing:-.01em}
+  .mile p{margin:0;color:var(--bt-muted);font-size:13px;line-height:1.55;max-width:52ch}
+  .mile .acts{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 
-            /* give page */
-            .gp h1 {
-                font:
-                    600 30px/1.1 'Source Sans 3',
-                    sans-serif;
-                letter-spacing: -0.02em;
-                margin: 0;
-                color: #f3f4f6;
-            }
-            .gp .head {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                gap: 12px;
-                flex-wrap: wrap;
-            }
-            .gp .head a {
-                font-size: 12.5px;
-            }
-            .gp .intro {
-                display: grid;
-                grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
-                gap: 28px;
-                padding: 14px 0 20px;
-                border-bottom: 1px solid #364153;
-                align-items: start;
-            }
-            .gp .lead {
-                font:
-                    400 21px/1.3 'Source Sans 3',
-                    sans-serif;
-                letter-spacing: -0.012em;
-                margin: 0 0 10px;
-                max-width: 30ch;
-                color: #f3f4f6;
-            }
-            .gp .body {
-                color: var(--bt-muted);
-                font-size: 13px;
-                line-height: 1.65;
-                margin: 0 0 10px;
-                max-width: 56ch;
-            }
-            .gp .body b {
-                color: #e5e7eb;
-                font-weight: 600;
-            }
-            .gp .charities {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 16px;
-                margin-top: 18px;
-            }
-            .gp .group {
-                min-width: 0;
-            }
-            .gp .group .gl {
-                font:
-                    600 11.5px/1.3 Inter,
-                    sans-serif;
-                letter-spacing: 0.06em;
-                text-transform: uppercase;
-                color: var(--bt-link);
-                margin: 0 0 8px;
-            }
-            .gp .group .card + .card {
-                margin-top: 12px;
-            }
-            .gp .ask {
-                margin-top: 16px;
-                font-size: 12.5px;
-                color: var(--bt-muted);
-            }
-            .gp .charity .name {
-                font:
-                    600 20px/1.15 'Source Sans 3',
-                    sans-serif;
-                letter-spacing: -0.01em;
-                color: #f3f4f6;
-            }
-            .gp .charity .who {
-                color: #c7d2e0;
-                font-size: 13px;
-                font-weight: 500;
-                margin-top: 1px;
-            }
-            .gp .charity p {
-                margin-top: 12px;
-            }
-            .gp .charity .fine {
-                font-size: 11.5px;
-                color: var(--bt-dim);
-                margin-top: 8px;
-            }
-            .gp .trust {
-                margin-top: 14px;
-                font-size: 12px;
-                color: var(--bt-dim);
-                display: flex;
-                gap: 8px;
-                align-items: flex-start;
-            }
-            .gp .trust svg {
-                width: 14px;
-                height: 14px;
-                stroke: var(--bt-dim);
-                fill: none;
-                stroke-width: 1.8;
-                flex: none;
-                margin-top: 2px;
-            }
-            .later {
-                margin-top: 14px;
-                border: 1px dashed #4a5565;
-                border-radius: 10px;
-                padding: 12px 14px;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                gap: 12px;
-                flex-wrap: wrap;
-            }
-            .later .n {
-                font:
-                    600 24px/1 'Source Sans 3',
-                    sans-serif;
-                color: #f3f4f6;
-            }
-            .later .l {
-                color: var(--bt-muted);
-                font-size: 12px;
-            }
-            .later .badge {
-                font: 600 10px/1 Inter;
-                letter-spacing: 0.08em;
-                text-transform: uppercase;
-                color: #f59e0b;
-                border: 1px solid #f59e0b66;
-                border-radius: 999px;
-                padding: 4px 8px;
-            }
-            .gp .wm b {
-                font-weight: 700;
-                color: #427ac7;
-            }
-            .gp .wm span {
-                font-weight: 300;
-                color: #d1d5dc;
-            }
-            .gp .stmt {
-                font:
-                    600 19px/1.15 'Source Sans 3',
-                    sans-serif;
-                letter-spacing: -0.012em;
-                color: #f3f4f6;
-                margin: 22px 0 1px;
-            }
-            .gp .stmt.blue {
-                color: #5e9cf0;
-            }
-            .gp .stmt.bar {
-                border-left: 3px solid #5e9cf0;
-                padding-left: 12px;
-            }
-            .gp .stmt + .body {
-                margin-top: 0;
-            }
-            .gp .body.wide {
-                max-width: none;
-            }
-            .gp p.scarce {
-                max-width: none;
-            }
-            .gp .body.bar {
-                border-left: 3px solid transparent;
-                padding-left: 12px;
-            }
-            .gp .eyebrow {
-                font:
-                    600 11px/1.3 Inter,
-                    sans-serif;
-                letter-spacing: 0.08em;
-                text-transform: uppercase;
-                color: var(--bt-link);
-                margin: 18px 0 4px;
-            }
-            .gp .ask-line {
-                font:
-                    600 24px/1.15 'Source Sans 3',
-                    sans-serif;
-                letter-spacing: -0.015em;
-                color: #f3f4f6;
-                margin: 0 0 6px;
-            }
-            .gp .ask-line.sm {
-                font-size: 21px;
-            }
-            .gp .pair {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 28px;
-                margin-top: 2px;
-            }
-            .gp .pair .eyebrow {
-                margin-top: 14px;
-            }
-            .gp .scarce {
-                margin: 18px 0 0;
-                padding-top: 14px;
-                border-top: 1px solid #364153;
-                color: var(--bt-muted);
-                font-size: 13px;
-                line-height: 1.6;
-                max-width: 62ch;
-            }
-            .gp .intro.nb {
-                border-bottom: 0;
-                padding-bottom: 6px;
-            }
-            .gp .compact .card {
-                padding: 12px 14px;
-            }
-            .gp.phone .intro {
-                grid-template-columns: 1fr;
-                gap: 14px;
-            }
-            .gp.phone .charities {
-                grid-template-columns: 1fr;
-            }
-            .gp.phone h1 {
-                font-size: 26px;
-            }
-            .gp.phone .lead {
-                font-size: 19px;
-            }
-            .gp .other {
-                margin-top: 18px;
-            }
-            .gp .charity .where {
-                display: inline-block;
-                vertical-align: 3px;
-                margin-left: 10px;
-                padding: 1px 8px;
-                border: 1px solid #4b5563;
-                border-radius: 999px;
-                font:
-                    500 12px/1.5 Inter,
-                    system-ui,
-                    sans-serif;
-                letter-spacing: 0;
-                color: #d1d5dc;
-            }
-            .phone {
-                width: 100%;
-                max-width: 336px;
-                margin: 0 auto;
-                box-sizing: border-box;
-            }
+  /* give page */
+  .gp h1{font:600 30px/1.1 'Source Sans 3',sans-serif;letter-spacing:-.02em;margin:0;color:#f3f4f6}
+  .gp .head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .gp .head a{font-size:12.5px}
+  .gp .intro{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:28px;padding:14px 0 20px;border-bottom:1px solid #364153;align-items:start}
+  .gp .lead{font:400 21px/1.3 'Source Sans 3',sans-serif;letter-spacing:-.012em;margin:0 0 10px;max-width:30ch;color:#f3f4f6}
+  .gp .body{color:var(--bt-muted);font-size:13px;line-height:1.65;margin:0 0 10px;max-width:56ch}
+  .gp .body b{color:#e5e7eb;font-weight:600}
+  .gp .charities{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
+  .gp .group{min-width:0}
+  .gp .group .gl{font:600 11.5px/1.3 Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--bt-link);margin:0 0 8px}
+  .gp .group .card+.card{margin-top:12px}
+  .gp .ask{margin-top:16px;font-size:12.5px;color:var(--bt-muted)}
+  .gp .charity .name{font:600 20px/1.15 'Source Sans 3',sans-serif;letter-spacing:-.01em;color:#f3f4f6}
+  .gp .charity .who{color:#c7d2e0;font-size:13px;font-weight:500;margin-top:1px}
+  .gp .charity p{margin-top:12px}
+  .gp .charity .fine{font-size:11.5px;color:var(--bt-dim);margin-top:8px}
+  .gp .trust{margin-top:14px;font-size:12px;color:var(--bt-dim);display:flex;gap:8px;align-items:flex-start}
+  .gp .trust svg{width:14px;height:14px;stroke:var(--bt-dim);fill:none;stroke-width:1.8;flex:none;margin-top:2px}
+  .later{margin-top:14px;border:1px dashed #4a5565;border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .later .n{font:600 24px/1 'Source Sans 3',sans-serif;color:#f3f4f6}
+  .later .l{color:var(--bt-muted);font-size:12px}
+  .later .badge{font:600 10px/1 Inter;letter-spacing:.08em;text-transform:uppercase;color:#f59e0b;border:1px solid #f59e0b66;border-radius:999px;padding:4px 8px}
+  .gp .wm b{font-weight:700;color:#427ac7}
+  .gp .wm span{font-weight:300;color:#d1d5dc}
+  .gp .stmt{font:600 19px/1.15 'Source Sans 3',sans-serif;letter-spacing:-.012em;color:#f3f4f6;margin:22px 0 1px}
+  .gp .stmt.blue{color:#5e9cf0}
+  .gp .stmt.bar{border-left:3px solid #5e9cf0;padding-left:12px}
+  .gp .stmt+.body{margin-top:0}
+  .gp .body.wide{max-width:none}
+  .gp p.scarce{max-width:none}
+  .gp .body.bar{border-left:3px solid transparent;padding-left:12px}
+  .gp .eyebrow{font:600 11px/1.3 Inter,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--bt-link);margin:18px 0 4px}
+  .gp .ask-line{font:600 24px/1.15 'Source Sans 3',sans-serif;letter-spacing:-.015em;color:#f3f4f6;margin:0 0 6px}
+  .gp .ask-line.sm{font-size:21px}
+  .gp .pair{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:2px}
+  .gp .pair .eyebrow{margin-top:14px}
+  .gp .scarce{margin:18px 0 0;padding-top:14px;border-top:1px solid #364153;color:var(--bt-muted);font-size:13px;line-height:1.6;max-width:62ch}
+  .gp .intro.nb{border-bottom:0;padding-bottom:6px}
+  .gp .compact .card{padding:12px 14px}
+  .gp.phone .intro{grid-template-columns:1fr;gap:14px}
+  .gp.phone .charities{grid-template-columns:1fr}
+  .gp.phone h1{font-size:26px}
+  .gp.phone .lead{font-size:19px}
+  .gp .other{margin-top:18px}
+  .gp .charity .where{display:inline-block;vertical-align:3px;margin-left:10px;padding:1px 8px;border:1px solid #4b5563;border-radius:999px;font:500 12px/1.5 Inter,system-ui,sans-serif;letter-spacing:0;color:#d1d5dc}
+  .phone{width:100%;max-width:336px;margin:0 auto;box-sizing:border-box}
 
-            /* chips */
-            .chips {
-                display: grid;
-                gap: 8px;
-                grid-template-columns: 1fr;
-                margin: 10px 0 0;
-            }
-            @media (min-width: 640px) {
-                .chips {
-                    grid-template-columns: 1fr 1fr;
-                }
-            }
-            .chip {
-                border: 1px solid var(--border, #364153);
-                border-radius: var(--radius, 10px);
-                padding: 10px 12px;
-                font-size: 13px;
-            }
-            .chip .nm {
-                font-weight: 600;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            }
-            .chip .rec {
-                font: 600 10px/1 Inter;
-                letter-spacing: 0.08em;
-                text-transform: uppercase;
-                color: #4ade80;
-                border: 1px solid #4ade8066;
-                border-radius: 999px;
-                padding: 3px 7px;
-            }
-            .chip .why {
-                color: var(--muted-foreground, #99a1af);
-                font-size: 12.5px;
-                margin-top: 3px;
-            }
+  /* chips */
+  .chips{display:grid;gap:8px;grid-template-columns:1fr;margin:10px 0 0}
+  @media(min-width:640px){.chips{grid-template-columns:1fr 1fr}}
+  .chip{border:1px solid var(--border,#364153);border-radius:var(--radius,10px);padding:10px 12px;font-size:13px}
+  .chip .nm{font-weight:600;display:flex;align-items:center;gap:8px}
+  .chip .rec{font:600 10px/1 Inter;letter-spacing:.08em;text-transform:uppercase;color:#4ade80;border:1px solid #4ade8066;border-radius:999px;padding:3px 7px}
+  .chip .why{color:var(--muted-foreground,#99a1af);font-size:12.5px;margin-top:3px}
 
-            table {
-                border-collapse: collapse;
-                width: 100%;
-                font-size: 13px;
-                margin-top: 10px;
-            }
-            th,
-            td {
-                text-align: left;
-                padding: 8px 10px;
-                border-bottom: 1px solid var(--border, #364153);
-                vertical-align: top;
-            }
-            th {
-                font-weight: 600;
-                color: var(--muted-foreground, #99a1af);
-                font-size: 12px;
-                letter-spacing: 0.03em;
-                text-transform: uppercase;
-            }
-            td:first-child {
-                font-weight: 600;
-                white-space: nowrap;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="page">
-            <p class="lede">
-                Updated with your decisions. Label is
-                <b style="color: var(--foreground)">Pay it forward</b>, the "no" line is
-                <b style="color: var(--foreground)"
-                    >We don't take personal donations. The bills are ours</b
-                >
-                (sponsorship stays possible; players never pay), the charities are Gamers Outreach
-                and SpecialEffect. Tally planned, no "I gave" button. Finished-game line is a maybe,
-                milestone card parked.
-            </p>
-            <div class="chips" style="grid-template-columns: repeat(2, 1fr)">
-                <div class="chip">
-                    <div class="nm">Gamers Outreach <span class="rec">chosen</span></div>
-                    <div class="why">
-                        Gaming carts for kids in children's hospitals. Based in Saline, Michigan.
-                        Fundraises on Tiltify and GoFundMe Pro.
-                    </div>
-                </div>
-                <div class="chip">
-                    <div class="nm">SpecialEffect <span class="rec">chosen</span></div>
-                    <div class="why">
-                        UK charity that sets up adapted controls so people with physical
-                        disabilities can play. Fundraises on Tiltify and JustGiving.
-                    </div>
-                </div>
-            </div>
+  table{border-collapse:collapse;width:100%;font-size:13px;margin-top:10px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border,#364153);vertical-align:top}
+  th{font-weight:600;color:var(--muted-foreground,#99a1af);font-size:12px;letter-spacing:.03em;text-transform:uppercase}
+  td:first-child{font-weight:600;white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="page">
 
-            <h2>
-                1. Where it lives: quiet, always there<small
-                    >Same visual weight as "About Us". Never a coloured button, never a
-                    modal.</small
-                >
-            </h2>
+<p class="lede">Updated with your decisions. Label is <b style="color:var(--foreground)">Pay it forward</b>, the "no" line is <b style="color:var(--foreground)">We don't take personal donations. The bills are ours</b> (sponsorship stays possible; players never pay), the charities are Gamers Outreach and SpecialEffect. Tally planned, no "I gave" button. Finished-game line is a maybe, milestone card parked.</p>
+<div class="chips" style="grid-template-columns:repeat(2,1fr)">
+  <div class="chip"><div class="nm">Gamers Outreach <span class="rec">chosen</span></div><div class="why">Gaming carts for kids in children's hospitals. Based in Saline, Michigan. Fundraises on Tiltify and GoFundMe Pro.</div></div>
+  <div class="chip"><div class="nm">SpecialEffect <span class="rec">chosen</span></div><div class="why">UK charity that sets up adapted controls so people with physical disabilities can play. Fundraises on Tiltify and JustGiving.</div></div>
+</div>
 
-            <div class="mock" style="padding: 12px">
-                <div class="navwrap">
-                    <div class="nav">
-                        <div class="logo">
-                            <span class="b">BOARD</span><span class="t">TOGETHER</span>
-                        </div>
-                        <div class="navlinks">
-                            <span>About Us</span>
-                            <span class="pif"
-                                ><svg viewBox="0 0 24 24">
-                                    <path
-                                        d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"
-                                    /></svg
-                                >Pay it forward
-                                <span class="tip"
-                                    >Help charities put games on more tables. Nothing goes to
-                                    us.</span
-                                ></span
-                            >
-                            <svg class="ico" viewBox="0 0 24 24">
-                                <path
-                                    d="M12 .5C5.65.5.5 5.77.5 12.26c0 5.2 3.44 9.6 8.21 11.17.6.12.82-.27.82-.6 0-.3-.01-1.1-.02-2.16-3.34.74-4.04-1.65-4.04-1.65-.55-1.42-1.34-1.8-1.34-1.8-1.09-.77.08-.76.08-.76 1.2.09 1.83 1.26 1.83 1.26 1.08 1.89 2.84 1.35 3.53 1.03.11-.8.42-1.35.77-1.66-2.67-.31-5.47-1.36-5.47-6.05 0-1.34.46-2.43 1.22-3.29-.12-.31-.53-1.56.12-3.26 0 0 1-.33 3.3 1.26.96-.27 1.98-.4 3-.41 1.02.01 2.05.14 3 .41 2.3-1.6 3.3-1.26 3.3-1.26.65 1.7.24 2.95.12 3.26.76.86 1.22 1.95 1.22 3.29 0 4.7-2.81 5.74-5.49 6.04.43.38.82 1.13.82 2.28 0 1.64-.01 2.96-.01 3.36 0 .33.22.72.83.6 4.77-1.57 8.2-5.97 8.2-11.17C23.5 5.77 18.35.5 12 .5z"
-                                />
-                            </svg>
-                            <svg class="ico" viewBox="0 -28.5 256 256">
-                                <path
-                                    d="M216.9 16.6A208 208 0 0 0 164 0c-2.3 4.1-5 9.6-6.8 14-19.7-3-39.2-3-58.5 0-1.8-4.4-4.6-9.9-6.8-14a207 207 0 0 0-52.9 16.6C5.6 67.1-3.4 116.4 1.1 165c22.2 16.5 43.7 26.6 64.8 33.2 5.2-7.2 9.9-14.8 13.9-22.8-7.6-2.9-14.9-6.5-21.8-10.6 1.8-1.4 3.6-2.8 5.4-4.2 42.1 19.7 87.9 19.7 129.5 0 1.8 1.4 3.5 2.8 5.4 4.2-6.9 4.2-14.3 7.8-21.9 10.7 4 8 8.6 15.7 13.9 22.8 21.1-6.6 42.6-16.6 64.8-33.2 5.3-56.3-9.1-105.1-38.1-148.4ZM85.5 135.1c-12.6 0-23-11.8-23-26.2s10.1-26.2 23-26.2c12.9 0 23.2 11.8 23 26.2 0 14.4-10.1 26.2-23 26.2Zm85 0c-12.6 0-23-11.8-23-26.2s10.1-26.2 23-26.2c12.9 0 23.2 11.8 23 26.2 0 14.4-10.1 26.2-23 26.2Z"
-                                />
-                            </svg>
-                            <span class="btn">Sign in</span>
-                        </div>
-                    </div>
-                </div>
-                <p class="cap" style="margin-top: 0; color: var(--bt-muted)">
-                    <b style="color: #e5e7eb">A. Header link.</b> Text, not a button, so it reads as
-                    a destination rather than a transaction. The tooltip (shown here in its hover
-                    state) carries the "not us" for anyone who pauses on it. On phones it becomes
-                    the menu entry in C.
-                </p>
-            </div>
+<h2>1. Where it lives: quiet, always there<small>Same visual weight as "About Us". Never a coloured button, never a modal.</small></h2>
 
-            <div class="row two" style="margin-top: 16px">
-                <div class="mock hero">
-                    <span class="tag">B · landing</span>
-                    <h1>Care to play<br />a <span>game?</span></h1>
-                    <p class="intro">Bring your friends.<br />Take your turns at your own pace.</p>
-                    <div class="actions">
-                        <span class="btn">Take a seat →</span
-                        ><span class="browse">Explore the games ↓</span>
-                    </div>
-                    <p class="small">
-                        <b>Always</b> free to play. Fully open source. No tip jar, but you can
-                        <a href="#">pay it forward →</a>
-                    </p>
-                    <p class="cap" style="color: var(--bt-muted); margin-top: 18px">
-                        <b style="color: #e5e7eb">B. Landing small print.</b> One clause added to
-                        the line you already have. "No tip jar" says it in three words, and the link
-                        is the only coloured text in the line.
-                    </p>
-                </div>
-                <div class="mock">
-                    <span class="tag">C · phone menu</span>
-                    <div class="menu">
-                        <div class="hd">justin</div>
-                        <hr />
-                        <div class="nt">Next turn <span>3</span></div>
-                        <hr />
-                        <div>Profile</div>
-                        <div>Preferences</div>
-                        <div>Notifications</div>
-                        <hr />
-                        <div>About us</div>
-                        <div class="hi">Pay it forward</div>
-                        <hr />
-                        <div>Sign out</div>
-                    </div>
-                    <p class="cap" style="color: var(--bt-muted); margin-top: 14px">
-                        <b style="color: #e5e7eb">C. Account menu on phones.</b> Sits with "About
-                        us", where the header links already fall back to. No icon needed here; it's
-                        a list of plain destinations.
-                    </p>
-                </div>
-            </div>
+<div class="mock" style="padding:12px">
+  <div class="navwrap"><div class="nav">
+    <div class="logo"><span class="b">BOARD</span><span class="t">TOGETHER</span></div>
+    <div class="navlinks">
+      <span>About Us</span>
+      <span class="pif"><svg viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>Pay it forward
+        <span class="tip">Help charities put games on more tables. Nothing goes to us.</span></span>
+      <svg class="ico" viewBox="0 0 24 24"><path d="M12 .5C5.65.5.5 5.77.5 12.26c0 5.2 3.44 9.6 8.21 11.17.6.12.82-.27.82-.6 0-.3-.01-1.1-.02-2.16-3.34.74-4.04-1.65-4.04-1.65-.55-1.42-1.34-1.8-1.34-1.8-1.09-.77.08-.76.08-.76 1.2.09 1.83 1.26 1.83 1.26 1.08 1.89 2.84 1.35 3.53 1.03.11-.8.42-1.35.77-1.66-2.67-.31-5.47-1.36-5.47-6.05 0-1.34.46-2.43 1.22-3.29-.12-.31-.53-1.56.12-3.26 0 0 1-.33 3.3 1.26.96-.27 1.98-.4 3-.41 1.02.01 2.05.14 3 .41 2.3-1.6 3.3-1.26 3.3-1.26.65 1.7.24 2.95.12 3.26.76.86 1.22 1.95 1.22 3.29 0 4.7-2.81 5.74-5.49 6.04.43.38.82 1.13.82 2.28 0 1.64-.01 2.96-.01 3.36 0 .33.22.72.83.6 4.77-1.57 8.2-5.97 8.2-11.17C23.5 5.77 18.35.5 12 .5z"/></svg>
+      <svg class="ico" viewBox="0 -28.5 256 256"><path d="M216.9 16.6A208 208 0 0 0 164 0c-2.3 4.1-5 9.6-6.8 14-19.7-3-39.2-3-58.5 0-1.8-4.4-4.6-9.9-6.8-14a207 207 0 0 0-52.9 16.6C5.6 67.1-3.4 116.4 1.1 165c22.2 16.5 43.7 26.6 64.8 33.2 5.2-7.2 9.9-14.8 13.9-22.8-7.6-2.9-14.9-6.5-21.8-10.6 1.8-1.4 3.6-2.8 5.4-4.2 42.1 19.7 87.9 19.7 129.5 0 1.8 1.4 3.5 2.8 5.4 4.2-6.9 4.2-14.3 7.8-21.9 10.7 4 8 8.6 15.7 13.9 22.8 21.1-6.6 42.6-16.6 64.8-33.2 5.3-56.3-9.1-105.1-38.1-148.4ZM85.5 135.1c-12.6 0-23-11.8-23-26.2s10.1-26.2 23-26.2c12.9 0 23.2 11.8 23 26.2 0 14.4-10.1 26.2-23 26.2Zm85 0c-12.6 0-23-11.8-23-26.2s10.1-26.2 23-26.2c12.9 0 23.2 11.8 23 26.2 0 14.4-10.1 26.2-23 26.2Z"/></svg>
+      <span class="btn">Sign in</span>
+    </div>
+  </div></div>
+  <p class="cap" style="margin-top:0;color:var(--bt-muted)"><b style="color:#e5e7eb">A. Header link.</b> Text, not a button, so it reads as a destination rather than a transaction. The tooltip (shown here in its hover state) carries the "not us" for anyone who pauses on it. On phones it becomes the menu entry in C.</p>
+</div>
 
-            <div class="mock" style="margin-top: 16px">
-                <span class="tag">D · about page</span>
-                <div class="aboutintro">
-                    <div>
-                        <div class="h" style="font-size: 21px; line-height: 1.3; color: #f3f4f6">
-                            <b style="color: var(--bt-logo)">Board</b
-                            ><span style="font-weight: 300">Together</span> is a place to play board
-                            games online with friends.
-                        </div>
-                    </div>
-                    <div class="principles">
-                        <div><b>Always</b> free to play.</div>
-                        <div><b>Fully</b> open source.</div>
-                        <div><b>Never</b> funded by its players.</div>
-                    </div>
-                </div>
-                <div class="cards">
-                    <div class="card">
-                        <div class="ch">
-                            <svg class="fill" viewBox="0 -28.5 256 256">
-                                <path
-                                    d="M216.9 16.6A208 208 0 0 0 164 0c-2.3 4.1-5 9.6-6.8 14-19.7-3-39.2-3-58.5 0-1.8-4.4-4.6-9.9-6.8-14a207 207 0 0 0-52.9 16.6C5.6 67.1-3.4 116.4 1.1 165c22.2 16.5 43.7 26.6 64.8 33.2 5.2-7.2 9.9-14.8 13.9-22.8-7.6-2.9-14.9-6.5-21.8-10.6 1.8-1.4 3.6-2.8 5.4-4.2 42.1 19.7 87.9 19.7 129.5 0 1.8 1.4 3.5 2.8 5.4 4.2-6.9 4.2-14.3 7.8-21.9 10.7 4 8 8.6 15.7 13.9 22.8 21.1-6.6 42.6-16.6 64.8-33.2 5.3-56.3-9.1-105.1-38.1-148.4Z"
-                                />
-                            </svg>
-                            <h3>Talk to us</h3>
-                        </div>
-                        <p>
-                            Have a question, an idea, or a game that isn't behaving? Come chat with
-                            us on Discord.
-                        </p>
-                        <a class="lnk" href="#">Join us on Discord →</a>
-                    </div>
-                    <div class="card">
-                        <div class="ch">
-                            <svg class="fill" viewBox="0 0 24 24">
-                                <path
-                                    d="M12 .5C5.65.5.5 5.77.5 12.26c0 5.2 3.44 9.6 8.21 11.17.6.12.82-.27.82-.6 0-.3-.01-1.1-.02-2.16-3.34.74-4.04-1.65-4.04-1.65-.55-1.42-1.34-1.8-1.34-1.8-1.09-.77.08-.76.08-.76 1.2.09 1.83 1.26 1.83 1.26 1.08 1.89 2.84 1.35 3.53 1.03.11-.8.42-1.35.77-1.66-2.67-.31-5.47-1.36-5.47-6.05 0-1.34.46-2.43 1.22-3.29-.12-.31-.53-1.56.12-3.26 0 0 1-.33 3.3 1.26.96-.27 1.98-.4 3-.41 1.02.01 2.05.14 3 .41 2.3-1.6 3.3-1.26 3.3-1.26.65 1.7.24 2.95.12 3.26.76.86 1.22 1.95 1.22 3.29 0 4.7-2.81 5.74-5.49 6.04.43.38.82 1.13.82 2.28 0 1.64-.01 2.96-.01 3.36 0 .33.22.72.83.6 4.77-1.57 8.2-5.97 8.2-11.17C23.5 5.77 18.35.5 12 .5z"
-                                />
-                            </svg>
-                            <h3>Lend a hand</h3>
-                        </div>
-                        <p>
-                            Want to contribute? Take a look at the Tabletop project on GitHub. There
-                            are plenty of ways to help.
-                        </p>
-                        <a class="lnk" href="#">Explore the project on GitHub →</a>
-                    </div>
-                    <div class="card new">
-                        <div class="ch">
-                            <svg viewBox="0 0 24 24">
-                                <path
-                                    d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"
-                                />
-                            </svg>
-                            <h3>Pay it forward</h3>
-                        </div>
-                        <p>
-                            We don't take personal donations. If playing here has been worth
-                            something to you, help bring games to people who need them.
-                        </p>
-                        <a class="lnk" href="#">See the charities →</a>
-                    </div>
-                </div>
-                <p class="cap" style="color: var(--bt-muted); margin-top: 14px">
-                    <b style="color: #e5e7eb">D. About page.</b> A third principle and a third card,
-                    in the pattern you already have. The card's first sentence is the "no". Dashed
-                    outline marks what's new.
-                </p>
-            </div>
+<div class="row two" style="margin-top:16px">
+  <div class="mock hero">
+    <span class="tag">B · landing</span>
+    <h1>Care to play<br>a <span>game?</span></h1>
+    <p class="intro">Bring your friends.<br>Take your turns at your own pace.</p>
+    <div class="actions"><span class="btn">Take a seat →</span><span class="browse">Explore the games ↓</span></div>
+    <p class="small"><b>Always</b> free to play. Fully open source. No tip jar, but you can <a href="#">pay it forward →</a></p>
+    <p class="cap" style="color:var(--bt-muted);margin-top:18px"><b style="color:#e5e7eb">B. Landing small print.</b> One clause added to the line you already have. "No tip jar" says it in three words, and the link is the only coloured text in the line.</p>
+  </div>
+  <div class="mock">
+    <span class="tag">C · phone menu</span>
+    <div class="menu">
+      <div class="hd">justin</div><hr>
+      <div class="nt">Next turn <span>3</span></div><hr>
+      <div>Profile</div><div>Preferences</div><div>Notifications</div><hr>
+      <div>About us</div><div class="hi">Pay it forward</div><hr>
+      <div>Sign out</div>
+    </div>
+    <p class="cap" style="color:var(--bt-muted);margin-top:14px"><b style="color:#e5e7eb">C. Account menu on phones.</b> Sits with "About us", where the header links already fall back to. No icon needed here; it's a list of plain destinations.</p>
+  </div>
+</div>
 
-            <div class="mock" style="margin-top: 16px">
-                <span class="tag">E · library footer</span>
-                <div class="h" style="font-size: 22px; font-weight: 600; color: #f3f4f6">
-                    Your games.
-                </div>
-                <div class="ghost w80"></div>
-                <div class="ghost w60"></div>
-                <div class="ghost w40"></div>
-                <div class="foot">
-                    <span>Free to play, always. Board Together takes no personal donations.</span
-                    ><a href="#">Pay it forward →</a>
-                </div>
-                <p class="cap" style="color: var(--bt-muted); margin-top: 12px">
-                    <b style="color: #e5e7eb">E. One line at the foot of signed-in pages.</b> The
-                    site has no footer today; this is the whole footer. Grey text, one link, below
-                    the fold on anything taller than a phone.
-                </p>
-            </div>
+<div class="mock" style="margin-top:16px">
+  <span class="tag">D · about page</span>
+  <div class="aboutintro">
+    <div><div class="h" style="font-size:21px;line-height:1.3;color:#f3f4f6"><b style="color:var(--bt-logo)">Board</b><span style="font-weight:300">Together</span> is a place to play board games online with friends.</div></div>
+    <div class="principles"><div><b>Always</b> free to play.</div><div><b>Fully</b> open source.</div><div><b>Never</b> funded by its players.</div></div>
+  </div>
+  <div class="cards">
+    <div class="card"><div class="ch"><svg class="fill" viewBox="0 -28.5 256 256"><path d="M216.9 16.6A208 208 0 0 0 164 0c-2.3 4.1-5 9.6-6.8 14-19.7-3-39.2-3-58.5 0-1.8-4.4-4.6-9.9-6.8-14a207 207 0 0 0-52.9 16.6C5.6 67.1-3.4 116.4 1.1 165c22.2 16.5 43.7 26.6 64.8 33.2 5.2-7.2 9.9-14.8 13.9-22.8-7.6-2.9-14.9-6.5-21.8-10.6 1.8-1.4 3.6-2.8 5.4-4.2 42.1 19.7 87.9 19.7 129.5 0 1.8 1.4 3.5 2.8 5.4 4.2-6.9 4.2-14.3 7.8-21.9 10.7 4 8 8.6 15.7 13.9 22.8 21.1-6.6 42.6-16.6 64.8-33.2 5.3-56.3-9.1-105.1-38.1-148.4Z"/></svg><h3>Talk to us</h3></div><p>Have a question, an idea, or a game that isn't behaving? Come chat with us on Discord.</p><a class="lnk" href="#">Join us on Discord →</a></div>
+    <div class="card"><div class="ch"><svg class="fill" viewBox="0 0 24 24"><path d="M12 .5C5.65.5.5 5.77.5 12.26c0 5.2 3.44 9.6 8.21 11.17.6.12.82-.27.82-.6 0-.3-.01-1.1-.02-2.16-3.34.74-4.04-1.65-4.04-1.65-.55-1.42-1.34-1.8-1.34-1.8-1.09-.77.08-.76.08-.76 1.2.09 1.83 1.26 1.83 1.26 1.08 1.89 2.84 1.35 3.53 1.03.11-.8.42-1.35.77-1.66-2.67-.31-5.47-1.36-5.47-6.05 0-1.34.46-2.43 1.22-3.29-.12-.31-.53-1.56.12-3.26 0 0 1-.33 3.3 1.26.96-.27 1.98-.4 3-.41 1.02.01 2.05.14 3 .41 2.3-1.6 3.3-1.26 3.3-1.26.65 1.7.24 2.95.12 3.26.76.86 1.22 1.95 1.22 3.29 0 4.7-2.81 5.74-5.49 6.04.43.38.82 1.13.82 2.28 0 1.64-.01 2.96-.01 3.36 0 .33.22.72.83.6 4.77-1.57 8.2-5.97 8.2-11.17C23.5 5.77 18.35.5 12 .5z"/></svg><h3>Lend a hand</h3></div><p>Want to contribute? Take a look at the Tabletop project on GitHub. There are plenty of ways to help.</p><a class="lnk" href="#">Explore the project on GitHub →</a></div>
+    <div class="card new"><div class="ch"><svg viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg><h3>Pay it forward</h3></div><p>We don't take personal donations. If playing here has been worth something to you, help bring games to people who need them.</p><a class="lnk" href="#">See the charities →</a></div>
+  </div>
+  <p class="cap" style="color:var(--bt-muted);margin-top:14px"><b style="color:#e5e7eb">D. About page.</b> A third principle and a third card, in the pattern you already have. The card's first sentence is the "no". Dashed outline marks what's new.</p>
+</div>
 
-            <h2>
-                2. Nudges, both out of the first version<small
-                    >Finished-game line is a maybe. Milestone card parked for a later
-                    revisit.</small
-                >
-            </h2>
-            <div class="row">
-                <div class="mock">
-                    <span class="tag">F · finished game · maybe</span>
-                    <div class="gcard">
-                        <div class="thumb">BUS</div>
-                        <div>
-                            <div class="t">Bus</div>
-                            <div class="m">
-                                <span class="pill">Finished</span
-                                ><span class="pill gray">You won</span>
-                            </div>
-                            <div class="m">with Anna, Marcus, Priya · 3 weeks</div>
-                            <div class="passon">
-                                <svg viewBox="0 0 24 24">
-                                    <path
-                                        d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"
-                                    /></svg
-                                >Good game? <a href="#">Pass it on.</a>
-                            </div>
-                        </div>
-                    </div>
-                    <p class="cap" style="color: var(--bt-muted); margin-top: 12px">
-                        <b style="color: #e5e7eb"
-                            >F. A line on the card of the game that just ended.</b
-                        >
-                        Only on the most recently finished game, only until they've seen it. Four
-                        words, no button.
-                    </p>
-                </div>
-                <div class="mock" style="opacity: 0.55">
-                    <span class="tag">G · milestone · later</span>
-                    <div class="mile">
-                        <div>
-                            <h3>That's ten finished games.</h3>
-                            <p>
-                                Still free, still no tip jar. If it's been worth your time, help
-                                bring board games to someone who can't get them.
-                            </p>
-                        </div>
-                        <div class="acts">
-                            <span class="btn xs">See the charities</span
-                            ><span class="btn light xs">Not now</span>
-                        </div>
-                    </div>
-                    <p class="cap" style="color: var(--bt-muted); margin-top: 12px">
-                        <b style="color: #e5e7eb">G. Milestone card above the game list.</b> At 1,
-                        10, 25, 50, 100 finished games. "Not now" hides it until the next milestone.
-                        The number does the persuading; the copy just points.
-                    </p>
-                </div>
-            </div>
+<div class="mock" style="margin-top:16px">
+  <span class="tag">E · library footer</span>
+  <div class="h" style="font-size:22px;font-weight:600;color:#f3f4f6">Your games.</div>
+  <div class="ghost w80"></div><div class="ghost w60"></div><div class="ghost w40"></div>
+  <div class="foot"><span>Free to play, always. Board Together takes no personal donations.</span><a href="#">Pay it forward →</a></div>
+  <p class="cap" style="color:var(--bt-muted);margin-top:12px"><b style="color:#e5e7eb">E. One line at the foot of signed-in pages.</b> The site has no footer today; this is the whole footer. Grey text, one link, below the fold on anything taller than a phone.</p>
+</div>
 
-            <h2>
-                3. The page<small
-                    >/pay-it-forward, public. A line admitting board-game charities are rare, then
-                    the cards, each saying what its charity does.</small
-                >
-            </h2>
-            <div class="mock gp">
-                <div class="head">
-                    <h1>Pay it forward.</h1>
-                    <a href="#">Back to the library →</a>
-                </div>
-                <div class="intro nb">
-                    <div>
-                        <p class="lead">
-                            <span class="wm"><b>Board</b><span>Together</span></span> is free, and
-                            we plan to keep it that way.
-                        </p>
-                    </div>
-                    <div class="principles">
-                        <div><b>Always</b> free to play.</div>
-                        <div><b>Fully</b> open source.</div>
-                        <div><b>Never</b> funded by its players.</div>
-                    </div>
-                </div>
-                <p class="stmt blue">We don't take personal donations.</p>
-                <p class="body wide">
-                    The bills are ours, and nothing you give from this page comes to us.
-                </p>
-                <p class="stmt">Pass it on instead.</p>
-                <p class="body wide">
-                    If the games here have been worth something to you, help put games in front of
-                    people who need them. Few board game charities work at scale and meet the bar we
-                    set, so we picked these two. They bring play to people who can't easily get to
-                    it: kids stuck in hospital rooms, and players who need adapted controls.
-                </p>
-                <div class="charities">
-                    <div class="group">
-                        <div class="card charity">
-                            <div class="name">
-                                Gamers Outreach<span class="where">US charity</span>
-                            </div>
-                            <div class="who">Play for kids in hospitals</div>
-                            <p>
-                                Builds medical-grade gaming carts and brings them to kids in
-                                hospital who can't leave their rooms. Over 350 hospitals so far.
-                            </p>
-                            <a class="lnk" href="#">Give through Tiltify ↗</a>
-                            <div class="fine">
-                                Opens the Board Together campaign on tiltify.com.
-                            </div>
-                        </div>
-                    </div>
-                    <div class="group">
-                        <div class="card charity">
-                            <div class="name">
-                                SpecialEffect<span class="where">UK charity</span>
-                            </div>
-                            <div class="who">Play for people with disabilities</div>
-                            <p>
-                                Occupational therapists and gaming specialists set up adapted
-                                controllers and eye control, so people with physical disabilities
-                                can play the games they love.
-                            </p>
-                            <a class="lnk" href="#">Give through Tiltify ↗</a>
-                            <div class="fine">
-                                Opens the Board Together campaign on tiltify.com.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <p class="body wide other">
-                    If these two aren't for you, give to your favorite charity instead. It's paying
-                    it forward all the same.
-                </p>
-                <div class="trust">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg
-                    ><span
-                        >Board Together gets nothing from these links: no referral fee, no cut, no
-                        data back to us.</span
-                    >
-                </div>
-                <div class="later" style="border-style: solid">
-                    <div>
-                        <div class="n">$12,480</div>
-                        <div class="l">
-                            given by Board Together players · $8,120 Gamers Outreach · $4,360
-                            SpecialEffect
-                        </div>
-                    </div>
-                    <span class="badge" style="color: #4ade80; border-color: #4ade8066"
-                        >planned · see below</span
-                    >
-                </div>
-            </div>
-            <div class="row side" style="margin-top: 16px">
-                <div>
-                    <p class="cap" style="margin-top: 0">
-                        <b>Phone width.</b> Same page, principles dropped, one card per row.
-                    </p>
-                    <p class="cap" style="margin-top: 14px">
-                        <b>Page notes.</b> The headline repeats the link text so the click lands
-                        where it expected. The blue statement is the "no"; "Pass it on instead."
-                        answers it in the same face. The three principles echo the About page, with
-                        the new third line. Each card's subtitle says who the play reaches: kids in
-                        hospitals, people with disabilities. Both links land on a page that belongs
-                        to Board Together on the charity's platform, which is what makes the tally
-                        countable.
-                    </p>
-                </div>
-                <div>
-                    <div class="mock gp phone">
-                        <h1>Pay it forward.</h1>
-                        <div class="intro nb">
-                            <div>
-                                <p class="lead">
-                                    <span class="wm"><b>Board</b><span>Together</span></span> is
-                                    free, and we plan to keep it that way.
-                                </p>
-                                <p class="stmt blue">We don't take personal donations.</p>
-                                <p class="body">
-                                    The bills are ours, and nothing you give from this page comes to
-                                    us.
-                                </p>
-                                <p class="stmt">Pass it on instead.</p>
-                                <p class="body">
-                                    If the games here have been worth something to you, help put
-                                    games in front of people who need them. Few board game charities
-                                    work at scale and meet the bar we set, so we picked these two.
-                                </p>
-                            </div>
-                        </div>
-                        <div class="charities">
-                            <div class="group">
-                                <div class="card charity">
-                                    <div class="name">
-                                        Gamers Outreach<span class="where">US charity</span>
-                                    </div>
-                                    <div class="who">Play for kids in hospitals</div>
-                                    <p>
-                                        Gaming carts for kids in hospital who can't leave their
-                                        rooms.
-                                    </p>
-                                    <a class="lnk" href="#">Give through Tiltify ↗</a>
-                                </div>
-                            </div>
-                            <div class="group">
-                                <div class="card charity">
-                                    <div class="name">
-                                        SpecialEffect<span class="where">UK charity</span>
-                                    </div>
-                                    <div class="who">Play for people with disabilities</div>
-                                    <p>Adapted controllers and eye control so everyone can play.</p>
-                                    <a class="lnk" href="#">Give through Tiltify ↗</a>
-                                </div>
-                            </div>
-                        </div>
-                        <p class="body other">
-                            If these two aren't for you, give to your favorite charity instead. It's
-                            paying it forward all the same.
-                        </p>
-                        <div class="trust">
-                            <span>Nothing comes to us: no referral fee, no cut, no data.</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<h2>2. Nudges, both out of the first version<small>Finished-game line is a maybe. Milestone card parked for a later revisit.</small></h2>
+<div class="row">
+  <div class="mock">
+    <span class="tag">F · finished game · maybe</span>
+    <div class="gcard">
+      <div class="thumb">BUS</div>
+      <div>
+        <div class="t">Bus</div>
+        <div class="m"><span class="pill">Finished</span><span class="pill gray">You won</span></div>
+        <div class="m">with Anna, Marcus, Priya · 3 weeks</div>
+        <div class="passon"><svg viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>Good game? <a href="#">Pass it on.</a></div>
+      </div>
+    </div>
+    <p class="cap" style="color:var(--bt-muted);margin-top:12px"><b style="color:#e5e7eb">F. A line on the card of the game that just ended.</b> Only on the most recently finished game, only until they've seen it. Four words, no button.</p>
+  </div>
+  <div class="mock" style="opacity:.55">
+    <span class="tag">G · milestone · later</span>
+    <div class="mile">
+      <div>
+        <h3>That's ten finished games.</h3>
+        <p>Still free, still no tip jar. If it's been worth your time, help bring board games to someone who can't get them.</p>
+      </div>
+      <div class="acts"><span class="btn xs">See the charities</span><span class="btn light xs">Not now</span></div>
+    </div>
+    <p class="cap" style="color:var(--bt-muted);margin-top:12px"><b style="color:#e5e7eb">G. Milestone card above the game list.</b> At 1, 10, 25, 50, 100 finished games. "Not now" hides it until the next milestone. The number does the persuading; the copy just points.</p>
+  </div>
+</div>
 
-            <h2>
-                4. How the tally gets its numbers<small
-                    >Each charity's platform, what it exposes, and what you'd need to set up. One
-                    nightly fetch on the backend, cached; no browser polling.</small
-                >
-            </h2>
-            <table>
-                <tr>
-                    <th>Charity</th>
-                    <th>Platform</th>
-                    <th>What it exposes</th>
-                    <th>Set-up needed</th>
-                </tr>
-                <tr>
-                    <td>Gamers Outreach</td>
-                    <td>Tiltify (and GoFundMe Pro)</td>
-                    <td>
-                        Tiltify's public API returns a campaign's amount raised, goal and donate
-                        link. It needs an application token from a free Tiltify account; tokens last
-                        two hours, so the nightly fetch requests one each run.
-                    </td>
-                    <td>
-                        Create a Board Together campaign under their Tiltify cause
-                        (tiltify.com/gamersoutreach). Tiltify retires a campaign after six months
-                        without a donation, so the fetch should notice retired status. If the
-                        in-person conversation yields a GoFundMe Pro page with read access instead,
-                        use that.
-                    </td>
-                </tr>
-                <tr>
-                    <td>SpecialEffect</td>
-                    <td>Tiltify (and JustGiving)</td>
-                    <td>Same Tiltify API and the same application token as Gamers Outreach.</td>
-                    <td>
-                        Create a Board Together campaign under their Tiltify cause
-                        (tiltify.com/specialeffect, the link on their own fundraising page). Same
-                        six-month retirement rule.
-                    </td>
-                </tr>
-            </table>
-            <p class="cap">
-                <b>Caveats.</b> Platform totals can include pledges or unsettled gifts, so the
-                number should say "raised" not "received". Both campaigns are yours to create, so
-                the tally needs no charity's cooperation. A SpecialEffect campaign may raise in
-                pounds; if so, the tally converts to one currency or shows each in its own.
-            </p>
-
-            <h2>5. First version<small>What gets built if you say go.</small></h2>
-            <table>
-                <tr>
-                    <th>Piece</th>
-                    <th>Where</th>
-                    <th>Status</th>
-                </tr>
-                <tr>
-                    <td>Page</td>
-                    <td>/pay-it-forward</td>
-                    <td>
-                        Build, with the tally slot wired to the Gamers Outreach Tiltify campaign
-                        first
-                    </td>
-                </tr>
-                <tr>
-                    <td>Header link + menu entry</td>
-                    <td>Navbar, phone account menu</td>
-                    <td>Build</td>
-                </tr>
-                <tr>
-                    <td>About card + third principle</td>
-                    <td>/about</td>
-                    <td>Build</td>
-                </tr>
-                <tr>
-                    <td>Landing small print</td>
-                    <td>Hero, signed out</td>
-                    <td>Build</td>
-                </tr>
-                <tr>
-                    <td>Footer line</td>
-                    <td>Signed-in pages</td>
-                    <td>Build</td>
-                </tr>
-                <tr>
-                    <td>Finished-game line</td>
-                    <td>Most recent finished card</td>
-                    <td>Maybe, not in v1</td>
-                </tr>
-                <tr>
-                    <td>Milestone card</td>
-                    <td>Above the game list</td>
-                    <td>Revisit later</td>
-                </tr>
-                <tr>
-                    <td>"I gave" button</td>
-                    <td>The page</td>
-                    <td>Dropped</td>
-                </tr>
-            </table>
+<h2>3. The page<small>/pay-it-forward, public. A line admitting board-game charities are rare, then the cards, each saying what its charity does.</small></h2>
+<div class="mock gp">
+    <div class="head"><h1>Pay it forward.</h1><a href="#">Back to the library →</a></div>
+    <div class="intro nb">
+      <div>
+        <p class="lead"><span class="wm"><b>Board</b><span>Together</span></span> is free, and we plan to keep it that way.</p>
+      </div>
+      <div class="principles"><div><b>Always</b> free to play.</div><div><b>Fully</b> open source.</div><div><b>Never</b> funded by its players.</div></div>
+    </div>
+    <p class="stmt blue">We don't take personal donations.</p>
+    <p class="body wide">The bills are ours, and nothing you give from this page comes to us.</p>
+    <p class="stmt">Pass it on instead.</p>
+    <p class="body wide">If the games here have been worth something to you, help put games in front of people who need them. Few board game charities work at scale and meet the bar we set, so we picked these two. They bring play to people who can't easily get to it: kids stuck in hospital rooms, and players who need adapted controls.</p>
+    <div class="charities">
+      <div class="group">        <div class="card charity"><div class="name">Gamers Outreach<span class="where">US charity</span></div><div class="who">Play for kids in hospitals</div><p>Builds medical-grade gaming carts and brings them to kids in hospital who can't leave their rooms. Over 350 hospitals so far.</p><a class="lnk" href="#">Give through Tiltify ↗</a><div class="fine">Opens the Board Together campaign on tiltify.com.</div></div>
+      </div>
+      <div class="group">        <div class="card charity"><div class="name">SpecialEffect<span class="where">UK charity</span></div><div class="who">Play for people with disabilities</div><p>Occupational therapists and gaming specialists set up adapted controllers and eye control, so people with physical disabilities can play the games they love.</p><a class="lnk" href="#">Give through Tiltify ↗</a><div class="fine">Opens the Board Together campaign on tiltify.com.</div></div>
+      </div>
+    </div>
+    <p class="body wide other">If these two aren't for you, give to your favorite charity instead. It's paying it forward all the same.</p>
+    <div class="trust"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span>Board Together gets nothing from these links: no referral fee, no cut, no data back to us.</span></div>
+    <div class="later" style="border-style:solid"><div><div class="n">$12,480</div><div class="l">given by Board Together players · $8,120 Gamers Outreach · $4,360 SpecialEffect</div></div><span class="badge" style="color:#4ade80;border-color:#4ade8066">planned · see below</span></div>
+  </div>
+<div class="row side" style="margin-top:16px">
+  <div>
+    <p class="cap" style="margin-top:0"><b>Phone width.</b> Same page, principles dropped, one card per row.</p>
+    <p class="cap" style="margin-top:14px"><b>Page notes.</b> The headline repeats the link text so the click lands where it expected. The blue statement is the "no"; "Pass it on instead." answers it in the same face. The three principles echo the About page, with the new third line. Each card's subtitle says who the play reaches: kids in hospitals, people with disabilities. Both links land on a page that belongs to Board Together on the charity's platform, which is what makes the tally countable.</p>
+      </div>
+  <div><div class="mock gp phone">
+      <h1>Pay it forward.</h1>
+      <div class="intro nb">
+        <div>
+          <p class="lead"><span class="wm"><b>Board</b><span>Together</span></span> is free, and we plan to keep it that way.</p>
+          <p class="stmt blue">We don't take personal donations.</p>
+          <p class="body">The bills are ours, and nothing you give from this page comes to us.</p>
+          <p class="stmt">Pass it on instead.</p>
+          <p class="body">If the games here have been worth something to you, help put games in front of people who need them. Few board game charities work at scale and meet the bar we set, so we picked these two.</p>
         </div>
-    </body>
+      </div>
+      <div class="charities">
+        <div class="group">          <div class="card charity"><div class="name">Gamers Outreach<span class="where">US charity</span></div><div class="who">Play for kids in hospitals</div><p>Gaming carts for kids in hospital who can't leave their rooms.</p><a class="lnk" href="#">Give through Tiltify ↗</a></div>
+        </div>
+        <div class="group">          <div class="card charity"><div class="name">SpecialEffect<span class="where">UK charity</span></div><div class="who">Play for people with disabilities</div><p>Adapted controllers and eye control so everyone can play.</p><a class="lnk" href="#">Give through Tiltify ↗</a></div>
+        </div>
+      </div>
+      <p class="body other">If these two aren't for you, give to your favorite charity instead. It's paying it forward all the same.</p>
+      <div class="trust"><span>Nothing comes to us: no referral fee, no cut, no data.</span></div>
+    </div></div>
+</div>
+
+<h2>4. How the tally gets its numbers<small>Each charity's platform, what it exposes, and what you'd need to set up. One nightly fetch on the backend, cached; no browser polling.</small></h2>
+<table>
+  <tr><th>Charity</th><th>Platform</th><th>What it exposes</th><th>Set-up needed</th></tr>
+  <tr><td>Gamers Outreach</td><td>Tiltify (and GoFundMe Pro)</td><td>Tiltify's public API returns a campaign's amount raised, goal and donate link. It needs an application token from a free Tiltify account; tokens last two hours, so the nightly fetch requests one each run.</td><td>Create a Board Together campaign under their Tiltify cause (tiltify.com/gamersoutreach). Tiltify retires a campaign after six months without a donation, so the fetch should notice retired status. If the in-person conversation yields a GoFundMe Pro page with read access instead, use that.</td></tr>
+  <tr><td>SpecialEffect</td><td>Tiltify (and JustGiving)</td><td>Same Tiltify API and the same application token as Gamers Outreach.</td><td>Create a Board Together campaign under their Tiltify cause (tiltify.com/specialeffect, the link on their own fundraising page). Same six-month retirement rule.</td></tr>
+</table>
+<p class="cap"><b>Caveats.</b> Platform totals can include pledges or unsettled gifts, so the number should say "raised" not "received". Both campaigns are yours to create, so the tally needs no charity's cooperation. A SpecialEffect campaign may raise in pounds; if so, the tally converts to one currency or shows each in its own.</p>
+
+<h2>5. First version<small>What gets built if you say go.</small></h2>
+<table>
+  <tr><th>Piece</th><th>Where</th><th>Status</th></tr>
+  <tr><td>Page</td><td>/pay-it-forward</td><td>Build, with the tally slot wired to the Gamers Outreach Tiltify campaign first</td></tr>
+  <tr><td>Header link + menu entry</td><td>Navbar, phone account menu</td><td>Build</td></tr>
+  <tr><td>About card + third principle</td><td>/about</td><td>Build</td></tr>
+  <tr><td>Landing small print</td><td>Hero, signed out</td><td>Build</td></tr>
+  <tr><td>Footer line</td><td>Signed-in pages</td><td>Build</td></tr>
+  <tr><td>Finished-game line</td><td>Most recent finished card</td><td>Maybe, not in v1</td></tr>
+  <tr><td>Milestone card</td><td>Above the game list</td><td>Revisit later</td></tr>
+  <tr><td>"I gave" button</td><td>The page</td><td>Dropped</td></tr>
+</table>
+
+</div>
+</body>
 </html>
