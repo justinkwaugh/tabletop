@@ -48,12 +48,19 @@ A Player accepted by its associated User.
 **Declined Player**:
 A Reserved Player whose associated User declined. In a Public Game the position returns to Open; in an Invite-Only Game the declined association remains until the Owner changes it.
 
+**Banned Player**:
+A Player whose User Account an Administrator has Banned. The Ban stops them holding others up: they concede a two-Player Game, their seat in a Game yet to start returns to Open, in an Invite-Only Game too, and any such Game they own is deleted. A Game with more Players goes on and stops on their turn, so the others are emailed that they can call it, and a Tournament Game stays with the tournament's withdrawal tools. Their finished Games keep their results.
+
 **Public Game**:
 A Game Instance with Open Players that eligible Users may claim. It is listed for public discovery unless it is an Unlisted Game.
 
 **Unlisted Game**:
 A Public Game absent from public discovery, whose Open Players any User holding its link may claim. Any User may create one, for a Game Title of any catalog visibility.
 _Avoid_: Hidden public game, private game
+
+**Offensive Game Name**:
+A name containing a slur or offensive language, by the word list in `libs/backend-services/src/moderation/offensiveLanguage.ts`, which a Public Game listed for public discovery may not take. Unlisted and Invite-Only Games are not checked. The check runs when a Player or owner creates or forks a Game Instance, or changes its name or Public setting, so a game already named is not caught by a later change to the list. An Administrator is exempt, which is how a false match gets resolved, and Tournament and League tables are named after their Administrator-created competitions, so they are not checked.
+_Avoid_: Bad name, banned name
 
 **Invite-Only Game**:
 A Game Instance absent from public discovery, with Players offered to specific Users. Invite-only governs discovery and participation, not confidentiality.

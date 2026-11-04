@@ -1,22 +1,16 @@
 import {
     CompanyClosure,
-    bankExhaustionAtSetEnd,
-    certificateWealthItem,
     closeShareCompany,
-    companyShareCount,
-    dividendEntitlements,
-    getCompany,
     marketDiscardOrder,
-    marketShareValue,
-    presidentTrainFundingRules,
+    marketDividendEarnings,
+    marketValueEnding,
+    getCompany,
     privateOwner,
     EighteenXXTransferTiming,
     RailwayMapState,
     fullCapitalizationCompanyRules,
     type CompanyRules,
     type EarningsRules,
-    type EndingRules,
-    type EndingState,
     type HydratedEighteenXXState,
     type PhaseRules,
     type PrivatePowerRules,
@@ -24,104 +18,55 @@ import {
     type TransferRules,
     type ZeroPriceClosureRules
 } from '@tabletop/18xx'
-import { assertExists } from '@tabletop/common'
 import * as Type from 'typebox'
 import { Charters1870, FriscoCompanyId, RiverCompanyIds, company1870 } from './companies.js'
 import { Names1870 } from './names.js'
 import { BridgePrivateId, PrivateCatalog1870, privateDescription } from './privates.js'
 import { Map1870, RiverLocationIds } from './map.js'
 import { requireState1870 } from './state.js'
-import {
-    OperatingRules1870,
-    PriceProtection1870,
-    ShareTrading1870,
-    StockRules1870
-} from './stock.js'
 import { Market1870 } from './stockMarket.js'
 import { TileSet1870 } from './tiles.js'
 import { revenueTokensExpire } from './tokens.js'
-import { Phases1870 } from './trains.js'
+import { DieselVariant1870, Phases1870 } from './trains.js'
 import { RevenueToken } from './titleState.js'
 
-const shareCount = (state: Parameters<EarningsRules['shareCount']>[0], companyId: string) => {
-    const count = companyShareCount(state, Charters1870, companyId)
-    assertExists(count, 'Dividends require a share count')
-    return count
-}
+// A half dividend leaves the company half the earnings, rounded up to the nearest $10 (p. 20).
+const Dividends = marketDividendEarnings({
+    market: Market1870,
+    charters: Charters1870,
+    halfRetained: (revenue, count) => Math.ceil(revenue / 2 / count) * count
+})
 
 export const EarningsRules1870: EarningsRules = {
+    ...Dividends,
     // A connection run's income is paid or withheld, never halved (p. 22).
-    choices: (state) =>
+    choices: (state, companyId) =>
         requireState1870(state).destinationRun
             ? ['pay', 'withhold']
-            : ['pay', 'half-pay', 'withhold'],
-    shareCount,
-    // Initial-offering and redeemed shares pay the company; open-market shares pay the bank (p. 20).
-    entitlements: (state, companyId) =>
-        dividendEntitlements(state, companyId, (certificate) =>
-            certificate.poolId === 'open-market'
-                ? undefined
-                : certificate.poolId === 'initial-offering'
-                  ? { kind: 'company', companyId }
-                  : certificate.owner
-        ),
-    // A half dividend leaves the company half the earnings, rounded up to the nearest $10 (p. 20).
-    retainedRevenue(state, companyId, choice, revenue) {
-        if (choice === 'withhold') return revenue
-        if (choice === 'pay') return 0
-        const count = shareCount(state, companyId)
-        return Math.ceil(revenue / 2 / count) * count
-    },
-    roundDividend: (_state, _companyId, amount) => amount,
-    // A full dividend moves right, none or $0 left, a half dividend not at all; a withheld
-    // connection run stays where it is (p. 20, p. 22).
+            : Dividends.choices(state, companyId),
+    // A withheld connection run stays where it is (p. 22).
     marketEffect(state, companyId, distribution) {
-        if (distribution.choice === 'half-pay') return { bonusPerShare: 0 }
         const paid = distribution.revenue > distribution.retained
         if (!paid && requireState1870(state).destinationRun) return { bonusPerShare: 0 }
-        return {
-            move: Market1870.dividendMove(state.stockMarket, companyId, paid),
-            bonusPerShare: 0
-        }
+        return Dividends.marketEffect(state, companyId, distribution)
     }
-}
-
-const FinishPrice = 400
-
-/**
- * With the $400 finish, a company reaching $400 ends the game once it finishes operating, or at
- * once at the end of a stock round (p. 24).
- */
-function reachedFinishPrice(state: EndingState) {
-    return (
-        requireState1870(state).variants.finish400 &&
-        ['OperatingSet', 'StartingOperatingSet'].includes(state.machineState) &&
-        state.stockMarket.stacks.some(
-            (stack) => Market1870.space(stack.spaceId).price >= FinishPrice
-        )
-    )
 }
 
 // Bankruptcy ends the game at once, once presidents have decided on the shares it sold (p. 25's
-// example); a broken bank after the set of operating rounds (pp. 22-23).
+// example); a broken bank after the set of operating rounds (pp. 22-23); with the $400 finish, a
+// company reaching $400 once it finishes operating, or at once at the end of a stock round (p. 24).
 // Shares count at market value and privates at the price printed on them (p. 24).
-export const EndingRules1870: EndingRules = {
-    trigger(state) {
-        if (state.bankruptcy && !requireState1870(state).priceProtection)
-            return { reason: 'Bankruptcy' }
-        if (reachedFinishPrice(state)) return { reason: '$400 share price' }
-        return bankExhaustionAtSetEnd(state)
-    },
-    certificateItems(state, certificate) {
-        const company = getCompany(state, certificate.companyId)
-        const value = company.closed
-            ? 0
-            : certificate.kind === 'share'
-              ? marketShareValue(Market1870, state, certificate)
-              : PrivateCatalog1870.faceValue(company.id)
-        return [certificateWealthItem(Names1870, certificate, value)]
+export const EndingRules1870 = marketValueEnding({
+    market: Market1870,
+    names: Names1870,
+    privateFaceValue: (id) => PrivateCatalog1870.faceValue(id),
+    bankruptcySettled: (state) => !requireState1870(state).priceProtection,
+    finishPrice: {
+        price: 400,
+        active: (state) => !!requireState1870(state).variants.finish400,
+        reason: '$400 share price'
     }
-}
+})
 
 const ClosureFields = Type.Object(
     {
@@ -149,11 +94,7 @@ export const ZeroPriceClosure1870: ZeroPriceClosureRules<typeof ClosureFields> =
 }
 
 export const PhaseRules1870: PhaseRules = {
-    // With diesels, 5-trains are permanent; the first diesel scraps the 4s (p. 24).
-    rustTiming: (state, train) =>
-        requireState1870(state).variants.diesels && train.definitionId === '5'
-            ? undefined
-            : Phases1870.rustTiming(state.phaseId, train.definitionId),
+    rustTiming: DieselVariant1870.rustTiming,
     discardOrder: (state, companyId) => marketDiscardOrder(Market1870, state, companyId),
     discardDestination: 'market',
     changes: {
@@ -295,13 +236,3 @@ export const CompanyRules1870: CompanyRules = {
         rulesFor(companyId).flotationPayments(state, companyId),
     parAfterAward: true
 }
-
-// A president funds a compulsory train from personal cash and sales, which may not change the
-// buying company's presidency and may be protected (pp. 21, 23).
-export const TrainFundingRules1870 = presidentTrainFundingRules({
-    companyOrder: OperatingRules1870.companyOrder,
-    saleTerms: ShareTrading1870.emergencySaleTerms,
-    stockRules: StockRules1870,
-    protectsPresidency: (companyId, operatingCompanyId) => companyId === operatingCompanyId,
-    afterShareSale: (state, details) => PriceProtection1870.recordSale(state, details)
-})

@@ -6,7 +6,8 @@ import {
     PlacingDestinationStationState,
     ConsentingRedemptionState,
     StepActionsHandler,
-    ZeroPriceClosureHandler,
+    clearsOnLeaving,
+    closesAtZeroInPlace,
     type EighteenXXTitleRules
 } from '@tabletop/18xx'
 import { DestinationRuns1870 } from '../destinations.js'
@@ -19,7 +20,6 @@ import {
     PhaseRules1870,
     PrivatePowerRules1870,
     PrivateRules1870,
-    TrainFundingRules1870,
     TransferRules1870,
     ZeroPriceClosure1870
 } from '../operating.js'
@@ -36,7 +36,8 @@ import {
     OperatingRules1870,
     PriceProtection1870,
     ShareRedemption1870,
-    StockRules1870
+    StockRules1870,
+    TrainFundingRules1870
 } from '../stock.js'
 import {
     HydratedPlaceRevenueToken,
@@ -52,24 +53,14 @@ const withTokens = (family: StateHandler1870): StateHandler1870 =>
     new StepActionsHandler(family, [PlaceRevenueTokenStep])
 
 // The bridge's tile is free to upgrade once its company's track step is over (p. 9).
-const endsBridgeLay = (handler: StateHandler1870): StateHandler1870 => ({
-    isValidAction: (action, context) => handler.isValidAction(action, context),
-    validActionsForPlayer: (playerId, context) => handler.validActionsForPlayer(playerId, context),
-    enter: (context) => handler.enter(context),
-    onAction(action, context) {
-        const next = handler.onAction(action, context)
-        if (next !== 'LayingTrack') delete context.gameState.bridgeLayLocationId
-        return next
-    }
-})
+const endsBridgeLay = (handler: StateHandler1870): StateHandler1870 =>
+    clearsOnLeaving(handler, 'LayingTrack', (state) => {
+        delete state.bridgeLayLocationId
+    })
 
 // A declined sale can close its company, and a closure leaves the state to go on as it was.
 const closesAtZero = (handler: StateHandler1870): StateHandler1870 =>
-    new ZeroPriceClosureHandler(
-        handler,
-        ZeroPriceClosure1870,
-        (state, next) => next ?? state.machineState
-    )
+    closesAtZeroInPlace(handler, ZeroPriceClosure1870)
 
 export const TitleRules1870: EighteenXXTitleRules<typeof State1870, HydratedState1870> = {
     state: StateDefinition1870,

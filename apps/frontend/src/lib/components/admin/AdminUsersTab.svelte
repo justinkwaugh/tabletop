@@ -1,8 +1,10 @@
 <script lang="ts">
     import { LatestRequest } from '$lib/utils/latestRequest'
-    import { ADMIN_ASSIGNABLE_ROLES, Role, type User } from '@tabletop/common'
+    import { ADMIN_ASSIGNABLE_ROLES, Role, UserStatus, type User } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
+    import AdminUserBan from './AdminUserBan.svelte'
     import AdminUserRoles from './AdminUserRoles.svelte'
+    import AdminUserUsername from './AdminUserUsername.svelte'
 
     const { api } = getAppContext()
     const roleLabels: Record<Role, string> = {
@@ -11,6 +13,12 @@
         [Role.Developer]: 'Developer',
         [Role.BetaTester]: 'Beta tester',
         [Role.AlphaTester]: 'Alpha tester'
+    }
+    const statusLabels: Record<UserStatus, string> = {
+        [UserStatus.Active]: 'active',
+        [UserStatus.Incomplete]: 'incomplete',
+        [UserStatus.Inactive]: 'banned',
+        [UserStatus.Deleted]: 'deleted'
     }
 
     let query = $state('')
@@ -84,7 +92,7 @@
                         >
                             <span class="font-medium">{user.username ?? user.id}</span>
                             <span class="text-xs text-gray-500 dark:text-gray-400">
-                                {user.email ?? 'No email'} · {user.status} ·
+                                {user.email ?? 'No email'} · {statusLabels[user.status]} ·
                                 {user.roles.map((role) => roleLabels[role]).join(', ')}
                             </span>
                         </button>
@@ -94,11 +102,15 @@
         {/if}
     </div>
     {#if selected}
-        <AdminUserRoles
-            user={selected}
-            assignableRoles={ADMIN_ASSIGNABLE_ROLES}
-            {roleLabels}
-            onsaved={replaceUser}
-        />
+        <div class="flex flex-col gap-5">
+            <AdminUserUsername user={selected} onsaved={replaceUser} />
+            <AdminUserRoles
+                user={selected}
+                assignableRoles={ADMIN_ASSIGNABLE_ROLES}
+                {roleLabels}
+                onsaved={replaceUser}
+            />
+            <AdminUserBan user={selected} onsaved={replaceUser} />
+        </div>
     {/if}
 </div>

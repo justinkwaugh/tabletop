@@ -1,7 +1,13 @@
-import { assertExists } from '@tabletop/common'
 import { destinationStationId } from '@tabletop/18xx'
 import { Companies1870, Map1870, OffboardHomeLocationId, TileSet1870 } from '@tabletop/1870'
-import { StandardTileLayouts, type MapViewDefinition, type TileLayout } from '@tabletop/18xx-ui'
+import {
+    StandardTileLayouts,
+    SpecialStationOutline,
+    companyInitialsMark,
+    stationLogo,
+    type MapViewDefinition,
+    type TileLayout
+} from '@tabletop/18xx-ui'
 import ATSFLogo from './images/logos/ATSF.svg'
 import FWLogo from './images/logos/FW.svg'
 import GMOLogo from './images/logos/GMO.svg'
@@ -32,21 +38,6 @@ const Stations: MapViewDefinition['stations'] = {
     SLSF: { label: 'SLSF', color: '#d02020', imageUrl: SLSFLogo },
     TP: { label: 'T&P', color: '#37383a', imageUrl: TPLogo }
 }
-
-function stationImage(companyId: string): string {
-    const { imageUrl } = Stations[companyId]
-    assertExists(imageUrl, 'Every 1870 company has a logo')
-    return imageUrl
-}
-
-function destinationMark(label: string): string {
-    const size = label.length > 3 ? 11 : 13
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="40" height="40"><circle cx="20" cy="20" r="18.5" fill="#fff" stroke="#111" stroke-width="3"/><text x="20" y="20" dy="0.35em" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="800" font-size="${size}" fill="#111">${label.replace('&', '&amp;')}</text></svg>`
-    return `data:image/svg+xml,${encodeURIComponent(svg)}`
-}
-
-// Stands out from the black city circles of ordinary stations, on every colour of hex.
-const DestinationStationOutline = '#f59a00'
 
 const TokenKinds = {
     cattle: { name: 'Cattle', imageUrl: CattleToken },
@@ -139,7 +130,7 @@ export const MapView1870: MapViewDefinition = {
                     `destination:${company.id}`,
                     {
                         token: {
-                            imageUrl: destinationMark(Stations[company.id].label),
+                            imageUrl: companyInitialsMark(Stations[company.id].label),
                             place: markerPlace(company.id)
                         }
                     }
@@ -148,9 +139,9 @@ export const MapView1870: MapViewDefinition = {
                     `station:${company.id}`,
                     {
                         token: {
-                            imageUrl: stationImage(company.id),
+                            imageUrl: stationLogo(Stations, company.id),
                             place: markerPlace(company.id),
-                            outline: DestinationStationOutline
+                            outline: SpecialStationOutline
                         }
                     }
                 ],
@@ -159,7 +150,7 @@ export const MapView1870: MapViewDefinition = {
                     {
                         stationOutline: {
                             stationId: destinationStationId(company.id),
-                            color: DestinationStationOutline
+                            color: SpecialStationOutline
                         }
                     }
                 ],

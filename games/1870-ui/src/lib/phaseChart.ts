@@ -1,5 +1,5 @@
-import { createPhaseChart, type PhaseChartData } from '@tabletop/18xx-ui'
-import { Phases1870, TrainDepot1870, type State1870 } from '@tabletop/1870'
+import { createDieselPhaseChart, createPhaseChart, type PhaseChartData } from '@tabletop/18xx-ui'
+import { DieselVariant1870, Phases1870, TrainDepot1870, type State1870 } from '@tabletop/1870'
 
 const BottomValues = 'Red off-boards pay their bottom value.'
 
@@ -22,18 +22,11 @@ export const PhaseChart1870 = createPhaseChart({
 
 // With diesels the 8s, 10s and 12s are gone, diesels sell from the first 6, and the first diesel
 // starts the last phase; 5-trains are permanent (p. 24).
-export const DieselPhaseChart = createPhaseChart({
+export const DieselPhaseChart = createDieselPhaseChart({
+    diesel: DieselVariant1870.terms,
     phases: Phases1870,
     depot: TrainDepot1870,
-    omittedPhaseIds: ['8', '10', '12'],
-    omittedTrainIds: ['8', '10', '12'],
-    permanentTrainIds: ['5'],
-    rustPhases: { '4': 'D' },
-    rustNotes: { D: 'Diesel: runs any distance; a 4, 5 or 6 is taken in trade for $300 off.' },
-    phaseNotes: {
-        ...PhaseNotes,
-        '6': 'Port and Cattle tokens are removed. Diesels go on sale.'
-    }
+    phaseNotes: { ...PhaseNotes, '6': 'Port and Cattle tokens are removed. Diesels go on sale.' }
 })
 
 export function phaseChart1870(state: State1870): PhaseChartData {

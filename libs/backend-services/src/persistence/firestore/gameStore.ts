@@ -101,6 +101,7 @@ import {
     assertOrdinaryGame,
     assertTournamentUndoAllowed,
     tournamentGameId,
+    TournamentEntrantUnavailableError,
     TournamentGameError,
     type TournamentSeatHandover,
     type TournamentTableRelease
@@ -365,9 +366,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
             ...seated.map((id) => this.firestore.collection('users').doc(id))
         )
         if (accounts.some((account) => account.data()?.status !== UserStatus.Active))
-            throw new TournamentGameError(
-                'All assigned tournament players must have active accounts.'
-            )
+            throw new TournamentEntrantUnavailableError()
     }
 
     async getMasterSeed(gameId: string): Promise<string | undefined> {
@@ -1381,6 +1380,20 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
         }
     }
 
+    async renamePlayer({
+        gameId,
+        userId,
+        name
+    }: {
+        gameId: string
+        userId: string
+        name: string
+    }): Promise<Game> {
+        return this.rewriteSeats(gameId, (game) =>
+            game.players.map((player) => (player.userId === userId ? { ...player, name } : player))
+        )
+    }
+
     /** Seats a Substitute's account in place of any earlier account of their place. */
     async replaceTournamentSeat({
         gameId,
@@ -1388,15 +1401,37 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
         toUserId,
         toName
     }: TournamentSeatHandover): Promise<Game> {
+        return this.rewriteSeats(gameId, (game) => {
+            assertExists(game.tournament, 'Tournament game not found')
+            if (game.players.some((player) => player.userId === toUserId)) return undefined
+            const players = game.players.map((player) =>
+                player.userId && fromUserIds.includes(player.userId)
+                    ? { ...player, userId: toUserId, name: toName }
+                    : player
+            )
+            assert(
+                players.some((player) => player.userId === toUserId),
+                'The replaced place has no seat in this game'
+            )
+            return players
+        })
+    }
+
+    private async rewriteSeats(
+        gameId: string,
+        rewrite: (game: Game) => Game['players'] | undefined
+    ): Promise<Game> {
         const found = await this.findGameById(gameId, false)
-        assertExists(found?.tournament, 'Tournament game not found')
+        assertExists(found, 'Game not found')
         const cacheKeys = [
             ...GameCacheKeys.gameWrite(gameId),
             // Game links list the accounts seated at each Game.
-            this.tournamentCacheKeys.key('games', found.tournament.tournamentId)
+            ...(found.tournament
+                ? [this.tournamentCacheKeys.key('games', found.tournament.tournamentId)]
+                : [])
         ]
         try {
-            const handedOver: { game: Game; updated?: Game } = await this.writeGame(
+            const rewritten: { game: Game; updated?: Game } = await this.writeGame(
                 gameId,
                 cacheKeys,
                 async (locks) =>
@@ -1404,21 +1439,10 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
                         const game = (
                             await this.readDocument(this.games.doc(gameId), transaction)
                         ).data()
-                        assertExists(game?.tournament, 'Tournament game not found')
-                        if (game.players.some((player) => player.userId === toUserId))
-                            return { game }
-                        const updates: Partial<Game> = {
-                            players: game.players.map((player) =>
-                                player.userId && fromUserIds.includes(player.userId)
-                                    ? { ...player, userId: toUserId, name: toName }
-                                    : player
-                            ),
-                            updatedAt: new Date()
-                        }
-                        assert(
-                            updates.players?.some((player) => player.userId === toUserId),
-                            'The replaced place has no seat in this game'
-                        )
+                        assertExists(game, 'Game not found')
+                        const players = rewrite(game)
+                        if (!players) return { game }
+                        const updates: Partial<Game> = { players, updatedAt: new Date() }
                         const updated = { ...structuredClone(game), ...updates }
                         await this.protectChangedLists(locks, game, updated)
                         transaction.update(
@@ -1428,9 +1452,9 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
                         return { game, updated }
                     })
             )
-            if (!handedOver.updated) return handedOver.game
-            this.recordTitleActivity(handedOver.game, handedOver.updated)
-            return handedOver.updated
+            if (!rewritten.updated) return rewritten.game
+            this.recordTitleActivity(rewritten.game, rewritten.updated)
+            return rewritten.updated
         } catch (error) {
             this.handleError(error, gameId)
         }

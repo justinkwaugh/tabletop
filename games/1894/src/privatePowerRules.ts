@@ -65,7 +65,7 @@ function trackTerms(
                   definitionIds: YellowTileIds,
                   payer,
                   connected: true,
-                  cost: 60,
+                  layFee: 60,
                   recordsLay: true,
                   restriction
               }

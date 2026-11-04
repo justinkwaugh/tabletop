@@ -1,14 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { assertExists, GameEngine, validateGameResult } from '@tabletop/common'
 import { EmergencyTrainFunding } from '@tabletop/18xx'
-import { spaceAt } from '../../test/flow.js'
-import { operated, prepared, trackAlong } from '../../test/position.js'
-import { table } from '../../test/table.js'
-import { TrainFundingRules1870 } from '../operating.js'
 import { Privates1870 } from '../privates.js'
-import { StockRules1870 } from '../stock.js'
+import { StockRules1870, TrainFundingRules1870 } from '../stock.js'
 import { TileSet1870 } from '../tiles.js'
 import { TrainRules1870 } from '../trains.js'
+import { operated, prepared, spaceAt, table, trackAlong } from '../../test/kit.js'
 import { Definition } from './gameDefinition.js'
 
 const runtime = Definition.runtime

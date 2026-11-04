@@ -463,6 +463,18 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('assignUserRoles')
     }
 
+    async renameUser(_userId: string, _username: string): Promise<User> {
+        return this.fail('renameUser')
+    }
+
+    async banUser(_userId: string): Promise<User> {
+        return this.fail('banUser')
+    }
+
+    async unbanUser(_userId: string): Promise<User> {
+        return this.fail('unbanUser')
+    }
+
     async getActiveGamesForTitle(_titleId: string): Promise<Game[]> {
         return this.fail('getActiveGamesForTitle')
     }

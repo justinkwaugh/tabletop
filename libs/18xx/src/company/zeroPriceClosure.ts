@@ -129,10 +129,16 @@ export class HydratedCloseCorporation extends HydratableAction<typeof CloseCorpo
     apply(state: HydratedEighteenXXState): void {
         assert(this.awaited(state), 'Only the next zero-price corporation can close')
         const closure = this.#rules.closure.close(state, this.companyId)
-        // Closing on its own turn ends that turn.
-        if (state.machineState !== ClosingOperatingCorporationState) {
+        const fundingItsTrain = state.trainFunding?.purchase.companyId === this.companyId
+        // Closing on its own turn ends that turn, as does a sale closing the company it funds.
+        if (state.machineState !== ClosingOperatingCorporationState && !fundingItsTrain) {
             this.metadata = closure
             return
+        }
+        if (fundingItsTrain) {
+            delete state.trainFunding
+            delete state.trainPurchaseStep
+            state.activePlayerIds = []
         }
         endOperatingTurn(state, this.companyId)
         const ended = operatingRoundEnd(state, this.#valuationRules)
@@ -196,6 +202,14 @@ export class ZeroPriceClosureHandler<S extends State> implements MachineStateHan
         const next = this.handler.onAction(action, context)
         return this.awaiting(state) ? state.machineState : this.resume(state, next)
     }
+}
+
+/** A step whose closures, of other companies, leave it to go on as it was. */
+export function closesAtZeroInPlace<S extends State>(
+    handler: MachineStateHandler<HydratedAction, S>,
+    rules: ZeroPriceClosureRules
+): MachineStateHandler<HydratedAction, S> {
+    return new ZeroPriceClosureHandler(handler, rules, (state, next) => next ?? state.machineState)
 }
 
 /** A corporation that closed in its own turn: its turn ends and the operating set goes on. */

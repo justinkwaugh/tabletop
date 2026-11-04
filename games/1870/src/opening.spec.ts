@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { cashOwnedBy, getCompany, sharesOwned } from '@tabletop/18xx'
-import { buyAllPrivates, launch, spaceAt } from '../test/flow.js'
-import { table } from '../test/table.js'
+import { buyAllPrivates, launch, spaceAt, table } from '../test/kit.js'
 import { Market1870 } from './stockMarket.js'
 import { tableCertificateLimit } from './stock.js'
 

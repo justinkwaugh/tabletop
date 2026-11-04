@@ -1,7 +1,6 @@
-import { TileRadius, type PrintedLine } from '@tabletop/18xx-ui'
+import { PointMath, TileRadius, smoothLinePath, type PrintedLine } from '@tabletop/18xx-ui'
 import { Map1870, RiverHexes, type RiverHex } from '@tabletop/1870'
-
-type Point = { x: number; y: number }
+import type { Point } from '@tabletop/common'
 
 // The Mississippi alone divides the map under the rules, so it stands out from the rest.
 const RiverColor = '#2f78c0'
@@ -17,11 +16,7 @@ const polar = (angle: number, radius: number): Point => ({
     y: Math.sin(angle) * radius
 })
 const corner = (index: number) => polar(cornerAngle(index), TileRadius)
-const add = (a: Point, b: Point): Point => ({ x: a.x + b.x, y: a.y + b.y })
-const minus = (a: Point, b: Point): Point => ({ x: a.x - b.x, y: a.y - b.y })
-const scale = (a: Point, by: number): Point => ({ x: a.x * by, y: a.y * by })
-const lengthOf = (a: Point) => Math.hypot(a.x, a.y)
-const unit = (a: Point) => scale(a, 1 / (lengthOf(a) || 1))
+const { add, minus, scale, lengthOf, unit } = PointMath
 const sameCorner = (a: Point, b: Point) => lengthOf(minus(a, b)) < 0.01
 
 const riverIds = Object.keys(RiverHexes)
@@ -127,38 +122,6 @@ function bends({ stopBank, banks, course }: RiverHex, hex: number, enter: number
     })
 }
 
-const SamplesPerCurve = 8
-
-function smoothPath(points: readonly Point[], first: Point, last: Point) {
-    const tangents = points.map((point, index) => {
-        if (index === 0) return scale(first, lengthOf(minus(points[1], point)))
-        if (index === points.length - 1)
-            return scale(last, lengthOf(minus(point, points[index - 1])))
-        return scale(minus(points[index + 1], points[index - 1]), 0.5)
-    })
-    const number = (value: number) => value.toFixed(1)
-    let d = `M ${number(points[0].x)} ${number(points[0].y)}`
-    const samples: Point[] = [points[0]]
-    for (let index = 1; index < points.length; index++) {
-        const start = points[index - 1]
-        const end = points[index]
-        const c1 = add(start, scale(tangents[index - 1], 1 / 3))
-        const c2 = minus(end, scale(tangents[index], 1 / 3))
-        d += ` C ${number(c1.x)} ${number(c1.y)} ${number(c2.x)} ${number(c2.y)} ${number(end.x)} ${number(end.y)}`
-        for (let step = 1; step <= SamplesPerCurve; step++) {
-            const t = step / SamplesPerCurve
-            const u = 1 - t
-            samples.push(
-                add(
-                    add(scale(start, u * u * u), scale(c1, 3 * u * u * t)),
-                    add(scale(c2, 3 * u * t * t), scale(end, t * t * t))
-                )
-            )
-        }
-    }
-    return { d, samples }
-}
-
 export type RiverLeg = { locationId: string; points: readonly Point[]; center: Point }
 
 export function riverLegs(): RiverLeg[] {
@@ -192,7 +155,7 @@ function mississippiLines(): Record<string, PrintedLine> {
                 : minus(points.at(-1) ?? points[0], points.at(-2) ?? points[0])
             const width =
                 SourceWidth + ((MouthWidth - SourceWidth) * index) / Math.max(1, legs.length - 1)
-            const { d, samples } = smoothPath(points, unit(into), unit(out))
+            const { d, samples } = smoothLinePath(points, unit(into), unit(out))
             return [
                 leg.locationId,
                 { d, points: samples, color: RiverColor, width: Number(width.toFixed(2)) }
@@ -389,7 +352,7 @@ function tributaryLines(): [locationId: string, line: PrintedLine][] {
             const out = next
                 ? minus(add(next.center, next.points[1]), add(center, points.at(-2) ?? end))
                 : minus(points.at(-1) ?? end, points.at(-2) ?? end)
-            const { d, samples } = smoothPath(points, unit(into), unit(out))
+            const { d, samples } = smoothLinePath(points, unit(into), unit(out))
             return [
                 locationId,
                 { d, points: samples, color: TributaryColor, width: TributaryWidth }

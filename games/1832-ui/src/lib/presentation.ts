@@ -1,5 +1,5 @@
 import {
-    CoalTokens,
+    CoalAccess,
     isCompleteMergerPhase,
     isStartMergerPhase,
     EighteenThirtyTwoSoftLedge,
@@ -35,7 +35,7 @@ export const EighteenThirtyTwoPresentation: TitlePresentation<EighteenThirtyTwoS
         P4: { imageUrl: UnknownToken },
         P7: { companyId: 'CG' }
     },
-    gameFacts: (state) => [{ label: 'Coal', value: String(CoalTokens - state.coalRights.length) }],
+    gameFacts: (state) => [{ label: 'Coal', value: String(CoalAccess.remaining(state)) }],
     companyMarks: (state, companyId) =>
         state.coalRights.includes(companyId)
             ? [

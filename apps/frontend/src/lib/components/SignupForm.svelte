@@ -5,6 +5,7 @@
     import PasswordInput from '$lib/components/PasswordInput.svelte'
     import AuthLink from '$lib/components/AuthLink.svelte'
     import { focusFirstInput } from '$lib/utils/focusFirstInput'
+    import { isAlreadyExists, isUsernameNotAllowed } from '$lib/utils/accountErrors'
     import { emailAddress, minLengthMessage } from '$lib/utils/accountFormValidation'
 
     let { onsignin }: { onsignin?: () => void } = $props()
@@ -38,7 +39,9 @@
             const newUser = await api.createUser(result.data)
             await authorizationService.onLogin(newUser)
         } catch (error) {
-            if (error instanceof Error && error.name === 'AlreadyExistsError') {
+            if (isUsernameNotAllowed(error)) {
+                errors.username = [error.message]
+            } else if (isAlreadyExists(error)) {
                 if (error.message.includes('username')) {
                     errors.username = ['Username already exists']
                 } else if (error.message.includes('email')) {

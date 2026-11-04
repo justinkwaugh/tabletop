@@ -531,6 +531,34 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(second.season?.heldPlaces.filter((place) => place.level === 0)).toHaveLength(7)
         })
 
+        it('leaves a banned sign-up out of the groups when sign-up closes', async () => {
+            const id = `${prefix}-banned-entrant`
+            await leagues.create(id, draft, admin)
+            await leagues.publish(id, now + 1000, admin)
+            for (const user of users.slice(0, 24)) await leagues.signUp(id, user)
+            const bannedId = users[3].id
+            vi.mocked(userService.getUsers).mockImplementation(async (ids) =>
+                ids.map((userId) => {
+                    const account = [...users, admin].find((user) => user.id === userId)
+                    return account && userId === bannedId
+                        ? { ...account, status: UserStatus.Inactive }
+                        : account
+                })
+            )
+            now += 1000
+            try {
+                await leagues.runTask({ leagueId: id })
+                const { season } = await leagues.get(id, undefined, admin)
+                const seated = season?.groups?.flatMap((group) => group.entrantIds) ?? []
+                expect(seated).not.toContain(bannedId)
+                expect(seated).toContain(users[4].id)
+            } finally {
+                vi.mocked(userService.getUsers).mockImplementation(async (ids) =>
+                    ids.map((userId) => [...users, admin].find((user) => user.id === userId))
+                )
+            }
+        })
+
         it('keeps sign-up open below two full Levels until an administrator moves the close', async () => {
             const id = `${prefix}-short`
             await leagues.create(id, draft, admin)

@@ -80,3 +80,17 @@ export class PhaseTable {
         return position
     }
 }
+
+/** Off-board values by the phase each stage's value starts in, the first stage from the start. */
+export function revenueStagesByPhase(
+    phases: PhaseTable,
+    first: string,
+    later: readonly (readonly [stage: string, fromPhaseId: string])[]
+): (phaseId: string) => readonly string[] {
+    return (phaseId) => [
+        first,
+        ...later.flatMap(([stage, fromPhaseId]) =>
+            phases.isAtLeast(phaseId, fromPhaseId) ? [stage] : []
+        )
+    ]
+}

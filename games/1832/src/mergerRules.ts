@@ -14,7 +14,7 @@ import {
     type ShareSaleDetails,
     type StockState
 } from '@tabletop/18xx'
-import { coalFieldsOpen } from './coalAccess.js'
+import { CoalAccess } from './coalAccess.js'
 import type { EighteenThirtyTwoState } from './state.js'
 import { EighteenThirtyTwoShareTrading, EighteenThirtyTwoStockRules } from './stockRules.js'
 import { isClosingSpace, EighteenThirtyTwoMarket } from './stockMarket.js'
@@ -76,7 +76,8 @@ export function companiesConnect(state: EighteenThirtyTwoState, first: string, s
             undefined,
             undefined,
             (locationId, nodeId) =>
-                !coalFieldsOpen(state, from, { locationId, nodeId }) || offBoard(locationId, nodeId)
+                !CoalAccess.open(state, from, { locationId, nodeId }) ||
+                offBoard(locationId, nodeId)
         )
         return targets.some((target) =>
             network.reaches(target.position.locationId, {

@@ -11,7 +11,7 @@ import {
     type HydratedGameState
 } from '@tabletop/common'
 import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
-import { privateOwner, type FinancialState } from '../finance/finance.js'
+import { privateOwner, type FinancialState, type Owner } from '../finance/finance.js'
 import type { TrainState } from '../trains/train.js'
 import type { MapStateData } from '../map/mapState.js'
 import type { LoanRules, LoanState } from '../loans/loans.js'
@@ -121,14 +121,15 @@ export function privateIncomePayments<State extends FinancialState>(
     rules: {
         charters: CompanyCharters
         privateIncome?(state: State, privateId: string): number
+        privateIncomeRecipient?(state: State, privateId: string, owner: Owner): Owner
     }
 ): CashPayment[] {
     return state.companies.flatMap((company) => {
         if (company.closed || company.kind !== 'private') return []
         const amount = privateIncome(state, rules, company.id)
         const owner = privateOwner(state, company.id)
-        return amount && owner && owner.kind !== 'bank'
-            ? [{ from: { kind: 'bank' } as const, to: { ...owner }, amount }]
-            : []
+        if (!amount || !owner || owner.kind === 'bank') return []
+        const to = rules.privateIncomeRecipient?.(state, company.id, owner) ?? owner
+        return [{ from: { kind: 'bank' } as const, to: { ...to }, amount }]
     })
 }

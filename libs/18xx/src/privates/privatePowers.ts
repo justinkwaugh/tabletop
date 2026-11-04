@@ -26,8 +26,8 @@ export interface PrivateTrackTerms {
      */
     together?: true
     terrainDiscount?: number
-    /** What a lay beside the ordinary lays costs beyond terrain, such as 1894's F60. */
-    cost?: number
+    /** What the lay itself costs, beyond its terrain, such as a construction company's charge. */
+    layFee?: number
     /**
      * Records a lay beside the ordinary lays in the turn's track step, for a title whose
      * restrictions read the turn's tiles, as 1894 forbids upgrading a tile laid that round.
@@ -100,7 +100,7 @@ export function privateTrackConstruction(
             ...rules,
             allowance: terms.countsAsOrdinaryLay
                 ? rules.allowance
-                : () => ({ cost: terms.cost ?? 0 }),
+                : () => ({ cost: terms.layFee ?? 0 }),
             restriction: (_state, request) =>
                 terms.locationIds.includes(request.locationId) &&
                 terms.definitionIds.includes(request.definitionId)

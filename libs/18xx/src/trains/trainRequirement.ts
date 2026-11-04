@@ -1,20 +1,17 @@
 import { TrackNetwork } from '../construction/trackNetwork.js'
 import type { RailwayMap } from '../map/map.js'
 import { RailwayMapState, type MapStateData } from '../map/mapState.js'
+import type { RevenueCenter } from '../routes/route.js'
 import type { TileSet } from '../tiles/inventory.js'
 import { companyStationCenters, type StationState } from '../map/station.js'
-import type { RevenueCenter } from '../routes/route.js'
-import type { AccessRightState } from '../rights/accessRights.js'
-
-/** A stop the company's routes may not use, such as London without a ferry marker. */
-export type ClosedStop = (locationId: string, nodeId: string) => boolean
 
 export function hasStationRoute(
     mapState: RailwayMapState,
     state: StationState,
     companyId: string,
-    closedStop: ClosedStop = () => false
+    stopAllowed: (center: RevenueCenter) => boolean = () => true
 ): boolean {
+    const closedStop = (locationId: string, nodeId: string) => !stopAllowed({ locationId, nodeId })
     return companyStationCenters(state, companyId).some((origin) => {
         const network = new TrackNetwork(mapState, state, companyId, undefined, origin, closedStop)
         return mapState.map.definition.locations.some((location) =>
@@ -31,11 +28,8 @@ export function hasStationRoute(
     })
 }
 
-/**
- * Whether a company must own a train: it has a route from a station to another revenue
- * center, through stops its routes may use.
- */
-export function requiresStationRoute<State extends MapStateData = MapStateData & AccessRightState>(
+/** With ``stopAllowed``, a stop closed to the company gives it no route, as a route would not run there. */
+export function requiresStationRoute<State extends MapStateData = MapStateData>(
     map: RailwayMap,
     tileSet: TileSet,
     stopAllowed?: (state: State, companyId: string, center: RevenueCenter) => boolean
@@ -45,8 +39,6 @@ export function requiresStationRoute<State extends MapStateData = MapStateData &
             new RailwayMapState(map, tileSet, state.tileInventory),
             state,
             companyId,
-            stopAllowed
-                ? (locationId, nodeId) => !stopAllowed(state, companyId, { locationId, nodeId })
-                : undefined
+            stopAllowed && ((center) => stopAllowed(state, companyId, center))
         )
 }

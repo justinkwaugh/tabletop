@@ -8,6 +8,7 @@ export { AccountChangeType } from '@tabletop/common'
 interface AccountChangeNotificationProps {
     changeType: string
     timestamp: Date
+    username?: string
 }
 
 const styles = {
@@ -29,8 +30,24 @@ const formatTimestamp = (timestamp: Date): string =>
 export const AccountChangeNotification = ({
     timestamp,
     changeType,
+    username,
 }: AccountChangeNotificationProps) => {
     const when = formatTimestamp(timestamp)
+    if (changeType === AccountChangeType.Username) {
+        return (
+            <DarkCardEmail
+                preview={`Your username is now ${username}`}
+                heading="Your username was changed"
+                subline="An administrator changed your username. Use the new one to sign in."
+                footer="If you have questions about this change, please contact us."
+            >
+                <Section style={styles.panel}>
+                    <Text style={styles.panelValue}>{username}</Text>
+                    <Text style={styles.panelDetail}>{when}</Text>
+                </Section>
+            </DarkCardEmail>
+        )
+    }
     let change = ''
     let detailText = ''
     switch (changeType) {

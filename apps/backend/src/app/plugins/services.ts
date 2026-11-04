@@ -55,6 +55,7 @@ import {
     DiscordOAuth,
     DiscordOAuthClient,
     StalledGames,
+    AccountModeration,
     STATIC_ROOT,
     TaskService,
     TiltifyApi,
@@ -97,6 +98,7 @@ declare module 'fastify' {
         tournamentService: TournamentService
         tournamentStallAlerts: TournamentStallAlerts
         stalledGames: StalledGames
+        accountModeration: AccountModeration
         leagueService: LeagueService
         siteStatsService: SiteStatsService
         bugReportService: BugReportService | undefined
@@ -251,14 +253,24 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
         taskService
     )
     fastify.decorate('tournamentService', tournamentService)
+    const titleSupportsCalls = (titleId: string) =>
+        publishedUiSupports(
+            { libraryService, catalogService },
+            titleId,
+            GameClientCapability.CalledGames
+        )
     fastify.decorate(
         'stalledGames',
-        new StalledGames(gameStore, gameService, taskService, (titleId) =>
-            publishedUiSupports(
-                { libraryService, catalogService },
-                titleId,
-                GameClientCapability.CalledGames
-            )
+        new StalledGames(gameStore, gameService, taskService, titleSupportsCalls)
+    )
+    fastify.decorate(
+        'accountModeration',
+        new AccountModeration(
+            userService,
+            gameService,
+            taskService,
+            new RedisPublisher(redisService),
+            titleSupportsCalls
         )
     )
     fastify.decorate(

@@ -16,6 +16,7 @@ export interface UserStore {
     findByIds(ids: string[]): Promise<(User | undefined)[]>
     findByUsernameAndPassword(username: string, password: string): Promise<User | undefined>
     findAllUsernames(): Promise<string[]>
+    findActiveUsernames(): Promise<string[]>
 
     createUser(user: User, password?: string): Promise<User>
     updatePassword(userId: string, password: string, options?: PasswordUpdateOptions): Promise<User>

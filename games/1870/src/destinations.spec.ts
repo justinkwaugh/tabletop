@@ -9,9 +9,7 @@ import {
     stopValue,
     usesStationAt
 } from '@tabletop/18xx'
-import { route } from '../test/flow.js'
-import { giveTrain, operated, prepared, trackAlong } from '../test/position.js'
-import type { Table } from '../test/table.js'
+import { giveTrain, operated, prepared, route, trackAlong, type Table } from '../test/kit.js'
 import { DestinationRuns1870 } from './destinations.js'
 import { Definition } from './definition/gameDefinition.js'
 import { Map1870 } from './map.js'

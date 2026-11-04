@@ -87,11 +87,12 @@ export class ResendEmailService implements EmailService {
     async sendAccountChangedNotificationEmail(
         changeType: AccountChangeType,
         timestamp: Date,
-        toEmail: string
+        toEmail: string,
+        username?: string
     ): Promise<void> {
         const { render, templates } = await this.loadRendering()
         const emailHTML = await render(
-            templates.AccountChangeNotification({ changeType, timestamp })
+            templates.AccountChangeNotification({ changeType, timestamp, username })
         )
         await this.send(toEmail, 'Account change notification', emailHTML)
     }
@@ -123,6 +124,31 @@ export class ResendEmailService implements EmailService {
             `Join ${owner.username}'s game of ${definition.info.metadata.name}`,
             emailHTML
         )
+    }
+
+    async sendPlayerRemovedEmail({
+        playerName,
+        game,
+        definition,
+        url,
+        toEmail
+    }: {
+        playerName: string
+        game: Game
+        definition: GameDefinition
+        url: string
+        toEmail: string
+    }): Promise<void> {
+        const { render, templates } = await this.loadRendering()
+        const emailHTML = await render(
+            templates.PlayerRemoved({
+                playerName,
+                title: definition.info.metadata.name,
+                gameName: game.name,
+                url
+            })
+        )
+        await this.send(toEmail, `A player was removed from ${game.name}`, emailHTML)
     }
 
     async sendGameEndEmail({

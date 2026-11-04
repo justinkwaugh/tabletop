@@ -3,6 +3,7 @@ import { Role, UserStatus, type User } from '@tabletop/common'
 import { cacheFixture, cacheTestClient } from '../../cache/tests/cacheFixture.js'
 import { isolatedFirestore } from './tests/isolatedFirestore.js'
 import { FirestoreUserStore } from './userStore.js'
+import { AlreadyExistsError } from '../stores/errors.js'
 
 describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_REDIS_HOST)(
     'User Account status in the Firestore user store',
@@ -76,6 +77,58 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 }
                 expect(await storedStatus(account.id)).toBe(status)
             }
+        })
+
+        it('ends every session in the commit that makes an Account Inactive', async () => {
+            const account = await createAccount(UserStatus.Active)
+            const [banned, updatedFields] = await store.updateUser({
+                userId: account.id,
+                fields: { status: UserStatus.Inactive }
+            })
+            expect(banned.status).toBe(UserStatus.Inactive)
+            expect(banned.sessionGeneration).toBe(1)
+            expect(updatedFields).toContain('status')
+            expect(await storedStatus(account.id)).toBe(UserStatus.Inactive)
+        })
+
+        it('restores a complete Account to Active, and an unfinished one to Incomplete', async () => {
+            const complete = await createAccount(UserStatus.Active)
+            await store.updateUser({ userId: complete.id, fields: { status: UserStatus.Inactive } })
+            const [restored] = await store.updateUser({
+                userId: complete.id,
+                fields: { status: UserStatus.Incomplete }
+            })
+            expect(restored.status).toBe(UserStatus.Active)
+            expect(restored.sessionGeneration).toBe(1)
+            expect(await storedStatus(complete.id)).toBe(UserStatus.Active)
+
+            const unfinished = await createAccount(UserStatus.Incomplete, { emailVerified: false })
+            await store.updateUser({
+                userId: unfinished.id,
+                fields: { status: UserStatus.Inactive }
+            })
+            const [stillUnfinished] = await store.updateUser({
+                userId: unfinished.id,
+                fields: { status: UserStatus.Incomplete }
+            })
+            expect(stillUnfinished.status).toBe(UserStatus.Incomplete)
+        })
+
+        it('lists only Active usernames, while every username stays reserved', async () => {
+            const active = await createAccount(UserStatus.Active)
+            const banned = await createAccount(UserStatus.Active)
+            await store.updateUser({ userId: banned.id, fields: { status: UserStatus.Inactive } })
+
+            const listed = await store.findActiveUsernames()
+            expect(listed).toContain(active.username?.toLowerCase())
+            expect(listed).not.toContain(banned.username?.toLowerCase())
+
+            await expect(
+                store.createUser({
+                    ...newAccount(UserStatus.Incomplete),
+                    username: banned.username
+                })
+            ).rejects.toThrow(AlreadyExistsError)
         })
 
         it('promotes an Incomplete Account when its email becomes verified', async () => {

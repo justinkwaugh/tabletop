@@ -127,3 +127,39 @@ export function createPhaseChart({
         notes
     }
 }
+
+/**
+ * The chart of a game with 1830-style diesels replacing its largest trains (1870, 1850): the diesel
+ * starts the last phase and scraps the 4s, the 5s become permanent.
+ */
+export function createDieselPhaseChart({
+    phases,
+    depot,
+    phaseNotes,
+    diesel
+}: Pick<Parameters<typeof createPhaseChart>[0], 'phases' | 'depot' | 'phaseNotes'> & {
+    /** The variant's own terms, from ``dieselVariant``. */
+    diesel: {
+        dieselId: string
+        tradeInIds: readonly string[]
+        credit: number
+        removedIds: readonly string[]
+        unsoldId: string
+        permanentId: string
+    }
+}) {
+    const goneIds = [...diesel.removedIds, diesel.unsoldId]
+    const tradeIns = new Intl.ListFormat('en', { type: 'disjunction' }).format(diesel.tradeInIds)
+    return createPhaseChart({
+        phases,
+        depot,
+        omittedPhaseIds: goneIds,
+        omittedTrainIds: goneIds,
+        permanentTrainIds: [diesel.permanentId],
+        rustPhases: { '4': diesel.dieselId },
+        rustNotes: {
+            [diesel.dieselId]: `Diesel: runs any distance; a ${tradeIns} is taken in trade for $${diesel.credit} off.`
+        },
+        phaseNotes
+    })
+}

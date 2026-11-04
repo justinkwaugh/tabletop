@@ -69,6 +69,7 @@ export interface GameStore {
     getGameEtag(gameId: string): Promise<string | undefined>
     hasCachedActiveGames(user: User): Promise<boolean>
     findGamesForUser(user: User, category: GameStatusCategory): Promise<Game[]>
+    renamePlayer(rename: { gameId: string; userId: string; name: string }): Promise<Game>
     findGameHistory(user: User, before?: GameHistoryCursor): Promise<GameHistoryPage>
     findGameStats(user: User): Promise<UserGameStats>
     findOpenGamesForTitle(titleId: string): Promise<Game[]>

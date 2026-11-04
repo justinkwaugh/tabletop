@@ -51,7 +51,6 @@
         "@sveltejs/package": "^2.5.7",
         "@sveltejs/vite-plugin-svelte": "^7.3.1",
         "@tabletop/rolldown-config": "workspace:*",
-        "@tailwindcss/postcss": "^4.1.18",
         "flowbite": "^3.1.2",
         "flowbite-svelte": "^1.31.0",
         "flowbite-svelte-icons": "^3.1.0",

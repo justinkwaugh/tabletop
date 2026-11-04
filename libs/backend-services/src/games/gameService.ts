@@ -26,6 +26,8 @@ import {
     gameStallLevel,
     GameStallLevel,
     isTwoPlayerGame,
+    canHoldAuthenticatedSession,
+    getGameStatusesForCategory,
     PlayerVote,
     PlayerVoteKind,
     PlayerVoteOutcome,
@@ -87,6 +89,8 @@ import {
 import { TaskService } from '../tasks/taskService.js'
 import { TokenService, TokenType } from '../tokens/tokenService.js'
 import { UserService } from '../users/userService.js'
+import { isOffensiveGameName } from '../moderation/offensiveLanguage.js'
+import type { PlayerRemovedEmailTask } from './playerRemovedEmail.js'
 import {
     NotificationDistributionMethod,
     NotificationService
@@ -110,6 +114,7 @@ import {
     InvalidPlayerUserError,
     OwnerNotPlayingError,
     UnlistedGameNotPublicError,
+    GameNameNotAllowedError,
     PlayersNotFoundError,
     PrivateGameNotFullError,
     UnauthorizedAccessError,
@@ -236,6 +241,7 @@ export class GameService {
         // Titles bundle their own initializer, which may predate unlisted games.
         if (game.unlisted) newGame.unlisted = true
         else delete newGame.unlisted
+        this.assertGameNameAllowed(newGame, owner)
 
         // Check the specified players and populate them with user data
         const usersByPlayerId = await this.validateAndPopulatePlayers(newGame.players, owner)
@@ -282,6 +288,20 @@ export class GameService {
         await this.notifyGameAudience(GameNotificationAction.Create, { game: createdGame })
 
         return createdGame
+    }
+
+    // An Administrator is exempt so that a false match can be resolved.
+    private assertGameNameAllowed(
+        game: Pick<Game, 'name' | 'isPublic' | 'unlisted'>,
+        user: User
+    ): void {
+        if (
+            isListedPublicGame(game) &&
+            isOffensiveGameName(game.name) &&
+            !user.roles.includes(Role.Admin)
+        ) {
+            throw new GameNameNotAllowedError()
+        }
     }
 
     private async findContinuationSource(
@@ -410,6 +430,155 @@ export class GameService {
             await this.scheduleTurnNotifications(updated, [seat.id], FIRST_TURN_REMINDER_INDEX)
     }
 
+    async renamePlayerInGames(user: User): Promise<void> {
+        const { username } = user
+        assertExists(username, 'A renamed account has a username')
+        const games = await Promise.all(
+            [
+                GameStatusCategory.Active,
+                GameStatusCategory.Completed,
+                GameStatusCategory.Archived
+            ].map((category) => this.gameStore.findGamesForUser(user, category))
+        )
+        await this.settleForEachGame(games.flat(), async (game) => {
+            const seat = findPlayerForUserId(game, user.id)
+            if (!seat || seat.name === username) return
+            const renamed = await this.gameStore.renamePlayer({
+                gameId: game.id,
+                userId: user.id,
+                name: username
+            })
+            if (getGameStatusesForCategory(GameStatusCategory.Active).includes(renamed.status)) {
+                await this.notifyGamePlayers(GameNotificationAction.Update, { game: renamed })
+            }
+        })
+    }
+
+    async releaseBannedPlayer({
+        user,
+        supportsCalls
+    }: {
+        user: User
+        supportsCalls: (titleId: string) => Promise<boolean>
+    }): Promise<void> {
+        const games = await this.gameStore.findGamesForUser(user, GameStatusCategory.Active)
+        await this.settleForEachGame(games, async (game) => {
+            if (game.tournament || game.hotseat) return
+            if (game.status === GameStatus.Started) {
+                if (!findPlayerForUserId(game, user.id)) return
+                if (isTwoPlayerGame(game.players)) {
+                    await this.concedeForBannedPlayer(user, game, supportsCalls)
+                } else {
+                    await this.emailPlayersOfBannedPlayer(user, game, supportsCalls)
+                }
+            } else if (game.ownerId === user.id) {
+                await this.deleteGame(user, game.id)
+            } else {
+                await this.reopenSeatOfBannedPlayer(user, game)
+            }
+        })
+    }
+
+    private async reopenSeatOfBannedPlayer(user: User, game: Game): Promise<void> {
+        const [updatedGame, updatedFields, existingGame] = await this.gameStore.updateGame({
+            game,
+            fields: { players: game.players },
+            validator: (existingGame, fieldsToUpdate) => {
+                const players = structuredClone(existingGame.players)
+                const seat = findPlayerForUserId({ ...existingGame, players }, user.id)
+                if (
+                    !seat ||
+                    (existingGame.status !== GameStatus.WaitingForPlayers &&
+                        existingGame.status !== GameStatus.WaitingToStart)
+                ) {
+                    return UpdateValidationResult.Cancel
+                }
+                seat.userId = undefined
+                seat.name = ''
+                seat.status = PlayerStatus.Open
+                fieldsToUpdate.players = players
+                return UpdateValidationResult.Proceed
+            }
+        })
+        if (updatedFields.length === 0) return
+        await this.notifyGameAudience(GameNotificationAction.Update, { game: updatedGame })
+        await this.notifyDeclined(
+            user,
+            updatedGame,
+            this.findValidPlayerForUser({ user, game: existingGame })
+        )
+    }
+
+    private async concedeForBannedPlayer(
+        user: User,
+        game: Game,
+        supportsCalls: (titleId: string) => Promise<boolean>
+    ): Promise<void> {
+        const opponent = game.players.find((player) => player.userId !== user.id)
+        if (!opponent) return
+        try {
+            await this.requestCall({
+                user,
+                definition: this.getRequiredTitle(game),
+                gameId: game.id,
+                declaredWinnerId: opponent.id,
+                publishedUiSupportsCalls: await supportsCalls(game.typeId)
+            })
+        } catch (error) {
+            if (!(error instanceof DisallowedPlayerVoteError)) throw error
+            console.log(
+                JSON.stringify({
+                    event: 'banned_player_concession_refused',
+                    gameId: game.id,
+                    userId: user.id,
+                    reason: error.message
+                })
+            )
+        }
+    }
+
+    private async emailPlayersOfBannedPlayer(
+        user: User,
+        game: Game,
+        supportsCalls: (titleId: string) => Promise<boolean>
+    ): Promise<void> {
+        if (callRequestIneligibility(game) || !(await supportsCalls(game.typeId))) return
+        for (const player of game.players) {
+            if (!player.userId || player.userId === user.id) continue
+            const recipient = await this.userService.getUser(player.userId)
+            if (!recipient?.email || !canHoldAuthenticatedSession(recipient)) continue
+            await this.taskService.createPushTask({
+                queue: 'game-end-email',
+                path: '/email/sendPlayerRemovedEmail',
+                payload: {
+                    removedUserId: user.id,
+                    gameId: game.id,
+                    toEmail: recipient.email
+                } satisfies PlayerRemovedEmailTask,
+                uniqueName: `player-removed-${user.id}-${game.id}-${recipient.id}`
+            })
+        }
+    }
+
+    // One Game's failure must not hold up the rest; the caller's task retries what is left.
+    private async settleForEachGame(
+        games: Game[],
+        settle: (game: Game) => Promise<void>
+    ): Promise<void> {
+        const failures: unknown[] = []
+        for (const game of games) {
+            try {
+                await settle(game)
+            } catch (error) {
+                console.error(`Could not settle game ${game.id}`, error)
+                failures.push(error)
+            }
+        }
+        if (failures.length > 0) {
+            throw new AggregateError(failures, `${failures.length} games could not be settled`)
+        }
+    }
+
     async deleteGame(user: User, gameId: string): Promise<void> {
         const game = await this.getGame({ gameId })
         if (!game) {
@@ -459,6 +628,7 @@ export class GameService {
             runtime: definition.runtime,
             name
         })
+        this.assertGameNameAllowed(fork.game, owner)
         fork.game.ownerId = owner.id
         fork.game.storage = GameStorage.Remote
         fork.game.status = GameStatus.WaitingForPlayers
@@ -840,6 +1010,11 @@ export class GameService {
                 if (existingGame.unlisted && fieldsToUpdate.isPublic === false) {
                     throw new UnlistedGameNotPublicError({ id: gameId })
                 }
+
+                const updated = { ...existingGame, ...fieldsToUpdate }
+                const nameOrPublicSettingChanged =
+                    updated.name !== existingGame.name || updated.isPublic !== existingGame.isPublic
+                if (nameOrPublicSettingChanged) this.assertGameNameAllowed(updated, user)
 
                 if (fieldsToUpdate.isPublic === false && fieldsToUpdate.players === undefined) {
                     if (existingGame.players.find((p) => !p.userId)) {
@@ -2559,7 +2734,7 @@ export class GameService {
             // I'm not sure why we send the email through the task, when
             // it could just get it on the other end.
             const user = await this.userService.getUser(userId)
-            if (user && user.email) {
+            if (user && user.email && canHoldAuthenticatedSession(user)) {
                 await this.taskService.sendGameEndEmail({
                     userId: user.id,
                     gameId: game.id,
@@ -2809,6 +2984,8 @@ export class GameService {
     }
 
     private async notifyUser(notification: UserNotification): Promise<void> {
+        const recipient = await this.userService.getUser(notification.data.user.id)
+        if (recipient && !canHoldAuthenticatedSession(recipient)) return
         const topic = userTopic(notification.data.user.id)
         await this.notificationService.sendNotification({
             notification,

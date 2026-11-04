@@ -4,7 +4,9 @@ enum UserServiceError {
     AccountUnavailable = 'AccountUnavailableError',
     InvalidPassword = 'InvalidPasswordError',
     EmailVerification = 'EmailVerificationError',
-    InvalidTimeZone = 'InvalidTimeZoneError'
+    InvalidTimeZone = 'InvalidTimeZoneError',
+    UsernameNotAllowed = 'UsernameNotAllowedError',
+    AccountModeration = 'AccountModerationError'
 }
 
 export class AccountUnavailableError extends BaseError {
@@ -13,7 +15,10 @@ export class AccountUnavailableError extends BaseError {
     constructor(status: UserStatus) {
         super({
             name: UserServiceError.AccountUnavailable,
-            message: 'Account cannot hold an Authenticated Session',
+            message:
+                status === UserStatus.Inactive
+                    ? 'This account has been banned.'
+                    : 'This account is no longer available.',
             metadata: { status }
         })
     }
@@ -52,5 +57,24 @@ export class InvalidTimeZoneError extends BaseError {
             message: `Unknown time zone ${timeZone}`,
             metadata: { timeZone }
         })
+    }
+}
+
+export class UsernameNotAllowedError extends BaseError {
+    readonly statusCode = 400
+
+    constructor() {
+        super({
+            name: UserServiceError.UsernameNotAllowed,
+            message: 'That username is not allowed. Please choose a different one.'
+        })
+    }
+}
+
+export class AccountModerationError extends BaseError {
+    readonly statusCode = 400
+
+    constructor(message: string) {
+        super({ name: UserServiceError.AccountModeration, message })
     }
 }

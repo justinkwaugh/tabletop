@@ -25,7 +25,12 @@ import type {
     MoneyFormat,
     TitleHistoryNames
 } from '@tabletop/18xx-ui'
-import { companyClosureDetails, describeShareAction, ownerName } from '@tabletop/18xx-ui'
+import {
+    companyClosureDetails,
+    describeShareAction,
+    ownerName,
+    stopRightsBoughtRow
+} from '@tabletop/18xx-ui'
 
 const TokenNames = { port: 'Port', cotton: 'Cotton', 'key-west': 'Key West' } as const
 
@@ -74,16 +79,11 @@ export function describe1832Action(
             omitActor: true
         }
     if (isBuyCoalRights(action))
-        return {
-            text: `${companyName(action.companyId)} bought a West Virginia Coal Fields token`,
-            ...(action.metadata
-                ? {
-                      value: money(
-                          action.metadata.payments.reduce((sum, payment) => sum + payment.amount, 0)
-                      )
-                  }
-                : {})
-        }
+        return stopRightsBoughtRow(
+            `${companyName(action.companyId)} bought a West Virginia Coal Fields token`,
+            action.metadata,
+            money
+        )
     if (isPlaceRevenueToken(action))
         return {
             text: `${companyName(action.companyId)} placed the ${TokenNames[action.kind]} token in ${place(action.locationId)}`

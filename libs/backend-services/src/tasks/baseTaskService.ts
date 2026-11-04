@@ -1,5 +1,6 @@
 import { AccountChangeType } from '../email/emailService.js'
 import {
+    type AccountChangeNotice,
     CreatePushTaskOptions,
     TaskService,
     type VerificationEmailTask,
@@ -45,16 +46,13 @@ export abstract class BaseTaskService implements TaskService {
     async sendAccountChangeNotificationEmail({
         email,
         changeType,
-        timestamp
-    }: {
-        email: string
-        changeType: AccountChangeType
-        timestamp: Date
-    }) {
+        timestamp,
+        username
+    }: AccountChangeNotice) {
         await this.createPushTask({
             queue: 'account-notification-email',
             path: '/email/sendAccountChangedNotificationEmail',
-            payload: { email, changeType, timestamp }
+            payload: { email, changeType, timestamp, ...(username ? { username } : {}) }
         })
     }
 

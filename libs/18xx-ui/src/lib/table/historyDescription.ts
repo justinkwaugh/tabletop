@@ -6,6 +6,7 @@ import type {
 } from '@tabletop/18xx'
 import { moneyFormat, type MoneyFormat } from '../presentation/money.js'
 import {
+    isCloseCorporation,
     isLayTile,
     isPrivateTileLay,
     isPlacePrivateMarker,
@@ -146,6 +147,35 @@ export function ownerName(owner: Owner, names: HistoryNames): string {
 
 function shareCount(shares: number): string {
     return counted(shares, 'share')
+}
+
+/** A company's closure, as its own row, with whatever else the closure did. */
+export function companyClosedRow(
+    companyId: string,
+    companyName: (companyId: string) => string,
+    details: readonly string[]
+): HistoryDescription {
+    return {
+        text: `${companyName(companyId)} closed`,
+        ...(details.length ? { detail: details.join(' · ') } : {}),
+        companyToken: companyId,
+        omitActor: true,
+        important: true
+    }
+}
+
+/** A bought right to run through a stop, valued at what its payments came to. */
+export function stopRightsBoughtRow(
+    text: string,
+    metadata: { readonly payments: readonly { readonly amount: number }[] } | undefined,
+    money: MoneyFormat
+): HistoryDescription {
+    return {
+        text,
+        ...(metadata
+            ? { value: money(metadata.payments.reduce((sum, { amount }) => sum + amount, 0)) }
+            : {})
+    }
 }
 
 /**
@@ -888,6 +918,12 @@ function describeShared(
         return {
             text: `Offered ${money(action.price)} for ${companyName(action.privateCompanyId)}`
         }
+    if (isCloseCorporation(action))
+        return companyClosedRow(
+            action.companyId,
+            companyName,
+            action.metadata ? companyClosureDetails(action.metadata, companyName) : []
+        )
     if (isFinishTrack(action)) return { text: 'Finished track', routine: true }
     if (isFinishTreasuryShares(action)) return { text: 'Finished shares', routine: true }
     if (isFinishStations(action)) return { text: 'Finished stations', routine: true }

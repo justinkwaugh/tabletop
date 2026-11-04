@@ -14,6 +14,7 @@ enum GameServiceError {
     PrivateGameNotFull = 'PrivateGameNotFullError',
     OwnerNotPlaying = 'OwnerNotPlayingError',
     UnlistedGameNotPublic = 'UnlistedGameNotPublicError',
+    GameNameNotAllowed = 'GameNameNotAllowedError',
     InvalidPlayerUser = 'InvalidPlayerUserError',
     InvalidPlayerId = 'InvalidPlayerIdError',
     UserIsNotAllowedPlayer = 'UserIsNotAllowedPlayerError',
@@ -163,6 +164,17 @@ export class UnlistedGameNotPublicError extends BaseError {
             name: GameServiceError.UnlistedGameNotPublic,
             message: `The unlisted game with id ${id} must be public`,
             metadata: { id }
+        })
+    }
+}
+
+export class GameNameNotAllowedError extends BaseError {
+    readonly statusCode = 400
+
+    constructor() {
+        super({
+            name: GameServiceError.GameNameNotAllowed,
+            message: 'That name is not allowed for a public game. Please choose a different one.'
         })
     }
 }

@@ -21,6 +21,7 @@
         mapViewport,
         type BoardArtwork,
         printedMapReservations,
+        localLinePosition,
         mapBorderCosts,
         terrainRowWidths,
         type MapDrawing,
@@ -78,8 +79,8 @@
         onselect?: (selection: MapSelection) => void
     } = $props()
     const viewport = $derived(mapViewport(scene, hexDiameter, artwork, extents))
-    const perimeterMaskId = $props.id()
-    const perimeterRoundingId = `${perimeterMaskId}-rounding`
+    const sceneId = $props.id()
+    const perimeterRoundingId = `${sceneId}-rounding`
     const currentReservations = $derived([
         ...(reservations ?? printedMapReservations(scene)),
         // A printed space stays held until any token stands in its city.
@@ -202,7 +203,7 @@
                     <feFuncA type="linear" slope="20" intercept="-9.5"></feFuncA>
                 </feComponentTransfer>
             </filter>
-            <mask id={perimeterMaskId} maskUnits="userSpaceOnUse" {...scene.bounds}>
+            <mask id={sceneId} maskUnits="userSpaceOnUse" {...scene.bounds}>
                 <g
                     fill="white"
                     stroke="white"
@@ -229,7 +230,7 @@
         </defs>
         <rect
             {...scene.bounds}
-            mask={`url(#${perimeterMaskId})`}
+            mask={`url(#${sceneId})`}
             fill="#24272b"
             fill-opacity="0.45"
             pointer-events="none"
@@ -725,10 +726,16 @@
     <g data-map-layer="printed-lines" fill="none" pointer-events="none" aria-hidden="true">
         {#each entries
             .filter((entry) => !entry.placed && !entry.hidden)
-            .flatMap((entry) => entry.printedLines.map((line) => ({ entry, line })))
-            .sort((a, b) => a.line.width - b.line.width) as { entry, line } (`${entry.location.id}:${line.d}`)}
+            .flatMap((entry) => entry.printedLines.map((line, index) => ({ entry, line, index })))
+            .sort((a, b) => a.line.width - b.line.width) as { entry, line, index } (`${entry.location.id}:${line.d}`)}
+            {@const clipId = `${sceneId}-printed-line-${entry.location.id}-${index}`}
+            <!-- A line's round cap and width stop at its hex, so they never reach a tile next door. -->
+            <clipPath id={clipId}>
+                <polygon points={entry.drawing.polygon}></polygon>
+            </clipPath>
             <path
                 transform={`translate(${entry.center.x} ${entry.center.y})`}
+                clip-path={`url(#${clipId})`}
                 d={line.d}
                 stroke={line.color}
                 stroke-width={line.width}
@@ -792,7 +799,7 @@
         <g data-map-layer="names" pointer-events="none" aria-hidden="true">
             {#each entries.filter((entry) => entry.nameShown) as entry (entry.location.id)}
                 {#each entry.nameArcs as arc, index (index)}
-                    {@const pathId = `${perimeterMaskId}-name-${entry.location.id}-${index}`}
+                    {@const pathId = `${sceneId}-name-${entry.location.id}-${index}`}
                     <!-- Over the top the path runs clockwise; under the foot it runs back so the letters stay upright. -->
                     {@const middle = (arc.below ? 90 : -90) + arc.rotation}
                     {@const from = middle + (arc.below ? 120 : -120)}
@@ -887,9 +894,13 @@
                 const art = entry.markerArt[marker.id]
                 return art && 'localLine' in art
             }) as marker (marker.id)}
+                {@const position = localLinePosition(
+                    entry.markerArt[marker.id],
+                    entry.localLineAboveY
+                )}
                 <g
                     data-map-marker-local-line={marker.id}
-                    transform={`translate(${entry.center.x + 4} ${entry.center.y + (entry.localLineAboveY !== undefined && entry.markerArt[marker.id] && 'above' in entry.markerArt[marker.id] ? entry.localLineAboveY : 32)})`}
+                    transform={`translate(${entry.center.x + position.x} ${entry.center.y + position.y})`}
                     fill={appearance.ink}
                 >
                     <text

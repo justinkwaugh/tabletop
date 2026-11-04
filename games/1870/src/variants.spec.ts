@@ -6,8 +6,7 @@ import {
     placeStockMarker,
     type RevenueCenter
 } from '@tabletop/18xx'
-import { giveTrain, operated, prepared } from '../test/position.js'
-import { table } from '../test/table.js'
+import { giveTrain, operated, prepared, table } from '../test/kit.js'
 import { placeWarStation, stationWarsAfterLay } from './destinations.js'
 import { Definition } from './definition/gameDefinition.js'
 import { EndingRules1870, PhaseRules1870 } from './operating.js'

@@ -320,8 +320,11 @@ def schema_diff(merge_base: str, logic_root: Path, repo: Path) -> dict[str, list
 def css_encapsulation(ui_root: Path, sources: list[Path], repo: Path, static: bool) -> dict[str, Any]:
     config = ui_root / "postcss.config.js"
     config_text = config.read_text(encoding="utf-8") if config.is_file() else ""
-    prefix = re.search(r"data-game-ui=\"([^\"]+)\"", config_text)
-    scoped_file = re.search(r"endsWith\('([^']+)'\)", config_text)
+    additional = re.search(r"additionalStylesheets:\s*\[([^\]]*)\]", config_text)
+    scoped_files = [
+        "/src/lib/styles.css" if re.search(r"family18xx:\s*true", config_text) else "/src/app.css",
+        *re.findall(r"'([^']+)'", additional.group(1) if additional else ""),
+    ]
     imports: list[dict[str, Any]] = []
     for path in sources:
         if (
@@ -341,7 +344,7 @@ def css_encapsulation(ui_root: Path, sources: list[Path], repo: Path, static: bo
                 "path": path.relative_to(repo).as_posix(),
                 "line": number,
                 "stylesheet": resolved.resolve().relative_to(repo).as_posix() if resolved.resolve().is_relative_to(repo) else resolved_text,
-                "covered_by_scope_plugin": bool(scoped_file) and resolved_text.endswith(scoped_file.group(1)),
+                "covered_by_scope_plugin": any(resolved_text.endswith(scoped) for scoped in scoped_files),
             })
     bundle_index = ui_root / "bundle" / "index.js"
     if static:
@@ -358,8 +361,8 @@ def css_encapsulation(ui_root: Path, sources: list[Path], repo: Path, static: bo
     return {
         "site_tailwind_scans_title": site_css.is_file()
         and f"games/{ui_root.name}/" in site_css.read_text(encoding="utf-8"),
-        "scope_prefix": prefix.group(1) if prefix else None,
-        "scope_plugin_file": scoped_file.group(1) if scoped_file else None,
+        "scope_config_shared": "createGameUiPostcssConfig" in config_text and "data-game-ui" not in config_text,
+        "scope_plugin_files": scoped_files,
         "stylesheet_imports": imports,
         "bundle_built_at": bundle_index.stat().st_mtime if bundle_index.is_file() else None,
         "bundle_scan": bundle_scan,
