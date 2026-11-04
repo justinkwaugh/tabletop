@@ -16,6 +16,9 @@ const BOOK_BINDERS = 'denizen.hearth.book-binders'
 const GARRISON = 'denizen.order.garrison'
 const WHISTLE = 'relic.whistle'
 const GRAND_SCEPTER = 'relic.grand-scepter'
+const RELIC_THIEF = 'denizen.discord.relic-thief'
+const TUTOR = 'denizen.arcane.tutor'
+const TYRANT = 'denizen.order.tyrant'
 
 /**
  * The scene each table draws:
@@ -27,8 +30,10 @@ const GRAND_SCEPTER = 'relic.grand-scepter'
  *   there hold 1 favor.
  * - 'busy': as 'envoy', with Blood Pact and the Oracle at Standing Stones, 2 secrets and the
  *   Whistle held.
+ * - 'paging': as 'envoy', with Relic Thief facedown as Dana's third adviser (R-9.4), and Rhys's
+ *   advisers Garrison, the Tutor facedown and the Tyrant.
  */
-export type UseOnEveryCardScene = 'envoy' | 'scepter' | 'pair' | 'busy'
+export type UseOnEveryCardScene = 'envoy' | 'scepter' | 'pair' | 'busy' | 'paging'
 
 const faceup = (...cardIds: string[]) => cardIds.map((cardId) => ({ cardId, faceUp: true }))
 
@@ -43,6 +48,7 @@ export function useOnEveryCardTable(scene: UseOnEveryCardScene): PlayedTable {
     const [valley, woods, slums] = mapSlotsFor(Region.Hinterland)
     const pair = scene === 'pair'
     const busy = scene === 'busy'
+    const paging = scene === 'paging'
     const turn = scene === 'scepter' ? 'Rhys' : 'Dana'
     const state = testState(
         [
@@ -56,7 +62,10 @@ export function useOnEveryCardTable(scene: UseOnEveryCardScene): PlayedTable {
                 secrets: pair ? 0 : busy ? 2 : 1,
                 warbandsOnBoard: { Dana: pair ? 3 : 7 },
                 warbandsInPersonalBank: { Dana: pair ? 10 : 6 },
-                advisers: faceup(...(pair ? [PLAYMATES, PRESSGANGS] : [ENVOY, PLAYMATES])),
+                advisers: [
+                    ...faceup(...(pair ? [PLAYMATES, PRESSGANGS] : [ENVOY, PLAYMATES])),
+                    ...(paging ? [{ cardId: RELIC_THIEF, faceUp: false }] : [])
+                ],
                 relicIds: busy ? [WHISTLE] : []
             }),
             testPlayer({
@@ -81,7 +90,9 @@ export function useOnEveryCardTable(scene: UseOnEveryCardScene): PlayedTable {
                 secrets: 1,
                 warbandsOnBoard: { [IMPERIAL_WARBANDS]: 6 },
                 warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 11 },
-                advisers: faceup(GARRISON),
+                advisers: paging
+                    ? [...faceup(GARRISON), { cardId: TUTOR, faceUp: false }, ...faceup(TYRANT)]
+                    : faceup(GARRISON),
                 relicIds: [GRAND_SCEPTER]
             })
         ],

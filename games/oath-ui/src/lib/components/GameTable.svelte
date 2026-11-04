@@ -137,8 +137,17 @@
     // Rule 7 — Escape closes the topmost layer only: the enlarged card, the open goals or seat, then
     // the "Since your last turn" card (never from a text field, as clearing it is remembered); with
     // none open it is left to the board's wrapper, which leaves full screen.
+    // Rule 4 — ← and → page an enlarged card of a group, never from a text field; at an end they do
+    // nothing, and the History does not step under it.
     const closesTopLayer: Attachment = () => {
         const escape = (event: KeyboardEvent) => {
+            if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                if (!cardPreview.sides || typedInTextField(event)) return
+                cardPreview.page(event.key === 'ArrowLeft' ? -1 : 1)
+                event.preventDefault()
+                event.stopPropagation()
+                return
+            }
             if (event.key !== 'Escape') return
             if (cardPreview.open) cardPreview.dismiss()
             else if (oath.goalsView.open) oath.goalsView.close()

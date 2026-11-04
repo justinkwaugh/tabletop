@@ -32,3 +32,9 @@ export function seatAdvisers(
         }
     })
 }
+
+/** An adviser named as its seat names it: a facedown one says who sees it. */
+export function adviserLabel(adviser: Pick<SeatAdviser, 'faceUp' | 'shownToMe'>, name: string) {
+    if (adviser.faceUp) return name
+    return name + (adviser.shownToMe ? ' — facedown; shown to you' : ' — facedown; only you see it')
+}

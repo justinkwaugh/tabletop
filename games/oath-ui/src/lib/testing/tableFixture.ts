@@ -100,6 +100,7 @@ import { wrestlersDefends } from './wrestlersTable.js'
 import { landWardenSecondAdviser, landWardenVisionKept } from './landWardenTable.js'
 import { searchFullSiteTable } from './searchFullSiteTable.js'
 import { useOnEveryCardTable } from './useOnEveryCardTables.js'
+import { zoomPagingSearchTable } from './zoomPagingTables.js'
 import { greatSlumPowers } from './greatSlumPowersTable.js'
 import { facedownPickerTable } from './facedownPickerTables.js'
 import { RELIC_HUNTER, campaignSteps } from './campaignStepsTable.js'
@@ -255,6 +256,8 @@ export type TableName =
     | 'useOnEveryCardScepter'
     | 'useOnEveryCardPair'
     | 'useOnEveryCardBusy'
+    | 'zoomPaging'
+    | 'zoomPagingSearch'
     | 'flipConspiracy'
     | 'flipConspiracyNoTake'
     | 'campaignTwoDefenders'
@@ -5866,6 +5869,8 @@ const TABLES: Record<TableName, () => PlayedTable | Promise<PlayedTable>> = {
     useOnEveryCardScepter: () => useOnEveryCardTable('scepter'),
     useOnEveryCardPair: () => useOnEveryCardTable('pair'),
     useOnEveryCardBusy: () => useOnEveryCardTable('busy'),
+    zoomPaging: () => useOnEveryCardTable('paging'),
+    zoomPagingSearch: () => zoomPagingSearchTable(),
     flipConspiracy: flipConspiracyTable,
     flipConspiracyNoTake: flipConspiracyNoTakeTable,
     campaignTwoDefenders: () => campaignTable(false),

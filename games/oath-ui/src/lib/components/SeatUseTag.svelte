@@ -1,10 +1,12 @@
 <script lang="ts">
+    import { cardPreview } from '$lib/model/cardPreview.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     // R-6.2, R-7.4 — on a phone the seats sit off the screen's left edge. While a card on the
     // seat whose turn it is (an adviser or a relic) has a "Use" and the seat is off screen, one
     // gold "Use" on the screen's edge, beside the seat, stands for them all; a tap slides the
-    // seat in, as a swipe does. Ringed while one of them is.
+    // seat in, as a swipe does. Ringed while one of them is. Hidden while a card is enlarged, so
+    // nothing stands over it or its side strips (rule 4).
     let gameSession = getGameSession()
 
     let seatId = $derived(gameSession.liveTurnSeatId)
@@ -88,7 +90,7 @@
     }
 </script>
 
-{#if place}
+{#if place && !cardPreview.open}
     <button
         type="button"
         class="seat-use-tag"
