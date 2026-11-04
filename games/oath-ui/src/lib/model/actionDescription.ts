@@ -892,8 +892,14 @@ function describeActionCited(
                 (facedown ? ', facedown' : '')
             )
         }
+        // R-5.1.4.I, New Growth — a kept card played to another site names it, as the facedown adviser's play does.
+        // The card that allowed it is named once, on the Search's own row, which declared it.
+        const keptPlay =
+            action.play === SearchPlay.Site && action.toSiteId !== undefined
+                ? `played it to ${names.site(action.toSiteId)}`
+                : describePlay(action.play, `${action.playerId}'s`)
         return (
-            `kept ${shownCard(kept)} and ${theirs(describePlay(action.play, `${action.playerId}'s`))}` +
+            `kept ${shownCard(kept)} and ${theirs(keptPlay)}` +
             (facedown ? ', facedown' : '') +
             discardedFirstClause(action.play, discardFirstCardIdsOf(action)) +
             gaining(meta?.secretsGained ?? 0, meta?.favorGained ?? 0, meta?.favorShort) +

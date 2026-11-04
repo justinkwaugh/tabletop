@@ -3587,3 +3587,165 @@ describe('Land Warden — a Search names its second card as it names the kept on
         )
     })
 })
+
+// New Growth: "You may play [suit:beast] and [suit:hearth] cards to any site (that has space)."
+// R-5.1.4.I — the People's Favor's holder may play to any site in their region.
+describe('a Search names the site its kept card went to, when another than the searcher’s own', () => {
+    const NEW_GROWTH = 'denizen.beast.new-growth'
+    const WOLVES = 'denizen.beast.wolves'
+    const TENTS = 'denizen.nomad.tents'
+    const SCOUTS = 'denizen.order.scouts'
+    const seats = (state: ReturnType<typeof testState>) => ({
+        player: (playerId: string) => ({ dana: 'Dana', rhys: 'Rhys' })[playerId] ?? playerId,
+        site: (slotId: string) => siteName(state, slotId),
+        seats: ['dana', 'rhys']
+    })
+
+    /** Dana, at the Steppe, has searched Wolves and Tents; the Plains beside it and the Marshes are empty. */
+    function searched({
+        newGrowth = true,
+        peoplesFavor = false,
+        p1 = 'site.marshes',
+        atP1 = [] as string[]
+    } = {}) {
+        const state = testState(
+            [
+                testPlayer({
+                    playerId: 'dana',
+                    color: Color.Red,
+                    siteId: 'c1',
+                    favor: 3,
+                    supply: 6,
+                    advisers: newGrowth ? [{ cardId: NEW_GROWTH, faceUp: true }] : []
+                }),
+                testPlayer({
+                    playerId: 'rhys',
+                    color: Color.Purple,
+                    status: PlayerStatus.Chancellor,
+                    siteId: 'h1',
+                    favor: 2
+                })
+            ],
+            {
+                oathRevision: CURRENT_OATH_REVISION,
+                round: 3,
+                banners: testBanners(peoplesFavor ? { [Banner.PeoplesFavor]: 'dana' } : {}),
+                denizensBySite: { c1: [], c2: [], p1: atP1, h1: [] },
+                siteCards: {
+                    c1: 'site.steppe',
+                    c2: 'site.plains',
+                    p1,
+                    h1: 'site.mountain'
+                }
+            }
+        )
+        openTurn(state, 'dana')
+        state.requireVault().worldDeck = [WOLVES, TENTS]
+        const search = new HydratedSearch(
+            buildAction(Search, {
+                playerId: 'dana',
+                drawFrom: SearchSource.WorldDeck,
+                revealsInfo: true,
+                modifiers: newGrowth
+                    ? [
+                          {
+                              cardId: NEW_GROWTH,
+                              powerIndex: powerIndexOf(NEW_GROWTH, PowerTiming.Modifier)
+                          }
+                      ]
+                    : []
+            })
+        )
+        search.apply(state)
+        state.machineState = MachineState.Searching
+        return { state, search: search.dehydrate() }
+    }
+
+    type Perspective = Parameters<typeof OathVisibility.actions.project>[1]
+    /** A record as Dana, Rhys and a spectator each receive it. */
+    function inEachView(state: ReturnType<typeof testState>, record: GameAction) {
+        const seen = (perspective: Perspective) =>
+            OathVisibility.actions.project(record, perspective) as GameAction
+        const names = seats(state)
+        return {
+            dana: describeAction(seen({ kind: 'player', playerId: 'dana' }), names, 'dana'),
+            rhys: describeAction(seen({ kind: 'player', playerId: 'rhys' }), names, 'rhys'),
+            spectator: describeAction(seen({ kind: 'spectator' }), names)
+        }
+    }
+
+    /** Wolves kept and played to a site, Tents discarded, as the engine records it. */
+    function keptWolves(setup: Parameters<typeof searched>[0], fields: Record<string, unknown>) {
+        const { state, search } = searched(setup)
+        const choice = {
+            keptCardId: WOLVES,
+            discardOrder: [TENTS],
+            play: SearchPlay.Site,
+            ...fields
+        }
+        // The scene is one the game allows.
+        expect(HydratedSearchResolve.reasonCannotResolve(state, 'dana', choice)).toBeUndefined()
+        const resolve = new HydratedSearchResolve(
+            buildAction(SearchResolve, { playerId: 'dana', ...choice })
+        )
+        resolve.apply(state)
+        return { search: inEachView(state, search), kept: inEachView(state, resolve.dehydrate()) }
+    }
+
+    it('New Growth to the Plains: "kept Wolves and played it to Plains" in every view', () => {
+        const { kept } = keptWolves({}, { toSiteId: 'c2' })
+        expect(kept.dana).toBe(
+            'kept Wolves and played it to Plains, gaining 1 favor; Tents went to the Provinces discard pile'
+        )
+        expect(kept.rhys).toBe(
+            'kept Wolves and played it to Plains, gaining 1 favor; 1 card went to the Provinces discard pile'
+        )
+        expect(kept.spectator).toBe(kept.rhys)
+    })
+
+    it('New Growth is named once, on the Search row: "(New Growth)"', () => {
+        const { search, kept } = keptWolves({}, { toSiteId: 'c2' })
+        for (const line of Object.values(search))
+            expect(line.match(/\(New Growth\)/g)).toHaveLength(1)
+        for (const line of Object.values(kept)) expect(line).not.toContain('New Growth')
+    })
+
+    it('New Growth to a site in another region: "played it to Marshes"', () => {
+        const { kept } = keptWolves({}, { toSiteId: 'p1' })
+        expect(kept.dana).toMatch(/^kept Wolves and played it to Marshes, /)
+        expect(kept.rhys).toMatch(/^kept Wolves and played it to Marshes, /)
+        for (const line of Object.values(kept)) expect(line).not.toContain('own site')
+    })
+
+    it('R-5.1.4.I — the People’s Favor to the Plains, in the region: the site is named, with no card in brackets', () => {
+        const { search, kept } = keptWolves(
+            { newGrowth: false, peoplesFavor: true },
+            { toSiteId: 'c2' }
+        )
+        expect(kept.dana).toMatch(/^kept Wolves and played it to Plains, /)
+        expect(kept.rhys).toMatch(/^kept Wolves and played it to Plains, /)
+        expect(kept.spectator).toBe(kept.rhys)
+        for (const line of [...Object.values(search), ...Object.values(kept)])
+            expect(line).not.toContain('(')
+    })
+
+    it('R-11.10 — a card discarded first at the other site follows the site: "played it to Great Slum, discarding Scouts first"', () => {
+        const { kept } = keptWolves(
+            { p1: 'site.great-slums', atP1: [SCOUTS] },
+            { toSiteId: 'p1', discardFirstCardIds: [SCOUTS] }
+        )
+        expect(kept.dana).toMatch(
+            /^kept Wolves and played it to Great Slum, discarding Scouts first/
+        )
+        expect(kept.rhys).toMatch(
+            /^kept Wolves and played it to Great Slum, discarding Scouts first/
+        )
+    })
+
+    it('a kept card to the searcher’s own site, with no other site named, reads as before', () => {
+        const { kept } = keptWolves({}, {})
+        expect(kept.dana).toMatch(/^kept Wolves and played it to your own site, /)
+        expect(kept.rhys).toMatch(/^kept Wolves and played it to their own site, /)
+        expect(kept.spectator).toBe(kept.rhys)
+    })
+})
