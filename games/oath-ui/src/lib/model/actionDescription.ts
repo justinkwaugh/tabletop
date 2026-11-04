@@ -76,6 +76,7 @@ import {
     type CampaignTarget,
     type ConspiracyPlay,
     type WarbandGroup,
+    Region,
     Suit,
     type LetPeek,
     type PaidToll,
@@ -1530,7 +1531,21 @@ export function namedNote(
     names: HistoryNames,
     viewerId: string | undefined
 ): string {
-    return namedBanks(nameSeats(note, names, viewerId, actorId))
+    return namedPiles(namedBanks(nameSeats(note, names, viewerId, actorId)))
+}
+
+// Older games' summaries wrote a region's id where the board prints its name: "the cradle discard
+// pile", and Convoys' "onto the cradle pile". Only those phrases, whole words in lower case, are named.
+function namedPiles(text: string): string {
+    return Object.values(Region).reduce((named, region) => {
+        const name = regionName(region)
+        return named
+            .replace(
+                new RegExp(`\\bthe ${region} discard pile\\b`, 'g'),
+                `the ${name} discard pile`
+            )
+            .replace(new RegExp(`\\bonto the ${region} pile\\b`, 'g'), `onto the ${name} pile`)
+    }, text)
 }
 
 /** R-4.1.1, R-4.1.4 — the People's Favor steps and the site's take; R-4.1.2's win ends the Wake before the take. */

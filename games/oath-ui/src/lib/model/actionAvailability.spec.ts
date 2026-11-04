@@ -318,6 +318,11 @@ describe('the line under a dimmed major, by cause', () => {
         )
         expect(line(state, EXILE, ActionType.Search)).toContain('discard pile is empty')
     })
+
+    it('a Search refused on an empty pile names the region as the board prints it', () => {
+        const state = exileAt({ supply: 2 }, { visionsDrawn: 1 })
+        expect(line(state, EXILE, ActionType.Search)).toBe('the Cradle discard pile is empty')
+    })
 })
 
 describe('R-6.1, R-7.1.4 — the line where the Adviser chip would stand, when a toll alone hides it', () => {
