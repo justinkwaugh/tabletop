@@ -7812,7 +7812,14 @@ test('the game end: "<winner> won as Usurper", without the reason', async ({ pag
     await expect(end).not.toContainText('an Exile holding')
 })
 
-type PanelFrame = { scale: number; box: number; drawn: number; column: number; window: number }
+type PanelFrame = {
+    scale: number
+    box: number
+    drawn: number
+    column: number
+    window: number
+    scrolls: boolean
+}
 type PanelRecord = { frames: PanelFrame[]; errors: string[] }
 
 /** Samples the last fitted panel on every animation frame from the first one it exists, and every error the window reports (a ResizeObserver loop error reaches the window, not `pageerror`). */
@@ -7828,9 +7835,14 @@ function installPanelRecorder() {
             record.frames.push({
                 scale: new DOMMatrixReadOnly(getComputedStyle(inner).transform).a,
                 box: box.getBoundingClientRect().height,
-                drawn: inner.getBoundingClientRect().height,
+                // The whole panel as drawn, also where it scrolls inside its scaled self.
+                drawn: (inner.querySelector('.fit__content') ?? inner).getBoundingClientRect()
+                    .height,
                 column: box.parentElement?.clientHeight ?? 0,
-                window: window.innerHeight
+                window: window.innerHeight,
+                scrolls:
+                    box.classList.contains('fit--clamped') ||
+                    getComputedStyle(box).overflowY === 'auto'
             })
         }
         requestAnimationFrame(sample)
@@ -7858,10 +7870,29 @@ async function panelImagesLoaded(page: Page) {
     await waitFrames(page, 8)
 }
 
-function expectFittedOnEveryFrame({ frames, errors }: PanelRecord) {
+/** The smallest scale a panel is drawn at; below it, it scrolls inside its share. */
+const MIN_FIT_SCALE = 0.75
+
+/**
+ * Elsewhere: scaled down on every frame, never below 0.75. Drawn taller than its box only at 0.75,
+ * scrolling inside a box never taller than its share (0.4) of the column, or of the window in full
+ * screen (the room of this frame or the one before, as on an upright phone).
+ */
+function expectFittedOnEveryFrame({ frames, errors }: PanelRecord, basis: 'column' | 'window') {
     expect(frames.length).toBeGreaterThan(0)
     expect(frames.filter((frame) => frame.scale >= 1)).toEqual([])
-    expect(frames.filter((frame) => frame.drawn > frame.box + 1)).toEqual([])
+    expect(frames.filter((frame) => frame.scale < MIN_FIT_SCALE - 0.0005)).toEqual([])
+    const atMinimum = (frame: PanelFrame) => Math.abs(frame.scale - MIN_FIT_SCALE) < 0.0005
+    expect(
+        frames.filter(
+            (frame) => frame.drawn > frame.box + 1 && !(frame.scrolls && atMinimum(frame))
+        )
+    ).toEqual([])
+    const room = (index: number) =>
+        Math.max(frames[index][basis], frames[Math.max(0, index - 1)][basis])
+    expect(
+        frames.filter((frame, index) => frame.scrolls && frame.box > room(index) * 0.4 + 2.5)
+    ).toEqual([])
     expect(errors).toEqual([])
 }
 
@@ -7883,8 +7914,8 @@ function expectFullSizeInItsShareOnEveryFrame(
 }
 
 /**
- * A phone upright (375 wide, scrolling inside its share) and held sideways (812 wide, scaled to fit),
- * each with an Act Phase panel taller than its share.
+ * A phone upright (375 wide, scrolling inside its share) and held sideways (812 wide, scaled to fit,
+ * and below 0.75 scrolling inside its share), each with an Act Phase panel taller than its share.
  */
 const PHONES = [
     { name: 'upright', width: 375, heights: [540, 520, 500, 480, 460, 440], table: 'actPhase' },
@@ -7916,9 +7947,9 @@ for (const phone of PHONES) {
     const expectEveryFrame = (record: PanelRecord, basis: 'column' | 'window') =>
         upright
             ? expectFullSizeInItsShareOnEveryFrame(record, basis)
-            : expectFittedOnEveryFrame(record)
+            : expectFittedOnEveryFrame(record, basis)
 
-    test.describe(`scenario 61: on a phone ${phone.name} the panel is drawn ${upright ? 'at full size inside its share' : 'at its fitted scale'} on every frame`, () => {
+    test.describe(`scenario 61: on a phone ${phone.name} the panel is drawn ${upright ? 'at full size inside its share' : 'at its fitted scale, never below 0.75,'} on every frame`, () => {
         test.use({ viewport: { width: phone.width, height: h0 } })
 
         test('the panel’s first frame on opening the table is already fitted', async ({ page }) => {
@@ -7953,8 +7984,9 @@ for (const phone of PHONES) {
             const record = await panelRecord(page)
             expectEveryFrame(record, 'column')
             const [first, last] = [record.frames[0], record.frames[record.frames.length - 1]]
-            // Taller content: upright, drawn taller inside its box; sideways, scaled further down.
-            if (upright) expect(last.drawn - first.drawn).toBeGreaterThan(20)
+            // Taller content: upright, or sideways at 0.75, drawn taller inside its scrolling box;
+            // sideways above 0.75, scaled further down.
+            if (upright || last.scrolls) expect(last.drawn - first.drawn).toBeGreaterThan(20)
             else expect(first.scale - last.scale).toBeGreaterThan(0.03)
         })
 

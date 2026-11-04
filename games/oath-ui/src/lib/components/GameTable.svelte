@@ -227,8 +227,8 @@
         {/snippet}
         {#snippet gameContent()}
             <!-- The panel is capped at a fraction of the column so the map keeps its scale;
-                 `FitBox` scales a step that outgrows it, or on an upright phone scrolls it inside
-                 its share (no page scroll either way). -->
+                 `FitBox` scales a step that outgrows it, never below 0.75, where it scrolls inside
+                 its share, as it does at full size on an upright phone (no page scroll either way). -->
             {#if !expanded}
                 <FitBox fraction={0.4}>
                     {@render panel()}

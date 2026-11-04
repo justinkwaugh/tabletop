@@ -96,6 +96,7 @@ import { shroudedWoodState } from './shroudedWoodTable.js'
 import { gamblingHallUsed } from './gamblingHallTable.js'
 import { wrestlersDefends } from './wrestlersTable.js'
 import { landWardenSecondAdviser, landWardenVisionKept } from './landWardenTable.js'
+import { greatSlumPowers } from './greatSlumPowersTable.js'
 import { facedownPickerTable } from './facedownPickerTables.js'
 import { RELIC_HUNTER, campaignSteps } from './campaignStepsTable.js'
 import { campaignLedgerTable } from './campaignLedgerTable.js'
@@ -357,6 +358,7 @@ export type TableName =
     | 'wrestlersOnePlace'
     | 'landWardenSecondAdviser'
     | 'landWardenVisionKept'
+    | 'greatSlumPowers'
     | 'facedownDreamThief'
     | 'facedownDreamThiefSecond'
     | 'facedownInquisitor'
@@ -5843,6 +5845,8 @@ const TABLES: Record<TableName, () => PlayedTable | Promise<PlayedTable>> = {
     landWardenSecondAdviser,
     // R-5.1.4.III — Dana searched with Land Warden at the full Great Slum: Alchemist, then the Vision of Conquest.
     landWardenVisionKept,
+    // R-7.1.1 — Dana at the full Great Slum with Homesteaders, Longbows and the Horned Mask: a tall Use a power step.
+    greatSlumPowers,
     // R-9.4 — Dana's facedown adviser picks: Dream Thief (first, or second among the advisers),
     // Inquisitor (all at the Plains), the Ivory Eye.
     facedownDreamThief: () => facedownPickerTable('dreamThief'),
