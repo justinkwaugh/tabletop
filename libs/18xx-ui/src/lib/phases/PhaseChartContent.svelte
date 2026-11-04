@@ -3,6 +3,7 @@
     import type { Cash } from '@tabletop/18xx'
     import type { MoneyFormat } from '../presentation/money.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
+    import PhaseText from './PhaseText.svelte'
     import { TileColors } from '../tiles/tilePresentation.js'
     import {
         trainRosterRows,
@@ -89,7 +90,9 @@
                                         {:else}<span class="muted">—</span>{/each}
                                     </span></td
                                 >
-                                <td class="phase-notes">{phase.notes ?? ''}</td>
+                                <td class="phase-notes"
+                                    ><PhaseText text={phase.notes ?? ''} {phaseColors} /></td
+                                >
                             </tr>
                         {/each}
                     </tbody>
@@ -175,9 +178,11 @@
         {#each [...new Set(chart.trains.flatMap( (train) => (train.rustNote ? [train.rustNote] : []) ))] as note (note)}<p
             >
                 <span class="rust-mark">*</span>
-                {note}
+                <PhaseText text={note} {phaseColors} />
             </p>{/each}
-        {#if !depotOnly}{#each chart.notes as note, index (index)}<p>{note}</p>{/each}{/if}
+        {#if !depotOnly}{#each chart.notes as note, index (index)}<p>
+                    <PhaseText text={note} {phaseColors} />
+                </p>{/each}{/if}
     </div>
 </div>
 
