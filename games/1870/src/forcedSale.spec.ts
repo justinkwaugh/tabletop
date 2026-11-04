@@ -1,11 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
 import { EmergencyTrainFunding, getCompany, placeStockMarker, type Owner } from '@tabletop/18xx'
-import { operated, prepared, trackAlong } from '../test/position.js'
-import type { Table } from '../test/table.js'
-import { TrainFundingRules1870 } from './operating.js'
+import { operated, prepared, trackAlong, type Table } from '../test/kit.js'
 import type { State1870 } from './state.js'
-import { StockRules1870 } from './stock.js'
+import { StockRules1870, TrainFundingRules1870 } from './stock.js'
 import { Market1870 } from './stockMarket.js'
 import { TileSet1870 } from './tiles.js'
 import { TrainRules1870 } from './trains.js'
@@ -156,5 +154,49 @@ describe('a forced sale (p. 25)', () => {
         game.act('ProtectShares', { companyId: 'TP' })
         expect(game.state.machineState).toBe('GameOver')
         expect(prices(game).TP).toBe(120)
+    })
+})
+
+describe('a forced sale closing the company it funds', () => {
+    it('ends the company’s turn rather than asking its gone president for the rest', () => {
+        const game = prepared((state) => {
+            for (const company of state.companies)
+                if (company.kind === 'private') company.closed = true
+            operated(state, 'IC', 'p1', { price: 76, shares: 6, cash: 0 })
+            placeStockMarker(state.stockMarket, 'IC', '6:0')
+            placeStockMarker(state.stockMarket, 'SLSF', '8:1')
+            setCash(state, 'p1', 5)
+            state.tileInventory = TileSet1870.createInventory(
+                trackAlong(['K16', 'J17', 'I18', 'H19', 'G20'])
+            )
+        })
+        while (game.state.machineState === 'StockRound') game.act('FinishStockTurn')
+        game.act('FinishTrack', { companyId: 'IC' })
+        const funding = () =>
+            new EmergencyTrainFunding(
+                game.hydrated,
+                TrainFundingRules1870,
+                StockRules1870,
+                TrainRules1870
+            )
+        const [purchase] = funding().purchases()
+        game.act('FundTrain', {
+            companyId: purchase.companyId,
+            trainId: purchase.trainId,
+            definitionId: purchase.definitionId,
+            expectedPrice: purchase.price
+        })
+        const next = funding().next()
+        if (next.kind !== 'sell') throw new Error(`Funding expects ${next.kind}`)
+        const [sale] = next.sales
+        game.act('SellFundingShares', {
+            seller: next.owner,
+            companyId: 'IC',
+            shares: sale.sales[0].shares,
+            expectedProceeds: sale.proceeds
+        })
+        expect(getCompany(game.state, 'IC').closed).toBe(true)
+        expect(game.state.trainFunding).toBeUndefined()
+        expect(game.state.machineState).not.toBe('FundingTrain')
     })
 })

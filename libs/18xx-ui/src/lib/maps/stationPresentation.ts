@@ -81,7 +81,7 @@ export type MapViewDefinition = {
     cityNames?: Readonly<Record<string, Readonly<Record<string, string>>>>
     /** Explicit lines for a location's name, by location id; long names otherwise split in two. */
     nameLines?: Readonly<Record<string, readonly string[]>>
-    /** Offboards' names in their own larger type, as a board printing them for its connections. */
+    /** Offboards' and red towns' names in their own larger type, as a board printing them for its connections. */
     offboardNames?: OffboardNameStyle
     /**
      * Where a location's revenue-sized symbols go on its printed hex, by location id, in place of
@@ -93,6 +93,11 @@ export type MapViewDefinition = {
     >
     /** Locations whose curved city name runs under the city, reading along its foot. */
     namesBelow?: readonly string[]
+    /**
+     * Degrees clockwise to turn a hex's curved name from centred on its city, by location id, in
+     * place of the least turn that clears its track.
+     */
+    nameTurns?: Readonly<Record<string, number>>
     /** Centre of a location's terrain cost row, by location id, where it is not placed below the stops. */
     terrainPositions?: Readonly<Record<string, Point>>
     markerArt?: Readonly<Record<string, MapMarkerArt>>

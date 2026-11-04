@@ -1,7 +1,7 @@
 import type { DestinationRunState } from '../destinations/destinationRuns.js'
 import * as Type from 'typebox'
 import { assert } from '@tabletop/common'
-import { getCompany } from '../finance/finance.js'
+import { getCompany, type Owner } from '../finance/finance.js'
 import type { StockMarketChart } from '../stock/stockMarket.js'
 import type { CompanyCharters } from '../company/companyCharters.js'
 import type { StockState } from '../stock/stockState.js'
@@ -30,6 +30,12 @@ export interface OperatingRules {
     trainsToExport?(state: OperatingState & TrainState): string[]
     /** What a private pays its owner as an operating round starts, when its state decides it. */
     privateIncome?(state: OperatingState & TrainState, privateId: string): number
+    /** Who receives a private's income, when it is not simply the private's owner. */
+    privateIncomeRecipient?(
+        state: OperatingState & TrainState,
+        privateId: string,
+        owner: Owner
+    ): Owner
 }
 
 /**

@@ -111,6 +111,8 @@ export type MapMarkerArt =
     | { hidden: true }
     /** Two linked circles after the marker's label, low in the hex or ``above`` its stops and name. */
     | { localLine: true; above?: true }
+    /** The same, ``at`` a point from the hex's centre where the print is too busy for either. */
+    | { localLine: true; at: Point }
     /** The marker's label, large in the centre of an unbuilt hex. */
     | { centeredLabel: true }
     /** The marker's label under an unbuilt hex's terrain cost, such as a lower cost it prints. */
@@ -356,6 +358,7 @@ export function createMapDrawing(
         namePositions = {},
         cityNames = {},
         namesBelow = [],
+        nameTurns = {},
         symbolPositions = {},
         nameLines = {},
         offboardNames,
@@ -384,6 +387,7 @@ export function createMapDrawing(
         | 'namePositions'
         | 'cityNames'
         | 'namesBelow'
+        | 'nameTurns'
         | 'symbolPositions'
         | 'nameLines'
         | 'offboardNames'
@@ -452,7 +456,8 @@ export function createMapDrawing(
             !placement &&
             !!location.name
         const nameStyle =
-            face.nodes.length && face.nodes.every((node) => node.kind === 'offboard')
+            face.nodes.length &&
+            (face.color === 'red' || face.nodes.every((node) => node.kind === 'offboard'))
                 ? offboardNames
                 : undefined
         const nameScale = (nameStyle?.fontSize ?? NameFontSize) / NameFontSize
@@ -481,15 +486,16 @@ export function createMapDrawing(
         const [loneNode, ...otherNodes] = face.nodes
         const ownCityNames = cityNames[location.id]
         const arcAround = (text: string, center: Point, obstacles: readonly Point[] = []) =>
-            arcAroundCity(
-                text,
-                (drawingStyle?.citySlotRadius ?? DefaultCitySlotRadius) + NameArcGap,
-                namesBelow.includes(location.id),
-                stopDrawing().paths,
-                symbolPoints(symbolPositions[location.id]),
+            arcAroundCity({
+                name: text,
+                clearance: (drawingStyle?.citySlotRadius ?? DefaultCitySlotRadius) + NameArcGap,
+                below: namesBelow.includes(location.id),
+                fixedTurn: nameTurns[location.id],
+                paths: stopDrawing().paths,
+                symbols: symbolPoints(symbolPositions[location.id]),
                 center,
                 obstacles
-            )
+            })
         const nameArcs =
             !nameShown ||
             !location.name ||
@@ -509,7 +515,7 @@ export function createMapDrawing(
         )
         const localLineAboveY = (location.markers ?? []).some((marker) => {
             const art = markerArt[marker.id]
-            return !!art && 'localLine' in art && !!art.above
+            return !!art && 'localLine' in art && 'above' in art
         })
             ? aboveStops(
                   stopDrawing(),
@@ -1355,15 +1361,25 @@ function nameArcBand(arc: NameArc): Point[] {
 }
 
 // The name centres over the top of the city, turning the least it can to stay off the track.
-function arcAroundCity(
-    name: string,
-    clearance: number,
-    below: boolean,
-    paths: readonly TileDrawnPath[],
-    symbols: readonly Point[],
-    center: Point,
-    obstacles: readonly Point[] = []
-): NameArc {
+function arcAroundCity({
+    name,
+    clearance,
+    below,
+    fixedTurn,
+    paths,
+    symbols,
+    center,
+    obstacles
+}: {
+    name: string
+    clearance: number
+    below: boolean
+    fixedTurn: number | undefined
+    paths: readonly TileDrawnPath[]
+    symbols: readonly Point[]
+    center: Point
+    obstacles: readonly Point[]
+}): NameArc {
     // Under the city the letters stand inside their baseline, so the baseline moves out by their height.
     const radius = below ? clearance + NameArcCapHeight : clearance
     const span = Math.min((Math.PI * 4) / 3, (name.length * 4) / radius)
@@ -1404,7 +1420,8 @@ function arcAroundCity(
     const turns = Array.from({ length: 37 }, (_, index) =>
         index % 2 ? ((index + 1) / 2) * 5 : (-index / 2) * 5
     )
-    const rotation = turns.reduce((best, turn) => (crossings(turn) < crossings(best) ? turn : best))
+    const rotation =
+        fixedTurn ?? turns.reduce((best, turn) => (crossings(turn) < crossings(best) ? turn : best))
     return { text: name, center, radius, rotation, span, below }
 }
 
@@ -1413,6 +1430,15 @@ function isOffboard(location: MapLocation | undefined): boolean {
 }
 
 export type MapBorderCost = { key: string; x: number; y: number; amount: number; kind: string }
+
+/** Where a hex's local line stands, from the hex's centre. */
+export function localLinePosition(
+    art: MapMarkerArt | undefined,
+    aboveY: number | undefined
+): Point {
+    if (art && 'localLine' in art && 'at' in art) return art.at
+    return { x: 4, y: art && 'above' in art && aboveY !== undefined ? aboveY : 32 }
+}
 
 /**
  * Each costed border's cost, once per shared edge, at the middle of that edge, until track meets

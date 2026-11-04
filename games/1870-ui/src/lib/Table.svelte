@@ -3,15 +3,7 @@
     import { assert } from '@tabletop/common'
     import type { GameSession } from '@tabletop/frontend-components'
     import { Market1870, type HydratedState1870, type State1870 } from '@tabletop/1870'
-    import {
-        CompanyPar,
-        CompanyShareActions,
-        GameTable,
-        OperatingActions,
-        PendingShareDecision,
-        type TitleActionDescription,
-        WaterfallAuctionLots
-    } from '@tabletop/18xx-ui'
+    import { GameTable, ShareTitleActions, type TitleActionDescription } from '@tabletop/18xx-ui'
     import ConnectionRun from './ConnectionRun.svelte'
     import { describe1870Action } from './history.js'
     import { Session1870 } from './session.svelte.js'
@@ -44,24 +36,17 @@
     additionalStockActions={session.stockPanels.menuOptions}
 >
     {#snippet actions(_focusLocation, focusRoute)}
-        {#if session.gameState.pendingPar}
-            <CompanyPar {session} />
-        {:else if session.waterfall.model && !session.waterfall.model.auction.completed}
-            <WaterfallAuctionLots {session} />
-        {:else if session.shareActions.pending}
-            <PendingShareDecision {session} actions={session.shareActions} />
-        {:else if session.destinationChoice}
-            <ConnectionRun {session} />
-        {:else if session.stockPanels.open === 'company'}
-            <CompanyShareActions {session} actions={session.shareActions} />
-        {:else}
-            <ConnectionRun {session} />
-            <OperatingActions
-                {privateOperationDescription}
-                onFocusRoute={focusRoute}
-                {session}
-                {createRouteWorker}
-            />
-        {/if}
+        <ShareTitleActions
+            {session}
+            titleDecision={session.destinationChoice ? connectionRun : undefined}
+            operatingPrompt={connectionRun}
+            onFocusRoute={focusRoute}
+            {privateOperationDescription}
+            {createRouteWorker}
+        />
     {/snippet}
 </GameTable>
+
+{#snippet connectionRun()}
+    <ConnectionRun {session} />
+{/snippet}

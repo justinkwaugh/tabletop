@@ -37,6 +37,7 @@ import {
 } from '@tabletop/18xx'
 import {
     ShareActions,
+    StopRightsActions,
     createEighteenXXSessionClass,
     type HistoricalMapState,
     type TitlePrivatePower
@@ -364,8 +365,8 @@ export class EighteenThirtyTwoSession extends BaseSession {
               ]
             : []
     }
-    readonly canBuyCoalRights = $derived(
-        this.canChooseAction && this.validActionTypes.includes('BuyCoalRights')
+    readonly coalRights = new StopRightsActions(this, 'BuyCoalRights', (companyId) =>
+        this.createPlayerAction(BuyCoalRights, { companyId })
     )
     readonly londonCompanies = $derived(
         this.myPlayer && this.canChooseAction
@@ -413,11 +414,6 @@ export class EighteenThirtyTwoSession extends BaseSession {
     }
     async placeRevenueToken(choice: RevenueTokenChoice): Promise<void> {
         await this.applyAction(this.createPlayerAction(PlaceRevenueToken, choice))
-    }
-    async buyCoalRights(): Promise<void> {
-        const companyId = this.gameState.trackStep?.companyId
-        assertExists(companyId, 'WVCF tokens are bought in the track step')
-        await this.applyAction(this.createPlayerAction(BuyCoalRights, { companyId }))
     }
     async takeLondonShare(certificateId: string): Promise<void> {
         await this.applyAction(this.createPlayerAction(TakeLondonShare, { certificateId }))

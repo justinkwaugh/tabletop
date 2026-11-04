@@ -1,15 +1,14 @@
 import {
     PhaseTable,
     TrainDepot,
-    dieselTrains,
+    dieselVariant,
+    revenueStagesByPhase,
     requiresStationRoute,
-    type TrainInventory,
     type TrainRules
 } from '@tabletop/18xx'
 import { Map1870 } from './map.js'
 import { requireState1870 } from './state.js'
 import { TileSet1870 } from './tiles.js'
-import type { TitleState1870 } from './titleState.js'
 
 const distance = (maximum: number) => ({ measure: 'revenue-centers' as const, maximum })
 
@@ -45,16 +44,6 @@ export const TrainDepot1870 = new TrainDepot({
     ]
 })
 
-/** The depot's trains; the 1830 Diesels variant replaces the 8s, 10s and 12s (p. 24). */
-export function createTrainInventory1870(variants: TitleState1870['variants']): TrainInventory {
-    const inventory = TrainDepot1870.createInventory()
-    if (!variants.diesels) return inventory
-    return {
-        ...inventory,
-        trains: inventory.trains.filter((train) => !['8', '10'].includes(train.definitionId))
-    }
-}
-
 const yellow = ['yellow']
 const green = ['yellow', 'green']
 const brown = ['yellow', 'green', 'brown']
@@ -86,35 +75,31 @@ export const Phases1870 = new PhaseTable(
 
 // Red off-board values: the top until the first 5-train, the middle until the first 8-train or
 // diesel, then the bottom (p. 31).
-export function revenueStages(phaseId: string): readonly string[] {
-    if (Phases1870.isAtLeast(phaseId, '8')) return ['yellow', 'brown', 'gray']
-    if (Phases1870.isAtLeast(phaseId, '5')) return ['yellow', 'brown']
-    return ['yellow']
-}
+export const revenueStages = revenueStagesByPhase(Phases1870, 'yellow', [
+    ['brown', '5'],
+    ['gray', '8']
+])
 
-// Diesels go on sale with the first 6-train, $1100 or $800 by trading in a 4, 5 or 6 (p. 24).
-const Diesels = dieselTrains({
+// With diesels the 8s and 10s are gone and 12s never sell; diesels go on sale with the first 6-train,
+// $1100 or $800 by trading in a 4, 5 or 6, and the 5s become permanent (p. 24).
+export const DieselVariant1870 = dieselVariant({
     depot: TrainDepot1870,
     phases: Phases1870,
     dieselId: 'D',
     fromPhaseId: '6',
     tradeInIds: ['4', '5', '6'],
-    credit: 300
+    credit: 300,
+    removedIds: ['8', '10'],
+    unsoldId: '12',
+    permanentId: '5',
+    active: (state) => !!requireState1870(state).variants.diesels
 })
 
 export const TrainRules1870: TrainRules = {
     depot: TrainDepot1870,
     requiresTrain: requiresStationRoute(Map1870, TileSet1870),
-    exchangePrice: (state, companyId, definitionId, train) =>
-        requireState1870(state).variants.diesels
-            ? Diesels.exchangePrice(state, companyId, definitionId, train)
-            : undefined,
-    availableDefinitions(state) {
-        if (requireState1870(state).variants.diesels)
-            return Diesels.availableDefinitions(state).filter((id) => id !== '12')
-        const next = TrainDepot1870.nextDefinitionId(state.trainInventory)
-        return next ? [next] : []
-    },
+    exchangePrice: DieselVariant1870.exchangePrice,
+    availableDefinitions: DieselVariant1870.availableDefinitions,
     phaseAfterPurchase: (state, definitionId) =>
         Phases1870.phaseAfterPurchase(state.phaseId, definitionId),
     trainLimit: (state) => Phases1870.phase(state.phaseId).trainLimit,

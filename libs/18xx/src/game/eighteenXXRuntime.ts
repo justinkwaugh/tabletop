@@ -329,7 +329,8 @@ export function createEighteenXXRuntime<
                                       options.privateRules,
                                       options.outOfTurnPrivatePowers === true
                                   ),
-                                  (_state, next) => next ?? 'FundingTrain'
+                                  (state, next) =>
+                                      next ?? (state.trainFunding ? 'FundingTrain' : 'OperatingSet')
                               )
                           )
                       )

@@ -8,8 +8,7 @@ import {
     sharesOwned,
     type Owner
 } from '@tabletop/18xx'
-import { operated, prepared, turnFor } from '../test/position.js'
-import type { Table } from '../test/table.js'
+import { operated, prepared, turnFor, type Table } from '../test/kit.js'
 import type { State1870 } from './state.js'
 import { Market1870 } from './stockMarket.js'
 import { StockRules1870, tableCertificateLimit } from './stock.js'

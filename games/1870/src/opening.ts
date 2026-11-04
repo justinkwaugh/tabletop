@@ -27,7 +27,7 @@ import { Map1870, OffboardHomeLocationId } from './map.js'
 import { FriscoPrivateId, KatyPrivateId, PrivateCatalog1870, Privates1870 } from './privates.js'
 import type { HydratedState1870, State1870 } from './state.js'
 import { TileSet1870 } from './tiles.js'
-import { createTrainInventory1870 } from './trains.js'
+import { DieselVariant1870 } from './trains.js'
 
 export const Bank1870 = 12000
 // $2100 divided among the players (p. 4).
@@ -156,7 +156,7 @@ export function createOpening1870({
             }
         ],
         tileInventory: TileSet1870.createInventory(),
-        trainInventory: createTrainInventory1870(variants),
+        trainInventory: DieselVariant1870.inventory(!!variants.diesels),
         phaseId: '2'
     }
     return {

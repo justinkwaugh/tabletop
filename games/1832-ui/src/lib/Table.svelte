@@ -3,15 +3,7 @@
     import { assert } from '@tabletop/common'
     import type { GameSession } from '@tabletop/frontend-components'
     import type { EighteenThirtyTwoState, HydratedEighteenThirtyTwoState } from '@tabletop/1832'
-    import {
-        CompanyPar,
-        CompanyShareActions,
-        GameTable,
-        OperatingActions,
-        PendingShareDecision,
-        type TitleActionDescription,
-        WaterfallAuctionLots
-    } from '@tabletop/18xx-ui'
+    import { GameTable, ShareTitleActions, type TitleActionDescription } from '@tabletop/18xx-ui'
     import { EighteenThirtyTwoSession } from './session.svelte.js'
     import { describe1832Action } from './history.js'
     import TitleActions from './TitleActions.svelte'
@@ -47,24 +39,21 @@
     additionalStockActions={session.stockPanels.menuOptions}
 >
     {#snippet actions(_focusLocation, focusRoute)}
-        {#if session.gameState.pendingPar}
-            <CompanyPar {session} />
-        {:else if session.waterfall.model && !session.waterfall.model.auction.completed}
-            <WaterfallAuctionLots {session} />
-        {:else if session.shareActions.pending}
-            <PendingShareDecision {session} actions={session.shareActions} />
-        {:else if session.mergerDecision}
-            <MergerPhase {session} />
-        {:else if session.stockPanels.open === 'company'}
-            <CompanyShareActions {session} actions={session.shareActions} />
-        {:else}
-            <TitleActions {session} />
-            <OperatingActions
-                {privateOperationDescription}
-                onFocusRoute={focusRoute}
-                {session}
-                {createRouteWorker}
-            />
-        {/if}
+        <ShareTitleActions
+            {session}
+            titleDecision={session.mergerDecision ? mergerPhase : undefined}
+            operatingPrompt={titleActions}
+            onFocusRoute={focusRoute}
+            {privateOperationDescription}
+            {createRouteWorker}
+        />
     {/snippet}
 </GameTable>
+
+{#snippet mergerPhase()}
+    <MergerPhase {session} />
+{/snippet}
+
+{#snippet titleActions()}
+    <TitleActions {session} />
+{/snippet}

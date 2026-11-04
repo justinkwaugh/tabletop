@@ -8,9 +8,7 @@ import {
     privateTrackConstruction,
     type TrackLayDetails
 } from '@tabletop/18xx'
-import { exits, lay } from '../test/flow.js'
-import { giveTrain, operated, prepared } from '../test/position.js'
-import type { Table } from '../test/table.js'
+import { exits, giveTrain, lay, operated, prepared, type Table } from '../test/kit.js'
 import { Map1870 } from './map.js'
 import { EarningsRules1870, PrivatePowerRules1870, TransferRules1870 } from './operating.js'
 import { Market1870 } from './stockMarket.js'
