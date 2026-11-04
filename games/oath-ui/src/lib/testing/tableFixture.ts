@@ -99,6 +99,7 @@ import { gamblingHallUsed } from './gamblingHallTable.js'
 import { wrestlersDefends } from './wrestlersTable.js'
 import { landWardenSecondAdviser, landWardenVisionKept } from './landWardenTable.js'
 import { searchFullSiteTable } from './searchFullSiteTable.js'
+import { useOnEveryCardTable } from './useOnEveryCardTables.js'
 import { greatSlumPowers } from './greatSlumPowersTable.js'
 import { facedownPickerTable } from './facedownPickerTables.js'
 import { RELIC_HUNTER, campaignSteps } from './campaignStepsTable.js'
@@ -250,6 +251,10 @@ export type TableName =
     | 'searchPlayTo'
     | 'searchFullSite'
     | 'searchFullSiteRoom'
+    | 'useOnEveryCard'
+    | 'useOnEveryCardScepter'
+    | 'useOnEveryCardPair'
+    | 'useOnEveryCardBusy'
     | 'flipConspiracy'
     | 'flipConspiracyNoTake'
     | 'campaignTwoDefenders'
@@ -5857,6 +5862,10 @@ const TABLES: Record<TableName, () => PlayedTable | Promise<PlayedTable>> = {
     // R-5.1.4.I, Crop Rotation — Dana searched with Crop Rotation at the full Plains, holding the People's Favor.
     searchFullSite: () => searchFullSiteTable(),
     searchFullSiteRoom: () => searchFullSiteTable(true),
+    useOnEveryCard: () => useOnEveryCardTable('envoy'),
+    useOnEveryCardScepter: () => useOnEveryCardTable('scepter'),
+    useOnEveryCardPair: () => useOnEveryCardTable('pair'),
+    useOnEveryCardBusy: () => useOnEveryCardTable('busy'),
     flipConspiracy: flipConspiracyTable,
     flipConspiracyNoTake: flipConspiracyNoTakeTable,
     campaignTwoDefenders: () => campaignTable(false),

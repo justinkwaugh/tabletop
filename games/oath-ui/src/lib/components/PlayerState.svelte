@@ -67,8 +67,8 @@
 
     let hasHoldings = $derived(playerState.relicIds.length > 0 || facts.banners.length > 0)
 
-    // R-6.2 — in this seat's own Act Phase, a card whose power Use a power lists wears "Use".
-    let badged = $derived(isMe ? gameSession.powerBadgeCards : [])
+    // R-6.2, R-7.4 — in this seat's own Act Phase, a card it can use now wears "Use".
+    let badged = $derived(isMe ? gameSession.useCards : [])
 
     // R-6.5 — Move warbands offers its site -> board move in the panel; the counter wears the ring.
     let toBoard = $derived(
@@ -81,6 +81,7 @@
 
 <article
     class="seat text-left text-white"
+    data-seat={player.id}
     class:seat--turn={isTurn}
     style="--ground:{ground}; --seat:{seatColor};"
 >

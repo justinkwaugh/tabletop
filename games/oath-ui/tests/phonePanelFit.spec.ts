@@ -536,10 +536,11 @@ for (const window of [
     })
 }
 
-/** Use a power at the full Great Slum, with Homesteaders, Longbows and the Horned Mask: far taller than a desktop's share. */
+/** The Horned Mask's Use at the full Great Slum: taller than a 720 px desktop's share at 0.75. */
 async function openPowers(page: Page) {
-    await openScene(page, { name: 'Use a power at the Great Slum', table: 'greatSlumPowers' })
-    await panel(page).getByRole('button', { name: 'Use a power', exact: true }).click()
+    await openScene(page, { name: 'the Horned Mask at the Great Slum', table: 'greatSlumPowers' })
+    // On a phone the seats sit off the screen, so the tap is sent to the badge itself.
+    await page.locator('[data-use-badge="relic.horned-mask"]').dispatchEvent('click')
     await expect(panel(page).locator('[data-action-power="relic.horned-mask"]')).toBeVisible()
     await settled(page)
 }
@@ -622,11 +623,14 @@ const drawnOverStickyPart = (page: Page, part: string) =>
         return { reached, over }
     }, part)
 
+// With every power on its card's Use, no Act Phase step stands far enough above a 900 px
+// desktop's share at 0.75 to scroll a card under the turn bar; the Horned Mask's stands above a
+// 720 px desktop's.
 for (const window of [
-    { name: 'a desktop at 1280 by 900', viewport: { width: 1280, height: 900 }, phone: false },
+    { name: 'a desktop at 1280 by 720', viewport: { width: 1280, height: 720 }, phone: false },
     {
-        name: 'a desktop at 1280 by 900 in full screen',
-        viewport: { width: 1280, height: 900 },
+        name: 'a desktop at 1280 by 720 in full screen',
+        viewport: { width: 1280, height: 720 },
         phone: false,
         full: true
     },
@@ -639,7 +643,7 @@ for (const window of [
     test.describe(`${window.name}: a step too tall at 0.75 is drawn at 0.75 and scrolls`, () => {
         test.use({ viewport: window.viewport, hasTouch: window.phone })
 
-        test('Use a power at the Great Slum: at 0.75, its share tall, scrolling to its end and no further', async ({
+        test('the Horned Mask at the Great Slum: at 0.75, its share tall, scrolling to its end and no further', async ({
             page
         }) => {
             await openPowers(page)

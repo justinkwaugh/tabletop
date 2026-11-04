@@ -200,7 +200,8 @@ import {
     type TravelRow
 } from './travelRows.js'
 import { SetupDraft } from './setupDraft.js'
-import { actionCardUses, actionCards, type ActionCard } from './actionCards.js'
+import { actionCardUses, actionCards, cardsMakingPossible, type ActionCard } from './actionCards.js'
+import { GRAND_SCEPTER, scepterActions } from './cardUses.js'
 import { ModifierDeclarations } from './modifierDeclarations.js'
 import { WarbandMoveDraft } from './warbandMoveDraft.js'
 import {
@@ -1861,32 +1862,78 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     }
 
     /**
-     * R-6.2 — in this seat's Act Phase, the cards whose power Use a power lists, each wearing a
-     * "Use" badge where it lies: while Use a power is offered and nothing else is staged.
+     * R-6.2, R-7.4, R-6.6.1 — in this seat's Act Phase, with no action open, each card the seat can
+     * use now wears a "Use" where it lies: one whose "Action:" power Use a power lists, one that
+     * changes an action or makes it possible (both cards of a pair), and a usable Grand Scepter.
      */
-    get powerBadgeCards(): string[] {
+    get useCards(): string[] {
         const playerId = this.liveTurnSeatId
-        const action = this.selection.action
         if (
             !playerId ||
             this.gameState.machineState !== MachineState.ActPhase ||
-            !this.validActionTypes.includes(ActionType.UseActionPower) ||
-            (action !== undefined && action !== ActionType.UseActionPower)
+            this.selection.action !== undefined
         ) {
             return []
         }
-        return cardsWithListedPower(this.gameState, playerId)
+        const valid = this.validActionTypes
+        const listed = valid.includes(ActionType.UseActionPower)
+            ? cardsWithListedPower(this.gameState, playerId)
+            : []
+        const changing = this.actionCards.flatMap((card) =>
+            actionCardUses(card).map((use) => use.cardId)
+        )
+        const scepter = scepterActions(valid).length > 0 ? [GRAND_SCEPTER] : []
+        return [...new Set([...listed, ...changing, ...scepter])]
     }
 
     /**
-     * A card's "Use" badge: Use a power opened on that card's powers alone, with no picks; nothing
-     * is sent.
+     * A card's "Use": an "Action:" power opens Use a power on that card alone, as does the Grand
+     * Scepter, which offers its two uses there; a modifier opens its action with the card in use,
+     * or a pair's two cards. Nothing is sent.
      */
-    openCardPower(cardId: string): void {
-        if (!this.powerBadgeCards.includes(cardId)) return
-        if (this.selection.value('powerCard') !== cardId) this.clearActionDrafts()
-        this.chooseAction(ActionType.UseActionPower)
-        this.selection.set('powerCard', cardId)
+    useCard(cardId: string): void {
+        const playerId = this.liveTurnSeatId
+        if (!playerId || !this.useCards.includes(cardId)) return
+        const listed =
+            this.validActionTypes.includes(ActionType.UseActionPower) &&
+            cardsWithListedPower(this.gameState, playerId).includes(cardId)
+        if (listed || cardId === GRAND_SCEPTER) {
+            this.chooseAction(ActionType.UseActionPower)
+            this.selection.set('powerCard', cardId)
+            return
+        }
+        const ofIt = (card: ActionCard) => actionCardUses(card).some((u) => u.cardId === cardId)
+        const cards = this.actionCards.filter(ofIt)
+        const card = cards.find((entry) => !entry.with) ?? cards[0]
+        if (card) this.openActionWithCard(card)
+    }
+
+    private useRing = $state.raw<{ cardIds: string[]; reasonId: string } | undefined>(undefined)
+
+    /**
+     * R-7.4 — while a dimmed action's reason shows, the cards that would make it possible wear a
+     * ring on their "Use", read with the reason; the returned function takes the ring off.
+     */
+    ringUses(action: ActionType, reasonId: string): () => void {
+        const cardIds = cardsMakingPossible(this.actionCards, action).flatMap((card) =>
+            actionCardUses(card).map((use) => use.cardId)
+        )
+        const ring = { cardIds: [...new Set(cardIds)], reasonId }
+        this.useRing = ring
+        return () => {
+            if (this.useRing === ring) this.useRing = undefined
+        }
+    }
+
+    /** The ringed cards: each wears the ring only while it has a "Use". */
+    get ringedUses(): string[] {
+        const uses = this.useCards
+        return (this.useRing?.cardIds ?? []).filter((cardId) => uses.includes(cardId))
+    }
+
+    /** The reason a ringed "Use" is read with. */
+    get useRingReason(): string | undefined {
+        return this.ringedUses.length > 0 ? this.useRing?.reasonId : undefined
     }
 
     /** R-7.4 — the cards behind "Use a power" that change an action's menu, or make it possible. */

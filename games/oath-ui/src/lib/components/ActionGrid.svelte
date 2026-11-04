@@ -7,7 +7,6 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import type { ReasonPart } from '$lib/model/names.js'
     import { cardsMakingPossible } from '$lib/model/actionCards.js'
-    import { listedActionPowers } from '$lib/model/phaseDrafts.js'
     import {
         MAJOR_ACTIONS,
         MINOR_ACTIONS,
@@ -41,17 +40,13 @@
         return seat
     })
 
-    // R-7.4 — the cards that change an action are found with the powers.
+    // R-7.4 — the cards that change an action, each with its "Use" where it lies.
     let cards = $derived(gameSession.actionCards)
-    // R-6.2 — Use a power is offered while its list holds a power: one with nothing it can pick is
-    // left out of it.
-    let powers = $derived(listedActionPowers(gameState, seat.playerId))
 
+    // R-6.2, R-7.4 — a power or a card is used from its card's "Use", so Use a power has no chip.
     // R-6.3 — a relic already seen shows its face, so Peek is offered only for one not seen.
     function available(entry: ActionEntry): boolean {
-        if (entry.type === ActionType.UseActionPower) {
-            return cards.length > 0 || (valid.has(entry.type) && powers.length > 0)
-        }
+        if (entry.type === ActionType.UseActionPower) return false
         if (!valid.has(entry.type)) return false
         if (entry.type === ActionType.Peek) {
             return unseenPeekSlots(gameState, seat.playerId).length > 0
@@ -103,7 +98,7 @@
     })
     let chipWidth = $derived(chips?.width ?? labelWidth.widest)
 
-    // R-7.4 — where a card would make the action possible, Use a power is ringed while the reason
+    // R-7.4 — where a card would make the action possible, its "Use" is ringed while the reason
     // shows; the card is named only behind it.
     function refusalOf(entry: MajorEntry) {
         const refusal = gridRefusal(gameState, seat.playerId, entry.type)
@@ -124,7 +119,7 @@
 
     // A dimmed major answers "why not" under the pointer, and on a tap, where there is no hover; a
     // tapped reason holds for the state and seat it was tapped in, and a hover on another tile
-    // replaces it, except on the Use a power chip it rings, which answers it.
+    // replaces it.
     let tap = $state.raw<{ entry: MajorEntry; seatId: string; actionCount: number } | undefined>(
         undefined
     )
@@ -138,11 +133,13 @@
     let shownRefusal = $derived(
         pointedMajor && !available(pointedMajor) ? refusalOf(pointedMajor) : undefined
     )
-    // The ring is read with the reason it answers.
+    // The ring on the cards' "Use" is read with the reason it answers.
     const reasonId = $props.id()
-    function ringed(entry: ActionEntry): boolean {
-        return entry.type === ActionType.UseActionPower && shownRefusal?.cardHelps === true
-    }
+    $effect(() => {
+        if (pointedMajor && shownRefusal?.cardHelps) {
+            return gameSession.ringUses(pointedMajor.type, reasonId)
+        }
+    })
 
     let freeActionDue = $derived(freeActionDueLine(gameState, seat.playerId))
     // R-6.1, R-7.1.4 — where the Adviser chip would stand: plain words, not a chip, so no chip
@@ -167,7 +164,7 @@
     }
 
     function hover(entry: ActionEntry, on: boolean) {
-        if (on && tapped !== entry && !ringed(entry)) tap = undefined
+        if (on && tapped !== entry) tap = undefined
         if (on) hoveredEntry = entry
         else if (hoveredEntry === entry) hoveredEntry = undefined
     }
@@ -250,15 +247,9 @@
             {#if minors.length > 0}
                 <div class="minors flex flex-wrap" style:--columns={chips?.columns}>
                     {#each minors as entry (entry.type)}
-                        {@const ring = ringed(entry)}
-                        <!-- The ring is drawn inside the chip's edge, so no parent can clip it. -->
                         <button
-                            class="chip {CHIP} transition-colors hover:border-oath-accent cursor-pointer
-                                   {ring
-                                ? 'border-oath-accent text-oath-accent ring-1 ring-inset ring-oath-accent'
-                                : 'border-oath-frame'}"
+                            class="chip {CHIP} border-oath-frame transition-colors hover:border-oath-accent cursor-pointer"
                             {...pointing(entry)}
-                            aria-describedby={ring ? reasonId : undefined}
                             style:width={chipWidth > 0 ? `${chipWidth}px` : undefined}
                             onclick={() => take(entry)}
                         >

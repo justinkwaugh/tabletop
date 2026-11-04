@@ -15,18 +15,16 @@ const ORACLE = 'denizen.nomad.oracle'
 const ALCHEMIST = 'denizen.arcane.alchemist'
 const IVORY_EYE = 'relic.ivory-eye'
 const DREAM_THIEF = 'denizen.arcane.dream-thief'
-const NOT_BADGED = [
-    'denizen.beast.birdsong',
-    'denizen.hearth.awaited-return',
-    'denizen.order.toll-roads',
-    'denizen.order.forced-labor'
-]
+// R-6.2 — a free gain and a power after an action are used now too, each from its own Use.
+const BIRDSONG = 'denizen.beast.birdsong'
+const AWAITED_RETURN = 'denizen.hearth.awaited-return'
+const NOT_BADGED = ['denizen.order.toll-roads', 'denizen.order.forced-labor']
 
 const panel = (page: Page) => page.locator('.panel')
 const badge = (page: Page, cardId: string) => page.locator(`[data-use-badge="${cardId}"]`)
 const badges = (page: Page) => page.locator('[data-use-badge]')
 const powerRows = (page: Page) => panel(page).locator('[data-action-power]')
-const usePower = (page: Page) =>
+const usePowerChip = (page: Page) =>
     panel(page).getByRole('button', { name: 'Use a power', exact: true })
 const undoButton = (page: Page) => page.getByRole('button', { name: 'Undo', exact: true })
 const boardCard = (page: Page, cardId: string) =>
@@ -83,24 +81,25 @@ for (const viewport of [
     test.describe(`the Use badge, at ${viewport.width} × ${viewport.height}`, () => {
         test.use({ viewport })
 
-        test('Oracle at the site, Alchemist among the advisers and the Ivory Eye carry "Use"; no other card does', async ({
+        test('Oracle at the site, Alchemist, Birdsong and Awaited Return among the advisers and the Ivory Eye carry "Use"; no other card does', async ({
             page
         }) => {
             await openBadgeTable(page, 'useBadge', phone)
             await expect(badge(page, ORACLE)).toBeVisible()
-            for (const cardId of [ALCHEMIST, IVORY_EYE]) {
+            for (const cardId of [ALCHEMIST, IVORY_EYE, BIRDSONG, AWAITED_RETURN]) {
                 await expect(badge(page, cardId)).toHaveCount(1)
                 await expect(badge(page, cardId)).toHaveText('Use')
             }
             for (const cardId of NOT_BADGED) await expect(badge(page, cardId)).toHaveCount(0)
-            await expect(badges(page)).toHaveCount(3)
+            await expect(badges(page)).toHaveCount(5)
             await expect(badge(page, ORACLE)).toHaveAccessibleName('Use Oracle')
-            // The chip stays.
-            await expect(usePower(page)).toBeVisible()
+            // Every power is used from its card: there is no chip.
+            await expect(usePowerChip(page)).toHaveCount(0)
 
             const size = await badgeSize(page, ORACLE)
-            // It fits its label: as wide as its face, and 44 px tall at every width.
-            expect(size.area.width).toBeCloseTo(size.face.width, 0)
+            // Its tap area is 44 px each way at every width, and holds its face.
+            expect(size.area.width).toBeGreaterThanOrEqual(44 - 0.5)
+            expect(size.area.width).toBeGreaterThanOrEqual(size.face.width - 0.5)
             expect(size.area.height).toBeCloseTo(44, 0)
             // The tap area runs down from the face, so the card above keeps its own tap.
             expect(size.area.top).toBeCloseTo(size.face.top, 0)
@@ -117,7 +116,7 @@ for (const viewport of [
             page
         }) => {
             await openBadgeTable(page, 'useBadge', phone)
-            await expect(badges(page)).toHaveCount(3)
+            await expect(badges(page)).toHaveCount(5)
             for (const cardId of [ORACLE, ALCHEMIST, IVORY_EYE]) {
                 await badge(page, cardId).scrollIntoViewIfNeeded()
                 const size = await badgeSize(page, cardId)
@@ -198,7 +197,7 @@ for (const viewport of [
                 where: 'on the first adviser, over the third held item, with no hand and no Let another peek'
             }
         ] as const) {
-            test(`a badge ${where}: a tap on that item's top strip enlarges the item; the badge's face still opens Use a power`, async ({
+            test(`a badge ${where}: a tap on that item's top strip enlarges the item; the badge's face still opens its power`, async ({
                 page
             }) => {
                 await openTable(page, name)
@@ -264,7 +263,7 @@ for (const viewport of [
                 expect(item.below).toBe(true)
                 if (name === 'useBadgeOverHeld') expect(item.index).toBe(2)
 
-                // That strip is the item's: a tap there enlarges it, and Use a power stays shut.
+                // That strip is the item's: a tap there enlarges it, and the power stays shut.
                 await page.mouse.click(item.strip.x, item.strip.y)
                 await expect(
                     page.locator('.card-preview').getByRole('img', { name: item.alt, exact: true })
@@ -280,7 +279,7 @@ for (const viewport of [
             })
         }
 
-        test('the badge opens Use a power with just that card; the card itself still enlarges', async ({
+        test('the badge opens that card’s power; the card itself still enlarges', async ({
             page
         }) => {
             await openBadgeTable(page, 'useBadge', phone)
@@ -296,16 +295,13 @@ for (const viewport of [
             await expect(
                 panel(page).getByRole('button', { name: 'Use, paying 2 secret' })
             ).toBeVisible()
-            await expect(badge(page, ORACLE)).toBeVisible()
+            // The Uses hide while an action is open.
+            await expect(badges(page)).toHaveCount(0)
 
             // One Undo, back to the grid with the badges as before.
             await undoButton(page).click()
             await expect(powerRows(page)).toHaveCount(0)
-            await expect(usePower(page)).toBeVisible()
-            await expect(badges(page)).toHaveCount(3)
-            // The chip lists every power again.
-            await usePower(page).click()
-            await expect(powerRows(page)).toHaveCount(3)
+            await expect(badges(page)).toHaveCount(5)
         })
 
         test('the Ivory Eye with nothing facedown has nothing to pick, and no badge', async ({
@@ -319,7 +315,7 @@ for (const viewport of [
 
         test('with another action staged there is none', async ({ page }) => {
             await openBadgeTable(page, 'useBadge', phone)
-            await expect(badges(page)).toHaveCount(3)
+            await expect(badges(page)).toHaveCount(5)
             await panel(page)
                 .getByRole('button', { name: /^Travel/ })
                 .click()
@@ -447,34 +443,35 @@ for (const viewport of [
         test.describe('the Use badge on a held relic, at 1280 × 900', () => {
             const WHISTLE = 'relic.whistle'
 
-            test('the panel holds that card alone, not the cards that change an action; the chip lists them', async ({
+            test('the panel holds that card alone, not the cards that change an action; their own Uses open their actions', async ({
                 page
             }) => {
                 await openTable(page, 'usePower')
                 await badge(page, WHISTLE).click()
                 await expect(powerRows(page)).toHaveCount(1)
                 await expect(panel(page).locator(`[data-action-power="${WHISTLE}"]`)).toBeVisible()
-                await expect(panel(page).locator('[data-action-card]')).toHaveCount(0)
-                await expect(panel(page).getByText('Makes an action possible')).toHaveCount(0)
+                await expect(panel(page).locator('[data-card-row]')).toHaveCount(0)
                 await undoButton(page).click()
-                await usePower(page).click()
-                await expect(panel(page).locator('[data-action-card]')).toHaveCount(2)
-                await expect(powerRows(page)).toHaveCount(1)
+                await badge(page, 'denizen.nomad.tents').click()
+                await expect(powerRows(page)).toHaveCount(0)
+                await expect(
+                    panel(page).locator(
+                        '[data-card-row="denizen.nomad.tents"] button[aria-pressed]'
+                    )
+                ).toHaveAttribute('aria-pressed', 'true')
             })
 
             test('a power used from the badge, then Undo: the Act Phase again with the badges as before', async ({
                 page
             }) => {
                 await openTable(page, 'usePower')
-                await expect(badges(page)).toHaveCount(1)
+                await expect(badges(page)).toHaveCount(3)
                 await badge(page, WHISTLE).click()
                 await panel(page).getByRole('button', { name: 'Use, paying 1 secret' }).click()
                 await expect(powerRows(page)).toHaveCount(0)
-                await expect(usePower(page)).toBeVisible()
                 await undoButton(page).click()
-                await expect(badges(page)).toHaveCount(1)
+                await expect(badges(page)).toHaveCount(3)
                 await expect(badge(page, WHISTLE)).toBeVisible()
-                await expect(usePower(page)).toBeVisible()
             })
         })
     }

@@ -177,7 +177,7 @@ describe('R-7.4 — the piles a declared modifier lets a Search name', () => {
     })
 })
 
-describe('R-7.4 — an action opened from the powers with a card in use', () => {
+describe('R-7.4 — an action a card’s "Use" opened with the card in use', () => {
     async function withMushrooms(supply: number) {
         const state = testState(
             [
@@ -227,7 +227,7 @@ describe('R-7.4 — an action opened from the powers with a card in use', () => 
         expect(action.modifiers).toEqual([use(MUSHROOMS)])
     })
 
-    it('keeps the card in use while nothing else makes the menu possible, and Undo returns to the powers', async () => {
+    it('keeps the card in use while nothing else makes the menu possible, and Undo returns to the grid', async () => {
         const { session } = await withMushrooms(1)
         session.openActionWithCard(session.actionCards[0])
 
@@ -235,7 +235,7 @@ describe('R-7.4 — an action opened from the powers with a card in use', () => 
         expect(session.modifiers.isDeclared(use(MUSHROOMS))).toBe(true)
 
         await session.undo()
-        expect(session.selection.action).toBe(ActionType.UseActionPower)
+        expect(session.selection.action).toBeUndefined()
         expect(session.selection.modifiers).toEqual([])
         await session.undo()
         expect(session.selection.action).toBeUndefined()
@@ -291,7 +291,7 @@ describe('R-7.4 — an action opened from the powers with a card in use', () => 
         expect(piles(session)).toEqual([Region.Hinterland])
     })
 
-    it('Undo takes a card added in the menu first, then returns the opened one to the powers', async () => {
+    it('Undo takes a card added in the menu first, then returns the opened one to the grid', async () => {
         const state = testState(
             [
                 testPlayer({
@@ -320,10 +320,10 @@ describe('R-7.4 — an action opened from the powers with a card in use', () => 
         expect(session.selection.action).toBe(ActionType.Search)
         expect(session.selection.modifiers.map((m) => m.use.cardId)).toEqual([MUSHROOMS])
         await session.undo()
-        expect(session.selection.action).toBe(ActionType.UseActionPower)
+        expect(session.selection.action).toBeUndefined()
     })
 
-    it('with two cards that each make the Travel possible, either may be put down but not both, and Undo still returns to the powers', async () => {
+    it('with two cards that each make the Travel possible, either may be put down but not both, and Undo still returns to the grid', async () => {
         const TENTS = 'denizen.nomad.tents'
         const SPECIAL_ENVOY = 'denizen.nomad.special-envoy'
         const state = testState(
@@ -360,10 +360,10 @@ describe('R-7.4 — an action opened from the powers with a card in use', () => 
         expect(session.selection.modifiers.map((m) => m.use.cardId)).toEqual([SPECIAL_ENVOY])
 
         await session.undo()
-        expect(session.selection.action).toBe(ActionType.UseActionPower)
+        expect(session.selection.action).toBeUndefined()
     })
 
-    it('Undo returns to the powers after the opened card gives way to another that names the pile', async () => {
+    it('Undo returns to the grid after the opened card gives way to another that names the pile', async () => {
         const { session } = await searching([ERRAND_BOY])
         await session.undo()
         const errandBoy = required(
@@ -375,6 +375,6 @@ describe('R-7.4 — an action opened from the powers with a card in use', () => 
         expect(session.selection.modifiers.map((m) => m.use.cardId)).toEqual([OBSERVATORY])
 
         await session.undo()
-        expect(session.selection.action).toBe(ActionType.UseActionPower)
+        expect(session.selection.action).toBeUndefined()
     })
 })

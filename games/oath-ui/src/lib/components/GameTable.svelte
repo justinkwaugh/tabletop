@@ -18,6 +18,7 @@
     import Board from '$lib/components/Board.svelte'
     import CardPreviewLayer from '$lib/components/CardPreviewLayer.svelte'
     import SeatDetailLayer from '$lib/components/SeatDetailLayer.svelte'
+    import SeatUseTag from '$lib/components/SeatUseTag.svelte'
     import GoalsLayer from '$lib/components/GoalsLayer.svelte'
     import SinceLastTurn from '$lib/components/SinceLastTurn.svelte'
     import FitBox from '$lib/components/FitBox.svelte'
@@ -284,6 +285,7 @@
          fixed layers and scale or clip them with it. -->
     <SeatDetailLayer />
     {#if !expanded}
+        <SeatUseTag />
         <GoalsLayer />
         <CardPreviewLayer onZoomSite={focusSite} />
     {/if}

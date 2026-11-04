@@ -20,7 +20,7 @@
 
     let selectableCardIds = $derived(gameSession.selectableCards)
     let selectableRelicSlotIds = $derived(gameSession.selectableRelicSlots)
-    let badged = $derived(gameSession.powerBadgeCards)
+    let badged = $derived(gameSession.useCards)
     // R-8.3.1 — a tap on a ringed card points it; the panel shows what would stand there.
     let build = $derived(gameSession.chronicleBuild)
     let buildRinged = $derived(build.ringed)

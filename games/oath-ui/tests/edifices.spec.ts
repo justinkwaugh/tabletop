@@ -33,8 +33,9 @@ const preview = (page: Page) => page.locator('.card-preview')
 const otherSide = (page: Page) => preview(page).locator('[data-other-side]')
 const boardCardNamed = (page: Page, name: string) =>
     page.locator('.board-card').filter({ has: page.locator(`img[alt="${name}"]`) })
-const usePower = (page: Page) =>
-    panel(page).getByRole('button', { name: 'Use a power', exact: true })
+/** Opens what an edifice's "Use" opens; on a phone the board is panned, so the tap is sent to the badge. */
+const useCard = (page: Page, cardId: string) =>
+    page.locator(`[data-use-badge="${cardId}"]`).dispatchEvent('click')
 const powerRow = (page: Page, cardId: string) =>
     panel(page).locator(`[data-action-power="${cardId}"]`)
 const history = (page: Page) => page.locator('.history')
@@ -170,11 +171,11 @@ for (const viewport of [
             await page.screenshot({ path: test.info().outputPath(`edifice-site-${size}.png`) })
         })
 
-        test('Broken Forge in Use a power, then flipped: Ancient Forge, its tokens, and the History', async ({
+        test('Broken Forge’s Use, then flipped: Ancient Forge, its tokens, and the History', async ({
             page
         }) => {
             await openTable(page, 'edificeMap')
-            await usePower(page).click()
+            await useCard(page, FORGE)
             const row = powerRow(page, FORGE)
             await expect(row).toContainText('Broken Forge')
             const use = row.getByRole('button', { name: 'Use, paying 2 favor + 2 secrets' })
@@ -198,7 +199,7 @@ for (const viewport of [
 
         test('Ancient Forge draws a relic and asks "Take Cup of Plenty?"', async ({ page }) => {
             await openTable(page, 'edificeAncientForge')
-            await usePower(page).click()
+            await useCard(page, FORGE)
             const use = powerRow(page, FORGE).getByRole('button', {
                 name: 'Use, paying 2 favor + 1 secret'
             })
@@ -334,7 +335,7 @@ for (const viewport of [
             page
         }) => {
             await openTable(page, 'fallenSpire')
-            await usePower(page).click()
+            await useCard(page, SPIRE)
             const row = powerRow(page, SPIRE)
             await expect(row).toContainText('Fallen Spire')
             const backs = row.locator('[data-count-backs] button')
@@ -359,7 +360,7 @@ for (const viewport of [
 
         test('Fallen Spire: backs past the pile’s count cannot be tapped', async ({ page }) => {
             await openTable(page, 'fallenSpireShort')
-            await usePower(page).click()
+            await useCard(page, SPIRE)
             const backs = powerRow(page, SPIRE).locator('[data-count-backs] button')
             await expect(backs.nth(1)).toBeEnabled()
             for (const n of [2, 3, 4]) await expect(backs.nth(n)).toBeDisabled()
@@ -425,7 +426,7 @@ for (const viewport of [
             page
         }) => {
             await openTable(page, 'festivalDistrict')
-            await usePower(page).click()
+            await useCard(page, DISTRICT)
             const row = powerRow(page, DISTRICT)
             await expect(row).toContainText('Festival District')
             await expect(row.getByRole('button', { name: /^Use/ })).toHaveCount(0)
