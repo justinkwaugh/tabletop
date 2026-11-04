@@ -48,12 +48,12 @@ export const EighteenNinetyFourTileLayouts: Readonly<Record<string, TileLayout>>
 }
 
 export const EighteenNinetyFourMapView: MapViewDefinition = {
-    // The map fills its rectangle, so the market stands to its west at TOP's market scale, top
-    // aligned and clear of Le Havre and Dreux; the depot sits in the market's empty lower-right
-    // staircase, beside the map.
+    // The map fills its rectangle, so the market stands to its east at TOP's market scale, top
+    // aligned and clear of the Netherlands and Luxembourg; the depot sits in the market's empty
+    // lower-right staircase.
     boardAreas: {
-        market: { x: -840, y: -50, width: 774, height: 669 },
-        depot: { x: -440, y: 380, width: 381, height: 187 }
+        market: { x: 880, y: -50, width: 774, height: 669 },
+        depot: { x: 1330, y: 380, width: 381, height: 187 }
     },
     map: EighteenNinetyFourMap,
     tileSet: EighteenNinetyFourTileSet,
