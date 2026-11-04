@@ -13,6 +13,7 @@ import {
     playersAfterPresident,
     privateOwner,
     settleCashPayments,
+    sharesOwned,
     solventPlayerCount,
     stockCertificateCount,
     treasuryPoolId,
@@ -274,6 +275,12 @@ export const EighteenSeventeenStockRules: StockRules = {
     market: EighteenSeventeenMarket,
     charters: EighteenSeventeenCharters,
     round: EighteenSeventeenStockRoundRules,
+    instructions: {
+        // A short issues an extra share, so a rival can pass a president holding half.
+        securePresidency: (state, companyId, owner) =>
+            sharesOwned(state, companyId, owner) * 2 >
+            (companyShareCount(state, EighteenSeventeenCharters, companyId) ?? 0)
+    },
     buyers: (_state, playerId) => [{ kind: 'player', playerId }],
     sellers: (_state, playerId) => [{ kind: 'player', playerId }],
     purchaseTerms(state, certificate, buyer) {

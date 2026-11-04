@@ -46,6 +46,20 @@ function caseysTurn(prepare: (state: EighteenXXState) => void = () => {}) {
     return play
 }
 
+describe('a standing instruction watching a presidency', () => {
+    it('does not count half of a company as secure, as a short can issue a rival past it', () => {
+        const { state } = caseysTurn()
+        const blair = { kind: 'player' as const, playerId: 'blair' }
+        const held = sharesOwned(state, 'BA', blair)
+        const secure = (shareCount: number) => {
+            getCompany(state, 'BA').shareCount = shareCount
+            return EighteenSeventeenStockRules.instructions?.securePresidency?.(state, 'BA', blair)
+        }
+        expect(secure(held * 2)).toBe(false)
+        expect(secure(held * 2 - 1)).toBe(true)
+    })
+})
+
 describe('opening a short', () => {
     it('pays the price, adds a market share and blocks buying the company back that round', () => {
         const play = caseysTurn()

@@ -33,7 +33,7 @@ export const ignorableStopCondition: Record<IgnorableStockInstructionStop, strin
     'president-changed': 'a company changed president, other than to you',
     'shares-sold': 'shares of any company were sold to the bank',
     'presidency-threatened':
-        'a rival gained shares in a company you preside over without a majority'
+        'a rival gained shares in a company where they could take your presidency'
 }
 
 export const limitStopCondition = 'you must sell shares to meet a limit'
