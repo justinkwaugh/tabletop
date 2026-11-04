@@ -352,9 +352,34 @@ export class LeagueService {
         }
     }
 
+    private async unavailableEntrantIds(leagueId: string): Promise<Set<string>> {
+        const league = await this.store.read(leagueId)
+        const season =
+            league?.currentSeason === undefined
+                ? undefined
+                : await this.store.readSeason(leagueId, league.currentSeason)
+        if (season?.status !== 'signUp') return new Set()
+        const entrantIds = [
+            ...season.confirmedIds,
+            ...season.newEntrants.map((entrant) => entrant.userId)
+        ]
+        const accounts = await this.users.getUsers(entrantIds)
+        return new Set(
+            entrantIds.filter((_, index) => {
+                const account = accounts[index]
+                return account && account.status !== UserStatus.Active
+            })
+        )
+    }
+
     private async closeSignUp(leagueId: string): Promise<void> {
+        const unavailable = await this.unavailableEntrantIds(leagueId)
         const state = await this.write(leagueId, undefined, false, ({ season }) => {
             if (season?.status !== 'signUp' || this.now() < season.signUpClosesAt) return
+            season.confirmedIds = season.confirmedIds.filter((id) => !unavailable.has(id))
+            season.newEntrants = season.newEntrants.filter(
+                (entrant) => !unavailable.has(entrant.userId)
+            )
             const allocation = this.allocate(season)
             delete season.nextTaskAt
             if (!allocation) season.undersubscribed = true

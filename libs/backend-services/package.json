@@ -43,6 +43,7 @@
         "discord.js": "^14.15.3",
         "glob-to-regexp": "^0.4.1",
         "nanoid": "5.1.6",
+        "obscenity": "^0.4.6",
         "redis": "^5.10.0",
         "resend": "^6.8.0",
         "typescript-retry-decorator": "2.6.0",

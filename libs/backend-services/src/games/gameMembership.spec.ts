@@ -94,6 +94,7 @@ function fixture({ isPublic = true, lastSlot = false, ownerId = 'a' } = {}) {
     vi.spyOn(notifications, 'sendNotification').mockResolvedValue()
     const tasks: LocalTaskService = Object.create(LocalTaskService.prototype)
     vi.spyOn(tasks, 'createPushTask').mockResolvedValue()
+    vi.spyOn(UserService.prototype, 'getUser').mockResolvedValue(undefined)
     const service = new GameService(
         store,
         UserService.prototype,

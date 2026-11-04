@@ -14,13 +14,16 @@ import {
     UserStatus,
     withAssignedRoles
 } from '@tabletop/common'
-import { TaskService } from '../tasks/taskService.js'
+import { TaskService, type AccountChangeNotice } from '../tasks/taskService.js'
 import {
+    AccountModerationError,
     EmailChangeError,
     EmailVerificationError,
     InvalidPasswordError,
-    InvalidTimeZoneError
+    InvalidTimeZoneError,
+    UsernameNotAllowedError
 } from './errors.js'
+import { isOffensiveUsername } from './usernamePolicy.js'
 import { requireSessionEligibleAccount } from './accountEligibility.js'
 import { AccountChangeType } from '../email/emailService.js'
 import { nanoid } from 'nanoid'
@@ -48,10 +51,12 @@ import {
 import uFuzzy from '@leeoniya/ufuzzy'
 import { Value } from 'typebox/value'
 
+const LISTED_USERNAMES_LIFETIME_MS = 5 * 60 * 1000
+
 export class UserService {
     private readonly uFuzzy: uFuzzy
-    private usernamesInitialized = false
-    private usernames: string[] = []
+    private listedUsernamesLoadedAt?: number
+    private listedUsernames: string[] = []
 
     constructor(
         private readonly userStore: UserStore,
@@ -140,15 +145,16 @@ export class UserService {
         if (cleanPassword.length < 12) {
             throw new InvalidPasswordError()
         }
+        if (user.username && isOffensiveUsername(user.username)) {
+            throw new UsernameNotAllowedError()
+        }
 
         const createdUser = await this.userStore.createUser(user, cleanPassword)
 
         if (createdUser.email && !createdUser.emailVerified) {
             await this.sendVerificationEmail(createdUser)
         }
-        if (createdUser.username) {
-            this.usernames.push(createdUser.username)
-        }
+        this.addListedUsername(createdUser.username)
         return createdUser
     }
 
@@ -211,6 +217,14 @@ export class UserService {
                         'Verify the new email address from your profile before changing it. Please reload the page.'
                     )
                 }
+                if (
+                    fieldsToUpdate.username &&
+                    fieldsToUpdate.username.toLowerCase() !==
+                        existingUser.username?.toLowerCase() &&
+                    isOffensiveUsername(fieldsToUpdate.username)
+                ) {
+                    throw new UsernameNotAllowedError()
+                }
                 return UpdateValidationResult.Proceed
             }
         })
@@ -235,10 +249,8 @@ export class UserService {
         }
 
         if (updatedFields.includes('username')) {
-            remove(this.usernames, originalUser.username)
-            if (updatedUser.username) {
-                this.usernames.push(updatedUser.username)
-            }
+            this.removeListedUsername(originalUser.username)
+            this.addListedUsername(updatedUser.username)
         }
 
         return updatedUser
@@ -416,7 +428,7 @@ export class UserService {
     // is best effort (Notification Delivery), so a failed dispatch is reported, not the operation.
     private async notifyAccountChange(
         userId: string,
-        notification: { email: string; changeType: AccountChangeType; timestamp: Date }
+        notification: AccountChangeNotice
     ): Promise<void> {
         try {
             await this.taskService.sendAccountChangeNotificationEmail(notification)
@@ -541,7 +553,7 @@ export class UserService {
             const user = await this.userStore.findByEmail(trimmed)
             return user ? [user] : []
         }
-        const usernames = await this.searchUsernames(trimmed)
+        const usernames = this.bestUsernameMatches(await this.userStore.findAllUsernames(), trimmed)
         const users = await Promise.all(
             usernames.map((username) => this.userStore.findByUsername(username))
         )
@@ -560,13 +572,80 @@ export class UserService {
         return updatedUser
     }
 
+    async renameAccount(userId: string, username: string): Promise<User> {
+        const [updatedUser, updatedFields, originalUser] = await this.userStore.updateUser({
+            userId,
+            fields: { username },
+            validator: (existingUser) => {
+                this.requireNotDeleted(existingUser)
+                return UpdateValidationResult.Proceed
+            }
+        })
+        if (updatedFields.includes('username')) {
+            this.removeListedUsername(originalUser.username)
+            if (updatedUser.status === UserStatus.Active)
+                this.addListedUsername(updatedUser.username)
+            if (updatedUser.email) {
+                await this.notifyAccountChange(userId, {
+                    email: updatedUser.email,
+                    changeType: AccountChangeType.Username,
+                    timestamp: updatedUser.updatedAt ?? new Date(),
+                    username: updatedUser.username
+                })
+            }
+        }
+        return updatedUser
+    }
+
+    async banAccount(userId: string, actingUserId: string): Promise<User> {
+        if (userId === actingUserId) {
+            throw new AccountModerationError('You cannot ban your own account.')
+        }
+        const [updatedUser] = await this.userStore.updateUser({
+            userId,
+            fields: { status: UserStatus.Inactive },
+            validator: (existingUser) => {
+                this.requireNotDeleted(existingUser)
+                if (existingUser.roles.includes(Role.Admin)) {
+                    throw new AccountModerationError('An administrator cannot be banned.')
+                }
+                return UpdateValidationResult.Proceed
+            }
+        })
+        this.removeListedUsername(updatedUser.username)
+        return updatedUser
+    }
+
+    async unbanAccount(userId: string): Promise<User> {
+        const [updatedUser] = await this.userStore.updateUser({
+            userId,
+            // The store's completion check promotes a complete Account to Active in this commit
+            fields: { status: UserStatus.Incomplete },
+            validator: (existingUser) =>
+                existingUser.status === UserStatus.Inactive
+                    ? UpdateValidationResult.Proceed
+                    : UpdateValidationResult.Cancel
+        })
+        if (updatedUser.status === UserStatus.Active) this.addListedUsername(updatedUser.username)
+        return updatedUser
+    }
+
+    private requireNotDeleted(user: User): void {
+        if (user.status === UserStatus.Deleted) {
+            throw new AccountModerationError('This account has been deleted.')
+        }
+    }
+
     async searchUsernames(query: string): Promise<string[]> {
-        await this.initializeUsernames()
-        const [indexes, info, order] = this.uFuzzy.search(this.usernames, query.trim())
+        return this.bestUsernameMatches(await this.currentListedUsernames(), query.trim())
+    }
+
+    private bestUsernameMatches(usernames: string[], query: string): string[] {
+        const [indexes, info, order] = this.uFuzzy.search(usernames, query)
         if (info && order) {
-            return order.map((index) => this.usernames[info.idx[index]]).slice(0, 10)
+            return order.map((index) => usernames[info.idx[index]]).slice(0, 10)
         } else {
-            return indexes?.map((index) => this.usernames[index]).slice(0, 10) ?? []
+            return indexes?.map((index) => usernames[index]).slice(0, 10) ?? []
         }
     }
 
@@ -578,11 +657,24 @@ export class UserService {
         return externalId.split(':')[1]
     }
 
-    private async initializeUsernames(): Promise<void> {
-        if (this.usernamesInitialized) {
-            return
+    // Each instance holds its own copy, so another instance's rename or ban reaches it on reload.
+    private async currentListedUsernames(): Promise<string[]> {
+        const now = Date.now()
+        if (
+            this.listedUsernamesLoadedAt === undefined ||
+            now - this.listedUsernamesLoadedAt > LISTED_USERNAMES_LIFETIME_MS
+        ) {
+            this.listedUsernames = await this.userStore.findActiveUsernames()
+            this.listedUsernamesLoadedAt = now
         }
-        this.usernames = await this.userStore.findAllUsernames()
-        this.usernamesInitialized = true
+        return this.listedUsernames
+    }
+
+    private addListedUsername(username: string | undefined): void {
+        if (username) this.listedUsernames.push(username.toLowerCase())
+    }
+
+    private removeListedUsername(username: string | undefined): void {
+        if (username) remove(this.listedUsernames, username.toLowerCase())
     }
 }

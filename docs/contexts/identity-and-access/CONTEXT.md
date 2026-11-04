@@ -15,8 +15,14 @@ The permanent identity of a User Account. It is never reused, including after de
 The Account ID and Username published for an Active Account. Private Account details and non-Active Accounts are not discoverable.
 
 **Username**:
-The case-insensitively unique login name and public handle of a User Account. It is nonempty after trimming, preserves chosen display casing, and excludes control characters.
+The case-insensitively unique login name and public handle of a User Account. It is nonempty after trimming, preserves chosen display casing, and excludes control characters. A person choosing a Username cannot choose an Offensive Username.
 _Avoid_: Display name, login ID
+
+**Offensive Username**:
+A Username containing a slur or offensive language, by the word list in `libs/backend-services/src/users/usernamePolicy.ts`. The check runs only when a person sets or changes the letters of their Username, so an existing Account is not locked out by a later change to the list, and an Administrator's rename is not subject to it: renaming is how a false match gets resolved.
+
+**Administrative Rename**:
+An Administrator's change to another Account's Username. Because the old name may be why it is being changed, it also rewrites the Player name in every Game the Account has a seat in, and because the Username is the login name, it emails the Account the new one.
 
 **Account Completion**:
 The requirements for normal platform use: a Username and Verified Email Address. A Password Credential is optional when another Authentication Method exists.
@@ -42,11 +48,15 @@ A User Account that has not satisfied Account Completion. It may authenticate on
 A complete User Account permitted normal platform use. Only Active Accounts publish a Public User Profile.
 
 **Inactive**:
-A retained User Account disabled by an Administrator. It cannot establish or continue an Authenticated Session and may prove identity only for support.
+A retained User Account disabled by an Administrator through a Ban. It cannot establish or continue an Authenticated Session and may prove identity only for support.
 
 **Deleted**:
 The terminal, anonymized tombstone of a removed User Account. It cannot authenticate or become another status.
 _Avoid_: Soft-deleted, archived
+
+**Ban**:
+The Administrator operation making an Incomplete or Active Account Inactive, advancing its Session Generation in the same commit so that lifting the Ban revives no earlier session. It keeps the Account's Username, Email Address and External Identities reserved, closes its Realtime Connections, stops its Attention Notices, and releases it from Games: see Banned Player in the Game Lifecycle context. An Administrator cannot Ban their own Account or another Administrator. Lifting a Ban restores Active or Incomplete, by Account Completion.
+_Avoid_: Suspension, deactivation
 
 ## Authentication
 
@@ -82,7 +92,7 @@ An Authentication Challenge proving control of a Pending Email Address, bound to
 An Authentication Challenge, bound to the Email Address it was sent to, authorizing Set Password for an Incomplete or Active Account without establishing an Authenticated Session. It changes neither Account Status nor email verification; the person signs in afterwards through an Authentication Method.
 
 **Authenticated Session**:
-Ongoing authorization associated with a User Account, recorded server-side under an unguessable Session ID that the session cookie carries. It has a 180-day absolute lifetime and no sliding extension from ordinary activity, and it ends early through Logout, Logout All, Set Password, or a verified Email Address change. A cookie without a live record authorizes nothing. An Account may have multiple concurrent sessions.
+Ongoing authorization associated with a User Account, recorded server-side under an unguessable Session ID that the session cookie carries. It has a 180-day absolute lifetime and no sliding extension from ordinary activity, and it ends early through Logout, Logout All, Set Password, a verified Email Address change, or a Ban. A cookie without a live record authorizes nothing. An Account may have multiple concurrent sessions.
 _Avoid_: Login cookie, stateless session
 
 **Session ID**:
@@ -93,7 +103,7 @@ A one-way digest of a bearer value with enough entropy to defeat enumeration: a 
 _Avoid_: Masked token, session hash
 
 **Session Generation**:
-A counter on the User Account that every Authenticated Session records when it is established. A session authorizes only while its recorded generation equals the Account's. A Password Credential or Verified Email Address change advances the generation in the same commit, so no earlier session survives it, including one established concurrently.
+A counter on the User Account that every Authenticated Session records when it is established. A session authorizes only while its recorded generation equals the Account's. A Password Credential or Verified Email Address change, or a Ban, advances the generation in the same commit, so no earlier session survives it, including one established concurrently.
 
 **Recent Authentication**:
 Successful proof through an Authentication Method within the previous fifteen minutes for one Authenticated Session, required to change an Email Address or Password Credential or link an External Identity. Ordinary activity and renewing a session after a Password Credential change do not refresh that proof.

@@ -3,6 +3,7 @@ import { Timed, measure } from '../../diagnostics/requestTimings.js'
 import {
     accountStatusAfterCompletionCheck,
     BaseError,
+    canHoldAuthenticatedSession,
     ExternalAuthService,
     Role,
     nextSessionGeneration,
@@ -197,6 +198,22 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             return usernames.map((doc) => doc.id)
         } catch (error) {
             this.handleError(error, 'all')
+        }
+    }
+
+    async findActiveUsernames(): Promise<string[]> {
+        try {
+            const snapshot = await this.users
+                .where('status', '==', UserStatus.Active)
+                .select('cleanUsername')
+                .get()
+            this.recordRead(snapshot.size)
+            return snapshot.docs.flatMap((doc) => {
+                const { cleanUsername } = doc.data()
+                return cleanUsername ? [cleanUsername] : []
+            })
+        } catch (error) {
+            this.handleError(error, 'active')
         }
     }
 
@@ -465,6 +482,15 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
                 updatedUser.sessionGeneration = fieldsToUpdate.sessionGeneration
             }
 
+            if (fieldsToUpdate.status && existingUser.status !== fieldsToUpdate.status) {
+                updatedUser.status = fieldsToUpdate.status
+                updatedFields.push('status')
+                if (!canHoldAuthenticatedSession(updatedUser)) {
+                    fieldsToUpdate.sessionGeneration = nextSessionGeneration(existingUser)
+                    updatedUser.sessionGeneration = fieldsToUpdate.sessionGeneration
+                }
+            }
+
             const status = accountStatusAfterCompletionCheck(
                 updatedUser.status,
                 this.satisfiesAccountCompletion(updatedUser)
@@ -472,7 +498,7 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
             if (status !== updatedUser.status) {
                 fieldsToUpdate.status = status
                 updatedUser.status = status
-                updatedFields.push('status')
+                if (!updatedFields.includes('status')) updatedFields.push('status')
             }
 
             await participant?.(transaction, locks)

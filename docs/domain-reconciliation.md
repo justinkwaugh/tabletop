@@ -136,7 +136,7 @@ Unless stated otherwise, every open item below is documented but not implemented
 ### Persistence applies only the Account Completion transition
 
 - **Classification**: Aligned
-- **Observed**: The User store recomputes status from Account Completion only for Incomplete and Active Accounts, through the shared `accountStatusAfterCompletionCheck` rule. Inactive and Deleted Accounts keep their status through every update, including an empty profile update, preference, time zone, role, and email verification changes. Administrative Active-to-Inactive, Inactive-to-Active, and deletion transitions remain unimplemented and are tracked under administrative status and role management.
+- **Observed**: The User store recomputes status from Account Completion only for Incomplete and Active Accounts, through the shared `accountStatusAfterCompletionCheck` rule. Inactive and Deleted Accounts keep their status through every update, including an empty profile update, preference, time zone, role, and email verification changes. A Ban and lifting it are the administrative Active-to-Inactive and Inactive-to-Active transitions; deletion remains unimplemented and is tracked under administrative status and role management.
 - **Evidence**: `libs/common/src/site/user.ts:90`; `libs/backend-services/src/persistence/firestore/userStore.ts:438`; `libs/backend-services/src/persistence/firestore/userStore.integration.spec.ts:55`
 - **Invariant**: User Account status is one mutually exclusive lifecycle: Incomplete may become Active when completion requirements are met; only an administrator may move Active to Inactive or reactivate Inactive; authorized deletion is terminal. Persistence never invents transitions.
 
@@ -152,7 +152,7 @@ Unless stated otherwise, every open item below is documented but not implemented
 - **Classification**: Model contradiction; planned validation cleanup
 - **Observed**: Username is both the password-login name and public handle, and it is copied into hosted Games as the Player display name. Display spelling is retained while uniqueness and authentication use a trimmed lowercase form. The application defines no meaningful syntax policy; effective exclusions arise incidentally from using the normalized value as a Firestore document ID.
 - **Evidence**: `libs/backend-services/src/persistence/firestore/userStore.ts:42`; `libs/backend-services/src/persistence/firestore/userStore.ts:103`; `libs/backend-services/src/persistence/firestore/userStore.ts:500`; `libs/backend-services/src/games/gameService.ts:585`
-- **Invariant**: Username is the Account's login name and public handle. It is nonempty after trimming, case-insensitively unique, preserves chosen casing for display, and excludes control characters. No arbitrary minimum or maximum length is currently a domain rule. Incomplete and Active Accounts may rename through an ordinary Authenticated Session; Inactive and Deleted Accounts may not. A released Username is immediately reusable, while historical Games retain their copied Player name and stable Account association.
+- **Invariant**: Username is the Account's login name and public handle. It is nonempty after trimming, case-insensitively unique, preserves chosen casing for display, and excludes control characters. No arbitrary minimum or maximum length is currently a domain rule. Incomplete and Active Accounts may rename through an ordinary Authenticated Session; Inactive and Deleted Accounts may not. A released Username is immediately reusable, while historical Games retain their copied Player name and stable Account association, except after an Administrative Rename, which rewrites it.
 
 ### Public and private Account data are not explicitly separated
 
@@ -245,10 +245,10 @@ Unless stated otherwise, every open item below is documented but not implemented
 - **Evidence**: `apps/backend/src/app/routes/api/sse/token.ts:4`; `apps/backend/src/app/routes/api/sse/game.ts:16`; `apps/backend/src/app/lib/realtimeTopics.ts`
 - **Open question**: Identity proves the User Account; Game Lifecycle and Notification Delivery still need an agreed topic-entitlement policy.
 
-### Account and role administration are absent
+### Account deletion and role grants lack administration
 
 - **Classification**: Planned change
-- **Observed**: The enum and deletion fields exist, but no administrative disable, reactivation, deletion, status-management, or role-management service was found.
+- **Observed**: Administrators assign roles and Ban or lift a Ban through `/admin/users`. The enum and deletion fields exist, but no administrative deletion service was found.
 - **Evidence**: `libs/common/src/site/user.ts:12`; `libs/common/src/site/user.ts:33`
 - **Invariant**: Authorized administrative operations own Active-to-Inactive, Inactive-to-Active, and nondeleted-to-Deleted transitions; Deleted is terminal. Only an Active Administrator using Recent Authentication may grant or revoke roles. Changes take effect immediately, at least one Active Administrator must remain, and ordinary role management cannot change the acting Administrator's own Admin grant. Role changes are auditable.
 

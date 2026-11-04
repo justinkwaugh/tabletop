@@ -40,6 +40,12 @@ export class TournamentGameError extends BaseError {
     }
 }
 
+export class TournamentEntrantUnavailableError extends TournamentGameError {
+    constructor() {
+        super('All assigned tournament players must have active accounts.')
+    }
+}
+
 export function assertOrdinaryGame(game: Pick<Game, 'tournament'>): void {
     if (game.tournament)
         throw new TournamentGameError('Tournament games are managed by the tournament.')

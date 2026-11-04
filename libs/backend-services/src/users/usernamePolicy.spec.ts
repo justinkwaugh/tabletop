@@ -1,0 +1,85 @@
+import { describe, expect, it } from 'vitest'
+import { isOffensiveUsername } from './usernamePolicy.js'
+
+describe('isOffensiveUsername', () => {
+    it.each([
+        'nigger',
+        'NiggerMan',
+        'n1gg3r',
+        'n_i_g_g_e_r',
+        'n i g g e r',
+        'nig-ger',
+        'n​igger',
+        'nìgger',
+        'ｎｉｇｇｅｒ',
+        'faggot',
+        'kike',
+        'wetback',
+        'coon',
+        'k.k.k',
+        'AdolfHitler',
+        'fuckface',
+        'shit_head',
+        'zipperhead',
+        'naziboy',
+        'nazi_boy',
+        'nazi88',
+        'fagboy',
+        'f4gboy',
+        'fag69',
+        'kikeboy',
+        'spicboy',
+        'coonhunter',
+        'pedobear',
+        'kkkboy',
+        'bigdick',
+        'dickking',
+        'thefag',
+        'killjews',
+        '1488',
+        'hitler1488'
+    ])('refuses %s', (username) => {
+        expect(isOffensiveUsername(username)).toBe(true)
+    })
+
+    it.each([
+        'KingGamer',
+        'PlayingGames',
+        'MustangGaming',
+        'FK Austria',
+        'Dickson',
+        'Dickinson',
+        'Burdick',
+        'Cummings',
+        'Fagan',
+        'Annalise',
+        'Fukuda',
+        'Hooker',
+        'Hancock',
+        'Scunthorpe',
+        'Raccoon',
+        'Tycoon',
+        'Nigel',
+        'Nigeria',
+        'Montenegro',
+        'Pakistan',
+        'Spicy',
+        'Nazir',
+        'Therapist',
+        'Assassin',
+        'Whittler',
+        'Kevin',
+        'Pussycat',
+        'Mishit',
+        'RaccoonKing',
+        'TycoonBoy',
+        'Coonrod',
+        'Dickman',
+        'Spicer',
+        'Homer',
+        'TheAnalyst',
+        'BigAnalog'
+    ])('allows %s', (username) => {
+        expect(isOffensiveUsername(username)).toBe(false)
+    })
+})

@@ -235,6 +235,7 @@ export class TabletopApi {
     async login(credentials: Credentials) {
         const response = await this.wretch
             .post(credentials, '/auth/login')
+            .unauthorized(this.onSignInUnauthorized)
             .badRequest(this.handleError)
             .json<UserResponse>()
 
@@ -244,7 +245,7 @@ export class TabletopApi {
     async loginGoogle(credential: string) {
         const response = await this.wretch
             .post({ credential }, '/auth/google/login')
-            .unauthorized(this.on401)
+            .unauthorized(this.onSignInUnauthorized)
             .badRequest(this.handleError)
             .json<UserResponse>()
 
@@ -1143,6 +1144,28 @@ export class TabletopApi {
         return response.payload.user
     }
 
+    async renameUser(userId: string, username: string): Promise<User> {
+        return this.moderateUser(userId, 'username', { username })
+    }
+
+    async banUser(userId: string): Promise<User> {
+        return this.moderateUser(userId, 'ban', {})
+    }
+
+    async unbanUser(userId: string): Promise<User> {
+        return this.moderateUser(userId, 'unban', {})
+    }
+
+    private async moderateUser(userId: string, operation: string, body: object): Promise<User> {
+        const response = await this.wretch
+            .post(body, `/admin/users/${encodeURIComponent(userId)}/${operation}`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<UserResponse>()
+
+        return response.payload.user
+    }
+
     async getActiveGamesForTitle(titleId: string): Promise<Game[]> {
         const response = await this.wretch
             .get(`/admin/games/active?titleId=${encodeURIComponent(titleId)}`)
@@ -1284,6 +1307,13 @@ export class TabletopApi {
         } else {
             throw new APIError({ name: 'UnknownError', message: 'An unknown error occurred' })
         }
+    }
+
+    private onSignInUnauthorized = async (error: WretchError) => {
+        if (error.json?.error?.name === 'AccountUnavailableError') {
+            return this.handleError(error)
+        }
+        throw error
     }
 
     private onPasswordReauthenticationUnauthorized = async (error: WretchError) => {

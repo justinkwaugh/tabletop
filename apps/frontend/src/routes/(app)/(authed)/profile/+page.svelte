@@ -16,6 +16,7 @@
     import TimeZonePicker from '$lib/components/TimeZonePicker.svelte'
     import EmailChange from '$lib/components/EmailChange.svelte'
     import { minLengthMessage, requiredMessage } from '$lib/utils/accountFormValidation'
+    import { isAlreadyExists, isUsernameNotAllowed } from '$lib/utils/accountErrors'
     import { broadcastLogout } from '$lib/utils/logoutChannel'
     import {
         reauthentication,
@@ -99,7 +100,9 @@
             authorizationService.setSessionUser(newUser)
         } catch (e) {
             if (requiresRecentAuthentication(e)) throw e
-            if (e instanceof Error && e.name === 'AlreadyExistsError') {
+            if (isUsernameNotAllowed(e)) {
+                errors.username = [e.message]
+            } else if (isAlreadyExists(e)) {
                 if (e.message.includes('username')) {
                     errors.username = ['Username already exists']
                 } else {

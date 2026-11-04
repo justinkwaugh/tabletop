@@ -1088,6 +1088,25 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect((await tournaments.read(tournament.id))?.schedulingError).toBeUndefined()
         })
 
+        it('creates the other tables when a banned entrant cannot be seated, and reports the error', async () => {
+            const { tournament } = await fixture()
+            const bannedId = users[0].id
+            await db.doc(`users/${bannedId}`).update({ status: 'inactive' })
+            try {
+                await expect(service.runTask({ tournamentId: tournament.id })).rejects.toThrow(
+                    'active accounts'
+                )
+                const created = await tournaments.readGameLinks(tournament.id)
+                expect(created.length).toBeGreaterThan(0)
+                expect(created.length).toBeLessThan(7)
+                expect(created.flatMap((link) => link.userIds)).not.toContain(bannedId)
+                const stopped = await tournaments.read(tournament.id)
+                expect(stopped?.schedulingError).toContain('active accounts')
+            } finally {
+                await db.doc(`users/${bannedId}`).update({ status: UserStatus.Active })
+            }
+        })
+
         it('retries the original countdown task after registration locked and a game was committed', async () => {
             const { tournament } = await fixture()
             let now = Date.now()
