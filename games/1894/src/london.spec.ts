@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { playExample } from '@tabletop/18xx/scenarios'
 import { assertExists } from '@tabletop/common'
 import { holdsAccessRight, type TrainRoute } from '@tabletop/18xx'
+import { EighteenNinetyFourNames } from './names.js'
+import { EighteenNinetyFourRouteRules } from './routeRules.js'
 import { EighteenNinetyFourScenarios } from './scenarios/index.js'
 import { EighteenNinetyFourTileSet } from './tiles.js'
+import { EighteenNinetyFourTrainDepot } from './trains.js'
 import type { EighteenNinetyFourState } from './state.js'
 
 // The Belge's home moves to Calais, whose tile runs to London.
@@ -70,6 +73,24 @@ describe('London (§12.3.3, §14)', () => {
         play.act('RunTrains', { companyId: 'Belge', routes: [londonRoute(play.state)] })
         // Calais 20, London 30, and Calais's 20 again for the A12 station.
         expect(play.state.routeStep?.result?.revenue).toBe(70)
+    })
+
+    it('names every route bonus for the history', () => {
+        const play = playExample(EighteenNinetyFourScenarios, 'routes', 3, (state) =>
+            atCalais(state, { a12: true })
+        )
+        const train = EighteenNinetyFourTrainDepot.definition.trains[0]
+        assertExists(train, 'The depot defines a train')
+        const rules = EighteenNinetyFourRouteRules
+        const sourceIds = [
+            ...(rules.revenuePolicy?.(train, play.state, 'Belge').connectionBonuses ?? []),
+            ...(rules.bestStopBonuses?.(play.state, 'Belge', train) ?? [])
+        ].map((bonus) => bonus.sourceId)
+        expect(sourceIds).toEqual(['netherlands', 'luxembourg', 'LS'])
+        for (const sourceId of sourceIds) {
+            assertExists(sourceId, 'Each 1894 bonus has a source')
+            expect(EighteenNinetyFourNames.routeBonus(sourceId)).toBeTruthy()
+        }
     })
 
     it('sells a ferry marker to a company whose track reaches London', () => {
