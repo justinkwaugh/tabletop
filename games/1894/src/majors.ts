@@ -1,6 +1,6 @@
 /**
  * The nine public companies, by their simplified names (§11.3.2.1, §11.3.3.1); the late two open
- * in the brown phase.
+ * in phase 5+1.
  */
 export const EighteenNinetyFourMajors = {
     PLM: { id: 'PLM', name: 'Paris–Lyon–Méditerranée' },

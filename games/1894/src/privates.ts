@@ -40,7 +40,7 @@ const frenchMajorShareholding = (id: string, companyId: string, name: string) =>
 // §11.2.2: the private companies, in auction order by cost.
 export const EighteenNinetyFourPrivateCatalog = new PrivateCatalog(
     {
-        closurePhaseId: 'red',
+        closurePhaseId: '6',
         privates: [
             {
                 id: 'LRC',
@@ -49,14 +49,14 @@ export const EighteenNinetyFourPrivateCatalog = new PrivateCatalog(
                 revenue: 5,
                 blocks: { locationIds: ['I14'], until: 'company-owned' },
                 description:
-                    'Once per game the owning company may pay F60 to lay an extra yellow tile, which it cannot upgrade that round. Blocks I14 while player-owned. Closes in the red phase.'
+                    'Once per game the owning company may pay F60 to lay an extra yellow tile, which it cannot upgrade that round. Blocks I14 while player-owned. Closes at phase 6.'
             },
             {
                 id: 'AR',
                 name: 'Antwerpen-Rotterdamsche Spoorwegmaatschappij',
                 faceValue: 25,
                 revenue: 5,
-                description: 'Earns F10 while a company owns it. Closes in the red phase.'
+                description: 'Earns F10 while a company owns it. Closes at phase 6.'
             },
             {
                 id: 'GLG',
@@ -65,7 +65,7 @@ export const EighteenNinetyFourPrivateCatalog = new PrivateCatalog(
                 revenue: 10,
                 blocks: { locationIds: ['H17'], until: 'company-owned' },
                 description:
-                    'The owning company may lay or upgrade a yellow tile in Liège (H17) as a track action without a connection, then place its cheapest station there free as its station placement. Blocks H17 while player-owned. Closes in the red phase.'
+                    'The owning company may lay or upgrade a yellow tile in Liège (H17) as a track action without a connection, then place its cheapest station there free as its station placement. Blocks H17 while player-owned. Closes at phase 6.'
             },
             {
                 id: 'SAC',
@@ -74,7 +74,7 @@ export const EighteenNinetyFourPrivateCatalog = new PrivateCatalog(
                 revenue: 10,
                 blocks: { locationIds: ['D17'], until: 'company-owned' },
                 description:
-                    'The owning company may lay or upgrade a yellow tile in Antwerpen (D17) as a track action without a connection, then place its cheapest station there free as its station placement. Blocks D17 while player-owned. Closes in the red phase.'
+                    'The owning company may lay or upgrade a yellow tile in Antwerpen (D17) as a track action without a connection, then place its cheapest station there free as its station placement. Blocks D17 while player-owned. Closes at phase 6.'
             },
             {
                 id: 'SQG',
@@ -83,7 +83,7 @@ export const EighteenNinetyFourPrivateCatalog = new PrivateCatalog(
                 revenue: 0,
                 closure: 'never',
                 description:
-                    'Earns F70 while Saint-Quentin (G10) is green, F100 while it is brown, otherwise nothing. Companies cannot buy it in the red or gray phase. Closes in the purple phase.'
+                    'Earns F70 while Saint-Quentin (G10) is green, F100 while it is brown, otherwise nothing. Companies cannot buy it in phases 6 and 7. Closes at phase D.'
             },
             {
                 id: 'LS',
@@ -91,7 +91,7 @@ export const EighteenNinetyFourPrivateCatalog = new PrivateCatalog(
                 faceValue: 90,
                 revenue: 15,
                 description:
-                    'The owning company pays F40 for a ferry marker and may place its cheapest station free in A12. A company with a station in A12 adds the route’s largest other revenue, besides Luxembourg, to London. Closes in the red phase.'
+                    'The owning company pays F40 for a ferry marker and may place its cheapest station free in A12. A company with a station in A12 adds the route’s largest other revenue, besides Luxembourg, to London. Closes at phase 6.'
             },
             {
                 id: 'NMinorS',
@@ -99,7 +99,7 @@ export const EighteenNinetyFourPrivateCatalog = new PrivateCatalog(
                 faceValue: 140,
                 revenue: 20,
                 description:
-                    'Comes with a 10% Nord share, which never makes its owner the Nord’s president at once. Closes in the red phase.'
+                    'Comes with a 10% Nord share, which never makes its owner the Nord’s president at once. Closes at phase 6.'
             },
             frenchMajorShareholding('PLMMS', 'PLM', 'PLM'),
             frenchMajorShareholding('OMMS', 'Ouest', 'Ouest'),

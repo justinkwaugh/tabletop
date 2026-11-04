@@ -13,7 +13,7 @@ export const EighteenNinetyFourRouteRules: RouteRules = {
     map: EighteenNinetyFourMap,
     tileSet: EighteenNinetyFourTileSet,
     depot: EighteenNinetyFourTrainDepot,
-    // Yellow values apply until the brown phase (§15).
+    // Yellow values apply until phase 5+1 (§15).
     revenueStage: (state) => EighteenNinetyFourPhases.phase(state.phaseId).tileColors,
     requiresCity: () => false,
     stopAllowed: londonAccess,

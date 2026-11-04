@@ -37,18 +37,18 @@
   "activePlayerIds": [
    "p1"
   ],
-  "createdAt": "2026-11-04T03:59:29.439Z",
+  "createdAt": "2026-11-04T16:20:37.144Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-11-04T03:59:29.439Z",
+  "startedAt": "2026-11-04T16:20:37.144Z",
   "progress": {
    "fraction": 0.167,
-   "label": "Phase green"
+   "label": "Phase 3"
   }
  },
  "state": {
   "systemVersion": 3,
-  "id": "dCr_3R0Wq3yV4HXlpfGB-",
+  "id": "WaSniB-iu9nBDYRKo7kr1",
   "gameId": "scenario-london",
   "seed": 1450899060,
   "prng": {
@@ -1592,7 +1592,7 @@
    ],
    "nextTrainNumber": 27
   },
-  "phaseId": "green",
+  "phaseId": "3",
   "stockMarket": {
    "stacks": [
     {

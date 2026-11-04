@@ -159,7 +159,7 @@ export function createEighteenNinetyFourOpening(
         stationReservations: EighteenNinetyFourMap.stationReservations(),
         tileInventory: EighteenNinetyFourTileSet.createInventory(),
         trainInventory: EighteenNinetyFourTrainDepot.createInventory(),
-        phaseId: 'yellow'
+        phaseId: '2'
     }
     return {
         position,

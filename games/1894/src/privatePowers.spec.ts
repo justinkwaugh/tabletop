@@ -4,7 +4,7 @@ import { cashOwnedBy } from '@tabletop/18xx'
 import { EighteenNinetyFourScenarios } from './scenarios/index.js'
 import type { EighteenNinetyFourState } from './state.js'
 
-/** The Belge owns the given privates as it builds track in the green phase. */
+/** The Belge owns the given privates as it builds track in phase 3. */
 function belgeOwns(privateIds: readonly string[]) {
     return (state: EighteenNinetyFourState) => {
         for (const id of privateIds) {

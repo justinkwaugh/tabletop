@@ -26,12 +26,9 @@ export const ParSpaceIds: readonly string[] = EighteenNinetyFourMarket.spaces
 
 export const EighteenNinetyFourCompanyRules: CompanyRules = {
     ...fullCapitalization,
-    // Late companies open in the brown phase (§11.3.3).
+    // Late companies open in phase 5+1 (§11.3.3).
     startMarketSpaces(state, companyId) {
-        if (
-            companyId in LateCompanies &&
-            !EighteenNinetyFourPhases.isAtLeast(state.phaseId, 'brown')
-        )
+        if (companyId in LateCompanies && !EighteenNinetyFourPhases.isAtLeast(state.phaseId, '5+1'))
             return []
         return [...ParSpaceIds]
     },

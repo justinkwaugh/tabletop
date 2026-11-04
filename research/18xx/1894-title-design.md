@@ -56,7 +56,7 @@ The slices were built in order on one branch, with a review of the whole before 
 4. **City splitting.** Brown upgrades of non-big green cities, set-aside stations and their
    return, hex-wide reservations.
 5. **Late companies and the final set.** Home choice at par, no construction in the final
-   set, no split upgrades in the purple phase.
+   set, no split upgrades in phase D.
 6. **Completion.** Scenarios, a complete scripted game, competition coverage and readiness.
 
 ## Family extensions

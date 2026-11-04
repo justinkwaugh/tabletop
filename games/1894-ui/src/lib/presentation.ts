@@ -7,16 +7,13 @@ import {
 import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
 import { EighteenNinetyFourCompanyNames } from './companyPresentation.js'
 import { EighteenNinetyFourPhaseChart } from './phaseChart.js'
-import {
-    EighteenNinetyFourPhaseColors,
-    EighteenNinetyFourTrainColors
-} from './trainPresentation.js'
+import { EighteenNinetyFourTrainColors } from './trainPresentation.js'
 
 export const EighteenNinetyFourPresentation: TitlePresentation = {
     money: moneyFormat(EighteenNinetyFourTitleRules.currencySymbol),
     phaseChart: EighteenNinetyFourPhaseChart,
     trainColors: EighteenNinetyFourTrainColors,
-    phaseColors: EighteenNinetyFourPhaseColors,
+    phaseColors: EighteenNinetyFourTrainColors,
     marketPoolId: 'open-market',
     ipoPoolId: 'initial-offering',
     companyNames: EighteenNinetyFourCompanyNames,

@@ -37,18 +37,18 @@
   "activePlayerIds": [
    "p1"
   ],
-  "createdAt": "2026-11-04T03:59:29.471Z",
+  "createdAt": "2026-11-04T16:20:37.177Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-11-04T03:59:29.471Z",
+  "startedAt": "2026-11-04T16:20:37.177Z",
   "progress": {
    "fraction": 0,
-   "label": "Phase yellow"
+   "label": "Phase 2"
   }
  },
  "state": {
   "systemVersion": 3,
-  "id": "24AzHFNIRS8Ai_GqSqxSZ",
+  "id": "5FJ7yVsZnuJKUDij3fEg0",
   "gameId": "scenario-train-upgrade",
   "seed": 1450899060,
   "prng": {
@@ -1557,7 +1557,7 @@
    ],
    "nextTrainNumber": 27
   },
-  "phaseId": "yellow",
+  "phaseId": "2",
   "stockMarket": {
    "stacks": [
     {

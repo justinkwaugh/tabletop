@@ -32,16 +32,17 @@ export const EighteenNinetyFourTrainDepot = new TrainDepot({
 const yellow = ['yellow']
 const green = ['yellow', 'green']
 const brown = ['yellow', 'green', 'brown']
-// Phases take their trains' colours (§15); each train starts the phase of its colour.
+// Each train starts the phase named for it; the rulebook calls them by the trains' colours, from
+// yellow through green, blue, brown, red and gray to purple (§15).
 export const EighteenNinetyFourPhases = new PhaseTable(
     [
-        { id: 'yellow', startedBy: [], tileColors: yellow, operatingRounds: 1, trainLimit: 4 },
-        { id: 'green', startedBy: ['3'], tileColors: green, operatingRounds: 2, trainLimit: 4 },
-        { id: 'blue', startedBy: ['4'], tileColors: green, operatingRounds: 2, trainLimit: 3 },
-        { id: 'brown', startedBy: ['5+1'], tileColors: brown, operatingRounds: 3, trainLimit: 3 },
-        { id: 'red', startedBy: ['6'], tileColors: brown, operatingRounds: 3, trainLimit: 3 },
-        { id: 'gray', startedBy: ['7'], tileColors: brown, operatingRounds: 3, trainLimit: 3 },
-        { id: 'purple', startedBy: ['D'], tileColors: brown, operatingRounds: 3, trainLimit: 2 }
+        { id: '2', startedBy: [], tileColors: yellow, operatingRounds: 1, trainLimit: 4 },
+        { id: '3', startedBy: ['3'], tileColors: green, operatingRounds: 2, trainLimit: 4 },
+        { id: '4', startedBy: ['4'], tileColors: green, operatingRounds: 2, trainLimit: 3 },
+        { id: '5+1', startedBy: ['5+1'], tileColors: brown, operatingRounds: 3, trainLimit: 3 },
+        { id: '6', startedBy: ['6'], tileColors: brown, operatingRounds: 3, trainLimit: 3 },
+        { id: '7', startedBy: ['7'], tileColors: brown, operatingRounds: 3, trainLimit: 3 },
+        { id: 'D', startedBy: ['D'], tileColors: brown, operatingRounds: 3, trainLimit: 2 }
     ],
     EighteenNinetyFourTrainDepot
 )

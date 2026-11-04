@@ -4,9 +4,9 @@ import { EighteenNinetyFourScenarios } from './scenarios/index.js'
 import { EighteenNinetyFourTileSet } from './tiles.js'
 import type { EighteenNinetyFourState } from './state.js'
 
-/** Mechelen is a green #14 holding the Belge's home and a PLM station, in the brown phase. */
+/** Mechelen is a green #14 holding the Belge's home and a PLM station, in phase 5+1. */
 function greenMechelen(state: EighteenNinetyFourState) {
-    state.phaseId = 'brown'
+    state.phaseId = '5+1'
     state.tileInventory = EighteenNinetyFourTileSet.createInventory([
         { locationId: 'E16', definitionId: '18xx:14', rotation: 0 },
         { locationId: 'F15', definitionId: '1894:X2', rotation: 3 }

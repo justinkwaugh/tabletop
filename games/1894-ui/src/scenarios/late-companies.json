@@ -5,7 +5,7 @@
   "status": "started",
   "typeId": "1894",
   "deleted": false,
-  "name": "Late companies in the brown phase",
+  "name": "Late companies in phase 5+1",
   "ownerId": "p1",
   "players": [
    {
@@ -37,18 +37,18 @@
   "activePlayerIds": [
    "p1"
   ],
-  "createdAt": "2026-11-04T03:59:29.463Z",
+  "createdAt": "2026-11-04T16:20:37.168Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-11-04T03:59:29.463Z",
+  "startedAt": "2026-11-04T16:20:37.168Z",
   "progress": {
    "fraction": 0,
-   "label": "Phase yellow"
+   "label": "Phase 2"
   }
  },
  "state": {
   "systemVersion": 3,
-  "id": "5i5WfH3tMrKQzuDOJENCD",
+  "id": "lpU2Rbqhq1wBMn03In_8Y",
   "gameId": "scenario-late-companies",
   "seed": 1450899060,
   "prng": {
@@ -1574,7 +1574,7 @@
    ],
    "nextTrainNumber": 27
   },
-  "phaseId": "brown",
+  "phaseId": "5+1",
   "stockMarket": {
    "stacks": [
     {

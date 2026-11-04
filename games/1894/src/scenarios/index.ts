@@ -192,7 +192,7 @@ export function createEighteenNinetyFourScenario(
         ),
         tileInventory: EighteenNinetyFourTileSet.createInventory(operating ? BuiltTrack : []),
         trainInventory: EighteenNinetyFourTrainDepot.createInventory(),
-        phaseId: operating ? 'green' : 'yellow'
+        phaseId: operating ? '3' : '2'
     }
     const buy = (companyId: string, definitionId: string) => {
         const train = EighteenNinetyFourTrainDepot.nextTrain(state.trainInventory, definitionId)
@@ -228,7 +228,7 @@ export function createEighteenNinetyFourScenario(
     }
     if (position === 'trains') buy('PLM', '2')
     if (position === 'phases' || position === 'diesel' || position === 'private-events') {
-        state.phaseId = position === 'diesel' ? 'gray' : 'blue'
+        state.phaseId = position === 'diesel' ? '7' : '4'
         const rosters: Record<string, string[]> =
             position === 'diesel'
                 ? { Belge: ['6', '7'], PLM: ['5+1', '7'] }
@@ -239,7 +239,7 @@ export function createEighteenNinetyFourScenario(
         setTreasury('Belge', 1400)
     }
     if (position === 'funding' || position === 'bankruptcy') {
-        state.phaseId = 'green'
+        state.phaseId = '3'
         state.tileInventory = EighteenNinetyFourTileSet.createInventory(BuiltTrack)
         dropDepotBefore('4')
         setTreasury('Belge', position === 'funding' ? 70 : 0)
@@ -256,7 +256,7 @@ export function createEighteenNinetyFourScenario(
 }
 
 export function prepareEighteenNinetyFourEnding(state: HydratedEighteenXXState): void {
-    state.gameEnding = { reason: 'Purple phase', finalOperatingSet: 1 }
+    state.gameEnding = { reason: 'Phase D', finalOperatingSet: 1 }
     prepareFinalOperatingTurn(state)
 }
 

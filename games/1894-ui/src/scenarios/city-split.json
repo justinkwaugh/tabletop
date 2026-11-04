@@ -37,18 +37,18 @@
   "activePlayerIds": [
    "p1"
   ],
-  "createdAt": "2026-11-04T03:59:29.447Z",
+  "createdAt": "2026-11-04T16:20:37.152Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-11-04T03:59:29.447Z",
+  "startedAt": "2026-11-04T16:20:37.152Z",
   "progress": {
    "fraction": 0.167,
-   "label": "Phase green"
+   "label": "Phase 3"
   }
  },
  "state": {
   "systemVersion": 3,
-  "id": "IbKk9Mrl14MaT9wH61x5M",
+  "id": "feNoBsHeiGS5uJ9NyYlQI",
   "gameId": "scenario-city-split",
   "seed": 1450899060,
   "prng": {
@@ -1602,7 +1602,7 @@
    ],
    "nextTrainNumber": 27
   },
-  "phaseId": "brown",
+  "phaseId": "5+1",
   "stockMarket": {
    "stacks": [
     {

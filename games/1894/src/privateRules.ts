@@ -45,13 +45,13 @@ export function privateIncome1894(
 
 export const EighteenNinetyFourPrivateRules: PrivateRules = {
     exchangeTerms: () => undefined,
-    // Privates close as the red phase begins, Saint-Quentin à Guise as the purple (§11.2.1).
+    // Privates close as phase 6 begins, Saint-Quentin à Guise as phase D (§11.2.1).
     phaseEffects(state) {
         const effects = EighteenNinetyFourPrivateCatalog.closureEffects(state)
         const saintQuentin = state.companies.find((company) => company.id === SaintQuentinPrivateId)
         return saintQuentin &&
             !saintQuentin.closed &&
-            EighteenNinetyFourPhases.isAtLeast(state.phaseId, 'purple')
+            EighteenNinetyFourPhases.isAtLeast(state.phaseId, 'D')
             ? [...effects, { kind: 'close', privateCompanyId: SaintQuentinPrivateId }]
             : effects
     },

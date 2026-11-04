@@ -11,11 +11,11 @@ import {
     type TransferRules
 } from '@tabletop/18xx'
 
-/** Companies buy privates from players in the green, blue and brown phases (§11.2.1). */
+/** Companies buy privates from players in phases 3, 4 and 5+1 (§11.2.1). */
 export function privateSalesOpen(phaseId: string): boolean {
     return (
-        EighteenNinetyFourPhases.isAtLeast(phaseId, 'green') &&
-        !EighteenNinetyFourPhases.isAtLeast(phaseId, 'red')
+        EighteenNinetyFourPhases.isAtLeast(phaseId, '3') &&
+        !EighteenNinetyFourPhases.isAtLeast(phaseId, '6')
     )
 }
 

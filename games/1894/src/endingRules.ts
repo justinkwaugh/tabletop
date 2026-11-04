@@ -18,16 +18,16 @@ export function inFinalOperatingSet(
 }
 
 // The game ends at once on a bankruptcy or a share price of F450; otherwise after the first
-// complete operating set in the purple phase (§8.1). Unparred shares are worth nothing and
+// complete operating set in phase D (§8.1). Unparred shares are worth nothing and
 // privates their face value (§8.2).
 export const EighteenNinetyFourEndingRules: EndingRules = {
     trigger(state) {
         if (state.bankruptcy) return { reason: 'Bankruptcy' }
         if (state.stockMarket.stacks.some((stack) => stack.spaceId === EndingSpaceId))
             return { reason: 'Share price of F450' }
-        if (state.phaseId === 'purple')
+        if (state.phaseId === 'D')
             return {
-                reason: 'Purple phase',
+                reason: 'Phase D',
                 finalOperatingSet: (state.operatingSet?.number ?? 0) + 1
             }
         return undefined

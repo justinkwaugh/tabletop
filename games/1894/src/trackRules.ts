@@ -54,14 +54,14 @@ export const EighteenNinetyFourTrackRules: TrackRules = {
         ]
         if (laidThisRound.some((lay) => lay.locationId === request.locationId))
             return 'A tile laid this round cannot be upgraded the same round.'
-        // Non-big green cities no longer split in the purple phase (§12.3.2, §15.7).
+        // Non-big green cities no longer split in phase D (§12.3.2, §15.7).
         const placed = new RailwayMapState(
             EighteenNinetyFourMap,
             EighteenNinetyFourTileSet,
             state.tileInventory
         ).tile(request.locationId).placement
-        if (state.phaseId === 'purple' && placed && placed.definitionId in SplitCityTiles)
-            return 'Green cities cannot be upgraded in the purple phase.'
+        if (state.phaseId === 'D' && placed && placed.definitionId in SplitCityTiles)
+            return 'Green cities cannot be upgraded in phase D.'
         // Paris's marked city stays the marked city of every tile (§12.2).
         if (request.locationId === ParisLocationId && request.nodeMapping['city-0'] !== 'city-0')
             return 'The PLM’s station space must stay on the marked city.'

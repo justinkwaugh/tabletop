@@ -172,12 +172,12 @@ mkdirSync(OUT, { recursive: true })
     write('london', 'Ferry marker and London shipping', position)
 }
 
-// Mechelen is a green #14 with the Belge's home and a PLM station, in the brown phase: the Belge
+// Mechelen is a green #14 with the Belge's home and a PLM station, in phase 5+1: the Belge
 // may split it, return its own station, and the PLM returns its station after the Belge's turn.
 {
     const position = prepared('construction')
     const { state } = position
-    state.phaseId = 'brown'
+    state.phaseId = '5+1'
     state.tileInventory = EighteenNinetyFourTileSet.createInventory([
         { locationId: 'E16', definitionId: '18xx:14', rotation: 0 },
         { locationId: 'F15', definitionId: '1894:X2', rotation: 3 }
@@ -203,11 +203,11 @@ mkdirSync(OUT, { recursive: true })
     write('city-split-return', 'Returning set-aside stations', position)
 }
 
-// A stock round in the brown phase: the late companies may start, choosing their homes.
+// A stock round in phase 5+1: the late companies may start, choosing their homes.
 {
     const position = prepared('trading')
-    position.state.phaseId = 'brown'
-    write('late-companies', 'Late companies in the brown phase', position)
+    position.state.phaseId = '5+1'
+    write('late-companies', 'Late companies in phase 5+1', position)
 }
 
 // The Belge buys trains with a 2-train after the 2s have sold out: it may upgrade its 2 to a

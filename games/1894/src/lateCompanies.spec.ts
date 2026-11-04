@@ -6,7 +6,7 @@ import { lateCompanyHomes } from './lateCompanies.js'
 import { EighteenNinetyFourScenarios } from './scenarios/index.js'
 
 describe('late companies (§11.3.3)', () => {
-    it('opens in the brown phase with a home its president chooses', () => {
+    it('opens in phase 5+1 with a home its president chooses', () => {
         const yellow = playExample(EighteenNinetyFourScenarios, 'trading', 3)
         const buyer = { kind: 'player', playerId: yellow.state.activePlayerIds[0] }
         const start = {
@@ -19,7 +19,7 @@ describe('late companies (§11.3.3)', () => {
         expect(() => yellow.act('StartCompany', start)).toThrow()
 
         const brown = playExample(EighteenNinetyFourScenarios, 'trading', 3, (state) => {
-            state.phaseId = 'brown'
+            state.phaseId = '5+1'
         })
         const state = Definition.runtime.hydrator.hydrateState(structuredClone(brown.state))
         const homes = lateCompanyHomes(state, 'LF') ?? []
@@ -46,7 +46,7 @@ describe('late companies (§11.3.3)', () => {
 
     it('offers the start when only companies choosing a home remain', () => {
         const play = playExample(EighteenNinetyFourScenarios, 'trading', 3, (state) => {
-            state.phaseId = 'brown'
+            state.phaseId = '5+1'
             for (const company of state.companies)
                 if (company.kind === 'major' && !company.started && !company.id.startsWith('L'))
                     company.closed = true
@@ -56,7 +56,7 @@ describe('late companies (§11.3.3)', () => {
 
     it('claims a split hex rather than a city while several of its cities are open', () => {
         const play = playExample(EighteenNinetyFourScenarios, 'trading', 3, (state) => {
-            state.phaseId = 'brown'
+            state.phaseId = '5+1'
         })
         const state = Definition.runtime.hydrator.hydrateState(structuredClone(play.state))
         expect(
