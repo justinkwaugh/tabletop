@@ -228,10 +228,10 @@ describe('the History names the Vision revealed second', () => {
             secondPlay: { cardId: CONQUEST, play: SearchPlay.RevealedVision }
         })
         expect(lines.rhys).toBe(
-            'kept Alchemist and played it to their own site, discarding Wolves first, gaining 1 favor; revealed Vision of Conquest as their own Vision; 1 card went to the provinces discard pile'
+            'kept Alchemist and played it to their own site, discarding Wolves first, gaining 1 favor; revealed Vision of Conquest as their own Vision; 1 card went to the Provinces discard pile'
         )
         expect(lines.dana).toBe(
-            'kept Alchemist and played it to your own site, discarding Wolves first, gaining 1 favor; revealed Vision of Conquest as your own Vision; Wolves went to the provinces discard pile'
+            'kept Alchemist and played it to your own site, discarding Wolves first, gaining 1 favor; revealed Vision of Conquest as your own Vision; Wolves went to the Provinces discard pile'
         )
     })
 
@@ -241,10 +241,10 @@ describe('the History names the Vision revealed second', () => {
             secondPlay: { cardId: CONQUEST, play: SearchPlay.Adviser, faceUp: false }
         })
         expect(lines.rhys).toBe(
-            'kept Alchemist and played it to their own site, discarding Wolves first, gaining 1 favor; 1 card went to the provinces discard pile'
+            'kept Alchemist and played it to their own site, discarding Wolves first, gaining 1 favor; 1 card went to the Provinces discard pile'
         )
         expect(lines.dana).toBe(
-            'kept Alchemist and played it to your own site, discarding Wolves first, gaining 1 favor; Wolves went to the provinces discard pile'
+            'kept Alchemist and played it to your own site, discarding Wolves first, gaining 1 favor; Wolves went to the Provinces discard pile'
         )
         expect(lines.rhys).not.toContain('Vision of Conquest')
     })

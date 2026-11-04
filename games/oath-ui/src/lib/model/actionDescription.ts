@@ -677,7 +677,11 @@ function outcomeClauses(action: GameAction, viewerId: string | undefined): strin
     const searchDiscards = describeSearchDiscards(action, isActor)
     if (searchDiscards) parts.unshift(searchDiscards)
     const merged = mergedPilesOf(action)
-    if (merged) parts.push(`the ${merged.from} discard pile went onto the ${merged.to} pile`)
+    if (merged) {
+        parts.push(
+            `the ${regionName(merged.from)} discard pile went onto the ${regionName(merged.to)} pile`
+        )
+    }
     const seen = actorOnlyOutcome(action, viewerId)
     if (seen?.peeked) parts.push(`you saw ${seen.peeked.map(cardName).join(', ')}`)
     if (seen?.relicToDeckBottom !== undefined) {
@@ -687,7 +691,7 @@ function outcomeClauses(action: GameAction, viewerId: string | undefined): strin
 }
 
 function describeDeposit(deposit: PileDeposit, isActor: boolean): string {
-    const where = `${deposit.bottom ? 'the bottom of ' : ''}the ${deposit.region} discard pile`
+    const where = `${deposit.bottom ? 'the bottom of ' : ''}the ${regionName(deposit.region)} discard pile`
     return isActor
         ? `${deposit.cardIds.map(cardName).join(', ')} went to ${where}`
         : `cards went to ${where}`
@@ -700,7 +704,7 @@ function describeSearchDiscards(action: GameAction, isActor: boolean): string | 
     if (meta.discardedCount === 0) return undefined
     const where = meta.discardToWorldDeck
         ? 'the bottom of the world deck'
-        : `${meta.discardToBottom ? 'the bottom of ' : ''}the ${meta.discardPileRegion} discard pile`
+        : `${meta.discardToBottom ? 'the bottom of ' : ''}the ${regionName(meta.discardPileRegion)} discard pile`
     const what = isActor
         ? meta.discardedCardIds.map(cardName).join(', ')
         : plural(meta.discardedCount, 'card')
@@ -1227,7 +1231,7 @@ function prophesiedDiscardWhere(meta: AnswerQuestionMetadata): string {
     if (meta.discardToWorldDeck) return ' under the world deck'
     const chosen = (meta.modifiers?.length ?? 0) > 0 || (meta.tollsUnpaid?.length ?? 0) > 0
     if (!chosen || meta.discardPileRegion === undefined) return ''
-    return ` to ${meta.discardToBottom ? 'the bottom of ' : ''}the ${meta.discardPileRegion} discard pile`
+    return ` to ${meta.discardToBottom ? 'the bottom of ' : ''}the ${regionName(meta.discardPileRegion)} discard pile`
 }
 
 /**

@@ -1447,11 +1447,11 @@ describe('the history tab describes every action', () => {
                 })
             const seen = resolve({ discardedCardIds: [HIDDEN, HIDDEN] })
             expect(describeAction(seen, nameOf, 'p1')).toContain(
-                `${SHOWN}, ${SHOWN} went to the cradle discard pile`
+                `${SHOWN}, ${SHOWN} went to the Cradle discard pile`
             )
             const projected = resolve({})
             expect(describeAction(projected, nameOf, 'p2')).toContain(
-                '2 cards went to the cradle discard pile'
+                '2 cards went to the Cradle discard pile'
             )
             expect(describeAction(seen, nameOf, 'p2')).not.toContain(SHOWN)
             expect(
@@ -1821,10 +1821,10 @@ describe('the history tab describes every action', () => {
             }
 
             expect(row(OathRevision.PlanCostsAndSearchPlays)).toBe(
-                'kept Wolves and played it to their own site, gaining 2 secrets; 1 card went to the provinces discard pile'
+                'kept Wolves and played it to their own site, gaining 2 secrets; 1 card went to the Provinces discard pile'
             )
             expect(row(OathRevision.CostsAndFacedownModifiers)).toBe(
-                'kept Wolves and played it to their own site, gaining 1 secret; 1 card went to the provinces discard pile'
+                'kept Wolves and played it to their own site, gaining 1 secret; 1 card went to the Provinces discard pile'
             )
         })
 
@@ -1888,10 +1888,10 @@ describe('the history tab describes every action', () => {
             }
 
             expect(row(INN)).toBe(
-                'kept Longbows and played it to their own site, gaining 2 favor; Bob gained 2 favor from the Order bank (Saddle Makers); gained 1 hearth favor (Fertile Valley, Homeland); 1 card went to the provinces discard pile'
+                'kept Longbows and played it to their own site, gaining 2 favor; Bob gained 2 favor from the Order bank (Saddle Makers); gained 1 hearth favor (Fertile Valley, Homeland); 1 card went to the Provinces discard pile'
             )
             expect(row(TENTS)).toBe(
-                'kept Longbows and played it to their own site, gaining 2 favor; Bob gained 2 favor from the Order bank (Saddle Makers); Bob gained 2 favor from the Nomad bank (Saddle Makers); 1 card went to the provinces discard pile'
+                'kept Longbows and played it to their own site, gaining 2 favor; Bob gained 2 favor from the Order bank (Saddle Makers); Bob gained 2 favor from the Nomad bank (Saddle Makers); 1 card went to the Provinces discard pile'
             )
         })
 
@@ -2607,7 +2607,7 @@ describe('R-10.13 — each counted warband takes the owner its own words name, e
                 }
             })
             expect(describeAction(row, nameOf)).toBe(
-                'kept Wayside Inn and played it to their own site, discarding Wolves first, gaining 2 favor; 2 cards went to the cradle discard pile'
+                'kept Wayside Inn and played it to their own site, discarding Wolves first, gaining 2 favor; 2 cards went to the Cradle discard pile'
             )
         })
 
@@ -3324,6 +3324,79 @@ describe('R-5.1.4.IV — a Conspiracy row says what it took, and from whom', () 
         )
         expect(answered(undefined, 'played the Conspiracy')).toBe(
             'Inquisitor: played the Conspiracy'
+        )
+    })
+})
+
+describe('a History line names a discard pile by its region as the board prints it', () => {
+    it('a pile deposit: "went to the bottom of the Provinces discard pile"', () => {
+        const used = action({
+            type: ActionType.UseActionPower,
+            playerId: 'p1',
+            cardId: CARD,
+            powerIndex: 0,
+            choices: [],
+            metadata: {
+                summary: 'used it',
+                pileDeposits: [
+                    { region: 'provinces', cardIds: ['denizen.order.messenger'], bottom: true }
+                ]
+            }
+        })
+        expect(describeAction(used, nameOf, 'p1')).toContain(
+            'Messenger went to the bottom of the Provinces discard pile'
+        )
+        expect(describeAction(used, nameOf, 'p2')).toContain(
+            'cards went to the bottom of the Provinces discard pile'
+        )
+    })
+
+    it('a Search discard to a named pile: "2 cards went to the Hinterland discard pile"', () => {
+        const resolved = action({
+            type: ActionType.SearchResolve,
+            playerId: 'p1',
+            keptCardId: 'x',
+            discardOrder: [],
+            play: SearchPlay.Adviser,
+            metadata: { discardedCount: 2, discardPileRegion: 'hinterland' }
+        })
+        expect(describeAction(resolved, nameOf, 'p2')).toContain(
+            '2 cards went to the Hinterland discard pile'
+        )
+    })
+
+    it('a discard to the bottom: "to the bottom of the Cradle discard pile (Bracken)"', () => {
+        const answered = action({
+            type: ActionType.AnswerQuestion,
+            playerId: 'p1',
+            answer: { kind: PowerQuestionKind.PlayOrDiscardVision, play: SearchPlay.Discard },
+            metadata: {
+                cardId: 'denizen.discord.false-prophet',
+                kind: PowerQuestionKind.PlayOrDiscardVision,
+                summary: 'False Prophet: discarded vision.faith',
+                resumeMachineState: MachineState.ActPhase,
+                last: true,
+                modifiers: ['denizen.beast.bracken'],
+                discardPileRegion: 'cradle',
+                discardToBottom: true
+            }
+        })
+        expect(describeAction(answered, nameOf, 'p2')).toContain(
+            'discarded it to the bottom of the Cradle discard pile (Bracken)'
+        )
+    })
+
+    it('a merged pile: "the Provinces discard pile went onto the Hinterland pile"', () => {
+        const used = action({
+            type: ActionType.UseActionPower,
+            playerId: 'p1',
+            cardId: CARD,
+            powerIndex: 0,
+            choices: [],
+            metadata: { summary: 'used it', mergePiles: { from: 'provinces', to: 'hinterland' } }
+        })
+        expect(describeAction(used, nameOf, 'p2')).toContain(
+            'the Provinces discard pile went onto the Hinterland pile'
         )
     })
 })
