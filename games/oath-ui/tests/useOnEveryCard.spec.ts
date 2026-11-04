@@ -249,6 +249,28 @@ test.describe('the seat’s "Use" tag, at 375 × 812', () => {
         await expect(badge(page, WHISTLE)).toBeInViewport()
     })
 
+    test('the tag comes back when the Players tab is opened again after another tab', async ({
+        page
+    }) => {
+        await openTable(page, 'useOnEveryCardBusy')
+        await expect(tag(page)).toBeVisible()
+        // The tabs sit above the seats: tapping one brings the seats on screen.
+        await page.getByRole('tab', { name: 'History' }).click()
+        await expect(seat(page, 'Dana')).toHaveCount(0)
+        await page.getByRole('tab', { name: 'Players' }).click()
+        await expect(seat(page, 'Dana')).toHaveCount(1)
+        await expect(tag(page)).toHaveCount(0)
+        // Swiped back to the board, the seat is off screen again.
+        await page
+            .locator('.table-scroller')
+            .evaluate((scroller) => scroller.scrollTo({ left: scroller.scrollWidth }))
+        await expect(tag(page)).toBeVisible()
+        await tag(page).click()
+        await expect(tag(page)).toHaveCount(0)
+        await still(seat(page, 'Dana'))
+        expect((await box(seat(page, 'Dana'))).x).toBeGreaterThanOrEqual(-0.5)
+    })
+
     test('no tag while none of the seat’s own cards has a Use', async ({ page }) => {
         await openTable(page, 'useOnEveryCardScepter')
         await expect(badge(page, SCEPTER)).toHaveCount(1)

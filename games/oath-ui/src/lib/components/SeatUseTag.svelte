@@ -24,19 +24,33 @@
     let scroller: HTMLElement | undefined
 
     $effect(() => {
-        if (!seatId || onSeat.length === 0) {
+        const id = seatId
+        if (!id || onSeat.length === 0) {
             place = undefined
             return
         }
-        const seat = document.querySelector<HTMLElement>(`[data-seat="${CSS.escape(seatId)}"]`)
-        const found = seat?.closest<HTMLElement>('.table-scroller') ?? undefined
-        if (!seat || !found) {
+        const found = document.querySelector<HTMLElement>('.table-scroller') ?? undefined
+        if (!found) {
             place = undefined
             return
         }
         scroller = found
+        const selector = `[data-seat="${CSS.escape(id)}"]`
+        let seat: HTMLElement | null = null
         let frame = 0
+        // The Players tab draws the seats only while it is open, so a visit to another tab
+        // and back draws a new seat: each read finds the seat again and measures that one.
         const read = () => {
+            const now = found.querySelector<HTMLElement>(selector)
+            if (now !== seat) {
+                if (seat) resized.unobserve(seat)
+                seat = now
+                if (seat) resized.observe(seat)
+            }
+            if (!seat) {
+                place = undefined
+                return
+            }
             const view = found.getBoundingClientRect()
             const rect = seat.getBoundingClientRect()
             if (rect.left >= view.left - 0.5 && rect.right <= view.right + 0.5) {
@@ -52,13 +66,18 @@
         }
         const resized = new ResizeObserver(later)
         resized.observe(found)
-        resized.observe(seat)
+        // A seat drawn or taken away (the Players tab opened or left) reads again.
+        const drawn = new MutationObserver(() => {
+            if (!seat?.isConnected) later()
+        })
+        drawn.observe(found, { childList: true, subtree: true })
         found.addEventListener('scroll', later, { passive: true })
         window.addEventListener('resize', later)
         read()
         return () => {
             cancelAnimationFrame(frame)
             resized.disconnect()
+            drawn.disconnect()
             found.removeEventListener('scroll', later)
             window.removeEventListener('resize', later)
         }
