@@ -112,6 +112,11 @@ export * from './util/exchange.js'
 export { otherPartyOf } from './util/deals.js'
 export * from './util/sneakAttack.js'
 export * from './util/tolls.js'
+export {
+    falseProphetPlayAsSearched,
+    falseProphetTolls,
+    falseProphetTollsUnpaid
+} from './util/falseProphet.js'
 export * from './util/capacity.js'
 export * from './util/sitePowers.js'
 export * from './util/siteTravel.js'

@@ -17,6 +17,7 @@ import { campaignRecords, openTurn, testPlayer, testState } from '@tabletop/oath
 import { played, tableOf, type PlayedTable } from './sessionHarness.js'
 
 export const HOSPITAL = 'denizen.hearth.hospital'
+const RING_OF_DEVOTION = 'relic.ring-of-devotion'
 const [HOME, PLAINS] = mapSlotsFor(Region.Cradle)
 
 /**
@@ -26,12 +27,13 @@ const [HOME, PLAINS] = mapSlotsFor(Region.Cradle)
  * the Chancellor Ann chooses which. With `hospital`, Ann rules the Drowned City, where Hospital is,
  * and used it as a battle plan: the warbands it would hold are Ann's, at the Plains and on Ann's
  * board (R-10.28-H2), not Rhys's. With `ended`, Ann picks the 2 at the Plains and 1 on Rhys's board,
- * and Dana takes the spoils: the Campaign ends.
+ * and Dana takes the spoils: the Campaign ends. With `ring`, Ann holds Ring of Devotion.
  */
 export function battleLossTable({
     hospital = false,
-    ended = false
-}: { hospital?: boolean; ended?: boolean } = {}): PlayedTable {
+    ended = false,
+    ring = false
+}: { hospital?: boolean; ended?: boolean; ring?: boolean } = {}): PlayedTable {
     const defendingForce: WarbandGroup[] = [
         { at: { kind: 'site', siteId: PLAINS }, owner: IMPERIAL_WARBANDS, count: 2 },
         { at: { kind: 'board', playerId: 'Ann' }, owner: IMPERIAL_WARBANDS, count: 2 },
@@ -60,7 +62,8 @@ export function battleLossTable({
                 status: PlayerStatus.Chancellor,
                 siteId: PLAINS,
                 warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 },
-                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 10 }
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 10 },
+                ...(ring ? { relicIds: [RING_OF_DEVOTION] } : {})
             }),
             testPlayer({
                 playerId: 'Rhys',

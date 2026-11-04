@@ -41,7 +41,7 @@ export type OathValueByStage = {
     option: string
     playCards: PowerUseKey[]
     toSite: string
-    discardFirst: string
+    discardFirst: string[]
     whenPlayed: PowerChoicePicks
     conspiracy: ConspiracyPick
     adviserDiscards: string[]

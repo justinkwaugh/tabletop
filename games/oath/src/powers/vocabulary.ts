@@ -153,21 +153,39 @@ export function killWarbandsAtSite(
     siteId: string,
     count: number
 ): WarbandCounts {
+    const killed = warbandsKilledFrom(warbandsAt(state, siteId), count)
+    for (const [owner, n] of warbandEntries(killed)) {
+        removeWarbandsFrom(state, { kind: 'site', siteId }, owner, n)
+        killWarbands(state, owner, n)
+    }
+    return killed
+}
+
+/** R-10.13 — the warbands `count` kills among `present`, largest owner's group first (`killWarbandsAtSite`). */
+export function warbandsKilledFrom(present: WarbandCounts, count: number): WarbandCounts {
     const killed: WarbandCounts = {}
     let left = count
-    const present = { ...warbandsAt(state, siteId) }
+    const standing = { ...present }
     while (left > 0) {
-        const [owner, n] = warbandEntries(present).sort((a, b) => b[1] - a[1])[0] ?? []
+        const [owner, n] = warbandEntries(standing).sort((a, b) => b[1] - a[1])[0] ?? []
         if (!owner || !n) break
         const take = Math.min(left, n)
-        removeWarbandsFrom(state, { kind: 'site', siteId }, owner, take)
-        killWarbands(state, owner, take)
         adjustCount(killed, owner, take)
-        present[owner] = n - take
-        if (present[owner] === 0) delete present[owner]
+        standing[owner] = n - take
+        if (standing[owner] === 0) delete standing[owner]
         left -= take
     }
     return killed
+}
+
+/** R-10.13 — the warbands left at a site once `killed` are gone, `state` unchanged. */
+export function warbandsLeftAfterKills(
+    present: WarbandCounts,
+    killed: WarbandCounts
+): WarbandCounts {
+    const left = { ...present }
+    for (const [owner, n] of warbandEntries(killed)) adjustCount(left, owner, -n)
+    return left
 }
 
 /** R-10.5 — the caller detaches the card from its zone. */
@@ -396,6 +414,17 @@ export function warbandMovesOverlay(
         players: state.players.map((player) => (player.playerId === playerId ? board : player)),
         warbandsBySite
     })
+}
+
+/**
+ * R-7.3.3-H3 — the state a check made before a play reads, with the warbands at the sites that play changes as it
+ * leaves them (`PlayMapChanges.warbandsBySite`): every other read goes to `state`, and writes are refused.
+ */
+export function siteWarbandsOverlay(
+    state: HydratedOathGameState,
+    changed: Readonly<Record<string, WarbandCounts>>
+): HydratedOathGameState {
+    return withOverrides(state, { warbandsBySite: { ...state.warbandsBySite, ...changed } })
 }
 
 function withOverrides<T extends object>(target: T, overrides: Partial<T>): T {

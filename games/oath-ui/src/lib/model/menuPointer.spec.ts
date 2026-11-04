@@ -3,10 +3,12 @@ import { Region } from '@tabletop/oath'
 import { menuPointer, pointsAt, type MenuPointerTarget } from './menuPointer.svelte.js'
 
 describe('a menu row points at what it names on the table (rule 3)', () => {
-    it('points while hovered or focused, and lets go on leave, blur or unmount', () => {
+    it('points while hovered or focused, and lets go on leave, blur or unmount', async () => {
         const row = new EventTarget()
         const target: MenuPointerTarget = { kind: 'site', slotId: 'slot.cradle.1' }
         const detach = pointsAt(target)(row)
+        // Svelte's `on` adds a pointer listener a microtask later, once the row is in the page.
+        await Promise.resolve()
         row.dispatchEvent(new Event('pointerenter'))
         expect(menuPointer.is(target)).toBe(true)
         row.dispatchEvent(new Event('pointerleave'))

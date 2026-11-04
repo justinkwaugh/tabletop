@@ -9,7 +9,13 @@ import {
     relicSlotChoicesAtYourSite,
     reliquarySlotChoices
 } from '../util/powerChoice.js'
-import { becomeCitizenByPower, exileRefusal, visionDeposits } from '../util/citizenship.js'
+import {
+    becameImperialWords,
+    becomeCitizenByPower,
+    citizenOnYes,
+    exileRefusal,
+    visionDeposits
+} from '../util/citizenship.js'
 import type { HydratedOathGameState } from '../model/gameState.js'
 import { sitesRuledBy } from '../util/rule.js'
 import { giveBanner } from '../util/seize.js'
@@ -256,6 +262,7 @@ function citizenshipWithRelic(
                 return `${name}: name the Reliquary relic to take`
             return condition(ctx.state, ctx.playerId)
         },
+        statusAfter: citizenOnYes,
         resolve: (ctx) => {
             if (chosen(ctx, PowerChoiceKind.Yes).length === 0)
                 return { summary: `${name}: stayed an Exile` }
@@ -264,7 +271,7 @@ function citizenshipWithRelic(
             const c = becomeCitizenByPower(ctx.state, ctx.playerId)
             const relic = takeReliquaryRelic(ctx, slot.slotId)
             return {
-                summary: `${name}: became a Citizen (${c.replacedCount} warbands became Imperial), took ${relic.relicCardId ?? 'a Reliquary relic'}${takeNotes(relic.notes)}; Supply refreshed, Act Phase over`,
+                summary: `${name}: became a Citizen (${becameImperialWords(c)}), took ${relic.relicCardId ?? 'a Reliquary relic'}${takeNotes(relic.notes)}; Supply refreshed, Act Phase over`,
                 endsActPhase: true,
                 pileDeposits: visionDeposits(c)
             }

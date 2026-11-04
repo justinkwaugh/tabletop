@@ -22,7 +22,12 @@ import { FILLER } from '../testing/cards.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 
 const FILLER2 = 'denizen.hearth.wayside-inn'
-function table(machineState: MachineState, me: Record<string, unknown> = {}) {
+/** `atMySite` joins the denizens at c1, where `me` stands. */
+function table(
+    machineState: MachineState,
+    me: Record<string, unknown> = {},
+    atMySite: string[] = []
+) {
     const s = testState(
         [
             testPlayer({
@@ -64,7 +69,7 @@ function table(machineState: MachineState, me: Record<string, unknown> = {}) {
             machineState,
             chancellorPlayerId: 'chan',
             denizensBySite: {
-                c1: ['denizen.beast.wolves', 'denizen.hearth.storyteller'],
+                c1: ['denizen.beast.wolves', 'denizen.hearth.storyteller', ...atMySite],
                 c2: ['denizen.nomad.elders'],
                 p1: ['denizen.arcane.tutor'],
                 h1: []
@@ -195,10 +200,14 @@ describe('every built card beyond the deck fires through the engine, or says why
                         power.timing === PowerTiming.Rest
                             ? MachineState.RestPhase
                             : MachineState.ActPhase
+                    // R-7.2.1 — a card that can only be at a site is never an adviser: it is used at `me`'s site.
+                    const siteOnly = cardDefinition(cardId)?.placement === 'site'
                     const held = cardId.startsWith('relic.')
                         ? { relicIds: [cardId] }
-                        : { advisers: [{ cardId, faceUp: true }] }
-                    const { hydrated, state } = table(phase, held)
+                        : siteOnly
+                          ? {}
+                          : { advisers: [{ cardId, faceUp: true }] }
+                    const { hydrated, state } = table(phase, held, siteOnly ? [cardId] : [])
                     const schema = power.timing === PowerTiming.Rest ? UseRestPower : UseActionPower
                     for (const fill of [false, true])
                         attempts.push(() => {

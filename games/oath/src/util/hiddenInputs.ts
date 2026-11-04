@@ -43,6 +43,7 @@ import { CampaignTargetKind, type CampaignState } from '../model/campaign.js'
 import { placeRevealTokensForSite } from './setup.js'
 import type { PowerChoice } from './powerChoice.js'
 import { homelandRelicSlot } from './sitePowers.js'
+import { discardFirstCardIdsOf } from './cardPlay.js'
 import { pawnSiteId } from './pawn.js'
 import { grandScepterHolderId } from './imperial.js'
 import { isAtLeastOathRevision, OathRevision } from './revision.js'
@@ -175,7 +176,7 @@ export function revealForPlay(
                   action.playerId,
                   cardId,
                   action.toSiteId ?? pawnSiteId(state, action.playerId),
-                  action.discardFirstCardId
+                  discardFirstCardIdsOf(action)
               )
             : undefined
     return slotId ? { kind: 'relic', relicCardId: takeRelicFromVault(state, slotId) } : undefined
@@ -366,19 +367,25 @@ function depositPlayDiscards(state: HydratedOathGameState, play: PlayDiscards, d
 interface RecordedDiscard {
     discardPileRegion?: Region
     discardedCardIds?: string[]
+    discardToBottom?: boolean
+    discardToWorldDeck?: boolean
 }
 
+/** A record's discards, where it says they went: False Prophet's may go where Bracken or Cracked Horn sent them. */
 function discardRecorded(
     state: HydratedOathGameState,
     recorded: RecordedDiscard | undefined,
     deposit: Deposit
 ) {
     if (recorded?.discardPileRegion && recorded.discardedCardIds)
-        putOnDiscardPile(
+        depositPlayDiscards(
             state,
-            recorded.discardPileRegion,
-            recorded.discardedCardIds,
-            false,
+            {
+                discardPileRegion: recorded.discardPileRegion,
+                discardedCardIds: recorded.discardedCardIds,
+                discardToBottom: recorded.discardToBottom,
+                discardToWorldDeck: recorded.discardToWorldDeck
+            },
             deposit
         )
 }

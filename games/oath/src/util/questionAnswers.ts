@@ -47,6 +47,16 @@ export interface AnswerOutcome {
     /** R-10.5 */
     discardedCardIds?: string[]
     discardPileRegion?: Region
+    /** Bracken — the discards went under that pile. */
+    discardToBottom?: boolean
+    /** Cracked Horn — the discards went under the world deck. */
+    discardToWorldDeck?: boolean
+    /** R-7.4 — False Prophet's play: the cards whose Search modifiers applied to it. */
+    modifiers?: string[]
+    /** R-7.1.4 — False Prophet's play: each toll paid, as `payTolls` notes it. */
+    tollsPaid?: string[]
+    /** R-7.1.4 — False Prophet's play: the tolls it could not pay, so the Vision went to the usual pile. */
+    tollsUnpaid?: string[]
     /** R-10.5 */
     pileDeposits?: PileDeposit[]
     /** Skeleton Key */

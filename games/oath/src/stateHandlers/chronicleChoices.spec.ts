@@ -607,6 +607,110 @@ describe('R-8.2 — Citizenship, an Exile winner only', () => {
     })
 })
 
+describe('R-8.2-H2 — a winner holding Ring of Devotion places no replacement (revision 32)', () => {
+    const RING = 'relic.ring-of-devotion'
+
+    function vowedAt(revision: number, over: Partial<Record<string, Partial<OathPlayerState>>>) {
+        return run(
+            wonTable(
+                gameOne(
+                    { [BEA]: { status: PlayerStatus.Exile }, ...over },
+                    { oathRevision: revision }
+                ),
+                USURPER
+            ),
+            vow(DANA, OathType.Protection)
+        ).final
+    }
+
+    /** Dana wins as Usurper and offers Ann and Bea; Ann accepts, and Bea's answer runs R-8.3. */
+    function accepted(
+        revision: number,
+        over: Partial<Record<string, Partial<OathPlayerState>>> = {}
+    ): { answered: Played; mapped: Played } {
+        const offered = run(vowedAt(revision, over), offer([ANN, BEA])).final
+        const answered = run(offered, answer(ANN, true))
+        return { answered, mapped: run(answered.final, answer(BEA, false)) }
+    }
+    const answerOf = (played: Played) => played.actions.find(isAnswerChronicleCitizenship)?.metadata
+    const mapOf = (played: Played) => {
+        const found = played.actions.find((action) => action.type === ActionType.ChronicleMap)
+        return found && 'metadata' in found ? found.metadata : undefined
+    }
+
+    it("Ann accepts: their warbands leave Ancient City and Steppe, and none of Dana's go there", () => {
+        const { answered, mapped } = accepted(OathRevision.EngineFixes27, {
+            [DANA]: { relicIds: [RING] }
+        })
+        const ann = answered.final.players.find((player) => player.playerId === ANN)
+        expect(ann?.status).toBe(PlayerStatus.Citizen)
+        expect(answered.final.warbandsBySite[ANCIENT_CITY]).toEqual({ [ANN]: 0 })
+        expect(answered.final.warbandsBySite[STEPPE]).toEqual({ [ANN]: 0 })
+        expect(answered.final.warbandsBySite[PLAINS]).toEqual({ [DANA]: 2 })
+        // The record names the sites they left, and that the winner placed none (History reads it).
+        expect(answerOf(answered)).toEqual({
+            siteIds: [ANCIENT_CITY, STEPPE],
+            siteCardIds: [SITES[ANCIENT_CITY], SITES[STEPPE]],
+            winnerPlayerId: DANA,
+            winnerPlacedNone: true
+        })
+        // R-8.3.2: Dana rules neither, and neither holds an intact edifice, so both are discarded.
+        expect(mapOf(mapped)).toMatchObject({
+            kept: [SITES[PLAINS], SITES[DEEP_WOODS]],
+            discarded: expect.arrayContaining([SITES[ANCIENT_CITY], SITES[STEPPE]])
+        })
+    })
+
+    it('control: without the Ring one of Dana’s warbands replaces Ann’s, and R-8.3.2 keeps both sites', () => {
+        const { answered, mapped } = accepted(OathRevision.EngineFixes27)
+        expect(answered.final.warbandsBySite[ANCIENT_CITY]).toEqual({ [ANN]: 0, [DANA]: 1 })
+        expect(answerOf(answered)).toEqual({
+            siteIds: [ANCIENT_CITY, STEPPE],
+            siteCardIds: [SITES[ANCIENT_CITY], SITES[STEPPE]],
+            winnerPlayerId: DANA
+        })
+        expect(mapOf(mapped)).toMatchObject({
+            kept: [SITES[PLAINS], SITES[ANCIENT_CITY], SITES[STEPPE], SITES[DEEP_WOODS]]
+        })
+    })
+
+    it('R-X.4 — before revision 32 the Ring changes nothing: Dana’s warband replaces Ann’s', () => {
+        const { answered, mapped } = accepted(OathRevision.EngineFixes26, {
+            [DANA]: { relicIds: [RING] }
+        })
+        expect(answered.final.warbandsBySite[ANCIENT_CITY]).toEqual({ [ANN]: 0, [DANA]: 1 })
+        expect(answered.final.warbandsBySite[STEPPE]).toEqual({ [ANN]: 0, [DANA]: 1 })
+        expect(answerOf(answered)?.winnerPlacedNone).toBeUndefined()
+        expect(mapOf(mapped)).toMatchObject({
+            kept: [SITES[PLAINS], SITES[ANCIENT_CITY], SITES[STEPPE], SITES[DEEP_WOODS]]
+        })
+    })
+
+    it('an accepter holding the Bandit Crown: no warband at the empty sites the bandits hold for them either', () => {
+        const { answered } = accepted(OathRevision.EngineFixes27, {
+            [DANA]: { relicIds: [RING] },
+            [ANN]: { relicIds: [BANDIT_CROWN] }
+        })
+        expect(answerOf(answered)?.siteIds).toEqual([ANCIENT_CITY, STEPPE, WASTES, MOUNTAIN])
+        expect(answered.final.warbandsBySite[WASTES]).toBeUndefined()
+        expect(answered.final.warbandsBySite[MOUNTAIN]).toBeUndefined()
+        expect(answered.final.warbandsBySite[ANCIENT_CITY]).toEqual({ [ANN]: 0 })
+    })
+
+    it('the answers are offered the same on each chooser’s view, and nobody else’s', () => {
+        const offered = run(
+            vowedAt(OathRevision.EngineFixes27, { [DANA]: { relicIds: [RING] } }),
+            offer([ANN, BEA])
+        ).final
+        expectOfferedOnlyTo(
+            offered,
+            [ANN, BEA],
+            [ActionType.AnswerChronicleCitizenship],
+            (state) => state.chronicle?.citizenship
+        )
+    })
+})
+
 describe('R-8.3.1 — build or repair, a Chancellor or Citizen winner only', () => {
     function building(table = gameTwo()) {
         return run(wonTable(table, SUCCESSOR), vow(ANN, OathType.Devotion)).final

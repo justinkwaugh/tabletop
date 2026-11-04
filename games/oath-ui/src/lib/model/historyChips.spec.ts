@@ -6,6 +6,7 @@ import {
     IMPERIAL_WARBANDS,
     MachineState,
     PowerQuestionKind,
+    SearchPlay,
     WarbandMoveKind
 } from '@tabletop/oath'
 import { describeAction, type HistoryNames } from './actionDescription.js'
@@ -257,5 +258,59 @@ describe('a card name is never a chip', () => {
             text(' relic to '),
             chip('-x_')
         ])
+    })
+})
+
+describe("a Search's kept card names the searcher's own site and Vision as the row's other words about them do", () => {
+    const ALCHEMIST = 'denizen.arcane.alchemist'
+    const CONQUEST = 'vision.conquest'
+    const kept = (secondVision: boolean) => ({
+        type: ActionType.SearchResolve,
+        playerId: ALICE,
+        keptCardId: ALCHEMIST,
+        discardOrder: [],
+        play: SearchPlay.Site,
+        ...(secondVision
+            ? { secondPlay: { cardId: CONQUEST, play: SearchPlay.RevealedVision } }
+            : {}),
+        metadata: {
+            playedCardId: ALCHEMIST,
+            ...(secondVision ? { secondPlayedCardId: CONQUEST } : {}),
+            discardedCount: 0,
+            discardedCardIds: [],
+            discardPileRegion: 'cradle',
+            favorGained: 0,
+            secretsGained: 0
+        }
+    })
+
+    it('“your” to the searcher, “their own” to every other seat and a spectator', () => {
+        expect(row(kept(false), ALICE)).toEqual([
+            text('kept Alchemist and played it to '),
+            chip(ALICE, true),
+            text(' own site')
+        ])
+        for (const reader of [BOB, CASS, undefined]) {
+            expect(row(kept(false), reader)).toEqual([
+                text('kept Alchemist and played it to their own site')
+            ])
+        }
+    })
+
+    it('Land Warden’s Vision revealed second is theirs in the same words', () => {
+        expect(row(kept(true), ALICE)).toEqual([
+            text('kept Alchemist and played it to '),
+            chip(ALICE, true),
+            text(' own site; revealed Vision of Conquest as '),
+            chip(ALICE, true),
+            text(' own Vision')
+        ])
+        for (const reader of [BOB, CASS, undefined]) {
+            expect(row(kept(true), reader)).toEqual([
+                text(
+                    'kept Alchemist and played it to their own site; revealed Vision of Conquest as their own Vision'
+                )
+            ])
+        }
     })
 })

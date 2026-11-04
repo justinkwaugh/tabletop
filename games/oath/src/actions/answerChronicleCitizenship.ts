@@ -20,7 +20,9 @@ export const AnswerChronicleCitizenshipMetadata = Type.Object({
     /** The site card in each of those slots, in the same order: R-8.3.5 may move them. */
     siteCardIds: Type.Array(Type.String()),
     /** Whose warbands they became. */
-    winnerPlayerId: Type.String()
+    winnerPlayerId: Type.String(),
+    /** R-8.2-H2 — the winner holds Ring of Devotion: the accepter's warbands left, and none replaced them. */
+    winnerPlacedNone: Type.Optional(Type.Boolean())
 })
 
 /**
@@ -72,7 +74,10 @@ export class HydratedAnswerChronicleCitizenship
         )
         assertExists(offer, `R-8.2 — an offer is open to ${this.playerId}`)
         offer.accepted = this.accept
-        const siteIds = this.accept ? acceptChronicleCitizenship(state, this.playerId) : []
+        const acceptance = this.accept
+            ? acceptChronicleCitizenship(state, this.playerId)
+            : { siteIds: [], winnerPlacedNone: false }
+        const siteIds = acceptance.siteIds
         this.metadata = {
             siteIds,
             siteCardIds: siteIds.map((siteId) => {
@@ -83,7 +88,8 @@ export class HydratedAnswerChronicleCitizenship
                 )
                 return siteCardId
             }),
-            winnerPlayerId: chronicleWinnerOf(state)
+            winnerPlayerId: chronicleWinnerOf(state),
+            ...(acceptance.winnerPlacedNone ? { winnerPlacedNone: true } : {})
         }
     }
 

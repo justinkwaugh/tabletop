@@ -8,6 +8,7 @@ import { isLockedFor, siteLockedFor } from './locked.js'
 import { assertExists } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { HiddenReveal } from '../model/hidden.js'
+import type { WarbandCounts } from '../model/warbandCounts.js'
 import { PowerOutcome } from '../model/powerOutcome.js'
 import { cardDefinition, CONSPIRACY_ID, kindOf } from '../data/cardRegistry.js'
 import { SALT_THE_EARTH, siteCapacityAfterPlay } from './capacity.js'
@@ -235,6 +236,11 @@ export interface CardPlayOptions {
     modifiersInUse?: readonly string[]
     /** R-11.10 (Great Slum) — discarded before the site play. */
     discardFirstCardId?: string
+    /**
+     * R-11.10 the Great Slum, Crop Rotation, R-5.1.4.I the People's Favor — from revision 32, one card per power that
+     * gives one, in place of `discardFirstCardId` (Crop Rotation's Q&A: it is used along with the People's Favor).
+     */
+    discardFirstCardIds?: readonly string[]
     /** New Growth */
     toSiteId?: string
     reveal?: HiddenReveal
@@ -254,15 +260,23 @@ export interface CardPlayOptions {
     earlierMapChanges?: PlayMapChanges
 }
 
-/** R-5.1.4.I the People's Favor, R-11.10 the Great Slum, Crop Rotation — the denizen a site play discards first. */
-function cardDiscardedFirst(
+/** The cards a site play names to discard first: the list (from revision 32), or the one card. */
+export function discardFirstCardIdsOf(options: {
+    discardFirstCardId?: string
+    discardFirstCardIds?: readonly string[]
+}): readonly string[] {
+    if (options.discardFirstCardIds !== undefined) return options.discardFirstCardIds
+    return options.discardFirstCardId !== undefined ? [options.discardFirstCardId] : []
+}
+
+/** R-5.1.4.I the People's Favor, R-11.10 the Great Slum, Crop Rotation — the denizens a site play discards first. */
+function cardsDiscardedFirst(
     state: HydratedOathGameState,
     play: SearchPlay,
     options: CardPlayOptions
-): string | undefined {
-    const first = play === SearchPlay.Site ? options.discardFirstCardId : undefined
-    const at = first ? siteHolding(state, first) : undefined
-    return at === undefined ? undefined : first
+): string[] {
+    if (play !== SearchPlay.Site) return []
+    return discardFirstCardIdsOf(options).filter((id) => siteHolding(state, id) !== undefined)
 }
 
 /** R-5.1.4.I — the site a site play puts the card at: the pawn's, or the one the People's Favor or New Growth names. */
@@ -291,20 +305,21 @@ export function playMapChanges(
     play: SearchPlay,
     options: CardPlayOptions = {}
 ): PlayMapChanges {
-    const first = cardDiscardedFirst(state, play, options)
+    const firsts = cardsDiscardedFirst(state, play, options)
     const earlier = options.earlierMapChanges
     const siteId = play === SearchPlay.Site ? sitePlayedTo(state, playerId, options) : undefined
     return {
-        leaving: [...(earlier?.leaving ?? []), ...(first ? [first] : [])],
+        leaving: [...(earlier?.leaving ?? []), ...firsts],
         arriving: [...(earlier?.arriving ?? []), ...(play === SearchPlay.Site ? [cardId] : [])],
         ...(siteId !== undefined ? { siteId } : {}),
-        gains: playGains(state, playerId, cardId, play, siteId, first, options)
+        ...(options.modifiersInUse?.length ? { modifiersInUse: options.modifiersInUse } : {}),
+        gains: playGains(state, playerId, cardId, play, siteId, firsts, options)
     }
 }
 
 /**
  * R-7.3.3 — the play's own gains, planned from the steps `playCard` takes and in its order, on the state before
- * the play: the card discarded first gives its tokens back (R-10.5) and writes the Homeland ledger (R-11.2), the
+ * the play: each card discarded first gives its tokens back (R-10.5) and writes the Homeland ledger (R-11.2), the
  * site gives its favor (Book of Records: a secret instead), then the Homeland pays. An adviser play gives back the
  * tokens of the advisers it discards. From revision 31 a faceup play's carried modifiers then pay (R-7.3.3-H3).
  * Land Warden's second card starts from the kept card's gains; from revision 31, when the kept card's play did not
@@ -317,7 +332,7 @@ function playGains(
     cardId: string,
     play: SearchPlay,
     siteId: string | undefined,
-    first: string | undefined,
+    firsts: readonly string[],
     options: CardPlayOptions
 ): PlayGains {
     const earlier = options.earlierMapChanges
@@ -350,12 +365,12 @@ function playGains(
     if (paysModifiers && earlier) favorAfter = takeFavorAfterPlay(favorBank, homeBank, carried)
 
     if (siteId !== undefined) {
-        if (first) giveBack(first)
+        for (const first of firsts) giveBack(first)
         const suit = state.suitInPlay(cardId)
         if (suit) {
             if (sitePlayGainsSecret(options)) secrets += 1
             else gainOneFavor(suit)
-            const discardedFirst = [...(earlier?.leaving ?? []), ...(first ? [first] : [])].flatMap(
+            const discardedFirst = [...(earlier?.leaving ?? []), ...firsts].flatMap(
                 (id) => siteDiscardLedgerKey(state, id) ?? []
             )
             const homeland = homelandPowerFor(state, playerId, siteId, cardId, discardedFirst)
@@ -506,9 +521,9 @@ export function beginCardPlay(
         case SearchPlay.Site: {
             // R-5.1.4.I — New Growth may name another site.
             const siteId = sitePlayedTo(state, playerId, options)
-            // R-5.1.4.I the People's Favor, R-11.10 the Great Slum, Crop Rotation — a denizen discarded first.
-            const first = cardDiscardedFirst(state, play, options)
-            if (first) {
+            // R-5.1.4.I the People's Favor, R-11.10 the Great Slum, Crop Rotation — the denizens discarded first,
+            // one per power that gives one, in the order named.
+            for (const first of cardsDiscardedFirst(state, play, options)) {
                 noteSiteDiscard(state, playerId, first)
                 detachFromPlay(state, first)
                 discard(first)
@@ -702,6 +717,48 @@ export function whenPlayedMapLeaving(
     return mapLeaving({ state, playerId, power, choices: [], mapChanges })
 }
 
+/**
+ * R-7.3.3-H3 — the status a faceup play's When Played power leaves the player in with `choices`, the state
+ * unchanged: undefined when it leaves it as it is. A power that declares none changes none.
+ */
+export function whenPlayedStatusAfter(
+    state: HydratedOathGameState,
+    playerId: string,
+    cardId: string,
+    play: SearchPlay,
+    faceUp: boolean | undefined,
+    choices: readonly PowerChoice[],
+    mapChanges: PlayMapChanges
+): PlayerStatus | undefined {
+    const power = isFaceupPlay(play, faceUp)
+        ? powersWithTiming(cardId, PowerTiming.WhenPlayed)[0]
+        : undefined
+    const statusAfter = power ? effectFor(power)?.statusAfter : undefined
+    if (!power || !statusAfter) return undefined
+    return statusAfter({ state, playerId, power, choices, mapChanges })
+}
+
+/**
+ * R-7.3.3-H3 — the warbands at each site a faceup play's When Played power changes with `choices`, as it leaves
+ * them, the state unchanged: undefined when the power declares none, so it changes none.
+ */
+export function whenPlayedWarbandsAfter(
+    state: HydratedOathGameState,
+    playerId: string,
+    cardId: string,
+    play: SearchPlay,
+    faceUp: boolean | undefined,
+    choices: readonly PowerChoice[],
+    mapChanges: PlayMapChanges
+): Record<string, WarbandCounts> | undefined {
+    const power = isFaceupPlay(play, faceUp)
+        ? powersWithTiming(cardId, PowerTiming.WhenPlayed)[0]
+        : undefined
+    const warbandsAfter = power ? effectFor(power)?.warbandsAfter : undefined
+    if (!power || !warbandsAfter) return undefined
+    return warbandsAfter({ state, playerId, power, choices, mapChanges })
+}
+
 export function reasonWhenPlayedChoicesInvalid(
     state: HydratedOathGameState,
     playerId: string,
@@ -717,14 +774,15 @@ export function reasonWhenPlayedChoicesInvalid(
             ? `${cardId} takes no choices on this play`
             : undefined
     }
-    const bad = reasonChoicesInvalid(state, playerId, power, options.choices)
+    const mapChanges = playMapChanges(state, playerId, cardId, play, options)
+    const bad = reasonChoicesInvalid(state, playerId, power, options.choices, mapChanges)
     if (bad) return bad
     return effect.reasonCannotResolve?.({
         state,
         playerId,
         power,
         choices: options.choices ?? [],
-        mapChanges: playMapChanges(state, playerId, cardId, play, options)
+        mapChanges
     })
 }
 
@@ -844,7 +902,95 @@ function sameRegion(state: HydratedOathGameState, a: string, b: string): boolean
     return state.regionOf(a) === state.regionOf(b)
 }
 
-/** R-11.10 the Great Slum, R-5.1.4.I the People's Favor — a card discarded before a site play. */
+/**
+ * R-11.10 the Great Slum, Crop Rotation, R-5.1.4.I the People's Favor — each power that lets a site play to
+ * `destination` discard a card first, with the denizens it reaches: the Great Slum, when it is the site played to, and
+ * each carried card that lets a denizen there go first (Crop Rotation) reach the denizens there; the People's Favor
+ * reaches those at any site in its holder's region. Each power gives one card.
+ */
+function discardFirstPowers(
+    state: HydratedOathGameState,
+    playerId: string,
+    here: string,
+    destination: string,
+    carried: readonly ActiveModifier[]
+): string[][] {
+    const atDestination = state.denizensBySite[destination] ?? []
+    const powers: string[][] = []
+    if (categoryAt(state, destination) === 'greatSlum') powers.push([...atDestination])
+    for (const modifier of carried)
+        if (modifier.hooks.discardFirstAtSitePlay === true) powers.push([...atDestination])
+    if (holdsPeoplesFavor(state, playerId)) {
+        powers.push(
+            Object.entries(state.denizensBySite).flatMap(([siteId, cardIds]) =>
+                sameRegion(state, siteId, here) ? cardIds : []
+            )
+        )
+    }
+    return powers
+}
+
+/** Each card to a power of its own that reaches it, trying every power for the first and the rest after it. */
+function matchesOnePerPower(
+    cardIds: readonly string[],
+    powers: readonly (readonly string[])[],
+    used: readonly number[] = []
+): boolean {
+    const [cardId, ...rest] = cardIds
+    if (cardId === undefined) return true
+    return powers.some(
+        (reaches, index) =>
+            !used.includes(index) &&
+            reaches.includes(cardId) &&
+            matchesOnePerPower(rest, powers, [...used, index])
+    )
+}
+
+/**
+ * R-11.10, Crop Rotation, R-5.1.4.I — for a player's offer of a site play: the denizens some power lets it discard
+ * first, in map order, and how many may go: one per power from revision 32 (R-X.4: one before it). Each is still
+ * judged with the play, which may refuse it (a locked card, a modifier in use, the site's room).
+ */
+export function discardFirstReach(
+    state: HydratedOathGameState,
+    playerId: string,
+    options: Pick<CardPlayOptions, 'toSiteId' | 'carried'>
+): { cardIds: string[]; most: number } {
+    const here = pawnSiteId(state, playerId)
+    const powers = discardFirstPowers(
+        state,
+        playerId,
+        here,
+        options.toSiteId ?? here,
+        options.carried ?? []
+    )
+    const cardIds = state
+        .allSiteIds()
+        .flatMap((siteId) => state.denizensAt(siteId))
+        .filter((cardId) => powers.some((reaches) => reaches.includes(cardId)))
+    const most = isAtLeastOathRevision(state, OathRevision.EngineFixes27)
+        ? powers.length
+        : Math.min(powers.length, 1)
+    return { cardIds, most }
+}
+
+/** R-X.4 — the list of cards discarded first is sent from revision 32, once, each card in it once. */
+function reasonDiscardFirstListInvalid(
+    state: HydratedOathGameState,
+    options: CardPlayOptions
+): string | undefined {
+    const list = options.discardFirstCardIds
+    if (list === undefined) return undefined
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes27)) {
+        return 'in a game created before revision 32, at most one card is discarded first'
+    }
+    if (options.discardFirstCardId !== undefined) {
+        return 'the cards discarded first are named once: a list or one card'
+    }
+    return new Set(list).size === list.length ? undefined : 'a card is discarded first once'
+}
+
+/** R-11.10 the Great Slum, R-5.1.4.I the People's Favor, Crop Rotation — a card discarded before a site play. */
 function reasonDiscardFirstInvalid(
     state: HydratedOathGameState,
     playerId: string,
@@ -854,12 +1000,9 @@ function reasonDiscardFirstInvalid(
     carried: readonly ActiveModifier[],
     modifiersInUse: readonly string[] | undefined
 ): string | undefined {
-    const at = siteHolding(state, cardId)
-    const allowed =
-        // R-11.10 — the Great Slum, when it is the site played to.
-        (at === destination && categoryAt(state, destination) === 'greatSlum') ||
-        (at === destination && carried.some((m) => m.hooks.discardFirstAtSitePlay === true)) ||
-        (holdsPeoplesFavor(state, playerId) && at !== undefined && sameRegion(state, at, here))
+    const allowed = discardFirstPowers(state, playerId, here, destination, carried).some(
+        (reaches) => reaches.includes(cardId)
+    )
     if (!allowed) {
         return "only the Great Slum, Crop Rotation, or holding the People's Favor, lets a card be discarded first"
     }
@@ -871,16 +1014,16 @@ function reasonDiscardFirstInvalid(
 
 /**
  * R-2.8.1 — a site play needs a space at `siteId` on the map `mapChanges` leaves (Land Warden's kept card's play,
- * and Salt the Earth's capacity of 1 after it). A card the play discards first there leaves its space.
+ * and Salt the Earth's capacity of 1 after it). Each card the play discards first there leaves its space.
  */
 export function reasonSiteFull(
     state: HydratedOathGameState,
     siteId: string,
     mapChanges: PlayMapChanges | undefined,
-    discardFirstCardId?: string
+    discardFirstCardIds: readonly string[] = []
 ): string | undefined {
     const atSite = denizensAfterPlay(state, siteId, mapChanges)
-    const freed = discardFirstCardId !== undefined && atSite.includes(discardFirstCardId) ? 1 : 0
+    const freed = discardFirstCardIds.filter((id) => atSite.includes(id)).length
     const capacity = siteCapacityAfterPlay(state, siteId, mapChanges)
     return atSite.length - freed >= capacity
         ? `site ${siteId} is at its capacity of ${capacity}`
@@ -899,6 +1042,8 @@ export function reasonCannotPlaceCard(
 
     const kind = kindOf(cardId)
     const definition = cardDefinition(cardId)
+    const listInvalid = reasonDiscardFirstListInvalid(state, options)
+    if (listInvalid) return listInvalid
 
     switch (play) {
         case SearchPlay.Site: {
@@ -935,24 +1080,36 @@ export function reasonCannotPlaceCard(
             const saltTheEarth =
                 cardId === SALT_THE_EARTH &&
                 (target === here || isAtLeastOathRevision(state, OathRevision.EngineFixes12))
-            // R-5.1.4.I the People's Favor, R-11.10 the Great Slum, Crop Rotation — every site play's card
+            // R-5.1.4.I the People's Favor, R-11.10 the Great Slum, Crop Rotation — every site play's cards
             // discarded first; Salt the Earth's own "Discard all other denizens at this site" is none. Before
             // revision 16 (R-X.4), Salt the Earth's play to its player's own site left it unchecked.
-            const first = options.discardFirstCardId
+            const firsts = discardFirstCardIdsOf(options)
             if (
-                first !== undefined &&
+                firsts.length > 0 &&
                 (!saltTheEarth || isAtLeastOathRevision(state, OathRevision.EngineFixes12))
             ) {
-                const firstReason = reasonDiscardFirstInvalid(
-                    state,
-                    playerId,
-                    here,
-                    target,
-                    first,
-                    options.carried ?? [],
-                    options.modifiersInUse
-                )
-                if (firstReason) return firstReason
+                for (const first of firsts) {
+                    const firstReason = reasonDiscardFirstInvalid(
+                        state,
+                        playerId,
+                        here,
+                        target,
+                        first,
+                        options.carried ?? [],
+                        options.modifiersInUse
+                    )
+                    if (firstReason) return firstReason
+                }
+                // From revision 32, one card per power that gives one, each meeting its own power's rule.
+                if (
+                    firsts.length > 1 &&
+                    !matchesOnePerPower(
+                        firsts,
+                        discardFirstPowers(state, playerId, here, target, options.carried ?? [])
+                    )
+                ) {
+                    return 'one card is discarded first for each power that gives one, each as that power allows'
+                }
             }
             // Land Warden — from revision 29 the second card is judged on the site as the kept card's play leaves
             // it: with the kept card there, and at capacity 1 after Salt the Earth (R-2.8.1). Before (R-X.4), on
@@ -976,7 +1133,7 @@ export function reasonCannotPlaceCard(
                     return 'Salt the Earth cannot be played to a site with any locked cards'
                 }
             } else {
-                const full = reasonSiteFull(state, target, earlier, first)
+                const full = reasonSiteFull(state, target, earlier, firsts)
                 if (full) return full
             }
             if (!state.suitInPlay(cardId)) {
@@ -1045,15 +1202,19 @@ export function reasonCannotPlaceCard(
             if (cardId === CONSPIRACY_ID) {
                 return 'the Conspiracy is not played to the Revealed Vision space (R-5.1.4.IV)'
             }
-            if (player.status !== PlayerStatus.Exile) {
-                return `a ${player.status} cannot play a Vision faceup`
+            // R-7.3.3-H3 — Land Warden's second card is played after the kept card's power, on the status it gives
+            // and the cards at sites that play leaves.
+            const earlier = options.earlierMapChanges
+            const status = earlier?.status ?? player.status
+            if (status !== PlayerStatus.Exile) {
+                return `a ${status} cannot play a Vision faceup`
             }
             // R-7.1.4-H1, R-9.2 — Vow of Obedience's "cannot play Visions faceup".
             if (cannotPlayVisionsFaceup(state, playerId)) {
                 return 'you cannot play Visions faceup (Vow of Obedience)'
             }
             // R-7.1.4 — Secret Police, Sacred Ground.
-            return reasonPersistentForbidsFaceupVision(state, playerId, cardId)
+            return reasonPersistentForbidsFaceupVision(state, playerId, cardId, earlier)
         }
 
         case SearchPlay.Discard:

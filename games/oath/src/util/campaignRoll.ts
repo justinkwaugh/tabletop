@@ -44,6 +44,7 @@ import { BattlePlanSide } from '../data/cardPowers.js'
 import { countOf } from './warbands.js'
 import type { WarbandCounts, WarbandOwner } from '../model/warbandCounts.js'
 import { OathRevision, isAtLeastOathRevision } from './revision.js'
+import { cannotPlaceWarbandsAtSites } from './continuous.js'
 
 /** R-5.5.4, R-5.5.5 — rolled from the protected stream inside an action's `apply`. */
 
@@ -542,13 +543,22 @@ export function enemyWarbandsKilledFor(
     return killed + heldToDie
 }
 
-/** Hospital — "if you still rule it", judged in the Campaign's scope (R-5.5.1.a), for the tally and the end alike. */
+/**
+ * Hospital — "if you still rule it", judged in the Campaign's scope (R-5.5.1.a), for the tally and the
+ * end alike. From revision 32 its user must also be able to place them: Ring of Devotion's holder
+ * cannot place warbands at sites (R-9.2), so theirs are killed after all, as at a site they lost
+ * (R-5.5.3-H5). The Ring is read as Hospital would place them, so a Ring taken during the Campaign
+ * counts.
+ */
 function hospitalKeeps(
     state: HydratedOathGameState,
     campaign: CampaignState
 ): (held: HeldForHospital) => boolean {
     const scope = battleScopeOf(state, partiesOf(state, campaign))
-    return (held) => rulesSite(state, held.playerId, held.siteId, scope)
+    const ringBars = isAtLeastOathRevision(state, OathRevision.EngineFixes27)
+    return (held) =>
+        rulesSite(state, held.playerId, held.siteId, scope) &&
+        !(ringBars && cannotPlaceWarbandsAtSites(state, held.playerId))
 }
 
 /** R-5.5.3-H1 — the bandits' compelled plans have no user, and the bandits always defend. */
@@ -652,7 +662,7 @@ export interface CampaignEnd {
 export function endCampaign(state: HydratedOathGameState): CampaignEnd {
     const campaign = state.campaign
     assertExists(campaign, 'only a Campaign in progress can end')
-    // Hospital — "if you still rule it"; otherwise the warbands are killed after all (R-10.13).
+    // Hospital — "if you still rule it" and may place them; otherwise they are killed after all (R-10.13).
     const keeps = hospitalKeeps(state, campaign)
     const hospitalPlaced: HeldForHospital[] = []
     for (const held of campaign.heldForHospital ?? []) {

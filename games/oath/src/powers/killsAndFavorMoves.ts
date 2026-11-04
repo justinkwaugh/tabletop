@@ -4,7 +4,7 @@ import { isLockedFor, ownCardLockedFor, reasonCannotMoveCardTo } from '../util/l
 import { Banner, Suit } from '../model/oathEnums.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { gainSupply, returnFavorFromCards, returnSecretsToBoard } from '../util/rest.js'
-import { rulersOfSite, sitesRuledBy } from '../util/rule.js'
+import { rulersOfSite, sitesRuledBy, warbandsAt } from '../util/rule.js'
 import { cannotPlaceWarbandsAtSites } from '../util/continuous.js'
 import { one, optional, PowerChoiceKind, type ChoiceDomain } from '../util/powerChoice.js'
 import { registerEffect, registerModifier, chosen } from './registry.js'
@@ -28,14 +28,16 @@ import {
     siteHasCardOfSuit,
     hasFaceupAdviserOfSuit,
     denizensAtYourSite,
-    warbandOwnerGainedByPower
+    warbandOwnerGainedByPower,
+    warbandsKilledFrom,
+    warbandsLeftAfterKills
 } from './vocabulary.js'
 import { siteHolding } from '../util/access.js'
 import { isAtLeastOathRevision, OathRevision } from '../util/revision.js'
 import { settleAdviserLimitsAfterMove } from '../util/adviserLimit.js'
 import { BANDIT_CHIEF } from '../util/bandits.js'
 import { soleOwner } from '../util/force.js'
-import { ownerIfAny } from '../util/warbands.js'
+import { adjustCount, countOf, ownerIfAny } from '../util/warbands.js'
 import type { WarbandGroup } from '../model/campaign.js'
 
 // "Action: Each player (even you) places one favor per site they rule into
@@ -212,7 +214,15 @@ registerEffect(BANDIT_CHIEF, powerIndexOf(BANDIT_CHIEF, PowerTiming.WhenPlayed),
         return {
             summary: `Bandit Chief: killed ${killed} warbands, one per site; the bandits are three per site while it is faceup`
         }
-    }
+    },
+    // R-7.3.3-H3 — the kills `resolve` makes, planned before the play.
+    warbandsAfter: (ctx) =>
+        Object.fromEntries(
+            ctx.state.faceupSiteIds().map((siteId) => {
+                const present = warbandsAt(ctx.state, siteId)
+                return [siteId, warbandsLeftAfterKills(present, warbandsKilledFrom(present, 1))]
+            })
+        )
 })
 
 // "Action: Swap this card with any faceup adviser." Cost: burn 1 secret.
@@ -307,6 +317,25 @@ registerEffect(KEY, powerIndexOf(KEY, PowerTiming.WhenPlayed), {
         return {
             summary: `Key to the City: killed ${killed} at ${site}, gained ${words} and placed ${placed} there`
         }
+    },
+    // R-7.3.3-H3 — what `resolve` does at the site the card is played to, planned before the play.
+    warbandsAfter: (ctx) => {
+        const site = ctx.mapChanges?.siteId
+        if (!site) return {}
+        const { state, playerId } = ctx
+        const rulerHere = rulersOfSite(state, site).some(
+            (id) => state.getPlayerState(id).siteId === site
+        )
+        if (rulerHere) return {}
+        const present = warbandsAt(state, site)
+        const killed = warbandsKilledFrom(present, Number.MAX_SAFE_INTEGER)
+        const after = warbandsLeftAfterKills(present, killed)
+        if (cannotPlaceWarbandsAtSites(state, playerId)) return { [site]: after }
+        // R-10.13 — the warbands killed are back in their bank when the one gained is taken from it.
+        const owner = warbandOwnerGainedByPower(state, playerId)
+        const bank = state.getPlayerState(state.warbandBankHolderOf(owner)).warbandsInPersonalBank
+        adjustCount(after, owner, Math.min(1, countOf(bank, owner) + countOf(killed, owner)))
+        return { [site]: after }
     }
 })
 

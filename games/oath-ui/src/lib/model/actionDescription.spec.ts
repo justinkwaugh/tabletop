@@ -663,6 +663,23 @@ describe('the history tab describes every action', () => {
                 third: 'with Bob, gave 1 secret for 2 favor and 0 favor for 0 secrets; with you, gave 0 secrets for 0 favor and 2 favor for 1 secret'
             },
             {
+                // From revision 32: the steps in order, and only the exchanges made.
+                card: 'denizen.arcane.witchs-bargain',
+                summary:
+                    "Witch's Bargain: gave p2 1 secrets for 2 favor, then gave p3 2 favor for 1 secrets",
+                actor: 'gave Bob 1 secret for 2 favor, then gave Cass 2 favor for 1 secret',
+                target: 'gave you 1 secret for 2 favor, then gave Cass 2 favor for 1 secret',
+                third: 'gave Bob 1 secret for 2 favor, then gave you 2 favor for 1 secret'
+            },
+            {
+                card: 'denizen.arcane.witchs-bargain',
+                summary:
+                    "Witch's Bargain: gave p2 1 secrets for 2 favor, then gave p3 2 favor for 1 secrets, then gave p2 2 secrets for 4 favor, then gave p2 2 favor for 1 secrets",
+                actor: 'gave Bob 1 secret for 2 favor, then gave Cass 2 favor for 1 secret, then gave Bob 2 secrets for 4 favor, then gave Bob 2 favor for 1 secret',
+                target: 'gave you 1 secret for 2 favor, then gave Cass 2 favor for 1 secret, then gave you 2 secrets for 4 favor, then gave you 2 favor for 1 secret',
+                third: 'gave Bob 1 secret for 2 favor, then gave you 2 favor for 1 secret, then gave Bob 2 secrets for 4 favor, then gave Bob 2 favor for 1 secret'
+            },
+            {
                 card: 'denizen.discord.relic-thief',
                 summary: 'Relic Thief: rolled 1 shields; relic.brass-horse stayed with p2',
                 actor: 'rolled 1 shield; Brass Horse stayed with Bob',
@@ -1657,6 +1674,28 @@ describe('the history tab describes every action', () => {
             ).toBe('accepted Citizenship, removing 1 warband for want of Imperial ones')
         })
 
+        it("R-6.6.2-H1 — a Ring of Devotion holder's acceptance says their warbands on the map were removed", () => {
+            const accepted = (outcome: {
+                unreplacedCount: number
+                removedFromSitesCount: number
+            }) =>
+                describeAction(
+                    action({
+                        type: ActionType.ResolveCitizenshipOffer,
+                        playerId: 'p2',
+                        granted: true,
+                        metadata: { outcome }
+                    }),
+                    nameOf
+                )
+            expect(accepted({ unreplacedCount: 0, removedFromSitesCount: 3 })).toBe(
+                'accepted Citizenship; 3 warbands on the map were removed (Ring of Devotion)'
+            )
+            expect(accepted({ unreplacedCount: 1, removedFromSitesCount: 1 })).toBe(
+                'accepted Citizenship, removing 1 warband for want of Imperial ones; 1 warband on the map was removed (Ring of Devotion)'
+            )
+        })
+
         it('R-6.8, R-10.11 — a self-exile names who got the favor; a record without the holder keeps its words', () => {
             const paid = { favorGiven: 3, replacedCount: 2, unreplacedCount: 0 }
             expect(
@@ -1782,10 +1821,10 @@ describe('the history tab describes every action', () => {
             }
 
             expect(row(OathRevision.PlanCostsAndSearchPlays)).toBe(
-                'kept Wolves and played it to their site, gaining 2 secrets; 1 card went to the provinces discard pile'
+                'kept Wolves and played it to their own site, gaining 2 secrets; 1 card went to the provinces discard pile'
             )
             expect(row(OathRevision.CostsAndFacedownModifiers)).toBe(
-                'kept Wolves and played it to their site, gaining 1 secret; 1 card went to the provinces discard pile'
+                'kept Wolves and played it to their own site, gaining 1 secret; 1 card went to the provinces discard pile'
             )
         })
 
@@ -1849,10 +1888,10 @@ describe('the history tab describes every action', () => {
             }
 
             expect(row(INN)).toBe(
-                'kept Longbows and played it to their site, gaining 2 favor; Bob gained 2 favor from the Order bank (Saddle Makers); gained 1 hearth favor (Fertile Valley, Homeland); 1 card went to the provinces discard pile'
+                'kept Longbows and played it to their own site, gaining 2 favor; Bob gained 2 favor from the Order bank (Saddle Makers); gained 1 hearth favor (Fertile Valley, Homeland); 1 card went to the provinces discard pile'
             )
             expect(row(TENTS)).toBe(
-                'kept Longbows and played it to their site, gaining 2 favor; Bob gained 2 favor from the Order bank (Saddle Makers); Bob gained 2 favor from the Nomad bank (Saddle Makers); 1 card went to the provinces discard pile'
+                'kept Longbows and played it to their own site, gaining 2 favor; Bob gained 2 favor from the Order bank (Saddle Makers); Bob gained 2 favor from the Nomad bank (Saddle Makers); 1 card went to the provinces discard pile'
             )
         })
 
@@ -2502,7 +2541,7 @@ describe('R-10.13 — each counted warband takes the owner its own words name, e
                 }
             })
             expect(describeAction(row, nameOf)).toBe(
-                'kept Key to the City and played it to their site: killed 1 at Provinces 1, gained 1 Imperial warband and placed 1 there'
+                'kept Key to the City and played it to their own site: killed 1 at Provinces 1, gained 1 Imperial warband and placed 1 there'
             )
         })
 
@@ -2524,7 +2563,7 @@ describe('R-10.13 — each counted warband takes the owner its own words name, e
                 }
             })
             expect(describeAction(row, nameOf)).toBe(
-                'kept Wayside Inn and played it to their site, gaining 2 favor; Salt the Earth: discarded 3 denizens at Provinces 1; its capacity is now 1'
+                'kept Wayside Inn and played it to their own site, gaining 2 favor; Salt the Earth: discarded 3 denizens at Provinces 1; its capacity is now 1'
             )
         })
 
@@ -2545,7 +2584,7 @@ describe('R-10.13 — each counted warband takes the owner its own words name, e
                 }
             })
             expect(describeAction(row, nameOf)).toBe(
-                'kept Dazzle and played it to their site, gaining 2 favor: discarded 1 hearth and order cards in the region'
+                'kept Dazzle and played it to their own site, gaining 2 favor: discarded 1 hearth and order cards in the region'
             )
         })
 
@@ -2568,7 +2607,7 @@ describe('R-10.13 — each counted warband takes the owner its own words name, e
                 }
             })
             expect(describeAction(row, nameOf)).toBe(
-                'kept Wayside Inn and played it to their site, gaining 2 favor; 2 cards went to the cradle discard pile'
+                'kept Wayside Inn and played it to their own site, discarding Wolves first, gaining 2 favor; 2 cards went to the cradle discard pile'
             )
         })
 
@@ -2590,7 +2629,7 @@ describe('R-10.13 — each counted warband takes the owner its own words name, e
                 }
             })
             expect(describeAction(row, nameOf)).toBe(
-                'kept Knights Errant and played it to their site; A Small Favor: gained 4 Imperial warbands; gained 1 favor (Saddle Makers); gained 2 Imperial warbands (Ancient City, Homeland); gained 1 Supply and 2 Imperial warbands (Wild Cry)'
+                'kept Knights Errant and played it to their own site; A Small Favor: gained 4 Imperial warbands; gained 1 favor (Saddle Makers); gained 2 Imperial warbands (Ancient City, Homeland); gained 1 Supply and 2 Imperial warbands (Wild Cry)'
             )
             expect(pieces(row)).toEqual([
                 { count: 4, owner: IMPERIAL_WARBANDS },

@@ -10,7 +10,8 @@ import { takeRelic, clearSiteRelicSlot } from './relics.js'
 import { homelandLedgerKey, siteDiscardLedgerKey } from './discard.js'
 import type { HiddenReveal } from '../model/hidden.js'
 import type { FavorTake } from '../powers/registry.js'
-import { siteLockedFor } from './locked.js'
+import { isLockedFor, siteLockedFor } from './locked.js'
+import { reasonModifierInUse } from './modifiers.js'
 import { OathRevision, isAtLeastOathRevision } from './revision.js'
 
 /** R-11 — a site's power is its card's, so a facedown slot has none. */
@@ -20,6 +21,29 @@ export function categoryAt(
     slotId: string | undefined
 ): string | undefined {
     return sitePowerCategory(state.siteCardAt(slotId))
+}
+
+/**
+ * R-11.10 — the denizens a power may discard first at `siteId` before it moves a card there: those at a faceup Great
+ * Slum, never one locked for the power's user (R-7.2.2), nor a modifier in use (R-7.4.3), which Great Herd's When
+ * Played power can reach: Welcoming Party while the Search uses it, or Wild Cry an R-6.1 play declares, passed as
+ * `declared` because the play's check runs before the play records it. Homesteaders, Resettle, Roving Terror and the
+ * swaps (the Horned Mask, Great Herd) offer these.
+ */
+export function greatSlumDenizensToDiscardFirst(
+    state: HydratedOathGameState,
+    playerId: string,
+    siteId: string,
+    declared: readonly string[] = []
+): string[] {
+    if (!state.isSiteFaceup(siteId) || categoryAt(state, siteId) !== 'greatSlum') return []
+    return state
+        .denizensAt(siteId)
+        .filter(
+            (id) =>
+                !isLockedFor(state, playerId, id) &&
+                reasonModifierInUse(state, id, declared) === undefined
+        )
 }
 
 /** R-11.4 — one delta per site, folded separately for R-5.5.3's underflow. */
@@ -46,21 +70,20 @@ export function riverMusterBonus(state: HydratedOathGameState, playerId: string)
 /**
  * R-11.2 — read by the resolver, so the relic's identity rides the action as `reveal`; `siteId` is the site played to.
  * It judges the Homeland as the play's payout does (`homelandPowerFor`), so a relic leaves the vault only for a player
- * who takes it: from revision 16 (R-X.4) with the card the play discards first, whose ledger entry `playCard` writes
- * before the payout. Before revision 16, without it.
+ * who takes it: from revision 16 (R-X.4) with the cards the play discards first, whose ledger entries `playCard` writes
+ * before the payout. Before revision 16, without them.
  */
 export function homelandRelicSlot(
     state: HydratedOathGameState,
     playerId: string,
     cardId: string,
     siteId: string,
-    discardFirstCardId?: string
+    discardFirstCardIds: readonly string[] = []
 ): string | undefined {
-    const firstKey =
-        discardFirstCardId !== undefined && isAtLeastOathRevision(state, OathRevision.EngineFixes12)
-            ? siteDiscardLedgerKey(state, discardFirstCardId)
-            : undefined
-    const homeland = homelandPowerFor(state, playerId, siteId, cardId, firstKey ? [firstKey] : [])
+    const firstKeys = isAtLeastOathRevision(state, OathRevision.EngineFixes12)
+        ? discardFirstCardIds.flatMap((id) => siteDiscardLedgerKey(state, id) ?? [])
+        : []
+    const homeland = homelandPowerFor(state, playerId, siteId, cardId, firstKeys)
     if (homeland?.reward !== 'relic' || homeland.barred) return undefined
     // Ancient Bloodline — a relic at a site its holder rules is locked for their enemies.
     if (siteLockedFor(state, playerId, siteId)) return undefined
