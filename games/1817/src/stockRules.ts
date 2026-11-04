@@ -277,9 +277,11 @@ export const EighteenSeventeenStockRules: StockRules = {
     round: EighteenSeventeenStockRoundRules,
     instructions: {
         // A short issues an extra share, so a rival can pass a president holding half.
-        securePresidency: (state, companyId, owner) =>
-            sharesOwned(state, companyId, owner) * 2 >
-            (companyShareCount(state, EighteenSeventeenCharters, companyId) ?? 0)
+        securePresidency(state, companyId, owner) {
+            const shareCount = companyShareCount(state, EighteenSeventeenCharters, companyId)
+            assertExists(shareCount, 'A company with a president has shares')
+            return sharesOwned(state, companyId, owner) * 2 > shareCount
+        }
     },
     buyers: (_state, playerId) => [{ kind: 'player', playerId }],
     sellers: (_state, playerId) => [{ kind: 'player', playerId }],

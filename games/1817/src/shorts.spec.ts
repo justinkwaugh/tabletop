@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
 import {
     cashOwnedBy,
+    createStandingStockInstruction,
     getCompany,
     issueShareCertificates,
     openShort,
@@ -10,6 +11,7 @@ import {
     retireCertificates,
     sharesOwned,
     stockCertificateCount,
+    stockPositionChange,
     type EighteenXXState
 } from '@tabletop/18xx'
 import { playExample } from '@tabletop/18xx/scenarios'
@@ -47,16 +49,30 @@ function caseysTurn(prepare: (state: EighteenXXState) => void = () => {}) {
 }
 
 describe('a standing instruction watching a presidency', () => {
-    it('does not count half of a company as secure, as a short can issue a rival past it', () => {
+    const blair = { kind: 'player' as const, playerId: 'blair' }
+
+    // Blair presides over a 10-share BA as casey, with two shares, passes alex's one.
+    function afterRivalGains(blairsShares: number) {
         const { state } = caseysTurn()
-        const blair = { kind: 'player' as const, playerId: 'blair' }
-        const held = sharesOwned(state, 'BA', blair)
-        const secure = (shareCount: number) => {
-            getCompany(state, 'BA').shareCount = shareCount
-            return EighteenSeventeenStockRules.instructions?.securePresidency?.(state, 'BA', blair)
-        }
-        expect(secure(held * 2)).toBe(false)
-        expect(secure(held * 2 - 1)).toBe(true)
+        getCompany(state, 'BA').shareCount = 10
+        const issued = blairsShares - sharesOwned(state, 'BA', blair)
+        issueShareCertificates(state, 'BA', issued, { owner: blair })
+        const standing = createStandingStockInstruction(
+            state,
+            blair.playerId,
+            { kind: 'pass' },
+            EighteenSeventeenStockRules
+        )
+        issueShareCertificates(state, 'BA', 2, { owner: casey })
+        return stockPositionChange(state, standing, EighteenSeventeenStockRules)
+    }
+
+    it('stops at half of a company, as a short can issue a rival past it', () => {
+        expect(afterRivalGains(5)).toEqual({ code: 'presidency-threatened', companyId: 'BA' })
+    })
+
+    it('carries on with a majority, as the ownership limit holds a rival to a tie', () => {
+        expect(afterRivalGains(6)).toBeUndefined()
     })
 })
 
