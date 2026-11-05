@@ -6,8 +6,8 @@ import { Banner, SearchPlay, CardKind, PlayerStatus, Region, Suit } from '../mod
 import { ConspiracyPlay, type ConspiracyTake } from '../model/conspiracy.js'
 import { isLockedFor, siteLockedFor } from './locked.js'
 import { assertExists } from '@tabletop/common'
-import { HydratedOathGameState } from '../model/gameState.js'
-import { HiddenReveal } from '../model/hidden.js'
+import { discardRegionFor, HydratedOathGameState } from '../model/gameState.js'
+import { HiddenReveal, type PileDeposit } from '../model/hidden.js'
 import type { WarbandCounts } from '../model/warbandCounts.js'
 import { PowerOutcome } from '../model/powerOutcome.js'
 import { cardDefinition, CONSPIRACY_ID, kindOf } from '../data/cardRegistry.js'
@@ -16,6 +16,7 @@ import {
     detachFromPlay,
     discardCards,
     noteSiteDiscard,
+    regionCardLeavesFrom,
     siteDiscardLedgerKey,
     tokensReturnedBy,
     type DiscardTarget
@@ -453,6 +454,8 @@ export interface CardPlayResult {
     /** R-9.3 — each favor the play took before its power, the site's and a Homeland's, as its banks gave it. */
     favorTaken: readonly FavorTake[]
     discarded: string[]
+    /** Law Glossary "Discard" (revision 33) — cards discarded first that went to another pile than `discarded`. */
+    discardedElsewhere: PileDeposit[]
     /** R-7.3.3 */
     whenPlayed?: string
     /** R-7.1.4 (Saddle Makers) */
@@ -471,6 +474,8 @@ export interface BegunCardPlay {
     secretsGained: number
     favorTaken: readonly FavorTake[]
     discarded: string[]
+    /** Law Glossary "Discard" (revision 33) — cards discarded first that went to another pile than `discarded`. */
+    discardedElsewhere: PileDeposit[]
     sitePower?: string
     /** Saddle Makers' Q&A — paid once the card is played, before its power (undefined before revision 4). */
     triggeredFirst?: string[]
@@ -508,6 +513,21 @@ export function beginCardPlay(
         discardCards(state, playerId, [id], region, options.discardTarget)
         discarded.push(id)
     }
+    // Law Glossary "Discard" — "if discarding cards in a different region from your pawn, discard based on the
+    // region of the card instead": from revision 33, a card discarded first goes by its own site's region (before
+    // it, by the pawn's). One that goes to another pile than the play's discards is recorded apart.
+    const discardedElsewhere: PileDeposit[] = []
+    const playPile = options.discardTarget?.region ?? discardRegionFor(region)
+    const discardFirst = (id: string, from: Region) => {
+        const [deposit] = discardCards(state, playerId, [id], from, options.discardTarget)
+        if (deposit === undefined || deposit.region === playPile) {
+            discarded.push(id)
+            return
+        }
+        const pile = discardedElsewhere.find((d) => d.region === deposit.region)
+        if (pile) pile.cardIds.push(id)
+        else discardedElsewhere.push(deposit)
+    }
     let favorGained = 0
     let secretsGained = 0
     // R-9.3 — as the banks gave it when this card was played: Land Warden's second card is played after the kept
@@ -524,9 +544,13 @@ export function beginCardPlay(
             // R-5.1.4.I the People's Favor, R-11.10 the Great Slum, Crop Rotation — the denizens discarded first,
             // one per power that gives one, in the order named.
             for (const first of cardsDiscardedFirst(state, play, options)) {
+                // Read before the card leaves its site.
+                const from = isAtLeastOathRevision(state, OathRevision.EngineFixes28)
+                    ? regionCardLeavesFrom(state, first)
+                    : region
                 noteSiteDiscard(state, playerId, first)
                 detachFromPlay(state, first)
-                discard(first)
+                discardFirst(first, from)
             }
             state.denizensBySite[siteId] = [...state.denizensAt(siteId), cardId]
 
@@ -589,6 +613,7 @@ export function beginCardPlay(
         secretsGained,
         favorTaken,
         discarded,
+        discardedElsewhere,
         sitePower,
         triggeredFirst,
         mapChanges
@@ -657,6 +682,7 @@ export function finishCardPlay(
         secretsGained: begun.secretsGained,
         favorTaken: begun.favorTaken,
         discarded: begun.discarded,
+        discardedElsewhere: begun.discardedElsewhere,
         whenPlayed,
         sitePower: begun.sitePower,
         triggered: triggered.length > 0 ? triggered : undefined,
