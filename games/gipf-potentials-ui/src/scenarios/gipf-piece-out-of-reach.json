@@ -1,0 +1,416 @@
+{
+    "game": {
+        "id": "scenario-gipf-piece-out-of-reach",
+        "isPublic": false,
+        "status": "started",
+        "typeId": "gipf-potentials",
+        "deleted": false,
+        "name": "GIPF piece out of reach",
+        "ownerId": "owner",
+        "players": [
+            {
+                "id": "player-1",
+                "name": "White",
+                "isHuman": true,
+                "status": "joined"
+            },
+            {
+                "id": "player-2",
+                "name": "Black",
+                "isHuman": true,
+                "status": "joined"
+            }
+        ],
+        "config": {
+            "version": "Standard",
+            "tamsk": "0",
+            "zertz": "6",
+            "dvonn": "0",
+            "yinsh": "0",
+            "punct": "0",
+            "whitePlayer": "Random"
+        },
+        "hotseat": false,
+        "winningPlayerIds": [],
+        "seed": 571902728,
+        "activePlayerIds": ["player-1"],
+        "createdAt": "2026-11-05T18:33:21.483Z",
+        "storage": "remote",
+        "category": "standard",
+        "startedAt": "2026-11-05T18:33:21.483Z"
+    },
+    "state": {
+        "systemVersion": 3,
+        "id": "derTqx7Pz2Wz5jom_Py4r",
+        "gameId": "scenario-gipf-piece-out-of-reach",
+        "seed": 571902728,
+        "prng": {
+            "seed": 571902728,
+            "invocations": 1
+        },
+        "protectedPrng": {
+            "seed": 709726646,
+            "invocations": 0
+        },
+        "activePlayerIds": ["player-1"],
+        "winningPlayerIds": [],
+        "actionCount": 0,
+        "actionChecksum": 0,
+        "players": [
+            {
+                "playerId": "player-1",
+                "color": "white",
+                "reserve": 9,
+                "potentials": {
+                    "tamsk": 0,
+                    "zertz": 6,
+                    "dvonn": 0,
+                    "yinsh": 0,
+                    "punct": 0
+                },
+                "captured": [],
+                "playedOther": true
+            },
+            {
+                "playerId": "player-2",
+                "color": "black",
+                "reserve": 16,
+                "potentials": {
+                    "tamsk": 0,
+                    "zertz": 6,
+                    "dvonn": 0,
+                    "yinsh": 0,
+                    "punct": 0
+                },
+                "captured": [],
+                "playedOther": true
+            }
+        ],
+        "machineState": "TakingTurn",
+        "turnManager": {
+            "series": [
+                {
+                    "type": "turn",
+                    "playerId": "player-1",
+                    "start": 0
+                }
+            ],
+            "turnOrder": ["player-1", "player-2"],
+            "turnCounts": {
+                "player-1": 0,
+                "player-2": 0
+            }
+        },
+        "version": "Standard",
+        "board": {
+            "spots": [
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 0
+                    },
+                    "stack": [
+                        {
+                            "playerId": "player-1",
+                            "kind": "basic",
+                            "discIds": [8]
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": -1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 0
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 1
+                    },
+                    "stack": [
+                        {
+                            "playerId": "player-1",
+                            "kind": "basic",
+                            "discIds": [7]
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 0
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": -1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": -2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": -2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": -1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": 0
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 2
+                    },
+                    "stack": [
+                        {
+                            "playerId": "player-1",
+                            "kind": "basic",
+                            "discIds": [6]
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 0
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": -1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": -2
+                    },
+                    "stack": [
+                        {
+                            "playerId": "player-2",
+                            "kind": "gipf",
+                            "discIds": [9, 10]
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": -3
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": -3
+                    },
+                    "stack": [
+                        {
+                            "playerId": "player-1",
+                            "kind": "gipf",
+                            "discIds": [2, 3]
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": -2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": -1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 3,
+                        "r": 0
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 2,
+                        "r": 1
+                    },
+                    "stack": [
+                        {
+                            "playerId": "player-1",
+                            "kind": "gipf",
+                            "discIds": [4, 5]
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": 2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": 3
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": 3
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": 3
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 3
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -3,
+                        "r": 0
+                    },
+                    "stack": [
+                        {
+                            "playerId": "player-1",
+                            "kind": "gipf",
+                            "discIds": [0, 1]
+                        }
+                    ]
+                },
+                {
+                    "coords": {
+                        "q": -2,
+                        "r": -1
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": -1,
+                        "r": -2
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 0,
+                        "r": -3
+                    },
+                    "stack": []
+                },
+                {
+                    "coords": {
+                        "q": 1,
+                        "r": -3
+                    },
+                    "stack": []
+                }
+            ]
+        },
+        "movedThisTurn": false,
+        "resolvingPlayerIds": [],
+        "extraMoveOwedIds": [],
+        "nextDiscId": 11
+    },
+    "actions": []
+}

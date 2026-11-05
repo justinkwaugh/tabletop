@@ -114,5 +114,9 @@
     {
         "gameId": "medina",
         "packageId": "medina"
+    },
+    {
+        "gameId": "gipf-potentials",
+        "packageId": "gipf-potentials"
     }
 ]
