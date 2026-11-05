@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { Attachment } from 'svelte/attachments'
     import { cardPreview } from '$lib/model/cardPreview.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -25,7 +26,9 @@
     let place = $state<{ left: number; top: number } | undefined>(undefined)
     let scroller: HTMLElement | undefined
 
-    $effect(() => {
+    // Measured from the always-drawn host below, again whenever the seat or its count of Uses
+    // changes, each measure taking its observers and listeners with it.
+    const measure: Attachment = () => {
         const id = seatId
         if (!id || onSeat.length === 0) {
             place = undefined
@@ -83,30 +86,36 @@
             found.removeEventListener('scroll', later)
             window.removeEventListener('resize', later)
         }
-    })
+    }
 
     function slideIn() {
         scroller?.scrollTo({ left: 0, behavior: 'smooth' })
     }
 </script>
 
-{#if place && !cardPreview.open}
-    <button
-        type="button"
-        class="seat-use-tag"
-        class:seat-use-tag--ring={ringed}
-        style:left="{place.left}px"
-        style:top="{place.top}px"
-        aria-label="Your cards"
-        aria-describedby={ringed ? gameSession.useRingReason : undefined}
-        data-seat-use-tag
-        onclick={slideIn}
-    >
-        <span class="seat-use-tag__face" aria-hidden="true">Use</span>
-    </button>
-{/if}
+<!-- No box of its own: it hosts the measure, as the tag is drawn only once it has a place. -->
+<div class="seat-use-tag-host" {@attach measure}>
+    {#if place && !cardPreview.open}
+        <button
+            type="button"
+            class="seat-use-tag"
+            class:seat-use-tag--ring={ringed}
+            style:left="{place.left}px"
+            style:top="{place.top}px"
+            aria-label="Your cards"
+            aria-describedby={ringed ? gameSession.useRingReason : undefined}
+            data-seat-use-tag
+            onclick={slideIn}
+        >
+            <span class="seat-use-tag__face" aria-hidden="true">Use</span>
+        </button>
+    {/if}
+</div>
 
 <style>
+    .seat-use-tag-host {
+        display: contents;
+    }
     .seat-use-tag {
         position: fixed;
         z-index: 6;

@@ -108,7 +108,8 @@ import { SearchDraft } from './searchDraft.js'
 import type { PlayToPick } from './playToSites.js'
 import { QuestionDraft } from './questionDraft.js'
 import { woodRegions, woodTravelCards, type WoodRegion } from './woodTravel.js'
-import { refusalWords, woodTravelRefusal } from './actionAvailability.js'
+import { gridRefusal, refusalWords, woodTravelRefusal } from './actionAvailability.js'
+import { MAJOR_ACTIONS, type GridAction, type MajorAction } from './actionCatalogue.js'
 import {
     AttackPlansDraft,
     AttackerLossesDraft,
@@ -323,6 +324,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
      */
     override beforeNewState(transition: PresentedTransition): void {
         this.resetDraftsBut(KEEPS_THE_STORY.has(transition.kind) ? this.chronicleStory : undefined)
+        this.leaveGrid()
     }
 
     // docs/user-interactions.md — a manual pick absorbs the press; an auto pick never does.
@@ -1854,6 +1856,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     }
 
     chooseAction(type: ActionType): void {
+        this.leaveGrid()
         if (this.selection.action !== type) this.clearActionDrafts()
         this.selection.set('action', type)
         if (type === ActionType.Campaign) this.campaign.begin()
@@ -1908,32 +1911,86 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
         if (card) this.openActionWithCard(card)
     }
 
-    private useRing = $state.raw<{ cardIds: string[]; reasonId: string } | undefined>(undefined)
+    // R-4.2, R-7.4 — the Act Phase grid's pointer, held here because every card's "Use" reads it:
+    // the tile under the pointer, and a dimmed major tapped, which holds for the state and seat it
+    // was tapped in. A new state, or an action chosen from the grid or a "Use", ends both.
+    private gridHover = $state.raw<GridAction | undefined>(undefined)
+    private gridTap = $state.raw<
+        { action: MajorAction; seatId: string; actionCount: number } | undefined
+    >(undefined)
+    private gridReasonId = $state.raw<string | undefined>(undefined)
 
-    /**
-     * R-7.4 — while a dimmed action's reason shows, the cards that would make it possible wear a
-     * ring on their "Use", read with the reason; the returned function takes the ring off.
-     */
-    ringUses(action: ActionType, reasonId: string): () => void {
-        const cardIds = cardsMakingPossible(this.actionCards, action).flatMap((card) =>
-            actionCardUses(card).map((use) => use.cardId)
+    /** The tile under the grid's pointer. */
+    get hoveredGridAction(): GridAction | undefined {
+        return this.gridHover
+    }
+
+    /** The major tapped, while the state and seat it was tapped in show. */
+    private get tappedGridMajor(): MajorAction | undefined {
+        const tap = this.gridTap
+        const current =
+            tap?.seatId === this.myPlayer?.id && tap?.actionCount === this.gameState.actionCount
+        return current ? tap?.action : undefined
+    }
+
+    /** The major whose line the grid shows: the one tapped, or else the one under the pointer. */
+    get pointedGridMajor(): MajorAction | undefined {
+        return (
+            this.tappedGridMajor ??
+            MAJOR_ACTIONS.find((entry) => entry.type === this.gridHover)?.type
         )
-        const ring = { cardIds: [...new Set(cardIds)], reasonId }
-        this.useRing = ring
-        return () => {
-            if (this.useRing === ring) this.useRing = undefined
+    }
+
+    /** The pointed major while it is dimmed and the grid gives why: its reason shows. */
+    get refusedGridMajor(): MajorAction | undefined {
+        const action = this.pointedGridMajor
+        const playerId = this.myPlayer?.id
+        if (!action || !playerId || this.validActionTypes.includes(action)) return undefined
+        return gridRefusal(this.gameState, playerId, action) ? action : undefined
+    }
+
+    /** The pointer on a tile, or off it; a hover on another tile replaces a tapped reason. */
+    hoverGridTile(action: GridAction, on: boolean, reasonId: string): void {
+        if (on && this.tappedGridMajor !== action) this.gridTap = undefined
+        if (on) {
+            this.gridHover = action
+            this.gridReasonId = reasonId
+        } else if (this.gridHover === action) {
+            this.gridHover = undefined
         }
     }
 
-    /** The ringed cards: each wears the ring only while it has a "Use". */
+    /** A tap on a dimmed major: its reason holds after the pointer leaves. */
+    tapGridMajor(action: MajorAction, reasonId: string): void {
+        const playerId = this.myPlayer?.id
+        if (!playerId) return
+        this.gridTap = { action, seatId: playerId, actionCount: this.gameState.actionCount }
+        this.gridReasonId = reasonId
+    }
+
+    /** The grid gives way: nothing is pointed or tapped. */
+    leaveGrid(): void {
+        this.gridTap = undefined
+        this.gridHover = undefined
+    }
+
+    /**
+     * R-7.4 — while a dimmed major's reason shows, the cards that would make it possible wear a
+     * ring on their "Use", read with the reason; each wears it only while it has a "Use".
+     */
     get ringedUses(): string[] {
+        const action = this.refusedGridMajor
+        if (!action) return []
+        const cardIds = cardsMakingPossible(this.actionCards, action).flatMap((card) =>
+            actionCardUses(card).map((use) => use.cardId)
+        )
         const uses = this.useCards
-        return (this.useRing?.cardIds ?? []).filter((cardId) => uses.includes(cardId))
+        return [...new Set(cardIds)].filter((cardId) => uses.includes(cardId))
     }
 
     /** The reason a ringed "Use" is read with. */
     get useRingReason(): string | undefined {
-        return this.ringedUses.length > 0 ? this.useRing?.reasonId : undefined
+        return this.ringedUses.length > 0 ? this.gridReasonId : undefined
     }
 
     /** R-7.4 — the cards behind "Use a power" that change an action's menu, or make it possible. */

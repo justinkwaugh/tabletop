@@ -276,17 +276,44 @@ describe('R-7.4 — a card that would make a dimmed action possible wears the ri
     it("both Uses of the pair are ringed while Muster's reason shows, and the ring clears with it", async () => {
         const session = await sessionAt(pair())
         expect(session.ringedUses).toEqual([])
-        const clear = session.ringUses(ActionType.Muster, 'reason-1')
+        session.tapGridMajor(ActionType.Muster, 'reason-1')
+        expect(session.refusedGridMajor).toBe(ActionType.Muster)
         expect([...session.ringedUses].sort()).toEqual([PLAYMATES, PRESSGANGS].sort())
         expect(session.useRingReason).toBe('reason-1')
-        clear()
+        // A hover on another tile replaces the tapped reason: Trade's, which no card helps.
+        session.hoverGridTile(ActionType.Trade, true, 'reason-1')
+        expect(session.refusedGridMajor).toBe(ActionType.Trade)
         expect(session.ringedUses).toEqual([])
         expect(session.useRingReason).toBeUndefined()
     })
 
+    it('a hovered dimmed major rings while the pointer is on it; a tapped one holds after it leaves', async () => {
+        const session = await sessionAt(pair())
+        session.hoverGridTile(ActionType.Muster, true, 'reason-1')
+        expect([...session.ringedUses].sort()).toEqual([PLAYMATES, PRESSGANGS].sort())
+        session.hoverGridTile(ActionType.Muster, false, 'reason-1')
+        expect(session.ringedUses).toEqual([])
+
+        session.hoverGridTile(ActionType.Muster, true, 'reason-1')
+        session.tapGridMajor(ActionType.Muster, 'reason-1')
+        session.hoverGridTile(ActionType.Muster, false, 'reason-1')
+        expect(session.refusedGridMajor).toBe(ActionType.Muster)
+        expect([...session.ringedUses].sort()).toEqual([PLAYMATES, PRESSGANGS].sort())
+    })
+
+    it('an action opened from a ringed Use ends the reason and the ring with the grid', async () => {
+        const session = await sessionAt(pair())
+        session.hoverGridTile(ActionType.Muster, true, 'reason-1')
+        session.tapGridMajor(ActionType.Muster, 'reason-1')
+        session.useCard(PRESSGANGS)
+        expect(session.selection.action).toBe(ActionType.Muster)
+        expect(session.refusedGridMajor).toBeUndefined()
+        expect(session.hoveredGridAction).toBeUndefined()
+    })
+
     it('an action no card makes possible rings none', async () => {
         const session = await sessionAt(pair())
-        session.ringUses(ActionType.Trade, 'reason-1')
+        session.tapGridMajor(ActionType.Trade, 'reason-1')
         expect(session.ringedUses).toEqual([])
     })
 })

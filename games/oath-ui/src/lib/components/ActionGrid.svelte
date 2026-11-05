@@ -6,7 +6,6 @@
     import { ActionType } from '@tabletop/oath'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import type { ReasonPart } from '$lib/model/names.js'
-    import { cardsMakingPossible } from '$lib/model/actionCards.js'
     import {
         MAJOR_ACTIONS,
         MINOR_ACTIONS,
@@ -39,9 +38,6 @@
         assertExists(seat, 'The Act Phase grid is shown to the seat whose turn it is')
         return seat
     })
-
-    // R-7.4 — the cards that change an action, each with its "Use" where it lies.
-    let cards = $derived(gameSession.actionCards)
 
     // R-6.2, R-7.4 — a power or a card is used from its card's "Use", so Use a power has no chip.
     // R-6.3 — a relic already seen shows its face, so Peek is offered only for one not seen.
@@ -99,7 +95,7 @@
     let chipWidth = $derived(chips?.width ?? labelWidth.widest)
 
     // R-7.4 — where a card would make the action possible, its "Use" is ringed while the reason
-    // shows; the card is named only behind it.
+    // shows (the session's `ringedUses`); the card is named only behind it.
     function refusalOf(entry: MajorEntry) {
         const refusal = gridRefusal(gameState, seat.playerId, entry.type)
         if (!refusal) return undefined
@@ -110,7 +106,7 @@
                       text: `${gameSession.humanizeReason(refusal.reason)}`
                   }
                 : shortWhy(refusalWords(refusal))
-        return { ...why, cardHelps: cardsMakingPossible(cards, entry.type).length > 0 }
+        return why
     }
 
     function shortWhy(words: string): { parts: ReasonPart[]; text: string } {
@@ -119,27 +115,17 @@
 
     // A dimmed major answers "why not" under the pointer, and on a tap, where there is no hover; a
     // tapped reason holds for the state and seat it was tapped in, and a hover on another tile
-    // replaces it.
-    let tap = $state.raw<{ entry: MajorEntry; seatId: string; actionCount: number } | undefined>(
-        undefined
+    // replaces it. The pointer is the session's, as the cards' ringed "Use" reads it too.
+    const GRID_ENTRIES: readonly ActionEntry[] = [...MAJOR_ACTIONS, ...MINOR_ACTIONS]
+    let hoveredEntry = $derived(
+        GRID_ENTRIES.find((entry) => entry.type === gameSession.hoveredGridAction)
     )
-    let tapped = $derived(
-        tap && tap.seatId === seat.playerId && tap.actionCount === gameState.actionCount
-            ? tap.entry
-            : undefined
-    )
-    let hoveredEntry = $state.raw<ActionEntry | undefined>(undefined)
-    let pointedMajor = $derived(tapped ?? MAJOR_ACTIONS.find((entry) => entry === hoveredEntry))
-    let shownRefusal = $derived(
-        pointedMajor && !available(pointedMajor) ? refusalOf(pointedMajor) : undefined
-    )
+    let shownRefusal = $derived.by(() => {
+        const refused = MAJOR_ACTIONS.find((entry) => entry.type === gameSession.refusedGridMajor)
+        return refused ? refusalOf(refused) : undefined
+    })
     // The ring on the cards' "Use" is read with the reason it answers.
     const reasonId = $props.id()
-    $effect(() => {
-        if (pointedMajor && shownRefusal?.cardHelps) {
-            return gameSession.ringUses(pointedMajor.type, reasonId)
-        }
-    })
 
     let freeActionDue = $derived(freeActionDueLine(gameState, seat.playerId))
     // R-6.1, R-7.1.4 — where the Adviser chip would stand: plain words, not a chip, so no chip
@@ -152,21 +138,18 @@
 
     // A pressed tile gives way to its panel without a pointer leave, so the line clears here.
     function take(entry: ActionEntry) {
-        tap = undefined
-        hoveredEntry = undefined
+        gameSession.leaveGrid()
         if (UNTARGETED_ACTIONS.has(entry.type)) send(entry.type)
         else gameSession.chooseAction(entry.type)
     }
 
     function pressMajor(entry: MajorEntry, ok: boolean) {
         if (ok) take(entry)
-        else tap = { entry, seatId: seat.playerId, actionCount: gameState.actionCount }
+        else gameSession.tapGridMajor(entry.type, reasonId)
     }
 
     function hover(entry: ActionEntry, on: boolean) {
-        if (on && tapped !== entry) tap = undefined
-        if (on) hoveredEntry = entry
-        else if (hoveredEntry === entry) hoveredEntry = undefined
+        gameSession.hoverGridTile(entry.type, on, reasonId)
     }
 
     function pointing(entry: ActionEntry) {
