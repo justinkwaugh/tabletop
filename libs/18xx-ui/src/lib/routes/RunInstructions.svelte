@@ -50,6 +50,7 @@
                                   resume: () => void runs.keepGoing(companyId)
                               }
                             : undefined}
+                        dismiss={() => void runs.cancel(companyId)}
                         {disabled}
                     /></span
                 >

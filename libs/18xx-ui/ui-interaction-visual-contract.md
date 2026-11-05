@@ -442,7 +442,8 @@ uppercase "Autorun" label, muted until any of the viewer's companies is on and t
 text color, and a token for each such company. A token that is off is muted and
 brightens on hover; a token that is on is at full strength with a green outline. Pressing an
 off token solves the company's best run from the published state and declares the instruction
-with it; pressing an on token cancels it. The token shows its new state the moment it is
+with it; pressing an on token cancels it. A stopped instruction is not running, so its token is off
+and pressing it declares afresh. The token shows its new state the moment it is
 pressed and keeps it until the declaration lands and its presentation settles, or reverts if
 the declaration fails; controls disable while the session is busy, which includes the solve,
 but keep their appearance.
@@ -450,7 +451,8 @@ No text accompanies a running instruction. Text follows the pill only for a prob
 that cannot prove the best run within a second declares nothing and shows "The best run could
 not be found in time." in the negative color, and a stopped instruction shows "<company>
 stopped: <reason>" in the muted color with an underlined "Keep going, ignore lower runs" or
-"Keep going, ignore lost trains" link when the reason can be ignored. A "?" after the pill
+"Keep going, ignore lost trains" link when the reason can be ignored, and an underlined "Dismiss"
+link that cancels the instruction. A "?" after the pill
 opens a panel above it: a sentence on what Autorun does, a definition of each optional stop
 ("Train loss": it loses a train; "Lower run": its run earns less than when you set it), a grid
 with one row per company (token and name) and one switch column per optional stop, headed

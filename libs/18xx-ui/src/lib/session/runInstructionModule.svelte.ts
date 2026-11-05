@@ -76,7 +76,7 @@ export class RunInstructionModule {
         })
     )
     stopped = $derived(
-        this.declared.filter((declared) => declared.stopReason && this.isOn(declared.companyId))
+        this.declared.filter((declared) => declared.stopReason && !this.isOn(declared.companyId))
     )
     anyOn = $derived(this.presided.some((companyId) => this.isOn(companyId)))
 
@@ -87,7 +87,9 @@ export class RunInstructionModule {
     isOn(companyId: string): boolean {
         return this.changing?.companyId === companyId
             ? this.changing.on
-            : this.declared.some((declared) => declared.companyId === companyId)
+            : this.declared.some(
+                  (declared) => declared.companyId === companyId && !declared.stopReason
+              )
     }
 
     ignoredStops(companyId: string): readonly IgnorableRunInstructionStop[] {
@@ -104,8 +106,12 @@ export class RunInstructionModule {
             this.ignoredStops(companyId),
             stop
         )
-        if (this.declared.some((declared) => declared.companyId === companyId)) {
-            await this.change(companyId, true, async () =>
+        const declared = this.declared.find((declared) => declared.companyId === companyId)
+        if (declared) {
+            // A stopped instruction resumes only when its own stop becomes ignored.
+            const on =
+                !declared.stopReason || ignoredStops.some((stop) => stop === declared.stopReason)
+            await this.change(companyId, on, async () =>
                 this.session.createPlayerAction(SetRunInstructionStops, {
                     ...RunInstructionDeclaration,
                     companyId,
