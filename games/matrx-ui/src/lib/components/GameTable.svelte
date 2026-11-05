@@ -156,6 +156,10 @@
     .matrx-table {
         background: var(--matrx-table);
         color: var(--matrx-ink);
+        /* Workaround: iOS holds each tap outside the board (the board's wrapper turns touch
+           handling off) to see whether a second makes a double-tap zoom, so the reserve strip,
+           buttons and cards answered late. Pinch zoom still works. */
+        touch-action: manipulation;
     }
 
     .action-card {
