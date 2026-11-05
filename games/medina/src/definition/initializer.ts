@@ -21,7 +21,7 @@ import { HydratedMedinaGameState, type MedinaProjectedState } from '../model/gam
 import { citySpaces } from '../model/geometry.js'
 import { HydratedMedinaPlayerState } from '../model/playerState.js'
 import { MedinaColors } from './colors.js'
-import { hidesPieceCounts } from './gameConfig.js'
+import { hidesPieceCounts, playsWithTeaTiles } from './gameConfig.js'
 import { MachineState } from './states.js'
 
 export class MedinaGameInitializer
@@ -80,6 +80,9 @@ export class MedinaGameInitializer
             towerTiles: TOWERS.map((tower) => ({ tower })),
             singlePlacementTurnsLeft: singlePlacementTurns(playerCount)
         })
+        if (!playsWithTeaTiles(game.config)) {
+            medinaState.noTeaTiles = true
+        }
         return new HydratedMedinaGameState(medinaState)
     }
 

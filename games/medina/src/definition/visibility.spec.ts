@@ -34,7 +34,7 @@ function createGame(hiddenPieces: boolean, count = 3) {
             typeId: Definition.info.id,
             ownerId: 'owner',
             seed: 23,
-            config: { hiddenPieces },
+            config: { hiddenPieces, teaTiles: true },
             players: Array.from({ length: count }, (_, index) => ({
                 id: `p${index}`,
                 name: `Player ${index}`,
@@ -88,14 +88,16 @@ function project(
 ) {
     assert(MedinaGameStateValidator.Check(state), 'Expected complete state')
     return MedinaRuntime.visibility.state.project(state, perspective, {
-        config: { hiddenPieces }
+        config: { hiddenPieces, teaTiles: true }
     })
 }
 
 describe('Medina supplies', () => {
     it('with Hidden pieces, reach only their owner until the game ends', () => {
         let checked = 0
+        let teaTilesSeen = 0
         playToTheEnd(true, (state) => {
+            teaTilesSeen = Math.max(teaTilesSeen, ...state.players.map((p) => p.teaTiles))
             const ended = state.machineState === MachineState.EndOfGame
             for (const perspective of [
                 spectator,
@@ -118,6 +120,7 @@ describe('Medina supplies', () => {
             }
         })
         expect(checked).toBeGreaterThan(100)
+        expect(teaTilesSeen).toBeGreaterThan(0)
     })
 
     it('stay hidden when a game ends without being played out', () => {

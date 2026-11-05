@@ -4,6 +4,7 @@ import {
     GameEngine,
     PlayerStatus,
     type GameAction,
+    type GameConfig,
     type Point
 } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
@@ -16,14 +17,14 @@ import { HydratedMedinaGameState, type MedinaProjectedState } from './gameState.
 const engine = new GameEngine(MedinaRuntime)
 const masterSeed = '0123456789abcdef0123456789abcdef'
 
-function createGame(count: number) {
+function createGame(count: number, config: GameConfig = { teaTiles: true }) {
     return MedinaRuntime.initializer.initializeGame(
         {
             id: 'medina-rules',
             typeId: Definition.info.id,
             ownerId: 'owner',
             seed: 11,
-            config: {},
+            config,
             players: Array.from({ length: count }, (_, index) => ({
                 id: `p${index}`,
                 name: `Player ${index}`,
@@ -35,8 +36,8 @@ function createGame(count: number) {
     )
 }
 
-function start(count: number): HydratedMedinaGameState {
-    const { initialState } = engine.startGame(createGame(count), { masterSeed })
+function start(count: number, config?: GameConfig): HydratedMedinaGameState {
+    const { initialState } = engine.startGame(createGame(count, config), { masterSeed })
     const state = new HydratedMedinaGameState(structuredClone(initialState))
     state.well = { x: 12, y: 8 }
     state.marketStreets = [[{ x: 14, y: 1 }]]
@@ -317,6 +318,31 @@ describe('tiles', () => {
         withPalace(state, 'c', PalaceColor.Purple, [{ x: 9, y: 0 }], 'p2')
         withPalace(state, 'd', PalaceColor.Purple, [{ x: 13, y: 0 }], 'p3')
         expect(state.teaTilesForNextPurpleClaim()).toBe(0)
+    })
+
+    it('stores nothing for a game with tea tiles, the same State as a game from before the option', () => {
+        expect('noTeaTiles' in start(4, { teaTiles: true })).toBe(false)
+        expect(start(4, {}).noTeaTiles).toBe(true)
+    })
+
+    it.each([
+        ['with tea tiles', { teaTiles: true }, 3],
+        ['without tea tiles', {}, 0]
+    ])('awards a purple claim the right tiles %s', (_name, config: GameConfig, tiles) => {
+        const game = createGame(3, config)
+        const { initialState } = engine.startGame(game, { masterSeed })
+        const coords = new HydratedMedinaGameState(structuredClone(initialState)).buildingSpaces(
+            PalaceColor.Purple
+        )[0]
+        const placed = act(initialState, game, {
+            type: ActionType.PlaceBuilding,
+            color: PalaceColor.Purple,
+            coords
+        })
+        const [claimer] = placed.activePlayerIds
+        const claimed = act(placed, game, { type: ActionType.PlaceRooftop, coords, neutral: false })
+        const hydrated = new HydratedMedinaGameState(claimed)
+        expect(hydrated.getPlayerState(claimer).teaTiles).toBe(tiles)
     })
 })
 

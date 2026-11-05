@@ -116,6 +116,8 @@ export const MedinaGameState = Type.Object({
     players: Type.Array(MedinaPlayerState),
     machineState: Type.Enum(MachineState),
     hiddenPieces: Type.Boolean(),
+    // Written only without the Tea tiles option, so games stored before it keep their tea tiles.
+    noTeaTiles: Type.Optional(Type.Literal(true)),
     well: Point,
     palaces: Type.Array(Palace),
     buildings: Type.Array(PalacePiece),
@@ -148,6 +150,7 @@ export class HydratedMedinaGameState
     declare turnManager: HydratedTurnManager
     declare machineState: MachineState
     declare hiddenPieces: boolean
+    declare noTeaTiles?: true
     declare result?: GameResult
     declare winningPlayerIds: string[]
     declare well: Point
@@ -534,6 +537,9 @@ export class HydratedMedinaGameState
     }
 
     teaTilesForNextPurpleClaim(): number {
+        if (this.noTeaTiles) {
+            return 0
+        }
         const claimed = this.palaces.filter(
             (palace) => palace.color === PalaceColor.Purple && palace.rooftop
         ).length

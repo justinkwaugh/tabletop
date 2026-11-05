@@ -449,7 +449,7 @@
             {/each}
         {/each}
         {#if teaLeft > 0}
-            <g transform={uprightMatrix(projection, layout.tea)}>
+            <g data-tile="tea" transform={uprightMatrix(projection, layout.tea)}>
                 <TileArt name="tea" size={layout.teaSize} badge={teaLeft} />
             </g>
         {/if}

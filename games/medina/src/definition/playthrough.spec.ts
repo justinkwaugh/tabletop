@@ -7,9 +7,12 @@ import {
     assertExists,
     reportGameProgress,
     validateGameResult,
-    type GameAction
+    type GameAction,
+    type GameConfig
 } from '@tabletop/common'
 import * as Value from 'typebox/value'
+import { isPlaceRooftop } from '../actions/placeRooftop.js'
+import { isTakeTeaBreak } from '../actions/takeTeaBreak.js'
 import { PALACE_COLORS, startingStock } from '../components/pieces.js'
 import { HydratedMedinaGameState, type MedinaProjectedState } from '../model/gameState.js'
 import { legalActions } from '../testing/legalActions.js'
@@ -20,14 +23,14 @@ import { MachineState } from './states.js'
 const engine = new GameEngine(MedinaRuntime)
 const masterSeed = '0123456789abcdef0123456789abcdef'
 
-function createGame(count: number) {
+function createGame(count: number, config: GameConfig) {
     return MedinaRuntime.initializer.initializeGame(
         {
             id: 'medina-playthrough',
             typeId: Definition.info.id,
             ownerId: 'owner',
             seed: 23,
-            config: {},
+            config,
             players: Array.from({ length: count }, (_, index) => ({
                 id: `p${index}`,
                 name: `Player ${index}`,
@@ -56,8 +59,8 @@ function chooseMove(state: MedinaProjectedState, choose: (length: number) => num
     return ofKind[choose(ofKind.length)]
 }
 
-function play(count: number, seed: number) {
-    const game = createGame(count)
+function play(count: number, seed: number, config: GameConfig = { teaTiles: true }) {
+    const game = createGame(count, config)
     let { initialState: state } = engine.startGame(game, { masterSeed })
     const choose = seededChooser(seed)
     const actions: GameAction[] = []
@@ -134,5 +137,23 @@ describe.each([2, 3, 4])('a whole game with %i players', (count) => {
                     : hydrated.size().height
             expect(onSide.length).toBeLessThan(length)
         }
+    })
+})
+
+describe('tea tiles over a whole game', () => {
+    const teaAwards = (actions: GameAction[]) =>
+        actions.flatMap((action) =>
+            isPlaceRooftop(action) && action.metadata?.teaTiles ? [action.metadata.teaTiles] : []
+        )
+
+    it.each([1, 2, 3])('are earned with the option, seed %i', (seed) => {
+        expect(teaAwards(play(4, seed).actions).length).toBeGreaterThan(0)
+    })
+
+    it.each([1, 2, 3])('never appear without it, seed %i', (seed) => {
+        const { state, actions } = play(4, seed, {})
+        expect(teaAwards(actions)).toEqual([])
+        expect(actions.some(isTakeTeaBreak)).toBe(false)
+        expect(state.players.every((player) => player.teaTiles === 0)).toBe(true)
     })
 })

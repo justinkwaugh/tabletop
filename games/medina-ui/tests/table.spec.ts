@@ -21,7 +21,10 @@ test.afterEach(({ page }) => {
     expect(pageErrors.get(page)).toEqual([])
 })
 
-async function createGame(page: Page, options: { hiddenPieces?: boolean } = {}) {
+async function createGame(
+    page: Page,
+    options: { hiddenPieces?: boolean; teaTiles?: boolean } = {}
+) {
     await page.route('**/model/sessionContext.svelte.ts*', async (route) => {
         const response = await route.fetch()
         const body = await response.text()
@@ -42,6 +45,9 @@ async function createGame(page: Page, options: { hiddenPieces?: boolean } = {}) 
         .fill('0123456789abcdef0123456789abcdef')
     const names = page.getByPlaceholder('player name')
     for (let i = 1; i < (await names.count()); i++) await names.nth(i).fill(`Player ${i + 1}`)
+    if (options.teaTiles) {
+        await page.getByRole('checkbox', { name: /^Tea tiles/ }).check({ force: true })
+    }
     if (options.hiddenPieces) {
         await page.getByRole('checkbox', { name: /^Hidden pieces/ }).check({ force: true })
     }
@@ -443,21 +449,44 @@ test('a piece chosen while the board updates is the first thing Undo takes back'
     expect(await page.evaluate(() => window.medinaSession.actions.length)).toBe(placedBefore + 1)
 })
 
-test('tea break is offered from the start of a turn and leaves one piece to place', async ({
-    page
-}) => {
-    await createGame(page)
+async function claimPurplePalace(page: Page) {
     await page.getByRole('button', { name: /^Purple/ }).click()
     await targets(page).first().click()
     await expect.poll(() => piecesOnBoard(page)).toBe(1)
     await expect.poll(() => page.evaluate(() => window.medinaSession.canAct)).toBe(true)
-    const drinker = await page.evaluate(() => window.medinaSession.gameState.activePlayerIds[0])
+    const claimer = await page.evaluate(() => window.medinaSession.gameState.activePlayerIds[0])
     await page.getByRole('button', { name: /^Rooftop/ }).click()
     await targets(page).first().click()
-    const tea = page.getByRole('button', { name: /^Tea break/ })
     await expect
         .poll(() => page.evaluate(() => window.medinaSession.gameState.activePlayerIds[0]))
-        .not.toBe(drinker)
+        .not.toBe(claimer)
+    return claimer
+}
+
+test('the tea stack shows on the board only with the tea tiles option', async ({ page }) => {
+    await createGame(page, { teaTiles: true })
+    await expect(page.locator('[data-tile="tea"]')).toHaveCount(1)
+})
+
+test('a game without the tea tiles option has no tea tiles to claim', async ({ page }) => {
+    await createGame(page)
+    await expect(page.locator('[data-tile="tea"]')).toHaveCount(0)
+    const claimer = await claimPurplePalace(page)
+    await expect(page.locator('[data-tile="tea"]')).toHaveCount(0)
+    expect(
+        await page.evaluate(
+            (id) => window.medinaSession.gameState.getPlayerState(id).teaTiles,
+            claimer
+        )
+    ).toBe(0)
+})
+
+test('tea break is offered from the start of a turn and leaves one piece to place', async ({
+    page
+}) => {
+    await createGame(page, { teaTiles: true })
+    const drinker = await claimPurplePalace(page)
+    const tea = page.getByRole('button', { name: /^Tea break/ })
     await expect(tea).toHaveCount(0)
     for (let placed = 0; placed < 40; placed++) {
         const active = await page.evaluate(() => window.medinaSession.gameState.activePlayerIds[0])
