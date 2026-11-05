@@ -72,6 +72,13 @@ export const SearchResolveMetadata = Type.Object({
     revealedKeptCardId: Type.Optional(Type.String()),
     /** Cracked Horn */
     discardToWorldDeck: Type.Optional(Type.Boolean()),
+    /**
+     * Land Warden — from revision 33 (R-X.4): the second card's own discards, the last `count` of `discardedCardIds`,
+     * go down after the kept card's power's, the first `afterPileDeposits` of `pileDeposits` (R-7.3.3).
+     */
+    secondDiscards: Type.Optional(
+        Type.Object({ count: Type.Number(), afterPileDeposits: Type.Number() })
+    ),
     /** R-5.1.4.I — with Land Warden, both cards' favor. */
     favorGained: Type.Number(),
     /** R-9.3 — the banks that could not give the favor a site play takes, the site's or a Homeland's. */
@@ -292,6 +299,18 @@ export class HydratedSearchResolve
             ...played.discarded,
             ...(second?.discarded ?? [])
         ]
+        // Land Warden — the second card's own discards (an adviser at the limit, the Vision it replaced) go down after
+        // the kept card's power, so from revision 33 they lie above that power's discards. Before it (R-X.4) they went
+        // down with the Search's own.
+        const secondDiscards =
+            second &&
+            second.discarded.length > 0 &&
+            isAtLeastOathRevision(state, OathRevision.EngineFixes28)
+                ? {
+                      count: second.discarded.length,
+                      afterPileDeposits: played.outcome.pileDeposits?.length ?? 0
+                  }
+                : undefined
         // Land Warden — the record holds what both plays did. Of the second play's `PowerOutcome` only its pile
         // deposits can be set, since that play takes no choices and no hidden draw (docs/known-deviations.md).
         const triggered = [...(played.triggered ?? []), ...(second?.triggered ?? [])]
@@ -321,6 +340,7 @@ export class HydratedSearchResolve
             discardPileRegion: discardTarget?.region ?? discardRegionFor(region),
             discardToBottom: discardTarget?.bottom || undefined,
             discardToWorldDeck: discardTarget?.worldDeck || undefined,
+            secondDiscards,
             favorGained,
             favorShort: favorShort.length > 0 ? favorShort : undefined,
             secretsGained: played.secretsGained + (second?.secretsGained ?? 0) || undefined,
