@@ -262,8 +262,8 @@ on has a green outline, and nothing else is written while it runs. A stopped
 instruction's token is off, and pressing it declares afresh. Text appears only
 for a problem: a run that could not be found, or the stop reason with "Keep
 going, ignore …" for an ignorable stop and "Dismiss" to clear the notice. A "?" opens the stops: a grid with a row
-per company and a switch per ignorable stop, chosen ahead for a company that is
-off and declared at once for one that is on. Declaration and stop records are
+per company and a switch per ignorable stop, chosen ahead for a company with no
+instruction and declared at once for one with an instruction, running or stopped. Declaration and stop records are
 bookkeeping that history does not show, as for Autopass. The full contract is in
 `libs/18xx-ui/ui-interaction-visual-contract.md`, Run instructions.
 

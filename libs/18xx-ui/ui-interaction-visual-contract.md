@@ -457,8 +457,10 @@ opens a panel above it: a sentence on what Autorun does, a definition of each op
 ("Train loss": it loses a train; "Lower run": its run earns less than when you set it), a grid
 with one row per company (token and name) and one switch column per optional stop, headed
 "You choose" in its corner, and an "Always" list of the stops that cannot be switched off. A
-switch for a company that is on declares the change at once; one for a company that is off is
-kept locally and sent with its declaration. The row lists only the viewer's own companies and
+switch for a company with an instruction, running or stopped, declares the change at once, and a
+stopped token turns on only if the change ignores the stop that fired; a switch for a company with
+no instruction is kept locally and sent with its declaration. Cancelling keeps the instruction's
+choices locally for its next declaration. The row lists only the viewer's own companies and
 instructions; other players' instructions are never shown, a presentation rule over public
 Game State. Choices kept locally belong to the viewer who made them, and a failure message
 belongs to the position it was shown for. Nothing here is a staged selection: Undo and

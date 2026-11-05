@@ -33,6 +33,13 @@ export type RunInstructionSession = ModuleSession<
 export type InstructedRunSolve = (companyId: string) => Promise<InstructedRun>
 type RunInstructionFailure = { companyId: string; message: string }
 
+function runsIgnoring(
+    declared: StandingRunInstruction,
+    ignoredStops: readonly IgnorableRunInstructionStop[]
+): boolean {
+    return !declared.stopReason || ignoredStops.some((ignored) => ignored === declared.stopReason)
+}
+
 export class RunInstructionModule {
     constructor(
         private readonly session: RunInstructionSession,
@@ -85,15 +92,13 @@ export class RunInstructionModule {
     }
 
     isOn(companyId: string): boolean {
-        return this.changing?.companyId === companyId
-            ? this.changing.on
-            : this.declared.some(
-                  (declared) => declared.companyId === companyId && !declared.stopReason
-              )
+        if (this.changing?.companyId === companyId) return this.changing.on
+        const declared = this.#declaredFor(companyId)
+        return !!declared && !declared.stopReason
     }
 
     ignoredStops(companyId: string): readonly IgnorableRunInstructionStop[] {
-        const declared = this.declared.find((declared) => declared.companyId === companyId)
+        const declared = this.#declaredFor(companyId)
         if (declared) return declared.ignoredStops ?? []
         const drafts = this.#draftIgnoredStops
         if (!drafts || drafts.playerId !== this.session.playerId) return []
@@ -106,12 +111,9 @@ export class RunInstructionModule {
             this.ignoredStops(companyId),
             stop
         )
-        const declared = this.declared.find((declared) => declared.companyId === companyId)
+        const declared = this.#declaredFor(companyId)
         if (declared) {
-            // A stopped instruction resumes only when its own stop becomes ignored.
-            const on =
-                !declared.stopReason || ignoredStops.some((stop) => stop === declared.stopReason)
-            await this.change(companyId, on, async () =>
+            await this.change(companyId, runsIgnoring(declared, ignoredStops), async () =>
                 this.session.createPlayerAction(SetRunInstructionStops, {
                     ...RunInstructionDeclaration,
                     companyId,
@@ -151,12 +153,14 @@ export class RunInstructionModule {
     }
 
     async cancel(companyId: string) {
-        await this.change(companyId, false, async () =>
-            this.session.createPlayerAction(SetRunInstruction, {
+        const ignoredStops = [...this.ignoredStops(companyId)]
+        await this.change(companyId, false, async () => {
+            this.#setDraft(companyId, ignoredStops)
+            return this.session.createPlayerAction(SetRunInstruction, {
                 ...RunInstructionDeclaration,
                 companyId
             })
-        )
+        })
     }
 
     async keepGoing(companyId: string) {
@@ -192,6 +196,10 @@ export class RunInstructionModule {
         } finally {
             this.changing = undefined
         }
+    }
+
+    #declaredFor(companyId: string): StandingRunInstruction | undefined {
+        return this.declared.find((declared) => declared.companyId === companyId)
     }
 
     #setDraft(companyId: string, stops: IgnorableRunInstructionStop[] | undefined) {
