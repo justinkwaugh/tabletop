@@ -1,4 +1,4 @@
-import { GameVisibility, type GameInfo } from '@tabletop/common'
+import type { GameInfo } from '@tabletop/common'
 import { MedinaConfigurator } from './gameConfig.js'
 import { MedinaPreferenceDefinition } from './preferences.js'
 import { GAME_VERSION } from './version.js'
@@ -17,8 +17,7 @@ export const MedinaInfo: GameInfo = {
         maxPlayers: 4,
         defaultPlayerCount: 4,
         version: GAME_VERSION,
-        beta: true,
-        visibility: GameVisibility.Beta
+        beta: false
     },
     preferences: MedinaPreferenceDefinition,
     configurator: new MedinaConfigurator()
