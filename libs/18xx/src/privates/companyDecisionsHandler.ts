@@ -32,6 +32,7 @@ import {
     HydratedLayPrivateTileOutOfTurn
 } from './layPrivateTile.js'
 import { HydratedPlacePrivateMarker } from './placePrivateMarker.js'
+import { HydratedPlacePrivateToken } from './placePrivateToken.js'
 import { hasLegalPrivateTrackUse } from './privatePowerRequest.js'
 import type { PrivatePowerRules } from './privatePowers.js'
 import { HydratedDeclinePrivateStation, HydratedPlacePrivateStation } from './privateStation.js'
@@ -48,7 +49,8 @@ export function isCompanyDecisionAction(
     | HydratedPlacePrivateStation
     | HydratedDeclinePrivateStation
     | HydratedBuyPrivateTrain
-    | HydratedPlacePrivateMarker {
+    | HydratedPlacePrivateMarker
+    | HydratedPlacePrivateToken {
     return (
         action instanceof HydratedOfferPurchase ||
         action instanceof HydratedRespondToPurchaseOffer ||
@@ -60,7 +62,8 @@ export function isCompanyDecisionAction(
         action instanceof HydratedPlacePrivateStation ||
         action instanceof HydratedDeclinePrivateStation ||
         action instanceof HydratedBuyPrivateTrain ||
-        action instanceof HydratedPlacePrivateMarker
+        action instanceof HydratedPlacePrivateMarker ||
+        action instanceof HydratedPlacePrivateToken
     )
 }
 export class CompanyDecisionsHandler<
@@ -142,6 +145,8 @@ export class CompanyDecisionsHandler<
                 actions.push('LayPrivateTile')
             if (this.powers.markerTerms?.(state, company.id, playerId)?.locationIds.length)
                 actions.push('PlacePrivateMarker')
+            if (this.powers.tokenTerms?.(state, company.id, playerId)?.positions.length)
+                actions.push('PlacePrivateToken')
             const buyer = this.powers.earlyTrainCompany(state, company.id, playerId)
             if (
                 buyer &&

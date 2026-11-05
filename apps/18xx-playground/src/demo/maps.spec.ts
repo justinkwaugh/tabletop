@@ -1,3 +1,5 @@
+import { EighteenNinetyFourMarket } from '@tabletop/1894'
+import { EighteenNinetyFourMapView } from '@tabletop/1894-ui/playground'
 import { Presentation1846 } from '../../../../games/1846-ui/src/lib/presentation.js'
 import { EighteenSeventeenPresentation } from '../../../../games/1817-ui/src/lib/presentation.js'
 import { MapView1846 } from '../../../../games/1846-ui/src/lib/mapView.js'
@@ -162,6 +164,11 @@ describe.each([
         name: '1832',
         view: EighteenThirtyTwoMapView,
         market: EighteenThirtyTwoMarket
+    },
+    {
+        name: '1894',
+        view: EighteenNinetyFourMapView,
+        market: EighteenNinetyFourMarket
     }
 ])('$name board', ({ view, market, cell, zones }) => {
     it('keeps every drawn market cell and the depot clear of every hex', () => {

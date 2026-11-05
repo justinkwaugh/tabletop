@@ -22,8 +22,9 @@ import {
 } from '../tiles/tile.js'
 import { rotateTileEdge, rotateTileFace } from '../tiles/topology.js'
 import { ConstructionReachability } from './constructionReachability.js'
-import { preservesPath, fixedNodeRevenue } from './trackUpgrade.js'
+import { preservesPath, fixedNodeRevenue, type TileNodeMapping } from './trackUpgrade.js'
 import {
+    keepsExits,
     replacementMappings,
     replacesColorAndStops,
     requiredLabels,
@@ -31,6 +32,9 @@ import {
     tileExitCount
 } from './tileReplacement.js'
 import { assert, assertExists } from '@tabletop/common'
+import type { OperatingSet } from '../operating/operatingSet.js'
+import type { GameEnding } from '../ending/gameEnding.js'
+import type { AccessRightState } from '../rights/accessRights.js'
 
 export const TrackStep = Type.Object(
     {
@@ -48,7 +52,20 @@ export const TrackStep = Type.Object(
                 { additionalProperties: false }
             )
         ),
-        completed: Type.Boolean()
+        completed: Type.Boolean(),
+        /** Tiles a private laid this turn beyond the company's ordinary lays. */
+        extraLays: Type.Optional(
+            Type.Array(
+                Type.Object(
+                    {
+                        locationId: Type.String(),
+                        definitionId: Type.String(),
+                        privateCompanyId: Type.String()
+                    },
+                    { additionalProperties: false }
+                )
+            )
+        )
     },
     { additionalProperties: false }
 )
@@ -71,7 +88,13 @@ export function laidTileFace(
     assertExists(definition, 'A lay records a tile of its set')
     return definition.face
 }
-export type ConstructionState = CompanyState & MapStateData & { trackStep?: TrackStep }
+/** What construction reads: the company and map, the turn's lays, and the set and ending in play. */
+export type ConstructionState = CompanyState &
+    MapStateData & {
+        trackStep?: TrackStep
+        operatingSet?: OperatingSet
+        gameEnding?: GameEnding
+    } & AccessRightState
 export const TrackRequest = Type.Object(
     {
         companyId: Type.String(),
@@ -101,6 +124,10 @@ export const TrackLayDetails = Type.Object(
         terrainCost: Type.Integer({ minimum: 0 }),
         allowanceCost: Type.Integer({ minimum: 0 }),
         movedStations: Type.Array(PlacedStation),
+        /** Stations a reconfiguring upgrade set aside for their owners to place again. */
+        displacedStationIds: Type.Optional(Type.Array(Type.String())),
+        /** The upgrade rebuilt the hex's cities, keeping only its exits. */
+        reconfigured: Type.Optional(Type.Literal(true)),
         effects: Type.Optional(TrackLayEffects)
     },
     { additionalProperties: false }
@@ -125,6 +152,15 @@ export interface TrackRules {
      * cities. When it becomes allowed is the title's ``restriction``.
      */
     upgradesWithinColor?(locationId: string, before: TileFace, after: TileFace): boolean
+    /**
+     * Whether the title lets this tile replace the hex's tile by rebuilding its cities rather
+     * than preserving their track, as 1894's green cities split into two brown cities. The family
+     * then requires each exit of the old tile to remain, sets the hex's stations aside for their
+     * owners to place again, and turns its reservations into claims on any of its cities.
+     */
+    reconfigures?(locationId: string, before: TileFace, after: TileFace): boolean
+    /** A set-aside station may join a full city, beside the one already there (1894 §7.3.8). */
+    sharesFullCities?: true
     /** Whether the company's network may continue through a revenue center, as its routes may. */
     stopAllowed?(state: ConstructionState, companyId: string, center: RevenueCenter): boolean
     preservesStops(before: TileFace, after: TileFace): boolean
@@ -223,7 +259,8 @@ export class TrackConstruction {
             for (const rotation of Rotations) {
                 const before = this.mapState.tile(locationId)
                 const after = rotateTileFace(definition.face, rotation)
-                for (const nodeMapping of replacementMappings(
+                for (const nodeMapping of this.layMappings(
+                    locationId,
                     rotateTileFace(before.face, before.rotation),
                     after
                 )) {
@@ -262,7 +299,11 @@ export class TrackConstruction {
                 other.face.color === definition.face.color &&
                 tileExitCount(other.face) > tileExitCount(definition.face) &&
                 Rotations.some((rotation) =>
-                    replacementMappings(before, rotateTileFace(other.face, rotation)).some(
+                    this.layMappings(
+                        request.locationId,
+                        before,
+                        rotateTileFace(other.face, rotation)
+                    ).some(
                         (nodeMapping) =>
                             !!this.evaluatePlacement({
                                 ...request,
@@ -303,8 +344,9 @@ export class TrackConstruction {
         const previous = this.mapState.tile(locationId)
         const before = rotateTileFace(previous.face, previous.rotation)
         const after = rotateTileFace(definition.face, rotation)
+        const reconfiguring = this.reconfiguring(locationId, before, after)
         if (
-            !replacementMappings(before, after).some(
+            !this.layMappings(locationId, before, after).some(
                 (mapping) =>
                     Object.keys(mapping).length === Object.keys(nodeMapping).length &&
                     Object.entries(mapping).every(([id, target]) => nodeMapping[id] === target)
@@ -363,7 +405,11 @@ export class TrackConstruction {
                     piece.faceDefinitionIds.includes(definitionId)
             )
         if (!piece) return { reason: 'No tile remains in the supply' }
-        const migrated = this.migrateStations(request, after)
+        const migrated = this.migrateStations(
+            request,
+            after,
+            reconfiguring && !Object.keys(nodeMapping).length
+        )
         if (!migrated) return { reason: 'The upgrade cannot preserve all station spaces' }
         const network = this.network(companyId).connections(locationId, after, migrated)
         const reverse = Object.fromEntries(
@@ -387,7 +433,13 @@ export class TrackConstruction {
         if (
             !this.rules.useful({
                 home: this.rules.homeLocations(companyId).includes(locationId),
-                connected: after.paths.some((path) => network.paths.has(path.id)),
+                connected:
+                    after.paths.some((path) => network.paths.has(path.id)) ||
+                    migrated.displaced.some(
+                        (id) =>
+                            this.state.stations.find((station) => station.id === id)?.companyId ===
+                            companyId
+                    ),
                 newTrack,
                 increasedCityRevenue,
                 connectedCity: onNetwork('city'),
@@ -411,7 +463,9 @@ export class TrackConstruction {
                 terrainCost,
                 ...(consentPlayerId ? { consentPlayerId } : {}),
                 allowanceCost: allowance.cost,
-                movedStations: migrated.moved
+                movedStations: migrated.moved,
+                ...(migrated.displaced.length ? { displacedStationIds: migrated.displaced } : {}),
+                ...(migrated.reconfigured ? { reconfigured: true } : {})
             }
         }
     }
@@ -451,10 +505,22 @@ export class TrackConstruction {
                 this.availablePieces(definition.id).length > 0 &&
                 Rotations.some(
                     (rotation) =>
-                        replacementMappings(before, rotateTileFace(definition.face, rotation))
-                            .length > 0
+                        this.layMappings(
+                            locationId,
+                            before,
+                            rotateTileFace(definition.face, rotation)
+                        ).length > 0
                 )
         )
+    }
+    /** The node mappings that keep the hex's track, or a reconfiguration's empty mapping. */
+    private layMappings(locationId: string, before: TileFace, after: TileFace): TileNodeMapping[] {
+        const mappings = replacementMappings(before, after)
+        if (mappings.length || !this.reconfiguring(locationId, before, after)) return mappings
+        return [{}]
+    }
+    private reconfiguring(locationId: string, before: TileFace, after: TileFace): boolean {
+        return !!this.rules.reconfigures?.(locationId, before, after) && keepsExits(before, after)
     }
     private replacesTile(locationId: string): boolean {
         return this.rules.colorOrder.indexOf(this.mapState.tile(locationId).face.color) > 0
@@ -483,9 +549,24 @@ export class TrackConstruction {
     }
     private migrateStations(
         request: TrackRequest,
-        after: TileFace
-    ): (StationState & { moved: PlacedStation[] }) | undefined {
+        after: TileFace,
+        reconfigured = false
+    ):
+        | (StationState & { moved: PlacedStation[]; displaced: string[]; reconfigured: boolean })
+        | undefined {
         const { locationId, nodeMapping: mapping } = request
+        if (reconfigured) {
+            const displaced = this.state.stations.filter(
+                (station) =>
+                    station.status === 'placed' && station.position.locationId === locationId
+            )
+            return {
+                ...stationsAfterReconfiguration(this.state, locationId, displaced),
+                moved: [],
+                displaced: displaced.map((station) => station.id),
+                reconfigured
+            }
+        }
         const occupied = new Map<string, Set<number>>()
         const stations: Station[] = []
         const moved: PlacedStation[] = []
@@ -518,8 +599,46 @@ export class TrackConstruction {
         return {
             stations,
             moved,
-            stationReservations: reservationsAfterLay(this.state, this.rules, request)
+            displaced: [],
+            reconfigured: false,
+            stationReservations: reservationsAfterLay(this.state, this.rules, request),
+            hexReservations: this.state.hexReservations
         }
+    }
+}
+
+/**
+ * A reconfigured hex sets its stations aside and turns its reservations into claims on any of
+ * its cities.
+ */
+function stationsAfterReconfiguration(
+    state: StationState,
+    locationId: string,
+    displaced: readonly { id: string }[]
+): StationState {
+    const reservations = state.stationReservations.filter(
+        (reservation) => reservation.locationId === locationId
+    )
+    const claims = [...new Set(reservations.map((reservation) => reservation.companyId))].map(
+        (companyId) => ({ companyId, locationId })
+    )
+    return {
+        stations: state.stations.map((station): Station =>
+            displaced.some((entry) => entry.id === station.id)
+                ? {
+                      id: station.id,
+                      companyId: station.companyId,
+                      status: 'displaced',
+                      locationId
+                  }
+                : station
+        ),
+        stationReservations: state.stationReservations.filter(
+            (reservation) => reservation.locationId !== locationId
+        ),
+        ...(state.hexReservations || claims.length
+            ? { hexReservations: [...(state.hexReservations ?? []), ...claims] }
+            : {})
     }
 }
 
@@ -528,11 +647,18 @@ export function stationsAfterLay(
     details: TrackLayDetails,
     rules: Pick<TrackRules, 'printedReservationNode'>
 ): StationState {
+    if (details.reconfigured)
+        return stationsAfterReconfiguration(
+            state,
+            details.locationId,
+            (details.displacedStationIds ?? []).map((id) => ({ id }))
+        )
     return {
         stations: state.stations.map(
             (station) => details.movedStations.find((moved) => moved.id === station.id) ?? station
         ),
-        stationReservations: reservationsAfterLay(state, rules, details)
+        stationReservations: reservationsAfterLay(state, rules, details),
+        ...(state.hexReservations ? { hexReservations: state.hexReservations } : {})
     }
 }
 

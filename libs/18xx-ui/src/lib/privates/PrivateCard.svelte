@@ -1,9 +1,9 @@
 <script lang="ts">
     import type { MoneyFormat } from '../presentation/money.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
-    import TrainBadge from '../trains/TrainBadge.svelte'
     import type { StationAppearance } from '../maps/stationPresentation.js'
     import PlaceText from '../places/PlaceText.svelte'
+    import PhaseText from '../phases/PhaseText.svelte'
     import { ArtworkLoad } from '../presentation/artworkLoad.svelte.js'
     import '../presentation/artworkStandIn.css'
     let {
@@ -30,16 +30,9 @@
     } = $props()
     const artwork = new ArtworkLoad(() => imageUrl)
     const paragraphs = $derived(description.split('\n\n'))
-    const phaseReference = /\b(?:phases?|at)\s$/i
 </script>
 
-{#snippet phaseText(text: string)}{@const parts =
-        text.split(
-            /(\b\d+(?:H|\+)?)/g
-        )}{#each parts as part, partIndex (partIndex)}{#if phaseColors[part] && phaseReference.test(parts[partIndex - 1] ?? '')}<TrainBadge
-                name={part}
-                color={phaseColors[part]}
-            />{:else}{part}{/if}{/each}{/snippet}
+{#snippet phaseText(text: string)}<PhaseText {text} {phaseColors} />{/snippet}
 
 <div
     class="private-card"

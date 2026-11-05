@@ -15,12 +15,14 @@ import { recordTurnPurchase } from '../stock/turnPurchases.js'
 import {
     CompanyStartDetails,
     evaluateCompanyStart,
+    claimStartHome,
     placeStartHome,
     startCompanyAtPar
 } from './companyStart.js'
 import type { FormationState } from './companyState.js'
 import type { StockRules } from '../stock/stockRules.js'
 import type { CompanyRules } from './companyRules.js'
+import type { MapStateData } from '../map/mapState.js'
 
 export const StartCompany = Type.Object(
     {
@@ -67,7 +69,7 @@ export class HydratedStartCompany
         this.#stockRules = stockRules
         this.#companyRules = companyRules
     }
-    apply(state: HydratedGameState & FormationState): void {
+    apply(state: HydratedGameState & FormationState & MapStateData): void {
         assert(this.source === ActionSource.User, 'Starting a company requires a player action')
         const result = evaluateCompanyStart(state, this, this.#stockRules, this.#companyRules)
         assert(result.details, result.reason ?? 'Invalid company start')
@@ -83,7 +85,11 @@ export class HydratedStartCompany
         recordStockAction(state, this.playerId, this.#stockRules.round)
         recordTurnPurchase(state, this.#stockRules, { kind: 'start', companyId: this.companyId })
         applySharePurchase(state, result.details)
-        if (result.details.home) placeStartHome(state, result.details.home)
+        const { home, homeClaim } = result.details
+        if (home) {
+            if (homeClaim) claimStartHome(state, home, homeClaim)
+            else placeStartHome(state, home)
+        }
         this.#companyRules.onStart?.(state, result.details)
         this.metadata = result.details
     }

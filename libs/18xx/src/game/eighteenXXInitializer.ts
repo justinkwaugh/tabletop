@@ -126,6 +126,9 @@ export class EighteenXXInitializer<
                     ...('usedPrivatePowerIds' in this.rules.state.schema.properties
                         ? { usedPrivatePowerIds: [] }
                         : {}),
+                    ...('accessRights' in this.rules.state.schema.properties
+                        ? { accessRights: [] }
+                        : {}),
                     machineState: 'StockRound',
                     stockRound: createStockRound(parts.stockRoundNumber),
                     turnManager: new HydratedTurnManager({

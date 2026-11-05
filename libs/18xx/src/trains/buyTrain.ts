@@ -110,7 +110,11 @@ export function applyTrainPurchase(
         }
     ])
     if (details.exchangeTrainId)
-        releaseTrains(state.trainInventory, [details.exchangeTrainId], 'market')
+        releaseTrains(
+            state.trainInventory,
+            [details.exchangeTrainId],
+            rules.exchangedTrainDestination ?? 'market'
+        )
     const toPhaseId = rules.phaseAfterPurchase(state, details.definitionId)
     const payments = settleTrainDepartures(state, rules, [
         { trainId: details.trainId, definitionId: details.definitionId, cause: 'purchase' }
@@ -119,8 +123,11 @@ export function applyTrainPurchase(
         kind: 'company',
         companyId: details.companyId
     })
-    if (state.trainPurchaseStep?.companyId === details.companyId)
+    if (state.trainPurchaseStep?.companyId === details.companyId) {
         state.trainPurchaseStep.purchasedTrainIds.push(details.trainId)
+        if (details.exchangeTrainId)
+            (state.trainPurchaseStep.exchangedTrainIds ??= []).push(details.exchangeTrainId)
+    }
     closePrivatesOnTrainPurchase(state, rules, details.companyId)
     preparePhaseChange(state, details.trainId, details.definitionId, toPhaseId, {
         machineState: state.machineState,

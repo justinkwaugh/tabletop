@@ -112,6 +112,9 @@ export * from './funding/goBankrupt.js'
 export * from './funding/raisingCashHandler.js'
 export * from './funding/sellSharesToPay.js'
 export * from './loans/loans.js'
+export * from './rights/accessRights.js'
+export * from './rights/buyAccessRight.js'
+export * from './rights/accessRightsHandler.js'
 export * from './loans/loanTakingHandler.js'
 export * from './loans/payInterest.js'
 export * from './loans/repayingLoansHandler.js'
@@ -120,7 +123,10 @@ export * from './loans/takeLoan.js'
 export * from './map/locationMarkers.js'
 export * from './map/placeReferences.js'
 export * from './privates/placePrivateMarker.js'
+export * from './privates/placePrivateToken.js'
 export * from './stations/chooseHomeStation.js'
+export * from './stations/returnStation.js'
+export * from './stations/displacedStationsHandler.js'
 export * from './stations/finishStations.js'
 export * from './stations/placeHomeStations.js'
 export * from './stations/placeStation.js'
@@ -261,6 +267,8 @@ export * from './construction/automaticTrackCompletionHandler.js'
 export {
     payingRouteStops,
     routeConnectionBonuses,
+    routeBestStopBonuses,
+    type BestStopBonus,
     routeInterconnectionBonus,
     routeStopBonuses,
     type Interconnection,

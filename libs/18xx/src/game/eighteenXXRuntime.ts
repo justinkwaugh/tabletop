@@ -25,6 +25,10 @@ import { FundingTrainHandler } from '../funding/fundingTrainHandler.js'
 import { RaisingCashHandler } from '../funding/raisingCashHandler.js'
 import { loanActions } from '../loans/loanActions.js'
 import { LoanTakingHandler } from '../loans/loanTakingHandler.js'
+import { AccessRightsHandler } from '../rights/accessRightsHandler.js'
+import { accessRightActions } from '../rights/rightsActions.js'
+import { DisplacedStationsHandler } from '../stations/displacedStationsHandler.js'
+import { HydratedReturnStation, ReturnStation, isReturnStation } from '../stations/returnStation.js'
 import { RepayingLoansHandler } from '../loans/repayingLoansHandler.js'
 import { operatingActions } from '../operating/operatingActions.js'
 import {
@@ -102,6 +106,7 @@ function validateStateComposition(
         | 'stockRules'
         | 'privatePowerRules'
         | 'trainFundingRules'
+        | 'accessRightRules'
         | 'corporateFinanceRules'
         | 'runInstructions'
     >,
@@ -123,6 +128,7 @@ function validateStateComposition(
         ['privatePowerRequests', !!options.privatePowerRules.betweenTurnsPrivateIds?.length],
         ['privateStation', !!options.privatePowerRules.stationPrivateIds?.length],
         ['locationMarkers', !!options.privatePowerRules.markerTerms],
+        ['accessRights', !!options.accessRightRules],
         ['financeStep', !!options.corporateFinanceRules]
     ]
     for (const [field, supported] of features)
@@ -259,9 +265,18 @@ export function createEighteenXXRuntime<
             : handler
     const allowsLoans = (handler: Handler): Handler =>
         loanRules ? new LoanTakingHandler(handler, loanRules) : handler
+    const { accessRightRules } = options
+    const allowsRights = (handler: Handler): Handler =>
+        accessRightRules ? new AccessRightsHandler(handler, accessRightRules) : handler
+    const returnsStations = (handler: Handler): Handler =>
+        options.trackRules.reconfigures ? new DisplacedStationsHandler(handler) : handler
     const operatingStep = (handler: Handler): Handler =>
         endsGame(
-            allowsPrivatePowerRequests(allowsCompanyDecisions(allowsExchange(allowsLoans(handler))))
+            returnsStations(
+                allowsPrivatePowerRequests(
+                    allowsCompanyDecisions(allowsExchange(allowsRights(allowsLoans(handler))))
+                )
+            )
         )
     const runInstructionRules = {
         routeRules: options.routeRules,
@@ -392,23 +407,25 @@ export function createEighteenXXRuntime<
             decides('StartingOperatingSet', new StartOperatingSetHandler(BetweenCompaniesState))
         ),
         OperatingSet: endsGame(
-            allowsPrivatePowerRequests(
-                new BetweenCompaniesHandler(
-                    decides(
-                        'OperatingSet',
-                        endsFinanceStep(
-                            choosesHome(
-                                new StartOperatingTurnHandler(
-                                    options.stationRules,
-                                    operatingRules,
-                                    familySteps[0]
+            returnsStations(
+                allowsPrivatePowerRequests(
+                    new BetweenCompaniesHandler(
+                        decides(
+                            'OperatingSet',
+                            endsFinanceStep(
+                                choosesHome(
+                                    new StartOperatingTurnHandler(
+                                        options.stationRules,
+                                        operatingRules,
+                                        familySteps[0]
+                                    )
                                 )
                             )
-                        )
-                    ),
-                    options.privatePowerRules,
-                    options.trackRules,
-                    options.stationRules
+                        ),
+                        options.privatePowerRules,
+                        options.trackRules,
+                        options.stationRules
+                    )
                 )
             )
         ),
@@ -441,9 +458,11 @@ export function createEighteenXXRuntime<
                               'PlacingStation',
                               decides(
                                   'PlacingStation',
-                                  new PlacingStationHandler(
-                                      options.stationRules,
-                                      after('PlacingStation')
+                                  allowsCorporateFinance(
+                                      new PlacingStationHandler(
+                                          options.stationRules,
+                                          after('PlacingStation')
+                                      )
                                   )
                               )
                           )
@@ -591,10 +610,20 @@ export function createEighteenXXRuntime<
             receivershipRules
         ),
         ...loanActions(loanRules, rules),
+        ...accessRightActions(accessRightRules),
         ...cashCrisisActions(options.cashCrisisRules, options.endingRules),
         ...stockActions(rules, options.endingRules),
         ...companyActions(companyRules, rules),
         ...stationActions(options.stationRules),
+        ...(options.trackRules.reconfigures
+            ? [
+                  defineAction(
+                      ReturnStation,
+                      isReturnStation,
+                      (action) => new HydratedReturnStation(action, options.stationRules)
+                  )
+              ]
+            : []),
         ...routeActions(options.routeRules),
         ...(instructedRunRules ? runInstructionActions(instructedRunRules) : []),
         ...(corporateFinanceRules ? corporateFinanceActions(corporateFinanceRules) : []),

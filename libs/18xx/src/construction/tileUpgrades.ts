@@ -3,6 +3,7 @@ import type { TileDefinition } from '../tiles/tile.js'
 import { rotateTileFace, TileEdges } from '../tiles/topology.js'
 import type { TrackRules } from './trackConstruction.js'
 import {
+    keepsExits,
     replacementMappings,
     replacesColorAndStops,
     requiredLabels,
@@ -58,7 +59,7 @@ export class TileUpgrades {
             const after = tiles.filter(
                 (tile) =>
                     replacesColorAndStops(this.rules, location.id, before.face, tile.face) &&
-                    this.keepsTrackOf(before, tile)
+                    this.keepsTrackOf(location.id, before, tile)
             )
             for (const tile of this.mostExitsWhereRequired(before, after)) this.add(before, tile)
         }
@@ -78,15 +79,22 @@ export class TileUpgrades {
         )
     }
 
-    private keepsTrackOf(before: TileDefinition, after: TileDefinition): boolean {
-        const key = `${before.id} ${after.id}`
+    private keepsTrackOf(
+        locationId: string,
+        before: TileDefinition,
+        after: TileDefinition
+    ): boolean {
+        const reconfigures = !!this.rules.reconfigures?.(locationId, before.face, after.face)
+        const key = `${before.id} ${after.id} ${reconfigures}`
         let keeps = this.keepsTrack.get(key)
         if (keeps === undefined) {
-            keeps = TileEdges.some(
-                (rotation) =>
-                    replacementMappings(before.face, rotateTileFace(after.face, rotation)).length >
-                    0
-            )
+            keeps = TileEdges.some((rotation) => {
+                const rotated = rotateTileFace(after.face, rotation)
+                return (
+                    replacementMappings(before.face, rotated).length > 0 ||
+                    (reconfigures && keepsExits(before.face, rotated))
+                )
+            })
             this.keepsTrack.set(key, keeps)
         }
         return keeps

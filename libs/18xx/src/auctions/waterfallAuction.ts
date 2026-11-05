@@ -60,9 +60,11 @@ export interface WaterfallAuctionRules {
     firstBidAtPrice?: true
     /**
      * When every player passes: the first lot's price falls until a lot is sold and income is
-     * paid after (the default), or pending bids resolve in lot order and then income is paid.
+     * paid after (the default); pending bids resolve in lot order and then income is paid; or,
+     * with ``discount-and-income``, the first lot's price falls while it is unsold and income is
+     * paid whenever any lot has been sold.
      */
-    allPass?: 'discount-or-income' | 'resolve-bids-then-income'
+    allPass?: 'discount-or-income' | 'resolve-bids-then-income' | 'discount-and-income'
     /** How many times income is paid when every player passes; once unless given. */
     incomeRounds?: number
     /**
@@ -80,7 +82,9 @@ export type AuctionResolution =
     | { kind: 'income' }
     | { kind: 'complete' }
 export type ResolvedAuction =
-    Exclude<AuctionResolution, { kind: 'income' }> | { kind: 'income'; payments: CashPayment[] }
+    | Exclude<AuctionResolution, { kind: 'income' | 'discount' }>
+    | { kind: 'discount'; payments?: CashPayment[] }
+    | { kind: 'income'; payments: CashPayment[] }
 export class ReserveBidAuction {
     constructor(
         private readonly state: AuctionState,
@@ -228,6 +232,10 @@ export class ReserveBidAuction {
         if (bids.length > 1) return { kind: 'open-bidding', lotId }
         if (this.auction.passedPlayerIds.length !== this.state.players.length) return undefined
         if (this.rules.allPass === 'resolve-bids-then-income') return this.pendingBidResolution()
+        if (this.rules.allPass === 'discount-and-income')
+            return {
+                kind: this.auction.remainingLotIds.includes(this.lots[0].id) ? 'discount' : 'income'
+            }
         return { kind: this.auction.awards.length ? 'income' : 'discount' }
     }
     /** After everyone passes, each lot's pending bids resolve in order as if it were current. */
@@ -286,6 +294,10 @@ export class ReserveBidAuction {
                     this.auction.discount + this.rules.increment
                 )
                 this.auction.passedPlayerIds = []
+                const payments =
+                    this.rules.allPass === 'discount-and-income' && this.auction.awards.length
+                        ? this.payIncome()
+                        : []
                 if (this.price(this.lots[0].id) === 0) {
                     this.award({
                         lotId: this.lots[0].id,
@@ -294,15 +306,10 @@ export class ReserveBidAuction {
                     })
                     this.advanceOuterTurn()
                 }
-                break
+                return { kind: 'discount', ...(payments.length ? { payments } : {}) }
             }
             case 'income': {
-                const payments: CashPayment[] = []
-                for (let round = 0; round < (this.rules.incomeRounds ?? 1); round++) {
-                    const paid = this.rules.incomePayments(this.state)
-                    settleCashPayments(this.state, paid)
-                    payments.push(...paid)
-                }
+                const payments = this.payIncome()
                 this.auction.passedPlayerIds = []
                 return { kind: 'income', payments }
             }
@@ -311,6 +318,15 @@ export class ReserveBidAuction {
                 break
         }
         return result
+    }
+    private payIncome(): CashPayment[] {
+        const payments: CashPayment[] = []
+        for (let round = 0; round < (this.rules.incomeRounds ?? 1); round++) {
+            const paid = this.rules.incomePayments(this.state)
+            settleCashPayments(this.state, paid)
+            payments.push(...paid)
+        }
+        return payments
     }
     private award(award: AuctionAward): void {
         this.rules.award(this.state, award)

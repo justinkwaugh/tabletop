@@ -43,6 +43,17 @@ import {
     EighteenThirtyTwoMapView,
     EighteenThirtyTwoTileLayouts
 } from '@tabletop/1832-ui/playground'
+import {
+    EighteenNinetyFourMap,
+    EighteenNinetyFourTileSet,
+    EighteenNinetyFourTitleRules
+} from '@tabletop/1894'
+import { EighteenNinetyFourScenarios } from '@tabletop/1894/scenarios'
+import { UiDefinition as EighteenNinetyFourUi } from '@tabletop/1894-ui'
+import {
+    EighteenNinetyFourMapView,
+    EighteenNinetyFourTileLayouts
+} from '@tabletop/1894-ui/playground'
 import type { EighteenXXTitleRules, RailwayMap, TileRotation, TileSet } from '@tabletop/18xx'
 import type { ScenarioDefinition, ScenarioPosition } from '@tabletop/18xx/scenarios'
 import type { Component } from 'svelte'
@@ -177,6 +188,21 @@ export const PlaygroundTitles: readonly PlaygroundTitle[] = [
         tileSets: { '1832': EighteenThirtyTwoTileSet },
         positions: [],
         finishedGame: () => import('./demo/fixtures/1832-finished.json')
+    },
+    {
+        key: '1894',
+        name: '1894',
+        rules: EighteenNinetyFourTitleRules,
+        scenarios: EighteenNinetyFourScenarios,
+        host: scenarioHost(EighteenNinetyFourUi, EighteenNinetyFourScenarios),
+        map: EighteenNinetyFourMap,
+        mapLayouts: EighteenNinetyFourMapView.layouts,
+        mapView: EighteenNinetyFourMapView,
+        tileLayouts: EighteenNinetyFourTileLayouts,
+        mapExample: { locationId: 'E16', definitionId: '18xx:57', rotation: 0, label: 'Belge' },
+        tileSets: { '1894': EighteenNinetyFourTileSet },
+        positions: [],
+        playerCounts: [3, 4]
     }
 ]
 

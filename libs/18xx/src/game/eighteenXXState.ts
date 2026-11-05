@@ -30,6 +30,7 @@ import { CashCrisisFields } from '../funding/cashCrisis.js'
 import { CorporateFinanceFields } from '../finance/corporateFinance.js'
 import { FundingFields, validateTrainFunding } from '../funding/trainFunding.js'
 import { LoanFields } from '../loans/loans.js'
+import { AccessRightFields } from '../rights/accessRights.js'
 import { LocationMarkerFields } from '../map/locationMarkers.js'
 import { MapFields, RailwayMapState } from '../map/mapState.js'
 import { validateStations } from '../map/station.js'
@@ -113,6 +114,7 @@ type RuntimeFields = Omit<typeof RailwayFields, 'companies' | 'certificates' | '
     typeof LocationMarkerFields &
     typeof CompanyAuctionFields &
     typeof LoanFields &
+    typeof AccessRightFields &
     typeof CorporateFinanceFields &
     typeof CashCrisisFields & {
         tranches: Type.TOptional<Type.TArray<typeof CompanyTranche>>
@@ -216,9 +218,9 @@ export type StateValidation<State> = (state: State, components: TitleComponents)
 
 export const validateRailwayComponents: StateValidation<EighteenXXState> = (
     state,
-    { map, tileSet, depot, market }
+    { map, tileSet, depot, market, sharesFullCities }
 ) => {
-    new RailwayMapState(map, tileSet, state.tileInventory).validateStations(state)
+    new RailwayMapState(map, tileSet, state.tileInventory).validateStations(state, sharesFullCities)
     const companyIds = state.companies.map((company) => company.id)
     const playerIds = state.players.map((player) => player.playerId)
     depot.validateInventory(state.trainInventory, companyIds, playerIds)

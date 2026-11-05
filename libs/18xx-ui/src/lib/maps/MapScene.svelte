@@ -16,6 +16,8 @@
     import { MountainIcon } from './terrainIcons.js'
     import { ClassicTileAppearance, type TileAppearance } from '../tiles/tileAppearance.js'
     import {
+        stationSlotPoint,
+        borderDash,
         assertMapOverlays,
         mapViewport,
         type BoardArtwork,
@@ -125,7 +127,13 @@
     const selectedPath = $derived(selection?.kind === 'path' ? selection.pathId : undefined)
 
     function borderColor(kind: string): string {
-        return kind === 'water' ? '#226db5' : kind === 'mountain' ? '#875e36' : '#b02235'
+        return kind === 'water'
+            ? '#226db5'
+            : kind === 'mountain'
+              ? '#875e36'
+              : kind === 'province'
+                ? '#8a6a3f'
+                : '#b02235'
     }
     const borderCosts = $derived(
         mapBorderCosts(scene).map((cost) => ({
@@ -370,6 +378,17 @@
                             >
                         {/if}
                     {/each}
+                    {#each tokens.filter((token) => token.locationId === id && token.nodeId === node.node.id && token.slot >= node.slots.length) as token (token.id)}
+                        {@const point = stationSlotPoint(node, token.slot) ?? node.center}
+                        <g data-map-token={token.id} class="shared-space">
+                            <CompanyToken
+                                appearance={token}
+                                size={tokenSize}
+                                x={point.x - tokenSize / 2}
+                                y={point.y - tokenSize / 2}
+                            />
+                        </g>
+                    {/each}
                 {/each}
                 {#if entry.townRing}
                     {#each entry.drawing.nodes.filter((node) => node.node.kind === 'town') as node (node.node.id)}
@@ -491,6 +510,23 @@
                                     fill={appearance.ink}
                                     ><title>{marker.description}</title>{marker.label}</text
                                 >
+                            {:else if art && 'note' in art && !entry.placed}
+                                {@const lines = art.note.lines ?? [marker.label]}
+                                <text
+                                    data-map-marker-note={marker.id}
+                                    y={art.note.at.y}
+                                    font-size={art.note.fontSize}
+                                    font-weight="700"
+                                    stroke="none"
+                                    fill={art.note.offHex
+                                        ? 'var(--rail-text, #514536)'
+                                        : appearance.ink}
+                                    ><title>{marker.description}</title
+                                    >{#each lines as line, index (index)}<tspan
+                                            x={art.note.at.x}
+                                            dy={index ? art.note.fontSize * 1.2 : 0}>{line}</tspan
+                                        >{/each}</text
+                                >
                             {:else if art && 'centeredLabel' in art && !entry.placed}
                                 <text
                                     data-map-marker-label={marker.id}
@@ -545,6 +581,29 @@
                                         font-size="8"
                                         font-weight="800"
                                         fill={appearance.paper}>{annotation.label}</text
+                                    >
+                                </g>
+                            {:else if annotation.kind === 'box'}
+                                <g
+                                    data-map-revenue-box={annotation.markerId}
+                                    transform={`translate(${annotation.x} ${annotation.y})`}
+                                >
+                                    <rect
+                                        x={-annotation.width / 2}
+                                        y={-annotation.height / 2}
+                                        width={annotation.width}
+                                        height={annotation.height}
+                                        fill={appearance.paper}
+                                        stroke={appearance.ink}
+                                        stroke-width="0.8"
+                                    ></rect>
+                                    <text
+                                        text-anchor="middle"
+                                        dominant-baseline="central"
+                                        font-size="8"
+                                        font-weight="800"
+                                        stroke="none"
+                                        fill={appearance.ink}>{annotation.label}</text
                                     >
                                 </g>
                             {:else if annotation.kind === 'caption'}
@@ -758,6 +817,22 @@
             {#each entries as entry (entry.location.id)}
                 <g transform={`translate(${entry.center.x} ${entry.center.y})`}>
                     {#each entry.borders as { start, end, border } (border.edge)}
+                        {@const width = scene.borderWidths[border.kind] ?? 3}
+                        {@const dash =
+                            border.kind === 'province' ? borderDash(start, end) : undefined}
+                        {#if dash}
+                            <line
+                                x1={start.x}
+                                y1={start.y}
+                                x2={end.x}
+                                y2={end.y}
+                                stroke={appearance.ink}
+                                stroke-width={width + 1.4}
+                                stroke-linecap="round"
+                                stroke-dasharray={dash.array}
+                                stroke-dashoffset={dash.offset}
+                            ></line>
+                        {/if}
                         <line
                             data-map-border={border.edge}
                             x1={start.x}
@@ -765,7 +840,10 @@
                             x2={end.x}
                             y2={end.y}
                             stroke={borderColor(border.kind)}
-                            stroke-width={scene.borderWidths[border.kind] ?? 3}
+                            stroke-width={width}
+                            stroke-linecap={dash ? 'round' : undefined}
+                            stroke-dasharray={dash?.array}
+                            stroke-dashoffset={dash?.offset}
                         ></line>
                     {/each}
                 </g>
@@ -870,47 +948,87 @@
         </g>
     {/if}
     <g data-map-layer="local-lines" pointer-events="none" aria-hidden="true">
-        {#each entries.filter((entry) => !entry.placed) as entry (entry.location.id)}
+        {#each entries as entry (entry.location.id)}
             {#each (entry.location.markers ?? []).filter((marker) => {
                 const art = entry.markerArt[marker.id]
-                return art && 'localLine' in art
+                return art && 'localLine' in art && (!entry.placed || ('onTile' in art && art.onTile))
             }) as marker (marker.id)}
-                {@const position = localLinePosition(
-                    entry.markerArt[marker.id],
-                    entry.localLineAboveY
-                )}
-                <g
-                    data-map-marker-local-line={marker.id}
-                    transform={`translate(${entry.center.x + position.x} ${entry.center.y + position.y})`}
-                    fill={appearance.ink}
-                >
-                    <text
-                        x="-2"
-                        text-anchor="end"
-                        dominant-baseline="central"
-                        font-size="8"
-                        font-weight="850"
-                        paint-order="stroke"
-                        stroke={appearance.colors[entry.face.color]}
-                        stroke-width="2.4"
-                        stroke-linejoin="round">{marker.label}</text
+                {@const tileTag = entry.placed ? entry.localLineOnTile : undefined}
+                {@const position =
+                    tileTag ?? localLinePosition(entry.markerArt[marker.id], entry.localLineAboveY)}
+                {#if tileTag}
+                    <g
+                        data-map-marker-local-line={marker.id}
+                        transform={`translate(${entry.center.x + position.x} ${entry.center.y + position.y})`}
                     >
-                    <path d="M4 0H14" stroke={appearance.ink} stroke-width="1.6"></path>
-                    <circle
-                        cx="4"
-                        r="2.6"
-                        fill={appearance.paper}
-                        stroke={appearance.ink}
-                        stroke-width="1"
-                    ></circle>
-                    <circle
-                        cx="14"
-                        r="2.6"
-                        fill={appearance.paper}
-                        stroke={appearance.ink}
-                        stroke-width="1"
-                    ></circle>
-                </g>
+                        <rect
+                            x="-17"
+                            y="-4.5"
+                            width="34"
+                            height="9"
+                            rx="2"
+                            fill={appearance.paper}
+                            stroke={appearance.ink}
+                            stroke-width="0.6"
+                        ></rect>
+                        <text
+                            x="-15.5"
+                            dominant-baseline="central"
+                            font-size="6"
+                            font-weight="850"
+                            stroke="none"
+                            fill={appearance.ink}>{marker.label}</text
+                        >
+                        <path d="M6 0H13" stroke={appearance.ink} stroke-width="1.2"></path>
+                        <circle
+                            cx="6"
+                            r="1.9"
+                            fill={appearance.paper}
+                            stroke={appearance.ink}
+                            stroke-width="0.8"
+                        ></circle>
+                        <circle
+                            cx="13"
+                            r="1.9"
+                            fill={appearance.paper}
+                            stroke={appearance.ink}
+                            stroke-width="0.8"
+                        ></circle>
+                    </g>
+                {:else}
+                    <g
+                        data-map-marker-local-line={marker.id}
+                        transform={`translate(${entry.center.x + position.x} ${entry.center.y + position.y})`}
+                        fill={appearance.ink}
+                    >
+                        <text
+                            x="-2"
+                            text-anchor="end"
+                            dominant-baseline="central"
+                            font-size="8"
+                            font-weight="850"
+                            paint-order="stroke"
+                            stroke={appearance.colors[entry.face.color]}
+                            stroke-width="2.4"
+                            stroke-linejoin="round">{marker.label}</text
+                        >
+                        <path d="M4 0H14" stroke={appearance.ink} stroke-width="1.6"></path>
+                        <circle
+                            cx="4"
+                            r="2.6"
+                            fill={appearance.paper}
+                            stroke={appearance.ink}
+                            stroke-width="1"
+                        ></circle>
+                        <circle
+                            cx="14"
+                            r="2.6"
+                            fill={appearance.paper}
+                            stroke={appearance.ink}
+                            stroke-width="1"
+                        ></circle>
+                    </g>
+                {/if}
             {/each}
         {/each}
     </g>

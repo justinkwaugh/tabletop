@@ -21,17 +21,17 @@
     "FloatCompany": "fe40eddcc820c104eac6d3cb5441d5c814542f3e3cbf6dc503dfd14beaec0634",
     "FundTrain": "e7c9d823dbfac75958205395e0042a381fdd600d3251714a052b40306b30dd7b",
     "IssueTreasuryShares": "279bff01f9fccd7d55c16a13b95aad4074974d1b87ae8bfd3052380b36af1786",
-    "LayPrivateTile": "1404c555285a822cb1983d86deb8ec815c268ee852f6f6809c549414c55207c5",
-    "LayTile": "174dc0d6144f117b548a9b4dee01e7434e13d0e7c43c35877dba1bfb41bcd172",
+    "LayPrivateTile": "de25ff1e8aeadca222bc399a5e17e4a4759418618361981d7f6d6f86acde6b21",
+    "LayTile": "8de0ad15e8365fd604f94438d94ce76c823ce0d5637f79f9ae77b1d751d5fd5f",
     "OfferAuctionLot": "bde8b4af6123bba0fab6130406b1a3d63f316e99e63b95d039cbb6d5df7ebccb",
     "OfferPurchase": "f7caacc23e89f905a0e2ce7d92d19ebe53eccb67a00217c020476a772abc61ec",
     "PassAuction": "8f80db14291be75adbc7a2ac100d007b389a0f925a9bdca6308769d9b093ec87",
     "PlaceHomeStations": "bdbe821f15683c4ed63a6f6f385accb49beee48d2727d3df382533750fec7d0a",
     "PlaceStation": "642f3ab37cd70c2294fd3704f13f035b5678061c83c47ab5318f791c9d8cfee1",
     "RequestTrackConsent": "d707e81670fcfd54f376f8cc7d602a7a9b1b3c964f0fc61238601ab1446d0118",
-    "ResolveAuction": "07d8455452250935fc92e2577da57ac841b168a26f0736edc841532431c0430f",
+    "ResolveAuction": "9c8f176314018029b7c625d56a546a68de6645aa264ff9a89e554ad3eb358b87",
     "RespondToPurchaseOffer": "3750e29e4505cbce5f65efe310687f638d05f3123780dd6a0779679ea7657e00",
-    "RespondToTrackConsent": "723a0508d5a63c9693fc24e8fc5647bd2ad1dfe098daa711345a3ce9870a6f10",
+    "RespondToTrackConsent": "61bc3d23824f13246e4b924e82e3c9c552ef8efe19a1668becdd1a31dfd41f7b",
     "RunTrains": "2c2acc1e37f0747f108f4cde5ded277fea110974d0ac82261fa3847e80171daa",
     "RustTrains": "04877126159679eab415b42c62724c9a3f1ce24f2765a37d077ab2f791101d64",
     "ScheduleGameEnd": "9fe8533e7967cbf7186df25d65592a7571e9caa1e561d18674ab008e1a503ab2",
@@ -42,7 +42,7 @@
     "SetStockInstruction": "f9e0135eb86ac336732583b340948e7cab9329226323428ec0d39aca77037ae5",
     "SetStockInstructionStops": "724aa6a19020cdd568fefb89be3f6a307970bbd79977565045d21485eec2a1df",
     "SplitCompany": "0a59f3271231af60a4652343f3bd9df3a55bb8fefaa14a9cf9231cb2e0d86fd1",
-    "StartCompany": "47a6be63272f16b03da62bcc77e5f27d2056f9a7c10eaf3d88dad21a58d9ab91",
+    "StartCompany": "97c4b2c6e4509d9dfa29dcd82e59d9149304e28826d158413ae03726955c2b48",
     "StartOperatingRound": "204c7657c15a991c8932d3f6b933c6f6c3700e8469359e3dc420ea432584be58",
     "StartOperatingSet": "ee617e6c56f3bf1e5aad22cb29f693e1dc445edcf6d43b2b5fdeb69a13080e64",
     "StartOperatingTurn": "2c0369d55c9a242e6070110252b785b930f6f3d539978be515b5d84d4a47a710",
@@ -1256,6 +1256,27 @@
       },
       "gameId": {
         "type": "string"
+      },
+      "hexReservations": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "companyId": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "locationId": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "companyId",
+            "locationId"
+          ],
+          "type": "object"
+        },
+        "type": "array"
       },
       "id": {
         "type": "string"
@@ -2679,6 +2700,34 @@
                 "status"
               ],
               "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "companyId": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "id": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "locationId": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "status": {
+                  "const": "displaced",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "companyId",
+                "id",
+                "locationId",
+                "status"
+              ],
+              "type": "object"
             }
           ]
         },
@@ -3543,6 +3592,12 @@
               "definitionId": {
                 "type": "string"
               },
+              "displacedStationIds": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
               "effects": {
                 "additionalProperties": false,
                 "properties": {
@@ -3846,6 +3901,10 @@
                 ],
                 "type": "object"
               },
+              "reconfigured": {
+                "const": true,
+                "type": "boolean"
+              },
               "rotation": {
                 "anyOf": [
                   {
@@ -3917,6 +3976,29 @@
           },
           "completed": {
             "type": "boolean"
+          },
+          "extraLays": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "definitionId": {
+                  "type": "string"
+                },
+                "locationId": {
+                  "type": "string"
+                },
+                "privateCompanyId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "definitionId",
+                "locationId",
+                "privateCompanyId"
+              ],
+              "type": "object"
+            },
+            "type": "array"
           },
           "lays": {
             "items": {
@@ -4324,6 +4406,14 @@
           "companyId": {
             "minLength": 1,
             "type": "string"
+          },
+          "exchangedTrainIds": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array",
+            "uniqueItems": true
           },
           "purchasedTrainIds": {
             "items": {

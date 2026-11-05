@@ -8,7 +8,15 @@ import type { CompanyStartDetails } from './companyStart.js'
 import type { StationPosition } from '../map/station.js'
 
 /** A city a company may start in, with what its treasury pays for the home there. */
-export type StartHome = StationPosition & { cost: number }
+export type StartHome = StationPosition & {
+    cost: number
+    /**
+     * The home is only claimed as the company starts, to be placed as it first operates: this
+     * city, or any open city of its hex. Otherwise the home is placed as the company starts.
+     */
+    claims?: StartHomeClaim
+}
+export type StartHomeClaim = 'city' | 'hex'
 
 export interface CompanyRules {
     startMarketSpaces(state: FormationState, companyId: string): string[]
@@ -36,4 +44,6 @@ export interface CompanyRules {
      * auction waits while the new owner sets it.
      */
     parAfterAward?: true
+    /** The par spaces open to a player setting par after an award; ``startMarketSpaces`` unless given. */
+    awardParSpaces?(state: FormationState, companyId: string): string[]
 }

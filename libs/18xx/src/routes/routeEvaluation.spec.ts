@@ -393,10 +393,91 @@ it('counts the locations of a stop group as one stop', () => {
         ]).result?.revenue
     ).toBe(30)
 })
-it('rejects a stop group with a single location', () => {
+it('rejects a stop group with a single stop', () => {
     expect(() => fixture([city('yellow', [0], 20, 1)], undefined, { 0: 'Gulf' })).toThrow(
-        'Stop group Gulf needs more than one location'
+        'Stop group Gulf needs more than one stop'
     )
+})
+it('counts the separate cities of one grouped hex as one stop', () => {
+    const paris: TileFace = {
+        color: 'yellow',
+        labels: [],
+        nodes: [
+            { id: 'west', kind: 'city', stationSlots: 1, revenue: { kind: 'fixed', amount: 30 } },
+            { id: 'east', kind: 'city', stationSlots: 1, revenue: { kind: 'fixed', amount: 30 } }
+        ],
+        paths: [
+            {
+                id: 'in',
+                endpoints: [
+                    { kind: 'edge', edge: 3 },
+                    { kind: 'node', nodeId: 'west' }
+                ]
+            },
+            {
+                id: 'link',
+                endpoints: [
+                    { kind: 'node', nodeId: 'west' },
+                    { kind: 'node', nodeId: 'east' }
+                ]
+            }
+        ]
+    }
+    const { running, route } = fixture(
+        [city('yellow', [0], 20, 1), paris],
+        { measure: 'revenue-centers', maximum: 3 },
+        { 1: 'Paris' }
+    )
+    const once = {
+        ...route,
+        paths: [
+            { locationId: '0', pathId: 'edge-0' },
+            { locationId: '1', pathId: 'in' }
+        ]
+    }
+    expect(running.evaluate('A', [once]).result?.revenue).toBe(50)
+    const twice = { ...once, paths: [...once.paths, { locationId: '1', pathId: 'link' }] }
+    expect(running.evaluate('A', [twice]).reason).toBe('A route may visit Paris only once.')
+})
+it('lets a train with an extra town visit one more stop only when it is a town', () => {
+    const faces = [
+        city('yellow', [0], 20, 1),
+        town('yellow', [[3, 0]], 10),
+        city('green', [3, 0], 30, 2),
+        town('yellow', [[3]], 10)
+    ]
+    const plusOne = fixture(faces, { measure: 'revenue-centers', maximum: 3, extraTowns: 1 })
+    expect(plusOne.running.evaluate('A', [plusOne.route]).result?.revenue).toBe(70)
+    const plain = fixture(faces, { measure: 'revenue-centers', maximum: 3 })
+    expect(plain.running.evaluate('A', [plain.route]).reason).toContain('distance limit')
+    const cities = fixture(
+        [city('yellow', [0], 20, 1), city('green', [3, 0], 30, 2), city('green', [3], 40, 2)],
+        { measure: 'revenue-centers', maximum: 2, extraTowns: 1 }
+    )
+    expect(cities.running.evaluate('A', [cities.route]).reason).toContain('distance limit')
+})
+it('adds the best value of the route’s other stops to a best-stop location', () => {
+    const faces = [
+        city('yellow', [0], 20, 1),
+        city('green', [3, 0], 50, 2),
+        offboard([3], staged([['yellow', 0]]))
+    ]
+    const { running, route, rules, state } = fixture(faces)
+    expect(running.evaluate('A', [route]).result?.revenue).toBe(70)
+    const valued = new RouteEvaluation(state, {
+        ...rules,
+        bestStopBonuses: () => [{ locationIds: ['2'], sourceId: 'largest' }]
+    })
+    const result = valued.evaluate('A', [route]).result
+    expect(result?.revenue).toBe(120)
+    expect(result?.routes[0].bonuses).toEqual([
+        { locationId: '2', amount: 50, sourceIds: ['largest'] }
+    ])
+    const ignoring = new RouteEvaluation(state, {
+        ...rules,
+        bestStopBonuses: () => [{ locationIds: ['2'], ignoredLocationIds: ['1'] }]
+    })
+    expect(ignoring.evaluate('A', [route]).result?.revenue).toBe(90)
 })
 it('rejects a second stop in one hex when a title allows only one', () => {
     const { rules, state } = fixture([

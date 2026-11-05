@@ -25,21 +25,41 @@ export const StationPosition = Type.Object(
     { additionalProperties: false }
 )
 export type StationPosition = Type.Static<typeof StationPosition>
+
+export function sameStationPosition(a: StationPosition, b: StationPosition): boolean {
+    return a.locationId === b.locationId && a.nodeId === b.nodeId && a.slot === b.slot
+}
 const Identity = { id: Id, companyId: Id }
 export const PlacedStation = Type.Object(
     { ...Identity, status: Type.Literal('placed'), position: StationPosition },
     { additionalProperties: false }
 )
 export type PlacedStation = Type.Static<typeof PlacedStation>
+/**
+ * A station an upgrade set aside, as 1894's split cities do, until its owner places it again
+ * on the same hex.
+ */
+export const DisplacedStation = Type.Object(
+    { ...Identity, status: Type.Literal('displaced'), locationId: Id },
+    { additionalProperties: false }
+)
+export type DisplacedStation = Type.Static<typeof DisplacedStation>
 export const Station = Type.Union([
     Type.Object(
         { ...Identity, status: Type.Literal('available') },
         { additionalProperties: false }
     ),
     PlacedStation,
-    Type.Object({ ...Identity, status: Type.Literal('removed') }, { additionalProperties: false })
+    Type.Object({ ...Identity, status: Type.Literal('removed') }, { additionalProperties: false }),
+    DisplacedStation
 ])
 export type Station = Type.Static<typeof Station>
+/** A company's claim to a station space somewhere on a hex, such as a home on a split city. */
+export const HexReservation = Type.Object(
+    { companyId: Id, locationId: Id },
+    { additionalProperties: false }
+)
+export type HexReservation = Type.Static<typeof HexReservation>
 /**
  * A place a company uses as one of its stations to build and run from without a piece of its
  * own there: a station shared with another company, or a private's offboard.
@@ -59,6 +79,7 @@ export type StationAccess = Type.Static<typeof StationAccess>
 export const StationFields = {
     stations: Type.Array(Station),
     stationReservations: Type.Array(StationReservation),
+    hexReservations: Type.Optional(Type.Array(HexReservation)),
     stationAccess: Type.Optional(Type.Array(StationAccess))
 }
 export type StationState = Type.Static<Type.TObject<typeof StationFields>>

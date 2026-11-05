@@ -27,6 +27,8 @@
         "@tabletop/1830-ui": "workspace:*",
         "@tabletop/1846": "workspace:*",
         "@tabletop/1846-ui": "workspace:*",
+        "@tabletop/1894": "workspace:*",
+        "@tabletop/1894-ui": "workspace:*",
         "@tabletop/18xx": "workspace:*",
         "@tabletop/18xx-autorouter": "workspace:*",
         "@tabletop/18xx-ui": "workspace:*",

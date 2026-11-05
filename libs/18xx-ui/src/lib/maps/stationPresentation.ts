@@ -83,6 +83,8 @@ export type MapViewDefinition = {
     nameLines?: Readonly<Record<string, readonly string[]>>
     /** Offboards' and red towns' names in their own larger type, as a board printing them for its connections. */
     offboardNames?: OffboardNameStyle
+    /** A location's name in its own type, by location id, such as a board's largest destination. */
+    nameStyles?: Readonly<Record<string, OffboardNameStyle>>
     /**
      * Where a location's revenue-sized symbols go on its printed hex, by location id, in place of
      * clear space: the centre of their row, or each symbol's own centre. A laid tile keeps them
@@ -106,6 +108,11 @@ export type MapViewDefinition = {
     /** Names for the kinds of marker private powers place during play, such as mines. */
     locationMarkerNames?: Readonly<Record<string, string>>
     layouts?: Readonly<Record<string, TileLayout>>
+    /**
+     * How a one-space city draws while it holds two stations, by tile id then node id: as a
+     * two-space city, in this layout over the tile's own.
+     */
+    sharedCityLayouts?: Readonly<Record<string, Readonly<Record<string, TileLayout>>>>
     /**
      * Layout overrides that only apply in the published presentation, keyed like ``layouts``.
      * Used to move station slots onto the printed city circles of the board artwork.

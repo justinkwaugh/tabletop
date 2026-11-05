@@ -1,6 +1,7 @@
 import type { EighteenXXRuntimeSchema, TitleStateSchema } from '@tabletop/18xx'
 import { constructionOperatingSteps, operatingStepIndex } from '../table/operatingStep.js'
 import {
+    privateIncome,
     cashOwnedBy,
     EighteenXXPreferenceDefinition,
     getCompany,
@@ -73,6 +74,8 @@ import { CompanyDecisionsModule } from './companyDecisionsModule.svelte.js'
 import { DiscardModule } from './discardModule.svelte.js'
 import { EarningsModule } from './earningsModule.svelte.js'
 import { LoanModule } from './loanModule.svelte.js'
+import { AccessRightsModule } from './accessRightsModule.svelte.js'
+import { StationReturnModule } from './stationReturnModule.svelte.js'
 import { TitleStockPanels, type TitleStockPanel } from './titleStockPanels.svelte.js'
 import { MapModule, MapStyleAppearances } from './mapModule.svelte.js'
 import type { ModuleSession } from './moduleSession.js'
@@ -336,7 +339,10 @@ export class EighteenXXSession<
         () => this.requiresStationTokenChoice,
         () => this.stationPlacementActive
     )
-    readonly corporateFinance = new CorporateFinanceModule(this.moduleSession)
+    readonly corporateFinance = new CorporateFinanceModule(
+        this.moduleSession,
+        () => this.presentation.corporateFinance
+    )
     readonly operatingMode: OperatingModeModule = new OperatingModeModule(
         this.moduleSession,
         this.corporateFinance,
@@ -349,7 +355,11 @@ export class EighteenXXSession<
             },
             finishTrack: () => this.track.finish()
         },
-        () => this.titleOperatingModes
+        () => this.titleOperatingModes,
+        () =>
+            !!this.stationReturn.pending ||
+            !!this.moduleSession.state.privateStation ||
+            !!this.stations.homeChoice
     )
     readonly routes = new RoutesModule(
         this.moduleSession,
@@ -433,6 +443,10 @@ export class EighteenXXSession<
         )
         return this.#instructedRuns
     }
+    // Starts off the main thread, so the first move after an Autorun is set doesn't wait for it.
+    private warmRouteSolver() {
+        if (this.myPlayer && this.gameState.runInstructions?.length) this.instructedRuns?.warm()
+    }
     readonly runInstructions = new RunInstructionModule(
         this.moduleSession,
         () => {
@@ -447,6 +461,8 @@ export class EighteenXXSession<
     readonly earnings = new EarningsModule(this.moduleSession)
     readonly discard = new DiscardModule(this.moduleSession)
     readonly loans = new LoanModule(this.moduleSession)
+    readonly accessRights = new AccessRightsModule(this.moduleSession)
+    readonly stationReturn = new StationReturnModule(this.moduleSession)
     readonly cashCrisis = new CashCrisisModule(this.moduleSession)
     /**
      * Whether this player is viewing the title's published artwork (board image and token art)
@@ -609,7 +625,11 @@ export class EighteenXXSession<
                 ) ?? {}
         )
         this.registerLocalSelections()
-        this.addGameStateChangeListener(async ({ action }) => this.notices.observe(action))
+        this.addGameStateChangeListener(async ({ action }) => {
+            this.notices.observe(action)
+            this.warmRouteSolver()
+        })
+        this.warmRouteSolver()
     }
     private noticeText(action: GameAction): string | undefined {
         if (isPrivateTileLay(action))
@@ -716,6 +736,19 @@ export class EighteenXXSession<
     }
     /** Hexes a title currently offers on the map and what choosing one does, such as a private's port. */
     get mapLocationChoice(): MapLocationChoice | undefined {
+        const returning = this.stationReturn.pending
+        if (returning)
+            return {
+                locationIds: [returning.locationId],
+                choose: (_locationId, nodeId) => {
+                    const city =
+                        nodeId ??
+                        (this.stationReturn.positions.length === 1
+                            ? this.stationReturn.positions[0].nodeId
+                            : undefined)
+                    if (city) void this.stationReturn.choose(city)
+                }
+            }
         const power = this.privateActions.titlePower
         if (!power || !this.decisions.canResolve) return undefined
         if (power.kind === 'location')
@@ -797,7 +830,8 @@ export class EighteenXXSession<
             owner,
             this.valuationRules,
             this.charters,
-            minorsAsPrivates
+            minorsAsPrivates,
+            (privateId) => this.privateIncome(privateId)
         )
         return withDraftedCompanies(
             portfolio,
@@ -895,6 +929,17 @@ export class EighteenXXSession<
     }
     get charters() {
         return this.rules.stockRules.charters
+    }
+    /** What a private pays its owner each operating round now. */
+    privateIncome(privateId: string): number {
+        return privateIncome(
+            this.gameState,
+            {
+                charters: this.charters,
+                privateIncome: this.rules.operatingRules.privateIncome
+            },
+            privateId
+        )
     }
     companyName(companyId: string) {
         return this.companyNameVariants(companyId).short

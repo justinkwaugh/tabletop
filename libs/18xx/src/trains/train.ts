@@ -10,7 +10,7 @@ export const TrainDistance = Type.Object(
             Type.Literal('cities-and-offboards')
         ]),
         maximum: Type.Union([Type.Integer({ minimum: 1 }), Type.Literal('unlimited')]),
-        /** Towns a revenue-centre train may visit beyond its maximum, such as a 3+3's three. */
+        /** Towns a revenue-centre train may visit beyond its maximum, such as a 5+1's one. */
         extraTowns: Type.Optional(Type.Integer({ minimum: 1 }))
     },
     { additionalProperties: false }
@@ -53,7 +53,12 @@ export const TrainInventory = Type.Object(
 )
 export type TrainInventory = Type.Static<typeof TrainInventory>
 export const TrainPurchaseStep = Type.Object(
-    { companyId: Id, purchasedTrainIds: Type.Array(Id, { uniqueItems: true }) },
+    {
+        companyId: Id,
+        purchasedTrainIds: Type.Array(Id, { uniqueItems: true }),
+        /** Trains the company gave in exchange this turn, for titles that limit exchanges. */
+        exchangedTrainIds: Type.Optional(Type.Array(Id, { uniqueItems: true }))
+    },
     { additionalProperties: false }
 )
 export type TrainPurchaseStep = Type.Static<typeof TrainPurchaseStep>

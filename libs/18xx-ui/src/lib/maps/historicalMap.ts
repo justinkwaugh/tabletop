@@ -1,5 +1,6 @@
 import type { MapSession } from '../session/mapModule.svelte.js'
 import {
+    RailwayMapState,
     isChooseHomeStation,
     isLayTile,
     isPlacePrivateMarker,
@@ -11,7 +12,12 @@ import {
 } from '@tabletop/18xx'
 import { assertExists, RecordedHistory, type GameAction, type GameState } from '@tabletop/common'
 import { recordedRunRoutes, trainRouteOverlays } from '../routes/routePresentation.js'
-import { createMapDrawing, routeLocationIds, type MapRoute } from './mapDrawing.js'
+import {
+    createMapDrawing,
+    overfullCityKeys,
+    routeLocationIds,
+    type MapRoute
+} from './mapDrawing.js'
 import {
     stationMapTokens,
     withPlayedMarkerArt,
@@ -129,7 +135,11 @@ export class HistoricalMaps<State extends GameState = EighteenXXState> {
                     tileSet: view.tileSet,
                     inventory: snapshot.tileInventory,
                     markers: snapshot.locationMarkers,
-                    liftedPrivateBlocks: this.liftedPrivateBlocks(snapshot)
+                    liftedPrivateBlocks: this.liftedPrivateBlocks(snapshot),
+                    overfullCities: overfullCityKeys(
+                        snapshot.stations,
+                        new RailwayMapState(view.map, view.tileSet, snapshot.tileInventory)
+                    )
                 },
                 withPlayedMarkerArt(view, this.playedMarkerArt(snapshotState))
             ),

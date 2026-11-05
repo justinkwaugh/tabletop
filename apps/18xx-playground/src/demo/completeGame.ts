@@ -40,6 +40,16 @@ import {
     requireEighteenThirtyTwoState
 } from '@tabletop/1832'
 import {
+    Definition as EighteenNinetyFour,
+    EighteenNinetyFourAuctionRules,
+    EighteenNinetyFourStockRules,
+    EighteenNinetyFourCompanyRules,
+    EighteenNinetyFourTrackRules,
+    EighteenNinetyFourTrainRules,
+    EighteenNinetyFourRouteRules,
+    EighteenNinetyFourTrainFundingRules
+} from '@tabletop/1894'
+import {
     OfferAuction,
     ReserveBidAuction,
     evaluateCompanyStart,
@@ -52,6 +62,10 @@ import {
     EmergencyTrainFunding,
     discardableTrains,
     trainsOwnedBy,
+    displacedStations,
+    returnPositions,
+    controllingOwner,
+    RailwayMapState,
     type EighteenXXState,
     type HydratedEighteenXXState,
     type TrainRoute
@@ -129,6 +143,36 @@ export const FullGameTitles = [
                     : ('pay' as const)
             }
         }
+    },
+    {
+        definition: EighteenNinetyFour,
+        stocks: EighteenNinetyFourStockRules,
+        companies: EighteenNinetyFourCompanyRules,
+        track: EighteenNinetyFourTrackRules,
+        trains: EighteenNinetyFourTrainRules,
+        routes: EighteenNinetyFourRouteRules,
+        funding: EighteenNinetyFourTrainFundingRules,
+        waterfall: EighteenNinetyFourAuctionRules,
+        ending: 'Phase D',
+        finalPhaseId: 'D',
+        // Companies withhold to afford their next train, which keeps prices under F450 while
+        // the trains run out.
+        policy: {
+            floatedTarget: () => 5,
+            laysEveryTurn: true,
+            dividend: (state: EighteenXXState, companyId: string) => {
+                const next = EighteenNinetyFourTrainRules.availableDefinitions(state)[0]
+                const price = next
+                    ? EighteenNinetyFourTrainRules.depot.trainDefinition(next).price
+                    : Infinity
+                const cash = state.cash.find(
+                    (entry) => entry.owner.kind === 'company' && entry.owner.companyId === companyId
+                )?.amount
+                return typeof cash === 'number' && cash < price
+                    ? ('withhold' as const)
+                    : ('pay' as const)
+            }
+        }
     }
 ]
 export class CompleteGameRun {
@@ -173,6 +217,23 @@ export class CompleteGameRun {
         const available = this.engine.getValidActionTypesForPlayer(this.game, state, playerId)
         if (available.includes('RespondToTrackConsent')) {
             this.act('RespondToTrackConsent', { requestId: state.trackConsent!.id, accept: true })
+            return
+        }
+        if (available.includes('ReturnStation')) {
+            const station = displacedStations(state).find(
+                (entry) => controllingOwner(state, entry.companyId)?.playerId === playerId
+            )
+            assertExists(station, 'A set-aside station awaits its owner')
+            const position = returnPositions(
+                state,
+                new RailwayMapState(
+                    this.title.track.map,
+                    this.title.track.tileSet,
+                    state.tileInventory
+                ),
+                station
+            )[0]
+            this.act('ReturnStation', { stationId: station.id, position })
             return
         }
         if (available.includes('DeclinePrivateTile')) {

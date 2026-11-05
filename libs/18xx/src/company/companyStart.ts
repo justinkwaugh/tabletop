@@ -20,7 +20,7 @@ import type { StockMarketChart } from '../stock/stockMarket.js'
 import type { Owner } from '../finance/finance.js'
 import type { FormationState } from './companyState.js'
 import type { StockRules } from '../stock/stockRules.js'
-import type { CompanyRules } from './companyRules.js'
+import type { CompanyRules, StartHomeClaim } from './companyRules.js'
 
 export type CompanyStartRequest = {
     playerId: string
@@ -34,8 +34,10 @@ export const CompanyStartDetails = Type.Object(
         ...SharePurchaseDetails.properties,
         marketSpaceId: Type.String(),
         parPrice: Type.Integer({ minimum: 1 }),
-        /** The home its president placed as the company started, paid from its treasury. */
-        home: Type.Optional(StationPlacementDetails)
+        /** The home its president placed or claimed as the company started. */
+        home: Type.Optional(StationPlacementDetails),
+        /** The home is only claimed, on its city or hex, until the company first operates. */
+        homeClaim: Type.Optional(Type.Union([Type.Literal('city'), Type.Literal('hex')]))
     },
     { additionalProperties: false }
 )
@@ -72,7 +74,7 @@ export function evaluateCompanyStart(
         ...copyFinances(state),
         stockMarket: structuredClone(state.stockMarket)
     })
-    const { home, reason } = startHome(state, request, rules)
+    const { home, homeClaim, reason } = startHome(state, request, rules)
     if (reason) return { reason }
     startCompanyAtPar(projected, stockRules.market, company.id, space.id, request.buyer)
     const result = evaluateShareAcquisition(
@@ -86,7 +88,8 @@ export function evaluateCompanyStart(
         ...result.details,
         marketSpaceId: space.id,
         parPrice: space.price,
-        ...(home ? { home } : {})
+        ...(home ? { home } : {}),
+        ...(homeClaim ? { homeClaim } : {})
     }
     if (home && treasuryAfterStart(state, details) < home.cost)
         return { reason: 'The company cannot pay for this home.' }
@@ -94,7 +97,8 @@ export function evaluateCompanyStart(
 }
 
 type StartHomeResult =
-    { home?: StationPlacementDetails; reason?: never } | { home?: never; reason: string }
+    | { home?: StationPlacementDetails; homeClaim?: StartHomeClaim; reason?: never }
+    | { home?: never; homeClaim?: never; reason: string }
 
 /** The home the request names, where the company's president chooses it as it starts. */
 function startHome(
@@ -109,14 +113,15 @@ function startHome(
     if (!chosen) return { reason: 'Choose the company’s home.' }
     const home = homes.find((entry) => sameCenter(entry, chosen))
     if (!home) return { reason: 'This city cannot be the company’s home.' }
-    const { cost, ...position } = home
+    const { cost, claims, ...position } = home
     return {
         home: {
             companyId: request.companyId,
             stationId: homeStationId(request.companyId),
             position,
             cost
-        }
+        },
+        ...(claims ? { homeClaim: claims } : {})
     }
 }
 
@@ -126,6 +131,16 @@ function treasuryAfterStart(state: FinancialState, details: CompanyStartDetails)
         .filter((payment) => sameOwner(payment.to, treasury))
         .reduce((sum, payment) => sum + payment.amount, 0)
     return finiteCashOwnedBy(state, treasury) + paid
+}
+
+/** Reserves the home chosen as the company started, which it places as it first operates. */
+export function claimStartHome(
+    state: StationState,
+    { companyId, position: { locationId, nodeId } }: StationPlacementDetails,
+    claim: StartHomeClaim
+): void {
+    if (claim === 'city') state.stationReservations.push({ companyId, locationId, nodeId })
+    else state.hexReservations = [...(state.hexReservations ?? []), { companyId, locationId }]
 }
 
 /** Places the home chosen as the company started and pays for it from its treasury. */

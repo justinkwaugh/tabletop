@@ -5,8 +5,10 @@ import { routeRevenue } from './routeRevenue.js'
 import {
     payingRouteStops,
     bonusRoute,
+    routeBestStopBonuses,
     routeInterconnectionBonus,
     routeStopBonuses,
+    type BestStopBonus,
     type RouteRevenueStop,
     type RouteRevenuePolicy,
     type RouteShape
@@ -40,6 +42,15 @@ export interface RouteRules {
         state: TrainRunningState,
         companyId: string
     ): RouteRevenuePolicy
+    /**
+     * Stops worth the best value among the route's other paying stops, for this company. A
+     * title with a paying-stop limit chooses the paying stops without these bonuses.
+     */
+    bestStopBonuses?(
+        state: TrainRunningState,
+        companyId: string,
+        train: TrainDefinition
+    ): readonly BestStopBonus[]
 
     map: RailwayMap
     tileSet: TileSet
@@ -236,7 +247,11 @@ export class RouteEvaluation {
         const bonused = bonusRoute(visits, paying, policy, shape)
         const bonuses = [
             ...this.bonuses(route, paying),
-            ...routeStopBonuses(bonused.stops, policy, bonused.shape)
+            ...routeStopBonuses(bonused.stops, policy, bonused.shape),
+            ...routeBestStopBonuses(
+                paying,
+                this.rules.bestStopBonuses?.(this.state, companyId, definition) ?? []
+            )
         ]
         if (extension && !routeInterconnectionBonus(bonused.stops, policy, bonused.shape))
             return { reason: 'The extension earns no interconnection.' }

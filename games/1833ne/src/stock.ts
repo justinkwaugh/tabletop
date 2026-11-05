@@ -4,10 +4,10 @@ import {
     createLinearStockMarketSpaces,
     getCompany,
     payoutJumpEarningsRules,
+    marketCorporateFinance,
     treasuryShareCompanyRules,
     treasuryShareStockRules,
     type CompanyRules,
-    type CorporateFinanceRules,
     type EarningsRules,
     type IssuingCorporations,
     type StockRules,
@@ -79,11 +79,11 @@ export const EarningsRules1833NE: EarningsRules = payoutJumpEarningsRules({
 })
 
 /** A redemption at the top price of $730 costs $800 (§6.32). */
-export const CorporateFinanceRules1833NE: CorporateFinanceRules = {
+export const CorporateFinanceRules1833NE = marketCorporateFinance({
     market: Market1833NE,
     marketPoolId: MarketPoolId,
     topRedemptionPrice: 800
-}
+})
 
 export const IssuingCorporations1833NE: IssuingCorporations = {
     market: Market1833NE,

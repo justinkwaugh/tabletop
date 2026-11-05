@@ -28,7 +28,10 @@ const Resolution = Type.Union([
         { kind: Type.Literal('open-bidding'), lotId: Type.String() },
         { additionalProperties: false }
     ),
-    Type.Object({ kind: Type.Literal('discount') }, { additionalProperties: false }),
+    Type.Object(
+        { kind: Type.Literal('discount'), payments: Type.Optional(Type.Array(CashPayment)) },
+        { additionalProperties: false }
+    ),
     Type.Object(
         { kind: Type.Literal('income'), payments: Type.Optional(Type.Array(CashPayment)) },
         { additionalProperties: false }

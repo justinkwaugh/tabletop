@@ -101,6 +101,8 @@ export type {
 export { constructionOperatingSteps } from './table/operatingStep.js'
 export type { TileSymbolName } from './tiles/tileSymbols.js'
 export { tileSymbolMarkup } from './tiles/tileSymbols.js'
+export { counted } from './presentation/count.js'
+export { InstructedRunSolver } from './session/instructedRunSolver.js'
 export { moneyFormat, type MoneyFormat } from './presentation/money.js'
 export { clickedBackdrop } from './presentation/modalDialog.js'
 export { svgDataUrl } from './presentation/svgDataUrl.js'
@@ -113,6 +115,7 @@ export { default as PresidencyClaims } from './stock/PresidencyClaims.svelte'
 export {
     CorporateFinanceModule,
     type CorporateFinanceHoldings,
+    type CorporateFinanceTerms,
     type CorporateFinanceSession
 } from './session/corporateFinanceModule.svelte.js'
 export {

@@ -1,3 +1,4 @@
+import type { AccessRightState } from '../rights/accessRights.js'
 import * as Type from 'typebox'
 import type { FinancialState } from '../finance/finance.js'
 import type { MapStateData } from '../map/mapState.js'
@@ -78,7 +79,8 @@ export type RouteState = Type.Static<Type.TObject<typeof RouteFields>>
 export type TrainRunningState = FinancialState &
     MapStateData &
     TrainState &
-    RouteState & { phaseId: string }
+    RouteState &
+    AccessRightState & { phaseId: string }
 
 export function validateRouteStep(state: {
     machineState: string

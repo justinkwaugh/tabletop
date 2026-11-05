@@ -14,6 +14,7 @@
     import CompanyFormation from '../stock/CompanyFormation.svelte'
     import LoanRepayment from '../loans/LoanRepayment.svelte'
     import CashCrisis from '../funding/CashCrisis.svelte'
+    import StationReturnChoice from '../maps/StationReturnChoice.svelte'
     import CorporateFinance from '../finance/CorporateFinance.svelte'
     import NothingToBuild from '../maps/NothingToBuild.svelte'
     import PresidencyClaims from '../stock/PresidencyClaims.svelte'
@@ -59,7 +60,10 @@
         />
     {/if}
     {#if !session.privateActions.selection && !session.decisions.selection && !session.privateActions.trackPowerSelection && (!gameState.purchaseOffer || trainOffer)}
-        {#if gameState.machineState === 'StockRound' && session.companyAuction.pending}
+        {#if session.stationReturn.pending || (gameState.machineState === 'OperatingSet' && session.stationReturn.waiting.length)}<StationReturnChoice
+                {session}
+            />
+        {:else if gameState.machineState === 'StockRound' && session.companyAuction.pending}
             <CompanyFormation {session} />
         {:else if gameState.machineState === 'StockRound' && session.companyAuction.auction}
             <CompanyAuctionBidding {session} />

@@ -53,7 +53,11 @@ export type PrivateActionsSession = ModuleSession<
 >
 type Decisions = Pick<
     CompanyDecisionsModule,
-    'choice' | 'privateTileOptions' | 'privateTrainOptions' | 'privateMarkerOptions'
+    | 'choice'
+    | 'privateTileOptions'
+    | 'privateTrainOptions'
+    | 'privateMarkerOptions'
+    | 'privateTokenOptions'
 >
 type TrackSelection = Pick<LocalSelection, 'undo' | 'clear'>
 type Exchanges = Pick<PrivatesModule, 'exchangeOptions'>
@@ -93,12 +97,18 @@ export class PrivateActionsModule implements LocalSelection {
             : undefined
     )
     purchaseSource = $derived.by(() => (this.selection === 'powers' ? undefined : this.selection))
+    private get powersWithOwnButtons() {
+        return (
+            this.decisions.privateTrainOptions.length > 0 ||
+            this.decisions.privateMarkerOptions.length > 0 ||
+            this.decisions.privateTokenOptions.length > 0 ||
+            this.exchanges.exchangeOptions.length > 0
+        )
+    }
     get powersAvailable() {
         return (
             this.decisions.privateTileOptions.length > 0 ||
-            this.decisions.privateTrainOptions.length > 0 ||
-            this.decisions.privateMarkerOptions.length > 0 ||
-            this.exchanges.exchangeOptions.length > 0 ||
+            this.powersWithOwnButtons ||
             this.titlePowers.length > 0
         )
     }
@@ -139,9 +149,12 @@ export class PrivateActionsModule implements LocalSelection {
         )
             return selected
         if (this.offeredPower) return { value: this.offeredPower, source: 'auto' as const }
-        // A lone power needs no choice; an immediate one still waits to be pressed.
+        // A lone power needs no choice; an immediate one still waits to be pressed, and a power
+        // with its own button, such as a free station, leaves the player a choice to make.
         const powers = [...this.trackPowers, ...this.choosableTitlePowers]
-        return powers.length === 1 && this.titlePowers.every((power) => power.kind !== 'immediate')
+        return powers.length === 1 &&
+            !this.powersWithOwnButtons &&
+            this.titlePowers.every((power) => power.kind !== 'immediate')
             ? {
                   value: {
                       privateCompanyId: powers[0].privateCompanyId,

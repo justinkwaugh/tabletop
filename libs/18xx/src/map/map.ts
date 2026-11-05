@@ -42,7 +42,9 @@ export const MapLocation = Type.Object(
                         kind: Type.Union([
                             Type.Literal('impassable'),
                             Type.Literal('water'),
-                            Type.Literal('mountain')
+                            Type.Literal('mountain'),
+                            /** A passable political border, such as a country's, drawn only. */
+                            Type.Literal('province')
                         ]),
                         cost: Type.Optional(Type.Integer({ minimum: 0 }))
                     },
@@ -51,7 +53,10 @@ export const MapLocation = Type.Object(
             )
         ),
         reservations: Type.Optional(Type.Array(CityReservation)),
-        /** Locations sharing a stop group count as one stop; a route may visit only one. */
+        /**
+         * Stops sharing a stop group count as one stop; a route may visit only one. A group is
+         * several locations, or the separate stops of one location.
+         */
         stopGroup: Type.Optional(Identifier),
         upgradeLabels: Type.Optional(
             Type.Array(
@@ -109,11 +114,15 @@ export class RailwayMap {
         deepFreeze(this.definition)
         this.locationsById = new Map()
         this.grid = new HexGrid({ hexDefinition: { orientation: value.orientation } })
-        const groups = this.definition.locations.flatMap((location) => location.stopGroup ?? [])
-        for (const group of groups)
+        const groups = this.definition.locations.flatMap((location) =>
+            location.stopGroup ? [location] : []
+        )
+        for (const location of groups)
             assert(
-                groups.filter((other) => other === group).length > 1,
-                `Stop group ${group} needs more than one location`
+                groups.filter((other) => other.stopGroup === location.stopGroup).length > 1 ||
+                    location.preprintedTile.nodes.filter((node) => node.kind !== 'junction')
+                        .length > 1,
+                `Stop group ${location.stopGroup} needs more than one stop`
             )
         for (const location of this.definition.locations) {
             assert(!this.locationsById.has(location.id), `Duplicate map location: ${location.id}`)

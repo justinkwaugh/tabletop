@@ -20,21 +20,11 @@ import {
     finiteCashOwnedBy,
     getCompany,
     treasuryPoolId,
+    type Certificate,
     type FinancialState
 } from './finance.js'
 import { nextOperatingCompany, type OperatingState } from '../operating/operatingSet.js'
 import type { StockMarket, StockMarketChart } from '../stock/stockMarket.js'
-
-/**
- * Issuing treasury shares to the market and redeeming them, during the operating turn: 1846 and
- * its descendants.
- */
-export interface CorporateFinanceRules {
-    market: StockMarketChart
-    marketPoolId: string
-    /** What a redeemed share costs when the marker already stands on the last space. */
-    topRedemptionPrice: number
-}
 
 const FinanceOperation = Type.Union([Type.Literal('issue'), Type.Literal('redeem')])
 export const FinanceChoice = Type.Object(
@@ -47,6 +37,7 @@ export const FinanceChoice = Type.Object(
     { additionalProperties: false }
 )
 export type FinanceChoice = Type.Static<typeof FinanceChoice>
+export type FinanceOperation = FinanceChoice['operation']
 
 /** The direction a corporation committed to this turn: it may not both issue and redeem. */
 export const FinanceStep = Type.Object(
@@ -63,14 +54,31 @@ export type CorporateFinanceState = FinancialState &
         stockMarket: StockMarket
     }
 
+export interface CorporateFinanceRules {
+    choices(
+        state: CorporateFinanceState,
+        companyId: string,
+        committed: FinanceOperation | undefined
+    ): FinanceChoice[]
+    /** Listed in the order they move. */
+    certificates(
+        state: FinancialState,
+        companyId: string,
+        operation: FinanceOperation
+    ): Certificate[]
+    /** Issued shares stay with the bank and redeemed ones go to the company, in this pool if any. */
+    destinationPool(companyId: string, operation: FinanceOperation): string | undefined
+    afterSettling?(state: CorporateFinanceState, choice: FinanceChoice): void
+}
+
 // Issuing comes first in the operating order, but nothing before the run changes the price,
 // limits or payout, so a president may issue or redeem at any point until routes are run.
-const CorporateFinanceStates: readonly string[] = ['LayingTrack', 'RunningTrains']
+const CorporateFinanceStates: readonly string[] = ['LayingTrack', 'PlacingStation', 'RunningTrains']
 
-export function corporateFinanceCertificates(
+function corporateFinanceCertificates(
     state: FinancialState,
     companyId: string,
-    operation: 'issue' | 'redeem',
+    operation: FinanceOperation,
     marketPoolId: string
 ) {
     const certificates =
@@ -101,6 +109,31 @@ export function corporateIssueLimit(
     return Math.max(0, Math.min(treasury.length, playerShares - market.length))
 }
 
+function choicesUpTo(
+    limit: number,
+    companyId: string,
+    operation: FinanceOperation,
+    price: number
+): FinanceChoice[] {
+    return Array.from({ length: limit }, (_, i) => ({
+        companyId,
+        operation,
+        shares: i + 1,
+        amount: (i + 1) * price
+    }))
+}
+
+/** One choice per count of shares the company can afford, of those it may redeem at this price. */
+export function redeemChoices(
+    state: FinancialState,
+    companyId: string,
+    redeemable: number,
+    price: number
+): FinanceChoice[] {
+    const affordable = Math.floor(finiteCashOwnedBy(state, { kind: 'company', companyId }) / price)
+    return choicesUpTo(Math.min(redeemable, affordable), companyId, 'redeem', price)
+}
+
 export function corporateFinanceChoices(
     state: CorporateFinanceState,
     rules: CorporateFinanceRules
@@ -114,38 +147,55 @@ export function corporateFinanceChoices(
         !company.closed && company.floated,
         'Corporate finance requires an open, floated major corporation'
     )
-    const committed =
+    return rules.choices(
+        state,
+        companyId,
         state.financeStep?.companyId === companyId ? state.financeStep.operation : undefined
-    const market = corporateFinanceCertificates(state, companyId, 'redeem', rules.marketPoolId)
-    const space = rules.market.companySpace(state.stockMarket, companyId)
-    assertExists(space.moves.left, 'An operating corporation has an issuance price')
-    const issuePrice = rules.market.space(space.moves.left).price
-    const redeemPrice = space.moves.right
-        ? rules.market.space(space.moves.right).price
-        : rules.topRedemptionPrice
-    const issueLimit =
-        committed === 'redeem' ? 0 : corporateIssueLimit(state, companyId, rules.marketPoolId)
-    const redeemLimit =
-        committed === 'issue'
-            ? 0
-            : Math.min(
-                  market.length,
-                  Math.floor(finiteCashOwnedBy(state, { kind: 'company', companyId }) / redeemPrice)
-              )
-    return [
-        ...Array.from({ length: issueLimit }, (_, i): FinanceChoice => ({
-            companyId,
-            operation: 'issue',
-            shares: i + 1,
-            amount: (i + 1) * issuePrice
-        })),
-        ...Array.from({ length: redeemLimit }, (_, i): FinanceChoice => ({
-            companyId,
-            operation: 'redeem',
-            shares: i + 1,
-            amount: (i + 1) * redeemPrice
-        }))
-    ]
+    )
+}
+
+/**
+ * 1846 and its descendants: shares issue to the market a price space below the company's and
+ * redeem from it a space above, any number that the players' holdings and the treasury allow.
+ */
+export function marketCorporateFinance({
+    market,
+    marketPoolId,
+    topRedemptionPrice
+}: {
+    market: StockMarketChart
+    marketPoolId: string
+    /** What a redeemed share costs when the marker already stands on the last space. */
+    topRedemptionPrice: number
+}): CorporateFinanceRules {
+    return {
+        certificates: (state, companyId, operation) =>
+            corporateFinanceCertificates(state, companyId, operation, marketPoolId),
+        destinationPool: (companyId, operation) =>
+            operation === 'issue' ? marketPoolId : treasuryPoolId(companyId),
+        choices(state, companyId, committed) {
+            const shares = corporateFinanceCertificates(state, companyId, 'redeem', marketPoolId)
+            const space = market.companySpace(state.stockMarket, companyId)
+            assertExists(space.moves.left, 'An operating corporation has an issuance price')
+            const issuePrice = market.space(space.moves.left).price
+            const redeemPrice = space.moves.right
+                ? market.space(space.moves.right).price
+                : topRedemptionPrice
+            return [
+                ...(committed === 'redeem'
+                    ? []
+                    : choicesUpTo(
+                          corporateIssueLimit(state, companyId, marketPoolId),
+                          companyId,
+                          'issue',
+                          issuePrice
+                      )),
+                ...(committed === 'issue'
+                    ? []
+                    : redeemChoices(state, companyId, shares.length, redeemPrice))
+            ]
+        }
+    }
 }
 
 export const CorporateFinance = Type.Object(
@@ -176,7 +226,7 @@ export function isCorporateFinance(action: GameAction): action is CorporateFinan
 export class HydratedCorporateFinance extends HydratableAction<typeof CorporateFinance> {
     declare playerId: string
     declare companyId: string
-    declare operation: FinanceChoice['operation']
+    declare operation: FinanceOperation
     declare shares: number
     declare amount: number
     declare metadata?: CorporateFinance['metadata']
@@ -205,12 +255,9 @@ export class HydratedCorporateFinance extends HydratableAction<typeof CorporateF
         const company = { kind: 'company' as const, companyId: this.companyId }
         const bank = { kind: 'bank' as const }
         const issuing = this.operation === 'issue'
-        const certificates = corporateFinanceCertificates(
-            state,
-            this.companyId,
-            this.operation,
-            this.#rules.marketPoolId
-        ).slice(0, this.shares)
+        const certificates = this.#rules
+            .certificates(state, this.companyId, this.operation)
+            .slice(0, this.shares)
         const payments: CashPayment[] = this.amount
             ? [
                   {
@@ -221,11 +268,19 @@ export class HydratedCorporateFinance extends HydratableAction<typeof CorporateF
               ]
             : []
         settleCashPayments(state, payments)
+        const poolId = this.#rules.destinationPool(this.companyId, this.operation)
         for (const certificate of certificates) {
             certificate.owner = issuing ? bank : company
-            certificate.poolId = issuing ? this.#rules.marketPoolId : treasuryPoolId(this.companyId)
+            if (poolId) certificate.poolId = poolId
+            else delete certificate.poolId
         }
         state.financeStep = { companyId: this.companyId, operation: this.operation }
+        this.#rules.afterSettling?.(state, {
+            companyId: this.companyId,
+            operation: this.operation,
+            shares: this.shares,
+            amount: this.amount
+        })
         this.metadata = {
             companyId: this.companyId,
             operation: this.operation,

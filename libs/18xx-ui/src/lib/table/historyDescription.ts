@@ -10,6 +10,9 @@ import {
     isLayTile,
     isPrivateTileLay,
     isPlacePrivateMarker,
+    isPlacePrivateToken,
+    isReturnStation,
+    isBuyAccessRight,
     type TrackLayEffects,
     isRequestTrackConsent,
     isRespondToTrackConsent,
@@ -402,6 +405,15 @@ function describeShared(
         return {
             text: `Marked ${place(action.locationId)} with ${companyName(action.privateCompanyId)}`
         }
+    if (isPlacePrivateToken(action))
+        return {
+            text: `Station at ${place(action.position.locationId)} with ${companyName(action.privateCompanyId)}`,
+            value: 'Free'
+        }
+    if (isReturnStation(action))
+        return { text: `Station placed again at ${place(action.position.locationId)}` }
+    if (isBuyAccessRight(action))
+        return { text: `Bought ${action.rightId} rights`, value: money(action.expectedPrice) }
     if (isChooseHomeStation(action))
         return {
             text: `Home station at ${place(action.locationId)}`,
@@ -645,6 +657,7 @@ function describeShared(
             detail: joinDetails(
                 details && `${details.shares} shares`,
                 money(action.expectedPrice),
+                details?.home && `Home at ${place(details.home.position.locationId)}`,
                 details?.presidency && presidency(details.presidency)
             ),
             important: true
@@ -707,7 +720,10 @@ function describeShared(
     if (isPassAuction(action)) return { text: 'Passed' }
     if (isResolveAuction(action)) {
         if (!action.metadata) return { text: 'Auction resolved', routine: true }
-        if (action.metadata.kind === 'income' && action.metadata.payments?.length)
+        if (
+            (action.metadata.kind === 'income' || action.metadata.kind === 'discount') &&
+            action.metadata.payments?.length
+        )
             return privateIncome(action.metadata.payments)
         const awards = action.metadata.kind === 'award' ? [action.metadata.award] : []
         return {

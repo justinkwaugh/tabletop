@@ -2,6 +2,7 @@ import { expect, it } from 'vitest'
 import { assert, HexOrientation } from '@tabletop/common'
 import {
     RailwayMap,
+    RailwayMapState,
     StandardTileCatalog,
     TileSet,
     createCityTileFace,
@@ -11,7 +12,9 @@ import {
 } from '@tabletop/18xx'
 import { mapTrackJoins } from '../lib/maps/trackJoins.js'
 import {
+    borderDash,
     createMapDrawing,
+    overfullCityKeys,
     mapBorderCosts,
     mapSelectionPoint,
     mapSelectionRect,
@@ -184,6 +187,89 @@ it('divides neighbouring offboard areas and joins the hexes of one area', () => 
         [5, 0, 1],
         [6, 0, 0]
     ])
+})
+
+it('draws a one-space city holding two stations as a two-space city in its shared layout', () => {
+    const tileSet = new TileSet(
+        { id: 'shared', entries: [{ id: 'shared/57', faceDefinitionIds: ['18xx:57'], count: 1 }] },
+        [StandardTileCatalog]
+    )
+    const map = new RailwayMap({
+        id: 'shared',
+        name: 'Shared',
+        orientation: HexOrientation.Pointy,
+        locations: [
+            {
+                id: 'A1',
+                coordinates: { q: 0, r: 0 },
+                buildable: true,
+                preprintedTile: createCityTileFace('white', [], 0, 1)
+            }
+        ]
+    })
+    const inventory = tileSet.createInventory([
+        { locationId: 'A1', definitionId: '18xx:57', rotation: 0 }
+    ])
+    const view = {
+        sharedCityLayouts: {
+            '18xx:57': {
+                city: { nodePositions: { city: { x: 0, y: 20 } }, slotRowTurns: { city: 60 } }
+            }
+        }
+    }
+    const cityOf = (overfullCities: readonly string[]) =>
+        createMapDrawing(map, { tileSet, inventory, overfullCities }, view).locations[0].drawing
+            .nodes[0]
+    expect(cityOf([]).slots).toHaveLength(1)
+    const shared = cityOf(['A1 city'])
+    expect(shared.slots).toHaveLength(2)
+    expect(shared.center).not.toEqual(cityOf([]).center)
+    const station = (id: string, slot: number) => ({
+        id,
+        companyId: id,
+        status: 'placed' as const,
+        position: { locationId: 'A1', nodeId: 'city', slot }
+    })
+    const mapState = new RailwayMapState(map, tileSet, inventory)
+    expect(overfullCityKeys([station('a', 0)], mapState)).toEqual([])
+    expect(overfullCityKeys([station('a', 0), station('b', 1)], mapState)).toEqual(['A1 city'])
+})
+
+it('draws a dashed border the same from the hex on either side', () => {
+    const start = { x: 0, y: 0 }
+    const end = { x: 30, y: 40 }
+    const { array, offset } = borderDash(start, end)
+    expect(borderDash(end, start)).toEqual({ array, offset })
+    const [dash, gap] = array.split(' ').map(Number)
+    expect(3 * (dash + gap)).toBeCloseTo(50)
+    expect(-offset).toBeCloseTo(gap / 2)
+})
+
+it('boxes a marker’s label where a hidden revenue stands', () => {
+    const map = new RailwayMap({
+        id: 'box',
+        name: 'Box',
+        orientation: HexOrientation.Pointy,
+        locations: [
+            {
+                id: 'A1',
+                coordinates: { q: 0, r: 0 },
+                buildable: false,
+                preprintedTile: createOffboardTileFace([0], { kind: 'fixed', amount: 0 }),
+                markers: [{ id: 'largest', label: 'Largest', description: 'Largest' }]
+            }
+        ]
+    })
+    const [entry] = createMapDrawing(map, undefined, {
+        markerArt: { largest: { revenueBox: true } },
+        layouts: { A1: { hideRevenue: true, revenuePositions: { offboard: { x: 16, y: -8 } } } }
+    }).locations
+    const [box] = entry.revenueAnnotations
+    assert(box.kind === 'box')
+    expect(box.label).toBe('Largest')
+    expect(box.x).toBeCloseTo(entry.drawing.nodes[0].revenuePosition.x)
+    expect(box.y).toBeCloseTo(entry.drawing.nodes[0].revenuePosition.y)
+    expect(box.width).toBeGreaterThan(30)
 })
 
 it('prints a bonus badge beneath the revenue and each port clear of it inside the hex', () => {

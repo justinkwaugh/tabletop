@@ -1,6 +1,7 @@
 import { assert, assertExists, type GameAction } from '@tabletop/common'
 import {
     BuyShares,
+    awardParSpaces,
     FinishStockTurn,
     OfferPrivatePurchase,
     ParCompany,
@@ -230,8 +231,9 @@ export class StockModule implements LocalSelection {
     )
     parSpaceIds = $derived.by(() =>
         this.session.state.pendingPar
-            ? this.session.rules.companyRules.startMarketSpaces(
+            ? awardParSpaces(
                   this.session.state,
+                  this.session.rules.companyRules,
                   this.session.state.pendingPar.companyId
               )
             : []

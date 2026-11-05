@@ -15,6 +15,14 @@ export class RouteSolveQueue {
         return answer
     }
 
+    warm() {
+        try {
+            this.running()
+        } catch {
+            // A worker that cannot start reports it to the first request that needs one.
+        }
+    }
+
     destroy() {
         this.worker?.terminate()
         this.worker = undefined
@@ -48,7 +56,13 @@ export class RouteSolveQueue {
     }
 
     private running(): QueuedRouteWorker {
-        this.worker ??= this.createWorker()
-        return this.worker
+        if (this.worker) return this.worker
+        const worker = this.createWorker()
+        // A worker that dies between requests has nobody listening, so the next one replaces it.
+        worker.addEventListener('error', () => {
+            if (this.worker === worker) this.destroy()
+        })
+        this.worker = worker
+        return worker
     }
 }

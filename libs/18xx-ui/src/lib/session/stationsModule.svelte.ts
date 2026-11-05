@@ -10,6 +10,7 @@ import {
     StationPlacement,
     applyStationPlacement,
     reservationFulfilled,
+    hexReservationFulfilled,
     type EighteenXXState,
     type EighteenXXTitleRules,
     type HomePosition,
@@ -92,10 +93,25 @@ export class StationsModule<State extends StationsState> {
     )
     /** Reservations no placed station answers yet, which still hold a space. */
     openReservations(state: StationState) {
-        return state.stationReservations.filter(
-            (reservation) =>
-                !reservationFulfilled(state, reservation, this.session.rules.stationRules)
+        const rules = this.session.rules.stationRules
+        const open = state.stationReservations.filter(
+            (reservation) => !reservationFulfilled(state, reservation, rules)
         )
+        if (!state.hexReservations?.length) return open
+        const placement = new StationPlacement({ ...this.session.state, ...state }, rules)
+        const shownInOpenCity = state.hexReservations.flatMap((reservation) => {
+            if (hexReservationFulfilled(state, reservation)) return []
+            const node = placement.mapState
+                .tile(reservation.locationId)
+                .face.nodes.find(
+                    (node) =>
+                        node.kind === 'city' &&
+                        placement.openSlots(reservation.companyId, reservation.locationId, node.id)
+                            .length
+                )
+            return node ? [{ ...reservation, nodeId: node.id }] : []
+        })
+        return [...open, ...shownInOpenCity]
     }
     displayState = $derived.by((): State => {
         if (!this.preview) return this.session.state

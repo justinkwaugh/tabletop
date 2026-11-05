@@ -8,6 +8,7 @@ import {
     type TrackRules
 } from '../construction/trackConstruction.js'
 import type { Owner } from '../finance/finance.js'
+import type { StationPosition } from '../map/station.js'
 import type { CompanyDecisionState } from './companyDecision.js'
 import { privatePowerUsed } from './companyDecision.js'
 export interface PrivateTrackTerms {
@@ -27,6 +28,11 @@ export interface PrivateTrackTerms {
     terrainDiscount?: number
     /** What the lay itself costs, beyond its terrain, such as a construction company's charge. */
     layFee?: number
+    /**
+     * Records a lay beside the ordinary lays in the turn's track step, for a title whose
+     * restrictions read the turn's tiles, as 1894 forbids upgrading a tile laid that round.
+     */
+    recordsLay?: true
     free?: true
     restriction?(request: TrackRequest): string | undefined
     relabels?: true
@@ -58,6 +64,20 @@ export interface PrivatePowerRules {
         privateCompanyId: string,
         playerId: string
     ): PrivateMarkerTerms | undefined
+    /**
+     * Where a private lets its owning company place its next station free, apart from the
+     * turn's station placement; the family records the power used once a token is placed.
+     */
+    tokenTerms?(
+        state: CompanyDecisionState,
+        privateCompanyId: string,
+        playerId: string
+    ): PrivateTokenTerms | undefined
+}
+
+export interface PrivateTokenTerms {
+    companyId: string
+    positions: readonly StationPosition[]
 }
 
 export interface PrivateMarkerTerms {

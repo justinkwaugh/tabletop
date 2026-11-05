@@ -6,6 +6,7 @@ import type { StockMarketChart } from '../stock/stockMarket.js'
 import type { CompanyCharters } from '../company/companyCharters.js'
 import type { StockState } from '../stock/stockState.js'
 import type { TrainState } from '../trains/train.js'
+import type { MapStateData } from '../map/mapState.js'
 
 export const OperatingSet = Type.Object(
     {
@@ -28,8 +29,14 @@ export interface OperatingRules {
     companyOrder(state: OperatingState): string[]
     /** The kinds of the depot trains exported, in order, when the current operating round ends. */
     trainsToExport?(state: OperatingState & TrainState): string[]
-    /** What a private pays its owner as an operating round starts, when its state decides it. */
-    privateIncome?(state: OperatingState & TrainState, privateId: string): number
+    /**
+     * What a private pays its owner as an operating round starts, when its state decides it,
+     * such as its owner's kind or a hex's tile.
+     */
+    privateIncome?(
+        state: OperatingState & TrainState & Pick<MapStateData, 'tileInventory'>,
+        privateId: string
+    ): number
     /** Who receives a private's income, when it is not simply the private's owner. */
     privateIncomeRecipient?(
         state: OperatingState & TrainState,

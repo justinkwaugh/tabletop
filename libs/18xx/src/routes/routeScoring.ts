@@ -28,6 +28,16 @@ export type Interconnection = {
     arrowIds?: readonly string[]
 }
 
+/**
+ * A stop worth more by the best value among the route's other paying stops, such as a location
+ * equal to the largest revenue on its route. ``ignoredLocationIds`` never count as that best value.
+ */
+export type BestStopBonus = {
+    locationIds: readonly string[]
+    ignoredLocationIds?: readonly string[]
+    sourceId?: string
+}
+
 export type RouteRevenuePolicy = {
     payingStopLimit?: number
     requirePayingStation?: true
@@ -145,6 +155,35 @@ export function bonusRoute(
         stops,
         shape: { ...shape, ends: [stops[0], stops[stops.length - 1]] }
     }
+}
+
+export function routeBestStopBonuses(
+    stops: readonly RouteRevenueStop[],
+    bonuses: readonly BestStopBonus[]
+): RouteBonus[] {
+    return bonuses.flatMap(({ locationIds, ignoredLocationIds = [], sourceId }) => {
+        const stop = stops.find((stop) => locationIds.includes(stop.locationId))
+        if (!stop) return []
+        const amount = Math.max(
+            0,
+            ...stops
+                .filter(
+                    (other) =>
+                        !locationIds.includes(other.locationId) &&
+                        !ignoredLocationIds.includes(other.locationId)
+                )
+                .map((other) => other.amount)
+        )
+        return amount > 0
+            ? [
+                  {
+                      locationId: stop.locationId,
+                      amount,
+                      ...(sourceId ? { sourceIds: [sourceId] } : {})
+                  }
+              ]
+            : []
+    })
 }
 
 export function payingRouteStops(
