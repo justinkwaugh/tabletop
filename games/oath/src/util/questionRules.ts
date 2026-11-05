@@ -793,16 +793,9 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
                 : `the order must name each of the ${matched.question.cardIds.length} cards once`
         },
         apply: (state, playerId, matched) => {
-            const { cardIds, fromRegion, beneath } = matched.question
+            const { cardIds, fromRegion } = matched.question
             const ordered = matched.answer.order.map((position) => cardIds[position])
-            const pileDeposits = discardCards(
-                state,
-                playerId,
-                ordered,
-                fromRegion,
-                undefined,
-                beneath
-            )
+            const pileDeposits = discardCards(state, playerId, ordered, fromRegion)
             return {
                 summary: `discarded ${ordered.join(', ')} in that order`,
                 pileDeposits

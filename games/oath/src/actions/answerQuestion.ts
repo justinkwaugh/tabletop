@@ -55,6 +55,8 @@ export const AnswerQuestionMetadata = Type.Object({
     discardToBottom: Type.Optional(Type.Boolean()),
     /** Cracked Horn — the discards went under the world deck. */
     discardToWorldDeck: Type.Optional(Type.Boolean()),
+    /** Land Warden — from revision 33: the discards went under this many cards of that pile. */
+    discardBeneath: Type.Optional(Type.Number()),
     /** R-7.4 — False Prophet's play, from revision 32: the cards whose Search modifiers applied to it. */
     modifiers: Type.Optional(Type.Array(Type.String())),
     /** R-7.1.4 — False Prophet's play, from revision 32: each toll paid. */
@@ -156,6 +158,7 @@ export class HydratedAnswerQuestion
             discardPileRegion: outcome.discardPileRegion,
             discardToBottom: outcome.discardToBottom,
             discardToWorldDeck: outcome.discardToWorldDeck,
+            discardBeneath: outcome.discardBeneath,
             modifiers: outcome.modifiers,
             tollsPaid: outcome.tollsPaid,
             tollsUnpaid: outcome.tollsUnpaid,

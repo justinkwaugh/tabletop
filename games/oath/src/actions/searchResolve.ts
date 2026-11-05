@@ -3,14 +3,19 @@ import { ConspiracyPlay } from '../model/conspiracy.js'
 export { SearchPlay }
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext, Visibility } from '@tabletop/common'
+import {
+    assertExists,
+    GameAction,
+    HydratableAction,
+    MachineContext,
+    Visibility
+} from '@tabletop/common'
 import { discardRegionFor, HydratedOathGameState } from '../model/gameState.js'
 import { HiddenReveal } from '../model/hidden.js'
 import { PowerOutcome } from '../model/powerOutcome.js'
 import { ActionType } from '../definition/actions.js'
 import { effectiveSiteCapacity, SALT_THE_EARTH } from '../util/capacity.js'
 import { discardCards, type DiscardTarget } from '../util/discard.js'
-import { PowerQuestionKind, type QuestionOf } from '../model/question.js'
 import { regionOfPawn, pawnSiteId } from '../util/pawn.js'
 import { isFaceupPlay, isIrreversible } from '../util/powerDoorway.js'
 import { PowerChoice } from '../util/powerChoice.js'
@@ -277,11 +282,9 @@ export class HydratedSearchResolve
                 if (knower === 'everyone') player.markSeen(this.keptCardId)
                 else player.markShown(this.keptCardId, knower)
 
-        // Land Warden — the order questions open now are for cards that went down before the second card.
-        const orderedBeforeSecond = (state.pendingQuestions?.queue ?? []).filter(
-            (question): question is QuestionOf<PowerQuestionKind.OrderDiscards> =>
-                question.kind === PowerQuestionKind.OrderDiscards
-        )
+        // Land Warden — the questions open now, and the proposals a Gathering has yet to build, are the kept card's.
+        const keptQuestions = state.pendingQuestions?.queue.length ?? 0
+        const keptFollowUp = state.pendingQuestions?.followUp !== undefined
         const second = this.secondPlay
             ? playCard(state, this.playerId, this.secondPlay.cardId, this.secondPlay.play, region, {
                   faceUp: this.secondPlay.faceUp,
@@ -293,13 +296,20 @@ export class HydratedSearchResolve
               })
             : undefined
 
-        // Land Warden — from revision 33 (R-X.4) those cards go under the ones the second card put on their pile when
-        // the order is answered, since its play came after them (R-7.3.3). Before it they went on top.
-        if (second && isAtLeastOathRevision(state, OathRevision.EngineFixes28)) {
-            const onTop = secondPlayOnTop(second, region, discardTarget)
-            for (const question of orderedBeforeSecond) {
-                const beneath = onTop.get(discardRegionFor(question.fromRegion)) ?? 0
-                if (beneath > 0) question.beneath = beneath
+        // Land Warden — from revision 33 (R-X.4) what those questions discard goes under what the second card put on
+        // the pile, since its play came after them (R-7.3.3). Before it they went on top. The count of questions relies
+        // on them being first in the queue: the second play asks its own behind them, never ahead of them.
+        if (
+            second &&
+            (keptQuestions > 0 || keptFollowUp) &&
+            isAtLeastOathRevision(state, OathRevision.EngineFixes28)
+        ) {
+            const pending = state.pendingQuestions
+            assertExists(pending, 'the questions of the kept card are open')
+            pending.underSecondPlay = {
+                questions: keptQuestions,
+                ...(keptFollowUp ? { followUp: true } : {}),
+                onTop: secondPlayOnTop(second, region, discardTarget)
             }
         }
 
@@ -555,9 +565,11 @@ function secondPlayOnTop(
     second: CardPlayResult,
     region: Region,
     target: DiscardTarget | undefined
-): Map<Region, number> {
-    const onTop = new Map<Region, number>()
-    const add = (pile: Region, count: number) => onTop.set(pile, (onTop.get(pile) ?? 0) + count)
+): Partial<Record<Region, number>> {
+    const onTop: Partial<Record<Region, number>> = {}
+    const add = (pile: Region, count: number) => {
+        onTop[pile] = (onTop[pile] ?? 0) + count
+    }
     if (!target?.worldDeck && !target?.bottom)
         add(target?.region ?? discardRegionFor(region), second.discarded.length)
     for (const deposit of second.outcome.pileDeposits ?? [])

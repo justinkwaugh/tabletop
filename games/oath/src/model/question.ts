@@ -532,12 +532,7 @@ export const PowerQuestion = Type.Union([
         askedPlayerId: Type.String(),
         /** Cards leaving play faceup, so their order is public. */
         cardIds: Type.Array(Type.String(), { maxItems: 16 }),
-        fromRegion: Type.Enum(Region),
-        /**
-         * Land Warden — from revision 33 (R-X.4): how many cards on top of the pile these go under, the ones its
-         * second card put there after this power (R-7.3.3).
-         */
-        beneath: Type.Optional(Type.Number())
+        fromRegion: Type.Enum(Region)
     }),
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.PayTravelToll),
@@ -834,6 +829,20 @@ export const PendingQuestions = Type.Object({
             kind: Type.Literal('gatheringFloor'),
             cardId: Type.String(),
             siteId: Type.String()
+        })
+    ),
+    /**
+     * Land Warden — from revision 33 (R-X.4): the second card has been played while questions of the kept card's
+     * power are open. What those answers discard goes under what the second card put on that pile (R-7.3.3).
+     */
+    underSecondPlay: Type.Optional(
+        Type.Object({
+            /** How many questions at the front of the queue are the kept card's. */
+            questions: Type.Number(),
+            /** The Gathering kept: the proposals `followUp` builds are the kept card's too. */
+            followUp: Type.Optional(Type.Boolean()),
+            /** How many cards each pile holds above where those answers' discards go. */
+            onTop: Type.Record(Type.Enum(Region), Type.Optional(Type.Number()))
         })
     )
 })

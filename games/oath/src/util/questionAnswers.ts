@@ -51,6 +51,8 @@ export interface AnswerOutcome {
     discardToBottom?: boolean
     /** Cracked Horn — the discards went under the world deck. */
     discardToWorldDeck?: boolean
+    /** Land Warden — the discards went under this many cards of that pile, which the second card put there. */
+    discardBeneath?: number
     /** R-7.4 — False Prophet's play: the cards whose Search modifiers applied to it. */
     modifiers?: string[]
     /** R-7.1.4 — False Prophet's play: each toll paid, as `payTolls` notes it. */
@@ -159,6 +161,7 @@ export function settleQueue(
     if (pending.queue.length === 0 && pending.followUp) {
         const { cardId, siteId } = pending.followUp
         pending.followUp = undefined
+        const mark = pending.underSecondPlay
         // R-7.6.3-H2 — each present player, in turn order, may propose one exchange.
         for (const playerId of gatheringTurnOrder(state, pending.askingPlayerId)) {
             if (state.getPlayerState(playerId).siteId !== siteId) continue
@@ -168,6 +171,11 @@ export function settleQueue(
                 askedPlayerId: playerId,
                 siteId
             })
+        }
+        // Land Warden — The Gathering kept: its proposals are the kept card's power, however late they are asked.
+        if (mark?.followUp) {
+            mark.questions = pending.queue.length
+            mark.followUp = undefined
         }
     }
     return pending.queue.length === 0
@@ -212,5 +220,20 @@ function applyAnswerInner(
         PowerQuestionValidator.Check(head),
         'Answering needs the question as its asked player or the host sees it'
     )
-    return applyAnswerOf(state, playerId, head.kind, head, answer, pending.askingPlayerId)
+    const mark = pending.underSecondPlay
+    if (!mark || mark.questions === 0)
+        return applyAnswerOf(state, playerId, head.kind, head, answer, pending.askingPlayerId)
+
+    // Land Warden — the first of the second card's questions, which still follow the kept card's when this is answered.
+    const firstOfSecond = pending.queue.at(mark.questions - 1)
+    const outcome = applyAnswerOf(state, playerId, head.kind, head, answer, pending.askingPlayerId)
+    // Whatever this answer raised before that question, at the front or at the back, is the kept card's too.
+    mark.questions = firstOfSecond ? pending.queue.indexOf(firstOfSecond) : pending.queue.length
+    assert(mark.questions >= 0, "The second card's question left the queue unanswered")
+    if (mark.questions === 0 && !mark.followUp) pending.underSecondPlay = undefined
+    if (typeof outcome === 'string') return outcome
+    const { discardPileRegion, discardToBottom, discardToWorldDeck } = outcome
+    return discardPileRegion && !discardToBottom && !discardToWorldDeck
+        ? { ...outcome, discardBeneath: mark.onTop[discardPileRegion] }
+        : outcome
 }

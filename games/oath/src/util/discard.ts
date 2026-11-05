@@ -19,15 +19,9 @@ export function discardCards(
     actingPlayerId: string,
     cardIds: readonly string[],
     fromRegion: Region,
-    target?: DiscardTarget,
-    /** Land Warden — the cards on top of the pile these go under, which went down after them (R-7.3.3). */
-    beneath = 0
+    target?: DiscardTarget
 ): PileDeposit[] {
     const targetRegion = target?.region ?? discardRegionFor(fromRegion)
-    assert(
-        beneath <= state.discardPileCounts[targetRegion],
-        `${beneath} cards are not on the ${targetRegion} discard pile to go under`
-    )
 
     // Cracked Horn — under the world deck, touching no pile; R-9.4 shows the new top back of an empty deck.
     if (target?.worldDeck) {
@@ -37,6 +31,12 @@ export function discardCards(
         for (const cardId of cardIds) returnTokensFrom(state, actingPlayerId, cardId)
         return []
     }
+
+    const beneath = target?.bottom ? 0 : cardsAboveDiscards(state, targetRegion, cardIds.length)
+    assert(
+        beneath <= state.discardPileCounts[targetRegion],
+        `${beneath} cards are not on the ${targetRegion} discard pile to go under`
+    )
 
     for (const cardId of cardIds) {
         returnTokensFrom(state, actingPlayerId, cardId)
@@ -62,6 +62,23 @@ export function discardCards(
             beneath: beneath || undefined
         }
     ]
+}
+
+/**
+ * Land Warden — R-7.3.3: a question of the kept card's power discards under what the second card put on the pile. Any
+ * other question answered before the proposals of a kept Gathering adds to what those proposals' discards go under.
+ */
+function cardsAboveDiscards(
+    state: HydratedOathGameState,
+    targetRegion: Region,
+    count: number
+): number {
+    const mark = state.pendingQuestions?.underSecondPlay
+    if (!mark) return 0
+    const onTop = mark.onTop[targetRegion] ?? 0
+    if (mark.questions > 0) return onTop
+    mark.onTop[targetRegion] = onTop + count
+    return 0
 }
 
 function backOf(cardId: string): CardKind {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
 import { Banner, CardKind, Region } from '../model/oathEnums.js'
+import { HydratedAnswerQuestion } from './answerQuestion.js'
 import { HydratedSearch, Search, SearchSource } from './search.js'
 import {
     HydratedSearchResolve,
@@ -8,15 +9,17 @@ import {
     SearchResolve,
     type SearchResolveChoice
 } from './searchResolve.js'
-import { HydratedOathGameState } from '../model/gameState.js'
-import { PowerQuestionKind } from '../model/question.js'
+import { HydratedOathGameState, OathGameStateValidator } from '../model/gameState.js'
+import { PowerQuestionKind, type ExchangeTerms, type QuestionAnswer } from '../model/question.js'
 import type { TablePositions } from '../model/playerState.js'
 import { isVision } from '../data/cardRegistry.js'
 import { openTurn, testPlayer, testState, withChancellor } from '../testing/fixture.js'
 import { buildAction } from '../testing/actions.js'
 import { answerQuestion } from '../testing/steps.js'
-import { modifierUse, region, yes } from '../testing/choices.js'
+import { served } from '../testing/projection.js'
+import { card, modifierUse, region, yes } from '../testing/choices.js'
 import { FILLER, INN, TENTS } from '../testing/cards.js'
+import { settleQueue } from '../util/questionAnswers.js'
 import { CURRENT_OATH_REVISION, OathRevision } from '../util/revision.js'
 import '../powers/index.js'
 
@@ -37,6 +40,13 @@ const SALT = 'denizen.discord.salt-the-earth'
 const STORYTELLER = 'denizen.hearth.storyteller'
 const RANGERS = 'denizen.beast.rangers'
 const ELDERS = 'denizen.nomad.elders'
+const TWIN = 'denizen.nomad.twin-brother'
+const WAGON = 'denizen.nomad.family-wagon'
+const BEWITCH = 'denizen.arcane.bewitch'
+const PILGRIMAGE = 'denizen.nomad.pilgrimage'
+const GATHERING = 'denizen.nomad.the-gathering'
+const SANCTUARY = 'vision.sanctuary'
+const HERALD = 'denizen.hearth.herald'
 
 const FIXED = OathRevision.EngineFixes28
 const BEFORE = [OathRevision.EngineFixes27, OathRevision.EngineFixes26]
@@ -55,6 +65,14 @@ interface Table {
     /** Dana's advisers held facedown. */
     facedown?: string[]
     banners?: NonNullable<Parameters<typeof testState>[1]>['banners']
+    secrets?: number
+    rhysAdvisers?: string[]
+    /** Rhys's advisers held facedown. */
+    rhysFacedown?: string[]
+    rhysRelicIds?: string[]
+    rhysVision?: string
+    /** Each Vision's warbands, by whose they are. */
+    warbandsOnCards?: Record<string, Record<string, number>>
 }
 
 /** Dana, an Exile, holds Land Warden; Rhys is another Exile; a Chancellor sits away from play. */
@@ -68,7 +86,13 @@ function table({
     deck = [],
     revealedVision,
     facedown = [],
-    banners
+    banners,
+    secrets = 2,
+    rhysAdvisers = [],
+    rhysFacedown = [],
+    rhysRelicIds = [],
+    rhysVision,
+    warbandsOnCards
 }: Table): HydratedOathGameState {
     const s = testState(
         withChancellor([
@@ -77,23 +101,36 @@ function table({
                 color: Color.Red,
                 siteId: danaAt,
                 favor: 4,
-                secrets: 2,
+                secrets,
                 supply: 6,
                 relicIds,
                 advisers: advisers.map((cardId) => ({ cardId, faceUp: !facedown.includes(cardId) }))
             }),
-            testPlayer({ playerId: 'rhys', color: Color.Blue, siteId: rhysAt, favor: 2 })
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Blue,
+                siteId: rhysAt,
+                favor: 2,
+                relicIds: rhysRelicIds,
+                warbandsInPersonalBank: { rhys: 5 },
+                advisers: rhysAdvisers.map((cardId) => ({
+                    cardId,
+                    faceUp: !rhysFacedown.includes(cardId)
+                }))
+            })
         ]),
         {
             oathRevision: revision,
             denizensBySite: { c1: [], c2: [], p1: [], p2: [], h1: [], h2: [], ...denizensBySite },
             warbandsBySite: { [danaAt]: { dana: 1 } },
-            ...(banners ? { banners } : {})
+            ...(banners ? { banners } : {}),
+            ...(warbandsOnCards ? { warbandsOnCards } : {})
         }
     )
     openTurn(s, 'dana')
     s.requireVault().worldDeck = deck
     if (revealedVision) s.getPlayerState('dana').revealedVisionId = revealedVision
+    if (rhysVision) s.getPlayerState('rhys').revealedVisionId = rhysVision
     return s
 }
 
@@ -149,6 +186,16 @@ function views(s: HydratedOathGameState, at: Region): Record<string, string[]> {
                             : `back ${entry.back}`
                 )
                 .sort()
+        ])
+    )
+}
+
+/** What each witness knows of a pile, without the places it holds open for cards it does not know. */
+function known(s: HydratedOathGameState, at: Region): Record<string, string[]> {
+    return Object.fromEntries(
+        Object.entries(views(s, at)).map(([witness, entries]) => [
+            witness,
+            entries.filter((entry) => entry !== 'unknown')
         ])
     )
 }
@@ -213,6 +260,12 @@ function faithScene(revision: OathRevision, extra: Partial<Table> = {}) {
         secondPlay: { cardId: FAITH, play: SearchPlay.RevealedVision }
     })
     return { s, action }
+}
+
+/** What is asked, of whom, and what else is waiting, whatever the Search marked for the answers. */
+function asked(s: HydratedOathGameState) {
+    const { underSecondPlay: _mark, ...pending } = s.pendingQuestions!
+    return pending
 }
 
 /** What the History reads from the record: the same at every revision. */
@@ -565,12 +618,6 @@ describe("Land Warden: the kept card's power's ordered discards lie under the se
         for (const scene of [longbowsScene, faithScene]) {
             const fixed = scene(FIXED, TWO_AT_C2).s
             const before = scene(OathRevision.EngineFixes27, TWO_AT_C2).s
-            const asked = (s: HydratedOathGameState) => {
-                const { beneath: _beneath, ...question } = s.pendingQuestions!.queue[0] as {
-                    beneath?: number
-                }
-                return { question, queued: s.pendingQuestions!.queue.length }
-            }
             expect(asked(fixed)).toEqual(asked(before))
             expect(tableView(fixed)).toEqual(tableView(before))
             expect(fixed.machineState).toBe(before.machineState)
@@ -949,4 +996,867 @@ describe("Land Warden: the kept power's ordered discards, unchanged at revision 
             expectEveryPileFollowed(s)
         }
     })
+})
+
+/** Dana keeps Twin Brother and takes Rhys's Family Wagon, leaving Rhys over the limit; Dazzle second discards Scouts. */
+function twinScene(revision: OathRevision, extra: Partial<Table> = {}) {
+    const s = table({
+        revision,
+        denizensBySite: { c2: [SCOUTS] },
+        advisers: [LAND_WARDEN],
+        rhysAdvisers: [WAGON, ELDERS, TENTS, INN],
+        deck: [TWIN, DAZZLE, FILLER],
+        ...extra
+    })
+    search(s, 'dana', [modifierUse(LAND_WARDEN)])
+    resolve(s, {
+        keptCardId: TWIN,
+        discardOrder: [FILLER],
+        play: SearchPlay.Adviser,
+        faceUp: true,
+        choices: [card(WAGON)],
+        secondPlay: { cardId: DAZZLE, play: SearchPlay.Site }
+    })
+    return s
+}
+
+/** Twin Brother kept as above, but Threatening Roar second, which discards Wolves and itself and asks their order. */
+function twinRoarScene(revision: OathRevision, extra: Partial<Table> = {}) {
+    const s = table({
+        revision,
+        denizensBySite: { c2: [WOLVES] },
+        advisers: [LAND_WARDEN],
+        rhysAdvisers: [WAGON, ELDERS, TENTS, INN],
+        deck: [TWIN, ROAR, FILLER],
+        ...extra
+    })
+    search(s, 'dana', [modifierUse(LAND_WARDEN)])
+    resolve(s, {
+        keptCardId: TWIN,
+        discardOrder: [FILLER],
+        play: SearchPlay.Adviser,
+        faceUp: true,
+        choices: [card(WAGON)],
+        secondPlay: { cardId: ROAR, play: SearchPlay.Site }
+    })
+    return s
+}
+
+function discardAdvisers(s: HydratedOathGameState, by: string, ...cardIds: string[]) {
+    return answerQuestion(s, by, {
+        kind: PowerQuestionKind.DiscardAdvisers,
+        discardedAdviserCardIds: cardIds
+    })
+}
+
+/** Dana keeps Faith over Conquest, which holds Rhys's warband (False Prophet); Dazzle second discards Scouts. */
+function falseProphetScene(revision: OathRevision, extra: Partial<Table> = {}) {
+    const s = table({
+        revision,
+        denizensBySite: { c2: [SCOUTS] },
+        advisers: [LAND_WARDEN],
+        deck: [FILLER, DAZZLE, FAITH],
+        revealedVision: CONQUEST,
+        warbandsOnCards: { [CONQUEST]: { rhys: 1 } },
+        ...extra
+    })
+    search(s, 'dana', [modifierUse(LAND_WARDEN)])
+    resolve(s, {
+        keptCardId: FAITH,
+        discardOrder: [FILLER],
+        play: SearchPlay.RevealedVision,
+        secondPlay: { cardId: DAZZLE, play: SearchPlay.Site }
+    })
+    return s
+}
+
+function answerVision(
+    s: HydratedOathGameState,
+    by: string,
+    play: SearchPlay,
+    extra: { discardedAdviserCardId?: string; modifiers?: ReturnType<typeof modifierUse>[] } = {}
+) {
+    return answerQuestion(s, by, { kind: PowerQuestionKind.PlayOrDiscardVision, play, ...extra })
+}
+
+/** Dana, in the Provinces, keeps Pilgrimage, whose two drawn cards ask their order; Riots second discards the Inn. */
+function pilgrimageTable(
+    revision: OathRevision,
+    {
+        dispossessed = [ELDERS, ROWDY_PUB, ROAR, TENTS, DAZZLE],
+        ...extra
+    }: Partial<Table> & { dispossessed?: string[] } = {}
+) {
+    const s = table({
+        revision,
+        danaAt: 'p1',
+        banners: MOB,
+        denizensBySite: { p1: [SCOUTS, WOLVES], c2: [INN], h1: [STORYTELLER] },
+        advisers: [LAND_WARDEN],
+        deck: [PILGRIMAGE, RIOTS, FILLER],
+        ...extra
+    })
+    s.requireVault().dispossessed = dispossessed
+    s.dispossessedCount = dispossessed.length
+    return s
+}
+
+function resolvePilgrimage(s: HydratedOathGameState, uses: ReturnType<typeof modifierUse>[] = []) {
+    search(s, 'dana', [modifierUse(LAND_WARDEN), ...uses])
+    resolve(s, {
+        keptCardId: PILGRIMAGE,
+        discardOrder: [FILLER],
+        play: SearchPlay.Adviser,
+        faceUp: true,
+        secondPlay: { cardId: RIOTS, play: SearchPlay.Site }
+    })
+    const question = s.pendingQuestions!.queue[0]
+    if (question.kind !== PowerQuestionKind.OrderDrawnCards || !question.cardIds)
+        throw Error('no stack is asked')
+    return question.cardIds
+}
+
+function answerDrawn(s: HydratedOathGameState, order: number[]) {
+    return answerQuestion(s, 'dana', { kind: PowerQuestionKind.OrderDrawnCards, order })
+}
+
+/** What a seat is served of the table, with the question still open. */
+function seatView(s: HydratedOathGameState, playerId: string) {
+    return new HydratedOathGameState(served(s, { kind: 'player', playerId }))
+}
+
+describe('Land Warden: an adviser limit the kept card left open is discarded under the second card (R-7.3.3)', () => {
+    it("Twin Brother's swap: Rhys's discard lies under Dazzle's Scouts, and the top back never changes", () => {
+        const s = twinScene(FIXED)
+        expect(s.getPlayerState('dana').hasAdviser(WAGON)).toBe(true)
+        expect(s.pendingQuestions?.queue.map((q) => q.kind)).toEqual([
+            PowerQuestionKind.DiscardAdvisers
+        ])
+        expect(pile(s, Region.Provinces)).toEqual([SCOUTS, FILLER])
+        expectEveryPileFollowed(s)
+        discardAdvisers(s, 'rhys', INN)
+        expect(pile(s, Region.Provinces)).toEqual([SCOUTS, INN, FILLER])
+        expect(s.pendingQuestions?.queue).toEqual([])
+        expectEveryPileFollowed(s)
+    })
+
+    for (const revision of BEFORE) {
+        it(`at revision ${revision}: Rhys's discard lies on Scouts, as it always did`, () => {
+            const s = twinScene(revision)
+            discardAdvisers(s, 'rhys', INN)
+            expect(pile(s, Region.Provinces)).toEqual([INN, SCOUTS, FILLER])
+            expectEveryPileFollowed(s)
+        })
+    }
+
+    it('Rhys over by two: both lie under Scouts, the one named last nearest it', () => {
+        for (const [revision, expected] of [
+            [FIXED, [SCOUTS, TENTS, INN, FILLER]],
+            [OathRevision.EngineFixes27, [TENTS, INN, SCOUTS, FILLER]]
+        ] as const) {
+            const s = twinScene(revision, {
+                rhysAdvisers: [WAGON, ELDERS, TENTS, INN, ROWDY_PUB]
+            })
+            discardAdvisers(s, 'rhys', INN, TENTS)
+            expect(pile(s, Region.Provinces), `revision ${revision}`).toEqual(expected)
+            expectEveryPileFollowed(s)
+        }
+    })
+
+    it("Rhys in another region: the card goes to Rhys's pile, on top, and Scouts's pile is untouched", () => {
+        for (const revision of [FIXED, OathRevision.EngineFixes27]) {
+            const s = twinScene(revision, { rhysAt: 'p1' })
+            discardAdvisers(s, 'rhys', INN)
+            expect(pile(s, Region.Provinces), `revision ${revision}`).toEqual([SCOUTS, FILLER])
+            expect(pile(s, Region.Hinterland), `revision ${revision}`).toEqual([INN])
+            expectEveryPileFollowed(s)
+        }
+    })
+
+    it("in the Provinces, the Hinterland pile takes Rhys's discard under Scouts", () => {
+        const s = twinScene(FIXED, {
+            danaAt: 'p1',
+            rhysAt: 'p2',
+            denizensBySite: { p2: [SCOUTS] }
+        })
+        discardAdvisers(s, 'rhys', INN)
+        expect(pile(s, Region.Hinterland)).toEqual([SCOUTS, INN, FILLER])
+        expectEveryPileFollowed(s)
+    })
+
+    it('a facedown adviser Rhys discards is exactly as hidden as before revision 33', () => {
+        const at = (revision: OathRevision) => {
+            const s = twinScene(revision, { rhysFacedown: [INN] })
+            discardAdvisers(s, 'rhys', INN)
+            expectEveryPileFollowed(s)
+            return s
+        }
+        const fixed = at(FIXED)
+        const before = at(OathRevision.EngineFixes27)
+        expect(pile(fixed, Region.Provinces)).toEqual([SCOUTS, INN, FILLER])
+        for (const region of REGIONS) expect(known(fixed, region)).toEqual(known(before, region))
+        for (const witness of ['everyone', 'dana', 'chancellor'])
+            expect(views(fixed, Region.Provinces)[witness]).not.toContain(INN)
+        expect(views(fixed, Region.Provinces)['rhys']).toContain(INN)
+    })
+
+    it("the second card asking an order of its own: Rhys's card first, then the order answered on top", () => {
+        const s = twinRoarScene(FIXED)
+        expect(s.pendingQuestions?.queue.map((q) => q.kind)).toEqual([
+            PowerQuestionKind.DiscardAdvisers,
+            PowerQuestionKind.OrderDiscards
+        ])
+        discardAdvisers(s, 'rhys', INN)
+        expect(pile(s, Region.Provinces)).toEqual([INN, FILLER])
+        expectEveryPileFollowed(s)
+        answerOrder(s, [0, 1])
+        expect(pile(s, Region.Provinces)).toEqual([WOLVES, ROAR, INN, FILLER])
+        expectEveryPileFollowed(s)
+    })
+
+    it('Rhys in another region, with the second card asking an order: each pile in the order played', () => {
+        const s = twinRoarScene(FIXED, { rhysAt: 'p1' })
+        discardAdvisers(s, 'rhys', INN)
+        answerOrder(s, [1, 0])
+        expect(pile(s, Region.Provinces)).toEqual([ROAR, WOLVES, FILLER])
+        expect(pile(s, Region.Hinterland)).toEqual([INN])
+        expectEveryPileFollowed(s)
+    })
+
+    it('a later Search of that pile draws Scouts, then the Inn, then the Wrestlers', () => {
+        const s = twinScene(FIXED)
+        discardAdvisers(s, 'rhys', INN)
+        s.getPlayerState('rhys').siteId = 'p1'
+        s.getPlayerState('rhys').supply = 6
+        openTurn(s, 'rhys')
+        search(s, 'rhys', [], SearchSource.Discard)
+        expect(s.getPlayerState('rhys').knownHand()).toEqual([SCOUTS, INN, FILLER])
+    })
+})
+
+describe("Land Warden: False Prophet's Vision, left open by the kept card, goes under the second card", () => {
+    it('Rhys discards Conquest: it lies under Scouts, and the top back stays a denizen', () => {
+        const s = falseProphetScene(FIXED)
+        expect(s.pendingQuestions?.queue.map((q) => q.kind)).toEqual([
+            PowerQuestionKind.PlayOrDiscardVision
+        ])
+        expect(s.discardTopBackType?.[Region.Provinces]).toBe(CardKind.Denizen)
+        expectEveryPileFollowed(s)
+        answerVision(s, 'rhys', SearchPlay.Discard)
+        expect(pile(s, Region.Provinces)).toEqual([SCOUTS, CONQUEST, FILLER])
+        // R-9.4 — the second card's discard lies on top.
+        expect(s.discardTopBackType?.[Region.Provinces]).toBe(CardKind.Denizen)
+        expectEveryPileFollowed(s)
+    })
+
+    for (const revision of BEFORE) {
+        it(`at revision ${revision}: Conquest lies on Scouts, under a Vision back`, () => {
+            const s = falseProphetScene(revision)
+            answerVision(s, 'rhys', SearchPlay.Discard)
+            expect(pile(s, Region.Provinces)).toEqual([CONQUEST, SCOUTS, FILLER])
+            expect(s.discardTopBackType?.[Region.Provinces]).toBe(CardKind.Vision)
+            expectEveryPileFollowed(s)
+        })
+    }
+
+    it('Rhys plays Conquest as their Revealed Vision, with none before it: no pile changes, as before', () => {
+        for (const revision of [FIXED, OathRevision.EngineFixes27]) {
+            const s = falseProphetScene(revision)
+            answerVision(s, 'rhys', SearchPlay.RevealedVision)
+            expect(s.getPlayerState('rhys').revealedVisionId).toBe(CONQUEST)
+            expect(pile(s, Region.Provinces), `revision ${revision}`).toEqual([SCOUTS, FILLER])
+            expect(s.discardTopBackType?.[Region.Provinces]).toBe(CardKind.Denizen)
+            expectEveryPileFollowed(s)
+        }
+    })
+
+    it('Rhys plays Conquest over their own Vision: the old one lies under Scouts', () => {
+        for (const [revision, expected, shown] of [
+            [FIXED, [SCOUTS, SANCTUARY, FILLER], CardKind.Denizen],
+            [OathRevision.EngineFixes27, [SANCTUARY, SCOUTS, FILLER], CardKind.Vision]
+        ] as const) {
+            const s = falseProphetScene(revision, { rhysVision: SANCTUARY })
+            answerVision(s, 'rhys', SearchPlay.RevealedVision)
+            expect(pile(s, Region.Provinces), `revision ${revision}`).toEqual(expected)
+            expect(s.discardTopBackType?.[Region.Provinces]).toBe(shown)
+            expectEveryPileFollowed(s)
+        }
+    })
+
+    it('Rhys plays Conquest as an adviser at the limit: the adviser they discard lies under Scouts', () => {
+        for (const [revision, expected] of [
+            [FIXED, [SCOUTS, INN, FILLER]],
+            [OathRevision.EngineFixes27, [INN, SCOUTS, FILLER]]
+        ] as const) {
+            const s = falseProphetScene(revision, { rhysAdvisers: [TENTS, ROWDY_PUB, INN] })
+            answerVision(s, 'rhys', SearchPlay.Adviser, { discardedAdviserCardId: INN })
+            expect(pile(s, Region.Provinces), `revision ${revision}`).toEqual(expected)
+            expect(s.getPlayerState('rhys').hasAdviser(CONQUEST)).toBe(true)
+            expectEveryPileFollowed(s)
+        }
+    })
+
+    it('Rhys in another region: Conquest goes to their pile, on top', () => {
+        for (const revision of [FIXED, OathRevision.EngineFixes27]) {
+            const s = falseProphetScene(revision, { rhysAt: 'p1' })
+            answerVision(s, 'rhys', SearchPlay.Discard)
+            expect(pile(s, Region.Provinces), `revision ${revision}`).toEqual([SCOUTS, FILLER])
+            expect(pile(s, Region.Hinterland), `revision ${revision}`).toEqual([CONQUEST])
+            expectEveryPileFollowed(s)
+        }
+    })
+
+    it("Bracken and the Cracked Horn on Rhys's answer keep their target: only the order on the top differs", () => {
+        const scenes: {
+            name: string
+            extra: Partial<Table>
+            use: ReturnType<typeof modifierUse>
+            /** The Provinces pile at revision 33, and at 32. */
+            provinces: [string[], string[]]
+            cradle: string[]
+        }[] = [
+            {
+                name: 'Bracken naming the Provinces pile, on top',
+                extra: { rhysAdvisers: [BRACKEN] },
+                use: modifierUse(BRACKEN, [region(Region.Provinces)]),
+                provinces: [
+                    [SCOUTS, CONQUEST, FILLER],
+                    [CONQUEST, SCOUTS, FILLER]
+                ],
+                cradle: []
+            },
+            {
+                name: "Bracken naming the Provinces pile's bottom",
+                extra: { rhysAdvisers: [BRACKEN] },
+                use: modifierUse(BRACKEN, [region(Region.Provinces), yes]),
+                provinces: [
+                    [SCOUTS, FILLER, CONQUEST],
+                    [SCOUTS, FILLER, CONQUEST]
+                ],
+                cradle: []
+            },
+            {
+                name: 'Bracken naming the Cradle pile',
+                extra: { rhysAdvisers: [BRACKEN] },
+                use: modifierUse(BRACKEN, [region(Region.Cradle)]),
+                provinces: [
+                    [SCOUTS, FILLER],
+                    [SCOUTS, FILLER]
+                ],
+                cradle: [CONQUEST]
+            },
+            {
+                name: 'the Cracked Horn',
+                extra: { rhysRelicIds: [HORN] },
+                use: modifierUse(HORN),
+                provinces: [
+                    [SCOUTS, FILLER],
+                    [SCOUTS, FILLER]
+                ],
+                cradle: []
+            }
+        ]
+        for (const scene of scenes)
+            for (const [at, revision] of [FIXED, OathRevision.EngineFixes27].entries()) {
+                const s = falseProphetScene(revision, scene.extra)
+                answerVision(s, 'rhys', SearchPlay.Discard, { modifiers: [scene.use] })
+                const named = `${scene.name} at ${revision}`
+                expect(pile(s, Region.Provinces), named).toEqual(scene.provinces[at])
+                expect(pile(s, Region.Cradle), named).toEqual(scene.cradle)
+                if (scene.extra.rhysRelicIds)
+                    expect(s.requireVault().worldDeck.at(-1), named).toBe(CONQUEST)
+                expectEveryPileFollowed(s)
+            }
+    })
+
+    it('a Vision Dana then answers for, the question the answer raised, also lies under Scouts', () => {
+        const s = falseProphetScene(FIXED, {
+            rhysVision: SANCTUARY,
+            warbandsOnCards: { [CONQUEST]: { rhys: 1 }, [SANCTUARY]: { dana: 1 } }
+        })
+        answerVision(s, 'rhys', SearchPlay.RevealedVision)
+        expect(s.pendingQuestions?.queue).toMatchObject([
+            { kind: PowerQuestionKind.PlayOrDiscardVision, askedPlayerId: 'dana' }
+        ])
+        expect(pile(s, Region.Provinces)).toEqual([SCOUTS, FILLER])
+        answerVision(s, 'dana', SearchPlay.Discard)
+        expect(pile(s, Region.Provinces)).toEqual([SCOUTS, SANCTUARY, FILLER])
+        expectEveryPileFollowed(s)
+    })
+
+    it("that question, asked after the second card's own order: it goes on top, where it is answered", () => {
+        const s = table({
+            revision: FIXED,
+            denizensBySite: { c2: [WOLVES] },
+            advisers: [LAND_WARDEN],
+            deck: [FILLER, ROAR, FAITH],
+            revealedVision: CONQUEST,
+            rhysVision: SANCTUARY,
+            warbandsOnCards: { [CONQUEST]: { rhys: 1 }, [SANCTUARY]: { dana: 1 } }
+        })
+        search(s, 'dana', [modifierUse(LAND_WARDEN)])
+        resolve(s, {
+            keptCardId: FAITH,
+            discardOrder: [FILLER],
+            play: SearchPlay.RevealedVision,
+            secondPlay: { cardId: ROAR, play: SearchPlay.Site }
+        })
+        answerVision(s, 'rhys', SearchPlay.RevealedVision)
+        expect(s.pendingQuestions?.queue.map((q) => q.kind)).toEqual([
+            PowerQuestionKind.OrderDiscards,
+            PowerQuestionKind.PlayOrDiscardVision
+        ])
+        answerOrder(s, [0, 1])
+        answerVision(s, 'dana', SearchPlay.Discard)
+        expect(pile(s, Region.Provinces)).toEqual([SANCTUARY, WOLVES, ROAR, FILLER])
+        expectEveryPileFollowed(s)
+    })
+
+    it("the second card's Vision: Dazzle kept, Faith second, the two in the order answered and Conquest on them", () => {
+        const s = table({
+            revision: FIXED,
+            denizensBySite: { c2: [SCOUTS, INN] },
+            advisers: [LAND_WARDEN],
+            deck: [DAZZLE, FAITH],
+            revealedVision: CONQUEST,
+            warbandsOnCards: { [CONQUEST]: { rhys: 1 } }
+        })
+        search(s, 'dana', [modifierUse(LAND_WARDEN)])
+        resolve(s, {
+            keptCardId: DAZZLE,
+            discardOrder: [],
+            play: SearchPlay.Site,
+            secondPlay: { cardId: FAITH, play: SearchPlay.RevealedVision }
+        })
+        expect(s.pendingQuestions?.queue.map((q) => q.kind)).toEqual([
+            PowerQuestionKind.OrderDiscards,
+            PowerQuestionKind.PlayOrDiscardVision
+        ])
+        answerOrder(s, SCOUTS_ON_TOP)
+        expect(pile(s, Region.Provinces)).toEqual([SCOUTS, INN])
+        answerVision(s, 'rhys', SearchPlay.Discard)
+        expect(pile(s, Region.Provinces)).toEqual([CONQUEST, SCOUTS, INN])
+        expect(s.discardTopBackType?.[Region.Provinces]).toBe(CardKind.Vision)
+        expectEveryPileFollowed(s)
+    })
+
+    it('Bewitch kept: the Vision it discards at once stays under Tents, with nothing asked', () => {
+        const s = table({
+            revision: FIXED,
+            advisers: [LAND_WARDEN, TENTS, ROWDY_PUB],
+            deck: [BEWITCH, LONGBOWS, FILLER],
+            revealedVision: CONQUEST,
+            secrets: 3
+        })
+        search(s, 'dana', [modifierUse(LAND_WARDEN)])
+        resolve(s, {
+            keptCardId: BEWITCH,
+            discardOrder: [FILLER],
+            play: SearchPlay.Site,
+            choices: [yes],
+            secondPlay: {
+                cardId: LONGBOWS,
+                play: SearchPlay.Adviser,
+                faceUp: true,
+                discardedAdviserCardIds: [TENTS]
+            }
+        })
+        expect(s.pendingQuestions).toBeUndefined()
+        expect(pile(s, Region.Provinces)).toEqual([TENTS, CONQUEST, FILLER])
+        expectEveryPileFollowed(s)
+    })
+})
+
+describe("Land Warden: Pilgrimage's stack, ordered after the Search, lies under the second card's discard", () => {
+    for (const order of [
+        [0, 1],
+        [1, 0]
+    ]) {
+        it(`in the order answered (${order.join(', ')}), with the Inn on top`, () => {
+            const s = pilgrimageTable(FIXED)
+            const drawn = resolvePilgrimage(s)
+            expect(pile(s, Region.Provinces)).toEqual([INN])
+            expectEveryPileFollowed(s)
+            answerDrawn(s, order)
+            const [first, second] = order.map((row) => drawn[row])
+            expect(pile(s, Region.Provinces)).toEqual([INN, second, first])
+            expectEveryPileFollowed(s)
+        })
+    }
+
+    for (const revision of BEFORE) {
+        it(`at revision ${revision}: the stack lies on the Inn`, () => {
+            const s = pilgrimageTable(revision)
+            const drawn = resolvePilgrimage(s)
+            answerDrawn(s, [0, 1])
+            expect(pile(s, Region.Provinces)).toEqual([drawn[1], drawn[0], INN])
+            expectEveryPileFollowed(s)
+        })
+    }
+
+    it('drawn back from an empty Dispossessed: every seat keeps the same set record as before revision 33', () => {
+        const at = (revision: OathRevision) => {
+            const s = pilgrimageTable(revision, { dispossessed: [] })
+            resolvePilgrimage(s)
+            answerDrawn(s, [0, 1])
+            expectEveryPileFollowed(s)
+            return s
+        }
+        const fixed = at(FIXED)
+        const before = at(OathRevision.EngineFixes27)
+        expect(pile(fixed, Region.Provinces)[0]).toBe(INN)
+        expect(pile(before, Region.Provinces)[2]).toBe(INN)
+        for (const region of REGIONS) expect(known(fixed, region)).toEqual(known(before, region))
+        expect(
+            views(fixed, Region.Provinces)['everyone'].filter((entry) => entry.startsWith('among'))
+        ).toHaveLength(2)
+    })
+
+    it('Bracken or the Cracked Horn in play: every card keeps its pile, and only the order on it changes', () => {
+        for (const scene of [
+            {
+                name: 'Bracken on the Provinces pile',
+                extra: { advisers: [LAND_WARDEN, BRACKEN] },
+                use: modifierUse(BRACKEN, [region(Region.Provinces)])
+            },
+            {
+                name: "Bracken on the Provinces pile's bottom",
+                extra: { advisers: [LAND_WARDEN, BRACKEN] },
+                use: modifierUse(BRACKEN, [region(Region.Provinces), yes])
+            },
+            {
+                name: 'Bracken on the Cradle pile',
+                extra: { advisers: [LAND_WARDEN, BRACKEN] },
+                use: modifierUse(BRACKEN, [region(Region.Cradle)])
+            },
+            { name: 'the Cracked Horn', extra: { relicIds: [HORN] }, use: modifierUse(HORN) }
+        ]) {
+            const played = (revision: OathRevision) => {
+                const s = pilgrimageTable(revision, scene.extra)
+                const drawn = resolvePilgrimage(s, [scene.use])
+                answerDrawn(s, [0, 1])
+                expectEveryPileFollowed(s)
+                return { s, drawn }
+            }
+            const { s: fixed, drawn } = played(FIXED)
+            const { s: before } = played(OathRevision.EngineFixes27)
+            expect(fixed.requireVault().worldDeck, scene.name).toEqual(
+                before.requireVault().worldDeck
+            )
+            expect(fixed.discardPileCounts, scene.name).toEqual(before.discardPileCounts)
+            for (const at of REGIONS)
+                expect([...pile(fixed, at)].sort(), `${scene.name} ${at}`).toEqual(
+                    [...pile(before, at)].sort()
+                )
+            // The stack lies under what the second card put on its pile, over what the Search put there first.
+            const stack = [drawn[1], drawn[0]]
+            const earlier = pile(before, Region.Provinces).filter(
+                (cardId) => cardId !== INN && !stack.includes(cardId)
+            )
+            expect(pile(fixed, Region.Provinces), scene.name).toEqual([
+                ...(pile(before, Region.Provinces).includes(INN) ? [INN] : []),
+                ...stack,
+                ...earlier
+            ])
+        }
+    })
+
+    it('a later Search of that pile draws the Inn first', () => {
+        const s = pilgrimageTable(FIXED)
+        const drawn = resolvePilgrimage(s)
+        answerDrawn(s, [0, 1])
+        s.getPlayerState('rhys').siteId = 'p2'
+        s.getPlayerState('rhys').supply = 6
+        openTurn(s, 'rhys')
+        search(s, 'rhys', [], SearchSource.Discard)
+        expect(s.getPlayerState('rhys').knownHand()).toEqual([INN, drawn[1], drawn[0]])
+    })
+})
+
+/** The proposer's first two advisers for the other seat's adviser in `theirRow`. */
+const twoForOne = (theirRow: number): ExchangeTerms => ({
+    fromProposer: { adviserRows: [0, 1] },
+    fromCounterparty: { adviserRows: [theirRow] }
+})
+
+/** The Gathering kept at Dana's site, with Rhys there and the Chancellor away. */
+function gatheringScene(revision: OathRevision, secondCardId: string, extra: Partial<Table> = {}) {
+    const s = table({
+        revision,
+        rhysAt: 'c1',
+        denizensBySite: { c2: [SCOUTS] },
+        advisers: [WOLVES, ELDERS, LAND_WARDEN, HERALD],
+        rhysAdvisers: [RANGERS, TENTS, INN],
+        deck: [GATHERING, secondCardId, FILLER],
+        ...extra
+    })
+    search(s, 'dana', [modifierUse(LAND_WARDEN)])
+    resolve(s, {
+        keptCardId: GATHERING,
+        discardOrder: [FILLER],
+        play: SearchPlay.Site,
+        secondPlay: { cardId: secondCardId, play: SearchPlay.Site }
+    })
+    return s
+}
+
+/** The round of pawns over, Dana's proposal takes Rhys's Rangers for two advisers, leaving Rhys over the limit. */
+function danaProposesTwoForOne(s: HydratedOathGameState) {
+    settleQueue(s, {})
+    answerQuestion(s, 'dana', {
+        kind: PowerQuestionKind.GatheringFloor,
+        proposal: { withPlayerId: 'rhys', terms: twoForOne(0) }
+    })
+    answerQuestion(s, 'rhys', { kind: PowerQuestionKind.Exchange, accept: true })
+    expect(s.pendingQuestions?.queue[0]).toMatchObject({
+        kind: PowerQuestionKind.DiscardAdvisers,
+        askedPlayerId: 'rhys'
+    })
+}
+
+function chancellorStaysAway(s: HydratedOathGameState) {
+    answerQuestion(s, 'chancellor', { kind: PowerQuestionKind.JoinSite, join: false })
+}
+
+describe('Land Warden: The Gathering kept, its round of proposals comes after the second card', () => {
+    it("an exchange leaving Rhys over the limit: the discard lies under Dazzle's Scouts", () => {
+        const s = gatheringScene(FIXED, DAZZLE)
+        chancellorStaysAway(s)
+        danaProposesTwoForOne(s)
+        expect(pile(s, Region.Provinces)).toEqual([SCOUTS, FILLER])
+        discardAdvisers(s, 'rhys', INN)
+        expect(pile(s, Region.Provinces)).toEqual([SCOUTS, INN, FILLER])
+        expectEveryPileFollowed(s)
+    })
+
+    it('at revision 32 the discard lies on Scouts', () => {
+        const s = gatheringScene(OathRevision.EngineFixes27, DAZZLE)
+        chancellorStaysAway(s)
+        danaProposesTwoForOne(s)
+        discardAdvisers(s, 'rhys', INN)
+        expect(pile(s, Region.Provinces)).toEqual([INN, SCOUTS, FILLER])
+        expectEveryPileFollowed(s)
+    })
+
+    it('the second card asking an order first: the discard lies under the order answered, as the cards were played', () => {
+        const s = gatheringScene(FIXED, DAZZLE, { denizensBySite: { c2: [SCOUTS, STORYTELLER] } })
+        expect(s.pendingQuestions?.queue.map((q) => q.kind)).toEqual([
+            PowerQuestionKind.JoinSite,
+            PowerQuestionKind.OrderDiscards
+        ])
+        chancellorStaysAway(s)
+        answerOrder(s, [0, 1])
+        expect(pile(s, Region.Provinces)).toEqual([STORYTELLER, SCOUTS, FILLER])
+        danaProposesTwoForOne(s)
+        discardAdvisers(s, 'rhys', INN)
+        expect(pile(s, Region.Provinces)).toEqual([STORYTELLER, SCOUTS, INN, FILLER])
+        expectEveryPileFollowed(s)
+    })
+
+    it('two proposals each ending over the limit: the earlier discard under the later, both under Scouts', () => {
+        const s = gatheringScene(FIXED, DAZZLE)
+        chancellorStaysAway(s)
+        danaProposesTwoForOne(s)
+        discardAdvisers(s, 'rhys', INN)
+        // Dana now holds Land Warden, Herald and the Rangers: two more for Herald leaves them over the limit too.
+        answerQuestion(s, 'rhys', {
+            kind: PowerQuestionKind.GatheringFloor,
+            proposal: { withPlayerId: 'dana', terms: twoForOne(1) }
+        })
+        answerQuestion(s, 'dana', { kind: PowerQuestionKind.Exchange, accept: true })
+        expect(s.pendingQuestions?.queue[0]).toMatchObject({
+            kind: PowerQuestionKind.DiscardAdvisers,
+            askedPlayerId: 'dana'
+        })
+        discardAdvisers(s, 'dana', RANGERS)
+        expect(pile(s, Region.Provinces)).toEqual([SCOUTS, RANGERS, INN, FILLER])
+        expectEveryPileFollowed(s)
+    })
+
+    it('The Gathering second: its proposals come after the kept card and the second, so their discard goes on top', () => {
+        for (const revision of [FIXED, OathRevision.EngineFixes27]) {
+            const s = table({
+                revision,
+                rhysAt: 'c1',
+                denizensBySite: { c2: [SCOUTS, STORYTELLER] },
+                advisers: [WOLVES, ELDERS, LAND_WARDEN],
+                rhysAdvisers: [RANGERS, TENTS, INN],
+                deck: [DAZZLE, GATHERING, FILLER]
+            })
+            search(s, 'dana', [modifierUse(LAND_WARDEN)])
+            resolve(s, {
+                keptCardId: DAZZLE,
+                discardOrder: [FILLER],
+                play: SearchPlay.Site,
+                secondPlay: { cardId: GATHERING, play: SearchPlay.Site }
+            })
+            answerOrder(s, [0, 1])
+            chancellorStaysAway(s)
+            danaProposesTwoForOne(s)
+            discardAdvisers(s, 'rhys', INN)
+            expect(pile(s, Region.Provinces), `revision ${revision}`).toEqual([
+                INN,
+                STORYTELLER,
+                SCOUTS,
+                FILLER
+            ])
+            expectEveryPileFollowed(s)
+        }
+    })
+})
+
+describe('Land Warden: several questions open at once', () => {
+    it('Riots kept, asking for two piles, with Tents on one: each answer lies under what the second card put there', () => {
+        const s = table({
+            revision: FIXED,
+            banners: MOB,
+            denizensBySite: { c2: [INN, STORYTELLER], p1: [ROWDY_PUB, HERALD] },
+            advisers: [LAND_WARDEN, TENTS, SCOUTS],
+            deck: [RIOTS, LONGBOWS, FILLER]
+        })
+        search(s, 'dana', [modifierUse(LAND_WARDEN)])
+        resolve(s, { ...LONGBOWS_SECOND, keptCardId: RIOTS })
+        expect(s.pendingQuestions?.queue).toMatchObject([
+            { kind: PowerQuestionKind.OrderDiscards, fromRegion: Region.Cradle },
+            { kind: PowerQuestionKind.OrderDiscards, fromRegion: Region.Provinces }
+        ])
+        answerOrder(s, [0, 1])
+        expect(pile(s, Region.Provinces)).toEqual([TENTS, STORYTELLER, INN, FILLER])
+        expect(pile(s, Region.Hinterland)).toEqual([])
+        expectEveryPileFollowed(s)
+        answerOrder(s, [1, 0])
+        expect(pile(s, Region.Provinces)).toEqual([TENTS, STORYTELLER, INN, FILLER])
+        expect(pile(s, Region.Hinterland)).toEqual([ROWDY_PUB, HERALD])
+        expectEveryPileFollowed(s)
+    })
+
+    it("Dazzle's order kept beside Faith's Vision: the second card's answer stays on top of the order", () => {
+        const s = table({
+            revision: FIXED,
+            denizensBySite: { c2: [SCOUTS, INN] },
+            advisers: [LAND_WARDEN],
+            deck: [FILLER, DAZZLE, FAITH],
+            revealedVision: CONQUEST,
+            warbandsOnCards: { [CONQUEST]: { rhys: 1 } }
+        })
+        search(s, 'dana', [modifierUse(LAND_WARDEN)])
+        resolve(s, {
+            keptCardId: DAZZLE,
+            discardOrder: [FILLER],
+            play: SearchPlay.Site,
+            secondPlay: { cardId: FAITH, play: SearchPlay.RevealedVision }
+        })
+        answerOrder(s, INN_ON_TOP)
+        answerVision(s, 'rhys', SearchPlay.Discard)
+        expect(pile(s, Region.Provinces)).toEqual([CONQUEST, INN, SCOUTS, FILLER])
+        expectEveryPileFollowed(s)
+    })
+})
+
+describe('Land Warden: these questions are asked as they always were', () => {
+    const pilgrimageScene = (revision: OathRevision) => {
+        const s = pilgrimageTable(revision)
+        resolvePilgrimage(s)
+        return s
+    }
+    const scenes: [string, (revision: OathRevision) => HydratedOathGameState][] = [
+        ['Twin Brother', (revision) => twinScene(revision)],
+        ['Twin Brother, the adviser facedown', (r) => twinScene(r, { rhysFacedown: [INN] })],
+        ['False Prophet', (revision) => falseProphetScene(revision)],
+        ['Pilgrimage', pilgrimageScene],
+        ['The Gathering', (revision) => gatheringScene(revision, DAZZLE)]
+    ]
+    for (const [name, scene] of scenes) {
+        it(`${name}: the same question, at the same moment, on the same table`, () => {
+            const fixed = scene(FIXED)
+            const before = scene(OathRevision.EngineFixes27)
+            expect(asked(fixed)).toEqual(asked(before))
+            expect(tableView(fixed)).toEqual(tableView(before))
+            expect(fixed.machineState).toBe(before.machineState)
+        })
+
+        it(`${name}: each seat is served the same question and table as before revision 33`, () => {
+            for (const id of SEATS) {
+                const fixed = seatView(scene(FIXED), id)
+                const before = seatView(scene(OathRevision.EngineFixes27), id)
+                expect(asked(fixed), id).toEqual(asked(before))
+                expect(fixed.discardPileCounts, id).toEqual(before.discardPileCounts)
+                expect(fixed.discardTopBackType, id).toEqual(before.discardTopBackType)
+            }
+        })
+    }
+
+    const answers: [
+        string,
+        (revision: OathRevision) => HydratedOathGameState,
+        string,
+        QuestionAnswer
+    ][] = [
+        [
+            'Twin Brother',
+            (r) => twinScene(r),
+            'rhys',
+            { kind: PowerQuestionKind.DiscardAdvisers, discardedAdviserCardIds: [INN] }
+        ],
+        [
+            'False Prophet',
+            (r) => falseProphetScene(r),
+            'rhys',
+            { kind: PowerQuestionKind.PlayOrDiscardVision, play: SearchPlay.Discard }
+        ],
+        [
+            'Pilgrimage',
+            pilgrimageScene,
+            'dana',
+            { kind: PowerQuestionKind.OrderDrawnCards, order: [0, 1] }
+        ]
+    ]
+    for (const [name, scene, by, given] of answers) {
+        const answer = (s: HydratedOathGameState) => answerQuestion(s, by, given)
+
+        it(`${name}: after the answer only the order and the top back differ, and the History reads the same`, () => {
+            const fixed = scene(FIXED)
+            const before = scene(OathRevision.EngineFixes27)
+            const fixedAnswer = answer(fixed)
+            const beforeAnswer = answer(before)
+            expect(fixedAnswer.revealsInfo).toBe(beforeAnswer.revealsInfo)
+            expect(fixedAnswer.metadata?.summary).toBe(beforeAnswer.metadata?.summary)
+            expect(fixedAnswer.metadata?.discardedCardIds).toEqual(
+                beforeAnswer.metadata?.discardedCardIds
+            )
+            expect(fixedAnswer.metadata?.discardPileRegion).toBe(
+                beforeAnswer.metadata?.discardPileRegion
+            )
+            expect(fixed.discardPileCounts).toEqual(before.discardPileCounts)
+            expect(fixed.machineState).toBe(before.machineState)
+            for (const at of REGIONS) {
+                expect(known(fixed, at)).toEqual(known(before, at))
+                expect([...pile(fixed, at)].sort()).toEqual([...pile(before, at)].sort())
+            }
+        })
+
+        it(`${name}: saved between the Search and the answer, the game replays the same`, () => {
+            const s = scene(FIXED)
+            expect(OathGameStateValidator.Check(s.dehydrate())).toBe(true)
+            const saved = new HydratedOathGameState(JSON.parse(JSON.stringify(s.dehydrate())))
+            expect(saved.pendingQuestions?.underSecondPlay).toBeDefined()
+            expect(JSON.stringify(saved.dehydrate())).toBe(JSON.stringify(s.dehydrate()))
+            answer(s)
+            answer(saved)
+            expect(JSON.stringify(saved.dehydrate())).toBe(JSON.stringify(s.dehydrate()))
+        })
+
+        it(`${name}: the asked seat's own view allows the answer, and every seat is served the table's counts after it`, () => {
+            const s = scene(FIXED)
+            expect(
+                HydratedAnswerQuestion.reasonCannotAnswer(seatView(s, by), by, given)
+            ).toBeUndefined()
+            answer(s)
+            for (const id of SEATS) {
+                const seat = seatView(s, id)
+                expect(seat.discardPileCounts, id).toEqual(s.discardPileCounts)
+                expect(seat.discardTopBackType, id).toEqual(s.discardTopBackType)
+            }
+        })
+    }
 })

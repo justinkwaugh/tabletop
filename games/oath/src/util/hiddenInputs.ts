@@ -375,6 +375,7 @@ interface PlayDiscards {
     discardedCardIds: string[]
     discardToBottom?: boolean
     discardToWorldDeck?: boolean
+    discardBeneath?: number
 }
 
 function depositPlayDiscards(state: HydratedOathGameState, play: PlayDiscards, deposit: Deposit) {
@@ -386,7 +387,8 @@ function depositPlayDiscards(state: HydratedOathGameState, play: PlayDiscards, d
             play.discardPileRegion,
             play.discardedCardIds,
             play.discardToBottom === true,
-            deposit
+            deposit,
+            play.discardBeneath
         )
 }
 
@@ -395,6 +397,7 @@ interface RecordedDiscard {
     discardedCardIds?: string[]
     discardToBottom?: boolean
     discardToWorldDeck?: boolean
+    discardBeneath?: number
 }
 
 /** A record's discards, where it says they went: False Prophet's may go where Bracken or Cracked Horn sent them. */
@@ -410,7 +413,8 @@ function discardRecorded(
                 discardPileRegion: recorded.discardPileRegion,
                 discardedCardIds: recorded.discardedCardIds,
                 discardToBottom: recorded.discardToBottom,
-                discardToWorldDeck: recorded.discardToWorldDeck
+                discardToWorldDeck: recorded.discardToWorldDeck,
+                discardBeneath: recorded.discardBeneath
             },
             deposit
         )
