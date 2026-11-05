@@ -1,5 +1,5 @@
 import { regionOfPawn } from './pawn.js'
-import { assertExists } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 import { HydratedOathGameState, discardRegionFor } from '../model/gameState.js'
 import { Region, CardKind, type Suit } from '../model/oathEnums.js'
 import { isVision } from '../data/cardRegistry.js'
@@ -19,9 +19,15 @@ export function discardCards(
     actingPlayerId: string,
     cardIds: readonly string[],
     fromRegion: Region,
-    target?: DiscardTarget
+    target?: DiscardTarget,
+    /** Land Warden — the cards on top of the pile these go under, which went down after them (R-7.3.3). */
+    beneath = 0
 ): PileDeposit[] {
     const targetRegion = target?.region ?? discardRegionFor(fromRegion)
+    assert(
+        beneath <= state.discardPileCounts[targetRegion],
+        `${beneath} cards are not on the ${targetRegion} discard pile to go under`
+    )
 
     // Cracked Horn — under the world deck, touching no pile; R-9.4 shows the new top back of an empty deck.
     if (target?.worldDeck) {
@@ -39,7 +45,7 @@ export function discardCards(
         state.discardPileCounts[targetRegion] += 1
 
         // R-9.4 — the top card's back is public, and denizen and Vision backs differ.
-        if (!target?.bottom || wasEmpty) {
+        if ((!target?.bottom && beneath === 0) || wasEmpty) {
             state.discardTopBackType = {
                 ...state.discardTopBackType,
                 [targetRegion]: backOf(cardId)
@@ -48,7 +54,14 @@ export function discardCards(
     }
 
     if (cardIds.length === 0) return []
-    return [{ region: targetRegion, cardIds: [...cardIds], bottom: target?.bottom || undefined }]
+    return [
+        {
+            region: targetRegion,
+            cardIds: [...cardIds],
+            bottom: target?.bottom || undefined,
+            beneath: beneath || undefined
+        }
+    ]
 }
 
 function backOf(cardId: string): CardKind {

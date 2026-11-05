@@ -63,6 +63,8 @@ export const PileDeposit = Type.Object({
         policy: Visibility.Policy.Actor
     }),
     bottom: Type.Optional(Type.Boolean()),
+    /** Land Warden — under this many cards on top of the pile, which went down after these (R-7.3.3). */
+    beneath: Type.Optional(Type.Number()),
     /** The table knows which cards these are, but not their order (Pilgrimage from an empty Dispossessed). */
     shownAsSet: Type.Optional(Type.Literal(true))
 })

@@ -446,7 +446,14 @@ function depositOnPiles(
     deposit: Deposit
 ) {
     for (const pile of deposits ?? [])
-        putOnDiscardPile(state, pile.region, pile.cardIds, pile.bottom === true, deposit)
+        putOnDiscardPile(
+            state,
+            pile.region,
+            pile.cardIds,
+            pile.bottom === true,
+            deposit,
+            pile.beneath
+        )
 }
 
 /** R-9.4 */

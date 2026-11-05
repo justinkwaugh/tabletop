@@ -9,7 +9,8 @@ import { HiddenReveal } from '../model/hidden.js'
 import { PowerOutcome } from '../model/powerOutcome.js'
 import { ActionType } from '../definition/actions.js'
 import { effectiveSiteCapacity, SALT_THE_EARTH } from '../util/capacity.js'
-import { discardCards } from '../util/discard.js'
+import { discardCards, type DiscardTarget } from '../util/discard.js'
+import { PowerQuestionKind, type QuestionOf } from '../model/question.js'
 import { regionOfPawn, pawnSiteId } from '../util/pawn.js'
 import { isFaceupPlay, isIrreversible } from '../util/powerDoorway.js'
 import { PowerChoice } from '../util/powerChoice.js'
@@ -25,6 +26,7 @@ import { discardWitnesses, forgetHand } from '../util/knowledge.js'
 import {
     beginCardPlay,
     type CardPlayOptions,
+    type CardPlayResult,
     FavorShort,
     favorShortOf,
     finishCardPlay,
@@ -275,7 +277,11 @@ export class HydratedSearchResolve
                 if (knower === 'everyone') player.markSeen(this.keptCardId)
                 else player.markShown(this.keptCardId, knower)
 
-        // Land Warden
+        // Land Warden — the order questions open now are for cards that went down before the second card.
+        const orderedBeforeSecond = (state.pendingQuestions?.queue ?? []).filter(
+            (question): question is QuestionOf<PowerQuestionKind.OrderDiscards> =>
+                question.kind === PowerQuestionKind.OrderDiscards
+        )
         const second = this.secondPlay
             ? playCard(state, this.playerId, this.secondPlay.cardId, this.secondPlay.play, region, {
                   faceUp: this.secondPlay.faceUp,
@@ -286,6 +292,16 @@ export class HydratedSearchResolve
                   earlierMapChanges: keptMapChanges
               })
             : undefined
+
+        // Land Warden — from revision 33 (R-X.4) those cards go under the ones the second card put on their pile when
+        // the order is answered, since its play came after them (R-7.3.3). Before it they went on top.
+        if (second && isAtLeastOathRevision(state, OathRevision.EngineFixes28)) {
+            const onTop = secondPlayOnTop(second, region, discardTarget)
+            for (const question of orderedBeforeSecond) {
+                const beneath = onTop.get(discardRegionFor(question.fromRegion)) ?? 0
+                if (beneath > 0) question.beneath = beneath
+            }
+        }
 
         // R-X.4 — before revision 31, after both plays.
         const after = before ?? runModifiers()
@@ -529,6 +545,24 @@ function keptPlayMapChanges(
         ...(status !== undefined ? { status } : {}),
         ...(warbandsBySite !== undefined ? { warbandsBySite } : {})
     }
+}
+
+/**
+ * Land Warden — how many cards the second card's play put on top of each pile: its own discards (an adviser at the
+ * limit, a card discarded first, the Vision it replaced), where the Search's go, and its power's.
+ */
+function secondPlayOnTop(
+    second: CardPlayResult,
+    region: Region,
+    target: DiscardTarget | undefined
+): Map<Region, number> {
+    const onTop = new Map<Region, number>()
+    const add = (pile: Region, count: number) => onTop.set(pile, (onTop.get(pile) ?? 0) + count)
+    if (!target?.worldDeck && !target?.bottom)
+        add(target?.region ?? discardRegionFor(region), second.discarded.length)
+    for (const deposit of second.outcome.pileDeposits ?? [])
+        if (!deposit.bottom) add(deposit.region, deposit.cardIds.length)
+    return onTop
 }
 
 /** Land Warden — R-7.4: the Search's modifiers last the whole action, so they reach the second card's play as they reach the first. */

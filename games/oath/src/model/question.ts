@@ -532,7 +532,12 @@ export const PowerQuestion = Type.Union([
         askedPlayerId: Type.String(),
         /** Cards leaving play faceup, so their order is public. */
         cardIds: Type.Array(Type.String(), { maxItems: 16 }),
-        fromRegion: Type.Enum(Region)
+        fromRegion: Type.Enum(Region),
+        /**
+         * Land Warden — from revision 33 (R-X.4): how many cards on top of the pile these go under, the ones its
+         * second card put there after this power (R-7.3.3).
+         */
+        beneath: Type.Optional(Type.Number())
     }),
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.PayTravelToll),
