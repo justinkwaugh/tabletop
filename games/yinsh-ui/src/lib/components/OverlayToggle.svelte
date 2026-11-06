@@ -43,14 +43,12 @@
         letter-spacing: 0;
     }
 
-    /* On, the glyph's outline turns black and thickens, padded in so the glyph keeps its size. */
+    /* On, the lines darken and a thin ring shows round the button, quieter than a solid fill. */
     .toggle[aria-pressed='true'] {
-        color: #000000;
-    }
-
-    .toggle[aria-pressed='true'] .glyph {
-        border-width: 2px;
-        padding: 0 4px;
+        color: var(--yinsh-ink);
+        box-shadow:
+            inset 0 0 0 1.5px var(--yinsh-toggle-on),
+            var(--yinsh-panel-shadow);
     }
 
     .toggle:hover {

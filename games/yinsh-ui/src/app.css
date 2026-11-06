@@ -48,6 +48,8 @@
     --yinsh-panel-edge: rgb(13 22 38 / 0.1);
     --yinsh-panel-shadow: 0 2px 8px rgb(13 22 38 / 0.18);
     --yinsh-panel-hover: #eef3f7;
+    /* The ring round a toggle that is on. */
+    --yinsh-toggle-on: #0a8fb0;
     --yinsh-play: #d6e4eb;
     --yinsh-play-edge: #9dbacb;
     --yinsh-line: #000000;
