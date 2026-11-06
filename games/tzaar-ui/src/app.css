@@ -50,6 +50,8 @@
     --tzaar-panel-edge: rgb(80 60 10 / 0.18);
     --tzaar-panel-shadow: 0 2px 8px rgb(90 64 0 / 0.28);
     --tzaar-panel-hover: color-mix(in srgb, var(--tzaar-panel), #3a2a08 7%);
+    /* The ring round a toggle that is on. */
+    --tzaar-toggle-on: #0a8fb0;
     --tzaar-panel-inset: color-mix(in srgb, var(--tzaar-panel), #ffffff 45%);
     --tzaar-panel-rule: color-mix(in srgb, var(--tzaar-panel), #3a2a08 22%);
     /* The printed board's pale play area and black lines. */
