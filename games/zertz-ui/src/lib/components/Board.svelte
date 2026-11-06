@@ -12,9 +12,14 @@
         coordsKey,
         MARBLE_RADIUS,
         RING_MID_RADIUS,
-        RING_OUTER_RADIUS,
-        RING_WIDTH
+        RING_OUTER_RADIUS
     } from '$lib/board/geometry.js'
+    import {
+        MARBLE_SHADOW_RADIUS,
+        MARBLE_SHADOW_STOPS,
+        RING_SHADOW_RADIUS,
+        RING_SHADOW_STOPS
+    } from '$lib/board/softShadow.js'
 
     const session = getGameSession()
 
@@ -31,6 +36,10 @@
         const present = new Set(rings.map((ring) => coordsKey(ring.coords)))
         return frame.positions.filter((coords) => !present.has(coordsKey(coords)))
     })
+
+    const SHADOW_COLOR = '#021624'
+    const MARBLE_SHADOW_OPACITY = 0.55
+    const RING_SHADOW_OPACITY = 0.6
 
     let hoveredKey: string | undefined = $state()
     let focusedKey: string | undefined = $state()
@@ -114,16 +123,31 @@
             <stop offset="0.6" stop-color="#0e1012"></stop>
             <stop offset="1" stop-color="#030404"></stop>
         </radialGradient>
-        <!-- Shadows are blurred on their own so the rings and marbles above them stay crisp. -->
-        <filter id="zertz-soft" x="-40%" y="-40%" width="180%" height="180%">
-            <feGaussianBlur stdDeviation="2.5"></feGaussianBlur>
-        </filter>
+        <!-- Soft shadows as gradients rather than a blur filter, which is slow to paint on phones. -->
+        <radialGradient id="zertz-marble-shadow">
+            {#each MARBLE_SHADOW_STOPS as stop, index (index)}
+                <stop
+                    offset={stop.offset}
+                    stop-color={SHADOW_COLOR}
+                    stop-opacity={stop.opacity * MARBLE_SHADOW_OPACITY}
+                ></stop>
+            {/each}
+        </radialGradient>
+        <radialGradient id="zertz-ring-shadow">
+            {#each RING_SHADOW_STOPS as stop, index (index)}
+                <stop
+                    offset={stop.offset}
+                    stop-color={SHADOW_COLOR}
+                    stop-opacity={stop.opacity * RING_SHADOW_OPACITY}
+                ></stop>
+            {/each}
+        </radialGradient>
     </defs>
 
     {#snippet ringShadow(coords: AxialCoordinates)}
         {@const center = view.center(coords)}
         <g transform="translate({center.x} {center.y + 3 + view.band}) scale(1 {view.tilt})">
-            <circle r={RING_MID_RADIUS} stroke-width={RING_WIDTH} class="ring-shadow"></circle>
+            <circle r={RING_SHADOW_RADIUS} fill="url(#zertz-ring-shadow)"></circle>
         </g>
     {/snippet}
 
@@ -137,10 +161,9 @@
         <g transform="translate(0 {view.lift + 3 * view.tilt})">
             <g {@attach shadow}>
                 <ellipse
-                    rx={MARBLE_RADIUS}
-                    ry={MARBLE_RADIUS * view.tilt}
-                    class="shadow"
-                    filter="url(#zertz-soft)"
+                    rx={MARBLE_SHADOW_RADIUS}
+                    ry={MARBLE_SHADOW_RADIUS * view.tilt}
+                    fill="url(#zertz-marble-shadow)"
                 ></ellipse>
             </g>
         </g>
@@ -158,7 +181,7 @@
     {/if}
 
     <!-- A removed ring leaves its shadow for the turn it sank in. -->
-    <g filter="url(#zertz-soft)">
+    <g>
         {#each session.sinkingRings as coords (coordsKey(coords))}
             <g {@attach animator.shadow(coordsKey(coords))}>
                 {@render ringShadow(coords)}
@@ -308,17 +331,6 @@
         letter-spacing: 0.04em;
         text-anchor: middle;
         dominant-baseline: central;
-    }
-
-    .ring-shadow {
-        fill: none;
-        stroke: #021624;
-        stroke-opacity: 0.6;
-    }
-
-    .shadow {
-        fill: #021624;
-        fill-opacity: 0.55;
     }
 
     .ring-hit {
