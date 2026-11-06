@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { POINTS } from '@tabletop/lyngk'
 import { boardNotation } from './coordinates.js'
+import { VIEW, viewOf } from './geometry.js'
 
 describe('boardNotation', () => {
     const notation = boardNotation(POINTS)
@@ -40,6 +41,26 @@ describe('boardNotation', () => {
                 'H4',
                 'I1'
             ].toSorted()
+        )
+    })
+
+    it('turns the board half round, keeping each label beyond its column', () => {
+        const turned = boardNotation(POINTS, viewOf(true))
+        const at = (labels: typeof notation.labels, key: string) =>
+            labels.find((label) => label.key === key)!.at
+        expect(turned.labels.map((label) => label.text)).toEqual(
+            notation.labels.map((label) => label.text)
+        )
+        for (const label of notation.labels) {
+            expect(at(turned.labels, label.key).x).toBeCloseTo(-label.at.x)
+        }
+        // E1, nearest you below the board, goes where E7's label was, beyond the far end.
+        expect(at(turned.labels, 'bottom-E').y).toBeCloseTo(at(notation.labels, 'top-E').y)
+        expect(at(turned.labels, 'top-E').y).toBeCloseTo(at(notation.labels, 'bottom-E').y)
+        // A side tip's label stays below it.
+        const tip = VIEW.center({ q: 4, r: -2 })
+        expect(at(turned.labels, 'bottom-A').y - tip.y).toBeCloseTo(
+            at(notation.labels, 'bottom-I').y - tip.y
         )
     })
 })

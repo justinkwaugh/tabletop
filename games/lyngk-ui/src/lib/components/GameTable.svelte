@@ -108,10 +108,37 @@
                 >
                     <Board />
                     {#snippet overlay()}
-                        <div class="pointer-events-auto absolute top-1 right-3 z-10">
+                        <div
+                            class="pointer-events-auto absolute top-1 right-3 z-10 flex items-center gap-1.5"
+                        >
+                            <!-- Half a turn round, so what tall stacks hide comes in front. -->
+                            <OverlayToggle
+                                label="Far side"
+                                hint={gameSession.turned
+                                    ? 'See the board from your own side again'
+                                    : 'See the board from the far side, to see what tall stacks hide'}
+                                pressed={gameSession.turned}
+                                onToggle={() => gameSession.toggleTurned()}
+                            >
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="-8 -8 16 16"
+                                    aria-hidden="true"
+                                >
+                                    <path d="M -5.5 -1 A 5.5 5.5 0 0 1 4.5 -3.2" class="line"
+                                    ></path>
+                                    <path d="M 2 -5 L 4.8 -3 L 2.2 -0.8" class="line"></path>
+                                    <path d="M 5.5 1 A 5.5 5.5 0 0 1 -4.5 3.2" class="line"></path>
+                                    <path d="M -2 5 L -4.8 3 L -2.2 0.8" class="line"></path>
+                                </svg>
+                            </OverlayToggle>
                             <OverlayToggle
                                 glyph="A1"
                                 label="Coordinates"
+                                hint={gameSession.showCoordinates
+                                    ? 'Hide the coordinates'
+                                    : 'Show the coordinates round the board'}
                                 pressed={gameSession.showCoordinates}
                                 onToggle={() => gameSession.toggleCoordinates()}
                             />
@@ -144,6 +171,10 @@
         );
         background-attachment: fixed;
         color: var(--lyngk-ink);
+        /* Workaround: iOS holds each tap outside the board (the board's wrapper turns touch
+           handling off) to see whether a second makes a double-tap zoom, so the claim strip,
+           buttons and cards answered late. Pinch zoom still works. */
+        touch-action: manipulation;
     }
 
     .action-card {

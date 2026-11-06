@@ -23,7 +23,7 @@ import {
     setLyngkSelection,
     type LyngkSelection
 } from './stagedSelection.js'
-import { coordsKey } from '$lib/board/geometry.js'
+import { coordsKey, viewOf, type BoardView } from '$lib/board/geometry.js'
 import { boardNotation, type BoardNotation } from '$lib/board/coordinates.js'
 import { lyngkConnections, shortestRoute } from '$lib/board/route.js'
 
@@ -39,12 +39,8 @@ function uniqueCoords(list: readonly AxialCoordinates[]): AxialCoordinates[] {
     return unique
 }
 
-const NOTATION = boardNotation(POINTS)
-
 export class LyngkGameSession extends GameSession<LyngkGameState, HydratedLyngkGameState> {
     selection: LyngkSelection = $state({})
-
-    readonly notation: BoardNotation = NOTATION
 
     readonly preferences: TitlePreferences<typeof LyngkPreferences> =
         this.createPreferences(LyngkPreferenceDefinition)
@@ -54,6 +50,16 @@ export class LyngkGameSession extends GameSession<LyngkGameState, HydratedLyngkG
     toggleCoordinates() {
         this.preferences.set({ showCoordinates: !this.showCoordinates })
     }
+
+    // The board seen from the far side, half a turn round, to see behind tall stacks.
+    turned: boolean = $derived(this.preferences.values.turned)
+
+    toggleTurned() {
+        this.preferences.set({ turned: !this.turned })
+    }
+
+    view: BoardView = $derived(viewOf(this.turned))
+    notation: BoardNotation = $derived(boardNotation(POINTS, this.view))
 
     // The move being taken back, and the one history last stepped to: the boards alone cannot
     // tell which LYNGK-points a chain went through.

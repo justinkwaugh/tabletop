@@ -17,6 +17,7 @@
         ids,
         seedKey = 'icon',
         baseLevel = 0,
+        turned = false,
         parts
     }: {
         stack: readonly PieceColor[]
@@ -27,6 +28,9 @@
         ids?: readonly number[]
         seedKey?: string
         baseLevel?: number
+        // On a board seen from the far side, the specks on a top turn half round with it, and
+        // the side you see is the other half of the side.
+        turned?: boolean
         // The shadow stays on the board while the body moves.
         parts?: { body?: Attachment<SVGGElement>; shadow?: Attachment<SVGGElement> }
     } = $props()
@@ -43,8 +47,12 @@
                 speck: PIECE_STYLES[color].speck,
                 speckAlt: PIECE_STYLES[color].speckAlt ?? PIECE_STYLES[color].speck,
                 trough: troughColors(color),
-                specks: faceSpecks(color, seed),
-                sideSpecks: sideSpecks(color, seed),
+                specks: faceSpecks(color, seed).map((speck) =>
+                    turned
+                        ? { ...speck, x: -speck.x, y: -speck.y, angle: speck.angle + 180 }
+                        : speck
+                ),
+                sideSpecks: sideSpecks(color, turned ? seed + 1 : seed),
                 top: index === stack.length - 1
             }
         })

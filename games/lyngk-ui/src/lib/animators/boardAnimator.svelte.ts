@@ -101,7 +101,6 @@ export class BoardAnimator {
     // and shadow inside it.
     stack(key: string, part: keyof Parts): Attachment<SVGGElement> {
         return (node) => {
-            gsap.set(node, { svgOrigin: '0 0' })
             const parts = this.stackParts.get(key) ?? {}
             parts[part] = node
             this.stackParts.set(key, parts)
@@ -114,7 +113,6 @@ export class BoardAnimator {
 
     flierNode(part: keyof Parts): Attachment<SVGGElement> {
         return (node) => {
-            gsap.set(node, { svgOrigin: '0 0' })
             this.flierParts[part] = node
             return () => {
                 if (this.flierParts[part] === node) delete this.flierParts[part]
@@ -168,11 +166,12 @@ export class BoardAnimator {
             }
             this.fadeMarks(timeline, MARK_FADE)
         } else if (action === undefined) {
-            await this.fallback(kind, from, to, timeline, touched)
-            this.fadeMarks(timeline, QUICK.single)
-        } else {
-            this.fadeMarks(timeline, MARK_FADE)
+            if (await this.fallback(kind, from, to, timeline, touched)) {
+                this.fadeMarks(timeline, QUICK.single)
+            }
         }
+        // Any other action (a claim) leaves the board as it is and lands at once: the claimed
+        // color's flight waits for the state, and fading the marks first made the tap feel late.
 
         animationContext.afterAnimations(() => {
             this.stacks = to.board.occupied()
@@ -266,6 +265,7 @@ export class BoardAnimator {
         }
         if (target?.shadow !== undefined) {
             touched.push(target.shadow)
+            scaledFromCentre(target.shadow)
             gsap.set(target.shadow, { opacity: 0, scale: 0.7 })
             timeline.to(target.shadow, { opacity: 1, scale: 1, duration, ease: 'power1.in' }, 0)
         }
@@ -294,7 +294,7 @@ export class BoardAnimator {
         const { whole: node, body, shadow } = this.flierParts
         if (node === undefined || body === undefined || shadow === undefined) return 0
         const duration = pace.hop
-        const begin = offsetBetween(anchor, start.coords)
+        const begin = this.offsetBetween(anchor, start.coords)
         gsap.set(node, { x: begin.x, y: begin.y })
         gsap.set(body, { y: start.raise, opacity: 1 })
         gsap.set(shadow, { opacity: start.raise === 0 ? 1 : 0 })
@@ -305,7 +305,7 @@ export class BoardAnimator {
         let previous = start
         hops.forEach((hop, index) => {
             const at = enter + index * duration
-            const offset = offsetBetween(anchor, hop.coords)
+            const offset = this.offsetBetween(anchor, hop.coords)
             const peak = Math.min(previous.raise, hop.raise) - HOP.arc
             timeline.to(node, { x: offset.x, y: offset.y, duration, ease: 'sine.inOut' }, at)
             timeline.to(body, { y: peak, duration: duration / 2, ease: 'power1.out' }, at)
@@ -335,7 +335,7 @@ export class BoardAnimator {
         }
         // The stacks nearer the viewer than the flier's place on the board stand in front of it;
         // once it has landed, that place no longer changes.
-        const anchorY = VIEW.center(anchor).y
+        const anchorY = this.session.view.center(anchor).y
         const occlude = () => this.occlude(anchorY + Number(gsap.getProperty(node, 'y')))
         occlude()
         timeline.to({}, { duration: landed, onUpdate: occlude }, 0)
@@ -363,8 +363,8 @@ export class BoardAnimator {
             timeline.to(body, { y: landing.raise + y, duration, ease }, time)
             time += duration
         }
-        const end = offsetBetween(anchor, landing.coords)
-        const step = offsetBetween(from, landing.coords)
+        const end = this.offsetBetween(anchor, landing.coords)
+        const step = this.offsetBetween(from, landing.coords)
         const length = Math.hypot(step.x, step.y) || 1
         BOUNCE.along.forEach((past, index) => {
             timeline.to(
@@ -394,6 +394,7 @@ export class BoardAnimator {
         const target = this.stackParts.get(coordsKey(move.to))
         const { body, shadow } = this.flierParts
         if (body === undefined || shadow === undefined) return
+        scaledFromCentre(shadow)
         const landedOn = before.board.idsAt(move.to)
         const moved = before.board.idsAt(move.from)
         const start = at + SCORE_LIFT.delay
@@ -429,25 +430,28 @@ export class BoardAnimator {
 
     // Undo and history steps carry no action, so the move is read from the two boards and flown
     // either way along its route: the one the move took, when the session knows the move, or
-    // else the shortest. Otherwise only stacks that leave the board fade.
+    // else the shortest. Otherwise only stacks that leave the board fade. Says whether the board
+    // changed.
     private async fallback(
         kind: TransitionKind,
         from: HydratedLyngkGameState,
         to: HydratedLyngkGameState,
         timeline: Timeline,
         touched: SVGGElement[]
-    ) {
+    ): Promise<boolean> {
         const move = inferMove(from.board, to.board, scoredBetween(from, to))
         if (move === undefined) {
+            let changed = false
             for (const point of from.board.occupied()) {
                 if (to.board.stackAt(point.coords).length === 0) {
+                    changed = true
                     const node = this.stackParts.get(coordsKey(point.coords))?.whole
                     if (node === undefined) continue
                     touched.push(node)
                     timeline.to(node, { opacity: 0, duration: QUICK.single }, 0)
                 }
             }
-            return
+            return changed
         }
         // The board the move starts from, where its route can be found again.
         const before = move.forward ? from : to
@@ -466,6 +470,13 @@ export class BoardAnimator {
         } else {
             await this.flyBackward(before, route, timeline, pace, touched)
         }
+        return true
+    }
+
+    private offsetBetween(from: AxialCoordinates, to: AxialCoordinates) {
+        const start = this.session.view.center(from)
+        const end = this.session.view.center(to)
+        return { x: end.x - start.x, y: end.y - start.y }
     }
 
     private raiseFor(height: number): number {
@@ -479,15 +490,16 @@ export class BoardAnimator {
     }
 }
 
+// Nodes about to grow or shrink, around their point's centre. Set only on the nodes a move
+// scales, as it starts: GSAP measures each node's drawing to place the origin, and done for every
+// stack as it was drawn, that froze opening a game for seconds on a phone.
+function scaledFromCentre(...nodes: SVGGElement[]) {
+    gsap.set(nodes, { svgOrigin: '0 0' })
+}
+
 function paceOf(chained: boolean, quick: boolean): Pace {
     const hop = quick ? QUICK : HOP
     return { hop: chained ? hop.chained : hop.single, rebound: !quick }
-}
-
-function offsetBetween(from: AxialCoordinates, to: AxialCoordinates) {
-    const start = VIEW.center(from)
-    const end = VIEW.center(to)
-    return { x: end.x - start.x, y: end.y - start.y }
 }
 
 // The stack one player scored, or had unscored, between two states.

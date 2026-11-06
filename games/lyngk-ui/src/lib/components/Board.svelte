@@ -3,7 +3,7 @@
     import { POINTS } from '@tabletop/lyngk'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { includesCoords } from '$lib/model/session.svelte.js'
-    import { coordsKey, PIECE_RADIUS, VIEW } from '$lib/board/geometry.js'
+    import { coordsKey, PIECE_RADIUS } from '$lib/board/geometry.js'
     import { topFaceY } from '$lib/board/pieceGeometry.js'
     import { PIECE_STYLES } from '$lib/board/pieceStyle.js'
     import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
@@ -14,8 +14,9 @@
 
     const session = getGameSession()
 
-    const frame = VIEW.frame()
-    const outline = VIEW.playAreaOutline()
+    const view = $derived(session.view)
+    const frame = $derived(view.frame())
+    const outline = $derived(view.playAreaOutline())
 
     const AXES: AxialCoordinates[] = [
         { q: 0, r: 1 },
@@ -26,29 +27,31 @@
     // Each line runs as far as consecutive points go, and on a little past its last points, as
     // on the printed board: a fraction of the step between points.
     const WHISKER = 0.25
-    const lines = AXES.flatMap((axis) =>
-        POINTS.filter(
-            (point) => !includesCoords(POINTS, addAxial(point, { q: -axis.q, r: -axis.r }))
-        ).flatMap((start) => {
-            let end = start
-            while (includesCoords(POINTS, addAxial(end, axis))) end = addAxial(end, axis)
-            if (sameCoordinates(start, end)) return []
-            const [from, to] = [VIEW.center(start), VIEW.center(end)]
-            const next = VIEW.center(addAxial(start, axis))
-            const step = { x: (next.x - from.x) * WHISKER, y: (next.y - from.y) * WHISKER }
-            return [
-                {
-                    from: { x: from.x - step.x, y: from.y - step.y },
-                    to: { x: to.x + step.x, y: to.y + step.y }
-                }
-            ]
-        })
+    const lines = $derived(
+        AXES.flatMap((axis) =>
+            POINTS.filter(
+                (point) => !includesCoords(POINTS, addAxial(point, { q: -axis.q, r: -axis.r }))
+            ).flatMap((start) => {
+                let end = start
+                while (includesCoords(POINTS, addAxial(end, axis))) end = addAxial(end, axis)
+                if (sameCoordinates(start, end)) return []
+                const [from, to] = [view.center(start), view.center(end)]
+                const next = view.center(addAxial(start, axis))
+                const step = { x: (next.x - from.x) * WHISKER, y: (next.y - from.y) * WHISKER }
+                return [
+                    {
+                        from: { x: from.x - step.x, y: from.y - step.y },
+                        to: { x: to.x + step.x, y: to.y + step.y }
+                    }
+                ]
+            })
+        )
     )
 
     const animator = new BoardAnimator(session)
     // Back to front, so a nearer stack covers the one behind it.
     const stacks = $derived(
-        animator.stacks.toSorted((a, b) => VIEW.center(a.coords).y - VIEW.center(b.coords).y)
+        animator.stacks.toSorted((a, b) => view.center(a.coords).y - view.center(b.coords).y)
     )
 
     const radius = PIECE_RADIUS
@@ -68,9 +71,9 @@
     }
 
     function faceCenter(coords: AxialCoordinates) {
-        const center = VIEW.center(coords)
+        const center = view.center(coords)
         const height = session.gameState.board.stackAt(coords).length
-        return { x: center.x, y: center.y + topFaceY(VIEW, height, radius) }
+        return { x: center.x, y: center.y + topFaceY(view, height, radius) }
     }
 
     // Each bolt steps through seeded shapes in place, so it flickers but never vanishes. Six
@@ -151,7 +154,7 @@
     {/if}
 
     {#each stacks as point (coordsKey(point.coords))}
-        {@const center = VIEW.center(point.coords)}
+        {@const center = view.center(point.coords)}
         {@const clickable = isClickable(point.coords)}
         {@const key = coordsKey(point.coords)}
         <g
@@ -174,6 +177,7 @@
                     {radius}
                     prefix="lyngk-board"
                     seedKey={key}
+                    turned={view.turned}
                     parts={{
                         body: animator.stack(key, 'body'),
                         shadow: animator.stack(key, 'shadow')
@@ -183,7 +187,7 @@
                      front. They fade with the move, and leave with the stack when it lifts off. -->
                 {#key session.gameState}
                     {@const role = roleOf(point.coords)}
-                    {@const faceY = topFaceY(VIEW, point.stack.length, radius)}
+                    {@const faceY = topFaceY(view, point.stack.length, radius)}
                     {#if role}
                         <g class="marks" {@attach animator.mark()}>
                             {#if role !== 'link' && !(role === 'movable' && session.chosenFrom)}
@@ -192,7 +196,7 @@
                                         <ellipse
                                             cy={faceY}
                                             rx={radius * RING_SCALE}
-                                            ry={radius * RING_SCALE * VIEW.tilt}
+                                            ry={radius * RING_SCALE * view.tilt}
                                             class={layer}
                                         ></ellipse>
                                     {/each}
@@ -202,7 +206,7 @@
                                 <ellipse
                                     cy={faceY}
                                     rx={radius * 0.2}
-                                    ry={radius * 0.2 * VIEW.tilt}
+                                    ry={radius * 0.2 * view.tilt}
                                     class="spot role-{role}"
                                 ></ellipse>
                             {/if}
@@ -237,7 +241,7 @@
     {/key}
 
     {#if animator.flier}
-        {@const center = VIEW.center(animator.flier.from)}
+        {@const center = view.center(animator.flier.from)}
         <g transform="translate({center.x} {center.y})" class="flier">
             <g {@attach animator.flierNode('whole')}>
                 <StackShape
@@ -251,6 +255,7 @@
                     prefix="lyngk-board"
                     seedKey={coordsKey(animator.flier.landsOn)}
                     baseLevel={animator.flier.baseLevel}
+                    turned={view.turned}
                 />
             </g>
         </g>
@@ -259,7 +264,7 @@
                 {#if !animator.flier.passes.includes(coordsKey(point.coords))}
                     <use
                         href="#{stackId(point.coords)}"
-                        {@attach animator.occluder(VIEW.center(point.coords).y)}
+                        {@attach animator.occluder(view.center(point.coords).y)}
                     ></use>
                 {/if}
             {/each}
