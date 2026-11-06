@@ -9,6 +9,7 @@ import {
     type WritId
 } from '../data/writs.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { MandateRegistrations } from './mandates.js'
 
 /** R-4.4-H1, R-6.2 When a writ's effect applies: at will, in the holder's attack, or at final scoring. */
 export type WritTiming = 'at-will' | 'attack' | 'end-scoring'
@@ -175,5 +176,11 @@ export class WritRegistry {
     }
 }
 
-/** The game's registry. A registration module adds to it on load; nothing does yet. */
+/**
+ * The game's registry. It takes its registrations here, not from modules that add to it on load: the
+ * package declares no side effects, so a bundler may drop a module imported only for that.
+ */
 export const writRegistry = new WritRegistry()
+for (const registration of MandateRegistrations) {
+    writRegistry.register(registration)
+}

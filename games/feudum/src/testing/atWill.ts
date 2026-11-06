@@ -1,5 +1,6 @@
 import { assertExists } from '@tabletop/common'
 import type { ActionCardKind } from '../data/cards.js'
+import { Goods } from '../data/components.js'
 import type { TileId } from '../data/regionTiles.js'
 import { RegionIds } from '../data/regionTiles.js'
 import type { WritId } from '../data/writs.js'
@@ -7,7 +8,6 @@ import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { moveConcealedSeal } from '../model/seals.js'
 import { collectTopTile } from '../model/regionStacks.js'
-import { writRegistry } from '../writs/writRegistry.js'
 import { holdWrit } from './combat.js'
 import { tableAtHandSelection, tableAtPlayingCards, type Table } from './table.js'
 
@@ -28,103 +28,12 @@ export const Charters: readonly WritId[] = [
     'writ.charter.western-kingdom'
 ]
 
-/** R-4.4.2 Test registrations on the shared registry, for what the actions read from it. */
-export function registerTestMandates(): void {
-    const absent = (writId: WritId) => writRegistry.mandateAlternatives(writId).length === 0
-    if (absent(VesselMandate)) {
-        writRegistry.register({
-            writId: 'writ.mandate.2',
-            timing: 'at-will',
-            printedText: 'Test: wood for a ship',
-            alternatives: [
-                {
-                    turnedIn: ['wood'],
-                    reward: { kind: 'vessel', vessel: 'ship' },
-                    reveals: 'nothing'
-                }
-            ]
-        })
-    }
-    if (absent(ShillingMandate)) {
-        writRegistry.register({
-            writId: 'writ.mandate.5',
-            timing: 'at-will',
-            printedText: 'Test: food for 3s, or 2 food for 8s',
-            alternatives: [
-                {
-                    turnedIn: ['food'],
-                    reward: { kind: 'shillings', amount: 3 },
-                    reveals: 'nothing'
-                },
-                {
-                    turnedIn: ['food', 'food'],
-                    reward: { kind: 'shillings', amount: 8 },
-                    reveals: 'nothing'
-                }
-            ]
-        })
-    }
-    if (absent(FarmerMandate)) {
-        writRegistry.register({
-            writId: 'writ.mandate.6',
-            timing: 'at-will',
-            printedText: 'Test: 3 stars in a guild',
-            alternatives: [
-                {
-                    turnedIn: [],
-                    rewardGuild: 'farmer',
-                    reward: { kind: 'goods', amount: 3 },
-                    reveals: 'draw'
-                },
-                {
-                    turnedIn: [],
-                    rewardGuild: 'merchant',
-                    reward: { kind: 'shillings', amount: 3 },
-                    reveals: 'nothing'
-                },
-                {
-                    turnedIn: [],
-                    rewardGuild: 'alchemist',
-                    reward: { kind: 'vessel', vessel: 'ship' },
-                    reveals: 'nothing'
-                }
-            ]
-        })
-    }
-    if (absent(KnightMandate)) {
-        writRegistry.register({
-            writId: 'writ.mandate.8',
-            timing: 'at-will',
-            printedText: 'Test: 3 stars in a guild',
-            alternatives: [
-                {
-                    turnedIn: [],
-                    rewardGuild: 'knight',
-                    reward: { kind: 'influence', amount: 3 },
-                    reveals: 'nothing'
-                },
-                {
-                    turnedIn: [],
-                    rewardGuild: 'noble',
-                    reward: { kind: 'seal', amount: 1 },
-                    reveals: 'nothing'
-                },
-                {
-                    turnedIn: [],
-                    rewardGuild: 'monk',
-                    reward: { kind: 'bead', amount: 1 },
-                    reveals: 'flip'
-                }
-            ]
-        })
-    }
-    if (!writRegistry.weaponBonus(Weapon, 0)) {
-        writRegistry.register({
-            writId: 'writ.mandate.1',
-            timing: 'attack',
-            printedText: 'Test: bow for free',
-            bonuses: [{ turnedIn: [], attack: 1 }]
-        })
+/** Every good of this seat back in the haversack, keeping totals. */
+export function returnAllGoods(state: HydratedFeudumGameState, playerId: string): void {
+    const { goods } = state.getPlayerState(playerId)
+    for (const good of Goods) {
+        state.supply.haversack[good] += goods[good]
+        goods[good] = 0
     }
 }
 

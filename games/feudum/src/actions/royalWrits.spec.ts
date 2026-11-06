@@ -1,5 +1,5 @@
 import { Visibility } from '@tabletop/common'
-import { beforeAll, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import type { SpaceId } from '../data/board.js'
 import type { ActionCardKind } from '../data/cards.js'
 import type { WritId } from '../data/writs.js'
@@ -16,7 +16,6 @@ import {
     giveTile,
     holdSealedCharter,
     KnightMandate,
-    registerTestMandates,
     ShillingMandate,
     tableInWindow,
     VesselMandate,
@@ -387,8 +386,6 @@ describe('R-4.4-H5 the writ count holds sealed charters', () => {
 })
 
 describe('PlayMandate', () => {
-    beforeAll(registerTestMandates)
-
     const holdingMandate = (
         writId: WritId,
         edit: (state: HydratedFeudumGameState, seat: string) => void = () => {}
@@ -445,16 +442,17 @@ describe('PlayMandate', () => {
     })
 
     it('R-4.4.2 chooses among the alternatives by index', () => {
-        const { table, playerId } = holdingMandate(ShillingMandate, (state, seat) =>
-            setGoods(state, seat, 'food', 2)
-        )
+        const { table, playerId } = holdingMandate(ShillingMandate, (state, seat) => {
+            setGoods(state, seat, 'food', 1)
+            setGoods(state, seat, 'wood', 1)
+        })
         const [action] = table.send(playerId, {
             type: ActionType.PlayMandate,
             writId: ShillingMandate,
             alternative: 1
         })
-        expect(action).toMatchObject({ metadata: { received: { kind: 'shillings', amount: 8 } } })
-        expect(table.seat(playerId).goods.food).toBe(0)
+        expect(action).toMatchObject({ metadata: { received: { kind: 'shillings', amount: 7 } } })
+        expect(table.seat(playerId).goods).toMatchObject({ food: 0, wood: 0 })
     })
 
     it('R-4.4-H1 refuses a seat out of its window, a writ not held, an unknown alternative', () => {
@@ -602,7 +600,7 @@ describe('PlayMandate', () => {
             state.getPlayerState(seat).vessels.ship += state.supply.vessels.ship
             state.supply.vessels.ship = 0
         })
-        const input = { writId: VesselMandate, alternative: 0 }
+        const input = { writId: VesselMandate, alternative: 1 }
         expect(reasonPlayMandateRefused(table.hydrated(), playerId, input)).toBe(
             'The general supply has no ship.'
         )

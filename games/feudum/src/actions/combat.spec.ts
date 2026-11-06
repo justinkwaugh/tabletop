@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import type { WritId } from '../data/writs.js'
 import { MachineState } from '../definition/states.js'
 import { discChoices, replaceLocationDisc } from '../model/locationDiscs.js'
@@ -20,7 +20,6 @@ import {
     type CombatTable
 } from '../testing/combat.js'
 import { giveGood, setUp } from '../testing/improving.js'
-import { writRegistry } from '../writs/writRegistry.js'
 import {
     commitAttackOffer,
     commitAttackPreview,
@@ -30,32 +29,6 @@ import { ActionType } from '../definition/actions.js'
 
 const Bow: WritId = 'writ.mandate.1'
 const Sword: WritId = 'writ.mandate.3'
-
-/** Test registrations of two weapons: this spec reads them only through the registry. */
-beforeAll(() => {
-    if (!writRegistry.weaponBonus(Sword, 0)) {
-        writRegistry.register({
-            writId: Sword,
-            timing: 'attack',
-            printedText: 'Use sword for free: +1 attack',
-            bonuses: [
-                { turnedIn: [], attack: 1 },
-                { turnedIn: ['iron'], attack: 2 }
-            ]
-        })
-    }
-    if (!writRegistry.weaponBonus(Bow, 0)) {
-        writRegistry.register({
-            writId: Bow,
-            timing: 'attack',
-            printedText: 'Use bow for free: +1 attack',
-            bonuses: [
-                { turnedIn: [], attack: 1 },
-                { turnedIn: ['wood'], attack: 2 }
-            ]
-        })
-    }
-})
 
 /** A Conquer of the defender's first pawn, answered "no". */
 function atCommit(combat: CombatTable = tableAtCombat()): CombatTable {

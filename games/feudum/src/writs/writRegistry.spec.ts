@@ -3,7 +3,6 @@ import { RoyalWrits, type WritId } from '../data/writs.js'
 import { initialState } from '../testing/state.js'
 import {
     WritRegistry,
-    writRegistry,
     type CharterRegistration,
     type MandateAlternativeEffect,
     type MandateRegistration,
@@ -79,11 +78,6 @@ describe('writRegistry', () => {
                 expect(registry.reasonWeaponRefused(writId, 0)).toContain(writId)
                 expect(registry.reasonCharterRefused(writId)).toContain(writId)
             }
-        })
-
-        /** This file loads no registrations, as a module reading the registry before them would. */
-        it('the shared registry starts empty', () => {
-            expect(writRegistry.registrations()).toEqual([])
         })
     })
 
