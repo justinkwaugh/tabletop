@@ -32,6 +32,22 @@ export function payShillingsToSupply(
     state.supply.shillings += amount
 }
 
+/**
+ * R-4.3.4 A target acquired returns to the supply and becomes one of the seat's markers from the
+ * general supply; with none of its left there, it is simply discarded. Returns whether it became one.
+ */
+export function targetToMarker(state: HydratedFeudumGameState, playerId: string): boolean {
+    const player = state.getPlayerState(playerId)
+    const { influence } = state.supply
+    state.supply.targets += 1
+    if ((influence[player.color] ?? 0) === 0) {
+        return false
+    }
+    influence[player.color] -= 1
+    player.influenceSupply += 1
+    return true
+}
+
 /** R-1.4.4, R-1.1-H1 A named good from the haversack; returns how many it held to give. */
 export function takeGoodFromHaversack(
     state: HydratedFeudumGameState,

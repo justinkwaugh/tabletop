@@ -5,9 +5,15 @@ import {
 } from '../actions/chooseStartingGoods.js'
 import { HydratedFinaliseHand, isFinaliseHand } from '../actions/finaliseHand.js'
 import { HydratedForfeitCard, isForfeitCard } from '../actions/forfeitCard.js'
+import { HydratedImprove, isImprove } from '../actions/improve.js'
+import { HydratedInfluence, isInfluence } from '../actions/influence.js'
+import { HydratedMigrate, isMigrate } from '../actions/migrate.js'
+import { HydratedMove, isMove } from '../actions/move.js'
 import { HydratedPlaceDisc, isPlaceDisc } from '../actions/placeDisc.js'
 import { HydratedPlaceStartingPawn, isPlaceStartingPawn } from '../actions/placeStartingPawn.js'
 import { HydratedPlayDefend, isPlayDefend } from '../actions/playDefend.js'
+import { HydratedTax, isTax } from '../actions/tax.js'
+import { HydratedTendLandscape, isTendLandscape } from '../actions/tendLandscape.js'
 import { HydratedFeudumGameState, type FeudumProjectedState } from '../model/gameState.js'
 
 export class FeudumHydrator implements GameHydrator<FeudumProjectedState, HydratedFeudumGameState> {
@@ -28,8 +34,26 @@ export class FeudumHydrator implements GameHydrator<FeudumProjectedState, Hydrat
             case isPlayDefend(data): {
                 return new HydratedPlayDefend(data)
             }
+            case isMigrate(data): {
+                return new HydratedMigrate(data)
+            }
+            case isInfluence(data): {
+                return new HydratedInfluence(data)
+            }
+            case isTax(data): {
+                return new HydratedTax(data)
+            }
+            case isImprove(data): {
+                return new HydratedImprove(data)
+            }
+            case isTendLandscape(data): {
+                return new HydratedTendLandscape(data)
+            }
             case isPlaceDisc(data): {
                 return new HydratedPlaceDisc(data)
+            }
+            case isMove(data): {
+                return new HydratedMove(data)
             }
             default: {
                 throw new Error(`Unknown action type ${data.type}`)
