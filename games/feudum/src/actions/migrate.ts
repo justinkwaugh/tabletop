@@ -168,7 +168,7 @@ export function reasonMigrateRefused(
  * R-3.6.1, R-3.6-H1 The pawn goes home with no space and no character. Its vessel stays on the
  * space (R-4.2.2) and its wine sulfur goes to the haversack.
  */
-function leaveBoard(
+export function leaveBoard(
     state: HydratedFeudumGameState,
     playerId: string,
     pawnNumber: PawnNumber

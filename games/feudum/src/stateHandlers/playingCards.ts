@@ -1,5 +1,7 @@
 import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import { cardPlayOffers } from '../actions/cardPlay.js'
+import { defenderAsked } from '../actions/combat.js'
+import { HydratedConquer, isConquer } from '../actions/conquer.js'
 import { HydratedDiscardWrit, isDiscardWrit } from '../actions/discardWrit.js'
 import { HydratedExplore, isExplore } from '../actions/explore.js'
 import { HydratedForfeitCard, isForfeitCard } from '../actions/forfeitCard.js'
@@ -31,6 +33,7 @@ type HydratedCardPlay =
     | HydratedTendLandscape
     | HydratedHarvest
     | HydratedGuildAction
+    | HydratedConquer
 
 /** R-3.2, R-4.4.4 What the turn player may send here. A discard plays no card, so ends no step. */
 type PlayingCardsAction = HydratedCardPlay | HydratedDiscardWrit
@@ -45,7 +48,8 @@ const PlaysOfCard: Partial<Readonly<Record<ActionCardKind, readonly ActionType[]
     explore: [ActionType.Explore],
     improve: [ActionType.Improve, ActionType.TendLandscape],
     harvest: [ActionType.Harvest],
-    guild: [ActionType.GuildAction]
+    guild: [ActionType.GuildAction],
+    conquer: [ActionType.Conquer]
 }
 
 /** R-3.2 The turn player plays one card, then its follow-ups run. */
@@ -69,7 +73,8 @@ export class PlayingCardsStateHandler implements MachineStateHandler<
             isImprove(action) ||
             isTendLandscape(action) ||
             isHarvest(action) ||
-            isGuildAction(action)
+            isGuildAction(action) ||
+            isConquer(action)
         )
     }
 
@@ -102,8 +107,15 @@ export class PlayingCardsStateHandler implements MachineStateHandler<
         action: PlayingCardsAction,
         context: MachineContext<HydratedFeudumGameState>
     ): MachineState {
-        return isDiscardWrit(action)
-            ? MachineState.PlayingCards
-            : stateAfterCardStep(context.gameState)
+        if (isDiscardWrit(action)) {
+            return MachineState.PlayingCards
+        }
+        const { combat } = context.gameState.flow
+        if (combat) {
+            return defenderAsked(context.gameState, combat.defenderId)
+                ? MachineState.AwaitingDefence
+                : MachineState.CommittingAttack
+        }
+        return stateAfterCardStep(context.gameState)
     }
 }

@@ -4,6 +4,8 @@ export enum MachineState {
     PlacingStartingPawn = 'PlacingStartingPawn',
     SelectingHands = 'SelectingHands',
     PlayingCards = 'PlayingCards',
+    AwaitingDefence = 'AwaitingDefence',
+    CommittingAttack = 'CommittingAttack',
     PlacingDisc = 'PlacingDisc',
     KeepingWrits = 'KeepingWrits',
     InspectingHarvest = 'InspectingHarvest'

@@ -45,6 +45,10 @@ export const WritDrawSource = Type.Union([
 ])
 
 /** What is pending and who decides it. Every entry names its seats in public state. */
+/** R-3.13.1 What a Conquer aims at. */
+export type CombatTarget = Type.Static<typeof CombatTarget>
+export const CombatTarget = Type.Union([PieceRef, Type.Object({ kind: Type.Literal('feudum') })])
+
 export type FlowState = Type.Static<typeof FlowState>
 export const FlowState = Type.Object({
     /** R-1.4.8, R-1.4.9 The seat choosing. */
@@ -92,7 +96,7 @@ export const FlowState = Type.Object({
             attackerId: Type.String(),
             defenderId: Type.String(),
             spaceId: SpaceIdSchema,
-            target: Type.Union([PieceRef, Type.Object({ kind: Type.Literal('feudum') })]),
+            target: CombatTarget,
             defendFlipped: Type.Boolean()
         })
     ),

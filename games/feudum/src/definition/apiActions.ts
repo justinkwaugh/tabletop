@@ -4,6 +4,9 @@ import { DiscardWrit } from '../actions/discardWrit.js'
 import { Explore } from '../actions/explore.js'
 import { FinaliseHand } from '../actions/finaliseHand.js'
 import { ForfeitCard } from '../actions/forfeitCard.js'
+import { AnswerAttack } from '../actions/answerAttack.js'
+import { CommitAttack } from '../actions/commitAttack.js'
+import { Conquer } from '../actions/conquer.js'
 import { Harvest } from '../actions/harvest.js'
 import { Improve } from '../actions/improve.js'
 import { Influence } from '../actions/influence.js'
@@ -36,6 +39,9 @@ export const FeudumApiActions = {
     [ActionType.Improve]: Improve,
     [ActionType.TendLandscape]: TendLandscape,
     [ActionType.Harvest]: Harvest,
+    [ActionType.Conquer]: Conquer,
+    [ActionType.AnswerAttack]: AnswerAttack,
+    [ActionType.CommitAttack]: CommitAttack,
     [ActionType.ChooseFavours]: ChooseFavours,
     [ActionType.PlaceDisc]: PlaceDisc,
     [ActionType.Move]: Move

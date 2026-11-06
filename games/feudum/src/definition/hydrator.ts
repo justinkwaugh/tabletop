@@ -6,6 +6,9 @@ import {
 } from '../actions/chooseStartingGoods.js'
 import { HydratedFinaliseHand, isFinaliseHand } from '../actions/finaliseHand.js'
 import { HydratedForfeitCard, isForfeitCard } from '../actions/forfeitCard.js'
+import { HydratedAnswerAttack, isAnswerAttack } from '../actions/answerAttack.js'
+import { HydratedCommitAttack, isCommitAttack } from '../actions/commitAttack.js'
+import { HydratedConquer, isConquer } from '../actions/conquer.js'
 import { HydratedHarvest, isHarvest } from '../actions/harvest.js'
 import { HydratedImprove, isImprove } from '../actions/improve.js'
 import { HydratedInfluence, isInfluence } from '../actions/influence.js'
@@ -69,6 +72,15 @@ export class FeudumHydrator implements GameHydrator<FeudumProjectedState, Hydrat
             }
             case isHarvest(data): {
                 return new HydratedHarvest(data)
+            }
+            case isConquer(data): {
+                return new HydratedConquer(data)
+            }
+            case isAnswerAttack(data): {
+                return new HydratedAnswerAttack(data)
+            }
+            case isCommitAttack(data): {
+                return new HydratedCommitAttack(data)
             }
             case isChooseFavours(data): {
                 return new HydratedChooseFavours(data)

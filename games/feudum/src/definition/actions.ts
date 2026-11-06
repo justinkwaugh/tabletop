@@ -18,5 +18,8 @@ export enum ActionType {
     Improve = 'Improve',
     TendLandscape = 'TendLandscape',
     Harvest = 'Harvest',
+    Conquer = 'Conquer',
+    AnswerAttack = 'AnswerAttack',
+    CommitAttack = 'CommitAttack',
     ChooseFavours = 'ChooseFavours'
 }

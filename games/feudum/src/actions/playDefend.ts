@@ -38,7 +38,7 @@ export function isPlayDefend(action?: GameAction): action is PlayDefend {
 }
 
 /** R-3.14.1 What the card prints. */
-function defendVp(): number {
+export function defendVp(): number {
     const { vp } = cardOf('defend')
     assert(vp !== null && vp !== 'variable', 'R-3.14.1 Defend prints its vp')
     return vp[0]
