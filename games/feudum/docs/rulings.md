@@ -12,7 +12,7 @@ Rules version: the December 2018 English rulebook with the designer's later answ
 - **R-1.2-H1** (Q25, Q27), _provisional_: the roads and the ship, submersible and flying-machine routes are those of the community map aid, until a clear picture of the board confirms or corrects them. The three ferry routes are read from the board. The rulebook moves a vessel "along the vessel route matching the vessel" and its legend names ship, submersible and flying-machine routes, and the designer rules a northern mountain location out of ship reach, so free movement between adjacent spaces is rejected. Spec: `boardMap.spec.ts`.
 - **R-1.4-H1** (Q2): 2 to 5 players; with 2 or 3 players, dummy Knight rows are added in unused colours until there are exactly 4 rows. Rejected: a dummy row for every unused colour. Spec: `initializer.spec.ts`.
 - **R-1.4-H2** (Q26): at setup each epoch's six region tiles are shuffled, one into each region's stack, and a tile's landscape stays hidden until it is taken. Rejected: fixed stacks with a set landscape per tile. Spec: `regionTiles.spec.ts`.
-- **R-1.4-H3** (Q28), _provisional_: 2 feudums per guild, the double-sided pairs split 4/3/3 (farm/town, outpost/farm, outpost/town), the rosary unlimited and 4 chicken spaces, until a photo of the physical components or a designer ruling settles them. Spec: `provisional.spec.ts`.
+- **R-1.4-H3** (Q28), _provisional_: the rosary unlimited and 4 chicken spaces, until the printed board or a designer ruling settles them. Spec: `provisional.spec.ts`.
 
 ### Actions (R-3)
 
