@@ -25,7 +25,7 @@
         spaceKey,
         merchantSprite,
         paintOrder,
-        recentMarks as recentMarksOf,
+        recentMarks,
         rooftopOn,
         scoringPieceKeys,
         stableSprite,
@@ -253,15 +253,15 @@
         )
     )
 
-    const recentMarks = $derived(
-        recentMarksOf(session.pieces, session.recent).map((mark) => ({
+    const coloredMarks = $derived(
+        recentMarks(session.pieces, session.recent).map((mark) => ({
             ...mark,
             color: session.colors.getPlayerUiColor(mark.playerId)
         }))
     )
     // One filter per wall, its region the wall's frame (see spriteBox).
     const wallTints = $derived(
-        recentMarks.flatMap(({ piece, color }) =>
+        coloredMarks.flatMap(({ piece, color }) =>
             piece.tintedWhenRecent
                 ? [
                       {
@@ -491,7 +491,7 @@
     </g>
 
     <g class="recent-squares">
-        {#each recentMarks as { key, piece, color } (key)}
+        {#each coloredMarks as { key, piece, color } (key)}
             {#if piece.groundMark}
                 <polygon class="recent-square" points={piece.groundMark} fill={color}></polygon>
             {/if}
@@ -600,7 +600,7 @@
     </g>
 
     <g class="recent">
-        {#each recentMarks as { key, at, onRoof, color } (key)}
+        {#each coloredMarks as { key, at, onRoof, color } (key)}
             {#if at}
                 <circle
                     class="recent-dot"

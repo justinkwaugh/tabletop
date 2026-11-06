@@ -37,7 +37,7 @@ const PIECE_SHAPES = {
 const MERCHANT_SQUARE_HALF = 0.4
 // A roofed building's mark sits toward the viewer, below its rooftop's mark in either view: the
 // building in front of it can hide its front face.
-const UNDER_ROOF_MARK = { forward: 0.28, height: 0.4 }
+const UNDER_ROOF_MARK = { forward: 0.32, height: 0.5 }
 const WALL_VARIANTS = 2
 const ROOFTOP_VARIANTS = 2
 
@@ -64,15 +64,11 @@ export function spacePlace(space: Point): string {
     return `space:${space.x},${space.y}`
 }
 
-export function roofPlace(space: Point): string {
-    return `roof:${space.x},${space.y}`
-}
-
 export function recentPlace(placement: RecentPlacement): string {
     if ('wall' in placement) {
         return wallKey(placement.wall.side, placement.wall.position)
     }
-    return 'roof' in placement ? roofPlace(placement.roof) : spacePlace(placement.space)
+    return 'roof' in placement ? spaceKey('roof', placement.roof) : spacePlace(placement.space)
 }
 
 export type RecentMark = {
@@ -83,8 +79,7 @@ export type RecentMark = {
     onRoof: boolean
 }
 
-// Newest first, one mark per place; a rooftop is a place of its own, so the building under it
-// keeps the mark of whoever placed it.
+// A rooftop is a place of its own, so the building under it keeps the mark of whoever placed it.
 export function recentMarks(pieces: BoardPiece[], recent: RecentPlacement[]): RecentMark[] {
     const byPlace = new Map<string, Omit<RecentMark, 'key' | 'playerId'>>()
     for (const piece of pieces) {
@@ -174,7 +169,7 @@ export function boardPieces(
                 ? {
                       key: rooftopKey(palace.id),
                       sprite: rooftopOn(rooftopSprite(roof), building.coords),
-                      place: roofPlace(building.coords),
+                      place: spaceKey('roof', building.coords),
                       markAt: project(projection, world, shape.height + shape.rooftopHeight)
                   }
                 : undefined,
