@@ -34,6 +34,7 @@ Rules version: the December 2018 English rulebook with the designer's later answ
 
 - **R-4.1-H1** (design): when a serf with a Royal Immunity seal adds a marker, the seal stays under that marker, which becomes the subject. Rejected: the seal going back to the player. Spec: `locationControl.spec.ts`.
 - **R-4.3-H1** (Q20): when an improvement's tile is prohibited, the improving player chooses which stack to take an earlier-epoch tile from, among those that have one on top. Spec: `regionTiles.spec.ts`.
+- **R-4.3-H2** (design): a wild tile names a good the haversack holds; with none of that good left it can't be spent for it. Rejected: discarding the tile for nothing under R-1.1-H1. Spec: `payments.spec.ts`.
 - **R-4.4-H1** (Q13): Royal Writ mandates and wild region tiles may be used on the player's own turns, during hand selection and nourishing, and (weapons) during the player's own attack; a wild tile is also offered whenever a payment would otherwise fall short. Rejected: out of turn at any moment. Spec: `royalWrits.spec.ts`, `regionTiles.spec.ts`.
 - **R-4.4-H2** (design): a Royal Writ draw larger than the deck draws what is there and keeps the stated number, or all drawn if fewer; an empty deck draws nothing. Spec: `royalWrits.spec.ts`.
 - **R-4.4-H3** (design): unkept writs go under the deck in the order drawn. Rejected: the drawer orders them. Spec: `royalWrits.spec.ts`.
