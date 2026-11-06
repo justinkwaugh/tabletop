@@ -32,24 +32,24 @@
         },
         "hotseat": false,
         "winningPlayerIds": [],
-        "seed": 571902728,
+        "seed": 1362391066,
         "activePlayerIds": ["player-1"],
-        "createdAt": "2026-11-05T18:33:21.483Z",
+        "createdAt": "2026-11-05T22:36:10.770Z",
         "storage": "remote",
         "category": "standard",
-        "startedAt": "2026-11-05T18:33:21.483Z"
+        "startedAt": "2026-11-05T22:36:10.770Z"
     },
     "state": {
         "systemVersion": 3,
-        "id": "derTqx7Pz2Wz5jom_Py4r",
+        "id": "ikaXBHDZP2fFTTL4TW5HV",
         "gameId": "scenario-gipf-piece-out-of-reach",
-        "seed": 571902728,
+        "seed": 1362391066,
         "prng": {
-            "seed": 571902728,
+            "seed": 1362391066,
             "invocations": 1
         },
         "protectedPrng": {
-            "seed": 709726646,
+            "seed": 4254228398,
             "invocations": 0
         },
         "activePlayerIds": ["player-1"],
@@ -68,7 +68,7 @@
                     "yinsh": 0,
                     "punct": 0
                 },
-                "captured": [],
+                "captured": 0,
                 "playedOther": true
             },
             {
@@ -82,7 +82,7 @@
                     "yinsh": 0,
                     "punct": 0
                 },
-                "captured": [],
+                "captured": 0,
                 "playedOther": true
             }
         ],

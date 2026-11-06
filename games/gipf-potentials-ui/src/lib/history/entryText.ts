@@ -74,26 +74,39 @@ export function entrySegments(entry: HistoryEntry, brief = false): Segment[] {
 
 function fullRows(entry: HistoryEntry): Segment[] {
     return entry.takings.flatMap((taking, index) => [
-        text(index === 0 ? (entry.kind === 'taking' ? ' took ' : ', then took ') : ' and '),
+        text(index === 0 ? (entry.kind === 'taking' ? ' ' : ', then ') : ' and '),
+        text(taking.left ? 'left ' : 'took '),
         point(taking.from),
         text('–'),
         point(taking.to),
-        text(` (${describe(taking)})`)
+        text(taking.left ? ' standing' : ` (${describe(taking)})`)
     ])
 }
 
+// Rows taken, then rows of GIPF-pieces left standing.
 function briefRows(entry: HistoryEntry): Segment[] {
-    const rows = entry.takings.flatMap((taking, index) => [
-        text(index === 0 ? '' : ' and '),
-        point(taking.from),
-        text('–'),
-        point(taking.to)
-    ])
-    if (rows.length === 0) return []
-    const rowWord = entry.takings.length > 1 ? 'rows' : 'row'
-    return entry.kind === 'taking'
-        ? [text(` took ${rowWord} `), ...rows]
-        : [text(`, taking ${rowWord} `), ...rows]
+    const taken = entry.takings.filter((taking) => !taking.left)
+    const left = entry.takings.filter((taking) => taking.left)
+    const opening = entry.kind === 'taking' && taken.length === 0
+    return [
+        ...briefList(taken, entry.kind === 'taking' ? ' took' : ', taking', ''),
+        ...briefList(left, opening ? ' left' : ', leaving', ' standing')
+    ]
+}
+
+function briefList(takings: Taking[], verb: string, after: string): Segment[] {
+    if (takings.length === 0) return []
+    const rowWord = takings.length > 1 ? 'rows' : 'row'
+    return [
+        text(`${verb} ${rowWord} `),
+        ...takings.flatMap((taking, index) => [
+            text(index === 0 ? '' : ' and '),
+            point(taking.from),
+            text('–'),
+            point(taking.to)
+        ]),
+        ...(after ? [text(after)] : [])
+    ]
 }
 
 function describe(taking: Taking): string {

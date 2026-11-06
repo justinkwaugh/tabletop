@@ -11,7 +11,8 @@
 
     // A player's potentials in hand, each kind as its potential with how many are left, dimmed
     // once none are. With `choose`, the pieces you could push next: a GIPF-piece while you may
-    // bring one in, each kind loaded on a piece, and a plain piece, the chosen one ringed.
+    // bring one in, each kind loaded on a piece, and a plain piece, the chosen one ringed and
+    // those you cannot push now dimmed.
     let {
         player,
         color,
@@ -71,7 +72,7 @@
             class="kind"
             class:can
             class:chosen={can && chosen === kind}
-            class:empty={count === 0}
+            class:empty={count === 0 || (choose !== undefined && !can)}
             disabled={!can || choose === undefined}
             title={count === undefined ? NAMES[kind] : `${NAMES[kind]}: ${count}`}
             aria-label={choose === undefined

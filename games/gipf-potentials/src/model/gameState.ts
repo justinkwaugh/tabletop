@@ -249,11 +249,7 @@ export class HydratedGipfPotentialsGameState
             if (unit.playerId === playerId) {
                 player.reserve += basics
             } else {
-                const potential = isPotentialKind(unit.kind) ? unit.kind : unit.load
-                player.captured.push(
-                    ...Array<PieceKind>(basics).fill(PieceKind.Basic),
-                    ...(potential === undefined ? [] : [potential])
-                )
+                player.captured += basics
             }
             removed.push({ coords, unit })
         }

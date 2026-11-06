@@ -1,6 +1,7 @@
 import type { AxialCoordinates, GameAction } from '@tabletop/common'
 import {
     isExtraMove,
+    isFinishRemoving,
     isMovePotential,
     isPushPiece,
     isRemoveRow,
@@ -10,9 +11,11 @@ import {
     type PotentialKind
 } from '@tabletop/gipf-potentials'
 
+// A row taken, or a row of GIPF-pieces alone left standing.
 export type Taking = {
     from: AxialCoordinates
     to: AxialCoordinates
+    left: boolean
     returned: number
     captured: number
     capturedGipf: number
@@ -52,21 +55,30 @@ export type TakingEntry = Span & { kind: 'taking'; takings: Taking[] }
 
 export type HistoryEntry = PushEntry | MoveEntry | SkipEntry | TakingEntry
 
-function takingOf(action: GameAction): Taking | undefined {
-    if (!isRemoveRow(action)) return undefined
+function takingsOf(action: GameAction): Taking[] {
+    if (isFinishRemoving(action)) {
+        return (action.metadata?.left ?? []).map((row) => {
+            const [from, to] = inReadingOrder(row.from, row.to)
+            return { from, to, left: true, returned: 0, captured: 0, capturedGipf: 0 }
+        })
+    }
+    if (!isRemoveRow(action)) return []
     const removed = action.metadata?.removed ?? []
     const size = ({ unit }: (typeof removed)[number]) =>
         unit.kind === PieceKind.Gipf ? 2 : unit.kind === PieceKind.Basic ? 1 : 0
     const own = removed.filter(({ unit }) => unit.playerId === action.playerId)
     const theirs = removed.filter(({ unit }) => unit.playerId !== action.playerId)
     const [from, to] = inReadingOrder(action.from, action.to)
-    return {
-        from,
-        to,
-        returned: own.reduce((sum, piece) => sum + size(piece), 0),
-        captured: theirs.reduce((sum, piece) => sum + size(piece), 0),
-        capturedGipf: theirs.filter(({ unit }) => unit.kind === PieceKind.Gipf).length
-    }
+    return [
+        {
+            from,
+            to,
+            left: false,
+            returned: own.reduce((sum, piece) => sum + size(piece), 0),
+            captured: theirs.reduce((sum, piece) => sum + size(piece), 0),
+            capturedGipf: theirs.filter(({ unit }) => unit.kind === PieceKind.Gipf).length
+        }
+    ]
 }
 
 // Rows read from the lower point to the higher: by column, then up the column.
@@ -112,8 +124,8 @@ function moveEntry(action: GameAction, index: number): HistoryEntry | undefined 
     return undefined
 }
 
-// Each move gets an entry, and the rows its player takes right after it join it; rows taken by
-// the other player, or before a move, get their own.
+// Each move gets an entry, and the rows its player takes or leaves standing right after it join
+// it; rows taken by the other player, or before a move, get their own.
 export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     const entries: HistoryEntry[] = []
     actions.forEach((action, index) => {
@@ -122,8 +134,8 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
             entries.push(move)
             return
         }
-        const taking = takingOf(action)
-        if (taking === undefined || action.playerId === undefined) return
+        const takings = takingsOf(action)
+        if (takings.length === 0 || action.playerId === undefined) return
         const last = entries.at(-1)
         if (
             last !== undefined &&
@@ -131,7 +143,7 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
             last.lastIndex === index - 1
         ) {
             last.lastIndex = index
-            last.takings.push(taking)
+            last.takings.push(...takings)
         } else {
             entries.push({
                 kind: 'taking',
@@ -139,7 +151,7 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
                 firstIndex: index,
                 lastIndex: index,
                 playerId: action.playerId,
-                takings: [taking]
+                takings
             })
         }
     })

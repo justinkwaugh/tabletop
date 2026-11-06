@@ -53,7 +53,7 @@
         return discs.map((disc) => ({
             tone: toneOf(disc.playerId),
             kind: disc.kind,
-            turn: turnOf(disc.kind, disc.id)
+            turn: turnOf(disc.kind, disc.id, view.turned)
         }))
     }
 
@@ -426,6 +426,15 @@
                                     ></path>
                                 {/each}
                             {/each}
+                            {#if isChosenTo(stack.coords)}
+                                <!-- The GIPF-piece waiting for one piece or two to cover it. -->
+                                <ellipse
+                                    cy={faceY}
+                                    rx={SPOT_RADIUS}
+                                    ry={SPOT_RADIUS * view.tilt}
+                                    class="mark-spot role-cover"
+                                ></ellipse>
+                            {/if}
                         {:else if role === 'row' || role === 'movable' || role === 'chosen'}
                             {#each role === 'row' ? ['over'] : ['under', 'over'] as layer (layer)}
                                 {#each topRing(stack.discs, PIECE_RADIUS - 3, faceY) as arc, index (index)}
@@ -768,6 +777,12 @@
 
     .mark-spot.role-keeping {
         fill: var(--gp-keep);
+    }
+
+    .mark-spot.role-cover {
+        fill: var(--gp-mark);
+        stroke: rgb(0 0 0 / 0.8);
+        stroke-width: 1.5;
     }
 
     .entering,

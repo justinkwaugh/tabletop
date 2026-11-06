@@ -1,7 +1,7 @@
 import { Color, Hydratable, PlayerState } from '@tabletop/common'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { PieceKind, PotentialCounts } from './pieces.js'
+import { PotentialCounts } from './pieces.js'
 
 export type GipfPotentialsPlayerState = Type.Static<typeof GipfPotentialsPlayerState>
 export const GipfPotentialsPlayerState = Type.Evaluate(
@@ -12,8 +12,8 @@ export const GipfPotentialsPlayerState = Type.Evaluate(
             reserve: Type.Integer({ minimum: 0 }),
             // Potentials still to be loaded onto pieces from the reserve.
             potentials: PotentialCounts,
-            // The opponent's pieces taken, one per disc, in the order they were taken.
-            captured: Type.Array(Type.Enum(PieceKind)),
+            // The opponent's basic pieces taken, a GIPF-piece as two; potentials just leave the game.
+            captured: Type.Integer({ minimum: 0 }),
             // Tournament: GIPF-pieces only until the first other piece.
             playedOther: Type.Boolean()
         })
@@ -30,7 +30,7 @@ export class HydratedGipfPotentialsPlayerState
     declare color: Color
     declare reserve: number
     declare potentials: PotentialCounts
-    declare captured: PieceKind[]
+    declare captured: number
     declare playedOther: boolean
 
     constructor(data: GipfPotentialsPlayerState) {

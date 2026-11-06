@@ -1,9 +1,5 @@
 <script lang="ts">
-    import {
-        isPotentialKind,
-        PieceKind,
-        type HydratedGipfPotentialsPlayerState
-    } from '@tabletop/gipf-potentials'
+    import { PieceKind, type HydratedGipfPotentialsPlayerState } from '@tabletop/gipf-potentials'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { tallyStacks } from '$lib/board/tally.js'
     import type { DiscKind } from '$lib/board/pieceShape.js'
@@ -18,10 +14,6 @@
     const isWinner = $derived(session.gameState.winningPlayerIds.includes(playerState.playerId))
     const gipfLeft = $derived(session.gameState.board.gipfPiecesOf(playerState.playerId))
     const reserve = $derived(session.reserveLeft(playerState.playerId))
-    // Each disc taken in its own mark: a basic piece plain, a potential its own.
-    const captured: DiscKind[] = $derived(
-        playerState.captured.map((kind) => (isPotentialKind(kind) ? kind : PieceKind.Basic))
-    )
     const opponentColor = $derived(
         session.gameState.getPlayerState(session.gameState.opponentOf(playerState.playerId)).color
     )
@@ -59,9 +51,12 @@
             />
         </div>
         <div class="line">
-            <strong class="count">{playerState.captured.length}</strong>
+            <strong class="count">{playerState.captured}</strong>
             <span class="caption">captured</span>
-            <PieceTally color={opponentColor} stacks={tallyStacks(captured)} />
+            <PieceTally
+                color={opponentColor}
+                stacks={tallyStacks(Array<DiscKind>(playerState.captured).fill(PieceKind.Basic))}
+            />
         </div>
     </div>
 </div>

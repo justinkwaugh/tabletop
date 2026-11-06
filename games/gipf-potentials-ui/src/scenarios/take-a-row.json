@@ -32,24 +32,24 @@
         },
         "hotseat": false,
         "winningPlayerIds": [],
-        "seed": 3681438585,
+        "seed": 589912662,
         "activePlayerIds": ["player-1"],
-        "createdAt": "2026-11-05T18:33:21.476Z",
+        "createdAt": "2026-11-05T22:36:10.763Z",
         "storage": "remote",
         "category": "standard",
-        "startedAt": "2026-11-05T18:33:21.476Z"
+        "startedAt": "2026-11-05T22:36:10.764Z"
     },
     "state": {
         "systemVersion": 3,
-        "id": "9b-MwqffWBIarNWX2Cb16",
+        "id": "MtqZwTNs-h2OZCPo5vg_I",
         "gameId": "scenario-take-a-row",
-        "seed": 3681438585,
+        "seed": 589912662,
         "prng": {
-            "seed": 3681438585,
+            "seed": 589912662,
             "invocations": 1
         },
         "protectedPrng": {
-            "seed": 3146105526,
+            "seed": 931338627,
             "invocations": 0
         },
         "activePlayerIds": ["player-1"],
@@ -68,7 +68,7 @@
                     "yinsh": 5,
                     "punct": 0
                 },
-                "captured": [],
+                "captured": 0,
                 "playedOther": true
             },
             {
@@ -82,7 +82,7 @@
                     "yinsh": 6,
                     "punct": 0
                 },
-                "captured": [],
+                "captured": 0,
                 "playedOther": true
             }
         ],

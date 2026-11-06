@@ -32,24 +32,24 @@
         },
         "hotseat": false,
         "winningPlayerIds": [],
-        "seed": 4261592934,
+        "seed": 3644600767,
         "activePlayerIds": ["player-1"],
-        "createdAt": "2026-11-05T18:33:21.467Z",
+        "createdAt": "2026-11-05T22:36:10.754Z",
         "storage": "remote",
         "category": "standard",
-        "startedAt": "2026-11-05T18:33:21.467Z"
+        "startedAt": "2026-11-05T22:36:10.754Z"
     },
     "state": {
         "systemVersion": 3,
-        "id": "QR16nH2oqLKgsJO5Jto8k",
+        "id": "8mitJThjqVKFQ8CT8vZTD",
         "gameId": "scenario-dvonn-targets",
-        "seed": 4261592934,
+        "seed": 3644600767,
         "prng": {
-            "seed": 4261592934,
+            "seed": 3644600767,
             "invocations": 1
         },
         "protectedPrng": {
-            "seed": 3082607115,
+            "seed": 94991779,
             "invocations": 0
         },
         "activePlayerIds": ["player-1"],
@@ -68,7 +68,7 @@
                     "yinsh": 0,
                     "punct": 0
                 },
-                "captured": [],
+                "captured": 0,
                 "playedOther": true
             },
             {
@@ -82,7 +82,7 @@
                     "yinsh": 0,
                     "punct": 0
                 },
-                "captured": [],
+                "captured": 0,
                 "playedOther": true
             }
         ],

@@ -5,6 +5,7 @@ import {
     PieceKind,
     pointAt,
     type ExtraMove,
+    type FinishRemoving,
     type MovePotential,
     type PushPiece,
     type RemoveRow,
@@ -89,6 +90,7 @@ describe('history entries', () => {
             {
                 from: pointAt('E2'),
                 to: pointAt('E5'),
+                left: false,
                 returned: 1,
                 captured: 2,
                 capturedGipf: 1
@@ -106,5 +108,30 @@ describe('history entries', () => {
         expect(text(entrySegments(entries[1]))).toContain('(1 back, captured 2 incl. 1 GIPF)')
         expect(text(entrySegments(entries[2]))).toBe(' covered with [dvonn] from -1,-1 onto -1,-2')
         expect(text(entrySegments(entries[3]))).toBe(' gave up the extra move')
+    })
+
+    it('names the rows of GIPF-pieces a player left standing', () => {
+        const pushGipf: PushPiece = {
+            ...base('w'),
+            type: ActionType.PushPiece,
+            dot: pointAt('E1'),
+            to: pointAt('E2'),
+            kind: PieceKind.Gipf,
+            metadata: { line: [], shifted: 3 }
+        }
+        const leave: FinishRemoving = {
+            ...base('w'),
+            type: ActionType.FinishRemoving,
+            metadata: { left: [{ from: pointAt('E5'), to: pointAt('E2') }] }
+        }
+        const [entry] = historyEntries([pushGipf, leave])
+        expect(text(entrySegments(entry))).toBe(
+            ' pushed [basic+basic] from 0,4 to 0,3, moving 3, then left 0,3–0,0 standing'
+        )
+        expect(text(entrySegments(entry, true))).toBe(
+            ' pushed [basic+basic] from 0,4 to 0,3, leaving row 0,3–0,0 standing'
+        )
+        const [alone] = historyEntries([leave])
+        expect(text(entrySegments(alone, true))).toBe(' left row 0,3–0,0 standing')
     })
 })

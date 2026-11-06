@@ -32,24 +32,24 @@
         },
         "hotseat": false,
         "winningPlayerIds": [],
-        "seed": 4215723076,
+        "seed": 2470523159,
         "activePlayerIds": ["player-1"],
-        "createdAt": "2026-11-05T18:33:21.472Z",
+        "createdAt": "2026-11-05T22:36:10.759Z",
         "storage": "remote",
         "category": "standard",
-        "startedAt": "2026-11-05T18:33:21.472Z"
+        "startedAt": "2026-11-05T22:36:10.759Z"
     },
     "state": {
         "systemVersion": 3,
-        "id": "v2rE5J3yJwarTRZjOT7e6",
+        "id": "DLm7FnHE2VTxN_IFcvk2z",
         "gameId": "scenario-cover-the-last-gipf",
-        "seed": 4215723076,
+        "seed": 2470523159,
         "prng": {
-            "seed": 4215723076,
+            "seed": 2470523159,
             "invocations": 1
         },
         "protectedPrng": {
-            "seed": 160087600,
+            "seed": 2549899384,
             "invocations": 0
         },
         "activePlayerIds": ["player-1"],
@@ -68,7 +68,7 @@
                     "yinsh": 0,
                     "punct": 5
                 },
-                "captured": [],
+                "captured": 0,
                 "playedOther": true
             },
             {
@@ -82,7 +82,7 @@
                     "yinsh": 0,
                     "punct": 6
                 },
-                "captured": [],
+                "captured": 0,
                 "playedOther": true
             }
         ],

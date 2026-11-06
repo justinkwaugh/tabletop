@@ -581,7 +581,7 @@ describe('taking rows', () => {
         expect(state.activePlayerIds).toEqual([B])
     })
 
-    it('used potentials go; own pieces return to the reserve, the opponent’s are captured', () => {
+    it('used potentials go; own pieces return to the reserve, the opponent’s are captured and their potentials leave the game', () => {
         const game = createGame()
         let state = withPieces(start(game), [
             ...KEEPERS,
@@ -595,7 +595,7 @@ describe('taking rows', () => {
         state = removeRow(game, state, W, 'E2', 'E5', ['E2'])
         const white = hydrated(state).getPlayerState(W)
         expect(white.reserve).toBe(11)
-        expect(white.captured).toEqual([PieceKind.Basic, PieceKind.Yinsh])
+        expect(white.captured).toBe(1)
     })
 
     it('a freed piece completing a row of the remover’s colour is taken too', () => {

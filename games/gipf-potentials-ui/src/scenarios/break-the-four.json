@@ -32,24 +32,24 @@
         },
         "hotseat": false,
         "winningPlayerIds": [],
-        "seed": 1806930966,
+        "seed": 567617130,
         "activePlayerIds": ["player-1"],
-        "createdAt": "2026-11-05T18:33:21.478Z",
+        "createdAt": "2026-11-05T22:36:10.765Z",
         "storage": "remote",
         "category": "standard",
-        "startedAt": "2026-11-05T18:33:21.478Z"
+        "startedAt": "2026-11-05T22:36:10.765Z"
     },
     "state": {
         "systemVersion": 3,
-        "id": "cxfMnqF5tVZQ5DR1KQHww",
+        "id": "QfruF1DWTPKGpTxTfx5JA",
         "gameId": "scenario-break-the-four",
-        "seed": 1806930966,
+        "seed": 567617130,
         "prng": {
-            "seed": 1806930966,
+            "seed": 567617130,
             "invocations": 1
         },
         "protectedPrng": {
-            "seed": 4180956242,
+            "seed": 2424729869,
             "invocations": 0
         },
         "activePlayerIds": ["player-1"],
@@ -68,7 +68,7 @@
                     "yinsh": 5,
                     "punct": 0
                 },
-                "captured": [],
+                "captured": 0,
                 "playedOther": true
             },
             {
@@ -82,7 +82,7 @@
                     "yinsh": 6,
                     "punct": 0
                 },
-                "captured": [],
+                "captured": 0,
                 "playedOther": true
             }
         ],

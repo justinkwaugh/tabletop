@@ -54,6 +54,14 @@
         stroke-width: 1.4;
     }
 
+    .glyph :global(.turn-arrow) {
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
     /* On, the glyph fills in dark; off, it is a faint outline. */
     .toggle[aria-pressed='true'] {
         color: var(--gp-ink);

@@ -32,24 +32,24 @@
         },
         "hotseat": false,
         "winningPlayerIds": [],
-        "seed": 1969547973,
+        "seed": 664203136,
         "activePlayerIds": ["player-1"],
-        "createdAt": "2026-11-05T18:33:21.482Z",
+        "createdAt": "2026-11-05T22:36:10.769Z",
         "storage": "remote",
         "category": "standard",
-        "startedAt": "2026-11-05T18:33:21.482Z"
+        "startedAt": "2026-11-05T22:36:10.769Z"
     },
     "state": {
         "systemVersion": 3,
-        "id": "0Dnz_8YklK-_SqM30QkvS",
+        "id": "Ig3r9Mjs0_imj4bSO8rWm",
         "gameId": "scenario-last-gipf-piece",
-        "seed": 1969547973,
+        "seed": 664203136,
         "prng": {
-            "seed": 1969547973,
+            "seed": 664203136,
             "invocations": 1
         },
         "protectedPrng": {
-            "seed": 3548185647,
+            "seed": 2076558037,
             "invocations": 0
         },
         "activePlayerIds": ["player-1"],
@@ -68,7 +68,7 @@
                     "yinsh": 0,
                     "punct": 0
                 },
-                "captured": [],
+                "captured": 0,
                 "playedOther": true
             },
             {
@@ -82,7 +82,7 @@
                     "yinsh": 0,
                     "punct": 0
                 },
-                "captured": [],
+                "captured": 0,
                 "playedOther": true
             }
         ],

@@ -32,24 +32,24 @@
         },
         "hotseat": false,
         "winningPlayerIds": [],
-        "seed": 226368010,
+        "seed": 179883852,
         "activePlayerIds": ["player-1"],
-        "createdAt": "2026-11-05T18:33:21.484Z",
+        "createdAt": "2026-11-05T22:36:10.771Z",
         "storage": "remote",
         "category": "standard",
-        "startedAt": "2026-11-05T18:33:21.484Z"
+        "startedAt": "2026-11-05T22:36:10.771Z"
     },
     "state": {
         "systemVersion": 3,
-        "id": "mFLxh8FMAbmojePkaHK6i",
+        "id": "8MB0TvlPsY8yaogqVPYDU",
         "gameId": "scenario-out-of-moves",
-        "seed": 226368010,
+        "seed": 179883852,
         "prng": {
-            "seed": 226368010,
+            "seed": 179883852,
             "invocations": 1
         },
         "protectedPrng": {
-            "seed": 436007037,
+            "seed": 1374593357,
             "invocations": 0
         },
         "activePlayerIds": ["player-1"],
@@ -68,7 +68,7 @@
                     "yinsh": 0,
                     "punct": 0
                 },
-                "captured": [],
+                "captured": 0,
                 "playedOther": true
             },
             {
@@ -82,7 +82,7 @@
                     "yinsh": 0,
                     "punct": 0
                 },
-                "captured": [],
+                "captured": 0,
                 "playedOther": true
             }
         ],

@@ -32,24 +32,24 @@
         },
         "hotseat": false,
         "winningPlayerIds": [],
-        "seed": 3354792554,
+        "seed": 426525243,
         "activePlayerIds": ["player-1"],
-        "createdAt": "2026-11-05T18:33:21.473Z",
+        "createdAt": "2026-11-05T22:36:10.761Z",
         "storage": "remote",
         "category": "standard",
-        "startedAt": "2026-11-05T18:33:21.474Z"
+        "startedAt": "2026-11-05T22:36:10.761Z"
     },
     "state": {
         "systemVersion": 3,
-        "id": "UDSDQeauAi-pTMushJKXW",
+        "id": "mjMV6ViqaITugNyx7ZhcN",
         "gameId": "scenario-tamsk-extra-move",
-        "seed": 3354792554,
+        "seed": 426525243,
         "prng": {
-            "seed": 3354792554,
+            "seed": 426525243,
             "invocations": 1
         },
         "protectedPrng": {
-            "seed": 1804464459,
+            "seed": 1118712728,
             "invocations": 0
         },
         "activePlayerIds": ["player-1"],
@@ -68,7 +68,7 @@
                     "yinsh": 0,
                     "punct": 0
                 },
-                "captured": [],
+                "captured": 0,
                 "playedOther": true
             },
             {
@@ -82,7 +82,7 @@
                     "yinsh": 0,
                     "punct": 0
                 },
-                "captured": [],
+                "captured": 0,
                 "playedOther": true
             }
         ],

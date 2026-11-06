@@ -28,14 +28,19 @@ export class BoardView {
     readonly rise: number
     readonly geometry = GEOMETRY
 
-    constructor(readonly tilt: number) {
+    // A turned view sees the board from the far side, half a turn round.
+    constructor(
+        readonly tilt: number,
+        readonly turned = false
+    ) {
         this.rise = Math.sqrt(1 - tilt ** 2)
     }
 
     // The centre of a point on the board's surface, where a piece standing there rests.
     center(coords: AxialCoordinates): Point {
         const point = flatHexCoordsToCenterPoint(coords, HEX_DIMENSIONS)
-        return { x: point.x, y: point.y * this.tilt }
+        const sign = this.turned ? -1 : 1
+        return { x: sign * point.x, y: sign * point.y * this.tilt }
     }
 
     // How far up the screen a height above the board shows.
@@ -86,6 +91,7 @@ export class BoardView {
 }
 
 export const VIEW = new BoardView(TILT)
+export const TURNED_VIEW = new BoardView(TILT, true)
 
 export function coordsKey(coords: AxialCoordinates): string {
     return `${coords.q},${coords.r}`

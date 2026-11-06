@@ -36,7 +36,7 @@ import {
     setGipfPotentialsSelection,
     type GipfPotentialsSelection
 } from './stagedSelection.js'
-import { coordsKey, VIEW, type BoardView } from '$lib/board/geometry.js'
+import { coordsKey, TURNED_VIEW, VIEW, type BoardView } from '$lib/board/geometry.js'
 import { boardNotation, type BoardNotation } from '$lib/board/coordinates.js'
 import { discsOf, type BoardDisc } from '$lib/board/boardChange.js'
 
@@ -88,8 +88,15 @@ export class GipfPotentialsGameSession extends GameSession<
         return POTENTIAL_KINDS.filter((kind) => counts[kind] > 0)
     })
 
-    readonly view: BoardView = VIEW
-    readonly notation: BoardNotation = boardNotation(VIEW)
+    // The board seen from the far side, half a turn round, to see behind tall stacks.
+    turned: boolean = $derived(this.preferences.values.turned)
+
+    toggleTurned() {
+        this.preferences.set({ turned: !this.turned })
+    }
+
+    view: BoardView = $derived(this.turned ? TURNED_VIEW : VIEW)
+    notation: BoardNotation = $derived(boardNotation(this.view))
 
     canPush = $derived(this.canAct(ActionType.PushPiece))
     canMovePotential = $derived(this.canAct(ActionType.MovePotential))

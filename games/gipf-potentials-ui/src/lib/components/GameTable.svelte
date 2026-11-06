@@ -143,6 +143,26 @@
                                     </svg>
                                 </OverlayToggle>
                             {/if}
+                            <!-- Half a turn round, so what tall stacks hide comes in front. -->
+                            <OverlayToggle
+                                label="Far side"
+                                pressed={gameSession.turned}
+                                onToggle={() => gameSession.toggleTurned()}
+                            >
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="-8 -8 16 16"
+                                    aria-hidden="true"
+                                >
+                                    <path d="M -5.5 -1 A 5.5 5.5 0 0 1 4.5 -3.2" class="turn-arrow"
+                                    ></path>
+                                    <path d="M 2 -5 L 4.8 -3 L 2.2 -0.8" class="turn-arrow"></path>
+                                    <path d="M 5.5 1 A 5.5 5.5 0 0 1 -4.5 3.2" class="turn-arrow"
+                                    ></path>
+                                    <path d="M -2 5 L -4.8 3 L -2.2 0.8" class="turn-arrow"></path>
+                                </svg>
+                            </OverlayToggle>
                         </div>
                     {/snippet}
                     {#snippet toolbar()}

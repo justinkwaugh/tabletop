@@ -1,8 +1,14 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import { AxialCoordinates, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { HydratedGipfPotentialsGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
+
+// The rows of GIPF-pieces alone left standing, each by its ends.
+export type FinishRemovingMetadata = Type.Static<typeof FinishRemovingMetadata>
+export const FinishRemovingMetadata = Type.Object({
+    left: Type.Array(Type.Object({ from: AxialCoordinates, to: AxialCoordinates }))
+})
 
 export type FinishRemoving = Type.Static<typeof FinishRemoving>
 export const FinishRemoving = Type.Evaluate(
@@ -10,7 +16,8 @@ export const FinishRemoving = Type.Evaluate(
         Type.Omit(GameAction, ['playerId']),
         Type.Object({
             type: Type.Literal(ActionType.FinishRemoving),
-            playerId: Type.String()
+            playerId: Type.String(),
+            metadata: Type.Optional(FinishRemovingMetadata)
         })
     ])
 )
@@ -28,6 +35,7 @@ export class HydratedFinishRemoving
 {
     declare type: ActionType.FinishRemoving
     declare playerId: string
+    declare metadata?: FinishRemovingMetadata
 
     constructor(data: FinishRemoving) {
         super(data, FinishRemovingValidator)
@@ -37,6 +45,8 @@ export class HydratedFinishRemoving
         if (!this.isValid(state)) {
             throw Error('Invalid FinishRemoving action')
         }
+        const left = state.board.rowsOf(this.playerId).map(({ from, to }) => ({ from, to }))
+        this.metadata = { left: structuredClone(left) }
     }
 
     isValid(state: HydratedGipfPotentialsGameState): boolean {

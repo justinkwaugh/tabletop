@@ -32,24 +32,24 @@
         },
         "hotseat": false,
         "winningPlayerIds": [],
-        "seed": 1544090080,
+        "seed": 3711125773,
         "activePlayerIds": ["player-1"],
-        "createdAt": "2026-11-05T18:33:21.475Z",
+        "createdAt": "2026-11-05T22:36:10.762Z",
         "storage": "remote",
         "category": "standard",
-        "startedAt": "2026-11-05T18:33:21.475Z"
+        "startedAt": "2026-11-05T22:36:10.762Z"
     },
     "state": {
         "systemVersion": 3,
-        "id": "mMVJ5l93ccQiSTeFyoO1a",
+        "id": "rJ5m_JVnI8qAlXoZ-4Rwa",
         "gameId": "scenario-their-tamsk",
-        "seed": 1544090080,
+        "seed": 3711125773,
         "prng": {
-            "seed": 1544090080,
+            "seed": 3711125773,
             "invocations": 1
         },
         "protectedPrng": {
-            "seed": 1006019608,
+            "seed": 3575039125,
             "invocations": 0
         },
         "activePlayerIds": ["player-1"],
@@ -68,7 +68,7 @@
                     "yinsh": 0,
                     "punct": 0
                 },
-                "captured": [],
+                "captured": 0,
                 "playedOther": true
             },
             {
@@ -82,7 +82,7 @@
                     "yinsh": 0,
                     "punct": 0
                 },
-                "captured": [],
+                "captured": 0,
                 "playedOther": true
             }
         ],

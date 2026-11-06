@@ -43,14 +43,16 @@ const TURNS: Record<DiscKind, number> = {
 }
 
 // Which way round a disc lies, from its id, so it lies the same way wherever it goes and whoever
-// looks. A disc with no id lies unturned.
-export function turnOf(kind: DiscKind, id: number | undefined): number {
-    if (id === undefined) return 0
+// looks; half a turn further round on a board seen from its far side. A disc with no id lies
+// unturned.
+export function turnOf(kind: DiscKind, id: number | undefined, farSide = false): number {
+    const half = farSide ? 180 / TURN_STEP : 0
+    if (id === undefined) return half % TURNS[kind]
     // Ids count up one by one; mixed, neighbours lie unrelated ways round.
     let hash = Math.imul(id ^ (id >>> 16), 0x85ebca6b)
     hash = Math.imul(hash ^ (hash >>> 13), 0xc2b2ae35)
     hash ^= hash >>> 16
-    return (hash >>> 0) % TURNS[kind]
+    return ((hash >>> 0) + half) % TURNS[kind]
 }
 
 // Every disc there is: each kind in each tone, each way round its mark can lie.

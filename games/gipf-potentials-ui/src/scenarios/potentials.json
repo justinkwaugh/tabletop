@@ -32,24 +32,24 @@
         },
         "hotseat": false,
         "winningPlayerIds": [],
-        "seed": 24203361,
+        "seed": 192949305,
         "activePlayerIds": ["player-1"],
-        "createdAt": "2026-11-05T18:33:21.462Z",
+        "createdAt": "2026-11-05T22:36:10.749Z",
         "storage": "remote",
         "category": "standard",
-        "startedAt": "2026-11-05T18:33:21.463Z"
+        "startedAt": "2026-11-05T22:36:10.750Z"
     },
     "state": {
         "systemVersion": 3,
-        "id": "G0P9htH2-GaqIvdaAOEnD",
+        "id": "5lrmzb0-OJsfGnhD06Hfa",
         "gameId": "scenario-potentials",
-        "seed": 24203361,
+        "seed": 192949305,
         "prng": {
-            "seed": 24203361,
+            "seed": 192949305,
             "invocations": 1
         },
         "protectedPrng": {
-            "seed": 1279404741,
+            "seed": 223915921,
             "invocations": 0
         },
         "activePlayerIds": ["player-1"],
@@ -68,7 +68,7 @@
                     "yinsh": 2,
                     "punct": 2
                 },
-                "captured": [],
+                "captured": 0,
                 "playedOther": true
             },
             {
@@ -82,7 +82,7 @@
                     "yinsh": 3,
                     "punct": 3
                 },
-                "captured": [],
+                "captured": 0,
                 "playedOther": true
             }
         ],

@@ -75,7 +75,7 @@ export class GipfPotentialsGameInitializer
                 color: index === 0 ? Color.White : Color.Black,
                 reserve: rules.pieces - 2 * startingSpots.length,
                 potentials: { ...potentials },
-                captured: [],
+                captured: 0,
                 playedOther: false
             })
         })
