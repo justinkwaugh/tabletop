@@ -13,7 +13,14 @@ import {
 } from '../model/followUps.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { rankOf, RankChange } from '../model/guildStatus.js'
-import { GoodSchema, SpaceIdSchema, VesselTypeSchema, WritIdSchema } from '../model/stateSchemas.js'
+import {
+    GoodSchema,
+    MonsterIdSchema,
+    ScrollSpaceIdSchema,
+    SpaceIdSchema,
+    VesselTypeSchema,
+    WritIdSchema
+} from '../model/stateSchemas.js'
 import { writDeckCount } from '../model/writDeck.js'
 import { CompletionCount, GuildFunctionDetails, InventionChoice } from './guildFunctionDetails.js'
 
@@ -40,7 +47,14 @@ export const GuildFunctionParams = Type.Object({
     /** R-4.6.3 Alchemist trade: the vessel bought. */
     vesselType: Type.Optional(VesselTypeSchema),
     /** R-4.6.5 Alchemist push: what is invented, in order; barrels are priced in this order. */
-    inventions: Type.Optional(Type.Array(InventionChoice))
+    inventions: Type.Optional(Type.Array(InventionChoice)),
+    /** R-4.6.3 Knight trade: the monster tamed, if any, and the space it deploys to. */
+    monster: Type.Optional(MonsterIdSchema),
+    deploySpaceId: Type.Optional(SpaceIdSchema),
+    /** R-4.6.4, R-4.6.5 Knight push, Noble pull: each marker's row, by its place among the rows. */
+    knightRows: Type.Optional(Type.Array(Type.Integer({ minimum: 0 }))),
+    /** R-4.6-H1, R-4.6.4, R-4.6.5 The scroll spaces filled or emptied, in order. */
+    scrollSpaces: Type.Optional(Type.Array(ScrollSpaceIdSchema))
 })
 
 /**
@@ -122,6 +136,15 @@ export interface BeadDrawPreview {
     readonly ifLow: ScoringPreview
 }
 
+/** R-4.6.5 What a flip can reach: the seals are unseen, so its lowest and highest totals. */
+export interface SealFlipPreview {
+    readonly rosaryTotal: number
+    readonly flips: number
+    readonly lowestTotal: number
+    readonly highestTotal: number
+    readonly ifLowest: ScoringPreview
+}
+
 /** What a function's own rule says it would do. A function adds its optional facts here. */
 export interface PreviewedFunction {
     readonly completions?: number
@@ -132,6 +155,7 @@ export interface PreviewedFunction {
     readonly revealed?: boolean
     readonly trade?: TradePreview
     readonly beadDraw?: BeadDrawPreview
+    readonly sealFlip?: SealFlipPreview
     /** What it would record, for a function that draws nothing and whose record says it all. */
     readonly details?: GuildFunctionDetails
 }

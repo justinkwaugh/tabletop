@@ -13,7 +13,9 @@ import {
     type PreviewedFunction,
     type ScoringPreview
 } from './guildFunction.js'
+import { KnightFunctions } from './knight.js'
 import { MerchantFunctions } from './merchant.js'
+import { NobleFunctions } from './noble.js'
 
 /** R-4.6 One row per guild. A new guild adds one import and one row. */
 const GuildFunctionRows: Partial<
@@ -21,7 +23,9 @@ const GuildFunctionRows: Partial<
 > = {
     farmer: FarmerFunctions,
     merchant: MerchantFunctions,
-    alchemist: AlchemistFunctions
+    alchemist: AlchemistFunctions,
+    knight: KnightFunctions,
+    noble: NobleFunctions
 }
 
 export function guildFunctionRow(

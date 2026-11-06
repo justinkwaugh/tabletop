@@ -1,11 +1,17 @@
-import { assert } from '@tabletop/common'
+import { assert, type GameAction } from '@tabletop/common'
 import type { SpaceId } from '../data/board.js'
 import type { ActionCardKind } from '../data/cards.js'
 import { Goods, type Good, type GuildId, type VesselType } from '../data/components.js'
-import { AlchemistCartSpaces, MarketSpaces, ScrollSpaces } from '../data/guilds.js'
+import {
+    AlchemistCartSpaces,
+    MarketSpaces,
+    ScrollSpaces,
+    type ScrollSpaceId
+} from '../data/guilds.js'
 import { Seals, type BeadValue, type SealId } from '../data/seals.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { placeMarker } from '../model/locationControl.js'
+import { moveConcealedSeal } from '../model/seals.js'
 import type { GoodCounts } from '../model/stateSchemas.js'
 import { setUp, spaceOfKind } from './improving.js'
 import { tableAtPlayingCards, type Table } from './table.js'
@@ -166,6 +172,40 @@ export function setBeads(
     })
 }
 
+/** R-5-H1 Exactly these scroll spaces hold a concealed seal, keeping totals. */
+export function setScrolls(state: HydratedFeudumGameState, filled: readonly ScrollSpaceId[]): void {
+    for (const { id } of ScrollSpaces) {
+        const wanted = filled.includes(id)
+        if (state.guilds.noble.scrolls[id] && !wanted) {
+            moveConcealedSeal(state, { kind: 'scroll', spaceId: id }, { kind: 'pile' })
+        } else if (!state.guilds.noble.scrolls[id] && wanted) {
+            moveConcealedSeal(state, { kind: 'pile' }, { kind: 'scroll', spaceId: id })
+        }
+    }
+}
+
+/** R-5-H1 The seal on this scroll space shows this value, swapped with another, keeping totals. */
+export function setScrollSeal(
+    state: HydratedFeudumGameState,
+    spaceId: ScrollSpaceId,
+    value: BeadValue
+): void {
+    const vault = state.requireVault()
+    const held = vault.scrollSeals[spaceId]
+    assert(held, `No seal lies on ${spaceId}`)
+    delete vault.scrollSeals[spaceId]
+    vault.sealPile.push(held)
+    state.supply.sealPileCount += 1
+    vault.scrollSeals[spaceId] = takeSealOfValue(state, value)
+}
+
+/** The general supply holds this many seals; the rest go to this seat, keeping totals. */
+export function setSealPile(state: HydratedFeudumGameState, playerId: string, count: number): void {
+    while (state.supply.sealPileCount > count) {
+        moveConcealedSeal(state, { kind: 'pile' }, { kind: 'held', playerId })
+    }
+}
+
 export interface GuildTable {
     readonly table: Table
     readonly playerId: string
@@ -198,4 +238,9 @@ export function ruleFarm(
     placeMarker(state, playerId, spaceId)
     setFarmGoods(state, spaceId, amounts)
     return spaceId
+}
+
+/** What an Action records for the history, as text: its metadata, without the engine's patches. */
+export function recordedText(action: GameAction): string {
+    return 'metadata' in action ? JSON.stringify(action.metadata) : ''
 }

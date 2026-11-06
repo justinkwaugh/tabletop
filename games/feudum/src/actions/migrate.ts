@@ -1,12 +1,13 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { assertExists, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
-import { Spaces, type SpaceId } from '../data/board.js'
+import type { SpaceId } from '../data/board.js'
 import { GuildIds, type Character } from '../data/components.js'
 import type { GuildRank } from '../data/guilds.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedFeudumGameState } from '../model/gameState.js'
 import { rankOf, RankChange } from '../model/guildStatus.js'
+import { presenceSpaceIds } from '../model/locationControl.js'
 import {
     canCoverWithWildTiles,
     canPayGoods,
@@ -90,17 +91,6 @@ export function isMigrate(action?: GameAction): action is Migrate {
 
 export type MigrateInput = CardPlayInput &
     Readonly<Pick<Migrate, 'pawn' | 'onto' | 'distantKin' | 'wildTiles'>>
-
-/** R-3.6.1 The seat's pawns and markers on the map; a monster is neither (FAQ official). */
-function presenceSpaceIds(state: HydratedFeudumGameState, playerId: string): SpaceId[] {
-    const stood = new Set(
-        state.getPlayerState(playerId).pawns.flatMap((pawn) => pawn.spaceId ?? [])
-    )
-    return Spaces.map((space) => space.id).filter((spaceId) => {
-        const { ruler, serf } = state.spaces[spaceId]
-        return stood.has(spaceId) || ruler?.playerId === playerId || serf?.playerId === playerId
-    })
-}
 
 /** R-3.6.1 A space with the seat's pawn or marker; with neither anywhere, a starting space. */
 export function migrateSpaceIds(state: HydratedFeudumGameState, playerId: string): SpaceId[] {

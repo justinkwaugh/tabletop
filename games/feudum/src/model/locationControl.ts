@@ -1,10 +1,21 @@
 import { assert } from '@tabletop/common'
-import type { SpaceId } from '../data/board.js'
+import { Spaces, type SpaceId } from '../data/board.js'
 import type { HydratedFeudumGameState } from './gameState.js'
 import type { SpaceState } from './mapState.js'
 import { immunitySealFollowsMarker } from './seals.js'
 
 export type MarkerRole = 'ruler' | 'serf' | 'subject'
+
+/** R-3.6.1, R-4.6.3 The seat's pawns and markers on the map; a monster is neither (FAQ official). */
+export function presenceSpaceIds(state: HydratedFeudumGameState, playerId: string): SpaceId[] {
+    const stood = new Set(
+        state.getPlayerState(playerId).pawns.flatMap((pawn) => pawn.spaceId ?? [])
+    )
+    return Spaces.map((space) => space.id).filter((spaceId) => {
+        const { ruler, serf } = state.spaces[spaceId]
+        return stood.has(spaceId) || ruler?.playerId === playerId || serf?.playerId === playerId
+    })
+}
 
 /**
  * R-4.1.1, R-4.1.2 The role this player would take by adding a marker, or none when the space
