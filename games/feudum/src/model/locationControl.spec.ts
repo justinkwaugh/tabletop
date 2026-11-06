@@ -4,6 +4,7 @@ import { canonicalOf, initialState } from '../testing/state.js'
 import { conservationBreaks } from './canonicalValidator.js'
 import type { HydratedFeudumGameState } from './gameState.js'
 import { canPlaceMarker, landscapeTender, nextMarkerRole, placeMarker } from './locationControl.js'
+import { immunityKey, moveConcealedSeal } from './seals.js'
 
 const space: SpaceId = 'space.forest.2'
 
@@ -111,7 +112,12 @@ describe('location control', () => {
     it('R-4.1-H1 the seal under a serf stays under that marker, now the subject', () => {
         placeMarker(state, 'p1', space)
         placeMarker(state, 'p2', space)
-        state.spaces[space].serf = { playerId: 'p2', immune: true }
+        moveConcealedSeal(
+            state,
+            { kind: 'pile' },
+            { kind: 'immunity', spaceId: space, role: 'serf' }
+        )
+        const sealId = state.requireVault().immunitySeals[immunityKey(space, 'serf')]
         placeMarker(state, 'p2', space)
         expect(state.spaces[space].ruler).toEqual({
             playerId: 'p2',
@@ -119,6 +125,9 @@ describe('location control', () => {
             subjectImmune: true
         })
         expect(state.spaces[space].serf).toEqual({ playerId: 'p1' })
+        expect(state.requireVault().immunitySeals).toEqual({
+            [immunityKey(space, 'subject')]: sealId
+        })
     })
 
     it('R-4.1.4 serfs and subjects are not ruled locations', () => {

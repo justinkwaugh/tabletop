@@ -1,28 +1,43 @@
 import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import { HydratedFinaliseHand, isFinaliseHand } from '../actions/finaliseHand.js'
+import {
+    HydratedReclaimImmunitySeal,
+    isReclaimImmunitySeal,
+    reclaimImmunitySealOffers
+} from '../actions/reclaimImmunitySeal.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 
+/** R-3.1-H1, R-3.14-H2 What the seat asked may send here. */
+type SelectingHandsAction = HydratedFinaliseHand | HydratedReclaimImmunitySeal
+
 /** R-3.1-H1 Seats draft in their own clients; only the first not finalised is asked. */
 export class SelectingHandsStateHandler implements MachineStateHandler<
-    HydratedFinaliseHand,
+    SelectingHandsAction,
     HydratedFeudumGameState
 > {
     isValidAction(
         action: HydratedAction,
         _context: MachineContext<HydratedFeudumGameState>
-    ): action is HydratedFinaliseHand {
-        return isFinaliseHand(action)
+    ): action is SelectingHandsAction {
+        return isFinaliseHand(action) || isReclaimImmunitySeal(action)
     }
 
     validActionsForPlayer(
         playerId: string,
         context: MachineContext<HydratedFeudumGameState>
     ): ActionType[] {
-        return context.gameState.flow.selection?.playerId === playerId
-            ? [ActionType.FinaliseHand]
-            : []
+        const state = context.gameState
+        if (state.flow.selection?.playerId !== playerId) {
+            return []
+        }
+        return [
+            ActionType.FinaliseHand,
+            ...(reclaimImmunitySealOffers(state, playerId).length > 0
+                ? [ActionType.ReclaimImmunitySeal]
+                : [])
+        ]
     }
 
     /** R-3.1-H1 The first seat in turn order not finalised; after the last, nobody yet. */
@@ -35,7 +50,7 @@ export class SelectingHandsStateHandler implements MachineStateHandler<
     }
 
     onAction(
-        _action: HydratedFinaliseHand,
+        _action: SelectingHandsAction,
         _context: MachineContext<HydratedFeudumGameState>
     ): MachineState {
         return MachineState.SelectingHands

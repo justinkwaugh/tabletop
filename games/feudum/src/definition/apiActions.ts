@@ -5,6 +5,9 @@ import { Explore } from '../actions/explore.js'
 import { FinaliseHand } from '../actions/finaliseHand.js'
 import { ForfeitCard } from '../actions/forfeitCard.js'
 import { AnswerAttack } from '../actions/answerAttack.js'
+import { AnswerStarve } from '../actions/answerStarve.js'
+import { ReclaimImmunitySeal } from '../actions/reclaimImmunitySeal.js'
+import { StarveThePeople } from '../actions/starveThePeople.js'
 import { CommitAttack } from '../actions/commitAttack.js'
 import { Conquer } from '../actions/conquer.js'
 import { Harvest } from '../actions/harvest.js'
@@ -42,6 +45,9 @@ export const FeudumApiActions = {
     [ActionType.Conquer]: Conquer,
     [ActionType.AnswerAttack]: AnswerAttack,
     [ActionType.CommitAttack]: CommitAttack,
+    [ActionType.StarveThePeople]: StarveThePeople,
+    [ActionType.AnswerStarve]: AnswerStarve,
+    [ActionType.ReclaimImmunitySeal]: ReclaimImmunitySeal,
     [ActionType.ChooseFavours]: ChooseFavours,
     [ActionType.PlaceDisc]: PlaceDisc,
     [ActionType.Move]: Move

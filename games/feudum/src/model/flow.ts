@@ -44,6 +44,10 @@ export const WritDrawSource = Type.Union([
     Type.Literal('voyage')
 ])
 
+/** R-3.13.2 Which of a player's markers a Starve the People aims at. */
+export type StarveRole = Type.Static<typeof StarveRole>
+export const StarveRole = Type.Union([Type.Literal('subject'), Type.Literal('serf')])
+
 /** What is pending and who decides it. Every entry names its seats in public state. */
 /** R-3.13.1 What a Conquer aims at. */
 export type CombatTarget = Type.Static<typeof CombatTarget>
@@ -106,7 +110,7 @@ export const FlowState = Type.Object({
             actorId: Type.String(),
             targetPlayerId: Type.String(),
             spaceId: SpaceIdSchema,
-            role: Type.Union([Type.Literal('subject'), Type.Literal('serf')])
+            role: StarveRole
         })
     ),
     /** R-4.10 In turn order. */

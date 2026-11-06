@@ -21,5 +21,8 @@ export enum ActionType {
     Conquer = 'Conquer',
     AnswerAttack = 'AnswerAttack',
     CommitAttack = 'CommitAttack',
+    StarveThePeople = 'StarveThePeople',
+    AnswerStarve = 'AnswerStarve',
+    ReclaimImmunitySeal = 'ReclaimImmunitySeal',
     ChooseFavours = 'ChooseFavours'
 }

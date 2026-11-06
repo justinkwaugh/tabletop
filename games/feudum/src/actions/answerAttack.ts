@@ -4,7 +4,7 @@ import { Compile } from 'typebox/compile'
 import { ActionType } from '../definition/actions.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { ComponentCount } from '../model/stateSchemas.js'
-import { reasonNotInHandRefused } from './cardPlay.js'
+import { playOutOfTurn, reasonNotInHandRefused } from './cardPlay.js'
 import { strengthOf } from './combat.js'
 import { defendVp } from './playDefend.js'
 
@@ -106,10 +106,7 @@ export class HydratedAnswerAttack
             return
         }
         const player = state.getPlayerState(this.playerId)
-        const hand = player.requireHand()
-        hand.splice(hand.indexOf('defend'), 1)
-        player.handCount = hand.length
-        player.played.push({ kind: 'defend', use: 'defend-flip' })
+        playOutOfTurn(player, 'defend', 'defend-flip')
         const vp = defendVp()
         player.score += vp
         combat.defendFlipped = true

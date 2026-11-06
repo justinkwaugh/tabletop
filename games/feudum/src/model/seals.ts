@@ -42,6 +42,19 @@ export function moveConcealedSeal(
     placeConcealedSeal(state, to, takeConcealedSeal(state, from))
 }
 
+/**
+ * R-4.1-H1 A serf's marker became the subject and kept its seal: the vault's key follows. Public
+ * occupancy moves with the marker, so this is the vault's half alone.
+ */
+export function immunitySealFollowsMarker(state: HydratedFeudumGameState, spaceId: SpaceId): void {
+    const { immunitySeals } = state.requireVault()
+    const serfKey = immunityKey(spaceId, 'serf')
+    const sealId = immunitySeals[serfKey]
+    assertExists(sealId, `No seal lies under ${serfKey}`)
+    delete immunitySeals[serfKey]
+    immunitySeals[immunityKey(spaceId, 'subject')] = sealId
+}
+
 /** R-5-H1 A flip moves the identity out of the vault and into public state. */
 export function flipSeal(
     state: HydratedFeudumGameState,
