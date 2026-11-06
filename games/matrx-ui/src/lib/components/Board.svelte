@@ -60,7 +60,7 @@
         return discs.map((disc) => ({
             tone: toneOf(disc.playerId),
             kind: disc.kind,
-            turn: turnOf(disc.kind, disc.id)
+            turn: turnOf(disc.kind, disc.id, view.turned)
         }))
     }
 

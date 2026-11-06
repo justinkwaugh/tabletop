@@ -28,8 +28,9 @@ export function boardNotation(view: BoardView): BoardNotation {
     const numberOf = ({ q, r }: AxialCoordinates) => (bottomOf.get(q) ?? r) - r + 1
 
     // Columns run straight up the screen, so a label sits above or below its dot.
-    const labelBeside = (key: string, text: string, dot: AxialCoordinates, above: boolean) => {
+    const labelBeside = (key: string, text: string, dot: AxialCoordinates, top: boolean) => {
         const center = view.center(dot)
+        const above = top !== view.turned
         return { key, text, at: { x: center.x, y: center.y + view.labelOffset(above) } }
     }
 

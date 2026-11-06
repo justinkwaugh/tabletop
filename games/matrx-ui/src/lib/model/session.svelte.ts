@@ -73,7 +73,14 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
         this.preferences.set({ centreMark: !this.centreMark })
     }
 
-    view: BoardView = $derived(viewOf(this.gameState.board.shape))
+    // The board seen from the far side, half a turn round, to see behind tall stacks.
+    turned: boolean = $derived(this.preferences.values.turned)
+
+    toggleTurned() {
+        this.preferences.set({ turned: !this.turned })
+    }
+
+    view: BoardView = $derived(viewOf(this.gameState.board.shape, this.turned))
     notation: BoardNotation = $derived(boardNotation(this.view))
 
     canPush = $derived(this.canAct(ActionType.PushPiece))

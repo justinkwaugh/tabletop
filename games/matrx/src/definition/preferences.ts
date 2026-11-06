@@ -4,7 +4,8 @@ import type { TitlePreferenceDefinition } from '@tabletop/common'
 export const MatrxPreferences = Type.Object(
     {
         showCoordinates: Type.Boolean(),
-        centreMark: Type.Boolean()
+        centreMark: Type.Boolean(),
+        turned: Type.Boolean()
     },
     { additionalProperties: false }
 )
@@ -14,7 +15,8 @@ export const MatrxPreferenceDefinition = {
         schema: MatrxPreferences,
         defaults: {
             showCoordinates: true,
-            centreMark: false
+            centreMark: false,
+            turned: false
         },
         version: 1
     }

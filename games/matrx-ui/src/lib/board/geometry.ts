@@ -37,9 +37,11 @@ export class BoardView {
     readonly rise: number
     readonly geometry: BoardGeometry
 
+    // A turned view sees the board from the far side, half a turn round.
     constructor(
         readonly tilt: number,
-        shape: BoardShape
+        shape: BoardShape,
+        readonly turned = false
     ) {
         this.rise = Math.sqrt(1 - tilt ** 2)
         this.geometry = GEOMETRIES[shape]
@@ -48,12 +50,13 @@ export class BoardView {
     // The centre of a point on the board's surface, where a piece standing there rests.
     center(coords: AxialCoordinates): Point {
         const point = flatHexCoordsToCenterPoint(coords, HEX_DIMENSIONS)
-        return { x: point.x, y: point.y * this.tilt }
+        const sign = this.turned ? -1 : 1
+        return { x: sign * point.x, y: sign * point.y * this.tilt }
     }
 
     // The dot where a seat's GIPF pieces wait: 0 is White's, 1 Black's.
     reserveDot(seat: number): Point {
-        const side = seat === 0 ? 1 : -1
+        const side = (seat === 0) !== this.turned ? 1 : -1
         return { x: RESERVE_DOT.x * side, y: RESERVE_DOT.y * side * this.tilt }
     }
 
@@ -112,13 +115,14 @@ export class BoardView {
     }
 }
 
-const VIEWS = new Map<BoardShape, BoardView>()
+const VIEWS = new Map<string, BoardView>()
 
-export function viewOf(shape: BoardShape): BoardView {
-    let view = VIEWS.get(shape)
+export function viewOf(shape: BoardShape, turned = false): BoardView {
+    const key = `${shape}${turned ? '-turned' : ''}`
+    let view = VIEWS.get(key)
     if (view === undefined) {
-        view = new BoardView(TILT, shape)
-        VIEWS.set(shape, view)
+        view = new BoardView(TILT, shape, turned)
+        VIEWS.set(key, view)
     }
     return view
 }
