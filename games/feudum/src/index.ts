@@ -1,9 +1,13 @@
 // Export all the things to be used by the UI and backend
 // It doesn't have to be everything, just whatever is needed externally
 
+export * from './actions/cardPlay.js'
 export * from './actions/chooseStartingGoods.js'
 export * from './actions/finaliseHand.js'
+export * from './actions/forfeitCard.js'
+export * from './actions/placeDisc.js'
 export * from './actions/placeStartingPawn.js'
+export * from './actions/playDefend.js'
 
 export * from './definition/actions.js'
 export * from './definition/config.js'
@@ -18,6 +22,7 @@ export * from './model/canonicalValidator.js'
 export * from './model/combatStrength.js'
 export * from './model/epochConditions.js'
 export * from './model/flow.js'
+export * from './model/followUps.js'
 export * from './model/gameState.js'
 export * from './model/guildStatus.js'
 export * from './model/guildsState.js'

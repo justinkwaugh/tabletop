@@ -1,6 +1,9 @@
 import { ChooseStartingGoods } from '../actions/chooseStartingGoods.js'
 import { FinaliseHand } from '../actions/finaliseHand.js'
+import { ForfeitCard } from '../actions/forfeitCard.js'
+import { PlaceDisc } from '../actions/placeDisc.js'
 import { PlaceStartingPawn } from '../actions/placeStartingPawn.js'
+import { PlayDefend } from '../actions/playDefend.js'
 import { ActionType } from './actions.js'
 
 // Define the mapping of action type names to their actual types.
@@ -8,5 +11,8 @@ import { ActionType } from './actions.js'
 export const FeudumApiActions = {
     [ActionType.ChooseStartingGoods]: ChooseStartingGoods,
     [ActionType.PlaceStartingPawn]: PlaceStartingPawn,
-    [ActionType.FinaliseHand]: FinaliseHand
+    [ActionType.FinaliseHand]: FinaliseHand,
+    [ActionType.ForfeitCard]: ForfeitCard,
+    [ActionType.PlayDefend]: PlayDefend,
+    [ActionType.PlaceDisc]: PlaceDisc
 }

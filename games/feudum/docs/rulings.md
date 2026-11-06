@@ -21,6 +21,7 @@ Rules version: the December 2018 English rulebook with the designer's later answ
 - **R-3.2-H2** (design): a turn ends by itself once its card, a declared second card and their follow-ups are done, unless the player holds more than 3 Royal Writs, who then discards (or plays a mandate) down to 3. Rejected: an End Turn press every turn. Spec: `turnOrder.spec.ts`.
 - **R-3.3-H1** (design): the sequential action is declared with the first of its two cards. Rejected: offering it after every card while the sulfur is unused. Spec: `sequential.spec.ts`.
 - **R-3.4-H1** (Q1): every game uses the advanced rules; there is no basic-game option. Rejected: a basic-game table option. Spec: `actions.spec.ts`.
+- **R-3.7-H1** (design): only the first placement on the epic voyage takes a free disc; a disc already on the track steps on without one. Rejected: asking for a free disc at every step. Spec: `placeDisc.spec.ts`.
 - **R-3.9-H1** (design): when an improvement could take more than one double-sided location disc, the player chooses only if the candidates' other faces differ; otherwise the lowest-numbered disc is taken. Spec: `improve.spec.ts`.
 - **R-3.10-H1** (Q8): Explore draws 2 Royal Writs plus 1 per outpost or feudum ruled beyond the first outpost. Rejected: 1 plus outposts ruled. Spec: `explore.spec.ts`.
 - **R-3.10-H2** (design): Shovels & Swords is decided after keeping from the first Explore draw. Rejected: declaring it with Explore. Spec: `explore.spec.ts`.
@@ -28,6 +29,7 @@ Rules version: the December 2018 English rulebook with the designer's later answ
 - **R-3.13-H1** (Q11): Conquer may not be a player's last card played in the round; a card that player plays later in the round, including the second card of a sequential turn, makes it not last. A Conquer left as a player's only card is played with its action forfeited. The hand picker warns when a hand puts Conquer at risk of being last. Spec: `conquer.spec.ts`.
 - **R-3.14-H1** (Q12, amended at design): whenever a player has a piece attacked, or a subject or serf starved, and public state cannot rule out that they hold Defend (they have an unplayed card, have not played Defend this round, and for Royal Immunity hold a food), the game asks them whether to flip it, whatever the odds. A player without Defend answers "no" with the same control, so being asked reveals nothing (R-5). Rejected: asking only a holder of Defend, which reveals the card; asking only when it could change the result. Spec: `defend.spec.ts`.
 - **R-3.14-H2** (design): a Royal Immunity seal may be reclaimed in the at-will windows of R-4.4-H1. Spec: `defend.spec.ts`.
+- **R-3.15-H1** (design): Repeat and Déjà Vu may replay a card that was forfeited earlier in the round, since it was played. Rejected: only a card played for its action. Spec: `repeat.spec.ts`.
 - **R-3.16-H1** (design): a feast on a pull that reaches its threshold scores the threshold's points and also draws its 2 Royal Writs, keeping 1; only reeves are excluded. Rejected: points only. Spec: `feast.spec.ts`.
 
 ### Mechanisms (R-4)
