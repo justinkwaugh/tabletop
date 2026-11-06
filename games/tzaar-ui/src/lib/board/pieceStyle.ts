@@ -81,6 +81,14 @@ export function topSpecks(tone: Tone, seed: number): Speck[] {
     })
 }
 
+// A fleck on a top seen from a board turned `quarterTurns` quarter turns clockwise, as the board
+// view turns the spaces.
+export function turnSpeck(speck: Speck, quarterTurns: number): Speck {
+    let { x, y } = speck
+    for (let turn = 0; turn < quarterTurns % 4; turn++) [x, y] = [-y, x]
+    return { ...speck, x, y, angle: speck.angle + 90 * quarterTurns }
+}
+
 // The near half of the outer side, `thickness` of the radius tall.
 export function sideSpecks(tone: Tone, seed: number, thickness: number): SideSpeck[] {
     const random = seededRandom(seed ^ 0x5f3759df)

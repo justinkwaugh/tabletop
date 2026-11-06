@@ -56,6 +56,21 @@ export class TzaarGameSession extends GameSession<TzaarGameState, HydratedTzaarG
         this.preferences.set({ rotatedBoard: !this.rotatedBoard })
     }
 
+    // The board seen from the far side, half a turn round, to see behind tall stacks.
+    turned: boolean = $derived(this.preferences.values.turned)
+
+    toggleTurned() {
+        this.preferences.set({ turned: !this.turned })
+    }
+
+    // Stacks past the full height shrink to it unless a player would rather see every piece
+    // stacked whole, turning the board to see past a tall one.
+    shrinkStacks: boolean = $derived(this.preferences.values.shrinkStacks)
+
+    toggleShrinkStacks() {
+        this.preferences.set({ shrinkStacks: !this.shrinkStacks })
+    }
+
     showCoordinates: boolean = $derived(this.preferences.values.showCoordinates)
 
     toggleCoordinates() {

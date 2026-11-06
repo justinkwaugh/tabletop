@@ -12,7 +12,7 @@ import type { TzaarGameSession } from '$lib/model/session.svelte.js'
 import { boardDiff, spacesBetween, type StackMotion } from '$lib/board/boardDiff.js'
 import { coordsKey, type BoardView } from '$lib/board/geometry.js'
 import { FALL_EASE, GROUND_EASE, hopPlan, RISE_EASE } from '$lib/board/hop.js'
-import { restingLift, type PieceModel } from '$lib/board/pieceGeometry.js'
+import { restingLift, stackBounds, type PieceModel } from '$lib/board/pieceGeometry.js'
 
 // A page load, a sync with the server or a switch of view shows the board as it is, unmoved.
 const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
@@ -85,6 +85,10 @@ export class BoardAnimator {
     // up, so each animated action leaves the board as it ended until that state lands.
     stacks: DrawnStack[] = $derived.by(() => drawnStacks(this.session.gameState))
     flier: Flier | undefined = $state()
+    // While a move plays: the stacks it leaves, and the highest the stack in flight reaches on
+    // screen, which the frame must hold.
+    landing: DrawnStack[] = $state([])
+    flightTop: number | undefined = $state()
     // The stack shrinking to the full height, and the height it stands at so far.
     private shrinking: { key: string; cap: number } | undefined = $state()
 
@@ -160,6 +164,7 @@ export class BoardAnimator {
         const diff = boardDiff(from.board, to.board, this.knownMove(kind, action))
         const moved = diff.moved
 
+        this.landing = drawnStacks(to)
         this.stacks = this.inBetween(from, to, moved)
         this.flier = moved && {
             coords: moved.from,
@@ -196,6 +201,8 @@ export class BoardAnimator {
         animationContext.afterAnimations(() => {
             this.stacks = drawnStacks(to)
             this.flier = undefined
+            this.landing = []
+            this.flightTop = undefined
             this.shrinking = undefined
             for (const node of touched) {
                 gsap.set(node, { x: 0, y: 0, scale: 1, opacity: 1 })
@@ -261,6 +268,10 @@ export class BoardAnimator {
         const end = layout.center(moved.to)
         const offset = { x: end.x - start.x, y: end.y - start.y }
         const half = plan.duration / 2
+        this.flightTop =
+            Math.min(start.y, end.y) +
+            plan.peak +
+            stackBounds(moved.pieces.length, radius, layout.model).top
 
         gsap.set(node, { x: 0, y: 0 })
         gsap.set(body, { y: plan.startLift, opacity: 1 })

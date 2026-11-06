@@ -319,6 +319,27 @@ write(
     })
 )
 
+// Stacks left whole grow out of the frame on the board's top spaces, and the board shrinks to
+// keep them in view: Alice captures onto a top space with a stack of 12, then stacks 6 more onto
+// it. E8 is the top point of the board, E1 the top point seen from the far side, and A2 on the
+// top row of the rotated board.
+function tallOnTop(top, capturer, stacker) {
+    return position({
+        [top]: 't',
+        [capturer]: 'TTTTTTTTTTTA',
+        [stacker]: 'AAAAAT',
+        C5: 'R',
+        G3: 'A',
+        C3: 'r',
+        G5: 'a',
+        E4: 't'
+    })
+}
+
+write('tall-stack-on-e8', 'Tall stack on E8', tallOnTop('E8', 'E7', 'D8'))
+write('tall-stack-on-e1', 'Tall stack on E1', tallOnTop('E1', 'E2', 'D1'))
+write('tall-stack-on-a2', 'Tall stack on A2', tallOnTop('A2', 'B3', 'A3'))
+
 // Rule I: in the tournament version two spaces are left; Alice places one, Bob the last, and then
 // Alice makes the opening capture.
 function placementEnds() {

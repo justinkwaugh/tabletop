@@ -18,12 +18,18 @@
     import GameEndPanel from '$lib/components/GameEndPanel.svelte'
     import OverlayToggle from '$lib/components/OverlayToggle.svelte'
     import { TzaarGameSession } from '$lib/model/session.svelte.js'
+    import { PIECE_MODEL, ROTATED_PIECE_MODEL } from '$lib/board/pieceGeometry.js'
     import { setGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let { gameSession }: { gameSession: GameSession<TzaarGameState, HydratedTzaarGameState> } =
         $props()
     assert(gameSession instanceof TzaarGameSession, 'TZAAR needs its own game session')
     setGameSession(gameSession)
+
+    // The height stacks shrink to, which the stack limit's hint names.
+    const stackLimit = $derived(
+        gameSession.rotatedBoard ? ROTATED_PIECE_MODEL.cap : PIECE_MODEL.cap
+    )
 
     // The shared wrapper exposes full screen only as its dialog becoming modal.
     let expanded = $state(false)
@@ -114,14 +120,63 @@
                             class="pointer-events-auto absolute right-3 bottom-2 z-10 flex items-center gap-1.5"
                         >
                             <OverlayToggle
-                                glyph="↻"
+                                glyph="90°"
                                 label="Rotated board"
+                                hint={gameSession.rotatedBoard
+                                    ? 'Turn the board back, points toward the players'
+                                    : 'Turn the board a quarter turn, flat sides toward the players'}
                                 pressed={gameSession.rotatedBoard}
                                 onToggle={() => gameSession.toggleRotatedBoard()}
                             />
+                            <!-- Half a turn round, so what tall stacks hide comes in front. -->
+                            <OverlayToggle
+                                label="Far side"
+                                hint={gameSession.turned
+                                    ? 'See the board from your own side again'
+                                    : 'See the board from the far side, to see what tall stacks hide'}
+                                pressed={gameSession.turned}
+                                onToggle={() => gameSession.toggleTurned()}
+                            >
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="-8 -8 16 16"
+                                    aria-hidden="true"
+                                >
+                                    <path d="M -5.5 -1 A 5.5 5.5 0 0 1 4.5 -3.2" class="line"
+                                    ></path>
+                                    <path d="M 2 -5 L 4.8 -3 L 2.2 -0.8" class="line"></path>
+                                    <path d="M 5.5 1 A 5.5 5.5 0 0 1 -4.5 3.2" class="line"></path>
+                                    <path d="M -2 5 L -4.8 3 L -2.2 0.8" class="line"></path>
+                                </svg>
+                            </OverlayToggle>
+                            <!-- Tall stacks shrink to the full height unless a player would
+                                 rather see them whole and turn the board to see past them. -->
+                            <OverlayToggle
+                                label="Stack limit"
+                                hint={gameSession.shrinkStacks
+                                    ? `Show tall stacks whole, instead of shrinking them past ${stackLimit} pieces`
+                                    : `Shrink stacks past ${stackLimit} pieces, to see what is behind them`}
+                                pressed={gameSession.shrinkStacks}
+                                onToggle={() => gameSession.toggleShrinkStacks()}
+                            >
+                                <svg
+                                    width="16"
+                                    height="16"
+                                    viewBox="-8 -8 16 16"
+                                    aria-hidden="true"
+                                >
+                                    <path d="M -5 5 H 5 M -5 2 H 5 M -5 -1 H 5" class="line"></path>
+                                    <path d="M -6.5 -5 H 6.5" class="line"></path>
+                                    <path d="M -2 -7.5 L 0 -5.5 L 2 -7.5" class="line"></path>
+                                </svg>
+                            </OverlayToggle>
                             <OverlayToggle
                                 glyph="A1"
                                 label="Coordinates"
+                                hint={gameSession.showCoordinates
+                                    ? 'Hide the coordinates'
+                                    : 'Show the coordinates round the board'}
                                 pressed={gameSession.showCoordinates}
                                 onToggle={() => gameSession.toggleCoordinates()}
                             />

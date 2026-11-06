@@ -123,6 +123,19 @@ describe('what each scenario claims', () => {
         expect(state.board.heightAt(spaceFromName('C4'))).toBe(11)
     })
 
+    it.each([
+        ['tall-stack-on-e8', 'E8', 'E7', 'D8'],
+        ['tall-stack-on-e1', 'E1', 'E2', 'D1'],
+        ['tall-stack-on-a2', 'A2', 'B3', 'A3']
+    ])('%s: a capture then a stacking build 18 on %s', (name, top, capturer, stacker) => {
+        const captured = new HydratedTzaarGameState(play(name, `capture ${capturer} ${top}`))
+        expect(captured.board.heightAt(spaceFromName(top))).toBe(12)
+        const state = new HydratedTzaarGameState(
+            play(name, `capture ${capturer} ${top}`, `stack ${stacker} ${top}`)
+        )
+        expect(state.board.heightAt(spaceFromName(top))).toBe(18)
+    })
+
     it('Placement ends: Alice and Bob place the last two, then Alice captures first', () => {
         const { state: start } = load('placement-ends')
         const hydrated = new HydratedTzaarGameState(start)

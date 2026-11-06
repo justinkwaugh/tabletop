@@ -1,16 +1,12 @@
 <script lang="ts">
     import { MediaQuery } from 'svelte/reactivity'
+    import { Tween } from 'svelte/motion'
+    import { cubicOut } from 'svelte/easing'
     import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
     import { SPACES, spaceName } from '@tabletop/tzaar'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { includesCoords } from '$lib/model/session.svelte.js'
-    import {
-        coordsKey,
-        ROTATED_VIEW,
-        UNLABELLED_ROTATED_VIEW,
-        UNLABELLED_VIEW,
-        VIEW
-    } from '$lib/board/geometry.js'
+    import { coordsKey, VIEW, viewOf } from '$lib/board/geometry.js'
     import { stackDiscs, TILT, topFaceY } from '$lib/board/pieceGeometry.js'
     import { markRing, outlinePath } from '$lib/board/pieceShape.js'
     import { BoardAnimator, type DrawnStack } from '$lib/animators/boardAnimator.svelte.js'
@@ -21,14 +17,33 @@
 
     // On a phone the board grows into the labels' room while they are hidden.
     const phone = new MediaQuery('width < 40rem')
-    const layout = $derived.by(() => {
-        const labelled = session.showCoordinates || !phone.current
-        if (session.rotatedBoard) return labelled ? ROTATED_VIEW : UNLABELLED_ROTATED_VIEW
-        return labelled ? VIEW : UNLABELLED_VIEW
-    })
+    const layout = $derived(
+        viewOf(
+            session.showCoordinates || !phone.current,
+            session.rotatedBoard,
+            session.turned,
+            session.shrinkStacks
+        )
+    )
     const radius = VIEW.radius
 
     const animator = new BoardAnimator(session, () => layout)
+
+    // Stacks left whole may stand out of the frame, so it rises over the tallest: those drawn,
+    // those a move under way is about to leave, and the stack in flight at its highest. It eases
+    // up as the move sets off, and back down once a smaller board has settled.
+    const raise = Tween.of(
+        () =>
+            layout.raiseFor(
+                [...animator.stacks, ...animator.landing].map((stack) => ({
+                    coords: stack.coords,
+                    height: stack.pieces.length
+                })),
+                animator.flightTop === undefined ? [] : [animator.flightTop]
+            ),
+        { duration: 300, easing: cubicOut }
+    )
+    const frame = $derived(layout.raised(raise.current))
 
     // Back to front, so a nearer stack covers the one behind it.
     const stacks = $derived(
@@ -124,6 +139,7 @@
                     {radius}
                     prefix="tzaar-board"
                     model={animator.modelAt(stack.key, layout.model)}
+                    quarterTurns={layout.quarterTurns}
                 >
                     <!-- A mark recolors a ring on the top piece, under the count, so the count
                          stays whole. The animator fades it with the move. -->
@@ -147,9 +163,9 @@
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
 <svg
     class="tzaar-board"
-    viewBox={layout.viewBox}
-    width={layout.frame.width}
-    height={layout.frame.height}
+    viewBox="{frame.x} {frame.y} {frame.width} {frame.height}"
+    width={frame.width}
+    height={frame.height}
     role="group"
     aria-label="TZAAR board"
     onclick={onBoardClick}
@@ -197,6 +213,7 @@
                         {radius}
                         prefix="tzaar-board"
                         model={layout.model}
+                        quarterTurns={layout.quarterTurns}
                     />
                 </g>
             </g>

@@ -44,6 +44,10 @@ const LABEL_GAP = SPACING * 0.22
 const LABEL_HALF = { x: 11, y: 8 }
 // From the board, its pieces and the labels to the frame's edge.
 const FRAME_MARGIN = SPACING * 0.15
+// Stacks left whole: the frame keeps room above the far row for one this tall, and grows over
+// any taller one (`raiseFor`). None beyond the shrunk stacks' yet: TZAAR's board is fitted by its
+// height on most screens, so the room shrinks it for every game.
+export const WHOLE_FRAMED_HEIGHT = 0
 // Room below the bottom labels for the zoom controls, which sit in the bottom-left corner.
 const CONTROLS_ROOM = SPACING * 0.4
 
@@ -56,6 +60,11 @@ const AXES: readonly AxialCoordinates[] = [
 
 export type Line = { from: Point; to: Point }
 
+export type Frame = { x: number; y: number; width: number; height: number }
+
+// A stack on the board, as tall as it stands or is about to.
+export type FramedStack = { coords: AxialCoordinates; height: number }
+
 // A space's centre on the board's own plane, as if seen straight down.
 export function flatCenter(coords: AxialCoordinates): Point {
     return flatHexCoordsToCenterPoint(coords, HEX_DIMENSIONS)
@@ -65,7 +74,9 @@ export function flatCenter(coords: AxialCoordinates): Point {
 // of the table: depth shrinks to `tilt` of its length, and heights show at `rise` of theirs. An
 // unlabelled view's frame leaves no room for the labels. A rotated view turns the board a
 // quarter turn clockwise, so its flat sides face the players and the columns run across, A at
-// the top.
+// the top. A turned view sees the board from the far side, half a turn round, so what tall stacks
+// hide comes in front. A view that does not shrink stacks stands every stack whole, for players
+// who would rather turn the board to see past a tall one.
 export class BoardView {
     readonly radius = PIECE_RADIUS
     readonly rise: number
@@ -73,16 +84,25 @@ export class BoardView {
     readonly playArea: string
     readonly lines: Line[]
     readonly labels: ColumnEnd[]
-    readonly frame: { x: number; y: number; width: number; height: number }
+    readonly frame: Frame
     readonly model: PieceModel
+    // The tallest stack the frame holds whole in the far row.
+    readonly framedHeight: number
+    // How many quarter turns clockwise the board is seen round, for what lies on the pieces.
+    readonly quarterTurns: number
 
     constructor(
         readonly tilt: number,
         labelled = true,
-        readonly rotated = false
+        readonly rotated = false,
+        readonly turned = false,
+        readonly shrinks = true
     ) {
         this.rise = Math.sqrt(1 - tilt ** 2)
-        this.model = rotated ? ROTATED_PIECE_MODEL : PIECE_MODEL
+        this.quarterTurns = (rotated ? 1 : 0) + (turned ? 2 : 0)
+        const shrunk = rotated ? ROTATED_PIECE_MODEL : PIECE_MODEL
+        this.model = shrinks ? shrunk : { ...shrunk, cap: Number.POSITIVE_INFINITY }
+        this.framedHeight = shrinks ? shrunk.cap : Math.max(shrunk.cap, WHOLE_FRAMED_HEIGHT)
         const outline = (distance: number) =>
             cornersAt(distance)
                 .map((corner) => this.center(corner))
@@ -93,7 +113,7 @@ export class BoardView {
 
         this.labels = boardLabels(SPACES)
 
-        const tallest = stackBounds(this.model.cap, this.radius, this.model)
+        const tallest = stackBounds(this.framedHeight, this.radius, this.model)
         const ys = SPACES.map((coords) => this.center(coords).y)
         const xs = SPACES.map((coords) => this.center(coords).x)
         const labelsAt = labelled ? this.labels.map((label) => this.labelAt(label)) : []
@@ -122,16 +142,18 @@ export class BoardView {
     }
 
     // A label a gap beyond the piece at its column's end: above a single piece's top, below its
-    // near edge, or on a rotated board beside it, the column's start on the left. A taller stack
-    // on a top space covers its label.
+    // near edge, or on a rotated board beside it, the column's start on the left; outside the
+    // board either way, so on a turned board a column's top is at the bottom or on the left. A
+    // taller stack on a top space covers its label.
     labelAt(label: ColumnEnd): Point {
         const center = this.center(label.coords)
+        const above = label.above !== this.turned
         if (this.rotated) {
             const reach = this.radius + LABEL_GAP + LABEL_HALF.x
-            return { x: center.x + (label.above ? reach : -reach), y: center.y }
+            return { x: center.x + (above ? reach : -reach), y: center.y }
         }
         const single = stackBounds(1, this.radius)
-        const offset = label.above
+        const offset = above
             ? single.top - LABEL_GAP - LABEL_HALF.y
             : single.bottom + LABEL_GAP + LABEL_HALF.y
         return { x: center.x, y: center.y + offset }
@@ -145,7 +167,8 @@ export class BoardView {
     // The centre of a space on the board's surface.
     center(coords: AxialCoordinates): Point {
         const flat = flatCenter(coords)
-        return this.project(this.rotated ? { x: -flat.y, y: flat.x } : flat)
+        const turned = this.rotated ? { x: -flat.y, y: flat.x } : flat
+        return this.project(this.turned ? { x: -turned.x, y: -turned.y } : turned)
     }
 
     // How far up the screen a height above the board shows.
@@ -173,14 +196,43 @@ export class BoardView {
         })
     }
 
-    get viewBox(): string {
-        const { x, y, width, height } = this.frame
-        return `${x} ${y} ${width} ${height}`
+    // How far the frame must rise over stacks left whole that would stand out of it, and over
+    // `tops`, the highest points of stacks in flight. Shrunk stacks never do. The board then
+    // shrinks to keep them in view.
+    raiseFor(stacks: Iterable<FramedStack>, tops: Iterable<number> = []): number {
+        if (this.shrinks) return 0
+        let top = this.frame.y
+        for (const { coords, height } of stacks) {
+            if (height <= this.framedHeight) continue
+            const bounds = stackBounds(height, this.radius, this.model)
+            top = Math.min(top, this.center(coords).y + bounds.top - FRAME_MARGIN)
+        }
+        for (const y of tops) top = Math.min(top, y - FRAME_MARGIN)
+        return this.frame.y - top
+    }
+
+    // The frame raised by `raise`.
+    raised(raise: number): Frame {
+        return { ...this.frame, y: this.frame.y - raise, height: this.frame.height + raise }
     }
 }
 
 // The house angle, shared with the other GIPF project titles.
 export const VIEW = new BoardView(TILT)
-export const UNLABELLED_VIEW = new BoardView(TILT, false)
-export const ROTATED_VIEW = new BoardView(TILT, true, true)
-export const UNLABELLED_ROTATED_VIEW = new BoardView(TILT, false, true)
+
+const VIEWS = new Map<string, BoardView>([['true,false,false,true', VIEW]])
+
+export function viewOf(
+    labelled: boolean,
+    rotated: boolean,
+    turned: boolean,
+    shrink: boolean
+): BoardView {
+    const key = `${labelled},${rotated},${turned},${shrink}`
+    let view = VIEWS.get(key)
+    if (view === undefined) {
+        view = new BoardView(TILT, labelled, rotated, turned, shrink)
+        VIEWS.set(key, view)
+    }
+    return view
+}

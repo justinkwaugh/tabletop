@@ -18,6 +18,7 @@
         sideSpecks,
         SPECK_COLORS,
         topSpecks,
+        turnSpeck,
         type ShapePiece
     } from '$lib/board/pieceStyle.js'
 
@@ -29,7 +30,8 @@
         prefix,
         showCount = true,
         onTop,
-        model = PIECE_MODEL
+        model = PIECE_MODEL,
+        quarterTurns = 0
     }: {
         // Bottom to top; each piece's specks are seeded by its key, so they go with it as it
         // moves.
@@ -40,6 +42,9 @@
         // Drawn on the top piece, its top as the origin, under the count.
         onTop?: Snippet
         model?: PieceModel
+        // The board seen this many quarter turns round: the flecks on a top turn with it, and the
+        // side you see is another part of the side.
+        quarterTurns?: number
     } = $props()
 
     const MID_LEVEL = (SHADE_LEVELS - 1) / 2
@@ -56,7 +61,7 @@
                 ...piece,
                 speck: SPECK_COLORS[piece.tone],
                 seed,
-                sideSpecks: sideSpecks(piece.tone, seed, model.thickness),
+                sideSpecks: sideSpecks(piece.tone, seed + quarterTurns, model.thickness),
                 top: index === pieces.length - 1
             }
         })
@@ -77,6 +82,7 @@
     const topFlecks = $derived.by(() => {
         if (!top) return []
         return topSpecks(top.tone, top.seed)
+            .map((speck) => turnSpeck(speck, quarterTurns))
             .filter((speck) => {
                 const distance = Math.hypot(speck.x, speck.y)
                 return (
