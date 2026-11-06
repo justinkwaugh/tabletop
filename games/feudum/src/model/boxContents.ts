@@ -1,7 +1,7 @@
 import { assertExists } from '@tabletop/common'
 import { Spaces } from '../data/board.js'
 import { ComponentTotals, GoodRows, VesselRows } from '../data/components.js'
-import { DoubleSidedDiscs, FeudumDiscs, StartingDiscs } from '../data/discs.js'
+import { DoubleSidedDiscs, FeudumDiscs, StartingDiscs, type StartingDisc } from '../data/discs.js'
 import { AlchemistCartSpaces, ChickenSpaces, MarketSpaces, ScrollSpaces } from '../data/guilds.js'
 import {
     EpochLandscapes,
@@ -39,10 +39,12 @@ function perPlayer<V>(players: FeudumPlayerState[], value: () => V): Record<stri
     return Object.fromEntries(players.map((player) => [player.playerId, value()]))
 }
 
-/** R-1.4.3 Ringed discs on the starting spaces, the others on the rest. */
-function placeStartingDiscs(): FeudumGameState['spaces'] {
-    const ringed = StartingDiscs.filter((disc) => disc.circleMark)
-    const plain = StartingDiscs.filter((disc) => !disc.circleMark)
+/** R-1.4.3 Ringed discs on the starting spaces, the others on the rest, each in the given order. */
+export function placeStartingDiscs(
+    order: readonly StartingDisc[] = StartingDiscs
+): FeudumGameState['spaces'] {
+    const ringed = order.filter((disc) => disc.circleMark)
+    const plain = order.filter((disc) => !disc.circleMark)
     const discs = Spaces.map((space) => {
         const disc = (space.startingSpace ? ringed : plain).shift()
         assertExists(disc, `R-1.4.3 No starting disc left for ${space.id}`)

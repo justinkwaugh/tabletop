@@ -1,4 +1,4 @@
 // The list of all possible state machine states
 export enum MachineState {
-    StartOfTurn = 'StartOfTurn'
+    ChoosingStartingGoods = 'ChoosingStartingGoods'
 }

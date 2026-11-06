@@ -6,18 +6,19 @@
         DefaultTableLayout,
         GameSession
     } from '@tabletop/frontend-components'
-    import type { HydratedFeudumGameState, FeudumGameState } from '@tabletop/feudum'
+    import type { HydratedFeudumGameState, FeudumProjectedState } from '@tabletop/feudum'
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import Board from '$lib/components/Board.svelte'
     import { FeudumGameSession } from '$lib/model/session.svelte'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
 
-    let { gameSession }: { gameSession: GameSession<FeudumGameState, HydratedFeudumGameState> } =
-        $props()
+    let {
+        gameSession
+    }: { gameSession: GameSession<FeudumProjectedState, HydratedFeudumGameState> } = $props()
 
     function ensureFeudumGameSession(
-        session: GameSession<FeudumGameState, HydratedFeudumGameState>
+        session: GameSession<FeudumProjectedState, HydratedFeudumGameState>
     ): FeudumGameSession {
         if (session instanceof FeudumGameSession) {
             return session

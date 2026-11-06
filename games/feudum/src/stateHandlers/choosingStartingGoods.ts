@@ -1,9 +1,9 @@
 import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
-import { HydratedFeudumGameState } from '../model/gameState.js'
+import type { HydratedFeudumGameState } from '../model/gameState.js'
 
-// Scaffold state: the first player is on the clock and no action is offered yet
-export class StartOfTurnStateHandler implements MachineStateHandler<
+/** R-1.4.8 Seat by seat in turn order, each takes three starting goods. */
+export class ChoosingStartingGoodsStateHandler implements MachineStateHandler<
     HydratedAction,
     HydratedFeudumGameState
 > {
@@ -22,8 +22,10 @@ export class StartOfTurnStateHandler implements MachineStateHandler<
     }
 
     enter(context: MachineContext<HydratedFeudumGameState>) {
-        const gameState = context.gameState
-        gameState.activePlayerIds = [gameState.turnManager.startNextTurn(gameState.actionCount)]
+        const { gameState } = context
+        const playerId = gameState.turnManager.startNextTurn(gameState.actionCount)
+        gameState.flow.setupOrder = { playerId }
+        gameState.activePlayerIds = [playerId]
     }
 
     onAction(

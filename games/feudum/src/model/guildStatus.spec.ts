@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { SpaceId } from '../data/board.js'
 import { GuildIds, type GuildId } from '../data/components.js'
 import type { LocationKind } from '../data/discs.js'
-import { initialState } from '../testing/state.js'
+import { canonicalOf, initialState } from '../testing/state.js'
 import { conservationBreaks } from './canonicalValidator.js'
 import type { HydratedFeudumGameState } from './gameState.js'
 import { recomputeRanks, rankOf, RankChange, statusStars } from './guildStatus.js'
@@ -12,8 +12,8 @@ import { recomputeRanks, rankOf, RankChange, statusStars } from './guildStatus.j
 function dealtState(numPlayers = 4, markers = 7): HydratedFeudumGameState {
     const state = initialState(numPlayers)
     for (const player of state.players) {
+        state.supply.influence[player.color] += player.influenceSupply - markers
         player.influenceSupply = markers
-        state.supply.influence[player.color] -= markers
     }
     return state
 }
@@ -354,7 +354,7 @@ describe('the recompute of ranks', () => {
         recomputeRanks(state, 'p1')
         pawnsOn(state, 'p1', 'farmer', 0)
         recomputeRanks(state, 'p1')
-        expect(conservationBreaks(state.dehydrate())).toEqual([])
+        expect(conservationBreaks(canonicalOf(state))).toEqual([])
     })
 })
 

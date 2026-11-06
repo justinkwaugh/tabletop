@@ -2,7 +2,7 @@ import { Color } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { PhaseName } from '../definition/phases.js'
 import { RegionTiles } from '../data/regionTiles.js'
-import { initialState } from '../testing/state.js'
+import { canonicalState, initialState } from '../testing/state.js'
 import { FeudumGameStateValidator, HydratedFeudumGameState } from './gameState.js'
 import { FeudumPlayerState, FeudumPlayerStateValidator } from './playerState.js'
 
@@ -75,7 +75,7 @@ describe('the turn manager', () => {
 })
 
 describe('player rows', () => {
-    const row: FeudumPlayerState = dehydrated().players[0]
+    const row: FeudumPlayerState = canonicalState().players[0]
 
     it('R-5.1, R-4.4.4 keep owner-known lists beside public counts', () => {
         const keys = Object.keys(FeudumPlayerState.properties)
@@ -183,8 +183,9 @@ describe('flow', () => {
         return FeudumGameStateValidator.Check({ ...dehydrated(), flow })
     }
 
-    it('R-X.1 starts with nothing pending', () => {
-        expect(initialState().flow).toEqual({})
+    it("R-X.1, R-1.4.8 starts with only the starting player's choice pending", () => {
+        const state = initialState()
+        expect(state.flow).toEqual({ setupOrder: { playerId: state.startingPlayerId } })
     })
 
     it('R-X.1 holds every pending decision', () => {
@@ -279,7 +280,7 @@ describe('derived, not stored', () => {
 describe('tiles', () => {
     it('R-1.4-H2 the state holds a hidden landscape for every tile in a stack', () => {
         const state = initialState()
-        expect(Object.keys(state.vault.tileLandscapes).sort()).toEqual(
+        expect(Object.keys(state.requireVault().tileLandscapes).sort()).toEqual(
             RegionTiles.map((tile) => tile.id).sort()
         )
         expect(state.tileLandscapes).toEqual({})

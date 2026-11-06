@@ -102,7 +102,7 @@ describe('writs going under', () => {
         putWritsUnderInView(state, [second])
         putWritsUnderUnseen(state, 'p1', [third])
         state.publicDeckWrits[0].slot = 99
-        state.getPlayerState('p1').deckKnowledge[0].slot = 99
+        state.getPlayerState('p1').requireDeckKnowledge()[0].slot = 99
 
         expect(state.requireVault().writDeck.map(({ slot }) => slot)).toEqual([0, 1, 2])
     })

@@ -5,7 +5,7 @@ import { ComponentTotals, GoodRows } from '../data/components.js'
 import { LocationDiscs } from '../data/discs.js'
 import { RegionTiles } from '../data/regionTiles.js'
 import { Seals } from '../data/seals.js'
-import { initialState } from '../testing/state.js'
+import { canonicalState } from '../testing/state.js'
 import {
     conservationBreaks,
     FeudumCanonicalStateValidator,
@@ -14,7 +14,7 @@ import {
 import type { FeudumGameState } from './gameState.js'
 
 function table(numPlayers = 4): FeudumGameState {
-    return initialState(numPlayers).dehydrate()
+    return canonicalState(numPlayers)
 }
 
 function colourOf(state: FeudumGameState, playerId: string): Color {
@@ -103,8 +103,8 @@ describe('R-1.1 goods, 170 in all', () => {
             (state) => (state.players[0].pawns[0].wine = 'fed'),
             (state) => (state.spaces['space.sea.1'].goods.iron += 1),
             (state) => (state.guilds.farmer.barn.iron += 1),
-            (state) => (state.guilds.merchant.market['guild.merchant.space.iron-1'] = true),
-            (state) => (state.guilds.alchemist.carts['guild.alchemist.cart.iron-1'] = true),
+            (state) => (state.guilds.merchant.market['guild.merchant.space.saltpeter-4'] = true),
+            (state) => (state.guilds.alchemist.carts['guild.alchemist.cart.food-2'] = true),
             (state) =>
                 (state.flow.harvest = {
                     playerId: 'p1',
@@ -164,7 +164,7 @@ describe('R-1.1-H1 shillings, 78 in all', () => {
     it('R-4.6.2, R-4.3.4 counts purse, coffer, players and silver mines', () => {
         const state = table()
         state.supply.shillings -= 7
-        state.players[0].shillings = 1
+        state.players[0].shillings += 1
         state.guilds.farmer.purse = 1
         state.guilds.monk.coffer = 2
         landscapeOn(state, 'silver-mine', 3)
@@ -196,26 +196,22 @@ describe('R-1.1 markers, 20 per colour', () => {
         const state = table()
         const seat = state.players[0].playerId
         const colour = colourOf(state, seat)
-        state.players[0].influenceSupply = 7
         state.spaces['space.sea.1'].ruler = { playerId: seat, subject: true }
         state.spaces['space.sea.2'].serf = { playerId: seat }
         state.guilds.tracks.monk.master = { playerId: seat, reeve: false }
-        state.guilds.knight.rows = [{ colour, playerId: seat, markers: 2 }]
+        state.guilds.knight.rows.filter((row) => row.playerId === seat)[0].markers += 2
         state.guilds.knight.monsterIcons.behemoth = seat
         state.monsters.behemoth = { playerId: seat, spaceId: 'space.sea.1' }
-        state.supply.influence[colour] -= 7 + 2 + 1 + 1 + 2 + 1
+        state.supply.influence[colour] -= 2 + 1 + 1 + 2 + 1
         expectConserved(state)
     })
 
     it('R-1.4-H1 holds a dummy row to the same total, by colour', () => {
         const state = table(2)
-        const colours: Color[] = [Color.Red, Color.Blue, Color.Yellow, Color.Green, Color.Purple]
-        const unused = colours.filter(
-            (colour) => !state.players.some((player) => player.color === colour)
-        )[0]
-        state.guilds.knight.rows = [{ colour: unused, markers: 2 }]
+        const dummy = state.guilds.knight.rows.filter((row) => row.playerId === undefined)[0]
+        dummy.markers += 1
         expectBroken(state, 'markers')
-        state.supply.influence[unused] = 18
+        state.supply.influence[dummy.colour] -= 1
         expectConserved(state)
     })
 })
@@ -289,14 +285,14 @@ describe('R-5-H1 seals, 17 in all', () => {
             state.supply.sealPileCount -= 1
             return seal
         }
-        state.vault.scrollSeals['guild.noble.scroll.r1c1'] = next()
-        state.guilds.noble.scrolls['guild.noble.scroll.r1c1'] = true
+        state.vault.scrollSeals['guild.noble.scroll.r1c2'] = next()
+        state.guilds.noble.scrolls['guild.noble.scroll.r1c2'] = true
         state.vault.heldSeals[seat].push(next())
         state.players[0].sealCount = 1
         state.vault.charterSeals[seat].push(next())
         state.vault.immunitySeals['space.sea.1.serf'] = next()
         state.players[0].beads.push(next())
-        state.guilds.farmer.chickens[0] = next()
+        state.guilds.farmer.chickens[1] = next()
         state.guilds.monk.rosary.push(next())
         expectConserved(state)
     })
@@ -311,7 +307,7 @@ describe('R-5-H1 seals, 17 in all', () => {
         expectBroken(held, 'seals')
 
         const scroll = table()
-        scroll.guilds.noble.scrolls['guild.noble.scroll.r1c1'] = true
+        scroll.guilds.noble.scrolls['guild.noble.scroll.r1c2'] = true
         expectBroken(scroll, 'seals')
     })
 })

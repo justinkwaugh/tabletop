@@ -1,17 +1,24 @@
 import {
+    assert,
     GameCategory,
     GameStatus,
     GameStorage,
+    MachineContext,
     PlayerStatus,
     type Game,
     type Player,
     type UninitializedGameState
 } from '@tabletop/common'
 import { FeudumGameInitializer } from '../definition/initializer.js'
-import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { ChoosingStartingGoodsStateHandler } from '../stateHandlers/choosingStartingGoods.js'
+import {
+    FeudumGameStateValidator,
+    type FeudumGameState,
+    type HydratedFeudumGameState
+} from '../model/gameState.js'
 
-/** A game as initialization leaves it, for specs. */
-export function initialState(numPlayers = 4, seed = 123): HydratedFeudumGameState {
+/** A game to start, for specs. */
+export function testGame(numPlayers = 4, seed = 123): Game {
     const players = Array.from({ length: numPlayers }, (_, index): Player => ({
         id: `p${index + 1}`,
         isHuman: true,
@@ -19,7 +26,7 @@ export function initialState(numPlayers = 4, seed = 123): HydratedFeudumGameStat
         name: `Player ${index + 1}`,
         status: PlayerStatus.Joined
     }))
-    const game: Game = {
+    return {
         id: 'game-1',
         typeId: 'feudum',
         status: GameStatus.Started,
@@ -36,14 +43,37 @@ export function initialState(numPlayers = 4, seed = 123): HydratedFeudumGameStat
         storage: GameStorage.Local,
         category: GameCategory.Standard
     }
+}
+
+/** A game as the engine hands it to its first seat, on both random streams, for specs. */
+export function initialState(numPlayers = 4, seed = 123): HydratedFeudumGameState {
+    const game = testGame(numPlayers, seed)
     const state: UninitializedGameState = {
+        systemVersion: 3,
         id: 'state-1',
         gameId: game.id,
         activePlayerIds: [],
         actionCount: 0,
         actionChecksum: 0,
         prng: { seed, invocations: 0 },
+        protectedPrng: { seed: seed + 1, invocations: 0 },
         winningPlayerIds: []
     }
-    return new FeudumGameInitializer().initializeGameState(game, state)
+    const gameState = new FeudumGameInitializer().initializeGameState(game, state)
+    new ChoosingStartingGoodsStateHandler().enter(
+        new MachineContext({ gameConfig: game.config, gameState })
+    )
+    return gameState
+}
+
+/** A hydrated host-side state as complete canonical data, for specs that read concealed fields. */
+export function canonicalOf(state: HydratedFeudumGameState): FeudumGameState {
+    const data = state.dehydrate()
+    assert(FeudumGameStateValidator.Check(data), 'A host-side state is complete')
+    return data
+}
+
+/** A game as initialization leaves it, as complete canonical data. */
+export function canonicalState(numPlayers = 4, seed = 123): FeudumGameState {
+    return canonicalOf(initialState(numPlayers, seed))
 }

@@ -1,3 +1,4 @@
+import { Visibility } from '@tabletop/common'
 import * as Type from 'typebox'
 import {
     ComponentCount,
@@ -69,7 +70,9 @@ export const FlowState = Type.Object({
             keep: ComponentCount,
             source: WritDrawSource,
             shovelsOffered: Type.Boolean(),
-            drawn: Type.Array(WritIdSchema)
+            drawn: Visibility.protect(Type.Array(WritIdSchema), {
+                policy: Visibility.Policy.Owner
+            })
         })
     ),
     /** R-3.11.3 The goods wait here, drawn from the haversack, until the favours are chosen. */

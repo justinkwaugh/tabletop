@@ -1,6 +1,6 @@
 import { DefaultStateLogger, type GameRuntime } from '@tabletop/common'
 import { FeudumCanonicalStateValidator } from '../model/canonicalValidator.js'
-import type { HydratedFeudumGameState, FeudumGameState } from '../model/gameState.js'
+import type { HydratedFeudumGameState, FeudumProjectedState } from '../model/gameState.js'
 import { FeudumApiActions } from './apiActions.js'
 import { FeudumColors } from './colors.js'
 import { FeudumHydrator } from './hydrator.js'
@@ -18,4 +18,4 @@ export const FeudumRuntime = {
     playerColors: FeudumColors,
     scoring: new FeudumScoring(),
     stateLogger: new DefaultStateLogger()
-} satisfies GameRuntime<FeudumGameState, HydratedFeudumGameState>
+} satisfies GameRuntime<FeudumProjectedState, HydratedFeudumGameState>
