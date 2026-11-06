@@ -426,6 +426,8 @@ Six stacks of four, one tile of each epoch I to IV, epoch I on top. The front sh
 
 No region is printed on either face [read] TT, so a tile's landscape is a property of the epoch's mix, not of its region. TT keeps each epoch's six tiles in one shuffled bag, and setup shuffles them into the stacks (R-1.4-H2). Each epoch's mix [read] TT manifest:
 
+### Landscapes per epoch (24)
+
 | Epoch | Orchard | Silver mine | Sulfur deposit | Archery butt |
 | ----- | ------- | ----------- | -------------- | ------------ |
 | I     | 2       | 2           | 1              | 1            |
@@ -436,7 +438,9 @@ No region is printed on either face [read] TT, so a tile's landscape is a proper
 
 ## Location discs (44)
 
-The 44 are outposts, farms, towns and feudums. Setup uses 22 placed on the map (circle-marked ones on the six starting spaces) and 22 double-sided in the general supply, which include the 12 feudums (R-1.4.3). The 22 / 22 split is arithmetic [read]. TT's manifest gives the 22 placed at setup: 6 with the circle (2 farms, 2 towns, 2 outposts) for the six starting spaces, and 16 plain (5 farms, 3 towns, 8 outposts) for the rest; which disc lands on which space is random. The numbering of `disc.start.<n>` within a type is a convention. The double-sided discs pair farm/town, outpost/farm and outpost/town [read] TT, but how many of each pair is printed nowhere, so `disc.double.<n>` stay untyped slots. Colours: outpost lilac with a tower, farm green with field stripes, town yellow with two houses, feudum teal with a guild icon [read] RB-p6, LOC.
+The 44 are outposts, farms, towns and feudums. Setup uses 22 placed on the map (circle-marked ones on the six starting spaces) and 22 double-sided in the general supply, which include the 12 feudums (R-1.4.3). The 22 / 22 split is arithmetic [read]. TT's manifest gives the 22 placed at setup: 6 with the circle (2 farms, 2 towns, 2 outposts) for the six starting spaces, and 16 plain (5 farms, 3 towns, 8 outposts) for the rest; which disc lands on which space is random. The numbering of `disc.start.<n>` within a type is a convention. The circle is the disc's ringed back; the other 16 have a plain back [read]. The double-sided discs are 8 farm/town, 1 outpost/farm and 1 outpost/town [read]; the numbering of `disc.double.<n>` follows that order and is a convention. Colours: outpost lilac with a tower, farm green with field stripes, town yellow with two houses, feudum teal with a guild icon [read] RB-p6, LOC.
+
+### Setup discs (22)
 
 | Id            | Group                   | Type    | Circle marker (TT manifest) | Digest  |
 | ------------- | ----------------------- | ------- | --------------------------- | ------- |
@@ -463,6 +467,8 @@ The 44 are outposts, farms, towns and feudums. Setup uses 22 placed on the map (
 | disc.start.21 | starting-placement disc | outpost | no                          | R-1.4.3 |
 | disc.start.22 | starting-placement disc | outpost | no                          | R-1.4.3 |
 
+### Double-sided discs (10)
+
 | Id             | Group                                      | Face A       | Face B | Digest  |
 | -------------- | ------------------------------------------ | ------------ | ------ | ------- |
 | disc.double.1  | double-sided, general supply, not a feudum | farm/town    | [read] | R-1.4.3 |
@@ -475,6 +481,8 @@ The 44 are outposts, farms, towns and feudums. Setup uses 22 placed on the map (
 | disc.double.8  | double-sided, general supply, not a feudum | farm/town    | [read] | R-1.4.3 |
 | disc.double.9  | double-sided, general supply, not a feudum | outpost/farm | [read] | R-1.4.3 |
 | disc.double.10 | double-sided, general supply, not a feudum | outpost/town | [read] | R-1.4.3 |
+
+### Feudums (12)
 
 | Id                      | Face A | Icon                                             | Face B             | Confidence                                                  | Digest           |
 | ----------------------- | ------ | ------------------------------------------------ | ------------------ | ----------------------------------------------------------- | ---------------- |
@@ -612,7 +620,7 @@ One two-sided disc: seal side red with a white crown, no number; bead side strip
 | Region tiles                                     | 24 (6 stacks x 4)                                                | 24         | 6 of each landscape; per-epoch mix [read] TT (R-1.4-H2)                                               |
 | Location discs: placed at setup                  | 22                                                               | 22         | 7 farms, 5 towns, 10 outposts [read] TT                                                               |
 | Location discs: double-sided, non-feudum         | 22 double-sided less the 12 feudums = 10                         | 10         | farm/town 8, outpost/farm 1, outpost/town 1 [read]                                                    |
-| Location discs: feudums                          | 12 (one icon per guild)                                          | 12         | 2 per guild is inferred                                                                               |
+| Location discs: feudums                          | 12 (one icon per guild)                                          | 12         | 2 per guild [read]                                                                                    |
 | Location discs (all)                             | 44                                                               | 44         | matches                                                                                               |
 | King's seals / rosary beads                      | 17                                                               | 17         | 9 × +2, 5 × +3, 2 × +4, 1 × +5 [read] TT                                                              |
 | Game board                                       | 1                                                                | 1          | matches                                                                                               |
