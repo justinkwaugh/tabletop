@@ -733,20 +733,21 @@ export function runAfter(
     playerId: string,
     active: readonly ActiveModifier[],
     particulars: Partial<EffectContext['particulars']> = {}
-): { notes: string[]; endsActPhase: boolean; warbandOwner?: WarbandOwner } {
+): { notes: string[]; endsActPhase: boolean; warbandOwner: WarbandOwner | undefined } {
     const notes: string[] = []
-    const warbandOwners = new Set<WarbandOwner>()
+    const warbandOwners: WarbandOwner[] = []
     let endsActPhase = false
     for (const m of active) {
         const r = m.hooks.after?.({ ...modifierContext(state, playerId, m), particulars })
         if (!r) continue
         if (r.summary) notes.push(r.summary)
         if (r.endsActPhase) endsActPhase = true
-        if (r.warbandOwner !== undefined) warbandOwners.add(r.warbandOwner)
+        if (r.warbandOwner !== undefined) warbandOwners.push(r.warbandOwner)
     }
     // R-10.13 — whose warbands the hooks killed, for the History, when they were one owner's.
-    const [warbandOwner] = warbandOwners.size === 1 ? warbandOwners : []
-    return { notes, endsActPhase, ...(warbandOwner === undefined ? {} : { warbandOwner }) }
+    const owners = new Set(warbandOwners)
+    const warbandOwner = owners.size === 1 ? warbandOwners[0] : undefined
+    return { notes, endsActPhase, warbandOwner }
 }
 
 export function modifierSummary(active: readonly ActiveModifier[]): string[] {

@@ -134,16 +134,16 @@ describe('R-11.7 — the History of a Travel the ruler settles', () => {
         )
     })
 
-    it('Tyrant’s kill is a clause of the pick’s row, in the colour of the warband killed', () => {
+    it('Tyrant’s kill is a clause of the pick’s row that names whose warband it was; the row stays the traveller’s', () => {
         const tyrant = pick('slot.provinces.1', 2, {
             notes: ['Tyrant killed a warband at slot.provinces.1'],
             warbandOwner: 'Rhys'
         })
         expect(describeAction(tyrant, names, 'Dana')).toBe(
-            "traveled from Shrouded Wood to Great Slum (Rhys's pick), spending 2 Supply; killed 1 warband at Great Slum (Tyrant)"
+            "traveled from Shrouded Wood to Great Slum (Rhys's pick), spending 2 Supply; killed 1 of Rhys's warbands at Great Slum (Tyrant)"
         )
+        // R-10.13 — another phrase in the row (a Drum's gain) is the traveller's own.
         const own = (playerId: string) => `${playerId}'s own`
-        expect(rowWarbandOwner(tyrant, own)).toBe('Rhys')
-        expect(rowWarbandOwner(pick('slot.provinces.1', 2), own)).toBe("Dana's own")
+        expect(rowWarbandOwner(tyrant, own)).toBe("Dana's own")
     })
 })
