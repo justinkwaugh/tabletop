@@ -1,5 +1,5 @@
 import { addAxial, coordinatesToNumber, type AxialCoordinates, type Point } from '@tabletop/common'
-import { RING_SPACING, TOP_DOWN, type BoardView } from './geometry.js'
+import { RING_SPACING, VIEW, type BoardView } from './geometry.js'
 
 // BoardSpace notation: columns lettered left to right, each counted up from 1 at its bottom ring.
 // Each column is labelled with the names of its bottom and top rings.
@@ -21,7 +21,7 @@ const BELOW: AxialCoordinates = { q: 0, r: 1 }
 
 export function boardNotation(
     positions: readonly AxialCoordinates[],
-    view: BoardView = TOP_DOWN
+    view: BoardView = VIEW
 ): BoardNotation {
     const columns = [...new Set(positions.map((coords) => coords.q))].sort((a, b) => a - b)
     const bottomOf = new Map<number, number>()

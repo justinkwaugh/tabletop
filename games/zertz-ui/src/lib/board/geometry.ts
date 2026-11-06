@@ -18,8 +18,8 @@ const RING_HEIGHT = RING_SPACING * 0.155
 const SHELL_THICKNESS = RING_SPACING * 0.045
 const MARBLE_RISE = Math.sqrt(MARBLE_RADIUS ** 2 - RING_INNER_RADIUS ** 2)
 
-// The tilted view looks at the table from the near side: depth shrinks to TILT of its length,
-// and heights show at the matching fraction.
+// The board is seen from the side of the table: depth shrinks to TILT of its length, and heights
+// show at the matching fraction.
 export const TILT = 0.75
 
 const HEX_DIMENSIONS = { xRadius: RING_SPACING / Math.sqrt(3), yRadius: RING_SPACING / 2 }
@@ -31,8 +31,9 @@ export type BoardFrame = {
     height: number
 }
 
-// Where the board is drawn, either straight down (tilt 1) or from the near side.
+// Where the board is drawn, from the near side of the table or, turned, from the far side.
 export class BoardView {
+    readonly tilt = TILT
     // How far a ring's base shows below the rim of its hole.
     readonly band: number
     // How much of the rim's cut edge shows.
@@ -40,15 +41,11 @@ export class BoardView {
     // How far above a ring's centre the marble in it is drawn.
     readonly lift: number
 
-    constructor(readonly tilt: number) {
-        const rise = Math.sqrt(1 - tilt ** 2)
+    constructor(readonly turned = false) {
+        const rise = Math.sqrt(1 - this.tilt ** 2)
         this.band = RING_HEIGHT * rise
         this.rimEdge = SHELL_THICKNESS * rise
         this.lift = MARBLE_RISE * rise
-    }
-
-    get tilted(): boolean {
-        return this.tilt < 1
     }
 
     // How far a ring, with any marble in it, reaches above and below its centre.
@@ -63,7 +60,8 @@ export class BoardView {
     // The centre of a ring's hole, at its rim.
     center(coords: AxialCoordinates): Point {
         const point = flatHexCoordsToCenterPoint(coords, HEX_DIMENSIONS)
-        return { x: point.x, y: point.y * this.tilt }
+        const sign = this.turned ? -1 : 1
+        return { x: sign * point.x, y: sign * point.y * this.tilt }
     }
 
     frame(setup: ZertzSetup): BoardFrame {
@@ -109,11 +107,11 @@ export class BoardView {
     }
 }
 
-export const TOP_DOWN = new BoardView(1)
-export const TILTED = new BoardView(TILT)
+export const VIEW = new BoardView()
+const TURNED_VIEW = new BoardView(true)
 
-export function boardView(tilted: boolean): BoardView {
-    return tilted ? TILTED : TOP_DOWN
+export function viewOf(turned: boolean): BoardView {
+    return turned ? TURNED_VIEW : VIEW
 }
 
 export function coordsKey(coords: AxialCoordinates): string {

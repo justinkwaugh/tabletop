@@ -29,15 +29,12 @@ const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
 ])
 
 const SINK = { duration: 0.5, drop: 4, scale: 0.9 }
-// Straight down, a marble rising from the board swells toward the eye; seen from the side, it
-// floats straight up.
-const LIFT = { duration: 0.55, rise: -14, scale: 1.15 }
-const TILTED_LIFT = { rise: -34, scale: 1.04 }
-const JUMP = { duration: 0.5, rise: 0, peakScale: 1.28 }
-const TILTED_JUMP = { rise: -30, peakScale: 1.06 }
+// A marble taken from the board floats straight up.
+const LIFT = { duration: 0.55, rise: -34, scale: 1.04 }
+const JUMP = { duration: 0.5, rise: -30, peakScale: 1.06 }
 // A jumper's momentum carries it a little past its ring as it lands; it rocks back and settles.
 const LANDING = { rebound: [2.4, -1.2, 0.45, 0], step: 0.07 }
-// Seen from the side, a placed marble falls into its ring, gathering speed, and settles with a
+// A placed marble falls into its ring, gathering speed, and settles with a
 // small wobble; its shadow waits in the ring and darkens as the marble comes down.
 const DROP = { fall: 0.26, rise: -50, scale: 1.08, wobble: [-4, -1.5], settle: 0.06, shadow: 0.55 }
 const CLAIMED_RING_DELAY = 0.1
@@ -159,10 +156,8 @@ export class BoardAnimator {
             // outlines fade.
             if (isPlaceMarble(action)) {
                 this.rings = to.board.rings
-                if (this.session.view.tilted) {
-                    await tick()
-                    this.drop(action.coords, timeline)
-                }
+                await tick()
+                this.drop(action.coords, timeline)
             }
             if (isCapture(action) && action.metadata !== undefined) {
                 await this.jump(
@@ -205,8 +200,11 @@ export class BoardAnimator {
         const key = coordsKey(coords)
         const body = this.marbleNodes.get(key)
         if (body === undefined) return
-        const { rise, scale } = this.session.view.tilted ? TILTED_LIFT : LIFT
-        timeline.to(body, { opacity: 0, scale, y: rise, duration, ease: 'power1.out' }, at)
+        timeline.to(
+            body,
+            { opacity: 0, scale: LIFT.scale, y: LIFT.rise, duration, ease: 'power1.out' },
+            at
+        )
         this.fadeShadow(key, timeline, at, duration)
     }
 
@@ -261,13 +259,16 @@ export class BoardAnimator {
         }
     }
 
-    // Seen from the side, an undone placement lifts back out of its ring as it fades.
+    // An undone placement lifts back out of its ring as it fades.
     private fade(coords: AxialCoordinates, timeline: Timeline) {
         const key = coordsKey(coords)
         const body = this.marbleNodes.get(key)
         if (body === undefined) return
-        const y = this.session.view.tilted ? DROP.rise / 2 : 0
-        timeline.to(body, { opacity: 0, y, duration: FALLBACK_DURATION, ease: 'power1.in' }, 0)
+        timeline.to(
+            body,
+            { opacity: 0, y: DROP.rise / 2, duration: FALLBACK_DURATION, ease: 'power1.in' },
+            0
+        )
         this.fadeShadow(key, timeline, 0, FALLBACK_DURATION)
     }
 
@@ -307,8 +308,11 @@ export class BoardAnimator {
         // The shadow keeps to the board while the marble rises over the one it takes.
         const body = this.flierBodyNode
         if (body === undefined) return
-        const { rise, peakScale } = this.session.view.tilted ? TILTED_JUMP : JUMP
-        timeline.to(body, { y: rise, scale: peakScale, duration: half, ease: 'power2.out' }, 0)
+        timeline.to(
+            body,
+            { y: JUMP.rise, scale: JUMP.peakScale, duration: half, ease: 'power2.out' },
+            0
+        )
         timeline.to(body, { y: 0, scale: 1, duration: half, ease: 'power2.in' }, half)
         // A quick catch-up through history just arrives.
         if (duration <= FALLBACK_DURATION) return

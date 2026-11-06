@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { BoardLayout, layoutCoordinates } from '@tabletop/zertz'
 import { boardNotation } from './coordinates.js'
+import { viewOf } from './geometry.js'
 
 describe('boardNotation', () => {
     const standard = boardNotation(layoutCoordinates(BoardLayout.Rings37))
@@ -45,5 +46,20 @@ describe('boardNotation', () => {
         expect(tournament.name({ q: 0, r: -3 })).toBe('D8')
         expect(tournament.name({ q: 4, r: 0 })).toBe('H1')
         expect(tournament.name({ q: 4, r: -3 })).toBe('H4')
+    })
+
+    it('turns the board half round, keeping each label beyond its column', () => {
+        const turned = boardNotation(layoutCoordinates(BoardLayout.Rings37), viewOf(true))
+        const at = (labels: typeof standard.labels, key: string) =>
+            labels.find((label) => label.key === key)!.at
+        expect(turned.labels.map((label) => label.text)).toEqual(
+            standard.labels.map((label) => label.text)
+        )
+        for (const label of standard.labels) {
+            expect(at(turned.labels, label.key).x).toBeCloseTo(-label.at.x)
+        }
+        // A1, nearest you below the board, goes beyond the far end, above it.
+        expect(at(turned.labels, 'bottom-A').y).toBeLessThan(viewOf(true).center({ q: -3, r: 3 }).y)
+        expect(at(turned.labels, 'top-A').y).toBeGreaterThan(viewOf(true).center({ q: -3, r: 0 }).y)
     })
 })

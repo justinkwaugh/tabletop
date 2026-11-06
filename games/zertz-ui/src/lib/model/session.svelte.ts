@@ -17,7 +17,7 @@ import {
     setZertzSelection,
     type ZertzSelection
 } from './stagedSelection.js'
-import { boardView, type BoardView } from '$lib/board/geometry.js'
+import { viewOf, type BoardView } from '$lib/board/geometry.js'
 import { boardNotation, type BoardNotation } from '$lib/board/coordinates.js'
 import { sinkingRingsAfter } from '$lib/board/sinkingRings.js'
 
@@ -32,8 +32,9 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
         this.createPreferences(ZertzPreferenceDefinition)
 
     showCoordinates: boolean = $derived(this.preferences.values.showCoordinates)
-    tiltedBoard: boolean = $derived(this.preferences.values.tiltedBoard)
-    view: BoardView = $derived(boardView(this.tiltedBoard))
+    // The board seen from the far side, half a turn round.
+    turned: boolean = $derived(this.preferences.values.turned)
+    view: BoardView = $derived(viewOf(this.turned))
 
     notation: BoardNotation = $derived(
         boardNotation(this.view.frame(this.gameState.setup).positions, this.view)
@@ -121,8 +122,8 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
         this.preferences.set({ showCoordinates: !this.showCoordinates })
     }
 
-    toggleTiltedBoard() {
-        this.preferences.set({ tiltedBoard: !this.tiltedBoard })
+    toggleTurned() {
+        this.preferences.set({ turned: !this.turned })
     }
 
     resetAction() {

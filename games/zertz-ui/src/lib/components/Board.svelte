@@ -114,11 +114,6 @@
             <stop offset="0.6" stop-color="#0e1012"></stop>
             <stop offset="1" stop-color="#030404"></stop>
         </radialGradient>
-        <radialGradient id="zertz-ring-plastic" cx="0.4" cy="0.32" r="0.75">
-            <stop offset="0" stop-color="#3d4448"></stop>
-            <stop offset="0.6" stop-color="#16191b"></stop>
-            <stop offset="1" stop-color="#050607"></stop>
-        </radialGradient>
         <!-- Shadows are blurred on their own so the rings and marbles above them stay crisp. -->
         <filter id="zertz-soft" x="-40%" y="-40%" width="180%" height="180%">
             <feGaussianBlur stdDeviation="2.5"></feGaussianBlur>
@@ -209,19 +204,12 @@
                 }}
                 onblur={() => (focusedKey = undefined)}
             >
-                {#if view.tilted}
-                    <g transform="translate(0 {view.band}) scale(1 {view.tilt})">
-                        <circle r={RING_OUTER_RADIUS} class="ring-hit"></circle>
-                    </g>
-                    <path d={view.cone} class="ring-cone"></path>
-                    <path d={view.seeThrough} class="ring-hollow"></path>
-                    <path d={view.rimEdgePath} class="ring-inside"></path>
-                {:else}
+                <g transform="translate(0 {view.band}) scale(1 {view.tilt})">
                     <circle r={RING_OUTER_RADIUS} class="ring-hit"></circle>
-                    <circle r={RING_MID_RADIUS} stroke-width={RING_WIDTH} class="ring-body"
-                    ></circle>
-                    <circle r={RING_OUTER_RADIUS - 1.5} class="ring-rim"></circle>
-                {/if}
+                </g>
+                <path d={view.cone} class="ring-cone"></path>
+                <path d={view.seeThrough} class="ring-hollow"></path>
+                <path d={view.rimEdgePath} class="ring-inside"></path>
             </g>
         </g>
     {/each}
@@ -238,7 +226,7 @@
                         isHovered(ring.coords) || focusedKey === coordsKey(ring.coords)}
                     {@const width = highlightWidth(role, emphasized)}
                     {@const radius = RING_OUTER_RADIUS - HIGHLIGHT_INSET - width / 2}
-                    <!-- Around the ring's base, which in the tilted view spreads past its top. -->
+                    <!-- Around the ring's base, which spreads past its top. -->
                     <ellipse
                         cx={center.x}
                         cy={center.y + view.band}
@@ -255,8 +243,8 @@
         </g>
     {/key}
 
-    <!-- Marbles stand above every ring and outline. A marble reaches beyond its own ring in
-         the tilted view, so it passes pointing on to its ring. -->
+    <!-- Marbles stand above every ring and outline. A marble reaches beyond its own ring, so it
+         passes pointing on to its ring. -->
     {#each drawOrder as ring (coordsKey(ring.coords))}
         {@const center = view.center(ring.coords)}
         {@const role = roleOf(ring)}
@@ -337,11 +325,6 @@
         fill: transparent;
     }
 
-    .ring-body {
-        fill: none;
-        stroke: url(#zertz-ring-plastic);
-    }
-
     .ring-cone {
         fill: url(#zertz-ring-cone);
         fill-rule: evenodd;
@@ -355,13 +338,6 @@
 
     .ring-inside {
         fill: url(#zertz-ring-inside);
-        pointer-events: none;
-    }
-
-    .ring-rim {
-        fill: none;
-        stroke: rgb(255 255 255 / 0.14);
-        stroke-width: 1.5;
         pointer-events: none;
     }
 
@@ -400,10 +376,6 @@
 
     .ring-highlight.emphasized {
         stroke-opacity: 1;
-    }
-
-    .role-remove.hovered .ring-body {
-        opacity: 0.5;
     }
 
     .preview {

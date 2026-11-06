@@ -1,21 +1,36 @@
 <script lang="ts">
+    import type { Snippet } from 'svelte'
+
+    // A text glyph, or an icon drawn by the caller. The hint, shown on hover, says what a press
+    // does now.
     let {
         glyph,
         label,
+        hint,
         pressed,
-        onToggle
-    }: { glyph: string; label: string; pressed: boolean; onToggle: () => void } = $props()
+        onToggle,
+        children
+    }: {
+        glyph?: string
+        label: string
+        hint: string
+        pressed: boolean
+        onToggle: () => void
+        children?: Snippet
+    } = $props()
 </script>
 
 <button
     type="button"
     class="toggle"
     aria-pressed={pressed}
-    title={pressed ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
+    title={hint}
     aria-label={label}
     onclick={onToggle}
 >
-    <span class="glyph">{glyph}</span>
+    <span class="glyph"
+        >{#if children}{@render children()}{:else}{glyph}{/if}</span
+    >
 </button>
 
 <style>
@@ -44,6 +59,14 @@
         border: 1px solid currentColor;
         font-weight: 700;
         letter-spacing: 0;
+    }
+
+    .glyph :global(.line) {
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
     }
 
     /* On, the lines brighten and a thin ring shows round the button, quieter than a solid fill. */
