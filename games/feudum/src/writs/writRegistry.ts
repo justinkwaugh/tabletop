@@ -9,6 +9,7 @@ import {
     type WritId
 } from '../data/writs.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { CharterRegistrations } from './charters.js'
 import { MandateRegistrations } from './mandates.js'
 
 /** R-4.4-H1, R-6.2 When a writ's effect applies: at will, in the holder's attack, or at final scoring. */
@@ -54,6 +55,12 @@ export interface CharterRegistration {
 }
 
 export type WritRegistration = MandateRegistration | WeaponRegistration | CharterRegistration
+
+/** R-6.2 One sealed charter, revealed with what it scores. */
+export interface CharterScore {
+    readonly writId: WritId
+    readonly vp: number
+}
 
 /** R-4.4-H1, R-4.4.3 The one timing each writ has. */
 function timingOf(writ: RoyalWrit): WritTiming {
@@ -161,13 +168,21 @@ export class WritRegistry {
         return undefined
     }
 
-    /** R-4.4.3, R-6.2 Whether the charter is sealed is the scorer's to check. */
+    /** R-4.4.3, R-6.2 What this charter pays this seat, sealed or not: final scoring reads the next. */
     charterScore(
         writId: WritId,
         state: HydratedFeudumGameState,
         playerId: string
     ): number | undefined {
         return this.charters.get(writId)?.score(state, playerId)
+    }
+
+    /** R-4.4.3, R-6.2 Only sealed charters score, each with its row even at 0; no other writ does. */
+    sealedCharterScores(state: HydratedFeudumGameState, playerId: string): CharterScore[] {
+        return state
+            .getPlayerState(playerId)
+            .requireSealedCharters()
+            .map((writId) => ({ writId, vp: this.charterScore(writId, state, playerId) ?? 0 }))
     }
 
     /** R-4.4.3 */
@@ -181,6 +196,6 @@ export class WritRegistry {
  * package declares no side effects, so a bundler may drop a module imported only for that.
  */
 export const writRegistry = new WritRegistry()
-for (const registration of MandateRegistrations) {
+for (const registration of [...MandateRegistrations, ...CharterRegistrations]) {
     writRegistry.register(registration)
 }

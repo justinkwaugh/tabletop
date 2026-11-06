@@ -95,7 +95,8 @@ Rules version: the December 2018 English rulebook with the designer's later answ
 
 ### Game end (R-6)
 
-- **R-6.2-H1** (design), _provisional_: a kingdom charter prints 3/5/7/9 vp for 1 to 4 locations ruled on its spaces; 5 or more score 9. Spec: `finalScoring.spec.ts`.
+- **R-6.2-H1** (design), _provisional_: a kingdom charter prints 3/5/7/9 vp for 1 to 4 locations ruled on its spaces; 5 or more score 9. Spec: `charters.spec.ts`.
+- **R-6.2-H2** (design): the sulfur-barrel charter counts the sulfur in the barrel at final scoring. A sulfur standing on a wine-fed pawn (R-4.10.2) has left the barrel and doesn't count. Rejected: counting it as barrel sulfur, against the card's "in barrel". Spec: `charters.spec.ts`.
 - **R-6.1-H1** (Q7): when the condition for epoch V is met during a round (R-4.11.2), the round's remaining cards are played, pawns are nourished, the die is not rolled, epoch V's dawn is scored, then final scoring. Spec: `gameEnd.spec.ts`.
 
 ## Rules of the implementation

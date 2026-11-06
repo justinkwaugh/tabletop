@@ -86,13 +86,18 @@ export function buildFeudum(
     placeMarker(state, rulerId, spaceId)
 }
 
-/** R-4.4 The seat holds this writ, drawn off the deck. */
-export function holdWrit(state: HydratedFeudumGameState, playerId: string, writId: WritId): void {
+/** R-4.4.1 The deck holds this writ `position` from its top. */
+export function stackWrit(state: HydratedFeudumGameState, writId: WritId, position = 0): void {
     const deck = state.requireVault().writDeck
     const entry = deck.find((row) => row.writId === writId)
     assertExists(entry, `${writId} is in the deck`)
-    entry.writId = deck[0].writId
-    deck[0].writId = writId
+    entry.writId = deck[position].writId
+    deck[position].writId = writId
+}
+
+/** R-4.4 The seat holds this writ, drawn off the deck. */
+export function holdWrit(state: HydratedFeudumGameState, playerId: string, writId: WritId): void {
+    stackWrit(state, writId)
     const player = state.getPlayerState(playerId)
     player.requireWrits().push(...drawWrits(state, 1))
     player.writCount += 1

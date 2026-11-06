@@ -171,6 +171,21 @@ describe('writRegistry', () => {
             expect(registry.charterScore('writ.mandate.1', state, playerId)).toBeUndefined()
         })
 
+        it('R-6.2 sealed charters score, a writ with no end scoring at 0', () => {
+            registry.register(monsterDefeat)
+            const state = initialState()
+            const playerId = state.players[0].playerId
+            expect(registry.sealedCharterScores(state, playerId)).toEqual([])
+            state
+                .getPlayerState(playerId)
+                .requireSealedCharters()
+                .push('writ.charter.monster-defeat', 'writ.charter.sulfur-barrel')
+            expect(registry.sealedCharterScores(state, playerId)).toEqual([
+                { writId: 'writ.charter.monster-defeat', vp: 7 },
+                { writId: 'writ.charter.sulfur-barrel', vp: 0 }
+            ])
+        })
+
         it('lists every registration with its printed text, for the reach sweeps', () => {
             registry.register(vesselMandate)
             registry.register(bow)
