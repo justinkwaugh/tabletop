@@ -1,6 +1,6 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { assert, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import { assert, GameAction, HydratableAction, MachineContext, Visibility } from '@tabletop/common'
 import type { GuildId } from '../data/components.js'
 import { ActionType } from '../definition/actions.js'
 import {
@@ -11,11 +11,13 @@ import {
     nextMilitarySpace,
     nextVoyageSpace,
     reasonDiscRefused,
+    reevePointsIn,
+    requireDrawnWrits,
     type DiscFollowUp
 } from '../model/followUps.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { rankOf } from '../model/guildStatus.js'
-import { ComponentCount, GuildIdSchema } from '../model/stateSchemas.js'
+import { ComponentCount, GuildIdSchema, WritIdSchema } from '../model/stateSchemas.js'
 
 export type PlaceDiscMetadata = Type.Static<typeof PlaceDiscMetadata>
 export const PlaceDiscMetadata = Type.Object({
@@ -23,10 +25,16 @@ export const PlaceDiscMetadata = Type.Object({
     disc: Type.Union([Type.Literal('reeve'), Type.Literal('military'), Type.Literal('voyage')]),
     /** R-4.7 */
     guildId: Type.Optional(GuildIdSchema),
+    /** R-4.7 What the reeve scored on placing. */
+    reevePoints: Type.Optional(ComponentCount),
     /** R-4.9.1, R-3.7.5 The track space taken; absent when the disc was kept. */
     space: Type.Optional(Type.Integer({ minimum: 1 })),
     /** R-3.7.5, R-4.4-H2 Writs drawn by the step; the count is public, the writs are not. */
-    drawnCount: Type.Optional(ComponentCount)
+    drawnCount: Type.Optional(ComponentCount),
+    /** R-3.7.5 Actor-known. */
+    drawnWritIds: Type.Optional(
+        Visibility.protect(Type.Array(WritIdSchema), { policy: Visibility.Policy.Actor })
+    )
 })
 
 export type PlaceDisc = Type.Static<typeof PlaceDisc>
@@ -135,7 +143,7 @@ export class HydratedPlaceDisc extends HydratableAction<typeof PlaceDisc> implem
     private placeDisc(
         state: HydratedFeudumGameState,
         followUp: DiscFollowUp
-    ): Pick<PlaceDiscMetadata, 'space' | 'drawnCount'> {
+    ): Pick<PlaceDiscMetadata, 'space' | 'drawnCount' | 'drawnWritIds' | 'reevePoints'> {
         switch (followUp.kind) {
             case 'reeve': {
                 return this.placeReeve(state, followUp.guildId)
@@ -149,14 +157,16 @@ export class HydratedPlaceDisc extends HydratableAction<typeof PlaceDisc> implem
         }
     }
 
-    /** R-4.7 The reeve sits on the marker and follows it. */
+    /** R-4.7 The reeve sits on the marker and follows it, and scores for the threshold just reached. */
     private placeReeve(state: HydratedFeudumGameState, guildId: GuildId) {
         const track = state.guilds.tracks[guildId]
         const rank = rankOf(track, this.playerId)
         const holder = rank && track[rank]
         assert(holder, 'R-4.7 A reeve sits on the marker')
         holder.reeve = true
-        return {}
+        const reevePoints = reevePointsIn(state, this.playerId, guildId)
+        state.getPlayerState(this.playerId).score += reevePoints
+        return { reevePoints }
     }
 
     /** R-4.9.1, R-4.9-H2 */
@@ -176,9 +186,11 @@ export class HydratedPlaceDisc extends HydratableAction<typeof PlaceDisc> implem
             return { space: row.space }
         }
         const drawnCount = drawWritsToKeep(state, this.playerId, row.writDraw, 'voyage')
-        if (drawnCount > 0) {
-            this.revealsInfo = true
+        const { writDraw } = state.flow
+        if (!writDraw) {
+            return { space: row.space, drawnCount }
         }
-        return { space: row.space, drawnCount }
+        this.revealsInfo = true
+        return { space: row.space, drawnCount, drawnWritIds: [...requireDrawnWrits(writDraw)] }
     }
 }

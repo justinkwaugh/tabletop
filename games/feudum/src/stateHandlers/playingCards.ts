@@ -1,6 +1,10 @@
 import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import { cardPlayOffers } from '../actions/cardPlay.js'
+import { HydratedDiscardWrit, isDiscardWrit } from '../actions/discardWrit.js'
+import { HydratedExplore, isExplore } from '../actions/explore.js'
 import { HydratedForfeitCard, isForfeitCard } from '../actions/forfeitCard.js'
+import { HydratedGuildAction, isGuildAction } from '../actions/guildAction.js'
+import { HydratedHarvest, isHarvest } from '../actions/harvest.js'
 import { HydratedImprove, isImprove } from '../actions/improve.js'
 import { HydratedInfluence, isInfluence } from '../actions/influence.js'
 import { HydratedMigrate, isMigrate } from '../actions/migrate.js'
@@ -22,8 +26,14 @@ type HydratedCardPlay =
     | HydratedMigrate
     | HydratedInfluence
     | HydratedTax
+    | HydratedExplore
     | HydratedImprove
     | HydratedTendLandscape
+    | HydratedHarvest
+    | HydratedGuildAction
+
+/** R-3.2, R-4.4.4 What the turn player may send here. A discard plays no card, so ends no step. */
+type PlayingCardsAction = HydratedCardPlay | HydratedDiscardWrit
 
 /** R-3.5 The Actions that play a card, regular or special. A new card adds its row here. */
 const PlaysOfCard: Partial<Readonly<Record<ActionCardKind, readonly ActionType[]>>> = {
@@ -32,18 +42,21 @@ const PlaysOfCard: Partial<Readonly<Record<ActionCardKind, readonly ActionType[]
     migrate: [ActionType.Migrate],
     influence: [ActionType.Influence],
     tax: [ActionType.Tax],
-    improve: [ActionType.Improve, ActionType.TendLandscape]
+    explore: [ActionType.Explore],
+    improve: [ActionType.Improve, ActionType.TendLandscape],
+    harvest: [ActionType.Harvest],
+    guild: [ActionType.GuildAction]
 }
 
 /** R-3.2 The turn player plays one card, then its follow-ups run. */
 export class PlayingCardsStateHandler implements MachineStateHandler<
-    HydratedCardPlay,
+    PlayingCardsAction,
     HydratedFeudumGameState
 > {
     isValidAction(
         action: HydratedAction,
         _context: MachineContext<HydratedFeudumGameState>
-    ): action is HydratedCardPlay {
+    ): action is PlayingCardsAction {
         return (
             isForfeitCard(action) ||
             isPlayDefend(action) ||
@@ -51,8 +64,12 @@ export class PlayingCardsStateHandler implements MachineStateHandler<
             isMigrate(action) ||
             isInfluence(action) ||
             isTax(action) ||
+            isExplore(action) ||
+            isDiscardWrit(action) ||
             isImprove(action) ||
-            isTendLandscape(action)
+            isTendLandscape(action) ||
+            isHarvest(action) ||
+            isGuildAction(action)
         )
     }
 
@@ -62,7 +79,7 @@ export class PlayingCardsStateHandler implements MachineStateHandler<
         context: MachineContext<HydratedFeudumGameState>
     ): ActionType[] {
         const state = context.gameState
-        const { hand } = state.getPlayerState(playerId)
+        const { hand, writCount } = state.getPlayerState(playerId)
         if (state.flow.turn?.playerId !== playerId || !hand) {
             return []
         }
@@ -70,7 +87,11 @@ export class PlayingCardsStateHandler implements MachineStateHandler<
             ...hand,
             ...cardPlayOffers(state, playerId).repeats.map((offer) => offer.kind)
         ])
-        return [ActionType.ForfeitCard, ...[...kinds].flatMap((kind) => PlaysOfCard[kind] ?? [])]
+        return [
+            ActionType.ForfeitCard,
+            ...[...kinds].flatMap((kind) => PlaysOfCard[kind] ?? []),
+            ...(writCount > 0 ? [ActionType.DiscardWrit] : [])
+        ]
     }
 
     enter(context: MachineContext<HydratedFeudumGameState>) {
@@ -78,9 +99,11 @@ export class PlayingCardsStateHandler implements MachineStateHandler<
     }
 
     onAction(
-        _action: HydratedCardPlay,
+        action: PlayingCardsAction,
         context: MachineContext<HydratedFeudumGameState>
     ): MachineState {
-        return stateAfterCardStep(context.gameState)
+        return isDiscardWrit(action)
+            ? MachineState.PlayingCards
+            : stateAfterCardStep(context.gameState)
     }
 }

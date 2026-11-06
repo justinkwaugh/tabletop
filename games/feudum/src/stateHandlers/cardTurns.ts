@@ -9,7 +9,8 @@ const FollowUpStates: Readonly<Record<FollowUp['kind'], MachineState>> = {
     'keep-writs': MachineState.KeepingWrits,
     reeve: MachineState.PlacingDisc,
     military: MachineState.PlacingDisc,
-    voyage: MachineState.PlacingDisc
+    voyage: MachineState.PlacingDisc,
+    'inspect-harvest': MachineState.InspectingHarvest
 }
 
 function holdsCards(state: HydratedFeudumGameState, playerId: string): boolean {

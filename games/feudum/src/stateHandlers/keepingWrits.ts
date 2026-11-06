@@ -4,27 +4,29 @@ import {
     type MachineStateHandler,
     MachineContext
 } from '@tabletop/common'
-import type { ActionType } from '../definition/actions.js'
+import { HydratedKeepWrits, isKeepWrits } from '../actions/keepWrits.js'
+import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { stateAfterCardStep } from './cardTurns.js'
 
-/** R-4.4.1 The drawer is asked which writs to keep. No Action decides it yet. */
+/** R-4.4.1 The drawer keeps; R-3.10.2 Shovels & Swords returns here for its own keep. */
 export class KeepingWritsStateHandler implements MachineStateHandler<
-    HydratedAction,
+    HydratedKeepWrits,
     HydratedFeudumGameState
 > {
     isValidAction(
-        _action: HydratedAction,
+        action: HydratedAction,
         _context: MachineContext<HydratedFeudumGameState>
-    ): boolean {
-        return false
+    ): action is HydratedKeepWrits {
+        return isKeepWrits(action)
     }
 
     validActionsForPlayer(
-        _playerId: string,
-        _context: MachineContext<HydratedFeudumGameState>
+        playerId: string,
+        context: MachineContext<HydratedFeudumGameState>
     ): ActionType[] {
-        return []
+        return context.gameState.flow.writDraw?.playerId === playerId ? [ActionType.KeepWrits] : []
     }
 
     enter(context: MachineContext<HydratedFeudumGameState>) {
@@ -34,9 +36,9 @@ export class KeepingWritsStateHandler implements MachineStateHandler<
     }
 
     onAction(
-        _action: HydratedAction,
-        _context: MachineContext<HydratedFeudumGameState>
+        _action: HydratedKeepWrits,
+        context: MachineContext<HydratedFeudumGameState>
     ): MachineState {
-        return MachineState.KeepingWrits
+        return stateAfterCardStep(context.gameState)
     }
 }

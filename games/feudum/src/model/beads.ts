@@ -1,0 +1,84 @@
+import { assertExists } from '@tabletop/common'
+import { Seals, type BeadValue, type SealId } from '../data/seals.js'
+import type { HydratedFeudumGameState } from './gameState.js'
+import { moveBead } from './seals.js'
+
+/** R-1.1 The value on a seal's bead side. */
+export function beadValue(sealId: SealId): BeadValue {
+    const seal = Seals.find(({ id }) => id === sealId)
+    assertExists(seal, `R-1.1 There is a seal ${sealId}`)
+    return seal.beadValue
+}
+
+/** R-4.6.3, R-4.6.4 The sum of the beads on the chickens. */
+export function chickenBeadSum(state: HydratedFeudumGameState): number {
+    return state.guilds.farmer.chickens.reduce(
+        (sum, bead) => sum + (bead === null ? 0 : beadValue(bead)),
+        0
+    )
+}
+
+export interface BeadCandidates {
+    readonly high: SealId
+    readonly low: SealId
+}
+
+/**
+ * R-4.6-H2 The rosary's highest and lowest beads, or undefined with fewer than two on it. Of equal
+ * beads, the first is the low and the last the high, so they are always two beads.
+ */
+export function hiddenBeadCandidates(state: HydratedFeudumGameState): BeadCandidates | undefined {
+    const { rosary } = state.guilds.monk
+    const [first] = rosary
+    if (rosary.length < 2) {
+        return undefined
+    }
+    let low = first
+    for (const bead of rosary) {
+        if (beadValue(bead) < beadValue(low)) {
+            low = bead
+        }
+    }
+    let high = rosary[rosary.length - 1]
+    for (const bead of rosary.toReversed()) {
+        if (beadValue(bead) > beadValue(high)) {
+            high = bead
+        }
+    }
+    return { high, low }
+}
+
+export interface HiddenBeadDraw extends BeadCandidates {
+    readonly bead: SealId
+}
+
+/**
+ * R-4.6-H2 The Hidden-bead draw: the highest or the lowest, at random, on the protected stream. It
+ * moves nothing; the caller puts the bead where it goes. A deviation: see `known-deviations.md`.
+ */
+export function hiddenBeadDraw(state: HydratedFeudumGameState): HiddenBeadDraw {
+    const candidates = hiddenBeadCandidates(state)
+    assertExists(candidates, 'R-4.6-H2 The rosary holds two beads to draw from')
+    const { high, low } = candidates
+    return { high, low, bead: state.getProtectedPrng().random() < 0.5 ? high : low }
+}
+
+/** R-4.6.4 The first empty chicken. */
+export function emptyChicken(state: HydratedFeudumGameState): number | undefined {
+    const index = state.guilds.farmer.chickens.indexOf(null)
+    return index < 0 ? undefined : index
+}
+
+export interface BeadToChicken extends HiddenBeadDraw {
+    readonly chicken: number
+    readonly chickenSum: number
+}
+
+/** R-4.6.4, R-4.6-H2 A Hidden-bead draw onto the first empty chicken. */
+export function drawBeadToChicken(state: HydratedFeudumGameState): BeadToChicken {
+    const chicken = emptyChicken(state)
+    assertExists(chicken, 'R-4.6.4 A chicken is empty')
+    const draw = hiddenBeadDraw(state)
+    moveBead(state, draw.bead, { kind: 'rosary' }, { kind: 'chicken', index: chicken })
+    return { ...draw, chicken, chickenSum: chickenBeadSum(state) }
+}

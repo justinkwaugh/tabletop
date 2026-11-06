@@ -66,6 +66,17 @@ export function beadToSeal(
     placeConcealedSeal(state, to, sealId)
 }
 
+/** R-4.6.4 A bead moves bead side up, from one public place to another. */
+export function moveBead(
+    state: HydratedFeudumGameState,
+    sealId: SealId,
+    from: BeadPlace,
+    to: BeadPlace
+): void {
+    takeBead(state, from, sealId)
+    placeBead(state, to, sealId)
+}
+
 /** R-5-H1 Takes the identity out of the vault; the public count or occupancy follows. */
 function takeConcealedSeal(state: HydratedFeudumGameState, from: ConcealedSealSource): SealId {
     const vault = state.requireVault()

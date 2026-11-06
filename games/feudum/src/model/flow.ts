@@ -20,7 +20,9 @@ export const FollowUp = Type.Union([
     /** R-4.9.1 */
     Type.Object({ kind: Type.Literal('military'), playerId: Type.String() }),
     /** R-3.7.5 */
-    Type.Object({ kind: Type.Literal('voyage'), playerId: Type.String() })
+    Type.Object({ kind: Type.Literal('voyage'), playerId: Type.String() }),
+    /** R-3.11.3 */
+    Type.Object({ kind: Type.Literal('inspect-harvest'), playerId: Type.String() })
 ])
 
 /** A pawn is (playerId, n); a monster is its id. */

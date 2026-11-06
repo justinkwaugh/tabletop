@@ -6,16 +6,17 @@ import {
     type EpicVoyageSpace,
     type MilitaryServiceSpace
 } from '../data/tracks.js'
+import type { WritId } from '../data/writs.js'
 import type { FollowUp, WritDrawSource } from './flow.js'
 import type { HydratedFeudumGameState } from './gameState.js'
 import { rankOf } from './guildStatus.js'
 import { drawWrits } from './writDeck.js'
 
 /** R-4.7, R-4.9.1, R-3.7.5 The follow-ups that offer a disc. */
-export type DiscFollowUp = Exclude<FollowUp, { kind: 'keep-writs' }>
+export type DiscFollowUp = Extract<FollowUp, { kind: 'reeve' | 'military' | 'voyage' }>
 
 export function isDiscFollowUp(followUp: FollowUp): followUp is DiscFollowUp {
-    return followUp.kind !== 'keep-writs'
+    return followUp.kind === 'reeve' || followUp.kind === 'military' || followUp.kind === 'voyage'
 }
 
 /** R-3.2, R-3.3 The current card leaves this behind; `stateAfterCardStep` runs the list in order. */
@@ -76,6 +77,12 @@ export function drawWritsToKeep(
     return drawn.length
 }
 
+/** R-4.4.1 Owner-known: only the drawer's state and the host's carry the writs. */
+export function requireDrawnWrits(writDraw: { readonly drawn?: WritId[] }): WritId[] {
+    assertExists(writDraw.drawn, 'R-4.4.1 The writs drawn are owner-known')
+    return writDraw.drawn
+}
+
 /** R-3.7.5 The space the seat's disc would take; none past the monastery. */
 export function nextVoyageSpace(
     state: HydratedFeudumGameState,
@@ -102,6 +109,20 @@ function reeveCount(state: HydratedFeudumGameState, playerId: string): number {
         const rank = rankOf(track, playerId)
         return rank && track[rank]?.reeve
     }).length
+}
+
+/**
+ * R-4.7 A reeve on this guild's marker scores 1, and 1 more with the seat's other reeve in another
+ * guild; no reeve there, nothing.
+ */
+export function reevePointsIn(
+    state: HydratedFeudumGameState,
+    playerId: string,
+    guildId: GuildId
+): number {
+    const track = state.guilds.tracks[guildId]
+    const rank = rankOf(track, playerId)
+    return rank && track[rank]?.reeve ? reeveCount(state, playerId) : 0
 }
 
 /** R-4.7 On the seat's marker, master or journeyman; none in that guild; at most 2. */
