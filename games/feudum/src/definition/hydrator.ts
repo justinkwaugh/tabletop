@@ -26,6 +26,7 @@ import { HydratedPlayDefend, isPlayDefend } from '../actions/playDefend.js'
 import { HydratedDiscardWrit, isDiscardWrit } from '../actions/discardWrit.js'
 import { HydratedExplore, isExplore } from '../actions/explore.js'
 import { HydratedKeepWrits, isKeepWrits } from '../actions/keepWrits.js'
+import { HydratedFeast, isFeast } from '../actions/feast.js'
 import { HydratedGuildAction, isGuildAction } from '../actions/guildAction.js'
 import { HydratedTax, isTax } from '../actions/tax.js'
 import { HydratedTendLandscape, isTendLandscape } from '../actions/tendLandscape.js'
@@ -60,6 +61,9 @@ export class FeudumHydrator implements GameHydrator<FeudumProjectedState, Hydrat
             }
             case isGuildAction(data): {
                 return new HydratedGuildAction(data)
+            }
+            case isFeast(data): {
+                return new HydratedFeast(data)
             }
             case isExplore(data): {
                 return new HydratedExplore(data)

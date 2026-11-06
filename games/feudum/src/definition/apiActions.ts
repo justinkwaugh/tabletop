@@ -19,6 +19,7 @@ import { Move } from '../actions/move.js'
 import { PlaceDisc } from '../actions/placeDisc.js'
 import { PlaceStartingPawn } from '../actions/placeStartingPawn.js'
 import { PlayDefend } from '../actions/playDefend.js'
+import { Feast } from '../actions/feast.js'
 import { GuildAction } from '../actions/guildAction.js'
 import { Tax } from '../actions/tax.js'
 import { TendLandscape } from '../actions/tendLandscape.js'
@@ -36,6 +37,7 @@ export const FeudumApiActions = {
     [ActionType.Influence]: Influence,
     [ActionType.Tax]: Tax,
     [ActionType.GuildAction]: GuildAction,
+    [ActionType.Feast]: Feast,
     [ActionType.Explore]: Explore,
     [ActionType.KeepWrits]: KeepWrits,
     [ActionType.DiscardWrit]: DiscardWrit,

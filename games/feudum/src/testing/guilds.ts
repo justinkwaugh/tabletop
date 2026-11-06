@@ -16,7 +16,7 @@ import type { GoodCounts } from '../model/stateSchemas.js'
 import { setUp, spaceOfKind } from './improving.js'
 import { tableAtPlayingCards, type Table } from './table.js'
 
-const StandingSpace: SpaceId = 'space.desert.3'
+export const StandingSpace: SpaceId = 'space.desert.3'
 
 export type GoodAmounts = Readonly<Partial<Record<Good, number>>>
 

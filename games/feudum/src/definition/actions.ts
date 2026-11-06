@@ -12,6 +12,7 @@ export enum ActionType {
     Influence = 'Influence',
     Tax = 'Tax',
     GuildAction = 'GuildAction',
+    Feast = 'Feast',
     Explore = 'Explore',
     KeepWrits = 'KeepWrits',
     DiscardWrit = 'DiscardWrit',

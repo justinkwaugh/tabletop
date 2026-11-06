@@ -181,6 +181,18 @@ export const NoblePushSeals = 2
 /** R-4.6.5 The rosary totals that reach a Noble push's first, second and third level. */
 export const NoblePushTotals = [5, 11, 17] as const
 
+/** R-4.6.3 What a bead from the rosary costs. */
+export const MonkTradePrice = 3
+
+/** R-4.6.4 The seals a Monk pull flips onto the rosary. */
+export const MonkPullSeals = 1
+
+/** R-4.6.4 A Monk pull's threshold: the rosary's total. */
+export const MonkPullThreshold = 11
+
+/** R-4.6.5 The chicken totals that reach a Monk push's first, second and third level. */
+export const MonkPushTotals = [3, 6, 9] as const
+
 /** R-4.6.4 A pull reaching its threshold. */
 export const PullReward = { vp: 3, writs: { draw: 2, keep: 1 } } as const
 

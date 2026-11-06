@@ -22,7 +22,7 @@ describe('R-4.6-H2 the hidden-bead draw', () => {
     })
 
     it('R-4.6-H2 is recorded as a known deviation', () => {
-        expect(deviations).toContain('**R-4.6.3, R-4.6.4 The hidden-bead draw:**')
+        expect(deviations).toContain('**R-4.6.3, R-4.6.4, R-4.6.5 The hidden-bead draw:**')
         expect(deviations).toContain('Governs: R-4.6-H2.')
     })
 

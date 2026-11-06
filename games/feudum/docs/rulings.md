@@ -43,6 +43,7 @@ Rules version: the December 2018 English rulebook with the designer's later answ
 - **R-3.14-H5** (design): Royal Immunity scores no vp: Defend is an either/or card, the ability replaces the regular action whose flip scores 1 vp, and the ability prints none. Rejected: scoring the card's printed 1 vp. Spec: `defend.spec.ts`.
 - **R-3.15-H1** (design): Repeat and Déjà Vu may replay a card that was forfeited earlier in the round, since it was played. Rejected: only a card played for its action. Spec: `repeat.spec.ts`.
 - **R-3.16-H1** (design): a feast on a pull that reaches its threshold scores the threshold's points and also draws its 2 Royal Writs, keeping 1; only reeves are excluded. Rejected: points only. Spec: `feast.spec.ts`.
+- **R-3.16-H2** (design): a feast scores its +3 vp whatever the function reached, so a pull or push below its threshold scores the 3 alone, with no writ. Rejected: +3 only on a function that scores. Spec: `feast.spec.ts`.
 
 ### Mechanisms (R-4)
 

@@ -74,11 +74,9 @@ export function reasonGuildActionRefused(
     return (
         reasonCardPlayRefused(state, playerId, 'guild', input) ??
         reasonGuildUsedRefused(state, playerId, guildId) ??
-        (row
-            ? (reasonRankRefused(state, actor, guildId, fn) ??
-              row.reasonClosed(state, actor) ??
-              row.reasonRefused(state, actor, params))
-            : "That guild function isn't available.")
+        reasonRankRefused(state, actor, guildId, fn) ??
+        row.reasonClosed(state, actor) ??
+        row.reasonRefused(state, actor, params)
     )
 }
 
@@ -99,15 +97,12 @@ export function guildActionOffers(
     const actor = { playerId }
     return GuildIds.filter((guildId) => !reasonGuildUsedRefused(state, playerId, guildId)).flatMap(
         (guildId) =>
-            GuildFunctionNames.flatMap((fn): GuildActionOffer[] => {
+            GuildFunctionNames.map((fn): GuildActionOffer => {
                 const row = guildFunctionRow(guildId, fn)
-                if (!row) {
-                    return []
-                }
                 const reason =
                     reasonRankRefused(state, actor, guildId, fn) ?? row.reasonClosed(state, actor)
                 const bestVp = pointsFor(fn, row.bestCompletions?.(state, actor) ?? 0)
-                return [{ guildId, fn, bestVp, ...(reason ? { reason } : {}) }]
+                return { guildId, fn, bestVp, ...(reason ? { reason } : {}) }
             })
     )
 }
@@ -125,7 +120,7 @@ export function guildActionPreview(
 ): GuildActionPreview | undefined {
     const { guildId, fn, params } = input
     const row = guildFunctionRow(guildId, fn)
-    const preview = row && guildFunctionPreview(state, { playerId }, guildId, fn, row, params)
+    const preview = guildFunctionPreview(state, { playerId }, guildId, fn, row, params)
     if (!preview) {
         return undefined
     }
@@ -156,10 +151,6 @@ export class HydratedGuildAction
         if (reason) {
             throw Error(reason)
         }
-        const row = guildFunctionRow(this.guildId, this.fn)
-        if (!row) {
-            throw Error("That guild function isn't available.")
-        }
         playCard(state, this.playerId, 'guild', 'regular', this)
         markGuildUsed(state, this.playerId, this.guildId)
         const { outcome, revealsInfo } = performGuildFunction(
@@ -167,7 +158,7 @@ export class HydratedGuildAction
             { playerId: this.playerId },
             this.guildId,
             this.fn,
-            row,
+            guildFunctionRow(this.guildId, this.fn),
             this.params
         )
         this.metadata = outcome
