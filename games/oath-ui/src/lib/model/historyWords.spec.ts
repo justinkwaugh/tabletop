@@ -12,7 +12,12 @@ import {
     SearchSource
 } from '@tabletop/oath'
 import { ActionSource, type GameAction } from '@tabletop/common'
-import { describeAction, phraseWarbandOwner, type HistoryNames } from './actionDescription.js'
+import {
+    describeAction,
+    phraseWarbandOwner,
+    rowWarbandOwner,
+    type HistoryNames
+} from './actionDescription.js'
 import { seatsById } from './names.js'
 import { tokenParts } from './tokenText.js'
 
@@ -139,6 +144,20 @@ describe('the History words: each row as the record says it, older records too',
             ).toBe(
                 'traveled to Great Slum, spending 2 Supply; killed 1 warband at Great Slum (Tyrant)'
             )
+            // R-10.13 — the warband killed in its owner's colour, not the traveller's.
+            const killed = action({
+                type: ActionType.Travel,
+                playerId: 'p1',
+                siteId: 'slot.cradle.0',
+                metadata: {
+                    supplySpent: 2,
+                    supplyRemaining: 3,
+                    modifiers: ['denizen.order.tyrant (must)'],
+                    modifierNotes: ['Tyrant killed a warband at slot.cradle.0'],
+                    warbandOwner: 'p2'
+                }
+            })
+            expect(rowWarbandOwner(killed, (playerId) => `${playerId}'s own`)).toBe('p2')
             expect(
                 travel({ secretFlipped: true, revealedSiteCardId: 'site.mine', relicsRevealed: 1 })
             ).toBe(

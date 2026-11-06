@@ -182,8 +182,8 @@ function tollMoverOf(action: GameAction): string | undefined {
 
 /**
  * R-10.13 — whose warbands a row counts, from the record alone so the row never changes: those a
- * move names, the owner a Muster (R-5.2.2: a Citizen's are Imperial), an Action power, a
- * sacrifice or a choice of losses recorded, the ones an exile leaves Imperial (R-9.3), the seat a
+ * move names, the owner a Muster (R-5.2.2: a Citizen's are Imperial), an Action power, a Travel's
+ * Tyrant, a sacrifice or a choice of losses recorded, the ones an exile leaves Imperial (R-9.3), the seat a
  * power acted on, the attacker a held attack's skulls took them from, else the actor's own.
  */
 export function rowWarbandOwner(
@@ -269,6 +269,7 @@ function recordedWarbandOwner(action: GameAction): WarbandOwner | undefined {
     if (isMoveWarbands(action)) return action.owner
     if (isMuster(action)) return action.metadata?.warbandOwner
     if (isUseActionPower(action)) return action.metadata?.warbandOwner
+    if (isTravel(action)) return action.metadata?.warbandOwner
     if (isSelfExile(action) || isExileCitizen(action)) return IMPERIAL_WARBANDS
     if (isCampaignSacrifice(action)) {
         return action.metadata?.sacrificedOwner ?? soleOwner(action.sacrificeKills ?? [])
