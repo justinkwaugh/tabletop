@@ -141,6 +141,24 @@ export const FarmerPullThreshold = 5
 /** R-4.6.5 The goods a Farmer push moves from the barn to the market. */
 export const FarmerPushGoods = 5
 
+/** R-4.6.3 The most goods a Merchant trade buys. */
+export const MerchantTradeGoods = 3
+
+/** R-4.6.4 The goods a Merchant pull moves from the barn to the market. */
+export const MerchantPullGoods = 3
+
+/** R-4.6.5 The goods a Merchant push moves from the market to the carts and piles. */
+export const MerchantPushGoods = 4
+
+/** R-4.6.3 What a vessel for sale costs. */
+export const AlchemistTradePrice = 3
+
+/** R-4.6.4 The goods an Alchemist pull moves from the market to the carts and piles. */
+export const AlchemistPullGoods = 2
+
+/** R-4.6.5 The most inventions an Alchemist push makes. */
+export const AlchemistPushInventions = 3
+
 /** R-4.6.4 A pull reaching its threshold. */
 export const PullReward = { vp: 3, writs: { draw: 2, keep: 1 } } as const
 

@@ -1,5 +1,6 @@
 import type { GuildId } from '../data/components.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { AlchemistFunctions } from './alchemist.js'
 import { FarmerFunctions } from './farmer.js'
 import {
     scoreFunction,
@@ -12,12 +13,15 @@ import {
     type PreviewedFunction,
     type ScoringPreview
 } from './guildFunction.js'
+import { MerchantFunctions } from './merchant.js'
 
 /** R-4.6 One row per guild. A new guild adds one import and one row. */
 const GuildFunctionRows: Partial<
     Readonly<Record<GuildId, Readonly<Record<GuildFunctionName, GuildFunctionRow>>>>
 > = {
-    farmer: FarmerFunctions
+    farmer: FarmerFunctions,
+    merchant: MerchantFunctions,
+    alchemist: AlchemistFunctions
 }
 
 export function guildFunctionRow(

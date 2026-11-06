@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { SpaceId } from '../data/board.js'
-import { Goods, type Good } from '../data/components.js'
+import { Goods, type Good, type VesselType } from '../data/components.js'
+import { GuildById } from '../data/guilds.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
@@ -11,11 +12,18 @@ import {
     setBarn,
     setBeads,
     setCarts,
+    setJourneyman,
     setMarket,
+    setMaster,
+    setShillings,
+    setVesselsForSale,
     tableAtGuild,
     type GoodAmounts
 } from '../testing/guilds.js'
+import { alchemistTradeOffers } from '../guilds/alchemist.js'
 import { farmerTradeOffers } from '../guilds/farmer.js'
+import { merchantTradeOffers } from '../guilds/merchant.js'
+import { ferriesOpen } from '../model/media.js'
 import { guildActionOffers, guildActionPreview } from './guildAction.js'
 
 const FarmerTrade = { type: ActionType.GuildAction, guildId: 'farmer', fn: 'trade' } as const
@@ -29,6 +37,11 @@ function trading(goods: GoodAmounts, edit?: (state: HydratedFeudumGameState) => 
         edit?.(state)
     })
     return { ...guildTable, farmSpaceId }
+}
+
+/** R-4.6-H3 The pot each guild's charity names is provisional, so a spec reads both together. */
+function charityTotal(state: HydratedFeudumGameState): number {
+    return state.guilds.farmer.purse + state.guilds.monk.coffer
 }
 
 function total(counts: Readonly<Record<Good, number>>): number {
@@ -260,5 +273,277 @@ describe('GuildAction: Farmer trade offers and preview', () => {
             revealsInfo: true,
             trade: { sent: 4, surplus: 2, spill: 2, toBarn: 2, food: 0, shillings: 2 }
         })
+    })
+})
+
+const MerchantTrade = { type: ActionType.GuildAction, guildId: 'merchant', fn: 'trade' } as const
+const AlchemistTrade = { type: ActionType.GuildAction, guildId: 'alchemist', fn: 'trade' } as const
+
+describe('GuildAction: R-4.6.3 the Merchant trade', () => {
+    /** A full saltpeter bin but the last space: 2s, 3s and 4s from the right. */
+    function buying(shillings: number, edit?: (state: HydratedFeudumGameState) => void) {
+        return tableAtGuild((state, seat) => {
+            setMarket(state, { saltpeter: 3, iron: 4, food: 1 })
+            setShillings(state, seat, shillings)
+            edit?.(state)
+        })
+    }
+
+    it('R-4.6.3 buys up to 3, each the cheapest of its kind, right to left', () => {
+        const { table, playerId } = buying(20)
+        const before = table.seat(playerId).goods
+        const [action] = table.send(playerId, {
+            ...MerchantTrade,
+            params: { goods: ['saltpeter', 'iron', 'saltpeter'] }
+        })
+        const state = table.hydrated()
+        const { market } = state.guilds.merchant
+        expect(market['guild.merchant.space.saltpeter-3']).toBe(false)
+        expect(market['guild.merchant.space.saltpeter-2']).toBe(false)
+        expect(market['guild.merchant.space.saltpeter-1']).toBe(true)
+        expect(market['guild.merchant.space.iron-4']).toBe(false)
+        expect(market['guild.merchant.space.iron-3']).toBe(true)
+        const seat = table.seat(playerId)
+        expect(seat.goods.saltpeter).toBe(before.saltpeter + 2)
+        expect(seat.goods.iron).toBe(before.iron + 1)
+        expect(seat.shillings).toBeLessThan(20)
+        expect(action).toMatchObject({
+            metadata: {
+                points: 0,
+                reeveOffered: false,
+                details: {
+                    kind: 'merchant-trade',
+                    bought: [
+                        {
+                            good: 'saltpeter',
+                            spaceId: 'guild.merchant.space.saltpeter-3',
+                            price: 2
+                        },
+                        { good: 'iron', spaceId: 'guild.merchant.space.iron-4', price: 1 },
+                        { good: 'saltpeter', spaceId: 'guild.merchant.space.saltpeter-2', price: 3 }
+                    ],
+                    price: 6
+                }
+            }
+        })
+        expect(action.revealsInfo).toBeFalsy()
+        expect(table.state.machineState).toBe(MachineState.PlayingCards)
+    })
+
+    it('R-4.6.3 refuses more than 3 goods, none, or more than the bin holds', () => {
+        const { table, playerId } = buying(20)
+        const send = (goods: Good[]) =>
+            table.send(playerId, { ...MerchantTrade, params: { goods } })
+        expect(() => send(['iron', 'iron', 'iron', 'iron'])).toThrow('Buy at most 3 goods.')
+        expect(() => send([])).toThrow('Pick up to 3 goods to buy.')
+        expect(() => send(['food', 'food'])).toThrow('The market holds only 1 food.')
+        expect(() => send(['wood'])).toThrow('The market holds only 0 wood.')
+    })
+
+    it('R-4.6.2 refuses goods the seat cannot pay for, at the whole price', () => {
+        const { table, playerId } = buying(8)
+        expect(() =>
+            table.send(playerId, {
+                ...MerchantTrade,
+                params: { goods: ['saltpeter', 'saltpeter', 'saltpeter'] }
+            })
+        ).toThrow('Those goods cost 9 shillings.')
+    })
+
+    it('R-4.6.3 is closed with an empty market, or with too few shillings for the cheapest', () => {
+        const empty = tableAtGuild((state, seat) => {
+            setMarket(state, {})
+            setShillings(state, seat, 9)
+        })
+        expect(() =>
+            empty.table.send(empty.playerId, { ...MerchantTrade, params: { goods: ['food'] } })
+        ).toThrow('The market is empty.')
+
+        const broke = buying(0)
+        expect(() =>
+            broke.table.send(broke.playerId, { ...MerchantTrade, params: { goods: ['food'] } })
+        ).toThrow('The cheapest good costs 1 shilling.')
+    })
+
+    it('R-4.6.3 offers each good at the price of the next one', () => {
+        const { table } = buying(9)
+        expect(merchantTradeOffers(table.hydrated())).toEqual(
+            expect.arrayContaining([
+                {
+                    good: 'saltpeter',
+                    spaceId: 'guild.merchant.space.saltpeter-3',
+                    price: 2,
+                    available: 3
+                },
+                { good: 'iron', spaceId: 'guild.merchant.space.iron-4', price: 1, available: 4 }
+            ])
+        )
+    })
+
+    it('R-4.6.3 previews the price and split, naming what still refuses a staged input', () => {
+        const { table, playerId } = buying(2)
+        const state = table.hydrated()
+        const input = { guildId: 'merchant', fn: 'trade' } as const
+        const preview = guildActionPreview(state, playerId, {
+            ...input,
+            params: { goods: ['saltpeter', 'saltpeter'] }
+        })
+        expect(preview).toMatchObject({
+            details: { kind: 'merchant-trade', price: 5 },
+            revealsInfo: false,
+            refused: 'Those goods cost 5 shillings.'
+        })
+        expect(
+            guildActionPreview(state, playerId, { ...input, params: { goods: ['wood'] } })
+        ).toBeUndefined()
+        expect(state.getPlayerState(playerId).goods).toEqual(table.seat(playerId).goods)
+    })
+})
+
+describe('GuildAction: R-4.6.2, R-4.6-H3 paying a guild', () => {
+    it('R-4.6.2 one each to master, journeyman and charity, repeating', () => {
+        const { table, playerId, others } = tableAtGuild((state, seat, rest) => {
+            setJourneyman(state, rest[1], 'merchant', rest[0])
+            setMarket(state, { saltpeter: 3 })
+            setShillings(state, seat, 9)
+            setShillings(state, rest[0], 0)
+            setShillings(state, rest[1], 0)
+        })
+        const pots = charityTotal(table.hydrated())
+        const [action] = table.send(playerId, {
+            ...MerchantTrade,
+            params: { goods: ['saltpeter', 'saltpeter', 'saltpeter'] }
+        })
+        expect(table.seat(playerId).shillings).toBe(0)
+        expect(table.seat(others[0]).shillings).toBe(3)
+        expect(table.seat(others[1]).shillings).toBe(3)
+        expect(charityTotal(table.hydrated())).toBe(pots + 3)
+        expect(action).toMatchObject({
+            metadata: {
+                payment: {
+                    members: [
+                        { playerId: others[0], amount: 3 },
+                        { playerId: others[1], amount: 3 }
+                    ],
+                    charity: { id: GuildById.merchant.charity, amount: 3 },
+                    generalSupply: 0
+                }
+            }
+        })
+    })
+
+    it("R-4.6.2 an absent member's shilling goes to the general supply", () => {
+        const { table, playerId, others } = tableAtGuild((state, seat, rest) => {
+            setMaster(state, rest[0], 'alchemist')
+            setVesselsForSale(state, ['ship'])
+            setShillings(state, seat, 3)
+            setShillings(state, rest[0], 0)
+        })
+        const supply = table.hydrated().supply.shillings
+        const [action] = table.send(playerId, {
+            ...AlchemistTrade,
+            params: { vesselType: 'ship' }
+        })
+        expect(table.seat(others[0]).shillings).toBe(1)
+        expect(table.hydrated().supply.shillings).toBe(supply + 1)
+        expect(action).toMatchObject({
+            metadata: {
+                payment: {
+                    members: [{ playerId: others[0], amount: 1 }],
+                    charity: { id: GuildById.alchemist.charity, amount: 1 },
+                    generalSupply: 1
+                }
+            }
+        })
+    })
+
+    it('R-4.6.2 a member pays themselves but must hold the full price', () => {
+        const short = tableAtGuild((state, seat) => {
+            setMaster(state, seat, 'alchemist')
+            setVesselsForSale(state, ['ship'])
+            setShillings(state, seat, 2)
+        })
+        expect(() =>
+            short.table.send(short.playerId, {
+                ...AlchemistTrade,
+                params: { vesselType: 'ship' }
+            })
+        ).toThrow('A vessel costs 3 shillings.')
+
+        const { table, playerId } = tableAtGuild((state, seat) => {
+            setMaster(state, seat, 'alchemist')
+            setVesselsForSale(state, ['ship'])
+            setShillings(state, seat, 3)
+        })
+        table.send(playerId, { ...AlchemistTrade, params: { vesselType: 'ship' } })
+        expect(table.seat(playerId).shillings).toBe(1)
+    })
+})
+
+describe('GuildAction: R-4.6.3 the Alchemist trade', () => {
+    function selling(vessels: readonly VesselType[], shillings = 3) {
+        return tableAtGuild((state, seat) => {
+            setVesselsForSale(state, vessels)
+            setShillings(state, seat, shillings)
+        })
+    }
+
+    it("R-4.6.3 a vessel for sale goes to the buyer's supply for 3s", () => {
+        const { table, playerId } = selling(['ship', 'submersible'])
+        const [action] = table.send(playerId, {
+            ...AlchemistTrade,
+            params: { vesselType: 'submersible' }
+        })
+        const state = table.hydrated()
+        expect(state.guilds.alchemist.vesselsForSale).toEqual(['ship'])
+        expect(table.seat(playerId).vessels.submersible).toBe(1)
+        expect(table.seat(playerId).shillings).toBe(0)
+        expect(action).toMatchObject({
+            metadata: { points: 0, details: { kind: 'alchemist-trade', price: 3 } }
+        })
+        expect(action.revealsInfo).toBeFalsy()
+    })
+
+    it('R-4.2.3 the last vessel sold reopens the ferries', () => {
+        const { table, playerId } = selling(['ship'])
+        expect(ferriesOpen(table.hydrated())).toBe(false)
+        table.send(playerId, { ...AlchemistTrade, params: { vesselType: 'ship' } })
+        expect(ferriesOpen(table.hydrated())).toBe(true)
+    })
+
+    it('R-4.6.3 refuses no vessel named, one not for sale, and is closed with none for sale', () => {
+        const { table, playerId } = selling(['ship'])
+        expect(() => table.send(playerId, { ...AlchemistTrade, params: {} })).toThrow(
+            'Pick a vessel for sale.'
+        )
+        expect(() =>
+            table.send(playerId, { ...AlchemistTrade, params: { vesselType: 'flying-machine' } })
+        ).toThrow('No flying machine is for sale.')
+
+        const none = selling([])
+        expect(() =>
+            none.table.send(none.playerId, { ...AlchemistTrade, params: { vesselType: 'ship' } })
+        ).toThrow('No vessel is for sale.')
+    })
+
+    it('R-4.6.3 offers each kind for sale, and previews the split before one is picked', () => {
+        const { table, playerId } = selling(['ship', 'ship', 'submersible'])
+        const state = table.hydrated()
+        expect(alchemistTradeOffers(state)).toEqual([
+            { vessel: 'ship', price: 3 },
+            { vessel: 'submersible', price: 3 }
+        ])
+        const input = { guildId: 'alchemist', fn: 'trade' } as const
+        expect(guildActionPreview(state, playerId, { ...input, params: {} })).toMatchObject({
+            details: { kind: 'alchemist-trade', price: 3 },
+            revealsInfo: false,
+            refused: 'Pick a vessel for sale.'
+        })
+        expect(
+            guildActionPreview(state, playerId, {
+                ...input,
+                params: { vesselType: 'flying-machine' }
+            })
+        ).toBeUndefined()
     })
 })
