@@ -1,37 +1,44 @@
 import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
+import {
+    HydratedChooseStartingGoods,
+    isChooseStartingGoods
+} from '../actions/chooseStartingGoods.js'
+import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { askNextSetupSeat, endSetupTurn } from './setupTurns.js'
 
 /** R-1.4.8 Seat by seat in turn order, each takes three starting goods. */
 export class ChoosingStartingGoodsStateHandler implements MachineStateHandler<
-    HydratedAction,
+    HydratedChooseStartingGoods,
     HydratedFeudumGameState
 > {
     isValidAction(
-        _action: HydratedAction,
+        action: HydratedAction,
         _context: MachineContext<HydratedFeudumGameState>
-    ): boolean {
-        return false
+    ): action is HydratedChooseStartingGoods {
+        return isChooseStartingGoods(action)
     }
 
     validActionsForPlayer(
-        _playerId: string,
-        _context: MachineContext<HydratedFeudumGameState>
-    ): string[] {
-        return []
+        playerId: string,
+        context: MachineContext<HydratedFeudumGameState>
+    ): ActionType[] {
+        return context.gameState.flow.setupOrder?.playerId === playerId
+            ? [ActionType.ChooseStartingGoods]
+            : []
     }
 
     enter(context: MachineContext<HydratedFeudumGameState>) {
-        const { gameState } = context
-        const playerId = gameState.turnManager.startNextTurn(gameState.actionCount)
-        gameState.flow.setupOrder = { playerId }
-        gameState.activePlayerIds = [playerId]
+        askNextSetupSeat(context.gameState)
     }
 
     onAction(
-        _action: HydratedAction,
-        _context: MachineContext<HydratedFeudumGameState>
+        action: HydratedChooseStartingGoods,
+        context: MachineContext<HydratedFeudumGameState>
     ): MachineState {
-        throw Error('Invalid action type')
+        return endSetupTurn(context.gameState, action.playerId)
+            ? MachineState.PlacingStartingPawn
+            : MachineState.ChoosingStartingGoods
     }
 }

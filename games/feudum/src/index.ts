@@ -1,6 +1,10 @@
 // Export all the things to be used by the UI and backend
 // It doesn't have to be everything, just whatever is needed externally
 
+export * from './actions/chooseStartingGoods.js'
+export * from './actions/finaliseHand.js'
+export * from './actions/placeStartingPawn.js'
+
 export * from './definition/actions.js'
 export * from './definition/config.js'
 export * from './definition/definition.js'
