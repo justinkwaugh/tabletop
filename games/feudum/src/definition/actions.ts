@@ -3,5 +3,8 @@
 export enum ActionType {
     ChooseStartingGoods = 'ChooseStartingGoods',
     PlaceStartingPawn = 'PlaceStartingPawn',
-    FinaliseHand = 'FinaliseHand'
+    FinaliseHand = 'FinaliseHand',
+    ForfeitCard = 'ForfeitCard',
+    PlayDefend = 'PlayDefend',
+    PlaceDisc = 'PlaceDisc'
 }

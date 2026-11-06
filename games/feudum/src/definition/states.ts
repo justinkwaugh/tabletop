@@ -2,5 +2,8 @@
 export enum MachineState {
     ChoosingStartingGoods = 'ChoosingStartingGoods',
     PlacingStartingPawn = 'PlacingStartingPawn',
-    SelectingHands = 'SelectingHands'
+    SelectingHands = 'SelectingHands',
+    PlayingCards = 'PlayingCards',
+    PlacingDisc = 'PlacingDisc',
+    KeepingWrits = 'KeepingWrits'
 }
