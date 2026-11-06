@@ -76,7 +76,10 @@
             0 1px 3px rgb(60 45 25 / 0.2);
     }
 
-    .toggle:hover {
-        background: #ffffff;
+    /* Only where a pointer really hovers: on touch, a tap would leave the hover stuck on. */
+    @media (hover: hover) {
+        .toggle:hover {
+            background: #ffffff;
+        }
     }
 </style>
