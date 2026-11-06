@@ -9,8 +9,10 @@ Rules version: the December 2018 English rulebook with the designer's later answ
 ### Components and setup (R-1)
 
 - **R-1.1-H1** (Q3): shillings are limited to the 78 in the box (50 coins), like every other component; a payment from the supply when it runs short pays what remains. Rejected: unlimited money. Spec: `supply.spec.ts`.
-- **R-1.2-H1** (Q25), _provisional_: the roads and the ship, submersible and flying-machine routes are those of the community map aid, until a clear picture of the board confirms or corrects them. The three ferry routes are read from the board. Spec: `boardMap.spec.ts`.
+- **R-1.2-H1** (Q25, Q27), _provisional_: the roads and the ship, submersible and flying-machine routes are those of the community map aid, until a clear picture of the board confirms or corrects them. The three ferry routes are read from the board. The rulebook moves a vessel "along the vessel route matching the vessel" and its legend names ship, submersible and flying-machine routes, and the designer rules a northern mountain location out of ship reach, so free movement between adjacent spaces is rejected. Spec: `boardMap.spec.ts`.
 - **R-1.4-H1** (Q2): 2 to 5 players; with 2 or 3 players, dummy Knight rows are added in unused colours until there are exactly 4 rows. Rejected: a dummy row for every unused colour. Spec: `initializer.spec.ts`.
+- **R-1.4-H2** (Q26): at setup each epoch's six region tiles are shuffled, one into each region's stack, and a tile's landscape stays hidden until it is taken. Rejected: fixed stacks with a set landscape per tile. Spec: `regionTiles.spec.ts`.
+- **R-1.4-H3** (Q28), _provisional_: 2 feudums per guild, the double-sided pairs split 4/3/3 (farm/town, outpost/farm, outpost/town), the rosary unlimited and 4 chicken spaces, until a photo of the physical components or a designer ruling settles them. Spec: `provisional.spec.ts`.
 
 ### Actions (R-3)
 
@@ -34,6 +36,7 @@ Rules version: the December 2018 English rulebook with the designer's later answ
 - **R-4.4-H1** (Q13): Royal Writ mandates and wild region tiles may be used on the player's own turns, during hand selection and nourishing, and (weapons) during the player's own attack; a wild tile is also offered whenever a payment would otherwise fall short. Rejected: out of turn at any moment. Spec: `royalWrits.spec.ts`, `regionTiles.spec.ts`.
 - **R-4.4-H2** (design): a Royal Writ draw larger than the deck draws what is there and keeps the stated number, or all drawn if fewer; an empty deck draws nothing. Spec: `royalWrits.spec.ts`.
 - **R-4.4-H3** (design): unkept writs go under the deck in the order drawn. Rejected: the drawer orders them. Spec: `royalWrits.spec.ts`.
+- **R-4.4-H4** (Q29): mandate 6's Alchemist reward is a ship, the icon the card prints. Rejected: any vessel, as the rulebook's writ summary reads. Spec: `mandates.spec.ts`.
 - **R-4.5-H1** (Q18): after anything changes status stars, each guild's ranks are recomputed from the new totals; a current holder keeps a space against a tie. Rejected: applying bumps player by player. Spec: `guildStatus.spec.ts`.
 - **R-4.5-H2** (design): when two players who hold no rank tie for a vacant one, the acting player takes it first, then the others in turn order from them. Rejected: leaving it vacant until one has more stars. Spec: `guildStatus.spec.ts`.
 - **R-4.6-H1** (Q14), _provisional_: the Noble trade sells king's seals from the guild's scrolls; with no seal there, there is nothing to buy. Rejected: from the general supply. Spec: `guildTrade.spec.ts`.
