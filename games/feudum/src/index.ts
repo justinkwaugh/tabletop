@@ -41,3 +41,5 @@ export * from './data/regionTiles.js'
 export * from './data/seals.js'
 export * from './data/tracks.js'
 export * from './data/writs.js'
+
+export * from './writs/writRegistry.js'
