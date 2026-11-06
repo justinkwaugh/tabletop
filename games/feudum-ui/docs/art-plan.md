@@ -1,8 +1,8 @@
 # Feudum art plan
 
-Every visual, its source, and the budget it must meet. Follows `reference/art.md` in the new-game skill (art drawn in code) and the UI contract (`ui-interaction-visual-contract.md`: "Drawn in code", "Render ownership", "Palette", "Phone layout"). Component ids are in `games/feudum/docs/components.md`. A supplied asset would be listed with the `PERMISSIONS.md` entry that covers it; there is none.
+Every visual, its source, and the budget it must meet, with the UI contract (`ui-interaction-visual-contract.md`: "Render ownership", "Palette", "Phone layout"). Component ids are in `games/feudum/docs/components.md`.
 
-**One source: drawn in code.** `PERMISSIONS.md` has no Feudum entry, so no publisher art ships and none is traced, sampled or copied. The board, every piece, every card and writ face, every icon and the cover are SVG generated from data, in a vocabulary of our own, with OFL fonts. The one raster is the cover, itself rendered from that SVG (see [Cover](#cover)).
+**The publisher's art, through an asset map.** The rights holder has agreed to the use of Feudum's graphical assets when hosted on https://boardtogether.games. The UI draws every board, piece, card, tile and icon through an asset map from component id to file. During development the files live in a git-ignored folder in this package. They are committed together with the `PERMISSIONS.md` entry that covers them, in one commit, and never before it. Anything the publisher's art does not supply, such as highlights, rings and animation layers, is drawn in code. The sections below that describe drawn forms are the fallback until the asset map replaces them.
 
 ## Palette
 

@@ -463,33 +463,33 @@ The 44 are outposts, farms, towns and feudums. Setup uses 22 placed on the map (
 | disc.start.21 | starting-placement disc | outpost | no                          | R-1.4.3 |
 | disc.start.22 | starting-placement disc | outpost | no                          | R-1.4.3 |
 
-| Id             | Group                                      | Face A                                       | Face B              | Digest  |
-| -------------- | ------------------------------------------ | -------------------------------------------- | ------------------- | ------- |
-| disc.double.1  | double-sided, general supply, not a feudum | one of farm/town, outpost/farm, outpost/town | (pair count unread) | R-1.4.3 |
-| disc.double.2  | double-sided, general supply, not a feudum | one of farm/town, outpost/farm, outpost/town | (pair count unread) | R-1.4.3 |
-| disc.double.3  | double-sided, general supply, not a feudum | one of farm/town, outpost/farm, outpost/town | (pair count unread) | R-1.4.3 |
-| disc.double.4  | double-sided, general supply, not a feudum | one of farm/town, outpost/farm, outpost/town | (pair count unread) | R-1.4.3 |
-| disc.double.5  | double-sided, general supply, not a feudum | one of farm/town, outpost/farm, outpost/town | (pair count unread) | R-1.4.3 |
-| disc.double.6  | double-sided, general supply, not a feudum | one of farm/town, outpost/farm, outpost/town | (pair count unread) | R-1.4.3 |
-| disc.double.7  | double-sided, general supply, not a feudum | one of farm/town, outpost/farm, outpost/town | (pair count unread) | R-1.4.3 |
-| disc.double.8  | double-sided, general supply, not a feudum | one of farm/town, outpost/farm, outpost/town | (pair count unread) | R-1.4.3 |
-| disc.double.9  | double-sided, general supply, not a feudum | one of farm/town, outpost/farm, outpost/town | (pair count unread) | R-1.4.3 |
-| disc.double.10 | double-sided, general supply, not a feudum | one of farm/town, outpost/farm, outpost/town | (pair count unread) | R-1.4.3 |
+| Id             | Group                                      | Face A       | Face B | Digest  |
+| -------------- | ------------------------------------------ | ------------ | ------ | ------- |
+| disc.double.1  | double-sided, general supply, not a feudum | farm/town    | [read] | R-1.4.3 |
+| disc.double.2  | double-sided, general supply, not a feudum | farm/town    | [read] | R-1.4.3 |
+| disc.double.3  | double-sided, general supply, not a feudum | farm/town    | [read] | R-1.4.3 |
+| disc.double.4  | double-sided, general supply, not a feudum | farm/town    | [read] | R-1.4.3 |
+| disc.double.5  | double-sided, general supply, not a feudum | farm/town    | [read] | R-1.4.3 |
+| disc.double.6  | double-sided, general supply, not a feudum | farm/town    | [read] | R-1.4.3 |
+| disc.double.7  | double-sided, general supply, not a feudum | farm/town    | [read] | R-1.4.3 |
+| disc.double.8  | double-sided, general supply, not a feudum | farm/town    | [read] | R-1.4.3 |
+| disc.double.9  | double-sided, general supply, not a feudum | outpost/farm | [read] | R-1.4.3 |
+| disc.double.10 | double-sided, general supply, not a feudum | outpost/town | [read] | R-1.4.3 |
 
-| Id                      | Face A | Icon                                             | Face B             | Confidence                                                                                                | Digest           |
-| ----------------------- | ------ | ------------------------------------------------ | ------------------ | --------------------------------------------------------------------------------------------------------- | ---------------- |
-| disc.feudum.farmer-1    | feudum | teal, sheep icon (guild farmer)                  | feudum (same icon) | [read] TT: the guild icon on both faces; [unsure] 2 per guild inferred from 12 / 6, no copy count printed | R-1.2.4, R-1.4.3 |
-| disc.feudum.farmer-2    | feudum | teal, sheep icon (guild farmer)                  | feudum (same icon) | [read] TT: the guild icon on both faces; [unsure] 2 per guild inferred from 12 / 6, no copy count printed | R-1.2.4, R-1.4.3 |
-| disc.feudum.merchant-1  | feudum | teal, coins (three plates) icon (guild merchant) | feudum (same icon) | [read] TT: the guild icon on both faces; [unsure] 2 per guild inferred from 12 / 6, no copy count printed | R-1.2.4, R-1.4.3 |
-| disc.feudum.merchant-2  | feudum | teal, coins (three plates) icon (guild merchant) | feudum (same icon) | [read] TT: the guild icon on both faces; [unsure] 2 per guild inferred from 12 / 6, no copy count printed | R-1.2.4, R-1.4.3 |
-| disc.feudum.alchemist-1 | feudum | teal, gear icon (guild alchemist)                | feudum (same icon) | [read] TT: the guild icon on both faces; [unsure] 2 per guild inferred from 12 / 6, no copy count printed | R-1.2.4, R-1.4.3 |
-| disc.feudum.alchemist-2 | feudum | teal, gear icon (guild alchemist)                | feudum (same icon) | [read] TT: the guild icon on both faces; [unsure] 2 per guild inferred from 12 / 6, no copy count printed | R-1.2.4, R-1.4.3 |
-| disc.feudum.knight-1    | feudum | teal, axe icon (guild knight)                    | feudum (same icon) | [read] TT: the guild icon on both faces; [unsure] 2 per guild inferred from 12 / 6, no copy count printed | R-1.2.4, R-1.4.3 |
-| disc.feudum.knight-2    | feudum | teal, axe icon (guild knight)                    | feudum (same icon) | [read] TT: the guild icon on both faces; [unsure] 2 per guild inferred from 12 / 6, no copy count printed | R-1.2.4, R-1.4.3 |
-| disc.feudum.noble-1     | feudum | teal, crown icon (guild noble)                   | feudum (same icon) | [read] TT: the guild icon on both faces; [unsure] 2 per guild inferred from 12 / 6, no copy count printed | R-1.2.4, R-1.4.3 |
-| disc.feudum.noble-2     | feudum | teal, crown icon (guild noble)                   | feudum (same icon) | [read] TT: the guild icon on both faces; [unsure] 2 per guild inferred from 12 / 6, no copy count printed | R-1.2.4, R-1.4.3 |
-| disc.feudum.monk-1      | feudum | teal, cross icon (guild monk)                    | feudum (same icon) | [read] TT: the guild icon on both faces; [unsure] 2 per guild inferred from 12 / 6, no copy count printed | R-1.2.4, R-1.4.3 |
-| disc.feudum.monk-2      | feudum | teal, cross icon (guild monk)                    | feudum (same icon) | [read] TT: the guild icon on both faces; [unsure] 2 per guild inferred from 12 / 6, no copy count printed | R-1.2.4, R-1.4.3 |
+| Id                      | Face A | Icon                                             | Face B             | Confidence                                                  | Digest           |
+| ----------------------- | ------ | ------------------------------------------------ | ------------------ | ----------------------------------------------------------- | ---------------- |
+| disc.feudum.farmer-1    | feudum | teal, sheep icon (guild farmer)                  | feudum (same icon) | [read] TT: the guild icon on both faces; [read] 2 per guild | R-1.2.4, R-1.4.3 |
+| disc.feudum.farmer-2    | feudum | teal, sheep icon (guild farmer)                  | feudum (same icon) | [read] TT: the guild icon on both faces; [read] 2 per guild | R-1.2.4, R-1.4.3 |
+| disc.feudum.merchant-1  | feudum | teal, coins (three plates) icon (guild merchant) | feudum (same icon) | [read] TT: the guild icon on both faces; [read] 2 per guild | R-1.2.4, R-1.4.3 |
+| disc.feudum.merchant-2  | feudum | teal, coins (three plates) icon (guild merchant) | feudum (same icon) | [read] TT: the guild icon on both faces; [read] 2 per guild | R-1.2.4, R-1.4.3 |
+| disc.feudum.alchemist-1 | feudum | teal, gear icon (guild alchemist)                | feudum (same icon) | [read] TT: the guild icon on both faces; [read] 2 per guild | R-1.2.4, R-1.4.3 |
+| disc.feudum.alchemist-2 | feudum | teal, gear icon (guild alchemist)                | feudum (same icon) | [read] TT: the guild icon on both faces; [read] 2 per guild | R-1.2.4, R-1.4.3 |
+| disc.feudum.knight-1    | feudum | teal, axe icon (guild knight)                    | feudum (same icon) | [read] TT: the guild icon on both faces; [read] 2 per guild | R-1.2.4, R-1.4.3 |
+| disc.feudum.knight-2    | feudum | teal, axe icon (guild knight)                    | feudum (same icon) | [read] TT: the guild icon on both faces; [read] 2 per guild | R-1.2.4, R-1.4.3 |
+| disc.feudum.noble-1     | feudum | teal, crown icon (guild noble)                   | feudum (same icon) | [read] TT: the guild icon on both faces; [read] 2 per guild | R-1.2.4, R-1.4.3 |
+| disc.feudum.noble-2     | feudum | teal, crown icon (guild noble)                   | feudum (same icon) | [read] TT: the guild icon on both faces; [read] 2 per guild | R-1.2.4, R-1.4.3 |
+| disc.feudum.monk-1      | feudum | teal, cross icon (guild monk)                    | feudum (same icon) | [read] TT: the guild icon on both faces; [read] 2 per guild | R-1.2.4, R-1.4.3 |
+| disc.feudum.monk-2      | feudum | teal, cross icon (guild monk)                    | feudum (same icon) | [read] TT: the guild icon on both faces; [read] 2 per guild | R-1.2.4, R-1.4.3 |
 
 The N/S/E/W letters are printed on the board beside the space, not on the discs [read].
 
@@ -611,7 +611,7 @@ One two-sided disc: seal side red with a white crown, no number; bead side strip
 | Royal Writs (mandates + charters)                | 16                                                               | 16         | matches                                                                                               |
 | Region tiles                                     | 24 (6 stacks x 4)                                                | 24         | 6 of each landscape; per-epoch mix [read] TT (R-1.4-H2)                                               |
 | Location discs: placed at setup                  | 22                                                               | 22         | 7 farms, 5 towns, 10 outposts [read] TT                                                               |
-| Location discs: double-sided, non-feudum         | 22 double-sided less the 12 feudums = 10                         | 10         | three pairs; count per pair unread                                                                    |
+| Location discs: double-sided, non-feudum         | 22 double-sided less the 12 feudums = 10                         | 10         | farm/town 8, outpost/farm 1, outpost/town 1 [read]                                                    |
 | Location discs: feudums                          | 12 (one icon per guild)                                          | 12         | 2 per guild is inferred                                                                               |
 | Location discs (all)                             | 44                                                               | 44         | matches                                                                                               |
 | King's seals / rosary beads                      | 17                                                               | 17         | 9 × +2, 5 × +3, 2 × +4, 1 × +5 [read] TT                                                              |
@@ -634,16 +634,14 @@ One two-sided disc: seal side red with a white crown, no number; bead side strip
 
 ## Unread values
 
-| Component                       | What is unread                                                                     | Values | What would settle it                                           |
-| ------------------------------- | ---------------------------------------------------------------------------------- | ------ | -------------------------------------------------------------- |
-| guild.monk.rosary               | rosary capacity, and whether the printed beads are spaces                          | 1      | a designer ruling (no capacity is printed)                     |
-| guild.farmer.chicken.*          | whether the board has exactly 4 chicken spaces, and which one takes the setup bead | 1      | a designer ruling (4 chickens are drawn; no spaces are marked) |
-| guild.* (6 guilds)              | which charity (purse or coffer) receives each guild's apprentice share             | 6      | the designer's ruling (R-4.6-H3)                               |
-| disc.double.1 to disc.double.10 | how many of each face pair (farm/town, outpost/farm, outpost/town)                 | 10     | a photo of the physical discs                                  |
-| disc.feudum.*                   | that there are 2 feudums per guild (inferred from 12 / 6)                          | 1      | a photo of the physical discs                                  |
-| card.action.repeat              | whether the Repeat card carries the either/or marker                               | 1      | the Repeat card at legible size (RB card pictures or REF)      |
-| writ.charter.northern-kingdom   | whether two dots mark badlands-2 and mountain-1                                    | 2      | the physical card beside the board                             |
+| Component                     | What is unread                                                                     | Values | What would settle it                                           |
+| ----------------------------- | ---------------------------------------------------------------------------------- | ------ | -------------------------------------------------------------- |
+| guild.monk.rosary             | rosary capacity, and whether the printed beads are spaces                          | 1      | a designer ruling (no capacity is printed)                     |
+| guild.farmer.chicken.*        | whether the board has exactly 4 chicken spaces, and which one takes the setup bead | 1      | a designer ruling (4 chickens are drawn; no spaces are marked) |
+| guild.*                       | which charity (purse or coffer) receives each guild's apprentice share             | 6      | the designer's ruling (R-4.6-H3)                               |
+| card.action.repeat            | whether the Repeat card carries the either/or marker                               | 1      | the Repeat card at legible size (RB card pictures or REF)      |
+| writ.charter.northern-kingdom | whether two dots mark badlands-2 and mountain-1                                    | 2      | the physical card beside the board                             |
 
-Total unread values: 22.
+Total unread values: 11.
 
 Also open but not unread: every ship, submersible and flying-machine route rests on the fan map aid alone (R-1.2-H1); the provisional placeholders for values printed nowhere are R-1.4-H3 and R-4.6-H3.
