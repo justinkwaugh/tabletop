@@ -25,7 +25,7 @@ export function drawWrits(state: HydratedFeudumGameState, count: number): WritId
     const stillInDeck = ({ slot }: KnownDeckWrit) => slot >= state.writDeck.top
     state.publicDeckWrits = state.publicDeckWrits.filter(stillInDeck)
     for (const player of state.players) {
-        player.deckKnowledge = player.deckKnowledge.filter(stillInDeck)
+        player.deckKnowledge = player.requireDeckKnowledge().filter(stillInDeck)
     }
     return drawn.map(({ writId }) => writId)
 }
@@ -43,7 +43,8 @@ export function putWritsUnderUnseen(
 ) {
     state
         .getPlayerState(drawerId)
-        .deckKnowledge.push(...writIds.map((writId) => putWritUnder(state, writId)))
+        .requireDeckKnowledge()
+        .push(...writIds.map((writId) => putWritUnder(state, writId)))
 }
 
 /** R-5.1 A writ going under takes slot `nextBottom` and increments it. */

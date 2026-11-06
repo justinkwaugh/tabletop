@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { Player } from '@tabletop/common'
-    import type { HydratedFeudumPlayerState, FeudumPlayerState } from '@tabletop/feudum'
+    import type { HydratedFeudumPlayerState, FeudumProjectedPlayerState } from '@tabletop/feudum'
     import PlayerState from '$lib/components/PlayerState.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -35,7 +35,7 @@
 
         return turnOrderSorted
     })
-    function getPlayerForState(playerState: FeudumPlayerState) {
+    function getPlayerForState(playerState: FeudumProjectedPlayerState) {
         return gameSession.game.players.find((player) => player.id === playerState.playerId)
     }
 </script>

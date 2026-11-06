@@ -84,7 +84,7 @@ No migrations: the Logic and UI Artifacts publish together, and a stored Game ke
 ## Verification
 
 - Action schema coverage, and every registered action sampled with every optional field, projected for its actor, another seat and a spectator: `actionProjection.spec.ts`.
-- Reproducible protected initialization from a master seed, and the vault, master seed and protected cursor omitted from every player's and the spectator's projection: `initializer.spec.ts`, `visibility.spec.ts`.
+- Reproducible protected initialization from a master seed, and the vault and master seed omitted and the protected cursor replaced by the platform's neutral value in every player's and the spectator's projection: `initializer.spec.ts`, `visibility.spec.ts`.
 - Owner-known hands, writs, sealed charters, pending writ draws and deck knowledge, each projected for its owner, another player and a spectator: `visibility.spec.ts`; in Action records: `selectHand.spec.ts`, `explore.spec.ts`, `royalWrits.spec.ts`.
 - Seals red side up anonymous in every projection, named on a flip, returned to the vault on favours and on Starve the People, the pile reshuffled on each return: `visibility.spec.ts`, `beads.spec.ts`, `harvest.spec.ts`.
 - The defender asked whenever public state cannot rule out Defend, with the same answer available without it: `defend.spec.ts`.

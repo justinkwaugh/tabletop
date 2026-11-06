@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { SealId } from '../data/seals.js'
-import { initialState } from '../testing/state.js'
+import { canonicalOf, initialState } from '../testing/state.js'
 import { conservationBreaks } from './canonicalValidator.js'
 import type { HydratedFeudumGameState } from './gameState.js'
 import {
@@ -19,7 +19,7 @@ const SPACE = 'space.sea.1'
 
 /** R-5-H1 The canonical validator agrees on every seal and every public count of one. */
 function expectConsistent(state: HydratedFeudumGameState) {
-    const breaks = conservationBreaks(state.dehydrate())
+    const breaks = conservationBreaks(canonicalOf(state))
     expect(breaks.filter((broken) => broken.component === 'seals')).toEqual([])
 }
 
@@ -175,7 +175,7 @@ describe('concealed seals by place', () => {
             { kind: 'charter', playerId: 'p1' }
         )
 
-        const { vault, ...publicState } = state.dehydrate()
+        const { vault, ...publicState } = canonicalOf(state)
         const named = JSON.stringify(publicState)
         const concealed = [
             ...vault.sealPile,

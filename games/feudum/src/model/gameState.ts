@@ -8,7 +8,8 @@ import {
     HydratedTurnManager,
     PhaseManager,
     PrngState,
-    RoundManager
+    RoundManager,
+    Visibility
 } from '@tabletop/common'
 import { FeudumPlayerState, HydratedFeudumPlayerState } from './playerState.js'
 import * as Type from 'typebox'
@@ -42,59 +43,57 @@ import {
 export const CURRENT_FEUDUM_REVISION = 1
 
 export type FeudumGameState = Type.Static<typeof FeudumGameState>
-export const FeudumGameState = Type.Evaluate(
-    Type.Intersect([
-        Type.Omit(GameState, ['players', 'machineState']),
-        Type.Object({
-            players: Type.Array(FeudumPlayerState),
-            machineState: Type.Enum(MachineState),
-            /** R-X.3 */
-            feudumRevision: Type.Number(),
-            roundManager: RoundManager,
-            phaseManager: PhaseManager,
-            /** R-2.1, R-4.11 */
-            epoch: EpochSchema,
-            spaces: recordOf(
-                Spaces.map((space) => space.id),
-                SpaceState
-            ),
-            /** R-4.2.4 */
-            monsters: Type.Record(Type.Enum(MonsterIds), MonsterState),
-            guilds: GuildsState,
-            /** R-4.3.1 Top first. */
-            regionStacks: Type.Record(Type.Enum(RegionIds), Type.Array(TileIdSchema)),
-            /** R-4.3.3, R-4.11.1 Discarded or removed tiles. */
-            tilesOutOfGame: Type.Array(TileIdSchema),
-            /** R-1.4-H2 The landscape of each tile no longer in a stack, by tile id. */
-            tileLandscapes: Type.Record(Type.String(), LandscapeKindSchema),
-            supply: SupplyState,
-            /** R-5.1 Deck slots: a draw takes `top`, a writ going under gets `nextBottom`. */
-            writDeck: Type.Object({ top: ComponentCount, nextBottom: ComponentCount }),
-            /** R-4.4.2, R-4.4.4 Writs the table saw go under the deck. */
-            publicDeckWrits: Type.Array(
-                Type.Object({ slot: ComponentCount, writId: WritIdSchema })
-            ),
-            /** R-3.7.5 By playerId; absent: no disc on the track yet. */
-            voyageTrack: Type.Record(
-                Type.String(),
-                Type.Integer({ minimum: 1, maximum: EpicVoyageTrack.length })
-            ),
-            /** R-4.9-H2 By playerId: spaces covered. */
-            militaryService: Type.Record(
-                Type.String(),
-                Type.Integer({ minimum: 0, maximum: MilitaryServiceTrack.length })
-            ),
-            vault: FeudumVault,
-            flow: FlowState
-        })
-    ])
-)
+export const FeudumGameState = Type.Object({
+    ...Type.Omit(GameState, ['players', 'machineState']).properties,
+    players: Type.Array(FeudumPlayerState),
+    machineState: Type.Enum(MachineState),
+    /** R-X.3 */
+    feudumRevision: Type.Number(),
+    roundManager: RoundManager,
+    phaseManager: PhaseManager,
+    /** R-2.1, R-4.11 */
+    epoch: EpochSchema,
+    spaces: recordOf(
+        Spaces.map((space) => space.id),
+        SpaceState
+    ),
+    /** R-4.2.4 */
+    monsters: Type.Record(Type.Enum(MonsterIds), MonsterState),
+    guilds: GuildsState,
+    /** R-4.3.1 Top first. */
+    regionStacks: Type.Record(Type.Enum(RegionIds), Type.Array(TileIdSchema)),
+    /** R-4.3.3, R-4.11.1 Discarded or removed tiles. */
+    tilesOutOfGame: Type.Array(TileIdSchema),
+    /** R-1.4-H2 The landscape of each tile no longer in a stack, by tile id. */
+    tileLandscapes: Type.Record(Type.String(), LandscapeKindSchema),
+    supply: SupplyState,
+    /** R-5.1 Deck slots: a draw takes `top`, a writ going under gets `nextBottom`. */
+    writDeck: Type.Object({ top: ComponentCount, nextBottom: ComponentCount }),
+    /** R-4.4.2, R-4.4.4 Writs the table saw go under the deck. */
+    publicDeckWrits: Type.Array(Type.Object({ slot: ComponentCount, writId: WritIdSchema })),
+    /** R-3.7.5 By playerId; absent: no disc on the track yet. */
+    voyageTrack: Type.Record(
+        Type.String(),
+        Type.Integer({ minimum: 1, maximum: EpicVoyageTrack.length })
+    ),
+    /** R-4.9-H2 By playerId: spaces covered. */
+    militaryService: Type.Record(
+        Type.String(),
+        Type.Integer({ minimum: 0, maximum: MilitaryServiceTrack.length })
+    ),
+    vault: Visibility.protect(FeudumVault, { policy: Visibility.Policy.HostOnly }),
+    flow: FlowState
+})
 
 export const FeudumGameStateValidator = Compile(FeudumGameState)
 
+export const FeudumProjectedState = Visibility.createProjectionSchema(FeudumGameState)
+export type FeudumProjectedState = Type.Static<typeof FeudumProjectedState>
+const FeudumProjectedStateValidator = Compile(FeudumProjectedState)
+
 export class HydratedFeudumGameState
-    extends HydratableGameState<typeof FeudumGameState, HydratedFeudumPlayerState>
-    implements FeudumGameState
+    extends HydratableGameState<typeof FeudumProjectedState, HydratedFeudumPlayerState>
+    implements FeudumProjectedState
 {
     declare id: string
     declare gameId: string
@@ -122,11 +121,11 @@ export class HydratedFeudumGameState
     declare publicDeckWrits: FeudumGameState['publicDeckWrits']
     declare voyageTrack: Record<string, number>
     declare militaryService: Record<string, number>
-    declare vault: FeudumVault
-    declare flow: FlowState
+    declare vault?: FeudumVault
+    declare flow: FeudumProjectedState['flow']
 
-    constructor(data: FeudumGameState) {
-        super(data, FeudumGameStateValidator)
+    constructor(data: FeudumProjectedState) {
+        super(data, FeudumProjectedStateValidator)
 
         this.players = data.players.map((player) => new HydratedFeudumPlayerState(player))
         this.roundManager = new HydratedRoundManager(data.roundManager)

@@ -1,10 +1,11 @@
 <script lang="ts">
     import type { Player } from '@tabletop/common'
-    import { FeudumPlayerState } from '@tabletop/feudum'
+    import type { FeudumProjectedPlayerState } from '@tabletop/feudum'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     let gameSession = getGameSession()
-    let { player, playerState }: { player: Player; playerState: FeudumPlayerState } = $props()
+    let { player, playerState }: { player: Player; playerState: FeudumProjectedPlayerState } =
+        $props()
 
     let isTurn = $derived(gameSession.game.state?.activePlayerIds.includes(player.id))
     let bgColor = $derived(gameSession.colors.getPlayerBgColor(player.id))

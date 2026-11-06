@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ComponentTotals } from '../data/components.js'
-import { initialState } from '../testing/state.js'
+import { canonicalOf, initialState } from '../testing/state.js'
 import { conservationBreaks } from './canonicalValidator.js'
 import {
     payShillingsFromSupply,
@@ -67,18 +67,20 @@ describe('R-1.4.4 the haversack is the supply of goods', () => {
 
     it('R-5.4-H1 keeps its counts public and conserved', () => {
         const state = initialState()
-        const before = conservationBreaks(state).filter((broken) => broken.component === 'goods')
+        const before = conservationBreaks(canonicalOf(state)).filter(
+            (broken) => broken.component === 'goods'
+        )
         const taken = takeGoodFromHaversack(state, 'food', 3)
         const player = state.getPlayerState('p1')
         player.goods.food += taken
-        expect(conservationBreaks(state).filter((broken) => broken.component === 'goods')).toEqual(
-            before
-        )
+        expect(
+            conservationBreaks(canonicalOf(state)).filter((broken) => broken.component === 'goods')
+        ).toEqual(before)
 
         player.goods.food -= taken
         returnGoodToHaversack(state, 'food', taken)
-        expect(conservationBreaks(state).filter((broken) => broken.component === 'goods')).toEqual(
-            before
-        )
+        expect(
+            conservationBreaks(canonicalOf(state)).filter((broken) => broken.component === 'goods')
+        ).toEqual(before)
     })
 })

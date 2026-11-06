@@ -1,7 +1,7 @@
 import { GameAction, type GameHydrator, type HydratedAction } from '@tabletop/common'
-import { HydratedFeudumGameState, FeudumGameState } from '../model/gameState.js'
+import { HydratedFeudumGameState, type FeudumProjectedState } from '../model/gameState.js'
 
-export class FeudumHydrator implements GameHydrator<FeudumGameState, HydratedFeudumGameState> {
+export class FeudumHydrator implements GameHydrator<FeudumProjectedState, HydratedFeudumGameState> {
     hydrateAction(data: GameAction): HydratedAction {
         switch (true) {
             default: {
@@ -10,7 +10,7 @@ export class FeudumHydrator implements GameHydrator<FeudumGameState, HydratedFeu
         }
     }
 
-    hydrateState(state: FeudumGameState): HydratedFeudumGameState {
+    hydrateState(state: FeudumProjectedState): HydratedFeudumGameState {
         return new HydratedFeudumGameState(state)
     }
 }

@@ -1,27 +1,17 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { SpaceId } from '../data/board.js'
-import { initialState } from '../testing/state.js'
+import { canonicalOf, initialState } from '../testing/state.js'
 import { conservationBreaks } from './canonicalValidator.js'
 import type { HydratedFeudumGameState } from './gameState.js'
 import { canPlaceMarker, landscapeTender, nextMarkerRole, placeMarker } from './locationControl.js'
 
 const space: SpaceId = 'space.forest.2'
 
-/** R-1.4.1 Each player's seven markers, taken from the general supply so the count stays right. */
-function dealtState(): HydratedFeudumGameState {
-    const state = initialState()
-    for (const player of state.players) {
-        player.influenceSupply = 7
-        state.supply.influence[player.color] -= 7
-    }
-    return state
-}
-
 describe('location control', () => {
     let state: HydratedFeudumGameState
 
     beforeEach(() => {
-        state = dealtState()
+        state = initialState()
     })
 
     it('R-4.1.2 the first marker is the ruler and comes from the supply', () => {
@@ -143,6 +133,6 @@ describe('location control', () => {
         placeMarker(state, 'p1', space)
         placeMarker(state, 'p2', space)
         placeMarker(state, 'p2', space)
-        expect(conservationBreaks(state.dehydrate())).toEqual([])
+        expect(conservationBreaks(canonicalOf(state))).toEqual([])
     })
 })
