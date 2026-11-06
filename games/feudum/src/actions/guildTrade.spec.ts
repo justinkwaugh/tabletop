@@ -382,8 +382,8 @@ describe('GuildAction: R-4.6.3 the Merchant trade', () => {
     })
 
     it('R-4.6.3 offers each good at the price of the next one', () => {
-        const { table } = buying(9)
-        expect(merchantTradeOffers(table.hydrated())).toEqual(
+        const { table, playerId } = buying(9)
+        expect(merchantTradeOffers(table.hydrated(), playerId)).toEqual(
             expect.arrayContaining([
                 {
                     good: 'saltpeter',

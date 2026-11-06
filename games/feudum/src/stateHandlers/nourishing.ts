@@ -1,26 +1,36 @@
 import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
-import type { ActionType } from '../definition/actions.js'
+import { isNourish, type HydratedNourish } from '../actions/nourish.js'
+import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { atWillWindow } from '../model/atWill.js'
 import { atWillOffers, isAtWillAction, type AtWillAction } from './atWill.js'
 
-/** R-4.10 One seat asked at a time, from `flow.nourish.pending`; it may act at will (R-4.4-H1). */
+export type NourishingAction = AtWillAction | HydratedNourish
+
+/**
+ * R-4.10, D11 One seat asked at a time, from `flow.nourish.pending`; it may act at will (R-4.4-H1).
+ * `Nourish` passes the question on; with `pending` empty nobody is asked.
+ */
 export class NourishingStateHandler implements MachineStateHandler<
-    AtWillAction,
+    NourishingAction,
     HydratedFeudumGameState
 > {
     isValidAction(
         action: HydratedAction,
         _context: MachineContext<HydratedFeudumGameState>
-    ): action is AtWillAction {
-        return isAtWillAction(action)
+    ): action is NourishingAction {
+        return isNourish(action) || isAtWillAction(action)
     }
 
     validActionsForPlayer(
         playerId: string,
         context: MachineContext<HydratedFeudumGameState>
     ): ActionType[] {
-        return atWillOffers(context.gameState, playerId)
+        const state = context.gameState
+        return atWillWindow(state, playerId) === 'nourishing'
+            ? [ActionType.Nourish, ...atWillOffers(state, playerId)]
+            : []
     }
 
     enter(context: MachineContext<HydratedFeudumGameState>) {
@@ -29,7 +39,7 @@ export class NourishingStateHandler implements MachineStateHandler<
     }
 
     onAction(
-        _action: AtWillAction,
+        _action: NourishingAction,
         _context: MachineContext<HydratedFeudumGameState>
     ): MachineState {
         return MachineState.Nourishing

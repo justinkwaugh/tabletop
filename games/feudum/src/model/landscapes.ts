@@ -1,6 +1,6 @@
 import * as Type from 'typebox'
 import { assert, assertExists } from '@tabletop/common'
-import type { SpaceId } from '../data/board.js'
+import { Spaces, type SpaceId } from '../data/board.js'
 import {
     LandscapeFill,
     Landscapes,
@@ -99,7 +99,26 @@ function deliver(
     }
 }
 
-/** R-4.3.4 The serf takes everything lying here and pays 1 of it to the ruler. */
+/** R-4.3.4, R-4.12.3 The spaces where this seat's serf tends a landscape with resources on it. */
+export function tendedLandscapes(state: HydratedFeudumGameState, playerId: string): SpaceId[] {
+    return Spaces.map(({ id }) => id).filter((id) => {
+        const space = state.spaces[id]
+        return landscapeTender(space) === playerId && (space.landscape?.amount ?? 0) > 0
+    })
+}
+
+/** R-4.3.4, R-4.10.2 What collecting here would bring the serf if this is a sulfur mine. */
+export function sulfurKeptAt(state: HydratedFeudumGameState, spaceId: SpaceId): number {
+    const landscape = requireLandscape(state, spaceId)
+    return landscapeOf(state, landscape.tileId).resource === 'sulfur'
+        ? Math.max(0, landscape.amount - 1)
+        : 0
+}
+
+/**
+ * R-4.3.4 The serf takes everything lying here and pays 1 of it to the ruler. Sulfur reaches their
+ * supplies: the caller moves what the serf named for its barrel, and the ruler's stays (R-4.10-H2).
+ */
 export function collectLandscape(
     state: HydratedFeudumGameState,
     spaceId: SpaceId

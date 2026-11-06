@@ -3,10 +3,11 @@ import { Spaces, type SpaceId } from '../data/board.js'
 import type { ActionCardKind } from '../data/cards.js'
 import type { Good } from '../data/components.js'
 import type { LocationKind } from '../data/discs.js'
-import type { RegionId } from '../data/regionTiles.js'
+import { RegionIds, type LandscapeKind, type RegionId, type TileId } from '../data/regionTiles.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { placeMarker } from '../model/locationControl.js'
+import { collectTopTile } from '../model/regionStacks.js'
 import { moveConcealedSeal } from '../model/seals.js'
 import { tableAtPlayingCards, type Table } from './table.js'
 
@@ -68,4 +69,21 @@ export function tableImproving(kind: LocationKind, cards = ImproveHand): Improvi
     const region = Spaces.find((space) => space.id === spaceId)?.region
     assertExists(region, 'A space lies in a region')
     return { table, playerId, spaceId, region }
+}
+
+/** R-1.4-H2 Collects a top tile whose back shows this landscape. */
+export function collectTileOf(
+    state: HydratedFeudumGameState,
+    playerId: string,
+    landscape: LandscapeKind
+): TileId {
+    const hidden = state.requireVault().tileLandscapes
+    const stack = RegionIds.find((region) => {
+        const [top] = state.regionStacks[region]
+        return hidden[top] === landscape
+    })
+    if (!stack) {
+        throw new Error(`No stack shows ${landscape}`)
+    }
+    return collectTopTile(state, playerId, stack).tile.id
 }

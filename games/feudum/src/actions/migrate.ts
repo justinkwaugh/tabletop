@@ -47,19 +47,20 @@ export const MigrateOnto = Type.Union([
     Type.Literal('off')
 ])
 
+/** R-3.6.1 Going off: where the pawn stood and what it was; the input names only the pawn. */
+export type PawnLeft = Type.Static<typeof PawnLeft>
+export const PawnLeft = Type.Object({
+    spaceId: SpaceIdSchema,
+    character: GuildIdSchema,
+    /** R-3.6-H1 Stays on the space, abandoned. */
+    vessel: Type.Optional(VesselTypeSchema),
+    /** R-3.6-H1 The pawn's wine sulfur went to the haversack. */
+    wine: Type.Optional(Type.Literal(true))
+})
+
 export type MigrateMetadata = Type.Static<typeof MigrateMetadata>
 export const MigrateMetadata = Type.Object({
-    /** R-3.6.1 Going off: where the pawn stood and what it was; the input names only the pawn. */
-    left: Type.Optional(
-        Type.Object({
-            spaceId: SpaceIdSchema,
-            character: GuildIdSchema,
-            /** R-3.6-H1 Stays on the space, abandoned. */
-            vessel: Type.Optional(VesselTypeSchema),
-            /** R-3.6-H1 The pawn's wine sulfur went to the haversack. */
-            wine: Type.Optional(Type.Literal(true))
-        })
-    ),
+    left: Type.Optional(PawnLeft),
     /** R-3.6.3 */
     rankChanges: Type.Array(RankChange)
 })
@@ -162,7 +163,7 @@ export function leaveBoard(
     state: HydratedFeudumGameState,
     playerId: string,
     pawnNumber: PawnNumber
-): NonNullable<MigrateMetadata['left']> {
+): PawnLeft {
     const pawn = state.getPlayerState(playerId).pawns.find((held) => held.n === pawnNumber)
     assertExists(pawn, `R-1.1 ${playerId} has pawn ${pawnNumber}`)
     const { spaceId, character, vessel, wine } = pawn

@@ -1,3 +1,5 @@
+import { CollectLandscapes } from '../actions/collectLandscapes.js'
+import { Nourish } from '../actions/nourish.js'
 import { ChooseFavours } from '../actions/chooseFavours.js'
 import { ChooseStartingGoods } from '../actions/chooseStartingGoods.js'
 import { DiscardWrit } from '../actions/discardWrit.js'
@@ -60,5 +62,7 @@ export const FeudumApiActions = {
     [ActionType.PlayMandate]: PlayMandate,
     [ActionType.SealCharter]: SealCharter,
     [ActionType.SpendRegionTile]: SpendRegionTile,
-    [ActionType.PlaceVessel]: PlaceVessel
+    [ActionType.PlaceVessel]: PlaceVessel,
+    [ActionType.Nourish]: Nourish,
+    [ActionType.CollectLandscapes]: CollectLandscapes
 }

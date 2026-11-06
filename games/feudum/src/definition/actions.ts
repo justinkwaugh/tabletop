@@ -29,5 +29,7 @@ export enum ActionType {
     PlayMandate = 'PlayMandate',
     SealCharter = 'SealCharter',
     SpendRegionTile = 'SpendRegionTile',
-    PlaceVessel = 'PlaceVessel'
+    PlaceVessel = 'PlaceVessel',
+    Nourish = 'Nourish',
+    CollectLandscapes = 'CollectLandscapes'
 }

@@ -18,6 +18,7 @@ import {
     takeFromMarket
 } from '../model/market.js'
 import { canPayGuild, guildSplit, payGuild } from '../model/payments.js'
+import { barrelRoom, putSulfurInBarrel, reasonSulfurCountToBarrelRefused } from '../model/supply.js'
 import type { GuildFunctionName, GuildFunctionParams, GuildFunctionRow } from './guildFunction.js'
 import { marketToCartsRow } from './marketToCarts.js'
 
@@ -27,6 +28,8 @@ export interface MerchantTradeOffer {
     readonly spaceId: MarketSpaceId
     readonly price: number
     readonly available: number
+    /** R-4.10.2 Sulfur only: how many bought could go in the seat's barrel. */
+    readonly sulfurToBarrel?: number
 }
 
 /** R-4.6.3 Each kind's cheapest space, the next one bought. */
@@ -38,13 +41,25 @@ function cheapestSpaces(state: HydratedFeudumGameState): MarketSpace[] {
 }
 
 /** R-4.6.3 Each good in the market, at the price of the next one. */
-export function merchantTradeOffers(state: HydratedFeudumGameState): MerchantTradeOffer[] {
+export function merchantTradeOffers(
+    state: HydratedFeudumGameState,
+    playerId: string
+): MerchantTradeOffer[] {
     const holds = marketHolds(state)
     return cheapestSpaces(state).map(({ good, id, price }) => ({
         good,
         spaceId: id,
         price,
-        available: holds[good]
+        available: holds[good],
+        ...(good === 'sulfur'
+            ? {
+                  sulfurToBarrel: Math.min(
+                      holds.sulfur,
+                      MerchantTradeGoods,
+                      barrelRoom(state, playerId)
+                  )
+              }
+            : {})
     }))
 }
 
@@ -92,8 +107,8 @@ const MerchantTrade: GuildFunctionRow = {
             : `The cheapest good costs ${shillings(cheapest)}.`
     },
 
-    /** R-4.6.3, R-4.6.2 */
-    reasonRefused(state, { playerId }, { goods = [] }) {
+    /** R-4.6.3, R-4.6.2, R-4.10.2 */
+    reasonRefused(state, { playerId }, { goods = [], sulfurToBarrel }) {
         const cannot = reasonPicksCannotHappen(state, goods)
         if (cannot) {
             return cannot
@@ -102,19 +117,28 @@ const MerchantTrade: GuildFunctionRow = {
             return `Pick up to ${MerchantTradeGoods} goods to buy.`
         }
         const price = priceOf(spacesBought(state, goods))
-        return canPayGuild(state, playerId, price)
-            ? undefined
-            : `Those goods cost ${shillings(price)}.`
+        if (!canPayGuild(state, playerId, price)) {
+            return `Those goods cost ${shillings(price)}.`
+        }
+        return reasonSulfurCountToBarrelRefused(
+            state,
+            playerId,
+            goods.filter((good) => good === 'sulfur').length,
+            sulfurToBarrel
+        )
     },
 
     /** R-4.6.3, R-4.6.2 Each good is the cheapest of its kind; the total pays the guild. */
-    perform(state, { playerId }, { goods = [] }) {
+    perform(state, { playerId }, { goods = [], sulfurToBarrel }) {
         const player = state.getPlayerState(playerId)
         const bought = goods.map((good) => {
             const { id, price } = takeFromMarket(state, good)
             player.goods[good] += 1
             return { good, spaceId: id, price }
         })
+        if (sulfurToBarrel) {
+            putSulfurInBarrel(state, playerId, sulfurToBarrel)
+        }
         const price = bought.reduce((sum, row) => sum + row.price, 0)
         return {
             details: { kind: 'merchant-trade', bought, price },

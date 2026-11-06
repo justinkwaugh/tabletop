@@ -1,5 +1,6 @@
 import type { HydratedAction, MachineStateHandler } from '@tabletop/common'
 import { MachineState } from './states.js'
+import { CollectingLandscapesStateHandler } from '../stateHandlers/collectingLandscapes.js'
 import { ChoosingStartingGoodsStateHandler } from '../stateHandlers/choosingStartingGoods.js'
 import { DiscardingWritsStateHandler } from '../stateHandlers/discardingWrits.js'
 import { InspectingHarvestStateHandler } from '../stateHandlers/inspectingHarvest.js'
@@ -30,5 +31,6 @@ export const FeudumStateHandlers: Record<
     [MachineState.InspectingHarvest]: new InspectingHarvestStateHandler(),
     [MachineState.KeepingWrits]: new KeepingWritsStateHandler(),
     [MachineState.DiscardingWrits]: new DiscardingWritsStateHandler(),
-    [MachineState.Nourishing]: new NourishingStateHandler()
+    [MachineState.Nourishing]: new NourishingStateHandler(),
+    [MachineState.CollectingLandscapes]: new CollectingLandscapesStateHandler()
 }

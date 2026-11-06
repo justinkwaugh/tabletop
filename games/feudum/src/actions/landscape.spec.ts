@@ -1,32 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import type { SpaceId } from '../data/board.js'
-import { RegionIds, type LandscapeKind, type TileId } from '../data/regionTiles.js'
+import type { LandscapeKind, TileId } from '../data/regionTiles.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
-import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { fillLandscape } from '../model/landscapes.js'
 import { landscapeTender, placeMarker } from '../model/locationControl.js'
-import { collectTopTile } from '../model/regionStacks.js'
-import { giveGood, setUp, spaceOfKind } from '../testing/improving.js'
+import { collectTileOf, giveGood, setUp, spaceOfKind } from '../testing/improving.js'
 import { tableAtPlayingCards, type Table } from '../testing/table.js'
+import { collectLandscapesOffer, collectLandscapesPreview } from './collectLandscapes.js'
 import { tendLandscapeOffers, tendLandscapePreview } from './tendLandscape.js'
-
-/** R-1.4-H2 Collects a top tile whose back shows this landscape. */
-function collectTileOf(
-    state: HydratedFeudumGameState,
-    playerId: string,
-    landscape: LandscapeKind
-): TileId {
-    const hidden = state.requireVault().tileLandscapes
-    const stack = RegionIds.find((region) => {
-        const [top] = state.regionStacks[region]
-        return hidden[top] === landscape
-    })
-    if (!stack) {
-        throw new Error(`No stack shows ${landscape}`)
-    }
-    return collectTopTile(state, playerId, stack).tile.id
-}
 
 interface Tending {
     readonly table: Table
@@ -347,8 +329,182 @@ describe('R-3.9.3 tend offers', () => {
         const before = JSON.stringify(state.dehydrate())
         expect(tendLandscapePreview(state, start.tileId, start.spaceId)).toEqual({
             filled: 3,
-            collected: { kept: 2, paid: 1, rulerId: start.rulerId }
+            collected: { kept: 2, paid: 1, rulerId: start.rulerId },
+            sulfurKept: 0,
+            sulfurToBarrel: 0
         })
         expect(JSON.stringify(state.dehydrate())).toBe(before)
+    })
+})
+
+describe('R-4.3.4, R-4.12.3 CollectLandscapes', () => {
+    /** The seat tends a landscape under the next seat, filled once, and is asked to collect. */
+    function asked(kinds: readonly LandscapeKind[]) {
+        const table = tableAtPlayingCards(() => ({ cards: ['improve', 'move', 'tax', 'guild'] }))
+        const playerId = table.asked
+        const rulerId = table.order[1]
+        const spaceIds: SpaceId[] = []
+        table.moveTo((state) => {
+            for (const kind of kinds) {
+                const spaceId = spaceOfKind(state, 'farm', spaceIds)
+                spaceIds.push(spaceId)
+                placeMarker(state, rulerId, spaceId)
+                placeMarker(state, playerId, spaceId)
+                const tileId = collectTileOf(state, playerId, kind)
+                const seat = state.getPlayerState(playerId)
+                seat.regionTiles = seat.regionTiles.filter((held) => held !== tileId)
+                state.spaces[spaceId].landscape = { tileId, amount: 0 }
+                fillLandscape(state, spaceId)
+            }
+            state.recomputeRanks()
+            state.flow.turn = undefined
+            state.flow.landscapes = { pending: [playerId, rulerId] }
+            return MachineState.CollectingLandscapes
+        })
+        return { table, playerId, rulerId, spaceIds }
+    }
+
+    const Collect = { type: ActionType.CollectLandscapes } as const
+
+    it('S55 collects the one named, leaves the other, 1 of it to the ruler', () => {
+        const { table, playerId, rulerId, spaceIds } = asked(['orchard', 'silver-mine'])
+        const [orchard, mine] = spaceIds
+        const food = table.seat(playerId).goods.food
+        const rulerFood = table.seat(rulerId).goods.food
+
+        const [action] = table.send(playerId, { ...Collect, spaceIds: [orchard] })
+
+        expect(table.seat(playerId).goods.food).toBe(food + 2)
+        expect(table.seat(rulerId).goods.food).toBe(rulerFood + 1)
+        expect(table.hydrated().spaces[orchard].landscape?.amount).toBe(0)
+        expect(table.hydrated().spaces[mine].landscape?.amount).toBe(3)
+        expect(action).toMatchObject({
+            metadata: {
+                collections: [
+                    {
+                        spaceId: orchard,
+                        landscape: 'orchard',
+                        collected: { kept: 2, paid: 1, rulerId }
+                    }
+                ]
+            }
+        })
+        expect(action.revealsInfo).toBeFalsy()
+    })
+
+    it('R-4.12.3 may leave all, and D12 the next serf is asked', () => {
+        const { table, playerId, rulerId, spaceIds } = asked(['orchard'])
+
+        table.send(playerId, { ...Collect, spaceIds: [] })
+
+        expect(table.hydrated().spaces[spaceIds[0]].landscape?.amount).toBe(3)
+        expect(table.asked).toBe(rulerId)
+        expect(table.offered(rulerId)).toEqual([ActionType.CollectLandscapes])
+        expect(table.offered(playerId)).toEqual([])
+    })
+
+    it('D12 no serf is asked once all have answered', () => {
+        const { table, playerId, rulerId } = asked(['orchard'])
+        table.send(playerId, { ...Collect, spaceIds: [] })
+        table.send(rulerId, { ...Collect, spaceIds: [] })
+
+        expect(table.state.activePlayerIds).toEqual([])
+        expect(table.hydrated().flow.landscapes).toBeUndefined()
+    })
+
+    it('R-4.3.4 targets become markers from the general supply; excess is discarded', () => {
+        const { table, playerId, rulerId, spaceIds } = asked(['archery-butt'])
+        table.moveTo((state) => {
+            const seat = state.getPlayerState(playerId)
+            seat.influenceSupply += state.supply.influence[seat.color] - 1
+            state.supply.influence[seat.color] = 1
+            return MachineState.CollectingLandscapes
+        })
+        const held = table.seat(playerId).influenceSupply
+        const rulerHeld = table.seat(rulerId).influenceSupply
+        const { targets } = table.hydrated().supply
+
+        const [action] = table.send(playerId, { ...Collect, spaceIds })
+
+        const after = table.hydrated()
+        expect(table.seat(playerId).influenceSupply).toBe(held + 1)
+        expect(table.seat(rulerId).influenceSupply).toBe(rulerHeld + 1)
+        expect(after.supply.targets).toBe(targets + 3)
+        expect(action).toMatchObject({
+            metadata: { collections: [{ collected: { kept: 2, seatMarkers: 1, rulerMarkers: 1 } }] }
+        })
+    })
+
+    it('R-4.3.4 a resource alone goes to the ruler', () => {
+        const { table, playerId, rulerId, spaceIds } = asked(['orchard'])
+        table.moveTo((state) => {
+            const landscape = state.spaces[spaceIds[0]].landscape
+            if (landscape) {
+                state.supply.haversack.food += landscape.amount - 1
+                landscape.amount = 1
+            }
+            return MachineState.CollectingLandscapes
+        })
+        const food = table.seat(playerId).goods.food
+        const rulerFood = table.seat(rulerId).goods.food
+
+        table.send(playerId, { ...Collect, spaceIds })
+
+        expect(table.seat(playerId).goods.food).toBe(food)
+        expect(table.seat(rulerId).goods.food).toBe(rulerFood + 1)
+    })
+
+    it('R-4.12.3 refuses out of turn, a space not tended, an empty landscape, a repeat', () => {
+        const { table, playerId, rulerId, spaceIds } = asked(['orchard'])
+        const [orchard] = spaceIds
+        const send = (spaces: SpaceId[]) => () =>
+            table.send(playerId, { ...Collect, spaceIds: spaces })
+
+        expect(() => table.send(rulerId, { ...Collect, spaceIds: [] })).toThrow()
+        expect(send([orchard, orchard])).toThrow('Name each landscape once.')
+        expect(send([spaceOfKind(table.hydrated(), 'farm', spaceIds)])).toThrow(
+            "You don't tend a landscape there."
+        )
+        table.moveTo((state) => {
+            const landscape = state.spaces[orchard].landscape
+            if (landscape) {
+                state.supply.haversack.food += landscape.amount
+                landscape.amount = 0
+            }
+            return MachineState.CollectingLandscapes
+        })
+        expect(send([orchard])).toThrow('That landscape holds nothing.')
+    })
+
+    it('S55 offers the tended landscapes with resources, each with its split, on a copy', () => {
+        const { table, playerId, rulerId, spaceIds } = asked(['orchard', 'sulfur-mine'])
+        const state = table.hydrated()
+        const before = JSON.stringify(state.dehydrate())
+
+        expect(collectLandscapesOffer(state, playerId)).toMatchObject({
+            spaces: expect.arrayContaining([
+                {
+                    spaceId: spaceIds[0],
+                    landscape: 'orchard',
+                    resource: 'food',
+                    amount: 3,
+                    collected: { kept: 2, paid: 1, rulerId }
+                }
+            ]),
+            sulfurToBarrel: 2
+        })
+        expect(collectLandscapesOffer(state, rulerId)).toBeUndefined()
+        expect(JSON.stringify(state.dehydrate())).toBe(before)
+    })
+
+    it('S55 previews the picks on a copy; a staged input names what refuses', () => {
+        const { table, playerId, spaceIds } = asked(['orchard'])
+        const state = table.hydrated()
+
+        expect(collectLandscapesPreview(state, playerId, { spaceIds }).collections).toHaveLength(1)
+        expect(
+            collectLandscapesPreview(state, playerId, { spaceIds: [spaceIds[0], spaceIds[0]] })
+                .refused
+        ).toBe('Name each landscape once.')
     })
 })

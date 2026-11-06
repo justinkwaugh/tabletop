@@ -363,6 +363,22 @@ describe('Harvest with favours: R-3.11.2, R-3.11-H1', () => {
         expect(action).toMatchObject({ metadata: { favours: expected } })
     })
 
+    it('R-4.10-H2 favours drawn unseen go to the supply: the seat could not name the barrel', () => {
+        const { table, playerId } = tableHarvesting((state, seat) => {
+            for (const good of ['food', 'wood', 'iron', 'saltpeter'] as const) {
+                state.getPlayerState(seat).goods[good] += state.supply.haversack[good]
+                state.supply.haversack[good] = 0
+            }
+        })
+        const { sulfur } = table.seat(playerId).goods
+
+        const action = harvest(table, playerId, 'favours')
+
+        expect(action).toMatchObject({ metadata: { favours: { sulfur: 1 } } })
+        expect(table.seat(playerId).goods.sulfur).toBe(sulfur + 1)
+        expect(table.seat(playerId).barrel).toBe(0)
+    })
+
     it('R-3.11.2 every held bead flips to a seal, whose identity goes into the vault', () => {
         let beads: SealId[] = []
         const { table, playerId } = tableHarvesting((state, seat) => {
@@ -633,7 +649,8 @@ describe('What the panel reads (S20, S21)', () => {
             spaceId: Farm,
             drawn: state.flow.harvest?.drawn,
             favours: 1,
-            beads: 0
+            beads: 0,
+            sulfurToBarrel: Math.min(state.flow.harvest?.drawn.sulfur ?? 0, 1)
         })
         expect(chooseFavoursOffer(state, 'nobody')).toBeUndefined()
     })

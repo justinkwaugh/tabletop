@@ -11,15 +11,18 @@ import {
     fillLandscape,
     landscapeKindOf,
     landscapeOf,
-    LandscapeCollection
+    LandscapeCollection,
+    sulfurKeptAt
 } from '../model/landscapes.js'
 import { payGoods } from '../model/payments.js'
 import {
     ComponentCount,
     LandscapeKindSchema,
     SpaceIdSchema,
+    SulfurToBarrelCount,
     TileIdSchema
 } from '../model/stateSchemas.js'
+import { barrelRoom, putSulfurInBarrel, reasonSulfurCountToBarrelRefused } from '../model/supply.js'
 import {
     CardPlayFields,
     cardOf,
@@ -54,6 +57,8 @@ export const TendLandscape = Type.Evaluate(
             spaceId: SpaceIdSchema,
             /** R-4.3.4 Collect at once, or leave the fill lying. */
             collect: Type.Boolean(),
+            /** R-4.10.2 Of the sulfur a collected sulfur mine brings, how many go in the barrel. */
+            sulfurToBarrel: Type.Optional(SulfurToBarrelCount),
             metadata: Type.Optional(TendLandscapeMetadata)
         })
     ])
@@ -73,9 +78,14 @@ function isOpenToTend(state: HydratedFeudumGameState, playerId: string, spaceId:
 export interface TendInput extends CardPlayInput {
     readonly tileId: TileId
     readonly spaceId: SpaceId
+    readonly collect?: boolean
+    readonly sulfurToBarrel?: number
 }
 
-/** R-3.9.3, R-3.4 A wood, a tile collected, a space where the seat is serf and no landscape lies. */
+/**
+ * R-3.9.3, R-3.4, R-4.10.2 A wood, a tile collected, a space where the seat is serf and no landscape
+ * lies; a sulfur for the barrel only from a sulfur mine collected at once.
+ */
 export function reasonTendLandscapeRefused(
     state: HydratedFeudumGameState,
     playerId: string,
@@ -94,7 +104,18 @@ export function reasonTendLandscapeRefused(
     if (space.serf?.playerId !== playerId) {
         return "You aren't the serf there."
     }
-    return space.landscape ? 'That location already has a landscape.' : undefined
+    if (space.landscape) {
+        return 'That location already has a landscape.'
+    }
+    if (!input.sulfurToBarrel) {
+        return undefined
+    }
+    return reasonSulfurCountToBarrelRefused(
+        state,
+        playerId,
+        input.collect ? tendLandscapePreview(state, input.tileId, input.spaceId).sulfurKept : 0,
+        input.sulfurToBarrel
+    )
 }
 
 export interface TendTileOffer {
@@ -126,6 +147,9 @@ export function tendLandscapeOffers(
 export interface TendLandscapePreview {
     readonly filled: number
     readonly collected: LandscapeCollection
+    /** R-4.10.2 Of what a sulfur mine brings the seat, how many fit in its barrel. */
+    readonly sulfurKept: number
+    readonly sulfurToBarrel: number
 }
 
 /** R-4.3.4 The fill and the split if collected, run on a copy. */
@@ -137,7 +161,20 @@ export function tendLandscapePreview(
     const copy = new HydratedFeudumGameState(state.dehydrate())
     copy.spaces[spaceId].landscape = { tileId, amount: 0 }
     const filled = fillLandscape(copy, spaceId)
-    return { filled, collected: collectLandscape(copy, spaceId) }
+    const sulfurKept = sulfurKeptAt(copy, spaceId)
+    return {
+        filled,
+        collected: collectLandscape(copy, spaceId),
+        sulfurKept,
+        sulfurToBarrel: Math.min(sulfurKept, barrelRoom(state, serfOf(state, spaceId)))
+    }
+}
+
+/** R-3.9.3 Only a seat's own serf space is offered. */
+function serfOf(state: HydratedFeudumGameState, spaceId: SpaceId): string {
+    const serf = state.spaces[spaceId].serf
+    assertExists(serf, `R-3.9.3 ${spaceId} has a serf`)
+    return serf.playerId
 }
 
 /** R-3.9.3 What the card prints for its special. */
@@ -156,6 +193,7 @@ export class HydratedTendLandscape
     declare tileId: TileId
     declare spaceId: SpaceId
     declare collect: boolean
+    declare sulfurToBarrel?: number
     declare metadata?: TendLandscapeMetadata
     declare asRepeat?: RepeatMode
     declare secondCard?: true
@@ -181,6 +219,9 @@ export class HydratedTendLandscape
         player.score += vp
         const filled = fillLandscape(state, this.spaceId)
         const collected = this.collect ? collectLandscape(state, this.spaceId) : undefined
+        if (this.sulfurToBarrel) {
+            putSulfurInBarrel(state, this.playerId, this.sulfurToBarrel)
+        }
 
         this.metadata = {
             landscape: landscapeKindOf(state, this.tileId),

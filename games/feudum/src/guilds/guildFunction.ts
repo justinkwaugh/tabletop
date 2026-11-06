@@ -18,6 +18,7 @@ import {
     MonsterIdSchema,
     ScrollSpaceIdSchema,
     SpaceIdSchema,
+    SulfurToBarrelCount,
     VesselTypeSchema,
     WritIdSchema
 } from '../model/stateSchemas.js'
@@ -42,6 +43,8 @@ export const GuildFunctionParams = Type.Object({
     takeFood: Type.Optional(Type.Integer({ minimum: 0 })),
     /** R-4.6.1 The goods moved, in order. */
     goods: Type.Optional(Type.Array(GoodSchema)),
+    /** R-4.6.3, R-4.10.2 Merchant trade: of the sulfur bought, how many go in the barrel. */
+    sulfurToBarrel: Type.Optional(SulfurToBarrelCount),
     /** R-4.6.1 Rows or columns; absent, whichever is higher. */
     count: Type.Optional(CompletionCount),
     /** R-4.6.3 Alchemist trade: the vessel bought. */
