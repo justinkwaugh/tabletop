@@ -1,6 +1,5 @@
 import { FeudumColors } from '../definition/colors.js'
 import type { Character, Good } from './components.js'
-import { ProvisionalCards } from './provisional.cards.js'
 
 /** R-3.5 The eleven cards, in the digest's order. */
 export const ActionCardKinds = [
@@ -220,7 +219,6 @@ export const ActionCards: readonly ActionCard[] = [
     actionCard({
         kind: 'repeat',
         printedName: 'Repeat',
-        symbols: { eitherOr: ProvisionalCards.repeatEitherOr.placeholder },
         regularAction: 'Replay one card you already played this round that carries x2',
         special: {
             name: 'Déjà Vu',

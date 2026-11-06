@@ -58,7 +58,7 @@ Every component is limited to the supply; there are no substitutes, and a shorta
 ### R-1.2 The board
 
 1. **Regions and spaces.** Six regions with 22 location spaces: sea 3, island 4, forest 3, desert 5, badlands 5, mountain 2. Six spaces are starting locations, ringed in pink. Each region has a space for each of N, S, E and W (a space may carry two letters); the letters are printed on the board. Map data (spaces, regions, starting spaces, letters, connections): `components.md`, `space.*` and `route.*`. (RB p. 2–3, p. 21; Img)
-2. **Connections.** Roads; ship routes; submersible routes; flying-machine routes; three ferryboat routes. A space reachable by a ship or submersible route is a port. Any number of pawns may share a space. (RB p. 8; D 2018-05-13, 2018-05-15) Ambiguous: several route segments (open questions, "Map").
+2. **Connections.** Roads; ship routes; submersible routes; flying-machine routes; three ferryboat routes. A space reachable by a ship or submersible route is a port. Any number of pawns may share a space. (RB p. 8; D 2018-05-13, 2018-05-15; Img)
 3. **Guilds.** Six guilds round the board in a ring: Farmer → Merchant → Alchemist (left edge, bottom to top) → Knight → Noble → Monk (right edge, top to bottom) → Farmer. A guild pulls from the guild before it ("left") and pushes to the guild after it ("right"). (RB p. 14; Img)
 4. **Related locations.** Each location type is related to two guilds; ruling one gives a secondary status star there (R-4.5.1) (D 2017-07-21):
 

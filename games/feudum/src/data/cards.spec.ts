@@ -11,7 +11,6 @@ import {
     type SpecialNeed
 } from './cards.js'
 import { StartingSupply } from './components.js'
-import { ProvisionalCards } from './provisional.cards.js'
 
 let rows: Record<string, string>[] = []
 let digestRows: Record<string, string>[] = []
@@ -232,11 +231,11 @@ describe('R-3.11.2 the Harvest card chart', () => {
     })
 })
 
-describe('R-3.15 Repeat, data blocked', () => {
-    it('reads the either/or mark from the provisional registry', () => {
+describe('R-3.15 Repeat', () => {
+    it('carries no either/or mark, so its ability adds to the regular action (R-3.4)', () => {
         const repeat = ActionCards.find((card) => card.kind === 'repeat')
-        expect(repeat?.symbols.eitherOr).toBe(ProvisionalCards.repeatEitherOr.placeholder)
-        expect(ProvisionalCards.repeatEitherOr.dataBlockedIn).toContain('cards.spec.ts')
-        expect(rows.find(({ Id }) => Id === repeat?.id)?.['Either/or']).toMatch(/^unread/)
+        expect(repeat?.symbols.eitherOr).toBe(false)
+        expect(repeat?.special.mode).toBe('in-addition')
+        expect(rows.find(({ Id }) => Id === repeat?.id)?.['Either/or']).toBe('no')
     })
 })

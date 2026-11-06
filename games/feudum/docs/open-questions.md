@@ -19,9 +19,8 @@ Q26–Q29 (region tile stacks, vessel routes, values printed nowhere, mandate 6'
 
 Values printed on components that no available picture shows legibly. Each blocks data, not design.
 
-| Value                                                            | Component   | Recommendation if no photo is found            |
-| ---------------------------------------------------------------- | ----------- | ---------------------------------------------- |
-| whether two Northern Kingdom dots mark badlands-2 and mountain-1 | Royal Writ  | badlands-2 and mountain-1 (the nearest spaces) |
-| whether the Repeat card carries the either/or marker             | action card | as the rulebook's card text reads              |
-| the rosary's capacity                                            | board       | unlimited (R-1.4-H3)                           |
-| which charity each guild pays                                    | board       | R-4.6-H3                                       |
+| Value                                                            | Component  | Recommendation if no photo is found            |
+| ---------------------------------------------------------------- | ---------- | ---------------------------------------------- |
+| whether two Northern Kingdom dots mark badlands-2 and mountain-1 | Royal Writ | badlands-2 and mountain-1 (the nearest spaces) |
+| the rosary's capacity                                            | board      | unlimited (R-1.4-H3)                           |
+| which charity each guild pays                                    | board      | R-4.6-H3                                       |
