@@ -11,6 +11,12 @@ export enum ActionType {
     Migrate = 'Migrate',
     Influence = 'Influence',
     Tax = 'Tax',
+    GuildAction = 'GuildAction',
+    Explore = 'Explore',
+    KeepWrits = 'KeepWrits',
+    DiscardWrit = 'DiscardWrit',
     Improve = 'Improve',
-    TendLandscape = 'TendLandscape'
+    TendLandscape = 'TendLandscape',
+    Harvest = 'Harvest',
+    ChooseFavours = 'ChooseFavours'
 }

@@ -1,13 +1,19 @@
+import { ChooseFavours } from '../actions/chooseFavours.js'
 import { ChooseStartingGoods } from '../actions/chooseStartingGoods.js'
+import { DiscardWrit } from '../actions/discardWrit.js'
+import { Explore } from '../actions/explore.js'
 import { FinaliseHand } from '../actions/finaliseHand.js'
 import { ForfeitCard } from '../actions/forfeitCard.js'
+import { Harvest } from '../actions/harvest.js'
 import { Improve } from '../actions/improve.js'
 import { Influence } from '../actions/influence.js'
+import { KeepWrits } from '../actions/keepWrits.js'
 import { Migrate } from '../actions/migrate.js'
 import { Move } from '../actions/move.js'
 import { PlaceDisc } from '../actions/placeDisc.js'
 import { PlaceStartingPawn } from '../actions/placeStartingPawn.js'
 import { PlayDefend } from '../actions/playDefend.js'
+import { GuildAction } from '../actions/guildAction.js'
 import { Tax } from '../actions/tax.js'
 import { TendLandscape } from '../actions/tendLandscape.js'
 import { ActionType } from './actions.js'
@@ -23,8 +29,14 @@ export const FeudumApiActions = {
     [ActionType.Migrate]: Migrate,
     [ActionType.Influence]: Influence,
     [ActionType.Tax]: Tax,
+    [ActionType.GuildAction]: GuildAction,
+    [ActionType.Explore]: Explore,
+    [ActionType.KeepWrits]: KeepWrits,
+    [ActionType.DiscardWrit]: DiscardWrit,
     [ActionType.Improve]: Improve,
     [ActionType.TendLandscape]: TendLandscape,
+    [ActionType.Harvest]: Harvest,
+    [ActionType.ChooseFavours]: ChooseFavours,
     [ActionType.PlaceDisc]: PlaceDisc,
     [ActionType.Move]: Move
 }

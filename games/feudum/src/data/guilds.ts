@@ -135,6 +135,18 @@ export const FarmerPurse = { id: 'guild.farmer.purse' } as const
 /** R-4.6.3 The trade medallion: 1 food or 1 shilling per this many goods sent. */
 export const FarmerTradeGoods = 2
 
+/** R-4.6.4 A Farmer pull's threshold: the chicken beads' sum. */
+export const FarmerPullThreshold = 5
+
+/** R-4.6.5 The goods a Farmer push moves from the barn to the market. */
+export const FarmerPushGoods = 5
+
+/** R-4.6.4 A pull reaching its threshold. */
+export const PullReward = { vp: 3, writs: { draw: 2, keep: 1 } } as const
+
+/** R-4.6.5 A push's points for 1, 2 and 3 or more completions. */
+export const PushVp = [4, 5, 6] as const
+
 export interface ChickenSpace {
     readonly id: `guild.farmer.chicken.${number}`
     readonly space: number

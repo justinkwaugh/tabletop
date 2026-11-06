@@ -1,10 +1,12 @@
 import { GameAction, type GameHydrator, type HydratedAction } from '@tabletop/common'
+import { HydratedChooseFavours, isChooseFavours } from '../actions/chooseFavours.js'
 import {
     HydratedChooseStartingGoods,
     isChooseStartingGoods
 } from '../actions/chooseStartingGoods.js'
 import { HydratedFinaliseHand, isFinaliseHand } from '../actions/finaliseHand.js'
 import { HydratedForfeitCard, isForfeitCard } from '../actions/forfeitCard.js'
+import { HydratedHarvest, isHarvest } from '../actions/harvest.js'
 import { HydratedImprove, isImprove } from '../actions/improve.js'
 import { HydratedInfluence, isInfluence } from '../actions/influence.js'
 import { HydratedMigrate, isMigrate } from '../actions/migrate.js'
@@ -12,6 +14,10 @@ import { HydratedMove, isMove } from '../actions/move.js'
 import { HydratedPlaceDisc, isPlaceDisc } from '../actions/placeDisc.js'
 import { HydratedPlaceStartingPawn, isPlaceStartingPawn } from '../actions/placeStartingPawn.js'
 import { HydratedPlayDefend, isPlayDefend } from '../actions/playDefend.js'
+import { HydratedDiscardWrit, isDiscardWrit } from '../actions/discardWrit.js'
+import { HydratedExplore, isExplore } from '../actions/explore.js'
+import { HydratedKeepWrits, isKeepWrits } from '../actions/keepWrits.js'
+import { HydratedGuildAction, isGuildAction } from '../actions/guildAction.js'
 import { HydratedTax, isTax } from '../actions/tax.js'
 import { HydratedTendLandscape, isTendLandscape } from '../actions/tendLandscape.js'
 import { HydratedFeudumGameState, type FeudumProjectedState } from '../model/gameState.js'
@@ -43,11 +49,29 @@ export class FeudumHydrator implements GameHydrator<FeudumProjectedState, Hydrat
             case isTax(data): {
                 return new HydratedTax(data)
             }
+            case isGuildAction(data): {
+                return new HydratedGuildAction(data)
+            }
+            case isExplore(data): {
+                return new HydratedExplore(data)
+            }
+            case isKeepWrits(data): {
+                return new HydratedKeepWrits(data)
+            }
+            case isDiscardWrit(data): {
+                return new HydratedDiscardWrit(data)
+            }
             case isImprove(data): {
                 return new HydratedImprove(data)
             }
             case isTendLandscape(data): {
                 return new HydratedTendLandscape(data)
+            }
+            case isHarvest(data): {
+                return new HydratedHarvest(data)
+            }
+            case isChooseFavours(data): {
+                return new HydratedChooseFavours(data)
             }
             case isPlaceDisc(data): {
                 return new HydratedPlaceDisc(data)

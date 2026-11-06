@@ -277,6 +277,10 @@ describe('PlaceDisc: the epic voyage', () => {
                 shovelsOffered: false
             })
             expect(state.flow.writDraw?.drawn).toHaveLength(2)
+            // R-3.7.5 The drawer's log names the writs; the state's record is the same two.
+            expect(action).toMatchObject({
+                metadata: { drawnWritIds: state.flow.writDraw?.drawn }
+            })
             // The keep comes next, asked of the drawer.
             expect(state.flow.turn?.followUps).toEqual([{ kind: 'keep-writs', playerId }])
             expect(table.state.machineState).toBe(MachineState.KeepingWrits)
