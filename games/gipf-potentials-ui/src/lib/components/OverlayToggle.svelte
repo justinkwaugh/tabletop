@@ -62,19 +62,12 @@
         stroke-linejoin: round;
     }
 
-    /* On, the glyph fills in dark; off, it is a faint outline. */
+    /* On, the lines brighten and a thin ring shows round the button, quieter than a solid fill. */
     .toggle[aria-pressed='true'] {
         color: var(--gp-ink);
-    }
-
-    .toggle[aria-pressed='true'] .glyph {
-        background: var(--gp-ink);
-        border-color: var(--gp-ink);
-        color: var(--gp-panel);
-    }
-
-    .toggle[aria-pressed='false'] .glyph {
-        opacity: 0.6;
+        box-shadow:
+            inset 0 0 0 1.5px var(--gp-toggle-on),
+            var(--gp-panel-shadow);
     }
 
     .toggle:hover {
