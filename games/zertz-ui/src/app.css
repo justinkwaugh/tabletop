@@ -41,6 +41,7 @@
 
 :root {
     --zertz-panel: rgb(8 42 68 / 0.88);
+    --zertz-panel-hover: rgb(18 60 94 / 0.92);
     --zertz-panel-edge: #2f74a0;
     --zertz-panel-shadow: 0 2px 6px rgb(0 0 0 / 0.3);
     /* The ring round a toggle that is on. */

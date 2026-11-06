@@ -77,7 +77,10 @@
             var(--zertz-panel-shadow);
     }
 
-    .toggle:hover {
-        background: rgb(255 255 255 / 0.08);
+    /* Only where a pointer really hovers: on touch, a tap would leave the hover stuck on. */
+    @media (hover: hover) {
+        .toggle:hover {
+            background: var(--zertz-panel-hover);
+        }
     }
 </style>
