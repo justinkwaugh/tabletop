@@ -239,6 +239,18 @@ export function cardPlayOffers(state: HydratedFeudumGameState, playerId: string)
     return { cards, repeats, secondCard: reasonSecondCardRefused(player) === undefined }
 }
 
+/** R-3.14 A card flipped out of turn leaves the hand for `played`; the turn stays where it was. */
+export function playOutOfTurn(
+    player: HydratedFeudumPlayerState,
+    kind: ActionCardKind,
+    use: PlayedCard['use']
+): void {
+    const hand = player.requireHand()
+    hand.splice(hand.indexOf(kind), 1)
+    player.handCount = hand.length
+    player.played.push({ kind, use })
+}
+
 /**
  * R-3.2, R-3.3, R-3.15 The card leaves the hand for `played` with its use. Replaying, that card is
  * Repeat and `kind` is what it replays. Sets `flow.turn.secondCard` from this card's declaration:

@@ -4,6 +4,7 @@ import { ChoosingStartingGoodsStateHandler } from '../stateHandlers/choosingStar
 import { InspectingHarvestStateHandler } from '../stateHandlers/inspectingHarvest.js'
 import { KeepingWritsStateHandler } from '../stateHandlers/keepingWrits.js'
 import { AwaitingDefenceStateHandler } from '../stateHandlers/awaitingDefence.js'
+import { AwaitingImmunityStateHandler } from '../stateHandlers/awaitingImmunity.js'
 import { CommittingAttackStateHandler } from '../stateHandlers/committingAttack.js'
 import { PlacingDiscStateHandler } from '../stateHandlers/placingDisc.js'
 import { PlacingStartingPawnStateHandler } from '../stateHandlers/placingStartingPawn.js'
@@ -21,6 +22,7 @@ export const FeudumStateHandlers: Record<
     [MachineState.SelectingHands]: new SelectingHandsStateHandler(),
     [MachineState.PlayingCards]: new PlayingCardsStateHandler(),
     [MachineState.AwaitingDefence]: new AwaitingDefenceStateHandler(),
+    [MachineState.AwaitingImmunity]: new AwaitingImmunityStateHandler(),
     [MachineState.CommittingAttack]: new CommittingAttackStateHandler(),
     [MachineState.PlacingDisc]: new PlacingDiscStateHandler(),
     [MachineState.InspectingHarvest]: new InspectingHarvestStateHandler(),

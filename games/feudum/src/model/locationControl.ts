@@ -2,6 +2,7 @@ import { assert } from '@tabletop/common'
 import type { SpaceId } from '../data/board.js'
 import type { HydratedFeudumGameState } from './gameState.js'
 import type { SpaceState } from './mapState.js'
+import { immunitySealFollowsMarker } from './seals.js'
 
 export type MarkerRole = 'ruler' | 'serf' | 'subject'
 
@@ -58,6 +59,9 @@ export function placeMarker(
         ruler.subject = true
     } else if (ruler && serf) {
         // R-4.1.2, R-4.1-H1 The serf's marker becomes the subject, with any seal under it.
+        if (serf.immune) {
+            immunitySealFollowsMarker(state, spaceId)
+        }
         space.ruler = {
             playerId,
             subject: true,

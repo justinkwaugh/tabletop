@@ -12,6 +12,12 @@ import { HydratedInfluence, isInfluence } from '../actions/influence.js'
 import { HydratedMigrate, isMigrate } from '../actions/migrate.js'
 import { HydratedMove, isMove } from '../actions/move.js'
 import { HydratedPlayDefend, isPlayDefend } from '../actions/playDefend.js'
+import {
+    HydratedReclaimImmunitySeal,
+    isReclaimImmunitySeal,
+    reclaimImmunitySealOffers
+} from '../actions/reclaimImmunitySeal.js'
+import { HydratedStarveThePeople, isStarveThePeople } from '../actions/starveThePeople.js'
 import { HydratedTax, isTax } from '../actions/tax.js'
 import { HydratedTendLandscape, isTendLandscape } from '../actions/tendLandscape.js'
 import type { ActionCardKind } from '../data/cards.js'
@@ -34,9 +40,13 @@ type HydratedCardPlay =
     | HydratedHarvest
     | HydratedGuildAction
     | HydratedConquer
+    | HydratedStarveThePeople
 
-/** R-3.2, R-4.4.4 What the turn player may send here. A discard plays no card, so ends no step. */
-type PlayingCardsAction = HydratedCardPlay | HydratedDiscardWrit
+/**
+ * R-3.2, R-4.4.4, R-3.14-H2 What the turn player may send here. A discard or a reclaimed seal plays
+ * no card, so ends no step.
+ */
+type PlayingCardsAction = HydratedCardPlay | HydratedDiscardWrit | HydratedReclaimImmunitySeal
 
 /** R-3.5 The Actions that play a card, regular or special. A new card adds its row here. */
 const PlaysOfCard: Partial<Readonly<Record<ActionCardKind, readonly ActionType[]>>> = {
@@ -49,7 +59,7 @@ const PlaysOfCard: Partial<Readonly<Record<ActionCardKind, readonly ActionType[]
     improve: [ActionType.Improve, ActionType.TendLandscape],
     harvest: [ActionType.Harvest],
     guild: [ActionType.GuildAction],
-    conquer: [ActionType.Conquer]
+    conquer: [ActionType.Conquer, ActionType.StarveThePeople]
 }
 
 /** R-3.2 The turn player plays one card, then its follow-ups run. */
@@ -74,7 +84,9 @@ export class PlayingCardsStateHandler implements MachineStateHandler<
             isTendLandscape(action) ||
             isHarvest(action) ||
             isGuildAction(action) ||
-            isConquer(action)
+            isConquer(action) ||
+            isStarveThePeople(action) ||
+            isReclaimImmunitySeal(action)
         )
     }
 
@@ -95,7 +107,10 @@ export class PlayingCardsStateHandler implements MachineStateHandler<
         return [
             ActionType.ForfeitCard,
             ...[...kinds].flatMap((kind) => PlaysOfCard[kind] ?? []),
-            ...(writCount > 0 ? [ActionType.DiscardWrit] : [])
+            ...(writCount > 0 ? [ActionType.DiscardWrit] : []),
+            ...(reclaimImmunitySealOffers(state, playerId).length > 0
+                ? [ActionType.ReclaimImmunitySeal]
+                : [])
         ]
     }
 
@@ -107,10 +122,13 @@ export class PlayingCardsStateHandler implements MachineStateHandler<
         action: PlayingCardsAction,
         context: MachineContext<HydratedFeudumGameState>
     ): MachineState {
-        if (isDiscardWrit(action)) {
+        if (isDiscardWrit(action) || isReclaimImmunitySeal(action)) {
             return MachineState.PlayingCards
         }
-        const { combat } = context.gameState.flow
+        const { combat, starve } = context.gameState.flow
+        if (starve) {
+            return MachineState.AwaitingImmunity
+        }
         if (combat) {
             return defenderAsked(context.gameState, combat.defenderId)
                 ? MachineState.AwaitingDefence
