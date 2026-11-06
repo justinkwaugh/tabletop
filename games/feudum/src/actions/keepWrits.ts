@@ -13,9 +13,16 @@ import { ActionType } from '../definition/actions.js'
 import type { WritDrawSource } from '../model/flow.js'
 import { drawWritsToKeep, finishFollowUp, requireDrawnWrits } from '../model/followUps.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import {
+    canCoverWithWildTiles,
+    canPayGoods,
+    canSpendWildTiles,
+    goodsShort,
+    payGoods,
+    WildTileSpend
+} from '../model/payments.js'
 import { KnownDeckWrit } from '../model/playerState.js'
 import { ComponentCount, WritIdSchema } from '../model/stateSchemas.js'
-import { returnGoodToHaversack } from '../model/supply.js'
 import { putWritsUnderUnseen, writDeckCount } from '../model/writDeck.js'
 import { reasonSpecialRefused } from './cardPlay.js'
 
@@ -53,7 +60,9 @@ export const KeepWrits = Type.Evaluate(
                 policy: Visibility.Policy.Actor
             }),
             /** R-3.10.2, R-3.10-H2 Decided at the keep, after seeing the first draw. */
-            shovelsAndSwords: Type.Optional(Type.Literal(true))
+            shovelsAndSwords: Type.Optional(Type.Literal(true)),
+            /** R-4.3-H3 No window comes before this payment, so it takes its own tiles. */
+            wildTiles: Type.Optional(Type.Array(WildTileSpend))
         })
     ])
 )
@@ -63,6 +72,9 @@ export const KeepWritsValidator = Compile(KeepWrits)
 export function isKeepWrits(action?: GameAction): action is KeepWrits {
     return action?.type === ActionType.KeepWrits
 }
+
+/** R-3.10.2 */
+const ShovelsPrice = { iron: 1 }
 
 /** R-4.4.1 The draw waiting on this seat, if any. */
 function drawOf(state: HydratedFeudumGameState, playerId: string) {
@@ -76,15 +88,20 @@ function drawOf(state: HydratedFeudumGameState, playerId: string) {
  */
 function reasonShovelsRefused(
     state: HydratedFeudumGameState,
-    playerId: string
+    playerId: string,
+    wildTiles: readonly WildTileSpend[] = []
 ): string | undefined {
     const writDraw = drawOf(state, playerId)
     if (!writDraw?.shovelsOffered) {
         return 'Shovels & Swords follows only the keep from an Explore draw.'
     }
+    if (!canSpendWildTiles(state, playerId, wildTiles)) {
+        return "You can't spend those region tiles."
+    }
     const afterKeep = writDeckCount(state) + writDraw.drawnCount - writDraw.keep
+    const paid = canPayGoods(state, playerId, ShovelsPrice, wildTiles)
     return (
-        reasonSpecialRefused(state, playerId, 'explore') ??
+        (paid ? undefined : reasonSpecialRefused(state, playerId, 'explore')) ??
         (afterKeep > 0 ? undefined : 'The deck has no writs left to draw.')
     )
 }
@@ -95,8 +112,13 @@ export function reasonKeepWritsRefused(
     playerId: string,
     {
         keep,
-        shovelsAndSwords
-    }: { readonly keep: readonly WritId[]; readonly shovelsAndSwords?: true }
+        shovelsAndSwords,
+        wildTiles
+    }: {
+        readonly keep: readonly WritId[]
+        readonly shovelsAndSwords?: true
+        readonly wildTiles?: readonly WildTileSpend[]
+    }
 ): string | undefined {
     const writDraw = drawOf(state, playerId)
     if (!writDraw) {
@@ -109,7 +131,10 @@ export function reasonKeepWritsRefused(
     if (new Set(keep).size !== keep.length || keep.some((writId) => !drawn.includes(writId))) {
         return 'Keep only writs you drew.'
     }
-    return shovelsAndSwords ? reasonShovelsRefused(state, playerId) : undefined
+    if (wildTiles && !shovelsAndSwords) {
+        return 'Only Shovels & Swords takes a tile here.'
+    }
+    return shovelsAndSwords ? reasonShovelsRefused(state, playerId, wildTiles) : undefined
 }
 
 export interface ShovelsOffer {
@@ -117,6 +142,8 @@ export interface ShovelsOffer {
     readonly keep: number
     /** R-X.2 A second draw can't be undone. */
     readonly revealsInfo: true
+    /** R-4.3-H3 The seat holds no iron and a tile can bring one. */
+    readonly wildTileNeeded: boolean
 }
 
 export interface KeepWritsOffer {
@@ -136,16 +163,26 @@ export function keepWritsOffer(
     if (!writDraw) {
         return undefined
     }
+    const wildTileNeeded =
+        goodsShort(state, playerId, ShovelsPrice).iron > 0 &&
+        canCoverWithWildTiles(state, playerId, ShovelsPrice)
+    const anyTile = state
+        .getPlayerState(playerId)
+        .regionTiles.slice(0, 1)
+        .map((tileId): WildTileSpend => ({ tileId, good: 'iron' }))
     const shovelsAndSwords: ShovelsOffer = {
         draw: ShovelsDraw,
         keep: ShovelsKeep,
-        revealsInfo: true
+        revealsInfo: true,
+        wildTileNeeded
     }
     return {
         drawn: requireDrawnWrits(writDraw),
         keep: writDraw.keep,
         source: writDraw.source,
-        ...(reasonShovelsRefused(state, playerId) ? {} : { shovelsAndSwords })
+        ...(reasonShovelsRefused(state, playerId, wildTileNeeded ? anyTile : [])
+            ? {}
+            : { shovelsAndSwords })
     }
 }
 
@@ -155,6 +192,7 @@ export class HydratedKeepWrits extends HydratableAction<typeof KeepWrits> implem
     declare metadata?: KeepWritsMetadata
     declare keep: WritId[]
     declare shovelsAndSwords?: true
+    declare wildTiles?: WildTileSpend[]
 
     constructor(data: KeepWrits) {
         super(data, KeepWritsValidator)
@@ -178,7 +216,7 @@ export class HydratedKeepWrits extends HydratableAction<typeof KeepWrits> implem
         const player = state.getPlayerState(this.playerId)
         const writs = player.requireWrits()
         writs.push(...this.keep)
-        player.writCount = writs.length
+        player.writCount = writs.length + player.sealedCharterCount
 
         const known = player.requireDeckKnowledge().length
         putWritsUnderUnseen(
@@ -202,8 +240,7 @@ export class HydratedKeepWrits extends HydratableAction<typeof KeepWrits> implem
             'R-3.10.2 Shovels & Swords belongs to the Explore being played'
         )
         played.use = 'special'
-        player.goods.iron -= 1
-        returnGoodToHaversack(state, 'iron')
+        payGoods(state, this.playerId, ShovelsPrice, this.wildTiles ?? [])
 
         const drawnCount = drawWritsToKeep(
             state,

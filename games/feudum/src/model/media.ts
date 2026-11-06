@@ -7,7 +7,17 @@ import {
     type VesselType
 } from '../data/components.js'
 import type { HydratedFeudumGameState } from './gameState.js'
-import type { PawnState } from './playerState.js'
+import type { HydratedFeudumPlayerState, PawnState } from './playerState.js'
+
+/** R-4.2.2 A vessel from the seat's supply goes under its pawn: free, in a Move or at will. */
+export function placeVesselUnderPawn(
+    player: HydratedFeudumPlayerState,
+    pawn: PawnState,
+    vessel: VesselType
+): void {
+    player.vessels[vessel] -= 1
+    pawn.vessel = vessel
+}
 
 /** R-4.2.3 Per one-way trip, to the general supply. */
 export const FerryFare = 2

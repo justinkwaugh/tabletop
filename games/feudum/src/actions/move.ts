@@ -2,7 +2,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { assertExists, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { RouteMedia, Routes, type RouteMedium, type SpaceId } from '../data/board.js'
-import { Goods, MonsterIds, WineBarrelCapacity, type Good } from '../data/components.js'
+import { Goods, MonsterIds, type Good } from '../data/components.js'
 import { Landscapes, type Landscape } from '../data/regionTiles.js'
 import { ActionType } from '../definition/actions.js'
 import { PieceRef } from '../model/flow.js'
@@ -17,6 +17,7 @@ import {
     monsterSteps,
     pawnRouteOptions,
     pawnSteps,
+    placeVesselUnderPawn,
     routeBetween,
     vesselOfMedium,
     type RouteStep
@@ -28,7 +29,11 @@ import {
     SpaceIdSchema,
     VesselTypeSchema
 } from '../model/stateSchemas.js'
-import { payShillingsToSupply, targetToMarker } from '../model/supply.js'
+import {
+    payShillingsToSupply,
+    reasonSulfurToBarrelRefused,
+    targetToMarker
+} from '../model/supply.js'
 import {
     CardPlayFields,
     playCard,
@@ -320,12 +325,14 @@ function takeStep(
         pawn.vessel = undefined
     }
     if (rides) {
-        if (way.vessel === 'board') {
-            state.spaces[from].vessels[rides] -= 1
-        } else if (way.vessel === 'place') {
-            player.vessels[rides] -= 1
+        if (way.vessel === 'place') {
+            placeVesselUnderPawn(player, pawn, rides)
+        } else {
+            if (way.vessel === 'board') {
+                state.spaces[from].vessels[rides] -= 1
+            }
+            pawn.vessel = rides
         }
-        pawn.vessel = rides
         record.vessel = rides
     }
     if (way.ferry) {
@@ -403,12 +410,7 @@ function reasonPilferRefused(
     if (refused || !pilfer.sulfurToBarrel) {
         return refused
     }
-    if (pilfer.resource !== 'sulfur') {
-        return 'Only sulfur goes in your barrel.'
-    }
-    return state.getPlayerState(playerId).barrel < WineBarrelCapacity
-        ? undefined
-        : 'Your barrel is full.'
+    return reasonSulfurToBarrelRefused(state, playerId, pilfer.resource)
 }
 
 /** R-3.7.4, R-4.3.4, R-4.10.2 The resource reaches the seat; a target as one of its markers. */

@@ -24,6 +24,10 @@ import { HydratedPlaceDisc, isPlaceDisc } from '../actions/placeDisc.js'
 import { HydratedPlaceStartingPawn, isPlaceStartingPawn } from '../actions/placeStartingPawn.js'
 import { HydratedPlayDefend, isPlayDefend } from '../actions/playDefend.js'
 import { HydratedDiscardWrit, isDiscardWrit } from '../actions/discardWrit.js'
+import { HydratedPlaceVessel, isPlaceVessel } from '../actions/placeVessel.js'
+import { HydratedPlayMandate, isPlayMandate } from '../actions/playMandate.js'
+import { HydratedSealCharter, isSealCharter } from '../actions/sealCharter.js'
+import { HydratedSpendRegionTile, isSpendRegionTile } from '../actions/spendRegionTile.js'
 import { HydratedExplore, isExplore } from '../actions/explore.js'
 import { HydratedKeepWrits, isKeepWrits } from '../actions/keepWrits.js'
 import { HydratedFeast, isFeast } from '../actions/feast.js'
@@ -73,6 +77,18 @@ export class FeudumHydrator implements GameHydrator<FeudumProjectedState, Hydrat
             }
             case isDiscardWrit(data): {
                 return new HydratedDiscardWrit(data)
+            }
+            case isPlayMandate(data): {
+                return new HydratedPlayMandate(data)
+            }
+            case isSealCharter(data): {
+                return new HydratedSealCharter(data)
+            }
+            case isSpendRegionTile(data): {
+                return new HydratedSpendRegionTile(data)
+            }
+            case isPlaceVessel(data): {
+                return new HydratedPlaceVessel(data)
             }
             case isImprove(data): {
                 return new HydratedImprove(data)

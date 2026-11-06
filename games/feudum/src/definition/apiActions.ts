@@ -6,7 +6,11 @@ import { FinaliseHand } from '../actions/finaliseHand.js'
 import { ForfeitCard } from '../actions/forfeitCard.js'
 import { AnswerAttack } from '../actions/answerAttack.js'
 import { AnswerStarve } from '../actions/answerStarve.js'
+import { PlaceVessel } from '../actions/placeVessel.js'
+import { PlayMandate } from '../actions/playMandate.js'
 import { ReclaimImmunitySeal } from '../actions/reclaimImmunitySeal.js'
+import { SealCharter } from '../actions/sealCharter.js'
+import { SpendRegionTile } from '../actions/spendRegionTile.js'
 import { StarveThePeople } from '../actions/starveThePeople.js'
 import { CommitAttack } from '../actions/commitAttack.js'
 import { Conquer } from '../actions/conquer.js'
@@ -52,5 +56,9 @@ export const FeudumApiActions = {
     [ActionType.ReclaimImmunitySeal]: ReclaimImmunitySeal,
     [ActionType.ChooseFavours]: ChooseFavours,
     [ActionType.PlaceDisc]: PlaceDisc,
-    [ActionType.Move]: Move
+    [ActionType.Move]: Move,
+    [ActionType.PlayMandate]: PlayMandate,
+    [ActionType.SealCharter]: SealCharter,
+    [ActionType.SpendRegionTile]: SpendRegionTile,
+    [ActionType.PlaceVessel]: PlaceVessel
 }

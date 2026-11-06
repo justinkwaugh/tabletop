@@ -1,11 +1,13 @@
 import type { HydratedAction, MachineStateHandler } from '@tabletop/common'
 import { MachineState } from './states.js'
 import { ChoosingStartingGoodsStateHandler } from '../stateHandlers/choosingStartingGoods.js'
+import { DiscardingWritsStateHandler } from '../stateHandlers/discardingWrits.js'
 import { InspectingHarvestStateHandler } from '../stateHandlers/inspectingHarvest.js'
 import { KeepingWritsStateHandler } from '../stateHandlers/keepingWrits.js'
 import { AwaitingDefenceStateHandler } from '../stateHandlers/awaitingDefence.js'
 import { AwaitingImmunityStateHandler } from '../stateHandlers/awaitingImmunity.js'
 import { CommittingAttackStateHandler } from '../stateHandlers/committingAttack.js'
+import { NourishingStateHandler } from '../stateHandlers/nourishing.js'
 import { PlacingDiscStateHandler } from '../stateHandlers/placingDisc.js'
 import { PlacingStartingPawnStateHandler } from '../stateHandlers/placingStartingPawn.js'
 import { PlayingCardsStateHandler } from '../stateHandlers/playingCards.js'
@@ -26,5 +28,7 @@ export const FeudumStateHandlers: Record<
     [MachineState.CommittingAttack]: new CommittingAttackStateHandler(),
     [MachineState.PlacingDisc]: new PlacingDiscStateHandler(),
     [MachineState.InspectingHarvest]: new InspectingHarvestStateHandler(),
-    [MachineState.KeepingWrits]: new KeepingWritsStateHandler()
+    [MachineState.KeepingWrits]: new KeepingWritsStateHandler(),
+    [MachineState.DiscardingWrits]: new DiscardingWritsStateHandler(),
+    [MachineState.Nourishing]: new NourishingStateHandler()
 }

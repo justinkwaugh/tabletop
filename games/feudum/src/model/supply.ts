@@ -1,5 +1,5 @@
 import { assert } from '@tabletop/common'
-import type { Good } from '../data/components.js'
+import { WineBarrelCapacity, type Good } from '../data/components.js'
 import type { HydratedFeudumGameState } from './gameState.js'
 
 /** R-1.1-H1 The supply pays what remains; returns what it paid. */
@@ -46,6 +46,41 @@ export function targetToMarker(state: HydratedFeudumGameState, playerId: string)
     influence[player.color] -= 1
     player.influenceSupply += 1
     return true
+}
+
+/** R-4.4.2, R-1.1-H1 Markers from the general supply to the seat's; returns how many it had. */
+export function takeInfluenceMarkers(
+    state: HydratedFeudumGameState,
+    playerId: string,
+    amount: number
+): number {
+    const player = state.getPlayerState(playerId)
+    const { influence } = state.supply
+    const taken = Math.min(amount, influence[player.color] ?? 0)
+    influence[player.color] -= taken
+    player.influenceSupply += taken
+    return taken
+}
+
+/** R-4.10.2 Only a sulfur goes in the wine barrel, while it has room. */
+export function reasonSulfurToBarrelRefused(
+    state: HydratedFeudumGameState,
+    playerId: string,
+    resource: string
+): string | undefined {
+    if (resource !== 'sulfur') {
+        return 'Only sulfur goes in your barrel.'
+    }
+    return state.getPlayerState(playerId).barrel < WineBarrelCapacity
+        ? undefined
+        : 'Your barrel is full.'
+}
+
+/** R-4.10.2 A sulfur the seat just gained goes straight into its barrel. */
+export function putSulfurInBarrel(state: HydratedFeudumGameState, playerId: string): void {
+    const player = state.getPlayerState(playerId)
+    player.goods.sulfur -= 1
+    player.barrel += 1
 }
 
 /** R-1.4.4, R-1.1-H1 A named good from the haversack; returns how many it held to give. */

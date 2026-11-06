@@ -57,6 +57,9 @@ export type Mandate = TurnInMandate | GuildStatusMandate
 /** R-7 */
 export const MandateStatusStars = 3
 
+/** R-4.4.4 Sealed charters included. */
+export const WritLimit = 3
+
 function shillings(amount: number): MandateReward {
     return { kind: 'shillings', amount }
 }

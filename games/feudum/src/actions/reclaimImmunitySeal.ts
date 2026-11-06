@@ -3,6 +3,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Spaces, type SpaceId } from '../data/board.js'
 import { ActionType } from '../definition/actions.js'
+import { reasonNoAtWillWindow } from '../model/atWill.js'
 import { StarveRole } from '../model/flow.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { moveConcealedSeal } from '../model/seals.js'
@@ -38,15 +39,16 @@ function sealUnderOwnMarker(
     return markerPlayerId(space, role) === playerId && markerImmune(space, role)
 }
 
-/** R-3.14.2, R-3.14-H2 The seat being asked, and a seal under a marker of its own. */
+/** R-3.14.2, R-3.14-H2 In an at-will window, and a seal under a marker of its own. */
 export function reasonReclaimImmunitySealRefused(
     state: HydratedFeudumGameState,
     playerId: string,
     spaceId: SpaceId,
     role: StarveRole
 ): string | undefined {
-    if (!state.isActivePlayer(playerId)) {
-        return "It isn't your turn."
+    const closed = reasonNoAtWillWindow(state, playerId)
+    if (closed) {
+        return closed
     }
     return sealUnderOwnMarker(state, playerId, spaceId, role)
         ? undefined
