@@ -15,10 +15,17 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { MachineState } from '../definition/states.js'
 import { Spaces, type SpaceId } from '../data/board.js'
-import { GuildIds, MonsterIds, PlayerDiscRoles, type MonsterId } from '../data/components.js'
+import {
+    GuildIds,
+    MonsterIds,
+    PlayerDiscRoles,
+    type GuildId,
+    type MonsterId
+} from '../data/components.js'
 import { RegionIds, type LandscapeKind, type RegionId, type TileId } from '../data/regionTiles.js'
 import { EpicVoyageTrack, MilitaryServiceTrack, type Epoch } from '../data/tracks.js'
 import { FlowState } from './flow.js'
+import { recomputeRanks, statusStars, type RankChange } from './guildStatus.js'
 import { GuildsState } from './guildsState.js'
 import { MonsterState, SpaceState } from './mapState.js'
 import { SupplyState } from './supplyState.js'
@@ -158,6 +165,16 @@ export class HydratedFeudumGameState
         return Spaces.map((space) => space.id).filter(
             (spaceId) => this.spaces[spaceId].ruler?.playerId === playerId
         )
+    }
+
+    /** R-4.5.1 Derived. */
+    statusStars(playerId: string, guildId: GuildId): number {
+        return statusStars(this, playerId, guildId)
+    }
+
+    /** R-4.5.4 After anything that can move stars or return a marker. */
+    recomputeRanks(actingPlayerId?: string): RankChange[] {
+        return recomputeRanks(this, actingPlayerId)
     }
 
     /** R-4.9.2 Derived: ruling at least one feudum. */

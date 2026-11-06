@@ -32,6 +32,7 @@ Rules version: the December 2018 English rulebook with the designer's later answ
 
 ### Mechanisms (R-4)
 
+- **R-4.1-H1** (design): when a serf with a Royal Immunity seal adds a marker, the seal stays under that marker, which becomes the subject. Rejected: the seal going back to the player. Spec: `locationControl.spec.ts`.
 - **R-4.3-H1** (Q20): when an improvement's tile is prohibited, the improving player chooses which stack to take an earlier-epoch tile from, among those that have one on top. Spec: `regionTiles.spec.ts`.
 - **R-4.4-H1** (Q13): Royal Writ mandates and wild region tiles may be used on the player's own turns, during hand selection and nourishing, and (weapons) during the player's own attack; a wild tile is also offered whenever a payment would otherwise fall short. Rejected: out of turn at any moment. Spec: `royalWrits.spec.ts`, `regionTiles.spec.ts`.
 - **R-4.4-H2** (design): a Royal Writ draw larger than the deck draws what is there and keeps the stated number, or all drawn if fewer; an empty deck draws nothing. Spec: `royalWrits.spec.ts`.
@@ -39,6 +40,7 @@ Rules version: the December 2018 English rulebook with the designer's later answ
 - **R-4.4-H4** (Q29): mandate 6's Alchemist reward is a ship, the icon the card prints. Rejected: any vessel, as the rulebook's writ summary reads. Spec: `mandates.spec.ts`.
 - **R-4.5-H1** (Q18): after anything changes status stars, each guild's ranks are recomputed from the new totals; a current holder keeps a space against a tie. Rejected: applying bumps player by player. Spec: `guildStatus.spec.ts`.
 - **R-4.5-H2** (design): when two players who hold no rank tie for a vacant one, the acting player takes it first, then the others in turn order from them. Rejected: leaving it vacant until one has more stars. Spec: `guildStatus.spec.ts`.
+- **R-4.5-H3** (design): a player owed membership of several guilds with too few markers in supply takes them in ring order from the Farmer, without being asked; a marker returning is placed the same way. Rejected: asking the player, a stop in a rule that has none. Spec: `guildStatus.spec.ts`.
 - **R-4.6-H1** (Q14), _provisional_: the Noble trade sells king's seals from the guild's scrolls; with no seal there, there is nothing to buy. Rejected: from the general supply. Spec: `guildTrade.spec.ts`.
 - **R-4.6-H2** (Q15): the hidden-bead draw (Monk trade, Farmer pull, Monk push) picks one of the highest- and lowest-valued beads at random; no opponent arranges them. Listed in `known-deviations.md`. Spec: `beads.spec.ts`.
 - **R-4.6-H3** (Q16), _provisional_: the apprentice's share from the Farmer, Merchant and Alchemist guilds goes to the church coffer; from the Knight, Noble and Monk guilds, to the farmer's purse. Spec: `guildTrade.spec.ts`.
