@@ -4,11 +4,16 @@ import { Goods, type Good, type GuildId } from '../data/components.js'
 import { FarmerPurse, GuildById, type CharityId } from '../data/guilds.js'
 import type { HydratedFeudumGameState } from './gameState.js'
 import { goodCounts, GoodSchema, TileIdSchema, type GoodCounts } from './stateSchemas.js'
-import { returnGoodToHaversack, takeGoodFromHaversack } from './supply.js'
+import { barrelRoom, returnGoodToHaversack, takeGoodFromHaversack } from './supply.js'
 
 /** R-4.3.3, R-4.4-H1 What every paying action may carry: a good, never shillings. */
 export type WildTileSpend = Type.Static<typeof WildTileSpend>
-export const WildTileSpend = Type.Object({ tileId: TileIdSchema, good: GoodSchema })
+export const WildTileSpend = Type.Object({
+    tileId: TileIdSchema,
+    good: GoodSchema,
+    /** R-4.10.2, R-4.10-H1 A sulfur brought may go straight into the barrel. */
+    sulfurToBarrel: Type.Optional(Type.Literal(true))
+})
 
 export type GoodPrice = Readonly<Partial<Record<Good, number>>>
 
@@ -73,7 +78,10 @@ export function payGuild(
     return split
 }
 
-/** R-4.3.3 Each tile is held, named once, and the haversack holds every good named. */
+/**
+ * R-4.3.3, R-4.10.2 Each tile is held, named once, and the haversack holds every good named; only
+ * sulfur goes in the barrel, as far as it has room.
+ */
 export function canSpendWildTiles(
     state: HydratedFeudumGameState,
     playerId: string,
@@ -81,7 +89,10 @@ export function canSpendWildTiles(
 ): boolean {
     const held = state.getPlayerState(playerId).regionTiles
     const tileIds = wildTiles.map((spend) => spend.tileId)
+    const toBarrel = wildTiles.filter((spend) => spend.sulfurToBarrel)
     return (
+        toBarrel.every((spend) => spend.good === 'sulfur') &&
+        toBarrel.length <= barrelRoom(state, playerId) &&
         new Set(tileIds).size === tileIds.length &&
         tileIds.every((tileId) => held.includes(tileId)) &&
         Goods.every(
@@ -92,7 +103,7 @@ export function canSpendWildTiles(
     )
 }
 
-/** R-4.3.3 Each tile leaves the game for a good of the player's choice from the haversack. */
+/** R-4.3.3, R-4.10.2 Each tile leaves the game for a good of the player's choice from the haversack. */
 export function spendWildTiles(
     state: HydratedFeudumGameState,
     playerId: string,
@@ -100,10 +111,15 @@ export function spendWildTiles(
 ): void {
     assert(canSpendWildTiles(state, playerId, wildTiles), `R-4.3.3 ${playerId} cannot spend these`)
     const player = state.getPlayerState(playerId)
-    for (const { tileId, good } of wildTiles) {
+    for (const { tileId, good, sulfurToBarrel } of wildTiles) {
         player.regionTiles = player.regionTiles.filter((held) => held !== tileId)
         state.tilesOutOfGame.push(tileId)
-        player.goods[good] += takeGoodFromHaversack(state, good)
+        const taken = takeGoodFromHaversack(state, good)
+        if (sulfurToBarrel) {
+            player.barrel += taken
+        } else {
+            player.goods[good] += taken
+        }
     }
 }
 
@@ -135,7 +151,7 @@ export function canCoverWithWildTiles(
     )
 }
 
-/** R-4.4-H1 The tiles are spent first, so what they bring counts toward the price. */
+/** R-4.4-H1 The tiles are spent first, so what they bring to the seat's goods counts toward the price. */
 export function canPayGoods(
     state: HydratedFeudumGameState,
     playerId: string,
@@ -147,7 +163,9 @@ export function canPayGoods(
     }
     const { goods } = state.getPlayerState(playerId)
     return Goods.every((good) => {
-        const covered = wildTiles.filter((spend) => spend.good === good).length
+        const covered = wildTiles.filter(
+            (spend) => spend.good === good && !spend.sulfurToBarrel
+        ).length
         return goods[good] + covered >= (price[good] ?? 0)
     })
 }

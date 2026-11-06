@@ -42,6 +42,9 @@ export const EpochSchema = Type.Union([
 ])
 
 /** R-1.1 A pawn is (playerId, n). */
+/** R-4.10.2 How many of the sulfur an action brings the seat go in its barrel. */
+export const SulfurToBarrelCount = Type.Integer({ minimum: 1 })
+
 export const PawnNumberSchema = Type.Union([Type.Literal(1), Type.Literal(2), Type.Literal(3)])
 
 export type GoodCounts = Type.Static<typeof GoodCounts>

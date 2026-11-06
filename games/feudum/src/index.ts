@@ -48,6 +48,8 @@ export * from './actions/sealCharter.js'
 export * from './actions/spendRegionTile.js'
 export * from './actions/placeVessel.js'
 export * from './actions/tendLandscape.js'
+export * from './actions/nourish.js'
+export * from './actions/collectLandscapes.js'
 
 export * from './definition/actions.js'
 export * from './definition/config.js'

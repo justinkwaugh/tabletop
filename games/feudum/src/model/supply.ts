@@ -76,11 +76,46 @@ export function reasonSulfurToBarrelRefused(
         : 'Your barrel is full.'
 }
 
-/** R-4.10.2 A sulfur the seat just gained goes straight into its barrel. */
-export function putSulfurInBarrel(state: HydratedFeudumGameState, playerId: string): void {
+/** R-4.10.2 How many more sulfur the barrel holds. */
+export function barrelRoom(state: HydratedFeudumGameState, playerId: string): number {
+    return WineBarrelCapacity - state.getPlayerState(playerId).barrel
+}
+
+/**
+ * R-4.10.2 Of the sulfur an action brings the seat, how many it names for the barrel: no more than
+ * it gains, or than fit.
+ */
+export function reasonSulfurCountToBarrelRefused(
+    state: HydratedFeudumGameState,
+    playerId: string,
+    gained: number,
+    count = 0
+): string | undefined {
+    if (count === 0) {
+        return undefined
+    }
+    if (gained === 0) {
+        return 'Only sulfur goes in your barrel.'
+    }
+    if (count > gained) {
+        return `You gain only ${gained} sulfur.`
+    }
+    const room = barrelRoom(state, playerId)
+    if (room === 0) {
+        return 'Your barrel is full.'
+    }
+    return count > room ? `Your barrel has room for ${room}.` : undefined
+}
+
+/** R-4.10.2 Sulfur the seat just gained goes straight into its barrel. */
+export function putSulfurInBarrel(
+    state: HydratedFeudumGameState,
+    playerId: string,
+    amount = 1
+): void {
     const player = state.getPlayerState(playerId)
-    player.goods.sulfur -= 1
-    player.barrel += 1
+    player.goods.sulfur -= amount
+    player.barrel += amount
 }
 
 /** R-1.4.4, R-1.1-H1 A named good from the haversack; returns how many it held to give. */
