@@ -1,5 +1,7 @@
 import {
     BaseGameInitializer,
+    HydratedPhaseManager,
+    HydratedRoundManager,
     HydratedTurnManager,
     Prng,
     shuffle,
@@ -14,8 +16,14 @@ import {
     HydratedFeudumGameState,
     type FeudumGameState
 } from '../model/gameState.js'
-import { HydratedFeudumPlayerState, type FeudumPlayerState } from '../model/playerState.js'
+import { boxContents } from '../model/boxContents.js'
+import {
+    emptyPlayerRow,
+    HydratedFeudumPlayerState,
+    type FeudumPlayerState
+} from '../model/playerState.js'
 import { FeudumColors } from './colors.js'
+import { PhaseName } from './phases.js'
 import { MachineState } from './states.js'
 
 export class FeudumGameInitializer
@@ -36,11 +44,18 @@ export class FeudumGameInitializer
             .map((playerId) => players.find((player) => player.playerId === playerId))
             .filter((player): player is FeudumPlayerState => player !== undefined)
 
+        const roundManager = HydratedRoundManager.generate()
+        const phaseManager = HydratedPhaseManager.generate()
+        phaseManager.startPhase(PhaseName.Setup, state.actionCount)
+
         const feudumGameState: FeudumGameState = Object.assign(state, {
             players: orderedPlayers,
             machineState: MachineState.StartOfTurn,
             turnManager,
-            feudumRevision: CURRENT_FEUDUM_REVISION
+            roundManager,
+            phaseManager,
+            feudumRevision: CURRENT_FEUDUM_REVISION,
+            ...boxContents(orderedPlayers)
         })
 
         return new HydratedFeudumGameState(feudumGameState)
@@ -52,10 +67,7 @@ export class FeudumGameInitializer
 
         return game.players.map(
             (player: Player, index: number) =>
-                new HydratedFeudumPlayerState({
-                    playerId: player.id,
-                    color: colors[index]
-                })
+                new HydratedFeudumPlayerState(emptyPlayerRow(player.id, colors[index]))
         )
     }
 }
