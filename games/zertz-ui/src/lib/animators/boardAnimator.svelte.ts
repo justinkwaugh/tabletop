@@ -96,7 +96,6 @@ export class BoardAnimator {
 
     flier(): Attachment<SVGGElement> {
         return (node) => {
-            gsap.set(node, { svgOrigin: '0 0' })
             this.flierNode = node
             return () => {
                 if (this.flierNode === node) this.flierNode = undefined
@@ -106,7 +105,6 @@ export class BoardAnimator {
 
     flierBody(): Attachment<SVGGElement> {
         return (node) => {
-            gsap.set(node, { svgOrigin: '0 0' })
             this.flierBodyNode = node
             return () => {
                 if (this.flierBodyNode === node) this.flierBodyNode = undefined
@@ -115,7 +113,6 @@ export class BoardAnimator {
     }
 
     private track(nodes: Map<string, SVGGElement>, key: string, node: SVGGElement) {
-        gsap.set(node, { svgOrigin: '0 0' })
         nodes.set(key, node)
         return () => {
             if (nodes.get(key) === node) nodes.delete(key)
@@ -189,6 +186,7 @@ export class BoardAnimator {
     private sink(coords: AxialCoordinates, timeline: Timeline, at: number, duration: number) {
         const node = this.ringNodes.get(coordsKey(coords))
         if (node === undefined) return
+        scaledFromCentre(node)
         timeline.to(
             node,
             { opacity: 0, scale: SINK.scale, y: SINK.drop, duration, ease: 'power1.in' },
@@ -200,6 +198,7 @@ export class BoardAnimator {
         const key = coordsKey(coords)
         const body = this.marbleNodes.get(key)
         if (body === undefined) return
+        scaledFromCentre(body)
         timeline.to(
             body,
             { opacity: 0, scale: LIFT.scale, y: LIFT.rise, duration, ease: 'power1.out' },
@@ -211,6 +210,7 @@ export class BoardAnimator {
     private fadeShadow(key: string, timeline: Timeline, at: number, duration: number) {
         const shadow = this.marbleShadowNodes.get(key)
         if (shadow === undefined) return
+        scaledFromCentre(shadow)
         timeline.to(shadow, { opacity: 0, scale: DROP.shadow, duration, ease: 'power1.out' }, at)
     }
 
@@ -219,6 +219,7 @@ export class BoardAnimator {
         const body = this.marbleNodes.get(key)
         const shadow = this.marbleShadowNodes.get(key)
         if (body === undefined || shadow === undefined) return
+        scaledFromCentre(body, shadow)
         const { fall } = DROP
         timeline.fromTo(
             body,
@@ -308,6 +309,7 @@ export class BoardAnimator {
         // The shadow keeps to the board while the marble rises over the one it takes.
         const body = this.flierBodyNode
         if (body === undefined) return
+        scaledFromCentre(body)
         timeline.to(
             body,
             { y: JUMP.rise, scale: JUMP.peakScale, duration: half, ease: 'power2.out' },
@@ -332,4 +334,11 @@ export class BoardAnimator {
             at += LANDING.step
         }
     }
+}
+
+// Nodes about to grow or shrink, around their ring's centre. Set only on the nodes a move
+// scales, as it starts: GSAP measures each node's drawing to place the origin, and done for every
+// ring, marble and shadow as it was drawn, that froze opening a game for seconds on a phone.
+function scaledFromCentre(...nodes: SVGGElement[]) {
+    gsap.set(nodes, { svgOrigin: '0 0' })
 }
