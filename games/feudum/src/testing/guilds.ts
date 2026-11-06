@@ -1,7 +1,7 @@
 import { assert } from '@tabletop/common'
 import type { SpaceId } from '../data/board.js'
 import type { ActionCardKind } from '../data/cards.js'
-import { Goods, type Good, type GuildId } from '../data/components.js'
+import { Goods, type Good, type GuildId, type VesselType } from '../data/components.js'
 import { AlchemistCartSpaces, MarketSpaces, ScrollSpaces } from '../data/guilds.js'
 import { Seals, type BeadValue, type SealId } from '../data/seals.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
@@ -89,6 +89,41 @@ export function setCarts(state: HydratedFeudumGameState, filled: GoodAmounts): v
         state.supply.haversack[good] += Number(held) - Number(wanted)
         state.guilds.alchemist.carts[id] = wanted
     }
+}
+
+/** The seat holds exactly this many shillings, keeping totals. */
+export function setShillings(
+    state: HydratedFeudumGameState,
+    playerId: string,
+    shillings: number
+): void {
+    const player = state.getPlayerState(playerId)
+    state.supply.shillings -= shillings - player.shillings
+    player.shillings = shillings
+}
+
+/** Exactly these vessels are for sale, the rest in the general supply. */
+export function setVesselsForSale(
+    state: HydratedFeudumGameState,
+    vessels: readonly VesselType[]
+): void {
+    const { alchemist } = state.guilds
+    for (const vessel of alchemist.vesselsForSale) {
+        state.supply.vessels[vessel] += 1
+    }
+    for (const vessel of vessels) {
+        state.supply.vessels[vessel] -= 1
+    }
+    alchemist.vesselsForSale = [...vessels]
+}
+
+/** Each Knight row, in order, holds this many markers, keeping totals. */
+export function setRowMarkers(state: HydratedFeudumGameState, markers: readonly number[]): void {
+    state.guilds.knight.rows.forEach((row, index) => {
+        const wanted = markers.at(index) ?? row.markers
+        state.supply.influence[row.colour] -= wanted - row.markers
+        row.markers = wanted
+    })
 }
 
 /** A seal of this value out of the pile, swapped off a scroll first if one lies there. */

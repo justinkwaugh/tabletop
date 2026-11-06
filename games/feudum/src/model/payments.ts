@@ -14,7 +14,7 @@ export type GoodPrice = Readonly<Partial<Record<Good, number>>>
 
 /** R-4.6.2 Where a payment's shillings go. */
 export interface GuildSplit {
-    readonly members: readonly { readonly playerId: string; readonly amount: number }[]
+    readonly members: { readonly playerId: string; readonly amount: number }[]
     readonly charity: { readonly id: CharityId; readonly amount: number }
     readonly generalSupply: number
 }

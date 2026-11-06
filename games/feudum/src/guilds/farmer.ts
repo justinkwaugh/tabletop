@@ -25,7 +25,8 @@ import {
     goodsTotal,
     marketRoom,
     movableToMarket,
-    reasonMarketPicksRefused
+    reasonMarketPicksRefused,
+    reasonMoveShort
 } from '../model/market.js'
 import { goodCounts, type GoodCounts } from '../model/stateSchemas.js'
 import {
@@ -297,10 +298,7 @@ const FarmerPush: GuildFunctionRow = {
     /** R-4.6.1, R-4.6-H5 As many as fit, up to five. */
     reasonRefused(state, _actor, { goods = [] }) {
         const movable = movableToMarket(state, state.guilds.farmer.barn, FarmerPushGoods)
-        return (
-            reasonPicksRefused(state, goods) ??
-            (goods.length < movable ? `${movable} goods fit: move them all.` : undefined)
-        )
+        return reasonPicksRefused(state, goods) ?? reasonMoveShort(goods, movable)
     },
 
     perform: performPush,

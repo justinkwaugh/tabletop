@@ -13,9 +13,9 @@ import {
 } from '../model/followUps.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { rankOf, RankChange } from '../model/guildStatus.js'
-import { GoodSchema, SpaceIdSchema, WritIdSchema } from '../model/stateSchemas.js'
+import { GoodSchema, SpaceIdSchema, VesselTypeSchema, WritIdSchema } from '../model/stateSchemas.js'
 import { writDeckCount } from '../model/writDeck.js'
-import { CompletionCount, GuildFunctionDetails } from './guildFunctionDetails.js'
+import { CompletionCount, GuildFunctionDetails, InventionChoice } from './guildFunctionDetails.js'
 
 export const GuildFunctionNames = ['trade', 'pull', 'push'] as const
 export type GuildFunctionName = (typeof GuildFunctionNames)[number]
@@ -36,7 +36,11 @@ export const GuildFunctionParams = Type.Object({
     /** R-4.6.1 The goods moved, in order. */
     goods: Type.Optional(Type.Array(GoodSchema)),
     /** R-4.6.1 Rows or columns; absent, whichever is higher. */
-    count: Type.Optional(CompletionCount)
+    count: Type.Optional(CompletionCount),
+    /** R-4.6.3 Alchemist trade: the vessel bought. */
+    vesselType: Type.Optional(VesselTypeSchema),
+    /** R-4.6.5 Alchemist push: what is invented, in order; barrels are priced in this order. */
+    inventions: Type.Optional(Type.Array(InventionChoice))
 })
 
 /**
@@ -128,6 +132,8 @@ export interface PreviewedFunction {
     readonly revealed?: boolean
     readonly trade?: TradePreview
     readonly beadDraw?: BeadDrawPreview
+    /** What it would record, for a function that draws nothing and whose record says it all. */
+    readonly details?: GuildFunctionDetails
 }
 
 /**

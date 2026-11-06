@@ -4,6 +4,7 @@ import {
     AlchemistCartSpaces,
     MarketSpaces,
     type CartSpaceId,
+    type MarketSpace,
     type MarketSpaceId
 } from '../data/guilds.js'
 import type { HydratedFeudumGameState } from './gameState.js'
@@ -123,6 +124,11 @@ export function reasonMarketPicksRefused(
     return undefined
 }
 
+/** R-4.6-H5 Every good that fits must move. */
+export function reasonMoveShort(goods: readonly Good[], movable: number): string | undefined {
+    return goods.length < movable ? `${movable} goods fit: move them all.` : undefined
+}
+
 export interface MarketFill extends MarketLines {
     readonly spaces: MarketSpaceId[]
 }
@@ -179,4 +185,118 @@ function bestLinesCompleted(market: Market, fits: Readonly<GoodCounts>, amount: 
         best(marketRows(), Goods, amount, market),
         best(marketColumns(), Goods, amount, market)
     )
+}
+
+/** R-4.6.3 What each market bin holds. */
+export function marketHolds(state: HydratedFeudumGameState): GoodCounts {
+    const { market } = state.guilds.merchant
+    const holds = goodCounts()
+    for (const { id, good } of MarketSpaces) {
+        holds[good] += Number(market[id])
+    }
+    return holds
+}
+
+/** R-4.6.3, R-4.6-H7 A good leaves its bin's highest filled space, the cheapest of its kind. */
+export function takeFromMarket(state: HydratedFeudumGameState, good: Good): MarketSpace {
+    const { market } = state.guilds.merchant
+    const space = MarketSpaces.findLast((row) => row.good === good && market[row.id])
+    assertExists(space, `R-4.6.3 The ${good} bin holds a good`)
+    market[space.id] = false
+    return space
+}
+
+/** R-4.6.5 What each cart and pile holds. */
+export function cartsHold(state: HydratedFeudumGameState): GoodCounts {
+    const { carts } = state.guilds.alchemist
+    const holds = goodCounts()
+    for (const { id, good } of AlchemistCartSpaces) {
+        holds[good] += Number(carts[id])
+    }
+    return holds
+}
+
+/** R-4.6.5 A good leaves its cart's highest filled space. */
+export function takeFromCart(state: HydratedFeudumGameState, good: Good): CartSpaceId {
+    const { carts } = state.guilds.alchemist
+    const space = AlchemistCartSpaces.findLast((row) => row.good === good && carts[row.id])
+    assertExists(space, `R-4.6.5 The ${good} cart holds a good`)
+    carts[space.id] = false
+    return space.id
+}
+
+/** R-4.6.1 As many market goods as fit each cart or pile. */
+function goodsThatFitCarts(state: HydratedFeudumGameState): GoodCounts {
+    const holds = marketHolds(state)
+    const fits = goodCounts()
+    for (const good of Goods) {
+        fits[good] = Math.min(holds[good], cartRoom(state, good))
+    }
+    return fits
+}
+
+/** R-4.6.1, R-4.6-H5 How many must move: all that fit, up to the stated number. */
+export function movableToCarts(state: HydratedFeudumGameState, cap: number): number {
+    return Math.min(cap, goodsTotal(goodsThatFitCarts(state)))
+}
+
+/** R-4.6.1 Picks that could go to the carts and piles, with no minimum: a staged input is read too. */
+export function reasonCartPicksRefused(
+    state: HydratedFeudumGameState,
+    goods: readonly Good[],
+    cap: number
+): string | undefined {
+    if (goods.length > cap) {
+        return `Move at most ${cap} goods.`
+    }
+    const picks = countsOf(goods)
+    const holds = marketHolds(state)
+    for (const good of Goods) {
+        if (picks[good] > holds[good]) {
+            return `The market holds only ${holds[good]} ${good}.`
+        }
+        if (picks[good] > cartRoom(state, good)) {
+            return `Only ${cartRoom(state, good)} ${good} fit in the carts and piles.`
+        }
+    }
+    return undefined
+}
+
+export interface CartFill {
+    readonly moves: { readonly from: MarketSpaceId; readonly to: CartSpaceId }[]
+    /** R-4.6.1 Only carts and piles this action filled: a full one takes nothing. */
+    readonly completed: Good[]
+}
+
+/** R-4.6.4, R-4.6.5 Each good goes from its bin to its cart or pile. */
+export function moveMarketToCarts(
+    state: HydratedFeudumGameState,
+    goods: readonly Good[]
+): CartFill {
+    const moves = goods.map((good) => ({
+        from: takeFromMarket(state, good).id,
+        to: fillCart(state, good)
+    }))
+    return {
+        moves,
+        completed: Goods.filter((good) => goods.includes(good) && cartRoom(state, good) === 0)
+    }
+}
+
+/** R-4.6.1 The most carts and piles a move can complete: those with the least room first. */
+export function bestCartCompletions(state: HydratedFeudumGameState, cap: number): number {
+    const holds = marketHolds(state)
+    const rooms = Goods.map((good) => cartRoom(state, good))
+        .filter((room, index) => room > 0 && room <= holds[Goods[index]])
+        .toSorted((a, b) => a - b)
+    let left = movableToCarts(state, cap)
+    let completed = 0
+    for (const room of rooms) {
+        if (room > left) {
+            break
+        }
+        left -= room
+        completed += 1
+    }
+    return completed
 }
