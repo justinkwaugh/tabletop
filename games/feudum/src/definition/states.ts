@@ -9,5 +9,7 @@ export enum MachineState {
     CommittingAttack = 'CommittingAttack',
     PlacingDisc = 'PlacingDisc',
     KeepingWrits = 'KeepingWrits',
-    InspectingHarvest = 'InspectingHarvest'
+    InspectingHarvest = 'InspectingHarvest',
+    DiscardingWrits = 'DiscardingWrits',
+    Nourishing = 'Nourishing'
 }

@@ -2,7 +2,6 @@ import { type HydratedAction, type MachineStateHandler, MachineContext } from '@
 import { cardPlayOffers } from '../actions/cardPlay.js'
 import { defenderAsked } from '../actions/combat.js'
 import { HydratedConquer, isConquer } from '../actions/conquer.js'
-import { HydratedDiscardWrit, isDiscardWrit } from '../actions/discardWrit.js'
 import { HydratedExplore, isExplore } from '../actions/explore.js'
 import { HydratedFeast, isFeast } from '../actions/feast.js'
 import { HydratedForfeitCard, isForfeitCard } from '../actions/forfeitCard.js'
@@ -13,11 +12,6 @@ import { HydratedInfluence, isInfluence } from '../actions/influence.js'
 import { HydratedMigrate, isMigrate } from '../actions/migrate.js'
 import { HydratedMove, isMove } from '../actions/move.js'
 import { HydratedPlayDefend, isPlayDefend } from '../actions/playDefend.js'
-import {
-    HydratedReclaimImmunitySeal,
-    isReclaimImmunitySeal,
-    reclaimImmunitySealOffers
-} from '../actions/reclaimImmunitySeal.js'
 import { HydratedStarveThePeople, isStarveThePeople } from '../actions/starveThePeople.js'
 import { HydratedTax, isTax } from '../actions/tax.js'
 import { HydratedTendLandscape, isTendLandscape } from '../actions/tendLandscape.js'
@@ -25,6 +19,7 @@ import type { ActionCardKind } from '../data/cards.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { atWillOffers, isAtWillAction, type AtWillAction } from './atWill.js'
 import { askCardTurn, stateAfterCardStep } from './cardTurns.js'
 
 /** A card play's hydrated Action. A new card adds its class here. */
@@ -44,11 +39,8 @@ type HydratedCardPlay =
     | HydratedConquer
     | HydratedStarveThePeople
 
-/**
- * R-3.2, R-4.4.4, R-3.14-H2 What the turn player may send here. A discard or a reclaimed seal plays
- * no card, so ends no step.
- */
-type PlayingCardsAction = HydratedCardPlay | HydratedDiscardWrit | HydratedReclaimImmunitySeal
+/** R-3.2, R-4.4-H1 What the turn player may send here. An at-will action plays no card, so ends no step. */
+type PlayingCardsAction = HydratedCardPlay | AtWillAction
 
 /** R-3.5 The Actions that play a card, regular or special. A new card adds its row here. */
 const PlaysOfCard: Partial<Readonly<Record<ActionCardKind, readonly ActionType[]>>> = {
@@ -81,7 +73,6 @@ export class PlayingCardsStateHandler implements MachineStateHandler<
             isInfluence(action) ||
             isTax(action) ||
             isExplore(action) ||
-            isDiscardWrit(action) ||
             isImprove(action) ||
             isTendLandscape(action) ||
             isHarvest(action) ||
@@ -89,7 +80,7 @@ export class PlayingCardsStateHandler implements MachineStateHandler<
             isFeast(action) ||
             isConquer(action) ||
             isStarveThePeople(action) ||
-            isReclaimImmunitySeal(action)
+            isAtWillAction(action)
         )
     }
 
@@ -99,7 +90,7 @@ export class PlayingCardsStateHandler implements MachineStateHandler<
         context: MachineContext<HydratedFeudumGameState>
     ): ActionType[] {
         const state = context.gameState
-        const { hand, writCount } = state.getPlayerState(playerId)
+        const { hand } = state.getPlayerState(playerId)
         if (state.flow.turn?.playerId !== playerId || !hand) {
             return []
         }
@@ -110,10 +101,7 @@ export class PlayingCardsStateHandler implements MachineStateHandler<
         return [
             ActionType.ForfeitCard,
             ...[...kinds].flatMap((kind) => PlaysOfCard[kind] ?? []),
-            ...(writCount > 0 ? [ActionType.DiscardWrit] : []),
-            ...(reclaimImmunitySealOffers(state, playerId).length > 0
-                ? [ActionType.ReclaimImmunitySeal]
-                : [])
+            ...atWillOffers(state, playerId)
         ]
     }
 
@@ -125,7 +113,7 @@ export class PlayingCardsStateHandler implements MachineStateHandler<
         action: PlayingCardsAction,
         context: MachineContext<HydratedFeudumGameState>
     ): MachineState {
-        if (isDiscardWrit(action) || isReclaimImmunitySeal(action)) {
+        if (isAtWillAction(action)) {
             return MachineState.PlayingCards
         }
         const { combat, starve } = context.gameState.flow

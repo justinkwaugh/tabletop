@@ -1,17 +1,36 @@
 import { Visibility } from '@tabletop/common'
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import type { SpaceId } from '../data/board.js'
 import type { ActionCardKind } from '../data/cards.js'
 import type { WritId } from '../data/writs.js'
 import { ActionType } from '../definition/actions.js'
 import { FeudumApiActions } from '../definition/apiActions.js'
 import { MachineState } from '../definition/states.js'
+import { conservationBreaks } from '../model/canonicalValidator.js'
 import { queueFollowUp } from '../model/followUps.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { drawWrits, writDeckCount } from '../model/writDeck.js'
+import {
+    Charter,
+    FarmerMandate,
+    giveTile,
+    holdSealedCharter,
+    KnightMandate,
+    registerTestMandates,
+    ShillingMandate,
+    tableInWindow,
+    VesselMandate,
+    Weapon
+} from '../testing/atWill.js'
+import { holdWrit } from '../testing/combat.js'
+import { setPawns, setSealPile } from '../testing/guilds.js'
+import { giveGood, giveSeal } from '../testing/improving.js'
+import { canonicalOf } from '../testing/state.js'
 import { tableAtPlayingCards, type Table } from '../testing/table.js'
 import { discardWritOffers, reasonDiscardWritRefused } from './discardWrit.js'
 import { keepWritsOffer, reasonKeepWritsRefused } from './keepWrits.js'
+import { playMandateOffers, reasonPlayMandateRefused } from './playMandate.js'
+import { reasonSealCharterRefused, sealCharterOffers } from './sealCharter.js'
 
 const OUTPOST: SpaceId = 'space.forest.1'
 const FEUDUM: SpaceId = 'space.forest.3'
@@ -337,5 +356,441 @@ describe('DiscardWrit', () => {
             writId: held[0],
             metadata: { slot: expect.any(Number) }
         })
+    })
+})
+
+describe('R-4.4-H5 the writ count holds sealed charters', () => {
+    it('R-4.4.4 a discard leaves them counted', () => {
+        const { table, playerId } = tableInWindow('before a card', (state, seat) => {
+            holdSealedCharter(state, seat, Charter)
+            holdWrit(state, seat, ShillingMandate)
+        })
+        table.send(playerId, { type: ActionType.DiscardWrit, writId: ShillingMandate })
+        expect(table.seat(playerId).writCount).toBe(1)
+        expect(table.seat(playerId).sealedCharterCount).toBe(1)
+    })
+
+    it('R-4.4.1 so does a keep', () => {
+        const { table, playerId } = afterDraw()
+        table.moveTo((state) => {
+            holdSealedCharter(state, playerId, Charter)
+            return MachineState.KeepingWrits
+        })
+        const { writDraw } = table.hydrated().flow
+        table.send(playerId, {
+            type: ActionType.KeepWrits,
+            keep: (writDraw?.drawn ?? []).slice(0, writDraw?.keep)
+        })
+        const seat = table.seat(playerId)
+        expect(seat.writCount).toBe(seat.requireWrits().length + 1)
+    })
+})
+
+describe('PlayMandate', () => {
+    beforeAll(registerTestMandates)
+
+    const holdingMandate = (
+        writId: WritId,
+        edit: (state: HydratedFeudumGameState, seat: string) => void = () => {}
+    ) =>
+        tableInWindow('before a card', (state, seat) => {
+            holdWrit(state, seat, writId)
+            edit(state, seat)
+        })
+
+    const setGoods = (
+        state: HydratedFeudumGameState,
+        seat: string,
+        good: 'food' | 'wood',
+        n: number
+    ) => {
+        const { goods } = state.getPlayerState(seat)
+        state.supply.haversack[good] += goods[good] - n
+        goods[good] = n
+    }
+
+    it('R-4.4.2 turns in, goes under in view, pays the reward; no barrier', () => {
+        const { table, playerId } = holdingMandate(ShillingMandate, (state, seat) =>
+            setGoods(state, seat, 'food', 1)
+        )
+        const before = table.hydrated()
+        const { shillings } = before.getPlayerState(playerId)
+        const supply = before.supply.shillings
+        const haversack = before.supply.haversack.food
+        const slot = before.writDeck.nextBottom
+
+        const [action] = table.send(playerId, {
+            type: ActionType.PlayMandate,
+            writId: ShillingMandate,
+            alternative: 0
+        })
+
+        const state = table.hydrated()
+        const seat = state.getPlayerState(playerId)
+        expect(seat.requireWrits()).toEqual([])
+        expect(seat.writCount).toBe(0)
+        expect(seat.goods.food).toBe(0)
+        expect(state.supply.haversack.food).toBe(haversack + 1)
+        expect(seat.shillings).toBe(shillings + 3)
+        expect(state.supply.shillings).toBe(supply - 3)
+        expect(state.publicDeckWrits).toContainEqual({ slot, writId: ShillingMandate })
+        expect(action).toMatchObject({
+            writId: ShillingMandate,
+            metadata: { slot, received: { kind: 'shillings', amount: 3 } }
+        })
+        expect(action.revealsInfo).toBeFalsy()
+        expect(state.machineState).toBe(MachineState.PlayingCards)
+        expect(table.asked).toBe(playerId)
+        expect(conservationBreaks(canonicalOf(state))).toEqual([])
+    })
+
+    it('R-4.4.2 chooses among the alternatives by index', () => {
+        const { table, playerId } = holdingMandate(ShillingMandate, (state, seat) =>
+            setGoods(state, seat, 'food', 2)
+        )
+        const [action] = table.send(playerId, {
+            type: ActionType.PlayMandate,
+            writId: ShillingMandate,
+            alternative: 1
+        })
+        expect(action).toMatchObject({ metadata: { received: { kind: 'shillings', amount: 8 } } })
+        expect(table.seat(playerId).goods.food).toBe(0)
+    })
+
+    it('R-4.4-H1 refuses a seat out of its window, a writ not held, an unknown alternative', () => {
+        const { table, playerId } = holdingMandate(ShillingMandate)
+        const state = table.hydrated()
+        const other = table.order.find((seat) => seat !== playerId) ?? ''
+        const input = { writId: ShillingMandate, alternative: 0 }
+        expect(reasonPlayMandateRefused(state, other, input)).toBe("It isn't your turn.")
+        expect(
+            reasonPlayMandateRefused(state, playerId, { writId: VesselMandate, alternative: 0 })
+        ).toBe(NOT_HELD)
+        expect(reasonPlayMandateRefused(state, playerId, { ...input, alternative: 5 })).toBe(
+            `${ShillingMandate} has no such alternative: 5`
+        )
+        expect(() =>
+            table.send(playerId, { type: ActionType.PlayMandate, ...input, alternative: 5 })
+        ).toThrow(`${ShillingMandate} has no such alternative: 5`)
+    })
+
+    it('R-4.4.2 refuses what the goods and named tiles do not cover', () => {
+        const { table, playerId } = holdingMandate(ShillingMandate, (state, seat) =>
+            setGoods(state, seat, 'food', 0)
+        )
+        const input = { writId: ShillingMandate, alternative: 0 }
+        expect(reasonPlayMandateRefused(table.hydrated(), playerId, input)).toBe(
+            "You can't turn in food."
+        )
+        expect(
+            reasonPlayMandateRefused(table.hydrated(), playerId, {
+                ...input,
+                wildTiles: [{ tileId: 'tile.sea.i', good: 'food' }]
+            })
+        ).toBe("You can't spend those region tiles.")
+    })
+
+    it('R-4.4-H1, R-4.3.3 a tile named pays the goods, spent first', () => {
+        const { table, playerId } = holdingMandate(ShillingMandate, (state, seat) => {
+            setGoods(state, seat, 'food', 0)
+            giveTile(state, seat)
+        })
+        const [tileId] = table.seat(playerId).regionTiles
+        const [offer] = playMandateOffers(table.hydrated(), playerId)
+        expect(offer).toMatchObject({ wildTileNeeded: true, revealsInfo: false })
+        expect(offer.refused).toBeUndefined()
+
+        table.send(playerId, {
+            type: ActionType.PlayMandate,
+            writId: ShillingMandate,
+            alternative: 0,
+            wildTiles: [{ tileId, good: 'food' }]
+        })
+        const state = table.hydrated()
+        expect(state.tilesOutOfGame).toContain(tileId)
+        expect(state.getPlayerState(playerId).goods.food).toBe(0)
+        expect(conservationBreaks(canonicalOf(state))).toEqual([])
+    })
+
+    it('R-4.4.2 a guild reward needs 3 stars in that guild', () => {
+        const { table, playerId } = holdingMandate(FarmerMandate, (state, seat) => {
+            setPawns(state, seat, ['merchant', 'merchant'])
+        })
+        const state = table.hydrated()
+        expect(
+            reasonPlayMandateRefused(state, playerId, {
+                writId: FarmerMandate,
+                alternative: 0,
+                rewardGuild: 'merchant'
+            })
+        ).toBe('You need 3 status stars in that guild.')
+        expect(
+            playMandateOffers(state, playerId).map(({ rewardGuild, refused }) => [
+                rewardGuild,
+                refused
+            ])
+        ).toEqual([
+            ['farmer', 'You need 3 status stars in that guild.'],
+            ['merchant', 'You need 3 status stars in that guild.'],
+            ['alchemist', 'You need 3 status stars in that guild.']
+        ])
+        expect(table.offered(playerId)).not.toContain(ActionType.PlayMandate)
+    })
+
+    it('R-4.4.2 a reward for a guild with 3 stars; a barrier when it draws goods', () => {
+        const { table, playerId } = holdingMandate(FarmerMandate, (state, seat) => {
+            setPawns(state, seat, ['farmer', 'farmer', 'farmer'])
+        })
+        expect(table.offered(playerId)).toContain(ActionType.PlayMandate)
+        const before = table.seat(playerId).goods
+        const [action] = table.send(playerId, {
+            type: ActionType.PlayMandate,
+            writId: FarmerMandate,
+            alternative: 0,
+            rewardGuild: 'farmer'
+        })
+        expect(action.revealsInfo).toBe(true)
+        expect(action).toMatchObject({
+            metadata: { received: { kind: 'goods', goods: expect.any(Array) } }
+        })
+        const after = table.seat(playerId).goods
+        const gained =
+            Object.values(after).reduce((sum, n) => sum + n, 0) -
+            Object.values(before).reduce((sum, n) => sum + n, 0)
+        expect(gained).toBe(3)
+        expect(conservationBreaks(canonicalOf(table.hydrated()))).toEqual([])
+    })
+
+    it('R-X.2 with an empty haversack it draws nothing, so it is no barrier', () => {
+        const { table, playerId } = holdingMandate(FarmerMandate, (state, seat) => {
+            setPawns(state, seat, ['farmer', 'farmer', 'farmer'])
+            for (const good of ['food', 'wood', 'iron', 'sulfur', 'saltpeter'] as const) {
+                giveGood(state, seat, good, state.supply.haversack[good])
+            }
+        })
+        const [action] = table.send(playerId, {
+            type: ActionType.PlayMandate,
+            writId: FarmerMandate,
+            alternative: 0,
+            rewardGuild: 'farmer'
+        })
+        expect(action).toMatchObject({ metadata: { received: { kind: 'goods', goods: [] } } })
+        expect(action.revealsInfo).toBeFalsy()
+    })
+
+    it('R-4.4.2 a merchant reward pays shillings, no barrier; R-1.1-H1 short pays what remains', () => {
+        const { table, playerId } = holdingMandate(FarmerMandate, (state, seat) => {
+            setPawns(state, seat, ['merchant', 'merchant', 'merchant'])
+            state.getPlayerState(seat).shillings += state.supply.shillings - 2
+            state.supply.shillings = 2
+        })
+        const { shillings } = table.seat(playerId)
+        const [action] = table.send(playerId, {
+            type: ActionType.PlayMandate,
+            writId: FarmerMandate,
+            alternative: 0,
+            rewardGuild: 'merchant'
+        })
+        expect(action).toMatchObject({ metadata: { received: { kind: 'shillings', amount: 2 } } })
+        expect(action.revealsInfo).toBeFalsy()
+        expect(table.seat(playerId).shillings).toBe(shillings + 2)
+    })
+
+    it('R-4.4-H7 a vessel reward needs one in the general supply', () => {
+        const { table, playerId } = holdingMandate(VesselMandate, (state, seat) => {
+            setGoods(state, seat, 'wood', 1)
+            state.getPlayerState(seat).vessels.ship += state.supply.vessels.ship
+            state.supply.vessels.ship = 0
+        })
+        const input = { writId: VesselMandate, alternative: 0 }
+        expect(reasonPlayMandateRefused(table.hydrated(), playerId, input)).toBe(
+            'The general supply has no ship.'
+        )
+        table.moveTo((state) => {
+            state.getPlayerState(playerId).vessels.ship -= 1
+            state.supply.vessels.ship = 1
+            return MachineState.PlayingCards
+        })
+        const { ship } = table.seat(playerId).vessels
+        const [action] = table.send(playerId, { type: ActionType.PlayMandate, ...input })
+        expect(action).toMatchObject({ metadata: { received: { kind: 'vessel', vessel: 'ship' } } })
+        expect(table.seat(playerId).vessels.ship).toBe(ship + 1)
+        expect(table.hydrated().supply.vessels.ship).toBe(0)
+    })
+
+    it('R-4.4.2 influence comes to the seat from the general supply, ranks recomputed', () => {
+        const { table, playerId } = holdingMandate(KnightMandate, (state, seat) => {
+            setPawns(state, seat, ['knight', 'knight', 'knight'])
+        })
+        const { influenceSupply } = table.seat(playerId)
+        const [action] = table.send(playerId, {
+            type: ActionType.PlayMandate,
+            writId: KnightMandate,
+            alternative: 0,
+            rewardGuild: 'knight'
+        })
+        expect(action).toMatchObject({
+            metadata: {
+                received: { kind: 'influence', amount: 3 },
+                rankChanges: expect.any(Array)
+            }
+        })
+        expect(table.seat(playerId).influenceSupply).toBeGreaterThanOrEqual(influenceSupply)
+        expect(action.revealsInfo).toBeFalsy()
+        expect(conservationBreaks(canonicalOf(table.hydrated()))).toEqual([])
+    })
+
+    it('R-4.4.2 a noble seal comes unseen; no barrier', () => {
+        const { table, playerId } = holdingMandate(KnightMandate, (state, seat) => {
+            setPawns(state, seat, ['noble', 'noble', 'noble'])
+        })
+        const { sealCount } = table.seat(playerId)
+        const pile = table.hydrated().supply.sealPileCount
+        const [action] = table.send(playerId, {
+            type: ActionType.PlayMandate,
+            writId: KnightMandate,
+            alternative: 0,
+            rewardGuild: 'noble'
+        })
+        expect(table.seat(playerId).sealCount).toBe(sealCount + 1)
+        expect(table.hydrated().supply.sealPileCount).toBe(pile - 1)
+        expect(action).toMatchObject({ metadata: { received: { kind: 'seal', amount: 1 } } })
+        expect(action.revealsInfo).toBeFalsy()
+    })
+
+    it('R-X.2 a monk bead flips a seal: a barrier, only when the pile has one', () => {
+        const flipped = holdingMandate(KnightMandate, (state, seat) => {
+            setPawns(state, seat, ['monk', 'monk', 'monk'])
+        })
+        const [flip] = flipped.table.send(flipped.playerId, {
+            type: ActionType.PlayMandate,
+            writId: KnightMandate,
+            alternative: 0,
+            rewardGuild: 'monk'
+        })
+        expect(flip.revealsInfo).toBe(true)
+        expect(flip).toMatchObject({
+            metadata: { received: { kind: 'bead', sealIds: [expect.any(String)] } }
+        })
+        expect(flipped.table.seat(flipped.playerId).beads).toHaveLength(1)
+
+        const empty = holdingMandate(KnightMandate, (state, seat) => {
+            setPawns(state, seat, ['monk', 'monk', 'monk'])
+            setSealPile(state, seat, 0)
+        })
+        const [none] = empty.table.send(empty.playerId, {
+            type: ActionType.PlayMandate,
+            writId: KnightMandate,
+            alternative: 0,
+            rewardGuild: 'monk'
+        })
+        expect(none).toMatchObject({ metadata: { received: { kind: 'bead', sealIds: [] } } })
+        expect(none.revealsInfo).toBeFalsy()
+    })
+
+    it('R-4.4-H1 a weapon has no at-will alternative to offer', () => {
+        const { table, playerId } = holdingMandate(Weapon)
+        expect(playMandateOffers(table.hydrated(), playerId)).toEqual([])
+    })
+
+    it('R-X.2 offers say which alternatives stage, read from the registry', () => {
+        const { table, playerId } = holdingMandate(KnightMandate, (state, seat) => {
+            setPawns(state, seat, ['monk', 'monk', 'monk'])
+        })
+        expect(
+            playMandateOffers(table.hydrated(), playerId).map(({ rewardGuild, revealsInfo }) => [
+                rewardGuild,
+                revealsInfo
+            ])
+        ).toEqual([
+            ['knight', false],
+            ['noble', false],
+            ['monk', true]
+        ])
+    })
+
+    it('R-4.4.2 the whole action is public', () => {
+        const { table, playerId } = holdingMandate(ShillingMandate, (state, seat) =>
+            setGoods(state, seat, 'food', 1)
+        )
+        const [action] = table.send(playerId, {
+            type: ActionType.PlayMandate,
+            writId: ShillingMandate,
+            alternative: 0
+        })
+        expect(actionProjector.project(action, spectator, { config: {} })).toMatchObject({
+            writId: ShillingMandate
+        })
+    })
+})
+
+describe('SealCharter', () => {
+    const holdingCharter = (
+        edit: (state: HydratedFeudumGameState, seat: string) => void = giveSeal
+    ) =>
+        tableInWindow('before a card', (state, seat) => {
+            holdWrit(state, seat, Charter)
+            edit(state, seat)
+        })
+
+    it('R-4.4.3 a held seal goes on a held charter; count public, charter owner-known', () => {
+        const { table, playerId } = holdingCharter()
+        const { sealCount, writCount } = table.seat(playerId)
+
+        const [action] = table.send(playerId, { type: ActionType.SealCharter, writId: Charter })
+
+        const state = table.hydrated()
+        const seat = state.getPlayerState(playerId)
+        expect(seat.requireWrits()).toEqual([])
+        expect(seat.requireSealedCharters()).toEqual([Charter])
+        expect(seat.sealedCharterCount).toBe(1)
+        expect(seat.sealCount).toBe(sealCount - 1)
+        expect(seat.writCount).toBe(writCount)
+        expect(action.revealsInfo).toBeFalsy()
+        expect(state.machineState).toBe(MachineState.PlayingCards)
+        expect(table.asked).toBe(playerId)
+        expect(conservationBreaks(canonicalOf(state))).toEqual([])
+
+        const projected = actionProjector.project(action, spectator, { config: {} })
+        expect(projected).not.toHaveProperty('writId')
+        expect(
+            actionProjector.project(action, { kind: 'player', playerId }, { config: {} })
+        ).toMatchObject({ writId: Charter })
+    })
+
+    it('R-4.4.3 refuses out of a window, a writ not held, a mandate, no seal', () => {
+        const { table, playerId } = holdingCharter((state, seat) => {
+            holdWrit(state, seat, ShillingMandate)
+        })
+        const state = table.hydrated()
+        const other = table.order.find((seat) => seat !== playerId) ?? ''
+        expect(reasonSealCharterRefused(state, other, Charter)).toBe("It isn't your turn.")
+        expect(reasonSealCharterRefused(state, playerId, 'writ.charter.sulfur-barrel')).toBe(
+            NOT_HELD
+        )
+        expect(reasonSealCharterRefused(state, playerId, ShillingMandate)).toBe(
+            'Only a charter takes a seal.'
+        )
+        expect(reasonSealCharterRefused(state, playerId, Charter)).toBe('You hold no seal.')
+        expect(() =>
+            table.send(playerId, { type: ActionType.SealCharter, writId: Charter })
+        ).toThrow('You hold no seal.')
+    })
+
+    it('S51 a charter with no seal is offered dimmed, and the action not offered', () => {
+        const { table, playerId } = holdingCharter(() => {})
+        expect(sealCharterOffers(table.hydrated(), playerId)).toEqual([
+            { writId: Charter, refused: 'You hold no seal.' }
+        ])
+        expect(table.offered(playerId)).not.toContain(ActionType.SealCharter)
+    })
+
+    it('R-4.4.3 offers only charters', () => {
+        const { table, playerId } = holdingCharter((state, seat) => {
+            giveSeal(state, seat)
+            holdWrit(state, seat, ShillingMandate)
+        })
+        expect(sealCharterOffers(table.hydrated(), playerId)).toEqual([{ writId: Charter }])
+        expect(table.offered(playerId)).toContain(ActionType.SealCharter)
     })
 })

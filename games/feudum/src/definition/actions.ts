@@ -25,5 +25,9 @@ export enum ActionType {
     StarveThePeople = 'StarveThePeople',
     AnswerStarve = 'AnswerStarve',
     ReclaimImmunitySeal = 'ReclaimImmunitySeal',
-    ChooseFavours = 'ChooseFavours'
+    ChooseFavours = 'ChooseFavours',
+    PlayMandate = 'PlayMandate',
+    SealCharter = 'SealCharter',
+    SpendRegionTile = 'SpendRegionTile',
+    PlaceVessel = 'PlaceVessel'
 }
