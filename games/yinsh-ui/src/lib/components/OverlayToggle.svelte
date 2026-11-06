@@ -51,7 +51,10 @@
             var(--yinsh-panel-shadow);
     }
 
-    .toggle:hover {
-        background: var(--yinsh-panel-hover);
+    /* Only where a pointer really hovers: on touch, a tap would leave the hover stuck on. */
+    @media (hover: hover) {
+        .toggle:hover {
+            background: var(--yinsh-panel-hover);
+        }
     }
 </style>
