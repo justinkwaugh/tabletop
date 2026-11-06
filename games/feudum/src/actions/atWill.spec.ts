@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeAll } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import type { VesselType } from '../data/components.js'
 import { WineBarrelCapacity } from '../data/components.js'
 import { ActionType } from '../definition/actions.js'
@@ -14,7 +14,6 @@ import {
     Charters,
     giveTile,
     holdSealedCharter,
-    registerTestMandates,
     ShillingMandate,
     tableInWindow,
     VesselMandate,
@@ -55,8 +54,6 @@ const Windows: readonly WindowName[] = [
 ]
 
 const NOT_YOUR_TURN = "It isn't your turn."
-
-beforeAll(registerTestMandates)
 
 /** A seat with something to do with every at-will action. */
 function equip(state: HydratedFeudumGameState, playerId: string): void {

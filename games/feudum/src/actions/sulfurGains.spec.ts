@@ -6,7 +6,7 @@ import { fillLandscape } from '../model/landscapes.js'
 import { placeMarker } from '../model/locationControl.js'
 import { canPayGoods, canSpendWildTiles, spendWildTiles } from '../model/payments.js'
 import type { TileId } from '../data/regionTiles.js'
-import { FarmerMandate, giveTile, registerTestMandates, tableInWindow } from '../testing/atWill.js'
+import { FarmerMandate, giveTile, tableInWindow } from '../testing/atWill.js'
 import { holdWrit } from '../testing/combat.js'
 import { setMarket, setMaster, setPawns, setShillings, tableAtGuild } from '../testing/guilds.js'
 import { collectTileOf, giveGood, setUp, spaceOfKind } from '../testing/improving.js'
@@ -14,8 +14,6 @@ import { tableAtPlayingCards } from '../testing/table.js'
 import { merchantTradeOffers } from '../guilds/merchant.js'
 import { chooseFavoursOffer, reasonChooseFavoursRefused } from './chooseFavours.js'
 import { tendLandscapePreview } from './tendLandscape.js'
-
-registerTestMandates()
 
 const Trade = { type: ActionType.GuildAction, guildId: 'merchant', fn: 'trade' } as const
 
