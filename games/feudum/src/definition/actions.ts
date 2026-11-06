@@ -6,5 +6,11 @@ export enum ActionType {
     FinaliseHand = 'FinaliseHand',
     ForfeitCard = 'ForfeitCard',
     PlayDefend = 'PlayDefend',
-    PlaceDisc = 'PlaceDisc'
+    PlaceDisc = 'PlaceDisc',
+    Move = 'Move',
+    Migrate = 'Migrate',
+    Influence = 'Influence',
+    Tax = 'Tax',
+    Improve = 'Improve',
+    TendLandscape = 'TendLandscape'
 }

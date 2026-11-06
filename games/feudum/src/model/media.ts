@@ -78,7 +78,8 @@ export function isPinned(
     return spaceId !== undefined && pinningMonsters(state, playerId, spaceId).length > 0
 }
 
-function vesselOfMedium(medium: RouteMedium): VesselType | undefined {
+/** R-4.2.2 The vessel a route's medium needs; none by road or ferry. */
+export function vesselOfMedium(medium: RouteMedium): VesselType | undefined {
     return VesselTypes.find((vessel) => vessel === medium)
 }
 

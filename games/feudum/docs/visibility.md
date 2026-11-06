@@ -57,6 +57,7 @@ Always a barrier: `FinaliseHand` (a finalised hand), `Explore` (a writ draw), `H
 A barrier by outcome:
 
 - `GuildAction` and `Feast`: a pull that reaches its threshold (a writ draw); the Monk trade, Farmer pull and Monk push (the hidden-bead draw); the Monk pull and Noble push (a seal flipped to a bead); a Farmer trade whose overflow spills goods picked at random (R-4.6.3);
+- `Improve` that takes a region tile (its landscape was hidden, R-1.4-H2);
 - `KeepWrits` that turns in an iron for Shovels & Swords (a second draw);
 - `PlaceDisc` that moves the voyage disc onto space 2, 4 or 6 (a writ draw);
 - `PlayMandate` whose reward draws goods from the haversack or flips a bead.

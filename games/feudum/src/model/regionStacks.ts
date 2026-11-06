@@ -2,6 +2,7 @@ import { assertExists } from '@tabletop/common'
 import {
     RegionIds,
     RegionTiles,
+    type LandscapeKind,
     type RegionId,
     type RegionTile,
     type TileId
@@ -74,4 +75,29 @@ export function tileVp(tile: RegionTile, location: 'farm' | 'town' | 'feudum'): 
     const row = RegionTileChart.find((chartRow) => chartRow.tileEpoch === tile.epoch)
     assertExists(row?.vp, `R-4.3.2 The chart scores no tile of epoch ${tile.epoch}`)
     return row.vp[location]
+}
+
+export interface CollectedTile {
+    readonly tile: RegionTile
+    readonly landscape: LandscapeKind
+}
+
+/**
+ * R-3.9.1, R-1.4-H2 Takes a stack's top tile to the seat's collection. The tile's back shows from
+ * here on, so its landscape moves from the vault to public state.
+ */
+export function collectTopTile(
+    state: HydratedFeudumGameState,
+    playerId: string,
+    region: RegionId
+): CollectedTile {
+    const vault = state.requireVault()
+    const tileId = state.regionStacks[region].shift()
+    assertExists(tileId, `R-4.3.1 The ${region} stack has a tile`)
+    const landscape = vault.tileLandscapes[tileId]
+    assertExists(landscape, `R-1.4-H2 Tile ${tileId} has a landscape`)
+    delete vault.tileLandscapes[tileId]
+    state.tileLandscapes[tileId] = landscape
+    state.getPlayerState(playerId).regionTiles.push(tileId)
+    return { tile: tileById(tileId), landscape }
 }
