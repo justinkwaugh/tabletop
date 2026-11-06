@@ -28,7 +28,7 @@ import {
     setPunctSelection,
     type PunctSelection
 } from './stagedSelection.js'
-import { coordsKey, TURNED_VIEW, VIEW, type BoardView } from '$lib/board/geometry.js'
+import { coordsKey, viewOf, type BoardView } from '$lib/board/geometry.js'
 
 export function includesCoords(list: readonly AxialCoordinates[], coords: AxialCoordinates) {
     return list.some((candidate) => sameCoordinates(candidate, coords))
@@ -91,8 +91,16 @@ export class PunctGameSession extends GameSession<PunctGameState, HydratedPunctG
         this.preferences.set({ showLevels: !this.showLevels })
     }
 
+    // The board a quarter turn round, so a piece between two piles in its column shows from the
+    // side.
+    rotatedBoard: boolean = $derived(this.preferences.values.rotatedBoard)
+
+    toggleRotatedBoard() {
+        this.preferences.set({ rotatedBoard: !this.rotatedBoard })
+    }
+
     // The board seen from the far side of the table, so what a pile hides comes in front of it.
-    view: BoardView = $derived(this.preferences.values.turned ? TURNED_VIEW : VIEW)
+    view: BoardView = $derived(viewOf(this.rotatedBoard, this.preferences.values.turned))
 
     toggleTurned() {
         this.preferences.set({ turned: !this.preferences.values.turned })

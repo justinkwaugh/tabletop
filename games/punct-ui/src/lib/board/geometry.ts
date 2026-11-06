@@ -33,6 +33,24 @@ const NEIGHBOUR_STEPS: AxialCoordinates[] = [
 ]
 
 const HEX_DIMENSIONS = { xRadius: SPACING / Math.sqrt(3), yRadius: SPACING / 2 }
+// From one column to the next, flat.
+const COLUMN_STEP = 1.5 * HEX_DIMENSIONS.xRadius
+
+// A count of steps, rid of rounding error: spaces lie whole or half steps apart.
+function steps(value: number): number {
+    return Math.round(value * 2) / 2
+}
+
+// A point turned clockwise on screen through sixths of a turn. Quarter and half turns come out
+// exact, so spaces in a row stay level.
+function turnedBy(point: Point, steps: number): Point {
+    if (steps === 0) return point
+    const radians = (steps * Math.PI) / 3
+    const exact = (value: number) => (Math.abs(value) < 1e-12 ? 0 : value)
+    const cos = exact(Math.cos(radians))
+    const sin = exact(Math.sin(radians))
+    return { x: point.x * cos - point.y * sin, y: point.x * sin + point.y * cos }
+}
 
 export type Frame = { viewBox: string; width: number; height: number }
 
@@ -40,27 +58,41 @@ export class BoardView {
     // How much of a height shows on screen.
     readonly rise: number
 
-    // How many sixths of a turn pieces lie turned on screen beyond their own rotation.
+    // How many sixths of a turn clockwise the board, and every piece on it, lies turned on screen
+    // beyond the pieces' own rotation: a quarter turn is a step and a half.
     readonly turnSteps: number
 
-    // Turned, the board is seen from the far side of the table: a half turn.
+    // Rotated, the board lies a quarter turn clockwise, its columns running across with A at the
+    // top, so a piece between two piles in its column shows from the side. Turned, it is seen
+    // from the far side of the table: a half turn.
     constructor(
         readonly tilt: number,
+        readonly rotated = false,
         readonly turned = false
     ) {
         this.rise = Math.sqrt(1 - tilt ** 2)
-        this.turnSteps = turned ? 3 : 0
+        this.turnSteps = (rotated ? 1.5 : 0) + (turned ? 3 : 0)
     }
 
     // A point on the board's plane, flat: y runs towards the viewer.
     plan(coords: AxialCoordinates): Point {
-        const point = flatHexCoordsToCenterPoint(coords, HEX_DIMENSIONS)
-        return this.turned ? { x: -point.x, y: -point.y } : point
+        return this.orient(flatHexCoordsToCenterPoint(coords, HEX_DIMENSIONS))
     }
 
     // A point of the unturned board's plane as this view lays it out.
     orient(point: Point): Point {
-        return this.turned ? { x: -point.x, y: -point.y } : point
+        return turnedBy(point, this.turnSteps)
+    }
+
+    // How far towards the viewer a space lies, and how far across, each counted in the steps
+    // between the board's rows on screen and between its columns: across the columns run
+    // straight up the screen, a column's width; rotated, half a space, the rows being offset.
+    depth(coords: AxialCoordinates): number {
+        return steps(this.plan(coords).y / (this.rotated ? COLUMN_STEP : SPACING))
+    }
+
+    across(coords: AxialCoordinates): number {
+        return steps(this.plan(coords).x / (this.rotated ? SPACING / 2 : COLUMN_STEP))
     }
 
     // A point of the board's plane on screen, raised by a height.
@@ -93,7 +125,7 @@ export class BoardView {
     cell(coords: AxialCoordinates): Point[] {
         const center = this.plan(coords)
         return Array.from({ length: 6 }, (_, index) => {
-            const angle = (index * Math.PI) / 3
+            const angle = ((index + this.turnSteps) * Math.PI) / 3
             return this.project({
                 x: center.x + CELL_RADIUS * Math.cos(angle),
                 y: center.y + CELL_RADIUS * Math.sin(angle)
@@ -177,7 +209,13 @@ export function spaceUnder(point: Point): AxialCoordinates {
 }
 
 export const VIEW = new BoardView(TILT)
-export const TURNED_VIEW = new BoardView(TILT, true)
+export const TURNED_VIEW = new BoardView(TILT, false, true)
+const VIEWS = [VIEW, TURNED_VIEW, new BoardView(TILT, true), new BoardView(TILT, true, true)]
+
+// One view for each way round, so what is worked out for a view is kept with it.
+export function viewOf(rotated: boolean, turned: boolean): BoardView {
+    return VIEWS[(rotated ? 2 : 0) + (turned ? 1 : 0)]
+}
 
 export function coordsKey(coords: AxialCoordinates): string {
     return `${coords.q},${coords.r}`

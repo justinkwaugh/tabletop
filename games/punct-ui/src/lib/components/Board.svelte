@@ -125,7 +125,7 @@
                 playerId: staged.playerId
             })
         }
-        return drawOrder(entries, view.turned)
+        return drawOrder(entries, view)
     })
 
     // The board without the piece being moved: where marks for its PÜNCT lie. Once a space is

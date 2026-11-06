@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { SPACES, spaceAt } from '@tabletop/punct'
 import { boardLabels, spaceLabel } from './coordinates.js'
-import { TURNED_VIEW, VIEW } from './geometry.js'
+import { TURNED_VIEW, VIEW, viewOf } from './geometry.js'
 
 describe('space names', () => {
     it('numbers each column up from 1 at its bottom space', () => {
@@ -44,5 +44,17 @@ describe('space names', () => {
         expect(below?.at.y).toBeGreaterThan(0)
         expect(turned?.at.y).toBeLessThan(0)
         expect(turned?.at.x).toBeGreaterThan(0)
+    })
+
+    it('runs the columns across a rotated board, A at the top and the bottom labels on the left', () => {
+        const rotated = boardLabels(viewOf(true, false))
+        const a1 = rotated.find((label) => label.text === 'A1')
+        const q1 = rotated.find((label) => label.text === 'Q1')
+        expect(a1!.at.y).toBeLessThan(q1!.at.y)
+        expect(a1!.at.x).toBeLessThan(0)
+        // Turned as well, the board is the other way up: A at the bottom, the names on the right.
+        const both = boardLabels(viewOf(true, true)).find((label) => label.text === 'A1')
+        expect(both!.at.y).toBeGreaterThan(0)
+        expect(both!.at.x).toBeGreaterThan(0)
     })
 })

@@ -5,6 +5,7 @@ export const PunctPreferences = Type.Object(
     {
         showCoordinates: Type.Boolean(),
         showLevels: Type.Boolean(),
+        rotatedBoard: Type.Boolean(),
         turned: Type.Boolean()
     },
     { additionalProperties: false }
@@ -16,6 +17,7 @@ export const PunctPreferenceDefinition = {
         defaults: {
             showCoordinates: true,
             showLevels: false,
+            rotatedBoard: false,
             turned: false
         },
         version: 1

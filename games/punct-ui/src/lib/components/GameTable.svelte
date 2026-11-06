@@ -136,6 +136,12 @@
                                     >
                                 </svg>
                             </OverlayToggle>
+                            <!-- A quarter turn, so a piece between two piles in its column shows from the side. -->
+                            <OverlayToggle
+                                label="Rotated board"
+                                pressed={gameSession.rotatedBoard}
+                                onToggle={() => gameSession.toggleRotatedBoard()}>90°</OverlayToggle
+                            >
                             <OverlayToggle
                                 label="Far side"
                                 pressed={gameSession.preferences.values.turned}
