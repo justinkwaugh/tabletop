@@ -83,11 +83,56 @@ export const RowFill = Type.Object({
     added: Type.Integer({ minimum: 1 })
 })
 
-/** R-4.6.5, R-4.6.6 The goods returned to the haversack, and each barrel's fill, in order. */
-const AlchemistPushDetails = Type.Object({
-    kind: Type.Literal('alchemist-push'),
+/** R-4.6.4, R-4.6.5, R-4.6.6 The goods returned to the haversack, and each barrel's fill, in order. */
+const InventionsDetails = Type.Object({
+    kind: Type.Union([Type.Literal('alchemist-push'), Type.Literal('knight-pull')]),
     goodsUsed: GoodCounts,
     barrels: Type.Array(Type.Array(RowFill))
+})
+
+/** R-4.6.3 The row's markers taken and those kept; the monster and its space are in the input. */
+const KnightTradeDetails = Type.Object({
+    kind: Type.Literal('knight-trade'),
+    taken: Type.Integer({ minimum: 0 }),
+    kept: Type.Integer({ minimum: 0 }),
+    price: Type.Integer({ minimum: 0 })
+})
+
+/** R-4.6.4, R-4.6.5 A row a marker left. A dummy row has no `playerId`. */
+export type KnightRowLeft = Type.Static<typeof KnightRowLeft>
+export const KnightRowLeft = Type.Object({
+    colour: Type.Enum(Color),
+    playerId: Type.Optional(Type.String())
+})
+
+/** R-4.6.5 The rows the markers left and both counts. The seals are named in no record (R-X.2). */
+const KnightPushDetails = Type.Object({
+    kind: Type.Literal('knight-push'),
+    markers: Type.Array(KnightRowLeft),
+    rows: Type.Integer({ minimum: 0 }),
+    columns: Type.Integer({ minimum: 0 }),
+    count: CompletionCount
+})
+
+/** R-4.6-H1 The scroll spaces are in the input; the seals bought stay concealed. */
+const NobleTradeDetails = Type.Object({
+    kind: Type.Literal('noble-trade'),
+    price: Type.Integer({ minimum: 0 })
+})
+
+/** R-4.6.4 As the Knight push, without a choice of count: either reaches the threshold. */
+const NoblePullDetails = Type.Object({
+    kind: Type.Literal('noble-pull'),
+    markers: Type.Array(KnightRowLeft),
+    rows: Type.Integer({ minimum: 0 }),
+    columns: Type.Integer({ minimum: 0 })
+})
+
+/** R-4.6.5 The seals flipped, in input order, and the rosary's total after them. */
+const NoblePushDetails = Type.Object({
+    kind: Type.Literal('noble-push'),
+    sealIds: Type.Array(SealIdSchema),
+    rosaryTotal: Type.Integer({ minimum: 0 })
 })
 
 /**
@@ -103,5 +148,10 @@ export const GuildFunctionDetails = Type.Union([
     MerchantPullDetails,
     MarketToCartsDetails,
     AlchemistTradeDetails,
-    AlchemistPushDetails
+    InventionsDetails,
+    KnightTradeDetails,
+    KnightPushDetails,
+    NobleTradeDetails,
+    NoblePullDetails,
+    NoblePushDetails
 ])

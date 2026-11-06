@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import type { SpaceId } from '../data/board.js'
-import { Goods, type Good, type VesselType } from '../data/components.js'
-import { GuildById } from '../data/guilds.js'
+import { Spaces, type SpaceId } from '../data/board.js'
+import {
+    Goods,
+    type Good,
+    type GuildId,
+    type MonsterId,
+    type VesselType
+} from '../data/components.js'
+import { GuildById, type ScrollSpaceId } from '../data/guilds.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
@@ -15,17 +21,27 @@ import {
     setJourneyman,
     setMarket,
     setMaster,
+    setRowMarkers,
+    setScrolls,
+    setPawns,
     setShillings,
     setVesselsForSale,
     tableAtGuild,
+    recordedText,
     type GoodAmounts
 } from '../testing/guilds.js'
+import { canonicalOf } from '../testing/state.js'
 import { alchemistTradeOffers } from '../guilds/alchemist.js'
 import { farmerTradeOffers } from '../guilds/farmer.js'
+import { knightTradeOffer } from '../guilds/knight.js'
 import { merchantTradeOffers } from '../guilds/merchant.js'
-import { ferriesOpen } from '../model/media.js'
+import { nobleTradeOffer } from '../guilds/noble.js'
+import { conservationBreaks } from '../model/canonicalValidator.js'
+import { ferriesOpen, monsterReaches } from '../model/media.js'
 import { guildActionOffers, guildActionPreview } from './guildAction.js'
 
+const KnightTrade = { type: ActionType.GuildAction, guildId: 'knight', fn: 'trade' } as const
+const NobleTrade = { type: ActionType.GuildAction, guildId: 'noble', fn: 'trade' } as const
 const FarmerTrade = { type: ActionType.GuildAction, guildId: 'farmer', fn: 'trade' } as const
 
 function trading(goods: GoodAmounts, edit?: (state: HydratedFeudumGameState) => void) {
@@ -543,6 +559,443 @@ describe('GuildAction: R-4.6.3 the Alchemist trade', () => {
             guildActionPreview(state, playerId, {
                 ...input,
                 params: { vesselType: 'flying-machine' }
+            })
+        ).toBeUndefined()
+    })
+})
+
+function setSeatRow(state: HydratedFeudumGameState, seat: string, markers: number): void {
+    setRowMarkers(
+        state,
+        state.guilds.knight.rows.map((row) => (row.playerId === seat ? markers : row.markers))
+    )
+}
+
+/** The seat's row holds this many markers; the seat's one pawn stands on `spaceId`. */
+function knightTrading(
+    markers: number,
+    spaceId: SpaceId = 'space.desert.3',
+    edit?: (state: HydratedFeudumGameState, seat: string, others: readonly string[]) => void
+) {
+    return tableAtGuild((state, seat, others) => {
+        setPawns(state, seat, ['knight'])
+        state.getPlayerState(seat).pawns[0].spaceId = spaceId
+        state.recomputeRanks(seat)
+        setSeatRow(state, seat, markers)
+        setShillings(state, seat, 5)
+        edit?.(state, seat, others)
+    })
+}
+
+function spaceReachedOnlyBy(monster: MonsterId): SpaceId {
+    const other: MonsterId = monster === 'behemoth' ? 'sea-serpent' : 'behemoth'
+    const space = Spaces.find(({ id }) => monsterReaches(monster, id) && !monsterReaches(other, id))
+    if (!space) {
+        throw new Error(`No space only the ${monster} reaches`)
+    }
+    return space.id
+}
+
+function rowOf(state: HydratedFeudumGameState, playerId: string) {
+    const row = state.guilds.knight.rows.find((other) => other.playerId === playerId)
+    if (!row) {
+        throw new Error(`${playerId} has no row`)
+    }
+    return row
+}
+
+describe('GuildAction: R-4.6.3 the Knight trade', () => {
+    it('R-4.6.3 3s buys every marker in the row, however many; no vp and no barrier', () => {
+        const { table, playerId } = knightTrading(2)
+        const before = table.hydrated()
+        const supply = before.getPlayerState(playerId).influenceSupply
+        const general = { ...before.supply.influence }
+        const score = table.seat(playerId).score
+        const [action] = table.send(playerId, { ...KnightTrade, params: {} })
+        const after = table.hydrated()
+        expect(rowOf(after, playerId).markers).toBe(0)
+        expect(table.seat(playerId).influenceSupply).toBe(supply + 2)
+        // R-4.6.2 The seat is the guild's master, so one of the 3 comes back.
+        expect(table.seat(playerId).shillings).toBe(3)
+        expect(after.supply.influence).toEqual(general)
+        expect(table.seat(playerId).score).toBe(score)
+        expect(action).toMatchObject({
+            metadata: {
+                details: { kind: 'knight-trade', taken: 2, kept: 2, price: 3 },
+                points: 0,
+                reeveOffered: false,
+                drawnWritIds: []
+            }
+        })
+        expect(action.revealsInfo).toBeFalsy()
+        expect(conservationBreaks(canonicalOf(table.hydrated()))).toEqual([])
+        expect(table.state.machineState).toBe(MachineState.PlayingCards)
+    })
+
+    it('R-4.6.3, R-4.2.4 S44 with 4 markers, tames at once: 2 to the supply, 1 on its icon', () => {
+        const { table, playerId } = knightTrading(4)
+        const before = table.hydrated()
+        const colour = rowOf(before, playerId).colour
+        const general = before.supply.influence[colour]
+        const supply = before.getPlayerState(playerId).influenceSupply
+        const [action] = table.send(playerId, {
+            ...KnightTrade,
+            params: { monster: 'behemoth', deploySpaceId: 'space.desert.3' }
+        })
+        const after = table.hydrated()
+        expect(rowOf(after, playerId).markers).toBe(0)
+        expect(table.seat(playerId).influenceSupply).toBe(supply + 1)
+        expect(after.supply.influence[colour]).toBe(general + 2)
+        expect(after.guilds.knight.monsterIcons.behemoth).toBe(playerId)
+        expect(after.monsters.behemoth).toEqual({ playerId, spaceId: 'space.desert.3' })
+        expect(after.monsters['sea-serpent']).toEqual({})
+        expect(action).toMatchObject({
+            metadata: { details: { kind: 'knight-trade', taken: 4, kept: 1, price: 3 } }
+        })
+        expect(action.revealsInfo).toBeFalsy()
+        expect(conservationBreaks(canonicalOf(table.hydrated()))).toEqual([])
+    })
+
+    it('R-4.6.3 a row of exactly 3 tames and keeps none', () => {
+        const spaceId = spaceReachedOnlyBy('sea-serpent')
+        const { table, playerId } = knightTrading(3, spaceId)
+        const supply = table.seat(playerId).influenceSupply
+        const [action] = table.send(playerId, {
+            ...KnightTrade,
+            params: { monster: 'sea-serpent', deploySpaceId: spaceId }
+        })
+        expect(table.seat(playerId).influenceSupply).toBe(supply)
+        expect(action).toMatchObject({ metadata: { details: { taken: 3, kept: 0 } } })
+    })
+
+    it('R-4.6.3 a marker on the map is presence too', () => {
+        const spaceId = spaceReachedOnlyBy('behemoth')
+        const { table, playerId } = knightTrading(3, 'space.desert.3', (state, seat) => {
+            placeMarker(state, seat, spaceId)
+        })
+        table.send(playerId, {
+            ...KnightTrade,
+            params: { monster: 'behemoth', deploySpaceId: spaceId }
+        })
+        expect(table.hydrated().monsters.behemoth.spaceId).toBe(spaceId)
+    })
+
+    it('R-4.6.3 refuses a tame short of 3 markers', () => {
+        const { table, playerId } = knightTrading(2)
+        expect(() =>
+            table.send(playerId, {
+                ...KnightTrade,
+                params: { monster: 'behemoth', deploySpaceId: 'space.desert.3' }
+            })
+        ).toThrow('Taming the behemoth takes 3 markers from your row.')
+    })
+
+    it('R-4.2.4 refuses a monster someone holds; the other is still free', () => {
+        const spaceId = spaceReachedOnlyBy('sea-serpent')
+        const { table, playerId } = knightTrading(3, spaceId, (state, _seat, others) => {
+            state.getPlayerState(others[0]).influenceSupply -= 1
+            state.guilds.knight.monsterIcons.behemoth = others[0]
+            state.monsters.behemoth = { playerId: others[0], spaceId: 'space.desert.2' }
+        })
+        expect(() =>
+            table.send(playerId, {
+                ...KnightTrade,
+                params: { monster: 'behemoth', deploySpaceId: spaceId }
+            })
+        ).toThrow('The behemoth is already tamed.')
+        expect(knightTradeOffer(table.hydrated(), playerId).monsters.map((m) => m.monster)).toEqual(
+            ['sea-serpent']
+        )
+    })
+
+    it('R-4.6.3 deploys where the seat has a pawn or marker, by a route the monster may use', () => {
+        const noPresence = knightTrading(3)
+        expect(() =>
+            noPresence.table.send(noPresence.playerId, {
+                ...KnightTrade,
+                params: { monster: 'behemoth', deploySpaceId: 'space.desert.1' }
+            })
+        ).toThrow('Deploy the behemoth where you have a pawn or marker.')
+
+        const spaceId = spaceReachedOnlyBy('sea-serpent')
+        const cannotReach = knightTrading(3, spaceId)
+        expect(() =>
+            cannotReach.table.send(cannotReach.playerId, {
+                ...KnightTrade,
+                params: { monster: 'behemoth', deploySpaceId: spaceId }
+            })
+        ).toThrow('The behemoth has nowhere to deploy.')
+
+        const serpentOnly = spaceReachedOnlyBy('sea-serpent')
+        const behemothOnly = spaceReachedOnlyBy('behemoth')
+        const twoSpaces = knightTrading(3, behemothOnly, (state, seat) => {
+            setPawns(state, seat, ['knight', 'knight'])
+            state.getPlayerState(seat).pawns[0].spaceId = behemothOnly
+            state.getPlayerState(seat).pawns[1].spaceId = serpentOnly
+        })
+        expect(() =>
+            twoSpaces.table.send(twoSpaces.playerId, {
+                ...KnightTrade,
+                params: { monster: 'behemoth', deploySpaceId: serpentOnly }
+            })
+        ).toThrow("The behemoth can't reach that space.")
+    })
+
+    it('R-4.6-H10 refuses a monster with no space, and a space with no monster', () => {
+        const { table, playerId } = knightTrading(3)
+        expect(() =>
+            table.send(playerId, { ...KnightTrade, params: { monster: 'behemoth' } })
+        ).toThrow('Pick a space to deploy the behemoth.')
+        expect(() =>
+            table.send(playerId, { ...KnightTrade, params: { deploySpaceId: 'space.desert.3' } })
+        ).toThrow('Pick a monster to tame.')
+    })
+
+    it('R-4.6.3 is closed with an empty row, or with too few shillings', () => {
+        const empty = knightTrading(0)
+        expect(() => empty.table.send(empty.playerId, { ...KnightTrade, params: {} })).toThrow(
+            'Your Knight row holds no markers.'
+        )
+        const poor = knightTrading(2, 'space.desert.3', (state, seat) => {
+            setShillings(state, seat, 2)
+        })
+        expect(() => poor.table.send(poor.playerId, { ...KnightTrade, params: {} })).toThrow(
+            'Taking your row costs 3 shillings.'
+        )
+        expect(
+            guildActionOffers(poor.table.hydrated(), poor.playerId).find(
+                (offer) => offer.guildId === 'knight' && offer.fn === 'trade'
+            )
+        ).toMatchObject({ reason: 'Taking your row costs 3 shillings.', bestVp: 0 })
+    })
+
+    it('R-4.6.2, R-4.6-H3 pays the guild: one each to master, journeyman and charity', () => {
+        const { table, playerId } = knightTrading(1, 'space.desert.3', (state, seat, others) => {
+            setJourneyman(state, seat, 'knight', others[0])
+            setShillings(state, others[0], 0)
+            setShillings(state, seat, 5)
+        })
+        const charity = charityTotal(table.hydrated())
+        const [action] = table.send(playerId, { ...KnightTrade, params: {} })
+        const master = table.order.find(
+            (seat) => table.hydrated().guilds.tracks.knight.master?.playerId === seat
+        )
+        expect(action).toMatchObject({
+            metadata: {
+                payment: {
+                    members: [
+                        { playerId: master, amount: 1 },
+                        { playerId, amount: 1 }
+                    ],
+                    charity: { amount: 1 },
+                    generalSupply: 0
+                }
+            }
+        })
+        expect(charityTotal(table.hydrated())).toBe(charity + 1)
+        expect(table.seat(playerId).shillings).toBe(3)
+    })
+
+    it('R-4.5-H3 markers coming home fill a rank the seat was owed', () => {
+        const { table, playerId } = knightTrading(0, 'space.desert.3', (state, seat) => {
+            setPawns(state, seat, [])
+            state.recomputeRanks(seat)
+            const player = state.getPlayerState(seat)
+            state.supply.influence[player.color] += player.influenceSupply
+            player.influenceSupply = 0
+            setPawns(state, seat, ['knight', 'knight', 'knight'])
+            state.recomputeRanks(seat)
+            setSeatRow(state, seat, 2)
+        })
+        expect(table.hydrated().guilds.tracks.knight.master?.playerId).not.toBe(playerId)
+        const [action] = table.send(playerId, { ...KnightTrade, params: {} })
+        expect(table.hydrated().guilds.tracks.knight.master?.playerId).toBe(playerId)
+        expect(action).toMatchObject({
+            metadata: { rankChanges: [{ guildId: 'knight', playerId, to: 'master' }] }
+        })
+        expect(table.seat(playerId).influenceSupply).toBe(1)
+        expect(conservationBreaks(canonicalOf(table.hydrated()))).toEqual([])
+    })
+})
+
+describe('GuildAction: Knight trade offers and preview', () => {
+    it('R-4.6.3 offers the row at its price; below 3, no monster', () => {
+        const { table, playerId } = knightTrading(2)
+        expect(knightTradeOffer(table.hydrated(), playerId)).toEqual({
+            price: 3,
+            markers: 2,
+            monsters: []
+        })
+    })
+
+    it('R-4.6.3 S44 from 3, each monster with the spaces it may deploy to', () => {
+        const spaceId = spaceReachedOnlyBy('behemoth')
+        const { table, playerId } = knightTrading(4, spaceId)
+        const offer = knightTradeOffer(table.hydrated(), playerId)
+        expect(offer.monsters).toEqual([{ monster: 'behemoth', spaces: [spaceId] }])
+    })
+
+    it('R-4.6.3 anyone may trade: it is open with no rank', () => {
+        const { table, playerId } = knightTrading(1)
+        const offer = guildActionOffers(table.hydrated(), playerId).find(
+            (row) => row.guildId === 'knight' && row.fn === 'trade'
+        )
+        expect(offer).toEqual({ guildId: 'knight', fn: 'trade', bestVp: 0 })
+    })
+
+    it('R-4.6.3, R-4.6.2 previews the row and split, naming what a staged tame still lacks', () => {
+        const { table, playerId } = knightTrading(4)
+        const state = table.hydrated()
+        const input = { guildId: 'knight', fn: 'trade' } as const
+        expect(guildActionPreview(state, playerId, { ...input, params: {} })).toMatchObject({
+            details: { kind: 'knight-trade', taken: 4, kept: 4, price: 3 },
+            payment: { generalSupply: expect.any(Number) },
+            points: 0,
+            revealsInfo: false
+        })
+        expect(
+            guildActionPreview(state, playerId, { ...input, params: { monster: 'behemoth' } })
+        ).toMatchObject({
+            details: { kept: 1 },
+            refused: 'Pick a space to deploy the behemoth.'
+        })
+        expect(
+            guildActionPreview(state, playerId, {
+                ...input,
+                params: { monster: 'behemoth', deploySpaceId: 'space.desert.1' }
+            })
+        ).toBeUndefined()
+    })
+})
+
+function nobleTrading(filled: readonly ScrollSpaceId[], shillings = 6, guild?: GuildId) {
+    return tableAtGuild((state, seat) => {
+        setScrolls(state, filled)
+        setShillings(state, seat, shillings)
+        if (guild) {
+            setMaster(state, seat, guild)
+        }
+    })
+}
+
+describe('GuildAction: R-4.6-H1 the Noble trade', () => {
+    const R1C1 = 'guild.noble.scroll.r1c1'
+    const R1C3 = 'guild.noble.scroll.r1c3'
+    const R2C2 = 'guild.noble.scroll.r2c2'
+
+    it('R-4.6-H1 one seal from the scrolls for 3s, red side up and named in no record', () => {
+        const { table, playerId } = nobleTrading([R1C1, R1C3])
+        const before = table.hydrated()
+        const sealId = before.requireVault().scrollSeals[R1C1]
+        const held = before.getPlayerState(playerId).sealCount
+        const pile = before.supply.sealPileCount
+        const [action] = table.send(playerId, {
+            ...NobleTrade,
+            params: { scrollSpaces: [R1C1] }
+        })
+        const after = table.hydrated()
+        expect(after.guilds.noble.scrolls[R1C1]).toBe(false)
+        expect(after.guilds.noble.scrolls[R1C3]).toBe(true)
+        expect(after.requireVault().scrollSeals[R1C1]).toBeUndefined()
+        expect(after.requireVault().heldSeals[playerId]).toContain(sealId)
+        expect(table.seat(playerId).sealCount).toBe(held + 1)
+        expect(table.seat(playerId).shillings).toBe(3)
+        expect(after.supply.sealPileCount).toBe(pile)
+        expect(action).toMatchObject({
+            metadata: { details: { kind: 'noble-trade', price: 3 }, points: 0 }
+        })
+        expect(recordedText(action)).not.toContain('seal.')
+        expect(action.revealsInfo).toBeFalsy()
+        expect(conservationBreaks(canonicalOf(table.hydrated()))).toEqual([])
+    })
+
+    it('R-4.6-H1 two seals for 6s', () => {
+        const { table, playerId } = nobleTrading([R1C1, R1C3])
+        const [action] = table.send(playerId, {
+            ...NobleTrade,
+            params: { scrollSpaces: [R1C1, R1C3] }
+        })
+        expect(table.seat(playerId).shillings).toBe(0)
+        expect(action).toMatchObject({ metadata: { details: { price: 6 } } })
+    })
+
+    it('R-4.6-H1 refuses none, more than 2, an empty space and one space twice', () => {
+        const { table, playerId } = nobleTrading([R1C1, R1C3, R2C2], 9)
+        const send = (scrollSpaces: ScrollSpaceId[]) => () =>
+            table.send(playerId, { ...NobleTrade, params: { scrollSpaces } })
+        expect(send([])).toThrow('Pick up to 2 seals on the scrolls.')
+        expect(send([R1C1, R1C3, R2C2])).toThrow('Buy at most 2 seals.')
+        expect(send(['guild.noble.scroll.r3c1'])).toThrow('No seal lies on that scroll space.')
+        expect(send([R1C1, R1C1])).toThrow('No seal lies on that scroll space.')
+    })
+
+    it('R-4.6.2 refuses seals the seat cannot pay for, at the whole price', () => {
+        const { table, playerId } = nobleTrading([R1C1, R1C3], 5)
+        expect(() =>
+            table.send(playerId, { ...NobleTrade, params: { scrollSpaces: [R1C1, R1C3] } })
+        ).toThrow('Those seals cost 6 shillings.')
+    })
+
+    it('R-4.6-H1 no seal on the scrolls: nothing to buy, whatever the general supply holds', () => {
+        const { table, playerId } = nobleTrading([])
+        expect(table.hydrated().supply.sealPileCount).toBeGreaterThan(0)
+        expect(() =>
+            table.send(playerId, { ...NobleTrade, params: { scrollSpaces: [R1C1] } })
+        ).toThrow('No seal lies on the scrolls.')
+    })
+
+    it('R-4.6.2 is closed with too few shillings for one', () => {
+        const { table, playerId } = nobleTrading([R1C1], 2)
+        expect(() =>
+            table.send(playerId, { ...NobleTrade, params: { scrollSpaces: [R1C1] } })
+        ).toThrow('A seal costs 3 shillings.')
+    })
+
+    it('R-4.6.2, R-4.6-H3 the price pays the guild; a master pays themselves', () => {
+        const { table, playerId } = nobleTrading([R1C1], 3, 'noble')
+        const charity = charityTotal(table.hydrated())
+        const [action] = table.send(playerId, {
+            ...NobleTrade,
+            params: { scrollSpaces: [R1C1] }
+        })
+        expect(table.seat(playerId).shillings).toBe(1)
+        expect(charityTotal(table.hydrated())).toBe(charity + 1)
+        expect(action).toMatchObject({
+            metadata: {
+                payment: { members: [{ playerId, amount: 1 }], charity: { amount: 1 } }
+            }
+        })
+    })
+
+    it('R-4.6-H1 offers each seal on the scrolls and the most one trade buys', () => {
+        const { table } = nobleTrading([R1C1])
+        expect(nobleTradeOffer(table.hydrated())).toEqual({
+            price: 3,
+            scrollSpaces: [R1C1],
+            most: 1
+        })
+    })
+
+    it('R-5-H1 previews the price and split without reading the vault', () => {
+        const { table, playerId } = nobleTrading([R1C1, R1C3])
+        const state = table.hydrated()
+        state.vault = undefined
+        const input = { guildId: 'noble', fn: 'trade' } as const
+        expect(
+            guildActionPreview(state, playerId, { ...input, params: { scrollSpaces: [R1C1] } })
+        ).toMatchObject({
+            details: { kind: 'noble-trade', price: 3 },
+            payment: expect.any(Object),
+            points: 0,
+            revealsInfo: false
+        })
+        expect(guildActionPreview(state, playerId, { ...input, params: {} })).toMatchObject({
+            refused: 'Pick up to 2 seals on the scrolls.'
+        })
+        expect(
+            guildActionPreview(state, playerId, {
+                ...input,
+                params: { scrollSpaces: [R2C2] }
             })
         ).toBeUndefined()
     })

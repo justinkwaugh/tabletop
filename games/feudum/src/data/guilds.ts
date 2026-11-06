@@ -159,6 +159,28 @@ export const AlchemistPullGoods = 2
 /** R-4.6.5 The most inventions an Alchemist push makes. */
 export const AlchemistPushInventions = 3
 
+/** R-4.6.3 What taking a Knight row costs, however many markers it holds. */
+export const KnightTradePrice = 3
+
+/** R-4.6.4 The inventions a Knight pull makes. */
+export const KnightPullInventions = 1
+
+/** R-4.6.5 The most markers a Knight push moves from the rows, each replaced by a seal. */
+export const KnightPushMarkers = 3
+
+/** R-4.6.3, R-4.6-H1 What a seal bought from the scrolls costs, and the most one trade buys. */
+export const NobleTradePrice = 3
+export const NobleTradeSeals = 2
+
+/** R-4.6.4 The markers a Noble pull moves from the rows, each replaced by a seal. */
+export const NoblePullMarkers = 2
+
+/** R-4.6.5 The seals a Noble push flips onto the rosary. */
+export const NoblePushSeals = 2
+
+/** R-4.6.5 The rosary totals that reach a Noble push's first, second and third level. */
+export const NoblePushTotals = [5, 11, 17] as const
+
 /** R-4.6.4 A pull reaching its threshold. */
 export const PullReward = { vp: 3, writs: { draw: 2, keep: 1 } } as const
 
@@ -352,6 +374,9 @@ export interface KnightMonsterIcon {
     /** R-4.6.3 What taming this monster costs in returned markers. */
     readonly markers: number
 }
+
+/** R-4.6.3 Of the markers a tame returns, this many lie on the icon; the rest go to the supply. */
+export const TameMarkersOnIcon = 1
 
 /** R-4.2.4, R-4.6.3 */
 export const KnightMonsterIcons: readonly KnightMonsterIcon[] = MonsterIds.map((monster) => ({

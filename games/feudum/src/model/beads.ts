@@ -18,6 +18,26 @@ export function chickenBeadSum(state: HydratedFeudumGameState): number {
     )
 }
 
+/** R-4.6.5 The sum of the beads on the rosary. */
+export function rosaryBeadSum(state: HydratedFeudumGameState): number {
+    return state.guilds.monk.rosary.reduce((sum, bead) => sum + beadValue(bead), 0)
+}
+
+/**
+ * R-5-H1, R-4.6.5 The values any concealed seal could show, lowest first: every seal but the beads
+ * in public state. It reads no vault, so it says what might be flipped and not what will be.
+ */
+export function unseenBeadValues(state: HydratedFeudumGameState): BeadValue[] {
+    const shown = new Set<SealId>([
+        ...state.guilds.monk.rosary,
+        ...state.guilds.farmer.chickens.filter((bead) => bead !== null),
+        ...state.players.flatMap((player) => player.beads)
+    ])
+    return Seals.filter((seal) => !shown.has(seal.id))
+        .map((seal) => seal.beadValue)
+        .toSorted((a, b) => a - b)
+}
+
 export interface BeadCandidates {
     readonly high: SealId
     readonly low: SealId
