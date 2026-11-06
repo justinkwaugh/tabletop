@@ -1,16 +1,13 @@
 import { beforeAll, describe, expect, it } from 'vitest'
-import { docSection, docTableRows, readDoc } from '../testing/docs.js'
+import { docSection, readDoc } from '../testing/docs.js'
 import { ProvisionalRegistry } from './provisional.js'
-import { ProvisionalBoard } from './provisional.board.js'
 import { ProvisionalCards } from './provisional.cards.js'
 import { ProvisionalGuilds } from './provisional.guilds.js'
 
-let components = ''
 let rulings = ''
 let deviationLines = new Map<string, string>()
 
 beforeAll(async () => {
-    components = await readDoc('components.md')
     rulings = await readDoc('rulings.md')
     // Each provisional value has one line: - **`<component id>` <what it is>:** ...
     deviationLines = new Map(
@@ -97,33 +94,18 @@ describe('R-4.6-H3 the charity split', () => {
     })
 })
 
-describe('R-1.2-H1 the routes of the community map aid', () => {
-    it.each([
-        ['road', ProvisionalBoard.roadRoutes, 13],
-        ['ship', ProvisionalBoard.shipRoutes, 8],
-        ['submersible', ProvisionalBoard.submersibleRoutes, 10],
-        ['flying-machine', ProvisionalBoard.flyingMachineRoutes, 8]
-    ])('%s routes match the Connections table', (medium, entry, count) => {
-        expect(entry.ruling).toBe('R-1.2-H1')
-        expect(entry.componentId).toBe(`route.${medium}.*`)
-        expect(entry.placeholder).toHaveLength(count)
-        expect(entry.placeholder).toEqual(
-            docTableRows(components, '## Connections')
-                .filter((row) => row['Medium'] === medium)
-                .map((row) => row['Id'])
-        )
-    })
-
-    it('the ferries are read from the board, so they have no entry (R-1.2.2)', () => {
+describe('R-1.2-H1 the routes', () => {
+    it('are read from the board, so they have no entry and the ruling is not provisional', () => {
         const ids = ProvisionalRegistry.map((entry) => entry.componentId)
-        expect(ids).not.toContain('route.ferry.*')
+        expect(ids.filter((id) => id.startsWith('route.'))).toEqual([])
+        expect(rulings).toMatch(/\*\*R-1\.2-H1\*\* \([^)]*\):/)
     })
 })
 
-describe('the unread marks on cards', () => {
-    it('R-3.5 the Repeat card carries no either/or mark', () => {
-        expect(ProvisionalCards.repeatEitherOr.componentId).toBe('card.action.repeat')
-        expect(ProvisionalCards.repeatEitherOr.placeholder).toBe(false)
+describe('the unread marks on writs', () => {
+    it('R-3.15 the Repeat card is read, so it has no entry', () => {
+        const ids = ProvisionalRegistry.map((entry) => entry.componentId)
+        expect(ids).not.toContain('card.action.repeat')
     })
 
     it('R-4.4.3 the Northern Kingdom marks badlands-2 and mountain-1', () => {

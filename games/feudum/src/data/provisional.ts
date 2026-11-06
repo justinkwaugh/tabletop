@@ -1,18 +1,13 @@
-import { ProvisionalBoard } from './provisional.board.js'
 import { ProvisionalCards } from './provisional.cards.js'
 import { ProvisionalGuilds } from './provisional.guilds.js'
 
 /** The specs that assert a printed value once it is confirmed. */
 export type DataBlockedSpec =
     | 'alchemist.spec.ts'
-    | 'boardMap.spec.ts'
-    | 'cards.spec.ts'
     | 'charters.spec.ts'
-    | 'discs.spec.ts'
     | 'guildData.spec.ts'
     | 'initializer.spec.ts'
     | 'merchant.spec.ts'
-    | 'regionTilesData.spec.ts'
     | 'seals.spec.ts'
     | 'writs.spec.ts'
 
@@ -38,7 +33,6 @@ export interface ProvisionalEntry<T = unknown> {
  * `known-deviations.md` ("Not covered by specs"); `provisional.spec.ts` checks one against the other.
  */
 export const ProvisionalRegistry: readonly ProvisionalEntry[] = [
-    ...Object.values(ProvisionalBoard),
     ...Object.values(ProvisionalGuilds),
     ...Object.values(ProvisionalCards)
 ]

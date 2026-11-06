@@ -1,5 +1,7 @@
+import type { SpaceId } from './board.js'
 import type { Good, GuildId, VesselType } from './components.js'
 import { ProvisionalCards } from './provisional.cards.js'
+import type { RegionId } from './regionTiles.js'
 
 export type MandateId = `writ.mandate.${number}`
 
@@ -224,11 +226,6 @@ export const Mandates: readonly Mandate[] = [
     }
 ]
 
-type SpaceRegion = 'sea' | 'island' | 'forest' | 'desert' | 'badlands' | 'mountain'
-
-/** A board space a charter's map marks, by its id in `components.md`. */
-export type CharterSpaceId = `space.${SpaceRegion}.${number}`
-
 export type Kingdom = 'eastern' | 'western' | 'northern' | 'central' | 'southern' | 'isolated'
 
 export type CharterId =
@@ -247,7 +244,7 @@ export interface KingdomCharter extends CharterBase {
     /** R-6.2-H1 Index 0 is 1 location ruled. */
     readonly vpByLocationsRuled: readonly number[]
     /** The card's dots. */
-    readonly spaces: readonly CharterSpaceId[]
+    readonly spaces: readonly SpaceId[]
 }
 
 export interface SulfurBarrelCharter extends CharterBase {
@@ -265,10 +262,10 @@ export type Charter = KingdomCharter | SulfurBarrelCharter | MonsterDefeatCharte
 const KingdomVp = [3, 5, 7, 9]
 const IsolatedKingdomVp = [5, 11, 17]
 
-function spaces(region: SpaceRegion, first: number, last = first): CharterSpaceId[] {
+function spaces(region: RegionId, first: number, last = first): SpaceId[] {
     return Array.from(
         { length: last - first + 1 },
-        (_, index): CharterSpaceId => `space.${region}.${first + index}`
+        (_, index): SpaceId => `space.${region}.${first + index}`
     )
 }
 
