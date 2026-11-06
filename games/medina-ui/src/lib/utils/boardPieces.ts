@@ -6,6 +6,7 @@ import {
     isWallAcross,
     polygonPoints,
     project,
+    projectView,
     towerWorlds,
     worldOfSpace,
     worldOfWall,
@@ -17,7 +18,7 @@ export type BoardPiece = {
     key: string
     sprite: string
     anchor: Point
-    rooftop?: { key: string; sprite: string }
+    rooftop?: { key: string; sprite: string; place: string; markAt: Point }
     palaceId?: string
     place?: string
     outline?: string
@@ -34,6 +35,9 @@ const PIECE_SHAPES = {
     merchant: { variants: 2 }
 }
 const MERCHANT_SQUARE_HALF = 0.4
+// A roofed building's mark sits toward the viewer, below its rooftop's mark in either view: the
+// building in front of it can hide its front face.
+const UNDER_ROOF_MARK = { forward: 0.28, height: 0.4 }
 const WALL_VARIANTS = 2
 const ROOFTOP_VARIANTS = 2
 
@@ -60,10 +64,47 @@ export function spacePlace(space: Point): string {
     return `space:${space.x},${space.y}`
 }
 
+export function roofPlace(space: Point): string {
+    return `roof:${space.x},${space.y}`
+}
+
 export function recentPlace(placement: RecentPlacement): string {
-    return 'wall' in placement
-        ? wallKey(placement.wall.side, placement.wall.position)
-        : spacePlace(placement.space)
+    if ('wall' in placement) {
+        return wallKey(placement.wall.side, placement.wall.position)
+    }
+    return 'roof' in placement ? roofPlace(placement.roof) : spacePlace(placement.space)
+}
+
+export type RecentMark = {
+    key: string
+    piece: BoardPiece
+    playerId: string
+    at: Point | undefined
+    onRoof: boolean
+}
+
+// Newest first, one mark per place; a rooftop is a place of its own, so the building under it
+// keeps the mark of whoever placed it.
+export function recentMarks(pieces: BoardPiece[], recent: RecentPlacement[]): RecentMark[] {
+    const byPlace = new Map<string, Omit<RecentMark, 'key' | 'playerId'>>()
+    for (const piece of pieces) {
+        if (piece.place) {
+            byPlace.set(piece.place, { piece, at: piece.markAt, onRoof: false })
+        }
+        if (piece.rooftop) {
+            byPlace.set(piece.rooftop.place, { piece, at: piece.rooftop.markAt, onRoof: true })
+        }
+    }
+    const seen = new Set<string>()
+    return recent.flatMap((placement) => {
+        const key = recentPlace(placement)
+        const mark = byPlace.get(key)
+        if (!mark || seen.has(key)) {
+            return []
+        }
+        seen.add(key)
+        return [{ key, playerId: placement.playerId, ...mark }]
+    })
 }
 
 export function buildingSprite(color: PalaceColor, space: Point): string {
@@ -81,6 +122,12 @@ export function merchantSprite(space: Point): string {
 export function wallSprite(section: WallSection, sideways: boolean): string {
     const direction = isWallAcross(section, sideways) ? 'h' : 'v'
     return `wall-${direction}-${section.position % WALL_VARIANTS}`
+}
+
+function underRoofMark(projection: BoardProjection, world: Point): Point {
+    const at = project(projection, world, UNDER_ROOF_MARK.height)
+    const forward = projectView(projection, { x: 0, y: -UNDER_ROOF_MARK.forward })
+    return { x: at.x + forward.x, y: at.y + forward.y }
 }
 
 export function rooftopOn(sprite: string, space: Point): string {
@@ -126,11 +173,15 @@ export function boardPieces(
             rooftop: roofed
                 ? {
                       key: rooftopKey(palace.id),
-                      sprite: rooftopOn(rooftopSprite(roof), building.coords)
+                      sprite: rooftopOn(rooftopSprite(roof), building.coords),
+                      place: roofPlace(building.coords),
+                      markAt: project(projection, world, shape.height + shape.rooftopHeight)
                   }
                 : undefined,
             place: spacePlace(building.coords),
-            markAt: project(projection, world, shape.height + (roofed ? shape.rooftopHeight : 0)),
+            markAt: roofed
+                ? underRoofMark(projection, world)
+                : project(projection, world, shape.height),
             outline: outlineOf(
                 projection,
                 world,

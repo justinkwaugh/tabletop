@@ -25,7 +25,7 @@
         spaceKey,
         merchantSprite,
         paintOrder,
-        recentPlace,
+        recentMarks as recentMarksOf,
         rooftopOn,
         scoringPieceKeys,
         stableSprite,
@@ -253,19 +253,12 @@
         )
     )
 
-    const recentMarks = $derived.by(() => {
-        const byPlace = new Map(session.pieces.map((piece) => [piece.place, piece]))
-        const seen = new Set<string>()
-        return session.recent.flatMap((placement) => {
-            const place = recentPlace(placement)
-            const piece = byPlace.get(place)
-            if (!piece || seen.has(place)) {
-                return []
-            }
-            seen.add(place)
-            return [{ piece, color: session.colors.getPlayerUiColor(placement.playerId) }]
-        })
-    })
+    const recentMarks = $derived(
+        recentMarksOf(session.pieces, session.recent).map((mark) => ({
+            ...mark,
+            color: session.colors.getPlayerUiColor(mark.playerId)
+        }))
+    )
     // One filter per wall, its region the wall's frame (see spriteBox).
     const wallTints = $derived(
         recentMarks.flatMap(({ piece, color }) =>
@@ -341,7 +334,7 @@
     const finalScores = $derived(
         shown.result
             ? session.pieces.flatMap((piece) => {
-                  if (!piece.rooftop || !piece.palaceId || !piece.markAt) {
+                  if (!piece.rooftop || !piece.palaceId) {
                       return []
                   }
                   const palace = shown.palace(piece.palaceId)
@@ -349,7 +342,7 @@
                   return [
                       {
                           key: piece.key,
-                          at: piece.markAt,
+                          at: piece.rooftop.markAt,
                           total: shown.palaceScore(palace).total,
                           color: owner
                               ? session.colors.getPlayerTextColorValue(owner)
@@ -498,7 +491,7 @@
     </g>
 
     <g class="recent-squares">
-        {#each recentMarks as { piece, color } (piece.key)}
+        {#each recentMarks as { key, piece, color } (key)}
             {#if piece.groundMark}
                 <polygon class="recent-square" points={piece.groundMark} fill={color}></polygon>
             {/if}
@@ -607,13 +600,13 @@
     </g>
 
     <g class="recent">
-        {#each recentMarks as { piece, color } (piece.key)}
-            {#if piece.markAt}
+        {#each recentMarks as { key, at, onRoof, color } (key)}
+            {#if at}
                 <circle
                     class="recent-dot"
-                    class:on-roof={!!piece.rooftop}
-                    cx={piece.markAt.x}
-                    cy={piece.markAt.y}
+                    class:on-roof={onRoof}
+                    cx={at.x}
+                    cy={at.y}
                     r={RECENT_DOT_RADIUS}
                     fill={color}
                 ></circle>
