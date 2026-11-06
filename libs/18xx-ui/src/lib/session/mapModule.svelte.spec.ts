@@ -30,17 +30,23 @@ const rules = {
     routeRules: { ...minimalRouteRules, map: minimalTrackMap, tileSet }
 }
 
-const noAuctionHomes: HomeOffer = { homePositions: [], chooseHome: () => {} }
+const noAuctionHomes: HomeOffer = {
+    homePositions: [],
+    chooseHome: () => {},
+    chosenHome: undefined
+}
 
 function table(
     machineState: 'LayingTrack' | 'StockRound',
     valid: string[],
     availability = {},
-    homeOffers: readonly HomeOffer[] = [noAuctionHomes]
+    homeOffers: readonly HomeOffer[] = [noAuctionHomes],
+    extra = {}
 ) {
     const base = minimalPlayState()
     const state = {
         ...base,
+        ...extra,
         machineState,
         companies: base.companies.map((company) => ({ ...company, floated: true })),
         cash: [
@@ -229,11 +235,46 @@ describe('MapModule', () => {
         const chosen: unknown[] = []
         const home = { locationId: TestTrackHomeLocationId, nodeId: 'city', slot: 0 }
         const { map } = table('StockRound', [], {}, [
-            { homePositions: [home], chooseHome: (position) => chosen.push(position) }
+            {
+                homePositions: [home],
+                chooseHome: (position) => chosen.push(position),
+                chosenHome: undefined
+            }
         ])
         expect(map.offeredCityLocationIds).toEqual([TestTrackHomeLocationId])
         map.select({ kind: 'hex', locationId: TestTrackHomeLocationId })
         expect(chosen).toEqual([home])
+    })
+
+    it('holds the auctioned company’s home city on the map while players bid', () => {
+        const home = { locationId: TestTrackHomeLocationId, nodeId: 'city', slot: 0 }
+        const { map } = table('StockRound', [], {}, [noAuctionHomes], {
+            companyAuction: {
+                companyId: 'B',
+                openerId: 'alex',
+                home,
+                auction: {
+                    id: 'auction',
+                    type: 'simple',
+                    auctioneerId: 'alex',
+                    highBid: 100,
+                    participants: [{ playerId: 'alex', passed: false, bid: 100 }]
+                }
+            }
+        })
+        expect(map.displayedReservations).toContainEqual({
+            companyId: 'B',
+            locationId: TestTrackHomeLocationId,
+            nodeId: 'city'
+        })
+    })
+
+    it('holds a home city chosen for a company before its auction opens', () => {
+        const chosenHome = { companyId: 'B', locationId: TestTrackHomeLocationId, nodeId: 'city' }
+        const { map } = table('StockRound', [], {}, [
+            { homePositions: [], chooseHome: () => {}, chosenHome }
+        ])
+        expect(map.displayedReservations).toContainEqual(chosenHome)
     })
 
     it('offers a starting company’s home cities when no auction offers any', () => {
@@ -241,8 +282,16 @@ describe('MapModule', () => {
         const started: unknown[] = []
         const home = { locationId: TestTrackHomeLocationId, nodeId: 'city', slot: 0 }
         const { map } = table('StockRound', [], {}, [
-            { homePositions: [], chooseHome: (position) => auctioned.push(position) },
-            { homePositions: [home], chooseHome: (position) => started.push(position) }
+            {
+                homePositions: [],
+                chooseHome: (position) => auctioned.push(position),
+                chosenHome: undefined
+            },
+            {
+                homePositions: [home],
+                chooseHome: (position) => started.push(position),
+                chosenHome: undefined
+            }
         ])
         expect(map.offeredCityLocationIds).toEqual([TestTrackHomeLocationId])
         map.select({ kind: 'hex', locationId: TestTrackHomeLocationId })

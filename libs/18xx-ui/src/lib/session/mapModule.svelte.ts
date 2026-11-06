@@ -2,7 +2,9 @@ import { assert, assertExists } from '@tabletop/common'
 import {
     RailwayMapState,
     TrackNetwork,
+    companyAuctionHomeReservation,
     liftedPrivateBlocks,
+    type CompanyAuctionState,
     type EighteenXXState,
     type PrivateRules,
     type StationState,
@@ -32,7 +34,8 @@ type MapState = Parameters<typeof stationMapTokens>[0] &
     Pick<
         EighteenXXState,
         'companies' | 'certificates' | 'stations' | 'tileInventory' | 'stationStep' | 'trackStep'
-    > & {
+    > &
+    Pick<CompanyAuctionState, 'companyAuction'> & {
         locationMarkers?: readonly Pick<
             import('@tabletop/18xx').LocationMarker,
             'kind' | 'locationId'
@@ -81,8 +84,11 @@ type Stations = Pick<
     | 'privateStationPositions'
     | 'placePrivateStation'
 >
-/** A module offering home cities on the map: a company auction's opening, a company's start. */
-export type HomeOffer = Pick<CompanyAuctionModule, 'homePositions' | 'chooseHome'>
+/**
+ * A module offering home cities on the map: a company auction's opening, a company's start. Its
+ * chosen home is held on the map until the choice is sent.
+ */
+export type HomeOffer = Pick<CompanyAuctionModule, 'homePositions' | 'chooseHome' | 'chosenHome'>
 type CityOffer = { locationIds: readonly string[]; select(selection: MapSelection): void }
 type Routes = Pick<
     RoutesModule<RoutesSession['state']>,
@@ -186,9 +192,13 @@ export class MapModule {
               )
             : this.tokens
     })
-    displayedReservations = $derived.by(() =>
-        this.stations.openReservations(this.displayedStationState)
-    )
+    displayedReservations = $derived.by(() => [
+        ...this.stations.openReservations(this.displayedStationState),
+        ...[
+            companyAuctionHomeReservation(this.displayState()),
+            ...this.homeOffers.map((offer) => offer.chosenHome)
+        ].filter((reservation) => reservation !== undefined)
+    ])
     style = $derived.by((): MapStyle =>
         this.session.playerId
             ? (this.styles[this.session.playerId] ?? DefaultMapStyle)

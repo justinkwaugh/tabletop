@@ -33,6 +33,7 @@ import {
     type Owner,
     type PurchaseRequest,
     type SaleRequest,
+    type StationReservation,
     type ShareSale,
     type ValuationRules,
     companyShareCount
@@ -191,6 +192,14 @@ export class StockModule implements LocalSelection {
     homePositions = $derived.by(() => (this.selectedStartHome ? [] : this.offeredStartHomes))
     /** Whether the chosen company still needs its home before its price. */
     awaitingStartHome = $derived.by(() => this.homePositions.length > 0)
+    /** The home chosen for the company the player is about to start. */
+    chosenHome = $derived.by((): StationReservation | undefined => {
+        const company = this.selectedStartCompany
+        const home = this.selectedStartHome
+        return company && home
+            ? { companyId: company.companyId, locationId: home.locationId, nodeId: home.nodeId }
+            : undefined
+    })
     /** The chosen home and what it costs its company. */
     selectedStartHomeChoice = $derived.by(() => {
         const home = this.selectedStartHome

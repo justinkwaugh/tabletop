@@ -9,7 +9,8 @@ import {
     type CompanyAuctionState,
     type CompanyFormationChoice,
     type EighteenXXTitleRules,
-    type HomePosition
+    type HomePosition,
+    type StationReservation
 } from '@tabletop/18xx'
 import type { ModuleSession } from './moduleSession.js'
 import { StagedSelection, singleChoice } from './stagedSelection.svelte.js'
@@ -60,6 +61,14 @@ export class CompanyAuctionModule {
     selectedHome = $derived.by(() =>
         this.session.selectionsVisible ? this.opening.value('home') : undefined
     )
+    /** The home chosen for the company the player is about to auction. */
+    chosenHome = $derived.by((): StationReservation | undefined => {
+        const companyId = this.selectedCompanyId
+        const home = this.selectedHome
+        return companyId && home
+            ? { companyId, locationId: home.locationId, nodeId: home.nodeId }
+            : undefined
+    })
     openingAmount = $derived.by(() => {
         const model = this.model
         const playerId = this.session.state.activePlayerIds[0]
