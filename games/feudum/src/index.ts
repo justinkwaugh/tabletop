@@ -10,3 +10,7 @@ export * from './definition/states.js'
 
 export * from './model/gameState.js'
 export * from './model/playerState.js'
+
+export * from './data/components.js'
+export * from './data/provisional.js'
+export * from './data/tracks.js'
