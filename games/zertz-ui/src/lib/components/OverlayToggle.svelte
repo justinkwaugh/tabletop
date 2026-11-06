@@ -12,28 +12,33 @@
     class="toggle"
     aria-pressed={pressed}
     title={pressed ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
+    aria-label={label}
     onclick={onToggle}
 >
     <span class="glyph">{glyph}</span>
-    <span class="max-sm:hidden">{label}</span>
 </button>
 
 <style>
     .toggle {
         display: flex;
         align-items: center;
-        gap: 6px;
-        padding: 3px 10px 3px 6px;
+        justify-content: center;
+        height: 30px;
+        min-width: 30px;
+        padding: 3px 4px;
         border-radius: 999px;
         background: var(--zertz-panel);
-        box-shadow: inset 0 0 0 1px var(--zertz-panel-edge);
+        box-shadow:
+            inset 0 0 0 1px var(--zertz-panel-edge),
+            var(--zertz-panel-shadow);
         color: var(--zertz-ink-quiet);
-        font-size: 12px;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
+        font-size: 11px;
     }
 
     .glyph {
+        display: flex;
+        align-items: center;
+        min-height: 17px;
         padding: 1px 5px;
         border-radius: 6px;
         border: 1px solid currentColor;
@@ -41,9 +46,12 @@
         letter-spacing: 0;
     }
 
+    /* On, the lines brighten and a thin ring shows round the button, quieter than a solid fill. */
     .toggle[aria-pressed='true'] {
         color: var(--zertz-ink);
-        box-shadow: inset 0 0 0 1px var(--zertz-place);
+        box-shadow:
+            inset 0 0 0 1.5px var(--zertz-toggle-on),
+            var(--zertz-panel-shadow);
     }
 
     .toggle:hover {
