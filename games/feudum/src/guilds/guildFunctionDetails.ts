@@ -135,6 +135,32 @@ const NoblePushDetails = Type.Object({
     rosaryTotal: Type.Integer({ minimum: 0 })
 })
 
+/** R-4.6.3, R-4.6-H2 Both candidates and the bead kept; the other stays on the rosary. */
+const MonkTradeDetails = Type.Object({
+    kind: Type.Literal('monk-trade'),
+    high: SealIdSchema,
+    low: SealIdSchema,
+    bead: SealIdSchema,
+    price: Type.Integer({ minimum: 0 })
+})
+
+/** R-4.6.4 The seal flipped, and the rosary's total after it. */
+const MonkPullDetails = Type.Object({
+    kind: Type.Literal('monk-pull'),
+    sealIds: Type.Array(SealIdSchema),
+    rosaryTotal: Type.Integer({ minimum: 0 })
+})
+
+/** R-4.6.5, R-4.6-H2 Both candidates, the bead drawn and where it went. */
+const MonkPushDetails = Type.Object({
+    kind: Type.Literal('monk-push'),
+    high: SealIdSchema,
+    low: SealIdSchema,
+    bead: SealIdSchema,
+    chicken: Type.Integer({ minimum: 0 }),
+    chickenSum: Type.Integer({ minimum: 0 })
+})
+
 /**
  * What one guild function did, for the history sentence. Each guild function adds one member,
  * told apart by `kind`.
@@ -153,5 +179,8 @@ export const GuildFunctionDetails = Type.Union([
     KnightPushDetails,
     NobleTradeDetails,
     NoblePullDetails,
-    NoblePushDetails
+    NoblePushDetails,
+    MonkTradeDetails,
+    MonkPullDetails,
+    MonkPushDetails
 ])

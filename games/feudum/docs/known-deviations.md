@@ -4,7 +4,7 @@ Where this implementation still differs from the rules or a component's publishe
 
 ## Rules
 
-- **R-4.6.3, R-4.6.4 The hidden-bead draw:** the game picks one of the two beads at random; the rules have an opponent hide one in each hand and the actor pick a hand. Governs: R-4.6-H2.
+- **R-4.6.3, R-4.6.4, R-4.6.5 The hidden-bead draw:** the game picks one of the two beads at random; the rules have an opponent hide one in each hand and the actor pick a hand. Governs: R-4.6-H2.
 
 ## Component text
 

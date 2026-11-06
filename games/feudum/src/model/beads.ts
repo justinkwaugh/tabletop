@@ -83,6 +83,14 @@ export function hiddenBeadDraw(state: HydratedFeudumGameState): HiddenBeadDraw {
     return { high, low, bead: state.getProtectedPrng().random() < 0.5 ? high : low }
 }
 
+/** R-4.6.4, R-4.6.5, R-4.6-H2 What a bead going to a chicken needs. */
+export function reasonBeadToChickenClosed(state: HydratedFeudumGameState): string | undefined {
+    if (!hiddenBeadCandidates(state)) {
+        return 'The rosary needs at least 2 beads.'
+    }
+    return emptyChicken(state) === undefined ? 'No chicken is empty.' : undefined
+}
+
 /** R-4.6.4 The first empty chicken. */
 export function emptyChicken(state: HydratedFeudumGameState): number | undefined {
     const index = state.guilds.farmer.chickens.indexOf(null)

@@ -6,33 +6,17 @@ import {
     NobleTradeSeals,
     type ScrollSpaceId
 } from '../data/guilds.js'
-import { rosaryBeadSum, unseenBeadValues } from '../model/beads.js'
+import { rosaryBeadSum } from '../model/beads.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { canPayGuild, guildSplit, payGuild } from '../model/payments.js'
 import { filledScrollSpaces } from '../model/scrolls.js'
 import { flipSeal, moveConcealedSeal } from '../model/seals.js'
 import { scoringPreview, type GuildFunctionName, type GuildFunctionRow } from './guildFunction.js'
 import { rowsToScrollsRow } from './rowsToScrolls.js'
+import { flipTotals, reasonSealPicksRefused } from './sealFlips.js'
 
 function shillings(amount: number): string {
     return `${amount} shilling${amount === 1 ? '' : 's'}`
-}
-
-/** R-4.6-H1, R-4.6.5 Each pick holds a seal, once; `verb` and `cap` name the function's limit. */
-function reasonSealPicksRefused(
-    state: HydratedFeudumGameState,
-    spaces: readonly ScrollSpaceId[],
-    verb: string,
-    cap: number
-): string | undefined {
-    if (spaces.length > cap) {
-        return `${verb} at most ${cap} seal${cap === 1 ? '' : 's'}.`
-    }
-    const filled = filledScrollSpaces(state)
-    const missing = spaces.some(
-        (spaceId, index) => !filled.includes(spaceId) || spaces.indexOf(spaceId) < index
-    )
-    return missing ? 'No seal lies on that scroll space.' : undefined
 }
 
 export interface NobleTradeOffer {
@@ -116,15 +100,6 @@ function flipsNow(state: HydratedFeudumGameState): number {
     return Math.min(NoblePushSeals, filledScrollSpaces(state).length)
 }
 
-function sum(values: readonly number[]): number {
-    return values.reduce((total, value) => total + value, 0)
-}
-
-/** R-5-H1 The highest total the unseen seals could give, without reading them. */
-function bestFlippedTotal(state: HydratedFeudumGameState, flips: number): number {
-    return flips > 0 ? sum(unseenBeadValues(state).slice(-flips)) : 0
-}
-
 const NoblePush: GuildFunctionRow = {
     /** R-4.6.1 At least one must move. */
     reasonClosed(state) {
@@ -162,25 +137,27 @@ const NoblePush: GuildFunctionRow = {
         if (flips === 0 || reasonSealPicksRefused(state, scrollSpaces, 'Flip', NoblePushSeals)) {
             return undefined
         }
-        const rosaryTotal = rosaryBeadSum(state)
-        const lowestTotal = rosaryTotal + sum(unseenBeadValues(state).slice(0, flips))
-        const highestTotal = rosaryTotal + bestFlippedTotal(state, flips)
+        const totals = flipTotals(state, flips)
         return {
-            completions: pushLevel(highestTotal),
+            completions: pushLevel(totals.highestTotal),
             revealed: true,
             sealFlip: {
-                rosaryTotal,
+                ...totals,
                 flips,
-                lowestTotal,
-                highestTotal,
-                ifLowest: scoringPreview(state, actor, 'noble', 'push', pushLevel(lowestTotal))
+                ifLowest: scoringPreview(
+                    state,
+                    actor,
+                    'noble',
+                    'push',
+                    pushLevel(totals.lowestTotal)
+                )
             }
         }
     },
 
     /** R-4.6.5 The unseen seals' highest values are the best it can do. */
     bestCompletions(state) {
-        return pushLevel(rosaryBeadSum(state) + bestFlippedTotal(state, flipsNow(state)))
+        return pushLevel(flipTotals(state, flipsNow(state)).highestTotal)
     }
 }
 

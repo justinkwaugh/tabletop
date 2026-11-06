@@ -4,6 +4,7 @@ import { defenderAsked } from '../actions/combat.js'
 import { HydratedConquer, isConquer } from '../actions/conquer.js'
 import { HydratedDiscardWrit, isDiscardWrit } from '../actions/discardWrit.js'
 import { HydratedExplore, isExplore } from '../actions/explore.js'
+import { HydratedFeast, isFeast } from '../actions/feast.js'
 import { HydratedForfeitCard, isForfeitCard } from '../actions/forfeitCard.js'
 import { HydratedGuildAction, isGuildAction } from '../actions/guildAction.js'
 import { HydratedHarvest, isHarvest } from '../actions/harvest.js'
@@ -39,6 +40,7 @@ type HydratedCardPlay =
     | HydratedTendLandscape
     | HydratedHarvest
     | HydratedGuildAction
+    | HydratedFeast
     | HydratedConquer
     | HydratedStarveThePeople
 
@@ -58,7 +60,7 @@ const PlaysOfCard: Partial<Readonly<Record<ActionCardKind, readonly ActionType[]
     explore: [ActionType.Explore],
     improve: [ActionType.Improve, ActionType.TendLandscape],
     harvest: [ActionType.Harvest],
-    guild: [ActionType.GuildAction],
+    guild: [ActionType.GuildAction, ActionType.Feast],
     conquer: [ActionType.Conquer, ActionType.StarveThePeople]
 }
 
@@ -84,6 +86,7 @@ export class PlayingCardsStateHandler implements MachineStateHandler<
             isTendLandscape(action) ||
             isHarvest(action) ||
             isGuildAction(action) ||
+            isFeast(action) ||
             isConquer(action) ||
             isStarveThePeople(action) ||
             isReclaimImmunitySeal(action)

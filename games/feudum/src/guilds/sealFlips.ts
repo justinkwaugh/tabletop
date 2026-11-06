@@ -1,0 +1,45 @@
+import type { ScrollSpaceId } from '../data/guilds.js'
+import { rosaryBeadSum, unseenBeadValues } from '../model/beads.js'
+import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { filledScrollSpaces } from '../model/scrolls.js'
+
+/** R-4.6-H1, R-4.6.4, R-4.6.5 Each pick holds a seal, once; `verb` and `cap` name the function's limit. */
+export function reasonSealPicksRefused(
+    state: HydratedFeudumGameState,
+    spaces: readonly ScrollSpaceId[],
+    verb: string,
+    cap: number
+): string | undefined {
+    if (spaces.length > cap) {
+        return `${verb} at most ${cap} seal${cap === 1 ? '' : 's'}.`
+    }
+    const filled = filledScrollSpaces(state)
+    const missing = spaces.some(
+        (spaceId, index) => !filled.includes(spaceId) || spaces.indexOf(spaceId) < index
+    )
+    return missing ? 'No seal lies on that scroll space.' : undefined
+}
+
+function sum(values: readonly number[]): number {
+    return values.reduce((total, value) => total + value, 0)
+}
+
+export interface FlipTotals {
+    readonly rosaryTotal: number
+    readonly lowestTotal: number
+    readonly highestTotal: number
+}
+
+/**
+ * R-4.6.4, R-4.6.5, R-5-H1 The rosary now, and the lowest and highest it could reach by flipping
+ * this many: the unseen seals' values, without reading them.
+ */
+export function flipTotals(state: HydratedFeudumGameState, flips: number): FlipTotals {
+    const rosaryTotal = rosaryBeadSum(state)
+    const unseen = unseenBeadValues(state)
+    return {
+        rosaryTotal,
+        lowestTotal: rosaryTotal + sum(unseen.slice(0, flips)),
+        highestTotal: rosaryTotal + sum(unseen.slice(unseen.length - flips))
+    }
+}

@@ -12,7 +12,8 @@ import {
     chickenBeadSum,
     drawBeadToChicken,
     emptyChicken,
-    hiddenBeadCandidates
+    hiddenBeadCandidates,
+    reasonBeadToChickenClosed
 } from '../model/beads.js'
 import { HydratedFeudumGameState } from '../model/gameState.js'
 import { pickGood } from '../model/haversack.js'
@@ -209,18 +210,11 @@ function reachesPullThreshold(sum: number): number {
     return sum >= FarmerPullThreshold ? 1 : 0
 }
 
-/** R-4.6.4, R-4.6-H2 */
-function reasonPullClosed(state: HydratedFeudumGameState): string | undefined {
-    if (!hiddenBeadCandidates(state)) {
-        return 'The rosary needs at least 2 beads.'
-    }
-    return emptyChicken(state) === undefined ? 'No chicken is empty.' : undefined
-}
-
 const FarmerPull: GuildFunctionRow = {
-    reasonClosed: reasonPullClosed,
+    /** R-4.6.4, R-4.6-H2 */
+    reasonClosed: reasonBeadToChickenClosed,
 
-    reasonRefused: reasonPullClosed,
+    reasonRefused: reasonBeadToChickenClosed,
 
     /** R-4.6.4, R-4.6-H2 A bead onto an empty chicken: a barrier, whatever it scores. */
     perform(state) {

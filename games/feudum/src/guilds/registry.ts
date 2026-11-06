@@ -15,24 +15,23 @@ import {
 } from './guildFunction.js'
 import { KnightFunctions } from './knight.js'
 import { MerchantFunctions } from './merchant.js'
+import { MonkFunctions } from './monk.js'
 import { NobleFunctions } from './noble.js'
 
 /** R-4.6 One row per guild. A new guild adds one import and one row. */
-const GuildFunctionRows: Partial<
-    Readonly<Record<GuildId, Readonly<Record<GuildFunctionName, GuildFunctionRow>>>>
+const GuildFunctionRows: Readonly<
+    Record<GuildId, Readonly<Record<GuildFunctionName, GuildFunctionRow>>>
 > = {
     farmer: FarmerFunctions,
     merchant: MerchantFunctions,
     alchemist: AlchemistFunctions,
     knight: KnightFunctions,
-    noble: NobleFunctions
+    noble: NobleFunctions,
+    monk: MonkFunctions
 }
 
-export function guildFunctionRow(
-    guildId: GuildId,
-    fn: GuildFunctionName
-): GuildFunctionRow | undefined {
-    return GuildFunctionRows[guildId]?.[fn]
+export function guildFunctionRow(guildId: GuildId, fn: GuildFunctionName): GuildFunctionRow {
+    return GuildFunctionRows[guildId][fn]
 }
 
 export interface PerformedGuildFunction {
