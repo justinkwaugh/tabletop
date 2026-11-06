@@ -30,23 +30,22 @@ const rules = {
     routeRules: { ...minimalRouteRules, map: minimalTrackMap, tileSet }
 }
 
-const noAuctionHomes: HomeOffer = {
-    homePositions: [],
-    chooseHome: () => {},
-    chosenHome: undefined
+function homeOffer(offer: Partial<HomeOffer>): HomeOffer {
+    return { homePositions: [], chooseHome: () => {}, chosenHome: undefined, ...offer }
 }
+const noAuctionHomes = homeOffer({})
 
 function table(
     machineState: 'LayingTrack' | 'StockRound',
     valid: string[],
     availability = {},
     homeOffers: readonly HomeOffer[] = [noAuctionHomes],
-    extra = {}
+    stateOverrides = {}
 ) {
     const base = minimalPlayState()
     const state = {
         ...base,
-        ...extra,
+        ...stateOverrides,
         machineState,
         companies: base.companies.map((company) => ({ ...company, floated: true })),
         cash: [
@@ -235,11 +234,7 @@ describe('MapModule', () => {
         const chosen: unknown[] = []
         const home = { locationId: TestTrackHomeLocationId, nodeId: 'city', slot: 0 }
         const { map } = table('StockRound', [], {}, [
-            {
-                homePositions: [home],
-                chooseHome: (position) => chosen.push(position),
-                chosenHome: undefined
-            }
+            homeOffer({ homePositions: [home], chooseHome: (position) => chosen.push(position) })
         ])
         expect(map.offeredCityLocationIds).toEqual([TestTrackHomeLocationId])
         map.select({ kind: 'hex', locationId: TestTrackHomeLocationId })
@@ -271,9 +266,7 @@ describe('MapModule', () => {
 
     it('holds a home city chosen for a company before its auction opens', () => {
         const chosenHome = { companyId: 'B', locationId: TestTrackHomeLocationId, nodeId: 'city' }
-        const { map } = table('StockRound', [], {}, [
-            { homePositions: [], chooseHome: () => {}, chosenHome }
-        ])
+        const { map } = table('StockRound', [], {}, [homeOffer({ chosenHome })])
         expect(map.displayedReservations).toContainEqual(chosenHome)
     })
 
@@ -282,16 +275,8 @@ describe('MapModule', () => {
         const started: unknown[] = []
         const home = { locationId: TestTrackHomeLocationId, nodeId: 'city', slot: 0 }
         const { map } = table('StockRound', [], {}, [
-            {
-                homePositions: [],
-                chooseHome: (position) => auctioned.push(position),
-                chosenHome: undefined
-            },
-            {
-                homePositions: [home],
-                chooseHome: (position) => started.push(position),
-                chosenHome: undefined
-            }
+            homeOffer({ chooseHome: (position) => auctioned.push(position) }),
+            homeOffer({ homePositions: [home], chooseHome: (position) => started.push(position) })
         ])
         expect(map.offeredCityLocationIds).toEqual([TestTrackHomeLocationId])
         map.select({ kind: 'hex', locationId: TestTrackHomeLocationId })

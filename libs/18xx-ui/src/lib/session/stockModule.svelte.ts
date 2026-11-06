@@ -36,7 +36,8 @@ import {
     type StationReservation,
     type ShareSale,
     type ValuationRules,
-    companyShareCount
+    companyShareCount,
+    stationReservation
 } from '@tabletop/18xx'
 import {
     StockActionStageOrder,
@@ -192,14 +193,11 @@ export class StockModule implements LocalSelection {
     homePositions = $derived.by(() => (this.selectedStartHome ? [] : this.offeredStartHomes))
     /** Whether the chosen company still needs its home before its price. */
     awaitingStartHome = $derived.by(() => this.homePositions.length > 0)
-    /** The home chosen for the company the player is about to start. */
-    chosenHome = $derived.by((): StationReservation | undefined => {
-        const company = this.selectedStartCompany
-        const home = this.selectedStartHome
-        return company && home
-            ? { companyId: company.companyId, locationId: home.locationId, nodeId: home.nodeId }
+    chosenHome = $derived.by((): StationReservation | undefined =>
+        this.selectedStartCompany && this.selectedStartHome
+            ? stationReservation(this.selectedStartCompany.companyId, this.selectedStartHome)
             : undefined
-    })
+    )
     /** The chosen home and what it costs its company. */
     selectedStartHomeChoice = $derived.by(() => {
         const home = this.selectedStartHome

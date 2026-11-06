@@ -7,7 +7,12 @@ import {
     isValidBidStep
 } from '@tabletop/common'
 import { getCompany, presidentCertificate, type Company } from '../finance/finance.js'
-import { StationPosition, homeStationId, type StationReservation } from '../map/station.js'
+import {
+    StationPosition,
+    homeStationId,
+    stationReservation,
+    type StationReservation
+} from '../map/station.js'
 import type { MapStateData } from '../map/mapState.js'
 import type { HomePosition } from '../stations/stationPlacement.js'
 import { applyStationPlacement } from '../stations/stationPlacement.js'
@@ -70,18 +75,11 @@ export function canBeAuctioned(company: Company): boolean {
     return company.kind !== 'private' && !company.started && !company.closed
 }
 
-/** The city an auctioned company will start in, held for it until the company forms. */
 export function companyAuctionHomeReservation(
     state: Pick<CompanyAuctionState, 'companyAuction'>
 ): StationReservation | undefined {
     const auction = state.companyAuction
-    return auction
-        ? {
-              companyId: auction.companyId,
-              locationId: auction.home.locationId,
-              nodeId: auction.home.nodeId
-          }
-        : undefined
+    return auction ? stationReservation(auction.companyId, auction.home) : undefined
 }
 
 export class CompanyAuctionModel {

@@ -16,6 +16,13 @@ export const StationReservation = Type.Object(
     { additionalProperties: false }
 )
 export type StationReservation = Type.Static<typeof StationReservation>
+
+export function stationReservation(
+    companyId: string,
+    city: Pick<StationReservation, 'locationId' | 'nodeId'>
+): StationReservation {
+    return { companyId, locationId: city.locationId, nodeId: city.nodeId }
+}
 export const StationPosition = Type.Object(
     {
         locationId: Id,

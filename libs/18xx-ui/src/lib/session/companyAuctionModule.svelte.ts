@@ -6,6 +6,7 @@ import {
     FormCompany,
     canBeAuctioned,
     PassCompanyAuction,
+    stationReservation,
     type CompanyAuctionState,
     type CompanyFormationChoice,
     type EighteenXXTitleRules,
@@ -61,14 +62,11 @@ export class CompanyAuctionModule {
     selectedHome = $derived.by(() =>
         this.session.selectionsVisible ? this.opening.value('home') : undefined
     )
-    /** The home chosen for the company the player is about to auction. */
-    chosenHome = $derived.by((): StationReservation | undefined => {
-        const companyId = this.selectedCompanyId
-        const home = this.selectedHome
-        return companyId && home
-            ? { companyId, locationId: home.locationId, nodeId: home.nodeId }
+    chosenHome = $derived.by((): StationReservation | undefined =>
+        this.selectedCompanyId && this.selectedHome
+            ? stationReservation(this.selectedCompanyId, this.selectedHome)
             : undefined
-    })
+    )
     openingAmount = $derived.by(() => {
         const model = this.model
         const playerId = this.session.state.activePlayerIds[0]

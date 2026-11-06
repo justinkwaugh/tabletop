@@ -84,10 +84,7 @@ type Stations = Pick<
     | 'privateStationPositions'
     | 'placePrivateStation'
 >
-/**
- * A module offering home cities on the map: a company auction's opening, a company's start. Its
- * chosen home is held on the map until the choice is sent.
- */
+/** A module offering home cities on the map: a company auction's opening, a company's start. */
 export type HomeOffer = Pick<CompanyAuctionModule, 'homePositions' | 'chooseHome' | 'chosenHome'>
 type CityOffer = { locationIds: readonly string[]; select(selection: MapSelection): void }
 type Routes = Pick<
