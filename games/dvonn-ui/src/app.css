@@ -49,6 +49,8 @@
     --dvonn-panel-edge: rgb(60 40 20 / 0.18);
     --dvonn-panel-shadow: 0 2px 8px rgb(70 10 4 / 0.3);
     --dvonn-panel-hover: color-mix(in srgb, var(--dvonn-panel), #3a2410 7%);
+    /* The ring round a toggle that is on. */
+    --dvonn-toggle-on: #0a8fb0;
     --dvonn-panel-inset: color-mix(in srgb, var(--dvonn-panel), #ffffff 45%);
     --dvonn-panel-rule: color-mix(in srgb, var(--dvonn-panel), #3a2410 22%);
     /* The old edition's pale sand, and the graph board's pale play area. */
