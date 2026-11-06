@@ -96,7 +96,7 @@ In this order (RB p. 3; Img):
 
 1. Each player takes a colour: 3 pawns, 4 player discs, 11 action cards, 7 influence markers, 7 food, 7 shillings and a pouch into their personal supply; one disc on the scoring track at 0.
 2. General supply: vessels, the remaining influence markers, the monsters, the king's seals, shillings and archery targets.
-3. Shuffle the Royal Writs into a face-down deck. Build six region tile stacks, one per region, each with IV at the bottom and I on top. Put the 22 double-sided location discs, including the 12 feudums, in the general supply; shuffle the other 22, put the circle-marked ones on the 6 starting spaces and the rest on the other 16, face up.
+3. Shuffle the Royal Writs into a face-down deck. Build six region tile stacks, one per region, each with IV at the bottom and I on top, each epoch's tiles shuffled across the regions (R-1.4-H2). Put the 22 double-sided location discs, including the 12 feudums, in the general supply; shuffle the other 22, put the circle-marked ones on the 6 starting spaces and the rest on the other 16, face up.
 4. Fill the guilds as in R-1.3. Knight rows: one per player, plus dummy rows in unused colours until there are at least 4 rows. Every other good goes into the haversack.
 5. Shuffle the 17 seals red side up: 4 to the Noble scrolls; 4 flipped to beads onto the Monk rosary; 1 flipped onto a Farmer chicken. Then 10 random goods into the Farmer barn.
 6. Epoch marker on I. One random good from the haversack beside the N space of each region.
