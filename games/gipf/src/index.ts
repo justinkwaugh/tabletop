@@ -2,6 +2,7 @@ export * from './definition/actions.js'
 export * from './definition/config.js'
 export * from './definition/definition.js'
 export * from './definition/info.js'
+export * from './definition/preferences.js'
 export * from './definition/runtime.js'
 export * from './definition/states.js'
 

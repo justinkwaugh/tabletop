@@ -1,15 +1,21 @@
-import { GameSession, type PresentedTransition } from '@tabletop/frontend-components'
+import {
+    GameSession,
+    type PresentedTransition,
+    type TitlePreferences
+} from '@tabletop/frontend-components'
 import { sameCoordinates, type AxialCoordinates, type GameAction } from '@tabletop/common'
 import {
     ActionType,
     isPushPiece,
     ALL_POINTS,
     FinishRemoving,
+    GipfPreferenceDefinition,
     MachineState,
     PushPiece,
     RemoveRow,
     type Entry,
     type GipfGameState,
+    type GipfPreferences,
     type HydratedGipfGameState,
     type Row
 } from '@tabletop/gipf'
@@ -20,7 +26,7 @@ import {
     setGipfSelection,
     type GipfSelection
 } from './stagedSelection.js'
-import { coordsKey } from '$lib/board/geometry.js'
+import { coordsKey, viewOf, type BoardView } from '$lib/board/geometry.js'
 import { boardNotation, type BoardNotation } from '$lib/board/coordinates.js'
 
 export function includesCoords(list: readonly AxialCoordinates[], coords: AxialCoordinates) {
@@ -31,8 +37,6 @@ export function rowKey(row: Row): string {
     return `${coordsKey(row.from)}|${coordsKey(row.to)}`
 }
 
-const NOTATION = boardNotation(ALL_POINTS)
-
 export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGameState> {
     selection: GipfSelection = $state({})
     // The push being undone. Undo takes your piece back out onto its dot, staged as you chose it,
@@ -41,7 +45,23 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
     // The push history last stepped to, whose piece came in from its own dot.
     historyPush: PushPiece | undefined
 
-    readonly notation: BoardNotation = NOTATION
+    readonly preferences: TitlePreferences<typeof GipfPreferences> =
+        this.createPreferences(GipfPreferenceDefinition)
+    showCoordinates: boolean = $derived(this.preferences.values.showCoordinates)
+
+    toggleCoordinates() {
+        this.preferences.set({ showCoordinates: !this.showCoordinates })
+    }
+
+    // The board seen from the far side, half a turn round, to see behind pieces.
+    turned: boolean = $derived(this.preferences.values.turned)
+
+    toggleTurned() {
+        this.preferences.set({ turned: !this.turned })
+    }
+
+    view: BoardView = $derived(viewOf(this.turned))
+    notation: BoardNotation = $derived(boardNotation(ALL_POINTS, this.view))
 
     canPush = $derived(this.canAct(ActionType.PushPiece))
     canRemove = $derived(this.canAct(ActionType.RemoveRow))

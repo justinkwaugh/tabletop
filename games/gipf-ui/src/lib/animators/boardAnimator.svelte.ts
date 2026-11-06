@@ -15,7 +15,7 @@ import {
 } from '@tabletop/gipf'
 import type { GipfGameSession } from '$lib/model/session.svelte.js'
 import { inferPush } from '$lib/board/inferPush.js'
-import { coordsKey, VIEW } from '$lib/board/geometry.js'
+import { coordsKey } from '$lib/board/geometry.js'
 import {
     dropCrease,
     dropDisc,
@@ -158,7 +158,7 @@ export class BoardAnimator {
             // from history, drops onto it first.
             const at = kind === 'own-action' ? 0 : landing(action.gipf)
             if (kind === 'own-action') this.pushedIn = true
-            this.slide(line.slice(0, shifted), alongLine(line), timeline, SLIDE, touched, at)
+            this.slide(line.slice(0, shifted), this.alongLine(line), timeline, SLIDE, touched, at)
             await this.slideIn(
                 action.playerId,
                 action.gipf,
@@ -222,7 +222,7 @@ export class BoardAnimator {
         if (push.forward) {
             this.slide(
                 line.slice(0, shifted),
-                alongLine(line),
+                this.alongLine(line),
                 timeline,
                 FALLBACK_DURATION,
                 touched
@@ -242,7 +242,7 @@ export class BoardAnimator {
             this.lift(line[0], timeline, LIFT_OFF, touched)
             return
         }
-        this.slide([line[0]], offset(line[0], dot), timeline, FALLBACK_DURATION, touched)
+        this.slide([line[0]], this.offset(line[0], dot), timeline, FALLBACK_DURATION, touched)
         return { playerId: piece.playerId, gipf: piece.gipf, dot }
     }
 
@@ -253,7 +253,7 @@ export class BoardAnimator {
         timeline: Timeline,
         touched: SVGGElement[]
     ) {
-        const along = alongLine(line)
+        const along = this.alongLine(line)
         const pulledBack = line.slice(1, shifted + 1)
         this.slide(pulledBack, { x: -along.x, y: -along.y }, timeline, FALLBACK_DURATION, touched)
     }
@@ -311,23 +311,24 @@ export class BoardAnimator {
         await tick()
         const node = this.enteringNode
         if (node === undefined) return
-        const step = offset(dot, firstSpot)
+        const step = this.offset(dot, firstSpot)
         timeline.to(node, { x: step.x, y: step.y, duration, ease: 'power2.inOut' }, at)
     }
 
     private fadeMarks(timeline: Timeline, duration: number) {
         for (const node of this.markNodes) timeline.to(node, { opacity: 0, duration }, 0)
     }
-}
 
-// One spot along a line, from its first spot towards its second.
-function alongLine(line: readonly AxialCoordinates[]) {
-    return line.length < 2 ? { x: 0, y: 0 } : offset(line[0], line[1])
-}
+    // One spot along a line, from its first spot towards its second.
+    private alongLine(line: readonly AxialCoordinates[]) {
+        return line.length < 2 ? { x: 0, y: 0 } : this.offset(line[0], line[1])
+    }
 
-function offset(from: AxialCoordinates, to: AxialCoordinates) {
-    if (sameCoordinates(from, to)) return { x: 0, y: 0 }
-    const start = VIEW.center(from)
-    const end = VIEW.center(to)
-    return { x: end.x - start.x, y: end.y - start.y }
+    // On screen, in the view the board is seen from.
+    private offset(from: AxialCoordinates, to: AxialCoordinates) {
+        if (sameCoordinates(from, to)) return { x: 0, y: 0 }
+        const start = this.session.view.center(from)
+        const end = this.session.view.center(to)
+        return { x: end.x - start.x, y: end.y - start.y }
+    }
 }

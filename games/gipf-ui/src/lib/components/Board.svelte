@@ -11,23 +11,25 @@
 
     const session = getGameSession()
 
-    const view = VIEW
-    const frame = view.frame()
-    const playArea = view.playAreaOutline()
+    const view = $derived(session.view)
+    const frame = $derived(view.frame())
+    const playArea = $derived(view.playAreaOutline())
     const inBoard = (coords: AxialCoordinates) => includesCoords(ALL_POINTS, coords)
 
     // Lines run dot to dot across the play area; the board's rim has no line between dots.
-    const lines = AXES.flatMap((axis) =>
-        ALL_POINTS.filter((point) => !inBoard(addAxial(point, scaleAxial(axis, -1)))).flatMap(
-            (start) => {
-                const points = [start]
-                while (inBoard(addAxial(points[points.length - 1], axis))) {
-                    points.push(addAxial(points[points.length - 1], axis))
+    const lines = $derived(
+        AXES.flatMap((axis) =>
+            ALL_POINTS.filter((point) => !inBoard(addAxial(point, scaleAxial(axis, -1)))).flatMap(
+                (start) => {
+                    const points = [start]
+                    while (inBoard(addAxial(points[points.length - 1], axis))) {
+                        points.push(addAxial(points[points.length - 1], axis))
+                    }
+                    const crossesPlay = points.some((point) => includesCoords(SPOTS, point))
+                    const end = points[points.length - 1]
+                    return crossesPlay ? [{ from: view.center(start), to: view.center(end) }] : []
                 }
-                const crossesPlay = points.some((point) => includesCoords(SPOTS, point))
-                const end = points[points.length - 1]
-                return crossesPlay ? [{ from: view.center(start), to: view.center(end) }] : []
-            }
+            )
         )
     )
 
@@ -156,8 +158,8 @@
     // Everything a GIPF-piece standing on a spot would cover, for clicks on a target there.
     const standingOutline = (() => {
         const r = PIECE_RADIUS
-        const ry = r * view.tilt
-        const top = view.topFace(true)
+        const ry = r * VIEW.tilt
+        const top = VIEW.topFace(true)
         return `M ${-r} ${top} A ${r} ${ry} 0 0 1 ${r} ${top} L ${r} 0 A ${r} ${ry} 0 0 1 ${-r} 0 Z`
     })()
 </script>
@@ -189,9 +191,11 @@
         {/each}
     </g>
 
-    {#each session.notation.labels as label (label.key)}
-        <text x={label.at.x} y={label.at.y} class="coordinate-label">{label.text}</text>
-    {/each}
+    {#if session.showCoordinates}
+        {#each session.notation.labels as label (label.key)}
+            <text x={label.at.x} y={label.at.y} class="coordinate-label">{label.text}</text>
+        {/each}
+    {/if}
 
     {#each DOTS as coords (coordsKey(coords))}
         {@const center = view.center(coords)}

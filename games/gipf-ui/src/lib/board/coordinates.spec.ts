@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ALL_POINTS } from '@tabletop/gipf'
 import { boardNotation } from './coordinates.js'
+import { viewOf } from './geometry.js'
 
 describe('boardNotation', () => {
     const notation = boardNotation(ALL_POINTS)
@@ -42,5 +43,20 @@ describe('boardNotation', () => {
                 'I5'
             ].toSorted()
         )
+    })
+
+    it('turns the board half round, keeping each label beyond its column', () => {
+        const turned = boardNotation(ALL_POINTS, viewOf(true))
+        const at = (labels: typeof notation.labels, key: string) =>
+            labels.find((label) => label.key === key)!.at
+        expect(turned.labels.map((label) => label.text)).toEqual(
+            notation.labels.map((label) => label.text)
+        )
+        for (const label of notation.labels) {
+            expect(at(turned.labels, label.key).x).toBeCloseTo(-label.at.x)
+        }
+        // E1, nearest you below the board, goes where E9's label was, beyond the far end.
+        expect(at(turned.labels, 'bottom-E').y).toBeCloseTo(at(notation.labels, 'top-E').y)
+        expect(at(turned.labels, 'top-E').y).toBeCloseTo(at(notation.labels, 'bottom-E').y)
     })
 })

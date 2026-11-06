@@ -1,6 +1,7 @@
 import type { GameInfo } from '@tabletop/common'
 import { GAME_VERSION } from './version.js'
 import { GipfConfigurator } from './config.js'
+import { GipfPreferenceDefinition } from './preferences.js'
 
 export const GipfInfo: GameInfo = {
     id: 'gipf',
@@ -16,5 +17,6 @@ export const GipfInfo: GameInfo = {
         version: GAME_VERSION,
         beta: true
     },
-    configurator: new GipfConfigurator()
+    configurator: new GipfConfigurator(),
+    preferences: GipfPreferenceDefinition
 }
