@@ -1,4 +1,5 @@
 import {
+    assertExists,
     GameResult,
     GameState,
     HydratableGameState,
@@ -123,6 +124,12 @@ export class HydratedFeudumGameState
         this.players = data.players.map((player) => new HydratedFeudumPlayerState(player))
         this.roundManager = new HydratedRoundManager(data.roundManager)
         this.phaseManager = new HydratedPhaseManager(data.phaseManager)
+    }
+
+    /** R-5-H1 A projected state has no vault, so a rule that reads it defers to the host. */
+    requireVault(): FeudumVault {
+        assertExists(this.vault, 'This operation requires the concealed vault')
+        return this.vault
     }
 
     /** R-2.2.5 The turn order always starts at the starting player. */
