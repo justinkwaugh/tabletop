@@ -12,6 +12,7 @@ export * from './model/gameState.js'
 export * from './model/playerState.js'
 
 export * from './data/components.js'
+export * from './data/guilds.js'
 export * from './data/discs.js'
 export * from './data/provisional.js'
 export * from './data/regionTiles.js'

@@ -71,7 +71,7 @@ Every component is limited to the supply; there are no substitutes, and a shorta
     | Noble     | crown                   | town             |
     | Monk      | cross                   | outpost          |
 
-    Alchemist → outpost is read from a community aid only (open question).
+    Alchemist → outpost.
 
 5. **Tracks.** Scoring track 0–149 round the edge. Epoch track: five sunrays I–V (R-4.11). Region tile chart and the six stack spaces, each printed "V" (R-4.3.2). Epic voyage track, 7 spaces ending at the monastery (R-6.2). Military service track, 3 spaces (R-4.9). (Img)
 
@@ -88,7 +88,7 @@ Each guild has a trade area, a guild track of three spaces left to right — app
 | Noble     | scroll grid of 6 seal spaces in rows of 3, 2, 1 (left-aligned), giving three rows and three columns of lengths 3, 2, 1                                         | 4 seals, red side up, on the row-1 ends, the row-2 second space and the row-3 space; the row-1 middle and row-2 first spaces stay empty |
 | Monk      | the rosary (beads, bead side up); the church coffer                                                                                                            | 4 beads                                                                                                                                 |
 
-Sources: RB p. 3, p. 17–20; Img. Unread: 18 of the 20 Merchant prices (the saltpeter bin's last space reads 2s and the sulfur bin's 1s), the Alchemist saltpeter capacity (3 or 4), the rosary's capacity. Ambiguous: which charity — purse or coffer — receives each guild's apprentice share; the rule says "opposite side of the board" (R-4.6.2).
+Sources: RB p. 3, p. 17–20; Img. Unread: the rosary's capacity. Ambiguous: which charity — purse or coffer — receives each guild's apprentice share; the rule says "opposite side of the board" (R-4.6.2).
 
 ### R-1.4 Setup
 
