@@ -292,6 +292,11 @@ test('S44 R-4.6.3 a Farmer trade: the header over the map; a farm’s popup keep
     await settled(page)
     await expect(popup(page)).toBeVisible()
     await expect(header(page)).toContainText('split the goods sent')
+    // Closed down to its header, the bench covers nothing: the board's guilds stay drawn.
+    await expect(page.locator('[data-board-surface] [data-layer="guilds"]')).not.toHaveAttribute(
+        'visibility',
+        'hidden'
+    )
     await shot(page, 'farmer-trade-split')
 })
 
