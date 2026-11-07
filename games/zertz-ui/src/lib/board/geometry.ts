@@ -8,7 +8,14 @@ export const RING_INNER_RADIUS = RING_SPACING * 0.2
 export const RING_WIDTH = RING_OUTER_RADIUS - RING_INNER_RADIUS
 export const RING_MID_RADIUS = (RING_OUTER_RADIUS + RING_INNER_RADIUS) / 2
 export const MARBLE_RADIUS = RING_SPACING * 0.31
-const BOARD_PADDING = RING_SPACING * 0.6
+// Coordinate labels stand this far off the ring, or the marble rising above it, that they name,
+// above and below their columns. Half a label's height, for the frame.
+export const LABEL_GAP = RING_SPACING * 0.22
+const LABEL_HALF_HEIGHT = 9
+// From the outer rings and labels to the frame's edge.
+const FRAME_MARGIN = RING_SPACING * 0.1
+// Room below the bottom labels for the zoom controls and board toggles in the bottom corners.
+const CONTROLS_ROOM = RING_SPACING * 0.2
 
 // How tall a ring stands, and how high a marble's centre sits above the ring it rests in.
 // Seen from the side a ring is a low cone, as the real pieces are: a thin shell that stands on
@@ -64,16 +71,19 @@ export class BoardView {
         return { x: sign * point.x, y: sign * point.y * this.tilt }
     }
 
+    // The labels sit over their columns, so the frame hugs the outer rings at the sides and leaves
+    // the labels' room above and below.
     frame(setup: ZertzSetup): BoardFrame {
         const positions = layoutCoordinates(SETUP_RULES[setup].board)
         const centers = positions.map((coords) => this.center(coords))
-        const reach = RING_OUTER_RADIUS + BOARD_PADDING
+        const reach = RING_OUTER_RADIUS + FRAME_MARGIN
+        const labelRoom = LABEL_GAP + LABEL_HALF_HEIGHT + FRAME_MARGIN
         const minX = Math.min(...centers.map((point) => point.x)) - reach
         const maxX = Math.max(...centers.map((point) => point.x)) + reach
-        const minY = Math.min(...centers.map((point) => point.y)) - this.extentAbove - BOARD_PADDING
-        const maxY = Math.max(...centers.map((point) => point.y)) + this.extentBelow + BOARD_PADDING
+        const minY = Math.min(...centers.map((point) => point.y)) - this.extentAbove - labelRoom
+        const maxY = Math.max(...centers.map((point) => point.y)) + this.extentBelow + labelRoom
         const width = maxX - minX
-        const height = maxY - minY
+        const height = maxY - minY + CONTROLS_ROOM
         return { positions, viewBox: `${minX} ${minY} ${width} ${height}`, width, height }
     }
 

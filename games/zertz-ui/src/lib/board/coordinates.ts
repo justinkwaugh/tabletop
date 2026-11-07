@@ -1,5 +1,5 @@
 import { addAxial, coordinatesToNumber, type AxialCoordinates, type Point } from '@tabletop/common'
-import { RING_SPACING, VIEW, type BoardView } from './geometry.js'
+import { LABEL_GAP, VIEW, type BoardView } from './geometry.js'
 
 // BoardSpace notation: columns lettered left to right, each counted up from 1 at its bottom ring.
 // Each column is labelled with the names of its bottom and top rings.
@@ -14,8 +14,6 @@ export type CoordinateLabel = {
     at: Point
 }
 
-// Labels stand this far off the ring, or the marble rising above it, that they name.
-const LABEL_GAP = RING_SPACING * 0.22
 const ABOVE: AxialCoordinates = { q: 0, r: -1 }
 const BELOW: AxialCoordinates = { q: 0, r: 1 }
 

@@ -81,15 +81,15 @@
     }
 
     .trio.met {
-        background: rgb(242 193 78 / 0.14);
+        background: rgb(240 176 74 / 0.14);
         box-shadow:
-            inset 0 0 0 1.5px var(--zertz-place),
-            0 0 8px rgb(242 193 78 / 0.45);
+            inset 0 0 0 1.5px var(--zertz-target),
+            0 0 8px rgb(240 176 74 / 0.45);
     }
 
     .tray.active {
         box-shadow:
-            inset 0 0 0 2px var(--zertz-place),
+            inset 0 0 0 2px var(--zertz-target),
             0 3px 8px rgb(0 0 0 / 0.35);
     }
 </style>

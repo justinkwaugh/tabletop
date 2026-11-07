@@ -25,8 +25,6 @@
     assert(gameSession instanceof ZertzGameSession, 'ZÈRTZ needs its own game session')
     setGameSession(gameSession)
 
-    const TOGGLE_ROOM = 40
-
     // The shared wrapper exposes full screen only as its dialog becoming modal.
     let expanded = $state(false)
     const watchExpansion: Attachment<HTMLElement> = (node) => {
@@ -71,8 +69,8 @@
                 />
             </div>
             <DefaultTabs
-                activeTabClass="py-1 px-3 bg-[#f1ece0] border-2 border-transparent rounded-lg text-[#0a3554]"
-                inactiveTabClass="text-[#f4efe4] py-1 px-3 rounded-lg border-2 border-transparent hover:border-[#2f74a0]"
+                activeTabClass="py-1 px-3 max-sm:[&_svg]:hidden bg-[#f1ece0] border-2 border-transparent rounded-lg text-[#0a3554]"
+                inactiveTabClass="text-[#f4efe4] py-1 px-3 max-sm:[&_svg]:hidden rounded-lg border-2 border-transparent hover:border-[#2f74a0]"
             >
                 {#snippet playersPanel()}
                     <PlayersPanel />
@@ -104,14 +102,13 @@
                     controls="bottom-left"
                     maxScale={4}
                     maxFitScale={2.5}
-                    insetTop={TOGGLE_ROOM}
                     renderAtViewScale
                     expandable
                 >
                     <Board />
                     {#snippet overlay()}
                         <div
-                            class="pointer-events-auto absolute top-1 right-3 z-10 flex items-center gap-1.5"
+                            class="pointer-events-auto absolute right-3 bottom-2 z-10 flex items-center gap-1.5"
                         >
                             <!-- The board seen half a turn round, from the far side of the table. -->
                             <OverlayToggle
@@ -174,6 +171,20 @@
         border-radius: 12px;
         background: var(--zertz-panel);
         box-shadow: inset 0 0 0 1px var(--zertz-panel-edge);
+    }
+
+    /* DefaultTableLayout leaves a tenth of a phone screen showing the sidebar's edge. The history
+       controls sit above the table there, so the board takes all but a sliver of the narrower
+       player cards; the tabs drop their icons to fit. As in DVONN. */
+    @media (width < 40rem) {
+        .zertz-table :global(.game-column.game-column) {
+            min-width: calc(100vw - 20px);
+        }
+
+        .zertz-table :global(div:has(+ .game-column)) {
+            width: 260px;
+            min-width: 260px;
+        }
     }
 
     .fullscreen-water {

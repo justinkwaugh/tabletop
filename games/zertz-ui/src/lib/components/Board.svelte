@@ -13,7 +13,8 @@
         coordsKey,
         MARBLE_RADIUS,
         RING_MID_RADIUS,
-        RING_OUTER_RADIUS
+        RING_OUTER_RADIUS,
+        TILT
     } from '$lib/board/geometry.js'
     import {
         MARBLE_SHADOW_RADIUS,
@@ -45,15 +46,23 @@
     let hoveredKey: string | undefined = $state()
     let focusedKey: string | undefined = $state()
 
-    // Outlines sit just inside a ring's outer edge, so they never reach the touching neighbours.
-    const HIGHLIGHT_INSET = 0.5
-    const HIGHLIGHT_WIDTH = 1.4
-    const EMPHASIZED_HIGHLIGHT_WIDTH = 2
-    const HIGHLIGHT_FADE_IN = 120
-    const HIGHLIGHT_FADE_OUT = 280
+    // Marks lie round a ring's base, just inside its outer edge, so they never reach the touching
+    // neighbours. Dashed marks take a whole number of dashes round the ring.
+    const MARK_RADIUS = RING_OUTER_RADIUS - 2
+    const DASH_PERIOD = 8
+    const MARK_PATH = DASH_PERIOD * Math.round(ellipseLength(MARK_RADIUS, TILT) / DASH_PERIOD)
+    const MARK_FADE_IN = 120
+    const MARK_FADE_OUT = 280
 
-    function highlightWidth(role: RingRole, hovered: boolean): number {
-        return hovered || role === 'chosen-jumper' ? EMPHASIZED_HIGHLIGHT_WIDTH : HIGHLIGHT_WIDTH
+    // Ramanujan's approximation to the length round an ellipse `radius` wide, `tilt` as deep.
+    function ellipseLength(radius: number, tilt: number): number {
+        const [a, b] = [radius, radius * tilt]
+        return Math.PI * (3 * (a + b) - Math.sqrt((3 * a + b) * (a + 3 * b)))
+    }
+
+    // Every vacant ring takes a marble, so placing marks none; the hovered ring previews it.
+    function marked(role: RingRole): boolean {
+        return role !== undefined && role !== 'place'
     }
 
     type RingRole = 'place' | 'staged' | 'remove' | 'land' | 'jumper' | 'chosen-jumper' | undefined
@@ -211,11 +220,12 @@
         {/each}
     </g>
 
+    <!-- Where a ring stood on the table: round its base, which lies below its hole's rim. -->
     {#each removedPositions as coords (coordsKey(coords))}
         {@const center = view.center(coords)}
         <ellipse
             cx={center.x}
-            cy={center.y}
+            cy={center.y + view.band}
             rx={RING_MID_RADIUS}
             ry={RING_MID_RADIUS * view.tilt}
             class="ghost"
@@ -262,24 +272,27 @@
         <g {@attach animator.outlines()}>
             {#each rings as ring (coordsKey(ring.coords))}
                 {@const role = roleOf(ring)}
-                {#if role !== undefined}
+                {#if marked(role)}
                     {@const center = view.center(ring.coords)}
                     {@const emphasized =
                         isHovered(ring.coords) || focusedKey === coordsKey(ring.coords)}
-                    {@const width = highlightWidth(role, emphasized)}
-                    {@const radius = RING_OUTER_RADIUS - HIGHLIGHT_INSET - width / 2}
-                    <!-- Around the ring's base, which spreads past its top. -->
-                    <ellipse
-                        cx={center.x}
-                        cy={center.y + view.band}
-                        rx={radius}
-                        ry={radius * view.tilt}
-                        stroke-width={width}
-                        class="ring-highlight role-{role}"
+                    <!-- Round the ring's base, which spreads past its top. Once a jumper is
+                         chosen, the others fade. -->
+                    <g
+                        class="mark role-{role}"
                         class:emphasized
-                        in:fade|global={{ duration: HIGHLIGHT_FADE_IN }}
-                        out:fade={{ duration: HIGHLIGHT_FADE_OUT }}
-                    ></ellipse>
+                        class:faded={role === 'jumper' && session.chosenJumper !== undefined}
+                        in:fade|global={{ duration: MARK_FADE_IN }}
+                        out:fade={{ duration: MARK_FADE_OUT }}
+                    >
+                        <ellipse
+                            cx={center.x}
+                            cy={center.y + view.band}
+                            rx={MARK_RADIUS}
+                            ry={MARK_RADIUS * view.tilt}
+                            pathLength={MARK_PATH}
+                        ></ellipse>
+                    </g>
                 {/if}
             {/each}
         </g>
@@ -394,9 +407,34 @@
         pointer-events: none;
     }
 
-    .ring-highlight {
+    /* Choice marks are cyan, as in every title. The other titles lay them on a dark band so they
+       read on light pieces too; here every mark lies on a black ring, so the band would not show.
+       Pieces that move take a solid mark, thicker once chosen; rings to land on or remove take
+       dashes, whole while pointed at. */
+    .mark {
         fill: none;
+        stroke: var(--zertz-mark);
+        stroke-width: 1.8;
         pointer-events: none;
+    }
+
+    .mark.faded {
+        opacity: 0.4;
+    }
+
+    .mark.role-chosen-jumper,
+    .mark.role-staged {
+        stroke-width: 3;
+    }
+
+    .mark.role-land,
+    .mark.role-remove {
+        stroke-width: 2.6;
+        stroke-dasharray: 4.5 3.5;
+    }
+
+    .mark.emphasized {
+        stroke-dasharray: none;
     }
 
     .ring {
@@ -405,34 +443,6 @@
 
     .interactive {
         cursor: pointer;
-    }
-
-    .ring-highlight.role-place {
-        stroke: var(--zertz-place);
-        stroke-opacity: 0.55;
-    }
-
-    .ring-highlight.role-staged {
-        stroke: var(--zertz-place);
-    }
-
-    .ring-highlight.role-remove {
-        stroke: var(--zertz-remove);
-        stroke-dasharray: 5 3.5;
-    }
-
-    .ring-highlight.role-land,
-    .ring-highlight.role-jumper,
-    .ring-highlight.role-chosen-jumper {
-        stroke: var(--zertz-capture);
-    }
-
-    .ring-highlight.role-jumper {
-        stroke-opacity: 0.6;
-    }
-
-    .ring-highlight.emphasized {
-        stroke-opacity: 1;
     }
 
     .preview {

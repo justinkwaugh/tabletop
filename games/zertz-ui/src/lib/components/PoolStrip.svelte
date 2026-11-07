@@ -58,7 +58,7 @@
 
     .pool-choice.selectable {
         cursor: pointer;
-        border-color: rgb(242 193 78 / 0.35);
+        border-color: rgb(94 240 255 / 0.35);
     }
 
     .pool-choice.selectable:hover {
@@ -66,8 +66,8 @@
     }
 
     .pool-choice.chosen {
-        border-color: var(--zertz-place);
-        background: rgb(242 193 78 / 0.12);
+        border-color: var(--zertz-mark);
+        background: rgb(94 240 255 / 0.12);
     }
 
     @media (max-width: 639px) {

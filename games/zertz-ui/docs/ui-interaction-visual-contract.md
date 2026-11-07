@@ -2,26 +2,26 @@
 
 ## 1. Visual Intents
 
-| Intent         | Trigger                                                                          | What should be emphasized                                                   | What should be dimmed                 | What must remain unaffected      |
-| -------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------- | -------------------------------- |
-| choose_marble  | Acting player may place and more than one colour is available                    | Selectable pool chips (amber border); the chosen chip                       | Colours with none left (faded marble) | Board rings                      |
-| place_marble   | A colour is chosen (manually, or the only one available) and no marble is staged | Every vacant ring (amber outline); hover preview of the marble              | Nothing                               | Pool counts, player trays        |
-| remove_ring    | A marble is staged in its ring (`chosenPlace`)                                   | The rings free once it is placed (white dashed outline); hovered ring fades | Nothing                               | Marbles, ghost positions         |
-| change_staged  | A marble is staged and another colour could be placed                            | The staged marble's ring (solid amber outline)                              | Nothing                               | Free rings keep their outline    |
-| choose_jumper  | A capture is required and no jumper is chosen                                    | Marbles with a legal jump (green outline)                                   | Nothing                               | Pool (inactive)                  |
-| choose_landing | A jumper is chosen, or a capture chain continues                                 | The chosen jumper (thick green); its landing rings (green outline)          | Nothing                               | Other jumpers keep their outline |
+| Intent         | Trigger                                                                          | What should be emphasized                                                                  | What should be dimmed                 | What must remain unaffected |
+| -------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------- | --------------------------- |
+| choose_marble  | Acting player may place and more than one colour is available                    | Selectable pool chips (faint cyan border); the chosen chip (cyan border)                   | Colours with none left (faded marble) | Board rings                 |
+| place_marble   | A colour is chosen (manually, or the only one available) and no marble is staged | Nothing on the rings, since every vacant ring takes a marble; hover preview of the marble  | Nothing                               | Pool counts, player trays   |
+| remove_ring    | A marble is staged in its ring (`chosenPlace`)                                   | The rings free once it is placed (dashed cyan mark, whole while hovered)                   | Nothing                               | Marbles, ghost positions    |
+| change_staged  | A marble is staged and another colour could be placed                            | The staged marble's ring (thick solid cyan mark)                                           | Nothing                               | Free rings keep their mark  |
+| choose_jumper  | A capture is required and no jumper is chosen                                    | Marbles with a legal jump (solid cyan mark)                                                | Nothing                               | Pool (inactive)             |
+| choose_landing | A jumper is chosen, or a capture chain continues                                 | The chosen jumper (thick solid cyan); its landing rings (dashed cyan, whole while hovered) | Other jumpers' marks, to 40%          | Pool (inactive)             |
 
 ## 2. Visual Primitives
 
-- **Ring highlight** (`Board.svelte`, `.ring-highlight`): one outline circle per interactive ring, styled by the ring's role, on its own layer above the rings so a sinking ring leaves its outline in place. The `BoardAnimator` fades the whole outline layer on the move's timeline, for as long as the move animates (at least 0.28s; 0.18s without an action), so a removed ring's outline fades while the ring sinks. The layer is keyed on the displayed state, so each new position gets a fresh layer whose outlines fade in (0.12s). Inputs: the role from session targets, hover and keyboard focus. Must not encode game state beyond the role.
+- **Choice mark** (`Board.svelte`, `.mark`): a cyan ellipse (`--zertz-mark` #5ef0ff, as in every title) round the base of each ring with a role other than placing, without the dark band other titles lay under it, since every mark here lies on a black ring: solid for a marble that can jump, thicker for the chosen jumper and the staged marble, dashed for rings to land on or remove (a whole number of dashes round the ring), whole while hovered or focused; other jumpers fade to 40% once one is chosen. Drawn on its own layer above the rings so a sinking ring leaves its outline in place. The `BoardAnimator` fades the whole outline layer on the move's timeline, for as long as the move animates (at least 0.28s; 0.18s without an action), so a removed ring's outline fades while the ring sinks. The layer is keyed on the displayed state, so each new position gets a fresh layer whose outlines fade in (0.12s). Inputs: the role from session targets, hover and keyboard focus. Must not encode game state beyond the role.
 - **Placement preview** (`Board.svelte`, `.preview`): translucent marble on the hovered placement ring. Inputs: `chosenColor` and local hover. Must not appear for any other role.
 - **Ghost position** (`Board.svelte`, `.ghost`): dashed outline where a ring has been removed. Inputs: layout positions minus current rings. Never interactive.
 - **Sinking ring** (`Board.svelte`, the shared `ringShadow` snippet): a removed ring keeps the soft drop shadow it cast on the board, under its ghost dashes, for every ring taken off during the latest turn that took any: the removed ring, any group it cut off, and any group claimed by a placement that turn. A later turn that takes rings replaces them, the old shadows fading while the new rings sink; a capture-only turn leaves them. Inputs: `session.sinkingRings`, derived from the actions up to the displayed state's `actionCount` (the actions list moves ahead as soon as an action is taken, before its animation has played). Never interactive.
 - **Coordinate labels** (`Board.svelte`, `.coordinate-labels`, from `board/coordinates.ts`): each column's bottom and top ring names below and above it, BoardSpace style (A1 under the bottom-left ring, A4 over the top-left). Drawn from the setup's full layout, so they stay put as rings are removed. Shown while the `showCoordinates` title preference is on (an `OverlayToggle` in the board overlay). Never interactive.
 - **Board view** (`board/geometry.ts` `BoardView`): always seen from the side of the table (`TILT` 0.75), rings as hollow cones and marbles above them. The straight-down view and its Tilt toggle were removed; to bring them back, restore from commit `13ba7e438`.
-- **Board toggles** (`OverlayToggle.svelte`, in `GameTable.svelte`'s overlay): a row of round chips at the board's top right: two turning arrows for the far side, the board seen half a turn round (`viewOf(true)`), with each label still beyond its column's end; then A1 for the coordinate labels. Each is the player's own title preference (`turned`, `showCoordinates`); the far side is off by default, coordinates on. Each chip's hover text says what a press does now.
+- **Board toggles** (`OverlayToggle.svelte`, in `GameTable.svelte`'s overlay): a row of round chips at the board's bottom right, mirroring the zoom controls at the bottom left, in room the board's frame leaves below the bottom labels (no band is reserved above the board): two turning arrows for the far side, the board seen half a turn round (`viewOf(true)`), with each label still beyond its column's end; then A1 for the coordinate labels. Each is the player's own title preference (`turned`, `showCoordinates`); the far side is off by default, coordinates on. Each chip's hover text says what a press does now.
 - **Water** (`app.css` `.zertz-water`): matte #0f527c. Full screen redraws the same layer. Never interactive.
-- **Each-colour outline** (`PlayerTray.svelte`, `.trio`): rounded outline around the first `eachColor` slots of every tray row; lit (`.met`) once that colour reaches the each-colour target. Reflects captures only.
+- **Each-colour outline** (`PlayerTray.svelte`, `.trio`): rounded outline around the first `eachColor` slots of every tray row; lit (`.met`, the house orange `--zertz-target`, as is the active player's tray) once that colour reaches the each-colour target. Reflects captures only.
 - **Shadows** (`Board.svelte`, `zertz-ring-shadow` and `zertz-marble-shadow` gradients from `board/softShadow.ts`): radial-gradient fills whose stops follow the edge a 2.5-unit Gaussian blur gives, rather than a blur filter, which is slow to paint on phones and can leave a removed shape's pixels on screen in WebKit. Rings and marbles above them stay sharp when zoomed.
 - **Staged marble** (`StagedMarble.svelte`, motion from `animators/drop.ts`): the marble you are placing, standing in the ring you chose until you choose a ring to remove. It drops in as it is drawn, unless Undo took it back out there; taken back, it lifts out (0.18s); when the move goes in it steps aside without lifting and the board's own marble takes its place. Keyed by colour, so a colour change lifts one out as the next drops in. Inputs: `chosenPlace`, `chosenColor`, the animator's `placedIn` and `returned`.
 - **Pool chip** (`PoolStrip.svelte`): marble and count; selectable and chosen states.
@@ -48,7 +48,7 @@
 
 - Do not derive legality in components; read the session target lists.
 - Do not store auto-selected colours or jumpers in `selection`.
-- Do not let hover state change anything but the hovered ring's outline and the placement preview.
+- Do not let hover state change anything but the hovered ring's mark and the placement preview.
 
 ## 6. Interaction Matrix
 
@@ -61,10 +61,10 @@
 ## 7. Regression Checklist
 
 - Placement: choosing a colour highlights vacant rings; hover shows the preview; choosing a ring stages the marble there (it drops in) and sends nothing; Undo takes it off, then clears a manual colour.
-- Removal: only rings free once the staged marble is placed are outlined; choosing one sends the whole move.
+- Removal: only rings free once the staged marble is placed are marked; choosing one sends the whole move.
 - Staged colour: tapping the staged marble, or another pool chip, changes its colour in place.
 - Undo of a move: the board returns and the marble stands staged in its ring again, without dropping.
-- Capture: jumpers outlined; choosing one shows its landings; a chain fixes the jumper.
+- Capture: jumpers marked; choosing one shows its landings and fades the other jumpers; a chain fixes the jumper.
 - Tap-off: a tap on the board off every target takes a staged marble off its ring, or lets go of a chosen colour or jumper; tapping another jumper switches.
 - History View: no targets or pool interaction.
 - Animation: a staged marble drops in, and does not drop again when the move goes in; removal sinks; a jump flies above other rings; reloading or opening a game shows no motion.

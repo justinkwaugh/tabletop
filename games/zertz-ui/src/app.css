@@ -50,9 +50,10 @@
     --zertz-tray-bottom: #0c3757;
     --zertz-ink: #f4efe4;
     --zertz-ink-quiet: #a6c8dc;
-    --zertz-place: #f2c14e;
-    --zertz-remove: #ffffff;
-    --zertz-capture: #6ee0a4;
+    /* Choices on the board and in the pool are cyan, as in every title; the active player's
+       tray keeps the house orange. */
+    --zertz-mark: #5ef0ff;
+    --zertz-target: #f0b04a;
 }
 
 .zertz-water {
