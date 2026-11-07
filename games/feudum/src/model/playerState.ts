@@ -86,7 +86,7 @@ export const FeudumPlayerState = Type.Object({
     /** R-4.4.4 Owner-known: unsealed writs. */
     writs: Visibility.protect(Type.Array(WritIdSchema), OwnerKnown),
     sealedCharterCount: ComponentCount,
-    /** R-4.4.3, R-4.4.4 Owner-known until scored. */
+    /** R-4.4.3, R-4.4.4 Owner-known; `ScoreGame` reveals them in its metadata. */
     sealedCharters: Visibility.protect(Type.Array(WritIdSchema), OwnerKnown),
     /** R-4.4.1 Owner-known: writs this player put under the deck unseen. */
     deckKnowledge: Visibility.protect(Type.Array(KnownDeckWrit), OwnerKnown),

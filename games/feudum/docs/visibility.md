@@ -52,7 +52,7 @@ Haversack draws, the progress die and its rerolls, the hidden-bead draw, spills 
 
 R-X.2 stops Undo at an action that revealed information. The engine sets `revealsInfo` from what it resolved, never from input.
 
-Always a barrier: `FinaliseHand` (a finalised hand), `Explore` (a writ draw), `Harvest` (a haversack draw), `Conquer` that asks a defender and `StarveThePeople` that asks the target's owner (a decision passed to another seat), `AnswerAttack` and `AnswerStarve` (the decision passed back), and the System Actions `ReplenishMap` and `ReplenishGuilds` (haversack draws, and at the third dawn bead flips).
+Always a barrier: `FinaliseHand` (a finalised hand), `Explore` (a writ draw), `Harvest` (a haversack draw), `Conquer` that asks a defender and `StarveThePeople` that asks the target's owner (a decision passed to another seat), `AnswerAttack` and `AnswerStarve` (the decision passed back), the System Actions `ReplenishMap` and `ReplenishGuilds` (haversack draws, and at the third dawn bead flips), and `ScoreGame` (every sealed charter).
 
 A barrier by outcome:
 

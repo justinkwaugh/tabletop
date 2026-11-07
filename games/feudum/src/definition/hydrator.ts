@@ -36,6 +36,7 @@ import { HydratedReplenishMap, isReplenishMap } from '../actions/replenishMap.js
 import { HydratedStartRound, isStartRound } from '../actions/startRound.js'
 import { HydratedAdvanceTurn, isAdvanceTurn } from '../actions/advanceTurn.js'
 import { HydratedEndRound, isEndRound } from '../actions/endRound.js'
+import { HydratedScoreGame, isScoreGame } from '../actions/scoreGame.js'
 import { HydratedNourishPawns, isNourishPawns } from '../actions/nourishPawns.js'
 import { HydratedRollProgressDie, isRollProgressDie } from '../actions/rollProgressDie.js'
 import { HydratedExplore, isExplore } from '../actions/explore.js'
@@ -129,6 +130,9 @@ export class FeudumHydrator implements GameHydrator<FeudumProjectedState, Hydrat
             }
             case isEndRound(data): {
                 return new HydratedEndRound(data)
+            }
+            case isScoreGame(data): {
+                return new HydratedScoreGame(data)
             }
             case isImprove(data): {
                 return new HydratedImprove(data)

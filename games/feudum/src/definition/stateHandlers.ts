@@ -9,6 +9,7 @@ import { KeepingWritsStateHandler } from '../stateHandlers/keepingWrits.js'
 import { AwaitingDefenceStateHandler } from '../stateHandlers/awaitingDefence.js'
 import { AwaitingImmunityStateHandler } from '../stateHandlers/awaitingImmunity.js'
 import { CommittingAttackStateHandler } from '../stateHandlers/committingAttack.js'
+import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
 import { EndOfRoundStateHandler } from '../stateHandlers/endOfRound.js'
 import { NourishingStateHandler } from '../stateHandlers/nourishing.js'
 import { ProgressRollStateHandler } from '../stateHandlers/progressRoll.js'
@@ -40,5 +41,6 @@ export const FeudumStateHandlers: Record<
     [MachineState.ProgressRoll]: new ProgressRollStateHandler(),
     [MachineState.Dawn]: new DawnStateHandler(),
     [MachineState.Replenishing]: new ReplenishingStateHandler(),
-    [MachineState.EndOfRound]: new EndOfRoundStateHandler()
+    [MachineState.EndOfRound]: new EndOfRoundStateHandler(),
+    [MachineState.EndOfGame]: new EndOfGameStateHandler()
 }

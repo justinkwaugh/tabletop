@@ -1,20 +1,24 @@
 import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import { isEndRound, type HydratedEndRound } from '../actions/endRound.js'
+import { isScoreGame, ScoreGame, type HydratedScoreGame } from '../actions/scoreGame.js'
 import { StartRound } from '../actions/startRound.js'
+import { LastEpoch } from '../data/tracks.js'
 import type { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 
-/** R-2.2.5 Step 5 of the round. The engine's alone. */
+type EndOfRoundAction = HydratedEndRound | HydratedScoreGame
+
+/** R-2.2.5 Step 5 of the round, and at V final scoring (R-6.1). The engine's alone. */
 export class EndOfRoundStateHandler implements MachineStateHandler<
-    HydratedEndRound,
+    EndOfRoundAction,
     HydratedFeudumGameState
 > {
     isValidAction(
         action: HydratedAction,
-        _context: MachineContext<HydratedFeudumGameState>
-    ): action is HydratedEndRound {
-        return isEndRound(action)
+        context: MachineContext<HydratedFeudumGameState>
+    ): action is EndOfRoundAction {
+        return isEndRound(action) || (isScoreGame(action) && context.gameState.epoch === LastEpoch)
     }
 
     validActionsForPlayer(
@@ -28,11 +32,18 @@ export class EndOfRoundStateHandler implements MachineStateHandler<
         context.gameState.activePlayerIds = []
     }
 
-    /** R-2.2 The next round begins. */
+    /** R-2.2 The next round begins; R-6.1, R-6.1-H1 after the V dawn the game is scored instead. */
     onAction(
-        _action: HydratedEndRound,
+        action: EndOfRoundAction,
         context: MachineContext<HydratedFeudumGameState>
     ): MachineState {
+        if (isScoreGame(action)) {
+            return MachineState.EndOfGame
+        }
+        if (context.gameState.epoch === LastEpoch) {
+            context.addSystemAction(ScoreGame)
+            return MachineState.EndOfRound
+        }
         context.addSystemAction(StartRound)
         return MachineState.SelectingHands
     }

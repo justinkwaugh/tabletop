@@ -16,5 +16,6 @@ export enum MachineState {
     ProgressRoll = 'ProgressRoll',
     Dawn = 'Dawn',
     Replenishing = 'Replenishing',
-    EndOfRound = 'EndOfRound'
+    EndOfRound = 'EndOfRound',
+    EndOfGame = 'EndOfGame'
 }

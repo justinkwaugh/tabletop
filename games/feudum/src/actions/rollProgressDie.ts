@@ -2,6 +2,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { ActionSource, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { RegionIds, type RegionId } from '../data/regionTiles.js'
+import { LastEpoch } from '../data/tracks.js'
 import { ActionType } from '../definition/actions.js'
 import { beginPhase, PhaseName } from '../definition/phases.js'
 import { triggeredEpoch } from '../model/epochConditions.js'
@@ -11,9 +12,6 @@ import { legalStackRegions, removeTopTile } from '../model/regionStacks.js'
 import { LandscapeKindSchema, TileIdSchema } from '../model/stateSchemas.js'
 
 const RegionIdSchema = Type.Enum(RegionIds)
-
-/** R-6.1-H1 The epoch whose condition already stops the die. */
-const LastEpoch = 5
 
 export type RollProgressDieMetadata = Type.Static<typeof RollProgressDieMetadata>
 export const RollProgressDieMetadata = Type.Object({

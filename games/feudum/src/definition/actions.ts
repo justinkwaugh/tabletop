@@ -39,5 +39,6 @@ export enum ActionType {
     BeginDawn = 'BeginDawn',
     ReplenishMap = 'ReplenishMap',
     ReplenishGuilds = 'ReplenishGuilds',
-    EndRound = 'EndRound'
+    EndRound = 'EndRound',
+    ScoreGame = 'ScoreGame'
 }
