@@ -125,6 +125,8 @@ export interface MapPick {
     readonly isPublic: boolean
     /** The deciding seat's staged steps. */
     readonly trail?: readonly TrailStep[]
+    /** R-X.1 An ask's outline: the decider answers on its panel, so nothing lights for it. */
+    readonly outlineOnly?: true
 }
 
 /** A draft's open pick, as the session hands it to the board. */
@@ -142,6 +144,12 @@ export interface BoardStages {
     /** The Move draft's open stage, in place of the flow's, which hands a Move off (R-3.7). */
     readonly movePick?: StagePick
     readonly guildPick?: StagePick
+    /** The at-will row's open list, for this seat alone (R-4.4-H1). */
+    readonly atWillPick?: StagePick & { readonly action: ActionType; readonly deciderId: string }
+    /** R-4.10 */
+    readonly nourishPick?: StagePick
+    /** R-4.3.4 */
+    readonly landscapesPick?: StagePick
 }
 
 /** R-1.4.9 The six starting spaces, lit from the start since either order is allowed (S2). */
@@ -176,6 +184,45 @@ function cardPlayPick(state: HydratedFeudumGameState, stages: BoardStages): MapP
         : undefined
 }
 
+/** R-4.4-H1 The at-will row's open list, private until it is sent. */
+function atWillMapPick(stages: BoardStages): MapPick | undefined {
+    return stages.atWillPick && { ...stages.atWillPick, isPublic: false }
+}
+
+/** R-3.14.1 The combat's target is outlined for all while the defender answers on its panel. */
+function defencePick(state: HydratedFeudumGameState): MapPick | undefined {
+    const { combat } = state.flow
+    if (!combat?.defenderId) {
+        return undefined
+    }
+    const { target, spaceId, defenderId } = combat
+    return {
+        action: ActionType.AnswerAttack,
+        deciderId: defenderId,
+        targets: [
+            { target: target.kind === 'feudum' ? feudumTarget(spaceId) : pieceTarget(target) }
+        ],
+        picked: [],
+        isPublic: true,
+        outlineOnly: true
+    }
+}
+
+/** R-3.14.2 The starved marker is outlined for all while its owner answers. */
+function immunityPick(state: HydratedFeudumGameState): MapPick | undefined {
+    const { starve } = state.flow
+    return (
+        starve && {
+            action: ActionType.AnswerStarve,
+            deciderId: starve.targetPlayerId,
+            targets: [{ target: markerTarget(starve.spaceId, starve.targetPlayerId, starve.role) }],
+            picked: [],
+            isPublic: true,
+            outlineOnly: true
+        }
+    )
+}
+
 /** One row per machine state with a map pick; a later draft adds its row and its stages. */
 const MapPicks: Partial<
     Record<
@@ -184,7 +231,37 @@ const MapPicks: Partial<
     >
 > = {
     [MachineState.PlacingStartingPawn]: startingPawnPick,
-    [MachineState.PlayingCards]: cardPlayPick
+    [MachineState.PlayingCards]: (state, stages) =>
+        atWillMapPick(stages) ?? cardPlayPick(state, stages),
+    [MachineState.SelectingHands]: (_state, stages) => atWillMapPick(stages),
+    [MachineState.DiscardingWrits]: (_state, stages) => atWillMapPick(stages),
+    [MachineState.Nourishing]: (state, stages) => {
+        const deciderId = state.flow.nourish?.pending[0]
+        return (
+            atWillMapPick(stages) ??
+            (deciderId && stages.nourishPick
+                ? {
+                      action: ActionType.Nourish,
+                      deciderId,
+                      ...stages.nourishPick,
+                      isPublic: false
+                  }
+                : undefined)
+        )
+    },
+    [MachineState.CollectingLandscapes]: (state, stages) => {
+        const deciderId = state.flow.landscapes?.pending[0]
+        return deciderId && stages.landscapesPick
+            ? {
+                  action: ActionType.CollectLandscapes,
+                  deciderId,
+                  ...stages.landscapesPick,
+                  isPublic: false
+              }
+            : undefined
+    },
+    [MachineState.AwaitingDefence]: defencePick,
+    [MachineState.AwaitingImmunity]: immunityPick
 }
 
 export function openMapPick(
@@ -238,7 +315,12 @@ export function offerOfPick(pick: MapPick | undefined, viewer: BoardViewer): Boa
         return NoBoardOffer
     }
     const isDecider = pick.deciderId === viewer.viewerId
-    if (!viewer.viewingHistory && isDecider && viewer.validActions.includes(pick.action)) {
+    if (
+        !pick.outlineOnly &&
+        !viewer.viewingHistory &&
+        isDecider &&
+        viewer.validActions.includes(pick.action)
+    ) {
         return {
             targets: new Map(
                 pick.targets.map(({ target, notes, unlit }) => {

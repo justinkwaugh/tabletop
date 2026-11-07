@@ -1,0 +1,572 @@
+import type { StagedSelectionState } from '@tabletop/frontend-components'
+import {
+    ActionType,
+    DiscardWrit,
+    discardWritOffers,
+    goodsShort,
+    MachineState,
+    PlaceVessel,
+    placeVesselOffers,
+    PlayMandate,
+    playMandateOffers,
+    ReclaimImmunitySeal,
+    reclaimImmunitySealOffers,
+    reasonPlayMandateRefused,
+    SealCharter,
+    sealCharterOffers,
+    SpendRegionTile,
+    spendRegionTileOffers,
+    type Good,
+    type GuildId,
+    type StarveRole,
+    type PawnNumber,
+    type PlayMandateOffer,
+    type SpaceId,
+    type TileId,
+    type VesselType,
+    type WritId
+} from '@tabletop/feudum'
+import { markerTarget, pawnTarget, type BoardTarget, type StagePick } from './boardOffer.js'
+import type { FlowPick, FlowPlay } from './cardFlows.js'
+import type { TurnContext } from './cardModes.js'
+import { primaryLabel, sendsOnPress } from './confirmingSend.js'
+import {
+    coverChoices,
+    DeciderDraft,
+    draftChoice,
+    playUnless,
+    type DraftChoice
+} from './deciderDraft.svelte.js'
+import { withLoneChoice } from './stagedDraft.svelte.js'
+import { coverNeeds, coverSpends, loneCover } from './tileCover.js'
+import type { TurnPrimary } from './turnDraft.svelte.js'
+import { mandateChoiceLabel, writName } from './writLabels.js'
+
+export type AtWillList = 'writs' | 'tiles' | 'vessels' | 'immunity'
+
+export interface MandatePick {
+    readonly writId: WritId
+    readonly alternative: number
+    readonly rewardGuild?: GuildId
+}
+
+export interface SealPick {
+    readonly spaceId: SpaceId
+    readonly role: StarveRole
+}
+
+export type AtWillValues = {
+    /** The open chip; every other stage hangs under it. */
+    list: AtWillList
+    mandate: MandatePick
+    /** R-4.4-H1 Stacked: each tile brings the next good owed. */
+    cover: readonly TileId[]
+    charter: WritId
+    discard: WritId
+    tile: TileId
+    good: { readonly good: Good; readonly sulfurToBarrel?: true }
+    vessel: VesselType
+    pawn: PawnNumber
+    seal: SealPick
+}
+
+export const AtWillStageOrder: readonly (keyof AtWillValues)[] = [
+    'list',
+    'mandate',
+    'cover',
+    'charter',
+    'discard',
+    'tile',
+    'good',
+    'vessel',
+    'pawn',
+    'seal'
+]
+
+export interface AtWillContext extends TurnContext {
+    /** The at-will actions this seat is offered now. */
+    readonly offered: readonly ActionType[]
+}
+
+export interface AtWillPanel {
+    readonly chips: readonly (DraftChoice & { readonly list: AtWillList })[]
+    readonly writs?: readonly {
+        readonly writId: WritId
+        readonly name: string
+        readonly choices: readonly DraftChoice[]
+    }[]
+    readonly tiles?: readonly (DraftChoice & { readonly tileId: TileId })[]
+    readonly goods?: readonly (DraftChoice & { readonly good: Good })[]
+    readonly vessels?: readonly (DraftChoice & { readonly vesselType: VesselType })[]
+    readonly covers?: readonly DraftChoice[]
+    readonly line?: string
+    readonly primary?: TurnPrimary
+}
+
+type WritRow = NonNullable<AtWillPanel['writs']>[number]
+
+function sameMandate(a: MandatePick | undefined, b: MandatePick): boolean {
+    return (
+        a?.writId === b.writId && a.alternative === b.alternative && a.rewardGuild === b.rewardGuild
+    )
+}
+
+function priceOf({ turnedIn }: PlayMandateOffer): Partial<Record<Good, number>> {
+    const price: Partial<Record<Good, number>> = {}
+    for (const good of turnedIn) {
+        price[good] = (price[good] ?? 0) + 1
+    }
+    return price
+}
+
+/** The contract's at-will row: what a seat may do any time its window is open (R-4.4-H1). */
+export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
+    constructor(contextOf: () => AtWillContext | undefined) {
+        super(AtWillStageOrder, contextOf)
+    }
+
+    /** Refused rows stay, dimmed with their line: `offered` names only what can be done. */
+    private mandateOffers({ state, playerId }: AtWillContext) {
+        return playMandateOffers(state, playerId)
+    }
+
+    private charterOffers({ state, playerId }: AtWillContext) {
+        return sealCharterOffers(state, playerId)
+    }
+
+    /** R-4.4.4 While the limit asks for a discard, its own panel is where it is pressed. */
+    private discardOffers({ state, playerId, offered }: AtWillContext): readonly WritId[] {
+        return offered.includes(ActionType.DiscardWrit) &&
+            state.machineState !== MachineState.DiscardingWrits
+            ? discardWritOffers(state, playerId)
+            : []
+    }
+
+    private tileOffers({ state, playerId, offered }: AtWillContext) {
+        return offered.includes(ActionType.SpendRegionTile)
+            ? spendRegionTileOffers(state, playerId)
+            : []
+    }
+
+    private vesselOffers({ state, playerId, offered }: AtWillContext) {
+        return offered.includes(ActionType.PlaceVessel) ? placeVesselOffers(state, playerId) : []
+    }
+
+    private sealOffers({ state, playerId, offered }: AtWillContext) {
+        return offered.includes(ActionType.ReclaimImmunitySeal)
+            ? reclaimImmunitySealOffers(state, playerId)
+            : []
+    }
+
+    private needsOf(context: AtWillContext, picked: MandatePick | undefined): readonly Good[] {
+        const offer = picked
+            ? this.mandateOffers(context).find((row) => sameMandate(picked, row))
+            : undefined
+        return offer ? coverNeeds(goodsShort(context.state, context.playerId, priceOf(offer))) : []
+    }
+
+    protected override withAutos(
+        stored: StagedSelectionState<AtWillValues>,
+        context: AtWillContext
+    ): StagedSelectionState<AtWillValues> {
+        const list = stored.list?.value
+        if (list === 'tiles') {
+            return withLoneChoice<AtWillValues, 'tile'>(
+                stored,
+                AtWillStageOrder,
+                'tile',
+                this.tileOffers(context).map(({ tileId }) => tileId)
+            )
+        }
+        if (list === 'vessels') {
+            return withLoneChoice<AtWillValues, 'vessel'>(
+                stored,
+                AtWillStageOrder,
+                'vessel',
+                this.vesselOffers(context).map(({ vesselType }) => vesselType)
+            )
+        }
+        const needs = list === 'writs' ? this.needsOf(context, stored.mandate?.value) : []
+        return needs.length > 0
+            ? withLoneChoice<AtWillValues, 'cover'>(
+                  stored,
+                  AtWillStageOrder,
+                  'cover',
+                  loneCover(context.state, context.playerId, needs)
+              )
+            : stored
+    }
+
+    /** What the staged stages send, whichever list holds them. */
+    play: FlowPlay | undefined = $derived.by(() => {
+        const context = this.contextOf()
+        if (!context) {
+            return undefined
+        }
+        switch (this.value('list')) {
+            case 'writs':
+                return this.writPlay(context)
+            case 'tiles':
+                return this.tilePlay()
+            case 'vessels':
+                return this.vesselPlay()
+            case 'immunity':
+                return this.sealPlay()
+            default:
+                return undefined
+        }
+    })
+
+    /** The press that completes an undoable Action sends at once (contract: Pick conventions). */
+    sendsNow: FlowPlay | undefined = $derived.by(() =>
+        this.play && sendsOnPress(this, this.play) ? this.play : undefined
+    )
+
+    private writPlay(context: AtWillContext): FlowPlay | undefined {
+        const charter = this.value('charter')
+        if (charter) {
+            return { build: (maker) => maker.createPlayerAction(SealCharter, { writId: charter }) }
+        }
+        const discard = this.value('discard')
+        if (discard) {
+            return { build: (maker) => maker.createPlayerAction(DiscardWrit, { writId: discard }) }
+        }
+        return this.mandatePlay(context)
+    }
+
+    /** R-4.4.2, R-4.4-H1 Once every short good has its tile. */
+    private mandatePlay(context: AtWillContext): FlowPlay | undefined {
+        const mandate = this.value('mandate')
+        const offer =
+            mandate && this.mandateOffers(context).find((row) => sameMandate(mandate, row))
+        if (!mandate || !offer) {
+            return undefined
+        }
+        const needs = this.needsOf(context, mandate)
+        const cover = this.value('cover') ?? []
+        if (cover.length !== needs.length) {
+            return undefined
+        }
+        const data = {
+            ...mandate,
+            ...(cover.length > 0 ? { wildTiles: coverSpends(cover, needs) } : {})
+        }
+        return playUnless(
+            reasonPlayMandateRefused(context.state, context.playerId, data),
+            (maker) => maker.createPlayerAction(PlayMandate, data),
+            { revealsInfo: offer.revealsInfo }
+        )
+    }
+
+    private tilePlay(): FlowPlay | undefined {
+        const tileId = this.value('tile')
+        const good = this.value('good')
+        return tileId && good
+            ? {
+                  build: (maker) => maker.createPlayerAction(SpendRegionTile, { tileId, ...good })
+              }
+            : undefined
+    }
+
+    private vesselPlay(): FlowPlay | undefined {
+        const vesselType = this.value('vessel')
+        const pawn = this.value('pawn')
+        return vesselType && pawn !== undefined
+            ? { build: (maker) => maker.createPlayerAction(PlaceVessel, { vesselType, pawn }) }
+            : undefined
+    }
+
+    private sealPlay(): FlowPlay | undefined {
+        const seal = this.value('seal')
+        return seal
+            ? { build: (maker) => maker.createPlayerAction(ReclaimImmunitySeal, { ...seal }) }
+            : undefined
+    }
+
+    /** Contract, Pick conventions: pressing a pick again unpicks it. */
+    private toggle<TStage extends 'list' | 'charter' | 'discard' | 'tile' | 'vessel'>(
+        stage: TStage,
+        value: AtWillValues[TStage]
+    ) {
+        if (this.value(stage) === value) {
+            this.clearFrom(stage)
+        } else {
+            this.set(stage, value)
+        }
+    }
+
+    private pressMandate(mandate: MandatePick) {
+        if (sameMandate(this.value('mandate'), mandate)) {
+            this.clearFrom('mandate')
+        } else {
+            this.set('mandate', mandate)
+        }
+    }
+
+    /** R-4.4.2 Which writ is pressed ends whichever else was picked on the list. */
+    private pressCharter(writId: WritId) {
+        this.clearFrom('mandate')
+        this.toggle('charter', writId)
+    }
+
+    private pressDiscard(writId: WritId) {
+        this.clearFrom('mandate')
+        this.toggle('discard', writId)
+    }
+
+    private chips(context: AtWillContext): AtWillPanel['chips'] {
+        const open = this.value('list')
+        const writs = new Set<WritId>([
+            ...this.mandateOffers(context)
+                .filter(({ refused }) => !refused)
+                .map(({ writId }) => writId),
+            ...this.charterOffers(context)
+                .filter(({ refused }) => !refused)
+                .map(({ writId }) => writId),
+            ...this.discardOffers(context)
+        ])
+        const { vessels } = context.state.getPlayerState(context.playerId)
+        const counts: readonly (readonly [AtWillList, string, number])[] = [
+            ['writs', 'Writs', writs.size],
+            ['tiles', 'Tiles', this.tileOffers(context).length],
+            [
+                'vessels',
+                'Vessels',
+                this.vesselOffers(context).reduce(
+                    (sum, { vesselType }) => sum + vessels[vesselType],
+                    0
+                )
+            ],
+            ['immunity', 'Immunity', this.sealOffers(context).length]
+        ]
+        return counts
+            .filter(([, , count]) => count > 0)
+            .map(([list, name, count]) => ({
+                list,
+                ...draftChoice(`${name} ${count}`, open === list, () => {
+                    this.toggle('list', list)
+                })
+            }))
+    }
+
+    private writRows(context: AtWillContext): readonly WritRow[] {
+        const mandates = this.mandateOffers(context)
+        const charters = this.charterOffers(context)
+        const discards = this.discardOffers(context)
+        const ids = [
+            ...new Set<WritId>([
+                ...mandates.map(({ writId }) => writId),
+                ...charters.map(({ writId }) => writId),
+                ...discards
+            ])
+        ]
+        const picked = this.value('mandate')
+        return ids.map((writId) => ({
+            writId,
+            name: writName(writId),
+            choices: [
+                ...mandates
+                    .filter((offer) => offer.writId === writId)
+                    .map((offer) =>
+                        draftChoice(
+                            mandateChoiceLabel(offer),
+                            sameMandate(picked, offer),
+                            () => {
+                                this.pressMandate({
+                                    writId,
+                                    alternative: offer.alternative,
+                                    ...(offer.rewardGuild ? { rewardGuild: offer.rewardGuild } : {})
+                                })
+                            },
+                            offer.refused
+                        )
+                    ),
+                ...charters
+                    .filter((offer) => offer.writId === writId)
+                    .map((offer) =>
+                        draftChoice(
+                            'Seal · 1 seal',
+                            this.value('charter') === writId,
+                            () => {
+                                this.pressCharter(writId)
+                            },
+                            offer.refused
+                        )
+                    ),
+                ...discards
+                    .filter((id) => id === writId)
+                    .map(() =>
+                        draftChoice('Discard', this.value('discard') === writId, () => {
+                            this.pressDiscard(writId)
+                        })
+                    )
+            ]
+        }))
+    }
+
+    private writsPanel(context: AtWillContext): Partial<AtWillPanel> {
+        const needs = this.needsOf(context, this.value('mandate'))
+        const { regionTiles } = context.state.getPlayerState(context.playerId)
+        return {
+            writs: this.writRows(context),
+            ...(needs.length > 0 && regionTiles.length !== needs.length
+                ? {
+                      covers: coverChoices(
+                          regionTiles,
+                          this.value('cover') ?? [],
+                          needs,
+                          (after) => {
+                              this.push('cover', after)
+                          }
+                      )
+                  }
+                : {})
+        }
+    }
+
+    private tilesPanel(context: AtWillContext): Partial<AtWillPanel> {
+        const offers = this.tileOffers(context)
+        const tile = this.value('tile')
+        const offer = offers.find(({ tileId }) => tileId === tile)
+        const chosen = this.value('good')
+        const { haversack } = context.state.supply
+        return {
+            tiles: offers.map(({ tileId }) => ({
+                tileId,
+                ...draftChoice('Spend', tile === tileId, () => {
+                    this.toggle('tile', tileId)
+                })
+            })),
+            ...(offer
+                ? {
+                      goods: [
+                          ...offer.goods.map((good) => ({
+                              good,
+                              ...draftChoice(
+                                  `${good} ${haversack[good]}`,
+                                  chosen?.good === good && !chosen.sulfurToBarrel,
+                                  () => {
+                                      this.set('good', { good })
+                                  }
+                              )
+                          })),
+                          ...(offer.sulfurToBarrel
+                              ? [
+                                    {
+                                        good: 'sulfur' as const,
+                                        ...draftChoice(
+                                            'Into the barrel',
+                                            chosen?.sulfurToBarrel === true,
+                                            () => {
+                                                this.set('good', {
+                                                    good: 'sulfur',
+                                                    sulfurToBarrel: true
+                                                })
+                                            }
+                                        )
+                                    }
+                                ]
+                              : [])
+                      ]
+                  }
+                : {})
+        }
+    }
+
+    private vesselsPanel(context: AtWillContext): Partial<AtWillPanel> {
+        const vessel = this.value('vessel')
+        return {
+            vessels: this.vesselOffers(context).map(({ vesselType }) => ({
+                vesselType,
+                ...draftChoice(vesselType.replaceAll('-', ' '), vessel === vesselType, () => {
+                    this.toggle('vessel', vesselType)
+                })
+            }))
+        }
+    }
+
+    panel: AtWillPanel | undefined = $derived.by(() => {
+        const context = this.contextOf()
+        if (!context) {
+            return undefined
+        }
+        const chips = this.chips(context)
+        if (chips.length === 0) {
+            return undefined
+        }
+        return {
+            chips,
+            ...this.openList(context),
+            ...this.primaryOf()
+        }
+    })
+
+    private openList(context: AtWillContext): Partial<AtWillPanel> {
+        switch (this.value('list')) {
+            case 'writs':
+                return this.writsPanel(context)
+            case 'tiles':
+                return this.tilesPanel(context)
+            case 'vessels':
+                return this.vesselsPanel(context)
+            case 'immunity':
+                return { line: 'Take back the seal: the marker can be starved again' }
+            default:
+                return {}
+        }
+    }
+
+    /** R-X.2 Only for a send a press doesn't make: an auto stage, or something it would reveal. */
+    private primaryOf(): Pick<AtWillPanel, 'primary'> {
+        const { play } = this
+        const list = this.value('list')
+        if (!play) {
+            return {}
+        }
+        const names: Record<AtWillList, string> = {
+            writs: 'Play',
+            tiles: 'Spend',
+            vessels: 'Place vessel',
+            immunity: 'Take back the seal'
+        }
+        return list ? { primary: { label: primaryLabel(names[list], play), enabled: true } } : {}
+    }
+
+    /** R-4.2.2, R-3.14.2 What the open list lights on the map. */
+    private picks: readonly FlowPick[] = $derived.by(() => {
+        const context = this.contextOf()
+        if (!context) {
+            return []
+        }
+        const list = this.value('list')
+        if (list === 'vessels') {
+            const vessel = this.value('vessel')
+            const offer = this.vesselOffers(context).find(({ vesselType }) => vesselType === vessel)
+            return (offer?.pawns ?? []).map((n) => ({
+                target: pawnTarget(context.playerId, n),
+                press: () => {
+                    this.set('pawn', n)
+                }
+            }))
+        }
+        if (list === 'immunity') {
+            return this.sealOffers(context).map(({ spaceId, role }) => ({
+                target: markerTarget(spaceId, context.playerId, role),
+                press: () => {
+                    this.set('seal', { spaceId, role })
+                }
+            }))
+        }
+        return []
+    })
+
+    get pick(): StagePick | undefined {
+        return this.picks.length > 0
+            ? { targets: this.picks.map(({ target }) => ({ target })), picked: [] }
+            : undefined
+    }
+
+    pickOf(target: BoardTarget): FlowPick | undefined {
+        return this.picks.find((pick) => pick.target === target)
+    }
+}
