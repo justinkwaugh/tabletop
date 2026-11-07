@@ -1,7 +1,7 @@
 <script lang="ts">
     import { fade } from 'svelte/transition'
     import type { Attachment } from 'svelte/attachments'
-    import { coordinatesToNumber, sameCoordinates, type AxialCoordinates } from '@tabletop/common'
+    import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
     import type { MarbleColor, Ring } from '@tabletop/zertz'
     import MarbleLook from './MarbleLook.svelte'
     import RingLook from './RingLook.svelte'
@@ -9,6 +9,7 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { includesCoords } from '$lib/model/session.svelte.js'
     import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
+    import { placementSeed, seedAt } from '$lib/board/marbleSeeds.js'
     import {
         coordsKey,
         RING_MID_RADIUS,
@@ -33,9 +34,12 @@
     const drawOrder = $derived(
         rings.toSorted((a, b) => view.center(a.coords).y - view.center(b.coords).y)
     )
+    // Where rings were taken off, and where rings are sliding out or back in, under them.
     const removedPositions = $derived.by(() => {
         const present = new Set(rings.map((ring) => coordsKey(ring.coords)))
-        return frame.positions.filter((coords) => !present.has(coordsKey(coords)))
+        return frame.positions.filter(
+            (coords) => !present.has(coordsKey(coords)) || animator.sliding.has(coordsKey(coords))
+        )
     })
 
     const SHADOW_COLOR = '#021624'
@@ -90,7 +94,7 @@
         const coords = session.chosenPlace
         const color = session.chosenColor
         if (coords === undefined || color === undefined) return undefined
-        return { coords, color, drops: true }
+        return { coords, color, seed: placementSeed(coords, session.gameState.actionCount), drops: true }
     })
 
     function activate(ring: Ring, role: RingRole) {
@@ -197,15 +201,12 @@
         </g>
     {/if}
 
-    <!-- A removed ring leaves its shadow for the turn it sank in. -->
+    <!-- A removed ring takes its shadow with it as it is pulled out. -->
     <g>
-        {#each session.sinkingRings as coords (coordsKey(coords))}
-            <g {@attach animator.shadow(coordsKey(coords))}>
-                {@render ringShadow(coords)}
-            </g>
-        {/each}
         {#each rings as ring (coordsKey(ring.coords))}
-            {@render ringShadow(ring.coords)}
+            <g {@attach animator.ringShadow(coordsKey(ring.coords))}>
+                {@render ringShadow(ring.coords)}
+            </g>
         {/each}
     </g>
 
@@ -253,7 +254,7 @@
         </g>
     {/each}
 
-    <!-- Outlines sit above the rings rather than in them, so a ring sinks without its outline. The
+    <!-- Outlines sit above the rings rather than in them, so a ring is pulled out without its outline. The
          animator fades the whole layer with each move, and every new position gets a fresh one. -->
     {#key session.gameState}
         <g {@attach animator.outlines()}>
@@ -302,7 +303,7 @@
             >
                 {@render marble(
                     ring.marble,
-                    coordinatesToNumber(ring.coords),
+                    seedAt(animator.seeds, ring.coords),
                     animator.marble(coordsKey(ring.coords)),
                     animator.marbleShadow(coordsKey(ring.coords))
                 )}
@@ -322,7 +323,7 @@
                 >
                     <StagedMarble
                         color={staged.color}
-                        seed={coordinatesToNumber(ring.coords)}
+                        seed={staged.seed}
                         {view}
                         drops={staged.drops}
                         lifts={() => !animator.placedIn}
@@ -333,7 +334,7 @@
             <g class="preview" transform="translate({center.x} {center.y - view.lift})">
                 <MarbleLook
                     color={session.chosenColor}
-                    seed={coordinatesToNumber(ring.coords)}
+                    seed={placementSeed(ring.coords, session.gameState.actionCount)}
                     {view}
                 />
             </g>

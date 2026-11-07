@@ -24,7 +24,6 @@ import {
 } from './stagedSelection.js'
 import { viewOf, type BoardView } from '$lib/board/geometry.js'
 import { boardNotation, type BoardNotation } from '$lib/board/coordinates.js'
-import { sinkingRingsAfter } from '$lib/board/sinkingRings.js'
 
 export function includesCoords(list: readonly AxialCoordinates[], coords: AxialCoordinates) {
     return list.some((candidate) => sameCoordinates(candidate, coords))
@@ -46,12 +45,6 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
 
     notation: BoardNotation = $derived(
         boardNotation(this.view.frame(this.gameState.setup).positions, this.view)
-    )
-
-    // The actions list moves ahead as soon as an action is taken, so the sunken rings follow the
-    // actions behind the state on show, which an animated transition still holds back.
-    sinkingRings: AxialCoordinates[] = $derived(
-        sinkingRingsAfter(this.actions.slice(0, this.gameState.actionCount))
     )
 
     canPlace = $derived(this.canAct(ActionType.PlaceMarble))
