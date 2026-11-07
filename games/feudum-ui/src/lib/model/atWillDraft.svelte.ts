@@ -345,7 +345,8 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
                 list,
                 ...draftChoice(`${name} ${count}`, open === list, () => {
                     this.toggle('list', list)
-                })
+                }),
+                ...this.chipLights(list, context)
             }))
     }
 
@@ -473,14 +474,32 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
         }
     }
 
+    /** R-4.2.2, R-3.14.2 A chip that leads to the map brightens what its list would light. */
+    private chipLights(list: AtWillList, context: AtWillContext): Pick<DraftChoice, 'lights'> {
+        const { playerId } = context
+        if (list === 'vessels') {
+            const pawns = this.vesselOffers(context).flatMap((offer) => offer.pawns)
+            return { lights: () => [...new Set(pawns)].map((n) => pawnTarget(playerId, n)) }
+        }
+        if (list === 'immunity') {
+            const seals = this.sealOffers(context)
+            return {
+                lights: () =>
+                    seals.map(({ spaceId, role }) => markerTarget(spaceId, playerId, role))
+            }
+        }
+        return {}
+    }
+
     private vesselsPanel(context: AtWillContext): Partial<AtWillPanel> {
         const vessel = this.value('vessel')
         return {
-            vessels: this.vesselOffers(context).map(({ vesselType }) => ({
+            vessels: this.vesselOffers(context).map(({ vesselType, pawns }) => ({
                 vesselType,
                 ...draftChoice(vesselType.replaceAll('-', ' '), vessel === vesselType, () => {
                     this.toggle('vessel', vesselType)
-                })
+                }),
+                lights: () => pawns.map((n) => pawnTarget(context.playerId, n))
             }))
         }
     }

@@ -207,7 +207,7 @@ A staged card and the at-will row never coexist: picking a card hides the row, a
 
 - **`Nourish`** (`Nourishing`, R-4.10). Asked only of a seat with a real choice, in turn order. The panel lists each pawn on the board (character and space), each lit on the map, with buttons "Food" and "Wine" (when the barrel holds sulfur), and "Unfed" in rose ("returns to supply") only when food and wine fall short (R-4.10-H3). The preselection feeds every pawn it can, food first, as an auto stage; presses change it, and a seat can never leave a pawn unfed that it could feed. The primary reads "Feed: 2 food, 1 wine". A short payment offers the tile cover. Others see the nourish row: seats in turn order, a tick on each done, "fed by the game" on seats with no choice.
 - **Progress roll** (`RollProgressDie`, R-4.11). Every seat sees the die roll, any rerolls, and the removed tile leave its stack, with the line "Desert: tile II removed". When an epoch is triggered the epoch sky glows on the next ray and the line adds "Epoch III dawns".
-- **Dawn** (`BeginDawn`, `ReplenishMap`, `ReplenishGuilds`, R-4.12). The action area shows the **dawn sheet** to everyone while the dawn's actions play: one row per seat with guild ranks, landscapes, active regions and disloyalty (in rose), and the total; then the landscape fills, the map's new goods and (III) the guild refill. It stays until the next decision opens.
+- **Dawn** (`BeginDawn`, `ReplenishMap`, `ReplenishGuilds`, R-4.12). The action area shows the **dawn sheet** to everyone while the dawn's actions play: one row per seat with guild ranks, landscapes, active regions and disloyalty (in rose), and the total; then the landscape fills, the map's new goods and (III) the guild refill. It stays, under the next decision, until the first press of that decision that is not the landscapes' own.
 - **`CollectLandscapes`** (`CollectingLandscapes`, R-4.3.4, R-4.12.3). The asked serf's tended landscapes with resources light, each with "collect 3 · 1 to the ruler". Presses pick (tap list); the primary reads "Collect 2" or "Leave all". Others see the order row.
 - **End of round.** The start-player crown passes, the cards return to the seat panels, spent pouch goods leave. The next hand selection opens.
 
@@ -274,7 +274,7 @@ Silent restoration replaces the displayed state; every derived offer follows it 
 - **Seat panels** sit outside the wrapper, in the Players tab on a desktop only; on a phone the seat strip stands in for them. The open seat and the enlarged card are mounted after the table layout and pad themselves by the safe-area insets.
 - **Full screen** is the wrapper's modal dialog. While it is open the action panel is drawn in the wrapper's toolbar, and the bench, the popups and the enlarged card inside the dialog. Each is drawn in one place at a time.
 - **Hidden things** are drawn by one card component, one writ component and one seal component, each taking a `faceShown` decision from the perspective rule, not from data presence.
-- **The finalise, nourish and landscapes rows, the combat tally and the dawn sheet** are each drawn by one component, read from `flow` in the displayed state, in the panel and the waiting view alike.
+- **The finalise, nourish and landscapes rows and the combat tally** are each drawn by one component, read from `flow` in the displayed state, in the panel and the waiting view alike. **The dawn sheet** is drawn by one component too; `flow` holds no dawn, so it reads the dawn's Action on the displayed state.
 
 ## Palette
 
@@ -539,14 +539,14 @@ Each scenario is marked automated (with its spec) or checked (with date and widt
 - S29: automated (`moveDraft.spec.ts`, `actionPanelSession.spec.ts`)
 - S30: automated (`moveDraft.spec.ts`, `actionPanelSession.spec.ts`)
 - S31: automated (`actionPanelSession.spec.ts`)
-- S32: pending
-- S33: pending
-- S34: pending
+- S32: automated (`followUpPanels.spec.ts`, `waitingView.spec.ts`)
+- S33: automated (`followUpPanels.spec.ts`, `waitingView.spec.ts`; browser `tests/followUpPanels.spec.ts`)
+- S34: automated (`waitingView.spec.ts`, `followUpPanels.spec.ts`; browser compare of the page's markup and the action area's pixels in `tests/followUpPanels.spec.ts`); open: Manual
 - S35: pending
-- S36: pending
-- S37: pending
-- S38: pending
-- S39: pending
+- S36: partly automated (`followUpDrafts.spec.ts`, `followUpPanels.spec.ts`; browser `tests/followUpPanels.spec.ts`); open: the flights and the score slide, the military service question on the drawn panel
+- S37: partly automated (`followUpDrafts.spec.ts`: the win comes from the logic package); open: the flip, the flights and the rank changes in the log
+- S38: automated (`followUpPanels.spec.ts`, `waitingView.spec.ts`; the seal under the marker `mapLayers.spec.ts`; browser `tests/followUpPanels.spec.ts`); open: the seal's slide
+- S39: automated (`followUpPanels.spec.ts`, `atWillDraft.spec.ts`); open: the seal's flight
 - S40: automated (`guildDraft.spec.ts`; browser `tests/bench.spec.ts`)
 - S41: automated (`guildDraft.spec.ts`, `benchOffer.spec.ts`, `bench.spec.ts`; browser `tests/bench.spec.ts`); open: the flight of the goods on send isn't drawn
 - S42: automated (`guildDraft.spec.ts`, `bench.spec.ts`; browser `tests/bench.spec.ts`)
@@ -557,13 +557,13 @@ Each scenario is marked automated (with its spec) or checked (with date and widt
 - S47: automated (`guildDraft.spec.ts`, `bench.spec.ts`; browser `tests/bench.spec.ts`)
 - S48: automated (`turnDraft.spec.ts`, `guildDraft.spec.ts`; browser `tests/bench.spec.ts`)
 - S49: pending
-- S50: pending
-- S51: pending
-- S52: pending
-- S53: pending
-- S54: pending
-- S55: pending
-- S56: pending
+- S50: partly automated (`followUpPanels.spec.ts`, `atWillDraft.spec.ts`; browser `tests/followUpPanels.spec.ts`); open: the writ shown to all then going under, the margin's count
+- S51: partly automated (`followUpPanels.spec.ts`, `atWillDraft.spec.ts`; browser `tests/followUpPanels.spec.ts`); open: what others see of the sealed back on the drawn panel
+- S52: partly automated (`followUpPanels.spec.ts`; browser `tests/followUpPanels.spec.ts`); open: the writ shown to all then going under, a mandate from the row bringing it to 3
+- S53: partly automated (`followUpPanels.spec.ts`, `followUpDrafts.spec.ts`, `waitingView.spec.ts`; browser `tests/followUpPanels.spec.ts`); open: the flights
+- S54: partly automated (`waitingView.spec.ts`, `components/actionPanel.spec.ts`; browser `tests/followUpPanels.spec.ts`); open: the die's tumble, the epoch glow, the score discs' slide, Manual
+- S55: partly automated (`followUpPanels.spec.ts`, `waitingView.spec.ts`; browser `tests/followUpPanels.spec.ts`); open: the flights
+- S56: automated (`waitingView.spec.ts`, `components/actionPanel.spec.ts`; browser `tests/followUpPanels.spec.ts`)
 - S57: pending
 - S58: pending
 - S59: pending

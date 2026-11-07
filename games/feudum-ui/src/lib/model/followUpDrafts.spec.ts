@@ -40,7 +40,7 @@ import { LandscapesStageOrder, type LandscapesValues } from './landscapesDraft.s
 import { NourishStageOrder, type NourishValues } from './nourishDraft.svelte.js'
 import type { FeudumGameSession } from './session.svelte.js'
 import { StagedDraft } from './stagedDraft.svelte.js'
-import { watchingPanelOf } from './watching.js'
+import { orderRowOf } from './sharedRows.js'
 import { WritLimitStageOrder, type WritLimitValues } from './writLimitDraft.svelte.js'
 
 const OutOfOrder = /does not exist in stage order/
@@ -1216,19 +1216,14 @@ describe('R-4.10 Nourish', () => {
         const other = await table.host.openSeat(table.other)
         await settled(other)
         expect(other.nourishPanel).toBeUndefined()
-        const row = other.watchingPanel?.row
+        const row = other.orderRow?.entries
         expect(row?.map(({ playerId }) => playerId)).toEqual(table.host.order)
         expect(row?.find(({ playerId }) => playerId === table.seat)).toMatchObject({
             next: true,
             done: false
         })
         expect(row?.find(({ playerId }) => playerId === table.other)?.done).toBe(true)
-        const fed = watchingPanelOf({
-            state: other.gameState,
-            viewerId: table.other,
-            nameOf: (playerId) => playerId,
-            fedByGame: [table.other]
-        })?.row
+        const fed = orderRowOf(other.gameState, [table.other])?.entries
         expect(fed?.find(({ playerId }) => playerId === table.other)?.fedByGame).toBe(true)
         expect(fed?.find(({ playerId }) => playerId === table.seat)?.fedByGame).toBeUndefined()
         await table.session.history.goToPreviousAction()
@@ -1326,7 +1321,7 @@ describe('R-4.3.4 Collect landscapes', () => {
         const other = await table.host.openSeat(table.other)
         await settled(other)
         expect(other.landscapesPanel).toBeUndefined()
-        expect(other.watchingPanel?.row?.find(({ next }) => next)?.playerId).toBe(table.seat)
+        expect(other.orderRow?.entries.find(({ next }) => next)?.playerId).toBe(table.seat)
         expect(roleOf(other.boardOffer, spaceTarget(table.spaces[0]))).toBe('plain')
         await table.session.history.goToPreviousAction()
         await settled(table.session)

@@ -2,55 +2,40 @@ import { MachineState, type HydratedFeudumGameState } from '@tabletop/feudum'
 import { combatTargetName } from './answerAttack.js'
 import { spaceLabel } from './cardFlows.js'
 
-export interface WatchingRowEntry {
-    readonly playerId: string
-    /** Not asked, or already answered. */
-    readonly done: boolean
-    readonly next: boolean
-    /** R-4.10, D11 It had no choice, so the game fed it. */
-    readonly fedByGame?: boolean
-}
-
 /** What a seat that isn't deciding reads about the seat that is (R-X.1). */
 export interface WatchingPanel {
     readonly line?: string
     /** R-4.4.1 How many face-down writs the drawer is holding. */
     readonly backs?: number
-    readonly row?: readonly WatchingRowEntry[]
 }
 
 export interface WatchingInput {
     readonly state: HydratedFeudumGameState
     readonly viewerId: string | undefined
     readonly nameOf: (playerId: string) => string
-    /** D11 The seats the round's nourishing fed itself. */
-    readonly fedByGame: readonly string[]
 }
 
-function rowOf(
-    state: HydratedFeudumGameState,
-    pending: readonly string[],
-    fedByGame: readonly string[] = []
-): readonly WatchingRowEntry[] {
-    return state.turnManager.turnOrder.map((playerId) => ({
-        playerId,
-        done: !pending.includes(playerId),
-        next: pending[0] === playerId,
-        ...(fedByGame.includes(playerId) ? { fedByGame: true } : {})
-    }))
+/** R-X.1 Words for what the one active seat is deciding: public facts, and no more. */
+const Deciding: Partial<Record<MachineState, string>> = {
+    [MachineState.PlayingCards]: 'plays a card',
+    [MachineState.CommittingAttack]: 'adds to the attack',
+    [MachineState.PlacingDisc]: 'decides on a disc',
+    [MachineState.InspectingHarvest]: 'takes favours',
+    [MachineState.DiscardingWrits]: 'discards a writ',
+    [MachineState.Nourishing]: 'feeds pawns',
+    [MachineState.CollectingLandscapes]: 'collects landscapes'
 }
 
 /**
- * R-X.1 The line others read while an asked seat decides. It's built from public facts alone, so it
- * can't differ with what the asked seat holds (S34).
+ * R-X.1 The line others read while another seat decides. It's built from public facts alone, so it
+ * can't differ with what the asked seat holds (S34). The live rows of a step are `sharedRows`' own.
  */
 export function watchingPanelOf({
     state,
     viewerId,
-    nameOf,
-    fedByGame
+    nameOf
 }: WatchingInput): WatchingPanel | undefined {
-    const { combat, starve, writDraw, nourish, landscapes } = state.flow
+    const { combat, starve, writDraw } = state.flow
     switch (state.machineState) {
         case MachineState.KeepingWrits:
             return writDraw && writDraw.playerId !== viewerId
@@ -78,16 +63,13 @@ export function watchingPanelOf({
                 line: `${nameOf(starve.actorId)} starves ${owner}'s ${starve.role} at ${spaceLabel(starve.spaceId)}. ${owner} answers.`
             }
         }
-        case MachineState.Nourishing:
-            return nourish && nourish.pending[0] !== viewerId
-                ? { row: rowOf(state, nourish.pending, fedByGame) }
+        default: {
+            const words = Deciding[state.machineState]
+            const [deciderId] = state.activePlayerIds
+            return words && deciderId !== undefined && deciderId !== viewerId
+                ? { line: `${nameOf(deciderId)} ${words}` }
                 : undefined
-        case MachineState.CollectingLandscapes:
-            return landscapes && landscapes.pending[0] !== viewerId
-                ? { row: rowOf(state, landscapes.pending) }
-                : undefined
-        default:
-            return undefined
+        }
     }
 }
 

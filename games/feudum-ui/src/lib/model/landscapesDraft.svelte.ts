@@ -90,7 +90,8 @@ export class LandscapesDraft extends DeciderDraft<LandscapesValues> {
                     () => {
                         this.pressSpace(spaceId)
                     }
-                )
+                ),
+                lights: () => [spaceTarget(spaceId)]
             })),
             ...(mostInBarrel > 0
                 ? {

@@ -226,8 +226,8 @@ export class NourishDraft extends DeciderDraft<NourishValues> {
                     spaceId,
                     label: `${character} at ${spaceLabel(spaceId)}`,
                     feed,
-                    choices: FeedOrder.filter((one) => room[one] > 0).map((one) =>
-                        draftChoice(
+                    choices: FeedOrder.filter((one) => room[one] > 0).map((one) => ({
+                        ...draftChoice(
                             FeedLabels[one],
                             feed === one,
                             () => {
@@ -237,8 +237,9 @@ export class NourishDraft extends DeciderDraft<NourishValues> {
                             one === 'unfed'
                                 ? { kind: 'threat', label: 'returns to supply' }
                                 : undefined
-                        )
-                    )
+                        ),
+                        lights: () => [pawnTarget(context.playerId, n)]
+                    }))
                 }
             }),
             ...(hasCover ? { covers: this.coverRows(context, offer) } : {}),
