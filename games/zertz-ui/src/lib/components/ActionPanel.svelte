@@ -17,7 +17,7 @@
             }
             return session.chosenJumper
                 ? 'Capture: choose where to land'
-                : 'You must capture: choose a marble to jump with'
+                : 'Capture: choose a marble to jump'
         }
         if (session.canPlace) {
             return session.chosenColor
@@ -34,7 +34,7 @@
     <div class="message">
         {#if session.isViewingHistory || !prompt}
             {#if lastEntry}
-                <HistoryEntryLine entry={lastEntry} />
+                <HistoryEntryLine entry={lastEntry} brief />
             {:else}
                 <span>{session.isViewingHistory ? 'The game begins' : 'Waiting for turn'}</span>
             {/if}
@@ -59,6 +59,15 @@
     @media (max-width: 639px) {
         .message {
             font-size: 16px;
+        }
+    }
+
+    /* On a phone a prompt can wrap at 375px and narrower, and a last move that claims marbles at
+       any width: every message gets two rows, one-row messages centred in them, so the board
+       never moves. As in GIPF with Potentials, which reserves them at 375px and narrower. */
+    @media (max-width: 639px) {
+        .message {
+            min-height: 48px;
         }
     }
 </style>

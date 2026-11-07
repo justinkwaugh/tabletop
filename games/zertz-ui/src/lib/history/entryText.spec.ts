@@ -73,4 +73,39 @@ describe('entrySegments', () => {
         )
         expect(read(segments)).toBe(' jumped (white) 0,0→2,0→2,-2, capturing (grey)(black)')
     })
+
+    it('keeps the action panel brief', () => {
+        const placement = {
+            ...span,
+            kind: 'placement' as const,
+            color: MarbleColor.Black,
+            placedAt: { q: 0, r: 0 },
+            fromCaptures: true,
+            removedAt: { q: -2, r: 2 },
+            claimed: [
+                { coords: { q: -2, r: 3 }, marble: MarbleColor.Grey },
+                { coords: { q: -3, r: 3 }, marble: MarbleColor.White }
+            ]
+        }
+        expect(read(entrySegments(placement, true, true))).toBe(
+            ' placed (black) on 0,0, removed -2,2 and claimed (grey)(white)'
+        )
+        expect(read(entrySegments({ ...placement, claimed: [] }, true, true))).toBe(
+            ' placed (black) on 0,0, removed -2,2'
+        )
+        const chain = {
+            ...span,
+            kind: 'capture' as const,
+            jumper: MarbleColor.White,
+            path: [
+                { q: 0, r: 0 },
+                { q: 2, r: 0 },
+                { q: 2, r: -2 }
+            ],
+            captured: [MarbleColor.Grey, MarbleColor.Black]
+        }
+        expect(read(entrySegments(chain, false, true))).toBe(
+            ' jumped (white) 0,0→2,-2, capturing (grey)(black)'
+        )
+    })
 })

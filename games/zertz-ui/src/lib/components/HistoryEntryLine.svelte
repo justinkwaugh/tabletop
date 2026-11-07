@@ -4,13 +4,13 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import MarbleIcon from './MarbleIcon.svelte'
 
-    let { entry }: { entry: HistoryEntry } = $props()
+    let { entry, brief = false }: { entry: HistoryEntry; brief?: boolean } = $props()
 
     const session = getGameSession()
 
     const isMe = $derived(entry.playerId === session.myPlayer?.id)
     const name = $derived(isMe ? 'You' : session.getPlayerName(entry.playerId))
-    const segments = $derived(entrySegments(entry, isMe))
+    const segments = $derived(entrySegments(entry, isMe, brief))
 </script>
 
 <span
