@@ -1,6 +1,7 @@
 /**
  * Whether a viewer sees a hidden thing's face. Decided from who looks, never from whether the data
- * happens to be present: a Local game and the Host View hold every field and still show backs.
+ * happens to be present: a Local game holds every field and still shows backs. Host View is its own
+ * explicit look at the faces (S57), which its derivation asks for by name; it is no viewer here.
  */
 
 /** R-3.1, R-5.1 A hand's cards: their owner sees faces, everyone else backs and a count. */

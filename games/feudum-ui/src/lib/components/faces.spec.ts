@@ -43,7 +43,7 @@ function bodyOf(markup: string): string {
 }
 
 describe('perspective', () => {
-    it('R-3.1, R-5.1 a hand: the owner sees faces, others and the Host View backs', () => {
+    it('R-3.1, R-5.1 a hand: the owner sees faces, others and a spectator backs', () => {
         expect(handFaceShown('p1', 'p1')).toBe(true)
         expect(handFaceShown('p2', 'p1')).toBe(false)
         expect(handFaceShown(undefined, 'p1')).toBe(false)

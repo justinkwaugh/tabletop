@@ -13,9 +13,10 @@ export type EnlargedFace =
     | {
           readonly kind: 'card'
           readonly faceShown: boolean
-          readonly card: ActionCardKind
+          /** A back of a seat's hand has none: its kind is nowhere on this side of the perspective. */
+          readonly card?: ActionCardKind
           readonly paint: SeatPaint
-          readonly number: number
+          readonly number?: number
       }
     | {
           readonly kind: 'writ'

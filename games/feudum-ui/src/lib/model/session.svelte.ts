@@ -49,6 +49,7 @@ import type { FlowPlay, FlowPopup, PanelChoice } from './cardFlows.js'
 import type { TurnContext } from './cardModes.js'
 import { TableLayers } from './tableLayers.svelte.js'
 import { TurnDraft, type TurnPanel } from './turnDraft.svelte.js'
+import { seatPanelOf, type SeatPanelView } from './seatPanel.js'
 import { deckNoteOf, watchingPanelOf, type WatchingPanel } from './watching.js'
 import { WritLimitDraft, type WritLimitPanel } from './writLimitDraft.svelte.js'
 
@@ -664,6 +665,18 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
 
     pressTurnCard(kind: ActionCardKind) {
         this.turnPanel?.cards.find((card) => card.kind === kind)?.press()
+    }
+
+    /** Contract, Seat panel: every view of a seat reads this one derivation, on the displayed state. */
+    seatPanel(playerId: string): SeatPanelView {
+        return seatPanelOf({
+            state: this.gameState,
+            playerId,
+            viewerId: this.myPlayerId,
+            hostView: this.isViewingHost,
+            nameOf: (id) => this.getPlayerName(id),
+            draftedPouch: this.hand.hand.pouchGood
+        })
     }
 
     /** A dimmed row has no press: it gives its line and does nothing. */

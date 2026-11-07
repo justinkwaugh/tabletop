@@ -7,20 +7,16 @@
     let { playerId, onClose }: { playerId: string; onClose: () => void } = $props()
 
     const gameSession = getGameSession()
-
-    let player = $derived(gameSession.game.players.find(({ id }) => id === playerId))
-    let playerState = $derived(
-        gameSession.gameState.players.find((row) => row.playerId === playerId)
-    )
 </script>
 
 <Scrim label="{gameSession.getPlayerName(playerId)}'s seat" layer="seat" {onClose}>
-    <div
-        class="rounded-lg bg-feudum-surface-raised text-feudum-text p-6 pt-10 min-w-[320px]"
-        data-open-seat={playerId}
-    >
-        {#if player && playerState}
-            <PlayerState {player} {playerState} />
-        {/if}
+    <div class="open-seat pt-10" data-open-seat={playerId}>
+        <PlayerState {playerId} reading />
     </div>
 </Scrim>
+
+<style>
+    .open-seat {
+        width: min(600px, calc(100vw - 32px));
+    }
+</style>
