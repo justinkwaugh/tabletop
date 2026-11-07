@@ -668,6 +668,12 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
 
     guildPanel: GuildPanel | undefined = $derived(this.guild.panel)
 
+    /** The bench stands over the board; for a map pick it closes down to its header. */
+    benchCovers: boolean = $derived.by(() => {
+        const bench = this.guildPanel?.bench
+        return bench !== undefined && bench.collapsed === undefined
+    })
+
     pressTurnCard(kind: ActionCardKind) {
         this.turnPanel?.cards.find((card) => card.kind === kind)?.press()
     }

@@ -461,8 +461,8 @@ Each gives the start, the input, the result, the result after Undo or exit, and 
 **Guilds**
 
 - **S40. Guild pick and functions.** Pick Guild: guild areas this seat may use light; a guild used this round is unlit. Press Merchant: the popup lists Trade, Pull and Push with costs and outcomes; a function the seat holds no rank for is dimmed with its reason. Undo closes the popup, then the card. Auto.
-- **S41. Merchant pull with count.** Journeyman of Merchant: the bench shows the barn (left) and market (right). Press iron, iron, wood: ghosts land in the bins' next spaces; one row and two columns complete; the toggle preselects "Columns (2)"; the result line reads "3 vp · 2 writs, keep 1 · can't be undone"; payment split shown. Undo takes back the last good. Send: goods fly barn → market; the keep follows. Auto.
-- **S42. Below threshold.** A pull that completes nothing: the result line reads "0 vp · no writ"; the payment split still shows; the primary sends without "can't be undone". Auto.
+- **S41. Merchant pull with count.** Journeyman of Merchant: the bench shows the barn (left) and market (right). Press iron, iron, wood: ghosts land in the bins' next spaces; one row and two columns complete; the toggle preselects "Columns (2)"; the result line reads "3 vp · 2 writs, keep 1 · can't be undone". Undo takes back the last good. Send: goods fly barn → market; the keep follows. Auto.
+- **S42. Below threshold.** A pull that completes nothing: the result line reads "0 vp · no writ"; the primary sends without "can't be undone". Auto.
 - **S43. Alchemist push inventions.** Master of Alchemist with carts for a ship and a krud barrel: press Ship, then Krud barrel (first price); the barrel fills the leading section of every Knight row as ghosts. Send: goods to the haversack, the ship to the vessel space, markers into the rows. Auto.
 - **S44. Knight trade and tame.** With 4 markers in the seat's row: "3s: take 4 markers"; the popup offers the behemoth. Pick it: the bench collapses to its header, and the spaces it may be deployed to light. Press one: sent; three markers leave, one to the monster icon, the behemoth appears with the seat's collar. Undo reopens the bench, then the popup. Auto.
 - **S45. Noble pull picks.** Rows of two colours, then two empty scroll spaces: a third row press of a used colour does nothing. Seals land unseen (crowned discs). Auto.
@@ -547,15 +547,15 @@ Each scenario is marked automated (with its spec) or checked (with date and widt
 - S37: pending
 - S38: pending
 - S39: pending
-- S40: pending
-- S41: pending
-- S42: pending
-- S43: pending
-- S44: pending
-- S45: pending
-- S46: pending
-- S47: pending
-- S48: pending
+- S40: automated (`guildDraft.spec.ts`; browser `tests/bench.spec.ts`)
+- S41: automated (`guildDraft.spec.ts`, `benchOffer.spec.ts`, `bench.spec.ts`; browser `tests/bench.spec.ts`); open: the flight of the goods on send isn't drawn
+- S42: automated (`guildDraft.spec.ts`, `bench.spec.ts`; browser `tests/bench.spec.ts`)
+- S43: automated (`guildDraft.spec.ts`, `benchOffer.spec.ts`, `bench.spec.ts`; browser `tests/bench.spec.ts`); open: the flight on send isn't drawn
+- S44: automated (`guildDraft.spec.ts`, `bench.spec.ts`; browser `tests/bench.spec.ts`); open: the markers' flight on send isn't drawn
+- S45: automated (`guildDraft.spec.ts`, `benchOffer.spec.ts`, `bench.spec.ts`; browser `tests/bench.spec.ts`)
+- S46: automated (`guildDraft.spec.ts`, `bench.spec.ts`; browser `tests/bench.spec.ts`); open: the bead's rise on send isn't drawn
+- S47: automated (`guildDraft.spec.ts`, `bench.spec.ts`; browser `tests/bench.spec.ts`)
+- S48: automated (`turnDraft.spec.ts`, `guildDraft.spec.ts`; browser `tests/bench.spec.ts`)
 - S49: pending
 - S50: pending
 - S51: pending

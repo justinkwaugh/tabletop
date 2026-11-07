@@ -550,6 +550,8 @@ export const GuildViewBox = `0 0 ${GuildBox.width} ${GuildBox.height}`
 /** A guild area's width on the board. */
 export const GuildAreaWidth = 388
 export const GuildAreaHeight = (GuildAreaWidth * GuildBox.height) / GuildBox.width
+/** A guild area's width on the bench: fixed for legibility, whatever the board's scale. */
+export const BenchAreaWidth = 440
 
 /** R-1.2.3 Where each area stands on the board: the ring up the west edge and down the east. */
 export const GuildAreas: Record<GuildId, Point> = {
@@ -591,6 +593,7 @@ export const MonsterBox = { width: 140, height: 128 } as const
 /** R-4.1 The first of a barn column's tokens stands highest, each further one below it. */
 export const BarnStackStep = 40
 
+const MarketSpacesPerBin = 4
 const GoodRowY = (index: number) => 106 + index * 53
 const MarketColumnX = (space: number) => 72 + (space - 1) * 104 + MarketCell.tokenOffset
 const CartColumnX = (space: number) => 96 + (space - 1) * 56
@@ -609,6 +612,14 @@ export function cartGoodRow(good: Good): Point {
 
 export function marketBinRow(good: Good): Point {
     return { x: 36, y: GoodRowY(Goods.indexOf(good)) }
+}
+
+/** A market bin's whole row, from its swatch to its last space. */
+export function marketBinBox(good: Good): { x: number; y: number; width: number; height: number } {
+    const { x, y } = marketBinRow(good)
+    const left = x - 22
+    const right = MarketColumnX(MarketSpacesPerBin) - MarketCell.tokenOffset + MarketCell.width + 4
+    return { x: left, y: y - 25, width: right - left, height: 50 }
 }
 
 /** R-1.3 The colours of the printed rows and barrels, in the data's order. */

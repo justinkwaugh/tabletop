@@ -230,7 +230,8 @@ describe('R-4.6.1 ghosts: each pick at its destination', () => {
         expect(offer.ghosts.filter(({ item: ghost }) => ghost === 'invention:krud-barrel')).toEqual(
             rows.map(({ colour }) => ({
                 item: 'invention:krud-barrel',
-                at: `knight-row:${colour}`
+                at: `knight-row:${colour}`,
+                count: 1
             }))
         )
     })

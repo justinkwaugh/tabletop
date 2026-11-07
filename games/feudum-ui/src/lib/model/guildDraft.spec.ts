@@ -672,6 +672,52 @@ describe('S41 R-4.6.5 a Farmer push and a Knight push set their count', () => {
     })
 })
 
+describe('R-4.6.1 the bench over the board', () => {
+    const merchantPull = (state: HydratedFeudumGameState, { seat, other }: GuildSeats) => {
+        setJourneyman(state, seat, 'merchant', other)
+        setBarn(state, { iron: 2, wood: 1 })
+    }
+
+    it('R-4.6.1 while it is open it covers the board’s guild areas, and a press on one does nothing', async () => {
+        const { session } = await table(merchantPull)
+        expect(session.benchCovers).toBe(false)
+        await openFunction(session, 'merchant', 'pull')
+        expect(session.benchCovers).toBe(true)
+        await session.pressBoardTarget(guildTarget('farmer'))
+        await session.pressBoardTarget(guildTarget('merchant'))
+        flushSync()
+        expect(session.guild.value('guild')).toBe('merchant')
+        expect(session.guild.value('fn')).toBe('pull')
+        expect(benchOf(session).title).toBe('Merchant pull')
+    })
+
+    it('R-4.6.3 at its header for a map pick it covers nothing, and a guild area still takes no press', async () => {
+        const { session } = await table((state, { seat }) => {
+            ruleFarm(state, seat, { food: 4 })
+            ruleFarm(state, seat, { wood: 4 })
+        })
+        await openFunction(session, 'farmer', 'trade')
+        expect(session.benchCovers).toBe(false)
+        await session.pressBoardTarget(guildTarget('merchant'))
+        flushSync()
+        expect(session.guild.value('guild')).toBe('farmer')
+        expect(benchOf(session).collapsed).toBe('Farmer trade: pick a farm')
+    })
+
+    it('R-4.6.3 a farm’s split keeps it at its header: the popup stands on the map', async () => {
+        const { session } = await table((state, { seat }) => {
+            ruleFarm(state, seat, { food: 4 })
+            ruleFarm(state, seat, { wood: 4 })
+        })
+        await openFunction(session, 'farmer', 'trade')
+        const target = benchOf(session).map?.at(0)?.target
+        assertExists(target, 'A farm is lit')
+        await pressTarget(session, target)
+        expect(benchOf(session).collapsed).toBe('Farmer trade: split the goods sent')
+        expect(session.benchCovers).toBe(false)
+    })
+})
+
 describe('S42 R-4.6.4 a pull that completes nothing', () => {
     it('R-4.6.4 no writ, and the primary carries no warning', async () => {
         const turn = await table((state, { seat, other }) => {
