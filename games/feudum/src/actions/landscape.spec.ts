@@ -323,6 +323,18 @@ describe('R-3.9.3 tend offers', () => {
         })
     })
 
+    it('R-3.4 offers nothing without a wood, as the Action refuses it', () => {
+        const { table, playerId } = tending('silver-mine')
+        setUp(table, (state) => {
+            state.supply.haversack.wood += state.getPlayerState(playerId).goods.wood
+            state.getPlayerState(playerId).goods.wood = 0
+        })
+        expect(tendLandscapeOffers(table.hydrated(), playerId)).toEqual({
+            tiles: [],
+            spaceIds: []
+        })
+    })
+
     it('S17 previews the fill and the split on a copy', () => {
         const start = tending('silver-mine')
         const state = start.table.hydrated()

@@ -129,11 +129,14 @@ export interface TendLandscapeOffers {
     readonly spaceIds: readonly SpaceId[]
 }
 
-/** R-3.9.3 The seat's collected tiles, and the spaces one could be placed on. */
+/** R-3.9.3, R-3.4 The seat's collected tiles, and the spaces one could go on; empty without a wood. */
 export function tendLandscapeOffers(
     state: HydratedFeudumGameState,
     playerId: string
 ): TendLandscapeOffers {
+    if (reasonSpecialRefused(state, playerId, 'improve')) {
+        return { tiles: [], spaceIds: [] }
+    }
     return {
         tiles: state.getPlayerState(playerId).regionTiles.map((tileId) => ({
             tileId,
