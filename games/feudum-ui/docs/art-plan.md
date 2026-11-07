@@ -96,15 +96,15 @@ The files are `src/lib/fonts/MedievalSharp-Latin.woff2` and `src/lib/fonts/IMFel
 
 ## Board
 
-**Geometry source.** One `boardGeometry.ts`, in board units, with a spec. A board unit is one CSS pixel at scale 1; the surface is 2500 × 1000 for the board and 150 more for the margin, 2500 × 1150 in all. Nothing is measured from a picture. The table holds a position for each id in the logic package's board data and no other id:
+**Geometry source.** One `boardGeometry.ts`, in board units, with a spec. A board unit is one CSS pixel at scale 1; the surface is 2500 × 953 for the board, the printed board's proportions, and 150 more for the margin, 2500 × 1103 in all. Nothing is measured from a picture at run time. The table holds a position for each id in the logic package's board data and no other id:
 
-- **22 spaces** (`space.<region>.<n>`), each a centre point, its four piece slots and its N/S/E/W letter anchors. `components.md` gives each space's region, letters, starting-space flag and a short note on where it lies ("upper big island, NW end", "central", "river"), but no numeric coordinates; the positions are authored once from those notes and the connection list, in board units, so adjacent spaces are roughly where the printed board puts them. The spec fixes the result.
-- **42 routes** (13 road, 8 ship, 10 submersible, 8 flying machine, 3 ferry), each a cubic path between its two space centres with stored control points (a straight line where nothing crosses it). Where two media join the same pair of spaces the paths run side by side at a fixed lateral offset in medium order.
+- **22 spaces** (`space.<region>.<n>`), each a centre point, its four piece slots and its N/S/E/W letter anchors. `components.md` gives each space's region, letters, starting-space flag and a short note on where it lies ("upper big island, NW end", "central", "river"), but no numeric coordinates; the positions were fitted once by hand to the printed board, in board units, so a piece lands on its printed space when the map's file is there. The spec fixes the result.
+- **41 routes** (13 road, 8 ship, 9 submersible, 8 flying machine, 3 ferry), each a cubic path between its two space centres with stored control points (a straight line where nothing crosses it). With the map's file there the print shows the routes at rest and these paths carry only the lit chrome. Where two media join the same pair of spaces the paths run side by side at a fixed lateral offset in medium order.
 - **6 region outlines**, polygons hand-authored round each region's spaces, in the board's own order.
 - **6 guild areas**, three down each side, each in its own local units (about 500 × 300) so the bench draws the same component at another scale: the Alchemist (top), Merchant (middle) and Farmer (bottom) on the west edge, the Knight (top), Noble (middle) and Monk (bottom) on the east edge. Local positions for each guild's goods spaces (Merchant 20, Alchemist 15 plus the vessel space, Knight 15 sections, Noble 6, Farmer barn, purse and 4 chickens, Monk rosary and coffer) and its 3 track spaces.
 - **Tracks:** the 150 score positions round the board's edge, the 7 voyage spaces, 3 service spaces, 5 epoch rays, 5 region-tile chart rows, 6 region stacks, 5 wine barrels, the die and the margin slots.
 
-**Layout** (board units): west guild column x 0 to 540; the map in the centre x 590 to 1910, y 140 to 760; east guild column x 1960 to 2500; the epoch sky above the map y 0 to 130; stacks, chart, die, voyage and service below the map y 770 to 1000; the score ring a 56 unit band round the whole board edge. The margin sits below at y 1000 to 1150. These are starting numbers; the table and its spec are the source once written.
+**Layout** (board units): the score ring a band about 60 wide round the whole edge; west guild column x 60 to 452; the map in the centre x 452 to 2050, y 60 to 893, its top the epoch sky to y 150 and its bottom the strip of stacks, chart and barrels; east guild column x 2050 to 2440. The margin sits below at y 953 to 1103. The table and its spec are the source.
 
 **Layers**, back to front, as the contract's render ownership sets them. Each layer owns the pick chrome of what it draws and dims its own unlit elements from the board offer. There is no global scrim.
 
@@ -229,6 +229,7 @@ The catalog title image is `src/lib/images/cover.webp`, read by `info.thumbnailU
 | `vessel.<vessel>`                                      | 3     | `VesselToken`               | up to 144 x 100 px  | 288 x 200 px          |
 | `monster.<monster>`                                    | 2     | `MonsterToken`              | up to 192 px        | 384 px long side      |
 | `location.<kind>`, `location.feudum.<guild>`           | 9     | `LocationDisc`              | up to 100 px        | 200 px                |
+| `board.map`                                            | 1     | `MapGround`                 | up to 1598 x 833 px | 2400 x 1251 px        |
 | `tile.front.<numeral>`, `tile.back.<landscape>`        | 8     | `TileFace`                  | up to 128 px        | 256 px                |
 | `card.action.<kind>`                                   | 11    | `ActionCardFace` art window | up to 258 x 417 px  | 618 x 1000 px         |
 | `writ.mandate.<n>`, `writ.charter.<name>`, `writ.back` | 17    | `WritFace`                  | up to 300 x 486 px  | 618 x 1000 px         |
@@ -238,7 +239,7 @@ The catalog title image is `src/lib/images/cover.webp`, read by `info.thumbnailU
 
 **Always drawn, because the art has nothing to give:** rings, chips, outlines, the dim veil, trails and ghosts, and the blank side of a location disc.
 
-**Board ground.** The later layers of the table may take one image as the ground, under the routes and locations, once this list names it. The geometry table stays the source of positions.
+**Board ground.** The map's ground is one asset map id, `board.map`, the printed map area from sky to bottom strip, under the locations and everything above them; it carries the terrain, the routes and the letters, so neither is drawn at rest with its file there. The drawn terrain, routes and letters are the fallback. The geometry table stays the source of positions.
 
 **Rules for a swap.** A file changes what a component shows, not what it decides: the same label, the same `faceShown`, the same hit target. A back never names its face under any swap: file names are ids, so a face's URL is not in the DOM until the face is shown. Nothing supplied is staged before the commit that adds its permission entry; `.gitignore` holds the folder out until then and that commit removes the line.
 
@@ -246,7 +247,7 @@ The catalog title image is `src/lib/images/cover.webp`, read by `info.thumbnailU
 
 Where this plan adds to or departs from `ui-interaction-visual-contract.md`, for the contract to settle in the same change that builds the UI:
 
-- **Aspect ratio.** The contract says the board is about 2.5:1. The board proper here is 2500 × 1000 (2.5:1), but the contract also puts the margin inside the scaled surface, so the fitted surface is 2500 × 1150, about 2.2:1: 375 px wide fits at about 172 px tall, not 150.
+- **Aspect ratio.** The contract says the board is about 2.5:1. The board proper here is 2500 × 953 (about 2.6:1), but the contract also puts the margin inside the scaled surface, so the fitted surface is 2500 × 1103, about 2.3:1: 375 px wide fits at about 165 px tall, not 150.
 - **Bead.** The contract draws a bead as a pale disc with its value; this plan keeps that and adds a teal-and-gold stripe band to echo the physical bead.
 - **Coins.** One `shilling` token (silver) for both the 1 and the 5 in the drawn form; the 5 is told by size, rim and numeral, not colour. The supplied coins are silver and gold and print no numeral, so a coin's label carries its value.
 - **Action card size.** A viewBox of 250 x 380, so the art window keeps the printed proportion.

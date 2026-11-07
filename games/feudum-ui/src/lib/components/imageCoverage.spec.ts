@@ -16,6 +16,7 @@ import {
     AssetIds,
     BeadValues,
     CoverAsset,
+    MapAsset,
     SealAsset,
     ShillingValues,
     TargetAsset,
@@ -32,6 +33,7 @@ import {
     vesselAsset
 } from '$lib/art/assetMap.js'
 import { everyAssetSupplied } from '$lib/testing/fakeArt.js'
+import MapGround from './map/MapGround.svelte'
 import ActionCardFace from './pieces/ActionCardFace.svelte'
 import ArcheryTarget from './pieces/ArcheryTarget.svelte'
 import GoodToken from './pieces/GoodToken.svelte'
@@ -62,6 +64,7 @@ const paint = {
 
 /** Every id's component, built from the logic's data, so a new component id must appear here. */
 const shownBy = new Map<string, () => string>([
+    [MapAsset, () => render(MapGround, { props: {} }).body],
     [SealAsset, () => render(SealFace, { props: { faceShown: false } }).body],
     [TargetAsset, () => render(ArcheryTarget, { props: {} }).body],
     [WritBackAsset, () => render(WritFace, { props: { faceShown: false } }).body],

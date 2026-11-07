@@ -4,6 +4,7 @@
     import { writName } from '$lib/model/writLabels.js'
     import { CardBox, wrapLines } from '$lib/utils/cardShape.js'
     import { CrownPath } from '$lib/utils/pieceShapes.js'
+    import CharterMap from './CharterMap.svelte'
     import GoodToken from './GoodToken.svelte'
     import GuildIcon from './GuildIcon.svelte'
     import PieceFrame from './PieceFrame.svelte'
@@ -125,6 +126,14 @@
             {/each}
         {:else}
             {@render rows(wrapLines(writ.text, 24), textTop)}
+            {#if writ.kind === 'kingdom'}
+                <CharterMap
+                    spaces={writ.spaces}
+                    width={CardBox.width - 2 * Left}
+                    x={Left}
+                    y={CardBox.height - 196}
+                />
+            {/if}
         {/if}
     {/if}
     {#snippet over()}
