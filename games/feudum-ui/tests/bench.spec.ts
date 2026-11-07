@@ -170,6 +170,11 @@ test('R-4.6.1 the board’s own guild areas take no press under the bench; Escap
     page
 }) => {
     await openFunction(page, 'merchantPull', 'merchant', /^\s*Pull/)
+    // Hidden, so a key press can't reach them either.
+    await expect(page.locator('[data-board-surface] [data-layer="guilds"]')).toHaveAttribute(
+        'visibility',
+        'hidden'
+    )
     for (const guild of ['alchemist', 'merchant', 'farmer', 'knight', 'noble', 'monk']) {
         expect(
             await onTop(page, page.locator(`[data-board-surface] [data-guild="${guild}"]`))
@@ -351,7 +356,7 @@ test('S48 R-4.4-H1 a Migrate short of food, with a tile: the primary covers; the
     await popupRow(page, /Monk/).click()
     await settled(page)
     await expect(primary(page)).toHaveText('Cover with a tile')
-    await expect(panel(page).locator('[data-row^="Tile "]')).toContainText('food')
+    await expect(panel(page).locator('[data-row*=" tile: "]')).toContainText('food')
     await shot(page, 'migrate-cover')
 })
 

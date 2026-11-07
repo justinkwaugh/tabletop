@@ -6,6 +6,7 @@ import type { TurnContext } from './cardModes.js'
 import type { SendPreview } from './confirmingSend.js'
 import { StagedDraft } from './stagedDraft.svelte.js'
 import { coverAfterPress } from './tileCover.js'
+import { tileName } from './tileName.js'
 
 /** One row of a follow-up's panel. A dimmed row has its line and no `press` (contract: Pick conventions). */
 export interface DraftChoice {
@@ -45,7 +46,7 @@ export function coverChoices(
     return tiles.map((tileId) => {
         const after = coverAfterPress(picked, tileId, needs)
         return draftChoice(
-            `Tile ${tileId}: ${needs.join(', ')}`,
+            `${tileName(tileId)} tile: ${needs.join(', ')}`,
             picked.includes(tileId),
             () => {
                 if (after) {

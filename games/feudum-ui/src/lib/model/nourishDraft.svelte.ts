@@ -15,6 +15,7 @@ import type { TurnContext } from './cardModes.js'
 import { DeciderDraft, draftChoice, playUnless, type DraftChoice } from './deciderDraft.svelte.js'
 import { withLoneChoice } from './stagedDraft.svelte.js'
 import type { TurnPrimary } from './turnDraft.svelte.js'
+import { tileName } from './tileName.js'
 
 export interface Feeding {
     readonly wineFed: readonly PawnNumber[]
@@ -184,7 +185,7 @@ export class NourishDraft extends DeciderDraft<NourishValues> {
             const row = (spend: WildTileSpend, name: string, none: boolean) => {
                 const picked = spent?.good === spend.good
                 return draftChoice(
-                    `Tile ${tileId} → ${name}`,
+                    `${tileName(tileId)} tile → ${name}`,
                     picked,
                     () => {
                         this.pressCover(spend)

@@ -9,7 +9,8 @@ import {
     Spaces,
     taxPreview,
     type ActionCardKind,
-    type SpaceId
+    type SpaceId,
+    type TileId
 } from '@tabletop/feudum'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FeudumHost, settled } from '$lib/testing/sessionHarness.js'
@@ -47,6 +48,7 @@ import {
 } from './cardFlows.js'
 import type { FeudumGameSession } from './session.svelte.js'
 import { StagedDraft } from './stagedDraft.svelte.js'
+import { tileName } from './tileName.js'
 
 let host: FeudumHost | undefined
 
@@ -448,7 +450,7 @@ describe('R-3.6 Migrate', () => {
 
 describe('S48 R-4.4-H1 a payment short of a good: the tile cover', () => {
     async function shortOfFood(tiles: number) {
-        let held: string[] = []
+        let held: TileId[] = []
         const turn = await table(['migrate', 'tax'], (state, { seat }) => {
             returnGoods(state, seat)
             held = Array.from({ length: tiles }, () => giveTile(state, seat))
@@ -470,16 +472,18 @@ describe('S48 R-4.4-H1 a payment short of a good: the tile cover', () => {
         expect(host?.sent.size).toBe(0)
         expect(session.turnPanel?.primary).toEqual({ label: 'Cover with a tile', enabled: false })
 
-        await pressRow(session, new RegExp(`^Tile ${held[0]}`))
+        await pressRow(session, new RegExp(`^${tileName(held[0])} tile`))
         expect(session.turnPanel?.primary?.enabled).toBe(true)
         expect(host?.sent.size).toBe(0)
-        expect(row(session.turn.flow?.rows, new RegExp(`^Tile ${held[1]}`)).refusal).toBeDefined()
+        expect(
+            row(session.turn.flow?.rows, new RegExp(`^${tileName(held[1])} tile`)).refusal
+        ).toBeDefined()
 
         await session.undo()
         expect(session.turn.value('cover')).toBeUndefined()
         expect(session.turn.value('character')).toBe('monk')
 
-        await pressRow(session, new RegExp(`^Tile ${held[1]}`))
+        await pressRow(session, new RegExp(`^${tileName(held[1])} tile`))
         await session.sendTurnCard()
         await session.waitForVisibleTransitionSettled()
         expect(sentBy(turn)).toMatchObject({
@@ -645,7 +649,7 @@ describe('R-3.9 Improve', () => {
 describe('R-3.9.3 TendLandscape', () => {
     async function asSerf(tiles: number) {
         let spaceId: SpaceId = 'space.desert.1'
-        let held: string[] = []
+        let held: TileId[] = []
         const turn = await table(['improve', 'tax'], (state, { seat, other }) => {
             spaceId = emptySpace(state, 'outpost')
             placeMarker(state, other, spaceId)
