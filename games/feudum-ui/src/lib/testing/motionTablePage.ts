@@ -1,7 +1,9 @@
 import { flushSync, mount } from 'svelte'
+import { assertExists } from '@tabletop/common'
 import {
     ActionType,
     Goods,
+    GuildIds,
     MachineState,
     Spaces,
     returnGoodToHaversack,
@@ -10,9 +12,11 @@ import {
 import GameTable from '$lib/components/GameTable.svelte'
 import { pawnTarget, roleOf, spaceTarget } from '$lib/model/boardOffer.js'
 import type { FeudumGameSession } from '$lib/model/session.svelte.js'
-import { showOnStacks } from './roundEndTable.js'
+import { isHistoryGroup } from '$lib/utils/actionAggregator.js'
+import { setMaster } from './guildTable.js'
+import { playOutRound, showOnStacks } from './roundEndTable.js'
 import { settled } from './sessionHarness.js'
-import { addPawn, atPlayingCards } from './turnTable.js'
+import { addPawn, atPlayingCards, giveGood } from './turnTable.js'
 
 /** One frame of the page, as it was painted: a piece on the board's own coordinates, and the gate. */
 export interface MotionFrame {
@@ -24,6 +28,8 @@ export interface MotionFrame {
     readonly capInert: boolean
     readonly overlaysInert: boolean
     readonly tokens: readonly string[]
+    /** A token is on the layer, unseen, from the start of its Action: these have shown. */
+    readonly shownTokens: readonly string[]
     readonly scale: number
     readonly lit: number
 }
@@ -67,6 +73,9 @@ async function framesOf(
             tokens: [...document.querySelectorAll('[data-transient]')].map(
                 (token) => token.getAttribute('data-token') ?? ''
             ),
+            shownTokens: [...document.querySelectorAll('[data-transient]')]
+                .filter((token) => Number(getComputedStyle(token).opacity) > 0)
+                .map((token) => token.getAttribute('data-token') ?? ''),
             scale: surface?.getBoundingClientRect().width ?? 0,
             lit: document.querySelectorAll('[data-pick-role="lit"]').length
         })
@@ -94,6 +103,15 @@ async function show(session: FeudumGameSession) {
     mount(GameTable, { target, props: { gameSession: session } })
     flushSync()
     return stray
+}
+
+/** Contract, Replay: the one entry of this kind, through the log as a press on it would. */
+function replayOf(session: FeudumGameSession, kind: 'turn' | 'dawn') {
+    const group = session.historyLog.entries
+        .filter(isHistoryGroup)
+        .findLast((entry) => entry.kind === kind && entry.replays)
+    assertExists(group, `A ${kind} entry replays`)
+    return session.historyLog.replay(group)
 }
 
 const RoadStart: SpaceId = 'space.desert.3'
@@ -145,6 +163,63 @@ export async function openWalkTable() {
                 return moved ? (session.actionLine(moved) ?? '') : ''
             },
             strayWrites: () => stray.firstElementChild?.getAttribute('transform') ?? ''
+        }
+    })
+}
+
+/** S64 R-3.7.1, R-3.7.4 A Move and its pilfer, played: `replay` shows them again, watched. */
+export async function openPilferTable() {
+    const { host, seat } = await atPlayingCards(['move'], { otherCards: ['move'] })
+    host.edit((state) => {
+        for (const player of state.players) {
+            for (const pawn of player.pawns) {
+                delete pawn.spaceId
+            }
+        }
+        for (const { id } of Spaces) {
+            const { goods } = state.spaces[id]
+            for (const good of Goods) {
+                returnGoodToHaversack(state, good, goods[good])
+                goods[good] = 0
+            }
+        }
+        addPawn(state, seat, 'knight', RoadStart)
+        giveGood(state, seat, 'iron')
+        state.getPlayerState(seat).goods.iron -= 1
+        state.spaces[RoadEnd].goods.iron += 1
+        state.recomputeRanks()
+    })
+    const session = await host.openSeat(seat)
+    await show(session)
+    const piece = { kind: 'pawn', playerId: seat, n: 1 } as const
+    await host.send(seat, {
+        type: ActionType.Move,
+        steps: [{ piece, to: RoadEnd, medium: 'road' }],
+        pilfer: { piece, from: 'space', resource: 'iron' }
+    })
+    await settled(session)
+    Object.assign(window, {
+        feudumSession: session,
+        motionTable: {
+            replay: () => framesOf(session, `pawn:${seat}:1`, () => replayOf(session, 'turn')),
+            tableText: () => document.querySelector('[data-game-ui]')?.textContent ?? ''
+        }
+    })
+}
+
+/** S64 R-4.12 A round played into epoch II, a seat master of a guild so the dawn scores it. */
+export async function openDawnTable() {
+    const { session, seat } = await playOutRound(2, (state, { seat: master }) => {
+        setMaster(state, master, GuildIds[0])
+        state.recomputeRanks()
+    })
+    await show(session)
+    Object.assign(window, {
+        feudumSession: session,
+        motionTable: {
+            seat: () => seat,
+            replay: (piece: string) => framesOf(session, piece, () => replayOf(session, 'dawn')),
+            tableText: () => document.querySelector('[data-game-ui]')?.textContent ?? ''
         }
     })
 }

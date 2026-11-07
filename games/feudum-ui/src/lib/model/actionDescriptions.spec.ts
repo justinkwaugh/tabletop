@@ -1066,6 +1066,9 @@ describe('R-X.2, R-4.4.1, R-4.4.3 A line reads the Action as this seat received 
 })
 
 describe('R-X.2 The description cannot fall back on the state', () => {
+    // Walked here, not in the spec below: the corpus takes most of a spec's time limit alone.
+    const game = realGames()[0]
+
     it('It takes the Action and who looks, and asks that look for nothing else', () => {
         const asked = new Set<string | symbol>()
         const view = new Proxy(viewOf('p2'), {
@@ -1097,7 +1100,7 @@ describe('R-X.2 The description cannot fall back on the state', () => {
         const record = recordFor(
             Lines[ActionType.SealCharter].action,
             { kind: 'player', playerId: 'p2' },
-            realGames()[0]
+            game
         )
         const seat = await host.openSeat('p2')
         const before = seat.actionLine({ ...record, playerId: 'p1' })

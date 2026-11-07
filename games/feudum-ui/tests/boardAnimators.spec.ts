@@ -17,6 +17,8 @@ declare global {
             tableText(): string
             logLine(): string
             strayWrites(): string
+            seat(): string
+            replay(piece?: string): Promise<MotionFrame[]>
         }
     }
 }

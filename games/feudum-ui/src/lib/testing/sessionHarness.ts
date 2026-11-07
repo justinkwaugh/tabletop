@@ -60,6 +60,7 @@ const HARNESS_DEFINITION: GameUiDefinition<GameState, HydratedGameState> = {
 }
 
 const HARNESS_USER = 'harness-user'
+const SpectatorSeat = 'spectator'
 const MASTER_SEED = '0123456789abcdef0123456789abcdef'
 const engine = new GameEngine(FeudumRuntime)
 
@@ -148,7 +149,7 @@ export class FeudumHost {
     }
 
     private perspective(playerId: string): Visibility.Perspective {
-        return { kind: 'player', playerId }
+        return playerId === SpectatorSeat ? { kind: 'spectator' } : { kind: 'player', playerId }
     }
 
     /** The game as this seat's client holds it: the harness's user sits in this seat alone. */
@@ -183,6 +184,11 @@ export class FeudumHost {
             perspective: this.perspective(playerId),
             replay: { game: this.game, runtime: FeudumRuntime }
         })
+    }
+
+    /** A browser watching the game, in no seat, on what a spectator receives. */
+    openSpectator(): Promise<FeudumGameSession> {
+        return this.openSeat(SpectatorSeat)
     }
 
     /** A seat's own browser, with a session listening to the game. */

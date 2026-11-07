@@ -208,7 +208,10 @@ test('S37 R-X.1 the log has a line for each Action, spoken, with no raw name in 
     )
     const held = await page.evaluate(() => {
         const session = window.feudumSession
-        return session.actions.map((action) => session.actionLine(action) ?? '')
+        // Contract, Grouping: the round's start and a turn's advance are in no entry.
+        return session.actions
+            .filter(({ type }) => type !== 'StartRound' && type !== 'AdvanceTurn')
+            .map((action) => session.actionLine(action) ?? '')
     })
 
     expect(lines.toSorted()).toEqual(held.filter(Boolean).toSorted())
