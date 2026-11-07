@@ -507,6 +507,19 @@ describe('R-3.8 the offers and preview (S10)', () => {
         })
     })
 
+    it('R-3.8.3 no Money is Influence is lit with no marker to put on top', () => {
+        const { table, playerId } = tableWith((state, id) => {
+            merchant(state, id)
+            const rival = state.players.find((player) => player.playerId !== id)?.playerId ?? ''
+            rulerOf(state, rival, HOME)
+            markersLeft(state, id, 0)
+        })
+        expect(influenceOffers(table.hydrated(), playerId).moneyIsInfluence).toEqual([])
+        expect(reasonInfluenceRefused(table.hydrated(), playerId, { moneyIsInfluence: HOME })).toBe(
+            'You have no influence markers in your supply.'
+        )
+    })
+
     it('R-1.1 short: how many to pick, of which', () => {
         const { table, playerId } = tableWith((state, id) => {
             standAt(state, id, SECOND, THIRD)

@@ -19,12 +19,15 @@ import { docSection, readDoc } from '../testing/docs.js'
 import { setPawns } from '../testing/guilds.js'
 import { giveSeal } from '../testing/improving.js'
 import {
+    asStored,
     canonical,
     concealedSeals,
+    needsHost,
     perspectivesOf,
     processedOf,
     realGames,
     recordFor,
+    runGuarded,
     sealsNamedIn,
     Spectator,
     started,
@@ -43,46 +46,6 @@ const engine = new GameEngine(FeudumRuntime)
 
 interface SpecFiles {
     globSync(pattern: string, options: { cwd: URL }): string[]
-}
-
-const HostCascades: readonly string[] = [ActionType.StartRound, ActionType.ScoreGame]
-
-/** R-5.1 What a seat's own browser would do with this move, from its own view. */
-function runGuarded(walk: GameWalk, step: WalkStep) {
-    const { input, before } = step
-    const perspective: Visibility.Perspective = { kind: 'player', playerId: input.playerId }
-    try {
-        return engine.executeAction({
-            game: started(walk),
-            state: viewOf(before, perspective, walk),
-            action: { gameId: walk.game.id, source: ActionSource.User, ...input },
-            perspective
-        })
-    } catch (error) {
-        if (Visibility.isUnavailableProjectedValueError(error)) {
-            return undefined
-        }
-        throw error
-    }
-}
-
-/** A value as storage keeps it: a field set to undefined isn't there. */
-function asStored(value: unknown): unknown {
-    return JSON.parse(JSON.stringify(value))
-}
-
-/**
- * R-5.1 Whether this step's cascade can only be run by the host: it changes the vault, draws from
- * the protected stream, returns every seat's hand (R-2.2.3) or scores sealed charters (R-6.2).
- */
-function needsHost(step: WalkStep): boolean {
-    const before = canonical(step.before)
-    const after = canonical(step.after[step.after.length - 1])
-    return (
-        !Value.Equal(asStored(before.vault), asStored(after.vault)) ||
-        before.protectedPrng?.invocations !== after.protectedPrng?.invocations ||
-        step.processed.some(({ type }) => HostCascades.includes(type))
-    )
 }
 
 const AlwaysBarriers: readonly string[] = [

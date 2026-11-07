@@ -1,4 +1,13 @@
-import { assert, Visibility, type Game, type GameAction } from '@tabletop/common'
+import {
+    ActionSource,
+    assert,
+    GameEngine,
+    Visibility,
+    type Game,
+    type GameAction
+} from '@tabletop/common'
+import { Value } from 'typebox/value'
+import { ActionType } from '../definition/actions.js'
 import { FeudumRuntime } from '../definition/runtime.js'
 import {
     FeudumGameStateValidator,
@@ -8,6 +17,8 @@ import {
 import type { FeudumVault } from '../model/vault.js'
 import { corpusGames } from './corpusWalk.js'
 import type { GameWalk, WalkStep } from './walk.js'
+
+const engine = new GameEngine(FeudumRuntime)
 
 export const Spectator: Visibility.Perspective = { kind: 'spectator' }
 
@@ -70,6 +81,53 @@ export function recordFor(
     return FeudumRuntime.visibility.actions.project(action, perspective, { config: game.config })
 }
 
+/** A value as storage keeps it: a field set to undefined isn't there. */
+export function asStored(value: unknown): unknown {
+    return JSON.parse(JSON.stringify(value))
+}
+
+const HostCascades: readonly string[] = [ActionType.StartRound, ActionType.ScoreGame]
+
+/**
+ * R-5.1 Whether this step's cascade can only be run by the host: it changes the vault, draws from
+ * the protected stream, returns every seat's hand (R-2.2.3) or scores sealed charters (R-6.2).
+ */
+export function needsHost(step: WalkStep): boolean {
+    const before = canonical(step.before)
+    const after = canonical(step.after[step.after.length - 1])
+    return (
+        !Value.Equal(asStored(before.vault), asStored(after.vault)) ||
+        before.protectedPrng?.invocations !== after.protectedPrng?.invocations ||
+        step.processed.some(({ type }) => HostCascades.includes(type))
+    )
+}
+
+/**
+ * R-5.1 What a seat's own browser would do with this move, from its own view; undefined if the move
+ * read something hidden and so deferred to the host. Any other failure is a failure.
+ */
+export function runGuarded(
+    walk: Pick<GameWalk, 'game'>,
+    step: WalkStep,
+    from?: FeudumProjectedState
+) {
+    const { input, before } = step
+    const perspective: Visibility.Perspective = { kind: 'player', playerId: input.playerId }
+    try {
+        return engine.executeAction({
+            game: started(walk),
+            state: from ?? viewOf(before, perspective, walk),
+            action: { gameId: walk.game.id, source: ActionSource.User, ...input },
+            perspective
+        })
+    } catch (error) {
+        if (Visibility.isUnavailableProjectedValueError(error)) {
+            return undefined
+        }
+        throw error
+    }
+}
+
 /** One processed Action with the states either side of it. */
 export interface Transition {
     readonly action: GameAction
@@ -129,6 +187,20 @@ export function writsNamedIn(value: unknown): string[] {
 }
 
 const OwnerKnown = ['hand', 'writs', 'sealedCharters', 'deckKnowledge']
+
+/** R-5.1 A view with no seat's owner-known field and no pending draw's writs, as a spectator's has. */
+export function withoutOwnerKnown(view: FeudumProjectedState): FeudumProjectedState {
+    const bare: FeudumProjectedState = structuredClone(view)
+    for (const player of bare.players) {
+        for (const field of OwnerKnown) {
+            Reflect.deleteProperty(player, field)
+        }
+    }
+    if (bare.flow.writDraw) {
+        Reflect.deleteProperty(bare.flow.writDraw, 'drawn')
+    }
+    return bare
+}
 
 /** The canonical table with exactly what `perspective` may not see taken away. */
 export function withoutConcealed(
