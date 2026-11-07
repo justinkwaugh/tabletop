@@ -140,6 +140,13 @@ export class FeudumHost {
         return playerId
     }
 
+    /** Arranges the table, as a fixture does, before the seats that see it open. */
+    edit(change: (state: HydratedFeudumGameState) => void) {
+        const state = new HydratedFeudumGameState(structuredClone(this.state))
+        change(state)
+        this.state = canonical(state.dehydrate())
+    }
+
     private perspective(playerId: string): Visibility.Perspective {
         return { kind: 'player', playerId }
     }

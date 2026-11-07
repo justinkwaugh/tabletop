@@ -36,7 +36,7 @@ import {
 import { StartingSpaceIds } from './placeStartingPawn.js'
 
 /** R-3.6.1 What entering the board costs. */
-const MigrateFood: GoodPrice = { food: 1 }
+export const MigrateFood: GoodPrice = { food: 1 }
 
 export type PawnNumber = Type.Static<typeof PawnNumberSchema>
 

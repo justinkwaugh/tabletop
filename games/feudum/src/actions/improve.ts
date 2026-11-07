@@ -10,7 +10,7 @@ import { ActionType } from '../definition/actions.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { RankChange } from '../model/guildStatus.js'
 import { discChoices, replaceLocationDisc, type DiscChoice } from '../model/locationDiscs.js'
-import { payGoods } from '../model/payments.js'
+import { canCoverWithWildTiles, payGoods } from '../model/payments.js'
 import { collectTopTile, improvementTile, tileVp, type StackTile } from '../model/regionStacks.js'
 import { moveConcealedSeal } from '../model/seals.js'
 import {
@@ -212,6 +212,8 @@ export interface ImproveOffer {
     /** R-3.9-H1 A choice when more than one. */
     readonly discs: readonly DiscChoice[]
     readonly tile: ImproveTileOffer
+    /** R-X.2 Whether it takes a tile, so a stack's next face shows. */
+    readonly revealsInfo: boolean
 }
 
 /** R-3.9.1 The locations the seat can improve now, and what each would take and bring. */
@@ -246,7 +248,8 @@ export function improveOffers(state: HydratedFeudumGameState, playerId: string):
                               tileId: tile.tile.id,
                               vp: tileVp(tile.tile, step.to)
                           }
-                        : { kind: 'prohibited', candidates: tile.candidates }
+                        : { kind: 'prohibited', candidates: tile.candidates },
+                revealsInfo: tile.kind === 'legal' || tile.candidates.length > 0
             }
         ]
     })
@@ -261,6 +264,22 @@ function sendGoodsToHaversack(state: HydratedFeudumGameState, spaceId: SpaceId):
         goods[good] = 0
     }
     return sent
+}
+
+/**
+ * R-4.3-H3 Ruled locations whose improvement lacks only a good a tile could bring. Improve takes no
+ * tile in its payment, so the seat spends one at will first.
+ */
+export function improveShortSpaces(state: HydratedFeudumGameState, playerId: string): SpaceId[] {
+    return state.ruledSpaceIds(playerId).filter((spaceId) => {
+        const step = stepFrom(state.spaces[spaceId].location.kind)
+        return (
+            step !== undefined &&
+            step.cost !== 'seal' &&
+            !canPay(state, playerId, step.cost) &&
+            canCoverWithWildTiles(state, playerId, { [step.cost]: 1 })
+        )
+    })
 }
 
 export class HydratedImprove extends HydratableAction<typeof Improve> implements Improve {

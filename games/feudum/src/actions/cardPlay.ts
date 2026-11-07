@@ -9,6 +9,7 @@ import {
 } from '../data/cards.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import type { HydratedFeudumPlayerState, PlayedCard } from '../model/playerState.js'
+import { canCoverWithWildTiles } from '../model/payments.js'
 import { returnGoodToHaversack } from '../model/supply.js'
 
 /** R-3.15 `repeat` is Repeat replaying an x2 card; `deja-vu` is Déjà Vu, for a saltpeter. */
@@ -237,6 +238,47 @@ export function cardPlayOffers(state: HydratedFeudumGameState, playerId: string)
             (kind === 'repeat' && repeats.length === 0)
     }))
     return { cards, repeats, secondCard: reasonSecondCardRefused(player) === undefined }
+}
+
+/**
+ * R-4.3-H3 A special whose only unmet need is a good a tile could bring. Its payment takes no tile,
+ * so the seat spends one at will first; the price is what the card prints.
+ */
+export function specialShortOfGood(
+    state: HydratedFeudumGameState,
+    playerId: string,
+    kind: ActionCardKind
+): boolean {
+    const player = state.getPlayerState(playerId)
+    const unmet = cardOf(kind).special.needs.filter((need) => unmetNeed(player, need) !== undefined)
+    return (
+        unmet.length > 0 &&
+        unmet.every(
+            (need) =>
+                need.kind === 'good' && canCoverWithWildTiles(state, playerId, { [need.good]: 1 })
+        )
+    )
+}
+
+/**
+ * R-3.15.2, R-4.3-H3 The played cards Déjà Vu would replay but for its saltpeter, which a tile could
+ * bring: spent at will first, since Déjà Vu's payment takes no tile.
+ */
+export function dejaVuShortKinds(
+    state: HydratedFeudumGameState,
+    playerId: string
+): ActionCardKind[] {
+    const player = state.getPlayerState(playerId)
+    if (
+        player.goods.saltpeter > 0 ||
+        !player.requireHand().includes('repeat') ||
+        player.repeatUsed ||
+        !canCoverWithWildTiles(state, playerId, { saltpeter: 1 })
+    ) {
+        return []
+    }
+    const kinds = [...new Set(player.played.map((played) => played.kind))]
+    return kinds.filter((kind) => cardOf(kind).symbols.replay === null)
 }
 
 /** R-3.14 A card flipped out of turn leaves the hand for `played`; the turn stays where it was. */

@@ -2,7 +2,15 @@ import { describe, expect, it } from 'vitest'
 import type { ActionCardKind } from '../data/cards.js'
 import { ActionType } from '../definition/actions.js'
 import { tableAtPlayingCards, type Table } from '../testing/table.js'
-import { cardPlayOffers, playCard, reasonCardPlayRefused } from './cardPlay.js'
+import { giveTile, returnAllGoods } from '../testing/atWill.js'
+import { giveGood, setUp, tableImproving } from '../testing/improving.js'
+import {
+    cardPlayOffers,
+    dejaVuShortKinds,
+    playCard,
+    reasonCardPlayRefused,
+    specialShortOfGood
+} from './cardPlay.js'
 
 const HAND: ActionCardKind[] = ['repeat', 'move', 'explore', 'conquer']
 const OTHER_HAND: ActionCardKind[] = ['move', 'explore', 'conquer', 'tax']
@@ -190,5 +198,36 @@ describe('R-3.15 the offers (S23)', () => {
         const seat = table.seat(playerId)
         expect(seat.played).toEqual([{ kind: 'repeat', use: 'forfeited' }])
         expect(seat.repeatUsed).toBe(false)
+    })
+})
+
+describe('R-4.3-H3 a tile spent first would pay', () => {
+    it('R-3.15.2 Déjà Vu lists a played card but for its saltpeter, while a tile can bring it', () => {
+        const { table, playerId } = afterPlaying('explore')
+        setUp(table, (state) => {
+            returnAllGoods(state, playerId)
+        })
+        expect(dejaVuShortKinds(table.hydrated(), playerId)).toEqual([])
+        setUp(table, (state) => {
+            giveTile(state, playerId)
+        })
+        expect(dejaVuShortKinds(table.hydrated(), playerId)).toEqual(['explore'])
+        setUp(table, (state) => {
+            giveGood(state, playerId, 'saltpeter')
+        })
+        expect(dejaVuShortKinds(table.hydrated(), playerId)).toEqual([])
+    })
+
+    it('R-3.9.3 the Improve special is short of its wood only while a tile can bring it', () => {
+        const { table, playerId } = tableImproving('outpost')
+        expect(specialShortOfGood(table.hydrated(), playerId, 'improve')).toBe(false)
+        setUp(table, (state) => {
+            giveTile(state, playerId)
+        })
+        expect(specialShortOfGood(table.hydrated(), playerId, 'improve')).toBe(true)
+        setUp(table, (state) => {
+            giveGood(state, playerId, 'wood')
+        })
+        expect(specialShortOfGood(table.hydrated(), playerId, 'improve')).toBe(false)
     })
 })

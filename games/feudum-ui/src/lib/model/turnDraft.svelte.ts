@@ -1,0 +1,411 @@
+import {
+    getStagedSelectionValue,
+    pushStagedSelectionValue,
+    type StagedSelectionState
+} from '@tabletop/frontend-components'
+import {
+    ActionType,
+    cardOf,
+    cardPlayOffers,
+    dejaVuShortKinds,
+    ForfeitCard,
+    goodsShort,
+    improveOffers,
+    MigrateFood,
+    reasonForfeitRefused,
+    tendLandscapeOffers,
+    type ActionCardKind,
+    type CardPlayInput,
+    type CardPlayOffers
+} from '@tabletop/feudum'
+import {
+    flowOf,
+    TurnStageOrder,
+    type FlowInput,
+    type FlowPick,
+    type FlowPlay,
+    type FlowView,
+    type PanelChoice,
+    type TurnDraftValues,
+    type TurnPresser,
+    type TurnStage
+} from './cardFlows.js'
+import {
+    cardModes,
+    loneMode,
+    type CardAction,
+    type CardMode,
+    type TurnContext
+} from './cardModes.js'
+import { primaryLabel, sendsOnPress } from './confirmingSend.js'
+import type { BoardTarget, PickTarget } from './boardOffer.js'
+import { StagedDraft, withLoneChoice } from './stagedDraft.svelte.js'
+import { coverNeeds, loneCover } from './tileCover.js'
+
+type TurnStages = StagedSelectionState<TurnDraftValues>
+
+function stageValue<K extends TurnStage>(
+    stages: TurnStages,
+    stage: K
+): TurnDraftValues[K] | undefined {
+    return getStagedSelectionValue<TurnDraftValues, K>(stages, stage)
+}
+
+const EpochNumerals = ['', 'I', 'II', 'III', 'IV', 'V']
+const Ordinals = ['', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th', '11th']
+
+export interface TurnPrimary {
+    readonly label: string
+    readonly enabled: boolean
+}
+
+export interface TurnCardRow {
+    readonly kind: ActionCardKind
+    readonly label: string
+    readonly picked: boolean
+    readonly press: () => void
+}
+
+export interface TurnPanel {
+    /** "Epoch II · Round 4 · your 2nd card of 4", or "Your second card" (R-3.3). */
+    readonly line: string
+    readonly cards: readonly TurnCardRow[]
+    /** Repeat's played cards (R-3.15). */
+    readonly replays: readonly PanelChoice[]
+    /** Empty when only Forfeit is left. */
+    readonly modes: readonly PanelChoice[]
+    /** R-3.13-H1, R-3.15 The engine refuses every other mode. */
+    readonly forfeitOnly: boolean
+    /** Why, in one line each: what the refused modes would have said. */
+    readonly refusals: readonly string[]
+    /** Present once a card is picked: R-3.2. */
+    readonly forfeit?: string
+    /** R-3.3 Present while the pouch holds an unused sulfur. */
+    readonly secondCard?: { readonly label: string; readonly on: boolean }
+    readonly flow?: FlowView
+    readonly primary?: TurnPrimary
+}
+
+/**
+ * R-3.2 The turn draft (contract: Shared visual state): card, mode, then that mode's targets and
+ * popups, then the cover for a short payment. The rules stay in the logic package's offers and
+ * refusals: `cardModes` asks which modes are open, `cardFlows` turns the open one into a view.
+ */
+export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPresser {
+    private readonly seeing: TurnStages = $derived.by(() => this.withLoneChoices(super.read()))
+
+    constructor(private readonly contextOf: () => TurnContext | undefined) {
+        super(TurnStageOrder)
+    }
+
+    /** R-X.1 Others and History View have no draft; lone choices read through as `auto`. */
+    protected override read(): TurnStages {
+        return this.seeing
+    }
+
+    private withLoneChoices(stored: TurnStages): TurnStages {
+        const context = this.contextOf()
+        if (!context) {
+            return {}
+        }
+        const { state, playerId } = context
+        const offers = cardPlayOffers(state, playerId)
+        let stages = withLoneChoice<TurnDraftValues, 'card'>(
+            stored,
+            TurnStageOrder,
+            'card',
+            offers.cards.map(({ kind }) => kind)
+        )
+        if (stageValue(stages, 'card') === 'repeat') {
+            stages = withLoneChoice<TurnDraftValues, 'replay'>(
+                stages,
+                TurnStageOrder,
+                'replay',
+                offers.repeats.map(({ kind }) => kind)
+            )
+        }
+        const input = this.inputOf(stages, offers)
+        const modeNow = this.openMode(stages, context, input)
+        const space = stageValue(stages, 'space')
+        if (modeNow === ActionType.Improve) {
+            const offer = improveOffers(state, playerId).find((row) => row.spaceId === space)
+            stages = withLoneChoice<TurnDraftValues, 'guild'>(
+                stages,
+                TurnStageOrder,
+                'guild',
+                offer?.feudumGuilds ?? []
+            )
+        }
+        if (modeNow === ActionType.TendLandscape) {
+            stages = withLoneChoice<TurnDraftValues, 'tile'>(
+                stages,
+                TurnStageOrder,
+                'tile',
+                tendLandscapeOffers(state, playerId).tiles.map(({ tileId }) => tileId)
+            )
+        }
+        if (modeNow === ActionType.Migrate && stageValue(stages, 'character')) {
+            const needs = coverNeeds(goodsShort(state, playerId, MigrateFood))
+            stages = withLoneChoice<TurnDraftValues, 'cover'>(
+                stages,
+                TurnStageOrder,
+                'cover',
+                needs.length > 0 ? loneCover(state, playerId, needs) : []
+            )
+        }
+        return stages
+    }
+
+    private inputOf(stages: TurnStages, offers: CardPlayOffers): CardPlayInput {
+        const replay = stageValue(stages, 'replay')
+        const asRepeat = offers.repeats.find(({ kind }) => kind === replay)?.mode
+        return {
+            ...(asRepeat ? { asRepeat } : {}),
+            ...(stageValue(stages, 'secondCard') ? { secondCard: true } : {})
+        }
+    }
+
+    private playedKind(stages: TurnStages): ActionCardKind | undefined {
+        const card = stageValue(stages, 'card')
+        return card === 'repeat' ? stageValue(stages, 'replay') : card
+    }
+
+    private modesOf(
+        stages: TurnStages,
+        context: TurnContext,
+        input: CardPlayInput
+    ): readonly CardMode[] {
+        const kind = this.playedKind(stages)
+        return kind ? cardModes(context, kind, input) : []
+    }
+
+    private openMode(
+        stages: TurnStages,
+        context: TurnContext,
+        input: CardPlayInput
+    ): CardAction | undefined {
+        return stageValue(stages, 'mode') ?? loneMode(this.modesOf(stages, context, input))
+    }
+
+    private offers: CardPlayOffers | undefined = $derived.by(() => {
+        const context = this.contextOf()
+        return context && cardPlayOffers(context.state, context.playerId)
+    })
+
+    get card(): ActionCardKind | undefined {
+        return this.value('card')
+    }
+
+    /** What the Action's input carries: for a later draft that builds a card's Action. */
+    cardInput: CardPlayInput = $derived.by(() =>
+        this.offers ? this.inputOf(this.selection, this.offers) : {}
+    )
+
+    private modes: readonly CardMode[] = $derived.by(() => {
+        const context = this.contextOf()
+        return context ? this.modesOf(this.selection, context, this.cardInput) : []
+    })
+
+    /** The picked or lone mode: Move and the guild functions read this to open their own draft. */
+    mode: CardAction | undefined = $derived.by(() => {
+        const context = this.contextOf()
+        return context ? this.openMode(this.selection, context, this.cardInput) : undefined
+    })
+
+    flow: FlowView | undefined = $derived.by(() => {
+        const context = this.contextOf()
+        const { mode } = this
+        if (!context || !mode) {
+            return undefined
+        }
+        const flow: FlowInput = {
+            ...context,
+            input: this.cardInput,
+            read: (stage) => this.value(stage)
+        }
+        const label = this.modes.find(({ action }) => action === mode)?.label ?? ''
+        return flowOf(mode, flow, label)
+    })
+
+    /** Contract, Pick conventions: pressing a pick again unpicks it. */
+    pick<K extends TurnStage>(stage: K, value: TurnDraftValues[K]): void {
+        if (this.value(stage) === value) {
+            this.clearFrom(stage)
+        } else {
+            this.set(stage, value)
+        }
+    }
+
+    stack<K extends 'spaces' | 'cover'>(stage: K, value: TurnDraftValues[K]): void {
+        this.write(pushStagedSelectionValue(this.selection, TurnStageOrder, stage, value))
+    }
+
+    /** R-3.3 A toggle keeps what is picked after it: it changes the declaration, not the card. */
+    toggleSecondCard(): void {
+        const { secondCard, ...rest } = this.selection
+        this.write(secondCard ? rest : { ...rest, secondCard: { value: true, source: 'manual' } })
+    }
+
+    /** R-3.2 Plays the card in hand, a Repeat being forfeited as itself. */
+    get forfeitPlay(): FlowPlay | undefined {
+        const context = this.contextOf()
+        const { card } = this
+        if (!context || !card) {
+            return undefined
+        }
+        const secondCard = this.value('secondCard')
+        const input = secondCard ? { secondCard } : {}
+        return reasonForfeitRefused(context.state, context.playerId, card, input)
+            ? undefined
+            : {
+                  build: (maker) => maker.createPlayerAction(ForfeitCard, { kind: card, ...input })
+              }
+    }
+
+    /** What the board lights for the open flow. */
+    cardPick:
+        | { readonly targets: readonly PickTarget[]; readonly picked: readonly BoardTarget[] }
+        | undefined = $derived.by(() => {
+        const { flow } = this
+        return flow && flow.picks.length > 0
+            ? {
+                  targets: flow.picks.map(({ target, notes }) => ({
+                      target,
+                      ...(notes ? { notes } : {})
+                  })),
+                  picked: flow.picked
+              }
+            : undefined
+    })
+
+    /** A press outside an open popup does nothing (contract: Coexistence and precedence). */
+    pickOf(target: BoardTarget): FlowPick | undefined {
+        const { flow } = this
+        return flow?.popup ? undefined : flow?.picks.find((pick) => pick.target === target)
+    }
+
+    /** The press just made finishes an undoable Action, so it sends rather than asks. */
+    get sendsNow(): FlowPlay | undefined {
+        const { flow } = this
+        return flow?.play && !flow.confirms && sendsOnPress(this, flow.play) ? flow.play : undefined
+    }
+
+    private get primary(): TurnPrimary | undefined {
+        const { flow } = this
+        if (
+            !flow?.primaryName ||
+            !(flow.confirms || (flow.play && !sendsOnPress(this, flow.play)))
+        ) {
+            return undefined
+        }
+        return {
+            label: primaryLabel(flow.primaryName, flow.play),
+            enabled: flow.play !== undefined
+        }
+    }
+
+    private replays(
+        context: TurnContext,
+        offers: CardPlayOffers,
+        input: CardPlayInput
+    ): readonly PanelChoice[] {
+        const replay = this.value('replay')
+        const rows = offers.repeats.map(({ kind, mode }): PanelChoice => {
+            const modes = cardModes(context, kind, { ...input, asRepeat: mode })
+            const refusal = modes.every(({ refusal: line }) => line)
+                ? modes.find(({ refusal: line }) => line)?.refusal
+                : undefined
+            return {
+                label: cardOf(kind).printedName,
+                ...(mode === 'deja-vu'
+                    ? { note: { kind: 'cost', label: 'Déjà Vu · 1 saltpeter' } as const }
+                    : {}),
+                picked: replay === kind,
+                ...(refusal
+                    ? { refusal }
+                    : {
+                          press: (draft: TurnPresser) => {
+                              draft.pick('replay', kind)
+                          }
+                      })
+            }
+        })
+        const short = dejaVuShortKinds(context.state, context.playerId).map(
+            (kind): PanelChoice => ({
+                label: cardOf(kind).printedName,
+                note: { kind: 'cost', label: 'Déjà Vu · 1 saltpeter' },
+                picked: false,
+                refusal: 'Déjà Vu needs a saltpeter. Undo, then spend a region tile.'
+            })
+        )
+        return [...rows, ...short]
+    }
+
+    panel: TurnPanel | undefined = $derived.by(() => {
+        const context = this.contextOf()
+        const { offers } = this
+        if (!context || !offers) {
+            return undefined
+        }
+        const { state, playerId } = context
+        const player = state.getPlayerState(playerId)
+        const { card, mode, modes, flow, cardInput } = this
+        const hand = offers.cards
+        const line = state.flow.turn?.secondCard
+            ? 'Your second card'
+            : `Epoch ${EpochNumerals[state.epoch]} · Round ${state.roundManager.currentRound?.number ?? 1} · your ${Ordinals[player.played.length + 1]} card of ${player.played.length + hand.length}`
+        const cards = hand.map(({ kind }): TurnCardRow => ({
+            kind,
+            label: cardOf(kind).printedName,
+            picked: card === kind,
+            press: () => {
+                this.pick('card', kind)
+            }
+        }))
+        if (!card) {
+            return { line, cards, replays: [], modes: [], forfeitOnly: false, refusals: [] }
+        }
+        const logic = hand.find(({ kind }) => kind === card)
+        const replays = card === 'repeat' ? this.replays(context, offers, cardInput) : []
+        const noneOpen = modes.length > 0 && modes.every(({ refusal }) => refusal)
+        const forfeitOnly =
+            logic?.forfeitOnly === true ||
+            noneOpen ||
+            (card === 'repeat' && replays.every(({ press }) => !press))
+        const refusals = forfeitOnly
+            ? [...modes, ...replays].flatMap(({ refusal }) => refusal ?? [])
+            : []
+        const { primary } = this
+        return {
+            line,
+            cards,
+            replays: forfeitOnly ? [] : replays,
+            modes: forfeitOnly
+                ? []
+                : modes.map(({ action, label, refusal }): PanelChoice => ({
+                      label,
+                      picked: mode === action,
+                      ...(refusal
+                          ? { refusal }
+                          : {
+                                press: (draft: TurnPresser) => {
+                                    draft.pick('mode', action)
+                                }
+                            })
+                  })),
+            forfeitOnly,
+            refusals,
+            forfeit: 'Forfeit',
+            ...(offers.secondCard
+                ? {
+                      secondCard: {
+                          label: 'Play two cards this turn',
+                          on: this.value('secondCard') === true
+                      }
+                  }
+                : {}),
+            ...(flow && !forfeitOnly ? { flow } : {}),
+            ...(primary && !forfeitOnly ? { primary } : {})
+        }
+    })
+}

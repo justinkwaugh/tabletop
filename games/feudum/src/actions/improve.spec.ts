@@ -9,7 +9,8 @@ import { discChoices } from '../model/locationDiscs.js'
 import { placeMarker } from '../model/locationControl.js'
 import { giveGood, giveSeal, setUp, spaceOfKind, tableImproving } from '../testing/improving.js'
 import { tableAtPlayingCards, type Table } from '../testing/table.js'
-import { improveOffers, isImprove, reasonImproveRefused } from './improve.js'
+import { giveTile } from '../testing/atWill.js'
+import { improveOffers, improveShortSpaces, isImprove, reasonImproveRefused } from './improve.js'
 
 /** Puts a disc of the supply on another space of this kind, whose own disc returns to the supply. */
 function takeOutOfSupply(state: HydratedFeudumGameState, discId: DiscId, onto: SpaceId): void {
@@ -407,5 +408,51 @@ describe('R-3.9 improve offers', () => {
         const [offer] = improveOffers(table.hydrated(), playerId)
         expect(offer).toMatchObject({ spaceId, to: 'feudum', cost: 'seal', discs: [] })
         expect(offer.feudumGuilds).toEqual(['farmer', 'merchant', 'alchemist', 'knight', 'monk'])
+    })
+
+    it('R-X.2 says a taken tile reveals, and only a prohibited tile with no fallback does not', () => {
+        const legal = tableImproving('town')
+        setUp(legal.table, (state) => {
+            giveSeal(state, legal.playerId)
+        })
+        expect(improveOffers(legal.table.hydrated(), legal.playerId)[0]).toMatchObject({
+            tile: { kind: 'legal' },
+            revealsInfo: true
+        })
+
+        const none = tableImproving('town')
+        setUp(none.table, (state) => {
+            giveSeal(state, none.playerId)
+            state.regionStacks[none.region] = state.regionStacks[none.region].toReversed()
+        })
+        const [offer] = improveOffers(none.table.hydrated(), none.playerId)
+        expect(offer.tile).toEqual({ kind: 'prohibited', candidates: [] })
+        expect(offer.revealsInfo).toBe(false)
+    })
+})
+
+describe('R-4.3-H3 a tile spent first would pay for the improvement', () => {
+    it('names a location short of its good, while a tile can bring it', () => {
+        const { table, playerId, spaceId } = tableImproving('outpost')
+        expect(improveShortSpaces(table.hydrated(), playerId)).toEqual([])
+        setUp(table, (state) => {
+            giveTile(state, playerId)
+        })
+        expect(improveShortSpaces(table.hydrated(), playerId)).toEqual([spaceId])
+    })
+
+    it('leaves out a location the seat can pay for, and a seal that no tile brings', () => {
+        const paying = tableImproving('outpost')
+        setUp(paying.table, (state) => {
+            giveTile(state, paying.playerId)
+            giveGood(state, paying.playerId, 'wood')
+        })
+        expect(improveShortSpaces(paying.table.hydrated(), paying.playerId)).toEqual([])
+
+        const sealed = tableImproving('town')
+        setUp(sealed.table, (state) => {
+            giveTile(state, sealed.playerId)
+        })
+        expect(improveShortSpaces(sealed.table.hydrated(), sealed.playerId)).toEqual([])
     })
 })
