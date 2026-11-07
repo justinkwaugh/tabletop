@@ -39,6 +39,6 @@ export class KeepingWritsStateHandler implements MachineStateHandler<
         _action: HydratedKeepWrits,
         context: MachineContext<HydratedFeudumGameState>
     ): MachineState {
-        return stateAfterCardStep(context.gameState)
+        return stateAfterCardStep(context)
     }
 }

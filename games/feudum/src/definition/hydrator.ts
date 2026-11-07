@@ -31,6 +31,7 @@ import { HydratedSpendRegionTile, isSpendRegionTile } from '../actions/spendRegi
 import { HydratedNourish, isNourish } from '../actions/nourish.js'
 import { HydratedCollectLandscapes, isCollectLandscapes } from '../actions/collectLandscapes.js'
 import { HydratedStartRound, isStartRound } from '../actions/startRound.js'
+import { HydratedAdvanceTurn, isAdvanceTurn } from '../actions/advanceTurn.js'
 import { HydratedExplore, isExplore } from '../actions/explore.js'
 import { HydratedKeepWrits, isKeepWrits } from '../actions/keepWrits.js'
 import { HydratedFeast, isFeast } from '../actions/feast.js'
@@ -101,6 +102,9 @@ export class FeudumHydrator implements GameHydrator<FeudumProjectedState, Hydrat
             }
             case isStartRound(data): {
                 return new HydratedStartRound(data)
+            }
+            case isAdvanceTurn(data): {
+                return new HydratedAdvanceTurn(data)
             }
             case isImprove(data): {
                 return new HydratedImprove(data)

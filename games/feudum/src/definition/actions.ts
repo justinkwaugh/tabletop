@@ -32,5 +32,6 @@ export enum ActionType {
     PlaceVessel = 'PlaceVessel',
     Nourish = 'Nourish',
     CollectLandscapes = 'CollectLandscapes',
-    StartRound = 'StartRound'
+    StartRound = 'StartRound',
+    AdvanceTurn = 'AdvanceTurn'
 }

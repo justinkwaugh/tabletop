@@ -62,7 +62,7 @@ A barrier by outcome:
 - `PlaceDisc` that moves the voyage disc onto space 2, 4 or 6 (a writ draw);
 - `PlayMandate` whose reward in fact draws goods from the haversack or flips a seal to a bead; one the supply can't pay in that way reveals nothing.
 
-Not a barrier: setup choices, card plays that draw nothing, `ForfeitCard`, `PlayDefend`, `CommitAttack` (combat is decided by public strengths once the defence is known), `KeepWrits` with no further draw, `ChooseFavours` (the goods were drawn by `Harvest`), `PlaceDisc` otherwise, `DiscardWrit`, `SealCharter`, `SpendRegionTile`, `PlaceVessel`, `ReclaimImmunitySeal`, `Nourish`, `CollectLandscapes`, and a seal drawn unseen from the pile onto a scroll space. Playing a card or a writ from a hidden hand shows it to the table but tells its player nothing new, so it is not a barrier.
+Not a barrier: setup choices, `AdvanceTurn`, card plays that draw nothing, `ForfeitCard`, `PlayDefend`, `CommitAttack` (combat is decided by public strengths once the defence is known), `KeepWrits` with no further draw, `ChooseFavours` (the goods were drawn by `Harvest`), `PlaceDisc` otherwise, `DiscardWrit`, `SealCharter`, `SpendRegionTile`, `PlaceVessel`, `ReclaimImmunitySeal`, `Nourish`, `CollectLandscapes`, and a seal drawn unseen from the pile onto a scroll space. Playing a card or a writ from a hidden hand shows it to the table but tells its player nothing new, so it is not a barrier.
 
 ## Exploration
 

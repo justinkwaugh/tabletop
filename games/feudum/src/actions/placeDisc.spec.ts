@@ -27,12 +27,12 @@ function tableWith(
 ): { table: Table; playerId: string } {
     const table = tableAtPlayingCards()
     const playerId = table.order[0]
-    table.moveTo((state) => {
+    table.moveTo((state, context) => {
         edit?.(state, playerId)
         for (const followUp of followUps(playerId)) {
             queueFollowUp(state, followUp)
         }
-        return stateAfterCardStep(state)
+        return stateAfterCardStep(context)
     })
     return { table, playerId }
 }

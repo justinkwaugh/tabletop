@@ -266,9 +266,14 @@ describe('Harvest: R-3.11.1', () => {
 
         harvest(table, playerId, 'plain')
 
+        // The public cursor pays only for the AdvanceTurn's id, as a card that draws nothing does.
+        const { table: forfeiting, playerId: seat } = tableHarvesting()
+        forfeiting.send(seat, { type: ActionType.ForfeitCard, kind: 'harvest' })
+        const idOnly = forfeiting.hydrated().prng.invocations - publicBefore
+
         const after = table.hydrated()
         expect(after.protectedPrng?.invocations).toBe(protectedBefore + 5)
-        expect(after.prng.invocations).toBe(publicBefore)
+        expect(after.prng.invocations).toBe(publicBefore + idOnly)
     })
 
     it('R-3.2 ends the turn: the next seat is asked', () => {

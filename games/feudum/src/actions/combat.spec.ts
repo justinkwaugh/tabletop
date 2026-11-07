@@ -123,6 +123,7 @@ describe('R-4.8.2, R-4.4-H1 CommitAttack', () => {
         const { table, attackerId } = combat
         setUp(table, (state) => {
             emptyGoods(state, attackerId)
+            holdWrit(state, attackerId, Sword)
         })
         atCommit(combat)
         expect(() => commit(combat, { saltpeter: 1 })).toThrow("You can't pay for that.")

@@ -1,4 +1,10 @@
-import { assertExists } from '@tabletop/common'
+import { assertExists, type MachineContext } from '@tabletop/common'
+import {
+    AdvanceTurn,
+    holdsCards,
+    type AdvanceTurnMetadata,
+    type HydratedAdvanceTurn
+} from '../actions/advanceTurn.js'
 import { MachineState } from '../definition/states.js'
 import type { FollowUp } from '../model/flow.js'
 import { nextOpenFollowUp } from '../model/followUps.js'
@@ -13,40 +19,35 @@ const FollowUpStates: Readonly<Record<FollowUp['kind'], MachineState>> = {
     'inspect-harvest': MachineState.InspectingHarvest
 }
 
-function holdsCards(state: HydratedFeudumGameState, playerId: string): boolean {
-    return state.getPlayerState(playerId).handCount > 0
-}
-
-/** R-3.2, R-3.2-H1 Clockwise, skipping seats with no cards. Nobody left: no turn. */
-function passTurn(state: HydratedFeudumGameState): void {
-    const { turnManager, actionCount } = state
-    turnManager.endTurn(actionCount)
-    const anyLeft = turnManager.turnOrder.some((playerId) => holdsCards(state, playerId))
-    state.flow.turn = anyLeft
-        ? {
-              playerId: turnManager.startNextTurn(actionCount, (playerId) =>
-                  holdsCards(state, playerId)
-              ),
-              secondCard: false,
-              followUps: []
-          }
-        : undefined
-}
-
 /**
- * R-3.2, R-3.3-H1 Every Action that ends a step of the current card returns this from `onAction`:
- * its next open follow-up's state; with none left, a declared second card or the next seat.
+ * R-3.2 Every Action that ends a step of the current card returns this from `onAction`: its next
+ * open follow-up's state; with none left, `AdvanceTurn` decides what comes next (R-3.3-H1, R-4.4.4).
  */
-export function stateAfterCardStep(state: HydratedFeudumGameState): MachineState {
-    const followUp = nextOpenFollowUp(state)
+export function stateAfterCardStep(context: MachineContext<HydratedFeudumGameState>): MachineState {
+    const followUp = nextOpenFollowUp(context.gameState)
     if (followUp) {
         return FollowUpStates[followUp.kind]
     }
-    assertExists(state.flow.turn, 'R-3.2 A card step belongs to a turn')
-    if (!state.flow.turn.secondCard) {
-        passTurn(state)
-    }
+    assertExists(context.gameState.flow.turn, 'R-3.2 A card step belongs to a turn')
+    context.addSystemAction(AdvanceTurn)
     return MachineState.PlayingCards
+}
+
+/** R-3.2, R-3.3-H1, R-4.4.4 What each outcome of `AdvanceTurn` leads to. */
+const StatesAfterAdvance: Readonly<Record<AdvanceTurnMetadata['outcome'], MachineState>> = {
+    'second-card': MachineState.PlayingCards,
+    'writ-limit': MachineState.DiscardingWrits,
+    'next-seat': MachineState.PlayingCards,
+    'last-card': MachineState.Nourishing
+}
+
+/**
+ * The outcome and not the writ count decides: a seat newly on turn may be over the limit, and it
+ * plays first (R-4.4.4).
+ */
+export function stateAfterAdvance({ metadata }: HydratedAdvanceTurn): MachineState {
+    assertExists(metadata, 'R-3.2 AdvanceTurn has been applied')
+    return StatesAfterAdvance[metadata.outcome]
 }
 
 /** R-3.2 With no turn open, the first seat in turn order holding a card begins. */

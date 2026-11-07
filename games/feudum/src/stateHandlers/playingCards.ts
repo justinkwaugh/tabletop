@@ -1,4 +1,5 @@
 import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
+import { HydratedAdvanceTurn, isAdvanceTurn } from '../actions/advanceTurn.js'
 import { cardPlayOffers } from '../actions/cardPlay.js'
 import { defenderAsked } from '../actions/combat.js'
 import { HydratedConquer, isConquer } from '../actions/conquer.js'
@@ -20,7 +21,7 @@ import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { atWillOffers, isAtWillAction, type AtWillAction } from './atWill.js'
-import { askCardTurn, stateAfterCardStep } from './cardTurns.js'
+import { askCardTurn, stateAfterAdvance, stateAfterCardStep } from './cardTurns.js'
 
 /** A card play's hydrated Action. A new card adds its class here. */
 type HydratedCardPlay =
@@ -39,8 +40,11 @@ type HydratedCardPlay =
     | HydratedConquer
     | HydratedStarveThePeople
 
-/** R-3.2, R-4.4-H1 What the turn player may send here. An at-will action plays no card, so ends no step. */
-type PlayingCardsAction = HydratedCardPlay | AtWillAction
+/**
+ * R-3.2, R-4.4-H1 What the turn player may send here, an at-will action playing no card and so
+ * ending no step, and the System Action that closes each card.
+ */
+type PlayingCardsAction = HydratedCardPlay | AtWillAction | HydratedAdvanceTurn
 
 /** R-3.5 The Actions that play a card, regular or special. A new card adds its row here. */
 const PlaysOfCard: Partial<Readonly<Record<ActionCardKind, readonly ActionType[]>>> = {
@@ -80,7 +84,8 @@ export class PlayingCardsStateHandler implements MachineStateHandler<
             isFeast(action) ||
             isConquer(action) ||
             isStarveThePeople(action) ||
-            isAtWillAction(action)
+            isAtWillAction(action) ||
+            isAdvanceTurn(action)
         )
     }
 
@@ -113,6 +118,9 @@ export class PlayingCardsStateHandler implements MachineStateHandler<
         action: PlayingCardsAction,
         context: MachineContext<HydratedFeudumGameState>
     ): MachineState {
+        if (isAdvanceTurn(action)) {
+            return stateAfterAdvance(action)
+        }
         if (isAtWillAction(action)) {
             return MachineState.PlayingCards
         }
@@ -125,6 +133,6 @@ export class PlayingCardsStateHandler implements MachineStateHandler<
                 ? MachineState.AwaitingDefence
                 : MachineState.CommittingAttack
         }
-        return stateAfterCardStep(context.gameState)
+        return stateAfterCardStep(context)
     }
 }

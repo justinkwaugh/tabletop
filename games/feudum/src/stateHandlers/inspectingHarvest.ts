@@ -41,6 +41,6 @@ export class InspectingHarvestStateHandler implements MachineStateHandler<
         _action: HydratedChooseFavours,
         context: MachineContext<HydratedFeudumGameState>
     ): MachineState {
-        return stateAfterCardStep(context.gameState)
+        return stateAfterCardStep(context)
     }
 }
