@@ -1,0 +1,64 @@
+// @vitest-environment node
+import { render } from 'svelte/server'
+import { describe, expect, it, vi } from 'vitest'
+import { HydratedFeudumGameState, RoyalWrits } from '@tabletop/feudum'
+import { atPlayingCards } from '$lib/testing/turnTable.js'
+import Board from './Board.svelte'
+
+const session = vi.hoisted(() => {
+    const current: Record<string, unknown> = {}
+    return { current }
+})
+vi.mock('$lib/model/sessionContext.svelte.js', () => ({
+    getGameSession: () => session.current
+}))
+
+async function boardOf() {
+    const { host } = await atPlayingCards(['explore'])
+    const gameState = new HydratedFeudumGameState(structuredClone(host.state))
+    session.current = {
+        gameState,
+        myPlayerId: gameState.players[0].playerId,
+        getPlayerName: (playerId: string) => playerId,
+        colors: {
+            getPlayerUiColor: () => '#102030',
+            getUiColor: () => '#405060'
+        }
+    }
+    return { gameState, html: render(Board).body }
+}
+
+describe("Board stands the layers in the contract's order (R-1.2, S72)", () => {
+    it('R-1.2 draws the map, then the guild areas, the tracks and the margin', async () => {
+        const { html } = await boardOf()
+        const order = [
+            'ground',
+            'routes',
+            'locations',
+            'contents',
+            'pieces',
+            'guilds',
+            'tracks',
+            'margin'
+        ]
+        const places = order.map((layer) => html.indexOf(`data-layer="${layer}"`))
+        expect(places.every((place) => place > -1)).toBe(true)
+        expect(places).toEqual([...places].sort((a, b) => a - b))
+    })
+
+    it('R-1.4-H1 paints a seat and a colour no seat plays from the colourizer alone', async () => {
+        const { html, gameState } = await boardOf()
+        expect(html).toContain('#102030')
+        const dummy = gameState.guilds.knight.rows.some(({ playerId }) => !playerId)
+        expect(html.includes('#405060')).toBe(dummy)
+    })
+
+    it('R-4.4.1 passes the viewer to the margin', async () => {
+        const { html: without } = await boardOf()
+        expect(without).not.toContain('data-margin="deck-known"')
+        const { gameState } = await boardOf()
+        const [viewer] = gameState.players
+        viewer.deckKnowledge = [{ slot: 0, writId: RoyalWrits[0].id }]
+        expect(render(Board).body).toContain('data-margin="deck-known"')
+    })
+})
