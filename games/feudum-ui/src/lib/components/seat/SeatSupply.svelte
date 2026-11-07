@@ -110,7 +110,9 @@
                     label="bead +{beadValue}"
                     face={() => ({ kind: 'bead', faceShown: sealFaceShown(true), beadValue })}
                 >
-                    <SealFace faceShown={sealFaceShown(true)} {beadValue} size={Bead * scale} />
+                    <div data-supply-bead={beadValue}>
+                        <SealFace faceShown={sealFaceShown(true)} {beadValue} size={Bead * scale} />
+                    </div>
                 </Enlargeable>
             {/each}
             {#if supply.seals > 0}

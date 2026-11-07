@@ -164,6 +164,17 @@ export class FeudumHost {
         }
     }
 
+    /** The canonical state and history as a perspective receives them, a spectator's included. */
+    projected(perspective: Visibility.Perspective) {
+        return Visibility.projectActionHistory({
+            currentState: this.state,
+            actions: this.actions,
+            visibility: FeudumRuntime.visibility,
+            perspective,
+            replay: { game: this.game, runtime: FeudumRuntime }
+        })
+    }
+
     private history(playerId: string) {
         return Visibility.projectActionHistory({
             currentState: this.state,

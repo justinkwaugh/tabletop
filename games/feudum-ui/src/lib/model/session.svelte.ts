@@ -1,4 +1,5 @@
 import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
+import { FlightAnimator } from '$lib/animators/flightAnimator.svelte.js'
 import { GameSession, type PresentedTransition } from '@tabletop/frontend-components'
 import {
     ActionCards,
@@ -141,6 +142,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
     myPlayerId: string | undefined = $derived(this.myPlayer?.id)
 
     readonly boardAnimator = new BoardAnimator()
+    readonly flightAnimator = new FlightAnimator()
 
     readonly startingGoods = new StartingGoodsDraft(() => startingGoodOffers(this.gameState))
     readonly startingPawn = new StartingPawnDraft()
@@ -249,13 +251,31 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         )
     }
 
-    override async onGameStateChange(change: Parameters<BoardAnimator['onGameStateChange']>[0]) {
-        await this.boardAnimator.onGameStateChange(change)
+    /**
+     * The board's rows, then the copies crossing the wrapper, then what follows them on the board. S63 A
+     * connection coming back shows the state with no motion at all.
+     */
+    override async onGameStateChange(
+        change: Parameters<BoardAnimator['onGameStateChange']>[0] & { readonly kind?: string }
+    ) {
+        if (change.kind === 'reconciliation') {
+            return
+        }
+        const { from, to, action, animationContext } = change
+        const flights = from
+            ? this.flightAnimator.plan({ from, to, action, viewerId: this.myPlayerId })
+            : { flights: [], seconds: 0 }
+        const flightsAt = await this.boardAnimator.onGameStateChange({
+            ...change,
+            flightRoom: flights.seconds
+        })
+        await this.flightAnimator.play(flights, animationContext, flightsAt)
     }
 
     /** Every other draft ends with the displayed state, whatever the transition. */
     override beforeNewState() {
         this.boardAnimator.settle()
+        this.flightAnimator.settle()
         for (const draft of this.oneStateDrafts) {
             draft.clear()
         }

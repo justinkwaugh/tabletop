@@ -1,9 +1,11 @@
 <script lang="ts">
     import BenchLayer from '$lib/components/bench/BenchLayer.svelte'
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
+    import { seatPaint } from '$lib/model/seatPaint.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import BoardPopup from './BoardPopup.svelte'
     import EnlargedFaceView from './EnlargedFaceView.svelte'
+    import FlightLayer from './FlightLayer.svelte'
     import OpenSeatLayer from './OpenSeatLayer.svelte'
     import Scrim from './Scrim.svelte'
     import StackViewLayer from './StackViewLayer.svelte'
@@ -24,6 +26,12 @@
     const SeatSheetShare = 85
 
     const phone = new PhoneLayout()
+
+    /** A seat's paint from the session's colourizer (S71), as the board draws it. */
+    function paintOf(playerId: string) {
+        const initial = gameSession.getPlayerName(playerId).charAt(0).toUpperCase()
+        return seatPaint(gameSession.colors, playerId, initial)
+    }
 
     let innerWidth = $state(EnlargedWidth + PhoneMargin)
     let enlargedWidth = $derived(Math.min(EnlargedWidth, innerWidth - PhoneMargin))
@@ -68,3 +76,4 @@
         </div>
     </Scrim>
 {/if}
+<FlightLayer animator={gameSession.flightAnimator} {paintOf} />
