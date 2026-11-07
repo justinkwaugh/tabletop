@@ -24,6 +24,7 @@
         warning: 'text-xs text-feudum-danger',
         note: 'text-xs text-feudum-text-muted',
         waiting: 'text-sm text-feudum-text-muted',
+        previous: 'text-xs text-feudum-text-muted',
         refusal: 'text-xs text-feudum-text-muted',
         round: 'text-sm font-semibold text-feudum-text'
     }
@@ -36,6 +37,7 @@
             warning: { 'data-warning': '' },
             note: { 'data-note-line': '' },
             waiting: { 'data-waiting': '' },
+            previous: { 'data-previous-seat': '' },
             refusal: { 'data-refusal-line': '' },
             round: { 'data-round-line': '' }
         }[role]

@@ -35,11 +35,11 @@ export interface RoundEndView {
     readonly dawn?: DawnSheetView
 }
 
-function fillLine({ spaceId, landscape, added }: LandscapeFilled): string {
+export function fillLine({ spaceId, landscape, added }: LandscapeFilled): string {
     return `${spaceLabel(spaceId)}: ${landscape} +${added}`
 }
 
-function goodsLine(goods: readonly MapGood[]): string {
+export function goodsLine(goods: readonly MapGood[]): string {
     const named = goods.map(({ spaceId, good }) => `${good} at ${spaceLabel(spaceId)}`)
     return `New goods: ${named.join(', ')}`
 }

@@ -541,10 +541,10 @@ Each scenario is marked automated (with its spec) or checked (with date and widt
 - S31: automated (`actionPanelSession.spec.ts`)
 - S32: automated (`followUpPanels.spec.ts`, `waitingView.spec.ts`)
 - S33: automated (`followUpPanels.spec.ts`, `waitingView.spec.ts`; browser `tests/followUpPanels.spec.ts`)
-- S34: automated (`waitingView.spec.ts`, `followUpPanels.spec.ts`; browser compare of the page's markup and the action area's pixels in `tests/followUpPanels.spec.ts`); open: Manual
+- S34: automated (`waitingView.spec.ts`, `followUpPanels.spec.ts`; browser compare of the page's markup and the action area's pixels in `tests/followUpPanels.spec.ts`; what the previous seat just did `actionDescriptions.spec.ts`); open: Manual
 - S35: pending
 - S36: partly automated (`followUpDrafts.spec.ts`, `followUpPanels.spec.ts`; browser `tests/followUpPanels.spec.ts`; the defender's pawn home and the score after it `flightLayer.spec.ts`); open: the military service question on the drawn panel
-- S37: partly automated (`followUpDrafts.spec.ts`: the win comes from the logic package; the markers home `flightLayer.spec.ts`); open: the flip and the rank changes in the log
+- S37: partly automated (`followUpDrafts.spec.ts`: the win comes from the logic package; the markers home `flightLayer.spec.ts`; the flip and the rank changes in the log, on the Action that caused them, `actionDescriptions.spec.ts`)
 - S38: automated (`followUpPanels.spec.ts`, `waitingView.spec.ts`; the seal under the marker `mapLayers.spec.ts`; browser `tests/followUpPanels.spec.ts`; the seal's slide `boardAnimators.spec.ts`)
 - S39: automated (`followUpPanels.spec.ts`, `atWillDraft.spec.ts`; the seal's flight `flightLayer.spec.ts`)
 - S40: automated (`guildDraft.spec.ts`; browser `tests/bench.spec.ts`)
@@ -564,15 +564,15 @@ Each scenario is marked automated (with its spec) or checked (with date and widt
 - S54: partly automated (`waitingView.spec.ts`, `components/actionPanel.spec.ts`; browser `tests/followUpPanels.spec.ts`; the die's tumble, the epoch glow, the score discs' slide `boardAnimators.spec.ts`, browser `tests/boardAnimators.spec.ts`); open: Manual
 - S55: partly automated (`followUpPanels.spec.ts`, `waitingView.spec.ts`; browser `tests/followUpPanels.spec.ts`; the flights `flightLayer.spec.ts`)
 - S56: automated (`waitingView.spec.ts`, `components/actionPanel.spec.ts`; browser `tests/followUpPanels.spec.ts`)
-- S57: pending
+- S57: automated for the log (`actionDescriptions.spec.ts`: from real projections for another seat and a spectator, and from a Local game's canonical Action, no hand or writ face in a line; Host View and the actor name them); the seat panel and the enlarged backs in `seatPanel.spec.ts`
 - S58: pending
 - S59: pending
 - S60: pending
-- S61: pending
+- S61: automated (browser `tests/table.spec.ts`: the description reads the Move's line; the line itself `actionDescriptions.spec.ts`); open: the being-decided outline
 - S62: pending
 - S63: automated (`flightLayer.spec.ts`: the 200 ms bound, a step in history, a reconnection with nothing on the layer, frames captured on the desk; browser `tests/flightLayer.spec.ts`)
 - S64: pending
-- S65: automated on the board (`boardAnimators.spec.ts`; browser `tests/boardAnimators.spec.ts`; the flight layer `flightLayer.spec.ts`, browser `tests/flightLayer.spec.ts`); open: the panels' tokens
+- S65: automated on the board (`boardAnimators.spec.ts`; browser `tests/boardAnimators.spec.ts`; the flight layer `flightLayer.spec.ts`, browser `tests/flightLayer.spec.ts`; the log line compared moving and still, browser `tests/boardAnimators.spec.ts`); open: the panels' tokens
 - S66: automated (`flightLayer.spec.ts`: a second Action is queued behind the first's flight, then the layer is empty and nothing hidden; browser `tests/flightLayer.spec.ts`, every frame checked)
 - S67: automated (`boardFocus.spec.ts`; browser `tests/phone.spec.ts`, 375 × 812 and 812 × 375); open: the hand pan is a mouse drag, not a touch gesture
 - S68: automated (browser `tests/phone.spec.ts`); open: in a 652 px column the cap is 14 px short, so the second row's magnifier is 35 px until the panel is scrolled; the bench's printed places are under 44 px

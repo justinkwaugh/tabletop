@@ -82,7 +82,8 @@ describe('R-X the lines of the panel', () => {
         ['warning', 'data-warning'],
         ['note', 'data-note-line'],
         ['waiting', 'data-waiting'],
-        ['refusal', 'data-refusal-line']
+        ['refusal', 'data-refusal-line'],
+        ['previous', 'data-previous-seat']
     ])('a %s line stands in its own place with its text', (role, attribute) => {
         expect(textOf(markupOf({ kind: 'line', role, text: 'The words' }), attribute)).toBe(
             'The words'

@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { PlayerName } from '@tabletop/frontend-components'
     import ActionDescription from '$lib/components/ActionDescription.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import ActionPanel from './ActionPanel.svelte'
@@ -16,9 +15,6 @@
         data-history-description
     >
         {#if currentAction}
-            {#if currentAction.playerId}
-                <PlayerName playerId={currentAction.playerId} />
-            {/if}
             <ActionDescription action={currentAction} />
         {/if}
     </div>

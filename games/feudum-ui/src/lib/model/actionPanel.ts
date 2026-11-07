@@ -70,7 +70,7 @@ export interface SeatNames {
 }
 
 export type LineRole =
-    'turn' | 'flow' | 'count' | 'warning' | 'note' | 'waiting' | 'refusal' | 'round'
+    'turn' | 'flow' | 'count' | 'warning' | 'note' | 'waiting' | 'previous' | 'refusal' | 'round'
 
 export type ActionBlock =
     | { readonly kind: 'finalise'; readonly entries: readonly FinaliseEntry[] }
@@ -152,6 +152,7 @@ export type PanelSession = Pick<
     | 'movePanel'
     | 'guildPanel'
     | 'watchingPanel'
+    | 'previousSeatLine'
     | 'colors'
     | 'myPlayerId'
     | 'getPlayerName'
@@ -689,6 +690,11 @@ function decisionBlocks(session: PanelSession): readonly ActionBlock[] {
     ]
 }
 
+/** R-X.1 The waiting view ends with what the previous seat just did, as this seat's log reads it. */
+function previousSeatBlocks({ watchingPanel, previousSeatLine }: PanelSession): ActionBlock[] {
+    return watchingPanel?.line && previousSeatLine ? [line('previous', previousSeatLine)] : []
+}
+
 function seatNames(session: PanelSession): SeatNames {
     return {
         nameOf: (playerId) => session.getPlayerName(playerId),
@@ -758,6 +764,7 @@ export function actionPanelOf(session: PanelSession): ActionPanelView {
             ...(lineFirst ? [first] : []),
             ...shared,
             ...(lineFirst ? rest : decision),
+            ...previousSeatBlocks(session),
             ...roundEndBlocks(session)
         ]
     }

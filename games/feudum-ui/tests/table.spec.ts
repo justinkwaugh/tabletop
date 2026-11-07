@@ -165,6 +165,10 @@ test('S61 History View of a turn with a Move offers no choices; enlarge and open
     await page.locator('button[aria-label="step backwards"]:visible').click()
     await expect(panel(page)).toHaveCount(0)
     await expect(page.locator('[data-history-description]')).toBeVisible()
+    await expect(page.locator('[data-history-description] [data-action-line]')).toHaveAttribute(
+        'data-action-line',
+        /^(You|[\w ]+) moved /
+    )
     await expect(lit(page)).toHaveCount(0)
     await settled(page)
     await shot(page, 'history')
@@ -179,6 +183,40 @@ test('S61 History View of a turn with a Move offers no choices; enlarge and open
     await shot(page, 'history-open-seat')
     await page.keyboard.press('Escape')
     await expect(seatLayer(page)).toHaveCount(0)
+})
+
+test('S37 R-X.1 the log has a line for each Action, spoken, with no raw name in it', async ({
+    page
+}) => {
+    await createGame(page)
+    await playToCards(page)
+    await panel(page).getByRole('button', { name: 'Move', exact: true }).click()
+    await settled(page)
+    await lit(page).first().locator('[role="button"]').click()
+    await settled(page)
+    await pressRow(page, 'No pilfer')
+    await settled(page)
+    await panel(page).locator('[data-primary]').click()
+    await settled(page)
+
+    await page.getByRole('tab', { name: 'History' }).click()
+    const log = page.locator('[data-action-line]')
+    await expect(log.first()).toBeVisible()
+    await shot(page, 'log')
+    const lines = await log.evaluateAll((nodes) =>
+        nodes.map((node) => node.getAttribute('data-action-line') ?? '')
+    )
+    const held = await page.evaluate(() => {
+        const session = window.feudumSession
+        return session.actions.map((action) => session.actionLine(action) ?? '')
+    })
+
+    expect(lines.toSorted()).toEqual(held.filter(Boolean).toSorted())
+    expect(lines.some((line) => /^(You|[\w ]+) moved /.test(line))).toBe(true)
+    expect(lines.some((line) => /^(You|[\w ]+) chose /.test(line))).toBe(true)
+    for (const line of lines) {
+        expect(line).not.toMatch(/undefined|\[object|\bspace\.|\bwrit\.|\btile\.|\bseal\.\d/)
+    }
 })
 
 test('S70 smoke: full screen holds the panel in the toolbar and Escape leaves it last', async ({

@@ -140,6 +140,10 @@ export async function openWalkTable() {
             pressed,
             walk: () => framesOf(session, piece, () => session.sendTurnCard()),
             tableText: () => document.querySelector('[data-game-ui]')?.textContent ?? '',
+            logLine: () => {
+                const moved = session.actions.findLast(({ type }) => type === ActionType.Move)
+                return moved ? (session.actionLine(moved) ?? '') : ''
+            },
             strayWrites: () => stray.firstElementChild?.getAttribute('transform') ?? ''
         }
     })
