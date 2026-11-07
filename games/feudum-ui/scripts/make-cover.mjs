@@ -45,7 +45,7 @@ function fontFace(family, file) {
         return ''
     }
     const data = readFileSync(path).toString('base64')
-    return `@font-face { font-family: '${family}'; src: url(data:font/woff2;base64,${data}); }`
+    return `@font-face { font-family: '${family}'; src: url(data:font/${file.split('.').pop()};base64,${data}); }`
 }
 
 function medallion(guild, x, y, r) {
@@ -95,7 +95,7 @@ function artScene(path) {
 }
 
 const page = `<!doctype html><html><head><style>
-    ${fontFace('MedievalSharp', 'MedievalSharp-Latin.woff2')}
+    ${fontFace('MedievalSharp', 'MedievalSharp.ttf')}
     ${fontFace('IM Fell English', 'IMFellEnglish-Latin.woff2')}
     html, body { margin: 0; }
 </style></head><body>

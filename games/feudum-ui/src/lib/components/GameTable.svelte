@@ -32,7 +32,7 @@
 </script>
 
 {#each FontFaces as face (face.family)}
-    <CustomFont fontFamily={face.family} url={face.url} format="woff2" />
+    <CustomFont fontFamily={face.family} url={face.url} format={face.format} />
 {/each}
 
 <div>
