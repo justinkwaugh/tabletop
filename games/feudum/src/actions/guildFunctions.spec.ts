@@ -383,6 +383,23 @@ describe('GuildAction: R-4.6.5 the Farmer push moves goods and splits the purse'
 })
 
 describe('GuildAction: preview', () => {
+    it('R-4.6.5 a Farmer push previews the market spaces each good would land in', () => {
+        const { table, playerId } = tableAtGuild((state, seat) => {
+            setMaster(state, seat, 'farmer')
+            setBarn(state, { iron: 1, wood: 1 })
+            setMarket(state, {})
+        })
+        const preview = guildActionPreview(table.hydrated(), playerId, {
+            guildId: 'farmer',
+            fn: 'push',
+            params: { goods: ['iron', 'wood'] }
+        })
+        expect(preview?.details).toMatchObject({
+            kind: 'farmer-push',
+            spaces: ['guild.merchant.space.iron-1', 'guild.merchant.space.wood-1']
+        })
+    })
+
     it('R-4.6.5, R-4.6.1 gives points, completions, the split, reeve points and no barrier', () => {
         const { table, playerId, others } = tableAtGuild((state, seat, rest) => {
             setJourneyman(state, rest[0], 'farmer', seat)

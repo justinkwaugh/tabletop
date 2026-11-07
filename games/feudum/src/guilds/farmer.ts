@@ -307,7 +307,7 @@ const FarmerPush: GuildFunctionRow = {
             actor,
             params
         )
-        return { completions, split, rows: details.rows, columns: details.columns }
+        return { details, completions, split, rows: details.rows, columns: details.columns }
     },
 
     /** R-4.6.5 */

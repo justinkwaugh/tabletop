@@ -256,6 +256,8 @@ export interface ScoringPreview {
     readonly reevePoints: number
     readonly reeveOffered: boolean
     readonly drawnCount: number
+    /** R-4.6.4, R-4.4-H2 How many of the drawn writs the seat keeps. */
+    readonly keep: number
 }
 
 /** R-4.7, R-4.6.4 `scoreFunction` read without changing or drawing anything. */
@@ -269,12 +271,13 @@ export function scoringPreview(
     const points = pointsFor(fn, completions)
     const drawnCount =
         points > 0 && fn === 'pull' ? Math.min(PullReward.writs.draw, writDeckCount(state)) : 0
+    const keep = Math.min(PullReward.writs.keep, drawnCount)
     if (points === 0 || actor.feastOf) {
-        return { completions, points, reevePoints: 0, reeveOffered: false, drawnCount }
+        return { completions, points, reevePoints: 0, reeveOffered: false, drawnCount, keep }
     }
     const reevePoints = reevePointsIn(state, actor.playerId, guildId)
     if (reevePoints > 0) {
-        return { completions, points, reevePoints, reeveOffered: false, drawnCount }
+        return { completions, points, reevePoints, reeveOffered: false, drawnCount, keep }
     }
     const reeveOffered =
         reasonDiscRefused(state, { kind: 'reeve', playerId: actor.playerId, guildId }) === undefined
@@ -283,7 +286,8 @@ export function scoringPreview(
         points,
         reevePoints: reeveOffered ? placedReevePoints(state, actor.playerId) : 0,
         reeveOffered,
-        drawnCount
+        drawnCount,
+        keep
     }
 }
 

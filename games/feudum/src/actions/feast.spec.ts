@@ -8,6 +8,7 @@ import { MachineState } from '../definition/states.js'
 import { conservationBreaks } from '../model/canonicalValidator.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { writDeckCount } from '../model/writDeck.js'
+import { giveTile } from '../testing/atWill.js'
 import { buildFeudum } from '../testing/combat.js'
 import {
     setBeads,
@@ -21,7 +22,9 @@ import {
     StandingSpace,
     tableAtGuild
 } from '../testing/guilds.js'
+import { setUp } from '../testing/improving.js'
 import { canonicalOf } from '../testing/state.js'
+import { specialShortOfGood } from './cardPlay.js'
 import { Feast, feastOffers, feastPreview, reasonFeastRefused, type FeastInput } from './feast.js'
 
 const actionProjector = Visibility.createActionProjector(FeudumApiActions)
@@ -515,7 +518,14 @@ describe('Feast: R-3.16.3 offers and previews', () => {
                 guildId: 'monk',
                 params: { scrollSpaces: [R1C1] }
             })
-        ).toMatchObject({ fn: 'pull', points: 3, feastPoints: 3, drawnCount: 2, revealsInfo: true })
+        ).toMatchObject({
+            fn: 'pull',
+            points: 3,
+            feastPoints: 3,
+            drawnCount: 2,
+            keep: 1,
+            revealsInfo: true
+        })
 
         const push = feastTable((state, _seat, rest) => {
             setMaster(state, rest[0], 'monk')
@@ -553,6 +563,30 @@ describe('Feast: R-3.16.3 offers and previews', () => {
                 params: {}
             })
         ).toBeUndefined()
+    })
+})
+
+describe('Feast: R-4.3-H3 a sulfur a tile could bring', () => {
+    it('R-4.3-H3, R-4.10.2 short of barrel sulfur only while a tile can bring one to the barrel', () => {
+        const { table, playerId } = feastTable(merchantMaster, undefined, 0)
+        expect(specialShortOfGood(table.hydrated(), playerId, 'guild')).toBe(false)
+        setUp(table, (state) => {
+            giveTile(state, playerId)
+        })
+        expect(specialShortOfGood(table.hydrated(), playerId, 'guild')).toBe(true)
+        setUp(table, (state) => {
+            state.getPlayerState(playerId).barrel = 1
+        })
+        expect(specialShortOfGood(table.hydrated(), playerId, 'guild')).toBe(false)
+    })
+
+    it('R-4.3-H3 no sulfur left in the haversack leaves no tile able to bring one', () => {
+        const { table, playerId } = feastTable(merchantMaster, undefined, 0)
+        setUp(table, (state) => {
+            giveTile(state, playerId)
+            state.supply.haversack.sulfur = 0
+        })
+        expect(specialShortOfGood(table.hydrated(), playerId, 'guild')).toBe(false)
     })
 })
 

@@ -65,10 +65,13 @@ const SpendFirst = 'Undo, then spend a region tile.'
 /** R-3.4 What the card prints for its special, as a chip: "1 wood", "1s". */
 export function printedCost(kind: ActionCardKind): string | undefined {
     const need = cardOf(kind).special.needs.find(
-        (row) => row.kind === 'good' || row.kind === 'shillings'
+        (row) => row.kind === 'good' || row.kind === 'shillings' || row.kind === 'barrel-sulfur'
     )
     if (need?.kind === 'good') {
         return `1 ${need.good}`
+    }
+    if (need?.kind === 'barrel-sulfur') {
+        return '1 barrel sulfur'
     }
     return need?.kind === 'shillings' ? `${need.shillings}s` : undefined
 }
@@ -173,6 +176,19 @@ function firstOfferReason(
     return offers.some(({ reason }) => !reason)
         ? undefined
         : (offers.find(({ reason }) => reason)?.reason ?? none)
+}
+
+function reasonFeastModeRefused(
+    { state, playerId }: TurnContext,
+    input: CardPlayInput
+): string | undefined {
+    const refused = reasonCardPlayRefused(state, playerId, 'guild', input)
+    if (refused) {
+        return refused
+    }
+    return specialOffered(state, playerId, 'guild')
+        ? firstOfferReason(feastOffers(state, playerId, input), 'No one to feast with.')
+        : `${reasonSpecialRefused(state, playerId, 'guild')} ${SpendFirst}`
 }
 
 function taxLabel({ state, playerId }: TurnContext): string {
@@ -285,12 +301,16 @@ const CardModes: Readonly<Record<ActionCardKind, readonly ModeRow[]>> = {
                 firstOfferReason(guildActionOffers(state, playerId), 'No guild function is open.')
             )
         }),
-        Special(ActionType.Feast, 'guild', ({ state, playerId }, input) => {
-            return (
-                reasonCardPlayRefused(state, playerId, 'guild', input) ??
-                firstOfferReason(feastOffers(state, playerId, input), 'No one to feast with.')
-            )
-        })
+        // R-4.3-H3 A barrel sulfur a tile could bring shows it, dimmed with where to spend that tile.
+        (context, input) =>
+            specialOffered(context.state, context.playerId, 'guild') ||
+            specialShortOfGood(context.state, context.playerId, 'guild')
+                ? mode(
+                      ActionType.Feast,
+                      specialLabel('guild'),
+                      reasonFeastModeRefused(context, input)
+                  )
+                : undefined
     ]
 }
 

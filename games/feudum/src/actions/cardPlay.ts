@@ -10,7 +10,7 @@ import {
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import type { HydratedFeudumPlayerState, PlayedCard } from '../model/playerState.js'
 import { canCoverWithWildTiles } from '../model/payments.js'
-import { returnGoodToHaversack } from '../model/supply.js'
+import { reasonSulfurToBarrelRefused, returnGoodToHaversack } from '../model/supply.js'
 
 /** R-3.15 `repeat` is Repeat replaying an x2 card; `deja-vu` is Déjà Vu, for a saltpeter. */
 export type RepeatMode = Type.Static<typeof RepeatMode>
@@ -251,13 +251,26 @@ export function specialShortOfGood(
 ): boolean {
     const player = state.getPlayerState(playerId)
     const unmet = cardOf(kind).special.needs.filter((need) => unmetNeed(player, need) !== undefined)
-    return (
-        unmet.length > 0 &&
-        unmet.every(
-            (need) =>
-                need.kind === 'good' && canCoverWithWildTiles(state, playerId, { [need.good]: 1 })
-        )
-    )
+    return unmet.length > 0 && unmet.every((need) => tileBrings(state, playerId, need))
+}
+
+/** R-4.3-H3, R-4.10.2 A tile brings a good, or a sulfur that goes straight into the barrel. */
+function tileBrings(state: HydratedFeudumGameState, playerId: string, need: SpecialNeed): boolean {
+    switch (need.kind) {
+        case 'good': {
+            return canCoverWithWildTiles(state, playerId, { [need.good]: 1 })
+        }
+        case 'barrel-sulfur': {
+            return (
+                state.getPlayerState(playerId).regionTiles.length > 0 &&
+                state.supply.haversack.sulfur > 0 &&
+                !reasonSulfurToBarrelRefused(state, playerId, 'sulfur')
+            )
+        }
+        default: {
+            return false
+        }
+    }
 }
 
 /**
