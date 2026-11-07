@@ -12,6 +12,7 @@ import {
     isPlaceMarble,
     type HydratedZertzGameState,
     type MarbleColor,
+    type PlaceMarble,
     type Ring
 } from '@tabletop/zertz'
 import { includesCoords, type ZertzGameSession } from '$lib/model/session.svelte.js'
@@ -124,7 +125,10 @@ export class BoardAnimator {
             return
         }
         const timeline = animationContext.actionTimeline
-        const removedRings = from.board.rings.filter((ring) => !to.board.hasRing(ring.coords))
+        // The board as the move found it, with a placed marble already in its ring: a placement
+        // that fills an isolated group claims it, and that ring goes with the others.
+        const before = isPlaceMarble(action) ? placedOn(from.board.rings, action) : from.board.rings
+        const removedRings = before.filter((ring) => !to.board.hasRing(ring.coords))
         this.fadeEndingShadows(
             to,
             action === undefined ? FALLBACK_DURATION : SINK.duration,
@@ -150,11 +154,12 @@ export class BoardAnimator {
             }
         } else {
             // A placed marble lands at once, where its preview stood, rather than after the
-            // outlines fade.
+            // outlines fade. A group it claims is taken once it has landed.
+            let claimsAt = 0
             if (isPlaceMarble(action)) {
-                this.rings = to.board.rings
+                this.rings = before
                 await tick()
-                this.drop(action.coords, timeline)
+                claimsAt = this.drop(action.coords, timeline)
             }
             if (isCapture(action) && action.metadata !== undefined) {
                 await this.jump(
@@ -169,9 +174,10 @@ export class BoardAnimator {
             for (const ring of removedRings) {
                 const claimed = ring.marble !== undefined
                 if (claimed) {
-                    this.lift(ring.coords, timeline, 0, LIFT.duration)
+                    this.lift(ring.coords, timeline, claimsAt, LIFT.duration)
                 }
-                this.sink(ring.coords, timeline, claimed ? CLAIMED_RING_DELAY : 0, SINK.duration)
+                const sinksAt = claimsAt + (claimed ? CLAIMED_RING_DELAY : 0)
+                this.sink(ring.coords, timeline, sinksAt, SINK.duration)
             }
         }
 
@@ -214,11 +220,12 @@ export class BoardAnimator {
         timeline.to(shadow, { opacity: 0, scale: DROP.shadow, duration, ease: 'power1.out' }, at)
     }
 
-    private drop(coords: AxialCoordinates, timeline: Timeline) {
+    // Says when the marble has settled.
+    private drop(coords: AxialCoordinates, timeline: Timeline): number {
         const key = coordsKey(coords)
         const body = this.marbleNodes.get(key)
         const shadow = this.marbleShadowNodes.get(key)
-        if (body === undefined || shadow === undefined) return
+        if (body === undefined || shadow === undefined) return 0
         scaledFromCentre(body, shadow)
         const { fall } = DROP
         timeline.fromTo(
@@ -240,6 +247,7 @@ export class BoardAnimator {
             timeline.to(body, { y: 0, duration: DROP.settle, ease: 'power1.in' }, at + DROP.settle)
             at += DROP.settle * 2
         }
+        return at
     }
 
     // The move's targets are spent, so their outlines fade for as long as the move animates.
@@ -334,6 +342,12 @@ export class BoardAnimator {
             at += LANDING.step
         }
     }
+}
+
+function placedOn(rings: Ring[], { coords, color }: PlaceMarble): Ring[] {
+    return rings.map((ring) =>
+        sameCoordinates(ring.coords, coords) ? { ...ring, marble: color } : ring
+    )
 }
 
 // Nodes about to grow or shrink, around their ring's centre. Set only on the nodes a move

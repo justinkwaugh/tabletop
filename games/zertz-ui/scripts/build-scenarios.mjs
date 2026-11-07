@@ -106,3 +106,21 @@ write(
         ]
     })
 )
+
+write(
+    'claim-by-placement',
+    'Claim by placement',
+    position({
+        removed: [
+            [-3, 2],
+            [-2, 1],
+            [-1, 3],
+            [-1, 2],
+            [-1, 1]
+        ],
+        placed: [
+            [-3, 3, White],
+            [-2, 3, Grey]
+        ]
+    })
+)
