@@ -704,7 +704,7 @@ describe('S53 R-4.10, D11 "fed by the game", on the real session', () => {
         expect(watcher.gameState.machineState).toBe(MachineState.Nourishing)
         const fed = watcher.actions.findLast((action) => isNourishPawns(action))
         expect(fed?.metadata).toMatchObject({ fed: [{ playerId: other }] })
-        const row = watcher.watchingPanel?.row
+        const row = watcher.orderRow?.entries
         const of = (playerId: string) => row?.find((entry) => entry.playerId === playerId)
         expect(of(other)).toMatchObject({ fedByGame: true, done: true })
         expect(of(seat)).toMatchObject({ next: true, done: false })

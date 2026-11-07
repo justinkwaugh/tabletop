@@ -51,6 +51,9 @@ import { TableLayers } from './tableLayers.svelte.js'
 import { TurnDraft, type TurnPanel } from './turnDraft.svelte.js'
 import { actionPanelOf, type ActionPanelView } from './actionPanel.js'
 import { seatPanelOf, type SeatPanelView } from './seatPanel.js'
+import { gameEndOf, type GameEndSummaryView } from './gameEnd.js'
+import { roundEndOf, type RoundEndView } from './roundEnd.js'
+import { combatTallyOf, orderRowOf, type CombatTallyRow, type OrderRow } from './sharedRows.js'
 import { deckNoteOf, watchingPanelOf, type WatchingPanel } from './watching.js'
 import { WritLimitDraft, type WritLimitPanel } from './writLimitDraft.svelte.js'
 
@@ -807,11 +810,39 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             : watchingPanelOf({
                   state: this.gameState,
                   viewerId: this.myPlayerId,
-                  nameOf: (id) => this.getPlayerName(id),
-                  fedByGame: (
+                  nameOf: (id) => this.getPlayerName(id)
+              })
+    )
+
+    /** R-4.10, R-4.12.3 One read for the seat asked and the seats waiting (contract: Render ownership). */
+    orderRow: OrderRow | undefined = $derived.by(() =>
+        this.isViewingHistory
+            ? undefined
+            : orderRowOf(
+                  this.gameState,
+                  (
                       this.actions.findLast((action) => isNourishPawns(action))?.metadata?.fed ?? []
                   ).map(({ playerId }) => playerId)
-              })
+              )
+    )
+
+    /** R-4.8.2 As the flow holds it, for every seat; only the attacker's own draft previews more. */
+    combatTally: CombatTallyRow | undefined = $derived.by(() =>
+        this.isViewingHistory
+            ? undefined
+            : combatTallyOf(this.gameState, (id) => this.getPlayerName(id))
+    )
+
+    /** R-4.11, R-4.12 The roll's line and the dawn sheet, on the Actions the state has played. */
+    roundEnd: RoundEndView | undefined = $derived.by(() =>
+        this.isViewingHistory ? undefined : roundEndOf(this.actions)
+    )
+
+    /** R-6.2, R-6.3 The summary replaces the action area; History keeps its description. */
+    gameEnd: GameEndSummaryView | undefined = $derived.by(() =>
+        this.isViewingHistory || !this.gameState.result
+            ? undefined
+            : gameEndOf(this.actions, (id) => this.getPlayerName(id))
     )
 
     deckNote: string | undefined = $derived.by(() =>

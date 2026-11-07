@@ -11,9 +11,14 @@ import {
 import { spaceTarget, type BoardTarget } from './boardOffer.js'
 import type { PanelChoice, TallyLine } from './cardFlows.js'
 import type { DraftChoice } from './deciderDraft.svelte.js'
+import type { GameEndSummaryView } from './gameEnd.js'
+import type { DawnSheetView } from './roundEnd.js'
 import { seatPaint, type SeatPaint } from './seatPaint.js'
 import type { FeudumGameSession } from './session.svelte.js'
+import type { OrderRow } from './sharedRows.js'
+import { tileName } from './tileName.js'
 import type { TurnPrimary } from './turnDraft.svelte.js'
+import { writName } from './writLabels.js'
 
 export type RowArt =
     | { readonly kind: 'good'; readonly good: Good }
@@ -52,7 +57,20 @@ export interface FinaliseEntry {
     readonly next: boolean
 }
 
-export type LineRole = 'turn' | 'flow' | 'count' | 'warning' | 'note' | 'waiting' | 'refusal'
+/** A writ's face with what it offers beneath it: a mandate's alternatives, a charter's seal. */
+export interface WritOffer {
+    readonly writId: WritId
+    readonly name: string
+    readonly rows: readonly ActionRow[]
+}
+
+export interface SeatNames {
+    readonly nameOf: (playerId: string) => string
+    readonly paintOf: (playerId: string) => SeatPaint
+}
+
+export type LineRole =
+    'turn' | 'flow' | 'count' | 'warning' | 'note' | 'waiting' | 'refusal' | 'round'
 
 export type ActionBlock =
     | { readonly kind: 'finalise'; readonly entries: readonly FinaliseEntry[] }
@@ -73,6 +91,20 @@ export type ActionBlock =
           readonly rows: readonly CardRow[]
       }
     | { readonly kind: 'writs'; readonly rows: readonly WritRow[] }
+    | { readonly kind: 'writ-offers'; readonly offers: readonly WritOffer[] }
+    /** R-4.4.1 How many writs the drawer holds face down: others see backs, and nothing more. */
+    | { readonly kind: 'backs'; readonly count: number }
+    | (OrderRow & { readonly kind: 'order-row'; readonly seats: SeatNames })
+    | {
+          readonly kind: 'dawn-sheet'
+          readonly sheet: DawnSheetView
+          readonly seats: SeatNames
+      }
+    | {
+          readonly kind: 'game-end'
+          readonly summary: GameEndSummaryView
+          readonly seats: SeatNames
+      }
     | {
           readonly kind: 'rows'
           readonly name: string
@@ -104,7 +136,18 @@ export type PanelSession = Pick<
     | 'handPanel'
     | 'keepWritsPanel'
     | 'favoursPanel'
+    | 'answerAttackPanel'
+    | 'answerStarvePanel'
+    | 'commitPanel'
+    | 'writLimitPanel'
+    | 'nourishPanel'
+    | 'landscapesPanel'
+    | 'atWillPanel'
     | 'discPanel'
+    | 'orderRow'
+    | 'combatTally'
+    | 'roundEnd'
+    | 'gameEnd'
     | 'turnPanel'
     | 'movePanel'
     | 'guildPanel'
@@ -128,6 +171,8 @@ export type PanelSession = Pick<
     | 'sendFollowUp'
     | 'keepThenShovels'
     | 'chooseNoFavours'
+    | 'answerAttack'
+    | 'answerStarveWith'
 >
 
 function titled(word: string): string {
@@ -289,7 +334,47 @@ function handBlocks(
             'Pouch'
         ),
         ...(drafting.conquerWarning ? [line('warning', drafting.conquerWarning)] : []),
-        primaryBlock(drafting.primary, () => session.finaliseHand())
+        primaryBlock(drafting.primary, () => session.finaliseHand()),
+        ...atWillBlocks(session)
+    ]
+}
+
+/** R-4.4-H1 The at-will row under the hand, and the one list open: what the draft offers, drawn. */
+function atWillBlocks(session: PanelSession): ActionBlock[] {
+    const panel = session.atWillPanel
+    if (!panel) {
+        return []
+    }
+    const asRows = (choices: readonly DraftChoice[] | undefined) =>
+        (choices ?? []).map((choice) => draftRow(session, choice))
+    return [
+        ...rows('at-will', asRows(panel.chips)),
+        ...(panel.line ? [line('flow', panel.line)] : []),
+        ...(panel.writs
+            ? [
+                  {
+                      kind: 'writ-offers',
+                      offers: panel.writs.map(({ writId, name, choices }) => ({
+                          writId,
+                          name,
+                          rows: asRows(choices)
+                      }))
+                  } satisfies ActionBlock
+              ]
+            : []),
+        // R-4.3.3 Every row reads "Spend": its heading says which tile.
+        ...(panel.tiles ?? []).flatMap((tile) =>
+            rows(`tile:${tile.tileId}`, [draftRow(session, tile)], tileName(tile.tileId))
+        ),
+        ...rows(
+            'goods',
+            (panel.goods ?? []).map((choice) =>
+                draftRow(session, choice, { kind: 'good', good: choice.good })
+            )
+        ),
+        ...rows('vessels', asRows(panel.vessels)),
+        ...rows('covers', asRows(panel.covers)),
+        ...(panel.primary ? [primaryBlock(panel.primary, () => session.sendFollowUp())] : [])
     ]
 }
 
@@ -356,6 +441,136 @@ function discBlocks(
     ]
 }
 
+/** R-3.14.1 An ask's buttons send at its press; it is never answered for the seat. */
+function answerAttackBlocks(
+    session: PanelSession,
+    panel: NonNullable<PanelSession['answerAttackPanel']>
+): ActionBlock[] {
+    const { flip } = panel
+    return [
+        line('flow', panel.line),
+        ...(panel.noDefend ? [line('note', panel.noDefend)] : []),
+        ...(flip
+            ? [primaryBlock({ ...flip, enabled: true }, () => session.answerAttack(true))]
+            : []),
+        primaryBlock({ ...panel.letStand, enabled: true }, () => session.answerAttack(false))
+    ]
+}
+
+/** R-3.14.2 */
+function answerStarveBlocks(
+    session: PanelSession,
+    panel: NonNullable<PanelSession['answerStarvePanel']>
+): ActionBlock[] {
+    return [
+        line('flow', panel.line),
+        ...(panel.cantAnswer ? [line('note', panel.cantAnswer)] : []),
+        ...rows(
+            'covers',
+            (panel.covers ?? []).map((choice) => draftRow(session, choice))
+        ),
+        ...(panel.immunity
+            ? [primaryBlock(panel.immunity, () => session.answerStarveWith(true))]
+            : []),
+        primaryBlock({ ...panel.letGo, enabled: true }, () => session.answerStarveWith(false))
+    ]
+}
+
+/** R-4.8 The attacker's own preview of the tally, the stepper and the weapons. */
+function commitBlocks(
+    session: PanelSession,
+    panel: NonNullable<PanelSession['commitPanel']>
+): ActionBlock[] {
+    const { saltpeter } = panel
+    return [
+        line('flow', 'Add to the attack'),
+        { kind: 'tally', lines: panel.tally },
+        ...rows(
+            'saltpeter',
+            [draftRow(session, saltpeter.add), draftRow(session, saltpeter.remove)],
+            `Saltpeter ${saltpeter.count}`
+        ),
+        ...(panel.weapons.length > 0
+            ? [
+                  {
+                      kind: 'writ-offers',
+                      offers: panel.weapons.map(({ writId, alternatives }) => ({
+                          writId,
+                          name: writName(writId),
+                          rows: alternatives.map((choice) => draftRow(session, choice))
+                      }))
+                  } satisfies ActionBlock
+              ]
+            : []),
+        ...rows(
+            'covers',
+            (panel.covers ?? []).map((choice) => draftRow(session, choice))
+        ),
+        primaryBlock(panel.primary, () => session.sendFollowUp())
+    ]
+}
+
+/** R-4.4.4 */
+function writLimitBlocks(
+    session: PanelSession,
+    panel: NonNullable<PanelSession['writLimitPanel']>
+): ActionBlock[] {
+    return [
+        line('flow', panel.line),
+        {
+            kind: 'writs',
+            rows: panel.writs.map((writ) => ({
+                writId: writ.writId,
+                choice: writ,
+                press: () => session.pressDraftChoice(writ)
+            }))
+        },
+        primaryBlock(panel.primary, () => session.sendFollowUp()),
+        ...atWillBlocks(session)
+    ]
+}
+
+/** R-4.10.1 Each pawn to feed, with its feeds as rows that brighten it. */
+function nourishBlocks(
+    session: PanelSession,
+    panel: NonNullable<PanelSession['nourishPanel']>
+): ActionBlock[] {
+    return [
+        line('flow', 'Feed your pawns'),
+        ...panel.pawns.flatMap(({ n, label, choices }) =>
+            rows(
+                `pawn:${n}`,
+                choices.map((choice) => draftRow(session, choice)),
+                label
+            )
+        ),
+        ...rows(
+            'covers',
+            (panel.covers ?? []).map((choice) => draftRow(session, choice))
+        ),
+        primaryBlock(panel.primary, () => session.sendFollowUp()),
+        ...atWillBlocks(session)
+    ]
+}
+
+/** R-4.3.4 Each filled landscape, with what collecting it pays. */
+function landscapesBlocks(
+    session: PanelSession,
+    panel: NonNullable<PanelSession['landscapesPanel']>
+): ActionBlock[] {
+    return [
+        line('flow', 'Collect your landscapes'),
+        ...panel.spaces.flatMap((space) =>
+            rows(`landscape:${space.spaceId}`, [draftRow(session, space)], space.place)
+        ),
+        ...rows(
+            'barrel',
+            (panel.barrel ?? []).map((choice) => draftRow(session, choice))
+        ),
+        primaryBlock(panel.primary, () => session.sendFollowUp())
+    ]
+}
+
 function turnBlocks(session: PanelSession, turn: NonNullable<PanelSession['turnPanel']>) {
     const move = session.movePanel
     const guild = session.guildPanel
@@ -401,6 +616,7 @@ function turnBlocks(session: PanelSession, turn: NonNullable<PanelSession['turnP
                 press: () => session.pressTurnCard(kind)
             }))
         },
+        ...atWillBlocks(session),
         ...rows('replays', asTurnRows(turn.replays)),
         ...rows('modes', asTurnRows(turn.modes.length > 1 ? turn.modes : [])),
         ...turn.refusals.map((text) => line('refusal', text)),
@@ -412,43 +628,137 @@ function turnBlocks(session: PanelSession, turn: NonNullable<PanelSession['turnP
     ] satisfies ActionBlock[]
 }
 
+/** The decision of this moment, or the line of what the table waits for. */
+function decisionBlocks(session: PanelSession): readonly ActionBlock[] {
+    const goods = session.startingGoodsPanel
+    const pawn = session.startingPawnPanel
+    const hand = session.handPanel
+    const answerAttack = session.answerAttackPanel
+    const answerStarve = session.answerStarvePanel
+    const keep = session.keepWritsPanel
+    const favours = session.favoursPanel
+    const commit = session.commitPanel
+    const disc = session.discPanel
+    const writLimit = session.writLimitPanel
+    const nourish = session.nourishPanel
+    const landscapes = session.landscapesPanel
+    const turn = session.turnPanel
+    const watching = session.watchingPanel
+    if (goods) {
+        return goodsBlocks(session, goods)
+    }
+    if (pawn) {
+        return pawnBlocks(session, pawn)
+    }
+    if (hand) {
+        return handBlocks(session, hand)
+    }
+    if (answerAttack) {
+        return answerAttackBlocks(session, answerAttack)
+    }
+    if (answerStarve) {
+        return answerStarveBlocks(session, answerStarve)
+    }
+    if (keep) {
+        return keepBlocks(session, keep)
+    }
+    if (favours) {
+        return favoursBlocks(session, favours)
+    }
+    if (commit) {
+        return commitBlocks(session, commit)
+    }
+    if (disc) {
+        return discBlocks(session, disc)
+    }
+    if (writLimit) {
+        return writLimitBlocks(session, writLimit)
+    }
+    if (nourish) {
+        return nourishBlocks(session, nourish)
+    }
+    if (landscapes) {
+        return landscapesBlocks(session, landscapes)
+    }
+    if (turn) {
+        return turnBlocks(session, turn)
+    }
+    return [
+        ...(watching?.line ? [line('waiting', watching.line)] : []),
+        ...(watching?.backs ? [{ kind: 'backs', count: watching.backs } satisfies ActionBlock] : [])
+    ]
+}
+
+function seatNames(session: PanelSession): SeatNames {
+    return {
+        nameOf: (playerId) => session.getPlayerName(playerId),
+        paintOf: (playerId) => paintOf(session, playerId)
+    }
+}
+
+/**
+ * The live rows of a shared step: one read for every seat (contract: Render ownership). A seat with
+ * its own preview of the tally, the attacker committing, draws that instead through the same block.
+ */
+function sharedBlocks(session: PanelSession): readonly ActionBlock[] {
+    const { orderRow, combatTally, commitPanel } = session
+    return [
+        ...(combatTally && !commitPanel
+            ? [
+                  {
+                      kind: 'tally',
+                      lines: combatTally.lines,
+                      ...(combatTally.note ? { note: combatTally.note } : {})
+                  } satisfies ActionBlock
+              ]
+            : []),
+        ...(orderRow
+            ? [{ ...orderRow, kind: 'order-row', seats: seatNames(session) } satisfies ActionBlock]
+            : [])
+    ]
+}
+
+/** R-4.11, R-4.12 What the round's end played, under whatever decision opened after it. */
+function roundEndBlocks(session: PanelSession): readonly ActionBlock[] {
+    const { roundEnd } = session
+    if (!roundEnd) {
+        return []
+    }
+    return [
+        ...roundEnd.lines.map((text) => line('round', text)),
+        ...(roundEnd.dawn
+            ? [
+                  {
+                      kind: 'dawn-sheet',
+                      sheet: roundEnd.dawn,
+                      seats: seatNames(session)
+                  } satisfies ActionBlock
+              ]
+            : [])
+    ]
+}
+
 /**
  * The action panel of this moment, in the order it stands: read from the session's panels, which
- * read the logic's offers. One moment at a time: setup, then selection, then a follow-up the seat
- * owes, then its card, or else the line of what the table waits for.
+ * read the logic's offers. One moment at a time: setup, then selection, then what the seat is asked
+ * or owes, then its card, or else the line of what the table waits for. The first line names the step
+ * for everyone, and a shared step's live row stands right under it; at game end the summary alone.
  */
 export function actionPanelOf(session: PanelSession): ActionPanelView {
-    const blocks = (): readonly ActionBlock[] => {
-        const goods = session.startingGoodsPanel
-        const pawn = session.startingPawnPanel
-        const hand = session.handPanel
-        const keep = session.keepWritsPanel
-        const favours = session.favoursPanel
-        const disc = session.discPanel
-        const turn = session.turnPanel
-        const watching = session.watchingPanel
-        if (goods) {
-            return goodsBlocks(session, goods)
-        }
-        if (pawn) {
-            return pawnBlocks(session, pawn)
-        }
-        if (hand) {
-            return handBlocks(session, hand)
-        }
-        if (keep) {
-            return keepBlocks(session, keep)
-        }
-        if (favours) {
-            return favoursBlocks(session, favours)
-        }
-        if (disc) {
-            return discBlocks(session, disc)
-        }
-        if (turn) {
-            return turnBlocks(session, turn)
-        }
-        return watching?.line ? [line('waiting', watching.line)] : []
+    const { gameEnd } = session
+    if (gameEnd) {
+        return { blocks: [{ kind: 'game-end', summary: gameEnd, seats: seatNames(session) }] }
     }
-    return { blocks: blocks() }
+    const decision = decisionBlocks(session)
+    const shared = sharedBlocks(session)
+    const [first, ...rest] = decision
+    const lineFirst = first?.kind === 'line'
+    return {
+        blocks: [
+            ...(lineFirst ? [first] : []),
+            ...shared,
+            ...(lineFirst ? rest : decision),
+            ...roundEndBlocks(session)
+        ]
+    }
 }

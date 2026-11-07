@@ -1,6 +1,6 @@
 import type { StagedSelectionState } from '@tabletop/frontend-components'
 import type { Good, TileId } from '@tabletop/feudum'
-import type { ChipNote } from './boardOffer.js'
+import type { BoardTarget, ChipNote } from './boardOffer.js'
 import type { FlowPlay } from './cardFlows.js'
 import type { TurnContext } from './cardModes.js'
 import type { SendPreview } from './confirmingSend.js'
@@ -15,6 +15,8 @@ export interface DraftChoice {
     readonly picked: boolean
     readonly refusal?: string
     readonly press?: () => void
+    /** What the row brightens on the board while pointed at (contract: Hover). */
+    readonly lights?: () => readonly BoardTarget[]
 }
 
 export function draftChoice(

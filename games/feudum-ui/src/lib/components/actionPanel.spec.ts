@@ -1,7 +1,9 @@
 // @vitest-environment node
+import type { WritId } from '@tabletop/feudum'
 import { render } from 'svelte/server'
 import { describe, expect, it } from 'vitest'
-import type { ActionBlock, ActionRow, LineRole } from '$lib/model/actionPanel.js'
+import WritFace from '$lib/components/pieces/WritFace.svelte'
+import type { ActionBlock, ActionRow, LineRole, SeatNames } from '$lib/model/actionPanel.js'
 import type { PanelChoice } from '$lib/model/cardFlows.js'
 import ActionPanelOnTable from '$lib/testing/ActionPanelOnTable.svelte'
 
@@ -264,5 +266,202 @@ describe('R-X.2 the primary', () => {
             send: nothing
         })
         expect(off).toMatch(/<button[^>]*\bdisabled\b/)
+    })
+})
+
+const Charter: WritId = 'writ.charter.sulfur-barrel'
+
+const seats: SeatNames = {
+    nameOf: (playerId) => ({ p1: 'Ana', p2: 'Ben' })[playerId] ?? playerId,
+    paintOf: () => paint
+}
+
+/** What one marked element holds, up to the next of its kind. */
+function partsOf(markup: string, attribute: string): readonly string[] {
+    return markup.split(`${attribute}=`).slice(1)
+}
+
+describe('R-4.10, R-4.12.3 the order row', () => {
+    const row = markupOf({
+        kind: 'order-row',
+        step: 'nourish',
+        seats,
+        entries: [
+            { playerId: 'p1', done: true, next: false, fedByGame: true },
+            { playerId: 'p2', done: false, next: true }
+        ]
+    })
+
+    it('S53 names the seats in order, ticks those done, marks the next', () => {
+        expect(row).toContain('Nourish')
+        const [ana, ben] = partsOf(row, 'data-order-seat')
+        expect(ana).toContain('✓')
+        expect(ana).not.toContain('data-next')
+        expect(ben).toContain('data-next')
+        expect(ben).not.toContain('✓')
+    })
+
+    it('S53 D11 the seat the game fed says so, and only that seat', () => {
+        const [ana, ben] = partsOf(row, 'data-order-seat')
+        expect(ana).toContain('fed by the game')
+        expect(ben).not.toContain('fed by the game')
+    })
+
+    it('S55 the landscapes step heads the same row', () => {
+        const landscapes = markupOf({
+            kind: 'order-row',
+            step: 'landscapes',
+            seats,
+            entries: [{ playerId: 'p1', done: false, next: true }]
+        })
+        expect(landscapes).toContain('Landscapes')
+        expect(landscapes).toContain('data-order-row="landscapes"')
+    })
+})
+
+describe('R-4.12 the dawn sheet', () => {
+    const sheet = markupOf({
+        kind: 'dawn-sheet',
+        seats,
+        sheet: {
+            epoch: 2,
+            rows: [
+                {
+                    playerId: 'p1',
+                    ranks: [{ guild: 'farmer', rank: 'master', vp: 5 }],
+                    landscapes: { empty: 1, filled: 2, vp: 4 },
+                    activeRegions: { regions: ['forest', 'desert'], vp: 2 },
+                    disloyaltyVp: -3,
+                    total: 8
+                },
+                {
+                    playerId: 'p2',
+                    ranks: [],
+                    landscapes: { empty: 0, filled: 0, vp: 0 },
+                    activeRegions: { regions: [], vp: 0 },
+                    disloyaltyVp: 0,
+                    total: 0
+                }
+            ],
+            fills: ['Sea 2: archery-butt +3'],
+            notes: ['New goods on the map']
+        }
+    })
+
+    it('S54 a row per seat with ranks, landscapes, active regions, disloyalty and total', () => {
+        const [ana] = partsOf(sheet, 'data-dawn-row')
+        expect(ana).toMatch(/data-dawn-ranks[^>]*>[\s\S]*Farmer master · 5/)
+        expect(ana).toMatch(/data-dawn-landscapes[^>]*>\s*1 empty, 2 filled · 4/)
+        expect(ana).toMatch(/data-dawn-regions[^>]*>\s*2 · 2/)
+        expect(ana).toMatch(/data-dawn-total[^>]*>8/)
+    })
+
+    it('S54 disloyalty stands in rose only where it costs', () => {
+        const [ana, ben] = partsOf(sheet, 'data-dawn-row')
+        expect(ana).toMatch(/text-feudum-danger[^>]*data-dawn-disloyalty[^>]*>-3/)
+        expect(ben).not.toContain('text-feudum-danger')
+    })
+
+    it('R-4.12.3, R-4.12.4 the fills and what came after follow the rows', () => {
+        expect(sheet).toContain('Sea 2: archery-butt +3')
+        expect(sheet).toContain('New goods on the map')
+        expect(sheet.indexOf('data-dawn-row')).toBeLessThan(sheet.indexOf('data-dawn-note'))
+    })
+})
+
+describe('R-6.2, R-6.3 the game-end summary', () => {
+    const score = { label: '0', vp: 0 }
+    const column = {
+        fifthDawn: 3,
+        voyage: { label: 'No disc', vp: 0 },
+        largeEmpire: score,
+        shillings: score
+    }
+    const summary = (tieBreak?: string) =>
+        markupOf({
+            kind: 'game-end',
+            seats,
+            summary: {
+                winnerLine: 'Ana wins',
+                ...(tieBreak ? { tieBreak } : {}),
+                columns: [
+                    {
+                        ...column,
+                        playerId: 'p1',
+                        charters: [{ writId: Charter, vp: 6 }],
+                        score: 9,
+                        winner: true
+                    },
+                    { ...column, playerId: 'p2', charters: [], score: 3, winner: false }
+                ]
+            }
+        })
+
+    it('S56 lists every category for every seat', () => {
+        const rows = [...summary().matchAll(/data-game-end-row="([^"]+)"/g)].map(([, name]) => name)
+        expect(rows).toEqual(['dawn', 'voyage', 'empire', 'shillings', 'charters', 'total'])
+        const seatsDrawn = [...summary().matchAll(/data-game-end-seat="([^"]+)"/g)]
+        expect(seatsDrawn.map(([, name]) => name)).toEqual(['Ana', 'Ben'])
+    })
+
+    it('S56 a sealed charter stands face up, with its score', () => {
+        const props = { writId: Charter, width: 72 }
+        const face = render(WritFace, { props: { ...props, faceShown: true } }).body
+        const back = render(WritFace, { props: { ...props, faceShown: false } }).body
+        expect(face).not.toEqual(back)
+        const [charter] = partsOf(summary(), 'data-game-end-charter')
+        const drawing = (markup: string) =>
+            markup.slice(markup.indexOf('<svg'), markup.indexOf('</svg>'))
+        expect(charter).toContain(drawing(face))
+        expect(charter).not.toContain(drawing(back))
+        expect(charter).toMatch(/<span>6<\/span>/)
+    })
+
+    it('S56 R-6.3 the tie-break is named when it broke a tie, and is absent otherwise', () => {
+        expect(textOf(summary('Ana has the fuller barrel'), 'data-game-tie-break')).toBe(
+            'Ana has the fuller barrel'
+        )
+        expect(summary()).not.toContain('data-game-tie-break')
+    })
+})
+
+describe('R-4.4 the writ rows of a seat and of those watching', () => {
+    it('S18 the drawn count stands as that many backs, naming no writ', () => {
+        const backs = markupOf({ kind: 'backs', count: 2 })
+        const back = render(WritFace, { props: { faceShown: false, width: 48 } }).body
+        const svg = back.slice(back.indexOf('<svg'), back.indexOf('</svg>'))
+        expect(backs).toContain('data-writ-backs="2"')
+        expect(backs.split(svg).length - 1).toBe(2)
+    })
+
+    it('S50 each writ offered is a face, with its own buttons beneath', () => {
+        const offers = markupOf({
+            kind: 'writ-offers',
+            offers: [
+                { writId: Charter, name: 'Charter', rows: [aRow('Seal')] },
+                { writId: 'writ.mandate.3', name: 'Mandate', rows: [aRow('A'), aRow('Discard')] }
+            ]
+        })
+        const [charter, mandate] = partsOf(offers, 'data-writ-offer')
+        expect(charter).toContain('Seal')
+        expect(charter).not.toContain('Discard')
+        expect(mandate).toContain('Discard')
+    })
+})
+
+describe('contract, Render ownership: one component draws each shared row', () => {
+    it('only the panel blocks draw them, so the panel and the waiting view cannot differ', () => {
+        const components = import.meta.glob('./**/*.svelte', {
+            query: '?raw',
+            import: 'default',
+            eager: true
+        })
+        const shared = ['CombatTally', 'DawnSheet', 'FinaliseRow', 'GameEndSummary', 'OrderRow']
+        for (const name of shared) {
+            const importers = Object.entries(components)
+                .filter(([, source]) => String(source).includes(`import ${name} from`))
+                .map(([file]) => file)
+            expect(importers, name).toEqual(['./panel/PanelBlocks.svelte'])
+        }
     })
 })

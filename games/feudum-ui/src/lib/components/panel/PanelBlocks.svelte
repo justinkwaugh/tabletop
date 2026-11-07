@@ -3,10 +3,15 @@
     import type { ActionBlock, ActionPanelView, LineRole } from '$lib/model/actionPanel.js'
     import CardChoice from './CardChoice.svelte'
     import CombatTally from './CombatTally.svelte'
+    import DawnSheet from './DawnSheet.svelte'
     import FinaliseRow from './FinaliseRow.svelte'
+    import GameEndSummary from './GameEndSummary.svelte'
     import GoodCounts from './GoodCounts.svelte'
+    import OrderRow from './OrderRow.svelte'
     import RowChoice from './RowChoice.svelte'
+    import WritBacks from './WritBacks.svelte'
     import WritChoice from './WritChoice.svelte'
+    import WritOffers from './WritOffers.svelte'
 
     /** The panel's blocks in the order they stand; left aligned, with the send on the right. */
     let { view, pointer }: { view: ActionPanelView; pointer: RowPointer } = $props()
@@ -18,7 +23,8 @@
         warning: 'text-xs text-feudum-danger',
         note: 'text-xs text-feudum-text-muted',
         waiting: 'text-sm text-feudum-text-muted',
-        refusal: 'text-xs text-feudum-text-muted'
+        refusal: 'text-xs text-feudum-text-muted',
+        round: 'text-sm font-semibold text-feudum-text'
     }
 
     function dataOf(role: LineRole) {
@@ -29,7 +35,8 @@
             warning: { 'data-warning': '' },
             note: { 'data-note-line': '' },
             waiting: { 'data-waiting': '' },
-            refusal: { 'data-refusal-line': '' }
+            refusal: { 'data-refusal-line': '' },
+            round: { 'data-round-line': '' }
         }[role]
     }
 
@@ -70,6 +77,16 @@
                     <WritChoice {row} {pointer} />
                 {/each}
             </div>
+        {:else if block.kind === 'writ-offers'}
+            <WritOffers offers={block.offers} {pointer} />
+        {:else if block.kind === 'backs'}
+            <WritBacks count={block.count} />
+        {:else if block.kind === 'order-row'}
+            <OrderRow step={block.step} entries={block.entries} seats={block.seats} />
+        {:else if block.kind === 'dawn-sheet'}
+            <DawnSheet sheet={block.sheet} seats={block.seats} />
+        {:else if block.kind === 'game-end'}
+            <GameEndSummary summary={block.summary} seats={block.seats} />
         {:else if block.kind === 'rows'}
             <div class="flex flex-wrap items-center gap-1" data-rows={block.name}>
                 {#if block.heading}

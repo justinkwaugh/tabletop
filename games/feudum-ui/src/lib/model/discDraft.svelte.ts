@@ -130,7 +130,10 @@ export class DiscDraft extends DeciderDraft<DiscValues> {
                 ? { covers: `Space ${offer.space} · covers −${Math.abs(offer.penalty)}` }
                 : {}),
             freeDiscs: `Free discs: ${free} of ${PlayerDiscRoles.shared}`,
-            place: draftChoice(placementOf(offer), placing, this.pressPlace, this.refusal),
+            place: {
+                ...draftChoice(placementOf(offer), placing, this.pressPlace, this.refusal),
+                lights: () => [discTarget(offer)]
+            },
             keep: draftChoice('Keep the disc', false, () => {
                 this.set('place', false)
             }),
