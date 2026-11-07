@@ -461,12 +461,12 @@ Each gives the start, the input, the result, the result after Undo or exit, and 
 **Guilds**
 
 - **S40. Guild pick and functions.** Pick Guild: guild areas this seat may use light; a guild used this round is unlit. Press Merchant: the popup lists Trade, Pull and Push with costs and outcomes; a function the seat holds no rank for is dimmed with its reason. Undo closes the popup, then the card. Auto.
-- **S41. Merchant pull with count.** Journeyman of Merchant: the bench shows the barn (left) and market (right). Press iron, iron, wood: ghosts land in the bins' next spaces; one row and two columns complete; the toggle preselects "Columns (2)"; the result line reads "3 vp · 2 writs, keep 1 · can't be undone". Undo takes back the last good. Send: goods fly barn → market; the keep follows. Auto.
+- **S41. Merchant pull with count.** Journeyman of Merchant: the bench shows the barn (left, or above on the phone) and market (right, or below). Press iron, iron, wood: ghosts land in the bins' next spaces; one row and two columns complete; the toggle preselects "Columns (2)"; the result line reads "3 vp · 2 writs, keep 1 · can't be undone". Undo takes back the last good. Send: goods fly barn → market; the keep follows. Auto.
 - **S42. Below threshold.** A pull that completes nothing: the result line reads "0 vp · no writ"; the primary sends without "can't be undone". Auto.
 - **S43. Alchemist push inventions.** Master of Alchemist with carts for a ship and a krud barrel: press Ship, then Krud barrel (first price); the barrel fills the leading section of every Knight row as ghosts. Send: goods to the haversack, the ship to the vessel space, markers into the rows. Auto.
-- **S44. Knight trade and tame.** With 4 markers in the seat's row: "3s: take 4 markers"; the popup offers the behemoth. Pick it: the bench collapses to its header, and the spaces it may be deployed to light. Press one: sent; three markers leave, one to the monster icon, the behemoth appears with the seat's collar. Undo reopens the bench, then the popup. Auto.
+- **S44. Knight trade and tame.** With 4 markers in the seat's row: "3s: take 4 markers"; the popup offers the behemoth. Pick it: when it may be deployed to more than one space, the bench collapses to its header and those spaces light; press one (a single space is picked for you): sent; three markers leave, one to the monster icon, the behemoth appears with the seat's collar. Undo reopens the bench, then the popup. Auto.
 - **S45. Noble pull picks.** Rows of two colours, then two empty scroll spaces: a third row press of a used colour does nothing. Seals land unseen (crowned discs). Auto.
-- **S46. Monk trade.** The two candidate beads are lit; "Draw a bead · can't be undone". Send: one rises and settles in the seat panel with its value; the other stays. Auto.
+- **S46. Monk trade.** The two candidate beads are lit; "Draw a bead · can't be undone". Send: both rise; the drawn one settles in the seat panel with its value; the other returns to its place. Auto.
 - **S47. Feast.** With barrel sulfur, on a space shared with Ana (Merchant master): "feast · 1 barrel sulfur"; the popup lists "Ana · Merchant push". The bench opens for Merchant push; the result line includes "+3 vp feast" and no reeve. Auto.
 - **S48. Short payment covered.** A `Migrate` short of its food with a tile held: the primary becomes "Cover with a tile"; pick the tile and the good. Without a tile: the mode is dimmed with its reason. Guild prices are in shillings, which a tile never brings, so a short price is dimmed with its reason and offers no cover (R-4.6.2). Feast short of barrel sulfur with a tile is dimmed with "Undo, then spend a region tile." (R-4.3-H3). Auto.
 - **S49. Reeve offer.** After a scoring push with a free disc and no reeve there: "Place a reeve in the Merchant Guild?" Place: the disc lands beside the rank; +1 vp. "Keep the disc" leaves it. Auto.
@@ -477,7 +477,7 @@ Each gives the start, the input, the result, the result after Undo or exit, and 
 - **S51. Seal a charter.** "Seal · 1 seal": sent; others see a sealed back and the count; the owner sees the face dimmed "sealed". Auto.
 - **S52. Writ limit.** End a card holding 4 writs: `DiscardingWrits` opens; discard one: it shows face up, goes under; the turn passes. Playing a mandate from the row instead also brings it to 3. Auto.
 - **S53. Nourish choice.** Three pawns, one food, one barrel sulfur: the preselection feeds food, wine and leaves the third "Unfed" in rose; the seat picks which pawn that is. Send: food flies to the haversack, the sulfur sits on the wine-fed pawn, the unfed pawn flies home. A seat with no choice is "fed by the game". Auto.
-- **S54. Progress roll and dawn.** The die tumbles, settles on Desert; a tile II is removed. When four tile II tops show, the epoch sky glows on II, and the dawn sheet shows each seat's ranks, landscapes, active regions and disloyalty (rose). Score discs slide. Auto (with a fixed die) and Manual for the motion.
+- **S54. Progress roll and dawn.** The die tumbles, settles on Desert; its tile I is removed, showing a tile II. When four tile II tops show, the epoch sky glows on II, and the dawn sheet shows each seat's ranks, landscapes, active regions and disloyalty (rose). Score discs slide. Auto (with a fixed die) and Manual for the motion.
 - **S55. Collect landscapes.** At a dawn, the asked serf's filled landscapes light; collect one, leave one: resources fly as chosen, one to the ruler. Auto.
 - **S56. End of game.** After the V dawn: the summary lists every category, sealed charters face up with scores, and a tie broken by barrel sulfur named. Auto.
 
@@ -547,23 +547,23 @@ Each scenario is marked automated (with its spec) or checked (with date and widt
 - S37: automated (`followUpDrafts.spec.ts`: the win comes from the logic package; the markers home `flightLayer.spec.ts`; the flip and the rank changes in the log, on the Action that caused them, `actionDescriptions.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosConquer.spec.ts`
 - S38: automated (`followUpPanels.spec.ts`, `waitingView.spec.ts`; the seal under the marker `mapLayers.spec.ts`; browser `tests/followUpPanels.spec.ts`; the seal's slide `boardAnimators.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosConquer.spec.ts`
 - S39: automated (`followUpPanels.spec.ts`, `atWillDraft.spec.ts`; the seal's flight `flightLayer.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosConquer.spec.ts`
-- S40: automated (`guildDraft.spec.ts`; browser `tests/bench.spec.ts`)
-- S41: automated (`guildDraft.spec.ts`, `benchOffer.spec.ts`, `bench.spec.ts`, the barn-to-market pair on send `boardAnimators.spec.ts`; browser `tests/bench.spec.ts`; the legs to and from a seat's panel `flightLayer.spec.ts`)
-- S42: automated (`guildDraft.spec.ts`, `bench.spec.ts`; browser `tests/bench.spec.ts`)
-- S43: automated (`guildDraft.spec.ts`, `benchOffer.spec.ts`, `bench.spec.ts`, the Knight row's fill on send `boardAnimators.spec.ts`; browser `tests/bench.spec.ts`; the legs to and from a seat's panel `flightLayer.spec.ts`)
-- S44: automated (`guildDraft.spec.ts`, `bench.spec.ts`, the marker onto the icon `boardAnimators.spec.ts`; browser `tests/bench.spec.ts`; the returned markers' flight `flightLayer.spec.ts`)
-- S45: automated (`guildDraft.spec.ts`, `benchOffer.spec.ts`, `bench.spec.ts`; browser `tests/bench.spec.ts`)
-- S46: automated (`guildDraft.spec.ts`, `bench.spec.ts`; browser `tests/bench.spec.ts`; the bead's rise and settling on send `flightLayer.spec.ts`)
-- S47: automated (`guildDraft.spec.ts`, `bench.spec.ts`; browser `tests/bench.spec.ts`)
-- S48: automated (`turnDraft.spec.ts`, `guildDraft.spec.ts`; browser `tests/bench.spec.ts`)
-- S49: pending
-- S50: partly automated (`followUpPanels.spec.ts`, `atWillDraft.spec.ts`; browser `tests/followUpPanels.spec.ts`; the writ shown to all then going under `flightLayer.spec.ts`); open: the margin's count
-- S51: partly automated (`followUpPanels.spec.ts`, `atWillDraft.spec.ts`; browser `tests/followUpPanels.spec.ts`); open: what others see of the sealed back on the drawn panel
-- S52: partly automated (`followUpPanels.spec.ts`; browser `tests/followUpPanels.spec.ts`; the writ shown to all then going under `flightLayer.spec.ts`); open: a mandate from the row bringing it to 3
-- S53: partly automated (`followUpPanels.spec.ts`, `followUpDrafts.spec.ts`, `waitingView.spec.ts`; browser `tests/followUpPanels.spec.ts`; the flights `flightLayer.spec.ts`)
-- S54: partly automated (`waitingView.spec.ts`, `components/actionPanel.spec.ts`; browser `tests/followUpPanels.spec.ts`; the die's tumble, the epoch glow, the score discs' slide `boardAnimators.spec.ts`, browser `tests/boardAnimators.spec.ts`); open: Manual
-- S55: partly automated (`followUpPanels.spec.ts`, `waitingView.spec.ts`; browser `tests/followUpPanels.spec.ts`; the flights `flightLayer.spec.ts`)
-- S56: automated (`waitingView.spec.ts`, `components/actionPanel.spec.ts`; browser `tests/followUpPanels.spec.ts`)
+- S40: automated (`guildDraft.spec.ts`; browser `tests/bench.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosGuilds.spec.ts`
+- S41: automated (`guildDraft.spec.ts`, `benchOffer.spec.ts`, `bench.spec.ts`, the barn-to-market pair on send `boardAnimators.spec.ts`; browser `tests/bench.spec.ts`; the legs to and from a seat's panel `flightLayer.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosGuilds.spec.ts`
+- S42: automated (`guildDraft.spec.ts`, `bench.spec.ts`; browser `tests/bench.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosGuilds.spec.ts`
+- S43: automated (`guildDraft.spec.ts`, `benchOffer.spec.ts`, `bench.spec.ts`, the Knight row's fill on send `boardAnimators.spec.ts`; browser `tests/bench.spec.ts`; the legs to and from a seat's panel `flightLayer.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosGuilds.spec.ts`
+- S44: automated (`guildDraft.spec.ts`, `bench.spec.ts`, the marker onto the icon `boardAnimators.spec.ts`; browser `tests/bench.spec.ts`; the returned markers' flight `flightLayer.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosGuilds.spec.ts`
+- S45: automated (`guildDraft.spec.ts`, `benchOffer.spec.ts`, `bench.spec.ts`; browser `tests/bench.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosGuilds.spec.ts`
+- S46: automated (`guildDraft.spec.ts`, `bench.spec.ts`; browser `tests/bench.spec.ts`; the bead's rise and settling on send `flightLayer.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosGuilds.spec.ts`
+- S47: automated (`guildDraft.spec.ts`, `bench.spec.ts`; browser `tests/bench.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosGuilds.spec.ts`
+- S48: automated (`turnDraft.spec.ts`, `guildDraft.spec.ts`; browser `tests/bench.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosGuilds.spec.ts`
+- S49: automated (browser at desktop and phone by named fixture, `tests/scenariosGuilds.spec.ts`)
+- S50: automated (`followUpPanels.spec.ts`, `atWillDraft.spec.ts`; browser `tests/followUpPanels.spec.ts`; the writ shown to all then going under `flightLayer.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosRoundEnd.spec.ts`
+- S51: automated (`followUpPanels.spec.ts`, `atWillDraft.spec.ts`; browser `tests/followUpPanels.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosRoundEnd.spec.ts`
+- S52: automated (`followUpPanels.spec.ts`; browser `tests/followUpPanels.spec.ts`; the writ shown to all then going under `flightLayer.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosRoundEnd.spec.ts`
+- S53: automated (`followUpPanels.spec.ts`, `followUpDrafts.spec.ts`, `waitingView.spec.ts`; browser `tests/followUpPanels.spec.ts`; the flights `flightLayer.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosRoundEnd.spec.ts`
+- S54: partly automated (`waitingView.spec.ts`, `components/actionPanel.spec.ts`; browser `tests/followUpPanels.spec.ts`; the die's tumble, the epoch glow, the score discs' slide `boardAnimators.spec.ts`, browser `tests/boardAnimators.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosRoundEnd.spec.ts`; open: Manual for the motion
+- S55: automated (`followUpPanels.spec.ts`, `waitingView.spec.ts`; browser `tests/followUpPanels.spec.ts`; the flights `flightLayer.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosRoundEnd.spec.ts`
+- S56: automated (`waitingView.spec.ts`, `components/actionPanel.spec.ts`; browser `tests/followUpPanels.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosRoundEnd.spec.ts`
 - S57: automated for the log (`actionDescriptions.spec.ts`: from real projections for another seat and a spectator, and from a Local game's canonical Action, no hand or writ face in a line; Host View and the actor name them); the seat panel and the enlarged backs in `seatPanel.spec.ts`
 - S58: pending
 - S59: pending
