@@ -21,7 +21,7 @@ export type PieceModel = {
 
 export const PIECE_MODEL: PieceModel = {
     thickness: 0.2826,
-    gap: 0.2826 * 0.32,
+    gap: 0.2826 * 0.24,
     cap: 5
 }
 

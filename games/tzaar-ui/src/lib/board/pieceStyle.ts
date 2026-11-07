@@ -65,20 +65,74 @@ function speckShape(random: () => number) {
     }
 }
 
-// Over the whole top, out to just inside the rounded edge; the drawing lowers those in the
-// hollows to their floors and leaves out those on metal.
+type SpeckShape = ReturnType<typeof speckShape>
+type Spot = [number, number]
+
+// How many places each speck tries before it settles in the one with the most room round it
+// (best-candidate sampling), so flecks spread evenly, with no bare patches and no clumps, yet in
+// no pattern.
+const SPREAD = 10
+// Only specks within NEAR of a place are looked at, kept in a grid of cells that size.
+const NEAR = 0.15
+
+// Places `count` specks, each shaped first, then at the best of SPREAD places: the one whose
+// edge is furthest from any placed speck's. Places are on a flat plane, as fractions of the
+// radius.
+function spread(
+    count: number,
+    random: () => number,
+    place: () => Spot
+): (SpeckShape & { at: Spot })[] {
+    const placed: (SpeckShape & { at: Spot })[] = []
+    const cells = new Map<number, (SpeckShape & { at: Spot })[]>()
+    // A cell's key, from its column and row; places never reach 50 cells from the middle.
+    const cellKey = (column: number, row: number) => (column + 50) * 100 + row + 50
+    for (let index = 0; index < count; index++) {
+        const speck = speckShape(random)
+        const extent = speck.r * speck.stretch
+        let best = place()
+        let bestRoom = -Infinity
+        for (let attempt = 0; attempt < SPREAD; attempt++) {
+            const candidate = attempt === 0 ? best : place()
+            // Beyond the cells round it, a speck is at least NEAR away.
+            let room = NEAR - extent
+            const column = Math.floor(candidate[0] / NEAR)
+            const row = Math.floor(candidate[1] / NEAR)
+            for (let dx = -1; dx <= 1; dx++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                    for (const other of cells.get(cellKey(column + dx, row + dy)) ?? []) {
+                        const gap =
+                            Math.hypot(candidate[0] - other.at[0], candidate[1] - other.at[1]) -
+                            extent -
+                            other.r * other.stretch
+                        if (gap < room) room = gap
+                    }
+                }
+            }
+            if (room > bestRoom) {
+                bestRoom = room
+                best = candidate
+            }
+        }
+        const settled = { ...speck, at: best }
+        placed.push(settled)
+        const key = cellKey(Math.floor(best[0] / NEAR), Math.floor(best[1] / NEAR))
+        const cell = cells.get(key)
+        if (cell) cell.push(settled)
+        else cells.set(key, [settled])
+    }
+    return placed
+}
+
+// Over the whole top, out to the edge; the drawing keeps each off the lips and the edge, lowers
+// those in the hollows to their floors and leaves out those on metal (specks.ts).
 export function topSpecks(tone: Tone, seed: number): Speck[] {
     const random = seededRandom(seed)
-    const outer = 0.95
-    return Array.from({ length: speckCount(tone, Math.PI * outer ** 2) }, () => {
+    return spread(speckCount(tone, Math.PI), random, () => {
         const angle = random() * Math.PI * 2
-        const distance = Math.sqrt(random()) * outer
-        return {
-            x: Math.cos(angle) * distance,
-            y: Math.sin(angle) * distance,
-            ...speckShape(random)
-        }
-    })
+        const distance = Math.sqrt(random())
+        return [Math.cos(angle) * distance, Math.sin(angle) * distance]
+    }).map(({ at: [x, y], ...speck }) => ({ x, y, ...speck }))
 }
 
 // A fleck on a top seen from a board turned `quarterTurns` quarter turns clockwise, as the board
@@ -89,13 +143,20 @@ export function turnSpeck(speck: Speck, quarterTurns: number): Speck {
     return { ...speck, x, y, angle: speck.angle + 90 * quarterTurns }
 }
 
-// The near half of the outer side, `thickness` of the radius tall.
+// How far round the front half side specks reach, short of where the side is seen edge on.
+const SIDE_REACH = 0.96
+
+// The near half of the outer side, `thickness` of the radius tall: evenly round it, out to where
+// it turns away at either side, and nearly its full height.
 export function sideSpecks(tone: Tone, seed: number, thickness: number): SideSpeck[] {
     const random = seededRandom(seed ^ 0x5f3759df)
-    return Array.from({ length: speckCount(tone, Math.PI * thickness) }, () => ({
-        x: (random() * 2 - 1) * 0.94,
-        v: 0.2 + random() * 0.6,
-        ...speckShape(random)
+    return spread(speckCount(tone, Math.PI * thickness), random, () => [
+        (random() - 0.5) * Math.PI * SIDE_REACH,
+        (0.05 + random() * 0.9) * thickness
+    ]).map(({ at: [round, up], ...speck }) => ({
+        x: Math.sin(round),
+        v: up / thickness,
+        ...speck
     }))
 }
 

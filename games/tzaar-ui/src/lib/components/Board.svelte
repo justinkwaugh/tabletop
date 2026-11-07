@@ -172,7 +172,7 @@
     {@attach animator.attach}
 >
     <defs>
-        <PieceDefs prefix="tzaar-board" />
+        <PieceDefs prefix="tzaar-board" {radius} />
         <!-- Soft shadows as gradients rather than a blur filter: WebKit leaves the pixels of a
              removed piece under a filter on screen until something else repaints there. -->
         <radialGradient id="tzaar-shadow">

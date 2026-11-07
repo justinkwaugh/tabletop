@@ -22,6 +22,6 @@
     aria-hidden="true"
     class="inline-block"
 >
-    <defs><PieceDefs {prefix} tones={[tone]} /></defs>
+    <defs><PieceDefs {prefix} radius={PIECE_RADIUS} /></defs>
     <StackShape {prefix} pieces={[{ tone, kind, seedKey: `icon-${kind}` }]} radius={PIECE_RADIUS} />
 </svg>
