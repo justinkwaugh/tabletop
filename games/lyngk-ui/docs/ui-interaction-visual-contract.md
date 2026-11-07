@@ -30,7 +30,7 @@
 ## 4. Shared State Contracts
 
 - **Animation scope**: the board animates only `own-action`, `other-action`, `undo`, `history` and `exploration` transitions; page loads, server syncs and view switches show the board at rest. Without an action (undo, state-only history) the animator reads the move from the two boards (`board/inferMove.ts`, using the stack scored between the states when both points empty), finds its route again (`board/route.ts` `shortestRoute`, the route the UI commits) and flies it forward, or back retracing its LYNGK-points: 0.18 s for a direct move, 0.14 s per hop for a chain.
-- **Staged selection** (`selection`: `from`): manual choices only. The route through LYNGK-points never changes the outcome, so a move is one tap on its destination. Undo lets go of the chosen stack, then undoes the last committed action; a tap on the board that hits nothing choosable (`session.letGo()`) also lets go of it. Cleared in `beforeNewState` for every presented transition.
+- **Staged selection** (`selection`: `from`): manual choices only. The route through LYNGK-points never changes the outcome, so a move is one tap on its destination. Undo lets go of the chosen stack, then undoes the last committed action; a tap on the board that hits nothing choosable (`session.letGo()`) also lets go of it. Cleared in `beforeNewState` for every presented transition, except that undoing a move picks its stack up again (`holdUndoneStack`, a manual choice, so a further Undo lets go of it) when it had more than one place to land, checked on the state being shown (`incomingGameState`); with only one place, nothing is held.
 - **Target lists**: derived from the displayed state; empty when the viewer cannot act, including in History View.
 
 ## 5. Forbidden Couplings
@@ -49,6 +49,7 @@
 - Choose a stack: rings on every landing it can reach, cyan spots on the LYNGK-points; tap the chosen stack again to put it back, or tap the blank board or a stack with no move to let go.
 - Lyngk chain scenario: claim black, choose E7, tap G2 (reached through E5 and G4, which show cyan spots); the stack hops through both, lifts away and scores.
 - Undo after a chain: the stack flies back; no stack left hidden.
+- Undo a move whose stack had several landings: it is held again, its landings marked; Undo again lets go. Undo a move with a single landing: nothing is held.
 - History View: no marks or targets.
 
 ## 8. Change Rules

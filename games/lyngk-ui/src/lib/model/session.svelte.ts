@@ -150,7 +150,29 @@ export class LyngkGameSession extends GameSession<LyngkGameState, HydratedLyngkG
 
     override beforeNewState({ kind }: PresentedTransition): void {
         this.resetAction()
-        if (kind !== 'undo') this.undoingMove = undefined
+        if (kind === 'undo') {
+            this.holdUndoneStack()
+        } else {
+            this.undoingMove = undefined
+        }
+    }
+
+    // Taking a move back picks its stack up again, as it was held just before it landed, so
+    // another place can be tapped; unless it had only the one place to go. A further Undo lets go
+    // of it.
+    private holdUndoneStack() {
+        const move = this.undoingMove
+        const state = this.incomingGameState
+        if (move === undefined || state === undefined) return
+        const landings = uniqueCoords(
+            state
+                .pathsFor(move.playerId)
+                .filter((path) => sameCoordinates(path.from, move.from))
+                .map((path) => path.to)
+        )
+        if (landings.length > 1) {
+            this.selection = setLyngkSelection({}, 'from', coordsKey(move.from))
+        }
     }
 
     // A tap lands the chosen stack, or picks up (or puts back) a stack.
