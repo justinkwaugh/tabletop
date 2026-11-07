@@ -4,7 +4,8 @@ import {
     assertExists,
     GameEngine,
     type Game,
-    type GameAction
+    type GameAction,
+    type StartingPositionAssignment
 } from '@tabletop/common'
 import { answerAttackOffer } from '../actions/answerAttack.js'
 import { chooseFavoursOffer, type ChooseFavoursOffer } from '../actions/chooseFavours.js'
@@ -556,9 +557,14 @@ export interface WalkPlan {
  * Plays a whole game from the seed: user Actions only, each chosen from the real offers on the state
  * reached, so nothing is edited by hand and the input alone replays it.
  */
-export function walkGame(masterSeed: string, numPlayers = 3, plan?: WalkPlan): GameWalk {
+export function walkGame(
+    masterSeed: string,
+    numPlayers = 3,
+    plan?: WalkPlan,
+    startingPositions?: StartingPositionAssignment
+): GameWalk {
     const game = testGame(numPlayers)
-    const initial = engine.startGame(game, { masterSeed }).initialState
+    const initial = engine.startGame(game, { masterSeed, startingPositions }).initialState
     const progress = new Progress()
     const steps: WalkStep[] = []
     let state = initial

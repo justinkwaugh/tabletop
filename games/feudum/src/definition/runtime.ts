@@ -5,6 +5,7 @@ import { FeudumApiActions } from './apiActions.js'
 import { FeudumColors } from './colors.js'
 import { FeudumHydrator } from './hydrator.js'
 import { FeudumGameInitializer } from './initializer.js'
+import { FeudumProgression } from './progression.js'
 import { FeudumScoring } from './scoring.js'
 import { FeudumStateHandlers } from './stateHandlers.js'
 
@@ -17,5 +18,6 @@ export const FeudumRuntime = {
     apiActions: FeudumApiActions,
     playerColors: FeudumColors,
     scoring: new FeudumScoring(),
+    progression: new FeudumProgression(),
     stateLogger: new DefaultStateLogger()
 } satisfies GameRuntime<FeudumProjectedState, HydratedFeudumGameState>
