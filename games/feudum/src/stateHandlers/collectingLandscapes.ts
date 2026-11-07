@@ -6,6 +6,7 @@ import {
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { stateAfterLandscapes } from './replenishing.js'
 
 /** R-4.3.4, R-4.12.3, D12 One serf asked at a time, from `flow.landscapes.pending`. */
 export class CollectingLandscapesStateHandler implements MachineStateHandler<
@@ -33,10 +34,13 @@ export class CollectingLandscapesStateHandler implements MachineStateHandler<
         context.gameState.activePlayerIds = next ? [next] : []
     }
 
+    /** R-4.12.3 The next serf; after the last, the dawn goes on. */
     onAction(
         _action: HydratedCollectLandscapes,
-        _context: MachineContext<HydratedFeudumGameState>
+        context: MachineContext<HydratedFeudumGameState>
     ): MachineState {
-        return MachineState.CollectingLandscapes
+        return context.gameState.flow.landscapes
+            ? MachineState.CollectingLandscapes
+            : stateAfterLandscapes(context)
     }
 }

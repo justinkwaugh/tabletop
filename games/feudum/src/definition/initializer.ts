@@ -20,12 +20,7 @@ import {
     type FeudumProjectedState
 } from '../model/gameState.js'
 import { Regions } from '../data/board.js'
-import {
-    ComponentTotals,
-    StartingSupply,
-    VesselTypes,
-    type VesselType
-} from '../data/components.js'
+import { ComponentTotals, StartingSupply } from '../data/components.js'
 import { StartingDiscs } from '../data/discs.js'
 import {
     AlchemistCartSpaces,
@@ -37,6 +32,7 @@ import {
 import { EpochLandscapes, RegionTiles, TileEpochs } from '../data/regionTiles.js'
 import { boxContents, placeStartingDiscs } from '../model/boxContents.js'
 import { drawGood, drawGoods } from '../model/haversack.js'
+import { drawVesselsForSale } from '../model/guildRefill.js'
 import { flipSeal, moveConcealedSeal } from '../model/seals.js'
 import { payShillingsFromSupply, takeGoodFromHaversack } from '../model/supply.js'
 import { emptyPlayerRow, type FeudumPlayerState } from '../model/playerState.js'
@@ -96,22 +92,6 @@ function fillGuildGoods(state: HydratedFeudumGameState) {
         takeGoodFromHaversack(state, space.good)
         state.guilds.alchemist.carts[space.id] = true
     }
-}
-
-/** R-1.3 Drawn blind from the nine, so both may be of one type. */
-function drawVesselsForSale(state: HydratedFeudumGameState) {
-    const { vessels } = state.supply
-    const pool = VesselTypes.flatMap((vessel): VesselType[] =>
-        Array.from({ length: vessels[vessel] }, () => vessel)
-    )
-    const forSale = shuffled(pool, state.getProtectedPrng().random).slice(
-        0,
-        GuildSetupSpaces.alchemist.vessels
-    )
-    for (const vessel of forSale) {
-        vessels[vessel] -= 1
-    }
-    state.guilds.alchemist.vesselsForSale = forSale
 }
 
 /** R-1.3, R-1.4-H1 A row per seat, then dummy rows in unused colours; both from the general supply. */
@@ -178,7 +158,7 @@ function layOutTable(state: HydratedFeudumGameState) {
     dealLandscapes(state)
     placeLocationDiscs(state)
     fillGuildGoods(state)
-    drawVesselsForSale(state)
+    drawVesselsForSale(state, GuildSetupSpaces.alchemist.vessels)
     fillKnightRows(state)
     dealSeals(state)
     fillBarn(state)

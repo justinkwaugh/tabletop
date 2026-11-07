@@ -51,6 +51,9 @@ export const Landscapes: readonly Landscape[] = [
 /** R-4.3.4 What a landscape gains when placed and at each epoch dawn. */
 export const LandscapeFill = 3
 
+/** R-4.12.1 What a tended landscape scores at a dawn, before it fills. */
+export const LandscapeDawnVp = { empty: 2, filled: 4 } as const
+
 /** R-1.4-H2 The six landscapes printed on each epoch's tile backs, shuffled across the stacks at setup. */
 export const EpochLandscapes: Readonly<Record<TileEpoch, readonly LandscapeKind[]>> = {
     1: ['orchard', 'orchard', 'silver-mine', 'silver-mine', 'sulfur-mine', 'archery-butt'],

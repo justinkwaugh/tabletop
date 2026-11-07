@@ -14,5 +14,7 @@ export enum MachineState {
     Nourishing = 'Nourishing',
     CollectingLandscapes = 'CollectingLandscapes',
     ProgressRoll = 'ProgressRoll',
+    Dawn = 'Dawn',
+    Replenishing = 'Replenishing',
     EndOfRound = 'EndOfRound'
 }
