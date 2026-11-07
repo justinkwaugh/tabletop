@@ -15,6 +15,9 @@ import { SealCharter } from '../actions/sealCharter.js'
 import { SpendRegionTile } from '../actions/spendRegionTile.js'
 import { StartRound } from '../actions/startRound.js'
 import { AdvanceTurn } from '../actions/advanceTurn.js'
+import { EndRound } from '../actions/endRound.js'
+import { NourishPawns } from '../actions/nourishPawns.js'
+import { RollProgressDie } from '../actions/rollProgressDie.js'
 import { StarveThePeople } from '../actions/starveThePeople.js'
 import { CommitAttack } from '../actions/commitAttack.js'
 import { Conquer } from '../actions/conquer.js'
@@ -68,5 +71,8 @@ export const FeudumApiActions = {
     [ActionType.Nourish]: Nourish,
     [ActionType.CollectLandscapes]: CollectLandscapes,
     [ActionType.StartRound]: StartRound,
-    [ActionType.AdvanceTurn]: AdvanceTurn
+    [ActionType.AdvanceTurn]: AdvanceTurn,
+    [ActionType.NourishPawns]: NourishPawns,
+    [ActionType.RollProgressDie]: RollProgressDie,
+    [ActionType.EndRound]: EndRound
 }

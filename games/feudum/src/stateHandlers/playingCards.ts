@@ -119,7 +119,7 @@ export class PlayingCardsStateHandler implements MachineStateHandler<
         context: MachineContext<HydratedFeudumGameState>
     ): MachineState {
         if (isAdvanceTurn(action)) {
-            return stateAfterAdvance(action)
+            return stateAfterAdvance(action, context)
         }
         if (isAtWillAction(action)) {
             return MachineState.PlayingCards

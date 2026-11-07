@@ -5,6 +5,7 @@ import {
     type AdvanceTurnMetadata,
     type HydratedAdvanceTurn
 } from '../actions/advanceTurn.js'
+import { NourishPawns } from '../actions/nourishPawns.js'
 import { MachineState } from '../definition/states.js'
 import type { FollowUp } from '../model/flow.js'
 import { nextOpenFollowUp } from '../model/followUps.js'
@@ -43,10 +44,16 @@ const StatesAfterAdvance: Readonly<Record<AdvanceTurnMetadata['outcome'], Machin
 
 /**
  * The outcome and not the writ count decides: a seat newly on turn may be over the limit, and it
- * plays first (R-4.4.4).
+ * plays first (R-4.4.4). After the last card the game feeds every seat without a choice (R-4.10, D11).
  */
-export function stateAfterAdvance({ metadata }: HydratedAdvanceTurn): MachineState {
+export function stateAfterAdvance(
+    { metadata }: HydratedAdvanceTurn,
+    context: MachineContext<HydratedFeudumGameState>
+): MachineState {
     assertExists(metadata, 'R-3.2 AdvanceTurn has been applied')
+    if (metadata.outcome === 'last-card') {
+        context.addSystemAction(NourishPawns)
+    }
     return StatesAfterAdvance[metadata.outcome]
 }
 

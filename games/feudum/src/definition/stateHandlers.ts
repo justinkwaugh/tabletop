@@ -8,7 +8,9 @@ import { KeepingWritsStateHandler } from '../stateHandlers/keepingWrits.js'
 import { AwaitingDefenceStateHandler } from '../stateHandlers/awaitingDefence.js'
 import { AwaitingImmunityStateHandler } from '../stateHandlers/awaitingImmunity.js'
 import { CommittingAttackStateHandler } from '../stateHandlers/committingAttack.js'
+import { EndOfRoundStateHandler } from '../stateHandlers/endOfRound.js'
 import { NourishingStateHandler } from '../stateHandlers/nourishing.js'
+import { ProgressRollStateHandler } from '../stateHandlers/progressRoll.js'
 import { PlacingDiscStateHandler } from '../stateHandlers/placingDisc.js'
 import { PlacingStartingPawnStateHandler } from '../stateHandlers/placingStartingPawn.js'
 import { PlayingCardsStateHandler } from '../stateHandlers/playingCards.js'
@@ -32,5 +34,7 @@ export const FeudumStateHandlers: Record<
     [MachineState.KeepingWrits]: new KeepingWritsStateHandler(),
     [MachineState.DiscardingWrits]: new DiscardingWritsStateHandler(),
     [MachineState.Nourishing]: new NourishingStateHandler(),
-    [MachineState.CollectingLandscapes]: new CollectingLandscapesStateHandler()
+    [MachineState.CollectingLandscapes]: new CollectingLandscapesStateHandler(),
+    [MachineState.ProgressRoll]: new ProgressRollStateHandler(),
+    [MachineState.EndOfRound]: new EndOfRoundStateHandler()
 }

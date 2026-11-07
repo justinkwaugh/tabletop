@@ -273,16 +273,17 @@ describe('R-4.10, D11 who is asked', () => {
         expect(table.offered(playerId)).not.toContain(ActionType.Nourish)
     })
 
-    it('R-4.10 no seat is asked once everyone has answered', () => {
+    it('R-4.10, R-4.11.1 once everyone has answered the die comes next', () => {
         const { table, playerId } = asking({ pawns: ['farmer'], food: 1 })
-        table.send(playerId, Nourish)
+        let processed = table.send(playerId, Nourish)
         for (const seat of [...(table.hydrated().flow.nourish?.pending ?? [])]) {
             const { goods, pawns } = table.seat(seat)
             const onBoard = pawns.filter((pawn) => pawn.spaceId).map((pawn) => pawn.n)
-            table.send(seat, { ...Nourish, unfed: onBoard.slice(goods.food) })
+            expect(table.asked).toBe(seat)
+            processed = table.send(seat, { ...Nourish, unfed: onBoard.slice(goods.food) })
         }
 
-        expect(table.state.activePlayerIds).toEqual([])
+        expect(processed[1].type).toBe(ActionType.RollProgressDie)
         expect(table.hydrated().flow.nourish).toBeUndefined()
     })
 

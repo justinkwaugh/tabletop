@@ -5,6 +5,7 @@ import { FeudumApiActions } from '../definition/apiActions.js'
 import { PhaseName } from '../definition/phases.js'
 import { MachineState } from '../definition/states.js'
 import { FeudumGameState, HydratedFeudumGameState } from '../model/gameState.js'
+import { playOutCards } from '../testing/roundEnd.js'
 import { canonicalOf } from '../testing/state.js'
 import { tableAtPlayingCards, type Table } from '../testing/table.js'
 import { HydratedStartRound, isStartRound } from './startRound.js'
@@ -12,14 +13,13 @@ import { HydratedStartRound, isStartRound } from './startRound.js'
 const actionProjector = Visibility.createActionProjector(FeudumApiActions)
 const stateProjector = Visibility.createProjector(FeudumGameState)
 
-/** Back in `SelectingHands` as the round's end leaves a table, `edit` setting the round's traces. */
+/** R-2.2 The round plays out to its real end, `edit` setting its traces before the cards run out. */
 function startNextRound(table: Table, edit: (state: HydratedFeudumGameState) => void = () => {}) {
     table.moveTo((state) => {
-        state.flow.turn = undefined
         edit(state)
-        return MachineState.SelectingHands
+        return MachineState.PlayingCards
     })
-    return table.sendSystem({ type: ActionType.StartRound })
+    return playOutCards(table).filter((action) => isStartRound(action))
 }
 
 /** R-4.10.2 A barrel sulfur stands on the pawn: it leaves the personal supply, keeping totals. */
@@ -34,10 +34,6 @@ describe('StartRound', () => {
         const table = tableAtPlayingCards()
         expect(table.hydrated().roundManager.currentRound?.number).toBe(1)
 
-        table.moveTo((state) => {
-            state.roundManager.endRound(state.actionCount)
-            return MachineState.PlayingCards
-        })
         const [action] = startNextRound(table)
 
         expect(table.state.roundManager.series.map((round) => round.number)).toEqual([1, 2])
@@ -82,11 +78,9 @@ describe('StartRound', () => {
 
     it('R-3.1-H1 the selection order starts over from the first seat in turn order', () => {
         const table = tableAtPlayingCards()
-        const [first, second, ...rest] = table.order
+        const [, second] = table.order
 
-        startNextRound(table, (state) => {
-            state.turnManager.turnOrder = [second, ...rest, first]
-        })
+        startNextRound(table)
 
         expect(table.state.machineState).toBe(MachineState.SelectingHands)
         expect(table.state.flow.selection).toEqual({ playerId: second, finalised: [] })
@@ -106,7 +100,7 @@ describe('StartRound', () => {
         expect(action).toMatchObject({ metadata: { drunk: [{ playerId: first, n: 1 }] } })
     })
 
-    it('R-4.10.2 a pawn already drunk is not named again; with none, the list is empty', () => {
+    it('R-4.10.2 a pawn drunk this round has sobered by now, so is not named; the list is empty', () => {
         const table = tableAtPlayingCards()
         const [first] = table.order
 
@@ -114,18 +108,19 @@ describe('StartRound', () => {
             wineOnPawn(state, first, 'drunk')
         })
 
-        expect(table.seat(first).pawns[0].wine).toBe('drunk')
+        expect(table.seat(first).pawns[0].wine).toBeUndefined()
         expect(action).toMatchObject({ metadata: { drunk: [] } })
     })
 
-    it('R-3.3 leaves the pouch to the round’s end', () => {
+    it('R-3.3 the pouch was paid at the round’s end, before this', () => {
         const table = tableAtPlayingCards(() => ({
             cards: ['move', 'tax', 'guild', 'explore'],
             pouchGood: 'sulfur'
         }))
         const [first] = table.order
-        startNextRound(table)
         expect(table.seat(first).pouch).toBe('sulfur')
+        startNextRound(table)
+        expect(table.seat(first).pouch).toBeUndefined()
     })
 
     it('R-2.2 marks the hand selection phase', () => {
@@ -136,6 +131,8 @@ describe('StartRound', () => {
             PhaseName.Setup,
             PhaseName.HandSelection,
             PhaseName.Cards,
+            PhaseName.Nourish,
+            PhaseName.Progress,
             PhaseName.HandSelection
         ])
     })
@@ -182,9 +179,7 @@ describe('StartRound', () => {
     it('R-3.1-H1, R-3.2 the next round runs as the first, from its own starting player', () => {
         const table = tableAtPlayingCards()
         const [first, second, ...rest] = table.order
-        startNextRound(table, (state) => {
-            state.turnManager.turnOrder = [second, ...rest, first]
-        })
+        startNextRound(table)
 
         for (const playerId of [second, ...rest, first]) {
             expect(table.asked).toBe(playerId)

@@ -1,5 +1,6 @@
 import { ActionSource } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
+import type { PouchGood } from '../actions/finaliseHand.js'
 import { isStartRound } from '../actions/startRound.js'
 import { ActionType } from '../definition/actions.js'
 import { PhaseName } from '../definition/phases.js'
@@ -26,8 +27,9 @@ import {
     PawnOf,
     tableAtCombat
 } from '../testing/combat.js'
-import { setMaster } from '../testing/guilds.js'
+import { setMaster, setPawns } from '../testing/guilds.js'
 import { setUp } from '../testing/improving.js'
+import { playOutCards, typesOf } from '../testing/roundEnd.js'
 import { giveFood, starve, tableAtStarve } from '../testing/starve.js'
 import { Table, tableAtPlayingCards } from '../testing/table.js'
 import { stateAfterCardStep } from './cardTurns.js'
@@ -395,5 +397,267 @@ describe('R-4.4.4 DiscardingWrits', () => {
         for (const seat of table.order.filter((id) => id !== playerId)) {
             expect(table.offered(seat)).toEqual([])
         }
+    })
+})
+
+/** A round of one card each. `edit` sets the larders before the cards run out. */
+function tableAtRoundEnd(
+    numPlayers: number,
+    edit: (state: HydratedFeudumGameState, order: string[]) => void = () => {},
+    pouchOf: (playerId: string) => PouchGood | undefined = () => undefined
+) {
+    const table = tableAtPlayingCards((playerId) => {
+        const pouchGood = pouchOf(playerId)
+        return { cards: ['move'], ...(pouchGood ? { pouchGood } : {}) }
+    }, numPlayers)
+    table.moveTo((state) => {
+        edit(state, state.turnManager.turnOrder)
+        state.recomputeRanks()
+        return MachineState.PlayingCards
+    })
+    return table
+}
+
+/** R-1.4.4 Moves the seat's food to or from the haversack, keeping totals. */
+function setFood(state: HydratedFeudumGameState, playerId: string, food: number) {
+    const seat = state.getPlayerState(playerId)
+    state.supply.haversack.food += seat.goods.food - food
+    seat.goods.food = food
+}
+
+function giveBarrel(state: HydratedFeudumGameState, playerId: string) {
+    state.supply.haversack.sulfur -= 1
+    state.getPlayerState(playerId).barrel += 1
+}
+
+const RoundCascade = [
+    ActionType.ForfeitCard,
+    ActionType.AdvanceTurn,
+    ActionType.NourishPawns,
+    ActionType.RollProgressDie,
+    ActionType.EndRound,
+    ActionType.StartRound
+]
+
+describe('R-4.10, D11 NourishPawns', () => {
+    /** Food for all; food or wine; nothing at all; which pawn goes unfed. */
+    function fourLarders() {
+        return tableAtRoundEnd(4, (state, [fed, wineOrFood, starved, oneShort]) => {
+            setFood(state, fed, 1)
+            setFood(state, wineOrFood, 1)
+            giveBarrel(state, wineOrFood)
+            setFood(state, starved, 0)
+            setPawns(state, oneShort, ['farmer', 'monk'])
+            setFood(state, oneShort, 1)
+        })
+    }
+
+    it('D11 feeds every seat without a choice, and asks the others in turn order', () => {
+        const table = fourLarders()
+        const [fed, wineOrFood, starved, oneShort] = table.order
+
+        const processed = playOutCards(table)
+
+        expect(typesOf(processed)).toEqual(RoundCascade.slice(0, 3))
+        expect(table.state.machineState).toBe(MachineState.Nourishing)
+        expect(table.state.flow.nourish).toEqual({ pending: [wineOrFood, oneShort] })
+        expect(table.asked).toBe(wineOrFood)
+        expect(processed[2]).toMatchObject({
+            metadata: {
+                fed: [
+                    { playerId: fed, foodFed: [1], wineFed: [], returned: [] },
+                    { playerId: starved, foodFed: [], wineFed: [], returned: [{ n: 1 }] }
+                ]
+            }
+        })
+        expect(table.seat(fed).goods.food).toBe(0)
+        expect(table.seat(starved).pawns[0].spaceId).toBeUndefined()
+        expect(table.offered(fed)).toEqual([])
+        expect(table.offered(oneShort)).toEqual([])
+        expect(table.offered(wineOrFood)).toContain(ActionType.Nourish)
+    })
+
+    it('D11, R-4.11.1 the last seat asked sets off the rest of the round', () => {
+        const table = fourLarders()
+        const [, wineOrFood, , oneShort] = table.order
+        playOutCards(table)
+
+        table.send(wineOrFood, { type: ActionType.Nourish, wineFed: [], unfed: [] })
+        expect(table.asked).toBe(oneShort)
+        const processed = table.send(oneShort, {
+            type: ActionType.Nourish,
+            wineFed: [],
+            unfed: [2]
+        })
+
+        expect(typesOf(processed)).toEqual([ActionType.Nourish, ...RoundCascade.slice(3)])
+        expect(table.state.machineState).toBe(MachineState.SelectingHands)
+        expect(table.state.flow.nourish).toBeUndefined()
+    })
+
+    it('D11 with no choice and only wine, the game feeds wine', () => {
+        const table = tableAtRoundEnd(2, (state, [first]) => {
+            setFood(state, first, 0)
+            giveBarrel(state, first)
+        })
+        const [first] = table.order
+
+        const processed = playOutCards(table)
+
+        expect(processed[2]).toMatchObject({
+            metadata: { fed: [{ playerId: first, wineFed: [1], foodFed: [], returned: [] }, {}] }
+        })
+        expect(table.seat(first).barrel).toBe(0)
+    })
+
+    it('R-4.10.2 a seat whose every pawn holds sulfur, or with none on the board, is not named', () => {
+        const table = tableAtRoundEnd(2, (state, [first, second]) => {
+            const seat = state.getPlayerState(first)
+            seat.goods.sulfur -= 1
+            seat.pawns[0].wine = 'fed'
+            setPawns(state, second, [])
+        })
+
+        const processed = playOutCards(table)
+
+        expect(processed[2]).toMatchObject({ metadata: { fed: [] } })
+    })
+
+    it('R-4.5.2 status recomputes as an unfed pawn goes home', () => {
+        const table = tableAtRoundEnd(2, (state, [first]) => {
+            setFood(state, first, 0)
+            setMaster(state, first, 'monk')
+        })
+        const [first] = table.order
+
+        const processed = playOutCards(table)
+
+        expect(processed[2]).toMatchObject({
+            metadata: {
+                fed: [{ playerId: first, rankChanges: [{ guildId: 'monk', playerId: first }] }, {}]
+            }
+        })
+        expect(table.hydrated().guilds.tracks.monk.master?.playerId).not.toBe(first)
+    })
+
+    it('R-2.2 with nobody asked the round runs through; only the die is a barrier', () => {
+        const table = tableAtRoundEnd(2)
+
+        const processed = playOutCards(table)
+
+        expect(typesOf(processed)).toEqual(RoundCascade)
+        expect(
+            processed.filter((action) => action.revealsInfo).map((action) => action.type)
+        ).toEqual([ActionType.RollProgressDie])
+        expect(table.state.phaseManager.series.map((phase) => phase.name).slice(-3)).toEqual([
+            PhaseName.Nourish,
+            PhaseName.Progress,
+            PhaseName.HandSelection
+        ])
+    })
+
+    it.each([MachineState.ProgressRoll, MachineState.EndOfRound])(
+        'R-2.2 %s asks nobody and offers nothing',
+        (machineState) => {
+            const table = tableAtRoundEnd(2)
+            table.moveTo(() => machineState)
+
+            expect(table.state.activePlayerIds).toEqual([])
+            for (const playerId of table.order) {
+                expect(table.offered(playerId)).toEqual([])
+            }
+        }
+    )
+})
+
+describe('R-2.2.5 EndRound', () => {
+    it.each(Seats)('R-2.2.5 passes the starting player clockwise, %i seats', (numPlayers) => {
+        const table = tableAtRoundEnd(numPlayers)
+        const [first, second, ...rest] = table.order
+        const seating = table.state.players.map((player) => player.playerId)
+
+        const processed = playOutCards(table)
+
+        expect(table.order).toEqual([second, ...rest, first])
+        expect(table.hydrated().startingPlayerId).toBe(second)
+        expect(table.asked).toBe(second)
+        expect(table.state.players.map((player) => player.playerId)).toEqual(seating)
+        expect(processed.find((action) => action.type === ActionType.EndRound)).toMatchObject({
+            metadata: { startingPlayerId: second }
+        })
+    })
+
+    it('R-3.3 pays each pouch good to the haversack, used or not', () => {
+        const pouches: Record<string, PouchGood> = { p1: 'saltpeter', p2: 'sulfur', p3: 'sulfur' }
+        const table = tableAtRoundEnd(
+            3,
+            () => {},
+            (playerId) => pouches[playerId]
+        )
+        const { saltpeter, sulfur } = table.hydrated().supply.haversack
+
+        const processed = playOutCards(table)
+
+        const { supply } = table.hydrated()
+        expect(supply.haversack.saltpeter).toBe(saltpeter + 1)
+        expect(supply.haversack.sulfur).toBe(sulfur + 2)
+        for (const playerId of table.order) {
+            expect(table.seat(playerId).pouch).toBeUndefined()
+        }
+        const endRound = processed.find((action) => action.type === ActionType.EndRound)
+        expect(endRound).toMatchObject({
+            metadata: {
+                pouchesPaid: expect.arrayContaining([
+                    { playerId: 'p1', good: 'saltpeter' },
+                    { playerId: 'p2', good: 'sulfur' },
+                    { playerId: 'p3', good: 'sulfur' }
+                ])
+            }
+        })
+    })
+
+    it('R-4.10.2 wine feeds two rounds: fed, drunk, then the sulfur goes back', () => {
+        const table = tableAtRoundEnd(2, (state, [first]) => {
+            setFood(state, first, 0)
+            giveBarrel(state, first)
+        })
+        const [first, second] = table.order
+        const nextRound = () => {
+            for (const playerId of [...table.order]) {
+                table.send(playerId, {
+                    type: ActionType.FinaliseHand,
+                    revealsInfo: true,
+                    cards: ['move', 'tax', 'guild', 'explore']
+                })
+            }
+            return playOutCards(table)
+        }
+
+        const roundOne = playOutCards(table)
+        const end = (processed: typeof roundOne) =>
+            processed.find((action) => action.type === ActionType.EndRound)
+        expect(end(roundOne)).toMatchObject({ metadata: { sobered: [] } })
+        expect(table.seat(first).pawns[0].wine).toBe('drunk')
+        const { sulfur } = table.hydrated().supply.haversack
+
+        const roundTwo = nextRound()
+
+        expect(table.seat(first).pawns[0].wine).toBeUndefined()
+        expect(table.seat(first).pawns[0].spaceId).toBeDefined()
+        expect(end(roundTwo)).toMatchObject({
+            metadata: { sobered: [{ playerId: first, n: 1 }] }
+        })
+        expect(table.hydrated().supply.haversack.sulfur).toBe(sulfur + 1)
+        expect(table.seat(second).pawns[0].wine).toBeUndefined()
+
+        // R-4.10.1 Sober and with nothing to eat, it goes home in the third round.
+        nextRound()
+        expect(table.seat(first).pawns[0].spaceId).toBeUndefined()
+    })
+
+    it('R-2.2 the round manager closes the round; the next is numbered on', () => {
+        const table = tableAtRoundEnd(2)
+        playOutCards(table)
+        expect(table.state.roundManager.series.map((round) => round.number)).toEqual([1, 2])
     })
 })

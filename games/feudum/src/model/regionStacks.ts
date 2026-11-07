@@ -82,15 +82,8 @@ export interface CollectedTile {
     readonly landscape: LandscapeKind
 }
 
-/**
- * R-3.9.1, R-1.4-H2 Takes a stack's top tile to the seat's collection. The tile's back shows from
- * here on, so its landscape moves from the vault to public state.
- */
-export function collectTopTile(
-    state: HydratedFeudumGameState,
-    playerId: string,
-    region: RegionId
-): CollectedTile {
+/** R-1.4-H2 A stack's top tile leaves it. Its back shows from here on: vault to public state. */
+function liftTopTile(state: HydratedFeudumGameState, region: RegionId): CollectedTile {
     const vault = state.requireVault()
     const tileId = state.regionStacks[region].shift()
     assertExists(tileId, `R-4.3.1 The ${region} stack has a tile`)
@@ -98,6 +91,23 @@ export function collectTopTile(
     assertExists(landscape, `R-1.4-H2 Tile ${tileId} has a landscape`)
     delete vault.tileLandscapes[tileId]
     state.tileLandscapes[tileId] = landscape
-    state.getPlayerState(playerId).regionTiles.push(tileId)
     return { tile: tileById(tileId), landscape }
+}
+
+/** R-3.9.1 Takes a stack's top tile to the seat's collection. */
+export function collectTopTile(
+    state: HydratedFeudumGameState,
+    playerId: string,
+    region: RegionId
+): CollectedTile {
+    const collected = liftTopTile(state, region)
+    state.getPlayerState(playerId).regionTiles.push(collected.tile.id)
+    return collected
+}
+
+/** R-4.11.1, R-4.11-H2 The die takes a stack's top tile out of the game. */
+export function removeTopTile(state: HydratedFeudumGameState, region: RegionId): CollectedTile {
+    const removed = liftTopTile(state, region)
+    state.tilesOutOfGame.push(removed.tile.id)
+    return removed
 }
