@@ -1,14 +1,15 @@
 <script lang="ts">
     import { MARBLE_COLORS, type MarbleColor } from '@tabletop/zertz'
     import { MARBLE_RADIUS, VIEW } from '$lib/board/geometry.js'
-    import { SPECK_DENSITY } from '$lib/board/marbleSpecks.js'
     import MarbleLook from './MarbleLook.svelte'
 
+    // A marble off the board, specked as the board's are; `seed` gives it its own specks.
     let {
         color,
+        seed = MARBLE_COLORS.indexOf(color) + 1,
         size = 18,
         faded = false
-    }: { color: MarbleColor; size?: number; faded?: boolean } = $props()
+    }: { color: MarbleColor; seed?: number; size?: number; faded?: boolean } = $props()
 
     const r = MARBLE_RADIUS
 </script>
@@ -21,13 +22,7 @@
     viewBox="{-r} {-r} {2 * r} {2 * r}"
     aria-hidden="true"
 >
-    <MarbleLook
-        {color}
-        seed={MARBLE_COLORS.indexOf(color) + 1}
-        view={VIEW}
-        speckDensity={SPECK_DENSITY * 0.28}
-        speckGrowth={1.7}
-    />
+    <MarbleLook {color} {seed} view={VIEW} />
 </svg>
 
 <style>

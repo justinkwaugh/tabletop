@@ -4,7 +4,7 @@ import type { HistoryEntry } from './historyEntries.js'
 
 export type Segment =
     | { kind: 'text'; text: string }
-    | { kind: 'marble'; color: MarbleColor }
+    | { kind: 'marble'; color: MarbleColor; seed: number }
     | { kind: 'ring'; coords: AxialCoordinates }
     | { kind: 'step' }
 
@@ -14,26 +14,26 @@ export type Segment =
 // where a placed marble came from. The history panel reads the full one.
 export function entrySegments(entry: HistoryEntry, isMe: boolean, brief = false): Segment[] {
     const text = (value: string): Segment => ({ kind: 'text', text: value })
-    const marble = (color: MarbleColor): Segment => ({ kind: 'marble', color })
+    const marble = (color: MarbleColor, seed: number): Segment => ({ kind: 'marble', color, seed })
     const ring = (coords: AxialCoordinates): Segment => ({ kind: 'ring', coords })
 
     if (entry.kind === 'capture') {
         return [
             text(' jumped '),
-            marble(entry.jumper),
+            marble(entry.jumper, entry.jumperSeed),
             text(' '),
             ...(brief ? [entry.path[0], entry.path[entry.path.length - 1]] : entry.path).flatMap(
                 (coords, index) =>
                     index === 0 ? [ring(coords)] : [{ kind: 'step' } as const, ring(coords)]
             ),
             text(', capturing '),
-            ...entry.captured.map(marble)
+            ...entry.captured.map(({ color, seed }) => marble(color, seed))
         ]
     }
 
     return [
         text(' placed '),
-        marble(entry.color),
+        marble(entry.color, entry.seed),
         text(' on '),
         ring(entry.placedAt),
         ...(entry.fromCaptures && !brief
@@ -43,8 +43,9 @@ export function entrySegments(entry: HistoryEntry, isMe: boolean, brief = false)
         ...(entry.claimed.length > 0 ? [text(brief ? ' and claimed ' : ' and claimed')] : []),
         ...entry.claimed.flatMap((claimed) => {
             if (claimed.marble === undefined) return []
-            if (brief) return [marble(claimed.marble)]
-            return [text(' '), marble(claimed.marble), text(' '), ring(claimed.coords)]
+            const shown = marble(claimed.marble, claimed.seed)
+            if (brief) return [shown]
+            return [text(' '), shown, text(' '), ring(claimed.coords)]
         })
     ]
 }

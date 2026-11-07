@@ -17,19 +17,32 @@ export type MarbleSeeds = ReadonlyMap<string, number>
 
 export function marbleSeedsAfter(actions: readonly GameAction[]): MarbleSeeds {
     const seeds = new Map<string, number>()
-    actions.forEach((action, index) => {
-        if (isPlaceMarble(action)) {
-            seeds.set(coordsKey(action.coords), placementSeed(action.coords, index))
-        } else if (isCapture(action)) {
-            const seed = seedAt(seeds, action.from)
-            seeds.delete(coordsKey(action.from))
-            if (action.metadata !== undefined) seeds.delete(coordsKey(action.metadata.over))
-            seeds.set(coordsKey(action.to), seed)
-        }
-    })
+    actions.forEach((action, index) => applyToSeeds(seeds, action, index))
     return seeds
+}
+
+// Moves the seeds on past the game's action number `index`.
+export function applyToSeeds(seeds: Map<string, number>, action: GameAction, index: number) {
+    if (isPlaceMarble(action)) {
+        seeds.set(coordsKey(action.coords), placementSeed(action.coords, index))
+    } else if (isCapture(action)) {
+        const seed = seedAt(seeds, action.from)
+        seeds.delete(coordsKey(action.from))
+        if (action.metadata !== undefined) seeds.delete(coordsKey(action.metadata.over))
+        seeds.set(coordsKey(action.to), seed)
+    }
 }
 
 export function seedAt(seeds: MarbleSeeds, coords: AxialCoordinates): number {
     return seeds.get(coordsKey(coords)) ?? coordinatesToNumber(coords)
+}
+
+// A seed for a marble drawn off the board (an icon), from where it is drawn, so each icon has its
+// own specks and keeps them as the page redraws.
+export function textSeed(text: string): number {
+    let hash = 0x811c9dc5
+    for (let index = 0; index < text.length; index++) {
+        hash = Math.imul(hash ^ text.charCodeAt(index), 0x01000193)
+    }
+    return hash >>> 0
 }

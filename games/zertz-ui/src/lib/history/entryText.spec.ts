@@ -28,12 +28,13 @@ describe('entrySegments', () => {
                 ...span,
                 kind: 'placement',
                 color: MarbleColor.Black,
+                seed: 1,
                 placedAt: { q: 0, r: 0 },
                 fromCaptures: false,
                 removedAt: { q: -2, r: 2 },
                 claimed: [
-                    { coords: { q: -2, r: 3 }, marble: MarbleColor.Grey },
-                    { coords: { q: -3, r: 3 }, marble: MarbleColor.White }
+                    { coords: { q: -2, r: 3 }, marble: MarbleColor.Grey, seed: 2 },
+                    { coords: { q: -3, r: 3 }, marble: MarbleColor.White, seed: 2 }
                 ]
             },
             false
@@ -48,6 +49,7 @@ describe('entrySegments', () => {
             ...span,
             kind: 'placement' as const,
             color: MarbleColor.Grey,
+            seed: 1,
             placedAt: { q: 1, r: 0 },
             fromCaptures: true,
             claimed: []
@@ -62,12 +64,16 @@ describe('entrySegments', () => {
                 ...span,
                 kind: 'capture',
                 jumper: MarbleColor.White,
+                jumperSeed: 1,
                 path: [
                     { q: 0, r: 0 },
                     { q: 2, r: 0 },
                     { q: 2, r: -2 }
                 ],
-                captured: [MarbleColor.Grey, MarbleColor.Black]
+                captured: [
+                    { color: MarbleColor.Grey, seed: 2 },
+                    { color: MarbleColor.Black, seed: 3 }
+                ]
             },
             false
         )
@@ -79,12 +85,13 @@ describe('entrySegments', () => {
             ...span,
             kind: 'placement' as const,
             color: MarbleColor.Black,
+            seed: 1,
             placedAt: { q: 0, r: 0 },
             fromCaptures: true,
             removedAt: { q: -2, r: 2 },
             claimed: [
-                { coords: { q: -2, r: 3 }, marble: MarbleColor.Grey },
-                { coords: { q: -3, r: 3 }, marble: MarbleColor.White }
+                { coords: { q: -2, r: 3 }, marble: MarbleColor.Grey, seed: 2 },
+                { coords: { q: -3, r: 3 }, marble: MarbleColor.White, seed: 2 }
             ]
         }
         expect(read(entrySegments(placement, true, true))).toBe(
@@ -97,12 +104,16 @@ describe('entrySegments', () => {
             ...span,
             kind: 'capture' as const,
             jumper: MarbleColor.White,
+            jumperSeed: 1,
             path: [
                 { q: 0, r: 0 },
                 { q: 2, r: 0 },
                 { q: 2, r: -2 }
             ],
-            captured: [MarbleColor.Grey, MarbleColor.Black]
+            captured: [
+                { color: MarbleColor.Grey, seed: 2 },
+                { color: MarbleColor.Black, seed: 3 }
+            ]
         }
         expect(read(entrySegments(chain, false, true))).toBe(
             ' jumped (white) 0,0→2,-2, capturing (grey)(black)'

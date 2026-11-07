@@ -1,6 +1,7 @@
 <script lang="ts">
     import { hasAnyMarble, MARBLE_COLORS, type MarbleColor } from '@tabletop/zertz'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { textSeed } from '$lib/board/marbleSeeds.js'
     import MarbleIcon from './MarbleIcon.svelte'
 
     const session = getGameSession()
@@ -37,7 +38,12 @@
                 aria-label="{color} marble, {supply[color]} left"
                 onclick={() => session.chooseColor(color)}
             >
-                <MarbleIcon {color} size={26} faded={supply[color] === 0} />
+                <MarbleIcon
+                    {color}
+                    seed={textSeed(`pool ${color}`)}
+                    size={26}
+                    faded={supply[color] === 0}
+                />
                 <span class="count">{supply[color]}</span>
             </button>
         {/each}

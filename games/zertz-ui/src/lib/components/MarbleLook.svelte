@@ -8,25 +8,21 @@
     import { speckPaths } from '$lib/board/marbleSpecks.js'
 
     // A marble about its centre: its colour's lit body, its own specks, and the shine over them.
-    // Icons draw fewer, larger specks; the looks page passes the images it has just drawn.
+    // The looks page passes the images it has just drawn.
     let {
         color,
         seed,
         view,
-        speckDensity,
-        speckGrowth,
         urls = LOOK_URLS
     }: {
         color: MarbleColor
         seed: number
         view: BoardView
-        speckDensity?: number
-        speckGrowth?: number
         urls?: Record<string, string>
     } = $props()
 
     const box = marbleBox()
-    const specks = $derived(speckPaths(view, color, seed, speckDensity, speckGrowth))
+    const specks = $derived(speckPaths(view, color, seed))
 </script>
 
 <circle r={MARBLE_RADIUS} class="marble-hit"></circle>

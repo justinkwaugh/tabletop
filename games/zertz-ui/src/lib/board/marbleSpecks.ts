@@ -50,17 +50,11 @@ export type SpeckPath = { d: string; fill: string }
 
 const drawn = new Map<string, SpeckPath[]>()
 
-// The specks of the marble with this seed, about its centre. Icons draw fewer, larger ones.
-export function speckPaths(
-    view: BoardView,
-    color: MarbleColor,
-    seed: number,
-    density = SPECK_DENSITY,
-    grow = 1
-): SpeckPath[] {
+// The specks of the marble with this seed, about its centre.
+export function speckPaths(view: BoardView, color: MarbleColor, seed: number): SpeckPath[] {
     const speckColor = SPECK_COLOR[color]
     if (!speckColor) return []
-    const key = `${color} ${seed} ${view.turned} ${density} ${grow}`
+    const key = `${color} ${seed} ${view.turned}`
     const known = drawn.get(key)
     if (known) return known
 
@@ -68,7 +62,7 @@ export function speckPaths(
     const up = screenUpOf(view)
     const albedo = linear(speckColor)
     const byShade = new Map<number, string[]>()
-    for (const speck of surfaceSpecks(color, seed, density)) {
+    for (const speck of surfaceSpecks(color, seed)) {
         const [x, y, z] = speck.direction
         const direction: Vec = view.turned ? [-x, -y, z] : [x, y, z]
         const facing = dot(direction, eye)
@@ -81,7 +75,7 @@ export function speckPaths(
         // Long across the line from the centre, short along it.
         const [cx, cy] = [direction[0], -dot(direction, up)].map((at) => at * MARBLE_RADIUS)
         const across = Math.atan2(cy, cx) + Math.PI / 2
-        const rx = speck.size * grow * MARBLE_RADIUS
+        const rx = speck.size * MARBLE_RADIUS
         const ry = rx * facing
         const [dx, dy] = [rx * Math.cos(across), rx * Math.sin(across)]
         const angle = (across * 180) / Math.PI

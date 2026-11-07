@@ -46,7 +46,13 @@ const MARBLE_REFLECTION: Record<MarbleColor, number> = {
 }
 
 // An image in board units: `pixels` per unit, its top left at (x, y) on screen.
-export type Bitmap = { x: number; y: number; width: number; height: number; data: Uint8ClampedArray }
+export type Bitmap = {
+    x: number
+    y: number
+    width: number
+    height: number
+    data: Uint8ClampedArray
+}
 
 function environment(direction: Vec): Rgb {
     if (direction[2] >= 0) return ROOM
@@ -146,7 +152,10 @@ export function renderRing(view: BoardView, pixels = LOOK_PIXELS, lighting = LIG
                     const lc = sx * sx + y0 * y0 - b * b
                     const ld = lb * lb - 4 * la * lc
                     if (ld >= 0) {
-                        for (const t of [(-lb + Math.sqrt(ld)) / (2 * la), (-lb - Math.sqrt(ld)) / (2 * la)]) {
+                        for (const t of [
+                            (-lb + Math.sqrt(ld)) / (2 * la),
+                            (-lb - Math.sqrt(ld)) / (2 * la)
+                        ]) {
                             const z = t * tilt
                             if (z >= height - shell && z <= height) hits.push({ t, surface: 'lip' })
                         }

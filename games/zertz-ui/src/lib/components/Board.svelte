@@ -10,12 +10,7 @@
     import { includesCoords } from '$lib/model/session.svelte.js'
     import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
     import { placementSeed, seedAt } from '$lib/board/marbleSeeds.js'
-    import {
-        coordsKey,
-        RING_MID_RADIUS,
-        RING_OUTER_RADIUS,
-        TILT
-    } from '$lib/board/geometry.js'
+    import { coordsKey, RING_MID_RADIUS, RING_OUTER_RADIUS, TILT } from '$lib/board/geometry.js'
     import {
         MARBLE_SHADOW_RADIUS,
         MARBLE_SHADOW_STOPS,
@@ -94,7 +89,12 @@
         const coords = session.chosenPlace
         const color = session.chosenColor
         if (coords === undefined || color === undefined) return undefined
-        return { coords, color, seed: placementSeed(coords, session.gameState.actionCount), drops: true }
+        return {
+            coords,
+            color,
+            seed: placementSeed(coords, session.gameState.actionCount),
+            drops: true
+        }
     })
 
     function activate(ring: Ring, role: RingRole) {

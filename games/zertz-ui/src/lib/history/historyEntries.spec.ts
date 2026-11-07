@@ -7,6 +7,8 @@ import {
     type Capture,
     type PlaceMarble
 } from '@tabletop/zertz'
+import { coordinatesToNumber } from '@tabletop/common'
+import { placementSeed } from '$lib/board/marbleSeeds.js'
 import { historyEntries } from './historyEntries.js'
 
 const base = (id: string, playerId: string) => ({
@@ -68,12 +70,21 @@ describe('historyEntries', () => {
                 lastIndex: 0,
                 playerId: 'p0',
                 color: MarbleColor.Grey,
+                seed: placementSeed({ q: 0, r: 0 }, 0),
                 placedAt: { q: 0, r: 0 },
                 fromCaptures: false,
                 removedAt: { q: 3, r: 0 },
                 claimed: [
-                    { coords: { q: 0, r: 5 }, marble: MarbleColor.White },
-                    { coords: { q: 0, r: 6 }, marble: MarbleColor.Black }
+                    {
+                        coords: { q: 0, r: 5 },
+                        marble: MarbleColor.White,
+                        seed: coordinatesToNumber({ q: 0, r: 5 })
+                    },
+                    {
+                        coords: { q: 0, r: 6 },
+                        marble: MarbleColor.Black,
+                        seed: coordinatesToNumber({ q: 0, r: 6 })
+                    }
                 ]
             }
         ])
@@ -104,12 +115,16 @@ describe('historyEntries', () => {
                 lastIndex: 1,
                 playerId: 'p0',
                 jumper: MarbleColor.White,
+                jumperSeed: coordinatesToNumber({ q: 0, r: 0 }),
                 path: [
                     { q: 0, r: 0 },
                     { q: 2, r: 0 },
                     { q: 4, r: 0 }
                 ],
-                captured: [MarbleColor.Black, MarbleColor.White]
+                captured: [
+                    { color: MarbleColor.Black, seed: coordinatesToNumber({ q: 0, r: 0 }) },
+                    { color: MarbleColor.White, seed: coordinatesToNumber({ q: 0, r: 0 }) }
+                ]
             },
             {
                 kind: 'capture',
@@ -118,12 +133,37 @@ describe('historyEntries', () => {
                 lastIndex: 2,
                 playerId: 'p1',
                 jumper: MarbleColor.White,
+                jumperSeed: coordinatesToNumber({ q: 2, r: 0 }),
                 path: [
                     { q: 2, r: 0 },
                     { q: 4, r: 0 }
                 ],
-                captured: [MarbleColor.Grey]
+                captured: [{ color: MarbleColor.Grey, seed: coordinatesToNumber({ q: 2, r: 0 }) }]
             }
         ])
+    })
+
+    it('names each marble with the specks it had on the board', () => {
+        const place = (id: string, q: number): PlaceMarble => ({
+            ...placement(id, 'p0', MarbleColor.Grey, false),
+            coords: { q, r: 0 }
+        })
+        const capture: Capture = {
+            ...base('c', 'p1'),
+            type: ActionType.Capture,
+            from: { q: 0, r: 0 },
+            to: { q: 2, r: 0 },
+            metadata: {
+                jumper: MarbleColor.Grey,
+                over: { q: 1, r: 0 },
+                captured: MarbleColor.Grey,
+                continues: false
+            }
+        }
+        const [, , jump] = historyEntries([place('a', 0), place('b', 1), capture])
+        expect(jump).toMatchObject({
+            jumperSeed: placementSeed({ q: 0, r: 0 }, 0),
+            captured: [{ color: MarbleColor.Grey, seed: placementSeed({ q: 1, r: 0 }, 1) }]
+        })
     })
 })

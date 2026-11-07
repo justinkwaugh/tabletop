@@ -2,6 +2,7 @@
     import { EndReason } from '@tabletop/zertz'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { victoryOf } from '$lib/model/victory.js'
+    import { textSeed } from '$lib/board/marbleSeeds.js'
     import MarbleIcon from './MarbleIcon.svelte'
 
     const session = getGameSession()
@@ -28,7 +29,7 @@
                 {nameOf(victory.loserId)} had no marble to place
             {:else if 'color' in victory}
                 with {victory.count}
-                <MarbleIcon color={victory.color} size={16} />
+                <MarbleIcon color={victory.color} seed={textSeed('game end')} size={16} />
                 {victory.color} marbles
             {:else}
                 with {victory.eachColor} marbles of each colour

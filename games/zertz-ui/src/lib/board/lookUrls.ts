@@ -9,6 +9,6 @@ export const LOOK_URLS: Record<string, string> = {
     'marble-black': marbleBlack,
     'marble-grey': marbleGrey,
     'marble-white': marbleWhite,
-    'ring': ring,
-    'shine': shine
+    ring: ring,
+    shine: shine
 }

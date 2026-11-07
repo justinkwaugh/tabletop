@@ -1,6 +1,7 @@
 <script lang="ts">
     import { MARBLE_COLORS, SETUP_RULES, type HydratedZertzPlayerState } from '@tabletop/zertz'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { textSeed } from '$lib/board/marbleSeeds.js'
     import MarbleIcon from './MarbleIcon.svelte'
 
     let { playerState }: { playerState: HydratedZertzPlayerState } = $props()
@@ -11,6 +12,11 @@
     const isActive = $derived(session.gameState.activePlayerIds.includes(playerState.playerId))
     const isWinner = $derived(session.gameState.winningPlayerIds.includes(playerState.playerId))
     const name = $derived(session.getPlayerName(playerState.playerId))
+
+    // Each slot's marble has its own specks.
+    function seedOf(color: string, slot: number): number {
+        return textSeed(`tray ${playerState.playerId} ${color} ${slot}`)
+    }
 
     function slotsBetween(from: number, to: number): number[] {
         return Array.from({ length: Math.max(to - from, 0) }, (_, index) => from + index)
@@ -39,11 +45,21 @@
                     title="{win.eachColor} of each colour also wins"
                 >
                     {#each slotsBetween(0, win.eachColor) as slot (slot)}
-                        <MarbleIcon {color} size={20} faded={slot >= count} />
+                        <MarbleIcon
+                            {color}
+                            seed={seedOf(color, slot)}
+                            size={20}
+                            faded={slot >= count}
+                        />
                     {/each}
                 </span>
                 {#each slotsBetween(win.eachColor, target) as slot (slot)}
-                    <MarbleIcon {color} size={20} faded={slot >= count} />
+                    <MarbleIcon
+                        {color}
+                        seed={seedOf(color, slot)}
+                        size={20}
+                        faded={slot >= count}
+                    />
                 {/each}
                 {#if count > target}
                     <span class="text-[13px] text-(--zertz-ink-quiet)">+{count - target}</span>

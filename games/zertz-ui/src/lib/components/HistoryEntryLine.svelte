@@ -16,7 +16,8 @@
 <span
     ><span class="font-semibold">{name}</span
     >{#each segments as segment, index (index)}{#if segment.kind === 'text'}{segment.text}{:else if segment.kind === 'marble'}<span
-                class="marble"><MarbleIcon color={segment.color} size={14} /></span
+                class="marble"
+                ><MarbleIcon color={segment.color} seed={segment.seed} size={14} /></span
             >{:else if segment.kind === 'ring'}<span class="coordinate"
                 >{session.notation.name(segment.coords)}</span
             >{:else}<span class="step">→</span>{/if}{/each}</span
