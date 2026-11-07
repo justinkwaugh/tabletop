@@ -67,6 +67,7 @@ import {
 import type { CardAction, TurnContext } from './cardModes.js'
 import type { SendPreview } from './confirmingSend.js'
 import { coverAfterPress, coverNeeds, coverSpends } from './tileCover.js'
+import { tileName } from './tileName.js'
 
 export type TurnDraftValues = {
     card: ActionCardKind
@@ -340,7 +341,7 @@ function migrateFlow(flow: FlowInput): FlowView {
         rows: state.getPlayerState(playerId).regionTiles.map((tileId) => {
             const next = coverAfterPress(cover, tileId, needs)
             return {
-                label: `Tile ${tileId}: ${needs.join(', ')}`,
+                label: `${tileName(tileId)} tile: ${needs.join(', ')}`,
                 picked: cover.includes(tileId),
                 ...(next
                     ? {
