@@ -1,3 +1,4 @@
+import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
 import { GameSession, type PresentedTransition } from '@tabletop/frontend-components'
 import {
     ActionCards,
@@ -139,6 +140,8 @@ type SessionOptions = ConstructorParameters<
 export class FeudumGameSession extends GameSession<FeudumProjectedState, HydratedFeudumGameState> {
     myPlayerId: string | undefined = $derived(this.myPlayer?.id)
 
+    readonly boardAnimator = new BoardAnimator()
+
     readonly startingGoods = new StartingGoodsDraft(() => startingGoodOffers(this.gameState))
     readonly startingPawn = new StartingPawnDraft()
     readonly hand = new HandDraft(() => this.handKey)
@@ -246,8 +249,13 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         )
     }
 
+    override async onGameStateChange(change: Parameters<BoardAnimator['onGameStateChange']>[0]) {
+        await this.boardAnimator.onGameStateChange(change)
+    }
+
     /** Every other draft ends with the displayed state, whatever the transition. */
     override beforeNewState() {
+        this.boardAnimator.settle()
         for (const draft of this.oneStateDrafts) {
             draft.clear()
         }

@@ -18,6 +18,7 @@ async function boardOf() {
     const gameState = new HydratedFeudumGameState(structuredClone(host.state))
     session.current = {
         gameState,
+        boardAnimator: { tokens: [], attach: () => {} },
         myPlayerId: gameState.players[0].playerId,
         getPlayerName: (playerId: string) => playerId,
         colors: {
@@ -39,7 +40,8 @@ describe("Board stands the layers in the contract's order (R-1.2, S72)", () => {
             'pieces',
             'guilds',
             'tracks',
-            'margin'
+            'margin',
+            'motion'
         ]
         const places = order.map((layer) => html.indexOf(`data-layer="${layer}"`))
         expect(places.every((place) => place > -1)).toBe(true)
