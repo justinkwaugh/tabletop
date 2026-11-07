@@ -400,6 +400,27 @@ describe('the real session: the hand panel (R-3.1, R-3.3)', () => {
         expect(undoAction).not.toHaveBeenCalled()
     })
 
+    it('a hand or pouch press while viewing History does nothing', async () => {
+        const table = await atHandSelection()
+        const session = await table.openSeat(table.order[0])
+        draftCards(session, ['move'])
+
+        await session.history.goToPreviousAction()
+        await settled(session)
+        expect(session.isViewingHistory).toBe(true)
+        const toggleCard = vi.spyOn(session.hand, 'toggleCard')
+        const choosePouch = vi.spyOn(session.hand, 'choosePouch')
+
+        session.toggleHandCard('tax')
+        session.choosePouch('sulfur')
+        flushSync()
+
+        expect(toggleCard).not.toHaveBeenCalled()
+        expect(choosePouch).not.toHaveBeenCalled()
+        expect(session.hand.hand.cards).not.toContain('tax')
+        expect(session.hand.hand.pouchGood).toBeUndefined()
+    })
+
     it('the row lists every seat in turn order and marks who is next', async () => {
         const table = await atHandSelection()
         const session = await table.openSeat(table.order[1])

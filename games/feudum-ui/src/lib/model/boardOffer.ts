@@ -3,14 +3,43 @@ import {
     MachineState,
     StartingSpaceIds,
     type HydratedFeudumGameState,
+    type MonsterId,
+    type PawnNumber,
+    type RegionId,
     type SpaceId
 } from '@tabletop/feudum'
 
 /** What a board layer can be asked about. Later picks add their element kinds here. */
-export type BoardTarget = `space:${SpaceId}`
+export type BoardTarget =
+    | `space:${SpaceId}`
+    | `pawn:${string}:${PawnNumber}`
+    | `monster:${MonsterId}`
+    | `feudum:${SpaceId}`
+    | `marker:${SpaceId}:${string}:${string}`
+    | `stack:${RegionId}`
 
 export function spaceTarget(spaceId: SpaceId): BoardTarget {
     return `space:${spaceId}`
+}
+
+export function pawnTarget(playerId: string, n: PawnNumber): BoardTarget {
+    return `pawn:${playerId}:${n}`
+}
+
+export function monsterTarget(monsterId: MonsterId): BoardTarget {
+    return `monster:${monsterId}`
+}
+
+export function feudumTarget(spaceId: SpaceId): BoardTarget {
+    return `feudum:${spaceId}`
+}
+
+export function markerTarget(spaceId: SpaceId, playerId: string, role: string): BoardTarget {
+    return `marker:${spaceId}:${playerId}:${role}`
+}
+
+export function stackTarget(region: RegionId): BoardTarget {
+    return `stack:${region}`
 }
 
 export type BoardRole = 'lit' | 'picked' | 'being-decided' | 'dimmed' | 'plain'
@@ -57,6 +86,11 @@ export interface MapPick {
 /** The drafts' stages a pick reads. Each is read only while its flow applies. */
 export interface BoardStages {
     readonly startingPawnSpace?: SpaceId
+    /** The turn draft's open flow, for this seat alone (R-3.2). */
+    readonly cardPick?: {
+        readonly targets: readonly PickTarget[]
+        readonly picked: readonly BoardTarget[]
+    }
 }
 
 /** R-1.4.9 The six starting spaces, lit from the start since either order is allowed (S2). */
@@ -77,6 +111,20 @@ function startingPawnPick(
     }
 }
 
+/** R-3.2 What the open flow lights. The choice is the deciding seat's until it is sent. */
+function cardPlayPick(state: HydratedFeudumGameState, stages: BoardStages): MapPick | undefined {
+    const deciderId = state.flow.turn?.playerId
+    return deciderId && stages.cardPick
+        ? {
+              action: ActionType.ForfeitCard,
+              deciderId,
+              targets: stages.cardPick.targets,
+              picked: stages.cardPick.picked,
+              isPublic: false
+          }
+        : undefined
+}
+
 /** One row per machine state with a map pick; a later draft adds its row and its stages. */
 const MapPicks: Partial<
     Record<
@@ -84,7 +132,8 @@ const MapPicks: Partial<
         (state: HydratedFeudumGameState, stages: BoardStages) => MapPick | undefined
     >
 > = {
-    [MachineState.PlacingStartingPawn]: startingPawnPick
+    [MachineState.PlacingStartingPawn]: startingPawnPick,
+    [MachineState.PlayingCards]: cardPlayPick
 }
 
 export function openMapPick(

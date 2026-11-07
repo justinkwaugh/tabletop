@@ -23,11 +23,14 @@ import {
     type PouchGood,
     type SpaceId
 } from '@tabletop/feudum'
-import { deriveBoardOffer, type BoardOffer } from './boardOffer.js'
+import { deriveBoardOffer, type BoardOffer, type BoardTarget } from './boardOffer.js'
 import { primaryLabel, sendsOnPress } from './confirmingSend.js'
 import { HandDraft, handDraftKey } from './handDraft.svelte.js'
 import { StartingGoodsDraft, type SulfurDestination } from './startingGoodsDraft.svelte.js'
 import { StartingPawnDraft } from './startingPawnDraft.svelte.js'
+import type { FlowPlay, PanelChoice } from './cardFlows.js'
+import type { TurnContext } from './cardModes.js'
+import { TurnDraft, type TurnPanel } from './turnDraft.svelte.js'
 
 export interface PrimaryButton {
     readonly label: string
@@ -112,9 +115,10 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
     readonly startingGoods = new StartingGoodsDraft(() => startingGoodOffers(this.gameState))
     readonly startingPawn = new StartingPawnDraft()
     readonly hand = new HandDraft(() => this.handKey)
+    readonly turn = new TurnDraft(() => this.turnContext)
 
     /** The drafts whose lifetime is one displayed state; `hand` alone outlives one. */
-    private readonly oneStateDrafts = [this.startingGoods, this.startingPawn]
+    private readonly oneStateDrafts = [this.startingGoods, this.startingPawn, this.turn]
 
     private handKey: string | undefined = $derived(
         this.isViewingHistory ? undefined : handDraftKey(this.gameState, this.myPlayerId)
@@ -153,7 +157,10 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
     boardOffer: BoardOffer = $derived(
         deriveBoardOffer(
             this.gameState,
-            { startingPawnSpace: this.startingPawn.spaceId },
+            {
+                startingPawnSpace: this.startingPawn.spaceId,
+                ...(this.turn.cardPick ? { cardPick: this.turn.cardPick } : {})
+            },
             {
                 viewerId: this.myPlayerId,
                 validActions: this.validActionTypes,
@@ -417,5 +424,68 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
                 ...(pouchGood ? { pouchGood } : {})
             })
         )
+    }
+
+    // Turn: card plays. The rules and the stages are in the turn draft; a press comes through here.
+
+    private turnContext: TurnContext | undefined = $derived.by(() => {
+        const me = this.myPlayerId
+        return me && this.isOffered(ActionType.ForfeitCard)
+            ? {
+                  state: this.gameState,
+                  playerId: me,
+                  nameOf: (playerId) => this.getPlayerName(playerId)
+              }
+            : undefined
+    })
+
+    turnPanel: TurnPanel | undefined = $derived(this.turn.panel)
+
+    pressTurnCard(kind: ActionCardKind) {
+        this.turnPanel?.cards.find((card) => card.kind === kind)?.press()
+    }
+
+    /** A dimmed row has no press: it gives its line and does nothing. */
+    async pressTurnChoice(choice: PanelChoice) {
+        if (this.turnPanel && choice.press) {
+            choice.press(this.turn)
+            await this.sendTurnIfCompleted()
+        }
+    }
+
+    /** A dimmed map element does nothing (contract: Pick conventions). */
+    async pressTurnTarget(target: BoardTarget) {
+        const pick = this.turn.pickOf(target)
+        if (pick) {
+            pick.press(this.turn)
+            await this.sendTurnIfCompleted()
+        }
+    }
+
+    toggleTurnSecondCard() {
+        if (this.turnPanel?.secondCard) {
+            this.turn.toggleSecondCard()
+        }
+    }
+
+    private async sendTurnPlay(play: FlowPlay | undefined) {
+        if (play) {
+            await this.applyAction(play.build(this))
+        }
+    }
+
+    /** The press that completes an undoable Action sends at once. */
+    private async sendTurnIfCompleted() {
+        await this.sendTurnPlay(this.turn.sendsNow)
+    }
+
+    /** The primary button. */
+    async sendTurnCard() {
+        await this.sendTurnPlay(this.turn.flow?.play)
+    }
+
+    /** R-3.2 Its press sends. */
+    async forfeitTurnCard() {
+        await this.sendTurnPlay(this.turn.forfeitPlay)
     }
 }
