@@ -344,7 +344,12 @@
         {@const center = view.center(animator.flight.from)}
         <g transform="translate({center.x} {center.y - view.lift})" class="flight">
             <g {@attach animator.flier()}>
-                {@render marble(animator.flight.color, animator.flight.seed, animator.flierBody())}
+                {@render marble(
+                    animator.flight.color,
+                    animator.flight.seed,
+                    animator.flierBody(),
+                    animator.flierShadow()
+                )}
             </g>
         </g>
     {/if}

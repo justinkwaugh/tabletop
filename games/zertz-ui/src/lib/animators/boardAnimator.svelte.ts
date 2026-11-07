@@ -31,11 +31,15 @@ const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
 ])
 
 const SINK = { duration: 0.5, drop: 4, scale: 0.9 }
-// A marble taken from the board floats straight up.
-const LIFT = { duration: 0.55, rise: -34, scale: 1.04 }
-const JUMP = { duration: 0.5, rise: -30, peakScale: 1.06 }
+// A marble taken from the board floats straight up; one taken by a jump goes quicker, so the next
+// jump of a chain can be chosen soon after it lands.
+const LIFT = { duration: 0.55, captured: 0.3, rise: -34, scale: 1.04 }
+// A jumper flies as a thrown marble does: across the board at a steady pace while it rises and
+// falls, as high as `arc` of the way it goes, so a longer jump climbs higher. Its shadow keeps to
+// the board, smaller and fainter the higher it is.
+const JUMP = { duration: 0.3, arc: 0.6, peakScale: 1.06, shadowScale: 0.75, shadowFade: 0.5 }
 // A jumper's momentum carries it a little past its ring as it lands; it rocks back and settles.
-const LANDING = { rebound: [2.4, -1.2, 0.45, 0], step: 0.07 }
+const LANDING = { rebound: [2.4, -1.2, 0.45, 0], step: 0.045 }
 const CLAIMED_RING_DELAY = 0.1
 const CAPTURED_LIFT_AT = JUMP.duration * 0.45
 const FALLBACK_DURATION = 0.18
@@ -64,6 +68,7 @@ export class BoardAnimator {
     private readonly shadowNodes = new Map<string, SVGGElement>()
     private flierNode: SVGGElement | undefined
     private flierBodyNode: SVGGElement | undefined
+    private flierShadowNode: SVGGElement | undefined
     private outlineLayer: SVGGElement | undefined
     private readonly listener = (step: Step) => this.onGameStateChange(step)
 
@@ -104,6 +109,15 @@ export class BoardAnimator {
             this.flierNode = node
             return () => {
                 if (this.flierNode === node) this.flierNode = undefined
+            }
+        }
+    }
+
+    flierShadow(): Attachment<SVGGElement> {
+        return (node) => {
+            this.flierShadowNode = node
+            return () => {
+                if (this.flierShadowNode === node) this.flierShadowNode = undefined
             }
         }
     }
@@ -185,7 +199,7 @@ export class BoardAnimator {
                     timeline,
                     JUMP.duration
                 )
-                this.lift(action.metadata.over, timeline, CAPTURED_LIFT_AT, LIFT.duration)
+                this.lift(action.metadata.over, timeline, CAPTURED_LIFT_AT, LIFT.captured)
             }
             for (const ring of removedRings) {
                 const claimed = ring.marble !== undefined
@@ -296,30 +310,36 @@ export class BoardAnimator {
                 timeline.set(source, { opacity: 0 }, 0)
             }
         }
-        const start = this.session.view.center(from)
-        const end = this.session.view.center(to)
+        const { view } = this.session
+        const start = view.center(from)
+        const end = view.center(to)
         const distance = Math.hypot(end.x - start.x, end.y - start.y)
+        // How far it goes across the table, and so how high it climbs, seen from the side.
+        const across = Math.hypot(end.x - start.x, (end.y - start.y) / view.tilt)
+        const rise = JUMP.arc * across * Math.sqrt(1 - view.tilt ** 2)
         const half = duration / 2
         timeline.to(
             flier,
-            {
-                x: end.x - start.x,
-                y: end.y - start.y,
-                duration,
-                ease: 'power1.inOut'
-            },
+            { x: end.x - start.x, y: end.y - start.y, duration, ease: 'none' },
             0
         )
-        // The shadow keeps to the board while the marble rises over the one it takes.
+        // Rising and falling on a parabola, over the one it takes.
         const body = this.flierBodyNode
         if (body === undefined) return
         scaledFromCentre(body)
         timeline.to(
             body,
-            { y: JUMP.rise, scale: JUMP.peakScale, duration: half, ease: 'power2.out' },
+            { y: -rise, scale: JUMP.peakScale, duration: half, ease: 'power2.out' },
             0
         )
         timeline.to(body, { y: 0, scale: 1, duration: half, ease: 'power2.in' }, half)
+        const shadow = this.flierShadowNode
+        if (shadow !== undefined) {
+            scaledFromCentre(shadow)
+            const high = { scale: JUMP.shadowScale, opacity: JUMP.shadowFade }
+            timeline.to(shadow, { ...high, duration: half, ease: 'power2.out' }, 0)
+            timeline.to(shadow, { scale: 1, opacity: 1, duration: half, ease: 'power2.in' }, half)
+        }
         // A quick catch-up through history just arrives.
         if (duration <= FALLBACK_DURATION) return
         let at = duration

@@ -68,7 +68,7 @@
 - Capture: jumpers marked; choosing one shows its landings and fades the other jumpers; a chain fixes the jumper.
 - Tap-off: a tap on the board off every target takes a staged marble off its ring, or lets go of a chosen colour or jumper; tapping another jumper switches.
 - History View: no targets or pool interaction.
-- Animation: a staged marble drops in, and does not drop again when the move goes in; removal sinks; a jump flies above other rings; reloading or opening a game shows no motion.
+- Animation: a staged marble drops in, and does not drop again when the move goes in; removal sinks; a jump flies above other rings, across the table at a steady pace on a round arc as high as 60% of its length, in 0.3s, its shadow shrinking and fading as it rises, and rocks as it lands (0.18s) while the marble it took lifts out (0.3s), so the next jump of a chain can be chosen about 0.5s after the last; reloading or opening a game shows no motion.
 
 ## 8. Change Rules
 
