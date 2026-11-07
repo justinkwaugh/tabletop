@@ -5,7 +5,11 @@ import { Spaces } from '../data/board.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { Table } from '../testing/table.js'
-import { isChooseStartingGoods, startingGoodOffers } from './chooseStartingGoods.js'
+import {
+    isChooseStartingGoods,
+    reasonStartingGoodRefused,
+    startingGoodOffers
+} from './chooseStartingGoods.js'
 import { isPlaceStartingPawn, startingPawnOffers, StartingSpaceIds } from './placeStartingPawn.js'
 
 const DESERT_3 = 'space.desert.3'
@@ -92,6 +96,10 @@ describe('ChooseStartingGoods', () => {
             'The haversack holds no food.'
         )
         expect(startingGoodOffers(table.hydrated())).toEqual(Goods.filter((g) => g !== 'food'))
+        expect(reasonStartingGoodRefused(table.hydrated(), 'food')).toBe(
+            'The haversack holds no food.'
+        )
+        expect(reasonStartingGoodRefused(table.hydrated(), 'iron')).toBeUndefined()
     })
 
     it('R-1.4.8 refuses the barrel without a sulfur', () => {

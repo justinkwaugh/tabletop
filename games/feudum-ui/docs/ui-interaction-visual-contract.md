@@ -250,7 +250,7 @@ One semantic derivation in the session, the **board offer**, decides each board 
 
 The session owns these values. Components read them and call its methods. Every draft is read back only while it still applies, so a stale value offers nothing.
 
-- **Hand draft** (`SelectingHands`). Stages: cards (a tap list), pouch good. Producer: card and pouch presses. Consumers: the panel, the finalise button. Lifetime: the seat's `FinaliseHand`; Undo. It **survives** `other-action` and `reconciliation` transitions, keyed by the round, so another seat's finalise never clears it and a kept draft is never submitted in another round. It is cleared on undo and history transitions.
+- **Hand draft** (`SelectingHands`). One stacked stage: the cards (a tap list) and the pouch good as each press left them, so Undo removes the last press of either kind. Producer: card and pouch presses. Consumers: the panel, the finalise button. Lifetime: the seat's `FinaliseHand`; Undo. It **survives** `other-action` and `reconciliation` transitions, keyed by the round, so another seat's finalise never clears it and a kept draft is never submitted in another round. It is cleared on undo and history transitions.
 - **Turn draft** (`PlayingCards` and its follow-ups). Stages: card → mode (regular, special, forfeit; the two-cards toggle) → the card's targets and popups → cover (a tile for a short payment). Producer: hand, mode and button presses, lit-element presses, popups. Consumers: the panel, the board offer, the bench offer, the send. Lifetime: the send; Undo; every new displayed state. Validity: each stage must still be legal in the displayed state, or it offers nothing.
 - **Move steps.** A stacked stage inside the turn draft: each press pushes one step (piece, to, way), and Undo pops the last. Then Godspeed and pilfer as plain stages.
 - **Bench draft.** Picked items (a tap list), the count toggle, a popup's choice. Lifetime: as the turn draft.
@@ -408,7 +408,7 @@ Each gives the start, the input, the result, the result after Undo or exit, and 
 
 - **S1. `ChooseStartingGoods`.** Setup, this seat first. Pick saltpeter, sulfur, food: the sulfur popup asks supply or barrel; choose barrel. The primary names all three. Undo: the barrel choice, then food, then sulfur, one per press. Send: three goods fly from the haversack, the sulfur into the barrel; the next seat is asked. Auto.
 - **S2. `PlaceStartingPawn`, either order.** Pick Knight: its rank chip reads "master"; the six starting spaces light, the map dims. Press Desert 3: sent; the pawn flies there and a marker lands on the Knight master space. Repeat with the space first, then the character popup. Undo before the send steps back one press. Auto.
-- **S3. Rank chips follow the tracks.** A later seat in a four-player game picking Knight after two others: the chip reads "apprentice"; a fifth reads "no rank". Auto.
+- **S3. Rank chips follow the tracks.** A later seat in a four-player game picking Knight after two others: the chip reads "apprentice"; once the track is full it reads "no rank". Auto.
 
 **Hand selection**
 
