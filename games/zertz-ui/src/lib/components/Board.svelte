@@ -3,15 +3,14 @@
     import type { Attachment } from 'svelte/attachments'
     import { coordinatesToNumber, sameCoordinates, type AxialCoordinates } from '@tabletop/common'
     import type { MarbleColor, Ring } from '@tabletop/zertz'
-    import MarbleDefs from './MarbleDefs.svelte'
-    import MarbleShape from './MarbleShape.svelte'
+    import MarbleLook from './MarbleLook.svelte'
+    import RingLook from './RingLook.svelte'
     import StagedMarble from './StagedMarble.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { includesCoords } from '$lib/model/session.svelte.js'
     import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
     import {
         coordsKey,
-        MARBLE_RADIUS,
         RING_MID_RADIUS,
         RING_OUTER_RADIUS,
         TILT
@@ -141,16 +140,6 @@
     {@attach animator.attach}
 >
     <defs>
-        <MarbleDefs prefix="zertz-board" />
-        <linearGradient id="zertz-ring-inside" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#0b0d0e"></stop>
-            <stop offset="1" stop-color="#2b3034"></stop>
-        </linearGradient>
-        <radialGradient id="zertz-ring-cone" cx="0.4" cy="0.32" r="0.75">
-            <stop offset="0" stop-color="#2a3033"></stop>
-            <stop offset="0.6" stop-color="#0e1012"></stop>
-            <stop offset="1" stop-color="#030404"></stop>
-        </radialGradient>
         <!-- Soft shadows as gradients rather than a blur filter, which is slow to paint on phones. -->
         <radialGradient id="zertz-marble-shadow">
             {#each MARBLE_SHADOW_STOPS as stop, index (index)}
@@ -196,7 +185,7 @@
             </g>
         </g>
         <g {@attach body}>
-            <MarbleShape prefix="zertz-board" {color} radius={MARBLE_RADIUS} {seed} />
+            <MarbleLook {color} {seed} {view} />
         </g>
     {/snippet}
 
@@ -259,9 +248,7 @@
                 <g transform="translate(0 {view.band}) scale(1 {view.tilt})">
                     <circle r={RING_OUTER_RADIUS} class="ring-hit"></circle>
                 </g>
-                <path d={view.cone} class="ring-cone"></path>
-                <path d={view.seeThrough} class="ring-hollow"></path>
-                <path d={view.rimEdgePath} class="ring-inside"></path>
+                <RingLook {view} />
             </g>
         </g>
     {/each}
@@ -344,11 +331,10 @@
             {/key}
         {:else if role === 'place' && session.chosenColor && isHovered(ring.coords)}
             <g class="preview" transform="translate({center.x} {center.y - view.lift})">
-                <MarbleShape
-                    prefix="zertz-board"
+                <MarbleLook
                     color={session.chosenColor}
-                    radius={MARBLE_RADIUS}
                     seed={coordinatesToNumber(ring.coords)}
+                    {view}
                 />
             </g>
         {/if}
@@ -389,22 +375,6 @@
 
     .ring-hit {
         fill: transparent;
-    }
-
-    .ring-cone {
-        fill: url(#zertz-ring-cone);
-        fill-rule: evenodd;
-    }
-
-    .ring-hollow {
-        fill: #021624;
-        fill-opacity: 0.45;
-        pointer-events: none;
-    }
-
-    .ring-inside {
-        fill: url(#zertz-ring-inside);
-        pointer-events: none;
     }
 
     /* Choice marks are cyan, as in every title. The other titles lay them on a dark band so they

@@ -1,7 +1,8 @@
 <script lang="ts">
     import { MARBLE_COLORS, type MarbleColor } from '@tabletop/zertz'
-    import MarbleDefs from './MarbleDefs.svelte'
-    import MarbleShape from './MarbleShape.svelte'
+    import { MARBLE_RADIUS, VIEW } from '$lib/board/geometry.js'
+    import { SPECK_DENSITY } from '$lib/board/marbleSpecks.js'
+    import MarbleLook from './MarbleLook.svelte'
 
     let {
         color,
@@ -9,8 +10,7 @@
         faded = false
     }: { color: MarbleColor; size?: number; faded?: boolean } = $props()
 
-    const uid = $props.id()
-    const prefix = `zertz-icon-${uid}`
+    const r = MARBLE_RADIUS
 </script>
 
 <svg
@@ -18,17 +18,15 @@
     class:faded
     width={size}
     height={size}
-    viewBox="-10 -10 20 20"
+    viewBox="{-r} {-r} {2 * r} {2 * r}"
     aria-hidden="true"
 >
-    <defs><MarbleDefs {prefix} /></defs>
-    <MarbleShape
-        {prefix}
+    <MarbleLook
         {color}
-        radius={10}
         seed={MARBLE_COLORS.indexOf(color) + 1}
-        speckDensity={0.28}
-        speckScale={1.7}
+        view={VIEW}
+        speckDensity={SPECK_DENSITY * 0.28}
+        speckGrowth={1.7}
     />
 </svg>
 

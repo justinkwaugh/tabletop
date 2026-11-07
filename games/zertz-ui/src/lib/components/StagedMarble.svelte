@@ -3,10 +3,10 @@
 <script lang="ts">
     import { onDestroy, untrack } from 'svelte'
     import type { MarbleColor } from '@tabletop/zertz'
-    import { MARBLE_RADIUS, type BoardView } from '$lib/board/geometry.js'
+    import type { BoardView } from '$lib/board/geometry.js'
     import { MARBLE_SHADOW_RADIUS } from '$lib/board/softShadow.js'
     import { liftOffBody, liftOffShadow, StagedDrop } from '$lib/animators/drop.js'
-    import MarbleShape from './MarbleShape.svelte'
+    import MarbleLook from './MarbleLook.svelte'
 
     // The marble you are about to place, dropping into the ring you chose unless Undo took it back
     // out there. Taken back, it lifts out again, unless it is going in (lifts says which). Drawn at
@@ -43,6 +43,6 @@
 </g>
 <g out:liftOffBody|global={{ lifts }}>
     <g {@attach drop.marble}>
-        <MarbleShape prefix="zertz-board" {color} radius={MARBLE_RADIUS} {seed} />
+        <MarbleLook {color} {seed} {view} />
     </g>
 </g>

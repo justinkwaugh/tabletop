@@ -86,35 +86,6 @@ export class BoardView {
         const height = maxY - minY + CONTROLS_ROOM
         return { positions, viewBox: `${minX} ${minY} ${width} ${height}`, width, height }
     }
-
-    // The cone, from its base up to the hole's rim, less the hole where the table shows through.
-    // The rim stands within the base, so the base is the whole outline.
-    get cone(): string {
-        const [a, b, h] = [RING_OUTER_RADIUS, RING_OUTER_RADIUS * this.tilt, this.band]
-        const base = `M ${-a} ${h} A ${a} ${b} 0 1 0 ${a} ${h} A ${a} ${b} 0 1 0 ${-a} ${h} Z`
-        return `${base} ${this.seeThrough}`
-    }
-
-    // Where the shaded table shows through the hole, below the rim's edge.
-    get seeThrough(): string {
-        const { a, b, h, x } = this.hole
-        return `M ${-x} ${h / 2} A ${a} ${b} 0 0 0 ${x} ${h / 2} A ${a} ${b} 0 0 0 ${-x} ${h / 2} Z`
-    }
-
-    // The hole's opening, how far the underside of its rim shows below the top, and where the
-    // two cross.
-    private get hole(): { a: number; b: number; h: number; x: number } {
-        const a = RING_INNER_RADIUS
-        const b = a * this.tilt
-        const h = this.rimEdge
-        return { a, b, h, x: a * Math.sqrt(1 - (h / (2 * b)) ** 2) }
-    }
-
-    // The cut edge of the rim on the far side of the hole.
-    get rimEdgePath(): string {
-        const { a, b, h, x } = this.hole
-        return `M ${-x} ${h / 2} A ${a} ${b} 0 1 1 ${x} ${h / 2} A ${a} ${b} 0 0 0 ${-x} ${h / 2} Z`
-    }
 }
 
 export const VIEW = new BoardView()
