@@ -5,8 +5,7 @@ import {
     MarbleColor,
     MarbleSource,
     type Capture,
-    type PlaceMarble,
-    type RemoveRing
+    type PlaceMarble
 } from '@tabletop/zertz'
 import { historyEntries } from './historyEntries.js'
 
@@ -21,26 +20,21 @@ function placement(
     id: string,
     playerId: string,
     color: MarbleColor,
-    claimed: MarbleColor[] = []
+    removes: boolean,
+    onPlacing: MarbleColor[] = [],
+    onRemoving: MarbleColor[] = []
 ): PlaceMarble {
     return {
         ...base(id, playerId),
         type: ActionType.PlaceMarble,
         color,
         coords: { q: 0, r: 0 },
+        ...(removes ? { remove: { q: 3, r: 0 } } : {}),
         metadata: {
             source: MarbleSource.Pool,
-            claimedRings: claimed.map((marble, q) => ({ coords: { q, r: 5 }, marble }))
+            claimedOnPlacing: onPlacing.map((marble, q) => ({ coords: { q, r: 5 }, marble })),
+            claimedOnRemoving: onRemoving.map((marble, q) => ({ coords: { q, r: 6 }, marble }))
         }
-    }
-}
-
-function removal(id: string, playerId: string, claimed: MarbleColor[] = []): RemoveRing {
-    return {
-        ...base(id, playerId),
-        type: ActionType.RemoveRing,
-        coords: { q: 3, r: 0 },
-        metadata: { claimedRings: claimed.map((marble, q) => ({ coords: { q, r: 6 }, marble })) }
     }
 }
 
@@ -62,17 +56,16 @@ function jump(
 }
 
 describe('historyEntries', () => {
-    it('groups a placement with its ring removal and both claims', () => {
+    it('reads a move’s placement, removal and both claims', () => {
         const actions: GameAction[] = [
-            placement('a', 'p0', MarbleColor.Grey, [MarbleColor.White]),
-            removal('b', 'p0', [MarbleColor.Black])
+            placement('a', 'p0', MarbleColor.Grey, true, [MarbleColor.White], [MarbleColor.Black])
         ]
         expect(historyEntries(actions)).toEqual([
             {
                 kind: 'placement',
                 id: 'a',
                 firstIndex: 0,
-                lastIndex: 1,
+                lastIndex: 0,
                 playerId: 'p0',
                 color: MarbleColor.Grey,
                 placedAt: { q: 0, r: 0 },
@@ -88,8 +81,8 @@ describe('historyEntries', () => {
 
     it('keeps a placement without a removal as its own turn', () => {
         const entries = historyEntries([
-            placement('a', 'p0', MarbleColor.Grey),
-            placement('b', 'p1', MarbleColor.White)
+            placement('a', 'p0', MarbleColor.Grey, false),
+            placement('b', 'p1', MarbleColor.White, false)
         ])
         expect(entries.map((entry) => [entry.kind, entry.playerId, entry.lastIndex])).toEqual([
             ['placement', 'p0', 0],

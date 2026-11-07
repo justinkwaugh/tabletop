@@ -106,6 +106,32 @@ export class HydratedZertzGameState
         return source
     }
 
+    // The first half of a move: the marble taken from its supply and placed, and any group it
+    // fills claimed. Says where the marble came from and which rings were claimed.
+    placeMarble(
+        playerId: string,
+        color: MarbleColor,
+        coords: AxialCoordinates
+    ): { source: MarbleSource; claimed: Ring[] } {
+        const source = this.takeMarble(playerId, color)
+        this.board.placeMarble(coords, color)
+        const claimed = this.claimFullGroups(playerId)
+        this.concludeMove(playerId)
+        return { source, claimed }
+    }
+
+    // A placement is followed by removing a free ring, if one is left and the game goes on. The
+    // rings that could then be removed: none when the move ends with the placing.
+    removableAfterPlacing(
+        playerId: string,
+        color: MarbleColor,
+        coords: AxialCoordinates
+    ): AxialCoordinates[] {
+        const trial = new HydratedZertzGameState(this.dehydrate())
+        trial.placeMarble(playerId, color, coords)
+        return trial.isOver ? [] : trial.board.freeRings().map((ring) => ring.coords)
+    }
+
     claimFullGroups(playerId: string): Ring[] {
         const claimed = this.board.claimFullGroups()
         const player = this.getPlayerState(playerId)

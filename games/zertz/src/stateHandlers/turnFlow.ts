@@ -6,13 +6,6 @@ export function setActivePlayer(gameState: HydratedZertzGameState) {
     gameState.activePlayerIds = playerId === undefined ? [] : [playerId]
 }
 
-export function stateAfterPlacement(gameState: HydratedZertzGameState): MachineState {
-    if (!gameState.isOver && gameState.board.freeRings().length > 0) {
-        return MachineState.RemovingRing
-    }
-    return endTurn(gameState)
-}
-
 export function stateAfterCapture(gameState: HydratedZertzGameState): MachineState {
     if (gameState.captureChainFrom !== undefined) {
         return MachineState.ContinuingCapture

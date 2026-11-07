@@ -1,10 +1,14 @@
-import { GameSession, type TitlePreferences } from '@tabletop/frontend-components'
-import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
+import {
+    GameSession,
+    type PresentedTransition,
+    type TitlePreferences
+} from '@tabletop/frontend-components'
+import { sameCoordinates, type AxialCoordinates, type GameAction } from '@tabletop/common'
 import {
     ActionType,
     Capture,
+    isPlaceMarble,
     PlaceMarble,
-    RemoveRing,
     ZertzPreferenceDefinition,
     type HydratedZertzGameState,
     type ZertzPreferences,
@@ -14,6 +18,7 @@ import {
 import {
     hasManualZertzSelection,
     popZertzSelection,
+    restagedZertzSelection,
     setZertzSelection,
     type ZertzSelection
 } from './stagedSelection.js'
@@ -27,6 +32,9 @@ export function includesCoords(list: readonly AxialCoordinates[], coords: AxialC
 
 export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzGameState> {
     selection: ZertzSelection = $state({})
+    // The move being undone. Undo takes your marble back onto its ring, staged as you chose it,
+    // and a further Undo takes it off the ring.
+    undoingMove: PlaceMarble | undefined
 
     readonly preferences: TitlePreferences<typeof ZertzPreferences> =
         this.createPreferences(ZertzPreferenceDefinition)
@@ -47,7 +55,6 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
     )
 
     canPlace = $derived(this.canAct(ActionType.PlaceMarble))
-    canRemove = $derived(this.canAct(ActionType.RemoveRing))
     canCapture = $derived(this.canAct(ActionType.Capture))
 
     placeableColors: MarbleColor[] = $derived.by(() => {
@@ -94,12 +101,31 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
             : []
     )
 
-    placementRings: AxialCoordinates[] = $derived(
-        this.chosenColor ? this.gameState.board.vacantRings().map((ring) => ring.coords) : []
+    private vacantRings: AxialCoordinates[] = $derived(
+        this.gameState.board.vacantRings().map((ring) => ring.coords)
     )
 
-    removableRings: AxialCoordinates[] = $derived(
-        this.canRemove ? this.gameState.board.freeRings().map((ring) => ring.coords) : []
+    // The ring your marble stands on, staged until you choose a ring to remove.
+    chosenPlace: AxialCoordinates | undefined = $derived.by(() => {
+        const place = this.selection.place?.value
+        if (place === undefined || this.chosenColor === undefined) return undefined
+        return includesCoords(this.vacantRings, place) ? place : undefined
+    })
+
+    placementRings: AxialCoordinates[] = $derived(
+        this.chosenColor && !this.chosenPlace ? this.vacantRings : []
+    )
+
+    removableRings: AxialCoordinates[] = $derived.by(() => {
+        const place = this.chosenPlace
+        const color = this.chosenColor
+        if (place === undefined || color === undefined) return []
+        return this.removableAfterPlacing(color, place)
+    })
+
+    // Choosing the staged marble again changes its colour, when there is another to place.
+    canChangeStagedColor: boolean = $derived(
+        this.chosenPlace !== undefined && this.placeableColors.length > 1
     )
 
     private canAct(type: ActionType): boolean {
@@ -130,8 +156,20 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
         this.selection = {}
     }
 
-    override beforeNewState(): void {
-        this.resetAction()
+    override willUndo(action: GameAction): void {
+        this.undoingMove = isPlaceMarble(action) && action.remove !== undefined ? action : undefined
+    }
+
+    override beforeNewState({ kind }: PresentedTransition): void {
+        const move = kind === 'undo' ? this.undoingMove : undefined
+        this.selection = move ? restagedZertzSelection(move, this.hadColorChoice(move)) : {}
+        if (kind !== 'undo') this.undoingMove = undefined
+    }
+
+    // Whether the player of a move taken back could have placed another colour.
+    private hadColorChoice(move: PlaceMarble): boolean {
+        const state = this.incomingGameState ?? this.gameState
+        return state.placeableColors(move.playerId).length > 1
     }
 
     chooseColor(color: MarbleColor) {
@@ -139,7 +177,17 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
             return
         }
         const toggledOff = this.selection.color?.value === color
-        this.selection = setZertzSelection(this.selection, 'color', toggledOff ? undefined : color)
+        const place = this.chosenPlace
+        if (toggledOff || place === undefined) {
+            this.selection = setZertzSelection(
+                this.selection,
+                'color',
+                toggledOff ? undefined : color
+            )
+            return
+        }
+        // A marble already staged in its ring changes to the colour chosen.
+        void this.stagePlacement(setZertzSelection(this.selection, 'color', color), place)
     }
 
     chooseJumper(coords: AxialCoordinates) {
@@ -155,32 +203,65 @@ export class ZertzGameSession extends GameSession<ZertzGameState, HydratedZertzG
         )
     }
 
-    // Tapping where there is nothing to choose lets go of a chosen colour or jumper.
+    // Tapping where there is nothing to choose takes a staged marble off its ring, or else lets go
+    // of a chosen colour or jumper.
     letGo() {
-        if (!this.hasManualSelection()) return
-        this.selection = setZertzSelection(this.selection, 'color', undefined)
+        if (this.selection.place !== undefined) {
+            this.selection = setZertzSelection(this.selection, 'place', undefined)
+        } else if (this.hasManualSelection()) {
+            this.selection = setZertzSelection(this.selection, 'color', undefined)
+        }
     }
 
+    // A placement that leaves a ring to remove stands staged on its ring; one that ends the move
+    // goes straight in, as does the removal that completes a staged one.
     async chooseRing(coords: AxialCoordinates) {
         if (includesCoords(this.removableRings, coords)) {
-            await this.removeRing(coords)
+            await this.placeMarble(coords)
         } else if (includesCoords(this.landingRings, coords)) {
             await this.capture(coords)
         } else if (includesCoords(this.placementRings, coords)) {
-            await this.placeMarble(coords)
+            await this.stagePlacement(this.selection, coords)
         }
     }
 
-    private async placeMarble(coords: AxialCoordinates) {
+    // The next colour takes the staged marble's place.
+    async changeStagedColor() {
+        const place = this.chosenPlace
         const color = this.chosenColor
-        if (color === undefined) {
+        if (place === undefined || color === undefined || !this.canChangeStagedColor) return
+        const colors = this.placeableColors
+        const next = colors[(colors.indexOf(color) + 1) % colors.length]
+        await this.stagePlacement(setZertzSelection(this.selection, 'color', next), place)
+    }
+
+    private async stagePlacement(selection: ZertzSelection, place: AxialCoordinates) {
+        this.selection = setZertzSelection(selection, 'place', place)
+        const color = this.chosenColor
+        if (color !== undefined && this.removableAfterPlacing(color, place).length === 0) {
+            await this.placeMarble()
+        }
+    }
+
+    private removableAfterPlacing(color: MarbleColor, place: AxialCoordinates) {
+        const playerId = this.myPlayer?.id
+        if (playerId === undefined) return []
+        return this.gameState.removableAfterPlacing(playerId, color, place)
+    }
+
+    private async placeMarble(remove?: AxialCoordinates) {
+        const color = this.chosenColor
+        const coords = this.chosenPlace
+        if (color === undefined || coords === undefined) {
             return
         }
-        await this.applyAction(this.createPlayerAction(PlaceMarble, { color, coords }))
-    }
-
-    private async removeRing(coords: AxialCoordinates) {
-        await this.applyAction(this.createPlayerAction(RemoveRing, { coords }))
+        await this.applyAction(
+            this.createPlayerAction(PlaceMarble, {
+                color,
+                coords,
+                ...(remove === undefined ? {} : { remove })
+            })
+        )
     }
 
     private async capture(to: AxialCoordinates) {

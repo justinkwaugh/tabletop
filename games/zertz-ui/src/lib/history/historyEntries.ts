@@ -2,7 +2,6 @@ import type { AxialCoordinates, GameAction } from '@tabletop/common'
 import {
     isCapture,
     isPlaceMarble,
-    isRemoveRing,
     MarbleSource,
     type MarbleColor,
     type Ring
@@ -38,7 +37,6 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     let chain: CaptureEntry | undefined
 
     actions.forEach((action, index) => {
-        const last = entries.at(-1)
         if (isPlaceMarble(action)) {
             chain = undefined
             entries.push({
@@ -50,12 +48,12 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
                 color: action.color,
                 placedAt: action.coords,
                 fromCaptures: action.metadata?.source === MarbleSource.Captured,
-                claimed: [...(action.metadata?.claimedRings ?? [])]
+                ...(action.remove === undefined ? {} : { removedAt: action.remove }),
+                claimed: [
+                    ...(action.metadata?.claimedOnPlacing ?? []),
+                    ...(action.metadata?.claimedOnRemoving ?? [])
+                ]
             })
-        } else if (isRemoveRing(action) && last?.kind === 'placement') {
-            last.lastIndex = index
-            last.removedAt = action.coords
-            last.claimed.push(...(action.metadata?.claimedRings ?? []))
         } else if (isCapture(action) && action.metadata !== undefined) {
             if (chain === undefined) {
                 chain = {

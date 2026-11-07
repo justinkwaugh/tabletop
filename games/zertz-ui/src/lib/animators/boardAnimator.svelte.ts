@@ -19,6 +19,7 @@ import { includesCoords, type ZertzGameSession } from '$lib/model/session.svelte
 import { sinkingRingsAfter } from '$lib/board/sinkingRings.js'
 import { coordsKey } from '$lib/board/geometry.js'
 import { inferJump } from '$lib/board/inferJump.js'
+import { DROP, dropMarble, scaledFromCentre } from './drop.js'
 
 // A page load, a sync with the server or a switch of view shows the board as it is, unmoved.
 const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
@@ -35,15 +36,13 @@ const LIFT = { duration: 0.55, rise: -34, scale: 1.04 }
 const JUMP = { duration: 0.5, rise: -30, peakScale: 1.06 }
 // A jumper's momentum carries it a little past its ring as it lands; it rocks back and settles.
 const LANDING = { rebound: [2.4, -1.2, 0.45, 0], step: 0.07 }
-// A placed marble falls into its ring, gathering speed, and settles with a
-// small wobble; its shadow waits in the ring and darkens as the marble comes down.
-const DROP = { fall: 0.26, rise: -50, scale: 1.08, wobble: [-4, -1.5], settle: 0.06, shadow: 0.55 }
 const CLAIMED_RING_DELAY = 0.1
 const CAPTURED_LIFT_AT = JUMP.duration * 0.45
 const FALLBACK_DURATION = 0.18
 const OUTLINE_FADE = 0.28
 
 export type Flight = { color: MarbleColor; from: AxialCoordinates; seed: number }
+export type Staged = { color: MarbleColor; coords: AxialCoordinates }
 
 type Timeline = gsap.core.Timeline
 type Step = TransitionStep<HydratedZertzGameState, AnimationContext>
@@ -53,6 +52,11 @@ export class BoardAnimator {
     // each animated action leaves the board as it ended until that state lands.
     rings: Ring[] = $derived.by(() => this.session.gameState.board.rings)
     flight: Flight | undefined = $state()
+    // Until the state a move made lands, your choices still name the ring you placed on: the
+    // marble you staged, which went in, stays out of the way, and one Undo took back stands
+    // staged in its ring.
+    placedIn: boolean = $derived.by(() => this.untilLanded(false))
+    returned: Staged | undefined = $derived.by(() => this.untilLanded(undefined))
 
     private readonly ringNodes = new Map<string, SVGGElement>()
     private readonly marbleNodes = new Map<string, SVGGElement>()
@@ -120,6 +124,11 @@ export class BoardAnimator {
         }
     }
 
+    private untilLanded<T>(value: T): T {
+        void this.session.gameState
+        return value
+    }
+
     private async onGameStateChange({ kind, to, from, action, animationContext }: Step) {
         if (from === undefined || !ANIMATED_KINDS.has(kind)) {
             return
@@ -135,7 +144,11 @@ export class BoardAnimator {
             timeline
         )
 
+        let returned: Staged | undefined
         if (action === undefined) {
+            // Undo takes your marble back out of the move, staged in its ring as you left it.
+            const undone = kind === 'undo' ? this.session.undoingMove : undefined
+            if (undone !== undefined) returned = { color: undone.color, coords: undone.coords }
             const jump = inferJump(from.board.rings, to.board.rings)
             if (jump !== undefined) {
                 await this.jump(jump.from, jump.to, jump.color, timeline, FALLBACK_DURATION)
@@ -147,19 +160,22 @@ export class BoardAnimator {
                 const vanished =
                     ring.marble !== undefined &&
                     to.board.ringAt(ring.coords)?.marble === undefined &&
-                    !(jump !== undefined && sameCoordinates(jump.from, ring.coords))
+                    !(jump !== undefined && sameCoordinates(jump.from, ring.coords)) &&
+                    !(returned !== undefined && sameCoordinates(returned.coords, ring.coords))
                 if (vanished) {
                     this.fade(ring.coords, timeline)
                 }
             }
         } else {
-            // A placed marble lands at once, where its preview stood, rather than after the
-            // outlines fade. A group it claims is taken once it has landed.
+            // Your own marble already stands in its ring; another player's, or one replayed from
+            // history, drops in first. A group it claims, and the ring removed, go once it has
+            // landed.
             let claimsAt = 0
             if (isPlaceMarble(action)) {
+                if (kind === 'own-action') this.placedIn = true
                 this.rings = before
                 await tick()
-                claimsAt = this.drop(action.coords, timeline)
+                if (kind !== 'own-action') claimsAt = this.drop(action.coords, timeline)
             }
             if (isCapture(action) && action.metadata !== undefined) {
                 await this.jump(
@@ -186,6 +202,7 @@ export class BoardAnimator {
         animationContext.afterAnimations(() => {
             this.rings = to.board.rings
             this.flight = undefined
+            this.returned = returned
         })
     }
 
@@ -226,28 +243,7 @@ export class BoardAnimator {
         const body = this.marbleNodes.get(key)
         const shadow = this.marbleShadowNodes.get(key)
         if (body === undefined || shadow === undefined) return 0
-        scaledFromCentre(body, shadow)
-        const { fall } = DROP
-        timeline.fromTo(
-            body,
-            { opacity: 0, scale: DROP.scale, y: DROP.rise },
-            { opacity: 1, duration: fall * 0.25, ease: 'none', immediateRender: true },
-            0
-        )
-        timeline.to(body, { scale: 1, y: 0, duration: fall, ease: 'power2.in' }, 0)
-        timeline.fromTo(
-            shadow,
-            { opacity: 0, scale: DROP.shadow },
-            { opacity: 1, scale: 1, duration: fall, ease: 'power2.in', immediateRender: true },
-            0
-        )
-        let at = fall
-        for (const height of DROP.wobble) {
-            timeline.to(body, { y: height, duration: DROP.settle, ease: 'power1.out' }, at)
-            timeline.to(body, { y: 0, duration: DROP.settle, ease: 'power1.in' }, at + DROP.settle)
-            at += DROP.settle * 2
-        }
-        return at
+        return dropMarble(timeline, body, shadow)
     }
 
     // The move's targets are spent, so their outlines fade for as long as the move animates.
@@ -348,11 +344,4 @@ function placedOn(rings: Ring[], { coords, color }: PlaceMarble): Ring[] {
     return rings.map((ring) =>
         sameCoordinates(ring.coords, coords) ? { ...ring, marble: color } : ring
     )
-}
-
-// Nodes about to grow or shrink, around their ring's centre. Set only on the nodes a move
-// scales, as it starts: GSAP measures each node's drawing to place the origin, and done for every
-// ring, marble and shadow as it was drawn, that froze opening a game for seconds on a phone.
-function scaledFromCentre(...nodes: SVGGElement[]) {
-    gsap.set(nodes, { svgOrigin: '0 0' })
 }

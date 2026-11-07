@@ -1,6 +1,12 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { AxialCoordinates, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import {
+    AxialCoordinates,
+    GameAction,
+    HydratableAction,
+    MachineContext,
+    sameCoordinates
+} from '@tabletop/common'
 import { HydratedZertzGameState, MarbleSource } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { MarbleColor } from '../model/marbles.js'
@@ -9,7 +15,9 @@ import { Ring } from '../model/board.js'
 export type PlaceMarbleMetadata = Type.Static<typeof PlaceMarbleMetadata>
 export const PlaceMarbleMetadata = Type.Object({
     source: Type.Enum(MarbleSource),
-    claimedRings: Type.Array(Ring)
+    // Groups the placed marble filled, then groups the removed ring cut off.
+    claimedOnPlacing: Type.Array(Ring),
+    claimedOnRemoving: Type.Array(Ring)
 })
 
 export type PlaceMarble = Type.Static<typeof PlaceMarble>
@@ -21,6 +29,9 @@ export const PlaceMarble = Type.Evaluate(
             playerId: Type.String(),
             color: Type.Enum(MarbleColor),
             coords: AxialCoordinates,
+            // The free ring removed after placing; none when no ring is free or the placing ends
+            // the game.
+            remove: Type.Optional(AxialCoordinates),
             metadata: Type.Optional(PlaceMarbleMetadata)
         })
     ])
@@ -40,6 +51,7 @@ export class HydratedPlaceMarble
     declare playerId: string
     declare color: MarbleColor
     declare coords: AxialCoordinates
+    declare remove?: AxialCoordinates
     declare metadata?: PlaceMarbleMetadata
 
     constructor(data: PlaceMarble) {
@@ -50,18 +62,28 @@ export class HydratedPlaceMarble
         if (!this.isValid(state)) {
             throw Error('Invalid PlaceMarble action')
         }
-        const source = state.takeMarble(this.playerId, this.color)
-        state.board.placeMarble(this.coords, this.color)
-        const claimedRings = structuredClone(state.claimFullGroups(this.playerId))
-        state.concludeMove(this.playerId)
-        this.metadata = { source, claimedRings }
+        const placed = state.placeMarble(this.playerId, this.color, this.coords)
+        const claimedOnPlacing = structuredClone(placed.claimed)
+        let claimedOnRemoving: Ring[] = []
+        if (this.remove !== undefined) {
+            state.board.removeRing(this.remove)
+            claimedOnRemoving = structuredClone(state.claimFullGroups(this.playerId))
+            state.concludeMove(this.playerId)
+        }
+        this.metadata = { source: placed.source, claimedOnPlacing, claimedOnRemoving }
     }
 
     isValid(state: HydratedZertzGameState): boolean {
-        return (
-            !state.board.hasAnyJump() &&
-            state.placeableColors(this.playerId).includes(this.color) &&
-            state.board.isVacant(this.coords)
-        )
+        if (
+            state.board.hasAnyJump() ||
+            !state.placeableColors(this.playerId).includes(this.color) ||
+            !state.board.isVacant(this.coords)
+        ) {
+            return false
+        }
+        const removable = state.removableAfterPlacing(this.playerId, this.color, this.coords)
+        const remove = this.remove
+        if (remove === undefined) return removable.length === 0
+        return removable.some((coords) => sameCoordinates(coords, remove))
     }
 }

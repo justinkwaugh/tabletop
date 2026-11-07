@@ -10,7 +10,7 @@
     const lastEntry = $derived(historyEntries(session.actions).at(-1))
 
     const prompt = $derived.by(() => {
-        if (session.canRemove) return 'Remove a free ring'
+        if (session.chosenPlace) return 'Remove a free ring'
         if (session.canCapture) {
             if (session.gameState.machineState === MachineState.ContinuingCapture) {
                 return 'Keep jumping: choose where to land'

@@ -4,7 +4,7 @@ import { ActionType } from '../definition/actions.js'
 import { HydratedPlaceMarble, isPlaceMarble } from '../actions/placeMarble.js'
 import { HydratedCapture, isCapture } from '../actions/capture.js'
 import { HydratedZertzGameState } from '../model/gameState.js'
-import { setActivePlayer, stateAfterCapture, stateAfterPlacement } from './turnFlow.js'
+import { endTurn, setActivePlayer, stateAfterCapture } from './turnFlow.js'
 
 type TakingTurnAction = HydratedPlaceMarble | HydratedCapture
 
@@ -39,7 +39,7 @@ export class TakingTurnStateHandler implements MachineStateHandler<
         const { gameState } = context
         switch (true) {
             case isPlaceMarble(action):
-                return stateAfterPlacement(gameState)
+                return endTurn(gameState)
             case isCapture(action):
                 return stateAfterCapture(gameState)
             default:

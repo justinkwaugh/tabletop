@@ -5,14 +5,25 @@ import {
     MarbleColor,
     MarbleSource,
     type Capture,
-    type PlaceMarble,
-    type RemoveRing
+    type PlaceMarble
 } from '@tabletop/zertz'
 import { sinkingRingsAfter } from './sinkingRings.js'
 
 const base = { gameId: 'game', source: ActionSource.User }
 
-function placement(id: string, playerId: string, claimed: [number, number][] = []): PlaceMarble {
+type Claimed = [number, number][]
+
+// A move by playerId: a placement claiming `onPlacing`, then removing `remove`, which cuts off
+// `onRemoving`.
+function move(
+    id: string,
+    playerId: string,
+    remove?: [number, number],
+    onPlacing: Claimed = [],
+    onRemoving: Claimed = []
+): PlaceMarble {
+    const rings = (claimed: Claimed, marble: MarbleColor) =>
+        claimed.map(([q, r]) => ({ coords: { q, r }, marble }))
     return {
         ...base,
         id,
@@ -20,31 +31,11 @@ function placement(id: string, playerId: string, claimed: [number, number][] = [
         type: ActionType.PlaceMarble,
         color: MarbleColor.White,
         coords: { q: 0, r: 0 },
+        ...(remove === undefined ? {} : { remove: { q: remove[0], r: remove[1] } }),
         metadata: {
             source: MarbleSource.Pool,
-            claimedRings: claimed.map(([q, r]) => ({ coords: { q, r }, marble: MarbleColor.Grey }))
-        }
-    }
-}
-
-function removal(
-    id: string,
-    playerId: string,
-    q: number,
-    r: number,
-    claimed: [number, number][] = []
-): RemoveRing {
-    return {
-        ...base,
-        id,
-        playerId,
-        type: ActionType.RemoveRing,
-        coords: { q, r },
-        metadata: {
-            claimedRings: claimed.map(([cq, cr]) => ({
-                coords: { q: cq, r: cr },
-                marble: MarbleColor.Black
-            }))
+            claimedOnPlacing: rings(onPlacing, MarbleColor.Grey),
+            claimedOnRemoving: rings(onRemoving, MarbleColor.Black)
         }
     }
 }
@@ -60,33 +51,32 @@ const capture: Capture = {
 
 describe('sinkingRingsAfter', () => {
     it('is empty before any ring is removed', () => {
-        expect(sinkingRingsAfter([placement('a', 'p0')])).toEqual([])
+        expect(sinkingRingsAfter([move('a', 'p0')])).toEqual([])
     })
 
     it('keeps a removal sinking through a later turn without one', () => {
-        expect(
-            sinkingRingsAfter([placement('a', 'p0'), removal('b', 'p0', 3, 0), capture])
-        ).toEqual([{ q: 3, r: 0 }])
+        expect(sinkingRingsAfter([move('a', 'p0', [3, 0]), capture])).toEqual([{ q: 3, r: 0 }])
     })
 
     it('lets go once a later turn removes a ring', () => {
-        expect(
-            sinkingRingsAfter([
-                placement('a', 'p0'),
-                removal('b', 'p0', 3, 0),
-                placement('c', 'p1'),
-                removal('d', 'p1', -3, 3)
-            ])
-        ).toEqual([{ q: -3, r: 3 }])
+        expect(sinkingRingsAfter([move('a', 'p0', [3, 0]), move('b', 'p1', [-3, 3])])).toEqual([
+            { q: -3, r: 3 }
+        ])
     })
 
     it('sinks a group cut off by the removal along with the ring', () => {
         expect(
             sinkingRingsAfter([
-                removal('a', 'p0', -2, 2, [
-                    [-3, 3],
-                    [-2, 3]
-                ])
+                move(
+                    'a',
+                    'p0',
+                    [-2, 2],
+                    [],
+                    [
+                        [-3, 3],
+                        [-2, 3]
+                    ]
+                )
             ])
         ).toEqual([
             { q: -2, r: 2 },
@@ -95,22 +85,18 @@ describe('sinkingRingsAfter', () => {
         ])
     })
 
-    it('keeps a claim by filling and the same turn’s removal together', () => {
+    it('sinks a group claimed by filling, then the removed ring', () => {
         expect(
-            sinkingRingsAfter([
-                removal('a', 'p1', 3, -1),
-                placement('b', 'p0', [[0, 2]]),
-                removal('c', 'p0', 3, 0)
-            ])
+            sinkingRingsAfter([move('a', 'p1', [3, -1]), move('b', 'p0', [3, 0], [[0, 2]])])
         ).toEqual([
             { q: 0, r: 2 },
             { q: 3, r: 0 }
         ])
     })
 
-    it('keeps a claim by filling sinking while the removal is still to come', () => {
+    it('sinks a group claimed by filling when no ring is left to remove', () => {
         expect(
-            sinkingRingsAfter([removal('a', 'p1', 3, -1), placement('b', 'p0', [[0, 2]])])
+            sinkingRingsAfter([move('a', 'p1', [3, -1]), move('b', 'p0', undefined, [[0, 2]])])
         ).toEqual([{ q: 0, r: 2 }])
     })
 })

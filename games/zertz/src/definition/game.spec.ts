@@ -23,7 +23,6 @@ import {
 } from '../model/gameState.js'
 import { MarbleColor, noMarbles, type MarbleCounts } from '../model/marbles.js'
 import { isPlaceMarble, type PlaceMarble } from '../actions/placeMarble.js'
-import { isRemoveRing, type RemoveRing } from '../actions/removeRing.js'
 import type { Capture } from '../actions/capture.js'
 import type { Ring } from '../model/board.js'
 
@@ -69,31 +68,27 @@ function place(
     state: ZertzGameState,
     playerId: string,
     color: MarbleColor,
-    coords: AxialCoordinates
+    coords: AxialCoordinates,
+    remove?: AxialCoordinates
 ): ZertzGameState {
-    const action: PlaceMarble = {
+    return execute(game, state, placing(game, playerId, color, coords, remove)).updatedState
+}
+
+function placing(
+    game: ZertzGame,
+    playerId: string,
+    color: MarbleColor,
+    coords: AxialCoordinates,
+    remove?: AxialCoordinates
+): PlaceMarble {
+    return {
         ...userAction(game),
         type: ActionType.PlaceMarble,
         playerId,
         color,
-        coords
+        coords,
+        ...(remove === undefined ? {} : { remove })
     }
-    return execute(game, state, action).updatedState
-}
-
-function remove(
-    game: ZertzGame,
-    state: ZertzGameState,
-    playerId: string,
-    coords: AxialCoordinates
-): ZertzGameState {
-    const action: RemoveRing = {
-        ...userAction(game),
-        type: ActionType.RemoveRing,
-        playerId,
-        coords
-    }
-    return execute(game, state, action).updatedState
 }
 
 function capture(
@@ -110,12 +105,6 @@ function capture(
 function placeMetadata(game: ZertzGame, state: ZertzGameState, action: PlaceMarble) {
     const [processed] = execute(game, state, action).processedActions
     assert(isPlaceMarble(processed))
-    return processed.metadata
-}
-
-function removeMetadata(game: ZertzGame, state: ZertzGameState, action: RemoveRing) {
-    const [processed] = execute(game, state, action).processedActions
-    assert(isRemoveRing(processed))
     return processed.metadata
 }
 
@@ -197,24 +186,39 @@ describe('setup', () => {
 })
 
 describe('placing and removing', () => {
-    it('places a pool marble, then removes a free ring, then passes the turn', () => {
+    it('places a pool marble and removes a free ring in one move, then passes the turn', () => {
         const game = createGame()
-        let state = start(game)
-        state = place(game, state, 'p0', MarbleColor.White, { q: 0, r: 0 })
-        expect(state.machineState).toBe(MachineState.RemovingRing)
-        expect(state.activePlayerIds).toEqual(['p0'])
-        expect(state.pool[MarbleColor.White]).toBe(5)
-
-        state = remove(game, state, 'p0', { q: 3, r: 0 })
+        const state = place(
+            game,
+            start(game),
+            'p0',
+            MarbleColor.White,
+            { q: 0, r: 0 },
+            { q: 3, r: 0 }
+        )
         expect(state.machineState).toBe(MachineState.TakingTurn)
         expect(state.activePlayerIds).toEqual(['p1'])
+        expect(state.pool[MarbleColor.White]).toBe(5)
         expect(state.board.rings).toHaveLength(36)
     })
 
     it('rejects removing a ring that is not free', () => {
         const game = createGame()
-        const state = place(game, start(game), 'p0', MarbleColor.White, { q: 0, r: 0 })
-        expect(() => remove(game, state, 'p0', { q: 1, r: 0 })).toThrow()
+        expect(() =>
+            place(game, start(game), 'p0', MarbleColor.White, { q: 0, r: 0 }, { q: 1, r: 0 })
+        ).toThrow()
+    })
+
+    it('rejects removing the ring just placed on', () => {
+        const game = createGame()
+        expect(() =>
+            place(game, start(game), 'p0', MarbleColor.White, { q: 3, r: 0 }, { q: 3, r: 0 })
+        ).toThrow()
+    })
+
+    it('requires a removal while a ring is free', () => {
+        const game = createGame()
+        expect(() => place(game, start(game), 'p0', MarbleColor.White, { q: 0, r: 0 })).toThrow()
     })
 
     it('rejects placing on an occupied ring', () => {
@@ -236,6 +240,15 @@ describe('placing and removing', () => {
         expect(state.players[0].captured).toEqual(captured(3, 2, 2))
     })
 
+    it('rejects a removal when no ring is free', () => {
+        const game = createGame()
+        const rings = [...flower({ q: 0, r: 0 }), ...flower({ q: 5, r: 0 })]
+        const state = withPosition(start(game), rings)
+        expect(() =>
+            place(game, state, 'p0', MarbleColor.White, { q: 0, r: 0 }, { q: 5, r: 0 })
+        ).toThrow()
+    })
+
     it('places from the player’s own captures once the pool is empty', () => {
         const game = createGame()
         const state = withPosition(start(game), line(5), {
@@ -247,7 +260,8 @@ describe('placing and removing', () => {
             type: ActionType.PlaceMarble,
             playerId: 'p0',
             color: MarbleColor.Grey,
-            coords: { q: 2, r: 0 }
+            coords: { q: 2, r: 0 },
+            remove: { q: 0, r: 0 }
         }
         expect(placeMetadata(game, state, action)).toMatchObject({ source: MarbleSource.Captured })
         const after = execute(game, state, action).updatedState
@@ -305,15 +319,11 @@ describe('isolated groups', () => {
     it('claims a group cut off by a ring removal', () => {
         const game = createGame()
         let state = withPosition(start(game), line(5, { 0: MarbleColor.White }))
-        state = place(game, state, 'p0', MarbleColor.Grey, { q: 4, r: 0 })
-        const action: RemoveRing = {
-            ...userAction(game),
-            type: ActionType.RemoveRing,
-            playerId: 'p0',
-            coords: { q: 1, r: 0 }
-        }
-        expect(removeMetadata(game, state, action)).toEqual({
-            claimedRings: [{ coords: { q: 0, r: 0 }, marble: MarbleColor.White }]
+        const action = placing(game, 'p0', MarbleColor.Grey, { q: 4, r: 0 }, { q: 1, r: 0 })
+        expect(placeMetadata(game, state, action)).toEqual({
+            source: MarbleSource.Pool,
+            claimedOnPlacing: [],
+            claimedOnRemoving: [{ coords: { q: 0, r: 0 }, marble: MarbleColor.White }]
         })
         state = execute(game, state, action).updatedState
         expect(state.players[0].captured).toEqual(captured(1, 0, 0))
@@ -322,18 +332,24 @@ describe('isolated groups', () => {
 
     it('claims a group filled by a placement, then still removes a ring', () => {
         const game = createGame()
-        let state = withPosition(start(game), [...line(4), { coords: { q: 0, r: 2 } }])
-        state = place(game, state, 'p0', MarbleColor.Black, { q: 0, r: 2 })
+        const before = withPosition(start(game), [...line(4), { coords: { q: 0, r: 2 } }])
+        expect(() => place(game, before, 'p0', MarbleColor.Black, { q: 0, r: 2 })).toThrow()
+        const action = placing(game, 'p0', MarbleColor.Black, { q: 0, r: 2 }, { q: 3, r: 0 })
+        expect(placeMetadata(game, before, action)).toEqual({
+            source: MarbleSource.Pool,
+            claimedOnPlacing: [{ coords: { q: 0, r: 2 }, marble: MarbleColor.Black }],
+            claimedOnRemoving: []
+        })
+        const state = execute(game, before, action).updatedState
         expect(state.players[0].captured).toEqual(captured(0, 0, 1))
-        expect(state.board.rings).toHaveLength(4)
-        expect(state.machineState).toBe(MachineState.RemovingRing)
+        expect(state.board.rings).toHaveLength(3)
+        expect(state.activePlayerIds).toEqual(['p1'])
     })
 
     it('does not claim a cut-off group that still has a vacant ring', () => {
         const game = createGame()
         let state = withPosition(start(game), line(6, { 0: MarbleColor.White }))
-        state = place(game, state, 'p0', MarbleColor.Grey, { q: 5, r: 0 })
-        state = remove(game, state, 'p0', { q: 2, r: 0 })
+        state = place(game, state, 'p0', MarbleColor.Grey, { q: 5, r: 0 }, { q: 2, r: 0 })
         expect(state.players[0].captured).toEqual(noMarbles())
         expect(state.board.rings).toHaveLength(5)
     })
@@ -384,8 +400,7 @@ describe('end of game', () => {
     it('a player who cannot place or capture loses', () => {
         const game = createGame()
         let state = withPosition(start(game), line(5), { pool: captured(1, 0, 0) })
-        state = place(game, state, 'p0', MarbleColor.White, { q: 2, r: 0 })
-        state = remove(game, state, 'p0', { q: 0, r: 0 })
+        state = place(game, state, 'p0', MarbleColor.White, { q: 2, r: 0 }, { q: 0, r: 0 })
         expect(state.machineState).toBe(MachineState.EndOfGame)
         expect(state.winningPlayerIds).toEqual(['p0'])
         expect(state.endReason).toBe(EndReason.NoMarbles)
@@ -398,10 +413,6 @@ function legalActions(game: ZertzGame, state: ZertzGameState): GameAction[] {
     const base = () => ({ ...userAction(game), playerId })
     const { board } = hydrated
     switch (state.machineState) {
-        case MachineState.RemovingRing:
-            return board
-                .freeRings()
-                .map((ring) => ({ ...base(), type: ActionType.RemoveRing, coords: ring.coords }))
         case MachineState.ContinuingCapture:
         case MachineState.TakingTurn: {
             const chainFrom = hydrated.captureChainFrom
@@ -415,12 +426,17 @@ function legalActions(game: ZertzGame, state: ZertzGameState): GameAction[] {
                 }))
             }
             return hydrated.placeableColors(playerId).flatMap((color) =>
-                board.vacantRings().map((ring) => ({
-                    ...base(),
-                    type: ActionType.PlaceMarble,
-                    color,
-                    coords: ring.coords
-                }))
+                board.vacantRings().flatMap(({ coords }) => {
+                    const removable = hydrated.removableAfterPlacing(playerId, color, coords)
+                    const removals = removable.length === 0 ? [undefined] : removable
+                    return removals.map((remove) => ({
+                        ...base(),
+                        type: ActionType.PlaceMarble,
+                        color,
+                        coords,
+                        ...(remove === undefined ? {} : { remove })
+                    }))
+                })
             )
         }
         default:

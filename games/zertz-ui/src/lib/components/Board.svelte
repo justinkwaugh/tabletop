@@ -5,6 +5,7 @@
     import type { MarbleColor, Ring } from '@tabletop/zertz'
     import MarbleDefs from './MarbleDefs.svelte'
     import MarbleShape from './MarbleShape.svelte'
+    import StagedMarble from './StagedMarble.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { includesCoords } from '$lib/model/session.svelte.js'
     import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
@@ -55,11 +56,12 @@
         return hovered || role === 'chosen-jumper' ? EMPHASIZED_HIGHLIGHT_WIDTH : HIGHLIGHT_WIDTH
     }
 
-    type RingRole = 'place' | 'remove' | 'land' | 'jumper' | 'chosen-jumper' | undefined
+    type RingRole = 'place' | 'staged' | 'remove' | 'land' | 'jumper' | 'chosen-jumper' | undefined
 
     function roleOf(ring: Ring): RingRole {
         const { coords } = ring
         if (includesCoords(session.removableRings, coords)) return 'remove'
+        if (isStaged(coords) && session.canChangeStagedColor) return 'staged'
         if (includesCoords(session.landingRings, coords)) return 'land'
         if (session.chosenJumper && sameCoordinates(session.chosenJumper, coords))
             return 'chosen-jumper'
@@ -68,8 +70,25 @@
         return undefined
     }
 
+    function isStaged(coords: AxialCoordinates): boolean {
+        return session.chosenPlace !== undefined && sameCoordinates(session.chosenPlace, coords)
+    }
+
+    // The marble you are placing stands in the ring you chose, until it goes in. One Undo took
+    // back out stands there already.
+    const staged = $derived.by(() => {
+        if (animator.placedIn) return undefined
+        if (animator.returned) return { ...animator.returned, drops: false }
+        const coords = session.chosenPlace
+        const color = session.chosenColor
+        if (coords === undefined || color === undefined) return undefined
+        return { coords, color, drops: true }
+    })
+
     function activate(ring: Ring, role: RingRole) {
-        if (role === 'jumper' || role === 'chosen-jumper') {
+        if (role === 'staged') {
+            void session.changeStagedColor()
+        } else if (role === 'jumper' || role === 'chosen-jumper') {
             session.chooseJumper(ring.coords)
         } else if (role !== undefined) {
             void session.chooseRing(ring.coords)
@@ -288,6 +307,28 @@
                     animator.marbleShadow(coordsKey(ring.coords))
                 )}
             </g>
+        {:else if staged && sameCoordinates(staged.coords, ring.coords)}
+            <!-- Choosing it again, while there is another colour to place, changes its colour:
+                 the marble lifts out and the next drops in. -->
+            {#key staged.color}
+                <g
+                    transform="translate({center.x} {center.y - view.lift})"
+                    class="marble"
+                    class:interactive={role !== undefined}
+                    role="presentation"
+                    onclick={() => activate(ring, role)}
+                    onpointerenter={(event) => hover(event, ring.coords)}
+                    onpointerleave={() => (hoveredKey = undefined)}
+                >
+                    <StagedMarble
+                        color={staged.color}
+                        seed={coordinatesToNumber(ring.coords)}
+                        {view}
+                        drops={staged.drops}
+                        lifts={() => !animator.placedIn}
+                    />
+                </g>
+            {/key}
         {:else if role === 'place' && session.chosenColor && isHovered(ring.coords)}
             <g class="preview" transform="translate({center.x} {center.y - view.lift})">
                 <MarbleShape
@@ -369,6 +410,10 @@
     .ring-highlight.role-place {
         stroke: var(--zertz-place);
         stroke-opacity: 0.55;
+    }
+
+    .ring-highlight.role-staged {
+        stroke: var(--zertz-place);
     }
 
     .ring-highlight.role-remove {

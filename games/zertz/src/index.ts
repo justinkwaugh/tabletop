@@ -7,7 +7,6 @@ export * from './definition/runtime.js'
 export * from './definition/states.js'
 
 export * from './actions/placeMarble.js'
-export * from './actions/removeRing.js'
 export * from './actions/capture.js'
 
 export * from './model/board.js'
