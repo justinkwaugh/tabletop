@@ -7,6 +7,6 @@ describe('preferences', () => {
         const resolved = resolvePreferences(LyngkPreferenceDefinition, {
             title: { version: 1, revision: 1, values: { lightBoard: false } }
         })
-        expect(resolved).toEqual({ showCoordinates: true })
+        expect(resolved).toEqual({ showCoordinates: true, turned: false })
     })
 })
