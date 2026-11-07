@@ -426,15 +426,15 @@ Each gives the start, the input, the result, the result after Undo or exit, and 
 - **S12. Two cards.** With sulfur in the pouch, pick Tax and turn on "Play two cards this turn": Tax sends; the panel reads "Your second card" and shows the hand. The pouch is marked spent. Auto.
 - **S13. `Migrate` onto the board.** Pick Migrate, press a supply pawn: legal spaces light with "1 food"; with an Alchemist pawn on the board and Distant Kin on, every starting space lights with "Distant Kin". Press a space, then Monk in the popup: sent; the pawn flies in with its monk face; guild status updates. Undo is offered and reverses it. Auto.
 - **S14. `Migrate` off.** Press a map pawn with "off": sent; it flies home. Auto.
-- **S15. `Improve` to a feudum.** Rule a town, hold a seal: the town lights "→ feudum · 1 seal"; press it: the guild popup; press Crown: the primary names it with "can't be undone", since the tile it takes was hidden; press that: sent. The disc flips, the tile flies to the seat panel, the score disc slides. Auto.
+- **S15. `Improve` to a feudum.** Rule a town, hold a seal: the town lights "→ feudum · 1 seal"; press it: the guild popup; press Noble: the primary names it with "can't be undone", since the tile it takes was hidden; press that: sent. The disc flips, the tile flies to the seat panel, the score disc slides. Auto.
 - **S16. `Improve` with a prohibited tile.** In epoch I with the region's top tile II: the panel says so and lights no stack, since none is earlier (R-4.3.2); the send takes nothing and Undo is offered. In epoch III with the top tile IV: stacks with an earlier tile light with "no vp"; a press stages, and the primary sends. Auto.
 - **S17. `TendLandscape`.** Pick Improve's special, then a collected tile: serf spaces with no landscape light. Press one, then "Collect 3 food · 1 to the ruler": sent; the tile lands back side up, three food appear, two fly to the seat and one to the ruler. Auto.
 - **S18. `Explore` and keep.** Rule an outpost and a feudum: the primary reads "Explore: draw 3 writs · can't be undone". Send: the drawer sees three faces, others three backs. Pick one; the primary reads "Keep 1 · 2 under the deck". With an iron, the Shovels & Swords button shows. Keep: two backs go under; the drawer's note reads "you know 2 under the deck"; others see no faces. No Undo after Explore. Auto.
 - **S19. Shovels & Swords.** From S18, press "Keep, then Shovels & Swords": two more faces show to the drawer; keep one more. The second keep has no Shovels & Swords button. Auto.
-- **S20. `Harvest` with favours.** Hold two beads, press a lit farm: the popup shows "Favours: 5 here, 2 to you" with "your 2 beads turn to seals" in rose. Choose it; the primary reads "… · can't be undone". Send: goods fly from the haversack, five to the farm and two to the seat; the beads turn to seals. Auto.
-- **S21. Inspect the harvest.** With a Farmer pawn: choose "Inspect the harvest"; after the send the drawn goods show in a row with "Take 2 as favours". Pick two; send. "No favours" sends instead. Undo before the favours send takes back a pick; no Undo of the Harvest. Auto.
-- **S22. `Tax` with Reinforcements.** With a Knight pawn: the Tax button reads "+4s · Reinforcements +1 marker". One press sends; Undo is offered. Auto.
-- **S23. `Repeat` and Déjà Vu.** After playing Move and Explore: Repeat lights Move (x2), and with a saltpeter Explore with "Déjà Vu · 1 saltpeter"; Conquer and Defend never light. Pick Move: Move's stages follow; the seat panel marks the Repeat. Auto.
+- **S20. `Harvest` with favours.** Hold two +2 beads, press a lit farm: the popup shows "Favours: 6 here, 3 to you" with "your 2 beads turn to seals" in rose. Choose it; the primary reads "… · can't be undone". Send: goods fly from the haversack, six to the farm and three to the seat; the beads turn to seals. Auto.
+- **S21. Inspect the harvest.** With a Farmer pawn and three farms ruled, for a total of 7: choose "Inspect the harvest"; after the send the drawn goods show in a row with "Take 2 as favours". Pick two; send. "No favours" sends instead. Undo before the favours send takes back a pick; no Undo of the Harvest. Auto.
+- **S22. `Tax` with Reinforcements.** With a Knight pawn and three towns ruled: the Tax button reads "+4s · Reinforcements +1 marker". One press sends; Undo is offered. Auto.
+- **S23. `Repeat` and Déjà Vu.** After playing Move and Explore: Repeat lights Move, with no note, and with a saltpeter Explore with "Déjà Vu · 1 saltpeter"; Conquer and Defend never light. Pick Move: Move's stages follow; the seat panel marks the Repeat. Auto.
 - **S24. `PlayDefend` in turn.** One press sends; +1 vp; the card shows "Defend". Auto.
 
 **Move**
@@ -508,30 +508,30 @@ Each gives the start, the input, the result, the result after Undo or exit, and 
 
 Each scenario is marked automated (with its spec) or checked (with date and width) as it passes.
 
-- S1: automated (`actionPanelSession.spec.ts`, `actionPanel.spec.ts`; browser `tests/actionPanel.spec.ts`)
-- S2: automated (`actionPanelSession.spec.ts`, `actionPanel.spec.ts`; browser `tests/actionPanel.spec.ts`)
-- S3: automated (`actionPanelSession.spec.ts`)
-- S4: automated (`actionPanelSession.spec.ts`, `actionPanel.spec.ts`; browser `tests/actionPanel.spec.ts`)
-- S5: automated (`actionPanelSession.spec.ts`, `actionPanel.spec.ts`; browser `tests/actionPanel.spec.ts`)
-- S6: automated (`actionPanelSession.spec.ts`)
-- S7: automated (`actionPanelSession.spec.ts`)
-- S8: automated (`actionPanelSession.spec.ts`, `actionPanel.spec.ts`; browser `tests/actionPanel.spec.ts`)
-- S9: automated (`actionPanelSession.spec.ts`)
-- S10: automated (`actionPanelSession.spec.ts`); browser `tests/actionPanel.spec.ts`
-- S11: automated (`actionPanelSession.spec.ts`)
-- S12: automated (`actionPanelSession.spec.ts`); browser `tests/actionPanel.spec.ts`
-- S13: automated (`actionPanelSession.spec.ts`)
-- S14: automated (`actionPanelSession.spec.ts`)
-- S15: automated (`actionPanelSession.spec.ts`)
-- S16: automated (`actionPanelSession.spec.ts`)
-- S17: automated (`actionPanelSession.spec.ts`)
-- S18: automated (`actionPanelSession.spec.ts`, `actionPanel.spec.ts`; browser `tests/actionPanel.spec.ts`)
-- S19: automated (`actionPanelSession.spec.ts`)
-- S20: automated (`actionPanelSession.spec.ts`)
-- S21: automated (`actionPanelSession.spec.ts`)
-- S22: automated (`actionPanelSession.spec.ts`)
-- S23: automated (`actionPanelSession.spec.ts`)
-- S24: automated (`actionPanelSession.spec.ts`)
+- S1: automated (`actionPanelSession.spec.ts`, `actionPanel.spec.ts`; browser `tests/actionPanel.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosSetup.spec.ts`
+- S2: automated (`actionPanelSession.spec.ts`, `actionPanel.spec.ts`; browser `tests/actionPanel.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosSetup.spec.ts`
+- S3: automated (`actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosSetup.spec.ts`
+- S4: automated (`actionPanelSession.spec.ts`, `actionPanel.spec.ts`; browser `tests/actionPanel.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosHands.spec.ts`
+- S5: automated (`actionPanelSession.spec.ts`, `actionPanel.spec.ts`; browser `tests/actionPanel.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosHands.spec.ts`
+- S6: automated (`actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosHands.spec.ts`
+- S7: automated (`actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosHands.spec.ts`
+- S8: automated (`actionPanelSession.spec.ts`, `actionPanel.spec.ts`; browser `tests/actionPanel.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosHands.spec.ts`
+- S9: automated (`actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosHands.spec.ts`
+- S10: automated (`actionPanelSession.spec.ts`); browser `tests/actionPanel.spec.ts`; browser at desktop and phone by named fixture, `tests/scenariosCards.spec.ts`
+- S11: automated (`actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosCards.spec.ts`
+- S12: automated (`actionPanelSession.spec.ts`); browser `tests/actionPanel.spec.ts`; browser at desktop and phone by named fixture, `tests/scenariosCards.spec.ts`
+- S13: automated (`actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosCards.spec.ts`
+- S14: automated (`actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosCards.spec.ts`
+- S15: automated (`actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosCards.spec.ts`
+- S16: automated (`actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosCards.spec.ts`
+- S17: automated (`actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosCards.spec.ts`
+- S18: automated (`actionPanelSession.spec.ts`, `actionPanel.spec.ts`; browser `tests/actionPanel.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosCards.spec.ts`
+- S19: automated (`actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosCards.spec.ts`
+- S20: automated (`actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosCards.spec.ts`
+- S21: automated (`actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosCards.spec.ts`
+- S22: automated (`actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosCards.spec.ts`
+- S23: automated (`actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosCards.spec.ts`
+- S24: automated (`actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosCards.spec.ts`
 - S25: automated (`actionPanelSession.spec.ts`)
 - S26: automated (`moveDraft.spec.ts`, `actionPanelSession.spec.ts`)
 - S27: automated (`moveDraft.spec.ts`)

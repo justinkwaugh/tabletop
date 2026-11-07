@@ -98,11 +98,13 @@ export class FeudumHost {
     actions: GameAction[] = []
     /** The Actions a session handed to the server, by seat. */
     readonly sent = new Map<string, GameAction[]>()
+    /** How many times a fixture arranged the table by hand rather than by play. */
+    edits = 0
 
     private readonly seats = new Map<string, OpenSeat>()
     private hostSends = 0
 
-    constructor(numPlayers = 4) {
+    constructor(numPlayers = 4, names?: readonly string[]) {
         const game: Game = {
             ...FeudumRuntime.initializer.initializeGame(
                 {
@@ -113,7 +115,7 @@ export class FeudumHost {
                     config: {},
                     players: Array.from({ length: numPlayers }, (_, index) => ({
                         id: `p${index + 1}`,
-                        name: `Player ${index + 1}`,
+                        name: names?.[index] ?? `Player ${index + 1}`,
                         isHuman: true,
                         status: PlayerStatus.Joined
                     }))
@@ -143,6 +145,7 @@ export class FeudumHost {
 
     /** Arranges the table, as a fixture does, before the seats that see it open. */
     edit(change: (state: HydratedFeudumGameState) => void) {
+        this.edits += 1
         const state = new HydratedFeudumGameState(structuredClone(this.state))
         change(state)
         this.state = canonical(state.dehydrate())

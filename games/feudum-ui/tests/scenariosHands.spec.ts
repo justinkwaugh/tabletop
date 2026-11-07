@@ -1,0 +1,108 @@
+import { expect } from '@playwright/test'
+import { ActionType } from '@tabletop/feudum'
+import { scenario } from './scenarioTable.js'
+
+/** The contract's hand selection scenarios, on the real table at both widths. */
+
+const FourCards = ['Move', 'Tax', 'Guild', 'Harvest'] as const
+const AnotherHand = ['tax', 'guild', 'harvest', 'migrate']
+const Finalise = "Long live the king · can't be undone"
+
+scenario('S4 R-3.1 Draft and finalise in order', 'hands-second-sulfur', async (table) => {
+    await table.pressCards(...FourCards)
+    await table.press(table.rowStarting('Sulfur'))
+    await expect(table.primary()).toHaveText('Waiting for Ana to finalise')
+    await expect(table.primary()).toBeDisabled()
+
+    await table.another('p1', {
+        type: ActionType.FinaliseHand,
+        revealsInfo: true,
+        cards: ['move', 'tax', 'guild', 'harvest', 'migrate'],
+        pouchGood: 'saltpeter'
+    })
+    await expect(table.picked()).toHaveCount(4)
+    const ana = table.panel().locator('[data-finalise-seat="Ana"]')
+    await expect(ana).toHaveAttribute('data-finalised')
+    await expect(ana).toContainText('saltpeter')
+    await expect(table.primary()).toHaveText(Finalise)
+    await expect(table.primary()).toBeEnabled()
+})
+
+scenario('S5 R-3.3 Saltpeter count', 'hands-first-saltpeter', async (table) => {
+    await table.pressCards(...FourCards)
+    await table.press(table.rowStarting('Saltpeter'))
+    await expect(table.count()).toHaveText('4 of 5')
+    await expect(table.primary()).toBeDisabled()
+    await table.pressCards('Migrate')
+    await expect(table.count()).toHaveText('5 of 5')
+    await expect(table.primary()).toBeEnabled()
+    await table.press(table.row('No pouch'))
+    await expect(table.count()).toHaveText('5 of 4')
+    await expect(table.primary()).toBeDisabled()
+    await table.press(table.undo())
+    await expect(table.count()).toHaveText('5 of 5')
+    await expect(table.primary()).toBeEnabled()
+})
+
+scenario('S6 R-3.3 Pouch from barrel refused', 'hands-barrel-sulfur', async (table) => {
+    const sulfur = table.rowStarting('Sulfur')
+    await expect(sulfur).toHaveAttribute('aria-disabled', 'true')
+    await table.pressDimmed(sulfur)
+    await expect(table.panel().locator('[data-refusal]')).toHaveText(
+        "Barrel sulfur can't go in the pouch."
+    )
+    await expect(table.panel().locator('[data-row^="Sulfur"][data-picked]')).toHaveCount(0)
+})
+
+scenario('S7 R-3.13-H1 Conquer warning', 'hands-first-saltpeter', async (table) => {
+    await expect(table.panel().locator('[data-warning]')).toHaveCount(0)
+    await table.pressCards('Conquer', 'Move', 'Tax', 'Guild')
+    await expect(table.panel().locator('[data-warning]')).toHaveText(
+        'Conquer may end up your last card; it would be forfeited.'
+    )
+    await expect(table.primary()).toHaveText(Finalise)
+    await expect(table.primary()).toBeEnabled()
+})
+
+scenario('S8 R-3.1 Finalise is a barrier', 'hands-first-sulfur', async (table) => {
+    await table.pressCards(...FourCards)
+    await table.press(table.rowStarting('Sulfur'))
+    await expect(table.primary()).toHaveText(Finalise)
+    await table.press(table.primary())
+    await expect(table.undo()).toHaveCount(0)
+    await expect(table.waitingLine()).toHaveText('Waiting for Bram to finalise')
+
+    await table.showSeat('p2')
+    const panel = await table.seatPanel('p1')
+    await expect(panel.locator('[data-hand-backs="4"]')).toBeVisible()
+    await expect(panel.locator('[data-pouch]')).toContainText('sulfur')
+    await table.closeSeatPanel()
+})
+
+scenario('S9 R-3.1-H1 Draft survives a reconciliation', 'hands-second-sulfur', async (table) => {
+    await table.pressCards(...FourCards)
+    await expect(table.picked()).toHaveCount(4)
+    await table.page.evaluate(
+        async (move) => {
+            window.feudumFixture.host.sendUnheard('p1', move)
+            await window.feudumFixture.host.reconcile('p2')
+        },
+        { type: ActionType.FinaliseHand, revealsInfo: true, cards: AnotherHand }
+    )
+    await expect(table.picked()).toHaveCount(4)
+    await expect(table.count()).toHaveText('4 of 4')
+    await expect(table.panel().locator('[data-finalise-seat="Ana"]')).toHaveAttribute(
+        'data-finalised'
+    )
+
+    await table.press(table.primary())
+    await table.another('p3', {
+        type: ActionType.FinaliseHand,
+        revealsInfo: true,
+        cards: AnotherHand
+    })
+    await table.page.evaluate(() => window.feudumFixture.forfeitRound())
+    await table.settled()
+    await expect(table.count()).toHaveText('0 of 4')
+    await expect(table.picked()).toHaveCount(0)
+})
