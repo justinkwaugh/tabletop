@@ -1,3 +1,5 @@
+import type { Color } from '@tabletop/common'
+
 /** A seat's paint for its pieces. Colours come only from the session's colourizer (S71). */
 export interface SeatPaint {
     readonly fill: string
@@ -30,12 +32,7 @@ const DarkInkAbove = 0.179
 /** Near black needs a light edge to stay off the terrain. */
 const LightEdgeBelow = 0.03
 
-export function seatPaint(
-    colors: { getPlayerUiColor(playerId?: string): string },
-    playerId: string,
-    initial: string
-): SeatPaint {
-    const fill = colors.getPlayerUiColor(playerId)
+function paintOfFill(fill: string, initial: string): SeatPaint {
     const lightness = luminance(fill)
     return {
         fill,
@@ -43,4 +40,22 @@ export function seatPaint(
         edge: lightness < LightEdgeBelow ? 'var(--feudum-good-iron-edge)' : 'var(--feudum-map-ink)',
         initial
     }
+}
+
+export function seatPaint(
+    colors: { getPlayerUiColor(playerId?: string): string },
+    playerId: string,
+    initial: string
+): SeatPaint {
+    return paintOfFill(colors.getPlayerUiColor(playerId), initial)
+}
+
+/** What a colour with no seat behind it wears: a dummy Knight row (R-1.4-H1). */
+const NoSeatInitial = '-'
+
+export function colourPaint(
+    colors: { getUiColor(color: Color): string },
+    colour: Color
+): SeatPaint {
+    return paintOfFill(colors.getUiColor(colour), NoSeatInitial)
 }

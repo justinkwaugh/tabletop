@@ -1,7 +1,29 @@
+import { Color } from '@tabletop/common'
 import {
+    AlchemistCartSpaces,
+    AlchemistVesselSpace,
+    ChickenSpaces,
+    EpicVoyageTrack,
+    EpochTrack,
+    FarmerBarn,
+    FarmerPurse,
+    Goods,
+    GuildRanks,
+    GuildTrackSpaces,
+    Inventions,
+    KnightMonsterIcons,
+    KnightRowSections,
+    MarketSpaces,
+    MilitaryServiceTrack,
+    RegionTileChart,
     RouteMedia,
     Routes,
+    ScrollSpaces,
+    SealTotal,
     Spaces,
+    VesselTypes,
+    type Good,
+    type GuildId,
     type RegionId,
     type RouteId,
     type RouteMedium,
@@ -484,8 +506,8 @@ export const RegionOutlines: Record<RegionId, readonly (readonly Point[])[]> = {
 export const RegionLabels: Record<RegionId, Point> = {
     sea: { x: 640, y: 180 },
     island: { x: 590, y: 800 },
-    forest: { x: 960, y: 190 },
-    desert: { x: 1240, y: 840 },
+    forest: { x: 1000, y: 370 },
+    desert: { x: 1330, y: 740 },
     badlands: { x: 1560, y: 190 },
     mountain: { x: 1930, y: 640 }
 }
@@ -521,3 +543,397 @@ export function isInside({ x, y }: Point, outline: readonly Point[]): boolean {
     })
     return inside
 }
+
+/** One local box for every guild area, so the board and the bench draw the same component. */
+export const GuildBox = { width: 500, height: 354 } as const
+export const GuildViewBox = `0 0 ${GuildBox.width} ${GuildBox.height}`
+/** A guild area's width on the board. */
+export const GuildAreaWidth = 388
+export const GuildAreaHeight = (GuildAreaWidth * GuildBox.height) / GuildBox.width
+
+/** R-1.2.3 Where each area stands on the board: the ring up the west edge and down the east. */
+export const GuildAreas: Record<GuildId, Point> = {
+    alchemist: { x: 62, y: 62 },
+    merchant: { x: 62, y: 339 },
+    farmer: { x: 62, y: 616 },
+    knight: { x: 2051, y: 62 },
+    noble: { x: 2051, y: 339 },
+    monk: { x: 2051, y: 616 }
+}
+
+/** Sizes in a guild area's local units. */
+export const GuildSizes = {
+    marker: 36,
+    reeve: 24,
+    good: 34,
+    seal: 46,
+    bead: 42,
+    shilling: 42,
+    vessel: 54,
+    monster: 76
+} as const
+
+export const CrestCentre: Point = { x: 44, y: 38 }
+export const RankRadius = 28
+/** A reeve stands beside the rank's marker. */
+export const ReeveOffset: Point = { x: 20, y: 16 }
+
+/** R-1.3 One row per good; a slot is where the good's token stands in its cell. */
+export const MarketCell = { width: 98, height: 46, tokenOffset: 28 } as const
+export const CartCell = { width: 50, height: 46 } as const
+export const KnightCell = 42
+export const ScrollCell = { width: 130, height: 72 } as const
+export const InventionCell = { width: 74, height: 76 } as const
+export const VesselSpaceBox = { x: 254, y: 80, width: 236, height: 98 } as const
+export const BarnBox = { x: 14, y: 80, width: 270, height: 264 } as const
+export const CofferBox = { x: 370, y: 90, width: 120, height: 180 } as const
+export const MonsterBox = { width: 140, height: 128 } as const
+/** R-4.1 The first of a barn column's tokens stands highest, each further one below it. */
+export const BarnStackStep = 40
+
+const GoodRowY = (index: number) => 106 + index * 53
+const MarketColumnX = (space: number) => 72 + (space - 1) * 104 + MarketCell.tokenOffset
+const CartColumnX = (space: number) => 96 + (space - 1) * 56
+const RankPlaces: Record<(typeof GuildRanks)[number], Point> = {
+    apprentice: { x: 288, y: 32 },
+    journeyman: { x: 364, y: 32 },
+    master: { x: 440, y: 32 }
+}
+
+/** The goods in the Alchemist's rows, in the data's order. */
+export const CartGoods: readonly Good[] = [...new Set(AlchemistCartSpaces.map(({ good }) => good))]
+
+export function cartGoodRow(good: Good): Point {
+    return { x: 34, y: GoodRowY(CartGoods.indexOf(good)) }
+}
+
+export function marketBinRow(good: Good): Point {
+    return { x: 36, y: GoodRowY(Goods.indexOf(good)) }
+}
+
+/** R-1.3 The colours of the printed rows and barrels, in the data's order. */
+export const PrintedColours: readonly Color[] = [
+    ...new Set(KnightRowSections.map(({ colour }) => colour))
+]
+
+/** R-1.3 A Knight cell: a colour's row, a column 1 to 6. A row keeps its lane whoever plays. */
+export function knightCell(colour: Color, column: number): Point {
+    return { x: 72 + (column - 1) * 48, y: 126 + PrintedColours.indexOf(colour) * 48 }
+}
+
+/** The disc naming a Knight row. */
+export function knightRowLabel(colour: Color): Point {
+    return { x: 28, y: knightCell(colour, 1).y }
+}
+
+/** R-1.3 The middle of a section's columns, above the rows or in any one of them. */
+export function knightSectionMiddle(firstColumn: number, lastColumn: number) {
+    return knightCell(PrintedColours[0], (firstColumn + lastColumn) / 2).x
+}
+export const KnightSectionHeaderY = 88
+
+/** R-5-H1 Rows of 3, 2, 1, left-aligned. */
+const scrollPlace = (row: number, column: number): Point => ({
+    x: 110 + (column - 1) * 150,
+    y: 128 + (row - 1) * 88
+})
+
+const inventionPlace = (index: number): Point => ({
+    x: 291 + (index % 3) * 80,
+    y: 228 + Math.floor(index / 3) * 80
+})
+
+/** R-1.4-H3 Two chickens to a row; the spaces come from the provisional registry through the data. */
+const chickenPlace = (space: number): Point => ({
+    x: 340 + ((space - 1) % 2) * 100,
+    y: 124 + Math.floor((space - 1) / 2) * 80
+})
+
+const BeadsPerRosaryRow = 6
+
+/** R-1.4-H3 The rosary is unlimited for now, so a place for every seal in the box. */
+export function rosaryBead(index: number): Point {
+    return {
+        x: 44 + (index % BeadsPerRosaryRow) * 58,
+        y: 130 + Math.floor(index / BeadsPerRosaryRow) * 62
+    }
+}
+
+export const RosaryPlaces = SealTotal
+export const RosaryTotalAt: Point = { x: 190, y: 330 }
+
+/**
+ * Every guild grid space, part and track space by the data's id, in the guild's local units: a
+ * market or cart space's token, a section's middle, the centre of a part. The bench lights what it
+ * offers from this table, as the board draws from it.
+ */
+export const GuildSlots: ReadonlyMap<string, Point> = new Map<string, Point>([
+    ...GuildTrackSpaces.map(({ id, rank }): [string, Point] => [id, RankPlaces[rank]]),
+    ...MarketSpaces.map(({ id, good, space }): [string, Point] => [
+        id,
+        { x: MarketColumnX(space), y: marketBinRow(good).y }
+    ]),
+    ...AlchemistCartSpaces.map(({ id, good, space }): [string, Point] => [
+        id,
+        { x: CartColumnX(space), y: cartGoodRow(good).y }
+    ]),
+    [AlchemistVesselSpace.id, { x: 372, y: 129 }],
+    ...Inventions.map(({ id }, index): [string, Point] => [id, inventionPlace(index)]),
+    ...KnightRowSections.map(({ id, colour, firstColumn, lastColumn }): [string, Point] => [
+        id,
+        { x: knightSectionMiddle(firstColumn, lastColumn), y: knightCell(colour, 1).y }
+    ]),
+    ...KnightMonsterIcons.map(({ id }, index): [string, Point] => [
+        id,
+        { x: 420, y: 144 + index * 136 }
+    ]),
+    ...ScrollSpaces.map(({ id, row, column }): [string, Point] => [id, scrollPlace(row, column)]),
+    [FarmerBarn.id, { x: BarnBox.x + BarnBox.width / 2, y: BarnBox.y + BarnBox.height / 2 }],
+    [FarmerPurse.id, { x: 390, y: 300 }],
+    ...ChickenSpaces.map(({ id, space }): [string, Point] => [id, chickenPlace(space)]),
+    ['guild.monk.rosary', { x: 190, y: 192 }],
+    ['guild.monk.coffer', { x: 430, y: 180 }]
+])
+
+export function guildSlot(id: string): Point {
+    const slot = GuildSlots.get(id)
+    if (!slot) {
+        throw new Error(`No position for ${id}`)
+    }
+    return slot
+}
+
+/** R-4.5.3 A vessel for sale of each type, covering the ferry symbol. */
+export function vesselForSale(vessel: VesselType): Point {
+    const { x, y } = guildSlot(AlchemistVesselSpace.id)
+    return { x: x + (VesselTypes.indexOf(vessel) - 1) * 76, y }
+}
+
+/** A good's column in the barn: its first token. */
+export function barnColumn(good: Good): Point {
+    return { x: BarnBox.x + 36 + Goods.indexOf(good) * 50, y: BarnBox.y + 66 }
+}
+
+/** The score ring's band round the board's edge. */
+export const ScoreBand = 60
+export const ScoreDiscSize = 20
+const ScoreLaneStep = 10
+/** R-1.2.5 The spaces from each corner to the next: 0 bottom-left, 20, 75, 95 at the others. */
+const ScoreRun = [
+    { side: 'left', spaces: 20 },
+    { side: 'top', spaces: 55 },
+    { side: 'right', spaces: 20 },
+    { side: 'bottom', spaces: 55 }
+] as const
+
+export type ScoreSide = (typeof ScoreRun)[number]['side']
+
+export interface ScoreSpace {
+    readonly space: number
+    readonly centre: Point
+    readonly width: number
+    readonly height: number
+    readonly side: ScoreSide
+    readonly corner: boolean
+}
+
+function scoreSpacesOf(): readonly ScoreSpace[] {
+    const inset = ScoreBand / 2
+    const corners: readonly Point[] = [
+        { x: inset, y: BoardHeight - inset },
+        { x: inset, y: inset },
+        { x: BoardWidth - inset, y: inset },
+        { x: BoardWidth - inset, y: BoardHeight - inset }
+    ]
+    return ScoreRun.flatMap(({ side, spaces }, sideIndex) => {
+        const from = corners[sideIndex]
+        const to = corners[(sideIndex + 1) % corners.length]
+        const length = Math.hypot(to.x - from.x, to.y - from.y)
+        const cell = (length - ScoreBand) / (spaces - 1)
+        const upright = side === 'left' || side === 'right'
+        const before = ScoreRun.slice(0, sideIndex).reduce((sum, run) => sum + run.spaces, 0)
+        return Array.from({ length: spaces }, (_, step) => {
+            const along = step === 0 ? 0 : inset + (step - 0.5) * cell
+            const corner = step === 0
+            return {
+                space: before + step,
+                centre: {
+                    x: from.x + ((to.x - from.x) * along) / length,
+                    y: from.y + ((to.y - from.y) * along) / length
+                },
+                width: corner || upright ? ScoreBand : cell,
+                height: corner || !upright ? ScoreBand : cell,
+                side,
+                corner
+            }
+        })
+    })
+}
+
+/** R-1.2.5 The 150 spaces, 0 to 149, up the west edge, along the top, down the east, back along the bottom. */
+export const ScoreSpaces: readonly ScoreSpace[] = scoreSpacesOf()
+
+const InwardBySide: Record<ScoreSide, Point> = {
+    left: { x: 1, y: 0 },
+    top: { x: 0, y: 1 },
+    right: { x: -1, y: 0 },
+    bottom: { x: 0, y: -1 }
+}
+
+/** R-1.2.5 Seats keep a lane across the band, so discs on one space stay told apart. */
+export function scoreDiscAt(space: number, lane: number): Point {
+    const { centre, side } = ScoreSpaces[space]
+    const across = (lane - 2) * ScoreLaneStep
+    const inward = InwardBySide[side]
+    return { x: centre.x + inward.x * across, y: centre.y + inward.y * across }
+}
+
+/** Where a disc's "+150" chip stands, from the disc: towards the board, off the ring's other discs. */
+export function scoreChipOffset(space: number): Point {
+    const inward = InwardBySide[ScoreSpaces[space].side]
+    return { x: inward.x * 32, y: inward.y * 18 }
+}
+
+/** Discs sharing a track space stand side by side, centred on it. */
+export function fanOffset(index: number, count: number, step: number): number {
+    return (index - (count - 1) / 2) * step
+}
+
+export const TrackDiscSize = 22
+export const VoyageFanStep = 16
+export const ServiceFanStep = 14
+
+/** R-3.7.5 The epic voyage, up the mountains to the monastery; fitted to the print. */
+const VoyageCentres: readonly Point[] = [
+    { x: 1604, y: 143 },
+    { x: 1653, y: 123 },
+    { x: 1760, y: 125 },
+    { x: 1810, y: 115 },
+    { x: 1915, y: 125 },
+    { x: 1965, y: 109 },
+    { x: 2013, y: 80 }
+]
+
+/** R-4.9.2 The military service spaces on the shore; fitted to the print. */
+const ServiceCentres: readonly Point[] = [
+    { x: 690, y: 871 },
+    { x: 788, y: 859 },
+    { x: 878, y: 839 }
+]
+
+/** R-4.11 Where the epoch marker stands on each sunray, over its numeral. */
+const RayCentres: readonly Point[] = [
+    { x: 863, y: 167 },
+    { x: 893, y: 147 },
+    { x: 943, y: 137 },
+    { x: 997, y: 147 },
+    { x: 1027, y: 173 }
+]
+
+/** R-4.12 Where a sunray shows its dawn's marks, further out along the ray. */
+const RayMarks: readonly Point[] = [
+    { x: 778, y: 123 },
+    { x: 855, y: 93 },
+    { x: 945, y: 80 },
+    { x: 1031, y: 83 },
+    { x: 1094, y: 137 }
+]
+
+/** The sunrays' middle, for the drawn sky. */
+export const SunCentre: Point = { x: 945, y: 186 }
+
+const ChartRowY = [797, 816, 836, 854, 874]
+
+/** R-4.3.2 The region tile chart's box, and each row of it. */
+export const TileChart = {
+    x: 1600,
+    y: 766,
+    width: 90,
+    height: 120,
+    headerY: 778,
+    columns: [1616, 1640, 1662, 1682]
+} as const
+
+function placedBy<T extends { readonly id: string }>(
+    rows: readonly T[],
+    place: (row: T, index: number) => Point
+): ReadonlyMap<string, Point> {
+    return new Map(rows.map((row, index) => [row.id, place(row, index)]))
+}
+
+/** Each track space by the data's id, in board units. */
+export const VoyageSpaces = placedBy(EpicVoyageTrack, (_, index) => VoyageCentres[index])
+export const ServiceSpaces = placedBy(MilitaryServiceTrack, (_, index) => ServiceCentres[index])
+export const EpochRays = placedBy(EpochTrack, (_, index) => RayCentres[index])
+export const EpochRayMarks = placedBy(EpochTrack, (_, index) => RayMarks[index])
+export const TileChartRows = placedBy(RegionTileChart, (_, index) => ({
+    x: TileChart.columns[0],
+    y: ChartRowY[index]
+}))
+
+export function trackPlace(table: ReadonlyMap<string, Point>, id: string): Point {
+    const place = table.get(id)
+    if (!place) {
+        throw new Error(`No position for ${id}`)
+    }
+    return place
+}
+
+/** R-4.3.1 Each region's stack on the strip below the map. */
+export const StackCentres: Record<RegionId, Point> = {
+    sea: { x: 1034, y: 856 },
+    island: { x: 1116, y: 856 },
+    forest: { x: 1198, y: 856 },
+    desert: { x: 1304, y: 856 },
+    badlands: { x: 1387, y: 856 },
+    mountain: { x: 1470, y: 856 }
+}
+export const StackSize = 72
+export const StackCountOffset: Point = { x: 30, y: -32 }
+
+/** R-4.11.1 The progress die, beside the stacks. */
+export const DieCentre: Point = { x: 966, y: 866 }
+export const DieSize = 44
+
+/** R-4.10.2 One barrel per printed colour; each seat's stands at its own colour. */
+export const BarrelCentres: Partial<Record<Color, Point>> = {
+    [Color.Blue]: { x: 1784, y: 802 },
+    [Color.Yellow]: { x: 1784, y: 862 },
+    [Color.Red]: { x: 1957, y: 802 },
+    [Color.Purple]: { x: 1917, y: 862 },
+    [Color.Green]: { x: 1990, y: 862 }
+}
+export const BarrelSize = 54
+export const BarrelSulfurSize = 16
+/** The seat's disc on the barrel head, and each barrel sulfur beneath it. */
+export const BarrelDisc: Point = { x: 0, y: -12 }
+export const BarrelSulfur: readonly Point[] = [
+    { x: -16, y: 10 },
+    { x: 0, y: 10 },
+    { x: 16, y: 10 }
+]
+
+export function barrelCentre(colour: Color): Point {
+    const centre = BarrelCentres[colour]
+    if (!centre) {
+        throw new Error(`No barrel for ${colour}`)
+    }
+    return centre
+}
+
+/** The margin below the board: left to right along it, in board units. */
+export const MarginTop = BoardHeight
+export const MarginSlots = {
+    deck: { x: 90, y: 1028 },
+    haversack: { x: 690, y: 1028 },
+    seals: { x: 1120, y: 1028 },
+    vessels: { x: 1270, y: 1028 },
+    targets: { x: 1520, y: 1028 },
+    discs: { x: 1640, y: 1028 },
+    influence: { x: 1780, y: 1028 },
+    startPlayer: { x: 2340, y: 1028 }
+} as const
+export const MarginToken = 34
+export const HaversackStep = 70
+export const VesselCountStep = 72
+export const InfluenceStep = 90
