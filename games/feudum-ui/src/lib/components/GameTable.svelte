@@ -1,6 +1,7 @@
 <script lang="ts">
     import { untrack } from 'svelte'
     import {
+        CustomFont,
         ScalingWrapper,
         DefaultSideContent,
         DefaultTableLayout,
@@ -10,6 +11,7 @@
     import History from '$lib/components/History.svelte'
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import Board from '$lib/components/Board.svelte'
+    import { FontFaces } from '$lib/fonts/fonts.js'
     import { FeudumGameSession } from '$lib/model/session.svelte'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
 
@@ -28,6 +30,10 @@
 
     setGameSession(untrack(() => ensureFeudumGameSession(gameSession)))
 </script>
+
+{#each FontFaces as face (face.family)}
+    <CustomFont fontFamily={face.family} url={face.url} format="woff2" />
+{/each}
 
 <div>
     <DefaultTableLayout>

@@ -29,21 +29,21 @@
 <style>
     @keyframes border-pulsate {
         0% {
-            border-color: rgba(255, 255, 255, 0);
+            border-color: transparent;
         }
         25% {
-            border-color: rgba(255, 255, 255, 255);
+            border-color: var(--feudum-text);
         }
         75% {
-            border-color: rgba(255, 255, 255, 255);
+            border-color: var(--feudum-text);
         }
         100% {
-            border-color: rgba(255, 255, 255, 0);
+            border-color: transparent;
         }
     }
 
     .pulse-border {
-        border-color: white;
+        border-color: var(--feudum-text);
         animation: border-pulsate 2.5s infinite;
     }
 </style>

@@ -37,7 +37,7 @@ The board keeps the printed board's arrangement, drawn in code: the map in the c
 
 ### Drawn in code
 
-There is no permission for the printed art, so every visual is SVG generated from data, with OFL fonts.
+A piece, face or disc the publisher's art supplies shows it through the asset map, and draws its own labelled fallback when the file is absent (`art-plan.md`, "Supplied assets"). Everything else, and anything that takes a seat colour, is SVG generated from data. The fonts are OFL. The forms below are the drawn ones.
 
 - **Geometry from data.** Every space, route, guild grid space, track space, stack and barrel has a position in one board geometry table in board units; routes are drawn along stored control points. A spec checks that every id in the logic's board data has a position and no position names an id the data lacks. Nothing is measured from a picture at run time.
 - **Terrain.** Each region is a filled shape in its terrain token (sea, island, forest, desert, badlands, mountain) with a light hatching motif per terrain (waves, hills, trees, dunes, cracked earth, peaks) drawn once in a `<defs>` and repeated.
@@ -70,7 +70,7 @@ Rules for the panel:
 
 ### Cards, writs and tiles
 
-- **Action card face:** parchment, the seat colour as its border, the card's name and number, its symbols in the top-right corner (x2, crossed x2, not-last, either/or, vp), the regular action in one line, the special ability's name with its need as an icon (a pawn character, a good, a barrel sulfur). The back is the seat colour with a crown.
+- **Action card face:** the seat colour as a band round an art window, with the supplied art when its file is present; drawn, parchment with the card's name and number, its symbols in the top-right corner (x2, crossed x2, not-last, either/or, vp), the regular action in one line, the special ability's name with its need as an icon (a pawn character, a good, a barrel sulfur). The back is the seat colour with a crown.
 - **Writ face:** a mandate shows its two alternatives as two rows, A and B, each with the goods it turns in boxed and its reward in tokens; mandates 6 and 8 show their three guild rewards each under its guild icon and "3★". A charter shows its name, its values, and for a kingdom charter a small map of the board with its qualifying spaces dotted. The back is a crowned writ.
 - **Region tile:** front shows the region and the epoch numeral; back (as a landscape) shows the landscape kind (orchard, silver mine, archery butt, sulfur mine) and its resource.
 - **Seal and bead:** a seal is a red disc with a crown, the same for everyone; a bead is a pale disc with its value "+3".
