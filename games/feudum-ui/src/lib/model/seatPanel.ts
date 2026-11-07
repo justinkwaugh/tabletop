@@ -60,6 +60,8 @@ export interface SeatCards {
     readonly played: readonly SeatPlayedCard[]
     readonly unplayed: readonly SeatUnplayedCard[]
     readonly handBacks: number
+    /** R-3.1 How many cards the seat holds: public, for every seat alike. */
+    readonly handCount: number
 }
 
 export type SeatPouch =
@@ -179,14 +181,14 @@ function cardsOf(
 ): SeatCards {
     const played = player.played.map((card) => ({ ...faceOf(card.kind), mark: markOf(card) }))
     if (!facesShown) {
-        return { played, unplayed: [], handBacks: player.handCount }
+        return { played, unplayed: [], handBacks: player.handCount, handCount: player.handCount }
     }
     const hand = player.hand ?? []
     const chosen = handChosen(state, player)
     const unplayed = ActionCardKinds.filter(
         (kind) => !player.played.some((card) => card.kind === kind)
     ).map((kind) => ({ ...faceOf(kind), setAside: chosen && !hand.includes(kind) }))
-    return { played, unplayed, handBacks: 0 }
+    return { played, unplayed, handBacks: 0, handCount: player.handCount }
 }
 
 function pouchOf(

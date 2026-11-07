@@ -1,6 +1,7 @@
 <script lang="ts">
     import { Floater } from '@tabletop/frontend-components'
     import type { FlowPopup } from '$lib/model/cardFlows.js'
+    import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import PanelRow from './PanelRow.svelte'
 
@@ -11,6 +12,7 @@
     let { popup }: { popup: FlowPopup } = $props()
 
     const gameSession = getGameSession()
+    const phone = new PhoneLayout()
 
     /** Under an open bench its own guild area is the anchor; the board's is covered. */
     const reference = $derived(
@@ -29,7 +31,7 @@
 {#key popup.anchor}
     <Floater
         {reference}
-        placement="right-start"
+        placement={phone.phone ? 'top' : 'right-start'}
         strategy="fixed"
         trigger="manual"
         {...popoverAttributes}

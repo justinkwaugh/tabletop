@@ -53,7 +53,7 @@ function stageValue<K extends TurnStage>(
     return getStagedSelectionValue<TurnDraftValues, K>(stages, stage)
 }
 
-const EpochNumerals = ['', 'I', 'II', 'III', 'IV', 'V']
+export const EpochNumerals = ['', 'I', 'II', 'III', 'IV', 'V']
 const Ordinals = ['', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th', '11th']
 
 export interface TurnPrimary {

@@ -3,6 +3,8 @@
     import type { Color } from '@tabletop/common'
     import type { HydratedFeudumGameState } from '@tabletop/feudum'
     import PanelRow, { type RowPointer } from '$lib/components/table/PanelRow.svelte'
+    import PrimaryButton from '$lib/components/panel/PrimaryButton.svelte'
+    import type { ActionBlock } from '$lib/model/actionPanel.js'
     import type { BenchChoice, BenchOffer } from '$lib/model/benchOffer.js'
     import { benchViewOf } from '$lib/model/benchView.js'
     import type { PanelChoice } from '$lib/model/cardFlows.js'
@@ -18,6 +20,8 @@
      */
     let {
         bench,
+        sheet = false,
+        primary,
         state,
         playerId,
         paintOf,
@@ -26,6 +30,10 @@
         onPress
     }: {
         bench: BenchOffer
+        /** On a phone: a bottom sheet, its footer in view, and collapsed to a header over the board's foot. */
+        sheet?: boolean
+        /** The send, when it stands in the footer here. */
+        primary?: Extract<ActionBlock, { kind: 'primary' }>
         state: HydratedFeudumGameState
         playerId: string
         paintOf: (playerId: string) => SeatPaint
@@ -46,6 +54,9 @@
     /** Stands where the board's container is, in the page or in the full screen dialog. */
     function overTheBoard(fillsIt: boolean): Attachment<HTMLElement> {
         return (node) => {
+            if (fillsIt && sheet) {
+                return
+            }
             const surface = node.ownerDocument
                 .querySelector('[data-board-surface]')
                 ?.closest('.scaling-surface')
@@ -57,6 +68,9 @@
                 node.style.left = `${left}px`
                 node.style.top = `${top}px`
                 node.style.width = `${width}px`
+                if (sheet) {
+                    node.style.top = `${top + height - node.offsetHeight}px`
+                }
                 if (fillsIt) {
                     node.style.height = `${height}px`
                 }
@@ -102,6 +116,7 @@
 {:else}
     <div
         class="fixed z-40 flex flex-col bg-feudum-surface-raised text-feudum-text"
+        class:bench-sheet={sheet}
         role="group"
         aria-label={bench.title}
         data-bench={bench.title}
@@ -172,6 +187,24 @@
                     {/each}
                 </span>
             {/if}
+            {#if primary}
+                <span class="ml-auto min-w-0 grow" data-bench-send>
+                    <PrimaryButton block={primary} />
+                </span>
+            {/if}
         </div>
     </div>
 {/if}
+
+<style>
+    /* Contract, The bench: up to 80 % of the dynamic viewport, and the footer always in view. */
+    .bench-sheet {
+        left: 0;
+        right: 0;
+        bottom: 0;
+        max-height: 80dvh;
+        padding-bottom: env(safe-area-inset-bottom);
+        border-radius: 12px 12px 0 0;
+        border-top: 1px solid var(--feudum-frame);
+    }
+</style>

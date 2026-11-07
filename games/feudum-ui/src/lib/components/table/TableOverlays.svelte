@@ -1,11 +1,13 @@
 <script lang="ts">
     import BenchLayer from '$lib/components/bench/BenchLayer.svelte'
+    import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import BoardPopup from './BoardPopup.svelte'
     import EnlargedFaceView from './EnlargedFaceView.svelte'
     import OpenSeatLayer from './OpenSeatLayer.svelte'
     import Scrim from './Scrim.svelte'
     import StackViewLayer from './StackViewLayer.svelte'
+    import TracksSheet from './TracksSheet.svelte'
 
     /**
      * What stands over the table, drawn in one place only: after the layout, or inside the dialog in
@@ -18,13 +20,20 @@
 
     const EnlargedWidth = 420
     const PhoneMargin = 32
+    /** Contract, Seat strip: a seat's sheet stands up to this much of the dynamic viewport. */
+    const SeatSheetShare = 85
+
+    const phone = new PhoneLayout()
 
     let innerWidth = $state(EnlargedWidth + PhoneMargin)
     let enlargedWidth = $derived(Math.min(EnlargedWidth, innerWidth - PhoneMargin))
     let popup = $derived(gameSession.boardPopup)
     let bench = $derived(gameSession.guildPanel?.bench)
     let covered = $derived(
-        layers.enlarged !== undefined || layers.openSeatId !== undefined || layers.stackView
+        layers.enlarged !== undefined ||
+            layers.openSeatId !== undefined ||
+            layers.stackView !== undefined ||
+            layers.tracksOpen
     )
 </script>
 
@@ -37,10 +46,17 @@
     <BoardPopup {popup} />
 {/if}
 {#if layers.openSeatId !== undefined}
-    <OpenSeatLayer playerId={layers.openSeatId} onClose={() => layers.closeSeatOrStack()} />
+    <OpenSeatLayer
+        playerId={layers.openSeatId}
+        onClose={() => layers.closeSeatOrStack()}
+        sheet={phone.phone ? SeatSheetShare : undefined}
+    />
 {/if}
 {#if layers.stackView}
     <StackViewLayer view={layers.stackView} onClose={() => layers.closeSeatOrStack()} />
+{/if}
+{#if layers.tracksOpen}
+    <TracksSheet onClose={() => layers.closeSeatOrStack()} />
 {/if}
 {#if layers.enlarged}
     <Scrim label="the enlarged piece" layer="enlarged" onClose={() => layers.closeEnlarged()}>
