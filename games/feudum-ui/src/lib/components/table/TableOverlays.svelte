@@ -39,12 +39,15 @@
 
 <svelte:window bind:innerWidth />
 
-{#if bench}
-    <BenchLayer {bench} />
-{/if}
-{#if popup && !covered}
-    <BoardPopup {popup} />
-{/if}
+<!-- Nothing here is pressed while the table catches up with what it shows. -->
+<div class="contents" data-motion-gate inert={gameSession.updatingVisibleState}>
+    {#if bench}
+        <BenchLayer {bench} />
+    {/if}
+    {#if popup && !covered}
+        <BoardPopup {popup} />
+    {/if}
+</div>
 {#if layers.openSeatId !== undefined}
     <OpenSeatLayer
         playerId={layers.openSeatId}

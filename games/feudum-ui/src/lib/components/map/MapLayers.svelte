@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { Snippet } from 'svelte'
     import type { HydratedFeudumGameState } from '@tabletop/feudum'
     import { PlainChrome, dimmedWithRest, type BoardChrome } from '$lib/model/boardChrome.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
@@ -12,16 +13,19 @@
     let {
         state,
         paintOf,
-        chrome = PlainChrome
+        chrome = PlainChrome,
+        underContents
     }: {
         state: HydratedFeudumGameState
         paintOf: (playerId: string) => SeatPaint
         chrome?: BoardChrome
+        underContents?: Snippet
     } = $props()
 </script>
 
 <g data-layer="ground" opacity={dimmedWithRest(chrome)}><MapGround /></g>
 <g data-layer="routes"><MapRoutes {chrome} /></g>
 <g data-layer="locations"><MapLocations {state} {chrome} /></g>
+{@render underContents?.()}
 <g data-layer="contents"><MapContents {state} {paintOf} {chrome} /></g>
 <g data-layer="pieces"><MapPieces {state} {paintOf} {chrome} /></g>

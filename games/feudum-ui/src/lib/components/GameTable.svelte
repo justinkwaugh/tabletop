@@ -129,7 +129,7 @@
         {#if phone.upright}
             <StatusStrip />
         {/if}
-        <div class="action-cap" data-action-cap>
+        <div class="action-cap" data-action-cap inert={feudumSession.updatingVisibleState}>
             <ActionArea />
         </div>
     </div>

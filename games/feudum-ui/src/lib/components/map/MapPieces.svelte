@@ -52,12 +52,14 @@
             <g opacity={dimmed(roleOf(chrome.offer, target))}>
                 {#if piece.kind === 'pawn'}
                     {#if piece.vessel}
-                        <VesselToken
-                            vessel={piece.vessel}
-                            size={VesselSize}
-                            x={-VesselSize / 2}
-                            y={PawnSize / 2 - VesselSize / 2}
-                        />
+                        <g data-rides>
+                            <VesselToken
+                                vessel={piece.vessel}
+                                size={VesselSize}
+                                x={-VesselSize / 2}
+                                y={PawnSize / 2 - VesselSize / 2}
+                            />
+                        </g>
                     {/if}
                     <PawnPiece
                         paint={paintOf(piece.playerId)}

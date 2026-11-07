@@ -109,6 +109,8 @@ export async function playToCards(page: Page) {
 
 export async function settled(page: Page) {
     await page.waitForTimeout(300)
+    // An Action's motion holds the table for as long as it plays.
+    await page.waitForFunction(() => !window.feudumSession?.updatingVisibleState)
 }
 
 export async function shot(page: Page, name: string) {
