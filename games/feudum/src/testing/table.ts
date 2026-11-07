@@ -23,6 +23,8 @@ const MasterSeed = '0123456789abcdef0123456789abcdef'
 export class Table {
     readonly game: Game
     state: FeudumProjectedState
+    /** Everything processed so far, in order, for a spec that undoes it. */
+    readonly processed: GameAction[] = []
     private sent = 0
 
     constructor(numPlayers = 4) {
@@ -50,6 +52,7 @@ export class Table {
             action: { id: `a${this.sent}`, gameId: this.game.id, ...move }
         })
         this.state = updatedState
+        this.processed.push(...processedActions)
         return processedActions
     }
 

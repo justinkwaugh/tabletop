@@ -1,3 +1,4 @@
+import { expect } from 'vitest'
 import {
     ActionSource,
     assertExists,
@@ -68,7 +69,7 @@ const MigrantCharacters: readonly GuildId[] = ['farmer', 'noble', 'merchant', 'k
 const LastTileEpoch = 4
 
 /** What the walk has already done, so the seats turn to what it hasn't. */
-class Progress {
+export class Progress {
     private readonly reached = new Set<string>()
 
     note(steps: readonly GameAction[], after: readonly FeudumProjectedState[]): void {
@@ -195,7 +196,7 @@ function pilferOf({ piece, from, resource }: PilferOffer): Pilfer {
 }
 
 /** What each card would do now, if anything worth a card. */
-function cardMove(
+export function cardMove(
     state: HydratedFeudumGameState,
     playerId: string,
     kind: ActionCardKind,
@@ -367,7 +368,7 @@ function usefulCards(
 }
 
 /** R-3.1 Four cards: those with something to do first, keeping Move and Repeat for the voyage. */
-function handFor(
+export function handFor(
     state: HydratedFeudumGameState,
     playerId: string,
     progress: Progress
@@ -461,11 +462,13 @@ function moveOf(state: HydratedFeudumGameState, playerId: string, progress: Prog
             }
         }
         case MachineState.CommittingAttack: {
+            // R-4.3.3 The most counts tiles too, and this seat spends none.
             const { saltpeterMost } = commitAttackOffer(state, playerId) ?? { saltpeterMost: 0 }
+            const { saltpeter } = state.getPlayerState(playerId).goods
             return {
                 type: ActionType.CommitAttack,
                 playerId,
-                saltpeter: Math.min(1, saltpeterMost),
+                saltpeter: Math.min(1, saltpeterMost, saltpeter),
                 weapons: []
             }
         }
@@ -519,6 +522,11 @@ function moveOf(state: HydratedFeudumGameState, playerId: string, progress: Prog
     }
 }
 
+/** What a seat asked anything but a card sends: the walk's own answer, for a spec playing on. */
+export function answerOf(state: HydratedFeudumGameState, playerId: string): WalkMove {
+    return moveOf(state, playerId, new Progress())
+}
+
 /** Runs one user Action canonically. */
 function stepOf(game: Game, state: FeudumProjectedState, input: WalkStep['input']): WalkStep {
     const { processedActions, actionCascade } = engine.executeCanonicalAction({
@@ -534,11 +542,21 @@ function stepOf(game: Game, state: FeudumProjectedState, input: WalkStep['input'
     }
 }
 
+/** What seats want beyond the walk's own play: each ask goes to it first. */
+export interface WalkPlan {
+    moveFor(
+        state: HydratedFeudumGameState,
+        playerId: string,
+        progress: Progress
+    ): WalkMove | undefined
+    noted(step: WalkStep): void
+}
+
 /**
  * Plays a whole game from the seed: user Actions only, each chosen from the real offers on the state
  * reached, so nothing is edited by hand and the input alone replays it.
  */
-export function walkGame(masterSeed: string, numPlayers = 3): GameWalk {
+export function walkGame(masterSeed: string, numPlayers = 3, plan?: WalkPlan): GameWalk {
     const game = testGame(numPlayers)
     const initial = engine.startGame(game, { masterSeed }).initialState
     const progress = new Progress()
@@ -550,9 +568,12 @@ export function walkGame(masterSeed: string, numPlayers = 3): GameWalk {
         }
         const [playerId] = state.activePlayerIds
         assertExists(playerId, `A seat is asked in ${state.machineState}`)
-        const move = moveOf(new HydratedFeudumGameState(state), playerId, progress)
+        const hydrated = new HydratedFeudumGameState(state)
+        const move =
+            plan?.moveFor(hydrated, playerId, progress) ?? moveOf(hydrated, playerId, progress)
         const step = stepOf(game, state, { id: `w${steps.length}`, ...move })
         progress.note(step.processed, step.after)
+        plan?.noted(step)
         steps.push(step)
         state = step.after[step.after.length - 1]
     }
@@ -570,6 +591,20 @@ export function replayWalk(masterSeed: string, walk: GameWalk): GameWalk {
         state = step.after[step.after.length - 1]
     }
     return { game: walk.game, initial, steps, final: state }
+}
+
+/** The engine stamps the clock on each Action; nothing else in it may differ between two plays. */
+export function withoutClock(action: GameAction): GameAction {
+    const copy = { ...action }
+    delete copy.createdAt
+    return copy
+}
+
+/** The engine names each started game's state with a fresh row id; the rules never read it. */
+export function withoutRowId(state: FeudumProjectedState): Omit<FeudumProjectedState, 'id'> {
+    const { id, ...rules } = state
+    expect(id).toBeTruthy()
+    return rules
 }
 
 /** Undoes one processed Action by its recorded patch. */
