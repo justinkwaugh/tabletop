@@ -53,7 +53,7 @@ export interface NourishInput {
 }
 
 /** R-4.10.1, R-4.10.2 The pawns on the board that need feeding: a pawn holding sulfur is fed by it. */
-function pawnsToFeed(state: HydratedFeudumGameState, playerId: string) {
+export function pawnsToFeed(state: HydratedFeudumGameState, playerId: string) {
     return state
         .getPlayerState(playerId)
         .pawns.filter((pawn) => pawn.spaceId !== undefined && pawn.wine === undefined)
@@ -152,6 +152,18 @@ export interface NourishOffer {
     readonly sulfurToBarrel: boolean
 }
 
+/** R-4.10.1 The auto stage: food first in pawn order, then wine, then unfed. */
+export function preselectedFeeding(
+    state: HydratedFeudumGameState,
+    playerId: string
+): NourishOffer['preselected'] {
+    const { goods, barrel } = state.getPlayerState(playerId)
+    const afterFood = pawnsToFeed(state, playerId)
+        .slice(goods.food)
+        .map((pawn) => pawn.n)
+    return { wineFed: afterFood.slice(0, barrel), unfed: afterFood.slice(barrel) }
+}
+
 /** R-4.10, D11 What the asked seat decides. Read-only. */
 export function nourishOffer(
     state: HydratedFeudumGameState,
@@ -166,19 +178,19 @@ export function nourishOffer(
         assertExists(character, 'R-1.1 A pawn on the board shows a character')
         return { n, spaceId, character }
     })
-    const afterFood = pawns.slice(goods.food).map((pawn) => pawn.n)
+    const preselected = preselectedFeeding(state, playerId)
     return {
         pawns,
         food: goods.food,
         barrel,
-        preselected: { wineFed: afterFood.slice(0, barrel), unfed: afterFood.slice(barrel) },
-        wildTileNeeded: afterFood.length > barrel && tileCouldFeed(state, playerId),
+        preselected,
+        wildTileNeeded: preselected.unfed.length > 0 && tileCouldFeed(state, playerId),
         sulfurToBarrel: state.supply.haversack.sulfur > 0 && barrelRoom(state, playerId) > 0
     }
 }
 
 /** R-4.10.1 Tiles first, then food to the haversack, sulfur on the pawns, the unfed home. */
-function feedPawns(
+export function feedPawns(
     state: HydratedFeudumGameState,
     playerId: string,
     { wineFed, unfed, wildTiles = [] }: NourishInput

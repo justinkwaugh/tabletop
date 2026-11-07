@@ -32,6 +32,9 @@ import { HydratedNourish, isNourish } from '../actions/nourish.js'
 import { HydratedCollectLandscapes, isCollectLandscapes } from '../actions/collectLandscapes.js'
 import { HydratedStartRound, isStartRound } from '../actions/startRound.js'
 import { HydratedAdvanceTurn, isAdvanceTurn } from '../actions/advanceTurn.js'
+import { HydratedEndRound, isEndRound } from '../actions/endRound.js'
+import { HydratedNourishPawns, isNourishPawns } from '../actions/nourishPawns.js'
+import { HydratedRollProgressDie, isRollProgressDie } from '../actions/rollProgressDie.js'
 import { HydratedExplore, isExplore } from '../actions/explore.js'
 import { HydratedKeepWrits, isKeepWrits } from '../actions/keepWrits.js'
 import { HydratedFeast, isFeast } from '../actions/feast.js'
@@ -105,6 +108,15 @@ export class FeudumHydrator implements GameHydrator<FeudumProjectedState, Hydrat
             }
             case isAdvanceTurn(data): {
                 return new HydratedAdvanceTurn(data)
+            }
+            case isNourishPawns(data): {
+                return new HydratedNourishPawns(data)
+            }
+            case isRollProgressDie(data): {
+                return new HydratedRollProgressDie(data)
+            }
+            case isEndRound(data): {
+                return new HydratedEndRound(data)
             }
             case isImprove(data): {
                 return new HydratedImprove(data)

@@ -24,7 +24,7 @@ Owner-known fields sit on the player row (`Visibility.Policy.Owner`) or on an ob
 - **Royal Writs** (R-4.4.4): `writs` (unsealed) and `sealedCharters` are owner-known; `writCount` and `sealedCharterCount` are public. A sealed charter stays hidden until final scoring (R-4.4.3).
 - **A writ draw** (R-3.10, R-4.6.4, R-3.7.5): the writs drawn wait on the pending draw, which names its `playerId`, owner-known; the table sees how many were drawn and how many are to be kept.
 - **Deck knowledge** (R-4.4.1): `deckKnowledge` keeps, owner-known, the writs a player put under the deck unseen and the slot each took. A slot is in the deck while it is at or above `top`, so knowledge needs no rewriting on a draw; an entry is dropped when its writ is drawn. `publicDeckWrits` does the same for writs the table saw go under.
-- **Region tile stacks** (R-1.4-H2): the landscape of every tile still in a stack is hidden from everyone until the tile is taken; the stacks' counts and each top tile's epoch are public, and the landscapes are in the vault.
+- **Region tile stacks** (R-1.4-H2): the landscape of every tile still in a stack is hidden from everyone until the tile is taken or the progress die removes it (R-4.11-H2); the stacks' counts and each top tile's epoch are public, and the landscapes are in the vault.
 - **Seals held** (R-5-H1): no one, the holder included, knows a held seal's bead value; the holder's seal count is public and its identities are in the vault.
 
 Everything else is public (R-5.3): the map, locations, markers, pawns and their characters, vessels, monsters, landscapes and their resources, goods and shillings in every supply, the haversack counts, beads and their values, guild tracks, reeves, the purse and coffer, Knight rows, region stacks and collected tiles, wine barrels, the pouch good once finalised, the epoch, scores, the voyage and military tracks, and who is to act in every pending decision.
@@ -52,17 +52,18 @@ Haversack draws, the progress die and its rerolls, the hidden-bead draw, spills 
 
 R-X.2 stops Undo at an action that revealed information. The engine sets `revealsInfo` from what it resolved, never from input.
 
-Always a barrier: `FinaliseHand` (a finalised hand), `Explore` (a writ draw), `Harvest` (a haversack draw), `Conquer` that asks a defender and `StarveThePeople` that asks the target's owner (a decision passed to another seat), `AnswerAttack` and `AnswerStarve` (the decision passed back), and the System Actions `RollProgressDie`, `ReplenishMap` and `ReplenishGuilds` (the die and haversack draws, and at the third dawn bead flips).
+Always a barrier: `FinaliseHand` (a finalised hand), `Explore` (a writ draw), `Harvest` (a haversack draw), `Conquer` that asks a defender and `StarveThePeople` that asks the target's owner (a decision passed to another seat), `AnswerAttack` and `AnswerStarve` (the decision passed back), and the System Actions `ReplenishMap` and `ReplenishGuilds` (haversack draws, and at the third dawn bead flips).
 
 A barrier by outcome:
 
 - `GuildAction` and `Feast`: a pull that reaches its threshold (a writ draw); the Monk trade, Farmer pull and Monk push (the hidden-bead draw); the Monk pull and Noble push (a seal flipped to a bead); a Farmer trade whose overflow spills goods picked at random (R-4.6.3);
 - `Improve` that takes a region tile (its landscape was hidden, R-1.4-H2);
+- `RollProgressDie` that rolls (the die, and the removed tile's landscape, R-4.11-H2); with no legal tile left or the condition for epoch V met it doesn't roll and reveals nothing (R-4.11.1, R-6.1-H1);
 - `KeepWrits` that turns in an iron for Shovels & Swords (a second draw);
 - `PlaceDisc` that moves the voyage disc onto space 2, 4 or 6 (a writ draw);
 - `PlayMandate` whose reward in fact draws goods from the haversack or flips a seal to a bead; one the supply can't pay in that way reveals nothing.
 
-Not a barrier: setup choices, `AdvanceTurn`, card plays that draw nothing, `ForfeitCard`, `PlayDefend`, `CommitAttack` (combat is decided by public strengths once the defence is known), `KeepWrits` with no further draw, `ChooseFavours` (the goods were drawn by `Harvest`), `PlaceDisc` otherwise, `DiscardWrit`, `SealCharter`, `SpendRegionTile`, `PlaceVessel`, `ReclaimImmunitySeal`, `Nourish`, `CollectLandscapes`, and a seal drawn unseen from the pile onto a scroll space. Playing a card or a writ from a hidden hand shows it to the table but tells its player nothing new, so it is not a barrier.
+Not a barrier: setup choices, `StartRound`, `AdvanceTurn`, `NourishPawns`, `EndRound`, card plays that draw nothing, `ForfeitCard`, `PlayDefend`, `CommitAttack` (combat is decided by public strengths once the defence is known), `KeepWrits` with no further draw, `ChooseFavours` (the goods were drawn by `Harvest`), `PlaceDisc` otherwise, `DiscardWrit`, `SealCharter`, `SpendRegionTile`, `PlaceVessel`, `ReclaimImmunitySeal`, `Nourish`, `CollectLandscapes`, and a seal drawn unseen from the pile onto a scroll space. Playing a card or a writ from a hidden hand shows it to the table but tells its player nothing new, so it is not a barrier.
 
 ## Exploration
 

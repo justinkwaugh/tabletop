@@ -264,14 +264,14 @@ describe('R-3.2-H1 a seat with no cards is skipped', () => {
         expect(table.state.flow.turn?.playerId).toBe('p2')
     })
 
-    it('once every card is played no seat is asked and the turn closes', () => {
+    it('once every card is played the turn closes and the round moves on', () => {
         const table = allHolding(['move', 'tax'], 2)
         for (const kind of ['move', 'tax'] as const) {
             for (const playerId of table.order) {
                 forfeit(table, playerId, kind)
             }
         }
-        expect(table.state.activePlayerIds).toEqual([])
+        expect(table.state.machineState).not.toBe(MachineState.PlayingCards)
         expect(table.state.flow.turn).toBeUndefined()
         expect(table.hydrated().turnManager.currentTurn()).toBeUndefined()
     })

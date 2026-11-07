@@ -24,6 +24,7 @@ import {
     tableAtCombat
 } from '../testing/combat.js'
 import { giveGood } from '../testing/improving.js'
+import { typesOf } from '../testing/roundEnd.js'
 import { tableAtHandSelection, tableAtPlayingCards, type Table } from '../testing/table.js'
 import { stateAfterCardStep } from './cardTurns.js'
 
@@ -241,14 +242,15 @@ describe('R-3.2-H2, D5 AdvanceTurn', () => {
 
     it('R-3.2 passes one card at a time, clockwise from the starting player', () => {
         const table = tableAtPlayingCards(() => ({ cards: ['move', 'tax'] }))
+        const order = [...table.order]
         const asked: string[] = []
         for (const kind of ['move', 'tax'] as const) {
-            for (let seat = 0; seat < table.order.length; seat += 1) {
+            for (let seat = 0; seat < order.length; seat += 1) {
                 asked.push(table.asked)
                 forfeit(table, table.asked, kind)
             }
         }
-        expect(asked).toEqual([...table.order, ...table.order])
+        expect(asked).toEqual([...order, ...order])
     })
 
     it('R-3.2-H1 a seat with no cards is skipped; one with more keeps playing', () => {
@@ -453,9 +455,9 @@ describe('R-4.4.4, R-3.2-H2 the writ limit (S52)', () => {
         const table = dealt([['move'], []])
         const [first, second] = table.order
         holdWrits(table, second)
-        forfeit(table, first, 'move')
+        const processed = forfeit(table, first, 'move')
         expect(table.seat(second).writCount).toBe(4)
-        expect(table.state.machineState).toBe(MachineState.Nourishing)
+        expect(typesOf(processed)).toContain(ActionType.NourishPawns)
     })
 
     it('R-4.4.1, R-4.4.4 a keep over the limit reaches it once the follow-ups are done', () => {
@@ -480,7 +482,7 @@ describe('R-4.4.4, R-3.2-H2 the writ limit (S52)', () => {
 })
 
 describe('R-3.2 the last card goes to Nourishing', () => {
-    it('R-3.2, R-4.10 the turn closes and the state moves on', () => {
+    it('R-3.2, R-4.10 the turn closes and the game feeds the seats', () => {
         const table = tableAtPlayingCards(() => ({ cards: ['move'] }), 3)
         const [first, second, third] = table.order
         forfeit(table, first, 'move')
@@ -490,12 +492,9 @@ describe('R-3.2 the last card goes to Nourishing', () => {
 
         expect(processed[1]).toMatchObject({ metadata: { outcome: 'last-card' } })
         expect(processed[1]).not.toHaveProperty('metadata.turnPlayerId')
-        expect(table.state.machineState).toBe(MachineState.Nourishing)
+        expect(processed[2].type).toBe(ActionType.NourishPawns)
         expect(table.state.flow.turn).toBeUndefined()
         expect(table.hydrated().turnManager.currentTurn()).toBeUndefined()
-        for (const playerId of table.order) {
-            expect(table.offered(playerId)).toEqual([])
-        }
     })
 
     it('R-4.4.4 the last seat over the limit discards first', () => {
@@ -508,8 +507,11 @@ describe('R-3.2 the last card goes to Nourishing', () => {
         expect(table.state.machineState).toBe(MachineState.DiscardingWrits)
         expect(table.asked).toBe(second)
 
-        table.send(second, { type: ActionType.DiscardWrit, writId: VesselMandate })
-        expect(table.state.machineState).toBe(MachineState.Nourishing)
+        const processed = table.send(second, {
+            type: ActionType.DiscardWrit,
+            writId: VesselMandate
+        })
+        expect(typesOf(processed)).toContain(ActionType.NourishPawns)
     })
 
     it('R-3.3-H1 a second card as the round’s last card ends it the same way', () => {
@@ -517,7 +519,6 @@ describe('R-3.2 the last card goes to Nourishing', () => {
         const [first] = table.order
         forfeit(table, first, 'move', true)
         expect(table.state.machineState).toBe(MachineState.PlayingCards)
-        forfeit(table, first, 'tax')
-        expect(table.state.machineState).toBe(MachineState.Nourishing)
+        expect(typesOf(forfeit(table, first, 'tax'))).toContain(ActionType.NourishPawns)
     })
 })

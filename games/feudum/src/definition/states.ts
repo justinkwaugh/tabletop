@@ -12,5 +12,7 @@ export enum MachineState {
     InspectingHarvest = 'InspectingHarvest',
     DiscardingWrits = 'DiscardingWrits',
     Nourishing = 'Nourishing',
-    CollectingLandscapes = 'CollectingLandscapes'
+    CollectingLandscapes = 'CollectingLandscapes',
+    ProgressRoll = 'ProgressRoll',
+    EndOfRound = 'EndOfRound'
 }

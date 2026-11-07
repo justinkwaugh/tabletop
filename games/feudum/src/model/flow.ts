@@ -53,6 +53,15 @@ export const StarveRole = Type.Union([Type.Literal('subject'), Type.Literal('ser
 export type CombatTarget = Type.Static<typeof CombatTarget>
 export const CombatTarget = Type.Union([PieceRef, Type.Object({ kind: Type.Literal('feudum') })])
 
+/** R-4.11.2 The epochs a round can trigger; the game starts in the first. */
+export type TriggeredEpoch = Type.Static<typeof TriggeredEpoch>
+export const TriggeredEpoch = Type.Union([
+    Type.Literal(2),
+    Type.Literal(3),
+    Type.Literal(4),
+    Type.Literal(5)
+])
+
 export type FlowState = Type.Static<typeof FlowState>
 export const FlowState = Type.Object({
     /** R-1.4.8, R-1.4.9 The seat choosing. */
@@ -118,7 +127,5 @@ export const FlowState = Type.Object({
     /** R-4.3.4, R-4.12.3 In turn order. */
     landscapes: Type.Optional(Type.Object({ pending: Type.Array(Type.String()) })),
     /** R-4.11-H1 Set at step 4 of the round. */
-    epochTriggered: Type.Optional(
-        Type.Union([Type.Literal(2), Type.Literal(3), Type.Literal(4), Type.Literal(5)])
-    )
+    epochTriggered: Type.Optional(TriggeredEpoch)
 })
