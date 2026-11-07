@@ -10,7 +10,14 @@ import { isPlaceDisc } from '../actions/placeDisc.js'
 import { isRollProgressDie } from '../actions/rollProgressDie.js'
 import { isScoreGame } from '../actions/scoreGame.js'
 import type { FeudumProjectedState } from '../model/gameState.js'
-import { replayWalk, undoAction, walkGame, type GameWalk } from '../testing/walk.js'
+import {
+    replayWalk,
+    undoAction,
+    walkGame,
+    withoutClock,
+    withoutRowId,
+    type GameWalk
+} from '../testing/walk.js'
 import { ActionType } from './actions.js'
 import { FeudumApiActions } from './apiActions.js'
 import { FeudumHydrator } from './hydrator.js'
@@ -45,20 +52,6 @@ const actions = (played: GameWalk): readonly GameAction[] =>
 
 const statesAfter = (played: GameWalk): readonly FeudumProjectedState[] =>
     played.steps.flatMap(({ after }) => after)
-
-/** The engine stamps the clock on each Action; nothing else in it may differ between two plays. */
-function withoutClock(action: GameAction): GameAction {
-    const copy = { ...action }
-    delete copy.createdAt
-    return copy
-}
-
-/** The engine names each started game's state with a fresh row id; the rules never read it. */
-function withoutRowId(state: FeudumProjectedState): Omit<FeudumProjectedState, 'id'> {
-    const { id, ...rules } = state
-    expect(id).toBeTruthy()
-    return rules
-}
 
 const hasEmptyStack = ({ regionStacks }: FeudumProjectedState): boolean =>
     Object.values(regionStacks).some((stack) => stack.length === 0)
