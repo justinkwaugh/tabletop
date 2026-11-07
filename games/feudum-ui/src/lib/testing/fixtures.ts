@@ -8,6 +8,7 @@ import {
     placeMarker,
     RegionIds,
     removeTopTile,
+    replaceLocationDisc,
     Routes,
     Spaces,
     stackTop,
@@ -19,9 +20,19 @@ import {
     type RegionId,
     type SpaceId
 } from '@tabletop/feudum'
+import { holdWrit } from './followUpTable.js'
+import {
+    abandonVessel,
+    giveMonster,
+    giveVessel,
+    landscapeOn,
+    sellOut,
+    serfOn
+} from './moveTable.js'
 import { showOnStacks } from './roundEndTable.js'
 import { FeudumHost } from './sessionHarness.js'
 import {
+    addPawn,
     buildFeudum,
     emptySpace,
     giveBead,
@@ -40,6 +51,7 @@ interface SeatPlan {
     readonly sulfurToBarrel?: boolean
     readonly character?: Character
     readonly on?: LocationKind
+    readonly space?: SpaceId
     readonly hand?: readonly ActionCardKind[]
     readonly pouch?: PouchGood
 }
@@ -73,11 +85,11 @@ function planOf(host: FeudumHost, plans: readonly SeatPlan[], playerId: string):
 async function placePawns(host: FeudumHost, plans: readonly SeatPlan[]) {
     while (host.state.machineState === MachineState.PlacingStartingPawn) {
         const playerId = host.setupSeat
-        const { character, on } = planOf(host, plans, playerId)
+        const { character, on, space } = planOf(host, plans, playerId)
         await host.send(playerId, {
             type: ActionType.PlaceStartingPawn,
             character: character ?? 'monk',
-            spaceId: startingSpaceShowing(host, on ?? 'outpost')
+            spaceId: space ?? startingSpaceShowing(host, on ?? 'outpost')
         })
     }
 }
@@ -203,6 +215,173 @@ async function rulingFarm(character: Character, hand: readonly ActionCardKind[])
     const seat = first(host)
     await influenceThenBack(host, seat)
     return { host, seat }
+}
+
+const Forest1: SpaceId = 'space.forest.1'
+const Forest2: SpaceId = 'space.forest.2'
+const Forest3: SpaceId = 'space.forest.3'
+const Desert1: SpaceId = 'space.desert.1'
+const Desert3: SpaceId = 'space.desert.3'
+const Desert4: SpaceId = 'space.desert.4'
+const Mountain1: SpaceId = 'space.mountain.1'
+
+function othersOf(state: HydratedFeudumGameState, seat: string): readonly string[] {
+    return state.players.map(({ playerId }) => playerId).filter((playerId) => playerId !== seat)
+}
+
+/** R-3.7 A seat that moves first this round, with the rest of its hand to come. */
+const mover = (character: Character, space: SpaceId): SeatPlan => ({
+    goods: Plain,
+    character,
+    space,
+    hand: ['move', 'tax', 'guild', 'harvest']
+})
+
+/** A seat that moves first; a hand sets its pieces, since those a Move starts with come by guilds. */
+async function moverArranged(
+    character: Character,
+    space: SpaceId,
+    arrange: (state: HydratedFeudumGameState, seat: string) => void
+) {
+    const host = await atCards(seats(mover(character, space), plain, plain))
+    const seat = first(host)
+    host.edit((state) => {
+        arrange(state, seat)
+        state.recomputeRanks()
+    })
+    return { host, seat }
+}
+
+/** R-3.7.5 The seat moves its farmer by road, the others come back round, and Repeat is next. */
+async function movedOnce(host: FeudumHost, seat: string) {
+    await othersForfeitUntil(host, seat)
+    await host.send(seat, {
+        type: ActionType.Move,
+        steps: [{ piece: { kind: 'pawn', playerId: seat, n: 1 }, to: Forest3, medium: 'road' }]
+    })
+    await othersForfeitUntil(host, seat)
+}
+
+const VoyagePlans = seats(
+    { goods: Plain, character: 'farmer', hand: ['move', 'repeat', 'tax', 'guild'] },
+    plain,
+    plain
+)
+
+/** R-4.8 The defender's knight, the attacker's knight, a third seat on a space of its own. */
+const combatSeats = (
+    defenderHand: readonly ActionCardKind[],
+    attackerHand: readonly ActionCardKind[],
+    attackerGoods: readonly Good[]
+) =>
+    seats(
+        { goods: Plain, character: 'knight', space: Forest2, hand: defenderHand },
+        { goods: attackerGoods, character: 'knight', space: Forest2, hand: attackerHand },
+        { goods: Plain, space: Desert3 }
+    )
+
+const ChargeGoods: readonly Good[] = ['saltpeter', 'iron', 'food']
+const NoDefend: readonly ActionCardKind[] = ['tax', 'guild', 'harvest', 'migrate']
+const HoldsDefend: readonly ActionCardKind[] = ['tax', 'guild', 'harvest', 'defend']
+
+/**
+ * R-3.6, R-4.8.2 Two rounds of the attacker's Migrate bring it to three pawns on the defender's
+ * space: 3 attack against 2 defence. The attacker is asked again, in the second round.
+ */
+async function threeAgainstOne(plans: readonly SeatPlan[]) {
+    const host = await atCards(plans)
+    const defender = first(host)
+    const attacker = second(host)
+    const migrate = async (pawn: number, character: Character) => {
+        await othersForfeitUntil(host, attacker)
+        await host.send(attacker, {
+            type: ActionType.Migrate,
+            pawn,
+            onto: { character, spaceId: Forest2 }
+        })
+    }
+    await migrate(2, 'merchant')
+    await forfeitRound(host)
+    await finalise(host, plans)
+    await migrate(3, 'alchemist')
+    return { host, defender, attacker }
+}
+
+const conquerPawn = (host: FeudumHost, attacker: string, defender: string, asks: boolean) =>
+    host.send(attacker, {
+        type: ActionType.Conquer,
+        spaceId: Forest2,
+        target: { kind: 'pawn', playerId: defender, n: 1 },
+        ...(asks ? { revealsInfo: true } : {})
+    })
+
+/** R-3.14.1 The Conquer sent: the knight's owner is asked. */
+async function askedDefender(defenderHand: readonly ActionCardKind[], goods = ChargeGoods) {
+    const plans = combatSeats(defenderHand, ['migrate', 'conquer', 'tax', 'guild'], goods)
+    const table = await threeAgainstOne(plans)
+    await othersForfeitUntil(table.host, table.attacker)
+    await conquerPawn(table.host, table.attacker, table.defender, true)
+    return { ...table, seat: table.defender }
+}
+
+/** R-3.14.1 The defender played Defend this round: the attacker is asked, and nobody answers. */
+async function defendPlayed() {
+    const { host, defender, attacker } = await threeAgainstOne(
+        combatSeats(HoldsDefend, ['migrate', 'conquer', 'tax', 'guild'], ChargeGoods)
+    )
+    await othersForfeitUntil(host, defender)
+    await host.send(defender, { type: ActionType.PlayDefend })
+    await othersForfeitUntil(host, attacker)
+    return { host, defender, attacker }
+}
+
+/**
+ * R-3.13.2 The first seat's Noble and the second seat's farmer stand on one outpost and each plays
+ * Influence: ruler and serf. The Noble's seat is asked for a card.
+ */
+const StarvePlans = seats(
+    {
+        goods: Plain,
+        character: 'noble',
+        space: Forest2,
+        hand: ['influence', 'conquer', 'migrate', 'tax']
+    },
+    {
+        goods: Plain,
+        character: 'farmer',
+        space: Forest2,
+        hand: ['influence', 'defend', 'migrate', 'tax']
+    },
+    { goods: Plain, space: Desert3 }
+)
+
+async function starvingTable() {
+    const host = await atCards(StarvePlans)
+    const noble = first(host)
+    const served = second(host)
+    await host.send(noble, { type: ActionType.Influence })
+    await host.send(served, { type: ActionType.Influence })
+    await othersForfeitUntil(host, noble)
+    return { host, noble, served }
+}
+
+/** R-3.14.2 The serf's owner answers the starve with Royal Immunity. */
+async function immunityAnswered() {
+    const table = await starvingTable()
+    const { host, noble, served } = table
+    await host.send(noble, {
+        type: ActionType.StarveThePeople,
+        spaceId: Forest2,
+        targetPlayerId: served,
+        role: 'serf',
+        revealsInfo: true
+    })
+    await host.send(served, {
+        type: ActionType.AnswerStarve,
+        revealsInfo: true,
+        royalImmunity: true
+    })
+    return table
 }
 
 /**
@@ -557,6 +736,222 @@ export const Fixtures = {
                 seats({ goods: Plain, hand: ['defend', 'tax', 'guild', 'harvest'] }, plain, plain)
             )
             return { host, seat: first(host) }
+        }
+    },
+    'move-trail': {
+        arranged:
+            'R-3.7.1 A second pawn, a monster and a ship: the Knight and Alchemist Guilds give them, over rounds this table has no need of.',
+        build: () =>
+            moverArranged('farmer', Desert3, (state, seat) => {
+                addPawn(state, seat, 'farmer', Forest1)
+                giveMonster(state, seat, 'behemoth', Mountain1)
+                giveVessel(state, seat, 'ship')
+            })
+    },
+    'move-way-popup': {
+        arranged:
+            'R-4.2 A flying machine, and a pawn where a road and a machine both reach: the Alchemist Guild sells the one, and walking there takes rounds.',
+        build: () =>
+            moverArranged('farmer', Desert3, (state, seat) => {
+                addPawn(state, seat, 'farmer', Mountain1)
+                giveVessel(state, seat, 'flying-machine')
+            })
+    },
+    'move-ferry': {
+        arranged:
+            "R-4.2.3 The Alchemist's vessels sold out, which the ferries wait on: buying both takes two guild actions and the shillings for them.",
+        build: () => moverArranged('farmer', Desert4, sellOut)
+    },
+    'move-vessel-for-sale': {
+        build: async () => {
+            const host = await atCards(seats(mover('farmer', Desert4), plain, plain))
+            return { host, seat: first(host) }
+        }
+    },
+    'move-port': {
+        arranged:
+            'R-4.2.2 A ship in supply at a port: the Alchemist Guild sells it, and the pawn has to walk to the port first.',
+        build: () =>
+            moverArranged('farmer', Desert3, (state, seat) => {
+                state.getPlayerState(seat).pawns[0].spaceId = Desert1
+                giveVessel(state, seat, 'ship')
+            })
+    },
+    'move-port-abandoned': {
+        arranged:
+            'R-4.2.2 As at the port, with a submersible abandoned there: a rider has to leave it behind in an earlier Move.',
+        build: () =>
+            moverArranged('farmer', Desert3, (state, seat) => {
+                state.getPlayerState(seat).pawns[0].spaceId = Desert1
+                giveVessel(state, seat, 'ship')
+                abandonVessel(state, Desert1, 'submersible')
+            })
+    },
+    'move-pinned': {
+        arranged:
+            "R-4.2.4 An opponent's monster on the pawn's space: it comes by Tame the Beast and its own Move.",
+        build: () =>
+            moverArranged('farmer', Forest3, (state, seat) => {
+                addPawn(state, seat, 'farmer', Desert3)
+                addPawn(state, seat, 'farmer', Forest1)
+                giveMonster(state, othersOf(state, seat)[0], 'behemoth', Forest3)
+            })
+    },
+    'move-godspeed': {
+        arranged:
+            "R-3.7.3, R-3.7.4 Three pawns, a farm the seat rules and an opponent's landscape: three of a game's slowest things to bring together on one table.",
+        build: () =>
+            moverArranged('monk', Desert4, (state, seat) => {
+                const [serf, ruler] = othersOf(state, seat)
+                addPawn(state, seat, 'farmer', Desert3)
+                addPawn(state, seat, 'farmer', Forest2)
+                placeMarker(state, seat, Forest1)
+                serfOn(state, Forest3, ruler, serf)
+                landscapeOn(state, Forest3, 'archery-butt')
+            })
+    },
+    'move-last-step-monk': {
+        build: async () => {
+            const host = await atCards(seats(mover('monk', Forest2), plain, plain))
+            return { host, seat: first(host) }
+        }
+    },
+    'move-last-step-farmer': {
+        build: async () => {
+            const host = await atCards(seats(mover('farmer', Forest2), plain, plain))
+            return { host, seat: first(host) }
+        }
+    },
+    'voyage-repeat': {
+        build: async () => {
+            const host = await atCards(VoyagePlans)
+            const seat = first(host)
+            await movedOnce(host, seat)
+            return { host, seat }
+        }
+    },
+    'voyage-advance': {
+        build: async () => {
+            const host = await atCards(VoyagePlans)
+            const seat = first(host)
+            await movedOnce(host, seat)
+            await host.send(seat, {
+                type: ActionType.Move,
+                asRepeat: 'repeat',
+                steps: [
+                    {
+                        piece: { kind: 'pawn', playerId: seat, n: 1 },
+                        to: Forest2,
+                        medium: 'road'
+                    }
+                ]
+            })
+            await host.send(seat, { type: ActionType.PlaceDisc, place: true })
+            await forfeitRound(host)
+            await finalise(host, VoyagePlans)
+            await movedOnce(host, seat)
+            return { host, seat }
+        }
+    },
+    'conquer-asks': {
+        build: async () => {
+            const { host, attacker } = await threeAgainstOne(
+                combatSeats(HoldsDefend, ['migrate', 'conquer', 'tax', 'guild'], ChargeGoods)
+            )
+            await othersForfeitUntil(host, attacker)
+            return { host, seat: attacker }
+        }
+    },
+    'conquer-asked-defend': {
+        build: () => askedDefender(HoldsDefend)
+    },
+    'conquer-asked-no-defend': {
+        build: () => askedDefender(NoDefend)
+    },
+    'conquer-asked-defend-nothing-to-add': {
+        build: () => askedDefender(HoldsDefend, ['wood', 'food', 'sulfur'])
+    },
+    'conquer-no-ask': {
+        build: async () => {
+            const { host, attacker } = await defendPlayed()
+            return { host, seat: attacker }
+        }
+    },
+    'conquer-commit': {
+        arranged:
+            "R-4.4 Mandate 3 in the attacker's hand: writs come from Explore, off a deck the seed orders, and this one is not near its top.",
+        build: async () => {
+            const { host, attacker, defender } = await askedDefender(HoldsDefend)
+            await host.send(defender, {
+                type: ActionType.AnswerAttack,
+                revealsInfo: true,
+                flipDefend: true
+            })
+            host.edit((state) => holdWrit(state, attacker, 'writ.mandate.3'))
+            return { host, seat: attacker }
+        }
+    },
+    'conquer-feudum': {
+        arranged:
+            'R-3.9 The feudum where the markers stand: building one takes an Improve with seals and a tile, and this table only needs it fallen.',
+        build: async () => {
+            const plans = combatSeats(
+                ['influence', 'tax', 'guild', 'harvest'],
+                ['influence', 'migrate', 'conquer', 'tax'],
+                ChargeGoods
+            )
+            const host = await atCards(plans)
+            const defender = first(host)
+            const attacker = second(host)
+            await host.send(defender, { type: ActionType.Influence })
+            await host.send(attacker, { type: ActionType.Influence })
+            const migrate = async (pawn: number, character: Character) => {
+                await othersForfeitUntil(host, attacker)
+                await host.send(attacker, {
+                    type: ActionType.Migrate,
+                    pawn,
+                    onto: { character, spaceId: Forest2 }
+                })
+            }
+            await migrate(2, 'knight')
+            await forfeitRound(host)
+            await finalise(host, plans)
+            await migrate(3, 'alchemist')
+            await othersForfeitUntil(host, attacker)
+            host.edit((state) => {
+                replaceLocationDisc(state, Forest2, 'disc.feudum.knight-1', 'feudum', 'knight')
+                state.recomputeRanks()
+            })
+            return { host, seat: attacker }
+        }
+    },
+    'starve-asks': {
+        build: async () => {
+            const { host, noble } = await starvingTable()
+            return { host, seat: noble }
+        }
+    },
+    'starve-reclaim': {
+        build: async () => {
+            const { host, served } = await immunityAnswered()
+            await othersForfeitUntil(host, served)
+            return { host, seat: served }
+        }
+    },
+    'starve-sealed': {
+        arranged:
+            'R-3.13.2 A second Noble beside a second serf, so the sealed marker has one to be told from: walking both there and playing Influence again takes rounds this table has no need of.',
+        build: async () => {
+            const { host, noble, served } = await immunityAnswered()
+            await forfeitRound(host)
+            await finalise(host, StarvePlans)
+            await othersForfeitUntil(host, noble)
+            host.edit((state) => {
+                addPawn(state, noble, 'noble', Forest3)
+                serfOn(state, Forest3, noble, served)
+                state.recomputeRanks()
+            })
+            return { host, seat: noble }
         }
     }
 } as const satisfies Record<string, Fixture>

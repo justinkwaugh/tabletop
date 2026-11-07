@@ -189,6 +189,11 @@ export class ScenarioTable {
     }
 
     /** How many of a good a seat's panel says it holds. */
+    /** The seats the game waits on, as the host has them. */
+    activeSeats(): Promise<readonly string[]> {
+        return this.page.evaluate(() => window.feudumFixture.host.state.activePlayerIds)
+    }
+
     async goodsHeld(playerId: string, good: string): Promise<number> {
         const panel = await this.seatPanel(playerId)
         const held = await panel.locator(`[data-supply-good="${good}"]`).textContent()
