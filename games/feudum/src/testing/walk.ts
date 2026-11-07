@@ -565,6 +565,11 @@ export function walkGame(
 ): GameWalk {
     const game = testGame(numPlayers)
     const initial = engine.startGame(game, { masterSeed, startingPositions }).initialState
+    return walkFrom(game, initial, plan)
+}
+
+/** Plays on from any complete state to the end of the game, by the same real offers. */
+export function walkFrom(game: Game, initial: FeudumProjectedState, plan?: WalkPlan): GameWalk {
     const progress = new Progress()
     const steps: WalkStep[] = []
     let state = initial

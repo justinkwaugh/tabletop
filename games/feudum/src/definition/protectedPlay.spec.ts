@@ -5,7 +5,6 @@ import {
     playerUndoRestriction,
     PlayerUndoRestriction,
     Visibility,
-    type Game,
     type GameAction
 } from '@tabletop/common'
 import { Value } from 'typebox/value'
@@ -28,6 +27,7 @@ import {
     recordFor,
     sealsNamedIn,
     Spectator,
+    started,
     transitionsOf,
     viewOf,
     writsNamedIn,
@@ -43,11 +43,6 @@ const engine = new GameEngine(FeudumRuntime)
 
 interface SpecFiles {
     globSync(pattern: string, options: { cwd: URL }): string[]
-}
-
-/** R-5.1 The game as starting it left it: what makes the engine guard execution. */
-function started({ game }: Pick<GameWalk, 'game'>): Game {
-    return { ...game, protectedInformation: true }
 }
 
 const HostCascades: readonly string[] = [ActionType.StartRound, ActionType.ScoreGame]
@@ -597,13 +592,13 @@ describe('R-5.1 the design’s verification list', () => {
         return [...new Set(lines.flatMap((line) => line.match(/[a-zA-Z]+\.spec\.ts/g) ?? []))]
     }
 
-    it('names a spec that exists for every item, apart from the exploration spec still to come', async () => {
+    it('names a spec that exists for every item', async () => {
         const fs = await vi.importActual<SpecFiles>('node:fs')
         const here = new URL('../', import.meta.url)
         const present = fs
             .globSync('**/*.spec.ts', { cwd: here })
             .map((path) => path.split('/').pop())
         const missing = (await namedSpecs()).filter((name) => !present.includes(name))
-        expect(missing).toEqual(['exploration.spec.ts'])
+        expect(missing).toEqual([])
     })
 })
