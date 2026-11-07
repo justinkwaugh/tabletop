@@ -19,7 +19,7 @@ export const DvonnPreferenceDefinition = {
             graphBoard: false,
             showCoordinates: true,
             turned: false,
-            shrinkStacks: true,
+            shrinkStacks: false,
             heightBadges: true
         },
         version: 1
