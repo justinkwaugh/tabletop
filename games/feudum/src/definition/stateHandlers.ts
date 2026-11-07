@@ -2,6 +2,7 @@ import type { HydratedAction, MachineStateHandler } from '@tabletop/common'
 import { MachineState } from './states.js'
 import { CollectingLandscapesStateHandler } from '../stateHandlers/collectingLandscapes.js'
 import { ChoosingStartingGoodsStateHandler } from '../stateHandlers/choosingStartingGoods.js'
+import { DawnStateHandler } from '../stateHandlers/dawn.js'
 import { DiscardingWritsStateHandler } from '../stateHandlers/discardingWrits.js'
 import { InspectingHarvestStateHandler } from '../stateHandlers/inspectingHarvest.js'
 import { KeepingWritsStateHandler } from '../stateHandlers/keepingWrits.js'
@@ -14,6 +15,7 @@ import { ProgressRollStateHandler } from '../stateHandlers/progressRoll.js'
 import { PlacingDiscStateHandler } from '../stateHandlers/placingDisc.js'
 import { PlacingStartingPawnStateHandler } from '../stateHandlers/placingStartingPawn.js'
 import { PlayingCardsStateHandler } from '../stateHandlers/playingCards.js'
+import { ReplenishingStateHandler } from '../stateHandlers/replenishing.js'
 import { SelectingHandsStateHandler } from '../stateHandlers/selectingHands.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 
@@ -36,5 +38,7 @@ export const FeudumStateHandlers: Record<
     [MachineState.Nourishing]: new NourishingStateHandler(),
     [MachineState.CollectingLandscapes]: new CollectingLandscapesStateHandler(),
     [MachineState.ProgressRoll]: new ProgressRollStateHandler(),
+    [MachineState.Dawn]: new DawnStateHandler(),
+    [MachineState.Replenishing]: new ReplenishingStateHandler(),
     [MachineState.EndOfRound]: new EndOfRoundStateHandler()
 }

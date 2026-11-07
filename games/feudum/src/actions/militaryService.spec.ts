@@ -1,12 +1,19 @@
+import { assertExists, type GameAction } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { disloyaltyVp } from '../model/activeRegions.js'
+import { placeMarker } from '../model/locationControl.js'
+import type { TriggeredEpoch } from '../model/flow.js'
 import { queueFollowUp } from '../model/followUps.js'
+import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { stateAfterCardStep } from '../stateHandlers/cardTurns.js'
-import { setUp } from '../testing/improving.js'
+import { playToDawn } from '../testing/dawn.js'
+import { setPawns } from '../testing/guilds.js'
+import { setUp, spaceOfKind } from '../testing/improving.js'
 import { answerStarve, giveFood, starve, tableAtStarve } from '../testing/starve.js'
 import { tableAtPlayingCards, type Table } from '../testing/table.js'
+import { isBeginDawn } from './beginDawn.js'
 import { placeDiscOffer } from './placeDisc.js'
 
 /** The turn player's card has just left a military service offer. */
@@ -137,5 +144,67 @@ describe('R-4.9-H1 after a Starve the People', () => {
         answerStarve(combat, true)
         expect(combat.table.state.machineState).toBe(MachineState.PlayingCards)
         expect(combat.table.state.flow.turn?.followUps).toEqual([])
+    })
+})
+
+describe('R-4.9.2, R-4.9-H2, D16 disloyalty at a dawn', () => {
+    /** R-4.8 A seat ruling a feudum is a vassal; this one holds no rank to score. */
+    function ruleFeudum(state: HydratedFeudumGameState, playerId: string) {
+        setPawns(state, playerId, [])
+        state.recomputeRanks()
+        const spaceId = spaceOfKind(state, 'farm')
+        state.spaces[spaceId].location.kind = 'feudum'
+        placeMarker(state, playerId, spaceId)
+    }
+
+    function rowsOf(processed: readonly GameAction[]) {
+        const dawn = processed.find((action) => isBeginDawn(action))
+        assertExists(dawn?.metadata, 'R-4.12 The dawn ran')
+        return dawn.metadata.sheet
+    }
+
+    const Dawns: { epoch: TriggeredEpoch; covered: number; vp: number }[] = [
+        { epoch: 2, covered: 0, vp: -3 },
+        { epoch: 2, covered: 1, vp: 0 },
+        { epoch: 3, covered: 0, vp: 0 },
+        { epoch: 4, covered: 0, vp: -7 },
+        { epoch: 4, covered: 1, vp: -4 },
+        { epoch: 4, covered: 2, vp: 0 },
+        { epoch: 5, covered: 0, vp: -12 },
+        { epoch: 5, covered: 2, vp: -5 },
+        { epoch: 5, covered: 3, vp: 0 }
+    ]
+
+    it.each(Dawns)(
+        'R-4.9.2 at dawn $epoch a vassal with $covered covered loses $vp',
+        ({ epoch, covered, vp }) => {
+            const { table, processed, order } = playToDawn(epoch, (state, [vassal]) => {
+                ruleFeudum(state, vassal)
+                state.militaryService[vassal] = covered
+            })
+
+            const [row] = rowsOf(processed).filter((entry) => entry.playerId === order[0])
+            expect(row.disloyaltyVp).toBe(vp)
+            expect(row.total).toBe(row.activeRegions.vp + vp)
+            expect(table.seat(order[0]).score).toBe(row.total)
+        }
+    )
+
+    it('R-4.9.2 a seat ruling no feudum loses nothing, its spaces uncovered', () => {
+        const { processed } = playToDawn(5)
+
+        expect(rowsOf(processed).map((row) => row.disloyaltyVp)).toEqual([0, 0, 0])
+    })
+
+    it("R-4.9-H2 another seat's discs cover nothing for the vassal", () => {
+        const { processed, order } = playToDawn(2, (state, [vassal, other]) => {
+            ruleFeudum(state, vassal)
+            state.militaryService[other] = 3
+        })
+
+        const [vassal, other] = order
+        const rows = rowsOf(processed)
+        expect(rows.find((row) => row.playerId === vassal)?.disloyaltyVp).toBe(-3)
+        expect(rows.find((row) => row.playerId === other)?.disloyaltyVp).toBe(0)
     })
 })

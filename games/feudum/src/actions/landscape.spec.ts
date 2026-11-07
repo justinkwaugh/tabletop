@@ -420,7 +420,7 @@ describe('R-4.3.4, R-4.12.3 CollectLandscapes', () => {
         table.send(playerId, { ...Collect, spaceIds: [] })
         table.send(rulerId, { ...Collect, spaceIds: [] })
 
-        expect(table.state.activePlayerIds).toEqual([])
+        expect(table.state.machineState).not.toBe(MachineState.CollectingLandscapes)
         expect(table.hydrated().flow.landscapes).toBeUndefined()
     })
 

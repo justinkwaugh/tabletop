@@ -1,4 +1,5 @@
 import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
+import { BeginDawn } from '../actions/beginDawn.js'
 import { EndRound } from '../actions/endRound.js'
 import { isRollProgressDie, type HydratedRollProgressDie } from '../actions/rollProgressDie.js'
 import type { ActionType } from '../definition/actions.js'
@@ -28,13 +29,14 @@ export class ProgressRollStateHandler implements MachineStateHandler<
         context.gameState.activePlayerIds = []
     }
 
-    /** R-4.11.2 With an epoch triggered the round stays here for its dawn (R-4.12). */
+    /** R-4.11.2, R-4.12 An epoch triggered has its dawn before the round ends. */
     onAction(
         _action: HydratedRollProgressDie,
         context: MachineContext<HydratedFeudumGameState>
     ): MachineState {
         if (context.gameState.flow.epochTriggered) {
-            return MachineState.ProgressRoll
+            context.addSystemAction(BeginDawn)
+            return MachineState.Dawn
         }
         context.addSystemAction(EndRound)
         return MachineState.EndOfRound

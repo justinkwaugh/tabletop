@@ -1,3 +1,6 @@
+import { BeginDawn } from '../actions/beginDawn.js'
+import { ReplenishGuilds } from '../actions/replenishGuilds.js'
+import { ReplenishMap } from '../actions/replenishMap.js'
 import { CollectLandscapes } from '../actions/collectLandscapes.js'
 import { Nourish } from '../actions/nourish.js'
 import { ChooseFavours } from '../actions/chooseFavours.js'
@@ -74,5 +77,8 @@ export const FeudumApiActions = {
     [ActionType.AdvanceTurn]: AdvanceTurn,
     [ActionType.NourishPawns]: NourishPawns,
     [ActionType.RollProgressDie]: RollProgressDie,
+    [ActionType.BeginDawn]: BeginDawn,
+    [ActionType.ReplenishMap]: ReplenishMap,
+    [ActionType.ReplenishGuilds]: ReplenishGuilds,
     [ActionType.EndRound]: EndRound
 }
