@@ -2,6 +2,7 @@ import {
     ActionType,
     MachineState,
     StartingSpaceIds,
+    type GuildId,
     type HydratedFeudumGameState,
     type MonsterId,
     type PawnNumber,
@@ -22,6 +23,12 @@ export type BoardTarget =
     | `marker:${SpaceId}:${string}:${string}`
     | `stack:${RegionId}`
     | `pilfer:${SpaceId}:${PilferSource}:${PilferResource}`
+    | `guild:${GuildId}`
+
+/** R-3.16 A guild's area of the board. */
+export function guildTarget(guildId: GuildId): BoardTarget {
+    return `guild:${guildId}`
+}
 
 export function spaceTarget(spaceId: SpaceId): BoardTarget {
     return `space:${spaceId}`
@@ -134,6 +141,7 @@ export interface BoardStages {
     readonly cardPick?: StagePick
     /** The Move draft's open stage, in place of the flow's, which hands a Move off (R-3.7). */
     readonly movePick?: StagePick
+    readonly guildPick?: StagePick
 }
 
 /** R-1.4.9 The six starting spaces, lit from the start since either order is allowed (S2). */
@@ -157,7 +165,7 @@ function startingPawnPick(
 /** R-3.2 What the open flow lights. The choice is the deciding seat's until it is sent. */
 function cardPlayPick(state: HydratedFeudumGameState, stages: BoardStages): MapPick | undefined {
     const deciderId = state.flow.turn?.playerId
-    const pick = stages.movePick ?? stages.cardPick
+    const pick = stages.guildPick ?? stages.movePick ?? stages.cardPick
     return deciderId && pick
         ? {
               action: ActionType.ForfeitCard,

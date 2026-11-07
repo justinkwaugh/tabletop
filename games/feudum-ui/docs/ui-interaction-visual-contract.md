@@ -468,7 +468,7 @@ Each gives the start, the input, the result, the result after Undo or exit, and 
 - **S45. Noble pull picks.** Rows of two colours, then two empty scroll spaces: a third row press of a used colour does nothing. Seals land unseen (crowned discs). Auto.
 - **S46. Monk trade.** The two candidate beads are lit; "Draw a bead · can't be undone". Send: one rises and settles in the seat panel with its value; the other stays. Auto.
 - **S47. Feast.** With barrel sulfur, on a space shared with Ana (Merchant master): "feast · 1 barrel sulfur"; the popup lists "Ana · Merchant push". The bench opens for Merchant push; the result line includes "+3 vp feast" and no reeve. Auto.
-- **S48. Short payment covered.** A guild price the seat can pay but a turn-in good it lacks with a tile held: the primary becomes "Cover with a tile"; pick the tile and the good. Without a tile: the function is dimmed with "Not enough iron.". Auto.
+- **S48. Short payment covered.** A `Migrate` short of its food with a tile held: the primary becomes "Cover with a tile"; pick the tile and the good. Without a tile: the mode is dimmed with its reason. Guild prices are in shillings, which a tile never brings, so a short price is dimmed with its reason and offers no cover (R-4.6.2). Feast short of barrel sulfur with a tile is dimmed with "Undo, then spend a region tile." (R-4.3-H3). Auto.
 - **S49. Reeve offer.** After a scoring push with a free disc and no reeve there: "Place a reeve in the Merchant Guild?" Place: the disc lands beside the rank; +1 vp. "Keep the disc" leaves it. Auto.
 
 **At-will, writ limit, round end**

@@ -26,6 +26,7 @@ import {
 import { deriveBoardOffer, type BoardOffer, type BoardTarget } from './boardOffer.js'
 import { primaryLabel, sendsOnPress } from './confirmingSend.js'
 import { HandDraft, handDraftKey } from './handDraft.svelte.js'
+import { GuildDraft, type GuildContext, type GuildPanel } from './guildDraft.svelte.js'
 import { MoveDraft, type MoveContext, type MovePanel } from './moveDraft.svelte.js'
 import { StartingGoodsDraft, type SulfurDestination } from './startingGoodsDraft.svelte.js'
 import { StartingPawnDraft } from './startingPawnDraft.svelte.js'
@@ -120,12 +121,20 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         () => this.turnContext,
         () => {
             this.move.clear()
+            this.guild.clear()
         }
     )
     readonly move = new MoveDraft(() => this.moveContext)
+    readonly guild = new GuildDraft(() => this.guildContext)
 
     /** The drafts whose lifetime is one displayed state; `hand` alone outlives one. */
-    private readonly oneStateDrafts = [this.startingGoods, this.startingPawn, this.turn, this.move]
+    private readonly oneStateDrafts = [
+        this.startingGoods,
+        this.startingPawn,
+        this.turn,
+        this.move,
+        this.guild
+    ]
 
     private handKey: string | undefined = $derived(
         this.isViewingHistory ? undefined : handDraftKey(this.gameState, this.myPlayerId)
@@ -137,6 +146,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             this.localSelections.register(draft.localSelection)
         }
         this.localSelections.register(this.move.localSelection, 'first')
+        this.localSelections.register(this.guild.localSelection, 'first')
     }
 
     /**
@@ -168,7 +178,8 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             {
                 startingPawnSpace: this.startingPawn.spaceId,
                 ...(this.turn.cardPick ? { cardPick: this.turn.cardPick } : {}),
-                ...(this.move.pick ? { movePick: this.move.pick } : {})
+                ...(this.move.pick ? { movePick: this.move.pick } : {}),
+                ...(this.guild.pick ? { guildPick: this.guild.pick } : {})
             },
             {
                 viewerId: this.myPlayerId,
@@ -456,9 +467,20 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             : undefined
     })
 
+    /** R-3.16, R-3.16.3 As Move: the card's own draft takes over. */
+    private guildContext: GuildContext | undefined = $derived.by(() => {
+        const context = this.turnContext
+        const mode = this.turn.mode
+        return context && (mode === ActionType.GuildAction || mode === ActionType.Feast)
+            ? { ...context, mode, input: this.turn.cardInput, cardManual: this.turn.allManual }
+            : undefined
+    })
+
     turnPanel: TurnPanel | undefined = $derived(this.turn.panel)
 
     movePanel: MovePanel | undefined = $derived(this.move.panel)
+
+    guildPanel: GuildPanel | undefined = $derived(this.guild.panel)
 
     pressTurnCard(kind: ActionCardKind) {
         this.turnPanel?.cards.find((card) => card.kind === kind)?.press()
@@ -474,7 +496,8 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
 
     /** A dimmed map element does nothing (contract: Pick conventions). */
     async pressTurnTarget(target: BoardTarget) {
-        const pick = this.turn.pickOf(target) ?? this.move.pickOf(target)
+        const pick =
+            this.turn.pickOf(target) ?? this.move.pickOf(target) ?? this.guild.pickOf(target)
         if (pick) {
             pick.press(this.turn)
             await this.sendTurnIfCompleted()
@@ -495,12 +518,12 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
 
     /** The press that completes an undoable Action sends at once. */
     private async sendTurnIfCompleted() {
-        await this.sendTurnPlay(this.turn.sendsNow)
+        await this.sendTurnPlay(this.guild.sendsNow ?? this.turn.sendsNow)
     }
 
     /** The primary button. */
     async sendTurnCard() {
-        await this.sendTurnPlay(this.move.play ?? this.turn.flow?.play)
+        await this.sendTurnPlay(this.guild.play ?? this.move.play ?? this.turn.flow?.play)
     }
 
     /** R-3.2 Its press sends. */
