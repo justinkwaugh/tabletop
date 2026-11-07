@@ -49,6 +49,7 @@ import type { FlowPlay, FlowPopup, PanelChoice } from './cardFlows.js'
 import type { TurnContext } from './cardModes.js'
 import { TableLayers } from './tableLayers.svelte.js'
 import { TurnDraft, type TurnPanel } from './turnDraft.svelte.js'
+import { actionPanelOf, type ActionPanelView } from './actionPanel.js'
 import { seatPanelOf, type SeatPanelView } from './seatPanel.js'
 import { deckNoteOf, watchingPanelOf, type WatchingPanel } from './watching.js'
 import { WritLimitDraft, type WritLimitPanel } from './writLimitDraft.svelte.js'
@@ -104,6 +105,8 @@ export interface HandDrafting {
         readonly picked: boolean
         readonly refusal?: string
     }[]
+    /** "Round 4 · choose your hand" */
+    readonly line: string
     /** "4 of 5" */
     readonly count: string
     readonly conquerWarning?: string
@@ -337,7 +340,8 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             ? {
                   anchor: spaceTarget(panel.pickedSpace),
                   choices: panel.characters.map(({ character, rankChip, picked }) => ({
-                      label: `${character} · ${rankChip}`,
+                      label: `${character.charAt(0).toUpperCase()}${character.slice(1)}`,
+                      note: { kind: 'role', label: rankChip },
                       picked,
                       press: () => {
                           void this.pressStartingCharacter(character)
@@ -574,6 +578,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
                     ...(refusal ? { refusal } : {})
                 }
             }),
+            line: `Round ${this.gameState.roundManager.currentRound?.number ?? 1} · choose your hand`,
             count: `${preview.chosen} of ${preview.required}`,
             ...(preview.conquerMayEndLast
                 ? { conquerWarning: 'Conquer may end up your last card; it would be forfeited.' }
@@ -808,6 +813,9 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             ? deckNoteOf(this.gameState, this.myPlayerId)
             : undefined
     )
+
+    /** The panel of this moment, in the order it stands (contract: Visual intents). */
+    actionPanel: ActionPanelView = $derived(actionPanelOf(this))
 
     /** A dimmed row has no press: it gives its line and does nothing. */
     async pressDraftChoice(choice: { readonly press?: () => void }) {

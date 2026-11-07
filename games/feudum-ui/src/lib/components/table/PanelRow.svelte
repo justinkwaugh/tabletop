@@ -1,32 +1,56 @@
+<script lang="ts" module>
+    import type { FeudumGameSession as Session } from '$lib/model/session.svelte.js'
+
+    /** Who hears a row's hover: the session, in a game. */
+    export type RowPointer = Pick<
+        Session,
+        'pointAtRow' | 'leaveRow' | 'toggleRowPreview' | 'isRowPointedAt'
+    >
+</script>
+
 <script lang="ts">
-    import { onDestroy } from 'svelte'
+    import { onDestroy, type Snippet } from 'svelte'
+    import type { BoardTarget } from '$lib/model/boardOffer.js'
     import type { PanelChoice } from '$lib/model/cardFlows.js'
-    import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     /**
      * One row of a panel or popup. A row's hover or focus brightens what its press would light, and a
      * touch screen, having no hover, has a small preview path beside the row (contract: Hover). A
-     * refused row stays pressable, to show the line why, and sends nothing.
+     * refused row stays pressable, to show the line why, and sends nothing. `lead` stands before the
+     * label; `face` takes the label's place on a card or writ, whose corner holds the magnifier.
      */
-    let { choice, onPress }: { choice: PanelChoice; onPress: (choice: PanelChoice) => void } =
-        $props()
+    let {
+        choice,
+        onPress,
+        pointer,
+        lead,
+        face,
+        corner
+    }: {
+        choice: PanelChoice
+        onPress: (choice: PanelChoice) => void
+        pointer: RowPointer
+        lead?: Snippet
+        face?: Snippet
+        corner?: Snippet
+    } = $props()
 
-    const gameSession = getGameSession()
     const owner = {}
 
     let refusalShown = $state(false)
     let refused = $derived(choice.refusal !== undefined)
-    let previewing = $derived(gameSession.isRowPointedAt(owner))
+    let previewing = $derived(pointer.isRowPointedAt(owner))
+    let lights: (() => readonly BoardTarget[]) | undefined = $derived(choice.lights)
 
     function point(event: PointerEvent | FocusEvent) {
         const touch = 'pointerType' in event && event.pointerType === 'touch'
-        if (choice.lights && !touch) {
-            gameSession.pointAtRow(owner, choice.lights)
+        if (lights && !touch) {
+            pointer.pointAtRow(owner, lights)
         }
     }
 
     function leave() {
-        gameSession.leaveRow(owner)
+        pointer.leaveRow(owner)
     }
 
     function press() {
@@ -41,37 +65,70 @@
     onDestroy(leave)
 </script>
 
-<span class="inline-flex items-stretch gap-1" data-row={choice.label}>
-    <button
-        type="button"
-        class="rounded-lg px-3 py-1 text-sm border border-feudum-frame text-feudum-text
-            {choice.picked ? 'bg-feudum-primary border-feudum-accent' : 'bg-feudum-control'}
-            {refused ? 'opacity-50' : 'hover:bg-feudum-control-hover'}"
-        aria-pressed={choice.picked}
-        aria-disabled={refused}
-        onpointerenter={point}
-        onpointerleave={leave}
-        onfocus={point}
-        onblur={leave}
-        onclick={press}
-    >
-        {choice.label}
-        {#if choice.note}
-            <span class={choice.note.kind === 'cost' ? 'text-feudum-danger' : 'text-feudum-accent'}
-                >{choice.note.label}</span
-            >
-        {/if}
-    </button>
+<span
+    class="relative inline-flex items-stretch gap-1 {face ? 'min-w-0 flex-col' : ''}"
+    data-row={choice.label}
+    data-picked={choice.picked ? '' : undefined}
+>
+    {#if face}
+        <button
+            type="button"
+            class="face block w-full rounded-md outline-offset-1
+                {choice.picked
+                ? 'outline-2 outline-feudum-accent'
+                : 'hover:outline-1 hover:outline-feudum-frame'}
+                {refused ? 'opacity-50' : ''}"
+            aria-label={choice.label}
+            aria-pressed={choice.picked}
+            aria-disabled={refused}
+            onpointerenter={point}
+            onpointerleave={leave}
+            onfocus={point}
+            onblur={leave}
+            onclick={press}
+        >
+            {@render face()}
+        </button>
+    {:else}
+        <button
+            type="button"
+            class="inline-flex items-center gap-1 rounded-lg px-3 py-1 text-sm border text-feudum-text
+                {choice.picked
+                ? 'bg-feudum-primary border-feudum-accent'
+                : 'bg-feudum-control border-feudum-frame'}
+                {refused ? 'opacity-50' : 'hover:bg-feudum-control-hover'}"
+            aria-pressed={choice.picked}
+            aria-disabled={refused}
+            onpointerenter={point}
+            onpointerleave={leave}
+            onfocus={point}
+            onblur={leave}
+            onclick={press}
+        >
+            {#if lead}{@render lead()}{/if}
+            {choice.label}
+            {#if choice.note}
+                <span
+                    class={choice.note.kind === 'cost' || choice.note.kind === 'threat'
+                        ? 'text-feudum-danger'
+                        : 'text-feudum-accent'}
+                    data-note={choice.note.kind}>{choice.note.label}</span
+                >
+            {/if}
+        </button>
+    {/if}
+    {#if corner}{@render corner()}{/if}
     {#if choice.lights}
         <button
             type="button"
-            class="touch-preview rounded-lg px-2 bg-feudum-control text-feudum-text"
+            class="touch-preview rounded-lg px-2 bg-feudum-control text-feudum-text
+                {face ? 'on-face' : ''}"
             aria-label="Preview {choice.label} on the board"
             aria-pressed={previewing}
             data-preview={choice.label}
             onclick={() => {
-                if (choice.lights) {
-                    gameSession.toggleRowPreview(owner, choice.lights)
+                if (lights) {
+                    pointer.toggleRowPreview(owner, lights)
                 }
             }}>?</button
         >
@@ -82,8 +139,20 @@
 </span>
 
 <style>
+    .face :global(svg) {
+        display: block;
+        width: 100%;
+        height: auto;
+    }
+
     .touch-preview {
         display: none;
+    }
+
+    .touch-preview.on-face {
+        position: absolute;
+        top: 2px;
+        right: 2px;
     }
 
     @media (hover: none) {

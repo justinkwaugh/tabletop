@@ -4,7 +4,7 @@ export interface SendPreview {
     readonly revealsInfo?: boolean
 }
 
-const CantBeUndone = "can't be undone"
+export const CantBeUndone = "can't be undone"
 
 /**
  * R-X.2 (contract: Confirming a send) A press that completes an undoable Action sends at once. One

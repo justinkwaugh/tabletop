@@ -17,6 +17,7 @@ import {
     tendLandscapeOffers,
     type ActionCardKind,
     type CardPlayInput,
+    type RepeatMode,
     type CardPlayOffers
 } from '@tabletop/feudum'
 import {
@@ -283,7 +284,8 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
     private lightsOfMode(
         action: CardAction,
         label: string,
-        card = this.value('card')
+        card = this.value('card'),
+        input = this.cardInput
     ): readonly BoardTarget[] {
         const context = this.contextOf()
         if (!context) {
@@ -297,13 +299,9 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
             ...(replay ? { replay } : {}),
             mode: action
         }
-        const flow = flowOf(
-            action,
-            { ...context, input: this.cardInput, read: (stage) => seeing[stage] },
-            label
-        )
+        const flow = flowOf(action, { ...context, input, read: (stage) => seeing[stage] }, label)
         return flow.handedOff
-            ? (this.lightsOfHandOff?.(flow.handedOff, context, this.cardInput) ?? [])
+            ? (this.lightsOfHandOff?.(flow.handedOff, context, input) ?? [])
             : flow.picks.map(({ target }) => target)
     }
 
@@ -317,6 +315,19 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
         const action = loneMode(modes)
         const label = modes.find((mode) => mode.action === action)?.label
         return action && label ? this.lightsOfMode(action, label, kind) : []
+    }
+
+    /** R-3.15 A replay opens that card's stages: what they would light, with the repeat it carries. */
+    private lightsOfReplay(kind: ActionCardKind, asRepeat: RepeatMode): readonly BoardTarget[] {
+        const context = this.contextOf()
+        if (!context) {
+            return []
+        }
+        const input = { ...this.cardInput, asRepeat }
+        const modes = cardModes(context, kind, input)
+        const action = loneMode(modes)
+        const label = modes.find((mode) => mode.action === action)?.label
+        return action && label ? this.lightsOfMode(action, label, undefined, input) : []
     }
 
     /** What the board lights for the open flow. */
@@ -383,7 +394,8 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
                     : {
                           press: (draft: TurnPresser) => {
                               draft.pick('replay', kind)
-                          }
+                          },
+                          lights: () => this.lightsOfReplay(kind, mode)
                       })
             }
         })

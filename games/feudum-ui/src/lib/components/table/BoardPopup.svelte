@@ -33,7 +33,11 @@
             class="flex flex-col items-stretch gap-1 rounded-lg border border-feudum-accent bg-feudum-surface-raised p-2"
         >
             {#each popup.choices as choice (choice.label)}
-                <PanelRow {choice} onPress={(row) => void gameSession.pressPopupChoice(row)} />
+                <PanelRow
+                    {choice}
+                    pointer={gameSession}
+                    onPress={(row) => void gameSession.pressPopupChoice(row)}
+                />
             {/each}
         </div>
     </Floater>
