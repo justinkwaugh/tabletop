@@ -7,7 +7,7 @@ import { ActionType } from '../definition/actions.js'
 import { CombatTarget } from '../model/flow.js'
 import type { CombatStrength } from '../model/combatStrength.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
-import { SpaceIdSchema } from '../model/stateSchemas.js'
+import { GuildIdSchema, SpaceIdSchema } from '../model/stateSchemas.js'
 import { CardPlayFields, playCard, reasonCardPlayRefused, type CardPlayInput } from './cardPlay.js'
 import {
     attackerMayAdd,
@@ -22,6 +22,8 @@ export type ConquerMetadata = Type.Static<typeof ConquerMetadata>
 export const ConquerMetadata = Type.Object({
     /** R-3.13.1 Whose piece it is: the target may name a space's feudum only. */
     defenderId: Type.String(),
+    /** R-3.13.1 The character a pawn target shows, for the sentence. */
+    character: Type.Optional(GuildIdSchema),
     /** R-3.14-H1 */
     asked: Type.Boolean(),
     /** R-4.8-H5 Present when nothing is left to ask and the combat resolved here. */
@@ -220,6 +222,12 @@ export class HydratedConquer extends HydratableAction<typeof Conquer> implements
         }
         const defenderId = defenderOf(state, this.spaceId, this.target)
         assertExists(defenderId, 'R-3.13.1 A legal target has a defender')
+        const { target } = this
+        const character =
+            target.kind === 'pawn'
+                ? state.getPlayerState(target.playerId).pawns.find((pawn) => pawn.n === target.n)
+                      ?.character
+                : undefined
         playCard(state, this.playerId, 'conquer', 'regular', this)
         state.flow.combat = {
             attackerId: this.playerId,
@@ -235,6 +243,11 @@ export class HydratedConquer extends HydratableAction<typeof Conquer> implements
         }
         const combat =
             asked || attackerMayAdd(state, this.playerId) ? undefined : resolveCombat(state, 0, 0)
-        this.metadata = { defenderId, asked, ...(combat ? { combat } : {}) }
+        this.metadata = {
+            defenderId,
+            ...(character ? { character } : {}),
+            asked,
+            ...(combat ? { combat } : {})
+        }
     }
 }

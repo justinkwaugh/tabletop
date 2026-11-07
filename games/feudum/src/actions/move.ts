@@ -25,6 +25,7 @@ import {
 import type { PawnState } from '../model/playerState.js'
 import {
     GoodSchema,
+    GuildIdSchema,
     PawnNumberSchema,
     SpaceIdSchema,
     VesselTypeSchema
@@ -93,6 +94,8 @@ export type MoveStepRecord = Type.Static<typeof MoveStepRecord>
 export const MoveStepRecord = Type.Object({
     routeId: Type.Enum(Routes.map((route) => route.id)),
     from: SpaceIdSchema,
+    /** R-4.1 The character the pawn shows, for the sentence; absent for a monster. */
+    character: Type.Optional(GuildIdSchema),
     /** R-4.2.2 The vessel the pawn rode this step. */
     vessel: Type.Optional(VesselTypeSchema),
     /** R-4.2.2 The vessel it stepped off, left on `from`. */
@@ -317,6 +320,7 @@ function takeStep(
     }
     const pawn = pawnAt(state, piece)
     assertExists(pawn, 'R-1.1 A seat has this pawn')
+    record.character = pawn.character
     const player = state.getPlayerState(playerId)
     const rides = vesselOfMedium(way.route.medium)
     if (pawn.vessel && pawn.vessel !== rides) {

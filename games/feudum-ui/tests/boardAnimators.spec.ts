@@ -15,6 +15,7 @@ declare global {
             walk(): Promise<MotionFrame[]>
             roundEnd(): Promise<MotionFrame[]>
             tableText(): string
+            logLine(): string
             strayWrites(): string
         }
     }
@@ -134,7 +135,11 @@ test('S65 R-3.7.1 reduced motion: the Move lands with no tween, and what the tab
         await openTable(page, 'openWalkTable()')
         expect(await page.evaluate(() => window.motionTable.pressed())).toContain('Move')
         const frames = await page.evaluate(() => window.motionTable.walk())
-        return { frames, text: await page.evaluate(() => window.motionTable.tableText()) }
+        return {
+            frames,
+            text: await page.evaluate(() => window.motionTable.tableText()),
+            log: await page.evaluate(() => window.motionTable.logLine())
+        }
     }
     const moving = await walk('no-preference')
     const still = await walk('reduce')
@@ -150,6 +155,8 @@ test('S65 R-3.7.1 reduced motion: the Move lands with no tween, and what the tab
     })
     expect(still.frames.at(-1)).toMatchObject({ updating: false, writes: '', tokens: [] })
     expect(still.text).toBe(moving.text)
+    expect(moving.log).toMatch(/^You moved /)
+    expect(still.log).toBe(moving.log)
 })
 
 test.describe('a framed phone', () => {

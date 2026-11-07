@@ -18,6 +18,18 @@ import { setUp, spaceOfKind } from '../testing/improving.js'
 import { conquerOffers, reasonConquerRefused } from './conquer.js'
 
 describe('R-3.13.1 what Conquer may target', () => {
+    it('R-3.13.1 records the character a pawn target shows, for the sentence', () => {
+        const combat = tableAtCombat()
+        const { table, defenderId } = combat
+        setUp(table, (state) => {
+            state.getPlayerState(defenderId).pawns[0].character = 'merchant'
+        })
+
+        const [action] = conquer(combat, PawnOf(defenderId))
+
+        expect(action).toMatchObject({ metadata: { character: 'merchant' } })
+    })
+
     it('R-3.13.1 is accepted against an opponent’s pawn on a space with the seat’s pawn', () => {
         const combat = tableAtCombat()
         const { table, attackerId, defenderId } = combat

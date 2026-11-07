@@ -1,5 +1,6 @@
 import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
 import { FlightAnimator } from '$lib/animators/flightAnimator.svelte.js'
+import { ActionSource, type GameAction } from '@tabletop/common'
 import { GameSession, type PresentedTransition } from '@tabletop/frontend-components'
 import {
     ActionCards,
@@ -30,6 +31,7 @@ import {
     type PouchGood,
     type SpaceId
 } from '@tabletop/feudum'
+import { describeAction } from './actionDescription.js'
 import { answerAttackPanelOf, type AnswerAttackPanel } from './answerAttack.js'
 import { AnswerStarveDraft, type AnswerStarvePanel } from './answerStarveDraft.svelte.js'
 import { AtWillDraft, type AtWillContext, type AtWillPanel } from './atWillDraft.svelte.js'
@@ -841,6 +843,27 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
                   nameOf: (id) => this.getPlayerName(id)
               })
     )
+
+    /**
+     * R-X.1 The log's line for an Action, as this seat reads it: who looks is decided here, once,
+     * and the line reads nothing of the state.
+     */
+    actionLine(action: GameAction): string | undefined {
+        return describeAction(action, {
+            viewerId: this.myPlayerId,
+            hostView: this.isViewingHost,
+            nameOf: (id) => this.getPlayerName(id)
+        })
+    }
+
+    /** R-X.1 What the previous seat just did, for the waiting view; no line while looking back. */
+    previousSeatLine: string | undefined = $derived.by(() => {
+        if (this.isViewingHistory) {
+            return undefined
+        }
+        const last = this.actions.findLast(({ source }) => source === ActionSource.User)
+        return last && this.actionLine(last)
+    })
 
     /** R-4.10, R-4.12.3 One read for the seat asked and the seats waiting (contract: Render ownership). */
     orderRow: OrderRow | undefined = $derived.by(() =>

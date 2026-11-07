@@ -176,6 +176,33 @@ describe('Move: the card', () => {
     })
 })
 
+describe('R-4.1 The character a pawn shows, for the sentence', () => {
+    it('R-4.1 A pawn step records the character it shows', () => {
+        const { table, playerId } = tableWith((state, seat) => {
+            standPawn(state, seat, 1, Start, 'merchant')
+        })
+        const action = sent(table, playerId, {
+            steps: [pawnStep(playerId, 1, 'space.desert.4', 'road')]
+        })
+
+        expect(action).toMatchObject({ metadata: { steps: [{ character: 'merchant' }] } })
+    })
+
+    it('R-4.1 A monster step records none', () => {
+        const { table, playerId } = tableWith((state, seat) => {
+            standMonster(state, 'behemoth', seat, Start)
+        })
+        const [action] = send(table, playerId, {
+            steps: [monsterStep('behemoth', 'space.desert.4', 'road')]
+        })
+
+        expect(action).toMatchObject({ metadata: { steps: [{}] } })
+        expect(action).not.toMatchObject({
+            metadata: { steps: [{ character: expect.anything() }] }
+        })
+    })
+})
+
 describe('Move: the allowance', () => {
     it('R-3.7.1 counts pawns on the board plus monsters', () => {
         const { table, playerId } = tableWith((state, seat) => {
