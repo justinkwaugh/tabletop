@@ -176,6 +176,7 @@ export class FeudumHost {
 
     /** A seat's own browser, with a session listening to the game. */
     async openSeat(playerId: string): Promise<FeudumGameSession> {
+        this.closeSeat(playerId)
         const appContext = createHarnessAppContext(HARNESS_DEFINITION)
         this.serve(appContext, playerId)
         const bridgedContext = new BridgedContext({
@@ -404,11 +405,19 @@ export class FeudumHost {
     }
 
     close() {
-        for (const { session, bridgedContext } of this.seats.values()) {
-            session.stopListeningToGame()
-            session.dispose()
-            bridgedContext.dispose()
+        for (const playerId of [...this.seats.keys()]) {
+            this.closeSeat(playerId)
         }
-        this.seats.clear()
+    }
+
+    /** A seat's browser closing. The harness's notification service is shared by every session. */
+    private closeSeat(playerId: string) {
+        const seat = this.seats.get(playerId)
+        if (seat) {
+            seat.session.stopListeningToGame()
+            seat.session.dispose()
+            seat.bridgedContext.dispose()
+            this.seats.delete(playerId)
+        }
     }
 }
