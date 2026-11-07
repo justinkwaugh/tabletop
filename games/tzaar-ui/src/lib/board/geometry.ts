@@ -44,10 +44,11 @@ const LABEL_GAP = SPACING * 0.22
 const LABEL_HALF = { x: 11, y: 8 }
 // From the board, its pieces and the labels to the frame's edge.
 const FRAME_MARGIN = SPACING * 0.15
-// Stacks left whole: the frame keeps room above the far row for one this tall, and grows over
-// any taller one (`raiseFor`). None beyond the shrunk stacks' yet: TZAAR's board is fitted by its
-// height on most screens, so the room shrinks it for every game.
-export const WHOLE_FRAMED_HEIGHT = 0
+// Stacks left whole: the frame keeps room above the far row for one this many pieces taller than
+// a shrunk stack (9 on the board, 13 on the rotated board), so it grows over a taller one
+// (`raiseFor`) less often. TZAAR's board is fitted by its height on most screens, so the room
+// shrinks it a little (about 5% on the board) while stacks are left whole.
+export const WHOLE_HEADROOM = 4
 // Room below the bottom labels for the zoom controls, which sit in the bottom-left corner.
 const CONTROLS_ROOM = SPACING * 0.4
 
@@ -102,7 +103,7 @@ export class BoardView {
         this.quarterTurns = (rotated ? 1 : 0) + (turned ? 2 : 0)
         const shrunk = rotated ? ROTATED_PIECE_MODEL : PIECE_MODEL
         this.model = shrinks ? shrunk : { ...shrunk, cap: Number.POSITIVE_INFINITY }
-        this.framedHeight = shrinks ? shrunk.cap : Math.max(shrunk.cap, WHOLE_FRAMED_HEIGHT)
+        this.framedHeight = shrinks ? shrunk.cap : shrunk.cap + WHOLE_HEADROOM
         const outline = (distance: number) =>
             cornersAt(distance)
                 .map((corner) => this.center(corner))
