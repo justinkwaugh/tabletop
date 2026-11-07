@@ -146,12 +146,13 @@ describe('FinaliseHand', () => {
         expect(previewFinaliseHand(table.hydrated(), first, { cards: FOUR }).reason).toBeUndefined()
     })
 
-    it('R-3.1-H1 after the last finaliser no seat is asked and the selection closes', () => {
+    it('R-3.1-H1, R-3.2 after the last finaliser the selection closes and cards begin', () => {
         const table = tableAtHandSelection(2)
         const [first, second] = table.order
         finalise(table, first, FOUR)
         finalise(table, second, FOUR)
-        expect(table.state.activePlayerIds).toEqual([])
+        expect(table.state.machineState).toBe(MachineState.PlayingCards)
+        expect(table.state.activePlayerIds).toEqual([first])
         expect(table.state.flow.selection).toBeUndefined()
     })
 

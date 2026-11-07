@@ -6,8 +6,8 @@ import {
     type Game,
     type GameAction
 } from '@tabletop/common'
-import type { PouchGood } from '../actions/finaliseHand.js'
-import type { ActionCardKind } from '../data/cards.js'
+import { handSizeFor, type PouchGood } from '../actions/finaliseHand.js'
+import { ActionCards, type ActionCardKind } from '../data/cards.js'
 import type { Good } from '../data/components.js'
 import { ActionType } from '../definition/actions.js'
 import { FeudumRuntime } from '../definition/runtime.js'
@@ -32,17 +32,22 @@ export class Table {
 
     /** Executes one Action canonically and returns everything it processed. */
     send(playerId: string, move: Record<string, unknown> & { type: ActionType }): GameAction[] {
+        return this.execute({ source: ActionSource.User, playerId, ...move })
+    }
+
+    /** Executes a System Action as a handler's `addSystemAction` would, with its cascade. */
+    sendSystem(move: Record<string, unknown> & { type: ActionType }): GameAction[] {
+        return this.execute({ source: ActionSource.System, ...move })
+    }
+
+    private execute(
+        move: Record<string, unknown> & { type: ActionType; source: ActionSource }
+    ): GameAction[] {
         this.sent += 1
         const { updatedState, processedActions } = engine.executeCanonicalAction({
             game: this.game,
             state: this.state,
-            action: {
-                id: `a${this.sent}`,
-                gameId: this.game.id,
-                source: ActionSource.User,
-                playerId,
-                ...move
-            }
+            action: { id: `a${this.sent}`, gameId: this.game.id, ...move }
         })
         this.state = updatedState
         return processedActions
@@ -107,10 +112,16 @@ export function tableAtHandSelection(
 
 const DefaultHand: ActionCardKind[] = ['move', 'tax', 'guild', 'explore']
 
+/** R-3.1, R-3.3 The hand a seat can finalise: as many of `cards` as fit, then any others. */
+function legalHand(cards: readonly ActionCardKind[], pouchGood?: PouchGood): ActionCardKind[] {
+    const others = ActionCards.map((card) => card.kind)
+    return [...new Set([...cards, ...others])].slice(0, handSizeFor(pouchGood))
+}
+
 /**
- * R-3.1, R-3.2 A table whose hands are dealt as `handOf` says, of any size, and whose starting
- * player is asked for a card. Hands go straight on the table, so a spec can hold just the cards
- * it is about; a pouch good moves off the seat's goods, keeping totals.
+ * R-3.1, R-3.2 A table whose seats finalise in turn and whose starting player is asked for a card.
+ * A spec can hold just the cards it is about: each seat finalises a legal hand, pouch good included,
+ * then holds what `handOf` says, of any size.
  */
 export function tableAtPlayingCards(
     handOf: (playerId: string) => { cards: ActionCardKind[]; pouchGood?: PouchGood } = () => ({
@@ -120,18 +131,21 @@ export function tableAtPlayingCards(
     goodsOf?: (playerId: string) => { goods: Good[]; sulfurToBarrel?: boolean }
 ): Table {
     const table = tableAtHandSelection(numPlayers, goodsOf)
+    const hands = table.order.map((playerId) => ({ playerId, ...handOf(playerId) }))
+    for (const { playerId, cards, pouchGood } of hands) {
+        table.send(playerId, {
+            type: ActionType.FinaliseHand,
+            revealsInfo: true,
+            cards: legalHand(cards, pouchGood),
+            ...(pouchGood ? { pouchGood } : {})
+        })
+    }
     table.moveTo((state) => {
-        for (const playerId of table.order) {
-            const { cards, pouchGood } = handOf(playerId)
+        for (const { playerId, cards } of hands) {
             const player = state.getPlayerState(playerId)
             player.hand = [...cards]
             player.handCount = cards.length
-            if (pouchGood) {
-                player.goods[pouchGood] -= 1
-                player.pouch = pouchGood
-            }
         }
-        state.flow.selection = undefined
         return MachineState.PlayingCards
     })
     return table
