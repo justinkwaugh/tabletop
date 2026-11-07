@@ -36,7 +36,7 @@
     ></ellipse>
 </g>
 <g {@attach body}>
-    <PieceShape {color} {gipf} radius={PIECE_RADIUS} prefix="gipf-board" {parts} />
+    <PieceShape {color} {gipf} radius={PIECE_RADIUS} {parts} />
 </g>
 
 <style>

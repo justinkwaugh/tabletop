@@ -40,7 +40,7 @@
     </g>
 </g>
 <g out:liftOffBody|global={{ lifts }}>
-    <PieceShape {color} {gipf} radius={PIECE_RADIUS} prefix="gipf-board" parts={drop.parts} />
+    <PieceShape {color} {gipf} radius={PIECE_RADIUS} parts={drop.parts} />
 </g>
 
 <style>

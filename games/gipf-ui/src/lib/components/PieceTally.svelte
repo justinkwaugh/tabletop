@@ -2,15 +2,11 @@
     import type { Color } from '@tabletop/common'
     import { VIEW } from '$lib/board/geometry.js'
     import { stackTop } from '$lib/board/pieceShape.js'
-    import PieceDefs from './PieceDefs.svelte'
     import PieceShape from './PieceShape.svelte'
 
     // Stacks of pieces side by side, each the given number of discs high, as they would stand on
     // the table: a tally beside a count on a player card.
     let { color, stacks }: { color: Color; stacks: number[] } = $props()
-
-    const id = $props.id()
-    const prefix = $derived(`gipf-tally-${id}`)
 
     const RADIUS = 11
     const GAP = 5
@@ -29,10 +25,9 @@
         class="shrink-0"
         aria-hidden="true"
     >
-        <defs><PieceDefs {prefix} /></defs>
         {#each stacks as discs, index (index)}
             <g transform="translate({index * PITCH} 0)">
-                <PieceShape {color} {discs} radius={RADIUS} {prefix} />
+                <PieceShape {color} {discs} radius={RADIUS} />
             </g>
         {/each}
     </svg>
