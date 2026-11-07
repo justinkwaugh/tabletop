@@ -1,4 +1,4 @@
-import { assertExists, Visibility } from '@tabletop/common'
+import { assertExists, GameEngine, Visibility } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { ActionCardKinds } from '../data/cards.js'
 import { Charters, Mandates, type WritId } from '../data/writs.js'
@@ -6,13 +6,16 @@ import { FeudumCanonicalStateValidator } from '../model/canonicalValidator.js'
 import {
     FeudumGameState,
     FeudumGameStateValidator,
-    HydratedFeudumGameState,
-    type FeudumProjectedState
+    HydratedFeudumGameState
 } from '../model/gameState.js'
 import { HydratedFeudumPlayerState } from '../model/playerState.js'
-import { canonicalState } from '../testing/state.js'
+import { withoutConcealed } from '../testing/protected.js'
+import { canonicalState, testGame } from '../testing/state.js'
+import { ActionType } from './actions.js'
+import { FeudumApiActions } from './apiActions.js'
+import { FeudumRuntime } from './runtime.js'
 
-const projector = Visibility.createProjector(FeudumGameState)
+const projector = FeudumRuntime.visibility.state
 const spectator = { kind: 'spectator' } as const
 const CURSOR = { seed: 7, invocations: 3 }
 const MASTER_SEED = '0123456789abcdef0123456789abcdef'
@@ -64,25 +67,23 @@ function project(state: FeudumGameState, perspective: Visibility.Perspective) {
     return projector.project(state, perspective, { config: {} })
 }
 
-/** The canonical table with exactly what `perspective` may not see taken away. */
-function withoutConcealed(state: FeudumGameState, perspective: Visibility.Perspective) {
-    const seen = perspective.kind === 'player' ? perspective.playerId : undefined
-    const expected: FeudumProjectedState = structuredClone(state)
-    Reflect.deleteProperty(expected, 'vault')
-    Reflect.deleteProperty(expected, 'masterSeed')
-    expected.protectedPrng = { seed: 0, invocations: 0 }
-    for (const player of expected.players) {
-        if (player.playerId !== seen) {
-            for (const field of OWNER_KNOWN) {
-                Reflect.deleteProperty(player, field)
-            }
+describe('R-5.1 the registered visibility', () => {
+    it('R-5.1 registers a state projector and an action projector for every Action', () => {
+        expect(FeudumRuntime.visibility.state).toBeDefined()
+        for (const type of Object.values(ActionType)) {
+            expect(FeudumApiActions[type]).toBeDefined()
         }
-    }
-    if (seen !== expected.flow.writDraw?.playerId && expected.flow.writDraw) {
-        Reflect.deleteProperty(expected.flow.writDraw, 'drawn')
-    }
-    return expected
-}
+    })
+
+    it('R-5.1 a game started on this runtime is protected, so the engine guards execution', () => {
+        const engine = new GameEngine(FeudumRuntime)
+        const { startedGame } = engine.startGame(testGame(3), { masterSeed: '0'.repeat(32) })
+        expect(startedGame.protectedInformation).toBe(true)
+        expect(Visibility.getGameVisibility(startedGame, FeudumRuntime)).toBe(
+            FeudumRuntime.visibility
+        )
+    })
+})
 
 describe('the projection of a player and a spectator', () => {
     it('R-5.1, R-5-H1 omits exactly the concealed fields, at 2 to 5 players', () => {

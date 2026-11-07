@@ -4,14 +4,13 @@ import {
     GameResult,
     reportGameProgress,
     validateGameResult,
-    Visibility,
     type GameProgress
 } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { RegionIds, type RegionId, type TileId } from '../data/regionTiles.js'
 import { LastEpoch, type Epoch } from '../data/tracks.js'
 import { FeudumCanonicalStateValidator } from '../model/canonicalValidator.js'
-import { FeudumGameState, type FeudumProjectedState } from '../model/gameState.js'
+import type { FeudumProjectedState } from '../model/gameState.js'
 import { setBarrel } from '../testing/charters.js'
 import { rowOf, scoreFrom } from '../testing/gameEnd.js'
 import { canonicalState, initialState } from '../testing/state.js'
@@ -30,7 +29,7 @@ import { FeudumStateHandlers } from './stateHandlers.js'
 /** A seed whose game ends on a stack emptied mid-round. */
 const WalkSeed = '00000000000000000000000000000012'
 const Numerals = { 1: 'i', 2: 'ii', 3: 'iii', 4: 'iv' } as const
-const projector = Visibility.createProjector(FeudumGameState)
+const projector = FeudumRuntime.visibility.state
 /** Every state of a whole game through every view is slow; these show the same thing. */
 const ViewEvery = 20
 

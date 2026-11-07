@@ -468,44 +468,73 @@ function reasonGodspeedRefused(
         : 'Godspeed moves only a monk.'
 }
 
+/** R-3.2, R-3.7.1, R-3.7.3 What a press needs before any step is judged. */
+function reasonMovePressRefused(
+    state: HydratedFeudumGameState,
+    playerId: string,
+    input: MoveInput
+): string | undefined {
+    const refused =
+        reasonCardPlayRefused(state, playerId, 'move', input) ??
+        (input.godspeed ? reasonSpecialRefused(state, playerId, 'move') : undefined)
+    if (refused) {
+        return refused
+    }
+    const allowance = moveAllowance(state, playerId)
+    return input.steps.length > allowance ? `Your movement allowance is ${allowance}.` : undefined
+}
+
 /**
- * R-3.7.1, R-3.7.3, R-3.7.4, R-4.2 The steps fold in press order on a copy, so each is judged from
- * where the last left the board.
+ * R-3.7.1, R-3.7.3, R-3.7.4, R-4.2 The steps fold in press order on this state, so each is judged
+ * from where the last left the board: their records, or the first refusal.
  */
+function foldMove(
+    state: HydratedFeudumGameState,
+    playerId: string,
+    input: MoveInput
+): MoveMetadata | string {
+    const { godspeed, pilfer } = input
+    const steps: MoveStepRecord[] = []
+    for (const step of input.steps) {
+        const reason = reasonStepRefused(state, playerId, step)
+        if (reason) {
+            return reason
+        }
+        steps.push(takeStep(state, playerId, step))
+    }
+    const godspeedReason = godspeed ? reasonGodspeedRefused(state, playerId, godspeed) : undefined
+    if (godspeedReason) {
+        return godspeedReason
+    }
+    const godspeedRecord = godspeed
+        ? takeStep(state, playerId, godspeedAsStep(playerId, godspeed))
+        : undefined
+    const pilferReason = pilfer
+        ? reasonPilferRefused(state, playerId, pilfer, piecesMoved(playerId, input))
+        : undefined
+    if (pilferReason) {
+        return pilferReason
+    }
+    const pilferRecord = pilfer ? takePilfer(state, playerId, pilfer) : undefined
+    return {
+        steps,
+        ...(godspeedRecord ? { godspeed: godspeedRecord } : {}),
+        ...(pilferRecord ? { pilfer: pilferRecord } : {})
+    }
+}
+
+/** R-3.7.1, R-3.7.3, R-3.7.4, R-4.2 A press judged on a copy, which leaves the table as it was. */
 export function reasonMoveRefused(
     state: HydratedFeudumGameState,
     playerId: string,
     input: MoveInput
 ): string | undefined {
-    const { steps, godspeed, pilfer } = input
-    const refused =
-        reasonCardPlayRefused(state, playerId, 'move', input) ??
-        (godspeed ? reasonSpecialRefused(state, playerId, 'move') : undefined)
+    const refused = reasonMovePressRefused(state, playerId, input)
     if (refused) {
         return refused
     }
-    const allowance = moveAllowance(state, playerId)
-    if (steps.length > allowance) {
-        return `Your movement allowance is ${allowance}.`
-    }
-    const trial = trialOf(state)
-    for (const step of steps) {
-        const reason = reasonStepRefused(trial, playerId, step)
-        if (reason) {
-            return reason
-        }
-        takeStep(trial, playerId, step)
-    }
-    if (godspeed) {
-        const reason = reasonGodspeedRefused(trial, playerId, godspeed)
-        if (reason) {
-            return reason
-        }
-        takeStep(trial, playerId, godspeedAsStep(playerId, godspeed))
-    }
-    return pilfer
-        ? reasonPilferRefused(trial, playerId, pilfer, piecesMoved(playerId, input))
-        : undefined
+    const fold = foldMove(trialOf(state), playerId, input)
+    return typeof fold === 'string' ? fold : undefined
 }
 
 export interface MovePieceOffer {
@@ -631,28 +660,24 @@ export class HydratedMove extends HydratableAction<typeof Move> implements Move 
 
     /** R-3.7, R-3.7.2, R-3.7.3, R-3.7.4, R-3.7.5 Not a barrier: everything it touches is public. */
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {
-        const reason = reasonMoveRefused(state, this.playerId, this)
-        if (reason) {
-            throw Error(reason)
+        const { playerId, godspeed } = this
+        const refused = reasonMovePressRefused(state, playerId, this)
+        if (refused) {
+            throw Error(refused)
         }
-        const { playerId, godspeed, pilfer } = this
+        // No copy: a copy reads the protected cursor, and a card from the hand runs in its own view.
+        const metadata = foldMove(state, playerId, this)
+        if (typeof metadata === 'string') {
+            throw Error(metadata)
+        }
         playCard(state, playerId, 'move', godspeed ? 'special' : 'regular', this)
-        const steps = this.steps.map((step) => takeStep(state, playerId, step))
-        const godspeedRecord = godspeed
-            ? takeStep(state, playerId, godspeedAsStep(playerId, godspeed))
-            : undefined
-        const pilferRecord = pilfer ? takePilfer(state, playerId, pilfer) : undefined
-        if (steps.length > 0 || godspeedRecord) {
+        if (metadata.steps.length > 0 || metadata.godspeed) {
             const player = state.getPlayerState(playerId)
             player.successfulMoves += 1
             if (player.successfulMoves === SuccessfulMovesForVoyage) {
                 queueFollowUp(state, { kind: 'voyage', playerId })
             }
         }
-        this.metadata = {
-            steps,
-            ...(godspeedRecord ? { godspeed: godspeedRecord } : {}),
-            ...(pilferRecord ? { pilfer: pilferRecord } : {})
-        }
+        this.metadata = metadata
     }
 }

@@ -3,20 +3,19 @@ import {
     GameEngine,
     GameResult,
     validateGameResult,
-    Visibility,
     type StartingPositionAssignment
 } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { MinimumKnightRows } from '../data/guilds.js'
 import { FeudumCanonicalStateValidator } from '../model/canonicalValidator.js'
-import { FeudumGameState, type FeudumProjectedState } from '../model/gameState.js'
+import type { FeudumProjectedState } from '../model/gameState.js'
 import { testGame } from '../testing/state.js'
 import { walkGame, withoutRowId, type GameWalk } from '../testing/walk.js'
 import { FeudumRuntime } from './runtime.js'
 import { MachineState } from './states.js'
 
 const engine = new GameEngine(FeudumRuntime)
-const projector = Visibility.createProjector(FeudumGameState)
+const projector = FeudumRuntime.visibility.state
 const MasterSeed = '0123456789abcdef0123456789abcdef'
 
 function rotations(playerIds: readonly string[]): string[][] {
