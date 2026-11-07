@@ -4,8 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FeudumHost } from '$lib/testing/sessionHarness.js'
 import {
     chipOf,
+    monsterTarget,
     NoBoardOffer,
     offerOfPick,
+    pawnTarget,
+    pieceTarget,
     roleOf,
     spaceTarget,
     strongestChip,
@@ -65,6 +68,51 @@ describe('the roles a pick gives (contract: Coexistence and precedence)', () => 
 
     it('a pick the seat is not offered is no pick for it', () => {
         expect(offerOfPick(pick(), { ...decider, validActions: [] })).toBe(NoBoardOffer)
+    })
+})
+
+describe('R-3.7 a pick with a trail and an unlit piece', () => {
+    const pinned = pawnTarget('p1', 1)
+    const trail = [
+        {
+            n: 1,
+            piece: { kind: 'pawn', playerId: 'p1', n: 1 },
+            from: A,
+            to: B,
+            medium: 'road'
+        }
+    ] as const
+    const moving = pick({
+        targets: [
+            { target: spaceTarget(A) },
+            { target: pinned, notes: [{ kind: 'threat', label: 'pinned' }], unlit: true }
+        ],
+        trail
+    })
+
+    it('R-4.2.4 an unlit target is dimmed and keeps its chip; the deciding seat sees the trail', () => {
+        const offer = offerOfPick(moving, decider)
+        expect(roleOf(offer, pinned)).toBe('dimmed')
+        expect(chipOf(offer, pinned)).toMatchObject({ label: 'pinned', tone: 'rose' })
+        expect(offer.trail).toBe(trail)
+    })
+
+    it('R-X.1 on a public pick others see neither the unlit target nor the trail', () => {
+        const offer = offerOfPick(moving, watcher)
+        expect(roleOf(offer, spaceTarget(A))).toBe('being-decided')
+        expect(offer.targets.has(pinned)).toBe(false)
+        expect(offer.trail).toBeUndefined()
+    })
+
+    it('with nothing left to light, nothing dims', () => {
+        expect(offerOfPick(pick({ targets: [] }), decider).dimsRest).toBe(false)
+    })
+
+    it('R-3.7.1 a step names a pawn or a monster', () => {
+        expect(pieceTarget({ kind: 'pawn', playerId: 'p1', n: 1 })).toBe(pinned)
+        expect(pieceTarget({ kind: 'monster', monsterId: 'behemoth' })).toBe(
+            monsterTarget('behemoth')
+        )
     })
 })
 

@@ -5,7 +5,11 @@ import {
     type HydratedFeudumGameState,
     type MonsterId,
     type PawnNumber,
+    type PieceRef,
+    type PilferResource,
+    type PilferSource,
     type RegionId,
+    type RouteMedium,
     type SpaceId
 } from '@tabletop/feudum'
 
@@ -17,6 +21,7 @@ export type BoardTarget =
     | `feudum:${SpaceId}`
     | `marker:${SpaceId}:${string}:${string}`
     | `stack:${RegionId}`
+    | `pilfer:${SpaceId}:${PilferSource}:${PilferResource}`
 
 export function spaceTarget(spaceId: SpaceId): BoardTarget {
     return `space:${spaceId}`
@@ -40,6 +45,22 @@ export function markerTarget(spaceId: SpaceId, playerId: string, role: string): 
 
 export function stackTarget(region: RegionId): BoardTarget {
     return `stack:${region}`
+}
+
+/** R-3.7.1 A pawn or a monster, whichever the step names. */
+export function pieceTarget(piece: PieceRef): BoardTarget {
+    return piece.kind === 'pawn'
+        ? pawnTarget(piece.playerId, piece.n)
+        : monsterTarget(piece.monsterId)
+}
+
+/** R-3.7.4 One resource a piece that moved may take, where it now stands. */
+export function pilferTarget(
+    spaceId: SpaceId,
+    from: PilferSource,
+    resource: PilferResource
+): BoardTarget {
+    return `pilfer:${spaceId}:${from}:${resource}`
 }
 
 export type BoardRole = 'lit' | 'picked' | 'being-decided' | 'dimmed' | 'plain'
@@ -71,6 +92,20 @@ export function strongestChip(notes: readonly ChipNote[]): BoardChip | undefined
 export interface PickTarget {
     readonly target: BoardTarget
     readonly notes?: readonly ChipNote[]
+    /** Named for its chip alone: dimmed, and a press does nothing (R-4.2.4). */
+    readonly unlit?: boolean
+}
+
+/** R-3.7.1, R-3.7.3 One step staged but not sent: the numbered trail. */
+export interface TrailStep {
+    /** "1", "2": press order. */
+    readonly n: number
+    readonly piece: PieceRef
+    readonly from: SpaceId
+    readonly to: SpaceId
+    readonly medium: RouteMedium
+    /** Drawn lighter. */
+    readonly godspeed?: boolean
 }
 
 /** An open pick on the map: what one seat chooses among, in the displayed state. */
@@ -81,16 +116,24 @@ export interface MapPick {
     readonly picked: readonly BoardTarget[]
     /** Others and History View see the outline only where the choice is public. */
     readonly isPublic: boolean
+    /** The deciding seat's staged steps. */
+    readonly trail?: readonly TrailStep[]
+}
+
+/** A draft's open pick, as the session hands it to the board. */
+export interface StagePick {
+    readonly targets: readonly PickTarget[]
+    readonly picked: readonly BoardTarget[]
+    readonly trail?: readonly TrailStep[]
 }
 
 /** The drafts' stages a pick reads. Each is read only while its flow applies. */
 export interface BoardStages {
     readonly startingPawnSpace?: SpaceId
     /** The turn draft's open flow, for this seat alone (R-3.2). */
-    readonly cardPick?: {
-        readonly targets: readonly PickTarget[]
-        readonly picked: readonly BoardTarget[]
-    }
+    readonly cardPick?: StagePick
+    /** The Move draft's open stage, in place of the flow's, which hands a Move off (R-3.7). */
+    readonly movePick?: StagePick
 }
 
 /** R-1.4.9 The six starting spaces, lit from the start since either order is allowed (S2). */
@@ -114,12 +157,12 @@ function startingPawnPick(
 /** R-3.2 What the open flow lights. The choice is the deciding seat's until it is sent. */
 function cardPlayPick(state: HydratedFeudumGameState, stages: BoardStages): MapPick | undefined {
     const deciderId = state.flow.turn?.playerId
-    return deciderId && stages.cardPick
+    const pick = stages.movePick ?? stages.cardPick
+    return deciderId && pick
         ? {
               action: ActionType.ForfeitCard,
               deciderId,
-              targets: stages.cardPick.targets,
-              picked: stages.cardPick.picked,
+              ...pick,
               isPublic: false
           }
         : undefined
@@ -152,6 +195,8 @@ export interface BoardOffer {
     readonly targets: ReadonlyMap<BoardTarget, BoardTargetOffer>
     /** A map pick is open for this seat, so everything it doesn't name dims. */
     readonly dimsRest: boolean
+    /** This seat's staged steps; absent for anyone else (R-X.1). */
+    readonly trail?: readonly TrailStep[]
 }
 
 export const NoBoardOffer: BoardOffer = { targets: new Map(), dimsRest: false }
@@ -172,6 +217,13 @@ export interface BoardViewer {
     readonly updatingVisibleState: boolean
 }
 
+function deciderRole(pick: MapPick, target: BoardTarget, unlit?: boolean): BoardRole {
+    if (unlit) {
+        return 'dimmed'
+    }
+    return pick.picked.includes(target) ? 'picked' : 'lit'
+}
+
 /** A pick as one viewer sees it (contract: Coexistence and precedence). Pure. */
 export function offerOfPick(pick: MapPick | undefined, viewer: BoardViewer): BoardOffer {
     if (viewer.updatingVisibleState || !pick) {
@@ -181,20 +233,25 @@ export function offerOfPick(pick: MapPick | undefined, viewer: BoardViewer): Boa
     if (!viewer.viewingHistory && isDecider && viewer.validActions.includes(pick.action)) {
         return {
             targets: new Map(
-                pick.targets.map(({ target, notes }) => {
+                pick.targets.map(({ target, notes, unlit }) => {
                     const chip = strongestChip(notes ?? [])
-                    const role: BoardRole = pick.picked.includes(target) ? 'picked' : 'lit'
+                    const role = deciderRole(pick, target, unlit)
                     return [target, { role, ...(chip ? { chip } : {}) }]
                 })
             ),
-            dimsRest: true
+            dimsRest: pick.targets.length > 0,
+            ...(pick.trail ? { trail: pick.trail } : {})
         }
     }
     if (!pick.isPublic || (isDecider && !viewer.viewingHistory)) {
         return NoBoardOffer
     }
     return {
-        targets: new Map(pick.targets.map(({ target }) => [target, { role: 'being-decided' }])),
+        targets: new Map(
+            pick.targets.flatMap(({ target, unlit }) =>
+                unlit ? [] : [[target, { role: 'being-decided' }]]
+            )
+        ),
         dimsRest: false
     }
 }
