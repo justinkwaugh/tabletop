@@ -33,6 +33,7 @@ import { AtWillDraft, type AtWillContext, type AtWillPanel } from './atWillDraft
 import { deriveBoardOffer, type BoardOffer, type BoardTarget } from './boardOffer.js'
 import { CommitAttackDraft, type CommitPanel } from './commitAttackDraft.svelte.js'
 import { primaryLabel, sendsOnPress } from './confirmingSend.js'
+import { DiscDraft, type DiscPanel } from './discDraft.svelte.js'
 import { FavoursDraft, type FavoursPanel } from './favoursDraft.svelte.js'
 import { HandDraft, handDraftKey } from './handDraft.svelte.js'
 import { GuildDraft, type GuildContext, type GuildPanel } from './guildDraft.svelte.js'
@@ -148,6 +149,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
     readonly writLimit = new WritLimitDraft(() => this.writLimitContext)
     readonly nourish = new NourishDraft(() => this.deciding(ActionType.Nourish))
     readonly landscapes = new LandscapesDraft(() => this.deciding(ActionType.CollectLandscapes))
+    readonly disc = new DiscDraft(() => this.deciding(ActionType.PlaceDisc))
     readonly atWill = new AtWillDraft(() => this.atWillContext)
 
     /** The drafts whose lifetime is one displayed state; `hand` alone outlives one. */
@@ -164,6 +166,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         this.writLimit,
         this.nourish,
         this.landscapes,
+        this.disc,
         this.atWill
     ]
 
@@ -175,7 +178,8 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         this.commitAttack,
         this.writLimit,
         this.nourish,
-        this.landscapes
+        this.landscapes,
+        this.disc
     ]
 
     private handKey: string | undefined = $derived(
@@ -197,6 +201,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             this.writLimit,
             this.nourish,
             this.landscapes,
+            this.disc,
             // Last, so it is popped first: Undo closes an open list before anything else.
             this.atWill
         ]) {
@@ -237,7 +242,8 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
                 ...(this.guild.pick ? { guildPick: this.guild.pick } : {}),
                 ...(this.atWillStage ? { atWillPick: this.atWillStage } : {}),
                 ...(this.nourish.pick ? { nourishPick: this.nourish.pick } : {}),
-                ...(this.landscapes.pick ? { landscapesPick: this.landscapes.pick } : {})
+                ...(this.landscapes.pick ? { landscapesPick: this.landscapes.pick } : {}),
+                ...(this.disc.value('place') ? { discPlacing: true } : {})
             },
             {
                 viewerId: this.myPlayerId,
@@ -558,6 +564,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             this.atWill.pickOf(target) ??
             this.nourish.pickOf(target) ??
             this.landscapes.pickOf(target) ??
+            this.disc.pickOf(target) ??
             this.turn.pickOf(target) ??
             this.move.pickOf(target) ??
             this.guild.pickOf(target)
@@ -581,7 +588,9 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
 
     /** The press that completes an undoable Action sends at once. */
     private async sendTurnIfCompleted() {
-        await this.sendTurnPlay(this.atWill.sendsNow ?? this.guild.sendsNow ?? this.turn.sendsNow)
+        await this.sendTurnPlay(
+            this.atWill.sendsNow ?? this.disc.sendsNow ?? this.guild.sendsNow ?? this.turn.sendsNow
+        )
     }
 
     /** The primary button. */
@@ -644,6 +653,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
     writLimitPanel: WritLimitPanel | undefined = $derived(this.writLimit.panel)
     nourishPanel: NourishPanel | undefined = $derived(this.nourish.panel)
     landscapesPanel: LandscapesPanel | undefined = $derived(this.landscapes.panel)
+    discPanel: DiscPanel | undefined = $derived(this.disc.panel)
     atWillPanel: AtWillPanel | undefined = $derived(this.atWill.panel)
 
     answerAttackPanel: AnswerAttackPanel | undefined = $derived.by(() => {
@@ -674,7 +684,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
     async pressDraftChoice(choice: { readonly press?: () => void }) {
         if (choice.press) {
             choice.press()
-            await this.sendTurnPlay(this.atWill.sendsNow)
+            await this.sendTurnPlay(this.atWill.sendsNow ?? this.disc.sendsNow)
         }
     }
 

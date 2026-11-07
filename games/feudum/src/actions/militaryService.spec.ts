@@ -38,7 +38,8 @@ describe('R-4.9.1, R-4.9-H1, R-4.9-H2 placing a military service disc', () => {
         expect(placeDiscOffer(table.hydrated(), playerId)).toEqual({
             disc: 'military',
             space: 1,
-            drawsWrits: false
+            penalty: -3,
+            revealsInfo: false
         })
 
         const [action] = table.send(playerId, { type: ActionType.PlaceDisc, place: true })
@@ -68,7 +69,7 @@ describe('R-4.9.1, R-4.9-H1, R-4.9-H2 placing a military service disc', () => {
 
         const second = offered(table)
         expect(second).not.toBe(first)
-        expect(placeDiscOffer(table.hydrated(), second)).toMatchObject({ space: 1 })
+        expect(placeDiscOffer(table.hydrated(), second)).toMatchObject({ space: 1, penalty: -3 })
         table.send(second, { type: ActionType.PlaceDisc, place: true })
 
         expect(table.hydrated().militaryService).toMatchObject({ [first]: 1, [second]: 1 })
@@ -80,6 +81,21 @@ describe('R-4.9.1, R-4.9-H1, R-4.9-H2 placing a military service disc', () => {
         const [action] = table.send(playerId, { type: ActionType.PlaceDisc, place: true })
         expect(table.hydrated().militaryService[playerId]).toBe(covered + 1)
         expect(action).toMatchObject({ metadata: { space: covered + 1 } })
+    })
+
+    it('R-4.9.2 the offer names the next space and the penalty it covers', () => {
+        const table = tableAtPlayingCards()
+        const playerId = offered(table)
+        table.moveTo((state) => {
+            state.militaryService[playerId] = 1
+            return state.machineState
+        })
+        expect(placeDiscOffer(table.hydrated(), playerId)).toEqual({
+            disc: 'military',
+            space: 2,
+            penalty: -4,
+            revealsInfo: false
+        })
     })
 
     it('R-4.9.1 with every space covered no disc is offered', () => {

@@ -6,6 +6,9 @@ import {
     type HydratedFeudumGameState,
     type MonsterId,
     type PawnNumber,
+    placeDiscOffer,
+    reasonPlaceDiscRefused,
+    type PlaceDiscOffer,
     type PieceRef,
     type PilferResource,
     type PilferSource,
@@ -24,10 +27,37 @@ export type BoardTarget =
     | `stack:${RegionId}`
     | `pilfer:${SpaceId}:${PilferSource}:${PilferResource}`
     | `guild:${GuildId}`
+    | `voyage:${number}`
+    | `military:${number}`
 
 /** R-3.16 A guild's area of the board. */
 export function guildTarget(guildId: GuildId): BoardTarget {
     return `guild:${guildId}`
+}
+
+/** R-3.7.5 A space of the epic voyage track. */
+export function voyageTarget(space: number): BoardTarget {
+    return `voyage:${space}`
+}
+
+/** R-4.9.1 A space of the military service track. */
+export function militaryTarget(space: number): BoardTarget {
+    return `military:${space}`
+}
+
+/** R-4.7, R-4.9.1, R-3.7.5 Where the disc asked about would go. */
+export function discTarget(offer: PlaceDiscOffer): BoardTarget {
+    switch (offer.disc) {
+        case 'reeve': {
+            return guildTarget(offer.guildId)
+        }
+        case 'military': {
+            return militaryTarget(offer.space)
+        }
+        case 'voyage': {
+            return voyageTarget(offer.space)
+        }
+    }
 }
 
 export function spaceTarget(spaceId: SpaceId): BoardTarget {
@@ -150,6 +180,8 @@ export interface BoardStages {
     readonly nourishPick?: StagePick
     /** R-4.3.4 */
     readonly landscapesPick?: StagePick
+    /** R-X.2 A placement that can't be undone is staged. */
+    readonly discPlacing?: boolean
 }
 
 /** R-1.4.9 The six starting spaces, lit from the start since either order is allowed (S2). */
@@ -223,6 +255,28 @@ function immunityPick(state: HydratedFeudumGameState): MapPick | undefined {
     )
 }
 
+/** R-4.7, R-4.9.1, R-3.7.5 Where the disc would go: public, so others see it being decided. */
+function discPick(state: HydratedFeudumGameState, stages: BoardStages): MapPick | undefined {
+    const [deciderId] = state.activePlayerIds
+    const offer = deciderId ? placeDiscOffer(state, deciderId) : undefined
+    if (!offer) {
+        return undefined
+    }
+    const target = discTarget(offer)
+    return {
+        action: ActionType.PlaceDisc,
+        deciderId,
+        targets: [
+            {
+                target,
+                ...(reasonPlaceDiscRefused(state, deciderId, true) ? { unlit: true } : {})
+            }
+        ],
+        picked: stages.discPlacing ? [target] : [],
+        isPublic: true
+    }
+}
+
 /** One row per machine state with a map pick; a later draft adds its row and its stages. */
 const MapPicks: Partial<
     Record<
@@ -260,6 +314,7 @@ const MapPicks: Partial<
               }
             : undefined
     },
+    [MachineState.PlacingDisc]: discPick,
     [MachineState.AwaitingDefence]: defencePick,
     [MachineState.AwaitingImmunity]: immunityPick
 }

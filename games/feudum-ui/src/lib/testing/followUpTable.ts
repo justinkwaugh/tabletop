@@ -6,9 +6,11 @@ import {
     MachineState,
     moveConcealedSeal,
     placeMarker,
+    queueFollowUp,
     RegionIds,
     stackTop,
     type ActionCardKind,
+    type DiscFollowUp,
     type HydratedFeudumGameState,
     type ImmunityRole,
     type SpaceId,
@@ -76,6 +78,29 @@ export function sealMarker(
     role: ImmunityRole
 ): void {
     moveConcealedSeal(state, { kind: 'pile' }, { kind: 'immunity', spaceId, role })
+}
+
+/** R-4.4-H2 The deck holds only this many writs: the rest are gone, and the slots with them. */
+export function shortenWritDeck(state: HydratedFeudumGameState, count: number): void {
+    const vault = state.requireVault()
+    const removed = vault.writDeck.length - count
+    vault.writDeck.splice(0, removed)
+    state.writDeck.top += removed
+}
+
+/** R-4.7, R-4.9.1, R-3.7.5 The seat is asked about this disc; `arrange` sets the table it asks on. */
+export async function atDisc(
+    followUpOf: (seat: string) => DiscFollowUp,
+    arrange?: Arrange
+): Promise<SeatTable> {
+    const turn = await atPlayingCards(['move', 'tax', 'guild'])
+    turn.host.edit((state) => {
+        arrange?.(state, turn)
+        queueFollowUp(state, followUpOf(turn.seat))
+        state.machineState = MachineState.PlacingDisc
+        state.activePlayerIds = [turn.seat]
+    })
+    return { ...turn, session: await turn.host.openSeat(turn.seat) }
 }
 
 /** R-4.10, D11 The seat is the one nourishing asks; `arrange` sets what it feeds, and with what. */
