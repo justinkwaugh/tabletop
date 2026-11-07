@@ -15,6 +15,7 @@ import { answerStarve, giveFood, starve, tableAtStarve } from '../testing/starve
 import { tableAtPlayingCards, type Table } from '../testing/table.js'
 import { isBeginDawn } from './beginDawn.js'
 import { placeDiscOffer } from './placeDisc.js'
+import { isScoreGame } from './scoreGame.js'
 
 /** The turn player's card has just left a military service offer. */
 function offered(table: Table, covered = 0): string {
@@ -186,7 +187,10 @@ describe('R-4.9.2, R-4.9-H2, D16 disloyalty at a dawn', () => {
             const [row] = rowsOf(processed).filter((entry) => entry.playerId === order[0])
             expect(row.disloyaltyVp).toBe(vp)
             expect(row.total).toBe(row.activeRegions.vp + vp)
-            expect(table.seat(order[0]).score).toBe(row.total)
+            const final = processed
+                .find((action) => isScoreGame(action))
+                ?.metadata?.sheet.find((entry) => entry.playerId === order[0])
+            expect(table.seat(order[0]).score).toBe(row.total + (final?.total ?? 0))
         }
     )
 

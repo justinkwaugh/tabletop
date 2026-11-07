@@ -1,6 +1,9 @@
 /** R-2.1 Epochs I to V by number; V is never played, reaching it ends the game (R-6.1). */
 export type Epoch = 1 | 2 | 3 | 4 | 5
 
+/** R-6.1 Its dawn is the last thing before final scoring. */
+export const LastEpoch = 5
+
 /** R-1.2.1 The letters printed on the map's spaces. */
 export type MapDirection = 'N' | 'S' | 'E' | 'W'
 

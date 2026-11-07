@@ -7,7 +7,8 @@ export enum PhaseName {
     Cards = 'Cards',
     Nourish = 'Nourish',
     Progress = 'Progress',
-    Dawn = 'Dawn'
+    Dawn = 'Dawn',
+    FinalScoring = 'FinalScoring'
 }
 
 /** R-2.2 Closes whichever phase is open and opens the next, for history. */

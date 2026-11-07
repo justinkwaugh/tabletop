@@ -40,7 +40,8 @@ describe('initialization', () => {
             'Cards',
             'Nourish',
             'Progress',
-            'Dawn'
+            'Dawn',
+            'FinalScoring'
         ])
     })
 

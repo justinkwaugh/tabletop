@@ -19,6 +19,7 @@ import { SpendRegionTile } from '../actions/spendRegionTile.js'
 import { StartRound } from '../actions/startRound.js'
 import { AdvanceTurn } from '../actions/advanceTurn.js'
 import { EndRound } from '../actions/endRound.js'
+import { ScoreGame } from '../actions/scoreGame.js'
 import { NourishPawns } from '../actions/nourishPawns.js'
 import { RollProgressDie } from '../actions/rollProgressDie.js'
 import { StarveThePeople } from '../actions/starveThePeople.js'
@@ -80,5 +81,6 @@ export const FeudumApiActions = {
     [ActionType.BeginDawn]: BeginDawn,
     [ActionType.ReplenishMap]: ReplenishMap,
     [ActionType.ReplenishGuilds]: ReplenishGuilds,
-    [ActionType.EndRound]: EndRound
+    [ActionType.EndRound]: EndRound,
+    [ActionType.ScoreGame]: ScoreGame
 }

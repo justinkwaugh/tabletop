@@ -101,6 +101,8 @@ Rules version: the December 2018 English rulebook with the designer's later answ
 - **R-6.2-H1** (design), _provisional_: a kingdom charter prints 3/5/7/9 vp for 1 to 4 locations ruled on its spaces; 5 or more score 9. Spec: `charters.spec.ts`.
 - **R-6.2-H2** (design): the sulfur-barrel charter counts the sulfur in the barrel at final scoring. A sulfur standing on a wine-fed pawn (R-4.10.2) has left the barrel and doesn't count. Rejected: counting it as barrel sulfur, against the card's "in barrel". Spec: `charters.spec.ts`.
 - **R-6.1-H1** (Q7): when the condition for epoch V is met during a round (R-4.11.2), the round's remaining cards are played, pawns are nourished, the die is not rolled, epoch V's dawn is scored, then final scoring. Spec: `gameEnd.spec.ts`.
+- **R-6.1-H2** (design): the round still ends before final scoring. The marker passes, committed pouch goods are paid and a drunk pawn's sulfur goes to the haversack; none of it moves a score or the barrel. Rejected: skipping the end of the round at V, which leaves goods the rules have paid. Spec: `gameEnd.spec.ts`.
+- **R-6.2-H3** (design): large empires take the most sets the ruled locations can make, without asking: whole sets first, then each feudum tops up the kind needing fewest, and three left over are a set of their own. Rejected: asking the seat, which has only one answer worth giving. Spec: `scoring.spec.ts`.
 
 ## Rules of the implementation
 
