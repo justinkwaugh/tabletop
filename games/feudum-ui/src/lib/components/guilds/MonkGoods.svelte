@@ -2,6 +2,7 @@
     import { beadValue, rosaryBeadSum, type HydratedFeudumGameState } from '@tabletop/feudum'
     import BoardPiece from '$lib/components/map/BoardPiece.svelte'
     import SealFace from '$lib/components/pieces/SealFace.svelte'
+    import Enlargeable from '$lib/components/table/Enlargeable.svelte'
     import ShillingToken from '$lib/components/pieces/ShillingToken.svelte'
     import { sealFaceShown } from '$lib/model/perspective.js'
     import {
@@ -21,13 +22,22 @@
 {#each state.guilds.monk.rosary as sealId, index (sealId)}
     {@const at = rosaryBead(index)}
     <BoardPiece {at} piece="bead:{sealId}">
-        <SealFace
-            faceShown={sealFaceShown(true)}
-            beadValue={beadValue(sealId)}
-            size={GuildSizes.bead}
-            x={-GuildSizes.bead / 2}
-            y={-GuildSizes.bead / 2}
-        />
+        <Enlargeable
+            label="bead"
+            face={() => ({
+                kind: 'bead',
+                faceShown: sealFaceShown(true),
+                beadValue: beadValue(sealId)
+            })}
+        >
+            <SealFace
+                faceShown={sealFaceShown(true)}
+                beadValue={beadValue(sealId)}
+                size={GuildSizes.bead}
+                x={-GuildSizes.bead / 2}
+                y={-GuildSizes.bead / 2}
+            />
+        </Enlargeable>
     </BoardPiece>
 {/each}
 <text

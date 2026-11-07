@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { HydratedFeudumGameState } from '@tabletop/feudum'
+    import { PlainChrome, dimmedWithRest, type BoardChrome } from '$lib/model/boardChrome.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import MapContents from './MapContents.svelte'
     import MapGround from './MapGround.svelte'
@@ -10,12 +11,17 @@
     /** The map's layers, back to front, as the contract's render ownership sets them. */
     let {
         state,
-        paintOf
-    }: { state: HydratedFeudumGameState; paintOf: (playerId: string) => SeatPaint } = $props()
+        paintOf,
+        chrome = PlainChrome
+    }: {
+        state: HydratedFeudumGameState
+        paintOf: (playerId: string) => SeatPaint
+        chrome?: BoardChrome
+    } = $props()
 </script>
 
-<g data-layer="ground"><MapGround /></g>
-<g data-layer="routes"><MapRoutes /></g>
-<g data-layer="locations"><MapLocations {state} /></g>
-<g data-layer="contents"><MapContents {state} {paintOf} /></g>
-<g data-layer="pieces"><MapPieces {state} {paintOf} /></g>
+<g data-layer="ground" opacity={dimmedWithRest(chrome)}><MapGround /></g>
+<g data-layer="routes"><MapRoutes {chrome} /></g>
+<g data-layer="locations"><MapLocations {state} {chrome} /></g>
+<g data-layer="contents"><MapContents {state} {paintOf} {chrome} /></g>
+<g data-layer="pieces"><MapPieces {state} {paintOf} {chrome} /></g>

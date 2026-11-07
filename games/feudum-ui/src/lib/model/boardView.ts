@@ -87,6 +87,20 @@ export function stackView(state: HydratedFeudumGameState, region: RegionId): Sta
     return { region, count: stack.length, ...(top ? { topEpoch: top.epoch } : {}) }
 }
 
+/** R-4.3.1 A stack's tiles by epoch: only the top's epoch and the count show on the board, but the
+ * stack's epochs are public; its landscapes are not. */
+export function stackTilesByEpoch(
+    state: HydratedFeudumGameState,
+    region: RegionId
+): readonly { readonly epoch: TileEpoch; readonly count: number }[] {
+    const epochs = state.regionStacks[region].flatMap(
+        (tileId) => RegionTiles.find(({ id }) => id === tileId)?.epoch ?? []
+    )
+    return [...new Set(epochs)]
+        .toSorted((a, b) => a - b)
+        .map((epoch) => ({ epoch, count: epochs.filter((other) => other === epoch).length }))
+}
+
 export interface DeckView {
     readonly count: number
     /** R-4.4.2, R-4.4.4 Writs the table saw go under, still in the deck. */

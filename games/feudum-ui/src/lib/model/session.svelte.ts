@@ -19,6 +19,7 @@ import {
     startingGoodOffers,
     StartingGoodsChosen,
     startingPawnOffers,
+    StartingSpaceIds,
     type ActionCardKind,
     type Character,
     type FeudumProjectedState,
@@ -30,7 +31,8 @@ import {
 import { answerAttackPanelOf, type AnswerAttackPanel } from './answerAttack.js'
 import { AnswerStarveDraft, type AnswerStarvePanel } from './answerStarveDraft.svelte.js'
 import { AtWillDraft, type AtWillContext, type AtWillPanel } from './atWillDraft.svelte.js'
-import { deriveBoardOffer, type BoardOffer, type BoardTarget } from './boardOffer.js'
+import type { BoardChrome } from './boardChrome.js'
+import { deriveBoardOffer, spaceTarget, type BoardOffer, type BoardTarget } from './boardOffer.js'
 import { CommitAttackDraft, type CommitPanel } from './commitAttackDraft.svelte.js'
 import { primaryLabel, sendsOnPress } from './confirmingSend.js'
 import { DiscDraft, type DiscPanel } from './discDraft.svelte.js'
@@ -43,8 +45,9 @@ import { MoveDraft, type MoveContext, type MovePanel } from './moveDraft.svelte.
 import { NourishDraft, type NourishPanel } from './nourishDraft.svelte.js'
 import { StartingGoodsDraft, type SulfurDestination } from './startingGoodsDraft.svelte.js'
 import { StartingPawnDraft } from './startingPawnDraft.svelte.js'
-import type { FlowPlay, PanelChoice } from './cardFlows.js'
+import type { FlowPlay, FlowPopup, PanelChoice } from './cardFlows.js'
 import type { TurnContext } from './cardModes.js'
+import { TableLayers } from './tableLayers.svelte.js'
 import { TurnDraft, type TurnPanel } from './turnDraft.svelte.js'
 import { deckNoteOf, watchingPanelOf, type WatchingPanel } from './watching.js'
 import { WritLimitDraft, type WritLimitPanel } from './writLimitDraft.svelte.js'
@@ -132,12 +135,27 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
     readonly startingGoods = new StartingGoodsDraft(() => startingGoodOffers(this.gameState))
     readonly startingPawn = new StartingPawnDraft()
     readonly hand = new HandDraft(() => this.handKey)
+    /** What is open over the table: the enlarged card, the open seat, the stack view. */
+    readonly layers = new TableLayers()
     readonly turn = new TurnDraft(
         () => this.turnContext,
         () => {
             this.move.clear()
             this.guild.clear()
             this.atWill.clear()
+        },
+        (action, context, input) => {
+            if (action === ActionType.Move) {
+                return this.move.lightsOpening({ ...context, input })
+            }
+            return action === ActionType.GuildAction || action === ActionType.Feast
+                ? this.guild.lightsOpening({
+                      ...context,
+                      mode: action,
+                      input,
+                      cardManual: false
+                  })
+                : []
         }
     )
     readonly move = new MoveDraft(() => this.moveContext)
@@ -253,6 +271,104 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             }
         )
     )
+
+    // The board's chrome
+
+    private menuPointer:
+        { readonly owner: object; readonly lights: () => readonly BoardTarget[] } | undefined =
+        $state.raw(undefined)
+
+    /** Contract, Menu pointer: a panel row's hover or keyboard focus. */
+    pointAtRow(owner: object, lights: () => readonly BoardTarget[]) {
+        this.menuPointer = { owner, lights }
+    }
+
+    /** Its lifetime: the row's leave, blur or unmount. */
+    leaveRow(owner: object) {
+        if (this.menuPointer?.owner === owner) {
+            this.menuPointer = undefined
+        }
+    }
+
+    /** Contract, Hover: touch has no hover, so a tap on the row's preview path stands in for it. */
+    toggleRowPreview(owner: object, lights: () => readonly BoardTarget[]) {
+        if (this.menuPointer?.owner === owner) {
+            this.menuPointer = undefined
+        } else {
+            this.pointAtRow(owner, lights)
+        }
+    }
+
+    isRowPointedAt(owner: object): boolean {
+        return this.menuPointer?.owner === owner
+    }
+
+    private brightTargets: ReadonlySet<BoardTarget> = $derived(
+        new Set(
+            this.isViewingHistory || this.updatingVisibleState
+                ? []
+                : (this.menuPointer?.lights() ?? [])
+        )
+    )
+
+    boardChrome: BoardChrome = $derived({
+        offer: this.boardOffer,
+        bright: this.brightTargets,
+        press: (target) => {
+            void this.pressBoardTarget(target)
+        },
+        openStack: (view) => {
+            this.layers.openStack(view)
+        }
+    })
+
+    /** One popup at a time: a guild's, a Move's, the card flow's, or setup's character. */
+    boardPopup: FlowPopup | undefined = $derived.by(() => {
+        const flowPopup =
+            this.guildPanel?.popup ?? this.movePanel?.popup ?? this.turnPanel?.flow?.popup
+        return flowPopup ?? this.startingCharacterPopup
+    })
+
+    /** S2 A space pressed first: its character is asked beside it. */
+    private startingCharacterPopup: FlowPopup | undefined = $derived.by(() => {
+        const panel = this.startingPawnPanel
+        return panel?.asksCharacter && panel.pickedSpace
+            ? {
+                  anchor: spaceTarget(panel.pickedSpace),
+                  choices: panel.characters.map(({ character, rankChip, picked }) => ({
+                      label: `${character} · ${rankChip}`,
+                      picked,
+                      press: () => {
+                          void this.pressStartingCharacter(character)
+                      }
+                  }))
+              }
+            : undefined
+    })
+
+    /** A dimmed row has no press. */
+    async pressPopupChoice(choice: PanelChoice) {
+        if (this.boardPopup && choice.press) {
+            choice.press(this.turn)
+            await this.sendTurnIfCompleted()
+        }
+    }
+
+    /**
+     * A lit element's press. With a popup open a press outside it does nothing and closes nothing
+     * (contract: Coexistence and precedence); Undo removes the popup.
+     */
+    async pressBoardTarget(target: BoardTarget) {
+        if (this.boardPopup) {
+            return
+        }
+        const startingSpace = StartingSpaceIds.find((spaceId) => spaceTarget(spaceId) === target)
+        if (this.placingStartingPawn && startingSpace) {
+            await this.pressStartingSpace(startingSpace)
+            return
+        }
+        await this.pressTurnTarget(target)
+    }
 
     // Setup: goods
 

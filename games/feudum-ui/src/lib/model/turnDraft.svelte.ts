@@ -65,6 +65,8 @@ export interface TurnCardRow {
     readonly label: string
     readonly picked: boolean
     readonly press: () => void
+    /** Contract, Hover: what this row's press would light. */
+    readonly lights: () => readonly BoardTarget[]
 }
 
 export interface TurnPanel {
@@ -95,10 +97,18 @@ export interface TurnPanel {
 export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPresser {
     private readonly seeing: TurnStages = $derived.by(() => this.withLoneChoices(super.read()))
 
-    /** `onReselect`: a later draft's stages end when a card, replay or mode is pressed. */
+    /**
+     * `onReselect`: a later draft's stages end when a card, replay or mode is pressed.
+     * `lightsOfHandOff`: what opening a mode another draft builds would light.
+     */
     constructor(
         private readonly contextOf: () => TurnContext | undefined,
-        private readonly onReselect?: () => void
+        private readonly onReselect?: () => void,
+        private readonly lightsOfHandOff?: (
+            action: ActionType,
+            context: TurnContext,
+            input: CardPlayInput
+        ) => readonly BoardTarget[]
     ) {
         super(TurnStageOrder)
     }
@@ -269,6 +279,46 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
               }
     }
 
+    /** Contract, Hover: what a press on this mode's row would light, staging nothing. */
+    private lightsOfMode(
+        action: CardAction,
+        label: string,
+        card = this.value('card')
+    ): readonly BoardTarget[] {
+        const context = this.contextOf()
+        if (!context) {
+            return []
+        }
+        const secondCard = this.value('secondCard')
+        const replay = this.value('replay')
+        const seeing: Partial<TurnDraftValues> = {
+            ...(card ? { card } : {}),
+            ...(secondCard ? { secondCard } : {}),
+            ...(replay ? { replay } : {}),
+            mode: action
+        }
+        const flow = flowOf(
+            action,
+            { ...context, input: this.cardInput, read: (stage) => seeing[stage] },
+            label
+        )
+        return flow.handedOff
+            ? (this.lightsOfHandOff?.(flow.handedOff, context, this.cardInput) ?? [])
+            : flow.picks.map(({ target }) => target)
+    }
+
+    /** A card with a lone open mode opens it at once; any other press lights nothing yet. */
+    private lightsOfCard(kind: ActionCardKind): readonly BoardTarget[] {
+        const context = this.contextOf()
+        if (!context || kind === 'repeat') {
+            return []
+        }
+        const modes = cardModes(context, kind, this.cardInput)
+        const action = loneMode(modes)
+        const label = modes.find((mode) => mode.action === action)?.label
+        return action && label ? this.lightsOfMode(action, label, kind) : []
+    }
+
     /** What the board lights for the open flow. */
     cardPick:
         | { readonly targets: readonly PickTarget[]; readonly picked: readonly BoardTarget[] }
@@ -367,7 +417,8 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
             picked: card === kind,
             press: () => {
                 this.pick('card', kind)
-            }
+            },
+            lights: () => this.lightsOfCard(kind)
         }))
         if (!card) {
             return { line, cards, replays: [], modes: [], forfeitOnly: false, refusals: [] }
@@ -397,7 +448,8 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
                           : {
                                 press: (draft: TurnPresser) => {
                                     draft.pick('mode', action)
-                                }
+                                },
+                                lights: () => this.lightsOfMode(action, label)
                             })
                   })),
             forfeitOnly,

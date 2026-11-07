@@ -11,6 +11,7 @@
     import CountChip from '$lib/components/map/CountChip.svelte'
     import GoodToken from '$lib/components/pieces/GoodToken.svelte'
     import SealFace from '$lib/components/pieces/SealFace.svelte'
+    import Enlargeable from '$lib/components/table/Enlargeable.svelte'
     import ShillingToken from '$lib/components/pieces/ShillingToken.svelte'
     import { goodStacks } from '$lib/model/mapView.js'
     import { sealFaceShown } from '$lib/model/perspective.js'
@@ -90,13 +91,22 @@
     </svg>
     {#if sealId}
         <BoardPiece {at} piece="bead:{sealId}">
-            <SealFace
-                faceShown={sealFaceShown(true)}
-                beadValue={beadValue(sealId)}
-                size={GuildSizes.bead}
-                x={-GuildSizes.bead / 2}
-                y={-GuildSizes.bead / 2}
-            />
+            <Enlargeable
+                label="bead"
+                face={() => ({
+                    kind: 'bead',
+                    faceShown: sealFaceShown(true),
+                    beadValue: beadValue(sealId)
+                })}
+            >
+                <SealFace
+                    faceShown={sealFaceShown(true)}
+                    beadValue={beadValue(sealId)}
+                    size={GuildSizes.bead}
+                    x={-GuildSizes.bead / 2}
+                    y={-GuildSizes.bead / 2}
+                />
+            </Enlargeable>
         </BoardPiece>
     {/if}
 {/each}

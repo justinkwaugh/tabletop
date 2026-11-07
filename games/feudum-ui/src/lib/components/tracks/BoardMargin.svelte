@@ -8,6 +8,7 @@
     import SeatToken from '$lib/components/pieces/SeatToken.svelte'
     import VesselToken from '$lib/components/pieces/VesselToken.svelte'
     import WritFace from '$lib/components/pieces/WritFace.svelte'
+    import { PlainChrome, dimmedWithRest, type BoardChrome } from '$lib/model/boardChrome.js'
     import { deckView, seatOfColour } from '$lib/model/boardView.js'
     import { sealFaceShown } from '$lib/model/perspective.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
@@ -30,18 +31,21 @@
     /**
      * Below the board. R-5.1 The writ deck's count, R-4.4.2 the writs the table saw go under as a
      * "seen" note, and R-4.4.1 what only the viewer knows lies there. R-5.4-H1 The haversack's counts.
-     * R-1.4.2 The supply counts that bind play. R-3.2 The start-player marker.
+     * R-1.4.2 The supply counts that bind play. R-3.2 The start-player marker. A press on the deck
+     * opens its stack view (contract: Card preview).
      */
     let {
         state,
         viewerId,
         paintOf,
-        colourPaintOf
+        colourPaintOf,
+        chrome = PlainChrome
     }: {
         state: HydratedFeudumGameState
         viewerId?: string
         paintOf: (playerId: string) => SeatPaint
         colourPaintOf: (colour: Color) => SeatPaint
+        chrome?: BoardChrome
     } = $props()
 
     const DeckBacks = [0, 1, 2]
@@ -85,7 +89,7 @@
     <text {x} {y} text-anchor="middle" font-size="16" fill="var(--feudum-text-muted)">{name}</text>
 {/snippet}
 
-<g data-margin-layer style:font-family="var(--feudum-font-text)">
+<g data-margin-layer opacity={dimmedWithRest(chrome)} style:font-family="var(--feudum-font-text)">
     <rect
         x="0"
         y={MarginTop}
@@ -123,6 +127,28 @@
                 fill="var(--feudum-text-muted)"
                 data-margin="deck-known">you know {deck.knownToViewer} under the deck</text
             >
+        {/if}
+        {#if chrome.openStack}
+            <rect
+                x={-40}
+                y={-58}
+                width={DeckBackWidth + 8}
+                height={100}
+                fill="transparent"
+                role="button"
+                tabindex="0"
+                aria-label="Open the writ deck"
+                pointer-events="all"
+                cursor="zoom-in"
+                data-open-stack="deck"
+                onclick={() => chrome.openStack?.({ kind: 'deck' })}
+                onkeydown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        chrome.openStack?.({ kind: 'deck' })
+                    }
+                }}
+            ></rect>
         {/if}
     </g>
 
