@@ -62,7 +62,7 @@
             fill="var(--feudum-ink)"
             fill-rule="evenodd"
         ></path>
-        <text x="32" y="56" text-anchor="middle" font-size="8" fill="var(--feudum-ink)"
+        <text x="32" y="56" text-anchor="middle" font-size="10" fill="var(--feudum-ink)"
             >{turned.replace('-', ' ')}</text
         >
     {:else}
@@ -85,7 +85,7 @@
             fill="var(--feudum-parchment)">{Numerals[epoch]}</text
         >
         {#if region}
-            <text x="32" y="56" text-anchor="middle" font-size="8" fill="var(--feudum-parchment)"
+            <text x="32" y="56" text-anchor="middle" font-size="10" fill="var(--feudum-parchment)"
                 >{region}</text
             >
         {/if}

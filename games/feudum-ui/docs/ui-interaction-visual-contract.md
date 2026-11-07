@@ -387,7 +387,7 @@ Target: 375 × 812, held upright. Budget, top to bottom:
 - **Tracks sheet.** The tracks lie scattered round the printed board, and framing them all leaves them too small to read on a phone. The Tracks chip instead opens a bottom sheet, up to 80 % of the dynamic viewport, that redraws them at full size in one column: epoch and round, the region tile stacks and chart, the progress die, the krud barrels, the voyage track, military service and the score track. The sheet is for looking: it offers no target, and a pick that lights a track (a voyage disc, a service disc) frames that track on the board instead.
 - **Pick framing.** When a map pick opens on a phone, the board frames the lit targets (up to 2.5×). A guild pick frames the guild column holding lit areas, the West first when both do. This is the one place a choice moves the focus. A hand pan clears it.
 - **The bench** is a bottom sheet up to 80 % of the dynamic viewport: from-guild above, to-guild below, the result line and the primary button in the sheet's footer while it is open (one place at a time). A map pick from the bench (a tame, a farm) collapses the sheet to its header.
-- **The hand.** In hand selection the eleven cards stand in two rows (six, five) at the column's width, each with a magnifier; the pouch row and the finalise button share one line under them. In card play the hand is one row of up to five. A magnifier enlarges a card to the screen width less 32 px.
+- **The hand.** In hand selection the eleven cards stand in two rows (six, five) at the column's width, each with a magnifier; the pouch row and the finalise button share one line under them. The finalise order shares the prompt's line, each seat by its colour, which the seat strip names. In card play the hand is one row of up to five. A magnifier enlarges a card to the screen width less 32 px.
 - **Move on a phone.** The allowance and "Stop moving" share the panel's one line; steps, the trail and way popups are on the framed map.
 - **Seat strip.** Each chip shows the seat colour, a short name, the score, hand count and writ count, with the turn pulse. A press opens the seat panel as a bottom sheet, up to 85 % of the dynamic viewport, scrolling inside.
 - **Dawn sheet and game end** scroll inside the action area's 36 %, one seat per row.
@@ -574,9 +574,9 @@ Each scenario is marked automated (with its spec) or checked (with date and widt
 - S64: pending
 - S65: pending
 - S66: pending
-- S67: pending
-- S68: pending
-- S69: pending
+- S67: automated (`boardFocus.spec.ts`; browser `tests/phone.spec.ts`, 375 × 812 and 812 × 375); open: the hand pan is a mouse drag, not a touch gesture
+- S68: automated (browser `tests/phone.spec.ts`); open: in a 652 px column the cap is 14 px short, so the second row's magnifier is 35 px until the panel is scrolled; the bench's printed places are under 44 px
+- S69: automated (browser `tests/phone.spec.ts`)
 - S70: pending
 - S71: pending
 - S72: pending

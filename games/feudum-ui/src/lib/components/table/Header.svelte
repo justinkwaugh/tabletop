@@ -9,7 +9,7 @@
 </script>
 
 <div
-    class="flex h-[40px] max-sm:h-[30px] items-center justify-between px-4 max-sm:px-1 text-feudum-heading"
+    class="flex h-[40px] max-sm:h-[28px] items-center justify-between px-4 max-sm:px-1 text-feudum-heading"
     data-table-header
 >
     <div class="text-lg max-sm:text-sm tracking-wide" style:font-family="var(--feudum-font-title)">
@@ -29,8 +29,27 @@
     {#if gameSession.hasLocalSelection || gameSession.undoableAction}
         <button
             type="button"
-            class="rounded-lg px-2 py-1 max-sm:px-1.5 max-sm:py-0.5 bg-feudum-control hover:bg-feudum-control-hover text-feudum-text"
+            class="undo rounded-lg px-2 py-1 max-sm:px-1.5 max-sm:py-0.5 bg-feudum-control hover:bg-feudum-control-hover text-feudum-text"
             onclick={() => gameSession.undo()}>Undo</button
         >
     {/if}
 </div>
+
+<style>
+    /* 44 px to press on a phone, over the strip beneath the 28 px header it is drawn in. */
+    @media (width < 40rem) {
+        .undo {
+            position: relative;
+            min-width: 44px;
+        }
+
+        .undo::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            left: 0;
+            height: 44px;
+        }
+    }
+</style>

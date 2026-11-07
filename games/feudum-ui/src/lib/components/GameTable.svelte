@@ -14,10 +14,22 @@
     import PlayersPanel from '$lib/components/PlayersPanel.svelte'
     import Board from '$lib/components/Board.svelte'
     import ActionArea from '$lib/components/table/ActionArea.svelte'
+    import FocusChooser from '$lib/components/table/FocusChooser.svelte'
     import Header from '$lib/components/table/Header.svelte'
+    import SeatStrip from '$lib/components/table/SeatStrip.svelte'
+    import StatusStrip from '$lib/components/table/StatusStrip.svelte'
     import { setTableLayers } from '$lib/components/table/tableLayersContext.js'
     import TableOverlays from '$lib/components/table/TableOverlays.svelte'
     import { FontFaces } from '$lib/fonts/fonts.js'
+    import {
+        BoardFocus,
+        ChooserInset,
+        CoverBelowScale,
+        litAreasOf,
+        pickFrameOf,
+        restScaleOf
+    } from '$lib/model/boardFocus.svelte.js'
+    import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
     import { FeudumGameSession } from '$lib/model/session.svelte'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
 
@@ -38,8 +50,44 @@
     setGameSession(feudumSession)
     setTableLayers(feudumSession.layers)
 
-    /** Below this fit the board's targets are too small to tap: a phone rests at a cover fit. */
-    const CoverBelowScale = 0.2
+    const phone = new PhoneLayout()
+
+    let wrapper = $state<ScalingWrapper>()
+    let viewSize = $state({ width: 0, height: 0 })
+
+    /** Contract, Board focus: never read for an offer, and a desktop has no chooser and no framing. */
+    const focus = new BoardFocus({
+        view: () => wrapper,
+        restScale: () => restScaleOf(viewSize.width, viewSize.height),
+        sideways: () => phone.sideways,
+        animate: () => !phone.reducedMotion
+    })
+
+    let litAreas = $derived(litAreasOf(feudumSession.gameState, feudumSession.boardOffer))
+    let pickFrame = $derived(
+        feudumSession.benchCovers
+            ? undefined
+            : pickFrameOf(
+                  feudumSession.gameState,
+                  feudumSession.boardOffer,
+                  feudumSession.boardPopup?.anchor
+              )
+    )
+
+    const measureView: (viewport: HTMLElement) => Attachment<HTMLElement> = (viewport) => () => {
+        const read = () => {
+            const { clientWidth: width, clientHeight: height } = viewport
+            if (width !== viewSize.width || height !== viewSize.height) {
+                viewSize = { width, height }
+                focus.settle()
+            }
+        }
+        // The next frame: refitting inside the observer's own delivery would resize what it watches.
+        const observer = new ResizeObserver(() => requestAnimationFrame(read))
+        observer.observe(viewport)
+        read()
+        return () => observer.disconnect()
+    }
 
     /** The wrapper shows full screen only as its dialog becoming modal. */
     let expanded = $state(false)
@@ -78,11 +126,19 @@
 {#snippet turnControls()}
     <div class="bg-feudum-surface" data-turn-controls>
         <Header />
-        <ActionArea />
+        {#if phone.upright}
+            <StatusStrip />
+        {/if}
+        <div class="action-cap" data-action-cap>
+            <ActionArea />
+        </div>
     </div>
 {/snippet}
 
-<div>
+<div
+    class="feudum-table"
+    data-phone={phone.upright ? 'upright' : phone.sideways ? 'sideways' : undefined}
+>
     <DefaultTableLayout>
         {#snippet mobileControlsContent()}
             <HistoryControls />
@@ -98,29 +154,50 @@
             </DefaultSideContent>
         {/snippet}
         {#snippet gameContent()}
-            <div class="shrink-0">
-                {#if !expanded}
-                    {@render turnControls()}
-                {/if}
-            </div>
-            <div class="relative grow-0 overflow-hidden" style="flex:1;">
-                <ScalingWrapper
-                    justify="center"
-                    controls="bottom-left"
-                    coverBelowScale={CoverBelowScale}
-                    expandable
-                >
-                    <Board />
-                    {#snippet toolbar()}
-                        <!-- Full screen is a modal dialog: the panel and all that stands over the table come inside it. -->
-                        <div {@attach watchExpansion}>
-                            {#if expanded}
-                                {@render turnControls()}
-                                <TableOverlays />
+            <div class="game-stack">
+                <div class="shrink-0">
+                    {#if !expanded}
+                        {@render turnControls()}
+                    {/if}
+                </div>
+                <div class="relative grow-0 overflow-hidden" style="flex:1;" data-board-view>
+                    <ScalingWrapper
+                        bind:this={wrapper}
+                        justify="center"
+                        controls="bottom-left"
+                        coverBelowScale={CoverBelowScale}
+                        insetTop={phone.phone ? ChooserInset : 0}
+                        expandable
+                        onManualViewChange={() => focus.handMoved()}
+                    >
+                        <Board />
+                        {#snippet overlay(viewport)}
+                            {#if phone.phone}
+                                <div class="contents" {@attach measureView(viewport)}>
+                                    <FocusChooser
+                                        {focus}
+                                        lit={litAreas}
+                                        frame={pickFrame}
+                                        turned={phone.sideways}
+                                        onTracks={() => feudumSession.layers.openTracks()}
+                                    />
+                                </div>
                             {/if}
-                        </div>
-                    {/snippet}
-                </ScalingWrapper>
+                        {/snippet}
+                        {#snippet toolbar()}
+                            <!-- Full screen is a modal dialog: the panel and all that stands over the table come inside it. -->
+                            <div {@attach watchExpansion}>
+                                {#if expanded}
+                                    {@render turnControls()}
+                                    <TableOverlays />
+                                {/if}
+                            </div>
+                        {/snippet}
+                    </ScalingWrapper>
+                </div>
+                {#if phone.upright && !expanded}
+                    <SeatStrip />
+                {/if}
             </div>
         {/snippet}
     </DefaultTableLayout>
@@ -128,3 +205,37 @@
         <TableOverlays />
     {/if}
 </div>
+
+<style>
+    .game-stack {
+        display: contents;
+    }
+
+    /* The column's height is the action area's measure, in the page and in full screen alike. */
+    [data-phone] .game-stack {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+        container-type: size;
+    }
+
+    [data-phone='upright'] .action-cap {
+        max-height: 36cqh;
+    }
+
+    [data-phone='sideways'] .action-cap {
+        max-height: 40cqh;
+    }
+
+    [data-phone] .action-cap {
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+
+    /* Contract, Phone layout: 44 px targets, in the panel, the popups and the sheets' footers. */
+    [data-phone] :global(:is([data-action-panel], [data-board-popup], [data-bench-footer]) button) {
+        min-height: 44px;
+        min-width: 44px;
+    }
+</style>

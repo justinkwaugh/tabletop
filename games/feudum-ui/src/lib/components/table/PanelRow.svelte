@@ -71,24 +71,27 @@
     data-picked={choice.picked ? '' : undefined}
 >
     {#if face}
-        <button
-            type="button"
-            class="face block w-full rounded-md outline-offset-1
-                {choice.picked
-                ? 'outline-2 outline-feudum-accent'
-                : 'hover:outline-1 hover:outline-feudum-frame'}
-                {refused ? 'opacity-50' : ''}"
-            aria-label={choice.label}
-            aria-pressed={choice.picked}
-            aria-disabled={refused}
-            onpointerenter={point}
-            onpointerleave={leave}
-            onfocus={point}
-            onblur={leave}
-            onclick={press}
-        >
-            {@render face()}
-        </button>
+        <span class="relative block h-full">
+            <button
+                type="button"
+                class="face block w-full rounded-md outline-offset-1
+                    {choice.picked
+                    ? 'outline-2 outline-feudum-accent'
+                    : 'hover:outline-1 hover:outline-feudum-frame'}
+                    {refused ? 'opacity-50' : ''}"
+                aria-label={choice.label}
+                aria-pressed={choice.picked}
+                aria-disabled={refused}
+                onpointerenter={point}
+                onpointerleave={leave}
+                onfocus={point}
+                onblur={leave}
+                onclick={press}
+            >
+                {@render face()}
+            </button>
+            {#if corner}{@render corner()}{/if}
+        </span>
     {:else}
         <button
             type="button"
@@ -106,7 +109,7 @@
             onclick={press}
         >
             {#if lead}{@render lead()}{/if}
-            {choice.label}
+            <span class={lead ? 'beside-art' : ''}>{choice.label}</span>
             {#if choice.note}
                 <span
                     class={choice.note.kind === 'cost' || choice.note.kind === 'threat'
@@ -117,7 +120,6 @@
             {/if}
         </button>
     {/if}
-    {#if corner}{@render corner()}{/if}
     {#if choice.lights}
         <button
             type="button"
@@ -158,6 +160,17 @@
     @media (hover: none) {
         .touch-preview {
             display: inline-block;
+        }
+    }
+
+    /* Contract, Phone layout: no room on a phone's card for a preview too, so it stands beneath. */
+    @media (max-width: 40rem), (max-height: 520px) and (orientation: landscape) {
+        .touch-preview.on-face {
+            position: relative;
+            top: auto;
+            right: auto;
+            width: 100%;
+            padding: 0;
         }
     }
 </style>

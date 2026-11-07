@@ -89,7 +89,11 @@
     </span>
 {/snippet}
 
-<div class="flex flex-col gap-1" style:width="{BenchAreaWidth}px" data-bench-area={area.guild}>
+<div
+    class="flex flex-col gap-1"
+    style:width="min({BenchAreaWidth}px, 100%)"
+    data-bench-area={area.guild}
+>
     <div class="relative" data-pick={guildTarget(area.guild)}>
         <GuildArea
             guild={area.guild}
@@ -135,6 +139,13 @@
 </div>
 
 <style>
+    /* The area follows the sheet's width on a phone; the presses over it are in percent. */
+    [data-pick] > :global(svg) {
+        display: block;
+        width: 100%;
+        height: auto;
+    }
+
     .item :global([data-row]) {
         display: block;
         height: 100%;

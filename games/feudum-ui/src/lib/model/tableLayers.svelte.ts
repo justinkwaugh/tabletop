@@ -51,6 +51,8 @@ export class TableLayers {
 
     openSeatId: string | undefined = $state(undefined)
     stackView: StackViewOf | undefined = $state.raw(undefined)
+    /** A phone's Tracks sheet: for looking, with no target in it. */
+    tracksOpen: boolean = $state(false)
 
     /** Read through its owner, so it follows the owner's current props. */
     enlarged: EnlargedFace | undefined = $derived(this.enlargedBy?.read())
@@ -72,17 +74,26 @@ export class TableLayers {
 
     openSeat(playerId: string): void {
         this.stackView = undefined
+        this.tracksOpen = false
         this.openSeatId = playerId
     }
 
     openStack(view: StackViewOf): void {
         this.openSeatId = undefined
+        this.tracksOpen = false
         this.stackView = view
+    }
+
+    openTracks(): void {
+        this.openSeatId = undefined
+        this.stackView = undefined
+        this.tracksOpen = true
     }
 
     closeSeatOrStack(): void {
         this.openSeatId = undefined
         this.stackView = undefined
+        this.tracksOpen = false
     }
 
     /**
@@ -94,7 +105,7 @@ export class TableLayers {
             this.closeEnlarged()
             return true
         }
-        if (this.openSeatId !== undefined || this.stackView) {
+        if (this.openSeatId !== undefined || this.stackView || this.tracksOpen) {
             this.closeSeatOrStack()
             return true
         }

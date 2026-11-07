@@ -8,6 +8,7 @@
     import GameEndSummary from './GameEndSummary.svelte'
     import GoodCounts from './GoodCounts.svelte'
     import OrderRow from './OrderRow.svelte'
+    import PrimaryButton from './PrimaryButton.svelte'
     import RowChoice from './RowChoice.svelte'
     import WritBacks from './WritBacks.svelte'
     import WritChoice from './WritChoice.svelte'
@@ -49,12 +50,20 @@
     }
 </script>
 
-<div class="flex flex-wrap items-center gap-2 px-3 py-2 text-sm text-feudum-text" data-action-panel>
+<div
+    class="flex flex-wrap items-center gap-2 px-3 py-2 text-sm text-feudum-text max-sm:gap-1 max-sm:px-1 max-sm:py-1"
+    data-action-panel
+>
     {#each view.blocks as block, index (index)}
         {#if block.kind === 'finalise'}
             <FinaliseRow entries={block.entries} />
         {:else if block.kind === 'line'}
-            <p class="w-full {LineClasses[block.role]}" {...dataOf(block.role)}>
+            <p
+                class="w-full {LineClasses[block.role]} {block.role === 'count'
+                    ? 'max-sm:w-auto max-sm:min-w-0 max-sm:flex-1 max-sm:text-xs'
+                    : ''}"
+                {...dataOf(block.role)}
+            >
                 {#if block.lead}{`${block.lead} · `}{/if}<span
                     data-hand-count={block.role === 'count' ? '' : undefined}>{block.text}</span
                 >
@@ -63,7 +72,7 @@
             <GoodCounts counts={block.counts} />
         {:else if block.kind === 'cards'}
             <div
-                class="grid w-full gap-1.5"
+                class="grid w-full gap-1.5 max-sm:mb-2 max-sm:gap-x-1 max-sm:gap-y-3"
                 style:grid-template-columns={columns(block)}
                 data-cards={block.tone}
             >
@@ -88,10 +97,18 @@
         {:else if block.kind === 'game-end'}
             <GameEndSummary summary={block.summary} seats={block.seats} />
         {:else if block.kind === 'rows'}
-            <div class="flex flex-wrap items-center gap-1" data-rows={block.name}>
+            <div
+                class="flex flex-wrap items-center gap-1 {block.name === 'pouch'
+                    ? 'pinned max-sm:[&_.beside-art]:sr-only'
+                    : ''}"
+                data-rows={block.name}
+            >
                 {#if block.heading}
-                    <span class="text-xs uppercase tracking-wide text-feudum-text-muted"
-                        >{block.heading}</span
+                    <span
+                        class="text-xs uppercase tracking-wide text-feudum-text-muted {block.name ===
+                        'pouch'
+                            ? 'max-sm:sr-only'
+                            : ''}">{block.heading}</span
                     >
                 {/if}
                 {#each block.rows as row (row.choice.label)}
@@ -101,14 +118,20 @@
         {:else if block.kind === 'tally'}
             <CombatTally lines={block.lines} note={block.note} />
         {:else if block.kind === 'primary'}
-            <button
-                type="button"
-                class="ml-auto rounded-lg border border-feudum-primary-border bg-feudum-primary px-4 py-1 text-sm font-semibold text-feudum-primary-text
-                    {block.enabled ? 'hover:bg-feudum-primary-hover' : 'opacity-50'}"
-                disabled={!block.enabled}
-                data-primary
-                onclick={() => void block.send()}>{block.label}</button
-            >
+            <div class="pinned ml-auto max-sm:min-w-0 max-sm:flex-1">
+                <PrimaryButton {block} />
+            </div>
         {/if}
     {/each}
 </div>
+
+<style>
+    /* Contract, Phone layout: the send, and the hand's pouch beside it, stay in sight in the cap. */
+    @media (width < 40rem), (max-height: 520px) and (orientation: landscape) {
+        .pinned {
+            position: sticky;
+            bottom: 0;
+            background-color: var(--feudum-surface-raised);
+        }
+    }
+</style>

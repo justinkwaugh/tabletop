@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { Color } from '@tabletop/common'
     import type { BenchOffer } from '$lib/model/benchOffer.js'
+    import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
     import { colourPaint, seatPaint } from '$lib/model/seatPaint.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import Bench from './Bench.svelte'
@@ -9,6 +10,14 @@
     let { bench }: { bench: BenchOffer } = $props()
 
     const gameSession = getGameSession()
+    const phone = new PhoneLayout()
+
+    /** Contract, The bench: on a phone the send stands in the sheet's footer. */
+    let primary = $derived(
+        phone.phone
+            ? gameSession.actionPanel.blocks.find((block) => block.kind === 'primary')
+            : undefined
+    )
 
     function paintOf(playerId: string) {
         const initial = gameSession.getPlayerName(playerId).charAt(0).toUpperCase()
@@ -22,6 +31,8 @@
 
 <Bench
     {bench}
+    sheet={phone.phone}
+    primary={primary?.kind === 'primary' ? primary : undefined}
     state={gameSession.gameState}
     playerId={gameSession.myPlayerId ?? ''}
     {paintOf}
