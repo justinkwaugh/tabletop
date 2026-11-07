@@ -568,10 +568,10 @@ Each scenario is marked automated (with its spec) or checked (with date and widt
 - S58: pending
 - S59: pending
 - S60: pending
-- S61: automated (browser `tests/table.spec.ts`: the description reads the Move's line; the line itself `actionDescriptions.spec.ts`); open: the being-decided outline
+- S61: automated (browser `tests/table.spec.ts`: the description reads the Move's line; the line itself `actionDescriptions.spec.ts`; the being-decided outline `discDraft.spec.ts`; a jump from the log `historyLog.spec.ts`, browser `tests/history.spec.ts`)
 - S62: pending
 - S63: automated (`flightLayer.spec.ts`: the 200 ms bound, a step in history, a reconnection with nothing on the layer, frames captured on the desk; browser `tests/flightLayer.spec.ts`)
-- S64: pending
+- S64: automated (`historyLog.spec.ts`: the span, its stop and the way back, nothing sent or hidden shown; browser `tests/history.spec.ts`, frame by frame: a Move along its route then the pilfer; a dawn's epoch marker and score disc); a dawn's replay looked at 2026-11-07, 1280 wide; a phone's log looked at, its replay not
 - S65: automated on the board (`boardAnimators.spec.ts`; browser `tests/boardAnimators.spec.ts`; the flight layer `flightLayer.spec.ts`, browser `tests/flightLayer.spec.ts`; the log line compared moving and still, browser `tests/boardAnimators.spec.ts`); open: the panels' tokens
 - S66: automated (`flightLayer.spec.ts`: a second Action is queued behind the first's flight, then the layer is empty and nothing hidden; browser `tests/flightLayer.spec.ts`, every frame checked)
 - S67: automated (`boardFocus.spec.ts`; browser `tests/phone.spec.ts`, 375 × 812 and 812 × 375); open: the hand pan is a mouse drag, not a touch gesture

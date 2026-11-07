@@ -1,5 +1,6 @@
 import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
 import { FlightAnimator } from '$lib/animators/flightAnimator.svelte.js'
+import { HistoryLog } from '$lib/model/historyLog.svelte.js'
 import { ActionSource, type GameAction } from '@tabletop/common'
 import { GameSession, type PresentedTransition } from '@tabletop/frontend-components'
 import {
@@ -145,6 +146,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
 
     readonly boardAnimator = new BoardAnimator()
     readonly flightAnimator = new FlightAnimator()
+    readonly historyLog = new HistoryLog(this)
 
     readonly startingGoods = new StartingGoodsDraft(() => startingGoodOffers(this.gameState))
     readonly startingPawn = new StartingPawnDraft()
@@ -272,6 +274,14 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             flightRoom: flights.seconds
         })
         await this.flightAnimator.play(flights, animationContext, flightsAt)
+    }
+
+    /**
+     * Contract, Replay: a replay covers its entry's span and stops there. The shared step otherwise
+     * runs on through the System Actions after a span that ends on one, and the next seat's Action.
+     */
+    override shouldAutoStepAction(action: GameAction, next?: GameAction) {
+        return !this.historyLog.replaying && super.shouldAutoStepAction(action, next)
     }
 
     /** Every other draft ends with the displayed state, whatever the transition. */
@@ -848,9 +858,9 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
      * R-X.1 The log's line for an Action, as this seat reads it: who looks is decided here, once,
      * and the line reads nothing of the state.
      */
-    actionLine(action: GameAction): string | undefined {
+    actionLine(action: GameAction, viewerId = this.myPlayerId): string | undefined {
         return describeAction(action, {
-            viewerId: this.myPlayerId,
+            viewerId,
             hostView: this.isViewingHost,
             nameOf: (id) => this.getPlayerName(id)
         })
