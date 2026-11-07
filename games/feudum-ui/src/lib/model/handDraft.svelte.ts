@@ -46,12 +46,13 @@ export function handDraftKey(
     ) {
         return undefined
     }
-    return `round-${round.number}`
+    return `round-${round.number}:${playerId}`
 }
 
 /**
  * R-3.1, R-3.3 `FinaliseHand` (contract: Shared visual state, Hand draft; S4, S9). A kept
- * draft is read back only under its own key, so it can never be submitted in another round.
+ * draft is read back only under its own key, so it can never be submitted in another round, or
+ * shown to the next seat at a shared screen.
  */
 export class HandDraft extends StagedDraft<HandDraftValues> {
     private key: string | undefined = $state.raw()

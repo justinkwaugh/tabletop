@@ -85,7 +85,7 @@ Rules for the panel:
 - **Chip:** a short note on a lit target: a cost ("1 wood", "2s"), a gain ("+3 vp"), a consequence ("starve", "pinned") or a role ("ruler", "off"). It is anchored on its target and never covers another lit target. Rose chips carry a cost or a threat and always carry a label and a halo; amber chips carry what is yours to take.
 - **Being decided** (neutral dashed outline, no dimming): what the deciding seat is choosing among, shown to every other seat and in History View, wherever it is public.
 - **A lone legal choice** is auto-selected (`auto` stage). Undo never returns to it, and an auto selection never completes a send: the send is always a press.
-- **Dimmed with a reason.** A card, function or button the engine refuses in the displayed state is dimmed; a press on it gives the reason in one line ("Conquer can't be your last card.", "No farm under 10 goods."). A dimmed map element does nothing.
+- **Dimmed with a reason.** A card, function or button the engine refuses in the displayed state is dimmed; a press on it gives the reason in one line ("Conquer can't be your last card: forfeit it.", "No farm under 10 goods."). A dimmed map element does nothing.
 
 ### Confirming a send that cannot be undone
 
@@ -508,37 +508,37 @@ Each gives the start, the input, the result, the result after Undo or exit, and 
 
 Each scenario is marked automated (with its spec) or checked (with date and width) as it passes.
 
-- S1: pending
-- S2: pending
-- S3: pending
-- S4: pending
-- S5: pending
-- S6: pending
-- S7: pending
-- S8: pending
-- S9: pending
-- S10: pending
-- S11: pending
-- S12: pending
-- S13: pending
-- S14: pending
-- S15: pending
-- S16: pending
-- S17: pending
-- S18: pending
-- S19: pending
-- S20: pending
-- S21: pending
-- S22: pending
-- S23: pending
-- S24: pending
-- S25: pending
-- S26: pending
-- S27: pending
-- S28: pending
-- S29: pending
-- S30: pending
-- S31: pending
+- S1: automated (`actionPanelSession.spec.ts`, `actionPanel.spec.ts`; browser `tests/actionPanel.spec.ts`)
+- S2: automated (`actionPanelSession.spec.ts`, `actionPanel.spec.ts`; browser `tests/actionPanel.spec.ts`)
+- S3: automated (`actionPanelSession.spec.ts`)
+- S4: automated (`actionPanelSession.spec.ts`, `actionPanel.spec.ts`; browser `tests/actionPanel.spec.ts`)
+- S5: automated (`actionPanelSession.spec.ts`, `actionPanel.spec.ts`; browser `tests/actionPanel.spec.ts`)
+- S6: automated (`actionPanelSession.spec.ts`)
+- S7: automated (`actionPanelSession.spec.ts`)
+- S8: automated (`actionPanelSession.spec.ts`, `actionPanel.spec.ts`; browser `tests/actionPanel.spec.ts`)
+- S9: automated (`actionPanelSession.spec.ts`)
+- S10: automated (`actionPanelSession.spec.ts`); browser `tests/actionPanel.spec.ts`
+- S11: automated (`actionPanelSession.spec.ts`)
+- S12: automated (`actionPanelSession.spec.ts`); browser `tests/actionPanel.spec.ts`
+- S13: automated (`actionPanelSession.spec.ts`)
+- S14: automated (`actionPanelSession.spec.ts`)
+- S15: automated (`actionPanelSession.spec.ts`)
+- S16: automated (`actionPanelSession.spec.ts`)
+- S17: automated (`actionPanelSession.spec.ts`)
+- S18: automated (`actionPanelSession.spec.ts`, `actionPanel.spec.ts`; browser `tests/actionPanel.spec.ts`)
+- S19: automated (`actionPanelSession.spec.ts`)
+- S20: automated (`actionPanelSession.spec.ts`)
+- S21: automated (`actionPanelSession.spec.ts`)
+- S22: automated (`actionPanelSession.spec.ts`)
+- S23: automated (`actionPanelSession.spec.ts`)
+- S24: automated (`actionPanelSession.spec.ts`)
+- S25: automated (`actionPanelSession.spec.ts`)
+- S26: automated (`moveDraft.spec.ts`, `actionPanelSession.spec.ts`)
+- S27: automated (`moveDraft.spec.ts`)
+- S28: automated (`moveDraft.spec.ts`)
+- S29: automated (`moveDraft.spec.ts`, `actionPanelSession.spec.ts`)
+- S30: automated (`moveDraft.spec.ts`, `actionPanelSession.spec.ts`)
+- S31: automated (`actionPanelSession.spec.ts`)
 - S32: pending
 - S33: pending
 - S34: pending
