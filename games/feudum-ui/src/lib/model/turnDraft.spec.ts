@@ -496,12 +496,30 @@ describe('S48 R-4.4-H1 a payment short of a good: the tile cover', () => {
         expect(host?.sent.size).toBe(0)
     })
 
-    it('without a tile, no space lights', async () => {
+    it('without a tile, a pawn in supply is dimmed with its reason; its pawn on the map may still go off', async () => {
         const turn = await shortOfFood(0)
-        expect(turn.session.turn.flow?.rows.length).toBeGreaterThan(0)
-        await turn.session.pressTurnChoice(firstRow(turn.session))
-        flushSync()
-        expect(turn.session.turn.flow?.picks).toEqual([])
+        const { session, seat } = turn
+        const rows = session.turn.flow?.rows ?? []
+        expect(rows.length).toBeGreaterThan(0)
+        for (const held of rows) {
+            expect(held.refusal).toBe('Migrating onto the board needs 1 food.')
+            expect(held.press).toBeUndefined()
+        }
+        expect(session.turn.flow?.picks.map(({ target }) => target)).toEqual([pawnTarget(seat, 1)])
+    })
+
+    it('without a tile or a pawn on the map, the mode closes with its reason and leaves the Forfeit', async () => {
+        const turn = await table(['migrate', 'tax'], (state, { seat }) => {
+            returnGoods(state, seat)
+            for (const pawn of state.getPlayerState(seat).pawns) {
+                delete pawn.character
+                delete pawn.spaceId
+            }
+        })
+        const { session } = turn
+        pickCard(session, 'migrate')
+        expect(session.turnPanel?.forfeitOnly).toBe(true)
+        expect(session.turnPanel?.refusals).toEqual(['Migrating onto the board needs 1 food.'])
     })
 })
 

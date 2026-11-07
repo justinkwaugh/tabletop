@@ -399,9 +399,10 @@ function inventionGhosts(stages: BenchStages, { details }: BenchPreview): readon
         }
         const fills = barrels.at(barrel) ?? []
         barrel += 1
-        return fills.map(({ colour }) => ({
+        return fills.map(({ colour, added }) => ({
             item: 'invention:krud-barrel',
-            at: knightRowPlace(colour)
+            at: knightRowPlace(colour),
+            count: added
         }))
     })
 }
@@ -882,6 +883,7 @@ function farmStep(
     const offer = offers.find(({ spaceId }) => spaceId === farm)
     const splits = Array.from({ length: (offer?.rewards ?? 0) + 1 }, (_, takeFood) => takeFood)
     return {
+        collapsed: `${title}: split the goods sent`,
         popup: {
             anchor: spaceTarget(farm),
             choices: splits.flatMap((takeFood): PanelChoice[] => {

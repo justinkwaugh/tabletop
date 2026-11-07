@@ -12,6 +12,11 @@
 
     const gameSession = getGameSession()
 
+    /** Under an open bench its own guild area is the anchor; the board's is covered. */
+    const reference = $derived(
+        `${gameSession.benchCovers ? '[data-bench]' : '[data-board-surface]'} [data-pick="${popup.anchor}"]`
+    )
+
     /** The shared Floater names its role a tooltip; this holds choices. */
     const popoverAttributes = $derived({
         role: 'group',
@@ -23,7 +28,7 @@
 
 {#key popup.anchor}
     <Floater
-        reference={`[data-board-surface] [data-pick="${popup.anchor}"]`}
+        {reference}
         placement="right-start"
         strategy="fixed"
         trigger="manual"

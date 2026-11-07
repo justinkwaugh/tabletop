@@ -33,7 +33,8 @@
 >
     <rect width={BoardWidth} height={BoardHeight} fill="var(--feudum-board-frame)"></rect>
     <MapLayers state={gameSession.gameState} {paintOf} {chrome} />
-    <g data-layer="guilds">
+    <!-- Under the bench the board's own guild areas keep their state and take no presses, by key either. -->
+    <g data-layer="guilds" visibility={gameSession.benchCovers ? 'hidden' : undefined}>
         <GuildAreas state={gameSession.gameState} {paintOf} {colourPaintOf} {chrome} />
     </g>
     <g data-layer="tracks"><TrackLayers state={gameSession.gameState} {paintOf} {chrome} /></g>

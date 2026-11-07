@@ -236,10 +236,20 @@ function migrateFlow(flow: FlowInput): FlowView {
     const { state, playerId, input, read } = flow
     const offers = migrateOffers(state, playerId)
     const pawn = read('pawn')
+    const canEnter = offers.spaces.length + offers.distantKinSpaces.length > 0
     const rows: PanelChoice[] = offers.pawnsOff.map((n) => ({
         label: `Pawn ${n}`,
         picked: pawn === n,
-        press: Pick('pawn', n)
+        ...(canEnter
+            ? { press: Pick('pawn', n) }
+            : {
+                  refusal:
+                      reasonMigrateRefused(state, playerId, {
+                          ...input,
+                          pawn: n,
+                          onto: { character: 'farmer', spaceId: StartingSpaceIds[0] }
+                      }) ?? 'No space to migrate to.'
+              })
     }))
     if (pawn === undefined || offers.pawnsOn.includes(pawn)) {
         const data = pawn === undefined ? undefined : { ...input, pawn, onto: 'off' as const }

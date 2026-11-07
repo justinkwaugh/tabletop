@@ -1,4 +1,5 @@
 <script lang="ts">
+    import BenchLayer from '$lib/components/bench/BenchLayer.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import BoardPopup from './BoardPopup.svelte'
     import EnlargedFaceView from './EnlargedFaceView.svelte'
@@ -8,8 +9,8 @@
 
     /**
      * What stands over the table, drawn in one place only: after the layout, or inside the dialog in
-     * full screen. What is open wins: an enlarged card over an open seat or stack view, those over
-     * the table. A popup's draft waits under them, and a popover would stand over everything, so it
+     * full screen. What is open wins: an enlarged card over an open seat, stack view or the bench,
+     * those over the table. A popup's draft waits under them, and a popover would stand over everything, so it
      * is held back while one is open.
      */
     const gameSession = getGameSession()
@@ -21,6 +22,7 @@
     let innerWidth = $state(EnlargedWidth + PhoneMargin)
     let enlargedWidth = $derived(Math.min(EnlargedWidth, innerWidth - PhoneMargin))
     let popup = $derived(gameSession.boardPopup)
+    let bench = $derived(gameSession.guildPanel?.bench)
     let covered = $derived(
         layers.enlarged !== undefined || layers.openSeatId !== undefined || layers.stackView
     )
@@ -28,6 +30,9 @@
 
 <svelte:window bind:innerWidth />
 
+{#if bench}
+    <BenchLayer {bench} />
+{/if}
 {#if popup && !covered}
     <BoardPopup {popup} />
 {/if}
