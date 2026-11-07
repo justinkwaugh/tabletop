@@ -269,7 +269,7 @@ Silent restoration replaces the displayed state; every derived offer follows it 
 - **Board surface.** One SVG, scaled by the shared scaling wrapper (`expandable`, `coverBelowScale`). Layers in order: ground (terrain, frame, the epoch sky); routes; locations (discs, letters, start rings); space contents (landscapes, goods, abandoned vessels, markers, immunity seals); pieces (pawns with vessels, monsters); guild areas (each owns its grid and its track); tracks (stacks and chart, die, voyage, military, barrels, score ring); margin (deck, haversack, supply counts); motion (a running animator's tokens, none at rest, with a seal's token under the markers). Each layer owns the pick chrome of what it draws and dims its own unlit elements from the board offer. There is no global scrim.
 - **Pieces on the board** sit in a centred outer wrapper for motion, with world placement on a separate node, so GSAP owns the wrapper's transform.
 - **Moves within the board** (a pawn's path, goods from one guild area to another, a tile from a stack to the map, a marker from a track to a space) stay inside the board SVG and its coordinates, so they scale with it.
-- **Flight layer.** A good, a card, a writ, a tile or a marker moving between a seat panel (or seat chip) and the board crosses the scaling wrapper. One flight layer, mounted above the table layout and outside the wrapper, and inside the full-screen dialog while it is open, draws the moving copy from the two elements' screen rectangles. While it flies the source is hidden and the target not yet shown.
+- **Flight layer.** A good, a writ, a tile or a marker moving between a seat panel (or seat chip) and the board crosses the scaling wrapper. One flight layer, mounted above the table layout and outside the wrapper, and inside the full-screen dialog while it is open, draws the moving copy from the two elements' screen rectangles. While it flies the source is hidden and the target not yet shown.
 - **The bench** is drawn over the board's container, outside the scaled SVG, at a scale fixed for legibility. It draws the guild areas with the same components the board uses. While it is open the board's own guild areas keep their state and take no presses.
 - **Seat panels** sit outside the wrapper, in the Players tab on a desktop only; on a phone the seat strip stands in for them. The open seat and the enlarged card are mounted after the table layout and pad themselves by the safe-area insets.
 - **Full screen** is the wrapper's modal dialog. While it is open the action panel is drawn in the wrapper's toolbar, and the bench, the popups and the enlarged card inside the dialog. Each is drawn in one place at a time.
@@ -543,26 +543,26 @@ Each scenario is marked automated (with its spec) or checked (with date and widt
 - S33: automated (`followUpPanels.spec.ts`, `waitingView.spec.ts`; browser `tests/followUpPanels.spec.ts`)
 - S34: automated (`waitingView.spec.ts`, `followUpPanels.spec.ts`; browser compare of the page's markup and the action area's pixels in `tests/followUpPanels.spec.ts`); open: Manual
 - S35: pending
-- S36: partly automated (`followUpDrafts.spec.ts`, `followUpPanels.spec.ts`; browser `tests/followUpPanels.spec.ts`); open: the flights and the score slide, the military service question on the drawn panel
-- S37: partly automated (`followUpDrafts.spec.ts`: the win comes from the logic package); open: the flip, the flights and the rank changes in the log
+- S36: partly automated (`followUpDrafts.spec.ts`, `followUpPanels.spec.ts`; browser `tests/followUpPanels.spec.ts`; the defender's pawn home and the score after it `flightLayer.spec.ts`); open: the military service question on the drawn panel
+- S37: partly automated (`followUpDrafts.spec.ts`: the win comes from the logic package; the markers home `flightLayer.spec.ts`); open: the flip and the rank changes in the log
 - S38: automated (`followUpPanels.spec.ts`, `waitingView.spec.ts`; the seal under the marker `mapLayers.spec.ts`; browser `tests/followUpPanels.spec.ts`; the seal's slide `boardAnimators.spec.ts`)
-- S39: automated (`followUpPanels.spec.ts`, `atWillDraft.spec.ts`); open: the seal's flight
+- S39: automated (`followUpPanels.spec.ts`, `atWillDraft.spec.ts`; the seal's flight `flightLayer.spec.ts`)
 - S40: automated (`guildDraft.spec.ts`; browser `tests/bench.spec.ts`)
-- S41: automated (`guildDraft.spec.ts`, `benchOffer.spec.ts`, `bench.spec.ts`, the barn-to-market pair on send `boardAnimators.spec.ts`; browser `tests/bench.spec.ts`); open: the legs to and from a seat's panel aren't drawn
+- S41: automated (`guildDraft.spec.ts`, `benchOffer.spec.ts`, `bench.spec.ts`, the barn-to-market pair on send `boardAnimators.spec.ts`; browser `tests/bench.spec.ts`; the legs to and from a seat's panel `flightLayer.spec.ts`)
 - S42: automated (`guildDraft.spec.ts`, `bench.spec.ts`; browser `tests/bench.spec.ts`)
-- S43: automated (`guildDraft.spec.ts`, `benchOffer.spec.ts`, `bench.spec.ts`, the Knight row's fill on send `boardAnimators.spec.ts`; browser `tests/bench.spec.ts`); open: the legs to and from a seat's panel aren't drawn
-- S44: automated (`guildDraft.spec.ts`, `bench.spec.ts`, the marker onto the icon `boardAnimators.spec.ts`; browser `tests/bench.spec.ts`); open: the returned markers' flight isn't drawn
+- S43: automated (`guildDraft.spec.ts`, `benchOffer.spec.ts`, `bench.spec.ts`, the Knight row's fill on send `boardAnimators.spec.ts`; browser `tests/bench.spec.ts`; the legs to and from a seat's panel `flightLayer.spec.ts`)
+- S44: automated (`guildDraft.spec.ts`, `bench.spec.ts`, the marker onto the icon `boardAnimators.spec.ts`; browser `tests/bench.spec.ts`; the returned markers' flight `flightLayer.spec.ts`)
 - S45: automated (`guildDraft.spec.ts`, `benchOffer.spec.ts`, `bench.spec.ts`; browser `tests/bench.spec.ts`)
-- S46: automated (`guildDraft.spec.ts`, `bench.spec.ts`; browser `tests/bench.spec.ts`); open: the bead's rise on send isn't drawn
+- S46: automated (`guildDraft.spec.ts`, `bench.spec.ts`; browser `tests/bench.spec.ts`; the bead's rise and settling on send `flightLayer.spec.ts`)
 - S47: automated (`guildDraft.spec.ts`, `bench.spec.ts`; browser `tests/bench.spec.ts`)
 - S48: automated (`turnDraft.spec.ts`, `guildDraft.spec.ts`; browser `tests/bench.spec.ts`)
 - S49: pending
-- S50: partly automated (`followUpPanels.spec.ts`, `atWillDraft.spec.ts`; browser `tests/followUpPanels.spec.ts`); open: the writ shown to all then going under, the margin's count
+- S50: partly automated (`followUpPanels.spec.ts`, `atWillDraft.spec.ts`; browser `tests/followUpPanels.spec.ts`; the writ shown to all then going under `flightLayer.spec.ts`); open: the margin's count
 - S51: partly automated (`followUpPanels.spec.ts`, `atWillDraft.spec.ts`; browser `tests/followUpPanels.spec.ts`); open: what others see of the sealed back on the drawn panel
-- S52: partly automated (`followUpPanels.spec.ts`; browser `tests/followUpPanels.spec.ts`); open: the writ shown to all then going under, a mandate from the row bringing it to 3
-- S53: partly automated (`followUpPanels.spec.ts`, `followUpDrafts.spec.ts`, `waitingView.spec.ts`; browser `tests/followUpPanels.spec.ts`); open: the flights
+- S52: partly automated (`followUpPanels.spec.ts`; browser `tests/followUpPanels.spec.ts`; the writ shown to all then going under `flightLayer.spec.ts`); open: a mandate from the row bringing it to 3
+- S53: partly automated (`followUpPanels.spec.ts`, `followUpDrafts.spec.ts`, `waitingView.spec.ts`; browser `tests/followUpPanels.spec.ts`; the flights `flightLayer.spec.ts`)
 - S54: partly automated (`waitingView.spec.ts`, `components/actionPanel.spec.ts`; browser `tests/followUpPanels.spec.ts`; the die's tumble, the epoch glow, the score discs' slide `boardAnimators.spec.ts`, browser `tests/boardAnimators.spec.ts`); open: Manual
-- S55: partly automated (`followUpPanels.spec.ts`, `waitingView.spec.ts`; browser `tests/followUpPanels.spec.ts`); open: the flights
+- S55: partly automated (`followUpPanels.spec.ts`, `waitingView.spec.ts`; browser `tests/followUpPanels.spec.ts`; the flights `flightLayer.spec.ts`)
 - S56: automated (`waitingView.spec.ts`, `components/actionPanel.spec.ts`; browser `tests/followUpPanels.spec.ts`)
 - S57: pending
 - S58: pending
@@ -570,10 +570,10 @@ Each scenario is marked automated (with its spec) or checked (with date and widt
 - S60: pending
 - S61: pending
 - S62: pending
-- S63: pending
+- S63: automated (`flightLayer.spec.ts`: the 200 ms bound, a step in history, a reconnection with nothing on the layer, frames captured on the desk; browser `tests/flightLayer.spec.ts`)
 - S64: pending
-- S65: automated on the board (`boardAnimators.spec.ts`; browser `tests/boardAnimators.spec.ts`); open: the flight layer's and the panels' tokens
-- S66: pending
+- S65: automated on the board (`boardAnimators.spec.ts`; browser `tests/boardAnimators.spec.ts`; the flight layer `flightLayer.spec.ts`, browser `tests/flightLayer.spec.ts`); open: the panels' tokens
+- S66: automated (`flightLayer.spec.ts`: a second Action is queued behind the first's flight, then the layer is empty and nothing hidden; browser `tests/flightLayer.spec.ts`, every frame checked)
 - S67: automated (`boardFocus.spec.ts`; browser `tests/phone.spec.ts`, 375 × 812 and 812 × 375); open: the hand pan is a mouse drag, not a touch gesture
 - S68: automated (browser `tests/phone.spec.ts`); open: in a 652 px column the cap is 14 px short, so the second row's magnifier is 35 px until the panel is scrolled; the bench's printed places are under 44 px
 - S69: automated (browser `tests/phone.spec.ts`)

@@ -131,6 +131,8 @@ export interface BoardMotion extends MotionChange {
 export interface BoardPlan {
     readonly tokens: readonly MotionToken[]
     readonly motions: readonly BoardMotion[]
+    /** When the flight layer's copies leave: after the board's own rows, before the score slides. */
+    readonly flightsAt?: number
 }
 
 export interface BoardChange {
@@ -145,9 +147,9 @@ const StepGap = 0.06
 const GodspeedPause = 0.3
 const RouteSamples = 12
 const SlideSeconds = 0.4
-const FlipSeconds = 0.18
-const GoodFlight = 0.4
-const GoodGap = 0.05
+export const FlipSeconds = 0.18
+export const GoodFlight = 0.4
+export const GoodGap = 0.05
 const ArcRise = 40
 const ArcSamples = 8
 const FadeSeconds = 0.2
@@ -166,11 +168,13 @@ const ScoreMost = 0.9
 const ScorePerSpace = 0.03
 const ScoreSamples = 24
 const SealDrop = MarkerSize
-const GuildScale = GuildAreaWidth / GuildBox.width
+export const GuildScale = GuildAreaWidth / GuildBox.width
 
 class PlanBuilder implements BoardPlan {
     readonly tokens: MotionToken[] = []
     readonly motions: BoardMotion[] = []
+    flightsAt = 0
+    pilferToken: MotionTarget | undefined
 
     token(face: TokenFace, place: Point, layer: 'under' | 'over' = 'over', scaleX?: number) {
         const id = `token-${this.tokens.length}`
@@ -217,21 +221,21 @@ function arc(from: Point, to: Point): readonly Point[] {
     })
 }
 
-function guildPoint(guild: GuildId, { x, y }: Point): Point {
+export function guildPoint(guild: GuildId, { x, y }: Point): Point {
     const area = GuildAreas[guild]
     return { x: area.x + x * GuildScale, y: area.y + y * GuildScale }
 }
 
 // Pawns and monsters
 
-interface PlacedPiece {
+export interface PlacedPiece {
     readonly piece: MapPiece
     readonly spaceId: SpaceId
     readonly point: Point
 }
 
 /** Where each piece a space shows stands (R-4.1), in the map's own slots. */
-function placedPieces(state: HydratedFeudumGameState): ReadonlyMap<string, PlacedPiece> {
+export function placedPieces(state: HydratedFeudumGameState): ReadonlyMap<string, PlacedPiece> {
     const placed = new Map<string, PlacedPiece>()
     for (const { id } of Spaces) {
         const { pieceSlots } = spaceGeometry(id)
@@ -242,7 +246,7 @@ function placedPieces(state: HydratedFeudumGameState): ReadonlyMap<string, Place
     return placed
 }
 
-function keyOfRef(ref: PieceRef): string {
+export function keyOfRef(ref: PieceRef): string {
     return ref.kind === 'pawn' ? `pawn:${ref.playerId}:${ref.n}` : `monster:${ref.monsterId}`
 }
 
@@ -416,6 +420,7 @@ function playPilfer(
         plan.move('goods', { piece: source.key }, at, 0, { opacity: 0 })
     }
     const token = plan.token({ kind: 'good', good, size: 26 }, flight[0])
+    plan.pilferToken = token
     return plan.move('goods', token, at, GoodFlight, { path: flight, reveal: true })
 }
 
@@ -656,7 +661,7 @@ function flipLocations(plan: PlanBuilder, { from, to }: BoardChange, at: number)
 
 // Goods
 
-interface GoodPlace {
+export interface GoodPlace {
     readonly point: Point
     /** The token that may leave its stack: a counted stack keeps its one token until the state changes. */
     readonly key?: string
@@ -736,18 +741,31 @@ const GoodHolders: readonly GoodHolder[] = [
     }
 ]
 
-/**
- * R-1.1 Goods that left one place on the board and reached another fly a short arc, one after another a
- * few frames apart. A good with no such pair crossed to or from a seat, which is not this layer's.
- */
-function flyGoods(
-    plan: PlanBuilder,
+/** One good at a place on the board, on its way to or from somewhere. */
+export interface GoodCrossing {
+    readonly good: Good
+    readonly place: GoodPlace
+}
+
+interface GoodCrossings {
+    /** A good that left one place on the board and reached another. */
+    readonly pairs: readonly {
+        readonly good: Good
+        readonly from: GoodPlace
+        readonly to: GoodPlace
+    }[]
+    /** What has no such pair: it crossed to or from a seat, so it is the flight layer's. */
+    readonly leaving: readonly GoodCrossing[]
+    readonly arriving: readonly GoodCrossing[]
+}
+
+function goodCrossings(
     { from, to }: BoardChange,
-    at: number,
     pilfered?: { readonly good: Good; readonly holder: GoodHolder }
-): number {
-    let launch = at
-    let ends = at
+): GoodCrossings {
+    const pairs: { good: Good; from: GoodPlace; to: GoodPlace }[] = []
+    const left: GoodCrossing[] = []
+    const reached: GoodCrossing[] = []
     for (const good of Goods) {
         const leaving: GoodHolder[] = []
         const arriving: GoodHolder[] = []
@@ -763,22 +781,62 @@ function flyGoods(
                 arriving.push(holder)
             }
         }
-        for (let pair = 0; pair < Math.min(leaving.length, arriving.length); pair += 1) {
+        const paired = Math.min(leaving.length, arriving.length)
+        for (let pair = 0; pair < paired; pair += 1) {
             const source = leaving[pair].place(from, good)
             const landing = arriving[pair].place(to, good)
-            if (!source || !landing) {
-                continue
+            if (source && landing) {
+                pairs.push({ good, from: source, to: landing })
             }
-            if (source.key) {
-                plan.move('goods', { piece: source.key }, launch, 0, { opacity: 0 })
-            }
-            const token = plan.token({ kind: 'good', good, size: 24 }, source.point)
-            ends = plan.move('goods', token, launch, GoodFlight, {
-                path: arc(source.point, landing.point),
-                reveal: true
-            })
-            launch += GoodGap
         }
+        for (const holder of leaving.slice(paired)) {
+            const place = holder.place(from, good)
+            if (place) {
+                left.push({ good, place })
+            }
+        }
+        for (const holder of arriving.slice(paired)) {
+            const place = holder.place(to, good)
+            if (place) {
+                reached.push({ good, place })
+            }
+        }
+    }
+    return { pairs, leaving: left, arriving: reached }
+}
+
+/** R-3.7.4 What the board leaves to the flight layer: the goods with no partner on the board. */
+export function goodsOffTheBoard(
+    change: BoardChange,
+    action?: GameAction
+): Pick<GoodCrossings, 'leaving' | 'arriving'> {
+    const pilfered = action && isMove(action) ? pilferedHolder(action) : undefined
+    const { leaving, arriving } = goodCrossings(change, pilfered)
+    return { leaving, arriving }
+}
+
+/**
+ * R-1.1 Goods that left one place on the board and reached another fly a short arc, one after another a
+ * few frames apart. A good with no such pair crossed to or from a seat, which is the flight layer's.
+ */
+function flyGoods(
+    plan: PlanBuilder,
+    change: BoardChange,
+    at: number,
+    pilfered?: { readonly good: Good; readonly holder: GoodHolder }
+): number {
+    let launch = at
+    let ends = at
+    for (const { good, from: source, to: landing } of goodCrossings(change, pilfered).pairs) {
+        if (source.key) {
+            plan.move('goods', { piece: source.key }, launch, 0, { opacity: 0 })
+        }
+        const token = plan.token({ kind: 'good', good, size: 24 }, source.point)
+        ends = plan.move('goods', token, launch, GoodFlight, {
+            path: arc(source.point, landing.point),
+            reveal: true
+        })
+        launch += GoodGap
     }
     return ends
 }
@@ -1037,8 +1095,9 @@ function pilferedHolder(action: Move): { good: Good; holder: GoodHolder } | unde
 export function planBoardMotion({
     from,
     to,
-    action
-}: BoardChange & { readonly action: GameAction }): BoardPlan {
+    action,
+    flightRoom = 0
+}: BoardChange & { readonly action: GameAction; readonly flightRoom?: number }): BoardPlan {
     const plan = new PlanBuilder()
     const change = { from, to }
     let cursor = 0
@@ -1056,6 +1115,12 @@ export function planBoardMotion({
     }
     cursor = playCombatOf(plan, action, from, cursor)
     cursor = playStateRows(plan, change, cursor, pilfered)
+    if (flightRoom > 0 && plan.pilferToken) {
+        // R-3.7.4 The good's last leg, from the piece to the seat, is the flight layer's from here.
+        plan.move('goods', plan.pilferToken, cursor, 0, { opacity: 0 })
+    }
+    plan.flightsAt = cursor
+    cursor += flightRoom
     cursor = slideEpoch(plan, change, cursor)
     if (isBeginDawn(action) && action.metadata) {
         playDawn(plan, action.metadata.sheet, from, cursor)

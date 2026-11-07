@@ -84,6 +84,8 @@ export interface BoardChangeArgs {
     readonly from?: HydratedFeudumGameState
     readonly action?: GameAction
     readonly animationContext: AnimationContext
+    /** How long the flight layer's copies take, so that what follows them on the board waits. */
+    readonly flightRoom?: number
 }
 
 /**
@@ -115,24 +117,33 @@ export class BoardAnimator {
         }
     }
 
-    async onGameStateChange({ to, from, action, animationContext }: BoardChangeArgs) {
+    /** Gives the second on this Action's timeline at which the flight layer's copies may leave. */
+    async onGameStateChange({
+        to,
+        from,
+        action,
+        animationContext,
+        flightRoom = 0
+    }: BoardChangeArgs): Promise<number> {
         if (!this.surface || !from) {
-            return
+            return 0
         }
         const reduced = this.reduced()
         if (reduced && !action) {
-            return
+            return 0
         }
-        const plan = this.withOwnTokens(
-            action ? planBoardMotion({ from, to, action }) : planDirect({ from, to })
-        )
+        const built = action
+            ? planBoardMotion({ from, to, action, flightRoom })
+            : planDirect({ from, to })
+        const plan = this.withOwnTokens(built)
+        const flightsAt = built.flightsAt ?? 0
         const generation = this.generation
         if (plan.tokens.length > 0) {
             this.tokens = [...this.tokens, ...plan.tokens]
             await tick()
         }
         if (generation !== this.generation) {
-            return
+            return flightsAt
         }
         const timeline = animationContext.actionTimeline
         for (const motion of plan.motions) {
@@ -142,6 +153,7 @@ export class BoardAnimator {
                 this.schedule(timeline, motion, generation)
             }
         }
+        return flightsAt
     }
 
     /**
