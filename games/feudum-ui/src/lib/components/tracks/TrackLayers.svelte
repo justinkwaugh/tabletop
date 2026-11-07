@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { HydratedFeudumGameState } from '@tabletop/feudum'
     import { MapAsset, assetUrl } from '$lib/art/assetMap.js'
+    import { PlainChrome, dimmedWithRest, type BoardChrome } from '$lib/model/boardChrome.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import EpochSky from './EpochSky.svelte'
     import RegionStacks from './RegionStacks.svelte'
@@ -15,17 +16,21 @@
      */
     let {
         state,
-        paintOf
+        paintOf,
+        chrome = PlainChrome
     }: {
         state: HydratedFeudumGameState
         paintOf: (playerId: string) => SeatPaint
+        chrome?: BoardChrome
     } = $props()
 
     let printed = $derived(assetUrl(MapAsset) !== undefined)
 </script>
 
-<EpochSky {state} {printed} />
-<RegionStacks {state} {printed} />
-<VoyageService {state} {printed} {paintOf} />
-<WineBarrels {state} {printed} {paintOf} />
-<ScoreRing {state} {paintOf} />
+<g opacity={dimmedWithRest(chrome)}><EpochSky {state} {printed} /></g>
+<RegionStacks {state} {printed} {chrome} />
+<VoyageService {state} {printed} {paintOf} {chrome} />
+<g opacity={dimmedWithRest(chrome)}>
+    <WineBarrels {state} {printed} {paintOf} />
+    <ScoreRing {state} {paintOf} />
+</g>

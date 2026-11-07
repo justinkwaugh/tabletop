@@ -9,6 +9,7 @@
     import { BoardHeight, BoardWidth, MarginHeight } from '$lib/utils/boardGeometry.js'
 
     let gameSession = getGameSession()
+    let chrome = $derived(gameSession.boardChrome)
 
     /** A seat's paint from the session's colourizer (S71), told apart by its initial as well. */
     function paintOf(playerId: string) {
@@ -24,22 +25,25 @@
 
 <svg
     class="bg-feudum-surface"
+    data-board-surface
+    pointer-events="none"
     width={BoardWidth}
     height={BoardHeight + MarginHeight}
     viewBox="0 0 {BoardWidth} {BoardHeight + MarginHeight}"
 >
     <rect width={BoardWidth} height={BoardHeight} fill="var(--feudum-board-frame)"></rect>
-    <MapLayers state={gameSession.gameState} {paintOf} />
+    <MapLayers state={gameSession.gameState} {paintOf} {chrome} />
     <g data-layer="guilds">
-        <GuildAreas state={gameSession.gameState} {paintOf} {colourPaintOf} />
+        <GuildAreas state={gameSession.gameState} {paintOf} {colourPaintOf} {chrome} />
     </g>
-    <g data-layer="tracks"><TrackLayers state={gameSession.gameState} {paintOf} /></g>
+    <g data-layer="tracks"><TrackLayers state={gameSession.gameState} {paintOf} {chrome} /></g>
     <g data-layer="margin">
         <BoardMargin
             state={gameSession.gameState}
             viewerId={gameSession.myPlayerId}
             {paintOf}
             {colourPaintOf}
+            {chrome}
         />
     </g>
 </svg>

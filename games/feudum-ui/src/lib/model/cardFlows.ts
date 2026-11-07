@@ -140,6 +140,8 @@ export interface PanelChoice {
     /** Dimmed, with the line a press gives; it has no `press`. */
     readonly refusal?: string
     readonly press?: TurnPress
+    /** Contract, Hover: what this row's press would light, read only while the row is pointed at. */
+    readonly lights?: () => readonly BoardTarget[]
 }
 
 export interface FlowPick {

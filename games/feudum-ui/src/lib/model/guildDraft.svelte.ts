@@ -293,6 +293,15 @@ export class GuildDraft extends StagedDraft<GuildDraftValues> {
     }
 
     /** R-3.16, R-4.6.1 Each guild's lit or dimmed area. */
+    /** Contract, Hover: what staging the function or the Feast would light. */
+    lightsOpening(context: GuildContext): readonly BoardTarget[] {
+        const { picks } =
+            context.mode === ActionType.GuildAction
+                ? this.guildView(context)
+                : this.feastSpaceView(context)
+        return picks.map(({ target }) => target)
+    }
+
     private guildView(context: GuildContext): GuildView {
         const lit = this.litGuilds(context)
         return {

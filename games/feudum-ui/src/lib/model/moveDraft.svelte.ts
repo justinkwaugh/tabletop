@@ -295,6 +295,20 @@ export class MoveDraft extends StagedDraft<MoveDraftValues> {
             : undefined
     }
 
+    /** Contract, Hover: what staging a Move would light: its pieces, and a lone piece's ways. */
+    lightsOpening(context: MoveContext): readonly BoardTarget[] {
+        const movable = moveOffers(context.state, context.playerId, { steps: [] }).pieces.filter(
+            ({ ways }) => ways.length > 0
+        )
+        const [lone] = movable
+        return [
+            ...movable.map(({ piece }) => pieceTarget(piece)),
+            ...(movable.length === 1
+                ? [...waysBySpace(lone.ways).keys()].map((spaceId) => spaceTarget(spaceId))
+                : [])
+        ]
+    }
+
     /** R-3.7.1 Steps until the allowance is spent or the seat stops; S30 takes no press. */
     private stepsView(offers: MoveOffers, unlit: readonly PickTarget[]): MoveView {
         const movable = offers.pieces.filter(({ ways }) => ways.length > 0)

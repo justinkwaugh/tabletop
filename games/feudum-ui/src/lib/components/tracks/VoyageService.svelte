@@ -5,7 +5,15 @@
         type HydratedFeudumGameState
     } from '@tabletop/feudum'
     import BoardPiece from '$lib/components/map/BoardPiece.svelte'
+    import PickChrome from '$lib/components/map/PickChrome.svelte'
     import SeatToken from '$lib/components/pieces/SeatToken.svelte'
+    import {
+        PlainChrome,
+        dimmed,
+        dimmedWithRest,
+        type BoardChrome
+    } from '$lib/model/boardChrome.js'
+    import { militaryTarget, roleOf, voyageTarget } from '$lib/model/boardOffer.js'
     import { serviceDiscs, voyageDiscs } from '$lib/model/boardView.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import {
@@ -26,18 +34,36 @@
     let {
         state,
         printed,
-        paintOf
+        paintOf,
+        chrome = PlainChrome
     }: {
         state: HydratedFeudumGameState
         printed: boolean
         paintOf: (playerId: string) => SeatPaint
+        chrome?: BoardChrome
     } = $props()
 
     const SpaceRadius = 16
+    const VoyageRing = SpaceRadius * 2 + 10
+    const ServiceRing = { width: 92, height: 38 }
+
+    function voyageRole(spaceId: string) {
+        const number = EpicVoyageTrack.find(({ id }) => id === spaceId)?.space
+        return number === undefined ? 'plain' : roleOf(chrome.offer, voyageTarget(number))
+    }
+
+    function serviceRole(spaceId: string) {
+        const number = MilitaryServiceTrack.find(({ id }) => id === spaceId)?.space
+        return number === undefined ? 'plain' : roleOf(chrome.offer, militaryTarget(number))
+    }
 </script>
 
 {#if !printed}
-    <g data-drawn-tracks style:font-family="var(--feudum-font-text)">
+    <g
+        data-drawn-tracks
+        opacity={dimmedWithRest(chrome)}
+        style:font-family="var(--feudum-font-text)"
+    >
         {#each EpicVoyageTrack as space (space.id)}
             {@const at = trackPlace(VoyageSpaces, space.id)}
             <circle
@@ -87,31 +113,54 @@
 
 {#each voyageDiscs(state) as disc (disc.key)}
     {@const at = trackPlace(VoyageSpaces, disc.spaceId)}
-    <BoardPiece
-        at={{ x: at.x + fanOffset(disc.index, disc.count, VoyageFanStep), y: at.y }}
-        piece={disc.key}
-    >
-        <SeatToken
-            kind="disc"
-            paint={paintOf(disc.playerId)}
-            size={TrackDiscSize}
-            x={-TrackDiscSize / 2}
-            y={-TrackDiscSize / 2}
-        />
-    </BoardPiece>
+    <g opacity={dimmed(voyageRole(disc.spaceId))}>
+        <BoardPiece
+            at={{ x: at.x + fanOffset(disc.index, disc.count, VoyageFanStep), y: at.y }}
+            piece={disc.key}
+        >
+            <SeatToken
+                kind="disc"
+                paint={paintOf(disc.playerId)}
+                size={TrackDiscSize}
+                x={-TrackDiscSize / 2}
+                y={-TrackDiscSize / 2}
+            />
+        </BoardPiece>
+    </g>
 {/each}
 {#each serviceDiscs(state) as disc (disc.key)}
     {@const at = trackPlace(ServiceSpaces, disc.spaceId)}
-    <BoardPiece
-        at={{ x: at.x + fanOffset(disc.index, disc.count, ServiceFanStep), y: at.y }}
-        piece={disc.key}
-    >
-        <SeatToken
-            kind="disc"
-            paint={paintOf(disc.playerId)}
-            size={TrackDiscSize}
-            x={-TrackDiscSize / 2}
-            y={-TrackDiscSize / 2}
-        />
-    </BoardPiece>
+    <g opacity={dimmed(serviceRole(disc.spaceId))}>
+        <BoardPiece
+            at={{ x: at.x + fanOffset(disc.index, disc.count, ServiceFanStep), y: at.y }}
+            piece={disc.key}
+        >
+            <SeatToken
+                kind="disc"
+                paint={paintOf(disc.playerId)}
+                size={TrackDiscSize}
+                x={-TrackDiscSize / 2}
+                y={-TrackDiscSize / 2}
+            />
+        </BoardPiece>
+    </g>
+{/each}
+{#each EpicVoyageTrack as space (space.id)}
+    <PickChrome
+        target={voyageTarget(space.space)}
+        {chrome}
+        at={trackPlace(VoyageSpaces, space.id)}
+        width={VoyageRing}
+        label="Voyage {space.space}"
+    />
+{/each}
+{#each MilitaryServiceTrack as space (space.id)}
+    <PickChrome
+        target={militaryTarget(space.space)}
+        {chrome}
+        at={trackPlace(ServiceSpaces, space.id)}
+        width={ServiceRing.width}
+        height={ServiceRing.height}
+        label="Military service {space.space}"
+    />
 {/each}

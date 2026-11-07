@@ -2,7 +2,16 @@
     import { RegionIds, RegionTileChart, type HydratedFeudumGameState } from '@tabletop/feudum'
     import BoardPiece from '$lib/components/map/BoardPiece.svelte'
     import CountChip from '$lib/components/map/CountChip.svelte'
+    import PickChrome from '$lib/components/map/PickChrome.svelte'
     import TileFace from '$lib/components/pieces/TileFace.svelte'
+    import {
+        PlainChrome,
+        dimmed,
+        dimmedWithRest,
+        isPickable,
+        type BoardChrome
+    } from '$lib/model/boardChrome.js'
+    import { roleOf, stackTarget } from '$lib/model/boardOffer.js'
     import { stackView } from '$lib/model/boardView.js'
     import {
         DieCentre,
@@ -18,9 +27,14 @@
     /**
      * R-4.3.1 Six stacks, the top tile showing its epoch; the print's V shows under an empty one.
      * R-4.11.1 The progress die stands beside them. `printed` false draws our own stack spaces, V and
-     * R-4.3.2 chart; the print holds those itself, so they are not drawn a second time over it.
+     * R-4.3.2 chart; the print holds those itself, so they are not drawn a second time over it. A
+     * stack no pick lights opens its stack view on a press (contract: Card preview).
      */
-    let { state, printed }: { state: HydratedFeudumGameState; printed: boolean } = $props()
+    let {
+        state,
+        printed,
+        chrome = PlainChrome
+    }: { state: HydratedFeudumGameState; printed: boolean; chrome?: BoardChrome } = $props()
 
     const ChartColumns = ['farm', 'town', 'feudum'] as const
     const ChartHeads = { farm: 'Fm', town: 'Tn', feudum: 'Fd' } as const
@@ -28,7 +42,11 @@
 </script>
 
 {#if !printed}
-    <g data-drawn-chart style:font-family="var(--feudum-font-text)">
+    <g
+        data-drawn-chart
+        opacity={dimmedWithRest(chrome)}
+        style:font-family="var(--feudum-font-text)"
+    >
         <rect
             x={TileChart.x}
             y={TileChart.y}
@@ -85,7 +103,9 @@
 {#each RegionIds as region (region)}
     {@const stack = stackView(state, region)}
     {@const centre = StackCentres[region]}
-    <g data-stack={region} data-count={stack.count}>
+    {@const target = stackTarget(region)}
+    {@const role = roleOf(chrome.offer, target)}
+    <g data-stack={region} data-count={stack.count} opacity={dimmed(role)}>
         {#if !printed}
             <rect
                 x={centre.x - StackSize / 2}
@@ -121,27 +141,52 @@
             </BoardPiece>
         {/if}
     </g>
+    {#if chrome.openStack && !isPickable(role)}
+        <rect
+            x={centre.x - StackSize / 2}
+            y={centre.y - StackSize / 2}
+            width={StackSize}
+            height={StackSize}
+            fill="transparent"
+            role="button"
+            tabindex="0"
+            aria-label="Open the {region} stack"
+            pointer-events="all"
+            cursor="zoom-in"
+            data-open-stack={region}
+            onclick={() => chrome.openStack?.({ kind: 'region', region })}
+            onkeydown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    chrome.openStack?.({ kind: 'region', region })
+                }
+            }}
+        ></rect>
+    {/if}
+    <PickChrome {target} {chrome} at={centre} width={StackSize + 8} round={false} label={region} />
 {/each}
 
-<BoardPiece at={DieCentre} piece="progress-die">
-    <g role="img" aria-label="progress die" data-die>
-        <title>Progress die</title>
-        <rect
-            x={-DieSize / 2}
-            y={-DieSize / 2}
-            width={DieSize}
-            height={DieSize}
-            rx="7"
-            fill="var(--feudum-wood-piece)"
-            stroke="var(--feudum-wood-dark)"
-            stroke-width="2"
-        ></rect>
-        <text
-            y="6"
-            text-anchor="middle"
-            font-size="11"
-            fill="var(--feudum-ink)"
-            style:font-family="var(--feudum-font-text)">die</text
-        >
-    </g>
-</BoardPiece>
+<g opacity={dimmedWithRest(chrome)}>
+    <BoardPiece at={DieCentre} piece="progress-die">
+        <g role="img" aria-label="progress die" data-die>
+            <title>Progress die</title>
+            <rect
+                x={-DieSize / 2}
+                y={-DieSize / 2}
+                width={DieSize}
+                height={DieSize}
+                rx="7"
+                fill="var(--feudum-wood-piece)"
+                stroke="var(--feudum-wood-dark)"
+                stroke-width="2"
+            ></rect>
+            <text
+                y="6"
+                text-anchor="middle"
+                font-size="11"
+                fill="var(--feudum-ink)"
+                style:font-family="var(--feudum-font-text)">die</text
+            >
+        </g>
+    </BoardPiece>
+</g>
