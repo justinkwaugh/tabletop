@@ -1,0 +1,197 @@
+import { expect } from '@playwright/test'
+import { ActionType } from '@tabletop/feudum'
+import { scenario, type ScenarioTable } from './scenarioTable.js'
+
+/** The contract's writ, round-end and game-end scenarios, on the real table at both widths. */
+
+const atWill = (table: ScenarioTable) => table.panel().locator('[data-rows="at-will"]')
+const seen = (table: ScenarioTable) =>
+    table.page.locator('[data-board-surface] [data-margin="deck-seen"]')
+const MandateA = 'A: 1 food → 3s'
+
+/** R-4.4.2 The at-will row's Writs chip, by its count. */
+const openWrits = async (table: ScenarioTable) =>
+    table.press(atWill(table).getByRole('button', { name: /^Writs \d/ }))
+
+scenario('S50 R-4.4.2 At-will row', 'writs-at-will', async (table) => {
+    await expect(atWill(table).getByRole('button')).toHaveText(['Writs 1'])
+    await table.press(table.card('Tax'))
+    await expect(atWill(table)).toHaveCount(0)
+    await table.press(table.undo())
+    await openWrits(table)
+    await expect(table.panel().locator('[data-writ-offer="writ.mandate.5"]')).toContainText(
+        MandateA
+    )
+    await expect(seen(table)).toHaveCount(0)
+    const deck = table.page.locator('[data-board-surface] [data-margin="deck-count"]')
+    const before = Number((await deck.textContent())?.replace(/\D/g, ''))
+    const flights = await table.flightsOf(() => table.press(table.row(MandateA)))
+    expect(flights).toEqual(expect.arrayContaining(['goods: food', 'writs: Mandate 5']))
+    await expect(seen(table)).toHaveText('seen: Mandate 5')
+    await expect(deck).toHaveText(`${before + 1} writs`)
+    await table.showSeat('p2')
+    await expect(seen(table)).toHaveText('seen: Mandate 5')
+})
+
+scenario('S51 R-4.4.3 Seal a charter', 'writs-seal-charter', async (table) => {
+    await openWrits(table)
+    await table.press(table.row('Seal · 1 seal'))
+    const own = await table.seatPanel('p1')
+    const face = own.locator('[data-writ-face="writ.charter.central-kingdom"]')
+    await expect(face).toHaveAttribute('data-writ-sealed', '')
+    await expect(face).toContainText('sealed')
+    await expect(face.locator('svg').first()).toHaveAttribute('opacity', '0.6')
+    await table.closeSeatPanel()
+
+    await table.showSeat('p2')
+    const other = await table.seatPanel('p1')
+    await expect(other.locator('[data-writ-back="sealed"]')).toHaveCount(1)
+    await expect(other.locator('[data-writ-face]')).toHaveCount(0)
+    await expect(other.locator('[data-seat-section="writs"]')).toHaveAttribute(
+        'data-writ-count',
+        '1'
+    )
+    await table.closeSeatPanel()
+})
+
+/** R-4.4.4 The Explore played, and one of its two kept: four writs held. */
+async function overTheLimit(table: ScenarioTable) {
+    await table.press(table.card('Explore'))
+    await table.press(table.primary())
+    await table.press(table.row('Mandate 6'))
+    await table.press(table.primaryNamed('Keep 1 · 1 under the deck'))
+    await expect(table.flowLine().first()).toHaveText('Hold at most 3 writs: 4 now')
+    await expect(table.panel().locator('[data-writs] > div')).toHaveCount(4)
+}
+
+scenario('S52 R-4.4.4 Writ limit: a discard', 'writs-limit', async (table) => {
+    await overTheLimit(table)
+    await table.press(table.panel().locator('[data-writs] button').first())
+    const flights = await table.flightsOf(() => table.press(table.primary()))
+    expect(flights.filter((flight) => flight.startsWith('writs: Mandate'))).toHaveLength(1)
+    await expect(seen(table)).toHaveCount(1)
+    expect(await table.activeSeats()).not.toContain('p1')
+})
+
+scenario('S52 R-4.4.4 Writ limit: a mandate from the row', 'writs-limit', async (table) => {
+    await overTheLimit(table)
+    await openWrits(table)
+    await table.press(table.row(MandateA))
+    await expect(seen(table)).toHaveText('seen: Mandate 5')
+    expect(await table.activeSeats()).not.toContain('p1')
+})
+
+scenario('S53 R-4.10.1 Nourish choice', 'nourish-choice', async (table) => {
+    const feeds = table.panel().locator('[data-row][data-picked]')
+    await expect(feeds).toHaveText([/^\s*Food/, /^\s*Wine/, /^\s*Unfed returns to supply/])
+    await expect(feeds.nth(2).locator('[data-note="threat"]')).toHaveClass(/text-feudum-danger/)
+    await expect(table.primary()).toHaveText('Feed: 1 food, 1 wine')
+    await expect(table.panel().locator('[data-order-seat="Bram"] [data-fed-by-game]')).toHaveText(
+        '· fed by the game'
+    )
+
+    const unfed = table.panel().getByRole('button', { name: /^Unfed/ })
+    await table.press(unfed.first())
+    await expect(feeds).toHaveText([/^\s*Unfed/, /^\s*Wine/, /^\s*Food/])
+    const flights = await table.flightsOf(() => table.press(table.primary()))
+    expect(flights).toEqual(
+        expect.arrayContaining(['goods: food', 'goods: sulfur', 'pawns: A monk'])
+    )
+})
+
+/** Every face the die shows from now until the table settles, in order. */
+async function dieFacesOf(table: ScenarioTable, press: () => Promise<void>): Promise<string[]> {
+    await table.page.evaluate(() => {
+        const faces: string[] = []
+        Object.assign(window, { feudumDieFaces: faces })
+        const sample = () => {
+            const face = document.querySelector('[data-token="die-face"] text')?.textContent ?? ''
+            if (face && faces.at(-1) !== face) {
+                faces.push(face)
+            }
+            if (Reflect.get(window, 'feudumDieFaces') === faces) {
+                requestAnimationFrame(sample)
+            }
+        }
+        requestAnimationFrame(sample)
+    })
+    await press()
+    return table.page.evaluate(() => {
+        const faces = Reflect.get(window, 'feudumDieFaces')
+        Object.assign(window, { feudumDieFaces: undefined })
+        return Array.isArray(faces) ? faces.map(String) : []
+    })
+}
+
+scenario('S54 R-4.11.2, R-4.12 Progress roll and dawn', 'dawn-roll', async (table) => {
+    const forfeit = { type: ActionType.ForfeitCard, kind: 'migrate' }
+    let flights: string[] = []
+    const faces = await dieFacesOf(table, async () => {
+        flights = await table.flightsOf(() => table.another('p3', forfeit))
+    })
+    expect(faces.at(-1)).toMatch(/desert/i)
+    expect(flights).toEqual(
+        expect.arrayContaining([
+            'board: progress-die',
+            'token: die-face',
+            'token: tile',
+            'board: stack:desert',
+            'board: epoch-marker',
+            'token: glow',
+            'board: score:p1',
+            'board: score:p2'
+        ])
+    )
+    await expect(table.panel().locator('[data-round-line]')).toContainText([
+        'Desert: tile I removed',
+        'Epoch II dawns'
+    ])
+    const sheet = table.panel().locator('[data-dawn-sheet]')
+    await expect(sheet.locator('[data-dawn-row]')).toHaveCount(3)
+    for (const cell of ['ranks', 'landscapes', 'regions', 'disloyalty', 'total']) {
+        await expect(sheet.locator(`[data-dawn-row] [data-dawn-${cell}]`)).toHaveCount(3)
+    }
+    const disloyalty = sheet.locator('[data-dawn-row="Bram"] [data-dawn-disloyalty]')
+    await expect(disloyalty).toHaveText(/^-\d/)
+    await expect(disloyalty).toHaveClass(/text-feudum-danger/)
+})
+
+/** Every good a seat's panel says it holds, summed. */
+async function goodsOf(table: ScenarioTable, of: string): Promise<number> {
+    const panel = await table.seatPanel(of)
+    const held = await panel.locator('[data-supply-good]').allTextContents()
+    await table.closeSeatPanel()
+    return held.reduce((sum, text) => sum + Number(text.replace(/\D/g, '')), 0)
+}
+
+scenario('S55 R-4.12.3 Collect landscapes', 'dawn-collect', async (table) => {
+    expect(Object.keys(await table.litChips()).sort()).toEqual([
+        'space:space.island.3',
+        'space:space.sea.2'
+    ])
+    const [ana, bram] = [await goodsOf(table, 'p1'), await goodsOf(table, 'p2')]
+    // The island's orchard, by its light: food, so the haversacks show it.
+    await table.pressPick('space:space.island.3')
+    await expect(table.primary()).toHaveText('Collect 1')
+    const flights = await table.flightsOf(() => table.press(table.primary()))
+    expect(flights.filter((flight) => flight === 'token: good')).toHaveLength(6)
+    expect(await goodsOf(table, 'p1')).toBe(ana + 5)
+    expect(await goodsOf(table, 'p2')).toBe(bram + 1)
+})
+
+scenario('S56 R-6.1, R-6.3 End of game', 'game-end', async (table) => {
+    const summary = table.panel().locator('[data-game-end]')
+    await expect(summary.locator('[data-game-winner]')).toHaveText('Ana wins')
+    await expect(summary.locator('[data-game-tie-break]')).toHaveText(
+        'Tie on vp broken by barrel sulfur: Ana 2, Bram 1'
+    )
+    await expect(summary.locator('[data-game-end-seat]')).toHaveCount(3)
+    for (const row of ['dawn', 'voyage', 'empire', 'shillings', 'charters', 'total']) {
+        await expect(summary.locator(`[data-game-end-row="${row}"]`).first()).toBeVisible()
+    }
+    const charter = summary.locator('[data-game-end-charter="writ.charter.sulfur-barrel"]')
+    await expect(charter).toHaveCount(1)
+    await expect(charter.getByRole('img')).not.toHaveAccessibleName(/back/i)
+    await expect(charter).toContainText('5')
+    await expect(table.primary()).toHaveCount(0)
+})

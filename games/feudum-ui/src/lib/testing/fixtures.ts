@@ -15,12 +15,17 @@ import {
     type ActionCardKind,
     type Character,
     type Good,
+    type GuildFunctionName,
+    type GuildFunctionParams,
+    type GuildId,
     type LocationKind,
     type PouchGood,
     type RegionId,
-    type SpaceId
+    type SpaceId,
+    type WritId
 } from '@tabletop/feudum'
-import { holdWrit } from './followUpTable.js'
+import { fillBarrel, holdFood, holdWrit, threePawns } from './followUpTable.js'
+import { seatRowIndex, setBarn, setMarket, setRowMarkers, setShillings } from './guildTable.js'
 import {
     abandonVessel,
     giveMonster,
@@ -29,7 +34,7 @@ import {
     sellOut,
     serfOn
 } from './moveTable.js'
-import { showOnStacks } from './roundEndTable.js'
+import { showOnStacks, tendLandscape } from './roundEndTable.js'
 import { FeudumHost } from './sessionHarness.js'
 import {
     addPawn,
@@ -38,6 +43,8 @@ import {
     giveBead,
     giveGood,
     giveSeal,
+    giveTile,
+    returnGoods,
     ruleOutpost,
     ruleTown
 } from './turnTable.js'
@@ -382,6 +389,162 @@ async function immunityAnswered() {
         royalImmunity: true
     })
     return table
+}
+
+/** R-3.16 A seat that plays its Guild card first this round, with the rest of its hand to come. */
+const guildSeat = (character: Character, extra: Partial<SeatPlan> = {}): SeatPlan => ({
+    goods: Plain,
+    character,
+    hand: ['guild', 'tax', 'harvest', 'migrate'],
+    ...extra
+})
+
+/** R-4.5.3 The first seat placed takes a guild's top, the second its journeyman's place below. */
+const masterAndJourneyman = (guild: Character) => seats(guildSeat(guild), guildSeat(guild), plain)
+
+const guildAction = (
+    host: FeudumHost,
+    playerId: string,
+    guildId: GuildId,
+    fn: GuildFunctionName,
+    params: GuildFunctionParams = {}
+) => host.send(playerId, { type: ActionType.GuildAction, guildId, fn, params })
+
+/** R-3.16.1 The first seat asked plays its Guild card. */
+async function atGuild(plans: readonly SeatPlan[]) {
+    const host = await atCards(plans)
+    return { host, seat: first(host) }
+}
+
+/** R-3.16.1 The second seat asked, the journeyman of `guild`, plays its Guild card. */
+async function journeymanAtGuild(guild: Character) {
+    const host = await atCards(masterAndJourneyman(guild))
+    const seat = second(host)
+    await othersForfeitUntil(host, seat)
+    return { host, seat }
+}
+
+/** R-4.6.3 Merchant trades by the other two seats leave two bins two short at the same spaces. */
+async function marketTwoShort() {
+    const plans = seats(guildSeat('merchant'), guildSeat('merchant'), guildSeat('monk'))
+    const host = await atCards(plans)
+    const [master, journeyman, third] = host.order
+    await guildAction(host, master, 'merchant', 'trade', { goods: ['iron', 'iron'] })
+    await host.send(journeyman, { type: ActionType.ForfeitCard, kind: 'tax' })
+    await guildAction(host, third, 'merchant', 'trade', { goods: ['wood', 'wood'] })
+    await othersForfeitUntil(host, journeyman)
+    return { host, seat: journeyman }
+}
+
+/** R-4.4 The seat's goods and coin gone and, if `tile`, a collected tile at its hand. */
+async function shortOfPayment(tile: boolean) {
+    const host = await atCards(
+        seats(
+            {
+                goods: Plain,
+                character: 'farmer',
+                space: Desert3,
+                hand: ['migrate', 'guild', 'tax', 'harvest']
+            },
+            { goods: Plain, character: 'merchant', space: Desert3 },
+            plain
+        )
+    )
+    const seat = first(host)
+    host.edit((state) => {
+        returnGoods(state, seat)
+        setShillings(state, seat, 0)
+        if (tile) {
+            giveTile(state, seat)
+        }
+    })
+    return { host, seat }
+}
+
+/** R-3.10.1 The first seat rules its outpost by Influence and is asked again, an Explore in hand. */
+async function exploring(hand: readonly ActionCardKind[]) {
+    const host = await atCards(seats({ goods: Plain, on: 'outpost', hand }, plain, plain))
+    const seat = first(host)
+    await influenceThenBack(host, seat)
+    return { host, seat }
+}
+
+/** R-3.2 Every card but the last of the round is played out by forfeit. */
+async function forfeitAllButOne(host: FeudumHost) {
+    const left = () =>
+        new HydratedFeudumGameState(host.state).players.reduce(
+            (sum, { handCount }) => sum + handCount,
+            0
+        )
+    while (left() > 1) {
+        const asked = askedSeat(host)
+        await host.send(asked, { type: ActionType.ForfeitCard, kind: handOf(host, asked)[0] })
+    }
+}
+
+/**
+ * R-4.11.2 Epoch I with three stacks showing tile II and two a tile III, so the die's only legal face
+ * is Desert's tile I, and taking it shows the fourth tile II.
+ */
+const DesertLast = [2, 2, 2, 1, 3, 3] as const
+
+/** R-4.12 A dawn's table: a serf's landscape, a vassal, and the stacks one roll from epoch II. */
+async function dawnNext(
+    arrange: (state: HydratedFeudumGameState, seats: readonly string[]) => void
+) {
+    const host = await atCards(seats(plain, plain, plain))
+    host.edit((state) => {
+        arrange(state, host.order)
+        showOnStacks(state, DesertLast)
+        state.recomputeRanks()
+    })
+    return host
+}
+
+const SulfurCharter: WritId = 'writ.charter.sulfur-barrel'
+
+/**
+ * R-6.1, R-6.3 Epoch IV with a stack empty, so the round's end is the V dawn and the game's. The
+ * first seat seals the sulfur charter; the scores before it are lifted so the first two seats tie on
+ * vp, the first with the fuller barrel.
+ */
+async function gameEnding(lift: readonly number[]) {
+    const host = await atCards(
+        seats({ goods: ['sulfur', 'iron', 'food'], sulfurToBarrel: true }, plain, plain)
+    )
+    const [ana, bram] = host.order
+    host.edit((state) => {
+        state.epoch = 4
+        showOnStacks(state, ['V', 4, 4, 4, 4, 4])
+        fillBarrel(state, ana, 1)
+        fillBarrel(state, bram, 1)
+        giveSeal(state, ana)
+        holdWrit(state, ana, SulfurCharter)
+        host.order.forEach((playerId, index) => {
+            state.getPlayerState(playerId).score += lift[index] ?? 0
+        })
+    })
+    await host.send(ana, { type: ActionType.SealCharter, writId: SulfurCharter })
+    await forfeitRound(host)
+    await feedWithFood(host)
+    return host
+}
+
+/** R-4.10.1 Each seat nourishing asks feeds every pawn food. */
+async function feedWithFood(host: FeudumHost) {
+    while (host.state.machineState === MachineState.Nourishing) {
+        const [playerId] = host.state.flow.nourish?.pending ?? []
+        assertExists(playerId, 'R-4.10 A seat is asked to nourish')
+        await host.send(playerId, { type: ActionType.Nourish, wineFed: [], unfed: [] })
+    }
+}
+
+/** R-6.3 The lifts that tie the first two seats at the top, from a game played out without them. */
+async function tyingLifts(): Promise<number[]> {
+    const played = await gameEnding([0, 0, 0])
+    const totals = new HydratedFeudumGameState(played.state).players.map(({ score }) => score)
+    const top = Math.max(...totals) + 5
+    return totals.map((total, index) => (index < 2 ? top - total : 0))
 }
 
 /**
@@ -952,6 +1115,188 @@ export const Fixtures = {
                 state.recomputeRanks()
             })
             return { host, seat: noble }
+        }
+    },
+    'guild-pick': {
+        build: () => atGuild(seats(guildSeat('merchant'), plain, plain))
+    },
+    'guild-pick-repeat': {
+        build: async () => {
+            const host = await atCards(
+                seats(
+                    guildSeat('merchant', { hand: ['guild', 'repeat', 'tax', 'harvest'] }),
+                    plain,
+                    plain
+                )
+            )
+            const seat = first(host)
+            await guildAction(host, seat, 'alchemist', 'trade', { vesselType: 'flying-machine' })
+            await othersForfeitUntil(host, seat)
+            return { host, seat }
+        }
+    },
+    'guild-merchant-pull': {
+        arranged:
+            "R-4.6.4 Two iron and a wood in the barn, and the market's iron and wood bins emptied to their first spaces: only Farmer trades fill the barn, and the market empties three goods to a trade.",
+        build: async () => {
+            const { host, seat } = await journeymanAtGuild('merchant')
+            host.edit((state) => {
+                setBarn(state, { iron: 2, wood: 1 })
+                setMarket(state, { saltpeter: 3, sulfur: 3, iron: 1, wood: 3, food: 3 })
+            })
+            return { host, seat }
+        }
+    },
+    'guild-below-threshold': {
+        arranged:
+            'R-4.6.4 A barn holding one iron: a pull moves every good that fits, and the opening barn holds a good whose market bin a pull of three completes.',
+        build: async () => {
+            const { host, seat } = await marketTwoShort()
+            host.edit((state) => setBarn(state, { iron: 1 }))
+            return { host, seat }
+        }
+    },
+    'guild-alchemist-push': {
+        build: () => atGuild(seats(guildSeat('alchemist'), plain, plain))
+    },
+    'guild-knight-trade': {
+        arranged:
+            "R-4.6.3, R-4.2.4 Four markers in the seat's Knight row, and pawns on three spaces for the behemoth to choose from: krud barrels fill a row from two to three to six, only pulls and pushes of single markers bring one back to four, and Migrates spread pawns over rounds.",
+        build: async () => {
+            const { host, seat } = await atGuild(seats(guildSeat('farmer'), plain, plain))
+            host.edit((state) => {
+                threePawns(state, seat)
+                const markers = state.guilds.knight.rows.map((row) => row.markers)
+                markers[seatRowIndex(state, seat)] = 4
+                setRowMarkers(state, markers)
+            })
+            return { host, seat }
+        }
+    },
+    'guild-noble-pull': {
+        build: () => journeymanAtGuild('noble')
+    },
+    'guild-monk-trade': {
+        build: () => atGuild(seats(guildSeat('farmer'), plain, plain))
+    },
+    'guild-feast': {
+        build: async () => {
+            const host = await atCards(
+                seats(
+                    { goods: Plain, character: 'merchant', space: Desert3 },
+                    guildSeat('knight', {
+                        goods: ['sulfur', 'iron', 'food'],
+                        sulfurToBarrel: true,
+                        space: Desert3
+                    }),
+                    plain
+                )
+            )
+            const seat = second(host)
+            await othersForfeitUntil(host, seat)
+            return { host, seat }
+        }
+    },
+    'short-with-tile': {
+        arranged:
+            'R-4.4-H1 No food, no shillings and a region tile: a seat spends its seven of each over rounds, and a tile comes by an Improve with a seal.',
+        build: () => shortOfPayment(true)
+    },
+    'short-no-tile': {
+        arranged: 'R-4.4-H1 No food and no shillings: a seat spends its seven of each over rounds.',
+        build: () => shortOfPayment(false)
+    },
+    'reeve-offer': {
+        build: () => atGuild(seats(guildSeat('merchant'), plain, plain))
+    },
+    'writs-at-will': {
+        arranged:
+            'R-4.4.2 Mandate 5 in hand: writs come from Explore, off a deck the seed orders, and this one is ninth from its top.',
+        build: async () => {
+            const host = await atCards(seats(plain, plain, plain))
+            const seat = first(host)
+            host.edit((state) => holdWrit(state, seat, 'writ.mandate.5'))
+            return { host, seat }
+        }
+    },
+    'writs-seal-charter': {
+        build: async () => {
+            const { host, seat } = await exploring(['influence', 'explore', 'guild', 'tax'])
+            await host.send(seat, { type: ActionType.Explore, revealsInfo: true })
+            await host.send(seat, {
+                type: ActionType.KeepWrits,
+                keep: ['writ.charter.central-kingdom']
+            })
+            await othersForfeitUntil(host, seat)
+            await guildAction(host, seat, 'noble', 'trade', {
+                scrollSpaces: ['guild.noble.scroll.r1c1']
+            })
+            await othersForfeitUntil(host, seat)
+            return { host, seat }
+        }
+    },
+    'writs-limit': {
+        arranged:
+            'R-4.4.4 Three writs held, mandate 5 among them: a seat draws them over Explores in more than one round.',
+        build: async () => {
+            const { host, seat } = await exploring(['influence', 'explore', 'tax', 'guild'])
+            host.edit((state) => {
+                for (const writId of [
+                    'writ.mandate.5',
+                    'writ.mandate.4',
+                    'writ.mandate.7'
+                ] as const) {
+                    holdWrit(state, seat, writId)
+                }
+            })
+            return { host, seat }
+        }
+    },
+    'nourish-choice': {
+        arranged:
+            'R-4.10.1 Three pawns, one food and one barrel sulfur: two Migrates take two rounds, and a seat eats its seven food over more.',
+        build: async () => {
+            const host = await atCards(seats(plain, plain, plain))
+            const seat = first(host)
+            host.edit((state) => {
+                threePawns(state, seat)
+                holdFood(state, seat, 1)
+                fillBarrel(state, seat, 1)
+            })
+            await forfeitRound(host)
+            return { host, seat }
+        }
+    },
+    'dawn-roll': {
+        arranged:
+            "R-4.11.2, R-4.12 The stacks one roll from epoch II, a serf's landscape and a vassal's feudum: the stacks run down over most of a game.",
+        build: async () => {
+            const host = await dawnNext((state, [ana, bram]) => {
+                tendLandscape(state, bram, ana)
+                buildFeudum(state, bram, emptySpace(state, 'town'))
+            })
+            await forfeitAllButOne(host)
+            return { host, seat: first(host) }
+        }
+    },
+    'dawn-collect': {
+        arranged:
+            'R-4.12.3 Two filled landscapes the seat tends under one ruler, and the stacks one roll from epoch II: the stacks run down over most of a game.',
+        build: async () => {
+            const host = await dawnNext((state, [ana, bram]) => {
+                tendLandscape(state, bram, ana)
+                tendLandscape(state, bram, ana)
+            })
+            await forfeitRound(host)
+            return { host, seat: first(host) }
+        }
+    },
+    'game-end': {
+        arranged:
+            'R-6.1, R-6.3 Epoch IV with a stack empty, the sulfur charter and a seal, and the scores lifted to a tie on vp: the game runs to its end over many rounds.',
+        build: async () => {
+            const host = await gameEnding(await tyingLifts())
+            return { host, seat: first(host) }
         }
     }
 } as const satisfies Record<string, Fixture>
