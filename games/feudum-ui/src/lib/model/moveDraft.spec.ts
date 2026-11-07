@@ -1184,9 +1184,10 @@ describe('MoveDraft minimum tests', () => {
         })
 
         it('the keep rule: it ends with the displayed state, on every transition kind', async () => {
-            // A lone card reads through as `auto`, so nothing but the transition ends the steps.
+            // The tiles keep the at-will row open, so the lone card is a press; only the transition ends the steps.
             const turn = await table(['move'], (state, { seat }) => {
                 ruleTown(state, seat)
+                giveTile(state, seat)
                 giveTile(state, seat)
                 giveTile(state, seat)
                 stand(state, seat, Inland, Elsewhere)
@@ -1198,7 +1199,10 @@ describe('MoveDraft minimum tests', () => {
                 good: 'food'
             })
             const stage = async () => {
-                expect(session.turn.entry('card')).toEqual({ value: 'move', source: 'auto' })
+                expect(session.turn.card).toBeUndefined()
+                session.pressTurnCard('move')
+                flushSync()
+                expect(session.turn.entry('card')).toEqual({ value: 'move', source: 'manual' })
                 await press(session, pawnTarget(seat, 1))
                 await press(session, spaceTarget(RoadEnd))
                 expect(stepCount(session)).toBe(1)

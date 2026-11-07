@@ -71,6 +71,8 @@ export * from './definition/states.js'
 
 export * from './model/activeRegions.js'
 export * from './model/atWill.js'
+export { atWillOffers } from './stateHandlers/atWill.js'
+export { fillLandscape } from './model/landscapes.js'
 export * from './model/canonicalValidator.js'
 export * from './model/combatStrength.js'
 export * from './model/epochConditions.js'

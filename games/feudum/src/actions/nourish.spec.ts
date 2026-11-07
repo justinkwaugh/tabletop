@@ -40,6 +40,39 @@ function asking({ pawns = ['farmer', 'monk', 'knight'], food = 0, barrel = 0, ed
 const Nourish = { type: ActionType.Nourish, wineFed: [], unfed: [] } as const
 
 describe('R-4.10.1 Nourish', () => {
+    it('R-4.3.3 reads the offer after the tiles a seat has named, while food and wine fall short', () => {
+        const { table, playerId } = asking({
+            food: 1,
+            edit: (state, seat) => {
+                giveTile(state, seat)
+                giveTile(state, seat)
+            }
+        })
+        const state = table.hydrated()
+        const [first, second] = state.getPlayerState(playerId).regionTiles
+        expect(nourishOffer(state, playerId)).toMatchObject({
+            food: 1,
+            preselected: { wineFed: [], unfed: [2, 3] },
+            wildTileNeeded: true
+        })
+        expect(nourishOffer(state, playerId, [{ tileId: first, good: 'food' }])).toMatchObject({
+            food: 2,
+            preselected: { unfed: [3] },
+            wildTileNeeded: true
+        })
+        expect(
+            nourishOffer(state, playerId, [
+                { tileId: first, good: 'food' },
+                { tileId: second, good: 'sulfur', sulfurToBarrel: true }
+            ])
+        ).toMatchObject({
+            food: 2,
+            barrel: 1,
+            preselected: { wineFed: [3], unfed: [] },
+            wildTileNeeded: false
+        })
+    })
+
     it('S53 feeds food, food, wine: the food to the haversack, the sulfur on the wine-fed pawn', () => {
         const { table, playerId } = asking({ food: 2, barrel: 1 })
         const { food } = table.hydrated().supply.haversack

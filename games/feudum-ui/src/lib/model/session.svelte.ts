@@ -2,7 +2,11 @@ import { GameSession, type PresentedTransition } from '@tabletop/frontend-compon
 import {
     ActionCards,
     ActionType,
+    AnswerAttack,
+    atWillOffers,
+    ChooseFavours,
     ChooseStartingGoods,
+    isNourishPawns,
     FinaliseHand,
     Goods,
     MachineState,
@@ -23,16 +27,26 @@ import {
     type PouchGood,
     type SpaceId
 } from '@tabletop/feudum'
+import { answerAttackPanelOf, type AnswerAttackPanel } from './answerAttack.js'
+import { AnswerStarveDraft, type AnswerStarvePanel } from './answerStarveDraft.svelte.js'
+import { AtWillDraft, type AtWillContext, type AtWillPanel } from './atWillDraft.svelte.js'
 import { deriveBoardOffer, type BoardOffer, type BoardTarget } from './boardOffer.js'
+import { CommitAttackDraft, type CommitPanel } from './commitAttackDraft.svelte.js'
 import { primaryLabel, sendsOnPress } from './confirmingSend.js'
+import { FavoursDraft, type FavoursPanel } from './favoursDraft.svelte.js'
 import { HandDraft, handDraftKey } from './handDraft.svelte.js'
 import { GuildDraft, type GuildContext, type GuildPanel } from './guildDraft.svelte.js'
+import { KeepWritsDraft, type KeepWritsPanel } from './keepWritsDraft.svelte.js'
+import { LandscapesDraft, type LandscapesPanel } from './landscapesDraft.svelte.js'
 import { MoveDraft, type MoveContext, type MovePanel } from './moveDraft.svelte.js'
+import { NourishDraft, type NourishPanel } from './nourishDraft.svelte.js'
 import { StartingGoodsDraft, type SulfurDestination } from './startingGoodsDraft.svelte.js'
 import { StartingPawnDraft } from './startingPawnDraft.svelte.js'
 import type { FlowPlay, PanelChoice } from './cardFlows.js'
 import type { TurnContext } from './cardModes.js'
 import { TurnDraft, type TurnPanel } from './turnDraft.svelte.js'
+import { deckNoteOf, watchingPanelOf, type WatchingPanel } from './watching.js'
+import { WritLimitDraft, type WritLimitPanel } from './writLimitDraft.svelte.js'
 
 export interface PrimaryButton {
     readonly label: string
@@ -122,10 +136,19 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         () => {
             this.move.clear()
             this.guild.clear()
+            this.atWill.clear()
         }
     )
     readonly move = new MoveDraft(() => this.moveContext)
     readonly guild = new GuildDraft(() => this.guildContext)
+    readonly keepWrits = new KeepWritsDraft(() => this.deciding(ActionType.KeepWrits))
+    readonly favours = new FavoursDraft(() => this.deciding(ActionType.ChooseFavours))
+    readonly commitAttack = new CommitAttackDraft(() => this.deciding(ActionType.CommitAttack))
+    readonly answerStarve = new AnswerStarveDraft(() => this.deciding(ActionType.AnswerStarve))
+    readonly writLimit = new WritLimitDraft(() => this.writLimitContext)
+    readonly nourish = new NourishDraft(() => this.deciding(ActionType.Nourish))
+    readonly landscapes = new LandscapesDraft(() => this.deciding(ActionType.CollectLandscapes))
+    readonly atWill = new AtWillDraft(() => this.atWillContext)
 
     /** The drafts whose lifetime is one displayed state; `hand` alone outlives one. */
     private readonly oneStateDrafts = [
@@ -133,7 +156,26 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         this.startingPawn,
         this.turn,
         this.move,
-        this.guild
+        this.guild,
+        this.keepWrits,
+        this.favours,
+        this.commitAttack,
+        this.answerStarve,
+        this.writLimit,
+        this.nourish,
+        this.landscapes,
+        this.atWill
+    ]
+
+    /** The one send each follow-up's primary makes; the at-will list comes first, as it does for Undo. */
+    private readonly followUps = [
+        this.atWill,
+        this.keepWrits,
+        this.favours,
+        this.commitAttack,
+        this.writLimit,
+        this.nourish,
+        this.landscapes
     ]
 
     private handKey: string | undefined = $derived(
@@ -147,6 +189,19 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         }
         this.localSelections.register(this.move.localSelection, 'first')
         this.localSelections.register(this.guild.localSelection, 'first')
+        for (const draft of [
+            this.keepWrits,
+            this.favours,
+            this.commitAttack,
+            this.answerStarve,
+            this.writLimit,
+            this.nourish,
+            this.landscapes,
+            // Last, so it is popped first: Undo closes an open list before anything else.
+            this.atWill
+        ]) {
+            this.localSelections.register(draft.localSelection, 'first')
+        }
     }
 
     /**
@@ -179,7 +234,10 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
                 startingPawnSpace: this.startingPawn.spaceId,
                 ...(this.turn.cardPick ? { cardPick: this.turn.cardPick } : {}),
                 ...(this.move.pick ? { movePick: this.move.pick } : {}),
-                ...(this.guild.pick ? { guildPick: this.guild.pick } : {})
+                ...(this.guild.pick ? { guildPick: this.guild.pick } : {}),
+                ...(this.atWillStage ? { atWillPick: this.atWillStage } : {}),
+                ...(this.nourish.pick ? { nourishPick: this.nourish.pick } : {}),
+                ...(this.landscapes.pick ? { landscapesPick: this.landscapes.pick } : {})
             },
             {
                 viewerId: this.myPlayerId,
@@ -497,7 +555,12 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
     /** A dimmed map element does nothing (contract: Pick conventions). */
     async pressTurnTarget(target: BoardTarget) {
         const pick =
-            this.turn.pickOf(target) ?? this.move.pickOf(target) ?? this.guild.pickOf(target)
+            this.atWill.pickOf(target) ??
+            this.nourish.pickOf(target) ??
+            this.landscapes.pickOf(target) ??
+            this.turn.pickOf(target) ??
+            this.move.pickOf(target) ??
+            this.guild.pickOf(target)
         if (pick) {
             pick.press(this.turn)
             await this.sendTurnIfCompleted()
@@ -518,7 +581,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
 
     /** The press that completes an undoable Action sends at once. */
     private async sendTurnIfCompleted() {
-        await this.sendTurnPlay(this.guild.sendsNow ?? this.turn.sendsNow)
+        await this.sendTurnPlay(this.atWill.sendsNow ?? this.guild.sendsNow ?? this.turn.sendsNow)
     }
 
     /** The primary button. */
@@ -529,5 +592,121 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
     /** R-3.2 Its press sends. */
     async forfeitTurnCard() {
         await this.sendTurnPlay(this.turn.forfeitPlay)
+    }
+
+    // Follow-ups, asks and the at-will row: each draft reads only for the seat its state names.
+
+    private contextFor(playerId: string): TurnContext {
+        return {
+            state: this.gameState,
+            playerId,
+            nameOf: (id) => this.getPlayerName(id)
+        }
+    }
+
+    private deciding(type: ActionType): TurnContext | undefined {
+        const me = this.myPlayerId
+        return me && this.isOffered(type) ? this.contextFor(me) : undefined
+    }
+
+    /** R-4.4.4 At-will windows offer `DiscardWrit` too: the limit's own panel reads only in its state. */
+    private writLimitContext: TurnContext | undefined = $derived(
+        this.gameState.machineState === MachineState.DiscardingWrits
+            ? this.deciding(ActionType.DiscardWrit)
+            : undefined
+    )
+
+    /** R-4.4-H1 Open while no card is picked, for what this seat can do now (S50). */
+    private atWillContext: AtWillContext | undefined = $derived.by(() => {
+        const me = this.myPlayerId
+        if (!me || this.isViewingHistory || this.turn.card) {
+            return undefined
+        }
+        const offered = atWillOffers(this.gameState, me).filter((type) =>
+            this.validActionTypes.includes(type)
+        )
+        return offered.length > 0 ? { ...this.contextFor(me), offered } : undefined
+    })
+
+    private get atWillStage() {
+        const pick = this.atWill.pick
+        const deciderId = this.myPlayerId
+        const action = this.validActionTypes.find(
+            (type) => type === ActionType.PlaceVessel || type === ActionType.ReclaimImmunitySeal
+        )
+        return pick && deciderId && action ? { ...pick, action, deciderId } : undefined
+    }
+
+    keepWritsPanel: KeepWritsPanel | undefined = $derived(this.keepWrits.panel)
+    favoursPanel: FavoursPanel | undefined = $derived(this.favours.panel)
+    commitPanel: CommitPanel | undefined = $derived(this.commitAttack.panel)
+    answerStarvePanel: AnswerStarvePanel | undefined = $derived(this.answerStarve.panel)
+    writLimitPanel: WritLimitPanel | undefined = $derived(this.writLimit.panel)
+    nourishPanel: NourishPanel | undefined = $derived(this.nourish.panel)
+    landscapesPanel: LandscapesPanel | undefined = $derived(this.landscapes.panel)
+    atWillPanel: AtWillPanel | undefined = $derived(this.atWill.panel)
+
+    answerAttackPanel: AnswerAttackPanel | undefined = $derived.by(() => {
+        const context = this.deciding(ActionType.AnswerAttack)
+        return context && answerAttackPanelOf(context)
+    })
+
+    watchingPanel: WatchingPanel | undefined = $derived.by(() =>
+        this.isViewingHistory
+            ? undefined
+            : watchingPanelOf({
+                  state: this.gameState,
+                  viewerId: this.myPlayerId,
+                  nameOf: (id) => this.getPlayerName(id),
+                  fedByGame: (
+                      this.actions.findLast((action) => isNourishPawns(action))?.metadata?.fed ?? []
+                  ).map(({ playerId }) => playerId)
+              })
+    )
+
+    deckNote: string | undefined = $derived.by(() =>
+        this.myPlayerId && !this.isViewingHistory
+            ? deckNoteOf(this.gameState, this.myPlayerId)
+            : undefined
+    )
+
+    /** A dimmed row has no press: it gives its line and does nothing. */
+    async pressDraftChoice(choice: { readonly press?: () => void }) {
+        if (choice.press) {
+            choice.press()
+            await this.sendTurnPlay(this.atWill.sendsNow)
+        }
+    }
+
+    /** The primary button of whichever follow-up is open. */
+    async sendFollowUp() {
+        await this.sendTurnPlay(this.followUps.find(({ play }) => play)?.play)
+    }
+
+    /** R-3.10.2 The second button: keep, and turn the Explore in for a second draw. */
+    async keepThenShovels() {
+        await this.sendTurnPlay(this.keepWrits.shovelsPlay)
+    }
+
+    /** R-3.11.3 The press that declines them; nothing staged is read. */
+    async chooseNoFavours() {
+        if (this.favoursPanel) {
+            await this.applyAction(this.createPlayerAction(ChooseFavours, { favours: null }))
+        }
+    }
+
+    /** R-3.14.1 Its press sends. An ask never answers itself. */
+    async answerAttack(flipDefend: boolean) {
+        const panel = this.answerAttackPanel
+        if (panel && (!flipDefend || panel.flip)) {
+            await this.applyAction(
+                this.createPlayerAction(AnswerAttack, { revealsInfo: true, flipDefend })
+            )
+        }
+    }
+
+    /** R-3.14.2 Its press sends: Royal Immunity, or letting it go. */
+    async answerStarveWith(royalImmunity: boolean) {
+        await this.sendTurnPlay(this.answerStarve.playOf(royalImmunity))
     }
 }

@@ -1,0 +1,130 @@
+import { assertExists } from '@tabletop/common'
+import {
+    collectTopTile,
+    drawWrits,
+    fillLandscape,
+    MachineState,
+    moveConcealedSeal,
+    placeMarker,
+    RegionIds,
+    stackTop,
+    type ActionCardKind,
+    type HydratedFeudumGameState,
+    type ImmunityRole,
+    type SpaceId,
+    type WritId
+} from '@tabletop/feudum'
+import type { FeudumGameSession } from '$lib/model/session.svelte.js'
+import {
+    addPawn,
+    atPlayingCards,
+    emptySpaces,
+    giveGood,
+    returnGoods,
+    type TurnTable
+} from './turnTable.js'
+
+export interface SeatTable extends TurnTable {
+    readonly session: FeudumGameSession
+}
+
+type Arrange = (state: HydratedFeudumGameState, turn: TurnTable) => void
+
+/** R-3.2 The seat asked for a card, its session open, once `arrange` has set the table. */
+export async function seatedAtCards(
+    cards: readonly ActionCardKind[],
+    arrange?: Arrange,
+    options: Parameters<typeof atPlayingCards>[1] = {}
+): Promise<SeatTable> {
+    const turn = await atPlayingCards(cards, options)
+    turn.host.edit((state) => {
+        arrange?.(state, turn)
+    })
+    return { ...turn, session: await turn.host.openSeat(turn.seat) }
+}
+
+/** R-4.4 The seat holds this writ, drawn off the deck. */
+export function holdWrit(state: HydratedFeudumGameState, playerId: string, writId: WritId): void {
+    const deck = state.requireVault().writDeck
+    const entry = deck.find((row) => row.writId === writId)
+    assertExists(entry, `${writId} is in the deck`)
+    entry.writId = deck[0].writId
+    deck[0].writId = writId
+    const player = state.getPlayerState(playerId)
+    player.requireWrits().push(...drawWrits(state, 1))
+    player.writCount += 1
+}
+
+/** R-4.10.2 Sulfur from the haversack into this seat's barrel, keeping totals. */
+export function fillBarrel(state: HydratedFeudumGameState, playerId: string, count: number): void {
+    state.supply.haversack.sulfur -= count
+    state.getPlayerState(playerId).barrel += count
+}
+
+/** R-1.1 The seat holds exactly this many food, and nothing else. */
+export function holdFood(state: HydratedFeudumGameState, playerId: string, count: number): void {
+    returnGoods(state, playerId)
+    for (let index = 0; index < count; index += 1) {
+        giveGood(state, playerId, 'food')
+    }
+}
+
+/** R-3.14.2 A seal from the pile lies under this marker. */
+export function sealMarker(
+    state: HydratedFeudumGameState,
+    spaceId: SpaceId,
+    role: ImmunityRole
+): void {
+    moveConcealedSeal(state, { kind: 'pile' }, { kind: 'immunity', spaceId, role })
+}
+
+/** R-4.10, D11 The seat is the one nourishing asks; `arrange` sets what it feeds, and with what. */
+export async function atNourishing(arrange: Arrange): Promise<SeatTable> {
+    const turn = await atPlayingCards(['move', 'tax', 'guild'])
+    turn.host.edit((state) => {
+        arrange(state, turn)
+        state.flow.turn = undefined
+        state.flow.nourish = { pending: [turn.seat] }
+        state.machineState = MachineState.Nourishing
+        state.activePlayerIds = [turn.seat]
+    })
+    return { ...turn, session: await turn.host.openSeat(turn.seat) }
+}
+
+/** R-4.1 Three pawns on the board for this seat, whatever it had. */
+export function threePawns(state: HydratedFeudumGameState, playerId: string): void {
+    const onBoard = state.getPlayerState(playerId).pawns.filter((pawn) => pawn.spaceId)
+    for (let count = onBoard.length; count < 3; count += 1) {
+        addPawn(state, playerId, 'farmer', emptySpaces(state, 'town')[count])
+    }
+    state.recomputeRanks()
+}
+
+/**
+ * R-4.3.4, R-4.12.3 The seat is a serf on two filled landscapes under the next seat, and the one
+ * the dawn asks to collect.
+ */
+export async function atCollecting(): Promise<SeatTable & { readonly spaces: readonly SpaceId[] }> {
+    const turn = await atPlayingCards(['move', 'tax', 'guild'])
+    const spaces: SpaceId[] = []
+    turn.host.edit((state) => {
+        const [first, second] = RegionIds.filter((id) => stackTop(state, id)?.epoch === 1)
+        const farms = emptySpaces(state, 'farm')
+        for (const [index, region] of [first, second].entries()) {
+            const spaceId = farms[index]
+            placeMarker(state, turn.other, spaceId)
+            placeMarker(state, turn.seat, spaceId)
+            const { id } = collectTopTile(state, turn.other, region).tile
+            const ruler = state.getPlayerState(turn.other)
+            ruler.regionTiles = ruler.regionTiles.filter((held) => held !== id)
+            state.spaces[spaceId].landscape = { tileId: id, amount: 0 }
+            fillLandscape(state, spaceId)
+            spaces.push(spaceId)
+        }
+        state.flow.turn = undefined
+        state.flow.landscapes = { pending: [turn.seat] }
+        state.machineState = MachineState.CollectingLandscapes
+        state.activePlayerIds = [turn.seat]
+    })
+    return { ...turn, spaces, session: await turn.host.openSeat(turn.seat) }
+}

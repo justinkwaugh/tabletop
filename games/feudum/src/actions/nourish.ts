@@ -108,12 +108,28 @@ export function reasonNourishRefused(
         : undefined
 }
 
-/** R-4.3.3 A tile could bring food or a barrel sulfur. */
-function tileCouldFeed(state: HydratedFeudumGameState, playerId: string): boolean {
-    const { food, sulfur } = state.supply.haversack
+/** R-4.10.2, R-4.10-H1 One more tile's sulfur could go straight into the barrel. */
+function tileCouldFillBarrel(
+    state: HydratedFeudumGameState,
+    playerId: string,
+    wildTiles: readonly WildTileSpend[]
+): boolean {
     return (
-        state.getPlayerState(playerId).regionTiles.length > 0 &&
-        (food > 0 || (sulfur > 0 && barrelRoom(state, playerId) > 0))
+        state.supply.haversack.sulfur > wildTiles.filter(({ good }) => good === 'sulfur').length &&
+        barrelRoom(state, playerId) > wildTiles.filter((spend) => spend.sulfurToBarrel).length
+    )
+}
+
+/** R-4.3.3 A tile the seat has yet to name could bring food or a barrel sulfur. */
+function tileCouldFeed(
+    state: HydratedFeudumGameState,
+    playerId: string,
+    wildTiles: readonly WildTileSpend[] = []
+): boolean {
+    return (
+        state.getPlayerState(playerId).regionTiles.length > wildTiles.length &&
+        (state.supply.haversack.food > wildTiles.filter(({ good }) => good === 'food').length ||
+            tileCouldFillBarrel(state, playerId, wildTiles))
     )
 }
 
@@ -152,40 +168,42 @@ export interface NourishOffer {
     readonly sulfurToBarrel: boolean
 }
 
-/** R-4.10.1 The auto stage: food first in pawn order, then wine, then unfed. */
+/** R-4.10.1, R-4.3.3 The auto stage, once any tiles are spent: food first, then wine, then unfed. */
 export function preselectedFeeding(
     state: HydratedFeudumGameState,
-    playerId: string
+    playerId: string,
+    wildTiles: readonly WildTileSpend[] = []
 ): NourishOffer['preselected'] {
-    const { goods, barrel } = state.getPlayerState(playerId)
+    const { food, barrel } = feedAfterTiles(state, playerId, wildTiles)
     const afterFood = pawnsToFeed(state, playerId)
-        .slice(goods.food)
+        .slice(food)
         .map((pawn) => pawn.n)
     return { wineFed: afterFood.slice(0, barrel), unfed: afterFood.slice(barrel) }
 }
 
-/** R-4.10, D11 What the asked seat decides. Read-only. */
+/** R-4.10, D11, R-4.3.3 What the asked seat decides, with these tiles already named. Read-only. */
 export function nourishOffer(
     state: HydratedFeudumGameState,
-    playerId: string
+    playerId: string,
+    wildTiles: readonly WildTileSpend[] = []
 ): NourishOffer | undefined {
     if (atWillWindow(state, playerId) !== 'nourishing') {
         return undefined
     }
-    const { goods, barrel } = state.getPlayerState(playerId)
+    const { food, barrel } = feedAfterTiles(state, playerId, wildTiles)
     const pawns = pawnsToFeed(state, playerId).map(({ n, spaceId, character }) => {
         assertExists(spaceId, 'R-4.10.1 The pawn is on the board')
         assertExists(character, 'R-1.1 A pawn on the board shows a character')
         return { n, spaceId, character }
     })
-    const preselected = preselectedFeeding(state, playerId)
+    const preselected = preselectedFeeding(state, playerId, wildTiles)
     return {
         pawns,
-        food: goods.food,
+        food,
         barrel,
         preselected,
-        wildTileNeeded: preselected.unfed.length > 0 && tileCouldFeed(state, playerId),
-        sulfurToBarrel: state.supply.haversack.sulfur > 0 && barrelRoom(state, playerId) > 0
+        wildTileNeeded: preselected.unfed.length > 0 && tileCouldFeed(state, playerId, wildTiles),
+        sulfurToBarrel: tileCouldFillBarrel(state, playerId, wildTiles)
     }
 }
 

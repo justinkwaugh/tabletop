@@ -5,6 +5,7 @@ import {
 } from '@tabletop/frontend-components'
 import {
     ActionType,
+    atWillOffers,
     cardOf,
     cardPlayOffers,
     dejaVuShortKinds,
@@ -118,7 +119,8 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
             stored,
             TurnStageOrder,
             'card',
-            offers.cards.map(({ kind }) => kind)
+            // R-4.4-H1 A staged card hides the at-will row: it stays a press while the row can act.
+            atWillOffers(state, playerId).length > 0 ? [] : offers.cards.map(({ kind }) => kind)
         )
         if (stageValue(stages, 'card') === 'repeat') {
             stages = withLoneChoice<TurnDraftValues, 'replay'>(
