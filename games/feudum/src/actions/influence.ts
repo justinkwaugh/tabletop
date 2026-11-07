@@ -223,8 +223,10 @@ export function influenceOffers(state: HydratedFeudumGameState, playerId: string
         spaces,
         markers: Math.min(spaces.length, influenceSupply),
         short: influenceSupply > 0 && spaces.length > influenceSupply,
+        // R-3.8.3 The marker it puts on top comes from the supply, as R-3.8's placements do.
         moneyIsInfluence: spaces.filter(
             (spaceId) =>
+                influenceSupply > 0 &&
                 !state.spaces[spaceId].serf &&
                 reasonMoneyRefused(state, playerId, spaceId, spaces) === undefined
         )
