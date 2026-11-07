@@ -402,12 +402,23 @@ describe('the real session: the hand panel (R-3.1, R-3.3)', () => {
 
     it('a hand or pouch press while viewing History does nothing', async () => {
         const table = await atHandSelection()
-        const session = await table.openSeat(table.order[0])
+        const [first, second, third] = table.order
+        const session = await table.openSeat(third)
         draftCards(session, ['move'])
+        for (const playerId of [first, second]) {
+            await table.send(playerId, {
+                type: ActionType.FinaliseHand,
+                revealsInfo: true,
+                cards: FourCards
+            })
+        }
+        await settled(session)
 
+        // Back to a hand selection this seat hasn't finalised, where it could still draft.
         await session.history.goToPreviousAction()
         await settled(session)
         expect(session.isViewingHistory).toBe(true)
+        expect(session.gameState.flow.selection?.finalised).toEqual([first])
         const toggleCard = vi.spyOn(session.hand, 'toggleCard')
         const choosePouch = vi.spyOn(session.hand, 'choosePouch')
 
