@@ -34,6 +34,14 @@ export function startingGoodOffers(state: HydratedFeudumGameState): Good[] {
     return Goods.filter((good) => state.supply.haversack[good] > 0)
 }
 
+/** R-1.4.8 Why one good can't be picked; the panel dims it and gives this line. */
+export function reasonStartingGoodRefused(
+    state: HydratedFeudumGameState,
+    good: Good
+): string | undefined {
+    return startingGoodOffers(state).includes(good) ? undefined : `The haversack holds no ${good}.`
+}
+
 /** R-1.4.8 */
 export function reasonStartingGoodsRefused(
     state: HydratedFeudumGameState,
@@ -46,10 +54,9 @@ export function reasonStartingGoodsRefused(
     if (new Set(goods).size !== goods.length) {
         return `Choose ${StartingGoodsChosen} different goods.`
     }
-    const offers = startingGoodOffers(state)
-    const missing = goods.find((good) => !offers.includes(good))
-    if (missing) {
-        return `The haversack holds no ${missing}.`
+    const refused = goods.flatMap((good) => reasonStartingGoodRefused(state, good) ?? [])
+    if (refused.length > 0) {
+        return refused[0]
     }
     if (sulfurToBarrel && !goods.includes('sulfur')) {
         return 'Only sulfur goes in the barrel.'
