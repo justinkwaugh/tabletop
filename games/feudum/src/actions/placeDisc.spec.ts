@@ -111,7 +111,7 @@ describe('PlaceDisc: the follow-up', () => {
         expect(placeDiscOffer(table.hydrated(), playerId)).toEqual({
             disc: 'reeve',
             guildId: 'farmer',
-            drawsWrits: false
+            revealsInfo: false
         })
     })
 
@@ -201,7 +201,9 @@ describe('PlaceDisc: the epic voyage', () => {
         expect(placeDiscOffer(table.hydrated(), playerId)).toEqual({
             disc: 'voyage',
             space: 1,
-            drawsWrits: false
+            advances: false,
+            draw: 0,
+            revealsInfo: false
         })
 
         const [action] = table.send(playerId, { type: ActionType.PlaceDisc, place: true })
@@ -257,7 +259,9 @@ describe('PlaceDisc: the epic voyage', () => {
             expect(placeDiscOffer(table.hydrated(), playerId)).toEqual({
                 disc: 'voyage',
                 space,
-                drawsWrits: true
+                advances: true,
+                draw: 2,
+                revealsInfo: true
             })
 
             const [action] = table.send(playerId, { type: ActionType.PlaceDisc, place: true })
@@ -329,6 +333,10 @@ describe('PlaceDisc: the epic voyage', () => {
             shortenDeckTo(state, 1)
             return state.machineState
         })
+        expect(placeDiscOffer(table.hydrated(), playerId)).toMatchObject({
+            draw: 1,
+            revealsInfo: true
+        })
         const [action] = table.send(playerId, { type: ActionType.PlaceDisc, place: true })
         expect(action).toMatchObject({ metadata: { drawnCount: 1 } })
         expect(action.revealsInfo).toBe(true)
@@ -341,6 +349,11 @@ describe('PlaceDisc: the epic voyage', () => {
         table.moveTo((state) => {
             shortenDeckTo(state, 0)
             return state.machineState
+        })
+        expect(placeDiscOffer(table.hydrated(), playerId)).toMatchObject({
+            advances: true,
+            draw: 0,
+            revealsInfo: false
         })
         const [action] = table.send(playerId, { type: ActionType.PlaceDisc, place: true })
         expect(action).toMatchObject({ metadata: { disc: 'voyage', space: 2, drawnCount: 0 } })

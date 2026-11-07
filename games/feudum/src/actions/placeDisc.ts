@@ -17,6 +17,7 @@ import {
 } from '../model/followUps.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { rankOf } from '../model/guildStatus.js'
+import { writDeckCount } from '../model/writDeck.js'
 import { ComponentCount, GuildIdSchema, WritIdSchema } from '../model/stateSchemas.js'
 
 export type PlaceDiscMetadata = Type.Static<typeof PlaceDiscMetadata>
@@ -78,16 +79,34 @@ export function reasonPlaceDiscRefused(
     return place ? reasonDiscRefused(state, followUp) : undefined
 }
 
-export interface PlaceDiscOffer {
-    readonly disc: DiscFollowUp['kind']
-    readonly guildId?: GuildId
-    /** R-4.9.1, R-3.7.5 The track space the disc would take. */
-    readonly space?: number
-    /** R-3.7.5, R-X.2 Placing draws writs, so it can't be undone. */
-    readonly drawsWrits: boolean
-}
-
 /** R-4.7, R-4.9.1, R-3.7.5 What the seat asked is deciding, read from public state alone. */
+export type PlaceDiscOffer =
+    | {
+          readonly disc: 'reeve'
+          readonly guildId: GuildId
+          readonly revealsInfo: false
+      }
+    | {
+          readonly disc: 'military'
+          /** R-4.9.1 The track space the disc would take. */
+          readonly space: number
+          /** R-4.9.2 What a disc on that space covers at a dawn. */
+          readonly penalty: number
+          readonly revealsInfo: false
+      }
+    | {
+          readonly disc: 'voyage'
+          /** R-3.7.5 The track space the disc would take. */
+          readonly space: number
+          /** R-3.7-H1 A disc is already on the track, so this takes no free disc. */
+          readonly advances: boolean
+          /** R-3.7.5, R-4.4-H2 Writs the step draws: what the deck has of what the space asks. */
+          readonly draw: number
+          /** R-X.2 A step that draws can't be undone; one on an empty deck can. */
+          readonly revealsInfo: boolean
+      }
+
+/** R-4.7, R-4.9.1, R-3.7.5 None once no space is left: such a disc lapses unasked. */
 export function placeDiscOffer(
     state: HydratedFeudumGameState,
     playerId: string
@@ -98,18 +117,32 @@ export function placeDiscOffer(
     }
     switch (followUp.kind) {
         case 'reeve': {
-            return { disc: 'reeve', guildId: followUp.guildId, drawsWrits: false }
+            return { disc: 'reeve', guildId: followUp.guildId, revealsInfo: false }
         }
         case 'military': {
-            return {
-                disc: 'military',
-                space: nextMilitarySpace(state, playerId)?.space,
-                drawsWrits: false
-            }
+            const row = nextMilitarySpace(state, playerId)
+            return (
+                row && {
+                    disc: 'military',
+                    space: row.space,
+                    penalty: row.penalty,
+                    revealsInfo: false
+                }
+            )
         }
         case 'voyage': {
-            const space = nextVoyageSpace(state, playerId)
-            return { disc: 'voyage', space: space?.space, drawsWrits: Boolean(space?.writDraw) }
+            const row = nextVoyageSpace(state, playerId)
+            if (!row) {
+                return undefined
+            }
+            const draw = Math.min(row.writDraw?.draw ?? 0, writDeckCount(state))
+            return {
+                disc: 'voyage',
+                space: row.space,
+                advances: Object.hasOwn(state.voyageTrack, playerId),
+                draw,
+                revealsInfo: draw > 0
+            }
         }
     }
 }
