@@ -86,13 +86,13 @@ Not tokens. Every seat-coloured element (pawn body, influence marker, player dis
 
 ## Fonts
 
-| Family                                                          | Use                                                                                                                                                     | Licence file                          |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| MedievalSharp, Regular 400, Latin subset, woff2 (SIL OFL 1.1)   | Titles and names: the cover title, card and writ names, the focus chooser's labels, ribbon names on the seat panel, region and guild names at map scale | `src/lib/fonts/MedievalSharp-OFL.txt` |
-| IM Fell English, Regular 400, Latin subset, woff2 (SIL OFL 1.1) | Text on parchment: the regular action and special ability lines on a card, writ rows, the charter roll's captions                                       | `src/lib/fonts/IMFellEnglish-OFL.txt` |
-| The site's own text font, not shipped by the title              | Everything else: panels, chips, buttons, the log. Counts, prices and values use its tabular numerals so a number reads at the smallest scale            | none (the site's)                     |
+| Family                                                             | Use                                                                                                                                                     | Licence file                          |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| MedievalSharp, Regular 400, whole and unchanged, ttf (SIL OFL 1.1) | Titles and names: the cover title, card and writ names, the focus chooser's labels, ribbon names on the seat panel, region and guild names at map scale | `src/lib/fonts/MedievalSharp-OFL.txt` |
+| IM Fell English, Regular 400, Latin subset, woff2 (SIL OFL 1.1)    | Text on parchment: the regular action and special ability lines on a card, writ rows, the charter roll's captions                                       | `src/lib/fonts/IMFellEnglish-OFL.txt` |
+| The site's own text font, not shipped by the title                 | Everything else: panels, chips, buttons, the log. Counts, prices and values use its tabular numerals so a number reads at the smallest scale            | none (the site's)                     |
 
-The files are `src/lib/fonts/MedievalSharp-Latin.woff2` and `src/lib/fonts/IMFellEnglish-Latin.woff2`, each with its OFL text beside it, loaded through `CustomFont`. The subset keeps Latin-1 so "Déjà Vu" sets correctly. Neither family has a bold or italic that ships; the plan never asks for synthesised weights. The star, the multiplication sign and the arrows are drawn as symbols, not typed from a font, so no glyph is missing. No other font is added.
+The files are `src/lib/fonts/MedievalSharp.ttf` and `src/lib/fonts/IMFellEnglish-Latin.woff2`, each with its OFL text beside it, loaded through `CustomFont`. MedievalSharp's licence reserves its name, and a subset counts as a modified version, so it ships whole; the IM Fell subset keeps Latin-1. Both set "Déjà Vu" correctly. Neither family has a bold or italic that ships; the plan never asks for synthesised weights. The star, the multiplication sign and the arrows are drawn as symbols, not typed from a font, so no glyph is missing. No other font is added.
 
 ## Board
 
@@ -215,7 +215,7 @@ The catalog title image is `src/lib/images/cover.webp`, read by `info.thumbnailU
 | File                                      | Source                                | Permission               | Rendered size       | Natural size |
 | ----------------------------------------- | ------------------------------------- | ------------------------ | ------------------- | ------------ |
 | `src/lib/images/cover.webp`               | Rendered from our own SVG (see Cover) | not needed; our own work | 150 and 340 px high | 544 x 680    |
-| `src/lib/fonts/MedievalSharp-Latin.woff2` | OFL 1.1                               | licence text beside it   | n/a                 | n/a          |
+| `src/lib/fonts/MedievalSharp.ttf`         | OFL 1.1                               | licence text beside it   | n/a                 | n/a          |
 | `src/lib/fonts/IMFellEnglish-Latin.woff2` | OFL 1.1                               | licence text beside it   | n/a                 | n/a          |
 
 **Supplied once the title's permission entry lands**, each as `src/lib/art/supplied/<id>.webp` (or `.png` only where it needs transparency that lossy WebP can't keep), at about twice its rendered size. `assetMap.ts` is the list; `imageCoverage.spec.ts` holds every id to a component, a fallback and a file slot, whether or not the file is present.
