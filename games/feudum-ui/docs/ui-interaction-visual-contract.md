@@ -310,7 +310,7 @@ Every colour a Feudum component names is one of these tokens, declared once unde
 - **Amber means "yours to act on":** a lit or picked target, the Move trail, the primary button, Undo, and an amber chip naming what a choice gives you. Nothing decorative is amber beyond the frame.
 - **Rose means "costs or threatens":** a payment (shillings, goods turned in, a barrel sulfur, a ferry fare), a Conquer or Starve target, a vp loss (disloyalty), an unfed pawn, and a refusal's reason.
 - **Rose is never a bare red shape.** A rose chip always carries a label and a dark halo. A seal is a game piece: it always carries its crown and never a halo, so a seal is never read as a cost and a cost never as a seal. A red seat colour appears only as a seat fill (pawns, markers, ribbon), never as a ring, a chip or a button.
-- **The printed board's pink starting rings** are drawn as a double ring in map ink, so no pink or rose appears on the map except as a chip.
+- **The printed board's pink starting rings** are drawn as a double ring in map ink, so no pink or rose is drawn on the map except as a chip; with the printed map as the ground, its own ring lies under ours.
 - Text on a surface is `text` or `text-muted`; on parchment, `ink`. The phone layout uses the same tokens.
 
 ## Game log and history

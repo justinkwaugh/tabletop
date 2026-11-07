@@ -46,6 +46,8 @@ export const SealAsset = 'seal'
 export const TargetAsset = 'target.archery'
 export const WritBackAsset = 'writ.back'
 export const CoverAsset = 'cover'
+/** The board's printed map, sky and bottom strip included, with the terrain and every route on it. */
+export const MapAsset = 'board.map'
 
 /**
  * Every publisher image the components can show, id to file. A file lives in `./supplied` as
@@ -54,6 +56,7 @@ export const CoverAsset = 'cover'
  */
 export const AssetIds = [
     CoverAsset,
+    MapAsset,
     SealAsset,
     TargetAsset,
     WritBackAsset,
