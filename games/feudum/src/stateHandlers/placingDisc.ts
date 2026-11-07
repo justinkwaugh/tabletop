@@ -43,6 +43,6 @@ export class PlacingDiscStateHandler implements MachineStateHandler<
         _action: HydratedPlaceDisc,
         context: MachineContext<HydratedFeudumGameState>
     ): MachineState {
-        return stateAfterCardStep(context.gameState)
+        return stateAfterCardStep(context)
     }
 }

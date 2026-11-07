@@ -41,7 +41,7 @@ export class Table {
     }
 
     private execute(
-        move: Record<string, unknown> & { type: ActionType; source: ActionSource }
+        move: Record<string, unknown> & { type: string; source: ActionSource }
     ): GameAction[] {
         this.sent += 1
         const { updatedState, processedActions } = engine.executeCanonicalAction({
@@ -66,14 +66,24 @@ export class Table {
         return this.hydrated().getPlayerState(playerId)
     }
 
-    /** Moves the table as an Action's handler would: `edit` returns the state, which is entered. */
-    moveTo(edit: (state: HydratedFeudumGameState) => MachineState): void {
+    /**
+     * Moves the table as an Action's handler would: `edit` returns the state, which is entered, and
+     * any System Action it added then runs.
+     */
+    moveTo(
+        edit: (
+            state: HydratedFeudumGameState,
+            context: MachineContext<HydratedFeudumGameState>
+        ) => MachineState
+    ): void {
         const gameState = this.hydrated()
-        gameState.machineState = edit(gameState)
-        FeudumRuntime.stateHandlers[gameState.machineState].enter(
-            new MachineContext({ gameConfig: this.game.config, gameState })
-        )
+        const context = new MachineContext({ gameConfig: this.game.config, gameState })
+        gameState.machineState = edit(gameState, context)
+        FeudumRuntime.stateHandlers[gameState.machineState].enter(context)
         this.state = gameState.dehydrate()
+        for (const action of context.getPendingActions()) {
+            this.execute(action)
+        }
     }
 
     /** R-2.2.5 */

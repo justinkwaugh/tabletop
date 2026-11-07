@@ -8,6 +8,7 @@ import { HydratedAnswerAttack, isAnswerAttack } from '../actions/answerAttack.js
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { stateAfterCardStep } from './cardTurns.js'
 
 /** R-3.14-H1 The defender alone answers; flip or "no", the attacker commits next. */
 export class AwaitingDefenceStateHandler implements MachineStateHandler<
@@ -38,8 +39,10 @@ export class AwaitingDefenceStateHandler implements MachineStateHandler<
 
     onAction(
         _action: HydratedAnswerAttack,
-        _context: MachineContext<HydratedFeudumGameState>
+        context: MachineContext<HydratedFeudumGameState>
     ): MachineState {
-        return MachineState.CommittingAttack
+        return context.gameState.flow.combat
+            ? MachineState.CommittingAttack
+            : stateAfterCardStep(context)
     }
 }

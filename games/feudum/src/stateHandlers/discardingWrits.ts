@@ -43,6 +43,6 @@ export class DiscardingWritsStateHandler implements MachineStateHandler<
         const state = context.gameState
         return writsOverLimit(state, action.playerId)
             ? MachineState.DiscardingWrits
-            : stateAfterCardStep(state)
+            : stateAfterCardStep(context)
     }
 }

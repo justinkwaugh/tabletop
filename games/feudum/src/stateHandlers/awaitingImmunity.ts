@@ -41,6 +41,6 @@ export class AwaitingImmunityStateHandler implements MachineStateHandler<
         _action: HydratedAnswerStarve,
         context: MachineContext<HydratedFeudumGameState>
     ): MachineState {
-        return stateAfterCardStep(context.gameState)
+        return stateAfterCardStep(context)
     }
 }

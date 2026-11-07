@@ -41,6 +41,6 @@ export class CommittingAttackStateHandler implements MachineStateHandler<
         _action: HydratedCommitAttack,
         context: MachineContext<HydratedFeudumGameState>
     ): MachineState {
-        return stateAfterCardStep(context.gameState)
+        return stateAfterCardStep(context)
     }
 }

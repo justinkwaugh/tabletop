@@ -12,10 +12,10 @@ import { placeDiscOffer } from './placeDisc.js'
 /** The turn player's card has just left a military service offer. */
 function offered(table: Table, covered = 0): string {
     const playerId = table.asked
-    table.moveTo((state) => {
+    table.moveTo((state, context) => {
         state.militaryService[playerId] = covered
         queueFollowUp(state, { kind: 'military', playerId })
-        return stateAfterCardStep(state)
+        return stateAfterCardStep(context)
     })
     return playerId
 }
@@ -85,12 +85,12 @@ describe('R-4.9.1, R-4.9-H1, R-4.9-H2 placing a military service disc', () => {
     it('R-1.1 with no free disc no disc is offered', () => {
         const table = tableAtPlayingCards()
         const playerId = table.asked
-        table.moveTo((state) => {
+        table.moveTo((state, context) => {
             state.voyageTrack[playerId] = 1
             state.guilds.tracks.farmer.master = { playerId, reeve: true }
             state.militaryService[playerId] = 1
             queueFollowUp(state, { kind: 'military', playerId })
-            return stateAfterCardStep(state)
+            return stateAfterCardStep(context)
         })
         expect(table.state.machineState).toBe(MachineState.PlayingCards)
         expect(table.asked).toBe(table.order[1])

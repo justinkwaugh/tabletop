@@ -5,13 +5,15 @@ import { ActionType } from '../definition/actions.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { ComponentCount } from '../model/stateSchemas.js'
 import { playOutOfTurn, reasonNotInHandRefused } from './cardPlay.js'
-import { strengthOf } from './combat.js'
+import { attackerMayAdd, CombatRecord, resolveCombat, strengthOf } from './combat.js'
 import { defendVp } from './playDefend.js'
 
 export type AnswerAttackMetadata = Type.Static<typeof AnswerAttackMetadata>
 export const AnswerAttackMetadata = Type.Object({
     /** R-3.14.1 What the flip scored; 0 on "no". */
-    vp: ComponentCount
+    vp: ComponentCount,
+    /** R-4.8-H5 Present when the attacker could add nothing, so the answer resolved the combat. */
+    combat: Type.Optional(CombatRecord)
 })
 
 export type AnswerAttack = Type.Static<typeof AnswerAttack>
@@ -80,6 +82,18 @@ export function answerAttackOffer(
     }
 }
 
+/** R-3.14.1 The defender flips Defend out of turn and scores it. */
+function flipDefend(state: HydratedFeudumGameState, playerId: string): number {
+    const combat = state.flow.combat
+    assertExists(combat, 'R-3.14-H1 An attack is waiting')
+    const player = state.getPlayerState(playerId)
+    playOutOfTurn(player, 'defend', 'defend-flip')
+    const vp = defendVp()
+    player.score += vp
+    combat.defendFlipped = true
+    return vp
+}
+
 export class HydratedAnswerAttack
     extends HydratableAction<typeof AnswerAttack>
     implements AnswerAttack
@@ -101,15 +115,9 @@ export class HydratedAnswerAttack
         }
         const combat = state.flow.combat
         assertExists(combat, 'R-3.14-H1 An attack is waiting')
-        if (!this.flipDefend) {
-            this.metadata = { vp: 0 }
-            return
-        }
-        const player = state.getPlayerState(this.playerId)
-        playOutOfTurn(player, 'defend', 'defend-flip')
-        const vp = defendVp()
-        player.score += vp
-        combat.defendFlipped = true
-        this.metadata = { vp }
+        const vp = this.flipDefend ? flipDefend(state, this.playerId) : 0
+        this.metadata = attackerMayAdd(state, combat.attackerId)
+            ? { vp }
+            : { vp, combat: resolveCombat(state, 0, 0) }
     }
 }
