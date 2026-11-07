@@ -94,7 +94,11 @@ export interface TurnPanel {
 export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPresser {
     private readonly seeing: TurnStages = $derived.by(() => this.withLoneChoices(super.read()))
 
-    constructor(private readonly contextOf: () => TurnContext | undefined) {
+    /** `onReselect`: a later draft's stages end when a card, replay or mode is pressed. */
+    constructor(
+        private readonly contextOf: () => TurnContext | undefined,
+        private readonly onReselect?: () => void
+    ) {
         super(TurnStageOrder)
     }
 
@@ -234,6 +238,7 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
         } else {
             this.set(stage, value)
         }
+        this.onReselect?.()
     }
 
     stack<K extends 'spaces' | 'cover'>(stage: K, value: TurnDraftValues[K]): void {

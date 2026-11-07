@@ -26,6 +26,7 @@ import {
 import { deriveBoardOffer, type BoardOffer, type BoardTarget } from './boardOffer.js'
 import { primaryLabel, sendsOnPress } from './confirmingSend.js'
 import { HandDraft, handDraftKey } from './handDraft.svelte.js'
+import { MoveDraft, type MoveContext, type MovePanel } from './moveDraft.svelte.js'
 import { StartingGoodsDraft, type SulfurDestination } from './startingGoodsDraft.svelte.js'
 import { StartingPawnDraft } from './startingPawnDraft.svelte.js'
 import type { FlowPlay, PanelChoice } from './cardFlows.js'
@@ -115,10 +116,16 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
     readonly startingGoods = new StartingGoodsDraft(() => startingGoodOffers(this.gameState))
     readonly startingPawn = new StartingPawnDraft()
     readonly hand = new HandDraft(() => this.handKey)
-    readonly turn = new TurnDraft(() => this.turnContext)
+    readonly turn = new TurnDraft(
+        () => this.turnContext,
+        () => {
+            this.move.clear()
+        }
+    )
+    readonly move = new MoveDraft(() => this.moveContext)
 
     /** The drafts whose lifetime is one displayed state; `hand` alone outlives one. */
-    private readonly oneStateDrafts = [this.startingGoods, this.startingPawn, this.turn]
+    private readonly oneStateDrafts = [this.startingGoods, this.startingPawn, this.turn, this.move]
 
     private handKey: string | undefined = $derived(
         this.isViewingHistory ? undefined : handDraftKey(this.gameState, this.myPlayerId)
@@ -126,9 +133,10 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
 
     constructor(options: SessionOptions) {
         super(options)
-        for (const draft of [...this.oneStateDrafts, this.hand]) {
+        for (const draft of [this.startingGoods, this.startingPawn, this.turn, this.hand]) {
             this.localSelections.register(draft.localSelection)
         }
+        this.localSelections.register(this.move.localSelection, 'first')
     }
 
     /**
@@ -159,7 +167,8 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             this.gameState,
             {
                 startingPawnSpace: this.startingPawn.spaceId,
-                ...(this.turn.cardPick ? { cardPick: this.turn.cardPick } : {})
+                ...(this.turn.cardPick ? { cardPick: this.turn.cardPick } : {}),
+                ...(this.move.pick ? { movePick: this.move.pick } : {})
             },
             {
                 viewerId: this.myPlayerId,
@@ -439,7 +448,17 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             : undefined
     })
 
+    /** R-3.7 The card's own draft takes over from the flow, which hands it off. */
+    private moveContext: MoveContext | undefined = $derived.by(() => {
+        const context = this.turnContext
+        return context && this.turn.mode === ActionType.Move
+            ? { state: context.state, playerId: context.playerId, input: this.turn.cardInput }
+            : undefined
+    })
+
     turnPanel: TurnPanel | undefined = $derived(this.turn.panel)
+
+    movePanel: MovePanel | undefined = $derived(this.move.panel)
 
     pressTurnCard(kind: ActionCardKind) {
         this.turnPanel?.cards.find((card) => card.kind === kind)?.press()
@@ -455,7 +474,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
 
     /** A dimmed map element does nothing (contract: Pick conventions). */
     async pressTurnTarget(target: BoardTarget) {
-        const pick = this.turn.pickOf(target)
+        const pick = this.turn.pickOf(target) ?? this.move.pickOf(target)
         if (pick) {
             pick.press(this.turn)
             await this.sendTurnIfCompleted()
@@ -481,7 +500,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
 
     /** The primary button. */
     async sendTurnCard() {
-        await this.sendTurnPlay(this.turn.flow?.play)
+        await this.sendTurnPlay(this.move.play ?? this.turn.flow?.play)
     }
 
     /** R-3.2 Its press sends. */
