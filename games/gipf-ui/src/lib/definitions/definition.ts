@@ -1,7 +1,7 @@
 import type { GameUiDefinition } from '@tabletop/frontend-components/definition/gameUiDefinition'
 import { GipfInfo } from '@tabletop/gipf'
 import type { GipfGameState, HydratedGipfGameState } from '@tabletop/gipf'
-import coverImg from '$lib/images/gipf-cover.png'
+import coverImg from '$lib/images/gipf-cover.jpg'
 
 export const UiDefinition: GameUiDefinition<GipfGameState, HydratedGipfGameState> = {
     info: {
