@@ -11,14 +11,13 @@ import {
     type Character,
     type Good,
     type HydratedFeudumGameState,
-    type LandscapeKind,
     type MonsterId,
     type RouteStep,
-    type SpaceId,
-    type VesselType
+    type SpaceId
 } from '@tabletop/feudum'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FeudumHost, settled } from '$lib/testing/sessionHarness.js'
+import { abandonVessel, giveVessel, landscapeOn, sellOut, serfOn } from '$lib/testing/moveTable.js'
 import { atPlayingCards, giveTile, ruleTown, type TurnTable } from '$lib/testing/turnTable.js'
 import {
     chipOf,
@@ -90,54 +89,11 @@ function standMonster(
     state.monsters[monster] = { playerId, spaceId }
 }
 
-/** R-1.1 A vessel from the general supply into the seat's supply. */
-function giveVessel(state: HydratedFeudumGameState, playerId: string, vessel: VesselType) {
-    state.supply.vessels[vessel] -= 1
-    state.getPlayerState(playerId).vessels[vessel] += 1
-}
-
-/** R-1.1 A vessel from the general supply, abandoned on a space. */
-function abandonVessel(state: HydratedFeudumGameState, spaceId: SpaceId, vessel: VesselType) {
-    state.supply.vessels[vessel] -= 1
-    state.spaces[spaceId].vessels[vessel] += 1
-}
-
-/** R-4.2.3 The Alchemist's vessels go back to the supply, so the ferries run. */
-function sellOut(state: HydratedFeudumGameState) {
-    for (const vessel of state.guilds.alchemist.vesselsForSale) {
-        state.supply.vessels[vessel] += 1
-    }
-    state.guilds.alchemist.vesselsForSale = []
-}
-
 /** R-1.4.4 A good from the haversack lies on an outpost. */
 function goodOnOutpost(state: HydratedFeudumGameState, spaceId: SpaceId, good: Good = 'iron') {
     state.spaces[spaceId].location.kind = 'outpost'
     state.supply.haversack[good] -= 1
     state.spaces[spaceId].goods[good] += 1
-}
-
-/** R-4.3.4 A tile of this landscape leaves its stack, shown, on the space, holding one. */
-function landscapeOn(state: HydratedFeudumGameState, spaceId: SpaceId, kind: LandscapeKind) {
-    const { tileLandscapes } = state.requireVault()
-    const stack = Object.values(state.regionStacks).find((tiles) =>
-        tiles.some((tile) => tileLandscapes[tile] === kind)
-    )
-    const tileId = stack?.find((tile) => tileLandscapes[tile] === kind)
-    assertExists(stack, `R-1.4 A stack holds a ${kind}`)
-    assertExists(tileId, `R-1.4 A stack holds a ${kind}`)
-    stack.splice(stack.indexOf(tileId), 1)
-    delete tileLandscapes[tileId]
-    state.tileLandscapes[tileId] = kind
-    state.spaces[spaceId].landscape = { tileId, amount: 1 }
-    if (kind === 'archery-butt') {
-        state.supply.targets -= 1
-    }
-}
-
-function serfOn(state: HydratedFeudumGameState, spaceId: SpaceId, ruler: string, serf: string) {
-    placeMarker(state, ruler, spaceId)
-    placeMarker(state, serf, spaceId)
 }
 
 function pickCard(session: FeudumGameSession, kind: ActionCardKind) {

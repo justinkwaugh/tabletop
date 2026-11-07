@@ -440,7 +440,7 @@ Each gives the start, the input, the result, the result after Undo or exit, and 
 **Move**
 
 - **S25. Steps and trail.** Two pawns and a monster (allowance 3). Press a pawn: its next spaces light with their ways. Press a road neighbour: the trail draws "1", the count reads "2 of 3", the pawn stays picked. Press a ship neighbour where only the ship reaches: step "2". Undo: step 2 goes, then step 1. Auto.
-- **S26. Way popup.** A space reached two ways, say by road and by flying machine: a press opens the popup with "Road" and "Place your flying machine". A ferry's way reads "Ferry · 2s" (rose); no two printed spaces are joined by both a road and a ferry, so its popup row is exercised on its own. With a vessel for sale, the ferry is absent. Auto.
+- **S26. Way popup.** A space reached two ways, say by road and by flying machine: a press opens the popup with "Road" and "Place your flying machine". A ferry's way reads "ferry · 2s" on its chip (rose); no two printed spaces are joined by both a road and a ferry, so its popup row is exercised on its own. With a vessel for sale, the ferry is absent. Auto.
 - **S27. Vessels.** A pawn with a ship in supply at a port: the ship neighbour lights "place your ship"; an abandoned submersible on its space adds "board the submersible". Each choice is a step; the send places or boards it. Auto.
 - **S28. Pinned.** An opponent's monster on a pawn's space: the pawn is unlit with "pinned"; the seat's other pieces light. Auto.
 - **S29. Godspeed and pilfer.** With a Monk pawn, end the steps with "Stop moving": monks light and "No Godspeed" shows; take a Godspeed step (lighter trail). Then the pilfer chips: a farm the seat rules shows none; an opponent's landscape shows its target. Pick iron on a space; the primary reads "Move · 3 steps · pilfer 1 iron". Send; Undo is offered and reverses the whole Move. Auto.
@@ -532,21 +532,21 @@ Each scenario is marked automated (with its spec) or checked (with date and widt
 - S22: automated (`actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosCards.spec.ts`
 - S23: automated (`actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosCards.spec.ts`
 - S24: automated (`actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosCards.spec.ts`
-- S25: automated (`actionPanelSession.spec.ts`)
-- S26: automated (`moveDraft.spec.ts`, `actionPanelSession.spec.ts`)
-- S27: automated (`moveDraft.spec.ts`)
-- S28: automated (`moveDraft.spec.ts`)
-- S29: automated (`moveDraft.spec.ts`, `actionPanelSession.spec.ts`)
-- S30: automated (`moveDraft.spec.ts`, `actionPanelSession.spec.ts`)
-- S31: automated (`actionPanelSession.spec.ts`)
-- S32: automated (`followUpPanels.spec.ts`, `waitingView.spec.ts`)
-- S33: automated (`followUpPanels.spec.ts`, `waitingView.spec.ts`; browser `tests/followUpPanels.spec.ts`)
-- S34: automated (`waitingView.spec.ts`, `followUpPanels.spec.ts`; browser compare of the page's markup and the action area's pixels in `tests/followUpPanels.spec.ts`; what the previous seat just did `actionDescriptions.spec.ts`); open: Manual
-- S35: pending
-- S36: partly automated (`followUpDrafts.spec.ts`, `followUpPanels.spec.ts`; browser `tests/followUpPanels.spec.ts`; the defender's pawn home and the score after it `flightLayer.spec.ts`); open: the military service question on the drawn panel
-- S37: partly automated (`followUpDrafts.spec.ts`: the win comes from the logic package; the markers home `flightLayer.spec.ts`; the flip and the rank changes in the log, on the Action that caused them, `actionDescriptions.spec.ts`)
-- S38: automated (`followUpPanels.spec.ts`, `waitingView.spec.ts`; the seal under the marker `mapLayers.spec.ts`; browser `tests/followUpPanels.spec.ts`; the seal's slide `boardAnimators.spec.ts`)
-- S39: automated (`followUpPanels.spec.ts`, `atWillDraft.spec.ts`; the seal's flight `flightLayer.spec.ts`)
+- S25: automated (`actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosMove.spec.ts`
+- S26: automated (`moveDraft.spec.ts`, `actionPanelSession.spec.ts`: the ferry's popup row, since no printed pair of spaces reaches it); browser at desktop and phone by named fixture, `tests/scenariosMove.spec.ts`: the road and machine popup, the ferry's rose chip, and no ferry with a vessel for sale
+- S27: automated (`moveDraft.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosMove.spec.ts`
+- S28: automated (`moveDraft.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosMove.spec.ts`
+- S29: automated (`moveDraft.spec.ts`, `actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosMove.spec.ts`
+- S30: automated (`moveDraft.spec.ts`, `actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosMove.spec.ts`
+- S31: automated (`actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosMove.spec.ts`
+- S32: automated (`followUpPanels.spec.ts`, `waitingView.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosConquer.spec.ts`
+- S33: automated (`followUpPanels.spec.ts`, `waitingView.spec.ts`; browser `tests/followUpPanels.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosConquer.spec.ts`
+- S34: automated (`waitingView.spec.ts`, `followUpPanels.spec.ts`; browser compare of the page's markup and the action area's pixels in `tests/followUpPanels.spec.ts`; what the previous seat just did `actionDescriptions.spec.ts`); the same compare, attacker and third seat, browser at desktop and phone by named fixture, `tests/scenariosConquer.spec.ts`; open: Manual, for a person to compare the two screens by eye
+- S35: browser at desktop and phone by named fixture, `tests/scenariosConquer.spec.ts`
+- S36: automated (`followUpDrafts.spec.ts`, `followUpPanels.spec.ts`; browser `tests/followUpPanels.spec.ts`; the defender's pawn home and the score after it `flightLayer.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosConquer.spec.ts`, through the military service question
+- S37: automated (`followUpDrafts.spec.ts`: the win comes from the logic package; the markers home `flightLayer.spec.ts`; the flip and the rank changes in the log, on the Action that caused them, `actionDescriptions.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosConquer.spec.ts`
+- S38: automated (`followUpPanels.spec.ts`, `waitingView.spec.ts`; the seal under the marker `mapLayers.spec.ts`; browser `tests/followUpPanels.spec.ts`; the seal's slide `boardAnimators.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosConquer.spec.ts`
+- S39: automated (`followUpPanels.spec.ts`, `atWillDraft.spec.ts`; the seal's flight `flightLayer.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosConquer.spec.ts`
 - S40: automated (`guildDraft.spec.ts`; browser `tests/bench.spec.ts`)
 - S41: automated (`guildDraft.spec.ts`, `benchOffer.spec.ts`, `bench.spec.ts`, the barn-to-market pair on send `boardAnimators.spec.ts`; browser `tests/bench.spec.ts`; the legs to and from a seat's panel `flightLayer.spec.ts`)
 - S42: automated (`guildDraft.spec.ts`, `bench.spec.ts`; browser `tests/bench.spec.ts`)

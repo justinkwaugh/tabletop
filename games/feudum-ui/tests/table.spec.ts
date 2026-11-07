@@ -185,7 +185,7 @@ test('S61 History View of a turn with a Move offers no choices; enlarge and open
     await expect(seatLayer(page)).toHaveCount(0)
 })
 
-test('S37 R-X.1 the log has a line for each Action, spoken, with no raw name in it', async ({
+test('R-X.1 the log has a line for each Action, spoken, with no raw name in it', async ({
     page
 }) => {
     await createGame(page)
