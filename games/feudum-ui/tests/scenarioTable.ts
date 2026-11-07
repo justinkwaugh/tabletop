@@ -16,8 +16,12 @@ declare global {
 
 const Widths = {
     desktop: { viewport: { width: 1280, height: 900 } },
-    phone: { viewport: { width: 375, height: 812 }, hasTouch: true, isMobile: true }
+    phone: { viewport: { width: 375, height: 812 }, hasTouch: true, isMobile: true },
+    /** The phone held sideways, for the scenarios the contract also runs at 812 x 375. */
+    sideways: { viewport: { width: 812, height: 375 }, hasTouch: true, isMobile: true }
 } as const
+
+export type Width = keyof typeof Widths
 
 /** The page, by what a scenario's sentences name. */
 export class ScenarioTable {
@@ -273,17 +277,18 @@ export async function openFixture(page: Page, name: string): Promise<void> {
 }
 
 /**
- * One numbered scenario, at both widths, on its fixture. A page error or the session's own "Error
- * applying" or "Error handling" fails it, whatever it asserted.
+ * One numbered scenario, at both widths (or those named), on its fixture. A page error or the
+ * session's own "Error applying" or "Error handling" fails it, whatever it asserted.
  */
 export function scenario(
     title: string,
     fixture: string,
-    body: (table: ScenarioTable) => Promise<void>
+    body: (table: ScenarioTable) => Promise<void>,
+    widths: readonly Width[] = ['desktop', 'phone']
 ): void {
-    for (const [width, use] of Object.entries(Widths)) {
+    for (const width of widths) {
         test.describe(width, () => {
-            test.use(use)
+            test.use(Widths[width])
             test(title, async ({ page }) => {
                 const problems: string[] = []
                 page.on('pageerror', (error) => problems.push(error.message))
@@ -293,7 +298,7 @@ export function scenario(
                     }
                 })
                 await openFixture(page, fixture)
-                await body(new ScenarioTable(page, width === 'phone'))
+                await body(new ScenarioTable(page, width !== 'desktop'))
                 expect(problems).toEqual([])
             })
         })

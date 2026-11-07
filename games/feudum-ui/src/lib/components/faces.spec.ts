@@ -6,6 +6,7 @@ import { handFaceShown, sealFaceShown, writFaceShown } from '$lib/model/perspect
 import { faceTier } from '$lib/utils/cardShape.js'
 import { everyAssetSupplied } from '$lib/testing/fakeArt.js'
 import ActionCardFace from './pieces/ActionCardFace.svelte'
+import BoardMotionLayer from './map/BoardMotionLayer.svelte'
 import RoseChip from './pieces/RoseChip.svelte'
 import SealFace from './pieces/SealFace.svelte'
 import TileFace from './pieces/TileFace.svelte'
@@ -192,6 +193,26 @@ describe('rose chips', () => {
         expect(chip).toContain('2s')
         expect(chip).toContain('feudum-halo')
         expect(chip).toContain('feudum-danger')
+    })
+
+    it('Contract, palette: a rose chip in flight keeps its label over the halo', () => {
+        const flying = render(BoardMotionLayer, {
+            props: {
+                tokens: [
+                    {
+                        id: 'disloyal',
+                        face: { kind: 'chip', text: '-2', rose: true },
+                        place: { x: 0, y: 0 },
+                        layer: 'over'
+                    }
+                ],
+                paintOf: () => paint,
+                colourPaintOf: () => paint
+            }
+        }).body
+        expect(flying).toContain('-2')
+        expect(flying).toMatch(/<rect[^>]*stroke="var\(--feudum-halo\)"/)
+        expect(flying).not.toMatch(/<rect[^>]*stroke="var\(--feudum-danger\)"/)
     })
 
     it('Contract, palette: an empty label is refused rather than drawn as a bare shape', () => {
