@@ -1,58 +1,38 @@
 <script lang="ts">
-    import type { Player } from '@tabletop/common'
-    import type { FeudumProjectedPlayerState } from '@tabletop/feudum'
+    import SeatPanel from '$lib/components/seat/SeatPanel.svelte'
     import { getTableLayers } from '$lib/components/table/tableLayersContext.js'
+    import { seatPaint } from '$lib/model/seatPaint.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
-    let gameSession = getGameSession()
-    const layers = getTableLayers()
-    let { player, playerState }: { player: Player; playerState: FeudumProjectedPlayerState } =
-        $props()
+    /**
+     * One seat from the session's one derivation of it, in the column or, `reading`, as the open
+     * seat. The ribbon opens the seat; on the open seat it closes it.
+     */
+    let { playerId, reading = false }: { playerId: string; reading?: boolean } = $props()
 
-    let isTurn = $derived(gameSession.game.state?.activePlayerIds.includes(player.id))
-    let bgColor = $derived(gameSession.colors.getPlayerBgColor(player.id))
+    const gameSession = getGameSession()
+    const layers = getTableLayers()
+
+    let view = $derived(gameSession.seatPanel(playerId))
+    let name = $derived(gameSession.getPlayerName(playerId))
+    let paint = $derived(seatPaint(gameSession.colors, playerId, name.charAt(0).toUpperCase()))
+
+    function onRibbon() {
+        if (reading) {
+            layers?.closeSeatOrStack()
+        } else {
+            layers?.openSeat(playerId)
+        }
+    }
 </script>
 
-<div class="relative">
-    <div
-        class="rounded-lg {bgColor} py-[3px] px-4 text-center {gameSession.colors.getPlayerTextColor(
-            playerState.playerId
-        )} font-medium flex flex-col justify-between {isTurn ? 'border-2 pulse-border' : ''}"
-    >
-        <h1 class="{isTurn ? 'text-xl font-semibold' : 'text-lg font-medium'} mb-2">
-            <button
-                type="button"
-                aria-label="Open {player.name}'s seat"
-                data-open-seat-of={player.id}
-                onclick={() => layers?.openSeat(player.id)}
-            >
-                {isTurn ? '\u21e2 ' : ''}{player.name}{isTurn ? ' \u21e0' : ''}
-            </button>
-        </h1>
-        {#if gameSession.showDebug}
-            <div class="text-xs mt-2">id: {player.id}</div>
-        {/if}
-    </div>
-</div>
-
-<style>
-    @keyframes border-pulsate {
-        0% {
-            border-color: transparent;
-        }
-        25% {
-            border-color: var(--feudum-text);
-        }
-        75% {
-            border-color: var(--feudum-text);
-        }
-        100% {
-            border-color: transparent;
-        }
-    }
-
-    .pulse-border {
-        border-color: var(--feudum-text);
-        animation: border-pulsate 2.5s infinite;
-    }
-</style>
+<SeatPanel
+    {view}
+    {paint}
+    {reading}
+    ribbonLabel="{reading ? 'Close' : 'Open'} {name}'s seat"
+    {onRibbon}
+/>
+{#if gameSession.showDebug}
+    <div class="text-xs text-feudum-text-muted">id: {playerId}</div>
+{/if}

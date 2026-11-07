@@ -24,9 +24,9 @@
         y
     }: {
         faceShown: boolean
-        kind: ActionCardKind
+        kind?: ActionCardKind
         paint: SeatPaint
-        number: number
+        number?: number
         width: number
         x?: number
         y?: number
@@ -39,7 +39,7 @@
     let label = $derived(
         card ? `${card.printedName} card, ${paint.initial}` : `${paint.initial} card back`
     )
-    let url = $derived(faceShown ? assetUrl(cardAsset(kind)) : undefined)
+    let url = $derived(card ? assetUrl(cardAsset(card.kind)) : undefined)
     const Body = { x: CardArt.x + 10, right: CardArt.x + CardArt.width - 10 }
     let actionRows = $derived(card ? wrapLines(card.regularAction, 26) : [])
     let effectRows = $derived(card ? wrapLines(card.special.effect, 28) : [])
@@ -59,7 +59,7 @@
         stroke={paint.edge}
         stroke-width="2"
     ></rect>
-    {#if !faceShown}
+    {#if !card}
         <rect
             x={CardArt.x}
             y={CardArt.y}
@@ -75,7 +75,7 @@
             transform="translate({CardBox.width / 2 - 60} {CardBox.height / 2 - 60}) scale(5)"
             fill="var(--feudum-parchment)"
         ></path>
-    {:else if card}
+    {:else}
         {#if url}
             <image
                 href={url}
