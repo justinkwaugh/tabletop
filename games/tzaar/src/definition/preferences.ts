@@ -18,7 +18,7 @@ export const TzaarPreferenceDefinition = {
             showCoordinates: true,
             rotatedBoard: false,
             turned: false,
-            shrinkStacks: true
+            shrinkStacks: false
         },
         version: 1
     }
