@@ -119,7 +119,7 @@
                 height="24"
                 rx="12"
                 fill={face.rose ? 'var(--feudum-danger-soft)' : 'var(--feudum-surface-raised)'}
-                stroke={face.rose ? 'var(--feudum-danger)' : 'var(--feudum-halo)'}
+                stroke="var(--feudum-halo)"
                 stroke-width="2"
             ></rect>
             <text

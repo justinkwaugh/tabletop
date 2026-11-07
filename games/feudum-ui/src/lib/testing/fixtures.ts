@@ -1298,6 +1298,42 @@ export const Fixtures = {
             const host = await gameEnding(await tyingLifts())
             return { host, seat: first(host) }
         }
+    },
+    'seals-noble-push': {
+        build: async () => {
+            const host = await atCards(
+                seats(
+                    guildSeat('noble', { hand: ['tax', 'harvest', 'migrate', 'guild'] }),
+                    guildSeat('farmer'),
+                    plain
+                )
+            )
+            const [seat, buyer] = [first(host), second(host)]
+            await othersForfeitUntil(host, buyer)
+            await guildAction(host, buyer, 'noble', 'trade', {
+                scrollSpaces: ['guild.noble.scroll.r1c1']
+            })
+            await othersForfeitUntil(host, seat)
+            return { host, seat }
+        }
+    },
+    'undo-two-cards': {
+        build: async () => {
+            const host = await atCards(
+                seats(
+                    {
+                        goods: ['sulfur', 'iron', 'food'],
+                        character: 'farmer',
+                        space: Forest2,
+                        hand: ['migrate', 'move', 'tax', 'guild'],
+                        pouch: 'sulfur'
+                    },
+                    plain,
+                    plain
+                )
+            )
+            return { host, seat: first(host) }
+        }
     }
 } as const satisfies Record<string, Fixture>
 
