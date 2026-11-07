@@ -21,13 +21,14 @@ import {
     PIECES_PER_COLOR_ON_BOARD
 } from '../model/pieces.js'
 
-export function shuffledPieces(random: () => number): PieceColor[] {
+// Every piece, numbered color by color and the jokers last (FIRST_JOKER_ID), in a random order.
+export function shuffledPieces(random: () => number): { color: PieceColor; id: number }[] {
     const pieces = [
         ...ACTIVE_COLORS.flatMap((color) =>
             Array.from({ length: PIECES_PER_COLOR_ON_BOARD }, () => color)
         ),
         ...Array.from({ length: JOKER_COUNT }, () => PieceColor.Joker)
-    ]
+    ].map((color, id) => ({ color, id }))
     shuffle(pieces, random)
     return pieces
 }
@@ -57,8 +58,8 @@ export class LyngkGameInitializer
         const board = emptyBoard()
         const pieces = shuffledPieces(prng.random)
         board.points.forEach((point, index) => {
-            point.stack = [pieces[index]]
-            point.ids = [index]
+            point.stack = [pieces[index].color]
+            point.ids = [pieces[index].id]
         })
 
         const players = turnManager.turnOrder.map(

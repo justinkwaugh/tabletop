@@ -17,7 +17,7 @@ import { ActionType } from './actions.js'
 import { EndReason, HydratedLyngkGameState, type LyngkGameState } from '../model/gameState.js'
 import { emptyBoard } from '../model/board.js'
 import { POINTS } from '../model/geometry.js'
-import { ACTIVE_COLORS, PieceColor } from '../model/pieces.js'
+import { ACTIVE_COLORS, jokerNumber, PieceColor } from '../model/pieces.js'
 import type { ClaimColor } from '../actions/claimColor.js'
 import type { MoveStack } from '../actions/moveStack.js'
 
@@ -155,11 +155,23 @@ const idsAt = (state: LyngkGameState, coords: AxialCoordinates) =>
     new HydratedLyngkGameState(state).board.idsAt(coords)
 
 describe('piece identities', () => {
-    it('names each piece by the point it was dealt to', () => {
+    it('numbers the pieces color by color, the jokers last', () => {
         const state = start(createGame())
-        expect(state.board.points.map((point) => point.ids)).toEqual(
-            state.board.points.map((_, index) => [index])
+        const dealt = state.board.points.map((point) => ({
+            color: point.stack[0],
+            id: point.ids![0]
+        }))
+        expect(dealt.map(({ id }) => id).toSorted((a, b) => a - b)).toEqual(
+            dealt.map((_, index) => index)
         )
+        for (const { color, id } of dealt) {
+            if (color === J) {
+                expect(jokerNumber(id)).toBeDefined()
+            } else {
+                expect(jokerNumber(id)).toBeUndefined()
+                expect(Math.floor(id / 8)).toBe(ACTIVE_COLORS.indexOf(color))
+            }
+        }
     })
 
     it('carries the moved pieces onto the stack they land on', () => {

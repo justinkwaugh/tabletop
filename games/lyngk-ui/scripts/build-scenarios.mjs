@@ -5,7 +5,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defaultGameConfig, GameEngine, PlayerStatus } from '@tabletop/common'
 import { startingPositionFile } from '@tabletop/common/testing'
-import { Definition, LyngkInfo, LyngkRuntime } from '@tabletop/lyngk'
+import { Definition, FIRST_JOKER_ID, LyngkInfo, LyngkRuntime, PieceColor } from '@tabletop/lyngk'
 
 const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'scenarios')
 const engine = new GameEngine(LyngkRuntime)
@@ -36,13 +36,15 @@ function position(stacks, { claims = {}, scored = {}, variant = 'Standard' } = {
         startingPositions: { playerIds: [FIRST, SECOND] }
     })
     for (const point of state.board.points) point.stack = []
-    // Each piece gets its own identity, so the specks it is drawn with stay with it.
+    // Each piece gets its own identity, so the specks it is drawn with stay with it; jokers are
+    // numbered from FIRST_JOKER_ID, as in a dealt game, which picks each one's look.
     let nextId = 0
+    let nextJoker = FIRST_JOKER_ID
     for (const [q, r, stack] of stacks) {
         const point = state.board.points.find((p) => p.coords.q === q && p.coords.r === r)
         if (!point) throw Error(`No point ${q},${r}`)
         point.stack = stack
-        point.ids = stack.map(() => nextId++)
+        point.ids = stack.map((color) => (color === PieceColor.Joker ? nextJoker++ : nextId++))
     }
     for (const point of state.board.points) {
         if (point.stack.length === 0) delete point.ids

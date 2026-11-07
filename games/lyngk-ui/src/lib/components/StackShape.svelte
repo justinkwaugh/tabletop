@@ -2,14 +2,18 @@
 
 <script lang="ts">
     import type { Attachment } from 'svelte/attachments'
-    import type { PieceColor } from '@tabletop/lyngk'
+    import { JOKER_COUNT, jokerNumber, PieceColor } from '@tabletop/lyngk'
     import { VIEW } from '$lib/board/geometry.js'
-    import { discBases, THICKNESS } from '$lib/board/pieceGeometry.js'
-    import { discDrawing, TOP_RADIUS, troughColors } from '$lib/board/pieceShape.js'
-    import { faceSpecks, pieceSeed, PIECE_STYLES, sideSpecks } from '$lib/board/pieceStyle.js'
+    import { discBases } from '$lib/board/pieceGeometry.js'
+    import { creaseColor, lookBox, topEllipse, type Look } from '$lib/board/pieceShape.js'
+    import { lookUrl } from '$lib/board/looks.js'
+    import { pieceSeed } from '$lib/board/pieceStyle.js'
+    import { sideSpeckPaths, topSpeckPaths } from '$lib/board/specks.js'
 
-    // A stack standing on its point, seen from the near side of the table, bottom disc first. The
-    // gradients come from a PieceDefs with the same prefix in the same SVG.
+    // A stack standing on its point, seen from the near side of the table, bottom disc first. Each
+    // disc is an image of its look, pre-rendered by scripts/render-looks.mjs, with its own specks
+    // drawn over it, kept inside it by clips; a joker's are in its look. The shadow's gradients and the clips come
+    // from a PieceDefs with the same prefix and radius in the same SVG.
     let {
         stack,
         radius,
@@ -35,32 +39,41 @@
         parts?: { body?: Attachment<SVGGElement>; shadow?: Attachment<SVGGElement> }
     } = $props()
 
-    const disc = $derived(discDrawing(VIEW, radius))
-    const side = $derived(VIEW.height(THICKNESS * radius))
+    const box = $derived(lookBox(VIEW, radius))
+    const top = $derived(topEllipse(VIEW, radius))
     const pieces = $derived(
         discBases(VIEW, stack.length, radius).map((base, index) => {
             const color = stack[index]
             const seed = pieceSeed(ids?.[index], seedKey, baseLevel + index, color)
+            const isTop = index === stack.length - 1
+            // A joker's many flecks are drawn into its look, one for each of the three, picked by
+            // its number (by its seed where it has none); other pieces' few specks are drawn over
+            // theirs.
+            const id = ids?.[index]
+            const look: Look =
+                color === PieceColor.Joker
+                    ? {
+                          color,
+                          joker: {
+                              number:
+                                  (id === undefined ? undefined : jokerNumber(id)) ??
+                                  (seed >>> 0) % JOKER_COUNT,
+                              turned
+                          }
+                      }
+                    : { color }
+            const specked = color !== PieceColor.Joker
             return {
                 base,
-                color,
-                speck: PIECE_STYLES[color].speck,
-                speckAlt: PIECE_STYLES[color].speckAlt ?? PIECE_STYLES[color].speck,
-                trough: troughColors(color),
-                specks: faceSpecks(color, seed).map((speck) =>
-                    turned
-                        ? { ...speck, x: -speck.x, y: -speck.y, angle: speck.angle + 180 }
-                        : speck
-                ),
-                sideSpecks: sideSpecks(color, turned ? seed + 1 : seed),
-                top: index === stack.length - 1
+                look,
+                crease: creaseColor(color),
+                // Only the top disc's top shows.
+                topSpecks: specked && isTop ? topSpeckPaths(VIEW, radius, color, seed, turned) : [],
+                sideSpecks: specked ? sideSpeckPaths(VIEW, radius, color, seed, turned) : [],
+                top: isTop
             }
         })
     )
-
-    function speckEllipse(r: number, stretch: number) {
-        return { rx: r * radius * stretch, ry: r * radius }
-    }
 </script>
 
 <g {@attach parts?.shadow}>
@@ -77,69 +90,27 @@
 <g {@attach parts?.body}>
     {#each pieces as piece, index (index)}
         <g transform="translate(0 {piece.base})">
-            {#each disc.slices as slice, sliceIndex (sliceIndex)}
-                <ellipse
-                    cy={slice.y}
-                    rx={slice.rx}
-                    ry={slice.ry}
-                    fill="url(#{prefix}-{piece.color}-side-{slice.level})"
-                ></ellipse>
-            {/each}
-            {#each piece.sideSpecks as speck, s (s)}
-                {@const shape = speckEllipse(speck.r, speck.stretch)}
-                <ellipse
-                    cx={speck.x * radius}
-                    cy={-side * (1 - speck.v) +
-                        radius * VIEW.tilt * Math.sqrt(1 - speck.x * speck.x)}
-                    rx={shape.rx * Math.sqrt(1 - speck.x * speck.x)}
-                    ry={Math.min(shape.ry, side * 0.2)}
-                    fill={speck.alt ? piece.speckAlt : piece.speck}
-                    class="speck"
-                ></ellipse>
-            {/each}
-            <ellipse
-                cy={disc.top.y}
-                rx={disc.top.rx}
-                ry={disc.top.ry}
-                fill="url(#{prefix}-{piece.color}-face)"
-            ></ellipse>
-            <ellipse
-                cy={disc.trough.y}
-                rx={disc.trough.rx}
-                ry={disc.trough.ry}
-                fill={piece.trough.floor}
-            ></ellipse>
-            <path d={disc.farWall} fill={piece.trough.farWall}></path>
-            <path d={disc.nearWall} fill={piece.trough.nearWall}></path>
-            <ellipse
-                cy={disc.centre.y}
-                rx={disc.centre.rx}
-                ry={disc.centre.ry}
-                fill="url(#{prefix}-{piece.color}-face)"
-            ></ellipse>
-            {#if piece.top}
-                {#each piece.specks as speck, s (s)}
-                    {@const shape = speckEllipse(speck.r, speck.stretch)}
-                    <ellipse
-                        transform="translate({speck.x * radius * TOP_RADIUS} {disc.top.y +
-                            speck.y *
-                                radius *
-                                TOP_RADIUS *
-                                VIEW.tilt}) scale(1 {VIEW.tilt}) rotate({speck.angle})"
-                        rx={shape.rx}
-                        ry={shape.ry}
-                        fill={speck.alt ? piece.speckAlt : piece.speck}
-                        class="speck"
-                    ></ellipse>
+            <image
+                href={lookUrl(piece.look)}
+                x={box.x}
+                y={box.y}
+                width={box.width}
+                height={box.height}
+            ></image>
+            <g clip-path="url(#{prefix}-side-clip)">
+                {#each piece.sideSpecks as speck (speck.fill)}
+                    <path d={speck.d} fill={speck.fill} class="speck"></path>
                 {/each}
+            </g>
+            {#if piece.top}
+                <g clip-path="url(#{prefix}-top-clip)">
+                    {#each piece.topSpecks as speck (speck.fill)}
+                        <path d={speck.d} fill={speck.fill} class="speck"></path>
+                    {/each}
+                </g>
             {:else}
                 <!-- The top in the shadow of the disc resting on it: the crease between them. -->
-                <ellipse
-                    cy={disc.top.y}
-                    rx={disc.top.rx}
-                    ry={disc.top.ry}
-                    fill={piece.trough.crease}
-                ></ellipse>
+                <ellipse cy={top.y} rx={top.rx} ry={top.ry} fill={piece.crease}></ellipse>
             {/if}
         </g>
     {/each}

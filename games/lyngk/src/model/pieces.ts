@@ -20,6 +20,16 @@ export const ACTIVE_COLORS: readonly PieceColor[] = [
 export const PIECES_PER_COLOR_ON_BOARD = 8
 export const JOKER_COUNT = 3
 
+// Pieces are numbered color by color, in ACTIVE_COLORS order, and the jokers last, so a joker's
+// number tells it from the other two.
+export const FIRST_JOKER_ID = ACTIVE_COLORS.length * PIECES_PER_COLOR_ON_BOARD
+
+// Which of the three jokers a piece is, by its number; none for any other piece.
+export function jokerNumber(id: number): number | undefined {
+    const number = id - FIRST_JOKER_ID
+    return number >= 0 && number < JOKER_COUNT ? number : undefined
+}
+
 export type Stack = Type.Static<typeof Stack>
 export const Stack = Type.Array(Type.Enum(PieceColor))
 

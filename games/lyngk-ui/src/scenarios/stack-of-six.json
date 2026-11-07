@@ -110,7 +110,7 @@
                         "r": 1
                     },
                     "stack": ["joker", "blue", "ivory", "green", "black"],
-                    "ids": [1, 2, 3, 4, 5]
+                    "ids": [40, 1, 2, 3, 4]
                 },
                 {
                     "coords": {
@@ -146,7 +146,7 @@
                         "r": -2
                     },
                     "stack": ["blue"],
-                    "ids": [8]
+                    "ids": [5]
                 },
                 {
                     "coords": {

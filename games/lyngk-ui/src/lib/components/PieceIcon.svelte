@@ -43,7 +43,7 @@
     data-ground={-top / (bottom - top)}
     data-piece-fraction={(RADIUS + MARGIN) / halfWidth}
 >
-    <defs><PieceDefs {prefix} colors={stack} /></defs>
+    <defs><PieceDefs {prefix} radius={RADIUS} /></defs>
     {#if ring}
         <g class="ring">
             {#each ['under', 'over'] as layer (layer)}

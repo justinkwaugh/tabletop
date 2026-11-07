@@ -88,7 +88,7 @@
                         "r": 0
                     },
                     "stack": ["joker", "red", "green", "ivory", "black"],
-                    "ids": [8, 9, 10, 11, 12]
+                    "ids": [40, 0, 1, 2, 3]
                 },
                 {
                     "coords": {
@@ -96,7 +96,7 @@
                         "r": -1
                     },
                     "stack": ["black", "ivory", "green", "red"],
-                    "ids": [14, 15, 16, 17]
+                    "ids": [4, 5, 6, 7]
                 },
                 {
                     "coords": {
@@ -125,7 +125,7 @@
                         "r": 0
                     },
                     "stack": ["green", "blue", "ivory"],
-                    "ids": [18, 19, 20]
+                    "ids": [8, 9, 10]
                 },
                 {
                     "coords": {
@@ -133,7 +133,7 @@
                         "r": -1
                     },
                     "stack": ["blue"],
-                    "ids": [13]
+                    "ids": [11]
                 },
                 {
                     "coords": {
@@ -148,7 +148,7 @@
                         "r": -2
                     },
                     "stack": ["ivory", "blue"],
-                    "ids": [32, 33]
+                    "ids": [12, 13]
                 },
                 {
                     "coords": {
@@ -170,7 +170,7 @@
                         "r": 1
                     },
                     "stack": ["blue"],
-                    "ids": [39]
+                    "ids": [14]
                 },
                 {
                     "coords": {
@@ -178,7 +178,7 @@
                         "r": 2
                     },
                     "stack": ["red"],
-                    "ids": [5]
+                    "ids": [15]
                 },
                 {
                     "coords": {
@@ -193,7 +193,7 @@
                         "r": 2
                     },
                     "stack": ["black", "joker", "green"],
-                    "ids": [29, 30, 31]
+                    "ids": [16, 41, 17]
                 },
                 {
                     "coords": {
@@ -236,7 +236,7 @@
                         "r": -3
                     },
                     "stack": ["black"],
-                    "ids": [36]
+                    "ids": [18]
                 },
                 {
                     "coords": {
@@ -265,7 +265,7 @@
                         "r": 1
                     },
                     "stack": ["red", "black", "blue", "ivory"],
-                    "ids": [25, 26, 27, 28]
+                    "ids": [19, 20, 21, 22]
                 },
                 {
                     "coords": {
@@ -273,7 +273,7 @@
                         "r": 2
                     },
                     "stack": ["green"],
-                    "ids": [6]
+                    "ids": [23]
                 },
                 {
                     "coords": {
@@ -281,7 +281,7 @@
                         "r": 3
                     },
                     "stack": ["ivory", "green", "red", "black", "blue"],
-                    "ids": [0, 1, 2, 3, 4]
+                    "ids": [24, 25, 26, 27, 28]
                 },
                 {
                     "coords": {
@@ -289,7 +289,7 @@
                         "r": 3
                     },
                     "stack": ["ivory"],
-                    "ids": [7]
+                    "ids": [29]
                 },
                 {
                     "coords": {
@@ -318,7 +318,7 @@
                         "r": 1
                     },
                     "stack": ["blue", "black"],
-                    "ids": [37, 38]
+                    "ids": [30, 31]
                 },
                 {
                     "coords": {
@@ -333,7 +333,7 @@
                         "r": -1
                     },
                     "stack": ["green", "red"],
-                    "ids": [34, 35]
+                    "ids": [32, 33]
                 },
                 {
                     "coords": {
@@ -341,7 +341,7 @@
                         "r": -2
                     },
                     "stack": ["red", "ivory"],
-                    "ids": [40, 41]
+                    "ids": [34, 35]
                 },
                 {
                     "coords": {
@@ -349,7 +349,7 @@
                         "r": -3
                     },
                     "stack": ["blue", "red", "joker", "green"],
-                    "ids": [21, 22, 23, 24]
+                    "ids": [36, 37, 42, 38]
                 },
                 {
                     "coords": {
@@ -357,7 +357,7 @@
                         "r": -3
                     },
                     "stack": ["black"],
-                    "ids": [42]
+                    "ids": [39]
                 },
                 {
                     "coords": {

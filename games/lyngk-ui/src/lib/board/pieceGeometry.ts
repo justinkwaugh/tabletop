@@ -7,7 +7,7 @@ import type { BoardView } from './geometry.js'
 // little above the disc below, so a dark crease shows between them; the bottom disc stands as far
 // above the board.
 export const THICKNESS = 0.2826
-export const STACK_GAP = THICKNESS * 0.32
+export const STACK_GAP = THICKNESS * 0.24
 const PITCH = THICKNESS + STACK_GAP
 
 export type Disc = { faceY: number }

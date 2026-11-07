@@ -301,7 +301,7 @@
                         "r": 2
                     },
                     "stack": ["blue"],
-                    "ids": [6]
+                    "ids": [5]
                 },
                 {
                     "coords": {
@@ -309,7 +309,7 @@
                         "r": 1
                     },
                     "stack": ["black"],
-                    "ids": [5]
+                    "ids": [6]
                 },
                 {
                     "coords": {

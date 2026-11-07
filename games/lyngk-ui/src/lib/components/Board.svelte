@@ -138,7 +138,7 @@
     onclick={onBoardClick}
     {@attach animator.attach}
 >
-    <defs><PieceDefs prefix="lyngk-board" /></defs>
+    <defs><PieceDefs prefix="lyngk-board" {radius} /></defs>
     <polygon points={outline} class="play-area"></polygon>
 
     <g class="lines">
