@@ -4,7 +4,7 @@ import type {
     GipfPotentialsGameState,
     HydratedGipfPotentialsGameState
 } from '@tabletop/gipf-potentials'
-import coverImg from '$lib/images/gipf-potentials-cover.png'
+import coverImg from '$lib/images/gipf-potentials-cover.jpg'
 
 export const UiDefinition: GameUiDefinition<
     GipfPotentialsGameState,
