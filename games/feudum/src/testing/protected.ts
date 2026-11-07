@@ -1,4 +1,4 @@
-import { assert, Visibility, type GameAction } from '@tabletop/common'
+import { assert, Visibility, type Game, type GameAction } from '@tabletop/common'
 import { FeudumRuntime } from '../definition/runtime.js'
 import {
     FeudumGameStateValidator,
@@ -32,6 +32,11 @@ export function realGames(): GameWalk[] {
 
 /** A walk or a scripted table: anything with a game. */
 type Tabled = Pick<GameWalk, 'game'>
+
+/** R-5.1 The game as starting it left it: what makes the engine guard execution. */
+export function started({ game }: Tabled): Game {
+    return { ...game, protectedInformation: true }
+}
 
 /** Every seat and a spectator. */
 export function perspectivesOf({ game }: Tabled): Visibility.Perspective[] {

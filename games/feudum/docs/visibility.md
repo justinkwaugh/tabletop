@@ -74,10 +74,11 @@ A player or a spectator explores from their own projection. `createFromProjected
 - another player's pending writ draw: its count from the same unplaced writs;
 - the writ deck: by slot from `top` to `nextBottom`, the explorer's deck knowledge and the public deck writs at their slots, the rest of the unplaced writs in fresh order in the remaining slots;
 - concealed seals: the seals not shown as beads, dealt to the pile (by its count, in fresh order), the occupied scroll spaces, each player's held seals and sealed charters, and the immune markers.
+- tile landscapes: each epoch's printed mix less the landscapes shown, dealt across that epoch's tiles still hidden (R-1.4-H2).
 
 Other players' deck knowledge is left empty, since the projection does not say what they saw. The result names no master seed and passes the canonical validator. Two sources that differ only in hidden values give the same branch.
 
-Host View, hotseat and local branches start from canonical state through `createFromCanonicalState`, which reshuffles each hidden list within itself from the branch's new protected stream, keeping every known position: deck slots in any player's deck knowledge or the public deck writs stay where they are, and the other writs in the deck are reshuffled among the remaining slots; the seal pile is reshuffled; seals elsewhere keep their places, since no one knows them apart.
+Host View, hotseat and local branches start from canonical state through `createFromCanonicalState`, which reshuffles each hidden list within itself from the branch's new protected stream, keeping every known position: deck slots in any player's deck knowledge or the public deck writs stay where they are, and the other writs in the deck are reshuffled among the remaining slots; the seal pile is reshuffled; seals elsewhere keep their places, since no one knows them apart; the hidden tile landscapes are reshuffled within each epoch.
 
 ## Compatibility
 

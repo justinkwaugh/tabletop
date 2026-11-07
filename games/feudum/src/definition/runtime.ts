@@ -7,6 +7,7 @@ import {
 } from '../model/gameState.js'
 import { FeudumApiActions } from './apiActions.js'
 import { FeudumColors } from './colors.js'
+import { FeudumGameExploration } from './gameExploration.js'
 import { FeudumHydrator } from './hydrator.js'
 import { FeudumGameInitializer } from './initializer.js'
 import { FeudumProgression } from './progression.js'
@@ -24,6 +25,7 @@ export const FeudumRuntime = {
     scoring: new FeudumScoring(),
     progression: new FeudumProgression(),
     stateLogger: new DefaultStateLogger(),
+    exploration: new FeudumGameExploration(),
     visibility: {
         state: Visibility.createProjector(FeudumGameState),
         actions: Visibility.createActionProjector(FeudumApiActions)
