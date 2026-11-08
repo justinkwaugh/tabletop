@@ -15,6 +15,7 @@ export const GipfPotentialsRuntime: GameRuntime<
     GipfPotentialsGameState,
     HydratedGipfPotentialsGameState
 > = {
+    randomnessVersion: 1,
     initializer: new GipfPotentialsGameInitializer(),
     canonicalStateValidator: GipfPotentialsGameStateValidator,
     hydrator: new GipfPotentialsHydrator(),
