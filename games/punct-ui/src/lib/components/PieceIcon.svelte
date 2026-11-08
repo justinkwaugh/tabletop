@@ -2,8 +2,8 @@
     import { Color } from '@tabletop/common'
     import { PIECE_KINDS, PieceKind } from '@tabletop/punct'
     import { PIECE_HALF_WIDTH, VIEW } from '$lib/board/geometry.js'
-    import { drawPiece, outlinePlan, pathOf } from '$lib/board/pieceShape.js'
-    import { iconUrl } from '$lib/board/looks.js'
+    import { outlinePlan, pathOf } from '$lib/board/pieceShape.js'
+    import { bodyBox, iconUrl } from '$lib/board/looks.js'
     import PieceDefs from './PieceDefs.svelte'
     import PieceSlab from './PieceSlab.svelte'
 
@@ -15,12 +15,16 @@
         kind,
         scale = 0.12,
         ring = false,
+        ringRoom = true,
         live = false
     }: {
         color: Color
         kind: PieceKind
         scale?: number
         ring?: boolean
+        // Room round it for the ring; without it, only the piece, so it fills its space. The
+        // image is drawn with the room and its clear margin cut off.
+        ringRoom?: boolean
         // Drawn without its image, as the looks page draws it for scripts/render-looks.mjs.
         live?: boolean
     } = $props()
@@ -45,16 +49,24 @@
             )
         )
     )
-    const box = $derived.by(() => {
-        const drawing = drawPiece(kind, angle)
-        const points = [
-            ...drawing.top,
-            ...outlinePlan(kind, angle, PIECE_HALF_WIDTH + RING_REACH + 3).map((point) =>
-                VIEW.project(point, 0)
-            )
+    // The whole body with its edge line, and the ring round its foot with its stroke, which the
+    // tilt does not flatten as it does the ring's reach: what the image is drawn over.
+    const ringed = $derived.by(() => {
+        const body = bodyBox(kind, angle)
+        const ring = outlinePlan(kind, angle, PIECE_HALF_WIDTH + RING_REACH).map((point) =>
+            VIEW.project(point, 0)
+        )
+        const stroke = 4.5
+        const xs = [
+            body.x,
+            body.x + body.width,
+            ...ring.flatMap((point) => [point.x - stroke, point.x + stroke])
         ]
-        const xs = points.map((point) => point.x)
-        const ys = points.map((point) => point.y)
+        const ys = [
+            body.y,
+            body.y + body.height,
+            ...ring.flatMap((point) => [point.y - stroke, point.y + stroke])
+        ]
         return {
             x: Math.min(...xs),
             y: Math.min(...ys),
@@ -62,6 +74,7 @@
             height: Math.max(...ys) - Math.min(...ys)
         }
     })
+    const box = $derived(ringRoom ? ringed : bodyBox(kind, angle))
     const tone = $derived(color === Color.White ? 'light' : 'dark')
     const seed = $derived(900 + PIECE_KINDS.indexOf(kind))
     // Pre-rendered by scripts/render-looks.mjs: drawn live, each icon's own gradients and slices
@@ -81,7 +94,7 @@
         <path d={ringPath} class="ring over"></path>
     {/if}
     {#if href}
-        <image {href} x={box.x} y={box.y} width={box.width} height={box.height}></image>
+        <image {href} x={ringed.x} y={ringed.y} width={ringed.width} height={ringed.height}></image>
     {:else}
         <defs><PieceDefs {prefix} /></defs>
         <PieceSlab {kind} {angle} {tone} {seed} {prefix} live />

@@ -33,7 +33,7 @@
             {#each PIECE_KINDS as kind (kind)}
                 {@const count = session.inReserve(playerState.playerId, kind)}
                 <span class="kind" class:empty={count === 0}>
-                    <PieceIcon color={playerState.color} {kind} scale={0.24} />
+                    <PieceIcon color={playerState.color} {kind} scale={0.28} ringRoom={false} />
                     <span class="kind-count">{count}</span>
                 </span>
             {/each}
@@ -66,15 +66,15 @@
         display: flex;
         flex-direction: column;
         gap: 4px;
-        padding: 8px 10px;
+        padding: 6px 0 8px;
     }
 
-    /* One row of six: each kind with its count under it. */
+    /* One row of six, each kind with its count under it: as wide as its piece, with the same
+       space between each and at the card's edges, however narrow the piece. */
     .kinds {
-        display: grid;
-        grid-template-columns: repeat(6, minmax(0, 1fr));
-        align-items: end;
-        gap: 4px;
+        display: flex;
+        justify-content: space-evenly;
+        align-items: flex-end;
     }
 
     .centre {
@@ -92,9 +92,11 @@
 
     .kind {
         display: flex;
+        flex: 0 1 auto;
         flex-direction: column;
         align-items: center;
-        gap: 1px;
+        gap: 2px;
+        min-width: 0;
     }
 
     .kind :global(svg) {

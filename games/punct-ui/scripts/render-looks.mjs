@@ -61,8 +61,9 @@ const files = await page.evaluate(() => {
 })
 
 // Pixels per board unit: sharp at the board's full zoom on a phone (about 1.3 CSS pixels a unit at
-// 3 device pixels each). Icons are drawn about 0.24 CSS pixels a unit at most.
-const scaleOf = (name) => (name.startsWith('icon-') ? 1.2 : 4)
+// 3 device pixels each). Icons are drawn up to 0.5 CSS pixels a unit (the reserve strip): 1 to
+// 1.5 device pixels.
+const scaleOf = (name) => (name.startsWith('icon-') ? 1.6 : 4)
 // Each look is drawn this many times larger and halved down to SCALE, which blends away the fine
 // seams between the many bands of the groove's walls. Only the drawing grows, not the files.
 const SUPERSAMPLE = 4
