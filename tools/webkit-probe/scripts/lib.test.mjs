@@ -66,8 +66,24 @@ test('reports later runs against the first', () => {
         marks: [{ label: 'open', rssMb, peakMb: rssMb + 10, repaintMs }],
         timings: [{ label: 'place', longestFrameMs: 80, longFrames: 1, settleMs: 200 }]
     })
-    const text = formatReport({ config, runs: [run(undefined, 400, 50), run('.x {}', 300, 40)] })
+    const text = formatReport({
+        config,
+        runs: [run(undefined, 400, 50), run('.x {}', 300, 40), run('.y {}', 300, null)]
+    })
     assert.match(text, /open\s+\+300 MB  peak \+310 MB  repaint 50 ms/)
     assert.match(text, /open\s+\+200 MB \(-100\)  peak \+210 MB \(-100\)  repaint 40 ms \(-10\)/)
     assert.match(text, /place \(timed\)\s+longest frame 80 ms, 1 over 50 ms, settled 200 ms/)
+    assert.match(text, /open\s+\+200 MB \(-100\)  peak \+210 MB \(-100\)  no board/)
+})
+
+test('reports a page that reloaded during a timed action', () => {
+    const config = {
+        url: 'http://localhost:5186',
+        viewport: { width: 390, height: 664 },
+        dpr: 3,
+        mobile: true,
+        reducedMotion: false
+    }
+    const runs = [{ blankMb: 100, marks: [], timings: [{ label: 'place', reloaded: true }] }]
+    assert.match(formatReport({ config, runs }), /place \(timed\)\s+page reloaded/)
 })
