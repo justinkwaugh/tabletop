@@ -191,6 +191,7 @@
                     {radius}
                     prefix="dvonn-board"
                     model={animator.modelAt(stack.key)}
+                    turned={layout.turned}
                 />
             </g>
         </g>
@@ -234,7 +235,7 @@
     {@attach animator.attach}
 >
     <defs>
-        <PieceDefs prefix="dvonn-board" />
+        <PieceDefs prefix="dvonn-board" {radius} />
         <clipPath id="dvonn-sand-clip">
             <path d={layout.sandOutline}></path>
         </clipPath>
@@ -321,6 +322,7 @@
                         seedKeys={flier.pieces.map((piece) => coordsKey(piece.placedAt))}
                         {radius}
                         prefix="dvonn-board"
+                        turned={layout.turned}
                     />
                 </g>
             </g>

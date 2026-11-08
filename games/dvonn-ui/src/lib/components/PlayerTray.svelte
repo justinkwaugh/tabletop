@@ -89,7 +89,7 @@
                 preserveAspectRatio="xMaxYMid meet"
                 aria-hidden="true"
             >
-                <defs><PieceDefs {prefix} /></defs>
+                <defs><PieceDefs {prefix} radius={RADIUS} /></defs>
                 {#each tally as stack, index (index)}
                     <g transform="translate({index * PITCH} 0)">
                         <ellipse rx={RADIUS} ry={RADIUS * TILT} fill="url(#{prefix}-contact)"

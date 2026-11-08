@@ -13,29 +13,29 @@
         creaseColor,
         ellipsePath,
         lens,
+        lookBox,
         pieceDrawing,
         SHADE_LEVELS,
         wallBand,
         type Ellipse
     } from '$lib/board/pieceShape.js'
-    import {
-        faceSpecks,
-        PIECE_STYLES,
-        seedOf,
-        sideSpecks,
-        wallSpecks,
-        type Tone
-    } from '$lib/board/pieceStyle.js'
+    import { lookUrl } from '$lib/board/looks.js'
+    import { seedOf, type Tone } from '$lib/board/pieceStyle.js'
+    import { sideSpeckPaths, topSpeckPaths, wallSpeckPaths } from '$lib/board/specks.js'
 
     // A stack standing on its space, seen from the near side of the table, bottom piece first.
-    // The gradients come from a PieceDefs with the same prefix in the same SVG.
+    // Each whole piece is an image of its colour's look, pre-rendered by
+    // scripts/render-looks.mjs, with its own specks drawn over it, kept inside it by clips; the
+    // hole, which shows down through the stack, is drawn over the top piece. The gradients and
+    // the clips come from a PieceDefs with the same prefix and radius in the same SVG.
     let {
         tones,
         seedKeys,
         radius,
         prefix,
         catchLight = 0,
-        model = PIECE_MODEL
+        model = PIECE_MODEL,
+        turned = false
     }: {
         // Bottom to top, one per piece; each piece's specks are seeded by its key, so they go
         // with it as it moves.
@@ -46,6 +46,9 @@
         // How bright a black piece's top edge shows under another black piece; 0 for none.
         catchLight?: number
         model?: PieceModel
+        // On a board seen from the far side, the specks on a top turn half round with it, and
+        // the side you see is the other half of the side.
+        turned?: boolean
     } = $props()
 
     const uid = $props.id()
@@ -53,6 +56,7 @@
     const openingId = `dvonn-opening-${uid}`
     const MID_LEVEL = (SHADE_LEVELS - 1) / 2
 
+    const box = $derived(lookBox(radius))
     const drawing = $derived(pieceDrawing(radius, model))
     const pieces = $derived(
         stackDiscs(
@@ -67,10 +71,11 @@
             return {
                 ...disc,
                 tone,
-                style: PIECE_STYLES[tone],
                 seed,
-                sideSpecks: sideSpecks(tone, seed, model.thickness),
-                specks: top ? faceSpecks(tone, seed, model.hole) : [],
+                crease: creaseColor(tone),
+                sideSpecks: sideSpeckPaths(radius, tone, seed, disc.side, turned),
+                // Only the top piece's top shows.
+                topSpecks: top ? topSpeckPaths(radius, tone, seed, turned) : [],
                 top,
                 catch: catchLight > 0 && tone === 'black' && tones[index + 1] === 'black'
             }
@@ -90,25 +95,14 @@
         const walls = pieces
             .toReversed()
             .map((piece, index) => {
-                const upper = shift(drawing.opening, top.base + index * pitch)
-                const lower = shift(drawing.bottomOpening, top.base + index * pitch)
-                const depth = lower.y - upper.y
+                const offset = top.base + index * pitch
+                const upper = shift(drawing.opening, offset)
                 return {
-                    band: wallBand(upper, lower),
-                    style: piece.style,
+                    offset,
+                    band: wallBand(upper, shift(drawing.bottomOpening, offset)),
+                    tone: piece.tone,
                     seen: upper.y - upper.ry < opening.y + opening.ry,
-                    specks: wallSpecks(piece.tone, piece.seed, model.hole, model.thickness).map(
-                        (speck) => {
-                            const turn = Math.PI * speck.turn
-                            return {
-                                x: -upper.rx * Math.cos(turn),
-                                y: upper.y - upper.ry * Math.sin(turn) + speck.v * depth,
-                                rx: speck.r * radius * speck.stretch * Math.sin(turn),
-                                ry: Math.min(speck.r * radius, depth * 0.2),
-                                alt: speck.alt
-                            }
-                        }
-                    )
+                    specks: wallSpeckPaths(radius, piece.tone, piece.seed, turned)
                 }
             })
             .filter((wall) => wall.seen)
@@ -128,11 +122,6 @@
             ? `M ${-radius * 3} ${-radius * 6} H ${radius * 3} V ${radius * 3} H ${-radius * 3} Z ${hole.through}`
             : undefined
     )
-
-    function speckAt(x: number, y: number) {
-        const distance = Math.hypot(x, y)
-        return { x: x * radius, y: drawing.surface(distance) + y * radius * TILT }
-    }
 </script>
 
 {#if outside}
@@ -144,34 +133,24 @@
     {#each pieces as piece, index (index)}
         {#if piece.full}
             <g transform="translate(0 {piece.base})">
-                {#each drawing.side as slice, s (s)}
-                    <ellipse
-                        cy={slice.y}
-                        rx={slice.rx}
-                        ry={slice.ry}
-                        fill="url(#{prefix}-{piece.tone}-side-{slice.level})"
-                    ></ellipse>
-                {/each}
-                {#each piece.sideSpecks as speck, s (s)}
-                    <ellipse
-                        cx={speck.x * radius}
-                        cy={-drawing.height * (1 - speck.v) +
-                            radius * TILT * Math.sqrt(1 - speck.x * speck.x)}
-                        rx={speck.r * radius * speck.stretch * Math.sqrt(1 - speck.x * speck.x)}
-                        ry={Math.min(speck.r * radius, drawing.height * 0.2)}
-                        fill={speck.alt ? piece.style.speckAlt : piece.style.speck}
-                        class="speck"
-                    ></ellipse>
-                {/each}
-                {#if piece.top}
-                    {#each drawing.top as slice, s (s)}
-                        <ellipse
-                            cy={slice.y}
-                            rx={slice.rx}
-                            ry={slice.ry}
-                            fill="url(#{prefix}-{piece.tone}-top-{slice.level})"
-                        ></ellipse>
+                <image
+                    href={lookUrl({ tone: piece.tone })}
+                    x={box.x}
+                    y={box.y}
+                    width={box.width}
+                    height={box.height}
+                ></image>
+                <g clip-path="url(#{prefix}-side-clip)">
+                    {#each piece.sideSpecks as speck (speck.fill)}
+                        <path d={speck.d} fill={speck.fill} class="speck"></path>
                     {/each}
+                </g>
+                {#if piece.top}
+                    <g clip-path="url(#{prefix}-top-clip)">
+                        {#each piece.topSpecks as speck (speck.fill)}
+                            <path d={speck.d} fill={speck.fill} class="speck"></path>
+                        {/each}
+                    </g>
                 {:else}
                     <!-- The top in the shadow of the piece resting on it: the crease between
                          them. -->
@@ -179,7 +158,7 @@
                         cy={drawing.rim.y}
                         rx={drawing.rim.rx}
                         ry={drawing.rim.ry}
-                        fill={creaseColor(piece.tone)}
+                        fill={piece.crease}
                     ></ellipse>
                     {#if piece.catch}
                         <path
@@ -195,21 +174,14 @@
             <path
                 d={bandPath(piece.base, piece.side, radius)}
                 fill="url(#{prefix}-{piece.tone}-side-{MID_LEVEL})"
-                stroke={creaseColor(piece.tone)}
+                stroke={piece.crease}
                 stroke-width={Math.min(0.6, piece.side * 0.3)}
             ></path>
-            {#each piece.sideSpecks as speck, s (s)}
-                <ellipse
-                    cx={speck.x * radius}
-                    cy={piece.base -
-                        piece.side * (1 - speck.v) +
-                        radius * TILT * Math.sqrt(1 - speck.x * speck.x)}
-                    rx={speck.r * radius * speck.stretch * Math.sqrt(1 - speck.x * speck.x)}
-                    ry={Math.min(speck.r * radius, piece.side * 0.35)}
-                    fill={speck.alt ? piece.style.speckAlt : piece.style.speck}
-                    class="speck"
-                ></ellipse>
-            {/each}
+            <g transform="translate(0 {piece.base})">
+                {#each piece.sideSpecks as speck (speck.fill)}
+                    <path d={speck.d} fill={speck.fill} class="speck"></path>
+                {/each}
+            </g>
         {/if}
     {/each}
 </g>
@@ -220,29 +192,14 @@
     <g clip-path="url(#{openingId})">
         <path d={hole.shadow} class="hole-shadow"></path>
         {#each hole.walls as wall, index (index)}
-            <path d={wall.band} fill={wall.style.wall}></path>
-            {#each wall.specks as speck, s (s)}
-                <ellipse
-                    cx={speck.x}
-                    cy={speck.y}
-                    rx={speck.rx}
-                    ry={speck.ry}
-                    fill={speck.alt ? wall.style.speckAlt : wall.style.speck}
-                    class="speck wall-speck"
-                ></ellipse>
-            {/each}
+            <path d={wall.band} fill="url(#{prefix}-{wall.tone}-wall)"></path>
+            <g transform="translate(0 {wall.offset})">
+                {#each wall.specks as speck (speck.fill)}
+                    <path d={speck.d} fill={speck.fill} class="wall-speck"></path>
+                {/each}
+            </g>
         {/each}
     </g>
-    {#each top.specks as speck, s (s)}
-        {@const at = speckAt(speck.x, speck.y)}
-        <ellipse
-            transform="translate({at.x} {top.base + at.y}) scale(1 {TILT}) rotate({speck.angle})"
-            rx={speck.r * radius * speck.stretch}
-            ry={speck.r * radius}
-            fill={speck.alt ? top.style.speckAlt : top.style.speck}
-            class="speck"
-        ></ellipse>
-    {/each}
 {/if}
 
 <style>
