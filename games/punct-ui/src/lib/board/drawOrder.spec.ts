@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { spaceAt } from '@tabletop/punct'
 import { drawOrder, type Stander } from './drawOrder.js'
 import { VIEW, viewOf } from './geometry.js'
 
@@ -34,6 +35,32 @@ describe('drawOrder', () => {
         }
         for (const view of [VIEW, viewOf(true, false), viewOf(true, true)]) {
             expect(keys(drawOrder([over, under], view))).toEqual(['under', 'over'])
+        }
+    })
+
+    // From the Layers scenario: piece 0 rests on 2 and under 6; 11 lies beside them across the
+    // column, behind 2's near end and in front of 0, so farther and nearer alone form a cycle.
+    it('never draws a piece before one it rests on, even in a cycle of farther and nearer', () => {
+        const piece = (key: string, names: string[], level: number): Stander => ({
+            key,
+            cells: names.map(spaceAt),
+            level
+        })
+        const standers = [
+            piece('0', ['G12', 'H12', 'F11'], 1),
+            piece('2', ['H11', 'H12', 'G12'], 0),
+            piece('6', ['F10', 'F11', 'G11'], 2),
+            piece('11', ['I12', 'J13', 'K13'], 0)
+        ]
+        for (const [rotated, turned] of [
+            [false, false],
+            [false, true],
+            [true, false],
+            [true, true]
+        ]) {
+            const order = keys(drawOrder(standers, viewOf(rotated, turned)))
+            expect(order.indexOf('2')).toBeLessThan(order.indexOf('0'))
+            expect(order.indexOf('0')).toBeLessThan(order.indexOf('6'))
         }
     })
 })
