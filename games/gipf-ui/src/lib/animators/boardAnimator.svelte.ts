@@ -100,7 +100,10 @@ export class BoardAnimator implements MoveInterrupter {
     private finishMove() {
         const timeline = this.playing
         if (timeline === undefined) return
-        ;(timeline.parent ?? timeline).progress(1)
+        // Until the context plays it, a timeline sits under GSAP's global one, which must not jump.
+        const parent = timeline.parent
+        const master = parent && parent !== gsap.globalTimeline ? parent : timeline
+        master.progress(1)
     }
 
     // The node that carries a piece and its shadow across the board.
