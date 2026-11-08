@@ -12,6 +12,7 @@ import { TzaarColors } from './colors.js'
 import { TzaarScoring } from './scoring.js'
 
 export const TzaarRuntime: GameRuntime<TzaarGameState, HydratedTzaarGameState> = {
+    randomnessVersion: 1,
     initializer: new TzaarGameInitializer(),
     canonicalStateValidator: TzaarGameStateValidator,
     hydrator: new TzaarHydrator(),

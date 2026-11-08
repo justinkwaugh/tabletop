@@ -1,4 +1,4 @@
-import type { GameInfo } from '@tabletop/common'
+import { GameVisibility, type GameInfo } from '@tabletop/common'
 import { GAME_VERSION } from './version.js'
 import { TzaarConfigurator } from './config.js'
 import { TzaarPreferenceDefinition } from './preferences.js'
@@ -15,7 +15,8 @@ export const TzaarInfo: GameInfo = {
         maxPlayers: 2,
         defaultPlayerCount: 2,
         version: GAME_VERSION,
-        beta: true
+        beta: true,
+        visibility: GameVisibility.Alpha
     },
     configurator: new TzaarConfigurator(),
     preferences: TzaarPreferenceDefinition

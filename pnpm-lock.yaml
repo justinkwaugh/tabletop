@@ -3798,9 +3798,6 @@ importers:
       '@tabletop/common':
         specifier: workspace:*
         version: link:../../libs/common
-      es-iterator-helpers:
-        specifier: ^1.2.2
-        version: 1.4.0
       typebox:
         specifier: ^1.0.79
         version: 1.0.79(patch_hash=db30f1c0a519eff155d563d26e293e52f772a6d83e1d6b7c5fd1a88ed0a32f91)
@@ -3832,9 +3829,6 @@ importers:
 
   games/tzaar-ui:
     dependencies:
-      '@floating-ui/dom':
-        specifier: ^1.7.4
-        version: 1.8.0
       '@tabletop/common':
         specifier: workspace:*
         version: link:../../libs/common
@@ -3847,12 +3841,6 @@ importers:
       gsap:
         specifier: ^3.14.2
         version: 3.15.0
-      javascript-time-ago:
-        specifier: ^2.5.10
-        version: 2.6.4
-      nanoid:
-        specifier: ^5.1.6
-        version: 5.1.6
     devDependencies:
       '@playwright/test':
         specifier: ^1.42.1
