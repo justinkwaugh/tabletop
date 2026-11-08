@@ -1,7 +1,7 @@
 import type { GameUiDefinition } from '@tabletop/frontend-components/definition/gameUiDefinition'
 import { YinshInfo } from '@tabletop/yinsh'
 import type { YinshGameState, HydratedYinshGameState } from '@tabletop/yinsh'
-import coverImg from '$lib/images/yinsh-cover.jpg'
+import coverImg from '$lib/images/yinsh-cover.webp'
 
 export const UiDefinition: GameUiDefinition<YinshGameState, HydratedYinshGameState> = {
     info: {

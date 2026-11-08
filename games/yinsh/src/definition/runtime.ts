@@ -12,6 +12,7 @@ import { YinshColors } from './colors.js'
 import { YinshScoring } from './scoring.js'
 
 export const YinshRuntime: GameRuntime<YinshGameState, HydratedYinshGameState> = {
+    randomnessVersion: 1,
     initializer: new YinshGameInitializer(),
     canonicalStateValidator: YinshGameStateValidator,
     hydrator: new YinshHydrator(),
