@@ -1,4 +1,4 @@
-import { type AxialCoordinates, type Point } from '@tabletop/common'
+import type { AxialCoordinates, Point } from '@tabletop/common'
 import { SPACES } from '@tabletop/punct'
 import { SPACING, type BoardView } from './geometry.js'
 import { pointInPolygon } from './pieceShape.js'

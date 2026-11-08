@@ -1,7 +1,7 @@
 import { tick } from 'svelte'
 import type { Attachment } from 'svelte/attachments'
 import { gsap } from 'gsap'
-import { type Point } from '@tabletop/common'
+import type { Point } from '@tabletop/common'
 import type {
     AnimationContext,
     TransitionKind,

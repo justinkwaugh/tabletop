@@ -1,4 +1,4 @@
-import { type AxialCoordinates } from '@tabletop/common'
+import type { AxialCoordinates } from '@tabletop/common'
 import { spaceKey } from '@tabletop/punct'
 import { VIEW, type BoardView } from './geometry.js'
 
