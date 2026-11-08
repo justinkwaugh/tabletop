@@ -202,7 +202,7 @@ describe('Undo of your push', () => {
         expect(session.chosenGipf).toBe(false)
 
         await settled(session.undo())
-        expect(session.hasManualSelection()).toBe(false)
+        expect(session.hasLocalSelection).toBe(false)
         expect(session.gameState.actionCount).toBe(2)
     })
 
@@ -217,7 +217,7 @@ describe('Undo of your push', () => {
         expect(session.chosenGipf).toBe(true)
 
         await settled(session.undo())
-        expect(session.hasManualSelection()).toBe(false)
+        expect(session.hasLocalSelection).toBe(false)
         expect(session.gameState.actionCount).toBe(0)
     })
 })
@@ -254,7 +254,7 @@ describe('Letting go', () => {
 
         session.letGo()
         expect(session.chosenDot).toBeUndefined()
-        expect(session.hasManualSelection()).toBe(false)
+        expect(session.hasLocalSelection).toBe(false)
         expect(session.gameState.actionCount).toBe(2)
     })
 })

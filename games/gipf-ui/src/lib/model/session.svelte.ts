@@ -1,5 +1,6 @@
 import {
     GameSession,
+    undoableStagedSelection,
     type PresentedTransition,
     type TitlePreferences
 } from '@tabletop/frontend-components'
@@ -20,8 +21,7 @@ import {
     type Row
 } from '@tabletop/gipf'
 import {
-    hasManualGipfSelection,
-    popGipfSelection,
+    GipfStageOrder,
     restagedGipfSelection,
     setGipfSelection,
     type GipfSelection
@@ -37,6 +37,10 @@ export function rowKey(row: Row): string {
     return `${coordsKey(row.from)}|${coordsKey(row.to)}`
 }
 
+type SessionOptions = ConstructorParameters<
+    typeof GameSession<GipfGameState, HydratedGipfGameState>
+>[0]
+
 export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGameState> {
     selection: GipfSelection = $state({})
     // The push being undone. Undo takes your piece back out onto its dot, staged as you chose it,
@@ -44,6 +48,17 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
     undoingPush: PushPiece | undefined
     // The push history last stepped to, whose piece came in from its own dot.
     historyPush: PushPiece | undefined
+
+    constructor(options: SessionOptions) {
+        super(options)
+        this.localSelections.register(
+            undoableStagedSelection(
+                GipfStageOrder,
+                () => this.selection,
+                (selection) => (this.selection = selection)
+            )
+        )
+    }
 
     readonly preferences: TitlePreferences<typeof GipfPreferences> =
         this.createPreferences(GipfPreferenceDefinition)
@@ -160,22 +175,6 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
         return !this.isViewingHistory && this.isMyTurn && this.validActionTypes.includes(type)
     }
 
-    hasManualSelection(): boolean {
-        return hasManualGipfSelection(this.selection)
-    }
-
-    override async undo() {
-        if (this.hasManualSelection()) {
-            this.selection = popGipfSelection(this.selection)
-            return
-        }
-        await super.undo()
-    }
-
-    resetAction() {
-        this.selection = {}
-    }
-
     override willUndo(action: GameAction): void {
         this.undoingPush = isPushPiece(action) ? action : undefined
     }
@@ -186,7 +185,7 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
 
     override beforeNewState({ kind }: PresentedTransition): void {
         const push = kind === 'undo' ? this.undoingPush : undefined
-        this.selection = push ? restagedGipfSelection(push, this.hadTypeChoice(push)) : {}
+        if (push) this.selection = restagedGipfSelection(push, this.hadTypeChoice(push))
         if (kind !== 'undo') this.undoingPush = undefined
     }
 

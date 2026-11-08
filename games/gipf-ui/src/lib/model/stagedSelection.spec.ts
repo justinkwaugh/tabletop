@@ -1,11 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import {
-    hasManualGipfSelection,
-    popGipfSelection,
+    hasManualStagedSelection,
+    popHighestManualStagedSelection
+} from '@tabletop/frontend-components'
+import {
+    GipfStageOrder,
     restagedGipfSelection,
     setGipfSelection,
-    type GipfSelection
+    type GipfSelection,
+    type GipfSelectionValues
 } from './stagedSelection.js'
+
+const popGipfSelection = (selection: GipfSelection) =>
+    popHighestManualStagedSelection<GipfSelectionValues>(selection, GipfStageOrder).nextState
+const hasManualGipfSelection = (selection: GipfSelection) =>
+    hasManualStagedSelection<GipfSelectionValues>(selection, GipfStageOrder)
 
 describe('gipf staged selection', () => {
     it('choosing another dot clears the piece type', () => {

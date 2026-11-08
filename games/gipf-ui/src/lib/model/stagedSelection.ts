@@ -1,8 +1,6 @@
 import type { AxialCoordinates } from '@tabletop/common'
 import {
     clearStagedSelectionAtOrAfter,
-    hasManualStagedSelection,
-    popHighestManualStagedSelection,
     setStagedSelectionValue,
     type StagedSelectionState
 } from '@tabletop/frontend-components'
@@ -46,14 +44,6 @@ export function setGipfSelection<TStage extends keyof GipfSelectionValues>(
               value,
               'manual'
           )
-}
-
-export function hasManualGipfSelection(selection: GipfSelection): boolean {
-    return hasManualStagedSelection<GipfSelectionValues>(selection, GipfStageOrder)
-}
-
-export function popGipfSelection(selection: GipfSelection): GipfSelection {
-    return popHighestManualStagedSelection<GipfSelectionValues>(selection, GipfStageOrder).nextState
 }
 
 // Your choices for a push taken back, as you made them: a GIPF-piece only if you made it one, so
