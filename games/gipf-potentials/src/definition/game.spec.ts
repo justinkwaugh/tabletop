@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
     ActionSource,
+    assert,
     defaultGameConfig,
     GameEngine,
     GameResult,
+    isListConfigOption,
+    listOptionDescription,
     PlayerStatus,
     type GameAction,
     type GameConfig
@@ -293,15 +296,22 @@ describe('the game form', () => {
     const form = (): GameConfig => defaultGameConfig(configurator.options)
     const counts = (config: GameConfig) => POTENTIAL_KINDS.map((kind) => config[kind])
 
-    it('Ultimate sets every count to 3 and greys them out, with a note on what it changes', () => {
+    it('Ultimate sets every count to 3 and greys them out', () => {
         const config = form()
         configurator.updateConfig(config, { id: 'version', value: GipfVersion.Ultimate })
         expect(counts(config)).toEqual(['3', '3', '3', '3', '3'])
-        expect(configurator.optionState(config, PieceKind.Yinsh)).toEqual({ disabled: true })
-        expect(configurator.optionState(config, 'version').note).toContain('21 pieces')
+        expect(configurator.isOptionDisabled(config, PieceKind.Yinsh)).toBe(true)
+        expect(configurator.isOptionDisabled(config, 'version')).toBe(false)
         configurator.updateConfig(config, { id: 'version', value: GipfVersion.Tournament })
         expect(counts(config)).toEqual(['0', '0', '0', '6', '0'])
-        expect(configurator.optionState(config, PieceKind.Yinsh)).toEqual({})
+        expect(configurator.isOptionDisabled(config, PieceKind.Yinsh)).toBe(false)
+    })
+
+    it('describes the version chosen under its menu', () => {
+        const version = configurator.options.find((option) => option.id === 'version')
+        assert(version !== undefined && isListConfigOption(version), 'Version is a list')
+        expect(listOptionDescription(version, GipfVersion.Ultimate)).toContain('21 pieces')
+        expect(listOptionDescription(version, GipfVersion.Standard)).toContain('18 pieces')
     })
 
     it('counts are left as chosen, past 12 in all', () => {
@@ -309,7 +319,7 @@ describe('the game form', () => {
         for (const kind of POTENTIAL_KINDS)
             configurator.updateConfig(config, { id: kind, value: '5' })
         expect(counts(config)).toEqual(['5', '5', '5', '5', '5'])
-        expect(configurator.optionState(config, PieceKind.Punct)).toEqual({})
+        expect(configurator.isOptionDisabled(config, PieceKind.Punct)).toBe(false)
     })
 })
 

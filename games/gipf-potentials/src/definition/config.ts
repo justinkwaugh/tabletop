@@ -2,7 +2,6 @@ import * as Type from 'typebox'
 import {
     BaseConfigurator,
     ConfigOptionType,
-    type ConfigOptionState,
     type GameConfig,
     type GameConfigOptions
 } from '@tabletop/common'
@@ -39,7 +38,7 @@ export const VERSION_RULES: Record<GipfVersion, VersionRules> = {
     [GipfVersion.Ultimate]: { pieces: 21, startsWithGipfPieces: false, potentialsOfEveryKind: 3 }
 }
 
-const VERSION_NOTES: Record<GipfVersion, string> = {
+const VERSION_DESCRIPTIONS: Record<GipfVersion, string> = {
     [GipfVersion.Standard]: '18 pieces each; three GIPF-pieces each start on the board.',
     [GipfVersion.Tournament]:
         '18 pieces each and an empty board; GIPF-pieces come in before your first other piece.',
@@ -92,15 +91,16 @@ export const GipfPotentialsGameConfigOptions: GameConfigOptions = [
         id: 'version',
         type: ConfigOptionType.List,
         name: 'Version',
-        description: Object.entries(VERSION_NOTES)
-            .map(([version, note]) => `${version}: ${note}`)
+        // Older site forms show only this, so it describes every version.
+        description: Object.entries(VERSION_DESCRIPTIONS)
+            .map(([version, description]) => `${version}: ${description}`)
             .join(' '),
         default: GipfVersion.Standard,
-        options: [
-            { name: 'Standard', value: GipfVersion.Standard },
-            { name: 'Tournament', value: GipfVersion.Tournament },
-            { name: 'Ultimate', value: GipfVersion.Ultimate }
-        ],
+        options: Object.values(GipfVersion).map((version) => ({
+            name: version,
+            value: version,
+            description: VERSION_DESCRIPTIONS[version]
+        })),
         alwaysShow: true
     },
     ...POTENTIAL_KINDS.map((kind) => ({
@@ -109,10 +109,16 @@ export const GipfPotentialsGameConfigOptions: GameConfigOptions = [
         name: `${KIND_NAMES[kind]} potentials`,
         description: `Per player; ${KIND_POWERS[kind]}.`,
         default: String(DEFAULT_POTENTIALS[kind]),
-        options: COUNT_VALUES.map((value) => ({
-            name: value === '0' ? 'None' : value,
-            value
-        })),
+        options: COUNT_VALUES.map((value) =>
+            // YINSH is the default kind, so with none of it either the game falls back to it.
+            value === '0' && kind === PieceKind.Yinsh
+                ? {
+                      name: 'None',
+                      value,
+                      description: `Per player; ${KIND_POWERS[kind]}. With no potentials of any kind, the game uses 6 YINSH.`
+                  }
+                : { name: value === '0' ? 'None' : value, value }
+        ),
         alwaysShow: true
     })),
     {
@@ -148,22 +154,11 @@ export class GipfPotentialsConfigurator extends BaseConfigurator {
         }
     }
 
-    optionState(config: GameConfig, optionId: string): ConfigOptionState {
-        const version = versionFromConfig(config)
-        if (optionId === 'version') {
-            return { note: VERSION_NOTES[version] }
-        }
-        if (POTENTIAL_KINDS.every((kind) => kind !== optionId)) {
-            return {}
-        }
-        if (version === GipfVersion.Ultimate) {
-            return { disabled: true }
-        }
-        const last = POTENTIAL_KINDS[POTENTIAL_KINDS.length - 1]
-        const none = POTENTIAL_KINDS.every((kind) => chosenCounts(config)[kind] === 0)
-        return optionId === last && none
-            ? { note: 'With no potentials chosen, the game uses 6 YINSH.' }
-            : {}
+    isOptionDisabled(config: GameConfig, optionId: string): boolean {
+        return (
+            versionFromConfig(config) === GipfVersion.Ultimate &&
+            POTENTIAL_KINDS.some((kind) => kind === optionId)
+        )
     }
 }
 
