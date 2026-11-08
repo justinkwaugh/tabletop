@@ -39,6 +39,11 @@ const SLIDE = 0.35
 const TAKE: Lift = { duration: 0.55, rise: -34, fade: 'power1.out' }
 const MARK_FADE = 0.2
 const FALLBACK_DURATION = 0.18
+// A push taken back other than by your own Undo goes back to its dot and lifts off there; the
+// two overlap so the whole move stays within the 0.2s an actionless change may take.
+const UNPUSH_SLIDE = 0.14
+const UNPUSH_LIFT_AT = 0.08
+const UNPUSH_LIFT: Lift = { duration: 0.12, rise: LIFT_OFF.rise, fade: LIFT_OFF.fade }
 
 // The piece being pushed in, drawn above the board from its dot until the move lands.
 export type Entering = { playerId: string; gipf: boolean; dot: AxialCoordinates }
@@ -195,9 +200,8 @@ export class BoardAnimator {
     }
 
     // Undo and history steps carry no action, so a push is read from the two boards and the line
-    // slides either way; otherwise only pieces whose spot is left empty lift off. Undo takes your
-    // piece back out onto its dot, where it stays staged; stepping back through history, it lifts
-    // off where it stands.
+    // slides either way; otherwise only pieces whose spot is left empty lift off. A push taken
+    // back returns to its dot: your own Undo leaves it staged there, any other lifts it off.
     private async fallback(
         kind: TransitionKind,
         from: HydratedGipfGameState,
@@ -240,13 +244,21 @@ export class BoardAnimator {
             )
             return
         }
-        this.slideBack(line, shifted, timeline, touched)
-        if (kind !== 'undo') {
-            this.lift(line[0], timeline, LIFT_OFF, touched)
-            return
+        const toDot = this.offset(line[0], dot)
+        if (this.isOwnUndo(kind, dot)) {
+            this.slideBack(line, shifted, timeline, touched, FALLBACK_DURATION)
+            this.slide([line[0]], toDot, timeline, FALLBACK_DURATION, touched)
+            return { playerId: piece.playerId, gipf: piece.gipf, dot }
         }
-        this.slide([line[0]], this.offset(line[0], dot), timeline, FALLBACK_DURATION, touched)
-        return { playerId: piece.playerId, gipf: piece.gipf, dot }
+        this.slideBack(line, shifted, timeline, touched, UNPUSH_SLIDE)
+        this.slide([line[0]], toDot, timeline, UNPUSH_SLIDE, touched)
+        this.lift(line[0], timeline, UNPUSH_LIFT, touched, UNPUSH_LIFT_AT)
+    }
+
+    // Only the session that pressed Undo knows the push it took back, and restages it on its dot.
+    private isOwnUndo(kind: TransitionKind, dot: AxialCoordinates): boolean {
+        const push = this.session.undoingPush
+        return kind === 'undo' && push !== undefined && sameCoordinates(push.dot, dot)
     }
 
     // The pieces a push moved along go back a spot.
@@ -254,11 +266,12 @@ export class BoardAnimator {
         line: readonly AxialCoordinates[],
         shifted: number,
         timeline: Timeline,
-        touched: SVGGElement[]
+        touched: SVGGElement[],
+        duration: number
     ) {
         const along = this.alongLine(line)
         const pulledBack = line.slice(1, shifted + 1)
-        this.slide(pulledBack, { x: -along.x, y: -along.y }, timeline, FALLBACK_DURATION, touched)
+        this.slide(pulledBack, { x: -along.x, y: -along.y }, timeline, duration, touched)
     }
 
     private slide(
@@ -281,7 +294,8 @@ export class BoardAnimator {
         coords: AxialCoordinates,
         timeline: Timeline,
         { duration, rise, fade }: Lift,
-        touched: SVGGElement[]
+        touched: SVGGElement[],
+        at = 0
     ) {
         const key = coordinatesToNumber(coords)
         const body = this.bodyNodes.get(key)
@@ -289,9 +303,9 @@ export class BoardAnimator {
         if (body === undefined || shadow === undefined) return
         touched.push(body, shadow)
         const ease = 'power1.out'
-        timeline.to(body, { scale: LIFT_OFF.scale, y: rise, duration, ease }, 0)
-        timeline.to(body, { opacity: 0, duration, ease: fade }, 0)
-        timeline.to(shadow, { opacity: 0, scale: LIFT_OFF.shadow, duration, ease }, 0)
+        timeline.to(body, { scale: LIFT_OFF.scale, y: rise, duration, ease }, at)
+        timeline.to(body, { opacity: 0, duration, ease: fade }, at)
+        timeline.to(shadow, { opacity: 0, scale: LIFT_OFF.shadow, duration, ease }, at)
     }
 
     private dropEntering(timeline: Timeline) {
