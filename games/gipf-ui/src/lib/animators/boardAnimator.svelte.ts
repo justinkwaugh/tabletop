@@ -70,8 +70,8 @@ export class BoardAnimator implements MoveInterrupter {
     private enteringShadowNode: SVGGElement | undefined
     private readonly markNodes = new Set<SVGGElement>()
     private readonly listener = (step: Step) => this.onGameStateChange(step)
-    // Puts the board as the move playing leaves it.
-    private landMove: (() => void) | undefined
+    // The timeline of the move playing, until it lands.
+    private playing: Timeline | undefined
     // The state of a presentation a switch of view left behind.
     private abandoned: HydratedGipfGameState | undefined
 
@@ -87,34 +87,20 @@ export class BoardAnimator implements MoveInterrupter {
     }
 
     interrupt() {
-        if (!this.stop()) return
-        // The move's choices stay faded until its state lands and clears them.
-        gsap.set([...this.markNodes], { opacity: 0 })
+        this.finishMove()
     }
 
     abandon() {
-        this.stop()
+        this.finishMove()
         this.abandoned = this.session.presentingState
     }
 
-    private stop(): boolean {
-        const land = this.landMove
-        if (land === undefined) return false
-        gsap.killTweensOf(this.animatedNodes())
-        land()
-        return true
-    }
-
-    private animatedNodes(): SVGGElement[] {
-        const entering = [this.enteringNode, this.enteringCreaseNode, this.enteringShadowNode]
-        return [
-            ...this.pieceNodes.values(),
-            ...this.bodyNodes.values(),
-            ...this.shadowNodes.values(),
-            ...this.markNodes,
-            ...this.enteringDiscNodes.values(),
-            ...entering.filter((node) => node !== undefined)
-        ]
+    // Plays the move to its end at once. The shared context's timeline, which holds this move's,
+    // then completes, so the move lands and its state is shown without waiting out its length.
+    private finishMove() {
+        const timeline = this.playing
+        if (timeline === undefined) return
+        ;(timeline.parent ?? timeline).progress(1)
     }
 
     // The node that carries a piece and its shadow across the board.
@@ -196,6 +182,7 @@ export class BoardAnimator implements MoveInterrupter {
         }
         this.abandoned = undefined
         const timeline = animationContext.actionTimeline
+        this.playing = timeline
         const shown = this.session.gameState
         // Each spot's drawing is reused for whatever piece next stands there, so every node a
         // move touches is put back once the move lands.
@@ -231,8 +218,8 @@ export class BoardAnimator implements MoveInterrupter {
             this.fadeMarks(timeline, FALLBACK_DURATION)
         }
 
-        const land = () => {
-            if (this.landMove === land) this.landMove = undefined
+        animationContext.afterAnimations(() => {
+            if (this.playing === timeline) this.playing = undefined
             this.entering = undefined
             for (const node of touched) gsap.set(node, { x: 0, y: 0, scale: 1, opacity: 1 })
             for (const node of this.markNodes) gsap.set(node, { opacity: 1 })
@@ -241,9 +228,7 @@ export class BoardAnimator implements MoveInterrupter {
             if (this.session.gameState !== shown) return
             this.pieces = to.board.pieces
             this.returned = returned
-        }
-        this.landMove = land
-        animationContext.afterAnimations(land)
+        })
     }
 
     // Undo and history steps carry no action, so a push is read from the two boards and the line
@@ -256,9 +241,11 @@ export class BoardAnimator implements MoveInterrupter {
         timeline: Timeline,
         touched: SVGGElement[]
     ): Promise<Entering | undefined> {
+        // A step back takes back the push on screen that led from `to`; history stepping forward
+        // knows the push it steps to.
         const known =
-            kind === 'undo'
-                ? this.session.undoingPush
+            to.actionCount < from.actionCount
+                ? this.session.undonePush(to)
                 : kind === 'history'
                   ? this.session.historyPush
                   : undefined
@@ -292,7 +279,7 @@ export class BoardAnimator implements MoveInterrupter {
             return
         }
         const toDot = this.offset(line[0], dot)
-        if (this.isOwnUndo(kind, dot)) {
+        if (kind === 'undo' && this.session.restagedPush(to) !== undefined) {
             this.slideBack(line, shifted, timeline, touched, FALLBACK_DURATION)
             this.slide([line[0]], toDot, timeline, FALLBACK_DURATION, touched)
             return { playerId: piece.playerId, gipf: piece.gipf, dot }
@@ -300,12 +287,6 @@ export class BoardAnimator implements MoveInterrupter {
         this.slideBack(line, shifted, timeline, touched, UNPUSH_SLIDE)
         this.slide([line[0]], toDot, timeline, UNPUSH_SLIDE, touched)
         this.lift(line[0], timeline, UNPUSH_LIFT, touched, UNPUSH_LIFT_AT)
-    }
-
-    // Only the session that pressed Undo knows the push it took back, and restages it on its dot.
-    private isOwnUndo(kind: TransitionKind, dot: AxialCoordinates): boolean {
-        const push = this.session.undoingPush
-        return kind === 'undo' && push !== undefined && sameCoordinates(push.dot, dot)
     }
 
     // The pieces a push moved along go back a spot.

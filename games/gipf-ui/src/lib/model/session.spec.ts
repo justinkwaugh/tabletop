@@ -203,21 +203,36 @@ describe('Undo seen from the player not to move', () => {
         expect(session.gameState.actionCount).toBe(before - 1)
     })
 
-    it('shows the restaged push again once its player views', async () => {
+    it("keeps a player's choice from anyone else viewing, and back for them", async () => {
         const prepared = tournament(true)
         const session = await sessionFor({ ...prepared, game: { ...prepared.game, hotseat: true } })
-        await pushOwn(session)
+        session.chooseDot(DOT)
+        expect(session.hasLocalSelection).toBe(true)
+
         session.setViewingAsNonActivePlayer(true)
-        await settled(session.undo())
+        expect(session.myPlayer?.id).toBe(BLACK)
+        expect(session.hasLocalSelection).toBe(false)
+        expect(session.chosenDot).toBeUndefined()
 
         session.setViewingAsNonActivePlayer(false)
-        expect(session.myPlayer?.id).toBe(WHITE)
         expect(session.chosenDot).toEqual(DOT)
         expect(session.hasLocalSelection).toBe(true)
     })
 })
 
 describe('Undo of your push', () => {
+    it('restages only the push the Undo took back, not one undone earlier', async () => {
+        const session = await whiteSession()
+        await pushOwn(session)
+        const pushed = session.gameState
+        await settled(session.undo())
+        expect(session.restagedPush(session.gameState)).toBeDefined()
+        // Another Undo reaching this session, of a move made before, lands on a different count.
+        expect(session.gameState.actionCount).toBeLessThan(pushed.actionCount)
+        const earlier = { actionCount: session.gameState.actionCount - 1 }
+        expect(session.restagedPush(earlier)).toBeUndefined()
+    })
+
     it('takes the piece back out onto its dot, staged as you chose it', async () => {
         const session = await whiteSession()
         await pushOwn(session)

@@ -219,9 +219,24 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
         return this.incomingGameState
     }
 
+    // The push on screen that a step back to `to` takes back.
+    undonePush(to: Pick<GipfGameState, 'actionCount'>): PushPiece | undefined {
+        const action = this.actions.find((candidate) => candidate.index === to.actionCount)
+        return isPushPiece(action) ? action : undefined
+    }
+
+    // The push your own Undo takes back to `to`, which comes back staged on its dot. None when the
+    // view passes to the other player as the Undo lands, as the harness's Non-active view does.
+    restagedPush(to: Pick<GipfGameState, 'actionCount'>): PushPiece | undefined {
+        const push = this.undoingPush
+        if (push === undefined || push.index !== to.actionCount) return undefined
+        return this.isViewingAsNonActivePlayer ? undefined : push
+    }
+
     override beforeNewState({ kind }: PresentedTransition): void {
         if (kind === 'view-switch') this.moveInterrupter?.abandon()
-        const push = kind === 'undo' ? this.undoingPush : undefined
+        const incoming = this.presentingState
+        const push = kind === 'undo' && incoming ? this.restagedPush(incoming) : undefined
         if (push) {
             this.selection = restagedGipfSelection(push, this.hadTypeChoice(push))
             this.selectionOwner = push.playerId
