@@ -653,7 +653,7 @@ function describeShared(
     if (isStartCompany(action)) {
         const details = action.metadata
         return {
-            text: `Started ${companyName(action.companyId)} at ${money(marketPrice(action.marketSpaceId))} par`,
+            text: `Started ${companyName(action.companyId)} at ${money(marketPrice(action.marketSpaceId))}`,
             detail: joinDetails(
                 details && `${details.shares} shares`,
                 money(action.expectedPrice),
