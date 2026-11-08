@@ -39,7 +39,13 @@ export type Row = {
 }
 
 const ROW_LENGTH = 4
+const GIPF_PIECE_SIZE = 2
 const GipfBoardValidator = Compile(GipfBoard)
+
+// A GIPF-piece is two pieces stacked, in the reserve as on the board.
+export function piecesIn(gipf: boolean): number {
+    return gipf ? GIPF_PIECE_SIZE : 1
+}
 
 export function emptyBoard(): GipfBoard {
     return { pieces: [] }

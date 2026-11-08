@@ -5,7 +5,7 @@
     import { onDestroy, untrack } from 'svelte'
     import { PIECE_RADIUS, VIEW } from '$lib/board/geometry.js'
     import { liftOffBody, liftOffShadow, StagedDrop } from '$lib/animators/drop.js'
-    import { discsOf } from '$lib/board/pieceShape.js'
+    import { piecesIn } from '@tabletop/gipf'
     import PieceShape from './PieceShape.svelte'
 
     // The piece you are about to bring in, dropping onto the dot you chose unless Undo took it
@@ -21,7 +21,7 @@
     // Whether it drops is settled when it is first drawn; a disc added later drops onto it.
     const drop = new StagedDrop(
         untrack(() => drops),
-        untrack(() => discsOf(gipf))
+        untrack(() => piecesIn(gipf))
     )
     onDestroy(() => drop.stop())
 </script>

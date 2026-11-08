@@ -13,7 +13,7 @@ import { HydratedGipfGameState, GipfGameState } from '../model/gameState.js'
 import { HydratedGipfPlayerState } from '../model/playerState.js'
 import { MachineState } from './states.js'
 import { VERSION_RULES, versionFromConfig } from './config.js'
-import { emptyBoard, HydratedGipfBoard } from '../model/board.js'
+import { emptyBoard, HydratedGipfBoard, piecesIn } from '../model/board.js'
 
 // Alternate corners of the play area, each one push in from an angular dot; dot e1 faces White.
 const STARTING_SPOTS: Record<Color.White | Color.Black, AxialCoordinates[]> = {
@@ -55,7 +55,7 @@ export class GipfGameInitializer
             turnManager.turnOrder[0] === playerId ? Color.White : Color.Black
         const board = new HydratedGipfBoard(emptyBoard())
         const startingCost = rules.hasStartingPosition
-            ? STARTING_SPOTS[Color.White].length * (rules.startsWithGipfPieces ? 2 : 1)
+            ? STARTING_SPOTS[Color.White].length * piecesIn(rules.startsWithGipfPieces)
             : 0
 
         const players = turnManager.turnOrder.map((playerId) => {

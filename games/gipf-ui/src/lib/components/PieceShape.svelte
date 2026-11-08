@@ -3,7 +3,8 @@
 <script lang="ts">
     import { Color } from '@tabletop/common'
     import { VIEW } from '$lib/board/geometry.js'
-    import { discsOf, lookBox, pieceDrawing } from '$lib/board/pieceShape.js'
+    import { piecesIn } from '@tabletop/gipf'
+    import { lookBox, pieceDrawing } from '$lib/board/pieceShape.js'
     import { lookUrl } from '$lib/board/looks.js'
     import { liftOffCrease, liftOffDisc, type PieceParts } from '$lib/animators/drop.js'
 
@@ -27,7 +28,7 @@
     } = $props()
 
     const tone = $derived(color === Color.White ? 'light' : 'dark')
-    const drawing = $derived(pieceDrawing(VIEW, discs ?? discsOf(gipf), radius))
+    const drawing = $derived(pieceDrawing(VIEW, discs ?? piecesIn(gipf), radius))
     const box = $derived(lookBox(VIEW, radius))
 </script>
 

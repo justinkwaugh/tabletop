@@ -1,3 +1,4 @@
+import { piecesIn } from '@tabletop/gipf'
 import type { BoardView } from './geometry.js'
 
 // A GIPF piece, as the published ones are, drawn as MATRX GIPF's are: a thin plastic disc with
@@ -101,16 +102,12 @@ function discBases(discs: number): number[] {
     return Array.from({ length: discs }, (_, index) => STACK_GAP + index * (THICKNESS + STACK_GAP))
 }
 
-export function discsOf(gipf: boolean): number {
-    return gipf ? 2 : 1
-}
-
 export function stackTop(discs: number): number {
     return discBases(discs).at(-1)! + THICKNESS
 }
 
 export function pieceTop(gipf: boolean): number {
-    return stackTop(discsOf(gipf))
+    return stackTop(piecesIn(gipf))
 }
 
 function flatEllipse(view: BoardView, radius: number) {

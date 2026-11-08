@@ -1,8 +1,7 @@
 <script lang="ts">
-    import type { HydratedGipfPlayerState } from '@tabletop/gipf'
+    import { piecesIn, type HydratedGipfPlayerState } from '@tabletop/gipf'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { tallyStacks } from '$lib/board/tally.js'
-    import { discsOf } from '$lib/board/pieceShape.js'
     import PieceTally from './PieceTally.svelte'
 
     let { playerState }: { playerState: HydratedGipfPlayerState } = $props()
@@ -32,7 +31,7 @@
                       count: gipfOnBoard,
                       caption: 'GIPF',
                       color: playerState.color,
-                      stacks: Array<number>(gipfOnBoard).fill(discsOf(true))
+                      stacks: Array<number>(gipfOnBoard).fill(piecesIn(true))
                   }
               ]
             : []),

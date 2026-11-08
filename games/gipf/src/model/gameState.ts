@@ -10,7 +10,14 @@ import { Compile } from 'typebox/compile'
 import { GipfPlayerState, HydratedGipfPlayerState } from './playerState.js'
 import { MachineState } from '../definition/states.js'
 import { GipfVersion, VERSION_RULES } from '../definition/config.js'
-import { GipfBoard, HydratedGipfBoard, type BoardPiece, type Piece, type Row } from './board.js'
+import {
+    GipfBoard,
+    HydratedGipfBoard,
+    piecesIn,
+    type BoardPiece,
+    type Piece,
+    type Row
+} from './board.js'
 import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
 
 export enum EndReason {
@@ -35,8 +42,6 @@ export const GipfGameState = Type.Evaluate(
 )
 
 export const GipfGameStateValidator = Compile(GipfGameState)
-
-const GIPF_PIECE_SIZE = 2
 
 export class HydratedGipfGameState
     extends HydratableGameState<typeof GipfGameState, HydratedGipfPlayerState>
@@ -86,7 +91,7 @@ export class HydratedGipfGameState
         return (
             this.version === GipfVersion.Tournament &&
             !player.playedSingle &&
-            player.reserve >= GIPF_PIECE_SIZE
+            player.reserve >= piecesIn(true)
         )
     }
 
@@ -109,7 +114,7 @@ export class HydratedGipfGameState
             throw Error('No room to push along that line')
         }
         const player = this.getPlayerState(playerId)
-        player.reserve -= gipf ? GIPF_PIECE_SIZE : 1
+        player.reserve -= piecesIn(gipf)
         if (!gipf) {
             player.playedSingle = true
         }
@@ -125,7 +130,7 @@ export class HydratedGipfGameState
             const kept = piece?.gipf === true && keep.some((k) => sameCoordinates(k, coords))
             if (piece === undefined || kept) continue
             this.board.remove(coords)
-            const size = piece.gipf ? GIPF_PIECE_SIZE : 1
+            const size = piecesIn(piece.gipf)
             if (piece.playerId === playerId) {
                 player.reserve += size
             } else {

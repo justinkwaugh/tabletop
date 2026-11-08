@@ -1,5 +1,5 @@
 import type { AxialCoordinates, GameAction } from '@tabletop/common'
-import { isPushPiece, isRemoveRow } from '@tabletop/gipf'
+import { isPushPiece, isRemoveRow, piecesIn } from '@tabletop/gipf'
 
 export type Taking = {
     from: AxialCoordinates
@@ -29,13 +29,12 @@ function takingOf(action: GameAction): Taking | undefined {
     const removed = action.metadata?.removed ?? []
     const own = removed.filter((piece) => piece.playerId === action.playerId)
     const theirs = removed.filter((piece) => piece.playerId !== action.playerId)
-    const size = (gipf: boolean) => (gipf ? 2 : 1)
     const [from, to] = inReadingOrder(action.from, action.to)
     return {
         from,
         to,
-        returned: own.reduce((sum, piece) => sum + size(piece.gipf), 0),
-        captured: theirs.reduce((sum, piece) => sum + size(piece.gipf), 0),
+        returned: own.reduce((sum, piece) => sum + piecesIn(piece.gipf), 0),
+        captured: theirs.reduce((sum, piece) => sum + piecesIn(piece.gipf), 0),
         capturedGipf: theirs.filter((piece) => piece.gipf).length
     }
 }
