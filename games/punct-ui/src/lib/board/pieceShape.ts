@@ -163,7 +163,7 @@ export function round(value: number): number {
 const BASE_ROUND = PIECE_THICKNESS * 0.1
 const RIM_ROUND = PIECE_THICKNESS * 0.13
 // The top face reaches a little over the rim's rounding, as GIPF's does.
-const TOP_INSET = RIM_ROUND * 0.6
+export const TOP_INSET = RIM_ROUND * 0.6
 const SLICES = 16
 
 // How far the outline draws in from the piece's full width at a height up its side, and which
@@ -209,11 +209,32 @@ export type PieceDrawing = {
     topOutline: Point[]
 }
 
+// Drawings worked out once for each way a piece lies: every render of the board asked again for
+// every piece's. A turning piece asks at every frame, so the cache is cleared when it fills.
+const CACHE_LIMIT = 400
+const drawings = new Map<string, PieceDrawing>()
+
 export function drawPiece(
     kind: PieceKind,
     angle: number,
     view: BoardView = VIEW,
     thickness = PIECE_THICKNESS
+): PieceDrawing {
+    const key = `${kind}|${angle}|${view.tilt}|${thickness}`
+    let drawing = drawings.get(key)
+    if (drawing === undefined) {
+        if (drawings.size >= CACHE_LIMIT) drawings.clear()
+        drawing = drawnPiece(kind, angle, view, thickness)
+        drawings.set(key, drawing)
+    }
+    return drawing
+}
+
+function drawnPiece(
+    kind: PieceKind,
+    angle: number,
+    view: BoardView,
+    thickness: number
 ): PieceDrawing {
     const slices = Array.from({ length: SLICES + 1 }, (_, index) => {
         const height = (thickness * index) / SLICES

@@ -3,6 +3,7 @@
     import { PIECE_KINDS, PieceKind } from '@tabletop/punct'
     import { PIECE_HALF_WIDTH, VIEW } from '$lib/board/geometry.js'
     import { drawPiece, outlinePlan, pathOf } from '$lib/board/pieceShape.js'
+    import { iconUrl } from '$lib/board/looks.js'
     import PieceDefs from './PieceDefs.svelte'
     import PieceSlab from './PieceSlab.svelte'
 
@@ -13,8 +14,16 @@
         color,
         kind,
         scale = 0.12,
-        ring = false
-    }: { color: Color; kind: PieceKind; scale?: number; ring?: boolean } = $props()
+        ring = false,
+        live = false
+    }: {
+        color: Color
+        kind: PieceKind
+        scale?: number
+        ring?: boolean
+        // Drawn without its image, as the looks page draws it for scripts/render-looks.mjs.
+        live?: boolean
+    } = $props()
 
     const ANGLES: Record<PieceKind, number> = {
         [PieceKind.Triangle]: 2.5,
@@ -55,6 +64,9 @@
     })
     const tone = $derived(color === Color.White ? 'light' : 'dark')
     const seed = $derived(900 + PIECE_KINDS.indexOf(kind))
+    // Pre-rendered by scripts/render-looks.mjs: drawn live, each icon's own gradients and slices
+    // made the player cards cost more to open than the board.
+    const href = $derived(live ? undefined : iconUrl(kind, tone))
 </script>
 
 <svg
@@ -68,8 +80,12 @@
         <path d={ringPath} class="ring under"></path>
         <path d={ringPath} class="ring over"></path>
     {/if}
-    <defs><PieceDefs {prefix} /></defs>
-    <PieceSlab {kind} {angle} {tone} {seed} {prefix} />
+    {#if href}
+        <image {href} x={box.x} y={box.y} width={box.width} height={box.height}></image>
+    {:else}
+        <defs><PieceDefs {prefix} /></defs>
+        <PieceSlab {kind} {angle} {tone} {seed} {prefix} live />
+    {/if}
 </svg>
 
 <style>

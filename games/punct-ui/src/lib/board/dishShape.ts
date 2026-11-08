@@ -2,16 +2,17 @@ import type { Point } from '@tabletop/common'
 import { DISH_RADIUS, PIECE_THICKNESS, type BoardView } from './geometry.js'
 import type { Tone } from './pieceShape.js'
 
-// A dot on a piece is a shallow dish sunk into its top, as TZAAR's centre is: from its lip a
-// curved wall (a cosine across its width) runs down to a wide flat floor, a little deeper than
-// TZAAR's so the plain dots show; much deeper read as a hole. Distances are from the dot's centre; depths below the top.
+// A dot on a piece is a dish sunk into its top, as TZAAR's centre is: from its lip a curved wall
+// (a cosine across its width) runs down to a wide flat floor, 0.6 of the piece's thickness deep
+// (chosen from 0.3 to 0.7; at 0.3 the dots read shallow). Distances are from the dot's centre;
+// depths below the top.
 export const DISH = {
     top: DISH_RADIUS,
     floor: DISH_RADIUS * 0.7,
-    depth: PIECE_THICKNESS * 0.3
+    depth: PIECE_THICKNESS * 0.6
 }
 
-const WALL_BANDS = 8
+const WALL_BANDS = 16
 
 // How far below the top the dish's surface lies at a distance from its centre.
 export function dishDepth(distance: number): number {
@@ -23,11 +24,11 @@ export function dishDepth(distance: number): number {
 
 type Ellipse = { cx: number; cy: number; rx: number; ry: number }
 
-// The rings of the dish from its lip inward, each its outer edge at its depth. Shallow as it is,
-// each lower ring further in leaves the last showing all the way round, as a crescent wider at
-// the far side, so drawing them in order needs no near halves. Each is shaded far to near by a
-// gradient (`dishStops`), so its shade turns smoothly round the dish instead of switching at
-// its sides.
+// The rings of the dish from its lip inward, each its outer edge at its depth. Drawn in order
+// and kept inside the lip, each lower ring further in leaves the last showing as a crescent wider
+// at the far side; where the near wall is too steep to see, the lower rings cover it, as the
+// floor beyond it shows over the lip. Each is shaded far to near by a gradient (`dishStops`), so
+// its shade turns smoothly round the dish instead of switching at its sides.
 export function dishRings(center: Point, view: BoardView): Ellipse[] {
     return dishEdges().map((distance) => ({
         cx: center.x,
@@ -52,15 +53,20 @@ export const DISH_RINGS = WALL_BANDS + 1
 // How each ring faces, far side to near, -1 away to 1 towards you: as GIPF's trough and MATRX's
 // carvings, the far wall facing you lies in the lip's shade, darkest just under it and easing
 // into the floor, and the near wall facing away catches the light; the floor a little shaded.
+// Shaded more strongly than the shallow dish first drawn (0.3 of the thickness deep), as its
+// walls are steeper and its floor further down: by WALLS and FLOOR.
+const WALLS = 2 ** 0.7
+const FLOOR = 2 ** 0.5
+
 export function ringFacing(ring: number): { far: number; middle: number; near: number } {
-    if (ring >= WALL_BANDS) return { far: -0.22, middle: -0.16, near: -0.1 }
+    if (ring >= WALL_BANDS) return { far: -0.22 * FLOOR, middle: -0.16 * FLOOR, near: -0.1 * FLOOR }
     const edges = dishEdges()
     const down = (dishDepth(edges[ring]) + dishDepth(edges[ring + 1])) / 2 / DISH.depth
     const steep = Math.sin(Math.PI * down)
     return {
-        far: -0.2 - 0.7 * (1 - down) - 0.15 * steep,
-        middle: -0.14,
-        near: 0.1 + 0.45 * (1 - down)
+        far: Math.max(-1, -0.2 - (0.7 * (1 - down) + 0.15 * steep) * WALLS),
+        middle: -0.14 * FLOOR,
+        near: Math.min(1, 0.1 + 0.45 * (1 - down) * WALLS)
     }
 }
 

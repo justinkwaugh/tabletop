@@ -1,21 +1,24 @@
 <script lang="ts">
     import type { PieceKind } from '@tabletop/punct'
     import { VIEW, type BoardView } from '$lib/board/geometry.js'
-    import { DISH, dishRings, type DishMaterial } from '$lib/board/dishShape.js'
-    import { drawPiece, pathOf, type Tone } from '$lib/board/pieceShape.js'
+    import { drawPiece, type Tone } from '$lib/board/pieceShape.js'
+    import { bodyImage, dishBox, dishUrl } from '$lib/board/looks.js'
     import { speckPaths } from '$lib/board/specks.js'
+    import PieceBody from './PieceBody.svelte'
+    import DishLook from './DishLook.svelte'
 
-    // One piece standing on whatever is under it, its PÜNCT at the origin: its rounded side as
-    // slices, bottom first, each shaded by the gradients in `PieceDefs` under the same prefix;
-    // the speckled top with its three dots sunk as flat-bottomed dishes, the PÜNCT's in its
-    // smooth insert.
+    // One piece standing on whatever is under it, its PÜNCT at the origin: its body and its three
+    // dots sunk as flat-bottomed dishes, the PÜNCT's in its smooth insert, from pre-rendered
+    // images where it lies at rest (board/looks.ts), drawn live while it turns; its specks over
+    // them, its own.
     let {
         kind,
         angle,
         tone,
         seed,
         prefix,
-        view = VIEW
+        view = VIEW,
+        live = false
     }: {
         kind: PieceKind
         angle: number
@@ -23,78 +26,59 @@
         seed: number
         prefix: string
         view?: BoardView
+        // Drawn without images, as the icons are for the looks page.
+        live?: boolean
     } = $props()
 
-    const drawing = $derived(drawPiece(kind, angle, view))
-    // A soft sheen on the PÜNCT's smooth floor, towards the light.
-    const sheen = $derived.by(() => {
-        const { x, y } = drawing.dots[0]
-        const r = DISH.floor
-        return {
-            cx: x - r * 0.28,
-            cy: y + view.height(DISH.depth) - r * view.tilt * 0.22,
-            rx: r * 0.55,
-            ry: r * view.tilt * 0.4
-        }
-    })
+    const dots = $derived(drawPiece(kind, angle, view).dots)
+    const body = $derived(live ? undefined : bodyImage(kind, angle, tone))
+    const dish = dishBox()
     const specks = $derived(speckPaths(kind, seed, angle, view))
 </script>
 
 <g class="piece {tone}">
-    {#each drawing.slices as slice, index (index)}
-        <path d={pathOf(slice.points)} fill="url(#{prefix}-{tone}-{slice.shade})" class="slice"
-        ></path>
-    {/each}
+    {#if body}
+        <image href={body.href} x={body.x} y={body.y} width={body.width} height={body.height}
+        ></image>
+    {:else}
+        <PieceBody {kind} {angle} {tone} {prefix} {view} />
+    {/if}
     <path d={specks.side} class="specks side-specks"></path>
-    <path d={pathOf(drawing.top)} class="top"></path>
-    {#each drawing.dots as dot, index (index)}
-        {@const material: DishMaterial = index === 0 ? `${tone}-insert` : tone}
-        {#each dishRings(dot, view) as ring, ringIndex (ringIndex)}
-            <ellipse
-                {...ring}
-                fill="url(#{prefix}-dish-{material}-{ringIndex})"
-                stroke="url(#{prefix}-dish-{material}-{ringIndex})"
-                class="dish-ring"
-            ></ellipse>
-        {/each}
+    <path d={specks.sideGrey} class="specks grey side-specks"></path>
+    {#each dots as dot, index (index)}
+        {@const material = index === 0 ? (`${tone}-insert` as const) : tone}
+        {@const href = body ? dishUrl(material) : undefined}
+        {#if href}
+            <image
+                {href}
+                x={dot.x + dish.x}
+                y={dot.y + dish.y}
+                width={dish.width}
+                height={dish.height}
+            ></image>
+        {:else}
+            <DishLook center={dot} {material} {prefix} {view} />
+        {/if}
     {/each}
     <path d={specks.top} class="specks"></path>
-    <ellipse {...sheen} fill="url(#{prefix}-sheen)" class="sheen"></ellipse>
+    <path d={specks.topGrey} class="specks grey"></path>
 </g>
 
 <style>
-    .slice {
-        stroke: none;
-    }
-
-    /* Each ring stroked in its own shading, so no seam of the top shows between rings. */
-    .dish-ring {
-        stroke-width: 0.35;
-    }
-
-    .sheen {
-        pointer-events: none;
-    }
-
-    /* A light edge round each top, so pieces crossing pieces of their colour part. */
-    .light .top {
-        fill: rgb(226 230 236);
-        stroke: rgb(150 158 170);
-        stroke-width: 1;
-    }
-
-    .dark .top {
-        fill: rgb(44 48 52);
-        stroke: rgb(115 122 130);
-        stroke-width: 1.3;
-    }
-
     .light .specks {
         fill: #24282d;
     }
 
     .dark .specks {
         fill: #d6dbe1;
+    }
+
+    .light .specks.grey {
+        fill: #858b93;
+    }
+
+    .dark .specks.grey {
+        fill: #858c94;
     }
 
     .side-specks {

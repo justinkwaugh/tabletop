@@ -24,6 +24,7 @@
     } from '$lib/board/geometry.js'
     import { boardLabels, spaceLabel } from '$lib/board/coordinates.js'
     import { drawOrder } from '$lib/board/drawOrder.js'
+    import { holeBox, holeUrl } from '$lib/board/looks.js'
     import { drawPiece, outlinePlan, pathOf, type Tone } from '$lib/board/pieceShape.js'
     import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
     import PieceDefs from './PieceDefs.svelte'
@@ -43,6 +44,8 @@
     const gridPath = $derived(SPACES.map(cellPath).join(' '))
     const centrePath = $derived(CENTRE_SPACES.map(cellPath).join(' '))
     const plateSides = $derived(view.plateSides())
+    const holes = $derived(SPACES.map((coords) => view.center(coords)))
+    const hole = { href: holeUrl() ?? '', ...holeBox() }
 
     function plateSideFill(light: number): string {
         const lit = [178, 192, 182]
@@ -232,23 +235,6 @@
 >
     <defs>
         <PieceDefs prefix="punct-board" />
-        <!-- Seen through each hole: its far wall, in shade under the plate's top, and below it the
-             base, lit in the middle. -->
-        <linearGradient id="punct-hole-wall" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0" stop-color="var(--punct-hole-wall-top)"></stop>
-            <stop offset="0.6" stop-color="var(--punct-hole-wall-bottom)"></stop>
-        </linearGradient>
-        <radialGradient id="punct-hole-floor" cy="0.6">
-            <stop offset="0.3" stop-color="var(--punct-hole-floor)"></stop>
-            <stop offset="1" stop-color="var(--punct-hole-floor-edge)"></stop>
-        </radialGradient>
-        <clipPath id="punct-holes">
-            {#each SPACES as coords (coordsKey(coords))}
-                {@const center = view.center(coords)}
-                <ellipse cx={center.x} cy={center.y} rx={HOLE_RADIUS} ry={HOLE_RADIUS * view.tilt}
-                ></ellipse>
-            {/each}
-        </clipPath>
     </defs>
 
     <!-- The plate: its shadow on the table, its edge where it faces you, then its top. -->
@@ -267,42 +253,30 @@
         {/each}
     {/if}
 
-    {#each SPACES as coords (coordsKey(coords))}
-        {@const center = view.center(coords)}
-        {@const choosable = session.isChoosableSpace(coords) && topHeight(coords) === 0}
-        <ellipse
-            cx={center.x}
-            cy={center.y}
-            rx={HOLE_RADIUS}
-            ry={HOLE_RADIUS * view.tilt}
-            fill="url(#punct-hole-wall)"
-        ></ellipse>
+    <!-- The holes, cut through to the base below (pre-rendered, board/looks.ts). -->
+    {#each holes as center, index (index)}
+        <image
+            href={hole.href}
+            x={center.x + hole.x}
+            y={center.y + hole.y}
+            width={hole.width}
+            height={hole.height}
+            class="hole"
+        ></image>
+    {/each}
+
+    <!-- Spaces you can choose; a tap anywhere else on the board lets go. -->
+    {#each SPACES.filter((coords) => session.isChoosableSpace(coords) && topHeight(coords) === 0) as coords (coordsKey(coords))}
         <polygon
             points={pointsAttribute(view.cell(coords))}
             class="cell"
-            class:choosable
             role="button"
-            tabindex={choosable ? 0 : -1}
-            aria-disabled={!choosable}
+            tabindex="0"
             aria-label="space {spaceLabel(coords)}"
-            onclick={() => choosable && session.chooseSpace(coords)}
-            onkeydown={(event) => choosable && onKey(event, () => session.chooseSpace(coords))}
+            onclick={() => session.chooseSpace(coords)}
+            onkeydown={(event) => onKey(event, () => session.chooseSpace(coords))}
         ></polygon>
     {/each}
-
-    <!-- The base below each hole, as deep down as the plate is thick, seen through the hole. -->
-    <g clip-path="url(#punct-holes)" class="hole-floors">
-        {#each SPACES as coords (coordsKey(coords))}
-            {@const center = view.center(coords)}
-            <ellipse
-                cx={center.x}
-                cy={center.y + view.height(BOARD_DEPTH)}
-                rx={HOLE_RADIUS}
-                ry={HOLE_RADIUS * view.tilt}
-                fill="url(#punct-hole-floor)"
-            ></ellipse>
-        {/each}
-    </g>
 
     <!-- Marks for the chosen piece's PÜNCT on empty spaces lie on the board, under the pieces. -->
     <g {@attach animator.marks()}>
@@ -563,16 +537,13 @@
         fill: rgb(20 40 28 / 0.22);
     }
 
-    .hole-floors {
+    .hole {
         pointer-events: none;
     }
 
     .cell {
         fill: transparent;
         outline: none;
-    }
-
-    .cell.choosable {
         cursor: pointer;
     }
 
