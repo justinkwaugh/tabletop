@@ -37,12 +37,13 @@
     const frame = $derived(view.frame(labels.map((label) => label.at)))
     const animator = new BoardAnimator(session)
 
-    // The printed board: a honeycomb cell round every hole, the pale area ending at the outer
-    // cells' edges, the central hexagon's cells tinted.
+    // The printed board: the pale area a honeycomb cell round every hole, ending at the outer
+    // cells' edges, the central hexagon's cells tinted; lines from hole to hole.
     const cellPath = (coords: AxialCoordinates) =>
         `M ${pointsAttribute(view.cell(coords)).replaceAll(' ', ' L ')} Z`
     const gridPath = $derived(SPACES.map(cellPath).join(' '))
     const centrePath = $derived(CENTRE_SPACES.map(cellPath).join(' '))
+    const gridLines = $derived(view.gridLines())
     const plateSides = $derived(view.plateSides())
     const holes = $derived(SPACES.map((coords) => view.center(coords)))
     const hole = { href: holeUrl() ?? '', ...holeBox() }
@@ -245,7 +246,7 @@
     {/each}
     <path d={gridPath} class="play-area"></path>
     <path d={centrePath} class="centre"></path>
-    <path d={gridPath} class="grid"></path>
+    <path d={gridLines} class="grid"></path>
 
     {#if session.showCoordinates}
         {#each labels as label (label.key)}

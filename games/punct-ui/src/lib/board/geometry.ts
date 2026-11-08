@@ -133,6 +133,22 @@ export class BoardView {
         })
     }
 
+    // The printed lines: as on the real board, thin lines from each hole to every neighbouring
+    // hole, meeting in the holes (which are drawn over them, so each line stops at a rim).
+    gridLines(): string {
+        const keys = new Set(SPACES.map((coords) => `${coords.q},${coords.r}`))
+        // Each pair once: towards the three neighbours on one side.
+        return SPACES.flatMap((coords) => {
+            const from = this.center(coords)
+            return NEIGHBOUR_STEPS.slice(1, 4).flatMap((step) => {
+                const next = { q: coords.q + step.q, r: coords.r + step.r }
+                if (!keys.has(`${next.q},${next.r}`)) return []
+                const to = this.center(next)
+                return [`M ${from.x} ${from.y} L ${to.x} ${to.y}`]
+            })
+        }).join(' ')
+    }
+
     // The plate's edge where it faces the viewer: a strip down from each outer cell edge with no
     // cell beyond it, and how much that strip faces the light, from the left and the front.
     plateSides(): { points: Point[]; light: number }[] {
