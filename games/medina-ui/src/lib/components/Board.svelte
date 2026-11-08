@@ -25,6 +25,7 @@
         spaceKey,
         merchantSprite,
         paintOrder,
+        RECENT_DOT_RADIUS,
         recentMarks,
         rooftopOn,
         scoringPieceKeys,
@@ -54,7 +55,6 @@
     const TILE_LABEL_HEIGHT = 0.2
     const TILE_LABEL_DROP = 15
     const TILE_LABEL_INK = '#2a1609'
-    const RECENT_DOT_RADIUS = 11
     const WELL_BONUS_TEXT_DROP = 13
     const WALL_TINT_STRENGTH = 0.85
 

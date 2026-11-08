@@ -6,7 +6,6 @@ import {
     isWallAcross,
     polygonPoints,
     project,
-    projectView,
     towerWorlds,
     worldOfSpace,
     worldOfWall,
@@ -35,9 +34,9 @@ const PIECE_SHAPES = {
     merchant: { variants: 2 }
 }
 const MERCHANT_SQUARE_HALF = 0.4
-// A roofed building's mark sits toward the viewer, below its rooftop's mark in either view: the
-// building in front of it can hide its front face.
-const UNDER_ROOF_MARK = { forward: 0.32, height: 0.5 }
+export const RECENT_DOT_RADIUS = 11
+// A building and the rooftop on it marked together share the rooftop, side by side.
+const PAIRED_MARK_SHIFT = RECENT_DOT_RADIUS + 1
 const WALL_VARIANTS = 2
 const ROOFTOP_VARIANTS = 2
 
@@ -91,7 +90,7 @@ export function recentMarks(pieces: BoardPiece[], recent: RecentPlacement[]): Re
         }
     }
     const seen = new Set<string>()
-    return recent.flatMap((placement) => {
+    const marks: RecentMark[] = recent.flatMap((placement) => {
         const key = recentPlace(placement)
         const mark = byPlace.get(key)
         if (!mark || seen.has(key)) {
@@ -99,6 +98,14 @@ export function recentMarks(pieces: BoardPiece[], recent: RecentPlacement[]): Re
         }
         seen.add(key)
         return [{ key, playerId: placement.playerId, ...mark }]
+    })
+    return marks.map((mark) => {
+        const paired = marks.filter((other) => other.piece === mark.piece).length > 1
+        if (!paired || !mark.piece.rooftop || !mark.at) {
+            return mark
+        }
+        const shift = mark.onRoof ? PAIRED_MARK_SHIFT : -PAIRED_MARK_SHIFT
+        return { ...mark, at: { x: mark.at.x + shift, y: mark.at.y } }
     })
 }
 
@@ -117,12 +124,6 @@ export function merchantSprite(space: Point): string {
 export function wallSprite(section: WallSection, sideways: boolean): string {
     const direction = isWallAcross(section, sideways) ? 'h' : 'v'
     return `wall-${direction}-${section.position % WALL_VARIANTS}`
-}
-
-function underRoofMark(projection: BoardProjection, world: Point): Point {
-    const at = project(projection, world, UNDER_ROOF_MARK.height)
-    const forward = projectView(projection, { x: 0, y: -UNDER_ROOF_MARK.forward })
-    return { x: at.x + forward.x, y: at.y + forward.y }
 }
 
 export function rooftopOn(sprite: string, space: Point): string {
@@ -174,9 +175,7 @@ export function boardPieces(
                   }
                 : undefined,
             place: spacePlace(building.coords),
-            markAt: roofed
-                ? underRoofMark(projection, world)
-                : project(projection, world, shape.height),
+            markAt: project(projection, world, shape.height + (roofed ? shape.rooftopHeight : 0)),
             outline: outlineOf(
                 projection,
                 world,

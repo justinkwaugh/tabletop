@@ -6,7 +6,7 @@ const roofed: BoardPiece = {
     sprite: 'palace-purple-0',
     anchor: { x: 0, y: 0 },
     place: 'space:9,5',
-    markAt: { x: 0, y: 20 },
+    markAt: { x: 0, y: -40 },
     rooftop: {
         key: 'rooftop:palace-2',
         sprite: 'rooftop-green-0',
@@ -16,7 +16,7 @@ const roofed: BoardPiece = {
 }
 
 describe('recent marks', () => {
-    it('marks a building and the rooftop placed on it apart, each for its player', () => {
+    it('marks a building and the rooftop placed on it side by side on the rooftop', () => {
         expect(
             recentMarks(
                 [roofed],
@@ -26,8 +26,20 @@ describe('recent marks', () => {
                 ]
             )
         ).toEqual([
-            { key: 'roof:9,5', piece: roofed, playerId: 'p2', at: { x: 0, y: -40 }, onRoof: true },
-            { key: 'space:9,5', piece: roofed, playerId: 'p1', at: { x: 0, y: 20 }, onRoof: false }
+            { key: 'roof:9,5', piece: roofed, playerId: 'p2', at: { x: 12, y: -40 }, onRoof: true },
+            {
+                key: 'space:9,5',
+                piece: roofed,
+                playerId: 'p1',
+                at: { x: -12, y: -40 },
+                onRoof: false
+            }
+        ])
+    })
+
+    it('centres a rooftop mark on its own', () => {
+        expect(recentMarks([roofed], [{ playerId: 'p2', roof: { x: 9, y: 5 } }])).toEqual([
+            { key: 'roof:9,5', piece: roofed, playerId: 'p2', at: { x: 0, y: -40 }, onRoof: true }
         ])
     })
 
