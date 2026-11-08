@@ -12,6 +12,7 @@ import { MatrxColors } from './colors.js'
 import { MatrxScoring } from './scoring.js'
 
 export const MatrxRuntime: GameRuntime<MatrxGameState, HydratedMatrxGameState> = {
+    randomnessVersion: 1,
     initializer: new MatrxGameInitializer(),
     canonicalStateValidator: MatrxGameStateValidator,
     hydrator: new MatrxHydrator(),

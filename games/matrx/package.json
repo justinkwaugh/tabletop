@@ -18,7 +18,6 @@
     },
     "dependencies": {
         "@tabletop/common": "workspace:*",
-        "es-iterator-helpers": "^1.2.2",
         "typebox": "^1.0.79"
     },
     "devDependencies": {
