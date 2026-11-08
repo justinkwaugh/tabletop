@@ -184,6 +184,39 @@ async function settled(change: Promise<unknown>) {
     await new Promise((resolve) => setTimeout(resolve))
 }
 
+// The harness's Non-active view shows the player not to move, so an Undo hands the view over.
+describe('Undo seen from the player not to move', () => {
+    it('leaves the player who takes over the view no hidden choice to undo first', async () => {
+        const prepared = tournament(true)
+        const session = await sessionFor({ ...prepared, game: { ...prepared.game, hotseat: true } })
+        await pushOwn(session)
+        session.setViewingAsNonActivePlayer(true)
+        expect(session.myPlayer?.id).toBe(WHITE)
+
+        await settled(session.undo())
+        expect(session.myPlayer?.id).toBe(BLACK)
+        expect(session.hasLocalSelection).toBe(false)
+        expect(session.chosenDot).toBeUndefined()
+
+        const before = session.gameState.actionCount
+        await settled(session.undo())
+        expect(session.gameState.actionCount).toBe(before - 1)
+    })
+
+    it('shows the restaged push again once its player views', async () => {
+        const prepared = tournament(true)
+        const session = await sessionFor({ ...prepared, game: { ...prepared.game, hotseat: true } })
+        await pushOwn(session)
+        session.setViewingAsNonActivePlayer(true)
+        await settled(session.undo())
+
+        session.setViewingAsNonActivePlayer(false)
+        expect(session.myPlayer?.id).toBe(WHITE)
+        expect(session.chosenDot).toEqual(DOT)
+        expect(session.hasLocalSelection).toBe(true)
+    })
+})
+
 describe('Undo of your push', () => {
     it('takes the piece back out onto its dot, staged as you chose it', async () => {
         const session = await whiteSession()

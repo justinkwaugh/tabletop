@@ -54,6 +54,14 @@ type SessionOptions = ConstructorParameters<
 
 export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGameState> {
     selection: GipfSelection = $state({})
+    // The player whose choices the selection holds: anyone else viewing, as the harness's
+    // Non-active view can be after an Undo, sees none of them, and Undo passes them by.
+    private selectionOwner: string | undefined = $state()
+    private ownSelection: GipfSelection = $derived(
+        this.selectionOwner !== undefined && this.selectionOwner === this.myPlayer?.id
+            ? this.selection
+            : {}
+    )
     // The push being undone. Undo takes your piece back out onto its dot, staged as you chose it,
     // and a further Undo takes it off the dot.
     undoingPush: PushPiece | undefined
@@ -66,7 +74,7 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
         this.localSelections.register(
             undoableStagedSelection(
                 GipfStageOrder,
-                () => this.selection,
+                () => this.ownSelection,
                 (selection) => (this.selection = selection)
             )
         )
@@ -111,7 +119,7 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
 
     // A piece you may choose comes in single until you make it a GIPF-piece.
     chosenGipf: boolean | undefined = $derived.by(() => {
-        const manual = this.selection.gipf?.value
+        const manual = this.ownSelection.gipf?.value
         if (manual !== undefined && this.pieceTypes.includes(manual)) return manual
         return this.pieceTypes[0]
     })
@@ -129,7 +137,7 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
     })
 
     chosenDot: AxialCoordinates | undefined = $derived.by(() => {
-        const manual = this.selection.dot?.value
+        const manual = this.ownSelection.dot?.value
         return manual !== undefined && includesCoords(this.entryDots, manual) ? manual : undefined
     })
 
@@ -153,7 +161,7 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
     })
 
     chosenRow: Row | undefined = $derived.by(() => {
-        const manual = this.selection.row?.value
+        const manual = this.ownSelection.row?.value
         const found = this.rows.find((row) => this.rowKey(row) === manual)
         if (found) return found
         const mandatory = this.rows.filter((row) => this.gameState.board.isMandatory(row))
@@ -175,7 +183,7 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
 
     // Your own GIPF-pieces stay and the opponent's go, unless you choose otherwise.
     keep: AxialCoordinates[] = $derived.by(() => {
-        const manual = this.selection.keep?.value
+        const manual = this.ownSelection.keep?.value
         if (manual !== undefined) {
             return this.rowGipfPieces.filter((coords) =>
                 manual.includes(coordinatesToNumber(coords))
@@ -214,7 +222,10 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
     override beforeNewState({ kind }: PresentedTransition): void {
         if (kind === 'view-switch') this.moveInterrupter?.abandon()
         const push = kind === 'undo' ? this.undoingPush : undefined
-        if (push) this.selection = restagedGipfSelection(push, this.hadTypeChoice(push))
+        if (push) {
+            this.selection = restagedGipfSelection(push, this.hadTypeChoice(push))
+            this.selectionOwner = push.playerId
+        }
         if (kind !== 'undo') this.undoingPush = undefined
     }
 
@@ -227,24 +238,20 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
     // Choosing the piece on its dot again makes it a GIPF-piece, or single again.
     toggleGipf() {
         if (!this.choosesType || this.chosenDot === undefined) return
-        this.selection = setGipfSelection(
-            this.selection,
-            'gipf',
-            this.chosenGipf ? undefined : true
-        )
+        this.select(setGipfSelection(this.ownSelection, 'gipf', this.chosenGipf ? undefined : true))
     }
 
     chooseDot(dot: AxialCoordinates) {
         if (!includesCoords(this.entryDots, dot)) return
         const same = this.chosenDot !== undefined && sameCoordinates(this.chosenDot, dot)
         if (same && this.choosesType) return this.toggleGipf()
-        this.selection = setGipfSelection(this.selection, 'dot', same ? undefined : dot)
+        this.select(setGipfSelection(this.ownSelection, 'dot', same ? undefined : dot))
     }
 
     // Tapping where there is nothing to choose lets go of a chosen dot.
     letGo() {
         if (this.chosenDot === undefined) return
-        this.selection = setGipfSelection(this.selection, 'dot', undefined)
+        this.select(setGipfSelection(this.ownSelection, 'dot', undefined))
     }
 
     // A piece can belong to two crossing rows; choosing it again moves to the next one.
@@ -254,10 +261,8 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
         const current = this.chosenRow ? containing.findIndex((row) => row === this.chosenRow) : -1
         const next = containing[(current + 1) % containing.length]
         const keepGoing = current < 0 || containing.length > 1
-        this.selection = setGipfSelection(
-            this.selection,
-            'row',
-            keepGoing ? this.rowKey(next) : undefined
+        this.select(
+            setGipfSelection(this.ownSelection, 'row', keepGoing ? this.rowKey(next) : undefined)
         )
     }
 
@@ -266,7 +271,12 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
         const keys = this.keep.map((kept) => coordinatesToNumber(kept))
         const key = coordinatesToNumber(coords)
         const next = keys.includes(key) ? keys.filter((k) => k !== key) : [...keys, key]
-        this.selection = pushGipfKeep(this.selection, next)
+        this.select(pushGipfKeep(this.ownSelection, next))
+    }
+
+    private select(selection: GipfSelection) {
+        this.selection = selection
+        this.selectionOwner = this.myPlayer?.id
     }
 
     async push(target: AxialCoordinates) {
