@@ -15,7 +15,7 @@ Choices made where the rules ([tournament rules](https://www.gipf.com/gipf/rules
 
 - **The mover resolves first.** After a push, the mover takes every row of four or more of their colour they choose to, then the opponent takes the rows of the opponent's colour that must go.
 - **Rows of only GIPF-pieces wait for their owner.** A row made only of GIPF-pieces is never forced. Its owner may take it at the start of their own turn, before pushing, or after their push.
-- **GIPF-pieces in a taken row.** The player taking a row decides, piece by piece, whether their own GIPF-pieces in it stay; they stay unless taken. The rules let the taker leave the opponent's GIPF-pieces too. The logic accepts that, but the UI always takes them. This difference is under review.
+- **GIPF-pieces in a taken row.** The player taking a row decides, piece by piece, whether each GIPF-piece in it stays, theirs or the opponent's. Their own stay and the opponent's go unless they choose otherwise.
 
 ## End of the game
 

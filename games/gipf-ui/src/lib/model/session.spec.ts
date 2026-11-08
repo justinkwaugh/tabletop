@@ -21,9 +21,12 @@ import type { GameUIRuntime } from '@tabletop/frontend-components/definition/gam
 import {
     ActionType,
     Definition,
+    emptyBoard,
     GipfInfo,
     GipfRuntime,
     GipfVersion,
+    HydratedGipfBoard,
+    MachineState,
     type GipfGameState,
     type HydratedGipfGameState,
     type PushPiece
@@ -128,7 +131,10 @@ afterEach(() => {
 })
 
 async function whiteSession(opening = true) {
-    const { game, state, actions } = tournament(opening)
+    return sessionFor(tournament(opening))
+}
+
+async function sessionFor({ game, state, actions }: ReturnType<typeof tournament>) {
     const app = createHarnessAppContext(definition)
     vi.spyOn(app.gameService, 'saveGameLocally').mockResolvedValue(undefined)
     const bridgedContext = new BridgedContext({
@@ -267,5 +273,44 @@ describe('Stepping through history', () => {
 
         await settled(session.history.goToNextAction())
         expect(session.historyPush).toMatchObject({ playerId: BLACK, dot: E1, to: E2 })
+    })
+})
+
+describe('Taking a row', () => {
+    // Column e from e2 to e5 is white's row, and black's GIPF-piece on e6 is in its reach.
+    const e = (number: number): AxialCoordinates => ({ q: 0, r: 4 - (number - 1) })
+
+    async function whiteTakingRow() {
+        const prepared = tournament(true)
+        const board = new HydratedGipfBoard(emptyBoard())
+        for (const n of [2, 3, 4, 5]) board.place(e(n), { playerId: WHITE, gipf: false })
+        board.place(e(6), { playerId: BLACK, gipf: true })
+        board.place({ q: -3, r: 0 }, { playerId: WHITE, gipf: true })
+        board.place({ q: 3, r: -3 }, { playerId: BLACK, gipf: true })
+        prepared.state = {
+            ...prepared.state,
+            board: board.dehydrate(),
+            machineState: MachineState.ResolvingRows,
+            resolvingPlayerIds: [WHITE, BLACK],
+            moverId: WHITE,
+            activePlayerIds: [WHITE]
+        }
+        return sessionFor(prepared)
+    }
+
+    it("takes the opponent's GIPF-pieces unless you choose to leave them", async () => {
+        const session = await whiteTakingRow()
+        session.chooseRowAt(e(3))
+        expect(session.rowGipfPieces).toEqual([e(6)])
+        expect(session.keep).toEqual([])
+        expect(session.removing).toContainEqual(e(6))
+
+        session.toggleKeep(e(6))
+        expect(session.keep).toEqual([e(6)])
+        expect(session.removing).not.toContainEqual(e(6))
+
+        await settled(session.removeChosenRow())
+        expect(session.gameState.board.pieceAt(e(6))).toEqual({ playerId: BLACK, gipf: true })
+        expect(session.gameState.board.pieceAt(e(5))).toBeUndefined()
     })
 })

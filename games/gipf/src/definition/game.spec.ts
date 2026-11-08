@@ -197,6 +197,22 @@ describe('rows', () => {
         expect(board.pieceAt(e(2))).toBeUndefined()
     })
 
+    it("lets the taker leave the opponent's GIPF-pieces in a row", () => {
+        const game = createGame()
+        let state = withPieces(start(game), [
+            ...KEEPERS,
+            [e(2), single(W)],
+            [e(3), single(W)],
+            [e(4), single(W)],
+            [e(5), gipf(B)]
+        ])
+        state = push(game, state, W, E1, e(2))
+        state = removeRow(game, state, W, e(2), e(5), [e(6)])
+        const board = new HydratedGipfGameState(state).board
+        expect(board.pieceAt(e(6))).toEqual(gipf(B))
+        expect(board.pieceAt(e(5))).toBeUndefined()
+    })
+
     it('has the mover take their rows before the opponent takes theirs', () => {
         const game = createGame()
         const blackRow: [AxialCoordinates, Piece][] = [1, 2, 3, 4].map((n) => [

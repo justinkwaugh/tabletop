@@ -290,7 +290,7 @@
                 </g>
                 <!-- Marks lie on the top face, after the piece and outside the node that moves
                      it: a dashed ring for a row you can choose, a spot on each piece that goes,
-                     and on your own GIPF-pieces the crown ring coloured for keep or take. -->
+                     and on each GIPF-piece the crown ring coloured for keep or take. -->
                 {#if role}
                     <g {@attach animator.marks()}>
                         {#if role === 'row'}
@@ -492,7 +492,7 @@
         cursor: pointer;
     }
 
-    /* Your own GIPF-piece's toggle: its crown ring, coloured for keep or take. */
+    /* A GIPF-piece's toggle in the chosen row: its crown ring, coloured for keep or take. */
     .crown-mark {
         fill: none;
         stroke-width: 3.5;

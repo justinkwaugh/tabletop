@@ -10,13 +10,14 @@
     const resolving = $derived(session.gameState.machineState === MachineState.ResolvingRows)
 
     const SELECT_FOR_REMOVAL = 'Leave GIPF-pieces, or mark them for removal, then'
+    const SELECT_TO_LEAVE = 'Tap GIPF-pieces to leave them, then'
 
     const prompt = $derived.by(() => {
         if (resolving && session.canRemove) {
             if (session.chosenRow) {
-                return session.rowGipfPieces.length > 0
-                    ? SELECT_FOR_REMOVAL
-                    : `Take ${session.removing.length} pieces`
+                if (session.rowGipfPieces.length === 0)
+                    return `Take ${session.removing.length} pieces`
+                return session.ownRowGipfPieces.length > 0 ? SELECT_FOR_REMOVAL : SELECT_TO_LEAVE
             }
             return session.rows.length > 1 ? 'Choose a row to take' : 'Take your row'
         }

@@ -146,23 +146,26 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
         return mandatory.length === 1 && this.rows.length === 1 ? mandatory[0] : undefined
     })
 
-    // Your own GIPF-pieces in the chosen row, which stay unless you mark them; the opponent's are
-    // always taken.
+    // The GIPF-pieces in the chosen row, each of which you may leave or take.
     rowGipfPieces: AxialCoordinates[] = $derived.by(() => {
         const row = this.chosenRow
         if (row === undefined) return []
-        return row.reach.filter((coords) => {
-            const piece = this.gameState.board.pieceAt(coords)
-            return piece?.gipf === true && piece.playerId === this.myPlayer?.id
-        })
+        return row.reach.filter((coords) => this.gameState.board.pieceAt(coords)?.gipf === true)
     })
 
+    ownRowGipfPieces: AxialCoordinates[] = $derived(
+        this.rowGipfPieces.filter(
+            (coords) => this.gameState.board.pieceAt(coords)?.playerId === this.myPlayer?.id
+        )
+    )
+
+    // Your own GIPF-pieces stay and the opponent's go, unless you choose otherwise.
     keep: AxialCoordinates[] = $derived.by(() => {
         const manual = this.selection.keep?.value
         if (manual !== undefined) {
             return this.rowGipfPieces.filter((coords) => manual.includes(coordsKey(coords)))
         }
-        return this.rowGipfPieces
+        return this.ownRowGipfPieces
     })
 
     removing: AxialCoordinates[] = $derived(
