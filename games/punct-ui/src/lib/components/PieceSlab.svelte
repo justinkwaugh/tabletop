@@ -1,9 +1,9 @@
 <script lang="ts">
     import type { PieceKind } from '@tabletop/punct'
     import { VIEW, type BoardView } from '$lib/board/geometry.js'
-    import { drawPiece, type Tone } from '$lib/board/pieceShape.js'
+    import { dotsOnScreen, type Tone } from '$lib/board/pieceShape.js'
     import { bodyImage, dishBox, dishUrl } from '$lib/board/looks.js'
-    import { speckPaths } from '$lib/board/specks.js'
+    import { SPECK_SCALE, speckPaths } from '$lib/board/specks.js'
     import PieceBody from './PieceBody.svelte'
     import DishLook from './DishLook.svelte'
 
@@ -18,7 +18,8 @@
         seed,
         prefix,
         view = VIEW,
-        live = false
+        live = false,
+        moving = false
     }: {
         kind: PieceKind
         angle: number
@@ -28,23 +29,39 @@
         view?: BoardView
         // Drawn without images, as the icons are for the looks page.
         live?: boolean
+        // A piece that turns, so changes between its live drawing and its images: each image
+        // loads after it is put in, so until it has the live drawing stays under it, or the
+        // piece's body would vanish for a frame as it comes to rest.
+        moving?: boolean
     } = $props()
 
-    const dots = $derived(drawPiece(kind, angle, view).dots)
+    let loaded: string | undefined = $state()
+
+    const dots = $derived(dotsOnScreen(kind, angle, view))
     const body = $derived(live ? undefined : bodyImage(kind, angle, tone))
     const dish = dishBox()
     const specks = $derived(speckPaths(kind, seed, angle, view))
 </script>
 
 <g class="piece {tone}">
-    {#if body}
-        <image href={body.href} x={body.x} y={body.y} width={body.width} height={body.height}
-        ></image>
-    {:else}
+    {#if !body || (moving && loaded !== body.href)}
         <PieceBody {kind} {angle} {tone} {prefix} {view} />
     {/if}
-    <path d={specks.side} class="specks side-specks"></path>
-    <path d={specks.sideGrey} class="specks grey side-specks"></path>
+    {#if body}
+        {@const href = body.href}
+        <image
+            {href}
+            x={body.x}
+            y={body.y}
+            width={body.width}
+            height={body.height}
+            onload={() => (loaded = href)}
+        ></image>
+    {/if}
+    <g transform="scale({SPECK_SCALE})">
+        <path d={specks.side} class="specks side-specks"></path>
+        <path d={specks.sideGrey} class="specks grey side-specks"></path>
+    </g>
     {#each dots as dot, index (index)}
         {@const material = index === 0 ? (`${tone}-insert` as const) : tone}
         {@const href = body ? dishUrl(material) : undefined}
@@ -60,8 +77,10 @@
             <DishLook center={dot} {material} {prefix} {view} />
         {/if}
     {/each}
-    <path d={specks.top} class="specks"></path>
-    <path d={specks.topGrey} class="specks grey"></path>
+    <g transform="scale({SPECK_SCALE})">
+        <path d={specks.top} class="specks"></path>
+        <path d={specks.topGrey} class="specks grey"></path>
+    </g>
 </g>
 
 <style>

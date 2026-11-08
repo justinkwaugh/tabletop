@@ -82,7 +82,7 @@ function spread<E>(
     for (let index = 0; index < count; index++) {
         const speck = shape(next)
         const extent = speck.r * speck.stretch
-        let best: Placed<E> | undefined
+        let best: { x: number; y: number; extra: E } | undefined
         let bestRoom = -Infinity
         for (let attempt = 0; attempt < TRIES; attempt++) {
             const candidate = place(speck)
@@ -106,11 +106,11 @@ function spread<E>(
             }
             if (room > bestRoom) {
                 bestRoom = room
-                best = { ...speck, ...candidate }
+                best = candidate
             }
         }
         if (best === undefined) continue
-        placed.push(best)
+        placed.push({ ...speck, ...best })
         cells[columnOf(best.x) * rows + rowOf(best.y)]?.push(best.x, best.y, extent)
     }
     return placed
@@ -177,7 +177,7 @@ export function specksOf(kind: PieceKind, seed: number): Specks {
             if (roomInside(point, bars, closed, width) < extent + 0.5) return undefined
             if (distanceOf(point.x - punct.x, point.y - punct.y) < DISH.top + extent + 0.3)
                 return undefined
-            return { ...point, extra: undefined }
+            return { x: point.x, y: point.y, extra: undefined }
         }
     ).map(({ extra: _, ...speck }) => speck)
     // On the side, along the outline and up it, short of the rounded rim and foot: spread by how
@@ -228,7 +228,10 @@ function turn(point: Point, angle: number): Point {
     return { x: point.x * cos - point.y * sin, y: point.x * sin + point.y * cos }
 }
 
-const hundredths = (value: number) => Math.round(value * 100) / 100
+// Fleck paths are written in twentieths of a unit, as whole numbers, and drawn scaled down by
+// SPECK_SCALE: whole numbers are quicker to write and to read back than fractions, and shorter.
+const TWENTIETHS = 20
+export const SPECK_SCALE = 1 / TWENTIETHS
 
 // Points round a fleck, as the cosine and sine of each one's angle.
 const AROUND = Array.from({ length: 8 }, (_, index) => {
@@ -239,12 +242,13 @@ const AROUND = Array.from({ length: 8 }, (_, index) => {
 // A fleck as a polygon round its centre on screen, from its two half axes on screen.
 function polygon(center: Point, u: Point, v: Point): string {
     let d = ''
-    for (const [c, s] of AROUND) {
-        const x = hundredths(center.x + u.x * c + v.x * s)
-        const y = hundredths(center.y + u.y * c + v.y * s)
-        d += `${d ? 'L' : 'M'}${x} ${y}`
+    for (let index = 0; index < AROUND.length; index++) {
+        const [c, s] = AROUND[index]
+        const x = Math.round((center.x + u.x * c + v.x * s) * TWENTIETHS)
+        const y = Math.round((center.y + u.y * c + v.y * s) * TWENTIETHS)
+        d += (index ? 'L' : 'M') + x + ' ' + y
     }
-    return `${d}Z`
+    return d + 'Z'
 }
 
 export type SpeckPaths = { top: string; topGrey: string; side: string; sideGrey: string }

@@ -289,10 +289,13 @@ export class PunctGameSession extends GameSession<PunctGameState, HydratedPunctG
         this.selection = setPunctSelection({}, 'at', coords)
     }
 
+    // The board asks of every space whenever the choices change.
+    private choosableKeys: Set<string> = $derived(
+        new Set((this.chosenPiece ? this.destinations : this.entryCells).map(coordsKey))
+    )
+
     isChoosableSpace(coords: AxialCoordinates): boolean {
-        return this.chosenPiece
-            ? includesCoords(this.destinations, coords)
-            : includesCoords(this.entryCells, coords)
+        return this.choosableKeys.has(coordsKey(coords))
     }
 
     // Tapping the staged piece turns it to its next way of lying there, clockwise.

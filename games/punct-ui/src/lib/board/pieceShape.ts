@@ -230,6 +230,17 @@ export function drawPiece(
     return drawing
 }
 
+// Where a piece's dots lie on its top on screen, PÜNCT first: all a piece drawn from images asks
+// of its drawing.
+export function dotsOnScreen(
+    kind: PieceKind,
+    angle: number,
+    view: BoardView = VIEW,
+    thickness = PIECE_THICKNESS
+): Point[] {
+    return dotPlan(kind, angle).map((dot) => view.project(dot, thickness))
+}
+
 function drawnPiece(
     kind: PieceKind,
     angle: number,
@@ -251,7 +262,7 @@ function drawnPiece(
         top: outlinePlan(kind, angle, PIECE_HALF_WIDTH - TOP_INSET).map((point) =>
             view.project(point, thickness)
         ),
-        dots: dotPlan(kind, angle).map((dot) => view.project(dot, thickness)),
+        dots: dotsOnScreen(kind, angle, view, thickness),
         topOutline: outlinePlan(kind, angle, PIECE_HALF_WIDTH - TOP_INSET - 2).map((point) =>
             view.project(point, thickness)
         )

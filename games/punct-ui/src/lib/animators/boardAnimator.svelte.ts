@@ -70,6 +70,9 @@ export class BoardAnimator {
     // Each piece's drawing, and its level badge above the marks, which move together.
     private readonly pieceNodes = new Map<number, Set<SVGGElement>>()
     private readonly shadowNodes = new Map<number, SVGElement>()
+    // The pieces whose drawings and shadows were moved or faded, to set back once the motion ends:
+    // setting every piece's reads every one's transform.
+    private readonly animatedIds = new Set<number>()
     private readonly markNodes = new Set<SVGGElement>()
     private readonly listener = (step: Step) => this.onGameStateChange(step)
 
@@ -180,8 +183,13 @@ export class BoardAnimator {
             this.pieces = to.board.pieces
             this.flier = undefined
             if (kind === 'own-action') this.staged.clear()
-            for (const node of this.shadowNodes.values()) gsap.set(node, { opacity: 1 })
-            for (const nodes of this.pieceNodes.values()) gsap.set([...nodes], { y: 0, opacity: 1 })
+            for (const id of this.animatedIds) {
+                const shadow = this.shadowNodes.get(id)
+                if (shadow) gsap.set(shadow, { opacity: 1 })
+                const nodes = this.pieceNodes.get(id)
+                if (nodes) gsap.set([...nodes], { y: 0, opacity: 1 })
+            }
+            this.animatedIds.clear()
             if (this.markNodes.size > 0) gsap.set([...this.markNodes], { opacity: 1 })
         })
     }
@@ -189,6 +197,7 @@ export class BoardAnimator {
     private drop(piece: PlacedPiece, timeline: Timeline) {
         const nodes = this.pieceNodes.get(piece.id)
         if (nodes === undefined) return
+        this.animatedIds.add(piece.id)
         const node = [...nodes]
         timeline.fromTo(
             node,
@@ -212,6 +221,7 @@ export class BoardAnimator {
     private liftOff(piece: PlacedPiece, timeline: Timeline) {
         const nodes = this.pieceNodes.get(piece.id)
         if (nodes === undefined) return
+        this.animatedIds.add(piece.id)
         timeline.to(
             [...nodes],
             { y: LIFT_OFF.rise, opacity: 0, duration: LIFT_OFF.duration, ease: 'power1.out' },

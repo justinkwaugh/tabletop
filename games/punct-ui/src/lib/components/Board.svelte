@@ -78,7 +78,7 @@
               level: number
               piece: PlacedPiece
           }
-        | { kind: 'hover'; key: string; cells: AxialCoordinates[]; level: number; hover: Hover }
+        | { kind: 'hover'; key: string; cells: AxialCoordinates[]; level: number }
         | {
               kind: 'marker'
               key: string
@@ -97,11 +97,16 @@
         untrack(() => animator.staged.follow(next, board))
     })
 
+    // What of the hover and the flier the order rests on, which stays put while they move: the
+    // order is worked out again only when one of these changes, not at every frame.
+    const hoverPiece = $derived(hover?.piece)
+    const hoverCells = $derived(hover?.cells)
+    const hoverAloft = $derived(hover?.aloft ?? false)
+    const flierId = $derived(animator.flier?.piece.id)
+
     const drawn: Drawn[] = $derived.by(() => {
         const entries: Drawn[] = animator.pieces
-            .filter(
-                (piece) => piece.id !== hover?.piece.id && piece.id !== animator.flier?.piece.id
-            )
+            .filter((piece) => piece.id !== hoverPiece?.id && piece.id !== flierId)
             .map((piece) => ({
                 kind: 'piece',
                 key: `piece-${piece.id}`,
@@ -110,17 +115,15 @@
                 piece
             }))
         // Lifted clear, it is drawn over everything instead.
-        if (hover && !hover.aloft) {
-            const { piece } = hover
+        if (hoverPiece && hoverCells && !hoverAloft) {
             entries.push({
                 kind: 'hover',
-                key: `hover-${piece.id}`,
-                cells: hover.cells,
-                level: piece.level + 1,
-                hover
+                key: `hover-${hoverPiece.id}`,
+                cells: hoverCells,
+                level: hoverPiece.level + 1
             })
         }
-        if (staged?.from && hover) {
+        if (staged?.from && hoverPiece) {
             entries.push({
                 kind: 'marker',
                 key: 'marker',
@@ -208,11 +211,20 @@
     const chosen = $derived(session.chosenPiece !== undefined || session.chosenAt !== undefined)
 
     // Each piece's shadow at its feet. On the board it is soft; on a piece it falls on that
-    // piece's top, across the seam between them, as a dark crease that parts the levels.
+    // piece's top, across the seam between them, as a dark crease that parts the levels. Worked
+    // out once for each way a piece lies at rest; a turning piece's changes at every frame.
+    const shadows = new Map<string, string>()
     function shadowPath(kind: PieceKind, angle: number, onPiece: boolean): string {
+        const key = `${kind}|${angle}|${onPiece}|${view.tilt}`
+        const found = shadows.get(key)
+        if (found !== undefined) return found
         const below = onPiece ? -SEAM : 0
         const width = onPiece ? PIECE_HALF_WIDTH + 0.6 : SPACING * 0.45
-        return pathOf(outlinePlan(kind, angle, width).map((point) => view.project(point, below)))
+        const path = pathOf(
+            outlinePlan(kind, angle, width).map((point) => view.project(point, below))
+        )
+        if (Number.isInteger(angle * 2)) shadows.set(key, path)
+        return path
     }
 
     function relative(cell: AxialCoordinates, punct: AxialCoordinates, height: number): Point {
@@ -333,6 +345,7 @@
                 seed={piece.id}
                 prefix="punct-board"
                 {view}
+                moving
             />
             {#if turnable}
                 <g {@attach animator.marks()}>
@@ -352,13 +365,14 @@
                 <PunctMarker tone={toneOf(entry.playerId)} />
             </g>
         {:else if entry.kind === 'hover'}
-            {@render hovering(entry.hover)}
+            {#if hover}
+                {@render hovering(hover)}
+            {/if}
         {:else}
             {@const piece = entry.piece}
             {@const role = roleOf(entry)}
             {@const at = anchor(piece.punct, piece.level)}
             {@const angle = animator.angleOf(piece)}
-            {@const drawing = drawPiece(piece.kind, angle, view)}
             <g
                 transform="translate({at.x} {at.y})"
                 class="piece-place role-{role ?? 'none'}"
@@ -388,9 +402,10 @@
                 </g>
                 <g {@attach animator.marks()}>
                     {#if role}
+                        {@const ring = pathOf(drawPiece(piece.kind, angle, view).topOutline)}
                         {#each ['under', 'over'] as layer (layer)}
                             <path
-                                d={pathOf(drawing.topOutline)}
+                                d={ring}
                                 class="top-ring role-{role} {layer}"
                                 class:faded={chosen && role === 'movable'}
                             ></path>
@@ -462,6 +477,7 @@
                 seed={flier.piece.id}
                 prefix="punct-board"
                 {view}
+                moving
             />
         </g>
     {/if}
