@@ -28,6 +28,8 @@ const Money = moneyFormat(TitleRules1833NE.currencySymbol)
 export const Presentation1833NE: TitlePresentation<State1833NE> = {
     money: Money,
     companyNames: CompanyNames1833NE,
+    // Shares sell at the current price; there is no par value (rules summary, p. 18).
+    companyPricePresentation: { showPar: false, label: 'Value' },
     marketPoolId: MarketPoolId,
     trainColors: TrainColors1833NE,
     phaseColors: PhaseColors1833NE,

@@ -26,6 +26,8 @@ const StraightTilePair = [
 export const Presentation1846: TitlePresentation<EighteenFortySixProjectedState> = {
     money: moneyFormat(TitleRules1846.currencySymbol),
     companyNames: CompanyNames1846,
+    // Shares sell at the current price; there is no par value (rules summary, p. 19).
+    companyPricePresentation: { showPar: false, label: 'Value' },
     marketPoolId: 'open-market',
     historyMapPlacement: mapPlacement1846,
     markerArtFor: revenueTokenArt,
