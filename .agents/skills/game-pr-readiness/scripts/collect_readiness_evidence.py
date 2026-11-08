@@ -35,6 +35,23 @@ GAME_CONTEXT_READ = re.compile(
 
 # Production patterns whose hits in a shared family library count against every title shipping it.
 FAMILY_LIBRARY_PATTERNS = ("action_patch_read", "game_context_read")
+RENDER_HAZARDS = {
+    "svg_filter": re.compile(r"<filter\b|\bfilter=|filter\s*:\s*url\("),
+    "css_filter": re.compile(
+        r"filter\s*:\s*(?:drop-shadow|blur|brightness|contrast|saturate|grayscale|sepia|hue-rotate|invert|opacity)\(|"
+        r"(?:\bclass\b|@apply)[^\n]*\b(?:drop-shadow|backdrop-blur|blur|brightness|contrast|saturate|grayscale|"
+        r"sepia|hue-rotate|invert)(?:-[\w\[]|\b)"
+    ),
+    "turbulence": re.compile(r"feTurbulence"),
+    "mask_or_blend": re.compile(r"<mask\b|\bmask=|\bmask(?:-image)?\s*:|mix-blend|isolation\s*:\s*isolate"),
+    "layer_promotion": re.compile(r"will-change|translateZ\(|translate3d\(|backface-visibility"),
+    "svg_image": re.compile(r"<image\b"),
+    "animated_dash": re.compile(r"stroke-dashoffset|strokeDashoffset"),
+    "listener_churn": re.compile(r"(?:add|remove)EventListener\(\s*['\"](?:touch\w+|wheel)['\"]"),
+    "text_baseline": re.compile(r"dominant-baseline|dominantBaseline|alignment-baseline"),
+    "aspect_slice": re.compile(r"preserveAspectRatio\s*=\s*['\"{][^'\"}]*slice"),
+    "render_at_view_scale": re.compile(r"\brenderAtViewScale\b"),
+}
 
 
 def git(*args: str, cwd: Path | None = None) -> str:
@@ -1158,6 +1175,10 @@ def main() -> int:
         "state_shape": state_shape(state_sources, ui_root, repo),
         "dev_harness": dev_harness(ui_root),
         "css_encapsulation": css_encapsulation(ui_root, production_sources, repo, args.static),
+        "render_hazards": find_hits(
+            [path for path in production_sources if path.is_relative_to(ui_root)], RENDER_HAZARDS
+        ),
+        "family_library_render_hazards": find_hits(family_sources, RENDER_HAZARDS),
         "competition_specs": sorted(
             path.relative_to(repo).as_posix()
             for path in logic_root.rglob("competition.*")
