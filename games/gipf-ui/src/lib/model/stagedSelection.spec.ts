@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
     hasManualStagedSelection,
-    popHighestManualStagedSelection
+    popHighestManualStagedSelection,
+    setStagedSelectionValue
 } from '@tabletop/frontend-components'
 import {
     GipfStageOrder,
+    pushGipfKeep,
     restagedGipfSelection,
     setGipfSelection,
     type GipfSelection,
@@ -17,6 +19,18 @@ const hasManualGipfSelection = (selection: GipfSelection) =>
     hasManualStagedSelection<GipfSelectionValues>(selection, GipfStageOrder)
 
 describe('gipf staged selection', () => {
+    it('throws for a stage outside its stage order', () => {
+        expect(() =>
+            setStagedSelectionValue<Record<string, string>, string>(
+                {},
+                GipfStageOrder,
+                'notAStage',
+                'x',
+                'manual'
+            )
+        ).toThrow(/does not exist in stage order/)
+    })
+
     it('choosing another dot clears the piece type', () => {
         const typed = setGipfSelection(setGipfSelection({}, 'dot', { q: 0, r: 4 }), 'gipf', true)
         expect(setGipfSelection(typed, 'dot', { q: 1, r: 4 })).toEqual({
@@ -37,6 +51,26 @@ describe('gipf staged selection', () => {
     it('clearing a stage removes it and later stages', () => {
         const selection = setGipfSelection(setGipfSelection({}, 'dot', { q: 0, r: 4 }), 'row', 'x')
         expect(setGipfSelection(selection, 'dot', undefined)).toEqual({})
+    })
+
+    describe('GIPF-pieces left in a chosen row', () => {
+        const row = setGipfSelection({}, 'row', '0,3|0,0')
+
+        it('Undo takes back the latest tap and keeps the earlier ones', () => {
+            const twice = pushGipfKeep(pushGipfKeep(row, [3]), [3, 7])
+            expect(popGipfSelection(twice)).toEqual(pushGipfKeep(row, [3]))
+        })
+
+        it('Undo of the first tap leaves the row chosen', () => {
+            expect(popGipfSelection(pushGipfKeep(row, [3]))).toEqual(row)
+        })
+
+        it('choosing another row clears every tap', () => {
+            const kept = pushGipfKeep(pushGipfKeep(row, [3]), [3, 7])
+            expect(setGipfSelection(kept, 'row', '1,2|1,-1')).toEqual({
+                row: { value: '1,2|1,-1', source: 'manual' }
+            })
+        })
     })
 
     describe('a push taken back by Undo', () => {

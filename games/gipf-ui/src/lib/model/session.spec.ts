@@ -308,7 +308,14 @@ describe('Taking a row', () => {
         expect(session.keep).toEqual([e(6)])
         expect(session.removing).not.toContainEqual(e(6))
 
+        session.toggleKeep(e(6))
+        expect(session.keep).toEqual([])
+        await session.undo()
+        expect(session.keep).toEqual([e(6)])
+        expect(session.chosenRow).toBeDefined()
+
         await settled(session.removeChosenRow())
+        expect(session.selection).toEqual({})
         expect(session.gameState.board.pieceAt(e(6))).toEqual({ playerId: BLACK, gipf: true })
         expect(session.gameState.board.pieceAt(e(5))).toBeUndefined()
     })

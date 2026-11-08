@@ -1,6 +1,7 @@
 import type { AxialCoordinates } from '@tabletop/common'
 import {
     clearStagedSelectionAtOrAfter,
+    pushStagedSelectionValue,
     setStagedSelectionValue,
     type StagedSelectionState
 } from '@tabletop/frontend-components'
@@ -44,6 +45,16 @@ export function setGipfSelection<TStage extends keyof GipfSelectionValues>(
               value,
               'manual'
           )
+}
+
+// Each tap on a GIPF-piece in the chosen row is its own press, which Undo takes back alone.
+export function pushGipfKeep(selection: GipfSelection, keep: number[]): GipfSelection {
+    return pushStagedSelectionValue<GipfSelectionValues, 'keep'>(
+        selection,
+        GipfStageOrder,
+        'keep',
+        keep
+    )
 }
 
 // Your choices for a push taken back, as you made them: a GIPF-piece only if you made it one, so

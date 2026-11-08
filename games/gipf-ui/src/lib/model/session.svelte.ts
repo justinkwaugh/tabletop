@@ -27,6 +27,7 @@ import {
 } from '@tabletop/gipf'
 import {
     GipfStageOrder,
+    pushGipfKeep,
     restagedGipfSelection,
     setGipfSelection,
     type GipfSelection
@@ -247,7 +248,7 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
         const keys = this.keep.map((kept) => coordinatesToNumber(kept))
         const key = coordinatesToNumber(coords)
         const next = keys.includes(key) ? keys.filter((k) => k !== key) : [...keys, key]
-        this.selection = setGipfSelection(this.selection, 'keep', next)
+        this.selection = pushGipfKeep(this.selection, next)
     }
 
     async push(target: AxialCoordinates) {
