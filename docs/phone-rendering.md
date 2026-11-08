@@ -48,14 +48,18 @@ Adding or removing a `touchstart`, `touchmove`, or `wheel` listener anywhere res
 
 ## Measure in WebKit
 
-Measure a board before calling it done: a new title, a new effect, a larger board, or a heavier interaction. Chromium timings and memory say nothing about an iPhone.
+Measure a board before calling it done: a new title, a new effect, a larger board, or a heavier interaction. Chromium timings and memory say nothing about an iPhone. `tools/webkit-probe` opens a harness in Playwright WebKit as a 3x phone and reports the web process's memory and the board's repaint time:
 
-1. Open the harness in Playwright WebKit at 390 × 664, `deviceScaleFactor: 3`, `isMobile`, `hasTouch`, with `reducedMotion: 'reduce'`.
-2. Memory: sample the largest `WPEWebProcess` RSS every 40 ms (`ps -C WPEWebProcess -o rss=`) and record the steady value and the peak after opening the game and after its heaviest interaction. For comparison, Medina opens at +180 MB and Napoleon's Triumph at +320 MB; one board-wide filter cost 280 MB.
-3. Repaint: toggle the board SVG's width and time two `requestAnimationFrame`s, median of 8. For an interaction, time several frames after it, not only the first; a first-frame measure once overstated a win tenfold.
-4. To find the cost, remove one suspect at a time with injected CSS and measure again. Use `!important` (`svg.board { display: none !important }`), since a component's scoped style wins without it.
+```bash
+node tools/webkit-probe/src/cli.mjs http://localhost:<port> --scenario <name|file.json> \
+  --board 'svg.board' --steps /workspace/tmp/<topic>/steps.mjs
+```
 
-Done means the open and heaviest-interaction RSS and the repaint time are recorded, and every effect the board draws is piece-sized, pre-rendered, or still.
+- Drive the heaviest interaction in a steps module (`--help` gives its signature): `mark` the moments to measure, and `time` an interaction to see every frame it causes, not only the first; a first-frame measure once overstated a win tenfold.
+- To find the cost, add a `--css` run per suspect that removes it, with `!important` (`--css 'svg.board { display: none !important }'`), since a component's scoped style wins without it. Each run is reported against the first.
+- Compare runs of one harness; the dev harness alone adds about 270 MB. One board-wide filter cost 280 MB; opening Medina's board adds about 190 MB.
+
+Done means the open and heaviest-interaction memory and the repaint time are recorded, and every effect the board draws is piece-sized, pre-rendered, or still.
 
 ## Phone reports
 
