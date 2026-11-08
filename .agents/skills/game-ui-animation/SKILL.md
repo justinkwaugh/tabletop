@@ -48,7 +48,7 @@ For `action` present, use action semantics when cinematic motion helps explain t
 
 Append coordinated work to `actionTimeline` or `finalTimeline` according to its role. Give every tween an explicit position; independent motion starts at `0`. Animate DOM or SVG properties directly. Reactive transient state controls presence only and is scoped to the current replayed action.
 
-For SVG motion, animate a centered outer wrapper. Keep world placement and payload coordinates on separate nodes so GSAP owns the animated transform.
+For SVG motion, animate a centered outer wrapper. Keep world placement and payload coordinates on separate nodes so GSAP owns the animated transform. Inside a `renderAtViewScale` board, and for anything that animates every frame, follow [phone rendering](../../../docs/phone-rendering.md): moving elements stay small and carry no filter.
 
 ## Verify
 

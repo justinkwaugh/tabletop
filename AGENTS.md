@@ -64,6 +64,10 @@ For read-only production evidence (logs, Cloud Tasks queues, Firestore records, 
 
 To read, answer, fix or close player bug reports from the Discord forum, use `.agents/skills/bug-reports/SKILL.md`.
 
+### Phone rendering
+
+Before adding a filter, shadow, blur, texture, mask, fade, or board-sized layer to a game UI, or when a phone reloads, stutters, or misdraws a game, read `docs/phone-rendering.md`.
+
 ### Animation
 
 For game UI animation design, implementation, debugging, or review, use `.agents/skills/game-ui-animation/SKILL.md`.
