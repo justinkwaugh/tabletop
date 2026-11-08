@@ -16,8 +16,6 @@
         session.gameState.getPlayerState(session.gameState.opponentOf(playerState.playerId)).color
     )
 
-    // Each count with its pieces beside it: the reserve and the pieces captured in short stacks,
-    // and each GIPF-piece on the board as itself.
     const rows = $derived([
         {
             count: playerState.reserve,

@@ -23,14 +23,12 @@ export const BoardPiece = Type.Object({
     gipf: Type.Boolean()
 })
 
-// The pieces on the board; the spots themselves are the geometry's SPOTS.
 export type GipfBoard = Type.Static<typeof GipfBoard>
 export const GipfBoard = Type.Object({
     pieces: Type.Array(BoardPiece)
 })
 
-// A row is four or more adjacent pieces of one player in a line. Its reach runs on in both
-// directions while spots are occupied; every piece in the reach goes when the row is taken.
+// A row's reach runs on while spots are occupied; every piece in it goes when the row is taken.
 export type Row = {
     playerId: string
     from: AxialCoordinates
@@ -42,7 +40,6 @@ const ROW_LENGTH = 4
 const GIPF_PIECE_SIZE = 2
 const GipfBoardValidator = Compile(GipfBoard)
 
-// A GIPF-piece is two pieces stacked, in the reserve as on the board.
 export function piecesIn(gipf: boolean): number {
     return gipf ? GIPF_PIECE_SIZE : 1
 }
@@ -105,7 +102,6 @@ export class HydratedGipfBoard extends Hydratable<typeof GipfBoard> implements G
         if (gap < 0) {
             throw Error('The line is full')
         }
-        // Every spot before the gap is occupied; each piece moves one spot on, the farthest first.
         for (let index = gap; index > 0; index--) {
             const moving = this.boardPieceAt(entry.line[index - 1])
             assertExists(moving, 'Every spot before the gap holds a piece')

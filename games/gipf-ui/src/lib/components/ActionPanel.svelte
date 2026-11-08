@@ -36,7 +36,6 @@
     })
 </script>
 
-<!-- One row, as Bus and Magna Grecia do: the last move while you wait, the prompt and its buttons on your turn. -->
 <div class="panel">
     {#if session.isViewingHistory || !prompt}
         {#if lastEntry}

@@ -7,8 +7,6 @@
     import type { PieceParts } from '$lib/animators/drop.js'
     import PieceShape from './PieceShape.svelte'
 
-    // A piece on the board with its shadow under it. The body is the whole piece, which rises off
-    // the board; its parts fall onto it one at a time.
     let {
         color,
         gipf,

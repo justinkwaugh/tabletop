@@ -15,8 +15,7 @@ export type GipfSelectionValues = {
 
 export type GipfSelection = StagedSelectionState<GipfSelectionValues>
 
-// The piece type follows the dot: the piece drops onto its dot as a single piece, and choosing it
-// again makes it a GIPF-piece.
+// The piece type follows the dot: it drops single, and choosing it again makes it a GIPF-piece.
 export const GipfStageOrder = [
     'dot',
     'gipf',
@@ -47,7 +46,7 @@ export function setGipfSelection<TStage extends keyof GipfSelectionValues>(
           )
 }
 
-// Each tap on a GIPF-piece in the chosen row is its own press, which Undo takes back alone.
+// A stacked stage, so Undo takes back one tap at a time.
 export function pushGipfKeep(selection: GipfSelection, keep: number[]): GipfSelection {
     return pushStagedSelectionValue<GipfSelectionValues, 'keep'>(
         selection,
@@ -57,8 +56,7 @@ export function pushGipfKeep(selection: GipfSelection, keep: number[]): GipfSele
     )
 }
 
-// Your choices for a push taken back, as you made them: a GIPF-piece only if you made it one, so
-// each further Undo takes back one choice you made.
+// Only the choices you made, so each further Undo takes back one of them.
 export function restagedGipfSelection(
     push: { gipf: boolean; dot: AxialCoordinates },
     typeChosen: boolean

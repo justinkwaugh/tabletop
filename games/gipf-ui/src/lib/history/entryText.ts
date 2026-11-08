@@ -7,7 +7,6 @@ export type Segment =
     | { kind: 'point'; coords: AxialCoordinates }
 
 // Spaces live inside text segments: Svelte trims whitespace at the edges of template blocks.
-// The brief form keeps the action banner to one line; the history panel uses the full one.
 export function entrySegments(entry: HistoryEntry, brief = false): Segment[] {
     if (brief) {
         return briefSegments(entry)

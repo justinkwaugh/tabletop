@@ -21,7 +21,6 @@ export function isFinishRemoving(action?: GameAction): action is FinishRemoving 
     return action?.type === ActionType.FinishRemoving
 }
 
-// Leaves rows of only GIPF-pieces standing; rows that must be taken cannot be left.
 export class HydratedFinishRemoving
     extends HydratableAction<typeof FinishRemoving>
     implements FinishRemoving

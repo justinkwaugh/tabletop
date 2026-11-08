@@ -25,7 +25,6 @@ import {
     type PieceParts
 } from './drop.js'
 
-// A page load, a sync with the server or a switch of view shows the board as it is, unmoved.
 const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
     'own-action',
     'other-action',
@@ -35,29 +34,24 @@ const ANIMATED_KINDS: ReadonlySet<TransitionKind> = new Set<TransitionKind>([
 ])
 
 const SLIDE = 0.35
-// Seen from the side, a taken piece floats straight up as it fades, and its shadow shrinks.
 const TAKE: Lift = { duration: 0.55, rise: -34, fade: 'power1.out' }
 const MARK_FADE = 0.2
 const FALLBACK_DURATION = 0.18
-// A push taken back other than by your own Undo goes back to its dot and lifts off there; the
-// two overlap so the whole move stays within the 0.2s an actionless change may take.
+// Slide and lift overlap so an actionless change stays within its 0.2s.
 const UNPUSH_SLIDE = 0.14
 const UNPUSH_LIFT_AT = 0.08
 const UNPUSH_LIFT: Lift = { duration: 0.12, rise: LIFT_OFF.rise, fade: LIFT_OFF.fade }
 
-// The piece being pushed in, drawn above the board from its dot until the move lands.
 export type Entering = { playerId: string; gipf: boolean; dot: AxialCoordinates }
 
 type Timeline = gsap.core.Timeline
 type Step = TransitionStep<HydratedGipfGameState, AnimationContext>
 
 export class BoardAnimator implements MoveInterrupter {
-    // The pieces drawn. A replay plays several actions before the visible state catches up, so
-    // each animated action leaves the board as it ended until that state lands.
+    // A replay leaves each action's board drawn until the state catches up.
     pieces: BoardPiece[] = $derived.by(() => this.session.gameState.board.pieces)
     entering: Entering | undefined = $state()
-    // Until the state a move made lands, your choices still name the dot you pushed from: the
-    // piece you pushed in stays off it, and a piece Undo took back out stands on it.
+    // Until the state lands: your pushed piece stays off its dot, and an undone one stands on it.
     pushedIn: boolean = $derived.by(() => this.untilLanded(false))
     returned: Entering | undefined = $derived.by(() => this.untilLanded(undefined))
 
@@ -70,9 +64,7 @@ export class BoardAnimator implements MoveInterrupter {
     private enteringShadowNode: SVGGElement | undefined
     private readonly markNodes = new Set<SVGGElement>()
     private readonly listener = (step: Step) => this.onGameStateChange(step)
-    // The timeline of the move playing, until it lands.
     private playing: Timeline | undefined
-    // The state of a presentation a switch of view left behind.
     private abandoned: HydratedGipfGameState | undefined
 
     constructor(private readonly session: GipfGameSession) {}
@@ -95,8 +87,7 @@ export class BoardAnimator implements MoveInterrupter {
         this.abandoned = this.session.presentingState
     }
 
-    // Plays the move to its end at once. The shared context's timeline, which holds this move's,
-    // then completes, so the move lands and its state is shown without waiting out its length.
+    // Ends the shared context's timeline at once, so the move lands without waiting out its length.
     private finishMove() {
         const timeline = this.playing
         if (timeline === undefined) return
@@ -106,12 +97,10 @@ export class BoardAnimator implements MoveInterrupter {
         master.progress(1)
     }
 
-    // The node that carries a piece and its shadow across the board.
     piece(key: number): Attachment<SVGGElement> {
         return this.register(this.pieceNodes, key)
     }
 
-    // The piece itself, which rises off the board or falls onto it.
     body(key: number): Attachment<SVGGElement> {
         return this.register(this.bodyNodes, key)
     }
@@ -139,7 +128,6 @@ export class BoardAnimator implements MoveInterrupter {
         }
     }
 
-    // The discs of the piece being pushed in, which another player's move drops onto its dot.
     readonly enteringParts: PieceParts = {
         disc: (index) => this.register(this.enteringDiscNodes, index),
         crease: (node) => {
@@ -160,7 +148,6 @@ export class BoardAnimator implements MoveInterrupter {
         }
     }
 
-    // Everything that marks the choices of a move fades with it.
     marks(): Attachment<SVGGElement> {
         return (node) => {
             this.markNodes.add(node)
@@ -187,14 +174,12 @@ export class BoardAnimator implements MoveInterrupter {
         const timeline = animationContext.actionTimeline
         this.playing = timeline
         const shown = this.session.gameState
-        // Each spot's drawing is reused for whatever piece next stands there, so every node a
-        // move touches is put back once the move lands.
+        // Spot nodes are reused by whatever piece next stands there, so each moved one is reset.
         const touched: SVGGElement[] = []
 
         if (isPushPiece(action) && action.metadata !== undefined) {
             const { line, shifted } = action.metadata
-            // A piece you brought in already stands on its dot; another player's, or one replayed
-            // from history, drops onto it first.
+            // Your own piece already stands on its dot; anyone else's drops onto it first.
             const at = kind === 'own-action' ? 0 : landing(action.gipf)
             if (kind === 'own-action') this.pushedIn = true
             this.slide(line.slice(0, shifted), this.alongLine(line), timeline, SLIDE, touched, at)
@@ -226,17 +211,14 @@ export class BoardAnimator implements MoveInterrupter {
             this.entering = undefined
             for (const node of touched) gsap.set(node, { x: 0, y: 0, scale: 1, opacity: 1 })
             for (const node of this.markNodes) gsap.set(node, { opacity: 1 })
-            // A switch of view while the move played, such as a reload after a rejected move,
-            // has already shown another state, which this move's board must not cover.
+            // A switch of view has already shown another state, which this board must not cover.
             if (this.session.gameState !== shown) return
             this.pieces = to.board.pieces
             this.returned = returned
         })
     }
 
-    // Undo and history steps carry no action, so a push is read from the two boards and the line
-    // slides either way; otherwise only pieces whose spot is left empty lift off. A push taken
-    // back returns to its dot: your own Undo leaves it staged there, any other lifts it off.
+    // Undo and history steps carry no action, so the push is read from the two boards.
     private async fallback(
         kind: TransitionKind,
         from: HydratedGipfGameState,
@@ -244,8 +226,8 @@ export class BoardAnimator implements MoveInterrupter {
         timeline: Timeline,
         touched: SVGGElement[]
     ): Promise<Entering | undefined> {
-        // A step back takes back the push on screen that led from `to`; history stepping forward
-        // knows the push it steps to.
+        // onHistoryAction names the action before the one a step back undoes, so a step back
+        // uses the push on screen.
         const known =
             to.actionCount < from.actionCount
                 ? this.session.undonePush(to)
@@ -292,7 +274,6 @@ export class BoardAnimator implements MoveInterrupter {
         this.lift(line[0], timeline, UNPUSH_LIFT, touched, UNPUSH_LIFT_AT)
     }
 
-    // The pieces a push moved along go back a spot.
     private slideBack(
         line: readonly AxialCoordinates[],
         shifted: number,
@@ -345,7 +326,6 @@ export class BoardAnimator implements MoveInterrupter {
         if (this.enteringShadowNode) dropShadow(timeline, this.enteringShadowNode)
     }
 
-    // The new piece slides from its dot onto the first spot as the line moves along.
     private async slideIn(
         playerId: string,
         gipf: boolean,
@@ -367,12 +347,10 @@ export class BoardAnimator implements MoveInterrupter {
         for (const node of this.markNodes) timeline.to(node, { opacity: 0, duration }, 0)
     }
 
-    // One spot along a line, from its first spot towards its second.
     private alongLine(line: readonly AxialCoordinates[]) {
         return line.length < 2 ? { x: 0, y: 0 } : this.offset(line[0], line[1])
     }
 
-    // On screen, in the view the board is seen from.
     private offset(from: AxialCoordinates, to: AxialCoordinates) {
         if (sameCoordinates(from, to)) return { x: 0, y: 0 }
         const start = this.session.view.center(from)

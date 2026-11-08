@@ -114,7 +114,6 @@
                                 pressed={gameSession.showCoordinates}
                                 onToggle={() => gameSession.toggleCoordinates()}>A1</OverlayToggle
                             >
-                            <!-- Half a turn round, so the pieces hidden behind others come in front. -->
                             <OverlayToggle
                                 label="Far side"
                                 pressed={gameSession.turned}

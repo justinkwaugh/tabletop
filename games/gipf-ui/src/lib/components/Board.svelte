@@ -44,8 +44,6 @@
     let hoveredTarget: number | undefined = $state()
     const pieces = $derived(animator.pieces)
 
-    // The piece you are about to bring in drops onto the dot you chose, until it goes in. A piece
-    // Undo took back out stands there already.
     const preview = $derived.by(() => {
         if (animator.entering || animator.pushedIn) return undefined
         if (animator.returned) return { ...animator.returned, drops: false }
@@ -67,8 +65,8 @@
               drops: boolean
           }
 
-    // Far pieces first, so nearer pieces stand in front of them. The piece coming in is drawn at
-    // its dot's depth: the line it pushes moves with it, so the order holds as it slides.
+    // Far pieces first. The incoming piece is drawn at its dot's depth, which the pushed line
+    // keeps as it slides.
     const drawOrder: Drawn[] = $derived.by(() => {
         const drawn: Drawn[] = pieces.map((piece) => ({
             kind: 'piece',
@@ -80,7 +78,7 @@
         if (incoming) {
             drawn.push({
                 kind: animator.entering ? 'entering' : 'preview',
-                // Made a GIPF-piece on its dot, the piece stays and a disc drops onto it.
+                // Keyed by dot, so making it a GIPF-piece keeps the piece and drops a disc onto it.
                 key: `incoming-${coordinatesToNumber(incoming.dot)}`,
                 coords: incoming.dot,
                 gipf: incoming.gipf,
@@ -101,7 +99,6 @@
         return includesCoords(session.entryDots, coords)
     }
 
-    // A tap on nothing you can choose lets go of what is chosen.
     function onBoardClick(event: MouseEvent) {
         const target = event.target
         if (!(target instanceof Element)) return
@@ -137,11 +134,8 @@
         }
     }
 
-    // Arrows lie on the board, laid out flat and then seen at the tilt. Each runs from the far
-    // half of the staged piece's top to well inside the ring around the first spot, so it marks
-    // where the push goes. The tilt shortens an arrow pointing up or down the screen, the way
-    // E1's does, more than one along a slanted line, so each starts as far from its dot on screen
-    // as an upright one does, reaching back as far over the staged piece. As in MATRX GIPF.
+    // The tilt shortens upright arrows most, so each starts as far from its dot on screen, as in
+    // MATRX GIPF.
     const ARROW_START = DOT_RADIUS * 2 + 12
     const ARROW_REACH = 24
     function arrow(from: AxialCoordinates, to: AxialCoordinates): string {
@@ -230,8 +224,6 @@
         </g>
     {/each}
 
-    <!-- Rings on the board: round the dots you can bring a piece in from, and round the spots
-         you can push into, behind whatever stands there. -->
     <g {@attach animator.marks()}>
         {#each session.entryDots as coords (coordinatesToNumber(coords))}
             {@const center = view.center(coords)}
@@ -297,9 +289,7 @@
                         shadow={animator.shadow(drawn.key)}
                     />
                 </g>
-                <!-- Marks lie on the top face, after the piece and outside the node that moves
-                     it: a dashed ring for a row you can choose, a spot on each piece that goes,
-                     and on each GIPF-piece the crown ring coloured for keep or take. -->
+                <!-- Marks sit outside the node that moves the piece, so they stay put. -->
                 {#if role}
                     <g {@attach animator.marks()}>
                         {#if role === 'row'}
@@ -340,7 +330,6 @@
                 </g>
             </g>
         {:else}
-            <!-- While you may choose its type, choosing the piece again makes it a GIPF-piece. -->
             <g
                 transform="translate({center.x} {center.y})"
                 class="entering"
@@ -362,7 +351,6 @@
         {/if}
     {/each}
 
-    <!-- Arrows and the targets' click areas stand above the pieces. -->
     <g {@attach animator.marks()}>
         {#each session.targets as entry (coordinatesToNumber(entry.line[0]))}
             {@const center = view.center(entry.line[0])}

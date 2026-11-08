@@ -39,7 +39,6 @@ function takingOf(action: GameAction): Taking | undefined {
     }
 }
 
-// Rows read from the lower point to the higher: by column, then up the column.
 function inReadingOrder(
     a: AxialCoordinates,
     b: AxialCoordinates

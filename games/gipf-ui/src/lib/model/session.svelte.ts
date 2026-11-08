@@ -35,12 +35,11 @@ import {
 import { viewOf, type BoardView } from '$lib/board/geometry.js'
 import { boardNotation, type BoardNotation } from '$lib/board/coordinates.js'
 
-// What the board animator offers the session: stopping the move it is playing, when the board
-// must show something else at once.
+// Lets the session stop the move the board animator is playing.
 export type MoveInterrupter = {
-    // The move lands at once, as it ends; the rest of its replay still plays.
+    // Lands the move at once; the rest of its replay still plays.
     interrupt(): void
-    // The move stops and what is left of its replay is dropped: another state is being shown.
+    // Lands it and drops the rest of its replay: another state is being shown.
     abandon(): void
 }
 
@@ -54,18 +53,15 @@ type SessionOptions = ConstructorParameters<
 
 export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGameState> {
     selection: GipfSelection = $state({})
-    // The player whose choices the selection holds: anyone else viewing, as the harness's
-    // Non-active view can be after an Undo, sees none of them, and Undo passes them by.
+    // Anyone but the selection's owner, as the harness's Non-active view can be after an Undo,
+    // sees none of it, and Undo passes it by.
     private selectionOwner: string | undefined = $state()
     private ownSelection: GipfSelection = $derived(
         this.selectionOwner !== undefined && this.selectionOwner === this.myPlayer?.id
             ? this.selection
             : {}
     )
-    // The push being undone. Undo takes your piece back out onto its dot, staged as you chose it,
-    // and a further Undo takes it off the dot.
     undoingPush: PushPiece | undefined
-    // The push history last stepped to, whose piece came in from its own dot.
     historyPush: PushPiece | undefined
     moveInterrupter: MoveInterrupter | undefined
 
@@ -88,7 +84,6 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
         this.preferences.set({ showCoordinates: !this.showCoordinates })
     }
 
-    // The board seen from the far side, half a turn round, to see behind pieces.
     turned: boolean = $derived(this.preferences.values.turned)
 
     // A move's motion is laid out in the view it started in, so turning the board lands it.
@@ -114,10 +109,8 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
         ]
     })
 
-    // Whether you may choose between a single piece and a GIPF-piece.
     choosesType: boolean = $derived(this.pieceTypes.length > 1)
 
-    // A piece you may choose comes in single until you make it a GIPF-piece.
     chosenGipf: boolean | undefined = $derived.by(() => {
         const manual = this.ownSelection.gipf?.value
         if (manual !== undefined && this.pieceTypes.includes(manual)) return manual
@@ -168,7 +161,6 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
         return mandatory.length === 1 && this.rows.length === 1 ? mandatory[0] : undefined
     })
 
-    // The GIPF-pieces in the chosen row, each of which you may leave or take.
     rowGipfPieces: AxialCoordinates[] = $derived.by(() => {
         const row = this.chosenRow
         if (row === undefined) return []
@@ -214,19 +206,17 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
         this.historyPush = isPushPiece(action) ? action : undefined
     }
 
-    // The state whose move the board is playing.
     get presentingState(): HydratedGipfGameState | undefined {
         return this.incomingGameState
     }
 
-    // The push on screen that a step back to `to` takes back.
     undonePush(to: Pick<GipfGameState, 'actionCount'>): PushPiece | undefined {
         const action = this.actions.find((candidate) => candidate.index === to.actionCount)
         return isPushPiece(action) ? action : undefined
     }
 
-    // The push your own Undo takes back to `to`, which comes back staged on its dot. None when the
-    // view passes to the other player as the Undo lands, as the harness's Non-active view does.
+    // None when the view passes to the other player as the Undo lands, as the harness's
+    // Non-active view does.
     restagedPush(to: Pick<GipfGameState, 'actionCount'>): PushPiece | undefined {
         const push = this.undoingPush
         if (push === undefined || push.index !== to.actionCount) return undefined
@@ -244,13 +234,11 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
         if (kind !== 'undo') this.undoingPush = undefined
     }
 
-    // Whether the player of a push taken back could have brought in either piece type.
     private hadTypeChoice(push: PushPiece): boolean {
         const state = this.incomingGameState ?? this.gameState
         return state.canPlaySingle(push.playerId) && state.canPlayGipf(push.playerId)
     }
 
-    // Choosing the piece on its dot again makes it a GIPF-piece, or single again.
     toggleGipf() {
         if (!this.choosesType || this.chosenDot === undefined) return
         this.select(setGipfSelection(this.ownSelection, 'gipf', this.chosenGipf ? undefined : true))
@@ -263,7 +251,6 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
         this.select(setGipfSelection(this.ownSelection, 'dot', same ? undefined : dot))
     }
 
-    // Tapping where there is nothing to choose lets go of a chosen dot.
     letGo() {
         if (this.chosenDot === undefined) return
         this.select(setGipfSelection(this.ownSelection, 'dot', undefined))

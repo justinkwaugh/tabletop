@@ -5,14 +5,10 @@ export type InferredPush = {
     entry: Entry
     shifted: number
     piece: Piece
-    // Whether the step goes forward through the push, or back out of it.
     forward: boolean
 }
 
-// A history step or Undo carries no action, so a push is read from the boards: some way in,
-// pushed with the piece that ends on its first spot, turns one board into the other. A piece that
-// moved nothing along could have come from any dot beside its spot, so a step that knows the push
-// it shows (the one undone, or the one history stepped to) follows it, if it fits the boards.
+// A push that moved nothing fits any dot beside its spot, so a known push is tried first.
 export function inferPush(
     before: HydratedGipfBoard,
     after: HydratedGipfBoard,

@@ -4,8 +4,6 @@
     import { stackTop } from '$lib/board/pieceShape.js'
     import PieceShape from './PieceShape.svelte'
 
-    // Stacks of pieces side by side, each the given number of discs high, as they would stand on
-    // the table: a tally beside a count on a player card.
     let { color, stacks }: { color: Color; stacks: number[] } = $props()
 
     const RADIUS = 11

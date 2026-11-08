@@ -8,7 +8,7 @@ import {
     type AxialCoordinates
 } from '@tabletop/common'
 
-// The 61-point board: the outer ring of 24 points are dots, where pieces enter; the inner 37 are spots.
+// The outer ring of 24 points are dots, where pieces enter; the inner 37 are spots.
 export const BOARD_RADIUS = 4
 export const PLAY_RADIUS = 3
 
@@ -16,7 +16,6 @@ export const DIRECTIONS: readonly AxialCoordinates[] = ClockwiseFlatHexDirection
     (direction) => FlatNeighborOffsets[direction]
 )
 
-// One direction per line orientation, for scanning rows.
 export const AXES: readonly AxialCoordinates[] = [
     { q: 0, r: 1 },
     { q: 1, r: 0 },
@@ -46,7 +45,6 @@ export type Entry = {
     line: AxialCoordinates[]
 }
 
-// The spots a piece entering from a dot in a direction passes, from the first spot to the far edge.
 export function lineFrom(start: AxialCoordinates, direction: AxialCoordinates): AxialCoordinates[] {
     const line: AxialCoordinates[] = []
     let current = start

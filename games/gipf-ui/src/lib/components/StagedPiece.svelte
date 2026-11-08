@@ -8,9 +8,6 @@
     import { piecesIn } from '@tabletop/gipf'
     import PieceShape from './PieceShape.svelte'
 
-    // The piece you are about to bring in, dropping onto the dot you chose unless Undo took it
-    // back out there. Taken back, it lifts off again, unless it is going in (lifts says which).
-    // Made a GIPF-piece, its second disc drops onto it; made single again, that disc lifts off.
     let {
         color,
         gipf,
@@ -18,7 +15,7 @@
         lifts
     }: { color: Color; gipf: boolean; drops: boolean; lifts: () => boolean } = $props()
 
-    // Whether it drops is settled when it is first drawn; a disc added later drops onto it.
+    // Whether it drops is settled when it is first drawn.
     const drop = new StagedDrop(
         untrack(() => drops),
         untrack(() => piecesIn(gipf))

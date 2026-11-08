@@ -8,9 +8,6 @@
     import { lookUrl } from '$lib/board/looks.js'
     import { liftOffCrease, liftOffDisc, type PieceParts } from '$lib/animators/drop.js'
 
-    // A piece standing on its point, seen from the near side of the table, or any stack of discs
-    // (discs, for a tally). Each disc is an image of its tone's look, pre-rendered by
-    // scripts/render-looks.mjs, on its own node, centred on its base, so it can drop on its own.
     // GSAP drops a disc's inner node and Svelte lifts its wrapper off, so the two never write the
     // same transform.
     let {

@@ -10,7 +10,6 @@
     }: { color: Color; gipf?: boolean; size?: number } = $props()
 
     const radius = $derived(gipf ? 10 : 10.5)
-    // Centred on the piece's whole silhouette, from its top face down to the front of its base.
     const scale = $derived(radius / PIECE_RADIUS)
     const middle = $derived(((VIEW.extentBelow - VIEW.extentAbove(gipf)) / 2) * scale)
 </script>

@@ -2,36 +2,26 @@ import type { Attachment } from 'svelte/attachments'
 import type { TransitionConfig } from 'svelte/transition'
 import { gsap } from 'gsap'
 
-// A piece brought in falls onto its dot, gathering speed, and settles with a small wobble; its
-// shadow waits on the dot and darkens as the piece comes down. A GIPF-piece's discs fall one after
-// the other: the bottom one lands, then the top one lands on it and its shadow spreads over it.
 export const DROP = {
     fall: 0.26,
     rise: -50,
     scale: 1.08,
     wobble: [-4, -1.5],
-    // A disc dropped onto a piece already standing, to make it a GIPF-piece, bounces on it.
     bounce: [-9, -3.5],
     settle: 0.06,
     shadow: 0.55,
     stagger: 0.1
 }
 
-// How a piece lifted off the board rises, whole, as it fades: a taken piece slowly, an undone
-// one quickly, staying in sight until it is well up. It grows a little nearer as it rises, and its
-// shadow shrinks under it.
 export type Lift = { duration: number; rise: number; fade: string }
 export const LIFT_OFF = { duration: 0.18, rise: -30, fade: 'power2.in', scale: 1.04, shadow: 0.55 }
 
 type Timeline = gsap.core.Timeline
 
-// When a piece's last disc lands, from the start of its drop.
 export function landing(gipf: boolean): number {
     return DROP.fall + (gipf ? DROP.stagger : 0)
 }
 
-// The parts of a piece that move on their own as it drops: each disc, and the shadow of the top
-// disc on the one below. A disc taken off a piece that stays lifts off when lifts says so.
 export type PieceParts = {
     disc(index: number): Attachment<SVGGElement>
     crease: Attachment<SVGGElement>
@@ -79,13 +69,10 @@ export function dropCrease(timeline: Timeline, node: SVGGElement, at = 0) {
     )
 }
 
-// The piece you stage drops onto its dot by itself, as its parts are drawn: it shows a choice, not
-// a change to the game, so no game state change owns its motion. A disc added once it stands, to
-// make it a GIPF-piece, drops onto it on its own.
+// A staged choice, not a state change, so this local timeline owns its motion.
 export class StagedDrop {
     private readonly timeline = gsap.timeline()
     private readonly added: Timeline[] = []
-    // The parts drawn with the piece, still to be attached.
     private firstDiscs: number
     private firstCrease: boolean
 
@@ -140,7 +127,6 @@ export class StagedDrop {
     }
 }
 
-// Taking back the piece you staged lifts it off its dot again, unless it is going in.
 type LiftOff = { lifts: () => boolean }
 
 export function liftOffBody(_node: Element, { lifts }: LiftOff): TransitionConfig {
@@ -155,10 +141,9 @@ export function liftOffBody(_node: Element, { lifts }: LiftOff): TransitionConfi
     }
 }
 
-// A disc taken off the piece below lifts off it, and its shadow on that piece goes with it.
 type DiscLiftOff = { parts?: PieceParts }
 
-// The lift takes over from a drop still under way: the disc rises from where it is.
+// The lift takes over from a drop still under way.
 function stopDrops(wrapper: Element) {
     for (const child of wrapper.children) gsap.killTweensOf(child)
 }

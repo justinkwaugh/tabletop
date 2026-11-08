@@ -4,8 +4,7 @@
     import type { BoardView } from '$lib/board/geometry.js'
     import { discSlices, topBands, type Tone } from '$lib/board/pieceShape.js'
 
-    // One tone's disc, drawn in an SVG: the looks page draws each for scripts/render-looks.mjs to
-    // save as an image. The gradients come from the LookDefs beside it.
+    // Drawn only on the looks page, for scripts/render-looks.mjs to save as an image.
     let {
         tone,
         radius,

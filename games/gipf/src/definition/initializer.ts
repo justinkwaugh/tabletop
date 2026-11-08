@@ -50,7 +50,6 @@ export class GipfGameInitializer
         )
         turnManager.startTurn(turnManager.turnOrder[0], 0)
 
-        // The first player plays White.
         const colorOf = (playerId: string) =>
             turnManager.turnOrder[0] === playerId ? Color.White : Color.Black
         const board = new HydratedGipfBoard(emptyBoard())

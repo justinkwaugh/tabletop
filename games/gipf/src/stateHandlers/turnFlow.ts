@@ -11,7 +11,6 @@ export function startResolving(state: HydratedGipfGameState, moverId: string): M
 }
 
 export function continueResolving(state: HydratedGipfGameState): MachineState {
-    // Rows are resolved within the mover's turn, which ends once they are.
     const moverId = state.turnManager.currentTurn()?.playerId
     assertExists(moverId, 'Rows are resolved during a turn')
     while (state.resolvingPlayerIds.length > 0) {
