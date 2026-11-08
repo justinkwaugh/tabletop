@@ -12,6 +12,7 @@ import { GipfColors } from './colors.js'
 import { GipfScoring } from './scoring.js'
 
 export const GipfRuntime: GameRuntime<GipfGameState, HydratedGipfGameState> = {
+    randomnessVersion: 1,
     initializer: new GipfGameInitializer(),
     canonicalStateValidator: GipfGameStateValidator,
     hydrator: new GipfHydrator(),
