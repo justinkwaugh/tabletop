@@ -15,6 +15,7 @@ export const GipfInfo: GameInfo = {
         maxPlayers: 2,
         defaultPlayerCount: 2,
         version: GAME_VERSION,
+        hasScores: false,
         beta: true,
         visibility: GameVisibility.Alpha
     },
