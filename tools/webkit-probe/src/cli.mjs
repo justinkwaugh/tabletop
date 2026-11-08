@@ -23,21 +23,25 @@ and the board's repaint time, once as served and once more per --css.
 Options:
   --scenario <file|name>  load a harness scenario from a JSON file or the Scenarios menu
   --wait <selector>       wait for this element before the first mark
-  --steps <file.mjs>      run the module's default export: async ({ page, mark, time }) => {}
+  --steps <file.mjs>      run the module's default export:
+                            async ({ page, mark, time, quietly }) => {}
                           mark(label, { settleMs = 1000 }) records memory and repaint there;
                           time(label, action, { windowMs = 1500 }) records frames while
-                          action() runs and for windowMs after it starts
-  --board <selector>      time repaints of this element at every mark it is on (median of 8)
+                            action() runs and for windowMs after it starts;
+                          quietly(action) runs setup, such as playing a game forward, with
+                            reduced motion
+  --board <selector>      time repaints of this element at every mark (median of 8); an
+                          svg or a box, laid out by its CSS width
   --css <rule>            add a run with this CSS injected after load; repeatable
-                          (use !important: a component's scoped style wins without it)
   --settle <ms>           wait after loading before the "open" mark (default 3000)
+  --reduced-motion        keep reduced motion on after loading, for every mark and timing
   --viewport <WxH>        default 390x664
   --dpr <n>               device pixel ratio (default 3)
   --desktop               no mobile viewport or touch
-  --full-motion           do not emulate prefers-reduced-motion
-  --headed                show the browser
   --json                  print the report as JSON
-  -h, --help`
+  -h, --help
+
+Loading and any scenario run with reduced motion; marks and timings see full motion.`
 
 const run = promisify(execFile)
 
@@ -54,8 +58,7 @@ function options() {
             viewport: { type: 'string', default: '390x664' },
             dpr: { type: 'string', default: '3' },
             desktop: { type: 'boolean', default: false },
-            'full-motion': { type: 'boolean', default: false },
-            headed: { type: 'boolean', default: false },
+            'reduced-motion': { type: 'boolean', default: false },
             json: { type: 'boolean', default: false },
             help: { type: 'boolean', short: 'h', default: false }
         }
@@ -75,8 +78,7 @@ function options() {
         viewport: parseViewport(values.viewport),
         dpr: Number(values.dpr),
         mobile: !values.desktop,
-        reducedMotion: !values['full-motion'],
-        headed: values.headed,
+        reducedMotion: values['reduced-motion'],
         json: values.json
     }
 }
@@ -117,14 +119,18 @@ function pause(ms) {
 async function repaintMs(page, selector) {
     const samples = await page.evaluate(async (selector) => {
         const element = document.querySelector(selector)
-        if (!element) return []
+        if (!element) return null
+        const layoutWidth = parseFloat(getComputedStyle(element).width)
+        if (!Number.isFinite(layoutWidth)) {
+            throw new Error(`--board ${selector} has no CSS width; choose its svg or box`)
+        }
         const frame = () => new Promise((done) => requestAnimationFrame(() => done()))
         const width = element.style.width
         const times = []
         for (let i = 0; i < 8; i++) {
             await frame()
             const start = performance.now()
-            element.style.width = `${element.getBoundingClientRect().width - 1}px`
+            element.style.width = `${layoutWidth - 1}px`
             await frame()
             await frame()
             times.push(performance.now() - start)
@@ -134,7 +140,7 @@ async function repaintMs(page, selector) {
         }
         return times
     }, selector)
-    return samples.length > 0 ? median(samples) : undefined
+    return samples === null ? null : median(samples)
 }
 
 async function framesDuring(page, action, windowMs) {
@@ -148,9 +154,16 @@ async function framesDuring(page, action, windowMs) {
         requestAnimationFrame(record)
         return performance.now()
     })
+    let reloaded = false
+    const noteReload = () => {
+        reloaded = true
+    }
+    page.on('load', noteReload)
+    const actionStarted = Date.now()
     await action()
-    const elapsed = await page.evaluate(() => performance.now())
-    await pause(Math.max(0, windowMs - (elapsed - start)))
+    await pause(Math.max(0, windowMs - (Date.now() - actionStarted)))
+    page.off('load', noteReload)
+    if (reloaded) return { reloaded: true }
     const frames = await page.evaluate(() => {
         window.__webkitProbe.stopped = true
         return window.__webkitProbe.frames
@@ -168,7 +181,7 @@ async function loadScenario(page, scenario) {
 }
 
 async function probe(config, css) {
-    const browser = await webkit.launch({ headless: !config.headed })
+    const browser = await webkit.launch()
     const sampler = memorySampler()
     try {
         const context = await browser.newContext({
@@ -176,7 +189,7 @@ async function probe(config, css) {
             deviceScaleFactor: config.dpr,
             isMobile: config.mobile,
             hasTouch: config.mobile,
-            reducedMotion: config.reducedMotion ? 'reduce' : 'no-preference'
+            reducedMotion: 'reduce'
         })
         const page = await context.newPage()
         await pause(1000)
@@ -188,24 +201,35 @@ async function probe(config, css) {
         const mark = async (label, { settleMs = 1000 } = {}) => {
             await pause(settleMs)
             const rssMb = await sampleRssMb()
-            const peakMb = Math.max(sampler.takePeak() ?? 0, rssMb ?? 0)
             const repaint = config.board ? await repaintMs(page, config.board) : undefined
+            const samples = [sampler.takePeak(), rssMb].filter((mb) => mb !== undefined)
+            const peakMb = samples.length > 0 ? Math.max(...samples) : undefined
             marks.push({ label, rssMb, peakMb, repaintMs: repaint })
         }
         const time = async (label, action, { windowMs = 1500 } = {}) => {
             timings.push({ label, ...(await framesDuring(page, action, windowMs)) })
+        }
+        const motion = config.reducedMotion ? 'reduce' : 'no-preference'
+        const quietly = async (action) => {
+            await page.emulateMedia({ reducedMotion: 'reduce' })
+            try {
+                await action()
+            } finally {
+                await page.emulateMedia({ reducedMotion: motion })
+            }
         }
 
         await page.goto(config.url, { waitUntil: 'networkidle' })
         if (config.scenario) await loadScenario(page, config.scenario)
         if (config.wait) await page.locator(config.wait).first().waitFor()
         if (css !== undefined) await page.addStyleTag({ content: css })
+        await page.emulateMedia({ reducedMotion: motion })
         await mark('open', { settleMs: config.settleMs })
 
         if (config.steps) {
             const { default: steps } = await import(pathToFileURL(config.steps).href)
             try {
-                await steps({ page, mark, time })
+                await steps({ page, mark, time, quietly })
             } catch (error) {
                 const screenshot = join(tmpdir(), `webkit-probe-failure-${Date.now()}.png`)
                 await page.screenshot({ path: screenshot })

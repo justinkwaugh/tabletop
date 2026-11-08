@@ -87,14 +87,16 @@ function memoryText(mark, blankMb, comparedMark) {
 
 function repaintText(mark, comparedMark) {
     if (mark.repaintMs === undefined) return ''
+    if (mark.repaintMs === null) return '  no board'
     const change =
-        comparedMark?.repaintMs === undefined
+        comparedMark?.repaintMs == null
             ? ''
             : ` (${signed(Math.round(mark.repaintMs - comparedMark.repaintMs))})`
     return `  repaint ${Math.round(mark.repaintMs)} ms${change}`
 }
 
 function timingText(timing) {
+    if (timing.reloaded) return 'page reloaded'
     const settled = timing.settleMs === 0 ? 'settled at once' : `settled ${timing.settleMs} ms`
     return `longest frame ${timing.longestFrameMs} ms, ${timing.longFrames} over ${LongFrameMs} ms, ${settled}`
 }
@@ -102,7 +104,7 @@ function timingText(timing) {
 export function formatReport(report) {
     const { config, runs } = report
     const lines = [
-        `WebKit ${config.viewport.width}x${config.viewport.height} @${config.dpr}x, ${config.mobile ? 'mobile' : 'desktop'}, ${config.reducedMotion ? 'reduced motion' : 'full motion'}: ${config.url}`,
+        `WebKit ${config.viewport.width}x${config.viewport.height} @${config.dpr}x, ${config.mobile ? 'mobile' : 'desktop'}, ${config.reducedMotion ? 'reduced motion' : 'full motion after loading'}: ${config.url}`,
         'Memory is the web process RSS over a blank page; changes in brackets are against the first run.',
         'A repaint takes two frames at least (about 33 ms); only the time above that is drawing.'
     ]

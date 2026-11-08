@@ -66,7 +66,7 @@ To read, answer, fix or close player bug reports from the Discord forum, use `.a
 
 ### Phone rendering
 
-Before adding a filter, shadow, blur, texture, mask, fade, or board-sized layer to a game UI, or when a phone reloads, stutters, or misdraws a game, read `docs/phone-rendering.md`.
+Before drawing a game UI's effects (filters, masks, fades), textures, animation, board layers, touch or wheel listeners, or SVG text and images, or when a phone reloads, stutters, or misdraws a game, read `docs/phone-rendering.md`.
 
 ### Animation
 

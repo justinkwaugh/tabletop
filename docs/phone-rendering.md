@@ -1,6 +1,6 @@
 # Phone rendering
 
-Every browser on an iPhone runs WebKit, and WebKit draws SVG and CSS effects into offscreen bitmaps the size of the effect's area at device pixels. A bitmap costs width × height × DPR² × 4 bytes: a 1200 × 900 board on a 3x phone is about 39 MB per copy, and it is drawn again in full whenever anything inside it changes. When a tab passes its memory limit, iOS kills it and the page reloads silently. Desktop Chromium shows none of this, so design every game UI to the budget of a 3x phone and measure it in WebKit.
+Every browser on an iPhone runs WebKit, and WebKit draws SVG and CSS effects into offscreen bitmaps the size of the effect's area at device pixels. A bitmap costs width × height × DPR² × 4 bytes: a 1200 × 900 board on a 3x phone is about 39 MB per copy, and it is drawn again in full whenever anything inside it changes. When a tab passes its memory limit, iOS kills it and the page reloads silently. Only WebKit shows these costs, so design every game UI to the budget of a 3x phone and measure it in WebKit.
 
 Three words carry the rules below:
 
@@ -14,11 +14,11 @@ Three words carry the rules below:
 
 An effect is anything WebKit draws offscreen: an SVG `filter`, a CSS `filter` or `backdrop-filter`, a `mask`, `mix-blend-mode`, and `opacity` below 1 on a group, including a fade. Apply each to the single piece that needs it.
 
-- Give every SVG filter an explicit region in `filterUnits="userSpaceOnUse"` sized to its piece, as `libs/18xx-ui/src/lib/tiles/TileArtwork.svelte` does for track and nodes. The default region is the element's bounding box plus 10%, and that box can be far larger than what shows.
+- Give every SVG filter an explicit region in `filterUnits="userSpaceOnUse"` sized to its piece, as Medina's tint filter for each recent wall does (`games/medina-ui/src/lib/components/Board.svelte`). The default region is the element's bounding box plus 10%, and that box can be far larger than what shows.
 - Clip a sprite to its frame. A frame of a sprite sheet shown through a nested `<svg>` reports the whole sheet as its bounding box, so every filter and fade on it was sheet-sized until `games/medina-ui/src/lib/components/Sprite.svelte` clipped each image to its frame.
 - Bound a glow or blur to its piece (MarraCash's route and halo glows), and keep the number of filtered pieces on screen small.
 
-A filter that is piece-sized, still, and used on a handful of pieces is fine; Medina keeps a small tint filter per recent wall.
+A filter that is piece-sized, still, and used on a handful of pieces is fine.
 
 ### Shadows and depth are shapes
 
@@ -30,7 +30,7 @@ Generate grain, noise, weave, and paper as small WebP tiles with a script in the
 
 ### Motion stays still around it
 
-An animating element repaints its area every frame, together with every effect it sits under. Animate `transform` or `opacity` of a small element that carries no effect; show a waiting target with a static highlight. HCG's pulsing target rings held its prompt at 10 fps on a phone until they stopped animating; MarraCash's animated route dash repainted a board-sized halo filter every frame.
+An animating element repaints its area every frame, together with every effect it sits under. Animate `transform` or `opacity` of a small element that carries no effect; show a waiting target with a static highlight. HCG's prompt rose from 10 to 62 fps on a phone once its pulsing target rings stopped and its filter shadows became shapes; MarraCash's animated route dash repainted a board-sized halo filter every frame.
 
 ### One board surface
 
@@ -48,16 +48,16 @@ Adding or removing a `touchstart`, `touchmove`, or `wheel` listener anywhere res
 
 ## Measure in WebKit
 
-Measure a board before calling it done: a new title, a new effect, a larger board, or a heavier interaction. Chromium timings and memory say nothing about an iPhone. `tools/webkit-probe` opens a harness in Playwright WebKit as a 3x phone and reports the web process's memory and the board's repaint time:
+Measure a board before calling it done: a new title, a new effect, a larger board, or a heavier interaction. `tools/webkit-probe` opens a harness in Playwright WebKit as a 3x phone and reports the web process's memory and the board's repaint time:
 
 ```bash
 node tools/webkit-probe/src/cli.mjs http://localhost:<port> --scenario <name|file.json> \
   --board 'svg.board' --steps /workspace/tmp/<topic>/steps.mjs
 ```
 
-- Drive the heaviest interaction in a steps module (`--help` gives its signature): `mark` the moments to measure, and `time` an interaction to see every frame it causes, not only the first; a first-frame measure once overstated a win tenfold.
+- Drive the heaviest interaction in a steps module (`--help` gives its signature): `mark` the moments to measure, and `time` an interaction to see every frame it causes, not only the first; a first-frame measure once overstated a win tenfold. Marks and timings run with full motion, so every animation is paid for; wrap setup such as playing a game forward in `quietly`.
 - To find the cost, add a `--css` run per suspect that removes it, with `!important` (`--css 'svg.board { display: none !important }'`), since a component's scoped style wins without it. Each run is reported against the first.
-- Compare runs of one harness; the dev harness alone adds about 270 MB. One board-wide filter cost 280 MB; opening Medina's board adds about 190 MB.
+- Compare runs of one harness; the dev harness alone adds about 270 MB. One board-wide filter cost 280 MB; a Medina game adds about 190 MB over the harness.
 
 Done means the open and heaviest-interaction memory and the repaint time are recorded, and every effect the board draws is piece-sized, pre-rendered, or still.
 
