@@ -20,7 +20,7 @@ Permission granted by Ryan Spangler to Justin Waugh on 2025-01-15 for non-commer
 
 ### Marracash
 
-Permission granted by Stefan Dorra to Justin Waugh on 2026-10-04 for non-commercial use of Marracash when hosted on https://boardtogether.games. This permission does not currently extend to its graphical assets.
+Permission granted by Stefan Dorra to Justin Waugh on 2026-10-04 for non-commercial use of Marracash when hosted on https://boardtogether.games
 
 ### Magna Grecia
 
@@ -29,3 +29,11 @@ Permission granted by Leo Colovini and Michael Schacht to Justin Waugh on 2026-1
 ### Reef Encounter
 
 Permission granted by Richard Breese to Dan Domme on 2026-10-08 for non-commercial use of Reef Encounter and its graphical assets when hosted on https://boardtogether.games
+
+### 1846
+
+Permission granted by Tom Lehmann to Justin Waugh on 2018-02-28 for non-commercial use of 1846 when hosted on https://boardtogether.games
+
+### 1833NE
+
+Permission granted by Tom Lehmann to Justin Waugh on 2026-11-01 for non-commercial use of 1833NE when hosted on https://boardtogether.games
