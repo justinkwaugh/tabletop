@@ -1,19 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import {
-    ActionSource,
-    defaultGameConfig,
-    GameEngine,
-    GameResult,
-    PlayerStatus,
-    type AxialCoordinates,
-    type GameAction
-} from '@tabletop/common'
-import { Definition } from './definition.js'
-import { GipfRuntime } from './runtime.js'
-import { GipfInfo } from './info.js'
+import { GameResult, type AxialCoordinates } from '@tabletop/common'
 import { GipfVersion } from './config.js'
 import { MachineState } from './states.js'
 import { ActionType } from './actions.js'
+import {
+    actionBase,
+    createGame,
+    engine,
+    execute,
+    playToEnd,
+    type GipfGame
+} from './tests/playthrough.js'
 import { EndReason, HydratedGipfGameState, type GipfGameState } from '../model/gameState.js'
 import { emptyBoard, type Piece } from '../model/board.js'
 import { ENTRIES } from '../model/geometry.js'
@@ -21,43 +18,11 @@ import type { PushPiece } from '../actions/pushPiece.js'
 import type { RemoveRow } from '../actions/removeRow.js'
 import type { FinishRemoving } from '../actions/finishRemoving.js'
 
-const engine = new GameEngine(GipfRuntime)
 const W = 'white'
 const B = 'black'
 
-function createGame(version: GipfVersion = GipfVersion.Standard) {
-    return GipfRuntime.initializer.initializeGame(
-        {
-            id: 'gipf-test',
-            typeId: 'gipf',
-            ownerId: 'owner',
-            seed: 5,
-            config: { ...defaultGameConfig(GipfInfo.configurator?.options ?? []), version },
-            players: [W, B].map((id) => ({
-                id,
-                name: id,
-                isHuman: true,
-                status: PlayerStatus.Joined
-            }))
-        },
-        Definition
-    )
-}
-
-type GipfGame = ReturnType<typeof createGame>
-
 function start(game: GipfGame): GipfGameState {
     return engine.startGame(game, { startingPositions: { playerIds: [W, B] } }).initialState
-}
-
-let counter = 0
-function base(game: GipfGame, playerId: string) {
-    counter += 1
-    return { id: `a${counter}`, gameId: game.id, source: ActionSource.User, playerId }
-}
-
-function execute(game: GipfGame, state: GipfGameState, action: GameAction) {
-    return engine.executeCanonicalAction({ game, state, action }).updatedState
 }
 
 function push(
@@ -68,7 +33,13 @@ function push(
     to: AxialCoordinates,
     gipf = false
 ) {
-    const action: PushPiece = { ...base(game, playerId), type: ActionType.PushPiece, dot, to, gipf }
+    const action: PushPiece = {
+        ...actionBase(game, playerId),
+        type: ActionType.PushPiece,
+        dot,
+        to,
+        gipf
+    }
     return execute(game, state, action)
 }
 
@@ -81,7 +52,7 @@ function removeRow(
     keep: AxialCoordinates[] = []
 ) {
     const action: RemoveRow = {
-        ...base(game, playerId),
+        ...actionBase(game, playerId),
         type: ActionType.RemoveRow,
         from,
         to,
@@ -91,7 +62,10 @@ function removeRow(
 }
 
 function finish(game: GipfGame, state: GipfGameState, playerId: string) {
-    const action: FinishRemoving = { ...base(game, playerId), type: ActionType.FinishRemoving }
+    const action: FinishRemoving = {
+        ...actionBase(game, playerId),
+        type: ActionType.FinishRemoving
+    }
     return execute(game, state, action)
 }
 
@@ -305,50 +279,6 @@ describe('end of game', () => {
     })
 })
 
-function legalActions(game: GipfGame, state: GipfGameState): GameAction[] {
-    const hydrated = new HydratedGipfGameState(state)
-    const playerId = state.activePlayerIds[0]
-    const { board } = hydrated
-    if (state.machineState === MachineState.ResolvingRows) {
-        const rows = board.rowsOf(playerId)
-        const removals: GameAction[] = rows.map((row) => ({
-            ...base(game, playerId),
-            type: ActionType.RemoveRow,
-            from: row.from,
-            to: row.to,
-            keep: row.reach.filter(
-                (coords) =>
-                    board.pieceAt(coords)?.gipf && board.pieceAt(coords)?.playerId === playerId
-            )
-        }))
-        const valid = removals.filter((action) => {
-            try {
-                execute(game, state, action)
-                return true
-            } catch {
-                return false
-            }
-        })
-        const mustRemove = rows.some((row) => board.isMandatory(row))
-        return mustRemove
-            ? valid
-            : [...valid, { ...base(game, playerId), type: ActionType.FinishRemoving }]
-    }
-    const pieceTypes = [
-        ...(hydrated.canPlaySingle(playerId) ? [false] : []),
-        ...(hydrated.canPlayGipf(playerId) ? [true] : [])
-    ]
-    return board.legalEntries().flatMap((entry) =>
-        pieceTypes.map((isGipf) => ({
-            ...base(game, playerId),
-            type: ActionType.PushPiece,
-            dot: entry.dot,
-            to: entry.line[0],
-            gipf: isGipf
-        }))
-    )
-}
-
 describe('random playouts', () => {
     it.each(
         Object.values(GipfVersion).flatMap((version) =>
@@ -356,20 +286,7 @@ describe('random playouts', () => {
         )
     )('%s seed %i plays to a single winner', (version, seed) => {
         const game = createGame(version)
-        let state = start(game)
-        let value = seed + 1
-        const choose = <T>(options: T[]): T => {
-            value = (value * 1103515245 + 12345) % 2147483648
-            return options[value % options.length]
-        }
-        let steps = 0
-        while (state.machineState !== MachineState.EndOfGame) {
-            const actions = legalActions(game, state)
-            expect(actions.length).toBeGreaterThan(0)
-            state = execute(game, state, choose(actions))
-            steps += 1
-            expect(steps).toBeLessThan(2000)
-        }
+        const state = playToEnd(game, start(game), seed)
         expect(state.winningPlayerIds).toHaveLength(1)
         expect(state.endReason).toBeDefined()
     })
