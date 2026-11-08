@@ -222,7 +222,8 @@ const WALLS: Record<Tone, { far: Rgb; near: Rgb }> = {
 }
 
 function mix(from: Rgb, to: Rgb, amount: number): Rgb {
-    return from.map((value, index) => value + (to[index] - value) * amount) as Rgb
+    const channel = (index: number) => from[index] + (to[index] - from[index]) * amount
+    return [channel(0), channel(1), channel(2)]
 }
 
 function css(rgb: Rgb, brightness = 1): string {

@@ -1,7 +1,7 @@
 import { tick } from 'svelte'
 import type { Attachment } from 'svelte/attachments'
 import { gsap } from 'gsap'
-import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
+import { coordinatesToNumber, sameCoordinates, type AxialCoordinates } from '@tabletop/common'
 import type {
     AnimationContext,
     TransitionKind,
@@ -15,7 +15,6 @@ import {
 } from '@tabletop/gipf'
 import type { GipfGameSession } from '$lib/model/session.svelte.js'
 import { inferPush } from '$lib/board/inferPush.js'
-import { coordsKey } from '$lib/board/geometry.js'
 import {
     dropCrease,
     dropDisc,
@@ -57,9 +56,9 @@ export class BoardAnimator {
     pushedIn: boolean = $derived.by(() => this.untilLanded(false))
     returned: Entering | undefined = $derived.by(() => this.untilLanded(undefined))
 
-    private readonly pieceNodes = new Map<string, SVGGElement>()
-    private readonly bodyNodes = new Map<string, SVGGElement>()
-    private readonly shadowNodes = new Map<string, SVGGElement>()
+    private readonly pieceNodes = new Map<number, SVGGElement>()
+    private readonly bodyNodes = new Map<number, SVGGElement>()
+    private readonly shadowNodes = new Map<number, SVGGElement>()
     private enteringNode: SVGGElement | undefined
     private readonly enteringDiscNodes = new Map<number, SVGGElement>()
     private enteringCreaseNode: SVGGElement | undefined
@@ -75,16 +74,16 @@ export class BoardAnimator {
     }
 
     // The node that carries a piece and its shadow across the board.
-    piece(key: string): Attachment<SVGGElement> {
+    piece(key: number): Attachment<SVGGElement> {
         return this.register(this.pieceNodes, key)
     }
 
     // The piece itself, which rises off the board or falls onto it.
-    body(key: string): Attachment<SVGGElement> {
+    body(key: number): Attachment<SVGGElement> {
         return this.register(this.bodyNodes, key)
     }
 
-    shadow(key: string): Attachment<SVGGElement> {
+    shadow(key: number): Attachment<SVGGElement> {
         return this.register(this.shadowNodes, key)
     }
 
@@ -271,7 +270,7 @@ export class BoardAnimator {
         at = 0
     ) {
         for (const coords of pieces) {
-            const node = this.pieceNodes.get(coordsKey(coords))
+            const node = this.pieceNodes.get(coordinatesToNumber(coords))
             if (node === undefined) continue
             timeline.to(node, { x: step.x, y: step.y, duration, ease: 'power2.inOut' }, at)
             touched.push(node)
@@ -284,7 +283,7 @@ export class BoardAnimator {
         { duration, rise, fade }: Lift,
         touched: SVGGElement[]
     ) {
-        const key = coordsKey(coords)
+        const key = coordinatesToNumber(coords)
         const body = this.bodyNodes.get(key)
         const shadow = this.shadowNodes.get(key)
         if (body === undefined || shadow === undefined) return

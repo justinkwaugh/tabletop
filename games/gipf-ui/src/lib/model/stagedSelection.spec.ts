@@ -25,7 +25,7 @@ describe('gipf staged selection', () => {
     })
 
     it('Undo pops the highest manual stage', () => {
-        const selection = setGipfSelection(setGipfSelection({}, 'row', '0,3|0,0'), 'keep', ['0,3'])
+        const selection = setGipfSelection(setGipfSelection({}, 'row', '0,3|0,0'), 'keep', [3])
         expect(popGipfSelection(selection)).toEqual({ row: { value: '0,3|0,0', source: 'manual' } })
     })
 

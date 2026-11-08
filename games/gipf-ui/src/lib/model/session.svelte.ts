@@ -4,7 +4,12 @@ import {
     type PresentedTransition,
     type TitlePreferences
 } from '@tabletop/frontend-components'
-import { sameCoordinates, type AxialCoordinates, type GameAction } from '@tabletop/common'
+import {
+    coordinatesToNumber,
+    sameCoordinates,
+    type AxialCoordinates,
+    type GameAction
+} from '@tabletop/common'
 import {
     ActionType,
     isPushPiece,
@@ -26,15 +31,11 @@ import {
     setGipfSelection,
     type GipfSelection
 } from './stagedSelection.js'
-import { coordsKey, viewOf, type BoardView } from '$lib/board/geometry.js'
+import { viewOf, type BoardView } from '$lib/board/geometry.js'
 import { boardNotation, type BoardNotation } from '$lib/board/coordinates.js'
 
 export function includesCoords(list: readonly AxialCoordinates[], coords: AxialCoordinates) {
     return list.some((candidate) => sameCoordinates(candidate, coords))
-}
-
-export function rowKey(row: Row): string {
-    return `${coordsKey(row.from)}|${coordsKey(row.to)}`
 }
 
 type SessionOptions = ConstructorParameters<
@@ -140,7 +141,7 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
 
     chosenRow: Row | undefined = $derived.by(() => {
         const manual = this.selection.row?.value
-        const found = this.rows.find((row) => rowKey(row) === manual)
+        const found = this.rows.find((row) => this.rowKey(row) === manual)
         if (found) return found
         const mandatory = this.rows.filter((row) => this.gameState.board.isMandatory(row))
         return mandatory.length === 1 && this.rows.length === 1 ? mandatory[0] : undefined
@@ -163,7 +164,9 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
     keep: AxialCoordinates[] = $derived.by(() => {
         const manual = this.selection.keep?.value
         if (manual !== undefined) {
-            return this.rowGipfPieces.filter((coords) => manual.includes(coordsKey(coords)))
+            return this.rowGipfPieces.filter((coords) =>
+                manual.includes(coordinatesToNumber(coords))
+            )
         }
         return this.ownRowGipfPieces
     })
@@ -173,6 +176,10 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
             ? this.chosenRow.reach.filter((coords) => !includesCoords(this.keep, coords))
             : []
     )
+
+    private rowKey(row: Row): string {
+        return `${coordinatesToNumber(row.from)}|${coordinatesToNumber(row.to)}`
+    }
 
     private canAct(type: ActionType): boolean {
         return !this.isViewingHistory && this.isMyTurn && this.validActionTypes.includes(type)
@@ -231,14 +238,14 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
         this.selection = setGipfSelection(
             this.selection,
             'row',
-            keepGoing ? rowKey(next) : undefined
+            keepGoing ? this.rowKey(next) : undefined
         )
     }
 
     toggleKeep(coords: AxialCoordinates) {
         if (!includesCoords(this.rowGipfPieces, coords)) return
-        const keys = this.keep.map(coordsKey)
-        const key = coordsKey(coords)
+        const keys = this.keep.map((kept) => coordinatesToNumber(kept))
+        const key = coordinatesToNumber(coords)
         const next = keys.includes(key) ? keys.filter((k) => k !== key) : [...keys, key]
         this.selection = setGipfSelection(this.selection, 'keep', next)
     }

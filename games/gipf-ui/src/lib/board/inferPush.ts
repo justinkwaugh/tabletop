@@ -1,6 +1,5 @@
-import { sameCoordinates } from '@tabletop/common'
+import { coordinatesToNumber, sameCoordinates } from '@tabletop/common'
 import { ENTRIES, HydratedGipfBoard, type Entry, type Piece, type PushPiece } from '@tabletop/gipf'
-import { coordsKey } from './geometry.js'
 
 export type InferredPush = {
     entry: Entry
@@ -58,7 +57,7 @@ function pushBetween(
 
 function layout(board: HydratedGipfBoard): string {
     return board.pieces
-        .map((piece) => `${coordsKey(piece.coords)}:${piece.playerId}:${piece.gipf}`)
+        .map((piece) => `${coordinatesToNumber(piece.coords)}:${piece.playerId}:${piece.gipf}`)
         .toSorted()
         .join('|')
 }

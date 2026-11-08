@@ -9,7 +9,7 @@ export type GipfSelectionValues = {
     gipf: boolean
     dot: AxialCoordinates
     row: string
-    keep: string[]
+    keep: number[]
 }
 
 export type GipfSelection = StagedSelectionState<GipfSelectionValues>

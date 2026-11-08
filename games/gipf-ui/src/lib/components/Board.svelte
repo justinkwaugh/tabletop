@@ -1,9 +1,15 @@
 <script lang="ts">
-    import { addAxial, sameCoordinates, scaleAxial, type AxialCoordinates } from '@tabletop/common'
+    import {
+        addAxial,
+        coordinatesToNumber,
+        sameCoordinates,
+        scaleAxial,
+        type AxialCoordinates
+    } from '@tabletop/common'
     import { ALL_POINTS, AXES, DOTS, SPOTS, type BoardPiece } from '@tabletop/gipf'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { includesCoords } from '$lib/model/session.svelte.js'
-    import { coordsKey, CROWN_SCALE, DOT_RADIUS, PIECE_RADIUS, VIEW } from '$lib/board/geometry.js'
+    import { CROWN_SCALE, DOT_RADIUS, PIECE_RADIUS, VIEW } from '$lib/board/geometry.js'
     import PieceDefs from './PieceDefs.svelte'
     import StandingPiece from './StandingPiece.svelte'
     import StagedPiece from './StagedPiece.svelte'
@@ -34,8 +40,8 @@
     )
 
     const animator = new BoardAnimator(session)
-    let hoveredDot: string | undefined = $state()
-    let hoveredTarget: string | undefined = $state()
+    let hoveredDot: number | undefined = $state()
+    let hoveredTarget: number | undefined = $state()
     const pieces = $derived(animator.pieces)
 
     // The piece you are about to bring in drops onto the dot you chose, until it goes in. A piece
@@ -51,7 +57,7 @@
     })
 
     type Drawn =
-        | { kind: 'piece'; key: string; coords: AxialCoordinates; piece: BoardPiece }
+        | { kind: 'piece'; key: number; coords: AxialCoordinates; piece: BoardPiece }
         | {
               kind: 'entering' | 'preview'
               key: string
@@ -66,7 +72,7 @@
     const drawOrder: Drawn[] = $derived.by(() => {
         const drawn: Drawn[] = pieces.map((piece) => ({
             kind: 'piece',
-            key: coordsKey(piece.coords),
+            key: coordinatesToNumber(piece.coords),
             coords: piece.coords,
             piece
         }))
@@ -75,7 +81,7 @@
             drawn.push({
                 kind: animator.entering ? 'entering' : 'preview',
                 // Made a GIPF-piece on its dot, the piece stays and a disc drops onto it.
-                key: `incoming-${coordsKey(incoming.dot)}`,
+                key: `incoming-${coordinatesToNumber(incoming.dot)}`,
                 coords: incoming.dot,
                 gipf: incoming.gipf,
                 playerId: incoming.playerId,
@@ -197,7 +203,7 @@
         {/each}
     {/if}
 
-    {#each DOTS as coords (coordsKey(coords))}
+    {#each DOTS as coords (coordinatesToNumber(coords))}
         {@const center = view.center(coords)}
         {@const entry = isEntryDot(coords)}
         <g
@@ -211,9 +217,9 @@
             aria-label="dot {session.notation.name(coords)}"
             onclick={() => session.chooseDot(coords)}
             onkeydown={(event) => onKey(event, () => session.chooseDot(coords))}
-            onpointerenter={() => (hoveredDot = coordsKey(coords))}
+            onpointerenter={() => (hoveredDot = coordinatesToNumber(coords))}
             onpointerleave={() => (hoveredDot = undefined)}
-            onfocus={() => (hoveredDot = coordsKey(coords))}
+            onfocus={() => (hoveredDot = coordinatesToNumber(coords))}
             onblur={() => (hoveredDot = undefined)}
         >
             {#if entry}
@@ -227,13 +233,13 @@
     <!-- Rings on the board: round the dots you can bring a piece in from, and round the spots
          you can push into, behind whatever stands there. -->
     <g {@attach animator.marks()}>
-        {#each session.entryDots as coords (coordsKey(coords))}
+        {#each session.entryDots as coords (coordinatesToNumber(coords))}
             {@const center = view.center(coords)}
             <g
                 class="dot-ring"
                 class:chosen={isChosenDot(coords)}
                 class:faded={session.chosenDot !== undefined && !isChosenDot(coords)}
-                class:hovered={hoveredDot === coordsKey(coords)}
+                class:hovered={hoveredDot === coordinatesToNumber(coords)}
             >
                 {#each ['under', 'over'] as layer (layer)}
                     <ellipse
@@ -246,9 +252,12 @@
                 {/each}
             </g>
         {/each}
-        {#each session.targets as entry (coordsKey(entry.line[0]))}
+        {#each session.targets as entry (coordinatesToNumber(entry.line[0]))}
             {@const center = view.center(entry.line[0])}
-            <g class="target-ring" class:hovered={hoveredTarget === coordsKey(entry.line[0])}>
+            <g
+                class="target-ring"
+                class:hovered={hoveredTarget === coordinatesToNumber(entry.line[0])}
+            >
                 {#each ['under', 'over'] as layer (layer)}
                     <ellipse
                         cx={center.x}
@@ -355,9 +364,9 @@
 
     <!-- Arrows and the targets' click areas stand above the pieces. -->
     <g {@attach animator.marks()}>
-        {#each session.targets as entry (coordsKey(entry.line[0]))}
+        {#each session.targets as entry (coordinatesToNumber(entry.line[0]))}
             {@const center = view.center(entry.line[0])}
-            {@const key = coordsKey(entry.line[0])}
+            {@const key = coordinatesToNumber(entry.line[0])}
             <g
                 class="target"
                 role="button"

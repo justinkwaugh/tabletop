@@ -11,7 +11,7 @@ import { GipfPlayerState, HydratedGipfPlayerState } from './playerState.js'
 import { MachineState } from '../definition/states.js'
 import { GipfVersion, VERSION_RULES } from '../definition/config.js'
 import { GipfBoard, HydratedGipfBoard, type BoardPiece, type Piece, type Row } from './board.js'
-import type { AxialCoordinates } from '@tabletop/common'
+import { sameCoordinates, type AxialCoordinates } from '@tabletop/common'
 
 export enum EndReason {
     NoReserve = 'NoReserve',
@@ -122,8 +122,7 @@ export class HydratedGipfGameState
         const removed: BoardPiece[] = []
         for (const coords of row.reach) {
             const piece: Piece | undefined = this.board.pieceAt(coords)
-            const kept =
-                piece?.gipf === true && keep.some((k) => k.q === coords.q && k.r === coords.r)
+            const kept = piece?.gipf === true && keep.some((k) => sameCoordinates(k, coords))
             if (piece === undefined || kept) continue
             this.board.remove(coords)
             const size = piece.gipf ? GIPF_PIECE_SIZE : 1

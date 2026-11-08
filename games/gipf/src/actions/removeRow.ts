@@ -1,6 +1,12 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { AxialCoordinates, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import {
+    AxialCoordinates,
+    GameAction,
+    HydratableAction,
+    MachineContext,
+    sameCoordinates
+} from '@tabletop/common'
 import { HydratedGipfGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
@@ -60,7 +66,7 @@ export class HydratedRemoveRow extends HydratableAction<typeof RemoveRow> implem
         }
         const keepsOnlyGipfInReach = this.keep.every(
             (coords) =>
-                row.reach.some((reach) => reach.q === coords.q && reach.r === coords.r) &&
+                row.reach.some((reach) => sameCoordinates(reach, coords)) &&
                 state.board.pieceAt(coords)?.gipf === true
         )
         const removesSomething = row.reach.length > this.keep.length

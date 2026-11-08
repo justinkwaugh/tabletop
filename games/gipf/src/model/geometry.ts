@@ -1,7 +1,7 @@
 import {
     addAxial,
     ClockwiseFlatHexDirections,
-    coordinatesToNumber,
+    distanceAxial,
     FlatNeighborOffsets,
     HexOrientation,
     hexSpiralPattern,
@@ -23,16 +23,14 @@ export const AXES: readonly AxialCoordinates[] = [
     { q: 1, r: -1 }
 ]
 
-export function ringDistance(coords: AxialCoordinates): number {
-    return Math.max(Math.abs(coords.q), Math.abs(coords.r), Math.abs(coords.q + coords.r))
-}
+const CENTRE: AxialCoordinates = { q: 0, r: 0 }
 
 export function isSpot(coords: AxialCoordinates): boolean {
-    return ringDistance(coords) <= PLAY_RADIUS
+    return distanceAxial(coords, CENTRE) <= PLAY_RADIUS
 }
 
 export function isDot(coords: AxialCoordinates): boolean {
-    return ringDistance(coords) === BOARD_RADIUS
+    return distanceAxial(coords, CENTRE) === BOARD_RADIUS
 }
 
 export const ALL_POINTS: readonly AxialCoordinates[] = Array.from(
@@ -66,7 +64,3 @@ export const ENTRIES: readonly Entry[] = DOTS.flatMap((dot) =>
         line: lineFrom(addAxial(dot, direction), direction)
     }))
 )
-
-export function pointKey(coords: AxialCoordinates): number {
-    return coordinatesToNumber(coords)
-}
