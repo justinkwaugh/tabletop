@@ -45,18 +45,27 @@ export const GipfGameConfig = Type.Object({
     version: Type.Optional(Type.Enum(GipfVersion))
 })
 
+const basicDescription = '15 pieces each, three of them on the board, and no GIPF-pieces.'
+const standardDescription = '18 pieces each, and three GIPF-pieces each start on the board.'
+const tournamentDescription =
+    '18 pieces each and an empty board; bring in GIPF-pieces at will before your first single piece.'
+
 export const GipfGameConfigOptions: GameConfigOptions = [
     {
         id: 'version',
         type: ConfigOptionType.List,
         name: 'Version',
-        description:
-            'Basic: 15 pieces, no GIPF-pieces. Standard: 18 pieces, three GIPF-pieces each start on the board. Tournament: 18 pieces, empty board, GIPF-pieces brought in at will before your first single piece.',
+        // Older site forms show only this, so it describes every version.
+        description: `Basic: ${basicDescription} Standard: ${standardDescription} Tournament: ${tournamentDescription}`,
         default: GipfVersion.Standard,
         options: [
-            { name: 'Basic', value: GipfVersion.Basic },
-            { name: 'Standard', value: GipfVersion.Standard },
-            { name: 'Tournament', value: GipfVersion.Tournament }
+            { name: 'Basic', value: GipfVersion.Basic, description: basicDescription },
+            { name: 'Standard', value: GipfVersion.Standard, description: standardDescription },
+            {
+                name: 'Tournament',
+                value: GipfVersion.Tournament,
+                description: tournamentDescription
+            }
         ],
         alwaysShow: true
     }
