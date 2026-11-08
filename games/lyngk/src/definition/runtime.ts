@@ -12,6 +12,7 @@ import { LyngkColors } from './colors.js'
 import { LyngkScoring } from './scoring.js'
 
 export const LyngkRuntime: GameRuntime<LyngkGameState, HydratedLyngkGameState> = {
+    randomnessVersion: 1,
     initializer: new LyngkGameInitializer(),
     canonicalStateValidator: LyngkGameStateValidator,
     hydrator: new LyngkHydrator(),
