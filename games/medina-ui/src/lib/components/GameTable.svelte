@@ -142,6 +142,7 @@
                     coverBelowScale={gameSession.projection.sideways && !expanded
                         ? ALWAYS_FIT_WIDTH
                         : undefined}
+                    onManualViewChange={() => gameSession.focusPalace(undefined)}
                 >
                     <Board />
                     {#snippet overlay(container)}
