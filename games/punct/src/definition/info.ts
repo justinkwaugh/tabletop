@@ -1,4 +1,4 @@
-import type { GameInfo } from '@tabletop/common'
+import { GameVisibility, type GameInfo } from '@tabletop/common'
 import { GAME_VERSION } from './version.js'
 import { PunctConfigurator } from './config.js'
 import { PunctPreferenceDefinition } from './preferences.js'
@@ -15,7 +15,8 @@ export const PunctInfo: GameInfo = {
         maxPlayers: 2,
         defaultPlayerCount: 2,
         version: GAME_VERSION,
-        beta: true
+        beta: true,
+        visibility: GameVisibility.Alpha
     },
     configurator: new PunctConfigurator(),
     preferences: PunctPreferenceDefinition

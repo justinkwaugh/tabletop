@@ -12,6 +12,7 @@ import { PunctColors } from './colors.js'
 import { PunctScoring } from './scoring.js'
 
 export const PunctRuntime: GameRuntime<PunctGameState, HydratedPunctGameState> = {
+    randomnessVersion: 1,
     initializer: new PunctGameInitializer(),
     canonicalStateValidator: PunctGameStateValidator,
     hydrator: new PunctHydrator(),
