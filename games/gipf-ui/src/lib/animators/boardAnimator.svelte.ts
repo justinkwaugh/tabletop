@@ -148,6 +148,7 @@ export class BoardAnimator {
             return
         }
         const timeline = animationContext.actionTimeline
+        const shown = this.session.gameState
         // Each spot's drawing is reused for whatever piece next stands there, so every node a
         // move touches is put back once the move lands.
         const touched: SVGGElement[] = []
@@ -183,11 +184,14 @@ export class BoardAnimator {
         }
 
         animationContext.afterAnimations(() => {
-            this.pieces = to.board.pieces()
             this.entering = undefined
-            this.returned = returned
             for (const node of touched) gsap.set(node, { x: 0, y: 0, scale: 1, opacity: 1 })
             for (const node of this.markNodes) gsap.set(node, { opacity: 1 })
+            // A switch of view while the move played, such as a reload after a rejected move,
+            // has already shown another state, which this move's board must not cover.
+            if (this.session.gameState !== shown) return
+            this.pieces = to.board.pieces()
+            this.returned = returned
         })
     }
 
