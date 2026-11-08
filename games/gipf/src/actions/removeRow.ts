@@ -4,13 +4,11 @@ import { AxialCoordinates, GameAction, HydratableAction, MachineContext } from '
 import { HydratedGipfGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
-import { Piece } from '../model/board.js'
-
-export const RemovedPieceRecord = Type.Intersect([Piece, Type.Object({ coords: AxialCoordinates })])
+import { BoardPiece } from '../model/board.js'
 
 export type RemoveRowMetadata = Type.Static<typeof RemoveRowMetadata>
 export const RemoveRowMetadata = Type.Object({
-    removed: Type.Array(RemovedPieceRecord)
+    removed: Type.Array(BoardPiece)
 })
 
 export type RemoveRow = Type.Static<typeof RemoveRow>

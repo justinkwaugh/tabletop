@@ -292,7 +292,6 @@ describe('Taking a row', () => {
             board: board.dehydrate(),
             machineState: MachineState.ResolvingRows,
             resolvingPlayerIds: [WHITE, BLACK],
-            moverId: WHITE,
             activePlayerIds: [WHITE]
         }
         return sessionFor(prepared)

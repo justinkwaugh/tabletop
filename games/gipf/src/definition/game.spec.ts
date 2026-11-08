@@ -12,8 +12,8 @@ import {
     type GipfGame
 } from './tests/playthrough.js'
 import { EndReason, HydratedGipfGameState, type GipfGameState } from '../model/gameState.js'
-import { emptyBoard, type Piece } from '../model/board.js'
-import { ENTRIES } from '../model/geometry.js'
+import { emptyBoard, HydratedGipfBoard, type Piece } from '../model/board.js'
+import { ENTRIES, SPOTS } from '../model/geometry.js'
 import type { PushPiece } from '../actions/pushPiece.js'
 import type { RemoveRow } from '../actions/removeRow.js'
 import type { FinishRemoving } from '../actions/finishRemoving.js'
@@ -79,14 +79,9 @@ function withPieces(
     reserves?: Record<string, number>
 ): GipfGameState {
     const next = structuredClone(state)
-    next.board = emptyBoard()
-    for (const [coords, piece] of pieces) {
-        const spot = next.board.spots.find(
-            (s) => s.coords.q === coords.q && s.coords.r === coords.r
-        )
-        if (spot === undefined) throw Error('not a spot')
-        spot.piece = piece
-    }
+    const board = new HydratedGipfBoard(emptyBoard())
+    for (const [coords, piece] of pieces) board.place(coords, piece)
+    next.board = board.dehydrate()
     for (const player of next.players) {
         const reserve = reserves?.[player.playerId]
         if (reserve !== undefined) player.reserve = reserve
@@ -105,7 +100,7 @@ const KEEPERS: [AxialCoordinates, Piece][] = [
 
 describe('board', () => {
     it('has 37 spots and 42 ways in', () => {
-        expect(emptyBoard().spots).toHaveLength(37)
+        expect(SPOTS).toHaveLength(37)
         expect(ENTRIES).toHaveLength(42)
     })
 })
@@ -119,10 +114,8 @@ describe('setup', () => {
         '%s: %i pieces each on the board, %i in reserve',
         (version, onBoard, reserve, gipfPieces) => {
             const state = new HydratedGipfGameState(start(createGame(version)))
-            expect(state.board.pieces().filter((piece) => piece.playerId === W)).toHaveLength(
-                onBoard
-            )
-            expect(state.board.pieces().every((piece) => piece.gipf === gipfPieces)).toBe(true)
+            expect(state.board.pieces.filter((piece) => piece.playerId === W)).toHaveLength(onBoard)
+            expect(state.board.pieces.every((piece) => piece.gipf === gipfPieces)).toBe(true)
             expect(state.players.map((player) => player.reserve)).toEqual([reserve, reserve])
             expect(state.activePlayerIds).toEqual([W])
             expect(state.getPlayerState(W).color).toBe('white')

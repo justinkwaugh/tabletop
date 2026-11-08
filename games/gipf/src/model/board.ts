@@ -2,12 +2,13 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     addAxial,
+    assertExists,
     AxialCoordinates,
     Hydratable,
     sameCoordinates,
     scaleAxial
 } from '@tabletop/common'
-import { AXES, ENTRIES, isSpot, pointKey, SPOTS, type Entry } from './geometry.js'
+import { AXES, ENTRIES, isSpot, SPOTS, type Entry } from './geometry.js'
 
 export type Piece = Type.Static<typeof Piece>
 export const Piece = Type.Object({
@@ -15,15 +16,17 @@ export const Piece = Type.Object({
     gipf: Type.Boolean()
 })
 
-export type Spot = Type.Static<typeof Spot>
-export const Spot = Type.Object({
+export type BoardPiece = Type.Static<typeof BoardPiece>
+export const BoardPiece = Type.Object({
     coords: AxialCoordinates,
-    piece: Type.Optional(Piece)
+    playerId: Type.String(),
+    gipf: Type.Boolean()
 })
 
+// The pieces on the board; the spots themselves are the geometry's SPOTS.
 export type GipfBoard = Type.Static<typeof GipfBoard>
 export const GipfBoard = Type.Object({
-    spots: Type.Array(Spot)
+    pieces: Type.Array(BoardPiece)
 })
 
 // A row is four or more adjacent pieces of one player in a line. Its reach runs on in both
@@ -35,51 +38,45 @@ export type Row = {
     reach: AxialCoordinates[]
 }
 
-export type RemovedPiece = Piece & { coords: AxialCoordinates }
-
 const ROW_LENGTH = 4
 const GipfBoardValidator = Compile(GipfBoard)
 
 export function emptyBoard(): GipfBoard {
-    return { spots: SPOTS.map((coords) => ({ coords: { ...coords } })) }
+    return { pieces: [] }
 }
 
 export class HydratedGipfBoard extends Hydratable<typeof GipfBoard> implements GipfBoard {
-    declare spots: Spot[]
+    declare pieces: BoardPiece[]
 
     constructor(data: GipfBoard) {
         super(data, GipfBoardValidator)
     }
 
-    private spotAt(coords: AxialCoordinates): Spot | undefined {
-        const key = pointKey(coords)
-        return this.spots.find((spot) => pointKey(spot.coords) === key)
+    private boardPieceAt(coords: AxialCoordinates): BoardPiece | undefined {
+        return this.pieces.find((piece) => sameCoordinates(piece.coords, coords))
     }
 
     pieceAt(coords: AxialCoordinates): Piece | undefined {
-        return this.spotAt(coords)?.piece
+        const found = this.boardPieceAt(coords)
+        return found === undefined ? undefined : { playerId: found.playerId, gipf: found.gipf }
     }
 
     place(coords: AxialCoordinates, piece: Piece) {
-        const spot = this.spotAt(coords)
-        if (spot === undefined) {
+        if (!isSpot(coords)) {
             throw Error(`No spot at ${coords.q},${coords.r}`)
         }
-        spot.piece = { ...piece }
-    }
-
-    pieces(): RemovedPiece[] {
-        return this.spots.flatMap((spot) =>
-            spot.piece === undefined ? [] : [{ ...spot.piece, coords: spot.coords }]
-        )
+        if (this.boardPieceAt(coords) !== undefined) {
+            throw Error(`A piece already stands at ${coords.q},${coords.r}`)
+        }
+        this.pieces.push({ coords: { ...coords }, playerId: piece.playerId, gipf: piece.gipf })
     }
 
     gipfPiecesOf(playerId: string): number {
-        return this.pieces().filter((piece) => piece.gipf && piece.playerId === playerId).length
+        return this.pieces.filter((piece) => piece.gipf && piece.playerId === playerId).length
     }
 
     isFull(): boolean {
-        return this.spots.every((spot) => spot.piece !== undefined)
+        return this.pieces.length === SPOTS.length
     }
 
     findEntry(dot: AxialCoordinates, firstSpot: AxialCoordinates): Entry | undefined {
@@ -102,12 +99,11 @@ export class HydratedGipfBoard extends Hydratable<typeof GipfBoard> implements G
         if (gap < 0) {
             throw Error('The line is full')
         }
+        // Every spot before the gap is occupied; each piece moves one spot on, the farthest first.
         for (let index = gap; index > 0; index--) {
-            const moving = this.spotAt(entry.line[index - 1])?.piece
-            const target = this.spotAt(entry.line[index])
-            if (target !== undefined && moving !== undefined) {
-                target.piece = { ...moving }
-            }
+            const moving = this.boardPieceAt(entry.line[index - 1])
+            assertExists(moving, 'Every spot before the gap holds a piece')
+            moving.coords = { ...entry.line[index] }
         }
         this.place(entry.line[0], piece)
     }
@@ -175,12 +171,11 @@ export class HydratedGipfBoard extends Hydratable<typeof GipfBoard> implements G
     }
 
     remove(coords: AxialCoordinates): Piece {
-        const spot = this.spotAt(coords)
-        if (spot?.piece === undefined) {
+        const index = this.pieces.findIndex((piece) => sameCoordinates(piece.coords, coords))
+        if (index < 0) {
             throw Error(`No piece at ${coords.q},${coords.r}`)
         }
-        const piece = spot.piece
-        delete spot.piece
-        return piece
+        const [removed] = this.pieces.splice(index, 1)
+        return { playerId: removed.playerId, gipf: removed.gipf }
     }
 }

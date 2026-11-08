@@ -57,8 +57,7 @@ function pushBetween(
 }
 
 function layout(board: HydratedGipfBoard): string {
-    return board
-        .pieces()
+    return board.pieces
         .map((piece) => `${coordsKey(piece.coords)}:${piece.playerId}:${piece.gipf}`)
         .toSorted()
         .join('|')

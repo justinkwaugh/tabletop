@@ -1,6 +1,6 @@
 <script lang="ts">
     import { addAxial, sameCoordinates, scaleAxial, type AxialCoordinates } from '@tabletop/common'
-    import { ALL_POINTS, AXES, DOTS, SPOTS, type RemovedPiece } from '@tabletop/gipf'
+    import { ALL_POINTS, AXES, DOTS, SPOTS, type BoardPiece } from '@tabletop/gipf'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { includesCoords } from '$lib/model/session.svelte.js'
     import { coordsKey, CROWN_SCALE, DOT_RADIUS, PIECE_RADIUS, VIEW } from '$lib/board/geometry.js'
@@ -51,7 +51,7 @@
     })
 
     type Drawn =
-        | { kind: 'piece'; key: string; coords: AxialCoordinates; piece: RemovedPiece }
+        | { kind: 'piece'; key: string; coords: AxialCoordinates; piece: BoardPiece }
         | {
               kind: 'entering' | 'preview'
               key: string

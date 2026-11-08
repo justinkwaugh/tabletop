@@ -10,7 +10,7 @@ import { Compile } from 'typebox/compile'
 import { GipfPlayerState, HydratedGipfPlayerState } from './playerState.js'
 import { MachineState } from '../definition/states.js'
 import { GipfVersion, VERSION_RULES } from '../definition/config.js'
-import { GipfBoard, HydratedGipfBoard, type Piece, type RemovedPiece, type Row } from './board.js'
+import { GipfBoard, HydratedGipfBoard, type BoardPiece, type Piece, type Row } from './board.js'
 import type { AxialCoordinates } from '@tabletop/common'
 
 export enum EndReason {
@@ -28,7 +28,6 @@ export const GipfGameState = Type.Evaluate(
             machineState: Type.Enum(MachineState),
             version: Type.Enum(GipfVersion),
             board: GipfBoard,
-            moverId: Type.Optional(Type.String()),
             resolvingPlayerIds: Type.Array(Type.String()),
             endReason: Type.Optional(Type.Enum(EndReason))
         })
@@ -56,7 +55,6 @@ export class HydratedGipfGameState
     declare winningPlayerIds: string[]
     declare version: GipfVersion
     declare board: HydratedGipfBoard
-    declare moverId?: string
     declare resolvingPlayerIds: string[]
     declare endReason?: EndReason
 
@@ -116,13 +114,12 @@ export class HydratedGipfGameState
             player.playedSingle = true
         }
         this.board.push(entry, { playerId, gipf })
-        this.moverId = playerId
     }
 
     // Own pieces return to reserve (a GIPF-piece as two singles); the opponent's are captured.
-    removeRow(playerId: string, row: Row, keep: readonly AxialCoordinates[]): RemovedPiece[] {
+    removeRow(playerId: string, row: Row, keep: readonly AxialCoordinates[]): BoardPiece[] {
         const player = this.getPlayerState(playerId)
-        const removed: RemovedPiece[] = []
+        const removed: BoardPiece[] = []
         for (const coords of row.reach) {
             const piece: Piece | undefined = this.board.pieceAt(coords)
             const kept =

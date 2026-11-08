@@ -11,7 +11,7 @@ import {
     isPushPiece,
     isRemoveRow,
     type HydratedGipfGameState,
-    type RemovedPiece
+    type BoardPiece
 } from '@tabletop/gipf'
 import type { GipfGameSession } from '$lib/model/session.svelte.js'
 import { inferPush } from '$lib/board/inferPush.js'
@@ -50,7 +50,7 @@ type Step = TransitionStep<HydratedGipfGameState, AnimationContext>
 export class BoardAnimator {
     // The pieces drawn. A replay plays several actions before the visible state catches up, so
     // each animated action leaves the board as it ended until that state lands.
-    pieces: RemovedPiece[] = $derived.by(() => this.session.gameState.board.pieces())
+    pieces: BoardPiece[] = $derived.by(() => this.session.gameState.board.pieces)
     entering: Entering | undefined = $state()
     // Until the state a move made lands, your choices still name the dot you pushed from: the
     // piece you pushed in stays off it, and a piece Undo took back out stands on it.
@@ -190,7 +190,7 @@ export class BoardAnimator {
             // A switch of view while the move played, such as a reload after a rejected move,
             // has already shown another state, which this move's board must not cover.
             if (this.session.gameState !== shown) return
-            this.pieces = to.board.pieces()
+            this.pieces = to.board.pieces
             this.returned = returned
         })
     }
@@ -214,7 +214,7 @@ export class BoardAnimator {
                   : undefined
         const push = inferPush(from.board, to.board, known)
         if (push === undefined) {
-            for (const piece of from.board.pieces()) {
+            for (const piece of from.board.pieces) {
                 if (to.board.pieceAt(piece.coords) === undefined) {
                     this.lift(piece.coords, timeline, LIFT_OFF, touched)
                 }

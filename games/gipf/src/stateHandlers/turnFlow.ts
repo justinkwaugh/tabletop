@@ -1,3 +1,4 @@
+import { assertExists } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
 import { GipfVersion } from '../definition/config.js'
 import { EndReason, HydratedGipfGameState } from '../model/gameState.js'
@@ -10,11 +11,14 @@ export function startResolving(state: HydratedGipfGameState, moverId: string): M
 }
 
 export function continueResolving(state: HydratedGipfGameState): MachineState {
+    // Rows are resolved within the mover's turn, which ends once they are.
+    const moverId = state.turnManager.currentTurn()?.playerId
+    assertExists(moverId, 'Rows are resolved during a turn')
     while (state.resolvingPlayerIds.length > 0) {
         const resolverId = state.resolvingPlayerIds[0]
         const rows = state.board.rowsOf(resolverId)
         const needsResolver =
-            resolverId === state.moverId
+            resolverId === moverId
                 ? rows.length > 0
                 : rows.some((row) => state.board.isMandatory(row))
         if (needsResolver) {

@@ -33,8 +33,7 @@ function position(extra, { version = 'Standard' } = {}) {
         startingPositions: { playerIds: [WHITE, BLACK] }
     })
     for (const [q, r, playerId, gipf] of extra) {
-        const spot = state.board.spots.find((s) => s.coords.q === q && s.coords.r === r)
-        spot.piece = { playerId, gipf }
+        state.board.pieces.push({ coords: { q, r }, playerId, gipf })
         state.players.find((p) => p.playerId === playerId).reserve -= gipf ? 2 : 1
     }
     return { game: startedGame, state }
