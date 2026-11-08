@@ -174,7 +174,7 @@ export function renderRing(view: BoardView, pixels = LOOK_PIXELS, lighting = LIG
                         color = UNDER_RING
                     } else {
                         let normal: Vec
-                        let occlusion = 1
+                        let occlusion: number
                         if (hit.surface === 'outer') {
                             normal = normalize([outward[0], outward[1], slope])
                             // The lip rounds over towards the hole.
