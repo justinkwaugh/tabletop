@@ -278,6 +278,42 @@ describe('end of game', () => {
         expect(state.endReason).toBe(EndReason.NoGipfPieces)
     })
 
+    it('the mover wins when one turn takes both players’ last GIPF-pieces', () => {
+        const game = createGame()
+        let state = withPieces(start(game), [
+            [e(2), gipf(W)],
+            [e(3), single(W)],
+            [e(4), single(W)],
+            [e(5), gipf(B)]
+        ])
+        state = push(game, state, W, E1, e(2))
+        state = removeRow(game, state, W, e(2), e(5))
+        expect(state.machineState).toBe(MachineState.EndOfGame)
+        expect(state.winningPlayerIds).toEqual([W])
+        expect(state.endReason).toBe(EndReason.NoGipfPieces)
+    })
+
+    it('a player whose every line is full loses', () => {
+        const game = createGame()
+        // Two of every three spots along each line are White's, so no line holds four of one player.
+        const ownerOf = (coords: AxialCoordinates) =>
+            (((coords.q + 2 * coords.r) % 3) + 3) % 3 === 2 ? B : W
+        const filled = SPOTS.filter((coords) => !(coords.q === 0 && coords.r === 3))
+        const firstOf = (playerId: string) => filled.find((coords) => ownerOf(coords) === playerId)
+        const keepers = [firstOf(W), firstOf(B)]
+        let state = withPieces(
+            start(game),
+            filled.map((coords) => [
+                coords,
+                { playerId: ownerOf(coords), gipf: keepers.includes(coords) }
+            ])
+        )
+        state = push(game, state, W, E1, e(2))
+        expect(state.machineState).toBe(MachineState.EndOfGame)
+        expect(state.winningPlayerIds).toEqual([W])
+        expect(state.endReason).toBe(EndReason.Blocked)
+    })
+
     it('a player with no piece to bring in loses', () => {
         const game = createGame()
         let state = withPieces(start(game), KEEPERS, { [B]: 0 })
