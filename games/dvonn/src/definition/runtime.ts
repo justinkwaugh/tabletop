@@ -12,6 +12,7 @@ import { DvonnColors } from './colors.js'
 import { DvonnScoring } from './scoring.js'
 
 export const DvonnRuntime: GameRuntime<DvonnGameState, HydratedDvonnGameState> = {
+    randomnessVersion: 1,
     initializer: new DvonnGameInitializer(),
     canonicalStateValidator: DvonnGameStateValidator,
     hydrator: new DvonnHydrator(),
