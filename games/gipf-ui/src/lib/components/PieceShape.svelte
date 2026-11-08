@@ -10,6 +10,8 @@
     // A piece standing on its point, seen from the near side of the table, or any stack of discs
     // (discs, for a tally). Each disc is an image of its tone's look, pre-rendered by
     // scripts/render-looks.mjs, on its own node, centred on its base, so it can drop on its own.
+    // GSAP drops a disc's inner node and Svelte lifts its wrapper off, so the two never write the
+    // same transform.
     let {
         color,
         gipf = false,
@@ -31,19 +33,28 @@
 
 {#each drawing.bases as base, index (index)}
     <g transform="translate(0 {base})">
-        <g {@attach parts?.disc(index)} out:liftOffDisc={{ parts }}>
-            <image href={lookUrl(tone)} x={box.x} y={box.y} width={box.width} height={box.height}
-            ></image>
-            {#if index < drawing.bases.length - 1}
-                <g {@attach parts?.crease} out:liftOffCrease={{ parts }}>
-                    <ellipse
-                        cy={drawing.crease.y}
-                        rx={drawing.crease.rx}
-                        ry={drawing.crease.ry}
-                        class="crease {tone}"
-                    ></ellipse>
-                </g>
-            {/if}
+        <g out:liftOffDisc={{ parts }}>
+            <g {@attach parts?.disc(index)}>
+                <image
+                    href={lookUrl(tone)}
+                    x={box.x}
+                    y={box.y}
+                    width={box.width}
+                    height={box.height}
+                ></image>
+                {#if index < drawing.bases.length - 1}
+                    <g out:liftOffCrease={{ parts }}>
+                        <g {@attach parts?.crease}>
+                            <ellipse
+                                cy={drawing.crease.y}
+                                rx={drawing.crease.rx}
+                                ry={drawing.crease.ry}
+                                class="crease {tone}"
+                            ></ellipse>
+                        </g>
+                    </g>
+                {/if}
+            </g>
         </g>
     </g>
 {/each}
