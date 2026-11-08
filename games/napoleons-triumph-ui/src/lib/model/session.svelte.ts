@@ -219,6 +219,7 @@ import {
     moveCommandOptions,
     moveOrder,
     reinforcementsOf,
+    resolveCommand,
     rideOnOrder,
     type CommandChoice,
     type Reinforcement
@@ -986,7 +987,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
             .filter((unit) => picked.includes(unit.id))
             .every((unit) => canStillMove(this.gameState, unit))
         return group && playerId && stillToMove
-            ? moveCommandOptions(this.gameState, playerId, group, picked, this.corpsTakenWhole)
+            ? moveCommandOptions(this.gameState, playerId, group, picked)
             : []
     })
 
@@ -1027,11 +1028,9 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     commandChoice: CommandChoice | undefined = $derived.by(() => {
         const chosen = chosenCommandOf(this.selection)
-        if (chosen !== undefined && this.commandChoices.includes(chosen)) {
-            return chosen
-        }
-        // Riding on takes no command, though the rider may be offered Attach.
-        return this.ridingOn ? undefined : this.commandChoices[0]
+        const resolved = resolveCommand(chosen, this.commandChoices)
+        // Riding on takes no command unless one is chosen, though the rider may be offered Attach.
+        return this.ridingOn && resolved !== chosen ? undefined : resolved
     })
 
     attaching = $derived(this.commandChoice === ATTACH)
