@@ -35,6 +35,15 @@ import {
 import { viewOf, type BoardView } from '$lib/board/geometry.js'
 import { boardNotation, type BoardNotation } from '$lib/board/coordinates.js'
 
+// What the board animator offers the session: stopping the move it is playing, when the board
+// must show something else at once.
+export type MoveInterrupter = {
+    // The move lands at once, as it ends; the rest of its replay still plays.
+    interrupt(): void
+    // The move stops and what is left of its replay is dropped: another state is being shown.
+    abandon(): void
+}
+
 export function includesCoords(list: readonly AxialCoordinates[], coords: AxialCoordinates) {
     return list.some((candidate) => sameCoordinates(candidate, coords))
 }
@@ -50,6 +59,7 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
     undoingPush: PushPiece | undefined
     // The push history last stepped to, whose piece came in from its own dot.
     historyPush: PushPiece | undefined
+    moveInterrupter: MoveInterrupter | undefined
 
     constructor(options: SessionOptions) {
         super(options)
@@ -73,7 +83,9 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
     // The board seen from the far side, half a turn round, to see behind pieces.
     turned: boolean = $derived(this.preferences.values.turned)
 
+    // A move's motion is laid out in the view it started in, so turning the board lands it.
     toggleTurned() {
+        this.moveInterrupter?.interrupt()
         this.preferences.set({ turned: !this.turned })
     }
 
@@ -194,7 +206,13 @@ export class GipfGameSession extends GameSession<GipfGameState, HydratedGipfGame
         this.historyPush = isPushPiece(action) ? action : undefined
     }
 
+    // The state whose move the board is playing.
+    get presentingState(): HydratedGipfGameState | undefined {
+        return this.incomingGameState
+    }
+
     override beforeNewState({ kind }: PresentedTransition): void {
+        if (kind === 'view-switch') this.moveInterrupter?.abandon()
         const push = kind === 'undo' ? this.undoingPush : undefined
         if (push) this.selection = restagedGipfSelection(push, this.hadTypeChoice(push))
         if (kind !== 'undo') this.undoingPush = undefined

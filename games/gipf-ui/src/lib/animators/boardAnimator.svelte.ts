@@ -13,7 +13,7 @@ import {
     type HydratedGipfGameState,
     type BoardPiece
 } from '@tabletop/gipf'
-import type { GipfGameSession } from '$lib/model/session.svelte.js'
+import type { GipfGameSession, MoveInterrupter } from '$lib/model/session.svelte.js'
 import { inferPush } from '$lib/board/inferPush.js'
 import {
     dropCrease,
@@ -51,7 +51,7 @@ export type Entering = { playerId: string; gipf: boolean; dot: AxialCoordinates 
 type Timeline = gsap.core.Timeline
 type Step = TransitionStep<HydratedGipfGameState, AnimationContext>
 
-export class BoardAnimator {
+export class BoardAnimator implements MoveInterrupter {
     // The pieces drawn. A replay plays several actions before the visible state catches up, so
     // each animated action leaves the board as it ended until that state lands.
     pieces: BoardPiece[] = $derived.by(() => this.session.gameState.board.pieces)
@@ -70,12 +70,51 @@ export class BoardAnimator {
     private enteringShadowNode: SVGGElement | undefined
     private readonly markNodes = new Set<SVGGElement>()
     private readonly listener = (step: Step) => this.onGameStateChange(step)
+    // Puts the board as the move playing leaves it.
+    private landMove: (() => void) | undefined
+    // The state of a presentation a switch of view left behind.
+    private abandoned: HydratedGipfGameState | undefined
 
     constructor(private readonly session: GipfGameSession) {}
 
     readonly attach: Attachment = () => {
         this.session.addGameStateChangeListener(this.listener)
-        return () => this.session.removeGameStateChangeListener(this.listener)
+        this.session.moveInterrupter = this
+        return () => {
+            this.session.removeGameStateChangeListener(this.listener)
+            if (this.session.moveInterrupter === this) this.session.moveInterrupter = undefined
+        }
+    }
+
+    interrupt() {
+        if (!this.stop()) return
+        // The move's choices stay faded until its state lands and clears them.
+        gsap.set([...this.markNodes], { opacity: 0 })
+    }
+
+    abandon() {
+        this.stop()
+        this.abandoned = this.session.presentingState
+    }
+
+    private stop(): boolean {
+        const land = this.landMove
+        if (land === undefined) return false
+        gsap.killTweensOf(this.animatedNodes())
+        land()
+        return true
+    }
+
+    private animatedNodes(): SVGGElement[] {
+        const entering = [this.enteringNode, this.enteringCreaseNode, this.enteringShadowNode]
+        return [
+            ...this.pieceNodes.values(),
+            ...this.bodyNodes.values(),
+            ...this.shadowNodes.values(),
+            ...this.markNodes,
+            ...this.enteringDiscNodes.values(),
+            ...entering.filter((node) => node !== undefined)
+        ]
     }
 
     // The node that carries a piece and its shadow across the board.
@@ -151,6 +190,11 @@ export class BoardAnimator {
         if (from === undefined || !ANIMATED_KINDS.has(kind)) {
             return
         }
+        const presenting = this.session.presentingState
+        if (presenting !== undefined && presenting === this.abandoned) {
+            return
+        }
+        this.abandoned = undefined
         const timeline = animationContext.actionTimeline
         const shown = this.session.gameState
         // Each spot's drawing is reused for whatever piece next stands there, so every node a
@@ -187,7 +231,8 @@ export class BoardAnimator {
             this.fadeMarks(timeline, FALLBACK_DURATION)
         }
 
-        animationContext.afterAnimations(() => {
+        const land = () => {
+            if (this.landMove === land) this.landMove = undefined
             this.entering = undefined
             for (const node of touched) gsap.set(node, { x: 0, y: 0, scale: 1, opacity: 1 })
             for (const node of this.markNodes) gsap.set(node, { opacity: 1 })
@@ -196,7 +241,9 @@ export class BoardAnimator {
             if (this.session.gameState !== shown) return
             this.pieces = to.board.pieces
             this.returned = returned
-        })
+        }
+        this.landMove = land
+        animationContext.afterAnimations(land)
     }
 
     // Undo and history steps carry no action, so a push is read from the two boards and the line
