@@ -12,6 +12,7 @@ import { ZertzColors } from './colors.js'
 import { ZertzScoring } from './scoring.js'
 
 export const ZertzRuntime: GameRuntime<ZertzGameState, HydratedZertzGameState> = {
+    randomnessVersion: 1,
     initializer: new ZertzGameInitializer(),
     canonicalStateValidator: ZertzGameStateValidator,
     hydrator: new ZertzHydrator(),
