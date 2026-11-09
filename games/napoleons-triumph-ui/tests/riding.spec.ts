@@ -4,6 +4,7 @@ import {
     CommandKind,
     Side,
     UnitType,
+    standingGroupKey,
     type NapoleonsTriumphGameState
 } from '@tabletop/napoleons-triumph'
 import {
@@ -52,6 +53,27 @@ function cavalryRidesInBesideInfantry(state: NapoleonsTriumphGameState) {
     Object.assign(foot, { commanderId: undefined, position: { locale: 62 } })
     frenchPlayer(state).independentCommandsUsed = 1
     state.roadMarch = { kind: CommandKind.Unit, unitIds: [rider.id], start: 63, path: [62] }
+}
+
+/** A detached French cavalry unit has ridden two locales by local road, 84 to 73, and can ride no farther. */
+function cavalryReachesTheEndOfItsRide(state: NapoleonsTriumphGameState) {
+    const rider = unitOf(state, 'vandamme', UnitType.Cavalry)
+    Object.assign(rider, {
+        commanderId: undefined,
+        position: { locale: 73 },
+        movesThisTurn: 1,
+        enteredReserveThisTurn: true,
+        arrivedByRoad: { locale: 73, roads: [0] }
+    })
+    frenchPlayer(state).independentCommandsUsed = 1
+    state.roadMarch = {
+        kind: CommandKind.Unit,
+        unitIds: [rider.id],
+        start: 84,
+        path: [74, 73],
+        stopped: true
+    }
+    return rider
 }
 
 /** Bernadotte's cavalry has come on at 51, taken locale 38 by road and may ride on, in its turn of entry; an Allied unit holds 52. */
@@ -193,4 +215,31 @@ test('cavalry riding on stays in hand while a locale is aimed at, and the threat
         'aria-pressed',
         'true'
     )
+})
+
+test('cavalry at the end of its ride stays in reserve unless it is picked up to block an approach', async ({
+    page
+}) => {
+    let riderGroup = ''
+    await frenchTurnWith(page, (state) => {
+        riderGroup = standingGroupKey(cavalryReachesTheEndOfItsRide(state))
+    })
+    const atRidesEnd = page.getByRole('group', { name: 'Detached units, at the end of its ride' })
+    const blocks = page.locator('svg [aria-label="Block this approach"]')
+    const rider = `svg [data-group="${riderGroup}"]`
+
+    await expect(page.getByText(/^Choose a corps/)).toBeVisible()
+    await expect(
+        page.getByText('stays in reserve unless you tap it to block an approach its road crosses')
+    ).toBeVisible()
+    await expect(page.getByRole('group', { name: 'Detached units, riding on' })).toHaveCount(0)
+
+    await tap(page, rider)
+    await expect(atRidesEnd).toBeVisible()
+    await expect(page.getByText('may ride on', { exact: false })).toHaveCount(0)
+    await expect(blocks).not.toHaveCount(0)
+
+    await tap(page, rider)
+    await expect(atRidesEnd).toHaveCount(0)
+    await expect(page.getByText(/^Choose a corps/)).toBeVisible()
 })

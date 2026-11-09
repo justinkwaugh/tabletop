@@ -934,8 +934,18 @@ export class NapoleonsTriumphGameSession extends GameSession<
         )?.key
     )
 
+    // Rule 10: cavalry at the end of its ride has ended its move in reserve unless it is sent to block an approach.
+    rideIsOver: boolean = $derived(this.openRoadMarch?.stopped === true)
+
+    rideEndedIn: number | undefined = $derived(
+        this.rideIsOver ? this.openRoadMarch?.path.at(-1) : undefined
+    )
+
     selectedGroupKey = $derived(
-        this.isCommanding ? (pickedUpOf(this.selection)?.groupKey ?? this.marchGroupKey) : undefined
+        this.isCommanding
+            ? (pickedUpOf(this.selection)?.groupKey ??
+                  (this.rideIsOver ? undefined : this.marchGroupKey))
+            : undefined
     )
 
     reinforcements: Reinforcement[] = $derived(

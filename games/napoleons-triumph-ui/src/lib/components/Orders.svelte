@@ -26,6 +26,7 @@
     const reinforcements = $derived(gameSession.reinforcements)
 
     const ridingOn = $derived(gameSession.ridingOn)
+    const rideIsOver = $derived(gameSession.rideIsOver)
     const rideChoice = $derived(gameSession.rideChoice)
     const stepsOfTheWay = $derived(gameSession.stepsOfTheWay)
     const together = $derived(gameSession.wholeCorpsChosen)
@@ -50,7 +51,10 @@
             return undefined
         }
         const name = group.commander ? corpsName(group.commander.id) : 'Detached units'
-        return ridingOn ? `${name}, riding on` : name
+        if (!ridingOn) {
+            return name
+        }
+        return rideIsOver ? `${name}, at the end of its ride` : `${name}, riding on`
     })
 
     const stillToCommand = $derived(
@@ -281,10 +285,15 @@
         <span>{wayToChoose}</span>
     {:else if problem}
         <span>{problem}</span>
+    {:else if ridingOn && rideIsOver}
+        <span
+            >The cavalry can ride no farther. It stays in reserve unless it ends its move blocking
+            an approach its road crosses.</span
+        >
     {:else if ridingOn}
         <span
             >The cavalry may ride on along its road, or threaten again. Any other command ends this
-            move.</span
+            move, leaving it in reserve.</span
         >
     {:else if aside}
         <span>{aside}</span>
@@ -318,6 +327,15 @@
         )}
     {:else}
         <div class="nt-orders-note nt-orders-rest" bind:clientHeight={idleLineHeight}>
+            {#if gameSession.rideEndedIn !== undefined}
+                <span
+                    ><PlaceText
+                        text="The cavalry that rode into {gameSession.gameState.map.label(
+                            gameSession.rideEndedIn
+                        )} stays in reserve unless you tap it to block an approach its road crosses."
+                    /></span
+                >
+            {/if}
             <span class="nt-orders-faint">{stillToCommand}</span>
         </div>
     {/if}
