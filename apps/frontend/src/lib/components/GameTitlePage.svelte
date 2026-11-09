@@ -8,7 +8,11 @@
         type HydratedGameState
     } from '@tabletop/common'
     import { Modal } from 'flowbite-svelte'
-    import { ArrowRightOutline, UsersOutline } from 'flowbite-svelte-icons'
+    import {
+        ArrowRightOutline,
+        ArrowUpRightFromSquareOutline,
+        UsersOutline
+    } from 'flowbite-svelte-icons'
     import TitleGames from '$lib/components/TitleGames.svelte'
     import TitleTournaments from '$lib/components/TitleTournaments.svelte'
     import BackLink from '$lib/components/BackLink.svelte'
@@ -62,13 +66,21 @@
             </div>
             <h1 id="title-heading">{metadata.name}</h1>
             <p class="credits">Designed by <span>{metadata.designer}</span></p>
-            {#if metadata.publisher}<p class="credits publisher">
+            {#if metadata.publisher}
+                {@const publisher = metadata.publisher}
+                <p class="credits publisher">
                     Published by
-                    <a href={metadata.publisher.url} target="_blank" rel="noopener noreferrer"
-                        >{metadata.publisher.name}<span class="sr-only">(opens in a new tab)</span
-                        ></a
-                    >
-                </p>{/if}
+                    {#if publisher.sellsGame}<span>{publisher.name}</span><span class="separator"
+                            >·</span
+                        ><a href={publisher.url} target="_blank" rel="noopener noreferrer"
+                            >buy it from {publisher.name}<ArrowUpRightFromSquareOutline
+                                class="ml-1 inline h-3.5 w-3.5 align-[-2px]"
+                            /><span class="sr-only">(opens in a new tab)</span></a
+                        >{:else}<a href={publisher.url} target="_blank" rel="noopener noreferrer"
+                            >{publisher.name}<span class="sr-only">(opens in a new tab)</span></a
+                        >{/if}
+                </p>
+            {/if}
             <div class="description">
                 {#each paragraphs as paragraph, index (index)}<p>{paragraph}</p>{/each}
             </div>
@@ -166,11 +178,15 @@
         font-size: 14px;
         color: var(--color-gray-400);
     }
-    .credits span {
+    .credits > span {
         color: var(--color-gray-300);
     }
     .credits.publisher {
         margin-top: 4px;
+    }
+    .credits > .separator {
+        margin: 0 6px;
+        color: var(--color-gray-500);
     }
     .credits a {
         color: var(--color-blue-300);

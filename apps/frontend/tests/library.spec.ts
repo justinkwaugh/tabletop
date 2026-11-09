@@ -283,6 +283,16 @@ test('the library shows its count beside the heading and returns from game detai
     await expect(page.locator('.game-shelf > li')).toHaveCount(12)
 })
 
+test('a publisher that sells the game offers to buy it', async ({ page }) => {
+    await page.goto('/library/landing-1')
+    await expect(page.locator('.credits.publisher')).toHaveText(
+        /^Published by Example Shop\s*·\s*buy it from Example Shop\s*\(opens in a new tab\)$/
+    )
+    await expect(
+        page.getByRole('link', { name: 'buy it from Example Shop (opens in a new tab)' })
+    ).toHaveAttribute('href', 'https://example.com/game-02')
+})
+
 test.describe('a library series', () => {
     const covers = (page: Page) => page.locator('.cover-cycle .cover')
 

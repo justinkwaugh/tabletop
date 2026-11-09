@@ -14,7 +14,8 @@ export const GameMetadata = Type.Object({
     publisher: Type.Optional(
         Type.Object({
             name: Type.String({ minLength: 1 }),
-            url: Type.String({ pattern: '^https://' })
+            url: Type.String({ pattern: '^https://' }),
+            sellsGame: Type.Optional(Type.Boolean())
         })
     ),
     description: Type.String(),

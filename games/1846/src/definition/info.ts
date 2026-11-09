@@ -11,7 +11,8 @@ export const EighteenFortySixInfo: GameInfo = {
         designer: 'Thomas Lehmann',
         publisher: {
             name: 'GMT Games',
-            url: 'https://www.gmtgames.com/p-847-1846-the-race-to-the-midwest-1846-1935-2nd-printing.aspx'
+            url: 'https://www.gmtgames.com/p-847-1846-the-race-to-the-midwest-1846-1935-2nd-printing.aspx',
+            sellsGame: true
         },
         year: '2005',
         description:

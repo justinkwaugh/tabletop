@@ -24,6 +24,15 @@ describe('GameMetadata publisher', () => {
         expect(Value.Check(GameMetadata, { ...metadata, publisher })).toBe(true)
     })
 
+    it('accepts a link to a page that sells the game', () => {
+        const publisher = {
+            name: 'Example Publisher',
+            url: 'https://example.com/game',
+            sellsGame: true
+        }
+        expect(Value.Check(GameMetadata, { ...metadata, publisher })).toBe(true)
+    })
+
     it.each([
         { name: 'Example Publisher', url: 'http://example.com/game' },
         { name: 'Example Publisher', url: 'javascript:alert(1)' },

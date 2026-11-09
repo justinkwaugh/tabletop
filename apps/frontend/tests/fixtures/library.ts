@@ -31,6 +31,13 @@ export async function mockTitles(page: Page, seriesTitleCount = 0) {
                     ...(index === 0 && {
                         publisher: { name: 'Example Publisher', url: 'https://example.com/game-01' }
                     }),
+                    ...(index === 1 && {
+                        publisher: {
+                            name: 'Example Shop',
+                            url: 'https://example.com/game-02',
+                            sellsGame: true
+                        }
+                    }),
                     year: '2005',
                     minPlayers: 2,
                     maxPlayers: 4,
