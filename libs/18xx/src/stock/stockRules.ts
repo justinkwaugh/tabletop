@@ -70,6 +70,12 @@ export interface StockRules {
      */
     presidencyExchangeLargestFirst?: boolean
     /**
+     * A president may sell below the president's certificate with no one to succeed them: the
+     * certificate goes to the pool and the company has no president until someone claims it
+     * (1862 §6.3, §8).
+     */
+    presidencyLapses?: true
+    /**
      * What follows any sale into the market, such as the market closing its own shorts. Sale
      * previews may run it on a shallow copy of the state, so it replaces nested state it changes.
      */

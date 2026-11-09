@@ -52,7 +52,13 @@
             </tr>
         {:else}<tr><td colspan="2">No trains</td></tr>{/each}
     </tbody>
-    <tfoot><tr><th scope="row">Total</th><td class="income">{money(result.revenue)}</td></tr></tfoot
+    <tfoot
+        ><tr><th scope="row">Total</th><td class="income">{money(result.revenue)}</td></tr
+        >{#if result.subsidy}<tr class="subsidy"
+                ><th scope="row">Subsidy to treasury</th><td class="income"
+                    >{money(result.subsidy)}</td
+                ></tr
+            >{/if}</tfoot
     >
 </table>
 

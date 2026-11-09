@@ -302,3 +302,51 @@ to enumerate every extension, for N+s limits, end-only destinations, an extensio
 through a blocked city, and two-train fleets where the best extension hangs off a
 route's start and must stay clear of another train's track. The native suite adds
 the second budget and end-only destinations to the 200-graph permutation oracle.
+
+## Fleet settlement and the fleet solver
+
+The family survey above already lists the counterexamples to independent routes: 1862 trains
+share track, pay each stop once per company, chain non-permanent freight end to end, must meet
+the home run at large stations, and pay Local subsidies to the treasury (rulebook §7.4, §7.8);
+1860 requires fleet connectivity; 18GB pays joint revenue; 1825 double-headers combine trains.
+1862 is the first consumer; the others challenged the interface but are not built.
+
+`RouteRules` gains three optional members, absent for every released title:
+
+- `stopAllowed(state, companyId, center, train?)` sees the running train where one runs.
+  Without a train, as in reach checks and the native encoder, it answers for any train.
+- `routeAllowed(state, companyId, train, visits)` rejects a complete route's shape.
+- `fleet: FleetRules` with `sharedTrack`, `settle`, optional `routeKey` and optional `bound`.
+  Evaluation checks each route alone (a train never reuses its own track), skips the
+  cross-train track check when `sharedTrack`, then `settle` rewrites the routes' payments,
+  bonuses and revenue and may add a `subsidy`, or rejects the fleet. Fleets and the
+  longest-route bonus are exclusive. `OperatingResult.subsidy` is optional and present only
+  when positive; `RunTrains` pays it from the bank to the treasury, recorded in its metadata.
+  Revenue stays the sum of route revenues, so earnings, instructions and `lastRunRevenue`
+  are unchanged.
+
+The Rust core encodes none of this, so `Autorouter.solve` runs a TypeScript search for fleet
+titles with the same result contract and final `RouteEvaluation` check. Each kind of train
+lists its routes by walking out of each company station twice (`RouteNetwork.walk`), once per
+half of a route through it, keeping one route per settlement key: stops in order either way
+round and the hexes entered by default, or the title's `routeKey`, plus track where trains may
+not share it. The shortest route per key is kept. Choosing one route or none for each train is
+maximum coverage under a partition constraint (NP-hard). The search is branch and bound over
+trains ordered by best bound, candidates by bound, with identical trains taking increasing
+candidates. A title's `bound(route, chosen)` is a marginal upper bound that never grows as
+`chosen` grows (submodular-style), so a branch's bound is what it has gathered plus each
+remaining train's best marginal bound. Standalone bounds barely prune pay-once fleets: on
+generated maps marginal bounds visited 100 to 1,000 times fewer nodes. Without `bound`, a route's standalone
+settlement bounds it, and a route that cannot run alone is unbounded.
+
+Limits: at most 10,000 routes per kind of train (the most valuable are kept and the result is
+marked memory-limited); deadlines return the best fleet found as non-exhaustive after the first
+complete fleet. `routeProblemKey` still hashes the encoded network, so title state read only by
+`settle` (beyond stations, stops and train profiles) does not key instructed runs.
+
+Verification: family specs cover shared track, settlement, rejection, subsidy payment and its
+absence, route shapes and train-aware stop checks. The solver matches an exhaustive
+combination oracle on 40 generated hex maps, each with and without bounds and with a key (shared
+and separate track, identical trains) using a toy title: home run, runs meeting at cities, stops
+paid once, a subsidised train. On denser generated maps with H5/E4/Local fleets it solves in
+under 0.15 s; four-train H7/E6 fleets on 61–91 hex maps take 0.5–9 s, some hitting the route cap.

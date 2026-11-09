@@ -29,6 +29,15 @@ export interface TrainRules {
     phaseAfterPurchase(state: TrainPurchaseState, definitionId: string): string
     trainLimit(state: TrainPurchaseState, companyId: string): number
     countsForLimit?(state: TrainPurchaseState, train: Train): boolean
+    /**
+     * Why the company may not take on a train of this definition beyond ``trainLimit``, as limits
+     * for each kind of train do (1862); judged before any depot or intercompany purchase.
+     */
+    limitReason?(
+        state: TrainPurchaseState,
+        companyId: string,
+        definitionId: string
+    ): string | undefined
     marketDefinitions?(state: TrainPurchaseState, train: Train): readonly string[]
     purchaseLimit(state: TrainPurchaseState, companyId: string): number | 'unlimited'
     /** Where a train given in exchange goes: the open market unless the title removes it. */
@@ -182,6 +191,8 @@ export class TrainPurchase {
             limit
         )
             return { reason: 'The company is at its train limit.' }
+        const limitReason = this.rules.limitReason?.(this.state, companyId, definitionId)
+        if (limitReason) return { reason: limitReason }
         const purchaseLimit = this.rules.purchaseLimit(this.state, companyId)
         assert(
             purchaseLimit === 'unlimited' ||

@@ -11,6 +11,7 @@ import {
 } from '@tabletop/18xx'
 import { Compile } from 'typebox/compile'
 import { EncodedRoutes } from './encodedRoutes.js'
+import { solveFleet } from './fleetSolver.js'
 import { SolverError, SolverSolution, type SolverProblem } from './solverProtocol.js'
 
 export type AutoroutingOptions = { timeLimitMs?: number }
@@ -99,6 +100,8 @@ export class Autorouter {
             Number.isFinite(timeLimitMs) && timeLimitMs > 0,
             'Routing time limit must be positive'
         )
+        if (rules.fleet) return solveFleet(state, rules, companyId, timeLimitMs)
+        assert(!rules.routeAllowed, 'Only the fleet solver searches by route shape')
         const requiredEnds = rules.requiredRouteEnds?.(state, companyId)
         if (requiredEnds)
             return this.solveRequired(state, rules, companyId, requiredEnds, timeLimitMs)

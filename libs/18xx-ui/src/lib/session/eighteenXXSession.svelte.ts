@@ -1069,6 +1069,18 @@ export type MapLocationChoice = {
     locationIds: readonly string[]
     /** Chooses a hex, with the city or town clicked within it when there was one. */
     choose(locationId: string, nodeId?: string): void
+    /** A further choice about the chosen hex, offered beside it. */
+    followUp?: MapLocationFollowUp
+}
+
+/** Which of a few things to do at a chosen hex, such as which line takes a station. */
+export type MapLocationFollowUp = {
+    locationId: string
+    /** Names the choice, as a question. */
+    label: string
+    options: readonly { id: string; label: string }[]
+    choose(id: string): void
+    cancel(): void
 }
 
 export type EighteenXXSessionView = GameSessionView<EighteenXXState, HydratedEighteenXXState> &

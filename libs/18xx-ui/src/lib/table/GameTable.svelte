@@ -80,6 +80,7 @@
     import { spreadsheetCompanies } from './spreadsheetCompanies.js'
     import OwnershipSpreadsheet from './OwnershipSpreadsheet.svelte'
     import TrackTilePicker from '../maps/TrackTilePicker.svelte'
+    import LocationFollowUpPicker from '../maps/LocationFollowUpPicker.svelte'
     import PlayersPanel from './PlayersPanel.svelte'
     import { assertExists, type BoundingBox, type GameAction } from '@tabletop/common'
     import type { TitleActionDescription } from './historyDescription.js'
@@ -1319,6 +1320,12 @@
                                             appearance={tileAppearance}
                                         />
                                     {/if}
+                                    {#if active && locationChoice?.followUp}
+                                        <LocationFollowUpPicker
+                                            followUp={locationChoice.followUp}
+                                            {viewport}
+                                        />
+                                    {/if}
                                 {/snippet}
                             </ScalingWrapper>
                         </div>{:else if id === 'Board'}<div class="workspace-view map-area">
@@ -1356,6 +1363,12 @@
                                             {session}
                                             {viewport}
                                             appearance={tileAppearance}
+                                        />
+                                    {/if}
+                                    {#if active && locationChoice?.followUp}
+                                        <LocationFollowUpPicker
+                                            followUp={locationChoice.followUp}
+                                            {viewport}
                                         />
                                     {/if}
                                 {/snippet}

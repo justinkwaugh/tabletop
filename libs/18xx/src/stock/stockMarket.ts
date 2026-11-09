@@ -76,11 +76,15 @@ export function createRectangularStockMarketSpaces(
  */
 export function createLinearStockMarketSpaces(
     prices: readonly number[],
-    color: (price: number) => string
+    color: (price: number) => string,
+    /** Spaces drawn in each row, where a long market wraps onto several; moves stay along it. */
+    { rowLength = prices.length }: { rowLength?: number } = {}
 ): StockMarketSpace[] {
     return createRectangularStockMarketSpaces([prices], (_, column) => color(prices[column])).map(
         (space) => ({
             ...space,
+            row: Math.floor(space.column / rowLength),
+            column: space.column % rowLength,
             moves: {
                 ...space.moves,
                 ...(space.moves.right ? { up: space.moves.right } : {}),

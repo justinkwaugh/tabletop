@@ -21,6 +21,7 @@ import {
     type TileNode
 } from '../tiles/tile.js'
 import { rotateTileEdge, rotateTileFace } from '../tiles/topology.js'
+import { carriedTrackStops, withTrackStops, type TrackStop } from '../tiles/trackStops.js'
 import { ConstructionReachability } from './constructionReachability.js'
 import { preservesPath, fixedNodeRevenue, type TileNodeMapping } from './trackUpgrade.js'
 import {
@@ -164,6 +165,11 @@ export interface TrackRules {
     /** Whether the company's network may continue through a revenue center, as its routes may. */
     stopAllowed?(state: ConstructionState, companyId: string, center: RevenueCenter): boolean
     preservesStops(before: TileFace, after: TileFace): boolean
+    /**
+     * A town standing alone on a line of track carries onto the replacing tile's same line as a
+     * track stop where that line is plain track there, as 1862's small stations do.
+     */
+    carriesTrackStops?: true
     /** Whether a tile on this hex must be one of the tiles of its colour with the most exits. */
     mostExits?(before: TileFace): boolean
     restriction(state: ConstructionState, request: TrackRequest): string | undefined
@@ -257,13 +263,10 @@ export class TrackConstruction {
             )
                 continue
             for (const rotation of Rotations) {
-                const before = this.mapState.tile(locationId)
-                const after = rotateTileFace(definition.face, rotation)
-                for (const nodeMapping of this.layMappings(
-                    locationId,
-                    rotateTileFace(before.face, before.rotation),
-                    after
-                )) {
+                const tile = this.mapState.tile(locationId)
+                const before = rotateTileFace(tile.face, tile.rotation)
+                const after = this.replacing(before, rotateTileFace(definition.face, rotation)).face
+                for (const nodeMapping of this.layMappings(locationId, before, after)) {
                     const result = this.evaluate({
                         companyId,
                         locationId,
@@ -302,7 +305,7 @@ export class TrackConstruction {
                     this.layMappings(
                         request.locationId,
                         before,
-                        rotateTileFace(other.face, rotation)
+                        this.replacing(before, rotateTileFace(other.face, rotation)).face
                     ).some(
                         (nodeMapping) =>
                             !!this.evaluatePlacement({
@@ -343,7 +346,10 @@ export class TrackConstruction {
         if (restriction) return { reason: restriction }
         const previous = this.mapState.tile(locationId)
         const before = rotateTileFace(previous.face, previous.rotation)
-        const after = rotateTileFace(definition.face, rotation)
+        const { face: after, trackStops } = this.replacing(
+            before,
+            rotateTileFace(definition.face, rotation)
+        )
         const reconfiguring = this.reconfiguring(locationId, before, after)
         if (
             !this.layMappings(locationId, before, after).some(
@@ -457,7 +463,12 @@ export class TrackConstruction {
                 definitionId,
                 rotation,
                 nodeMapping,
-                placement: { pieceId: piece.id, definitionId, rotation },
+                placement: {
+                    pieceId: piece.id,
+                    definitionId,
+                    rotation,
+                    ...(trackStops.length ? { trackStops } : {})
+                },
                 ...(previous.placement ? { previous: previous.placement } : {}),
                 cost,
                 terrainCost,
@@ -508,10 +519,19 @@ export class TrackConstruction {
                         this.layMappings(
                             locationId,
                             before,
-                            rotateTileFace(definition.face, rotation)
+                            this.replacing(before, rotateTileFace(definition.face, rotation)).face
                         ).length > 0
                 )
         )
+    }
+    /** A turned replacing face with the stops it carries from the turned face it replaces. */
+    private replacing(
+        before: TileFace,
+        after: TileFace
+    ): { face: TileFace; trackStops: TrackStop[] } {
+        if (!this.rules.carriesTrackStops) return { face: after, trackStops: [] }
+        const trackStops = carriedTrackStops(before, after)
+        return { face: withTrackStops(after, trackStops), trackStops }
     }
     /** The node mappings that keep the hex's track, or a reconfiguration's empty mapping. */
     private layMappings(locationId: string, before: TileFace, after: TileFace): TileNodeMapping[] {

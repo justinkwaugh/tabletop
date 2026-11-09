@@ -3,6 +3,7 @@ import { Compile } from 'typebox/compile'
 import { Clone } from 'typebox/value'
 import { assert, assertExists, deepFreeze } from '@tabletop/common'
 import { TileRotation, type ImmutableTileData, type TileDefinition } from './tile.js'
+import { TrackStop } from './trackStops.js'
 import type { TileCatalog } from './catalog.js'
 
 const Identifier = Type.String({ minLength: 1 })
@@ -30,7 +31,9 @@ export const TilePlacement = Type.Object(
     {
         pieceId: Identifier,
         definitionId: Identifier,
-        rotation: TileRotation
+        rotation: TileRotation,
+        /** Towns standing on the tile's plain track, such as 1862's small stations. */
+        trackStops: Type.Optional(Type.Array(TrackStop, { minItems: 1 }))
     },
     { additionalProperties: false }
 )

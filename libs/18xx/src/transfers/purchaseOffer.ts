@@ -212,6 +212,11 @@ export function evaluatePurchaseOffer(
             trains.trainLimit(state, request.companyId)
         )
             return { reason: 'The buyer is at its train limit.' }
+        const { trainId } = request.asset
+        const train = state.trainInventory.trains.find((train) => train.id === trainId)
+        const limitReason =
+            train && trains.limitReason?.(state, request.companyId, train.definitionId)
+        if (limitReason) return { reason: limitReason }
     }
     return { buyerPlayerId, sellerPlayerId }
 }

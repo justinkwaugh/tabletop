@@ -461,7 +461,12 @@ function describeShared(
             text: action.routes.length ? 'Ran' : 'Did not run trains',
             trainDefinitionIds: action.metadata.routes.map((route) => route.definitionId),
             value: action.metadata.revenue ? money(action.metadata.revenue) : undefined,
-            detail: runBonusesDetail(action.metadata.routes, money, routeBonusName, place)
+            detail: joinDetails(
+                runBonusesDetail(action.metadata.routes, money, routeBonusName, place),
+                action.metadata.subsidy
+                    ? `${money(action.metadata.subsidy)} subsidy to the treasury`
+                    : undefined
+            )
         }
     }
     if (isDistributeEarnings(action)) {
@@ -475,7 +480,9 @@ function describeShared(
                       ? 'Withheld'
                       : action.choice === 'half-pay'
                         ? 'Half paid'
-                        : 'Paid out',
+                        : action.choice === 'top-up'
+                          ? 'Topped up and paid out'
+                          : 'Paid out',
             value:
                 action.choice === 'withhold'
                     ? details.retained
@@ -488,6 +495,7 @@ function describeShared(
                         ? `${money(details.retained)} retained`
                         : '',
                     details.bonusPerShare ? `${money(details.bonusPerShare)}/share bonus` : '',
+                    details.topUp ? `${money(details.topUp)} from the treasury` : '',
                     ...(details.charges ?? []).map(
                         (charge) => `${nameOf(charge.from)} owes ${money(charge.amount)} on shorts`
                     ),

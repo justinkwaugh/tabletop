@@ -3,7 +3,7 @@
     "AdvancePhase": "f8e85abcbef35455be4cc040e4b277c9d7fc5304fb7d9e2f3ae552fe1137fc94",
     "AssignRevenueMarker": "7c73dfa08c0d346e6aae53abb52be400f0cbe964e4d698377aef4ae8c52c5e02",
     "AssignSteamboat": "15ceaec0ddb3a89a5711b5c42f49b97da22ff59d47ef3bba06ef2ee30d8486ac",
-    "BuildPrivateTrack": "370a97ee65f84df7a14d9e371d1964481d1d0ce352482606f1b8279f331579e8",
+    "BuildPrivateTrack": "62ebf128418e916dd60917dd5ed5085c79bca433946738ef124bd014546374d5",
     "BuyOpeningCompany": "ca4dd5011ed52a5a194c5314388506eb78565b47b502446dd39c9fbe40213b42",
     "BuyPrivateTrain": "91b0b0052458f1f6cbbcfce68ed22baafbb1410e69ca6ac86263a0b4318d3ce0",
     "BuyShares": "ea32f0c8f1d4ef09bcfceae831c752c10cc989a03646740d5987a8b841342e0e",
@@ -18,7 +18,7 @@
     "DeclareBankruptcy": "40b39c1263b03ab6f70a95bd2dd5505713f5cbe28a357d8b6616f926f8da12b5",
     "DeclinePrivateTile": "9d347b9c716993c5f027fe1e6acdc8e0f4d65d71d9a74d391e40d06e1f6115dd",
     "DiscardTrain": "5d1a970100fabffbe644562b9d090a757dc8600817bcace18db3ee3e5537bf13",
-    "DistributeEarnings": "6749609e82de407753d6d563448dc04d5b91de8bb5b425b868ee4c3572907480",
+    "DistributeEarnings": "c51f3cf0a4ececf77a22318d21b0312a9ee6fc5a4c6c765dba32d99494ea8c42",
     "EndGame": "238dcf7a19fbab27e738c27d9ebf77b8e048aefc539a5514fe186ac32889e49e",
     "ExchangePrivate": "76b79fb406c20ba82571b7229e89be58c907d89279e82a4ca1f2dd5f2dca21ab",
     "FinishOperatingTurn": "b653940dd0621cbe3c462eac1732da050c2e6425ff1bdbfbc4dc01b07fe1a4de",
@@ -27,9 +27,9 @@
     "FinishTrack": "7ae429d56b33034c6bf55f6167db28e6f2e6ae33a15a0c42e0ef422bd316443e",
     "FloatCompany": "fe40eddcc820c104eac6d3cb5441d5c814542f3e3cbf6dc503dfd14beaec0634",
     "FundTrain": "e7c9d823dbfac75958205395e0042a381fdd600d3251714a052b40306b30dd7b",
-    "IssueTreasuryShares": "279bff01f9fccd7d55c16a13b95aad4074974d1b87ae8bfd3052380b36af1786",
-    "LayPrivateTile": "de25ff1e8aeadca222bc399a5e17e4a4759418618361981d7f6d6f86acde6b21",
-    "LayTile": "8de0ad15e8365fd604f94438d94ce76c823ce0d5637f79f9ae77b1d751d5fd5f",
+    "IssueTreasuryShares": "a581a7ab3ea225a2d51e4546ae6f5c086d244c6ab91792308f4b47ab7fed3876",
+    "LayPrivateTile": "2c1c2e82a092785252309a959bcd99df6a4e43e3b03266802cf62f577400193a",
+    "LayTile": "868b093634c99f842201af6a9ac020db319a6de25618de0d6cc7f94fff136e60",
     "OfferPurchase": "758f25c307e12acf18ace8dff53805e285a0aeab341456aa8ddcc65f1a61180b",
     "PassFinalCompany": "673646648e636a3805585b92a6b10ebbc03f2ebfef6443d0919253b3d920627c",
     "PassOpeningPurchase": "fc6e255cf88cacfca8a979e7e5a6494d48eedaa9f90ae862d214a4eef87692c3",
@@ -38,19 +38,19 @@
     "PlaceStation": "642f3ab37cd70c2294fd3704f13f035b5678061c83c47ab5318f791c9d8cfee1",
     "RequestTrackConsent": "d707e81670fcfd54f376f8cc7d602a7a9b1b3c964f0fc61238601ab1446d0118",
     "RespondToPurchaseOffer": "6ae2b2ff37e7cab54e35d7933dfc76b17759f28561cdbb5642ff4f0ed36db41f",
-    "RespondToTrackConsent": "61bc3d23824f13246e4b924e82e3c9c552ef8efe19a1668becdd1a31dfd41f7b",
+    "RespondToTrackConsent": "aad7dd92e162c66f272958e6d20de3b4b51150b9709018be7ddbb78b166aaf4f",
     "ResumeOpeningPurchases": "b34f78e0a18a485f85b0e63c4116e1ab110ea1993dbd9276375e6bba51728931",
     "RevealDraft": "c2b83e5b8b845a50157a61a13c0bc7c7e18b849e134b8c205ffbda7c59dda05e",
-    "RunTrains": "2c2acc1e37f0747f108f4cde5ded277fea110974d0ac82261fa3847e80171daa",
+    "RunTrains": "ba69db079932ff9830df4e05552ae24defcae82417a21fc3ddfde12591e2060d",
     "RustTrains": "04877126159679eab415b42c62724c9a3f1ce24f2765a37d077ab2f791101d64",
-    "ScheduleGameEnd": "9fe8533e7967cbf7186df25d65592a7571e9caa1e561d18674ab008e1a503ab2",
-    "SellFundingShares": "72facb9a9d838d543e5e1f61184ab4f3ca8fb3a377763d8ea20c893ca4387509",
-    "SellShares": "12ad7d2f39119fad1870bd79cb358bc94720b7d0175f3996ad8116ad42429eb6",
-    "SetRunInstruction": "946c1b1b93fbd52d503152557b345c324e364bf3d407284b36298dc558757cf1",
+    "ScheduleGameEnd": "e4825e0e9fcb4f41e8368dc5343102515f864a1fe94401efcf8f8104bb2f3ea6",
+    "SellFundingShares": "a19afe593f613b955720889fb576ec502d4e63c7d41603dc9c9b44cd56f4b310",
+    "SellShares": "d12d2caac4f4112b11aaa4b3a30398d39272daa267f9a864978658e84c2b305c",
+    "SetRunInstruction": "fd1f8f2b6b809029041c58ad6c42d126cfcdb578826a4c82c6c7aaf1b69b524a",
     "SetRunInstructionStops": "f01dcdba5d0007e117089cba572ff07cbe68c2f5ee65a2ff95c34a2f9968689a",
     "SetStockInstruction": "f9e0135eb86ac336732583b340948e7cab9329226323428ec0d39aca77037ae5",
     "SetStockInstructionStops": "724aa6a19020cdd568fefb89be3f6a307970bbd79977565045d21485eec2a1df",
-    "SettleIndependent": "23e7f174954801282a2d9898270ea806c6bd3c3237b7e84a61d3787c6f747cef",
+    "SettleIndependent": "df2c17b50f536d1b895f776400efbb89ffcfe25f55321380a28aa5c81fec8482",
     "StartCompany": "97c4b2c6e4509d9dfa29dcd82e59d9149304e28826d158413ae03726955c2b48",
     "StartOperatingRound": "204c7657c15a991c8932d3f6b933c6f6c3700e8469359e3dc420ea432584be58",
     "StartOperatingSet": "ee617e6c56f3bf1e5aad22cb29f693e1dc445edcf6d43b2b5fdeb69a13080e64",
@@ -896,6 +896,10 @@
               {
                 "const": "half-pay",
                 "type": "string"
+              },
+              {
+                "const": "top-up",
+                "type": "string"
               }
             ]
           },
@@ -1064,6 +1068,10 @@
           },
           "revenue": {
             "minimum": 0,
+            "type": "integer"
+          },
+          "topUp": {
+            "minimum": 1,
             "type": "integer"
           }
         },
@@ -1452,6 +1460,10 @@
       "gameEnding": {
         "additionalProperties": false,
         "properties": {
+          "finalOperatingRound": {
+            "minimum": 1,
+            "type": "integer"
+          },
           "finalOperatingRounds": {
             "minimum": 1,
             "type": "integer"
@@ -2466,6 +2478,10 @@
                   "type": "object"
                 },
                 "type": "array"
+              },
+              "subsidy": {
+                "minimum": 1,
+                "type": "integer"
               }
             },
             "required": [
@@ -2521,6 +2537,10 @@
                 },
                 {
                   "const": "half-pay",
+                  "type": "string"
+                },
+                {
+                  "const": "top-up",
                   "type": "string"
                 }
               ]
@@ -3686,6 +3706,87 @@
                         "type": "number"
                       }
                     ]
+                  },
+                  "trackStops": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "edges": {
+                          "additionalItems": false,
+                          "items": [
+                            {
+                              "anyOf": [
+                                {
+                                  "const": 0,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 1,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 2,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 3,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 4,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 5,
+                                  "type": "number"
+                                }
+                              ]
+                            },
+                            {
+                              "anyOf": [
+                                {
+                                  "const": 0,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 1,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 2,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 3,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 4,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 5,
+                                  "type": "number"
+                                }
+                              ]
+                            }
+                          ],
+                          "minItems": 2,
+                          "type": "array"
+                        },
+                        "revenue": {
+                          "minimum": 0,
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "edges",
+                        "revenue"
+                      ],
+                      "type": "object"
+                    },
+                    "minItems": 1,
+                    "type": "array"
                   }
                 },
                 "required": [

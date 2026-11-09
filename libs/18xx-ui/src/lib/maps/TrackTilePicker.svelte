@@ -8,6 +8,7 @@
     import Tile from '../tiles/Tile.svelte'
     import type { TileAppearance } from '../tiles/tileAppearance.js'
     import { tileChoiceArc } from './tileChoiceArc.js'
+    import { followHex } from './followHex.js'
 
     let {
         session,
@@ -36,52 +37,18 @@
         y: Math.max(buttonSize * 0.6, center.y - hexHeight / 2 - buttonSize * 0.65) + 1
     })
 
-    function followHex(_anchor: HTMLElement, initialLocationId: string | undefined) {
-        let followedId = initialLocationId
-        let frame: number | undefined
-        function measure() {
-            frame = undefined
-            const hex = [...viewport.querySelectorAll('[data-map-location]')].find(
-                (element) => element.getAttribute('data-map-location') === followedId
-            )
-            if (!hex) return
-            const bounds = viewport.getBoundingClientRect()
-            const rect = hex.getBoundingClientRect()
-            const next = {
-                x: rect.x + rect.width / 2 - bounds.x,
-                y: rect.y + rect.height / 2 - bounds.y
-            }
-            if (center.x !== next.x || center.y !== next.y) center = next
-            width = bounds.width
-            height = bounds.height
-            hexHeight = rect.height
-            const svg = viewport.querySelector('svg.map-scene')
-            if (svg instanceof SVGSVGElement) {
-                // WebKit's getScreenCTM omits the CSS scale on the map wrapper.
-                tileSize = (106 * svg.getBoundingClientRect().width) / svg.viewBox.baseVal.width
-            }
-        }
-        function scheduleMeasure() {
-            if (frame === undefined) frame = requestAnimationFrame(measure)
-            releaseStuckEntrances()
-        }
-        const resized = new ResizeObserver(scheduleMeasure)
-        resized.observe(viewport)
-        const viewMoved = new MutationObserver(scheduleMeasure)
-        viewMoved.observe(viewport, { subtree: true, attributes: true, attributeFilter: ['style'] })
-        measure()
-        return {
-            update(locationId: string | undefined) {
-                followedId = locationId
-                measure()
-            },
-            destroy() {
-                resized.disconnect()
-                viewMoved.disconnect()
-                if (frame !== undefined) cancelAnimationFrame(frame)
-            }
-        }
-    }
+    const trackHex = followHex(
+        () => viewport,
+        (placement) => {
+            if (center.x !== placement.center.x || center.y !== placement.center.y)
+                center = placement.center
+            width = placement.width
+            height = placement.height
+            hexHeight = placement.hexHeight
+            if (placement.mapScale !== undefined) tileSize = 106 * placement.mapScale
+        },
+        () => releaseStuckEntrances()
+    )
     const elements = new Map<string, HTMLButtonElement>()
     const animations = new Set<Animation>()
     let motionVersion = 0
@@ -231,7 +198,7 @@
 
 <svelte:window onpointerdown={dismissChoices} />
 
-<span class="hex-anchor" hidden use:followHex={locationId}></span>
+<span class="hex-anchor" hidden use:trackHex={locationId}></span>
 {#if locationId && width && session.track.canBuild}
     <div
         class="picker"
