@@ -179,29 +179,31 @@ describe('where a corps marching by road halts (rule 10)', () => {
     assertExists(beside, 'Expected a locale beside the southern road only')
     const flank: number = beside
 
-    function haltsFor(units: number, enemies: number) {
+    function haltsFor(units: number, enemies: number, start = START, enemyAt = flank) {
         const game = frenchTurn([
             ...Array.from({ length: units }, (_, index) => ({
                 id: `F-${index + 1}`,
                 side: Side.French,
                 face: infantry(2),
-                locale: START,
+                locale: start,
                 commanderId: 'lannes'
             })),
             ...Array.from({ length: enemies }, (_, index) => ({
                 id: `A-${index + 1}`,
                 side: Side.Allied,
                 face: infantry(2),
-                locale: flank,
+                locale: enemyAt,
                 commanderId: 'bagration'
             }))
         ])
+        const state = game.hydrated
+        const playerId = game.playerOf(Side.French)
         const order = {
             kind: CommandKind.Corps,
             commanderId: 'lannes',
-            unitIds: game.hydrated.corpsUnits('lannes').map((unit) => unit.id)
+            unitIds: state.corpsUnits('lannes').map((unit) => unit.id)
         }
-        return corpsRoadHalts(game.hydrated, game.playerOf(Side.French), order)
+        return corpsRoadHalts(state, playerId, order, moveTargets(state, playerId, order))
     }
 
     it('are named once each, with the enemy corps beside them', () => {
@@ -211,6 +213,11 @@ describe('where a corps marching by road halts (rule 10)', () => {
     it('are none for a single unit, or beside an enemy corps of one unit', () => {
         expect(haltsFor(1, 2)).toEqual([])
         expect(haltsFor(2, 1)).toEqual([])
+    })
+
+    it('are none where the corps still reaches every place one of its units could', () => {
+        expect(haltsFor(2, 2, 38, 53)).toEqual([])
+        expect(haltsFor(2, 2, 52, 24)).toEqual([])
     })
 })
 

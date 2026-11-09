@@ -1068,10 +1068,16 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     roadHalts: RoadHalt[] = $derived.by(() => {
         const playerId = this.myPlayerId
-        if (!this.order || !playerId) {
+        if (!this.order || !playerId || this.attaching || this.ridingOn) {
             return []
         }
-        return corpsRoadHalts(this.gameState, playerId, this.order, this.myEntryIds)
+        return corpsRoadHalts(
+            this.gameState,
+            playerId,
+            this.order,
+            this.orderTargets,
+            this.myEntryIds
+        )
     })
 
     destination: MarchTarget | undefined = $derived(

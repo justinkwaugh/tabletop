@@ -69,11 +69,7 @@
         return gameSession.targets.length === 0 ? 'These units have nowhere to go.' : undefined
     })
 
-    const haltNote = $derived(
-        attaching || ridingOn
-            ? undefined
-            : marchHaltNote(gameSession.gameState.map, gameSession.roadHalts)
-    )
+    const haltNote = $derived(marchHaltNote(gameSession.gameState.map, gameSession.roadHalts))
 
     const wayToChoose = $derived.by(() => {
         if (stepsOfTheWay.length === 0) {

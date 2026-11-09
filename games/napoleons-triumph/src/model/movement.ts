@@ -116,42 +116,27 @@ function haltingCorps(
         .find((commander) => commander !== undefined)
 }
 
-function firstRoadHalt(
-    state: HydratedNapoleonsTriumphGameState,
-    playerId: string,
-    path: readonly LocaleId[]
-): RoadHalt | undefined {
-    for (const locale of path) {
-        const enemy = haltingCorps(state, playerId, locale)
-        if (enemy) {
-            return { locale, enemyCommanderId: enemy.id }
-        }
-    }
-    return undefined
-}
-
-/** Rule 10: where a corps of two or more units must halt on a road that one of its units could follow to its end. */
-export function corpsRoadHalt(
+/** Rule 10: the first locale along a path where a corps of two or more units must halt, when the corps can march that far. */
+export function corpsHaltAlong(
     state: HydratedNapoleonsTriumphGameState,
     playerId: string,
     order: MoveOrder,
-    attacking = false
+    path: readonly LocaleId[]
 ): RoadHalt | undefined {
-    const road = order.road ?? []
     const corps = resolveOrder(state, playerId, order)
     if (!isLargeCorps(corps)) {
         return undefined
     }
-    const lone = resolveOrder(state, playerId, { ...order, unitIds: order.unitIds.slice(0, 1) })
-    const follows = (resolved: ResolvedOrder, path: readonly LocaleId[], attack: boolean) =>
-        isLegal(() => traceRoadMove(state, resolved, path, attack))
-    if (!follows(lone, road, attacking) || follows(corps, road, attacking)) {
-        return undefined
+    for (const [index, locale] of path.entries()) {
+        const enemy = haltingCorps(state, playerId, locale)
+        if (enemy) {
+            const reached = path.slice(0, index + 1)
+            return isLegal(() => traceRoadMove(state, corps, reached))
+                ? { locale, enemyCommanderId: enemy.id }
+                : undefined
+        }
     }
-    const halt = firstRoadHalt(state, playerId, attacking ? road : road.slice(0, -1))
-    return halt && follows(corps, road.slice(0, road.indexOf(halt.locale) + 1), false)
-        ? halt
-        : undefined
+    return undefined
 }
 
 export function traceRoadMove(

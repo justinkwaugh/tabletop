@@ -4,7 +4,7 @@ import { Side, UnitType } from '../components/pieces.js'
 import { ActionType } from '../definition/actions.js'
 import { TestGame, arrangeBattlefield, infantry, type PiecePlacement } from '../testing/harness.js'
 import { CommandKind } from './attack.js'
-import { corpsRoadHalt } from './movement.js'
+import { corpsHaltAlong } from './movement.js'
 import { faceOf } from './pieces.js'
 
 function corpsOrder(game: TestGame, commanderId: string, unitIds?: string[]) {
@@ -301,22 +301,22 @@ describe('rule 10: where a corps marching by road halts', () => {
         return game
     }
 
-    function haltOn(game: TestGame, unitIds: string[], road: number[]) {
-        const order = { ...corpsOrder(game, 'murat', unitIds), road }
-        return corpsRoadHalt(game.hydrated, game.playerOf(Side.French), order)
+    function haltAlong(game: TestGame, unitIds: string[], path: number[]) {
+        const order = corpsOrder(game, 'murat', unitIds)
+        return corpsHaltAlong(game.hydrated, game.playerOf(Side.French), order, path)
     }
 
-    it('names the locale it halts in, and beside whose corps, on a road one unit could follow', () => {
+    it('names the first locale along the path it halts in, and beside whose corps', () => {
         const game = marching(2)
-        expect(haltOn(game, ['F-1', 'F-2'], [THROUGH, END])).toEqual({
+        expect(haltAlong(game, ['F-1', 'F-2'], [THROUGH, END])).toEqual({
             locale: THROUGH,
             enemyCommanderId: 'bagration'
         })
-        expect(haltOn(game, ['F-1'], [THROUGH, END])).toBeUndefined()
-        expect(haltOn(game, ['F-1', 'F-2'], [THROUGH])).toBeUndefined()
+        expect(haltAlong(game, ['F-1'], [THROUGH, END])).toBeUndefined()
+        expect(haltAlong(game, ['F-1', 'F-2'], [])).toBeUndefined()
     })
 
     it('names no halt beside an enemy corps of one unit', () => {
-        expect(haltOn(marching(1), ['F-1', 'F-2'], [THROUGH, END])).toBeUndefined()
+        expect(haltAlong(marching(1), ['F-1', 'F-2'], [THROUGH, END])).toBeUndefined()
     })
 })
