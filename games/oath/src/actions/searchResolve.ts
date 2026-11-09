@@ -81,7 +81,8 @@ export const SearchResolveMetadata = Type.Object({
     discardToWorldDeck: Type.Optional(Type.Boolean()),
     /**
      * Land Warden — from revision 33 (R-X.4): the second card's own discards, the last `count` of `discardedCardIds`,
-     * go down after the kept card's power's, the first `afterPileDeposits` of `pileDeposits` (R-7.3.3).
+     * go down after the kept card's play's, the first `afterPileDeposits` of `pileDeposits`: its cards discarded first
+     * in another region, then its power's (R-7.3.3).
      */
     secondDiscards: Type.Optional(
         Type.Object({ count: Type.Number(), afterPileDeposits: Type.Number() })
@@ -328,15 +329,17 @@ export class HydratedSearchResolve
             ...(second?.discarded ?? [])
         ]
         // Land Warden — the second card's own discards (an adviser at the limit, the Vision it replaced) go down after
-        // the kept card's power, so from revision 33 they lie above that power's discards. Before it (R-X.4) they went
-        // down with the Search's own.
+        // the kept card's play, its cards discarded first in another region and its power's, so from revision 33 they
+        // lie above that power's discards. Before it (R-X.4) they went down with the Search's own.
         const secondDiscards =
             second &&
             second.discarded.length > 0 &&
             isAtLeastOathRevision(state, OathRevision.EngineFixes28)
                 ? {
                       count: second.discarded.length,
-                      afterPileDeposits: played.outcome.pileDeposits?.length ?? 0
+                      afterPileDeposits:
+                          played.discardedElsewhere.length +
+                          (played.outcome.pileDeposits?.length ?? 0)
                   }
                 : undefined
         // Land Warden — the record holds what both plays did. Of the second play's `PowerOutcome` only its pile

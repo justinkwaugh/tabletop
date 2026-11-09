@@ -389,6 +389,74 @@ describe('Land Warden: the Faith scene before revision 33', () => {
     })
 })
 
+const NEW_GROWTH = 'denizen.beast.new-growth'
+const CROP_ROTATION = 'denizen.hearth.crop-rotation'
+
+/**
+ * Law, Glossary, "Discard" — Threatening Roar kept to p1 in the Provinces by New Growth, Scouts discarded there first
+ * by Crop Rotation, so Scouts goes by its own region to the Hinterland pile. Threatening Roar discards Wolves at
+ * Rhys's site; Faith second replaces Conquest as the Revealed Vision.
+ */
+function faithElsewhereScene(revision: OathRevision) {
+    const s = table({
+        revision,
+        denizensBySite: { c2: [WOLVES], p1: [SCOUTS, LONGBOWS, HERALD] },
+        advisers: [LAND_WARDEN, NEW_GROWTH, CROP_ROTATION],
+        deck: [ROAR, FAITH],
+        revealedVision: CONQUEST
+    })
+    search(
+        s,
+        'dana',
+        [LAND_WARDEN, NEW_GROWTH, CROP_ROTATION].map((id) => modifierUse(id))
+    )
+    const action = resolve(s, {
+        keptCardId: ROAR,
+        discardOrder: [],
+        play: SearchPlay.Site,
+        toSiteId: 'p1',
+        discardFirstCardId: SCOUTS,
+        secondPlay: { cardId: FAITH, play: SearchPlay.RevealedVision }
+    })
+    return { s, action }
+}
+
+describe('Land Warden with the kept card discarding first in another region', () => {
+    it('from revision 33 the card discarded first goes by its region, and Conquest still lies on Wolves', () => {
+        const { s, action } = faithElsewhereScene(FIXED)
+        expect(s.denizensAt('p1')).toEqual([LONGBOWS, HERALD, ROAR])
+        expect(pile(s, Region.Hinterland)).toEqual([SCOUTS])
+        expect(pile(s, Region.Provinces)).toEqual([CONQUEST, WOLVES])
+        expect(action.metadata?.pileDeposits?.[0]).toMatchObject({
+            region: Region.Hinterland,
+            cardIds: [SCOUTS]
+        })
+        expectRecordsFollowPile(s, Region.Hinterland)
+        expectRecordsFollowPile(s, Region.Provinces)
+        for (const id of SEATS) {
+            const seen = new HydratedOathGameState(served(s, { kind: 'player', playerId: id }))
+            expect(seen.discardTopBackType?.[Region.Provinces], id).toBe(CardKind.Vision)
+            expect(seen.discardTopBackType?.[Region.Hinterland], id).toBe(CardKind.Denizen)
+        }
+    })
+
+    it('a later Search of the Provinces pile draws Conquest, then Wolves', () => {
+        const { s } = faithElsewhereScene(FIXED)
+        s.getPlayerState('rhys').siteId = 'p2'
+        s.getPlayerState('rhys').supply = 6
+        openTurn(s, 'rhys')
+        search(s, 'rhys', [], SearchSource.Discard)
+        expect(s.getPlayerState('rhys').knownHand()).toEqual([CONQUEST, WOLVES])
+    })
+
+    // Before revision 32 the second card is never played to the Revealed Vision space (R-X.4).
+    it('at revision 32: Scouts goes to the Provinces pile, and Wolves lies on Conquest', () => {
+        const { s } = faithElsewhereScene(OathRevision.EngineFixes27)
+        expect(pile(s, Region.Hinterland)).toEqual([])
+        expect(pile(s, Region.Provinces)).toEqual([WOLVES, CONQUEST, SCOUTS])
+    })
+})
+
 describe('Land Warden: only the order changes', () => {
     it('the record the History reads, and whether the Search can be undone, are the same at 32 and 33', () => {
         for (const scene of [longbowsScene, faithScene]) {
