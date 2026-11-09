@@ -2,7 +2,7 @@
     import { everyCompetition, listenForCompetitionChanges } from '$lib/services/competitionUpdates'
     import { LatestRequest } from '$lib/utils/latestRequest'
     import { onMount } from 'svelte'
-    import type { Tournament } from '@tabletop/common'
+    import type { LeagueListEntry, Tournament } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import { loadTitleTournaments } from '$lib/services/titleTournaments'
     import {
@@ -10,6 +10,15 @@
         tournamentSummaryText,
         tournamentStatusText
     } from '$lib/utils/tournamentPresentation'
+    import {
+        leagueClosesInText,
+        leagueListStatusText,
+        leagueMyPlaceText,
+        leagueRosterText,
+        leagueShapeText,
+        leagueShowsSignUpDeadline,
+        sortLeaguesByName
+    } from '$lib/utils/leaguePresentation'
     import TitleSection from '$lib/components/TitleSection.svelte'
     import { ArrowRightOutline } from 'flowbite-svelte-icons'
 
@@ -21,6 +30,38 @@
     let failed = $state(false)
     let now = $state(Date.now())
     const requests = new LatestRequest()
+    let leagues = $state<LeagueListEntry[]>([])
+    let leaguesBusy = $state(true)
+    let leaguesFailed = $state(false)
+    const leagueRequests = new LatestRequest()
+
+    async function loadLeagues() {
+        const current = leagueRequests.begin()
+        leaguesFailed = false
+        try {
+            const result = await api.listLeagues()
+            if (!current()) return
+            leagues = sortLeaguesByName(
+                result.leagues.filter(
+                    ({ league, season }) =>
+                        league.rules.titleId === titleId && season?.status !== 'cancelled'
+                )
+            )
+        } catch {
+            if (current()) leaguesFailed = true
+        } finally {
+            if (current()) leaguesBusy = false
+        }
+    }
+
+    const failedText = $derived(
+        failed && leaguesFailed ? 'Tournaments and leagues' : failed ? 'Tournaments' : 'Leagues'
+    )
+
+    function retry() {
+        if (failed) void load()
+        if (leaguesFailed) void loadLeagues()
+    }
 
     async function load(after?: string) {
         const current = requests.begin()
@@ -40,41 +81,73 @@
 
     onMount(() => {
         void load()
+        void loadLeagues()
         const timer = setInterval(() => (now = Date.now()), 1000)
         const unsubscribe = listenForCompetitionChanges(notificationService, () => load(), {
             tournament: everyCompetition
         })
+        const unsubscribeLeagues = listenForCompetitionChanges(notificationService, loadLeagues, {
+            league: everyCompetition
+        })
         return () => {
             requests.cancel()
+            leagueRequests.cancel()
             clearInterval(timer)
             unsubscribe()
+            unsubscribeLeagues()
         }
     })
 </script>
 
 <TitleSection
-    title="Tournaments"
-    count={!busy && !failed && !cursor ? tournaments.length : undefined}
+    title="Tournaments and Leagues"
+    count={!busy && !failed && !cursor && !leaguesBusy && !leaguesFailed
+        ? tournaments.length + leagues.length
+        : undefined}
 >
     {#snippet action()}
-        <a class="browse" href={`/tournaments?titleId=${encodeURIComponent(titleId)}`}
-            >View all tournaments <ArrowRightOutline class="h-4 w-4" /></a
-        >
+        <div class="browse-links">
+            <a class="browse" href={`/tournaments?titleId=${encodeURIComponent(titleId)}`}
+                >All tournaments <ArrowRightOutline class="h-4 w-4" /></a
+            ><a class="browse" href="/leagues">All leagues <ArrowRightOutline class="h-4 w-4" /></a>
+        </div>
     {/snippet}
-    {#if busy && !tournaments.length}
-        <p class="empty" role="status">Loading tournaments…</p>
-    {:else if failed}
+    {#if (busy || leaguesBusy) && !tournaments.length && !leagues.length}
+        <p class="empty" role="status">Loading tournaments and leagues…</p>
+    {:else if failed || leaguesFailed}
         <p class="empty" role="alert">
-            Tournaments couldn’t load. <button onclick={() => load()}>Try again</button>
+            {failedText} couldn’t load. <button onclick={retry}>Try again</button>
         </p>
-    {:else if !tournaments.length}
-        <p class="empty">No tournaments to show for this game right now.</p>
+    {:else if !tournaments.length && !leagues.length}
+        <p class="empty">No tournaments or leagues to show for this game right now.</p>
     {/if}
-    <div class="tournaments">
-        {#each tournaments as tournament (tournament.id)}
-            <a class="tournament" href={`/tournaments/${tournament.id}`}>
+    <div class="competitions">
+        {#each leagues as entry (entry.league.id)}
+            {@const { league, season } = entry}
+            <a class="competition" href={`/leagues/${encodeURIComponent(league.id)}`}>
                 <div class="status-row">
-                    <span>{tournamentStatusText(tournament, now)}</span><span class="entrants"
+                    <span>{leagueListStatusText(entry, now)}</span>{#if season}<span class="roster"
+                            >{leagueRosterText(season)}</span
+                        >{/if}
+                </div>
+                <h3>{league.name}</h3>
+                {#if season?.myPlace}
+                    <p>{leagueMyPlaceText(season.myPlace)}</p>
+                {:else if leagueShowsSignUpDeadline(season)}
+                    <p>{leagueClosesInText(season.signUpClosesAt, now)}</p>
+                {/if}
+                <div class="details">
+                    <span
+                        >{leagueShapeText(league.shape)} league · {league.rules.tableSize} players per
+                        game · {league.rules.gamesPerEntrant} games each</span
+                    ><ArrowRightOutline class="h-5 w-5 shrink-0" />
+                </div>
+            </a>
+        {/each}
+        {#each tournaments as tournament (tournament.id)}
+            <a class="competition" href={`/tournaments/${tournament.id}`}>
+                <div class="status-row">
+                    <span>{tournamentStatusText(tournament, now)}</span><span class="roster"
                         >{tournamentRosterText(tournament)} joined</span
                     >
                 </div>
@@ -95,6 +168,11 @@
 </TitleSection>
 
 <style>
+    .browse-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 20px;
+    }
     .browse {
         display: inline-flex;
         align-items: center;
@@ -105,12 +183,12 @@
     .browse:hover {
         text-decoration: underline;
     }
-    .tournaments {
+    .competitions {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 16px;
     }
-    .tournament {
+    .competition {
         display: block;
         padding: 24px;
         background: var(--color-gray-800);
@@ -120,7 +198,7 @@
             border-color 200ms,
             background-color 200ms;
     }
-    .tournament:hover {
+    .competition:hover {
         border-color: var(--color-highlight-border);
         background: #293950;
     }
@@ -132,7 +210,7 @@
         font-size: 12px;
         color: var(--color-blue-300);
     }
-    .entrants {
+    .roster {
         color: var(--color-gray-400);
     }
     h3 {
@@ -179,7 +257,7 @@
         outline-offset: 4px;
     }
     @media (max-width: 700px) {
-        .tournaments {
+        .competitions {
             grid-template-columns: 1fr;
         }
     }

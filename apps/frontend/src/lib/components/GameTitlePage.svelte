@@ -14,7 +14,7 @@
         UsersOutline
     } from 'flowbite-svelte-icons'
     import TitleGames from '$lib/components/TitleGames.svelte'
-    import TitleTournaments from '$lib/components/TitleTournaments.svelte'
+    import TitleCompetitions from '$lib/components/TitleCompetitions.svelte'
     import BackLink from '$lib/components/BackLink.svelte'
     import { seriesUrl, titleMaturityLabel, titleSeries } from '$lib/utils/libraryTitles'
 
@@ -98,7 +98,7 @@
             titleId={title.info.id}
             oncreate={() => (creating = true)}
         />
-        <TitleTournaments titleId={title.info.id} />
+        <TitleCompetitions titleId={title.info.id} />
     </div>
 </main>
 
