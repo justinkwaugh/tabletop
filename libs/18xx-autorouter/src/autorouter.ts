@@ -11,7 +11,6 @@ import {
 } from '@tabletop/18xx'
 import { Compile } from 'typebox/compile'
 import { EncodedRoutes } from './encodedRoutes.js'
-import { solveFleet } from './fleetSolver.js'
 import { SolverError, SolverSolution, type SolverProblem } from './solverProtocol.js'
 
 export type AutoroutingOptions = { timeLimitMs?: number }
@@ -100,9 +99,12 @@ export class Autorouter {
             Number.isFinite(timeLimitMs) && timeLimitMs > 0,
             'Routing time limit must be positive'
         )
-        if (rules.fleet) return solveFleet(state, rules, companyId, timeLimitMs)
-        assert(!rules.routeAllowed, 'Only the fleet solver searches by route shape')
+        assert(!rules.routeAllowed, 'Native route shapes must be declared as policy')
         const requiredEnds = rules.requiredRouteEnds?.(state, companyId)
+        assert(
+            !(rules.fleet && requiredEnds),
+            'Fleet policy cannot combine with required-route enumeration'
+        )
         if (requiredEnds)
             return this.solveRequired(state, rules, companyId, requiredEnds, timeLimitMs)
         const started = performance.now()
@@ -129,7 +131,8 @@ export class Autorouter {
         const checked = evaluation.evaluate(companyId, encoded.decode(solution))
         assertExists(checked.result, checked.reason ?? 'Solver returned an invalid operation')
         assert(
-            checked.result.revenue === solution.revenue,
+            checked.result.revenue === solution.revenue &&
+                (checked.result.subsidy ?? 0) === solution.subsidy,
             'Solver and game disagree on route revenue'
         )
         return {

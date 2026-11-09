@@ -6,6 +6,8 @@ import {
     routePathResources,
     stopValue,
     RouteEvaluation,
+    fleetPaymentKey,
+    fleetRoot,
     type RevenueCenter,
     type RoutePath,
     type RouteRules,
@@ -125,6 +127,7 @@ export class EncodedRoutes {
         const nodes = this.centers.map(({ locationId, nodeId }) => {
             const node = network.face(locationId).nodes.find((node) => node.id === nodeId)
             assertExists(node, 'Route requires an existing node')
+            assert(node.kind !== 'junction', 'A route stop is a revenue center')
             return node
         })
         const groupIds = new Map<string, number>()
@@ -145,7 +148,7 @@ export class EncodedRoutes {
                 blocked:
                     node.kind === 'offboard' ||
                     cityIsBlocked(state, companyId, center.locationId, node),
-                endpoint: true,
+                endpoint: rules.fleet?.routeShape?.endKinds.includes(node.kind) ?? true,
                 allowed: rules.stopAllowed?.(state, companyId, center) ?? true,
                 groups: [
                     ...(group === undefined ? [] : [this.indexFor(groupIds, group)]),
@@ -173,6 +176,7 @@ export class EncodedRoutes {
                     : 1
             )
             const policy = rules.revenuePolicy?.(definition, state, companyId)
+            const fleet = rules.fleet?.trains?.[definition.id] ?? {}
             const { measure, maximum, extraTowns = 0 } = definition.distance
             assert(
                 !extraTowns || measure === 'revenue-centers',
@@ -181,7 +185,6 @@ export class EncodedRoutes {
             const values = nodes.map((node, index) => {
                 const center = this.centers[index]
                 assertExists(center, 'Revenue center requires a location')
-                if (node.kind === 'junction') throw new Error('A junction is not a revenue center')
                 return stopValue(state, rules, companyId, center, node, definition)
             })
             const bestStopBonuses = (
@@ -200,6 +203,25 @@ export class EncodedRoutes {
             }))
             return {
                 id: train.id,
+                allowed_stops: this.centers.map(
+                    (center) => rules.stopAllowed?.(state, companyId, center, definition) ?? true
+                ),
+                ...(rules.fleet
+                    ? {
+                          fleet: {
+                              paying: nodes.map(
+                                  (node) => fleet.payingKinds?.includes(node.kind) ?? true
+                              ),
+                              limited: nodes.map(
+                                  (node) =>
+                                      fleet.payingStopLimit?.kinds.includes(node.kind) ?? false
+                              ),
+                              paying_limit: fleet.payingStopLimit?.count ?? null,
+                              hex_subsidy: fleet.hexSubsidy ?? 0,
+                              freight: fleet.freight ?? null
+                          }
+                      }
+                    : {}),
                 distance:
                     maximum === 'unlimited'
                         ? visitCosts.reduce<number>((sum, cost) => sum + cost, 0) +
@@ -240,7 +262,7 @@ export class EncodedRoutes {
         this.junctionKeys = [...junctions.keys()]
         this.groupKeys = [...groupIds.keys()]
         this.problem = {
-            version: 6,
+            version: 7,
             stops,
             arcs,
             trains,
@@ -251,6 +273,40 @@ export class EncodedRoutes {
             longest_route_bonus_per_stop: rules.longestRouteBonusPerStop?.(state, companyId) ?? 0,
             budget_ms: budget.timeLimitMs,
             memory_budget_bytes: budget.memoryBudgetBytes
+        }
+        if (rules.fleet) {
+            const fleet = rules.fleet
+            const payments = new Map<string, number>()
+            const root = fleetRoot(state, companyId, fleet)
+            this.problem.fleet = {
+                shared_track: fleet.sharedTrack ?? false,
+                pay_once: fleet.payOnce !== undefined,
+                payment_groups: this.centers.map((center) =>
+                    this.indexFor(payments, fleetPaymentKey(fleet, center))
+                ),
+                connectivity: fleet.connectivity
+                    ? {
+                          root: root ? (centerIds.get(this.centerKey(root)) ?? null) : null,
+                          stops: nodes.map((node) => node.kind === fleet.connectivity?.at)
+                      }
+                    : null,
+                minimum_cities: fleet.routeShape?.minimumCities ?? 0,
+                coordinates: locations.map((location) => location.coordinates),
+                bonus_per_hex: fleet.freightChains?.bonusPerHex ?? 0,
+                end_rates: this.centers.map((center) =>
+                    Math.max(
+                        fleet.freightChains?.bonusPerHex ?? 0,
+                        ...(fleet.freightChains?.endRates ?? [])
+                            .filter((rate) =>
+                                rate.stops.some(
+                                    (stop) => this.centerKey(stop) === this.centerKey(center)
+                                )
+                            )
+                            .map((rate) => rate.bonusPerHex)
+                    )
+                ),
+                offboard_distance: fleet.freightChains?.offboardDistance === 'adjacent-hex'
+            }
         }
     }
 
@@ -337,6 +393,7 @@ export class EncodedRoutes {
         const hexes = new Set(arcIndices.map((index) => arcs[index].hex))
         return JSON.stringify({
             version: this.problem.version,
+            ...(this.problem.fleet ? { fleet: this.problem.fleet } : {}),
             required_ends: this.requiredEnds?.map((end) => this.centerKey(end)),
             stops: stopIndices.map((index) => {
                 const { groups, hex, ...flags } = stops[index]
@@ -364,6 +421,8 @@ export class EncodedRoutes {
                     distance: this.unlimitedTrainIds.has(train.id) ? 'unlimited' : train.distance,
                     counts_crossings: train.counts_crossings,
                     requires_city: train.requires_city,
+                    allowed_stops: perStop(train.allowed_stops.map(Number)),
+                    ...(train.fleet ? { fleet: train.fleet } : {}),
                     major_limit: train.major_limit,
                     paying_stop_limit: train.paying_stop_limit,
                     require_paying_token: train.require_paying_token,

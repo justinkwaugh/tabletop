@@ -35,6 +35,25 @@ export type SolverTrain = {
     major_limit: number | null
     connection_bonuses: { from: (number | null)[]; to: (number | null)[]; ends_only: boolean }[]
     interconnections: { from: number[]; to: number[]; amount: number }[]
+    allowed_stops: boolean[]
+    fleet?: {
+        paying: boolean[]
+        limited: boolean[]
+        paying_limit: number | null
+        hex_subsidy: number
+        freight: 'required' | 'optional' | null
+    }
+}
+export type SolverFleet = {
+    shared_track: boolean
+    pay_once: boolean
+    payment_groups: number[]
+    connectivity: { root: number | null; stops: boolean[] } | null
+    minimum_cities: number
+    coordinates: { q: number; r: number }[]
+    bonus_per_hex: number
+    end_rates: number[]
+    offboard_distance: boolean
 }
 export type SolverProblem = {
     version: number
@@ -48,11 +67,13 @@ export type SolverProblem = {
     longest_route_bonus_per_stop: number
     budget_ms: number
     memory_budget_bytes: number
+    fleet?: SolverFleet
 }
 const Index = Type.Integer({ minimum: 0 })
 const Time = Type.Number({ minimum: 0 })
 export const SolverSolution = Type.Object({
     revenue: Index,
+    subsidy: Index,
     routes: Type.Array(
         Type.Object({
             train: Index,

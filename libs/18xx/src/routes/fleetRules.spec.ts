@@ -89,30 +89,10 @@ function position(rules: Partial<RouteRules> = {}) {
     return { state, rules: routeRules, first, second }
 }
 
-// Each stop pays once, to the first route reaching it; every town visited earns a subsidy.
 const payOnce: FleetRules = {
     sharedTrack: true,
-    settle(_state, _companyId, routes) {
-        const paid = new Set<string>()
-        let subsidy = 0
-        return {
-            routes: routes.map(({ result, visits }) => {
-                const payments = result.payments.filter((payment) => {
-                    const key = `${payment.locationId} ${payment.nodeId}`
-                    if (paid.has(key)) return false
-                    paid.add(key)
-                    return true
-                })
-                subsidy += visits.filter((visit) => visit.node.kind === 'town').length * 5
-                return {
-                    ...result,
-                    payments,
-                    revenue: payments.reduce((sum, payment) => sum + payment.amount, 0)
-                }
-            }),
-            subsidy
-        }
-    }
+    payOnce: {},
+    trains: { '3': { hexSubsidy: 5 } }
 }
 
 it('lets a fleet’s trains share track only where its rules allow, settling them together', () => {
@@ -137,61 +117,44 @@ it('lets a fleet’s trains share track only where its rules allow, settling the
     ]).result
     expect(result?.routes.map((route) => route.revenue)).toEqual([60, 0])
     expect(result?.revenue).toBe(60)
-    expect(result?.subsidy).toBe(10)
+    expect(result?.subsidy).toBe(15)
     expect(result?.routes[1].payments).toEqual([])
 })
 
-it('rejects a fleet its title rejects and refuses a settlement that misstates revenue', () => {
-    const rejected = position({ fleet: { settle: () => ({ reason: 'The runs must meet.' }) } })
-    expect(
-        new RouteEvaluation(rejected.state, rejected.rules).evaluate('A', [rejected.first]).reason
-    ).toBe('The runs must meet.')
-    expect(new RouteEvaluation(rejected.state, rejected.rules).evaluate('A', []).result).toEqual({
+it('requires the home and connected runs only when declared', () => {
+    const { state, rules, first } = position({
+        fleet: { connectivity: { at: 'city', root: 'home' } }
+    })
+    state.stations.push({
+        id: 'A:home',
         companyId: 'A',
-        routes: [],
-        revenue: 0
+        status: 'placed',
+        position: { locationId: 'missing', nodeId: 'city', slot: 0 }
     })
-    const misstated = position({
-        fleet: {
-            settle: (_state, _companyId, routes) => ({
-                routes: routes.map(({ result }) => ({ ...result, revenue: result.revenue + 1 }))
-            })
-        }
-    })
-    expect(() =>
-        new RouteEvaluation(misstated.state, misstated.rules).evaluate('A', [misstated.first])
-    ).toThrow('payments and bonuses')
+    expect(new RouteEvaluation(state, rules).evaluate('A', [first]).reason).toContain('home')
+    expect(new RouteEvaluation(state, rules).evaluate('A', []).result?.revenue).toBe(0)
 })
 
-it('gives settlement each route’s stops, train and hexes in order', () => {
-    let seen: unknown
+it('declares paying kinds and separate payment allowances', () => {
     const { state, rules, first } = position({
         fleet: {
-            settle(_state, _companyId, routes) {
-                seen = routes.map(({ train, visits, locationIds }) => ({
-                    train: train.id,
-                    kinds: visits.map((visit) => visit.node.kind),
-                    locationIds
-                }))
-                return { routes: routes.map(({ result }) => result) }
+            trains: {
+                '3': {
+                    payingStopLimit: { count: 1, kinds: ['city'] }
+                }
             }
         }
     })
-    new RouteEvaluation(state, rules).evaluate('A', [first])
-    expect(seen).toEqual([
-        { train: '3', kinds: ['city', 'town', 'city'], locationIds: ['0', '1', '2'] }
+    const result = new RouteEvaluation(state, rules).evaluate('A', [first]).result
+    expect(result?.revenue).toBe(40)
+    expect(result?.routes[0].payments.map((payment) => payment.locationId).sort()).toEqual([
+        '1',
+        '2'
     ])
 })
 
 it('omits a subsidy of nothing and keeps fleets apart from the longest route’s bonus', () => {
-    const { state, rules, first } = position({
-        fleet: {
-            settle: (_state, _companyId, routes) => ({
-                routes: routes.map((r) => r.result),
-                subsidy: 0
-            })
-        }
-    })
+    const { state, rules, first } = position({ fleet: {} })
     expect(new RouteEvaluation(state, rules).evaluate('A', [first]).result).not.toHaveProperty(
         'subsidy'
     )
@@ -202,14 +165,13 @@ it('omits a subsidy of nothing and keeps fleets apart from the longest route’s
 
 it('checks a complete route’s shape and asks about each stop with the running train', () => {
     const shaped = position({
-        routeAllowed: (_state, _companyId, _train, visits) =>
-            visits.at(-1)?.node.kind === 'town' ? 'A route may not end at a town.' : undefined
+        fleet: { routeShape: { endKinds: ['city', 'offboard'] } }
     })
     const running = new RouteEvaluation(shaped.state, shaped.rules)
     expect(running.evaluate('A', [shaped.first]).result?.revenue).toBe(60)
     expect(
         running.evaluate('A', [{ ...shaped.first, paths: fullRoutePaths.slice(0, 2) }]).reason
-    ).toBe('A route may not end at a town.')
+    ).toContain('large station')
     expect(
         running.evaluateRoute('A', { ...shaped.first, paths: fullRoutePaths.slice(0, 2) }, false)
             .result
@@ -234,7 +196,7 @@ it('pays a run’s subsidy from the bank to the treasury, and nothing without on
     applyTrainRun(state, result)
     expect(state.routeStep?.result).toEqual(result)
     expect(state.companies[0].lastRunRevenue).toBe(60)
-    expect(state.cash.map((cash) => cash.amount)).toEqual([990, 60])
+    expect(state.cash.map((cash) => cash.amount)).toEqual([985, 65])
     const ordinary = position()
     const run = new RouteEvaluation(ordinary.state, ordinary.rules).evaluate('A', [
         ordinary.first

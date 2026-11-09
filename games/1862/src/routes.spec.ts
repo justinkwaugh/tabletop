@@ -1,19 +1,27 @@
 import {
     RouteEvaluation,
+    freightHexes,
     getCompany,
     placeStockMarker,
     rotateTileFace,
     type TileEdge,
     type TileRotation
 } from '@tabletop/18xx'
-import { solveFleet } from '@tabletop/18xx-autorouter'
+import { readFile } from 'node:fs/promises'
+import { Autorouter } from '@tabletop/18xx-autorouter'
 import { describe, expect, it } from 'vitest'
 import { giveTrain, kit, table, type Table } from '../test/kit.js'
 import { Map1862 } from './map.js'
-import { RouteRules1862, crowHexes } from './routeRules.js'
+import { RouteRules1862 } from './routeRules.js'
 import type { State1862 } from './state.js'
 import { marketSpaceIdAt } from './stockMarket.js'
 import { TileSet1862 } from './tiles.js'
+
+const autorouter = await Autorouter.create(
+    new Uint8Array(
+        await readFile(new URL('../../../libs/18xx-autorouter/esm/solver.wasm', import.meta.url))
+    ).buffer
+)
 
 /** A seed that deals the ENR into play from the start. */
 function withEnr(): Table {
@@ -32,7 +40,8 @@ function lay(
 ) {
     const tile = TileSet1862.definitions.find((entry) => entry.id === definitionId)
     if (!tile) throw new Error(`Unknown tile ${definitionId}`)
-    const rotation = ([0, 1, 2, 3, 4, 5] as TileRotation[]).find((candidate) => {
+    const rotations: TileRotation[] = [0, 1, 2, 3, 4, 5]
+    const rotation = rotations.find((candidate) => {
         const exits = rotateTileFace(tile.face, candidate).paths.flatMap((path) =>
             path.endpoints.flatMap((end) => (end.kind === 'edge' ? [end.edge] : []))
         )
@@ -97,16 +106,32 @@ function run(game: Table, routes: Parameters<RouteEvaluation['evaluate']>[1]) {
 describe('1862 routes, as the rules’ ENR example scores them', () => {
     it('measures a freight run’s crow-flies hexes from the hex beside an off-board end', () => {
         expect(
-            crowHexes({ locationId: 'F3', offboard: true }, { locationId: 'F3', offboard: false })
+            freightHexes(
+                Map1862,
+                { locationId: 'F3', offboard: true },
+                { locationId: 'F3', offboard: false }
+            )
         ).toBe(0)
         expect(
-            crowHexes({ locationId: 'F3', offboard: true }, { locationId: 'F5', offboard: false })
+            freightHexes(
+                Map1862,
+                { locationId: 'F3', offboard: true },
+                { locationId: 'F5', offboard: false }
+            )
         ).toBe(1)
         expect(
-            crowHexes({ locationId: 'F5', offboard: false }, { locationId: 'E2', offboard: false })
+            freightHexes(
+                Map1862,
+                { locationId: 'F5', offboard: false },
+                { locationId: 'E2', offboard: false }
+            )
         ).toBe(1)
         expect(
-            crowHexes({ locationId: 'F5', offboard: false }, { locationId: 'E2', offboard: true })
+            freightHexes(
+                Map1862,
+                { locationId: 'F5', offboard: false },
+                { locationId: 'E2', offboard: true }
+            )
         ).toBe(2)
     })
 
@@ -162,9 +187,25 @@ describe('1862 routes, as the rules’ ENR example scores them', () => {
 
     it('finds the best fleet for the autorouter', () => {
         const { game } = cromer(['AE', 'BE'])
-        const solved = solveFleet(game.hydrated, RouteRules1862, 'ENR', 5000)
+        const solved = autorouter.solve(game.hydrated, RouteRules1862, 'ENR', { timeLimitMs: 5000 })
         expect(solved.result.revenue).toBe(170)
         expect(solved.exhaustive).toBe(true)
+    })
+
+    it.each([
+        { trains: ['AF'], revenue: 100, subsidy: 0 },
+        { trains: ['BF'], revenue: 150, subsidy: 0 },
+        { trains: ['AE', 'BE'], revenue: 170, subsidy: 0 },
+        { trains: ['BL'], revenue: 90, subsidy: 40 },
+        { trains: ['BF', 'AL'], revenue: 170, subsidy: 20 },
+        { trains: ['AF', 'AF'], revenue: 150, subsidy: 0 }
+    ])('solves the rulebook $trains example natively', ({ trains, revenue, subsidy }) => {
+        const { game } = cromer(trains)
+        const solved = autorouter.solve(game.hydrated, RouteRules1862, 'ENR')
+        expect(solved.result.revenue).toBe(revenue)
+        expect(solved.result.subsidy ?? 0).toBe(subsidy)
+        expect(solved.exhaustive).toBe(true)
+        expect(solved.metrics.memoryBytes).toBeGreaterThan(0)
     })
 
     it('keeps the map’s north ports apart', () => {

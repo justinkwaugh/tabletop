@@ -109,17 +109,17 @@ Surveyed against the family library and the research catalogue (`18xx-game-varia
 §"1860/1862 and gauge games", `data/title-traits.json`). 1862 is the first consumer of each
 addition below; every addition is optional and leaves released titles' behaviour unchanged.
 
-| Mechanism                                                                                                 | Family addition                                                                                                                                                                                                                                                                                    | Other consumers considered                                                                            |
-| --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Small stations on plain track, carried through upgrades (§7.6.2–7.6.4)                                    | `tiles/trackStops.ts`: `TilePlacement.trackStops`, `withTrackStops` decorating the placed face in `RailwayMapState`, `TrackRules.carriesTrackStops` carrying a lone town on a line onto the replacing tile's plain line                                                                            | 1860 halts; the research's hidden tile variants were rejected as a representation                     |
-| Trains sharing track, stops paid once, a connected fleet, chained freight, the Local subsidy (§7.4, §7.8) | `routes/fleetRules.ts`: `RouteRules.fleet` (`sharedTrack`, `settle`, `bound`, `routeKey`), `routeAllowed`, `stopAllowed` given the train, `OperatingResult.subsidy` paid by `RunTrains`; a TypeScript fleet solver in `18xx-autorouter` (`solveFleet`) used by `Autorouter.solve` for fleet titles | 1860 fleet connectivity, 1825 double-headers; the Rust core's set packing cannot express shared track |
-| Limits per kind of train (§7.9)                                                                           | `TrainRules.limitReason`, judged for depot and intercompany purchases                                                                                                                                                                                                                              | per-type limits in 18VA-style mixed fleets                                                            |
-| Director's certificate sold into the pool, receivership (§6.3, §8)                                        | `StockRules.presidencyLapses`; a sale's `lapse` part-exchanges with pool shares                                                                                                                                                                                                                    | 1830-family receiverships through bankruptcy only                                                     |
-| George Hudson manoeuvre (§7.8.6)                                                                          | `EarningsChoice` `top-up` and `EarningsRules.treasuryTopUp`                                                                                                                                                                                                                                        | none known                                                                                            |
-| Game ending after the current operating round (§10.1)                                                     | `GameEnding.finalOperatingRound`, preferred over a set-end ending in the same set                                                                                                                                                                                                                  | 1817-style ends at a set's end                                                                        |
-| Eight players (§2.4)                                                                                      | an eighth player colour, Brown                                                                                                                                                                                                                                                                     | 1862 only                                                                                             |
-| A company reset to an unstarted charter (§4.3, §7.12)                                                     | `resetCompany` takes `CompanyResetTerms`: every certificate back to a bank pool, and whether the home station stays                                                                                                                                                                                | 1817's merged and acquired companies (the defaults)                                                   |
-| A further choice at a chosen hex, such as the line a small station takes (§7.6.4)                         | UI: `MapLocationChoice.followUp`, offered beside the hex by `LocationFollowUpPicker`, which shares `followHex` with the tile picker                                                                                                                                                                | any title choosing among a hex's lines, cities or tokens                                              |
+| Mechanism                                                                                                 | Family addition                                                                                                                                                                                                                                                       | Other consumers considered                                                                                   |
+| --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Small stations on plain track, carried through upgrades (§7.6.2–7.6.4)                                    | `tiles/trackStops.ts`: `TilePlacement.trackStops`, `withTrackStops` decorating the placed face in `RailwayMapState`, `TrackRules.carriesTrackStops` carrying a lone town on a line onto the replacing tile's plain line                                               | 1860 halts; the research's hidden tile variants were rejected as a representation                            |
+| Trains sharing track, stops paid once, a connected fleet, chained freight, the Local subsidy (§7.4, §7.8) | `routes/fleetRules.ts`: optional shared track, payment groups, home connectivity, run shape, train payment/subsidy policies and freight chain geometry; family settlement and the Rust autorouter consume the same policy; train access is precomputed by the encoder | 1860 connectivity, 18GB joint revenue, 1877 Stockholm shared payments, 1825 double-headers (not implemented) |
+| Limits per kind of train (§7.9)                                                                           | `TrainRules.limitReason`, judged for depot and intercompany purchases                                                                                                                                                                                                 | per-type limits in 18VA-style mixed fleets                                                                   |
+| Director's certificate sold into the pool, receivership (§6.3, §8)                                        | `StockRules.presidencyLapses`; a sale's `lapse` part-exchanges with pool shares                                                                                                                                                                                       | 1830-family receiverships through bankruptcy only                                                            |
+| George Hudson manoeuvre (§7.8.6)                                                                          | `EarningsChoice` `top-up` and `EarningsRules.treasuryTopUp`                                                                                                                                                                                                           | none known                                                                                                   |
+| Game ending after the current operating round (§10.1)                                                     | `GameEnding.finalOperatingRound`, preferred over a set-end ending in the same set                                                                                                                                                                                     | 1817-style ends at a set's end                                                                               |
+| Eight players (§2.4)                                                                                      | an eighth player colour, Brown                                                                                                                                                                                                                                        | 1862 only                                                                                                    |
+| A company reset to an unstarted charter (§4.3, §7.12)                                                     | `resetCompany` takes `CompanyResetTerms`: every certificate back to a bank pool, and whether the home station stays                                                                                                                                                   | 1817's merged and acquired companies (the defaults)                                                          |
+| A further choice at a chosen hex, such as the line a small station takes (§7.6.4)                         | UI: `MapLocationChoice.followUp`, offered beside the hex by `LocationFollowUpPicker`, which shares `followHex` with the tile picker                                                                                                                                   | any title choosing among a hex's lines, cities or tokens                                                     |
 
 Title-owned, as no other surveyed title shares them closely enough: the Parliament Round and
 obligations; chartered and non-chartered capitalization by company; permits; warranties; the 2:1
@@ -163,7 +163,7 @@ To confirm with the owner:
 
 - **Routes:** `routes.spec.ts` reproduces the rulebook's "Calculating Train Routes" ENR examples
   (1F, 2F from a port, 2E with 2/3E skipping an already paid stop, 2/3L with its £40 subsidy,
-  2F with 2L), and the fleet solver finds the best of them.
+  2F with 2L and chained 1F trains). Six native WASM examples agree exactly with canonical revenue and subsidies.
 - **Mergers:** `mergers.spec.ts` reproduces §5.2.6 Example #1 (N&E and WStI at £134) and §5.2.7
   Example #2 (train-less N&E and I&B at £86): final holdings, prices and option payments.
 - **Openings and operations:** Parliament, charters, obligations and fines, non-chartered starts,
@@ -176,11 +176,100 @@ To confirm with the owner:
   schema, so every 18xx title (1817, 1830, 1832, 1833NE, 1846, 1850, 1870, 1894, Shikoku 1889,
   The Old Prince) needs a logic major at its next release.
 
+## Native autorouter verification
+
+The native migration uses the declared family policy described in
+[the autorouter design](autorouter-design.md#declared-fleet-settlement-and-native-search).
+1862 no longer owns settlement algorithms or search bounds. Both bot and UI
+worker use `Autorouter`; WASM imports only the deadline clock. Canonical family
+settlement checks the returned routes and exact revenue and subsidy.
+
+The old freight code selected the first permanent train as the required chain's
+anchor. Settlement now considers every eligible anchor, as part of choosing the
+highest-paying legal grouping. Chains reject branching and any endpoint cycle,
+including a loop internal to a purported longer chain. Required freight alone
+must form one chain before a permanent run can extend it.
+
+Measurements below use the saved WStI position (five BL, one BF, two AL, two AF),
+now in `test/fixtures/wsti-10-trains.json`. Timing is wall time on the development
+container, not a performance guarantee. The solve budget applies to native
+search; encoding and canonical validation are additional work.
+
+| Native search budget | Previous TypeScript revenue | Native revenue | Native treasury subsidy | Native wall time | Exhaustive |
+| -------------------- | --------------------------: | -------------: | ----------------------: | ---------------: | ---------- |
+| 25 ms                |                           — |           £700 |                    £170 |            40 ms | No         |
+| 150 ms               |                          £0 |           £700 |                    £170 |           165 ms | No         |
+| 2 s                  |                          £0 |           £700 |                    £170 |          2.008 s | No         |
+| 20 s                 |                          £0 |           £700 |                    £170 |         20.005 s | No         |
+
+The 25 ms solve establishes a positive returned operation inside 150 ms including
+encoding and validation; the 150 ms _search_ budget itself is not a 150 ms wall-time
+promise. The best £870 company income is not proved optimal at 20 s. Candidate
+counts per profile (BL/BF/AL/AF) fell from 71/45/19/12 to 45/38/14/12 through native
+path enumeration and settlement-equivalent deduplication.
+
+Two six-train reductions of the same position completed exact native proofs:
+
+| Fleet                 | Revenue | Subsidy | Native exhaustive wall time | Previous solver               |
+| --------------------- | ------: | ------: | --------------------------: | ----------------------------- |
+| 5 BL + BF             |    £610 |    £170 |                     36.35 s | Still non-exhaustive at 120 s |
+| 2 BL + BF + AL + 2 AF |    £460 |     £90 |                     11.94 s | Still non-exhaustive at 120 s |
+
+These replace the earlier unqualified “about 23 s” observation with named,
+reproducible positions. They were measured while the sweep was running; timings
+vary with load. The repeated-path regression requires two identical N/M trains
+to use the same physical route to collect different stop payments.
+
+The bot sweep now audits every zero-revenue operation with an independent DFS
+through `RouteNetwork`, using canonical validation to find a positive legal
+single-route witness. This check is independent of the solver under test. Logs
+are written to `/tmp/1862-sweep.log` and archived with measurements under
+`/workspace/tmp/1862-autorouter/`.
+
+The same 28 seeded games completed before and after:
+
+| Sweep                      | Operations | Zero-revenue operations | Zero runs with a positive legal witness |
+| -------------------------- | ---------: | ----------------------: | --------------------------------------: |
+| Previous TypeScript solver |      1,818 |                     189 |                                      93 |
+| Native solver              |      1,804 |                      92 |                                       0 |
+
+The final `SWEEP=1 pnpm exec vitest run src/sweep.spec.ts` passed in 812.33 s.
+The original audit failed on the 93 false zero runs. Game trajectories differ
+because the bot now collects revenue it previously missed. A complete earlier
+native sweep also passed with the same totals.
+
+Verification for this migration:
+
+| Package                |                                        Passing tests |
+| ---------------------- | ---------------------------------------------------: |
+| `libs/18xx`            |                                                  313 |
+| `libs/18xx-autorouter` |                                                   38 |
+| Autorouter Rust core   |                          55 (8 unit, 47 correctness) |
+| `games/1862`           | 58, with 2 opt-in tests skipped in the default suite |
+| `games/1817`           |                                                  202 |
+| `games/1830`           |                                                  184 |
+| `games/1832`           |                                                  350 |
+| `games/1833ne`         |                                                   70 |
+| `games/1846`           |                                                  383 |
+| `games/1850`           |                                                  141 |
+| `games/1870`           |                                                  198 |
+| `games/1894`           |                                                   69 |
+| `games/shikoku-1889`   |                                                  121 |
+| `games/the-old-prince` |                                                  111 |
+
+`pnpm lint` and `npx tsgo --noEmit -p .` passed in all three changed packages
+(`18xx`, `18xx-autorouter`, `1862`). The family and autorouter libraries were
+rebuilt before game tests. The 1862 UI build and bundle passed; executing the
+emitted module worker against its emitted WASM returned £700 plus £170 subsidy
+for WStI. A 1,434-position ordinary-title corpus completed exhaustively with
+identical routes and revenue before and after the native migration.
+
 ## Open items
 
-- **Exhaustive fleet solving:** a six-train fleet takes about 23 s to prove exhaustively, so
-  standing run instructions may stop as unsolved late in a game; timed solves (projected runs,
-  the run panel) return the best found.
+- **Exhaustive fleet solving:** native connected search fixes the zero-incumbent failure,
+  but large fleets can still time out before proving optimality. Standing run instructions
+  must continue to honor `exhaustive`; timed projected runs and the run panel return the
+  best validated operation. See the measured six-train proofs above.
 - **18xx playground:** not registered; it needs a `@tabletop/1862/scenarios` module of prepared
   positions.
 - **Merged station choice:** stations beyond the limit after a merger are removed automatically

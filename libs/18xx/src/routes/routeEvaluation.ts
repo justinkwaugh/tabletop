@@ -23,6 +23,7 @@ import type { TileNode } from '../tiles/tile.js'
 import type { TrainDepot } from '../trains/trainDepot.js'
 import { RouteNetwork, type RouteTrace, type RouteVisit } from './routeNetwork.js'
 import type { FleetRoute, FleetRules } from './fleetRules.js'
+import { fleetRouteReason, settleFleetRoutes } from './fleetSettlement.js'
 import { assert, assertExists } from '@tabletop/common'
 import type {
     OperatingResult,
@@ -289,6 +290,8 @@ export class RouteEvaluation {
                 )
             )
                 return { reason: 'The route must include a station of this company.' }
+            const fleetReason = this.rules.fleet && fleetRouteReason(this.rules.fleet, trace.visits)
+            if (fleetReason) return { reason: fleetReason }
             const shapeReason = this.rules.routeAllowed?.(
                 this.state,
                 companyId,
@@ -415,7 +418,7 @@ export class RouteEvaluation {
         const fleet = this.rules.fleet
         assertExists(fleet, 'Only a fleet’s routes settle together')
         if (!routes.length) return { result: { companyId, routes: [], revenue: 0 } }
-        const settled = fleet.settle(this.state, companyId, routes)
+        const settled = settleFleetRoutes(this.state, this.rules, companyId, routes)
         if (settled.reason !== undefined) return { reason: settled.reason }
         const subsidy = settled.subsidy ?? 0
         assert(

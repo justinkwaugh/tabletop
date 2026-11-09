@@ -6,9 +6,11 @@ import {
     evaluateShareSale,
     finiteCashOwnedBy,
     trainsOwnedBy,
-    type Owner
+    type Owner,
+    type OperatingResult
 } from '@tabletop/18xx'
-import { solveFleet } from '@tabletop/18xx-autorouter'
+import { readFile } from 'node:fs/promises'
+import { Autorouter } from '@tabletop/18xx-autorouter'
 import {
     canBid,
     canOpen,
@@ -30,6 +32,12 @@ import { canRefinance, mustRaiseCash, redeemableShare, treasurySale } from '../s
 import { trainFace } from '../src/trains.js'
 import { CompanyRules1862 } from '../src/companyRules.js'
 import type { Table } from './kit.js'
+
+const autorouter = await Autorouter.create(
+    new Uint8Array(
+        await readFile(new URL('../../../libs/18xx-autorouter/esm/solver.wasm', import.meta.url))
+    ).buffer
+)
 
 type Move = { type: string; fields: object; playerId: string }
 
@@ -237,7 +245,9 @@ export function botMove(game: Table, random: Prng): Move {
         }
         case 'RunningTrains': {
             const companyId = state.routeStep?.companyId ?? ''
-            const { result } = solveFleet(state, RouteRules1862, companyId, 150)
+            const { result } = autorouter.solve(state, RouteRules1862, companyId, {
+                timeLimitMs: 150
+            })
             return move('RunTrains', {
                 companyId,
                 routes: result.routes.map(({ trainId, start, paths }) => ({
@@ -315,7 +325,12 @@ export function botMove(game: Table, random: Prng): Move {
 }
 
 /** Plays the table to its end, or to the action limit, returning the moves made. */
-export function playOut(game: Table, seed: number, limit = 4000): number {
+export function playOut(
+    game: Table,
+    seed: number,
+    limit = 4000,
+    inspectRun?: (state: HydratedState1862, result: OperatingResult) => void
+): number {
     const random = new Random(seed)
     let count = 0
     while (game.state.machineState !== 'GameOver' && count < limit) {
@@ -331,8 +346,11 @@ export function playOut(game: Table, seed: number, limit = 4000): number {
                 })}`
             )
         const next = botMove(game, random)
+        const beforeRun = next.type === 'RunTrains' && inspectRun ? game.hydrated : undefined
         try {
             game.act(next.type, next.fields, next.playerId)
+            const result = game.state.routeStep?.result
+            if (beforeRun && result) inspectRun?.(beforeRun, result)
         } catch (error) {
             throw new Error(
                 `Move ${count} ${next.type} ${JSON.stringify(next.fields)} by ${next.playerId} in ${game.state.machineState} failed: ${String(error)}`,

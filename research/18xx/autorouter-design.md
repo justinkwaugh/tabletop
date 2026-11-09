@@ -1,12 +1,18 @@
 # Shared client autorouter
 
+The current private wire protocol is **version 7**. All route search and fleet
+selection for 1862 run in Rust. TypeScript encodes declared policy and validates
+the returned operation, including exact revenue and subsidy agreement. The
+sections below retain the development history; the final section describes the
+current connected-fleet policy and algorithm.
+
 ## Compact candidate storage
 
 Candidate storage preserves the full route-trait survey below: counted visits,
 paid stops, route orientation, extension track, and the fleet's longest-route
 bonus remain distinct. This changes representation and partner lookup within the
-existing encoding; it adds no title policy or support for the fleet connectivity
-and track-sharing counterexamples in the survey. TOP, 1889, 1846, and 1817 still
+existing encoding; fleet connectivity and track sharing use the separate native
+selector described below. TOP, 1889, 1846, and 1817 still
 supply their existing rules.
 
 Each candidate records scoring metadata, a resource fingerprint, and an arena
@@ -153,8 +159,8 @@ uses this for Mail Contract ownership. Fleet selection pays it once, not per tra
 This follows the full-catalog visit/payment and fleet survey above. Express payment
 limits are distinct from train distance (1846, 1825, 1858), and 1846's longest-route
 bonus is distinct from 1862 service groups, 1860 fleet connectivity and shared-stop
-payment. Those latter mechanisms are not claimed as supported. Titles without
-these features supply no revenue policy or longest-route bonus.
+payment. Those mechanisms now have their own declared fleet policy, described
+below. Titles without these features supply no revenue policy or longest-route bonus.
 
 Rust remains the only route search and fleet optimizer. No TypeScript callbacks execute during native search. Train profiles include payment/connection policy
 when sharing candidates. Single-train selection considers the longest-route bonus;
@@ -162,7 +168,7 @@ resource dominance retains different visit counts when that bonus is active.
 Fleet upper bounds include the longest remaining candidate, so pruning cannot
 discard a lower-base-revenue route that wins through its fleet bonus. Final routes
 are checked by the canonical evaluator, including exact total revenue agreement.
-The private wire protocol is version 4; workers and WASM are rebuilt together.
+This extension introduced wire version 4; workers and WASM are rebuilt together.
 
 Verification covers the recorded Erie OR 6.2 position ($850), canonical replay of
 the full 1846 game, paid-station selection, paid-only connection bonuses, identical
@@ -172,7 +178,8 @@ connection bonuses and fleet bonuses, in addition to their ordinary profiles.
 
 ## Exact fleet selection
 
-The encoded fleet problem is partitioned maximum-weight set packing: each route
+For ordinary exclusive-track titles, the encoded fleet problem is partitioned
+maximum-weight set packing: each route
 consumes track resources and one train slot. Equivalently, legal fleets are
 cliques in a graph joining disjoint routes of different trains. Exact
 branch-and-bound with bitset intersections and weighted independent-set bounds
@@ -239,8 +246,8 @@ paid-stop and longest-route policies remain distinct. Profiles include whether
 connection bonuses apply along the route or only at paid stops. Interconnection
 extensions use the same encoded alternatives and consume their track during
 partner selection. No additional family rules or wire fields are introduced;
-the private protocol remains version 6. The existing limits for connected service
-sets, shared track and shared-stop payment still apply.
+this optimization used wire version 6. Declared fleet policies use the separate
+selector below; ordinary two-train streaming remains unchanged.
 
 Each streamed route is paired with the best compatible stored route or runs
 alone. With no fleet bonus, the first compatible partner in revenue order is
@@ -262,7 +269,7 @@ a compatible partner, deterministic interruption during partner selection, the
 
 The family route model added three mechanisms that the encoder and native core
 now carry, so final `RouteEvaluation` agrees with the solver's revenue. The
-private wire protocol is version 5; workers and WASM are rebuilt together.
+extension introduced wire version 5; workers and WASM are rebuilt together.
 
 An N+s train (`TrainDistance.extraTowns`) keeps its single visit budget at N+s
 and gains a second budget, `major_limit`, of N stops that are not towns. Stops
@@ -303,50 +310,134 @@ through a blocked city, and two-train fleets where the best extension hangs off 
 route's start and must stay clear of another train's track. The native suite adds
 the second budget and end-only destinations to the 200-graph permutation oracle.
 
-## Fleet settlement and the fleet solver
+## Declared fleet settlement and native search
 
-The family survey above already lists the counterexamples to independent routes: 1862 trains
-share track, pay each stop once per company, chain non-permanent freight end to end, must meet
-the home run at large stations, and pay Local subsidies to the treasury (rulebook §7.4, §7.8);
-1860 requires fleet connectivity; 18GB pays joint revenue; 1825 double-headers combine trains.
-1862 is the first consumer; the others challenged the interface but are not built.
+The family survey identifies several distinct mechanisms: 1862 shares track,
+pays each stop once per company, chains freight, connects runs through large
+stations to a home run, and subsidizes Local coverage (§7.4, §7.8); 1860 requires
+fleet connectivity; 18GB has joint revenue; 1877 Stockholm shares stop payments;
+1825 double-headers combine trains. These examples informed optional traits,
+not title-name branches. 1862 is the first consumer. The other titles are not
+implemented, and combining trains into a double-header still needs its own
+explicit model.
 
-`RouteRules` gains three optional members, absent for every released title:
+### One policy definition
 
-- `stopAllowed(state, companyId, center, train?)` sees the running train where one runs.
-  Without a train, as in reach checks and the native encoder, it answers for any train.
-- `routeAllowed(state, companyId, train, visits)` rejects a complete route's shape.
-- `fleet: FleetRules` with `sharedTrack`, `settle`, optional `routeKey` and optional `bound`.
-  Evaluation checks each route alone (a train never reuses its own track), skips the
-  cross-train track check when `sharedTrack`, then `settle` rewrites the routes' payments,
-  bonuses and revenue and may add a `subsidy`, or rejects the fleet. Fleets and the
-  longest-route bonus are exclusive. `OperatingResult.subsidy` is optional and present only
-  when positive; `RunTrains` pays it from the bank to the treasury, recorded in its metadata.
-  Revenue stays the sum of route revenues, so earnings, instructions and `lastRunRevenue`
-  are unchanged.
+`RouteRules.fleet` is data (`routes/fleetRules.ts`), consumed by the canonical
+family settlement and by the autorouter encoder:
 
-The Rust core encodes none of this, so `Autorouter.solve` runs a TypeScript search for fleet
-titles with the same result contract and final `RouteEvaluation` check. Each kind of train
-lists its routes by walking out of each company station twice (`RouteNetwork.walk`), once per
-half of a route through it, keeping one route per settlement key: stops in order either way
-round and the hexes entered by default, or the title's `routeKey`, plus track where trains may
-not share it. The shortest route per key is kept. Choosing one route or none for each train is
-maximum coverage under a partition constraint (NP-hard). The search is branch and bound over
-trains ordered by best bound, candidates by bound, with identical trains taking increasing
-candidates. A title's `bound(route, chosen)` is a marginal upper bound that never grows as
-`chosen` grows (submodular-style), so a branch's bound is what it has gathered plus each
-remaining train's best marginal bound. Standalone bounds barely prune pay-once fleets: on
-generated maps marginal bounds visited 100 to 1,000 times fewer nodes. Without `bound`, a route's standalone
-settlement bounds it, and a route that cannot run alone is unbounded.
+| Trait                                  | Semantics                                                                                                                                                                                                                                  |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `sharedTrack`                          | Different trains may share track; each route still cannot reuse its own. Absent means exclusive track.                                                                                                                                     |
+| `payOnce.groups`                       | A center pays at most once per company; centers in a group share payment identity. With no `payOnce`, payment is per route. If profiles offer different values for one identity, the highest selected offer pays.                          |
+| `connectivity.at`, `root`              | Runs form a connected intersection graph through stops of the declared kind. `root: 'home'` requires a run through the placed home station.                                                                                                |
+| `routeShape.endKinds`, `minimumCities` | Allowed endpoint kinds and minimum number of cities, independent of train distance.                                                                                                                                                        |
+| `trains[id].payingKinds`               | Which nonfreight visited kinds can pay; absent means all kinds.                                                                                                                                                                            |
+| `trains[id].payingStopLimit`           | Limit a nonfreight route’s paid subset of specified kinds; other payable kinds are unlimited. Visit capacity stays on the train definition.                                                                                                |
+| `trains[id].hexSubsidy`                | Treasury subsidy for distinct visited hexes. Overlapping profiles pay the maximum subsidy per hex once.                                                                                                                                    |
+| `trains[id].freight`                   | `required` runs must form one simple endpoint chain. When any `optional` runs also run, exactly one extends that chain. Remaining optional runs choose their best partition into simple chains, including singletons.                      |
+| `freightChains`                        | Pay the outer ends of each chain and a crow-flies bonus for hexes between them. `endRates` increases the rate at named ends. `offboardDistance: 'adjacent-hex'` measures from the adjacent route hex with one extra hex per off-board end. |
 
-Limits: at most 10,000 routes per kind of train (the most valuable are kept and the result is
-marked memory-limited); deadlines return the best fleet found as non-exhaustive after the first
-complete fleet. `routeProblemKey` still hashes the encoded network, so title state read only by
-`settle` (beyond stations, stops and train profiles) does not key instructed runs.
+1862's `routeRules.ts` declares these traits, off-board payment groups, port rates,
+and per-depot-train policies. Its remaining functions supply phase revenue,
+permits, and train-specific stop access. London access and Local off-board
+exclusion are precomputed into each encoded profile's `allowed_stops` array.
+No title function executes while Rust searches. The WASM's only imported
+function is the deadline clock.
 
-Verification: family specs cover shared track, settlement, rejection, subsidy payment and its
-absence, route shapes and train-aware stop checks. The solver matches an exhaustive
-combination oracle on 40 generated hex maps, each with and without bounds and with a key (shared
-and separate track, identical trains) using a toy title: home run, runs meeting at cities, stops
-paid once, a subsidised train. On denser generated maps with H5/E4/Local fleets it solves in
-under 0.15 s; four-train H7/E6 fleets on 61–91 hex maps take 0.5–9 s, some hitting the route cap.
+`RouteEvaluation` still validates each individual path, including its company
+station, visit capacity, run shape and access. Family `settleFleetRoutes` then
+checks connectivity, enumerates freight groupings and paid-stop choices, and
+returns the canonical payments, bonuses and subsidy. The encoder reads the same
+policy; Rust independently implements its semantics. This deliberately gives
+differential tests different settlement algorithms rather than a shared search
+oracle. `Autorouter.solve` decodes only the native answer and requires exact
+revenue **and** subsidy equality with the canonical evaluator. `RunTrains` pays
+the subsidy to the treasury independently of revenue distributed as earnings.
+
+The former `settle`, `routeKey` and `bound` callbacks, `solveFleet`, and
+`fleetSolver.ts` are removed. `routeProblemKey` includes the encoded fleet policy
+and every train's access and payment policy. The 1862 bot and module worker use
+`Autorouter`, like other titles. Worker and WASM must be rebuilt together for
+version 7. No state schema or host bridge contract changes in this migration.
+
+### Problem class and exact algorithm
+
+This is connected maximum coverage with a partition capacity constraint (at most
+one route per owned train), generalized to an assignment valuation when trains
+choose paid stops, plus endpoint-path constraints for freight. It is NP-hard.
+Exact branch and bound with admissible marginal bounds is the appropriate
+technique; there is no universally fastest exact algorithm. The connected
+extension discipline follows the idea behind
+[ESU connected-subgraph enumeration](https://pubmed.ncbi.nlm.nih.gov/17085844/).
+The paid-stop optimization is a capacitated maximum-weight bipartite matching;
+its assignment valuation is submodular (see the
+[assignment valuation analysis](https://web.stanford.edu/~ost/papers/eav2.pdf)).
+
+The native solver works as follows:
+
+1. Enumerate legal individual paths with the existing native compiler and path
+   search. Fleet candidates retain stop identities, Local hex coverage, freight
+   endpoints and adjacent off-board hexes, and track resources when exclusive.
+   Ordinary resource-dominance pruning is inapplicable to fleet coverage and is
+   disabled. Equivalent profiles share candidates and have a train capacity.
+2. Seed the incumbent with legal home routes and greedy connected extensions.
+   A partial fleet is a complete legal answer: idle trains require no explicit
+   branch. Score every legally settled partial fleet, including singletons.
+3. Grow only through candidates meeting the chosen fleet at a permitted stop.
+   Each recursion owns its earlier-sibling exclusions; descendants inherit
+   them, and restore them on return. Thus each connected candidate set has one
+   construction, even though its connection order need not be sorted by ID.
+   Multiplicity is enumerated for useful repeated paths: identical N/M trains
+   may pay different stops of the same route, and permanent freight may earn
+   separate distance bonuses. Identical train IDs do not introduce permutations.
+4. Reject required-freight branching and cycles immediately. Keep a forest of
+   provisional chain components when necessary: forbidding every disconnected
+   freight prefix can miss a legal fleet whose city-connectivity order differs
+   from its endpoint-chain order. Only a settled legal chain can improve the
+   incumbent.
+5. Score paid stops with maximum-weight capacitated matching, optimizing the
+   choice of unpaid large stops jointly across all routes. Enumerate admissible
+   freight anchors and permanent-chain partitions; each offers its outer ends
+   and bonus. Subsidy is the union of visited Local hexes. Maximize revenue plus
+   treasury subsidy, returning the two amounts separately.
+6. Bound the branch by coverage already available plus the greatest remaining
+   marginal values, respecting profile capacities. For the bound, every freight
+   endpoint may pay even if later made internal. When the freight combination
+   table fits its budget, precompute legal freight completions and their maximum
+   bonuses, and filter them by chosen and excluded candidates. Otherwise use a
+   geometric upper bound from the sum of route spans and the highest end rate.
+   This relaxation preserves completeness. A zero-gain nonfreight route can be
+   removed only if it adds neither a connection stop nor payment/subsidy over
+   the nonfreight fleet; freight endpoints may disappear during later chaining.
+
+Limits remain explicit. Path storage and fleet metadata share the existing
+memory budget. Freight completion tables and their caches are bounded; abandoning
+that acceleration uses the safe geometric bound, not a candidate cut. A candidate
+cut or deadline makes the result non-exhaustive. Ordinary additive titles retain
+the existing set-packing and two-train-streaming selectors. Fleet policies cannot
+yet combine with legacy connection/interconnection or longest-route bonuses, or
+required-route enumeration; unsupported combinations are rejected explicitly.
+
+### Regression evidence
+
+The saved WStI position has five BL, one BF, two AL and two AF trains. The old
+train-by-train TypeScript search evaluated only leaves, visited routes before
+idling, and applied connectivity only at settlement. It returned £0 with 150 ms,
+2 s and 20 s budgets despite a legal £140 singleton. Rooted connected expansion
+provides an incumbent immediately. Measurements and outstanding proof costs are
+recorded in [the 1862 design note](1862-title-design.md#native-autorouter-verification).
+
+Coverage includes the rulebook's route examples through WASM, the saved WStI
+regression, generated-map comparisons against canonical TypeScript evaluation,
+and a native oracle that independently enumerates stop permutations, per-train
+route products including idling, paid subsets and freight chain orders. Native
+cases include 160 generated fleet graphs, sparse networks dominated by
+unconnected combinations, connected and disconnected six-, eight- and ten-train
+fleets, repeated N/M paths, permanent repeats, anchors, cycles, off-board distance,
+port rates, subsidies, run shapes, access, memory cuts and deadlines.
+
+All 1,434 recorded ordinary-title problems (1817, 1830, 1832, 1846, 1889 and TOP)
+completed exhaustively with identical route output and revenue before and after
+this change. The fixture corpus and timing scripts remain outside the repository
+at `/workspace/tmp/1862-autorouter/`; the WStI state is a checked-in regression.
