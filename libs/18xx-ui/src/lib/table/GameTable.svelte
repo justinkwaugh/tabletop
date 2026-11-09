@@ -1366,6 +1366,7 @@
                                     justify="center"
                                     controls="bottom-left"
                                     expandable={true}
+                                    renderAtViewScale
                                     allowFullscreenShortcut={() => !mapWrapper?.isVisible()}
                                 >
                                     <StockMarketScene
