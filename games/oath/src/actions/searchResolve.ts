@@ -283,7 +283,9 @@ export class HydratedSearchResolve
         // R-X.4 — before revision 31, after both plays.
         const after = before ?? runModifiers()
 
+        // Law Glossary "Discard" — a card discarded first went to its pile before the kept card's power resolved.
         const pileDeposits = [
+            ...played.discardedElsewhere,
             ...(played.outcome.pileDeposits ?? []),
             ...(second?.outcome.pileDeposits ?? [])
         ]

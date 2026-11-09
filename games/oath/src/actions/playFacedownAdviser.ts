@@ -220,6 +220,15 @@ export class HydratedPlayFacedownAdviser
 
         this.metadata = {
             ...played.outcome,
+            // Law Glossary "Discard" — a card discarded first went to its pile before the adviser's power resolved.
+            ...(played.discardedElsewhere.length > 0
+                ? {
+                      pileDeposits: [
+                          ...played.discardedElsewhere,
+                          ...(played.outcome.pileDeposits ?? [])
+                      ]
+                  }
+                : {}),
             reveal,
             discardedCardIds: played.discarded,
             discardPileRegion: discardTarget?.region ?? discardRegionFor(region),
