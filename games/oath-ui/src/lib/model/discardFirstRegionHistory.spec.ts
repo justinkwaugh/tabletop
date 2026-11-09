@@ -142,27 +142,27 @@ const SEARCH_ROW = 'discarding Scouts first, gaining 1 favor'
 describe('History names the pile a card discarded first in another region went to', () => {
     it('revision 33, the Search: the two drawn to the provinces pile, Scouts to the hinterland pile', () => {
         expect(searchRow(OathRevision.EngineFixes28, 'dana')).toContain(
-            `${SEARCH_ROW}; Wrestlers, Wrestlers went to the provinces discard pile; ` +
-                'Scouts went to the hinterland discard pile'
+            `${SEARCH_ROW}; Wrestlers, Wrestlers went to the Provinces discard pile; ` +
+                'Scouts went to the Hinterland discard pile'
         )
         expect(searchRow(OathRevision.EngineFixes28, 'rhys')).toContain(
-            '2 cards went to the provinces discard pile; cards went to the hinterland discard pile'
+            '2 cards went to the Provinces discard pile; cards went to the Hinterland discard pile'
         )
     })
 
     it('revision 32, the Search: all three to the provinces pile, as recorded', () => {
         expect(searchRow(OathRevision.EngineFixes27, 'dana')).toContain(
-            `${SEARCH_ROW}; Wrestlers, Wrestlers, Scouts went to the provinces discard pile`
+            `${SEARCH_ROW}; Wrestlers, Wrestlers, Scouts went to the Provinces discard pile`
         )
         expect(searchRow(OathRevision.EngineFixes27, 'rhys')).toContain(
-            '3 cards went to the provinces discard pile'
+            '3 cards went to the Provinces discard pile'
         )
     })
 
     it('revision 33, the facedown adviser play: Scouts to the hinterland pile', () => {
         expect(facedownRow(OathRevision.EngineFixes28, 'dana')).toContain(
             'played Wayside Inn to p1 (New Growth), discarding Scouts first, gaining 1 favor; ' +
-                'Scouts went to the hinterland discard pile'
+                'Scouts went to the Hinterland discard pile'
         )
     })
 
