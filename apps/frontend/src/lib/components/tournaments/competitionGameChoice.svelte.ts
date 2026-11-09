@@ -2,7 +2,8 @@ import {
     defaultGameConfig,
     normalizeGameConfig,
     type ConfigOption,
-    type GameConfig
+    type GameConfig,
+    type TournamentScoring
 } from '@tabletop/common'
 import type { TabletopApi } from '@tabletop/frontend-components'
 import type { LibraryService } from '$lib/services/libraryService.svelte'
@@ -15,7 +16,17 @@ export class CompetitionGameChoice {
     rawConfig: GameConfig = $state({})
     titlesError = $state('')
     eligibleTitleIds: Set<string> | undefined = $state()
+    placementTitleIds: Set<string> | undefined = $state()
+    chosenScoring: TournamentScoring = $state('splitWinsV1')
     title = $derived.by(() => this.library.titlesById[this.titleId])
+    supportsPlacement = $derived.by(
+        () =>
+            this.placementTitleIds?.has(this.titleId) ||
+            (this.titleId === this.initialTitleId && this.initialScoring === 'placementV1')
+    )
+    scoring: TournamentScoring = $derived.by(() =>
+        this.supportsPlacement ? this.chosenScoring : 'splitWinsV1'
+    )
     config = $derived.by(() => normalizeGameConfig(this.rawConfig, this.title?.info.configurator))
     titles = $derived.by(() =>
         Object.values(this.library.titlesById)
@@ -29,15 +40,19 @@ export class CompetitionGameChoice {
     constructor(
         private readonly library: TitleLibrary,
         private readonly initialTitleId = '',
-        initialConfig: GameConfig = {}
+        initialConfig: GameConfig = {},
+        private readonly initialScoring: TournamentScoring = 'splitWinsV1'
     ) {
         this.titleId = initialTitleId
         this.rawConfig = { ...initialConfig }
+        this.chosenScoring = initialScoring
     }
 
     async loadEligibleTitles(api: Pick<TabletopApi, 'listTournamentTitles'>, failureText: string) {
         try {
-            this.eligibleTitleIds = new Set((await api.listTournamentTitles()).titleIds)
+            const titles = await api.listTournamentTitles()
+            this.eligibleTitleIds = new Set(titles.titleIds)
+            this.placementTitleIds = new Set(titles.placementTitleIds ?? [])
         } catch {
             this.titlesError = failureText
         }

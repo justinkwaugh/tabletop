@@ -17,8 +17,7 @@ import {
     type HydratedGameState,
     type Tournament,
     type TournamentDraft,
-    type User,
-    TiebreakRule
+    type User
 } from '@tabletop/common'
 import { cacheFixture } from '../cache/tests/cacheFixture.js'
 import { FirestoreGameStore } from '../persistence/firestore/gameStore.js'
@@ -72,7 +71,7 @@ const pointsBehindDefinition = {
         ...scoredDefinition.runtime,
         scoring: {
             ...scoredDefinition.runtime.scoring,
-            tiebreakRule: TiebreakRule.const
+            tiebreakRule: 'pointsBehind' as const
         }
     }
 }
@@ -161,7 +160,8 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             concurrency = tableSize,
             gamesPerEntrant = tableSize,
             titleId = 'synthetic',
-            shortGameIds = true
+            shortGameIds = true,
+            scoring: Tournament['rules']['scoring'] = 'splitWinsV1'
         ) {
             enqueue.mockReset()
             enqueue.mockResolvedValue(undefined)
@@ -202,7 +202,10 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                     tableSize,
                     gameConfig: {},
                     concurrency,
-                    scoring: 'splitWinsV1',
+                    scoring,
+                    ...(titleId === 'pointsBehind' && scoring === 'placementV1'
+                        ? { tiebreakRule: 'pointsBehind' as const }
+                        : {}),
                     registration: { kind: 'whenFull', capacity }
                 }
             }
@@ -918,6 +921,108 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 )
             ).toBe(true)
             expect(restored.stages[0].corrections).toHaveLength(2)
+        })
+
+        it('ranks by average place, corrects a whole finishing order and rebuilds the same standings', async () => {
+            const { tournament } = await fixture(3, 7, 3, 3, 'pointsBehind', true, 'placementV1')
+            await service.runTask({ tournamentId: tournament.id })
+            const links = await tournaments.readGameLinks(tournament.id)
+            const scoreOf = (userId: string) => users.findIndex((user) => user.id === userId) + 1
+            const orders = new Map<string, string[]>()
+            for (const link of links) {
+                const game = await store.findGameById(link.gameId)
+                assertExists(game)
+                const seated = game.players.map((player) => {
+                    assertExists(player.userId)
+                    return player.userId
+                })
+                const finalScores = Object.fromEntries(
+                    game.players.map((player, index) => [player.id, scoreOf(seated[index])])
+                )
+                const best = seated.indexOf(
+                    seated.reduce((a, b) => (scoreOf(a) > scoreOf(b) ? a : b))
+                )
+                await finish(link.gameId, GameResult.Win, [best], finalScores)
+                orders.set(
+                    link.tableId,
+                    [...seated].sort((a, b) => scoreOf(b) - scoreOf(a))
+                )
+            }
+            const placeTotals = (tableOrders: Map<string, string[]>) => {
+                const totals = new Map<string, number>()
+                for (const order of tableOrders.values())
+                    order.forEach((userId, index) =>
+                        totals.set(userId, (totals.get(userId) ?? 0) + index + 1)
+                    )
+                return totals
+            }
+            const finished = await service.get(tournament.id, admin)
+            assertExists(finished.standings)
+            expect(finished.tournament.status).toBe('finished')
+            expect(finished.standings.map((row) => row.placeTotal)).toEqual(
+                finished.standings.map((row) => placeTotals(orders).get(row.userId))
+            )
+            const averages = finished.standings.map((row) => (row.placeTotal ?? 0) / row.completed)
+            expect(averages).toEqual([...averages].sort((a, b) => a - b))
+            const firstTable = links[0].tableId
+            const firstOrder = orders.get(firstTable)
+            assertExists(firstOrder)
+            const placed = (order: string[]) =>
+                Object.fromEntries(order.map((userId, index) => [userId, index + 1]))
+            expect(
+                finished.games?.find((game) => game.tableId === firstTable)?.finishingPlaces
+            ).toEqual(placed(firstOrder))
+
+            const reversed = [...firstOrder].reverse()
+            const request = {
+                revision: finished.tournament.revision,
+                tableId: firstTable,
+                winningUserIds: [reversed[0]],
+                finishingPlaces: placed(reversed),
+                reason: 'Reversed result'
+            }
+            const { finishingPlaces: _omitted, ...withoutPlaces } = request
+            await expect(
+                service.correctResult(tournament.id, withoutPlaces, admin)
+            ).rejects.toThrow('Place every player')
+            await expect(
+                service.correctResult(
+                    tournament.id,
+                    { ...request, winningUserIds: [reversed[1]] },
+                    admin
+                )
+            ).rejects.toThrow('winners first')
+            await expect(
+                service.correctResult(
+                    tournament.id,
+                    {
+                        ...request,
+                        finishingPlaces: { ...request.finishingPlaces, [reversed[2]]: 2 }
+                    },
+                    admin
+                )
+            ).rejects.toThrow('Place every player')
+            await expect(
+                service.correctResult(
+                    tournament.id,
+                    { ...request, finishingPlaces: { ...request.finishingPlaces, [admin.id]: 4 } },
+                    admin
+                )
+            ).rejects.toThrow('Place every player')
+            const corrected = await service.correctResult(tournament.id, request, admin)
+            orders.set(firstTable, reversed)
+            const credited = await service.get(tournament.id, admin)
+            expect(credited.standings?.map((row) => row.placeTotal)).toEqual(
+                credited.standings?.map((row) => placeTotals(orders).get(row.userId))
+            )
+            expect(
+                credited.games?.find((game) => game.tableId === firstTable)?.finishingPlaces
+            ).toEqual(request.finishingPlaces)
+            expect(corrected.stages[0].corrections?.[0].finishingPlaces).toEqual(
+                request.finishingPlaces
+            )
+            const rebuilt = await service.rebuildStandings(tournament.id, corrected.revision, admin)
+            expect(rebuilt.stages[0].standings).toEqual(corrected.stages[0].standings)
         })
 
         it('keeps finding the long-id games of a tournament created before short ids', async () => {

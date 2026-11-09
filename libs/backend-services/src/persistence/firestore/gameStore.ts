@@ -1314,7 +1314,7 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
                 return
             }
             stage.standings ??= createTournamentStandings(data)
-            applyTournamentGameScore(data, stage.standings, game, 1, game.finalScores)
+            applyTournamentGameScore(data, stage.standings, game, { finalScores: game.finalScores })
             dispatch.finished.push(reference.tableId)
         })
     }

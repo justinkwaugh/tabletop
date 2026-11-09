@@ -6,7 +6,9 @@ import { TiebreakRule } from '../game/definition/gameScoring.js'
 import { TournamentGameReference } from './tournamentGameReference.js'
 import { LeagueGroupReference } from './leagueGroupReference.js'
 import { assertExists } from '../util/assertions.js'
+import { sortedEqualGroups } from '../util/sortedEqualGroups.js'
 import type { TournamentTable } from './tournamentSchedule.js'
+import type { Game } from '../game/model/game.js'
 
 export const miniTournamentDefaults = {
     2: { capacity: 5, gamesPerEntrant: 4 },
@@ -79,6 +81,12 @@ export const selfRegistrationKinds = ['whenFull', 'deadline'] as const satisfies
 export function tournamentCapacity(policy: TournamentRegistrationPolicy): number | undefined {
     return policy.kind === 'assigned' ? undefined : policy.capacity
 }
+export const TournamentScoring = Type.Union([
+    Type.Literal('splitWinsV1'),
+    Type.Literal('placementV1')
+])
+export type TournamentScoring = Type.Static<typeof TournamentScoring>
+
 export const TournamentRules = Type.Object(
     {
         titleId: TournamentId,
@@ -86,7 +94,7 @@ export const TournamentRules = Type.Object(
         registration: TournamentRegistrationPolicy,
         concurrency: Type.Integer({ minimum: 1, maximum: 256 }),
         gameConfig: GameConfig,
-        scoring: Type.Literal('splitWinsV1'),
+        scoring: TournamentScoring,
         tiebreakRule: Type.Optional(TiebreakRule)
     },
     { additionalProperties: false }
@@ -226,27 +234,146 @@ export const TournamentScore = Type.Object({
     score: Type.Number({ minimum: 0 }),
     completed: Type.Integer({ minimum: 0 }),
     tiebreak: Type.Optional(Type.Number()),
-    pointsBehind: Type.Optional(Type.Number())
+    pointsBehind: Type.Optional(Type.Number()),
+    shareOfWinner: Type.Optional(Type.Integer({ minimum: 0 })),
+    placeTotal: Type.Optional(Type.Number({ minimum: 0 }))
 })
 export type TournamentScore = Type.Static<typeof TournamentScore>
 
-const FINAL_SCORE_DIVISOR = 100
+export function ranksByAveragePlace(rules: Pick<TournamentRules, 'scoring'>): boolean {
+    return rules.scoring === 'placementV1'
+}
 
-export function rankedTiebreak(
-    row: Pick<TournamentScore, 'completed' | 'tiebreak' | 'pointsBehind'>
+// Standings rows carry their event's scoring: placement rows always hold a place total.
+export function tournamentRowRanksByPlace<T extends Pick<TournamentScore, 'placeTotal'>>(
+    row: T
+): row is T & { placeTotal: number } {
+    return row.placeTotal !== undefined
+}
+
+// A map, since Firestore cannot store arrays of arrays.
+export const TournamentFinishingPlaces = Type.Record(
+    Type.String(),
+    Type.Number({ minimum: 1, maximum: 16 })
+)
+export type TournamentFinishingPlaces = Type.Static<typeof TournamentFinishingPlaces>
+
+export function tournamentFinishingPlacesFromGroups(groups: string[][]): TournamentFinishingPlaces {
+    const places: TournamentFinishingPlaces = {}
+    let first = 1
+    for (const group of groups) {
+        for (const userId of group) places[userId] = first + (group.length - 1) / 2
+        first += group.length
+    }
+    return places
+}
+
+export function tournamentFinishingPlacesConsistent(places: TournamentFinishingPlaces): boolean {
+    const values = Object.values(places)
+    return values.every((place) => {
+        const ahead = values.filter((other) => other < place).length
+        const shared = values.filter((other) => other === place).length
+        return place === ahead + 1 + (shared - 1) / 2
+    })
+}
+
+export function tournamentFinishingWinners(places: TournamentFinishingPlaces): string[] {
+    const first = Math.min(...Object.values(places))
+    return Object.keys(places).filter((userId) => places[userId] === first)
+}
+
+// The title's own ending decides the winners, so a winner places first even when another player
+// matched their final score.
+export function tournamentGameFinishingPlaces(
+    game: Pick<Game, 'players' | 'winningPlayerIds'>,
+    finalScores: Record<string, number>
+): TournamentFinishingPlaces {
+    const account = (player: Game['players'][number]) => {
+        assertExists(player.userId, 'Tournament seat has no account')
+        return player.userId
+    }
+    const winners = game.players.filter((player) => game.winningPlayerIds.includes(player.id))
+    const others = sortedEqualGroups(
+        game.players.filter((player) => !game.winningPlayerIds.includes(player.id)),
+        (a, b) => finalScores[b.id] - finalScores[a.id]
+    )
+    return tournamentFinishingPlacesFromGroups(
+        [winners, ...others].map((group) => group.map(account))
+    )
+}
+
+export function tournamentAveragePlace(
+    row: Pick<TournamentScore, 'completed' | 'placeTotal'>
 ): number | undefined {
-    const { completed, tiebreak, pointsBehind } = row
-    if (pointsBehind === undefined || tiebreak === undefined || completed === 0) return tiebreak
-    // One division of whole numbers, so values that are mathematically equal compare equal.
-    return (tiebreak - FINAL_SCORE_DIVISOR * pointsBehind) / (FINAL_SCORE_DIVISOR * completed)
+    return row.placeTotal === undefined || row.completed === 0
+        ? undefined
+        : row.placeTotal / row.completed
+}
+
+export function formatTournamentAveragePlace(
+    row: Pick<TournamentScore, 'completed' | 'placeTotal'>
+): string | undefined {
+    return tournamentAveragePlace(row)?.toFixed(2)
+}
+
+export const placementScoringDescription =
+    'Ranked by average place, lower is better, then by who finished ahead more often at tables the tied players shared, then by tiebreak.'
+
+const FINAL_SCORE_DIVISOR = 100
+// Each game's share is rounded to whole hundredths of a percent when stored, so totals add exactly;
+// shares compare to that precision, not as exact fractions.
+const SHARE_OF_WINNER_UNITS = 10_000
+
+export function tournamentShareOfWinner(finalScore: number, topScore: number): number {
+    return Math.round((SHARE_OF_WINNER_UNITS * finalScore) / topScore)
+}
+
+export function tournamentTiebreakRule(
+    row: Pick<TournamentScore, 'pointsBehind' | 'shareOfWinner'>
+): TiebreakRule | undefined {
+    if (row.pointsBehind !== undefined) return 'pointsBehind'
+    if (row.shareOfWinner !== undefined) return 'shareOfWinner'
+    return undefined
+}
+
+// One division of whole stored numbers, so equal stored totals compare equal. The checks follow
+// tournamentTiebreakRule's order.
+export function rankedTiebreak(
+    row: Pick<TournamentScore, 'completed' | 'tiebreak' | 'pointsBehind' | 'shareOfWinner'>
+): number | undefined {
+    const { completed, tiebreak, pointsBehind, shareOfWinner } = row
+    if (completed === 0 || tiebreak === undefined) return tiebreak
+    if (pointsBehind !== undefined)
+        return (tiebreak - FINAL_SCORE_DIVISOR * pointsBehind) / (FINAL_SCORE_DIVISOR * completed)
+    if (shareOfWinner !== undefined)
+        return shareOfWinner / ((SHARE_OF_WINNER_UNITS / 100) * completed)
+    return tiebreak
+}
+
+export function formatTournamentTiebreaks(
+    rows: Pick<TournamentScore, 'completed' | 'tiebreak' | 'pointsBehind' | 'shareOfWinner'>[],
+    locale?: string
+): (string | undefined)[] {
+    return rows.map((row) => {
+        const tiebreak = rankedTiebreak(row)
+        if (tiebreak === undefined) return undefined
+        return tournamentTiebreakRule(row) === 'shareOfWinner'
+            ? `${tiebreak.toFixed(2)}%`
+            : tiebreak.toLocaleString(locale, { maximumFractionDigits: 3 })
+    })
 }
 
 export function tournamentTiebreakDescription(
-    rows: Pick<TournamentScore, 'pointsBehind'>[]
+    rows: Pick<TournamentScore, 'pointsBehind' | 'shareOfWinner'>[]
 ): string {
-    return rows.some((row) => row.pointsBehind !== undefined)
-        ? "Tiebreak is the average points behind the top score at each player's tables, as a negative, plus one hundredth of their average final score. Higher is better."
-        : "Tiebreak is the sum of each player's final scores from their games."
+    switch (rows.map(tournamentTiebreakRule).find((rule) => rule !== undefined)) {
+        case 'pointsBehind':
+            return "Tiebreak is the average points behind the top score at each player's tables, as a negative, plus one hundredth of their average final score. Higher is better."
+        case 'shareOfWinner':
+            return "Tiebreak is each player's average final score as a percentage of the top final score at their tables. Higher is better."
+        case undefined:
+            return "Tiebreak is the sum of each player's final scores from their games."
+    }
 }
 
 export const TournamentStanding = Type.Object({
@@ -266,6 +393,7 @@ export type TournamentStanding = Type.Static<typeof TournamentStanding>
 export const TournamentResultCorrection = Type.Object({
     tableId: TournamentId,
     winningUserIds: Type.Array(Type.String(), { minItems: 1, maxItems: 16 }),
+    finishingPlaces: Type.Optional(TournamentFinishingPlaces),
     administratorId: Type.String(),
     reason: Type.String({ minLength: 1, maxLength: 1000 }),
     createdAt: Type.Integer(),
@@ -279,6 +407,7 @@ export const CorrectTournamentResultRequest = Type.Object(
         revision: Type.Integer({ minimum: 1 }),
         tableId: TournamentId,
         winningUserIds: Type.Array(Type.String(), { minItems: 1, maxItems: 16 }),
+        finishingPlaces: Type.Optional(TournamentFinishingPlaces),
         reason: Type.String({ minLength: 1, maxLength: 1000 })
     },
     { additionalProperties: false }
@@ -374,6 +503,7 @@ export const TournamentGameLink = Type.Object({
     userIds: Type.Optional(Type.Array(Type.String())),
     result: Type.Optional(Type.Enum(GameResult)),
     winningUserIds: Type.Optional(Type.Array(Type.String())),
+    finishingPlaces: Type.Optional(TournamentFinishingPlaces),
     progress: Type.Optional(GameProgress)
 })
 export type TournamentGameLink = Type.Static<typeof TournamentGameLink>
@@ -393,7 +523,9 @@ export const TournamentList = Type.Object({
 export type TournamentList = Type.Static<typeof TournamentList>
 
 export const TournamentTitles = Type.Object({
-    titleIds: Type.Array(Type.String())
+    titleIds: Type.Array(Type.String()),
+    // Optional while a released Site Frontend can still meet a backend that predates it
+    placementTitleIds: Type.Optional(Type.Array(Type.String()))
 })
 export type TournamentTitles = Type.Static<typeof TournamentTitles>
 

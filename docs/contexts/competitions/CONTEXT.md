@@ -48,8 +48,17 @@ The maximum number of active Tables an Entrant may occupy within an event at onc
 The sum of an Entrant's final in-game scores across their completed Tables, supplied by the Game Title's scoring capability. It orders Entrants whose tournament scores are equal; it never outranks tournament score.
 _Avoid_: Game Score when referring to the tournament tiebreak rather than one Game's result
 
+**Average Place**:
+An Entrant's finishing places averaged over their completed Tables, lower being better. A shared place counts the average of the places it spans. Events with Placement Scoring rank by it.
+
+**Placement Scoring**:
+The scoring rule that ranks Entrants by Average Place, then by head-to-head finishing order among the tied Entrants, then by tiebreak, instead of by win points. Chosen per Tournament or League, for titles that record final scores.
+
 **Points Behind**:
 An Entrant's total gap to the top final score across their completed Tables. It is a Tiebreak Rule a Game Title may declare, frozen into an event's rules; Fresh Fish declares it. Entrants with equal tournament score then rank by the negated average gap plus one hundredth of their average final score.
+
+**Share of Winner**:
+An Entrant's final score as a share of the top final score at each completed Table, averaged and shown as a percentage. It is a Tiebreak Rule a Game Title may declare; the 18xx titles declare it, since a share does not depend on how much wealth a Table ended with.
 
 **Final Table Result**:
 The accepted outcome of a completed Table, final immediately when its Hosted Game finishes. Players cannot reopen that Game Instance through Undo; an Administrator may make an explicitly attributed correction.
@@ -109,7 +118,7 @@ _Avoid_: Automatic entry
 A Held Place left unconfirmed when the Sign-up Window closes. It is filled by promoting the next eligible Entrant from the Level below, and so on down to the Bottom Level.
 
 **Cutoff Tie**:
-Equal standing between Entrants on either side of a promotion or relegation line. It is resolved by points, then Tiebreak Total or Points Behind, then head-to-head results, then a seeded draw.
+Equal standing between Entrants on either side of a promotion or relegation line. It is resolved by points, then the tiebreak (Tiebreak Total, Points Behind or Share of Winner), then head-to-head results, then a seeded draw. Under Placement Scoring, head-to-head comes before the tiebreak.
 
 **Projected Allocation**:
 The Levels for the next Season implied by a finished Season's movement, before Held Places are confirmed. Groups are drawn only at the Final Allocation.

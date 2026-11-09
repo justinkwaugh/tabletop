@@ -36,7 +36,7 @@ export default async function (fastify: FastifyInstance) {
     )
     fastify.get('/titles', { preHandler: fastify.verifyRoleAdmin }, async () => ({
         status: 'ok',
-        payload: { titleIds: fastify.tournamentService.tournamentTitleIds() }
+        payload: fastify.tournamentService.tournamentTitles()
     }))
     fastify.post<{ Body: Static<typeof CreateTournamentRequest> }>(
         '/',
