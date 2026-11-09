@@ -1294,6 +1294,7 @@
                                 </div>{/if}
                             <ScalingWrapper
                                 bind:this={mapWrapper}
+                                renderAtViewScale
                                 maxScale={2}
                                 overpan={mapOverpan}
                                 gestureOverpanReach={MapGestureOverpanReach}
@@ -1323,6 +1324,7 @@
                         </div>{:else if id === 'Board'}<div class="workspace-view map-area">
                             <ScalingWrapper
                                 bind:this={boardWrapper}
+                                renderAtViewScale
                                 insetTop={44}
                                 overpan={mapOverpan}
                                 gestureOverpanReach={MapGestureOverpanReach}

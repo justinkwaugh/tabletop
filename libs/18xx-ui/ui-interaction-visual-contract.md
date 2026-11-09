@@ -1803,7 +1803,7 @@ follow-up actions, without affecting historical-map selection.
 
 Phase-dependent tile revenues display contiguous phase-colored value cells, arranged horizontally or vertically according to available tile space. Titles can supply stage colors for names that differ from tile colors. Fixed revenues retain their circular markers.
 
-While unavailable map spaces are masked, a matching translucent perimeter extends 25 map units (one quarter hex diameter) beyond the map shape. The union mask avoids overlapping dark seams, ignores pointer input, and sits below tile artwork and interaction outlines. Map bounds reserve this margin in every interaction mode so entering or leaving masking does not resize the map.
+Map bounds pad the map shape by 26 map units on every side in every interaction mode, so masking unavailable spaces never resizes the map. Only the unavailable spaces themselves are dimmed; nothing outside the map shape is drawn for masking.
 
 Action-selection button text uses regular weight, including nested labels and stock action choices.
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { CentredTextShift } from '../presentation/textBaseline.js'
     import { contrastingTextColor } from '../colors/contrastingTextColor.js'
     import DividedRect from '../colors/DividedRect.svelte'
     import {
@@ -399,7 +400,9 @@
                     stroke={appearance.ink}
                     stroke-width="0.5"
                 ></rect>
-                <text font-size="6.5" font-weight="650">{face.upgradeCost}</text>
+                <text dy={CentredTextShift} font-size="6.5" font-weight="650"
+                    >{face.upgradeCost}</text
+                >
             </g>
         {/if}
         {#if face.symbols?.includes('port')}
@@ -445,6 +448,7 @@
                                 fill={appearance.paper}
                             ></rect>
                             <text
+                                dy={CentredTextShift}
                                 font-size={revenueCircle.fontSize}
                                 font-family={revenueCircle.fontFamily}
                                 font-weight={revenueCircle.fontWeight ?? 800}
@@ -463,6 +467,7 @@
                                 stroke-width={revenueCircle.ringWidth}
                             ></rect>
                             <text
+                                dy={CentredTextShift}
                                 font-size={revenueCircle.fontSize}
                                 font-family={revenueCircle.fontFamily}
                                 font-weight={revenueCircle.fontWeight ?? 750}
@@ -490,6 +495,7 @@
                                     strokeWidth={0.5}
                                 />
                                 <text
+                                    dy={CentredTextShift}
                                     fill={dividedTextColor(fills)}
                                     font-size="9"
                                     font-weight="650"
@@ -509,6 +515,7 @@
                                         fill={cell.captionColor}
                                     ></rect>
                                     <text
+                                        dy={CentredTextShift}
                                         data-revenue-caption
                                         x={badgeX + cell.captionWidth / 2}
                                         style:text-anchor="middle"
@@ -518,6 +525,7 @@
                                     >
                                 {:else if cell.caption}
                                     <text
+                                        dy={CentredTextShift}
                                         data-revenue-caption
                                         x={cell.captionAfter
                                             ? cell.width / 2 + 2.5
@@ -536,6 +544,7 @@
         {/each}
         {#if namedLabels.length}
             <text
+                dy={CentredTextShift}
                 data-tile-label-text
                 x={drawing.labelPosition.x}
                 y={drawing.labelPosition.y + 4}
@@ -549,6 +558,7 @@
         {/if}
         {#if textLabels.length}
             <text
+                dy={CentredTextShift}
                 data-tile-label
                 x={drawing.labelPosition.x}
                 y={drawing.labelPosition.y}
@@ -572,8 +582,5 @@
     }
     .annotations {
         pointer-events: none;
-    }
-    .annotations text {
-        dominant-baseline: central;
     }
 </style>
