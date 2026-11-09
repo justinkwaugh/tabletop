@@ -3,13 +3,19 @@ import { ConspiracyPlay } from '../model/conspiracy.js'
 export { SearchPlay }
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext, Visibility } from '@tabletop/common'
+import {
+    assertExists,
+    GameAction,
+    HydratableAction,
+    MachineContext,
+    Visibility
+} from '@tabletop/common'
 import { discardRegionFor, HydratedOathGameState } from '../model/gameState.js'
 import { HiddenReveal } from '../model/hidden.js'
 import { PowerOutcome } from '../model/powerOutcome.js'
 import { ActionType } from '../definition/actions.js'
 import { effectiveSiteCapacity, SALT_THE_EARTH } from '../util/capacity.js'
-import { discardCards } from '../util/discard.js'
+import { discardCards, type DiscardTarget } from '../util/discard.js'
 import { regionOfPawn, pawnSiteId } from '../util/pawn.js'
 import { isFaceupPlay, isIrreversible } from '../util/powerDoorway.js'
 import { PowerChoice } from '../util/powerChoice.js'
@@ -25,6 +31,7 @@ import { discardWitnesses, forgetHand } from '../util/knowledge.js'
 import {
     beginCardPlay,
     type CardPlayOptions,
+    type CardPlayResult,
     FavorShort,
     favorShortOf,
     finishCardPlay,
@@ -72,6 +79,13 @@ export const SearchResolveMetadata = Type.Object({
     revealedKeptCardId: Type.Optional(Type.String()),
     /** Cracked Horn */
     discardToWorldDeck: Type.Optional(Type.Boolean()),
+    /**
+     * Land Warden — from revision 33 (R-X.4): the second card's own discards, the last `count` of `discardedCardIds`,
+     * go down after the kept card's power's, the first `afterPileDeposits` of `pileDeposits` (R-7.3.3).
+     */
+    secondDiscards: Type.Optional(
+        Type.Object({ count: Type.Number(), afterPileDeposits: Type.Number() })
+    ),
     /** R-5.1.4.I — with Land Warden, both cards' favor. */
     favorGained: Type.Number(),
     /** R-9.3 — the banks that could not give the favor a site play takes, the site's or a Homeland's. */
@@ -268,7 +282,9 @@ export class HydratedSearchResolve
                 if (knower === 'everyone') player.markSeen(this.keptCardId)
                 else player.markShown(this.keptCardId, knower)
 
-        // Land Warden
+        // Land Warden — the questions open now, and the proposals a Gathering has yet to build, are the kept card's.
+        const keptQuestions = state.pendingQuestions?.queue.length ?? 0
+        const keptFollowUp = state.pendingQuestions?.followUp !== undefined
         const second = this.secondPlay
             ? playCard(state, this.playerId, this.secondPlay.cardId, this.secondPlay.play, region, {
                   faceUp: this.secondPlay.faceUp,
@@ -279,6 +295,23 @@ export class HydratedSearchResolve
                   earlierMapChanges: keptMapChanges
               })
             : undefined
+
+        // Land Warden — from revision 33 (R-X.4) what those questions discard goes under what the second card put on
+        // the pile, since its play came after them (R-7.3.3). Before it they went on top. The count of questions relies
+        // on them being first in the queue: the second play asks its own behind them, never ahead of them.
+        if (
+            second &&
+            (keptQuestions > 0 || keptFollowUp) &&
+            isAtLeastOathRevision(state, OathRevision.EngineFixes28)
+        ) {
+            const pending = state.pendingQuestions
+            assertExists(pending, 'the questions of the kept card are open')
+            pending.underSecondPlay = {
+                questions: keptQuestions,
+                ...(keptFollowUp ? { followUp: true } : {}),
+                onTop: secondPlayOnTop(second, region, discardTarget)
+            }
+        }
 
         // R-X.4 — before revision 31, after both plays.
         const after = before ?? runModifiers()
@@ -294,6 +327,18 @@ export class HydratedSearchResolve
             ...played.discarded,
             ...(second?.discarded ?? [])
         ]
+        // Land Warden — the second card's own discards (an adviser at the limit, the Vision it replaced) go down after
+        // the kept card's power, so from revision 33 they lie above that power's discards. Before it (R-X.4) they went
+        // down with the Search's own.
+        const secondDiscards =
+            second &&
+            second.discarded.length > 0 &&
+            isAtLeastOathRevision(state, OathRevision.EngineFixes28)
+                ? {
+                      count: second.discarded.length,
+                      afterPileDeposits: played.outcome.pileDeposits?.length ?? 0
+                  }
+                : undefined
         // Land Warden — the record holds what both plays did. Of the second play's `PowerOutcome` only its pile
         // deposits can be set, since that play takes no choices and no hidden draw (docs/known-deviations.md).
         const triggered = [...(played.triggered ?? []), ...(second?.triggered ?? [])]
@@ -323,6 +368,7 @@ export class HydratedSearchResolve
             discardPileRegion: discardTarget?.region ?? discardRegionFor(region),
             discardToBottom: discardTarget?.bottom || undefined,
             discardToWorldDeck: discardTarget?.worldDeck || undefined,
+            secondDiscards,
             favorGained,
             favorShort: favorShort.length > 0 ? favorShort : undefined,
             secretsGained: played.secretsGained + (second?.secretsGained ?? 0) || undefined,
@@ -511,6 +557,26 @@ function keptPlayMapChanges(
         ...(status !== undefined ? { status } : {}),
         ...(warbandsBySite !== undefined ? { warbandsBySite } : {})
     }
+}
+
+/**
+ * Land Warden — how many cards the second card's play put on top of each pile: its own discards (an adviser at the
+ * limit, a card discarded first, the Vision it replaced), where the Search's go, and its power's.
+ */
+function secondPlayOnTop(
+    second: CardPlayResult,
+    region: Region,
+    target: DiscardTarget | undefined
+): Partial<Record<Region, number>> {
+    const onTop: Partial<Record<Region, number>> = {}
+    const add = (pile: Region, count: number) => {
+        onTop[pile] = (onTop[pile] ?? 0) + count
+    }
+    if (!target?.worldDeck && !target?.bottom)
+        add(target?.region ?? discardRegionFor(region), second.discarded.length)
+    for (const deposit of second.outcome.pileDeposits ?? [])
+        if (!deposit.bottom) add(deposit.region, deposit.cardIds.length)
+    return onTop
 }
 
 /** Land Warden — R-7.4: the Search's modifiers last the whole action, so they reach the second card's play as they reach the first. */
