@@ -61,7 +61,14 @@
                     >{/if}
             </div>
             <h1 id="title-heading">{metadata.name}</h1>
-            <p class="designer">Designed by <span>{metadata.designer}</span></p>
+            <p class="credits">Designed by <span>{metadata.designer}</span></p>
+            {#if metadata.publisher}<p class="credits publisher">
+                    Published by
+                    <a href={metadata.publisher.url} target="_blank" rel="noopener noreferrer"
+                        >{metadata.publisher.name}<span class="sr-only">(opens in a new tab)</span
+                        ></a
+                    >
+                </p>{/if}
             <div class="description">
                 {#each paragraphs as paragraph, index (index)}<p>{paragraph}</p>{/each}
             </div>
@@ -154,13 +161,28 @@
         letter-spacing: -0.035em;
         overflow-wrap: anywhere;
     }
-    .designer {
+    .credits {
         margin-top: 12px;
         font-size: 14px;
         color: var(--color-gray-400);
     }
-    .designer span {
+    .credits span {
         color: var(--color-gray-300);
+    }
+    .credits.publisher {
+        margin-top: 4px;
+    }
+    .credits a {
+        color: var(--color-blue-300);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+    }
+    .credits a:hover {
+        color: var(--color-blue-200);
+    }
+    .credits a:focus-visible {
+        outline: 2px solid var(--color-blue-300);
+        outline-offset: 2px;
     }
     .description {
         margin-top: 24px;

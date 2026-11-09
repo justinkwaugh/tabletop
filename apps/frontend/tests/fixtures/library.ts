@@ -28,6 +28,9 @@ export async function mockTitles(page: Page, seriesTitleCount = 0) {
                     name: `Game ${String(index + 1).padStart(2, '0')}`,
                     description: `A strategy game about building connections.\nMake every turn count.`,
                     designer: 'Example Designer',
+                    ...(index === 0 && {
+                        publisher: { name: 'Example Publisher', url: 'https://example.com/game-01' }
+                    }),
                     year: '2005',
                     minPlayers: 2,
                     maxPlayers: 4,

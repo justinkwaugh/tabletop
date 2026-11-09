@@ -272,6 +272,9 @@ test('the library shows its count beside the heading and returns from game detai
     await expect(page).toHaveURL(/\/library\/landing-0$/)
     await expect(page.getByRole('heading', { name: 'Game 01', exact: true })).toBeVisible()
     await expect(page.getByText('Example Designer')).toBeVisible()
+    await expect(
+        page.getByRole('link', { name: 'Example Publisher (opens in a new tab)' })
+    ).toHaveAttribute('href', 'https://example.com/game-01')
     await expect(page.getByText('Make every turn count.')).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Your games' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Open games' })).toBeVisible()
