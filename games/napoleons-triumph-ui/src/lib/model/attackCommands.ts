@@ -145,18 +145,3 @@ export function attackCommand(
         ride: eitherWay ? RideChoice.NewCommand : undefined
     }
 }
-
-export function rideInOrders(
-    state: HydratedNapoleonsTriumphGameState,
-    attack: VisibleAttack,
-    pickedIds: readonly string[],
-    wanted?: CommandKind
-): MoveOrder[] | undefined {
-    const order = roadAttackOrder(
-        state,
-        attack,
-        pickedIds.map((id) => state.unit(id)),
-        wanted
-    )
-    return order ? [order] : undefined
-}

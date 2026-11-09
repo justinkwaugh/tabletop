@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { CentredTextShift } from '../presentation/textBaseline.js'
     import { contrastingTextColor } from '../colors/contrastingTextColor.js'
     import type { RevenueStageColors } from '../colors/revenueStageColors.js'
     // A medium city's ring stands clear of its town dot by the track's half-width.
@@ -81,7 +82,6 @@
     } = $props()
     const viewport = $derived(mapViewport(scene, hexDiameter, artwork, extents))
     const sceneId = $props.id()
-    const perimeterRoundingId = `${sceneId}-rounding`
     const currentReservations = $derived([
         ...(reservations ?? printedMapReservations(scene)),
         // A printed space stays held until any token stands in its city.
@@ -190,53 +190,6 @@
             preserveAspectRatio="none"
             pointer-events="none"
         ></image>
-    {/if}
-    {#if maskUnavailableLocations}
-        <defs>
-            <filter
-                id={perimeterRoundingId}
-                filterUnits="userSpaceOnUse"
-                {...scene.bounds}
-                color-interpolation-filters="sRGB"
-            >
-                <feGaussianBlur stdDeviation="5"></feGaussianBlur>
-                <feComponentTransfer>
-                    <feFuncA type="linear" slope="20" intercept="-9.5"></feFuncA>
-                </feComponentTransfer>
-            </filter>
-            <mask id={sceneId} maskUnits="userSpaceOnUse" {...scene.bounds}>
-                <g
-                    fill="white"
-                    stroke="white"
-                    stroke-width="50"
-                    stroke-linejoin="round"
-                    filter={`url(#${perimeterRoundingId})`}
-                >
-                    {#each entries as entry (entry.location.id)}
-                        <polygon
-                            transform={`translate(${entry.center.x} ${entry.center.y})`}
-                            points={entry.drawing.polygon}
-                        ></polygon>
-                    {/each}
-                </g>
-                <g fill="black">
-                    {#each entries as entry (entry.location.id)}
-                        <polygon
-                            transform={`translate(${entry.center.x} ${entry.center.y})`}
-                            points={entry.drawing.polygon}
-                        ></polygon>
-                    {/each}
-                </g>
-            </mask>
-        </defs>
-        <rect
-            {...scene.bounds}
-            mask={`url(#${sceneId})`}
-            fill="#24272b"
-            fill-opacity="0.45"
-            pointer-events="none"
-            data-map-layer="masked-perimeter"
-        ></rect>
     {/if}
     {#each entries as entry (entry.location.id)}
         {@const id = entry.location.id}
@@ -368,7 +321,7 @@
                                 x={point.x}
                                 y={point.y}
                                 text-anchor="middle"
-                                dominant-baseline="central"
+                                dy={CentredTextShift}
                                 font-size="5"
                                 fill="#52545b"
                                 paint-order="stroke"
@@ -481,12 +434,12 @@
                                 data-map-upgrade-label
                                 transform="translate(-30 0)"
                                 aria-label={`${overlayLabels.map((label) => label.label).join(' ')} upgrade location`}
-                                dominant-baseline="central"
                                 fill={appearance.ink}
                                 stroke="none"
                             >
                                 <text
                                     x="0"
+                                    dy={CentredTextShift}
                                     font-size={text.length > 2
                                         ? (font.longSize ?? font.size)
                                         : font.size}
@@ -504,7 +457,7 @@
                                 <text
                                     data-map-marker-notice={marker.id}
                                     y={NoticeY}
-                                    dominant-baseline="central"
+                                    dy={CentredTextShift}
                                     font-size={NoticeFontSize}
                                     font-weight="650"
                                     fill={appearance.ink}
@@ -531,7 +484,7 @@
                                 <text
                                     data-map-marker-label={marker.id}
                                     text-anchor="middle"
-                                    dominant-baseline="central"
+                                    dy={CentredTextShift}
                                     font-size="10"
                                     font-weight="750"
                                     fill={appearance.ink}>{marker.label}</text
@@ -577,7 +530,7 @@
                                     {/if}
                                     <text
                                         text-anchor="middle"
-                                        dominant-baseline="central"
+                                        dy={CentredTextShift}
                                         font-size="8"
                                         font-weight="800"
                                         fill={appearance.paper}>{annotation.label}</text
@@ -599,7 +552,7 @@
                                     ></rect>
                                     <text
                                         text-anchor="middle"
-                                        dominant-baseline="central"
+                                        dy={CentredTextShift}
                                         font-size="8"
                                         font-weight="800"
                                         stroke="none"
@@ -611,7 +564,7 @@
                                     data-map-revenue-caption={annotation.markerId}
                                     x={annotation.x}
                                     y={annotation.y}
-                                    dominant-baseline="central"
+                                    dy={CentredTextShift}
                                     font-size={CaptionFontSize}
                                     font-weight="700"
                                     ><title>{annotation.label}</title>{annotation.caption}</text
@@ -639,7 +592,7 @@
                                             x={text}
                                             y={annotation.y - 1.3}
                                             text-anchor="middle"
-                                            dominant-baseline="central"
+                                            dy={CentredTextShift}
                                             font-size="6.6"
                                             font-weight="800"
                                             fill={contrastingTextColor(
@@ -650,7 +603,7 @@
                                             x={text}
                                             y={annotation.y + 3.9}
                                             text-anchor="middle"
-                                            dominant-baseline="central"
+                                            dy={CentredTextShift}
                                             font-size="3.6"
                                             font-weight="800"
                                             letter-spacing="0.25"
@@ -938,7 +891,7 @@
                     ></rect>
                     <text
                         text-anchor="middle"
-                        dominant-baseline="central"
+                        dy={CentredTextShift}
                         font-size="7.5"
                         font-weight="800"
                         fill={appearance.paper}>{text}</text
@@ -973,7 +926,7 @@
                         ></rect>
                         <text
                             x="-15.5"
-                            dominant-baseline="central"
+                            dy={CentredTextShift}
                             font-size="6"
                             font-weight="850"
                             stroke="none"
@@ -1004,7 +957,7 @@
                         <text
                             x="-2"
                             text-anchor="end"
-                            dominant-baseline="central"
+                            dy={CentredTextShift}
                             font-size="8"
                             font-weight="850"
                             paint-order="stroke"

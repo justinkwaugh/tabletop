@@ -442,7 +442,8 @@ uppercase "Autorun" label, muted until any of the viewer's companies is on and t
 text color, and a token for each such company. A token that is off is muted and
 brightens on hover; a token that is on is at full strength with a green outline. Pressing an
 off token solves the company's best run from the published state and declares the instruction
-with it; pressing an on token cancels it. The token shows its new state the moment it is
+with it; pressing an on token cancels it. A stopped instruction is not running, so its token is off
+and pressing it declares afresh. The token shows its new state the moment it is
 pressed and keeps it until the declaration lands and its presentation settles, or reverts if
 the declaration fails; controls disable while the session is busy, which includes the solve,
 but keep their appearance.
@@ -450,13 +451,16 @@ No text accompanies a running instruction. Text follows the pill only for a prob
 that cannot prove the best run within a second declares nothing and shows "The best run could
 not be found in time." in the negative color, and a stopped instruction shows "<company>
 stopped: <reason>" in the muted color with an underlined "Keep going, ignore lower runs" or
-"Keep going, ignore lost trains" link when the reason can be ignored. A "?" after the pill
+"Keep going, ignore lost trains" link when the reason can be ignored, and an underlined "Dismiss"
+link that cancels the instruction. A "?" after the pill
 opens a panel above it: a sentence on what Autorun does, a definition of each optional stop
 ("Train loss": it loses a train; "Lower run": its run earns less than when you set it), a grid
 with one row per company (token and name) and one switch column per optional stop, headed
 "You choose" in its corner, and an "Always" list of the stops that cannot be switched off. A
-switch for a company that is on declares the change at once; one for a company that is off is
-kept locally and sent with its declaration. The row lists only the viewer's own companies and
+switch for a company with an instruction, running or stopped, declares the change at once, and a
+stopped token turns on only if the change ignores the stop that fired; a switch for a company with
+no instruction is kept locally and sent with its declaration. Cancelling keeps the instruction's
+choices locally for its next declaration. The row lists only the viewer's own companies and
 instructions; other players' instructions are never shown, a presentation rule over public
 Game State. Choices kept locally belong to the viewer who made them, and a failure message
 belongs to the position it was shown for. Nothing here is a staged selection: Undo and
@@ -1799,7 +1803,7 @@ follow-up actions, without affecting historical-map selection.
 
 Phase-dependent tile revenues display contiguous phase-colored value cells, arranged horizontally or vertically according to available tile space. Titles can supply stage colors for names that differ from tile colors. Fixed revenues retain their circular markers.
 
-While unavailable map spaces are masked, a matching translucent perimeter extends 25 map units (one quarter hex diameter) beyond the map shape. The union mask avoids overlapping dark seams, ignores pointer input, and sits below tile artwork and interaction outlines. Map bounds reserve this margin in every interaction mode so entering or leaving masking does not resize the map.
+Map bounds pad the map shape by 26 map units on every side in every interaction mode, so masking unavailable spaces never resizes the map. Only the unavailable spaces themselves are dimmed; nothing outside the map shape is drawn for masking.
 
 Action-selection button text uses regular weight, including nested labels and stock action choices.
 

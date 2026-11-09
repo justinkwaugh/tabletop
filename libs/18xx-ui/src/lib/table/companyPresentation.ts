@@ -45,6 +45,12 @@ export const DefaultCompanyPricePresentation: CompanyPricePresentation = {
     label: 'Value'
 }
 
+/** For titles whose shares always sell at the current price, with no par value. */
+export const NoParCompanyPricePresentation: CompanyPricePresentation = {
+    showPar: false,
+    label: 'Value'
+}
+
 export function companySharePrice(
     chart: StockMarketChart,
     market: StockMarket,

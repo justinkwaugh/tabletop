@@ -64,6 +64,7 @@ export { default as GameEnding } from './ending/GameEnding.svelte'
 export { default as GameTable } from './table/GameTable.svelte'
 export {
     companyNameVariants,
+    NoParCompanyPricePresentation,
     shortCompanyName,
     type CompanyNameVariants,
     type CompanyNaming,

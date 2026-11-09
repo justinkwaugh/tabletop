@@ -8,7 +8,6 @@ import {
 import type { Suit } from '../model/oathEnums.js'
 import { FAVOR_BANK_ORDER } from '../data/favorBanks.js'
 import { PowerChoiceKind } from './powerChoice.js'
-import type { WarbandOwner } from '../model/warbandCounts.js'
 import { ActionType } from '../definition/actions.js'
 import { powerInPlay } from './powersInPlay.js'
 import { choiceSpecsFor, effectFor, type EffectContext } from '../powers/registry.js'
@@ -449,11 +448,6 @@ export interface WoodBankOnArrival {
     banks: Suit[]
 }
 
-function soleWarbandOwner(owners: readonly WarbandOwner[]): WarbandOwner | undefined {
-    const distinct = new Set(owners)
-    return distinct.size === 1 ? owners[0] : undefined
-}
-
 /**
  * R-11.7, R-5.6.2 — the traveller pays and arrives, a facedown site is revealed, then the Travel's
  * after-travel modifiers fire (Tyrant, a declared Dragonskin Drum) and the sites' after-travel
@@ -500,7 +494,7 @@ export function settleWoodPick(
             supplySpent: spent,
             supplyRemaining: traveler.supply,
             notes: notes.length > 0 ? notes : undefined,
-            warbandOwner: soleWarbandOwner(after.warbandOwners),
+            warbandOwner: after.warbandOwner,
             ...(settle.chooserPlayerId ? { chooserPlayerId: settle.chooserPlayerId } : {}),
             ...(pricedBy.length > 0 ? { pricedBy } : {})
         },

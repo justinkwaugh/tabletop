@@ -3,18 +3,20 @@
         subject,
         reason,
         keepGoing,
+        dismiss,
         disabled
     }: {
         subject: string
         reason: string
         keepGoing?: { ignoring: string; resume: () => void }
+        dismiss?: () => void
         disabled: boolean
     } = $props()
 </script>
 
 {subject} stopped: {reason}{#if keepGoing}<button class="link" {disabled} onclick={keepGoing.resume}
         >Keep going, ignore {keepGoing.ignoring}</button
-    >{/if}
+    >{/if}{#if dismiss}<button class="link" {disabled} onclick={dismiss}>Dismiss</button>{/if}
 
 <style>
     .link {

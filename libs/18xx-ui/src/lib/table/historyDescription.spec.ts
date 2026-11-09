@@ -190,18 +190,18 @@ function startCompany(presidency?: PresidencyChange): StartCompany {
     }
 }
 
-it('names a started company’s par, with the shares and price beneath', () => {
+it('names a started company’s starting price, not a par some titles lack, with the shares and price beneath', () => {
     expect(historyDescription(startCompany(), historyStateFixture(), TestMarket)).toMatchObject({
-        text: 'Started R at $110 par',
+        text: 'Started R at $110',
         detail: '2 shares · $220'
     })
 })
 
-it('reads a started company’s par from its market space without recorded details', () => {
+it('reads a started company’s starting price from its market space without recorded details', () => {
     const start = startCompany()
     delete start.metadata
     expect(historyDescription(start, historyStateFixture(), TestMarket)).toMatchObject({
-        text: 'Started R at $110 par',
+        text: 'Started R at $110',
         detail: '$220'
     })
 })

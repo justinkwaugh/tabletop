@@ -145,6 +145,51 @@ describe('the History words: each row as the record says it, older records too',
                 'traveled to Great Slum, spending 2 Supply; flipped 1 secret; revealed Mine and 1 facedown relic'
             )
         })
+
+        it('Tyrant’s kill names whose warband it was, so only its piece takes that owner’s colour', () => {
+            const killed = (warbandOwner: string, viewerId?: string) => {
+                const travel = action({
+                    type: ActionType.Travel,
+                    playerId: 'p1',
+                    siteId: 'slot.cradle.0',
+                    metadata: {
+                        supplySpent: 2,
+                        supplyRemaining: 3,
+                        modifiers: [DRUM, 'denizen.order.tyrant (must)'],
+                        modifierNotes: [
+                            'Dragonskin Drum: gained 1 warband',
+                            'Tyrant killed a warband at slot.cradle.0'
+                        ],
+                        warbandOwner
+                    }
+                })
+                const text = describeAction(travel, names, viewerId)
+                const reader = { names, viewerId }
+                const owners = tokenParts(text, { warbands: true }).flatMap((part) =>
+                    part.kind === 'warband'
+                        ? [phraseWarbandOwner(part.whose, travel, reader, (id) => id)]
+                        : []
+                )
+                return { text, owners }
+            }
+
+            // R-10.13 — the Drum's gain stays the traveller's; the kill is the owner's.
+            expect(killed('p2')).toEqual({
+                text: "traveled to Great Slum, spending 2 Supply; gained 1 warband (Dragonskin Drum); killed 1 of Rhys's warbands at Great Slum (Tyrant)",
+                owners: ['p1', 'p2']
+            })
+            expect(killed('p2', 'p2')).toEqual({
+                text: 'traveled to Great Slum, spending 2 Supply; gained 1 warband (Dragonskin Drum); killed 1 of your warbands at Great Slum (Tyrant)',
+                owners: ['p1', 'p2']
+            })
+            expect(killed('imperial').text).toContain('killed 1 Imperial warband at Great Slum')
+            expect(killed('imperial').owners).toEqual(['p1', 'imperial'])
+            // The traveller's own: no owner words, the row's colour.
+            expect(killed('p1')).toEqual({
+                text: 'traveled to Great Slum, spending 2 Supply; gained 1 warband (Dragonskin Drum); killed 1 warband at Great Slum (Tyrant)',
+                owners: ['p1', 'p1']
+            })
+        })
     })
 
     describe('383 the Shrouded Wood', () => {

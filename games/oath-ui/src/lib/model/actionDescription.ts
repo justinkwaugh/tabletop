@@ -276,7 +276,7 @@ function recordedWarbandOwner(action: GameAction): WarbandOwner | undefined {
     }
     if (isCampaignDefeatKills(action)) return soleOwner(action.kills)
     if (isAnswerQuestion(action)) {
-        return action.metadata?.woodPick?.warbandOwner ?? action.metadata?.warbandGain?.owner
+        return action.metadata?.warbandGain?.owner
     }
     return undefined
 }
@@ -299,8 +299,9 @@ export function describeAction(
     if (chronicleWords !== undefined) return historyText(chronicleWords, names)
     // The row starts with this seat's chip, so a note about them needs no subject.
     const actorId = rowActorOf(action)
+    const killedOwner = isTravel(action) ? action.metadata?.warbandOwner : undefined
     const notes = recordedNotes(action).flatMap((note) => {
-        const clause = noteClause(note, actorId)
+        const clause = noteClause(note, actorId, killedOwner)
         return clause ? [clause] : []
     })
     const named = new Set(notes.flatMap((clause) => (clause.card ? [clause.card] : [])))
@@ -443,8 +444,12 @@ const SAYS_YOU = /\byour?\b/i
  * is the row's own player drops it; a note that names its card in another shape is reworded from
  * what it always means; an older note that says "you" is not shown.
  */
-function noteClause(note: string, actorId: string | undefined): NoteClause | undefined {
-    const deed = cardDeed(note, actorId)
+function noteClause(
+    note: string,
+    actorId: string | undefined,
+    killedOwner?: WarbandOwner
+): NoteClause | undefined {
+    const deed = cardDeed(note, actorId, killedOwner)
     if (!deed) return undefined
     return deed.card ? { text: `${deed.did} (${deed.card})`, card: deed.card } : { text: deed.did }
 }
@@ -458,16 +463,27 @@ export function cardNote(note: string): { card: string; text: string } | undefin
     return deed?.card === undefined ? undefined : { card: deed.card, text: deed.did }
 }
 
-/** What a note says was done, and the card that did it when it names one. */
+/**
+ * What a note says was done, and the card that did it when it names one. `killedOwner` is whose
+ * warband the row's Tyrant killed, when the record says.
+ */
 function cardDeed(
     note: string,
-    actorId: string | undefined
+    actorId: string | undefined,
+    killedOwner?: WarbandOwner
 ): { did: string; card?: string } | undefined {
     // R-4.2 — Special Envoy's end of the Act Phase is named after the Travel's cost.
     if (SPECIAL_ENVOY.test(note)) return undefined
-    // Tyrant kills one warband at the destination, the site the note names.
+    // Tyrant kills one warband at the destination, the site the note names. R-10.13 — its words
+    // name the owner, so its piece alone takes their colour; an older record leaves it the row's.
     const tyrant = TYRANT.exec(note)
-    if (tyrant) return { did: `killed 1 warband at ${tyrant[1]}`, card: 'Tyrant' }
+    if (tyrant) {
+        const killed =
+            killedOwner === undefined
+                ? '1 warband'
+                : warbandsOf(1, killedOwner, (id) => id, actorId)
+        return { did: `killed ${killed} at ${tyrant[1]}`, card: 'Tyrant' }
+    }
     // Awaited Return sacrifices from the trader's own board.
     if (AWAITED_RETURN.test(note)) return { did: 'sacrificed 1 warband', card: 'Awaited Return' }
     // Careless gains one favor or, from an empty bank or under Vow of Poverty, none.
@@ -1411,7 +1427,7 @@ function describeWoodPick(
     const tollClause = toll ? `; ${paidTollClause(toll)}` : ''
     const notes = (pick.notes ?? [])
         .flatMap((note) => {
-            const clause = noteClause(note, pick.travelerPlayerId)
+            const clause = noteClause(note, pick.travelerPlayerId, pick.warbandOwner)
             return clause ? [`; ${clause.text}`] : []
         })
         .join('')

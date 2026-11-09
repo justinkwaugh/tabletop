@@ -103,8 +103,16 @@
         if (together && picked.length > 1) {
             return 'Tap units to send only some.'
         }
-        return kind === CommandKind.Corps && picked.length < group.units.length
-            ? 'The units left out stay behind, detached.'
+        // Players lost track of the commander when units were left out, so the line says where he goes whatever the command.
+        if (!group.commander || picked.length === group.units.length) {
+            return undefined
+        }
+        const name = commanderDefinition(group.commander.id).name
+        if (kind === CommandKind.Corps) {
+            return `${name} goes along; the units left out stay behind, detached.`
+        }
+        return kind === CommandKind.Detach || kind === CommandKind.Unit
+            ? `${name} stays behind with the units left out.`
             : undefined
     })
 </script>

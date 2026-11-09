@@ -182,8 +182,11 @@ describe('Travel modifiers', () => {
 
     it('Tyrant is mandatory: kills a warband at the destination unasked, and cannot be declared', () => {
         const s = board([], [TYRANT])
-        travel('c2').apply(s)
+        const toC2 = travel('c2')
+        toC2.apply(s)
         expect(s.warbandsBySite.c2).toEqual({ other: 2, ruler: 1 })
+        // R-10.13 — the History colours the kill by whose warband it was, not the traveller's.
+        expect(toC2.metadata?.warbandOwner).toBe('other')
         expect(() => travel('c2', [modifierUse(TYRANT)]).apply(board([], [TYRANT]))).toThrow(
             /mandatory/
         )

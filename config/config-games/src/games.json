@@ -110,5 +110,9 @@
     {
         "gameId": "dicke-kartoffeln",
         "packageId": "dicke-kartoffeln"
+    },
+    {
+        "gameId": "medina",
+        "packageId": "medina"
     }
 ]

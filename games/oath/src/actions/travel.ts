@@ -28,6 +28,7 @@ import {
     holdTurnForFreeActionOutOfTurn
 } from '../util/sneakAttack.js'
 import { MachineState } from '../definition/states.js'
+import { WarbandOwner } from '../model/warbandCounts.js'
 import { pawnSiteId } from '../util/pawn.js'
 import { askQuestion } from '../util/questions.js'
 import { PowerQuestionKind } from '../model/question.js'
@@ -60,6 +61,8 @@ export const TravelMetadata = Type.Object({
     /** R-7.4 */
     modifiers: Type.Optional(Type.Array(Type.String())),
     modifierNotes: Type.Optional(Type.Array(Type.String())),
+    /** R-10.13 — whose warband Tyrant killed. */
+    warbandOwner: Type.Optional(WarbandOwner),
     /** R-4.2 (Special Envoy) */
     endsActPhase: Type.Optional(Type.Boolean()),
     /** R-7.1.4 */
@@ -190,6 +193,7 @@ export class HydratedTravel extends HydratableAction<typeof Travel> implements T
                 after.notes.length + persistent.length > 0
                     ? [...after.notes, ...persistent]
                     : undefined,
+            warbandOwner: after.warbandOwner,
             // Like Martial Culture's, an "end your Act Phase" ends nothing for a traveller out of turn.
             endsActPhase: (after.endsActPhase && !outOfTurn) || undefined,
             tollsPaid: tollNotes.length > 0 ? tollNotes : undefined,

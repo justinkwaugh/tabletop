@@ -9,9 +9,11 @@ import {
     type PiecePlacement
 } from '@tabletop/napoleons-triumph/testing'
 import {
+    ATTACH,
     moveCommandOptions,
     moveOrder,
     reinforcementsOf,
+    resolveCommand,
     rideOnOrder,
     type CommandedGroup
 } from './moveCommands.js'
@@ -34,37 +36,35 @@ function idsOf(group: CommandedGroup): string[] {
 describe('the commands a picked-up group may be given', () => {
     it('is the Corps Move alone for a whole corps', () => {
         const { state, playerId, corps } = alliedTurn()
-        expect(moveCommandOptions(state, playerId, corps, idsOf(corps), true)).toEqual([
+        expect(moveCommandOptions(state, playerId, corps, idsOf(corps))).toEqual([
             CommandKind.Corps
         ])
     })
 
-    it('leads with the Unit Move once one unit is chosen, the Corps Move still on offer', () => {
+    it('still leads with the Corps Move once one unit is chosen, the Detach and Unit Moves on offer', () => {
         const { state, playerId, corps } = alliedTurn()
         const [one] = idsOf(corps)
-        expect(moveCommandOptions(state, playerId, corps, [one], false)).toEqual([
-            CommandKind.Unit,
+        expect(moveCommandOptions(state, playerId, corps, [one])).toEqual([
+            CommandKind.Corps,
             CommandKind.Detach,
-            CommandKind.Corps
+            CommandKind.Unit
         ])
     })
 
     it('has no Unit Move for several units', () => {
         const { state, playerId, corps } = alliedTurn()
         const some = idsOf(corps).slice(0, 2)
-        expect(moveCommandOptions(state, playerId, corps, some, false)).toEqual([
-            CommandKind.Detach,
-            CommandKind.Corps
+        expect(moveCommandOptions(state, playerId, corps, some)).toEqual([
+            CommandKind.Corps,
+            CommandKind.Detach
         ])
     })
 
     it('is the Unit Move alone for a detached unit, and nothing with no unit picked', () => {
         const { state, playerId, corps } = alliedTurn()
         const loose: CommandedGroup = { units: corps.units.slice(0, 1) }
-        expect(moveCommandOptions(state, playerId, loose, idsOf(loose), false)).toEqual([
-            CommandKind.Unit
-        ])
-        expect(moveCommandOptions(state, playerId, corps, [], true)).toEqual([])
+        expect(moveCommandOptions(state, playerId, loose, idsOf(loose))).toEqual([CommandKind.Unit])
+        expect(moveCommandOptions(state, playerId, corps, [])).toEqual([])
     })
 
     it('leaves only the Unit Move once the commander has commanded', () => {
@@ -78,8 +78,8 @@ describe('the commands a picked-up group may be given', () => {
             units: state.corpsUnits('langeron')
         }
         const [one] = idsOf(corps)
-        expect(moveCommandOptions(state, playerId, corps, idsOf(corps), true)).toEqual([])
-        expect(moveCommandOptions(state, playerId, corps, [one], false)).toEqual([CommandKind.Unit])
+        expect(moveCommandOptions(state, playerId, corps, idsOf(corps))).toEqual([])
+        expect(moveCommandOptions(state, playerId, corps, [one])).toEqual([CommandKind.Unit])
     })
 })
 
@@ -117,13 +117,7 @@ describe('two artillery units on a wide approach', () => {
     it('are given no command together before a threat: they are named together when the attack is declared', () => {
         const detached = french([battery('F-a1', WIDE_INTO), battery('F-a2', WIDE_INTO)])
         expect(
-            moveCommandOptions(
-                detached.state,
-                detached.playerId,
-                detached.group,
-                ['F-a1', 'F-a2'],
-                false
-            )
+            moveCommandOptions(detached.state, detached.playerId, detached.group, ['F-a1', 'F-a2'])
         ).toEqual([])
 
         const inACorps = french([
@@ -139,14 +133,8 @@ describe('two artillery units on a wide approach', () => {
             }
         ])
         expect(
-            moveCommandOptions(
-                inACorps.state,
-                inACorps.playerId,
-                inACorps.group,
-                ['F-a1', 'F-a2'],
-                false
-            )
-        ).toEqual([CommandKind.Detach, CommandKind.Corps])
+            moveCommandOptions(inACorps.state, inACorps.playerId, inACorps.group, ['F-a1', 'F-a2'])
+        ).toEqual([CommandKind.Corps, CommandKind.Detach])
     })
 })
 
@@ -222,9 +210,29 @@ describe('corps that can be brought on', () => {
         )
         assertExists(leftBehind, 'Expected the units left behind to be offered')
         expect(leftBehind.units.map((unit) => unit.id).toSorted()).toEqual(rest.toSorted())
-        expect(moveCommandOptions(state, french, leftBehind, [rest[0]], false)).toEqual([
-            CommandKind.Unit
-        ])
-        expect(moveCommandOptions(state, french, leftBehind, rest, true)).toEqual([])
+        expect(moveCommandOptions(state, french, leftBehind, [rest[0]])).toEqual([CommandKind.Unit])
+        expect(moveCommandOptions(state, french, leftBehind, rest)).toEqual([])
+    })
+})
+
+describe('the command in force', () => {
+    it('is the one chosen while it is on offer, and the first on offer with none chosen', () => {
+        const offered = [CommandKind.Corps, CommandKind.Detach, CommandKind.Unit]
+        expect(resolveCommand(CommandKind.Unit, offered)).toBe(CommandKind.Unit)
+        expect(resolveCommand(undefined, offered)).toBe(CommandKind.Corps)
+    })
+
+    it('leaves the commander behind still when a command chosen to leave him is no longer on offer', () => {
+        expect(resolveCommand(CommandKind.Unit, [CommandKind.Corps, CommandKind.Detach])).toBe(
+            CommandKind.Detach
+        )
+        expect(resolveCommand(CommandKind.Detach, [CommandKind.Unit])).toBe(CommandKind.Unit)
+    })
+
+    it('falls back to the first on offer when nothing on offer leaves the commander behind', () => {
+        expect(resolveCommand(CommandKind.Unit, [CommandKind.Corps])).toBe(CommandKind.Corps)
+        expect(resolveCommand(ATTACH, [CommandKind.Corps, CommandKind.Detach])).toBe(
+            CommandKind.Corps
+        )
     })
 })

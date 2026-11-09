@@ -23,7 +23,15 @@ post but could not reach the reporter says so; `notify` sends the message again.
 
 ## 1. Read
 
-Run `check`, then `list`, or take the post the user named. When `list` shows more than one post
+A new worktree cannot email yet: reporters without a linked Discord account are told by an email
+rendered from `libs/email`, which needs installing and building first. Before anything else run
+
+```bash
+pnpm install --frozen-lockfile --filter @tabletop/bug-reports... && pnpm --filter @tabletop/email... build
+```
+
+Then run `check`, and fix every `WARN` before sending a milestone; `template ok` says email
+works. Then `list`, or take the post the user named. When `list` shows more than one post
 to work, keep one and give each of the rest its own thread, so they run in parallel:
 
 1. Find the posts that already have a thread: `t3_thread_search` for the post id. Those stay

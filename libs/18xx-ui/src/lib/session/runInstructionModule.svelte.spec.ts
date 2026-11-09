@@ -127,6 +127,55 @@ describe('Run instruction module', () => {
         expect(isSetRunInstruction(cancel) && cancel.instruction).toBeUndefined()
     })
 
+    it('shows a stopped instruction as off, with its stop notice', () => {
+        const { runs } = module(instructionState([standing('must-buy-train')]))
+        expect(runs.isOn('IR')).toBe(false)
+        expect(runs.anyOn).toBe(false)
+        expect(runs.stopped.map((declared) => declared.companyId)).toEqual(['IR'])
+    })
+
+    it('restarts a stopped instruction with one press, keeping its ignored stops', async () => {
+        const stopped = { ...standing('must-buy-train'), ignoredStops: ['run-lowered' as const] }
+        const { runs, applied } = module(instructionState([stopped]))
+        const pressed = runs.declare('IR')
+        expect(runs.isOn('IR')).toBe(true)
+        expect(runs.stopped).toEqual([])
+        await pressed
+        const [declaration] = applied
+        expect(isSetRunInstruction(declaration) && declaration.instruction?.ignoredStops).toEqual([
+            'run-lowered'
+        ])
+    })
+
+    it('keeps a stopped instruction off when a change of stops leaves it stopped', async () => {
+        const { runs } = module(instructionState([standing('must-buy-train')]))
+        const toggled = runs.toggleIgnoredStop('IR', 'train-lost')
+        expect(runs.isOn('IR')).toBe(false)
+        expect(runs.stopped.map((declared) => declared.companyId)).toEqual(['IR'])
+        await toggled
+    })
+
+    it('shows a stopped instruction on when a change of stops ignores its stop', async () => {
+        const { runs } = module(instructionState([standing('run-lowered')]))
+        const toggled = runs.toggleIgnoredStop('IR', 'run-lowered')
+        expect(runs.isOn('IR')).toBe(true)
+        expect(runs.stopped).toEqual([])
+        await toggled
+    })
+
+    it('keeps a cancelled instruction’s ignored stops for its next declaration', async () => {
+        const stopped = { ...standing('must-buy-train'), ignoredStops: ['run-lowered' as const] }
+        const { runs, applied, session } = module(instructionState([stopped]))
+        await runs.cancel('IR')
+        Object.assign(session, { state: instructionState() })
+        expect(runs.ignoredStops('IR')).toEqual(['run-lowered'])
+        await runs.declare('IR')
+        const declaration = applied[1]
+        expect(isSetRunInstruction(declaration) && declaration.instruction?.ignoredStops).toEqual([
+            'run-lowered'
+        ])
+    })
+
     it('names the declaration a cancel replaces, so toggling does not grow history', async () => {
         const { runs, applied } = module(instructionState([standing()]), { supersedes: 'on' })
         await runs.cancel('IR')

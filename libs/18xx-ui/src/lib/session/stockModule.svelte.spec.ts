@@ -201,11 +201,18 @@ describe('StockModule', () => {
         expect(module.awaitingStartHome).toBe(true)
         expect(module.homePositions).toEqual(homes)
         expect(() => module.chooseHome({ locationId: 'C1', nodeId: 'city' })).toThrow()
+        expect(module.chosenHome).toBeUndefined()
         module.chooseHome({ locationId: 'A1', nodeId: 'city' })
+        expect(module.chosenHome).toEqual({
+            companyId: TestCompanyId,
+            locationId: 'A1',
+            nodeId: 'city'
+        })
         expect(module.awaitingStartHome).toBe(false)
         expect(module.homePositions).toEqual([])
         expect(module.selectedStartHomeChoice).toEqual(homes[0])
         expect(module.undo()).toBe(true)
+        expect(module.chosenHome).toBeUndefined()
         expect(module.awaitingStartHome).toBe(true)
         module.chooseHome({ locationId: 'B1', nodeId: 'city' })
         module.selectStartPrice('0:1')

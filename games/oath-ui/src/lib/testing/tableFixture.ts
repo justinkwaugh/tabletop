@@ -102,6 +102,7 @@ import { searchFullSiteTable } from './searchFullSiteTable.js'
 import { useOnEveryCardTable } from './useOnEveryCardTables.js'
 import { zoomPagingSearchTable } from './zoomPagingTables.js'
 import { greatSlumPowers } from './greatSlumPowersTable.js'
+import { fullSiteSearch } from './fullSiteSearchTable.js'
 import { facedownPickerTable } from './facedownPickerTables.js'
 import { RELIC_HUNTER, campaignSteps } from './campaignStepsTable.js'
 import { campaignLedgerTable } from './campaignLedgerTable.js'
@@ -373,6 +374,7 @@ export type TableName =
     | 'landWardenSecondAdviser'
     | 'landWardenVisionKept'
     | 'greatSlumPowers'
+    | 'fullSiteSearch'
     | 'facedownDreamThief'
     | 'facedownDreamThiefSecond'
     | 'facedownInquisitor'
@@ -5963,6 +5965,9 @@ const TABLES: Record<TableName, () => PlayedTable | Promise<PlayedTable>> = {
     landWardenVisionKept,
     // R-7.1.1 — Dana at the full Great Slum with Homesteaders, Longbows and the Horned Mask: a tall Use a power step.
     greatSlumPowers,
+    // R-5.1.4.II, R-11.10 — Dana searched at the full Great Slum with a full adviser row: Wrestlers, Twin Brother
+    // and the Relic Breaker drawn.
+    fullSiteSearch: () => fullSiteSearch(),
     // R-9.4 — Dana's facedown adviser picks: Dream Thief (first, or second among the advisers),
     // Inquisitor (all at the Plains), the Ivory Eye.
     facedownDreamThief: () => facedownPickerTable('dreamThief'),
@@ -6173,6 +6178,14 @@ export async function leaveHistory(): Promise<void> {
 export function viewOffTheClock(): string | undefined {
     const table = current()
     table.setViewingAsNonActivePlayer(true)
+    return table.myPlayer?.id
+}
+
+/** Hotseat — back to the seat on the clock after `viewOffTheClock`. */
+export async function viewOnTheClock(): Promise<string | undefined> {
+    const table = current()
+    table.setViewingAsNonActivePlayer(false)
+    await settled()
     return table.myPlayer?.id
 }
 

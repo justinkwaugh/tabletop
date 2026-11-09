@@ -3,6 +3,7 @@
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import AuctionBidControl from '../auctions/AuctionBidControl.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
+    import PlaceLink from '../places/PlaceLink.svelte'
 
     let { session }: { session: EighteenXXSessionView } = $props()
     const money = $derived(session.presentation.money)
@@ -11,7 +12,6 @@
     const companyId = $derived(auction.selectedCompanyId)
     const home = $derived(auction.selectedHome)
     const amount = $derived(auction.openingAmount)
-    const homeName = $derived(home ? session.placeName(home.locationId) : undefined)
     const allowed = (value: number) => auction.canOpen && !auction.openingReason(value)
 </script>
 
@@ -34,8 +34,8 @@
         <div class="turn">
             <p>
                 <strong>{session.companyName(companyId)}</strong>
-                {#if homeName}· Home {homeName}{:else}· Choose a highlighted city on the map for its
-                    home{/if}
+                {#if home}· Home <PlaceLink locationId={home.locationId} />{:else}· Choose a
+                    highlighted city on the map for its home{/if}
             </p>
             {#if home && amount !== undefined}
                 <AuctionBidControl

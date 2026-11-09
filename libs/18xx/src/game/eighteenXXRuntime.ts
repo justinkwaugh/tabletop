@@ -668,6 +668,7 @@ export function createEighteenXXRuntime<
         playerColors: EighteenXXInitializer.playerColors,
         randomnessVersion: 1,
         scoring: {
+            tiebreakRule: FinalWealthScoring.tiebreakRule,
             finalScores: (state) =>
                 FinalWealthScoring.finalScores(stateDefinition.hydrate(state, components))
         },

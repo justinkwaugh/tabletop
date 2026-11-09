@@ -124,11 +124,57 @@ const PLACEMENTS: (SearchPlacement & { label: string })[] = [
 const lowerFirst = (label: string) => label.charAt(0).toLowerCase() + label.slice(1)
 const SECOND_VISION_MODE = lowerFirst(PLAY_LABELS[SearchPlay.RevealedVision])
 
+/** One read's values for one draft state, by the read's own key ('' for a getter that takes none). */
+class MemoStore<T> {
+    private readonly values = new Map<string, { value: T }>()
+
+    read(key: string, work: () => T): T {
+        const kept = this.values.get(key)
+        if (kept !== undefined) return kept.value
+        const value = work()
+        this.values.set(key, { value })
+        return value
+    }
+
+    clear(): void {
+        this.values.clear()
+    }
+}
+
 /** R-5.1.2 to R-5.1.5 — the kept card, how it is played, and the order the rest are discarded in. */
 export class SearchDraft implements PanelDraft {
     private flow = new StagedFlow<SearchValueByStage>(SEARCH_STAGE_ORDER)
 
     constructor(private readonly session: OathGameSession) {}
+
+    // Each read below works site plays out through the engine, and the panel makes many reads per tap, so each
+    // is worked out once per draft state: the game state, the seat the draft is for, its site and the picks so
+    // far. A pick, Undo or reset gives the picks a new identity, as a new state from the server gives the game
+    // state one, so any of them starts the reads afresh.
+    private memoKey: readonly unknown[] = []
+    private readonly memo = {
+        placements: new MemoStore<SearchPlacementOption[]>(),
+        chosenOption: new MemoStore<SearchPlacementOption | undefined>(),
+        secondPlays: new MemoStore<SecondPlay[]>(),
+        otherSites: new MemoStore<string[]>(),
+        sitePlayCanOpen: new MemoStore<boolean>(),
+        discardFirstRow: new MemoStore<DiscardFirstRow>(),
+        placementOption: new MemoStore<JudgedPlacement>()
+    }
+
+    private memoized<T>(store: MemoStore<T>, key: string, work: () => T): T {
+        const draftState = [
+            this.session.gameState,
+            this.playerId,
+            this.session.myPlayerState?.siteId,
+            this.flow.stages
+        ]
+        if (draftState.some((part, i) => part !== this.memoKey[i])) {
+            for (const each of Object.values(this.memo)) each.clear()
+            this.memoKey = draftState
+        }
+        return store.read(key, work)
+    }
 
     private get playerId(): string | undefined {
         return this.session.gameState.machineState === MachineState.Searching
@@ -206,6 +252,10 @@ export class SearchDraft implements PanelDraft {
     // R-7.3.3 — a placement is judged apart from its When Played choices, which are asked after
     // it; at the limit it is open when some adviser could make room (R-5.1.4.II).
     get placements(): SearchPlacementOption[] {
+        return this.memoized(this.memo.placements, '', () => this.workOutPlacements())
+    }
+
+    private workOutPlacements(): SearchPlacementOption[] {
         const cardId = this.kept
         const playerId = this.playerId
         if (!cardId || !playerId) return []
@@ -248,9 +298,11 @@ export class SearchDraft implements PanelDraft {
     }
 
     private get chosenOption(): SearchPlacementOption | undefined {
-        const chosen = this.flow.value('placement')
-        if (chosen === undefined || this.placementReason !== undefined) return undefined
-        return this.placements.find((o) => this.samePlacement(o, chosen))
+        return this.memoized(this.memo.chosenOption, '', () => {
+            const chosen = this.flow.value('placement')
+            if (chosen === undefined || this.placementReason !== undefined) return undefined
+            return this.placements.find((o) => this.samePlacement(o, chosen))
+        })
     }
 
     /**
@@ -513,10 +565,15 @@ export class SearchDraft implements PanelDraft {
         )
     }
 
+    // Without Land Warden no second card is played, so none is judged.
     get secondPlays(): SecondPlay[] {
+        return this.memoized(this.memo.secondPlays, '', () => this.workOutSecondPlays())
+    }
+
+    private workOutSecondPlays(): SecondPlay[] {
         const kept = this.kept
         const playerId = this.playerId
-        if (!kept || !playerId) return []
+        if (!kept || !playerId || !this.secondAllowed) return []
         return this.drawn
             .filter((id) => id !== kept)
             .flatMap((cardId) => [
@@ -595,11 +652,13 @@ export class SearchDraft implements PanelDraft {
 
     /** R-11.10, Crop Rotation, R-5.1.4.I — the play to `toSiteId` opens with no card first, or with some. */
     private sitePlayCanOpen(toSiteId: string | undefined): boolean {
-        const playerId = this.playerId
-        if (!playerId) return false
-        return opensWithSomeFirsts(this.discardFirstReachFor(playerId, toSiteId), (firsts) =>
-            this.sitePlayOpen(toSiteId, firsts)
-        )
+        return this.memoized(this.memo.sitePlayCanOpen, toSiteId ?? '', () => {
+            const playerId = this.playerId
+            if (!playerId) return false
+            return opensWithSomeFirsts(this.discardFirstReachFor(playerId, toSiteId), (firsts) =>
+                this.sitePlayOpen(toSiteId, firsts)
+            )
+        })
     }
 
     /** The cards the "Discard first" row judges for a play to `toSiteId`, with the Search's carried modifiers. */
@@ -614,13 +673,15 @@ export class SearchDraft implements PanelDraft {
     // R-11.10 the Great Slum, R-5.1.4.I the People's Favor, Crop Rotation — the denizens discarded before a
     // site play, one per power that gives one, offered wherever the engine accepts them for the site played to.
     private discardFirstRowFor(target: string | undefined): DiscardFirstRow {
-        const playerId = this.playerId
-        if (!playerId || !this.kept) return { offered: [], picked: [], several: false }
-        return discardFirstRow(
-            this.discardFirstReachFor(playerId, target),
-            this.extras.discardFirsts ?? [],
-            (firsts) => this.sitePlayOpen(target, firsts)
-        )
+        return this.memoized(this.memo.discardFirstRow, target ?? '', () => {
+            const playerId = this.playerId
+            if (!playerId || !this.kept) return { offered: [], picked: [], several: false }
+            return discardFirstRow(
+                this.discardFirstReachFor(playerId, target),
+                this.extras.discardFirsts ?? [],
+                (firsts) => this.sitePlayOpen(target, firsts)
+            )
+        })
     }
 
     private get discardFirstPicks(): DiscardFirstRow {
@@ -645,11 +706,12 @@ export class SearchDraft implements PanelDraft {
     // R-5.1.4.I the People's Favor, New Growth — another site to play to, counting a site a
     // discard there would open.
     get otherSites(): string[] {
-        const here = this.session.myPlayerState?.siteId
-        const state = this.session.gameState
-        return state
-            .allSiteIds()
-            .filter((siteId) => siteId !== here && this.sitePlayCanOpen(siteId))
+        return this.memoized(this.memo.otherSites, '', () => {
+            const here = this.session.myPlayerState?.siteId
+            return this.session.gameState
+                .allSiteIds()
+                .filter((siteId) => siteId !== here && this.sitePlayCanOpen(siteId))
+        })
     }
 
     get toSite(): string | undefined {
@@ -823,6 +885,18 @@ export class SearchDraft implements PanelDraft {
     // R-5.1.4.I, R-11.10 — a site play refused at the player's own site is open when another site
     // or a card discarded first opens it, as for a facedown adviser's play (`adviserPlacements`).
     private placementOption(
+        playerId: string,
+        cardId: string,
+        option: SearchPlacement & { label: string }
+    ): JudgedPlacement {
+        return this.memoized(
+            this.memo.placementOption,
+            `${playerId}|${cardId}|${option.play}|${option.faceUp ?? ''}`,
+            () => this.judgePlacement(playerId, cardId, option)
+        )
+    }
+
+    private judgePlacement(
         playerId: string,
         cardId: string,
         option: SearchPlacement & { label: string }

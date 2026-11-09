@@ -7,7 +7,9 @@ import {
     Game,
     GameDefinition,
     TournamentDetail,
-    rankedTiebreak,
+    formatTournamentTiebreaks,
+    ranksByAveragePlace,
+    formatTournamentAveragePlace,
     tournamentTiebreakDescription,
     User
 } from '@tabletop/common'
@@ -206,6 +208,8 @@ export class ResendEmailService implements EmailService {
             return
         }
         const name = (userId: string) => detail.usernames[userId] ?? 'A Player'
+        const ranked = standings.filter((row) => !row.withdrawn)
+        const tiebreaks = formatTournamentTiebreaks(ranked, 'en-US')
         const { render, templates } = await this.loadRendering()
         const emailHTML = await render(
             templates.TournamentResults({
@@ -213,17 +217,17 @@ export class ResendEmailService implements EmailService {
                 title: definition.info.metadata.name,
                 winners: standings.filter((row) => row.champion).map((row) => name(row.userId)),
                 tiebreakDescription: tournamentTiebreakDescription(standings),
-                standings: standings
-                    .filter((row) => !row.withdrawn)
-                    .map((row) => ({
-                        rank: row.rank,
-                        name: name(row.playedBy ?? row.userId),
-                        wins: row.wins,
-                        score: row.score,
-                        tiebreak: rankedTiebreak(row),
-                        recipient: (row.playedBy ?? row.userId) === recipientId,
-                        champion: row.champion === true
-                    })),
+                ranksByAveragePlace: ranksByAveragePlace(detail.tournament.rules),
+                standings: ranked.map((row, index) => ({
+                    rank: row.rank,
+                    name: name(row.playedBy ?? row.userId),
+                    wins: row.wins,
+                    score: row.score,
+                    averagePlace: formatTournamentAveragePlace(row),
+                    tiebreak: tiebreaks[index],
+                    recipient: (row.playedBy ?? row.userId) === recipientId,
+                    champion: row.champion === true
+                })),
                 url
             })
         )

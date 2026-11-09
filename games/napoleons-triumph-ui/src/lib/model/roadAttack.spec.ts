@@ -14,6 +14,7 @@ import {
     StageKind,
     emptyBattleSelections,
     nameAttackers,
+    setAttackCommand,
     setAttackRide,
     type BattleSelections
 } from './battleSelection.js'
@@ -82,6 +83,60 @@ describe('following up a retreat with cavalry', () => {
         const stage = stageOf(screened(foot))
         expect(stage).toMatchObject({ kind: StageKind.Occupation, mayMoveIn: true })
         expect(stage).not.toHaveProperty('roadOrders', expect.anything())
+    })
+})
+
+describe('riding in by road after a retreat, under the command chosen', () => {
+    const trooper = (id: string): PiecePlacement => ({
+        id,
+        side: Side.French,
+        face: cavalry(2),
+        locale: NEAR,
+        commanderId: 'murat'
+    })
+
+    function detachedAfterRetreat(): TestGame {
+        const game = new TestGame()
+        game.deployBoth()
+        game.act(ActionType.EndTurn, game.playerOf(Side.Allied))
+        arrangeBattlefield(game, [
+            trooper('F-c1'),
+            trooper('F-c2'),
+            { id: 'A-screen', side: Side.Allied, face: cavalry(1), locale: TAKEN }
+        ])
+        game.act(ActionType.ThreatenAttack, game.playerOf(Side.French), {
+            approach: game.hydrated.map.approachBetween(NEAR, TAKEN).id,
+            plan: { kind: CommandKind.Detach, commanderId: 'murat', unitIds: ['F-c1'] }
+        })
+        game.act(ActionType.Retreat, game.playerOf(Side.Allied), {
+            losses: {},
+            destinations: { 'A-screen': 72 },
+            kept: {}
+        })
+        return game
+    }
+
+    it('offers no ride under a Detach Move, which cannot go by road, but names the commands that can', () => {
+        const stage = stageOf(detachedAfterRetreat())
+        expect(stage).toMatchObject({
+            kind: StageKind.Occupation,
+            attackers: ['F-c1'],
+            command: CommandKind.Detach,
+            mayMoveIn: true,
+            roadCommands: [CommandKind.Unit, CommandKind.Corps]
+        })
+        expect(stage).not.toHaveProperty('roadOrders', expect.anything())
+    })
+
+    it('rides in by the command chosen, never another', () => {
+        const game = detachedAfterRetreat()
+        const corps = {
+            ...emptyBattleSelections(),
+            attackers: setAttackCommand(emptyBattleSelections().attackers, CommandKind.Corps)
+        }
+        expect(stageOf(game, corps)).toHaveProperty('roadOrders', [
+            { kind: CommandKind.Corps, commanderId: 'murat', unitIds: ['F-c1'], road: [] }
+        ])
     })
 })
 
