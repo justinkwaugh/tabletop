@@ -491,10 +491,11 @@ stay in 1832.
   side has none.
 - Yielding: the proposer chooses the merger type and whether to yield; the other president
   agrees or refuses. A refusal bars that pairing, type and yield for the rest of the phase.
-- A takeover's buyer's president is paid for their own shares as they contribute, funding only
-  the difference. Funding sales may not change the buyer's presidency, close the buyer, sell
-  more shares of a company than the shortfall needs, or leave the rest unraisable. Unsold
-  shares bought at par pay the bank.
+- A takeover's buyer's president contributes everything the buyer's treasury lacks before the
+  buyer pays anyone, their own shares of the target included; the payment for those shares
+  does not count toward the contribution (user's ruling, 2026-11-09). Funding sales may not
+  change the buyer's presidency, close the buyer, sell more shares of a company than the
+  shortfall needs, or leave the rest unraisable. Unsold shares bought at par pay the bank.
 - A System's half dividend, like a 10-share company's, leaves the company the revenue less
   each share's half rounded up; each holding is still paid its own rounding (§11.6.4).
 - A component's reissue carries over to its System, whose unsold shares then pay it.

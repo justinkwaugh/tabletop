@@ -879,8 +879,9 @@ presidency, then the partner, then the company), choosing a company or partner a
 the stages after it, choosing one's own presidency clears that stage, and every new state
 clears them all. Pass ends their proposals. The partner's president sees the proposal with Agree and Refuse.
 A buyer's president short of a takeover's price sees, centred, "<buyer> takes over
-<target>", a breakdown (the target's shares, less the buyer's treasury, their cash and what
-their own target shares are paid, to the amount still to raise), the sales made so far, and
+<target>", a breakdown (the target's shares, less the buyer's treasury and their cash, to
+the amount still to raise), a note of what the buyer pays them for their own target shares
+once the takeover is funded, the sales made so far, and
 a card per company with each sale they may make, capped at what the rest needs, and a buyer over its train limit sees, centred, "<company>
 discards <n> trains" with its limit and that discards go to the open market, a train badge
 per kind of train with its count, and Discard once a kind is chosen (a manual stage that

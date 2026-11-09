@@ -11,6 +11,7 @@ import { playExample, type ExamplePlay } from '@tabletop/18xx/scenarios'
 import {
     EighteenThirtyTwoTileSet,
     isAnswerMerger,
+    isCompleteTakeover,
     isCompleteMergerPhase,
     mergerDecision,
     EighteenThirtyTwoStationRules,
@@ -18,6 +19,7 @@ import {
     mergerOptions,
     takeoverPayments,
     takeoverSales,
+    takeoverShortfall,
     type EighteenThirtyTwoState
 } from './index.js'
 import { addUnstartedRailroads, EighteenThirtyTwoScenarios } from './scenarios/index.js'
@@ -193,8 +195,9 @@ describe('merger phase', () => {
     })
 
     it('has the buyer’s president sell shares to raise a takeover’s price', () => {
-        // ACL's $600, Alex's $50 and the $300 for Alex's own CG shares leave $50 to raise.
-        const play = mergerPhase((state) => setCash(state, 'alex', 50))
+        // ACL's $600 and Alex's $350 leave $50 of the $1000 to raise. ACL pays Alex $300 for
+        // their own CG shares only after the takeover is funded.
+        const play = mergerPhase((state) => setCash(state, 'alex', 350))
         while (proposer(play) !== 'alex') play.act('PassMerger', {}, proposer(play))
         play.act('ProposeMerger', takeover, 'alex')
         play.act('AnswerMerger', { accept: true }, 'blair')
@@ -217,6 +220,24 @@ describe('merger phase', () => {
         expect(getCompany(play.state, 'CG').closed).toBe(true)
         expect(getCompany(play.state, 'ACL').president).toEqual(player('alex'))
         expect(play.state.mergerPhase).toBeUndefined()
+        const payments = play.processed.find(isCompleteTakeover)?.metadata?.payments ?? []
+        const acl = { kind: 'company', companyId: 'ACL' }
+        expect(payments[0]).toEqual({ from: player('alex'), to: acl, amount: 400 })
+        expect(payments).toContainEqual({ from: acl, to: player('alex'), amount: 300 })
+        expect(
+            payments
+                .filter((payment) => payment.from.kind === 'company')
+                .reduce((sum, payment) => sum + payment.amount, 0)
+        ).toBe(1000)
+    })
+
+    it('does not count the president’s own target shares toward their contribution', () => {
+        // ACL's $600 and Alex's $50 leave $350 to raise, which Alex's sellable shares cannot,
+        // though the $300 ACL would pay for Alex's CG shares would nearly cover it.
+        const play = mergerPhase((state) => setCash(state, 'alex', 50))
+        while (proposer(play) !== 'alex') play.act('PassMerger', {}, proposer(play))
+        expect(takeoverShortfall(play.state, 'ACL', 'CG', 'alex')).toBe(350)
+        expect(mergerOptions(play.state, 'alex')).not.toContainEqual(takeover)
     })
 
     it('lets the proposer yield, so the partner’s company buys', () => {
