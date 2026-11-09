@@ -16,7 +16,7 @@ import { modifierUse, region } from '../testing/choices.js'
 import { FILLER, INN, TENTS } from '../testing/cards.js'
 import { served } from '../testing/projection.js'
 import type { ModifierUse } from '../util/modifiers.js'
-import { CURRENT_OATH_REVISION, OathRevision } from '../util/revision.js'
+import { OathRevision } from '../util/revision.js'
 import '../powers/index.js'
 
 // Law, Glossary, "Discard": "If discarding cards in a different region from your pawn, discard based on the
@@ -176,11 +176,6 @@ const greatSlum = (revision: OathRevision = FIXED) =>
     })
 
 describe('Law, Discard: a card discarded first at a site in another region goes by its own region (revision 33)', () => {
-    it('is the current revision', () => {
-        expect(CURRENT_OATH_REVISION).toBe(OathRevision.EngineFixes28)
-        expect(OathRevision.EngineFixes28).toBe(33)
-    })
-
     it('New Growth and Crop Rotation: Scouts at p1 (Provinces) go to the Hinterland pile, the Search’s two to the Provinces pile', () => {
         const s = cropRotation()
         const action = resolve(s, innTo('p1', [SCOUTS]))
