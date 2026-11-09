@@ -20,6 +20,8 @@ An effect is anything WebKit draws offscreen: an SVG `filter`, a CSS `filter` or
 
 A filter that is piece-sized, still, and used on a handful of pieces is fine.
 
+On a board drawn with `renderAtViewScale`, a board-sized effect costs a screen-sized bitmap rather than a layout-sized one, so measure it before rewriting it: the 18xx map's board-sized track-join and route masks cost nothing measurable there.
+
 ### Shadows and depth are shapes
 
 Draw a shadow as an offset shape with lowered opacity, a two-step shape, or an image of the outline placed behind the piece. `games/fresh-fish-ui/src/lib/utils/landShape.ts` replaced a CSS `drop-shadow` on the board that cost about 280 MB on a 3x phone and reloaded iPhones on Place Disc.
