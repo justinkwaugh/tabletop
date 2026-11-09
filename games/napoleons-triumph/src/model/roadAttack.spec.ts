@@ -16,7 +16,12 @@ import {
 import { RIDDEN_IN, reinforcementCavalryRiddenIn, waitOffMap } from '../testing/reinforcements.js'
 import { CommandKind } from './attack.js'
 import { FeintEnd } from './attackDeclaration.js'
-import { rideOnAttackOrder, roadAttackOrder, roadAttackOrders } from './attackOrders.js'
+import {
+    corpsRoadAttackHalt,
+    rideOnAttackOrder,
+    roadAttackOrder,
+    roadAttackOrders
+} from './attackOrders.js'
 
 const WEST = 52
 const NEAR = 53
@@ -316,6 +321,39 @@ describe('a cavalry corps of two or more units attacking by road', () => {
         expect(state.commander('murat').position).toEqual({ locale: NEAR })
         expect(state.unit('F-c2').position).toEqual({ locale: WEST })
         expect(state.unit('F-c2').commanderId).toBeUndefined()
+    })
+
+    function haltOf(game: TestGame, unitIds: readonly string[]) {
+        const state = game.hydrated
+        const site = {
+            attackerId: game.playerOf(Side.French),
+            attackApproach: approach(game, NEAR, TAKEN)
+        }
+        return corpsRoadAttackHalt(
+            state,
+            site,
+            unitIds.map((id) => state.unit(id))
+        )
+    }
+
+    it('names where the whole corps would halt, and beside whose corps', () => {
+        const game = threatened()
+        defendWith(game, game.playerOf(Side.Allied), ['A-1'])
+        expect(haltOf(game, ['F-c1', 'F-c2'])).toEqual({
+            locale: NEAR,
+            enemyCommanderId: 'bagration'
+        })
+        expect(haltOf(game, ['F-c1'])).toBeUndefined()
+    })
+
+    it('names no halt when the whole corps can ride in', () => {
+        const game = threatened()
+        game.act(ActionType.Retreat, game.playerOf(Side.Allied), {
+            losses: {},
+            destinations: { 'A-1': BEYOND, 'A-2': BEYOND },
+            kept: { bagration: 'A-1' }
+        })
+        expect(haltOf(game, ['F-c1', 'F-c2'])).toBeUndefined()
     })
 
     const map = new TestGame().hydrated.map

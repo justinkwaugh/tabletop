@@ -7,6 +7,7 @@
     import type { Snippet } from 'svelte'
     import { marksOn, type TargetMark } from '$lib/model/targets.js'
     import { WayStepKind } from '$lib/model/ways.js'
+    import { marchHaltNote } from '$lib/utils/roadHalts.js'
     import { commandsLeft } from '$lib/utils/commandsLeft.js'
     import CommandSwitch from './CommandSwitch.svelte'
     import RideSwitch from './RideSwitch.svelte'
@@ -67,6 +68,12 @@
         }
         return gameSession.targets.length === 0 ? 'These units have nowhere to go.' : undefined
     })
+
+    const haltNote = $derived(
+        attaching || ridingOn
+            ? undefined
+            : marchHaltNote(gameSession.gameState.map, gameSession.roadHalts)
+    )
 
     const wayToChoose = $derived.by(() => {
         if (stepsOfTheWay.length === 0) {
@@ -285,6 +292,9 @@
         >
     {:else if aside}
         <span>{aside}</span>
+    {/if}
+    {#if haltNote && !wayToChoose && !problem}
+        <span>{haltNote}</span>
     {/if}
     {#if howToAim}
         <span>{howToAim}</span>
