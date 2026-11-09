@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { CentredTextShift } from '../presentation/textBaseline.js'
+    import { centredTextShift } from '../presentation/textBaseline.js'
     import { contrastingTextColor } from '../colors/contrastingTextColor.js'
     import DividedRect from '../colors/DividedRect.svelte'
     import {
@@ -10,9 +10,13 @@
     import { assert, assertExists, type Point } from '@tabletop/common'
     import type { TileFace } from '@tabletop/18xx'
     import type { Snippet } from 'svelte'
-    import { TileRadius, type TileDrawing } from './tileDrawing.js'
+    import { labelFontSize, TileRadius, type TileDrawing } from './tileDrawing.js'
     import { spikePoints } from './tileTrackGeometry.js'
-    import { ClassicTileAppearance, type TileAppearance } from './tileAppearance.js'
+    import {
+        ClassicTileAppearance,
+        DefaultLabelFont,
+        type TileAppearance
+    } from './tileAppearance.js'
     import TileSymbol from './TileSymbol.svelte'
     import { revenueBadgeHalfWidth } from './revenueBadge.js'
     // Type for the 18xx Maker style; a browser fetches a face only when a tile uses it.
@@ -105,7 +109,7 @@
     const revenueCircle = $derived(
         appearance.revenueCircle ?? { radius: 8.7, ringWidth: 0.55, fontSize: 10 }
     )
-    const labelFont = $derived(appearance.labelFont ?? { size: 12, weight: 850 })
+    const labelFont = $derived(appearance.labelFont ?? DefaultLabelFont)
     /** The marker colour: the appearance's own per-colour value, else a darker tint of the tile colour. */
     const tint = $derived.by(() => {
         const explicit = appearance.markerColors?.[face.color]
@@ -128,6 +132,9 @@
         face.labels.filter(
             (label) => !appearance.labelMarkers?.[label] && !appearance.labelText?.[label]
         )
+    )
+    const textLabelSize = $derived(
+        labelFontSize(textLabels.join(' '), labelFont.size, labelFont.longSize)
     )
     const namedLabels = $derived(
         face.labels.flatMap((label) => {
@@ -400,7 +407,7 @@
                     stroke={appearance.ink}
                     stroke-width="0.5"
                 ></rect>
-                <text dy={CentredTextShift} font-size="6.5" font-weight="650"
+                <text dy={centredTextShift(6.5)} font-size="6.5" font-weight="650"
                     >{face.upgradeCost}</text
                 >
             </g>
@@ -448,7 +455,7 @@
                                 fill={appearance.paper}
                             ></rect>
                             <text
-                                dy={CentredTextShift}
+                                dy={centredTextShift(revenueCircle.fontSize)}
                                 font-size={revenueCircle.fontSize}
                                 font-family={revenueCircle.fontFamily}
                                 font-weight={revenueCircle.fontWeight ?? 800}
@@ -467,7 +474,7 @@
                                 stroke-width={revenueCircle.ringWidth}
                             ></rect>
                             <text
-                                dy={CentredTextShift}
+                                dy={centredTextShift(revenueCircle.fontSize)}
                                 font-size={revenueCircle.fontSize}
                                 font-family={revenueCircle.fontFamily}
                                 font-weight={revenueCircle.fontWeight ?? 750}
@@ -495,7 +502,7 @@
                                     strokeWidth={0.5}
                                 />
                                 <text
-                                    dy={CentredTextShift}
+                                    dy={centredTextShift(9)}
                                     fill={dividedTextColor(fills)}
                                     font-size="9"
                                     font-weight="650"
@@ -515,7 +522,7 @@
                                         fill={cell.captionColor}
                                     ></rect>
                                     <text
-                                        dy={CentredTextShift}
+                                        dy={centredTextShift(7.5)}
                                         data-revenue-caption
                                         x={badgeX + cell.captionWidth / 2}
                                         style:text-anchor="middle"
@@ -525,7 +532,7 @@
                                     >
                                 {:else if cell.caption}
                                     <text
-                                        dy={CentredTextShift}
+                                        dy={centredTextShift(7.5)}
                                         data-revenue-caption
                                         x={cell.captionAfter
                                             ? cell.width / 2 + 2.5
@@ -544,7 +551,7 @@
         {/each}
         {#if namedLabels.length}
             <text
-                dy={CentredTextShift}
+                dy={centredTextShift(6.5)}
                 data-tile-label-text
                 x={drawing.labelPosition.x}
                 y={drawing.labelPosition.y + 4}
@@ -558,13 +565,11 @@
         {/if}
         {#if textLabels.length}
             <text
-                dy={CentredTextShift}
+                dy={centredTextShift(textLabelSize)}
                 data-tile-label
                 x={drawing.labelPosition.x}
                 y={drawing.labelPosition.y}
-                font-size={textLabels.join(' ').length > 2
-                    ? (labelFont.longSize ?? labelFont.size)
-                    : labelFont.size}
+                font-size={textLabelSize}
                 font-weight={labelFont.weight}
                 font-family={labelFont.family}
                 paint-order="stroke"

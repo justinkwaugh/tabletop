@@ -44,7 +44,8 @@ Adding or removing a `touchstart`, `touchmove`, or `wheel` listener anywhere res
 
 ## Correct drawing across browsers
 
-- **Centred SVG text**: use the alphabetic baseline with a measured `dy` per font (`games/marracash-ui/src/lib/utils/textBaseline.ts`; 18xx board text uses one `0.35em` shift, `libs/18xx-ui/src/lib/presentation/textBaseline.ts`). WebKit ignores a `dominant-baseline` set on a group and mis-scales `central` under CSS zoom, so iOS draws the text too high or too low.
+- **Centred SVG text**: use the alphabetic baseline with a measured `dy` per font, given in user units (`games/marracash-ui/src/lib/utils/textBaseline.ts`; 18xx board text uses `centredTextShift(fontSize)`, 0.35 of the font size, `libs/18xx-ui/src/lib/presentation/textBaseline.ts`). WebKit ignores a `dominant-baseline` set on a group and mis-scales `central` under CSS zoom, and Safari 27.0 divides SVG `em` lengths by the CSS zoom, so iOS and Mac Safari draw the text too high or too low.
+- **HTML text under zoom**: keep HTML out of a `renderAtViewScale` board's zoom, as the 18xx `BoardInset` does with `--render-unzoom` and a transform. Safari 27.0 draws zoomed-out HTML text specified at 9px or more no smaller than 9px, and HTML laid out again at each zoom moves its text.
 - **Images in SVG**: size an `<image>` to cover its box yourself, scale = max(boxW/artW, boxH/artH), and clip it to the box; browsers disagree on `preserveAspectRatio="slice"`. Give exported SVG art `width` and `height` on its root.
 - **Moving SVG under zoom**: tween a plain point and write `translate(...)` yourself. GSAP writes SVG `x`/`y` as `matrix(...)`, whose offset Firefox 140 leaves out of CSS zoom, so pieces inside a `renderAtViewScale` board spread apart.
 

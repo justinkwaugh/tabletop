@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { CentredTextShift } from '../presentation/textBaseline.js'
+    import { centredTextShift } from '../presentation/textBaseline.js'
     import { contrastingTextColor } from '../colors/contrastingTextColor.js'
     import type { RevenueStageColors } from '../colors/revenueStageColors.js'
     // A medium city's ring stands clear of its town dot by the track's half-width.
@@ -15,7 +15,12 @@
     import TileSymbol from '../tiles/TileSymbol.svelte'
     import { PortSymbol } from '../tiles/tileSymbols.js'
     import { MountainIcon } from './terrainIcons.js'
-    import { ClassicTileAppearance, type TileAppearance } from '../tiles/tileAppearance.js'
+    import {
+        ClassicTileAppearance,
+        DefaultLabelFont,
+        type TileAppearance
+    } from '../tiles/tileAppearance.js'
+    import { labelFontSize } from '../tiles/tileDrawing.js'
     import {
         stationSlotPoint,
         borderDash,
@@ -321,7 +326,7 @@
                                 x={point.x}
                                 y={point.y}
                                 text-anchor="middle"
-                                dy={CentredTextShift}
+                                dy={centredTextShift(5)}
                                 font-size="5"
                                 fill="#52545b"
                                 paint-order="stroke"
@@ -429,7 +434,8 @@
                         {/if}
                         {#if (!entry.placed || entry.face.color === 'yellow') && overlayLabels.length}
                             {@const text = overlayLabels.map((label) => label.label).join(' ')}
-                            {@const font = appearance.labelFont ?? { size: 12, weight: 850 }}
+                            {@const font = appearance.labelFont ?? DefaultLabelFont}
+                            {@const size = labelFontSize(text, font.size, font.longSize)}
                             <g
                                 data-map-upgrade-label
                                 transform="translate(-30 0)"
@@ -439,10 +445,8 @@
                             >
                                 <text
                                     x="0"
-                                    dy={CentredTextShift}
-                                    font-size={text.length > 2
-                                        ? (font.longSize ?? font.size)
-                                        : font.size}
+                                    dy={centredTextShift(size)}
+                                    font-size={size}
                                     font-weight={font.weight}
                                     font-family={font.family}>{text}</text
                                 >
@@ -457,7 +461,7 @@
                                 <text
                                     data-map-marker-notice={marker.id}
                                     y={NoticeY}
-                                    dy={CentredTextShift}
+                                    dy={centredTextShift(NoticeFontSize)}
                                     font-size={NoticeFontSize}
                                     font-weight="650"
                                     fill={appearance.ink}
@@ -484,7 +488,7 @@
                                 <text
                                     data-map-marker-label={marker.id}
                                     text-anchor="middle"
-                                    dy={CentredTextShift}
+                                    dy={centredTextShift(10)}
                                     font-size="10"
                                     font-weight="750"
                                     fill={appearance.ink}>{marker.label}</text
@@ -530,7 +534,7 @@
                                     {/if}
                                     <text
                                         text-anchor="middle"
-                                        dy={CentredTextShift}
+                                        dy={centredTextShift(8)}
                                         font-size="8"
                                         font-weight="800"
                                         fill={appearance.paper}>{annotation.label}</text
@@ -552,7 +556,7 @@
                                     ></rect>
                                     <text
                                         text-anchor="middle"
-                                        dy={CentredTextShift}
+                                        dy={centredTextShift(8)}
                                         font-size="8"
                                         font-weight="800"
                                         stroke="none"
@@ -564,7 +568,7 @@
                                     data-map-revenue-caption={annotation.markerId}
                                     x={annotation.x}
                                     y={annotation.y}
-                                    dy={CentredTextShift}
+                                    dy={centredTextShift(CaptionFontSize)}
                                     font-size={CaptionFontSize}
                                     font-weight="700"
                                     ><title>{annotation.label}</title>{annotation.caption}</text
@@ -592,7 +596,7 @@
                                             x={text}
                                             y={annotation.y - 1.3}
                                             text-anchor="middle"
-                                            dy={CentredTextShift}
+                                            dy={centredTextShift(6.6)}
                                             font-size="6.6"
                                             font-weight="800"
                                             fill={contrastingTextColor(
@@ -603,7 +607,7 @@
                                             x={text}
                                             y={annotation.y + 3.9}
                                             text-anchor="middle"
-                                            dy={CentredTextShift}
+                                            dy={centredTextShift(3.6)}
                                             font-size="3.6"
                                             font-weight="800"
                                             letter-spacing="0.25"
@@ -891,7 +895,7 @@
                     ></rect>
                     <text
                         text-anchor="middle"
-                        dy={CentredTextShift}
+                        dy={centredTextShift(7.5)}
                         font-size="7.5"
                         font-weight="800"
                         fill={appearance.paper}>{text}</text
@@ -926,7 +930,7 @@
                         ></rect>
                         <text
                             x="-15.5"
-                            dy={CentredTextShift}
+                            dy={centredTextShift(6)}
                             font-size="6"
                             font-weight="850"
                             stroke="none"
@@ -957,7 +961,7 @@
                         <text
                             x="-2"
                             text-anchor="end"
-                            dy={CentredTextShift}
+                            dy={centredTextShift(8)}
                             font-size="8"
                             font-weight="850"
                             paint-order="stroke"
