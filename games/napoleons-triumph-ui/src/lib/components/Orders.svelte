@@ -43,6 +43,17 @@
         return `Threaten an attack from ${map.label(locale)} into ${map.label(map.approach(approach).neighbour)}.`
     })
 
+    const rideEndedSentence = $derived.by(() => {
+        const locale = gameSession.rideEndedIn
+        if (locale === undefined) {
+            return undefined
+        }
+        const purpose = gameSession.rideEndedWithCommandLeft
+            ? 'to block an approach its road crosses, or to give it its second command'
+            : 'to block an approach its road crosses'
+        return `The cavalry that rode into ${gameSession.gameState.map.label(locale)} stays in reserve unless you tap it ${purpose}.`
+    })
+
     const title = $derived.by(() => {
         if (aimedLocale !== undefined) {
             return `Attack on ${gameSession.gameState.map.label(aimedLocale)}`
@@ -327,14 +338,8 @@
         )}
     {:else}
         <div class="nt-orders-note nt-orders-rest" bind:clientHeight={idleLineHeight}>
-            {#if gameSession.rideEndedIn !== undefined}
-                <span
-                    ><PlaceText
-                        text="The cavalry that rode into {gameSession.gameState.map.label(
-                            gameSession.rideEndedIn
-                        )} stays in reserve unless you tap it to block an approach its road crosses."
-                    /></span
-                >
+            {#if rideEndedSentence}
+                <span><PlaceText text={rideEndedSentence} /></span>
             {/if}
             <span class="nt-orders-faint">{stillToCommand}</span>
         </div>

@@ -934,11 +934,18 @@ export class NapoleonsTriumphGameSession extends GameSession<
         )?.key
     )
 
-    // Rule 10: cavalry at the end of its ride has ended its move in reserve unless it is sent to block an approach.
-    rideIsOver: boolean = $derived(this.openRoadMarch?.stopped === true)
+    private stoppedRoadMarch = $derived(
+        this.openRoadMarch?.stopped ? this.openRoadMarch : undefined
+    )
 
-    rideEndedIn: number | undefined = $derived(
-        this.rideIsOver ? this.openRoadMarch?.path.at(-1) : undefined
+    // Rule 10: cavalry at the end of its ride has ended its move in reserve unless it is sent to block an approach.
+    rideIsOver: boolean = $derived(this.stoppedRoadMarch !== undefined)
+
+    rideEndedIn: number | undefined = $derived(this.stoppedRoadMarch?.path.at(-1))
+
+    rideEndedWithCommandLeft: boolean = $derived(
+        this.rideIsOver &&
+            this.riderIds.every((id) => canStillMove(this.gameState, this.gameState.unit(id)))
     )
 
     selectedGroupKey = $derived(
@@ -1301,7 +1308,9 @@ export class NapoleonsTriumphGameSession extends GameSession<
     }
 
     mayChooseUnit(unit: ProjectedUnit): boolean {
-        return this.ridesAlone(unit) ? !this.ridingOn : this.mayStillCommand(unit)
+        return this.ridesAlone(unit)
+            ? !this.ridingOn || this.rideIsOver
+            : this.mayStillCommand(unit)
     }
 
     // Rule 9: Attach moves nothing, so a unit that has already moved may still be attached.
@@ -1369,7 +1378,9 @@ export class NapoleonsTriumphGameSession extends GameSession<
             return
         }
         if (this.ridesAlone(unit)) {
-            this.stageCommand(noCommandSelection())
+            this.stageCommand(
+                this.ridingOn ? noCommandSelection() : setPickedUp({ groupKey: group.key })
+            )
         } else if (group.commander) {
             this.stageCommand(chooseCorpsUnit(this.selection, unitId, this.commandableIds(group)))
         } else {

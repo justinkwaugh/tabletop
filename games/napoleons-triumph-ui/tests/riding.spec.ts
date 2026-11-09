@@ -226,7 +226,7 @@ test('cavalry at the end of its ride stays in reserve unless it is picked up to 
     })
     const atRidesEnd = page.getByRole('group', { name: 'Detached units, at the end of its ride' })
     const blocks = page.locator('svg [aria-label="Block this approach"]')
-    const rider = `svg [data-group="${riderGroup}"]`
+    const rider = `svg [data-group="${riderGroup}"] > g`
 
     await expect(page.getByText(/^Choose a corps/)).toBeVisible()
     await expect(
@@ -241,5 +241,33 @@ test('cavalry at the end of its ride stays in reserve unless it is picked up to 
 
     await tap(page, rider)
     await expect(atRidesEnd).toHaveCount(0)
+    await expect(page.getByText(/^Choose a corps/)).toBeVisible()
+})
+
+test('cavalry at the end of its ride is picked up again from a unit standing with it', async ({
+    page
+}) => {
+    let riderGroup = ''
+    await frenchTurnWith(page, (state) => {
+        Object.assign(unitOf(state, 'vandamme', UnitType.Infantry), {
+            commanderId: undefined,
+            position: { locale: 73 }
+        })
+        riderGroup = standingGroupKey(cavalryReachesTheEndOfItsRide(state))
+    })
+    const atRidesEnd = page.getByRole('group', { name: 'Detached units, at the end of its ride' })
+    const commanding = page.getByRole('group', { name: 'Detached units', exact: true })
+    const leftOut = page.locator('.nt-orders-units button[aria-pressed="false"]')
+
+    await tap(page, `svg [data-group="${riderGroup}"]`)
+    await expect(atRidesEnd).toBeVisible()
+
+    await leftOut.click()
+    await expect(commanding).toBeVisible()
+
+    await leftOut.click()
+    await expect(atRidesEnd).toBeVisible()
+
+    await page.locator('.nt-orders-units button[aria-pressed="true"]').click()
     await expect(page.getByText(/^Choose a corps/)).toBeVisible()
 })
