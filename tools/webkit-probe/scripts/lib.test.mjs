@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
+    combineRepeats,
     descendantsOf,
     formatReport,
     median,
     parseProcessTable,
+    parseRepeat,
     parseViewport,
     summarizeFrames,
     webProcessRssMb
@@ -86,4 +88,87 @@ test('reports a page that reloaded during a timed action', () => {
     }
     const runs = [{ blankMb: 100, marks: [], timings: [{ label: 'place', reloaded: true }] }]
     assert.match(formatReport({ config, runs }), /place \(timed\)\s+page reloaded/)
+})
+
+test('accepts only a whole number of repeats', () => {
+    assert.equal(parseRepeat('3'), 3)
+    assert.throws(() => parseRepeat('0'))
+    assert.throws(() => parseRepeat('abc'))
+    assert.throws(() => parseRepeat('1.5'))
+})
+
+const repeatOf = (blankMb, marks, timings = []) => ({ css: undefined, blankMb, marks, timings })
+
+test("combines repeated runs by rounded medians over each run's blank page", () => {
+    const run = (blankMb, rssMb, repaintMs, longestFrameMs) =>
+        repeatOf(
+            blankMb,
+            [{ label: 'open', rssMb, peakMb: rssMb + 10, repaintMs }],
+            [{ label: 'place', longestFrameMs, longFrames: 1, settleMs: 0 }]
+        )
+    const odd = combineRepeats([run(100, 400, 40, 30), run(110, 380, 60, 50), run(90, 500, 50, 40)])
+    assert.equal(odd.blankMb, 100)
+    assert.deepEqual(odd.marks[0], {
+        label: 'open',
+        measured: 3,
+        rssMb: 400,
+        peakMb: 410,
+        repaintMs: 50,
+        boardMissing: 0
+    })
+    assert.equal(odd.timings[0].longestFrameMs, 40)
+    const even = combineRepeats([run(100, 401, 40, 30), run(100, 400, 41, 31)])
+    assert.equal(even.marks[0].rssMb, 401)
+    assert.equal(even.marks[0].repaintMs, 41)
+})
+
+test('matches marks by label and occurrence, not position', () => {
+    const combined = combineRepeats([
+        repeatOf(100, [
+            { label: 'open', rssMb: 300 },
+            { label: 'bonus', rssMb: 900 },
+            { label: 'after', rssMb: 400 }
+        ]),
+        repeatOf(100, [
+            { label: 'open', rssMb: 310 },
+            { label: 'after', rssMb: 420 }
+        ])
+    ])
+    assert.deepEqual(
+        combined.marks.map((mark) => [mark.label, mark.rssMb, mark.measured]),
+        [
+            ['open', 305, 2],
+            ['bonus', 900, 1],
+            ['after', 410, 2]
+        ]
+    )
+})
+
+test('says when only some runs had a board or reloaded', () => {
+    const combined = combineRepeats([
+        repeatOf(
+            100,
+            [{ label: 'open', rssMb: 300, repaintMs: null }],
+            [{ label: 'place', reloaded: true }]
+        ),
+        repeatOf(
+            100,
+            [{ label: 'open', rssMb: 300, repaintMs: 60 }],
+            [{ label: 'place', longestFrameMs: 80, longFrames: 1, settleMs: 200 }]
+        )
+    ])
+    assert.equal(combined.marks[0].repaintMs, 60)
+    assert.equal(combined.marks[0].boardMissing, 1)
+    assert.equal(combined.timings[0].reloaded, 1)
+    const config = {
+        url: 'http://localhost:5186',
+        viewport: { width: 390, height: 664 },
+        dpr: 3,
+        mobile: true,
+        reducedMotion: false,
+        repeat: 2
+    }
+    const text = formatReport({ config, runs: [combined] })
+    assert.match(text, /repaint 60 ms, no board in 1 of 2 runs/)
+    assert.match(text, /settled 200 ms; page reloaded in 1 of 2 runs/)
 })

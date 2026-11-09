@@ -246,7 +246,7 @@ A `GameContext` type reference passes on its own; judge the value it types. A fa
 
 The authority is [phone rendering](../../../docs/phone-rendering.md). This gate records what the title costs an iPhone and checks how it draws; it sets no memory or repaint limit yet, so the measurements are evidence, not a pass mark.
 
-**Measure.** Start the title's harness (`pnpm --filter @tabletop/<slug>-ui exec vite dev --port <free port>`) and run `tools/webkit-probe` against it twice with `--json`, keeping its steps module in `/workspace/tmp/<slug>-readiness/`, outside the title:
+**Measure.** Start the title's harness (`pnpm --filter @tabletop/<slug>-ui exec vite dev --port <free port>`) and run `tools/webkit-probe` against it twice with `--json --repeat 3`, keeping its steps module in `/workspace/tmp/<slug>-readiness/`, outside the title:
 
 - with no scenario or steps: its `open` mark is the empty harness, the reference for the rest;
 - with `--board` set to the board's svg or box, at the heaviest position the title offers: a late-game scenario from `src/scenarios` when there is one, otherwise a game the steps module plays forward inside `quietly`. Mark the position, then `time` the interaction that changes the most of the board, such as the one that highlights every target, dims the other pieces, or opens a panel over the board, and mark after it.

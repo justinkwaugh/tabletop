@@ -7,9 +7,11 @@ import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { parseArgs, promisify } from 'node:util'
 import {
+    combineRepeats,
     formatReport,
     median,
     parseProcessTable,
+    parseRepeat,
     parseViewport,
     summarizeFrames,
     webProcessRssMb
@@ -34,6 +36,8 @@ Options:
                           svg or a box, laid out by its CSS width
   --css <rule>            add a run with this CSS injected after load; repeatable
   --settle <ms>           wait after loading before the "open" mark (default 3000)
+  --repeat <n>            make each run n times and report medians (default 1); steady
+                          memory varies by tens of MB from one run to the next
   --reduced-motion        keep reduced motion on after loading, for every mark and timing
   --viewport <WxH>        default 390x664
   --dpr <n>               device pixel ratio (default 3)
@@ -55,6 +59,7 @@ function options() {
             board: { type: 'string' },
             css: { type: 'string', multiple: true, default: [] },
             settle: { type: 'string', default: '3000' },
+            repeat: { type: 'string', default: '1' },
             viewport: { type: 'string', default: '390x664' },
             dpr: { type: 'string', default: '3' },
             desktop: { type: 'boolean', default: false },
@@ -75,6 +80,7 @@ function options() {
         board: values.board,
         css: values.css,
         settleMs: Number(values.settle),
+        repeat: parseRepeat(values.repeat),
         viewport: parseViewport(values.viewport),
         dpr: Number(values.dpr),
         mobile: !values.desktop,
@@ -244,11 +250,25 @@ async function probe(config, css) {
     }
 }
 
-const config = options()
+function configOrExit() {
+    try {
+        return options()
+    } catch (error) {
+        console.error(error.message)
+        process.exit(1)
+    }
+}
+
+const config = configOrExit()
 const runs = []
 for (const css of [undefined, ...config.css]) {
-    console.error(css === undefined ? 'Probing as served…' : `Probing with css: ${css}…`)
-    runs.push(await probe(config, css))
+    const repeats = []
+    for (let index = 1; index <= config.repeat; index++) {
+        const label = css === undefined ? 'as served' : `with css: ${css}`
+        console.error(`Probing ${label} (${index} of ${config.repeat})…`)
+        repeats.push(await probe(config, css))
+    }
+    runs.push(combineRepeats(repeats))
 }
 const report = { config, runs }
 console.log(config.json ? JSON.stringify(report, null, 2) : formatReport(report))

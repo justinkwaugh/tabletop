@@ -72,6 +72,98 @@ export function summarizeFrames(start, timestamps) {
     }
 }
 
+export function parseRepeat(text) {
+    const repeat = Number(text)
+    if (!Number.isInteger(repeat) || repeat < 1) {
+        throw new Error(`--repeat takes a whole number of at least 1, not ${text}`)
+    }
+    return repeat
+}
+
+function present(values) {
+    return values.filter((value) => value !== undefined && value !== null)
+}
+
+function roundedMedian(values) {
+    const known = present(values)
+    return known.length > 0 ? Math.round(median(known)) : undefined
+}
+
+function byOccurrence(entries) {
+    const seen = new Map()
+    return new Map(
+        entries.map((entry) => {
+            const occurrence = seen.get(entry.label) ?? 0
+            seen.set(entry.label, occurrence + 1)
+            return [`${entry.label}#${occurrence}`, entry]
+        })
+    )
+}
+
+function combineMarks(repeats, blankMb) {
+    const marksOf = repeats.map((run) => byOccurrence(run.marks))
+    const keys = [...new Set(marksOf.flatMap((marks) => [...marks.keys()]))]
+    return keys.map((key) => {
+        const same = repeats
+            .map((run, index) => ({ run, mark: marksOf[index].get(key) }))
+            .filter(({ mark }) => mark !== undefined)
+        const overBlank = (field) =>
+            roundedMedian(
+                same.map(({ run, mark }) =>
+                    mark[field] === undefined || run.blankMb === undefined
+                        ? undefined
+                        : mark[field] - run.blankMb
+                )
+            )
+        const over = (field) => {
+            const mb = overBlank(field)
+            return mb === undefined || blankMb === undefined ? undefined : blankMb + mb
+        }
+        const repaints = same.map(({ mark }) => mark.repaintMs)
+        const boardMissing = repaints.filter((repaint) => repaint === null).length
+        return {
+            label: same[0].mark.label,
+            measured: same.length,
+            rssMb: over('rssMb'),
+            peakMb: over('peakMb'),
+            repaintMs: boardMissing === same.length ? null : roundedMedian(repaints),
+            boardMissing
+        }
+    })
+}
+
+function combineTimings(repeats) {
+    const timingsOf = repeats.map((run) => byOccurrence(run.timings))
+    const keys = [...new Set(timingsOf.flatMap((timings) => [...timings.keys()]))]
+    return keys.map((key) => {
+        const same = timingsOf.map((timings) => timings.get(key)).filter((timing) => timing)
+        const settled = same.filter((timing) => !timing.reloaded)
+        return {
+            label: same[0].label,
+            measured: same.length,
+            reloaded: same.length - settled.length,
+            longestFrameMs: roundedMedian(settled.map((timing) => timing.longestFrameMs)),
+            longFrames: roundedMedian(settled.map((timing) => timing.longFrames)),
+            settleMs: roundedMedian(settled.map((timing) => timing.settleMs))
+        }
+    })
+}
+
+export function combineRepeats(repeats) {
+    const blankMb = roundedMedian(repeats.map((run) => run.blankMb))
+    return {
+        css: repeats[0].css,
+        repeats: repeats.length,
+        blankMb,
+        marks: combineMarks(repeats, blankMb),
+        timings: combineTimings(repeats)
+    }
+}
+
+function outOf(count, run) {
+    return run.repeats > 1 ? ` in ${count} of ${run.repeats} runs` : ''
+}
+
 function signed(value) {
     return value >= 0 ? `+${value}` : `${value}`
 }
@@ -85,27 +177,33 @@ function memoryText(mark, blankMb, comparedMark) {
     return `${over(mark.rssMb)} MB${change('rssMb')}  peak ${over(mark.peakMb)} MB${change('peakMb')}`
 }
 
-function repaintText(mark, comparedMark) {
+function repaintText(mark, comparedMark, run) {
     if (mark.repaintMs === undefined) return ''
     if (mark.repaintMs === null) return '  no board'
     const change =
         comparedMark?.repaintMs == null
             ? ''
             : ` (${signed(Math.round(mark.repaintMs - comparedMark.repaintMs))})`
-    return `  repaint ${Math.round(mark.repaintMs)} ms${change}`
+    const missing = mark.boardMissing > 0 ? `, no board${outOf(mark.boardMissing, run)}` : ''
+    return `  repaint ${Math.round(mark.repaintMs)} ms${change}${missing}`
 }
 
-function timingText(timing) {
-    if (timing.reloaded) return 'page reloaded'
+function timingText(timing, run) {
+    if (timing.longestFrameMs === undefined) return 'page reloaded'
     const settled = timing.settleMs === 0 ? 'settled at once' : `settled ${timing.settleMs} ms`
-    return `longest frame ${timing.longestFrameMs} ms, ${timing.longFrames} over ${LongFrameMs} ms, ${settled}`
+    const reloaded = timing.reloaded > 0 ? `; page reloaded${outOf(timing.reloaded, run)}` : ''
+    return `longest frame ${timing.longestFrameMs} ms, ${timing.longFrames} over ${LongFrameMs} ms, ${settled}${reloaded}`
+}
+
+function measuredText(entry, run) {
+    return entry.measured < run.repeats ? ` (marked${outOf(entry.measured, run)})` : ''
 }
 
 export function formatReport(report) {
     const { config, runs } = report
     const lines = [
         `WebKit ${config.viewport.width}x${config.viewport.height} @${config.dpr}x, ${config.mobile ? 'mobile' : 'desktop'}, ${config.reducedMotion ? 'reduced motion' : 'full motion after loading'}: ${config.url}`,
-        'Memory is the web process RSS over a blank page; changes in brackets are against the first run.',
+        `Memory is the web process RSS over a blank page${config.repeat > 1 ? `; figures are medians of ${config.repeat} runs` : ''}; changes in brackets are against the page as served.`,
         'A repaint takes two frames at least (about 33 ms); only the time above that is drawing.'
     ]
     const [reference] = runs
@@ -116,11 +214,13 @@ export function formatReport(report) {
             const compared =
                 run === reference ? undefined : reference.marks.find((m) => m.label === mark.label)
             lines.push(
-                `  ${mark.label.padEnd(24)}${memoryText(mark, run.blankMb, compared)}${repaintText(mark, compared)}`
+                `  ${mark.label.padEnd(24)}${memoryText(mark, run.blankMb, compared)}${repaintText(mark, compared, run)}${measuredText(mark, run)}`
             )
         }
         for (const timing of run.timings) {
-            lines.push(`  ${`${timing.label} (timed)`.padEnd(24)}${timingText(timing)}`)
+            lines.push(
+                `  ${`${timing.label} (timed)`.padEnd(24)}${timingText(timing, run)}${measuredText(timing, run)}`
+            )
         }
     }
     return lines.join('\n')

@@ -42,7 +42,7 @@ Adding or removing a `touchstart`, `touchmove`, or `wheel` listener anywhere res
 
 ## Correct drawing across browsers
 
-- **Centred SVG text**: use the alphabetic baseline with a measured `dy` per font (`games/marracash-ui/src/lib/utils/textBaseline.ts`; 18xx board text uses `0.35em`). WebKit ignores a `dominant-baseline` set on a group and mis-scales `central` under CSS zoom, so iOS draws the text too high or too low.
+- **Centred SVG text**: use the alphabetic baseline with a measured `dy` per font (`games/marracash-ui/src/lib/utils/textBaseline.ts`; 18xx board text uses one `0.35em` shift, `libs/18xx-ui/src/lib/presentation/textBaseline.ts`). WebKit ignores a `dominant-baseline` set on a group and mis-scales `central` under CSS zoom, so iOS draws the text too high or too low.
 - **Images in SVG**: size an `<image>` to cover its box yourself, scale = max(boxW/artW, boxH/artH), and clip it to the box; browsers disagree on `preserveAspectRatio="slice"`. Give exported SVG art `width` and `height` on its root.
 - **Moving SVG under zoom**: tween a plain point and write `translate(...)` yourself. GSAP writes SVG `x`/`y` as `matrix(...)`, whose offset Firefox 140 leaves out of CSS zoom, so pieces inside a `renderAtViewScale` board spread apart.
 
@@ -56,8 +56,8 @@ node tools/webkit-probe/src/cli.mjs http://localhost:<port> --scenario <name|fil
 ```
 
 - Drive the heaviest interaction in a steps module (`--help` gives its signature): `mark` the moments to measure, and `time` an interaction to see every frame it causes, not only the first; a first-frame measure once overstated a win tenfold. Marks and timings run with full motion, so every animation is paid for; wrap setup such as playing a game forward in `quietly`.
-- To find the cost, add a `--css` run per suspect that removes it, with `!important` (`--css 'svg.board { display: none !important }'`), since a component's scoped style wins without it. Each run is reported against the first.
-- Compare runs of one harness; the dev harness alone adds about 270 MB. One board-wide filter cost 280 MB; a Medina game adds about 190 MB over the harness.
+- To find the cost, add a `--css` run per suspect that removes it, with `!important` (`--css 'svg.board { display: none !important }'`), since a component's scoped style wins without it. Each run is reported against the page as served.
+- Steady memory moves by tens of MB from one run to the next, so compare memory with `--repeat 3`, which reports medians. Compare runs of one harness; the dev harness alone adds about 270 MB. One board-wide filter cost 280 MB; a Medina game adds about 190 MB over the harness.
 
 Done means the open and heaviest-interaction memory and the repaint time are recorded, and every effect the board draws is piece-sized, pre-rendered, or still.
 
