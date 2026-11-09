@@ -8,7 +8,6 @@
 
     const gameSession = getGameSession()
 
-    // The chosen command may be one that cannot go by road, a Detach Move above all; the button stays, greyed, and says which can.
     const rideNeeds = $derived(
         !stage.roadOrders && stage.roadCommands.length > 0
             ? `Riding in by road takes a ${stage.roadCommands.map((kind) => COMMAND_NAMES[kind]).join(' or a ')}.`

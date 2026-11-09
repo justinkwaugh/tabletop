@@ -225,10 +225,19 @@ test('cavalry that rides in by road stays picked up, riding on', async ({ page }
     const tiles = page.locator('button[aria-label="Choose this unit"]')
     const count = await tiles.count()
     for (let i = 0; i < count; i++) await tiles.nth(i).click()
-    for (let i = 0; i < count && !(await rideIn.isVisible()); i++) {
+    const mayRideIn = async () => (await rideIn.isVisible()) && (await rideIn.isEnabled())
+    for (let i = 0; i < count && !(await mayRideIn()); i++) {
         if (i > 0) await tiles.nth(i - 1).click()
         await tiles.nth(i).click()
     }
+
+    const command = page.getByRole('group', { name: 'Command' })
+    const inForce = await command.getByRole('button', { pressed: true }).innerText()
+    await command.getByRole('button', { name: 'Detach Move', exact: true }).click()
+    await expect(rideIn).toBeDisabled()
+    await expect(page.getByText(/^Riding in by road takes a /)).toBeVisible()
+    await command.getByRole('button', { name: inForce, exact: true }).click()
+    await expect(rideIn).toBeEnabled()
     await rideIn.click()
 
     const riding = page.getByRole('group', { name: /riding on$/ })

@@ -24,7 +24,7 @@ export const ATTACH = 'attach'
 
 export type CommandChoice = CommandKind | typeof ATTACH
 
-/** Rule 9's names for the commands. */
+/** The names on the command switch: rule 9's moves by the rulebook's names, then Attach. */
 export const COMMAND_NAMES: Record<CommandChoice, string> = {
     [CommandKind.Corps]: 'Corps Move',
     [CommandKind.Detach]: 'Detach Move',

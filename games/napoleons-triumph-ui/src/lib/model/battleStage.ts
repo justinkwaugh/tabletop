@@ -23,10 +23,10 @@ import {
     initialAccountOf,
     initialResultOf,
     isLegal,
-    roadAttackOrders,
     nextDecision,
     occupyAfterRetreat,
     resolveAttackOrders,
+    roadAttackOrders,
     samePosition,
     validateCounterAttackers,
     whyIllegal,
@@ -582,8 +582,10 @@ function occupationStage(
               state,
               attack,
               picking.attackers.map((id) => state.unit(id))
-          ).filter((order) => legalWith([order], false))
-    // Only the command chosen rides in: a Detach Move cannot go by road, and putting another in its place moved commanders unasked.
+          ).filter(
+              (order) => picking.commandOptions.includes(order.kind) && legalWith([order], false)
+          )
+    // Only the command on the switch rides in; a Detach Move cannot go by road, so it has no ride.
     const roadOrder = rideable.find((order) => order.kind === picking.command)
     return {
         ...picking,
