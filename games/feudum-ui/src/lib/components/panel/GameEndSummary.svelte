@@ -35,6 +35,10 @@
                         {seats.nameOf(column.playerId)}
                         <span class="ml-auto" data-game-end-row="total">{column.score}</span>
                     </p>
+                    <p data-game-end-row="before-dawn">
+                        <span class="text-feudum-text-muted">Before V dawn</span>
+                        {column.beforeDawn}
+                    </p>
                     <p data-game-end-row="dawn">
                         <span class="text-feudum-text-muted">V dawn</span>
                         {column.fifthDawn}
@@ -84,6 +88,12 @@
                 </tr>
             </thead>
             <tbody>
+                <tr data-game-end-row="before-dawn">
+                    <td class="pr-3 text-feudum-text-muted">Before V dawn</td>
+                    {#each summary.columns as column (column.playerId)}
+                        <td class="pr-3">{column.beforeDawn}</td>
+                    {/each}
+                </tr>
                 <tr data-game-end-row="dawn">
                     <td class="pr-3 text-feudum-text-muted">V dawn</td>
                     {#each summary.columns as column (column.playerId)}

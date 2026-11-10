@@ -504,6 +504,31 @@ describe('S56 R-6.2, R-6.3 the game-end summary', () => {
         expect(summary?.winnerLine).toMatch(/wins?$/)
     })
 
+    it('S56 R-6.3 every column adds up to its total, with what was scored before the V dawn', async () => {
+        const Banked = 11
+        const table = hold(
+            await playOutRound(finalEpoch, (state) => {
+                for (const player of state.players) {
+                    player.score += Banked
+                }
+            })
+        )
+        const summary = blockOf(table.session.actionPanel, 'game-end')?.summary
+        assertExists(summary, 'The game was scored')
+        for (const column of summary.columns) {
+            const rows = [
+                column.beforeDawn,
+                column.fifthDawn,
+                column.voyage.vp,
+                column.largeEmpire.vp,
+                column.shillings.vp,
+                ...column.charters.map(({ vp }) => vp)
+            ]
+            expect(rows.reduce((sum, vp) => sum + vp, 0)).toBe(column.score)
+            expect(column.beforeDawn).toBeGreaterThanOrEqual(Banked)
+        }
+    })
+
     it('S56 a sealed charter stands face up with its score, for every seat', async () => {
         const Sealed = 'writ.charter.monster-defeat'
         const table = hold(
