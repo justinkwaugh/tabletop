@@ -29,6 +29,7 @@ import { describeAction } from '$lib/model/actionDescription.js'
 import {
     aggregateHistory,
     isHistoryGroup,
+    linedActions,
     type HistoryEntry,
     type HistoryGroup,
     type HistoryGroupKind,
@@ -330,6 +331,34 @@ describe('R-4.10, R-4.11, R-4.12 The end of a round', () => {
         )
 
         expect(spans(entries)).toEqual(['nourishing 31-34'])
+    })
+
+    it('R-4.10 "No pawn needed feeding" reads only when no seat in the entry fed or lost a pawn', () => {
+        const NobodyFed = 'No pawn needed feeding'
+        const linesOf = (group: HistoryGroup) =>
+            linedActions(group).map((action) =>
+                describeAction(action, { viewerId: P1, nameOf: String })
+            )
+        const gameFedNobody = act(30, ActionType.NourishPawns, undefined, { fed: [] })
+        const seatFed: GameAction = {
+            ...act(31, ActionType.Nourish, P2, { foodFed: [], returned: [] }),
+            wineFed: [1]
+        }
+        const seatLost: GameAction = {
+            ...act(31, ActionType.Nourish, P2, {
+                foodFed: [],
+                returned: [{ n: 1, left: { character: 'merchant', spaceId: 'space.sea.1' } }]
+            }),
+            wineFed: []
+        }
+
+        for (const seat of [seatFed, seatLost]) {
+            const group = onlyGroup([gameFedNobody, seat])
+            expect(linesOf(group)).not.toContain(NobodyFed)
+            expect(linesOf(group)).toHaveLength(1)
+            expect(typesIn(group)).toEqual([ActionType.NourishPawns, ActionType.Nourish])
+        }
+        expect(linesOf(onlyGroup([gameFedNobody]))).toEqual([NobodyFed])
     })
 
     it.each([

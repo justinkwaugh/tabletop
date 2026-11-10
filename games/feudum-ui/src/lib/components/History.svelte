@@ -10,6 +10,7 @@
     import { EpochNames } from '$lib/model/tileName.js'
     import {
         isHistoryGroup,
+        linedActions,
         type HistoryEntry,
         type HistoryGroup,
         type HistoryGroupKind
@@ -150,7 +151,7 @@
                                     {/if}
                                     {@render jumpButton(entry)}
                                 </div>
-                                {#each entry.actions as action (action.id)}
+                                {#each linedActions(entry) as action (action.id)}
                                     <p class="mt-1 text-left text-sm font-normal text-feudum-text">
                                         <ActionDescription {action} viewerId={log.viewerId} />
                                     </p>
