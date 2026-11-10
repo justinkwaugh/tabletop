@@ -21,7 +21,6 @@ export interface OrderRow {
 
 export interface CombatTallyRow {
     readonly lines: readonly TallyLine[]
-    readonly note?: string
 }
 
 function entriesOf(
@@ -53,20 +52,13 @@ export function orderRowOf(
 
 /**
  * R-4.8.2 The combat as it stands: what the flow holds, a flipped Defend once it is face up, and
- * nothing the attacker has not committed. It reads no hand, so it can't differ with one (S34).
+ * nothing the attacker has not committed. It reads no hand, so it can't differ with one (S34). Who
+ * answers is the waiting line's to say, to every seat but the one answering (R-3.14.1).
  */
-export function combatTallyOf(
-    state: HydratedFeudumGameState,
-    nameOf: (playerId: string) => string
-): CombatTallyRow | undefined {
+export function combatTallyOf(state: HydratedFeudumGameState): CombatTallyRow | undefined {
     const { combat } = state.flow
     if (!combat) {
         return undefined
     }
-    const asked =
-        combat.defenderId !== undefined && state.activePlayerIds.includes(combat.defenderId)
-    return {
-        lines: tallyLines(strengthOf(state, combat, 0, 0)),
-        ...(asked ? { note: `${nameOf(combat.defenderId)} answers` } : {})
-    }
+    return { lines: tallyLines(strengthOf(state, combat, 0, 0)) }
 }

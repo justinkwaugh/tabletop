@@ -889,9 +889,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
 
     /** R-4.8.2 As the flow holds it, for every seat; only the attacker's own draft previews more. */
     combatTally: CombatTallyRow | undefined = $derived.by(() =>
-        this.isViewingHistory
-            ? undefined
-            : combatTallyOf(this.gameState, (id) => this.getPlayerName(id))
+        this.isViewingHistory ? undefined : combatTallyOf(this.gameState)
     )
 
     /** R-4.11, R-4.12 The roll's line and the dawn sheet, on the Actions the state has played. */
