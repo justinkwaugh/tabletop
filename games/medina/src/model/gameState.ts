@@ -351,11 +351,17 @@ export class HydratedMedinaGameState
     }
 
     wallsBeside(palaceId: string): WallSection[] {
+        return this.wallsBesideSpaces([
+            ...this.palaceBuildings(palaceId),
+            ...this.palaceStables(palaceId)
+        ])
+    }
+
+    private wallsBesideSpaces(spaces: Point[]): WallSection[] {
         const size = this.size()
-        const members = [...this.palaceBuildings(palaceId), ...this.palaceStables(palaceId)]
         return this.walls.filter((wall) =>
-            members.some((member) =>
-                samePoint(member, spaceBesideWall(wall.side, wall.position, size))
+            spaces.some((space) =>
+                samePoint(space, spaceBesideWall(wall.side, wall.position, size))
             )
         )
     }
@@ -489,13 +495,13 @@ export class HydratedMedinaGameState
         return towers.reduce((sum, tower) => sum + this.applyTowerTile(tower, palace), 0)
     }
 
-    private towersBeside(palaceId: string): Tower[] {
-        return [...new Set(this.wallsBeside(palaceId).map((wall) => this.towerOfWall(wall)))]
+    private towersOfWalls(walls: WallSection[]): Tower[] {
+        return [...new Set(walls.map((wall) => this.towerOfWall(wall)))]
     }
 
     claimPalace(palace: Palace, coords: Point, playerId: string | undefined): TileAwards {
         palace.rooftop = playerId ? { coords, playerId } : { coords }
-        const towers = this.towersBeside(palace.id)
+        const towers = this.towersOfWalls(this.wallsBeside(palace.id))
         return {
             palaceOwnerId: playerId,
             palaceTile: this.applyPalaceTile(palace),
@@ -504,17 +510,17 @@ export class HydratedMedinaGameState
         }
     }
 
+    // A palace takes a tower's tile only when it first connects to that tower: later walls and
+    // stables reaching the same tower are not new connections.
     extendClaimedPalace(palace: Palace, stable: Point): TileAwards {
-        const size = this.size()
-        const towers = [
-            ...new Set(
-                this.walls
-                    .filter((wall) =>
-                        samePoint(stable, spaceBesideWall(wall.side, wall.position, size))
-                    )
-                    .map((wall) => this.towerOfWall(wall))
-            )
-        ]
+        const others = [
+            ...this.palaceBuildings(palace.id),
+            ...this.palaceStables(palace.id)
+        ].filter((member) => !samePoint(member, stable))
+        const connected = this.towersOfWalls(this.wallsBesideSpaces(others))
+        const towers = this.towersOfWalls(this.wallsBesideSpaces([stable])).filter(
+            (tower) => !connected.includes(tower)
+        )
         return {
             palaceOwnerId: palace.rooftop?.playerId,
             palaceTile: this.applyPalaceTile(palace),
@@ -528,7 +534,16 @@ export class HydratedMedinaGameState
         if (!palace?.rooftop) {
             return undefined
         }
-        const towers = [this.towerOfWall(section)]
+        const tower = this.towerOfWall(section)
+        const alreadyConnected = this.wallsBeside(palace.id).some(
+            (wall) =>
+                (wall.side !== section.side || wall.position !== section.position) &&
+                this.towerOfWall(wall) === tower
+        )
+        if (alreadyConnected) {
+            return undefined
+        }
+        const towers = [tower]
         return {
             palaceOwnerId: palace.rooftop.playerId,
             towers,
