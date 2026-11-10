@@ -36,24 +36,6 @@ type TrackMap = {
 type PrivateActions = Pick<PrivateActionsModule, 'selection' | 'trackPowerSelection' | 'titlePower'>
 type Decisions = Pick<CompanyDecisionsModule, 'selectPrivateTile' | 'confirm'>
 
-/**
- * The placement after the previewed one, so turning the tile reaches every legal layout: each
- * rotation, and in it each city a station may take, as when a tile is laid on a hex whose
- * cities have no track.
- */
-export function nextPlacement<Placement extends TrackRequest>(
-    placements: readonly Placement[],
-    preview: TrackRequest
-): Placement | undefined {
-    const index = placements.findIndex(
-        (choice) =>
-            choice.rotation === preview.rotation &&
-            JSON.stringify(choice.nodeMapping) === JSON.stringify(preview.nodeMapping)
-    )
-    const next = placements[(index + 1) % placements.length]
-    return next === placements[index] ? undefined : next
-}
-
 export class TrackModule {
     readonly stages = new StagedSelection<TrackStages>(TrackStageOrder)
     constructor(
@@ -223,7 +205,7 @@ export class TrackModule {
     }
     rotatePreview() {
         assert(this.canBuild && this.preview, 'Choose a track tile to rotate')
-        const next = nextPlacement(this.placements, this.preview)
+        const next = this.nextLayout(this.preview)
         if (next) this.selectPlacement(next)
     }
     selectPlacement(request: TrackRequest) {
@@ -291,6 +273,15 @@ export class TrackModule {
                 { companyId, locationId, definitionId, rotation, nodeMapping, expectedCost: cost }
             )
         )
+    }
+    private nextLayout(preview: TrackRequest): TrackRequest | undefined {
+        const index = this.placements.findIndex(
+            (choice) =>
+                choice.rotation === preview.rotation &&
+                JSON.stringify(choice.nodeMapping) === JSON.stringify(preview.nodeMapping)
+        )
+        const next = this.placements[(index + 1) % this.placements.length]
+        return next === this.placements[index] ? undefined : next
     }
     private chooseTile(
         definitionId: string,

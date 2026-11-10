@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
+    RailwayMap,
+    StandardTileCatalog,
+    TileSet,
+    createSeparateCitiesTileFace,
+    createTrackTileFace
+} from '@tabletop/18xx'
+import {
     TestCompanyId,
     TestPlayerId,
     TestTrackHomeLocationId,
@@ -9,7 +16,7 @@ import {
     minimalTrackTileSet,
     straightOnlyTrackTileSet
 } from '@tabletop/18xx/testing'
-import { TrackModule, nextPlacement, type TrackSession } from './trackModule.svelte.js'
+import { TrackModule, type TrackSession } from './trackModule.svelte.js'
 import { testSession } from './moduleTestSession.js'
 
 const noPrivateTrack = { trackTerms: () => undefined, earlyTrainCompany: () => undefined }
@@ -21,12 +28,52 @@ const noPrivateAction: PrivateActions = {
     titlePower: undefined
 }
 
+type Board = {
+    map: RailwayMap
+    rules: TrackSession['rules']['trackRules']
+    homeNodeId: string
+}
+
+// The home hex holds two cities with no track, the station in the first, as 1830's Buffalo.
+function trackLessTwoCityHome(): { tileSet: TileSet; board: Board } {
+    const tileSet = new TileSet(
+        { id: 'test-two-city', entries: [{ id: 'oo', faceDefinitionIds: ['18xx:59'], count: 1 }] },
+        [StandardTileCatalog]
+    )
+    const map = new RailwayMap({
+        ...minimalTrackMap.definition,
+        locations: minimalTrackMap.definition.locations.map((location) =>
+            location.id === TestTrackHomeLocationId
+                ? {
+                      ...location,
+                      preprintedTile: createSeparateCitiesTileFace(
+                          'yellow',
+                          [
+                              { edges: [], revenue: 0, stationSlots: 1 },
+                              { edges: [], revenue: 0, stationSlots: 1 }
+                          ],
+                          ['OO']
+                      )
+                  }
+                : { ...location, preprintedTile: createTrackTileFace('white', []) }
+        )
+    })
+    const rules = {
+        ...minimalTrackRules(tileSet),
+        map,
+        availableColors: () => ['green'],
+        useful: () => true
+    }
+    return { tileSet, board: { map, rules, homeNodeId: 'city-0' } }
+}
+
 function laying(
     tileSet = minimalTrackTileSet,
     valid = ['LayTile', 'FinishTrack'],
     availability = {},
     privateActions = noPrivateAction,
-    privatePowerRules: TrackSession['rules']['privatePowerRules'] = noPrivateTrack
+    privatePowerRules: TrackSession['rules']['privatePowerRules'] = noPrivateTrack,
+    board: Board = { map: minimalTrackMap, rules: minimalTrackRules(tileSet), homeNodeId: 'city' }
 ) {
     const base = minimalPlayState()
     const state: TrackSession['state'] = {
@@ -42,7 +89,7 @@ function laying(
                 id: `${TestCompanyId}:home`,
                 companyId: TestCompanyId,
                 status: 'placed',
-                position: { locationId: TestTrackHomeLocationId, nodeId: 'city', slot: 0 }
+                position: { locationId: TestTrackHomeLocationId, nodeId: board.homeNodeId, slot: 0 }
             }
         ]
     }
@@ -50,13 +97,13 @@ function laying(
     const decisions = { selectPrivateTile: () => {}, confirm: async () => {} }
     const harness = testSession(
         state,
-        { trackRules: minimalTrackRules(tileSet), privatePowerRules },
+        { trackRules: board.rules, privatePowerRules },
         valid,
         availability
     )
     const module = new TrackModule(
         harness.session,
-        () => ({ map: minimalTrackMap, tileSet }),
+        () => ({ map: board.map, tileSet }),
         privateActions,
         decisions,
         () => locationsChosen++
@@ -127,24 +174,27 @@ describe('TrackModule', () => {
         expect(module.preview?.rotation).not.toBe(first)
     })
 
-    it('steps through each city a station may take before turning the tile', () => {
-        const placement = (rotation: 0 | 1, home: string) => ({
-            companyId: TestCompanyId,
-            locationId: 'E11',
-            definitionId: '18xx:59',
-            rotation,
-            nodeMapping: { 'city-0': home, 'city-1': home === 'city-0' ? 'city-1' : 'city-0' }
-        })
-        const placements = [
-            placement(0, 'city-0'),
-            placement(0, 'city-1'),
-            placement(1, 'city-0'),
-            placement(1, 'city-1')
-        ]
-        const order = [placements[0]]
-        for (let step = 0; step < placements.length; step++)
-            order.push(nextPlacement(placements, order.at(-1)!)!)
-        expect(order).toEqual([...placements, placements[0]])
+    it('steps through each city the home station may take before turning the tile', () => {
+        const { tileSet, board } = trackLessTwoCityHome()
+        const { module } = laying(tileSet, undefined, undefined, undefined, undefined, board)
+        module.selectLocation(TestTrackHomeLocationId)
+        expect(module.preview?.definitionId).toBe('18xx:59')
+        const layouts = module.placements.map(
+            (placement) => `${placement.rotation}/${placement.nodeMapping['city-0']}`
+        )
+        expect(new Set(layouts).size).toBe(layouts.length)
+        expect(layouts.length).toBe(
+            2 * new Set(module.placements.map((placement) => placement.rotation)).size
+        )
+        const seen: string[] = []
+        for (const _ of layouts) {
+            seen.push(`${module.preview?.rotation}/${module.preview?.nodeMapping['city-0']}`)
+            module.rotatePreview()
+        }
+        expect(seen).toEqual(layouts)
+        expect(`${module.preview?.rotation}/${module.preview?.nodeMapping['city-0']}`).toBe(
+            layouts[0]
+        )
     })
 
     it('choosing another location restarts the selection', () => {

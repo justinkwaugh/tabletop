@@ -13,9 +13,7 @@ export function sameStopCounts(before: TileFace, after: TileFace): boolean {
 
 /**
  * The node mappings preserving a tile's track and stops; ``townsBecomeCities`` lets a town map
- * onto a city, as when a title promotes a town within its colour. A city with no track has
- * nothing to preserve, so it may become any city of the new tile: the company laying the tile
- * chooses where a station already in it goes.
+ * onto a city, as when a title promotes a town within its colour.
  */
 export function tileUpgradeMappings(
     before: TileFace,
