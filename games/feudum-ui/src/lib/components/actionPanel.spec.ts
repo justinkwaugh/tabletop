@@ -111,8 +111,13 @@ describe('R-X.3 the rows of the panel', () => {
     it('a row with lights has its touch preview; one without has none', () => {
         const markup = markupOf(rowsBlock('modes', [lit, plain]))
         expect(markup).toContain('data-preview="Move"')
-        expect(markup).toContain('aria-label="Preview Move on the board"')
+        expect(markup).toContain('aria-label="Show on board: Move"')
         expect(markup).not.toContain('data-preview="Forfeit"')
+    })
+
+    it('the touch preview says on its face what it does, not only to a screen reader', () => {
+        const markup = markupOf(rowsBlock('modes', [lit]))
+        expect(textOf(markup, 'data-preview')).toBe('Show on board')
     })
 
     it('a dimmed row stays pressable and gives no reason until pressed', () => {
