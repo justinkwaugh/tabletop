@@ -9,8 +9,11 @@ declare global {
 
 export const Seed = '0123456789abcdef0123456789abcdef'
 
-/** A real hotseat session through the shared harness, its session reachable from the page. */
-export async function createGame(page: Page) {
+/**
+ * A real hotseat session through the shared harness, its session reachable from the page. The seats
+ * after the first are named by `nameOf`, from seat 2.
+ */
+export async function createGame(page: Page, nameOf = (seat: number) => `Seat ${seat}`) {
     await page.route('**/model/sessionContext.svelte.ts*', async (route) => {
         const response = await route.fetch()
         const body = await response.text()
@@ -34,7 +37,7 @@ export async function createGame(page: Page) {
     await page.getByPlaceholder('optional reproduction seed').fill(Seed)
     const names = page.getByPlaceholder('player name')
     for (let i = 1; i < (await names.count()); i++) {
-        await names.nth(i).fill(`Seat ${i + 1}`)
+        await names.nth(i).fill(nameOf(i + 1))
     }
     await page.getByRole('button', { name: 'Create Game', exact: true }).click()
     await expect

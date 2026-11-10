@@ -44,6 +44,19 @@ const entry = (page: Page, first: number) => list(page).locator(`[data-first-ind
 const current = (page: Page) => page.evaluate(() => window.feudumSession.currentAction?.index)
 const viewing = (page: Page) => page.evaluate(() => window.feudumSession.isViewingHistory)
 
+test('R-X.1 A name in the log reads as the platform gives it, at the start of a line too', async ({
+    page
+}) => {
+    await createGame(page, (seat) => `seat ${seat}`)
+    await playToCards(page)
+    await page.getByRole('tab', { name: 'History' }).click()
+    await expect(list(page).locator('[data-action-line]').first()).toBeVisible()
+    // As painted, so that a style that changes the letters counts too.
+    const painted = await list(page).innerText()
+    expect(painted).toMatch(/^seat [2-4]\b/m)
+    expect(painted).not.toMatch(/Seat [2-4]/)
+})
+
 test('S61 S64 R-2.2 The hotseat log: grouped, jumped and replayed, and the seat stays who it was', async ({
     page
 }) => {
