@@ -59,6 +59,29 @@ export function currentDepotCertificates({
     }))
 }
 
+export type MarketCertificate = {
+    definitionIds: readonly string[]
+    count: number
+}
+
+/** Trains discarded to the open market, which companies can buy alongside the depot's. */
+export function marketCertificates({
+    depot,
+    inventory
+}: Pick<PhaseChartDepotState, 'depot' | 'inventory'>): MarketCertificate[] {
+    return depot.definition.supply
+        .map(({ definitionId }) => {
+            const faces = depot.certificateDefinitions(definitionId)
+            return {
+                definitionIds: facesByPrice(depot, definitionId).map(({ id }) => id),
+                count: inventory.trains.filter(
+                    (train) => train.status === 'market' && faces.includes(train.definitionId)
+                ).length
+            }
+        })
+        .filter(({ count }) => count > 0)
+}
+
 export function trainRosterRows(trains: PhaseChartData['trains']): TrainRosterRow[] {
     return trains.map((train) => {
         const faces = trains.filter((face) => face.supplyId === train.supplyId)

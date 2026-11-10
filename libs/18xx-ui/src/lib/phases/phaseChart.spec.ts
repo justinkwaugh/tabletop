@@ -1,6 +1,11 @@
 import { expect, it } from 'vitest'
 import { PhaseTable, TrainDepot } from '@tabletop/18xx'
-import { createPhaseChart, currentDepotCertificates, trainRosterRows } from './phaseChart.js'
+import {
+    createPhaseChart,
+    currentDepotCertificates,
+    marketCertificates,
+    trainRosterRows
+} from './phaseChart.js'
 
 const distance = (maximum: number) => ({ measure: 'revenue-centers' as const, maximum })
 
@@ -64,6 +69,44 @@ it('counts a paired certificate once, cheaper face first, and other trains separ
         { definitionIds: ['8'], remaining: 2 },
         { definitionIds: ['D'], remaining: 'unlimited' }
     ])
+})
+
+it('counts discarded trains in the open market by certificate, in supply order', () => {
+    const depot = new TrainDepot({
+        id: 'paired',
+        trains: [
+            { id: '2', name: '2', price: 80, distance: distance(2) },
+            { id: '4', name: '4', price: 180, distance: distance(4) },
+            { id: '3/5', name: '3/5', price: 160, distance: distance(5) },
+            { id: '6', name: '6', price: 300, distance: distance(6) }
+        ],
+        supply: [
+            { definitionId: '2', count: 3 },
+            { definitionId: '4', variantDefinitionIds: ['3/5'], count: 3 },
+            { definitionId: '6', count: 2 }
+        ]
+    })
+    const inventory = depot.createInventory()
+    const [twoA, twoB, twoC, fourA, fourB] = inventory.trains
+    const owner = { kind: 'company' as const, companyId: 'A' }
+    Object.assign(fourA, { status: 'market', definitionId: '3/5' })
+    Object.assign(fourB, { status: 'owned', owner })
+    Object.assign(twoA, { status: 'market' })
+    Object.assign(twoB, { status: 'market' })
+    Object.assign(twoC, { status: 'removed' })
+    expect(marketCertificates({ depot, inventory })).toEqual([
+        { definitionIds: ['2'], count: 2 },
+        { definitionIds: ['3/5', '4'], count: 1 }
+    ])
+})
+
+it('has no open-market certificates while nothing has been discarded', () => {
+    const depot = new TrainDepot({
+        id: 'plain',
+        trains: [{ id: '2', name: '2', price: 80, distance: distance(2) }],
+        supply: [{ definitionId: '2', count: 2 }]
+    })
+    expect(marketCertificates({ depot, inventory: depot.createInventory() })).toEqual([])
 })
 
 const rosterTrain = (id: string, supplyId: string, rustPhaseId?: string) => ({
