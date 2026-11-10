@@ -340,17 +340,17 @@ describe('R-4.10, R-4.11, R-4.12 The end of a round', () => {
                 describeAction(action, { viewerId: P1, nameOf: String })
             )
         const gameFedNobody = act(30, ActionType.NourishPawns, undefined, { fed: [] })
-        const seatFed: GameAction = {
-            ...act(31, ActionType.Nourish, P2, { foodFed: [], returned: [] }),
-            wineFed: [1]
-        }
-        const seatLost: GameAction = {
-            ...act(31, ActionType.Nourish, P2, {
+        const seatFed = Object.assign(
+            act(31, ActionType.Nourish, P2, { foodFed: [], returned: [] }),
+            { wineFed: [1] }
+        )
+        const seatLost = Object.assign(
+            act(31, ActionType.Nourish, P2, {
                 foodFed: [],
                 returned: [{ n: 1, left: { character: 'merchant', spaceId: 'space.sea.1' } }]
             }),
-            wineFed: []
-        }
+            { wineFed: [] }
+        )
 
         for (const seat of [seatFed, seatLost]) {
             const group = onlyGroup([gameFedNobody, seat])
