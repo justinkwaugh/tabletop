@@ -1941,10 +1941,9 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
     } else {
         problem.memory_budget_bytes / 4
     };
+    // A fleet's selection accounts for its own memory, from what the candidates leave.
     let selection_bytes_per_candidate = if problem.fleet.is_some() {
-        512 + (problem.stops.len() + problem.hex_bonuses.len() + problem.resource_count)
-            * std::mem::size_of::<usize>()
-            * 2
+        0
     } else if streaming {
         if problem.longest_route_bonus_per_stop == 0 {
             0
@@ -2028,7 +2027,12 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
     let path_finished = milliseconds();
     if problem.fleet.is_some() {
         let (revenue, subsidy, routes, combination_exhaustive, limited, visits, counts) =
-            fleet::solve(network, &candidates, deadline, row_budget);
+            fleet::solve(
+                network,
+                &candidates,
+                deadline,
+                row_budget + candidate_budget,
+            );
         memory_limited |= limited;
         return Ok(Solution {
             revenue,

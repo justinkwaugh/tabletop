@@ -326,17 +326,17 @@ explicit model.
 `RouteRules.fleet` is data (`routes/fleetRules.ts`), consumed by the canonical
 family settlement and by the autorouter encoder:
 
-| Trait                                  | Semantics                                                                                                                                                                                                                                  |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `sharedTrack`                          | Different trains may share track; each route still cannot reuse its own. Absent means exclusive track.                                                                                                                                     |
-| `payOnce.groups`                       | A center pays at most once per company; centers in a group share payment identity. With no `payOnce`, payment is per route. If profiles offer different values for one identity, the highest selected offer pays.                          |
-| `connectivity.at`, `root`              | Runs form a connected intersection graph through stops of the declared kind. `root: 'home'` requires a run through the placed home station.                                                                                                |
-| `routeShape.endKinds`, `minimumCities` | Allowed endpoint kinds and minimum number of cities, independent of train distance.                                                                                                                                                        |
-| `trains[id].payingKinds`               | Which nonfreight visited kinds can pay; absent means all kinds.                                                                                                                                                                            |
-| `trains[id].payingStopLimit`           | Limit a nonfreight route’s paid subset of specified kinds; other payable kinds are unlimited. Visit capacity stays on the train definition.                                                                                                |
-| `trains[id].hexSubsidy`                | Treasury subsidy for distinct visited hexes. Overlapping profiles pay the maximum subsidy per hex once.                                                                                                                                    |
-| `trains[id].freight`                   | `required` runs must form one simple endpoint chain. When any `optional` runs also run, exactly one extends that chain. Remaining optional runs choose their best partition into simple chains, including singletons.                      |
-| `freightChains`                        | Pay the outer ends of each chain and a crow-flies bonus for hexes between them. `endRates` increases the rate at named ends. `offboardDistance: 'adjacent-hex'` measures from the adjacent route hex with one extra hex per off-board end. |
+| Trait                                  | Semantics                                                                                                                                                                                                                                                                                               |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sharedTrack`                          | Different trains may share track; each route still cannot reuse its own. Absent means exclusive track.                                                                                                                                                                                                  |
+| `payOnce.groups`                       | A center pays at most once per company; centers in a group share payment identity. With no `payOnce`, payment is per route. If profiles offer different values for one identity, the highest selected offer pays. Freight chains between the same two identities share one distance bonus, the highest. |
+| `connectivity.at`, `root`              | Runs form a connected intersection graph through stops of the declared kind. `root: 'home'` requires a run through the placed home station.                                                                                                                                                             |
+| `routeShape.endKinds`, `minimumCities` | Allowed endpoint kinds and minimum number of cities, independent of train distance.                                                                                                                                                                                                                     |
+| `trains[id].payingKinds`               | Which nonfreight visited kinds can pay; absent means all kinds.                                                                                                                                                                                                                                         |
+| `trains[id].payingStopLimit`           | Limit a nonfreight route’s paid subset of specified kinds; other payable kinds are unlimited. Visit capacity stays on the train definition.                                                                                                                                                             |
+| `trains[id].hexSubsidy`                | Treasury subsidy for distinct visited hexes. Overlapping profiles pay the maximum subsidy per hex once.                                                                                                                                                                                                 |
+| `trains[id].freight`                   | `required` runs must form one simple endpoint chain. When any `optional` runs also run, exactly one extends that chain. Remaining optional runs choose their best partition into simple chains, including singletons.                                                                                   |
+| `freightChains`                        | Pay the outer ends of each chain and a crow-flies bonus for hexes between them. `endRates` increases the rate at named ends. `offboardDistance: 'adjacent-hex'` measures from the adjacent route hex with one extra hex per off-board end.                                                              |
 
 1862's `routeRules.ts` declares these traits, off-board payment groups, port rates,
 and per-depot-train policies. Its remaining functions supply phase revenue,
@@ -363,70 +363,100 @@ version 7. No state schema or host bridge contract changes in this migration.
 
 ### Problem class and exact algorithm
 
-This is connected maximum coverage with a partition capacity constraint (at most
-one route per owned train), generalized to an assignment valuation when trains
-choose paid stops, plus endpoint-path constraints for freight. It is NP-hard.
-Exact branch and bound with admissible marginal bounds is the appropriate
-technique; there is no universally fastest exact algorithm. The connected
-extension discipline follows the idea behind
-[ESU connected-subgraph enumeration](https://pubmed.ncbi.nlm.nih.gov/17085844/).
-The paid-stop optimization is a capacitated maximum-weight bipartite matching;
-its assignment valuation is submodular (see the
-[assignment valuation analysis](https://web.stanford.edu/~ost/papers/eav2.pdf)).
+This is weighted maximum coverage under a partition constraint. The fleet takes
+one choice for each unit, a unit being a train or a chain of freight trains, and
+every payment group, Local hex and pair of chain ends pays its best amount once.
+Connectivity through stops of the declared kind is a side constraint, and freight
+adds endpoint-path constraints. The problem is NP-hard. Exact branch and bound
+with admissible bounds is the appropriate technique; there is no universally
+fastest exact algorithm. The bound is the Lagrangian relaxation of the cover,
+lowered by subgradient steps, the standard treatment of covering integer
+programs.
 
-The native solver works as follows:
+The native solver (`rust/src/fleet.rs`) works as follows:
 
 1. Enumerate legal individual paths with the existing native compiler and path
    search. Fleet candidates retain stop identities, Local hex coverage, freight
    endpoints and adjacent off-board hexes, and track resources when exclusive.
    Ordinary resource-dominance pruning is inapplicable to fleet coverage and is
-   disabled. Equivalent profiles share candidates and have a train capacity.
-2. Seed the incumbent with legal home routes and greedy connected extensions.
-   A partial fleet is a complete legal answer: idle trains require no explicit
-   branch. Score every legally settled partial fleet, including singletons.
-3. Grow only through candidates meeting the chosen fleet at a permitted stop.
-   Each recursion owns its earlier-sibling exclusions; descendants inherit
-   them, and restore them on return. Thus each connected candidate set has one
-   construction, even though its connection order need not be sorted by ID.
-   Multiplicity is enumerated for useful repeated paths: identical N/M trains
-   may pay different stops of the same route, and permanent freight may earn
-   separate distance bonuses. Identical train IDs do not introduce permutations.
-4. Reject required-freight branching and cycles immediately. Keep a forest of
-   provisional chain components when necessary: forbidding every disconnected
-   freight prefix can miss a legal fleet whose city-connectivity order differs
-   from its endpoint-chain order. Only a settled legal chain can improve the
-   incumbent.
-5. Score paid stops with maximum-weight capacitated matching, optimizing the
-   choice of unpaid large stops jointly across all routes. Enumerate admissible
-   freight anchors and permanent-chain partitions; each offers its outer ends
-   and bonus. Subsidy is the union of visited Local hexes. Maximize revenue plus
-   treasury subsidy, returning the two amounts separately.
-6. Bound the branch by coverage already available plus the greatest remaining
-   marginal values, respecting profile capacities. For the bound, every freight
-   endpoint may pay even if later made internal. When the freight combination
-   table fits its budget, precompute legal freight completions and their maximum
-   bonuses, and filter them by chosen and excluded candidates. Otherwise use a
-   geometric upper bound from the sum of route spans and the highest end rate.
-   This relaxation preserves completeness. A zero-gain nonfreight route can be
-   removed only if it adds neither a connection stop nor payment/subsidy over
-   the nonfreight fleet; freight endpoints may disappear during later chaining.
+   disabled. Trains of one profile share a candidate list.
+2. Turn each candidate into choices. A choice is one way to run a unit. Its
+   `add` is what no other route could pay instead: every stop and every chain's
+   distance bonus when those pay per train. Its `cover` lists an amount for each
+   item it pays that another route could pay instead. The items are the payment
+   groups, then the hexes, then the pairs of payment groups that chains run
+   between, and each pays its best amount once across the fleet. A fleet scores
+   the sum of `add` plus that weighted cover: revenue and treasury subsidy
+   together, returned as two amounts. A route whose train has a paying-stop
+   limit becomes one choice for each way of spending the limit. Within a
+   profile, a choice is dropped when another pays at least as much for every
+   item, reaches every connecting stop it does, and uses no track it leaves
+   free.
+3. Split the trains into units in every way the freight policy allows. Each
+   split is a pattern. A nonfreight train is a unit of its own. Any of the
+   required freight trains run as one chain; when optional ones run beside
+   them, exactly one joins that chain at an end, and the other optional ones
+   group freely. Patterns are searched in turn, and one whose units' best
+   scores cannot beat the incumbent is skipped. Identical trains can take the
+   same path: two N/M trains may pay different stops of one route.
+4. Chains are costly to build, so a pattern with chains is searched first over
+   outlines of them: for two trains, one choice for each pair of ends their
+   routes can join between; for more, one choice that scores the most any two
+   ends could. An outline scores at least what the chains it stands for do.
+   Only when a fleet of outlines could beat the incumbent are the chains built.
+   A chain grows from one end, never returns to a stop it has joined at, and
+   is rejected when its routes would share track they may not. Chains are
+   pruned by the same dominance rule. Under `payOnce` a chain's distance bonus
+   is a cover item, the pair of its ends' payment groups, so chains between the
+   same two identities pay the best bonus once. Without `payOnce` the bonus is
+   part of `add`.
+5. Search a pattern depth first, one choice for each unit. The cover is
+   submodular: a choice's gain over the choices already taken only falls as
+   more are taken. Each depth therefore keeps, for each class of unit, the
+   choices that could still be part of a better fleet with their gains then,
+   best first, and deeper levels look only at those. A branch is cut when the
+   value taken plus the best remaining gain of every later unit cannot beat the
+   incumbent. Counting every item in full for every unit would put that bound
+   far above any fleet, since units that would pay the same stop all count it.
+   Each item's amount is therefore capped at a multiplier per choice, with the
+   rest held once for the whole fleet, and 60 subgradient rounds lower the bound
+   before the walk. Units of one class take their choices in order, so
+   interchangeable trains are not permuted. Idling a train is branched on only
+   where trains exclude each other's track or no choice of the unit is worth
+   taking.
+6. Judge connectivity when a fleet is complete. Routes are nodes, joined where
+   they share a stop of the connecting kind. Each component, holding the root
+   when one is required, is offered as a fleet, so a partial fleet is a
+   complete legal answer. A chain only partly inside a component is dropped
+   whole; the pattern that splits it keeps the routes that are inside. The
+   bound ignores connectivity, which can only overstate, so the search stays
+   complete.
+7. A deadline or the memory budget can cut the search short. The search valued
+   its fleet under the paid stops and the chain grouping it came to, while
+   canonical settlement chooses both afresh for the routes it is given, so the
+   same routes can be worth more than the search reported. The returned routes,
+   at most one for each train, are therefore searched again alone and to the
+   end. The reported revenue and subsidy then equal the canonical settlement of
+   those routes, which `Autorouter.solve` requires.
 
-Limits remain explicit. Path storage and fleet metadata share the existing
-memory budget. Freight completion tables and their caches are bounded; abandoning
-that acceleration uses the safe geometric bound, not a candidate cut. A candidate
-cut or deadline makes the result non-exhaustive. Ordinary additive titles retain
-the existing set-packing and two-train-streaming selectors. Fleet policies cannot
-yet combine with legacy connection/interconnection or longest-route bonuses, or
-required-route enumeration; unsupported combinations are rejected explicitly.
+Limits remain explicit. Path storage and the fleet stage share the existing
+memory budget; the fleet stage takes an even share for each profile from what
+the candidates leave. Chain building stops at four million steps or when the
+chains outgrow the memory left. Any of these cuts, a candidate cut or the
+deadline makes the result non-exhaustive. Ordinary additive titles retain the existing set-packing
+and two-train-streaming selectors. Fleet policies cannot yet combine with legacy
+connection/interconnection or longest-route bonuses, or required-route
+enumeration; unsupported combinations are rejected explicitly.
 
 ### Regression evidence
 
 The saved WStI position has five BL, one BF, two AL and two AF trains. The old
 train-by-train TypeScript search evaluated only leaves, visited routes before
 idling, and applied connectivity only at settlement. It returned £0 with 150 ms,
-2 s and 20 s budgets despite a legal £140 singleton. Rooted connected expansion
-provides an incumbent immediately. Measurements and outstanding proof costs are
-recorded in [the 1862 design note](1862-title-design.md#native-autorouter-verification).
+2 s and 20 s budgets despite a legal £140 singleton. The native search offers
+the connected part of every fleet it completes, so its first complete fleet is
+already a legal incumbent. Measurements and outstanding proof costs are recorded
+in [the 1862 design note](1862-title-design.md#native-autorouter-verification).
 
 Coverage includes the rulebook's route examples through WASM, the saved WStI
 regression, generated-map comparisons against canonical TypeScript evaluation,
@@ -435,7 +465,23 @@ route products including idling, paid subsets and freight chain orders. Native
 cases include 160 generated fleet graphs, sparse networks dominated by
 unconnected combinations, connected and disconnected six-, eight- and ten-train
 fleets, repeated N/M paths, permanent repeats, anchors, cycles, off-board distance,
-port rates, subsidies, run shapes, access, memory cuts and deadlines.
+port rates, subsidies, run shapes, access, memory cuts and deadlines. Two
+freights between the same two places are checked with and without `payOnce`.
+An opt-in run (`FLEET_CASES=3000`) compares 3,000 larger generated fleets with
+chains and shared stops against the oracle; the same-two-ends bonus decides the
+answer in 154 of them. A unit test cuts a search short on hand-built candidates
+whose routes pay more at other stops, and requires the canonically settled
+value.
+
+Recorded play is the second check. 100 finished 1862 games from 18xx.games give
+5,263 runs with fleets of up to seven trains. Each was replayed in the research
+engine, set up on our board and solved with a 5 s cap. All 5,232 positions that
+set up are proved optimal, the slowest in 156 ms, and none pays less than the
+run the players recorded. The first native solver, a seeded connected expansion
+with matching for paid stops, left 610 of them at the cap. The other 31 runs are
+one game whose board cannot be set up: the research engine counts its
+small-station variants of tile 16 apart from the tile. The games, tools and
+results are outside the repository at `/workspace/tmp/autorouter-bench/`.
 
 All 1,434 recorded ordinary-title problems (1817, 1830, 1832, 1846, 1889 and TOP)
 completed exhaustively with identical route output and revenue before and after

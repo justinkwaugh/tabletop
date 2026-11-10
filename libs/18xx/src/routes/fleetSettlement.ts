@@ -237,6 +237,7 @@ export function settleFleetRoutes(
             payments[owner.index].push(payment)
         }
         others.forEach((entry, index) => visits[index].forEach((visit) => stop(entry, visit)))
+        const distances = new Map<string, { index: number; bonus: RouteBonus }>()
         for (const group of chains) {
             const policy: FreightChainPolicy | undefined = fleet.freightChains
             assertExists(policy, 'Freight trains require a chain policy')
@@ -255,12 +256,17 @@ export function settleFleetRoutes(
                     .map((rate) => rate.bonusPerHex)
             )
             const amount = freightHexes(rules.map, a, b) * rate
-            if (amount)
-                bonuses[group.members[0].index].push({
-                    locationId: group.ends[0].visit.locationId,
-                    amount
+            const index = group.members[0].index
+            const key = fleet.payOnce
+                ? JSON.stringify(group.ends.map((end) => fleetPaymentKey(fleet, end.visit)).sort())
+                : String(index)
+            if (amount > (distances.get(key)?.bonus.amount ?? 0))
+                distances.set(key, {
+                    index,
+                    bonus: { locationId: group.ends[0].visit.locationId, amount }
                 })
         }
+        for (const { index, bonus } of distances.values()) bonuses[index].push(bonus)
         const settled = candidates.map((entry): RouteResult => {
             const { bonuses: _bonuses, ...base } = entry.route.result
             const own = payments[entry.index].filter((payment) => payment.amount > 0)

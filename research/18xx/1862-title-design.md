@@ -76,7 +76,8 @@ The mechanisms 1862 adds to the family's 1830-style base, by rulebook section.
   company.
 - **Freight (§7.8.1).** Counts hexes (N further hexes). Scores its two ends plus £20 per intervening
   hex as the crow flies (£30 if an end is a port). Non-permanent freight trains chain end to end into
-  one scored run; permanent ones (F6–F9) may run separately.
+  one scored run; permanent ones (F6–F9) may run separately. Two runs between the same two places
+  score the distance once.
 - **Local (§7.8.2).** N large stations, plus every small station passed (£20 each); no off-boards.
   £10 per distinct hex visited to the treasury as subsidy, outside revenue.
 - **Express (§7.8.3).** Large stations and off-boards; ignores small stations. N/M trains visit up to
@@ -156,6 +157,16 @@ To confirm with the owner:
   start (a director's certificate at £54), nothing can change again, so the game ends at once and
   wealth decides. The rules do not foresee it; the bot sweep reached it (seed 127, three
   players, the last company bankrupt at the bottom of the market).
+- **Two freight runs between the same two places (§7.8.1)** score the distance between them once,
+  the higher amount. Their ends already pay once for the company, so a second run over the same
+  ends earns nothing. The places are the two ends as they pay, a whole off-board area being one
+  place, so a detour between the same ends earns no second bonus either. Confirmed by the owner on
+  2026-11-09, who thought it unlikely that the rules allow an exact duplicate route; the rules
+  do not address it.
+- **Permanent freights that share one end (§7.8.1)** each score their own distance, since the rules
+  let them run separately. The research engine joins every freight that touches another into one
+  chain and pays only that chain's outer ends, which comes to less in 31 of 5,232 recorded runs.
+  The owner left this reading in place on 2026-11-09 without ruling on it.
 - **Not built:** the §11 variants (fewer train kinds, shorter game, new players). Game length and
   eight stations are options.
 
@@ -163,7 +174,8 @@ To confirm with the owner:
 
 - **Routes:** `routes.spec.ts` reproduces the rulebook's "Calculating Train Routes" ENR examples
   (1F, 2F from a port, 2E with 2/3E skipping an already paid stop, 2/3L with its £40 subsidy,
-  2F with 2L and chained 1F trains). Six native WASM examples agree exactly with canonical revenue and subsidies.
+  2F with 2L and chained 1F trains), and adds two permanent freights between the same two places.
+  Seven native WASM examples agree exactly with canonical revenue and subsidies.
 - **Mergers:** `mergers.spec.ts` reproduces §5.2.6 Example #1 (N&E and WStI at £134) and §5.2.7
   Example #2 (train-less N&E and I&B at £86): final holdings, prices and option payments.
 - **Openings and operations:** Parliament, charters, obligations and fines, non-chartered starts,
@@ -190,35 +202,59 @@ highest-paying legal grouping. Chains reject branching and any endpoint cycle,
 including a loop internal to a purported longer chain. Required freight alone
 must form one chain before a permanent run can extend it.
 
+The fleet stage of the native solver was then rewritten as a weighted cover
+searched by branch and bound, described in the autorouter design. The
+measurements below are of that solver, with the first native solver's
+(`0ea2f9e1e`) beside them.
+
 Measurements below use the saved WStI position (five BL, one BF, two AL, two AF),
 now in `test/fixtures/wsti-10-trains.json`. Timing is wall time on the development
 container, not a performance guarantee. The solve budget applies to native
 search; encoding and canonical validation are additional work.
 
-| Native search budget | Previous TypeScript revenue | Native revenue | Native treasury subsidy | Native wall time | Exhaustive |
-| -------------------- | --------------------------: | -------------: | ----------------------: | ---------------: | ---------- |
-| 25 ms                |                           — |           £700 |                    £170 |            40 ms | No         |
-| 150 ms               |                          £0 |           £700 |                    £170 |           165 ms | No         |
-| 2 s                  |                          £0 |           £700 |                    £170 |          2.008 s | No         |
-| 20 s                 |                          £0 |           £700 |                    £170 |         20.005 s | No         |
+| Native search budget | TypeScript solver | First native solver | Native revenue | Native treasury subsidy | Native wall time | Exhaustive |
+| -------------------- | ----------------: | ------------------: | -------------: | ----------------------: | ---------------: | ---------- |
+| 25 ms                |                 — |         £700 + £170 |           £680 |                    £180 |            40 ms | No         |
+| 150 ms               |                £0 |         £700 + £170 |           £680 |                    £180 |           157 ms | No         |
+| 2 s                  |                £0 |         £700 + £170 |           £680 |                    £180 |          2.006 s | No         |
+| 20 s                 |                £0 |         £700 + £170 |           £700 |                    £190 |         20.009 s | No         |
 
 The 25 ms solve establishes a positive returned operation inside 150 ms including
 encoding and validation; the 150 ms _search_ budget itself is not a 150 ms wall-time
-promise. The best £870 company income is not proved optimal at 20 s. Candidate
-counts per profile (BL/BF/AL/AF) fell from 71/45/19/12 to 45/38/14/12 through native
-path enumeration and settlement-equivalent deduplication.
+promise. The best company income found, £890 at 20 s, is not proved optimal. Up to
+2 s the rewritten solver returns £860, £10 less than the first native solver's
+£870: it searches the ways of grouping the freight trains in turn, and the first,
+seven other trains beside one freight, is not proved inside 2 s. The position is
+a stress case that play cannot reach. It holds seven Local trains where §7.9
+allows three of a type, and recorded games reach seven trains in all. The path
+search hands the fleet stage 84/34/13/11 candidates per profile (BL/BF/AL/AF);
+equivalent ones are dropped there by dominance.
 
 Two six-train reductions of the same position completed exact native proofs:
 
-| Fleet                 | Revenue | Subsidy | Native exhaustive wall time | Previous solver               |
-| --------------------- | ------: | ------: | --------------------------: | ----------------------------- |
-| 5 BL + BF             |    £610 |    £170 |                     36.35 s | Still non-exhaustive at 120 s |
-| 2 BL + BF + AL + 2 AF |    £460 |     £90 |                     11.94 s | Still non-exhaustive at 120 s |
+| Fleet                 | Revenue | Subsidy | Native exhaustive wall time | First native solver | TypeScript solver             |
+| --------------------- | ------: | ------: | --------------------------: | ------------------: | ----------------------------- |
+| 5 BL + BF             |    £610 |    £170 |                      449 ms |             36.35 s | Still non-exhaustive at 120 s |
+| 2 BL + BF + AL + 2 AF |    £460 |     £90 |                       98 ms |             11.94 s | Still non-exhaustive at 120 s |
 
-These replace the earlier unqualified “about 23 s” observation with named,
-reproducible positions. They were measured while the sweep was running; timings
-vary with load. The repeated-path regression requires two identical N/M trains
-to use the same physical route to collect different stop payments.
+Timings vary with load. The repeated-path regression requires two identical N/M
+trains to use the same physical route to collect different stop payments.
+
+A search cut short used to report less than the game pays for the routes it
+returned, which `Autorouter.solve` refuses: WStI at a 25 ms budget reported
+£650 + £180 for routes that settle at £680 + £180. The search scores a fleet
+under the paid stops and chain grouping it came to, and canonical settlement
+chooses both afresh. The solver now searches the routes it returns again, alone
+and to the end, so the two agree at every budget.
+
+Recorded play: 100 finished 1862 games from 18xx.games, 5,263 runs, each solved
+with a 5 s cap. All 5,232 positions that set up are proved optimal: none reaches
+the cap, the slowest takes 156 ms (ECR in phase D with six trains), and the
+median for six trains is 17 ms. None pays less than the recorded run and 1,131
+pay more. The first native solver proved 4,622 and left 610 at the cap. The
+same-two-ends ruling changes none of these totals, since no recorded answer runs
+two freights between the same two places. Valued in the research engine, 5,201
+answers agree and 31 are lower there, the shared-end case in the rulings above.
 
 The bot sweep now audits every zero-revenue operation with an independent DFS
 through `RouteNetwork`, using canonical validation to find a positive legal
@@ -232,11 +268,14 @@ The same 28 seeded games completed before and after:
 | -------------------------- | ---------: | ----------------------: | --------------------------------------: |
 | Previous TypeScript solver |      1,818 |                     189 |                                      93 |
 | Native solver              |      1,804 |                      92 |                                       0 |
+| Rewritten native solver    |      1,765 |                      95 |                                       0 |
 
 The final `SWEEP=1 pnpm exec vitest run src/sweep.spec.ts` passed in 812.33 s.
 The original audit failed on the 93 false zero runs. Game trajectories differ
 because the bot now collects revenue it previously missed. A complete earlier
-native sweep also passed with the same totals.
+native sweep also passed with the same totals. The sweep on the rewritten solver
+with the same-two-ends ruling passed in 739.16 s; no solve disagreed with
+canonical settlement.
 
 Verification for this migration:
 
@@ -244,8 +283,8 @@ Verification for this migration:
 | ---------------------- | ---------------------------------------------------: |
 | `libs/18xx`            |                                                  313 |
 | `libs/18xx-autorouter` |                                                   38 |
-| Autorouter Rust core   |                          55 (8 unit, 47 correctness) |
-| `games/1862`           | 58, with 2 opt-in tests skipped in the default suite |
+| Autorouter Rust core   |                          57 (9 unit, 48 correctness) |
+| `games/1862`           | 60, with 2 opt-in tests skipped in the default suite |
 | `games/1817`           |                                                  202 |
 | `games/1830`           |                                                  184 |
 | `games/1832`           |                                                  350 |
@@ -264,12 +303,20 @@ emitted module worker against its emitted WASM returned £700 plus £170 subsidy
 for WStI. A 1,434-position ordinary-title corpus completed exhaustively with
 identical routes and revenue before and after the native migration.
 
+The rewrite and the same-two-ends ruling touch only fleet policies, which 1862
+alone declares. Every row of the table was run again on the rewritten solver
+with the counts shown. The 1862 UI build and bundle passed again, and the
+emitted worker returned £680 plus £180 subsidy for WStI with a 150 ms budget.
+The ordinary-title corpus was not run again.
+
 ## Open items
 
-- **Exhaustive fleet solving:** native connected search fixes the zero-incumbent failure,
-  but large fleets can still time out before proving optimality. Standing run instructions
-  must continue to honor `exhaustive`; timed projected runs and the run panel return the
-  best validated operation. See the measured six-train proofs above.
+- **Exhaustive fleet solving:** every recorded run proves in well under a second, but a fleet
+  beyond the train limits (the ten-train WStI position) still times out before proving
+  optimality. Standing run instructions must continue to honor `exhaustive`; timed projected
+  runs and the run panel return the best validated operation.
+- **Freights sharing one end:** each scores its own distance; the research engine pays one
+  chain. See the rulings.
 - **18xx playground:** not registered; it needs a `@tabletop/1862/scenarios` module of prepared
   positions.
 - **Merged station choice:** stations beyond the limit after a merger are removed automatically

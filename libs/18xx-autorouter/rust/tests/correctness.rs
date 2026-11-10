@@ -1095,10 +1095,30 @@ fn oracle_settlement(p: &Value, chosen: &[OracleRoute]) -> Option<i64> {
         sets: &[(usize, Vec<(usize, usize)>, i64)],
         remaining: usize,
         ends: &mut Vec<(usize, usize)>,
-        bonus: i64,
+        bonuses: &mut Vec<i64>,
     ) -> Option<i64> {
         if remaining == 0 {
-            return Some(oracle_payments(p, chosen, ends) + bonus);
+            // Each chain put its two ends in `ends`; chains between the same two payment groups
+            // pay the best of their bonuses once when stops pay once.
+            let mut between = std::collections::HashMap::new();
+            for (chain, &amount) in bonuses.iter().enumerate() {
+                let group = |end: usize| {
+                    p["fleet"]["payment_groups"][ends[2 * chain + end].0]
+                        .as_u64()
+                        .unwrap()
+                };
+                let places = (group(0).min(group(1)), group(0).max(group(1)));
+                let key = if p["fleet"]["pay_once"] == true {
+                    (places, 0)
+                } else {
+                    (places, chain + 1)
+                };
+                between
+                    .entry(key)
+                    .and_modify(|value: &mut i64| *value = (*value).max(amount))
+                    .or_insert(amount);
+            }
+            return Some(oracle_payments(p, chosen, ends) + between.values().sum::<i64>());
         }
         let first = 1 << remaining.trailing_zeros();
         let mut best = None;
@@ -1107,9 +1127,11 @@ fn oracle_settlement(p: &Value, chosen: &[OracleRoute]) -> Option<i64> {
                 continue;
             }
             ends.extend(payments);
-            if let Some(value) = groups(p, chosen, sets, remaining ^ mask, ends, bonus + amount) {
+            bonuses.push(*amount);
+            if let Some(value) = groups(p, chosen, sets, remaining ^ mask, ends, bonuses) {
                 best = Some(best.unwrap_or(0).max(value));
             }
+            bonuses.pop();
             ends.truncate(ends.len() - payments.len());
         }
         best
@@ -1136,8 +1158,15 @@ fn oracle_settlement(p: &Value, chosen: &[OracleRoute]) -> Option<i64> {
                 .or_insert(amount);
         }
     }
-    groups(p, chosen, &sets, (1 << freight.len()) - 1, &mut vec![], 0)
-        .map(|value| value + subsidies.values().sum::<i64>())
+    groups(
+        p,
+        chosen,
+        &sets,
+        (1 << freight.len()) - 1,
+        &mut vec![],
+        &mut vec![],
+    )
+    .map(|value| value + subsidies.values().sum::<i64>())
 }
 
 fn oracle_payments(p: &Value, chosen: &[OracleRoute], ends: &[(usize, usize)]) -> i64 {
@@ -1343,6 +1372,92 @@ fn native_fleets_agree_with_an_unpruned_oracle_on_generated_graphs() {
     }
 }
 
+/// The oracle is slow on fleets this size, so only a few run by default; `FLEET_CASES` runs more.
+#[test]
+fn larger_generated_fleets_with_chains_and_shared_stops_match_the_oracle() {
+    let cases: u64 = std::env::var("FLEET_CASES")
+        .ok()
+        .and_then(|cases| cases.parse().ok())
+        .unwrap_or(12);
+    let mut seed = 5119u64;
+    let mut random = || {
+        seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
+        seed >> 32
+    };
+    for case in 0..cases {
+        let nodes = 5 + (case % 2) as usize;
+        let mut edges = vec![];
+        for a in 0..nodes {
+            for b in a + 1..nodes {
+                if random() % 5 < 2 {
+                    edges.push((a, b));
+                }
+            }
+        }
+        let trains = if nodes == 5 {
+            4 + random() % 2
+        } else {
+            3 + random() % 2
+        };
+        let distances: Vec<_> = (0..trains).map(|_| 2 + (random() % 2) as u32).collect();
+        let mut p = fleet_graph(nodes, &edges, &distances);
+        p["fleet"]["shared_track"] = json!(random() % 4 != 0);
+        p["fleet"]["pay_once"] = json!(random() % 4 != 0);
+        p["fleet"]["bonus_per_hex"] = json!(10 + random() % 3 * 10);
+        p["fleet"]["end_rates"] = json!((0..nodes).map(|_| random() % 4 * 10).collect::<Vec<_>>());
+        p["fleet"]["payment_groups"] = json!(
+            (0..nodes)
+                .map(|stop| if random() % 5 == 0 { 0 } else { stop })
+                .collect::<Vec<_>>()
+        );
+        if random() % 4 == 0 {
+            p["fleet"]["connectivity"] = json!(null);
+        } else {
+            p["fleet"]["connectivity"]["stops"] =
+                json!((0..nodes).map(|_| random() % 4 != 0).collect::<Vec<_>>());
+            // The home station is always one of the stops that connect runs.
+            if random() % 3 == 0 {
+                p["fleet"]["connectivity"]["root"] = json!(null);
+            } else {
+                p["fleet"]["connectivity"]["stops"][0] = json!(true);
+            }
+        }
+        for stop in p["stops"].as_array_mut().unwrap() {
+            stop["token"] = json!(random() % 3 != 0);
+        }
+        p["stops"][0]["token"] = json!(true);
+        let freights = random() % 4;
+        for (id, train) in p["trains"].as_array_mut().unwrap().iter_mut().enumerate() {
+            train["revenues"] = json!(
+                (0..nodes)
+                    .map(|_| 10 + (random() % 5) * 10)
+                    .collect::<Vec<_>>()
+            );
+            train["allowed_stops"] =
+                json!((0..nodes).map(|_| random() % 8 != 0).collect::<Vec<_>>());
+            if (id as u64) < freights {
+                train["fleet"]["freight"] = json!(if random() % 3 == 0 {
+                    "required"
+                } else {
+                    "optional"
+                });
+            } else {
+                train["fleet"]["limited"] =
+                    json!((0..nodes).map(|_| random() % 2 == 0).collect::<Vec<_>>());
+                train["fleet"]["paying_limit"] = if random() % 2 == 0 {
+                    json!(null)
+                } else {
+                    json!(1 + random() % 2)
+                };
+                train["fleet"]["paying"] =
+                    json!((0..nodes).map(|_| random() % 6 != 0).collect::<Vec<_>>());
+            }
+            train["fleet"]["hex_subsidy"] = json!(random() % 2 * 10);
+        }
+        assert_fleet_oracle(&p, &edges);
+    }
+}
+
 #[test]
 fn connected_six_to_ten_train_fleets_match_the_product_oracle() {
     let edges = [(0, 1), (0, 2)];
@@ -1378,14 +1493,17 @@ fn freight_measures_offboard_ends_from_the_adjacent_hex_and_uses_the_end_rate() 
 }
 
 #[test]
-fn identical_permanent_freight_can_repeat_a_route_and_pay_each_distance_bonus() {
+fn freights_between_the_same_two_places_pay_the_distance_once() {
     let edges = [(0, 1)];
     let mut p = fleet_graph(2, &edges, &[2, 2]);
     p["fleet"]["coordinates"][1]["q"] = json!(2);
     for train in p["trains"].as_array_mut().unwrap() {
         train["fleet"]["freight"] = json!("optional");
     }
-    assert_eq!(solve(&p)["revenue"], 70);
+    assert_eq!(solve(&p)["revenue"], 50);
+    assert_fleet_oracle(&p, &edges);
+    p["fleet"]["pay_once"] = json!(false);
+    assert_eq!(solve(&p)["revenue"], 100);
     assert_fleet_oracle(&p, &edges);
 }
 

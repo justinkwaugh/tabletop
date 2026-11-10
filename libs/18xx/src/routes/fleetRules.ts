@@ -31,7 +31,10 @@ export type FreightChainPolicy = {
 
 export interface FleetRules {
     sharedTrack?: true
-    /** Payment identity defaults to the revenue center; each named group shares one payment. */
+    /**
+     * Payment identity defaults to the revenue center; each named group shares one payment.
+     * Freight chains between the same two identities share one distance bonus.
+     */
     payOnce?: { groups?: readonly (readonly RevenueCenter[])[] }
     connectivity?: { at: RevenueKind; root?: 'home' }
     routeShape?: { endKinds: readonly RevenueKind[]; minimumCities?: number }

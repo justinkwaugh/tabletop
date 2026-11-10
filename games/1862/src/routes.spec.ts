@@ -179,6 +179,17 @@ describe('1862 routes, as the rules’ ENR example scores them', () => {
         expect(result?.subsidy).toBe(20)
     })
 
+    it('two permanent freights between the same two places score the distance once', () => {
+        const { game, trainIds } = cromer(['FF', 'FF'])
+        const norwich = { locationId: 'F5', nodeId: 'city' }
+        const [first, second] = trainIds.map((trainId) =>
+            kit.route(game.state, trainId, norwich, ['F3', 'F1'])
+        )
+        expect(run(game, [first, second]).result?.revenue).toBe(150)
+        const fromCromer = kit.route(game.state, trainIds[1], Cromer, ['F1'])
+        expect(run(game, [first, fromCromer]).result?.revenue).toBe(170)
+    })
+
     it('refuses a run ending at a small station, and runs that do not meet', () => {
         const { game, trainIds } = cromer(['BE'])
         const toAcle = kit.route(game.state, trainIds[0], Cromer, ['F5', 'G6'])
@@ -198,7 +209,8 @@ describe('1862 routes, as the rules’ ENR example scores them', () => {
         { trains: ['AE', 'BE'], revenue: 170, subsidy: 0 },
         { trains: ['BL'], revenue: 90, subsidy: 40 },
         { trains: ['BF', 'AL'], revenue: 170, subsidy: 20 },
-        { trains: ['AF', 'AF'], revenue: 150, subsidy: 0 }
+        { trains: ['AF', 'AF'], revenue: 150, subsidy: 0 },
+        { trains: ['FF', 'FF'], revenue: 270, subsidy: 0 }
     ])('solves the rulebook $trains example natively', ({ trains, revenue, subsidy }) => {
         const { game } = cromer(trains)
         const solved = autorouter.solve(game.hydrated, RouteRules1862, 'ENR')
