@@ -710,13 +710,7 @@ function sharedBlocks(session: PanelSession): readonly ActionBlock[] {
     const { orderRow, combatTally, commitPanel } = session
     return [
         ...(combatTally && !commitPanel
-            ? [
-                  {
-                      kind: 'tally',
-                      lines: combatTally.lines,
-                      ...(combatTally.note ? { note: combatTally.note } : {})
-                  } satisfies ActionBlock
-              ]
+            ? [{ kind: 'tally', lines: combatTally.lines } satisfies ActionBlock]
             : []),
         ...(orderRow
             ? [{ ...orderRow, kind: 'order-row', seats: seatNames(session) } satisfies ActionBlock]

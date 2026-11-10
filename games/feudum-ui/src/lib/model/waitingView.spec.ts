@@ -214,15 +214,24 @@ function sharedOf(view: ActionPanelView) {
 }
 
 describe('Render ownership: each shared row reads the same for every seat', () => {
-    it('the combat tally: the same block for attacker, defender and third seat, with "answers"', async () => {
+    it('the combat tally: the same block for attacker, defender and third seat', async () => {
         const table = hold(await askedToDefend(Held))
         const { session, asked, third } = table
-        const name = asked.getPlayerName(table.other)
         const block = blockOf(third.actionPanel, 'tally')
-        expect(block?.note).toBe(`${name} answers`)
         expect(block?.lines.at(-1)?.source).toBe('total')
         expect(plain(blockOf(session.actionPanel, 'tally'))).toEqual(plain(block))
         expect(plain(blockOf(asked.actionPanel, 'tally'))).toEqual(plain(block))
+    })
+
+    it('R-3.14.1 "answers" reads once for every seat but the defender, who reads it nowhere', async () => {
+        const table = hold(await askedToDefend(Held))
+        const { session, asked, third } = table
+        const answers = `${asked.getPlayerName(table.other)} answers`
+        const timesRead = (seat: FeudumGameSession) =>
+            JSON.stringify(plain(seat.actionPanel)).split(answers).length - 1
+        expect(timesRead(session)).toBe(1)
+        expect(timesRead(third)).toBe(1)
+        expect(timesRead(asked)).toBe(0)
     })
 
     it('R-4.8 a flipped Defend is what the tally reads, once it has been shown', async () => {

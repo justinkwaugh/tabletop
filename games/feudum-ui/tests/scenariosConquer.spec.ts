@@ -51,6 +51,7 @@ scenario('S32 R-3.14.1 Conquer that asks', 'conquer-asks', async (table) => {
     await expect(table.waitingLine()).toHaveText(
         "Bram conquers Ana's knight at Forest 2. Ana answers."
     )
+    await expect(table.panel().getByText('Ana answers')).toHaveCount(1)
     await expect(table.undo()).toHaveCount(0)
     await expect(answer(table, Flip)).toHaveCount(0)
 
@@ -58,11 +59,13 @@ scenario('S32 R-3.14.1 Conquer that asks', 'conquer-asks', async (table) => {
     await expect(table.waitingLine()).toHaveText(
         "Bram conquers Ana's knight at Forest 2. Ana answers."
     )
+    await expect(table.panel().getByText('Ana answers')).toHaveCount(1)
     await expect(table.undo()).toHaveCount(0)
     await expect(table.panel().getByRole('button')).toHaveCount(0)
 
     await table.showSeat('p1')
     await expect(answer(table, Flip)).toBeVisible()
+    await expect(table.panel().getByText('Ana answers')).toHaveCount(0)
 })
 
 scenario('S33 R-3.14.1 Defender with Defend', 'conquer-asked-defend', async (table) => {
