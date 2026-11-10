@@ -34,7 +34,7 @@
     import PrivateDescription from '../privates/PrivateDescription.svelte'
     import PrivateTrackPowerButton from '../privates/PrivateTrackPowerButton.svelte'
     import { companyLastRun } from './companyLastRun.js'
-    import type { PlaceConnection } from '../session/titlePresentation.js'
+    import type { CompanyMark, PlaceConnection } from '../session/titlePresentation.js'
     import PresidentName from '../finance/PresidentName.svelte'
     let {
         session,
@@ -103,6 +103,9 @@
     const shareStatus = $derived(session.companyShareStatus(company.id))
     const trains = $derived(trainsOwnedBy(gameState, owner))
     const marks = $derived(session.presentation.companyMarks?.(gameState, company.id) ?? [])
+    const compactMarks = $derived(marks.filter((mark) => mark.compact))
+    const rosterMarks = $derived(marks.filter((mark) => !mark.compact))
+    const stationCosts = $derived(!session.presentation.hideStationCosts)
     const origin = $derived(session.presentation.companyOrigin?.(gameState, company.id))
     const stations = $derived(
         gameState.stations.filter((station) => station.companyId === company.id)
@@ -152,20 +155,28 @@
 <article
     class="company-detail"
     class:vertical
+    class:trains-under-stations={vertical && !stationCosts}
     class:wide-fill={layout === 'wide-fill'}
     class:unavailable
     aria-label={`${session.companyName(company.id)} details`}
 >
     <header>
         <div class="identity">
-            <CompanyToken
-                appearance={session.mapView.stations[company.id]}
-                size={vertical ? 32 : 36}
-            />
+            {#if vertical && compactMarks.length}
+                <span class="token-column"
+                    >{@render token()}<span class="compact-marks"
+                        >{@render markList(compactMarks)}</span
+                    ></span
+                >
+            {:else}{@render token()}{/if}
             <div>
-                <h2 title={session.companyFullName(company.id)}>
-                    {session.companyName(company.id)}
-                </h2>
+                {#if !vertical && compactMarks.length}
+                    <div class="name-line">
+                        {@render name()}<span class="compact-marks"
+                            >{@render markList(compactMarks)}</span
+                        >
+                    </div>
+                {:else}{@render name()}{/if}
                 <div class="train-roster" aria-label="Trains">
                     {#each trains as train (train.id)}
                         {@const definition = session.trainDepot.trainDefinition(train.definitionId)}
@@ -173,6 +184,7 @@
                             name={definition.name}
                             color={trainColors[train.definitionId]}
                             obsolete={isObsoleteTrain(train)}
+                            tokens={session.presentation.trainTokens?.(gameState, train)}
                             title={definition.distance.maximum === 'unlimited'
                                 ? 'Unlimited'
                                 : `${definition.distance.maximum} ${definition.distance.measure === 'hex-edges' ? 'hex edges' : definition.distance.measure === 'cities-and-offboards' ? 'cities / offboards + towns' : 'revenue centers'}`}
@@ -184,16 +196,7 @@
                                 ? 'Must buy a train when operating'
                                 : undefined}>No trains</span
                         >{/each}
-                    {#each marks as mark (mark.label)}{#if mark.imageUrl}<img
-                                class="company-mark-image"
-                                src={mark.imageUrl}
-                                alt={mark.description}
-                                title={mark.description}
-                            />{:else}<span
-                                class="company-mark"
-                                title={mark.description}
-                                aria-label={mark.description}>{mark.label}</span
-                            >{/if}{/each}
+                    {@render markList(rosterMarks)}
                 </div>
                 {#if company.closed}<p class="subtitle">Closed</p>{/if}
             </div>
@@ -203,19 +206,26 @@
                 {#if !vertical}
                     {#each remainingStations as station (station.id)}
                         {@const cost = session.stations.placementCost(station.id)}
-                        <div class="token-cost" aria-label={`Station token, ${money(cost)}`}>
+                        <div
+                            class="token-cost"
+                            aria-label={stationCosts
+                                ? `Station token, ${money(cost)}`
+                                : 'Station token'}
+                        >
                             <CompanyToken
                                 appearance={session.mapView.stations[company.id]}
                                 size={20}
                             />
-                            <span>{cost}</span>
+                            {#if stationCosts}<span>{cost}</span>{/if}
                         </div>
                     {/each}
                 {:else}
                     {#each tokenGroups as group (group.cost)}
                         <div
                             class="token-cost"
-                            aria-label={`${group.count} station tokens, ${money(group.cost)} each`}
+                            aria-label={stationCosts
+                                ? `${group.count} station tokens, ${money(group.cost)} each`
+                                : `${group.count} station tokens`}
                         >
                             <div class="token-count">
                                 <span>{group.count}</span><CompanyToken
@@ -223,7 +233,7 @@
                                     size={20}
                                 />
                             </div>
-                            <span class="token-price">{group.cost}</span>
+                            {#if stationCosts}<span class="token-price">{group.cost}</span>{/if}
                         </div>
                     {:else}
                         <div class="token-count exhausted" aria-label="0 station tokens remaining">
@@ -357,6 +367,29 @@
     </div>
 </article>
 
+{#snippet token()}
+    <CompanyToken appearance={session.mapView.stations[company.id]} size={vertical ? 32 : 36} />
+{/snippet}
+
+{#snippet name()}
+    <h2 title={session.companyFullName(company.id)}>
+        {session.companyName(company.id)}
+    </h2>
+{/snippet}
+
+{#snippet markList(list: readonly CompanyMark[])}
+    {#each list as mark (mark.label)}{#if mark.imageUrl}<img
+                class="company-mark-image"
+                src={mark.imageUrl}
+                alt={mark.description}
+                title={mark.description}
+            />{:else}<span
+                class="company-mark"
+                title={mark.description}
+                aria-label={mark.description}>{mark.label}</span
+            >{/if}{/each}
+{/snippet}
+
 {#snippet prices()}
     <div class="prices">
         {@render cashValue()}
@@ -481,6 +514,41 @@
         align-items: flex-start;
         gap: 7px;
     }
+    /*
+     * With no costs under them the station tokens are one line tall, so the header becomes a
+     * grid: the name beside the tokens, and the train list below both, across the card.
+     */
+    .trains-under-stations header {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 0 7px;
+    }
+    .trains-under-stations .identity,
+    .trains-under-stations .identity > div {
+        display: contents;
+    }
+    .trains-under-stations .identity > :global(svg),
+    .trains-under-stations .token-column {
+        grid-row: 1 / span 3;
+    }
+    .trains-under-stations h2 {
+        grid-column: 2;
+        min-height: 20px;
+    }
+    .trains-under-stations .header-summary {
+        grid-column: 3;
+        grid-row: 1;
+    }
+    .trains-under-stations .train-roster,
+    .trains-under-stations .subtitle {
+        grid-column: 2 / span 2;
+    }
+    .trains-under-stations.unavailable h2,
+    .trains-under-stations.unavailable .train-roster,
+    .trains-under-stations.unavailable .subtitle {
+        opacity: var(--rail-phase-opacity, 0.5);
+        filter: var(--rail-phase-filter, grayscale(1));
+    }
     .identity > :global(svg) {
         flex-shrink: 0;
     }
@@ -591,6 +659,45 @@
         width: 24px;
         height: 24px;
         cursor: help;
+    }
+    /* The marks follow the name's last word, also when the name wraps. */
+    .name-line {
+        font-size: 15px;
+        line-height: 1.2;
+    }
+    .name-line h2 {
+        display: inline;
+    }
+    .name-line .compact-marks {
+        margin-left: 6px;
+        vertical-align: middle;
+    }
+    .compact-marks {
+        display: inline-flex;
+        flex-shrink: 0;
+        align-items: center;
+        gap: 2px;
+    }
+    .compact-marks .company-mark-image {
+        width: 13px;
+        height: 13px;
+    }
+    /* On the narrow card the marks sit under the company's token, no wider than it. */
+    .token-column {
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        align-items: center;
+        gap: 4px;
+    }
+    .token-column .compact-marks {
+        flex-wrap: wrap;
+        justify-content: center;
+        max-width: 34px;
+    }
+    .token-column .company-mark-image {
+        width: 16px;
+        height: 16px;
     }
     .company-mark {
         padding: 0 5px;
@@ -880,6 +987,7 @@
     }
     .train-roster {
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
         gap: 3px;
         min-height: 16px;

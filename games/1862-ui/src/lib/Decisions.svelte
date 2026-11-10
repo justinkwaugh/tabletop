@@ -83,7 +83,7 @@
                 {option.holder === 'company'
                     ? `The companies hold an option ${session.companyInitials(merge.survivorId)} share.`
                     : `You hold an option ${session.companyInitials(merge.survivorId)} share.`}
-                Redeem it to keep it, or give it up to the Bank Pool.
+                Redeem it to keep it, or give it up to the Market.
             </span>
         </DecisionResponse>
     </section>

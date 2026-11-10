@@ -1,7 +1,12 @@
 import type { CorporateFinanceTerms } from './corporateFinanceModule.svelte.js'
 import type { OperatingStepStatuses } from '../table/operatingStepStatuses.js'
 import type { MarketCellDimensions } from '../stock/marketTokenLayout.js'
-import type { EighteenXXState, StockInstructionStopReason, TileRotation } from '@tabletop/18xx'
+import type {
+    EighteenXXState,
+    StockInstructionStopReason,
+    TileRotation,
+    Train
+} from '@tabletop/18xx'
 import type { GameAction, GameState } from '@tabletop/common'
 import type { PhaseChartData } from '../phases/phaseChart.js'
 import type { MoneyFormat } from '../presentation/money.js'
@@ -41,8 +46,22 @@ export type TitleRound<State extends GameState = EighteenXXState> = {
 /** A labelled fact of the title's own, about the game or one of its companies. */
 export type TitleFact = { label: string; value: string }
 /** A right or marker a company holds, shown beside its trains, such as access to coal fields. */
-/** A mark beside a company's name; one with an image, such as a ferry it owns, shows the image. */
-export type CompanyMark = { label: string; description: string; imageUrl?: string }
+/**
+ * A mark beside a company's name; one with an image, such as a ferry it owns, shows the image. A
+ * `compact` mark is a small symbol: it follows the company's name, or sits under the company's
+ * token on the narrow card, in place of standing beside its trains.
+ */
+export type CompanyMark = {
+    label: string
+    description: string
+    imageUrl?: string
+    compact?: true
+}
+/**
+ * Tokens a train carries, such as warranties, drawn as pips under its badge. A train that only
+ * its tokens keep from rusting is `lapsing`, and its badge is striped.
+ */
+export type TrainTokens = { count: number; lapsing: boolean; description: string }
 export type PlaceConnection = { from: string; to: string }
 
 /** Shown under a company's header: the companies it was formed from, such as a System's shells, or a connection it can show on the map. */
@@ -86,13 +105,15 @@ export type MarketLedge = {
     edges: readonly { spaceId: string; side: 'bottom' | 'right' }[]
 }
 
-/** A company statistic of the title's own, shown as a sortable spreadsheet column. */
+/** A company statistic of the title's own, shown as a spreadsheet column. */
 export type CompanyColumn<State extends GameState = EighteenXXState> = {
     id: string
     label: string
-    /** What the column sorts by; companies without a value sort last. */
-    value(state: State, companyId: string): number | undefined
+    /** What the column sorts by; companies without a value sort last. A column without it does not sort. */
+    value?(state: State, companyId: string): number | undefined
     text(state: State, companyId: string): string
+    /** Marks drawn in place of the text, such as the permits a company holds. */
+    marks?(state: State, companyId: string): readonly CompanyMark[]
 }
 
 /** A step of the operating turn as the step bar shows it, with the states and Actions it covers. */
@@ -152,6 +173,8 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     /** Facts of the title's own about a company, such as its size or interest due. */
     companyFacts?(state: State, companyId: string): readonly TitleFact[]
     companyMarks?(state: State, companyId: string): readonly CompanyMark[]
+    /** The tokens on a company's train. A title that draws them gives every train's, so badges line up at the top. */
+    trainTokens?(state: State, train: Train): TrainTokens
     /** A word for an open private's state in place of its income, such as Flipped. */
     privateStatus?(state: State, privateCompanyId: string): string | undefined
     companyOrigin?(state: State, companyId: string): CompanyOrigin | undefined
@@ -167,6 +190,8 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     marketLedge?: MarketLedge
     /** Leaves the zones and ledge out of a legend below the market; each space's tooltip still names its zone. */
     hideMarketLegend?: true
+    /** Leaves the cost off a company's remaining station tokens, when stations are paid for another way, such as at flotation. */
+    hideStationCosts?: true
     /**
      * Published card artwork for the published presentation, keyed by private company id or
      * certificate id (for shares auctioned like privates). Shown in place of the generated card.

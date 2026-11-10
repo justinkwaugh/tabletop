@@ -66,17 +66,17 @@ it('counts a paired certificate once, cheaper face first, and other trains separ
     ])
 })
 
-const rosterTrain = (id: string, supplyId: string, rustPhaseId?: string) => ({
+const rosterTrain = (id: string, supplyId: string, price: number, rustPhaseId?: string) => ({
     id,
     name: id,
-    price: 100,
+    price,
     supplyId,
     rustTrainIds: [],
     rustPhaseId
 })
 const rowSpans = (trains: ReturnType<typeof rosterTrain>[]) =>
-    trainRosterRows(trains).map(({ train, remainingRowSpan, rustRowSpan }) => [
-        train.id,
+    trainRosterRows(trains).map(({ faces, remainingRowSpan, rustRowSpan }) => [
+        faces.map((face) => face.id),
         remainingRowSpan,
         rustRowSpan
     ])
@@ -84,26 +84,50 @@ const rowSpans = (trains: ReturnType<typeof rosterTrain>[]) =>
 it('spans one remaining and one rust cell across faces that rust together', () => {
     expect(
         rowSpans([
-            rosterTrain('2', '2', 'III'),
-            rosterTrain('2+1', '2', 'III'),
-            rosterTrain('7+3', '7+3')
+            rosterTrain('2', '2', 75, 'III'),
+            rosterTrain('2+1', '2', 100, 'III'),
+            rosterTrain('7+3', '7+3', 1000)
         ])
     ).toEqual([
-        ['2', 2, 2],
-        ['2+1', 0, 0],
-        ['7+3', 1, 1]
+        [['2'], 2, 2],
+        [['2+1'], 0, 0],
+        [['7+3'], 1, 1]
+    ])
+})
+
+it('lists the faces of a certificate that cost the same and rust together on one row', () => {
+    expect(
+        rowSpans([
+            rosterTrain('2E', 'A', 100, 'C'),
+            rosterTrain('2L', 'A', 100, 'C'),
+            rosterTrain('1F', 'A', 100, 'C'),
+            rosterTrain('2/3E', 'B', 200, 'E'),
+            rosterTrain('2/3L', 'B', 200, 'E'),
+            rosterTrain('2+2', 'B', 140, 'E'),
+            rosterTrain('100', 'other', 100, 'C')
+        ])
+    ).toEqual([
+        [['2E', '2L', '1F'], 1, 1],
+        [['2/3E', '2/3L'], 2, 2],
+        [['2+2'], 0, 0],
+        [['100'], 1, 1]
     ])
 })
 
 it('keeps a rust cell per face when the faces of a certificate rust differently', () => {
-    expect(rowSpans([rosterTrain('3/5', '4', 'III'), rosterTrain('4', '4', 'IV')])).toEqual([
-        ['3/5', 2, 1],
-        ['4', 0, 1]
+    expect(
+        rowSpans([rosterTrain('3/5', '4', 160, 'III'), rosterTrain('4', '4', 160, 'IV')])
+    ).toEqual([
+        [['3/5'], 2, 1],
+        [['4'], 0, 1]
     ])
 })
 
 it('keeps a rust cell per face when only the notes of a certificate differ', () => {
-    const [cheaper, dearer] = [rosterTrain('3/5', '4', 'III'), rosterTrain('4', '4', 'III')]
+    const [cheaper, dearer] = [
+        rosterTrain('3/5', '4', 160, 'III'),
+        rosterTrain('4', '4', 160, 'III')
+    ]
     expect(
         trainRosterRows([{ ...cheaper, rustNote: 'Runs once more.' }, dearer]).map(
             ({ rustRowSpan }) => rustRowSpan

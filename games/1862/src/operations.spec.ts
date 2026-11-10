@@ -4,6 +4,7 @@ import { available, charter, declineAll, table, type Table } from '../test/kit.j
 import { company1862 } from './companies.js'
 import { TrackRules1862 } from './trackRules.js'
 import { TrainRules1862 } from './operating.js'
+import { trainWarranties } from './warranties.js'
 
 /** Charters the first available company, floated at £100, and plays to its first turn. */
 function firstTurn(players = 4): { game: Table; companyId: string; director: string } {
@@ -73,6 +74,15 @@ describe('1862 operating turns', () => {
         expect(game.state.warranties[trainId]).toBe(1)
         game.act('BuyWarranties', { companyId, trainId, count: 2 })
         expect(game.state.warranties[trainId]).toBe(3)
+        // The warranties only keep the train from rusting once its band is retired, in phase C.
+        const train = { id: trainId, definitionId: 'AL' }
+        expect(trainWarranties(game.hydrated, train)).toEqual({ count: 3, lapsing: false })
+        const retiredBand = Object.assign(game.hydrated, { phaseId: 'C' })
+        expect(trainWarranties(retiredBand, train)).toEqual({ count: 3, lapsing: true })
+        expect(trainWarranties(retiredBand, { id: 'another', definitionId: 'AL' })).toEqual({
+            count: 0,
+            lapsing: false
+        })
         // A limit of three trains of each kind in phase A.
         for (let index = 0; index < 2; index++) {
             const next = new TrainPurchase(game.hydrated, TrainRules1862)

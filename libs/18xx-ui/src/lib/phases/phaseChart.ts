@@ -31,8 +31,11 @@ export type DepotCertificate = {
     remaining: number | 'unlimited'
 }
 
+type ChartTrain = PhaseChartData['trains'][number]
+
 export type TrainRosterRow = {
-    train: PhaseChartData['trains'][number]
+    /** The faces of one certificate that cost the same and rust together. */
+    faces: ChartTrain[]
     remainingRowSpan: number
     rustRowSpan: number
 }
@@ -60,16 +63,24 @@ export function currentDepotCertificates({
 }
 
 export function trainRosterRows(trains: PhaseChartData['trains']): TrainRosterRow[] {
-    return trains.map((train) => {
-        const faces = trains.filter((face) => face.supplyId === train.supplyId)
-        const certificateRowSpan = faces[0] === train ? faces.length : 0
-        const sameRust = faces.every(
-            (face) => face.rustPhaseId === train.rustPhaseId && face.rustNote === train.rustNote
-        )
+    const rustsWith = (first: ChartTrain, second: ChartTrain) =>
+        first.rustPhaseId === second.rustPhaseId && first.rustNote === second.rustNote
+    const sharesRow = (first: ChartTrain, second: ChartTrain) =>
+        first.supplyId === second.supplyId &&
+        first.price === second.price &&
+        rustsWith(first, second)
+    const rows = trains
+        .filter((train) => trains.find((face) => sharesRow(face, train)) === train)
+        .map((first) => trains.filter((face) => sharesRow(face, first)))
+    return rows.map((faces) => {
+        const certificate = rows.filter(([face]) => face.supplyId === faces[0].supplyId)
+        const certificateRowSpan = certificate[0] === faces ? certificate.length : 0
         return {
-            train,
+            faces,
             remainingRowSpan: certificateRowSpan,
-            rustRowSpan: sameRust ? certificateRowSpan : 1
+            rustRowSpan: certificate.every(([face]) => rustsWith(face, faces[0]))
+                ? certificateRowSpan
+                : 1
         }
     })
 }

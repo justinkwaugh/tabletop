@@ -28,7 +28,8 @@
         createRouteWorker,
         onFocusRoute,
         privateOperationDescription,
-        titleMode
+        titleMode,
+        purchasedTrain
     }: {
         createRouteWorker: () => Worker
         onFocusRoute: (trainId: string) => void
@@ -36,6 +37,8 @@
         session: EighteenXXSessionView
         /** The panel of one of the session's `titleOperatingModes`, by its id. */
         titleMode?: Snippet<[string]>
+        /** What a title adds beside a train bought this turn, such as its warranties, by train id. */
+        purchasedTrain?: Snippet<[string]>
     } = $props()
     const { trainColors, privateTilePrompts } = $derived(session.presentation)
     const gameState = $derived(session.gameState)
@@ -95,7 +98,7 @@
                 {session}
                 showUndo={false}
             />
-        {:else}<TrainBuying {session} {trainColors} showUndo={false} />{/if}
+        {:else}<TrainBuying {session} {trainColors} showUndo={false} {purchasedTrain} />{/if}
     {/if}
 {/snippet}
 

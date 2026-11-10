@@ -88,6 +88,7 @@ export { trainCount, type AwaitedDecision } from './table/awaitedDecision.js'
 export type {
     CompanyColumn,
     CompanyMark,
+    TrainTokens,
     MarketLedge,
     MarketZone,
     MarketZoneBanner,
@@ -141,6 +142,7 @@ export { default as CompanyOrder } from './table/CompanyOrder.svelte'
 export { default as CompanyDetails } from './table/CompanyDetails.svelte'
 
 export { default as TrainBadge } from './trains/TrainBadge.svelte'
+export { default as TrainTokenPips } from './trains/TrainTokenPips.svelte'
 
 export { default as AuctionOffers } from './auctions/AuctionOffers.svelte'
 

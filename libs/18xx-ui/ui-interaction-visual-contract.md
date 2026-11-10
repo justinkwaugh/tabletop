@@ -602,6 +602,12 @@ company rosters, allowance usage and the current train limit from exposed gameSt
 Unavailable offers state the rule or implementation boundary. Purchases that
 advance a phase use the phase-change and compulsory-discard flow below.
 
+A title may add to each train bought this turn through OperatingActions' `purchasedTrain`
+snippet. The Purchased list then gives each train a row, with the additions in columns.
+1862 shows the train's warranties as three pips, hollow where one may still be bought,
+and a "+1 warranty" button. The button stays in place, disabled, while an Action is being
+sent, so the rows do not move between presses.
+
 Train selection is one manual local selection, with no automatic selection. It names
 an actual finite train or the next deterministic unlimited identity. Back clears
 that choice. Undo clears a manual selection before undoing a committed purchase.
@@ -846,7 +852,12 @@ fits without clipping.
 
 A title's `companyMarks` appear after a company's trains as small dark chips, such as 1832's
 "Coal" for West Virginia Coal Fields rights, whose description shows on hover and is their
-accessible name. A title's `companyOrigin` appears as a band under the card's header naming
+accessible name. A mark a title flags `compact`, such as 1862's train permits, is a small
+symbol kept out of the train row: it follows the company's name on the wide card, after the
+name's last word when the name wraps, and sits under the company's token on the narrow card,
+two to a row. A title whose stations are paid for another way sets `hideStationCosts`, and the
+card leaves the cost off the company's remaining station tokens. A title's spreadsheet column
+may draw marks in place of text, as 1862's Permits column does with the same symbols. A title's `companyOrigin` appears as a band under the card's header naming
 what the company was formed from, such as "System of [CoG] CoG & [GRR] GRR" with each
 company's token. Neither belongs in the summary row of figures. An origin that names a connection,
 such as 1870's "Destination: Denver", is a dotted link on a live card: pressing it frames the two
@@ -1286,6 +1297,10 @@ The operating-order row stays on one line and scrolls horizontally within its
 available width. Its heading and expanded company detail remain outside that
 scroll area. Pills retain their natural size and the row uses a thin scrollbar.
 
+On the narrow company card a train list too long for one line wraps beside the token, under
+the company's name. Where a title hides station costs the station tokens are one line tall, so
+the list also runs on beneath them, across the card to its right edge.
+
 Train badges in the company strip and expanded header share TrainBadge. Backgrounds
 use the train's title-provided phase color from the existing tile palette, with
 contrasting dark text. They retain the train's own color as the game advances.
@@ -1298,6 +1313,16 @@ branch split and 1817's merger discards. Its tooltip adds "Obsolete: removed aft
 next run" and screen readers hear "obsolete" after its name; the card has no separate
 note. Badges that stand for a train type rather than an owned train (depot, phase chart,
 history rows) are never crossed.
+
+A title may give an owned train tokens through `TitlePresentation.trainTokens`, such as
+1862's warranties. Each token is one pip under the badge, in the surrounding text colour,
+on the company card, operating order, spreadsheet Trains row and company purchase card;
+run tables leave them out. A title that draws tokens gives every owned train's, and the
+badges in a row line up at the top, so a row where no train carries one is no taller. A train that only its tokens
+keep from rusting is striped diagonally in its text colour, under its name, and its pips
+take the table's warning colour (`--rail-warning`), since each is a run it has left. Its tooltip
+and screen readers get the title's description, such as "2 warranties: rusts after 2 more
+runs".
 
 Player panels use priority order, with a Priority deal marker on the first player
 and a subtle border for the currently acting player. Cash, liquidity, shares, Certs (weighted count/limit), and current net worth precede the ownership table (company token, name, percentage; president

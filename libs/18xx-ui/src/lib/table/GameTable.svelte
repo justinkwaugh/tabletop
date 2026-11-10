@@ -1157,6 +1157,8 @@
                                     {gameState}
                                     trainDepot={session.trainDepot}
                                     {trainColors}
+                                    trainTokens={(train) =>
+                                        session.presentation.trainTokens?.(gameState, train)}
                                     requiresTrain={(companyId) =>
                                         session.companyRequiresTrain(companyId)}
                                     appearances={session.mapView.stations}
@@ -1685,6 +1687,7 @@
         color-scheme: dark;
         --rail-text: #e3e9ef;
         --rail-negative: #ff9c91;
+        --rail-warning: #f2b84b;
         --rail-phase-tint: 100%;
         --rail-phase-filter: none;
         --rail-phase-opacity: 1;

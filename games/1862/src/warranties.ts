@@ -11,7 +11,7 @@ import {
 } from '@tabletop/18xx'
 import { ActionSource, assert, type HydratedAction } from '@tabletop/common'
 import * as Type from 'typebox'
-import type { HydratedState1862 } from './state.js'
+import { requireState1862, type HydratedState1862 } from './state.js'
 import { systemAction, titleAction } from './titleAction.js'
 import { Phases1862, bandRustsOn, trainFace } from './trains.js'
 
@@ -28,6 +28,16 @@ export function freeWarranty(definitionId: string): boolean {
 export function retired(phaseId: string, definitionId: string): boolean {
     const rustsOn = bandRustsOn(trainFace(definitionId).band)
     return !!rustsOn && Phases1862.isAtLeast(phaseId, rustsOn)
+}
+
+/** A train's warranties, and whether they alone keep it from rusting (§7.10). */
+export function trainWarranties(
+    state: object,
+    train: { id: string; definitionId: string }
+): { count: number; lapsing: boolean } {
+    const title = requireState1862(state)
+    const count = title.warranties[train.id] ?? 0
+    return { count, lapsing: count > 0 && retired(title.phaseId, train.definitionId) }
 }
 
 /** Warranties the company may still buy for a train it bought from the bank this turn. */

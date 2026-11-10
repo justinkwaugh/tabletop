@@ -7,6 +7,7 @@
     import Decisions from './Decisions.svelte'
     import Parliament from './Parliament.svelte'
     import TitleModes from './TitleModes.svelte'
+    import TrainWarranties from './TrainWarranties.svelte'
     import { describe1862Action } from './history.js'
     import { createRouteWorker } from './routeWorker.js'
     import { Session1862 } from './session.svelte.js'
@@ -40,6 +41,7 @@
                 {createRouteWorker}
             >
                 {#snippet titleMode()}<TitleModes {session} />{/snippet}
+                {#snippet purchasedTrain(trainId)}<TrainWarranties {session} {trainId} />{/snippet}
             </OperatingActions>
         {/if}
     {/snippet}

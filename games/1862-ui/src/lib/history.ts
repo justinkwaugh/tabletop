@@ -105,7 +105,7 @@ export function describe1862Action(
         return { text: `built ${company(action.companyId)} to London`, important: true }
     if (isBuyWarranties(action))
         return {
-            text: `bought ${action.count} warranties`,
+            text: `bought ${action.count === 1 ? 'a warranty' : `${action.count} warranties`}`,
             value: money(action.count * WarrantyCost)
         }
     if (isExpireWarranties(action)) {

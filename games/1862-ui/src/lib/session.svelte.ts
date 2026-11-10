@@ -38,6 +38,7 @@ import {
     refinancingCapital,
     smallStationLines,
     stationCounts,
+    trainWarranties,
     treasurySale,
     warrantyChoices,
     type HydratedState1862,
@@ -115,13 +116,9 @@ export class Session1862 extends BaseSession {
         for (const [isMade, clear] of choices)
             this.localSelections.register(stagedChoice(isMade, clear))
     }
-    readonly canChooseAction = $derived(
-        this.isPlayable &&
-            this.isMyTurn &&
-            !this.isViewingHistory &&
-            !this.busy &&
-            !this.updatingVisibleState
-    )
+    // Whether the decision is this player's, even while an Action of theirs is being sent or shown.
+    private readonly deciding = $derived(this.isPlayable && this.isMyTurn && !this.isViewingHistory)
+    readonly canChooseAction = $derived(this.deciding && !this.busy && !this.updatingVisibleState)
     private me = $derived(this.myPlayer?.id)
     private can(type: string): boolean {
         return this.canChooseAction && this.validActionTypes.includes(type)
@@ -298,19 +295,28 @@ export class Session1862 extends BaseSession {
             })
         )
     }
-    readonly warrantyOffers = $derived.by(() => {
-        const step = this.gameState.trainPurchaseStep
-        if (!step || !this.can('BuyWarranties')) return []
-        return step.purchasedTrainIds.flatMap((trainId) => {
-            const counts = warrantyChoices(this.gameState, trainId)
-            return counts.length ? [{ trainId, counts }] : []
-        })
-    })
-    async buyWarranties(trainId: string, count: number): Promise<void> {
+    /**
+     * What a train bought this turn holds, and whether the company may buy it one more. The offer
+     * stands while an Action is being sent, so the row keeps its button, disabled, between presses.
+     */
+    warranties(trainId: string): { held: number; lapsing: boolean; offered: boolean } {
+        const train = this.gameState.trainInventory.trains.find((train) => train.id === trainId)
+        assertExists(train, 'A train bought this turn is in the inventory')
+        const { count, lapsing } = trainWarranties(this.gameState, train)
+        return {
+            held: count,
+            lapsing,
+            offered:
+                this.deciding &&
+                this.validActionTypes.includes('BuyWarranties') &&
+                warrantyChoices(this.gameState, trainId).includes(1)
+        }
+    }
+    async buyWarranty(trainId: string): Promise<void> {
         const companyId = this.gameState.trainPurchaseStep?.companyId
         assertExists(companyId, 'A company is buying trains')
         await this.applyAction(
-            this.createPlayerAction(BuyWarranties, { companyId, trainId, count })
+            this.createPlayerAction(BuyWarranties, { companyId, trainId, count: 1 })
         )
     }
 

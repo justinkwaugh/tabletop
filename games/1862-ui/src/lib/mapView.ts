@@ -85,12 +85,11 @@ const Layouts: Readonly<Record<string, TileLayout>> = {
 }
 
 export const MapView1862: MapViewDefinition = {
-    // The market's one long row runs above the map, 12 map units clear of Wells's top hex, and
-    // the depot stands east of the map below it, clear of the North East and East ports.
+    // The market's four rows run above the map, far enough from Wells's top hex for the depot to
+    // stand under its east end, in the corner between the Cromer and North East areas.
     boardAreas: {
-        // The market's four rows below the map, the depot in the open sea to its east.
-        market: { x: -50, y: 712, width: 1052, height: 300 },
-        depot: { x: 672, y: -43, width: 330, height: 640 }
+        market: { x: -50, y: -397, width: 1052, height: 300 },
+        depot: { x: 618, y: -85, width: 384, height: 202 }
     },
     map: Map1862,
     tileSet: TileSet1862,

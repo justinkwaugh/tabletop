@@ -5,18 +5,31 @@ import {
     ParliamentState,
     permitsOf,
     TitleRules1862,
+    trainWarranties,
     type State1862
 } from '@tabletop/1862'
-import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
+import { moneyFormat, type CompanyMark, type TitlePresentation } from '@tabletop/18xx-ui'
 import { CompanyNames1862 } from './companyPresentation.js'
 import { PermitNames, permitImage } from './permits.js'
 import { PhaseChart1862 } from './phaseChart.js'
 import { PhaseColors1862, TrainColors1862 } from './trainPresentation.js'
 
+// A company's train permits, which say which of its trains run (§6.5.4.3).
+function permitMarks(state: State1862, companyId: string): CompanyMark[] {
+    return permitsOf(state, companyId).map((kind) => ({
+        label: `${PermitNames[kind]} permit`,
+        description: `${PermitNames[kind]} trains run for this company.`,
+        imageUrl: permitImage(kind),
+        compact: true
+    }))
+}
+
 export const Presentation1862: TitlePresentation<State1862> = {
     money: moneyFormat(TitleRules1862.currencySymbol),
     phaseChart: PhaseChart1862,
     trainColors: TrainColors1862,
+    // Stations are bought as the company floats (§7.7), so placing one costs nothing.
+    hideStationCosts: true,
     phaseColors: PhaseColors1862,
     marketPoolId: MarketPoolId,
     ipoPoolId: IpoPoolId,
@@ -26,13 +39,29 @@ export const Presentation1862: TitlePresentation<State1862> = {
         abbreviation: 'Parliament',
         inProgress: (state) => state.machineState === ParliamentState
     },
-    // A company's train permits, which say which of its trains run (§6.5.4.3).
-    companyMarks: (state, companyId) =>
-        permitsOf(state, companyId).map((kind) => ({
-            label: `${PermitNames[kind]} permit`,
-            description: `${PermitNames[kind]} trains run for this company.`,
-            imageUrl: permitImage(kind)
-        })),
+    companyMarks: permitMarks,
+    companyColumns: [
+        {
+            id: 'permits',
+            label: 'Permits',
+            text: (state, companyId) =>
+                permitsOf(state, companyId)
+                    .map((kind) => PermitNames[kind])
+                    .join(', '),
+            marks: permitMarks
+        }
+    ],
+    // A train's warranties; one whose band has retired runs on only while they last (§7.10).
+    trainTokens: (state, train) => {
+        const { count, lapsing } = trainWarranties(state, train)
+        const held = count === 1 ? '1 warranty' : `${count} warranties`
+        const runs = count === 1 ? 'its next run' : `${count} more runs`
+        return {
+            count,
+            lapsing,
+            description: count ? (lapsing ? `${held}: rusts after ${runs}` : held) : ''
+        }
+    },
     companyFacts: (state, companyId) =>
         state.companies.find((company) => company.id === companyId)?.started
             ? [

@@ -4,7 +4,7 @@ import { IpoPoolId, MarketPoolId } from './pools.js'
 
 const PoolNames: Readonly<Record<string, string>> = {
     [IpoPoolId]: 'IPO',
-    [MarketPoolId]: 'Bank Pool'
+    [MarketPoolId]: 'Market'
 }
 
 export const Names1862 = titleNames(
