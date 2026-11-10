@@ -57,14 +57,15 @@ it('maps renamed cities and preserves distinct cities unless they merge', () => 
     }
     expect(tileUpgradeMappings(city, after)).toEqual([{ city: 'new' }])
 })
-it('keeps the order of cities that have no track', () => {
+it('maps cities that have no track to either new city', () => {
     const cities = (color: string, first: readonly (0 | 2)[], second: readonly (0 | 2)[]) =>
         createSeparateCitiesTileFace(color, [
             { edges: first, revenue: 0, stationSlots: 1 },
             { edges: second, revenue: 0, stationSlots: 1 }
         ])
     expect(tileUpgradeMappings(cities('yellow', [], []), cities('green', [0], [2]))).toEqual([
-        { 'city-0': 'city-0', 'city-1': 'city-1' }
+        { 'city-0': 'city-0', 'city-1': 'city-1' },
+        { 'city-0': 'city-1', 'city-1': 'city-0' }
     ])
     expect(tileUpgradeMappings(cities('yellow', [0], []), cities('green', [2], [0]))).toEqual([
         { 'city-0': 'city-1', 'city-1': 'city-0' }

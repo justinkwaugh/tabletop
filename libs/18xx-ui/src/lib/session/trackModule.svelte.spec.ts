@@ -9,7 +9,7 @@ import {
     minimalTrackTileSet,
     straightOnlyTrackTileSet
 } from '@tabletop/18xx/testing'
-import { TrackModule, type TrackSession } from './trackModule.svelte.js'
+import { TrackModule, nextPlacement, type TrackSession } from './trackModule.svelte.js'
 import { testSession } from './moduleTestSession.js'
 
 const noPrivateTrack = { trackTerms: () => undefined, earlyTrainCompany: () => undefined }
@@ -125,6 +125,26 @@ describe('TrackModule', () => {
         expect(first).toBeDefined()
         module.rotatePreview()
         expect(module.preview?.rotation).not.toBe(first)
+    })
+
+    it('steps through each city a station may take before turning the tile', () => {
+        const placement = (rotation: 0 | 1, home: string) => ({
+            companyId: TestCompanyId,
+            locationId: 'E11',
+            definitionId: '18xx:59',
+            rotation,
+            nodeMapping: { 'city-0': home, 'city-1': home === 'city-0' ? 'city-1' : 'city-0' }
+        })
+        const placements = [
+            placement(0, 'city-0'),
+            placement(0, 'city-1'),
+            placement(1, 'city-0'),
+            placement(1, 'city-1')
+        ]
+        const order = [placements[0]]
+        for (let step = 0; step < placements.length; step++)
+            order.push(nextPlacement(placements, order.at(-1)!)!)
+        expect(order).toEqual([...placements, placements[0]])
     })
 
     it('choosing another location restarts the selection', () => {

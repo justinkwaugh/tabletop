@@ -13,7 +13,9 @@ export function sameStopCounts(before: TileFace, after: TileFace): boolean {
 
 /**
  * The node mappings preserving a tile's track and stops; ``townsBecomeCities`` lets a town map
- * onto a city, as when a title promotes a town within its colour.
+ * onto a city, as when a title promotes a town within its colour. A city with no track has
+ * nothing to preserve, so it may become any city of the new tile: the company laying the tile
+ * chooses where a station already in it goes.
  */
 export function tileUpgradeMappings(
     before: TileFace,
@@ -21,7 +23,6 @@ export function tileUpgradeMappings(
     options: { townsBecomeCities?: boolean } = {}
 ): TileNodeMapping[] {
     const mappings: TileNodeMapping[] = []
-    const cityTargets = trackLessCityTargets(before, after)
     const count = (face: TileFace, kind: TileNode['kind']) =>
         face.nodes.filter((node) => node.kind === kind).length
     const citiesMerge = count(before, 'city') > count(after, 'city')
@@ -41,8 +42,6 @@ export function tileUpgradeMappings(
                 !(options.townsBecomeCities && node.kind === 'town' && target.kind === 'city')
             )
                 continue
-            if (cityTargets && node.kind === 'city' && cityTargets.get(node.id) !== target.id)
-                continue
             if (
                 Object.values(mapping).includes(target.id) &&
                 !joinsCity &&
@@ -56,26 +55,6 @@ export function tileUpgradeMappings(
     }
     visit(0, {})
     return mappings
-}
-
-/**
- * Cities with no track have nothing to preserve, so an upgrade keeps their order: the first
- * city becomes the first city of the new tile, and so on.
- */
-function trackLessCityTargets(before: TileFace, after: TileFace): Map<string, string> | undefined {
-    const cities = before.nodes.filter((node) => node.kind === 'city')
-    const targets = after.nodes.filter((node) => node.kind === 'city')
-    if (
-        cities.length < 2 ||
-        cities.length !== targets.length ||
-        before.paths.some((path) =>
-            path.endpoints.some(
-                (end) => end.kind === 'node' && cities.some((city) => city.id === end.nodeId)
-            )
-        )
-    )
-        return undefined
-    return new Map(cities.map((city, index) => [city.id, targets[index].id]))
 }
 
 export function preservesPath(path: TilePath, after: TileFace, mapping: TileNodeMapping): boolean {
