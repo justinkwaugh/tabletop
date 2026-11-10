@@ -94,6 +94,7 @@
     import {
         currentDepotCertificates,
         marketCertificates,
+        type DepotCertificate,
         type PhaseChartData
     } from '../phases/phaseChart.js'
     type MapFocus = { key: string; outlinedLocationId?: string }
@@ -973,7 +974,7 @@
     />
 {/snippet}
 
-{#snippet depotCertificate(definitionIds: readonly string[], count: number | 'unlimited')}
+{#snippet depotCertificate({ definitionIds, remaining }: DepotCertificate)}
     <span class="depot-type"
         >{#each definitionIds as definitionId, index (definitionId)}{#if index > 0}<span
                     class="depot-face-separator">/</span
@@ -981,7 +982,7 @@
                 name={session.trainDepot.trainDefinition(definitionId).name}
                 color={trainColors[definitionId]}
             />{/each}
-        <span class="depot-count">{count === 'unlimited' ? '∞' : `×${count}`}</span></span
+        <span class="depot-count">{remaining === 'unlimited' ? '∞' : `×${remaining}`}</span></span
     >
 {/snippet}
 {#snippet gameInformationStrip(stacking: LabelStacking)}
@@ -1015,15 +1016,15 @@
         </span>
         <span class="game-information-item depot-information">
             <span class="information-label">Depot</span>
-            {#each currentCertificates as { definitionIds, remaining } (definitionIds[0])}
-                {@render depotCertificate(definitionIds, remaining)}
+            {#each currentCertificates as certificate (certificate.definitionIds[0])}
+                {@render depotCertificate(certificate)}
             {:else}<span>Empty</span>{/each}
         </span>
         {#if openMarketCertificates.length}
             <span class="game-information-item depot-information">
                 <span class="information-label">Market</span>
-                {#each openMarketCertificates as { definitionIds, count } (definitionIds[0])}
-                    {@render depotCertificate(definitionIds, count)}
+                {#each openMarketCertificates as certificate (certificate.definitionIds[0])}
+                    {@render depotCertificate(certificate)}
                 {/each}
             </span>
         {/if}

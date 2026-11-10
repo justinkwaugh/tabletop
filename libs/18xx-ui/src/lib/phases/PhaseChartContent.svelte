@@ -6,6 +6,7 @@
     import PhaseText from './PhaseText.svelte'
     import { TileColors } from '../tiles/tilePresentation.js'
     import {
+        certificateRemaining,
         marketCertificates,
         trainRosterRows,
         type PhaseChartData,
@@ -139,9 +140,7 @@
                             depotState.inventory,
                             train.id
                         )}
-                        {@const inMarket =
-                            openMarket.find(({ definitionIds }) => definitionIds.includes(train.id))
-                                ?.count ?? 0}
+                        {@const inMarket = certificateRemaining(openMarket, train.id)}
                         {@const current =
                             depotState.availableDefinitionIds.includes(train.id) && remaining !== 0}
                         <tr

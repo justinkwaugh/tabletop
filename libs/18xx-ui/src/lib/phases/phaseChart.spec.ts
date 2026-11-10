@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest'
-import { PhaseTable, TrainDepot } from '@tabletop/18xx'
+import { PhaseTable, TrainDepot, type Train } from '@tabletop/18xx'
 import {
+    certificateRemaining,
     createPhaseChart,
     currentDepotCertificates,
     marketCertificates,
@@ -86,17 +87,19 @@ it('counts discarded trains in the open market by certificate, in supply order',
             { definitionId: '6', count: 2 }
         ]
     })
-    const inventory = depot.createInventory()
-    const [twoA, twoB, twoC, fourA, fourB] = inventory.trains
     const owner = { kind: 'company' as const, companyId: 'A' }
-    Object.assign(fourA, { status: 'market', definitionId: '3/5' })
-    Object.assign(fourB, { status: 'owned', owner })
-    Object.assign(twoA, { status: 'market' })
-    Object.assign(twoB, { status: 'market' })
-    Object.assign(twoC, { status: 'removed' })
+    const trains: Train[] = [
+        { id: '2/1', definitionId: '2', status: 'market' },
+        { id: '2/2', definitionId: '2', status: 'market' },
+        { id: '4/4', definitionId: '3/5', status: 'market' },
+        { id: '4/5', definitionId: '4', status: 'owned', owner },
+        { id: '4/6', definitionId: '4', status: 'depot' },
+        { id: '6/7', definitionId: '6', status: 'depot' }
+    ]
+    const inventory = { trains, nextTrainNumber: 8 }
     expect(marketCertificates({ depot, inventory })).toEqual([
-        { definitionIds: ['2'], count: 2 },
-        { definitionIds: ['3/5', '4'], count: 1 }
+        { definitionIds: ['2'], remaining: 2 },
+        { definitionIds: ['3/5', '4'], remaining: 1 }
     ])
 })
 
@@ -107,6 +110,13 @@ it('has no open-market certificates while nothing has been discarded', () => {
         supply: [{ definitionId: '2', count: 2 }]
     })
     expect(marketCertificates({ depot, inventory: depot.createInventory() })).toEqual([])
+})
+
+it('finds the count of the certificate a train face belongs to', () => {
+    const certificates = [{ definitionIds: ['3/5', '4'], remaining: 2 }]
+    expect(certificateRemaining(certificates, '4')).toBe(2)
+    expect(certificateRemaining(certificates, '3/5')).toBe(2)
+    expect(certificateRemaining(certificates, '6')).toBe(0)
 })
 
 const rosterTrain = (id: string, supplyId: string, rustPhaseId?: string) => ({
