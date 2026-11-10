@@ -41,3 +41,7 @@ Permission granted by Tom Lehmann to Justin Waugh on 2026-11-01 for non-commerci
 ### Preußische Ostbahn and South African Railroads
 
 Permission granted by John Bohrer to Justin Waugh on 2026-11-09 for non-commercial use of Preußische Ostbahn and South African Railroads when hosted on https://boardtogether.games, as long as the site stays free and does not provide the games' rules.
+
+### 1894
+
+Permission granted by Jan Kłos to Justin Waugh on 2026-11-10 for non-commercial use of 1894 when hosted on https://boardtogether.games
