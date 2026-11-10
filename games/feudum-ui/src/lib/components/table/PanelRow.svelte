@@ -15,7 +15,8 @@
 
     /**
      * One row of a panel or popup. A row's hover or focus brightens what its press would light, and a
-     * touch screen, having no hover, has a small preview path beside the row (contract: Hover). A
+     * touch screen, having no hover, has a preview path beside the row that reads "Show on board"
+     * (contract: Hover). A
      * refused row stays pressable, to show the line why, and sends nothing. `lead` stands before the
      * label; `face` takes the label's place on a card or writ, whose corner holds the magnifier.
      */
@@ -123,16 +124,16 @@
     {#if choice.lights}
         <button
             type="button"
-            class="touch-preview rounded-lg px-2 bg-feudum-control text-feudum-text
+            class="touch-preview rounded-lg px-2 bg-feudum-control text-xs leading-tight text-feudum-text
                 {face ? 'on-face' : ''}"
-            aria-label="Preview {choice.label} on the board"
+            aria-label="Show on board: {choice.label}"
             aria-pressed={previewing}
             data-preview={choice.label}
             onclick={() => {
                 if (lights) {
                     pointer.toggleRowPreview(owner, lights)
                 }
-            }}>?</button
+            }}>Show on board</button
         >
     {/if}
     {#if refusalShown && choice.refusal}
