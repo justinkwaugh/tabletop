@@ -373,6 +373,7 @@ describe('R-4.12 the dawn sheet', () => {
 describe('R-6.2, R-6.3 the game-end summary', () => {
     const score = { label: '0', vp: 0 }
     const column = {
+        beforeDawn: 0,
         fifthDawn: 3,
         voyage: { label: 'No disc', vp: 0 },
         largeEmpire: score,
@@ -400,7 +401,15 @@ describe('R-6.2, R-6.3 the game-end summary', () => {
 
     it('S56 lists every category for every seat', () => {
         const rows = [...summary().matchAll(/data-game-end-row="([^"]+)"/g)].map(([, name]) => name)
-        expect(rows).toEqual(['dawn', 'voyage', 'empire', 'shillings', 'charters', 'total'])
+        expect(rows).toEqual([
+            'before-dawn',
+            'dawn',
+            'voyage',
+            'empire',
+            'shillings',
+            'charters',
+            'total'
+        ])
         const seatsDrawn = [...summary().matchAll(/data-game-end-seat="([^"]+)"/g)]
         expect(seatsDrawn.map(([, name]) => name)).toEqual(['Ana', 'Ben'])
     })

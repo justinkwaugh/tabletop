@@ -10,6 +10,8 @@ import {
 
 export interface GameEndColumn {
     readonly playerId: string
+    /** R-6.3 What the seat had scored before the V dawn, so that the column adds up to its total. */
+    readonly beforeDawn: number
     /** R-6.1 What the V dawn scored this seat. */
     readonly fifthDawn: number
     /** R-6.2 The section it reached and what that pays; with no disc, it says so. */
@@ -67,19 +69,23 @@ export function gameEndOf(
     const sheet = isBeginDawn(dawn) ? (dawn.metadata?.sheet ?? []) : []
     return {
         columns: metadata.sheet.map(
-            ({ playerId, voyage, largeEmpire, shillings, charters, score: final }) => ({
-                playerId,
-                fifthDawn: sheet.find((row) => row.playerId === playerId)?.total ?? 0,
-                voyage: { label: voyageLabel(voyage.space), vp: voyage.vp },
-                largeEmpire: {
-                    label: `${plural(largeEmpire.sets, 'set')}: ${plural(largeEmpire.outposts, 'outpost')}, ${plural(largeEmpire.farms, 'farm')}, ${plural(largeEmpire.towns, 'town')}, ${plural(largeEmpire.feudums, 'feudum')}`,
-                    vp: largeEmpire.vp
-                },
-                shillings: { label: `${shillings.held}s`, vp: shillings.vp },
-                charters,
-                score: final,
-                winner: metadata.winners.includes(playerId)
-            })
+            ({ playerId, voyage, largeEmpire, shillings, charters, total, score: final }) => {
+                const fifthDawn = sheet.find((row) => row.playerId === playerId)?.total ?? 0
+                return {
+                    playerId,
+                    beforeDawn: final - total - fifthDawn,
+                    fifthDawn,
+                    voyage: { label: voyageLabel(voyage.space), vp: voyage.vp },
+                    largeEmpire: {
+                        label: `${plural(largeEmpire.sets, 'set')}: ${plural(largeEmpire.outposts, 'outpost')}, ${plural(largeEmpire.farms, 'farm')}, ${plural(largeEmpire.towns, 'town')}, ${plural(largeEmpire.feudums, 'feudum')}`,
+                        vp: largeEmpire.vp
+                    },
+                    shillings: { label: `${shillings.held}s`, vp: shillings.vp },
+                    charters,
+                    score: final,
+                    winner: metadata.winners.includes(playerId)
+                }
+            }
         ),
         winnerLine: `${joined(metadata.winners.map(nameOf))} ${metadata.winners.length === 1 ? 'wins' : 'win'}`,
         ...(metadata.barrelTieBreak

@@ -752,7 +752,7 @@ test.describe('held upright', () => {
                 expect(box.x).toBe(before.x)
             }
         }
-        for (const row of ['dawn', 'voyage', 'empire', 'shillings', 'total']) {
+        for (const row of ['before-dawn', 'dawn', 'voyage', 'empire', 'shillings', 'total']) {
             await expect(seats.first().locator(`[data-game-end-row="${row}"]`)).toHaveCount(1)
         }
         await expect(panel(page).locator('[data-game-end-charter]')).toHaveCount(1)

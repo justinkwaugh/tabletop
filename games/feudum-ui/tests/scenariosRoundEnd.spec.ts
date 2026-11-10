@@ -186,7 +186,15 @@ scenario('S56 R-6.1, R-6.3 End of game', 'game-end', async (table) => {
         'Tie on vp broken by barrel sulfur: Ana 2, Bram 1'
     )
     await expect(summary.locator('[data-game-end-seat]')).toHaveCount(3)
-    for (const row of ['dawn', 'voyage', 'empire', 'shillings', 'charters', 'total']) {
+    for (const row of [
+        'before-dawn',
+        'dawn',
+        'voyage',
+        'empire',
+        'shillings',
+        'charters',
+        'total'
+    ]) {
         await expect(summary.locator(`[data-game-end-row="${row}"]`).first()).toBeVisible()
     }
     const charter = summary.locator('[data-game-end-charter="writ.charter.sulfur-barrel"]')
