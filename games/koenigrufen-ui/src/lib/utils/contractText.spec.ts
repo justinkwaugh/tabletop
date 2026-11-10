@@ -1,0 +1,51 @@
+import { Contract, Contracts } from '@tabletop/koenigrufen'
+import { describe, expect, it } from 'vitest'
+import {
+    contractHeading,
+    contractRequirement,
+    contractSummary,
+    contractValue,
+    meinSpielSummary
+} from './contractText.js'
+
+describe('contract text', () => {
+    it('shows one value when win and loss match, and both when they differ', () => {
+        expect(contractValue(Contracts[Contract.Rufer])).toBe('1')
+        expect(contractValue(Contracts[Contract.Sechserdreier])).toBe('4/−8')
+        expect(contractHeading(Contract.Sechserdreier)).toBe('Sechserdreier (4/−8)')
+    })
+
+    it('states what each kind of contract requires', () => {
+        expect(contractRequirement(Contracts[Contract.Dreier])).toBe('36 of 70 card points')
+        expect(contractRequirement(Contracts[Contract.Bettel])).toBe('no tricks')
+        expect(contractRequirement(Contracts[Contract.Piccolo])).toBe('exactly 1 trick')
+        expect(contractRequirement(Contracts[Contract.Zwiccolo])).toBe('exactly 2 tricks')
+    })
+
+    it('leads with teams and goal, then the talon', () => {
+        expect(contractSummary(Contract.Rufer)).toBe(
+            '2v2 - Goal: 36+ - Call for King partner - Forehand only. Take 3 talon cards; Kontra gets the other 3. If the called King is in the talon, declarer gives up (paying each player) or plays alone (no Kontra).'
+        )
+        expect(contractSummary(Contract.Sechserdreier)).toBe(
+            '1v3 - Goal: 36+ - Forehand’s opening call only. Take all 6 talon cards unseen.'
+        )
+        expect(contractSummary(Contract.Solorufer)).toBe(
+            '2v2 - Goal: 36+ - Bonuses doubled - Call for King partner. All 6 talon cards go to Kontra unseen. (If the called King is in the talon, declarer gets that half.)'
+        )
+        expect(contractSummary(Contract.Bettel)).toBe(
+            '1v3 - Goal: no tricks. Declarer leads; the talon is unused. Beat the highest card if you can; Pagat only as your last trump. Play stops once declarer fails.'
+        )
+        expect(contractSummary(Contract.Trischaken)).toBe(
+            'Each alone - Goal: fewest card points - Forehand only. Forehand leads. Beat the highest card if you can; Pagat only as your last trump. The last trick’s winner takes the talon. The 2 highest pay 1 each to the 2 lowest; 36+ pays 2 to each player; anyone without a trick is paid 2 by each.'
+        )
+        expect(contractSummary(Contract.Farbensolo)).toBe(
+            '1v3 - Goal: 36+. All 6 talon cards go to Kontra unseen. Trumps don’t win, and are led or played only when you have no suit cards left. No bonuses except Valat.'
+        )
+    })
+
+    it('condenses Mein Spiel, naming the forehand-only contracts it can lead to', () => {
+        expect(meinSpielSummary()).toBe(
+            'Hold your bid for now. If all pass, name any contract, including Rufer or Trischaken.'
+        )
+    })
+})

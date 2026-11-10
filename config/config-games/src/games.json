@@ -114,5 +114,9 @@
     {
         "gameId": "medina",
         "packageId": "medina"
+    },
+    {
+        "gameId": "koenigrufen",
+        "packageId": "koenigrufen"
     }
 ]
