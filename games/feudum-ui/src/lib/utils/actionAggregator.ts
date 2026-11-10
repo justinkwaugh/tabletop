@@ -55,6 +55,17 @@ export function isHistoryGroup(entry: HistoryEntry): entry is HistoryGroup {
     return entry.kind !== 'epoch' && entry.kind !== 'round'
 }
 
+/**
+ * R-4.10 The Actions of an entry that the log gives a line, in order. A seat that answered Nourish
+ * fed or lost a pawn, so the game's own feeding, when it fed nobody, would say no pawn needed
+ * feeding against it: that line is left out. The entry still holds the Action, and its span.
+ */
+export function linedActions({ kind, actions }: HistoryGroup): readonly GameAction[] {
+    return kind === 'nourishing' && actions.some((action) => isNourish(action))
+        ? actions.filter((action) => !gameFedNobody(action))
+        : actions
+}
+
 /** The public facts the interstitials come from, and how many seats finalise a hand. */
 export interface HistoryTable {
     readonly rounds: readonly Round[]
@@ -102,6 +113,11 @@ function leftUnfedPawns(action: GameAction): boolean {
         isNourishPawns(action) &&
         (action.metadata?.fed.some(({ returned }) => returned.length > 0) ?? false)
     )
+}
+
+/** R-4.10, D11 The game's own feeding, when it fed no seat: on its own line it says nobody needed feeding. */
+function gameFedNobody(action: GameAction): boolean {
+    return isNourishPawns(action) && (action.metadata?.fed.length ?? 0) === 0
 }
 
 /** R-3.3-H1, R-4.4.4 The turn goes on: the seat's second card, or discarding down to the limit. */
