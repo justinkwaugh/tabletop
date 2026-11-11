@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { WritId } from '../data/writs.js'
 import { MachineState } from '../definition/states.js'
 import { discChoices, replaceLocationDisc } from '../model/locationDiscs.js'
+import { boardableVessels } from '../model/media.js'
 import { moveConcealedSeal } from '../model/seals.js'
 import { collectTopTile } from '../model/regionStacks.js'
 import { placeMarker } from '../model/locationControl.js'
@@ -388,6 +389,24 @@ describe('R-4.8.3 a win', () => {
         expect(action).toMatchObject({
             metadata: { conquered: { kind: 'pawn', vessel: 'ship', wine: true } }
         })
+    })
+
+    it('R-4.2-H2 a conquered pawn’s vessel is left this turn: no pawn boards it until the turn ends', () => {
+        const combat = winning()
+        const { table, attackerId, defenderId } = combat
+        setUp(table, (state) => {
+            const [pawn] = state.getPlayerState(defenderId).pawns
+            state.supply.vessels.ship -= 1
+            pawn.vessel = 'ship'
+        })
+        const boardable = boardableVessels(table.hydrated(), Battlefield, 'ship')
+        conquer(combat, PawnOf(defenderId))
+        answer(combat)
+        commit(combat)
+        const after = table.hydrated()
+        expect(after.flow.turn?.playerId).toBe(attackerId)
+        expect(after.spaces[Battlefield].vessels.ship).toBe(boardable + 1)
+        expect(boardableVessels(after, Battlefield, 'ship')).toBe(boardable)
     })
 
     it('R-4.8.3, R-6.2 a monster goes to the Knight Guild, its marker home; defeatedMonster is set', () => {
