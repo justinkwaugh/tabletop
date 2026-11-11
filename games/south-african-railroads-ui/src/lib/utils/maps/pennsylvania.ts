@@ -4,16 +4,16 @@ import type { BoardLayoutSpec } from '../boardLayout.js'
 // Coordinates follow Fabian Peng Kärrholm's 2022 redraw.
 export const PENNSYLVANIA_LAYOUT: BoardLayoutSpec = {
     width: 2040,
-    top: 80,
+    top: 230,
     bottom: 1290,
-    // The title stands large in the empty top-left corner, the legend and payoff bottom right.
+    // The title stands large in the top-left corner above the order of metro areas, the legend and payoff bottom right.
     legend: { x: 1785, y: 1105 },
     finalPayoff: { x: 1715, y: 985 },
-    logo: { x: 330, y: 145 },
+    logo: { x: 330, y: 290 },
     logoScale: 1.5,
     title: 'Pennsylvania Railroad',
     credit: 'John Bohrer · Winsome Games · map redrawn by Fabian Peng Kärrholm',
-    automaticDevelopment: { x: 60, y: 215 },
+    automaticDevelopment: { x: 60, y: 352 },
     rules: {
         notes: [
             [
@@ -150,8 +150,8 @@ export const PENNSYLVANIA_LAYOUT: BoardLayoutSpec = {
             { text: 'ATLANTIC OCEAN', x: 1858, y: 906 }
         ],
         drawings: [
-            { kind: 'compass', x: 830, y: 330, scale: 1.25 },
-            { kind: 'pines', x: 1438, y: 222 },
+            { kind: 'compass', x: 830, y: 380, scale: 1.2 },
+            { kind: 'pines', x: 1438, y: 300 },
             { kind: 'lighthouse', x: 1972, y: 540, scale: 0.8 },
             { kind: 'ship', x: 1880, y: 800, scale: 0.7 },
             { kind: 'liberty-bell', x: 1574, y: 1126, scale: 0.9 },
