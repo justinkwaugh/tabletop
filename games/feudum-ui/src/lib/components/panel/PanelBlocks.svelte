@@ -43,6 +43,21 @@
         }[role]
     }
 
+    /**
+     * The sends that stand together from this block on: one pinned group, so two answers stay in
+     * sight together on a phone rather than one pinned over the other.
+     */
+    function sendsFrom(index: number): Extract<ActionBlock, { kind: 'primary' }>[] {
+        const sends: Extract<ActionBlock, { kind: 'primary' }>[] = []
+        for (const block of view.blocks.slice(index)) {
+            if (block.kind !== 'primary') {
+                break
+            }
+            sends.push(block)
+        }
+        return sends
+    }
+
     function columns(block: Extract<ActionBlock, { kind: 'cards' }>): string {
         const { count, width } =
             block.tone === 'draft'
@@ -119,9 +134,13 @@
             </div>
         {:else if block.kind === 'tally'}
             <CombatTally lines={block.lines} note={block.note} />
-        {:else if block.kind === 'primary'}
-            <div class="pinned ml-auto max-sm:min-w-0 max-sm:flex-[1_1_8rem]">
-                <PrimaryButton {block} />
+        {:else if block.kind === 'primary' && view.blocks[index - 1]?.kind !== 'primary'}
+            <div
+                class="pinned sends ml-auto flex flex-wrap justify-end gap-2 max-sm:min-w-0 max-sm:flex-[1_1_8rem] max-sm:gap-1"
+            >
+                {#each sendsFrom(index) as send, at (at)}
+                    <PrimaryButton block={send} />
+                {/each}
             </div>
         {/if}
     {/each}
@@ -134,6 +153,15 @@
             position: sticky;
             bottom: 0;
             background-color: var(--feudum-surface-raised);
+        }
+
+        /*
+         * Each send takes its own width and the line's spare room: two that fit share a line, and one
+         * that would wrap beside the other takes a line of its own, reading on one line there.
+         */
+        .sends > :global([data-primary]) {
+            flex: 1 1 auto;
+            width: auto;
         }
     }
 </style>
