@@ -237,6 +237,30 @@ describe('printed action cards (R-3.1)', () => {
         expect(blue).toContain(`href="/art/${cardBackAsset(Color.Blue)}.webp"`)
     })
 
+    it('a printed card or back keeps the proportion it is cut to: centred in the card, never stretched', () => {
+        for (const props of [{}, { faceShown: false }]) {
+            expect(cardAt(props)).toMatch(/<image[^>]*preserveAspectRatio="xMidYMid meet"/)
+        }
+    })
+
+    it('the compact name plate covers the print’s foot down to its other-language name line; plate and number stay on the print', () => {
+        const PrintLeft = (250 - (380 * 580) / 938) / 2
+        const NameLineFoot = 376
+        const face = cardAt({ width: 50 })
+        const circle = face.match(/<circle cx="([\d.]+)" cy="([\d.]+)" r="([\d.]+)"/)
+        const plate = face.match(
+            /<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/
+        )
+        const [cx, cy, r] = (circle ?? []).slice(1).map(Number)
+        const [x, y, width, height] = (plate ?? []).slice(1).map(Number)
+        expect(cx - r).toBeGreaterThan(PrintLeft)
+        expect(cy + r).toBeLessThan(380)
+        expect(x).toBeGreaterThan(PrintLeft)
+        expect(x + width).toBeLessThan(250 - PrintLeft)
+        expect(y + height).toBeGreaterThanOrEqual(NameLineFoot)
+        expect(y + height).toBeLessThanOrEqual(380)
+    })
+
     it('a paint in no printed colour keeps the band round the art window, and the drawn back', () => {
         const face = cardAt({ paint })
         expect(face).toContain(`href="/art/${cardAsset('influence')}.webp"`)
