@@ -211,7 +211,7 @@ export interface InfluenceOffers {
     readonly markers: number
     /** R-1.1 The seat must name `spaceIds`. */
     readonly short: boolean
-    /** R-3.8.3 Not where the seat is already the serf: plain Influence takes that for nothing. */
+    /** R-3.8.3, R-3.8-H2 Not where the seat is already the serf: plain Influence takes that for nothing. */
     readonly moneyIsInfluence: readonly SpaceId[]
 }
 
