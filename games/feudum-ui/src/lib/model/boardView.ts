@@ -10,6 +10,7 @@ import {
     type TileEpoch,
     type WritId
 } from '@tabletop/feudum'
+import { PrintedColours } from '$lib/utils/boardGeometry.js'
 
 export interface ScoreOnTrack {
     readonly space: number
@@ -118,7 +119,28 @@ export function deckView(state: HydratedFeudumGameState, viewerId: string | unde
     }
 }
 
-/** The seat playing a colour; a dummy row's colour has none (R-1.4-H1). */
-export function seatOfColour(state: HydratedFeudumGameState, colour: Color): string | undefined {
-    return state.players.find((player) => player.color === colour)?.playerId
+export interface InfluencePool {
+    readonly colour: Color
+    readonly count: number
+    /** The seat whose pool it is; a dummy row's pool has none. */
+    readonly playerId?: string
+}
+
+/**
+ * R-1.4.2, R-1.4-H1 The general supply's influence by colour in use, in print order: each seat's
+ * pool comes from the seat, and a dummy row's from its row, so no colour stands for a seat.
+ */
+export function influencePools(state: HydratedFeudumGameState): InfluencePool[] {
+    const owners: { colour: Color; playerId?: string }[] = [
+        ...state.players.map(({ color, playerId }) => ({ colour: color, playerId })),
+        ...state.guilds.knight.rows
+            .filter((row) => row.playerId === undefined)
+            .map(({ colour }) => ({ colour }))
+    ]
+    return owners
+        .flatMap((owner) => {
+            const count = state.supply.influence[owner.colour]
+            return count === undefined ? [] : [{ ...owner, count }]
+        })
+        .sort((a, b) => PrintedColours.indexOf(a.colour) - PrintedColours.indexOf(b.colour))
 }

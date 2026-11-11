@@ -9,7 +9,7 @@
     import VesselToken from '$lib/components/pieces/VesselToken.svelte'
     import WritFace from '$lib/components/pieces/WritFace.svelte'
     import { PlainChrome, dimmedWithRest, type BoardChrome } from '$lib/model/boardChrome.js'
-    import { deckView, seatOfColour } from '$lib/model/boardView.js'
+    import { deckView, influencePools } from '$lib/model/boardView.js'
     import { sealFaceShown } from '$lib/model/perspective.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import { writName } from '$lib/model/writLabels.js'
@@ -21,7 +21,6 @@
         MarginSlots,
         MarginToken,
         MarginTop,
-        PrintedColours,
         VesselCountStep
     } from '$lib/utils/boardGeometry.js'
     import { wrapLines } from '$lib/utils/cardShape.js'
@@ -62,14 +61,11 @@
             : []
     )
     let influence = $derived(
-        PrintedColours.flatMap((colour) => {
-            const count = state.supply.influence[colour]
-            if (count === undefined) {
-                return []
-            }
-            const seat = seatOfColour(state, colour)
-            return [{ colour, count, paint: seat ? paintOf(seat) : colourPaintOf(colour) }]
-        })
+        influencePools(state).map(({ colour, count, playerId }) => ({
+            colour,
+            count,
+            paint: playerId ? paintOf(playerId) : colourPaintOf(colour)
+        }))
     )
 </script>
 
