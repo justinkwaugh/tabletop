@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { assertExists } from '@tabletop/common'
 import {
     TestCompanyId,
     TestHomeLocationId,
@@ -10,7 +9,7 @@ import {
 } from '@tabletop/18xx/testing'
 import { RoutesModule, type RouteOverlay } from './routesModule.svelte.js'
 import { routeColor } from '../routes/routePresentation.js'
-import { testSession } from './moduleTestSession.js'
+import { companyTrain, testSession } from './moduleTestSession.js'
 
 const networkRoutes: RouteOverlay[] = [{ id: 'track-access', color: '#168da8', segments: [] }]
 
@@ -78,17 +77,11 @@ describe('RoutesModule', () => {
     })
 
     describe('the recorded run', () => {
-        function afterRun(ran: (owned: string[]) => string[]) {
+        function afterRun(ranTrainIds: (owned: string[]) => string[]) {
             const trainInventory = minimalRouteRules.depot.createInventory()
-            const owned = ['2', '2'].map((definitionId) => {
-                const train = minimalRouteRules.depot.nextTrain(trainInventory, definitionId)
-                assertExists(train)
-                minimalRouteRules.depot.purchase(trainInventory, train.id, definitionId, {
-                    kind: 'company',
-                    companyId: TestCompanyId
-                })
-                return train.id
-            })
+            const owned = ['2', '2'].map((definitionId) =>
+                companyTrain(minimalRouteRules.depot, trainInventory, definitionId)
+            )
             const state = {
                 ...minimalPlayState(),
                 machineState: 'BuyingTrains' as const,
@@ -99,7 +92,7 @@ describe('RoutesModule', () => {
                     result: {
                         companyId: TestCompanyId,
                         revenue: 0,
-                        routes: ran(owned).map((trainId) => ({
+                        routes: ranTrainIds(owned).map((trainId) => ({
                             trainId,
                             start: { locationId: TestHomeLocationId, nodeId: 'city' },
                             paths: [],
@@ -147,12 +140,7 @@ describe('RoutesModule', () => {
                 status: 'placed',
                 position: { locationId: TestHomeLocationId, nodeId: 'city', slot: 0 }
             })
-            const train = minimalRouteRules.depot.nextTrain(state.trainInventory, '2')
-            assertExists(train)
-            minimalRouteRules.depot.purchase(state.trainInventory, train.id, '2', {
-                kind: 'company',
-                companyId: TestCompanyId
-            })
+            const trainId = companyTrain(minimalRouteRules.depot, state.trainInventory, '2')
             const harness = testSession(state, { routeRules: minimalRouteRules }, ['RunTrains'])
             const module = new RoutesModule(
                 harness.session,
@@ -160,7 +148,7 @@ describe('RoutesModule', () => {
                 () => manual
             )
             module.setSolved(state, { companyId: TestCompanyId, routes: [], revenue: 0 }, true)
-            return { ...harness, module, trainId: train.id }
+            return { ...harness, module, trainId }
         }
 
         it('lets a director draw only where the title allows it', () => {

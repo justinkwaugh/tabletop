@@ -74,12 +74,7 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
     overlays = $derived.by((): RouteOverlay[] => {
         if (this.session.publishing) return []
         const trainIds = this.editor.trains.map((train) => train.id)
-        if (!this.editorVisible) {
-            // A train bought after the run can rust trains that ran; the run then keeps its order.
-            const ran = this.session.state.routeStep?.result?.routes ?? []
-            const held = ran.every((route) => trainIds.includes(route.trainId))
-            return trainRouteOverlays(ran, held ? trainIds : undefined)
-        }
+        if (!this.editorVisible) return this.recordedRunOverlays(trainIds)
         const draft = this.editor.draft
         if (!draft) return trainRouteOverlays(this.solved?.result.routes ?? [], trainIds)
         const results = this.editor.result?.routes ?? []
@@ -98,6 +93,12 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
             ...(route.trainId === draft.trainId ? { chosen: true as const } : {})
         }))
     })
+    /** The run already made; a train bought since can rust trains that ran it. */
+    private recordedRunOverlays(trainIds: readonly string[]): RouteOverlay[] {
+        const routes = this.session.state.routeStep?.result?.routes ?? []
+        const allTrainsStillRunnable = routes.every((route) => trainIds.includes(route.trainId))
+        return trainRouteOverlays(routes, allTrainsStillRunnable ? trainIds : undefined)
+    }
     displayed = $derived.by(() =>
         this.solved || this.session.state.routeStep?.result || this.overlays.length
             ? this.overlays
