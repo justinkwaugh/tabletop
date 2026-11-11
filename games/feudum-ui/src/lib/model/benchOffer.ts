@@ -39,7 +39,8 @@ import {
     type PotSplit,
     type ScrollSpaceId,
     type SpaceId,
-    type VesselType
+    type VesselType,
+    filledScrollSpaces
 } from '@tabletop/feudum'
 import { guildTarget, spaceTarget, type ChipNote } from './boardOffer.js'
 import type { FlowPick, FlowPopup, PanelChoice } from './cardFlows.js'
@@ -560,7 +561,9 @@ const BenchRows: Readonly<Record<GuildId, Readonly<Record<GuildFunctionName, Ben
         },
         pull: rowsToScrolls(NoblePullMarkers, 'shows', true),
         push: {
-            line: () => `Flip ${plural(NoblePushSeals, 'seal')}`,
+            // R-4.6-H5 As many as lie on the scrolls, up to the stated number.
+            line: ({ state }) =>
+                `Flip ${plural(Math.min(NoblePushSeals, filledScrollSpaces(state).length), 'seal')}`,
             candidates: (seat) => sealCandidates(seat),
             name: (stages) => `Flip ${plural(picksOf(stages, 'scroll').length, 'seal')}`,
             ghosts: sealGhosts(RosaryPlace)
