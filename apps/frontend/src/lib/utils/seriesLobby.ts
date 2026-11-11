@@ -66,9 +66,8 @@ export function pickerTitles(
     counts: Map<string, TitleGameCounts>,
     search: string
 ): { active: PickerTitle[]; quiet: PickerTitle[] } {
-    const query = search.trim().toLowerCase()
     const titles = entries
-        .filter((entry) => entry.metadata.name.toLowerCase().includes(query))
+        .filter((entry) => titleMatchesSearch(entry.metadata, search))
         .map((entry) => ({ entry, counts: counts.get(entry.id) ?? NO_GAMES }))
     const active = titles
         .filter(({ counts }) => counts.open + counts.inProgress > 0)
@@ -82,12 +81,32 @@ export function pickerTitles(
     return { active, quiet }
 }
 
+export function titleMatchesSearch(metadata: GameMetadata, search: string): boolean {
+    return metadata.name.toLowerCase().includes(search.trim().toLowerCase())
+}
+
+export function gameMatchesFilter(game: Game, filter: SeriesFilter): boolean {
+    return matchesTitles(game, filter) && matchesSeats(game, filter)
+}
+
+export function widenFilterToShow(filter: SeriesFilter, game: Game): SeriesFilter {
+    return {
+        ...filter,
+        titleIds: matchesTitles(game, filter) ? filter.titleIds : [...filter.titleIds, game.typeId],
+        seats: matchesSeats(game, filter) ? filter.seats : undefined
+    }
+}
+
 export function filterSeriesGames(games: Game[], filter: SeriesFilter): Game[] {
-    return games.filter(
-        (game) =>
-            (filter.titleIds.length === 0 || filter.titleIds.includes(game.typeId)) &&
-            (filter.seats === undefined || game.players.length === filter.seats)
-    )
+    return games.filter((game) => gameMatchesFilter(game, filter))
+}
+
+function matchesTitles(game: Game, filter: SeriesFilter): boolean {
+    return filter.titleIds.length === 0 || filter.titleIds.includes(game.typeId)
+}
+
+function matchesSeats(game: Game, filter: SeriesFilter): boolean {
+    return filter.seats === undefined || game.players.length === filter.seats
 }
 
 export function seatChoices(games: Game[]): number[] {

@@ -20,12 +20,14 @@
         kind,
         games,
         titlesById,
-        label
+        label,
+        highlightId
     }: {
         kind: Kind
         games: Game[]
         titlesById: Map<string, GameCatalogEntry>
         label: string
+        highlightId?: string
     } = $props()
     const { authorizationService, libraryService } = getAppContext()
     const userId = $derived(authorizationService.getSessionUser()?.id)
@@ -79,7 +81,7 @@
     <ul>
         {#each games as game (game.id)}
             {@const title = titlesById.get(game.typeId)}
-            <li class="row">
+            <li class="row" class:highlight={game.id === highlightId}>
                 {#if title}<img class="cover" src={title.thumbnailUrl} alt="" />{/if}
                 <span class="name">{game.name}</span>
                 <span class="meta">
@@ -144,6 +146,9 @@
     }
     li.row:hover {
         background: #1f293766;
+    }
+    li.row.highlight {
+        background: #1e3a8a33;
     }
     .open .row {
         grid-template-columns:

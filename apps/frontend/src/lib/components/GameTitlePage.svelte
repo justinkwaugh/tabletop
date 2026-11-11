@@ -1,13 +1,6 @@
 <script lang="ts">
-    import { goto } from '$app/navigation'
-    import { GameEditForm, type GameUiDefinition } from '@tabletop/frontend-components'
-    import {
-        GameStorage,
-        type Game,
-        type GameState,
-        type HydratedGameState
-    } from '@tabletop/common'
-    import { Modal } from 'flowbite-svelte'
+    import type { GameUiDefinition } from '@tabletop/frontend-components'
+    import type { GameState, HydratedGameState } from '@tabletop/common'
     import {
         ArrowRightOutline,
         ArrowUpRightFromSquareOutline,
@@ -16,7 +9,13 @@
     import TitleGames from '$lib/components/TitleGames.svelte'
     import TitleCompetitions from '$lib/components/TitleCompetitions.svelte'
     import BackLink from '$lib/components/BackLink.svelte'
-    import { seriesUrl, titleMaturityLabel, titleSeries } from '$lib/utils/libraryTitles'
+    import CreateGameModal from '$lib/components/CreateGameModal.svelte'
+    import {
+        playerCountText,
+        seriesUrl,
+        titleMaturityLabel,
+        titleSeries
+    } from '$lib/utils/libraryTitles'
 
     let { title }: { title: GameUiDefinition<GameState, HydratedGameState> } = $props()
     let creating = $state(false)
@@ -27,14 +26,9 @@
     const series = $derived(titleSeries(metadata))
     const paragraphs = $derived(metadata.description.split('\n').filter((line) => line.trim()))
 
-    async function onGameCreated(game: Game) {
-        creating = false
-        if (game.storage === GameStorage.Local) {
-            await goto(`/game/${game.id}`)
-        } else {
-            created = true
-            await gamesSection?.refresh()
-        }
+    async function onGameCreated() {
+        created = true
+        await gamesSection?.refresh()
     }
 </script>
 
@@ -58,8 +52,7 @@
             <div class="facts">
                 <span
                     ><UsersOutline class="h-4 w-4" />
-                    {metadata.minPlayers}{#if metadata.maxPlayers !== metadata.minPlayers}–{metadata.maxPlayers}{/if}
-                    players</span
+                    {playerCountText(metadata)}</span
                 ><span>{metadata.year}</span>{#if maturityLabel}<span class="maturity-label"
                         >{maturityLabel}</span
                     >{/if}
@@ -102,21 +95,12 @@
     </div>
 </main>
 
-<Modal
+<CreateGameModal
     bind:open={creating}
-    title={metadata.name}
-    size="xs"
-    outsideclose
-    class="backdrop:bg-black/70 dark:bg-gray-900 border border-highlight-border dark:border-highlight-border divide-y-0"
-    classes={{ header: "font-['Inter'] text-2xl pb-0 md:pb-0" }}
->
-    <GameEditForm
-        {title}
-        showHeading={false}
-        oncancel={() => (creating = false)}
-        onsave={onGameCreated}
-    />
-</Modal>
+    titles={[title]}
+    initialTitleId={title.info.id}
+    oncreated={onGameCreated}
+/>
 
 <style>
     .title-page {
