@@ -523,14 +523,17 @@ describe('PlayMandate', () => {
             })
         ).toBe('You need 3 status stars in that guild.')
         expect(
-            playMandateOffers(state, playerId).map(({ rewardGuild, refused }) => [
+            playMandateOffers(state, playerId).map(({ rewardGuild, vessel, refused }) => [
                 rewardGuild,
+                vessel,
                 refused
             ])
         ).toEqual([
-            ['farmer', 'You need 3 status stars in that guild.'],
-            ['merchant', 'You need 3 status stars in that guild.'],
-            ['alchemist', 'You need 3 status stars in that guild.']
+            ['farmer', undefined, 'You need 3 status stars in that guild.'],
+            ['merchant', undefined, 'You need 3 status stars in that guild.'],
+            ['alchemist', 'ship', 'You need 3 status stars in that guild.'],
+            ['alchemist', 'submersible', 'You need 3 status stars in that guild.'],
+            ['alchemist', 'flying-machine', 'You need 3 status stars in that guild.']
         ])
         expect(table.offered(playerId)).not.toContain(ActionType.PlayMandate)
     })

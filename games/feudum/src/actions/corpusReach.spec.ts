@@ -87,9 +87,9 @@ function fillTheLimit(state: HydratedFeudumGameState, seat: string, window: Wind
 }
 
 describe('corpus reach: the mandates', () => {
-    it('sweeps all eight: six at will with 14 alternatives, two weapons with 4', () => {
+    it('sweeps all eight: six at will with 14 alternatives (R-4.4-H4 any vessel as 3), two weapons with 4', () => {
         expect(AtWillMandates).toHaveLength(6)
-        expect(AtWill).toHaveLength(14)
+        expect(AtWill).toHaveLength(16)
         expect(Weapons).toHaveLength(2)
         expect(WeaponBonuses).toHaveLength(4)
     })

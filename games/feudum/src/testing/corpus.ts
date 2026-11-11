@@ -1,10 +1,18 @@
 import { expect } from 'vitest'
 import { cardOf, type RepeatMode } from '../actions/cardPlay.js'
 import { improveOffers } from '../actions/improve.js'
+import type { PlayMandateInput, TakenReward } from '../actions/playMandate.js'
 import type { ActionCardKind } from '../data/cards.js'
-import { Goods, type Character, type GuildId } from '../data/components.js'
+import {
+    Goods,
+    VesselTypes,
+    type Character,
+    type Good,
+    type GuildId,
+    type VesselType
+} from '../data/components.js'
 import { RegionIds } from '../data/regionTiles.js'
-import type { CharterId } from '../data/writs.js'
+import type { CharterId, MandateId } from '../data/writs.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { conservationBreaks } from '../model/canonicalValidator.js'
@@ -29,16 +37,34 @@ export function isTiming<Timing extends WritRegistration['timing']>(timing: Timi
         row.timing === timing
 }
 
-/** R-4.4.2 Every alternative of every at-will mandate. */
+export interface AtWillCase {
+    readonly name: string
+    readonly writId: MandateId
+    readonly input: Omit<PlayMandateInput, 'writId'>
+    readonly turnedIn: readonly Good[]
+    readonly reward: TakenReward
+    readonly rewardGuild?: GuildId
+    readonly vessel?: VesselType
+}
+
+/** R-4.4.2, R-4.4-H4 Every alternative of every at-will mandate, an any-vessel reward per vessel. */
 export const AtWill = registered.filter(isTiming('at-will')).flatMap(({ writId, alternatives }) =>
-    alternatives.map(({ turnedIn, reward, rewardGuild }, alternative) => ({
-        name: `${writId} ${rewardGuild ?? alternative}`,
-        writId,
-        input: rewardGuild ? { alternative: 0, rewardGuild } : { alternative },
-        turnedIn,
-        reward,
-        rewardGuild
-    }))
+    alternatives.flatMap(({ turnedIn, reward, rewardGuild }, alternative): AtWillCase[] => {
+        const name = `${writId} ${rewardGuild ?? alternative}`
+        const input = rewardGuild ? { alternative: 0, rewardGuild } : { alternative }
+        const guild = rewardGuild ? { rewardGuild } : {}
+        return reward.kind === 'any-vessel'
+            ? VesselTypes.map((vessel) => ({
+                  name: `${name} ${vessel}`,
+                  writId,
+                  input: { ...input, vessel },
+                  turnedIn,
+                  reward: { kind: 'vessel', vessel },
+                  ...guild,
+                  vessel
+              }))
+            : [{ name, writId, input, turnedIn, reward, ...guild }]
+    })
 )
 
 /** R-4.4-H1 Every alternative of every weapon. */

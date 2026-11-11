@@ -213,6 +213,39 @@ describe('R-4.4.2 PlayMandate', () => {
         })
     })
 
+    it('R-4.4-H4 mandate 6 asks which vessel the Alchemist reward takes, and sends the one pressed', async () => {
+        const table = await atWill((state, seat) => {
+            holdWrit(state, seat, 'writ.mandate.6')
+            threePawns(state, seat)
+            for (const pawn of state.getPlayerState(seat).pawns) {
+                pawn.character = 'alchemist'
+            }
+            state.recomputeRanks()
+            state.getPlayerState(seat).vessels['flying-machine'] +=
+                state.supply.vessels['flying-machine']
+            state.supply.vessels['flying-machine'] = 0
+        })
+        const { session } = table
+        await open(session, 'writs')
+        const choices = writChoices(session, 'writ.mandate.6')
+        expect(choices.map(({ label, refusal }) => [label, refusal])).toEqual([
+            ['Farmer → 3 goods', 'You need 3 status stars in that guild.'],
+            ['Merchant → 3s', 'You need 3 status stars in that guild.'],
+            ['Alchemist → ship', undefined],
+            ['Alchemist → submersible', undefined],
+            ['Alchemist → flying machine', 'The general supply has no flying machine.'],
+            ['Discard', undefined]
+        ])
+        await press(session, choices[3])
+        await settled(session)
+        expect(lastAction(table)).toMatchObject({
+            type: ActionType.PlayMandate,
+            writId: 'writ.mandate.6',
+            rewardGuild: 'alchemist',
+            vessel: 'submersible'
+        })
+    })
+
     it('R-4.4-H1 short of the good: the press asks for a tile, and the tile press sends', async () => {
         const table = await atWill((state, seat) => {
             holdWrit(state, seat, Mandate5)

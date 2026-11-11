@@ -1,7 +1,7 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
-import type { Good, GuildId } from '../data/components.js'
+import { assertExists, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import { VesselTypes, type Good, type GuildId, type VesselType } from '../data/components.js'
 import { MandateStatusStars, type MandateReward, type WritId } from '../data/writs.js'
 import { ActionType } from '../definition/actions.js'
 import { reasonNoAtWillWindow, atWillWindow } from '../model/atWill.js'
@@ -64,6 +64,8 @@ export const PlayMandate = Type.Evaluate(
             alternative: Type.Integer({ minimum: 0 }),
             /** R-4.4.2 The guild whose reward a guild-status mandate takes. */
             rewardGuild: Type.Optional(GuildIdSchema),
+            /** R-4.4-H4 The vessel an any-vessel reward takes. */
+            vessel: Type.Optional(VesselTypeSchema),
             /** R-4.3.3, R-4.4-H1 Tiles spent first, each for a good. */
             wildTiles: Type.Optional(Type.Array(WildTileSpend))
         })
@@ -80,7 +82,33 @@ export interface PlayMandateInput {
     readonly writId: WritId
     readonly alternative: number
     readonly rewardGuild?: GuildId
+    readonly vessel?: VesselType
     readonly wildTiles?: readonly WildTileSpend[]
+}
+
+/** R-4.4.2 A reward as taken: an any-vessel reward has become the vessel named (R-4.4-H4). */
+export type TakenReward = Exclude<MandateReward, { readonly kind: 'any-vessel' }>
+
+/** R-4.4-H4 Only an any-vessel reward names a vessel, and it must. */
+function reasonVesselRefused(reward: MandateReward, vessel?: VesselType): string | undefined {
+    if (reward.kind === 'any-vessel') {
+        return vessel ? undefined : 'Name the vessel the reward takes.'
+    }
+    return vessel ? 'That reward takes no vessel.' : undefined
+}
+
+/** R-4.4-H4 Called once `reasonVesselRefused` has passed. */
+function rewardTaken(reward: MandateReward, vessel?: VesselType): TakenReward {
+    if (reward.kind !== 'any-vessel') {
+        return reward
+    }
+    assertExists(vessel, 'R-4.4-H4 An any-vessel reward names its vessel')
+    return { kind: 'vessel', vessel }
+}
+
+/** R-4.4-H4 The vessels an offer names: one offer each for an any-vessel reward, else none. */
+function vesselsOffered(reward: MandateReward): readonly (VesselType | undefined)[] {
+    return reward.kind === 'any-vessel' ? VesselTypes : [undefined]
 }
 
 /** R-7 What an alternative's turned-in goods come to. */
@@ -97,11 +125,16 @@ function reasonEffectRefused(
     state: HydratedFeudumGameState,
     playerId: string,
     effect: MandateAlternativeEffect,
-    wildTiles: readonly WildTileSpend[]
+    wildTiles: readonly WildTileSpend[],
+    vessel?: VesselType
 ): string | undefined {
-    const { rewardGuild, turnedIn, reward } = effect
+    const { rewardGuild, turnedIn } = effect
     if (rewardGuild && statusStars(state, playerId, rewardGuild) < MandateStatusStars) {
         return `You need ${MandateStatusStars} status stars in that guild.`
+    }
+    const vesselRefused = reasonVesselRefused(effect.reward, vessel)
+    if (vesselRefused) {
+        return vesselRefused
     }
     if (!canSpendWildTiles(state, playerId, wildTiles)) {
         return "You can't spend those region tiles."
@@ -109,6 +142,7 @@ function reasonEffectRefused(
     if (!canPayGoods(state, playerId, priceOf(turnedIn), wildTiles)) {
         return `You can't turn in ${turnedIn.join(', ')}.`
     }
+    const reward = rewardTaken(effect.reward, vessel)
     return reward.kind === 'vessel' && state.supply.vessels[reward.vessel] === 0
         ? `The general supply has no ${reward.vessel.replaceAll('-', ' ')}.`
         : undefined
@@ -121,7 +155,7 @@ function reasonEffectRefused(
 export function reasonPlayMandateRefused(
     state: HydratedFeudumGameState,
     playerId: string,
-    { writId, alternative, rewardGuild, wildTiles = [] }: PlayMandateInput
+    { writId, alternative, rewardGuild, vessel, wildTiles = [] }: PlayMandateInput
 ): string | undefined {
     const closed = reasonNoAtWillWindow(state, playerId)
     if (closed) {
@@ -135,7 +169,7 @@ export function reasonPlayMandateRefused(
         return refused
     }
     const effect = writRegistry.mandateAlternative(writId, alternative, rewardGuild)
-    return effect && reasonEffectRefused(state, playerId, effect, wildTiles)
+    return effect && reasonEffectRefused(state, playerId, effect, wildTiles, vessel)
 }
 
 /** R-4.4.2 One thing a held mandate can do. Dimmed with `refused` when not open now. */
@@ -143,8 +177,10 @@ export interface PlayMandateOffer {
     readonly writId: WritId
     readonly alternative: number
     readonly rewardGuild?: GuildId
+    /** R-4.4-H4 The vessel this offer's any-vessel reward takes. */
+    readonly vessel?: VesselType
     readonly turnedIn: readonly Good[]
-    readonly reward: MandateReward
+    readonly reward: TakenReward
     /** R-X.2 Whether the press stages. */
     readonly revealsInfo: boolean
     /** R-4.3.3 The seat's goods fall short and its tiles can bring the rest. */
@@ -158,21 +194,23 @@ function offerOf(
     playerId: string,
     writId: WritId,
     alternative: number,
-    effect: MandateAlternativeEffect
+    effect: MandateAlternativeEffect,
+    vessel: VesselType | undefined
 ): PlayMandateOffer {
     const price = priceOf(effect.turnedIn)
     const short = Object.values(goodsShort(state, playerId, price)).some((amount) => amount > 0)
     const wildTileNeeded = short && canCoverWithWildTiles(state, playerId, price)
     const wildTiles: WildTileSpend[] = []
     const refused = wildTileNeeded
-        ? reasonEffectRefused(state, playerId, { ...effect, turnedIn: [] }, wildTiles)
-        : reasonEffectRefused(state, playerId, effect, wildTiles)
+        ? reasonEffectRefused(state, playerId, { ...effect, turnedIn: [] }, wildTiles, vessel)
+        : reasonEffectRefused(state, playerId, effect, wildTiles, vessel)
     return {
         writId,
         alternative,
         ...(effect.rewardGuild ? { rewardGuild: effect.rewardGuild } : {}),
+        ...(vessel ? { vessel } : {}),
         turnedIn: effect.turnedIn,
-        reward: effect.reward,
+        reward: rewardTaken(effect.reward, vessel),
         revealsInfo: effect.reveals !== 'nothing',
         wildTileNeeded,
         ...(refused ? { refused } : {})
@@ -180,8 +218,9 @@ function offerOf(
 }
 
 /**
- * R-4.4.2, R-4.4-H1 Every alternative of every mandate this seat holds, in an at-will window. Read
- * from the seat's own projection; weapons have no alternatives here. Read-only.
+ * R-4.4.2, R-4.4-H1, R-4.4-H4 Every alternative of every mandate this seat holds, in an at-will
+ * window, an any-vessel reward once per vessel. Read from the seat's own projection; weapons have no
+ * alternatives here. Read-only.
  */
 export function playMandateOffers(
     state: HydratedFeudumGameState,
@@ -193,7 +232,11 @@ export function playMandateOffers(
     return (state.getPlayerState(playerId).writs ?? []).flatMap((writId) =>
         writRegistry
             .mandateAlternatives(writId)
-            .map((effect, alternative) => offerOf(state, playerId, writId, alternative, effect))
+            .flatMap((effect, alternative) =>
+                vesselsOffered(effect.reward).map((vessel) =>
+                    offerOf(state, playerId, writId, alternative, effect, vessel)
+                )
+            )
     )
 }
 
@@ -207,6 +250,7 @@ export class HydratedPlayMandate
     declare writId: WritId
     declare alternative: number
     declare rewardGuild?: GuildId
+    declare vessel?: VesselType
     declare wildTiles?: WildTileSpend[]
 
     constructor(data: PlayMandate) {
@@ -236,7 +280,7 @@ export class HydratedPlayMandate
         const slot = state.writDeck.nextBottom
         putWritsUnderInView(state, [this.writId])
 
-        const received = this.takeReward(state, effect.reward)
+        const received = this.takeReward(state, rewardTaken(effect.reward, this.vessel))
         this.metadata = {
             slot,
             received,
@@ -247,7 +291,7 @@ export class HydratedPlayMandate
     }
 
     /** R-4.4.2, R-1.1-H1 What the reward resolves to sets the barrier, not what it could have. */
-    private takeReward(state: HydratedFeudumGameState, reward: MandateReward): MandateReceived {
+    private takeReward(state: HydratedFeudumGameState, reward: TakenReward): MandateReceived {
         const { playerId } = this
         const player = state.getPlayerState(playerId)
         switch (reward.kind) {

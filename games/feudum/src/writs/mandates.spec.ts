@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Good, GuildId } from '../data/components.js'
+import { VesselTypes, type Good, type GuildId, type VesselType } from '../data/components.js'
 import { Mandates, type MandateId, type MandateReward } from '../data/writs.js'
 import { commitAttackOffer, commitAttackPreview } from '../actions/commitAttack.js'
 import { playMandateOffers, reasonPlayMandateRefused } from '../actions/playMandate.js'
@@ -295,7 +295,6 @@ describe('R-4.4.2, R-7 mandates 6 and 8 by a guild at 3 stars', () => {
     const Rows: readonly (readonly [MandateId, GuildId, object, boolean])[] = [
         [GoodsOrCoin, 'farmer', { kind: 'goods', goods: expect.any(Array) }, true],
         [GoodsOrCoin, 'merchant', { kind: 'shillings', amount: 3 }, false],
-        [GoodsOrCoin, 'alchemist', { kind: 'vessel', vessel: 'ship' }, false],
         [InfluenceOrSeal, 'knight', { kind: 'influence', amount: 3 }, false],
         [InfluenceOrSeal, 'noble', { kind: 'seal', amount: 1 }, false],
         [InfluenceOrSeal, 'monk', { kind: 'bead', sealIds: [expect.any(String)] }, true]
@@ -305,13 +304,15 @@ describe('R-4.4.2, R-7 mandates 6 and 8 by a guild at 3 stars', () => {
         table: ReturnType<typeof holdingWithStars>['table'],
         playerId: string,
         writId: MandateId,
-        rewardGuild: GuildId
+        rewardGuild: GuildId,
+        vessel?: VesselType
     ) =>
         table.send(playerId, {
             type: ActionType.PlayMandate,
             writId,
             alternative: 0,
-            rewardGuild
+            rewardGuild,
+            ...(vessel ? { vessel } : {})
         })
 
     it.each(Rows)(
@@ -345,16 +346,80 @@ describe('R-4.4.2, R-7 mandates 6 and 8 by a guild at 3 stars', () => {
         expect(count(table.state.supply.haversack)).toBe(haversack - 3)
     })
 
-    it('R-4.4-H4 mandate 6 for an alchemist is the ship the card prints', () => {
+    it('R-4.4-H4 mandate 6 for an alchemist offers each vessel, the one named taken from the supply', () => {
         const { table, playerId } = holdingWithStars(GoodsOrCoin, 'alchemist')
-        const { ship, 'flying-machine': flyingMachine } = table.seat(playerId).vessels
+        const offers = playMandateOffers(table.hydrated(), playerId).filter(
+            ({ rewardGuild }) => rewardGuild === 'alchemist'
+        )
+        expect(offers.map(({ vessel, reward, refused }) => ({ vessel, reward, refused }))).toEqual(
+            VesselTypes.map((type) => ({
+                vessel: type,
+                reward: { kind: 'vessel', vessel: type },
+                refused: undefined
+            }))
+        )
+        const vessels = { ...table.seat(playerId).vessels }
+        const supply = { ...table.state.supply.vessels }
 
-        sendReward(table, playerId, GoodsOrCoin, 'alchemist')
+        const [action] = sendReward(table, playerId, GoodsOrCoin, 'alchemist', 'submersible')
 
-        expect(table.seat(playerId).vessels).toMatchObject({
-            ship: ship + 1,
-            'flying-machine': flyingMachine
+        expect(action).toMatchObject({
+            metadata: { received: { kind: 'vessel', vessel: 'submersible' } }
         })
+        expect(Boolean(action.revealsInfo)).toBe(false)
+        expect(table.seat(playerId).vessels).toEqual({
+            ...vessels,
+            submersible: vessels.submersible + 1
+        })
+        expect(table.state.supply.vessels).toEqual({
+            ...supply,
+            submersible: supply.submersible - 1
+        })
+        expect(conservationBreaks(canonicalOf(table.hydrated()))).toEqual([])
+    })
+
+    it('R-4.4-H4 the Alchemist reward needs a vessel named, and only that reward takes one', () => {
+        const { table, playerId } = holdingWithStars(GoodsOrCoin, 'alchemist')
+        const state = table.hydrated()
+        expect(
+            reasonPlayMandateRefused(state, playerId, {
+                writId: GoodsOrCoin,
+                alternative: 0,
+                rewardGuild: 'alchemist'
+            })
+        ).toBe('Name the vessel the reward takes.')
+        const merchant = holdingWithStars(GoodsOrCoin, 'merchant')
+        expect(
+            reasonPlayMandateRefused(merchant.table.hydrated(), merchant.playerId, {
+                writId: GoodsOrCoin,
+                alternative: 0,
+                rewardGuild: 'merchant',
+                vessel: 'ship'
+            })
+        ).toBe('That reward takes no vessel.')
+    })
+
+    it('R-4.4-H4, R-4.4-H7 a vessel the supply lacks is dimmed with the reason and refused', () => {
+        const { table, playerId } = tableInWindow('before a card', (state, seat) => {
+            holdWrit(state, seat, GoodsOrCoin)
+            setPawns(state, seat, ['alchemist', 'alchemist', 'alchemist'])
+            const { vessels } = state.getPlayerState(seat)
+            vessels['flying-machine'] += state.supply.vessels['flying-machine']
+            state.supply.vessels['flying-machine'] = 0
+        })
+        const state = table.hydrated()
+        const flying = playMandateOffers(state, playerId).find(
+            ({ rewardGuild, vessel }) => rewardGuild === 'alchemist' && vessel === 'flying-machine'
+        )
+        expect(flying?.refused).toBe('The general supply has no flying machine.')
+        expect(
+            reasonPlayMandateRefused(state, playerId, {
+                writId: GoodsOrCoin,
+                alternative: 0,
+                rewardGuild: 'alchemist',
+                vessel: 'flying-machine'
+            })
+        ).toBe('The general supply has no flying machine.')
     })
 
     it('R-4.4.2 mandate 8 for a noble moves one seal off the pile, unseen', () => {

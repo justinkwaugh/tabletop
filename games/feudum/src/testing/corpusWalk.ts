@@ -174,13 +174,14 @@ export class CorpusSeats implements WalkPlan {
         if (!mandate) {
             return undefined
         }
-        const { writId, alternative, rewardGuild } = mandate
+        const { writId, alternative, rewardGuild, vessel } = mandate
         return {
             type: ActionType.PlayMandate,
             playerId,
             writId,
             alternative,
-            ...(rewardGuild ? { rewardGuild } : {})
+            ...(rewardGuild ? { rewardGuild } : {}),
+            ...(vessel ? { vessel } : {})
         }
     }
 

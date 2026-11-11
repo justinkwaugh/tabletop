@@ -12,6 +12,8 @@ export type MandateReward =
           readonly amount: number
       }
     | { readonly kind: 'vessel'; readonly vessel: VesselType }
+    /** R-4.4-H4 The seat names the vessel when it plays the mandate. */
+    | { readonly kind: 'any-vessel' }
 
 export interface MandateAlternative {
     /** The rulebook's summary wording. */
@@ -47,7 +49,7 @@ export interface TurnInMandate extends MandateBase {
 /** R-4.4.2 One reward per card, of a guild where its player has the status stars. */
 export interface GuildStatusMandate extends MandateBase {
     readonly kind: 'guild-status'
-    /** The rulebook's summary wording; `guildRewards` holds what the card gives (R-4.4-H4). */
+    /** The rulebook's summary wording; `guildRewards` holds what each guild's reward gives. */
     readonly text: string
     readonly guildRewards: readonly MandateGuildReward[]
 }
@@ -189,8 +191,8 @@ export const Mandates: readonly Mandate[] = [
         guildRewards: [
             { guild: 'farmer', reward: { kind: 'goods', amount: 3 }, drawnFromSupply: true },
             { guild: 'merchant', reward: shillings(3), drawnFromSupply: true },
-            // R-4.4-H4 A ship, the icon the card prints; the summary wording reads any vessel.
-            { guild: 'alchemist', reward: vessel('ship'), drawnFromSupply: true }
+            // R-4.4-H4 Any vessel, as the rulebook's summary reads; the card's icon is a ship.
+            { guild: 'alchemist', reward: { kind: 'any-vessel' }, drawnFromSupply: true }
         ]
     },
     {
