@@ -488,4 +488,34 @@ describe('R-4.5-H1 nourishing re-ranks once, from the new totals, when it ends',
         expect(rankOf(after.guilds.tracks.knight, order[1])).toBe('journeyman')
         expect(conservationBreaks(canonicalOf(after))).toEqual([])
     })
+
+    it('R-4.5-H1, R-4.4-H1 an influence mandate the asked seat plays while nourishing waits for the one re-rank', () => {
+        const { table, order } = tiedKnights((state, [, second]) => {
+            holdWrit(state, second, 'writ.mandate.8')
+        })
+        const processed = playOutCards(table)
+        const fed = processed.find(isNourishPawns)?.metadata?.fed.map(({ playerId }) => playerId)
+        expect(fed).toContain(order[0])
+        expect(table.hydrated().statusStars(order[0], 'knight')).toBe(3)
+        expect(table.hydrated().statusStars(order[1], 'knight')).toBe(4)
+
+        const [mandate] = table.send(order[1], {
+            type: ActionType.PlayMandate,
+            writId: 'writ.mandate.8',
+            alternative: 0,
+            rewardGuild: 'knight'
+        })
+        expect(mandate).toMatchObject({ metadata: { received: { kind: 'influence' } } })
+        expect(table.state.machineState).toBe(MachineState.Nourishing)
+        // Ranks hold while the seats are fed: the first seat's lost knight is not counted yet.
+        expect(rankOf(table.hydrated().guilds.tracks.knight, order[0])).toBe('master')
+
+        table.send(order[1], { ...Nourish, unfed: [1] })
+
+        const after = table.hydrated()
+        expect(after.statusStars(order[1], 'knight')).toBe(3)
+        expect(rankOf(after.guilds.tracks.knight, order[0])).toBe('master')
+        expect(rankOf(after.guilds.tracks.knight, order[1])).toBe('journeyman')
+        expect(conservationBreaks(canonicalOf(after))).toEqual([])
+    })
 })
