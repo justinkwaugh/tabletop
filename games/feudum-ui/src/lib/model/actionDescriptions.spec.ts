@@ -827,6 +827,30 @@ describe("The contract's own wording", () => {
         expect(line(answer(true), 'p1')).toBe('Ben flipped Defend · +2 vp')
         expect(line(answer(false), 'p1')).toBe('Ben let it stand')
     })
+
+    it('R-4.12.1, R-4.9.2 a dawn row that nets a loss reads "-6 vp", never "+-6 vp"', () => {
+        const dawn = sample<BeginDawn>({
+            ...System,
+            type: ActionType.BeginDawn,
+            metadata: {
+                epoch: 4,
+                sheet: [
+                    {
+                        playerId: 'p1',
+                        ranks: [],
+                        landscapes: { empty: 0, filled: 0, vp: 0 },
+                        activeRegions: { regions: ['desert'], vp: 1 },
+                        disloyaltyVp: -7,
+                        total: -6
+                    }
+                ],
+                fills: []
+            }
+        })
+        expect(line(dawn, 'p2')).toBe(
+            'Dawn of epoch IV: Ana -6 vp (ranks 0, landscapes 0, regions 1, disloyalty -7)'
+        )
+    })
 })
 
 const Protected: readonly {
