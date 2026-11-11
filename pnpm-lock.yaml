@@ -3814,7 +3814,7 @@ importers:
         specifier: ^1.0.0
         version: 1.1.0(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15))
 
-  games/texas-special:
+  games/south-african-railroads:
     dependencies:
       '@tabletop/18xx':
         specifier: workspace:*
@@ -3851,7 +3851,7 @@ importers:
         specifier: ^4.0.12
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15))
 
-  games/texas-special-ui:
+  games/south-african-railroads-ui:
     dependencies:
       '@tabletop/common':
         specifier: workspace:*
@@ -3859,9 +3859,9 @@ importers:
       '@tabletop/frontend-components':
         specifier: workspace:*
         version: link:../../libs/frontend-components
-      '@tabletop/texas-special':
+      '@tabletop/south-african-railroads':
         specifier: workspace:*
-        version: link:../texas-special
+        version: link:../south-african-railroads
     devDependencies:
       '@playwright/test':
         specifier: ^1.42.1
