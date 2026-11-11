@@ -65,7 +65,7 @@ export function oneGoodCost(good: Good, short: boolean, cover: readonly TileId[]
     if (!short) {
         return `1 ${good}`
     }
-    return cover.length > 0 ? `tile ${cover[0]} for ${good}` : `a tile for ${good}`
+    return cover.length > 0 ? `${tileName(cover[0])} tile for ${good}` : `a tile for ${good}`
 }
 
 /**
