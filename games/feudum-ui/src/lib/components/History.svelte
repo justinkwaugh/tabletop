@@ -187,9 +187,9 @@
     </div>
 </div>
 
-<!--  fixes a styling issue with timeline-item -->
 <style>
-    :global(.timeline-item > div) {
+    /* The timeline's own dot and connector beside each entry: hidden, in this list only. */
+    [data-history-list] :global(.timeline-item > div) {
         display: none;
     }
 
