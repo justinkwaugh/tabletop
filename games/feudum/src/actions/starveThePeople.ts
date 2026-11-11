@@ -5,6 +5,7 @@ import { Spaces, type SpaceId } from '../data/board.js'
 import { ActionType } from '../definition/actions.js'
 import { StarveRole } from '../model/flow.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { chickenBeads } from '../model/guildsState.js'
 import { SpaceIdSchema } from '../model/stateSchemas.js'
 import {
     CardPlayFields,
@@ -104,7 +105,7 @@ export function starveOffers(
     playerId: string,
     input: CardPlayInput = {}
 ): StarveOffer[] {
-    const beads = state.guilds.farmer.chickens.filter((bead) => bead !== null).length
+    const beads = chickenBeads(state.guilds.farmer).length
     return Spaces.flatMap(({ id: spaceId }) =>
         StarveRoles.flatMap((role): StarveOffer[] => {
             const targetPlayerId = markerPlayerId(state.spaces[spaceId], role)

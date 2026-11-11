@@ -170,7 +170,7 @@ describe('R-3.14.2, R-3.14-H1 AnswerStarve', () => {
     it('R-3.14.2 Royal Immunity turns in a food, cancels, and hides a pile seal (S38)', () => {
         const combat = asked()
         const { table, attackerId, defenderId } = combat
-        const bead = table.state.guilds.farmer.chickens[0]
+        const bead = table.state.guilds.farmer.chickens['guild.farmer.chicken.1']
         const haversack = table.state.supply.haversack.food
         const pile = table.hydrated().requireVault().sealPile
         const [top] = pile
@@ -191,7 +191,7 @@ describe('R-3.14.2, R-3.14-H1 AnswerStarve', () => {
         expect(vault.immunitySeals).toEqual({ [immunityKey(Battlefield, 'serf')]: top })
         expect(vault.sealPile).toEqual(pile.slice(1))
         expect(table.state.supply.sealPileCount).toBe(pile.length - 1)
-        expect(table.state.guilds.farmer.chickens[0]).toBe(bead)
+        expect(table.state.guilds.farmer.chickens['guild.farmer.chicken.1']).toBe(bead)
         expect(table.state.flow.starve).toBeUndefined()
         expect(table.state.flow.turn?.followUps).toEqual([])
         expect(action.revealsInfo).toBe(true)
@@ -235,12 +235,12 @@ describe('R-3.14.2, R-3.14-H1 AnswerStarve', () => {
     it('R-3.14-H1 "no" is legal without Defend: the Starve resolves whole', () => {
         const combat = asked(['tax', 'guild'])
         const { table, attackerId, defenderId } = combat
-        const bead = table.state.guilds.farmer.chickens[0]
+        const bead = table.state.guilds.farmer.chickens['guild.farmer.chicken.1']
 
         const [action] = answerStarve(combat)
 
         expect(table.state.spaces[Battlefield].serf).toBeUndefined()
-        expect(table.state.guilds.farmer.chickens[0]).toBeNull()
+        expect(table.state.guilds.farmer.chickens['guild.farmer.chicken.1']).toBeNull()
         expect(table.seat(defenderId).goods.food).toBe(1)
         expect(table.seat(defenderId).hand).toEqual(['tax', 'guild'])
         expect(table.state.flow.starve).toBeUndefined()

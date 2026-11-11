@@ -8,7 +8,8 @@ import {
     FarmerBarn,
     GuildSetupSpaces,
     MarketSpaces,
-    ScrollSpaces
+    ScrollSpaces,
+    type ChickenSpaceId
 } from '../data/guilds.js'
 import { LandscapeFill } from '../data/regionTiles.js'
 import type { MapDirection } from '../data/tracks.js'
@@ -41,7 +42,14 @@ import { isBeginDawn } from './beginDawn.js'
 import { isReplenishGuilds } from './replenishGuilds.js'
 import { isReplenishMap } from './replenishMap.js'
 
-const SetupChicken = ChickenSpaces.findIndex((space) => space.setupBead)
+const SetupChicken = chickenWhere(true)
+
+/** R-1.4-H3 The chicken that takes the setup bead, or one that does not. */
+function chickenWhere(setupBead: boolean): ChickenSpaceId {
+    const space = ChickenSpaces.find((chicken) => chicken.setupBead === setupBead)
+    assertExists(space, 'R-1.4-H3 There is such a chicken')
+    return space.id
+}
 
 function dawnOf(processed: readonly GameAction[]) {
     const dawn = processed.find((action) => isBeginDawn(action))
@@ -621,7 +629,7 @@ describe('R-4.12.5, R-4.12-H2 the guilds refill at III', () => {
     })
 
     it('R-4.12-H2 an empty setup chicken takes a bead, even with one on another chicken', () => {
-        const other = ChickenSpaces.findIndex((space) => !space.setupBead)
+        const other = chickenWhere(false)
         let moved: string | null = null
         const { table, processed } = playToDawn(3, (state) => {
             const bead = state.guilds.farmer.chickens[SetupChicken]
@@ -630,8 +638,8 @@ describe('R-4.12.5, R-4.12-H2 the guilds refill at III', () => {
             moveBead(
                 state,
                 bead,
-                { kind: 'chicken', index: SetupChicken },
-                { kind: 'chicken', index: other }
+                { kind: 'chicken', space: SetupChicken },
+                { kind: 'chicken', space: other }
             )
         })
 
@@ -639,7 +647,7 @@ describe('R-4.12.5, R-4.12-H2 the guilds refill at III', () => {
         expect(chickens[other]).toBe(moved)
         expect(chickens[SetupChicken]).not.toBeNull()
         expect(refillOf(processed).chickens).toEqual([
-            { chicken: SetupChicken, bead: chickens[SetupChicken] }
+            { space: SetupChicken, bead: chickens[SetupChicken] }
         ])
     })
 

@@ -4,6 +4,7 @@ import type { ActionCardKind } from '../data/cards.js'
 import { Goods, type Good, type GuildId, type VesselType } from '../data/components.js'
 import {
     AlchemistCartSpaces,
+    ChickenSpaces,
     MarketSpaces,
     ScrollSpaces,
     type ScrollSpaceId
@@ -12,7 +13,8 @@ import { Seals, type BeadValue, type SealId } from '../data/seals.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { placeMarker } from '../model/locationControl.js'
 import { moveConcealedSeal } from '../model/seals.js'
-import type { GoodCounts } from '../model/stateSchemas.js'
+import { chickenBeads } from '../model/guildsState.js'
+import { recordFrom, type GoodCounts } from '../model/stateSchemas.js'
 import { setUp, spaceOfKind } from './improving.js'
 import { tableAtPlayingCards, type Table } from './table.js'
 
@@ -155,21 +157,27 @@ function takeSealOfValue(state: HydratedFeudumGameState, value: BeadValue): Seal
     return sealId
 }
 
-/** R-1.3 The rosary and the chickens hold beads of exactly these values, keeping totals. */
+/**
+ * R-1.3 The rosary and the chickens hold beads of exactly these values, keeping totals: the
+ * chickens' values fill their spaces in order.
+ */
 export function setBeads(
     state: HydratedFeudumGameState,
     { rosary, chickens }: { rosary: readonly BeadValue[]; chickens: readonly BeadValue[] }
 ): void {
     const vault = state.requireVault()
     const { farmer, monk } = state.guilds
-    const held = [...monk.rosary, ...farmer.chickens.filter((bead) => bead !== null)]
+    const held = [...monk.rosary, ...chickenBeads(farmer)]
     vault.sealPile.push(...held)
     state.supply.sealPileCount += held.length
     monk.rosary = rosary.map((value) => takeSealOfValue(state, value))
-    farmer.chickens = farmer.chickens.map((_, index) => {
-        const value = chickens.at(index)
-        return value === undefined ? null : takeSealOfValue(state, value)
-    })
+    farmer.chickens = recordFrom(
+        ChickenSpaces.map(({ id }) => id),
+        (_, index) => {
+            const value = chickens.at(index)
+            return value === undefined ? null : takeSealOfValue(state, value)
+        }
+    )
 }
 
 /** R-5-H1 Exactly these scroll spaces hold a concealed seal, keeping totals. */

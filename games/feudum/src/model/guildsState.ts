@@ -16,6 +16,7 @@ import {
     SealIdSchema,
     VesselTypeSchema
 } from './stateSchemas.js'
+import type { SealId } from '../data/seals.js'
 
 /** R-4.5.2 A marker on a rank; R-4.7 the reeve follows it. */
 export type RankHolder = Type.Static<typeof RankHolder>
@@ -51,11 +52,11 @@ export const GuildsState = Type.Object({
     tracks: Type.Record(GuildIdSchema, GuildTrack),
     farmer: Type.Object({
         barn: GoodCounts,
-        /** R-1.3 In space order; a bead or nothing. */
-        chickens: Type.Array(ChickenSchema, {
-            minItems: ChickenSpaces.length,
-            maxItems: ChickenSpaces.length
-        }),
+        /** R-1.3 By chicken space: a bead or nothing. */
+        chickens: recordOf(
+            ChickenSpaces.map((space) => space.id),
+            ChickenSchema
+        ),
         purse: ComponentCount
     }),
     merchant: Type.Object({
@@ -90,3 +91,11 @@ export const GuildsState = Type.Object({
         coffer: ComponentCount
     })
 })
+
+/** R-1.3 The beads on the chickens, in space order. */
+export function chickenBeads(farmer: GuildsState['farmer']): SealId[] {
+    return ChickenSpaces.flatMap(({ id }) => {
+        const bead = farmer.chickens[id]
+        return bead === null ? [] : [bead]
+    })
+}

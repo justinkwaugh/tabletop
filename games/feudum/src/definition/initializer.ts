@@ -123,11 +123,9 @@ function dealSeals(state: HydratedFeudumGameState) {
     for (let bead = 0; bead < GuildSetupSpaces.monk.beads; bead += 1) {
         flipSeal(state, { kind: 'pile' }, { kind: 'rosary' })
     }
-    ChickenSpaces.forEach((space, index) => {
-        if (space.setupBead) {
-            flipSeal(state, { kind: 'pile' }, { kind: 'chicken', index })
-        }
-    })
+    for (const space of ChickenSpaces.filter(({ setupBead }) => setupBead)) {
+        flipSeal(state, { kind: 'pile' }, { kind: 'chicken', space: space.id })
+    }
 }
 
 /** R-1.4.5 */

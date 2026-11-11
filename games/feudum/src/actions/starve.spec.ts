@@ -42,7 +42,7 @@ describe('R-3.13.2 StarveThePeople that does not ask', () => {
     it('R-3.13.2, R-5-H1 every chicken bead goes to the pile, which is reshuffled', () => {
         const combat = tableAtStarve()
         const { table } = combat
-        const bead = table.state.guilds.farmer.chickens[0]
+        const bead = table.state.guilds.farmer.chickens['guild.farmer.chicken.1']
         const before = table.hydrated().requireVault().sealPile
         const count = table.state.supply.sealPileCount
         expect(bead).toBeTruthy()
@@ -50,7 +50,9 @@ describe('R-3.13.2 StarveThePeople that does not ask', () => {
         const [action] = starve(combat)
 
         const after = table.hydrated().requireVault().sealPile
-        expect(table.state.guilds.farmer.chickens.every((chicken) => chicken === null)).toBe(true)
+        expect(
+            Object.values(table.state.guilds.farmer.chickens).every((bead) => bead === null)
+        ).toBe(true)
         expect(table.state.supply.sealPileCount).toBe(count + 1)
         expect([...after].sort()).toEqual([...before, bead].sort())
         expect(after).not.toEqual([...before, bead])
@@ -120,7 +122,7 @@ describe('R-3.13.2, R-3.14-H1 StarveThePeople that asks', () => {
         const combat = tableAtStarve()
         const { table, attackerId, defenderId } = combat
         setUp(table, (state) => giveFood(state, defenderId))
-        const bead = table.state.guilds.farmer.chickens[0]
+        const bead = table.state.guilds.farmer.chickens['guild.farmer.chicken.1']
 
         const [action] = starve(combat)
 
@@ -137,7 +139,7 @@ describe('R-3.13.2, R-3.14-H1 StarveThePeople that asks', () => {
             role: 'serf'
         })
         expect(table.state.spaces[Battlefield].serf?.playerId).toBe(defenderId)
-        expect(table.state.guilds.farmer.chickens[0]).toBe(bead)
+        expect(table.state.guilds.farmer.chickens['guild.farmer.chicken.1']).toBe(bead)
     })
 
     it('R-3.14-H1 asks a seat without Defend all the same: public state cannot rule it out', () => {

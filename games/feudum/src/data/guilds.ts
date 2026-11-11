@@ -206,6 +206,9 @@ export interface ChickenSpace {
     readonly setupBead: boolean
 }
 
+/** R-1.3 A chicken, known by its space. */
+export type ChickenSpaceId = ChickenSpace['id']
+
 /** R-1.3, R-1.4-H3 */
 export const ChickenSpaces: readonly ChickenSpace[] = Array.from(
     { length: ProvisionalGuilds.chickenSpaces.placeholder.spaces },

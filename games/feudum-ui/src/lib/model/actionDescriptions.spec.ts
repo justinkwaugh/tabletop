@@ -988,12 +988,12 @@ describe('R-X.2, R-4.4.1, R-4.4.3 A line reads the Action as this seat received 
                     high: 'seal.17',
                     low: 'seal.1',
                     bead: 'seal.1',
-                    chicken: 2,
+                    chicken: 'guild.farmer.chicken.3',
                     chickenSum: 5
                 }
             }
         })
-        const said = 'used Farmer pull: drew bead +2 for chicken 2, now 5'
+        const said = 'used Farmer pull: drew bead +2 for chicken 3, now 5'
         expect(line(recordFor(pull, Spectator, table), undefined)).toBe(`Ana ${said}`)
         expect(line(recordFor(pull, { kind: 'player', playerId: 'p2' }, table), 'p2')).toBe(
             `Ana ${said}`

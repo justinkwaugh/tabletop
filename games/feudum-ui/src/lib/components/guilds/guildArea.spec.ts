@@ -15,6 +15,7 @@ import {
     ScrollSpaces,
     Seals,
     beadValue,
+    recordFrom,
     rosaryBeadSum,
     type GuildId
 } from '@tabletop/feudum'
@@ -188,8 +189,11 @@ describe('GuildArea draws from state (R-1.3)', () => {
 
     it('R-1.4-H3 draws every chicken, with a bead only where state has one', async () => {
         const state = await table()
-        state.guilds.farmer.chickens = state.guilds.farmer.chickens.map(() => null)
-        state.guilds.farmer.chickens[0] = sealOf(3)
+        state.guilds.farmer.chickens = recordFrom(
+            ChickenSpaces.map(({ id }) => id),
+            () => null
+        )
+        state.guilds.farmer.chickens['guild.farmer.chicken.1'] = sealOf(3)
         const html = area('farmer', state)
         expect(count(html, 'data-chicken=')).toBe(ChickenSpaces.length)
         expect(html).toContain(`data-world="bead:${sealOf(3)}"`)
@@ -309,8 +313,11 @@ describe('GuildArea on the printed panel (R-1.3)', () => {
         state.guilds.merchant.market[filled.id] = true
         const [{ monster }] = KnightMonsterIcons
         state.guilds.knight.monsterIcons[monster] = state.players[1].playerId
-        state.guilds.farmer.chickens = state.guilds.farmer.chickens.map(() => null)
-        state.guilds.farmer.chickens[0] = sealOf(3)
+        state.guilds.farmer.chickens = recordFrom(
+            ChickenSpaces.map(({ id }) => id),
+            () => null
+        )
+        state.guilds.farmer.chickens['guild.farmer.chicken.1'] = sealOf(3)
         expect(area('merchant', state)).toContain(`data-world="good:${filled.id}"`)
         expect(area('knight', state)).toContain(`data-world="monster-icon:${monster}"`)
         expect(area('farmer', state)).toContain(`data-world="bead:${sealOf(3)}"`)

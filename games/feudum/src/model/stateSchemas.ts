@@ -12,7 +12,7 @@ import {
 } from '../data/components.js'
 import { LocationDiscs } from '../data/discs.js'
 import { LandscapeKinds, RegionTiles } from '../data/regionTiles.js'
-import { ScrollSpaces } from '../data/guilds.js'
+import { ChickenSpaces, ScrollSpaces } from '../data/guilds.js'
 import { Seals } from '../data/seals.js'
 import { RoyalWrits } from '../data/writs.js'
 
@@ -31,6 +31,7 @@ export const DiscIdSchema = Type.Enum(LocationDiscs.map((disc) => disc.id))
 export const SealIdSchema = Type.Enum(Seals.map((seal) => seal.id))
 export const WritIdSchema = Type.Enum(RoyalWrits.map((writ) => writ.id))
 export const ScrollSpaceIdSchema = Type.Enum(ScrollSpaces.map((space) => space.id))
+export const ChickenSpaceIdSchema = Type.Enum(ChickenSpaces.map((space) => space.id))
 
 /** R-2.1, R-4.11 V is never played: it is held only between its trigger and the end. */
 export const EpochSchema = Type.Union([

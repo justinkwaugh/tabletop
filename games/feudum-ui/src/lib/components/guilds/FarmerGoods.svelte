@@ -84,9 +84,9 @@
     {/each}
 {/each}
 
-{#each ChickenSpaces as space, index (space.id)}
+{#each ChickenSpaces as space (space.id)}
     {@const at = guildSlot(space.id)}
-    {@const sealId = farmer.chickens[index]}
+    {@const sealId = farmer.chickens[space.id]}
     {#if !printed}
         <svg
             x={at.x - 36}

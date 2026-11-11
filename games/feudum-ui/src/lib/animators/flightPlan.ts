@@ -1,6 +1,7 @@
 import type { GameAction } from '@tabletop/common'
 import {
     ChickenSpaces,
+    type ChickenSpaceId,
     FarmerPurse,
     Goods,
     GuildTrackSpaces,
@@ -817,18 +818,19 @@ function flyWrits(plan: FlightBuilder, change: FlightChange, at: number): number
 type BeadSpot =
     | { readonly at: 'seat'; readonly playerId: string }
     | { readonly at: 'rosary'; readonly index: number }
-    | { readonly at: 'chicken'; readonly index: number }
+    | { readonly at: 'chicken'; readonly space: ChickenSpaceId }
 
 function beadSpots(state: HydratedFeudumGameState): ReadonlyMap<SealId, BeadSpot> {
     const spots = new Map<SealId, BeadSpot>()
     state.guilds.monk.rosary.forEach((sealId, index) => {
         spots.set(sealId, { at: 'rosary', index })
     })
-    state.guilds.farmer.chickens.forEach((sealId, index) => {
+    for (const { id: space } of ChickenSpaces) {
+        const sealId = state.guilds.farmer.chickens[space]
         if (sealId) {
-            spots.set(sealId, { at: 'chicken', index })
+            spots.set(sealId, { at: 'chicken', space })
         }
-    })
+    }
     for (const { playerId, beads } of state.players) {
         for (const sealId of beads) {
             spots.set(sealId, { at: 'seat', playerId })
@@ -848,7 +850,7 @@ function boardPointOfBead(spot: Exclude<BeadSpot, { at: 'seat' }>): Point {
     if (spot.at === 'rosary') {
         return guildPoint('monk', rosaryBead(spot.index))
     }
-    return guildPoint('farmer', guildSlot(ChickenSpaces[spot.index].id))
+    return guildPoint('farmer', guildSlot(spot.space))
 }
 
 function beadEnd(sealId: SealId, spot: BeadSpot, source: boolean): FlightEnd {

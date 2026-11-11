@@ -1,10 +1,13 @@
 import { assert } from '@tabletop/common'
 import {
     AlchemistCartSpaces,
+    ChickenSpaces,
+    chickenBeads,
     Goods,
     MarketSpaces,
     moveConcealedSeal,
     placeMarker,
+    recordFrom,
     ScrollSpaces,
     Seals,
     type ActionCardKind,
@@ -165,21 +168,27 @@ function sealOfValue(state: HydratedFeudumGameState, value: BeadValue): SealId {
     return sealId
 }
 
-/** R-1.3 The rosary and the chickens hold beads of exactly these values, keeping totals. */
+/**
+ * R-1.3 The rosary and the chickens hold beads of exactly these values, keeping totals: the
+ * chickens' values fill their spaces in order.
+ */
 export function setBeads(
     state: HydratedFeudumGameState,
     { rosary, chickens }: { rosary: readonly BeadValue[]; chickens: readonly BeadValue[] }
 ): void {
     const vault = state.requireVault()
     const { farmer, monk } = state.guilds
-    const held = [...monk.rosary, ...farmer.chickens.filter((bead) => bead !== null)]
+    const held = [...monk.rosary, ...chickenBeads(farmer)]
     vault.sealPile.push(...held)
     state.supply.sealPileCount += held.length
     monk.rosary = rosary.map((value) => sealOfValue(state, value))
-    farmer.chickens = farmer.chickens.map((_, index) => {
-        const value = chickens.at(index)
-        return value === undefined ? null : sealOfValue(state, value)
-    })
+    farmer.chickens = recordFrom(
+        ChickenSpaces.map(({ id }) => id),
+        (_, index) => {
+            const value = chickens.at(index)
+            return value === undefined ? null : sealOfValue(state, value)
+        }
+    )
 }
 
 /** R-5-H1 Exactly these scroll spaces hold a concealed seal, keeping totals. */
