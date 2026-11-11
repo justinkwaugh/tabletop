@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { widenedSpans } from './benchPresses.js'
+import { widenedBoxes, widenedSpans } from './benchPresses.js'
 
 const lane = (index: number) => ({ x: 139 + index * 36, width: 36 })
 
@@ -57,5 +57,42 @@ describe('widenedSpans (S68, contract: Touch targets)', () => {
     it('a press between two abutting presses keeps only its own lane', () => {
         const [, middle] = widenedSpans([lane(1), lane(2), lane(3)], 500, 50)
         expect(middle).toEqual(lane(2))
+    })
+})
+
+describe('widenedBoxes (S68, contract: Touch targets)', () => {
+    const area = { width: 500, height: 354 }
+
+    it('side-by-side columns grow across, not down', () => {
+        const columns = [0, 1].map((index) => ({ ...lane(index), y: 40, height: 200 }))
+        const [first, second] = widenedBoxes(columns, area, 50)
+        expect(first).toEqual({ x: 139 - 14, y: 40, width: 50, height: 200 })
+        expect(second).toEqual({ x: 175, y: 40, width: 50, height: 200 })
+    })
+
+    it('stacked rows grow down into the gaps between them, not across', () => {
+        const rows = [0, 1, 2].map((index) => ({
+            x: 20,
+            y: 60 + index * 50,
+            width: 300,
+            height: 46
+        }))
+        const [top, middle, bottom] = widenedBoxes(rows, area, 50)
+        expect(top).toEqual({ x: 20, y: 58, width: 300, height: 50 })
+        expect(middle).toEqual({ x: 20, y: 108, width: 300, height: 50 })
+        expect(bottom).toEqual({ x: 20, y: 158, width: 300, height: 50 })
+    })
+
+    it('boxes apart on the other axis do not hold each other back', () => {
+        const [upper, lower] = widenedBoxes(
+            [
+                { x: 100, y: 10, width: 30, height: 60 },
+                { x: 100, y: 200, width: 30, height: 60 }
+            ],
+            area,
+            50
+        )
+        expect(upper!.width).toBe(50)
+        expect(lower!.width).toBe(50)
     })
 })

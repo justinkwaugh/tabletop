@@ -11,7 +11,7 @@
     import { MeasuredWidth } from '$lib/model/measuredWidth.svelte.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import { BenchAreaWidth, GuildBox, GuildSizes } from '$lib/utils/boardGeometry.js'
-    import { widenedSpans, type Span } from '$lib/utils/benchPresses.js'
+    import { widenedBoxes, type Box } from '$lib/utils/benchPresses.js'
     import BenchGhostPiece from './BenchGhostPiece.svelte'
 
     /**
@@ -46,9 +46,9 @@
     const Target = 44
 
     /**
-     * S68 A Knight row is narrower than a finger at bench scale, so each row that takes a press
-     * reaches past its printed column, as far as the target asks and its pressing neighbours allow;
-     * its ring stays over the print.
+     * S68 A Knight row is narrower or shorter than a finger at bench scale, so each row that takes a
+     * press reaches past its place, as far as the target asks and its pressing neighbours allow; its
+     * ring stays over the row.
      */
     const measured = new MeasuredWidth()
     const reaches = $derived.by(() => {
@@ -57,11 +57,11 @@
         )
         const shown = measured.width
         if (rows.length === 0 || shown === undefined) {
-            return new Map<string, Span>()
+            return new Map<string, Box>()
         }
-        const spans = widenedSpans(
+        const spans = widenedBoxes(
             rows.map(({ box }) => box),
-            GuildBox.width,
+            GuildBox,
             (Target * GuildBox.width) / shown
         )
         return new Map(rows.map(({ item }, at) => [item.id, spans[at]!]))
@@ -139,9 +139,9 @@
                 class="item absolute"
                 class:still={!presses}
                 style:left={percent(reach.x, GuildBox.width)}
-                style:top={percent(box.y, GuildBox.height)}
+                style:top={percent(reach.y, GuildBox.height)}
                 style:width={percent(reach.width, GuildBox.width)}
-                style:height={percent(box.height, GuildBox.height)}
+                style:height={percent(reach.height, GuildBox.height)}
                 data-bench-place={item.id}
                 data-bench-role={item.role}
             >
@@ -149,9 +149,11 @@
                     <PanelRow choice={item} {pointer} {onPress}>
                         {#snippet face()}
                             <span
-                                class="block h-full"
-                                style:margin-left={percent(box.x - reach.x, reach.width)}
+                                class="absolute block"
+                                style:left={percent(box.x - reach.x, reach.width)}
+                                style:top={percent(box.y - reach.y, reach.height)}
                                 style:width={percent(box.width, reach.width)}
+                                style:height={percent(box.height, reach.height)}
                             >
                                 {@render ring(item, box)}
                             </span>
