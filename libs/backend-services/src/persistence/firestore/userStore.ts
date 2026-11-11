@@ -280,7 +280,6 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
                 }
             }
 
-            console.log('creating: ', newStoredUser)
             transaction.create(this.users.doc(newStoredUser.id), newStoredUser)
             return newStoredUser
         }
