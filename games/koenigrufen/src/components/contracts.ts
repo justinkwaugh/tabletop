@@ -3,7 +3,8 @@ import * as Type from 'typebox'
 
 // Lowest to highest. Wikipedia's auction order (Austrian Final / Hausruckviertel rules), with
 // Pagat's Zwiccolo and Farbendreier fitted in by value. Sechserdreier can only be overbid by a
-// contract of higher value, so it ranks above the Dreier of equal value.
+// contract of higher value, so it ranks above the Dreier of equal value. Besserrufer ranks by the
+// bird its bid names (see bidRank), not by its place here.
 export enum Contract {
     Rufer = 'rufer',
     Trischaken = 'trischaken',
@@ -61,8 +62,8 @@ export type ContractDefinition = {
     readonly forehandOpening: boolean
     readonly bonusesDoubled: boolean
     readonly bonuses: BonusScope
-    // Besserrufer: declarer's first announcement must include a bird.
-    readonly birdRequired: boolean
+    // Besserrufer: the bid names a bird, announced for declarer's side.
+    readonly namesBird: boolean
     readonly tricksToTake?: number
     readonly ouvert?: boolean
 }
@@ -77,14 +78,14 @@ function contract(
         | 'forehandOpening'
         | 'bonusesDoubled'
         | 'bonuses'
-        | 'birdRequired'
+        | 'namesBird'
     > &
         Partial<ContractDefinition>
 ): ContractDefinition {
     return {
         loss: definition.win,
         bonuses: definition.goal === Goal.TakePoints ? BonusScope.All : BonusScope.None,
-        birdRequired: false,
+        namesBird: false,
         trumpsWin: true,
         declarerLeads: false,
         forehandOnly: false,
@@ -169,7 +170,7 @@ export const Contracts: Readonly<Record<Contract, ContractDefinition>> = {
         goal: Goal.TakePoints,
         talonCards: 3,
         win: 1,
-        birdRequired: true
+        namesBird: true
     }),
     [Contract.Farbendreier]: contract({
         contract: Contract.Farbendreier,
@@ -244,8 +245,4 @@ export function contractDefinition(contract: Contract): ContractDefinition {
     const definition = Contracts[contract]
     assertExists(definition, `No contract ${contract}`)
     return definition
-}
-
-export function contractRank(contract: Contract): number {
-    return ContractOrder.indexOf(contract)
 }

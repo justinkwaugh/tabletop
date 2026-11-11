@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { Contract } from '../components/contracts.js'
-import { startTestGame } from '../util/testHelper.js'
+import { Bonus } from '../model/announcements.js'
+import { bidValue } from '../model/auction.js'
+import { startTestGame, contractsOf } from '../util/testHelper.js'
 import { ActionType } from './actions.js'
 import { MachineState } from './states.js'
 
@@ -20,7 +22,7 @@ describe('the auction', () => {
         session.act(third, ActionType.Pass)
         session.act(dealer, ActionType.Pass)
         expect(session.state.machineState).toBe(MachineState.ChoosingContract)
-        expect(session.hydrated().nameableContracts()).toContain(Contract.Rufer)
+        expect(contractsOf(session.hydrated().nameableChoices())).toContain(Contract.Rufer)
         session.act(forehand, ActionType.ChooseContract, { contract: Contract.Rufer })
         expect(session.state.contract).toEqual({ contract: Contract.Rufer, declarerId: forehand })
         expect(session.state.machineState).toBe(MachineState.CallingKing)
@@ -29,13 +31,19 @@ describe('the auction', () => {
     it('lets Forehand open with Sechserdreier instead of Mein Spiel, and only then', () => {
         const session = startTestGame()
         const [forehand, second] = session.hydrated().seats()
-        expect(session.hydrated().biddableContracts(forehand)).toContain(Contract.Sechserdreier)
+        expect(contractsOf(session.hydrated().biddableChoices(forehand))).toContain(
+            Contract.Sechserdreier
+        )
         session.act(forehand, ActionType.SayMeinSpiel)
-        expect(session.hydrated().biddableContracts(second)).not.toContain(Contract.Sechserdreier)
+        expect(contractsOf(session.hydrated().biddableChoices(second))).not.toContain(
+            Contract.Sechserdreier
+        )
         session.act(second, ActionType.Pass)
         session.act(session.activePlayerId(), ActionType.Pass)
         session.act(session.activePlayerId(), ActionType.Pass)
-        expect(session.hydrated().nameableContracts()).not.toContain(Contract.Sechserdreier)
+        expect(contractsOf(session.hydrated().nameableChoices())).not.toContain(
+            Contract.Sechserdreier
+        )
         expect(() =>
             session.act(forehand, ActionType.ChooseContract, {
                 contract: Contract.Sechserdreier
@@ -47,7 +55,7 @@ describe('the auction', () => {
         const session = startTestGame()
         const [forehand, second, third, dealer] = session.hydrated().seats()
         session.act(forehand, ActionType.Bid, { contract: Contract.Sechserdreier })
-        const biddable = session.hydrated().biddableContracts(second)
+        const biddable = contractsOf(session.hydrated().biddableChoices(second))
         expect(biddable).not.toContain(Contract.Dreier)
         expect(biddable).toContain(Contract.Solodreier)
         session.act(second, ActionType.Pass)
@@ -80,15 +88,17 @@ describe('the auction', () => {
                 }
             }
         })
-        const opening = session.hydrated().biddableContracts(forehand)
+        const opening = contractsOf(session.hydrated().biddableChoices(forehand))
         expect(opening).not.toContain(Contract.Solorufer)
         expect(opening).toContain(Contract.Dreier)
         session.act(forehand, ActionType.SayMeinSpiel)
-        expect(session.hydrated().biddableContracts(second)).toContain(Contract.Solorufer)
+        expect(contractsOf(session.hydrated().biddableChoices(second))).toContain(
+            Contract.Solorufer
+        )
         for (let passes = 0; passes < 3; passes++) {
             session.act(session.activePlayerId(), ActionType.Pass)
         }
-        const nameable = session.hydrated().nameableContracts()
+        const nameable = contractsOf(session.hydrated().nameableChoices())
         expect(nameable).not.toContain(Contract.Rufer)
         expect(nameable).toContain(Contract.Dreier)
     })
@@ -97,7 +107,7 @@ describe('the auction', () => {
         const session = startTestGame()
         const [forehand, second] = session.hydrated().seats()
         session.act(forehand, ActionType.SayMeinSpiel)
-        const biddable = session.hydrated().biddableContracts(second)
+        const biddable = contractsOf(session.hydrated().biddableChoices(second))
         expect(biddable).not.toContain(Contract.Rufer)
         expect(biddable).not.toContain(Contract.Sechserdreier)
         expect(biddable).toContain(Contract.Solorufer)
@@ -108,14 +118,20 @@ describe('the auction', () => {
         const [forehand, second, third, dealer] = session.hydrated().seats()
         session.act(forehand, ActionType.SayMeinSpiel)
         session.act(second, ActionType.Bid, { contract: Contract.Solorufer })
-        expect(session.hydrated().biddableContracts(third)).not.toContain(Contract.Solorufer)
+        expect(contractsOf(session.hydrated().biddableChoices(third))).not.toContain(
+            Contract.Solorufer
+        )
         session.act(third, ActionType.Pass)
         session.act(dealer, ActionType.Pass)
         expect(session.activePlayerId()).toBe(forehand)
-        expect(session.hydrated().biddableContracts(forehand)).toContain(Contract.Solorufer)
+        expect(contractsOf(session.hydrated().biddableChoices(forehand))).toContain(
+            Contract.Solorufer
+        )
         session.act(forehand, ActionType.Bid, { contract: Contract.Solorufer })
         expect(session.activePlayerId()).toBe(second)
-        expect(session.hydrated().biddableContracts(second)).not.toContain(Contract.Solorufer)
+        expect(contractsOf(session.hydrated().biddableChoices(second))).not.toContain(
+            Contract.Solorufer
+        )
         session.act(second, ActionType.Pass)
         expect(session.state.contract).toEqual({
             contract: Contract.Solorufer,
@@ -141,5 +157,53 @@ describe('the auction', () => {
         expect(session.activePlayerId()).toBe(forehand)
         session.act(forehand, ActionType.Bid, { contract: Contract.Solorufer })
         expect(session.activePlayerId()).toBe(third)
+    })
+
+    it('offers Besserrufer once per bird, ranked with the contract of its value', () => {
+        const session = startTestGame()
+        const [forehand] = session.hydrated().seats()
+        const opening = session.hydrated().biddableChoices(forehand)
+        const birds = opening.filter((choice) => choice.contract === Contract.Besserrufer)
+        expect(birds.map((choice) => [choice.bird, bidValue(choice)])).toEqual([
+            [Bonus.Pagat, 3],
+            [Bonus.Uhu, 5],
+            [Bonus.Kakadu, 7],
+            [Bonus.Quapil, 9]
+        ])
+        const names = opening.map((choice) => choice.bird ?? choice.contract)
+        expect(names.indexOf(Bonus.Pagat)).toBe(names.indexOf(Contract.Farbendreier) - 1)
+        expect(names.at(-1)).toBe(Bonus.Quapil)
+        expect(() =>
+            session.act(forehand, ActionType.Bid, { contract: Contract.Besserrufer })
+        ).toThrow()
+        expect(() =>
+            session.act(forehand, ActionType.Bid, { contract: Contract.Dreier, bird: Bonus.Uhu })
+        ).toThrow()
+    })
+
+    it('makes a Besserrufer bid as hard to beat as the contract of its value', () => {
+        const session = startTestGame()
+        const [forehand, second, third, dealer] = session.hydrated().seats()
+        session.act(forehand, ActionType.Bid, { contract: Contract.Piccolo })
+        session.act(second, ActionType.Bid, { contract: Contract.Besserrufer, bird: Bonus.Uhu })
+        const thirds = session.hydrated().biddableChoices(third)
+        expect(thirds.map((choice) => choice.bird ?? choice.contract)).toEqual([
+            Contract.PiccoloOuvert,
+            Bonus.Kakadu,
+            Contract.BettelOuvert,
+            Contract.Solodreier,
+            Bonus.Quapil
+        ])
+        session.act(third, ActionType.Pass)
+        session.act(dealer, ActionType.Pass)
+        const forehands = contractsOf(session.hydrated().biddableChoices(forehand))
+        expect(forehands).toContain(Contract.Farbensolo)
+        expect(forehands).not.toContain(Contract.Dreier)
+        session.act(forehand, ActionType.Pass)
+        expect(session.state.contract).toEqual({
+            contract: Contract.Besserrufer,
+            bird: Bonus.Uhu,
+            declarerId: second
+        })
     })
 })

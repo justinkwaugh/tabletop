@@ -1,8 +1,8 @@
 <script lang="ts">
-    import { Contracts } from '@tabletop/koenigrufen'
     import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { calledKingName } from '$lib/utils/actionDescription.js'
+    import { bidName } from '$lib/utils/contractText.js'
 
     const gameSession = getGameSession()
     const state = $derived(gameSession.gameState)
@@ -26,9 +26,7 @@
         <span class="deal">Hand {state.dealNumber()}/{state.totalDeals}</span>
         {#if contract}
             <span class="contract">
-                {Contracts[contract.contract].name} · {gameSession.getPlayerName(
-                    contract.declarerId
-                )}
+                {bidName(contract)} · {gameSession.getPlayerName(contract.declarerId)}
                 {#if contract.calledKing}· {calledKingName(contract.calledKing)}{/if}
             </span>
         {/if}

@@ -4,7 +4,7 @@
     import { calledKingName, describeAction } from '$lib/utils/actionDescription.js'
     import { announcementsSummary } from '$lib/utils/announcementText.js'
     import AnnouncementChoices from './AnnouncementChoices.svelte'
-    import { meinSpielSummary } from '$lib/utils/contractText.js'
+    import { bidHeading, contractSummary, meinSpielSummary } from '$lib/utils/contractText.js'
     import ContractMenu from './ContractMenu.svelte'
 
     const gameSession = getGameSession()
@@ -42,6 +42,18 @@
             : undefined
     )
 
+    const standingContract = $derived.by(() => {
+        if (state.machineState === MachineState.Bidding && state.auction.bid) {
+            const { playerId, ...choice } = state.auction.bid
+            return { label: 'Highest bid', playerId, choice }
+        }
+        if (state.machineState === MachineState.Announcing && state.contract) {
+            const { contract, bird, declarerId } = state.contract
+            return { label: 'Contract', playerId: declarerId, choice: { contract, bird } }
+        }
+        return undefined
+    })
+
     const announced = $derived(
         state.announcements &&
             (state.machineState === MachineState.Announcing ||
@@ -71,12 +83,12 @@
         {#if state.machineState === MachineState.Bidding}
             <p>Bid for the contract{gameSession.canSayMeinSpiel ? ', or reserve the game' : ''}.</p>
             <div class="choices">
-                {#if gameSession.biddableContracts.length > 0}
+                {#if gameSession.biddableChoices.length > 0}
                     <ContractMenu
                         label="Bid"
                         title="Choose your bid"
-                        contracts={gameSession.biddableContracts}
-                        onchoose={(contract) => gameSession.bid(contract)}
+                        choices={gameSession.biddableChoices}
+                        onchoose={(choice) => gameSession.bid(choice)}
                     />
                 {/if}
                 {#if gameSession.canSayMeinSpiel}
@@ -102,8 +114,8 @@
                 <ContractMenu
                     label="Name contract"
                     title="Name your contract"
-                    contracts={gameSession.nameableContracts}
-                    onchoose={(contract) => gameSession.chooseContract(contract)}
+                    choices={gameSession.nameableChoices}
+                    onchoose={(choice) => gameSession.chooseContract(choice)}
                     openAtOnce
                 />
             </div>
@@ -166,6 +178,17 @@
             {#if lastDescription}<span class="last">{lastDescription}.</span>{/if}
         </p>
     {/if}
+    {#if standingContract && !gameSession.isViewingHistory}
+        <p class="standing">
+            <span>{standingContract.label}:</span>
+            <strong
+                >{gameSession.getPlayerName(standingContract.playerId)}’s {bidHeading(
+                    standingContract.choice
+                )}.</strong
+            >
+            {contractSummary(standingContract.choice)}
+        </p>
+    {/if}
     {#if announced.length > 0 && !gameSession.isViewingHistory}
         <p class="announced"><span>Announced:</span> {announced.join(' · ')}</p>
     {/if}
@@ -205,11 +228,14 @@
         opacity: 0.75;
     }
 
+    .standing,
     .announced {
         font-size: 0.85rem;
+        line-height: 1.3;
         opacity: 0.85;
     }
 
+    .standing span,
     .announced span {
         color: #f2c94c;
         font-weight: 600;
@@ -233,6 +259,7 @@
         }
 
         .note,
+        .standing,
         .announced {
             font-size: 0.75rem;
         }

@@ -100,16 +100,6 @@ describe('announcements', () => {
         expect(doubleTargets(newAnnouncements(), defender)).toEqual([])
     })
 
-    it('makes a Besserrufer declarer open with a bird', () => {
-        const announcements = newAnnouncements()
-        const declarer = speaker(Contract.Besserrufer, 'a', Side.Declarer)
-        expect(validateAnnouncement(announcements, declarer, [], [])).toBe('must announce a bird')
-        expect(validateAnnouncement(announcements, declarer, [Bonus.Trull], [])).toBe(
-            'must announce a bird'
-        )
-        expect(validateAnnouncement(announcements, declarer, [Bonus.Uhu], [])).toBeUndefined()
-    })
-
     it('rejects a bonus already announced by the same side, or a double not on offer', () => {
         const announcements = newAnnouncements()
         const declarer = speaker(Contract.Rufer, 'a', Side.Declarer)

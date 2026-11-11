@@ -1,4 +1,5 @@
 import {
+    bidValue,
     Contract,
     contractDefinition,
     Goal,
@@ -6,8 +7,10 @@ import {
     Partnership,
     PlayableContracts,
     PointsToWin,
+    type BidChoice,
     type ContractDefinition
 } from '@tabletop/koenigrufen'
+import { bonusGoal, bonusName } from './announcementText.js'
 
 // Rule citations are from Pagat, except the Solorufer talon, the called King in the talon,
 // holding trumps back in colour games (Wikipedia) and the Trischaken talon (the user's rules).
@@ -17,7 +20,7 @@ const KingInTalonNote =
 const ContractNotes: Partial<Record<Contract, string>> = {
     [Contract.Rufer]: KingInTalonNote,
     [Contract.Solorufer]: '(If the called King is in the talon, declarer gets that half.)',
-    [Contract.Besserrufer]: `Must announce Pagat, Uhu, Kakadu or Quapil. ${KingInTalonNote}`,
+    [Contract.Besserrufer]: KingInTalonNote,
     [Contract.Farbensolo]: 'No bonuses except Valat.',
     [Contract.Trischaken]:
         'Forehand leads. Beat the highest card if you can; Pagat only as your last trump. The last trick’s winner takes the talon. The 2 highest pay 1 each to the 2 lowest; 36+ pays 2 to each player; anyone without a trick is paid 2 by each.'
@@ -75,8 +78,37 @@ function present(parts: readonly (string | false | undefined)[]): string[] {
     return parts.filter((part) => typeof part === 'string')
 }
 
+// A bid's own name: Besserrufer carries the bird it named.
+export function bidName(choice: BidChoice): string {
+    const name = contractDefinition(choice.contract).name
+    return choice.bird === undefined ? name : `${name} ${bonusName(choice.bird)}`
+}
+
+export function bidValueText(choice: BidChoice): string {
+    return choice.bird === undefined
+        ? contractValue(contractDefinition(choice.contract))
+        : String(bidValue(choice))
+}
+
+export function bidKey(choice: BidChoice): string {
+    return `${choice.contract}:${choice.bird ?? ''}`
+}
+
+export function bidHeading(choice: BidChoice): string {
+    return `${bidName(choice)} (${bidValueText(choice)})`
+}
+
+function birdNote(choice: BidChoice): string | undefined {
+    if (choice.bird === undefined) {
+        return undefined
+    }
+    const game = contractDefinition(choice.contract).win
+    return `The ${bonusName(choice.bird)} is announced with the bid (game ${game} + bird ${bidValue(choice) - game}): ${bonusGoal(choice.bird)}`
+}
+
 // Defining traits first, joined by dashes, then the details.
-export function contractSummary(contract: Contract): string {
+export function contractSummary(choice: BidChoice): string {
+    const { contract } = choice
     const definition = contractDefinition(contract)
     const traits = present([
         Teams[definition.partnership],
@@ -94,14 +126,10 @@ export function contractSummary(contract: Contract): string {
         !definition.trumpsWin &&
             'Trumps don’t win, and are led or played only when you have no suit cards left.',
         definition.ouvert && 'All hands laid open from the second trick.',
+        birdNote(choice),
         ContractNotes[contract]
     ])
     return [`${traits.join(' - ')}.`, ...notes].join(' ')
-}
-
-export function contractHeading(contract: Contract): string {
-    const definition = contractDefinition(contract)
-    return `${definition.name} (${contractValue(definition)})`
 }
 
 export function meinSpielSummary(): string {

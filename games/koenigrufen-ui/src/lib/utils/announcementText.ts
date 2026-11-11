@@ -1,10 +1,12 @@
 import {
+    Bonus,
     Bonuses,
     DoubleNames,
     doublesOn,
+    PackPoints,
+    SackPoints,
     Side,
     type Announcements,
-    type Bonus,
     type BonusResult,
     type ContractDefinition,
     type DoubleTarget,
@@ -26,13 +28,45 @@ export function bonusName(bonus: Bonus): string {
     return Bonuses[bonus].name
 }
 
-// The bonus's announced worth; Valat's multiplies the game.
-export function announcedValue(bonus: Bonus, definition: ContractDefinition): number {
-    const value = Bonuses[bonus].announced
-    if (bonus === 'valat') {
+// Valat's worth multiplies the game; Solo contracts double the rest.
+function scaledValue(bonus: Bonus, value: number, definition: ContractDefinition): number {
+    if (bonus === Bonus.Valat) {
         return value * definition.win
     }
     return definition.bonusesDoubled ? value * 2 : value
+}
+
+export function announcedValue(bonus: Bonus, definition: ContractDefinition): number {
+    return scaledValue(bonus, Bonuses[bonus].announced, definition)
+}
+
+const BonusGoals: Readonly<Record<Bonus, string>> = {
+    [Bonus.Trull]: 'Take Pagat, Mond and Sküs.',
+    [Bonus.FourKings]: 'Take all four Kings.',
+    [Bonus.KingUltimo]: 'Win the last trick with the called King.',
+    [Bonus.Pagat]: 'Win the last trick with the Pagat (trump I).',
+    [Bonus.Uhu]: 'Win the second-last trick with trump II.',
+    [Bonus.Kakadu]: 'Win the third-last trick with trump III.',
+    [Bonus.Quapil]: 'Win the fourth-last trick with trump IIII.',
+    [Bonus.Valat]: 'Win every trick. Replaces the game and every other bonus.',
+    [Bonus.Sack]: `Take ${SackPoints} of ${PackPoints} card points.`
+}
+
+export function bonusGoal(bonus: Bonus): string {
+    return BonusGoals[bonus]
+}
+
+export function bonusHeading(bonus: Bonus, definition: ContractDefinition): string {
+    return `${bonusName(bonus)} (${announcedValue(bonus, definition)})`
+}
+
+export function bonusSummary(bonus: Bonus, definition: ContractDefinition): string {
+    const silent = Bonuses[bonus].silent
+    const unannounced =
+        silent === undefined
+            ? 'Scores only when announced.'
+            : `Worth ${scaledValue(bonus, silent, definition)} unannounced.`
+    return `${bonusGoal(bonus)} ${unannounced}`
 }
 
 function sideName(side: Side): string {

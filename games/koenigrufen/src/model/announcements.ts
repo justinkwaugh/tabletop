@@ -227,19 +227,7 @@ export function validateAnnouncement(
     if (!doublesUnique || doubles.some((target) => !targets.some((t) => sameTarget(t, target)))) {
         return 'cannot double that'
     }
-    if (birdRequiredNow(announcements, context) && !bonuses.some(isBird)) {
-        return 'must announce a bird'
-    }
     return undefined
-}
-
-// Besserrufer's declarer opens the announcements with a bird.
-export function birdRequiredNow(announcements: Announcements, context: AnnouncingContext): boolean {
-    return (
-        context.definition.birdRequired &&
-        context.playerId === context.declarerId &&
-        announcements.turns === 0
-    )
 }
 
 export function applyAnnouncement(

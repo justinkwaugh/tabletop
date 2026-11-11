@@ -1,21 +1,23 @@
 <script lang="ts">
-    import type { Contract } from '@tabletop/koenigrufen'
+    import type { BidChoice } from '@tabletop/koenigrufen'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import ContractChoices from './ContractChoices.svelte'
+    import BidTable from './BidTable.svelte'
+    import CompactBidTable from './CompactBidTable.svelte'
 
-    // A button that opens the contracts in a menu below the action area. The menu stops above the
-    // player's hand, so the hand stays in view while choosing.
+    // A button that opens the bids in a table below the action area. The menu stops above the
+    // player's hand, so the hand stays in view while choosing. A menu narrower than WideFrom shows
+    // the compact table.
     let {
         label,
         title,
-        contracts,
+        choices,
         onchoose,
         openAtOnce = false
     }: {
         label: string
         title: string
-        contracts: readonly Contract[]
-        onchoose: (contract: Contract) => void
+        choices: readonly BidChoice[]
+        onchoose: (choice: BidChoice) => void
         openAtOnce?: boolean
     } = $props()
 
@@ -24,10 +26,13 @@
     // The menu is never shorter than this, even if it then covers the top of the hand.
     const MinHeight = 160
     const Gap = 6
+    const MaxWidth = 1040
+    const WideFrom = 800
 
     let trigger: HTMLButtonElement | undefined = $state()
     let menu: HTMLElement | undefined = $state()
     let open = $state(false)
+    let wide = $state(true)
 
     // Places the menu under the trigger's row, across the action area.
     function place() {
@@ -39,7 +44,8 @@
         const top = button.bottom + Gap
         const hand = gameSession.cardPlaces.myHandElement()?.getBoundingClientRect()
         const bottom = hand && hand.top > top + MinHeight ? hand.top - Gap : innerHeight - Gap
-        const width = Math.min(area.width - 2 * Gap, 620)
+        const width = Math.min(area.width - 2 * Gap, MaxWidth)
+        wide = width >= WideFrom
         Object.assign(menu.style, {
             top: `${top}px`,
             left: `${area.left + Gap}px`,
@@ -56,9 +62,9 @@
         }
     }
 
-    function choose(contract: Contract) {
+    function choose(choice: BidChoice) {
         menu?.hidePopover()
-        onchoose(contract)
+        onchoose(choice)
     }
 
     function openOnMount(element: HTMLElement) {
@@ -105,7 +111,11 @@
         >
     </div>
     {#if open}
-        <ContractChoices {contracts} onchoose={choose} />
+        {#if wide}
+            <BidTable {choices} onchoose={choose} />
+        {:else}
+            <CompactBidTable {choices} onchoose={choose} />
+        {/if}
     {/if}
 </div>
 

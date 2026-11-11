@@ -26,7 +26,7 @@ export class BiddingStateHandler implements MachineStateHandler<
         if (state.canSayMeinSpiel(playerId)) {
             actions.push(ActionType.SayMeinSpiel)
         }
-        if (state.biddableContracts(playerId).length > 0) {
+        if (state.biddableChoices(playerId).length > 0) {
             actions.push(ActionType.Bid)
         }
         if (state.canPass(playerId)) {

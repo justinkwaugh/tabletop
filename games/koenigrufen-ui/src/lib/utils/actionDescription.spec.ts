@@ -14,6 +14,8 @@ describe('history descriptions', () => {
         const named = { ...base, type: ActionType.CallKing, king: Suit.Hearts }
         const fourth = { ...base, type: ActionType.CallKing, king: FourthKing }
         expect(describeAction(bid, names, StandardStyle)).toBe('P1 bid Solorufer')
+        const besser = { ...bid, contract: Contract.Besserrufer, bird: Bonus.Quapil }
+        expect(describeAction(besser, names, StandardStyle)).toBe('P1 bid Besserrufer Quapil')
         expect(describeAction(named, names, StandardStyle)).toBe('P1 called K♥')
         expect(describeAction(fourth, names, StandardStyle)).toBe('P1 called 4th K')
     })

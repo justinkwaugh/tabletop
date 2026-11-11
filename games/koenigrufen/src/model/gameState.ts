@@ -22,7 +22,6 @@ import {
     announceableBonuses,
     applyAnnouncement,
     Birds,
-    birdRequiredNow,
     doubleTargets,
     doublesOn,
     gameDoubles,
@@ -45,12 +44,15 @@ import {
 } from '../components/contracts.js'
 import {
     Auction,
-    biddableContracts,
+    BidChoice,
+    bidChoice,
+    biddableChoices,
     isAuctionOver,
     isAuctionUnopened,
-    nameableContracts,
+    nameableChoices,
     newAuction,
-    remainingBidders
+    remainingBidders,
+    sameBid
 } from './auction.js'
 import {
     scoreGivenUp,
@@ -74,7 +76,7 @@ const PacketSize = 6
 
 export type DeclaredContract = Type.Static<typeof DeclaredContract>
 export const DeclaredContract = Type.Object({
-    contract: ContractSchema,
+    ...BidChoice.properties,
     declarerId: Type.String(),
     calledKing: Type.Optional(CalledKingSchema),
     // Declarer conceded when the called King turned up in the talon.
@@ -262,9 +264,9 @@ export class HydratedKoenigrufenGameState
         return !this.isOpeningCall(playerId)
     }
 
-    biddableContracts(playerId: string): Contract[] {
-        return biddableContracts(this.auction, this.seats(), playerId).filter((contract) =>
-            this.mayDeclare(playerId, contract)
+    biddableChoices(playerId: string): BidChoice[] {
+        return biddableChoices(this.auction, this.seats(), playerId).filter((choice) =>
+            this.mayDeclare(playerId, choice.contract)
         )
     }
 
@@ -281,12 +283,12 @@ export class HydratedKoenigrufenGameState
         this.auction.meinSpiel = true
     }
 
-    bid(playerId: string, contract: Contract) {
+    bid(playerId: string, choice: BidChoice) {
         assert(
-            this.biddableContracts(playerId).includes(contract),
-            `${playerId} cannot bid ${contract}`
+            this.biddableChoices(playerId).some((candidate) => sameBid(candidate, choice)),
+            `${playerId} cannot bid ${choice.contract} ${choice.bird ?? ''}`
         )
-        this.auction.bid = { playerId, contract }
+        this.auction.bid = { playerId, ...bidChoice(choice.contract, choice.bird) }
     }
 
     pass(playerId: string) {
@@ -308,22 +310,25 @@ export class HydratedKoenigrufenGameState
             return undefined
         }
         assert(held.playerId === winner, 'The last bidder holds the bid')
-        return this.declare(held.contract, winner)
+        return this.declare(held, winner)
     }
 
-    nameableContracts(): Contract[] {
+    nameableChoices(): BidChoice[] {
         const forehand = this.forehandId()
-        return nameableContracts().filter((contract) => this.mayDeclare(forehand, contract))
+        return nameableChoices().filter((choice) => this.mayDeclare(forehand, choice.contract))
     }
 
-    nameContract(playerId: string, contract: Contract): DeclaredContract {
+    nameContract(playerId: string, choice: BidChoice): DeclaredContract {
         assert(playerId === this.forehandId(), 'Only Forehand names the contract')
-        assert(this.nameableContracts().includes(contract), `${contract} cannot be named`)
-        return this.declare(contract, playerId)
+        assert(
+            this.nameableChoices().some((candidate) => sameBid(candidate, choice)),
+            `${choice.contract} ${choice.bird ?? ''} cannot be named`
+        )
+        return this.declare(choice, playerId)
     }
 
-    private declare(contract: Contract, declarerId: string): DeclaredContract {
-        this.contract = { contract, declarerId }
+    private declare(choice: BidChoice, declarerId: string): DeclaredContract {
+        this.contract = { ...bidChoice(choice.contract, choice.bird), declarerId }
         return this.contract
     }
 
@@ -434,8 +439,18 @@ export class HydratedKoenigrufenGameState
 
     // Announcements
 
+    // A Besserrufer's bird, named with the bid, is already announced for declarer's side.
     startAnnouncements() {
+        const { bird, declarerId } = this.declared()
         this.announcements = newAnnouncements()
+        if (bird !== undefined) {
+            this.announcements.bonuses.push({
+                bonus: bird,
+                side: Side.Declarer,
+                playerId: declarerId,
+                doubles: 0
+            })
+        }
     }
 
     knownAnnouncements(): Announcements {
@@ -486,10 +501,6 @@ export class HydratedKoenigrufenGameState
 
     doubleTargets(playerId: string): DoubleTarget[] {
         return doubleTargets(this.knownAnnouncements(), this.announcingContext(playerId))
-    }
-
-    mustAnnounceBird(playerId: string): boolean {
-        return birdRequiredNow(this.knownAnnouncements(), this.announcingContext(playerId))
     }
 
     announce(

@@ -16,7 +16,8 @@ import { KoenigrufenInfo } from '../definition/info.js'
 import { KoenigrufenRuntime } from '../definition/runtime.js'
 import { MachineState } from '../definition/states.js'
 import type { KoenigrufenProjectedState } from '../model/gameState.js'
-import { isBird } from '../model/announcements.js'
+import type { Bonus } from '../model/announcements.js'
+import { bidChoice, type BidChoice } from '../model/auction.js'
 
 export const TestMasterSeed = '0123456789abcdef0123456789abcdef'
 
@@ -123,14 +124,19 @@ export function legalLayAway(hand: readonly string[], count: number): string[] {
     return [...suitCards, ...trumps].slice(0, count)
 }
 
-// Forehand reserves the game, everyone passes, and Forehand names `contract`.
-export function declareByMeinSpiel(session: TestSession, contract: Contract) {
+export function contractsOf(choices: readonly BidChoice[]): Contract[] {
+    return choices.map((choice) => choice.contract)
+}
+
+// Forehand reserves the game, everyone passes, and Forehand names `contract` (with Besserrufer's
+// `bird`).
+export function declareByMeinSpiel(session: TestSession, contract: Contract, bird?: Bonus) {
     const forehand = session.activePlayerId()
     session.act(forehand, ActionType.SayMeinSpiel)
     for (let passes = 0; passes < 3; passes++) {
         session.act(session.activePlayerId(), ActionType.Pass)
     }
-    session.act(forehand, ActionType.ChooseContract, { contract })
+    session.act(forehand, ActionType.ChooseContract, bidChoice(contract, bird))
     return forehand
 }
 
@@ -181,14 +187,9 @@ export function advanceTo(
     }
 }
 
-// Says nothing in the announcements, except the bird a Besserrufer declarer must open with.
+// Says nothing in the announcements.
 export function passAnnouncement(session: TestSession) {
-    const playerId = session.activePlayerId()
-    const hydrated = session.hydrated()
-    const bird = hydrated.mustAnnounceBird(playerId)
-        ? hydrated.announceableBonuses(playerId).filter(isBird).slice(0, 1)
-        : []
-    session.act(playerId, ActionType.Announce, { bonuses: bird, doubles: [] })
+    session.act(session.activePlayerId(), ActionType.Announce, { bonuses: [], doubles: [] })
 }
 
 // Everyone passes until play begins.

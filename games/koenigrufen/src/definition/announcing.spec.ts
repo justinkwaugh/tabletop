@@ -65,16 +65,19 @@ describe('the announcements', () => {
         expect(result?.scoreChanges[declarer]).toBe(3 * (game + bonuses))
     })
 
-    it('make a Besserrufer declarer open with a bird', () => {
+    it('announce the bird a Besserrufer names with its bid', () => {
         const session = startTestGame()
-        const declarer = declareByMeinSpiel(session, Contract.Besserrufer)
+        expect(() => declareByMeinSpiel(startTestGame(), Contract.Besserrufer)).toThrow()
+        const declarer = declareByMeinSpiel(session, Contract.Besserrufer, Bonus.Uhu)
         advanceTo(session, [MachineState.Announcing])
-        expect(session.hydrated().mustAnnounceBird(declarer)).toBe(true)
-        expect(() => say(session)).toThrow()
-        say(session, [Bonus.Pagat])
+        expect(session.hydrated().knownAnnouncements().bonuses).toEqual([
+            { bonus: Bonus.Uhu, side: Side.Declarer, playerId: declarer, doubles: 0 }
+        ])
+        expect(session.hydrated().announceableBonuses(declarer)).not.toContain(Bonus.Uhu)
+        say(session)
         playOutHand(session)
         expect(lastHandResult(session)?.bonuses).toContainEqual(
-            expect.objectContaining({ bonus: Bonus.Pagat, announced: true, side: Side.Declarer })
+            expect.objectContaining({ bonus: Bonus.Uhu, announced: true, side: Side.Declarer })
         )
     })
 

@@ -21,6 +21,7 @@ import {
     type HandResult
 } from '@tabletop/koenigrufen'
 import { bonusName, doubleTargetName } from './announcementText.js'
+import { bidName } from './contractText.js'
 import { cardLabel, SuitSymbols, type CardStyle } from './cardStyle.js'
 
 export type Names = { name: (playerId: string) => string }
@@ -81,11 +82,11 @@ export function describeAction(
         case isSayMeinSpiel(action):
             return `${who} said “Mein Spiel”`
         case isBid(action):
-            return `${who} bid ${Contracts[action.contract].name}`
+            return `${who} bid ${bidName(action)}`
         case isPass(action):
             return `${who} passed`
         case isChooseContract(action):
-            return `${who} named ${Contracts[action.contract].name}`
+            return `${who} named ${bidName(action)}`
         case isCallKing(action):
             return `${who} called ${calledKingName(action.king)}`
         case isRevealTalon(action):

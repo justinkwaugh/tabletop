@@ -10,7 +10,9 @@ import { describe, expect, it } from 'vitest'
 import {
     announcedValue,
     announcementsSummary,
+    bonusHeading,
     bonusResultLine,
+    bonusSummary,
     doubleGroups,
     doubleTargetName,
     doubleWord,
@@ -24,6 +26,23 @@ describe('announcement text', () => {
         expect(announcedValue(Bonus.Uhu, contractDefinition(Contract.Rufer))).toBe(4)
         expect(announcedValue(Bonus.Uhu, contractDefinition(Contract.Solodreier))).toBe(8)
         expect(announcedValue(Bonus.Valat, contractDefinition(Contract.Dreier))).toBe(32)
+    })
+
+    it('says what a bonus takes and what it is worth unannounced', () => {
+        const rufer = contractDefinition(Contract.Rufer)
+        expect(bonusHeading(Bonus.Uhu, rufer)).toBe('Uhu (4)')
+        expect(bonusSummary(Bonus.Uhu, rufer)).toBe(
+            'Win the second-last trick with trump II. Worth 2 unannounced.'
+        )
+        expect(bonusSummary(Bonus.Trull, contractDefinition(Contract.Solodreier))).toBe(
+            'Take Pagat, Mond and Sküs. Worth 2 unannounced.'
+        )
+        expect(bonusSummary(Bonus.Valat, contractDefinition(Contract.Dreier))).toBe(
+            'Win every trick. Replaces the game and every other bonus. Worth 16 unannounced.'
+        )
+        expect(bonusSummary(Bonus.Sack, rufer)).toBe(
+            'Take 46 of 70 card points. Scores only when announced.'
+        )
     })
 
     it('names the next double and what it raises', () => {

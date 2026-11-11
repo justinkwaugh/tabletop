@@ -11,7 +11,8 @@ import {
     playOutHand,
     setHands,
     startTestGame,
-    type TestSession
+    type TestSession,
+    contractsOf
 } from '../util/testHelper.js'
 import { ActionType } from './actions.js'
 import { KoenigrufenRuntime } from './runtime.js'
@@ -140,15 +141,17 @@ describe('Trischaken', () => {
     it('is Forehand’s to name after Mein Spiel, not to bid', () => {
         const session = startTestGame()
         const forehand = session.activePlayerId()
-        expect(session.hydrated().biddableContracts(forehand)).not.toContain(Contract.Trischaken)
-        session.act(forehand, ActionType.SayMeinSpiel)
-        expect(session.hydrated().biddableContracts(session.activePlayerId())).not.toContain(
+        expect(contractsOf(session.hydrated().biddableChoices(forehand))).not.toContain(
             Contract.Trischaken
         )
+        session.act(forehand, ActionType.SayMeinSpiel)
+        expect(
+            contractsOf(session.hydrated().biddableChoices(session.activePlayerId()))
+        ).not.toContain(Contract.Trischaken)
         for (let passes = 0; passes < 3; passes++) {
             session.act(session.activePlayerId(), ActionType.Pass)
         }
-        expect(session.hydrated().nameableContracts()).toContain(Contract.Trischaken)
+        expect(contractsOf(session.hydrated().nameableChoices())).toContain(Contract.Trischaken)
     })
 
     it('plays all twelve tricks and gives the talon to the last trick’s winner', () => {

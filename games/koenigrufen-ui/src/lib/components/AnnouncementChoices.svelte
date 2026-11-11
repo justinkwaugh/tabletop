@@ -1,14 +1,19 @@
 <script lang="ts">
+    import type { Bonus } from '@tabletop/koenigrufen'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import {
         announcedValue,
+        bonusHeading,
         bonusKey,
         bonusName,
+        bonusSummary,
         doubleGroups,
         doubleKey,
         doubleTargetName,
         shortTargetName
     } from '$lib/utils/announcementText.js'
+    import { ChoicePreview } from '$lib/utils/choicePreview.svelte.js'
+    import ChoiceSummary from './ChoiceSummary.svelte'
 
     const gameSession = getGameSession()
     const state = $derived(gameSession.gameState)
@@ -20,15 +25,18 @@
     const saysSomething = $derived(
         gameSession.chosenBonuses.length > 0 || gameSession.chosenDoubles.length > 0
     )
+
+    // A tap chooses the bonus and shows its summary; another tap takes it back.
+    const preview = new ChoicePreview<Bonus>()
+    const shown = $derived(preview.shownAmong(gameSession.announceableBonuses))
+
+    function toggleBonus(bonus: Bonus) {
+        preview.previewed = bonus
+        gameSession.toggleAnnouncement(bonusKey(bonus))
+    }
 </script>
 
-<p>
-    {#if gameSession.mustAnnounceBird}
-        Besserrufer: open by announcing at least one bird (Pagat, Uhu, Kakadu or Quapil).
-    {:else}
-        Announce bonuses for your side, double what the other side said, or pass.
-    {/if}
-</p>
+<p>Announce bonuses for your side, double what the other side said, or pass.</p>
 <!-- On phones the rows flow together, so the choices take as few lines as they can. -->
 <div class="rows">
     {#if gameSession.announceableBonuses.length > 0}
@@ -40,7 +48,9 @@
                     class="choice option"
                     class:chosen={chosen.includes(key)}
                     aria-pressed={chosen.includes(key)}
-                    onclick={() => gameSession.toggleAnnouncement(key)}
+                    onpointerenter={(event) => preview.showOnHover(event, bonus)}
+                    onfocus={(event) => preview.showOnKeyboardFocus(event, bonus)}
+                    onclick={() => toggleBonus(bonus)}
                 >
                     <span>{bonusName(bonus)}</span>
                     <span class="value" title="Points from each opponent if made; paid if lost"
@@ -80,6 +90,15 @@
         >
     </div>
 </div>
+{#if gameSession.announceableBonuses.length > 0}
+    <ChoiceSummary
+        heading={shown ? bonusHeading(shown, definition) : undefined}
+        summary={shown ? bonusSummary(shown, definition) : undefined}
+        hint={preview.noHover.current
+            ? 'Tap a bonus to see what it takes.'
+            : 'Point at a bonus to see what it takes.'}
+    />
+{/if}
 
 <style>
     .rows {

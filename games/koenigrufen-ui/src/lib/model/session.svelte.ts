@@ -12,9 +12,7 @@ import {
     card,
     ChooseContract,
     ChooseTalonHalf,
-    Contract,
     GiveUp,
-    isBird,
     isEndHand,
     KoenigrufenPreferenceDefinition,
     LayAway,
@@ -24,6 +22,7 @@ import {
     PlayCard,
     SayMeinSpiel,
     Suits,
+    type BidChoice,
     type Bonus,
     type CalledKing,
     type DoubleTarget,
@@ -114,11 +113,11 @@ export class KoenigrufenGameSession extends GameSession<
 
     readonly canSayMeinSpiel = $derived(this.canTake(ActionType.SayMeinSpiel))
     readonly canPass = $derived(this.canTake(ActionType.Pass))
-    readonly biddableContracts: Contract[] = $derived(
-        this.canTake(ActionType.Bid) ? this.gameState.biddableContracts(this.myPlayerId()) : []
+    readonly biddableChoices: BidChoice[] = $derived(
+        this.canTake(ActionType.Bid) ? this.gameState.biddableChoices(this.myPlayerId()) : []
     )
-    readonly nameableContracts: Contract[] = $derived(
-        this.canTake(ActionType.ChooseContract) ? this.gameState.nameableContracts() : []
+    readonly nameableChoices: BidChoice[] = $derived(
+        this.canTake(ActionType.ChooseContract) ? this.gameState.nameableChoices() : []
     )
 
     // ----- King and talon -----
@@ -158,9 +157,6 @@ export class KoenigrufenGameSession extends GameSession<
     readonly doubleTargets: DoubleTarget[] = $derived(
         this.isAnnouncing ? this.gameState.doubleTargets(this.myPlayerId()) : []
     )
-    readonly mustAnnounceBird: boolean = $derived(
-        this.isAnnouncing && this.gameState.mustAnnounceBird(this.myPlayerId())
-    )
     readonly chosenAnnouncementKeys: string[] = $derived(
         chosenAnnouncements(this.announcementSelection)
     )
@@ -174,9 +170,7 @@ export class KoenigrufenGameSession extends GameSession<
             this.chosenAnnouncementKeys.includes(doubleKey(target))
         )
     )
-    readonly canConfirmAnnouncement: boolean = $derived(
-        this.isAnnouncing && (!this.mustAnnounceBird || this.chosenBonuses.some(isBird))
-    )
+    readonly canConfirmAnnouncement: boolean = $derived(this.isAnnouncing)
 
     // ----- Play -----
 
@@ -308,16 +302,16 @@ export class KoenigrufenGameSession extends GameSession<
         await this.applyAction(this.createPlayerAction(SayMeinSpiel, {}))
     }
 
-    async bid(contract: Contract) {
-        await this.applyAction(this.createPlayerAction(Bid, { contract }))
+    async bid(choice: BidChoice) {
+        await this.applyAction(this.createPlayerAction(Bid, { ...choice }))
     }
 
     async pass() {
         await this.applyAction(this.createPlayerAction(Pass, {}))
     }
 
-    async chooseContract(contract: Contract) {
-        await this.applyAction(this.createPlayerAction(ChooseContract, { contract }))
+    async chooseContract(choice: BidChoice) {
+        await this.applyAction(this.createPlayerAction(ChooseContract, { ...choice }))
     }
 
     async callKing(king: CalledKing) {
