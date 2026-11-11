@@ -60,7 +60,7 @@
                             {#each column.charters as { writId, vp } (writId)}
                                 <span class="inline-flex flex-col" data-game-end-charter={writId}>
                                     <WritFace faceShown {writId} width={CharterWidth} />
-                                    <span>{vp}</span>
+                                    <span data-charter-score>{vp} vp</span>
                                 </span>
                             {/each}
                         </div>
@@ -128,7 +128,7 @@
                                     data-game-end-charter={writId}
                                 >
                                     <WritFace faceShown {writId} width={CharterWidth} />
-                                    <span>{vp}</span>
+                                    <span data-charter-score>{vp} vp</span>
                                 </span>
                             {:else}
                                 –
