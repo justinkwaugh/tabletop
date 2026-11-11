@@ -1,8 +1,8 @@
 # Feudum rulings
 
-The code cites the rules as `R-<section>` of `rules-digest.md`. A citation ending in `-H1` or `-H2` names one of the house rulings below, made where the rules are silent or ambiguous. `R-X.<n>` names a rule of this implementation. A ruling marked _provisional_ awaits the publisher's answer; it stands until answered. Each ruling names the spec that covers it.
+The code cites the rules as `R-<section>` of `rules-digest.md`. A citation ending in `-H<n>` names one of the house rulings below, made where the rules are silent or ambiguous. `R-X.<n>` names a rule of this implementation. A ruling marked _provisional_ awaits the publisher's answer; it stands until answered. Each ruling names the spec that covers it.
 
-Rules version: the December 2018 English rulebook with the designer's later answers. Each ruling names the question it settled, or `design` for one settled while designing the engine and UI; its readings and sources were set out in `open-questions.md` when it was asked. Specs are named as planned and are written with the code.
+Rules version: the December 2018 English rulebook with the designer's later answers. Each ruling names the question it settled, `design` for one settled while designing the engine and UI, or `rulebook` or `FAQ` for one that follows a passage of either the engine once missed; a question's readings and sources were set out in `open-questions.md` when it was asked. `revised` marks a ruling changed since it was first made, to follow the rulebook.
 
 ## House rulings
 
@@ -19,7 +19,7 @@ Rules version: the December 2018 English rulebook with the designer's later answ
 - **R-3.1-H1** (Q4): all players choose their hands at the same time, but finalise ("Long live the king") in turn order: a player cannot finalise until every earlier player has, and each player's pouch good becomes public when they finalise. Rejected: fully simultaneous selection with pouch goods revealed together. Spec: `selectHand.spec.ts`.
 - **R-3.2-H1** (Q5): a player who has played all chosen cards is skipped until everyone has. Spec: `turnOrder.spec.ts`.
 - **R-3.2-H2** (design): a turn ends by itself once its card, a declared second card and their follow-ups are done, after any seat over the writ limit has discarded down (R-4.4-H9). Rejected: an End Turn press every turn. Spec: `turnOrder.spec.ts`.
-- **R-3.3-H1** (design): the sequential action is declared with the first of its two cards. Rejected: offering it after every card while the sulfur is unused. Spec: `sequential.spec.ts`.
+- **R-3.3-H1** (design): the sequential action is declared with the first of its two cards. Rejected: offering it after every card while the sulfur is unused. Spec: `turnOrder.spec.ts`, `actions.spec.ts`.
 - **R-3.4-H1** (Q1): every game uses the advanced rules; there is no basic-game option. Rejected: a basic-game table option. Spec: `actions.spec.ts`.
 - **R-3.6-H1** (design): a pawn migrating off leaves its vessel abandoned on the space (R-4.2.2), and its wine's sulfur goes to the haversack. Spec: `migrate.spec.ts`.
 - **R-3.7-H1** (design): only the first placement on the epic voyage takes a free disc; a disc already on the track steps on without one. Rejected: asking for a free disc at every step. Spec: `placeDisc.spec.ts`.
