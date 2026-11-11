@@ -308,7 +308,8 @@ function handBlocks(
                           `Waiting for ${session.getPlayerName(next.playerId)} to finalise`
                       )
                   ]
-                : [])
+                : []),
+            ...atWillBlocks(session)
         ]
     }
     const me = session.myPlayerId ?? ''
