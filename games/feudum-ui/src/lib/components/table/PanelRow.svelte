@@ -102,7 +102,9 @@
     {:else if piece}
         <button
             type="button"
-            class="inline-flex justify-center rounded-lg p-1 {refused ? 'opacity-50' : ''}"
+            class="piece-press inline-flex justify-center rounded-lg p-1 {refused
+                ? 'opacity-50'
+                : ''}"
             aria-label={choice.label}
             title={choice.label}
             aria-pressed={choice.picked}
@@ -187,8 +189,10 @@
         display: none;
     }
 
-    /* A die has no room beside it: its preview stands beneath, with the short label. */
+    /* A die has no room beside it: its preview stands beneath, as wide as the die, short label. */
     .touch-preview.beneath {
+        width: 100%;
+        min-width: 0;
         padding: 0;
         white-space: nowrap;
     }
@@ -225,6 +229,15 @@
 
         .touch-preview.on-face .label-narrow {
             display: inline;
+        }
+
+        /* Six dice stand in one row on a phone: the die is the press, with no margin round it. */
+        .piece-press {
+            padding: 0;
+        }
+
+        .touch-preview.beneath {
+            font-size: 0.625rem;
         }
     }
 </style>
