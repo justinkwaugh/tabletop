@@ -25,6 +25,8 @@ function rewardText(reward: MandateReward): string {
             return `+${reward.amount} attack`
         case 'vessel':
             return reward.vessel.replace('-', ' ')
+        case 'any-vessel':
+            return 'any vessel'
         case 'shillings':
             return `${reward.amount}s`
         case 'goods':
@@ -194,7 +196,10 @@ describe('R-4.4.2, R-7 the mandates of components.md', () => {
     })
 
     it.each([
-        [6, 'Farmer: 3 goods*; Merchant: 3s*; Alchemist: a ship* (R-4.4-H4). One reward per card'],
+        [
+            6,
+            'Farmer: 3 goods*; Merchant: 3s*; Alchemist: any vessel* (R-4.4-H4). One reward per card'
+        ],
         [8, 'Knight: 3 influence*; Noble: 1 seal*; Monk: 1 bead*. One reward per card']
     ])('mandate %i has three guild rewards at 3 status stars', (number, cell) => {
         expect(mandateRows[number - 1]?.['3-star rewards']).toBe(cell)
@@ -215,13 +220,13 @@ describe('R-4.4.2, R-7 the mandates of components.md', () => {
         expect(MandateStatusStars).toBe(3)
     })
 
-    it('R-4.4-H4 mandate 6 gives the Alchemist a ship, not any vessel', () => {
+    it('R-4.4-H4 mandate 6 gives the Alchemist any vessel, as the rulebook summary reads', () => {
         const row = mandate(6)
         const alchemist =
             row.kind === 'guild-status'
                 ? row.guildRewards.find(({ guild }) => guild === 'alchemist')
                 : undefined
-        expect(alchemist?.reward).toEqual({ kind: 'vessel', vessel: 'ship' })
+        expect(alchemist?.reward).toEqual({ kind: 'any-vessel' })
     })
 })
 

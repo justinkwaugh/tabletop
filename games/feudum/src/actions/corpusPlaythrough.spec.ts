@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ActionCards, ActionCardKinds } from '../data/cards.js'
-import type { Good } from '../data/components.js'
-import { Mandates, type MandateReward } from '../data/writs.js'
+import { VesselTypes, type Good } from '../data/components.js'
+import { Mandates } from '../data/writs.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { conservationBreaks } from '../model/canonicalValidator.js'
@@ -43,7 +43,7 @@ import type { Table } from '../testing/table.js'
 import { answerOf, replayWalk, undoAction, withoutClock, withoutRowId } from '../testing/walk.js'
 import { cardOf, cardPlayOffers } from './cardPlay.js'
 import { commitAttackOffer } from './commitAttack.js'
-import { isPlayMandate } from './playMandate.js'
+import { isPlayMandate, type TakenReward } from './playMandate.js'
 import type { ScoreGameMetadata } from './scoreGame.js'
 
 /** R-4.11.2 One stack gone in the fourth epoch: this round's end is the dawn of the fifth. */
@@ -51,7 +51,7 @@ const LastRoundTops = ['V', 4, 4, 4, 4, 4] as const
 const LastButOneEpoch = 4
 
 /** R-4.4.2 What a reward says it gave, from the registry's row. */
-function receivedFrom(reward: MandateReward) {
+function receivedFrom(reward: TakenReward) {
     switch (reward.kind) {
         case 'goods':
             return { kind: 'goods', goods: expect.any(Array) }
@@ -134,7 +134,9 @@ const ForfeitEntries = ActionCardKinds.map((kind) => ({
 const MandateEntries = AtWill.map((row) => ({
     ...row,
     componentId: row.writId,
-    mode: row.rewardGuild ? `for ${row.rewardGuild}` : `alternative ${row.input.alternative}`,
+    mode: row.rewardGuild
+        ? `for ${row.rewardGuild}${row.vessel ? `, ${row.vessel}` : ''}`
+        : `alternative ${row.input.alternative}`,
     rule: 'R-4.4.2'
 }))
 
@@ -205,15 +207,12 @@ describe('corpus playthrough: the sweep is whole', () => {
         }
     })
 
-    it('R-4.4.2 every alternative of every mandate, R-4.4.3 every charter', () => {
-        const alternatives = Mandates.reduce(
-            (sum, mandate) =>
-                sum +
-                (mandate.kind === 'turn-in'
-                    ? mandate.alternatives.length
-                    : mandate.guildRewards.length),
-            0
-        )
+    it('R-4.4.2 every alternative of every mandate (R-4.4-H4 any vessel once per vessel), R-4.4.3 every charter', () => {
+        const alternatives = Mandates.flatMap((mandate) =>
+            (mandate.kind === 'turn-in' ? mandate.alternatives : mandate.guildRewards).map(
+                ({ reward }) => reward
+            )
+        ).reduce((sum, reward) => sum + (reward.kind === 'any-vessel' ? VesselTypes.length : 1), 0)
         expect(MandateEntries.length + WeaponEntries.length).toBe(alternatives)
         expect(CharterEntries).toHaveLength(8)
     })
@@ -474,13 +473,17 @@ const RealCardPlays = [
     }
 ]
 
+/** The walk records a guild's reward by its guild, whichever vessel an any-vessel reward took. */
+const MandateKeys = new Map(
+    MandateEntries.map(({ componentId, rule, writId, rewardGuild, input }) => {
+        const key = writKey(writId, rewardGuild ?? input.alternative)
+        const mode = rewardGuild ? `for ${rewardGuild}` : `alternative ${input.alternative}`
+        return [key, { componentId, mode, rule, key }]
+    })
+)
+
 const RealWrits = [
-    ...MandateEntries.map(({ componentId, mode, rule, writId, rewardGuild, input }) => ({
-        componentId,
-        mode,
-        rule,
-        key: writKey(writId, rewardGuild ?? input.alternative)
-    })),
+    ...MandateKeys.values(),
     ...WeaponEntries.map(({ componentId, mode, rule, writId, alternative }) => ({
         componentId,
         mode,

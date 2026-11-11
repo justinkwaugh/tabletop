@@ -15,6 +15,10 @@ Q1–Q25 (setup, turn structure, actions, guilds, combat, information, game end,
 
 Q26–Q29 (region tile stacks, vessel routes, values printed nowhere, mandate 6's reward) were settled on 2026-11-06, by the same route.
 
+Answers since revised to follow the rulebook:
+
+- Q29: mandate 6's Alchemist reward is any vessel, as the rulebook's writ summary reads, not only the ship its icon shows (R-4.4-H4).
+
 ## Unread values
 
 Values printed on components that no available picture shows legibly. Each blocks data, not design.

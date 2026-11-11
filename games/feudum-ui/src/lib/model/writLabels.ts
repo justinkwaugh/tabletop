@@ -3,7 +3,6 @@ import {
     Mandates,
     RoyalWrits,
     type Good,
-    type MandateReward,
     type PlayMandateOffer,
     type WritId
 } from '@tabletop/feudum'
@@ -29,7 +28,7 @@ function counted(goods: readonly Good[]): string {
         .join(', ')
 }
 
-function rewardText(reward: MandateReward): string {
+function rewardText(reward: PlayMandateOffer['reward']): string {
     switch (reward.kind) {
         case 'shillings':
             return `${reward.amount}s`

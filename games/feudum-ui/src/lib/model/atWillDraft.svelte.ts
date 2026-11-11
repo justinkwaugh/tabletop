@@ -48,6 +48,8 @@ export interface MandatePick {
     readonly writId: WritId
     readonly alternative: number
     readonly rewardGuild?: GuildId
+    /** R-4.4-H4 The vessel an any-vessel reward takes. */
+    readonly vessel?: VesselType
 }
 
 export interface SealPick {
@@ -107,7 +109,10 @@ type WritRow = NonNullable<AtWillPanel['writs']>[number]
 
 function sameMandate(a: MandatePick | undefined, b: MandatePick): boolean {
     return (
-        a?.writId === b.writId && a.alternative === b.alternative && a.rewardGuild === b.rewardGuild
+        a?.writId === b.writId &&
+        a.alternative === b.alternative &&
+        a.rewardGuild === b.rewardGuild &&
+        a.vessel === b.vessel
     )
 }
 
@@ -376,7 +381,10 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
                                 this.pressMandate({
                                     writId,
                                     alternative: offer.alternative,
-                                    ...(offer.rewardGuild ? { rewardGuild: offer.rewardGuild } : {})
+                                    ...(offer.rewardGuild
+                                        ? { rewardGuild: offer.rewardGuild }
+                                        : {}),
+                                    ...(offer.vessel ? { vessel: offer.vessel } : {})
                                 })
                             },
                             offer.refused
