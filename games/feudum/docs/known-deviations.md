@@ -5,6 +5,7 @@ Where this implementation still differs from the rules or a component's publishe
 ## Rules
 
 - **R-4.6.3, R-4.6.4, R-4.6.5 The hidden-bead draw:** the game picks one of the two beads at random; the rules have an opponent hide one in each hand and the actor pick a hand. Governs: R-4.6-H2.
+- **R-4.10.1 Nourishing's feeding order:** a later seat that the game feeds pays its food when nourishing starts, before an earlier asked seat answers. With an empty haversack, food the earlier seat's play would have added cannot feed the later seat, and a later seat's payment can take food the earlier seat might have used. The rulebook feeds every pawn but gives no order; feeding strictly one seat after another waits on the designer's ruling. Governs: R-4.10-H4.
 
 ## Component text
 
