@@ -299,6 +299,35 @@ describe('R-3.2 One entry per turn, growing', () => {
         expect(turn?.playerId).toBe(P2)
     })
 
+    it('R-4.4-H5 A discard between turns is no seat`s turn: it stands alone, and the turn is its seat`s', () => {
+        const entries = aggregateHistory(
+            [
+                ...start,
+                act(10, ActionType.Move, P1),
+                act(11, ActionType.AdvanceTurn, undefined, {
+                    outcome: 'next-seat',
+                    turnPlayerId: P2
+                }),
+                act(12, ActionType.DiscardWrit, P3),
+                act(13, ActionType.Tax, P2)
+            ],
+            Table
+        )
+
+        expect(spans(entries)).toEqual(['hands 7-9', 'turn 10-10', 'single 12-12', 'turn 13-13'])
+        expect(groupsOf(entries).at(-1)?.playerId).toBe(P2)
+    })
+
+    it('R-4.4-H5 Another seat`s discard before a round`s first card stands alone too', () => {
+        const entries = aggregateHistory(
+            [...start, act(10, ActionType.DiscardWrit, P3), act(11, ActionType.Move, P1)],
+            Table
+        )
+
+        expect(spans(entries)).toEqual(['hands 7-9', 'single 10-10', 'turn 11-11'])
+        expect(groupsOf(entries).at(-1)?.playerId).toBe(P1)
+    })
+
     it('Only a turn names a seat', () => {
         expect(onlyGroup(selection(6)).playerId).toBeUndefined()
     })

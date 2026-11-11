@@ -3,6 +3,7 @@ import {
     ActionType,
     isAdvanceTurn,
     isBeginDawn,
+    isDiscardWrit,
     isEndRound,
     isFinaliseHand,
     isNourish,
@@ -147,7 +148,7 @@ function replays(kind: HistoryGroupKind, actions: readonly GameAction[]): boolea
 }
 
 interface Forming {
-    readonly kind: HistoryGroupKind
+    kind: HistoryGroupKind
     readonly actions: GameAction[]
     readonly firstIndex: number
     lastIndex: number
@@ -172,6 +173,8 @@ function formed({ kind, actions, firstIndex, lastIndex }: Forming): HistoryGroup
  * the seat received them and the public series beside them: never a patch, never a hidden field.
  * `AdvanceTurn` and `StartRound` are bookkeeping and only mark where entries end: an `AdvanceTurn`
  * that leaves the turn with its seat ends nothing. `EndRound` joins whatever entry the round ended on.
+ * Any seat may discard at any time, so a discard never makes a turn its seat's: one by another seat
+ * than the turn's stands alone.
  */
 export function aggregateHistory(
     actions: readonly GameAction[],
@@ -188,8 +191,21 @@ export function aggregateHistory(
     let last: Forming | undefined
     let selecting = false
     let finalised = 0
+    /** The seat the last AdvanceTurn gave the turn to; none in a round's first turn. */
+    let turnSeat: string | undefined
 
     const add = (action: GameAction, index: number, kind: HistoryGroupKind) => {
+        if (
+            open?.kind === 'turn' &&
+            kind === 'turn' &&
+            !isDiscardWrit(action) &&
+            open.actions.every(isDiscardWrit) &&
+            open.actions[0].playerId !== action.playerId
+        ) {
+            // R-4.4-H5 The turn is its first card's seat's: another seat's discards before it stand alone.
+            open.kind = 'single'
+            open = undefined
+        }
         if (open?.kind === kind && kind !== 'single') {
             open.actions.push(action)
             open.lastIndex = index
@@ -218,13 +234,31 @@ export function aggregateHistory(
             })
             continue
         }
+        if (
+            isDiscardWrit(action) &&
+            !open &&
+            !selecting &&
+            turnSeat &&
+            action.playerId !== turnSeat
+        ) {
+            // R-4.4-H5 Any seat may discard at any time: another seat's discard is not its turn.
+            slots.push({
+                kind: 'single',
+                actions: [action],
+                firstIndex: index,
+                lastIndex: index
+            })
+            continue
+        }
         if (isStartRound(action)) {
             selecting = true
             finalised = 0
+            turnSeat = undefined
             open = undefined
             continue
         }
         if (isAdvanceTurn(action)) {
+            turnSeat = action.metadata?.turnPlayerId
             if (!staysWithSeat(action)) {
                 open = undefined
             }
