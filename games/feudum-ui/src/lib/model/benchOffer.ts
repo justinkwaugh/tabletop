@@ -116,6 +116,8 @@ export interface BenchItem extends BenchChoice {
     readonly role: BenchItemRole
     /** How many more of it the area holds. */
     readonly count?: number
+    /** R-4.6.2 A trade's price for it, in shillings: the rose note's number. */
+    readonly price?: number
 }
 
 /** A picked item drawn where it would land. `at` is a board space, or a place the bench names. */
@@ -136,6 +138,10 @@ export interface BenchResult {
 
 export interface BenchOffer {
     readonly title: string
+    readonly guild: GuildId
+    readonly fn: GuildFunctionName
+    /** R-3.16.3 Performed by a Feast rather than the Guild card's own function. */
+    readonly byFeast: boolean
     /** Trade: its guild. Pull: from-guild, guild. Push: guild, to-guild. */
     readonly areas: readonly GuildId[]
     readonly line?: string
@@ -252,6 +258,7 @@ interface Candidate {
     readonly area: number
     readonly note?: ChipNote
     readonly count?: number
+    readonly price?: number
 }
 
 interface BenchRow {
@@ -295,17 +302,17 @@ function goodCandidates(
     held: Readonly<Record<Good, number>>,
     stages: BenchStages,
     area: number,
-    noteOf?: (good: Good) => ChipNote | undefined
+    priceOf?: (good: Good) => number | undefined
 ): readonly Candidate[] {
     const picked = goodsOf(stages)
     return Goods.filter((good) => held[good] > 0).map((good) => {
-        const note = noteOf?.(good)
+        const price = priceOf?.(good)
         return {
             pick: { kind: 'good', good },
             label: titled(good),
             area,
             count: held[good] - picked.filter((other) => other === good).length,
-            ...(note ? { note } : {})
+            ...(price === undefined ? {} : { note: { kind: 'cost', label: `${price}s` }, price })
         }
     })
 }
@@ -452,12 +459,12 @@ function scrollName(spaceId: ScrollSpaceId): string {
 }
 
 /** R-5-H1 Filled scrolls by their space: a seal is unseen, so nothing names it. */
-function sealCandidates({ state }: BenchSeat, note?: ChipNote): readonly Candidate[] {
+function sealCandidates({ state }: BenchSeat, price?: number): readonly Candidate[] {
     return nobleTradeOffer(state).scrollSpaces.map((spaceId) => ({
         pick: { kind: 'scroll', spaceId },
         label: `Seal ${scrollName(spaceId)}`,
         area: 0,
-        ...(note ? { note } : {})
+        ...(price === undefined ? {} : { note: { kind: 'cost', label: `${price}s` }, price })
     }))
 }
 
@@ -487,7 +494,7 @@ const BenchRows: Readonly<Record<GuildId, Readonly<Record<GuildFunctionName, Ben
                     const price =
                         nextPrice(source, stages, good) ??
                         offers.find((offer) => offer.good === good)?.price
-                    return price === undefined ? undefined : { kind: 'cost', label: `${price}s` }
+                    return price
                 })
             },
             dimsOnRefusal: true,
@@ -507,7 +514,8 @@ const BenchRows: Readonly<Record<GuildId, Readonly<Record<GuildFunctionName, Ben
                     pick: { kind: 'vessel', vessel },
                     label: titled(words(vessel)),
                     area: 0,
-                    note: { kind: 'cost', label: `${price}s` }
+                    note: { kind: 'cost', label: `${price}s` },
+                    price
                 })),
             name: () => 'Buy a vessel',
             ghosts: (stages) =>
@@ -550,11 +558,7 @@ const BenchRows: Readonly<Record<GuildId, Readonly<Record<GuildFunctionName, Ben
     noble: {
         trade: {
             line: ({ state }) => `Buy up to ${nobleTradeOffer(state).most}`,
-            candidates: (seat) =>
-                sealCandidates(seat, {
-                    kind: 'cost',
-                    label: `${nobleTradeOffer(seat.state).price}s`
-                }),
+            candidates: (seat) => sealCandidates(seat, nobleTradeOffer(seat.state).price),
             dimsOnRefusal: true,
             name: (stages) => `Buy ${plural(picksOf(stages, 'scroll').length, 'seal')}`,
             ghosts: sealGhosts(SeatPlace)
@@ -619,7 +623,7 @@ function benchItem(
     candidate: Candidate,
     presser: BenchPresser
 ): BenchItem {
-    const { pick, label, area, note, count } = candidate
+    const { pick, label, area, note, count, price } = candidate
     const picked = stages.picks.some((other) => samePick(other, pick))
     const common = {
         id: candidateId(pick),
@@ -627,7 +631,8 @@ function benchItem(
         area,
         picked,
         ...(note ? { note } : {}),
-        ...(count !== undefined ? { count } : {})
+        ...(count !== undefined ? { count } : {}),
+        ...(price !== undefined ? { price } : {})
     }
     const without = stages.picks.filter((other) => !samePick(other, pick))
     if (picked && (row.pickOne || pick.kind === 'scroll')) {
@@ -674,7 +679,8 @@ function beadItems(preview: BenchPreview | undefined): readonly BenchItem[] {
             area: 0,
             role: 'lit',
             picked: false,
-            ...(note ? { note } : {})
+            ...(note ? { note } : {}),
+            ...(preview.payment ? { price: paymentTotal(preview.payment) } : {})
         }
     })
 }
@@ -971,6 +977,7 @@ function knightItems(
             id: 'row:seat',
             label: `${price}s: take ${plural(markers, 'marker')}`,
             area: 0,
+            price,
             role: stages.take ? 'picked' : 'lit',
             picked: stages.take === true,
             press: () => {
@@ -1023,8 +1030,17 @@ export function benchOffer(
     const line = row.line?.(seat)
     const result = resultOf(seat, source, row, stages, preview)
     const count = countChoices(row, stages, preview, presser)
+    const name = row.name(stages)
+    // R-4.6.2 A trade whose picks add up says their total on its send.
+    const total =
+        source.fn === 'trade' && row.line && stages.picks.length > 0 && preview?.payment
+            ? ` · ${paymentTotal(preview.payment)}s`
+            : ''
     return {
         title,
+        guild: source.guildId,
+        fn: source.fn,
+        byFeast: source.feast !== undefined,
         areas: areasOf(source.guildId, source.fn),
         ...(line ? { line } : {}),
         ...(step.collapsed ? { collapsed: step.collapsed } : {}),
@@ -1036,7 +1052,7 @@ export function benchOffer(
         ...(step.popup ? { popup: step.popup } : {}),
         ...(step.map ? { map: step.map } : {}),
         primary: {
-            label: primaryLabel(row.name(stages), preview),
+            label: primaryLabel(`${name}${total}`, preview),
             enabled: completes
         },
         fixed: row.fixed === true,
