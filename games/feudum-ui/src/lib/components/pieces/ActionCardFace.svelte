@@ -50,13 +50,14 @@
         return assetUrl(card ? printedCardAsset(card.kind, printed) : cardBackAsset(printed))
     })
     /**
-     * Over the print: the number on the border's foot, and on a compact face its short name across
+     * Over the print: the number on the frame's foot, and on a compact face its short name across
      * the foot, over the name line in the print's other languages, where the print's own name is too
      * small to read. A standard or full face leaves the name to the print, whose top symbols a plate
-     * would cover; the accessible name carries it at every size.
+     * would cover; the accessible name carries it at every size. The print is cut at its line, the
+     * card art's proportion, so it stands whole and centred in the card with a strip either side.
      */
-    const PrintedNumber = { x: 30, y: 352, r: 17 }
-    const PrintedPlate = { x: 12, y: 310, width: 226, height: 60, font: 42, text: 145 } as const
+    const PrintedNumber = { x: 26, y: 360, r: 17 }
+    const PrintedPlate = { x: 14, y: 318, width: 222, height: 60, font: 42, text: 145 } as const
     const Body = { x: CardArt.x + 10, right: CardArt.x + CardArt.width - 10 }
     let actionRows = $derived(card ? wrapLines(card.regularAction, 26) : [])
     let effectRows = $derived(card ? wrapLines(card.special.effect, 28) : [])
@@ -73,7 +74,7 @@
             y="0"
             width={CardBox.width}
             height={CardBox.height}
-            preserveAspectRatio="none"
+            preserveAspectRatio="xMidYMid meet"
         ></image>
         {#if card}
             {#if tier === 'compact'}
