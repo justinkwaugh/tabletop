@@ -339,6 +339,16 @@ describe('DiscardWrit', () => {
         expect(table.seat(playerId).writs).toEqual(held)
     })
 
+    it('R-4.4-H5 the validity check refuses a discard the seat is not offered', () => {
+        const { table, playerId, held } = holding(1)
+        const other = table.order[1]
+        const discard = { type: ActionType.DiscardWrit, writId: held[0], ...AnyTime }
+        expect(table.accepts(playerId, discard)).toBe(true)
+        expect(table.accepts(other, discard)).toBe(false)
+        table.state = { ...table.state, machineState: MachineState.EndOfGame }
+        expect(table.accepts(playerId, discard)).toBe(false)
+    })
+
     it('R-4.4-H5 is refused once the game has ended', () => {
         const { table, playerId, held } = holding(1)
         const state = table.hydrated()
@@ -353,7 +363,7 @@ describe('DiscardWrit', () => {
         expect(reasonDiscardWritRefused(table.hydrated(), playerId, inDeck)).toBe(NOT_HELD)
         expect(() =>
             table.send(playerId, { type: ActionType.DiscardWrit, writId: inDeck, ...AnyTime })
-        ).toThrow(NOT_HELD)
+        ).toThrow('not valid')
     })
 
     it('R-4.4.4 puts the writ under the deck face down, costing no turn and no barrier', () => {

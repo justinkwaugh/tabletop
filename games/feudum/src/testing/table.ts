@@ -56,6 +56,21 @@ export class Table {
         return processedActions
     }
 
+    /** Whether the engine's validity check takes this Action now, without applying it. */
+    accepts(playerId: string, move: Record<string, unknown> & { type: ActionType }): boolean {
+        return engine.accepts({
+            game: this.game,
+            state: this.state,
+            action: {
+                id: 'check',
+                gameId: this.game.id,
+                source: ActionSource.User,
+                playerId,
+                ...move
+            }
+        })
+    }
+
     /** What the engine offers this seat now. */
     offered(playerId: string): string[] {
         return engine.getValidActionTypesForPlayer(this.game, this.state, playerId)

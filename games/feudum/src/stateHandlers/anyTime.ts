@@ -14,7 +14,9 @@ type FeudumStateHandler = MachineStateHandler<HydratedAction, HydratedFeudumGame
 export function withDiscardAnyTime(handler: FeudumStateHandler): FeudumStateHandler {
     return {
         isValidAction: (action, context) =>
-            isDiscardWrit(action) || handler.isValidAction(action, context),
+            isDiscardWrit(action)
+                ? discardWritOffers(context.gameState, action.playerId).includes(action.writId)
+                : handler.isValidAction(action, context),
         validActionsForPlayer: (playerId, context) => {
             const types = handler.validActionsForPlayer(playerId, context)
             return discardWritOffers(context.gameState, playerId).length > 0 &&
