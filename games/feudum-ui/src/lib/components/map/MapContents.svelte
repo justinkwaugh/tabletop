@@ -22,6 +22,7 @@
         type BoardChrome
     } from '$lib/model/boardChrome.js'
     import { markerTarget, roleOf, spaceTarget, feudumTarget } from '$lib/model/boardOffer.js'
+    import { spaceLabel } from '$lib/model/cardFlows.js'
     import { abandonedVessels, goodStacks } from '$lib/model/mapView.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import {
@@ -87,7 +88,13 @@
             </g>
         </g>
     </BoardPiece>
-    <PickChrome {target} {chrome} {at} width={MarkerFrame} label="{role} at {spaceId}" />
+    <PickChrome
+        {target}
+        {chrome}
+        {at}
+        width={MarkerFrame}
+        label="{role} at {spaceLabel(spaceId)}"
+    />
 {/snippet}
 
 {#each Spaces as { id } (id)}
