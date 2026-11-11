@@ -990,11 +990,13 @@ function dieLine(action: GameAction): string | undefined {
         return undefined
     }
     const { metadata } = action
-    if (!metadata || metadata.faces.length === 0) {
+    if (!metadata) {
         return 'The progress die was not rolled'
     }
     return sentence(
-        `The progress die rolled ${listed(metadata.faces.map(titled))}`,
+        metadata.faces.length > 0
+            ? `The progress die rolled ${listed(metadata.faces.map(titled))}`
+            : 'The progress die was not rolled',
         metadata.removed ? `${tileName(metadata.removed.tileId)} removed` : undefined,
         metadata.epochTriggered ? `Epoch ${EpochNames[metadata.epochTriggered]} dawned` : undefined
     )
