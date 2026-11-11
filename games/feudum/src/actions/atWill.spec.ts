@@ -10,6 +10,7 @@ import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { placeMarker } from '../model/locationControl.js'
 import { moveConcealedSeal } from '../model/seals.js'
 import {
+    AnyTime,
     Charter,
     Charters,
     giveTile,
@@ -79,7 +80,6 @@ function equip(state: HydratedFeudumGameState, playerId: string): void {
 const EveryWindowAction = [
     ActionType.PlayMandate,
     ActionType.SpendRegionTile,
-    ActionType.DiscardWrit,
     ActionType.ReclaimImmunitySeal
 ]
 
@@ -126,7 +126,7 @@ describe('R-4.4-H1 the at-will windows', () => {
             { type: ActionType.SpendRegionTile, tileId, good: 'iron' },
             { type: ActionType.ReclaimImmunitySeal, spaceId: Battlefield, role: 'serf' },
             { type: ActionType.PlayMandate, writId: ShillingMandate, alternative: 0 },
-            { type: ActionType.DiscardWrit, writId: VesselMandate }
+            { type: ActionType.DiscardWrit, writId: VesselMandate, ...AnyTime }
         ]
         for (const move of moves) {
             const handCount = table.seat(playerId).handCount
@@ -148,14 +148,14 @@ describe('R-4.4-H1 the at-will windows', () => {
     it('R-3.2-H2 an at-will action costs the turn player no card and no step', () => {
         const { table, playerId } = tableInWindow('before a card', equip)
         const turn = { ...table.hydrated().flow.turn }
-        table.send(playerId, { type: ActionType.DiscardWrit, writId: VesselMandate })
+        table.send(playerId, { type: ActionType.DiscardWrit, writId: VesselMandate, ...AnyTime })
         expect(table.hydrated().flow.turn).toEqual(turn)
         expect(table.seat(playerId).played).toEqual([])
     })
 
     it('R-3.1-H1 the next finaliser acts at will, then still finalises', () => {
         const { table, playerId } = tableInWindow('hand selection', equip)
-        table.send(playerId, { type: ActionType.DiscardWrit, writId: VesselMandate })
+        table.send(playerId, { type: ActionType.DiscardWrit, writId: VesselMandate, ...AnyTime })
         expect(table.asked).toBe(playerId)
         expect(table.offered(playerId)).toContain(ActionType.FinaliseHand)
         expect(table.hydrated().flow.selection?.playerId).toBe(playerId)
@@ -175,7 +175,7 @@ describe('R-4.4-H1 the at-will windows', () => {
         expect(atWillWindow(table.hydrated(), playerId)).toBeUndefined()
     })
 
-    it('R-4.4-H1 no window while the turn player waits on a defender or keeps a draw', () => {
+    it('R-4.4-H1 no window while the turn player waits on a defender or keeps a draw; R-4.4-H5 a discard is taken', () => {
         const combat = tableAtCombat()
         const { table, attackerId, defenderId } = combat
         setUp(table, (state) => {
@@ -189,10 +189,11 @@ describe('R-4.4-H1 the at-will windows', () => {
         expect(atWillWindow(state, attackerId)).toBeUndefined()
         expect(atWillWindow(state, defenderId)).toBeUndefined()
         expect(table.offered(defenderId)).not.toContain(ActionType.PlayMandate)
-        expect(reasonDiscardWritRefused(state, defenderId, VesselMandate)).toBe(NOT_YOUR_TURN)
-        expect(() =>
-            table.send(defenderId, { type: ActionType.DiscardWrit, writId: VesselMandate })
-        ).toThrow()
+        // R-4.4-H5 A discard is no at-will action: it is taken now, and the defender is still asked.
+        expect(reasonDiscardWritRefused(state, defenderId, VesselMandate)).toBeUndefined()
+        table.send(defenderId, { type: ActionType.DiscardWrit, writId: VesselMandate, ...AnyTime })
+        expect(table.hydrated().machineState).toBe(MachineState.AwaitingDefence)
+        expect(table.asked).toBe(defenderId)
     })
 })
 
@@ -207,7 +208,7 @@ describe('R-4.4.4 the writ limit', () => {
             giveSeal(state, seat)
             giveGood(state, seat, 'food')
         })
-        table.send(playerId, { type: ActionType.DiscardWrit, writId: Charters[1] })
+        table.send(playerId, { type: ActionType.DiscardWrit, writId: Charters[1], ...AnyTime })
         expect(table.hydrated().machineState).toBe(MachineState.DiscardingWrits)
         expect(table.asked).toBe(playerId)
         table.send(playerId, {

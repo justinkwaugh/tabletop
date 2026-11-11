@@ -18,6 +18,7 @@ import {
     threePawns,
     type SeatTable
 } from '$lib/testing/followUpTable.js'
+import { linesOf, pressCard, rowLabels, rowNamed } from '$lib/testing/actionPanelView.js'
 import { settled, type FeudumHost } from '$lib/testing/sessionHarness.js'
 import {
     atPlayingCards,
@@ -28,6 +29,7 @@ import {
 } from '$lib/testing/turnTable.js'
 import { AtWillStageOrder, type AtWillList, type AtWillValues } from './atWillDraft.svelte.js'
 import { pawnTarget, roleOf } from './boardOffer.js'
+import type { ActionBlock } from './actionPanel.js'
 import type { DraftChoice } from './deciderDraft.svelte.js'
 import type { FeudumGameSession } from './session.svelte.js'
 import { StagedDraft } from './stagedDraft.svelte.js'
@@ -71,6 +73,15 @@ async function open(session: FeudumGameSession, list: AtWillList) {
     await press(
         session,
         session.atWillPanel?.chips.find((chip) => chip.list === list)
+    )
+}
+
+function blocksOf<K extends ActionBlock['kind']>(
+    view: FeudumGameSession['actionPanel'],
+    kind: K
+): Extract<ActionBlock, { kind: K }>[] {
+    return view.blocks.filter(
+        (block): block is Extract<ActionBlock, { kind: K }> => block.kind === kind
     )
 }
 
@@ -298,7 +309,101 @@ describe('R-4.4.3 no seal during play, and R-4.4.4 DiscardWrit', () => {
         const discard = writChoices(session, Mandate5).find(({ label }) => label === 'Discard')
         await press(session, discard)
         await settled(session)
-        expect(lastAction(table)).toMatchObject({ type: ActionType.DiscardWrit, writId: Mandate5 })
+        expect(lastAction(table)).toMatchObject({
+            type: ActionType.DiscardWrit,
+            writId: Mandate5,
+            outOfTurn: true,
+            sequenced: true
+        })
+    })
+})
+
+describe('R-4.4-H5 a writ discarded at any time', () => {
+    it('R-4.4-H5 a seat off its turn holding a writ has the row under the waiting line; "Discard" sends', async () => {
+        const table = await seatedAtCards(['tax', 'move', 'guild'], (state, { other }) => {
+            holdWrit(state, other, Mandate5)
+        })
+        host = table.host
+        const other = await table.host.openSeat(table.other)
+        await settled(other)
+        expect(linesOf(other.actionPanel, 'waiting')).toHaveLength(1)
+        expect(rowLabels(other.actionPanel, 'at-will')).toEqual(['Writs 1'])
+        expect(chipLabels(other)).toEqual(['Writs 1'])
+        await open(other, 'writs')
+        const choices = writChoices(other, Mandate5)
+        expect(choices.filter(({ press }) => press).map(({ label }) => label)).toEqual(['Discard'])
+        await press(
+            other,
+            choices.find(({ label }) => label === 'Discard')
+        )
+        await settled(other)
+        expect(lastAction(table)).toMatchObject({
+            type: ActionType.DiscardWrit,
+            playerId: table.other,
+            writId: Mandate5,
+            outOfTurn: true,
+            sequenced: true
+        })
+        expect(other.gameState.getPlayerState(table.other).writs).toEqual([])
+        expect(other.gameState.flow.turn?.playerId).toBe(table.seat)
+    })
+
+    it('R-4.4-H5 a seat over the limit is asked alone: another seat holding a writ keeps its row', async () => {
+        const table = await seatedAtCards(['tax', 'move'], (state, { seat, other }) => {
+            holdFood(state, seat, 1)
+            for (const writId of [
+                'writ.mandate.2',
+                'writ.mandate.4',
+                'writ.mandate.7',
+                'writ.mandate.8'
+            ] as const) {
+                holdWrit(state, seat, writId)
+            }
+            holdWrit(state, other, Mandate5)
+        })
+        host = table.host
+        const { session } = table
+        await pressCard(session.actionPanel, 'tax')
+        await session.forfeitTurnCard()
+        await settled(session)
+        expect(session.gameState.machineState).toBe(MachineState.DiscardingWrits)
+        const other = await table.host.openSeat(table.other)
+        await settled(other)
+        expect(other.writLimitPanel).toBeUndefined()
+        expect(chipLabels(other)).toEqual(['Writs 1'])
+        expect(session.writLimitPanel?.writs).toHaveLength(4)
+    })
+
+    it('R-4.4-H5 a hotseat gives each other seat holding a writ a chip; its "Discard" sends as that seat', async () => {
+        const table = await seatedAtCards(['tax', 'move', 'guild'], (state, { other }) => {
+            holdWrit(state, other, Mandate5)
+        })
+        host = table.host
+        expect(rowLabels(table.session.actionPanel, 'off-turn-writs')).toEqual([])
+        const screen = await table.host.openHotseat()
+        expect(screen.myPlayerId).toBe(table.seat)
+        expect(rowLabels(screen.actionPanel, 'off-turn-writs')).toEqual([
+            `${screen.getPlayerName(table.other)}'s writs`
+        ])
+        expect(blocksOf(screen.actionPanel, 'writ-offers')).toEqual([])
+        await rowNamed(screen.actionPanel, /'s writs$/).press()
+        flushSync()
+        const [offers] = blocksOf(screen.actionPanel, 'writ-offers')
+        expect(offers?.offers.map(({ writId }) => writId)).toEqual([Mandate5])
+        await offers?.offers[0].rows[0].press()
+        await settled(screen)
+        expect(screen.actions.findLast(({ source }) => source === ActionSource.User)).toMatchObject(
+            {
+                type: ActionType.DiscardWrit,
+                playerId: table.other,
+                writId: Mandate5,
+                outOfTurn: true,
+                sequenced: true
+            }
+        )
+        expect(screen.gameState.getPlayerState(table.other).writs).toEqual([])
+        expect(screen.gameState.flow.turn?.playerId).toBe(table.seat)
+        expect(rowLabels(screen.actionPanel, 'off-turn-writs')).toEqual([])
     })
 })
 

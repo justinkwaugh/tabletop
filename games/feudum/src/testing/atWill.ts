@@ -4,12 +4,16 @@ import { Goods } from '../data/components.js'
 import type { TileId } from '../data/regionTiles.js'
 import { RegionIds } from '../data/regionTiles.js'
 import type { WritId } from '../data/writs.js'
+import { DiscardAnyTime } from '../actions/discardWrit.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { moveConcealedSeal } from '../model/seals.js'
 import { collectTopTile } from '../model/regionStacks.js'
 import { holdWrit } from './combat.js'
 import { tableAtHandSelection, tableAtPlayingCards, type Table } from './table.js'
+
+/** R-4.4-H5 The fields every `DiscardWrit` carries. */
+export const AnyTime = DiscardAnyTime
 
 export const Weapon: WritId = 'writ.mandate.1'
 /** A turn-in alternative for a vessel. */

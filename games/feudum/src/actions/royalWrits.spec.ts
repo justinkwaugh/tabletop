@@ -11,6 +11,7 @@ import { queueFollowUp } from '../model/followUps.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { drawWrits, writDeckCount } from '../model/writDeck.js'
 import {
+    AnyTime,
     Charter,
     FarmerMandate,
     giveTile,
@@ -276,28 +277,74 @@ describe('KeepWrits', () => {
 })
 
 describe('DiscardWrit', () => {
-    it('R-4.4.4 is offered to the turn player holding a writ, and not otherwise', () => {
+    it('R-4.4-H5 is offered to every seat holding a writ, on its turn or not', () => {
         const { table, playerId, held } = holding(2)
+        const other = table.order[1]
         expect(table.offered(playerId)).toContain(ActionType.DiscardWrit)
-        expect(table.offered(table.order[1])).not.toContain(ActionType.DiscardWrit)
+        expect(table.offered(other)).not.toContain(ActionType.DiscardWrit)
         expect(discardWritOffers(table.hydrated(), playerId)).toEqual(held)
-        expect(discardWritOffers(table.hydrated(), table.order[1])).toEqual([])
+        expect(discardWritOffers(table.hydrated(), other)).toEqual([])
+        table.moveTo((state) => {
+            holdWrit(state, other, Weapon)
+            return MachineState.PlayingCards
+        })
+        expect(table.offered(other)).toEqual([ActionType.DiscardWrit])
+        expect(discardWritOffers(table.hydrated(), other)).toEqual([Weapon])
         const empty = holding(0)
         expect(empty.table.offered(empty.playerId)).not.toContain(ActionType.DiscardWrit)
     })
 
-    it('R-4.4.4 is refused out of turn', () => {
-        const { table, held } = holding(1)
+    it('R-4.4-H5 a seat off its turn discards at any time, and the turn stays where it was', () => {
+        const { table, playerId } = holding(1)
         const other = table.order[1]
         table.moveTo((state) => {
-            state.getPlayerState(other).requireWrits().push(held[0])
-            state.getPlayerState(other).writCount = 1
+            holdWrit(state, other, Weapon)
             return MachineState.PlayingCards
         })
-        expect(reasonDiscardWritRefused(table.hydrated(), other, held[0])).toBe(
-            "It isn't your turn."
-        )
-        expect(() => table.send(other, { type: ActionType.DiscardWrit, writId: held[0] })).toThrow()
+        const slot = table.hydrated().writDeck.nextBottom
+
+        table.send(other, { type: ActionType.DiscardWrit, writId: Weapon, ...AnyTime })
+
+        const state = table.hydrated()
+        expect(state.getPlayerState(other).writs).toEqual([])
+        expect(state.getPlayerState(other).writCount).toBe(0)
+        expect(state.getPlayerState(other).deckKnowledge).toEqual([{ slot, writId: Weapon }])
+        expect(state.machineState).toBe(MachineState.PlayingCards)
+        expect(state.activePlayerIds).toEqual([playerId])
+        expect(state.flow.turn?.playerId).toBe(playerId)
+    })
+
+    it('R-4.4-H5 a discard is taken while play waits on another seat, which is still asked', () => {
+        const { table, playerId } = afterDraw()
+        const other = table.order.find((seat) => seat !== playerId) ?? ''
+        table.moveTo((state) => {
+            holdWrit(state, other, Weapon)
+            return MachineState.KeepingWrits
+        })
+
+        table.send(other, { type: ActionType.DiscardWrit, writId: Weapon, ...AnyTime })
+
+        const state = table.hydrated()
+        expect(state.getPlayerState(other).writs).toEqual([])
+        expect(state.machineState).toBe(MachineState.KeepingWrits)
+        expect(state.activePlayerIds).toEqual([playerId])
+        expect(table.offered(playerId)).toContain(ActionType.KeepWrits)
+    })
+
+    it('R-4.4-H5 a discard is sent as one taken at any time, and refused otherwise', () => {
+        const { table, playerId, held } = holding(1)
+        expect(() =>
+            table.send(playerId, { type: ActionType.DiscardWrit, writId: held[0] })
+        ).toThrow()
+        expect(table.seat(playerId).writs).toEqual(held)
+    })
+
+    it('R-4.4-H5 is refused once the game has ended', () => {
+        const { table, playerId, held } = holding(1)
+        const state = table.hydrated()
+        state.machineState = MachineState.EndOfGame
+        expect(reasonDiscardWritRefused(state, playerId, held[0])).toBe('The game is over.')
+        expect(discardWritOffers(state, playerId)).toEqual([])
     })
 
     it('R-4.4.4 is refused for a writ not held', () => {
@@ -305,7 +352,7 @@ describe('DiscardWrit', () => {
         const inDeck = table.hydrated().requireVault().writDeck[0].writId
         expect(reasonDiscardWritRefused(table.hydrated(), playerId, inDeck)).toBe(NOT_HELD)
         expect(() =>
-            table.send(playerId, { type: ActionType.DiscardWrit, writId: inDeck })
+            table.send(playerId, { type: ActionType.DiscardWrit, writId: inDeck, ...AnyTime })
         ).toThrow(NOT_HELD)
     })
 
@@ -314,7 +361,11 @@ describe('DiscardWrit', () => {
         const deck = writDeckCount(table.hydrated())
         const slot = table.hydrated().writDeck.nextBottom
 
-        const [action] = table.send(playerId, { type: ActionType.DiscardWrit, writId: held[0] })
+        const [action] = table.send(playerId, {
+            type: ActionType.DiscardWrit,
+            writId: held[0],
+            ...AnyTime
+        })
 
         const state = table.hydrated()
         const player = state.getPlayerState(playerId)
@@ -336,7 +387,11 @@ describe('DiscardWrit', () => {
 
     it('R-4.4.4, R-5.1 a discard is face down: the writ is the discarder’s, the slot public', () => {
         const { table, playerId, held } = holding(1)
-        const [action] = table.send(playerId, { type: ActionType.DiscardWrit, writId: held[0] })
+        const [action] = table.send(playerId, {
+            type: ActionType.DiscardWrit,
+            writId: held[0],
+            ...AnyTime
+        })
         const other = table.order.find((seat) => seat !== playerId) ?? ''
         for (const perspective of [spectator, { kind: 'player', playerId: other } as const]) {
             const projected = actionProjector.project(action, perspective, { config: {} })

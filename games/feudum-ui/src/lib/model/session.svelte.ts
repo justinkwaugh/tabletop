@@ -1,7 +1,7 @@
 import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
 import { FlightAnimator } from '$lib/animators/flightAnimator.svelte.js'
 import { HistoryLog } from '$lib/model/historyLog.svelte.js'
-import { ActionSource, type GameAction } from '@tabletop/common'
+import { ActionSource, GameStorage, type GameAction } from '@tabletop/common'
 import { GameSession, type PresentedTransition } from '@tabletop/frontend-components'
 import {
     ActionCards,
@@ -10,6 +10,7 @@ import {
     atWillOffers,
     ChooseFavours,
     ChooseStartingGoods,
+    discardWritOffers,
     isNourishPawns,
     FinaliseHand,
     Goods,
@@ -61,6 +62,11 @@ import { roundEndOf, type RoundEndView } from './roundEnd.js'
 import { combatTallyOf, orderRowOf, type CombatTallyRow, type OrderRow } from './sharedRows.js'
 import { deckNoteOf, watchingPanelOf, type WatchingPanel } from './watching.js'
 import { WritLimitDraft, type WritLimitPanel } from './writLimitDraft.svelte.js'
+import {
+    OffTurnDiscardDraft,
+    type OffTurnDiscardContext,
+    type OffTurnDiscardPanel
+} from './offTurnDiscardDraft.svelte.js'
 
 export interface PrimaryButton {
     readonly label: string
@@ -185,6 +191,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
     readonly landscapes = new LandscapesDraft(() => this.deciding(ActionType.CollectLandscapes))
     readonly disc = new DiscDraft(() => this.deciding(ActionType.PlaceDisc))
     readonly atWill = new AtWillDraft(() => this.atWillContext)
+    readonly offTurnDiscard = new OffTurnDiscardDraft(() => this.offTurnDiscardContext)
 
     /** The drafts whose lifetime is one displayed state; `hand` alone outlives one. */
     private readonly oneStateDrafts = [
@@ -201,6 +208,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         this.nourish,
         this.landscapes,
         this.disc,
+        this.offTurnDiscard,
         this.atWill
     ]
 
@@ -236,6 +244,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             this.nourish,
             this.landscapes,
             this.disc,
+            this.offTurnDiscard,
             // Last, so it is popped first: Undo closes an open list before anything else.
             this.atWill
         ]) {
@@ -772,7 +781,11 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
     /** The press that completes an undoable Action sends at once. */
     private async sendTurnIfCompleted() {
         await this.sendTurnPlay(
-            this.atWill.sendsNow ?? this.disc.sendsNow ?? this.guild.sendsNow ?? this.turn.sendsNow
+            this.atWill.sendsNow ??
+                this.offTurnDiscard.sendsNow ??
+                this.disc.sendsNow ??
+                this.guild.sendsNow ??
+                this.turn.sendsNow
         )
     }
 
@@ -801,23 +814,54 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         return me && this.isOffered(type) ? this.contextFor(me) : undefined
     }
 
-    /** R-4.4.4 At-will windows offer `DiscardWrit` too: the limit's own panel reads only in its state. */
+    /**
+     * R-4.4.4 The limit's own panel reads in its state, for the seat it asks: any seat holding a writ
+     * is offered `DiscardWrit` at any time (R-4.4-H5).
+     */
     private writLimitContext: TurnContext | undefined = $derived(
-        this.gameState.machineState === MachineState.DiscardingWrits
+        this.gameState.machineState === MachineState.DiscardingWrits &&
+            this.gameState.activePlayerIds.includes(this.myPlayerId ?? '')
             ? this.deciding(ActionType.DiscardWrit)
             : undefined
     )
 
-    /** R-4.4-H1 Open while no card is picked, for what this seat can do now (S50). */
+    /**
+     * R-4.4-H1 Open while no card is picked, for what this seat can do now (S50); R-4.4-H5 a discard
+     * is offered at any time, on the seat's turn or not.
+     */
     private atWillContext: AtWillContext | undefined = $derived.by(() => {
         const me = this.myPlayerId
         if (!me || this.isViewingHistory || this.turn.card) {
             return undefined
         }
-        const offered = atWillOffers(this.gameState, me).filter((type) =>
-            this.validActionTypes.includes(type)
+        const offered = [...atWillOffers(this.gameState, me), ActionType.DiscardWrit].filter(
+            (type) => this.validActionTypes.includes(type)
         )
         return offered.length > 0 ? { ...this.contextFor(me), offered } : undefined
+    })
+
+    /**
+     * R-4.4-H5 A hotseat plays every seat on one screen, which shows the seat the state asks; the
+     * others holding a writ discard from here. The developer harness switches seats itself.
+     */
+    private offTurnDiscardContext: OffTurnDiscardContext | undefined = $derived.by(() => {
+        if (
+            !this.game.hotseat ||
+            this.game.storage !== GameStorage.Local ||
+            this.isDeveloperHarness ||
+            this.isViewingHistory
+        ) {
+            return undefined
+        }
+        const me = this.myPlayerId
+        const state = this.gameState
+        return {
+            state,
+            seats: state.turnManager.turnOrder.filter(
+                (playerId) => playerId !== me && discardWritOffers(state, playerId).length > 0
+            ),
+            nameOf: (playerId) => this.getPlayerName(playerId)
+        }
     })
 
     private get atWillStage() {
@@ -838,6 +882,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
     landscapesPanel: LandscapesPanel | undefined = $derived(this.landscapes.panel)
     discPanel: DiscPanel | undefined = $derived(this.disc.panel)
     atWillPanel: AtWillPanel | undefined = $derived(this.atWill.panel)
+    offTurnDiscardPanel: OffTurnDiscardPanel | undefined = $derived(this.offTurnDiscard.panel)
 
     answerAttackPanel: AnswerAttackPanel | undefined = $derived.by(() => {
         const context = this.deciding(ActionType.AnswerAttack)
@@ -917,7 +962,9 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
     async pressDraftChoice(choice: { readonly press?: () => void }) {
         if (choice.press) {
             choice.press()
-            await this.sendTurnPlay(this.atWill.sendsNow ?? this.disc.sendsNow)
+            await this.sendTurnPlay(
+                this.atWill.sendsNow ?? this.offTurnDiscard.sendsNow ?? this.disc.sendsNow
+            )
         }
     }
 

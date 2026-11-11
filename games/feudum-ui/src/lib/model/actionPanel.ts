@@ -143,6 +143,7 @@ export type PanelSession = Pick<
     | 'nourishPanel'
     | 'landscapesPanel'
     | 'atWillPanel'
+    | 'offTurnDiscardPanel'
     | 'discPanel'
     | 'orderRow'
     | 'combatTally'
@@ -376,6 +377,31 @@ function atWillBlocks(session: PanelSession): ActionBlock[] {
         ...rows('vessels', asRows(panel.vessels)),
         ...rows('covers', asRows(panel.covers)),
         ...(panel.primary ? [primaryBlock(panel.primary, () => session.sendFollowUp())] : [])
+    ]
+}
+
+/** R-4.4-H5 In a hotseat, each other seat holding a writ: its chip, then its writs once pressed. */
+function offTurnDiscardBlocks(session: PanelSession): ActionBlock[] {
+    const panel = session.offTurnDiscardPanel
+    if (!panel) {
+        return []
+    }
+    const asRows = (choices: readonly DraftChoice[]) =>
+        choices.map((choice) => draftRow(session, choice))
+    return [
+        ...rows('off-turn-writs', asRows(panel.chips)),
+        ...(panel.writs
+            ? [
+                  {
+                      kind: 'writ-offers',
+                      offers: panel.writs.map(({ writId, name, choices }) => ({
+                          writId,
+                          name,
+                          rows: asRows(choices)
+                      }))
+                  } satisfies ActionBlock
+              ]
+            : [])
     ]
 }
 
@@ -686,7 +712,10 @@ function decisionBlocks(session: PanelSession): readonly ActionBlock[] {
     }
     return [
         ...(watching?.line ? [line('waiting', watching.line)] : []),
-        ...(watching?.backs ? [{ kind: 'backs', count: watching.backs } satisfies ActionBlock] : [])
+        ...(watching?.backs
+            ? [{ kind: 'backs', count: watching.backs } satisfies ActionBlock]
+            : []),
+        ...atWillBlocks(session)
     ]
 }
 
@@ -758,6 +787,7 @@ export function actionPanelOf(session: PanelSession): ActionPanelView {
             ...(lineFirst ? [first] : []),
             ...shared,
             ...(lineFirst ? rest : decision),
+            ...offTurnDiscardBlocks(session),
             ...previousSeatBlocks(session),
             ...roundEndBlocks(session)
         ]
