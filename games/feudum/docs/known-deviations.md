@@ -19,6 +19,16 @@ One line for each entry of the provisional registry (`src/data/provisional.ts`),
 - **`guild.*` Each guild's charity:** Farmer, Merchant and Alchemist pay the church coffer; Knight, Noble and Monk the farmer's purse. Settled by the designer's ruling. Governs: R-4.6-H3.
 - **`writ.charter.northern-kingdom` Two dots on the Northern Kingdom:** read as badlands-2 and mountain-1. Settled by the physical card beside the board.
 
+## Reached in play
+
+The scripted games of `completeGame.spec.ts` are held to reach the asks, the dawns, a feudum, a tamed monster and a tended landscape by name. These are proved by their own rule specs only:
+
+- **R-4.2.3 A ferry crossing:** no scripted game takes one. `move.spec.ts`, `media.spec.ts`.
+- **R-4.6.6 A krud barrel:** no scripted game invents one. `alchemist.spec.ts`, `knight.spec.ts`.
+- **R-4.6 The 18 guild functions:** the scripted games are not held to reach each one by name. `guildTrade.spec.ts`, `guildFunctions.spec.ts` and the Merchant, Alchemist, Knight, Noble and Monk specs.
+
+Reaching them means steering the seats' choices, which changes every scripted game.
+
 ## Platform limits
 
 None yet.
