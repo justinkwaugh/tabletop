@@ -37,6 +37,7 @@ import {
     isListedPublicGame,
     isYourTurnNotification,
     omitGameState,
+    type SeriesActivity,
     type UndoVotePreview,
     type User
 } from '@tabletop/common'
@@ -269,6 +270,16 @@ export class GameService implements GameServiceInterface {
     async loadOpenGames(titleId: string) {
         const response = await this.api.getOpenGames(titleId)
         this.openGamesByTitleId.set(titleId, response)
+    }
+
+    async loadSeriesActivity(seriesId: string, titleIds: string[]): Promise<SeriesActivity> {
+        const activity = await this.api.getSeriesActivity(seriesId)
+        for (const titleId of titleIds)
+            this.openGamesByTitleId.set(
+                titleId,
+                activity.open.filter((game) => game.typeId === titleId)
+            )
+        return activity
     }
 
     async loadGame(id: string, options: GetGameOptions = {}): Promise<GameLoadResult> {

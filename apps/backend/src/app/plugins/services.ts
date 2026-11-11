@@ -30,7 +30,9 @@ import {
     FirestoreUserStore,
     GameService,
     ProjectedHistoryCache,
-    TitleActivityCache,
+    ActivityCache,
+    SeriesActivityScope,
+    TitleActivityScope,
     LibraryService,
     type LibraryServiceOptions,
     TitleLibrary,
@@ -179,7 +181,8 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
     )
 
     const gameStore = new FirestoreGameStore(redisCacheService, fastify.firestore, {
-        titleActivity: new TitleActivityCache(redisService.client)
+        titleActivity: new ActivityCache(redisService.client, TitleActivityScope),
+        seriesActivity: new ActivityCache(redisService.client, SeriesActivityScope)
     })
     const gameService = new GameService(
         gameStore,

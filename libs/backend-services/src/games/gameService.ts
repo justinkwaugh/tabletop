@@ -63,6 +63,8 @@ import {
     GameStatusCategory,
     type GameHistoryCursor,
     type TitleActivity,
+    type SeriesActivity,
+    canDiscoverTitle,
     GameStorage,
     GameSyncStatus,
     IsYourTurnNotification,
@@ -171,6 +173,11 @@ import {
     startFinalScoresBackfill,
     type FinalScoresBackfillTask
 } from './finalScoresBackfill.js'
+import {
+    runSeriesBackfillPage,
+    startSeriesBackfill,
+    type SeriesBackfillTask
+} from './seriesBackfill.js'
 import { GLOBAL_TOPIC, gameTopic, userTopic } from '../notifications/topics.js'
 
 type UndoPlan = {
@@ -231,6 +238,7 @@ export class GameService {
         game.storage = GameStorage.Remote // Has to be remote here on the backend
 
         const newGame = definition.runtime.initializer.initializeGame(game, definition)
+        this.assignSeries(newGame, definition)
         delete newGame.protectedInformation
         const continuation = await linkGameContinuation(
             newGame,
@@ -367,6 +375,7 @@ export class GameService {
             definition
         )
         game.tournament = reference
+        this.assignSeries(game, definition)
         this.validatePlayerCount(game.id, game.players, definition)
         this.checkForDuplicatePlayers(game.players)
         await this.validateAndPopulatePlayers(game.players)
@@ -630,6 +639,7 @@ export class GameService {
         })
         this.assertGameNameAllowed(fork.game, owner)
         fork.game.ownerId = owner.id
+        this.assignSeries(fork.game, definition)
         fork.game.storage = GameStorage.Remote
         fork.game.status = GameStatus.WaitingForPlayers
         fork.game.lastActionAt = undefined
@@ -641,7 +651,7 @@ export class GameService {
             fork.state,
             fork.actions
         )
-        await this.notifyGamePlayers(GameNotificationAction.Create, { game: storedGame })
+        await this.notifyGameAudience(GameNotificationAction.Create, { game: storedGame })
         return storedGame
     }
 
@@ -793,6 +803,25 @@ export class GameService {
         return this.gameStore.findTitleActivity(titleId)
     }
 
+    getSeriesTitleIds(seriesId: string, roles: readonly Role[]): string[] {
+        return this.getTitles()
+            .filter(
+                ({ info }) =>
+                    info.metadata.series === seriesId && canDiscoverTitle(info.metadata, roles)
+            )
+            .map(({ info }) => info.id)
+    }
+
+    async getSeriesActivity(seriesId: string, titleIds: string[]): Promise<SeriesActivity> {
+        const activity = await this.gameStore.findSeriesActivity(seriesId)
+        const listed = (games: Game[]) => games.filter((game) => titleIds.includes(game.typeId))
+        return {
+            open: listed(activity.open),
+            inProgress: listed(activity.inProgress),
+            recentlyFinished: listed(activity.recentlyFinished)
+        }
+    }
+
     async getCompletedGamesForUser(user: User): Promise<Game[]> {
         return await this.gameStore.findGamesForUser(user, GameStatusCategory.Completed)
     }
@@ -811,6 +840,17 @@ export class GameService {
 
     async backfillFinalScores(task: FinalScoresBackfillTask): Promise<void> {
         await runFinalScoresBackfillPage(
+            { store: this.gameStore, tasks: this.taskService, titles: this.availableTitles },
+            task
+        )
+    }
+
+    async startSeriesBackfill(write: boolean): Promise<string> {
+        return startSeriesBackfill(this.taskService, this.availableTitles, write)
+    }
+
+    async backfillSeries(task: SeriesBackfillTask): Promise<void> {
+        await runSeriesBackfillPage(
             { store: this.gameStore, tasks: this.taskService, titles: this.availableTitles },
             task
         )
@@ -2624,6 +2664,12 @@ export class GameService {
         const definition = this.getTitle(game.typeId)
         assertExists(definition, `Game definition ${game.typeId} is unavailable`)
         return definition
+    }
+
+    private assignSeries(game: Game, definition: GameDefinition): void {
+        const { series } = definition.info.metadata
+        if (series) game.series = series
+        else delete game.series
     }
 
     private validatePlayerCount(id: string, players: Player[], definition: GameDefinition): void {
