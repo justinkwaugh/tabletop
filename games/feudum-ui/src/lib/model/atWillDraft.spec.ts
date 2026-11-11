@@ -86,6 +86,10 @@ function blocksOf<K extends ActionBlock['kind']>(
     )
 }
 
+function chip(session: FeudumGameSession, list: AtWillList) {
+    return session.atWillPanel?.chips.find((entry) => entry.list === list)
+}
+
 function chipLabels(session: FeudumGameSession): readonly string[] {
     return session.atWillPanel?.chips.map(({ label }) => label) ?? []
 }
@@ -108,6 +112,8 @@ describe('R-4.4-H1 The at-will row', () => {
             holdWrit(state, seat, Mandate5)
         })
         expect(chipLabels(session)).toEqual(['Writs 1'])
+        // Contract, At-will actions: the chip is its piece and its count; the words its name.
+        expect(chip(session, 'writs')).toMatchObject({ art: { kind: 'writ-back' }, shown: '1' })
     })
 
     it('S50 Writs opens: mandate 5 shows "A: 1 food → 3s"; the press sends', async () => {
@@ -449,6 +455,7 @@ describe('R-4.3.3 SpendRegionTile', () => {
         const table = await atWill(twoTiles)
         const { session } = table
         expect(chipLabels(session)).toEqual(['Tiles 2'])
+        expect(chip(session, 'tiles')).toMatchObject({ art: { kind: 'tile' }, shown: '2' })
         await open(session, 'tiles')
         const tiles = session.atWillPanel?.tiles
         const [first] = tiles ?? []
@@ -458,6 +465,10 @@ describe('R-4.3.3 SpendRegionTile', () => {
         const goods = session.atWillPanel?.goods
         const haversack = session.gameState.supply.haversack
         expect(goods?.map(({ label }) => label)).toContain(`food ${haversack.food}`)
+        // R-4.3.3 Each good is its cube and the haversack's count; the words stay its name.
+        expect(goods?.find(({ label }) => label.startsWith('food'))?.shown).toBe(
+            String(haversack.food)
+        )
         expect(goods?.map(({ label }) => label)).toContain('Into the barrel')
         await press(
             session,
@@ -533,7 +544,16 @@ describe('R-4.2.2 PlaceVessel', () => {
         const table = await atWill(vessels)
         const { session, seat } = table
         expect(chipLabels(session)).toContain('Vessels 2')
+        expect(chip(session, 'vessels')).toMatchObject({
+            art: { kind: 'vessel', vessel: 'ship' },
+            shown: '2'
+        })
         await open(session, 'vessels')
+        // R-4.2.2 Each vessel row is the vessel; its name stays the row's accessible name.
+        expect(session.atWillPanel?.vessels?.map(({ label, art }) => ({ label, art }))).toEqual([
+            { label: 'ship', art: { kind: 'vessel', vessel: 'ship' } },
+            { label: 'flying machine', art: { kind: 'vessel', vessel: 'flying-machine' } }
+        ])
         await press(session, session.atWillPanel?.vessels?.[0])
         const pawn = session.gameState.getPlayerState(seat).pawns.find((row) => row.spaceId)
         assertExists(pawn, 'A pawn stands on the board')
@@ -567,6 +587,7 @@ describe('R-3.14.2 ReclaimImmunitySeal', () => {
         host = table.host
         const { session, seat } = table
         expect(chipLabels(session).join()).toContain('Immunity 1')
+        expect(chip(session, 'immunity')).toMatchObject({ art: { kind: 'seal' }, shown: '1' })
         await open(session, 'immunity')
         expect(session.atWillPanel?.line).toBe(
             'Take back the seal: the marker can be starved again'

@@ -396,7 +396,7 @@ describe('R-3.6 Migrate', () => {
         flushSync()
         const [{ target, notes }] = session.turn.flow?.picks ?? []
         expect(notes).toEqual([
-            { kind: 'cost', label: '1 food', goods: [{ good: 'food', count: 1 }] }
+            { kind: 'cost', label: '1 food', art: [{ kind: 'good', good: 'food', count: 1 }] }
         ])
 
         const spaceId = session.turn.flow?.picks[0].target.replace('space:', '')
@@ -552,7 +552,7 @@ describe('S48 R-4.4-H1 a payment short of a good: the tile cover', () => {
 })
 
 describe('R-3.9 Improve', () => {
-    async function ruling(kind: 'town' | 'outpost', extra?: Parameters<typeof table>[1]) {
+    async function ruling(kind: 'town' | 'farm' | 'outpost', extra?: Parameters<typeof table>[1]) {
         let spaceId: SpaceId = 'space.desert.1'
         const turn = await table(['improve', 'tax'], (state, context) => {
             spaceId = emptySpace(state, kind)
@@ -570,8 +570,15 @@ describe('R-3.9 Improve', () => {
         const { session, spaceId } = turn
         pickCard(session, 'improve')
         const target = spaceTarget(spaceId)
-        expect(chipLabels(session, target)[0]).toBe('→ feudum · 1 seal')
+        expect(chipLabels(session, target)[0]).toBe('town to feudum · 1 seal')
         expect(chipOf(session.boardOffer, target)?.tone).toBe('rose')
+        // Contract, Pick conventions: the step and its cost drawn, the words its accessible name.
+        expect(chipOf(session.boardOffer, target)?.art).toEqual([
+            { kind: 'disc', location: 'town' },
+            { kind: 'step' },
+            { kind: 'disc', location: 'feudum' },
+            { kind: 'seal', count: 1 }
+        ])
 
         await pressTarget(session, target)
         expect(session.turn.flow?.popup?.anchor).toBe(target)
@@ -597,6 +604,55 @@ describe('R-3.9 Improve', () => {
         expect(session.undoableAction).toBeUndefined()
     })
 
+    it('R-3.9.1 the tray says once what the lit places show: each its step and what it costs', async () => {
+        const { session } = await ruling('town', (state, { seat }) => {
+            giveSeal(state, seat)
+        })
+        pickCard(session, 'improve')
+        expect(session.turn.flow?.line).toBe(
+            'Pick a place you rule. Each lit place shows its step and what it costs.'
+        )
+    })
+
+    it('R-3.9-H1 farm to town: the chip draws farm → town and an iron; the popup shows each town disc with its back', async () => {
+        const turn = await ruling('farm', (state, { seat }) => {
+            giveGood(state, seat, 'iron')
+        })
+        const { session, spaceId } = turn
+        pickCard(session, 'improve')
+        const target = spaceTarget(spaceId)
+        expect(chipLabels(session, target)[0]).toBe('farm to town · 1 iron')
+        expect(chipOf(session.boardOffer, target)?.art).toEqual([
+            { kind: 'disc', location: 'farm' },
+            { kind: 'step' },
+            { kind: 'disc', location: 'town' },
+            { kind: 'good', good: 'iron', count: 1 }
+        ])
+
+        await pressTarget(session, target)
+        const popup = session.turn.flow?.popup
+        expect(popup?.heading).toBe(
+            'Which town disc? Its back is what this place shows if it is ever reduced.'
+        )
+        expect(popup?.choices.map(({ label, shown, art }) => ({ label, shown, art }))).toEqual([
+            {
+                label: 'Town disc, back: farm',
+                shown: 'back: farm',
+                art: { kind: 'disc', location: 'town', back: 'farm' }
+            },
+            {
+                label: 'Town disc, back: outpost',
+                shown: 'back: outpost',
+                art: { kind: 'disc', location: 'town', back: 'outpost' }
+            }
+        ])
+        await pressPopup(session, 'Town disc, back: outpost')
+        expect(session.turnPanel?.primary?.enabled).toBe(true)
+        await session.sendTurnCard()
+        await session.waitForVisibleTransitionSettled()
+        expect(sentBy(turn)).toMatchObject({ type: ActionType.Improve, spaceId })
+    })
+
     it('S16 epoch I, the top tile later: the panel says so first, no stack, the press sends', async () => {
         const turn = await ruling('town', (state, { seat }) => {
             giveSeal(state, seat)
@@ -606,7 +662,7 @@ describe('R-3.9 Improve', () => {
         })
         const { session, spaceId } = turn
         pickCard(session, 'improve')
-        const line = /^The .* tile is not yet legal: no earlier tile to take$/
+        const line = /The .* tile is not yet legal: no earlier tile to take$/
         expect(session.turn.flow?.line).toMatch(line)
         expect(chipLabels(session, spaceTarget(spaceId))).toContain('no tile')
 

@@ -1,18 +1,24 @@
 import type { StagedSelectionState } from '@tabletop/frontend-components'
 import type { Good, TileId } from '@tabletop/feudum'
 import type { BoardTarget, ChipNote } from './boardOffer.js'
-import type { FlowPlay } from './cardFlows.js'
+import type { FlowPlay, PieceArt } from './cardFlows.js'
 import type { TurnContext } from './cardModes.js'
 import type { SendPreview } from './confirmingSend.js'
 import { StagedDraft } from './stagedDraft.svelte.js'
 import { coverAfterPress } from './tileCover.js'
 import { tileArt, tileName, type TileArt } from './tileName.js'
 
+/**
+ * The piece a follow-up's row offers: a held tile, a writ's back, a seal or a vessel. Each stands in
+ * for the words, which stay the row's accessible name.
+ */
+export type DraftArt = TileArt | PieceArt
+
 /** One row of a follow-up's panel. A dimmed row has its line and no `press` (contract: Pick conventions). */
 export interface DraftChoice {
     readonly label: string
-    /** A tile the row offers, drawn; the label stays the row's accessible name. */
-    readonly art?: TileArt
+    /** The piece the row offers, drawn; the label stays the row's accessible name. */
+    readonly art?: DraftArt
     /** The text beside the art, which stands for the tile's name. */
     readonly shown?: string
     readonly note?: ChipNote

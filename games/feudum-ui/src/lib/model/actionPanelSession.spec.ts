@@ -669,7 +669,9 @@ describe('Playing a card', () => {
         const { session } = turn
         await pressCard(session.actionPanel, 'improve')
         expect(linesOf(session.actionPanel, 'flow')).toEqual([
-            expect.stringMatching(/^The .* tile is not yet legal: no earlier tile to take$/)
+            expect.stringMatching(
+                /^Pick a place you rule\. .* The .* tile is not yet legal: no earlier tile to take$/
+            )
         ])
     })
 

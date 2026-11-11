@@ -169,7 +169,7 @@ export class ScenarioTable {
             await this.lit().evaluateAll((picks) =>
                 picks.map((pick) => [
                     pick.getAttribute('data-pick') ?? '',
-                    // A chip drawn as goods is named by its words, not its counts.
+                    // A chip drawn as art is named by its words, not its pieces.
                     pick.querySelector('[data-chip]')?.getAttribute('aria-label') ??
                         pick.querySelector('[data-chip]')?.textContent?.trim() ??
                         ''

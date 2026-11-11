@@ -102,7 +102,7 @@ scenario('S14 R-3.6 Migrate off', 'cards-migrate', async (table) => {
 
 scenario('S15 R-3.9 Improve to a feudum', 'cards-improve-town', async (table) => {
     await table.press(table.card('Improve'))
-    expect(await table.litChips()).toEqual({ [Forest3]: '→ feudum · 1 seal' })
+    expect(await table.litChips()).toEqual({ [Forest3]: 'town to feudum · 1 seal' })
     await table.pressPick(Forest3)
     await expect(table.popup().locator('[data-row]')).toHaveCount(6)
     await table.press(table.popupRow('Noble'))
@@ -131,7 +131,7 @@ scenario(
     'cards-tile-gone-epoch-1',
     async (table) => {
         await table.press(table.card('Improve'))
-        await expect(table.flowLine()).toHaveText(
+        await expect(table.flowLine()).toContainText(
             'The Forest tile is not yet legal: no earlier tile to take'
         )
         await expect(table.stacksLit()).toHaveCount(0)
@@ -151,7 +151,7 @@ scenario(
     'cards-tile-gone-epoch-3',
     async (table) => {
         await table.press(table.card('Improve'))
-        await expect(table.flowLine()).toHaveText(
+        await expect(table.flowLine()).toContainText(
             'The Forest tile is not yet legal: take an earlier tile'
         )
         await table.pressPick(Forest3)

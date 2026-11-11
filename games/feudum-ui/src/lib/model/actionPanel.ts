@@ -9,8 +9,8 @@ import {
     type WritId
 } from '@tabletop/feudum'
 import { spaceTarget, type BoardTarget } from './boardOffer.js'
-import type { PanelChoice, TallyLine } from './cardFlows.js'
-import type { DraftChoice } from './deciderDraft.svelte.js'
+import type { DiscArt, PanelChoice, TallyLine } from './cardFlows.js'
+import type { DraftArt, DraftChoice } from './deciderDraft.svelte.js'
 import type { GameEndSummaryView } from './gameEnd.js'
 import type { DawnSheetView } from './roundEnd.js'
 import { rankedDie, type DieArt } from './guildDie.js'
@@ -26,6 +26,8 @@ export type RowArt =
     | { readonly kind: 'pawn'; readonly character?: Character; readonly paint: SeatPaint }
     | TileArt
     | DieArt
+    | DiscArt
+    | DraftArt
 
 export interface ActionRow {
     readonly choice: PanelChoice

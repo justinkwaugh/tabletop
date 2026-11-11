@@ -5,6 +5,7 @@ import {
     type Good,
     type GuildId,
     type HydratedFeudumGameState,
+    type LocationKind,
     type MonsterId,
     type PawnNumber,
     placeDiscOffer,
@@ -106,12 +107,22 @@ export type BoardRole = 'lit' | 'picked' | 'being-decided' | 'dimmed' | 'plain'
 export type ChipKind = 'cost' | 'threat' | 'role' | 'gain'
 export type ChipTone = 'rose' | 'amber'
 
+/**
+ * One piece of a chip drawn as art: a good or a seal with its count, a location disc, or the arrow
+ * of a step from one disc to the next.
+ */
+export type ChipArt =
+    | { readonly kind: 'good'; readonly good: Good; readonly count: number }
+    | { readonly kind: 'seal'; readonly count: number }
+    | { readonly kind: 'disc'; readonly location: LocationKind }
+    | { readonly kind: 'step' }
+
 export interface ChipNote {
     readonly kind: ChipKind
-    /** The chip's words, and its accessible name when it is drawn as goods. */
+    /** The chip's words, and its accessible name when it is drawn as art. */
     readonly label: string
-    /** Drawn as these goods, each with its count, in place of the words. */
-    readonly goods?: readonly { readonly good: Good; readonly count: number }[]
+    /** Drawn as these pieces in place of the words: "farm → town, iron 1". */
+    readonly art?: readonly ChipArt[]
 }
 
 export interface BoardChip extends ChipNote {
