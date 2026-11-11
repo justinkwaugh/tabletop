@@ -463,6 +463,24 @@ describe('R-4.4 the writ rows of a seat and of those watching', () => {
         expect(charter).not.toContain('Discard')
         expect(mandate).toContain('Discard')
     })
+
+    it('S50 each writ offered is a group named by its writ, so its buttons say whose they are', () => {
+        const offers = markupOf({
+            kind: 'writ-offers',
+            offers: [
+                { writId: Charter, name: 'Charter', rows: [aRow('Seal')] },
+                { writId: 'writ.mandate.3', name: 'Mandate 3', rows: [aRow('A')] }
+            ]
+        })
+        const groups = [...offers.matchAll(/<div[^>]*data-writ-offer=[^>]*>/g)].map(([tag]) => tag)
+        expect(groups).toHaveLength(2)
+        expect(groups[0]).toMatch(
+            /role="group"[^>]*aria-label="Charter"|aria-label="Charter"[^>]*role="group"/
+        )
+        expect(groups[1]).toMatch(
+            /role="group"[^>]*aria-label="Mandate 3"|aria-label="Mandate 3"[^>]*role="group"/
+        )
+    })
 })
 
 describe('contract, Render ownership: one component draws each shared row', () => {
