@@ -305,6 +305,11 @@ function priceNote(): ChipNote {
     }
 }
 
+/** The tray's lines while a pick lights places with chips: what each chip says, said once. */
+const MigrateLine = 'Pick a space to enter. Each lit space shows what the pawn costs.'
+const HarvestLine = 'Pick a farm to harvest. Each lit farm shows the goods it holds.'
+const ConquerLine = 'Pick a place to conquer. Each lit place shows your attack against its defence.'
+
 /** R-3.6 */
 function migrateFlow(flow: FlowInput): FlowView {
     const { state, playerId, input, read } = flow
@@ -365,7 +370,7 @@ function migrateFlow(flow: FlowInput): FlowView {
     }))
     const picked = spaceId ? [spaceTarget(spaceId)] : []
     if (!spaceId) {
-        return { ...Empty, rows, picks, picked }
+        return { ...Empty, rows, picks, picked, ...(distantKin ? {} : { line: MigrateLine }) }
     }
     const character = read('character')
     if (!character) {
@@ -763,7 +768,7 @@ function harvestFlow({ state, playerId, input, read }: FlowInput): FlowView {
     }))
     const farm = offers.farms.find((row) => row.spaceId === spaceId)
     if (!spaceId || !farm) {
-        return { ...Empty, picks }
+        return { ...Empty, picks, line: HarvestLine }
     }
     const picked = [spaceTarget(spaceId)]
     const harvest = read('harvest')
@@ -931,7 +936,7 @@ function conquerFlow(flow: FlowInput): FlowView {
     }))
     const offer = offers.find((row) => conquerTarget(row) === target)
     if (!target || !offer) {
-        return { ...Empty, picks }
+        return { ...Empty, picks, line: ConquerLine }
     }
     const data = { ...input, spaceId: offer.spaceId, target: offer.target }
     const name = conquerName(flow, offer)
