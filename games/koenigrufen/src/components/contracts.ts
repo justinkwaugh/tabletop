@@ -223,7 +223,7 @@ export const Contracts: Readonly<Record<Contract, ContractDefinition>> = {
     })
 }
 
-// The contracts the rules implement so far; the auction offers only these.
+// The contracts the auction offers.
 export const PlayableContracts: readonly Contract[] = [
     Contract.Rufer,
     Contract.Trischaken,

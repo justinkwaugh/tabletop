@@ -57,7 +57,7 @@ export function bidValue(choice: BidChoice): number {
     return contractDefinition(choice.contract).win + bird
 }
 
-// The user's rule: a Besserrufer ranks with the contract of its value, or just above the most
+// House rule: a Besserrufer ranks with the contract of its value, or just above the most
 // valuable contract below it when none matches.
 export function bidRank(choice: BidChoice): number {
     if (choice.bird === undefined) {

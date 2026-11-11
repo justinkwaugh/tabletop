@@ -770,7 +770,7 @@ export class HydratedKoenigrufenGameState
         }
     }
 
-    // The user's ruling (the Spieleversum convention): a Besserrufer given up also pays the bird
+    // House rule (the Spieleversum convention): a Besserrufer given up also pays the bird
     // named with the bid, in full, as announced and lost. Only that bird: the talon is settled
     // before any other announcement, so nothing else was said and no Kontra was possible.
     private givenUpBird(): BonusResult[] {

@@ -13,7 +13,7 @@ import {
 import { bonusGoal, bonusName } from './announcementText.js'
 
 // Rule citations are from Pagat, except the Solorufer talon, the called King in the talon,
-// holding trumps back in colour games (Wikipedia) and the Trischaken talon (the user's rules).
+// holding trumps back in colour games (Wikipedia) and the Trischaken talon (house rules, see the logic package's docs/rules-interpretations.md).
 const KingInTalonNote =
     'If the called King is in the talon, declarer gives up (paying each player) or plays alone (no Kontra).'
 
@@ -134,7 +134,7 @@ export function contractSummary(choice: BidChoice): string {
 }
 
 // Declarer's choice when the called King lies in the talon. Giving up a Besserrufer also pays the
-// bird named with the bid (the user's ruling); played alone, that bird stays announced.
+// bird named with the bid (house rule); played alone, that bird stays announced.
 export function kingInTalonPrompt(choice: BidChoice): string {
     const game = contractDefinition(choice.contract).win
     if (choice.bird === undefined) {

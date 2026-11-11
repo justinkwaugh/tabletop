@@ -3,8 +3,8 @@ import { trumpId } from '../components/cards.js'
 import { BonusScope, Partnership, type ContractDefinition } from '../components/contracts.js'
 import { TricksPerHand } from './tricks.js'
 
-// Bonuses follow Wikipedia's Austrian table (silent / announced); the Sack is the user's addition,
-// announced only.
+// Bonuses follow Wikipedia's Austrian table (silent / announced); the Sack is a house rule, announced
+// only. See docs/rules-interpretations.md.
 export enum Bonus {
     Trull = 'trull',
     FourKings = 'fourKings',
