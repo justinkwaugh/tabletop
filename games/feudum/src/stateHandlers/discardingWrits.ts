@@ -7,7 +7,7 @@ import {
 import { isDiscardWrit, type HydratedDiscardWrit } from '../actions/discardWrit.js'
 import type { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
-import { writsOverLimit } from '../model/atWill.js'
+import { seatOverLimit } from '../model/atWill.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { atWillOffers, isAtWillAction, type AtWillAction } from './atWill.js'
 import { stateAfterCardStep } from './cardTurns.js'
@@ -16,8 +16,9 @@ import { stateAfterCardStep } from './cardTurns.js'
 type WritLimitAction = HydratedDiscardWrit | AtWillAction
 
 /**
- * R-4.4.4, R-4.4-H6 A turn player over the writ limit acts at will until back within it; R-4.4-H6
- * means it always holds an unsealed writ to discard. Then the turn goes on.
+ * R-4.4.4 A seat over the writ limit, on its turn or not, discards down before play goes on; the
+ * turn player may also act at will (R-4.4-H1). No charter is sealed during play (R-4.4-H6), so the
+ * seat always holds a writ to discard. Then the card goes on where it stopped.
  */
 export class DiscardingWritsStateHandler implements MachineStateHandler<
     WritLimitAction,
@@ -38,18 +39,17 @@ export class DiscardingWritsStateHandler implements MachineStateHandler<
     }
 
     enter(context: MachineContext<HydratedFeudumGameState>) {
-        const { turn } = context.gameState.flow
-        assertExists(turn, 'R-4.4.4 The writ limit belongs to a turn')
-        context.gameState.activePlayerIds = [turn.playerId]
+        const state = context.gameState
+        assertExists(state.flow.turn, 'R-4.4.4 The writ limit is reached in a turn')
+        const playerId = seatOverLimit(state)
+        assertExists(playerId, 'R-4.4.4 A seat is over the writ limit')
+        state.activePlayerIds = [playerId]
     }
 
     onAction(
-        action: WritLimitAction,
+        _action: WritLimitAction,
         context: MachineContext<HydratedFeudumGameState>
     ): MachineState {
-        const state = context.gameState
-        return writsOverLimit(state, action.playerId)
-            ? MachineState.DiscardingWrits
-            : stateAfterCardStep(context)
+        return stateAfterCardStep(context)
     }
 }

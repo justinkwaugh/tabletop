@@ -6,8 +6,9 @@ import type { HydratedFeudumGameState } from './gameState.js'
 export type AtWillWindow = 'before-card' | 'hand-selection' | 'nourishing' | 'writ-limit'
 
 /**
- * R-4.4-H1, R-4.4-H5 The one test of whether this seat may act at will now, and in which window: the
- * turn player before a card or over the writ limit, the next finaliser, the seat nourishing asks.
+ * R-4.4-H1 The one test of whether this seat may act at will now, and in which window: the turn
+ * player before a card or while it is over the writ limit, the next finaliser, the seat nourishing
+ * asks. A seat off its turn over the limit may only discard (R-4.4-H5).
  */
 export function atWillWindow(
     state: HydratedFeudumGameState,
@@ -22,7 +23,9 @@ export function atWillWindow(
         case MachineState.Nourishing:
             return nourish?.pending[0] === playerId ? 'nourishing' : undefined
         case MachineState.DiscardingWrits:
-            return turn?.playerId === playerId ? 'writ-limit' : undefined
+            return turn?.playerId === playerId && writsOverLimit(state, playerId)
+                ? 'writ-limit'
+                : undefined
         default:
             return undefined
     }
@@ -42,7 +45,17 @@ export function reasonNoAtWillWindow(
     return atWillWindow(state, playerId) ? undefined : "It isn't your turn."
 }
 
-/** R-4.4.4 Sealed charters count; the turn can't end above the limit. */
+/** R-4.4.4 Sealed charters count; no seat may hold more at any time. */
 export function writsOverLimit(state: HydratedFeudumGameState, playerId: string): boolean {
     return state.getPlayerState(playerId).writCount > WritLimit
+}
+
+/** R-4.4.4 The seat to discard down first: the turn player, then the others in turn order. */
+export function seatOverLimit(state: HydratedFeudumGameState): string | undefined {
+    const { turnOrder } = state.turnManager
+    const turnPlayerId = state.flow.turn?.playerId
+    const start = turnPlayerId ? Math.max(turnOrder.indexOf(turnPlayerId), 0) : 0
+    return [...turnOrder.slice(start), ...turnOrder.slice(0, start)].find((playerId) =>
+        writsOverLimit(state, playerId)
+    )
 }

@@ -233,8 +233,8 @@ describe('R-3.2 One entry per turn, growing', () => {
         expect([...ids]).toEqual(['turn-10'])
     })
 
-    it.each(['second-card', 'writ-limit'])(
-        'R-3.3-H1, R-4.4.4 An AdvanceTurn with outcome %s leaves the turn open, and is in no entry',
+    it.each(['second-card'])(
+        'R-3.3-H1 An AdvanceTurn with outcome %s leaves the turn open, and is in no entry',
         (outcome) => {
             const entries = aggregateHistory(
                 [
@@ -905,8 +905,8 @@ describe('R-5-H1 Whole games, from every seat and a spectator', () => {
                 'nourishing 109-110',
                 'progress 111-111',
                 'dawn 112-114',
-                'dawn 359-359',
-                'single 360-360'
+                'dawn 354-354',
+                'single 355-355'
             ])
         )
         expect(entries.find(({ id }) => id === 'round-2')).toMatchObject({ jumpIndex: 37 })

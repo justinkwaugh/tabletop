@@ -120,9 +120,9 @@ function gameFedNobody(action: GameAction): boolean {
     return isNourishPawns(action) && (action.metadata?.fed.length ?? 0) === 0
 }
 
-/** R-3.3-H1, R-4.4.4 The turn goes on: the seat's second card, or discarding down to the limit. */
+/** R-3.3-H1 The turn goes on: the seat's second card. */
 function staysWithSeat({ metadata }: AdvanceTurn): boolean {
-    return metadata?.outcome === 'second-card' || metadata?.outcome === 'writ-limit'
+    return metadata?.outcome === 'second-card'
 }
 
 /** R-4.11.1 A die that wasn't rolled moved nothing. */

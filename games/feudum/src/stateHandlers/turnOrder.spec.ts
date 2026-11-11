@@ -311,7 +311,7 @@ describe('R-3.3-H1 a declared second card (S12)', () => {
         expect(table.state.flow.turn?.secondCard).toBe(false)
     })
 
-    it('R-3.3-H1, R-4.4.4 the writ limit waits for the second card', () => {
+    it('R-4.4.4, R-3.3-H1 a keep over the limit asks for the discard before the second card', () => {
         const table = dealt([['explore', 'migrate', 'guild'], ['tax']], [0])
         const playerId = table.asked
         holdWrits(table, playerId, 3)
@@ -322,13 +322,15 @@ describe('R-3.3-H1 a declared second card (S12)', () => {
         table.send(playerId, { type: ActionType.KeepWrits, keep: [kept] })
 
         expect(table.seat(playerId).writCount).toBe(4)
-        expect(table.state.machineState).toBe(MachineState.PlayingCards)
-        expect(table.asked).toBe(playerId)
-
-        forfeit(table, playerId, 'migrate')
-
         expect(table.state.machineState).toBe(MachineState.DiscardingWrits)
         expect(table.asked).toBe(playerId)
+
+        table.send(playerId, { type: ActionType.DiscardWrit, writId: kept, ...AnyTime })
+
+        expect(table.seat(playerId).writCount).toBe(3)
+        expect(table.state.machineState).toBe(MachineState.PlayingCards)
+        expect(table.asked).toBe(playerId)
+        expect(table.state.flow.turn?.secondCard).toBe(true)
     })
 })
 
@@ -347,14 +349,12 @@ describe('R-4.4.4, R-3.2-H2 the writ limit (S52)', () => {
         expect(table.asked).toBe(next)
     })
 
-    it('R-4.4.4 ending a card holding 4 opens the limit, and holds the turn', () => {
+    it('R-4.4.4 ending a card holding 4 opens the limit before the turn passes', () => {
         const { table, playerId, next } = atLimit()
 
         const processed = forfeit(table, playerId, 'move')
 
-        expect(processed[1]).toMatchObject({
-            metadata: { outcome: 'writ-limit', turnPlayerId: playerId }
-        })
+        expect(typesOf(processed)).not.toContain(ActionType.AdvanceTurn)
         expect(table.state.machineState).toBe(MachineState.DiscardingWrits)
         expect(table.asked).toBe(playerId)
         expect(table.state.flow.turn?.playerId).toBe(playerId)
@@ -418,33 +418,54 @@ describe('R-4.4.4, R-3.2-H2 the writ limit (S52)', () => {
         expect(table.asked).not.toBe(playerId)
     })
 
-    it('R-4.4.4 only the turn player is checked: another seat over the limit waits for its own turn', () => {
+    it('R-4.4.4 a seat off its turn over the limit is asked before play goes on; the turn stays', () => {
         const table = tableAtPlayingCards(() => ({ cards: ['move', 'tax'] }))
+        const [first, second] = table.order
+        holdWrits(table, second)
+
+        const processed = forfeit(table, first, 'move')
+
+        expect(typesOf(processed)).not.toContain(ActionType.AdvanceTurn)
+        expect(table.state.machineState).toBe(MachineState.DiscardingWrits)
+        expect(table.asked).toBe(second)
+        expect(table.state.flow.turn?.playerId).toBe(first)
+        expect(table.offered(second)).toEqual([ActionType.DiscardWrit])
+        expect(table.offered(first)).toEqual([])
+
+        const discarded = table.send(second, {
+            type: ActionType.DiscardWrit,
+            writId: VesselMandate,
+            ...AnyTime
+        })
+
+        expect(typesOf(discarded)).toEqual([ActionType.DiscardWrit, ActionType.AdvanceTurn])
+        expect(table.seat(second).writCount).toBe(3)
+        expect(table.state.machineState).toBe(MachineState.PlayingCards)
+        expect(table.asked).toBe(second)
+        expect(table.offered(second)).toContain(ActionType.ForfeitCard)
+    })
+
+    it('R-4.4.4, R-3.2-H1 a seat with no card left is asked too', () => {
+        const table = dealt([['move'], []])
         const [first, second] = table.order
         holdWrits(table, second)
 
         forfeit(table, first, 'move')
 
-        expect(table.state.machineState).toBe(MachineState.PlayingCards)
-        expect(table.asked).toBe(second)
-        expect(table.offered(second)).toContain(ActionType.ForfeitCard)
-
-        forfeit(table, second, 'move')
-
         expect(table.state.machineState).toBe(MachineState.DiscardingWrits)
         expect(table.asked).toBe(second)
+
+        const discarded = table.send(second, {
+            type: ActionType.DiscardWrit,
+            writId: VesselMandate,
+            ...AnyTime
+        })
+
+        expect(table.seat(second).writCount).toBe(3)
+        expect(typesOf(discarded)).toContain(ActionType.NourishPawns)
     })
 
-    it('R-4.4.4, R-3.2-H1 a seat skipped ends no turn, so the limit never asks it', () => {
-        const table = dealt([['move'], []])
-        const [first, second] = table.order
-        holdWrits(table, second)
-        const processed = forfeit(table, first, 'move')
-        expect(table.seat(second).writCount).toBe(4)
-        expect(typesOf(processed)).toContain(ActionType.NourishPawns)
-    })
-
-    it('R-4.4.1, R-4.4.4 a keep over the limit reaches it once the follow-ups are done', () => {
+    it('R-4.4.1, R-4.4.4 a keep over the limit asks for the discard before the card goes on', () => {
         const table = tableAtPlayingCards(() => ({ cards: ['explore', 'migrate', 'guild'] }))
         const playerId = table.asked
         holdWrits(table, playerId, 3)
@@ -458,10 +479,11 @@ describe('R-4.4.4, R-3.2-H2 the writ limit (S52)', () => {
 
         table.send(playerId, { type: ActionType.KeepWrits, keep: [kept] })
         expect(table.seat(playerId).writCount).toBe(4)
-        expect(table.state.machineState).toBe(MachineState.PlacingDisc)
-
-        table.send(playerId, { type: ActionType.PlaceDisc, place: false })
         expect(table.state.machineState).toBe(MachineState.DiscardingWrits)
+        expect(table.asked).toBe(playerId)
+
+        table.send(playerId, { type: ActionType.DiscardWrit, writId: kept, ...AnyTime })
+        expect(table.state.machineState).toBe(MachineState.PlacingDisc)
     })
 })
 
@@ -481,11 +503,11 @@ describe('R-3.2 the last card goes to Nourishing', () => {
         expect(table.hydrated().turnManager.currentTurn()).toBeUndefined()
     })
 
-    it('R-4.4.4 the last seat over the limit discards first', () => {
+    it('R-4.4.4 a seat over the limit at the round’s last card discards before the round ends', () => {
         const table = tableAtPlayingCards(() => ({ cards: ['move'] }), 2)
         const [first, second] = table.order
-        holdWrits(table, second)
         forfeit(table, first, 'move')
+        holdWrits(table, second)
 
         forfeit(table, second, 'move')
         expect(table.state.machineState).toBe(MachineState.DiscardingWrits)

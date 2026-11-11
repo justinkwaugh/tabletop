@@ -7,6 +7,7 @@ import {
 } from '../actions/advanceTurn.js'
 import { NourishPawns } from '../actions/nourishPawns.js'
 import { MachineState } from '../definition/states.js'
+import { seatOverLimit } from '../model/atWill.js'
 import type { FollowUp } from '../model/flow.js'
 import { nextOpenFollowUp } from '../model/followUps.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
@@ -21,10 +22,14 @@ const FollowUpStates: Readonly<Record<FollowUp['kind'], MachineState>> = {
 }
 
 /**
- * R-3.2 Every Action that ends a step of the current card returns this from `onAction`: its next
- * open follow-up's state; with none left, `AdvanceTurn` decides what comes next (R-3.3-H1, R-4.4.4).
+ * R-3.2 Every Action that ends a step of the current card returns this from `onAction`. A seat over
+ * the writ limit discards down before play goes on (R-4.4.4); then the card's next open follow-up;
+ * with none left, `AdvanceTurn` decides what comes next (R-3.3-H1).
  */
 export function stateAfterCardStep(context: MachineContext<HydratedFeudumGameState>): MachineState {
+    if (seatOverLimit(context.gameState)) {
+        return MachineState.DiscardingWrits
+    }
     const followUp = nextOpenFollowUp(context.gameState)
     if (followUp) {
         return FollowUpStates[followUp.kind]
@@ -34,18 +39,14 @@ export function stateAfterCardStep(context: MachineContext<HydratedFeudumGameSta
     return MachineState.PlayingCards
 }
 
-/** R-3.2, R-3.3-H1, R-4.4.4 What each outcome of `AdvanceTurn` leads to. */
+/** R-3.2, R-3.3-H1 What each outcome of `AdvanceTurn` leads to. */
 const StatesAfterAdvance: Readonly<Record<AdvanceTurnMetadata['outcome'], MachineState>> = {
     'second-card': MachineState.PlayingCards,
-    'writ-limit': MachineState.DiscardingWrits,
     'next-seat': MachineState.PlayingCards,
     'last-card': MachineState.Nourishing
 }
 
-/**
- * The outcome and not the writ count decides: a seat newly on turn may be over the limit, and it
- * plays first (R-4.4.4). After the last card the game feeds every seat without a choice (R-4.10, D11).
- */
+/** The outcome decides. After the last card the game feeds every seat without a choice (R-4.10, D11). */
 export function stateAfterAdvance(
     { metadata }: HydratedAdvanceTurn,
     context: MachineContext<HydratedFeudumGameState>

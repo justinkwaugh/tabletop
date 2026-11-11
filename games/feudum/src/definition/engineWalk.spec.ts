@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Value } from 'typebox/value'
 import type { GameAction } from '@tabletop/common'
-import { isAdvanceTurn } from '../actions/advanceTurn.js'
 import { isAnswerAttack } from '../actions/answerAttack.js'
 import { isAnswerStarve } from '../actions/answerStarve.js'
 import { isBeginDawn } from '../actions/beginDawn.js'
@@ -107,11 +106,8 @@ describe('A whole game from the seed, user Actions only', () => {
         ).toBe(true)
     })
 
-    it('R-3.10.3 a seat over the writ limit discards before its turn ends', () => {
+    it('R-3.10.3, R-4.4.4 a seat over the writ limit discards before play goes on', () => {
         expect(visited).toContain(MachineState.DiscardingWrits)
-        expect(
-            played.filter(isAdvanceTurn).some((action) => action.metadata?.outcome === 'writ-limit')
-        ).toBe(true)
     })
 
     it('R-4.11.2, R-4.12 dawns II, III and IV, then V, one epoch at a time', () => {
