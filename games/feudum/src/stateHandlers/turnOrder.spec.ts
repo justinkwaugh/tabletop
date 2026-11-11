@@ -7,9 +7,7 @@ import { PhaseName } from '../definition/phases.js'
 import { MachineState } from '../definition/states.js'
 import { queueFollowUp } from '../model/followUps.js'
 import {
-    Charters,
     FarmerMandate,
-    holdSealedCharter,
     KnightMandate,
     ShillingMandate,
     VesselMandate,
@@ -31,7 +29,6 @@ import { stateAfterCardStep } from './cardTurns.js'
 const Hand = ['move', 'tax', 'guild', 'explore']
 const AtWillTypes: string[] = [
     ActionType.PlayMandate,
-    ActionType.SealCharter,
     ActionType.SpendRegionTile,
     ActionType.PlaceVessel,
     ActionType.DiscardWrit,
@@ -414,24 +411,6 @@ describe('R-4.4.4, R-3.2-H2 the writ limit (S52)', () => {
         table.send(playerId, { type: ActionType.DiscardWrit, writId: VesselMandate })
         expect(table.state.machineState).toBe(MachineState.PlayingCards)
         expect(table.asked).not.toBe(playerId)
-    })
-
-    it('R-4.4.4, R-4.4-H6 a sealed charter counts and leaves an unsealed writ to discard', () => {
-        const table = tableAtPlayingCards(() => ({ cards: ['move', 'tax'] }))
-        const playerId = table.asked
-        table.moveTo((state) => {
-            for (const writId of Charters.slice(0, 3)) {
-                holdSealedCharter(state, playerId, writId)
-            }
-            holdDeckWrit(state, playerId, VesselMandate)
-            return state.machineState
-        })
-
-        forfeit(table, playerId, 'move')
-
-        expect(table.state.machineState).toBe(MachineState.DiscardingWrits)
-        expect(table.seat(playerId).writs).toEqual([VesselMandate])
-        expect(table.offered(playerId)).toContain(ActionType.DiscardWrit)
     })
 
     it('R-4.4.4 only the turn player is checked: another seat over the limit waits for its own turn', () => {

@@ -45,7 +45,6 @@ import {
     type ReplenishMap,
     type RollProgressDie,
     type ScoreGame,
-    type SealCharter,
     type SpendRegionTile,
     type StarveThePeople,
     type StartRound,
@@ -513,15 +512,6 @@ const Lines: Readonly<
         actor: 'You played Mandate 7 for 3s · used Forest II for iron',
         other: 'Ana played Mandate 7 for 3s · used Forest II for iron'
     },
-    [ActionType.SealCharter]: {
-        action: sample<SealCharter>({
-            ...Base,
-            type: ActionType.SealCharter,
-            writId: 'writ.charter.sulfur-barrel'
-        }),
-        actor: 'You sealed End game with 2 or 3 sulfur in barrel: 5/7 vp as a charter',
-        other: 'Ana sealed a charter'
-    },
     [ActionType.SpendRegionTile]: {
         action: sample<SpendRegionTile>({
             ...Base,
@@ -739,10 +729,10 @@ function writWords(writId: string): string {
 }
 
 describe('R-X.1 Every action type has its line (contract: Game log and history)', () => {
-    it('The logic package lists 40 types, and each has a line', () => {
+    it('The logic package lists 39 types, and each has a line', () => {
         const types = Object.values(ActionType)
 
-        expect(types).toHaveLength(40)
+        expect(types).toHaveLength(39)
         for (const type of types) {
             expect(Lines[type], type).toBeDefined()
             expect(Lines[type].action.type, type).toBe(type)
@@ -870,12 +860,6 @@ const Protected: readonly {
         otherLine: 'Ana discarded a writ under the deck'
     },
     {
-        name: 'R-4.4.3 SealCharter writ',
-        action: Lines[ActionType.SealCharter].action,
-        actorNames: ['End game with 2 or 3 sulfur in barrel'],
-        otherLine: 'Ana sealed a charter'
-    },
-    {
         name: 'R-4.6.4 Threshold draw on a Guild card',
         action: Lines[ActionType.GuildAction].action,
         actorNames: ['Mandate 1', 'Mandate 2'],
@@ -947,8 +931,6 @@ describe('R-X.2, R-4.4.1, R-4.4.3 A line reads the Action as this seat received 
                 }),
                 other
             )
-        const charter = (writId: SealCharter['writId']) =>
-            line(sample<SealCharter>({ ...Base, type: ActionType.SealCharter, writId }), 'p2')
         const hand = (cards: FinaliseHand['cards']) =>
             line(
                 sample<FinaliseHand>({
@@ -963,7 +945,6 @@ describe('R-X.2, R-4.4.1, R-4.4.3 A line reads the Action as this seat received 
         expect(explore(['writ.mandate.1', 'writ.mandate.2', 'writ.mandate.3'], 'p2')).toBe(
             explore(['writ.charter.sulfur-barrel', 'writ.mandate.7', 'writ.mandate.8'], 'p2')
         )
-        expect(charter('writ.charter.sulfur-barrel')).toBe(charter('writ.mandate.1'))
         expect(hand(['move', 'tax', 'conquer'])).toBe(hand(['defend']))
     })
 
@@ -1104,7 +1085,7 @@ describe('R-X.2 The description cannot fall back on the state', () => {
         const host = new FeudumHost()
         await host.playStartingGoods()
         const record = recordFor(
-            Lines[ActionType.SealCharter].action,
+            Lines[ActionType.DiscardWrit].action,
             { kind: 'player', playerId: 'p2' },
             game
         )
@@ -1112,11 +1093,10 @@ describe('R-X.2 The description cannot fall back on the state', () => {
         const before = seat.actionLine({ ...record, playerId: 'p1' })
         host.edit((state) => {
             state.getPlayerState('p1').writCount = 3
-            state.getPlayerState('p1').sealedCharterCount = 1
         })
         await settled(seat)
         expect(seat.actionLine({ ...record, playerId: 'p1' })).toBe(before)
-        expect(before).toBe('Player 1 sealed a charter')
+        expect(before).toBe('Player 1 discarded a writ under the deck')
         host.close()
     })
 })
@@ -1367,43 +1347,28 @@ describe('R-4.4.3 A real sealed charter, from each seat', () => {
     const Sealed = 'writ.charter.monster-defeat'
     const Words = 'If you defeat either monster'
 
-    it('Named to its sealer alone when sealed, and to everyone at ScoreGame', async () => {
-        const { host, seat, sessions } = await playOutRound(
-            5,
-            (state, table) => {
-                giveSeal(state, table.seat)
-                holdWrit(state, table.seat, Sealed)
-            },
-            undefined,
-            async (table, seatId) => {
-                await table.send(seatId, { type: ActionType.SealCharter, writId: Sealed })
-            }
-        )
+    it('Sealed at ScoreGame and named there to everyone, and at no line before it', async () => {
+        const { host, sessions } = await playOutRound(5, (state, table) => {
+            giveSeal(state, table.seat)
+            holdWrit(state, table.seat, Sealed)
+        })
         for (const session of sessions) {
-            const sealing = session.actions.find(({ type }) => type === ActionType.SealCharter)
             const scoring = session.actions.find(({ type }) => type === ActionType.ScoreGame)
-            assertExists(sealing, 'The charter was sealed')
             assertExists(scoring, 'The game was scored')
-            const said = session.actionLine(sealing) ?? ''
-            if (session.myPlayerId === seat) {
-                expect(said).toContain(Words)
-            } else {
-                expect(said).toBe(`${session.getPlayerName(seat)} sealed a charter`)
-            }
             expect(session.actionLine(scoring)).toContain(Words)
             for (const action of session.actions) {
-                if (action.type !== ActionType.ScoreGame && session.myPlayerId !== seat) {
+                if (action.type !== ActionType.ScoreGame) {
                     expect(session.actionLine(action) ?? '', action.type).not.toContain(Words)
                 }
             }
         }
         const spectator = host
             .projected(Spectator)
-            .actions.find(({ type }) => type === ActionType.SealCharter)
+            .actions.find(({ type }) => type === ActionType.ScoreGame)
         assertExists(spectator, 'A spectator receives the record')
-        expect(describeAction(spectator, { viewerId: undefined, nameOf: () => 'That seat' })).toBe(
-            'That seat sealed a charter'
-        )
+        expect(
+            describeAction(spectator, { viewerId: undefined, nameOf: () => 'That seat' })
+        ).toContain(Words)
         host.close()
     })
 })
@@ -1526,13 +1491,12 @@ describe('R-X.2 Whole games at 2 to 5 seats, every Action from every perspective
         )
     })
 
-    it('They fire every type but four: SealCharter is played below, the others stated above', () => {
+    it('They fire every type but three, stated above', () => {
         const unseen = Object.values(ActionType).filter((type) => !types.has(type))
 
         expect(unseen.toSorted()).toEqual([
             ActionType.PlaceVessel,
             ActionType.ReclaimImmunitySeal,
-            ActionType.SealCharter,
             ActionType.SpendRegionTile
         ])
     })

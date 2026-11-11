@@ -117,7 +117,9 @@ test('R-4.8 the commit: the stepper raises the tally the third seat reads afterw
     await shot(page, 'commit-third')
 })
 
-test('S50, S51 the at-will row opens its lists; a card pick hides it', async ({ page }) => {
+test('S50 the at-will row opens its lists; a card pick hides it; S51 no seal during play', async ({
+    page
+}) => {
     await openTable(page, 'openAtWillTable()')
     const chips = panel(page).locator('[data-rows="at-will"]')
     await expect(chips).toContainText('Writs 2')
@@ -125,7 +127,7 @@ test('S50, S51 the at-will row opens its lists; a card pick hides it', async ({ 
     await chips.getByRole('button', { name: 'Writs 2' }).click()
     const offers = panel(page).locator('[data-writ-offer]')
     await expect(offers).toHaveCount(2)
-    await expect(panel(page)).toContainText('Seal · 1 seal')
+    await expect(panel(page)).not.toContainText('Seal · 1 seal')
     await shot(page, 'S50-writs')
     await chips.getByRole('button', { name: 'Tiles 2' }).click()
     await panel(page).locator('[data-rows^="tile:"]').first().getByRole('button').click()

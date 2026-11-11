@@ -13,11 +13,10 @@ import type { FeudumProjectedState, HydratedFeudumGameState } from '../model/gam
 import { placeMarker } from '../model/locationControl.js'
 import { moveConcealedSeal } from '../model/seals.js'
 import type { FeudumVault } from '../model/vault.js'
-import { Charter, giveTile, tableInWindow } from '../testing/atWill.js'
-import { Battlefield, buildFeudum, holdWrit } from '../testing/combat.js'
+import { giveTile, tableInWindow } from '../testing/atWill.js'
+import { Battlefield, buildFeudum } from '../testing/combat.js'
 import { docSection, readDoc } from '../testing/docs.js'
 import { setPawns } from '../testing/guilds.js'
-import { giveSeal } from '../testing/improving.js'
 import {
     asStored,
     canonical,
@@ -419,15 +418,6 @@ const AtWillPlays: {
     readonly move: (table: Table, playerId: string) => AtWill
     readonly guarded: 'defers' | 'runs'
 }[] = [
-    {
-        name: ActionType.SealCharter,
-        edit: (state, playerId) => {
-            holdWrit(state, playerId, Charter)
-            giveSeal(state, playerId)
-        },
-        move: () => ({ type: ActionType.SealCharter, writId: Charter }),
-        guarded: 'defers'
-    },
     {
         name: ActionType.ReclaimImmunitySeal,
         edit: (state, playerId) => {

@@ -538,20 +538,13 @@ describe('S56 R-6.2, R-6.3 the game-end summary', () => {
         }
     })
 
-    it('S56 a sealed charter stands face up with its score, for every seat', async () => {
+    it('S56 R-4.4.3 a charter held with a seal is sealed at the end, face up with its score, for every seat', async () => {
         const Sealed = 'writ.charter.monster-defeat'
         const table = hold(
-            await playOutRound(
-                finalEpoch,
-                (state, { seat }) => {
-                    giveSeal(state, seat)
-                    holdWrit(state, seat, Sealed)
-                },
-                undefined,
-                async (host, seat) => {
-                    await host.send(seat, { type: ActionType.SealCharter, writId: Sealed })
-                }
-            )
+            await playOutRound(finalEpoch, (state, { seat }) => {
+                giveSeal(state, seat)
+                holdWrit(state, seat, Sealed)
+            })
         )
         for (const seat of table.sessions) {
             const summary = blockOf(seat.actionPanel, 'game-end')?.summary

@@ -271,7 +271,7 @@ Card symbols: x2 (may be replayed by Repeat); crossed x2 (never replayed); not-l
 
 1. **Drawing:** look at all drawn, keep the stated number, put the rest on the bottom of the deck. (RB p. 11; D 2017-01-27)
 2. **Mandates:** play at any time; resources come from the general supply (goods drawn at random from the haversack); some need a good turned in (shown boxed) or 3 status stars in a pictured guild — then you may take only the reward of a guild where you have 3 stars, one reward per card. A played mandate goes to the bottom of the deck. (RB p. 11, p. 24; D 2017-10-21; D 2018-05-15; D 2018-08-27; FAQ)
-3. **Charters:** score at game end only with a king's seal placed on them; sealing may happen earlier. "Per location ruled" counts ruled spaces only, and one space may count for several charters. (RB p. 11; D 2017-10-21; D 2018-05-13)
+3. **Charters:** score at game end only with a king's seal placed on them, and the seal is placed at the end of the game (R-4.4-H6). "Per location ruled" counts ruled spaces only, and one space may count for several charters. (RB p. 11; D 2017-10-21; D 2018-05-13)
 4. **Hand limit:** never end a turn holding more than 3 (sealed charters included); discard to the bottom of the deck at any time. Writs are hidden until played or scored; a discard goes under face down (R-4.4-H8). (RB p. 11; D 2017-06-24; D 2017-10-21; FAQ)
 5. Card texts and their keywords: `components.md` and R-7.
 

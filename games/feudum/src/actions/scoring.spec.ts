@@ -23,7 +23,7 @@ import { buildFeudum, holdWrit } from '../testing/combat.js'
 import { placeLandscape, playToDawn } from '../testing/dawn.js'
 import { rowOf, scoredIn, scoreFrom } from '../testing/gameEnd.js'
 import { recordedText, setShillings } from '../testing/guilds.js'
-import { spaceOfKind } from '../testing/improving.js'
+import { giveSeal, spaceOfKind } from '../testing/improving.js'
 import { canonicalOf } from '../testing/state.js'
 import { tableAtPlayingCards } from '../testing/table.js'
 import { HydratedScoreGame } from './scoreGame.js'
@@ -148,6 +148,41 @@ describe('R-6.2 shillings', () => {
     })
 })
 
+describe('R-4.4.3 at game end each held seal goes on a held charter', () => {
+    it('R-4.4.3 one seal goes on the best charter held, which scores; the other stays hidden', () => {
+        const { table, metadata, order, action } = scoreFrom((state, [holder]) => {
+            holdWrit(state, holder, Barrel)
+            holdWrit(state, holder, Monster)
+            meetCharter(state, holder, Monster)
+            giveSeal(state, holder)
+        })
+
+        expect(rowOf(metadata, order[0]).charters).toEqual([{ writId: Monster, vp: 7 }])
+        expect(recordedText(action)).not.toContain(Barrel)
+        const seat = table.hydrated().getPlayerState(order[0])
+        expect(seat.sealCount).toBe(0)
+        expect(seat.requireSealedCharters()).toEqual([Monster])
+        expect(seat.requireWrits()).toEqual([Barrel])
+    })
+
+    it('R-4.4.3 one seal a charter: three seals on two charters seal both, and one stays held', () => {
+        const { table, metadata, order } = scoreFrom((state, [holder]) => {
+            holdWrit(state, holder, Barrel)
+            holdWrit(state, holder, Monster)
+            meetCharter(state, holder, Monster)
+            for (let times = 0; times < 3; times += 1) {
+                giveSeal(state, holder)
+            }
+        })
+
+        expect(rowOf(metadata, order[0]).charters).toEqual([
+            { writId: Monster, vp: 7 },
+            { writId: Barrel, vp: 0 }
+        ])
+        expect(table.hydrated().getPlayerState(order[0]).sealCount).toBe(1)
+    })
+})
+
 describe('R-6.2, R-4.4.3 sealed charters', () => {
     it('R-6.2 a sealed charter met pays as printed, and is revealed in the row', () => {
         const { metadata, order } = scoreFrom((state, [holder]) => {
@@ -188,7 +223,8 @@ describe('R-6.2, R-4.4.3 sealed charters', () => {
 
     it('R-6.2-H2 a wine-fed pawn’s sulfur has left the barrel, for the charter and the tie', () => {
         const { processed, order, table } = playToDawn(5, (state, [holder]) => {
-            holdSealedCharter(state, holder, Barrel)
+            holdWrit(state, holder, Barrel)
+            giveSeal(state, holder)
             setBarrel(state, holder, 3)
             const { goods } = state.getPlayerState(holder)
             state.supply.haversack.food += goods.food

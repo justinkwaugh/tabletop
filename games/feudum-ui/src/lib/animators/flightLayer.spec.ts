@@ -882,7 +882,7 @@ describe('R-5.3 what a flying copy shows, seat by seat', () => {
         expect(plans[2]).toEqual(plans[0])
     })
 
-    it('R-4.4-H6 a sealed charter flies nothing: not its writ, not its seal', async () => {
+    it('R-4.4.3 a charter sealed at game end flies nothing: not its writ, not its seal', async () => {
         const table = await emptyTable()
         const { seat, host: game } = table
         game.edit((state) => {
@@ -898,7 +898,7 @@ describe('R-5.3 what a flying copy shows, seat by seat', () => {
                     player.sealCount = 0
                     player.sealedCharterCount = 1
                 },
-                actionOf(seat, ActionType.SealCharter)
+                actionOf(seat, ActionType.ScoreGame)
             )
         )
         expect(plan.flights).toEqual([])

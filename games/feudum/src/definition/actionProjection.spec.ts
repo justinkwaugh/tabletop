@@ -37,8 +37,7 @@ const ActorKnown: Partial<Record<ActionType, readonly string[]>> = {
     [ActionType.Feast]: ['metadata.drawnWritIds'],
     [ActionType.PlaceDisc]: ['metadata.drawnWritIds'],
     [ActionType.KeepWrits]: ['keep', 'metadata.returned', 'metadata.drawnWritIds'],
-    [ActionType.DiscardWrit]: ['writId'],
-    [ActionType.SealCharter]: ['writId']
+    [ActionType.DiscardWrit]: ['writId']
 }
 
 /** The platform's own: a projection recalculates them, so no sample carries them. */
@@ -184,7 +183,6 @@ const types = Object.values(ActionType)
 /** The at-will actions the walking seats never choose; `protectedPlay.spec.ts` plays them. */
 const NotWalked = [
     ActionType.ReclaimImmunitySeal,
-    ActionType.SealCharter,
     ActionType.SpendRegionTile,
     ActionType.PlaceVessel
 ]

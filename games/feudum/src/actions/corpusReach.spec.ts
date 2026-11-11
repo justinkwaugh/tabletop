@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { ActionCardKinds, type ActionCardKind } from '../data/cards.js'
 import type { Good } from '../data/components.js'
-import { Mandates, type CharterId } from '../data/writs.js'
+import { LastEpoch } from '../data/tracks.js'
+import type { CharterId } from '../data/writs.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { atWillWindow } from '../model/atWill.js'
@@ -19,6 +20,7 @@ import {
     type WindowName
 } from '../testing/atWill.js'
 import { meetCharter } from '../testing/charters.js'
+import { rowOf, scoredIn } from '../testing/gameEnd.js'
 import {
     answer,
     Battlefield,
@@ -226,8 +228,6 @@ describe('corpus reach: the mandates', () => {
     })
 })
 
-const LimitFiller = Mandates.slice(0, 3).map(({ id }) => id)
-
 const ExploreHand: ActionCardKind[] = ['explore', 'tax', 'guild']
 
 /** R-3.10.1 The seat rules an outpost, holds a seal and an iron, and has Explore's draw before it. */
@@ -321,7 +321,7 @@ describe('corpus reach: the charters', () => {
 
     describe.each(DrawSources)('R-4.4.1 drawn by %s', (source) => {
         it.each(CharterCases)(
-            'R-4.4.3, R-6.2 $writId is kept, sealed and scored',
+            'R-4.4.3, R-6.2 $writId is kept, then sealed and scored at game end',
             ({ writId, vp }) => {
                 const { table, playerId } = DrawRoutes[source](writId)
                 const { writDraw } = table.hydrated().flow
@@ -332,40 +332,24 @@ describe('corpus reach: the charters', () => {
                 expect(table.seat(playerId).requireWrits()).toContain(writId)
 
                 untilItsWindow(table, playerId)
-                setUp(table, (state) => meetCharter(state, playerId, writId))
+                table.moveTo((state) => {
+                    meetCharter(state, playerId, writId)
+                    giveSeal(state, playerId)
+                    state.epoch = LastEpoch
+                    return MachineState.EndOfRound
+                })
                 expect(writRegistry.sealedCharterScores(table.hydrated(), playerId)).toEqual([])
 
-                table.send(playerId, { type: ActionType.SealCharter, writId })
+                const metadata = scoredIn(
+                    table.sendSystem({ type: ActionType.ScoreGame, revealsInfo: true })
+                )
 
                 const state = table.hydrated()
                 expect(state.getPlayerState(playerId).requireSealedCharters()).toEqual([writId])
-                expect(writRegistry.sealedCharterScores(state, playerId)).toEqual([{ writId, vp }])
+                expect(rowOf(metadata, playerId).charters).toEqual([{ writId, vp }])
                 expect(conservationBreaks(canonicalOf(state))).toEqual([])
             }
         )
-    })
-
-    describe.each(Windows)('R-4.4-H1 sealed in the at-will window: %s', (window) => {
-        it.each(CharterCases)('R-4.4.3, R-6.2 $writId is sealed and scored', ({ writId, vp }) => {
-            const { table, playerId } = tableInWindow(window, (state, seat) => {
-                holdWrit(state, seat, writId)
-                giveSeal(state, seat)
-                meetCharter(state, seat, writId)
-                if (window === 'writ limit') {
-                    for (const filler of LimitFiller) {
-                        holdWrit(state, seat, filler)
-                    }
-                }
-            })
-            expect(table.offered(playerId)).toContain(ActionType.SealCharter)
-            expect(writRegistry.sealedCharterScores(table.hydrated(), playerId)).toEqual([])
-
-            table.send(playerId, { type: ActionType.SealCharter, writId })
-
-            const state = table.hydrated()
-            expect(writRegistry.sealedCharterScores(state, playerId)).toEqual([{ writId, vp }])
-            expect(conservationBreaks(canonicalOf(state))).toEqual([])
-        })
     })
 })
 

@@ -15,7 +15,6 @@ import { migrateOffers } from '../actions/migrate.js'
 import { moveOffers } from '../actions/move.js'
 import { isPlayMandate, playMandateOffers } from '../actions/playMandate.js'
 import { isScoreGame } from '../actions/scoreGame.js'
-import { sealCharterOffers } from '../actions/sealCharter.js'
 import { ActionCards, type ActionCardKind } from '../data/cards.js'
 import { Goods, VesselTypes, type Good, type GuildId } from '../data/components.js'
 import { RoyalWrits } from '../data/writs.js'
@@ -157,14 +156,8 @@ export class CorpusSeats implements WalkPlan {
         }
     }
 
-    /** R-4.4-H1 A held charter takes a seal at once; a mandate goes the moment it can. */
+    /** R-4.4-H1 A mandate goes the moment it can. */
     private atWillMove(state: HydratedFeudumGameState, playerId: string): WalkMove | undefined {
-        const charter = sealCharterOffers(state, playerId).find(
-            ({ writId, refused }) => !refused && this.wants(writId)
-        )
-        if (charter) {
-            return { type: ActionType.SealCharter, playerId, writId: charter.writId }
-        }
         const mandate = playMandateOffers(state, playerId).find(
             (offer) =>
                 !offer.refused &&

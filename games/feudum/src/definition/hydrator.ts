@@ -26,7 +26,6 @@ import { HydratedPlayDefend, isPlayDefend } from '../actions/playDefend.js'
 import { HydratedDiscardWrit, isDiscardWrit } from '../actions/discardWrit.js'
 import { HydratedPlaceVessel, isPlaceVessel } from '../actions/placeVessel.js'
 import { HydratedPlayMandate, isPlayMandate } from '../actions/playMandate.js'
-import { HydratedSealCharter, isSealCharter } from '../actions/sealCharter.js'
 import { HydratedSpendRegionTile, isSpendRegionTile } from '../actions/spendRegionTile.js'
 import { HydratedNourish, isNourish } from '../actions/nourish.js'
 import { HydratedBeginDawn, isBeginDawn } from '../actions/beginDawn.js'
@@ -91,9 +90,6 @@ export class FeudumHydrator implements GameHydrator<FeudumProjectedState, Hydrat
             }
             case isPlayMandate(data): {
                 return new HydratedPlayMandate(data)
-            }
-            case isSealCharter(data): {
-                return new HydratedSealCharter(data)
             }
             case isSpendRegionTile(data): {
                 return new HydratedSpendRegionTile(data)

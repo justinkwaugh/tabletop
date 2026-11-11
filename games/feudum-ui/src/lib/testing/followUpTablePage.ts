@@ -1,5 +1,5 @@
 import { flushSync, mount } from 'svelte'
-import { ActionType, type ActionCardKind, type TriggeredEpoch, type WritId } from '@tabletop/feudum'
+import type { ActionCardKind, TriggeredEpoch, WritId } from '@tabletop/feudum'
 import GameTable from '$lib/components/GameTable.svelte'
 import { pressCard, primaryNamed } from './actionPanelView.js'
 import { askedToDefend, askedToStarve, type AskTable } from './askTable.js'
@@ -119,18 +119,11 @@ export async function openDawnTable() {
     await show(table.session)
 }
 
-/** R-6.2, R-6.3 The game is over; a charter is sealed. */
+/** R-6.2, R-6.3 The game is over; R-4.4.3 the held seal went on the held charter at its end. */
 export async function openGameEndTable() {
-    const table = await playOutRound(
-        FinalEpoch,
-        (state, { seat }) => {
-            giveSeal(state, seat)
-            holdWrit(state, seat, Charter)
-        },
-        undefined,
-        async (host, seat) => {
-            await host.send(seat, { type: ActionType.SealCharter, writId: Charter })
-        }
-    )
+    const table = await playOutRound(FinalEpoch, (state, { seat }) => {
+        giveSeal(state, seat)
+        holdWrit(state, seat, Charter)
+    })
     await show(table.session)
 }
