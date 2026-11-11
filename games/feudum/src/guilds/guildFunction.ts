@@ -208,9 +208,10 @@ export interface ScoredFunction {
 }
 
 /**
- * R-4.6.1, R-4.6.4, R-4.6.5, R-4.7, R-4.7-H1 Points, reeve and writs for the level reached. Below a
- * threshold nothing scores. A reeve already there scores now; otherwise one is offered, and scores
- * when placed. R-3.16.3 A Feast scores no reeve. A pull's keep comes ahead of the reeve.
+ * R-4.6.1, R-4.6.4, R-4.6.5 Points and writs for the level reached; below a threshold neither.
+ * R-4.7, R-4.7-H1 Every push and pull scores the reeve: one already there scores now; otherwise one
+ * is offered, and scores when placed. R-3.16.3 A Feast scores no reeve. A pull's keep comes ahead of
+ * the reeve.
  */
 export function scoreFunction(
     state: HydratedFeudumGameState,
@@ -220,7 +221,7 @@ export function scoreFunction(
     completions: number
 ): ScoredFunction {
     const points = pointsFor(fn, completions)
-    if (points === 0) {
+    if (fn === 'trade') {
         return { points, reevePoints: 0, reeveOffered: false, drawnWritIds: [] }
     }
     const player = state.getPlayerState(actor.playerId)
@@ -234,7 +235,7 @@ export function scoreFunction(
     if (reeveOffered) {
         queueFollowUp(state, followUp)
     }
-    if (fn !== 'pull') {
+    if (fn !== 'pull' || points === 0) {
         return { points, reevePoints, reeveOffered, drawnWritIds: [] }
     }
     const drawnCount = drawWritsToKeep(state, actor.playerId, PullReward.writs, 'pull')
@@ -260,7 +261,7 @@ export interface ScoringPreview {
     readonly keep: number
 }
 
-/** R-4.7, R-4.6.4 `scoreFunction` read without changing or drawing anything. */
+/** R-4.7, R-4.7-H1, R-4.6.4 `scoreFunction` read without changing or drawing anything. */
 export function scoringPreview(
     state: HydratedFeudumGameState,
     actor: FunctionActor,
@@ -272,7 +273,7 @@ export function scoringPreview(
     const drawnCount =
         points > 0 && fn === 'pull' ? Math.min(PullReward.writs.draw, writDeckCount(state)) : 0
     const keep = Math.min(PullReward.writs.keep, drawnCount)
-    if (points === 0 || actor.feastOf) {
+    if (fn === 'trade' || actor.feastOf) {
         return { completions, points, reevePoints: 0, reeveOffered: false, drawnCount, keep }
     }
     const reevePoints = reevePointsIn(state, actor.playerId, guildId)

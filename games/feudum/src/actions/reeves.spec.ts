@@ -22,7 +22,7 @@ function oneWoodScores(state: HydratedFeudumGameState): void {
     setBarn(state, { wood: 1 })
 }
 
-describe('R-4.7, R-4.7-H1 reeves at a threshold', () => {
+describe('R-4.7, R-4.7-H1 reeves on every push and pull', () => {
     it('R-4.7 a scoring push offers a reeve, with nothing scored for it until placed', () => {
         const { table, playerId } = tableAtGuild((state, seat) => {
             setMaster(state, seat, 'farmer')
@@ -122,7 +122,7 @@ describe('R-4.7, R-4.7-H1 reeves at a threshold', () => {
         expect(table.seat(playerId).score).toBe(score + 6)
     })
 
-    it('R-4.7-H1 below a threshold: no reeve, no points, but the split happens', () => {
+    it('R-4.7-H1 a push below a threshold scores the reeve there, with no points and the split', () => {
         const { table, playerId, others } = tableAtGuild((state, seat, rest) => {
             setJourneyman(state, rest[0], 'farmer', seat)
             const { master } = state.guilds.tracks.farmer
@@ -139,23 +139,52 @@ describe('R-4.7, R-4.7-H1 reeves at a threshold', () => {
         const journeyman = table.seat(others[0]).shillings
         const [action] = table.send(playerId, ScoringPush)
         expect(action).toMatchObject({
-            metadata: { completions: 0, points: 0, reevePoints: 0, reeveOffered: false }
+            metadata: { completions: 0, points: 0, reevePoints: 1, reeveOffered: false }
         })
-        expect(table.seat(playerId).score).toBe(score)
+        expect(table.seat(playerId).score).toBe(score + 1)
         expect(table.seat(playerId).shillings).toBe(master + 2)
         expect(table.seat(others[0]).shillings).toBe(journeyman + 2)
         expect(table.state.machineState).toBe(MachineState.PlayingCards)
     })
 
-    it('R-4.7-H1 below a threshold with no reeve: none is offered', () => {
+    it('R-4.7-H1 a push below a threshold with no reeve there offers one', () => {
         const { table, playerId } = tableAtGuild((state, seat) => {
             setMaster(state, seat, 'farmer')
             setMarket(state, { wood: 1 })
             setBarn(state, { wood: 1 })
         })
         const [action] = table.send(playerId, ScoringPush)
-        expect(action).toMatchObject({ metadata: { reeveOffered: false } })
-        expect(table.state.machineState).toBe(MachineState.PlayingCards)
+        expect(action).toMatchObject({
+            metadata: { points: 0, reevePoints: 0, reeveOffered: true }
+        })
+        expect(table.state.machineState).toBe(MachineState.PlacingDisc)
+        const score = table.seat(playerId).score
+        const [placed] = table.send(playerId, { type: ActionType.PlaceDisc, place: true })
+        expect(placed).toMatchObject({
+            metadata: { disc: 'reeve', guildId: 'farmer', reevePoints: 1 }
+        })
+        expect(table.seat(playerId).score).toBe(score + 1)
+    })
+
+    it('R-4.7-H1 a pull below a threshold offers a reeve, and draws no writ', () => {
+        const { table, playerId } = tableAtGuild((state, seat, rest) => {
+            setJourneyman(state, seat, 'merchant', rest[0])
+            setMarket(state, { iron: 1 })
+            setBarn(state, { iron: 1 })
+        })
+        const [action] = table.send(playerId, {
+            type: ActionType.GuildAction,
+            guildId: 'merchant',
+            fn: 'pull',
+            params: { goods: ['iron'] }
+        })
+        expect(action).toMatchObject({
+            metadata: { completions: 0, points: 0, reeveOffered: true, drawnWritIds: [] }
+        })
+        expect(table.hydrated().flow.turn?.followUps).toEqual([
+            { kind: 'reeve', playerId, guildId: 'merchant' }
+        ])
+        expect(table.state.machineState).toBe(MachineState.PlacingDisc)
     })
 
     it('R-4.7 with no free disc no reeve is offered', () => {
@@ -202,7 +231,7 @@ describe('R-4.7, R-4.7-H1 reeves at a threshold', () => {
         ).toMatchObject({ points: 4, reevePoints: 1, reeveOffered: true })
     })
 
-    it('R-4.7-H1 the preview gives no reeve points below a threshold', () => {
+    it('R-4.7-H1 the preview gives the reeve points below a threshold too', () => {
         const { table, playerId } = tableAtGuild((state, seat) => {
             setMaster(state, seat, 'farmer')
             setMarket(state, { wood: 1 })
@@ -214,6 +243,6 @@ describe('R-4.7, R-4.7-H1 reeves at a threshold', () => {
                 fn: 'push',
                 params: { goods: ['wood'] }
             })
-        ).toMatchObject({ points: 0, reevePoints: 0, reeveOffered: false })
+        ).toMatchObject({ points: 0, reevePoints: 1, reeveOffered: true })
     })
 })

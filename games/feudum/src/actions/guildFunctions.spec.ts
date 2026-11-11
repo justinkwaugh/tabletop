@@ -290,7 +290,7 @@ describe('GuildAction: R-4.6.5 a push scores 4/5/6', () => {
         expect(table.seat(playerId).score).toBe(before + vp)
     })
 
-    it('R-4.6.1, R-4.6.5 a push reaching nothing scores 0, with no writ, and is no barrier', () => {
+    it('R-4.6.1, R-4.6.5, R-4.7-H1 a push reaching nothing scores 0, with no writ and no barrier, and offers a reeve', () => {
         const { table, playerId } = tableAtGuild((state, seat) => {
             setMaster(state, seat, 'farmer')
             setMarket(state, { saltpeter: 1, sulfur: 1, iron: 1, wood: 1, food: 1 })
@@ -299,11 +299,13 @@ describe('GuildAction: R-4.6.5 a push scores 4/5/6', () => {
         const before = table.seat(playerId).score
         const deck = writDeckCount(table.hydrated())
         const [action] = table.send(playerId, { ...FarmerPush, params: { goods: ['wood'] } })
-        expect(action).toMatchObject({ metadata: { completions: 0, points: 0, reevePoints: 0 } })
+        expect(action).toMatchObject({
+            metadata: { completions: 0, points: 0, reevePoints: 0, reeveOffered: true }
+        })
         expect(action.revealsInfo).toBeFalsy()
         expect(table.seat(playerId).score).toBe(before)
         expect(writDeckCount(table.hydrated())).toBe(deck)
-        expect(table.state.machineState).toBe(MachineState.PlayingCards)
+        expect(table.state.machineState).toBe(MachineState.PlacingDisc)
     })
 })
 

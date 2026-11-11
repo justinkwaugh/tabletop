@@ -98,7 +98,7 @@ scenario('S41 R-4.6.4 Merchant pull with count', 'guild-merchant-pull', async (t
     await expect(table.panel()).toContainText('Keep 1 of 2')
 })
 
-scenario('S42 R-4.6.4 Below threshold', 'guild-below-threshold', async (table) => {
+scenario('S42 R-4.6.4, R-4.7-H1 Below threshold', 'guild-below-threshold', async (table) => {
     await openFunction(table, 'merchant', 'Pull')
     await pressBench(table, 'good:iron')
     await expect(ghostsIn(table, 'merchant')).toHaveCount(1)
@@ -106,7 +106,7 @@ scenario('S42 R-4.6.4 Below threshold', 'guild-below-threshold', async (table) =
     await expect(benchPrimary(table)).toHaveText('Move 1 good')
     await table.press(benchPrimary(table))
     await expect(bench(table)).toHaveCount(0)
-    expect(await table.activeSeats()).not.toContain('p2')
+    await expect(table.panel()).toContainText('Place a reeve in the Merchant Guild?')
 })
 
 scenario(

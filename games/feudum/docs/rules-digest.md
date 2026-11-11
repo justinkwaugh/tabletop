@@ -285,7 +285,7 @@ Card symbols: x2 (may be replayed by Repeat); crossed x2 (never replayed); not-l
 
 ### R-4.6 Guild functions
 
-1. **Pull and push amounts.** Move the stated number, or as many as can move if fewer ("fewer if impossible"); where a range is given the actor chooses. At least one item must move and there must be room for it; if nothing can move, that function cannot be chosen. A function that moves something but reaches no threshold scores 0 — no Royal Writ, no reeves — but still splits the purse or coffer. Only rows or columns completed by this action count, and the actor counts rows or columns, never both. (RB p. 17; D 2016-11-11; D 2018-05-13; D 2018-08-27; D 2020-02-05; D 2025-05-28; FAQ)
+1. **Pull and push amounts.** Move the stated number, or as many as can move if fewer ("fewer if impossible"); where a range is given the actor chooses. At least one item must move and there must be room for it; if nothing can move, that function cannot be chosen. A function that moves something but reaches no threshold scores 0 vp and draws no Royal Writ, but still scores its reeve (R-4.7-H1) and splits the purse or coffer. Only rows or columns completed by this action count, and the actor counts rows or columns, never both. (RB p. 17; D 2016-11-11; D 2018-05-13; D 2018-08-27; D 2020-02-05; D 2025-05-28; FAQ)
 2. **Paying a guild** (any shilling price there): 1 to the master, 1 to the journeyman, 1 to charity, repeating; charity is the purse or coffer opposite. An absent member's shilling goes to the general supply. A member pays themselves but must hold the full price. (RB p. 14, p. 16)
 3. **Trade** (anyone):
     - Farmer: send all goods from one farm you rule into the barn; take 1 food (from the haversack) or 1 shilling per 2 goods sent. Goods beyond the barn's limit of 10 go to the haversack, except that a number equal to the sum of the beads on the chickens, chosen at random from the shipment, spill into the Merchant market and then the Alchemist carts where they fit; the rest go to the haversack. (RB p. 17; D 2016-11-11; D 2017-07-21)
@@ -312,7 +312,7 @@ Card symbols: x2 (may be replayed by Repeat); crossed x2 (never replayed); not-l
 
 ### R-4.7 Reeves
 
-When your push or pull scores, you may place one of your discs as a reeve in that guild if you have none there (pull: left; push: right). Then score +1 vp if you have a reeve in this guild, and +1 more if your other reeve is in another guild. This repeats on every later scoring push or pull there. A reeve follows your marker between master and journeyman and returns to supply if you drop to apprentice or off the track. At most 2, never two in one guild, never in a feast. (RB p. 16; Erratum; D 2018-05-08; D 2018-08-27; FAQ)
+On every push or pull, threshold reached or not (R-4.7-H1), you may place one of your discs as a reeve in that guild if you have none there (pull: left; push: right). Then score +1 vp if you have a reeve in this guild, and +1 more if your other reeve is in another guild. This repeats on every later push or pull there. A reeve follows your marker between master and journeyman and returns to supply if you drop to apprentice or off the track. At most 2, never two in one guild, never in a feast. (RB p. 16; Erratum; D 2018-05-08; D 2018-08-27; FAQ)
 
 ### R-4.8 Combat
 

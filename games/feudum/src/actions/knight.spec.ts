@@ -218,7 +218,7 @@ describe('GuildAction: R-4.6.5 the Knight push', () => {
         expect(best).toMatchObject({ metadata: { completions: 3, points: 6 } })
     })
 
-    it('R-4.6.1 a marker moved with no line completed scores nothing', () => {
+    it('R-4.6.1, R-4.7-H1 a marker moved with no line completed scores no points, and offers a reeve', () => {
         const { table, playerId } = masterTable([])
         const score = table.seat(playerId).score
         const [action] = table.send(playerId, {
@@ -227,9 +227,9 @@ describe('GuildAction: R-4.6.5 the Knight push', () => {
         })
         expect(table.seat(playerId).score).toBe(score)
         expect(action).toMatchObject({
-            metadata: { completions: 0, points: 0, reevePoints: 0, reeveOffered: false }
+            metadata: { completions: 0, points: 0, reevePoints: 0, reeveOffered: true }
         })
-        expect(table.state.machineState).toBe(MachineState.PlayingCards)
+        expect(table.state.machineState).toBe(MachineState.PlacingDisc)
     })
 
     it('R-4.6.1 only lines this push completes count, and never both rows and columns', () => {
