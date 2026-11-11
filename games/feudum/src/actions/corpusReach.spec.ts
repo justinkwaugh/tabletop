@@ -494,7 +494,7 @@ describe('corpus reach: the cards', () => {
         )
 
         it.each(Replays.filter(({ use, mode }) => use === 'regular' && mode === 'repeat'))(
-            'R-3.15.2 $name has x2: the offer lights Repeat, and Déjà Vu is still legal for a saltpeter',
+            'R-3.15.2, R-3.15-H2 $name has x2: the offer lights Repeat, and Déjà Vu refuses it',
             (row) => {
                 const held = tableToReplay(row)
                 const state = held.table.hydrated()
@@ -504,7 +504,7 @@ describe('corpus reach: the cards', () => {
                 })
                 expect(
                     reasonCardPlayRefused(state, held.seat, row.kind, { asRepeat: 'deja-vu' })
-                ).toBeUndefined()
+                ).toBe(`${cardOf(row.kind).printedName} shows x2: only Repeat replays it.`)
             }
         )
     })
