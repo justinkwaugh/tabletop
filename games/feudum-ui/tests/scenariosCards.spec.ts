@@ -126,6 +126,23 @@ scenario('S15 R-3.9 Improve to a feudum', 'cards-improve-town', async (table) =>
     expect(await table.placeOf('score:p1')).not.toBe(disc)
 })
 
+scenario('S15a R-3.9-H1 Improve a farm: which town disc', 'cards-improve-farm', async (table) => {
+    await table.press(table.card('Improve'))
+    const chips = await table.litChips()
+    const [farm] = Object.keys(chips)
+    expect(chips).toEqual({ [farm]: 'farm to town · 1 iron' })
+    await table.pressPick(farm)
+    await expect(table.popup().locator('[data-popup-heading]')).toHaveText(
+        'Which town disc? Its back is what this place shows if it is ever reduced.'
+    )
+    for (const back of ['farm', 'outpost']) {
+        const choice = table.popupRow(`Town disc, back: ${back}`)
+        await expect(choice).toHaveAccessibleName(`Town disc, back: ${back}`)
+        await expect(choice).toContainText(`back: ${back}`)
+        expect(await choice.locator('svg').count()).toBeGreaterThanOrEqual(2)
+    }
+})
+
 scenario(
     'S16 R-4.3.2 Improve with a prohibited tile, epoch I',
     'cards-tile-gone-epoch-1',

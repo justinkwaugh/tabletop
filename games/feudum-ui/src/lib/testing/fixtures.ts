@@ -704,6 +704,19 @@ export const Fixtures = {
             return { host, seat }
         }
     },
+    'cards-improve-farm': {
+        arranged: 'R-3.9-H1 An iron: a guild board or a Harvest gives one.',
+        build: async () => {
+            const { host, seat } = await rulingFarm('monk', [
+                'influence',
+                'improve',
+                'tax',
+                'guild'
+            ])
+            host.edit((state) => giveGood(state, seat, 'iron'))
+            return { host, seat }
+        }
+    },
     'cards-tile-gone-epoch-1': {
         arranged:
             "R-4.11.1 The region's first tile gone, as the progress die's removal does after a round like the one played here, and the seal.",

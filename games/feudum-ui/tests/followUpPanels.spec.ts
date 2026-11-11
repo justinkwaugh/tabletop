@@ -122,8 +122,9 @@ test('S50 the at-will row opens its lists; a card pick hides it; S51 no seal dur
 }) => {
     await openTable(page, 'openAtWillTable()')
     const chips = panel(page).locator('[data-rows="at-will"]')
-    await expect(chips).toContainText('Writs 2')
-    await expect(chips).toContainText('Tiles 2')
+    // The chips are their pieces with counts; the words are their names.
+    await expect(chips.getByRole('button', { name: 'Writs 2' })).toHaveCount(1)
+    await expect(chips.getByRole('button', { name: 'Tiles 2' })).toHaveCount(1)
     await chips.getByRole('button', { name: 'Writs 2' }).click()
     const offers = panel(page).locator('[data-writ-offer]')
     await expect(offers).toHaveCount(2)
