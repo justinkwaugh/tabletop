@@ -12,7 +12,8 @@
     /**
      * R-4.5.1 A pawn takes a seat colour, so it is always drawn: the figure in the seat's fill from
      * the session (S71), its character on a parchment medallion, the seat's initial on its base.
-     * R-4.8.2 A drunk pawn tilts and carries a sulfur drop.
+     * R-4.8.2 A drunk pawn tilts and carries a sulfur drop. A pawn in supply has no character yet
+     * (R-3.6), so its medallion is bare.
      */
     let {
         paint,
@@ -23,14 +24,14 @@
         y
     }: {
         paint: SeatPaint
-        character: Character
+        character?: Character
         drunk?: boolean
         size?: number
         x?: number
         y?: number
     } = $props()
 
-    let label = $derived(`${paint.initial} ${character}${drunk ? ', drunk' : ''}`)
+    let label = $derived(`${paint.initial} ${character ?? 'pawn'}${drunk ? ', drunk' : ''}`)
     let box = $derived(`-4 0 ${PawnBox.width + 8} ${PawnBox.height}`)
     let iconSize = PawnMedallion.r * 1.6
 </script>
@@ -55,13 +56,15 @@
             stroke="var(--feudum-ink)"
             stroke-width="0.5"
         ></circle>
-        <path
-            d={GuildIconPaths[character]}
-            transform="translate({PawnMedallion.x - iconSize / 2} {PawnMedallion.y -
-                iconSize / 2}) scale({iconSize / 24})"
-            fill="var(--feudum-ink)"
-            fill-rule="evenodd"
-        ></path>
+        {#if character}
+            <path
+                d={GuildIconPaths[character]}
+                transform="translate({PawnMedallion.x - iconSize / 2} {PawnMedallion.y -
+                    iconSize / 2}) scale({iconSize / 24})"
+                fill="var(--feudum-ink)"
+                fill-rule="evenodd"
+            ></path>
+        {/if}
         <text
             x={PawnBox.width / 2}
             y={PawnBox.height - 3}

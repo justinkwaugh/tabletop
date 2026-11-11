@@ -6,6 +6,7 @@
     import { PlainChrome, dimmed, isPickable, type BoardChrome } from '$lib/model/boardChrome.js'
     import { monsterTarget, pawnTarget, roleOf, type BoardTarget } from '$lib/model/boardOffer.js'
     import { pieceKey, piecesOn, slottedPieces, type MapPiece } from '$lib/model/mapView.js'
+    import { pawnPlace } from '$lib/model/cardFlows.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import { MonsterSize, PawnSize, VesselSize, spaceGeometry } from '$lib/utils/boardGeometry.js'
     import { PawnBox } from '$lib/utils/pieceShapes.js'
@@ -85,7 +86,7 @@
             {chrome}
             at={geometry.pieceSlots[slot]}
             width={PieceFrame}
-            label={piece.kind === 'pawn' ? piece.character : piece.monster}
+            label={piece.kind === 'pawn' ? pawnPlace({ ...piece, spaceId: id }) : piece.monster}
         />
     {/each}
     {#if more > 0}

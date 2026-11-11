@@ -166,6 +166,15 @@ describe('R-X.3 the rows of the panel', () => {
         expect(markup).toContain('aria-label="B noble"')
     })
 
+    it('S13 R-3.6 a pawn from supply stands in its row as a figure with a bare medallion', () => {
+        const markup = markupOf(
+            rowsBlock('flow', [{ ...aRow('Pawn from supply'), art: { kind: 'pawn', paint } }])
+        )
+        expect(markup).toContain('data-row="Pawn from supply"')
+        expect(markup).toContain('aria-label="B pawn"')
+        expect(markup).toContain('Pawn from supply</span>')
+    })
+
     it('S2 R-1.4.8 the sulfur asks beside itself where it goes', () => {
         const markup = markupOf(
             rowsBlock('goods', [

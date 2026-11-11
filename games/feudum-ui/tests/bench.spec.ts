@@ -374,7 +374,7 @@ test('S48 R-3.6, R-4.4-H1 a Migrate short of food, with no tile: dimmed, with it
         .first()
         .click()
     await settled(page)
-    const pawn = panel(page).locator('[data-row="Pawn 2"]')
+    const pawn = panel(page).locator('[data-row="Pawn from supply"]')
     await expect(pawn.locator('button')).toHaveAttribute('aria-disabled', 'true')
     await pawn.locator('button').click({ force: true })
     await expect(pawn.locator('[data-refusal]')).toContainText('needs 1 food')

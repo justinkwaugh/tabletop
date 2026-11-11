@@ -53,7 +53,8 @@ import {
     type RegionId,
     type SpaceId,
     type StarveOffer,
-    type TileId
+    type TileId,
+    type VesselType
 } from '@tabletop/feudum'
 import {
     feudumTarget,
@@ -135,8 +136,13 @@ export interface TurnPresser {
 }
 export type TurnPress = (draft: TurnPresser) => void
 
+/** The piece a row shows before its label; the panel paints it in the seat's colour. */
+export type ChoiceArt = { readonly kind: 'pawn'; readonly character?: Character }
+
 export interface PanelChoice {
     readonly label: string
+    /** Its piece, with the label kept as the row's accessible name. */
+    readonly art?: ChoiceArt
     readonly note?: ChipNote
     readonly picked: boolean
     /** Dimmed, with the line a press gives; it has no `press`. */
@@ -219,6 +225,36 @@ export function spaceLabel(spaceId: SpaceId): string {
     return `${titled(regionOf(spaceId))} ${spaceId.split('.')[2]}`
 }
 
+const VesselNames: Readonly<Record<VesselType, string>> = {
+    ship: 'a ship',
+    submersible: 'a submersible',
+    'flying-machine': 'a flying machine'
+}
+
+/**
+ * "Knight at Desert 4, on a ship": R-1.1 a seat's pawns are alike, so one is told from another
+ * only by where it stands, its character and the vessel under it (R-4.2.2), never by its number.
+ */
+export function pawnPlace({
+    character,
+    spaceId,
+    vessel
+}: {
+    readonly character: Character
+    readonly spaceId: SpaceId
+    readonly vessel?: VesselType
+}): string {
+    const place = `${titled(character)} at ${spaceLabel(spaceId)}`
+    return vessel ? `${place}, on ${VesselNames[vessel]}` : place
+}
+
+function placeOfPawn(state: HydratedFeudumGameState, playerId: string, n: PawnNumber): string {
+    const pawn = state.getPlayerState(playerId).pawns.find((entry) => entry.n === n)
+    assertExists(pawn?.spaceId, `R-3.6 Pawn ${n} stands on the board`)
+    assertExists(pawn.character, `R-3.6 Pawn ${n} on the board has a character`)
+    return pawnPlace({ ...pawn, character: pawn.character, spaceId: pawn.spaceId })
+}
+
 function playIf(
     reason: string | undefined,
     build: FlowPlay['build'],
@@ -239,9 +275,12 @@ function migrateFlow(flow: FlowInput): FlowView {
     const offers = migrateOffers(state, playerId)
     const pawn = read('pawn')
     const canEnter = offers.spaces.length + offers.distantKinSpaces.length > 0
-    const rows: PanelChoice[] = offers.pawnsOff.map((n) => ({
-        label: `Pawn ${n}`,
-        picked: pawn === n,
+    // R-1.1 Pawns in supply stand nowhere and have no character, so nothing tells them apart: one
+    // figure stands for them all, and its press takes the first.
+    const rows: PanelChoice[] = offers.pawnsOff.slice(0, 1).map((n) => ({
+        label: 'Pawn from supply',
+        art: { kind: 'pawn' },
+        picked: pawn !== undefined && offers.pawnsOff.includes(pawn),
         ...(canEnter
             ? { press: Pick('pawn', n) }
             : {
@@ -266,7 +305,7 @@ function migrateFlow(flow: FlowInput): FlowView {
             picked: pawn === undefined ? [] : [pawnTarget(playerId, pawn)],
             ...(data
                 ? {
-                      primaryName: `Migrate pawn ${pawn} off`,
+                      primaryName: `Migrate the ${placeOfPawn(state, playerId, data.pawn)} off`,
                       play: playIf(reasonMigrateRefused(state, playerId, data), (maker) =>
                           maker.createPlayerAction(Migrate, data)
                       )
