@@ -430,7 +430,7 @@ describe('R-6.2, R-6.3 the game-end summary', () => {
             markup.slice(markup.indexOf('<svg'), markup.indexOf('</svg>'))
         expect(charter).toContain(drawing(face))
         expect(charter).not.toContain(drawing(back))
-        expect(charter).toMatch(/<span>6<\/span>/)
+        expect(charter).toMatch(/data-charter-score[^>]*>6 vp<\/span>/)
     })
 
     it('S56 R-6.3 the tie-break is named when it broke a tie, and is absent otherwise', () => {
