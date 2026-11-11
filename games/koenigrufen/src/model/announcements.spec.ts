@@ -54,11 +54,13 @@ describe('announcements', () => {
         ).not.toContain(Bonus.KingUltimo)
     })
 
-    it('allows only Valat in Farbensolo and no bonuses in negative games', () => {
+    it('allows only Four Kings and Valat in the colour games and no bonuses in negative games', () => {
         const announcements = newAnnouncements()
-        expect(
-            announceableBonuses(announcements, speaker(Contract.Farbensolo, 'a', Side.Declarer))
-        ).toEqual([Bonus.Valat])
+        for (const contract of [Contract.Farbendreier, Contract.Farbensolo]) {
+            expect(
+                announceableBonuses(announcements, speaker(contract, 'a', Side.Declarer))
+            ).toEqual([Bonus.FourKings, Bonus.Valat])
+        }
         expect(
             announceableBonuses(announcements, speaker(Contract.Bettel, 'a', Side.Declarer))
         ).toEqual([])

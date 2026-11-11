@@ -25,10 +25,11 @@ Königrufen follows the Austrian rules as Pagat (pagat.com) and the German and E
 ## Laying away
 
 - Kings and the Trull may never be laid away; other trumps only when no suit card can be, and trumps laid away are shown face up.
+- **Farbendreier** reverses this (house rule): trumps other than the Trull must be laid away before any suit card, declarer choosing which when there are more than three. Suit cards laid away are shown face up and trumps stay face down. Kings still may not be laid away.
 
 ## Play
 
-- **Negative games and Trischaken**: beat the highest card so far if possible, and play the Pagat only as the last trump. Declarer leads in the negative games; Forehand leads in Trischaken. A negative game stops as soon as declarer has failed.
+- **Negative games and Trischaken**: beat the highest card so far if possible, and play the Pagat only as the last trump. Declarer leads in the negative games and Farbensolo; Forehand leads in Trischaken, Farbendreier and every other contract. A negative game stops as soon as declarer has failed.
 - **Ouvert games** lay every hand open once a card has been led to the second trick (Pagat).
 - **Colour games** (Farbendreier, Farbensolo): trumps do not beat the suit led, may not be led while the leader holds a suit card, and are held back while suit cards remain.
 - **An announced bird** is kept for its trick unless nothing else may be played (Wikipedia).
@@ -37,6 +38,6 @@ Königrufen follows the Austrian rules as Pagat (pagat.com) and the German and E
 
 - **Bonuses** follow Wikipedia's Austrian table, silent / announced: Trull, Four Kings, King ultimo and Pagat 1 / 2, Uhu 2 / 4, Kakadu 3 / 6, Quapil 4 / 8; Valat multiplies the game by 4 / 8 and replaces it and every other bonus. Kontra, Re and Sub each double.
 - **The Sack** (house rule) is announced only, worth 2: the announcing side takes 46 or more card points.
-- **Solorufer and Solodreier** double every bonus but Valat (Pagat). Negative games score no bonuses; Farbensolo scores only Valat.
+- **Solorufer and Solodreier** double every bonus but Valat (Pagat). Negative games score no bonuses. The colour games, Farbendreier and Farbensolo, score only Valat and Four Kings, silent or announced (house rule, after Austrian variants).
 - **Trischaken**, each for themselves: the two with the most card points pay one each to the two with the fewest; anyone with 36 or more pays two to each other player; anyone without a trick is paid two by each other player. The payments add up. When the second and third highest totals tie, the payment between the two highest and the two lowest is skipped. The winner of the last trick takes the talon.
 - **The game ends** after the chosen number of times around; the highest score wins, and a tie for highest is a draw between those players.

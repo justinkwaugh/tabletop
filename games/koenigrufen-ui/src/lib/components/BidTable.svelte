@@ -2,7 +2,7 @@
     // The bid menu's table where there is room for it: one line per bid, its description in a
     // pane beside the table. Clicking a bid makes it; clicking Besserrufer holds the pane on its
     // bird buttons, so the pointer can cross other rows to reach them. Without hover, a first tap
-    // only shows a bid.
+    // only shows a bid. Closed rows only show their description.
     import type { BidChoice } from '@tabletop/koenigrufen'
     import { bidRows, type BidRow } from '$lib/utils/bidRows.js'
     import { ChoicePreview } from '$lib/utils/choicePreview.svelte.js'
@@ -24,7 +24,7 @@
     const shown = $derived(rows.find((row) => row.key === shownKey))
 
     function choose(row: BidRow) {
-        if (row.birds.length > 0) {
+        if (row.birds.length > 0 || row.closed) {
             held = row.key
         } else if (preview.noHover.current && shownKey !== row.key) {
             held = undefined
@@ -45,12 +45,16 @@
             <div
                 class="row"
                 class:shown={shownKey === row.key}
+                class:featured={row.featured}
+                class:closed={row.closed}
+                class:group={row.startsGroup}
                 role="listitem"
                 onpointerenter={(event) => preview.showOnHover(event, row.key)}
             >
                 <button
                     type="button"
                     class="line"
+                    aria-disabled={row.closed}
                     onfocus={(event) => preview.showOnKeyboardFocus(event, row.key)}
                     onclick={() => choose(row)}
                 >
@@ -71,7 +75,9 @@
                 <span class="worth">{shown.value}</span>
             </div>
             <p>{shown.details}</p>
-            {#if shown.birds.length > 0}
+            {#if shown.closed}
+                <p class="hint">Say Mein Spiel first.</p>
+            {:else if shown.birds.length > 0}
                 <BirdButtons birds={shown.birds} {onchoose} full />
             {:else if preview.noHover.current}
                 <p class="hint">Tap again to bid.</p>
@@ -148,6 +154,23 @@
 
     .name {
         font-weight: 700;
+    }
+
+    .featured {
+        background: rgb(242 201 76 / 0.08);
+    }
+
+    .featured .name {
+        color: #f2c94c;
+    }
+
+    .closed .line {
+        opacity: 0.4;
+        cursor: default;
+    }
+
+    .group {
+        border-top: 1px solid rgb(242 201 76 / 0.45);
     }
 
     aside {

@@ -16,7 +16,8 @@ import { bonusGoal, bonusName } from './announcementText.js'
 import { bidKey, bidValueText } from './contractText.js'
 
 // The bid menu's table: one row per contract open to the player, cheapest first. Besserrufer is a
-// single row whose birds are the actual bids.
+// single row whose birds are the actual bids. Forehand's opening bid leads with Sechserdreier, then
+// the contracts named only after "Mein Spiel", closed, then the ordinary bids.
 
 export type Tone = 'gold' | 'muted' | 'warn'
 export type Tag = { text: string; tone: Tone }
@@ -44,6 +45,12 @@ export type BidRow = {
     details: string
     // Besserrufer only: every bird, those not open to the player marked closed.
     birds: BirdOption[]
+    // Forehand's opening call, set apart at the head of the table.
+    featured: boolean
+    // Shown but not open to the player.
+    closed: boolean
+    // The first ordinary bid after the opening rows.
+    startsGroup: boolean
 }
 
 const Details: Record<Contract, string> = {
@@ -62,12 +69,12 @@ const Details: Record<Contract, string> = {
     [Contract.Besserrufer]:
         'Call a King and name a bird with the bid. The bird is announced for your side and its value adds to the game.',
     [Contract.Farbendreier]:
-        'Trumps don’t win: play one only when out of suit cards, and never lead one by choice.',
+        'Trumps don’t win: play one only when out of suit cards, and never lead one by choice. Lay away trumps first, except the Trull, face down; suit cards laid away are shown.',
     [Contract.Dreier]: 'Take 3 talon cards and play alone.',
     [Contract.Sechserdreier]:
         'Forehand’s opening call, instead of Mein Spiel. Take the whole talon unseen; lose double.',
     [Contract.Farbensolo]:
-        'Trumps don’t win, as in Farbendreier. The talon goes to the defenders unseen.',
+        'You lead. Trumps don’t win, as in Farbendreier. The talon goes to the defenders unseen.',
     [Contract.PiccoloOuvert]: 'Piccolo with every hand laid open from the second trick.',
     [Contract.BettelOuvert]: 'Bettel with every hand laid open from the second trick.',
     [Contract.Solodreier]: 'The talon goes to the defenders unseen. Bonuses count double.'
@@ -76,7 +83,7 @@ const Details: Record<Contract, string> = {
 const Teams: Record<Partnership, string> = {
     [Partnership.CallKing]: '2 v 2',
     [Partnership.Alone]: '1 v 3',
-    [Partnership.Individual]: 'Each alone'
+    [Partnership.Individual]: 'None'
 }
 
 function goal(contract: Contract): [long: string, short: string] {
@@ -112,15 +119,18 @@ function talon(contract: Contract): string {
     }
 }
 
-function tags(contract: Contract): Tag[] {
+function tags(contract: Contract, closed: boolean): Tag[] {
     const definition = contractDefinition(contract)
     const result: Tag[] = []
+    if (closed) {
+        result.push({ text: 'After Mein Spiel', tone: 'muted' })
+    }
     if (definition.namesBird) {
         result.push({ text: 'Names a bird', tone: 'gold' })
     }
     if (definition.forehandOpening) {
         result.push({ text: 'Opening only', tone: 'muted' })
-    } else if (definition.forehandOnly) {
+    } else if (definition.forehandOnly && !closed) {
         result.push({ text: 'Forehand only', tone: 'muted' })
     }
     if (definition.bonusesDoubled) {
@@ -129,8 +139,8 @@ function tags(contract: Contract): Tag[] {
     if (definition.bonuses === BonusScope.None) {
         result.push({ text: 'No bonuses', tone: 'warn' })
     }
-    if (definition.bonuses === BonusScope.ValatOnly) {
-        result.push({ text: 'Valat only', tone: 'warn' })
+    if (definition.bonuses === BonusScope.ValatAndFourKings) {
+        result.push({ text: 'Only Valat and Four Kings', tone: 'warn' })
     }
     if (!definition.trumpsWin) {
         result.push({ text: 'No trumps', tone: 'warn' })
@@ -148,7 +158,7 @@ const AllChoices: BidChoice[] = PlayableContracts.flatMap((contract) =>
         : [{ contract }]
 ).toSorted((a, b) => bidRank(a) - bidRank(b))
 
-function row(choice: BidChoice, value: string, birds: BirdOption[]): BidRow {
+function row(choice: BidChoice, value: string, birds: BirdOption[], closed = false): BidRow {
     const { contract } = choice
     const [goalLong, goalShort] = goal(contract)
     return {
@@ -160,9 +170,12 @@ function row(choice: BidChoice, value: string, birds: BirdOption[]): BidRow {
         goal: goalLong,
         goalShort,
         talon: talon(contract),
-        tags: tags(contract),
+        tags: tags(contract, closed),
         details: Details[contract],
-        birds
+        birds,
+        featured: contractDefinition(contract).forehandOpening,
+        closed,
+        startsGroup: false
     }
 }
 
@@ -191,9 +204,27 @@ function valueRange(birds: BirdOption[]): string {
     return low === high ? String(low) : `${low}–${high}`
 }
 
-// The rows for the bids open to the player. A contract that names a bird sits where its cheapest
-// open bird ranks, its value the range of its open birds.
+// The rows for the bids open to the player, cheapest first. A contract that names a bird sits where
+// its cheapest open bird ranks, its value the range of its open birds. Forehand's opening call comes
+// first, followed by the contracts only named after "Mein Spiel", closed.
 export function bidRows(choices: readonly BidChoice[]): BidRow[] {
+    const rows = openRows(choices)
+    if (!rows.some((row) => row.featured)) {
+        return rows
+    }
+    const named = AllChoices.filter((choice) => {
+        const definition = contractDefinition(choice.contract)
+        return definition.forehandOnly && !definition.forehandOpening
+    }).map((choice) => row(choice, bidValueText(choice), [], true))
+    const ordinary = rows.filter((row) => !row.featured && !named.some((n) => n.key === row.key))
+    return [
+        ...rows.filter((row) => row.featured),
+        ...named,
+        ...ordinary.map((row, index) => ({ ...row, startsGroup: index === 0 }))
+    ]
+}
+
+function openRows(choices: readonly BidChoice[]): BidRow[] {
     const keys = choices.map(bidKey)
     const placed = new Set<Contract>()
     return AllChoices.flatMap((choice): BidRow[] => {

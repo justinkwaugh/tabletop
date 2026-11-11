@@ -1,7 +1,9 @@
 import {
     bidValue,
+    BonusScope,
     Contract,
     contractDefinition,
+    LayAwayRule,
     Goal,
     PackPoints,
     Partnership,
@@ -17,12 +19,23 @@ import { bonusGoal, bonusName } from './announcementText.js'
 const KingInTalonNote =
     'If the called King is in the talon, declarer gives up (paying each player) or plays alone (no Kontra).'
 
+const TrumpsFirstNote =
+    'Lay away trumps first, except the Trull, face down; suit cards laid away are shown.'
+
+// The rule for choosing cards to lay away.
+export const LayAwayRuleText: Record<LayAwayRule, string> = {
+    [LayAwayRule.SuitCardsFirst]:
+        'Kings and the Trull may not be laid away; trumps only when you have no other choice.',
+    [LayAwayRule.TrumpsFirstSuitCardsShown]:
+        'Trumps go first, except the Trull; never Kings. Suit cards are shown.'
+}
+
 const ContractNotes: Partial<Record<Contract, string>> = {
     [Contract.Rufer]: KingInTalonNote,
     [Contract.Solorufer]: '(If the called King is in the talon, declarer gets that half.)',
     [Contract.Besserrufer]:
         'If the called King is in the talon, declarer gives up (paying each player the game and the bird) or plays alone (no Kontra).',
-    [Contract.Farbensolo]: 'No bonuses except Valat.',
+    [Contract.Farbensolo]: 'Declarer leads.',
     [Contract.Trischaken]:
         'Forehand leads. Beat the highest card if you can; Pagat only as your last trump. The last trick’s winner takes the talon. The 2 highest pay 1 each to the 2 lowest; 36+ pays 2 to each player; anyone without a trick is paid 2 by each.'
 }
@@ -127,6 +140,9 @@ export function contractSummary(choice: BidChoice): string {
         !definition.trumpsWin &&
             'Trumps don’t win, and are led or played only when you have no suit cards left.',
         definition.ouvert && 'All hands laid open from the second trick.',
+        definition.layAway === LayAwayRule.TrumpsFirstSuitCardsShown && TrumpsFirstNote,
+        definition.bonuses === BonusScope.ValatAndFourKings &&
+            'No bonuses except Valat and Four Kings.',
         birdNote(choice),
         ContractNotes[contract]
     ])

@@ -134,7 +134,11 @@ export function announceableBonuses(
         return []
     }
     return BonusOrder.filter((bonus) => {
-        if (scope === BonusScope.ValatOnly && bonus !== Bonus.Valat) {
+        if (
+            scope === BonusScope.ValatAndFourKings &&
+            bonus !== Bonus.Valat &&
+            bonus !== Bonus.FourKings
+        ) {
             return false
         }
         if (

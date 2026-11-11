@@ -46,20 +46,23 @@ export type BonusScoring = {
 // Bonuses score for or against the side that went for them. Announced, each is won or lost at its
 // announced value; silent, the Trull, Four Kings and Valat score for the side that took them, and a
 // bird or the called King played to its trick wins or loses for its side. Each Kontra doubles, and
-// Solo contracts double all but Valat.
+// Solo contracts double all but Valat. The colour games score only Valat and Four Kings.
 export function scoreBonuses(hand: BonusHand): BonusScoring {
     const { definition, announcements } = hand
     if (definition.bonuses === BonusScope.None) {
         return { results: [], valat: false }
     }
     const valat = scoreValat(hand)
-    if (valat.length > 0 || definition.bonuses === BonusScope.ValatOnly) {
+    if (valat.length > 0) {
         return { results: valat, valat: valat.length > 0 }
     }
     const factor = definition.bonusesDoubled ? 2 : 1
     const results: BonusResult[] = []
     for (const bonus of BonusOrder) {
-        if (bonus === Bonus.Valat) {
+        if (
+            bonus === Bonus.Valat ||
+            (definition.bonuses === BonusScope.ValatAndFourKings && bonus !== Bonus.FourKings)
+        ) {
             continue
         }
         const value = Bonuses[bonus]

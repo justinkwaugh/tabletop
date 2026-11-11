@@ -38,12 +38,19 @@ export enum Goal {
     TakeTricks = 'takeTricks'
 }
 
-// Which bonuses the contract scores, silent or announced (Pagat: none in negative games; only
-// Valat in Farbensolo).
+// Which bonuses the contract scores, silent or announced: none in negative games (Pagat), and only
+// Valat and Four Kings in the colour games (house rule, after Austrian variants).
 export enum BonusScope {
     All = 'all',
-    ValatOnly = 'valatOnly',
+    ValatAndFourKings = 'valatAndFourKings',
     None = 'none'
+}
+
+// How declarer lays away talon cards. Ordinarily suit cards go first and only trumps are shown; in
+// Farbendreier (house rule) trumps other than the Trull go first and only suit cards are shown.
+export enum LayAwayRule {
+    SuitCardsFirst = 'suitCardsFirst',
+    TrumpsFirstSuitCardsShown = 'trumpsFirstSuitCardsShown'
 }
 
 export type ContractDefinition = {
@@ -52,6 +59,7 @@ export type ContractDefinition = {
     readonly partnership: Partnership
     readonly goal: Goal
     readonly talonCards: number
+    readonly layAway: LayAwayRule
     readonly win: number
     readonly loss: number
     readonly trumpsWin: boolean
@@ -79,6 +87,7 @@ function contract(
         | 'bonusesDoubled'
         | 'bonuses'
         | 'namesBird'
+        | 'layAway'
     > &
         Partial<ContractDefinition>
 ): ContractDefinition {
@@ -86,6 +95,7 @@ function contract(
         loss: definition.win,
         bonuses: definition.goal === Goal.TakePoints ? BonusScope.All : BonusScope.None,
         namesBird: false,
+        layAway: LayAwayRule.SuitCardsFirst,
         trumpsWin: true,
         declarerLeads: false,
         forehandOnly: false,
@@ -178,8 +188,10 @@ export const Contracts: Readonly<Record<Contract, ContractDefinition>> = {
         partnership: Partnership.Alone,
         goal: Goal.TakePoints,
         talonCards: 3,
+        layAway: LayAwayRule.TrumpsFirstSuitCardsShown,
         win: 3,
-        trumpsWin: false
+        trumpsWin: false,
+        bonuses: BonusScope.ValatAndFourKings
     }),
     [Contract.Dreier]: contract({
         contract: Contract.Dreier,
@@ -210,7 +222,8 @@ export const Contracts: Readonly<Record<Contract, ContractDefinition>> = {
         talonCards: 0,
         win: 5,
         trumpsWin: false,
-        bonuses: BonusScope.ValatOnly
+        declarerLeads: true,
+        bonuses: BonusScope.ValatAndFourKings
     }),
     [Contract.Solodreier]: contract({
         contract: Contract.Solodreier,

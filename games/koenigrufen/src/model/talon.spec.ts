@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { LayAwayRule } from '../components/contracts.js'
 import {
     canLayAway,
     layAwayCandidates,
@@ -6,6 +7,9 @@ import {
     talonHalves,
     untouchedTalonHalfForDeclarer
 } from './talon.js'
+
+const Ordinary = LayAwayRule.SuitCardsFirst
+const Farbendreier = LayAwayRule.TrumpsFirstSuitCardsShown
 
 describe('laying away', () => {
     const hand = [
@@ -20,22 +24,68 @@ describe('laying away', () => {
     ]
 
     it('takes exactly the right number of different cards from the hand', () => {
-        expect(canLayAway(hand, ['hearts-Q', 'clubs-10', 'spades-7'], 3)).toBe(true)
-        expect(canLayAway(hand, ['hearts-Q', 'clubs-10'], 3)).toBe(false)
-        expect(canLayAway(hand, ['hearts-Q', 'hearts-Q', 'clubs-10'], 3)).toBe(false)
-        expect(canLayAway(hand, ['hearts-Q', 'clubs-10', 'diamonds-1'], 3)).toBe(false)
+        expect(canLayAway(hand, ['hearts-Q', 'clubs-10', 'spades-7'], 3, Ordinary)).toBe(true)
+        expect(canLayAway(hand, ['hearts-Q', 'clubs-10'], 3, Ordinary)).toBe(false)
+        expect(canLayAway(hand, ['hearts-Q', 'hearts-Q', 'clubs-10'], 3, Ordinary)).toBe(false)
+        expect(canLayAway(hand, ['hearts-Q', 'clubs-10', 'diamonds-1'], 3, Ordinary)).toBe(false)
     })
 
     it('never lays away a king or the Trull', () => {
-        expect(canLayAway(hand, ['hearts-K', 'clubs-10', 'spades-7'], 3)).toBe(false)
-        expect(canLayAway(hand, ['trump-22', 'clubs-10', 'spades-7'], 3)).toBe(false)
+        expect(canLayAway(hand, ['hearts-K', 'clubs-10', 'spades-7'], 3, Ordinary)).toBe(false)
+        expect(canLayAway(hand, ['trump-22', 'clubs-10', 'spades-7'], 3, Ordinary)).toBe(false)
     })
 
     it('lays away other trumps only when the suit cards run out', () => {
-        expect(canLayAway(hand, ['trump-5', 'clubs-10', 'spades-7'], 3)).toBe(false)
+        expect(canLayAway(hand, ['trump-5', 'clubs-10', 'spades-7'], 3, Ordinary)).toBe(false)
         const short = ['hearts-K', 'clubs-10', 'trump-5', 'trump-6', 'trump-22']
-        expect(canLayAway(short, ['clubs-10', 'trump-5', 'trump-6'], 3)).toBe(true)
-        expect(shownDiscards(['clubs-10', 'trump-5', 'trump-6'])).toEqual(['trump-5', 'trump-6'])
+        expect(canLayAway(short, ['clubs-10', 'trump-5', 'trump-6'], 3, Ordinary)).toBe(true)
+        expect(shownDiscards(['clubs-10', 'trump-5', 'trump-6'], Ordinary)).toEqual([
+            'trump-5',
+            'trump-6'
+        ])
+    })
+})
+
+describe('laying away in Farbendreier', () => {
+    const hand = ['hearts-K', 'hearts-Q', 'clubs-10', 'spades-7', 'trump-1', 'trump-5', 'trump-22']
+
+    it('lays away trumps other than the Trull before any suit card', () => {
+        expect(canLayAway(hand, ['hearts-Q', 'clubs-10', 'spades-7'], 3, Farbendreier)).toBe(false)
+        expect(canLayAway(hand, ['trump-1', 'trump-5', 'clubs-10'], 3, Farbendreier)).toBe(false)
+        expect(canLayAway(hand, ['trump-22', 'trump-5', 'clubs-10'], 3, Farbendreier)).toBe(false)
+        expect(canLayAway(hand, ['hearts-K', 'trump-5', 'clubs-10'], 3, Farbendreier)).toBe(false)
+    })
+
+    it('fills the places left with suit cards other than kings', () => {
+        expect(canLayAway(hand, ['trump-5', 'clubs-10', 'spades-7'], 3, Farbendreier)).toBe(true)
+        expect(layAwayCandidates(hand, [], 3, Farbendreier)).toEqual([
+            'hearts-Q',
+            'clubs-10',
+            'spades-7',
+            'trump-5'
+        ])
+        expect(layAwayCandidates(hand, ['clubs-10', 'spades-7'], 3, Farbendreier)).toEqual([
+            'trump-5'
+        ])
+    })
+
+    it('lets declarer choose which trumps when there are more than the places', () => {
+        const many = ['clubs-10', 'trump-2', 'trump-5', 'trump-9', 'trump-14']
+        expect(canLayAway(many, ['trump-2', 'trump-9', 'trump-14'], 3, Farbendreier)).toBe(true)
+        expect(canLayAway(many, ['trump-2', 'trump-9', 'clubs-10'], 3, Farbendreier)).toBe(false)
+        expect(layAwayCandidates(many, ['trump-9'], 3, Farbendreier)).toEqual([
+            'trump-2',
+            'trump-5',
+            'trump-14'
+        ])
+    })
+
+    it('shows the suit cards laid away and keeps the trumps face down', () => {
+        expect(shownDiscards(['clubs-10', 'spades-7', 'trump-5'], Farbendreier)).toEqual([
+            'clubs-10',
+            'spades-7'
+        ])
+        expect(shownDiscards(['trump-2', 'trump-5', 'trump-9'], Farbendreier)).toEqual([])
     })
 })
 
@@ -69,12 +119,12 @@ describe('choosing cards to lay away', () => {
     const hand = ['hearts-K', 'hearts-Q', 'clubs-10', 'trump-5', 'trump-6', 'trump-22']
 
     it('offers suit cards other than kings while they can fill the places left', () => {
-        expect(layAwayCandidates(hand, [], 2)).toEqual(['hearts-Q', 'clubs-10'])
-        expect(layAwayCandidates(hand, ['hearts-Q'], 2)).toEqual(['clubs-10'])
+        expect(layAwayCandidates(hand, [], 2, Ordinary)).toEqual(['hearts-Q', 'clubs-10'])
+        expect(layAwayCandidates(hand, ['hearts-Q'], 2, Ordinary)).toEqual(['clubs-10'])
     })
 
     it('adds trumps other than the Trull once the suit cards run short', () => {
-        expect(layAwayCandidates(hand, [], 3)).toEqual([
+        expect(layAwayCandidates(hand, [], 3, Ordinary)).toEqual([
             'hearts-Q',
             'clubs-10',
             'trump-5',
@@ -83,15 +133,15 @@ describe('choosing cards to lay away', () => {
     })
 
     it('offers nothing once enough are chosen', () => {
-        expect(layAwayCandidates(hand, ['hearts-Q', 'clubs-10'], 2)).toEqual([])
+        expect(layAwayCandidates(hand, ['hearts-Q', 'clubs-10'], 2, Ordinary)).toEqual([])
     })
 
     it('only ever leads to a legal set', () => {
         const chosen: string[] = []
         while (chosen.length < 3) {
-            const [next] = layAwayCandidates(hand, chosen, 3).reverse()
+            const [next] = layAwayCandidates(hand, chosen, 3, Ordinary).reverse()
             chosen.push(next)
         }
-        expect(canLayAway(hand, chosen, 3)).toBe(true)
+        expect(canLayAway(hand, chosen, 3, Ordinary)).toBe(true)
     })
 })

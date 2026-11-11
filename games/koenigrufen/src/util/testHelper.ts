@@ -7,8 +7,8 @@ import {
     PlayerStatus,
     type GameAction
 } from '@tabletop/common'
-import { isKing, isTrull, isTrump, Suit } from '../components/cards.js'
-import { Contract } from '../components/contracts.js'
+import { Suit } from '../components/cards.js'
+import { Contract, LayAwayRule } from '../components/contracts.js'
 import { ActionType } from '../definition/actions.js'
 import type { KoenigrufenGameConfig } from '../definition/config.js'
 import { Definition } from '../definition/definition.js'
@@ -18,6 +18,7 @@ import { MachineState } from '../definition/states.js'
 import type { KoenigrufenProjectedState } from '../model/gameState.js'
 import type { Bonus } from '../model/announcements.js'
 import { bidChoice, type BidChoice } from '../model/auction.js'
+import { layAwayCandidates } from '../model/talon.js'
 
 export const TestMasterSeed = '0123456789abcdef0123456789abcdef'
 
@@ -117,11 +118,19 @@ export function setHands(session: TestSession, hands: Record<string, string[]>, 
     })
 }
 
-// Laid-away cards a declarer may legally choose: suit cards first, then the lowest trumps.
-export function legalLayAway(hand: readonly string[], count: number): string[] {
-    const suitCards = hand.filter((cardId) => !isTrump(cardId) && !isKing(cardId))
-    const trumps = hand.filter((cardId) => isTrump(cardId) && !isTrull(cardId))
-    return [...suitCards, ...trumps].slice(0, count)
+// Laid-away cards a declarer may legally choose, the first choosable card each time.
+export function legalLayAway(
+    hand: readonly string[],
+    count: number,
+    rule: LayAwayRule = LayAwayRule.SuitCardsFirst
+): string[] {
+    const chosen: string[] = []
+    while (chosen.length < count) {
+        const [next] = layAwayCandidates(hand, chosen, count, rule)
+        assertExists(next, 'Too few cards may be laid away')
+        chosen.push(next)
+    }
+    return chosen
 }
 
 export function contractsOf(choices: readonly BidChoice[]): Contract[] {
@@ -169,7 +178,8 @@ export function advanceTo(
                 session.act(playerId, ActionType.LayAway, {
                     cardIds: legalLayAway(
                         session.hand(playerId),
-                        hydrated.contractDefinition().talonCards
+                        hydrated.contractDefinition().talonCards,
+                        hydrated.contractDefinition().layAway
                     )
                 })
                 break

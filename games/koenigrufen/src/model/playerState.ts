@@ -17,7 +17,7 @@ export const KoenigrufenPlayerState = Type.Object({
     // Declarer's cards laid away after taking talon cards; they count for declarer's side.
     discards: Visibility.protect(Type.Array(CardIdSchema), { policy: Visibility.Policy.Owner }),
     discardCount: Type.Integer({ minimum: 0 }),
-    // Trumps must be laid away face up.
+    // Cards laid away face up: trumps, or in Farbendreier suit cards.
     shownDiscards: Type.Array(CardIdSchema),
     score: Type.Integer()
 })

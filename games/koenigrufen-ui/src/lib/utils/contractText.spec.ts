@@ -43,7 +43,10 @@ describe('contract text', () => {
             'Each alone - Goal: fewest card points - Forehand only. Forehand leads. Beat the highest card if you can; Pagat only as your last trump. The last trick’s winner takes the talon. The 2 highest pay 1 each to the 2 lowest; 36+ pays 2 to each player; anyone without a trick is paid 2 by each.'
         )
         expect(contractSummary({ contract: Contract.Farbensolo })).toBe(
-            '1v3 - Goal: 36+. All 6 talon cards go to Kontra unseen. Trumps don’t win, and are led or played only when you have no suit cards left. No bonuses except Valat.'
+            '1v3 - Goal: 36+. All 6 talon cards go to Kontra unseen. Trumps don’t win, and are led or played only when you have no suit cards left. No bonuses except Valat and Four Kings. Declarer leads.'
+        )
+        expect(contractSummary({ contract: Contract.Farbendreier })).toBe(
+            '1v3 - Goal: 36+. Take 3 talon cards; Kontra gets the other 3. Trumps don’t win, and are led or played only when you have no suit cards left. Lay away trumps first, except the Trull, face down; suit cards laid away are shown. No bonuses except Valat and Four Kings.'
         )
     })
 

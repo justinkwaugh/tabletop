@@ -1,6 +1,8 @@
+import { assert } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
-import { Suit } from '../components/cards.js'
-import { Contract } from '../components/contracts.js'
+import { isLayAway } from '../actions/layAway.js'
+import { isKing, isTrull, isTrump, Suit } from '../components/cards.js'
+import { Contract, LayAwayRule } from '../components/contracts.js'
 import { Bonus, Side } from '../model/announcements.js'
 import { FourthKing } from '../model/kingCall.js'
 import { TricksPerHand } from '../model/tricks.js'
@@ -380,6 +382,66 @@ describe('contracts without a talon exchange', () => {
         expect(session.hand(p0)).toHaveLength(12)
         playOutHand(session)
         expect(lastHandResult(session)?.contract).toBe(Contract.Sechserdreier)
+    })
+})
+
+describe('a Farbendreier', () => {
+    it('lays away trumps other than the Trull first, face down', () => {
+        const session = startTestGame()
+        const { p0 } = fixedDeal(session)
+        session.act(p0, ActionType.Bid, { contract: Contract.Farbendreier })
+        for (let passes = 0; passes < 3; passes++) {
+            session.act(session.activePlayerId(), ActionType.Pass)
+        }
+        session.act(p0, ActionType.ChooseTalonHalf, { half: 0 })
+        expect(session.state.machineState).toBe(MachineState.LayingAway)
+        const hand = session.hand(p0)
+        const suitCards = hand.filter((cardId) => !isTrump(cardId) && !isKing(cardId))
+        expect(() =>
+            session.act(p0, ActionType.LayAway, { cardIds: suitCards.slice(0, 3) })
+        ).toThrow()
+        const cardIds = legalLayAway(hand, 3, LayAwayRule.TrumpsFirstSuitCardsShown)
+        expect(cardIds.every((cardId) => isTrump(cardId) && !isTrull(cardId))).toBe(true)
+        const [action] = session.act(p0, ActionType.LayAway, { cardIds })
+        assert(isLayAway(action), 'The declarer laid away')
+        expect(action.metadata).toEqual({ shown: [] })
+        const declarer = session.state.players.find((player) => player.playerId === p0)
+        expect(declarer?.shownDiscards).toEqual([])
+        playOutHand(session)
+        expect(lastHandResult(session)?.contract).toBe(Contract.Farbendreier)
+    })
+})
+
+describe('the colour games', () => {
+    // Forehand reserves the game, the next seat outbids with `contract`, and the rest pass.
+    function bidBySecondSeat(session: TestSession, contract: Contract) {
+        const [p0, p1] = session.hydrated().seats()
+        session.act(p0, ActionType.SayMeinSpiel)
+        session.act(p1, ActionType.Bid, { contract })
+        while (session.state.machineState === MachineState.Bidding) {
+            session.act(session.activePlayerId(), ActionType.Pass)
+        }
+        return { p0, p1 }
+    }
+
+    it('has Forehand lead a Farbendreier', () => {
+        const session = startTestGame()
+        const { p0, p1 } = bidBySecondSeat(session, Contract.Farbendreier)
+        session.act(p1, ActionType.ChooseTalonHalf, { half: 0 })
+        session.act(p1, ActionType.LayAway, {
+            cardIds: legalLayAway(session.hand(p1), 3, LayAwayRule.TrumpsFirstSuitCardsShown)
+        })
+        passAnnouncements(session)
+        expect(session.state.machineState).toBe(MachineState.Playing)
+        expect(session.activePlayerId()).toBe(p0)
+    })
+
+    it('has declarer lead a Farbensolo', () => {
+        const session = startTestGame()
+        const { p1 } = bidBySecondSeat(session, Contract.Farbensolo)
+        passAnnouncements(session)
+        expect(session.state.machineState).toBe(MachineState.Playing)
+        expect(session.activePlayerId()).toBe(p1)
     })
 })
 

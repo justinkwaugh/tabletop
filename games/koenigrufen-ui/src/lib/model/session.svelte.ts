@@ -137,7 +137,12 @@ export class KoenigrufenGameSession extends GameSession<
     )
     readonly layAwayChoices: string[] = $derived(
         this.isLayingAway
-            ? layAwayCandidates(this.myHand, this.chosenToLayAway, this.layAwayCount)
+            ? layAwayCandidates(
+                  this.myHand,
+                  this.chosenToLayAway,
+                  this.layAwayCount,
+                  this.gameState.contractDefinition().layAway
+              )
             : []
     )
     readonly canConfirmLayAway = $derived(

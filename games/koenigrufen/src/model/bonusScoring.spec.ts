@@ -184,7 +184,7 @@ describe('scoring bonuses', () => {
         expect(failed.results).toMatchObject([{ bonus: Bonus.Valat, made: false, points: -8 }])
     })
 
-    it('scores nothing in negative games, and only Valat in Farbensolo', () => {
+    it('scores nothing in negative games, and only Four Kings and Valat in the colour games', () => {
         expect(
             scoreBonuses(
                 hand({
@@ -193,13 +193,21 @@ describe('scoring bonuses', () => {
                 })
             ).results
         ).toEqual([])
-        expect(
-            scoreBonuses(
+        const kings = [Suit.Hearts, Suit.Diamonds, Suit.Clubs, Suit.Spades].map(kingOf)
+        for (const contract of [Contract.Farbendreier, Contract.Farbensolo]) {
+            const scoring = scoreBonuses(
                 hand({
-                    definition: contractDefinition(Contract.Farbensolo),
-                    cards: { [Side.Declarer]: trull, [Side.Defenders]: [] }
+                    definition: contractDefinition(contract),
+                    announcements: {
+                        ...newAnnouncements(),
+                        bonuses: [announced(Bonus.Pagat, Side.Declarer)]
+                    },
+                    cards: { [Side.Declarer]: [...trull, ...kings], [Side.Defenders]: [] }
                 })
-            ).results
-        ).toEqual([])
+            )
+            expect(scoring.results).toMatchObject([
+                { bonus: Bonus.FourKings, side: Side.Declarer, announced: false, points: 1 }
+            ])
+        }
     })
 })

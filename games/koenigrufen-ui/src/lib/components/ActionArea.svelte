@@ -8,6 +8,7 @@
         bidHeading,
         contractSummary,
         kingInTalonPrompt,
+        LayAwayRuleText,
         meinSpielSummary
     } from '$lib/utils/contractText.js'
     import CalledKingBadge from './CalledKingBadge.svelte'
@@ -153,8 +154,9 @@
         {:else if state.machineState === MachineState.LayingAway}
             <p>
                 Choose {gameSession.layAwayCount} cards to lay away ({gameSession.chosenToLayAway
-                    .length}/{gameSession.layAwayCount}). Kings and the Trull may not be laid away;
-                trumps only when you have no other choice.
+                    .length}/{gameSession.layAwayCount}). {LayAwayRuleText[
+                    state.contractDefinition().layAway
+                ]}
             </p>
             <div class="choices">
                 <button

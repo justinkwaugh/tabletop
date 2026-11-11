@@ -7,11 +7,12 @@ import type { HydratedKoenigrufenGameState } from '../model/gameState.js'
 
 export type LayAwayResult = Type.Static<typeof LayAwayResult>
 export const LayAwayResult = Type.Object({
-    // Trumps laid away face up, for every viewer.
+    // Cards laid away face up, for every viewer: trumps, or in Farbendreier suit cards.
     shown: Type.Array(CardIdSchema)
 })
 
-// Declarer lays away as many cards as they took from the talon, face down: only they see which.
+// Declarer lays away as many cards as they took from the talon; only they see which, apart from
+// those laid face up.
 export type LayAway = Type.Static<typeof LayAway>
 export const LayAway = Type.Evaluate(
     Type.Intersect([

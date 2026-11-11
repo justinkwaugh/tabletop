@@ -423,7 +423,8 @@ export class HydratedKoenigrufenGameState
             canLayAway(
                 this.player(playerId).knownHand(),
                 cardIds,
-                this.contractDefinition().talonCards
+                this.contractDefinition().talonCards,
+                this.contractDefinition().layAway
             )
         )
     }
@@ -433,7 +434,7 @@ export class HydratedKoenigrufenGameState
             this.canLayAway(playerId, cardIds),
             `${playerId} cannot lay away ${cardIds.join(', ')}`
         )
-        const shown = shownDiscards(cardIds)
+        const shown = shownDiscards(cardIds, this.contractDefinition().layAway)
         this.player(playerId).layAway(cardIds, shown)
         return shown
     }

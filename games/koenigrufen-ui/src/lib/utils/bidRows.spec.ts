@@ -66,22 +66,48 @@ describe('bid rows', () => {
             { contract: Contract.Rufer },
             { contract: Contract.Trischaken },
             { contract: Contract.Zwiccolo },
-            { contract: Contract.Sechserdreier }
+            { contract: Contract.Dreier }
         ])
         expect(
             rows.map((row) => [row.name, row.teams, row.goal, row.goalShort, row.talon])
         ).toEqual([
             ['Rufer', '2 v 2', '36+ card points', '36+ points', 'Take 3'],
-            ['Trischaken', 'Each alone', 'Fewest card points', 'Fewest points', 'Last trick'],
+            ['Trischaken', 'None', 'Fewest card points', 'Fewest points', 'Last trick'],
             ['Zwiccolo', '1 v 3', 'Exactly 2 tricks', '2 tricks', 'Unused'],
-            ['Sechserdreier', '1 v 3', '36+ card points', '36+ points', 'Take 6']
+            ['Dreier', '1 v 3', '36+ card points', '36+ points', 'Take 3']
         ])
-        expect(rows[3].value).toBe('4/−8')
+        expect(bidRows([{ contract: Contract.Sechserdreier }])[0].value).toBe('4/−8')
+    })
+
+    it('leads Forehand’s opening with Sechserdreier, then Rufer and Trischaken closed', () => {
+        const rows = bidRows([...Opening, { contract: Contract.Sechserdreier }])
+        expect(rows.map((row) => [row.name, row.featured, row.closed, row.startsGroup])).toEqual([
+            ['Sechserdreier', true, false, false],
+            ['Rufer', false, true, false],
+            ['Trischaken', false, true, false],
+            ['Piccolo', false, false, true],
+            ['Solorufer', false, false, false],
+            ['Besserrufer', false, false, false],
+            ['Farbendreier', false, false, false],
+            ['Farbensolo', false, false, false],
+            ['Solodreier', false, false, false]
+        ])
+        expect(rows[1].tags.map((tag) => tag.text)).toEqual(['After Mein Spiel'])
+    })
+
+    it('opens Rufer and Trischaken once Mein Spiel is passed out', () => {
+        const rows = bidRows([{ contract: Contract.Rufer }, { contract: Contract.Trischaken }])
+        expect(rows.map((row) => [row.name, row.closed])).toEqual([
+            ['Rufer', false],
+            ['Trischaken', false]
+        ])
+        expect(rows[0].tags.map((tag) => tag.text)).toEqual(['Forehand only'])
     })
 
     it('tags the rule changes', () => {
         const tags = (contract: Contract) => bidRows([{ contract }])[0].tags.map((tag) => tag.text)
-        expect(tags(Contract.Farbensolo)).toEqual(['Valat only', 'No trumps'])
+        expect(tags(Contract.Farbensolo)).toEqual(['Only Valat and Four Kings', 'No trumps'])
+        expect(tags(Contract.Farbendreier)).toEqual(['Only Valat and Four Kings', 'No trumps'])
         expect(tags(Contract.BettelOuvert)).toEqual(['No bonuses', 'Open hands'])
         expect(tags(Contract.Solodreier)).toEqual(['Bonuses ×2'])
         expect(tags(Contract.Sechserdreier)).toEqual(['Opening only'])

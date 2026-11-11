@@ -1,7 +1,8 @@
 <script lang="ts">
     // The bid menu's table on a narrow screen: each bid on two short lines (value, name, teams,
     // goal; then talon and rule tags). The pointed-at bid unfolds its description in place, and
-    // Besserrufer unfolds its bird buttons. Without hover, a first tap only unfolds a bid.
+    // Besserrufer unfolds its bird buttons. Without hover, a first tap only unfolds a bid. Closed
+    // rows only unfold.
     import type { BidChoice } from '@tabletop/koenigrufen'
     import { bidRows, type BidRow } from '$lib/utils/bidRows.js'
     import { ChoicePreview } from '$lib/utils/choicePreview.svelte.js'
@@ -18,7 +19,7 @@
     const shown = $derived(preview.shownAmong(rows.map((row) => row.key)))
 
     function choose(row: BidRow) {
-        if (row.birds.length > 0 || (preview.noHover.current && shown !== row.key)) {
+        if (row.closed || row.birds.length > 0 || (preview.noHover.current && shown !== row.key)) {
             preview.previewed = row.key
             return
         }
@@ -34,12 +35,16 @@
         <div
             class="row"
             class:shown={shown === row.key}
+            class:featured={row.featured}
+            class:closed={row.closed}
+            class:group={row.startsGroup}
             role="listitem"
             onpointerenter={(event) => preview.showOnHover(event, row.key)}
         >
             <button
                 type="button"
                 class="line"
+                aria-disabled={row.closed}
                 onfocus={(event) => preview.showOnKeyboardFocus(event, row.key)}
                 onclick={() => choose(row)}
             >
@@ -55,7 +60,9 @@
             {#if shown === row.key}
                 <div class="unfold">
                     <p>{row.details}</p>
-                    {#if row.birds.length > 0}
+                    {#if row.closed}
+                        <p class="hint">Say Mein Spiel first.</p>
+                    {:else if row.birds.length > 0}
                         <div class="birds"><BirdButtons birds={row.birds} {onchoose} /></div>
                     {/if}
                 </div>
@@ -123,6 +130,23 @@
         font-weight: 700;
     }
 
+    .featured {
+        background: rgb(242 201 76 / 0.08);
+    }
+
+    .featured .name {
+        color: #f2c94c;
+    }
+
+    .closed .line {
+        opacity: 0.4;
+        cursor: default;
+    }
+
+    .group {
+        border-top: 1px solid rgb(242 201 76 / 0.45);
+    }
+
     .extra {
         display: flex;
         flex-wrap: wrap;
@@ -149,5 +173,11 @@
 
     .birds {
         margin-top: 6px;
+    }
+
+    .unfold .hint {
+        margin-top: 4px;
+        font-style: italic;
+        opacity: 0.6;
     }
 </style>
