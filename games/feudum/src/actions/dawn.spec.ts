@@ -1,7 +1,7 @@
 import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { Regions, Spaces, type SpaceId } from '../data/board.js'
-import { Goods } from '../data/components.js'
+import { Goods, GuildIds } from '../data/components.js'
 import {
     AlchemistCartSpaces,
     ChickenSpaces,
@@ -152,13 +152,13 @@ describe('R-4.12 the dawn follows the roll', () => {
 })
 
 describe('R-4.12.1 the dawn sheet', () => {
-    it('R-4.12.1 guild ranks score 5, 3 and 1', () => {
+    it.each(GuildIds)('R-4.12.1 %s ranks score 5, 3 and 1', (guild) => {
         const { table, processed, order } = playToDawn(
             2,
             (state, [master, journeyman, apprentice, none]) => {
-                setPawns(state, master, ['knight', 'knight', 'knight'])
-                setPawns(state, journeyman, ['knight', 'knight'])
-                setPawns(state, apprentice, ['knight'])
+                setPawns(state, master, [guild, guild, guild])
+                setPawns(state, journeyman, [guild, guild])
+                setPawns(state, apprentice, [guild])
                 setPawns(state, none, [])
                 state.recomputeRanks()
             },
@@ -166,13 +166,9 @@ describe('R-4.12.1 the dawn sheet', () => {
         )
         const [master, journeyman, apprentice, none] = order
 
-        expect(rowOf(processed, master).ranks).toEqual([{ guild: 'knight', rank: 'master', vp: 5 }])
-        expect(rowOf(processed, journeyman).ranks).toEqual([
-            { guild: 'knight', rank: 'journeyman', vp: 3 }
-        ])
-        expect(rowOf(processed, apprentice).ranks).toEqual([
-            { guild: 'knight', rank: 'apprentice', vp: 1 }
-        ])
+        expect(rowOf(processed, master).ranks).toEqual([{ guild, rank: 'master', vp: 5 }])
+        expect(rowOf(processed, journeyman).ranks).toEqual([{ guild, rank: 'journeyman', vp: 3 }])
+        expect(rowOf(processed, apprentice).ranks).toEqual([{ guild, rank: 'apprentice', vp: 1 }])
         expect(rowOf(processed, none).ranks).toEqual([])
         expect(order.map((playerId) => table.seat(playerId).score)).toEqual([5, 3, 1, 0])
     })
