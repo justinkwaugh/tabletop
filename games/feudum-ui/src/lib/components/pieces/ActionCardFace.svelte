@@ -39,7 +39,7 @@
     let viewBox = `0 0 ${CardBox.width} ${CardBox.height}`
     let card = $derived(faceShown ? ActionCards.find((one) => one.kind === kind) : undefined)
     let label = $derived(
-        card ? `${card.printedName} card, ${paint.initial}` : `${paint.initial} card back`
+        card ? `${paint.owner} ${card.printedName} card` : `${paint.owner} card back`
     )
     let url = $derived(card ? assetUrl(cardAsset(card.kind)) : undefined)
     let printedUrl = $derived.by(() => {

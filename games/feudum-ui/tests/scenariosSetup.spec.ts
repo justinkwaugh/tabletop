@@ -63,7 +63,7 @@ scenario('S2 R-1.4.9 PlaceStartingPawn, either order', 'setup-pawn', async (tabl
 
     await table.press(knight)
     const flights = await table.flightsOf(() => table.pressPick('space:space.desert.3'))
-    expect(flights).toEqual(['markers: A influence marker', 'pawns: A knight'])
+    expect(flights).toEqual(["markers: Ana's influence marker", "pawns: Ana's knight pawn"])
     await expect(table.waitingLine()).toHaveText('Bram places a starting pawn')
     expect(await table.piecesNamed('rank:')).toEqual(['rank:guild.knight.track.master'])
 

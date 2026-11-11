@@ -92,21 +92,12 @@
         height={30 * scale}
         viewBox="0 0 24 24"
         role="img"
-        aria-label="{paint.initial} wax seal"
+        aria-label="{paint.owner} wax seal"
     >
-        <title>{paint.initial} wax seal</title>
+        <title>{paint.owner} wax seal</title>
         <circle cx="12" cy="12" r="11" fill={paint.fill} stroke={paint.edge} stroke-width="1"
         ></circle>
         <circle cx="12" cy="12" r="8" fill="none" stroke={paint.ink} stroke-width="0.6"></circle>
-        <text
-            x="12"
-            y="16"
-            text-anchor="middle"
-            font-size="11"
-            font-weight="700"
-            fill={paint.ink}
-            style:font-family="var(--feudum-font-title)">{paint.initial}</text
-        >
     </svg>
 </article>
 

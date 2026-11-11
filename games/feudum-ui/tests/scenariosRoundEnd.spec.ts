@@ -85,7 +85,7 @@ scenario('S53 R-4.10.1 Nourish choice', 'nourish-choice', async (table) => {
     await expect(feeds).toHaveText([/^\s*Unfed/, /^\s*Wine/, /^\s*Food/])
     const flights = await table.flightsOf(() => table.press(table.primary()))
     expect(flights).toEqual(
-        expect.arrayContaining(['goods: food', 'goods: sulfur', 'pawns: A monk'])
+        expect.arrayContaining(['goods: food', 'goods: sulfur', "pawns: Ana's monk pawn"])
     )
 })
 

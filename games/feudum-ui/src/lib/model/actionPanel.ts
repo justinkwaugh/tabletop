@@ -183,8 +183,7 @@ function titled(word: string): string {
 }
 
 function paintOf(session: PanelSession, playerId: string): SeatPaint {
-    const initial = session.getPlayerName(playerId).charAt(0).toUpperCase()
-    return seatPaint(session.colors, playerId, initial)
+    return seatPaint(session.colors, playerId, session.getPlayerName(playerId))
 }
 
 function cardFace(kind: ActionCardKind): { readonly number: number; readonly label: string } {

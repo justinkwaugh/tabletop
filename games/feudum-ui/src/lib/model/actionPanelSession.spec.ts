@@ -531,7 +531,7 @@ describe('Playing a card', () => {
         expect(cardRows(session.actionPanel).map(({ kind }) => kind)).toEqual(['guild', 'explore'])
     })
 
-    it('S13 R-3.6 the supply pawns as one figure, the spaces, the character popup that sends; Distant Kin', async () => {
+    it('S13 R-3.6 the supply pawns as one cube, the spaces, the character popup that sends; Distant Kin', async () => {
         const turn = await atCards(['migrate', 'tax'], (state, { seat }) => {
             giveGood(state, seat, 'food')
             state.getPlayerState(seat).pawns[0].character = 'alchemist'
@@ -540,7 +540,7 @@ describe('Playing a card', () => {
         await pressCard(session.actionPanel, 'migrate')
         const pawns = rowsOf(session.actionPanel, 'flow')
         // R-1.1 Pawns in supply stand nowhere and have no character: a number would tell them apart
-        // by nothing, so they are one figure.
+        // by nothing, so they are one cube.
         expect(pawns.map(({ choice }) => choice.label)).toEqual(['Pawn from supply'])
         expect(pawns[0].art).toEqual({ kind: 'pawn', paint: expect.anything() })
         await pressRow(pawns[0])

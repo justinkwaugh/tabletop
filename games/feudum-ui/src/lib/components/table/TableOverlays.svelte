@@ -31,8 +31,7 @@
 
     /** A seat's paint from the session's colourizer (S71), as the board draws it. */
     function paintOf(playerId: string) {
-        const initial = gameSession.getPlayerName(playerId).charAt(0).toUpperCase()
-        return seatPaint(gameSession.colors, playerId, initial)
+        return seatPaint(gameSession.colors, playerId, gameSession.getPlayerName(playerId))
     }
 
     /**

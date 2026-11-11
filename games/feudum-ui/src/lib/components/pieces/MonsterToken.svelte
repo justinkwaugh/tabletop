@@ -7,7 +7,8 @@
 
     /**
      * A monster. A controlled one takes its seat's colour from the session (S71): a collar on the
-     * drawn form, and on either form a disc with the seat's initial, so colour never stands alone.
+     * drawn form, and on either form a disc in that colour. The seat is named in its accessible name
+     * and tooltip ("Ana's behemoth"), so colour never stands alone; no letter is drawn on it.
      */
     let {
         monster,
@@ -27,7 +28,7 @@
 </script>
 
 <PieceFrame
-    label={paint ? `${name}, ${paint.initial}` : name}
+    label={paint ? `${paint.owner} ${name}` : name}
     url={assetUrl(monsterAsset(monster))}
     width={size}
     height={size}
@@ -52,14 +53,6 @@
     {#snippet over()}
         {#if paint}
             <circle cx="40" cy="40" r="7" fill={paint.fill} stroke={paint.edge}></circle>
-            <text
-                x="40"
-                y="43.5"
-                text-anchor="middle"
-                font-size="9"
-                font-weight="700"
-                fill={paint.ink}>{paint.initial}</text
-            >
         {/if}
     {/snippet}
 </PieceFrame>

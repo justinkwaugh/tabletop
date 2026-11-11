@@ -278,7 +278,7 @@ function migrateFlow(flow: FlowInput): FlowView {
     const pawn = read('pawn')
     const canEnter = offers.spaces.length + offers.distantKinSpaces.length > 0
     // R-1.1 Pawns in supply stand nowhere and have no character, so nothing tells them apart: one
-    // figure stands for them all, and its press takes the first.
+    // cube stands for them all, and its press takes the first.
     const rows: PanelChoice[] = offers.pawnsOff.slice(0, 1).map((n) => ({
         label: 'Pawn from supply',
         art: { kind: 'pawn' },

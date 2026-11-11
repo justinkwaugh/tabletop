@@ -18,7 +18,7 @@ const paint = {
     fill: '#336699',
     ink: 'var(--feudum-text)',
     edge: 'var(--feudum-map-ink)',
-    initial: 'A'
+    owner: "Ana's"
 }
 
 /** The state of the tree until the commit that adds the title's art: an empty folder. */
@@ -60,7 +60,8 @@ describe('pawns (R-4.5.1)', () => {
         expect(pawn).toContain('data-pawn-cube')
         expect(pawn).toMatch(/data-cube-top[^>]*fill="#336699"|fill="#336699"[^>]*data-cube-top/)
         expect(pawn).toMatch(/data-cube-side[^>]*fill="#336699"|fill="#336699"[^>]*data-cube-side/)
-        expect(pawn).toMatch(/aria-label="[^"]*knight/i)
+        expect(pawn).toContain('aria-label="Ana\'s knight pawn"')
+        expect(pawn).toContain("<title>Ana's knight pawn</title>")
     })
 
     it('its character is printed on the top face, pale with a dark outline, and no initial', () => {

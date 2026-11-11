@@ -1,13 +1,15 @@
 <script lang="ts">
     import { assetUrl, seatPieceAsset, type SeatPieceKind } from '$lib/art/assetMap.js'
-    import { printedInk, type SeatPaint } from '$lib/model/seatPaint.js'
+    import type { SeatPaint } from '$lib/model/seatPaint.js'
 
     /**
      * A seat's own wooden pieces: an influence marker, a player disc, a reeve. While the seat shows
      * one of the publisher's printed colours and the folder holds the print, the piece is the
      * printed one in that colour: the hexagonal marker, a disc's blank face, and for a reeve the
-     * face printed for its point. Otherwise it is drawn in the seat colour (S71). Either way it
-     * carries the seat's initial, so colour never stands alone.
+     * face printed for its point. Otherwise it is drawn in the seat colour (S71). Neither carries a
+     * letter: the seat is named in its accessible name and tooltip ("Ana's influence marker"), and
+     * a player who needs more than colour turns on the platform's colour-blind palette, under which
+     * every piece is drawn in the colour that palette chose.
      */
     let {
         kind,
@@ -31,7 +33,7 @@
         reeve: { x: 4.5, y: 4.5, width: 15, height: 15 }
     } as const
 
-    let label = $derived(`${paint.initial} ${Names[kind]}`)
+    let label = $derived(`${paint.owner} ${Names[kind]}`)
     let printedUrl = $derived(
         paint.printed ? assetUrl(seatPieceAsset(kind, paint.printed)) : undefined
     )
@@ -49,34 +51,6 @@
             height={print.height}
             preserveAspectRatio="xMidYMid meet"
         ></image>
-        {#if kind === 'reeve'}
-            <!-- The reeve's printed face fills the disc, so its initial stands on a tab at its foot. -->
-            <circle
-                cx="19.5"
-                cy="19.5"
-                r="4.5"
-                fill="var(--feudum-parchment)"
-                stroke={paint.edge}
-                stroke-width="0.75"
-            ></circle>
-            <text
-                x="19.5"
-                y="21.9"
-                text-anchor="middle"
-                font-size="6.5"
-                font-weight="700"
-                fill="var(--feudum-ink)">{paint.initial}</text
-            >
-        {:else}
-            <text
-                x="12"
-                y={kind === 'marker' ? 15.5 : 16}
-                text-anchor="middle"
-                font-size={kind === 'marker' ? 9 : 11}
-                font-weight="700"
-                fill={paint.printed ? printedInk(paint.printed) : paint.ink}>{paint.initial}</text
-            >
-        {/if}
     {:else if kind === 'marker'}
         <path
             d="M3 10 L3 15 A9 5 0 0 0 21 15 L21 10 Z"
@@ -93,20 +67,11 @@
             stroke={paint.edge}
             stroke-width="1"
         ></ellipse>
-        <text x="12" y="13" text-anchor="middle" font-size="8" font-weight="700" fill={paint.ink}
-            >{paint.initial}</text
-        >
     {:else if kind === 'disc'}
         <circle cx="12" cy="12" r="10.5" fill={paint.fill} stroke={paint.edge} stroke-width="1"
         ></circle>
-        <text x="12" y="16" text-anchor="middle" font-size="11" font-weight="700" fill={paint.ink}
-            >{paint.initial}</text
-        >
     {:else}
         <circle cx="12" cy="12" r="7.5" fill={paint.fill} stroke={paint.edge} stroke-width="1"
         ></circle>
-        <text x="12" y="15" text-anchor="middle" font-size="8" font-weight="700" fill={paint.ink}
-            >{paint.initial}</text
-        >
     {/if}
 </svg>

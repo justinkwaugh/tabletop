@@ -29,7 +29,9 @@
     const Margin = 2
     const { box, side, top, shine, corner, face } = PawnCube
 
-    let label = $derived(`${paint.initial} ${character ?? 'pawn'}${drunk ? ', drunk' : ''}`)
+    let label = $derived(
+        `${paint.owner} ${character ? `${character} ` : ''}pawn${drunk ? ', drunk' : ''}`
+    )
 </script>
 
 <svg

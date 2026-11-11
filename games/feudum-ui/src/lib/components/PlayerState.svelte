@@ -15,7 +15,7 @@
 
     let view = $derived(gameSession.seatPanel(playerId))
     let name = $derived(gameSession.getPlayerName(playerId))
-    let paint = $derived(seatPaint(gameSession.colors, playerId, name.charAt(0).toUpperCase()))
+    let paint = $derived(seatPaint(gameSession.colors, playerId, name))
 
     function onRibbon() {
         if (reading) {

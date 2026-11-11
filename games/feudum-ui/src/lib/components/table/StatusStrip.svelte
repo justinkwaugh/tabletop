@@ -20,11 +20,7 @@
     let paint = $derived(
         myId === undefined
             ? undefined
-            : seatPaint(
-                  gameSession.colors,
-                  myId,
-                  gameSession.getPlayerName(myId).charAt(0).toUpperCase()
-              )
+            : seatPaint(gameSession.colors, myId, gameSession.getPlayerName(myId))
     )
 </script>
 
