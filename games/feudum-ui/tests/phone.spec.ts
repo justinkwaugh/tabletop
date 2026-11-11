@@ -718,23 +718,18 @@ test.describe('held upright', () => {
         await shot(page, 'phone-tracks')
     })
 
-    test('R-3.2 no hover: a card’s preview is a press, and nothing brightens by itself', async ({
+    test('R-3.2 no hover: a card has no preview path, its press lights the places', async ({
         page
     }) => {
         await createGame(page)
         await playToCards(page)
         await settled(page)
-        const preview = panel(page).locator('[data-preview="Move"]')
-        await expect(preview).toBeVisible()
-        await expectTarget(preview)
+        const hand = panel(page).locator('[data-cards="hand"]')
+        await expect(hand.locator('[data-preview]:visible')).toHaveCount(0)
         await expect(page.locator('[data-bright]')).toHaveCount(0)
-        await preview.tap()
+        await hand.locator('button.face[aria-label="Move"]').tap()
         await settled(page)
-        await expect(preview).toHaveAttribute('aria-pressed', 'true')
-        await expect.poll(() => page.locator('[data-bright]').count()).toBeGreaterThan(0)
-        await preview.tap()
-        await settled(page)
-        await expect(page.locator('[data-bright]')).toHaveCount(0)
+        await expect.poll(() => lit(page).count()).toBeGreaterThan(0)
     })
 
     test('S10a R-3.2 a picked card’s tray takes the line under the hand, Forfeit last', async ({
@@ -757,16 +752,13 @@ test.describe('held upright', () => {
         await expectNoSidewaysScroll(page)
     })
 
-    test('R-3.2 the hand in card play: every pick, magnifier and preview is 44 px', async ({
-        page
-    }) => {
+    test('R-3.2 the hand in card play: every pick and magnifier is 44 px', async ({ page }) => {
         await createGame(page)
         await playToCards(page)
         await settled(page)
         const cells = panel(page).locator('[data-cards] [data-row]')
         for (const cell of await cells.all()) {
             await expectTarget(cell.locator('[data-enlarge]'))
-            await expectTarget(cell.locator('[data-preview]'))
             const face = await rect(cell.locator('button.face'))
             const glass = await rect(cell.locator('[data-enlarge]'))
             expect(glass.y - face.y).toBeGreaterThanOrEqual(Target)
@@ -835,6 +827,54 @@ test.describe('a 390 px phone', () => {
         await expect(key).toHaveCount(0)
     })
 
+    test('S10a R-3.2 a picked card’s tray fits the action area: one line, then the modes and Forfeit', async ({
+        page
+    }) => {
+        await openFixture(page, 'cards-improve-town')
+        const hand = panel(page).locator('[data-cards="hand"]')
+        await hand.locator('button.face[aria-label="Improve"]').click()
+        const tray = panel(page).locator('[data-card-tray="Improve"]')
+        await expect(tray).toBeVisible()
+
+        // No hover on a phone: a press on a card or a mode is itself the preview.
+        await expect(hand.locator('[data-preview]:visible')).toHaveCount(0)
+        await expect(tray.locator('[data-preview]:visible')).toHaveCount(0)
+
+        // The stage line is one line, its card named at its head.
+        const line = tray.locator('[data-tray-line]')
+        await expect(line).toBeVisible()
+        await expect(line).toContainText('Improve')
+        const height = await line.evaluate((element) => {
+            const box = element.getBoundingClientRect()
+            return box.height / Number.parseFloat(getComputedStyle(element).lineHeight)
+        })
+        expect(height).toBeLessThan(1.5)
+
+        // The modes then Forfeit share one row; the unpayable special is dimmed, its reason its name.
+        const modes = tray.getByRole('button')
+        const rows = new Set<number>()
+        for (const mode of await modes.all()) {
+            rows.add(Math.round((await rect(mode)).y + (await rect(mode)).height / 2))
+        }
+        expect(rows.size).toBe(1)
+        const special = tray.locator('[data-row^="Tend Landscape"] button')
+        await expect(special).toHaveAttribute('aria-disabled', 'true')
+        await expect(special).toHaveAttribute('title', /no collected tile/)
+        await expect(special).toHaveAccessibleName(/Tend Landscape.*no collected tile/)
+        await expect(tray.locator('[data-reason]:visible')).toHaveCount(0)
+
+        // Forfeit stands in sight without scrolling, inside the action area.
+        const forfeit = modes.last()
+        await expect(forfeit).toHaveText('Forfeit')
+        const area = await rect(page.locator('[data-action-cap]'))
+        const box = await rect(forfeit)
+        expect(box.y + box.height).toBeLessThanOrEqual(area.y + area.height + 0.5)
+        expect(box.y + box.height).toBeLessThanOrEqual(844)
+        expect(
+            await page.locator('[data-action-cap]').evaluate((element) => element.scrollTop)
+        ).toBe(0)
+    })
+
     test('R-1.4.8 the starting-goods choice shows all five goods in the panel, in sight', async ({
         page
     }) => {
@@ -853,47 +893,6 @@ test.describe('a 390 px phone', () => {
             expect(box.y).toBeGreaterThanOrEqual(Math.max(0, area.y) - 0.5)
             expect(box.y + box.height).toBeLessThanOrEqual(view.height)
         }
-    })
-
-    test('R-3.2 each card’s preview reads on one line, named "Show on board" for its card', async ({
-        page
-    }) => {
-        await createGame(page)
-        await playToCards(page)
-        await settled(page)
-        const cells = panel(page).locator('[data-cards] [data-row]')
-        expect(await cells.count()).toBeGreaterThan(0)
-        for (const cell of await cells.all()) {
-            const preview = cell.locator('[data-preview]')
-            await expect(preview).toBeVisible()
-            const label = await preview.getAttribute('data-preview')
-            await expect(
-                panel(page).getByRole('button', { name: `Show on board: ${label}`, exact: true })
-            ).toHaveCount(1)
-            const { text, lines, overflow } = await preview.evaluate((element) => {
-                const range = document.createRange()
-                range.selectNodeContents(element)
-                const tops = new Set(
-                    [...range.getClientRects()]
-                        .filter(({ width }) => width > 0)
-                        .map(({ top }) => Math.round(top))
-                )
-                return {
-                    text: (element as HTMLElement).innerText.trim(),
-                    lines: tops.size,
-                    overflow: element.scrollWidth - element.clientWidth
-                }
-            })
-            expect(text).toBe('On board')
-            expect(lines).toBe(1)
-            expect(overflow).toBeLessThanOrEqual(0)
-            const box = await rect(preview)
-            const face = await rect(cell.locator('button.face'))
-            expect(box.x).toBeGreaterThanOrEqual(face.x - 1)
-            expect(box.x + box.width).toBeLessThanOrEqual(face.x + face.width + 1)
-        }
-        await expectNoSidewaysScroll(page)
-        await shot(page, 'phone-390-show-on-board')
     })
 
     test('R-4.6 the bench sheet shows both guild areas whole, the market’s every row in sight', async ({

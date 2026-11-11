@@ -108,11 +108,14 @@ scenario(
             .evaluateAll((all) => all.map((one) => one.getAttribute('data-focus-chip')))
         expect(chips).toEqual(['map', 'west', 'east', 'tracks'])
         await expect(chip(table, 'map')).toHaveAttribute('aria-pressed', 'true')
+        const restView = await rect(view(table))
 
         await table.press(table.card('Move'))
         await table.boardAtRest()
         await expectInView(table, table.lit())
-        expect(await boardScale(table)).toBeGreaterThanOrEqual(rest - 0.001)
+        // The tray takes room from the view; the frame never zooms out past the cover of what is left.
+        const cover = (rest * (await rect(view(table))).height) / restView.height
+        expect(await boardScale(table)).toBeGreaterThanOrEqual(cover - 0.001)
         await expect(chip(table, 'map').locator('[data-lit-dot]')).toHaveCount(1)
 
         const framed = await rect(surface(table))
