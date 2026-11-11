@@ -219,25 +219,25 @@ The catalog title image is `src/lib/images/cover.webp`, read by `info.thumbnailU
 | `src/lib/fonts/MedievalSharp.ttf`         | OFL 1.1                               | licence text beside it   | n/a                 | n/a          |
 | `src/lib/fonts/IMFellEnglish-Latin.woff2` | OFL 1.1                               | licence text beside it   | n/a                 | n/a          |
 
-**Supplied once the title's permission entry lands**, each as `src/lib/art/supplied/<id>.webp` (or `.png` only where it needs transparency that lossy WebP can't keep), at about twice its rendered size. `assetMap.ts` is the list; `imageCoverage.spec.ts` holds every id to a component, a fallback and a file slot, whether or not the file is present.
+**Supplied once the title's permission entry lands**, each as `src/lib/art/supplied/<id>.webp` (or `.png` only where it needs transparency that lossy WebP can't keep), at about twice its largest render, which the table gives: an enlarged card, writ, tile or bead at 420 px wide, a guild on the bench, the board at its scale cap of 1, a seat panel at its reading scale. Where the print is smaller than that (a bead or a tile enlarged), the file is the print's own size. `assetMap.ts` is the list; `imageCoverage.spec.ts` holds every id to a component, a fallback and a file slot, whether or not the file is present, and holds each file the folder has to 2.5 times its largest render.
 
 | Ids                                                    | Count | Component                   | Rendered size       | Natural size          |
 | ------------------------------------------------------ | ----- | --------------------------- | ------------------- | --------------------- |
-| `good.<good>`                                          | 5     | `GoodToken`                 | up to 64 px         | 128 px long side      |
-| `shilling.1`, `shilling.5`                             | 2     | `ShillingToken`             | up to 64 px         | 256 px                |
-| `seal`, `bead.2` to `bead.5`                           | 5     | `SealFace`                  | up to 64 px         | 128 px                |
-| `target.archery`                                       | 1     | `ArcheryTarget`             | up to 64 px         | 128 px                |
-| `vessel.<vessel>`                                      | 3     | `VesselToken`               | up to 144 x 100 px  | 288 x 200 px          |
-| `monster.<monster>`                                    | 2     | `MonsterToken`              | up to 192 px        | 384 px long side      |
-| `location.<kind>`, `location.feudum.<guild>`           | 9     | `LocationDisc`              | up to 100 px        | 200 px                |
+| `good.<good>`                                          | 5     | `GoodToken`                 | up to 47 px         | 99 px long side       |
+| `shilling.1`, `shilling.5`                             | 2     | `ShillingToken`             | up to 47 px         | 106 px                |
+| `seal`, `bead.2` to `bead.5`                           | 5     | `SealFace`                  | up to 420 px        | 128 px                |
+| `target.archery`                                       | 1     | `ArcheryTarget`             | up to 34 px         | 76 px                 |
+| `vessel.<vessel>`                                      | 3     | `VesselToken`               | up to 40 x 27 px    | 88 x 61 px            |
+| `monster.<monster>`                                    | 2     | `MonsterToken`              | up to 67 px         | 150 px long side      |
+| `location.<kind>`, `location.feudum.<guild>`           | 9     | `LocationDisc`              | up to 61 px         | 136 px                |
 | `board.map`                                            | 1     | `MapGround`                 | up to 1598 x 833 px | 2400 x 1251 px        |
 | `board.ring`                                           | 1     | `BoardFrame`                | up to 2500 x 953 px | 3750 x 1430 px        |
 | `board.guild.<guild>`                                  | 6     | `GuildPanel`                | up to 440 x 312 px  | 1000 x 708 px         |
-| `tile.front.<numeral>`, `tile.back.<landscape>`        | 8     | `TileFace`                  | up to 128 px        | 256 px                |
-| `card.action.<kind>`                                   | 11    | `ActionCardFace` art window | up to 258 x 417 px  | 618 x 1000 px         |
+| `tile.front.<numeral>`, `tile.back.<landscape>`        | 8     | `TileFace`                  | up to 420 px        | 256 px                |
+| `card.action.<kind>`                                   | 11    | `ActionCardFace` art window | up to 361 x 585 px  | 618 x 1000 px         |
 | `card.action.<kind>.<colour>`, `card.back.<colour>`    | 60    | `ActionCardFace` whole card | up to 420 x 640 px  | 658 x 1000 px         |
-| `writ.mandate.<n>`, `writ.charter.<name>`, `writ.back` | 17    | `WritFace`                  | up to 300 x 486 px  | 618 x 1000 px         |
-| `piece.<kind>.<colour>` (marker, disc, reeve)          | 15    | `SeatToken`                 | up to 48 px         | 121 x 138, 189 px     |
+| `writ.mandate.<n>`, `writ.charter.<name>`, `writ.back` | 17    | `WritFace`                  | up to 420 x 638 px  | 618 x 1000 px         |
+| `piece.<kind>.<colour>` (marker, disc, reeve)          | 15    | `SeatToken`                 | 31, 28 and 15 px    | 61 x 70, 62, 32 px    |
 | `cover`                                                | 1     | the catalog                 | 150 and 340 px high | 544 x 680, lossy WebP |
 
 **Drawn, because they take a seat colour** (S71, from `gameSession.colors`, never a fixed art colour): pawns, always, since the print does not show a pawn's character; influence markers, player discs, reeves and an action card's band and back when the seat shows no printed colour; a controlled monster's collar and disc, pouches, the charter roll's ribbon and seal, seat chips and Knight rows.

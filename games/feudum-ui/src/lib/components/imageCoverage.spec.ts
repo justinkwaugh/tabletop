@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { render } from 'svelte/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -239,5 +239,50 @@ describe.each([
         expect(cover().includes('VP8 ', 12, 'latin1')).toBe(true)
         expect(cover().includes('VP8L', 12, 'latin1')).toBe(false)
         expect(cover().length).toBeLessThanOrEqual(120 * 1024)
+    })
+})
+
+const suppliedFolder = new URL('../art/supplied/', import.meta.url)
+const suppliedHere = existsSync(suppliedFolder)
+
+/**
+ * The long side, in CSS px, at which each supplied picture is drawn largest: an enlarged card,
+ * writ, tile or bead at 420 px wide; a guild on the bench; the board at its scale cap of 1; a seat
+ * panel at its reading scale. The art plan's table gives each.
+ */
+const LargestRender: readonly [prefix: string, px: number][] = [
+    ['card.action.', 640],
+    ['card.back.', 640],
+    ['writ.', 638],
+    ['tile.', 420],
+    ['bead.', 420],
+    ['seal', 420],
+    ['board.ring', 2500],
+    ['board.map', 1598],
+    ['board.guild.', 440],
+    ['cover', 340],
+    ['good.', 47],
+    ['shilling.', 47],
+    ['location.', 61],
+    ['monster.', 67],
+    ['vessel.', 40],
+    ['target.', 34],
+    ['piece.marker.', 32],
+    ['piece.disc.', 28],
+    ['piece.reeve.', 15]
+]
+
+/** Readiness gate on images: about twice the largest render serves a HiDPI screen; more is waste. */
+describe.skipIf(!suppliedHere)('the supplied pictures', () => {
+    const files = suppliedHere
+        ? readdirSync(suppliedFolder).filter((file) => file.endsWith('.webp'))
+        : []
+
+    it.each(files)('R-1.1 %s is at most 2.5 times its largest render', (file) => {
+        const id = file.replace(/\.webp$/, '')
+        const largest = LargestRender.find(([prefix]) => id.startsWith(prefix))?.[1]
+        expect(largest, `${id} has a largest render`).toBeDefined()
+        const { width, height } = webpSize(readFileSync(new URL(file, suppliedFolder)))
+        expect(Math.max(width, height)).toBeLessThanOrEqual(2.5 * (largest ?? 0))
     })
 })
