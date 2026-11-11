@@ -30,19 +30,22 @@ export function drawWrits(state: HydratedFeudumGameState, count: number): WritId
     return drawn.map(({ writId }) => writId)
 }
 
-/** R-4.4.2, R-4.4.4 Played mandates and discards: the table sees them go under. */
+/** R-4.4.2 Played mandates: the table sees them go under. */
 export function putWritsUnderInView(state: HydratedFeudumGameState, writIds: readonly WritId[]) {
     state.publicDeckWrits.push(...writIds.map((writId) => putWritUnder(state, writId)))
 }
 
-/** R-4.4.1, R-4.4-H3 A draw's unkept writs, in the order drawn: only the drawer sees them. */
+/**
+ * R-4.4.1, R-4.4-H3, R-4.4.4 A draw's unkept writs, in the order drawn, and a discard: only the
+ * seat that puts them under sees them.
+ */
 export function putWritsUnderUnseen(
     state: HydratedFeudumGameState,
-    drawerId: string,
+    playerId: string,
     writIds: readonly WritId[]
 ) {
     state
-        .getPlayerState(drawerId)
+        .getPlayerState(playerId)
         .requireDeckKnowledge()
         .push(...writIds.map((writId) => putWritUnder(state, writId)))
 }

@@ -4,7 +4,6 @@ import { Compile } from 'typebox/compile'
 import { Value } from 'typebox/value'
 import { describe, expect, it } from 'vitest'
 import { isCommitAttack } from '../actions/commitAttack.js'
-import { isDiscardWrit } from '../actions/discardWrit.js'
 import { isPlayMandate } from '../actions/playMandate.js'
 import { isScoreGame } from '../actions/scoreGame.js'
 import { docTableRows, readDoc } from '../testing/docs.js'
@@ -38,6 +37,7 @@ const ActorKnown: Partial<Record<ActionType, readonly string[]>> = {
     [ActionType.Feast]: ['metadata.drawnWritIds'],
     [ActionType.PlaceDisc]: ['metadata.drawnWritIds'],
     [ActionType.KeepWrits]: ['keep', 'metadata.returned', 'metadata.drawnWritIds'],
+    [ActionType.DiscardWrit]: ['writId'],
     [ActionType.SealCharter]: ['writId']
 }
 
@@ -270,9 +270,9 @@ describe('every registered action, sampled with every optional field', () => {
     })
 })
 
-/** R-4.4.2, R-4.4.4, R-4.4.3 What a record shows the whole table: writs played or discarded. */
+/** R-4.4.2, R-4.4.3 What a record shows the whole table: writs played; a discard is face down. */
 function shownToTable(action: GameAction): string[] {
-    if (isDiscardWrit(action) || isPlayMandate(action)) {
+    if (isPlayMandate(action)) {
         return [action.writId]
     }
     if (isCommitAttack(action)) {

@@ -349,7 +349,7 @@ const Lines: Readonly<
             metadata: { slot: 2 }
         }),
         actor: 'You discarded Mandate 7 under the deck',
-        other: 'Ana discarded Mandate 7 under the deck'
+        other: 'Ana discarded a writ under the deck'
     },
     [ActionType.Improve]: {
         action: sample<Improve>({
@@ -862,6 +862,12 @@ const Protected: readonly {
         actorNames: ['Mandate 1', 'Mandate 4', 'Mandate 5'],
         otherLine:
             'Ana drew 1, kept 1, 0 under the deck · Shovels & Swords: drew 2 writs, to keep 1'
+    },
+    {
+        name: 'R-4.4.4 DiscardWrit writ',
+        action: Lines[ActionType.DiscardWrit].action,
+        actorNames: ['Mandate 7'],
+        otherLine: 'Ana discarded a writ under the deck'
     },
     {
         name: 'R-4.4.3 SealCharter writ',

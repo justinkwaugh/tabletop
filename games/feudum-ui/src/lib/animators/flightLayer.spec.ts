@@ -840,26 +840,46 @@ describe('R-5.3 what a flying copy shows, seat by seat', () => {
         )
     })
 
-    it('R-4.4.4 R-5.3 a played or discarded writ is public: face up over the table for every seat, then under (S50, S52)', async () => {
+    it('R-4.4.2 R-5.3 a played writ is public: face up over the table for every seat, then under (S50)', async () => {
         const table = await emptyTable()
         const { seat, other } = table
         const writId: WritId = RoyalWrits[0].id
         const change = changeFrom(table, (to) => {
             to.getPlayerState(seat).writCount -= 1
         })
-        for (const type of [ActionType.DiscardWrit, ActionType.PlayMandate]) {
-            const action = actionOf(seat, type, { writId })
-            for (const viewerId of [seat, other, undefined]) {
-                const writs = writsIn(planFlights({ ...change, action, viewerId }))
-                expect(writs).toHaveLength(1)
-                expect(writs[0].face).toEqual({ kind: 'writ', faceShown: true, writId })
-                expect(writs[0].legs[0].to).toEqual({ kind: 'table' })
-                expect(endAt(writs[0])).toMatchObject({ kind: 'board' })
-                expect(writs[0].legs[1].at).toBeGreaterThan(
-                    writs[0].legs[0].at + writs[0].legs[0].duration
-                )
-            }
+        const action = actionOf(seat, ActionType.PlayMandate, { writId })
+        for (const viewerId of [seat, other, undefined]) {
+            const writs = writsIn(planFlights({ ...change, action, viewerId }))
+            expect(writs).toHaveLength(1)
+            expect(writs[0].face).toEqual({ kind: 'writ', faceShown: true, writId })
+            expect(writs[0].legs[0].to).toEqual({ kind: 'table' })
+            expect(endAt(writs[0])).toMatchObject({ kind: 'board' })
+            expect(writs[0].legs[1].at).toBeGreaterThan(
+                writs[0].legs[0].at + writs[0].legs[0].duration
+            )
         }
+    })
+
+    it('R-4.4.4 a discarded writ goes under face down: its back flies from the seat to the deck, the same for every seat (S52)', async () => {
+        const table = await emptyTable()
+        const { seat, other } = table
+        const writId: WritId = RoyalWrits[0].id
+        const change = changeFrom(table, (to) => {
+            to.getPlayerState(seat).writCount -= 1
+        })
+        const action = actionOf(seat, ActionType.DiscardWrit, { writId })
+        const plans = [seat, other, undefined].map((viewerId) =>
+            writsIn(planFlights({ ...change, action, viewerId }))
+        )
+        for (const writs of plans) {
+            expect(writs).toHaveLength(1)
+            expect(writs[0].face).toEqual({ kind: 'writ', faceShown: false })
+            expect(writs[0].legs).toHaveLength(1)
+            expect(endAt(writs[0])).toMatchObject({ kind: 'board' })
+            expect(JSON.stringify(writs)).not.toContain(writId)
+        }
+        expect(plans[1]).toEqual(plans[0])
+        expect(plans[2]).toEqual(plans[0])
     })
 
     it('R-4.4-H6 a sealed charter flies nothing: not its writ, not its seal', async () => {

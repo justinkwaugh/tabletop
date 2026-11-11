@@ -1013,7 +1013,7 @@ describe('R-4.4.4 The writ limit', () => {
         expect(panel?.line).toBe('Hold at most 3 writs: 4 now')
         expect(panel?.writs).toHaveLength(4)
         expect(panel?.primary).toEqual({
-            label: "Discard to the deck's bottom · shown to all",
+            label: "Discard to the deck's bottom · face down",
             enabled: false
         })
         await press(session, panel?.writs[1])

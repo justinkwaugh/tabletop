@@ -11,7 +11,6 @@ import {
     beadValue,
     hiddenBeadCandidates,
     isCommitAttack,
-    isDiscardWrit,
     isExplore,
     isFeast,
     isGuildAction,
@@ -701,7 +700,7 @@ function shownWrits(action?: GameAction): { playerId: string; writId: WritId }[]
     if (playerId === undefined) {
         return []
     }
-    if (isDiscardWrit(action) || isPlayMandate(action)) {
+    if (isPlayMandate(action)) {
         return [{ playerId, writId: action.writId }]
     }
     return isCommitAttack(action)
@@ -714,8 +713,9 @@ const WritBack: FlightFace = { kind: 'writ', faceShown: false }
 /**
  * R-4.4.1, R-4.4-H2, R-4.4-H3 What flies is decided by public counts alone, so the same copies leave at
  * the same moments at every seat. A writ's face is the only difference: a drawn writ shows to its drawer,
- * by `writFaceShown` and only if the Action as this seat received it names it; R-4.4.4, R-5.3 a writ
- * played, discarded or used as a weapon is public, shows over the table and goes under the deck.
+ * by `writFaceShown` and only if the Action as this seat received it names it; R-4.4.2, R-5.3 a writ
+ * played or used as a weapon is public, shows over the table and goes under the deck. R-4.4.4 A
+ * discarded writ goes under face down: its back flies from the seat to the deck, the same at every seat.
  * R-4.4-H6 A sealed charter is sealed unseen: no flight says which writ, or that one moved.
  */
 function flyWrits(plan: FlightBuilder, change: FlightChange, at: number): number {
