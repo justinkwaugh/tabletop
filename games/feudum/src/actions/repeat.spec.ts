@@ -138,6 +138,16 @@ describe('asRepeat', () => {
         ).toBe('Explore has no x2: only Déjà Vu replays it.')
     })
 
+    it('R-3.15.2, R-3.15-H2 Déjà Vu takes only a card without x2; Repeat names the other way, with the reason', () => {
+        const { table, playerId } = afterPlaying('move')
+        const state = table.hydrated()
+        expect(state.getPlayerState(playerId).goods.saltpeter).toBeGreaterThan(0)
+        expect(reasonCardPlayRefused(state, playerId, 'move', { asRepeat: 'deja-vu' })).toBe(
+            'Move shows x2: only Repeat replays it.'
+        )
+        expect(cardPlayOffers(state, playerId).repeats).toEqual([{ kind: 'move', mode: 'repeat' }])
+    })
+
     it('R-3.15.2 Déjà Vu refuses without a saltpeter, with the reason', () => {
         const { table, playerId } = afterPlaying('explore')
         const state = table.hydrated()

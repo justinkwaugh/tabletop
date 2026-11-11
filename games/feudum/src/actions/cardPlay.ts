@@ -77,7 +77,10 @@ export function reasonSecondCardRefused(player: HydratedFeudumPlayerState): stri
     return player.requireHand().length > 1 ? undefined : 'You have no second card to play.'
 }
 
-/** R-3.15.1, R-3.15.2 A played card, by Repeat if it shows x2; never one with the crossed x2. */
+/**
+ * R-3.15.1, R-3.15.2, R-3.15-H2 A played card: by Repeat if it shows x2, by Déjà Vu if it shows
+ * none; never one with the crossed x2.
+ */
 export function reasonRepeatRefused(
     player: HydratedFeudumPlayerState,
     kind: ActionCardKind,
@@ -100,6 +103,9 @@ export function reasonRepeatRefused(
         return card.symbols.replay === 'x2'
             ? undefined
             : `${card.printedName} has no x2: only Déjà Vu replays it.`
+    }
+    if (card.symbols.replay === 'x2') {
+        return `${card.printedName} shows x2: only Repeat replays it.`
     }
     return player.goods.saltpeter > 0 ? undefined : 'Déjà Vu needs a saltpeter.'
 }
