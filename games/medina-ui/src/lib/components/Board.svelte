@@ -2,7 +2,7 @@
     import type { Attachment } from 'svelte/attachments'
     import type { BoundingBox, Point } from '@tabletop/common'
     import { WELL_BONUS_POINTS, WallSide, type WallSection } from '@tabletop/medina'
-    import { boardArt, hasSprite, sheetUrl } from '$lib/art/sprites.js'
+    import { boardArt, hasSprite, sheetUrl, spriteBox } from '$lib/art/sprites.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
     import { ROOFTOP_SPRITE_NEUTRAL, type BoardTarget } from '$lib/model/session.svelte'
     import { GHOST_OPACITY } from '$lib/animators/pieceArrival.js'
@@ -25,7 +25,8 @@
         spaceKey,
         merchantSprite,
         paintOrder,
-        recentPlace,
+        RECENT_DOT_RADIUS,
+        recentMarks,
         rooftopOn,
         scoringPieceKeys,
         stableSprite,
@@ -54,7 +55,6 @@
     const TILE_LABEL_HEIGHT = 0.2
     const TILE_LABEL_DROP = 15
     const TILE_LABEL_INK = '#2a1609'
-    const RECENT_DOT_RADIUS = 11
     const WELL_BONUS_TEXT_DROP = 13
     const WALL_TINT_STRENGTH = 0.85
 
@@ -178,8 +178,8 @@
         }
     }
 
-    function tintFilterId(color: string): string {
-        return `medina-tint-${color.replace('#', '')}`
+    function tintFilterId(pieceKey: string): string {
+        return `medina-tint-${pieceKey.replace(/[^\w-]/g, '_')}`
     }
 
     function targetKey(target: BoardTarget): string {
@@ -253,27 +253,27 @@
         )
     )
 
-    const recentMarks = $derived.by(() => {
-        const byPlace = new Map(session.pieces.map((piece) => [piece.place, piece]))
-        const seen = new Set<string>()
-        return session.recent.flatMap((placement) => {
-            const place = recentPlace(placement)
-            const piece = byPlace.get(place)
-            if (!piece || seen.has(place)) {
-                return []
-            }
-            seen.add(place)
-            return [{ piece, color: session.colors.getPlayerUiColor(placement.playerId) }]
-        })
-    })
+    const coloredMarks = $derived(
+        recentMarks(session.pieces, session.recent).map((mark) => ({
+            ...mark,
+            color: session.colors.getPlayerUiColor(mark.playerId)
+        }))
+    )
+    // One filter per wall, its region the wall's frame (see spriteBox).
     const wallTints = $derived(
-        new Map(
-            recentMarks.flatMap(({ piece, color }) =>
-                piece.tintedWhenRecent ? [[piece.key, color]] : []
-            )
+        coloredMarks.flatMap(({ piece, color }) =>
+            piece.tintedWhenRecent
+                ? [
+                      {
+                          key: piece.key,
+                          color,
+                          region: spriteBox(view, piece.sprite, piece.anchor, UNITS_PER_CELL)
+                      }
+                  ]
+                : []
         )
     )
-    const recentTints = $derived([...new Set(wallTints.values())])
+    const tintedKeys = $derived(new Set(wallTints.map((tint) => tint.key)))
 
     function place(target: BoardTarget) {
         const overGhost = ghost !== undefined
@@ -334,7 +334,7 @@
     const finalScores = $derived(
         shown.result
             ? session.pieces.flatMap((piece) => {
-                  if (!piece.rooftop || !piece.palaceId || !piece.markAt) {
+                  if (!piece.rooftop || !piece.palaceId) {
                       return []
                   }
                   const palace = shown.palace(piece.palaceId)
@@ -342,7 +342,7 @@
                   return [
                       {
                           key: piece.key,
-                          at: piece.markAt,
+                          at: piece.rooftop.markAt,
                           total: shown.palaceScore(palace).total,
                           color: owner
                               ? session.colors.getPlayerTextColorValue(owner)
@@ -359,28 +359,36 @@
         }
     }
 
-    function focusOnTap(event: PointerEvent, palaceId: string) {
-        if (event.pointerType !== 'mouse') {
+    // Touch focuses on click: a drag that pans the board ends in pointerup but sends no click.
+    let pressedWithMouse = false
+
+    function notePointerType(event: PointerEvent) {
+        pressedWithMouse = event.pointerType === 'mouse'
+    }
+
+    function focusOnTap(event: MouseEvent, palaceId: string) {
+        if (!pressedWithMouse) {
             event.stopPropagation()
             session.togglePalaceFocus(palaceId)
         }
     }
 
-    function clearFocusOnTap(event: PointerEvent) {
-        if (event.pointerType !== 'mouse') {
+    function clearFocusOnTap() {
+        if (!pressedWithMouse) {
             session.focusPalace(undefined)
         }
     }
 </script>
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
+<!-- svelte-ignore a11y_no_static_element_interactions, a11y_click_events_have_key_events -->
 <svg
     class="board"
     class:dimming={!!focusedKeys}
     width={box.width * NATURAL_SCALE}
     height={box.height * NATURAL_SCALE}
     viewBox="{box.x} {box.y} {box.width} {box.height}"
-    onpointerup={clearFocusOnTap}
+    onpointerdowncapture={notePointerType}
+    onclick={clearFocusOnTap}
     {@attach attachBoard}
 >
     {#if crop}
@@ -456,8 +464,16 @@
     </g>
 
     <defs>
-        {#each recentTints as color (color)}
-            <filter id={tintFilterId(color)} color-interpolation-filters="sRGB">
+        {#each wallTints as { key, color, region } (key)}
+            <filter
+                id={tintFilterId(key)}
+                filterUnits="userSpaceOnUse"
+                x={region.x}
+                y={region.y}
+                width={region.width}
+                height={region.height}
+                color-interpolation-filters="sRGB"
+            >
                 <feFlood flood-color={color} flood-opacity={WALL_TINT_STRENGTH} result="flood"
                 ></feFlood>
                 <feComposite in="flood" in2="SourceAlpha" operator="in" result="tint"></feComposite>
@@ -475,7 +491,7 @@
     </g>
 
     <g class="recent-squares">
-        {#each recentMarks as { piece, color } (piece.key)}
+        {#each coloredMarks as { key, piece, color } (key)}
             {#if piece.groundMark}
                 <polygon class="recent-square" points={piece.groundMark} fill={color}></polygon>
             {/if}
@@ -532,8 +548,8 @@
                 <g class="piece" class:dim={!lit}>
                     <g
                         data-arrival-key={piece.key}
-                        filter={wallTints.has(piece.key)
-                            ? `url(#${tintFilterId(wallTints.get(piece.key) ?? '')})`
+                        filter={tintedKeys.has(piece.key)
+                            ? `url(#${tintFilterId(piece.key)})`
                             : undefined}
                     >
                         <Sprite sheet={view} name={piece.sprite} anchor={piece.anchor} />
@@ -563,7 +579,7 @@
                             role="presentation"
                             onpointermove={(event) => focusOnHover(event, palaceId)}
                             onpointerleave={(event) => focusOnHover(event, undefined)}
-                            onpointerup={(event) => focusOnTap(event, palaceId)}
+                            onclick={(event) => focusOnTap(event, palaceId)}
                         ></polygon>
                     {/if}
                 </g>
@@ -584,13 +600,13 @@
     </g>
 
     <g class="recent">
-        {#each recentMarks as { piece, color } (piece.key)}
-            {#if piece.markAt}
+        {#each coloredMarks as { key, at, onRoof, color } (key)}
+            {#if at}
                 <circle
                     class="recent-dot"
-                    class:on-roof={!!piece.rooftop}
-                    cx={piece.markAt.x}
-                    cy={piece.markAt.y}
+                    class:on-roof={onRoof}
+                    cx={at.x}
+                    cy={at.y}
                     r={RECENT_DOT_RADIUS}
                     fill={color}
                 ></circle>

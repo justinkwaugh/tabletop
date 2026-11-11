@@ -879,8 +879,9 @@ presidency, then the partner, then the company), choosing a company or partner a
 the stages after it, choosing one's own presidency clears that stage, and every new state
 clears them all. Pass ends their proposals. The partner's president sees the proposal with Agree and Refuse.
 A buyer's president short of a takeover's price sees, centred, "<buyer> takes over
-<target>", a breakdown (the target's shares, less the buyer's treasury, their cash and what
-their own target shares are paid, to the amount still to raise), the sales made so far, and
+<target>", a breakdown (the target's shares, less the buyer's treasury and their cash, to
+the amount still to raise), a note of what the buyer pays them for their own target shares
+once the takeover is funded, the sales made so far, and
 a card per company with each sale they may make, capped at what the rest needs, and a buyer over its train limit sees, centred, "<company>
 discards <n> trains" with its limit and that discards go to the open market, a train badge
 per kind of train with its count, and Discard once a kind is chosen (a manual stage that
@@ -1803,7 +1804,7 @@ follow-up actions, without affecting historical-map selection.
 
 Phase-dependent tile revenues display contiguous phase-colored value cells, arranged horizontally or vertically according to available tile space. Titles can supply stage colors for names that differ from tile colors. Fixed revenues retain their circular markers.
 
-While unavailable map spaces are masked, a matching translucent perimeter extends 25 map units (one quarter hex diameter) beyond the map shape. The union mask avoids overlapping dark seams, ignores pointer input, and sits below tile artwork and interaction outlines. Map bounds reserve this margin in every interaction mode so entering or leaving masking does not resize the map.
+Map bounds pad the map shape by 26 map units on every side in every interaction mode, so masking unavailable spaces never resizes the map. Only the unavailable spaces themselves are dimmed; nothing outside the map shape is drawn for masking.
 
 Action-selection button text uses regular weight, including nested labels and stock action choices.
 

@@ -118,9 +118,9 @@ export const MergerOutcome = Type.Object(
 export type MergerOutcome = Type.Static<typeof MergerOutcome>
 
 /**
- * The buyer pays for every outside share, its president making up what its treasury lacks as
- * they are paid for their own; it takes the bought company's assets and the bought company
- * closes (§11.7, §11.7.1).
+ * The buyer's president makes up what its treasury lacks, then the buyer pays for every outside
+ * share, the president's own included; it takes the bought company's assets and the bought
+ * company closes (§11.7, §11.7.1).
  */
 function completeTakeover(
     state: HydratedEighteenThirtyTwoState,
@@ -132,18 +132,11 @@ function completeTakeover(
     const buyer = { kind: 'company' as const, companyId: buyerId }
     const president = { kind: 'player' as const, playerId }
     const payments = takeoverPayments(state, buyerId, targetId)
-    const ownPrice = payments
-        .filter((payment) => payment.to.kind === 'player' && payment.to.playerId === playerId)
-        .reduce((sum, payment) => sum + payment.amount, 0)
     const cost = payments.reduce((sum, payment) => sum + payment.amount, 0)
     const contribution = Math.max(0, cost - finiteCashOwnedBy(state, buyer))
-    const net = contribution - ownPrice
     const settled: CashPayment[] = [
-        ...(net > 0 ? [{ from: president, to: buyer, amount: net }] : []),
-        ...payments.filter(
-            (payment) => !(payment.to.kind === 'player' && payment.to.playerId === playerId)
-        ),
-        ...(net < 0 ? [{ from: buyer, to: president, amount: -net }] : [])
+        ...(contribution ? [{ from: president, to: buyer, amount: contribution }] : []),
+        ...payments
     ]
     settleCashPayments(state, settled)
     const discardedHomeStationId = discardSharedHome(state, buyerId, targetId)

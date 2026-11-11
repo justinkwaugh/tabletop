@@ -51,6 +51,7 @@ import {
     type NapoleonsTriumphProjectedState,
     type Position,
     type ProjectedUnit,
+    type RoadHalt,
     SIDE_COLORS,
     Side
 } from '@tabletop/napoleons-triumph'
@@ -219,6 +220,7 @@ import {
     moveCommandOptions,
     moveOrder,
     reinforcementsOf,
+    resolveCommand,
     rideOnOrder,
     type CommandChoice,
     type Reinforcement
@@ -259,6 +261,7 @@ import { arrangedFromPreset, presetsFor, type SetupPreset } from './setupPresets
 import {
     TargetKind,
     attackableLocales,
+    corpsRoadHalts,
     moveTargets,
     placeReachedSeveralWays,
     retreatTargets,
@@ -931,8 +934,25 @@ export class NapoleonsTriumphGameSession extends GameSession<
         )?.key
     )
 
+    private stoppedRoadMarch = $derived(
+        this.openRoadMarch?.stopped ? this.openRoadMarch : undefined
+    )
+
+    // Rule 10: cavalry at the end of its ride has ended its move in reserve unless it is sent to block an approach.
+    rideIsOver: boolean = $derived(this.stoppedRoadMarch !== undefined)
+
+    rideEndedIn: number | undefined = $derived(this.stoppedRoadMarch?.path.at(-1))
+
+    rideEndedWithCommandLeft: boolean = $derived(
+        this.rideIsOver &&
+            this.riderIds.every((id) => canStillMove(this.gameState, this.gameState.unit(id)))
+    )
+
     selectedGroupKey = $derived(
-        this.isCommanding ? (pickedUpOf(this.selection)?.groupKey ?? this.marchGroupKey) : undefined
+        this.isCommanding
+            ? (pickedUpOf(this.selection)?.groupKey ??
+                  (this.rideIsOver ? undefined : this.marchGroupKey))
+            : undefined
     )
 
     reinforcements: Reinforcement[] = $derived(
@@ -986,7 +1006,7 @@ export class NapoleonsTriumphGameSession extends GameSession<
             .filter((unit) => picked.includes(unit.id))
             .every((unit) => canStillMove(this.gameState, unit))
         return group && playerId && stillToMove
-            ? moveCommandOptions(this.gameState, playerId, group, picked, this.corpsTakenWhole)
+            ? moveCommandOptions(this.gameState, playerId, group, picked)
             : []
     })
 
@@ -1027,11 +1047,9 @@ export class NapoleonsTriumphGameSession extends GameSession<
 
     commandChoice: CommandChoice | undefined = $derived.by(() => {
         const chosen = chosenCommandOf(this.selection)
-        if (chosen !== undefined && this.commandChoices.includes(chosen)) {
-            return chosen
-        }
-        // Riding on takes no command, though the rider may be offered Attach.
-        return this.ridingOn ? undefined : this.commandChoices[0]
+        const resolved = resolveCommand(chosen, this.commandChoices)
+        // Riding on takes no command unless one is chosen, though the rider may be offered Attach.
+        return this.ridingOn && resolved !== chosen ? undefined : resolved
     })
 
     attaching = $derived(this.commandChoice === ATTACH)
@@ -1053,14 +1071,30 @@ export class NapoleonsTriumphGameSession extends GameSession<
     /** The command the switch shows: Attach, or the kind of the order, which riding on sets. */
     commandInForce: CommandChoice | undefined = $derived(this.attaching ? ATTACH : this.order?.kind)
 
+    private myEntryIds: string[] = $derived(
+        this.mySide ? this.gameState.map.entries(this.mySide).map((entry) => entry.id) : []
+    )
+
     private orderTargets: MoveTarget[] = $derived.by(() => {
         const playerId = this.myPlayerId
-        const side = this.mySide
-        if (!this.order || !playerId || !side) {
+        if (!this.order || !playerId) {
             return []
         }
-        const entries = this.gameState.map.entries(side).map((entry) => entry.id)
-        return moveTargets(this.gameState, playerId, this.order, entries)
+        return moveTargets(this.gameState, playerId, this.order, this.myEntryIds)
+    })
+
+    roadHalts: RoadHalt[] = $derived.by(() => {
+        const playerId = this.myPlayerId
+        if (!this.order || !playerId || this.attaching || this.ridingOn) {
+            return []
+        }
+        return corpsRoadHalts(
+            this.gameState,
+            playerId,
+            this.order,
+            this.orderTargets,
+            this.myEntryIds
+        )
     })
 
     destination: MarchTarget | undefined = $derived(
@@ -1274,7 +1308,9 @@ export class NapoleonsTriumphGameSession extends GameSession<
     }
 
     mayChooseUnit(unit: ProjectedUnit): boolean {
-        return this.ridesAlone(unit) ? !this.ridingOn : this.mayStillCommand(unit)
+        return this.ridesAlone(unit)
+            ? !this.ridingOn || this.rideIsOver
+            : this.mayStillCommand(unit)
     }
 
     // Rule 9: Attach moves nothing, so a unit that has already moved may still be attached.
@@ -1342,7 +1378,9 @@ export class NapoleonsTriumphGameSession extends GameSession<
             return
         }
         if (this.ridesAlone(unit)) {
-            this.stageCommand(noCommandSelection())
+            this.stageCommand(
+                this.ridingOn ? noCommandSelection() : setPickedUp({ groupKey: group.key })
+            )
         } else if (group.commander) {
             this.stageCommand(chooseCorpsUnit(this.selection, unitId, this.commandableIds(group)))
         } else {

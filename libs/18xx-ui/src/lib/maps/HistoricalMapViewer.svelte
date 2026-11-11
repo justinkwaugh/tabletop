@@ -62,6 +62,7 @@
         <ScalingWrapper
             maxScale={2}
             bind:this={wrapper}
+            renderAtViewScale
             justify="center"
             controls="bottom-left"
             overpan="both"

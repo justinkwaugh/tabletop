@@ -57,6 +57,36 @@ describe('recent placements', () => {
             )
         ).toEqual([{ playerId: 'p1', wall: { side: WallSide.North, position: 2 } }])
     })
+
+    it('keeps a building and the rooftop later placed on it as separate placements', () => {
+        const space = { x: 9, y: 5 }
+        expect(
+            recentPlacements(
+                [
+                    action({
+                        ...base,
+                        id: 'a',
+                        playerId: 'p1',
+                        type: ActionType.PlaceBuilding,
+                        color: PalaceColor.Purple,
+                        coords: space
+                    }),
+                    action({
+                        ...base,
+                        id: 'b',
+                        playerId: 'p2',
+                        type: ActionType.PlaceRooftop,
+                        coords: space,
+                        neutral: false
+                    })
+                ],
+                { playerId: 'p0', acting: true }
+            )
+        ).toEqual([
+            { playerId: 'p2', roof: space },
+            { playerId: 'p1', space }
+        ])
+    })
 })
 
 describe('history entries', () => {

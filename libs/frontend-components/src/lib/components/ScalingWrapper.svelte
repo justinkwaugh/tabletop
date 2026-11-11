@@ -118,7 +118,9 @@
          * Draw the content at the scale it is shown, not at its own size: once the view settles the
          * content is laid out again with CSS zoom at that scale, and only gestures and animations
          * stretch it by transform until then. Its bitmaps and SVG then cost what is on screen, and
-         * it stays sharp when zoomed in, at the price of a redraw after each zoom.
+         * it stays sharp when zoomed in, at the price of a redraw after each zoom. The zoom is
+         * published to the content as `--render-zoom` and its inverse as `--render-unzoom`, so a
+         * part that must not be laid out again, such as HTML text, can take it back off.
          */
         renderAtViewScale?: boolean
         expandable?: boolean
@@ -530,6 +532,8 @@
         if (Math.abs(currentScale / renderScale - 1) < RENDER_SCALE_TOLERANCE) return
         renderScale = currentScale
         measuredContent.style.zoom = String(renderScale)
+        measuredContent.style.setProperty('--render-zoom', String(renderScale))
+        measuredContent.style.setProperty('--render-unzoom', String(1 / renderScale))
         renderView()
     }
 

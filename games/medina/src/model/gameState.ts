@@ -33,6 +33,7 @@ import {
     distinctSpaces,
     isInsideCity,
     orthogonalNeighbors,
+    sameWall,
     spaceBesideWall,
     wallSideLength
 } from './geometry.js'
@@ -313,7 +314,7 @@ export class HydratedMedinaGameState
     }
 
     hasWall(side: WallSide, position: number): boolean {
-        return this.walls.some((wall) => wall.side === side && wall.position === position)
+        return this.walls.some((wall) => sameWall(wall, { side, position }))
     }
 
     wallSections(): WallSection[] {
@@ -343,19 +344,26 @@ export class HydratedMedinaGameState
         return position === 0 ? first : second
     }
 
+    private palaceMembers(palaceId: string): Point[] {
+        return [...this.palaceBuildings(palaceId), ...this.palaceStables(palaceId)]
+    }
+
     palaceMerchants(palaceId: string): Point[] {
-        const members = [...this.palaceBuildings(palaceId), ...this.palaceStables(palaceId)]
+        const members = this.palaceMembers(palaceId)
         return this.merchants().filter((merchant) =>
             members.some((member) => areOrthogonallyAdjacent(member, merchant))
         )
     }
 
     wallsBeside(palaceId: string): WallSection[] {
+        return this.wallsBesideSpaces(this.palaceMembers(palaceId))
+    }
+
+    private wallsBesideSpaces(spaces: Point[]): WallSection[] {
         const size = this.size()
-        const members = [...this.palaceBuildings(palaceId), ...this.palaceStables(palaceId)]
         return this.walls.filter((wall) =>
-            members.some((member) =>
-                samePoint(member, spaceBesideWall(wall.side, wall.position, size))
+            spaces.some((space) =>
+                samePoint(space, spaceBesideWall(wall.side, wall.position, size))
             )
         )
     }
@@ -489,13 +497,26 @@ export class HydratedMedinaGameState
         return towers.reduce((sum, tower) => sum + this.applyTowerTile(tower, palace), 0)
     }
 
-    private towersBeside(palaceId: string): Tower[] {
-        return [...new Set(this.wallsBeside(palaceId).map((wall) => this.towerOfWall(wall)))]
+    private towersOfWalls(walls: WallSection[]): Tower[] {
+        return [...new Set(walls.map((wall) => this.towerOfWall(wall)))]
+    }
+
+    // Towers that walls newly beside a palace connect it to. Later walls and stables reaching a
+    // tower the palace already borders a wall of are not new connections.
+    private newlyConnectedTowers(palaceId: string, newWalls: WallSection[]): Tower[] {
+        const alreadyConnectedTowers = this.towersOfWalls(
+            this.wallsBeside(palaceId).filter(
+                (wall) => !newWalls.some((newWall) => sameWall(newWall, wall))
+            )
+        )
+        return this.towersOfWalls(newWalls).filter(
+            (tower) => !alreadyConnectedTowers.includes(tower)
+        )
     }
 
     claimPalace(palace: Palace, coords: Point, playerId: string | undefined): TileAwards {
         palace.rooftop = playerId ? { coords, playerId } : { coords }
-        const towers = this.towersBeside(palace.id)
+        const towers = this.towersOfWalls(this.wallsBeside(palace.id))
         return {
             palaceOwnerId: playerId,
             palaceTile: this.applyPalaceTile(palace),
@@ -505,16 +526,7 @@ export class HydratedMedinaGameState
     }
 
     extendClaimedPalace(palace: Palace, stable: Point): TileAwards {
-        const size = this.size()
-        const towers = [
-            ...new Set(
-                this.walls
-                    .filter((wall) =>
-                        samePoint(stable, spaceBesideWall(wall.side, wall.position, size))
-                    )
-                    .map((wall) => this.towerOfWall(wall))
-            )
-        ]
+        const towers = this.newlyConnectedTowers(palace.id, this.wallsBesideSpaces([stable]))
         return {
             palaceOwnerId: palace.rooftop?.playerId,
             palaceTile: this.applyPalaceTile(palace),
@@ -528,7 +540,10 @@ export class HydratedMedinaGameState
         if (!palace?.rooftop) {
             return undefined
         }
-        const towers = [this.towerOfWall(section)]
+        const towers = this.newlyConnectedTowers(palace.id, [section])
+        if (towers.length === 0) {
+            return undefined
+        }
         return {
             palaceOwnerId: palace.rooftop.playerId,
             towers,

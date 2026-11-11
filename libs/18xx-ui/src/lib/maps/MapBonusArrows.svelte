@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { centredTextShift } from '../presentation/textBaseline.js'
     import {
         dividedTextColor,
         revenueStageFills,
@@ -91,7 +92,7 @@
                     x="-15"
                     y={y + 6}
                     text-anchor="middle"
-                    dominant-baseline="central"
+                    dy={centredTextShift(9)}
                     font-size="9"
                     font-weight="700"
                     fill={dividedTextColor(fills)}>{value.amount}</text
@@ -99,7 +100,7 @@
                 <text
                     x="2"
                     y={y + 6}
-                    dominant-baseline="central"
+                    dy={centredTextShift(8)}
                     font-size="8"
                     font-weight="600"
                     fill={appearance.ink}>{value.label}</text

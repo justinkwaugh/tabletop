@@ -281,22 +281,23 @@ export const MapView1833NE: MapViewDefinition = {
         'first-round': { notice: true },
         'terrain-discount': { terrainNote: true }
     },
-    // The corporations' tokens, from GMT's sample token sheet.
+    // The corporations' tokens, from GMT's sample token sheet, redrawn where the production
+    // tokens differ (Fitchburg, Rutland, CV, StL&A, NYNH&H and LSL).
     stations: {
         'B&W': { color: '#ffffff', label: 'B&W', imageUrl: BWToken },
         'B&P': { color: '#eacd93', label: 'B&P', imageUrl: BPToken },
         'B&L': { color: '#f5abad', label: 'B&L', imageUrl: BLToken },
-        FRR: { color: '#d1e088', label: 'Fitch', imageUrl: FRRToken },
+        FRR: { color: '#c9cd6a', label: 'Fitch', imageUrl: FRRToken },
         HR: { color: '#c4e9fb', label: 'Hart', imageUrl: HRToken },
-        RR: { color: '#2f7146', label: 'Rut', imageUrl: RRToken },
-        CV: { color: '#0095da', label: 'CV', imageUrl: CVToken },
+        RR: { color: '#e3d62f', label: 'Rut', imageUrl: RRToken },
+        CV: { color: '#1aa3ea', label: 'CV', imageUrl: CVToken },
         'StL&A': { color: '#f38221', label: 'StL&A', imageUrl: StLAToken },
         'A&StL': { color: '#8d807d', label: 'A&StL', imageUrl: AStLToken },
         'B&M': { color: '#76090f', label: 'B&M', imageUrl: BMToken },
-        'NYNH&H': { color: '#33ee33', label: 'NH', imageUrl: NYNHHToken },
+        'NYNH&H': { color: '#548c46', label: 'NH', imageUrl: NYNHHToken },
         Era: { color: '#a2633f', label: 'Era', imageUrl: EraToken },
         UP: { color: '#ff0000', label: 'UP', imageUrl: UPToken },
-        LSL: { color: '#6a6afa', label: 'LSL', imageUrl: LSLToken }
+        LSL: { color: '#8a72b4', label: 'LSL', imageUrl: LSLToken }
     },
     // The St. Lawrence corporations' one Sherbrooke token prints both their marks (§6.53).
     sharedStations: {

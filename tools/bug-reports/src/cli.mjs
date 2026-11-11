@@ -384,19 +384,25 @@ function findEmail(name) {
     return user.email
 }
 
+const EMAIL_SETUP =
+    'pnpm install --frozen-lockfile --filter @tabletop/bug-reports... && pnpm --filter @tabletop/email... build'
+
 // The template needs the workspace installed and libs/email built, which only email needs, so it
 // loads here rather than with the tool.
+async function loadEmailTemplate() {
+    const [{ render }, { BugReportUpdate }] = await Promise.all([
+        import('@react-email/components'),
+        import('@tabletop/email')
+    ])
+    return { render, BugReportUpdate }
+}
+
 async function renderEmail(message) {
     try {
-        const [{ render }, { BugReportUpdate }] = await Promise.all([
-            import('@react-email/components'),
-            import('@tabletop/email')
-        ])
+        const { render, BugReportUpdate } = await loadEmailTemplate()
         return await render(BugReportUpdate(message))
     } catch (error) {
-        throw new Error(
-            `rendering the email failed (${error.message}); run pnpm install and pnpm --filter @tabletop/email build`
-        )
+        throw new Error(`rendering the email failed (${error.message}); run ${EMAIL_SETUP}`)
     }
 }
 
@@ -538,6 +544,15 @@ async function check(discord) {
         loadSecret('RESEND_API_KEY', RESEND_KEY_FILE)
             ? 'email    ok   Resend key found'
             : `email    WARN no Resend key: reporters without Discord cannot be told. Create ${RESEND_KEY_FILE}`
+    )
+    const template = await loadEmailTemplate().then(
+        () => null,
+        (error) => error
+    )
+    console.log(
+        template
+            ? `template WARN the email template does not load (${template.message}): reporters without Discord cannot be told. Run ${EMAIL_SETUP}`
+            : 'template ok   email template loads'
     )
 }
 

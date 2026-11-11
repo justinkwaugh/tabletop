@@ -116,6 +116,10 @@
         "packageId": "medina"
     },
     {
+        "gameId": "preussische-ostbahn",
+        "packageId": "preussische-ostbahn"
+    },
+    {
         "gameId": "koenigrufen",
         "packageId": "koenigrufen"
     }

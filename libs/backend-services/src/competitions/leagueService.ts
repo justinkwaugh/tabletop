@@ -16,7 +16,9 @@ import {
     type LeagueSignUpPolicy,
     type LeagueHeldPlace,
     tournamentEntrantAccount,
-    rankedTiebreak,
+    formatTournamentTiebreaks,
+    ranksByAveragePlace,
+    formatTournamentAveragePlace,
     tournamentTiebreakDescription,
     type LeagueFinalPlacement,
     type LeagueGroupStanding,
@@ -579,7 +581,9 @@ export class LeagueService {
             score: row.score,
             completed: row.completed,
             ...(row.tiebreak !== undefined ? { tiebreak: row.tiebreak } : {}),
-            ...(row.pointsBehind !== undefined ? { pointsBehind: row.pointsBehind } : {})
+            ...(row.pointsBehind !== undefined ? { pointsBehind: row.pointsBehind } : {}),
+            ...(row.shareOfWinner !== undefined ? { shareOfWinner: row.shareOfWinner } : {}),
+            ...(row.placeTotal !== undefined ? { placeTotal: row.placeTotal } : {})
         }
     }
 
@@ -802,6 +806,7 @@ export class LeagueService {
             : placements
                   .filter((value) => value.level === 0 && !value.substituteId)
                   .sort((a, b) => a.place - b.place)[0]
+        const tiebreaks = formatTournamentTiebreaks(group, 'en-US')
         const ids = [...group.map(account), ...(champion ? [champion.userId] : [])]
         const accounts = await this.users.getUsers(ids)
         const names = new Map(ids.map((id, index) => [id, this.displayName(accounts[index])]))
@@ -826,12 +831,14 @@ export class LeagueService {
                   }),
             ...(champion ? { champion: name(champion.userId) } : {}),
             tiebreakDescription: tournamentTiebreakDescription(group),
-            standings: group.map((value) => ({
+            ...(ranksByAveragePlace(season.rules) ? { ranksByAveragePlace: true } : {}),
+            standings: group.map((value, index) => ({
                 rank: value.place,
                 name: name(account(value)),
                 wins: value.wins,
                 score: value.score,
-                tiebreak: rankedTiebreak(value),
+                averagePlace: formatTournamentAveragePlace(value),
+                tiebreak: tiebreaks[index],
                 recipient: account(value) === userId
             }))
         }

@@ -7,6 +7,7 @@
     import type { Snippet } from 'svelte'
     import { marksOn, type TargetMark } from '$lib/model/targets.js'
     import { WayStepKind } from '$lib/model/ways.js'
+    import { marchHaltNote } from '$lib/utils/roadHalts.js'
     import { commandsLeft } from '$lib/utils/commandsLeft.js'
     import CommandSwitch from './CommandSwitch.svelte'
     import RideSwitch from './RideSwitch.svelte'
@@ -25,6 +26,7 @@
     const reinforcements = $derived(gameSession.reinforcements)
 
     const ridingOn = $derived(gameSession.ridingOn)
+    const rideIsOver = $derived(gameSession.rideIsOver)
     const rideChoice = $derived(gameSession.rideChoice)
     const stepsOfTheWay = $derived(gameSession.stepsOfTheWay)
     const together = $derived(gameSession.wholeCorpsChosen)
@@ -41,6 +43,17 @@
         return `Threaten an attack from ${map.label(locale)} into ${map.label(map.approach(approach).neighbour)}.`
     })
 
+    const rideEndedSentence = $derived.by(() => {
+        const locale = gameSession.rideEndedIn
+        if (locale === undefined) {
+            return undefined
+        }
+        const purpose = gameSession.rideEndedWithCommandLeft
+            ? 'to block an approach its road crosses, or to give it its second command'
+            : 'to block an approach its road crosses'
+        return `The cavalry that rode into ${gameSession.gameState.map.label(locale)} stays in reserve unless you tap it ${purpose}.`
+    })
+
     const title = $derived.by(() => {
         if (aimedLocale !== undefined) {
             return `Attack on ${gameSession.gameState.map.label(aimedLocale)}`
@@ -49,7 +62,10 @@
             return undefined
         }
         const name = group.commander ? corpsName(group.commander.id) : 'Detached units'
-        return ridingOn ? `${name}, riding on` : name
+        if (!ridingOn) {
+            return name
+        }
+        return rideIsOver ? `${name}, at the end of its ride` : `${name}, riding on`
     })
 
     const stillToCommand = $derived(
@@ -67,6 +83,8 @@
         }
         return gameSession.targets.length === 0 ? 'These units have nowhere to go.' : undefined
     })
+
+    const haltNote = $derived(marchHaltNote(gameSession.gameState.map, gameSession.roadHalts))
 
     const wayToChoose = $derived.by(() => {
         if (stepsOfTheWay.length === 0) {
@@ -103,8 +121,16 @@
         if (together && picked.length > 1) {
             return 'Tap units to send only some.'
         }
-        return kind === CommandKind.Corps && picked.length < group.units.length
-            ? 'The units left out stay behind, detached.'
+        // Players lost track of the commander when units were left out, so the line says where he goes whatever the command.
+        if (!group.commander || picked.length === group.units.length) {
+            return undefined
+        }
+        const name = commanderDefinition(group.commander.id).name
+        if (kind === CommandKind.Corps) {
+            return `${name} goes along; the units left out stay behind, detached.`
+        }
+        return kind === CommandKind.Detach || kind === CommandKind.Unit
+            ? `${name} stays behind with the units left out.`
             : undefined
     })
 </script>
@@ -270,13 +296,21 @@
         <span>{wayToChoose}</span>
     {:else if problem}
         <span>{problem}</span>
+    {:else if ridingOn && rideIsOver}
+        <span
+            >The cavalry can ride no farther. It stays in reserve unless it ends its move blocking
+            an approach its road crosses.</span
+        >
     {:else if ridingOn}
         <span
             >The cavalry may ride on along its road, or threaten again. Any other command ends this
-            move.</span
+            move, leaving it in reserve.</span
         >
     {:else if aside}
         <span>{aside}</span>
+    {/if}
+    {#if haltNote && !wayToChoose && !problem}
+        <span>{haltNote}</span>
     {/if}
     {#if howToAim}
         <span>{howToAim}</span>
@@ -304,6 +338,9 @@
         )}
     {:else}
         <div class="nt-orders-note nt-orders-rest" bind:clientHeight={idleLineHeight}>
+            {#if rideEndedSentence}
+                <span><PlaceText text={rideEndedSentence} /></span>
+            {/if}
             <span class="nt-orders-faint">{stillToCommand}</span>
         </div>
     {/if}

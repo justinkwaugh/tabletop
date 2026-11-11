@@ -4,6 +4,7 @@ import { Side, UnitType } from '../components/pieces.js'
 import { ActionType } from '../definition/actions.js'
 import { TestGame, arrangeBattlefield, infantry, type PiecePlacement } from '../testing/harness.js'
 import { CommandKind } from './attack.js'
+import { corpsHaltAlong } from './movement.js'
 import { faceOf } from './pieces.js'
 
 function corpsOrder(game: TestGame, commanderId: string, unitIds?: string[]) {
@@ -252,5 +253,70 @@ describe('erratum to rule 8: road movement and capacity', () => {
     it('cannot pass through a locale that is full', () => {
         const capacity = new TestGame().hydrated.map.locale(THROUGH).capacity
         expect(frenchRoadMove(capacity)).toThrow(/full/)
+    })
+})
+
+describe('rule 10: where a corps marching by road halts', () => {
+    const START = 38
+    const THROUGH = 52
+    const END = 53
+    const map = new TestGame().hydrated.map
+    const beside = map
+        .adjacentLocales(THROUGH)
+        .find(
+            (locale) =>
+                ![START, END].includes(locale) && !map.adjacentLocales(START).includes(locale)
+        )
+    assertExists(beside, 'Expected a locale beside the road and away from its start')
+    const flank: number = beside
+
+    function marching(enemies: number) {
+        const game = new TestGame()
+        game.deployBoth()
+        game.act(ActionType.EndTurn, game.playerOf(Side.Allied))
+        const enemy: PiecePlacement[] = Array.from({ length: enemies }, (_, index) => ({
+            id: `A-${index}`,
+            side: Side.Allied,
+            face: infantry(2),
+            locale: flank,
+            commanderId: 'bagration'
+        }))
+        arrangeBattlefield(game, [
+            {
+                id: 'F-1',
+                side: Side.French,
+                face: infantry(2),
+                locale: START,
+                commanderId: 'murat'
+            },
+            {
+                id: 'F-2',
+                side: Side.French,
+                face: infantry(2),
+                locale: START,
+                commanderId: 'murat'
+            },
+            ...enemy
+        ])
+        return game
+    }
+
+    function haltAlong(game: TestGame, unitIds: string[], path: number[]) {
+        const order = corpsOrder(game, 'murat', unitIds)
+        return corpsHaltAlong(game.hydrated, game.playerOf(Side.French), order, path)
+    }
+
+    it('names the first locale along the path it halts in, and beside whose corps', () => {
+        const game = marching(2)
+        expect(haltAlong(game, ['F-1', 'F-2'], [THROUGH, END])).toEqual({
+            locale: THROUGH,
+            enemyCommanderId: 'bagration'
+        })
+        expect(haltAlong(game, ['F-1'], [THROUGH, END])).toBeUndefined()
+        expect(haltAlong(game, ['F-1', 'F-2'], [])).toBeUndefined()
+    })
+
+    it('names no halt beside an enemy corps of one unit', () => {
+        expect(haltAlong(marching(1), ['F-1', 'F-2'], [THROUGH, END])).toBeUndefined()
     })
 })

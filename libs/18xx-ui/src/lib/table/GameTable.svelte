@@ -91,7 +91,12 @@
     import WealthChart from './WealthChart.svelte'
     import { seatOrderFrom } from './spreadsheetSort.js'
     import { LabelStacking } from './labelStacking.svelte.js'
-    import { currentDepotCertificates, type PhaseChartData } from '../phases/phaseChart.js'
+    import {
+        currentDepotCertificates,
+        marketCertificates,
+        type DepotCertificate,
+        type PhaseChartData
+    } from '../phases/phaseChart.js'
     type MapFocus = { key: string; outlinedLocationId?: string }
     const MapHexDiameter = 140
     const HexRadius = MapHexDiameter / 2
@@ -163,6 +168,7 @@
         availableDefinitionIds: session.availableTrainDefinitionIds
     })
     const currentCertificates = $derived(currentDepotCertificates(depotState))
+    const openMarketCertificates = $derived(marketCertificates(depotState))
 
     const publishedArtwork = $derived(session.publishedArtwork)
     const boardArtwork = $derived(publishedArtwork ? session.mapView.boardArtwork : undefined)
@@ -968,6 +974,17 @@
     />
 {/snippet}
 
+{#snippet depotCertificate({ definitionIds, remaining }: DepotCertificate)}
+    <span class="depot-type"
+        >{#each definitionIds as definitionId, index (definitionId)}{#if index > 0}<span
+                    class="depot-face-separator">/</span
+                >{/if}<TrainBadge
+                name={session.trainDepot.trainDefinition(definitionId).name}
+                color={trainColors[definitionId]}
+            />{/each}
+        <span class="depot-count">{remaining === 'unlimited' ? '∞' : `×${remaining}`}</span></span
+    >
+{/snippet}
 {#snippet gameInformationStrip(stacking: LabelStacking)}
     <button
         class="game-information"
@@ -999,20 +1016,18 @@
         </span>
         <span class="game-information-item depot-information">
             <span class="information-label">Depot</span>
-            {#each currentCertificates as { definitionIds, remaining } (definitionIds[0])}
-                <span class="depot-type"
-                    >{#each definitionIds as definitionId, index (definitionId)}{#if index > 0}<span
-                                class="depot-face-separator">/</span
-                            >{/if}<TrainBadge
-                            name={session.trainDepot.trainDefinition(definitionId).name}
-                            color={trainColors[definitionId]}
-                        />{/each}
-                    <span class="depot-count"
-                        >{remaining === 'unlimited' ? '∞' : `×${remaining}`}</span
-                    ></span
-                >
+            {#each currentCertificates as certificate (certificate.definitionIds[0])}
+                {@render depotCertificate(certificate)}
             {:else}<span>Empty</span>{/each}
         </span>
+        {#if openMarketCertificates.length}
+            <span class="game-information-item depot-information">
+                <span class="information-label">Market</span>
+                {#each openMarketCertificates as certificate (certificate.definitionIds[0])}
+                    {@render depotCertificate(certificate)}
+                {/each}
+            </span>
+        {/if}
         {#if session.loans.rate !== undefined}
             <span class="game-information-item">
                 <span class="information-label">Interest</span>
@@ -1294,6 +1309,7 @@
                                 </div>{/if}
                             <ScalingWrapper
                                 bind:this={mapWrapper}
+                                renderAtViewScale
                                 maxScale={2}
                                 overpan={mapOverpan}
                                 gestureOverpanReach={MapGestureOverpanReach}
@@ -1323,6 +1339,7 @@
                         </div>{:else if id === 'Board'}<div class="workspace-view map-area">
                             <ScalingWrapper
                                 bind:this={boardWrapper}
+                                renderAtViewScale
                                 insetTop={44}
                                 overpan={mapOverpan}
                                 gestureOverpanReach={MapGestureOverpanReach}

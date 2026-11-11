@@ -6,6 +6,8 @@
     import PhaseText from './PhaseText.svelte'
     import { TileColors } from '../tiles/tilePresentation.js'
     import {
+        certificateRemaining,
+        marketCertificates,
         trainRosterRows,
         type PhaseChartData,
         type PhaseChartDepotState
@@ -37,6 +39,7 @@
     } = $props()
     const currentPhase = $derived(chart.phases.find((phase) => phase.id === currentPhaseId))
     const rosterRows = $derived(trainRosterRows(chart.trains))
+    const openMarket = $derived(marketCertificates(depotState))
 </script>
 
 <div class="phase-chart-content" class:depot={depotOnly} class:on-board={onBoard}>
@@ -126,7 +129,9 @@
                 <thead
                     ><tr
                         ><th>Train</th><th class="money">Price</th><th class="number">Remaining</th
-                        ><th class="number">Rusted by</th></tr
+                        >{#if openMarket.length}<th class="number">Market</th>{/if}<th
+                            class="number">Rusted by</th
+                        ></tr
                     ></thead
                 >
                 <tbody>
@@ -135,12 +140,13 @@
                             depotState.inventory,
                             train.id
                         )}
+                        {@const inMarket = certificateRemaining(openMarket, train.id)}
                         {@const current =
                             depotState.availableDefinitionIds.includes(train.id) && remaining !== 0}
                         <tr
                             class:current
                             aria-current={current ? 'step' : undefined}
-                            class:exhausted={remaining === 0}
+                            class:exhausted={remaining === 0 && inMarket === 0}
                         >
                             <th scope="row"
                                 ><TrainBadge name={train.name} color={trainColors[train.id]} /></th
@@ -155,6 +161,13 @@
                                         : undefined}
                                     >{remaining === 'unlimited' ? '∞' : remaining}</td
                                 >
+                                {#if openMarket.length}<td
+                                        class="number"
+                                        rowspan={remainingRowSpan}
+                                        title={inMarket
+                                            ? 'Discarded to the open market, for sale'
+                                            : undefined}>{inMarket || ''}</td
+                                    >{/if}
                             {/if}
                             {#if rustRowSpan}
                                 <td class="number" rowspan={rustRowSpan}

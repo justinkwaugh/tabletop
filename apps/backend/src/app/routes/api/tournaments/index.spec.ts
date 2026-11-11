@@ -46,7 +46,7 @@ async function setup(roles: Role[]) {
         correctResult: change,
         rebuildStandings: change,
         commitSchedule: change,
-        tournamentTitleIds: () => ['sol']
+        tournamentTitles: () => ({ titleIds: ['sol'], placementTitleIds: ['sol'] })
     })
     await server.register(authorization)
     await server.register(tournaments, { prefix: '/tournaments' })
@@ -108,7 +108,11 @@ describe('tournament administrator authorization', () => {
         const { server, cookies } = await setup(admin ? [Role.User, Role.Admin] : [Role.User])
         const response = await server.inject({ url: '/tournaments/titles', cookies })
         expect(response.statusCode).toBe(admin ? 200 : 403)
-        if (admin) expect(response.json()).toEqual({ status: 'ok', payload: { titleIds: ['sol'] } })
+        if (admin)
+            expect(response.json()).toEqual({
+                status: 'ok',
+                payload: { titleIds: ['sol'], placementTitleIds: ['sol'] }
+            })
     })
 
     it('accepts the completed tournament filter', async () => {

@@ -26,6 +26,7 @@ import {
     nextDecision,
     occupyAfterRetreat,
     resolveAttackOrders,
+    roadAttackOrders,
     samePosition,
     validateCounterAttackers,
     whyIllegal,
@@ -37,14 +38,10 @@ import {
     type MoveOrder,
     type ThreatOrder,
     type ProjectedUnit,
-    type ResultTerm
+    type ResultTerm,
+    type RoadHalt
 } from '@tabletop/napoleons-triumph'
-import {
-    attackCommand,
-    attackerGroups,
-    rideInOrders,
-    type AttackerGroup
-} from './attackCommands.js'
+import { attackCommand, attackerGroups, type AttackerGroup } from './attackCommands.js'
 import {
     AttackWidth,
     StageKind,
@@ -156,6 +153,7 @@ interface AttackerPicking extends Picking {
     commandOptions: CommandKind[]
     command?: CommandKind
     orders?: MoveOrder[]
+    roadHalt?: RoadHalt
 }
 
 export interface FeintStage extends AttackerPicking {
@@ -185,7 +183,10 @@ export interface OccupationStage extends AttackerPicking {
     kind: StageKind.Occupation
     mayMoveIn: boolean
     byRoad: boolean
+    /** Riding in under the command chosen. */
     roadOrders?: MoveOrder[]
+    /** The commands the units named could ride in by, whichever is chosen. */
+    roadCommands: CommandKind[]
     gunsMayStay: boolean
 }
 
@@ -463,6 +464,7 @@ function attackerPicking(
         commandOptions: command.options,
         command: command.chosen,
         orders: command.orders,
+        roadHalt: command.roadHalt,
         roles: rolesOf(attackers, leaders, BattleRole.Attacks)
     }
 }
@@ -577,16 +579,25 @@ function occupationStage(
     const legalWith = (candidate: MoveOrder[] | undefined, gunsStay: boolean) =>
         candidate !== undefined &&
         isLegal(() => occupyAfterRetreat(copyOf(state), candidate, gunsStay))
-    const roadOrders = byRoad
-        ? undefined
-        : rideInOrders(state, attack, picking.attackers, picking.command)
+    const rideable = byRoad
+        ? []
+        : roadAttackOrders(
+              state,
+              attack,
+              picking.attackers.map((id) => state.unit(id))
+          ).filter(
+              (order) => picking.commandOptions.includes(order.kind) && legalWith([order], false)
+          )
+    // Only the command on the switch rides in; a Detach Move cannot go by road, so it has no ride.
+    const roadOrder = rideable.find((order) => order.kind === picking.command)
     return {
         ...picking,
         kind: StageKind.Occupation,
         roles: rolesOf(picking.attackers, [], BattleRole.Attacks),
         mayMoveIn: legalWith(orders, false),
         byRoad,
-        roadOrders: legalWith(roadOrders, false) ? roadOrders : undefined,
+        roadOrders: roadOrder ? [roadOrder] : undefined,
+        roadCommands: rideable.map((order) => order.kind),
         gunsMayStay: legalWith(orders, true)
     }
 }

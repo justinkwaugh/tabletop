@@ -11,7 +11,7 @@ export const Shikoku1889PrivateCatalog = new PrivateCatalog(
                 faceValue: 20,
                 revenue: 5,
                 blocks: { locationIds: ['K4'], until: 'company-owned' },
-                description: 'Closes at phase 5.'
+                description: `Blocks ${place('K4')} while player-owned. Closes at phase 5.`
             },
             {
                 id: 'MF',

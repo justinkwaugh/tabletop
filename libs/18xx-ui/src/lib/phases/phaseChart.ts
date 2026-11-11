@@ -59,6 +59,33 @@ export function currentDepotCertificates({
     }))
 }
 
+export function marketCertificates({
+    depot,
+    inventory
+}: Pick<PhaseChartDepotState, 'depot' | 'inventory'>): DepotCertificate[] {
+    return depot.definition.supply
+        .map(({ definitionId }) => {
+            const faces = facesByPrice(depot, definitionId).map(({ id }) => id)
+            return {
+                definitionIds: faces,
+                remaining: inventory.trains.filter(
+                    (train) => train.status === 'market' && faces.includes(train.definitionId)
+                ).length
+            }
+        })
+        .filter(({ remaining }) => remaining > 0)
+}
+
+export function certificateRemaining(
+    certificates: readonly DepotCertificate[],
+    definitionId: string
+): DepotCertificate['remaining'] {
+    return (
+        certificates.find(({ definitionIds }) => definitionIds.includes(definitionId))?.remaining ??
+        0
+    )
+}
+
 export function trainRosterRows(trains: PhaseChartData['trains']): TrainRosterRow[] {
     return trains.map((train) => {
         const faces = trains.filter((face) => face.supplyId === train.supplyId)

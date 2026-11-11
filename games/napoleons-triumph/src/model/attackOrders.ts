@@ -2,7 +2,7 @@ import type { ApproachId, RoadArrival } from '../components/battleMap.js'
 import { UnitType } from '../components/pieces.js'
 import { CommandKind, type Attack, type MoveOrder } from './attack.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
-import { allCavalry, roadOrigin, traceRoadMove } from './movement.js'
+import { allCavalry, corpsHaltAlong, roadOrigin, traceRoadMove, type RoadHalt } from './movement.js'
 import { distinct, isLegal, legal } from './legality.js'
 import {
     assertArrived,
@@ -340,22 +340,34 @@ function widestRoad(
     return orders.at(Math.max(widest, 0))
 }
 
+function atOnePosition(units: readonly ProjectedUnit[]): boolean {
+    const [first] = units
+    return (
+        first !== undefined &&
+        units.every(
+            (unit) => unit.position === undefined || samePosition(unit.position, first.position)
+        )
+    )
+}
+
+function mayAttackWith(
+    state: HydratedNapoleonsTriumphGameState,
+    site: AttackSite,
+    order: MoveOrder
+): boolean {
+    return isLegal(() => resolveAttackOrders(state, site, [order]))
+}
+
 /** Rule 9: the commands by which cavalry not yet on the road could attack by road. */
 export function roadAttackOrders(
     state: HydratedNapoleonsTriumphGameState,
     site: AttackSite,
     units: readonly ProjectedUnit[]
 ): MoveOrder[] {
-    const [first] = units
-    if (
-        first === undefined ||
-        units.some(
-            (unit) => unit.position !== undefined && !samePosition(unit.position, first.position)
-        )
-    ) {
+    if (!atOnePosition(units)) {
         return []
     }
-    const mayAttack = (order: MoveOrder) => isLegal(() => resolveAttackOrders(state, site, [order]))
+    const mayAttack = (order: MoveOrder) => mayAttackWith(state, site, order)
     const routes = roadRoutes(state, site, units)
     return roadCommands(state, units).flatMap(
         (command) =>
@@ -365,6 +377,30 @@ export function roadAttackOrders(
                 routes.map((route) => ({ ...command, ...route })).filter(mayAttack)
             ) ?? []
     )
+}
+
+/** Rule 10: where a corps of two or more cavalry halts on a road that would carry one of its units to the attack. */
+export function corpsRoadAttackHalt(
+    state: HydratedNapoleonsTriumphGameState,
+    site: AttackSite,
+    units: readonly ProjectedUnit[]
+): RoadHalt | undefined {
+    const corps = roadCommands(state, units).find((command) => command.kind === CommandKind.Corps)
+    if (
+        corps === undefined ||
+        !allCavalry(units) ||
+        !atOnePosition(units) ||
+        roadAttackOrders(state, site, units).length > 0
+    ) {
+        return undefined
+    }
+    const alone = { ...corps, unitIds: [units[0].id] }
+    return roadRoutes(state, site, units)
+        .filter((route) => mayAttackWith(state, site, { ...alone, ...route }))
+        .map((route) =>
+            corpsHaltAlong(state, site.attackerId, { ...corps, ...route }, route.road ?? [])
+        )
+        .find((halt) => halt !== undefined)
 }
 
 export function roadAttackOrder(

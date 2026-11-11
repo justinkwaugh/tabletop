@@ -5,6 +5,7 @@
     import {
         Role,
         range,
+        ranksByAveragePlace,
         type LeagueAllocatedGroup,
         type LeagueGroupDetail,
         type LeagueSeasonDetail,
@@ -378,6 +379,7 @@
                                     <LeagueGroupTable
                                         {group}
                                         gamesPerEntrant={season.rules.gamesPerEntrant}
+                                        ranksByAveragePlace={ranksByAveragePlace(season.rules)}
                                         usernames={detail.usernames}
                                         userId={user?.id}
                                     />

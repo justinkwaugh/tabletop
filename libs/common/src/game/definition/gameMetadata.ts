@@ -11,6 +11,13 @@ export const GameMetadata = Type.Object({
     bggId: Type.Optional(Type.Integer({ minimum: 1 })),
     hasScores: Type.Optional(Type.Boolean()),
     designer: Type.String(),
+    publisher: Type.Optional(
+        Type.Object({
+            name: Type.String({ minLength: 1 }),
+            url: Type.String({ pattern: '^https://' }),
+            sellsGame: Type.Optional(Type.Boolean())
+        })
+    ),
     description: Type.String(),
     year: Type.String(),
     minPlayers: Type.Number(),

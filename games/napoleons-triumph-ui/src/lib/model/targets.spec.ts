@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
+import { assertExists } from '@tabletop/common'
 import { ActionType, CommandKind, Side } from '@tabletop/napoleons-triumph'
 import { frenchTurn, infantry, waitOffMap } from '@tabletop/napoleons-triumph/testing'
 import {
     TargetKind,
     TargetMark,
     approachTarget,
+    corpsRoadHalts,
     markOf,
     marksOn,
     moveTargets,
@@ -158,6 +160,64 @@ describe('the ways to a place by road (rule 10)', () => {
             { key: 'entry:F5', kind: TargetKind.Way, position: { locale: 89 }, step: comingOn }
         ])
         expect(marksOn(steps)).toEqual([TargetMark.Way])
+    })
+})
+
+describe('where a corps marching by road halts (rule 10)', () => {
+    const START = 38
+    const THROUGH = 52
+    const map = frenchTurn([]).hydrated.map
+    const beside = map
+        .adjacentLocales(THROUGH)
+        .find(
+            (locale) =>
+                locale !== START &&
+                !map.adjacentLocales(START).includes(locale) &&
+                !map.adjacentLocales(39).includes(locale) &&
+                locale !== 39
+        )
+    assertExists(beside, 'Expected a locale beside the southern road only')
+    const flank: number = beside
+
+    function haltsFor(units: number, enemies: number, start = START, enemyAt = flank) {
+        const game = frenchTurn([
+            ...Array.from({ length: units }, (_, index) => ({
+                id: `F-${index + 1}`,
+                side: Side.French,
+                face: infantry(2),
+                locale: start,
+                commanderId: 'lannes'
+            })),
+            ...Array.from({ length: enemies }, (_, index) => ({
+                id: `A-${index + 1}`,
+                side: Side.Allied,
+                face: infantry(2),
+                locale: enemyAt,
+                commanderId: 'bagration'
+            }))
+        ])
+        const state = game.hydrated
+        const playerId = game.playerOf(Side.French)
+        const order = {
+            kind: CommandKind.Corps,
+            commanderId: 'lannes',
+            unitIds: state.corpsUnits('lannes').map((unit) => unit.id)
+        }
+        return corpsRoadHalts(state, playerId, order, moveTargets(state, playerId, order))
+    }
+
+    it('are named once each, with the enemy corps beside them', () => {
+        expect(haltsFor(2, 2)).toEqual([{ locale: THROUGH, enemyCommanderId: 'bagration' }])
+    })
+
+    it('are none for a single unit, or beside an enemy corps of one unit', () => {
+        expect(haltsFor(1, 2)).toEqual([])
+        expect(haltsFor(2, 1)).toEqual([])
+    })
+
+    it('are none where the corps still reaches every place one of its units could', () => {
+        expect(haltsFor(2, 2, 38, 53)).toEqual([])
+        expect(haltsFor(2, 2, 52, 24)).toEqual([])
     })
 })
 
