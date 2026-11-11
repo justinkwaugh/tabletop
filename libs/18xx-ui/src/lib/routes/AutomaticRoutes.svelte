@@ -105,7 +105,11 @@
             {trainColors}
             {onFocusRoute}
             onChooseTrain={routes.editable ? (trainId) => routes.selectTrain(trainId) : undefined}
-            onClearTrain={routes.editable ? () => routes.clearTrain() : undefined}
+            onClearTrain={routes.editor.draft?.routes.some(
+                (route) => route.trainId === routes.editor.trainId
+            )
+                ? () => routes.clearTrain()
+                : undefined}
             chosenTrainId={routes.editor.trainId}
             trainName={(id) => session.trainDepot.trainDefinition(id).name}
         />

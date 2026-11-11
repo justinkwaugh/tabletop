@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { assertExists, calculateHexGeometry, HexOrientation } from '@tabletop/common'
 import { Market1862 } from '@tabletop/1862'
-import {
-    MarketScenePadding,
-    MarketZoneBannerHeight,
-    marketGeometry
-} from '../../../../libs/18xx-ui/src/lib/stock/marketTokenLayout.js'
+import { MarketScenePadding, MarketZoneBannerHeight, marketGeometry } from '@tabletop/18xx-ui'
 import { MapView1862 } from './mapView.js'
 import { Presentation1862 } from './presentation.js'
 

@@ -63,6 +63,7 @@ export function lnerDue(state: HydratedState1862): boolean {
  * to the Bank Pool; the certificate limit becomes the most shares any player holds (§10.3).
  */
 export class HydratedFormLner extends FormAction.Base {
+    declare metadata?: Type.Static<typeof FormLner>['metadata']
     apply(state: HydratedState1862): void {
         assert(
             this.source === ActionSource.System && lnerDue(state),
@@ -99,6 +100,7 @@ export class HydratedFormLner extends FormAction.Base {
             }
         state.lner = { certificateLimit }
         delete state.lnerDue
+        delete state.resetCompanyIds
         this.metadata = { certificateLimit, movedCertificateIds, removedCompanyIds }
     }
 }

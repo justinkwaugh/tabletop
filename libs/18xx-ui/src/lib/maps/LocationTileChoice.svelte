@@ -1,12 +1,11 @@
 <script lang="ts">
     import { fade } from 'svelte/transition'
     import { prefersReducedMotion } from 'svelte/motion'
-    import type { Point } from '@tabletop/common'
     import type { HexOrientation } from '@tabletop/common'
     import type { MapLocationFollowUp } from '../session/eighteenXXSession.svelte.js'
     import Tile from '../tiles/Tile.svelte'
     import type { TileAppearance } from '../tiles/tileAppearance.js'
-    import { followHex } from './followHex.js'
+    import { HexPickerFrame } from './hexPickerFrame.svelte.js'
     import HexPickerControls from './HexPickerControls.svelte'
     import { tileChoiceArc } from './tileChoiceArc.js'
 
@@ -21,34 +20,23 @@
         orientation: HexOrientation
         appearance?: TileAppearance
     } = $props()
-    let center: Point = $state({ x: 0, y: 0 })
-    let width = $state(0)
-    let height = $state(0)
-    let tileSize = $state(80)
-    let hexHeight = $state(100)
-    const trackHex = followHex(
-        () => viewport,
-        (placement) => {
-            center = placement.center
-            width = placement.width
-            height = placement.height
-            hexHeight = placement.hexHeight
-            if (placement.mapScale !== undefined) tileSize = 106 * placement.mapScale
-        }
-    )
+    const frame = new HexPickerFrame()
+    const trackHex = frame.follow(() => viewport)
     const arc = $derived(
-        tileChoiceArc(center, width, height, followUp.options.length, tileSize, 1.4)
+        tileChoiceArc(
+            frame.center,
+            frame.width,
+            frame.height,
+            followUp.options.length,
+            frame.tileSize,
+            1.4
+        )
     )
-    const buttonSize = $derived(tileSize * 0.42)
-    const controls = $derived({
-        x: Math.max(buttonSize * 1.2, Math.min(width - buttonSize * 1.2, center.x)),
-        y: Math.max(buttonSize * 0.6, center.y - hexHeight / 2 - buttonSize * 0.65) + 1
-    })
     const selected = $derived(followUp.options.find((option) => option.id === followUp.selected))
 </script>
 
 <span class="hex-anchor" hidden use:trackHex={followUp.locationId}></span>
-{#if width}
+{#if frame.width}
     <div
         class="choice"
         role="group"
@@ -58,8 +46,8 @@
         {#if arc}
             {#each followUp.options as option, index (option.id)}
                 {@const chosen = option.id === followUp.selected}
-                {@const point = chosen ? center : (arc.points[index] ?? center)}
-                {@const size = chosen ? tileSize : arc.size}
+                {@const point = chosen ? frame.center : (arc.points[index] ?? frame.center)}
+                {@const size = chosen ? frame.tileSize : arc.size}
                 {#if option.tile}<button
                         class="tile-choice"
                         class:chosen
@@ -83,8 +71,8 @@
             {/each}
         {/if}
         <HexPickerControls
-            at={controls}
-            size={buttonSize}
+            at={frame.controls}
+            size={frame.buttonSize}
             cancel={{ label: 'Cancel', onclick: () => followUp.cancel() }}
             accept={selected
                 ? {

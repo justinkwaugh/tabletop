@@ -3903,6 +3903,30 @@
             "type": "array",
             "uniqueItems": true
           },
+          "purchases": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "companyId": {
+                  "type": "string"
+                },
+                "playerId": {
+                  "type": "string"
+                },
+                "shares": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "companyId",
+                "playerId",
+                "shares"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
           "sales": {
             "items": {
               "additionalProperties": false,

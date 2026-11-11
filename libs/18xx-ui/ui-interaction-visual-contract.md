@@ -164,6 +164,11 @@ other track on the tile runs within 12 units of that point, as where an 1862 sma
 station joins a line that crosses another; it then moves along its own line to the
 nearest point clear of other track by 18, about its marker's length. No printed tile in
 any title moves.
+An off-board name style may add word spacing (`OffboardNameStyle.wordSpacing`, in ems)
+where the label face's narrow space runs words together; 1862 prints each off-board
+area's name once in larger type, above its values, clear of its track, ports in dark
+blue, and London's name and values together beside its station spaces.
+
 A four-space city may swing its lower spaces out from under its upper ones
 (`TileLayout.slotSpreads`), opening the square into an upside-down V whose band leaves
 the bottom open: 1862's London spaces reach toward the London hexes either side, its

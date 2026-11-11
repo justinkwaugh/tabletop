@@ -26,6 +26,7 @@ import {
     TileSet1862
 } from '@tabletop/1862'
 import { TileEdges, type MapLocation, type TileEdge } from '@tabletop/18xx'
+import type { Point } from '@tabletop/common'
 import {
     towardTileEdge,
     type MapViewDefinition,
@@ -80,10 +81,26 @@ function offboardAreas(location: MapLocation): string[] {
 const OffboardLocationIds = Map1862.definition.locations
     .filter((location) => offboardAreas(location).length > 0)
     .map((location) => location.id)
-// Each off-board area prints its name and values once across its joined hexes; London's name
-// stays over its station spaces, with its values beside them.
-const NamedAt = ['C2', 'D1', 'G2', 'I4', 'I8', 'H13', 'F15', 'A4', 'A10', LondonSpacesLocationId]
-const ValuedAt = [...NamedAt.filter((id) => id !== LondonSpacesLocationId), 'B15']
+// Each off-board area prints its name and values once across its joined hexes, in the hex given
+// here: the name's baseline and the value stack's centre, set clear of the area's track. London
+// prints both in the hex beside its station spaces, its values in a row.
+const OffboardPrinting: Readonly<
+    Record<string, { name?: Point; lines?: readonly string[]; stack?: Point }>
+> = {
+    A4: { name: { x: -4, y: -20 }, stack: { x: -14, y: 3.5 } },
+    A10: { name: { x: -4, y: -20 }, lines: ['The West'], stack: { x: -14, y: 3.5 } },
+    C2: { name: { x: 0, y: -28 }, lines: ['North', "King's Lynn"], stack: { x: -16, y: 11 } },
+    D1: { name: { x: -2, y: -28 }, lines: ['North', 'Wells'], stack: { x: -14, y: 11 } },
+    G2: { name: { x: 0, y: -24 }, lines: ['North', 'Cromer'], stack: { x: 0, y: 6 } },
+    I4: { name: { x: 4, y: -24 }, lines: ['North East'], stack: { x: 14, y: 3.5 } },
+    I8: { name: { x: 10, y: -24 }, stack: { x: 14, y: 6 } },
+    H13: { name: { x: 8, y: -24 }, stack: { x: 14, y: 6 } },
+    F15: { name: { x: 0, y: 34 }, stack: { x: -18, y: 2 } },
+    B15: { name: { x: -2, y: -2 } }
+}
+const RedNameStyle = { fontSize: 10, color: '#4a0b0b', wordSpacing: 0.25 }
+const PortNameStyle = { fontSize: 8.5, color: '#102a3a', wordSpacing: 0.25 }
+const PortLocationIds = ['C2', 'D1', 'G2', 'I4', 'I8', 'H13', 'F15']
 
 // A hex printed half in each of two areas; ``side`` holds the edges of the first area's half.
 const SplitHexes: Readonly<
@@ -108,13 +125,23 @@ const PrintedLayouts: Readonly<Record<string, TileLayout>> = {
         hideRevenue: ['london', LondonSpacesNodeId]
     },
     // London's values print in a row, clear of the station space reaching in from C14.
-    B15: { revenueStack: 'row', revenuePositions: { london: { x: 0, y: 10 } } }
+    B15: { revenueStack: 'row', revenuePositions: { london: { x: 0, y: 10 } } },
+    ...Object.fromEntries(
+        Object.entries(OffboardPrinting).flatMap(([id, { stack }]) =>
+            stack
+                ? [[id, { revenuePositions: { [offboardAreas(Map1862.location(id))[0]]: stack } }]]
+                : []
+        )
+    )
 }
+
+// London's values print in B15; every other off-board hex without a stack prints none.
+const printsValues = (id: string) => id === 'B15' || !!OffboardPrinting[id]?.stack
 
 const Layouts: Readonly<Record<string, TileLayout>> = {
     ...PrintedLayouts,
     ...Object.fromEntries(
-        OffboardLocationIds.filter((id) => !ValuedAt.includes(id)).map((id) => [
+        OffboardLocationIds.filter((id) => !printsValues(id)).map((id) => [
             id,
             { ...PrintedLayouts[id], hideRevenue: true }
         ])
@@ -127,8 +154,9 @@ export const MapView1862: MapViewDefinition = {
     boardAreas: {
         market: { x: -50, y: -231, width: 1052, height: 134 },
         depot: { x: 618, y: -85, width: 384, height: 202 },
-        // The charter board stands east of the map, beside the East and Denmark areas.
-        panel: { x: 664, y: 236, width: 236, height: 222 }
+        // The charter board stands east of the map, beside the East and Denmark areas, tall
+        // enough for a third row of companies dealt at once with seven or eight players.
+        panel: { x: 664, y: 236, width: 236, height: 262 }
     },
     map: Map1862,
     tileSet: TileSet1862,
@@ -149,5 +177,13 @@ export const MapView1862: MapViewDefinition = {
     splitHexes: Object.fromEntries(
         Object.entries(SplitHexes).map(([id, split]) => [id, split.side])
     ),
-    hideLocationNames: OffboardLocationIds.filter((id) => !NamedAt.includes(id))
+    hideLocationNames: OffboardLocationIds.filter((id) => !(id in OffboardPrinting)),
+    offboardNames: RedNameStyle,
+    nameStyles: Object.fromEntries(PortLocationIds.map((id) => [id, PortNameStyle])),
+    namePositions: Object.fromEntries(
+        Object.entries(OffboardPrinting).flatMap(([id, { name }]) => (name ? [[id, name]] : []))
+    ),
+    nameLines: Object.fromEntries(
+        Object.entries(OffboardPrinting).flatMap(([id, { lines }]) => (lines ? [[id, lines]] : []))
+    )
 }

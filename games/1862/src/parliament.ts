@@ -28,7 +28,7 @@ import { DirectorShares } from './charters.js'
 import { CharteredParPrices, Market1862, marketSpaceIdAt } from './stockMarket.js'
 import { StockRules1862, certificateLimit1862 } from './stockRules.js'
 import { systemAction, titleAction } from './titleAction.js'
-import type { ParliamentRound } from './titleState.js'
+import type { CharterAuction, ParliamentRound } from './titleState.js'
 
 /** Bids are made in multiples of £5 (§4.1). */
 export const BidStep = 5
@@ -91,12 +91,12 @@ export function parliamentDecision(state: State1862): Decision | undefined {
     if (!round) return undefined
     if (round.charter) return { kind: 'charter', ...round.charter }
     if (round.auction) {
-        const [playerId] = round.auction.bidderIds
+        const playerId = nextBidder(state, round.auction)
         assertExists(playerId, 'An open auction has a bidder to act')
         return { kind: 'bid', playerId, companyId: round.auction.companyId, bid: round.auction.bid }
     }
     if (round.declinedIds.length >= state.turnManager.turnOrder.length) return undefined
-    return { kind: 'open', playerId: round.openerId }
+    return { kind: 'open', playerId: opener(state, round) }
 }
 
 function decisionFor<Kind extends Decision['kind']>(
@@ -122,15 +122,29 @@ function nextPlayer(state: State1862, playerId: string): string {
     return order[(order.indexOf(playerId) + 1) % order.length]
 }
 
-/** The players after the opener in seat order, the opener last: who bids next. */
-function biddersAfter(state: State1862, playerId: string): string[] {
-    return [...turnOrderFrom(state.turnManager.turnOrder, nextPlayer(state, playerId))]
+/**
+ * Who opens next: the priority holder first, then the player after the last to decline, or after
+ * the last winner (§4.1).
+ */
+function opener(state: State1862, round: ParliamentRound): string {
+    const lastId = round.declinedIds.at(-1) ?? round.winnerIds.at(-1)
+    if (lastId) return nextPlayer(state, lastId)
+    const [priorityId] = state.turnManager.turnOrder
+    assertExists(priorityId, 'A player holds priority')
+    return priorityId
 }
 
-/** Closes the auction once only its high bidder remains (§4.1). */
-function settleAuction(round: ParliamentRound): void {
+/** The next player after the high bidder in seat order who has not passed, if any (§4.1). */
+function nextBidder(state: State1862, auction: CharterAuction): string | undefined {
+    return turnOrderFrom(state.turnManager.turnOrder, auction.playerId).find(
+        (playerId) => playerId !== auction.playerId && !auction.passedIds.includes(playerId)
+    )
+}
+
+/** Closes the auction once every other player has passed (§4.1). */
+function settleAuction(state: State1862, round: ParliamentRound): void {
     const auction = round.auction
-    if (!auction || auction.bidderIds.some((id) => id !== auction.playerId)) return
+    if (!auction || nextBidder(state, auction)) return
     round.charter = { companyId: auction.companyId, playerId: auction.playerId, bid: auction.bid }
     delete round.auction
 }
@@ -143,6 +157,9 @@ export const OpenCharterAuction = OpenAction.schema
 export const isOpenCharterAuction = OpenAction.is
 /** A player opens an auction for a company's charter with a first bid (§4.1). */
 export class HydratedOpenCharterAuction extends OpenAction.Base {
+    declare playerId: string
+    declare companyId: Type.Static<typeof OpenCharterAuction>['companyId']
+    declare bid: Type.Static<typeof OpenCharterAuction>['bid']
     isValid(state: HydratedState1862): boolean {
         return (
             this.source === ActionSource.User &&
@@ -160,9 +177,9 @@ export class HydratedOpenCharterAuction extends OpenAction.Base {
             companyId: this.companyId,
             playerId: this.playerId,
             bid: this.bid,
-            bidderIds: biddersAfter(state, this.playerId)
+            passedIds: []
         }
-        settleAuction(round)
+        settleAuction(state, round)
     }
 }
 
@@ -171,6 +188,7 @@ export const DeclineCharter = DeclineAction.schema
 export const isDeclineCharter = DeclineAction.is
 /** The opener declines to open an auction; a player who cannot is declined for (§4.1). */
 export class HydratedDeclineCharter extends DeclineAction.Base {
+    declare playerId: string
     isValid(state: HydratedState1862): boolean {
         return (
             !!decisionFor(state, 'open', this.playerId) &&
@@ -181,7 +199,6 @@ export class HydratedDeclineCharter extends DeclineAction.Base {
         assert(this.isValid(state), 'Only the opener declines')
         const round = requireRound(state)
         round.declinedIds.push(this.playerId)
-        round.openerId = nextPlayer(state, this.playerId)
     }
 }
 
@@ -190,6 +207,8 @@ export const RaiseCharterBid = RaiseAction.schema
 export const isRaiseCharterBid = RaiseAction.is
 /** The next bidder raises the bid by a multiple of £5 (§4.1). */
 export class HydratedRaiseCharterBid extends RaiseAction.Base {
+    declare playerId: string
+    declare bid: Type.Static<typeof RaiseCharterBid>['bid']
     isValid(state: HydratedState1862): boolean {
         const round = state.parliament
         return (
@@ -206,7 +225,6 @@ export class HydratedRaiseCharterBid extends RaiseAction.Base {
         assertExists(auction, 'A raise needs an auction')
         auction.bid = this.bid
         auction.playerId = this.playerId
-        auction.bidderIds = [...auction.bidderIds.slice(1), this.playerId]
     }
 }
 
@@ -215,6 +233,7 @@ export const PassCharterBid = PassAction.schema
 export const isPassCharterBid = PassAction.is
 /** The next bidder leaves the auction; one who cannot raise is passed for (§4.1). */
 export class HydratedPassCharterBid extends PassAction.Base {
+    declare playerId: string
     isValid(state: HydratedState1862): boolean {
         const round = state.parliament
         return (
@@ -229,8 +248,8 @@ export class HydratedPassCharterBid extends PassAction.Base {
         const round = requireRound(state)
         const auction = round.auction
         assertExists(auction, 'A pass needs an auction')
-        auction.bidderIds = auction.bidderIds.slice(1)
-        settleAuction(round)
+        auction.passedIds.push(this.playerId)
+        settleAuction(state, round)
     }
 }
 
@@ -276,6 +295,11 @@ export const isObtainCharter = ObtainAction.is
  * obligation (§4.3).
  */
 export class HydratedObtainCharter extends ObtainAction.Base {
+    declare playerId: string
+    declare companyId: Type.Static<typeof ObtainCharter>['companyId']
+    declare parPrice: Type.Static<typeof ObtainCharter>['parPrice']
+    declare extraShares: Type.Static<typeof ObtainCharter>['extraShares']
+    declare metadata?: Type.Static<typeof ObtainCharter>['metadata']
     isValid(state: HydratedState1862): boolean {
         const decision = decisionFor(state, 'charter', this.playerId)
         return (
@@ -327,8 +351,7 @@ export class HydratedObtainCharter extends ObtainAction.Base {
             stockRound: round.stockRound
         })
         // A winner may win again by bidding in another's auction (§4.1).
-        if (!round.winnerIds.includes(this.playerId)) round.winnerIds.push(this.playerId)
-        round.openerId = nextPlayer(state, this.playerId)
+        round.winnerIds = [...round.winnerIds.filter((id) => id !== this.playerId), this.playerId]
         round.declinedIds = []
         delete round.charter
         this.metadata = { bid: charter.bid, certificateIds: bought.map((c) => c.id) }
@@ -347,12 +370,10 @@ export class HydratedStartParliamentRound extends StartAction.Base {
         )
         const set = state.operatingSet
         assertExists(set, 'Parliament follows a set of operating rounds')
-        const [openerId] = state.turnManager.turnOrder
         state.parliamentSet = set.number
         state.parliament = {
             number: set.number + 2,
             stockRound: state.stockRound.number + 1,
-            openerId,
             declinedIds: [],
             winnerIds: []
         }
@@ -374,20 +395,23 @@ export class HydratedEndParliamentRound extends EndAction.Base {
             this.source === ActionSource.System && !parliamentDecision(state),
             'The round ends once every player has declined'
         )
-        const [priorityId] = state.turnManager.turnOrder
         if (!state.operatingSet && round.number === 1) {
             state.parliament = {
                 number: 2,
                 stockRound: round.stockRound,
-                openerId: priorityId,
                 declinedIds: [],
                 winnerIds: []
             }
             return
         }
         delete state.parliament
-        if (state.operatingSet) state.activePlayerIds = []
-        else {
+        // Companies reset at the last stock round's end may start again in the next (§4.3).
+        delete state.resetCompanyIds
+        if (state.operatingSet) {
+            state.turnManager.endTurn(state.actionCount)
+            state.activePlayerIds = []
+        } else {
+            const [priorityId] = state.turnManager.turnOrder
             startFirstStockRound(state, [...state.turnManager.turnOrder])
             state.activePlayerIds = [priorityId]
         }
@@ -457,6 +481,7 @@ export class ParliamentHandler implements EighteenXXStateHandler<HydratedState18
             return
         }
         state.activePlayerIds = [decision.playerId]
+        startTurnOf(state, decision.playerId)
         if (decision.kind === 'open' && !canOpen(state, decision.playerId))
             context.addSystemAction(DeclineCharter, { playerId: decision.playerId })
         else if (
@@ -471,6 +496,14 @@ export class ParliamentHandler implements EighteenXXStateHandler<HydratedState18
         if (state.parliament) return ParliamentState
         return state.operatingSet ? 'OperatingSet' : 'StockRound'
     }
+}
+
+/** Each opener, bidder and winner acts in a turn of their own. */
+function startTurnOf(state: HydratedState1862, playerId: string): void {
+    const turn = state.turnManager.currentTurn()
+    if (turn?.playerId === playerId) return
+    if (turn) state.turnManager.endTurn(state.actionCount)
+    state.turnManager.startTurn(playerId, state.actionCount + 1)
 }
 
 /** Holds a Parliament Round, when one is due, before the stock round follows the set. */

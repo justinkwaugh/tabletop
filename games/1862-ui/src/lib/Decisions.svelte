@@ -80,7 +80,7 @@
         >
             {@render company(merge.survivorId, 24)}
             <span>
-                {option.holder === 'company'
+                {option.holder.kind === 'company'
                     ? `The companies hold an option ${session.companyInitials(merge.survivorId)} share.`
                     : `You hold an option ${session.companyInitials(merge.survivorId)} share.`}
                 Redeem it to keep it, or give it up to the Market.

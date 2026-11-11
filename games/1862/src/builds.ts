@@ -72,6 +72,10 @@ export const isPlaceSmallStation = PlaceSmallStationAction.is
  * on the board; no route is needed (§7.6.4).
  */
 export class HydratedPlaceSmallStation extends PlaceSmallStationAction.Base {
+    declare playerId: string
+    declare companyId: Type.Static<typeof PlaceSmallStation>['companyId']
+    declare locationId: Type.Static<typeof PlaceSmallStation>['locationId']
+    declare edges: Type.Static<typeof PlaceSmallStation>['edges']
     isValid(state: HydratedState1862): boolean {
         return (
             this.source === ActionSource.User &&
@@ -135,6 +139,8 @@ export const isBuildToLondon = BuildToLondonAction.is
  * trains run into London. It is the turn's build and its station (§7.6.5).
  */
 export class HydratedBuildToLondon extends BuildToLondonAction.Base {
+    declare playerId: string
+    declare companyId: Type.Static<typeof BuildToLondon>['companyId']
     isValid(state: HydratedState1862): boolean {
         return (
             this.source === ActionSource.User &&

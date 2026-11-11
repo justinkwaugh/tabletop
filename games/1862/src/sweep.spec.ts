@@ -1,10 +1,9 @@
-import { appendFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { playOut } from '../test/bot.js'
 import { table } from '../test/kit.js'
 import { positiveRun } from '../test/routeAudit.js'
 
-// A wider sweep of bot games, run with SWEEP=1; failures go to /tmp/1862-sweep.log.
+// A wider sweep of bot games, run with SWEEP=1; the assertion lists every failure.
 // eslint-disable-next-line turbo/no-undeclared-env-vars -- a manual run's switch
 describe.skipIf(!process.env.SWEEP)('1862 bot sweep', () => {
     it('plays many games', { timeout: 3_000_000 }, () => {
@@ -23,24 +22,15 @@ describe.skipIf(!process.env.SWEEP)('1862 bot sweep', () => {
                     if (!witness) return
                     const failure = `seed ${seed} ${result.companyId}: ran £0 with a legal £${witness.revenue} run`
                     failures.push(failure)
-                    appendFileSync('/tmp/1862-sweep.log', `${failure}\n`)
                 })
-                appendFileSync(
-                    '/tmp/1862-sweep.log',
-                    `seed ${seed} players ${players}: ${game.state.machineState} after ${moves} (${game.state.gameEnding?.reason})\n`
-                )
+                if (game.state.machineState !== 'GameOver')
+                    failures.push(
+                        `seed ${seed} players ${players}: ${game.state.machineState} after ${moves}`
+                    )
             } catch (error) {
-                failures.push(`seed ${seed}: ${String(error)}`)
-                appendFileSync(
-                    '/tmp/1862-sweep.log',
-                    `seed ${seed} players ${players}: FAIL ${String(error).slice(0, 600)}\n`
-                )
+                failures.push(`seed ${seed} players ${players}: ${String(error).slice(0, 600)}`)
             }
         }
-        appendFileSync(
-            '/tmp/1862-sweep.log',
-            `audit: ${runs} runs, ${zeroRuns} zero runs, ${failures.length} failures\n`
-        )
-        expect(failures).toEqual([])
+        expect({ runs, zeroRuns, failures }).toMatchObject({ failures: [] })
     })
 })

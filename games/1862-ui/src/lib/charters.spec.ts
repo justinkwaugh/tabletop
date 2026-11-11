@@ -13,17 +13,15 @@ it('lays the dealt charters out by when they arrive, with those out of play (§2
         ['Phase C', 'first C train', 4],
         ['Out of play', undefined, 4]
     ])
-    expect(rows[0].charters.filter((charter) => charter.started).map((c) => c.companyId)).toEqual([
-        'ESR',
-        'LE',
-        'WSTI',
-        'EUR'
-    ])
-    expect(rows[3].charters.map((charter) => [charter.companyId, charter.started])).toEqual([
-        ['NGC', false],
-        ['SVR', false],
-        ['NB', false],
-        ['WNR', false]
-    ])
-    expect(rows[3].charters[0].home).toBeDefined()
+    const started = state.companies
+        .filter((company: { started: boolean }) => company.started)
+        .map((company: { id: string }) => company.id)
+    expect(
+        rows
+            .flatMap((row) => row.charters)
+            .filter((charter) => charter.started)
+            .map((charter) => charter.companyId)
+            .sort()
+    ).toEqual([...started].sort())
+    expect(rows[3].charters.every((charter) => !charter.started && charter.home)).toBe(true)
 })

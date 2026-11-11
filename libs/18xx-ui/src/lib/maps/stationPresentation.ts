@@ -16,7 +16,12 @@ import type { RevenueStageColors } from '../colors/revenueStageColors.js'
 export type LocationMarkerArt = Readonly<Record<string, Readonly<Record<string, MapMarkerArt>>>>
 
 /** Offboard names print in the tile label face, which ships with the app, at their own size. */
-export type OffboardNameStyle = { fontSize: number; color: string }
+export type OffboardNameStyle = {
+    fontSize: number
+    color: string
+    /** Extra space between words, in ems, where the label face's narrow space runs them together. */
+    wordSpacing?: number
+}
 
 /** Tiles drawn side by side in place of a round token, at the token's height. */
 export type TokenTiles = {

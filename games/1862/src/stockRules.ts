@@ -49,14 +49,11 @@ export function saleValue(state: StockState, companyId: string): number {
 
 /** Shares of a company the player bought this stock round, which they may not sell in it. */
 export function boughtThisRound(state: StockState, playerId: string, companyId: string): number {
-    return requireState1862(state)
-        .stockPurchases.filter(
-            (purchase) =>
-                purchase.stockRound === state.stockRound.number &&
-                purchase.playerId === playerId &&
-                purchase.companyId === companyId
-        )
-        .reduce((sum, purchase) => sum + purchase.shares, 0)
+    return (
+        state.stockRound.purchases?.find(
+            (purchase) => purchase.playerId === playerId && purchase.companyId === companyId
+        )?.shares ?? 0
+    )
 }
 
 export function recordStockPurchase(
@@ -65,12 +62,14 @@ export function recordStockPurchase(
     companyId: string,
     shares: number
 ): void {
-    const title = requireState1862(state)
-    if (buyer.kind !== 'player' || title.machineState !== 'StockRound') return
-    const stockRound = state.stockRound.number
-    title.stockPurchases = [
-        ...title.stockPurchases.filter((purchase) => purchase.stockRound === stockRound),
-        { stockRound, playerId: buyer.playerId, companyId, shares }
+    if (buyer.kind !== 'player' || requireState1862(state).machineState !== 'StockRound') return
+    const playerId = buyer.playerId
+    const others = (state.stockRound.purchases ?? []).filter(
+        (purchase) => purchase.playerId !== playerId || purchase.companyId !== companyId
+    )
+    state.stockRound.purchases = [
+        ...others,
+        { playerId, companyId, shares: boughtThisRound(state, playerId, companyId) + shares }
     ]
 }
 

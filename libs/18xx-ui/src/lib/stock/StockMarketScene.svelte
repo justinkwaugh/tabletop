@@ -55,7 +55,6 @@
             (_, column) => column + geometry.gapBefore.slice(0, column + 1).filter(Boolean).length
         )
     )
-    // Overlapping spaces each span the tracks their width covers, one track per step.
     const step = $derived(cell.step ?? cell.width)
     const span = $derived(Math.round(cell.width / step))
     const gridColumns = $derived(

@@ -11,6 +11,7 @@ import {
 import { Charters1862, DirectorShares } from './charters.js'
 import { homeAvailable, homeHasRoom } from './homes.js'
 import { IpoPoolId, charterPoolId } from './pools.js'
+import { Companies1862 } from './companies.js'
 import { requireState1862 } from './state.js'
 import {
     Market1862,
@@ -35,8 +36,7 @@ export function canStart(state: FormationState, companyId: string): boolean {
     const company = getCompany(state, companyId)
     const availability = title.availability[companyId]
     // A company reset for a missed obligation returns from the next stock round on (§4.3).
-    const restart = title.availableFromStockRound?.[companyId]
-    if (restart && state.stockRound.number < restart) return false
+    if (title.resetCompanyIds?.includes(companyId)) return false
     return (
         !company.started &&
         !company.closed &&
@@ -45,6 +45,12 @@ export function canStart(state: FormationState, companyId: string): boolean {
         Phases1862.isAtLeast(state.phaseId, availability) &&
         homeAvailable(title, companyId)
     )
+}
+
+/** The companies dealt out of the game: those never given a time to become available (§2.4.1). */
+export function outOfPlayCompanyIds(state: object): string[] {
+    const { availability } = requireState1862(state)
+    return Companies1862.map((company) => company.id).filter((id) => !(id in availability))
 }
 
 /** A non-chartered company's par: the highest non-chartered par at or below its price (§6.5.3). */

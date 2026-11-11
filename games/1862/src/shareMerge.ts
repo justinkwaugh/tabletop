@@ -1,4 +1,5 @@
 import {
+    President,
     finiteCashOwnedBy,
     getCompany,
     settleCashPayments,
@@ -11,18 +12,20 @@ import { IpoPoolId, MarketPoolId, charterPoolId } from './pools.js'
 import type { HydratedState1862, State1862 } from './state.js'
 
 /**
- * A holder in a share merge: a player, or the companies involved acting as one, seated to the
- * initiator's right and acting for it (§5.2.4).
+ * A holder in a share merge: a player, or the companies involved acting as one through the
+ * survivor's treasury, seated to the initiator's right and acting for it (§5.2.4).
  */
-export const CompanyHolder = 'company'
-const Holder = Type.String({ minLength: 1 })
+export const MergeHolder = President
+export type MergeHolder = President
+
+const Id = Type.String({ minLength: 1 })
 
 /** An option share awaiting its holder's choice: redeem at a cost, or give it up for a price. */
 export const MergeOption = Type.Object(
     {
-        holder: Holder,
+        holder: MergeHolder,
         /** The survivor's certificate the option is, once it is one. */
-        certificateId: Type.String({ minLength: 1 }),
+        certificateId: Id,
         redeemCost: Type.Integer({ minimum: 0 }),
         sellValue: Type.Integer({ minimum: 0 })
     },
@@ -38,20 +41,43 @@ export const ShareMerge = Type.Object(
             Type.Literal('acquire'),
             Type.Literal('refinance')
         ]),
-        initiatorId: Type.String({ minLength: 1 }),
-        survivorId: Type.String({ minLength: 1 }),
-        otherId: Type.Optional(Type.String({ minLength: 1 })),
+        initiatorId: Id,
+        survivorId: Id,
+        otherId: Type.Optional(Id),
         /** The share price options are valued at. */
         price: Type.Integer({ minimum: 0 }),
-        /** Holders still to take their turn, next first. */
-        holderIds: Type.Array(Holder),
-        /** The other company's shares each holder still holds, as counts: they all leave play. */
-        otherShares: Type.Record(Holder, Type.Integer({ minimum: 0 })),
         /**
-         * The share each holder with an odd holding keeps as an option: one of the other
-         * company's (`other`) or a survivor certificate.
+         * The other company's shares holders yet to take their turn still hold: they all leave
+         * play.
          */
-        oddOptions: Type.Record(Holder, Type.String({ minLength: 1 })),
+        otherShares: Type.Array(
+            Type.Object(
+                { holder: MergeHolder, shares: Type.Integer({ minimum: 1 }) },
+                { additionalProperties: false }
+            )
+        ),
+        /**
+         * The share each holder with an odd holding keeps as an option until its turn: one of
+         * the other company's, or a survivor certificate.
+         */
+        oddOptions: Type.Array(
+            Type.Object(
+                {
+                    holder: MergeHolder,
+                    share: Type.Union([
+                        Type.Object(
+                            { kind: Type.Literal('other') },
+                            { additionalProperties: false }
+                        ),
+                        Type.Object(
+                            { kind: Type.Literal('survivor'), certificateId: Id },
+                            { additionalProperties: false }
+                        )
+                    ])
+                },
+                { additionalProperties: false }
+            )
+        ),
         /** A director's certificate held as an option, valued by their holding (§5.2.4). */
         directorOption: Type.Optional(MergeOption),
         option: Type.Optional(MergeOption)
@@ -60,15 +86,41 @@ export const ShareMerge = Type.Object(
 )
 export type ShareMerge = Type.Static<typeof ShareMerge>
 
-function holderOwner(merge: ShareMerge, holder: string): Owner {
-    return holder === CompanyHolder
-        ? { kind: 'company', companyId: merge.survivorId }
-        : { kind: 'player', playerId: holder }
+type OddOption = ShareMerge['oddOptions'][number]
+
+export function sameHolder(a: MergeHolder, b: MergeHolder): boolean {
+    return a.kind === 'player'
+        ? b.kind === 'player' && a.playerId === b.playerId
+        : b.kind === 'company' && a.companyId === b.companyId
 }
 
 /** Who decides for a holder: the player, or the initiator for the companies. */
-export function holderPlayer(merge: ShareMerge, holder: string): string {
-    return holder === CompanyHolder ? merge.initiatorId : holder
+export function holderPlayer(merge: ShareMerge, holder: MergeHolder): string {
+    return holder.kind === 'company' ? merge.initiatorId : holder.playerId
+}
+
+function otherSharesOf(merge: ShareMerge, holder: MergeHolder): number {
+    return merge.otherShares.find((entry) => sameHolder(entry.holder, holder))?.shares ?? 0
+}
+
+function setOtherShares(merge: ShareMerge, holder: MergeHolder, shares: number): void {
+    merge.otherShares = [
+        ...merge.otherShares.filter((entry) => !sameHolder(entry.holder, holder)),
+        ...(shares > 0 ? [{ holder, shares }] : [])
+    ]
+}
+
+function oddOptionOf(merge: ShareMerge, holder: MergeHolder): OddOption['share'] | undefined {
+    return merge.oddOptions.find((entry) => sameHolder(entry.holder, holder))?.share
+}
+
+/** Whether the holder has a turn still to take: shares to swap or sell, or an option. */
+function awaitsTurn(merge: ShareMerge, holder: MergeHolder): boolean {
+    return (
+        otherSharesOf(merge, holder) > 0 ||
+        !!oddOptionOf(merge, holder) ||
+        (!!merge.directorOption && sameHolder(merge.directorOption.holder, holder))
+    )
 }
 
 function involved(merge: ShareMerge, companyId: string): boolean {
@@ -79,16 +131,16 @@ function involved(merge: ShareMerge, companyId: string): boolean {
 function heldBy(
     merge: ShareMerge,
     certificate: State1862['certificates'][number],
-    holder: string
+    holder: MergeHolder
 ): boolean {
-    if (holder === CompanyHolder)
+    if (holder.kind === 'company')
         return certificate.owner.kind === 'company' && involved(merge, certificate.owner.companyId)
-    return certificate.owner.kind === 'player' && certificate.owner.playerId === holder
+    return certificate.owner.kind === 'player' && certificate.owner.playerId === holder.playerId
 }
 
 type Share = Extract<State1862['certificates'][number], { kind: 'share' }>
 
-function survivorCertificates(state: State1862, merge: ShareMerge, holder: string): Share[] {
+function survivorCertificates(state: State1862, merge: ShareMerge, holder: MergeHolder): Share[] {
     return state.certificates.filter(
         (certificate): certificate is Share =>
             certificate.kind === 'share' &&
@@ -97,7 +149,7 @@ function survivorCertificates(state: State1862, merge: ShareMerge, holder: strin
     )
 }
 
-function survivorShares(state: State1862, merge: ShareMerge, holder: string): number {
+function survivorShares(state: State1862, merge: ShareMerge, holder: MergeHolder): number {
     return survivorCertificates(state, merge, holder).reduce((sum, c) => sum + c.shares, 0)
 }
 
@@ -123,8 +175,21 @@ function toHolder(certificate: Share, owner: Owner): void {
 }
 
 /** Players from the initiator clockwise, then the companies acting as one (§5.2.4). */
-export function mergeHolders(state: State1862, initiatorId: string): string[] {
-    return [...turnOrderFrom(state.turnManager.turnOrder, initiatorId), CompanyHolder]
+export function mergeHolders(
+    state: State1862,
+    merge: Pick<ShareMerge, 'initiatorId' | 'survivorId'>
+): MergeHolder[] {
+    return [
+        ...turnOrderFrom(state.turnManager.turnOrder, merge.initiatorId).map(
+            (playerId): MergeHolder => ({ kind: 'player', playerId })
+        ),
+        { kind: 'company', companyId: merge.survivorId }
+    ]
+}
+
+/** The holder whose turn is next, in holder order, once any option is decided (§5.2.4). */
+export function nextMergeHolder(state: State1862, merge: ShareMerge): MergeHolder | undefined {
+    return mergeHolders(state, merge).find((holder) => awaitsTurn(merge, holder))
 }
 
 type MergeStart = Pick<ShareMerge, 'kind' | 'initiatorId' | 'survivorId' | 'otherId' | 'price'>
@@ -138,9 +203,8 @@ type MergeStart = Pick<ShareMerge, 'kind' | 'initiatorId' | 'survivorId' | 'othe
 export function beginShareMerge(state: HydratedState1862, start: MergeStart): void {
     const merge: ShareMerge = {
         ...start,
-        holderIds: [],
-        otherShares: {},
-        oddOptions: {}
+        otherShares: [],
+        oddOptions: []
     }
     for (const certificate of state.certificates)
         if (
@@ -149,27 +213,24 @@ export function beginShareMerge(state: HydratedState1862, start: MergeStart): vo
             certificate.poolId === IpoPoolId
         )
             toPool(certificate)
-    const holders = mergeHolders(state, start.initiatorId)
+    const holders = mergeHolders(state, start)
     if (start.otherId)
-        for (const holder of holders) {
-            const count = state.certificates
-                .filter(
-                    (certificate): certificate is Share =>
-                        certificate.kind === 'share' &&
-                        certificate.companyId === start.otherId &&
-                        heldBy(merge, certificate, holder)
-                )
-                .reduce((sum, certificate) => sum + certificate.shares, 0)
-            if (count) merge.otherShares[holder] = count
-        }
+        for (const holder of holders)
+            setOtherShares(
+                merge,
+                holder,
+                state.certificates
+                    .filter(
+                        (certificate): certificate is Share =>
+                            certificate.kind === 'share' &&
+                            certificate.companyId === start.otherId &&
+                            heldBy(merge, certificate, holder)
+                    )
+                    .reduce((sum, certificate) => sum + certificate.shares, 0)
+            )
     const exchanged = holders.find((holder) => directorExchange(state, merge, holder))
-    for (const holder of holders) if (holder !== exchanged) returnHalf(state, merge, holder)
-    merge.holderIds = holders.filter(
-        (holder) =>
-            (merge.otherShares[holder] ?? 0) > 0 ||
-            holder in merge.oddOptions ||
-            merge.directorOption?.holder === holder
-    )
+    for (const holder of holders)
+        if (!exchanged || !sameHolder(holder, exchanged)) returnHalf(state, merge, holder)
     state.shareMerge = merge
 }
 
@@ -185,21 +246,24 @@ const Tiers: Readonly<Record<number, readonly [redeem: number, sell: number]>> =
  * shares of both companies into the pool and hold the certificate as an option, valued by their
  * holding. Returns whether the director's turn is that option alone (§5.2.4).
  */
-function directorExchange(state: HydratedState1862, merge: ShareMerge, holder: string): boolean {
-    if (holder === CompanyHolder) return false
+function directorExchange(
+    state: HydratedState1862,
+    merge: ShareMerge,
+    holder: MergeHolder
+): boolean {
+    if (holder.kind === 'company') return false
     const held = survivorCertificates(state, merge, holder)
     const director = held.find((certificate) => certificate.president)
     const shares = survivorShares(state, merge, holder)
-    if (!director || shares + (merge.otherShares[holder] ?? 0) >= 6) return false
+    if (!director || shares + otherSharesOf(merge, holder) >= 6) return false
     const pooled = pooledOrdinary(state, merge)
     if (pooled.length >= 3) {
         toPool(director)
-        for (const certificate of pooled.slice(0, 3))
-            toHolder(certificate, holderOwner(merge, holder))
+        for (const certificate of pooled.slice(0, 3)) toHolder(certificate, holder)
         return false
     }
     for (const certificate of held) if (!certificate.president) toPool(certificate)
-    delete merge.otherShares[holder]
+    setOtherShares(merge, holder, 0)
     const [redeem, sell] = Tiers[shares] ?? [1.5, 1.5]
     merge.directorOption = {
         holder,
@@ -211,20 +275,23 @@ function directorExchange(state: HydratedState1862, merge: ShareMerge, holder: s
 }
 
 /** A holder returns half its shares, the other company's first; an odd holding keeps an option. */
-function returnHalf(state: HydratedState1862, merge: ShareMerge, holder: string): void {
-    const other = merge.otherShares[holder] ?? 0
+function returnHalf(state: HydratedState1862, merge: ShareMerge, holder: MergeHolder): void {
+    const other = otherSharesOf(merge, holder)
     const total = other + survivorShares(state, merge, holder)
     const returning = Math.floor(total / 2)
     const fromOther = Math.min(other, returning)
-    if (other - fromOther) merge.otherShares[holder] = other - fromOther
-    else delete merge.otherShares[holder]
+    setOtherShares(merge, holder, other - fromOther)
     const ordinary = survivorCertificates(state, merge, holder).filter((c) => !c.president)
     assert(returning - fromOther <= ordinary.length, 'A holder returns ordinary shares')
     for (const certificate of ordinary.slice(0, returning - fromOther)) toPool(certificate)
     if (total % 2 === 0) return
     const kept = survivorCertificates(state, merge, holder).find((c) => !c.president)
-    if (merge.otherShares[holder]) merge.oddOptions[holder] = 'other'
-    else if (kept) merge.oddOptions[holder] = kept.id
+    const share: OddOption['share'] | undefined = otherSharesOf(merge, holder)
+        ? { kind: 'other' }
+        : kept
+          ? { kind: 'survivor', certificateId: kept.id }
+          : undefined
+    if (share) merge.oddOptions.push({ holder, share })
 }
 
 /**
@@ -236,24 +303,23 @@ export function takeMergeTurn(state: HydratedState1862): CashPayment[] {
     const merge = state.shareMerge
     assertExists(merge, 'A share merge is in progress')
     assert(!merge.option, 'An option awaits its holder')
-    const holder = merge.holderIds.shift()
+    const holder = nextMergeHolder(state, merge)
     assertExists(holder, 'A holder is to act')
-    if (merge.directorOption?.holder === holder) {
+    if (merge.directorOption && sameHolder(merge.directorOption.holder, holder)) {
         merge.option = merge.directorOption
         delete merge.directorOption
         return []
     }
-    const owner = holderOwner(merge, holder)
-    const odd = merge.oddOptions[holder]
-    delete merge.oddOptions[holder]
-    let other = merge.otherShares[holder] ?? 0
-    delete merge.otherShares[holder]
-    let optionId = odd && odd !== 'other' ? odd : undefined
-    let optionLeft = odd === 'other'
+    const odd = oddOptionOf(merge, holder)
+    merge.oddOptions = merge.oddOptions.filter((entry) => !sameHolder(entry.holder, holder))
+    let other = otherSharesOf(merge, holder)
+    setOtherShares(merge, holder, 0)
+    let optionId = odd?.kind === 'survivor' ? odd.certificateId : undefined
+    let optionLeft = odd?.kind === 'other'
     while (other > 0) {
         const share = pooledOrdinary(state, merge)[0]
         if (!share) break
-        toHolder(share, owner)
+        toHolder(share, holder)
         other--
         if (optionLeft && other === 0) {
             optionId = share.id
@@ -263,7 +329,7 @@ export function takeMergeTurn(state: HydratedState1862): CashPayment[] {
     const payments: CashPayment[] = []
     const sold =
         (other - (optionLeft ? 1 : 0)) * merge.price + (optionLeft ? Math.ceil(merge.price / 2) : 0)
-    if (sold > 0) payments.push({ from: { kind: 'bank' }, to: owner, amount: sold })
+    if (sold > 0) payments.push({ from: { kind: 'bank' }, to: holder, amount: sold })
     if (optionId)
         merge.option = {
             holder,
@@ -278,9 +344,7 @@ export function takeMergeTurn(state: HydratedState1862): CashPayment[] {
 /** Whether the option's holder can pay to redeem it. */
 export function canRedeemOption(state: State1862, merge: ShareMerge): boolean {
     const option = merge.option
-    return (
-        !!option && finiteCashOwnedBy(state, holderOwner(merge, option.holder)) >= option.redeemCost
-    )
+    return !!option && finiteCashOwnedBy(state, option.holder) >= option.redeemCost
 }
 
 /** The holder redeems the option, paying for it, or gives it up to the pool for its price (§5.2.4). */
@@ -290,7 +354,7 @@ export function settleOption(state: HydratedState1862, redeem: boolean): CashPay
     assertExists(merge, 'A share merge is in progress')
     assertExists(option, 'An option awaits its holder')
     assert(!redeem || canRedeemOption(state, merge), 'The holder can pay to redeem the option')
-    const owner = holderOwner(merge, option.holder)
+    const owner = option.holder
     const payment: CashPayment = redeem
         ? { from: owner, to: { kind: 'bank' }, amount: option.redeemCost }
         : { from: { kind: 'bank' }, to: owner, amount: option.sellValue }
@@ -313,7 +377,7 @@ export function settleDirector(state: HydratedState1862): string | undefined {
     const merge = state.shareMerge
     assertExists(merge, 'A share merge is in progress')
     const order = turnOrderFrom(state.turnManager.turnOrder, merge.initiatorId)
-    const shares = (playerId: string) => survivorShares(state, merge, playerId)
+    const shares = (playerId: string) => survivorShares(state, merge, { kind: 'player', playerId })
     const best = Math.max(0, ...order.map(shares))
     const director = best >= 3 ? order.find((playerId) => shares(playerId) === best) : undefined
     const certificate = state.certificates.find(
@@ -330,7 +394,7 @@ export function settleDirector(state: HydratedState1862): string | undefined {
         // The certificate changes hands for three ordinary shares, from the new director or
         // the pool, to its previous holder or the pool.
         const giver = directorOwner
-            ? survivorCertificates(state, merge, directorOwner.playerId).filter((c) => !c.president)
+            ? survivorCertificates(state, merge, directorOwner).filter((c) => !c.president)
             : pooledOrdinary(state, merge)
         const taker: Owner = certificate.poolId === MarketPoolId ? { kind: 'bank' } : previous
         for (const share of giver.slice(0, 3)) {

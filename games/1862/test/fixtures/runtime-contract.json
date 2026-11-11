@@ -21,7 +21,7 @@
     "EndParliamentRound": "1450235be16c19bafc4da7dbacbc98f0cd7c0a8ce21a92c0304d12d423a35025",
     "EnforceObligations": "fe7d5670eef504798eacf08f077841207606d2f3bc954a0e8f9b5776db80f21e",
     "ExchangePrivate": "76b79fb406c20ba82571b7229e89be58c907d89279e82a4ca1f2dd5f2dca21ab",
-    "ExpireWarranties": "a6a923d61820b7d6bc9ce31a07c6eb5603b375d7c75b64a7ef7549907397ea76",
+    "ExpireWarranties": "7a0223fe68e8e4410d2f4fd20e10f7ef4a32fa9ababb0fabd1e274baf2726a7d",
     "FinishOperatingTurn": "b653940dd0621cbe3c462eac1732da050c2e6425ff1bdbfbc4dc01b07fe1a4de",
     "FinishStations": "258ec9a61f997c96475a6d9fd4ee5de918640128aa4949ce721a388fea7a41be",
     "FinishStockTurn": "739e1c6386055439b031b34dae3f9cb9fd2b8b8901c100395b0f675e201733a5",
@@ -65,7 +65,7 @@
     "StartStockRound": "34c29c0862740d39c48906e26c643428eba3c9bd284795e5322a156118e878d5",
     "StopRunInstruction": "7dcf5bbf14792352693bd5f3a98620696252e9bd57da315c4dea3595e33f4fd2",
     "StopStockInstruction": "78a2288c361e0ab3de8d2919d4ceaab5cc933ba29512128afba3b4ef9512d1a2",
-    "TakeMergeTurn": "87e2fa58ec0e52d5b30b4593cb8e3ad9b550d8996e2ec6d60d5bf441d5561d0b"
+    "TakeMergeTurn": "abac8d6cadc333512eaebfac1bfd51ed28540f3149ec95ad2318c442563daf15"
   },
   "canonicalState": {
     "additionalProperties": false,
@@ -99,15 +99,6 @@
                 "type": "string"
               }
             ]
-          }
-        },
-        "type": "object"
-      },
-      "availableFromStockRound": {
-        "patternProperties": {
-          "^.*$": {
-            "minimum": 1,
-            "type": "integer"
           }
         },
         "type": "object"
@@ -1590,17 +1581,17 @@
                 "minimum": 0,
                 "type": "integer"
               },
-              "bidderIds": {
+              "companyId": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "passedIds": {
                 "items": {
                   "minLength": 1,
                   "type": "string"
                 },
                 "type": "array",
                 "uniqueItems": true
-              },
-              "companyId": {
-                "minLength": 1,
-                "type": "string"
               },
               "playerId": {
                 "minLength": 1,
@@ -1609,8 +1600,8 @@
             },
             "required": [
               "bid",
-              "bidderIds",
               "companyId",
+              "passedIds",
               "playerId"
             ],
             "type": "object"
@@ -1650,10 +1641,6 @@
             "minimum": 1,
             "type": "integer"
           },
-          "openerId": {
-            "minLength": 1,
-            "type": "string"
-          },
           "stockRound": {
             "minimum": 1,
             "type": "integer"
@@ -1670,7 +1657,6 @@
         "required": [
           "declinedIds",
           "number",
-          "openerId",
           "stockRound",
           "winnerIds"
         ],
@@ -2210,11 +2196,12 @@
         "const": true,
         "type": "boolean"
       },
-      "removedCompanyIds": {
+      "resetCompanyIds": {
         "items": {
           "minLength": 1,
           "type": "string"
         },
+        "minItems": 1,
         "type": "array",
         "uniqueItems": true
       },
@@ -2654,8 +2641,44 @@
                 "type": "string"
               },
               "holder": {
-                "minLength": 1,
-                "type": "string"
+                "anyOf": [
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "player",
+                        "type": "string"
+                      },
+                      "playerId": {
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "playerId"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "companyId": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "kind": {
+                        "const": "company",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "companyId",
+                      "kind"
+                    ],
+                    "type": "object"
+                  }
+                ]
               },
               "redeemCost": {
                 "minimum": 0,
@@ -2673,13 +2696,6 @@
               "sellValue"
             ],
             "type": "object"
-          },
-          "holderIds": {
-            "items": {
-              "minLength": 1,
-              "type": "string"
-            },
-            "type": "array"
           },
           "initiatorId": {
             "minLength": 1,
@@ -2702,13 +2718,92 @@
             ]
           },
           "oddOptions": {
-            "patternProperties": {
-              "^.*$": {
-                "minLength": 1,
-                "type": "string"
-              }
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "holder": {
+                  "anyOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "const": "player",
+                          "type": "string"
+                        },
+                        "playerId": {
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "playerId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "companyId": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "kind": {
+                          "const": "company",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "companyId",
+                        "kind"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                },
+                "share": {
+                  "anyOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "const": "other",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "certificateId": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "kind": {
+                          "const": "survivor",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "certificateId",
+                        "kind"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "holder",
+                "share"
+              ],
+              "type": "object"
             },
-            "type": "object"
+            "type": "array"
           },
           "option": {
             "additionalProperties": false,
@@ -2718,8 +2813,44 @@
                 "type": "string"
               },
               "holder": {
-                "minLength": 1,
-                "type": "string"
+                "anyOf": [
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "player",
+                        "type": "string"
+                      },
+                      "playerId": {
+                        "minLength": 1,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "playerId"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "companyId": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "kind": {
+                        "const": "company",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "companyId",
+                      "kind"
+                    ],
+                    "type": "object"
+                  }
+                ]
               },
               "redeemCost": {
                 "minimum": 0,
@@ -2743,13 +2874,61 @@
             "type": "string"
           },
           "otherShares": {
-            "patternProperties": {
-              "^.*$": {
-                "minimum": 0,
-                "type": "integer"
-              }
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "holder": {
+                  "anyOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "const": "player",
+                          "type": "string"
+                        },
+                        "playerId": {
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "playerId"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "companyId": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "kind": {
+                          "const": "company",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "companyId",
+                        "kind"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                },
+                "shares": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "holder",
+                "shares"
+              ],
+              "type": "object"
             },
-            "type": "object"
+            "type": "array"
           },
           "price": {
             "minimum": 0,
@@ -2761,7 +2940,6 @@
           }
         },
         "required": [
-          "holderIds",
           "initiatorId",
           "kind",
           "oddOptions",
@@ -3018,37 +3196,6 @@
           "stacks"
         ],
         "type": "object"
-      },
-      "stockPurchases": {
-        "items": {
-          "additionalProperties": false,
-          "properties": {
-            "companyId": {
-              "minLength": 1,
-              "type": "string"
-            },
-            "playerId": {
-              "minLength": 1,
-              "type": "string"
-            },
-            "shares": {
-              "minimum": 1,
-              "type": "integer"
-            },
-            "stockRound": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          "required": [
-            "companyId",
-            "playerId",
-            "shares",
-            "stockRound"
-          ],
-          "type": "object"
-        },
-        "type": "array"
       },
       "stockRound": {
         "additionalProperties": false,
@@ -3526,6 +3673,30 @@
             },
             "type": "array",
             "uniqueItems": true
+          },
+          "purchases": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "companyId": {
+                  "type": "string"
+                },
+                "playerId": {
+                  "type": "string"
+                },
+                "shares": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "companyId",
+                "playerId",
+                "shares"
+              ],
+              "type": "object"
+            },
+            "type": "array"
           },
           "sales": {
             "items": {
@@ -4218,27 +4389,8 @@
           "eightStations": {
             "const": true,
             "type": "boolean"
-          },
-          "length": {
-            "anyOf": [
-              {
-                "const": "short",
-                "type": "string"
-              },
-              {
-                "const": "standard",
-                "type": "string"
-              },
-              {
-                "const": "long",
-                "type": "string"
-              }
-            ]
           }
         },
-        "required": [
-          "length"
-        ],
         "type": "object"
       },
       "warranties": {
@@ -4251,9 +4403,9 @@
         },
         "type": "object"
       },
-      "warrantyRun": {
-        "minLength": 1,
-        "type": "string"
+      "warrantiesExpired": {
+        "const": true,
+        "type": "boolean"
       },
       "winningPlayerIds": {
         "items": {
@@ -4283,11 +4435,9 @@
       "phaseId",
       "players",
       "prng",
-      "removedCompanyIds",
       "stationReservations",
       "stations",
       "stockMarket",
-      "stockPurchases",
       "stockRound",
       "tileInventory",
       "trainInventory",

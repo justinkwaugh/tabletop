@@ -61,6 +61,7 @@ export const isEnforceObligations = EnforceAction.is
  * all its shares, startable again from the next stock round (§4.3).
  */
 export class HydratedEnforceObligations extends EnforceAction.Base {
+    declare metadata?: Type.Static<typeof EnforceObligations>['metadata']
     apply(state: HydratedState1862): void {
         const due = dueObligations(state)
         assert(this.source === ActionSource.System && due.length > 0, 'Obligations are due')
@@ -101,10 +102,10 @@ export class HydratedEnforceObligations extends EnforceAction.Base {
                     { playerId: obligation.playerId, amount: owed }
                 ]
             resetCompany1862(state, obligation.companyId)
-            state.availableFromStockRound = {
-                ...state.availableFromStockRound,
-                [obligation.companyId]: state.stockRound.number + 1
-            }
+            state.resetCompanyIds = [
+                ...(state.resetCompanyIds ?? []).filter((id) => id !== obligation.companyId),
+                obligation.companyId
+            ]
         }
         this.metadata = { fines }
     }
@@ -153,6 +154,10 @@ export const isSellForFine = SellAction.is
 
 /** The fined player sells shares to pay what their cash could not (§4.3). */
 export class HydratedSellForFine extends SellAction.Base {
+    declare playerId: string
+    declare companyId: Type.Static<typeof SellForFine>['companyId']
+    declare shares: Type.Static<typeof SellForFine>['shares']
+    declare metadata?: Type.Static<typeof SellForFine>['metadata']
     isValid(state: HydratedState1862): boolean {
         return (
             this.source === ActionSource.User &&
@@ -189,6 +194,7 @@ export const isForgiveFine = ForgiveAction.is
 
 /** A fined player with nothing left to sell owes no more (research ruling; §4.3 is silent). */
 export class HydratedForgiveFine extends ForgiveAction.Base {
+    declare metadata?: Type.Static<typeof ForgiveFine>['metadata']
     apply(state: HydratedState1862): void {
         const fine = state.fines?.[0]
         assert(

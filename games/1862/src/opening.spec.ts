@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
 import { available, charter, declineAll, table } from '../test/kit.js'
+import { outOfPlayCompanyIds } from './companyRules.js'
 import { marketSpaceIdAt } from './stockMarket.js'
 import { Stalled, endingTrigger, stalled } from './lner.js'
 
@@ -11,7 +12,7 @@ describe('1862 opening', () => {
         expect(phases.filter((phase) => phase === 'A')).toHaveLength(8)
         expect(phases.filter((phase) => phase === 'B')).toHaveLength(4)
         expect(phases.filter((phase) => phase === 'C')).toHaveLength(4)
-        expect(game.state.removedCompanyIds).toHaveLength(4)
+        expect(outOfPlayCompanyIds(game.state)).toHaveLength(4)
         const permits = Object.values(game.state.originalPermits)
         expect(permits.filter((kind) => kind === 'freight')).toHaveLength(6)
         expect(permits.filter((kind) => kind === 'express')).toHaveLength(5)
@@ -20,7 +21,7 @@ describe('1862 opening', () => {
     it('adds a company at once and a permit of each kind with seven or eight players', () => {
         const game = table(8)
         expect(Object.values(game.state.availability).filter((p) => p === 'A')).toHaveLength(10)
-        expect(game.state.removedCompanyIds).toHaveLength(2)
+        expect(outOfPlayCompanyIds(game.state)).toHaveLength(2)
         expect(Object.keys(game.state.originalPermits)).toHaveLength(18)
     })
 
@@ -53,7 +54,8 @@ describe('1862 opening', () => {
         expect(cash?.amount).toBe(600 - 20 - 3 * 74)
         expect(game.state.chartered).toContain(companyId)
         expect(game.state.obligations).toEqual([{ companyId, playerId: buyer, stockRound: 1 }])
-        expect(game.state.parliament?.openerId).not.toBe(buyer)
+        const order = game.state.turnManager.turnOrder
+        expect(game.player).toBe(order[(order.indexOf(buyer) + 1) % order.length])
     })
 
     it('floats a chartered company bought to half, with three £60 stations', () => {

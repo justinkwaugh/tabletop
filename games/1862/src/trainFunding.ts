@@ -101,6 +101,10 @@ export const isSellTreasuryShares = SellAction.is
 
 /** A train-less company sells the fewest of its own shares that buy the bank's train (§7.11.1). */
 export class HydratedSellTreasuryShares extends SellAction.Base {
+    declare playerId: string
+    declare companyId: Type.Static<typeof SellTreasuryShares>['companyId']
+    declare shares: Type.Static<typeof SellTreasuryShares>['shares']
+    declare metadata?: Type.Static<typeof SellTreasuryShares>['metadata']
     isValid(state: HydratedState1862): boolean {
         return (
             this.source === ActionSource.User &&
@@ -140,6 +144,8 @@ export const isRefinance = RefinanceAction.is
  * times its par, at most £1,000 (§7.11.2, §5).
  */
 export class HydratedRefinance extends RefinanceAction.Base {
+    declare playerId: string
+    declare companyId: Type.Static<typeof Refinance>['companyId']
     isValid(state: HydratedState1862): boolean {
         return (
             this.source === ActionSource.User &&
@@ -201,6 +207,9 @@ export const isGoBankrupt = BankruptAction.is
 
 /** A train-less company that can raise no money for a train goes bankrupt (§7.11, §7.12). */
 export class HydratedGoBankrupt extends BankruptAction.Base {
+    declare playerId: string
+    declare companyId: Type.Static<typeof GoBankrupt>['companyId']
+    declare metadata?: Type.Static<typeof GoBankrupt>['metadata']
     isValid(state: HydratedState1862): boolean {
         return (
             this.source === ActionSource.User &&
@@ -251,6 +260,8 @@ export const BankruptCompany = CloseAction.schema
 export const isBankruptCompany = CloseAction.is
 
 export class HydratedBankruptCompany extends CloseAction.Base {
+    declare companyId: Type.Static<typeof BankruptCompany>['companyId']
+    declare metadata?: Type.Static<typeof BankruptCompany>['metadata']
     apply(state: HydratedState1862): void {
         assert(
             this.source === ActionSource.System && dueBankruptcy(state) === this.companyId,
@@ -304,6 +315,9 @@ export const isRedeemShare = RedeemAction.is
 
 /** The company buys back one of its shares from the Bank Pool at market price (§7.13). */
 export class HydratedRedeemShare extends RedeemAction.Base {
+    declare playerId: string
+    declare companyId: Type.Static<typeof RedeemShare>['companyId']
+    declare certificateId: Type.Static<typeof RedeemShare>['certificateId']
     isValid(state: HydratedState1862): boolean {
         return (
             this.source === ActionSource.User &&

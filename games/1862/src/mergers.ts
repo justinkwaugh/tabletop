@@ -33,9 +33,12 @@ import { deciderOf } from './receivers.js'
 import { LondonSpacesLocationId, LondonSpacesNodeId, Map1862 } from './map.js'
 import { restackAtBottom } from './operating.js'
 import {
+    MergeHolder,
     beginShareMerge,
     canRedeemOption,
     holderPlayer,
+    nextMergeHolder,
+    sameHolder,
     settleDirector,
     settleOption,
     takeMergeTurn
@@ -161,6 +164,10 @@ export const isProposeMerger = ProposeAction.is
  * unless they are the same player (§7.5.1, §7.14).
  */
 export class HydratedProposeMerger extends ProposeAction.Base {
+    declare playerId: string
+    declare companyId: Type.Static<typeof ProposeMerger>['companyId']
+    declare partnerId: Type.Static<typeof ProposeMerger>['partnerId']
+    declare survivorId: Type.Static<typeof ProposeMerger>['survivorId']
     isValid(state: HydratedState1862): boolean {
         return (
             this.source === ActionSource.User &&
@@ -189,6 +196,8 @@ export const isAnswerMerger = AnswerAction.is
 
 /** The other company's director agrees to the merger or refuses it (§7.5.1). */
 export class HydratedAnswerMerger extends AnswerAction.Base {
+    declare playerId: string
+    declare accept: Type.Static<typeof AnswerMerger>['accept']
     isValid(state: HydratedState1862): boolean {
         const proposal = state.mergerProposal
         return (
@@ -285,7 +294,7 @@ function mergeStations(state: HydratedState1862, otherId: string, survivorId: st
 }
 
 const TurnAction = systemAction('TakeMergeTurn', {
-    holder: Id,
+    holder: MergeHolder,
     metadata: Type.Optional(
         Type.Object({ payments: Type.Array(CashPayment) }, { additionalProperties: false })
     )
@@ -295,13 +304,13 @@ export const isTakeMergeTurn = TurnAction.is
 
 /** The next holder returns, swaps and sells its shares (§5.2.4). */
 export class HydratedTakeMergeTurn extends TurnAction.Base {
+    declare holder: Type.Static<typeof TakeMergeTurn>['holder']
+    declare metadata?: Type.Static<typeof TakeMergeTurn>['metadata']
     apply(state: HydratedState1862): void {
         const merge = state.shareMerge
+        const holder = merge && !merge.option ? nextMergeHolder(state, merge) : undefined
         assert(
-            this.source === ActionSource.System &&
-                !!merge &&
-                !merge.option &&
-                merge.holderIds[0] === this.holder,
+            this.source === ActionSource.System && !!holder && sameHolder(holder, this.holder),
             'The next holder takes its turn'
         )
         this.metadata = { payments: takeMergeTurn(state) }
@@ -314,6 +323,8 @@ export const isDecideOption = OptionAction.is
 
 /** The holder of an option share redeems it or gives it up; one who cannot pay gives it up. */
 export class HydratedDecideOption extends OptionAction.Base {
+    declare playerId: string
+    declare redeem: Type.Static<typeof DecideOption>['redeem']
     isValid(state: HydratedState1862): boolean {
         const merge = state.shareMerge
         return (
@@ -357,13 +368,14 @@ export function refinancingCapital(state: State1862, companyId: string): number 
  * §7.11.2).
  */
 export class HydratedCompleteShareMerge extends CompleteAction.Base {
+    declare metadata?: Type.Static<typeof CompleteShareMerge>['metadata']
     apply(state: HydratedState1862): void {
         const merge = state.shareMerge
         assert(
             this.source === ActionSource.System &&
                 !!merge &&
                 !merge.option &&
-                !merge.holderIds.length,
+                !nextMergeHolder(state, merge),
             'Every holder has acted'
         )
         const director = settleDirector(state)
@@ -429,14 +441,14 @@ export function mergerDecision(
 ):
     | { kind: 'answer'; playerId: string }
     | { kind: 'option'; playerId: string }
-    | { kind: 'turn'; holder: string }
+    | { kind: 'turn'; holder: MergeHolder }
     | { kind: 'complete' }
     | undefined {
     const merge = state.shareMerge
     if (merge) {
         if (merge.option)
             return { kind: 'option', playerId: holderPlayer(merge, merge.option.holder) }
-        const [holder] = merge.holderIds
+        const holder = nextMergeHolder(state, merge)
         return holder ? { kind: 'turn', holder } : { kind: 'complete' }
     }
     const proposal = state.mergerProposal

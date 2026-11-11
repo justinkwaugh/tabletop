@@ -3,12 +3,11 @@
     import { fade } from 'svelte/transition'
     import { prefersReducedMotion } from 'svelte/motion'
     import { placedTileLayout } from '../tiles/standardTileLayouts.js'
-    import type { Point } from '@tabletop/common'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import Tile from '../tiles/Tile.svelte'
     import type { TileAppearance } from '../tiles/tileAppearance.js'
     import { tileChoiceArc } from './tileChoiceArc.js'
-    import { followHex } from './followHex.js'
+    import { HexPickerFrame } from './hexPickerFrame.svelte.js'
     import HexPickerControls from './HexPickerControls.svelte'
 
     let {
@@ -18,11 +17,12 @@
     }: { session: EighteenXXSessionView; viewport: HTMLDivElement; appearance?: TileAppearance } =
         $props()
     const money = $derived(session.presentation.money)
-    let center: Point = $state({ x: 0, y: 0 })
-    let width = $state(0)
-    let height = $state(0)
-    let tileSize = $state(80)
-    let hexHeight = $state(100)
+    const frame = new HexPickerFrame()
+    const center = $derived(frame.center)
+    const width = $derived(frame.width)
+    const height = $derived(frame.height)
+    const tileSize = $derived(frame.tileSize)
+    const hexHeight = $derived(frame.hexHeight)
     const locationId = $derived(session.track.selection.locationId?.value)
     let collapsing = $derived.by(() => {
         session.track.selection
@@ -32,22 +32,9 @@
     const layout = $derived(
         tileChoiceArc(center, width, height, session.track.tiles.length, tileSize, 1.4)
     )
-    const buttonSize = $derived(tileSize * 0.42)
-    const controls = $derived({
-        x: Math.max(buttonSize * 1.2, Math.min(width - buttonSize * 1.2, center.x)),
-        y: Math.max(buttonSize * 0.6, center.y - hexHeight / 2 - buttonSize * 0.65) + 1
-    })
 
-    const trackHex = followHex(
+    const trackHex = frame.follow(
         () => viewport,
-        (placement) => {
-            if (center.x !== placement.center.x || center.y !== placement.center.y)
-                center = placement.center
-            width = placement.width
-            height = placement.height
-            hexHeight = placement.hexHeight
-            if (placement.mapScale !== undefined) tileSize = 106 * placement.mapScale
-        },
         () => releaseStuckEntrances()
     )
     const elements = new Map<string, HTMLButtonElement>()
@@ -259,8 +246,8 @@
                 </div>
             {/if}
             <HexPickerControls
-                at={controls}
-                size={buttonSize}
+                at={frame.controls}
+                size={frame.buttonSize}
                 cancel={{ label: 'Cancel track lay', onclick: cancel }}
                 accept={{
                     label: 'Accept track lay',

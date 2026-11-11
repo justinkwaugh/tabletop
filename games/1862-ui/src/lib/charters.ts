@@ -1,5 +1,11 @@
 import { assertExists } from '@tabletop/common'
-import { Companies1862, Phases1862, type Availability, type State1862 } from '@tabletop/1862'
+import {
+    Companies1862,
+    Phases1862,
+    outOfPlayCompanyIds,
+    type Availability,
+    type State1862
+} from '@tabletop/1862'
 
 /** A dealt charter: its company, that company's home, and whether it has started. */
 export type Charter = { companyId: string; name: string; home: string; started: boolean }
@@ -28,7 +34,7 @@ export function charterRows(state: State1862): CharterRow[] {
         { label: 'Phase C', note: arrival('C', 'C'), charters: dealt('C') },
         {
             label: 'Out of play',
-            charters: state.removedCompanyIds.map((companyId) => charter(state, companyId)),
+            charters: outOfPlayCompanyIds(state).map((companyId) => charter(state, companyId)),
             out: true
         }
     ]

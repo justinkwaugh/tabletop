@@ -181,7 +181,12 @@ export {
 export * from './stock/marketAnimationSource.js'
 
 export { marketColors, marketSpaceColor, marketZone } from './stock/marketColors.js'
-export { MarketTokenSize } from './stock/marketTokenLayout.js'
+export {
+    MarketScenePadding,
+    MarketTokenSize,
+    MarketZoneBannerHeight,
+    marketGeometry
+} from './stock/marketTokenLayout.js'
 
 export { default as BoardInset } from './maps/BoardInset.svelte'
 

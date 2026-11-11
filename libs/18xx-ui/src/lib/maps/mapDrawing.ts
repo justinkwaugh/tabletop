@@ -1625,7 +1625,8 @@ function splitLine(
     return [{ start, end }]
 }
 
-function nearlySamePoint(first: Point, second: Point): boolean {
+/** Whether two drawn points coincide, allowing for rounding in their geometry. */
+export function nearlySamePoint(first: Point, second: Point): boolean {
     return Math.hypot(first.x - second.x, first.y - second.y) < 0.01
 }
 

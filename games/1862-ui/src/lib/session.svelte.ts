@@ -45,9 +45,8 @@ import {
     type HydratedState1862,
     type State1862
 } from '@tabletop/1862'
-import { RailwayMapState, withTrackStops, type TileEdge, type TrackStop } from '@tabletop/18xx'
+import { RailwayMapState, type TileEdge, type TrackStop } from '@tabletop/18xx'
 import { assertExists } from '@tabletop/common'
-import type { LocalSelection } from '@tabletop/frontend-components'
 import {
     createEighteenXXSessionClass,
     placedTileLayout,
@@ -58,6 +57,7 @@ import {
 import { MapView1862 } from './mapView.js'
 import { Presentation1862 } from './presentation.js'
 import { createRouteWorker } from './routeWorker.js'
+import { stagedChoices } from './stagedChoices.js'
 
 const BaseSession: ReturnType<
     typeof createEighteenXXSessionClass<typeof State1862, HydratedState1862>
@@ -84,44 +84,10 @@ export function lineName([a, b]: readonly [TileEdge, TileEdge]): string {
 
 export type BuildMode = 'small-station' | 'london' | 'merge'
 
-/** A one-step choice made before an Action, which Undo or a new state backs out. */
-function stagedChoice(isMade: () => boolean, clear: () => void): LocalSelection {
-    return {
-        hasManual: isMade,
-        undo() {
-            if (!isMade()) return false
-            clear()
-            return true
-        },
-        clear
-    }
-}
-
 export class Session1862 extends BaseSession {
     constructor(options: ConstructorParameters<typeof BaseSession>[0]) {
         super(options)
-        const choices: [() => boolean, () => void][] = [
-            [
-                () => this.selectedCharterCompany !== undefined,
-                () => {
-                    this.selectedCharterCompany = undefined
-                    this.charterBid = 0
-                }
-            ],
-            [() => this.raiseAmount !== undefined, () => (this.raiseAmount = undefined)],
-            [() => this.charterPar !== undefined, () => (this.charterPar = undefined)],
-            [() => this.mergerPartner !== undefined, () => (this.mergerPartner = undefined)],
-            [() => this.smallStationLine !== undefined, () => (this.smallStationLine = undefined)],
-            [
-                () => this.smallStationLocation !== undefined,
-                () => {
-                    this.smallStationLocation = undefined
-                    this.smallStationLine = undefined
-                }
-            ]
-        ]
-        for (const [isMade, clear] of choices)
-            this.localSelections.register(stagedChoice(isMade, clear))
+        for (const selection of stagedChoices(this)) this.localSelections.register(selection)
     }
     // Whether the decision is this player's, even while an Action of theirs is being sent or shown.
     private readonly deciding = $derived(this.isPlayable && this.isMyTurn && !this.isViewingHistory)
@@ -391,7 +357,6 @@ export class Session1862 extends BaseSession {
                 const choices = lines[chosenId]
                 if (choices?.length === 1) void this.placeSmallStation(chosenId, choices[0])
                 else if (chosenId === locationId && options?.length) {
-                    // Tapping the chosen hex again moves the station to its next line.
                     const at = options.findIndex((option) => option.id === this.smallStationLine)
                     this.smallStationLine = options[(at + 1) % options.length].id
                 } else {
@@ -419,30 +384,25 @@ export class Session1862 extends BaseSession {
         }
     }
 
-    /** The hex's tile as it would look with a small station on the line (§7.6.4). */
+    /** The hex's laid tile as it would look with a small station on the line (§7.6.4). */
     private smallStationPreview(
         locationId: string,
         line: readonly [TileEdge, TileEdge]
     ): MapLocationFollowUpTile {
-        const tile = new RailwayMapState(
-            this.mapView.map,
-            this.mapView.tileSet,
-            this.gameState.tileInventory
-        ).tile(locationId)
+        const inventory = this.gameState.tileInventory
+        const placement = inventory.placements[locationId]
+        assertExists(placement, 'A small station stands on a laid tile')
         const stop: TrackStop = { edges: [line[0], line[1]], revenue: SmallStationRevenue }
-        const placement = tile.placement
-        if (!placement) return { face: withTrackStops(tile.face, [stop], 0), rotation: 0 }
-        const definition = this.mapView.tileSet.definitions.find(
-            (candidate) => candidate.id === placement.definitionId
-        )
-        assertExists(definition, 'A placed tile has a definition')
+        const tile = new RailwayMapState(this.mapView.map, this.mapView.tileSet, {
+            ...inventory,
+            placements: {
+                ...inventory.placements,
+                [locationId]: { ...placement, trackStops: [...(placement.trackStops ?? []), stop] }
+            }
+        }).tile(locationId)
         return {
-            face: withTrackStops(
-                definition.face,
-                [...(placement.trackStops ?? []), stop],
-                placement.rotation
-            ),
-            rotation: placement.rotation,
+            face: tile.face,
+            rotation: tile.rotation,
             layout: placedTileLayout(this.mapView.layouts, placement.definitionId)
         }
     }

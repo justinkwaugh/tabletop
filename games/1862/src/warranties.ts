@@ -61,6 +61,10 @@ export const isBuyWarranties = BuyWarrantiesAction.is
 
 /** The director buys warranties, £50 each, up to three, for a train bought from the bank (§7.10). */
 export class HydratedBuyWarranties extends BuyWarrantiesAction.Base {
+    declare playerId: string
+    declare companyId: Type.Static<typeof BuyWarranties>['companyId']
+    declare trainId: Type.Static<typeof BuyWarranties>['trainId']
+    declare count: Type.Static<typeof BuyWarranties>['count']
     isValid(state: HydratedState1862): boolean {
         return (
             this.source === ActionSource.User &&
@@ -97,13 +101,6 @@ export const WarrantyStep: StepAction<HydratedState1862> = stepAction(
     }
 )
 
-/** The turn a company's warranties last expired, so they expire once a run. */
-function runKey(state: HydratedState1862): string | undefined {
-    const set = state.operatingSet
-    const companyId = state.routeStep?.companyId
-    return set && companyId ? `${set.number}.${set.roundNumber}.${companyId}` : undefined
-}
-
 const Expiry = Type.Object(
     {
         expired: Type.Array(Type.String()),
@@ -119,24 +116,19 @@ const Expiry = Type.Object(
 
 const ExpireAction = systemAction('ExpireWarranties', {
     companyId: Type.String({ minLength: 1 }),
-    run: Type.String({ minLength: 1 }),
     metadata: Type.Optional(Expiry)
 })
 export const ExpireWarranties = ExpireAction.schema
 export const isExpireWarranties = ExpireAction.is
 
 /** Whether the running company has warranties to expire after this run. */
-export function warrantiesDue(
-    state: HydratedState1862
-): { companyId: string; run: string } | undefined {
-    const run = runKey(state)
+export function warrantiesDue(state: HydratedState1862): { companyId: string } | undefined {
     const companyId = state.routeStep?.companyId
-    if (!run || !companyId || !state.routeStep?.result || state.warrantyRun === run)
-        return undefined
+    if (!companyId || !state.routeStep?.result || state.warrantiesExpired) return undefined
     return trainsOwnedBy(state, { kind: 'company', companyId }).some(
         (train) => state.warranties[train.id]
     )
-        ? { companyId, run }
+        ? { companyId }
         : undefined
 }
 
@@ -145,10 +137,12 @@ export function warrantiesDue(
  * whose last warranty goes rusts (§7.10).
  */
 export class HydratedExpireWarranties extends ExpireAction.Base {
+    declare companyId: Type.Static<typeof ExpireWarranties>['companyId']
+    declare metadata?: Type.Static<typeof ExpireWarranties>['metadata']
     apply(state: HydratedState1862): void {
         const due = warrantiesDue(state)
         assert(
-            this.source === ActionSource.System && due?.run === this.run,
+            this.source === ActionSource.System && due?.companyId === this.companyId,
             'Warranties expire once after a run'
         )
         const expired: string[] = []
@@ -169,7 +163,7 @@ export class HydratedExpireWarranties extends ExpireAction.Base {
             rusted.map((train) => train.trainId),
             'removed'
         )
-        state.warrantyRun = this.run
+        state.warrantiesExpired = true
         this.metadata = { expired, rusted }
     }
 }

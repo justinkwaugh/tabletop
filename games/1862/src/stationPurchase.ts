@@ -34,6 +34,9 @@ export const isBuyStations = BuyStationsAction.is
 
 /** A floated non-chartered company's director chooses how many stations it buys (§6.5.4.2). */
 export class HydratedBuyStations extends BuyStationsAction.Base {
+    declare playerId: string
+    declare companyId: Type.Static<typeof BuyStations>['companyId']
+    declare count: Type.Static<typeof BuyStations>['count']
     isValid(state: HydratedState1862): boolean {
         return (
             this.source === ActionSource.User &&

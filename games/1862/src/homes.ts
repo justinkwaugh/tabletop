@@ -165,6 +165,8 @@ export const isPlaceHome = PlaceHomeAction.is
 
 /** Places a company's home station, displacing another's where the city is full (§7.2). */
 export class HydratedPlaceHome extends PlaceHomeAction.Base {
+    declare companyId: Type.Static<typeof PlaceHome>['companyId']
+    declare metadata?: Type.Static<typeof PlaceHome>['metadata']
     apply(state: HydratedState1862): void {
         const due = dueHome(state)
         assert(

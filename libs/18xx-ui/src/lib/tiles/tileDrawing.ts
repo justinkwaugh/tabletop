@@ -233,8 +233,6 @@ export function createTileDrawing(
         const b = endpointPosition(edges[1])
         return { a, b, curve: createEdgeTilePath('line', a, b) }
     }
-    // Other track a town on through track should stand clear of: a town's line whole, and plain
-    // track between hex sides or placed stops.
     const otherTrack = (nodeId: string): TileDrawnPath[] => [
         ...[...automaticTownPaths]
             .filter(([other]) => other !== nodeId)

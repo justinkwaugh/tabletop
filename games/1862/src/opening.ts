@@ -88,11 +88,13 @@ export function companyCertificates(companyId: string) {
 }
 
 export function variantsFrom(config: Record<string, unknown> | undefined): Variants1862 {
+    return config?.eightStations === true ? { eightStations: true } : {}
+}
+
+/** The game's length, which sets the trains it is played with (§2.4.3). */
+function gameLength(config: Record<string, unknown> | undefined): 'short' | 'standard' | 'long' {
     const length = config?.length
-    return {
-        length: length === 'short' || length === 'long' ? length : 'standard',
-        ...(config?.eightStations === true ? { eightStations: true as const } : {})
-    }
+    return length === 'short' || length === 'long' ? length : 'standard'
 }
 
 export function createOpening1862(
@@ -102,6 +104,7 @@ export function createOpening1862(
     assert(players.length >= 2 && players.length <= 8, '1862 supports two to eight players')
     const deal = dealOpening(setup)
     const variants = variantsFrom(setup.config)
+    const length = gameLength(setup.config)
     const capital = StartingCash1862[players.length]
     const companyIds = Object.keys(deal.availability)
     const position: InitialPosition = {
@@ -139,7 +142,7 @@ export function createOpening1862(
         stationReservations: [],
         tileInventory: TileSet1862.createInventory(),
         trainInventory: TrainDepot1862.createInventory(
-            variants.length === 'standard' ? undefined : depotIdFor(variants.length)
+            length === 'standard' ? undefined : depotIdFor(length)
         ),
         phaseId: 'A'
     }
@@ -152,10 +155,8 @@ export function createOpening1862(
             ),
             originalPermits: { ...deal.permits },
             availability: { ...deal.availability },
-            removedCompanyIds: [...deal.removedCompanyIds],
             chartered: [],
             obligations: [],
-            stockPurchases: [],
             warranties: {}
         },
         begin(state) {
@@ -165,7 +166,6 @@ export function createOpening1862(
             state.parliament = {
                 number: 1,
                 stockRound: state.stockRound.number,
-                openerId: firstPlayerId,
                 declinedIds: [],
                 winnerIds: []
             }

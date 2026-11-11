@@ -117,7 +117,12 @@ export const TitleRules1862: EighteenXXTitleRules<typeof State1862, HydratedStat
             clearsOnLeaving(family, 'PlacingStation', (state) => {
                 delete state.build
             }),
-        DistributingEarnings: (family) => expiresWarranties(family),
+        DistributingEarnings: (family) =>
+            clearsOnLeaving(
+                expiresWarranties(family),
+                'DistributingEarnings',
+                (state) => delete state.warrantiesExpired
+            ),
         BuyingTrains: (family) =>
             endsBankruptTurn(
                 bankruptsCompanies(

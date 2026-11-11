@@ -8,6 +8,7 @@ import {
     type TileRotation
 } from '@tabletop/18xx'
 import { readFile } from 'node:fs/promises'
+import { createRequire } from 'node:module'
 import { Autorouter } from '@tabletop/18xx-autorouter'
 import { describe, expect, it } from 'vitest'
 import { giveTrain, kit, table, type Table } from '../test/kit.js'
@@ -19,7 +20,9 @@ import { TileSet1862 } from './tiles.js'
 
 const autorouter = await Autorouter.create(
     new Uint8Array(
-        await readFile(new URL('../../../libs/18xx-autorouter/esm/solver.wasm', import.meta.url))
+        await readFile(
+            createRequire(import.meta.url).resolve('@tabletop/18xx-autorouter/solver.wasm')
+        )
     ).buffer
 )
 
