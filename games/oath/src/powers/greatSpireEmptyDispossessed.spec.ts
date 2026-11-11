@@ -1,18 +1,22 @@
 import { describe, expect, it } from 'vitest'
-import type { Visibility } from '@tabletop/common'
+import { Color, type Visibility } from '@tabletop/common'
 import { HydratedSearch, Search, SearchSource } from '../actions/search.js'
 import { HydratedSearchSwap, SearchSwap } from '../actions/searchSwap.js'
 import { HydratedUseActionPower } from '../actions/useActionPower.js'
 import { HydratedPlayFacedownAdviser } from '../actions/playFacedownAdviser.js'
-import { SearchPlay } from '../actions/searchResolve.js'
+import { HydratedSearchResolve, SearchPlay, SearchResolve } from '../actions/searchResolve.js'
+import { HydratedAnswerQuestion } from '../actions/answerQuestion.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
 import { ActionType } from '../definition/actions.js'
 import { OathVisibility } from '../definition/runtime.js'
 import { HydratedOathGameState } from '../model/gameState.js'
-import { Region } from '../model/oathEnums.js'
+import { PlayerStatus, Region } from '../model/oathEnums.js'
+import { PowerQuestionKind, type QuestionAnswer } from '../model/question.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { buildAction } from '../testing/actions.js'
 import { modifierUse } from '../testing/choices.js'
+import { answerQuestion } from '../testing/steps.js'
+import { FILLER } from '../testing/cards.js'
 import {
     DANA,
     GREAT_SPIRE,
@@ -20,14 +24,17 @@ import {
     RHYS,
     WOLVES,
     edificeTable,
-    fillDispossessed
+    fillDispossessed,
+    placeEdifice
 } from '../testing/edifices.js'
 import { engine } from '../testing/engine.js'
+import { openTurn, testPlayer, testState } from '../testing/fixture.js'
 import { testGame } from '../testing/game.js'
 import { served } from '../testing/projection.js'
 import { usableModifiers, type ModifierUse } from '../util/modifiers.js'
 import { PowerChoiceKind } from '../util/powerChoice.js'
 import { legalPowers, reasonCannotUsePower } from '../util/powerDoorway.js'
+import { FALSE_PROPHET_ID } from '../util/revealedVision.js'
 import { CURRENT_OATH_REVISION, OathRevision } from '../util/revision.js'
 import './index.js'
 
@@ -56,6 +63,9 @@ const ELDERS = 'denizen.nomad.elders'
 const NAYSAYERS = 'denizen.discord.naysayers'
 const SCOUTS = 'denizen.order.scouts'
 const SUPREMACY = 'vision.supremacy'
+const FAITH = 'vision.faith'
+const CONQUEST = 'vision.conquest'
+const MARA = 'mara'
 
 const DECK = [TENTS, RANGERS, ELDERS, SCOUTS]
 const PILE = [SCOUTS, ELDERS]
@@ -331,6 +341,128 @@ describe('unchanged at revision 34', () => {
                 [modifierUse(GREAT_SPIRE)]
             )
         ).toBe(SPIRE_OWN_TEXT)
+    })
+})
+
+/** Every seat's tokens, the secrets on the Spire and the Dispossessed's size: what a refused answer must leave as it was. */
+function tokens(s: HydratedOathGameState) {
+    return {
+        players: s.players.map((p) => ({
+            id: p.playerId,
+            favor: p.favor,
+            secrets: p.secrets,
+            secretsFacedown: p.secretsFacedown,
+            supply: p.supply
+        })),
+        onSpire: s.tokensOn(GREAT_SPIRE).secrets,
+        dispossessed: s.dispossessedCount
+    }
+}
+
+/**
+ * Dana searches the world deck and plays Conquest as their Vision; Rhys holds the False Prophet faceup, so the
+ * engine asks Rhys whether to play or discard it as if searched. Great Spire stands at the River, which the
+ * Chancellor, Mara, rules. The Dispossessed holds `dispossessed`.
+ */
+function prophetTable(revision: OathRevision, dispossessed: string[]): HydratedOathGameState {
+    const s = testState(
+        [
+            testPlayer({
+                playerId: DANA,
+                color: Color.Red,
+                siteId: 'c1',
+                favor: 3,
+                secrets: 2,
+                supply: 6,
+                revealedVisionId: FAITH,
+                warbandsInPersonalBank: { [DANA]: 10 }
+            }),
+            testPlayer({
+                playerId: RHYS,
+                color: Color.Blue,
+                siteId: 'c2',
+                favor: 1,
+                secrets: 2,
+                supply: 5,
+                advisers: [{ cardId: FALSE_PROPHET_ID, faceUp: true }],
+                warbandsInPersonalBank: { [RHYS]: 10 }
+            }),
+            testPlayer({
+                playerId: MARA,
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'c2',
+                favor: 2,
+                secrets: 1,
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 16 }
+            })
+        ],
+        {
+            oathRevision: revision,
+            chancellorPlayerId: MARA,
+            denizensBySite: { c1: [], c2: [FORCED_LABOR], p1: [], h1: [] },
+            warbandsBySite: { c1: { [DANA]: 1 }, c2: { [IMPERIAL_WARBANDS]: 2 } },
+            warbandsOnCards: { [FAITH]: { [RHYS]: 1 } },
+            siteCards: {
+                c1: 'site.plains',
+                c2: 'site.river',
+                p1: 'site.marshes',
+                h1: 'site.mountain'
+            }
+        }
+    )
+    openTurn(s, DANA)
+    s.requireVault().worldDeck = [CONQUEST, FILLER]
+    s.worldDeckVisions = 1
+    placeEdifice(s, 'c2', GREAT_SPIRE)
+    fillDispossessed(s, dispossessed)
+    new HydratedSearch(
+        buildAction(Search, { playerId: DANA, drawFrom: SearchSource.WorldDeck, revealsInfo: true })
+    ).apply(s)
+    new HydratedSearchResolve(
+        buildAction(SearchResolve, {
+            playerId: DANA,
+            keptCardId: CONQUEST,
+            discardOrder: [],
+            play: SearchPlay.RevealedVision
+        })
+    ).apply(s)
+    return s
+}
+
+function visionAnswer(play: SearchPlay, modifiers: ModifierUse[] = []): QuestionAnswer {
+    return {
+        kind: PowerQuestionKind.PlayOrDiscardVision,
+        play,
+        ...(modifiers.length > 0 ? { modifiers } : {})
+    }
+}
+
+describe('False Prophet’s Vision played as if searched at revision 34: Great Spire refused before anything is paid', () => {
+    it.each([
+        [SearchPlay.RevealedVision, []],
+        [SearchPlay.Discard, []],
+        [SearchPlay.RevealedVision, [NAYSAYERS]],
+        [SearchPlay.Discard, [NAYSAYERS]]
+    ])('%s with the Dispossessed %j', (play, dispossessed) => {
+        const s = prophetTable(FIXED, dispossessed)
+        expect(s.pendingQuestions?.queue[0]).toMatchObject({
+            kind: PowerQuestionKind.PlayOrDiscardVision,
+            askedPlayerId: RHYS
+        })
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(s, RHYS, visionAnswer(play, [SPIRE_USE]))
+        ).toBe(SPIRE_DRAWS_NOTHING)
+        const before = tokens(s)
+        expect(() => answerQuestion(s, RHYS, visionAnswer(play, [SPIRE_USE]))).toThrow(
+            SPIRE_DRAWS_NOTHING
+        )
+        // No secret placed on the Spire, no token moved, and the question still waits for Rhys.
+        expect(tokens(s)).toEqual(before)
+        expect(s.pendingQuestions?.queue).toHaveLength(1)
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, RHYS, visionAnswer(play))).toBe(
+            undefined
+        )
     })
 })
 
