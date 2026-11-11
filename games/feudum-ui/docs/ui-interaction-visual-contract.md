@@ -510,7 +510,7 @@ Each gives the start, the input, the result, the result after Undo or exit, and 
 
 Each scenario is marked automated (with its spec) or checked (with date and width) as it passes.
 
-- S1: automated (`actionPanelSession.spec.ts`, `actionPanel.spec.ts`; browser `tests/actionPanel.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosSetup.spec.ts`
+- S1: automated (`actionPanelSession.spec.ts`, `actionPanel.spec.ts`; browser `tests/actionPanel.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosSetup.spec.ts`; the five goods in sight in the panel at 1440 × 900 and 390 × 844, `tests/desktop.spec.ts`, `tests/phone.spec.ts`
 - S2: automated (`actionPanelSession.spec.ts`, `actionPanel.spec.ts`; browser `tests/actionPanel.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosSetup.spec.ts`
 - S3: automated (`actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosSetup.spec.ts`
 - S4: automated (`actionPanelSession.spec.ts`, `actionPanel.spec.ts`; browser `tests/actionPanel.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosHands.spec.ts`
