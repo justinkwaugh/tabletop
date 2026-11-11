@@ -16,6 +16,9 @@ import { RegionOutlines } from '$lib/utils/boardGeometry.js'
 import { atPlayingCards, addPawn, type TurnTable } from '$lib/testing/turnTable.js'
 import { everyAssetSupplied } from '$lib/testing/fakeArt.js'
 import WritFace from '$lib/components/pieces/WritFace.svelte'
+import { PlainChrome, type BoardChrome } from '$lib/model/boardChrome.js'
+import { pawnTarget, type BoardTarget } from '$lib/model/boardOffer.js'
+import { spaceLabel } from '$lib/model/cardFlows.js'
 import MapLayers from './MapLayers.svelte'
 
 const folder = vi.hoisted(() => {
@@ -35,9 +38,13 @@ const paintOf = (playerId: string) => ({
     initial: 'A'
 })
 
-function markup(state: TurnTable['host']['state']) {
+function markup(state: TurnTable['host']['state'], chrome?: BoardChrome) {
     return render(MapLayers, {
-        props: { state: new HydratedFeudumGameState(structuredClone(state)), paintOf }
+        props: {
+            state: new HydratedFeudumGameState(structuredClone(state)),
+            paintOf,
+            ...(chrome ? { chrome } : {})
+        }
     }).body
 }
 
@@ -229,6 +236,35 @@ describe('pawns and monsters', () => {
         const piece = pieceMarkup(markup(host.state), key)
         expect(piece).toContain(`seat-${seat}`)
         expect(piece).toMatch(/aria-label="[^"]*ship/i)
+    })
+
+    it('R-3.6, R-4.2.2 a lit pawn is pressed by where it stands, and says when it rides a vessel', () => {
+        const { host, seat } = table
+        let afoot: SpaceId = Spaces[0].id
+        let aboard: SpaceId = Spaces[0].id
+        const targets = new Map<BoardTarget, { role: 'lit' }>()
+        host.edit((state) => {
+            clearMonsters(state)
+            afoot = bareSpace(state)
+            addPawn(state, seat, 'knight', afoot)
+            aboard = bareSpace(state)
+            addPawn(state, seat, 'monk', aboard)
+            for (const pawn of state.getPlayerState(seat).pawns) {
+                if (pawn.spaceId === aboard) {
+                    pawn.vessel = 'flying-machine'
+                }
+                if (pawn.spaceId) {
+                    targets.set(pawnTarget(seat, pawn.n), { role: 'lit' })
+                }
+            }
+        })
+        const html = markup(host.state, {
+            ...PlainChrome,
+            offer: { targets, dimsRest: true },
+            press: () => {}
+        })
+        expect(html).toContain(`aria-label="Knight at ${spaceLabel(afoot)}"`)
+        expect(html).toContain(`aria-label="Monk at ${spaceLabel(aboard)}, on a flying machine"`)
     })
 
     it("R-4.2.4 a controlled monster wears its master's collar; a wild one none", () => {

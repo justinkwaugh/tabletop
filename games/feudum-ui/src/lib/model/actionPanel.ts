@@ -22,7 +22,7 @@ import { writName } from './writLabels.js'
 
 export type RowArt =
     | { readonly kind: 'good'; readonly good: Good }
-    | { readonly kind: 'pawn'; readonly character: Character; readonly paint: SeatPaint }
+    | { readonly kind: 'pawn'; readonly character?: Character; readonly paint: SeatPaint }
 
 export interface ActionRow {
     readonly choice: PanelChoice
@@ -219,8 +219,13 @@ function draftRow(session: PanelSession, choice: DraftChoice, art?: RowArt): Act
     }
 }
 
+/** A turn row's piece is the seat's own, in its paint. */
 function turnRow(session: PanelSession, choice: PanelChoice): ActionRow {
-    return { choice, press: () => session.pressTurnChoice(choice) }
+    const art: RowArt | undefined = choice.art && {
+        ...choice.art,
+        paint: paintOf(session, session.myPlayerId ?? '')
+    }
+    return { choice, press: () => session.pressTurnChoice(choice), ...(art ? { art } : {}) }
 }
 
 function goodsBlocks(

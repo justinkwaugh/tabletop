@@ -194,7 +194,7 @@ scenario('S47 R-3.16.3 Feast', 'guild-feast', async (table) => {
 
 scenario('S48 R-4.4-H1 Short payment covered with a tile', 'short-with-tile', async (table) => {
     await table.press(table.card('Migrate'))
-    await table.press(table.row('Pawn 2'))
+    await table.press(table.row('Pawn from supply'))
     await table.pressPick(Desert3)
     await table.press(table.popupRowStarting('Monk'))
     await expect(table.primary()).toHaveText('Cover with a tile')
@@ -203,9 +203,9 @@ scenario('S48 R-4.4-H1 Short payment covered with a tile', 'short-with-tile', as
 
 scenario('S48 R-3.6, R-4.4-H1 Short payment with no tile', 'short-no-tile', async (table) => {
     await table.press(table.card('Migrate'))
-    await expect(table.row('Pawn 2')).toHaveAttribute('aria-disabled', 'true')
-    await table.pressDimmed(table.row('Pawn 2'))
-    await expect(table.panel().locator('[data-row="Pawn 2"] [data-refusal]')).toHaveText(
+    await expect(table.row('Pawn from supply')).toHaveAttribute('aria-disabled', 'true')
+    await table.pressDimmed(table.row('Pawn from supply'))
+    await expect(table.panel().locator('[data-row="Pawn from supply"] [data-refusal]')).toHaveText(
         'Migrating onto the board needs 1 food.'
     )
 })
