@@ -11,10 +11,11 @@ import {
     writDeckCount
 } from '@tabletop/feudum'
 import { atPlayingCards } from '$lib/testing/turnTable.js'
+import { PrintedColours } from '$lib/utils/boardGeometry.js'
 import {
     deckView,
+    influencePools,
     scoreOnTrack,
-    seatOfColour,
     serviceDiscs,
     stackView,
     voyageDiscs
@@ -119,14 +120,24 @@ describe('deckView (R-5.1, R-4.4.1, R-4.4.2)', () => {
     })
 })
 
-describe('seatOfColour (R-1.4-H1)', () => {
-    it('R-1.4-H1 finds the seat playing a colour, and none for a colour no seat plays', async () => {
+describe('influencePools (R-1.4.2, R-1.4-H1)', () => {
+    it('R-1.4-H1 names each seat by its playerId and a dummy row by none, in print order', async () => {
         const state = await table()
-        const [seat] = state.players
-        expect(seatOfColour(state, seat.color)).toBe(seat.playerId)
-        const dummy = state.guilds.knight.rows.find(({ playerId }) => !playerId)
-        if (dummy) {
-            expect(seatOfColour(state, dummy.colour)).toBeUndefined()
+        const pools = influencePools(state)
+        for (const { playerId, color } of state.players) {
+            expect(pools).toContainEqual({
+                colour: color,
+                playerId,
+                count: state.supply.influence[color]
+            })
         }
+        const dummies = state.guilds.knight.rows.filter((row) => row.playerId === undefined)
+        expect(dummies.length).toBeGreaterThan(0)
+        for (const { colour } of dummies) {
+            expect(pools).toContainEqual({ colour, count: state.supply.influence[colour] })
+        }
+        expect(pools.map(({ colour }) => colour)).toEqual(
+            PrintedColours.filter((colour) => state.supply.influence[colour] !== undefined)
+        )
     })
 })
