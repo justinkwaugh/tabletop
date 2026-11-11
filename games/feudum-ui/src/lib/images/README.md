@@ -6,7 +6,7 @@
 
 The catalog's supplied cover is the publisher's box front, and it is owed: until it arrives, the rulebook's cover stands in for it through the same path. To drop the box front in:
 
-1. Save it as `box-front.png` (or `.jpg`, `.webp`) in `src/lib/art/cover-source/`. That folder is git-ignored, like `src/lib/art/supplied/`; nothing in it is committed.
+1. Save it as `box-front.png` (or `.jpg`, `.webp`) in `src/lib/art/cover-source/`. That folder is git-ignored; nothing in it is committed. The `cover.webp` the script writes is.
 2. Run `node scripts/make-cover.mjs --titled` from `games/feudum-ui`.
 
 The script takes `box-front.*` when it is there and `rulebook-cover.*` otherwise, and writes `src/lib/art/supplied/cover.webp` at 544 × 680, lossy WebP, at most 120 KB. The asset map prefers that file to `cover.webp` when it is there.
