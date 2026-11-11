@@ -3,7 +3,14 @@ import { render } from 'svelte/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Color } from '@tabletop/common'
 import { ActionCardKinds, LandscapeKinds, RoyalWrits } from '@tabletop/feudum'
-import { cardAsset, cardBackAsset, printedCardAsset } from '$lib/art/assetMap.js'
+import {
+    SeatPieceKinds,
+    cardAsset,
+    cardBackAsset,
+    printedCardAsset,
+    seatPieceAsset,
+    type SeatPieceKind
+} from '$lib/art/assetMap.js'
 import { handFaceShown, sealFaceShown, writFaceShown } from '$lib/model/perspective.js'
 import { faceTier, shortName } from '$lib/utils/cardShape.js'
 import { everyAssetSupplied } from '$lib/testing/fakeArt.js'
@@ -11,6 +18,7 @@ import ActionCardFace from './pieces/ActionCardFace.svelte'
 import BoardMotionLayer from './map/BoardMotionLayer.svelte'
 import RoseChip from './pieces/RoseChip.svelte'
 import SealFace from './pieces/SealFace.svelte'
+import SeatToken from './pieces/SeatToken.svelte'
 import TileFace from './pieces/TileFace.svelte'
 import WritFace from './pieces/WritFace.svelte'
 
@@ -256,6 +264,60 @@ describe('printed action cards (R-3.1)', () => {
             expect(face).toContain('>4<')
             expect(face).not.toContain('allowance')
         }
+    })
+})
+
+describe('printed seat pieces (S71)', () => {
+    beforeEach(() => {
+        folder.files = everyAssetSupplied()
+    })
+
+    const token = (kind: SeatPieceKind, piecePaint: typeof paint = redPaint) =>
+        render(SeatToken, { props: { kind, paint: piecePaint } }).body
+
+    it.each(SeatPieceKinds)(
+        'a %s in a printed colour is the printed piece, still carrying the initial',
+        (kind) => {
+            const piece = token(kind)
+            expect(piece).toContain(`href="/art/${seatPieceAsset(kind, Color.Red)}.webp"`)
+            expect(piece).toContain('>A<')
+            expect(piece).toMatch(/aria-label="A [^"]+"/)
+            expect(piece).not.toContain(`fill="${paint.fill}"`)
+        }
+    )
+
+    it('the initial on a printed marker or disc takes the print’s ink, not the seat fill’s', () => {
+        const green = { ...paint, ink: 'var(--feudum-halo)', printed: Color.Green as const }
+        for (const kind of ['marker', 'disc'] as const) {
+            expect(token(kind, green)).toMatch(/fill="var\(--feudum-text\)"[^>]*>A</)
+        }
+        const yellow = { ...paint, ink: 'var(--feudum-text)', printed: Color.Yellow as const }
+        expect(token('disc', yellow)).toMatch(/fill="var\(--feudum-halo\)"[^>]*>A</)
+    })
+
+    it('a player disc shows the blank face, a reeve the face printed for its point', () => {
+        expect(token('disc')).not.toContain('piece.reeve')
+        expect(token('reeve')).not.toContain('piece.disc')
+        const blue = { ...paint, printed: Color.Blue as const }
+        expect(token('reeve', blue)).toContain(
+            `href="/art/${seatPieceAsset('reeve', Color.Blue)}.webp"`
+        )
+    })
+
+    it.each(SeatPieceKinds)('a %s in no printed colour is drawn in the seat fill', (kind) => {
+        const piece = token(kind, paint)
+        expect(piece).not.toContain('<image')
+        expect(piece).toContain(`fill="${paint.fill}"`)
+        expect(piece).toContain('>A<')
+    })
+
+    it.each(SeatPieceKinds)('a %s whose printed file is not in the folder is drawn', (kind) => {
+        folder.files = Object.fromEntries(
+            Object.entries(everyAssetSupplied()).filter(([path]) => !path.includes('piece.'))
+        )
+        const piece = token(kind)
+        expect(piece).not.toContain('<image')
+        expect(piece).toContain(`fill="${paint.fill}"`)
     })
 })
 

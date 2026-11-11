@@ -50,6 +50,14 @@ export const printedCardAsset = (kind: ActionCardKind, colour: PrintedColour) =>
     `card.action.${kind}.${colour}` as const
 /** A whole printed card back in its seat colour. */
 export const cardBackAsset = (colour: PrintedColour) => `card.back.${colour}` as const
+/**
+ * A seat's wooden pieces as printed: the hexagonal influence marker, a player disc's blank face, and
+ * the face printed for a reeve's point.
+ */
+export const SeatPieceKinds = ['marker', 'disc', 'reeve'] as const
+export type SeatPieceKind = (typeof SeatPieceKinds)[number]
+export const seatPieceAsset = (kind: SeatPieceKind, colour: PrintedColour) =>
+    `piece.${kind}.${colour}` as const
 /** A guild's printed panel, as it lies on the board: the ground its area's state stands on. */
 export const guildPanelAsset = (guild: GuildId) => `board.guild.${guild}` as const
 
@@ -72,8 +80,9 @@ export const RingAsset = 'board.ring'
 /**
  * Every publisher image the components can show, id to file. A file lives in `./supplied` as
  * `<id>.webp` or `<id>.png`. With no file a component draws its own plain labelled fallback, so
- * the tree builds and plays with none. A card that takes a seat colour has an id for each printed
- * colour, shown only while the seat's displayed colour is that printed colour's own (`SeatPaint`).
+ * the tree builds and plays with none. A card or piece that takes a seat colour has an id for each
+ * printed colour, shown only while the seat's displayed colour is that printed colour's own
+ * (`SeatPaint`).
  */
 export const AssetIds = [
     CoverAsset,
@@ -95,6 +104,9 @@ export const AssetIds = [
         PrintedColours.map((colour) => printedCardAsset(kind, colour))
     ),
     ...PrintedColours.map(cardBackAsset),
+    ...SeatPieceKinds.flatMap((kind) =>
+        PrintedColours.map((colour) => seatPieceAsset(kind, colour))
+    ),
     locationAsset('outpost'),
     locationAsset('farm'),
     locationAsset('town'),

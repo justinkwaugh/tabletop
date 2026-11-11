@@ -1,4 +1,4 @@
-import type { Color } from '@tabletop/common'
+import { Color } from '@tabletop/common'
 import { PrintedColours, type PrintedColour } from '$lib/art/assetMap.js'
 import { FeudumGameColorizer } from '$lib/definitions/colorizer.js'
 
@@ -49,6 +49,15 @@ export function contrast(first: number, second: number): number {
 const DarkInkAbove = 0.179
 /** Near black needs a light edge to stay off the terrain. */
 const LightEdgeBelow = 0.03
+
+/**
+ * The initial's ink on a printed piece, read against the print's own tone rather than the displayed
+ * fill: the printed wood is darker and duller than the screen colours, so only the yellow print is
+ * light enough for dark ink.
+ */
+export function printedInk(printed: PrintedColour): string {
+    return printed === Color.Yellow ? 'var(--feudum-halo)' : 'var(--feudum-text)'
+}
 
 function paintOfFill(fill: string, initial: string, colour?: Color): SeatPaint {
     const lightness = luminance(fill)
