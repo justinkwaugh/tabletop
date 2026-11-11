@@ -25,6 +25,8 @@ import {
     GameValidator,
     GameHistoryPage,
     TitleActivity,
+    SeriesActivity,
+    ACTIVITY_UNAVAILABLE,
     UserGameStats,
     SiteStatsNow,
     CharityTally,
@@ -91,7 +93,7 @@ import { checkVersion, resolveVersionChange, VersionChange } from './versionChec
 import { toast } from 'svelte-sonner'
 
 const DEFAULT_HOST = 'http://localhost:3000'
-const TITLE_ACTIVITY_TIMEOUT_MS = 10_000
+const ACTIVITY_TIMEOUT_MS = 10_000
 
 export type GameLoadResult = {
     game?: Game
@@ -531,13 +533,33 @@ export class TabletopApi {
         return response.payload.games.map((game) => this.validateGame(game))
     }
 
-    async getTitleActivity(titleId: string): Promise<TitleActivity> {
+    getTitleActivity(titleId: string): Promise<TitleActivity> {
+        return this.requestActivity(
+            `/games/activity/${encodeURIComponent(titleId)}`,
+            TitleActivity,
+            'Games of this title are temporarily unavailable'
+        )
+    }
+
+    getSeriesActivity(seriesId: string): Promise<SeriesActivity> {
+        return this.requestActivity(
+            `/games/series-activity/${encodeURIComponent(seriesId)}`,
+            SeriesActivity,
+            'Games of this series are temporarily unavailable'
+        )
+    }
+
+    private async requestActivity<T extends TSchema>(
+        path: string,
+        schema: T,
+        unavailableMessage: string
+    ): Promise<Static<T>> {
         const request = new AbortController()
-        const timeout = setTimeout(() => request.abort(), TITLE_ACTIVITY_TIMEOUT_MS)
+        const timeout = setTimeout(() => request.abort(), ACTIVITY_TIMEOUT_MS)
         try {
             const response = await this.wretch
                 .options({ signal: request.signal })
-                .get(`/games/activity/${encodeURIComponent(titleId)}`)
+                .get(path)
                 .unauthorized(this.on401)
                 .badRequest(this.handleError)
                 .error(503, this.handleError)
@@ -546,17 +568,14 @@ export class TabletopApi {
                 Type.Object({ payload: Type.Object({ activity: Type.Unknown() }) }),
                 response
             )
-            const activity = Value.Default(
-                TitleActivity,
-                Value.Convert(TitleActivity, response.payload.activity)
-            )
-            Value.Assert(TitleActivity, activity)
+            const activity = Value.Default(schema, Value.Convert(schema, response.payload.activity))
+            Value.Assert(schema, activity)
             return activity
         } catch (error) {
             if (request.signal.aborted)
                 throw new APIError({
-                    name: 'TitleActivityUnavailable',
-                    message: 'Games of this title are temporarily unavailable'
+                    name: ACTIVITY_UNAVAILABLE,
+                    message: unavailableMessage
                 })
             throw error
         } finally {

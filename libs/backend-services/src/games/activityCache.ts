@@ -4,6 +4,7 @@ import { nanoid } from 'nanoid'
 import * as Type from 'typebox'
 import * as Value from 'typebox/value'
 import {
+    ACTIVITY_UNAVAILABLE,
     BaseError,
     ErrorCategory,
     Game,
@@ -11,7 +12,7 @@ import {
     isListedPublicGame,
     lastMoveAt,
     omitGameState,
-    type TitleActivity
+    type SeriesActivity
 } from '@tabletop/common'
 import { isCacheUnavailable } from '../cache/cacheService.js'
 import { measure } from '../diagnostics/requestTimings.js'
@@ -26,33 +27,55 @@ const LONGEST_WAIT_MS = 500
 const COMMAND_TIMEOUT_MS = 2000
 const FinishedRanks = Type.Array(Type.String())
 
-/** The Firestore queries a rebuild reads; candidates may still include Unlisted Games. */
-export interface TitleActivitySource {
-    findInProgressCandidates(titleId: string): Promise<Game[]>
-    /** Finished Public Games newest first, by completion time then id, after the given game. */
-    findFinishedCandidates(titleId: string, after: Game | undefined, limit: number): Promise<Game[]>
+export type ActivityScope = {
+    name: 'title' | 'series'
+    gameField: 'typeId' | 'series'
+    key(scopeId: string): string
+    listsOpenGames: boolean
 }
 
-export class TitleActivityUnavailableError extends BaseError {
+export const TitleActivityScope: ActivityScope = {
+    name: 'title',
+    gameField: 'typeId',
+    key: (titleId) => GameCacheKeys.titleActivity(titleId),
+    listsOpenGames: false
+}
+
+export const SeriesActivityScope: ActivityScope = {
+    name: 'series',
+    gameField: 'series',
+    key: (seriesId) => GameCacheKeys.seriesActivity(seriesId),
+    listsOpenGames: true
+}
+
+/** The Firestore queries a rebuild reads; candidates may still include Unlisted Games. */
+export interface ActivitySource {
+    findOpenCandidates(scopeId: string): Promise<Game[]>
+    findInProgressCandidates(scopeId: string): Promise<Game[]>
+    /** Finished Public Games newest first, by completion time then id, after the given game. */
+    findFinishedCandidates(scopeId: string, after: Game | undefined, limit: number): Promise<Game[]>
+}
+
+export class ActivityUnavailableError extends BaseError {
     readonly statusCode = 503
 
-    constructor(titleId: string, cause?: unknown) {
+    constructor(scopeId: string, cause?: unknown) {
         super({
-            name: 'TitleActivityUnavailable',
+            name: ACTIVITY_UNAVAILABLE,
             category: ErrorCategory.System,
-            message: 'Games of this title are temporarily unavailable',
-            metadata: { titleId },
+            message: 'These games are temporarily unavailable',
+            metadata: { scopeId },
             cause: cause instanceof Error ? cause : undefined
         })
     }
 }
 
-type Placement = 'inProgress' | 'finished' | 'none'
+type Placement = 'open' | 'inProgress' | 'finished' | 'none'
 
-// One hash per Game Title holds everything, so Redis expires or evicts a title's activity whole.
-// Fields: meta (building:<token> or ready), a:<id> and f:<id> cards, v:<id> the updatedAt each
-// game was last placed at (kept after removal so a late, older change cannot bring it back), and
-// order, the finished ranks "<finishedAt ms, 15 digits>:<id>" newest first.
+// One hash per scope holds everything, so Redis expires or evicts a scope's activity whole.
+// Fields: meta (building:<token> or ready), o:<id>, a:<id> and f:<id> cards, v:<id> the updatedAt
+// each game was last placed at (kept after removal so a late, older change cannot bring it back),
+// and order, the finished ranks "<finishedAt ms, 15 digits>:<id>" newest first.
 const LUA_PLACEMENT = `
 local function loadRanks(key)
     local raw = redis.call('HGET', key, 'order')
@@ -61,12 +84,14 @@ local function loadRanks(key)
 end
 local function place(key, ranks, id, version, placement, card, rank)
     redis.call('HSET', key, 'v:' .. id, version)
-    redis.call('HDEL', key, 'a:' .. id, 'f:' .. id)
+    redis.call('HDEL', key, 'o:' .. id, 'a:' .. id, 'f:' .. id)
     local kept = {}
     for _, existing in ipairs(ranks) do
         if string.sub(existing, 17) ~= id then table.insert(kept, existing) end
     end
-    if placement == 'inProgress' then
+    if placement == 'open' then
+        redis.call('HSET', key, 'o:' .. id, card)
+    elseif placement == 'inProgress' then
         redis.call('HSET', key, 'a:' .. id, card)
     elseif placement == 'finished' then
         redis.call('HSET', key, 'f:' .. id, card)
@@ -87,7 +112,7 @@ local function keepLatest(key, ranks, limit)
 end
 `
 
-// KEYS: hash. ARGV: limit, id, version, placement, card, rank. A change applies only to a title
+// KEYS: hash. ARGV: limit, id, version, placement, card, rank. A change applies only to a scope
 // whose activity is cached or being rebuilt, and never over a newer change to the same game.
 const APPLY_CHANGE = `${LUA_PLACEMENT}
 local key = KEYS[1]
@@ -132,40 +157,43 @@ if redis.call('HGET', KEYS[1], 'meta') == ARGV[1] then redis.call('DEL', KEYS[1]
 return 1
 `
 
-export class TitleActivityCache {
-    private readonly builds = new Map<string, Promise<TitleActivity | undefined>>()
+export class ActivityCache {
+    private readonly builds = new Map<string, Promise<SeriesActivity | undefined>>()
     private readonly boundedClient: RedisClientType
     private readonly commandTimeoutMs: number
 
     constructor(
         private readonly client: RedisClientType,
+        readonly scope: ActivityScope,
         { commandTimeoutMs = COMMAND_TIMEOUT_MS }: { commandTimeoutMs?: number } = {}
     ) {
         this.commandTimeoutMs = commandTimeoutMs
         this.boundedClient = client.withCommandOptions({ timeout: commandTimeoutMs })
     }
 
-    async read(titleId: string, source: TitleActivitySource): Promise<TitleActivity> {
+    async read(scopeId: string, source: ActivitySource): Promise<SeriesActivity> {
         try {
-            return await this.readOrBuild(titleId, source)
+            return await this.readOrBuild(scopeId, source)
         } catch (error) {
             if (!isCacheUnavailable(error)) throw error
-            console.warn('Title activity cache unavailable', { titleId, error })
-            throw new TitleActivityUnavailableError(titleId, error)
+            console.warn('Activity cache unavailable', { scope: this.scope.name, scopeId, error })
+            throw new ActivityUnavailableError(scopeId, error)
         }
     }
 
-    /** Best effort: a failure is logged and leaves the title's activity stale until rebuilt. */
+    /** Best effort: a failure is logged and leaves the scope's activity stale until rebuilt. */
     async applyChange(before: Game | undefined, after: Game | undefined): Promise<void> {
         const game = after ?? before
         if (!game) return
+        const scopeId = game[this.scope.gameField]
+        if (!scopeId) return
         const placement = this.placement(after)
         if (placement === 'none' && this.placement(before) === 'none') return
         try {
-            await measure('titleActivity.applyChange', () =>
+            await measure(`${this.scope.name}Activity.applyChange`, () =>
                 this.command((client) =>
                     client.eval(APPLY_CHANGE, {
-                        keys: [GameCacheKeys.titleActivity(game.typeId)],
+                        keys: [this.scope.key(scopeId)],
                         arguments: [
                             String(RECENTLY_FINISHED_LIMIT),
                             ...this.entry(
@@ -178,26 +206,27 @@ export class TitleActivityCache {
                 )
             )
         } catch (error) {
-            console.error('Title activity update failed', {
-                titleId: game.typeId,
+            console.error('Activity update failed', {
+                scope: this.scope.name,
+                scopeId,
                 gameId: game.id,
                 error
             })
         }
     }
 
-    private async readOrBuild(titleId: string, source: TitleActivitySource) {
-        const key = GameCacheKeys.titleActivity(titleId)
+    private async readOrBuild(scopeId: string, source: ActivitySource) {
+        const key = this.scope.key(scopeId)
         let wait = FIRST_WAIT_MS
         const deadline = Date.now() + BUILD_SECONDS * 1000
         for (;;) {
             const fields = await this.command((client) => client.hGetAll(key))
             if (fields.meta === 'ready') return this.activity(fields)
             if (fields.meta === undefined) {
-                const built = await this.buildOnce(titleId, source)
+                const built = await this.buildOnce(scopeId, source)
                 if (built) return built
             } else {
-                if (Date.now() >= deadline) throw new TitleActivityUnavailableError(titleId)
+                if (Date.now() >= deadline) throw new ActivityUnavailableError(scopeId)
                 await delay(wait)
                 wait = Math.min(wait * 2, LONGEST_WAIT_MS)
             }
@@ -205,31 +234,35 @@ export class TitleActivityCache {
     }
 
     /** Shares one rebuild among this instance's requests; undefined when another instance won. */
-    private async buildOnce(titleId: string, source: TitleActivitySource) {
-        const running = this.builds.get(titleId)
+    private async buildOnce(scopeId: string, source: ActivitySource) {
+        const running = this.builds.get(scopeId)
         if (running) return running
-        const build = this.build(titleId, source).finally(() => this.builds.delete(titleId))
-        this.builds.set(titleId, build)
+        const build = this.build(scopeId, source).finally(() => this.builds.delete(scopeId))
+        this.builds.set(scopeId, build)
         return build
     }
 
     private async build(
-        titleId: string,
-        source: TitleActivitySource
-    ): Promise<TitleActivity | undefined> {
-        const key = GameCacheKeys.titleActivity(titleId)
+        scopeId: string,
+        source: ActivitySource
+    ): Promise<SeriesActivity | undefined> {
+        const key = this.scope.key(scopeId)
         const meta = `building:${nanoid()}`
         try {
             const claimed: unknown = await this.command((client) =>
                 client.eval(BEGIN_BUILD, { keys: [key], arguments: [meta, String(BUILD_SECONDS)] })
             )
             if (claimed !== meta) return undefined
-            const [inProgress, recentlyFinished] = await measure('titleActivity.build', () =>
-                Promise.all([
-                    source.findInProgressCandidates(titleId),
-                    this.findRecentlyFinished(titleId, source)
-                ])
+            const [open, inProgress, recentlyFinished] = await measure(
+                `${this.scope.name}Activity.build`,
+                () =>
+                    Promise.all([
+                        this.scope.listsOpenGames ? source.findOpenCandidates(scopeId) : [],
+                        source.findInProgressCandidates(scopeId),
+                        this.findRecentlyFinished(scopeId, source)
+                    ])
             )
+            const listedOpen = open.filter((game) => this.placement(game) === 'open')
             const listedInProgress = inProgress.filter(
                 (game) => this.placement(game) === 'inProgress'
             )
@@ -240,31 +273,36 @@ export class TitleActivityCache {
                         meta,
                         String(READY_SECONDS),
                         String(RECENTLY_FINISHED_LIMIT),
-                        ...[...listedInProgress, ...recentlyFinished].flatMap((game) =>
-                            this.entry(game, this.placement(game), this.version(game))
+                        ...[...listedOpen, ...listedInProgress, ...recentlyFinished].flatMap(
+                            (game) => this.entry(game, this.placement(game), this.version(game))
                         )
                     ]
                 })
             )
             if (completed === 1)
                 return this.activity(await this.command((client) => client.hGetAll(key)))
-            console.warn('Title activity rebuild outlived its claim', { titleId })
+            console.warn('Activity rebuild outlived its claim', { scope: this.scope.name, scopeId })
             return {
+                open: listedOpen.toSorted((a, b) => this.compareOpen(a, b)),
                 inProgress: listedInProgress.toSorted((a, b) => this.compareInProgress(a, b)),
                 recentlyFinished
             }
         } catch (error) {
-            this.abandonBuild(titleId, key, meta)
+            this.abandonBuild(scopeId, key, meta)
             throw error
         }
     }
 
     /** Not awaited, so a stalled Redis cannot hold back the rebuild's own failure. */
-    private abandonBuild(titleId: string, key: string, meta: string): void {
+    private abandonBuild(scopeId: string, key: string, meta: string): void {
         this.command((client) =>
             client.eval(ABANDON_BUILD, { keys: [key], arguments: [meta] })
         ).catch((abandonError: unknown) => {
-            console.error('Title activity rebuild claim not released', { titleId, abandonError })
+            console.error('Activity rebuild claim not released', {
+                scope: this.scope.name,
+                scopeId,
+                abandonError
+            })
         })
     }
 
@@ -286,12 +324,12 @@ export class TitleActivityCache {
         }
     }
 
-    private async findRecentlyFinished(titleId: string, source: TitleActivitySource) {
+    private async findRecentlyFinished(scopeId: string, source: ActivitySource) {
         const listed: Game[] = []
         let after: Game | undefined
         for (;;) {
             const limit = Math.max(RECENTLY_FINISHED_LIMIT - listed.length, MIN_FINISHED_PAGE)
-            const page = await source.findFinishedCandidates(titleId, after, limit)
+            const page = await source.findFinishedCandidates(scopeId, after, limit)
             listed.push(...page.filter((game) => this.placement(game) === 'finished'))
             after = page.at(-1)
             if (page.length < limit || listed.length >= RECENTLY_FINISHED_LIMIT)
@@ -299,7 +337,7 @@ export class TitleActivityCache {
         }
     }
 
-    private activity(fields: Record<string, string>): TitleActivity {
+    private activity(fields: Record<string, string>): SeriesActivity {
         const cards = (prefix: string) =>
             Object.entries(fields).flatMap(([field, card]) =>
                 field.startsWith(prefix) ? [this.restore(card)] : []
@@ -308,6 +346,7 @@ export class TitleActivityCache {
         const ranks: unknown = JSON.parse(fields.order ?? '[]')
         Value.Assert(FinishedRanks, ranks)
         return {
+            open: cards('o:').sort((a, b) => this.compareOpen(a, b)),
             inProgress: cards('a:').sort((a, b) => this.compareInProgress(a, b)),
             recentlyFinished: ranks.flatMap((rank) => {
                 const game = finishedById.get(rank.slice(16))
@@ -316,17 +355,23 @@ export class TitleActivityCache {
         }
     }
 
+    private compareOpen(a: Game, b: Game): number {
+        return b.createdAt.getTime() - a.createdAt.getTime() || this.compareIds(a, b)
+    }
+
     private compareInProgress(a: Game, b: Game): number {
-        return (
-            lastMoveAt(b).getTime() - lastMoveAt(a).getTime() ||
-            (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
-        )
+        return lastMoveAt(b).getTime() - lastMoveAt(a).getTime() || this.compareIds(a, b)
+    }
+
+    private compareIds(a: Game, b: Game): number {
+        return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
     }
 
     private placement(game: Game | undefined): Placement {
         if (!game || game.deleted || !isListedPublicGame(game)) return 'none'
         if (game.status === GameStatus.Started) return 'inProgress'
         if (game.status === GameStatus.Finished) return 'finished'
+        if (this.scope.listsOpenGames && game.status === GameStatus.WaitingForPlayers) return 'open'
         return 'none'
     }
 

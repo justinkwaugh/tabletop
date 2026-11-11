@@ -8,6 +8,7 @@
     import GameCard from '$lib/components/GameCard.svelte'
     import TitleSection from '$lib/components/TitleSection.svelte'
     import { nextTabIndex } from '$lib/utils/tabNavigation'
+    import { activityLoadFailure } from '$lib/utils/activityLoad'
 
     const PAGE_SIZE = 4
 
@@ -100,10 +101,7 @@
             pages.recentlyFinished = 0
             states.public = 'ready'
         } catch (error) {
-            states.public =
-                error instanceof Error && error.name === 'TitleActivityUnavailable'
-                    ? 'unavailable'
-                    : 'error'
+            states.public = activityLoadFailure(error)
         }
     }
 

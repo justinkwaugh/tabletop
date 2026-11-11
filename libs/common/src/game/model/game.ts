@@ -60,6 +60,7 @@ export type Game = Type.Static<typeof Game>
 export const Game = Type.Object({
     id: Type.String(),
     typeId: Type.String(),
+    series: Type.Optional(Type.String({ minLength: 1 })),
     status: Type.Enum(GameStatus),
     isPublic: Type.Boolean(),
     unlisted: Type.Optional(Type.Literal(true)),
