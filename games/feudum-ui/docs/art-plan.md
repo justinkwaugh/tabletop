@@ -2,7 +2,7 @@
 
 Every visual, its source, and the budget it must meet, with the UI contract (`ui-interaction-visual-contract.md`: "Render ownership", "Palette", "Phone layout"). Component ids are in `games/feudum/docs/components.md`.
 
-**The publisher's art, through an asset map.** The art lands with the title's permission entry. Components ask a typed map (`src/lib/art/assetMap.ts`) for an image by id. A file lives in the git-ignored `src/lib/art/supplied/` as `<id>.webp` or `<id>.png`, found with `import.meta.glob`, and when it is absent the component draws a plain labelled fallback, so the tree builds, passes and plays with the folder empty. The files are committed together with the `PERMISSIONS.md` entry that covers them, in one commit, and never before it. Anything that takes a seat colour is drawn unless the publisher printed it in the colour the seat shows (see Seat colours), and every highlight, ring and animation layer is always drawn. "Supplied assets" below lists both sides.
+**The publisher's art, through an asset map.** The art lands with the title's permission entry. Components ask a typed map (`src/lib/art/assetMap.ts`) for an image by id. A file lives in `src/lib/art/supplied/` as `<id>.webp` or `<id>.png`, found with `import.meta.glob`, and when it is absent the component draws a plain labelled fallback, so the tree builds, passes and plays with the folder empty. The files were committed together with the `PERMISSIONS.md` entry that covers them, in one commit. Anything that takes a seat colour is drawn unless the publisher printed it in the colour the seat shows (see Seat colours), and every highlight, ring and animation layer is always drawn. "Supplied assets" below lists both sides.
 
 The drawn forms in this plan are our own work and are the fallback for every supplied id. None is traced, sampled or copied from the publisher's art.
 
@@ -226,7 +226,7 @@ The catalog title image is `src/lib/images/cover.webp`, read by `info.thumbnailU
 | `good.<good>`                                          | 5     | `GoodToken`                 | up to 47 px         | 99 px long side       |
 | `shilling.1`, `shilling.5`                             | 2     | `ShillingToken`             | up to 47 px         | 106 px                |
 | `seal`, `bead.2` to `bead.5`                           | 5     | `SealFace`                  | up to 420 px        | 128 px                |
-| `target.archery`                                       | 1     | `ArcheryTarget`             | up to 34 px         | 76 px                 |
+| `target.archery`                                       | 1     | `ArcheryTarget`             | up to 34 px         | 64 px                 |
 | `vessel.<vessel>`                                      | 3     | `VesselToken`               | up to 40 x 27 px    | 88 x 61 px            |
 | `monster.<monster>`                                    | 2     | `MonsterToken`              | up to 67 px         | 150 px long side      |
 | `location.<kind>`, `location.feudum.<guild>`           | 9     | `LocationDisc`              | up to 61 px         | 136 px                |
@@ -235,10 +235,12 @@ The catalog title image is `src/lib/images/cover.webp`, read by `info.thumbnailU
 | `board.guild.<guild>`                                  | 6     | `GuildPanel`                | up to 440 x 312 px  | 1000 x 708 px         |
 | `tile.front.<numeral>`, `tile.back.<landscape>`        | 8     | `TileFace`                  | up to 420 px        | 256 px                |
 | `card.action.<kind>`                                   | 11    | `ActionCardFace` art window | up to 361 x 585 px  | 618 x 1000 px         |
-| `card.action.<kind>.<colour>`, `card.back.<colour>`    | 60    | `ActionCardFace` whole card | up to 420 x 640 px  | 658 x 1000 px         |
+| `card.action.<kind>.<colour>`, `card.back.<colour>`    | 60    | `ActionCardFace` whole card | up to 395 x 640 px  | 580 x 938 px          |
 | `writ.mandate.<n>`, `writ.charter.<name>`, `writ.back` | 17    | `WritFace`                  | up to 420 x 638 px  | 618 x 1000 px         |
 | `piece.<kind>.<colour>` (marker, disc, reeve)          | 15    | `SeatToken`                 | 31, 28 and 15 px    | 61 x 70, 62, 32 px    |
 | `cover`                                                | 1     | the catalog                 | 150 and 340 px high | 544 x 680, lossy WebP |
+
+The publisher's files carry the print's bleed and its cut line, a dashed rectangle on each printed card and back and a die ring round the archery target. Each is cut just inside its line: the printed cards and backs all to 580 x 938, the card art's proportion, with rounded corners, and the target to the disc inside its ring.
 
 **Drawn, because they take a seat colour** (S71, from `gameSession.colors`, never a fixed art colour): pawns, always, since the print does not show a pawn's character; influence markers, player discs, reeves and an action card's band and back when the seat shows no printed colour; a controlled monster's collar and disc, pouches, the charter roll's ribbon and seal, seat chips and Knight rows.
 
@@ -250,7 +252,7 @@ The catalog title image is `src/lib/images/cover.webp`, read by `info.thumbnailU
 
 **The guild panels.** `board.guild.<guild>` is each guild's printed panel at its area's exact rect, the same 500 × 354 local units the drawn area uses, so the board and the bench show it through the same `GuildArea` at their two scales. The print lies on its side (the west three read from the board's west edge, the east three from its east edge); the pieces stand upright over it. With a panel's file there, `printedGuilds.ts` gives that guild's places on the print: the three rank hexagons, the market's columns, the carts, the vessel space, the inventions, the Knight's rows and columns and its two beasts, the noble's scrolls, the barn's columns, the purse, the hens, the rosary's string and the coffer. Its layout is chosen per guild and at call time, so a folder holding one panel and not another shows each guild its own way. The bench's presses come from the same places, so a press covers the space it acts on. Over the print the area draws only state: the pieces, the veil on an apprentice space below its player count, and a parchment note for each count the print can't say (the purse's and the coffer's shillings, the rosary's total, the barn's fill against its limit). The prices, the inventions, the hens, the beasts, the scroll rolls and the rank hexagons are the print's, and are drawn only as the fallback, with the plate, crest and name.
 
-**Rules for a swap.** A file changes what a component shows, not what it decides: the same label, the same `faceShown`, the same hit target. A back never names its face under any swap: file names are ids, so a face's URL is not in the DOM until the face is shown. Nothing supplied is staged before the commit that adds its permission entry; `.gitignore` holds the folder out until then and that commit removes the line.
+**Rules for a swap.** A file changes what a component shows, not what it decides: the same label, the same `faceShown`, the same hit target. A back never names its face under any swap: file names are ids, so a face's URL is not in the DOM until the face is shown. Nothing supplied is committed without a permission entry that covers it.
 
 ## Contract notes
 

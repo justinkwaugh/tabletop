@@ -192,9 +192,10 @@ describe('image coverage (R-1.1)', () => {
         expect(strayFiles(real.suppliedFiles)).toEqual([])
     })
 
-    it('the folder is ignored by git, so no file can be staged', () => {
+    it('git ignores the cover sources, not the supplied art', () => {
         const ignore = readFileSync(new URL('../../../.gitignore', import.meta.url), 'utf8')
-        expect(ignore).toMatch(/^\/src\/lib\/art\/supplied\/$/m)
+        expect(ignore).toMatch(/^\/src\/lib\/art\/cover-source\/$/m)
+        expect(ignore).not.toMatch(/art\/supplied/)
     })
 })
 
@@ -285,4 +286,26 @@ describe.skipIf(!suppliedHere)('the supplied pictures', () => {
         const { width, height } = webpSize(readFileSync(new URL(file, suppliedFolder)))
         expect(Math.max(width, height)).toBeLessThanOrEqual(2.5 * (largest ?? 0))
     })
+
+    /**
+     * The publisher's files carry the print's bleed and its cut line: a dashed rectangle on each
+     * printed card and back, a die ring round the archery target. Each is cut just inside its line,
+     * every printed card to one size, the proportion of the card art.
+     */
+    type Cut = [id: string, width: number, height: number]
+    const cutInsideTheLine: readonly Cut[] = [
+        ...ActionCardKinds.flatMap((kind) =>
+            PrintedColours.map((colour): Cut => [printedCardAsset(kind, colour), 580, 938])
+        ),
+        ...PrintedColours.map((colour): Cut => [cardBackAsset(colour), 580, 938]),
+        [TargetAsset, 64, 64]
+    ]
+
+    it.each(cutInsideTheLine)(
+        '%s is cut inside its print line, at %i x %i',
+        (id, width, height) => {
+            const file = readFileSync(new URL(`${id}.webp`, suppliedFolder))
+            expect(webpSize(file)).toMatchObject({ width, height })
+        }
+    )
 })

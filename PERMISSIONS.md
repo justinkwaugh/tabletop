@@ -45,3 +45,7 @@ Permission granted by John Bohrer to Justin Waugh on 2026-11-09 for non-commerci
 ### 1894
 
 Permission granted by Jan Kłos to Justin Waugh on 2026-11-10 for non-commercial use of 1894 when hosted on https://boardtogether.games
+
+### Feudum
+
+Permission granted by Mark Swanson (Odd Bird Games) to Jacob Prettyman on 2026-11-03 for non-commercial use of Feudum and its graphical assets when hosted on https://boardtogether.games
