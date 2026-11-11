@@ -110,8 +110,10 @@ export interface SeatGuildCrest {
     readonly stars: number
     readonly rank?: RankBadge
     readonly reeve: boolean
-    /** R-4.5.2 Stars, but no marker to stand on the track. */
+    /** R-4.5.2 Stars, but no marker in supply to stand on the track. */
     readonly noMarker: boolean
+    /** R-4.5.3, R-1.4.9 Stars and a marker in supply, but outranked: no place on the track. */
+    readonly outranked: boolean
 }
 
 export interface SeatPanelView {
@@ -259,12 +261,15 @@ function crestsOf(state: HydratedFeudumGameState, playerId: string): readonly Se
         const track = state.guilds.tracks[guild]
         const rank = rankOf(track, playerId)
         const stars = state.statusStars(playerId, guild)
+        const placeless = stars > 0 && rank === undefined
+        const hasMarker = state.getPlayerState(playerId).influenceSupply > 0
         return {
             guild,
             stars,
             ...(rank ? { rank: RankBadges[rank] } : {}),
             reeve: rank !== undefined && (track[rank]?.reeve ?? false),
-            noMarker: stars > 0 && rank === undefined
+            noMarker: placeless && !hasMarker,
+            outranked: placeless && hasMarker
         }
     })
 }

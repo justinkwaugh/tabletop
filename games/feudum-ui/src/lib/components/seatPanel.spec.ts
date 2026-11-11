@@ -434,6 +434,10 @@ describe('One derivation of the seat (contract: Seat panel)', () => {
             const second = state.getPlayerState(Owner).pawns[1]
             second.spaceId = space
             second.character = 'monk'
+            // Every marker placed: the monk star has none to stand on the track (R-4.5.2).
+            const player = state.getPlayerState(Owner)
+            state.supply.influence[player.color] += player.influenceSupply
+            player.influenceSupply = 0
         })
         const state = new HydratedFeudumGameState(structuredClone(host.state))
         const { guilds } = viewOf(state, Other)
@@ -456,6 +460,32 @@ describe('One derivation of the seat (contract: Seat panel)', () => {
         expect(markup).toContain('data-rank="M"')
         expect(markup).toContain('data-reeve')
         expect(markup).toContain('no marker')
+    })
+
+    it('R-4.5.2, R-4.5.3, R-1.4.9 A seat outranked off a full track still holds markers: "outranked", not "no marker"', () => {
+        const host = new FeudumHost(3)
+        host.edit((state) => {
+            const space = ruleTown(state, Owner)
+            const pawn = state.getPlayerState(Owner).pawns[1]
+            pawn.spaceId = space
+            pawn.character = 'monk'
+            const others = state.players.filter(({ playerId }) => playerId !== Owner)
+            state.guilds.tracks.monk = {
+                master: { playerId: others[0].playerId, reeve: false },
+                journeyman: { playerId: others[1].playerId, reeve: false }
+            }
+        })
+        const state = new HydratedFeudumGameState(structuredClone(host.state))
+        expect(state.getPlayerState(Owner).influenceSupply).toBeGreaterThan(0)
+        const view = viewOf(state, Other)
+        const monk = view.guilds[5]
+        expect(monk.stars).toBeGreaterThan(0)
+        expect(monk.rank).toBeUndefined()
+        expect(monk).toMatchObject({ noMarker: false, outranked: true })
+        expect(view.guilds[0]).toMatchObject({ outranked: false })
+        const markup = markupOf(view)
+        expect(markup).not.toContain('no marker')
+        expect(markup).toContain('data-outranked')
     })
 
     it('R-3.7.5, R-4.9.2, R-4.9-H2 Service and voyage: discs covered, vassal, the voyage space', () => {
