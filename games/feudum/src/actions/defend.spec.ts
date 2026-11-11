@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { ActionCardKind } from '../data/cards.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
+import { conservationBreaks } from '../model/canonicalValidator.js'
 import { placeMarker } from '../model/locationControl.js'
 import { collectTopTile } from '../model/regionStacks.js'
 import { immunityKey, type ImmunityRole } from '../model/seals.js'
@@ -15,6 +16,7 @@ import {
     type CombatTable
 } from '../testing/combat.js'
 import { setUp } from '../testing/improving.js'
+import { canonicalOf } from '../testing/state.js'
 import {
     answerStarve,
     giveFood,
@@ -326,6 +328,67 @@ describe('R-3.14.2, R-3.14-H1 AnswerStarve', () => {
         expect(table.seat(defenderId).regionTiles).toEqual([])
         expect(table.seat(defenderId).goods.food).toBe(0)
         expect(table.state.spaces[Battlefield].serf?.immune).toBe(true)
+    })
+
+    it('R-4.4-H1, R-3.14-H3 a defender holding the food spends no tile through AnswerStarve', () => {
+        const combat = tableAtStarve()
+        const { table, defenderId } = combat
+        let tileId = ''
+        setUp(table, (state) => {
+            giveFood(state, defenderId)
+            tileId = collectTopTile(state, defenderId, 'sea').tile.id
+        })
+        expect(conservationBreaks(canonicalOf(table.hydrated()))).toEqual([])
+        starve(combat)
+        const iron = table.seat(defenderId).goods.iron
+
+        expect(() => answerStarve(combat, true, { wildTiles: [{ tileId, good: 'iron' }] })).toThrow(
+            'A wild tile may cover only the food Royal Immunity is short of.'
+        )
+        expect(() => answerStarve(combat, true, { wildTiles: [{ tileId, good: 'food' }] })).toThrow(
+            'A wild tile may cover only the food Royal Immunity is short of.'
+        )
+        expect(table.seat(defenderId).goods.iron).toBe(iron)
+        expect(table.seat(defenderId).regionTiles).toEqual([tileId])
+        expect(table.state.machineState).toBe(MachineState.AwaitingImmunity)
+    })
+
+    it('R-4.4-H1, R-3.14-H3 a defender short one food spends one tile, on food, and no second', () => {
+        const combat = tableAtStarve()
+        const { table, defenderId } = combat
+        const tiles: string[] = []
+        setUp(table, (state) => {
+            tiles.push(collectTopTile(state, defenderId, 'sea').tile.id)
+            tiles.push(collectTopTile(state, defenderId, 'mountain').tile.id)
+        })
+        starve(combat)
+        const saltpeter = table.seat(defenderId).goods.saltpeter
+
+        expect(() =>
+            answerStarve(combat, true, {
+                wildTiles: [
+                    { tileId: tiles[0], good: 'food' },
+                    { tileId: tiles[1], good: 'saltpeter' }
+                ]
+            })
+        ).toThrow('A wild tile may cover only the food Royal Immunity is short of.')
+        expect(table.seat(defenderId).goods.saltpeter).toBe(saltpeter)
+        expect(table.seat(defenderId).regionTiles).toEqual(tiles)
+    })
+
+    it('R-4.4-H1 a defender who lets the Starve stand spends no tile', () => {
+        const combat = tableAtStarve()
+        const { table, defenderId } = combat
+        let tileId = ''
+        setUp(table, (state) => {
+            tileId = collectTopTile(state, defenderId, 'sea').tile.id
+        })
+        starve(combat)
+
+        expect(() =>
+            answerStarve(combat, false, { wildTiles: [{ tileId, good: 'food' }] })
+        ).toThrow('Letting it stand spends no wild tile.')
+        expect(table.seat(defenderId).regionTiles).toEqual([tileId])
     })
 
     it('R-3.14-H1, R-5 the offer goes to the owner alone', () => {
