@@ -19,7 +19,9 @@ Oath's principle, with three stated departures:
 
 ### What is on it
 
-The board keeps the printed board's arrangement, drawn in code: the map in the centre, three guild areas down each side, the tracks round and under the map. Players moving between the physical game and this one find each thing where it was.
+The board keeps the printed board's arrangement: the map in the centre, three guild areas down each side, the tracks round and under the map. Players moving between the physical game and this one find each thing where it was. Where the print is supplied it is the ground: the map, the score ring and frame, and each guild's panel, with state, hit targets and picks fitted over it; each is drawn in code where its file is absent.
+
+- **The printed guild panels** are the guild areas' ground at board scale and on the bench. The pieces stand on the panel's printed spaces, and the bench's presses cover those spaces. The area draws only what the print can't show: the pieces, the veil on an apprentice space below its player count, and the counts (purse, coffer, rosary total, barn against its limit). A concealed seal stays a crowned back on its printed scroll.
 
 | Region of the table                                     | Holds                                                                                                                                                                                                                                                                                                                                                                                                        | Drawn as  |
 | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- |

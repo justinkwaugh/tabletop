@@ -34,6 +34,8 @@ export const beadAsset = (value: BeadValue) => `bead.${value}` as const
 export const tileFrontAsset = (epoch: TileEpoch) => `tile.front.${EpochNumerals[epoch]}` as const
 export const tileBackAsset = (landscape: LandscapeKind) => `tile.back.${landscape}` as const
 export const cardAsset = (kind: ActionCardKind) => `card.action.${kind}` as const
+/** A guild's printed panel, as it lies on the board: the ground its area's state stands on. */
+export const guildPanelAsset = (guild: GuildId) => `board.guild.${guild}` as const
 
 /** A feudum's disc is told by its guild's icon; the other kinds have one face each. */
 export function locationAsset(kind: LocationKind, guild?: GuildId) {
@@ -48,6 +50,8 @@ export const WritBackAsset = 'writ.back'
 export const CoverAsset = 'cover'
 /** The board's printed map, sky and bottom strip included, with the terrain and every route on it. */
 export const MapAsset = 'board.map'
+/** The board round the map and the guild panels: the printed score ring, its corners and the frame. */
+export const RingAsset = 'board.ring'
 
 /**
  * Every publisher image the components can show, id to file. A file lives in `./supplied` as
@@ -57,6 +61,8 @@ export const MapAsset = 'board.map'
 export const AssetIds = [
     CoverAsset,
     MapAsset,
+    RingAsset,
+    ...GuildIds.map(guildPanelAsset),
     SealAsset,
     TargetAsset,
     WritBackAsset,

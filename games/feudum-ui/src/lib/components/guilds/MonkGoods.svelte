@@ -9,14 +9,19 @@
         CofferBox,
         GuildSizes,
         RosaryTotalAt,
+        guildPrinted,
         guildSlot,
         rosaryBead
     } from '$lib/utils/boardGeometry.js'
+    import { PrintedCounts } from '$lib/utils/printedGuilds.js'
+    import StateNote from './StateNote.svelte'
 
     /** R-4.6.5 The rosary's beads are public, and so its total. R-4.6.2 The church coffer's shillings. */
     let { state }: { state: HydratedFeudumGameState } = $props()
 
     let coffer = $derived(guildSlot('guild.monk.coffer'))
+    /** The printed panel draws the string and the chest; the beads and the counts stand on it. */
+    let printed = $derived(guildPrinted('monk'))
 </script>
 
 {#each state.guilds.monk.rosary as sealId, index (sealId)}
@@ -40,31 +45,41 @@
         </Enlargeable>
     </BoardPiece>
 {/each}
-<text
-    x={RosaryTotalAt.x}
-    y={RosaryTotalAt.y}
-    text-anchor="middle"
-    font-size="18"
-    fill="var(--feudum-ink)"
-    data-rosary-total={rosaryBeadSum(state)}>Rosary · {rosaryBeadSum(state)}</text
->
+{#if printed}
+    <StateNote
+        x={PrintedCounts.rosary.x}
+        y={PrintedCounts.rosary.y}
+        text="Rosary · {rosaryBeadSum(state)}"
+        size={18}
+        data-rosary-total={rosaryBeadSum(state)}
+    />
+{:else}
+    <text
+        x={RosaryTotalAt.x}
+        y={RosaryTotalAt.y}
+        text-anchor="middle"
+        font-size="18"
+        fill="var(--feudum-ink)"
+        data-rosary-total={rosaryBeadSum(state)}>Rosary · {rosaryBeadSum(state)}</text
+    >
 
-<rect
-    x={CofferBox.x}
-    y={CofferBox.y}
-    width={CofferBox.width}
-    height={CofferBox.height}
-    rx="8"
-    fill="var(--feudum-parchment-shade)"
-    stroke="var(--feudum-ink)"
-></rect>
-<text
-    x={CofferBox.x + CofferBox.width / 2}
-    y={CofferBox.y + 26}
-    text-anchor="middle"
-    font-size="18"
-    fill="var(--feudum-ink)">Coffer</text
->
+    <rect
+        x={CofferBox.x}
+        y={CofferBox.y}
+        width={CofferBox.width}
+        height={CofferBox.height}
+        rx="8"
+        fill="var(--feudum-parchment-shade)"
+        stroke="var(--feudum-ink)"
+    ></rect>
+    <text
+        x={CofferBox.x + CofferBox.width / 2}
+        y={CofferBox.y + 26}
+        text-anchor="middle"
+        font-size="18"
+        fill="var(--feudum-ink)">Coffer</text
+    >
+{/if}
 <BoardPiece at={coffer} piece="coffer">
     <ShillingToken
         value={1}
@@ -73,12 +88,21 @@
         y={-GuildSizes.shilling / 2}
     />
 </BoardPiece>
-<text
-    x={coffer.x}
-    y={coffer.y + 56}
-    text-anchor="middle"
-    font-size="24"
-    font-weight="700"
-    fill="var(--feudum-ink)"
-    data-coffer={state.guilds.monk.coffer}>{state.guilds.monk.coffer}s</text
->
+{#if printed}
+    <StateNote
+        x={PrintedCounts.coffer.x}
+        y={PrintedCounts.coffer.y}
+        text="{state.guilds.monk.coffer}s"
+        data-coffer={state.guilds.monk.coffer}
+    />
+{:else}
+    <text
+        x={coffer.x}
+        y={coffer.y + 56}
+        text-anchor="middle"
+        font-size="24"
+        font-weight="700"
+        fill="var(--feudum-ink)"
+        data-coffer={state.guilds.monk.coffer}>{state.guilds.monk.coffer}s</text
+    >
+{/if}

@@ -35,8 +35,8 @@ import {
     GuildAreas,
     GuildBox,
     RoutePaths,
-    guildSlot,
     knightCell,
+    monsterIconMarker,
     routePointAt,
     scoreDiscAt,
     spaceGeometry,
@@ -831,9 +831,8 @@ describe('R-4.1.2 markers inside the board', () => {
             }),
             action: anAction(table.seat)
         })
-        const slot = guildSlot(icon.id)
         expect(motions.map(({ target, path }) => [target, path?.at(-1)])).toEqual([
-            [{ piece: `knight:${row?.colour}:3` }, { x: slot.x + 46, y: slot.y - 40 }]
+            [{ piece: `knight:${row?.colour}:3` }, monsterIconMarker(icon.id)]
         ])
     })
 

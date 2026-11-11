@@ -3,6 +3,7 @@
     import GuildAreas from '$lib/components/guilds/GuildAreas.svelte'
     import BoardMotionLayer from '$lib/components/map/BoardMotionLayer.svelte'
     import MapLayers from '$lib/components/map/MapLayers.svelte'
+    import BoardFrame from '$lib/components/tracks/BoardFrame.svelte'
     import BoardMargin from '$lib/components/tracks/BoardMargin.svelte'
     import TrackLayers from '$lib/components/tracks/TrackLayers.svelte'
     import { colourPaint, seatPaint } from '$lib/model/seatPaint.js'
@@ -34,7 +35,7 @@
     height={BoardHeight + MarginHeight}
     viewBox="0 0 {BoardWidth} {BoardHeight + MarginHeight}"
 >
-    <rect width={BoardWidth} height={BoardHeight} fill="var(--feudum-board-frame)"></rect>
+    <BoardFrame />
     <MapLayers state={gameSession.gameState} {paintOf} {chrome}>
         {#snippet underContents()}
             <BoardMotionLayer

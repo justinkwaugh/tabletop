@@ -1,5 +1,6 @@
 <script lang="ts">
     import { ScoreTrack, type HydratedFeudumGameState } from '@tabletop/feudum'
+    import { RingAsset, assetUrl } from '$lib/art/assetMap.js'
     import BoardPiece from '$lib/components/map/BoardPiece.svelte'
     import CountChip from '$lib/components/map/CountChip.svelte'
     import SeatToken from '$lib/components/pieces/SeatToken.svelte'
@@ -25,6 +26,8 @@
     } = $props()
 
     const labelled = (space: number) => space % ScoreTrack.labelEvery === 0
+    /** With the printed ring under the board, its cells and numbers are the print's; ours stay bare. */
+    const printed = assetUrl(RingAsset) !== undefined
 </script>
 
 <g data-score-ring style:font-family="var(--feudum-font-text)">
@@ -35,10 +38,14 @@
             width={width - 2}
             height={height - 2}
             rx="3"
-            fill={labelled(space) ? 'var(--feudum-wood-dark)' : 'var(--feudum-score-cell)'}
+            fill={printed
+                ? 'none'
+                : labelled(space)
+                  ? 'var(--feudum-wood-dark)'
+                  : 'var(--feudum-score-cell)'}
             data-score-space={space}
         ></rect>
-        {#if labelled(space)}
+        {#if labelled(space) && !printed}
             <text
                 x={centre.x}
                 y={centre.y + 7}
