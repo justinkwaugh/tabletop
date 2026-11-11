@@ -50,16 +50,13 @@
         return assetUrl(card ? printedCardAsset(card.kind, printed) : cardBackAsset(printed))
     })
     /**
-     * Over the print: the number on the border's foot, and at the two small tiers the name again
-     * where the print names the card, too small there to read. A standard face takes it on the
-     * print's title plate, clear of the hand's magnifier in the foot's corner; a compact face takes
-     * its short name across the foot, over the name line in the print's other languages.
+     * Over the print: the number on the border's foot, and on a compact face its short name across
+     * the foot, over the name line in the print's other languages, where the print's own name is too
+     * small to read. A standard or full face leaves the name to the print, whose top symbols a plate
+     * would cover; the accessible name carries it at every size.
      */
     const PrintedNumber = { x: 30, y: 352, r: 17 }
-    const PrintedPlate = {
-        compact: { x: 12, y: 310, width: 226, height: 60, font: 42, text: 145 },
-        standard: { x: 60, y: 14, width: 130, height: 36, font: 24, text: 125 }
-    } as const
+    const PrintedPlate = { x: 12, y: 310, width: 226, height: 60, font: 42, text: 145 } as const
     const Body = { x: CardArt.x + 10, right: CardArt.x + CardArt.width - 10 }
     let actionRows = $derived(card ? wrapLines(card.regularAction, 26) : [])
     let effectRows = $derived(card ? wrapLines(card.special.effect, 28) : [])
@@ -79,8 +76,8 @@
             preserveAspectRatio="none"
         ></image>
         {#if card}
-            {#if tier !== 'full'}
-                {@const plate = PrintedPlate[tier]}
+            {#if tier === 'compact'}
+                {@const plate = PrintedPlate}
                 <rect
                     x={plate.x}
                     y={plate.y}
@@ -97,8 +94,7 @@
                     text-anchor="middle"
                     font-size={plate.font}
                     fill="var(--feudum-ink)"
-                    style:font-family="var(--feudum-font-title)"
-                    >{tier === 'compact' ? shortName(card.printedName) : card.printedName}</text
+                    style:font-family="var(--feudum-font-title)">{shortName(card.printedName)}</text
                 >
             {/if}
             <circle

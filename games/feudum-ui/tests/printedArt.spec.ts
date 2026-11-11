@@ -73,9 +73,10 @@ async function printed(page: Page) {
     )
 }
 
-test('R-3.1 each printed card fills its face, and its name plate stays clear of the magnifier', async ({
+test('R-3.1 each printed card fills its face, and at standard size carries no name plate over its print', async ({
     page
 }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
     await createGame(page)
     await playToHands(page)
     await settled(page)
@@ -91,15 +92,10 @@ test('R-3.1 each printed card fills its face, and its name plate stays clear of 
         const row = rows.nth(index)
         const face = row.locator('svg[role="img"]').first()
         expectSameBox(await boxOf(face.locator('> image')), await boxOf(face))
-        const plate = face.locator('> rect').first()
-        const glass = await boxOf(row.locator('[data-enlarge]'))
-        const name = await boxOf(plate)
-        const apart =
-            name.x + name.width <= glass.x ||
-            glass.x + glass.width <= name.x ||
-            name.y + name.height <= glass.y ||
-            glass.y + glass.height <= name.y
-        expect(apart, `card ${index + 1}`).toBe(true)
+        expect((await boxOf(face)).width, `card ${index + 1}`).toBeGreaterThanOrEqual(60)
+        await expect(face.locator('> rect'), `card ${index + 1}`).toHaveCount(0)
+        const name = (await row.getAttribute('data-row')) ?? ''
+        await expect(face).toHaveAccessibleName(new RegExp(`^${name.split(':')[0]} card, `))
     }
 })
 
