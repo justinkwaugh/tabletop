@@ -819,6 +819,22 @@ test.describe('held upright', () => {
 test.describe('a 390 px phone', () => {
     test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
 
+    test('Contract, Symbol key: the key opens over the board, inside the screen', async ({
+        page
+    }) => {
+        await openFixture(page, 'cards-tile-gone-epoch-1')
+        await page.locator('[data-symbol-key-toggle]').click()
+        const key = page.getByRole('group', { name: 'Symbol key' })
+        await expect(key).toBeVisible()
+        const box = await key.boundingBox()
+        const board = await page.locator('[data-board-view]').boundingBox()
+        expect(box!.x).toBeGreaterThanOrEqual(0)
+        expect(box!.x + box!.width).toBeLessThanOrEqual(390)
+        expect(box!.y).toBeGreaterThanOrEqual(board!.y - 0.5)
+        await page.locator('[data-symbol-key-toggle]').click()
+        await expect(key).toHaveCount(0)
+    })
+
     test('R-1.4.8 the starting-goods choice shows all five goods in the panel, in sight', async ({
         page
     }) => {
