@@ -8,6 +8,7 @@ import { ActionType } from '../definition/actions.js'
 import { HydratedFeudumGameState } from '../model/gameState.js'
 import { rankOf, RankChange } from '../model/guildStatus.js'
 import { presenceSpaceIds } from '../model/locationControl.js'
+import { abandonVessel } from '../model/media.js'
 import {
     canCoverWithWildTiles,
     canPayGoods,
@@ -170,7 +171,7 @@ export function leaveBoard(
     assertExists(spaceId, 'R-3.6.1 A pawn going off stands on a space')
     assertExists(character, 'R-1.1 A pawn on the board shows a character')
     if (vessel) {
-        state.spaces[spaceId].vessels[vessel] += 1
+        abandonVessel(state, spaceId, vessel)
     }
     if (wine) {
         returnGoodToHaversack(state, 'sulfur')

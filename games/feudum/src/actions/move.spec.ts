@@ -333,31 +333,80 @@ describe('Move: vessels', () => {
         })
     })
 
-    it('R-4.2.2, R-4.2-H2 steps fold in press order: a pawn boards what another just left', () => {
-        const { table, playerId } = tableWith((state, seat) => {
+    it('R-4.2.2, R-4.2-H2 a vessel left this turn is not boarded until a later turn', () => {
+        const { table, playerId, other } = tableWith((state, seat, next) => {
             standPawn(state, seat, 1, Port)
             standPawn(state, seat, 2, Port)
+            standPawn(state, next, 1, Port)
             state.getPlayerState(seat).pawns[0].vessel = 'ship'
             state.supply.vessels.ship -= 1
         })
-        const boardFirst = [
-            pawnStep(playerId, 2, ByShip, 'ship', { vessel: 'board' }),
-            pawnStep(playerId, 1, ByRoad, 'road')
+        const relay = [
+            pawnStep(playerId, 1, ByRoad, 'road'),
+            pawnStep(playerId, 2, ByShip, 'ship', { vessel: 'board' })
         ]
-        expect(refused(table, playerId, { steps: boardFirst })).toBe(
-            'There is no ship to board there.'
+        expect(refused(table, playerId, { steps: relay })).toBe(
+            'That ship was left this turn; it can be boarded on a later turn.'
         )
-        send(table, playerId, {
-            steps: [
-                pawnStep(playerId, 1, ByRoad, 'road'),
-                pawnStep(playerId, 2, ByShip, 'ship', { vessel: 'board' })
-            ]
+        const offered = moveOffers(table.hydrated(), playerId, { steps: relay.slice(0, 1) })
+        const pawn2 = offered.pieces.find(({ piece }) => piece.kind === 'pawn' && piece.n === 2)
+        expect(pawn2?.ways.some((way) => way.vessel === 'board')).toBe(false)
+        send(table, playerId, { steps: [pawnStep(playerId, 1, ByRoad, 'road')] })
+        expect(table.hydrated().spaces[Port].vessels.ship).toBe(1)
+        expect(table.asked).toBe(other)
+        send(table, other, {
+            steps: [pawnStep(other, 1, ByShip, 'ship', { vessel: 'board' })]
         })
-        const seat = table.seat(playerId)
-        expect(seat.pawns[0]).toMatchObject({ spaceId: ByRoad })
-        expect(seat.pawns[0].vessel).toBeUndefined()
-        expect(seat.pawns[1]).toMatchObject({ spaceId: ByShip, vessel: 'ship' })
+        expect(table.seat(other).pawns[0]).toMatchObject({ spaceId: ByShip, vessel: 'ship' })
         expect(table.hydrated().spaces[Port].vessels.ship).toBe(0)
+    })
+
+    it('R-4.2-H2 a vessel abandoned before this turn is boarded beside one left this turn', () => {
+        const { table, playerId } = tableWith((state, seat) => {
+            standPawn(state, seat, 1, Port)
+            standPawn(state, seat, 2, Port)
+            standPawn(state, seat, 3, Port)
+            state.getPlayerState(seat).pawns[0].vessel = 'ship'
+            state.supply.vessels.ship -= 1
+            abandonVessel(state, Port, 'ship')
+        })
+        const steps = [
+            pawnStep(playerId, 1, ByRoad, 'road'),
+            pawnStep(playerId, 2, ByShip, 'ship', { vessel: 'board' }),
+            pawnStep(playerId, 3, ByShip, 'ship', { vessel: 'board' })
+        ]
+        expect(refused(table, playerId, { steps })).toBe(
+            'That ship was left this turn; it can be boarded on a later turn.'
+        )
+        send(table, playerId, { steps: steps.slice(0, 2) })
+        expect(table.seat(playerId).pawns[1]).toMatchObject({ spaceId: ByShip, vessel: 'ship' })
+        expect(table.hydrated().spaces[Port].vessels.ship).toBe(1)
+    })
+
+    it('R-4.2-H2, R-3.6-H1 a vessel left by migrating off is not boarded by the second card', () => {
+        const table = tableAtPlayingCards(() => ({
+            cards: ['migrate', 'move', 'tax'],
+            pouchGood: 'sulfur'
+        }))
+        const playerId = table.asked
+        table.moveTo((state) => {
+            standPawn(state, playerId, 1, Port)
+            standPawn(state, playerId, 2, Port)
+            state.getPlayerState(playerId).pawns[0].vessel = 'ship'
+            state.supply.vessels.ship -= 1
+            return MachineState.PlayingCards
+        })
+        table.send(playerId, { type: ActionType.Migrate, pawn: 1, onto: 'off', secondCard: true })
+        expect(table.asked).toBe(playerId)
+        expect(table.hydrated().spaces[Port].vessels.ship).toBe(1)
+        const board = [pawnStep(playerId, 2, ByShip, 'ship', { vessel: 'board' })]
+        expect(refused(table, playerId, { steps: board })).toBe(
+            'That ship was left this turn; it can be boarded on a later turn.'
+        )
+        const pawn2 = moveOffers(table.hydrated(), playerId).pieces.find(
+            ({ piece }) => piece.kind === 'pawn' && piece.n === 2
+        )
+        expect(pawn2?.ways.some((way) => way.vessel === 'board')).toBe(false)
     })
 
     it('R-4.2.2 changes vessels: the old one stays behind, the new one comes up', () => {

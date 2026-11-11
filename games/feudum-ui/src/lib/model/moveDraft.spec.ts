@@ -470,6 +470,19 @@ describe('S27 R-4.2.2 vessels', () => {
         expect(boarding.session.gameState.spaces[Port].vessels.submersible).toBe(0)
     })
 
+    it('R-4.2-H2 a ship another pawn left this turn is not offered to board', async () => {
+        const { session, seat } = await atPort((state, id) => {
+            stand(state, id, Port, Port)
+            const [pawn] = state.getPlayerState(id).pawns
+            pawn.vessel = 'ship'
+            state.supply.vessels.ship -= 1
+        })
+        await press(session, spaceTarget('space.desert.3'))
+        await press(session, pawnTarget(seat, 2))
+        expect(chip(session, spaceTarget(ShipOnly))).toBeUndefined()
+        expect(role(session, spaceTarget(ShipOnly))).toBe('dimmed')
+    })
+
     it('aboard, the same vessel carries on; the road steps off', async () => {
         const { session } = await atPort((state, seat) => {
             const [pawn] = state.getPlayerState(seat).pawns
