@@ -7,7 +7,13 @@ export interface SeatPaint {
     readonly fill: string
     readonly ink: string
     readonly edge: string
-    readonly initial: string
+    /**
+     * Whose pieces these are, as their accessible names and tooltips begin: the seat's name
+     * ("Ana's influence marker"), or the colour for a piece no seat stands behind ("red influence
+     * marker", a dummy Knight row). No piece carries a letter: colour is told apart by this name
+     * and, for those who need it, by the platform's colour-blind palette.
+     */
+    readonly owner: string
     /**
      * The publisher's printed colour this paint shows, so a card or piece may be its printed one.
      * Absent when the displayed fill is not that colour's own (another palette), so the drawn
@@ -50,23 +56,14 @@ const DarkInkAbove = 0.179
 /** Near black needs a light edge to stay off the terrain. */
 const LightEdgeBelow = 0.03
 
-/**
- * The initial's ink on a printed piece, read against the print's own tone rather than the displayed
- * fill: the printed wood is darker and duller than the screen colours, so only the yellow print is
- * light enough for dark ink.
- */
-export function printedInk(printed: PrintedColour): string {
-    return printed === Color.Yellow ? 'var(--feudum-halo)' : 'var(--feudum-text)'
-}
-
-function paintOfFill(fill: string, initial: string, colour?: Color): SeatPaint {
+function paintOfFill(fill: string, owner: string, colour?: Color): SeatPaint {
     const lightness = luminance(fill)
     const printed = printedColour(colour, fill)
     return {
         fill,
         ink: lightness > DarkInkAbove ? 'var(--feudum-halo)' : 'var(--feudum-text)',
         edge: lightness < LightEdgeBelow ? 'var(--feudum-good-iron-edge)' : 'var(--feudum-map-ink)',
-        initial,
+        owner,
         ...(printed ? { printed } : {})
     }
 }
@@ -77,21 +74,19 @@ export function seatPaint(
         getPlayerColor?(playerId?: string): Color
     },
     playerId: string,
-    initial: string
+    name: string
 ): SeatPaint {
     return paintOfFill(
         colors.getPlayerUiColor(playerId),
-        initial,
+        `${name}'s`,
         colors.getPlayerColor?.(playerId)
     )
 }
 
-/** What a colour with no seat behind it wears: a dummy Knight row (R-1.4-H1). */
-const NoSeatInitial = '-'
-
+/** What a colour with no seat behind it wears, a dummy Knight row (R-1.4-H1): named by its colour. */
 export function colourPaint(
     colors: { getUiColor(color: Color): string },
     colour: Color
 ): SeatPaint {
-    return paintOfFill(colors.getUiColor(colour), NoSeatInitial, colour)
+    return paintOfFill(colors.getUiColor(colour), colour, colour)
 }

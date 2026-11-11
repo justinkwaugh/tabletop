@@ -189,7 +189,7 @@ scenario('S36 R-4.8.2 CommitAttack', 'conquer-commit', async (table) => {
     const scoreBefore = Number(await scoreOf(table, 'p2'))
     const flights = await table.flightsOf(() => table.press(table.primary()))
     expect(flights).toEqual(
-        expect.arrayContaining(['pawns: A knight', 'board: score:p2', 'goods: saltpeter'])
+        expect.arrayContaining(["pawns: Ana's knight pawn", 'board: score:p2', 'goods: saltpeter'])
     )
     await table.settled()
     await expect(table.page.locator('[data-world="pawn:p1:1"]')).toHaveCount(0)
@@ -201,10 +201,10 @@ scenario('S37 R-4.8.3 Feudum conquest', 'conquer-feudum', async (table) => {
     const disc = table.page.locator(DiscWorld)
     const ruler = table.page.locator(RulerWorld).locator('svg[aria-label]')
     const feudum = await disc.innerHTML()
-    await expect(ruler).toHaveAttribute('aria-label', 'A influence marker')
+    await expect(ruler).toHaveAttribute('aria-label', "Ana's influence marker")
     await expect(table.page.locator(SerfWorld).locator('svg[aria-label]')).toHaveAttribute(
         'aria-label',
-        'B influence marker'
+        "Bram's influence marker"
     )
     await table.press(table.card('Conquer'))
     await table.pressPick(AnaFeudum)
@@ -219,13 +219,13 @@ scenario('S37 R-4.8.3 Feudum conquest', 'conquer-feudum', async (table) => {
         expect.arrayContaining([
             'board: disc:space.forest.2',
             'board: marker:space.forest.2:ruler',
-            'markers: A influence marker'
+            "markers: Ana's influence marker"
         ])
     )
     await table.settled()
     expect(await disc.innerHTML()).not.toBe(feudum)
     await expect(table.page.locator(SerfWorld)).toHaveCount(0)
-    await expect(ruler).toHaveAttribute('aria-label', 'B influence marker')
+    await expect(ruler).toHaveAttribute('aria-label', "Bram's influence marker")
     await table.press(table.page.getByRole('tab', { name: 'History' }))
     const logged = await table.page
         .locator('[data-action-line]')

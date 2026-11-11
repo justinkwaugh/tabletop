@@ -16,7 +16,7 @@ const paint = {
     fill: '#336699',
     ink: 'var(--feudum-text)',
     edge: 'var(--feudum-map-ink)',
-    initial: 'A'
+    owner: "Ana's"
 }
 
 const Faces: readonly EnlargedFace[] = [

@@ -35,7 +35,7 @@ const paintOf = (playerId: string) => ({
     fill: `seat-${playerId}`,
     ink: 'var(--feudum-text)',
     edge: 'var(--feudum-map-ink)',
-    initial: 'A'
+    owner: "Ana's"
 })
 
 function markup(state: TurnTable['host']['state'], chrome?: BoardChrome) {

@@ -17,7 +17,7 @@ describe('Board chrome (contract: Pick conventions, Board surface)', () => {
         fill: 'var(--feudum-map-ink)',
         ink: 'var(--feudum-map-ink)',
         edge: 'var(--feudum-map-ink)',
-        initial: 'A'
+        owner: "Ana's"
     })
 
     function chromeWith(targets: BoardOffer['targets'], dimsRest = true): BoardChrome {

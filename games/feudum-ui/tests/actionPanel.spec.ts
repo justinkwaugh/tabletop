@@ -55,7 +55,7 @@ test('S1 R-1.4.8 the goods are rows with their tokens, and the sulfur asks besid
     await expect(panel(page).locator('[data-rows="goods"] [data-row]')).toHaveCount(5)
 })
 
-test('S2 R-1.4.9 the characters stand as figures, their rows light the spaces on hover', async ({
+test('S2 R-1.4.9 the characters stand as cubes, their rows light the spaces on hover', async ({
     page
 }) => {
     await createGame(page)

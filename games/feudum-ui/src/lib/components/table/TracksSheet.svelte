@@ -27,8 +27,7 @@
     let round = $derived(state.roundManager.currentRound?.number ?? 1)
 
     function paintOf(playerId: string) {
-        const initial = gameSession.getPlayerName(playerId).charAt(0).toUpperCase()
-        return seatPaint(gameSession.colors, playerId, initial)
+        return seatPaint(gameSession.colors, playerId, gameSession.getPlayerName(playerId))
     }
 
     let scores = $derived(

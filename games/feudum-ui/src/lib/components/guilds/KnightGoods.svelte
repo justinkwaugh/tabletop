@@ -25,8 +25,8 @@
     import { BarrelPath } from '$lib/utils/trackShape.js'
 
     /**
-     * R-1.3 One row per colour in use, each of three barrel sections; a dummy row wears its colour with
-     * no seat's initial (R-1.4-H1). R-4.2.4 Each monster's icon carries the marker of whoever controls it.
+     * R-1.3 One row per colour in use, each of three barrel sections; a dummy row wears its colour and is
+     * named by it, with no seat behind it (R-1.4-H1). R-4.2.4 Each monster's icon carries the marker of whoever controls it.
      */
     let {
         state,

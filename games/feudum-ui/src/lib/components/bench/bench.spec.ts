@@ -36,13 +36,13 @@ const paintOf = (playerId: string) => ({
     fill: `seat-${playerId}`,
     ink: 'var(--feudum-text)',
     edge: 'var(--feudum-map-ink)',
-    initial: 'A'
+    owner: "Ana's"
 })
 const colourPaintOf = (colour: string) => ({
     fill: `colour-${colour}`,
     ink: 'var(--feudum-text)',
     edge: 'var(--feudum-map-ink)',
-    initial: '-'
+    owner: colour
 })
 
 function seatOf({ session, seat }: GuildTable): BenchSeat {

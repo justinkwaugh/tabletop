@@ -69,7 +69,7 @@ const paint = {
     fill: '#336699',
     ink: 'var(--feudum-text)',
     edge: 'var(--feudum-map-ink)',
-    initial: 'A'
+    owner: "Ana's"
 }
 
 /** Every id's component, built from the logic's data, so a new component id must appear here. */

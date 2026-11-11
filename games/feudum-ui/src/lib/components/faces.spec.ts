@@ -16,6 +16,7 @@ import { faceTier, shortName } from '$lib/utils/cardShape.js'
 import { everyAssetSupplied } from '$lib/testing/fakeArt.js'
 import ActionCardFace from './pieces/ActionCardFace.svelte'
 import BoardMotionLayer from './map/BoardMotionLayer.svelte'
+import MonsterToken from './pieces/MonsterToken.svelte'
 import RoseChip from './pieces/RoseChip.svelte'
 import SealFace from './pieces/SealFace.svelte'
 import SeatToken from './pieces/SeatToken.svelte'
@@ -36,7 +37,7 @@ const paint = {
     fill: '#336699',
     ink: 'var(--feudum-text)',
     edge: 'var(--feudum-map-ink)',
-    initial: 'A'
+    owner: "Ana's"
 }
 const Folders = [
     { name: 'no art', files: () => ({}) },
@@ -222,7 +223,7 @@ describe('printed action cards (R-3.1)', () => {
         const face = cardAt({ kind })
         expect(face).toContain(`href="/art/${printedCardAsset(kind, Color.Red)}.webp"`)
         expect(face).not.toContain(`href="/art/${cardAsset(kind)}.webp"`)
-        expect(face).toMatch(/aria-label="[^"]+ card, A"/)
+        expect(face).toMatch(/aria-label="Ana's [^"]+ card"/)
     })
 
     it('R-3.1 a printed back is the same for all eleven kinds, names none, and is its colour’s', () => {
@@ -285,7 +286,7 @@ describe('printed action cards (R-3.1)', () => {
             const face = cardAt({ width })
             expect(face).not.toContain('>Influence<')
             expect(face).not.toMatch(/<rect[^>]*fill="var\(--feudum-parchment\)"/)
-            expect(face).toContain('aria-label="Influence card, A"')
+            expect(face).toContain(`aria-label="Ana's Influence card"`)
         }
         for (const width of [50, 120, 240]) {
             const face = cardAt({ width })
@@ -304,24 +305,24 @@ describe('printed seat pieces (S71)', () => {
         render(SeatToken, { props: { kind, paint: piecePaint } }).body
 
     it.each(SeatPieceKinds)(
-        'a %s in a printed colour is the printed piece, still carrying the initial',
+        'a %s in a printed colour is the printed piece, with no letter on it',
         (kind) => {
             const piece = token(kind)
             expect(piece).toContain(`href="/art/${seatPieceAsset(kind, Color.Red)}.webp"`)
-            expect(piece).toContain('>A<')
-            expect(piece).toMatch(/aria-label="A [^"]+"/)
+            expect(piece).not.toContain('<text')
             expect(piece).not.toContain(`fill="${paint.fill}"`)
         }
     )
 
-    it('the initial on a printed marker or disc takes the print’s ink, not the seat fill’s', () => {
-        const green = { ...paint, ink: 'var(--feudum-halo)', printed: Color.Green as const }
-        for (const kind of ['marker', 'disc'] as const) {
-            expect(token(kind, green)).toMatch(/fill="var\(--feudum-text\)"[^>]*>A</)
+    it.each(SeatPieceKinds)(
+        'a %s names its seat in its accessible name and its tooltip, so colour never stands alone',
+        (kind) => {
+            for (const piece of [token(kind), token(kind, paint)]) {
+                expect(piece).toMatch(/aria-label="Ana's [^"]+"/)
+                expect(piece).toMatch(/<title>Ana's [^<]+<\/title>/)
+            }
         }
-        const yellow = { ...paint, ink: 'var(--feudum-text)', printed: Color.Yellow as const }
-        expect(token('disc', yellow)).toMatch(/fill="var\(--feudum-halo\)"[^>]*>A</)
-    })
+    )
 
     it('a player disc shows the blank face, a reeve the face printed for its point', () => {
         expect(token('disc')).not.toContain('piece.reeve')
@@ -336,7 +337,7 @@ describe('printed seat pieces (S71)', () => {
         const piece = token(kind, paint)
         expect(piece).not.toContain('<image')
         expect(piece).toContain(`fill="${paint.fill}"`)
-        expect(piece).toContain('>A<')
+        expect(piece).not.toContain('<text')
     })
 
     it.each(SeatPieceKinds)('a %s whose printed file is not in the folder is drawn', (kind) => {
@@ -347,6 +348,21 @@ describe('printed seat pieces (S71)', () => {
         expect(piece).not.toContain('<image')
         expect(piece).toContain(`fill="${paint.fill}"`)
     })
+})
+
+describe('a controlled monster (R-4.2.4)', () => {
+    it.each(Folders)(
+        'with $name, wears its seat’s colour on a disc with no letter, and names the seat',
+        ({ files }) => {
+            folder.files = files()
+            const monster = render(MonsterToken, {
+                props: { monster: 'behemoth', paint }
+            }).body
+            expect(monster).toContain(`fill="${paint.fill}"`)
+            expect(monster).not.toContain('<text')
+            expect(monster).toMatch(/aria-label="Ana's behemoth"/)
+        }
+    )
 })
 
 describe('rose chips', () => {

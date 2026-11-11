@@ -14,10 +14,9 @@
     let chrome = $derived(gameSession.boardChrome)
     let tokens = $derived(gameSession.boardAnimator.tokens)
 
-    /** A seat's paint from the session's colourizer (S71), told apart by its initial as well. */
+    /** A seat's paint from the session's colourizer (S71), named by its seat in every piece's accessible name. */
     function paintOf(playerId: string) {
-        const initial = gameSession.getPlayerName(playerId).charAt(0).toUpperCase()
-        return seatPaint(gameSession.colors, playerId, initial)
+        return seatPaint(gameSession.colors, playerId, gameSession.getPlayerName(playerId))
     }
 
     /** R-1.4-H1 A colour no seat plays, from the same colourizer. */

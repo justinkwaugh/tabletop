@@ -29,7 +29,7 @@ const paint = {
     fill: 'var(--feudum-map-ink)',
     ink: 'var(--feudum-text)',
     edge: 'var(--feudum-map-ink)',
-    initial: 'B'
+    owner: "Bram's"
 }
 const Owner = 'p2'
 const Other = 'p1'

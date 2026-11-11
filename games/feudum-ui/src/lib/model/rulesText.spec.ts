@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { ActionCards, Charters, GuildById, GuildIds, Mandates, RoyalWrits } from '@tabletop/feudum'
 import { NotedIds, RulesNotes, rulesNoteOf } from './rulesText.js'
 
-const paint = { fill: '#336699', ink: '#000', edge: '#000', initial: 'A' }
+const paint = { fill: '#336699', ink: '#000', edge: '#000', owner: "Ana's" }
 
 /** The data's own wording, which is the rulebook's: no note repeats it. */
 const PrintedWording: readonly string[] = [

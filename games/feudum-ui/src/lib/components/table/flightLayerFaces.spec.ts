@@ -30,7 +30,7 @@ function markupOf(plan: FlightPlan): string {
     return render(FlightLayer, {
         props: {
             animator,
-            paintOf: () => ({ fill: '#123456', ink: '#ffffff', edge: '#000000', initial: 'A' })
+            paintOf: () => ({ fill: '#123456', ink: '#ffffff', edge: '#000000', owner: "Ana's" })
         }
     }).body
 }

@@ -18,7 +18,7 @@
             return {
                 playerId,
                 name,
-                paint: seatPaint(gameSession.colors, playerId, name.charAt(0).toUpperCase()),
+                paint: seatPaint(gameSession.colors, playerId, name),
                 score: view.ribbon.score,
                 deciding: view.ribbon.deciding,
                 cards: view.cards.handCount,

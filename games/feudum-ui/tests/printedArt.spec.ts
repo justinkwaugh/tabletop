@@ -95,7 +95,7 @@ test('R-3.1 each printed card fills its face, and at standard size carries no na
         expect((await boxOf(face)).width, `card ${index + 1}`).toBeGreaterThanOrEqual(60)
         await expect(face.locator('> rect'), `card ${index + 1}`).toHaveCount(0)
         const name = (await row.getAttribute('data-row')) ?? ''
-        await expect(face).toHaveAccessibleName(new RegExp(`^${name.split(':')[0]} card, `))
+        await expect(face).toHaveAccessibleName(new RegExp(`'s ${name.split(':')[0]} card$`))
     }
 })
 
@@ -115,7 +115,12 @@ test('S71 each printed seat piece stands centred where the drawn piece stood', a
         expect(Math.abs(at.y - middle.y)).toBeLessThanOrEqual(1)
         expect(print.width).toBeLessThanOrEqual(box.width + 0.5)
         expect(print.height).toBeLessThanOrEqual(box.height + 0.5)
-        await expect(token.locator('text')).toHaveText(/^\S$/)
+        await expect(token.locator('text')).toHaveCount(0)
+        // A seat's piece names the seat; a dummy Knight row's names its colour (R-1.4-H1).
+        await expect(token).toHaveAttribute(
+            'aria-label',
+            /^(.+'s|red|blue|yellow|green|purple) (influence marker|player disc|reeve)$/
+        )
         const href = (await image.getAttribute('href')) ?? ''
         for (const kind of ['marker', 'disc'] as const) {
             if (href.includes(`piece.${kind}.`)) {

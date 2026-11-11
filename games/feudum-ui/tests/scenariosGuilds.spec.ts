@@ -141,11 +141,11 @@ scenario('S44 R-4.6.3, R-4.2.4 Knight trade and tame', 'guild-knight-trade', asy
     await table.press(table.popupRowStarting('Tame the behemoth'))
     const [deploy] = Object.keys(await table.litChips())
     const flights = await table.flightsOf(() => table.pressPick(deploy ?? ''))
-    expect(flights.filter((flight) => flight === 'markers: A influence marker')).toHaveLength(3)
+    expect(flights.filter((flight) => flight === "markers: Ana's influence marker")).toHaveLength(3)
     expect(flights).toContain('board: knight:blue:4')
     await expect(header(table)).toHaveCount(0)
     await expect(
-        table.page.locator('[data-board-surface]').getByRole('img', { name: 'behemoth, A' })
+        table.page.locator('[data-board-surface]').getByRole('img', { name: "Ana's behemoth" })
     ).toHaveCount(1)
 })
 

@@ -4,7 +4,7 @@ import { ColorblindColorizer } from '@tabletop/frontend-components'
 import { describe, expect, it } from 'vitest'
 import { PrintedColours } from '$lib/art/assetMap.js'
 import { FeudumGameColorizer } from '$lib/definitions/colorizer.js'
-import { colourPaint, printedInk, seatPaint } from './seatPaint.js'
+import { colourPaint, seatPaint } from './seatPaint.js'
 
 /** A session's colours with one seat in `colour`, shown through `colorizer`. */
 function sessionColours(colour: Color, colorizer = new FeudumGameColorizer()) {
@@ -30,36 +30,37 @@ describe('a seat paint and the printed colours', () => {
     it.each(PrintedColours)(
         'a %s seat under the default palette shows its printed colour',
         (colour) => {
-            expect(seatPaint(sessionColours(colour), 'seat', 'A').printed).toBe(colour)
+            expect(seatPaint(sessionColours(colour), 'seat', 'Ana').printed).toBe(colour)
             expect(colourPaint(sessionColours(colour), colour).printed).toBe(colour)
         }
     )
 
     it.each(PrintedColours)('a %s seat under the colour-blind palette is drawn', (colour) => {
         const colours = sessionColours(colour, new ColorblindColorizer())
-        expect(seatPaint(colours, 'seat', 'A').printed).toBeUndefined()
+        expect(seatPaint(colours, 'seat', 'Ana').printed).toBeUndefined()
         expect(colourPaint(colours, colour).printed).toBeUndefined()
     })
 
     it('a colour the publisher never printed is drawn', () => {
-        expect(seatPaint(sessionColours(Color.Orange), 'seat', 'A').printed).toBeUndefined()
+        expect(seatPaint(sessionColours(Color.Orange), 'seat', 'Ana').printed).toBeUndefined()
         expect(colourPaint(sessionColours(Color.Gray), Color.Gray).printed).toBeUndefined()
     })
 
     it('a fill that is not the colour’s own is drawn, whatever the colour says', () => {
         const colours = { getPlayerColor: () => Color.Red, getPlayerUiColor: () => '#123456' }
-        expect(seatPaint(colours, 'seat', 'A').printed).toBeUndefined()
+        expect(seatPaint(colours, 'seat', 'Ana').printed).toBeUndefined()
     })
 
-    it('the initial on a print is dark only on the light yellow print, light on the four dark ones', () => {
-        expect(printedInk(Color.Yellow)).toBe('var(--feudum-halo)')
-        for (const colour of [Color.Red, Color.Blue, Color.Green, Color.Purple] as const) {
-            expect(printedInk(colour)).toBe('var(--feudum-text)')
-        }
+    it('a seat paint names its seat, the start of every piece’s accessible name', () => {
+        expect(seatPaint(sessionColours(Color.Red), 'seat', 'Ana').owner).toBe("Ana's")
+    })
+
+    it('a colour with no seat behind it is named by its colour (R-1.4-H1)', () => {
+        expect(colourPaint(sessionColours(Color.Red), Color.Red).owner).toBe('red')
     })
 
     it('colours that cannot say the seat’s colour give a drawn paint', () => {
         const colours = { getPlayerUiColor: () => new FeudumGameColorizer().getUiColor(Color.Red) }
-        expect(seatPaint(colours, 'seat', 'A').printed).toBeUndefined()
+        expect(seatPaint(colours, 'seat', 'Ana').printed).toBeUndefined()
     })
 })
