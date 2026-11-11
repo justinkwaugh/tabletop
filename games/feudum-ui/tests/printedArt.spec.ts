@@ -103,6 +103,34 @@ test('R-3.1 each printed card fills its face, and its name plate stays clear of 
     }
 })
 
+test('S71 each printed seat piece stands centred where the drawn piece stood', async ({ page }) => {
+    await openTable(page, 'guildPick')
+    const prints = page.locator('[data-board-surface] svg[role="img"] > image[href*="piece."]')
+    test.skip((await prints.count()) === 0, 'no printed pieces in the folder')
+    const seen = { marker: 0, disc: 0 }
+    for (let index = 0; index < (await prints.count()); index++) {
+        const image = prints.nth(index)
+        const token = image.locator('xpath=..')
+        const box = await boxOf(token)
+        const print = await boxOf(image)
+        const at = centre(print)
+        const middle = centre(box)
+        expect(Math.abs(at.x - middle.x)).toBeLessThanOrEqual(1)
+        expect(Math.abs(at.y - middle.y)).toBeLessThanOrEqual(1)
+        expect(print.width).toBeLessThanOrEqual(box.width + 0.5)
+        expect(print.height).toBeLessThanOrEqual(box.height + 0.5)
+        await expect(token.locator('text')).toHaveText(/^\S$/)
+        const href = (await image.getAttribute('href')) ?? ''
+        for (const kind of ['marker', 'disc'] as const) {
+            if (href.includes(`piece.${kind}.`)) {
+                seen[kind]++
+            }
+        }
+    }
+    expect(seen.marker).toBeGreaterThan(0)
+    expect(seen.disc).toBeGreaterThan(0)
+})
+
 test('R-1.3 each printed panel fills its guild area, and the printed ring the whole board', async ({
     page
 }) => {

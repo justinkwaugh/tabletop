@@ -20,6 +20,7 @@ import {
     PrintedColours,
     RingAsset,
     SealAsset,
+    SeatPieceKinds,
     ShillingValues,
     TargetAsset,
     WritBackAsset,
@@ -31,6 +32,7 @@ import {
     locationAsset,
     monsterAsset,
     printedCardAsset,
+    seatPieceAsset,
     shillingAsset,
     strayFiles,
     tileBackAsset,
@@ -46,6 +48,7 @@ import GoodToken from './pieces/GoodToken.svelte'
 import LocationDisc from './pieces/LocationDisc.svelte'
 import MonsterToken from './pieces/MonsterToken.svelte'
 import SealFace from './pieces/SealFace.svelte'
+import SeatToken from './pieces/SeatToken.svelte'
 import ShillingToken from './pieces/ShillingToken.svelte'
 import TileFace from './pieces/TileFace.svelte'
 import VesselToken from './pieces/VesselToken.svelte'
@@ -131,6 +134,12 @@ const shownBy = new Map<string, () => string>([
                 props: { faceShown: false, paint: { ...paint, printed }, width: 200 }
             }).body
     ]),
+    ...SeatPieceKinds.flatMap((kind) =>
+        PrintedColours.map((printed): [string, () => string] => [
+            seatPieceAsset(kind, printed),
+            () => render(SeatToken, { props: { kind, paint: { ...paint, printed } } }).body
+        ])
+    ),
     ...(['outpost', 'farm', 'town'] as const).map((kind): [string, () => string] => [
         locationAsset(kind),
         () => render(LocationDisc, { props: { kind } }).body

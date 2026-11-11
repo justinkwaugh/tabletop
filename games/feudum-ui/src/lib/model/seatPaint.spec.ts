@@ -4,7 +4,7 @@ import { ColorblindColorizer } from '@tabletop/frontend-components'
 import { describe, expect, it } from 'vitest'
 import { PrintedColours } from '$lib/art/assetMap.js'
 import { FeudumGameColorizer } from '$lib/definitions/colorizer.js'
-import { colourPaint, seatPaint } from './seatPaint.js'
+import { colourPaint, printedInk, seatPaint } from './seatPaint.js'
 
 /** A session's colours with one seat in `colour`, shown through `colorizer`. */
 function sessionColours(colour: Color, colorizer = new FeudumGameColorizer()) {
@@ -49,6 +49,13 @@ describe('a seat paint and the printed colours', () => {
     it('a fill that is not the colour’s own is drawn, whatever the colour says', () => {
         const colours = { getPlayerColor: () => Color.Red, getPlayerUiColor: () => '#123456' }
         expect(seatPaint(colours, 'seat', 'A').printed).toBeUndefined()
+    })
+
+    it('the initial on a print is dark only on the light yellow print, light on the four dark ones', () => {
+        expect(printedInk(Color.Yellow)).toBe('var(--feudum-halo)')
+        for (const colour of [Color.Red, Color.Blue, Color.Green, Color.Purple] as const) {
+            expect(printedInk(colour)).toBe('var(--feudum-text)')
+        }
     })
 
     it('colours that cannot say the seat’s colour give a drawn paint', () => {
