@@ -10,6 +10,7 @@ import { queueFollowUp } from '../model/followUps.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { goodCounts } from '../model/stateSchemas.js'
 import {
+    Charter,
     FarmerMandate,
     giveTile,
     KnightMandate,
@@ -521,6 +522,57 @@ describe('R-4.10, D11 NourishPawns', () => {
         const processed = playOutCards(table)
 
         expect(processed[2]).toMatchObject({ metadata: { fed: [] } })
+    })
+
+    it('R-4.4-H1, R-4.4.2 a seat with nothing to decide but an at-will play waits in nourishing', () => {
+        const table = tableAtRoundEnd(4, (state, [mandate, tile, fed, starved]) => {
+            // Food for every pawn, so no feeding choice; a mandate that turns food in for 3s.
+            setFood(state, mandate, 1)
+            holdWrit(state, mandate, ShillingMandate)
+            // Food for every pawn, and a region tile to spend at will.
+            setFood(state, tile, 1)
+            giveTile(state, tile)
+            // Neither a choice nor an at-will play: fed, or starved, by the game.
+            setFood(state, fed, 1)
+            setFood(state, starved, 0)
+        })
+        const [mandate, tile, fed, starved] = table.order
+
+        const processed = playOutCards(table)
+
+        expect(typesOf(processed)).toEqual(RoundCascade.slice(0, 3))
+        expect(table.state.flow.nourish).toEqual({ pending: [mandate, tile] })
+        expect(processed[2]).toMatchObject({
+            metadata: {
+                fed: [
+                    { playerId: fed, foodFed: [1], returned: [] },
+                    { playerId: starved, foodFed: [], returned: [{ n: 1 }] }
+                ]
+            }
+        })
+        expect(table.offered(mandate)).toEqual(
+            expect.arrayContaining([ActionType.Nourish, ActionType.PlayMandate])
+        )
+        table.send(mandate, { type: ActionType.Nourish, wineFed: [], unfed: [] })
+        expect(table.offered(tile)).toEqual(
+            expect.arrayContaining([ActionType.Nourish, ActionType.SpendRegionTile])
+        )
+    })
+
+    it('R-5.1 who waits reads only public counts: a seat holding a charter waits as one holding a mandate', () => {
+        const table = tableAtRoundEnd(2, (state, [charter, mandate]) => {
+            setFood(state, charter, 1)
+            holdWrit(state, charter, Charter)
+            setFood(state, mandate, 1)
+            holdWrit(state, mandate, ShillingMandate)
+        })
+        const [charter, mandate] = table.order
+
+        playOutCards(table)
+
+        expect(table.state.flow.nourish).toEqual({ pending: [charter, mandate] })
+        expect(table.offered(charter)).toContain(ActionType.Nourish)
+        expect(table.offered(charter)).not.toContain(ActionType.PlayMandate)
     })
 
     it('R-4.5.2 status recomputes as an unfed pawn goes home', () => {

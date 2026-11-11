@@ -24,7 +24,7 @@ import { FeudumStateHandlers } from './stateHandlers.js'
 import { MachineState } from './states.js'
 
 /** A seed whose game goes through every state and ends on a stack emptied mid-round. */
-const WalkSeed = '00000000000000000000000000000012'
+const WalkSeed = '00000000000000000000000000000036'
 
 /** The Actions that play a card from a hand, for the cards still played after R-6.1-H1. */
 const CardPlays: readonly string[] = [

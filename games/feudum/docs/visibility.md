@@ -32,6 +32,8 @@ Everything else is public (R-5.3): the map, locations, markers, pawns and their 
 
 A defender or starved marker's owner is asked whether to answer an attack whenever public state cannot rule out an unplayed Defend: they have an unplayed card and have not played Defend this round (and, for Royal Immunity, hold a food or a wild tile that can bring one, with a seal in the pile: R-3.14-H3, R-3.14-H4). A player without Defend answers "no" with the same control, so being asked reveals nothing about the hand (R-3.14-H1).
 
+Nourishing asks a seat with pawns to feed whenever it has a feeding choice or public state cannot rule out an at-will play: it holds an unsealed writ (`writCount` above `sealedCharterCount`), a region tile with a good left in the haversack, or a Royal Immunity seal to reclaim. A seat whose writs are all unplayable is asked as one holding a playable mandate, so being asked reveals nothing about its writs (R-4.10-H4).
+
 ## Action records
 
 Draws, shuffles, the die and random picks are engine output. An Action that reads the vault or the protected stream resolves its result in `apply` from canonical state and writes it into state or `metadata`; the engine strips `metadata` from anything a client submits, and no submitted field is read as a draw or a roll.
@@ -91,6 +93,7 @@ No migrations: the Logic and UI Artifacts publish together, and a stored Game ke
 - Owner-known hands, writs, sealed charters, pending writ draws and deck knowledge, each projected for its owner, another player and a spectator: `visibility.spec.ts`; in Action records: `selectHand.spec.ts`, `explore.spec.ts`, `royalWrits.spec.ts`.
 - Seals red side up anonymous in every projection, named on a flip, returned to the vault on favours and on Starve the People, the pile reshuffled on each return: `visibility.spec.ts`, `beads.spec.ts`, `harvest.spec.ts`, `starve.spec.ts`.
 - The defender asked whenever public state cannot rule out Defend, with the same answer available without it: `defend.spec.ts`.
+- Nourishing asking from public counts alone, a charter's holder as a mandate's: `handlers.spec.ts`.
 - Haversack counts public and conserved, draws from the protected stream: `supply.spec.ts`.
 - Guarded execution deferring every vault read and protected draw to the host, and a projection offering the same actions as canonical state for its own player: `protectedPlay.spec.ts`.
 - `revealsInfo` set exactly on the barriers listed above, and Undo refused across them: each action's own spec, and `protectedPlay.spec.ts` over whole protected games.

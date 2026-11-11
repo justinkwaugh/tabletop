@@ -929,18 +929,18 @@ describe('R-5-H1 Whole games, from every seat and a spectator', () => {
         expect(named).toEqual(
             expect.arrayContaining([
                 'hands 38-40',
-                'nourishing 71-72',
-                'progress 73-74',
-                'nourishing 109-110',
-                'progress 111-111',
-                'dawn 112-114',
-                'dawn 354-354',
-                'single 355-355'
+                'nourishing 71-73',
+                'progress 74-75',
+                'nourishing 109-112',
+                'progress 113-113',
+                'dawn 114-116',
+                'dawn 453-453',
+                'single 454-454'
             ])
         )
         expect(entries.find(({ id }) => id === 'round-2')).toMatchObject({ jumpIndex: 37 })
-        expect(entries.find(({ id }) => id === 'dawn-112')).toMatchObject({
-            jumpIndex: 114,
+        expect(entries.find(({ id }) => id === 'dawn-114')).toMatchObject({
+            jumpIndex: 116,
             replays: true
         })
         // A guild function, its follow-ups and an at-will Action make one seat's turn.

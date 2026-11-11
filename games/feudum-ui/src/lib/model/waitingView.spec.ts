@@ -572,11 +572,6 @@ describe('S56 R-6.2, R-6.3 the game-end summary', () => {
                 fillBarrel(state, seat, 2)
             })
         )
-        // R-4.10.2 The barrel gives the seat something to feed with, so it is asked first.
-        await primaryNamed(table.session.actionPanel, /^Feed/).send()
-        for (const seat of table.sessions) {
-            await settled(seat)
-        }
         const score = table.host.actions.find((action) => isScoreGame(action))
         const metadata = isScoreGame(score) ? score.metadata : undefined
         assertExists(metadata?.barrelTieBreak, 'The vp were tied')

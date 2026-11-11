@@ -39,6 +39,16 @@ function sealUnderOwnMarker(
     return markerPlayerId(space, role) === playerId && markerImmune(space, role)
 }
 
+/** R-3.14.2 A seal lies under one of the seat's markers somewhere, from public occupancy. */
+export function holdsImmunitySealToReclaim(
+    state: HydratedFeudumGameState,
+    playerId: string
+): boolean {
+    return Spaces.some(({ id: spaceId }) =>
+        StarveRoles.some((role) => sealUnderOwnMarker(state, playerId, spaceId, role))
+    )
+}
+
 /** R-3.14.2, R-3.14-H2 In an at-will window, and a seal under a marker of its own. */
 export function reasonReclaimImmunitySealRefused(
     state: HydratedFeudumGameState,

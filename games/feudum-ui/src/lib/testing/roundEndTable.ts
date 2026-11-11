@@ -4,6 +4,7 @@ import {
     RegionIds,
     collectTopTile,
     fillLandscape,
+    nourishOffer,
     placeMarker,
     removeTopTile,
     stackTop,
@@ -69,7 +70,8 @@ export function tendLandscape(state: HydratedFeudumGameState, ruler: string, ser
 
 /**
  * R-3.2, R-4.11, R-4.12 Every seat holds one card and forfeits it, as a host would hear it: the last
- * sets off the roll and whatever dawn the stacks trigger. `tops` overrides the trigger's stacks.
+ * sets off the roll and whatever dawn the stacks trigger, each seat nourishing waits on sending its
+ * preselected feeding. `tops` overrides the trigger's stacks.
  */
 export async function playOutRound(
     epoch: TriggeredEpoch | undefined,
@@ -104,6 +106,16 @@ export async function playOutRound(
         })
         assertExists(kind, 'R-3.2 The seat asked holds a card')
         await host.send(asked, { type: ActionType.ForfeitCard, kind })
+        for (const seen of sessions) {
+            await settled(seen)
+        }
+    }
+    while (session.gameState.machineState === MachineState.Nourishing) {
+        const [asked] = session.gameState.activePlayerIds
+        const own = sessions[host.order.indexOf(asked)]
+        const feeding = nourishOffer(own.gameState, asked)?.preselected
+        assertExists(feeding, 'R-4.10-H4 The seat nourishing waits on decides its feeding')
+        await host.send(asked, { type: ActionType.Nourish, ...feeding })
         for (const seen of sessions) {
             await settled(seen)
         }
