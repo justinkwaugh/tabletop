@@ -1,16 +1,21 @@
 <script lang="ts">
     import WritFace from '$lib/components/pieces/WritFace.svelte'
+    import Enlargeable from '$lib/components/table/Enlargeable.svelte'
     import type { SeatNames } from '$lib/model/actionPanel.js'
     import type { GameEndSummaryView } from '$lib/model/gameEnd.js'
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
+    import { writName } from '$lib/model/writLabels.js'
 
     /**
      * R-6.2, R-6.3 Every category per seat, sealed charters face up, and the winner: one column per
-     * seat at a desk, one row per seat on a phone.
+     * seat at a desk. On a phone, one row per seat, its categories running on as a line and its
+     * charters small beside them, a press enlarging one, so every seat stands whole in the action
+     * area (contract: Phone layout).
      */
     let { summary, seats }: { summary: GameEndSummaryView; seats: SeatNames } = $props()
 
     const CharterWidth = 72
+    const PhoneCharterWidth = 44
     const phone = new PhoneLayout()
 </script>
 
@@ -20,46 +25,63 @@
         <p class="text-xs text-feudum-text-muted" data-game-tie-break>{summary.tieBreak}</p>
     {/if}
     {#if phone.phone}
-        <div class="mt-1 flex flex-col gap-1 text-xs text-feudum-text">
+        <div class="mt-1 flex flex-col gap-1 text-xs leading-tight text-feudum-text">
             {#each summary.columns as column (column.playerId)}
                 <div
-                    class="rounded-md bg-feudum-surface-raised px-1.5 py-1"
+                    class="flex gap-1.5 rounded-md bg-feudum-surface-raised px-1.5 py-0.5"
                     data-game-end-seat={seats.nameOf(column.playerId)}
                     data-winner={column.winner ? '' : undefined}
                 >
-                    <p class="flex items-center gap-1 font-semibold">
-                        <span
-                            class="inline-block h-2.5 w-2.5 rounded-full"
-                            style:background-color={seats.paintOf(column.playerId).fill}
-                        ></span>
-                        {seats.nameOf(column.playerId)}
-                        <span class="ml-auto" data-game-end-row="total">{column.score}</span>
-                    </p>
-                    <p data-game-end-row="before-dawn">
-                        <span class="text-feudum-text-muted">Before V dawn</span>
-                        {column.beforeDawn}
-                    </p>
-                    <p data-game-end-row="dawn">
-                        <span class="text-feudum-text-muted">V dawn</span>
-                        {column.fifthDawn}
-                    </p>
-                    <p data-game-end-row="voyage">
-                        <span class="text-feudum-text-muted">Epic voyage</span>
-                        {column.voyage.label} · {column.voyage.vp}
-                    </p>
-                    <p data-game-end-row="empire">
-                        <span class="text-feudum-text-muted">Large empire</span>
-                        {column.largeEmpire.label} · {column.largeEmpire.vp}
-                    </p>
-                    <p data-game-end-row="shillings">
-                        <span class="text-feudum-text-muted">Shillings</span>
-                        {column.shillings.label} · {column.shillings.vp}
-                    </p>
+                    <div class="min-w-0 grow">
+                        <p class="flex items-center gap-1 font-semibold">
+                            <span
+                                class="inline-block h-2.5 w-2.5 rounded-full"
+                                style:background-color={seats.paintOf(column.playerId).fill}
+                            ></span>
+                            {seats.nameOf(column.playerId)}
+                            <span class="ml-auto" data-game-end-row="total">{column.score}</span>
+                        </p>
+                        <p>
+                            <span data-game-end-row="before-dawn"
+                                ><span class="text-feudum-text-muted">Before V dawn</span>
+                                {column.beforeDawn}</span
+                            >
+                            ·
+                            <span data-game-end-row="dawn"
+                                ><span class="text-feudum-text-muted">V dawn</span>
+                                {column.fifthDawn}</span
+                            >
+                            ·
+                            <span data-game-end-row="voyage"
+                                ><span class="text-feudum-text-muted">Epic voyage</span>
+                                {column.voyage.label} · {column.voyage.vp}</span
+                            >
+                            ·
+                            <span data-game-end-row="empire"
+                                ><span class="text-feudum-text-muted">Large empire</span>
+                                {column.largeEmpire.label} · {column.largeEmpire.vp}</span
+                            >
+                            ·
+                            <span data-game-end-row="shillings"
+                                ><span class="text-feudum-text-muted">Shillings</span>
+                                {column.shillings.label} · {column.shillings.vp}</span
+                            >
+                        </p>
+                    </div>
                     {#if column.charters.length > 0}
-                        <div class="flex flex-wrap gap-1" data-game-end-row="charters">
+                        <div class="flex shrink-0 items-start gap-1" data-game-end-row="charters">
                             {#each column.charters as { writId, vp } (writId)}
-                                <span class="inline-flex flex-col" data-game-end-charter={writId}>
-                                    <WritFace faceShown {writId} width={CharterWidth} />
+                                <span
+                                    class="inline-flex flex-col items-center"
+                                    data-game-end-charter={writId}
+                                >
+                                    <Enlargeable
+                                        tag="div"
+                                        label={writName(writId)}
+                                        face={() => ({ kind: 'writ', faceShown: true, writId })}
+                                    >
+                                        <WritFace faceShown {writId} width={PhoneCharterWidth} />
+                                    </Enlargeable>
                                     <span data-charter-score>{vp} vp</span>
                                 </span>
                             {/each}

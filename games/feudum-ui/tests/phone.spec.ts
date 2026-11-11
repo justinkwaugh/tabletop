@@ -8,6 +8,7 @@ import {
     settled,
     shot
 } from './helpers.js'
+import { openFixture } from './scenarioTable.js'
 
 /**
  * A phone on the real table: where things stand and what a press does, at 375 x 812 and held
@@ -821,6 +822,26 @@ test.describe('a 390 px phone', () => {
         }
         await expectNoSidewaysScroll(page)
         await shot(page, 'phone-390-show-on-board')
+    })
+
+    test('R-6.2 the game end shows every seat whole inside the action area', async ({ page }) => {
+        await openFixture(page, 'game-end')
+        await settled(page)
+        const area = await rect(cap(page))
+        const seats = panel(page).locator('[data-game-end] [data-game-end-seat]')
+        await expect(seats).toHaveCount(3)
+        for (const seat of await seats.all()) {
+            const box = await rect(seat)
+            expect(box.x).toBeGreaterThanOrEqual(area.x)
+            expect(box.x + box.width).toBeLessThanOrEqual(area.x + area.width)
+            expect(box.y).toBeGreaterThanOrEqual(area.y)
+            expect(box.y + box.height).toBeLessThanOrEqual(area.y + area.height)
+        }
+        const charter = panel(page).locator('[data-game-end-charter]')
+        await expect(charter.locator('[data-charter-score]')).toHaveText('5 vp')
+        await charter.getByRole('button', { name: /^Enlarge/ }).tap()
+        await expect(page.locator('[data-enlarged]')).toBeVisible()
+        await expectNoSidewaysScroll(page)
     })
 })
 

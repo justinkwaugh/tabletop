@@ -391,7 +391,7 @@ Target: 375 × 812, held upright. Budget, top to bottom:
 - **The hand.** In hand selection the eleven cards stand in two rows (six, five) at the column's width, each with a magnifier; the pouch row and the finalise button share one line under them. The finalise order shares the prompt's line, each seat by its colour, which the seat strip names. In card play the hand is one row of up to five; each card's preview path stands beneath it on one line and reads "On board", where "Show on board" has no room, its accessible name staying "Show on board: <card>" (checked at 390 px). A magnifier enlarges a card to the screen width less 32 px.
 - **Move on a phone.** The allowance and "Stop moving" share the panel's one line; steps, the trail and way popups are on the framed map.
 - **Seat strip.** Each chip shows the seat colour, a short name, the score, hand count and writ count, with the turn pulse. A press opens the seat panel as a bottom sheet, up to 85 % of the dynamic viewport, scrolling inside.
-- **Dawn sheet and game end** scroll inside the action area's 36 %, one seat per row.
+- **Dawn sheet and game end** scroll inside the action area's 36 %, one seat per row. A game-end seat runs its categories on as one line under its name and total, its sealed charters 44 px wide beside them with "5 vp" beneath, a press enlarging one; three seats stand whole in the action area (checked at 390 × 844).
 - **Held sideways** (812 × 375), the action area caps at 40 % and the board fits the chosen view by height.
 - **Full screen** keeps play going: the action panel in the toolbar.
 - No hover anywhere; every hover effect has a press path or is not needed (a touch tap on a panel row shows its preview, as MarraCash's `hoverOrTap` does).
