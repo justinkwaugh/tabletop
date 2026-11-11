@@ -732,21 +732,49 @@ describe('R-3.10 Explore, R-3.12 Tax, R-3.14.1 Defend: one press', () => {
         expect(session.undoableAction).toBeUndefined()
     })
 
-    it('S22 Tax with Reinforcements: the button says it, one press sends, Undo is offered', async () => {
-        const turn = await table(['tax', 'guild'], (state, { seat }) => {
+    it('S22 R-3.12-H1 Tax with Reinforcements asks: collect or decline, then one press sends', async () => {
+        const arrange: Parameters<typeof table>[1] = (state, { seat }) => {
             state.getPlayerState(seat).pawns[0].character = 'knight'
             ruleTown(state, seat)
-        })
+        }
+        const turn = await table(['tax', 'guild'], arrange)
         const { session, seat } = turn
-        const { shillings } = taxPreview(session.gameState, seat)
-        const label = `Tax · +${shillings}s · Reinforcements +1 marker`
+        const { shillings } = taxPreview(session.gameState, seat, { collect: false })
+        const plain = `Tax · +${shillings}s`
+        const collected = `${plain} · Reinforcements +1 marker`
         pickCard(session, 'tax')
-        expect(session.turnPanel?.primary).toEqual({ label, enabled: true })
-        expect(row(session.turnPanel?.modes, label).picked).toBe(true)
+        expect(session.turn.flow?.rows.map(({ label }) => label)).toEqual([
+            'Collect Reinforcements · +1 marker',
+            'Decline Reinforcements'
+        ])
+        expect(session.turnPanel?.primary).toEqual({ label: plain, enabled: false })
+        await pressRow(session, 'Collect Reinforcements · +1 marker')
+        expect(session.turnPanel?.primary).toEqual({ label: collected, enabled: true })
+        await session.sendTurnCard()
+        await session.waitForVisibleTransitionSettled()
+        expect(sentBy(turn)).toMatchObject({ type: ActionType.Tax, collect: true })
+        expect(session.undoableAction).toBeDefined()
+        host?.close()
+
+        const declining = await table(['tax', 'guild'], arrange)
+        pickCard(declining.session, 'tax')
+        await pressRow(declining.session, 'Decline Reinforcements')
+        expect(declining.session.turnPanel?.primary).toEqual({ label: plain, enabled: true })
+        await declining.session.sendTurnCard()
+        await declining.session.waitForVisibleTransitionSettled()
+        expect(sentBy(declining)).toMatchObject({ type: ActionType.Tax, collect: false })
+    })
+
+    it('R-3.12-H1 without a Knight pawn Tax asks nothing: one press sends', async () => {
+        const turn = await table(['tax', 'guild'], (state, { seat }) => ruleTown(state, seat))
+        const { session } = turn
+        pickCard(session, 'tax')
+        expect(session.turn.flow?.rows).toEqual([])
+        expect(session.turnPanel?.primary).toMatchObject({ label: /^Tax · \+\d+s$/, enabled: true })
         await session.sendTurnCard()
         await session.waitForVisibleTransitionSettled()
         expect(sentBy(turn)).toMatchObject({ type: ActionType.Tax })
-        expect(session.undoableAction).toBeDefined()
+        expect(sentBy(turn)).not.toHaveProperty('collect')
     })
 
     it('S24 Defend in turn: one press sends', async () => {

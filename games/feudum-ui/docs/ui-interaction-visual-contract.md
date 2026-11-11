@@ -116,7 +116,7 @@ The turn player's panel shows the hand as faces in one row. Above it, one line: 
     - "Forfeit", which plays the card without its action (R-3.2);
     - "Play two cards this turn" as a toggle, while the pouch holds an unused sulfur (R-3.3). With it on, the turn continues with a second card after the first and its follow-ups.
 - A card the engine refuses in every mode except Forfeit shows only Forfeit. A lone Conquer shows only Forfeit (R-3.13-H1).
-- **Additive specials that cost nothing and need no choice** apply by themselves, and the button says so: "Tax · +4s · Reinforcements +1 marker". The engine reads no choice from the UI that the seat did not make (R-X.1).
+- **Reinforcements is asked** (R-3.12-H1): with a Knight pawn on the board and a marker to come, Tax shows two rows, "Collect Reinforcements · +1 marker" and "Decline Reinforcements". The button reads "Tax · +4s", dimmed until a row is picked, then says the answer: "Tax · +4s · Reinforcements +1 marker". The engine reads no choice from the UI that the seat did not make (R-X.1).
 - Undo steps back through the stages one press at a time, then to no card picked.
 
 Card by card, the stages after the card and its mode:
@@ -130,7 +130,7 @@ Card by card, the stages after the card and its mode:
 - **`TendLandscape`** (R-3.9.3, the Improve card's special). The seat's collected tiles show in the panel by their landscape. A press picks one; spaces where the seat is serf and no landscape lies light. A press on one opens a popup: "Collect 3 food · 1 to the ruler" or "Leave it". Its press sends.
 - **`Explore`** (R-3.10). The primary reads "Explore: draw 3 writs · can't be undone". Then `KeepingWrits` follows.
 - **`Harvest`** (R-3.11). Ruled farms under 10 goods light, each with its total ("7 goods"). A press opens a popup beside the farm: "Harvest 7", "Favours: 5 here, 2 to you", with "your 2 beads turn to seals" in rose when the seat holds beads, and, with a Farmer pawn on the board, "Inspect the harvest". The choice stages; the primary reads "Harvest 7 at Forest 3 · can't be undone". Inspect leads to `InspectingHarvest`.
-- **`Tax`** (R-3.12). One press sends.
+- **`Tax`** (R-3.12). One press sends; with Reinforcements to collect, a row answers it first (R-3.12-H1).
 - **`Conquer`** (R-3.13, R-4.8). Opponents' pawns, monsters and feudums on spaces where the seat has a pawn or monster light, each with the strengths as known now ("3 vs 4") in rose. Pieces of one owner on one space are picked one by one; a feudum is picked by its disc. The panel shows the tally (attack and defence by source) and "Defence may rise by 1 if they answer". When the engine will ask the defender, the primary reads "Conquer Ana's knight · Ana may answer · can't be undone"; otherwise the press sends and leads to `CommittingAttack`, or resolves when there is nothing to add.
 - **`StarveThePeople`** (R-3.13.2, the Conquer card's special). Opponents' subjects and serfs on spaces holding the seat's Noble light with "starve" in rose; an immune marker is unlit and carries its seal. When the engine will ask the owner, the primary reads "Starve Ana's serf · Ana may answer · can't be undone"; otherwise the press sends.
 - **`PlayDefend`** (R-3.14.1). One press sends: "Play Defend · +1 vp".
@@ -434,7 +434,7 @@ Each gives the start, the input, the result, the result after Undo or exit, and 
 - **S19. Shovels & Swords.** From S18, press "Keep, then Shovels & Swords": two more faces show to the drawer; keep one more. The second keep has no Shovels & Swords button. Auto.
 - **S20. `Harvest` with favours.** Hold two +2 beads, press a lit farm: the popup shows "Favours: 6 here, 3 to you" with "your 2 beads turn to seals" in rose. Choose it; the primary reads "… · can't be undone". Send: goods fly from the haversack, six to the farm and three to the seat; the beads turn to seals. Auto.
 - **S21. Inspect the harvest.** With a Farmer pawn and three farms ruled, for a total of 7: choose "Inspect the harvest"; after the send the drawn goods show in a row with "Take 2 as favours". Pick two; send. "No favours" sends instead. Undo before the favours send takes back a pick; no Undo of the Harvest. Auto.
-- **S22. `Tax` with Reinforcements.** With a Knight pawn and three towns ruled: the Tax button reads "+4s · Reinforcements +1 marker". One press sends; Undo is offered. Auto.
+- **S22. `Tax` with Reinforcements.** With a Knight pawn and three towns ruled: the Tax button reads "Tax · +4s", dimmed, beside "Collect Reinforcements · +1 marker" and "Decline Reinforcements". Collect, and the button reads "Tax · +4s · Reinforcements +1 marker"; decline, and it reads "Tax · +4s". One press sends; Undo is offered. Auto.
 - **S23. `Repeat` and Déjà Vu.** After playing Move and Explore: Repeat lights Move, with no note, and with a saltpeter Explore with "Déjà Vu · 1 saltpeter"; Conquer and Defend never light. Pick Move: Move's stages follow; the seat panel marks the Repeat. Auto.
 - **S24. `PlayDefend` in turn.** One press sends; +1 vp; the card shows "Defend". Auto.
 
@@ -530,7 +530,7 @@ Each scenario is marked automated (with its spec) or checked (with date and widt
 - S19: automated (`actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosCards.spec.ts`
 - S20: automated (`actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosCards.spec.ts`
 - S21: automated (`actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosCards.spec.ts`
-- S22: automated (`actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosCards.spec.ts`
+- S22: automated (`actionPanelSession.spec.ts`, `turnDraft.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosCards.spec.ts`
 - S23: automated (`actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosCards.spec.ts`
 - S24: automated (`actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosCards.spec.ts`
 - S25: automated (`actionPanelSession.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosMove.spec.ts`

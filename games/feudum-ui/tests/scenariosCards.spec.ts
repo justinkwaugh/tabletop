@@ -302,13 +302,20 @@ scenario('S21 R-3.11.3 Inspect the harvest, No favours', 'cards-harvest-farmer',
     await expect(table.panel().locator('[data-rows="answer"]')).toHaveCount(0)
 })
 
-scenario('S22 R-3.12.1 Tax with Reinforcements', 'cards-tax-knight', async (table) => {
-    await table.press(table.card('Tax'))
-    await expect(table.primary()).toHaveText('Tax · +4s · Reinforcements +1 marker')
-    await table.press(table.primary())
-    await expect(table.undo()).toBeVisible()
-    await expect(table.panel().locator('[data-cards="hand"] [data-row="Tax"]')).toHaveCount(0)
-})
+scenario(
+    'S22 R-3.12.1, R-3.12-H1 Tax with Reinforcements, asked',
+    'cards-tax-knight',
+    async (table) => {
+        await table.press(table.card('Tax'))
+        await expect(table.primary()).toHaveText('Tax · +4s')
+        await expect(table.primary()).toBeDisabled()
+        await table.press(table.rowIn('flow', 'Collect Reinforcements · +1 marker'))
+        await expect(table.primary()).toHaveText('Tax · +4s · Reinforcements +1 marker')
+        await table.press(table.primary())
+        await expect(table.undo()).toBeVisible()
+        await expect(table.panel().locator('[data-cards="hand"] [data-row="Tax"]')).toHaveCount(0)
+    }
+)
 
 scenario('S23 R-3.15 Repeat and Deja Vu', 'cards-repeat', async (table) => {
     await table.press(table.card('Repeat'))

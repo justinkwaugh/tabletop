@@ -29,6 +29,7 @@ import {
     reasonStarveThePeopleRefused,
     reasonTaxRefused,
     reasonTendLandscapeRefused,
+    reinforcementsOffered,
     Spaces,
     StartingSpaceIds,
     Conquer,
@@ -711,12 +712,43 @@ function harvestFlow({ state, playerId, input, read }: FlowInput): FlowView {
     }
 }
 
-/** R-3.12 The one press is the button, which says what the card will do. */
-function taxFlow({ state, playerId, input }: FlowInput, name: string): FlowView {
-    const play = playIf(reasonTaxRefused(state, playerId, input), (maker) =>
-        maker.createPlayerAction(Tax, { ...input })
-    )
-    return { ...Empty, primaryName: name, confirms: true, ...(play ? { play } : {}) }
+/**
+ * R-3.12, R-3.12-H1 With Reinforcements to collect, two rows ask whether to; the button, which says
+ * what the card will do, sends once answered. Without, the one press is the button.
+ */
+function taxFlow({ state, playerId, input, read }: FlowInput, name: string): FlowView {
+    if (!reinforcementsOffered(state, playerId)) {
+        const play = playIf(reasonTaxRefused(state, playerId, input), (maker) =>
+            maker.createPlayerAction(Tax, { ...input })
+        )
+        return { ...Empty, primaryName: name, confirms: true, ...(play ? { play } : {}) }
+    }
+    const collect = read('collect')
+    const rows: PanelChoice[] = [
+        {
+            label: 'Collect Reinforcements · +1 marker',
+            picked: collect === true,
+            press: Pick('collect', true)
+        },
+        {
+            label: 'Decline Reinforcements',
+            picked: collect === false,
+            press: Pick('collect', false)
+        }
+    ]
+    const data = collect === undefined ? undefined : { ...input, collect }
+    const play =
+        data &&
+        playIf(reasonTaxRefused(state, playerId, data), (maker) =>
+            maker.createPlayerAction(Tax, data)
+        )
+    return {
+        ...Empty,
+        rows,
+        primaryName: collect ? `${name} · Reinforcements +1 marker` : name,
+        confirms: true,
+        ...(play ? { play } : {})
+    }
 }
 
 /** R-3.14.1 */

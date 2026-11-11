@@ -126,14 +126,26 @@ describe('Tax: R-3.12.1', () => {
     })
 })
 
-describe('Reinforcements: R-3.12.2, R-X.1 (S22)', () => {
-    it('R-3.12.2 with a Knight pawn: one marker from the general supply, unasked', () => {
+describe('Reinforcements: R-3.12.2, R-3.12-H1 (S22)', () => {
+    it('R-3.12-H1 with a Knight pawn the seat is asked: Tax without an answer is refused', () => {
+        const { table, playerId } = tableWith(['town'], knight)
+        expect(reasonTaxRefused(table.hydrated(), playerId, {})).toBe(
+            'Collect Reinforcements or decline it.'
+        )
+        expect(() => table.send(playerId, { type: ActionType.Tax })).toThrow(
+            'Collect Reinforcements or decline it.'
+        )
+        expect(reasonTaxRefused(table.hydrated(), playerId, { collect: true })).toBeUndefined()
+        expect(reasonTaxRefused(table.hydrated(), playerId, { collect: false })).toBeUndefined()
+    })
+
+    it('R-3.12.2 collected: one marker from the general supply', () => {
         const { table, playerId } = tableWith(['town'], knight)
         const seat = table.seat(playerId)
         const markers = seat.influenceSupply
         const inSupply = table.state.supply.influence[seat.color]
 
-        const [action] = table.send(playerId, { type: ActionType.Tax })
+        const [action] = table.send(playerId, { type: ActionType.Tax, collect: true })
 
         expect(table.seat(playerId).influenceSupply).toBe(markers + 1)
         expect(table.state.supply.influence[seat.color]).toBe(inSupply - 1)
@@ -141,6 +153,22 @@ describe('Reinforcements: R-3.12.2, R-X.1 (S22)', () => {
         expect(action).toMatchObject({
             metadata: { shillings: 2, reinforcements: 'general-supply', rankChanges: [] }
         })
+    })
+
+    it('R-3.12-H1 declined: Tax pays, no marker comes, and the card is played for its action', () => {
+        const { table, playerId } = tableWith(['town'], knight)
+        const seat = table.seat(playerId)
+        const markers = seat.influenceSupply
+        const inSupply = table.state.supply.influence[seat.color]
+
+        const [action] = table.send(playerId, { type: ActionType.Tax, collect: false })
+
+        expect(table.seat(playerId).shillings).toBe(seat.shillings + 2)
+        expect(table.seat(playerId).influenceSupply).toBe(markers)
+        expect(table.state.supply.influence[seat.color]).toBe(inSupply)
+        expect(table.seat(playerId).played).toEqual([{ kind: 'tax', use: 'regular' }])
+        expect(action).toMatchObject({ metadata: { shillings: 2, rankChanges: [] } })
+        expect(action).not.toHaveProperty('metadata.reinforcements')
     })
 
     it('R-3.12.2 several knights still take one marker', () => {
@@ -151,7 +179,7 @@ describe('Reinforcements: R-3.12.2, R-X.1 (S22)', () => {
             second.spaceId = first.spaceId
         })
         const markers = table.seat(playerId).influenceSupply
-        table.send(playerId, { type: ActionType.Tax })
+        table.send(playerId, { type: ActionType.Tax, collect: true })
         expect(table.seat(playerId).influenceSupply).toBe(markers + 1)
     })
 
@@ -165,7 +193,7 @@ describe('Reinforcements: R-3.12.2, R-X.1 (S22)', () => {
         const own = rows.findIndex((row) => row.playerId === playerId)
         const markers = table.seat(playerId).influenceSupply
 
-        const [action] = table.send(playerId, { type: ActionType.Tax })
+        const [action] = table.send(playerId, { type: ActionType.Tax, collect: true })
 
         expect(table.seat(playerId).influenceSupply).toBe(markers + 1)
         expect(table.state.guilds.knight.rows.map((row) => row.markers)).toEqual(
@@ -174,7 +202,7 @@ describe('Reinforcements: R-3.12.2, R-X.1 (S22)', () => {
         expect(action).toMatchObject({ metadata: { reinforcements: 'knight-row' } })
     })
 
-    it('R-3.12.2, R-1.1 with neither, Tax still pays and no marker comes', () => {
+    it('R-3.12.2, R-1.1 with neither, nothing is asked: Tax still pays and no marker comes', () => {
         const { table, playerId } = tableWith(['town'], (state, id) => {
             knight(state, id)
             emptyColour(state, id)
@@ -185,15 +213,21 @@ describe('Reinforcements: R-3.12.2, R-X.1 (S22)', () => {
             }
         })
         const markers = table.seat(playerId).influenceSupply
+        expect(reasonTaxRefused(table.hydrated(), playerId, { collect: true })).toBe(
+            'No influence marker of yours is left to collect.'
+        )
         const [action] = table.send(playerId, { type: ActionType.Tax })
         expect(table.seat(playerId).influenceSupply).toBe(markers)
         expect(action).toMatchObject({ metadata: { shillings: 2 } })
         expect(action).not.toHaveProperty('metadata.reinforcements')
     })
 
-    it('R-3.12.2 without a Knight pawn nothing comes, though a row holds markers', () => {
+    it('R-3.12.2 without a Knight pawn nothing is asked or comes, though a row holds markers', () => {
         const { table, playerId } = tableWith(['town'])
         const markers = table.seat(playerId).influenceSupply
+        expect(reasonTaxRefused(table.hydrated(), playerId, { collect: true })).toBe(
+            'Reinforcements needs a Knight pawn on the board.'
+        )
         table.send(playerId, { type: ActionType.Tax })
         expect(table.seat(playerId).influenceSupply).toBe(markers)
     })
@@ -214,7 +248,7 @@ describe('Reinforcements: R-3.12.2, R-X.1 (S22)', () => {
         const inSupply = table.state.supply.influence[color]
         expect(table.state.guilds.tracks.knight.master).toBeUndefined()
 
-        const [action] = table.send(playerId, { type: ActionType.Tax })
+        const [action] = table.send(playerId, { type: ActionType.Tax, collect: true })
 
         expect(table.state.guilds.tracks.knight.master?.playerId).toBe(playerId)
         expect(table.seat(playerId).influenceSupply).toBe(0)
@@ -230,9 +264,13 @@ describe('Reinforcements: R-3.12.2, R-X.1 (S22)', () => {
     it('R-3.12 the preview gives the press’s result and changes nothing', () => {
         const { table, playerId } = tableWith(['town', 'town'], knight)
         const before = JSON.stringify(table.state)
-        expect(taxPreview(table.hydrated(), playerId)).toEqual({
+        expect(taxPreview(table.hydrated(), playerId, { collect: true })).toEqual({
             shillings: 3,
             reinforcements: 'general-supply',
+            rankChanges: []
+        })
+        expect(taxPreview(table.hydrated(), playerId, { collect: false })).toEqual({
+            shillings: 3,
             rankChanges: []
         })
         expect(JSON.stringify(table.state)).toBe(before)
