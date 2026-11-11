@@ -48,7 +48,7 @@
             { area: 'name', label: 'Game' },
             { area: 'players', label: 'Players' },
             { area: 'progress', label: 'Progress' },
-            { area: 'onmove', label: 'On move' },
+            { area: 'onmove', label: 'Turn' },
             { area: 'age', label: 'Last move' }
         ],
         finished: [
@@ -74,8 +74,9 @@
 
 <div class="game-table {kind}" role="region" aria-label={label}>
     <div class="row heading" aria-hidden="true">
-        {#each HEADINGS[kind] as heading (heading.area)}<span style:grid-area={heading.area}
-                >{heading.label}</span
+        {#each HEADINGS[kind] as heading (heading.area)}<span
+                class:players={heading.area === 'players'}
+                style:grid-area={heading.area}>{heading.label}</span
             >{/each}
     </div>
     <ul>
@@ -244,6 +245,7 @@
     }
     .players {
         grid-area: players;
+        text-align: center;
     }
     .row :global(.progress) {
         grid-area: progress;
