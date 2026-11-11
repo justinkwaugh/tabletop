@@ -30,6 +30,7 @@ import {
     recordedText,
     type GoodAmounts
 } from '../testing/guilds.js'
+import { runGuarded } from '../testing/protected.js'
 import { canonicalOf } from '../testing/state.js'
 import { alchemistTradeOffers } from '../guilds/alchemist.js'
 import { farmerTradeOffers } from '../guilds/farmer.js'
@@ -239,6 +240,17 @@ describe('GuildAction: R-4.6.3 the spill', () => {
         const [action] = table.send(playerId, { ...FarmerTrade, params: { farmSpaceId } })
         expect(action.revealsInfo).toBeFalsy()
         expect(table.hydrated().guilds.farmer.barn.wood).toBe(2)
+    })
+
+    it("R-5.1, R-4.6.3 a send with nothing to spill runs from the seat's own view", () => {
+        const { table, playerId, farmSpaceId } = trading({ wood: 2 })
+        const step = {
+            input: { id: 'trade', playerId, ...FarmerTrade, params: { farmSpaceId } },
+            before: table.state,
+            processed: [],
+            after: []
+        }
+        expect(runGuarded(table, step)).toBeDefined()
     })
 })
 

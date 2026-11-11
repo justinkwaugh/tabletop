@@ -125,12 +125,15 @@ function performTrade(
 
     const shipment = { ...sent }
     const fates = { toMarket: goodCounts(), toCarts: goodCounts(), toHaversack: goodCounts() }
-    const { random } = state.getProtectedPrng()
-    for (let index = 0; index < spill; index++) {
-        const good = pickGood(shipment, random)
-        if (good) {
-            shipment[good] -= 1
-            spillGood(state, good, fates)
+    // R-5.1 Only a spill draws: a send with none needs nothing hidden, so its seat runs it.
+    if (spill > 0) {
+        const { random } = state.getProtectedPrng()
+        for (let index = 0; index < spill; index++) {
+            const good = pickGood(shipment, random)
+            if (good) {
+                shipment[good] -= 1
+                spillGood(state, good, fates)
+            }
         }
     }
 
