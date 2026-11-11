@@ -790,6 +790,24 @@ describe("The contract's own wording", () => {
         )
     })
 
+    it('R-4.3.1, R-4.3.2 An Improve that took no tile says why: the top not yet legal, or the stack empty', () => {
+        const improve = Lines[ActionType.Improve].action as Improve
+        const untaken = (noTile: 'empty' | 'prohibited') =>
+            line(
+                {
+                    ...improve,
+                    metadata: { ...improve.metadata, tile: undefined, noTile }
+                } as GameAction,
+                'p2'
+            )
+        expect(untaken('prohibited')).toBe(
+            'Ana improved Forest 2 from outpost to farm · disc outpost/farm · Forest tile not yet legal, none taken'
+        )
+        expect(untaken('empty')).toBe(
+            'Ana improved Forest 2 from outpost to farm · disc outpost/farm · no tile left'
+        )
+    })
+
     it('R-4.5.4 Ana became Merchant master; Ben dropped to journeyman', () => {
         expect(line(Lines[ActionType.Tax].action, 'p3')).toContain(
             'Ana became Merchant master; Ben dropped to journeyman'

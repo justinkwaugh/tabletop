@@ -309,7 +309,9 @@ describe('R-4.3.2 the tile Improve takes', () => {
         expect(seat.regionTiles).toEqual([])
         expect(seat.score).toBe(score)
         expect(after.regionStacks[start.region]).toEqual(stack)
+        expect(stack.length).toBeGreaterThan(0)
         expect(action).not.toHaveProperty('metadata.tile')
+        expect(action).toMatchObject({ metadata: { noTile: 'prohibited' } })
         expect(action.revealsInfo).toBeFalsy()
         expect(after.spaces[start.spaceId].location.kind).toBe('town')
     })
@@ -359,6 +361,19 @@ describe('R-4.3.2 the tile Improve takes', () => {
         const fallbackRegion = RegionIds.find((region) => region !== start.region)
         const [action] = send(start, { fallbackRegion })
         expect(action).toMatchObject({ metadata: { tile: { vp: 0 } } })
+    })
+
+    it('R-4.3.2 an empty stack with no earlier tile elsewhere takes nothing, and says the stack is empty', () => {
+        const start = atFarm((state, region) => {
+            state.epoch = 2
+            for (const other of RegionIds) {
+                uncover(state, other, other === region ? 5 : 2)
+            }
+        })
+        expect(start.table.hydrated().regionStacks[start.region]).toEqual([])
+        const [action] = send(start)
+        expect(action).not.toHaveProperty('metadata.tile')
+        expect(action).toMatchObject({ metadata: { noTile: 'empty' } })
     })
 
     it('a legal tile leaves no stack to choose', () => {

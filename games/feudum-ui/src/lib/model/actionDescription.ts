@@ -4,6 +4,8 @@ import {
     beadValue,
     ChickenSpaces,
     type ChickenSpaceId,
+    type ImproveMetadata,
+    type SpaceId,
     GuildById,
     isAdvanceTurn,
     isAnswerAttack,
@@ -68,7 +70,7 @@ import {
     type WildTileSpend,
     type WritId
 } from '@tabletop/feudum'
-import { spaceLabel } from './cardFlows.js'
+import { regionOf, spaceLabel } from './cardFlows.js'
 import { handFaceShown, writFaceShown } from './perspective.js'
 import { fillLine, goodsLine } from './roundEnd.js'
 import { EpochNames, tileName } from './tileName.js'
@@ -429,6 +431,13 @@ function discFaces(discId: string): Clause {
         : undefined
 }
 
+/** R-4.3.1, R-4.3.2 No tile taken: the stack is empty, or its top is of a later epoch and stays. */
+function untakenTile(spaceId: SpaceId, noTile: ImproveMetadata['noTile']): string {
+    return noTile === 'empty'
+        ? 'no tile left'
+        : `${titled(regionOf(spaceId))} tile not yet legal, none taken`
+}
+
 function improveLine(action: GameAction, words: Words): string | undefined {
     if (!isImprove(action)) {
         return undefined
@@ -449,7 +458,7 @@ function improveLine(action: GameAction, words: Words): string | undefined {
             : undefined,
         tile
             ? `took ${tileName(tile.tileId)} (${spoken(tile.landscape)})${action.fallbackRegion ? ' as fallback' : ''}`
-            : 'no tile left',
+            : untakenTile(action.spaceId, metadata.noTile),
         tile && tile.vp > 0 ? `+${tile.vp} vp` : undefined,
         ranksLine(metadata.rankChanges, words),
         playedAs(action)

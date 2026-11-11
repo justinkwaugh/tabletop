@@ -11,7 +11,13 @@ import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { RankChange } from '../model/guildStatus.js'
 import { discChoices, replaceLocationDisc, type DiscChoice } from '../model/locationDiscs.js'
 import { canCoverWithWildTiles, payGoods } from '../model/payments.js'
-import { collectTopTile, improvementTile, tileVp, type StackTile } from '../model/regionStacks.js'
+import {
+    collectTopTile,
+    improvementTile,
+    stackTop,
+    tileVp,
+    type StackTile
+} from '../model/regionStacks.js'
 import { moveConcealedSeal } from '../model/seals.js'
 import {
     ComponentCount,
@@ -55,6 +61,11 @@ export const ImproveMetadata = Type.Object({
             vp: ComponentCount
         })
     ),
+    /**
+     * R-4.3.1, R-4.3.2 Why no tile was taken: the region's stack is empty, or its top tile is of a
+     * later epoch and stays there. Absent when a tile was taken.
+     */
+    noTile: Type.Optional(Type.Union([Type.Literal('empty'), Type.Literal('prohibited')])),
     rankChanges: Type.Array(RankChange)
 })
 
@@ -327,9 +338,14 @@ export class HydratedImprove extends HydratableAction<typeof Improve> implements
             to: step.to,
             discId,
             ...(goodsToHaversack ? { goodsToHaversack } : {}),
-            ...(tile ? { tile } : {}),
+            ...(tile ? { tile } : { noTile: this.noTileReason(state) }),
             rankChanges: state.recomputeRanks(this.playerId)
         }
+    }
+
+    /** R-4.3.1, R-4.3.2 With no tile taken: is the region's stack empty, or its top not yet legal? */
+    private noTileReason(state: HydratedFeudumGameState): 'empty' | 'prohibited' {
+        return stackTop(state, regionOf(this.spaceId)) ? 'prohibited' : 'empty'
     }
 
     /** R-3.9.2, R-4.3.2, R-4.3-H1 The chart's vp for a legal tile, by what the location becomes; none for a fallback. R-X.2 A taken tile shows its hidden landscape. */
