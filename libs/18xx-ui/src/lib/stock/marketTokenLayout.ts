@@ -4,7 +4,10 @@ import type { MarketZone } from '../session/titlePresentation.js'
 
 export const MarketCellWidth = 62
 export const MarketCellHeight = 68
-export type MarketCellDimensions = Pick<BoundingBox, 'width' | 'height'>
+export type MarketCellDimensions = Pick<BoundingBox, 'width' | 'height'> & {
+    /** How far each column starts from the last, less than the width where spaces overlap, as on a zig-zag track. */
+    step?: number
+}
 export const DefaultMarketCell: MarketCellDimensions = {
     width: MarketCellWidth,
     height: MarketCellHeight
@@ -47,10 +50,11 @@ export function marketGeometry(
     const columnLefts = gapBefore.map((gap) => {
         if (gap) left += MarketZoneGap
         const columnLeft = left
-        left += cell.width
+        left += cell.step ?? cell.width
         return columnLeft
     })
-    return { cell, columnLefts, gapBefore, rows, width: left, height: rows * cell.height }
+    const width = left - (cell.step ?? cell.width) + cell.width
+    return { cell, columnLefts, gapBefore, rows, width, height: rows * cell.height }
 }
 
 /**

@@ -137,8 +137,9 @@ terminates it on state transition, history navigation, teardown, or completion.
 An in-flight response must still belong to the same state before the session
 revalidates it through RouteEvaluation and exposes the preview. Only the session's
 Run trains method submits the ordinary RunTrains Action. Automatic calculation
-never adds an action or consumes an Undo step. The manual route editor remains
-available only in the separate logic workbench.
+never adds an action or consumes an Undo step. A title that turns on drawn routes
+(`TitlePresentation.manualRoutes`, 1862 only) lets the director start from this
+run and change it on the map; the drawn run is validated the same way.
 
 Verification includes real browser workers for both titles, map/panel revenue
 agreement, commit and Undo, abandoning an in-flight calculation, and execution of

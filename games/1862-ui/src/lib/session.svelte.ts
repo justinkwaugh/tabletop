@@ -37,6 +37,7 @@ import {
     redeemableShare,
     refinancingCapital,
     smallStationLines,
+    SmallStationRevenue,
     stationCounts,
     trainWarranties,
     treasurySale,
@@ -44,13 +45,15 @@ import {
     type HydratedState1862,
     type State1862
 } from '@tabletop/1862'
-import type { TileEdge } from '@tabletop/18xx'
+import { RailwayMapState, withTrackStops, type TileEdge, type TrackStop } from '@tabletop/18xx'
 import { assertExists } from '@tabletop/common'
 import type { LocalSelection } from '@tabletop/frontend-components'
 import {
     createEighteenXXSessionClass,
+    placedTileLayout,
     type AwaitedDecision,
-    type MapLocationChoice
+    type MapLocationChoice,
+    type MapLocationFollowUpTile
 } from '@tabletop/18xx-ui'
 import { MapView1862 } from './mapView.js'
 import { Presentation1862 } from './presentation.js'
@@ -108,9 +111,13 @@ export class Session1862 extends BaseSession {
             [() => this.raiseAmount !== undefined, () => (this.raiseAmount = undefined)],
             [() => this.charterPar !== undefined, () => (this.charterPar = undefined)],
             [() => this.mergerPartner !== undefined, () => (this.mergerPartner = undefined)],
+            [() => this.smallStationLine !== undefined, () => (this.smallStationLine = undefined)],
             [
                 () => this.smallStationLocation !== undefined,
-                () => (this.smallStationLocation = undefined)
+                () => {
+                    this.smallStationLocation = undefined
+                    this.smallStationLine = undefined
+                }
             ]
         ]
         for (const [isMade, clear] of choices)
@@ -331,6 +338,7 @@ export class Session1862 extends BaseSession {
             canBuildToLondon(this.gameState, this.me, this.gameState.trackStep.companyId)
     )
     smallStationLocation = $state<string>()
+    smallStationLine = $state<string>()
     async placeSmallStation(
         locationId: string,
         edges: readonly [TileEdge, TileEdge]
@@ -368,27 +376,74 @@ export class Session1862 extends BaseSession {
             return super.mapLocationChoice
         const locationId = this.smallStationLocation
         const open = locationId ? lines[locationId] : undefined
+        const options = open?.map((line) => ({
+            id: line.join(),
+            label: lineName(line),
+            tile: locationId ? this.smallStationPreview(locationId, line) : undefined
+        }))
+        const clear = () => {
+            this.smallStationLocation = undefined
+            this.smallStationLine = undefined
+        }
         return {
             locationIds: Object.keys(lines),
             choose: (chosenId) => {
                 const choices = lines[chosenId]
                 if (choices?.length === 1) void this.placeSmallStation(chosenId, choices[0])
-                else this.smallStationLocation = chosenId
+                else if (chosenId === locationId && options?.length) {
+                    // Tapping the chosen hex again moves the station to its next line.
+                    const at = options.findIndex((option) => option.id === this.smallStationLine)
+                    this.smallStationLine = options[(at + 1) % options.length].id
+                } else {
+                    this.smallStationLocation = chosenId
+                    this.smallStationLine = undefined
+                }
             },
             followUp:
-                locationId && open
+                locationId && open && options
                     ? {
                           locationId,
                           label: 'Which line takes the station?',
-                          options: open.map((line) => ({ id: line.join(), label: lineName(line) })),
+                          options,
+                          selected: this.smallStationLine,
+                          select: (id) => (this.smallStationLine = id),
                           choose: (id) => {
                               const line = open.find((entry) => entry.join() === id)
                               assertExists(line, 'The chosen line is open')
+                              clear()
                               void this.placeSmallStation(locationId, line)
                           },
-                          cancel: () => (this.smallStationLocation = undefined)
+                          cancel: clear
                       }
                     : undefined
+        }
+    }
+
+    /** The hex's tile as it would look with a small station on the line (§7.6.4). */
+    private smallStationPreview(
+        locationId: string,
+        line: readonly [TileEdge, TileEdge]
+    ): MapLocationFollowUpTile {
+        const tile = new RailwayMapState(
+            this.mapView.map,
+            this.mapView.tileSet,
+            this.gameState.tileInventory
+        ).tile(locationId)
+        const stop: TrackStop = { edges: [line[0], line[1]], revenue: SmallStationRevenue }
+        const placement = tile.placement
+        if (!placement) return { face: withTrackStops(tile.face, [stop], 0), rotation: 0 }
+        const definition = this.mapView.tileSet.definitions.find(
+            (candidate) => candidate.id === placement.definitionId
+        )
+        assertExists(definition, 'A placed tile has a definition')
+        return {
+            face: withTrackStops(
+                definition.face,
+                [...(placement.trackStops ?? []), stop],
+                placement.rotation
+            ),
+            rotation: placement.rotation,
+            layout: placedTileLayout(this.mapView.layouts, placement.definitionId)
         }
     }
 

@@ -4,6 +4,7 @@
     import type { HydratedState1862, State1862 } from '@tabletop/1862'
     import { GameTable, OperatingActions, type TitleActionDescription } from '@tabletop/18xx-ui'
     import BuyingPrompts from './BuyingPrompts.svelte'
+    import Charters from './Charters.svelte'
     import Decisions from './Decisions.svelte'
     import Parliament from './Parliament.svelte'
     import TitleModes from './TitleModes.svelte'
@@ -26,7 +27,15 @@
     )
 </script>
 
-<GameTable {session} {privateOperationDescription} {createRouteWorker} {historyDescription}>
+{#snippet charters(reveal: (locationId: string) => void)}<Charters {session} {reveal} />{/snippet}
+
+<GameTable
+    {session}
+    {privateOperationDescription}
+    {createRouteWorker}
+    {historyDescription}
+    boardPanel={{ label: 'Charters', content: charters }}
+>
     {#snippet actions(_focusLocation, focusRoute)}
         {#if state.parliament}
             <Parliament {session} />

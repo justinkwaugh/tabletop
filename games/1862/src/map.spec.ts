@@ -142,7 +142,7 @@ describe('the 1862 map', () => {
     it('groups the off-board hexes into their areas', () => {
         expect(offboardAreaLocationIds('midlands')).toEqual(['A2', 'A4', 'A6', 'A8'])
         expect(offboardAreaLocationIds('west')).toEqual(['A8', 'A10', 'A12'])
-        expect(LondonLocationIds).toEqual(['A12', 'A14', 'C14', 'B15', 'D15'])
+        expect(LondonLocationIds).toEqual(['A12', 'A14', 'B15', 'D15', 'C14'])
         expect(offboardAreaLocationIds('denmark')).toEqual(['H11', 'H13', 'G14'])
         expect(offboardAreaLocationIds('holland')).toEqual(['G14', 'F15'])
         expect(offboardArea('A8', 'west')).toBe('west')

@@ -147,7 +147,27 @@ across the top keep them there.
 A map view's joined edges draw no outline, in the hex artwork or the map's outline
 layer, so neighbouring hexes read as one area (1830's Canada and Gulf). A tile layout
 may hide a revenue value that another hex of the area already shows. Each hex stays
-separately selectable.
+separately selectable. A hex printed half in each of two areas (1862's A8, the Midlands
+and The West) is split by a line from corner to corner, each half joined to its own
+area's neighbours, so every area reads as one block; showing a route highlights only the
+side of a split hex the route reaches and the hexes joined to it.
+A further choice at a chosen hex (`MapLocationChoice.followUp`) is a small panel of
+worded options beside the hex, unless every option is a tile: then the options arc
+around the hex as track tiles do while laying track, each drawn as the hex would look.
+Tapping one moves it over the hex; tapping the hex moves on to the next option; ✓
+takes the one shown and ✗ cancels, with the same controls as laying track. The option
+shown is a staged choice, so Undo takes it back before the hex. 1862 offers a small
+station's lines this way, each tile with the station on its line.
+
+A town on through track without a set position stands at its line's middle, unless
+other track on the tile runs within 12 units of that point, as where an 1862 small
+station joins a line that crosses another; it then moves along its own line to the
+nearest point clear of other track by 18, about its marker's length. No printed tile in
+any title moves.
+A four-space city may swing its lower spaces out from under its upper ones
+(`TileLayout.slotSpreads`), opening the square into an upside-down V whose band leaves
+the bottom open: 1862's London spaces reach toward the London hexes either side, its
+hex drawn after them so the spaces stay on top.
 
 ### Coexistence and precedence
 
@@ -1163,7 +1183,13 @@ market panel in the largest empty rectangle of the market's lower-right corner s
 it shares the market's scale; TOP stacks its tranches there, one row per tranche
 (one, two, then three slots), with slots about 1.4 times the size of market
 tokens and empty slots outlined in the muted text colour. A locked tranche's row
-is dimmed, with a lock in each empty slot. The panels behave as in their own tabs,
+is dimmed, with a lock in each empty slot. A title may draw a panel of its own in
+a third area (`boardAreas.panel` with GameTable's `boardPanel`), given a way to reveal
+a hex: 1862's charter board lists the dealt charters as the board's IPO areas do,
+the first group in rows of four, then the B and C groups and those out of play, each
+token naming its company and home and revealing the home on the map; started
+companies are faded and companies out of play faded and struck through. The panels
+behave as in their own tabs,
 including market hover and move animations. A panel's box may overlap hexes in its
 empty corners; only its drawn content takes the pointer, so those hexes stay
 selectable. Shikoku 1889 draws its market at the upper left with the map nested
@@ -1401,6 +1427,15 @@ StockMarketScene renders title-owned company tokens in canonical market stacks. 
 
 Each mounted scene subscribes through MarketAnimationSource. Its caller supplies a market projection; the adapter registers one GameSession listener and forwards the original action and AnimationContext. The scene does not depend on a finance-example state class. Market tokens retain company-keyed DOM elements across cell changes. The shared AnimationContext owns committed movement, stack repositioning, and marker entry/exit; target stack z-order is applied before motion. Transient render entries cover the union of from/to markers for one replayed action, then settle to that action's destination, unless a newer market was published while they moved, such as a view switch, which the markers already follow. New markers fade in at their destination and departing markers fade out. Action moves take 300ms; actionless Undo/history take 180ms, reduced motion takes zero. Hidden scenes skip animation; silent restoration uses canonical props. Teardown removes the listener, kills its registered element tweens, and clears refs. No game/session host bridge shape changes are introduced.
 
+### Zig-zag markets
+
+A linear market may print as a zig-zag (1862): consecutive spaces alternate between two
+rows, each starting half a space along from the last, so every space overlaps half of
+each neighbour in the other row. The chart lays the spaces out (`zigzag` on
+`createLinearStockMarketSpaces`) and the title's market cell sets the step between
+columns (`MarketCellDimensions.step`); space ids and moves stay those of the linear
+track. No edge arrows show, as each move goes to the next column.
+
 ### Market zones
 
 A title may name the meaning of its market colours (1817's liquidation, acquisition, par
@@ -1590,9 +1625,39 @@ During a live, actionable RunningTrains step, the table starts client-side
 autorouting in a title-owned Web Worker. Its state-tagged result is an automatic
 transient preview owned by EighteenXXSession. It renders paths on the map
 and per-train income in the action panel, using matching route colors and the
-title's train badges. The panel has one Run trains action and no manual route
-selection. Trains with no run display zero income; an empty fleet can submit an
-empty run. Pending and failed calculation states do not offer submission.
+title's train badges. The panel has one Run trains action. Trains with no run
+display zero income; an empty fleet can submit an empty run. Pending and failed
+calculation states do not offer submission.
+
+A title whose rules let a director run for less than the most (1862, §7.8) turns
+on drawn routes with `TitlePresentation.manualRoutes`; a company it refuses, such
+as one in receivership, runs the best routes found. Tapping a train's row starts
+a draft from the best run and chooses that train; tapping it again lets it go.
+Tapping a stop joins it to the chosen train's route along the fewest legal paths,
+from the route's end or else its start; tapping a stop already on the route cuts
+the route back to end there, or drops its last stretch when it ends there, and a
+lone start goes. A tapped piece of track takes the route along it to the next
+stop, and a hex holding one stop names it. The table and map show the drawn run
+as the logic would pay it, with a hint naming the chosen train; a run that
+cannot run shows why and disables Run trains, which otherwise submits the drawn
+routes as the one `RunTrains` Action. The drawing is one staged choice however many
+taps made it: each tap replaces it, so a single Undo drops it and the best run found
+shows again, and only then does Undo reach the last committed Action. While the run
+has been changed, an Auto button beside Run trains does the same. A ✕ beside the chosen
+train's row empties that train's route alone, keeping the train chosen so the next
+stop tapped starts its route again; it sits outside the table so the income column
+keeps its alignment.
+
+Where routes share a piece of track (1862 trains may share), the piece splits into
+one narrower lane per route across a band a little wider than one route, lanes
+taken in route order so they keep their order from piece to piece. Where a piece
+meets a hex side, lanes are measured one way along that side, so they meet their
+continuation in the next hex; a piece whose two sides disagree crosses its lanes
+over midway. An off-board spike that routes share splits the same way. While a
+train is chosen, its route draws over the others in its lane, and the others are
+greyed, kept opaque so the board needs no offscreen layer. A drawn route with only
+its start outlines that stop in the route's colour. A route's colour follows its
+train's place in the company's trains, in the train table and on the map alike.
 
 The worker is canceled on visible-state transition, history navigation or panel
 teardown; stale replies cannot publish a preview. Before publishing, the session

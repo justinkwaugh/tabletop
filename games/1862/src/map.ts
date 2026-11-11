@@ -194,9 +194,10 @@ export const Map1862 = new RailwayMap({
             ['west', [4]]
         ]),
         ...offboards('A14', [['london', [4]]]),
-        ...offboards(LondonSpacesLocationId, [['london', [2, 3, 4]]], LondonWithSpaces),
         ...offboards('B15', [['london', [3]]]),
         ...offboards('D15', [['london', [3, 4]]]),
+        // Listed after its neighbours, which its station spaces reach into on the drawn map.
+        ...offboards(LondonSpacesLocationId, [['london', [2, 3, 4]]], LondonWithSpaces),
         ...offboards('C2', [['north-lynn', [0]]]),
         ...offboards('D1', [['north-wells', [5]]]),
         ...offboards('E0', [['north-wells', []]]),

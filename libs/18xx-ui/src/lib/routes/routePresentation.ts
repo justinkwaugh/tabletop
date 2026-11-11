@@ -18,14 +18,15 @@ export function recordedRunRoutes(run: RunTrains): readonly (TrainRoute | RouteR
     return run.metadata?.routes ?? run.routes
 }
 
-/** Each train's track, and apart from it any interconnection extension beyond its stops. */
+/** Each train's track and any extension; colours follow ``trainIds``, as the train table's do. */
 export function trainRouteOverlays(
     routes: readonly (Pick<TrainRoute, 'trainId' | 'paths' | 'extension'> &
-        Pick<RouteResult, 'bonuses'>)[]
+        Pick<RouteResult, 'bonuses'>)[],
+    trainIds?: readonly string[]
 ): MapRoute[] {
     return routes.map((route, index) => ({
         id: route.trainId,
-        color: routeColor(index),
+        color: routeColor(trainIds ? trainIds.indexOf(route.trainId) : index),
         segments: route.paths,
         ...(route.extension ? { extension: route.extension } : {}),
         ...routeBonusArrows(route.bonuses)

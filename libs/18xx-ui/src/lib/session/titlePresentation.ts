@@ -183,6 +183,12 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
      * as a private's mountain discount; the map shows the costs it would pay.
      */
     terrainDiscounts?(state: State, companyId: string): Readonly<Record<string, number>>
+    /**
+     * Whether an operating company's director may change its run by drawing routes on the map,
+     * where the title's rules let a director run for less than the most; it otherwise runs the
+     * best routes found.
+     */
+    manualRoutes?(state: State, companyId: string): boolean
     /** Where a title's own actions place on the map, beyond the family's tile lays and stations. */
     historyMapPlacement?(action: GameAction): HistoryMapPlacement | undefined
     marketCell?: MarketCellDimensions

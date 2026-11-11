@@ -311,22 +311,24 @@
         ></path>
     {/each}
     {@render trackOverlay?.(drawing)}
-    {#each drawing.nodes as { node, center, slots, slotRadius: citySlotRadius, townAngle, dotRadius } (node.id)}
+    {#each drawing.nodes as { node, center, slots, openBand, slotRadius: citySlotRadius, townAngle, dotRadius } (node.id)}
         <g data-node-id={node.id} filter={nodeInkFilter}>
             {#if node.kind === 'city'}
                 {#if slots.length > 1}
-                    {@const band = `M ${slots.map((point) => `${point.x},${point.y}`).join(' L ')} Z`}
+                    {@const band = openBand
+                        ? `M ${[slots[3], slots[0], slots[1], slots[2]].map((point) => `${point.x},${point.y}`).join(' L ')}`
+                        : `M ${slots.map((point) => `${point.x},${point.y}`).join(' L ')} Z`}
                     {#if appearance.cityBacking === 'paper'}
                         <path
                             d={band}
-                            fill={appearance.ink}
+                            fill={openBand ? 'none' : appearance.ink}
                             stroke={appearance.ink}
                             stroke-width={2 * citySlotRadius + 2 * cityRingWidth}
                             stroke-linejoin="round"
                         ></path>
                         <path
                             d={band}
-                            fill={appearance.paper}
+                            fill={openBand ? 'none' : appearance.paper}
                             stroke={appearance.paper}
                             stroke-width={2 * citySlotRadius}
                             stroke-linejoin="round"
@@ -334,7 +336,7 @@
                     {:else}
                         <path
                             d={band}
-                            fill={appearance.ink}
+                            fill={openBand ? 'none' : appearance.ink}
                             stroke={appearance.ink}
                             stroke-width={2 * citySlotRadius + 3}
                             stroke-linejoin="round"

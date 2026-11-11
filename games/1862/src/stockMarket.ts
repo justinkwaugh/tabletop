@@ -121,8 +121,8 @@ function marketZoneColor(price: number): string {
 }
 
 export const Market1862 = new StockMarketChart(
-    // The track wraps onto four rows of seventeen, as a 67-space row is too long to draw.
-    createLinearStockMarketSpaces(MarketPrices, marketZoneColor, { rowLength: 17 })
+    // The board prints the track as narrow spaces zig-zagging between two rows.
+    createLinearStockMarketSpaces(MarketPrices, marketZoneColor, { zigzag: true })
 )
 
 export function marketSpaceIdAt(price: number): string {

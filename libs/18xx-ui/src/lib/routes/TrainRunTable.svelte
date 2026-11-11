@@ -11,6 +11,9 @@
         trainName,
         trainColors,
         onFocusRoute,
+        onChooseTrain,
+        onClearTrain,
+        chosenTrainId,
         label = 'Train income'
     }: {
         money: MoneyFormat
@@ -19,6 +22,10 @@
         trainName: (definitionId: string) => string
         trainColors: Readonly<Record<string, string>>
         onFocusRoute?: (trainId: string) => void
+        onChooseTrain?: (trainId: string) => void
+        /** Empties the chosen train's route, offered beside its row. */
+        onClearTrain?: (trainId: string) => void
+        chosenTrainId?: string
         label?: string
     } = $props()
 </script>
@@ -26,16 +33,20 @@
 <table aria-label={label}>
     <thead><tr><th scope="col">Train</th><th scope="col">Income</th></tr></thead>
     <tbody>
-        {#each trains as train (train.id)}
-            {@const index = result.routes.findIndex((route) => route.trainId === train.id)}
-            {@const route = result.routes[index]}
+        {#each trains as train, index (train.id)}
+            {@const route = result.routes.find((candidate) => candidate.trainId === train.id)}
             <tr data-route-train={train.id}>
                 <td colspan="2"
                     ><button
                         class="route-focus"
-                        disabled={!route || !onFocusRoute}
-                        aria-label={`Show ${trainName(train.definitionId)}${isObsoleteTrain(train) ? ' obsolete' : ''} route for ${money(route?.revenue ?? 0)}`}
-                        onclick={() => onFocusRoute?.(train.id)}
+                        class:chosen={chosenTrainId === train.id}
+                        disabled={onChooseTrain ? false : !route || !onFocusRoute}
+                        aria-pressed={onChooseTrain ? chosenTrainId === train.id : undefined}
+                        aria-label={`${onChooseTrain ? 'Draw' : 'Show'} ${trainName(train.definitionId)}${isObsoleteTrain(train) ? ' obsolete' : ''} route for ${money(route?.revenue ?? 0)}`}
+                        onclick={() => {
+                            onChooseTrain?.(train.id)
+                            if (route) onFocusRoute?.(train.id)
+                        }}
                         ><span class="train">
                             <span
                                 class="route-color"
@@ -47,7 +58,15 @@
                                 obsolete={isObsoleteTrain(train)}
                             />
                         </span><span class="income">{money(route?.revenue ?? 0)}</span></button
-                    ></td
+                    >{#if onClearTrain && chosenTrainId === train.id}<button
+                            class="clear"
+                            aria-label={`Clear ${trainName(train.definitionId)} route`}
+                            title="Clear this route"
+                            onclick={() => onClearTrain(train.id)}
+                            ><svg viewBox="0 0 24 24" aria-hidden="true"
+                                ><path d="m7 7 10 10M17 7 7 17"></path></svg
+                            ></button
+                        >{/if}</td
                 >
             </tr>
         {:else}<tr><td colspan="2">No trains</td></tr>{/each}
@@ -111,6 +130,44 @@
     }
     .route-focus:disabled {
         opacity: 1;
+    }
+    td:has(> .clear) {
+        position: relative;
+    }
+    /* Beside the row, so the income column keeps its alignment. */
+    .clear {
+        position: absolute;
+        left: calc(100% + 6px);
+        top: 50%;
+        translate: 0 -50%;
+        display: grid;
+        place-items: center;
+        width: 18px;
+        height: 18px;
+        padding: 0;
+        border: 1px solid var(--rail-border, #b9ac99);
+        border-radius: 50%;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+    }
+    .clear:hover {
+        background: var(--rail-hover, #463e350c);
+    }
+    .clear:focus-visible {
+        outline: 2px solid #bd865e;
+        outline-offset: 1px;
+    }
+    .clear svg {
+        width: 12px;
+        height: 12px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2.5;
+        stroke-linecap: round;
+    }
+    .route-focus.chosen {
+        background: var(--rail-selected, #463e351f);
     }
     .train {
         display: flex;

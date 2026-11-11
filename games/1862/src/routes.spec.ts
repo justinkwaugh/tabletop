@@ -14,7 +14,7 @@ import { giveTrain, kit, table, type Table } from '../test/kit.js'
 import { Map1862 } from './map.js'
 import { RouteRules1862 } from './routeRules.js'
 import type { State1862 } from './state.js'
-import { marketSpaceIdAt } from './stockMarket.js'
+import { Market1862, marketSpaceIdAt } from './stockMarket.js'
 import { TileSet1862 } from './tiles.js'
 
 const autorouter = await Autorouter.create(
@@ -188,6 +188,16 @@ describe('1862 routes, as the rules’ ENR example scores them', () => {
         expect(run(game, [first, second]).result?.revenue).toBe(150)
         const fromCromer = kit.route(game.state, trainIds[1], Cromer, ['F1'])
         expect(run(game, [first, fromCromer]).result?.revenue).toBe(170)
+    })
+
+    it('lets a director run for less than the most, and pay without moving the price (§7.8)', () => {
+        const { game, trainIds } = cromer(['AE', 'BE'])
+        const short = kit.route(game.state, trainIds[1], Cromer, ['F5'])
+        game.state.activePlayerIds = ['p1']
+        game.act('RunTrains', { companyId: 'ENR', routes: [short] }, 'p1')
+        expect(game.state.routeStep?.result?.revenue).toBe(60)
+        game.act('DistributeEarnings', { companyId: 'ENR', choice: 'pay' }, 'p1')
+        expect(Market1862.companySpace(game.state.stockMarket, 'ENR').price).toBe(100)
     })
 
     it('refuses a run ending at a small station, and runs that do not meet', () => {

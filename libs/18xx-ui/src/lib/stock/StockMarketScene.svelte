@@ -55,20 +55,25 @@
             (_, column) => column + geometry.gapBefore.slice(0, column + 1).filter(Boolean).length
         )
     )
+    // Overlapping spaces each span the tracks their width covers, one track per step.
+    const step = $derived(cell.step ?? cell.width)
+    const span = $derived(Math.round(cell.width / step))
     const gridColumns = $derived(
-        geometry.gapBefore
-            .map((gap) =>
+        [
+            ...geometry.gapBefore.map((gap) =>
                 gap
-                    ? `${MarketZoneGap * renderScale}px ${cell.width * renderScale}px`
-                    : `${cell.width * renderScale}px`
-            )
-            .join(' ')
+                    ? `${MarketZoneGap * renderScale}px ${step * renderScale}px`
+                    : `${step * renderScale}px`
+            ),
+            ...Array.from({ length: span - 1 }, () => `${step * renderScale}px`)
+        ].join(' ')
     )
-    const spaceRows = $derived(new Map(chart.spaces.map((space) => [space.id, space.row])))
-    // An edge arrow marks a sideways move that leaves the row, such as up at a row's end.
+    const spaceColumns = $derived(new Map(chart.spaces.map((space) => [space.id, space.column])))
+    // An edge arrow marks a sideways move that jumps away, such as up at a row's end.
     function leavesRow(space: StockMarketSpace, move: 'left' | 'right'): boolean {
         const target = space.moves[move]
-        return !target || spaceRows.get(target) !== space.row
+        const column = target === undefined ? undefined : spaceColumns.get(target)
+        return column === undefined || Math.abs(column - space.column) !== 1
     }
     const banners = $derived(
         zones.flatMap((zone) => {
@@ -236,7 +241,7 @@
             {#each banners as banner (banner.color)}<div
                     class="banner"
                     class:arrow={banner.shape === 'arrow'}
-                    style:grid-column={`${columnTracks[banner.firstColumn] + 1} / ${columnTracks[banner.lastColumn] + 2}`}
+                    style:grid-column={`${columnTracks[banner.firstColumn] + 1} / ${columnTracks[banner.lastColumn] + 1 + span}`}
                     style:--market-color={banner.zoneColor}
                     style:--market-lightness={marketDarkLightness[banner.color]}
                 >
@@ -278,7 +283,7 @@
                 aria-label={`Market value ${space.price}${zone ? `, ${zone.name}` : ''}${crowded ? ', expand company stack' : ''}`}
                 title={zone ? `${zone.name}: ${zone.description}` : undefined}
                 data-market-space={space.id}
-                style:grid-column={columnTracks[space.column] + 1}
+                style:grid-column={`${columnTracks[space.column] + 1} / span ${span}`}
                 style:grid-row={space.row + 1}
                 style:--market-color={tinted || fillKind
                     ? marketSpaceColor(space.color, zone)

@@ -87,10 +87,7 @@ type Stations = Pick<
 /** A module offering home cities on the map: a company auction's opening, a company's start. */
 export type HomeOffer = Pick<CompanyAuctionModule, 'homePositions' | 'chooseHome' | 'chosenHome'>
 type CityOffer = { locationIds: readonly string[]; select(selection: MapSelection): void }
-type Routes = Pick<
-    RoutesModule<RoutesSession['state']>,
-    'canRun' | 'editor' | 'appendPath' | 'selectStart'
->
+type Routes = Pick<RoutesModule<RoutesSession['state']>, 'tap'>
 
 export class MapModule {
     showTrackAccess = $state(true)
@@ -303,29 +300,8 @@ export class MapModule {
             }
             return
         }
-        const editor = this.routes.editor
-        if (
-            this.routes.canRun &&
-            editor.trainId &&
-            selection.kind === 'path' &&
-            editor.extensions.some(
-                (path) =>
-                    path.locationId === selection.locationId && path.pathId === selection.pathId
-            )
-        )
-            this.routes.appendPath(selection)
-        else if (
-            this.routes.canRun &&
-            editor.trainId &&
-            !editor.start &&
-            (selection.kind === 'node' || selection.kind === 'slot') &&
-            editor.centers.some(
-                (center) =>
-                    center.locationId === selection.locationId && center.nodeId === selection.nodeId
-            )
-        )
-            this.routes.selectStart({ locationId: selection.locationId, nodeId: selection.nodeId })
-        else if (this.cityOffer?.locationIds.includes(selection.locationId))
+        if (this.routes.tap(selection)) return
+        if (this.cityOffer?.locationIds.includes(selection.locationId))
             this.cityOffer.select(selection)
         else if (this.stations.canPlace && this.stations.locationIds.includes(selection.locationId))
             this.placeStation(selection)

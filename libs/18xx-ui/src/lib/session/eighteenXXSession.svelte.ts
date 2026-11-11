@@ -23,6 +23,7 @@ import {
     type Owner,
     type PendingPurchaseOffer,
     type Portfolio,
+    type TileFace,
     type TileRotation
 } from '@tabletop/18xx'
 import type { GameAction } from '@tabletop/common'
@@ -43,7 +44,7 @@ import {
     type StationAppearance,
     type TokenTiles
 } from '../maps/stationPresentation.js'
-import { createTileDrawing } from '../tiles/tileDrawing.js'
+import { createTileDrawing, type TileLayout } from '../tiles/tileDrawing.js'
 import { ownerPortfolio } from '../finance/ownerPortfolio.js'
 import {
     draftedCertificates,
@@ -363,10 +364,8 @@ export class EighteenXXSession<
     )
     readonly routes = new RoutesModule(
         this.moduleSession,
-        (selection) => {
-            this.map.inspect(selection)
-        },
-        () => this.map.networkRoutes
+        () => this.map.networkRoutes,
+        (companyId) => this.presentation.manualRoutes?.(this.gameState, companyId) ?? false
     )
     readonly stock = new StockModule(
         this.moduleSession,
@@ -1073,12 +1072,25 @@ export type MapLocationChoice = {
     followUp?: MapLocationFollowUp
 }
 
+/** How an option looks as the chosen hex's tile, drawn as the map would draw it. */
+export type MapLocationFollowUpTile = {
+    face: TileFace
+    rotation: TileRotation
+    layout?: TileLayout
+}
+
 /** Which of a few things to do at a chosen hex, such as which line takes a station. */
 export type MapLocationFollowUp = {
     locationId: string
     /** Names the choice, as a question. */
     label: string
-    options: readonly { id: string; label: string }[]
+    options: readonly { id: string; label: string; tile?: MapLocationFollowUpTile }[]
+    /**
+     * Where every option is a tile: the option shown over the hex, which accepting takes. Options
+     * arc around the hex as tiles do when laying track, and tapping the hex moves to the next.
+     */
+    selected?: string
+    select?(id: string): void
     choose(id: string): void
     cancel(): void
 }

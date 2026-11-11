@@ -9,6 +9,7 @@
     import type { TileAppearance } from '../tiles/tileAppearance.js'
     import { tileChoiceArc } from './tileChoiceArc.js'
     import { followHex } from './followHex.js'
+    import HexPickerControls from './HexPickerControls.svelte'
 
     let {
         session,
@@ -257,34 +258,16 @@
                     {money(session.track.preview.cost)}
                 </div>
             {/if}
-            <div
-                class="controls"
-                transition:fade|global={{ duration: prefersReducedMotion.current ? 0 : 120 }}
-                style:left={`${controls.x}px`}
-                style:top={`${controls.y}px`}
-                style:font-size={`${buttonSize}px`}
-            >
-                <button
-                    class="cancel"
-                    aria-label="Cancel track lay"
-                    title="Cancel track lay"
-                    onclick={cancel}
-                >
-                    <svg viewBox="0 0 24 24" aria-hidden="true"
-                        ><path d="m7 7 10 10M17 7 7 17"></path></svg
-                    >
-                </button>
-                <button
-                    class="accept"
-                    aria-label="Accept track lay"
-                    title={`Accept track lay · ${money(session.track.preview.cost)}`}
-                    onclick={accept}
-                >
-                    <svg viewBox="0 0 24 24" aria-hidden="true"
-                        ><path d="m5 13 4 4L19 7"></path></svg
-                    >
-                </button>
-            </div>
+            <HexPickerControls
+                at={controls}
+                size={buttonSize}
+                cancel={{ label: 'Cancel track lay', onclick: cancel }}
+                accept={{
+                    label: 'Accept track lay',
+                    title: `Accept track lay · ${money(session.track.preview.cost)}`,
+                    onclick: accept
+                }}
+            />
         {/if}
     </div>
 {/if}
@@ -351,41 +334,5 @@
         white-space: nowrap;
         box-shadow: 0 2px 5px #0004;
         font-variant-numeric: tabular-nums;
-    }
-    .controls {
-        position: absolute;
-        display: flex;
-        gap: 0.18em;
-        transform: translate(-50%, -50%);
-    }
-    .controls button {
-        display: grid;
-        place-items: center;
-        width: 1em;
-        height: 1em;
-        padding: 0;
-        font: inherit;
-        border-radius: 50%;
-        border: 1px solid #fff9;
-        box-shadow: 0 2px 5px #0005;
-        color: white;
-    }
-    .cancel {
-        background: #b34242;
-    }
-    .accept {
-        background: #347752;
-    }
-    .controls button:hover {
-        filter: brightness(1.15);
-    }
-    svg {
-        width: 0.69em;
-        height: 0.69em;
-        fill: none;
-        stroke: currentColor;
-        stroke-width: 2.5;
-        stroke-linecap: round;
-        stroke-linejoin: round;
     }
 </style>

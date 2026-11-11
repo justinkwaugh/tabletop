@@ -57,7 +57,10 @@
         setGameSession,
         toastNewChatMessages
     } from '@tabletop/frontend-components'
-    import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
+    import type {
+        EighteenXXSessionView,
+        MapLocationFollowUp
+    } from '../session/eighteenXXSession.svelte.js'
     import {
         isMapRouteValid,
         mapSelectionRect,
@@ -81,6 +84,7 @@
     import OwnershipSpreadsheet from './OwnershipSpreadsheet.svelte'
     import TrackTilePicker from '../maps/TrackTilePicker.svelte'
     import LocationFollowUpPicker from '../maps/LocationFollowUpPicker.svelte'
+    import LocationTileChoice from '../maps/LocationTileChoice.svelte'
     import PlayersPanel from './PlayersPanel.svelte'
     import { assertExists, type BoundingBox, type GameAction } from '@tabletop/common'
     import type { TitleActionDescription } from './historyDescription.js'
@@ -109,7 +113,8 @@
         historyDescription,
         historySetup,
         privateOperationDescription,
-        createRouteWorker
+        createRouteWorker,
+        boardPanel
     }: {
         session: EighteenXXSessionView
         additionalStockActions?: readonly StockMenuOption[]
@@ -126,6 +131,8 @@
             companyId: string
         ) => string | undefined
         createRouteWorker: () => RouteWorker
+        /** The title's own panel on the board, given a way to reveal a hex on the map. */
+        boardPanel?: { label: string; content: Snippet<[(locationId: string) => void]> }
     } = $props()
     const money = $derived(session.presentation.money)
     const {
@@ -285,7 +292,7 @@
     }
     function focusRoute(trainId: string) {
         const route = (
-            session.routes.solved?.result ?? session.projectedRun.latest?.solution.result
+            session.routes.shown ?? session.projectedRun.latest?.solution.result
         )?.routes.find((route) => route.trainId === trainId)
         if (!route) return
         void toggleMapFocus({ key: `route:${trainId}` }, () =>
@@ -347,7 +354,9 @@
         return cash
     })
     const boardExtents = $derived(
-        [boardAreas?.market, boardAreas?.depot].filter((area) => area !== undefined)
+        [boardAreas?.market, boardAreas?.depot, boardPanel && boardAreas?.panel].filter(
+            (area) => area !== undefined
+        )
     )
     const boardViewport = $derived(
         mapViewport(displayedScene, MapHexDiameter, boardArtwork, boardExtents)
@@ -901,6 +910,15 @@
     />
 {/snippet}
 
+{#snippet followUpPicker(followUp: MapLocationFollowUp, viewport: HTMLDivElement)}
+    {#if followUp.select && followUp.options.every((option) => option.tile)}<LocationTileChoice
+            {followUp}
+            {viewport}
+            orientation={session.mapView.map.definition.orientation}
+            appearance={tileAppearance}
+        />{:else}<LocationFollowUpPicker {followUp} {viewport} />{/if}
+{/snippet}
+
 {#snippet boardInsets()}
     {#if boardAreas?.market}<BoardInset
             label="Stock market"
@@ -957,6 +975,12 @@
                     tileColorNames={tileAppearance.colorNames}
                 />
             </div>
+        </BoardInset>{/if}
+    {#if boardAreas?.panel && boardPanel}<BoardInset
+            label={boardPanel.label}
+            area={viewportRect(boardViewport, boardAreas.panel)}
+        >
+            <div class="board-panel">{@render boardPanel.content(revealLocation)}</div>
         </BoardInset>{/if}
 {/snippet}
 
@@ -1323,10 +1347,7 @@
                                         />
                                     {/if}
                                     {#if active && locationChoice?.followUp}
-                                        <LocationFollowUpPicker
-                                            followUp={locationChoice.followUp}
-                                            {viewport}
-                                        />
+                                        {@render followUpPicker(locationChoice.followUp, viewport)}
                                     {/if}
                                 {/snippet}
                             </ScalingWrapper>
@@ -1368,10 +1389,7 @@
                                         />
                                     {/if}
                                     {#if active && locationChoice?.followUp}
-                                        <LocationFollowUpPicker
-                                            followUp={locationChoice.followUp}
-                                            {viewport}
-                                        />
+                                        {@render followUpPicker(locationChoice.followUp, viewport)}
                                     {/if}
                                 {/snippet}
                             </ScalingWrapper>
@@ -1946,7 +1964,8 @@
         position: relative;
     }
     .market-corner,
-    .board-depot {
+    .board-depot,
+    .board-panel {
         pointer-events: auto;
     }
     .market-corner {

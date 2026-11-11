@@ -13,7 +13,11 @@ export {
     type TileLayout
 } from './tiles/tileDrawing.js'
 export { TileColors } from './tiles/tilePresentation.js'
-export { StandardTileLayouts, towardTileEdge } from './tiles/standardTileLayouts.js'
+export {
+    StandardTileLayouts,
+    placedTileLayout,
+    towardTileEdge
+} from './tiles/standardTileLayouts.js'
 export * from './maps/mapDrawing.js'
 export * from './maps/printedLinePath.js'
 export * from './maps/companyMark.js'
@@ -182,6 +186,7 @@ export { MarketTokenSize } from './stock/marketTokenLayout.js'
 export { default as BoardInset } from './maps/BoardInset.svelte'
 
 export { RoutesModule, type RoutesSession } from './session/routesModule.svelte.js'
+export { RouteEditor } from './session/routeEditor.svelte.js'
 export { TitleStockPanels, type TitleStockPanel } from './session/titleStockPanels.svelte.js'
 export { StopRightsActions } from './session/stopRightsActions.svelte.js'
 export { default as TitlePrompt } from './table/TitlePrompt.svelte'

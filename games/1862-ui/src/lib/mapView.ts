@@ -25,6 +25,7 @@ import {
     Map1862,
     TileSet1862
 } from '@tabletop/1862'
+import { TileEdges, type MapLocation, type TileEdge } from '@tabletop/18xx'
 import {
     towardTileEdge,
     type MapViewDefinition,
@@ -70,29 +71,83 @@ const areas = (positions: Readonly<Record<string, number>>): TileLayout => ({
     )
 })
 
-const Layouts: Readonly<Record<string, TileLayout>> = {
-    A8: areas({ midlands: 4, west: 5 }),
-    A12: areas({ west: 4, london: 5 }),
-    F1: areas({ 'north-cromer': 0, 'north-wells': 1 }),
-    I6: areas({ east: 1, 'north-east': 2 }),
-    G14: areas({ holland: 2, denmark: 3 }),
-    // London's four station spaces sit below its track (§7.6.5); its values print on the other
-    // London hexes, clear of the spaces.
+function offboardAreas(location: MapLocation): string[] {
+    return location.preprintedTile.nodes
+        .filter((node) => node.kind === 'offboard')
+        .map((node) => node.id)
+}
+
+const OffboardLocationIds = Map1862.definition.locations
+    .filter((location) => offboardAreas(location).length > 0)
+    .map((location) => location.id)
+// Each off-board area prints its name and values once across its joined hexes; London's name
+// stays over its station spaces, with its values beside them.
+const NamedAt = ['C2', 'D1', 'G2', 'I4', 'I8', 'H13', 'F15', 'A4', 'A10', LondonSpacesLocationId]
+const ValuedAt = [...NamedAt.filter((id) => id !== LondonSpacesLocationId), 'B15']
+
+// A hex printed half in each of two areas; ``side`` holds the edges of the first area's half.
+const SplitHexes: Readonly<
+    Record<string, { areas: Readonly<Record<string, number>>; side: readonly TileEdge[] }>
+> = {
+    A8: { areas: { midlands: 4, west: 5 }, side: [2, 3, 4] },
+    A12: { areas: { west: 4, london: 5 }, side: [2, 3, 4] },
+    F1: { areas: { 'north-wells': 1, 'north-cromer': 0 }, side: [1, 2, 3] },
+    I6: { areas: { 'north-east': 2, east: 1 }, side: [2, 3, 4] },
+    G14: { areas: { denmark: 3, holland: 2 }, side: [3, 4, 5] }
+}
+
+const PrintedLayouts: Readonly<Record<string, TileLayout>> = {
+    ...Object.fromEntries(
+        Object.entries(SplitHexes).map(([id, split]) => [id, areas(split.areas)])
+    ),
+    // London's four station spaces sit below its track (§7.6.5), opening out into the London
+    // hexes either side.
     [LondonSpacesLocationId]: {
-        nodePositions: { london: towardTileEdge(3, 22), [LondonSpacesNodeId]: { x: 0, y: 14 } },
+        nodePositions: { london: towardTileEdge(3, 22), [LondonSpacesNodeId]: { x: 0, y: 22 } },
+        slotSpreads: { [LondonSpacesNodeId]: 60 },
         hideRevenue: ['london', LondonSpacesNodeId]
-    }
+    },
+    // London's values print in a row, clear of the station space reaching in from C14.
+    B15: { revenueStack: 'row', revenuePositions: { london: { x: 0, y: 10 } } }
+}
+
+const Layouts: Readonly<Record<string, TileLayout>> = {
+    ...PrintedLayouts,
+    ...Object.fromEntries(
+        OffboardLocationIds.filter((id) => !ValuedAt.includes(id)).map((id) => [
+            id,
+            { ...PrintedLayouts[id], hideRevenue: true }
+        ])
+    )
 }
 
 export const MapView1862: MapViewDefinition = {
-    // The market's four rows run above the map, far enough from Wells's top hex for the depot to
-    // stand under its east end, in the corner between the Cromer and North East areas.
+    // The market's two zig-zag rows run above the map, far enough from Wells's top hex for the
+    // depot to stand under its east end, in the corner between the Cromer and North East areas.
     boardAreas: {
-        market: { x: -50, y: -397, width: 1052, height: 300 },
-        depot: { x: 618, y: -85, width: 384, height: 202 }
+        market: { x: -50, y: -231, width: 1052, height: 134 },
+        depot: { x: 618, y: -85, width: 384, height: 202 },
+        // The charter board stands east of the map, beside the East and Denmark areas.
+        panel: { x: 664, y: 236, width: 236, height: 222 }
     },
     map: Map1862,
     tileSet: TileSet1862,
     stations: Stations,
-    layouts: Layouts
+    layouts: Layouts,
+    joinedEdges: Object.fromEntries(
+        Map1862.definition.locations.map((location) => [
+            location.id,
+            TileEdges.filter((edge) => {
+                const neighbor = Map1862.neighbor(location.id, edge)
+                return (
+                    !!neighbor &&
+                    offboardAreas(location).some((area) => offboardAreas(neighbor).includes(area))
+                )
+            })
+        ])
+    ),
+    splitHexes: Object.fromEntries(
+        Object.entries(SplitHexes).map(([id, split]) => [id, split.side])
+    ),
+    hideLocationNames: OffboardLocationIds.filter((id) => !NamedAt.includes(id))
 }

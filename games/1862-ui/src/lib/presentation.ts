@@ -8,6 +8,7 @@ import {
     trainWarranties,
     type State1862
 } from '@tabletop/1862'
+import { controllingOwner } from '@tabletop/18xx'
 import { moneyFormat, type CompanyMark, type TitlePresentation } from '@tabletop/18xx-ui'
 import { CompanyNames1862 } from './companyPresentation.js'
 import { PermitNames, permitImage } from './permits.js'
@@ -40,6 +41,9 @@ export const Presentation1862: TitlePresentation<State1862> = {
         inProgress: (state) => state.machineState === ParliamentState
     },
     companyMarks: permitMarks,
+    // A director chooses each train's route and need not run for the most (§7.8); a company in
+    // receivership runs for as much as it can (§7.3), so it runs the best routes found.
+    manualRoutes: (state, companyId) => controllingOwner(state, companyId) !== undefined,
     companyColumns: [
         {
             id: 'permits',
@@ -81,8 +85,8 @@ export const Presentation1862: TitlePresentation<State1862> = {
             ends: (action) => action.type === 'EndParliamentRound'
         }
     ],
-    // Sixty-seven spaces in four rows of seventeen.
-    marketCell: { width: 52, height: 62 },
+    // Sixty-seven narrow spaces zig-zagging between two rows, each half a space on from the last.
+    marketCell: { width: 32, height: 64, step: 16 },
     // §4.2, §6.4.2, §6.5.3, §7.12, §10.1.
     marketZones: [
         {
