@@ -851,6 +851,15 @@ describe("The contract's own wording", () => {
             'Dawn of epoch IV: Ana -6 vp (ranks 0, landscapes 0, regions 1, disloyalty -7)'
         )
     })
+
+    it('R-6.1-H1, R-4.11.2 epoch V met mid-round: the die is not rolled, and the line says epoch V dawned', () => {
+        const step = sample<RollProgressDie>({
+            ...System,
+            type: ActionType.RollProgressDie,
+            metadata: { faces: [], epochTriggered: 5 }
+        })
+        expect(line(step, 'p2')).toBe('The progress die was not rolled · Epoch V dawned')
+    })
 })
 
 const Protected: readonly {
