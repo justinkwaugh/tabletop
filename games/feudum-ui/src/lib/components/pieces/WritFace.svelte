@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { RoyalWrits, type Charter, type WritId } from '@tabletop/feudum'
+    import { RoyalWrits, type WritId } from '@tabletop/feudum'
     import { WritBackAsset, assetUrl } from '$lib/art/assetMap.js'
     import { writName } from '$lib/model/writLabels.js'
     import { CardBox, wrapLines } from '$lib/utils/cardShape.js'
@@ -37,17 +37,6 @@
     let url = $derived(assetUrl(writ ? writ.id : WritBackAsset))
     const Left = 22
 
-    /** R-4.4.3, R-6.2 What a charter scores, from its data. */
-    function charterValues(charter: Charter): string {
-        switch (charter.kind) {
-            case 'kingdom':
-                return `${charter.vpByLocationsRuled.join('/')} vp`
-            case 'sulfur-barrel':
-                return `${charter.vpBySulfur.map(({ vp }) => vp).join('/')} vp`
-            case 'monster-defeat':
-                return `${charter.vp} vp`
-        }
-    }
     let nameRows = $derived(wrapLines(writ && 'number' in writ ? name : name.split(':')[0], 18))
     let textTop = $derived(52 + nameRows.length * 28)
 </script>

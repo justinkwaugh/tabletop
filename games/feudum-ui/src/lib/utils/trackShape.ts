@@ -4,7 +4,6 @@
  */
 export const BarrelPath =
     'M6 3 Q12 1 18 3 Q21 12 18 21 Q12 23 6 21 Q3 12 6 3 Z M4.6 8 L19.4 8 M4.6 16 L19.4 16'
-export const ScrollPath = 'M3 6 Q3 3 6 3 L21 3 L21 18 Q21 21 18 21 L3 21 L3 6 Z M6 3 L6 21'
 export const ChickenPath =
     'M4 14 Q4 8 10 8 L12 8 Q12 4 15 4 Q18 4 18 7 L21 8 L18 10 Q19 16 14 19 L14 21 L11 21 L11 20 Q6 20 4 14 Z'
 export const SackPath =
