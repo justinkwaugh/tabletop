@@ -1,19 +1,13 @@
 <script lang="ts">
     import type { Character } from '@tabletop/feudum'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
-    import {
-        DropPath,
-        GuildIconPaths,
-        PawnBodyPath,
-        PawnBox,
-        PawnMedallion
-    } from '$lib/utils/pieceShapes.js'
+    import { DropPath, GuildIconPaths, PawnCube } from '$lib/utils/pieceShapes.js'
 
     /**
-     * R-4.5.1 A pawn takes a seat colour, so it is always drawn: the figure in the seat's fill from
-     * the session (S71), its character on a parchment medallion, the seat's initial on its base.
-     * R-4.8.2 A drunk pawn tilts and carries a sulfur drop. A pawn in supply has no character yet
-     * (R-3.6), so its medallion is bare.
+     * R-4.5.1 A pawn takes a seat colour, so it is always drawn: the wooden cube in the seat's fill
+     * from the session (S71), seen a little from above, with its character printed pale on the top
+     * face with a dark outline, as on the printed cubes. R-4.8.2 A drunk pawn tilts and carries a
+     * sulfur drop. A pawn in supply has no character yet (R-3.6), so its top face is bare.
      */
     let {
         paint,
@@ -31,53 +25,55 @@
         y?: number
     } = $props()
 
+    /** Room round the cube for its tilt and its drop. */
+    const Margin = 2
+    const { box, side, top, shine, corner, face } = PawnCube
+
     let label = $derived(`${paint.initial} ${character ?? 'pawn'}${drunk ? ', drunk' : ''}`)
-    let box = $derived(`-4 0 ${PawnBox.width + 8} ${PawnBox.height}`)
-    let iconSize = PawnMedallion.r * 1.6
 </script>
 
 <svg
     {x}
     {y}
-    width={(size * (PawnBox.width + 8)) / PawnBox.height}
+    width={size}
     height={size}
-    viewBox={box}
+    viewBox="{-Margin} {-Margin} {box + 2 * Margin} {box + 2 * Margin}"
     role="img"
     aria-label={label}
+    data-pawn-cube
 >
     <title>{label}</title>
-    <g transform={drunk ? `rotate(9 ${PawnBox.width / 2} ${PawnBox.height})` : undefined}>
-        <path d={PawnBodyPath} fill={paint.fill} stroke={paint.edge} stroke-width="1"></path>
-        <circle
-            cx={PawnMedallion.x}
-            cy={PawnMedallion.y}
-            r={PawnMedallion.r}
-            fill="var(--feudum-parchment)"
-            stroke="var(--feudum-ink)"
-            stroke-width="0.5"
-        ></circle>
+    <g transform={drunk ? `rotate(9 ${box / 2} ${box})` : undefined}>
+        <rect {...side} rx={corner} fill={paint.fill} data-cube-side></rect>
+        <rect {...side} rx={corner} fill="var(--feudum-halo)" fill-opacity="0.32"></rect>
+        <rect
+            {...top}
+            rx={corner}
+            fill={paint.fill}
+            stroke={paint.edge}
+            stroke-width="1"
+            data-cube-top
+        ></rect>
+        <rect {...shine} rx="2" fill="var(--feudum-text)" fill-opacity="0.18"></rect>
+        <rect {...side} rx={corner} fill="none" stroke={paint.edge} stroke-width="1"></rect>
         {#if character}
             <path
                 d={GuildIconPaths[character]}
-                transform="translate({PawnMedallion.x - iconSize / 2} {PawnMedallion.y -
-                    iconSize / 2}) scale({iconSize / 24})"
-                fill="var(--feudum-ink)"
+                transform="translate({face.x} {face.y}) scale({face.size / 24})"
+                fill="var(--feudum-parchment)"
                 fill-rule="evenodd"
+                stroke="var(--feudum-ink)"
+                stroke-width="1.4"
+                stroke-linejoin="round"
+                paint-order="stroke"
+                data-cube-face
             ></path>
         {/if}
-        <text
-            x={PawnBox.width / 2}
-            y={PawnBox.height - 3}
-            text-anchor="middle"
-            font-size="7"
-            font-weight="700"
-            fill={paint.ink}>{paint.initial}</text
-        >
     </g>
     {#if drunk}
         <path
             d={DropPath}
-            transform="translate(27 2) scale(0.42)"
+            transform="translate(23 -2) scale(0.42)"
             fill="var(--feudum-good-sulfur)"
             stroke="var(--feudum-map-ink)"
             stroke-width="1.5"

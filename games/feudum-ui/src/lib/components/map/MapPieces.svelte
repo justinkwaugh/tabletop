@@ -9,7 +9,6 @@
     import { pawnPlace } from '$lib/model/cardFlows.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import { MonsterSize, PawnSize, VesselSize, spaceGeometry } from '$lib/utils/boardGeometry.js'
-    import { PawnBox } from '$lib/utils/pieceShapes.js'
     import BoardPiece from './BoardPiece.svelte'
     import CountChip from './CountChip.svelte'
     import PickChrome from './PickChrome.svelte'
@@ -29,7 +28,6 @@
         chrome?: BoardChrome
     } = $props()
 
-    const PawnWidth = (PawnSize * (PawnBox.width + 8)) / PawnBox.height
     const PieceFrame = PawnSize + 8
 
     function targetOf(piece: MapPiece): BoardTarget {
@@ -67,7 +65,7 @@
                         character={piece.character}
                         drunk={piece.drunk}
                         size={PawnSize}
-                        x={-PawnWidth / 2}
+                        x={-PawnSize / 2}
                         y={-PawnSize / 2 - (piece.vessel ? 6 : 0)}
                     />
                 {:else}
