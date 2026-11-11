@@ -19,6 +19,34 @@ export function placeVesselUnderPawn(
     pawn.vessel = vessel
 }
 
+/**
+ * R-4.2.2, R-4.2-H2 A vessel left on a space stays there, abandoned. Left during a turn, it is
+ * boarded only on a later turn, so the turn keeps where it lies.
+ */
+export function abandonVessel(
+    state: HydratedFeudumGameState,
+    spaceId: SpaceId,
+    vessel: VesselType
+): void {
+    state.spaces[spaceId].vessels[vessel] += 1
+    const { turn } = state.flow
+    if (turn) {
+        turn.vesselsLeft = [...(turn.vesselsLeft ?? []), { spaceId, vessel }]
+    }
+}
+
+/** R-4.2.2, R-4.2-H2 The vessels of this type on the space that were abandoned before this turn. */
+export function boardableVessels(
+    state: HydratedFeudumGameState,
+    spaceId: SpaceId,
+    vessel: VesselType
+): number {
+    const leftNow = (state.flow.turn?.vesselsLeft ?? []).filter(
+        (left) => left.spaceId === spaceId && left.vessel === vessel
+    ).length
+    return state.spaces[spaceId].vessels[vessel] - leftNow
+}
+
 /** R-4.2.3 Per one-way trip, to the general supply. */
 export const FerryFare = 2
 
@@ -131,7 +159,7 @@ export function pawnRouteOptions(
         return [{ route, to }]
     }
     const options: RouteStep[] = []
-    if (state.spaces[from].vessels[vessel] > 0) {
+    if (boardableVessels(state, from, vessel) > 0) {
         options.push({ route, to, vessel: 'board' })
     }
     if (player.vessels[vessel] > 0) {

@@ -7,6 +7,7 @@ import {
     MonsterIdSchema,
     PawnNumberSchema,
     SpaceIdSchema,
+    VesselTypeSchema,
     WritIdSchema
 } from './stateSchemas.js'
 
@@ -78,7 +79,11 @@ export const FlowState = Type.Object({
         Type.Object({
             playerId: Type.String(),
             secondCard: Type.Boolean(),
-            followUps: Type.Array(FollowUp)
+            followUps: Type.Array(FollowUp),
+            /** R-4.2.2, R-4.2-H2 Each vessel left on a space this turn, boarded only on a later turn. */
+            vesselsLeft: Type.Optional(
+                Type.Array(Type.Object({ spaceId: SpaceIdSchema, vessel: VesselTypeSchema }))
+            )
         })
     ),
     /** R-3.10, R-4.4.1 `drawn` is owner-known; the count is public. */

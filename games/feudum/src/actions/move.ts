@@ -10,6 +10,7 @@ import { queueFollowUp } from '../model/followUps.js'
 import { HydratedFeudumGameState } from '../model/gameState.js'
 import type { SpaceState } from '../model/mapState.js'
 import {
+    abandonVessel,
     FerryFare,
     ferriesOpen,
     isPinned,
@@ -233,7 +234,10 @@ function reasonWayClosed(state: HydratedFeudumGameState, playerId: string, step:
         return 'That pawn is already aboard.'
     }
     if (step.vessel === 'board') {
-        return `There is no ${words(vessel)} to board there.`
+        const from = spaceOfPiece(state, piece)
+        return from && state.spaces[from].vessels[vessel] > 0
+            ? `That ${words(vessel)} was left this turn; it can be boarded on a later turn.`
+            : `There is no ${words(vessel)} to board there.`
     }
     return step.vessel === 'place'
         ? `You have no ${words(vessel)} in your supply.`
@@ -324,7 +328,7 @@ function takeStep(
     const player = state.getPlayerState(playerId)
     const rides = vesselOfMedium(way.route.medium)
     if (pawn.vessel && pawn.vessel !== rides) {
-        state.spaces[from].vessels[pawn.vessel] += 1
+        abandonVessel(state, from, pawn.vessel)
         record.left = pawn.vessel
         pawn.vessel = undefined
     }
