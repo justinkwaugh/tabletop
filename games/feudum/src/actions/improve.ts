@@ -332,7 +332,7 @@ export class HydratedImprove extends HydratableAction<typeof Improve> implements
         }
     }
 
-    /** R-4.3.2, R-4.3-H1 The chart's vp for a legal tile, none for a fallback. R-X.2 A taken tile shows its hidden landscape. */
+    /** R-3.9.2, R-4.3.2, R-4.3-H1 The chart's vp for a legal tile, by what the location becomes; none for a fallback. R-X.2 A taken tile shows its hidden landscape. */
     private takeTile(state: HydratedFeudumGameState, to: ImproveStep['to']) {
         const region = regionOf(this.spaceId)
         const shown = improvementTile(state, region)

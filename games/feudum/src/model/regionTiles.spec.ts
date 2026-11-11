@@ -4,7 +4,13 @@ import { RegionIds, type RegionId, type TileId } from '../data/regionTiles.js'
 import type { Epoch } from '../data/tracks.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
-import { setUp, tableImproving, type ImprovingTable } from '../testing/improving.js'
+import {
+    giveGood,
+    giveSeal,
+    setUp,
+    tableImproving,
+    type ImprovingTable
+} from '../testing/improving.js'
 import { initialState } from '../testing/state.js'
 import { triggeredEpoch } from './epochConditions.js'
 import type { HydratedFeudumGameState } from './gameState.js'
@@ -237,6 +243,34 @@ describe('R-4.3.2 the tile Improve takes', () => {
         expect(after.regionStacks[start.region]).not.toContain(tileId)
         expect(action).toMatchObject({ metadata: { tile: { tileId, landscape, vp } } })
     })
+
+    it.each([
+        { from: 'outpost', to: 'farm', vp: 2, more: { discId: 'disc.double.1' } },
+        { from: 'town', to: 'feudum', vp: 4, more: { feudumGuild: 'noble' } }
+    ] as const)(
+        'R-3.9.2, R-4.3.2 $from to $to scores the epoch I tile by its $to column, $vp vp',
+        ({ from, vp, more }) => {
+            const start = tableImproving(from)
+            setUp(start.table, (state) => {
+                giveGood(state, start.playerId, 'wood')
+                giveSeal(state, start.playerId)
+            })
+            const before = start.table.hydrated()
+            const tileId = before.regionStacks[start.region][0]
+            const score = before.getPlayerState(start.playerId).score
+
+            const [action] = start.table.send(start.playerId, {
+                type: ActionType.Improve,
+                spaceId: start.spaceId,
+                ...more
+            })
+
+            const seat = start.table.hydrated().getPlayerState(start.playerId)
+            expect(seat.regionTiles).toEqual([tileId])
+            expect(seat.score).toBe(score + vp)
+            expect(action).toMatchObject({ metadata: { tile: { tileId, vp } } })
+        }
+    )
 
     it('R-1.4-H2 a taken tile shows its landscape', () => {
         const start = atFarm()
