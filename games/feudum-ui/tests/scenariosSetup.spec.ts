@@ -55,6 +55,14 @@ scenario('S2 R-1.4.9 PlaceStartingPawn, either order', 'setup-pawn', async (tabl
     await expect(knight).toHaveAttribute('aria-label', 'Knight, master')
     await expect(knight.locator('[data-die="knight"] [data-badge]')).toHaveText('M')
     await expect(knight.locator('[data-die-caption]')).toHaveText('Knight')
+    // The six dice stand in one row, at either width, their previews beneath them on a phone.
+    const rows = await table
+        .panel()
+        .locator('[data-rows="characters"] [data-die]')
+        .evaluateAll(
+            (dice) => new Set(dice.map((die) => Math.round(die.getBoundingClientRect().top))).size
+        )
+    expect(rows).toBe(1)
     await table.press(knight)
     await expect(table.panel().locator('[data-row="Knight, master"][data-picked]')).toHaveCount(1)
     expect(Object.keys(await table.litChips()).sort()).toEqual(StartingSpaces)
