@@ -11,6 +11,7 @@ import SeatToken from './pieces/SeatToken.svelte'
 import TokenText from './pieces/TokenText.svelte'
 
 vi.mock('$lib/art/suppliedFiles.js', () => ({ suppliedFiles: {} }))
+vi.mock('$lib/art/cover.js', () => ({ suppliedCover: undefined }))
 
 const paint = {
     fill: '#336699',
