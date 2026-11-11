@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { expect, test, type Locator, type Page } from '@playwright/test'
+import { ActionType } from '@tabletop/feudum'
 import {
     createGame as createHarnessGame,
     playToCards,
@@ -945,7 +946,7 @@ test.describe('a 390 px phone', () => {
     }) => {
         await openFixture(page, 'dawn-roll')
         const table = new ScenarioTable(page, true)
-        await table.another('p3', { type: 'ForfeitCard', kind: 'migrate' })
+        await table.another('p3', { type: ActionType.ForfeitCard, kind: 'migrate' })
         const sheet = panel(page).locator('[data-dawn-sheet]')
         await expect(sheet.locator('[data-dawn-row]')).toHaveCount(3)
         const edge = await panel(page).evaluate((element) => element.getBoundingClientRect().right)
