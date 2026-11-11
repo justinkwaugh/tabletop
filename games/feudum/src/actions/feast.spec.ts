@@ -7,6 +7,7 @@ import { FeudumApiActions } from '../definition/apiActions.js'
 import { MachineState } from '../definition/states.js'
 import { conservationBreaks } from '../model/canonicalValidator.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { isPinned } from '../model/media.js'
 import { writDeckCount } from '../model/writDeck.js'
 import { giveTile } from '../testing/atWill.js'
 import { buildFeudum } from '../testing/combat.js'
@@ -355,14 +356,28 @@ describe('Feast: R-3.16.3 what it refuses', () => {
         expect(() => table.send(playerId, feastOn(others[0]))).toThrow('You have no pawn there.')
     })
 
-    it('R-4.2.4 a pawn pinned by a monster can’t feast', () => {
+    it('R-4.2-H1 a pawn pinned by a monster may still feast, and is offered it', () => {
         const { table, playerId, others } = feastTable((state, seat, rest) => {
             merchantMaster(state, seat, rest)
             state.monsters.behemoth = { playerId: rest[1], spaceId: StandingSpace }
         })
-        expect(() => table.send(playerId, feastOn(others[0]))).toThrow(
-            'A monster pins your pawn there.'
-        )
+        const before = table.hydrated()
+        const knight = before.getPlayerState(playerId).pawns[0]
+        expect(knight.spaceId).toBe(StandingSpace)
+        expect(isPinned(before, playerId, knight.n)).toBe(true)
+        expect(
+            feastOffers(before, playerId).find(
+                (offer) =>
+                    offer.spaceId === StandingSpace &&
+                    offer.opponentId === others[0] &&
+                    offer.guildId === 'merchant'
+            )
+        ).toMatchObject({ fn: 'push' })
+
+        const [action] = table.send(playerId, feastOn(others[0]))
+
+        expect(action).toMatchObject({ metadata: { fn: 'push', feastPoints: 3 } })
+        expect(conservationBreaks(canonicalOf(table.hydrated()))).toEqual([])
     })
 
     it('R-3.16.3 needs their piece of that guild on the space, not just their rank', () => {
