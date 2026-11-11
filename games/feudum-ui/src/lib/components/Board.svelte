@@ -8,11 +8,17 @@
     import TrackLayers from '$lib/components/tracks/TrackLayers.svelte'
     import { colourPaint, seatPaint } from '$lib/model/seatPaint.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { takesTradePicker } from '$lib/model/tradePicker.js'
     import { BoardHeight, BoardWidth, MarginHeight } from '$lib/utils/boardGeometry.js'
 
     let gameSession = getGameSession()
     let chrome = $derived(gameSession.boardChrome)
     let tokens = $derived(gameSession.boardAnimator.tokens)
+    /** The bench draws the guild areas over the board; the trade picker stands beside it instead. */
+    let guildsCovered = $derived.by(() => {
+        const bench = gameSession.guildPanel?.bench
+        return gameSession.benchCovers && !(bench && takesTradePicker(bench))
+    })
 
     /** A seat's paint from the session's colourizer (S71), named by its seat in every piece's accessible name. */
     function paintOf(playerId: string) {
@@ -45,7 +51,7 @@
         {/snippet}
     </MapLayers>
     <!-- Under the bench the board's own guild areas keep their state and take no presses, by key either. -->
-    <g data-layer="guilds" visibility={gameSession.benchCovers ? 'hidden' : undefined}>
+    <g data-layer="guilds" visibility={guildsCovered ? 'hidden' : undefined}>
         <GuildAreas state={gameSession.gameState} {paintOf} {colourPaintOf} {chrome} />
     </g>
     <g data-layer="tracks"><TrackLayers state={gameSession.gameState} {paintOf} {chrome} /></g>

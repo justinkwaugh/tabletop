@@ -8,6 +8,7 @@ import {
     type PouchGood,
     type WritId
 } from '@tabletop/feudum'
+import type { BenchOffer } from './benchOffer.js'
 import { spaceTarget, type BoardTarget } from './boardOffer.js'
 import type { DiscArt, PanelChoice, TallyLine } from './cardFlows.js'
 import type { DraftArt, DraftChoice } from './deciderDraft.svelte.js'
@@ -15,6 +16,7 @@ import type { GameEndSummaryView } from './gameEnd.js'
 import type { DawnSheetView } from './roundEnd.js'
 import { rankedDie, type DieArt } from './guildDie.js'
 import { seatPaint, type SeatPaint } from './seatPaint.js'
+import { takesTradePicker } from './tradePicker.js'
 import type { FeudumGameSession } from './session.svelte.js'
 import type { OrderRow } from './sharedRows.js'
 import type { TileArt } from './tileName.js'
@@ -136,12 +138,24 @@ type PanelBlock =
           readonly lines: readonly TallyLine[]
           readonly note?: string
       }
+    | PrimaryBlock
+    /**
+     * Contract, The trade picker: a guild's trade read as choice cards, in the tray on a desk and in
+     * the bench's sheet on a phone, holding the card's other mode and the send.
+     */
     | {
-          readonly kind: 'primary'
-          readonly label: string
-          readonly enabled: boolean
-          readonly send: () => void | Promise<void>
+          readonly kind: 'trade-picker'
+          readonly bench: BenchOffer
+          readonly other?: ActionRow
+          readonly send?: PrimaryBlock
       }
+
+interface PrimaryBlock {
+    readonly kind: 'primary'
+    readonly label: string
+    readonly enabled: boolean
+    readonly send: () => void | Promise<void>
+}
 
 export interface ActionPanelView {
     readonly blocks: readonly ActionBlock[]
@@ -215,7 +229,7 @@ function plainChoice(label: string, picked: boolean, refusal?: string): PanelCho
     return { label, picked, ...(refusal ? { refusal } : {}) }
 }
 
-function primaryBlock(primary: TurnPrimary, send: () => void | Promise<void>): ActionBlock {
+function primaryBlock(primary: TurnPrimary, send: () => void | Promise<void>): PrimaryBlock {
     return { kind: 'primary', label: primary.label, enabled: primary.enabled, send }
 }
 
@@ -667,18 +681,33 @@ function turnBlocks(session: PanelSession, turn: NonNullable<PanelSession['turnP
     const tallyBlocks: ActionBlock[] = tally
         ? [{ kind: 'tally', lines: tally, ...(tallyNote ? { note: tallyNote } : {}) }]
         : []
-    const tray: ActionBlock[] = [
-        ...(flowLine ? [trayLine(flowLine, flowShort)] : []),
-        ...rows('replays', asTurnRows(turn.replays)),
-        ...rows('modes', modeRows),
-        ...turn.refusals.map((text) => line('refusal', text)),
-        ...rows('move', asTurnRows(move?.rows)),
-        ...rows('flow', asTurnRows(turn.flow?.rows)),
-        ...tallyBlocks,
-        ...rows('second', secondRows),
-        ...(primary ? [primaryBlock(primary, () => session.sendTurnCard())] : []),
-        ...rows('card', forfeitRows)
-    ]
+    const send = primary ? primaryBlock(primary, () => session.sendTurnCard()) : undefined
+    const picker = guild?.bench && takesTradePicker(guild.bench) ? guild.bench : undefined
+    // R-3.16.3 The picker holds the Guild card's other mode, Feast, beneath its choices, and the send.
+    const other = modeRows.find(({ choice }) => !choice.picked)
+    const tray: ActionBlock[] = picker
+        ? [
+              {
+                  kind: 'trade-picker',
+                  bench: picker,
+                  ...(other ? { other } : {}),
+                  ...(send ? { send } : {})
+              },
+              ...turn.refusals.map((text) => line('refusal', text)),
+              ...rows('card', forfeitRows)
+          ]
+        : [
+              ...(flowLine ? [trayLine(flowLine, flowShort)] : []),
+              ...rows('replays', asTurnRows(turn.replays)),
+              ...rows('modes', modeRows),
+              ...turn.refusals.map((text) => line('refusal', text)),
+              ...rows('move', asTurnRows(move?.rows)),
+              ...rows('flow', asTurnRows(turn.flow?.rows)),
+              ...tallyBlocks,
+              ...rows('second', secondRows),
+              ...(send ? [send] : []),
+              ...rows('card', forfeitRows)
+          ]
     return [
         line('turn', turn.line),
         {
