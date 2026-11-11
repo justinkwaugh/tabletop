@@ -16,9 +16,11 @@
      * One guild area on the bench: the board's own component at the bench's fixed width. Each lit,
      * picked or dimmed item is a press over where it stands, in percent of the area, so it follows
      * the width; the area itself is an image, so a press can't be inside it. Ghosts draw inside it.
+     * `fit` narrows it further, so a phone's sheet holds both areas whole.
      */
     let {
         area,
+        fit,
         state,
         paintOf,
         colourPaintOf,
@@ -27,6 +29,7 @@
         onPress
     }: {
         area: BenchAreaView
+        fit?: number
         state: HydratedFeudumGameState
         paintOf: (playerId: string) => SeatPaint
         colourPaintOf: (colour: Color) => SeatPaint
@@ -91,7 +94,7 @@
 
 <div
     class="flex flex-col gap-1"
-    style:width="min({BenchAreaWidth}px, 100%)"
+    style:width="min({fit ?? BenchAreaWidth}px, {BenchAreaWidth}px, 100%)"
     data-bench-area={area.guild}
 >
     <div class="relative" data-pick={guildTarget(area.guild)}>

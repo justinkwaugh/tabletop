@@ -824,6 +824,45 @@ test.describe('a 390 px phone', () => {
         await shot(page, 'phone-390-show-on-board')
     })
 
+    test('R-4.6 the bench sheet shows both guild areas whole, the market’s every row in sight', async ({
+        page
+    }) => {
+        await openFixture(page, 'guild-merchant-pull')
+        const table = new ScenarioTable(page, true)
+        await table.press(table.card('Guild'))
+        await table.pressPick('guild:merchant')
+        await table.press(table.popupRowStarting('Pull'))
+        for (const id of ['good:iron', 'good:iron', 'good:wood']) {
+            await table.press(
+                page
+                    .locator(
+                        `[data-bench-place="${id}"] button, [data-bench-button="${id}"] button`
+                    )
+                    .first()
+            )
+        }
+        const holder = page.locator('[data-bench-areas]')
+        const room = await rect(holder)
+        const areas = holder.locator('[data-bench-area]')
+        await expect(areas).toHaveCount(2)
+        for (const area of await areas.all()) {
+            const box = await rect(area)
+            expect(box.y).toBeGreaterThanOrEqual(room.y)
+            expect(box.y + box.height).toBeLessThanOrEqual(room.y + room.height + 0.5)
+            expect(box.x).toBeGreaterThanOrEqual(room.x)
+            expect(box.x + box.width).toBeLessThanOrEqual(room.x + room.width + 0.5)
+        }
+        const { scrollHeight, clientHeight } = await holder.evaluate((element) => ({
+            scrollHeight: element.scrollHeight,
+            clientHeight: element.clientHeight
+        }))
+        expect(scrollHeight).toBeLessThanOrEqual(clientHeight)
+        await expect(page.locator('[data-bench-footer] [data-primary]')).toBeInViewport({
+            ratio: 1
+        })
+        await expectNoSidewaysScroll(page)
+    })
+
     test('R-3.14.1 the defender’s two answers each read on one line and stay in sight together', async ({
         page
     }) => {
