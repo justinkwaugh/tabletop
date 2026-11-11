@@ -29,7 +29,7 @@ export interface GameEndColumn {
 export interface GameEndSummaryView {
     readonly columns: readonly GameEndColumn[]
     readonly winnerLine: string
-    /** R-6.3 Named only when the barrel broke a tie. */
+    /** R-6.3 Named only when the vp were tied: broken by the barrel, or still shared. */
     readonly tieBreak?: string
 }
 
@@ -48,9 +48,20 @@ function plural(count: number, one: string, many = `${one}s`): string {
     return `${count} ${count === 1 ? one : many}`
 }
 
-function tieBreakLine(tie: BarrelTieBreak, nameOf: (playerId: string) => string): string {
-    const named = tie.map(({ playerId, barrel }) => `${nameOf(playerId)} ${barrel}`)
-    return `Tie on vp broken by barrel sulfur: ${named.join(', ')}`
+/**
+ * R-6.3 "Tie: most sulfur in the wine barrel; still tied, shared." The barrel broke the tie only
+ * when it left fewer winners than were tied on vp; a win still shared says so.
+ */
+function tieBreakLine(
+    tie: BarrelTieBreak,
+    winners: readonly string[],
+    nameOf: (playerId: string) => string
+): string {
+    const named = tie.map(({ playerId, barrel }) => `${nameOf(playerId)} ${barrel}`).join(', ')
+    if (winners.length >= tie.length) {
+        return `Tie on vp and on barrel sulfur: ${named} · the win is shared`
+    }
+    return `Tie on vp broken by barrel sulfur: ${named}${winners.length > 1 ? ' · still tied, the win is shared' : ''}`
 }
 
 /** R-6.2, R-6.3 The summary, from ScoreGame's metadata: it needs nothing else to stand. */
@@ -89,7 +100,7 @@ export function gameEndOf(
         ),
         winnerLine: `${joined(metadata.winners.map(nameOf))} ${metadata.winners.length === 1 ? 'wins' : 'win'}`,
         ...(metadata.barrelTieBreak
-            ? { tieBreak: tieBreakLine(metadata.barrelTieBreak, nameOf) }
+            ? { tieBreak: tieBreakLine(metadata.barrelTieBreak, metadata.winners, nameOf) }
             : {})
     }
 }
