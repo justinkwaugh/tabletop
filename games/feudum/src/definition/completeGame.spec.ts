@@ -4,9 +4,12 @@ import { isAnswerAttack } from '../actions/answerAttack.js'
 import { isAnswerStarve } from '../actions/answerStarve.js'
 import { isBeginDawn } from '../actions/beginDawn.js'
 import { isFeast } from '../actions/feast.js'
+import { isGuildAction } from '../actions/guildAction.js'
+import { isImprove } from '../actions/improve.js'
 import { isKeepWrits } from '../actions/keepWrits.js'
 import { isRollProgressDie } from '../actions/rollProgressDie.js'
 import { isScoreGame } from '../actions/scoreGame.js'
+import { isTendLandscape } from '../actions/tendLandscape.js'
 import type { FeudumProjectedState } from '../model/gameState.js'
 import {
     completeGame,
@@ -129,7 +132,26 @@ const Coverage: readonly {
         name: `R-4.12 the dawn of epoch ${epoch}`,
         reached: (walk: GameWalk) => processedOf(walk).some(dawnAt(epoch))
     })),
-    { name: 'R-6.1-H1 a V reached mid-round', reached: reachedVMidRound }
+    { name: 'R-6.1-H1 a V reached mid-round', reached: reachedVMidRound },
+    {
+        name: 'R-3.9.1 a town improved to a feudum',
+        reached: (walk) =>
+            processedOf(walk).some(
+                (action) => isImprove(action) && action.metadata?.to === 'feudum'
+            )
+    },
+    {
+        name: 'R-4.6.3 a monster tamed',
+        reached: (walk) =>
+            processedOf(walk).some(
+                (action) =>
+                    isGuildAction(action) && action.metadata?.details.kind === 'knight-trade'
+            )
+    },
+    {
+        name: 'R-4.10.2 a landscape tended',
+        reached: (walk) => processedOf(walk).some(isTendLandscape)
+    }
 ]
 
 /** Every Action type a seat may send, each taken somewhere since the seats go after what's fresh. */
