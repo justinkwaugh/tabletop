@@ -312,7 +312,7 @@ Card symbols: x2 (may be replayed by Repeat); crossed x2 (never replayed); not-l
 
 ### R-4.7 Reeves
 
-On every push or pull, threshold reached or not (R-4.7-H1), you may place one of your discs as a reeve in that guild if you have none there (pull: left; push: right). Then score +1 vp if you have a reeve in this guild, and +1 more if your other reeve is in another guild. This repeats on every later push or pull there. A reeve follows your marker between master and journeyman and returns to supply if you drop to apprentice or off the track. At most 2, never two in one guild, never in a feast. (RB p. 16; Erratum; D 2018-05-08; D 2018-08-27; FAQ)
+On every push or pull, threshold reached or not (R-4.7-H1), you may place one of your discs as a reeve in that guild if you have none there (in the guild acted in: a pull places it on the left, a push on the right). Then score +1 vp if you have a reeve in this guild, and +1 more if your other reeve is in another guild. This repeats on every later push or pull there. A reeve follows your marker between master and journeyman and returns to supply if you drop to apprentice or off the track. At most 2, never two in one guild, never in a feast. (RB p. 16; Erratum; D 2018-05-08; D 2018-08-27; FAQ)
 
 ### R-4.8 Combat
 

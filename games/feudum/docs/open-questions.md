@@ -20,6 +20,8 @@ Answers since revised to follow the rulebook:
 - Q24: a reeve scores on every push and every pull, as the rulebook's Reeves box reads, not only when it reaches a threshold (R-4.7-H1).
 - Q29: mandate 6's Alchemist reward is any vessel, as the rulebook's writ summary reads, not only the ship its icon shows (R-4.4-H4).
 
+Three design rulings were revised the same way: Reinforcements is collected or declined, not automatic (R-3.12-H1); an abandoned vessel is boarded only on a later turn (R-4.2-H2); charters are sealed only at game end (R-4.4-H6).
+
 ## Unread values
 
 Values printed on components that no available picture shows legibly. Each blocks data, not design.
@@ -28,4 +30,5 @@ Values printed on components that no available picture shows legibly. Each block
 | ---------------------------------------------------------------- | ---------- | ---------------------------------------------- |
 | whether two Northern Kingdom dots mark badlands-2 and mountain-1 | Royal Writ | badlands-2 and mountain-1 (the nearest spaces) |
 | the rosary's capacity                                            | board      | unlimited (R-1.4-H3)                           |
+| the chicken spaces, and which takes the setup bead               | board      | 4, the setup bead on the first (R-1.4-H3)      |
 | which charity each guild pays                                    | board      | R-4.6-H3                                       |

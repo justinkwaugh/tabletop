@@ -45,7 +45,7 @@ export function reasonNoAtWillWindow(
     return atWillWindow(state, playerId) ? undefined : "It isn't your turn."
 }
 
-/** R-4.4.4 Sealed charters count; no seat may hold more at any time. */
+/** R-4.4.4, R-4.4-H9 Every writ held counts; no seat may hold more at any time. */
 export function writsOverLimit(state: HydratedFeudumGameState, playerId: string): boolean {
     return state.getPlayerState(playerId).writCount > WritLimit
 }
