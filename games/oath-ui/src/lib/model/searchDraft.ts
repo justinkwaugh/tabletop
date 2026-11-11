@@ -11,6 +11,7 @@ import {
     reasonCannotPlaceCard,
     reasonCannotPlayCard,
     reasonCannotPlaySecondCard,
+    reasonSiteFull,
     searchPlayModifiers,
     sitePlayGain,
     type LegalChoice,
@@ -264,7 +265,32 @@ export class SearchDraft implements PanelDraft {
             return refused === undefined ? [placed] : []
         })
         assert(options.length > 0, 'R-5.1.4 — a kept card can always be discarded')
-        return options
+        return this.ownSiteWaitsForDiscardFirst(playerId, cardId)
+            ? options.filter((option) => option.play !== SearchPlay.Site)
+            : options
+    }
+
+    /**
+     * R-2.8.1, R-11.10, R-5.1.4.I — a choice that cannot be picked is hidden: the play to the player's own full site
+     * waits for a card there picked to discard first. Only the site's capacity is waited on, as the engine judges it
+     * with the picks (Salt the Earth ignores it); another site picked, or any other refusal, is offered as before.
+     * The Land Warden pairs are judged apart from this, on every placement a pick could open.
+     */
+    private ownSiteWaitsForDiscardFirst(playerId: string, cardId: string): boolean {
+        const here = this.session.myPlayerState?.siteId
+        if (here === undefined || this.toSite !== undefined) return false
+        const state = this.session.gameState
+        const full = reasonSiteFull(state, here, undefined, this.discardFirsts)
+        return (
+            full !== undefined &&
+            reasonCannotPlaceCard(
+                state,
+                playerId,
+                cardId,
+                SearchPlay.Site,
+                this.playExtras(SearchPlay.Site)
+            ) === full
+        )
     }
 
     get placement(): SearchPlacement | undefined {

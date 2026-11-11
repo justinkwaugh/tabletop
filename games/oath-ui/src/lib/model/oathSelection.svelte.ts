@@ -13,7 +13,7 @@ import type { PilePlace } from './adviserPlacements.js'
 
 /**
  * R-7.4 — a modifier declared on the staged action, with the choices its text opens. `opened`
- * marks the card the powers list opened the action with. `seeded` marks a free gain the action
+ * marks the card whose "Use" opened the action. `seeded` marks a free gain the action
  * started with in use (Dragonskin Drum, Rowdy Pub …); `down` marks one a tap put down, kept so
  * Undo can bring it back.
  */
@@ -28,7 +28,7 @@ export type ModifierDeclaration = {
 // A `type`, not an `interface`: the shared helpers are generic over `Record<string, unknown>`.
 export type OathValueByStage = {
     action: ActionType
-    /** The card whose "Use" badge opened Use a power: the list holds its powers alone. */
+    /** The card whose "Use" opened Use a power: the list holds its powers alone. */
     powerCard: string
     siteFavor: Record<string, number>
     modifiers: ModifierDeclaration[]
@@ -83,7 +83,7 @@ void _stagesAreCovered
 export type OathSelectionState = StagedSelectionState<OathValueByStage>
 
 /**
- * The action grid's flow: an action (with the card a "Use" badge opened Use a power on), the
+ * The action grid's flow: an action (with the card a "Use" opened Use a power on), the
  * modifiers declared on it, then what it acts on.
  */
 export class OathSelection extends StagedFlow<OathValueByStage> {
@@ -113,17 +113,17 @@ export class OathSelection extends StagedFlow<OathValueByStage> {
                 this.setModifiers(modifiers.filter((m) => m !== last))
                 return 'modifiers'
             }
-            // The action's own tile may be dimmed, so its last card returns to the powers list.
+            // A card's "Use" opened the action with it in use, so Undo takes both back to the grid.
             if (modifiers.some((m) => m.opened && !m.down)) {
-                this.set('action', ActionType.UseActionPower)
-                return 'modifiers'
+                this.clearFrom('action')
+                return 'action'
             }
             if (modifiers.some((m) => m.down)) {
                 this.setModifiers(modifiers.map(({ use }) => ({ use, seeded: true })))
                 return 'modifiers'
             }
         }
-        // A card's "Use" badge opens Use a power on that card in one tap, so Undo takes both back.
+        // A card's "Use" opens Use a power on that card in one tap, so Undo takes both back.
         if (this.highestManualStage() === 'powerCard') {
             this.clearFrom('action')
             return 'action'

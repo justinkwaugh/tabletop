@@ -71,7 +71,8 @@ for (const viewport of [
 
         test('the promise box holds it as typed inside the panel', async ({ page }) => {
             await openTable(page, 'tribunalOffer')
-            await grid(page).getByRole('button', { name: 'Use a power', exact: true }).click()
+            // The Tribunal's Use: on a phone the board is panned, so the tap is sent to the badge.
+            await page.locator('[data-use-badge="site.the-tribunal"]').dispatchEvent('click')
             await grid(page)
                 .locator('[data-action-power="site.the-tribunal"]')
                 .getByRole('button', { name: 'rhys', exact: true })

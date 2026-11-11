@@ -83,7 +83,9 @@ for (const { name, viewport, phone } of SIZES) {
                 card(page, 'Wrestlers'),
                 step(page, 'How do you play it?')
             )
-            await expect(play(page, 'To your site')).toBeVisible()
+            // The play to Dana's own full site waits for a Slum card picked to discard first.
+            await expect(play(page, 'Adviser, faceup')).toBeVisible()
+            await expect(play(page, 'To your site')).toHaveCount(0)
             await shot(page, 'full-site-2-kept', phone)
             await tap(
                 page,

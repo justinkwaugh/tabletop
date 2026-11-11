@@ -108,7 +108,8 @@ import { SearchDraft } from './searchDraft.js'
 import type { PlayToPick } from './playToSites.js'
 import { QuestionDraft } from './questionDraft.js'
 import { woodRegions, woodTravelCards, type WoodRegion } from './woodTravel.js'
-import { refusalWords, woodTravelRefusal } from './actionAvailability.js'
+import { gridRefusal, refusalWords, woodTravelRefusal } from './actionAvailability.js'
+import { MAJOR_ACTIONS, type GridAction, type MajorAction } from './actionCatalogue.js'
 import {
     AttackPlansDraft,
     AttackerLossesDraft,
@@ -200,7 +201,8 @@ import {
     type TravelRow
 } from './travelRows.js'
 import { SetupDraft } from './setupDraft.js'
-import { actionCardUses, actionCards, type ActionCard } from './actionCards.js'
+import { actionCardUses, actionCards, cardsMakingPossible, type ActionCard } from './actionCards.js'
+import { GRAND_SCEPTER, scepterActions } from './cardUses.js'
 import { ModifierDeclarations } from './modifierDeclarations.js'
 import { WarbandMoveDraft } from './warbandMoveDraft.js'
 import {
@@ -322,6 +324,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
      */
     override beforeNewState(transition: PresentedTransition): void {
         this.resetDraftsBut(KEEPS_THE_STORY.has(transition.kind) ? this.chronicleStory : undefined)
+        this.leaveGrid()
     }
 
     // docs/user-interactions.md — a manual pick absorbs the press; an auto pick never does.
@@ -1853,6 +1856,7 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     }
 
     chooseAction(type: ActionType): void {
+        this.leaveGrid()
         if (this.selection.action !== type) this.clearActionDrafts()
         this.selection.set('action', type)
         if (type === ActionType.Campaign) this.campaign.begin()
@@ -1861,32 +1865,132 @@ export class OathGameSession extends GameSession<OathProjectedState, HydratedOat
     }
 
     /**
-     * R-6.2 — in this seat's Act Phase, the cards whose power Use a power lists, each wearing a
-     * "Use" badge where it lies: while Use a power is offered and nothing else is staged.
+     * R-6.2, R-7.4, R-6.6.1 — in this seat's Act Phase, with no action open, each card the seat can
+     * use now wears a "Use" where it lies: one whose "Action:" power Use a power lists, one that
+     * changes an action or makes it possible (both cards of a pair), and a usable Grand Scepter.
      */
-    get powerBadgeCards(): string[] {
+    get useCards(): string[] {
         const playerId = this.liveTurnSeatId
-        const action = this.selection.action
         if (
             !playerId ||
             this.gameState.machineState !== MachineState.ActPhase ||
-            !this.validActionTypes.includes(ActionType.UseActionPower) ||
-            (action !== undefined && action !== ActionType.UseActionPower)
+            this.selection.action !== undefined
         ) {
             return []
         }
-        return cardsWithListedPower(this.gameState, playerId)
+        const valid = this.validActionTypes
+        const listed = valid.includes(ActionType.UseActionPower)
+            ? cardsWithListedPower(this.gameState, playerId)
+            : []
+        const changing = this.actionCards.flatMap((card) =>
+            actionCardUses(card).map((use) => use.cardId)
+        )
+        const scepter = scepterActions(valid).length > 0 ? [GRAND_SCEPTER] : []
+        return [...new Set([...listed, ...changing, ...scepter])]
     }
 
     /**
-     * A card's "Use" badge: Use a power opened on that card's powers alone, with no picks; nothing
-     * is sent.
+     * A card's "Use": an "Action:" power opens Use a power on that card alone, as does the Grand
+     * Scepter, which offers its two uses there; a modifier opens its action with the card in use,
+     * or a pair's two cards. Nothing is sent.
      */
-    openCardPower(cardId: string): void {
-        if (!this.powerBadgeCards.includes(cardId)) return
-        if (this.selection.value('powerCard') !== cardId) this.clearActionDrafts()
-        this.chooseAction(ActionType.UseActionPower)
-        this.selection.set('powerCard', cardId)
+    useCard(cardId: string): void {
+        const playerId = this.liveTurnSeatId
+        if (!playerId || !this.useCards.includes(cardId)) return
+        const listed =
+            this.validActionTypes.includes(ActionType.UseActionPower) &&
+            cardsWithListedPower(this.gameState, playerId).includes(cardId)
+        if (listed || cardId === GRAND_SCEPTER) {
+            this.chooseAction(ActionType.UseActionPower)
+            this.selection.set('powerCard', cardId)
+            return
+        }
+        const ofIt = (card: ActionCard) => actionCardUses(card).some((u) => u.cardId === cardId)
+        const cards = this.actionCards.filter(ofIt)
+        const card = cards.find((entry) => !entry.with) ?? cards[0]
+        if (card) this.openActionWithCard(card)
+    }
+
+    // R-4.2, R-7.4 — the Act Phase grid's pointer, held here because every card's "Use" reads it:
+    // the tile under the pointer, and a dimmed major tapped, which holds for the state and seat it
+    // was tapped in. A new state, or an action chosen from the grid or a "Use", ends both.
+    private gridHover = $state.raw<GridAction | undefined>(undefined)
+    private gridTap = $state.raw<
+        { action: MajorAction; seatId: string; actionCount: number } | undefined
+    >(undefined)
+    private gridReasonId = $state.raw<string | undefined>(undefined)
+
+    /** The tile under the grid's pointer. */
+    get hoveredGridAction(): GridAction | undefined {
+        return this.gridHover
+    }
+
+    /** The major tapped, while the state and seat it was tapped in show. */
+    private get tappedGridMajor(): MajorAction | undefined {
+        const tap = this.gridTap
+        const current =
+            tap?.seatId === this.myPlayer?.id && tap?.actionCount === this.gameState.actionCount
+        return current ? tap?.action : undefined
+    }
+
+    /** The major whose line the grid shows: the one tapped, or else the one under the pointer. */
+    get pointedGridMajor(): MajorAction | undefined {
+        return (
+            this.tappedGridMajor ??
+            MAJOR_ACTIONS.find((entry) => entry.type === this.gridHover)?.type
+        )
+    }
+
+    /** The pointed major while it is dimmed and the grid gives why: its reason shows. */
+    get refusedGridMajor(): MajorAction | undefined {
+        const action = this.pointedGridMajor
+        const playerId = this.myPlayer?.id
+        if (!action || !playerId || this.validActionTypes.includes(action)) return undefined
+        return gridRefusal(this.gameState, playerId, action) ? action : undefined
+    }
+
+    /** The pointer on a tile, or off it; a hover on another tile replaces a tapped reason. */
+    hoverGridTile(action: GridAction, on: boolean, reasonId: string): void {
+        if (on && this.tappedGridMajor !== action) this.gridTap = undefined
+        if (on) {
+            this.gridHover = action
+            this.gridReasonId = reasonId
+        } else if (this.gridHover === action) {
+            this.gridHover = undefined
+        }
+    }
+
+    /** A tap on a dimmed major: its reason holds after the pointer leaves. */
+    tapGridMajor(action: MajorAction, reasonId: string): void {
+        const playerId = this.myPlayer?.id
+        if (!playerId) return
+        this.gridTap = { action, seatId: playerId, actionCount: this.gameState.actionCount }
+        this.gridReasonId = reasonId
+    }
+
+    /** The grid gives way: nothing is pointed or tapped. */
+    leaveGrid(): void {
+        this.gridTap = undefined
+        this.gridHover = undefined
+    }
+
+    /**
+     * R-7.4 — while a dimmed major's reason shows, the cards that would make it possible wear a
+     * ring on their "Use", read with the reason; each wears it only while it has a "Use".
+     */
+    get ringedUses(): string[] {
+        const action = this.refusedGridMajor
+        if (!action) return []
+        const cardIds = cardsMakingPossible(this.actionCards, action).flatMap((card) =>
+            actionCardUses(card).map((use) => use.cardId)
+        )
+        const uses = this.useCards
+        return [...new Set(cardIds)].filter((cardId) => uses.includes(cardId))
+    }
+
+    /** The reason a ringed "Use" is read with. */
+    get useRingReason(): string | undefined {
+        return this.ringedUses.length > 0 ? this.gridReasonId : undefined
     }
 
     /** R-7.4 — the cards behind "Use a power" that change an action's menu, or make it possible. */

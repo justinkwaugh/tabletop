@@ -268,9 +268,35 @@ export function commitHiddenOutputs(
                         ...(shown.has(cardId) ? ['everyone'] : [])
                     ]
                 }
-                depositPlayDiscards(state, action.metadata, discards)
+                const metadata = action.metadata
+                const second = metadata.secondDiscards
+                if (second === undefined) {
+                    depositPlayDiscards(state, metadata, discards)
+                    commitPowerOutcome(state, action.playerId, metadata, deposit)
+                    return
+                }
+                // Land Warden — from revision 33 the second card's own discards go down after the kept card's
+                // power's, and before its own power's, as the play put them there (R-7.3.3).
+                const split = metadata.discardedCardIds.length - second.count
+                const piles = metadata.pileDeposits ?? []
+                depositPlayDiscards(
+                    state,
+                    { ...metadata, discardedCardIds: metadata.discardedCardIds.slice(0, split) },
+                    discards
+                )
+                commitPowerOutcome(
+                    state,
+                    action.playerId,
+                    { ...metadata, pileDeposits: piles.slice(0, second.afterPileDeposits) },
+                    deposit
+                )
+                depositPlayDiscards(
+                    state,
+                    { ...metadata, discardedCardIds: metadata.discardedCardIds.slice(split) },
+                    discards
+                )
+                depositOnPiles(state, piles.slice(second.afterPileDeposits), deposit)
             }
-            commitPowerOutcome(state, action.playerId, action.metadata, deposit)
             return
         case ActionType.PlayFacedownAdviser:
             if (!action.metadata) return
@@ -349,6 +375,7 @@ interface PlayDiscards {
     discardedCardIds: string[]
     discardToBottom?: boolean
     discardToWorldDeck?: boolean
+    discardBeneath?: number
 }
 
 function depositPlayDiscards(state: HydratedOathGameState, play: PlayDiscards, deposit: Deposit) {
@@ -360,7 +387,8 @@ function depositPlayDiscards(state: HydratedOathGameState, play: PlayDiscards, d
             play.discardPileRegion,
             play.discardedCardIds,
             play.discardToBottom === true,
-            deposit
+            deposit,
+            play.discardBeneath
         )
 }
 
@@ -369,6 +397,7 @@ interface RecordedDiscard {
     discardedCardIds?: string[]
     discardToBottom?: boolean
     discardToWorldDeck?: boolean
+    discardBeneath?: number
 }
 
 /** A record's discards, where it says they went: False Prophet's may go where Bracken or Cracked Horn sent them. */
@@ -384,7 +413,8 @@ function discardRecorded(
                 discardPileRegion: recorded.discardPileRegion,
                 discardedCardIds: recorded.discardedCardIds,
                 discardToBottom: recorded.discardToBottom,
-                discardToWorldDeck: recorded.discardToWorldDeck
+                discardToWorldDeck: recorded.discardToWorldDeck,
+                discardBeneath: recorded.discardBeneath
             },
             deposit
         )
@@ -420,7 +450,14 @@ function depositOnPiles(
     deposit: Deposit
 ) {
     for (const pile of deposits ?? [])
-        putOnDiscardPile(state, pile.region, pile.cardIds, pile.bottom === true, deposit)
+        putOnDiscardPile(
+            state,
+            pile.region,
+            pile.cardIds,
+            pile.bottom === true,
+            deposit,
+            pile.beneath
+        )
 }
 
 /** R-9.4 */

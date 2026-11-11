@@ -3,7 +3,7 @@ import { isLockedFor } from '../util/locked.js'
 import { reasonModifierInUse } from '../util/modifiers.js'
 import { effectiveSiteCapacity } from '../util/capacity.js'
 import { HydratedOathGameState } from '../model/gameState.js'
-import { Banner, Region, Suit } from '../model/oathEnums.js'
+import { Banner, PlayerStatus, Region, Suit } from '../model/oathEnums.js'
 import type { WarbandGroup } from '../model/campaign.js'
 import type { PileDeposit } from '../model/hidden.js'
 import type { PlayMapChanges } from './registry.js'
@@ -425,6 +425,22 @@ export function siteWarbandsOverlay(
     changed: Readonly<Record<string, WarbandCounts>>
 ): HydratedOathGameState {
     return withOverrides(state, { warbandsBySite: { ...state.warbandsBySite, ...changed } })
+}
+
+/**
+ * R-7.3.3-H3 — the state a check made before a play reads, with `playerId`'s status as that play leaves it
+ * (`PlayMapChanges.status`), so who is whose enemy is read on it (R-10.12): every other read goes to `state`, and
+ * writes are refused.
+ */
+export function playerStatusOverlay(
+    state: HydratedOathGameState,
+    playerId: string,
+    status: PlayerStatus
+): HydratedOathGameState {
+    const player = withOverrides(state.getPlayerState(playerId), { status })
+    return withOverrides(state, {
+        players: state.players.map((other) => (other.playerId === playerId ? player : other))
+    })
 }
 
 function withOverrides<T extends object>(target: T, overrides: Partial<T>): T {

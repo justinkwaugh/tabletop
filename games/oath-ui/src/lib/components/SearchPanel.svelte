@@ -14,6 +14,7 @@
     import { ActionType, SearchPlay } from '@tabletop/oath'
     import { actionName } from '$lib/model/actionCatalogue.js'
     import { cardName } from '$lib/model/names.js'
+    import { drawnPreviewGroup } from '$lib/model/previewGroups.js'
     import { pickerWords } from '$lib/model/powerPickerWords.js'
     import { withSiteGain } from '$lib/model/siteGain.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -26,6 +27,8 @@
     const swapWidth = new ChoiceWidth()
     // Land Warden — the second card's buttons share the widest one's width.
     const secondWidth = new ChoiceWidth()
+    // Rule 4 — an enlarged drawn card pages through the cards drawn, in draw order.
+    const drawnGroup = () => drawnPreviewGroup(search.drawn)
 
     const discardLine = (needed: number) =>
         needed === 1 ? 'Discard 1 adviser.' : `Discard ${needed} advisers.`
@@ -105,6 +108,7 @@
                     <Magnifier
                         preview={{ cardId, label: cardName(cardId) }}
                         label={cardName(cardId)}
+                        group={drawnGroup}
                     />
                 </div>
             {/each}
@@ -150,6 +154,7 @@
                     <Magnifier
                         preview={{ cardId, label: cardName(cardId) }}
                         label={cardName(cardId)}
+                        group={drawnGroup}
                     />
                 </div>
             {/each}

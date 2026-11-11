@@ -29,18 +29,26 @@ export function categoryAt(
  * Played power can reach: Welcoming Party while the Search uses it, or Wild Cry an R-6.1 play declares, passed as
  * `declared` because the play's check runs before the play records it. Homesteaders, Resettle, Roving Terror and the
  * swaps (the Horned Mask, Great Herd) offer these.
+ *
+ * `movedBy` is the card whose power moves the card there. From revision 33 (R-X.4) it is never the card discarded
+ * first (R-11.10-H2): Homesteaders and Resettle at the Great Slum pass themselves. Roving Terror and the swaps leave
+ * out their own card themselves.
  */
 export function greatSlumDenizensToDiscardFirst(
     state: HydratedOathGameState,
     playerId: string,
     siteId: string,
-    declared: readonly string[] = []
+    declared: readonly string[] = [],
+    movedBy?: string
 ): string[] {
     if (!state.isSiteFaceup(siteId) || categoryAt(state, siteId) !== 'greatSlum') return []
+    const ownCardStays =
+        movedBy !== undefined && isAtLeastOathRevision(state, OathRevision.EngineFixes28)
     return state
         .denizensAt(siteId)
         .filter(
             (id) =>
+                !(ownCardStays && id === movedBy) &&
                 !isLockedFor(state, playerId, id) &&
                 reasonModifierInUse(state, id, declared) === undefined
         )

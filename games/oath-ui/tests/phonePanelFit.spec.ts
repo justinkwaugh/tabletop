@@ -76,14 +76,21 @@ function measureFit() {
     const inner = document.querySelector('.fit__inner')
     const box = inner?.parentElement
     const column = box?.parentElement
-    if (!(inner instanceof HTMLElement) || !box || !column) throw new Error('no fitted panel')
+    const content = inner?.querySelector(':scope > .fit__content')
+    if (!(inner instanceof HTMLElement) || !content || !box || !column) {
+        throw new Error('no fitted panel')
+    }
+    // What scrolls: the box on an upright phone, and elsewhere, below the smallest scale, the
+    // scaled panel inside it.
+    const clamped = box.classList.contains('fit--clamped')
+    const scroller = clamped ? inner : box
     const buttons = [...inner.querySelectorAll('button')].filter(
         (button) => button.offsetHeight >= 44
     )
     // Its natural height as FitBox reads it: at the box's full width, whatever width it is drawn at.
     const drawnWidth = inner.style.width
     inner.style.width = '100%'
-    const natural = inner.scrollHeight
+    const natural = content.scrollHeight
     inner.style.width = drawnWidth
     return {
         scale: inner.style.getPropertyValue('--fit-scale'),
@@ -91,9 +98,12 @@ function measureFit() {
         box: box.getBoundingClientRect().height,
         column: column.clientHeight,
         natural,
-        overflowY: getComputedStyle(box).overflowY,
-        scrollHeight: box.scrollHeight,
-        clientHeight: box.clientHeight,
+        clamped,
+        overflowY: getComputedStyle(scroller).overflowY,
+        scrollHeight: scroller.scrollHeight,
+        scrollWidth: scroller.scrollWidth,
+        clientWidth: scroller.clientWidth,
+        clientHeight: scroller.clientHeight,
         more: box.classList.contains('fit--more'),
         upright: box.classList.contains('fit--upright'),
         line: getComputedStyle(box).borderBottomWidth,
@@ -110,10 +120,17 @@ function measureFit() {
 const fitFade = (page: Page) =>
     fit(page).evaluate((box) => getComputedStyle(box).getPropertyValue('--oath-fit-fade').trim())
 
-async function scrollToEnd(page: Page) {
-    await fit(page).evaluate((box) => (box.scrollTop = box.scrollHeight))
+/** Scrolls what scrolls (see `measureFit`) to the given share of its room, 1 for the end. */
+async function scrollTo(page: Page, at: number) {
+    await fit(page).evaluate((box, at) => {
+        const inner = box.querySelector(':scope > .fit__inner')
+        const scroller = box.classList.contains('fit--clamped') && inner ? inner : box
+        scroller.scrollTop = (scroller.scrollHeight - scroller.clientHeight) * at
+    }, at)
     await waitFrames(page, 4)
 }
+
+const scrollToEnd = (page: Page) => scrollTo(page, 1)
 
 for (const height of [812, 667]) {
     test.describe(`an upright phone at 375 by ${height}: a tall panel scrolls inside its share`, () => {
@@ -466,7 +483,12 @@ test.describe('an upright phone at 375 by 812: the steps inside a scrolling pane
     })
 })
 
-/** Everywhere else, FitBox scales as before: `share` of the column, the box as tall as the drawn panel. */
+/**
+ * Everywhere else, FitBox scales the panel to its `share` of the column, the box as tall as the
+ * drawn panel, but never below `MIN_SCALE`: there the box stays its share tall and scrolls.
+ */
+const MIN_SCALE = 0.75
+
 for (const window of [
     { name: 'a desktop at 1280 by 900', viewport: { width: 1280, height: 900 }, phone: false },
     {
@@ -475,21 +497,33 @@ for (const window of [
         phone: true
     }
 ]) {
-    test.describe(`${window.name}: the panel scales to its share as before`, () => {
+    test.describe(`${window.name}: the panel scales to its share, never below 0.75`, () => {
         test.use({ viewport: window.viewport, hasTouch: window.phone })
 
         for (const scene of [...TALL, { name: 'the menu', table: 'modifierTrade' } as Scene]) {
-            test(`${scene.name}: scaled to fit, never scrolled`, async ({ page }) => {
+            test(`${scene.name}: scaled to fit, or at 0.75 and scrolling inside its share`, async ({
+                page
+            }) => {
                 await openScene(page, scene)
                 const drawn = await page.evaluate(measureFit)
                 const budget = drawn.column * SHARE
-                const scale = Math.min(1, budget / drawn.natural)
+                const fits = Math.min(1, budget / drawn.natural)
+                const scale = Math.max(MIN_SCALE, fits)
                 expect(Number(drawn.scale)).toBeCloseTo(scale, 3)
-                expect(drawn.box).toBeCloseTo(Math.ceil(drawn.natural * scale), 0)
                 expect(drawn.upright).toBe(false)
-                expect(drawn.more).toBe(false)
-                expect(drawn.line).toBe('0px')
-                expect(drawn.overflowY).toBe('visible')
+                if (fits >= MIN_SCALE) {
+                    expect(drawn.box).toBeCloseTo(Math.ceil(drawn.natural * scale), 0)
+                    expect(drawn.more).toBe(false)
+                    expect(drawn.line).toBe('0px')
+                    expect(drawn.overflowY).toBe('visible')
+                } else {
+                    expect(drawn.box).toBeCloseTo(Math.ceil(budget), 0)
+                    expect(drawn.more).toBe(true)
+                    expect(drawn.line).toBe('2px')
+                    expect(drawn.overflowY).toBe('auto')
+                    expect(drawn.scrollHeight).toBeGreaterThan(drawn.clientHeight)
+                    expect(drawn.scrollWidth).toBeLessThanOrEqual(drawn.clientWidth)
+                }
             })
         }
 
@@ -501,3 +535,246 @@ for (const window of [
         }
     })
 }
+
+/** The Horned Mask's Use at the full Great Slum: taller than a 720 px desktop's share at 0.75. */
+async function openPowers(page: Page) {
+    await openScene(page, { name: 'the Horned Mask at the Great Slum', table: 'greatSlumPowers' })
+    // On a phone the seats sit off the screen, so the tap is sent to the badge itself.
+    await page.locator('[data-use-badge="relic.horned-mask"]').dispatchEvent('click')
+    await expect(panel(page).locator('[data-action-power="relic.horned-mask"]')).toBeVisible()
+    await settled(page)
+}
+
+/**
+ * A box scrolling at 0.75, as drawn: its edges inside its line, the bottom of what it holds, how
+ * far it is scrolled, where the turn bar is, and every answer button outside the box or under the
+ * turn bar.
+ */
+const scrolledEdges = (page: Page) =>
+    fit(page).evaluate((box) => {
+        const inner = box.querySelector(':scope > .fit__inner')
+        const content = inner?.querySelector(':scope > .fit__content')
+        if (!(inner instanceof HTMLElement) || !content) throw new Error('no fitted panel')
+        const line = parseFloat(getComputedStyle(box).borderBottomWidth)
+        const drawn = box.getBoundingClientRect()
+        const bar = box.querySelector('[data-turn-bar]')?.getBoundingClientRect()
+        const top = bar ? bar.bottom : drawn.top
+        const bottom = drawn.bottom - line
+        const answers = [...box.querySelectorAll('[data-answer-row] button')].map((button) => ({
+            label: (button as HTMLElement).innerText.trim(),
+            rect: button.getBoundingClientRect()
+        }))
+        return {
+            top: drawn.top,
+            edge: bottom,
+            content: content.getBoundingClientRect().bottom,
+            scrollTop: inner.scrollTop,
+            room: inner.scrollHeight - inner.clientHeight,
+            bar: bar ? { top: bar.top, bottom: bar.bottom } : undefined,
+            answers: answers.length,
+            answersOutOfView: answers
+                .filter(({ rect }) => rect.top < top - 0.5 || rect.bottom > bottom + 0.5)
+                .map(({ label, rect }) => `${label} ${rect.top}-${rect.bottom}`)
+        }
+    })
+
+/**
+ * Scrolls each card magnifier and Use badge in a box scrolling at 0.75 under the given part that
+ * stays in view (the turn bar, a pinned answer row), and returns how many reached it and every
+ * point where they overlap at which something other than that part is drawn on top.
+ */
+const drawnOverStickyPart = (page: Page, part: string) =>
+    fit(page).evaluate(async (box, part) => {
+        const inner = box.querySelector(':scope > .fit__inner')
+        const sticky = [...box.querySelectorAll(part)].at(-1)
+        if (!(inner instanceof HTMLElement) || !sticky) throw new Error(`no ${part} in the box`)
+        const scale = parseFloat(inner.style.getPropertyValue('--fit-scale'))
+        const room = inner.scrollHeight - inner.clientHeight
+        const badges = [
+            ...inner.querySelectorAll('.magnifier, .site-magnifier, .use-badge')
+        ].filter((badge) => !sticky.contains(badge))
+        let reached = 0
+        const over: string[] = []
+        for (const badge of badges) {
+            const at = sticky.getBoundingClientRect()
+            const drawn = badge.getBoundingClientRect()
+            // The scaled panel scrolls in its own space: a screen pixel is 1 / scale of it.
+            const shift = (drawn.top + drawn.bottom - at.top - at.bottom) / 2 / scale
+            inner.scrollTop = Math.min(room, Math.max(0, inner.scrollTop + shift))
+            for (let frame = 0; frame < 2; frame++) await new Promise(requestAnimationFrame)
+            const a = sticky.getBoundingClientRect()
+            const b = badge.getBoundingClientRect()
+            const left = Math.max(a.left, b.left) + 1
+            const right = Math.min(a.right, b.right) - 1
+            const top = Math.max(a.top, b.top) + 1
+            const bottom = Math.min(a.bottom, b.bottom) - 1
+            if (right <= left || bottom <= top) continue
+            reached++
+            let covered = 0
+            for (const x of [left, (left + right) / 2, right]) {
+                for (const y of [top, (top + bottom) / 2, bottom]) {
+                    const hit = document.elementFromPoint(x, y)
+                    if (!hit || !sticky.contains(hit)) covered++
+                }
+            }
+            const name = badge.getAttribute('aria-label') ?? badge.classList[0]
+            if (covered > 0) over.push(`${name}: drawn over ${covered} of 9 points`)
+        }
+        return { reached, over }
+    }, part)
+
+// With every power on its card's Use, no Act Phase step stands far enough above a 900 px
+// desktop's share at 0.75 to scroll a card under the turn bar; the Horned Mask's stands above a
+// 720 px desktop's.
+for (const window of [
+    { name: 'a desktop at 1280 by 720', viewport: { width: 1280, height: 720 }, phone: false },
+    {
+        name: 'a desktop at 1280 by 720 in full screen',
+        viewport: { width: 1280, height: 720 },
+        phone: false,
+        full: true
+    },
+    {
+        name: 'a phone held sideways at 812 by 375',
+        viewport: { width: 812, height: 375 },
+        phone: true
+    }
+]) {
+    test.describe(`${window.name}: a step too tall at 0.75 is drawn at 0.75 and scrolls`, () => {
+        test.use({ viewport: window.viewport, hasTouch: window.phone })
+
+        test('the Horned Mask at the Great Slum: at 0.75, its share tall, scrolling to its end and no further', async ({
+            page
+        }) => {
+            await openPowers(page)
+            if (window.full) {
+                await page.getByRole('button', { name: 'Enter full screen' }).click()
+                await expect(page.locator('.fullscreen-panel .fit__inner')).toBeVisible()
+                await settled(page)
+            }
+            const drawn = await page.evaluate(measureFit)
+            const budget = (window.full ? window.viewport.height : drawn.column) * SHARE
+            expect(drawn.natural * MIN_SCALE).toBeGreaterThan(budget)
+            expect(drawn.scale).toBe(String(MIN_SCALE))
+            expect(drawn.transform).toBe('matrix(0.75, 0, 0, 0.75, 0, 0)')
+            expect(drawn.upright).toBe(false)
+            expect(Math.abs(drawn.box - Math.ceil(budget))).toBeLessThanOrEqual(1)
+            expect(drawn.pageOverflowX).toBeLessThanOrEqual(0)
+            expect(drawn.pageOverflowY).toBeLessThanOrEqual(0)
+            // More below: the upright phone's line and fade.
+            expect(drawn.more).toBe(true)
+            expect(drawn.line).toBe('2px')
+            expect(drawn.lineColour).not.toMatch(/\/ 0?\.\d+\)$|rgba|transparent/)
+            expect(drawn.overflowY).toBe('auto')
+            await expect(fit(page)).not.toHaveCSS('mask-image', 'none')
+            expect(await fitFade(page)).toBe('36px')
+            // The scaled panel scrolls inside itself, as far as it reaches and only down: never
+            // across.
+            expect(drawn.clamped).toBe(true)
+            expect(Math.abs(drawn.scrollHeight - drawn.natural)).toBeLessThanOrEqual(1)
+            expect(drawn.scrollHeight).toBeGreaterThan(drawn.clientHeight)
+            expect(drawn.scrollWidth).toBeLessThanOrEqual(drawn.clientWidth)
+            // A step without an answer row: nothing pinned at the bottom, so the fade stays.
+            await expect(panel(page).locator('[data-answer-row]')).toHaveCount(0)
+            const top = await scrolledEdges(page)
+            expect(top.bar?.top).toBeCloseTo(top.top, 0)
+
+            await scrollToEnd(page)
+            const end = await scrolledEdges(page)
+            expect(end.scrollTop).toBeGreaterThan(0)
+            expect(Math.abs(end.scrollTop - end.room)).toBeLessThanOrEqual(1)
+            // The panel's end meets the box's bottom edge: no blank space below it.
+            expect(Math.abs(end.content - end.edge)).toBeLessThanOrEqual(2)
+            expect(await fitFade(page)).toBe('0px')
+            await expect(fit(page)).toHaveCSS('border-bottom-width', '2px')
+            // The turn bar, Undo with it, stays at the box's top while the step scrolls under it.
+            expect(end.bar?.top).toBeCloseTo(top.top, 0)
+            await expect(undo(page)).toBeInViewport()
+            const undoTop = await undo(page).evaluate(
+                (button) => button.getBoundingClientRect().top
+            )
+            expect(undoTop).toBeGreaterThanOrEqual(top.top)
+            // Scrolled under the turn bar, a card's magnifier is drawn below it, not over Undo.
+            const underBar = await drawnOverStickyPart(page, '[data-turn-bar]')
+            expect(underBar.reached).toBeGreaterThan(0)
+            expect(underBar.over).toEqual([])
+        })
+    })
+}
+
+/** Steps whose answer row sat below a sideways phone's box at 0.75 until the row was pinned there. */
+const ANSWERED_BELOW: TableFixture.TableName[] = [
+    'sacrificeInTwoPlaces',
+    'resultShort',
+    'kinshipPlague',
+    'citizenshipShort',
+    'citizenshipNone',
+    'citizenshipEnough',
+    'heldAttack',
+    'heldAttackRerolled',
+    'battleDefenderPlans',
+    'battlePlanCosts',
+    'sacrificeSplit',
+    'sacrificeShort',
+    'sacrificeWhole',
+    'askTinkersFair',
+    'askGamblingHallBank',
+    'askWildMounts',
+    'tribunalAnswer',
+    'tribunalDealAsked',
+    'tribunalAnswerLong',
+    'tribunalDealAskedLong',
+    'gamblingHallAsked',
+    'wrestlersPick',
+    'wrestlersOnePlace',
+    'warningSignals',
+    'warningSignalsNothingToMove',
+    'banditRampartDefender'
+]
+
+test.describe('a phone held sideways at 812 by 375: a step scrolling at 0.75 keeps its answer in view', () => {
+    test.use({ viewport: { width: 812, height: 375 }, hasTouch: true })
+
+    for (const table of ANSWERED_BELOW) {
+        test(`${table}: the answer row pinned to the box's bottom, the turn bar to its top, all the way down`, async ({
+            page
+        }) => {
+            await openScene(page, { name: table, table })
+            const drawn = await page.evaluate(measureFit)
+            expect(drawn.clamped).toBe(true)
+            expect(drawn.scale).toBe(String(MIN_SCALE))
+            const row = panel(page).locator('[data-answer-row][data-pinned]').last()
+            await expect(row).toHaveCSS('position', 'sticky')
+            // The pinned row takes the fade's place, as on an upright phone.
+            await expect(fit(page)).toHaveCSS('mask-image', 'none')
+            for (const at of [0, 0.5, 1]) {
+                await scrollTo(page, at)
+                const view = await scrolledEdges(page)
+                expect(view.answers).toBeGreaterThan(0)
+                expect(view.answersOutOfView, `scrolled to ${at} of its room`).toEqual([])
+                expect(view.bar?.top, `scrolled to ${at} of its room`).toBeCloseTo(view.top, 0)
+            }
+        })
+    }
+
+    // Each step's one card magnifier can be scrolled under one of the two: a card at the step's
+    // end reaches the pinned row, and one near its top reaches the turn bar.
+    for (const { table, reaches } of [
+        { table: 'battleDefenderPlans', reaches: '[data-answer-row][data-pinned]' },
+        { table: 'wrestlersPick', reaches: '[data-answer-row][data-pinned]' },
+        { table: 'citizenshipEnough', reaches: '[data-turn-bar]' },
+        { table: 'tribunalAnswerLong', reaches: '[data-turn-bar]' }
+    ] as const) {
+        test(`${table}: a card scrolled under the turn bar or the pinned answer row has its magnifier drawn below them`, async ({
+            page
+        }) => {
+            await openScene(page, { name: table, table })
+            expect((await page.evaluate(measureFit)).clamped).toBe(true)
+            for (const part of ['[data-turn-bar]', '[data-answer-row][data-pinned]']) {
+                const under = await drawnOverStickyPart(page, part)
+                if (part === reaches) expect(under.reached, part).toBeGreaterThan(0)
+                expect(under.over, part).toEqual([])
+            }
+        })
+    }
+})

@@ -3,7 +3,6 @@ import {
     MachineState,
     offeredChoices,
     freeActionTypesNow,
-    powerKey,
     usableModifiers,
     woodChooserForTravel,
     woodPicksBeforeTravel,
@@ -48,14 +47,12 @@ export interface ActionCard {
     powerIndex: number
     action: CardAction
     kind: ActionCardKind
-    /** What using the card brings beyond its cost, said before it is used. */
-    consequence?: string
     /** The second card of a pair: an action only the two together make possible. */
     with?: PowerUseKey
 }
 
 /**
- * What using a card brings beyond its cost, in rose wherever its row or entry is drawn. A card's
+ * What using a card brings beyond its cost, in rose wherever its row is drawn. A card's
  * line (`ACTION_CARD_LINES`) says what it gives; this says what it costs the player besides.
  */
 export const ACTION_CARD_CONSEQUENCES: Readonly<Record<string, string>> = {
@@ -67,8 +64,7 @@ export const ACTION_CARD_CONSEQUENCES: Readonly<Record<string, string>> = {
 const GREAT_SPIRE = 'edifice.arcane.great-spire'
 
 /**
- * R-7.4 — each optional modifier's one line, what it gives, as its menu row and its Use a power
- * entry say it: a gain the action's row then counts ("+1 warband"), a price it waives
+ * R-7.4 — each optional modifier's one line, what it gives, as its menu row says it: a gain the action's row then counts ("+1 warband"), a price it waives
  * ("0 Supply"), or what it opens ("cards at beast sites"). A card the engine applies by itself
  * (R-7.4.1) has none: it is never offered.
  */
@@ -127,12 +123,6 @@ export function actionCardLine(
 ): string {
     if (cardId === GREAT_SPIRE && state?.dispossessedCount === 0) return 'the Dispossessed is empty'
     return ACTION_CARD_LINES[cardId] ?? ''
-}
-
-/** One entry's key in the powers list: a pair is keyed by both its cards. */
-export function actionCardKey(card: ActionCard): string {
-    const key = powerKey(card.cardId, card.powerIndex)
-    return card.with ? `${key}+${powerKey(card.with.cardId, card.with.powerIndex)}` : key
 }
 
 /** The cards an entry opens its action with: the card, and a pair's second card. */
@@ -260,20 +250,13 @@ function pairDeclarations(
     return soleDeclarations(state, playerId, first).flatMap((a) => seconds.map((b) => [a, b]))
 }
 
-function consequenceOf(powers: readonly CardPower[]): string | undefined {
-    const said = powers.flatMap((p) => {
-        const consequence = ACTION_CARD_CONSEQUENCES[p.cardId]
-        return consequence ? [consequence] : []
-    })
-    return said.length > 0 ? said.join(' · ') : undefined
-}
-
 /**
- * R-7.4 — the modifier cards the seat can use and pay for that put a row in an action's menu the
- * menu lacks without them: a new choice, or one at another price, payment, gain or draw. A card
- * whose condition only narrows the menu, or that only adds something after the action, puts no
- * row there, so it is offered only in that action's menu. An action only two cards make possible
- * together, neither alone, is one entry for the pair.
+ * R-7.4 — the modifier cards the seat can use and pay for that change an action it can take now,
+ * each wearing a "Use": one that puts a row in the menu the menu lacks without it (a new choice,
+ * or one at another price, payment, gain or draw), or that some row of the menu is sent with,
+ * as a free gain that comes after the action is. A card whose condition rules out every row
+ * changes nothing there. An action only two cards make possible together, neither alone, is one
+ * entry for the pair.
  */
 export function actionCards(state: HydratedOathGameState, playerId: string): ActionCard[] {
     if (state.machineState !== MachineState.ActPhase) return []
@@ -289,31 +272,31 @@ export function actionCards(state: HydratedOathGameState, playerId: string): Act
             if (plain.length === 0) return menus.length > 0 ? 'makesPossible' : undefined
             return menus.some((rows) => addsARow(rows, plain)) ? 'changes' : undefined
         }
-        const singles = usable.map((power) => ({
-            power,
-            kind: kindOf(soleDeclarations(state, playerId, power).map((use) => [use]))
-        }))
-        const cards = singles.flatMap(({ power, kind }): ActionCard[] => {
-            if (!kind) return []
-            const consequence = consequenceOf([power])
-            return [
-                { ...powerUseKey(power), action, kind, ...(consequence ? { consequence } : {}) }
-            ]
+        // A card that adds no row but that a row is sent with, as Hospitality's gain after Travel.
+        const fits = (power: CardPower): boolean =>
+            plain.length > 0 &&
+            soleDeclarations(state, playerId, power).some((use) =>
+                fitsARow(actionMenu(state, playerId, action, [use]), use)
+            )
+        const singles = usable.map((power) => {
+            const kind = kindOf(soleDeclarations(state, playerId, power).map((use) => [use]))
+            return { power, kind: kind ?? (fits(power) ? ('changes' as const) : undefined) }
         })
+        const cards = singles.flatMap(({ power, kind }): ActionCard[] =>
+            kind ? [{ ...powerUseKey(power), action, kind }] : []
+        )
         if (plain.length > 0) return cards
         // R-7.4 — an action no card makes possible alone may be made possible by two together.
         const alone = singles.filter(({ kind }) => kind === undefined).map(({ power }) => power)
         const pairs = alone.flatMap((first, i): ActionCard[] =>
             alone.slice(i + 1).flatMap((second): ActionCard[] => {
                 if (!kindOf(pairDeclarations(state, playerId, first, second))) return []
-                const consequence = consequenceOf([first, second])
                 return [
                     {
                         ...powerUseKey(first),
                         action,
                         kind: 'makesPossible',
-                        with: powerUseKey(second),
-                        ...(consequence ? { consequence } : {})
+                        with: powerUseKey(second)
                     }
                 ]
             })
@@ -328,25 +311,6 @@ export function cardsMakingPossible(
     action: ActionType
 ): ActionCard[] {
     return cards.filter((card) => card.action === action && card.kind === 'makesPossible')
-}
-
-/** R-7.1.2 — what using the card costs, as its row says it before the press. */
-export function cardCostLine(cost: PowerCost): string {
-    const counted = (count: number, noun: string) =>
-        `${count} ${noun}${noun === 'secret' && count > 1 ? 's' : ''}`
-    const placed = [
-        ...(cost.placeFavor > 0 ? [counted(cost.placeFavor, 'favor')] : []),
-        ...(cost.placeSecret > 0 ? [counted(cost.placeSecret, 'secret')] : [])
-    ]
-    const burned = [
-        ...(cost.burnFavor > 0 ? [counted(cost.burnFavor, 'favor')] : []),
-        ...(cost.burnSecret > 0 ? [counted(cost.burnSecret, 'secret')] : [])
-    ]
-    const clauses = [
-        ...(placed.length > 0 ? [`put ${placed.join(' and ')} on it`] : []),
-        ...(burned.length > 0 ? [`burn ${burned.join(' and ')}`] : [])
-    ]
-    return clauses.length > 0 ? clauses.join(', ') : 'free'
 }
 
 /** A power's cost as the answer that pays it shows it: "1 favor + 1 secret"; nothing when free. */

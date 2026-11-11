@@ -1,6 +1,7 @@
 import { bannerHolder } from '../util/oathkeeper.js'
 import { Banner } from '../model/oathEnums.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
+import { regionName } from '../data/mapSlots.js'
 import { visionsDrawnAfter } from '../data/visionsDrawnTrack.js'
 import {
     one,
@@ -115,7 +116,7 @@ registerEffect(
             const region = regionOfPawn(ctx.state, ctx.playerId)
             if (ctx.reveal?.kind === 'peek') seeDiscardPile(ctx.state, ctx.playerId, region, seen)
             return {
-                summary: `Tavern Songs: peeked at the top ${seen.length} cards of the ${region} discard pile`,
+                summary: `Tavern Songs: peeked at the top ${seen.length} cards of the ${regionName(region)} discard pile`,
                 peeked: seen
             }
         }
@@ -138,7 +139,7 @@ registerEffect(
             if (ctx.reveal?.kind === 'peek')
                 seeDiscardPile(ctx.state, ctx.playerId, pick.region, seen)
             return {
-                summary: `Scryer: peeked at the ${pick.region} discard pile (${seen.length} cards)`,
+                summary: `Scryer: peeked at the ${regionName(pick.region)} discard pile (${seen.length} cards)`,
                 peeked: seen
             }
         }
@@ -185,7 +186,7 @@ registerEffect('denizen.nomad.convoys', powerIndexOf('denizen.nomad.convoys', Po
         delete backs[pick.region]
         ctx.state.discardTopBackType = backs
         return {
-            summary: `Convoys: moved the ${pick.region} discard pile (${moved} cards) onto the ${to} pile`,
+            summary: `Convoys: moved the ${regionName(pick.region)} discard pile (${moved} cards) onto the ${regionName(to)} pile`,
             mergePiles: { from: pick.region, to }
         }
     }
