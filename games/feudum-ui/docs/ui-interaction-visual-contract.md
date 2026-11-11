@@ -330,7 +330,7 @@ Built from each Action's input and `metadata` only (`docs/DESIGN.md`, Actions). 
     - `Tax`: shillings, and the Reinforcements marker or "declined Reinforcements".
     - `Conquer`, `AnswerAttack`, `CommitAttack`: the target, "Ben flipped Defend" or "Ben let it stand", saltpeter and weapons, the strengths, the result, points and markers returned.
     - `StarveThePeople`, `AnswerStarve`: the marker, Royal Immunity or not, chicken beads returned.
-    - `GuildAction`, `Feast`: the guild and function, items moved with their places, completions, points, the payment split, reeves, rank changes, the writ count drawn, a drawn bead's value, a flipped seal's value, spilt goods.
+    - `GuildAction`, `Feast`: the guild and function, items moved with their places (a krud barrel's markers by row, and no barrels clause when it added none, R-4.6-H8), completions, points, the payment split, reeves, rank changes, the writ count drawn, a drawn bead's value, a flipped seal's value, spilt goods.
     - `PlaceDisc`: reeve, service or voyage, and where.
     - `PlayMandate`, `DiscardWrit`, `SpendRegionTile`, `PlaceVessel`, `ReclaimImmunitySeal`: the writ named (a discard is named in the owner's log only), the good, the vessel.
     - `Nourish` and `NourishPawns`: food and wine per seat; pawns unfed and returned; the rank changes once, on the one that ends nourishing (R-4.5-H1).

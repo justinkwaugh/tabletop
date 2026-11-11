@@ -772,6 +772,33 @@ describe('R-X.1 Every action type has its line (contract: Game log and history)'
 })
 
 describe("The contract's own wording", () => {
+    it('R-4.6.6, R-4.6-H8 a krud barrel that adds no marker leaves no empty "barrels:" clause', () => {
+        const invent = (barrels: { colour: Color; playerId?: string; added: number }[][]) =>
+            sample<GuildAction>({
+                ...Base,
+                type: ActionType.GuildAction,
+                guildId: 'alchemist',
+                fn: 'push',
+                params: { inventions: ['krud-barrel'] },
+                metadata: {
+                    ...Outcome,
+                    details: {
+                        kind: 'alchemist-push',
+                        goodsUsed: { ...EmptyGoods, saltpeter: 2, sulfur: 1 },
+                        barrels
+                    },
+                    completions: 0,
+                    points: 4
+                }
+            })
+        const empty = line(invent([[]]), 'p2')
+        expect(empty).toContain('invented krud barrel')
+        expect(empty).not.toContain('barrels:')
+        expect(line(invent([[{ colour: Color.Red, playerId: 'p2', added: 1 }]]), 'p2')).toContain(
+            'invented krud barrel · barrels: your row +1'
+        )
+    })
+
     it('R-3.1-H1 Ana finalised · pouch sulfur', () => {
         expect(line(Lines[ActionType.FinaliseHand].action, 'p3')).toBe(
             'Ana finalised · pouch sulfur'
