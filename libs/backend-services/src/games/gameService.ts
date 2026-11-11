@@ -86,7 +86,8 @@ import {
     tournamentTableReference,
     tournamentTableSettled,
     type TournamentTableHandover,
-    type TournamentSchedule
+    type TournamentSchedule,
+    receivesGameAndCompetitionEmail
 } from '@tabletop/common'
 import { TaskService } from '../tasks/taskService.js'
 import { TokenService, TokenType } from '../tokens/tokenService.js'
@@ -288,7 +289,7 @@ export class GameService {
             if (user.id === owner.id) {
                 continue
             }
-            await this.inviteUserToGame({ owner, game: newGame, user })
+            await this.emailGameInvitation({ owner, game: newGame, user })
             await this.notifyWasInvited(user, owner, createdGame)
         }
 
@@ -555,7 +556,12 @@ export class GameService {
         for (const player of game.players) {
             if (!player.userId || player.userId === user.id) continue
             const recipient = await this.userService.getUser(player.userId)
-            if (!recipient?.email || !canHoldAuthenticatedSession(recipient)) continue
+            if (
+                !recipient ||
+                !canHoldAuthenticatedSession(recipient) ||
+                !receivesGameAndCompetitionEmail(recipient)
+            )
+                continue
             await this.taskService.createPushTask({
                 queue: 'game-end-email',
                 path: '/email/sendPlayerRemovedEmail',
@@ -1091,7 +1097,11 @@ export class GameService {
                         // This really should never happen, so lets not bother with an error
                         continue
                     }
-                    await this.inviteUserToGame({ owner: user, game: updatedGame, user: invitee })
+                    await this.emailGameInvitation({
+                        owner: user,
+                        game: updatedGame,
+                        user: invitee
+                    })
                     await this.notifyWasInvited(invitee, user, updatedGame)
                 }
             }
@@ -1205,7 +1215,7 @@ export class GameService {
         return updatedGame
     }
 
-    async inviteUserToGame({
+    async emailGameInvitation({
         owner,
         game,
         user
@@ -1218,6 +1228,8 @@ export class GameService {
         if (!user.email || user.status !== UserStatus.Active) {
             throw new InvalidPlayerUserError({ user })
         }
+
+        if (!receivesGameAndCompetitionEmail(user)) return
 
         const invitationData = { gameId: game.id, userId: user.id }
         //TODO fix expiration
@@ -2780,7 +2792,11 @@ export class GameService {
             // I'm not sure why we send the email through the task, when
             // it could just get it on the other end.
             const user = await this.userService.getUser(userId)
-            if (user && user.email && canHoldAuthenticatedSession(user)) {
+            if (
+                user &&
+                canHoldAuthenticatedSession(user) &&
+                receivesGameAndCompetitionEmail(user)
+            ) {
                 await this.taskService.sendGameEndEmail({
                     userId: user.id,
                     gameId: game.id,

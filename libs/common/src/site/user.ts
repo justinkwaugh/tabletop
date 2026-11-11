@@ -64,8 +64,13 @@ export const UserPreferences = Type.Object({
     preferredColors: Type.Array(Type.Enum(Color)),
     colorBlindPalette: Type.Optional(Type.Boolean()),
     bgStatsEnabled: Type.Optional(Type.Boolean()),
-    reminderHours: Type.Optional(ReminderHours)
+    reminderHours: Type.Optional(ReminderHours),
+    gameAndCompetitionEmails: Type.Optional(Type.Boolean())
 })
+
+export function wantsGameAndCompetitionEmails(preferences: UserPreferences | undefined): boolean {
+    return preferences?.gameAndCompetitionEmails !== false
+}
 
 export type User = Type.Static<typeof User>
 export const User = Type.Object({
@@ -89,6 +94,12 @@ export const User = Type.Object({
     ageConfirmedAt: Type.Optional(DateType()),
     sessionGeneration: Type.Optional(Type.Integer({ minimum: 0 }))
 })
+
+export function receivesGameAndCompetitionEmail<T extends Pick<User, 'email' | 'preferences'>>(
+    user: T
+): user is T & { email: string } {
+    return Boolean(user.email) && wantsGameAndCompetitionEmails(user.preferences)
+}
 
 export type UserCreateRequest = Type.Static<typeof UserCreateRequest>
 export const UserCreateRequest = Type.Evaluate(

@@ -693,7 +693,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(transactions).not.toHaveBeenCalled()
         })
 
-        it('breaks tied tournament scores by tiebreak total and emails final results once', async () => {
+        it('breaks tied tournament scores by tiebreak total and emails final results once to those who want them', async () => {
             const { tournament, schedule } = await fixture(3, 7, 3, 3, 'scored')
             await service.runTask({ tournamentId: tournament.id })
             const links = await tournaments.readGameLinks(tournament.id)
@@ -731,14 +731,28 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(before.standings.map((row) => row.rank)).toEqual([1, 2, 3, 4, 5, 6, 7])
             enqueue.mockClear()
             notify.mockClear()
-            await service.runTask({ tournamentId: tournament.id })
+            const optedOut = users[1]
+            users[1] = {
+                ...optedOut,
+                preferences: {
+                    preventWebNotificationPrompt: false,
+                    preferredColorsEnabled: false,
+                    preferredColors: [],
+                    gameAndCompetitionEmails: false
+                }
+            }
+            try {
+                await service.runTask({ tournamentId: tournament.id })
+            } finally {
+                users[1] = optedOut
+            }
             const emails = enqueue.mock.calls.map(([options]) => options)
-            expect(emails).toHaveLength(6)
+            expect(emails).toHaveLength(5)
             expect(emails.every((options) => options.path === '/tournaments/resultsEmail')).toBe(
                 true
             )
             expect(emails.map((options) => options.payload)).toEqual(
-                users.slice(1, 7).map((user) => ({
+                users.slice(2, 7).map((user) => ({
                     tournamentId: tournament.id,
                     userId: user.id,
                     toEmail: user.email

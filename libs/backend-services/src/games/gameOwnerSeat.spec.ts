@@ -256,6 +256,29 @@ describe('games whose owner is not a player', () => {
     })
 })
 
+describe('invitation emails', () => {
+    it('emails an invitee unless they turned off game and competition emails', async () => {
+        const { service, tasks } = fixture()
+        const game = storedGame(regular, ['b', 'c', 'd'])
+        const optedOut = {
+            ...invitees[0],
+            preferences: {
+                preventWebNotificationPrompt: false,
+                preferredColorsEnabled: false,
+                preferredColors: [],
+                gameAndCompetitionEmails: false
+            }
+        }
+
+        await service.emailGameInvitation({ owner: regular, game, user: optedOut })
+        await service.emailGameInvitation({ owner: regular, game, user: invitees[1] })
+
+        expect(vi.mocked(tasks.sendGameInvitationEmail).mock.calls).toEqual([
+            [expect.objectContaining({ toEmail: invitees[1].email })]
+        ])
+    })
+})
+
 describe('owners joining their own public game', () => {
     it('seats the owner in an open seat without telling them they joined', async () => {
         const { service, store, notifications } = fixture()

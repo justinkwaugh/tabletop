@@ -35,7 +35,8 @@ import {
     ranksByAveragePlace,
     type TournamentTable,
     type TournamentTitles,
-    type WithdrawTournamentEntrantRequest
+    type WithdrawTournamentEntrantRequest,
+    receivesGameAndCompetitionEmail
 } from '@tabletop/common'
 import { requireActiveAccount, requireAdministrator, touchRevision } from './competitionAccess.js'
 import * as Value from 'typebox/value'
@@ -672,7 +673,8 @@ export class TournamentService {
                 .map((entrant) => tournamentEntrantAccount(entrant))
         )
         for (const account of accounts) {
-            if (account?.status !== UserStatus.Active || !account.email) continue
+            if (account?.status !== UserStatus.Active || !receivesGameAndCompetitionEmail(account))
+                continue
             await enqueueTournamentResultsEmail(this.tasks, {
                 tournamentId: current.id,
                 userId: account.id,

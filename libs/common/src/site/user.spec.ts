@@ -4,6 +4,8 @@ import {
     canHoldAuthenticatedSession,
     Role,
     UserStatus,
+    receivesGameAndCompetitionEmail,
+    wantsGameAndCompetitionEmails,
     withAssignedRoles
 } from './user.js'
 
@@ -65,5 +67,31 @@ describe('accountStatusAfterCompletionCheck', () => {
                 UserStatus.Deleted
             )
         }
+    })
+})
+
+describe('game and competition emails', () => {
+    const preferences = {
+        preventWebNotificationPrompt: false,
+        preferredColorsEnabled: false,
+        preferredColors: []
+    }
+    const optedOut = { ...preferences, gameAndCompetitionEmails: false }
+
+    it('sends them unless they were turned off', () => {
+        expect(wantsGameAndCompetitionEmails(undefined)).toBe(true)
+        expect(wantsGameAndCompetitionEmails(preferences)).toBe(true)
+        expect(
+            wantsGameAndCompetitionEmails({ ...preferences, gameAndCompetitionEmails: true })
+        ).toBe(true)
+        expect(wantsGameAndCompetitionEmails(optedOut)).toBe(false)
+    })
+
+    it('needs an email address as well', () => {
+        expect(receivesGameAndCompetitionEmail({ email: 'a@example.test' })).toBe(true)
+        expect(receivesGameAndCompetitionEmail({})).toBe(false)
+        expect(
+            receivesGameAndCompetitionEmail({ email: 'a@example.test', preferences: optedOut })
+        ).toBe(false)
     })
 })
