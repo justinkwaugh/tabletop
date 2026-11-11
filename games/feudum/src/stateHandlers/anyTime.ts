@@ -1,7 +1,6 @@
 import type { HydratedAction, MachineContext, MachineStateHandler } from '@tabletop/common'
 import { discardWritOffers, isDiscardWrit } from '../actions/discardWrit.js'
 import { ActionType } from '../definition/actions.js'
-import type { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 
 type FeudumStateHandler = MachineStateHandler<HydratedAction, HydratedFeudumGameState>
@@ -27,7 +26,7 @@ export function withDiscardAnyTime(handler: FeudumStateHandler): FeudumStateHand
         enter: (context) => handler.enter(context),
         onAction: (action, context: MachineContext<HydratedFeudumGameState>) =>
             isDiscardWrit(action) && !handler.isValidAction(action, context)
-                ? (context.gameState.machineState as MachineState)
+                ? context.gameState.machineState
                 : handler.onAction(action, context)
     }
 }
