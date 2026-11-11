@@ -9,6 +9,7 @@ import {
     minimalTileSet
 } from '@tabletop/18xx/testing'
 import { RoutesModule, type RouteOverlay } from './routesModule.svelte.js'
+import { routeColor } from '../routes/routePresentation.js'
 import { testSession } from './moduleTestSession.js'
 
 const networkRoutes: RouteOverlay[] = [{ id: 'track-access', color: '#168da8', segments: [] }]
@@ -74,6 +75,61 @@ describe('RoutesModule', () => {
         const { module } = running('RunningTrains', ['RunTrains'])
         expect(module.hasManual()).toBe(false)
         expect(module.undo()).toBe(false)
+    })
+
+    describe('the recorded run', () => {
+        function afterRun(ran: (owned: string[]) => string[]) {
+            const trainInventory = minimalRouteRules.depot.createInventory()
+            const owned = ['2', '2'].map((definitionId) => {
+                const train = minimalRouteRules.depot.nextTrain(trainInventory, definitionId)
+                assertExists(train)
+                minimalRouteRules.depot.purchase(trainInventory, train.id, definitionId, {
+                    kind: 'company',
+                    companyId: TestCompanyId
+                })
+                return train.id
+            })
+            const state = {
+                ...minimalPlayState(),
+                machineState: 'BuyingTrains' as const,
+                tileInventory: minimalTileSet.createInventory(),
+                trainInventory,
+                routeStep: {
+                    companyId: TestCompanyId,
+                    result: {
+                        companyId: TestCompanyId,
+                        revenue: 0,
+                        routes: ran(owned).map((trainId) => ({
+                            trainId,
+                            start: { locationId: TestHomeLocationId, nodeId: 'city' },
+                            paths: [],
+                            definitionId: '2',
+                            visits: [],
+                            payments: [],
+                            distance: 0,
+                            revenue: 0
+                        }))
+                    }
+                }
+            }
+            const harness = testSession(state, { routeRules: minimalRouteRules }, ['BuyTrain'])
+            return { module: new RoutesModule(harness.session, () => networkRoutes), owned }
+        }
+
+        it("colours each route by its train's place among the company's trains", () => {
+            const { module, owned } = afterRun((owned) => [owned[1]])
+            expect(module.overlays).toMatchObject([{ id: owned[1], color: routeColor(1) }])
+        })
+
+        // Buying a train after the run can rust the trains that ran (TOP bug report
+        // 1570074225463795774); the table broke on every load until the turn ended.
+        it('still draws a run whose train has left the company since', () => {
+            const { module } = afterRun(() => ['rusted-3H', 'rusted-3H-b'])
+            expect(module.overlays).toMatchObject([
+                { id: 'rusted-3H', color: routeColor(0) },
+                { id: 'rusted-3H-b', color: routeColor(1) }
+            ])
+        })
     })
 
     describe('drawn routes', () => {
