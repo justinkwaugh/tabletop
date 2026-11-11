@@ -26,7 +26,7 @@ export interface WritLimitPanel {
     readonly primary: TurnPrimary
 }
 
-/** R-4.4.4 Over the limit at the end of a turn. The discard is shown to all, so it waits for a press. */
+/** R-4.4.4 Over the limit at the end of a turn. The discard goes under face down, after a press. */
 export class WritLimitDraft extends DeciderDraft<WritLimitValues> {
     constructor(contextOf: () => TurnContext | undefined) {
         super(WritLimitStageOrder, contextOf)
@@ -75,7 +75,7 @@ export class WritLimitDraft extends DeciderDraft<WritLimitValues> {
                 })
             })),
             primary: {
-                label: "Discard to the deck's bottom · shown to all",
+                label: "Discard to the deck's bottom · face down",
                 enabled: this.play !== undefined
             }
         }

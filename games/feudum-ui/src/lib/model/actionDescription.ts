@@ -1146,7 +1146,11 @@ function plainLine(action: GameAction, words: Words): string | undefined {
         )
     }
     if (isDiscardWrit(action)) {
-        return `${words.who(action.playerId)} discarded ${writName(action.writId)} under the deck`
+        // R-4.4.4 A discard goes under face down: named to its discarder alone.
+        const who = words.who(action.playerId)
+        return words.seesWrits(action.playerId) && action.writId
+            ? `${who} discarded ${writName(action.writId)} under the deck`
+            : `${who} discarded a writ under the deck`
     }
     if (isReclaimImmunitySeal(action)) {
         return `${words.who(action.playerId)} took back the Royal Immunity seal from the ${action.role} at ${spaceLabel(action.spaceId)}`

@@ -388,13 +388,13 @@ describe('R-4.4.4 S52 the writ limit, as drawn', () => {
         return table
     }
 
-    it('S52 the line, the faces, the primary "shown to all", and the at-will row stays open', async () => {
+    it('S52 the line, the faces, the primary "face down", and the at-will row stays open', async () => {
         const table = await overLimit()
         const { session } = table
         const view = session.actionPanel
         expect(linesOf(view, 'flow')[0]).toBe('Hold at most 3 writs: 4 now')
         expect(blockOf(view, 'writs')?.rows.length).toBe(4)
-        expect(primaryLabels(view)).toEqual(["Discard to the deck's bottom · shown to all"])
+        expect(primaryLabels(view)).toEqual(["Discard to the deck's bottom · face down"])
         expect(rowLabels(view, 'at-will').join()).toContain('Writs')
         const first = blockOf(view, 'writs')?.rows[0]
         assertExists(first, 'A writ is offered')

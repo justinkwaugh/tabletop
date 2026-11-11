@@ -324,7 +324,7 @@ describe('DiscardWrit', () => {
         expect(reasonDiscardWritRefused(table.hydrated(), playerId, held[0])).toBe(NOT_HELD)
     })
 
-    it('R-4.4.4 puts the writ under the deck in view, costing no turn and no barrier', () => {
+    it('R-4.4.4 puts the writ under the deck face down, costing no turn and no barrier', () => {
         const { table, playerId, held } = holding(2)
         const deck = writDeckCount(table.hydrated())
         const slot = table.hydrated().writDeck.nextBottom
@@ -338,8 +338,9 @@ describe('DiscardWrit', () => {
         expect(player.writCount).toBe(1)
         expect(writDeckCount(state)).toBe(deck + 1)
         expect(state.requireVault().writDeck.at(-1)).toEqual({ slot, writId: held[0] })
-        expect(state.publicDeckWrits).toEqual([{ slot, writId: held[0] }])
-        expect(player.deckKnowledge).toEqual([])
+        // R-4.4.4 Face down: the table never sees it go under; the discarder knows its slot.
+        expect(state.publicDeckWrits).toEqual([])
+        expect(player.deckKnowledge).toEqual([{ slot, writId: held[0] }])
         expect(action).toMatchObject({ writId: held[0], metadata: { slot } })
         // R-3.2-H2 The turn is still this seat's, with no card played.
         expect(state.machineState).toBe(MachineState.PlayingCards)
@@ -348,13 +349,18 @@ describe('DiscardWrit', () => {
         expect(player.handCount).toBe(HAND.length)
     })
 
-    it('R-4.4.4, R-5.1 a discard is shown: every field is public', () => {
+    it('R-4.4.4, R-5.1 a discard is face down: the writ is the discarder’s, the slot public', () => {
         const { table, playerId, held } = holding(1)
         const [action] = table.send(playerId, { type: ActionType.DiscardWrit, writId: held[0] })
-        expect(actionProjector.project(action, spectator, { config: {} })).toMatchObject({
-            writId: held[0],
-            metadata: { slot: expect.any(Number) }
-        })
+        const other = table.order.find((seat) => seat !== playerId) ?? ''
+        for (const perspective of [spectator, { kind: 'player', playerId: other } as const]) {
+            const projected = actionProjector.project(action, perspective, { config: {} })
+            expect(projected).not.toHaveProperty('writId')
+            expect(projected).toMatchObject({ metadata: { slot: expect.any(Number) } })
+        }
+        expect(
+            actionProjector.project(action, { kind: 'player', playerId }, { config: {} })
+        ).toMatchObject({ writId: held[0] })
     })
 })
 

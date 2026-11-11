@@ -1,12 +1,12 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import { GameAction, HydratableAction, MachineContext, Visibility } from '@tabletop/common'
 import type { WritId } from '../data/writs.js'
 import { ActionType } from '../definition/actions.js'
 import { atWillWindow, reasonNoAtWillWindow } from '../model/atWill.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { ComponentCount, WritIdSchema } from '../model/stateSchemas.js'
-import { putWritsUnderInView } from '../model/writDeck.js'
+import { putWritsUnderUnseen } from '../model/writDeck.js'
 
 export type DiscardWritMetadata = Type.Static<typeof DiscardWritMetadata>
 export const DiscardWritMetadata = Type.Object({
@@ -22,8 +22,8 @@ export const DiscardWrit = Type.Evaluate(
             type: Type.Literal(ActionType.DiscardWrit),
             playerId: Type.String(),
             metadata: Type.Optional(DiscardWritMetadata),
-            /** R-4.4.4 Public: a discard is shown. */
-            writId: WritIdSchema
+            /** R-4.4.4 Actor-known: a discard goes under face down. */
+            writId: Visibility.protect(WritIdSchema, { policy: Visibility.Policy.Actor })
         })
     ])
 )
@@ -67,7 +67,7 @@ export class HydratedDiscardWrit
         super(data, DiscardWritValidator)
     }
 
-    /** R-4.4.4 Under the deck in view; the turn goes on. */
+    /** R-4.4.4 Under the deck face down: only the discarder knows its slot. The turn goes on. */
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {
         const reason = reasonDiscardWritRefused(state, this.playerId, this.writId)
         if (reason) {
@@ -78,7 +78,7 @@ export class HydratedDiscardWrit
         writs.splice(writs.indexOf(this.writId), 1)
         player.writCount -= 1
         const slot = state.writDeck.nextBottom
-        putWritsUnderInView(state, [this.writId])
+        putWritsUnderUnseen(state, this.playerId, [this.writId])
         this.metadata = { slot }
     }
 }
