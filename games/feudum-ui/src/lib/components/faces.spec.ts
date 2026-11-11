@@ -255,10 +255,14 @@ describe('printed action cards (R-3.1)', () => {
         expect(cardAt({ faceShown: false })).not.toContain('<image')
     })
 
-    it('Contract, sizes: compact and standard repeat the name where the print names the card', () => {
+    it('Contract, sizes: compact repeats the short name; standard and full leave it to the print', () => {
         expect(cardAt({ width: 50 })).toContain(`>${shortName('Influence')}<`)
-        expect(cardAt({ width: 120 })).toContain('>Influence<')
-        expect(cardAt({ width: 240 })).not.toContain('>Influence<')
+        for (const width of [120, 240]) {
+            const face = cardAt({ width })
+            expect(face).not.toContain('>Influence<')
+            expect(face).not.toMatch(/<rect[^>]*fill="var\(--feudum-parchment\)"/)
+            expect(face).toContain('aria-label="Influence card, A"')
+        }
         for (const width of [50, 120, 240]) {
             const face = cardAt({ width })
             expect(face).toContain('>4<')
