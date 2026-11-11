@@ -5,11 +5,11 @@ import {
     GameState,
     HydratableGameState,
     HydratedTurnManager,
+    PassableBidding,
     PrngState,
     assertExists,
     type RandomState
 } from '@tabletop/common'
-import { PassableBidding } from '@tabletop/18xx'
 import { MachineState } from '../definition/states.js'
 import { sarMap, type SarMap } from '../maps/maps.js'
 import {

@@ -42,9 +42,9 @@
     <defs>
         {#each artwork.tints as tint, index (index)}
             <radialGradient id="sar-tint-{index}">
-                <stop offset="0%" stop-color={tint.color} />
-                <stop offset="55%" stop-color={tint.color} stop-opacity="0.85" />
-                <stop offset="100%" stop-color={tint.color} stop-opacity="0" />
+                <stop offset="0%" stop-color={tint.color}></stop>
+                <stop offset="55%" stop-color={tint.color} stop-opacity="0.85"></stop>
+                <stop offset="100%" stop-color={tint.color} stop-opacity="0"></stop>
             </radialGradient>
         {/each}
     </defs>
@@ -58,14 +58,15 @@
                     rx={tint.rx}
                     ry={tint.ry}
                     fill="url(#sar-tint-{index})"
-                />
+                ></ellipse>
             {/each}
         </g>
         {#each artwork.waters as outline, index (index)}
-            <path d={smoothPath(outline, true)} class="water" />
+            <path d={smoothPath(outline, true)} class="water"></path>
         {/each}
         {#each artwork.rivers as river, index (index)}
-            <path d={smoothPath(river.points, false)} class="river" stroke-width={river.width} />
+            <path d={smoothPath(river.points, false)} class="river" stroke-width={river.width}
+            ></path>
         {/each}
         {#each artwork.waterNames as name (name.text)}
             <text

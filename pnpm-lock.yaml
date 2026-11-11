@@ -3911,9 +3911,6 @@ importers:
 
   games/south-african-railroads:
     dependencies:
-      '@tabletop/18xx':
-        specifier: workspace:*
-        version: link:../../libs/18xx
       '@tabletop/common':
         specifier: workspace:*
         version: link:../../libs/common
@@ -3924,9 +3921,9 @@ importers:
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/rolldown-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
@@ -3936,15 +3933,15 @@ importers:
       rimraf:
         specifier: ^6.1.0
         version: 6.1.3
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       typescript:
         specifier: 5.9.3
         version: 5.9.3
       vitest:
-        specifier: ^4.0.12
-        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15))
+        specifier: ^5.0.5
+        version: 5.0.5(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   games/south-african-railroads-ui:
     dependencies:
@@ -3960,55 +3957,55 @@ importers:
     devDependencies:
       '@playwright/test':
         specifier: ^1.42.1
-        version: 1.63.0
+        version: 1.64.1
       '@sveltejs/adapter-static':
         specifier: ^3.0.10
-        version: 3.0.10(@sveltejs/kit@2.50.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)))
+        version: 3.0.10(@sveltejs/kit@2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))
       '@sveltejs/kit':
-        specifier: ^2.48.4
-        version: 2.50.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.49.0)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)))(svelte@5.49.0)(typescript@5.9.3)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15))
+        specifier: ^2.70.3
+        version: 2.70.3(@opentelemetry/api@1.10.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)))(svelte@5.49.0)(typescript@5.9.3)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@sveltejs/package':
         specifier: ^2.5.7
         version: 2.5.8(svelte@5.49.0)(typescript@5.9.3)
       '@sveltejs/vite-plugin-svelte':
-        specifier: ^6.2.4
-        version: 6.2.4(svelte@5.49.0)(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15))
+        specifier: ^7.3.1
+        version: 7.3.1(svelte@5.49.0)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       '@tabletop/eslint-config':
         specifier: workspace:*
         version: link:../../config/config-eslint
-      '@tabletop/rollup-config':
+      '@tabletop/prettier-config':
         specifier: workspace:*
-        version: link:../../config/config-rollup
+        version: link:../../config/config-prettier
+      '@tabletop/rolldown-config':
+        specifier: workspace:*
+        version: link:../../config/config-rolldown
       '@tabletop/vitest-config':
         specifier: workspace:*
         version: link:../../config/config-vitest
-      '@tailwindcss/postcss':
-        specifier: ^4.1.18
-        version: 4.3.3
       eslint:
-        specifier: ^9.39.2
-        version: 9.39.5(jiti@2.7.0)
+        specifier: ^10.13.0
+        version: 10.13.0(jiti@2.7.0)
       flowbite:
         specifier: ^3.1.2
-        version: 3.1.2(rollup@4.55.2)
+        version: 3.1.2(rollup@4.64.12)
       flowbite-svelte:
         specifier: ^1.31.0
-        version: 1.33.1(rollup@4.55.2)(svelte@5.49.0)(tailwindcss@4.3.3)
+        version: 1.33.1(rollup@4.64.12)(svelte@5.49.0)(tailwindcss@4.3.3)
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
       postcss:
         specifier: ^8.4.38
-        version: 8.5.28
-      rollup:
-        specifier: 4.55.2
-        version: 4.55.2
+        version: 8.5.32
+      rolldown:
+        specifier: ^1.2.15
+        version: 1.2.15
       svelte:
         specifier: ^5.0.0
         version: 5.49.0
       svelte-check:
         specifier: ^4.3.5
-        version: 4.7.6(picomatch@4.0.7)(svelte@5.49.0)(typescript@5.9.3)
+        version: 4.7.7(picomatch@4.0.7)(svelte@5.49.0)(typescript@5.9.3)
       tailwindcss:
         specifier: ^4.1.18
         version: 4.3.3
@@ -4016,11 +4013,11 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
       vite:
-        specifier: ^7.3.1
-        version: 7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)
+        specifier: ^8.3.5
+        version: 8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
       vite-plugin-devtools-json:
         specifier: ^1.0.0
-        version: 1.1.0(vite@7.3.6(@types/node@26.6.4)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15))
+        version: 1.1.2(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   games/the-old-prince:
     dependencies:

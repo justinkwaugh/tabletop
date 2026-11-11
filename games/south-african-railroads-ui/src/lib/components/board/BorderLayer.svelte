@@ -27,7 +27,7 @@
                     ? `Open since dividend ${border.opensAfterDividend}`
                     : `Links across this border cannot be built until dividend ${border.opensAfterDividend} has been paid`}</title
             >
-            <path d={border.path} class="line" />
+            <path d={border.path} class="line"></path>
             <text
                 x={border.label.x}
                 y={border.label.y}

@@ -82,13 +82,13 @@
 
 {#snippet symbol(place: SettlementDefinition, fill: string | undefined)}
     {#if place.kind === SettlementKind.RailroadStation}
-        <rect x="-13.5" y="-13.5" width="27" height="27" rx="2" {fill} class:symbol={fill} />
+        <rect x="-13.5" y="-13.5" width="27" height="27" rx="2" {fill} class:symbol={fill}></rect>
     {:else if place.kind === SettlementKind.AgriculturalRailhead || place.kind === SettlementKind.NaturalResource}
-        <polygon points={polygonPoints(6, 18.5)} {fill} class:symbol={fill} />
+        <polygon points={polygonPoints(6, 18.5)} {fill} class:symbol={fill}></polygon>
     {:else if place.kind === SettlementKind.MercantileCenter}
-        <circle r="16.3" {fill} class:symbol={fill} />
+        <circle r="16.3" {fill} class:symbol={fill}></circle>
     {:else}
-        <polygon points={polygonPoints(5, 23)} {fill} class:symbol={fill} />
+        <polygon points={polygonPoints(5, 23)} {fill} class:symbol={fill}></polygon>
     {/if}
 {/snippet}
 
@@ -126,7 +126,7 @@
                         height={box.height}
                         rx="4"
                         class="shadow"
-                    />
+                    ></rect>
                 {/each}
                 {#if caption}
                     <rect
@@ -136,7 +136,7 @@
                         height={caption.height}
                         rx="4"
                         class="metro-caption"
-                    />
+                    ></rect>
                     <text
                         x={caption.x + caption.width / 2}
                         y={caption.y + caption.height / 2 + 4.5}
@@ -150,7 +150,7 @@
                     height={frame.height}
                     rx="4"
                     class="metro-frame"
-                />
+                ></rect>
                 {#each metroCells(place) as cell (cell.value)}
                     <rect
                         x={cell.x}
@@ -160,7 +160,7 @@
                         class="metro-cell"
                         class:current={cell.index === place.level}
                         class:passed={cell.index < place.level}
-                    />
+                    ></rect>
                     <text
                         x={cell.x + METRO_CELL / 2}
                         y={cell.y + METRO_CELL / 2 + 5.5}
@@ -177,7 +177,7 @@
                         height={METRO_CELL + 4}
                         rx="4"
                         class="developed-halo"
-                    />
+                    ></rect>
                     <rect
                         x={current.x - 2}
                         y={current.y - 2}
@@ -185,7 +185,7 @@
                         height={METRO_CELL + 4}
                         rx="4"
                         class="developed-ring"
-                    />
+                    ></rect>
                 {/if}
             {:else}
                 <g transform="translate({place.x} {place.y})">
@@ -201,8 +201,8 @@
                     >
                     {#if place.level > 0}
                         {@const radius = developedRingRadius(place)}
-                        <circle r={radius} class="developed-halo" />
-                        <circle r={radius} class="developed-ring" />
+                        <circle r={radius} class="developed-halo"></circle>
+                        <circle r={radius} class="developed-ring"></circle>
                     {/if}
                 </g>
             {/if}
@@ -229,7 +229,7 @@
                     height={bounds.height + 20}
                     rx="12"
                     class="leave-ring"
-                />
+                ></rect>
             </g>
         {/if}
     {/each}
@@ -254,7 +254,7 @@
                     height={bounds.height + 10}
                     rx="9"
                     class="ring"
-                />
+                ></rect>
                 {#each place.target.gains as entry, index (entry.railroadId)}
                     {@const style = RAILROAD_STYLE[entry.railroadId]}
                     <g
@@ -264,7 +264,7 @@
                             index * 17})"
                         class="gain-chip"
                     >
-                        <rect x="-19" y="-8" width="38" height="15" rx="3" fill={style.fill} />
+                        <rect x="-19" y="-8" width="38" height="15" rx="3" fill={style.fill}></rect>
                         <text y="4" fill={style.text}>+{entry.gain}</text>
                     </g>
                 {/each}

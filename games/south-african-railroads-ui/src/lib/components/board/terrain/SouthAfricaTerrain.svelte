@@ -6,13 +6,13 @@
 
 <defs>
     <linearGradient id="sar-sea" x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0%" stop-color="#9fc7cf" />
-        <stop offset="100%" stop-color="#6fa5b3" />
+        <stop offset="0%" stop-color="#9fc7cf"></stop>
+        <stop offset="100%" stop-color="#6fa5b3"></stop>
     </linearGradient>
 </defs>
 
-<path d={SEA} fill="url(#sar-sea)" />
-<path d={SEA} fill="none" stroke="#4f7f8c" stroke-width="2" />
+<path d={SEA} fill="url(#sar-sea)"></path>
+<path d={SEA} fill="none" stroke="#4f7f8c" stroke-width="2"></path>
 {#each WAVE_OFFSETS as offset (offset)}
     <path
         d="M{1584 - 4} {640 + offset * 2} C{1566 + offset} {742 + offset} {1540 + offset} {832 +
@@ -22,7 +22,7 @@
         stroke-width="1.2"
         stroke-dasharray="6 9"
         opacity="0.7"
-    />
+    ></path>
 {/each}
 <text x="1556" y="770" class="sea-label" transform="rotate(-80 1556 770)">INDIAN OCEAN</text>
 

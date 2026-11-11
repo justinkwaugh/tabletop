@@ -44,14 +44,14 @@
             class="spur"
             class:built={connection.style}
             stroke={connection.style?.fill ?? '#6c4f9c'}
-        />
+        ></line>
         <g transform="translate({connection.x} {connection.y})">
             <polygon
                 points={starPoints(8, CONNECTION_STAR_RADIUS, 13)}
                 transform="translate({SHADOW_OFFSET.x} {SHADOW_OFFSET.y})"
                 class="shadow"
-            />
-            <polygon points={starPoints(8, CONNECTION_STAR_RADIUS, 13)} class="star" />
+            ></polygon>
+            <polygon points={starPoints(8, CONNECTION_STAR_RADIUS, 13)} class="star"></polygon>
             {#if connection.style}
                 <Cube
                     x={0}
@@ -89,7 +89,7 @@
                 onclick={() => gameSession.buildConnection(connection.id)}
                 onkeydown={(event) => onKey(event, connection.id)}
             >
-                <circle cx={connection.x} cy={connection.y} r="32" class="ring" />
+                <circle cx={connection.x} cy={connection.y} r="32" class="ring"></circle>
             </g>
         {/if}
     </g>

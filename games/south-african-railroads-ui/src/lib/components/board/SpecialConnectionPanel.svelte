@@ -22,9 +22,9 @@
             >Once a game, in place of a build, a railroad whose track meets one from the other side
             pays ${special.cost} to found the {special.name}</title
         >
-        <rect width={panel.width} height={panel.height} rx="8" class="sheet" />
+        <rect width={panel.width} height={panel.height} rx="8" class="sheet"></rect>
         <text x={panel.width / 2} y="22" class="title">The {special.name}</text>
-        <line x1="12" x2={panel.width - 12} y1="31" y2="31" class="rule" />
+        <line x1="12" x2={panel.width - 12} y1="31" y2="31" class="rule"></line>
         <text x={panel.width / 2} y="50" class="body"
             >{names(special.northern).join(' or ')} meets {names(special.southern).join(
                 ' or '
@@ -39,7 +39,7 @@
         <text x="62" y="114" class="label">+{special.valueBonus} value</text>
         {#each [0, 1] as slot (slot)}
             {@const founder = founders[slot]}
-            <rect x={150 + slot * 44} y="96" width="30" height="30" rx="3" class="slot" />
+            <rect x={150 + slot * 44} y="96" width="30" height="30" rx="3" class="slot"></rect>
             {#if founder}
                 {@const style = RAILROAD_STYLE[founder]}
                 <Cube x={165 + slot * 44} y={112} size={24} color={style.fill} edge={style.dark} />

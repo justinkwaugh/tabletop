@@ -30,10 +30,12 @@
 >
     <text y="0" class="title">{layout.spec.title}</text>
     {#each ties as x (x)}
-        <rect {x} y={TRACK_Y - 1} width="2" height="8" class="tie" />
+        <rect {x} y={TRACK_Y - 1} width="2" height="8" class="tie"></rect>
     {/each}
-    <line x1={-trackWidth / 2} x2={trackWidth / 2} y1={TRACK_Y + 1} y2={TRACK_Y + 1} class="rail" />
-    <line x1={-trackWidth / 2} x2={trackWidth / 2} y1={TRACK_Y + 5} y2={TRACK_Y + 5} class="rail" />
+    <line x1={-trackWidth / 2} x2={trackWidth / 2} y1={TRACK_Y + 1} y2={TRACK_Y + 1} class="rail"
+    ></line>
+    <line x1={-trackWidth / 2} x2={trackWidth / 2} y1={TRACK_Y + 5} y2={TRACK_Y + 5} class="rail"
+    ></line>
     <text y="28" class="credit">{layout.spec.credit}</text>
 </g>
 

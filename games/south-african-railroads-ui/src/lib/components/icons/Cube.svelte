@@ -19,9 +19,10 @@
     stroke-width="1"
     stroke-linejoin="round"
 >
-    <path d="M0 {-h} L{h} {-q} L0 0 L{-h} {-q} Z" fill={color} />
-    <path d="M{-h} {-q} L0 0 L0 {h} L{-h} {q} Z" fill={color} />
-    <path d="M{-h} {-q} L0 0 L0 {h} L{-h} {q} Z" fill="#000" fill-opacity="0.18" stroke="none" />
-    <path d="M{h} {-q} L0 0 L0 {h} L{h} {q} Z" fill={color} />
-    <path d="M{h} {-q} L0 0 L0 {h} L{h} {q} Z" fill="#000" fill-opacity="0.36" stroke="none" />
+    <path d="M0 {-h} L{h} {-q} L0 0 L{-h} {-q} Z" fill={color}></path>
+    <path d="M{-h} {-q} L0 0 L0 {h} L{-h} {q} Z" fill={color}></path>
+    <path d="M{-h} {-q} L0 0 L0 {h} L{-h} {q} Z" fill="#000" fill-opacity="0.18" stroke="none"
+    ></path>
+    <path d="M{h} {-q} L0 0 L0 {h} L{h} {q} Z" fill={color}></path>
+    <path d="M{h} {-q} L0 0 L0 {h} L{h} {q} Z" fill="#000" fill-opacity="0.36" stroke="none"></path>
 </g>

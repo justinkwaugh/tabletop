@@ -45,9 +45,9 @@
 <defs>
     {#each TINTS as tint (tint.id)}
         <radialGradient id="ts-tint-{tint.id}">
-            <stop offset="0%" stop-color={tint.color} />
-            <stop offset="55%" stop-color={tint.color} stop-opacity="0.85" />
-            <stop offset="100%" stop-color={tint.color} stop-opacity="0" />
+            <stop offset="0%" stop-color={tint.color}></stop>
+            <stop offset="55%" stop-color={tint.color} stop-opacity="0.85"></stop>
+            <stop offset="100%" stop-color={tint.color} stop-opacity="0"></stop>
         </radialGradient>
     {/each}
 </defs>
@@ -61,14 +61,14 @@
                 rx={tint.rx * 1.35}
                 ry={tint.ry * 1.35}
                 fill="url(#ts-tint-{tint.id})"
-            />
+            ></ellipse>
         {/each}
     </g>
     {#each STATE_LINES as d (d)}
-        <path {d} class="state-line" />
+        <path {d} class="state-line"></path>
     {/each}
     {#each RIVERS as river (river.d)}
-        <path d={river.d} class="river" stroke-width={river.width} />
+        <path d={river.d} class="river" stroke-width={river.width}></path>
     {/each}
     {#each STATES as state (state.text)}
         <text
@@ -95,19 +95,19 @@
             d="M -9 -6 C -20 -10 -34 -8 -46 -24 C -45 -10 -32 -1 -11 2"
             fill="#4e5b66"
             fill-opacity="0.18"
-        />
+        ></path>
         <path
             d="M 9 -6 C 20 -10 34 -8 46 -24 C 45 -10 32 -1 11 2"
             fill="#4e5b66"
             fill-opacity="0.18"
-        />
+        ></path>
         <path
             d="M -11 -6 C -15 8 -8 26 0 34 C 8 26 15 8 11 -6 C 6 -11 -6 -11 -11 -6 Z"
             fill="#fbf6e7"
-        />
-        <ellipse cx="-5" cy="4" rx="2.6" ry="3.4" fill="#4e5b66" />
-        <ellipse cx="5" cy="4" rx="2.6" ry="3.4" fill="#4e5b66" />
-        <path d="M -2.5 26 l 0 3 M 2.5 26 l 0 3" />
+        ></path>
+        <ellipse cx="-5" cy="4" rx="2.6" ry="3.4" fill="#4e5b66"></ellipse>
+        <ellipse cx="5" cy="4" rx="2.6" ry="3.4" fill="#4e5b66"></ellipse>
+        <path d="M -2.5 26 l 0 3 M 2.5 26 l 0 3"></path>
     </g>
     <!-- A windmill on the plains -->
     <g
@@ -119,13 +119,13 @@
     >
         <path
             d="M -13 36 L -3 -30 M 13 36 L 3 -30 M -11 22 L 11 22 M -8 4 L 8 4 M -6 -12 L 6 -12 M -11 22 L 8 4 M 11 22 L -8 4 M -8 4 L 6 -12 M 8 4 L -6 -12"
-        />
-        <circle cx="0" cy="-34" r="17" />
+        ></path>
+        <circle cx="0" cy="-34" r="17"></circle>
         <path
             d="M 0 -34 L 17.0 -34.0 M 0 -34 L 14.7 -25.5 M 0 -34 L 8.5 -19.3 M 0 -34 L 0.0 -17.0 M 0 -34 L -8.5 -19.3 M 0 -34 L -14.7 -25.5 M 0 -34 L -17.0 -34.0 M 0 -34 L -14.7 -42.5 M 0 -34 L -8.5 -48.7 M 0 -34 L -0.0 -51.0 M 0 -34 L 8.5 -48.7 M 0 -34 L 14.7 -42.5"
             stroke-width="1"
-        />
-        <path d="M 2 -34 L 34 -32 M 30 -38 L 40 -32 L 30 -26 Z" />
+        ></path>
+        <path d="M 2 -34 L 34 -32 M 30 -38 L 40 -32 L 30 -26 Z"></path>
     </g>
     <!-- Pines in the Ozarks -->
     <g
@@ -138,8 +138,8 @@
             d="M 0 -30 L 9 -16 L 4 -16 L 13 -3 L 6 -3 L 16 10 L -16 10 L -6 -3 L -13 -3 L -4 -16 L -9 -16 Z"
             fill="#4e5b66"
             fill-opacity="0.22"
-        />
-        <path d="M 0 10 L 0 18" stroke-width="2.4" />
+        ></path>
+        <path d="M 0 10 L 0 18" stroke-width="2.4"></path>
     </g><g
         transform="translate(945 851) scale(0.8)"
         stroke="#4e5b66"
@@ -150,8 +150,8 @@
             d="M 0 -30 L 9 -16 L 4 -16 L 13 -3 L 6 -3 L 16 10 L -16 10 L -6 -3 L -13 -3 L -4 -16 L -9 -16 Z"
             fill="#4e5b66"
             fill-opacity="0.22"
-        />
-        <path d="M 0 10 L 0 18" stroke-width="2.4" />
+        ></path>
+        <path d="M 0 10 L 0 18" stroke-width="2.4"></path>
     </g><g
         transform="translate(888 858) scale(0.75)"
         stroke="#4e5b66"
@@ -162,8 +162,8 @@
             d="M 0 -30 L 9 -16 L 4 -16 L 13 -3 L 6 -3 L 16 10 L -16 10 L -6 -3 L -13 -3 L -4 -16 L -9 -16 Z"
             fill="#4e5b66"
             fill-opacity="0.22"
-        />
-        <path d="M 0 10 L 0 18" stroke-width="2.4" />
+        ></path>
+        <path d="M 0 10 L 0 18" stroke-width="2.4"></path>
     </g>
     <!-- Derricks on the Gulf coast -->
     <g
@@ -175,8 +175,8 @@
     >
         <path
             d="M -14 34 L 0 -34 L 14 34 M -11 20 L 11 20 M -8 6 L 8 6 M -5 -8 L 5 -8 M -3 -20 L 3 -20 M -11 20 L 8 6 M 11 20 L -8 6 M -8 6 L 5 -8 M 8 6 L -5 -8 M -5 -8 L 3 -20 M 5 -8 L -3 -20"
-        />
-        <path d="M -4 -34 L 4 -34 M -20 34 L 20 34" />
+        ></path>
+        <path d="M -4 -34 L 4 -34 M -20 34 L 20 34"></path>
     </g><g
         transform="translate(910 1702) scale(0.7)"
         fill="none"
@@ -186,8 +186,8 @@
     >
         <path
             d="M -14 34 L 0 -34 L 14 34 M -11 20 L 11 20 M -8 6 L 8 6 M -5 -8 L 5 -8 M -3 -20 L 3 -20 M -11 20 L 8 6 M 11 20 L -8 6 M -8 6 L 5 -8 M 8 6 L -5 -8 M -5 -8 L 3 -20 M 5 -8 L -3 -20"
-        />
-        <path d="M -4 -34 L 4 -34 M -20 34 L 20 34" />
+        ></path>
+        <path d="M -4 -34 L 4 -34 M -20 34 L 20 34"></path>
     </g>
     <!-- The Gulf -->
     <path
@@ -196,52 +196,53 @@
         stroke="#7f9bb0"
         stroke-width="1.6"
         stroke-linecap="round"
-    />
+    ></path>
     <!-- A compass rose under the rules -->
     <g transform="translate(1152 1535)">
-        <circle r="50.839999999999996" fill="none" stroke="#4e5b66" stroke-width="1" />
-        <circle r="45.88" fill="none" stroke="#4e5b66" stroke-width="0.6" stroke-dasharray="2 4" />
-        <path d="M 0 0 L -9.9 -0.0 L 0.0 -62.0 Z" fill="#4e5b66" /><path
+        <circle r="50.839999999999996" fill="none" stroke="#4e5b66" stroke-width="1"></circle>
+        <circle r="45.88" fill="none" stroke="#4e5b66" stroke-width="0.6" stroke-dasharray="2 4"
+        ></circle>
+        <path d="M 0 0 L -9.9 -0.0 L 0.0 -62.0 Z" fill="#4e5b66"></path><path
             d="M 0 0 L 9.9 -0.0 L 0.0 -62.0 Z"
             fill="#fbf6e7"
             stroke="#4e5b66"
             stroke-width="1"
-        /><path d="M 0 0 L 0.0 -9.9 L 62.0 -0.0 Z" fill="#4e5b66" /><path
+        ></path><path d="M 0 0 L 0.0 -9.9 L 62.0 -0.0 Z" fill="#4e5b66"></path><path
             d="M 0 0 L 0.0 9.9 L 62.0 -0.0 Z"
             fill="#fbf6e7"
             stroke="#4e5b66"
             stroke-width="1"
-        /><path d="M 0 0 L 9.9 -0.0 L 0.0 62.0 Z" fill="#4e5b66" /><path
+        ></path><path d="M 0 0 L 9.9 -0.0 L 0.0 62.0 Z" fill="#4e5b66"></path><path
             d="M 0 0 L -9.9 0.0 L 0.0 62.0 Z"
             fill="#fbf6e7"
             stroke="#4e5b66"
             stroke-width="1"
-        /><path d="M 0 0 L 0.0 9.9 L -62.0 0.0 Z" fill="#4e5b66" /><path
+        ></path><path d="M 0 0 L 0.0 9.9 L -62.0 0.0 Z" fill="#4e5b66"></path><path
             d="M 0 0 L -0.0 -9.9 L -62.0 0.0 Z"
             fill="#fbf6e7"
             stroke="#4e5b66"
             stroke-width="1"
-        /><path d="M 0 0 L -4.8 -4.8 L 26.3 -26.3 Z" fill="#4e5b66" /><path
+        ></path><path d="M 0 0 L -4.8 -4.8 L 26.3 -26.3 Z" fill="#4e5b66"></path><path
             d="M 0 0 L 4.8 4.8 L 26.3 -26.3 Z"
             fill="#fbf6e7"
             stroke="#4e5b66"
             stroke-width="1"
-        /><path d="M 0 0 L 4.8 -4.8 L 26.3 26.3 Z" fill="#4e5b66" /><path
+        ></path><path d="M 0 0 L 4.8 -4.8 L 26.3 26.3 Z" fill="#4e5b66"></path><path
             d="M 0 0 L -4.8 4.8 L 26.3 26.3 Z"
             fill="#fbf6e7"
             stroke="#4e5b66"
             stroke-width="1"
-        /><path d="M 0 0 L 4.8 4.8 L -26.3 26.3 Z" fill="#4e5b66" /><path
+        ></path><path d="M 0 0 L 4.8 4.8 L -26.3 26.3 Z" fill="#4e5b66"></path><path
             d="M 0 0 L -4.8 -4.8 L -26.3 26.3 Z"
             fill="#fbf6e7"
             stroke="#4e5b66"
             stroke-width="1"
-        /><path d="M 0 0 L -4.8 4.8 L -26.3 -26.3 Z" fill="#4e5b66" /><path
+        ></path><path d="M 0 0 L -4.8 4.8 L -26.3 -26.3 Z" fill="#4e5b66"></path><path
             d="M 0 0 L 4.8 -4.8 L -26.3 -26.3 Z"
             fill="#fbf6e7"
             stroke="#4e5b66"
             stroke-width="1"
-        />
+        ></path>
         <text
             y="-70"
             text-anchor="middle"

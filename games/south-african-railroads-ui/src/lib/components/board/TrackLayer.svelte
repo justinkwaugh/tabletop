@@ -40,12 +40,12 @@
 <g class="track-layer">
     {#each links as trackLink (trackLink.id)}
         <g class="link" class:built={trackLink.style}>
-            <path d={trackLink.path} class="ties" />
+            <path d={trackLink.path} class="ties"></path>
             {#if trackLink.style}
-                <path d={trackLink.path} class="rail-built-edge" />
-                <path d={trackLink.path} class="rail-built" stroke={trackLink.style.fill} />
+                <path d={trackLink.path} class="rail-built-edge"></path>
+                <path d={trackLink.path} class="rail-built" stroke={trackLink.style.fill}></path>
             {:else}
-                <path d={trackLink.path} class="rail" />
+                <path d={trackLink.path} class="rail"></path>
             {/if}
         </g>
     {/each}
@@ -57,7 +57,7 @@
                 class="target-glow"
                 class:chosen={trackLink.chosen}
                 stroke={builderStyle?.light ?? '#ffcf3f'}
-            />
+            ></path>
         {/if}
     {/each}
 
@@ -87,7 +87,7 @@
                     height={LINK_BOX_SIZE}
                     rx="3.5"
                     class="box"
-                />
+                ></rect>
             {/if}
         </g>
     {/each}
@@ -102,7 +102,7 @@
                 onclick={() => gameSession.clickLink(trackLink.id)}
                 onkeydown={(event) => onKey(event, trackLink.id)}
             >
-                <path d={trackLink.path} class="hit-path" />
+                <path d={trackLink.path} class="hit-path"></path>
                 <rect
                     x={trackLink.box.x - LINK_BOX_SIZE / 2 - 5}
                     y={trackLink.box.y - LINK_BOX_SIZE / 2 - 5}
@@ -111,7 +111,7 @@
                     rx="6"
                     class="hit-box"
                     stroke={builderStyle?.fill ?? '#c8961a'}
-                />
+                ></rect>
                 <text x={trackLink.box.x} y={trackLink.box.y + 5} class="gain"
                     >+{trackLink.gain}</text
                 >

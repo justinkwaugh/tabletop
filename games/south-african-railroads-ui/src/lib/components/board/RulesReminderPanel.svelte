@@ -30,12 +30,12 @@
 
 {#if panel}
     <g transform="translate({panel.x} {panel.y})" aria-label="{layout.spec.title} rules">
-        <rect width={panel.width} height={panel.height} rx="8" class="sheet" />
+        <rect width={panel.width} height={panel.height} rx="8" class="sheet"></rect>
         <text x={panel.width / 2} y="22" class="title">{layout.spec.title} Rules</text>
         <text x={panel.width / 2} y="38" class="subtitle"
             >where they differ from South African Railroads</text
         >
-        <line x1="12" x2={panel.width - 12} y1="45" y2="45" class="rule" />
+        <line x1="12" x2={panel.width - 12} y1="45" y2="45" class="rule"></line>
         {#each notes as note, index (index)}
             <text x="14" y={tops[index] + 10} class="bullet">•</text>
             {#each note as line, row (row)}

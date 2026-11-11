@@ -38,14 +38,15 @@
 <g transform="translate({origin.x} {origin.y})" class="legend">
     <text x={BASE_X} y="12" class="heading">Base</text>
     <text x={DEVELOPED_X} y="12" class="heading">Developed</text>
-    <line x1="0" y1="20" x2="224" y2="20" class="rule" />
+    <line x1="0" y1="20" x2="224" y2="20" class="rule"></line>
     {#each rows as entry, index (entry.kind)}
         <g transform="translate(0 {FIRST_ROW_Y + index * ROW_PITCH})">
             <g transform="translate(14 0)">
                 {#if entry.kind === SettlementKind.AgriculturalRailhead || entry.kind === SettlementKind.NaturalResource}
-                    <polygon points={polygonPoints(6, 13)} fill={entry.fill} class="symbol" />
+                    <polygon points={polygonPoints(6, 13)} fill={entry.fill} class="symbol"
+                    ></polygon>
                 {:else if entry.kind === SettlementKind.MercantileCenter}
-                    <circle r="11" fill={entry.fill} class="symbol" />
+                    <circle r="11" fill={entry.fill} class="symbol"></circle>
                 {:else if entry.kind === SettlementKind.RailroadStation}
                     <rect
                         x="-9.5"
@@ -55,9 +56,10 @@
                         rx="2"
                         fill={entry.fill}
                         class="symbol"
-                    />
+                    ></rect>
                 {:else}
-                    <polygon points={polygonPoints(5, 14)} fill={entry.fill} class="symbol" />
+                    <polygon points={polygonPoints(5, 14)} fill={entry.fill} class="symbol"
+                    ></polygon>
                 {/if}
             </g>
             <text x="34" y="-3" class="name">{entry.name[0]}</text>

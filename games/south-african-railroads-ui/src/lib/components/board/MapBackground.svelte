@@ -24,9 +24,9 @@
 
 <defs>
     <radialGradient id="sar-paper" cx="50%" cy="46%" r="75%">
-        <stop offset="0%" stop-color="#fbf7ea" />
-        <stop offset="70%" stop-color="#f3ead2" />
-        <stop offset="100%" stop-color="#e6d8b4" />
+        <stop offset="0%" stop-color="#fbf7ea"></stop>
+        <stop offset="70%" stop-color="#f3ead2"></stop>
+        <stop offset="100%" stop-color="#e6d8b4"></stop>
     </radialGradient>
     <clipPath id="sar-inner">
         <rect
@@ -35,11 +35,12 @@
             width={layout.width - 30}
             height={layout.height - 30}
             rx="10"
-        />
+        ></rect>
     </clipPath>
 </defs>
 
-<rect y={layout.top} width={layout.width} height={layout.height} rx="18" fill="url(#sar-paper)" />
+<rect y={layout.top} width={layout.width} height={layout.height} rx="18" fill="url(#sar-paper)"
+></rect>
 <g clip-path="url(#sar-inner)">
     {#if Terrain}
         <Terrain />
@@ -55,7 +56,7 @@
     fill="none"
     stroke="#384f6c"
     stroke-width="3"
-/>
+></rect>
 <rect
     x="15"
     y={layout.top + 15}
@@ -65,7 +66,7 @@
     fill="none"
     stroke="#5377a2"
     stroke-width="1"
-/>
+></rect>
 
 {#each layout.spec.regions as region (region.lines.join(' '))}
     <text
