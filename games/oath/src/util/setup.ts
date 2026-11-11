@@ -14,10 +14,13 @@ import { TOTAL_VISIONS } from '../data/worldDeck.js'
 import {
     carriedOathVault,
     createOathVault,
+    discardOnto,
     drawFromBottomOfWorldDeck,
     drawRelics,
+    drawSites,
     type OathVault
 } from '../model/vault.js'
+import { topOf } from '../model/pileOrder.js'
 import { allMapSlots } from '../data/mapSlots.js'
 import { ALL_SITE_IDS } from '../data/sites.js'
 import { GRAND_SCEPTER_ID, RELIC_DECK_IDS, RELIQUARY_SIZE } from '../data/relics.js'
@@ -389,7 +392,7 @@ export function buildSetupVault(state: HydratedOathGameState, random: RandomFunc
     // R-1.1, R-8.3.5.6
     for (const slotId of state.allSiteIds()) {
         if (state.isSiteFaceup(slotId)) continue
-        const siteCardId = vault.siteDeck.shift()
+        const [siteCardId] = drawSites(vault, 1)
         if (!siteCardId) {
             throw Error(`R-1.1: the site deck ran out before slot ${slotId} was filled`)
         }
@@ -516,7 +519,7 @@ export function resolveSetupDeal(vault: OathVault, orderedPlayerIds: string[]): 
     const discardSeedTopBackType: Partial<Record<Region, CardKind>> = {}
     seed.forEach((cardId, i) => {
         const region = regions[i % regions.length]
-        vault.discardPiles[region].unshift(cardId)
+        discardOnto(vault, region, [cardId])
         discardSeedCounts[region] += 1
         discardSeedTopBackType[region] = backTypeOf(cardId)
     })
@@ -532,7 +535,7 @@ export function resolveSetupDeal(vault: OathVault, orderedPlayerIds: string[]): 
         .flatMap((hand) => hand.cardIds)
         .filter((cardId) => backTypeOf(cardId) === CardKind.Vision).length
 
-    const top = vault.worldDeck[0]
+    const top = topOf(vault.worldDeck)
     return {
         discardSeedCounts,
         discardSeedTopBackType,

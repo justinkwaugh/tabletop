@@ -9,6 +9,7 @@ import { HydratedOathGameState, type OathProjectedState } from '../model/gameSta
 import { CardKind, Region } from '../model/oathEnums.js'
 import { kindOf } from '../data/cardRegistry.js'
 import type { OathVault } from '../model/vault.js'
+import { topIndexFromBottom, topOf } from '../model/pileOrder.js'
 import type { HydratedOathPlayerState, TablePositions } from '../model/playerState.js'
 import { populateHiddenCards } from '../util/exploration.js'
 
@@ -79,7 +80,7 @@ function reshuffledWorldDeck(
             bottom,
             new Set(
                 [...namedBottom]
-                    .map((fromBottom) => bottom.length - 1 - fromBottom)
+                    .map((fromBottom) => topIndexFromBottom(bottom.length, fromBottom))
                     .filter((at) => at >= 0)
             ),
             random
@@ -140,7 +141,7 @@ function keepTopBack(
     within: number,
     fixed: ReadonlySet<number> = new Set()
 ): string[] {
-    const top = source[0]
+    const top = topOf(source)
     if (top === undefined) return cards
     const back = kindOf(top)
     const index = cards.findIndex(
@@ -162,7 +163,9 @@ function knownPileIndexes(state: HydratedOathGameState, region: Region, size: nu
             state.seenDiscardPiles[region],
             ...state.players.map((player) => knownOf(player).discardPiles[region])
         ].flatMap((known) =>
-            known.flatMap((entry, fromBottom) => (names(entry) ? [size - 1 - fromBottom] : []))
+            known.flatMap((entry, fromBottom) =>
+                names(entry) ? [topIndexFromBottom(size, fromBottom)] : []
+            )
         )
     )
 }
