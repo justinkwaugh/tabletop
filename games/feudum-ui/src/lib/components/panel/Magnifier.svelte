@@ -23,6 +23,21 @@
 
 <style>
     /*
+     * Contract, Phone layout: 44 px targets. Under a finger off the phone layout, the glass keeps its
+     * size and its press reaches 12 px around it.
+     */
+    @media (pointer: coarse) {
+        .corner :global([data-enlarge]) {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 44px;
+            min-height: 44px;
+            margin: -12px;
+        }
+    }
+
+    /*
      * Contract, Phone layout: 44 px targets. The foot of a phone's card is the magnifier, reaching
      * into the gap beneath, and what stands above it is the pick.
      */
@@ -50,6 +65,7 @@
             align-items: flex-end;
             justify-content: center;
             height: 100%;
+            margin: 0;
             padding-bottom: 14px;
         }
     }
