@@ -120,11 +120,12 @@ export class HydratedActivateBonus
             return false
         }
         const activation = state.getActivationForPlayer(turnPlayerId)
-        if (!activation) {
+        // Between stations, as after a Synchronize first-station bonus, there is no bonus to take.
+        if (!activation?.currentStationId) {
             return false
         }
 
-        if (activation?.currentStationCoords?.row === Ring.Outer) {
+        if (activation.currentStationCoords?.row === Ring.Outer) {
             return false
         }
 
