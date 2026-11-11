@@ -2,7 +2,7 @@
 
 This contract fixes what players see and press. It follows `docs/ui-interaction-visual-contract.md`, `docs/game-ui-layout.md`, `docs/user-interactions.md` and the game UI animation skill. Rules are cited as `R-x.y` (`rules-digest.md`), house rulings as `R-x.y-Hn` and implementation rules as `R-X.n` (`rulings.md`), in `games/feudum/docs/`. Hidden information follows `games/feudum/docs/visibility.md`. Action, machine-state and component names are the engine's (`components.md` ids).
 
-It is written before the UI is built. Once the UI exists, its code and tests are the source of truth: where this file and they differ, they win and this file is corrected in the same change.
+Its code and tests are the source of truth: where this file and they differ, they win and this file is corrected in the same change.
 
 ## The principle
 
@@ -383,7 +383,7 @@ Target: 375 × 812, held upright. Budget, top to bottom:
 | Board            | the rest, ~380 px          | scaling wrapper with `coverBelowScale`; focus chooser in the overlay with `insetTop` |
 | Seat strip       | 44 px                      | one chip per seat                                                                    |
 
-- **Board.** The board is about 2.5:1. Fitted to 375 px it would be about 150 px tall and its spaces too small to tap. It rests at a cover fit and opens on the map.
+- **Board.** The board with its margin is about 2.3:1. Fitted to 375 px it would be about 165 px tall and its spaces too small to tap. It rests at a cover fit and opens on the map.
 - **Focus chooser.** Four chips over the board's top edge: Map, West guilds, East guilds, Tracks. This departs from Oath, which has no chooser on a phone, because Feudum players look at every area every turn. Map and the guild chips frame that part of the board; a chip carries a lit dot while its area holds a lit target.
 - **Tracks sheet.** The tracks lie scattered round the printed board, and framing them all leaves them too small to read on a phone. The Tracks chip instead opens a bottom sheet, up to 80 % of the dynamic viewport, that redraws them at full size in one column: epoch and round, the region tile stacks and chart, the progress die, the krud barrels, the voyage track, military service and the score track. The sheet is for looking: it offers no target, and a pick that lights a track (a voyage disc, a service disc) frames that track on the board instead.
 - **Pick framing.** When a map pick opens on a phone, the board frames the lit targets (up to 2.5×). A guild pick frames the guild column holding lit areas, the West first when both do. This is the one place a choice moves the focus. A hand pan clears it.
