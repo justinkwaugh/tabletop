@@ -46,7 +46,20 @@ export const GoodPaths = {
     food: 'M11 21 L11 12 C7 11 5 7 6 3 C9 4 11 6 12 9 C13 6 15 4 18 3 C19 7 17 11 13 12 L13 21 Z'
 } as const
 
-/** Pawn, in a 32 x 44 box: a turned figure, hat to foot, with a place for its medallion. */
+/**
+ * A pawn as the wooden cube it is, in a 32 unit square seen a little from above: the top face, the
+ * front side below it, and where its character is printed on top, in the guild icons' 24 unit box.
+ */
+export const PawnCube = {
+    box: 32,
+    side: { x: 1, y: 4, width: 30, height: 27 },
+    top: { x: 1, y: 1, width: 30, height: 24 },
+    shine: { x: 2.5, y: 2.2, width: 27, height: 5 },
+    corner: 3.5,
+    face: { x: 6, y: 3, size: 20 }
+} as const
+
+/** The drawn cover's figure, in a 32 x 44 box: a turned figure, hat to foot, with a medallion. */
 export const PawnBodyPath =
     'M16 1 C20 1 22 3 22 6 L25 8 L7 8 L10 6 C10 3 12 1 16 1 Z M16 8 A5.5 5.5 0 0 1 21.5 13.5 C21.5 15 21 16 20 17 C25 19 27 24 27 30 L29 38 C29 41 26 43 16 43 C6 43 3 41 3 38 L5 30 C5 24 7 19 12 17 C11 16 10.5 15 10.5 13.5 A5.5 5.5 0 0 1 16 8 Z'
 export const PawnMedallion = { x: 16, y: 26, r: 7.5 }

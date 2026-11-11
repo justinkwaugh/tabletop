@@ -9,6 +9,7 @@ import GoodToken from './pieces/GoodToken.svelte'
 import PawnPiece from './pieces/PawnPiece.svelte'
 import SeatToken from './pieces/SeatToken.svelte'
 import TokenText from './pieces/TokenText.svelte'
+import { GuildIconPaths } from '$lib/utils/pieceShapes.js'
 
 vi.mock('$lib/art/suppliedFiles.js', () => ({ suppliedFiles: {} }))
 vi.mock('$lib/art/cover.js', () => ({ suppliedCover: undefined }))
@@ -54,11 +55,28 @@ describe('with the asset folder empty', () => {
 })
 
 describe('pawns (R-4.5.1)', () => {
-    it('takes the seat paint, carries its character and its seat initial', () => {
+    it('a pawn is its wooden cube in the seat paint, seen from a little above', () => {
         const pawn = render(PawnPiece, { props: { paint, character: 'knight' } }).body
-        expect(pawn).toContain('fill="#336699"')
+        expect(pawn).toContain('data-pawn-cube')
+        expect(pawn).toMatch(/data-cube-top[^>]*fill="#336699"|fill="#336699"[^>]*data-cube-top/)
+        expect(pawn).toMatch(/data-cube-side[^>]*fill="#336699"|fill="#336699"[^>]*data-cube-side/)
         expect(pawn).toMatch(/aria-label="[^"]*knight/i)
-        expect(pawn).toContain('>A<')
+    })
+
+    it('its character is printed on the top face, pale with a dark outline, and no initial', () => {
+        const pawn = render(PawnPiece, { props: { paint, character: 'knight' } }).body
+        const face = /<path[^>]*data-cube-face[^>]*>/.exec(pawn)?.[0] ?? ''
+        expect(face).toContain(`d="${GuildIconPaths.knight}"`)
+        expect(face).toContain('fill="var(--feudum-parchment)"')
+        expect(face).toContain('stroke="var(--feudum-ink)"')
+        expect(pawn).not.toContain('>A<')
+        expect(pawn).not.toContain('<text')
+    })
+
+    it('a pawn in supply has no character yet, so its top face is bare (R-3.6)', () => {
+        const pawn = render(PawnPiece, { props: { paint } }).body
+        expect(pawn).toContain('data-cube-top')
+        expect(pawn).not.toContain('data-cube-face')
     })
 
     it('a drunk pawn tilts and carries a sulfur drop', () => {
