@@ -1,9 +1,11 @@
 <script lang="ts">
     import { Card, Label, Input, Button, Helper, Alert, P, Hr } from 'flowbite-svelte'
-    import { UserStatus, type User } from '@tabletop/common'
+    import { UserStatus, type UserUpdateRequest } from '@tabletop/common'
     import { getAppContext } from '@tabletop/frontend-components'
     import { challengeExpiryText } from '$lib/utils/challengeExpiry'
     import { isAlreadyExists, isUsernameNotAllowed } from '$lib/utils/accountErrors'
+    import AgeConfirmation from '$lib/components/AgeConfirmation.svelte'
+    import { ageConfirmationMessage } from '$lib/utils/accountFormValidation'
     import {
         reauthentication,
         requiresRecentAuthentication
@@ -15,6 +17,7 @@
     let errors: Record<string, string[]> = $state({})
     let username: string | undefined = $state(undefined)
     let email: string | undefined = $state(undefined)
+    let ageConfirmed = $state(false)
     let verificationToken: string | undefined = $state(undefined)
     let verificationError = $state(false)
     let newEmailSent = $state(false)
@@ -26,10 +29,16 @@
         event.preventDefault()
         username = username?.trim()
         email = email?.trim()
+        errors = {}
+        if (user && !user.ageConfirmedAt && !ageConfirmed) {
+            errors.ageConfirmed = [ageConfirmationMessage]
+            return
+        }
 
-        const payload = {
+        const payload: UserUpdateRequest = {
             username,
-            email
+            email,
+            ageConfirmed: ageConfirmed ? true : undefined
         }
         await reauthentication.run({
             description: email ? 'update your email address' : 'complete your profile',
@@ -37,7 +46,7 @@
         })
     }
 
-    async function saveProfile(payload: Pick<User, 'username' | 'email'>) {
+    async function saveProfile(payload: UserUpdateRequest) {
         try {
             let updatedUser = await api.updateUser(payload)
             authorizationService.setSessionUser(updatedUser)
@@ -202,6 +211,9 @@
                         We’ll never share your email publicly. It is only used for account recovery
                         and notifications.
                     </Helper>
+                {/if}
+                {#if user && !user.ageConfirmedAt}
+                    <AgeConfirmation bind:checked={ageConfirmed} errors={errors.ageConfirmed} />
                 {/if}
                 <div class="flex justify-end"><Button type="submit" class="">Submit</Button></div>
             </form>

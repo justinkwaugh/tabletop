@@ -25,7 +25,10 @@ A Username containing a slur or offensive language, by the word list in `libs/ba
 An Administrator's change to another Account's Username. Because the old name may be why it is being changed, it also rewrites the Player name in every Game the Account has a seat in, and because the Username is the login name, it emails the Account the new one.
 
 **Account Completion**:
-The requirements for normal platform use: a Username and Verified Email Address. A Password Credential is optional when another Authentication Method exists.
+The requirements for normal platform use: a Username, a Verified Email Address, and an Age Confirmation. A Password Credential is optional when another Authentication Method exists. Accounts already Active when Age Confirmation was introduced are not asked for it.
+
+**Age Confirmation**:
+The person's own statement, given once when finishing an account, that they meet the site's minimum age of 13. The same tick accepts the Terms of Service. It records only when it was given, never a date of birth.
 
 **Email Address**:
 The private email associated with a User Account. Comparison and uniqueness are case-insensitive.

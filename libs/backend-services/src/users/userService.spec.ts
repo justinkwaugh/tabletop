@@ -510,6 +510,21 @@ describe('account moderation', () => {
             expect(await service.searchUsernames('newcomer')).toEqual([])
         })
 
+        it('passes a sign-up age confirmation to the store', async () => {
+            const { service, store } = searchFixture()
+            store.createUser = vi.fn(async (created: User) => created)
+
+            await service.createUser(
+                { ...user, status: UserStatus.Incomplete, username: 'Newcomer' },
+                'a long enough password',
+                { confirmAge: true }
+            )
+
+            expect(store.createUser).toHaveBeenCalledWith(expect.anything(), expect.any(String), {
+                confirmAge: true
+            })
+        })
+
         it('does not offer a username an Incomplete account chooses in onboarding', async () => {
             const { service, store } = searchFixture()
             await loadListedUsernames(service)
@@ -568,6 +583,30 @@ describe('account moderation', () => {
 
             await service.updateUser(session, { username: 'Newcomer' })
 
+            expect(await service.searchUsernames('newcomer')).toEqual(['newcomer'])
+        })
+
+        it('offers an account once confirming its age makes it Active', async () => {
+            const { service, store } = searchFixture()
+            await loadListedUsernames(service)
+            const account = {
+                ...user,
+                status: UserStatus.Incomplete,
+                username: 'Newcomer',
+                email: 'a@example.test',
+                emailVerified: true
+            }
+            store.updateUser = vi.fn<UserStore['updateUser']>(async () => [
+                { ...account, status: UserStatus.Active, ageConfirmedAt: new Date() },
+                ['ageConfirmedAt', 'status'],
+                account
+            ])
+
+            await service.updateUser(session, {}, undefined, { confirmAge: true })
+
+            expect(store.updateUser).toHaveBeenCalledWith(
+                expect.objectContaining({ confirmAge: true })
+            )
             expect(await service.searchUsernames('newcomer')).toEqual(['newcomer'])
         })
 

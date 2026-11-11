@@ -13,3 +13,5 @@ export function emailAddress() {
         error: (issue) => (issue.input === undefined ? requiredMessage : invalidEmailMessage)
     })
 }
+
+export const ageConfirmationMessage = 'Confirm you are 13 or older to create an account'

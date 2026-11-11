@@ -13,6 +13,8 @@ import {
     assertExists,
     Bookmark,
     type BugReportRequest,
+    type UserCreateRequest,
+    type UserUpdateRequest,
     CanonicalActionReplay,
     ProcessedActionReplay,
     Game,
@@ -342,18 +344,18 @@ export class TabletopApi {
         return response.payload.usernames
     }
 
-    async createUser(user: Partial<User>): Promise<User> {
+    async createUser(request: UserCreateRequest): Promise<User> {
         const response = await this.wretch
-            .post(user, '/user/create')
+            .post(request, '/user/create')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<UserResponse>()
         return response.payload.user
     }
 
-    async updateUser(user: Partial<User>): Promise<User> {
+    async updateUser(request: UserUpdateRequest): Promise<User> {
         const response = await this.wretch
-            .post(user, '/user/update')
+            .post(request, '/user/update')
             .unauthorized(this.on401)
             .forbidden(this.handleError)
             .badRequest(this.handleError)

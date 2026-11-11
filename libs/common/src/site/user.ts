@@ -86,8 +86,37 @@ export const User = Type.Object({
     updatedAt: Type.Optional(DateType()),
     // Accounts activated before this field existed lack it until their next update
     activatedAt: Type.Optional(DateType()),
+    ageConfirmedAt: Type.Optional(DateType()),
     sessionGeneration: Type.Optional(Type.Integer({ minimum: 0 }))
 })
+
+export type UserCreateRequest = Type.Static<typeof UserCreateRequest>
+export const UserCreateRequest = Type.Evaluate(
+    Type.Intersect(
+        [
+            Type.Required(Type.Pick(User, ['username', 'email'])),
+            Type.Object({
+                password: Type.String(),
+                ageConfirmed: Type.Optional(Type.Literal(true))
+            })
+        ],
+        { additionalProperties: false }
+    )
+)
+
+export type UserUpdateRequest = Type.Static<typeof UserUpdateRequest>
+export const UserUpdateRequest = Type.Evaluate(
+    Type.Intersect(
+        [
+            Type.Pick(User, ['username', 'email']),
+            Type.Object({
+                password: Type.Optional(Type.String()),
+                ageConfirmed: Type.Optional(Type.Literal(true))
+            })
+        ],
+        { additionalProperties: false }
+    )
+)
 
 export function sessionGenerationOf(user: Pick<User, 'sessionGeneration'>): number {
     return user.sessionGeneration ?? 0

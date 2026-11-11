@@ -39,6 +39,8 @@ import { TransactionParticipant } from '../stores/transaction.js'
 import { RedisCacheService } from '../../cache/cacheService.js'
 import type { CacheWriteLocks } from '../../cache/cacheWriteScope.js'
 
+const AGE_CONFIRMATION_INTRODUCED_AT = new Date('2026-11-12T00:00:00Z')
+
 export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
     readonly users: CollectionReference<StoredUser>
     readonly userUsernames: CollectionReference
@@ -217,12 +219,17 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         }
     }
 
-    async createUser(user: User, password?: string): Promise<User> {
+    async createUser(
+        user: User,
+        password?: string,
+        { confirmAge = false }: { confirmAge?: boolean } = {}
+    ): Promise<User> {
         const newStoredUser = structuredClone(user) as StoredUser
 
         // Set dates
         newStoredUser.createdAt = new Date()
         newStoredUser.updatedAt = new Date()
+        if (confirmAge) newStoredUser.ageConfirmedAt = newStoredUser.createdAt
 
         // Clean username
         if (newStoredUser.username) {
@@ -341,7 +348,8 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         password,
         currentPassword,
         validator,
-        participant
+        participant,
+        confirmAge = false
     }: {
         userId: string
         fields: Partial<User>
@@ -349,6 +357,7 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         currentPassword?: string
         validator?: UpdateValidator<StoredUser>
         participant?: TransactionParticipant
+        confirmAge?: boolean
     }): Promise<[User, string[], User]> {
         const updateFields = structuredClone(fields) as Partial<StoredUser>
 
@@ -427,6 +436,12 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
                 updatedFields.push('email')
             }
 
+            if (confirmAge && !existingUser.ageConfirmedAt) {
+                fieldsToUpdate.ageConfirmedAt = new Date()
+                updatedUser.ageConfirmedAt = fieldsToUpdate.ageConfirmedAt
+                updatedFields.push('ageConfirmedAt')
+            }
+
             if (fieldsToUpdate.preferences) {
                 updatedUser.preferences = fieldsToUpdate.preferences
                 updatedFields.push('preferences')
@@ -492,7 +507,7 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
 
             const status = accountStatusAfterCompletionCheck(
                 updatedUser.status,
-                this.satisfiesAccountCompletion(updatedUser)
+                this.satisfiesAccountCompletion(updatedUser, existingUser)
             )
             if (status !== updatedUser.status) {
                 fieldsToUpdate.status = status
@@ -655,8 +670,22 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         }
     }
 
-    private satisfiesAccountCompletion(user: StoredUser): boolean {
-        return Boolean(user.cleanUsername && user.email && user.emailVerified === true)
+    private satisfiesAccountCompletion(user: StoredUser, existingUser: StoredUser): boolean {
+        return Boolean(
+            user.cleanUsername &&
+            user.email &&
+            user.emailVerified === true &&
+            (user.ageConfirmedAt || this.predatesAgeConfirmation(existingUser))
+        )
+    }
+
+    // Accounts created or activated before Age Confirmation was introduced are not asked for it.
+    private predatesAgeConfirmation(user: StoredUser): boolean {
+        return (
+            Boolean(user.activatedAt) ||
+            user.status === UserStatus.Active ||
+            (user.createdAt instanceof Date && user.createdAt < AGE_CONFIRMATION_INTRODUCED_AT)
+        )
     }
 
     private async findByUsernameIncludingPasswordHash(
@@ -774,6 +803,7 @@ const userConverter = {
         data.updatedAt = toDate(data.updatedAt)
         data.deletedAt = toDate(data.deletedAt)
         data.activatedAt = toDate(data.activatedAt)
+        data.ageConfirmedAt = toDate(data.ageConfirmedAt)
 
         return data
     }

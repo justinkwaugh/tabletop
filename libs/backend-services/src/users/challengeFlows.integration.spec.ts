@@ -103,6 +103,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 username,
                 email,
                 emailVerified: true,
+                ageConfirmedAt: new Date(),
                 roles: [Role.User],
                 externalIds: [],
                 ...overrides

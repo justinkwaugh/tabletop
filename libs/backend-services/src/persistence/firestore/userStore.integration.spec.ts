@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { Role, UserStatus, type User } from '@tabletop/common'
 import { cacheFixture, cacheTestClient } from '../../cache/tests/cacheFixture.js'
 import { isolatedFirestore } from './tests/isolatedFirestore.js'
@@ -35,6 +35,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 status,
                 email: `person-${run}-${index}@example.test`,
                 emailVerified: true,
+                ageConfirmedAt: new Date(),
                 roles: [Role.User],
                 externalIds: []
             }
@@ -42,6 +43,12 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
 
         async function createAccount(status: UserStatus, fields: Partial<User> = {}) {
             const account = newAccount(status)
+            return store.createUser({ ...account, username: `Person${account.id}`, ...fields })
+        }
+
+        async function createUnconfirmedAccount(status: UserStatus, fields: Partial<User> = {}) {
+            const account = newAccount(status)
+            delete account.ageConfirmedAt
             return store.createUser({ ...account, username: `Person${account.id}`, ...fields })
         }
 
@@ -157,6 +164,106 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 fields: { username: `Named${run}` }
             })
             expect(named.status).toBe(UserStatus.Active)
+        })
+
+        describe('Age Confirmation', () => {
+            const BEFORE_INTRODUCTION = new Date('2026-11-01T00:00:00Z')
+            const AFTER_INTRODUCTION = new Date('2026-12-01T00:00:00Z')
+
+            function setClock(now: Date) {
+                vi.useFakeTimers({ toFake: ['Date'] })
+                vi.setSystemTime(now)
+            }
+
+            afterEach(() => {
+                vi.useRealTimers()
+            })
+
+            it('keeps a new password Account Incomplete until it confirms its age', async () => {
+                setClock(AFTER_INTRODUCTION)
+                const account = await createUnconfirmedAccount(UserStatus.Incomplete, {
+                    emailVerified: false
+                })
+                const [verified] = await store.updateUser({
+                    userId: account.id,
+                    fields: { emailVerified: true }
+                })
+                expect(verified.status).toBe(UserStatus.Incomplete)
+
+                const [confirmed, updatedFields] = await store.updateUser({
+                    userId: account.id,
+                    fields: {},
+                    confirmAge: true
+                })
+                expect(confirmed.status).toBe(UserStatus.Active)
+                expect(updatedFields).toEqual(expect.arrayContaining(['ageConfirmedAt', 'status']))
+                const stored = await firestore.collection('users').doc(account.id).get()
+                expect(stored.get('ageConfirmedAt').toDate()).toEqual(AFTER_INTRODUCTION)
+            })
+
+            it('keeps a new provider Account Incomplete after it chooses a username', async () => {
+                setClock(AFTER_INTRODUCTION)
+                const account = newAccount(UserStatus.Incomplete)
+                delete account.ageConfirmedAt
+                await store.createUser(account)
+                const [named] = await store.updateUser({
+                    userId: account.id,
+                    fields: { username: `Provider${account.id}` }
+                })
+                expect(named.status).toBe(UserStatus.Incomplete)
+            })
+
+            it('records the confirmation when an Account is created with it', async () => {
+                setClock(AFTER_INTRODUCTION)
+                const account = newAccount(UserStatus.Incomplete)
+                delete account.ageConfirmedAt
+                const created = await store.createUser(account, undefined, { confirmAge: true })
+                expect(created.ageConfirmedAt).toEqual(AFTER_INTRODUCTION)
+            })
+
+            it('keeps the first confirmation time', async () => {
+                const account = await createAccount(UserStatus.Active)
+                const [updated, updatedFields] = await store.updateUser({
+                    userId: account.id,
+                    fields: {},
+                    confirmAge: true
+                })
+                expect(updated.ageConfirmedAt).toEqual(account.ageConfirmedAt)
+                expect(updatedFields).toEqual([])
+            })
+
+            it('does not ask Accounts created before Age Confirmation was introduced', async () => {
+                setClock(BEFORE_INTRODUCTION)
+                const unfinished = await createUnconfirmedAccount(UserStatus.Incomplete, {
+                    emailVerified: false
+                })
+                setClock(AFTER_INTRODUCTION)
+                const [verified] = await store.updateUser({
+                    userId: unfinished.id,
+                    fields: { emailVerified: true }
+                })
+                expect(verified.status).toBe(UserStatus.Active)
+            })
+
+            it('does not ask Accounts activated before it was introduced, even after a ban', async () => {
+                setClock(AFTER_INTRODUCTION)
+                const legacy = await createUnconfirmedAccount(UserStatus.Active)
+                const [updated] = await store.updateUser({
+                    userId: legacy.id,
+                    fields: { timeZone: 'Europe/London' }
+                })
+                expect(updated.status).toBe(UserStatus.Active)
+
+                await store.updateUser({
+                    userId: legacy.id,
+                    fields: { status: UserStatus.Inactive }
+                })
+                const [restored] = await store.updateUser({
+                    userId: legacy.id,
+                    fields: { status: UserStatus.Incomplete }
+                })
+                expect(restored.status).toBe(UserStatus.Active)
+            })
         })
 
         it('keeps an Active Account Active through an empty update', async () => {

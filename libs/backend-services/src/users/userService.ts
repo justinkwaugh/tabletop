@@ -140,7 +140,11 @@ export class UserService {
         return this.userStore.findByUsernameAndPassword(username, password)
     }
 
-    async createUser(user: User, password: string): Promise<User> {
+    async createUser(
+        user: User,
+        password: string,
+        options: { confirmAge?: boolean } = {}
+    ): Promise<User> {
         const cleanPassword = password.trim()
         if (cleanPassword.length < 12) {
             throw new InvalidPasswordError()
@@ -149,7 +153,7 @@ export class UserService {
             throw new UsernameNotAllowedError()
         }
 
-        const createdUser = await this.userStore.createUser(user, cleanPassword)
+        const createdUser = await this.userStore.createUser(user, cleanPassword, options)
 
         if (createdUser.email && !createdUser.emailVerified) {
             await this.sendVerificationEmail(createdUser)
@@ -197,13 +201,15 @@ export class UserService {
     async updateUser(
         session: AuthenticatedSession,
         fields: Partial<User>,
-        password?: string
+        password?: string,
+        { confirmAge = false }: { confirmAge?: boolean } = {}
     ): Promise<User> {
         const userId = session.userId
         const [updatedUser, updatedFields, originalUser] = await this.userStore.updateUser({
             userId,
             fields,
             password,
+            confirmAge,
             validator: (existingUser, fieldsToUpdate) => {
                 const changesEmail = Boolean(
                     fieldsToUpdate.email && fieldsToUpdate.email !== existingUser.email
@@ -250,8 +256,8 @@ export class UserService {
 
         if (updatedFields.includes('username')) {
             this.removeListedUsername(originalUser.username)
-            this.addListedUsernameIfActive(updatedUser)
         }
+        this.addListedUsernameIfActive(updatedUser)
 
         return updatedUser
     }

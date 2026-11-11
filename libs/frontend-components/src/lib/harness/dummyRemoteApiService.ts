@@ -18,6 +18,8 @@ import type {
     GameSyncStatus,
     ProcessedActionReplay,
     User,
+    UserCreateRequest,
+    UserUpdateRequest,
     UserPreferences,
     Visibility,
     Tournament,
@@ -240,11 +242,11 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('searchUsernames')
     }
 
-    async createUser(_user: Partial<User>): Promise<User> {
+    async createUser(_request: UserCreateRequest): Promise<User> {
         return this.fail('createUser')
     }
 
-    async updateUser(_user: Partial<User>): Promise<User> {
+    async updateUser(_request: UserUpdateRequest): Promise<User> {
         return this.fail('updateUser')
     }
 

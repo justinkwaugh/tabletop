@@ -1,21 +1,7 @@
 import { FastifyInstance } from 'fastify'
-import { Type, type Static } from 'typebox'
-import { Role, User, UserStatus } from '@tabletop/common'
+import { Role, UserCreateRequest, UserStatus } from '@tabletop/common'
 import { nanoid } from 'nanoid'
 import { authSession } from '../../../lib/session.js'
-
-type UserCreateRequest = Static<typeof UserCreateRequest>
-const UserCreateRequest = Type.Evaluate(
-    Type.Intersect(
-        [
-            Type.Required(Type.Pick(User, ['username', 'email'])),
-            Type.Object({
-                password: Type.String()
-            })
-        ],
-        { additionalProperties: false }
-    )
-)
 
 export default async function (fastify: FastifyInstance) {
     fastify.post<{ Body: UserCreateRequest }>(
@@ -39,7 +25,13 @@ export default async function (fastify: FastifyInstance) {
                 roles: [Role.User]
             }
 
-            const createdUser = await fastify.userService.createUser(newUser, request.body.password)
+            const createdUser = await fastify.userService.createUser(
+                newUser,
+                request.body.password,
+                {
+                    confirmAge: request.body.ageConfirmed === true
+                }
+            )
             request.log.info({ userId: createdUser.id }, 'Created user')
             await authSession({
                 session: request.session,

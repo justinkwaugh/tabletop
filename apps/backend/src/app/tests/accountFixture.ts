@@ -72,7 +72,8 @@ export function memoryUserStore(initial: User, initialPassword?: string) {
         password: candidate,
         currentPassword,
         validator,
-        participant
+        participant,
+        confirmAge
     }) => {
         const original = current
         const fieldsToUpdate: Partial<StoredUser> = {
@@ -91,6 +92,10 @@ export function memoryUserStore(initial: User, initialPassword?: string) {
         )
         const updatedFields = Object.keys(definedFields)
         current = { ...current, ...definedFields }
+        if (confirmAge && !current.ageConfirmedAt) {
+            current = { ...current, ageConfirmedAt: new Date() }
+            updatedFields.push('ageConfirmedAt')
+        }
         if (fields.email && fields.email !== original.email) {
             current = {
                 ...current,
