@@ -26,6 +26,7 @@
         voteErrorMessage,
         voteTally
     } from '$lib/utils/playerVoteText'
+    import { voteStripPosition } from '$lib/utils/voteStripPosition'
 
     type Proposal =
         | { actionIndex: number; kind: 'confirm'; preview: UndoVotePreview }
@@ -39,6 +40,7 @@
     const { gameService, authorizationService } = getAppContext()
     const { isViewingHistory, colors, gameState, showHistoryBeforeAction, showLiveGame } =
         gameSession.bridge
+    const reportsPosition = gameSession.bridge.viewedHistoryPosition !== undefined
     const viewedPosition = gameSession.bridge.viewedHistoryPosition ?? readable(undefined)
 
     const game = $derived(gameService.cachedGame(gameSession.game.id) ?? gameSession.game)
@@ -53,18 +55,14 @@
     const canVote = $derived(voter !== undefined && playerVoteIneligibility(game) === undefined)
     const voters = $derived(votingPlayers(game.players))
 
-    // Older UI Artifacts expose no Undo reach, so every position is offered and the host decides.
-    // They also lack showLiveGame, so the live action count below is never relied on.
+    // Older UI Artifacts lack showLiveGame too, so their stand-in live action count is never relied on.
     const position: ViewedHistoryPosition | undefined = $derived(
-        $viewedPosition ??
-            ($isViewingHistory && $gameState
-                ? {
-                      actionIndex: $gameState.actionCount,
-                      liveActionCount: $gameState.actionCount,
-                      beyondUndoReach: true,
-                      startsWithUserAction: true
-                  }
-                : undefined)
+        voteStripPosition({
+            reportsPosition,
+            viewedPosition: $viewedPosition,
+            isViewingHistory: $isViewingHistory,
+            actionCount: $gameState?.actionCount
+        })
     )
 
     let proposal: Proposal | undefined = $state()

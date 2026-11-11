@@ -58,6 +58,19 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         return visibleContext
     })
 
+    // Where a playing replay returns to: Live View, or the History View position it started from.
+    private replayReturn: { type: 'live' } | { type: 'history'; actionCount: number } | undefined =
+        $state(undefined)
+
+    // The action count of the History View position the player is on; undefined in Live View.
+    // A replay's frames pass by on their own, so while one plays this is where it returns to.
+    viewedActionCount: number | undefined = $derived.by(() => {
+        if (this.replayReturn) {
+            return this.replayReturn.type === 'live' ? undefined : this.replayReturn.actionCount
+        }
+        return this.historyContext ? this.visibleContext.state.actionCount : undefined
+    })
+
     currentAction: GameAction | undefined = $derived.by(() => {
         if (!this.historyContext || this.actionIndex < 0) {
             return undefined
@@ -294,6 +307,11 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
             ? { type: 'history' as const, actionIndex: this.actionIndex }
             : { type: 'live' as const }
 
+        this.replayReturn =
+            returnTarget.type === 'live'
+                ? returnTarget
+                : { type: 'history', actionCount: this.visibleContext.state.actionCount }
+
         try {
             const actions = this.historyContext?.actions ?? this.gameContext.actions
             const lastAvailableActionIndex = actions.length - 1
@@ -346,6 +364,7 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
             }
             await this.waitForTransitionSettled()
         } finally {
+            this.replayReturn = undefined
             setTimeout(() => {
                 this.stepping = false
             })
