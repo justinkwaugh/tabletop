@@ -1209,6 +1209,36 @@ describe('R-4.5.4 A rank change is named on the Action that caused it', () => {
                     ...MerchantRanks
                 }
             })
+        },
+        {
+            name: 'Move',
+            action: sample<Move>({
+                ...Base,
+                type: ActionType.Move,
+                steps: [
+                    {
+                        piece: { kind: 'pawn', playerId: 'p1', n: 1 },
+                        to: 'space.forest.2',
+                        medium: 'road'
+                    }
+                ],
+                pilfer: {
+                    piece: { kind: 'pawn', playerId: 'p1', n: 1 },
+                    from: 'landscape',
+                    resource: 'targets'
+                },
+                metadata: {
+                    steps: [
+                        {
+                            routeId: 'route.road.forest-1--forest-2',
+                            from: 'space.forest.1',
+                            character: 'farmer'
+                        }
+                    ],
+                    pilfer: { spaceId: 'space.forest.2', marker: true },
+                    ...MerchantRanks
+                }
+            })
         }
     ]
 

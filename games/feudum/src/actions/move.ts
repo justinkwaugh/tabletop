@@ -8,6 +8,7 @@ import { ActionType } from '../definition/actions.js'
 import { PieceRef } from '../model/flow.js'
 import { queueFollowUp } from '../model/followUps.js'
 import { HydratedFeudumGameState } from '../model/gameState.js'
+import { RankChange } from '../model/guildStatus.js'
 import type { SpaceState } from '../model/mapState.js'
 import {
     abandonVessel,
@@ -115,7 +116,9 @@ export const MoveMetadata = Type.Object({
             /** R-4.3.4 A target became a marker; false: the seat had none left, so it was discarded. */
             marker: Type.Optional(Type.Boolean())
         })
-    )
+    ),
+    /** R-4.5.2 A pilfered target's marker goes straight onto a track the seat qualifies for. */
+    rankChanges: Type.Optional(Type.Array(RankChange))
 })
 
 export type Move = Type.Static<typeof Move>
@@ -527,10 +530,12 @@ function foldMove(
         return pilferReason
     }
     const pilferRecord = pilfer ? takePilfer(state, playerId, pilfer) : undefined
+    const rankChanges = pilferRecord?.marker ? state.recomputeRanks(playerId) : []
     return {
         steps,
         ...(godspeedRecord ? { godspeed: godspeedRecord } : {}),
-        ...(pilferRecord ? { pilfer: pilferRecord } : {})
+        ...(pilferRecord ? { pilfer: pilferRecord } : {}),
+        ...(rankChanges.length > 0 ? { rankChanges } : {})
     }
 }
 
