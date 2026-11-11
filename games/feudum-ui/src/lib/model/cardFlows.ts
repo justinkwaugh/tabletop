@@ -66,7 +66,7 @@ import {
     type BoardTarget,
     type ChipNote
 } from './boardOffer.js'
-import type { CardAction, TurnContext } from './cardModes.js'
+import type { CardAction, PrintedCost, TurnContext } from './cardModes.js'
 import type { SendPreview } from './confirmingSend.js'
 import { dieLabel, rankedDie, type DieArt } from './guildDie.js'
 import { coverAfterPress, coverNeeds, coverSpends } from './tileCover.js'
@@ -150,6 +150,8 @@ export interface PanelChoice {
     /** The text beside the art when the art stands for part of the label (a tile for its name). */
     readonly shown?: string
     readonly note?: ChipNote
+    /** R-3.4 A special's printed cost, drawn after its name. */
+    readonly cost?: PrintedCost
     readonly picked: boolean
     /** Dimmed, with the line a press gives; it has no `press`. */
     readonly refusal?: string

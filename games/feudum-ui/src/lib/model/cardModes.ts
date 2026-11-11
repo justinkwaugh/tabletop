@@ -28,6 +28,7 @@ import {
     tendLandscapeOffers,
     type ActionCardKind,
     type CardPlayInput,
+    type Good,
     type HydratedFeudumGameState
 } from '@tabletop/feudum'
 
@@ -53,9 +54,23 @@ export interface TurnContext {
     readonly nameOf: (playerId: string) => string
 }
 
+/** R-3.4 What a card prints for its special, drawn: a good (from the barrel, for Feast) or coin. */
+export type PrintedCost =
+    | {
+          readonly kind: 'good'
+          readonly good: Good
+          readonly count: number
+          readonly barrel?: true
+      }
+    | { readonly kind: 'shillings'; readonly count: number }
+
 export interface CardMode {
     readonly action: CardAction
+    /** The mode's name with its cost in words: its accessible name. */
     readonly label: string
+    /** A special's name alone, where its cost stands beside it as art. */
+    readonly shown?: string
+    readonly cost?: PrintedCost
     /** Dimmed, with the line a press gives; the engine refuses this mode now. */
     readonly refusal?: string
 }
@@ -77,10 +92,28 @@ export function printedCost(kind: ActionCardKind): string | undefined {
     return need?.kind === 'shillings' ? `${need.shillings}s` : undefined
 }
 
-function specialLabel(kind: ActionCardKind): string {
+/** R-3.4 The printed cost as art, beside the special's name; the words stay its accessible name. */
+export function specialCost(kind: ActionCardKind): PrintedCost | undefined {
+    const need = cardOf(kind).special.needs.find(
+        (row) => row.kind === 'good' || row.kind === 'shillings' || row.kind === 'barrel-sulfur'
+    )
+    if (need?.kind === 'good') {
+        return { kind: 'good', good: need.good, count: 1 }
+    }
+    if (need?.kind === 'barrel-sulfur') {
+        return { kind: 'good', good: 'sulfur', count: 1, barrel: true }
+    }
+    return need?.kind === 'shillings' ? { kind: 'shillings', count: need.shillings } : undefined
+}
+
+function special(action: CardAction, kind: ActionCardKind, refusal: string | undefined): CardMode {
     const cost = printedCost(kind)
     const { name } = cardOf(kind).special
-    return cost ? `${name} · ${cost}` : name
+    const art = specialCost(kind)
+    return {
+        ...mode(action, cost ? `${name} · ${cost}` : name, refusal),
+        ...(art ? { shown: name, cost: art } : {})
+    }
 }
 
 function reasonMigrateModeRefused(
@@ -230,7 +263,7 @@ const Special =
     ): ModeRow =>
     (context, input) =>
         specialOffered(context.state, context.playerId, kind)
-            ? mode(action, specialLabel(kind), reason(context, input))
+            ? special(action, kind, reason(context, input))
             : undefined
 
 /** R-3.5 Each card's modes in the panel's order; Repeat has none of its own (R-3.15). */
@@ -244,9 +277,9 @@ const CardModes: Readonly<Record<ActionCardKind, readonly ModeRow[]>> = {
         (context, input) =>
             specialOffered(context.state, context.playerId, 'improve') ||
             specialShortOfGood(context.state, context.playerId, 'improve')
-                ? mode(
+                ? special(
                       ActionType.TendLandscape,
-                      specialLabel('improve'),
+                      'improve',
                       reasonTendModeRefused(context, input)
                   )
                 : undefined
@@ -311,11 +344,7 @@ const CardModes: Readonly<Record<ActionCardKind, readonly ModeRow[]>> = {
         (context, input) =>
             specialOffered(context.state, context.playerId, 'guild') ||
             specialShortOfGood(context.state, context.playerId, 'guild')
-                ? mode(
-                      ActionType.Feast,
-                      specialLabel('guild'),
-                      reasonFeastModeRefused(context, input)
-                  )
+                ? special(ActionType.Feast, 'guild', reasonFeastModeRefused(context, input))
                 : undefined
     ]
 }

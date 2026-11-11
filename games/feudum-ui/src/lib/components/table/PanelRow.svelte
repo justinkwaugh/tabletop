@@ -10,6 +10,8 @@
 
 <script lang="ts">
     import { onDestroy, type Snippet } from 'svelte'
+    import GoodToken from '$lib/components/pieces/GoodToken.svelte'
+    import ShillingToken from '$lib/components/pieces/ShillingToken.svelte'
     import type { BoardTarget } from '$lib/model/boardOffer.js'
     import type { PanelChoice } from '$lib/model/cardFlows.js'
 
@@ -23,6 +25,9 @@
      * it and the label stays the row's accessible name. `face` takes the label's place on a card or
      * writ, whose corner holds the magnifier. `piece` is a piece that is itself the press, a guild's
      * die: no button chrome, the label its accessible name and tooltip, its preview beneath it.
+     * A special's printed cost is drawn after its name (R-3.4). An `explained` row, a card's mode,
+     * shows its refusal beneath its name before any press; a `quiet` row, Forfeit, is drawn
+     * without fill, last in its tray (R-3.2).
      */
     let {
         choice,
@@ -31,7 +36,9 @@
         lead,
         face,
         corner,
-        piece
+        piece,
+        quiet = false,
+        explained = false
     }: {
         choice: PanelChoice
         onPress: (choice: PanelChoice) => void
@@ -40,12 +47,15 @@
         face?: Snippet
         corner?: Snippet
         piece?: Snippet
+        quiet?: boolean
+        explained?: boolean
     } = $props()
 
     const owner = {}
 
     let refusalShown = $state(false)
     let refused = $derived(choice.refusal !== undefined)
+    let reasonBeneath = $derived(explained && refused)
     let previewing = $derived(pointer.isRowPointedAt(owner))
     let lights: (() => readonly BoardTarget[]) | undefined = $derived(choice.lights)
 
@@ -120,14 +130,18 @@
     {:else}
         <button
             type="button"
-            class="inline-flex items-center gap-1 rounded-lg px-3 py-1 text-sm border text-feudum-text
+            class="inline-flex flex-wrap items-center gap-x-1 rounded-lg px-3 py-1 text-sm border
+                {quiet ? 'text-feudum-text-muted' : 'text-feudum-text'}
                 {choice.picked
                 ? 'bg-feudum-primary border-feudum-accent'
-                : 'bg-feudum-control border-feudum-frame'}
+                : quiet
+                  ? 'bg-transparent border-feudum-frame'
+                  : 'bg-feudum-control border-feudum-frame'}
                 {refused ? 'opacity-50' : 'hover:bg-feudum-control-hover'}"
             aria-label={choice.shown === undefined ? undefined : choice.label}
             aria-pressed={choice.picked}
             aria-disabled={refused}
+            data-quiet={quiet ? '' : undefined}
             onpointerenter={point}
             onpointerleave={leave}
             onfocus={point}
@@ -142,6 +156,21 @@
                         ? 'text-feudum-danger'
                         : 'text-feudum-accent'}
                     data-note={choice.note.kind}>{choice.note.label}</span
+                >
+            {/if}
+            {#if choice.cost}
+                <span class="inline-flex items-center gap-0.5 text-xs" data-cost>
+                    {#if choice.cost.kind === 'good'}
+                        <GoodToken good={choice.cost.good} size={16} />{choice.cost.count}
+                        {#if choice.cost.barrel}<span class="beside-art">barrel</span>{/if}
+                    {:else}
+                        <ShillingToken value={1} size={16} />{choice.cost.count}
+                    {/if}
+                </span>
+            {/if}
+            {#if reasonBeneath}
+                <span class="w-full text-left text-xs text-feudum-text-muted" data-reason
+                    >{choice.refusal}</span
                 >
             {/if}
         </button>
@@ -163,7 +192,7 @@
             ></button
         >
     {/if}
-    {#if refusalShown && choice.refusal}
+    {#if refusalShown && choice.refusal && !reasonBeneath}
         <span class="self-center text-xs text-feudum-danger" data-refusal>{choice.refusal}</span>
     {/if}
 </span>

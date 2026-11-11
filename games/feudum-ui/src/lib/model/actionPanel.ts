@@ -33,6 +33,10 @@ export interface ActionRow {
     readonly art?: RowArt
     /** R-1.4.8 What this row asks beside itself: the sulfur's destination. */
     readonly popup?: readonly ActionRow[]
+    /** R-3.2 Forfeit: a choice that stands last, drawn quieter than the modes before it. */
+    readonly quiet?: true
+    /** A card's mode: refused, it shows its reason beneath its name before any press. */
+    readonly explained?: true
 }
 
 export interface CardRow {
@@ -75,7 +79,15 @@ export interface SeatNames {
 export type LineRole =
     'turn' | 'flow' | 'count' | 'warning' | 'note' | 'waiting' | 'previous' | 'refusal' | 'round'
 
-export type ActionBlock =
+/**
+ * Where a block stands when it is not in the panel's own run: in the tray beside the picked card
+ * (R-3.2, its modes and send), or at the end of the hand's line (the at-will chips).
+ */
+export type BlockPlace = 'tray' | 'hand-end'
+
+export type ActionBlock = PanelBlock & { readonly stands?: BlockPlace }
+
+type PanelBlock =
     | { readonly kind: 'finalise'; readonly entries: readonly FinaliseEntry[] }
     | {
           readonly kind: 'line'
@@ -607,39 +619,58 @@ function landscapesBlocks(
     ]
 }
 
+/**
+ * R-3.2 The hand in one line, its at-will chips at the line's end; once a card is picked, all that
+ * card asks stands in a tray beside it: its line, modes, follow-up rows and send, then Forfeit, last
+ * and quiet (contract: Playing a card).
+ */
 function turnBlocks(session: PanelSession, turn: NonNullable<PanelSession['turnPanel']>) {
     const move = session.movePanel
     const guild = session.guildPanel
     const flowLine = guild?.line ?? move?.line ?? turn.flow?.line
     const primary = guild?.primary ?? move?.primary ?? turn.primary
     const me = session.myPlayerId ?? ''
-    const cardRows: ActionRow[] = [
-        ...(turn.secondCard
-            ? [
-                  {
-                      choice: plainChoice(turn.secondCard.label, turn.secondCard.on),
-                      press: () => session.toggleTurnSecondCard()
-                  }
-              ]
-            : []),
-        ...(turn.forfeit
-            ? [
-                  {
-                      choice: plainChoice(turn.forfeit, false),
-                      press: () => session.forfeitTurnCard()
-                  }
-              ]
-            : [])
-    ]
+    const secondRows: ActionRow[] = turn.secondCard
+        ? [
+              {
+                  choice: plainChoice(turn.secondCard.label, turn.secondCard.on),
+                  press: () => session.toggleTurnSecondCard()
+              }
+          ]
+        : []
+    const forfeitRows: ActionRow[] = turn.forfeit
+        ? [
+              {
+                  choice: plainChoice(turn.forfeit, false),
+                  press: () => session.forfeitTurnCard(),
+                  quiet: true
+              }
+          ]
+        : []
     const asTurnRows = (choices: readonly PanelChoice[] | undefined) =>
         (choices ?? []).map((choice) => turnRow(session, choice))
+    const modeRows = asTurnRows(turn.modes.length > 1 ? turn.modes : []).map((row): ActionRow => ({
+        ...row,
+        explained: true
+    }))
     const { tally, tallyNote } = turn.flow ?? {}
     const tallyBlocks: ActionBlock[] = tally
         ? [{ kind: 'tally', lines: tally, ...(tallyNote ? { note: tallyNote } : {}) }]
         : []
+    const tray: ActionBlock[] = [
+        ...(flowLine ? [line('flow', flowLine)] : []),
+        ...rows('replays', asTurnRows(turn.replays)),
+        ...rows('modes', modeRows),
+        ...turn.refusals.map((text) => line('refusal', text)),
+        ...rows('move', asTurnRows(move?.rows)),
+        ...rows('flow', asTurnRows(turn.flow?.rows)),
+        ...tallyBlocks,
+        ...rows('second', secondRows),
+        ...(primary ? [primaryBlock(primary, () => session.sendTurnCard())] : []),
+        ...rows('card', forfeitRows)
+    ]
     return [
         line('turn', turn.line),
-        ...(flowLine ? [line('flow', flowLine)] : []),
         {
             kind: 'cards',
             tone: 'hand',
@@ -652,15 +683,12 @@ function turnBlocks(session: PanelSession, turn: NonNullable<PanelSession['turnP
                 press: () => session.pressTurnCard(kind)
             }))
         },
-        ...atWillBlocks(session),
-        ...rows('replays', asTurnRows(turn.replays)),
-        ...rows('modes', asTurnRows(turn.modes.length > 1 ? turn.modes : [])),
-        ...turn.refusals.map((text) => line('refusal', text)),
-        ...rows('move', asTurnRows(move?.rows)),
-        ...rows('flow', asTurnRows(turn.flow?.rows)),
-        ...tallyBlocks,
-        ...rows('card', cardRows),
-        ...(primary ? [primaryBlock(primary, () => session.sendTurnCard())] : [])
+        ...atWillBlocks(session).map((block): ActionBlock =>
+            block.kind === 'rows' && block.name === 'at-will'
+                ? { ...block, stands: 'hand-end' }
+                : block
+        ),
+        ...tray.map((block): ActionBlock => ({ ...block, stands: 'tray' }))
     ] satisfies ActionBlock[]
 }
 
