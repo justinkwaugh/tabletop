@@ -1,9 +1,11 @@
-// Writes the catalog image: `node scripts/make-cover.mjs [--art <image> [--titled]] [--out <file>]`.
+// Writes the catalog image: `node scripts/make-cover.mjs [--titled] [--art <image>] [--out <file>]`.
 // Colours come from app.css and the colorizer, forms from the shape module, and the title from the
 // table's own font, so the cover has nothing of its own to keep in step. The page and its title
 // band come from `src/lib/utils/coverPage.ts`. With `--art`, the image stands behind the title band
 // in place of the drawn scene; with `--titled` as well, the image prints its own title and is the
-// whole cover.
+// whole cover, placed by the page's crop rule (`coverPlacement`). `--titled` alone takes the box
+// front from `src/lib/art/cover-source/`, or the rulebook's cover while no box front is there.
+// With an image, the cover goes to the supplied art folder; without one, to `src/lib/images/`.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { extname, join } from 'node:path'
 import { parseArgs } from 'node:util'
@@ -22,13 +24,36 @@ const Root = fileURLToPath(new URL('..', import.meta.url))
 const { width: Width, height: Height } = CoverSize
 const MostBytes = 120 * 1024
 
+// Publisher images, kept out of git: the box front, and the rulebook's cover standing in for it.
+const CoverSource = join(Root, 'src/lib/art/cover-source')
+const SourceNames = ['box-front', 'rulebook-cover']
+const SourceTypes = ['.png', '.jpg', '.jpeg', '.webp']
+
 const { values } = parseArgs({
     options: {
         art: { type: 'string' },
         titled: { type: 'boolean', default: false },
-        out: { type: 'string', default: join(Root, 'src/lib/images/cover.webp') }
+        out: { type: 'string' }
     }
 })
+
+function coverSource() {
+    for (const name of SourceNames) {
+        for (const type of SourceTypes) {
+            const path = join(CoverSource, name + type)
+            if (existsSync(path)) {
+                return path
+            }
+        }
+    }
+    throw new Error(
+        `No cover source: put box-front.png (or .jpg, .webp) in ${CoverSource}, or pass --art <image>`
+    )
+}
+
+const art = values.art ?? (values.titled ? coverSource() : undefined)
+const out =
+    values.out ?? join(Root, art ? 'src/lib/art/supplied/cover.webp' : 'src/lib/images/cover.webp')
 
 const css = readFileSync(join(Root, 'src/app.css'), 'utf8')
 const tokens = new Map(
@@ -91,14 +116,34 @@ function drawnScene() {
         ${pawns.join('')}`
 }
 
+const ImageTypes = { '.png': 'image/png', '.webp': 'image/webp' }
+
 function artHref(path) {
-    const type = extname(path) === '.png' ? 'image/png' : 'image/jpeg'
+    const type = ImageTypes[extname(path).toLowerCase()] ?? 'image/jpeg'
     return `data:${type};base64,${readFileSync(path).toString('base64')}`
 }
 
-const scene = values.art
-    ? { kind: 'art', href: artHref(values.art), titled: values.titled }
-    : { kind: 'drawn', markup: drawnScene() }
+const browser = await chromium.launch()
+const tab = await browser.newPage({ viewport: { width: Width, height: Height } })
+
+/** The image's own size, which the crop rule needs. */
+async function sizeOf(href) {
+    return tab.evaluate(async (src) => {
+        const image = new Image()
+        image.src = src
+        await image.decode()
+        return { width: image.naturalWidth, height: image.naturalHeight }
+    }, href)
+}
+
+let scene = { kind: 'drawn', markup: drawnScene() }
+if (art) {
+    const href = artHref(art)
+    scene = values.titled
+        ? { kind: 'art', href, titled: true, size: await sizeOf(href) }
+        : { kind: 'art', href, titled: false }
+    console.log(`from ${art}`)
+}
 
 const page = `<!doctype html><html><head><style>
     ${fontFace('MedievalSharp', 'MedievalSharp.ttf')}
@@ -108,8 +153,6 @@ const page = `<!doctype html><html><head><style>
 ${coverSvg(scene, token)}
 </body></html>`
 
-const browser = await chromium.launch()
-const tab = await browser.newPage({ viewport: { width: Width, height: Height } })
 await tab.setContent(page)
 await tab.evaluate(() => document.fonts.ready)
 const shot = (await tab.screenshot({ type: 'png' })).toString('base64')
@@ -136,5 +179,5 @@ const encoded = await tab.evaluate(
 await browser.close()
 
 const file = Buffer.from(encoded, 'base64')
-writeFileSync(values.out, file)
-console.log(`${values.out}: ${file.length} bytes`)
+writeFileSync(out, file)
+console.log(`${out}: ${file.length} bytes`)
