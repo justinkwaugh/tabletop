@@ -214,7 +214,7 @@ A staged card and the at-will row never coexist: picking a card hides the row, a
 
 ### Game end
 
-The game-end summary replaces the action area: one column per seat with what it scored before the V dawn, the V dawn, epic voyage by section, large empires (with sets), shillings, each sealed charter now face up with its score, the total, and the winner with the barrel tie-break when used (R-6.2, R-6.3), from `ScoreGame`'s metadata.
+The game-end summary replaces the action area: one column per seat with what it scored before the V dawn, the V dawn, epic voyage by section, large empires (with sets), shillings, each sealed charter now face up with its score beneath it as "5 vp", the total, and the winner with the barrel tie-break when used (R-6.2, R-6.3), from `ScoreGame`'s metadata.
 
 ### Watching (waiting view)
 
