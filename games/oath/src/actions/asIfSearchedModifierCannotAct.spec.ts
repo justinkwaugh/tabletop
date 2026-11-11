@@ -5,14 +5,14 @@ import { HydratedPlayFacedownAdviser, PlayFacedownAdviser } from './playFacedown
 import { HydratedSearch, Search, SearchSource } from './search.js'
 import { HydratedSearchResolve, SearchPlay, SearchResolve } from './searchResolve.js'
 import { HydratedAnswerQuestion } from './answerQuestion.js'
-import { PlayerStatus } from '../model/oathEnums.js'
+import { PlayerStatus, Region } from '../model/oathEnums.js'
 import { PowerQuestionKind, type QuestionAnswer } from '../model/question.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { OathVisibility } from '../definition/runtime.js'
 import { openTurn, testPlayer, testState, withChancellor } from '../testing/fixture.js'
 import { buildAction } from '../testing/actions.js'
-import { modifierUse } from '../testing/choices.js'
+import { modifierUse, region, yes } from '../testing/choices.js'
 import { served } from '../testing/projection.js'
 import { answerQuestion } from '../testing/steps.js'
 import { FILLER, INN } from '../testing/cards.js'
@@ -28,8 +28,8 @@ import '../powers/index.js'
 // at the start of the action it modifies. From revision 33 a declared Search modifier that cannot act on this play
 // or draw is refused, before anything is paid, with the reason it cannot act: one that changes a Search's draw
 // (Great Spire's swap, as the Truthful Harp and Augury already were), one that acts only on a play to a site (New
-// Growth) when the play is not to a site, and one that acts only when a denizen is played (Welcoming Party) when the
-// card played is a Vision. Before revision 33 a game keeps what it accepted.
+// Growth) when the play is not to a site, and one that acts only when a denizen is played (Welcoming Party) or a beast
+// card is (Wild Cry) when the card played is a Vision. Before revision 33 a game keeps what it accepted.
 
 const ORACLE = 'denizen.nomad.oracle'
 const NEW_GROWTH = 'denizen.beast.new-growth'
@@ -38,6 +38,7 @@ const WILD_CRY = 'denizen.beast.wild-cry'
 const CROP_ROTATION = 'denizen.hearth.crop-rotation'
 const AUGURY = 'denizen.arcane.augury'
 const HORN = 'relic.cracked-horn'
+const BRACKEN = 'denizen.beast.bracken'
 const FORCED_LABOR = 'denizen.order.forced-labor'
 const SUPREMACY = 'vision.supremacy'
 const FAITH = 'vision.faith'
@@ -49,6 +50,7 @@ const MARA = 'mara'
 
 const FIXED = OathRevision.EngineFixes28
 const BEFORE = OathRevision.EngineFixes27
+const EARLIER = OathRevision.EngineFixes26
 
 const SPIRE_USE = modifierUse(GREAT_SPIRE)
 const NEW_GROWTH_USE = modifierUse(NEW_GROWTH)
@@ -57,6 +59,7 @@ const WILD_CRY_USE = modifierUse(WILD_CRY)
 const CROP_ROTATION_USE = modifierUse(CROP_ROTATION)
 const AUGURY_USE = modifierUse(AUGURY)
 const HORN_USE = modifierUse(HORN)
+const BRACKEN_CRADLE_BOTTOM = modifierUse(BRACKEN, [region(Region.Cradle), yes])
 
 const danaView: Visibility.Perspective = { kind: 'player', playerId: DANA }
 const rhysView: Visibility.Perspective = { kind: 'player', playerId: RHYS }
@@ -75,6 +78,7 @@ const GROWTH_VISION = `${NEW_GROWTH} acts on a play to a site, and this Vision i
 const GROWTH_ORACLE = `${NEW_GROWTH} acts on a play to a site, and the Vision this power draws is never played to a site`
 const WELCOMING_VISION = `${WELCOMING_PARTY} acts when a denizen is played, and the card played is a Vision`
 const WELCOMING_FACEDOWN = `${WELCOMING_PARTY}: the card played is a facedown adviser`
+const WILD_CRY_VISION = `${WILD_CRY} acts when a beast card is played, and the card played is a Vision`
 
 // --- Oracle: "Draw the Vision closest to the top of the world deck. Play or discard it as if you searched." ---
 
@@ -168,17 +172,35 @@ describe('Oracle’s use: a declared modifier that cannot act on its draw is ref
         expect(s.getPlayerState(DANA).knownHand()).toEqual([SUPREMACY])
     })
 
-    it('Wild Cry, which only an after-play hook carries, is accepted as before', () => {
+    it('Wild Cry: refused, as the card played is a Vision, not a beast, and no secret is paid', () => {
         const s = oracleTable(FIXED, [WILD_CRY])
-        expect(oracleReason(s, [WILD_CRY_USE])).toBeUndefined()
+        expect(oracleReason(s, [WILD_CRY_USE])).toBe(WILD_CRY_VISION)
+        expect(() => useOracle(s, [WILD_CRY_USE])).toThrow(WILD_CRY_VISION)
+        expect(s.getPlayerState(DANA).secrets).toBe(3)
+        expect(s.getPlayerState(DANA).supply).toBe(6)
+        expect(s.getPlayerState(DANA).knownHand()).toEqual([])
+    })
+
+    it('Wild Cry beside the Cracked Horn: refused for Wild Cry, whichever is declared first', () => {
+        const s = oracleTable(FIXED, [WILD_CRY])
+        expect(oracleReason(s, [HORN_USE, WILD_CRY_USE])).toBe(WILD_CRY_VISION)
+        expect(oracleReason(s, [WILD_CRY_USE, HORN_USE])).toBe(WILD_CRY_VISION)
+    })
+
+    it('Wild Cry beside Welcoming Party: both are refused, and the reason names the one declared first', () => {
+        const s = oracleTable(FIXED, [WILD_CRY, WELCOMING_PARTY])
+        expect(oracleReason(s, [WILD_CRY_USE, WELCOMING_USE])).toBe(WILD_CRY_VISION)
+        expect(oracleReason(s, [WELCOMING_USE, WILD_CRY_USE])).toBe(WELCOMING_VISION)
     })
 
     it('Dana’s own projected view gives the same answers', () => {
-        const s = oracleTable(FIXED, [NEW_GROWTH, WELCOMING_PARTY])
+        const s = oracleTable(FIXED, [NEW_GROWTH, WELCOMING_PARTY, WILD_CRY])
         const own = ownView(s, danaView)
         expect(oracleReason(own, [SPIRE_USE])).toBe(SPIRE_OWN_TEXT)
         expect(oracleReason(own, [NEW_GROWTH_USE])).toBe(GROWTH_ORACLE)
         expect(oracleReason(own, [WELCOMING_USE])).toBe(WELCOMING_VISION)
+        expect(oracleReason(own, [WILD_CRY_USE])).toBe(WILD_CRY_VISION)
+        expect(oracleReason(own, [HORN_USE, WILD_CRY_USE])).toBe(WILD_CRY_VISION)
         expect(oracleReason(own, [HORN_USE])).toBeUndefined()
     })
 })
@@ -202,6 +224,18 @@ describe('Oracle’s use in a game created before revision 33 keeps what it acce
         const s = oracleTable(BEFORE, [AUGURY])
         expect(oracleReason(s, [AUGURY_USE])).toBe(AUGURY_OWN_TEXT)
     })
+
+    it.each([BEFORE, EARLIER])(
+        'Wild Cry at revision %s: accepted, alone and beside the Horn',
+        (revision) => {
+            const s = oracleTable(revision, [WILD_CRY])
+            expect(oracleReason(s, [WILD_CRY_USE])).toBeUndefined()
+            expect(oracleReason(s, [HORN_USE, WILD_CRY_USE])).toBeUndefined()
+            expect(oracleReason(ownView(s, danaView), [WILD_CRY_USE])).toBeUndefined()
+            useOracle(s, [WILD_CRY_USE])
+            expect(s.getPlayerState(DANA).knownHand()).toEqual([SUPREMACY])
+        }
+    )
 })
 
 // --- R-6.1: a facedown adviser played "as if you searched", which draws nothing. ---
@@ -291,6 +325,12 @@ describe('R-6.1 facedown play: a declared modifier that cannot act on it is refu
         expect(s.getPlayerState(DANA).supply).toBe(supply + 1)
     })
 
+    it('Wild Cry on the beast turned faceup as an adviser, or discarded: accepted as before', () => {
+        const s = facedownTable(FIXED, [WILD_CRY])
+        expect(facedownReason(s, SearchPlay.Adviser, [WILD_CRY_USE])).toBeUndefined()
+        expect(facedownReason(s, SearchPlay.Discard, [WILD_CRY_USE])).toBeUndefined()
+    })
+
     it('Welcoming Party: refused, as the card played is a facedown adviser', () => {
         const s = facedownTable(FIXED, [WELCOMING_PARTY])
         expect(facedownReason(s, SearchPlay.Site, [WELCOMING_USE])).toBe(WELCOMING_FACEDOWN)
@@ -302,11 +342,12 @@ describe('R-6.1 facedown play: a declared modifier that cannot act on it is refu
     })
 
     it('Dana’s own projected view gives the same answers', () => {
-        const s = facedownTable(FIXED, [NEW_GROWTH])
+        const s = facedownTable(FIXED, [NEW_GROWTH, WILD_CRY])
         const own = ownView(s, danaView)
         expect(facedownReason(own, SearchPlay.Site, [SPIRE_USE])).toBe(SPIRE_DRAWS_NOTHING)
         expect(facedownReason(own, SearchPlay.Adviser, [NEW_GROWTH_USE])).toBe(GROWTH_NOT_TO_SITE)
         expect(facedownReason(own, SearchPlay.Site, [NEW_GROWTH_USE])).toBeUndefined()
+        expect(facedownReason(own, SearchPlay.Site, [WILD_CRY_USE])).toBeUndefined()
     })
 })
 
@@ -419,6 +460,8 @@ const prophetReason = (s: HydratedOathGameState, play: SearchPlay, modifiers: Mo
     HydratedAnswerQuestion.reasonCannotAnswer(s, RHYS, answer(play, modifiers))
 
 const VISION_PLAYS = [SearchPlay.RevealedVision, SearchPlay.Discard]
+// Rhys has room among their advisers, so the Vision may also be played facedown to them (R-5.1.4.II).
+const WILD_CRY_PLAYS = [...VISION_PLAYS, SearchPlay.Adviser]
 
 describe('False Prophet’s answer: a declared modifier that cannot act on it is refused (revision 33)', () => {
     it('the scene: Rhys is asked about Faith', () => {
@@ -472,9 +515,47 @@ describe('False Prophet’s answer: a declared modifier that cannot act on it is
         expect(s.tokensOn(GREAT_SPIRE).secrets).toBe(0)
     })
 
-    it('Wild Cry, which only an after-play hook carries, is accepted as before', () => {
-        const s = asked(FIXED, [WILD_CRY])
-        expect(prophetReason(s, SearchPlay.RevealedVision, [WILD_CRY_USE])).toBeUndefined()
+    it.each(WILD_CRY_PLAYS)(
+        'Wild Cry (%s): refused, as the card played is a Vision, not a beast, and neither the toll nor a gain is paid',
+        (play) => {
+            const s = asked(FIXED, [WILD_CRY])
+            expect(prophetReason(s, play, [WILD_CRY_USE])).toBe(WILD_CRY_VISION)
+            expect(() => answerQuestion(s, RHYS, answer(play, [WILD_CRY_USE]))).toThrow(
+                WILD_CRY_VISION
+            )
+            expect(s.getPlayerState(RHYS).favor).toBe(1)
+            expect(s.getPlayerState(RHYS).supply).toBe(5)
+            expect(s.pendingQuestions?.queue).toHaveLength(1)
+        }
+    )
+
+    it.each(WILD_CRY_PLAYS)(
+        'control: without Wild Cry in use, the plain answer (%s) is accepted',
+        (play) => {
+            const s = asked(FIXED, [WILD_CRY])
+            expect(prophetReason(s, play, [])).toBeUndefined()
+        }
+    )
+
+    it('Wild Cry beside Bracken on the discard: refused for Wild Cry, whichever is declared first', () => {
+        const s = asked(FIXED, [BRACKEN, WILD_CRY])
+        expect(prophetReason(s, SearchPlay.Discard, [BRACKEN_CRADLE_BOTTOM])).toBeUndefined()
+        expect(prophetReason(s, SearchPlay.Discard, [BRACKEN_CRADLE_BOTTOM, WILD_CRY_USE])).toBe(
+            WILD_CRY_VISION
+        )
+        expect(prophetReason(s, SearchPlay.Discard, [WILD_CRY_USE, BRACKEN_CRADLE_BOTTOM])).toBe(
+            WILD_CRY_VISION
+        )
+    })
+
+    it('Wild Cry beside Welcoming Party: the reason names the one declared first', () => {
+        const s = asked(FIXED, [WILD_CRY, WELCOMING_PARTY])
+        expect(prophetReason(s, SearchPlay.Discard, [WILD_CRY_USE, WELCOMING_USE])).toBe(
+            WILD_CRY_VISION
+        )
+        expect(prophetReason(s, SearchPlay.Discard, [WELCOMING_USE, WILD_CRY_USE])).toBe(
+            WELCOMING_VISION
+        )
     })
 
     it('Rhys’s own projected view gives the same answers', () => {
@@ -484,6 +565,12 @@ describe('False Prophet’s answer: a declared modifier that cannot act on it is
         expect(prophetReason(own, SearchPlay.RevealedVision, [NEW_GROWTH_USE])).toBe(GROWTH_VISION)
         expect(prophetReason(own, SearchPlay.Discard, [WELCOMING_USE])).toBe(WELCOMING_VISION)
         expect(prophetReason(own, SearchPlay.Discard, [])).toBeUndefined()
+    })
+
+    it('Rhys’s own projected view refuses Wild Cry on each play too', () => {
+        const own = ownView(asked(FIXED, [WILD_CRY]), rhysView)
+        for (const play of WILD_CRY_PLAYS)
+            expect(prophetReason(own, play, [WILD_CRY_USE]), play).toBe(WILD_CRY_VISION)
     })
 })
 
@@ -506,4 +593,23 @@ describe('False Prophet’s answer in a game created before revision 33 keeps wh
         const s = asked(BEFORE, [WELCOMING_PARTY])
         expect(prophetReason(s, play, [WELCOMING_USE])).toBe(WELCOMING_FACEDOWN)
     })
+
+    it.each(WILD_CRY_PLAYS)('Wild Cry (%s): accepted, and it gains nothing', (play) => {
+        const s = asked(BEFORE, [WILD_CRY])
+        expect(prophetReason(s, play, [WILD_CRY_USE])).toBeUndefined()
+        expect(prophetReason(ownView(s, rhysView), play, [WILD_CRY_USE])).toBeUndefined()
+        answerQuestion(s, RHYS, answer(play, [WILD_CRY_USE]))
+        expect(s.getPlayerState(RHYS).supply).toBe(5)
+        expect(s.pendingQuestions?.queue ?? []).toHaveLength(0)
+    })
+
+    it.each(WILD_CRY_PLAYS)(
+        'Wild Cry at revision 31 (%s): refused as before, as no Search modifier applies there',
+        (play) => {
+            const s = asked(EARLIER, [WILD_CRY])
+            expect(prophetReason(s, play, [WILD_CRY_USE])).toBe(
+                'in a game created before revision 32, no Search modifier applies to False Prophet’s play or discard'
+            )
+        }
+    )
 })

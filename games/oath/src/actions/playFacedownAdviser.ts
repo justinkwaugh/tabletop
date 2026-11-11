@@ -474,8 +474,8 @@ export class HydratedPlayFacedownAdviser
     /**
      * R-7.4 — why a declared modifier cannot act on this play or draw, read from its hooks and the play: it changes
      * a Search's draw, and this play draws nothing or draws by its power's own text; it acts only on a play to a site,
-     * and this play is not one; or it acts only when a denizen is played, and the card played is a Vision. Before
-     * revision 33 (`everyOne` false), only the first, without Great Spire's swap.
+     * and this play is not one; or it acts only when a denizen, or a card of a suit, is played, and the card played is
+     * a Vision. Before revision 33 (`everyOne` false), only the first, without Great Spire's swap.
      */
     private static reasonCannotAct(
         cardId: string,
@@ -504,6 +504,10 @@ export class HydratedPlayFacedownAdviser
         // Welcoming Party's bank is read only once a denizen is played.
         if (hooks.playFavorFrom !== undefined && vision) {
             return `${cardId} acts when a denizen is played, and the card played is a Vision`
+        }
+        // Wild Cry gains only once a beast card is played; a Vision has no suit (R-2.7).
+        if (hooks.playedSuitGains !== undefined && vision) {
+            return `${cardId} acts when a ${hooks.playedSuitGains} card is played, and the card played is a Vision`
         }
         return undefined
     }
