@@ -1,6 +1,9 @@
+import type { Color } from '@tabletop/common'
 import type {
     ActionCardKind,
     BeadValue,
+    GuildId,
+    HydratedFeudumGameState,
     LandscapeKind,
     RegionId,
     TileEpoch,
@@ -32,6 +35,14 @@ export type EnlargedFace =
           readonly region?: RegionId
       }
     | { readonly kind: 'bead'; readonly faceShown: boolean; readonly beadValue?: BeadValue }
+    /** R-1.3 A guild area, drawn from the state its owner draws. */
+    | {
+          readonly kind: 'guild'
+          readonly guild: GuildId
+          readonly state: HydratedFeudumGameState
+          readonly paintOf: (playerId: string) => SeatPaint
+          readonly colourPaintOf: (colour: Color) => SeatPaint
+      }
 
 /** A region stack's tiles by epoch, or the deck's seen writs. */
 export type StackViewOf =

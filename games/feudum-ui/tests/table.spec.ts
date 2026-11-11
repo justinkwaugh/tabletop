@@ -113,6 +113,26 @@ test('S59 a press on the enlarged piece closes it, as a press beside it does; no
     expect(await page.evaluate(() => JSON.stringify(window.feudumSession.gameState))).toBe(before)
 })
 
+test('S59 R-1.3 a press on a guild area on the board enlarges it with its state; a press on it closes it', async ({
+    page
+}) => {
+    await createGame(page)
+    await playToCards(page)
+    const before = await page.evaluate(() => JSON.stringify(window.feudumSession.gameState))
+    const area = board(page).locator('[data-enlarge="Merchant guild"]')
+
+    await area.click({ position: { x: 12, y: 12 } })
+    await expect(enlarged(page)).toHaveAttribute('data-enlarged', 'guild')
+    await expect(enlarged(page).locator('[data-guild="merchant"]')).toBeVisible()
+    const box = await enlarged(page).boundingBox()
+    expect(box?.width).toBeCloseTo(640, 0)
+    await shot(page, 'enlarged-guild')
+    await enlarged(page).click()
+    await expect(enlarged(page)).toHaveCount(0)
+
+    expect(await page.evaluate(() => JSON.stringify(window.feudumSession.gameState))).toBe(before)
+})
+
 test('a popup sits beside its anchor; a press outside does nothing; Undo removes it', async ({
     page
 }) => {

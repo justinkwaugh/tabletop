@@ -1,8 +1,14 @@
 // @vitest-environment node
 import { render } from 'svelte/server'
-import { describe, expect, it } from 'vitest'
-import { RoyalWrits } from '@tabletop/feudum'
+import { describe, expect, it, vi } from 'vitest'
+import { GuildById, GuildIds, HydratedFeudumGameState, RoyalWrits } from '@tabletop/feudum'
+import GuildAreas from '$lib/components/guilds/GuildAreas.svelte'
+import { PlainChrome, type BoardChrome } from '$lib/model/boardChrome.js'
+import { guildTarget } from '$lib/model/boardOffer.js'
 import type { EnlargedFace } from '$lib/model/tableLayers.svelte.js'
+import EnlargedOnTable from '$lib/testing/EnlargedOnTable.svelte'
+import GuildAreasOnTable from '$lib/testing/GuildAreasOnTable.svelte'
+import { atPlayingCards } from '$lib/testing/turnTable.js'
 import EnlargedLayer from './EnlargedLayer.svelte'
 
 const paint = {
@@ -38,4 +44,57 @@ describe('Card preview (contract: Card preview)', () => {
             expect(markup).toContain('data-backdrop')
         }
     )
+})
+
+describe('Guild areas enlarge (contract: Card preview)', () => {
+    const paintOf = () => paint
+
+    async function stateAtCards() {
+        const { host } = await atPlayingCards(['explore'])
+        return new HydratedFeudumGameState(structuredClone(host.state))
+    }
+
+    it('R-1.3 on a table each guild area is a press that enlarges it; alone, a plain area', async () => {
+        const state = await stateAtCards()
+        const onTable = render(GuildAreasOnTable, {
+            props: { state, paintOf, colourPaintOf: paintOf }
+        }).body
+        for (const guild of GuildIds) {
+            expect(onTable).toContain(`aria-label="Enlarge ${GuildById[guild].name} guild"`)
+        }
+        // A bead on the rosary keeps its own press beside the area's.
+        expect(onTable).toContain('data-enlarge="bead"')
+        const alone = render(GuildAreas, { props: { state, paintOf, colourPaintOf: paintOf } }).body
+        expect(alone).not.toContain('data-enlarge=')
+    })
+
+    it('R-4.6 a guild lit for a pick is picked by the press, not enlarged; the others still enlarge', async () => {
+        const state = await stateAtCards()
+        const chrome: BoardChrome = {
+            ...PlainChrome,
+            offer: { targets: new Map([[guildTarget('monk'), { role: 'lit' }]]), dimsRest: true },
+            press: vi.fn()
+        }
+        const markup = render(GuildAreasOnTable, {
+            props: { state, paintOf, colourPaintOf: paintOf, chrome }
+        }).body
+        expect(markup).not.toContain('data-enlarge="Monk guild"')
+        expect(markup).toContain('data-enlarge="Farmer guild"')
+    })
+
+    it('R-1.3 the enlarged guild area draws its state at the width given, its beads plain, as one close press', async () => {
+        const state = await stateAtCards()
+        const face: EnlargedFace = {
+            kind: 'guild',
+            guild: 'monk',
+            state,
+            paintOf,
+            colourPaintOf: paintOf
+        }
+        const markup = render(EnlargedOnTable, { props: { face, width: 640 } }).body
+        expect(markup).toContain('data-guild="monk"')
+        expect(markup).toMatch(/<svg[^>]*\bwidth="640"/)
+        expect(markup).not.toContain('data-enlarge=')
+        expect(markup.match(/<button/g)).toHaveLength(2)
+    })
 })

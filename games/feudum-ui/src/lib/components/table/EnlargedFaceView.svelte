@@ -1,11 +1,12 @@
 <script lang="ts">
+    import GuildArea from '$lib/components/guilds/GuildArea.svelte'
     import ActionCardFace from '$lib/components/pieces/ActionCardFace.svelte'
     import SealFace from '$lib/components/pieces/SealFace.svelte'
     import TileFace from '$lib/components/pieces/TileFace.svelte'
     import WritFace from '$lib/components/pieces/WritFace.svelte'
     import type { EnlargedFace } from '$lib/model/tableLayers.svelte.js'
 
-    /** One card, writ, tile or bead at any size, as its owner shows it. */
+    /** One card, writ, tile, bead or guild area at any size, as its owner shows it. */
     let { face, width }: { face: EnlargedFace; width: number } = $props()
 </script>
 
@@ -26,6 +27,14 @@
         landscape={face.landscape}
         region={face.region}
         size={width}
+    />
+{:else if face.kind === 'guild'}
+    <GuildArea
+        guild={face.guild}
+        state={face.state}
+        paintOf={face.paintOf}
+        colourPaintOf={face.colourPaintOf}
+        {width}
     />
 {:else}
     <SealFace faceShown={face.faceShown} beadValue={face.beadValue} size={width} />
