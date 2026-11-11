@@ -18,6 +18,7 @@
 ### Short names
 
 - Cards are written as rank then suit (K♠, 10♥, Q♦); trumps as their pack prints them (21, or XXI with Industrie und Glück), the Sküs by name. A called king is K♠, or "4th K" for the fourth king. The header reads "Hand 1/12".
+- **Called King:** wherever the table names the contract for everyone (the header from the call to the end of the hand, and the "Contract:" line during announcements), the called King follows the word "called" as a card-coloured chip: cream with a thin border and shadow, bold and a little larger than the text around it, red for ♥ ♦ and black for ♠ ♣ and "4th K". Its accessible name is "the King of hearts" or "the fourth King".
 - A seat's won tricks are a pile and a number, with no word; the word is in its tooltip and accessible name.
 
 ### Looking at a hand card
@@ -97,7 +98,7 @@
 
 - **Trigger:** a trick's fourth card is played.
 - **Display:** once the fourth card lands, all four cards stay at full brightness, the winning card gets a thin blue edge, and a caption names the winner. After one second the trick slides to the winner's trick pile, and the table is empty for the lead.
-- **Trick piles:** from the first lead, each seat shows its trick count beside a pile: a dashed outline until its first trick, then a small face-down card (a stack from two tricks on).
+- **Trick piles:** from the first lead, each seat shows its trick count beside a pile: a dashed outline until its first trick, then a small face-down card in the backs' dark blue (a stack from two tricks on).
 
 ### Card motion
 
@@ -185,5 +186,5 @@ Each scenario is checked manually by a Playwright walk through the dev harness, 
 9. **Announcing:** the declarer chooses Trull and Pagat and announces; the next player sees a Kontra row with Game, Trull and Pagat, and the "Announced:" line. At 390×844 the choices take at most three lines. After three passes play starts, and the hand summary lists the Kontra and both bonuses. Rules are automated in the logic package's `announcements.spec.ts`, `bonusScoring.spec.ts` and `definition/announcing.spec.ts`; text in `announcementText.spec.ts`.
 10. **Card motion:** a played card, a dragged card, the 4th card of a trick and its sweep to the winner, the last trick of a hand and the next deal, the talon turning up, a taken talon half and laying away (Dreier), and the Sechserdreier pickup all move as described, at 1400×900 and 390×844, with no errors. Undo returns a card at once; stepping forward flies it in quickly; Play history replays the motion. The trick diff is automated in `trickMotion.spec.ts`, the deal order in `dealAnimator.spec.ts`.
 11. **History:** stepping back into a laying-away position shows no chosen cards or controls, and the trick matches that step.
-12. **Phone table:** at 390×844 and 375×667 the table fills the width under the action area, the hand is one row with every index visible, the zoom controls are top right, the talon halves fit inside the table, and the header reads like "Hand 1/12 Rufer · Developer · K♥". Text is automated in `cardStyle.spec.ts` and `actionDescription.spec.ts`.
+12. **Phone table:** at 390×844 and 375×667 the table fills the width under the action area, the hand is one row with every index visible, the zoom controls are top right, the talon halves fit inside the table, and the header reads like "Hand 1/12 Rufer · Developer · called K♥", the King in its chip. Text is automated in `cardStyle.spec.ts` and `actionDescription.spec.ts`.
 13. **Looking at a hand card:** at 600×900 with a mouse, hovering across the hand moves no card. Picking the fifth card, or reaching it with the keyboard, opens it to 80% while the others close from 42% to 39%, and the row's width is unchanged. On a 390×844 touch phone, a tap opens the picked card and a second tap on the same spot plays it. The spacing is automated in `handSpacing.spec.ts`.

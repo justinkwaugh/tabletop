@@ -131,7 +131,7 @@
         height: 13px;
         border: 1px solid #f1e7cf;
         border-radius: 2px;
-        background: #7b1f2a;
+        background: #2d3a7c;
     }
 
     .pile.empty {
@@ -146,7 +146,7 @@
 
     .pile.deep {
         box-shadow:
-            1px -1px 0 #7b1f2a,
+            1px -1px 0 #2d3a7c,
             2px -2px 0 #f1e7cf;
     }
 

@@ -1,7 +1,7 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { calledKingName } from '$lib/utils/actionDescription.js'
+    import CalledKingBadge from './CalledKingBadge.svelte'
     import { bidName } from '$lib/utils/contractText.js'
 
     const gameSession = getGameSession()
@@ -27,7 +27,7 @@
         {#if contract}
             <span class="contract">
                 {bidName(contract)} · {gameSession.getPlayerName(contract.declarerId)}
-                {#if contract.calledKing}· {calledKingName(contract.calledKing)}{/if}
+                {#if contract.calledKing}· <CalledKingBadge king={contract.calledKing} />{/if}
             </span>
         {/if}
     </div>

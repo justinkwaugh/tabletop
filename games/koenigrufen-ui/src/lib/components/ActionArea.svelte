@@ -10,6 +10,7 @@
         kingInTalonPrompt,
         meinSpielSummary
     } from '$lib/utils/contractText.js'
+    import CalledKingBadge from './CalledKingBadge.svelte'
     import ContractMenu from './ContractMenu.svelte'
 
     const gameSession = getGameSession()
@@ -50,11 +51,16 @@
     const standingContract = $derived.by(() => {
         if (state.machineState === MachineState.Bidding && state.auction.bid) {
             const { playerId, ...choice } = state.auction.bid
-            return { label: 'Highest bid', playerId, choice }
+            return { label: 'Highest bid', playerId, choice, calledKing: undefined }
         }
         if (state.machineState === MachineState.Announcing && state.contract) {
-            const { contract, bird, declarerId } = state.contract
-            return { label: 'Contract', playerId: declarerId, choice: { contract, bird } }
+            const { contract, bird, declarerId, calledKing } = state.contract
+            return {
+                label: 'Contract',
+                playerId: declarerId,
+                choice: { contract, bird },
+                calledKing
+            }
         }
         return undefined
     })
@@ -185,7 +191,9 @@
             <strong
                 >{gameSession.getPlayerName(standingContract.playerId)}’s {bidHeading(
                     standingContract.choice
-                )}.</strong
+                )}{#if standingContract.calledKing}, <CalledKingBadge
+                        king={standingContract.calledKing}
+                    />{/if}.</strong
             >
             {contractSummary(standingContract.choice)}
         </p>
