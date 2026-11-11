@@ -750,18 +750,17 @@ function detailsLine(
         case 'alchemist-trade':
             return `bought ${params.vesselType ? article(params.vesselType) : 'a vessel'} for ${details.price}s`
         case 'alchemist-push':
-        case 'knight-pull':
+        case 'knight-pull': {
+            // R-4.6-H8 A barrel may fill nothing; only the markers it added are named.
+            const fills = details.barrels.flat()
             return sentence(
                 `turned in ${countsLine(details.goodsUsed)}`,
                 params.inventions ? `invented ${listed(params.inventions.map(spoken))}` : undefined,
-                details.barrels.length > 0
-                    ? `barrels: ${listed(
-                          details.barrels
-                              .flat()
-                              .map((fill) => `${rowName(fill, words)} +${fill.added}`)
-                      )}`
+                fills.length > 0
+                    ? `barrels: ${listed(fills.map((fill) => `${rowName(fill, words)} +${fill.added}`))}`
                     : undefined
             )
+        }
         case 'knight-trade':
             return sentence(
                 `took ${plural(details.taken, 'marker')}, kept ${details.kept}, paid ${details.price}s`,
