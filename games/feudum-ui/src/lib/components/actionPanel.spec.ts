@@ -117,7 +117,8 @@ describe('R-X.3 the rows of the panel', () => {
 
     it('the touch preview says on its face what it does, not only to a screen reader', () => {
         const markup = markupOf(rowsBlock('modes', [lit]))
-        expect(textOf(markup, 'data-preview')).toBe('Show on board')
+        expect(textOf(markup, 'label-wide')).toBe('Show on board')
+        expect(textOf(markup, 'label-narrow')).toBe('On board')
     })
 
     it('a dimmed row stays pressable and gives no reason until pressed', () => {

@@ -15,8 +15,9 @@
 
     /**
      * One row of a panel or popup. A row's hover or focus brightens what its press would light, and a
-     * touch screen, having no hover, has a preview path beside the row that reads "Show on board"
-     * (contract: Hover). A
+     * touch screen, having no hover, has a preview path beside the row that reads "Show on board",
+     * or "On board" beneath a phone's card, where the longer label has no room on one line (contract:
+     * Hover, Phone layout). A
      * refused row stays pressable, to show the line why, and sends nothing. `lead` stands before the
      * label; `face` takes the label's place on a card or writ, whose corner holds the magnifier.
      */
@@ -133,7 +134,9 @@
                 if (lights) {
                     pointer.toggleRowPreview(owner, lights)
                 }
-            }}>Show on board</button
+            }}
+            ><span class="label-wide">Show on board</span><span class="label-narrow">On board</span
+            ></button
         >
     {/if}
     {#if refusalShown && choice.refusal}
@@ -158,6 +161,10 @@
         right: 2px;
     }
 
+    .label-narrow {
+        display: none;
+    }
+
     @media (hover: none) {
         .touch-preview {
             display: inline-block;
@@ -172,6 +179,16 @@
             right: auto;
             width: 100%;
             padding: 0;
+            white-space: nowrap;
+        }
+
+        /* A 72 px card leaves no room for "Show on board" on one line; the accessible name keeps it. */
+        .touch-preview.on-face .label-wide {
+            display: none;
+        }
+
+        .touch-preview.on-face .label-narrow {
+            display: inline;
         }
     }
 </style>
