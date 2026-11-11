@@ -8,7 +8,6 @@ import {
     MachineContext
 } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
-import { writsOverLimit } from '../model/atWill.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 
 export type AdvanceTurnMetadata = Type.Static<typeof AdvanceTurnMetadata>
@@ -16,8 +15,6 @@ export const AdvanceTurnMetadata = Type.Object({
     outcome: Type.Union([
         /** R-3.3-H1 The same seat plays the card it declared. */
         Type.Literal('second-card'),
-        /** R-4.4.4 The same seat discards down to the limit. */
-        Type.Literal('writ-limit'),
         /** R-3.2, R-3.2-H1 The next seat holding a card. */
         Type.Literal('next-seat'),
         /** R-3.2 Nobody holds a card. */
@@ -76,19 +73,15 @@ export class HydratedAdvanceTurn
     }
 
     /**
-     * R-3.2, R-3.3-H1, R-4.4.4 A card and its follow-ups are done: a declared second card comes
-     * first, then the turn player's writ limit, and only then does the turn pass. The handler reads
-     * the next state from what this leaves.
+     * R-3.2, R-3.3-H1 A card and its follow-ups are done, and no seat is over the writ limit
+     * (R-4.4.4): a declared second card comes first, and only then does the turn pass. The handler
+     * reads the next state from what this leaves.
      */
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {
         const { turn } = state.flow
         assertExists(turn, 'R-3.2 A turn is ending')
         if (turn.secondCard) {
             this.metadata = { outcome: 'second-card', turnPlayerId: turn.playerId }
-            return
-        }
-        if (writsOverLimit(state, turn.playerId)) {
-            this.metadata = { outcome: 'writ-limit', turnPlayerId: turn.playerId }
             return
         }
         const next = passTurn(state)

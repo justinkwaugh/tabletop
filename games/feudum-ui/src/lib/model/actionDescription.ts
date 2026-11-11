@@ -1036,10 +1036,6 @@ function advanceLine(action: GameAction, words: Words): string | undefined {
             return seat
                 ? `The turn stayed with ${words.whom(seat)} for the second card`
                 : 'The turn stayed'
-        case 'writ-limit':
-            return seat
-                ? `The turn stayed with ${words.whom(seat)} for the writ limit`
-                : 'The turn stayed'
         case 'last-card':
             return 'Every card was played'
         default:
