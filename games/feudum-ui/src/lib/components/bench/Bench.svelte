@@ -9,6 +9,7 @@
     import { benchViewOf } from '$lib/model/benchView.js'
     import type { PanelChoice } from '$lib/model/cardFlows.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
+    import { BenchFit } from '$lib/model/benchFit.svelte.js'
     import BenchArea from './BenchArea.svelte'
     import BenchGhostPiece from './BenchGhostPiece.svelte'
 
@@ -50,6 +51,9 @@
         const held = state.guilds.knight.rows.at(row)
         return held && (held.playerId ? paintOf(held.playerId) : colourPaintOf(held.colour))
     }
+
+    /** On a phone's sheet, the width at which every area stands whole above the footer. */
+    const fit = new BenchFit()
 
     /** Stands where the board's container is, in the page or in the full screen dialog. */
     function overTheBoard(fillsIt: boolean): Attachment<HTMLElement> {
@@ -121,16 +125,19 @@
         aria-label={bench.title}
         data-bench={bench.title}
         {@attach overTheBoard(true)}
+        {@attach sheet ? fit.attach : undefined}
     >
         <div class="px-3 pt-2 text-sm font-semibold text-feudum-heading" data-bench-title>
             {bench.title}
         </div>
         <div
             class="flex min-h-0 grow flex-wrap content-start justify-center gap-3 overflow-auto p-3"
+            data-bench-areas
         >
             {#each view.areas as area (area.guild)}
                 <BenchArea
                     {area}
+                    fit={sheet ? fit.width : undefined}
                     {state}
                     {paintOf}
                     {colourPaintOf}
