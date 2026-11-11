@@ -2,6 +2,7 @@ import { ActionSource, type GameAction } from '@tabletop/common'
 import {
     ActionType,
     isBeginDawn,
+    isDiscardWrit,
     isReplenishGuilds,
     isReplenishMap,
     isRollProgressDie,
@@ -64,10 +65,16 @@ function removedLine(tileId: Parameters<typeof tileName>[0]): string {
     return `${region}: tile ${epoch} removed`
 }
 
-/** The actions since the last press that opened a decision; a collection belongs to the dawn. */
+/**
+ * The actions since the last press that opened a decision. A collection belongs to the dawn, and a
+ * writ discarded at any time (R-4.4-H5) moves no decision on, so neither closes the sheet.
+ */
 function sinceLastDecision(actions: readonly GameAction[]): readonly GameAction[] {
     const last = actions.findLastIndex(
-        ({ source, type }) => source === ActionSource.User && type !== ActionType.CollectLandscapes
+        (action) =>
+            action.source === ActionSource.User &&
+            action.type !== ActionType.CollectLandscapes &&
+            !isDiscardWrit(action)
     )
     return actions.slice(last + 1)
 }

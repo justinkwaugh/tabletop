@@ -2,12 +2,14 @@ import { flushSync } from 'svelte'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
     ActionType,
+    DiscardAnyTime,
     MachineState,
     isBeginDawn,
     isRollProgressDie,
     isScoreGame,
     placeMarker,
-    type TriggeredEpoch
+    type TriggeredEpoch,
+    type WritId
 } from '@tabletop/feudum'
 import { ActionSource, assertExists } from '@tabletop/common'
 import { blockOf, linesOf, primaryNamed, primaryLabels } from '$lib/testing/actionPanelView.js'
@@ -102,6 +104,9 @@ function seen(session: FeudumGameSession, order: readonly string[]) {
 }
 
 /** R-3.14-H1 The asked seat's hand is the one difference: the hand's size is the same. */
+/** R-4.4-H5 A writ its holder may discard at any time. */
+const AnyTimeWrit: WritId = 'writ.mandate.1'
+
 const Held = ['defend', 'tax'] as const
 const NotHeld = ['tax', 'guild'] as const
 
@@ -435,6 +440,36 @@ describe('S54 R-4.11, R-4.12 the progress line and the dawn sheet', () => {
         expect(session.gameState.machineState).toBe(MachineState.SelectingHands)
         sameForAll(sessions)
         dawnOf(session)
+    })
+
+    it('R-4.4-H5, R-4.12.3 a writ discarded at any time while a serf collects leaves the sheet standing', async () => {
+        const table = hold(
+            await playOutRound(2, (state, { seat, other }) => {
+                tendLandscape(state, other, seat)
+                holdWrit(state, other, AnyTimeWrit)
+            })
+        )
+        const { session, sessions, host, other } = table
+        expect(session.gameState.machineState).toBe(MachineState.CollectingLandscapes)
+        const lines = linesOf(session.actionPanel, 'round')
+        expect(dawnOf(session).epoch).toBe(2)
+
+        await host.send(other, {
+            type: ActionType.DiscardWrit,
+            writId: AnyTimeWrit,
+            ...DiscardAnyTime
+        })
+        for (const seat of sessions) {
+            await settled(seat)
+        }
+        flushSync()
+        expect(host.actions.at(-1)).toMatchObject({ type: ActionType.DiscardWrit, playerId: other })
+        expect(session.gameState.machineState).toBe(MachineState.CollectingLandscapes)
+        for (const seat of sessions) {
+            expect(dawnOf(seat).epoch).toBe(2)
+        }
+        expect(linesOf(session.actionPanel, 'round')).toEqual(lines)
+        sameForAll(sessions)
     })
 
     it('R-4.12 "until the next decision": the first press of the next round closes it, for every seat', async () => {
