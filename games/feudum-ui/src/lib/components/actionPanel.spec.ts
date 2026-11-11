@@ -175,6 +175,28 @@ describe('R-X.3 the rows of the panel', () => {
         expect(markup).toContain('Pawn from supply</span>')
     })
 
+    it("R-4.3 a held tile stands in its row as its art, its name kept as the row's name", () => {
+        const markup = markupOf(
+            rowsBlock('covers', [
+                {
+                    ...aRow('Badlands I tile: food', { shown: 'for food' }),
+                    art: {
+                        kind: 'tile',
+                        name: 'Badlands I',
+                        epoch: 1,
+                        region: 'badlands',
+                        landscape: 'orchard'
+                    }
+                }
+            ])
+        )
+        expect(markup).toContain('aria-label="Badlands I tile: food"')
+        expect(markup).toContain('aria-label="orchard"')
+        // The text beside the art says what the row does; the name is no longer written out.
+        expect(markup).toContain('<span class="beside-art">for food</span>')
+        expect(markup).not.toContain('>Badlands I')
+    })
+
     it('S2 R-1.4.8 the sulfur asks beside itself where it goes', () => {
         const markup = markupOf(
             rowsBlock('goods', [

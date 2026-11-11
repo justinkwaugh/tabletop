@@ -6,11 +6,15 @@ import type { TurnContext } from './cardModes.js'
 import type { SendPreview } from './confirmingSend.js'
 import { StagedDraft } from './stagedDraft.svelte.js'
 import { coverAfterPress } from './tileCover.js'
-import { tileName } from './tileName.js'
+import { tileArt, tileName, type TileArt } from './tileName.js'
 
 /** One row of a follow-up's panel. A dimmed row has its line and no `press` (contract: Pick conventions). */
 export interface DraftChoice {
     readonly label: string
+    /** A tile the row offers, drawn; the label stays the row's accessible name. */
+    readonly art?: TileArt
+    /** The text beside the art, which stands for the tile's name. */
+    readonly shown?: string
     readonly note?: ChipNote
     readonly picked: boolean
     readonly refusal?: string
@@ -38,8 +42,9 @@ export function playUnless(
     return refused ? undefined : { ...preview, build }
 }
 
-/** R-4.4-H1 The tile rows: each picked tile brings the next good owed. */
+/** R-4.4-H1 The tile rows: each picked tile, drawn, brings the next good owed. */
 export function coverChoices(
+    state: Parameters<typeof tileArt>[0],
     tiles: readonly TileId[],
     picked: readonly TileId[],
     needs: readonly Good[],
@@ -47,16 +52,20 @@ export function coverChoices(
 ): readonly DraftChoice[] {
     return tiles.map((tileId) => {
         const after = coverAfterPress(picked, tileId, needs)
-        return draftChoice(
-            `${tileName(tileId)} tile: ${needs.join(', ')}`,
-            picked.includes(tileId),
-            () => {
-                if (after) {
-                    onPress(after)
-                }
-            },
-            after ? undefined : 'Every short good has its tile.'
-        )
+        return {
+            ...draftChoice(
+                `${tileName(tileId)} tile: ${needs.join(', ')}`,
+                picked.includes(tileId),
+                () => {
+                    if (after) {
+                        onPress(after)
+                    }
+                },
+                after ? undefined : 'Every short good has its tile.'
+            ),
+            art: tileArt(state, tileId),
+            shown: `for ${needs.join(', ')}`
+        }
     })
 }
 

@@ -69,7 +69,7 @@ import {
 import type { CardAction, TurnContext } from './cardModes.js'
 import type { SendPreview } from './confirmingSend.js'
 import { coverAfterPress, coverNeeds, coverSpends } from './tileCover.js'
-import { tileName } from './tileName.js'
+import { tileArt, tileName, type TileArt } from './tileName.js'
 
 export type TurnDraftValues = {
     card: ActionCardKind
@@ -136,13 +136,15 @@ export interface TurnPresser {
 }
 export type TurnPress = (draft: TurnPresser) => void
 
-/** The piece a row shows before its label; the panel paints it in the seat's colour. */
-export type ChoiceArt = { readonly kind: 'pawn'; readonly character?: Character }
+/** The piece a row shows before its label; the panel paints a pawn in the seat's colour. */
+export type ChoiceArt = { readonly kind: 'pawn'; readonly character?: Character } | TileArt
 
 export interface PanelChoice {
     readonly label: string
     /** Its piece, with the label kept as the row's accessible name. */
     readonly art?: ChoiceArt
+    /** The text beside the art when the art stands for part of the label (a tile for its name). */
+    readonly shown?: string
     readonly note?: ChipNote
     readonly picked: boolean
     /** Dimmed, with the line a press gives; it has no `press`. */
@@ -382,6 +384,8 @@ function migrateFlow(flow: FlowInput): FlowView {
             const next = coverAfterPress(cover, tileId, needs)
             return {
                 label: `${tileName(tileId)} tile: ${needs.join(', ')}`,
+                art: tileArt(state, tileId),
+                shown: `for ${needs.join(', ')}`,
                 picked: cover.includes(tileId),
                 ...(next
                     ? {
