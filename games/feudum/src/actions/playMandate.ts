@@ -46,7 +46,10 @@ export const PlayMandateMetadata = Type.Object({
     /** R-4.4.2, R-5.1 The slot it took under the deck. */
     slot: ComponentCount,
     received: MandateReceived,
-    /** R-4.5-H1, R-4.5-H3 Markers won may fill a rank the seat was owed. */
+    /**
+     * R-4.5-H1, R-4.5-H3 Markers won may fill a rank the seat was owed. While nourishing, the ranks
+     * wait for the one recompute that ends it, so none are recorded here.
+     */
     rankChanges: Type.Optional(Type.Array(RankChange))
 })
 
@@ -284,7 +287,8 @@ export class HydratedPlayMandate
         this.metadata = {
             slot,
             received,
-            ...(received.kind === 'influence'
+            // R-4.5-H1 Nourishing re-ranks once, on the Action that ends it.
+            ...(received.kind === 'influence' && !state.flow.nourish
                 ? { rankChanges: state.recomputeRanks(this.playerId) }
                 : {})
         }
