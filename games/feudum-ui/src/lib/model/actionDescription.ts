@@ -367,6 +367,7 @@ function moveLine(action: GameAction, words: Words): string | undefined {
               )}`
             : undefined,
         pilferLine(action),
+        ranksLine(action.metadata?.rankChanges, words),
         playedAs(action)
     )
 }

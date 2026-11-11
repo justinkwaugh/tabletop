@@ -6,8 +6,11 @@ import type { LandscapeKind } from '../data/regionTiles.js'
 import { ActionType } from '../definition/actions.js'
 import { FeudumApiActions } from '../definition/apiActions.js'
 import { MachineState } from '../definition/states.js'
+import { conservationBreaks } from '../model/canonicalValidator.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { rankOf } from '../model/guildStatus.js'
 import { placeMarker } from '../model/locationControl.js'
+import { canonicalOf } from '../testing/state.js'
 import { tableAtPlayingCards, type Table } from '../testing/table.js'
 import { moveAllowance, moveOffers, reasonMoveRefused, type MoveStep } from './move.js'
 
@@ -971,6 +974,37 @@ describe('Move: pilfer', () => {
         expect(table.seat(playerId).influenceSupply).toBe(influenceSupply)
         expect(table.hydrated().supply.targets).toBe(targets + 1)
         expect(action).toMatchObject({ metadata: { pilfer: { marker: false } } })
+    })
+
+    it('R-4.5.2, R-3.7-H2 a seat waiting on a guild for want of a marker joins it at once when a pilfered target gives one', () => {
+        const { table, playerId } = tableWith((state, seat) => {
+            landscapeOn(state, To, 'archery-butt', 2)
+            const player = state.getPlayerState(seat)
+            // Every marker placed, then a monk migrated in: 1 Monk star and no marker to show it.
+            state.supply.influence[player.color] += player.influenceSupply
+            player.influenceSupply = 0
+            standPawn(state, seat, 2, Start, 'monk')
+            state.recomputeRanks(seat)
+        })
+        const before = table.hydrated()
+        expect(conservationBreaks(canonicalOf(before))).toEqual([])
+        expect(rankOf(before.guilds.tracks.monk, playerId)).toBeUndefined()
+
+        const action = sent(table, playerId, {
+            steps: step(playerId),
+            pilfer: { piece: pawn1(playerId), from: 'landscape', resource: 'targets' }
+        })
+
+        const after = table.hydrated()
+        expect(rankOf(after.guilds.tracks.monk, playerId)).toBe('master')
+        expect(after.getPlayerState(playerId).influenceSupply).toBe(0)
+        expect(action).toMatchObject({
+            metadata: {
+                pilfer: { spaceId: To, marker: true },
+                rankChanges: [{ guildId: 'monk', playerId, to: 'master' }]
+            }
+        })
+        expect(conservationBreaks(canonicalOf(after))).toEqual([])
     })
 
     it('R-4.10.2 a pilfered sulfur may go to the barrel, while there is room', () => {
