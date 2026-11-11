@@ -205,9 +205,9 @@ The catalog title image is `src/lib/images/cover.webp`, read by `info.thumbnailU
 - Five pawns, one per default seat colour, standing along the hill's foot under the band. At 150 px they are a row of coloured marks.
 - No text but the title; no amber and no rose beyond what the palette uses decoratively.
 
-**Production.** `scripts/make-cover.mjs` composes an SVG from the same shape module the pieces use, renders it in Chromium and writes the WebP. It reads colours from `app.css` and the five default seat colours from the colorizer, so it contains no raw colour. `src/lib/images/README.md` says how the cover was made and that rerunning the script reproduces it.
+**Production.** `scripts/make-cover.mjs` composes an SVG from the same shape module the pieces use, with the page and its title band from `utils/coverPage.ts`, renders it in Chromium and writes the WebP. It reads colours from `app.css` and the five default seat colours from the colorizer, so it contains no raw colour. `src/lib/images/README.md` says how the cover was made and that rerunning the script reproduces it.
 
-**The supplied cover.** The id `cover` takes the catalog's place when its file is present: the same script with `--art` sets a supplied scene behind the same parchment title band, at the same size and budget. `src/lib/definitions/definition.ts` prefers it and falls back to `cover.webp`, which stays committed.
+**The supplied cover.** The id `cover` takes the catalog's place when its file is present, at the same size and budget. It is the publisher's own printed cover, cropped to 4:5 across its full width: the printed title, the crest and the frame, with nothing drawn over it, since the print already says the title. The same script makes it, `--art` with `--titled`. A supplied scene that carries no title of its own takes `--art` alone and stands behind the drawn parchment band. `src/lib/definitions/definition.ts` prefers the supplied file and falls back to `cover.webp`, which stays committed.
 
 ## Supplied assets
 
@@ -278,5 +278,6 @@ Where this plan adds to or departs from `ui-interaction-visual-contract.md`, for
 - `pawnShape.spec.ts`, `locationShape.spec.ts`, `markerShape.spec.ts`, `goodsShape.spec.ts` and the other shape specs: slot positions are inside the disc's neighbourhood and distinct, every character, good, vessel, monster and disc face has a shape.
 - `symbols.spec.ts`, the image coverage spec for a title with no image files: every name token text can build is defined in `SymbolDefs`, every guild, good, vessel, monster, region, landscape and card-symbol id has a symbol, and every `<use href>` in the package resolves to a defined `<symbol>` or `<g>`.
 - `cardFaces.spec.ts`: each of the 11 action cards, 16 writs and 24 tiles renders at all three tiers from its data; a back's markup contains no face id.
-- The cover budget: `cover.webp` is 544 × 680 and at most 120 KB.
+- The cover budget: `cover.webp`, and the supplied cover where the folder holds it, is 544 × 680 and at most 120 KB.
+- `utils/coverPage.spec.ts`: the drawn scene and a scene without a title stand under the title band; a supplied cover that prints its own title is the whole cover, with nothing drawn over it.
 - Readiness gates 1 and 2 pass on the first run.

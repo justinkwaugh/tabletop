@@ -1,12 +1,15 @@
-// Writes the catalog image: `node scripts/make-cover.mjs [--art <image>] [--out <file>]`.
+// Writes the catalog image: `node scripts/make-cover.mjs [--art <image> [--titled]] [--out <file>]`.
 // Colours come from app.css and the colorizer, forms from the shape module, and the title from the
-// table's own font, so the cover has nothing of its own to keep in step. With `--art`, the image
-// stands behind the title band in place of the drawn scene.
+// table's own font, so the cover has nothing of its own to keep in step. The page and its title
+// band come from `src/lib/utils/coverPage.ts`. With `--art`, the image stands behind the title band
+// in place of the drawn scene; with `--titled` as well, the image prints its own title and is the
+// whole cover.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { extname, join } from 'node:path'
 import { parseArgs } from 'node:util'
 import { fileURLToPath } from 'node:url'
 import { chromium } from '@playwright/test'
+import { CoverSize, coverSvg } from '../src/lib/utils/coverPage.ts'
 import {
     CrownPath,
     GuildIconPaths,
@@ -16,13 +19,13 @@ import {
 } from '../src/lib/utils/pieceShapes.ts'
 
 const Root = fileURLToPath(new URL('..', import.meta.url))
-const Width = 544
-const Height = 680
+const { width: Width, height: Height } = CoverSize
 const MostBytes = 120 * 1024
 
 const { values } = parseArgs({
     options: {
         art: { type: 'string' },
+        titled: { type: 'boolean', default: false },
         out: { type: 'string', default: join(Root, 'src/lib/images/cover.webp') }
     }
 })
@@ -88,25 +91,22 @@ function drawnScene() {
         ${pawns.join('')}`
 }
 
-function artScene(path) {
+function artHref(path) {
     const type = extname(path) === '.png' ? 'image/png' : 'image/jpeg'
-    const data = readFileSync(path).toString('base64')
-    return `<image href="data:${type};base64,${data}" width="${Width}" height="${Height}" preserveAspectRatio="xMidYMid slice" />`
+    return `data:${type};base64,${readFileSync(path).toString('base64')}`
 }
+
+const scene = values.art
+    ? { kind: 'art', href: artHref(values.art), titled: values.titled }
+    : { kind: 'drawn', markup: drawnScene() }
 
 const page = `<!doctype html><html><head><style>
     ${fontFace('MedievalSharp', 'MedievalSharp.ttf')}
     ${fontFace('IM Fell English', 'IMFellEnglish-Latin.woff2')}
     html, body { margin: 0; }
 </style></head><body>
-<svg xmlns="http://www.w3.org/2000/svg" width="${Width}" height="${Height}" viewBox="0 0 ${Width} ${Height}">
-    ${values.art ? artScene(values.art) : drawnScene()}
-    <rect y="478" width="${Width}" height="150" fill="${token('parchment')}" />
-    <rect y="478" width="${Width}" height="5" fill="${token('parchment-shade')}" />
-    <rect y="623" width="${Width}" height="5" fill="${token('parchment-shade')}" />
-    <text x="${Width / 2}" y="592" text-anchor="middle" font-size="124" fill="${token('ink')}"
-        font-family="MedievalSharp, 'IM Fell English', serif">Feudum</text>
-</svg></body></html>`
+${coverSvg(scene, token)}
+</body></html>`
 
 const browser = await chromium.launch()
 const tab = await browser.newPage({ viewport: { width: Width, height: Height } })

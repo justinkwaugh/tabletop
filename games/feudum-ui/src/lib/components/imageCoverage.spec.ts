@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { render } from 'svelte/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -189,37 +189,46 @@ describe('image coverage (R-1.1)', () => {
     })
 })
 
-describe('the drawn cover', () => {
-    const cover = readFileSync(new URL('../images/cover.webp', import.meta.url))
-
-    /** A lossy WebP's frame header: 14 bit dimensions after the start code. */
-    function webpSize(file: Buffer): { width: number; height: number; format: string } {
-        const chunk = file.toString('latin1', 12, 16)
-        if (chunk === 'VP8 ') {
-            return {
-                format: chunk,
-                width: file.readUInt16LE(26) & 0x3fff,
-                height: file.readUInt16LE(28) & 0x3fff
-            }
-        }
+/** A lossy WebP's frame header: 14 bit dimensions after the start code. */
+function webpSize(file: Buffer): { width: number; height: number; format: string } {
+    const chunk = file.toString('latin1', 12, 16)
+    if (chunk === 'VP8 ') {
         return {
             format: chunk,
-            width: (file.readUIntLE(24, 3) & 0xffffff) + 1,
-            height: (file.readUIntLE(27, 3) & 0xffffff) + 1
+            width: file.readUInt16LE(26) & 0x3fff,
+            height: file.readUInt16LE(28) & 0x3fff
         }
     }
+    return {
+        format: chunk,
+        width: (file.readUIntLE(24, 3) & 0xffffff) + 1,
+        height: (file.readUIntLE(27, 3) & 0xffffff) + 1
+    }
+}
 
-    it('is 4:5 at twice the large card, so 150 and 340 px high never upscale', () => {
-        const { width, height } = webpSize(cover)
+const suppliedCover = new URL('../art/supplied/cover.webp', import.meta.url)
+
+/**
+ * The drawn cover is committed; the supplied one, the publisher's printed cover, is checked only
+ * where the folder holds it.
+ */
+describe.each([
+    { name: 'the drawn cover', file: new URL('../images/cover.webp', import.meta.url), here: true },
+    { name: 'the supplied cover', file: suppliedCover, here: existsSync(suppliedCover) }
+])('$name', ({ file, here }) => {
+    const cover = () => readFileSync(file)
+
+    it.skipIf(!here)('is 4:5 at twice the large card, so 150 and 340 px high never upscale', () => {
+        const { width, height } = webpSize(cover())
         expect(width).toBe(544)
         expect(height).toBe(680)
         expect(height).toBeGreaterThanOrEqual(340)
     })
 
-    it('is lossy WebP within budget', () => {
+    it.skipIf(!here)('is lossy WebP within budget', () => {
         // The encoder wraps its lossy frame in an extended container to carry a colour profile.
-        expect(cover.includes('VP8 ', 12, 'latin1')).toBe(true)
-        expect(cover.includes('VP8L', 12, 'latin1')).toBe(false)
-        expect(cover.length).toBeLessThanOrEqual(120 * 1024)
+        expect(cover().includes('VP8 ', 12, 'latin1')).toBe(true)
+        expect(cover().includes('VP8L', 12, 'latin1')).toBe(false)
+        expect(cover().length).toBeLessThanOrEqual(120 * 1024)
     })
 })
