@@ -479,6 +479,21 @@ test.describe('held upright', () => {
         await expect(pick).toHaveAttribute('aria-pressed', 'true')
     })
 
+    test('S68 the page narrowing to the screen raises no ResizeObserver loop', async ({ page }) => {
+        await page.addInitScript(() => {
+            window.addEventListener('error', (event) => {
+                if (String(event.message).includes('ResizeObserver')) {
+                    document.documentElement.dataset.resizeLoop = 'true'
+                }
+            })
+        })
+        // The harness's toolbar is wider than the phone; when it goes, the page narrows to the screen.
+        await createGame(page)
+        await playToHands(page)
+        await settled(page)
+        await expect(page.locator('html[data-resize-loop]')).toHaveCount(0)
+    })
+
     test('S69 R-3.1 a chip for each seat, reading score, hand and writs, opening that seat as a sheet', async ({
         page
     }) => {

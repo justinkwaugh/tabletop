@@ -39,6 +39,9 @@
      * The screen's width as the layers stand on it. The window's `innerWidth` is the phone's layout
      * viewport, which a page wider than the screen widens and which narrows again with no resize
      * event when the page fits once more; a fixed strip across the screen is measured as it stands.
+     * The strip is there only while a piece is enlarged, the one time its width is read: watched
+     * all the time, it would be caught up in the page settling to the screen, and the browser would
+     * report the loop.
      */
     const screen = new MeasuredWidth()
     let enlargedWidth = $derived(
@@ -56,12 +59,6 @@
             layers.tracksOpen
     )
 </script>
-
-<div
-    class="pointer-events-none invisible fixed inset-x-0 top-0 h-0"
-    aria-hidden="true"
-    {@attach screen.attach}
-></div>
 
 <!-- Nothing here is pressed while the table catches up with what it shows. -->
 <div class="contents" data-motion-gate inert={gameSession.updatingVisibleState}>
@@ -86,6 +83,11 @@
     <TracksSheet onClose={() => layers.closeSeatOrStack()} />
 {/if}
 {#if layers.enlarged}
+    <div
+        class="pointer-events-none invisible fixed inset-x-0 top-0 h-0"
+        aria-hidden="true"
+        {@attach screen.attach}
+    ></div>
     <EnlargedLayer
         face={layers.enlarged}
         width={enlargedWidth}
