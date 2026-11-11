@@ -1,4 +1,6 @@
 import type { Color } from '@tabletop/common'
+import { PrintedColours, type PrintedColour } from '$lib/art/assetMap.js'
+import { FeudumGameColorizer } from '$lib/definitions/colorizer.js'
 
 /** A seat's paint for its pieces. Colours come only from the session's colourizer (S71). */
 export interface SeatPaint {
@@ -6,6 +8,22 @@ export interface SeatPaint {
     readonly ink: string
     readonly edge: string
     readonly initial: string
+    /**
+     * The publisher's printed colour this paint shows, so a card or piece may be its printed one.
+     * Absent when the displayed fill is not that colour's own (another palette), so the drawn
+     * piece keeps the colour the palette chose.
+     */
+    readonly printed?: PrintedColour
+}
+
+/** The palette the printed colours stand for: a fill the session shows that is not one of these is drawn. */
+const PrintedPalette = new FeudumGameColorizer()
+
+function printedColour(colour: Color | undefined, fill: string): PrintedColour | undefined {
+    const printed = PrintedColours.find((one) => one === colour)
+    return printed && PrintedPalette.getUiColor(printed).toLowerCase() === fill.toLowerCase()
+        ? printed
+        : undefined
 }
 
 function channel(value: number): number {
@@ -32,22 +50,31 @@ const DarkInkAbove = 0.179
 /** Near black needs a light edge to stay off the terrain. */
 const LightEdgeBelow = 0.03
 
-function paintOfFill(fill: string, initial: string): SeatPaint {
+function paintOfFill(fill: string, initial: string, colour?: Color): SeatPaint {
     const lightness = luminance(fill)
+    const printed = printedColour(colour, fill)
     return {
         fill,
         ink: lightness > DarkInkAbove ? 'var(--feudum-halo)' : 'var(--feudum-text)',
         edge: lightness < LightEdgeBelow ? 'var(--feudum-good-iron-edge)' : 'var(--feudum-map-ink)',
-        initial
+        initial,
+        ...(printed ? { printed } : {})
     }
 }
 
 export function seatPaint(
-    colors: { getPlayerUiColor(playerId?: string): string },
+    colors: {
+        getPlayerUiColor(playerId?: string): string
+        getPlayerColor?(playerId?: string): Color
+    },
     playerId: string,
     initial: string
 ): SeatPaint {
-    return paintOfFill(colors.getPlayerUiColor(playerId), initial)
+    return paintOfFill(
+        colors.getPlayerUiColor(playerId),
+        initial,
+        colors.getPlayerColor?.(playerId)
+    )
 }
 
 /** What a colour with no seat behind it wears: a dummy Knight row (R-1.4-H1). */
@@ -57,5 +84,5 @@ export function colourPaint(
     colors: { getUiColor(color: Color): string },
     colour: Color
 ): SeatPaint {
-    return paintOfFill(colors.getUiColor(colour), NoSeatInitial)
+    return paintOfFill(colors.getUiColor(colour), NoSeatInitial, colour)
 }

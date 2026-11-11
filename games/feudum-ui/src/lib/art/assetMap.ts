@@ -1,3 +1,4 @@
+import { Color } from '@tabletop/common'
 import {
     ActionCardKinds,
     GuildIds,
@@ -34,6 +35,21 @@ export const beadAsset = (value: BeadValue) => `bead.${value}` as const
 export const tileFrontAsset = (epoch: TileEpoch) => `tile.front.${EpochNumerals[epoch]}` as const
 export const tileBackAsset = (landscape: LandscapeKind) => `tile.back.${landscape}` as const
 export const cardAsset = (kind: ActionCardKind) => `card.action.${kind}` as const
+
+/** The five colours the publisher printed its cards and seat pieces in. */
+export const PrintedColours = [
+    Color.Red,
+    Color.Blue,
+    Color.Yellow,
+    Color.Green,
+    Color.Purple
+] as const
+export type PrintedColour = (typeof PrintedColours)[number]
+/** A whole printed action card, frame and border in its seat colour. */
+export const printedCardAsset = (kind: ActionCardKind, colour: PrintedColour) =>
+    `card.action.${kind}.${colour}` as const
+/** A whole printed card back in its seat colour. */
+export const cardBackAsset = (colour: PrintedColour) => `card.back.${colour}` as const
 /** A guild's printed panel, as it lies on the board: the ground its area's state stands on. */
 export const guildPanelAsset = (guild: GuildId) => `board.guild.${guild}` as const
 
@@ -56,7 +72,8 @@ export const RingAsset = 'board.ring'
 /**
  * Every publisher image the components can show, id to file. A file lives in `./supplied` as
  * `<id>.webp` or `<id>.png`. With no file a component draws its own plain labelled fallback, so
- * the tree builds and plays with none. A piece or frame that takes a seat colour has no id here.
+ * the tree builds and plays with none. A card that takes a seat colour has an id for each printed
+ * colour, shown only while the seat's displayed colour is that printed colour's own (`SeatPaint`).
  */
 export const AssetIds = [
     CoverAsset,
@@ -74,6 +91,10 @@ export const AssetIds = [
     ...TileEpochs.map(tileFrontAsset),
     ...LandscapeKinds.map(tileBackAsset),
     ...ActionCardKinds.map(cardAsset),
+    ...ActionCardKinds.flatMap((kind) =>
+        PrintedColours.map((colour) => printedCardAsset(kind, colour))
+    ),
+    ...PrintedColours.map(cardBackAsset),
     locationAsset('outpost'),
     locationAsset('farm'),
     locationAsset('town'),

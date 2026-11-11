@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { GuildById, GuildIds, MarketSpaces } from '@tabletop/feudum'
-import { settled } from './helpers.js'
+import { createGame, playToHands, settled } from './helpers.js'
 
 /**
  * The printed board under the pieces and the presses, where the folder holds it: each panel's print
@@ -72,6 +72,36 @@ async function printed(page: Page) {
             .count()) > 0
     )
 }
+
+test('R-3.1 each printed card fills its face, and its name plate stays clear of the magnifier', async ({
+    page
+}) => {
+    await createGame(page)
+    await playToHands(page)
+    await settled(page)
+    const rows = page.locator('[data-action-panel] [data-cards] [data-row]')
+    await expect(rows).toHaveCount(11)
+    const prints = rows.locator('svg[role="img"] > image[href*="card.action."]')
+    test.skip(
+        (await prints.count()) === 0 ||
+            !(await prints.first().getAttribute('href'))?.match(/card\.action\.\w+\.\w+\./),
+        'no printed cards in the folder, or a seat colour the print lacks'
+    )
+    for (let index = 0; index < 11; index++) {
+        const row = rows.nth(index)
+        const face = row.locator('svg[role="img"]').first()
+        expectSameBox(await boxOf(face.locator('> image')), await boxOf(face))
+        const plate = face.locator('> rect').first()
+        const glass = await boxOf(row.locator('[data-enlarge]'))
+        const name = await boxOf(plate)
+        const apart =
+            name.x + name.width <= glass.x ||
+            glass.x + glass.width <= name.x ||
+            name.y + name.height <= glass.y ||
+            glass.y + glass.height <= name.y
+        expect(apart, `card ${index + 1}`).toBe(true)
+    }
+})
 
 test('R-1.3 each printed panel fills its guild area, and the printed ring the whole board', async ({
     page

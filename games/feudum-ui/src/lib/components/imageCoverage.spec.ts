@@ -17,6 +17,7 @@ import {
     BeadValues,
     CoverAsset,
     MapAsset,
+    PrintedColours,
     RingAsset,
     SealAsset,
     ShillingValues,
@@ -24,10 +25,12 @@ import {
     WritBackAsset,
     beadAsset,
     cardAsset,
+    cardBackAsset,
     goodAsset,
     guildPanelAsset,
     locationAsset,
     monsterAsset,
+    printedCardAsset,
     shillingAsset,
     strayFiles,
     tileBackAsset,
@@ -110,6 +113,22 @@ const shownBy = new Map<string, () => string>([
         () =>
             render(ActionCardFace, {
                 props: { faceShown: true, kind, paint, number: 1, width: 200 }
+            }).body
+    ]),
+    ...ActionCardKinds.flatMap((kind) =>
+        PrintedColours.map((printed): [string, () => string] => [
+            printedCardAsset(kind, printed),
+            () =>
+                render(ActionCardFace, {
+                    props: { faceShown: true, kind, paint: { ...paint, printed }, width: 200 }
+                }).body
+        ])
+    ),
+    ...PrintedColours.map((printed): [string, () => string] => [
+        cardBackAsset(printed),
+        () =>
+            render(ActionCardFace, {
+                props: { faceShown: false, paint: { ...paint, printed }, width: 200 }
             }).body
     ]),
     ...(['outpost', 'farm', 'town'] as const).map((kind): [string, () => string] => [
