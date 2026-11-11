@@ -1,0 +1,14 @@
+.trade-popover {
+    --trade-buy: #287452;
+    --trade-buy-border: #236147;
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    padding: 10px 12px;
+    border: 1px solid var(--rail-border, #c7b8a6);
+    border-radius: 8px;
+    background: var(--rail-surface, #fffdf8);
+    color: var(--rail-text, #514536);
+    box-shadow: 0 6px 18px #0005;
+    font-size: 13px;
+}

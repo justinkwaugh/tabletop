@@ -840,9 +840,17 @@
 
 {#snippet companyCard(
     company: Company,
-    layout: 'wide-fill' | 'vertical' = 'vertical',
-    onFocusConnection?: (connection: PlaceConnection) => void
+    {
+        layout = 'vertical',
+        onFocusConnection,
+        readOnly = false
+    }: {
+        layout?: 'wide-fill' | 'vertical'
+        onFocusConnection?: (connection: PlaceConnection) => void
+        readOnly?: boolean
+    } = {}
 )}<CompanyDetails
+        offersTrades={!readOnly}
         pricePresentation={companyPricePresentation}
         {layout}
         {company}
@@ -1457,11 +1465,10 @@
                                 onToggleWide={toggleCompanyCardsWide}
                             >
                                 {#each startedCompanies as company (company.id)}
-                                    {@render companyCard(
-                                        company,
-                                        companyCardsWide ? 'wide-fill' : 'vertical',
-                                        focusConnection
-                                    )}
+                                    {@render companyCard(company, {
+                                        layout: companyCardsWide ? 'wide-fill' : 'vertical',
+                                        onFocusConnection: focusConnection
+                                    })}
                                 {:else}<p class="widget-empty">No companies have started.</p>{/each}
                             </CompanyCardLayout>
                         </div>{:else if id === 'Tiles'}<div class="workspace-view">
@@ -1538,7 +1545,9 @@
                 label={session.companyName(shownCompanyCardId)}
                 onclose={() => (shownCompanyCardId = undefined)}
             >
-                {@render companyCard(getCompany(gameState, shownCompanyCardId))}
+                {@render companyCard(getCompany(gameState, shownCompanyCardId), {
+                    readOnly: true
+                })}
             </Lightbox>
         {/if}
 

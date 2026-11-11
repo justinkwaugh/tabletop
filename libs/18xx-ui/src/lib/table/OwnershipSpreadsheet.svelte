@@ -4,6 +4,7 @@
     import CertificateCount from '../stock/CertificateCount.svelte'
     import { cashText, optionalMoney } from '../presentation/money.js'
     import './playerTint.css'
+    import '../stock/tradePopover.css'
     import {
         companySharePrice,
         DefaultCompanyPricePresentation,
@@ -242,15 +243,13 @@
         )
         assertExists(choice, 'Choose an available share purchase')
         shareConfirmation?.hidePopover()
-        session.stock.selectPurchase(choice.request)
-        void session.stock.confirmPurchase()
+        void session.stock.buyAndReopenMenu(choice.request)
     }
     function confirmSale(shares: number) {
         const choice = pendingSaleChoices.find((option) => option.sale.shares === shares)
         assertExists(choice, 'Choose an available share sale')
         shareConfirmation?.hidePopover()
-        session.stock.selectSale(choice.request)
-        void session.stock.confirmSale()
+        void session.stock.sellAndReopenMenu(choice.request)
     }
     const portfolioOwners = $derived(
         portfolioCompanyIds.map((ownerId) => ({
@@ -1166,7 +1165,7 @@
         {/if}
     </div>
     <div
-        class="share-confirmation"
+        class="share-confirmation trade-popover"
         popover="auto"
         role="dialog"
         aria-label="Confirm share trade"
@@ -1269,17 +1268,7 @@
 
 <style>
     .share-confirmation {
-        position: fixed;
-        inset: auto;
         transform: translateX(-50%);
-        margin: 0;
-        padding: 10px 12px;
-        border: 1px solid var(--rail-border, #c7b8a6);
-        border-radius: 8px;
-        background: var(--rail-surface, #fffdf8);
-        color: var(--rail-text, #514536);
-        box-shadow: 0 6px 18px #0005;
-        font-size: 13px;
     }
     .trade-question,
     .trade-answer {
@@ -1313,8 +1302,8 @@
     }
     .trade-answer .confirm-trade,
     .sale-options button {
-        border-color: #236147;
-        background: #287452;
+        border-color: var(--trade-buy-border);
+        background: var(--trade-buy);
         color: #fff;
         font-weight: 700;
     }
