@@ -329,7 +329,7 @@ describe('Money is Influence: R-3.8.3 (S10)', () => {
         })
     })
 
-    it('R-3.8.3 with the seat’s serf there, the serf becomes its subject', () => {
+    it('R-3.8.3, R-3.8-H2 with the seat’s serf there, Money is not offered but accepted at 1s: the serf becomes its subject', () => {
         const { table, playerId } = tableWith((state, id) => {
             merchant(state, id)
             const rival = state.players.find((player) => player.playerId !== id)?.playerId ?? ''
@@ -338,6 +338,8 @@ describe('Money is Influence: R-3.8.3 (S10)', () => {
         })
         const rival = opponentOf(table, playerId)
         const { shillings } = table.seat(playerId)
+        expect(influenceOffers(table.hydrated(), playerId).spaces).toContain(HOME)
+        expect(influenceOffers(table.hydrated(), playerId).moneyIsInfluence).not.toContain(HOME)
         table.send(playerId, { type: ActionType.Influence, moneyIsInfluence: HOME })
         expect(table.state.spaces[HOME].ruler).toEqual({ playerId, subject: true })
         expect(table.state.spaces[HOME].serf).toEqual({ playerId: rival })
