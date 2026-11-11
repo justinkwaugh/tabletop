@@ -392,6 +392,9 @@ importers:
       flowbite-svelte-icons:
         specifier: ^3.1.0
         version: 3.1.0(svelte@5.49.0)
+      marked:
+        specifier: ^18.2.0
+        version: 18.2.0
       postcss:
         specifier: ^8.4.38
         version: 8.5.32
@@ -8851,6 +8854,11 @@ packages:
     engines: {node: '>= 18'}
     hasBin: true
 
+  marked@18.2.0:
+    resolution: {integrity: sha512-KaeL+tAbtvI930q7HE2PN5lYXYdT8EiSmxHlN6F3rsfb57wd5mp5W5TLazpdj4inTQBJdgjYwbs40W/0VUGU+Q==}
+    engines: {node: '>= 20'}
+    hasBin: true
+
   math-intrinsics@1.1.0:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
     engines: {node: '>= 0.4'}
@@ -15205,6 +15213,8 @@ snapshots:
   marked@13.0.3: {}
 
   marked@15.0.12: {}
+
+  marked@18.2.0: {}
 
   math-intrinsics@1.1.0: {}
 

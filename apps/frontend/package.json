@@ -47,6 +47,7 @@
         "flowbite": "^3.1.2",
         "flowbite-svelte": "^1.31.0",
         "flowbite-svelte-icons": "^3.1.0",
+        "marked": "^18.2.0",
         "postcss": "^8.4.38",
         "prettier": "^3.8.0",
         "rimraf": "^6.1.0",

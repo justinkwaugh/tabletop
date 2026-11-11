@@ -15,7 +15,11 @@ repository root as `node tools/deploy/esm/cli.js <command>`; build the tool firs
 
 The frontend differs from a game in two ways: it has no `--logic` flag, since it is a single
 artifact, and it needs its own release to ship shared Game Client changes to players even when
-no game changed (`docs/adr/0004-game-ui-host-bridge-contract.md`).
+no game changed (`docs/adr/0004-game-ui-host-bridge-contract.md`). Its build also needs the
+deployment's gitignored `apps/frontend/.env.production` and `apps/frontend/legal/` (privacy
+policy and terms, `docs/legal/README.md`); from a checkout that lacks them, such as a T3
+worktree, symlink both from the main checkout. The release prints which legal documents it found;
+report that line to the user.
 
 The backend is a container image built by Cloud Build and deployed to the `tasks` and
 `backend` Cloud Run services together, always tasks first because backend hands work to it,
