@@ -11,17 +11,16 @@ import {
     type VesselType
 } from '@tabletop/feudum'
 import {
-    BarnBox,
     GuildSizes,
-    KnightCell,
-    ScrollCell,
-    barnColumn,
+    barnColumnBox,
     guildSlot,
     knightCell,
-    knightRowLabel,
+    knightRowBox,
     marketBinBox,
     rosaryBead,
+    scrollBox,
     vesselForSale,
+    vesselForSaleBox,
     type Point
 } from '$lib/utils/boardGeometry.js'
 import { knightRowPlace, type BenchGhost, type BenchItem, type BenchOffer } from './benchOffer.js'
@@ -83,22 +82,10 @@ function around({ x, y }: Point, width: number, height = width, round?: true): B
     }
 }
 
-const BarnBottomGap = 6
-const VesselBox = 72
-const RowHeight = 46
-const RowRightGap = 4
-
 /** R-4.6.1 A kind of good: its bin's whole row in the market, its column in the barn. */
 function goodBox(guild: GuildId, good: Good): BenchBox | undefined {
     if (guild === 'farmer') {
-        const { x, y } = barnColumn(good)
-        const top = y - GuildSizes.good / 2 - 4
-        return {
-            x: x - 24,
-            y: top,
-            width: 48,
-            height: BarnBox.y + BarnBox.height - BarnBottomGap - top
-        }
+        return barnColumnBox(good)
     }
     if (guild === 'merchant') {
         return marketBinBox(good)
@@ -108,13 +95,7 @@ function goodBox(guild: GuildId, good: Good): BenchBox | undefined {
 
 function rowBox(state: HydratedFeudumGameState, row: number): BenchBox | undefined {
     const colour = state.guilds.knight.rows.at(row)?.colour
-    if (!colour) {
-        return undefined
-    }
-    const { x: left, y } = knightRowLabel(colour)
-    const right = knightCell(colour, 6).x + KnightCell / 2 + RowRightGap
-    const start = left - 22
-    return { x: start, y: y - RowHeight / 2, width: right - start, height: RowHeight }
+    return colour ? knightRowBox(colour) : undefined
 }
 
 function seatRow(state: HydratedFeudumGameState, playerId: string): number {
@@ -136,12 +117,12 @@ function itemBox(
         }
         case 'vessel': {
             const vessel = VesselTypes.find((name) => name === key)
-            return vessel && around(vesselForSale(vessel), VesselBox)
+            return vessel && vesselForSaleBox(vessel)
         }
         case 'row':
             return rowBox(state, key === 'seat' ? seatRow(state, playerId) : Number(key))
         case 'scroll':
-            return around(guildSlot(key), ScrollCell.width + 6, ScrollCell.height + 6)
+            return scrollBox(key)
         case 'bead': {
             const index = state.guilds.monk.rosary.findIndex((sealId) => sealId === key)
             return index < 0

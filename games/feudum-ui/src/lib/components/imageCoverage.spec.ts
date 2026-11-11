@@ -17,6 +17,7 @@ import {
     BeadValues,
     CoverAsset,
     MapAsset,
+    RingAsset,
     SealAsset,
     ShillingValues,
     TargetAsset,
@@ -24,6 +25,7 @@ import {
     beadAsset,
     cardAsset,
     goodAsset,
+    guildPanelAsset,
     locationAsset,
     monsterAsset,
     shillingAsset,
@@ -33,6 +35,7 @@ import {
     vesselAsset
 } from '$lib/art/assetMap.js'
 import { everyAssetSupplied } from '$lib/testing/fakeArt.js'
+import GuildPanel from './guilds/GuildPanel.svelte'
 import MapGround from './map/MapGround.svelte'
 import ActionCardFace from './pieces/ActionCardFace.svelte'
 import ArcheryTarget from './pieces/ArcheryTarget.svelte'
@@ -44,6 +47,7 @@ import ShillingToken from './pieces/ShillingToken.svelte'
 import TileFace from './pieces/TileFace.svelte'
 import VesselToken from './pieces/VesselToken.svelte'
 import WritFace from './pieces/WritFace.svelte'
+import BoardFrame from './tracks/BoardFrame.svelte'
 
 const folder = vi.hoisted(() => {
     const files: Record<string, string> = {}
@@ -65,6 +69,11 @@ const paint = {
 /** Every id's component, built from the logic's data, so a new component id must appear here. */
 const shownBy = new Map<string, () => string>([
     [MapAsset, () => render(MapGround, { props: {} }).body],
+    [RingAsset, () => render(BoardFrame, { props: {} }).body],
+    ...GuildIds.map((guild): [string, () => string] => [
+        guildPanelAsset(guild),
+        () => render(GuildPanel, { props: { guild } }).body
+    ]),
     [SealAsset, () => render(SealFace, { props: { faceShown: false } }).body],
     [TargetAsset, () => render(ArcheryTarget, { props: {} }).body],
     [WritBackAsset, () => render(WritFace, { props: { faceShown: false } }).body],

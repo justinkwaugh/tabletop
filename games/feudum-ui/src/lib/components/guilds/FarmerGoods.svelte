@@ -17,11 +17,13 @@
     import { sealFaceShown } from '$lib/model/perspective.js'
     import {
         BarnBox,
-        BarnStackStep,
         GuildSizes,
-        barnColumn,
+        barnTokenAt,
+        guildPrinted,
         guildSlot
     } from '$lib/utils/boardGeometry.js'
+    import { PrintedCounts } from '$lib/utils/printedGuilds.js'
+    import StateNote from './StateNote.svelte'
     import { ChickenPath } from '$lib/utils/trackShape.js'
 
     /**
@@ -32,30 +34,41 @@
 
     let farmer = $derived(state.guilds.farmer)
     let purse = $derived(guildSlot(FarmerPurse.id))
+    /** The printed panel draws the farmyard, the hens and the purse; the counts stand on pills. */
+    let printed = $derived(guildPrinted('farmer'))
 </script>
 
-<rect
-    x={BarnBox.x}
-    y={BarnBox.y}
-    width={BarnBox.width}
-    height={BarnBox.height}
-    rx="8"
-    fill="var(--feudum-parchment-shade)"
-    stroke="var(--feudum-ink)"
-></rect>
-<text
-    x={BarnBox.x + 12}
-    y={BarnBox.y + 26}
-    font-size="18"
-    fill="var(--feudum-ink)"
-    data-barn={goodsTotal(farmer.barn)}
-    >Barn · {goodsTotal(farmer.barn)} of {FarmerBarn.capacity}</text
->
+{#if printed}
+    <StateNote
+        x={PrintedCounts.barn.x}
+        y={PrintedCounts.barn.y}
+        text="{goodsTotal(farmer.barn)} of {FarmerBarn.capacity}"
+        size={18}
+        data-barn={goodsTotal(farmer.barn)}
+    />
+{:else}
+    <rect
+        x={BarnBox.x}
+        y={BarnBox.y}
+        width={BarnBox.width}
+        height={BarnBox.height}
+        rx="8"
+        fill="var(--feudum-parchment-shade)"
+        stroke="var(--feudum-ink)"
+    ></rect>
+    <text
+        x={BarnBox.x + 12}
+        y={BarnBox.y + 26}
+        font-size="18"
+        fill="var(--feudum-ink)"
+        data-barn={goodsTotal(farmer.barn)}
+        >Barn · {goodsTotal(farmer.barn)} of {FarmerBarn.capacity}</text
+    >
+{/if}
 {#each goodStacks(farmer.barn) as stack (stack.good)}
-    {@const column = barnColumn(stack.good)}
     {#each Array.from({ length: stack.tokens }, (_, index) => index) as index (index)}
         <BoardPiece
-            at={{ x: column.x, y: column.y + index * BarnStackStep }}
+            at={barnTokenAt(stack.good, index)}
             piece="good:{FarmerBarn.id}:{stack.good}:{index}"
         >
             <GoodToken
@@ -74,21 +87,23 @@
 {#each ChickenSpaces as space, index (space.id)}
     {@const at = guildSlot(space.id)}
     {@const sealId = farmer.chickens[index]}
-    <svg
-        x={at.x - 36}
-        y={at.y - 36}
-        width="72"
-        height="72"
-        viewBox="0 0 24 24"
-        data-chicken={space.id}
-    >
-        <path
-            d={ChickenPath}
-            fill="var(--feudum-parchment-shade)"
-            stroke="var(--feudum-ink)"
-            stroke-width="0.8"
-        ></path>
-    </svg>
+    {#if !printed}
+        <svg
+            x={at.x - 36}
+            y={at.y - 36}
+            width="72"
+            height="72"
+            viewBox="0 0 24 24"
+            data-chicken={space.id}
+        >
+            <path
+                d={ChickenPath}
+                fill="var(--feudum-parchment-shade)"
+                stroke="var(--feudum-ink)"
+                stroke-width="0.8"
+            ></path>
+        </svg>
+    {/if}
     {#if sealId}
         <BoardPiece {at} piece="bead:{sealId}">
             <Enlargeable
@@ -111,9 +126,11 @@
     {/if}
 {/each}
 
-<text x={purse.x - 30} y={purse.y + 7} text-anchor="end" font-size="18" fill="var(--feudum-ink)"
-    >Purse</text
->
+{#if !printed}
+    <text x={purse.x - 30} y={purse.y + 7} text-anchor="end" font-size="18" fill="var(--feudum-ink)"
+        >Purse</text
+    >
+{/if}
 <BoardPiece at={purse} piece="purse">
     <ShillingToken
         value={1}
@@ -122,11 +139,20 @@
         y={-GuildSizes.shilling / 2}
     />
 </BoardPiece>
-<text
-    x={purse.x + 30}
-    y={purse.y + 8}
-    font-size="24"
-    font-weight="700"
-    fill="var(--feudum-ink)"
-    data-purse={farmer.purse}>{farmer.purse}s</text
->
+{#if printed}
+    <StateNote
+        x={PrintedCounts.purse.x}
+        y={PrintedCounts.purse.y}
+        text="{farmer.purse}s"
+        data-purse={farmer.purse}
+    />
+{:else}
+    <text
+        x={purse.x + 30}
+        y={purse.y + 8}
+        font-size="24"
+        font-weight="700"
+        fill="var(--feudum-ink)"
+        data-purse={farmer.purse}>{farmer.purse}s</text
+    >
+{/if}

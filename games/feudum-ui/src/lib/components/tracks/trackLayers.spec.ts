@@ -76,17 +76,19 @@ function emptyTheFolder() {
 beforeEach(emptyTheFolder)
 
 describe('the score ring (R-1.2.5, R-6)', () => {
-    it('R-1.2.5 draws every space, labelled every five, with or without the map file', async () => {
-        const state = await table()
-        for (const art of [false, true]) {
-            if (art) {
-                Object.assign(folder.files, everyAssetSupplied())
-            }
-            const html = tracks(state)
-            expect(count(html, 'data-score-space=')).toBe(ScoreTrack.spaces)
-            expect(html).toContain('>145<')
-            expect(html).not.toContain('>146<')
-        }
+    it('R-1.2.5 draws every space, labelled every five, with no board file', async () => {
+        const html = tracks(await table())
+        expect(count(html, 'data-score-space=')).toBe(ScoreTrack.spaces)
+        expect(html).toContain('>145<')
+        expect(html).not.toContain('>146<')
+    })
+
+    it('R-1.2.5 keeps every space on the printed ring, its numbers left to the print', async () => {
+        Object.assign(folder.files, everyAssetSupplied())
+        const html = tracks(await table())
+        expect(count(html, 'data-score-space=')).toBe(ScoreTrack.spaces)
+        expect(html).not.toContain('>145<')
+        expect(html).not.toContain('>0<')
     })
 
     it('R-6 wraps a score past 149 and carries a "+150" chip on its disc', async () => {

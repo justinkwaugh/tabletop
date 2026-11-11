@@ -30,6 +30,23 @@ import {
     type SpaceId,
     type VesselType
 } from '@tabletop/feudum'
+import { assetUrl, guildPanelAsset } from '$lib/art/assetMap.js'
+import {
+    PrintedBarnStackStep,
+    PrintedGuildSlots,
+    PrintedScrollBox,
+    PrintedVesselSize,
+    printedBarnColumn,
+    printedBarnColumnBox,
+    printedKnightCell,
+    printedKnightRowBox,
+    printedKnightRowLabel,
+    printedMarketBinBox,
+    printedMonsterIconMarker,
+    printedReeveOffset,
+    printedRosaryBead,
+    printedVesselForSale
+} from './printedGuilds.js'
 
 /**
  * The board in board units: one CSS pixel at scale 1. The surface has the printed board's
@@ -563,6 +580,23 @@ export const GuildAreas: Record<GuildId, Point> = {
     monk: { x: 2051, y: 616 }
 }
 
+/**
+ * A guild area stands on its printed panel when the folder holds the panel's file, else on our own
+ * drawing; the two place its parts apart. Asked at each call, so whoever draws or animates an area
+ * reads the same layout.
+ */
+export function guildPrinted(guild: GuildId): boolean {
+    return assetUrl(guildPanelAsset(guild)) !== undefined
+}
+
+/** A place on a guild area, in its local units. */
+export interface GuildBoxRect {
+    readonly x: number
+    readonly y: number
+    readonly width: number
+    readonly height: number
+}
+
 /** Sizes in a guild area's local units. */
 export const GuildSizes = {
     marker: 36,
@@ -579,6 +613,10 @@ export const CrestCentre: Point = { x: 44, y: 38 }
 export const RankRadius = 28
 /** A reeve stands beside the rank's marker. */
 export const ReeveOffset: Point = { x: 20, y: 16 }
+
+export function reeveOffset(guild: GuildId): Point {
+    return guildPrinted(guild) ? printedReeveOffset(guild) : ReeveOffset
+}
 
 /** R-1.3 One row per good; a slot is where the good's token stands in its cell. */
 export const MarketCell = { width: 98, height: 46, tokenOffset: 28 } as const
@@ -614,8 +652,11 @@ export function marketBinRow(good: Good): Point {
     return { x: 36, y: GoodRowY(Goods.indexOf(good)) }
 }
 
-/** A market bin's whole row, from its swatch to its last space. */
-export function marketBinBox(good: Good): { x: number; y: number; width: number; height: number } {
+/** A market bin's whole row, from its swatch to its last space; on the print, its column. */
+export function marketBinBox(good: Good): GuildBoxRect {
+    if (guildPrinted('merchant')) {
+        return printedMarketBinBox(good)
+    }
     const { x, y } = marketBinRow(good)
     const left = x - 22
     const right = MarketColumnX(MarketSpacesPerBin) - MarketCell.tokenOffset + MarketCell.width + 4
@@ -627,19 +668,41 @@ export const PrintedColours: readonly Color[] = [
     ...new Set(KnightRowSections.map(({ colour }) => colour))
 ]
 
+function drawnKnightCell(colour: Color, column: number): Point {
+    return { x: 72 + (column - 1) * 48, y: 126 + PrintedColours.indexOf(colour) * 48 }
+}
+
 /** R-1.3 A Knight cell: a colour's row, a column 1 to 6. A row keeps its lane whoever plays. */
 export function knightCell(colour: Color, column: number): Point {
-    return { x: 72 + (column - 1) * 48, y: 126 + PrintedColours.indexOf(colour) * 48 }
+    return guildPrinted('knight')
+        ? printedKnightCell(colour, column)
+        : drawnKnightCell(colour, column)
 }
 
 /** The disc naming a Knight row. */
 export function knightRowLabel(colour: Color): Point {
-    return { x: 28, y: knightCell(colour, 1).y }
+    return guildPrinted('knight')
+        ? printedKnightRowLabel(colour)
+        : { x: 28, y: drawnKnightCell(colour, 1).y }
+}
+
+const KnightRowHeight = 46
+const KnightRowEndGap = 4
+
+/** A Knight row's whole lane, from its disc to its last cell. */
+export function knightRowBox(colour: Color): GuildBoxRect {
+    if (guildPrinted('knight')) {
+        return printedKnightRowBox(colour)
+    }
+    const { x: left, y } = knightRowLabel(colour)
+    const right = drawnKnightCell(colour, 6).x + KnightCell / 2 + KnightRowEndGap
+    const start = left - 22
+    return { x: start, y: y - KnightRowHeight / 2, width: right - start, height: KnightRowHeight }
 }
 
 /** R-1.3 The middle of a section's columns, above the rows or in any one of them. */
 export function knightSectionMiddle(firstColumn: number, lastColumn: number) {
-    return knightCell(PrintedColours[0], (firstColumn + lastColumn) / 2).x
+    return drawnKnightCell(PrintedColours[0], (firstColumn + lastColumn) / 2).x
 }
 export const KnightSectionHeaderY = 88
 
@@ -664,6 +727,9 @@ const BeadsPerRosaryRow = 6
 
 /** R-1.4-H3 The rosary is unlimited for now, so a place for every seal in the box. */
 export function rosaryBead(index: number): Point {
+    if (guildPrinted('monk')) {
+        return printedRosaryBead(index)
+    }
     return {
         x: 44 + (index % BeadsPerRosaryRow) * 58,
         y: 130 + Math.floor(index / BeadsPerRosaryRow) * 62
@@ -692,7 +758,7 @@ export const GuildSlots: ReadonlyMap<string, Point> = new Map<string, Point>([
     ...Inventions.map(({ id }, index): [string, Point] => [id, inventionPlace(index)]),
     ...KnightRowSections.map(({ id, colour, firstColumn, lastColumn }): [string, Point] => [
         id,
-        { x: knightSectionMiddle(firstColumn, lastColumn), y: knightCell(colour, 1).y }
+        { x: knightSectionMiddle(firstColumn, lastColumn), y: drawnKnightCell(colour, 1).y }
     ]),
     ...KnightMonsterIcons.map(({ id }, index): [string, Point] => [
         id,
@@ -706,22 +772,103 @@ export const GuildSlots: ReadonlyMap<string, Point> = new Map<string, Point>([
     ['guild.monk.coffer', { x: 430, y: 180 }]
 ])
 
+/** Which guild's area holds a slot, so its layout can be asked. */
+const SlotGuilds: ReadonlyMap<string, GuildId> = new Map<string, GuildId>([
+    ...GuildTrackSpaces.map(({ id, guild }): [string, GuildId] => [id, guild]),
+    ...MarketSpaces.map(({ id }): [string, GuildId] => [id, 'merchant']),
+    ...AlchemistCartSpaces.map(({ id }): [string, GuildId] => [id, 'alchemist']),
+    [AlchemistVesselSpace.id, 'alchemist'],
+    ...Inventions.map(({ id }): [string, GuildId] => [id, 'alchemist']),
+    ...KnightRowSections.map(({ id }): [string, GuildId] => [id, 'knight']),
+    ...KnightMonsterIcons.map(({ id }): [string, GuildId] => [id, 'knight']),
+    ...ScrollSpaces.map(({ id }): [string, GuildId] => [id, 'noble']),
+    [FarmerBarn.id, 'farmer'],
+    [FarmerPurse.id, 'farmer'],
+    ...ChickenSpaces.map(({ id }): [string, GuildId] => [id, 'farmer']),
+    ['guild.monk.rosary', 'monk'],
+    ['guild.monk.coffer', 'monk']
+])
+
+/** A slot's place in its area's layout: on the printed panel when the file is there. */
 export function guildSlot(id: string): Point {
-    const slot = GuildSlots.get(id)
+    const guild = SlotGuilds.get(id)
+    const slot = (guild && guildPrinted(guild) ? PrintedGuildSlots : GuildSlots).get(id)
     if (!slot) {
         throw new Error(`No position for ${id}`)
     }
     return slot
 }
 
+const DrawnScrollBox = { width: ScrollCell.width + 6, height: ScrollCell.height + 6 } as const
+
+/** A scroll space's whole roll. */
+export function scrollBox(id: string): GuildBoxRect {
+    const { width, height } = guildPrinted('noble') ? PrintedScrollBox : DrawnScrollBox
+    const { x, y } = guildSlot(id)
+    return { x: x - width / 2, y: y - height / 2, width, height }
+}
+
+/** R-4.2.4 A monster icon's controller: its marker beside the beast. */
+export function monsterIconMarker(id: string): Point {
+    const slot = guildSlot(id)
+    return guildPrinted('knight')
+        ? printedMonsterIconMarker(slot)
+        : { x: slot.x + 46, y: slot.y - 40 }
+}
+
+/** The size a vessel for sale stands at: the printed glass box is narrow. */
+export function vesselForSaleSize(): number {
+    return guildPrinted('alchemist') ? PrintedVesselSize : GuildSizes.vessel
+}
+
 /** R-4.5.3 A vessel for sale of each type, covering the ferry symbol. */
 export function vesselForSale(vessel: VesselType): Point {
+    if (guildPrinted('alchemist')) {
+        return printedVesselForSale(vessel)
+    }
     const { x, y } = guildSlot(AlchemistVesselSpace.id)
     return { x: x + (VesselTypes.indexOf(vessel) - 1) * 76, y }
 }
 
+const DrawnVesselBox = 72
+
+/** The press around a vessel for sale. */
+export function vesselForSaleBox(vessel: VesselType): GuildBoxRect {
+    const size = guildPrinted('alchemist') ? PrintedVesselSize : DrawnVesselBox
+    const { x, y } = vesselForSale(vessel)
+    return { x: x - size / 2, y: y - size / 2, width: size, height: size }
+}
+
+/** R-4.1 A barn column's token `index` from its first, the first highest. */
+export function barnTokenAt(good: Good, index: number): Point {
+    const { x, y } = barnColumn(good)
+    const step = guildPrinted('farmer') ? PrintedBarnStackStep : BarnStackStep
+    return { x, y: y + index * step }
+}
+
+const BarnBottomGap = 6
+const BarnColumnPress = 48
+
+/** R-4.6.1 A kind of good's whole column in the barn. */
+export function barnColumnBox(good: Good): GuildBoxRect {
+    if (guildPrinted('farmer')) {
+        return printedBarnColumnBox(good)
+    }
+    const { x, y } = barnColumn(good)
+    const top = y - GuildSizes.good / 2 - 4
+    return {
+        x: x - BarnColumnPress / 2,
+        y: top,
+        width: BarnColumnPress,
+        height: BarnBox.y + BarnBox.height - BarnBottomGap - top
+    }
+}
+
 /** A good's column in the barn: its first token. */
 export function barnColumn(good: Good): Point {
+    if (guildPrinted('farmer')) {
+        return printedBarnColumn(good)
+    }
     return { x: BarnBox.x + 36 + Goods.indexOf(good) * 50, y: BarnBox.y + 66 }
 }
 

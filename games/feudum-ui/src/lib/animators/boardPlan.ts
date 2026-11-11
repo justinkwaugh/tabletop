@@ -31,7 +31,6 @@ import {
 import { scoreOnTrack, serviceDiscs, voyageDiscs, type TrackDisc } from '$lib/model/boardView.js'
 import { goodStacks, pieceKey, piecesOn, slottedPieces, type MapPiece } from '$lib/model/mapView.js'
 import {
-    BarnStackStep,
     EpochRays,
     GoodStackStep,
     GuildAreaWidth,
@@ -42,19 +41,20 @@ import {
     MarginSlots,
     MarkerSize,
     PawnSize,
-    ReeveOffset,
     RoutePaths,
     ServiceFanStep,
     ServiceSpaces,
     StackCentres,
     VoyageFanStep,
     VoyageSpaces,
-    barnColumn,
+    barnTokenAt,
     DieCentre,
     fanOffset,
     guildSlot,
     knightCell,
     knightRowLabel,
+    monsterIconMarker,
+    reeveOffset,
     routePointAt,
     scoreDiscAt,
     spaceGeometry,
@@ -521,8 +521,9 @@ function slideRanks(plan: PlanBuilder, { from, to }: BoardChange, at: number): n
             path: [start, end]
         })
         if (holder.reeve) {
+            const offset = reeveOffset(space.guild)
             plan.move('markers', { piece: `reeve:${space.id}` }, at, SlideSeconds, {
-                path: shifted([start, end], ReeveOffset.x, ReeveOffset.y)
+                path: shifted([start, end], offset.x, offset.y)
             })
         }
     }
@@ -563,7 +564,6 @@ function markMonsterIcons(plan: PlanBuilder, { from, to }: BoardChange, at: numb
         if (!controller || from.guilds.knight.monsterIcons[icon.monster] === controller || !row) {
             continue
         }
-        const slot = guildSlot(icon.id)
         const start = knightCell(row.colour, row.markers)
         ends = plan.move(
             'markers',
@@ -571,7 +571,7 @@ function markMonsterIcons(plan: PlanBuilder, { from, to }: BoardChange, at: numb
             at,
             SlideSeconds,
             {
-                path: [start, { x: slot.x + 46, y: slot.y - 40 }]
+                path: [start, monsterIconMarker(icon.id)]
             }
         )
     }
@@ -689,9 +689,8 @@ function spaceGoodPlace(
 function barnGoodPlace(state: HydratedFeudumGameState, good: Good): GoodPlace {
     const stack = goodStacks(state.guilds.farmer.barn).find((one) => one.good === good)
     const top = Math.max(0, (stack?.tokens ?? 1) - 1)
-    const { x, y } = barnColumn(good)
     return {
-        point: guildPoint('farmer', { x, y: y + top * BarnStackStep }),
+        point: guildPoint('farmer', barnTokenAt(good, top)),
         ...(stack && !stack.count ? { key: `good:${FarmerBarn.id}:${good}:${top}` } : {})
     }
 }

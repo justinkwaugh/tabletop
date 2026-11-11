@@ -1,4 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { guildPanelAsset } from '$lib/art/assetMap.js'
+import { everyAssetSupplied } from '$lib/testing/fakeArt.js'
 import {
     AlchemistCartSpaces,
     AlchemistVesselSpace,
@@ -93,8 +95,41 @@ import {
     isInside,
     routePointAt,
     spaceGeometry,
-    type Point
+    type Point,
+    barnColumnBox,
+    barnTokenAt,
+    guildPrinted,
+    knightRowBox,
+    knightRowLabel,
+    marketBinBox,
+    monsterIconMarker,
+    reeveOffset,
+    scrollBox,
+    vesselForSaleBox,
+    vesselForSaleSize,
+    type GuildBoxRect
 } from './boardGeometry.js'
+import {
+    PrintedBarnStackStep,
+    PrintedCounts,
+    PrintedGuildSlots,
+    PrintedKnightCell,
+    PrintedSizes
+} from './printedGuilds.js'
+
+const folder = vi.hoisted(() => {
+    const files: Record<string, string> = {}
+    return { files }
+})
+vi.mock('$lib/art/suppliedFiles.js', () => ({
+    get suppliedFiles() {
+        return folder.files
+    }
+}))
+
+beforeEach(() => {
+    folder.files = {}
+})
 
 function distance(a: Point, b: Point) {
     return Math.hypot(a.x - b.x, a.y - b.y)
@@ -533,5 +568,168 @@ describe('The tracks and margin: every space has a place (S72)', () => {
         expect(MarginSlots.vessels.x + VesselCountStep * (VesselTypes.length - 1)).toBeLessThan(
             MarginSlots.targets.x
         )
+    })
+})
+
+function overlaps(a: GuildBoxRect, b: GuildBoxRect) {
+    return (
+        a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height
+    )
+}
+
+function apart(boxes: readonly GuildBoxRect[]) {
+    boxes.forEach((box, index) => {
+        for (const other of boxes.slice(index + 1)) {
+            expect(overlaps(box, other), JSON.stringify([box, other])).toBe(false)
+        }
+    })
+}
+
+function insideBox(box: GuildBoxRect) {
+    return (
+        box.x >= 0 &&
+        box.y >= 0 &&
+        box.x + box.width <= GuildBox.width &&
+        box.y + box.height <= GuildBox.height
+    )
+}
+
+describe('On the printed panels, every part stands on its printed space (R-1.3)', () => {
+    beforeEach(() => {
+        folder.files = everyAssetSupplied()
+    })
+
+    it('R-1.3 places the same ids the drawn areas place', () => {
+        expect(new Set(PrintedGuildSlots.keys())).toEqual(new Set(GuildSlots.keys()))
+    })
+
+    it('R-1.3 reads a slot from the print only for a guild whose panel is in the folder', () => {
+        folder.files = { [`./supplied/${guildPanelAsset('knight')}.webp`]: '/art/knight.webp' }
+        expect(guildPrinted('knight')).toBe(true)
+        expect(guildPrinted('monk')).toBe(false)
+        const knight = GuildTrackSpaces.find((space) => space.guild === 'knight')!
+        const monk = GuildTrackSpaces.find((space) => space.guild === 'monk')!
+        expect(guildSlot(knight.id)).toEqual(PrintedGuildSlots.get(knight.id))
+        expect(guildSlot(monk.id)).toEqual(GuildSlots.get(monk.id))
+    })
+
+    it('R-1.3 keeps every printed place inside its panel', () => {
+        for (const [id, slot] of PrintedGuildSlots) {
+            expect(within(slot, GuildBox, 10), id).toBe(true)
+        }
+    })
+
+    it('R-1.3 gives a guild its three printed ranks apart', () => {
+        for (const guild of GuildIds) {
+            const ranks = GuildTrackSpaces.filter((space) => space.guild === guild).map(({ id }) =>
+                guildSlot(id)
+            )
+            ranks.forEach((rank, index) => {
+                for (const other of ranks.slice(index + 1)) {
+                    expect(distance(rank, other)).toBeGreaterThanOrEqual(GuildSizes.marker)
+                }
+            })
+        }
+    })
+
+    it('R-1.3 stands a reeve beside its marker, on the panel', () => {
+        for (const space of GuildTrackSpaces) {
+            const slot = guildSlot(space.id)
+            const offset = reeveOffset(space.guild)
+            const reeve = { x: slot.x + offset.x, y: slot.y + offset.y }
+            expect(distance(slot, reeve)).toBeGreaterThanOrEqual(
+                (GuildSizes.marker + GuildSizes.reeve) / 2
+            )
+            expect(within(reeve, GuildBox, 10)).toBe(true)
+        }
+    })
+
+    it('R-1.3 keeps the market bins, Knight cells, scrolls and inventions each on its own space', () => {
+        const groups = [
+            MarketSpaces.map(({ id }) => guildSlot(id)),
+            KnightRowSections.map(({ colour, firstColumn, lastColumn }) =>
+                Array.from({ length: lastColumn - firstColumn + 1 }, (_, index) =>
+                    knightCell(colour, firstColumn + index)
+                )
+            ).flat(),
+            ScrollSpaces.map(({ id }) => guildSlot(id)),
+            Inventions.map(({ id }) => guildSlot(id)),
+            AlchemistCartSpaces.map(({ id }) => guildSlot(id))
+        ]
+        for (const places of groups) {
+            places.forEach((place, index) => {
+                for (const other of places.slice(index + 1)) {
+                    expect(distance(place, other)).toBeGreaterThanOrEqual(PrintedSizes.cartGood)
+                }
+            })
+        }
+        expect(PrintedKnightCell).toBeGreaterThanOrEqual(PrintedSizes.knightMarker)
+    })
+
+    it('R-1.4-H3 strings every bead the box holds, none on another, all on the panel', () => {
+        const beads = Array.from({ length: RosaryPlaces }, (_, index) => rosaryBead(index))
+        beads.forEach((bead, index) => {
+            expect(within(bead, GuildBox, 10)).toBe(true)
+            for (const other of beads.slice(index + 1)) {
+                expect(distance(bead, other)).toBeGreaterThanOrEqual(GuildSizes.good)
+            }
+        })
+    })
+
+    it('R-4.5.3 stacks the three vessels for sale in the printed glass box, apart', () => {
+        const presses = VesselTypes.map((vessel) => vesselForSaleBox(vessel))
+        expect(vesselForSaleSize()).toBe(presses[0].width)
+        presses.forEach((press) => expect(insideBox(press)).toBe(true))
+        apart(presses)
+    })
+
+    it('R-4.1 stacks the barn on the farmyard, one column per good, each token apart', () => {
+        for (const good of Goods) {
+            const column = barnColumnBox(good)
+            expect(insideBox(column)).toBe(true)
+            for (let index = 0; index < GoodsShownSingly; index++) {
+                const token = barnTokenAt(good, index)
+                expect(token.y - (index > 0 ? barnTokenAt(good, index - 1).y : token.y)).toBe(
+                    index > 0 ? PrintedBarnStackStep : 0
+                )
+                expect(token.y + GuildSizes.good / 2).toBeLessThanOrEqual(column.y + column.height)
+                expect(token.x).toBe(column.x + column.width / 2)
+            }
+        }
+        apart(Goods.map((good) => barnColumnBox(good)))
+    })
+
+    it('the bench presses on the print lie on the panel and never on one another', () => {
+        const groups = [
+            Goods.map((good) => marketBinBox(good)),
+            PrintedColours.map((colour) => knightRowBox(colour)),
+            ScrollSpaces.map(({ id }) => scrollBox(id))
+        ]
+        for (const boxes of groups) {
+            boxes.forEach((box) => expect(insideBox(box), JSON.stringify(box)).toBe(true))
+            apart(boxes)
+        }
+        for (const colour of PrintedColours) {
+            const row = knightRowBox(colour)
+            const label = knightRowLabel(colour)
+            expect(label.y).toBeLessThan(row.y + row.height)
+            expect(label.y).toBeGreaterThan(row.y)
+        }
+    })
+
+    it("R-4.2.4 puts a monster icon's controller beside the printed beast", () => {
+        for (const { id } of KnightMonsterIcons) {
+            const marker = monsterIconMarker(id)
+            expect(within(marker, GuildBox, 10)).toBe(true)
+            expect(distance(marker, guildSlot(id))).toBeGreaterThanOrEqual(
+                PrintedSizes.knightMarker
+            )
+        }
+    })
+
+    it("puts each count the print cannot say on its panel, clear of the guild's spaces", () => {
+        for (const place of Object.values(PrintedCounts)) {
+            expect(within(place, GuildBox, 8)).toBe(true)
+        }
     })
 })

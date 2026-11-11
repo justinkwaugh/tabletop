@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { createRawSnippet } from 'svelte'
 import { render } from 'svelte/server'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
     AlchemistCartSpaces,
     ChickenSpaces,
@@ -18,10 +18,26 @@ import {
     rosaryBeadSum,
     type GuildId
 } from '@tabletop/feudum'
+import { guildPanelAsset } from '$lib/art/assetMap.js'
+import { everyAssetSupplied } from '$lib/testing/fakeArt.js'
 import { atPlayingCards } from '$lib/testing/turnTable.js'
 import { GuildAreaWidth } from '$lib/utils/boardGeometry.js'
 import GuildArea from './GuildArea.svelte'
 import GuildAreas from './GuildAreas.svelte'
+
+const folder = vi.hoisted(() => {
+    const files: Record<string, string> = {}
+    return { files }
+})
+vi.mock('$lib/art/suppliedFiles.js', () => ({
+    get suppliedFiles() {
+        return folder.files
+    }
+}))
+
+beforeEach(() => {
+    folder.files = {}
+})
 
 const paintOf = (playerId: string) => ({
     fill: `seat-${playerId}`,
@@ -252,5 +268,82 @@ describe('GuildArea is one component at any scale', () => {
         for (const guild of GuildIds) {
             expect(html).toContain(`data-guild="${guild}"`)
         }
+    })
+})
+
+describe('GuildArea on the printed panel (R-1.3)', () => {
+    beforeEach(() => {
+        folder.files = everyAssetSupplied()
+    })
+
+    it('R-1.3 lays each guild over its own printed panel, at board and bench scale', async () => {
+        const state = await table()
+        for (const guild of GuildIds) {
+            for (const width of [undefined, 440]) {
+                const html = area(guild, state, width)
+                expect(html).toContain(`href="/art/${guildPanelAsset(guild)}.webp"`)
+                expect(html).toContain(`aria-label="`)
+            }
+        }
+    })
+
+    it('R-1.3 leaves the prices, inventions, hens and beasts to the print', async () => {
+        const state = await table()
+        const html = GuildIds.map((guild) => area(guild, state)).join('')
+        for (const drawn of [
+            'data-price=',
+            'data-invention=',
+            'data-chicken=',
+            'data-monster-icon='
+        ]) {
+            expect(html, drawn).not.toContain(drawn)
+        }
+    })
+
+    it('R-1.3 still stands every piece state holds on the print', async () => {
+        const state = await table()
+        for (const { id } of MarketSpaces) {
+            state.guilds.merchant.market[id] = false
+        }
+        const [filled] = MarketSpaces
+        state.guilds.merchant.market[filled.id] = true
+        const [{ monster }] = KnightMonsterIcons
+        state.guilds.knight.monsterIcons[monster] = state.players[1].playerId
+        state.guilds.farmer.chickens = state.guilds.farmer.chickens.map(() => null)
+        state.guilds.farmer.chickens[0] = sealOf(3)
+        expect(area('merchant', state)).toContain(`data-world="good:${filled.id}"`)
+        expect(area('knight', state)).toContain(`data-world="monster-icon:${monster}"`)
+        expect(area('farmer', state)).toContain(`data-world="bead:${sealOf(3)}"`)
+    })
+
+    it('R-4.6.2 says the purse, coffer, barn and rosary the print cannot', async () => {
+        const state = await table()
+        state.guilds.farmer.purse = 31
+        state.guilds.monk.coffer = 23
+        state.guilds.monk.rosary = [sealOf(0)]
+        const farmer = area('farmer', state)
+        const monk = area('monk', state)
+        expect(farmer).toContain('data-purse="31">31s<')
+        expect(farmer).toContain(`of ${FarmerBarn.capacity}`)
+        expect(monk).toContain('data-coffer="23">23s<')
+        expect(monk).toContain(`data-rosary-total="${rosaryBeadSum(state)}"`)
+    })
+
+    it('R-5-H1 keeps a concealed seal on a printed scroll told to no one', async () => {
+        const state = await table()
+        const [filled] = ScrollSpaces
+        state.guilds.noble.scrolls[filled.id] = true
+        const html = area('noble', state)
+        expect(html).toContain(`data-world="seal:${filled.id}"`)
+        expect(html).not.toMatch(/\+[2-5]/)
+    })
+
+    it('R-4.5.3 veils the printed apprentice space below its player count, and only then', async () => {
+        const three = area('monk', await table(3))
+        const five = area('monk', await table(5))
+        expect(three).toMatch(/data-rank="apprentice" data-unused/)
+        expect(three).toContain('data-veil')
+        expect(five).not.toContain('data-unused')
+        expect(five).not.toContain('data-veil')
     })
 })

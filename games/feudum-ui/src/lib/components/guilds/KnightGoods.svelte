@@ -14,11 +14,14 @@
         KnightCell,
         KnightSectionHeaderY,
         MonsterBox,
+        guildPrinted,
         guildSlot,
         knightCell,
         knightRowLabel,
-        knightSectionMiddle
+        knightSectionMiddle,
+        monsterIconMarker
     } from '$lib/utils/boardGeometry.js'
+    import { PrintedSizes } from '$lib/utils/printedGuilds.js'
     import { BarrelPath } from '$lib/utils/trackShape.js'
 
     /**
@@ -39,34 +42,38 @@
         Array.from({ length: lastColumn - firstColumn + 1 }, (_, index) => firstColumn + index)
     )
     const RowDisc = 34
+    /** The printed panel draws the sections, the cells and the beasts; rows and markers stand on it. */
+    let printed = $derived(guildPrinted('knight'))
+    let marker = $derived(printed ? PrintedSizes.knightMarker : GuildSizes.marker)
 </script>
 
-{#each KnightSections as section (section.section)}
-    <g data-section={section.section}>
-        <svg
-            x={knightSectionMiddle(section.firstColumn, section.lastColumn) - 20}
-            y={KnightSectionHeaderY - 10}
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-        >
-            <path
-                d={BarrelPath}
-                fill="var(--feudum-wood-piece)"
-                stroke="var(--feudum-ink)"
-                stroke-width="1.5"
-            ></path>
-        </svg>
-        <text
-            x={knightSectionMiddle(section.firstColumn, section.lastColumn) + 8}
-            y={KnightSectionHeaderY + 6}
-            text-anchor="middle"
-            font-size="16"
-            fill="var(--feudum-ink)">{section.section}</text
-        >
-    </g>
-{/each}
-
+{#if !printed}
+    {#each KnightSections as section (section.section)}
+        <g data-section={section.section}>
+            <svg
+                x={knightSectionMiddle(section.firstColumn, section.lastColumn) - 20}
+                y={KnightSectionHeaderY - 10}
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+            >
+                <path
+                    d={BarrelPath}
+                    fill="var(--feudum-wood-piece)"
+                    stroke="var(--feudum-ink)"
+                    stroke-width="1.5"
+                ></path>
+            </svg>
+            <text
+                x={knightSectionMiddle(section.firstColumn, section.lastColumn) + 8}
+                y={KnightSectionHeaderY + 6}
+                text-anchor="middle"
+                font-size="16"
+                fill="var(--feudum-ink)">{section.section}</text
+            >
+        </g>
+    {/each}
+{/if}
 {#each state.guilds.knight.rows as row (row.colour)}
     {@const paint = row.playerId ? paintOf(row.playerId) : colourPaintOf(row.colour)}
     {@const label = knightRowLabel(row.colour)}
@@ -80,26 +87,28 @@
         />
         {#each Columns as column (column)}
             {@const at = knightCell(row.colour, column)}
-            <rect
-                x={at.x - KnightCell / 2}
-                y={at.y - KnightCell / 2}
-                width={KnightCell}
-                height={KnightCell}
-                rx="6"
-                fill="var(--feudum-parchment-shade)"
-                stroke="var(--feudum-ink)"
-                stroke-width={KnightSections.some(({ firstColumn }) => firstColumn === column)
-                    ? 2.5
-                    : 1}
-            ></rect>
+            {#if !printed}
+                <rect
+                    x={at.x - KnightCell / 2}
+                    y={at.y - KnightCell / 2}
+                    width={KnightCell}
+                    height={KnightCell}
+                    rx="6"
+                    fill="var(--feudum-parchment-shade)"
+                    stroke="var(--feudum-ink)"
+                    stroke-width={KnightSections.some(({ firstColumn }) => firstColumn === column)
+                        ? 2.5
+                        : 1}
+                ></rect>
+            {/if}
             {#if column <= row.markers}
                 <BoardPiece {at} piece="knight:{row.colour}:{column}">
                     <SeatToken
                         kind="marker"
                         {paint}
-                        size={GuildSizes.marker}
-                        x={-GuildSizes.marker / 2}
-                        y={-GuildSizes.marker / 2}
+                        size={marker}
+                        x={-marker / 2}
+                        y={-marker / 2}
                     />
                 </BoardPiece>
             {/if}
@@ -110,32 +119,34 @@
 {#each KnightMonsterIcons as icon (icon.id)}
     {@const at = guildSlot(icon.id)}
     {@const controller = state.guilds.knight.monsterIcons[icon.monster]}
-    <g data-monster-icon={icon.monster}>
-        <rect
-            x={at.x - MonsterBox.width / 2}
-            y={at.y - MonsterBox.height / 2}
-            width={MonsterBox.width}
-            height={MonsterBox.height}
-            rx="8"
-            fill="var(--feudum-parchment-shade)"
-            stroke="var(--feudum-ink)"
-        ></rect>
-        <MonsterToken
-            monster={icon.monster}
-            size={GuildSizes.monster}
-            x={at.x - GuildSizes.monster / 2}
-            y={at.y - GuildSizes.monster / 2 - 12}
-        />
-        <text
-            x={at.x}
-            y={at.y + MonsterBox.height / 2 - 10}
-            text-anchor="middle"
-            font-size="15"
-            fill="var(--feudum-ink)">{icon.markers} markers</text
-        >
-    </g>
+    {#if !printed}
+        <g data-monster-icon={icon.monster}>
+            <rect
+                x={at.x - MonsterBox.width / 2}
+                y={at.y - MonsterBox.height / 2}
+                width={MonsterBox.width}
+                height={MonsterBox.height}
+                rx="8"
+                fill="var(--feudum-parchment-shade)"
+                stroke="var(--feudum-ink)"
+            ></rect>
+            <MonsterToken
+                monster={icon.monster}
+                size={GuildSizes.monster}
+                x={at.x - GuildSizes.monster / 2}
+                y={at.y - GuildSizes.monster / 2 - 12}
+            />
+            <text
+                x={at.x}
+                y={at.y + MonsterBox.height / 2 - 10}
+                text-anchor="middle"
+                font-size="15"
+                fill="var(--feudum-ink)">{icon.markers} markers</text
+            >
+        </g>
+    {/if}
     {#if controller}
-        <BoardPiece at={{ x: at.x + 46, y: at.y - 40 }} piece="monster-icon:{icon.monster}">
+        <BoardPiece at={monsterIconMarker(icon.id)} piece="monster-icon:{icon.monster}">
             <SeatToken
                 kind="marker"
                 paint={paintOf(controller)}
