@@ -106,7 +106,10 @@ function pawnOf(
     return state.getPlayerState(playerId).pawns.find((pawn) => pawn.n === n)
 }
 
-/** R-4.2.4 It can only migrate off, conquer the monster, or wait for it to leave. */
+/**
+ * R-4.2.4 It can only migrate off, conquer the monster, or wait for it to leave. R-4.2-H1 The pin
+ * stops its steps and nothing else: it may still pilfer where it stands.
+ */
 export function isPinned(
     state: HydratedFeudumGameState,
     playerId: string,

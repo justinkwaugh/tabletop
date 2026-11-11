@@ -16,7 +16,7 @@ import { stateAfterCardStep } from './cardTurns.js'
 type WritLimitAction = HydratedDiscardWrit | AtWillAction
 
 /**
- * R-4.4.4 A seat over the writ limit, on its turn or not, discards down before play goes on; the
+ * R-4.4.4, R-4.4-H9 A seat over the writ limit, on its turn or not, discards down before play goes on; the
  * turn player may also act at will (R-4.4-H1). No charter is sealed during play (R-4.4-H6), so the
  * seat always holds a writ to discard. Then the card goes on where it stopped.
  */

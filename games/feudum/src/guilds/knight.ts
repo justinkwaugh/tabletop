@@ -58,7 +58,10 @@ export interface MonsterOffer {
 export interface KnightTradeOffer {
     readonly price: number
     readonly markers: number
-    /** R-4.6.3 With 3 or more markers, each monster in the guild that has a space to go to. */
+    /**
+     * R-4.6.3, R-4.6-H10 With 3 or more markers, each monster in the guild that has a space to
+     * go to.
+     */
     readonly monsters: readonly MonsterOffer[]
 }
 

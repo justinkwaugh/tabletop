@@ -22,7 +22,7 @@ const FollowUpStates: Readonly<Record<FollowUp['kind'], MachineState>> = {
 }
 
 /**
- * R-3.2 Every Action that ends a step of the current card returns this from `onAction`. A seat over
+ * R-3.2, R-3.2-H2 Every Action that ends a step of the current card returns this from `onAction`. A seat over
  * the writ limit discards down before play goes on (R-4.4.4); then the card's next open follow-up;
  * with none left, `AdvanceTurn` decides what comes next (R-3.3-H1).
  */
