@@ -240,7 +240,7 @@ scenario(
             .first()
         await expect(feast).toHaveAttribute('aria-disabled', 'true')
         await table.pressDimmed(feast)
-        await expect(table.panel().locator('[data-refusal]').first()).toHaveText(
+        await expect(table.panel().locator('[data-refusal], [data-reason]').first()).toHaveText(
             'Feast needs a sulfur in your barrel. Undo, then spend a region tile.'
         )
     }
