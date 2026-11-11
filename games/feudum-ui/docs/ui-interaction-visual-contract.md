@@ -77,6 +77,10 @@ Rules for the panel:
 - **Region tile:** front shows the region and the epoch numeral; back (as a landscape) shows the landscape kind (orchard, silver mine, archery butt, sulfur mine) and its resource.
 - **Seal and bead:** a seal is a red disc with a crown, the same for everyone; a bead is a pale disc with its value "+3".
 
+### Symbol key
+
+The menus draw pieces in place of words, so the table carries its own key. A **Key** button stands beside the board's zoom controls, at the board's lower-left corner, on a desk and a phone alike, and in full screen. A press opens a compact card over that corner, inside the board's view, scrolling inside itself where the board is short: each guild's die face, the five goods, the shilling, the king's seal and sulfur in a barrel; the four location discs; the three vessels; a region tile, a writ, an influence marker, a player disc and a pawn in the viewer's colour (a spectator's in the first seat's); then the marks: a rose chip, "a cost or threat"; an amber chip, "yours to take"; and a die's badge, "rank it gives". Each piece stands beside its name. A second press or Escape closes it. The key is for looking: it offers no target and changes no offer.
+
 ## Visual intents
 
 ### Pick conventions

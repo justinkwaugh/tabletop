@@ -85,6 +85,29 @@ async function rect(target: Locator) {
 test.describe('a 1440 px desk', () => {
     test.use({ viewport: { width: 1440, height: 900 } })
 
+    test('Contract, Symbol key: a Key button beside the zoom controls opens the vocabulary', async ({
+        page
+    }) => {
+        await openFixture(page, 'cards-tile-gone-epoch-1')
+        const toggle = page.locator('[data-symbol-key-toggle]')
+        const controls = page.getByRole('button', { name: 'Enter full screen' })
+        const beside = await rect(controls)
+        const box = await rect(toggle)
+        expect(box.x).toBeGreaterThanOrEqual(beside.x + beside.width)
+        expect(Math.abs(box.y + box.height - (beside.y + beside.height))).toBeLessThan(8)
+
+        await toggle.click()
+        const key = page.getByRole('group', { name: 'Symbol key' })
+        await expect(key).toBeVisible()
+        await expect(key.locator('[data-key-caption]').first()).toHaveText('Farmer')
+        const board = await rect(page.locator('[data-board-view]'))
+        const card = await rect(key)
+        expect(card.y).toBeGreaterThanOrEqual(board.y - 0.5)
+        expect(card.x + card.width).toBeLessThanOrEqual(board.x + board.width + 0.5)
+        await page.keyboard.press('Escape')
+        await expect(key).toHaveCount(0)
+    })
+
     test('R-1.4.8 the starting-goods choice shows all five goods in the panel, in sight', async ({
         page
     }) => {
