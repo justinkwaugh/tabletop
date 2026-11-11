@@ -19,7 +19,7 @@ import {
     type SeatTable
 } from '$lib/testing/followUpTable.js'
 import { linesOf, pressCard, rowLabels, rowNamed } from '$lib/testing/actionPanelView.js'
-import { settled, type FeudumHost } from '$lib/testing/sessionHarness.js'
+import { FeudumHost, settled } from '$lib/testing/sessionHarness.js'
 import {
     atPlayingCards,
     emptySpace,
@@ -355,6 +355,28 @@ describe('R-4.4-H5 a writ discarded at any time', () => {
         })
         expect(other.gameState.getPlayerState(table.other).writs).toEqual([])
         expect(other.gameState.flow.turn?.playerId).toBe(table.seat)
+    })
+
+    it('R-3.1, R-4.4-H5 a seat that has finalised its hand keeps the row under the waiting line', async () => {
+        const table = new FeudumHost(3)
+        host = table
+        await table.playStartingGoods()
+        await table.playStartingPawns()
+        const [first, second] = table.order
+        table.edit((state) => holdWrit(state, first, Mandate5))
+        await table.send(first, {
+            type: ActionType.FinaliseHand,
+            revealsInfo: true,
+            cards: ['move', 'tax', 'guild', 'explore']
+        })
+        const session = await table.openSeat(first)
+        await settled(session)
+        expect(session.gameState.machineState).toBe(MachineState.SelectingHands)
+        expect(linesOf(session.actionPanel, 'waiting')).toEqual([
+            `Waiting for ${session.getPlayerName(second)} to finalise`
+        ])
+        expect(rowLabels(session.actionPanel, 'at-will')).toEqual(['Writs 1'])
+        expect(chipLabels(session)).toEqual(['Writs 1'])
     })
 
     it('R-4.4-H5 a seat over the limit is asked alone: another seat holding a writ keeps its row', async () => {
