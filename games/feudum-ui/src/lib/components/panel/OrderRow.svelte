@@ -34,7 +34,7 @@
             ></span>
             {seats.nameOf(entry.playerId)}
             {#if entry.done}
-                <span aria-label="done">✓</span>
+                <span role="img" aria-label="done">✓</span>
             {/if}
             {#if entry.fedByGame}
                 <span class="text-feudum-text-muted" data-fed-by-game>· fed by the game</span>

@@ -33,7 +33,7 @@
             ></span>
             <span class="max-sm:sr-only">{entry.name}</span>
             {#if entry.finalised}
-                <span aria-label="finalised">✓</span>
+                <span role="img" aria-label="finalised">✓</span>
             {/if}
             {#if entry.pouchGood}
                 <GoodToken good={entry.pouchGood} size={TokenSize} />
