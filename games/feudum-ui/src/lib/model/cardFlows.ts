@@ -49,6 +49,7 @@ import {
     type GuildId,
     type HarvestMode,
     type HydratedFeudumGameState,
+    type LocationKind,
     type PawnNumber,
     type RegionId,
     type SpaceId,
@@ -137,11 +138,29 @@ export interface TurnPresser {
 }
 export type TurnPress = (draft: TurnPresser) => void
 
+/** A location disc as a choice: `back` peeks out behind it, the face it shows if reduced. */
+export interface DiscArt {
+    readonly kind: 'disc'
+    readonly location: LocationKind
+    readonly back?: LocationKind
+}
+
+/** A held piece a row offers: a writ's back, a king's seal or a vessel. */
+export type PieceArt =
+    | { readonly kind: 'writ-back' }
+    | { readonly kind: 'seal' }
+    | { readonly kind: 'vessel'; readonly vessel: VesselType }
+
 /**
  * The piece a row shows before its label; the panel paints a pawn in the seat's colour. A guild's
  * die is the whole choice, with the label as its accessible name.
  */
-export type ChoiceArt = { readonly kind: 'pawn'; readonly character?: Character } | TileArt | DieArt
+export type ChoiceArt =
+    | { readonly kind: 'pawn'; readonly character?: Character }
+    | TileArt
+    | DieArt
+    | DiscArt
+    | PieceArt
 
 export interface PanelChoice {
     readonly label: string
@@ -168,6 +187,8 @@ export interface FlowPick {
 
 export interface FlowPopup {
     readonly anchor: BoardTarget
+    /** What the choice decides, said once above it. */
+    readonly heading?: string
     readonly choices: readonly PanelChoice[]
 }
 
@@ -280,7 +301,7 @@ function priceNote(): ChipNote {
     return {
         kind: 'cost',
         label: goods.map(({ good, count }) => `${count} ${good}`).join(', '),
-        goods
+        art: goods.map(({ good, count }) => ({ kind: 'good', good, count }))
     }
 }
 
@@ -474,6 +495,26 @@ function influenceFlow({ state, playerId, input, read }: FlowInput): FlowView {
     }
 }
 
+/**
+ * R-3.9.1 The step a lit place would take and what it costs, drawn: the disc it shows, an arrow,
+ * the disc it becomes, then the good or seal paid. The words stay its accessible name.
+ */
+function improveStepNote({ from, to, cost }: ImproveOffer): ChipNote {
+    return {
+        kind: 'cost',
+        label: `${from} to ${to} · 1 ${cost}`,
+        art: [
+            { kind: 'disc', location: from },
+            { kind: 'step' },
+            { kind: 'disc', location: to },
+            cost === 'seal' ? { kind: 'seal', count: 1 } : { kind: 'good', good: cost, count: 1 }
+        ]
+    }
+}
+
+/** The tray's line while Improve lights its places: what each chip says, said once. */
+const ImproveLine = 'Pick a place you rule. Each lit place shows its step and what it costs.'
+
 /** R-4.3-H1 What the chip says of the tile: said before the press, since a press may send. */
 function improveTileNote({ tile }: ImproveOffer): ChipNote {
     if (tile.kind === 'legal') {
@@ -503,7 +544,7 @@ function improveFlow({ state, playerId, input, read }: FlowInput): FlowView {
     const offer = offers.find((row) => row.spaceId === spaceId)
     const picks: FlowPick[] = offers.map((row) => ({
         target: spaceTarget(row.spaceId),
-        notes: [{ kind: 'cost', label: `→ ${row.to} · 1 ${row.cost}` }, improveTileNote(row)],
+        notes: [improveStepNote(row), improveTileNote(row)],
         press: Pick('space', row.spaceId)
     }))
     const prohibited = offers.filter(({ tile }) => tile.kind === 'prohibited')
@@ -511,9 +552,7 @@ function improveFlow({ state, playerId, input, read }: FlowInput): FlowView {
         return {
             ...Empty,
             picks,
-            ...(prohibited.length > 0
-                ? { line: Array.from(new Set(prohibited.map(improveTileLine))).join(' ') }
-                : {})
+            line: [ImproveLine, ...new Set(prohibited.map(improveTileLine))].join(' ')
         }
     }
     const tileLine = offer.tile.kind === 'prohibited' ? { line: improveTileLine(offer) } : {}
@@ -545,14 +584,7 @@ function improveFlow({ state, playerId, input, read }: FlowInput): FlowView {
             ...tileLine,
             picks,
             picked,
-            popup: {
-                anchor,
-                choices: discs.map(({ discId, other }) => ({
-                    label: other ? `Other face: ${other}` : 'Plain back',
-                    picked: false,
-                    press: Pick('disc', discId)
-                }))
-            }
+            popup: discPopup(anchor, offer.to, discs)
         }
     }
     const candidates = offer.tile.kind === 'prohibited' ? offer.tile.candidates : []
@@ -587,6 +619,32 @@ function improveFlow({ state, playerId, input, read }: FlowInput): FlowView {
         { revealsInfo: offer.revealsInfo }
     )
     return { ...view, ...(play ? { play } : {}) }
+}
+
+/**
+ * R-3.9-H1 The discs that differ in their back, each drawn with its back peeking behind it: the
+ * back is what the place shows if it is ever reduced, so the heading says why it matters.
+ */
+function discPopup(
+    anchor: BoardTarget,
+    to: LocationKind,
+    discs: readonly { readonly discId: DiscId; readonly other?: LocationKind }[]
+): FlowPopup {
+    const name = titled(to)
+    return {
+        anchor,
+        heading: `Which ${to} disc? Its back is what this place shows if it is ever reduced.`,
+        choices: discs.map(({ discId, other }) => {
+            const back = other ?? 'plain'
+            return {
+                label: `${name} disc, back: ${back}`,
+                shown: `back: ${back}`,
+                art: { kind: 'disc', location: to, ...(other ? { back: other } : {}) },
+                picked: false,
+                press: Pick('disc', discId)
+            }
+        })
+    }
 }
 
 /** R-3.9.3, R-4.3.4, R-4.10.2 */

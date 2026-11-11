@@ -34,6 +34,7 @@ import {
     DeciderDraft,
     draftChoice,
     playUnless,
+    type DraftArt,
     type DraftChoice
 } from './deciderDraft.svelte.js'
 import { withLoneChoice } from './stagedDraft.svelte.js'
@@ -318,26 +319,30 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
             ...this.discardOffers(context)
         ])
         const { vessels } = context.state.getPlayerState(context.playerId)
-        const counts: readonly (readonly [AtWillList, string, number])[] = [
-            ['writs', 'Writs', writs.size],
-            ['tiles', 'Tiles', this.tileOffers(context).length],
+        const tiles = this.tileOffers(context)
+        const vesselOffers = this.vesselOffers(context)
+        // Contract, At-will actions: each chip is its piece and its count; the words its name.
+        const [firstTile] = tiles
+        const [firstVessel] = vesselOffers
+        const counts: readonly (readonly [AtWillList, string, number, DraftArt | undefined])[] = [
+            ['writs', 'Writs', writs.size, { kind: 'writ-back' }],
+            ['tiles', 'Tiles', tiles.length, firstTile && tileArt(context.state, firstTile.tileId)],
             [
                 'vessels',
                 'Vessels',
-                this.vesselOffers(context).reduce(
-                    (sum, { vesselType }) => sum + vessels[vesselType],
-                    0
-                )
+                vesselOffers.reduce((sum, { vesselType }) => sum + vessels[vesselType], 0),
+                firstVessel && { kind: 'vessel', vessel: firstVessel.vesselType }
             ],
-            ['immunity', 'Immunity', this.sealOffers(context).length]
+            ['immunity', 'Immunity', this.sealOffers(context).length, { kind: 'seal' }]
         ]
         return counts
             .filter(([, , count]) => count > 0)
-            .map(([list, name, count]) => ({
+            .map(([list, name, count, art]) => ({
                 list,
                 ...draftChoice(`${name} ${count}`, open === list, () => {
                     this.toggle('list', list)
                 }),
+                ...(art ? { art, shown: String(count) } : {}),
                 ...this.chipLights(list, context)
             }))
     }
@@ -429,7 +434,9 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
                                   () => {
                                       this.set('good', { good })
                                   }
-                              )
+                              ),
+                              // R-4.3.3 The good is its cube beside the haversack's count.
+                              shown: String(haversack[good])
                           })),
                           ...(offer.sulfurToBarrel
                               ? [
@@ -479,6 +486,7 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
                 ...draftChoice(vesselType.replaceAll('-', ' '), vessel === vesselType, () => {
                     this.toggle('vessel', vesselType)
                 }),
+                art: { kind: 'vessel', vessel: vesselType },
                 lights: () => pawns.map((n) => pawnTarget(context.playerId, n))
             }))
         }

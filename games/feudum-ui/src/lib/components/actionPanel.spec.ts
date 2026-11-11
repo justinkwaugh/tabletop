@@ -42,6 +42,11 @@ function textOf(markup: string, attribute: string): string | undefined {
     return match?.[1].replace(/<!--.*?-->|<[^>]+>/gs, '').trim()
 }
 
+/** The markup without each piece's title, so only the words beside the art are left. */
+function untitled(markup: string): string {
+    return markup.replace(/<title>.*?<\/title>/gs, '')
+}
+
 describe('R-3.1 the finalise row', () => {
     const row = markupOf({
         kind: 'finalise',
@@ -382,6 +387,45 @@ describe('R-3.2 the picked card’s tray', () => {
         expect(chips.indexOf('data-hand-end')).toBeGreaterThan(chips.indexOf('data-row="Move"'))
         expect(chips.indexOf('data-row="Tiles 1"')).toBeGreaterThan(chips.indexOf('data-hand-end'))
         expect(chips).not.toContain('data-card-tray')
+    })
+})
+
+describe('Contract, Pick conventions: art first, words second', () => {
+    it('an at-will chip is its piece and its count; its words stay its accessible name', () => {
+        const markup = markupOf(
+            rowsBlock('at-will', [
+                { ...aRow('Writs 1', { shown: '1' }), art: { kind: 'writ-back' } },
+                { ...aRow('Immunity 1', { shown: '1' }), art: { kind: 'seal' } },
+                { ...aRow('Vessels 2', { shown: '2' }), art: { kind: 'vessel', vessel: 'ship' } }
+            ])
+        )
+        expect(markup).toContain('aria-label="Writs 1"')
+        expect(markup).toContain('aria-label="Writ back"')
+        expect(markup).toContain('aria-label="king\'s seal"')
+        expect(markup).toContain('aria-label="ship"')
+        expect(textOf(untitled(markup), 'data-row="Writs 1"')).toBe('1')
+    })
+
+    it('R-3.9-H1 a disc choice is the disc with its back peeking behind it, captioned by the back', () => {
+        const markup = markupOf(
+            rowsBlock('discs', [
+                {
+                    ...aRow('Town disc, back: farm', { shown: 'back: farm' }),
+                    art: { kind: 'disc', location: 'town', back: 'farm' }
+                }
+            ])
+        )
+        const choice = markup.slice(markup.indexOf('data-row="Town disc, back: farm"'))
+        expect(choice).toContain('aria-label="Town disc, back: farm"')
+        expect(choice).toContain('data-disc-back="farm"')
+        expect(choice.indexOf('aria-label="farm"')).toBeLessThan(
+            choice.indexOf('aria-label="town"')
+        )
+        const words = untitled(choice.slice(choice.indexOf('>') + 1))
+            .replace(/<!--.*?-->|<[^>]+>/gs, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+        expect(words).toBe('back: farm')
     })
 })
 

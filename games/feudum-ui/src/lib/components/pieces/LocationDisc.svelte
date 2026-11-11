@@ -22,11 +22,15 @@
     } = $props()
 
     let label = $derived(kind === 'feudum' && guild ? `${guild} feudum` : kind)
+    // A feudum not yet built has no guild: its keep is drawn, never one guild's printed disc.
+    let url = $derived(
+        kind === 'feudum' && !guild ? undefined : assetUrl(locationAsset(kind, guild))
+    )
 </script>
 
 <PieceFrame
     {label}
-    url={assetUrl(locationAsset(kind, guild))}
+    {url}
     width={size}
     height={size}
     viewBox="0 0 100 100"

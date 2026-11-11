@@ -76,7 +76,7 @@ describe('Board chrome (contract: Pick conventions, Board surface)', () => {
         const chip = {
             kind: 'cost',
             label: '1 food',
-            goods: [{ good: 'food', count: 1 }],
+            art: [{ kind: 'good', good: 'food', count: 1 }],
             tone: 'rose'
         } as const
         const html = render(PickChrome, {
@@ -93,6 +93,36 @@ describe('Board chrome (contract: Pick conventions, Board surface)', () => {
         expect(html).toContain('aria-label="food"')
         expect(html).toMatch(/<text[^>]*>1<\/text>/)
         expect(html).not.toMatch(/<text[^>]*>1 food<\/text>/)
+    })
+
+    it('R-3.9.1 A step chip draws the disc it is, an arrow, the disc it becomes and the cost; no words', () => {
+        const chip = {
+            kind: 'cost',
+            label: 'town to feudum · 1 seal',
+            art: [
+                { kind: 'disc', location: 'town' },
+                { kind: 'step' },
+                { kind: 'disc', location: 'feudum' },
+                { kind: 'seal', count: 1 }
+            ],
+            tone: 'rose'
+        } as const
+        const html = render(PickChrome, {
+            props: {
+                target: spaceTarget(A),
+                chrome: chromeWith(new Map([[spaceTarget(A), { role: 'lit', chip }]])),
+                at: { x: 0, y: 0 },
+                width: 40,
+                label: 'A'
+            }
+        }).body
+        expect(html).toContain('aria-label="town to feudum · 1 seal"')
+        expect(html).toContain('aria-label="town"')
+        expect(html).toContain('aria-label="feudum"')
+        expect(html).toContain('aria-label="king\'s seal"')
+        expect(html).toContain('data-chip-step')
+        expect(html).toMatch(/<text[^>]*>1<\/text>/)
+        expect(html).not.toContain('>town to feudum')
     })
 
     it('R-1.2 Each layer dims its own unlit elements; there is no scrim over the board', async () => {
