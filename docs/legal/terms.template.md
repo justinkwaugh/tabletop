@@ -2,7 +2,7 @@
 
 _Effective {{effectiveDate}}_
 
-{{siteName}} ({{siteUrl}}) is a free site for playing board games online, run by {{operator}}. By creating an account you agree to these terms. Questions go to **{{contact}}**.
+{{siteName}} ({{siteUrl}}) is a free site for playing board games online, run by {{operator}}. By using {{siteName}} you agree to these terms. Questions go to **{{contact}}**.
 
 ## Who can use it
 
@@ -14,7 +14,7 @@ Keep your sign-in details to yourself. You're responsible for what's done with y
 
 ## Games are visible to anyone with the link
 
-Anyone who has a game's link can watch it and read its chat. Don't share anything in chat you wouldn't want others to see.
+Anyone signed in who has a game's link can watch it and read its chat. Don't share anything in chat you wouldn't want others to see.
 
 ## What's not allowed
 
@@ -43,10 +43,6 @@ Cheating and abusing bugs aren't allowed either.
 
 > Keep this section in step with the reporting and complaints features your deployment actually has.
 
-## Stalled games
-
-A game in which nobody moves for 30 days ends with no winner.
-
 ## The service
 
 {{siteName}} is provided free and as is. We may change, pause or end it, or any game on it, at any time. To the extent the law allows, we aren't liable for lost games, data or anything else arising from your use of it.
@@ -57,4 +53,4 @@ You can ask us to delete your account at any time (see the [Privacy Policy](/pri
 
 ## Changes
 
-We'll post any change here with a new effective date, and tell you on the site before a significant change takes effect.
+We'll post any change here with a new effective date.
