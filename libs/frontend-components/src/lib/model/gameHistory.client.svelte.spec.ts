@@ -5,6 +5,9 @@ import { GameContext } from './gameContext.svelte.js'
 import { GameHistory } from './gameHistory.svelte.js'
 import { uiRuntime } from './tests/privateHandSession.fixture.js'
 
+// History navigation releases its stepping guard on a timer.
+const settleTimers = () => new Promise((resolve) => setTimeout(resolve, 0))
+
 function historyOfTwoPlays() {
     const { game, state, firstPlay } = createPrivateHandGame()
     const context = new GameContext({ runtime: uiRuntime, game, state, actions: [] })
@@ -33,17 +36,17 @@ describe('GameHistory viewed position', () => {
         const { history, seen } = historyOfTwoPlays()
         await history.replayRange(1, 1, { holdMs: 0 })
         expect(seen.length).toBeGreaterThan(0)
-        expect(seen).toEqual(seen.map(() => undefined))
+        expect(seen.every((count) => count === undefined)).toBe(true)
         expect(history.viewedActionCount).toBeUndefined()
     })
 
     it('stays on the viewed position while a replay started there plays', async () => {
         const { history, seen } = historyOfTwoPlays()
         await history.goToActionIndex(0, { exact: true })
-        await new Promise((resolve) => setTimeout(resolve, 0))
+        await settleTimers()
         await history.replayRange(1, 1, { holdMs: 0 })
         expect(seen.length).toBeGreaterThan(0)
-        expect(seen).toEqual(seen.map(() => 1))
+        expect(seen.every((count) => count === 1)).toBe(true)
         expect(history.viewedActionCount).toBe(1)
     })
 })

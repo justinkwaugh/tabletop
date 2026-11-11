@@ -13,6 +13,7 @@ describe('voteStripPosition', () => {
         expect(
             voteStripPosition({
                 reportsPosition: true,
+                seated: true,
                 viewedPosition: viewed,
                 isViewingHistory: true,
                 actionCount: 5
@@ -25,6 +26,7 @@ describe('voteStripPosition', () => {
         expect(
             voteStripPosition({
                 reportsPosition: true,
+                seated: true,
                 viewedPosition: undefined,
                 isViewingHistory: true,
                 actionCount: 5
@@ -36,6 +38,7 @@ describe('voteStripPosition', () => {
         expect(
             voteStripPosition({
                 reportsPosition: false,
+                seated: true,
                 viewedPosition: undefined,
                 isViewingHistory: true,
                 actionCount: 5
@@ -49,10 +52,28 @@ describe('voteStripPosition', () => {
         expect(
             voteStripPosition({
                 reportsPosition: false,
+                seated: true,
                 viewedPosition: undefined,
                 isViewingHistory: false,
                 actionCount: 5
             })
         ).toBeUndefined()
+    })
+
+    it('shows History View to someone without a seat, for whom no position is reported', () => {
+        expect(
+            voteStripPosition({
+                reportsPosition: true,
+                seated: false,
+                viewedPosition: undefined,
+                isViewingHistory: true,
+                actionCount: 5
+            })
+        ).toEqual({
+            actionIndex: 5,
+            liveActionCount: 5,
+            beyondUndoReach: true,
+            startsWithUserAction: true
+        })
     })
 })

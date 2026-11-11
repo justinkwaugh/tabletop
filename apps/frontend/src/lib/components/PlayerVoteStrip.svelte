@@ -55,10 +55,12 @@
     const canVote = $derived(voter !== undefined && playerVoteIneligibility(game) === undefined)
     const voters = $derived(votingPlayers(game.players))
 
-    // Older UI Artifacts lack showLiveGame too, so their stand-in live action count is never relied on.
+    // UI Artifacts without a reported position also lack showLiveGame, so their stand-in live
+    // action count is never relied on.
     const position: ViewedHistoryPosition | undefined = $derived(
         voteStripPosition({
             reportsPosition,
+            seated: voter !== undefined,
             viewedPosition: $viewedPosition,
             isViewingHistory: $isViewingHistory,
             actionCount: $gameState?.actionCount

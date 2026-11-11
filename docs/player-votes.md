@@ -30,11 +30,13 @@ The strip is host chrome (`apps/frontend/src/lib/components/PlayerVoteStrip.svel
 
 Three optional `GameSessionBridge` members come from the shared Game Client bundled into each UI Artifact (ADR 0004):
 
-- `viewedHistoryPosition`: where History View stands, the live game's Action count, and whether the position is beyond the Player's own Undo reach.
+- `viewedHistoryPosition`: where History View stands, the live game's Action count, and whether the position is beyond the Player's own Undo reach. While a replay plays (a title's History tab Replay), it stays on the position the replay returns to, which is none when the replay started in Live View; a replay's frames are never offered as a vote target. The host uses its stand-in position only when the member is missing, never when it reports none.
 - `showHistoryBeforeAction(actionIndex)`: moves History View to the position just before an Action.
 - `showLiveGame()`: leaves History View. The host calls it for the Player who asked once their vote passes and the Undo has reached the client.
 
 A UI Artifact gains them only through a new UI-only Publication. Until a title is republished, the host offers the request at every History View position, and the server answers "you can undo this yourself" where Undo already reaches. The host also hides View that point, and the Player who asked stays in History View after the vote passes.
+
+The replay rule needs both sides, and the Site Frontend goes first. A UI Artifact built before it reports each replay frame, so the request still comes and goes during a replay. A Site Frontend built before it substitutes a stand-in position whenever none is reported, so with a new UI Artifact a replay from Live View would offer the request on every frame. Release the Site Frontend, then a UI-only Publication of each title with a History tab Replay (Bus, Magna Grecia, MarraCash, Reef Encounter, Urbino). Someone without a seat is reported no position and cannot vote, so the host shows them History View with its stand-in.
 
 ## Called games and UI Artifacts
 

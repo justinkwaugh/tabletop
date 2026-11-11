@@ -30,6 +30,8 @@ export type HistoryCallbacks = {
     waitForTransitionSettled?: HistoryWaitForTransitionSettledCallback
 }
 
+type ReplayReturn = { type: 'live' } | { type: 'history'; actionIndex: number; actionCount: number }
+
 export interface HistoryPosition<T extends GameState, U extends HydratedGameState<T> & T> {
     context: GameContext<T, U>
     actionIndex: number
@@ -58,12 +60,9 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         return visibleContext
     })
 
-    // Where a playing replay returns to: Live View, or the History View position it started from.
-    private replayReturn: { type: 'live' } | { type: 'history'; actionCount: number } | undefined =
-        $state(undefined)
+    private replayReturn: ReplayReturn | undefined = $state(undefined)
 
-    // The action count of the History View position the player is on; undefined in Live View.
-    // A replay's frames pass by on their own, so while one plays this is where it returns to.
+    // A replay's frames pass by on their own, so the Player stays where the replay returns to.
     viewedActionCount: number | undefined = $derived.by(() => {
         if (this.replayReturn) {
             return this.replayReturn.type === 'live' ? undefined : this.replayReturn.actionCount
@@ -303,14 +302,14 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
         this.stopHistoryPlayback()
         this.stepping = true
 
-        const returnTarget = this.inHistory
-            ? { type: 'history' as const, actionIndex: this.actionIndex }
-            : { type: 'live' as const }
-
-        this.replayReturn =
-            returnTarget.type === 'live'
-                ? returnTarget
-                : { type: 'history', actionCount: this.visibleContext.state.actionCount }
+        const returnTarget: ReplayReturn = this.inHistory
+            ? {
+                  type: 'history',
+                  actionIndex: this.actionIndex,
+                  actionCount: this.visibleContext.state.actionCount
+              }
+            : { type: 'live' }
+        this.replayReturn = returnTarget
 
         try {
             const actions = this.historyContext?.actions ?? this.gameContext.actions

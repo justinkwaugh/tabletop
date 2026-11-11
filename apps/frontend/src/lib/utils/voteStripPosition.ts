@@ -1,20 +1,22 @@
 import type { ViewedHistoryPosition } from '@tabletop/frontend-components'
 
-// The History View position the vote strip offers an undo vote from. A UI Artifact that reports
-// positions decides alone: it reports none in Live View and while a replay plays. Older UI
-// Artifacts report none at all, so every History View position is offered and the host decides.
+// UI Artifacts published before viewedHistoryPosition report no position at all, so every
+// History View position is offered for them and the host decides. None is reported to someone
+// without a seat either; they cannot vote, so the stand-in only shows them History View.
 export function voteStripPosition({
     reportsPosition,
+    seated,
     viewedPosition,
     isViewingHistory,
     actionCount
 }: {
     reportsPosition: boolean
+    seated: boolean
     viewedPosition: ViewedHistoryPosition | undefined
     isViewingHistory: boolean
     actionCount: number | undefined
 }): ViewedHistoryPosition | undefined {
-    if (reportsPosition) return viewedPosition
+    if (reportsPosition && seated) return viewedPosition
     if (!isViewingHistory || actionCount === undefined) return undefined
     return {
         actionIndex: actionCount,
