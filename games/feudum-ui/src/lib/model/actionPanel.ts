@@ -96,6 +96,8 @@ type PanelBlock =
           readonly role: LineRole
           readonly text: string
           readonly lead?: string
+          /** A phone's wording, after the card's name, where the tray has room for one line. */
+          readonly short?: string
       }
     | {
           readonly kind: 'goods-counts'
@@ -219,6 +221,11 @@ function primaryBlock(primary: TurnPrimary, send: () => void | Promise<void>): A
 
 function line(role: LineRole, text: string, lead?: string): ActionBlock {
     return { kind: 'line', role, text, ...(lead ? { lead } : {}) }
+}
+
+/** The tray's stage line, with its phone wording when the card's flow has one. */
+function trayLine(text: string, short: string | undefined): ActionBlock {
+    return { kind: 'line', role: 'flow', text, ...(short ? { short } : {}) }
 }
 
 function rows(name: string, entries: readonly ActionRow[], heading?: string): ActionBlock[] {
@@ -630,6 +637,7 @@ function turnBlocks(session: PanelSession, turn: NonNullable<PanelSession['turnP
     const move = session.movePanel
     const guild = session.guildPanel
     const flowLine = guild?.line ?? move?.line ?? turn.flow?.line
+    const flowShort = flowLine === turn.flow?.line ? turn.flow?.short : undefined
     const primary = guild?.primary ?? move?.primary ?? turn.primary
     const me = session.myPlayerId ?? ''
     const secondRows: ActionRow[] = turn.secondCard
@@ -660,7 +668,7 @@ function turnBlocks(session: PanelSession, turn: NonNullable<PanelSession['turnP
         ? [{ kind: 'tally', lines: tally, ...(tallyNote ? { note: tallyNote } : {}) }]
         : []
     const tray: ActionBlock[] = [
-        ...(flowLine ? [line('flow', flowLine)] : []),
+        ...(flowLine ? [trayLine(flowLine, flowShort)] : []),
         ...rows('replays', asTurnRows(turn.replays)),
         ...rows('modes', modeRows),
         ...turn.refusals.map((text) => line('refusal', text)),

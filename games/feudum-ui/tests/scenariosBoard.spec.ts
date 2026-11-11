@@ -78,16 +78,14 @@ scenario('S60 R-3.9, R-3.2 Hover preview', 'cards-improve-town', async (table) =
             .sort()
 
     if (table.phone) {
-        // No hover on touch: the row's preview press shows it, and a second press takes it away.
-        const preview = table.panel().locator('[data-preview="Improve"]')
-        await table.press(preview)
-        await expect.poll(() => bright(table).count()).toBeGreaterThan(0)
-        const shown = await brightened()
-        await table.press(preview)
-        await expect(bright(table)).toHaveCount(0)
-        await expect(table.lit()).toHaveCount(0)
+        // No hover on a phone and no preview path: the card's press lights the places, and Undo
+        // takes them away.
+        await expect(table.panel().locator('[data-preview="Improve"]')).toBeHidden()
         await table.press(table.card('Improve'))
-        expect(Object.keys(await table.litChips()).sort()).toEqual(shown)
+        await expect.poll(() => table.lit().count()).toBeGreaterThan(0)
+        await table.press(table.undo())
+        await expect(table.lit()).toHaveCount(0)
+        await expect(bright(table)).toHaveCount(0)
         return
     }
     await table.card('Improve').hover()

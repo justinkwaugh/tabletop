@@ -305,7 +305,7 @@ test('S70 smoke: full screen holds the panel in the toolbar and Escape leaves it
 test.describe('on a phone', () => {
     test.use({ viewport: { width: 375, height: 812 }, hasTouch: true, isMobile: true })
 
-    test('S60 the board rests at a cover fit; a tap on the preview path stands in for hover', async ({
+    test('S60 the board rests at a cover fit; a tap on a card stands in for hover', async ({
         page
     }) => {
         await createGame(page)
@@ -315,12 +315,10 @@ test.describe('on a phone', () => {
         expect(box?.width).toBeGreaterThan(600)
         await shot(page, 'phone-cover')
 
-        const preview = panel(page).locator('[data-preview="Move"]')
-        await preview.tap()
-        await expect.poll(() => bright(page).count()).toBeGreaterThan(0)
-        await shot(page, 'phone-preview')
-        await preview.tap()
+        await expect(panel(page).locator('[data-preview="Move"]')).toBeHidden()
         await expect(bright(page)).toHaveCount(0)
-        expect(await lit(page).count()).toBe(0)
+        await panel(page).locator('button.face[aria-label="Move"]').tap()
+        await expect.poll(() => lit(page).count()).toBeGreaterThan(0)
+        await shot(page, 'phone-preview')
     })
 })

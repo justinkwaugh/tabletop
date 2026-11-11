@@ -241,20 +241,16 @@ test('S18 R-3.10 a real Explore: its name, the drawn faces, the keep', async ({ 
 test.describe('at phone width with no hover', () => {
     test.use({ viewport: { width: 375, height: 812 }, hasTouch: true, isMobile: true })
 
-    test('S9 a row with lights has its preview button; the card keeps its press', async ({
+    test('S9 a card has no preview button: its press is undoable and itself the preview', async ({
         page
     }) => {
         await createGame(page)
         await playToCards(page)
-        const preview = panel(page).locator('[data-preview="Move"]')
-        await preview.tap()
-        await expect.poll(() => bright(page).count()).toBeGreaterThan(0)
+        await expect(panel(page).locator('[data-preview="Move"]')).toBeHidden()
+        const card = row(page, 'Move').locator('button').first()
+        await card.tap()
+        await expect(card).toHaveAttribute('aria-pressed', 'true')
+        await expect.poll(() => page.locator('[data-pick-role="lit"]').count()).toBeGreaterThan(0)
         await shot(page, 'phone-hand-preview')
-        await preview.tap()
-        await expect(bright(page)).toHaveCount(0)
-        await expect(row(page, 'Move').locator('button').first()).toHaveAttribute(
-            'aria-pressed',
-            'false'
-        )
     })
 })

@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { RowPointer } from '$lib/components/table/PanelRow.svelte'
     import type { ActionBlock, ActionPanelView, CardRow, LineRole } from '$lib/model/actionPanel.js'
+    import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
     import CardChoice from './CardChoice.svelte'
     import CombatTally from './CombatTally.svelte'
     import DawnSheet from './DawnSheet.svelte'
@@ -20,6 +21,8 @@
      * and the at-will chips at the line's end.
      */
     let { view, pointer }: { view: ActionPanelView; pointer: RowPointer } = $props()
+
+    const layout = new PhoneLayout()
 
     const LineClasses: Record<LineRole, string> = {
         turn: 'text-sm font-semibold text-feudum-text',
@@ -157,6 +160,21 @@
     {/if}
 {/snippet}
 
+<!--
+    The tray's stage line. A desk heads the tray with the card's name; a phone puts the name at the
+    line's head and, where the flow has one, says it in its shorter words, so the line stays one.
+-->
+{#snippet stageLine(block: Extract<ActionBlock, { kind: 'line' }>, card: string)}
+    {#if layout.phone}
+        <p class="stage-line w-full text-feudum-text" data-tray-line>
+            <span class="font-semibold text-feudum-accent">{card}:</span>
+            <span data-flow-line>{block.short ?? block.text}</span>
+        </p>
+    {:else}
+        <p class="w-full {LineClasses.flow}" data-flow-line data-tray-line>{block.text}</p>
+    {/if}
+{/snippet}
+
 {#snippet handLine(block: Extract<ActionBlock, { kind: 'cards' }>)}
     <div
         class="flex w-full flex-wrap items-start gap-1.5 max-sm:mb-2 max-sm:gap-1"
@@ -175,13 +193,17 @@
                     style:--at={at}
                     data-card-tray={row.label}
                 >
-                    {#if tray.some(({ kind }) => kind === 'line')}
+                    {#if !layout.phone && tray.some(({ kind }) => kind === 'line')}
                         <p class="w-full text-sm font-semibold text-feudum-text" data-tray-heading>
                             {row.label}
                         </p>
                     {/if}
                     {#each tray as inner, index (index)}
-                        {@render blockView(inner, index, tray)}
+                        {#if inner.kind === 'line' && inner.role === 'flow'}
+                            {@render stageLine(inner, row.label)}
+                        {:else}
+                            {@render blockView(inner, index, tray)}
+                        {/if}
                     {/each}
                 </div>
             {/if}
@@ -262,6 +284,22 @@
             order: 1;
             flex-basis: 100%;
             margin-top: 0.5rem;
+        }
+
+        /*
+         * Contract, Phone layout: the tray fits the cap without scrolling. Its name stands at the
+         * line's head in place of a heading, the line in its short words; an unpayable mode says why
+         * in its name and tooltip, not beneath it. No hover, so no preview path: a press on a card
+         * or a mode is undoable and itself lights the places.
+         */
+        .tray :global([data-preview]),
+        .tray :global([data-reason]) {
+            display: none;
+        }
+
+        .stage-line {
+            font-size: 0.6875rem;
+            line-height: 1rem;
         }
 
         .tray::before {

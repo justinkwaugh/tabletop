@@ -370,7 +370,8 @@ describe('R-3.2 the picked card’s tray', () => {
 
     it('R-3.4 a special shows its cost as goods art and, refused, its reason beneath', () => {
         const special = tray.slice(at('data-row="Tend Landscape · 1 wood"'))
-        expect(special).toContain('aria-label="Tend Landscape · 1 wood"')
+        expect(special).toContain('aria-label="Tend Landscape · 1 wood: You hold no wood."')
+        expect(special).toContain('title="You hold no wood."')
         expect(special).toContain('aria-label="wood"')
         const cost = special.slice(special.indexOf('data-cost'), special.indexOf('data-reason'))
         // The drawn wood (its title), then its count.

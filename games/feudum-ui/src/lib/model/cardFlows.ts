@@ -215,6 +215,8 @@ export interface FlowView {
     readonly popup?: FlowPopup
     /** "Place 2 of 3", "The Desert tile is not yet legal: take an earlier tile". */
     readonly line?: string
+    /** The line in a phone's words, short enough to stand on one line after the card's name. */
+    readonly short?: string
     readonly tally?: readonly TallyLine[]
     readonly tallyNote?: string
     /** R-X.2 Names the primary button, when this flow can show one. */
@@ -309,6 +311,9 @@ function priceNote(): ChipNote {
 const MigrateLine = 'Pick a space to enter. Each lit space shows what the pawn costs.'
 const HarvestLine = 'Pick a farm to harvest. Each lit farm shows the goods it holds.'
 const ConquerLine = 'Pick a place to conquer. Each lit place shows your attack against its defence.'
+const MigrateShort = 'pick a space to enter. Each shows its cost.'
+const HarvestShort = 'pick a farm to harvest. Each shows its goods.'
+const ConquerShort = 'pick a place. Each shows attack and defence.'
 
 /** R-3.6 */
 function migrateFlow(flow: FlowInput): FlowView {
@@ -370,7 +375,13 @@ function migrateFlow(flow: FlowInput): FlowView {
     }))
     const picked = spaceId ? [spaceTarget(spaceId)] : []
     if (!spaceId) {
-        return { ...Empty, rows, picks, picked, ...(distantKin ? {} : { line: MigrateLine }) }
+        return {
+            ...Empty,
+            rows,
+            picks,
+            picked,
+            ...(distantKin ? {} : { line: MigrateLine, short: MigrateShort })
+        }
     }
     const character = read('character')
     if (!character) {
@@ -519,6 +530,7 @@ function improveStepNote({ from, to, cost }: ImproveOffer): ChipNote {
 
 /** The tray's line while Improve lights its places: what each chip says, said once. */
 const ImproveLine = 'Pick a place you rule. Each lit place shows its step and what it costs.'
+const ImproveShort = 'pick a place you rule. Each shows step and cost.'
 
 /** R-4.3-H1 What the chip says of the tile: said before the press, since a press may send. */
 function improveTileNote({ tile }: ImproveOffer): ChipNote {
@@ -557,7 +569,8 @@ function improveFlow({ state, playerId, input, read }: FlowInput): FlowView {
         return {
             ...Empty,
             picks,
-            line: [ImproveLine, ...new Set(prohibited.map(improveTileLine))].join(' ')
+            line: [ImproveLine, ...new Set(prohibited.map(improveTileLine))].join(' '),
+            ...(prohibited.length === 0 ? { short: ImproveShort } : {})
         }
     }
     const tileLine = offer.tile.kind === 'prohibited' ? { line: improveTileLine(offer) } : {}
@@ -768,7 +781,7 @@ function harvestFlow({ state, playerId, input, read }: FlowInput): FlowView {
     }))
     const farm = offers.farms.find((row) => row.spaceId === spaceId)
     if (!spaceId || !farm) {
-        return { ...Empty, picks, line: HarvestLine }
+        return { ...Empty, picks, line: HarvestLine, short: HarvestShort }
     }
     const picked = [spaceTarget(spaceId)]
     const harvest = read('harvest')
@@ -936,7 +949,7 @@ function conquerFlow(flow: FlowInput): FlowView {
     }))
     const offer = offers.find((row) => conquerTarget(row) === target)
     if (!target || !offer) {
-        return { ...Empty, picks, line: ConquerLine }
+        return { ...Empty, picks, line: ConquerLine, short: ConquerShort }
     }
     const data = { ...input, spaceId: offer.spaceId, target: offer.target }
     const name = conquerName(flow, offer)
