@@ -85,13 +85,13 @@
         <span class="art flex items-center justify-center gap-0.5" aria-hidden="true">
             {@render art(card.gain.slice(0, 1), compact ? 22 : 40)}
         </span>
-        <span class="name">{card.name}</span>
+        {#if !compact}<span class="name">{card.name}</span>{/if}
         {#if card.price !== undefined}
             <span class="inline-flex items-center gap-0.5 text-sm font-semibold">
                 <ShillingToken value={1} size={16} />{card.price}
             </span>
         {/if}
-        {#if card.stock}
+        {#if card.stock && !compact}
             <span class="text-xs" data-stock>{card.stock}</span>
         {/if}
     </span>
@@ -104,7 +104,7 @@
         role="group"
         aria-label={card.label}
         data-trade-card={card.item.id}
-        data-bench-role={card.item.role}
+        data-card-role={card.item.role}
     >
         <span class="art flex shrink-0 items-center justify-center" aria-hidden="true">
             {@render art(card.gain.slice(0, 1), compact ? 26 : 48)}
@@ -148,7 +148,9 @@
                 <strong class="text-feudum-heading">{picker.title}</strong>
                 {#if !compact}<span class="text-feudum-text-muted">· {picker.line}</span>{/if}
                 <span class="ml-auto inline-flex items-center gap-1" data-purse>
-                    you have <ShillingToken value={1} size={16} />{picker.purse}
+                    you have <span class="inline-flex" aria-hidden="true"
+                        ><ShillingToken value={1} size={16} /></span
+                    >{picker.purse}
                 </span>
             </p>
             <div
@@ -161,7 +163,7 @@
                         <span
                             class="bin"
                             data-trade-card={card.item.id}
-                            data-bench-role={card.item.role}
+                            data-card-role={card.item.role}
                         >
                             <PanelRow choice={card.press} {pointer} {onPress}>
                                 {#snippet face()}
@@ -202,7 +204,9 @@
                     <RowChoice row={other} {pointer} />
                 </span>
             {/if}
-            <p class="text-xs text-feudum-text-muted" data-picker-caption>{picker.caption}</p>
+            {#if !compact}
+                <p class="text-xs text-feudum-text-muted" data-picker-caption>{picker.caption}</p>
+            {/if}
         </div>
     </div>
 {/if}
@@ -295,12 +299,23 @@
         font-size: 0.875rem;
     }
 
+    /* Six bins in two rows of three: each its good and price, its name in the press's name. */
     .compact .bin {
-        flex: 1 1 4.5rem;
-        min-width: 4rem;
+        flex: 1 1 3.5rem;
+        min-width: 3.25rem;
+    }
+
+    .compact .bin :global(button.face) {
+        padding: 0.25rem;
     }
 
     .compact .send {
         align-self: stretch;
+    }
+
+    .compact .send :global(button),
+    .compact .buy :global(button),
+    .compact .other :global(button) {
+        min-height: 2.75rem;
     }
 </style>

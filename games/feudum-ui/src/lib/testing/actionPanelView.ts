@@ -41,9 +41,13 @@ export function blockOf<K extends ActionBlock['kind']>(
 export function primariesOf(
     view: ActionPanelView
 ): readonly Extract<ActionBlock, { kind: 'primary' }>[] {
-    return view.blocks.filter(
-        (block): block is Extract<ActionBlock, { kind: 'primary' }> => block.kind === 'primary'
-    )
+    // A trade picker holds its send beneath its choices.
+    return view.blocks.flatMap((block): Extract<ActionBlock, { kind: 'primary' }>[] => {
+        if (block.kind === 'primary') {
+            return [block]
+        }
+        return block.kind === 'trade-picker' && block.send ? [block.send] : []
+    })
 }
 
 export function primaryLabels(view: ActionPanelView): readonly string[] {

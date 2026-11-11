@@ -77,7 +77,9 @@ async function pressAll(page: Page, ...items: readonly string[]) {
 
 function itemPress(page: Page, id: string): Locator {
     return page
-        .locator(`[data-bench-place="${id}"] button, [data-bench-button="${id}"] button`)
+        .locator(
+            `[data-bench-place="${id}"] button, [data-bench-button="${id}"] button, [data-trade-card="${id}"] button`
+        )
         .first()
 }
 
@@ -198,16 +200,44 @@ test('S42 R-4.6.4 below the threshold: "0 vp · no writ", and no warning on the 
     await shot(page, 'below-threshold')
 })
 
-test('R-4.6.2 a Merchant trade: each bin’s price in rose, the payment’s split, the goods to the seat', async ({
+const picker = (page: Page) => page.locator('[data-trade-picker]')
+const tradeCard = (page: Page, id: string) => picker(page).locator(`[data-trade-card="${id}"]`)
+const upright = (page: Page) => picker(page).locator('[data-upright-guild]')
+
+/** Contract, The trade picker: the guild's board stands upright, taller than wide, its offers ringed. */
+async function expectUpright(page: Page, height: number) {
+    const box = await upright(page).boundingBox()
+    expect(box).not.toBeNull()
+    expect(Math.abs((box?.height ?? 0) - height)).toBeLessThanOrEqual(2)
+    expect(box?.height ?? 0).toBeGreaterThan(box?.width ?? 0)
+}
+
+test('S74 R-4.6.2 a Merchant trade: a bin per good, each priced; the basket adds up; one send', async ({
     page
 }) => {
     await openFunction(page, 'merchantTrade', 'merchant', /^\s*Trade/)
-    await expect(bench(page).locator('[data-bench-area]')).toHaveCount(1)
-    await expect(place(page, 'good:iron').locator('[data-bench-note="cost"]')).toBeVisible()
+    await expect(picker(page)).toBeVisible()
+    await expect(page.locator('[data-bench-area]')).toHaveCount(0)
+    await expectUpright(page, 310)
+    await expect(upright(page).locator('[data-bench-role="lit"]')).not.toHaveCount(0)
+    await expect(tradeCard(page, 'good:iron').locator('button')).toHaveAccessibleName(
+        /^Iron: \d+s → iron$/
+    )
+    await expect(picker(page).locator('[data-trade-basket]')).toContainText('empty · up to 3')
     await pressAll(page, 'good:iron', 'good:wood')
-    await expect(page.locator('[data-bench-payment]')).not.toBeEmpty()
-    await expect(page.locator('[data-bench-tray] [data-ghost]')).toHaveCount(2)
+    await expect(picker(page).locator('[data-basket-pick]')).toHaveCount(2)
+    const send = picker(page).locator('[data-bench-send] [data-primary]')
+    await expect(send).toHaveText(/^Buy 2 goods · \d+s$/)
+    const [, total] = /· (\d+)s/.exec(await send.innerText()) ?? []
+    await expect(picker(page).locator('[data-basket-total]')).toContainText(total ?? '-')
+    await expect(primary(page)).toHaveCount(1)
     await shot(page, 'merchant-trade')
+    await undo(page).click()
+    await settled(page)
+    await expect(picker(page).locator('[data-basket-pick]')).toHaveCount(1)
+    await primary(page).click()
+    await settled(page)
+    await expect(picker(page)).toHaveCount(0)
 })
 
 test('R-4.6.5 a Farmer push’s count is a press on the result line, the higher preselected', async ({
@@ -248,16 +278,38 @@ test('R-4.6.3 an Alchemist trade: a vessel for sale takes the press where it sta
     page
 }) => {
     await openFunction(page, 'alchemistTrade', 'alchemist', /^\s*Trade/)
-    await expect(place(page, 'vessel:ship').locator('[data-bench-note="cost"]')).toHaveText('3s')
-    await pressAll(page, 'vessel:ship')
+    await expectUpright(page, 310)
+    await expect(upright(page).locator('[data-bench-role="lit"]')).toHaveCount(2)
+    await expect(upright(page).locator('button')).toHaveCount(0)
+    const ship = tradeCard(page, 'vessel:ship')
+    await expect(ship).toHaveAccessibleName('Ship: 3s → ship')
+    await expect(ship.locator('[data-trade-buy] button')).toHaveText('Buy · 3s')
+    await expect(ship.locator('[data-trade-buy] button')).toHaveAccessibleName('Buy ship · 3s')
+    await expect(picker(page).locator('[data-trade-card]')).toHaveCount(2)
+    await expect(picker(page).locator('[data-purse]')).toHaveText(/^you have .*9$/)
+    await expect(picker(page).locator('[data-bench-send]')).toHaveCount(0)
     await shot(page, 'alchemist-trade')
+    await pressAll(page, 'vessel:ship')
+    await expect(picker(page)).toHaveCount(0)
+    await undo(page).click()
+    await settled(page)
+    await expect(
+        panel(page)
+            .getByRole('button', { name: /^Guild/ })
+            .first()
+    ).toBeVisible()
 })
 
 test('S44 R-4.6.3, R-4.2.4 the row’s price; the popup; the header over the map; the deploy; Undo', async ({
     page
 }) => {
     await openFunction(page, 'knightTrade', 'knight', /^\s*Trade/)
-    await expect(page.locator('[data-bench-button="row:seat"]')).toContainText('3s: take 4 markers')
+    await expect(tradeCard(page, 'row:seat')).toHaveAccessibleName(
+        "Your row's markers: 3s → 4 markers"
+    )
+    await expect(tradeCard(page, 'row:seat').locator('[data-trade-buy] button')).toHaveText(
+        'Buy · 3s'
+    )
     await pressAll(page, 'row:seat')
     await expect(popup(page)).toBeVisible()
     await expect(popup(page).locator('[data-row]').last()).toHaveText('No')
@@ -422,10 +474,28 @@ test('S48 R-3.4, R-4.3-H3 a Feast short of sulfur, with a tile: dimmed, and wher
         .first()
     await expect(feast).toHaveAttribute('aria-disabled', 'true')
     await feast.click({ force: true })
-    await expect(panel(page).locator('[data-refusal]').first()).toContainText(
+    await expect(panel(page).locator('[data-refusal], [data-reason]').first()).toContainText(
         'Undo, then spend a region tile.'
     )
     await shot(page, 'feast-short')
+})
+
+test('S74 R-3.16.3 a trade open, Feast stands under its cards, dimmed with its reason', async ({
+    page
+}) => {
+    await openFunction(page, 'feastShortTrade', 'knight', /^\s*Trade/)
+    const feast = picker(page).locator('[data-trade-other] button')
+    await expect(feast).toContainText('Feast')
+    await expect(feast).toHaveAttribute('aria-disabled', 'true')
+    await expect(picker(page).locator('[data-trade-other] [data-reason]')).toContainText(
+        'Undo, then spend a region tile.'
+    )
+    await feast.click({ force: true })
+    await expect(picker(page)).toBeVisible()
+    const cards = await picker(page).locator('[data-trade-cards]').boundingBox()
+    const under = await feast.boundingBox()
+    expect(under?.y ?? 0).toBeGreaterThan((cards?.y ?? 0) + (cards?.height ?? 0) - 1)
+    await shot(page, 'feast-short-trade')
 })
 
 test('S70 R-4.6.3 full screen: the bench and its popup stand inside the dialog, and still send', async ({
@@ -441,7 +511,7 @@ test('S70 R-4.6.3 full screen: the bench and its popup stand inside the dialog, 
     await popupRow(page, /^\s*Trade/).click()
     await settled(page)
     await expect(page.locator('dialog:modal [data-bench]')).toBeVisible()
-    await page.locator('[data-bench-button="row:seat"] button').click()
+    await page.locator('[data-trade-buy="row:seat"] button').click()
     await expect(page.locator('dialog:modal [data-board-popup]')).toBeVisible()
     await shot(page, 'full-screen-bench')
     await page.keyboard.press('Escape')
