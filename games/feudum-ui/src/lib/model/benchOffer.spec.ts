@@ -443,7 +443,7 @@ describe('R-4.6-H5 fewer than stated', () => {
         expect(none.line).toBe('Buy up to 3')
         expect(none.primary?.enabled).toBe(false)
         expect(offerOf(turn, 'merchant', 'trade', { picks: goods('iron') }).primary).toEqual({
-            label: 'Buy 1 good',
+            label: 'Buy 1 good · 1s',
             enabled: true
         })
     })
@@ -594,7 +594,7 @@ describe('R-4.6 per guild and function', () => {
         )
         expect(offer.items.map(({ note }) => note?.label)).toEqual(['3s', '3s', '3s'])
         expect(offer.line).toBe('Buy up to 2')
-        expect(offer.primary).toEqual({ label: 'Buy 1 seal', enabled: true })
+        expect(offer.primary).toEqual({ label: 'Buy 1 seal · 3s', enabled: true })
         item(offer, /r1c1$/).press?.()
         expect(press.pressed).toEqual([[]])
     })
