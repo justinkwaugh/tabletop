@@ -8,7 +8,8 @@ import {
     MachineState,
     placeMarker,
     type ActionCardKind,
-    type SpaceId
+    type SpaceId,
+    type TileId
 } from '@tabletop/feudum'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -173,10 +174,11 @@ describe('R-4.4.1 The keep', () => {
     })
 
     it('R-4.4-H1 with no iron, a lone tile is named by the button, by region and epoch, as an auto stage', async () => {
-        let tileId = ''
+        let tileId: TileId | undefined
         const { session } = await explored((state, seat) => {
             tileId = giveTile(state, seat)
         })
+        assertExists(tileId)
         await press(session, session.keepWritsPanel?.writs[0])
         expect(session.keepWritsPanel?.shovels).toEqual({
             label: `Keep, then Shovels & Swords · ${tileName(tileId)} tile for iron · draw 2 more · can't be undone`,
@@ -908,11 +910,12 @@ describe('R-3.14.2 AnswerStarve', () => {
     })
 
     it('R-3.14-H3 no food and one tile: an auto stage names the tile by region and epoch and waits for the press', async () => {
-        let tileId = ''
+        let tileId: TileId | undefined
         const { answerer } = await askedToAnswerStarve(['defend', 'tax'], (state, other) => {
             holdFood(state, other, 0)
             tileId = giveTile(state, other)
         })
+        assertExists(tileId)
         expect(answerer.answerStarve.entry('cover')?.source).toBe('auto')
         expect(answerer.answerStarvePanel?.immunity?.label).toBe(
             `Royal Immunity · ${tileName(tileId)} tile for food · can't be undone`
