@@ -229,27 +229,27 @@ describe('Setup', () => {
         expect(rowsOf(session.actionPanel)).toEqual([])
     })
 
-    it('S2 R-1.4.9 six characters, each with its rank; a press and the hover both light the six spaces; a lit space sends', async () => {
+    it('S2 R-1.4.9 six characters as guild dice, each with its rank; a press and the hover both light the six spaces; a lit space sends', async () => {
         const table = openHost()
         await table.playStartingGoods()
         const seat = table.setupSeat
         const session = await table.openSeat(seat)
         const rows = rowsOf(session.actionPanel, 'characters')
-        expect(rows.map(({ choice }) => choice.label).sort()).toEqual([
-            'Alchemist',
-            'Farmer',
-            'Knight',
-            'Merchant',
-            'Monk',
-            'Noble'
+        expect(rows.map(({ art }) => art?.kind === 'die' && art.guild).sort()).toEqual([
+            'alchemist',
+            'farmer',
+            'knight',
+            'merchant',
+            'monk',
+            'noble'
         ])
-        expect(rows.every(({ art }) => art?.kind === 'pawn')).toBe(true)
-        const knight = rowNamed(session.actionPanel, 'Knight')
-        expect(knight.choice.note).toEqual({ kind: 'role', label: 'master' })
+        const knight = rowNamed(session.actionPanel, 'Knight, master')
+        expect(knight.art).toEqual({ kind: 'die', guild: 'knight', rank: 'master' })
+        expect(knight.choice.note).toBeUndefined()
         expect(knight.choice.lights?.()).toEqual(StartingSpaceIds.map(spaceTarget))
 
         await pressRow(knight)
-        expect(rowNamed(session.actionPanel, 'Knight').choice.picked).toBe(true)
+        expect(rowNamed(session.actionPanel, 'Knight, master').choice.picked).toBe(true)
         await session.pressStartingSpace(Inland)
         await settled(session)
         expect(table.sent.get(seat)?.[0]).toMatchObject({
@@ -259,7 +259,7 @@ describe('Setup', () => {
         })
     })
 
-    it('S2 R-1.4.9 the space first: the panel steps aside and the popup asks, with the same rank notes', async () => {
+    it('S2 R-1.4.9 the space first: the panel steps aside and the popup asks, with the same dice', async () => {
         const table = openHost()
         await table.playStartingGoods()
         const session = await table.openSeat(table.setupSeat)
@@ -267,8 +267,9 @@ describe('Setup', () => {
         flushSync()
         expect(rowsOf(session.actionPanel, 'characters')).toEqual([])
         expect(linesOf(session.actionPanel)).toEqual(['Choose who stands here'])
-        const knight = session.boardPopup?.choices.find(({ label }) => label === 'Knight')
-        expect(knight?.note).toEqual({ kind: 'role', label: 'master' })
+        const knight = session.boardPopup?.choices.find(({ label }) => label === 'Knight, master')
+        expect(knight?.art).toEqual({ kind: 'die', guild: 'knight', rank: 'master' })
+        expect(knight?.note).toBeUndefined()
     })
 
     it('S2 R-1.4.9 another seat reads who places', async () => {
@@ -281,13 +282,17 @@ describe('Setup', () => {
         ])
     })
 
-    it('S3 R-4.5 the rank chip follows the tracks, down to none', async () => {
+    it('S3 R-4.5 the rank badge follows the tracks, down to none', async () => {
         const table = openHost(5)
         await table.playStartingGoods()
-        for (const chip of ['master', 'journeyman', 'apprentice', 'no rank']) {
+        for (const rank of ['master', 'journeyman', 'apprentice', 'none'] as const) {
             const seat = table.setupSeat
             const session = await table.openSeat(seat)
-            expect(rowNamed(session.actionPanel, 'Knight').choice.note?.label).toBe(chip)
+            const knight = rowsOf(session.actionPanel, 'characters').find(
+                ({ art }) => art?.kind === 'die' && art.guild === 'knight'
+            )
+            expect(knight?.art).toEqual({ kind: 'die', guild: 'knight', rank })
+            expect(knight?.choice.label).toBe(`Knight, ${rank === 'none' ? 'no rank' : rank}`)
             await table.send(seat, {
                 type: ActionType.PlaceStartingPawn,
                 character: 'knight',
@@ -548,7 +553,7 @@ describe('Playing a card', () => {
         await pressRow(rowNamed(session.actionPanel, 'Distant Kin'))
         const [pick] = session.turn.flow?.picks ?? []
         await pressTarget(session, pick.target)
-        await pressPopup(session, 'Monk')
+        await pressPopup(session, /^Monk, /)
         await settled(session)
         expect(lastByUser(turn)).toMatchObject({ type: ActionType.Migrate, distantKin: true })
         expect(session.undoableAction).toBeDefined()

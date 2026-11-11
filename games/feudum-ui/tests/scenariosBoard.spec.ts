@@ -154,7 +154,7 @@ scenario(
                 .first()
         )
         await table.pressPick(Forest2)
-        await table.press(table.popupRow('Farmer'))
+        await table.press(table.popupRowStarting('Farmer, '))
         await expect(table.turnLine()).toHaveText('Your second card')
         expect(await table.piecesNamed('pawn:p1')).toHaveLength(2)
 

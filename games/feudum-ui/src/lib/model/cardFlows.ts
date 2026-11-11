@@ -7,7 +7,6 @@ import {
     Explore,
     exploreOffer,
     goodsShort,
-    GuildById,
     harvestOffers,
     Harvest,
     Improve,
@@ -46,6 +45,7 @@ import {
     type ConquerOffer,
     type DiscId,
     type FeudumProjectedState,
+    type Good,
     type GuildId,
     type HarvestMode,
     type HydratedFeudumGameState,
@@ -68,6 +68,7 @@ import {
 } from './boardOffer.js'
 import type { CardAction, TurnContext } from './cardModes.js'
 import type { SendPreview } from './confirmingSend.js'
+import { dieLabel, rankedDie, type DieArt } from './guildDie.js'
 import { coverAfterPress, coverNeeds, coverSpends } from './tileCover.js'
 import { tileArt, tileName, type TileArt } from './tileName.js'
 
@@ -136,8 +137,11 @@ export interface TurnPresser {
 }
 export type TurnPress = (draft: TurnPresser) => void
 
-/** The piece a row shows before its label; the panel paints a pawn in the seat's colour. */
-export type ChoiceArt = { readonly kind: 'pawn'; readonly character?: Character } | TileArt
+/**
+ * The piece a row shows before its label; the panel paints a pawn in the seat's colour. A guild's
+ * die is the whole choice, with the label as its accessible name.
+ */
+export type ChoiceArt = { readonly kind: 'pawn'; readonly character?: Character } | TileArt | DieArt
 
 export interface PanelChoice {
     readonly label: string
@@ -265,10 +269,17 @@ function playIf(
     return reason === undefined ? { ...preview, build } : undefined
 }
 
-function priceLabel(): string {
-    return Object.entries(MigrateFood)
-        .map(([good, count]) => `${count} ${good}`)
-        .join(', ')
+/** R-3.6.1 The food a pawn from supply costs, as its goods: the chip draws them, the label names them. */
+function priceNote(): ChipNote {
+    const goods = Object.entries(MigrateFood).map(([good, count]) => ({
+        good: good as Good,
+        count
+    }))
+    return {
+        kind: 'cost',
+        label: goods.map(({ good, count }) => `${count} ${good}`).join(', '),
+        goods
+    }
 }
 
 /** R-3.6 */
@@ -326,11 +337,7 @@ function migrateFlow(flow: FlowInput): FlowView {
     const spaceId = read('space')
     const picks: FlowPick[] = (distantKin ? StartingSpaceIds : offers.spaces).map((id) => ({
         target: spaceTarget(id),
-        notes: [
-            distantKin
-                ? { kind: 'role', label: 'Distant Kin' }
-                : { kind: 'cost', label: priceLabel() }
-        ],
+        notes: [distantKin ? { kind: 'role', label: 'Distant Kin' } : priceNote()],
         press: Pick('space', id)
     }))
     const picked = spaceId ? [spaceTarget(spaceId)] : []
@@ -347,8 +354,7 @@ function migrateFlow(flow: FlowInput): FlowView {
             popup: {
                 anchor: spaceTarget(spaceId),
                 choices: offers.characters.map(({ character: choice, rank }) => ({
-                    label: GuildById[choice].name,
-                    note: { kind: 'role', label: rank ?? 'no rank' },
+                    ...rankedDie(choice, rank),
                     picked: false,
                     press: Pick('character', choice)
                 }))
@@ -521,7 +527,8 @@ function improveFlow({ state, playerId, input, read }: FlowInput): FlowView {
             popup: {
                 anchor,
                 choices: offer.feudumGuilds.map((id) => ({
-                    label: GuildById[id].name,
+                    label: dieLabel(id),
+                    art: { kind: 'die', guild: id },
                     picked: false,
                     press: Pick('guild', id)
                 }))

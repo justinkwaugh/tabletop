@@ -50,16 +50,18 @@ scenario('S1 R-1.4.8 ChooseStartingGoods', 'setup-goods', async (table) => {
 })
 
 scenario('S2 R-1.4.9 PlaceStartingPawn, either order', 'setup-pawn', async (table) => {
-    const knight = table.rowIn('characters', 'Knight')
+    const knight = table.rowIn('characters', 'Knight, master')
 
-    await expect(table.panel().locator('[data-row="Knight"]')).toContainText('master')
+    await expect(knight).toHaveAttribute('aria-label', 'Knight, master')
+    await expect(knight.locator('[data-die="knight"] [data-badge]')).toHaveText('M')
+    await expect(knight.locator('[data-die-caption]')).toHaveText('Knight')
     await table.press(knight)
-    await expect(table.panel().locator('[data-row="Knight"][data-picked]')).toHaveCount(1)
+    await expect(table.panel().locator('[data-row="Knight, master"][data-picked]')).toHaveCount(1)
     expect(Object.keys(await table.litChips()).sort()).toEqual(StartingSpaces)
     expect(await table.mapDims()).toBe(true)
 
     await table.press(table.undo())
-    await expect(table.panel().locator('[data-row="Knight"][data-picked]')).toHaveCount(0)
+    await expect(table.panel().locator('[data-row="Knight, master"][data-picked]')).toHaveCount(0)
 
     await table.press(knight)
     const flights = await table.flightsOf(() => table.pressPick('space:space.desert.3'))
@@ -71,20 +73,25 @@ scenario('S2 R-1.4.9 PlaceStartingPawn, either order', 'setup-pawn', async (tabl
     await table.pressPick('space:space.forest.2')
     await expect(table.popup()).toBeVisible()
     await expect(table.panel().getByText('Choose who stands here')).toBeVisible()
-    await expect(table.popup().locator('[data-row="Knight"]')).toContainText('journeyman')
+    await expect(table.popup().locator('[data-popup-dice] [data-die]')).toHaveCount(6)
+    await expect(table.popup().locator('[data-row="Knight, journeyman"] [data-badge]')).toHaveText(
+        'J'
+    )
     await table.press(table.undo())
     await expect(table.popup()).toHaveCount(0)
     await table.pressPick('space:space.forest.2')
-    await table.press(table.popupRow('Knight'))
+    await table.press(table.popupRow('Knight, journeyman'))
     await expect(table.waitingLine()).toHaveText('Cleo places a starting pawn')
 })
 
-scenario('S3 R-4.5 Rank chips follow the tracks', 'setup-third-knight', async (table) => {
-    const knight = table.panel().locator('[data-row="Knight"]')
-    await expect(knight).toContainText('apprentice')
-    await table.press(table.rowIn('characters', 'Knight'))
-    await expect(knight).toContainText('apprentice')
+scenario('S3 R-4.5 Rank badges follow the tracks', 'setup-third-knight', async (table) => {
+    const knight = table.panel().locator('[data-rows="characters"] [data-row^="Knight, "]')
+    await expect(knight).toHaveAttribute('data-row', 'Knight, apprentice')
+    await expect(knight.locator('[data-badge]')).toHaveText('A')
+    await table.press(table.rowIn('characters', 'Knight, apprentice'))
+    await expect(knight.locator('[data-badge]')).toHaveText('A')
     await table.pressPick('space:space.forest.2')
     await table.showSeat('p4')
-    await expect(knight).toContainText('no rank')
+    await expect(knight).toHaveAttribute('data-row', 'Knight, no rank')
+    await expect(knight.locator('[data-badge]')).toHaveText('–')
 })

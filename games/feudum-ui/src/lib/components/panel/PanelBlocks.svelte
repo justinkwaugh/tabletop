@@ -115,7 +115,11 @@
             <GameEndSummary summary={block.summary} seats={block.seats} />
         {:else if block.kind === 'rows'}
             <div
-                class="flex flex-wrap items-center gap-1 {block.name === 'pouch'
+                class="flex flex-wrap items-center {block.rows.every(
+                    ({ art }) => art?.kind === 'die'
+                )
+                    ? 'gap-4 max-sm:gap-1'
+                    : 'gap-1'} {block.name === 'pouch'
                     ? 'pinned max-sm:[&_.beside-art]:sr-only'
                     : ''}"
                 data-rows={block.name}

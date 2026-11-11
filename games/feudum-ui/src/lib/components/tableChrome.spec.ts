@@ -72,6 +72,29 @@ describe('Board chrome (contract: Pick conventions, Board surface)', () => {
         expect(html).toContain('2s')
     })
 
+    it('R-3.6.1 A chip that costs goods draws them, each with its count; the words stay its name', () => {
+        const chip = {
+            kind: 'cost',
+            label: '1 food',
+            goods: [{ good: 'food', count: 1 }],
+            tone: 'rose'
+        } as const
+        const html = render(PickChrome, {
+            props: {
+                target: spaceTarget(A),
+                chrome: chromeWith(new Map([[spaceTarget(A), { role: 'lit', chip }]])),
+                at: { x: 0, y: 0 },
+                width: 40,
+                label: 'A'
+            }
+        }).body
+        expect(html).toContain('data-chip="rose"')
+        expect(html).toContain('aria-label="1 food"')
+        expect(html).toContain('aria-label="food"')
+        expect(html).toMatch(/<text[^>]*>1<\/text>/)
+        expect(html).not.toMatch(/<text[^>]*>1 food<\/text>/)
+    })
+
     it('R-1.2 Each layer dims its own unlit elements; there is no scrim over the board', async () => {
         const host = new FeudumHost(3)
         const state = new HydratedFeudumGameState(structuredClone(host.state))

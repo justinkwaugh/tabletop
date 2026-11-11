@@ -4,11 +4,13 @@
     import TileFace from '$lib/components/pieces/TileFace.svelte'
     import PanelRow, { type RowPointer } from '$lib/components/table/PanelRow.svelte'
     import type { ActionRow } from '$lib/model/actionPanel.js'
+    import DieChoice from './DieChoice.svelte'
     import RowChoice from './RowChoice.svelte'
 
     /**
      * One row with its art, and what it asks beside itself: R-1.4.8 the sulfur's destination. A
-     * held tile shows its landscape once known (R-4.3), its epoch side before.
+     * held tile shows its landscape once known (R-4.3), its epoch side before. A guild's die is the
+     * whole row.
      */
     let { row, pointer }: { row: ActionRow; pointer: RowPointer } = $props()
 
@@ -33,12 +35,16 @@
     {/if}
 {/snippet}
 
-<PanelRow
-    choice={row.choice}
-    {pointer}
-    lead={row.art ? lead : undefined}
-    onPress={() => void row.press()}
-/>
+{#if row.art?.kind === 'die'}
+    <DieChoice choice={row.choice} art={row.art} {pointer} onPress={() => void row.press()} />
+{:else}
+    <PanelRow
+        choice={row.choice}
+        {pointer}
+        lead={row.art ? lead : undefined}
+        onPress={() => void row.press()}
+    />
+{/if}
 {#if row.popup}
     <span
         class="inline-flex items-center gap-1 rounded-lg border border-feudum-accent bg-feudum-surface-raised p-1"

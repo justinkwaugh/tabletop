@@ -30,6 +30,7 @@ import {
     type Character,
     type FeudumProjectedState,
     type Good,
+    type GuildRank,
     type HydratedFeudumGameState,
     type PouchGood,
     type SpaceId
@@ -43,6 +44,7 @@ import { deriveBoardOffer, spaceTarget, type BoardOffer, type BoardTarget } from
 import { CommitAttackDraft, type CommitPanel } from './commitAttackDraft.svelte.js'
 import { primaryLabel, sendsOnPress } from './confirmingSend.js'
 import { DiscDraft, type DiscPanel } from './discDraft.svelte.js'
+import { rankedDie } from './guildDie.js'
 import { FavoursDraft, type FavoursPanel } from './favoursDraft.svelte.js'
 import { HandDraft, handDraftKey } from './handDraft.svelte.js'
 import { GuildDraft, type GuildContext, type GuildPanel } from './guildDraft.svelte.js'
@@ -96,8 +98,8 @@ export interface StartingPawnPanel {
     readonly deciding: boolean
     readonly characters: readonly {
         readonly character: Character
-        /** R-4.5 "master", "journeyman", "apprentice" or "no rank". */
-        readonly rankChip: string
+        /** R-4.5 The rank this character would give now; absent, none. */
+        readonly rank?: GuildRank
         readonly picked: boolean
     }[]
     readonly pickedSpace?: SpaceId
@@ -392,9 +394,8 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         return panel?.asksCharacter && panel.pickedSpace
             ? {
                   anchor: spaceTarget(panel.pickedSpace),
-                  choices: panel.characters.map(({ character, rankChip, picked }) => ({
-                      label: `${character.charAt(0).toUpperCase()}${character.slice(1)}`,
-                      note: { kind: 'role', label: rankChip },
+                  choices: panel.characters.map(({ character, rank, picked }) => ({
+                      ...rankedDie(character, rank),
                       picked,
                       press: () => {
                           void this.pressStartingCharacter(character)
@@ -537,7 +538,7 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             characters: startingPawnOffers(state, deciderId).characters.map(
                 ({ character, rank }) => ({
                     character,
-                    rankChip: rank ?? 'no rank',
+                    ...(rank ? { rank } : {}),
                     picked: deciding && draft.character === character
                 })
             ),
