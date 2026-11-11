@@ -93,7 +93,7 @@
         padding: 3px 12px;
         border-radius: 999px;
         font-weight: 700;
-        box-shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+        box-shadow: 0 1px 0 rgb(0 0 0 / 0.4);
     }
 
     .active .plate {

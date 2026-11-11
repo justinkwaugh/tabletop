@@ -1,4 +1,4 @@
-// Generated from the Industrie und Glück scans by a card-import script kept outside the repository; do not edit.
+// Generated from the Industrie und Glück scans by import-cards.mjs, which is kept with the scans outside the repository; do not edit.
 
 import card0 from './classic/trump-1.webp'
 import card1 from './classic/trump-2.webp'

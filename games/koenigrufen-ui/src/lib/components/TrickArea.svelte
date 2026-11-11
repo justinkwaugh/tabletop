@@ -84,7 +84,7 @@
         inset: -1px;
         border: 2px solid #4a9eff;
         border-radius: calc(var(--card-w) * 0.07 + 1px);
-        box-shadow: 0 0 6px rgb(74 158 255 / 0.6);
+        box-shadow: 0 0 0 2px rgb(74 158 255 / 0.35);
         pointer-events: none;
     }
 
@@ -97,6 +97,6 @@
         white-space: nowrap;
         font-size: 0.85rem;
         color: #f1e7cf;
-        text-shadow: 0 1px 2px rgb(0 0 0 / 0.7);
+        text-shadow: 0 1px 0 rgb(0 0 0 / 0.7);
     }
 </style>

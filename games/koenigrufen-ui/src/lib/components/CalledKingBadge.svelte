@@ -25,7 +25,7 @@
         border: 1px solid #b9ae95;
         border-radius: 5px;
         background: #f7f3ec;
-        box-shadow: 0 1px 3px rgb(0 0 0 / 0.45);
+        box-shadow: 0 1px 0 rgb(0 0 0 / 0.45);
         color: #1b1b1b;
         font-size: 1.1em;
         font-weight: 800;

@@ -139,7 +139,7 @@
         border-radius: 10px;
         background: rgb(16 30 21 / 0.97);
         color: #f1e7cf;
-        box-shadow: 0 10px 30px rgb(0 0 0 / 0.5);
+        box-shadow: 0 6px 0 rgb(0 0 0 / 0.35);
         font-size: 0.95rem;
     }
 

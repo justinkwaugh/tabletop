@@ -15,6 +15,11 @@
 - **Trigger:** the viewport is wider than 640px.
 - **Fit:** the 1200×860 table fits the room under the action area inside a margin (12px above, 16px at the sides and below) and grows past its natural size up to 1.5 times, so a large monitor shows it bigger without it reaching the edges (at 2560×1277 it is about 1365×978). Zooming in stops at 1.5 times too.
 
+### Depth
+
+- **The felt:** a radial gradient that darkens towards the edge; there is no inset shadow.
+- **Shadows:** cards, card backs, name plates, the called-King chip, player panels and the menus cast unblurred offset shadows (a 1px edge under a card, deeper under a raised card or a menu). The winning card's blue edge has a soft 2px halo drawn as a solid ring. A hand card's rise is its only animated change; its shadow and dimming switch at once. Blurred shadows made the table repaint for about 400ms on a phone.
+
 ### Short names
 
 - Cards are written as rank then suit (K♠, 10♥, Q♦); trumps as their pack prints them (21, or XXI with Industrie und Glück), the Sküs by name. A called king is K♠, or "4th K" for the fourth king. The header reads "Hand 1/12".

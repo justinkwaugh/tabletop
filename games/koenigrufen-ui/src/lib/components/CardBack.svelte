@@ -20,7 +20,7 @@
         overflow: hidden;
         border-radius: calc(var(--card-w, 80px) * 0.07);
         border: 1px solid #b9ae95;
-        box-shadow: 0 1px 3px rgb(0 0 0 / 0.45);
+        box-shadow: 0 1px 0 rgb(0 0 0 / 0.45);
         background: #f7f3ec;
     }
 

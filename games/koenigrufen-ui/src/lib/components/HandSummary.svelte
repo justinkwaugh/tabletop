@@ -180,7 +180,7 @@
         border-radius: 14px;
         background: rgb(16 28 20 / 0.92);
         border: 1px solid rgb(242 201 76 / 0.35);
-        box-shadow: 0 6px 24px rgb(0 0 0 / 0.5);
+        box-shadow: 0 6px 0 rgb(0 0 0 / 0.35);
         color: #f1e7cf;
     }
 

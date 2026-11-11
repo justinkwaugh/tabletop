@@ -51,11 +51,10 @@
         border-radius: calc(var(--card-w, 80px) * 0.07);
         border: 1px solid #b9ae95;
         background: #f7f3ec;
-        box-shadow: 0 1px 3px rgb(0 0 0 / 0.45);
-        transition:
-            transform 120ms ease,
-            box-shadow 120ms ease,
-            filter 120ms ease;
+        /* Shadows are unblurred offset shapes, and only the lift is animated, so cards repaint
+           cheaply on phones. */
+        box-shadow: 0 1px 0 rgb(0 0 0 / 0.45);
+        transition: transform 120ms ease;
     }
 
     .card:disabled {
@@ -73,7 +72,7 @@
         cursor: pointer;
         box-shadow:
             0 0 0 2px #f2c94c,
-            0 2px 6px rgb(0 0 0 / 0.5);
+            0 3px 0 rgb(0 0 0 / 0.4);
     }
 
     .selectable:hover {
@@ -84,7 +83,7 @@
         transform: translateY(-14%);
         box-shadow:
             0 0 0 3px #6fcf97,
-            0 4px 10px rgb(0 0 0 / 0.55);
+            0 5px 0 rgb(0 0 0 / 0.4);
     }
 
     .dimmed {

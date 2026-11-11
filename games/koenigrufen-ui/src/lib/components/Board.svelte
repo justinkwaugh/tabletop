@@ -99,8 +99,15 @@
         width: 1200px;
         height: 860px;
         border-radius: 28px;
-        background: radial-gradient(ellipse at center, #2f6b45 0%, #1f4d31 70%, #173b26 100%);
-        box-shadow: inset 0 0 40px rgb(0 0 0 / 0.5);
+        /* The edges darken in the gradient itself: a blurred inset shadow this size is slow to
+           repaint on phones. */
+        background: radial-gradient(
+            ellipse at center,
+            #2f6b45 0%,
+            #1f4d31 62%,
+            #173b26 88%,
+            #10291b 100%
+        );
     }
 
     /* The trick, side seats and middle talon centre on the room between the top seat and my hand. */

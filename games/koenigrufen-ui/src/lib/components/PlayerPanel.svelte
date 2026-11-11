@@ -43,7 +43,7 @@
         border: 1px solid #b9ae95;
         background: #fbf8ef;
         color: #2a2116;
-        box-shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+        box-shadow: 0 1px 0 rgb(0 0 0 / 0.4);
     }
 
     .name {
