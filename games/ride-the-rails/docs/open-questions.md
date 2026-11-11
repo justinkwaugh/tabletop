@@ -2,6 +2,8 @@
 
 Every place the digest is silent, ambiguous or self-contradictory, and every place two readings would make different code. Each has a recommended ruling. Once answered, each becomes an `R-x.y-H<n>` entry in `rulings.md` and is struck from here.
 
+**Scope of the first release:** the USA map only. The expansion maps (R-8.2 to R-8.5) come later, and with them Q9, Q10, Q11, Q12, Q13, Q17, Q18, Q21, Q23 and the expansion halves of Q3 and Q16; those stay here, deferred, until then. Q1 is settled for now: one map, so no map option yet.
+
 Questions marked _(map)_ need the map boards before they can be settled; the rest can be settled from the rules alone.
 
 ## How to read a question

@@ -169,7 +169,7 @@ No component carries rules text. The board prints reminders of R-3.2 and R-4.1 (
 
 ## R-8 Maps
 
-The base rules apply on every map except where a section below changes them. Each map's hexes, terrain, cities, start colours and bonus cities are a gap until the boards are supplied.
+The base rules apply on every map except where a section below changes them. The first release plays the USA map only; R-8.2 to R-8.5 are recorded for the later expansion maps. Each map's hexes, terrain, cities, start colours and bonus cities are a gap until the boards are supplied.
 
 ### R-8.1 USA (B)
 
