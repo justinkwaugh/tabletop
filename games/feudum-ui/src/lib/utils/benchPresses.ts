@@ -74,3 +74,67 @@ export function widenedSpans(spans: readonly Span[], whole: number, least: numbe
     })
     return widened
 }
+
+/** A press's place on a guild area, in the area's own units. */
+export interface Box {
+    readonly x: number
+    readonly y: number
+    readonly width: number
+    readonly height: number
+}
+
+/**
+ * S68 Each box grows toward `least` across and down, as `widenedSpans` grows a span. Along each
+ * axis its neighbours are the boxes that share some of its extent on the other axis: the printed
+ * Knight rows, side by side, are neighbours across; the drawn ones, stacked, are neighbours down.
+ */
+export function widenedBoxes(
+    boxes: readonly Box[],
+    whole: { readonly width: number; readonly height: number },
+    least: number
+): Box[] {
+    const across = along(boxes, 'x', 'width', 'y', 'height', whole.width, least)
+    const down = along(boxes, 'y', 'height', 'x', 'width', whole.height, least)
+    return boxes.map((_, at) => ({
+        x: across[at]!.x,
+        width: across[at]!.width,
+        y: down[at]!.x,
+        height: down[at]!.width
+    }))
+}
+
+function along(
+    boxes: readonly Box[],
+    start: 'x' | 'y',
+    size: 'width' | 'height',
+    otherStart: 'x' | 'y',
+    otherSize: 'width' | 'height',
+    whole: number,
+    least: number
+): Span[] {
+    const result: Span[] = boxes.map((box) => ({ x: box[start], width: box[size] }))
+    const order = boxes
+        .map((_, index) => index)
+        .sort((a, b) => boxes[a]![otherStart] - boxes[b]![otherStart])
+    // Boxes whose extents on the other axis overlap, one after another, share this axis.
+    const groups: number[][] = []
+    let reach = -Infinity
+    for (const index of order) {
+        const box = boxes[index]!
+        if (groups.length === 0 || box[otherStart] >= reach) {
+            groups.push([])
+            reach = -Infinity
+        }
+        groups.at(-1)!.push(index)
+        reach = Math.max(reach, box[otherStart] + box[otherSize])
+    }
+    for (const group of groups) {
+        const spans = widenedSpans(
+            group.map((index) => result[index]!),
+            whole,
+            least
+        )
+        group.forEach((index, at) => (result[index] = spans[at]!))
+    }
+    return result
+}
