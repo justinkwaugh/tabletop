@@ -86,6 +86,33 @@ test('S59 a stack, a tile in it and a bead enlarge; Escape closes one layer at a
     expect(await page.evaluate(() => JSON.stringify(window.feudumSession.gameState))).toBe(before)
 })
 
+test('S59 a press on the enlarged piece closes it, as a press beside it does; no close button stands over it', async ({
+    page
+}) => {
+    await createGame(page)
+    await playToCards(page)
+    const before = await page.evaluate(() => JSON.stringify(window.feudumSession.gameState))
+    const layer = page.locator('[data-table-layer="enlarged"]')
+    const close = layer.getByRole('button', { name: 'Close', exact: true })
+
+    await page.locator('[data-enlarge="bead"]').first().click()
+    await expect(enlarged(page)).toBeVisible()
+    await expect(layer.getByText('Close', { exact: true })).toHaveCount(0)
+    await enlarged(page).click()
+    await expect(enlarged(page)).toHaveCount(0)
+
+    await page.locator('[data-enlarge="bead"]').first().click()
+    await expect(close).toBeVisible()
+    await close.press('Enter')
+    await expect(enlarged(page)).toHaveCount(0)
+
+    await page.locator('[data-enlarge="bead"]').first().click()
+    await layer.locator('[data-backdrop]').click({ position: { x: 5, y: 5 } })
+    await expect(enlarged(page)).toHaveCount(0)
+
+    expect(await page.evaluate(() => JSON.stringify(window.feudumSession.gameState))).toBe(before)
+})
+
 test('a popup sits beside its anchor; a press outside does nothing; Undo removes it', async ({
     page
 }) => {

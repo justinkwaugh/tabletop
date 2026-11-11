@@ -10,6 +10,7 @@
         layer,
         onClose,
         sheet,
+        closeButton = true,
         children
     }: {
         label: string
@@ -17,6 +18,8 @@
         onClose: () => void
         /** On a phone it stands as a bottom sheet, up to this much of the dynamic viewport. */
         sheet?: number
+        /** Without one, what the layer holds is its own close press (contract: Card preview). */
+        closeButton?: boolean
         children: Snippet
     } = $props()
 </script>
@@ -42,12 +45,14 @@
         style:max-height={sheet === undefined ? undefined : `${sheet}dvh`}
         data-sheet={sheet === undefined ? undefined : ''}
     >
-        <button
-            type="button"
-            class="absolute right-1 top-1 z-10 rounded-full bg-feudum-control hover:bg-feudum-control-hover px-3 py-1 text-sm text-feudum-text"
-            data-close
-            onclick={onClose}>Close</button
-        >
+        {#if closeButton}
+            <button
+                type="button"
+                class="absolute right-1 top-1 z-10 rounded-full bg-feudum-control hover:bg-feudum-control-hover px-3 py-1 text-sm text-feudum-text"
+                data-close
+                onclick={onClose}>Close</button
+            >
+        {/if}
         {@render children()}
     </div>
 </div>
