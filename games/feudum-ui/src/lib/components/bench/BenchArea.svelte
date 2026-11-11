@@ -8,8 +8,10 @@
     import type { BenchItem } from '$lib/model/benchOffer.js'
     import type { BenchAreaView, BenchBox, GhostPiece, PlacedGhost } from '$lib/model/benchView.js'
     import type { PanelChoice } from '$lib/model/cardFlows.js'
+    import { MeasuredWidth } from '$lib/model/measuredWidth.svelte.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import { BenchAreaWidth, GuildBox, GuildSizes } from '$lib/utils/boardGeometry.js'
+    import { widenedSpans, type Span } from '$lib/utils/benchPresses.js'
     import BenchGhostPiece from './BenchGhostPiece.svelte'
 
     /**
@@ -39,6 +41,31 @@
     } = $props()
 
     const percent = (value: number, whole: number) => `${(value / whole) * 100}%`
+
+    /** The touch-target minimum, in CSS pixels (contract: Touch targets). */
+    const Target = 44
+
+    /**
+     * S68 A Knight row is narrower than a finger at bench scale, so each row that takes a press
+     * reaches past its printed column, as far as the target asks and its pressing neighbours allow;
+     * its ring stays over the print.
+     */
+    const measured = new MeasuredWidth()
+    const reaches = $derived.by(() => {
+        const rows = area.placed.filter(
+            ({ item, presses }) => presses && item.id.startsWith('row:')
+        )
+        const shown = measured.width
+        if (rows.length === 0 || shown === undefined) {
+            return new Map<string, Span>()
+        }
+        const spans = widenedSpans(
+            rows.map(({ box }) => box),
+            GuildBox.width,
+            (Target * GuildBox.width) / shown
+        )
+        return new Map(rows.map(({ item }, at) => [item.id, spans[at]!]))
+    })
 
     function sizeOf(piece: GhostPiece): number {
         switch (piece.kind) {
@@ -97,7 +124,7 @@
     style:width="min({fit ?? BenchAreaWidth}px, {BenchAreaWidth}px, 100%)"
     data-bench-area={area.guild}
 >
-    <div class="relative" data-pick={guildTarget(area.guild)}>
+    <div class="relative" data-pick={guildTarget(area.guild)} {@attach measured.attach}>
         <GuildArea
             guild={area.guild}
             {state}
@@ -107,11 +134,13 @@
             over={ghosts}
         />
         {#each area.placed as { item, box, presses } (item.id)}
+            {@const reach = reaches.get(item.id) ?? box}
             <div
                 class="item absolute"
-                style:left={percent(box.x, GuildBox.width)}
+                class:still={!presses}
+                style:left={percent(reach.x, GuildBox.width)}
                 style:top={percent(box.y, GuildBox.height)}
-                style:width={percent(box.width, GuildBox.width)}
+                style:width={percent(reach.width, GuildBox.width)}
                 style:height={percent(box.height, GuildBox.height)}
                 data-bench-place={item.id}
                 data-bench-role={item.role}
@@ -119,7 +148,13 @@
                 {#if presses}
                     <PanelRow choice={item} {pointer} {onPress}>
                         {#snippet face()}
-                            {@render ring(item, box)}
+                            <span
+                                class="block h-full"
+                                style:margin-left={percent(box.x - reach.x, reach.width)}
+                                style:width={percent(box.width, reach.width)}
+                            >
+                                {@render ring(item, box)}
+                            </span>
                         {/snippet}
                     </PanelRow>
                 {:else}
@@ -156,6 +191,11 @@
 
     .item :global(button.face) {
         height: 100%;
+    }
+
+    /* A place that takes no press lets a neighbour's wider press through. */
+    .item.still {
+        pointer-events: none;
     }
 
     /* A used row refuses a second press, and it stays the brightest thing there. */
