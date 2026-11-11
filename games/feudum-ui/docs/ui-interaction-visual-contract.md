@@ -209,7 +209,7 @@ A staged card and the at-will row never coexist: picking a card hides the row, a
 - **Progress roll** (`RollProgressDie`, R-4.11). Every seat sees the die roll, any rerolls, and the removed tile leave its stack, with the line "Desert: tile II removed". When an epoch is triggered the epoch sky glows on the next ray and the line adds "Epoch III dawns".
 - **Dawn** (`BeginDawn`, `ReplenishMap`, `ReplenishGuilds`, R-4.12). The action area shows the **dawn sheet** to everyone while the dawn's actions play: one row per seat with guild ranks, landscapes, active regions and disloyalty (in rose), and the total; then the landscape fills, the map's new goods and (III) the guild refill. It stays, under the next decision, until the first press of that decision that is not the landscapes' own.
 - **`CollectLandscapes`** (`CollectingLandscapes`, R-4.3.4, R-4.12.3). The asked serf's tended landscapes with resources light, each with "collect 3 · 1 to the ruler". Presses pick (tap list); the primary reads "Collect 2" or "Leave all". Others see the order row.
-- **End of round.** The start-player crown passes, the cards return to the seat panels, spent pouch goods leave. The next hand selection opens.
+- **End of round** (`EndRound`, R-2.2.5). The start-player crown passes, the cards return to the seat panels, spent pouch goods leave. The next hand selection opens. After the V dawn there is no end of round: final scoring takes its place (R-6.1-H2), so the crown, the pouches and the played cards stay where they are.
 
 ### Game end
 

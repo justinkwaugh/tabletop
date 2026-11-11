@@ -33,20 +33,6 @@ export function isStartRound(action?: GameAction): action is StartRound {
     return action?.type === ActionType.StartRound
 }
 
-/** R-2.2.5, R-3.3, R-3.15.1, R-3.16.2, R-3.7.5 All 11 cards back, and the round's limits start over. */
-function returnCards(player: HydratedFeudumPlayerState): void {
-    // Another seat's hand stays omitted from a projected state; its count is public.
-    if (player.hand) {
-        player.hand = []
-    }
-    player.handCount = 0
-    player.played = []
-    player.sequentialUsed = false
-    player.repeatUsed = false
-    player.guildsUsed = []
-    player.successfulMoves = 0
-}
-
 /** R-4.10.2 A pawn wine fed last round is drunk for this one. */
 function turnWineDrunk(player: HydratedFeudumPlayerState): StartRoundMetadata['drunk'] {
     return player.pawns.flatMap((pawn) => {
@@ -67,11 +53,10 @@ export class HydratedStartRound extends HydratableAction<typeof StartRound> impl
         super(data, StartRoundValidator)
     }
 
-    /** R-2.2, R-3.1-H1, R-4.10.2 Cards back, the next round begun, the first seat selecting. */
+    /** R-2.2, R-3.1-H1, R-4.10.2 The next round begun, the first seat selecting. */
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {
         const { number } = state.roundManager.startRound(state.actionCount)
         beginPhase(state, PhaseName.HandSelection)
-        state.players.forEach(returnCards)
         const drunk = state.players.flatMap(turnWineDrunk)
         state.flow.selection = { playerId: state.turnManager.turnOrder[0], finalised: [] }
         this.metadata = { round: number, drunk }
