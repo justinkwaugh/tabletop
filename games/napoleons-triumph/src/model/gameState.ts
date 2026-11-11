@@ -264,8 +264,8 @@ export class HydratedNapoleonsTriumphGameState
     }
 
     /** Enemy corps of two or more units in a locale (rule 10, road movement). */
-    hasLargeCorps(locale: LocaleId, playerId: string): boolean {
-        return this.commandersIn(locale, playerId).some(
+    largeCorpsCommander(locale: LocaleId, playerId: string): Commander | undefined {
+        return this.commandersIn(locale, playerId).find(
             (commander) => this.corpsUnits(commander.id).length >= 2
         )
     }

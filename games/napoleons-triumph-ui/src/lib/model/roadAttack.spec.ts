@@ -150,15 +150,22 @@ describe('the command a road attack is made by', () => {
         commanderId: 'murat'
     })
 
-    function feinting(plan: { kind: CommandKind; unitIds: string[] }) {
+    const line: PiecePlacement = {
+        id: 'A-line',
+        side: Side.Allied,
+        face: infantry(2),
+        locale: TAKEN,
+        commanderId: 'bagration'
+    }
+
+    function feinting(
+        plan: { kind: CommandKind; unitIds: string[] },
+        defenders: PiecePlacement[] = [line]
+    ) {
         const game = new TestGame()
         game.deployBoth()
         game.act(ActionType.EndTurn, game.playerOf(Side.Allied))
-        arrangeBattlefield(game, [
-            rider('F-c1'),
-            rider('F-c2'),
-            { id: 'A-line', side: Side.Allied, face: infantry(2), locale: TAKEN }
-        ])
+        arrangeBattlefield(game, [rider('F-c1'), rider('F-c2'), ...defenders])
         game.act(ActionType.ThreatenAttack, game.playerOf(Side.French), {
             approach: game.hydrated.map.approachBetween(NEAR, TAKEN).id,
             plan
@@ -186,6 +193,24 @@ describe('the command a road attack is made by', () => {
         expect(stage).toHaveProperty('orders', [
             { kind: CommandKind.Corps, commanderId: 'murat', unitIds: ['F-c1'], road: [NEAR] }
         ])
+    })
+
+    it('names where the whole corps would halt, beside an enemy corps of two or more', () => {
+        const plan = { kind: CommandKind.Corps, unitIds: ['F-c1', 'F-c2'] }
+        const stage = feinting(plan, [line, { ...line, id: 'A-line-2' }])
+        expect(stage).toMatchObject({
+            kind: StageKind.Feint,
+            attackers: ['F-c1', 'F-c2'],
+            commandOptions: [],
+            roadHalt: { locale: NEAR, enemyCommanderId: 'bagration' }
+        })
+    })
+
+    it('names no halt beside an enemy corps of one unit, which does not stop the corps', () => {
+        const plan = { kind: CommandKind.Corps, unitIds: ['F-c1', 'F-c2'] }
+        const stage = feinting(plan)
+        expect(stage).toMatchObject({ commandOptions: [CommandKind.Corps] })
+        expect(stage).toHaveProperty('roadHalt', undefined)
     })
 })
 

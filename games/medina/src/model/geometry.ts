@@ -44,6 +44,13 @@ export function wallSideLength(side: WallSide, size: RectangleDimensions): numbe
     return side === WallSide.North || side === WallSide.South ? size.width : size.height
 }
 
+export function sameWall(
+    a: { side: WallSide; position: number },
+    b: { side: WallSide; position: number }
+): boolean {
+    return a.side === b.side && a.position === b.position
+}
+
 export function spaceBesideWall(
     side: WallSide,
     position: number,

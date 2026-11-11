@@ -2,6 +2,7 @@ import {
     CommandKind,
     UnitType,
     canThreaten,
+    corpsHaltAlong,
     inReserve,
     isLegal,
     resolveOrder,
@@ -12,6 +13,7 @@ import {
     type HydratedNapoleonsTriumphGameState,
     type MoveOrder,
     type Position,
+    type RoadHalt,
     type RoadWake
 } from '@tabletop/napoleons-triumph'
 import type { Point } from '@tabletop/common'
@@ -122,13 +124,16 @@ export function marksOn(
     return LEGEND_ORDER.filter((mark) => drawn.has(mark))
 }
 
+function isMarchTarget(target: MoveTarget): target is MarchTarget {
+    return target.kind === TargetKind.Reserve || target.kind === TargetKind.Approach
+}
+
 export function placeReachedSeveralWays(
     targets: readonly MoveTarget[],
     key: string | undefined
 ): MarchTarget | undefined {
     for (const target of targets) {
-        const isPlace = target.kind === TargetKind.Reserve || target.kind === TargetKind.Approach
-        if (isPlace && target.key === key && (target.ways?.length ?? 0) > 1) {
+        if (isMarchTarget(target) && target.key === key && (target.ways?.length ?? 0) > 1) {
             return target
         }
     }
@@ -354,4 +359,33 @@ export function moveTargets(
     const reachedOnFoot = new Set(onFoot.map((target) => target.key))
     const byRoadOnly = marchTargets(byRoad.flat()).filter((march) => !reachedOnFoot.has(march.key))
     return [...onFoot, ...byRoadOnly]
+}
+
+/** Rule 10: where a corps of two or more units marching by road must halt, short of places one of its units could reach and the corps cannot. */
+export function corpsRoadHalts(
+    state: HydratedNapoleonsTriumphGameState,
+    playerId: string,
+    order: MoveOrder,
+    corpsTargets: readonly MoveTarget[],
+    entryIds: readonly string[] = []
+): RoadHalt[] {
+    if (order.kind !== CommandKind.Corps || order.unitIds.length < 2) {
+        return []
+    }
+    const reached = new Set(corpsTargets.map((target) => target.key))
+    const lone = { ...order, unitIds: order.unitIds.slice(0, 1) }
+    const halts = moveTargets(state, playerId, lone, entryIds)
+        .filter(isMarchTarget)
+        .filter((target) => !reached.has(target.key))
+        .flatMap((target) => target.ways ?? [])
+        .flatMap(
+            (way) =>
+                corpsHaltAlong(
+                    state,
+                    playerId,
+                    { ...order, entryId: way.entryId },
+                    way.road.slice(0, -1)
+                ) ?? []
+        )
+    return firstOfEach(halts, (halt) => String(halt.locale))
 }

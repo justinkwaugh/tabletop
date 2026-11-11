@@ -4,6 +4,7 @@ import { GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { Tower, WallSide } from '../components/pieces.js'
 import { TileAwards, type HydratedMedinaGameState } from '../model/gameState.js'
+import { sameWall } from '../model/geometry.js'
 
 export type PlaceWallMetadata = Type.Static<typeof PlaceWallMetadata>
 export const PlaceWallMetadata = Type.Object({
@@ -47,9 +48,7 @@ export class HydratedPlaceWall extends HydratableAction<typeof PlaceWall> implem
         const section = { side: this.side, position: this.position }
         if (
             player.wallsLeft() <= 0 ||
-            !state
-                .wallSections()
-                .some((open) => open.side === this.side && open.position === this.position)
+            !state.wallSections().some((open) => sameWall(open, section))
         ) {
             throw Error('Invalid PlaceWall action')
         }

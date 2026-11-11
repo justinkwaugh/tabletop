@@ -431,9 +431,11 @@ export function createTileDrawing(
               occupied,
               geometry.vertices,
               face.labels.join(' '),
-              face.labels.join(' ').length > 2
-                  ? (style.longLabelFontSize ?? style.labelFontSize ?? LabelFontSize)
-                  : (style.labelFontSize ?? LabelFontSize),
+              labelFontSize(
+                  face.labels.join(' '),
+                  style.labelFontSize ?? LabelFontSize,
+                  style.longLabelFontSize
+              ),
               markerRadius
           )
     if (face.labels.length) occupied.push(labelPosition)
@@ -587,7 +589,7 @@ function townMarkerAngle(center: Point, paths: readonly TileDrawnPath[]): number
     return (Math.atan2(tangent.y - center.y, tangent.x - center.x) * 180) / Math.PI + 90
 }
 
-const LabelFontSize = 12
+export const LabelFontSize = 12
 const LabelOutline = 1.25
 const MarkerRadius = 10
 const LabelTrackClearance = 3.5
@@ -784,4 +786,9 @@ function annotationPosition(
     return (fitting.length ? fitting : candidates).reduce((best, point) =>
         clearance(point) > clearance(best) ? point : best
     )
+}
+
+/** The size a label is printed at: labels of three or more characters, such as Chi, use ``longSize``. */
+export function labelFontSize(text: string, size: number, longSize?: number): number {
+    return text.length > 2 ? (longSize ?? size) : size
 }

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { CentredTextShift } from '../presentation/textBaseline.js'
+    import { centredTextShift } from '../presentation/textBaseline.js'
     import { HexOrientation } from '@tabletop/common'
     import type { StationAppearance } from '../maps/stationPresentation.js'
     import { contrastingTextColor } from '../colors/contrastingTextColor.js'
@@ -56,7 +56,7 @@
             x="20"
             y="20"
             text-anchor="middle"
-            dy={CentredTextShift}
+            dy={centredTextShift(labelFitsTokenFontSize)}
             font-family="ui-sans-serif, system-ui, sans-serif"
             font-size={labelFitsTokenFontSize}
             fill={contrastingTextColor(appearance.color)}>{appearance.label}</text

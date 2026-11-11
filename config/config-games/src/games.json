@@ -118,5 +118,9 @@
     {
         "gameId": "medina",
         "packageId": "medina"
+    },
+    {
+        "gameId": "preussische-ostbahn",
+        "packageId": "preussische-ostbahn"
     }
 ]

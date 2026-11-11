@@ -38,7 +38,8 @@ import {
     type MoveOrder,
     type ThreatOrder,
     type ProjectedUnit,
-    type ResultTerm
+    type ResultTerm,
+    type RoadHalt
 } from '@tabletop/napoleons-triumph'
 import { attackCommand, attackerGroups, type AttackerGroup } from './attackCommands.js'
 import {
@@ -152,6 +153,7 @@ interface AttackerPicking extends Picking {
     commandOptions: CommandKind[]
     command?: CommandKind
     orders?: MoveOrder[]
+    roadHalt?: RoadHalt
 }
 
 export interface FeintStage extends AttackerPicking {
@@ -462,6 +464,7 @@ function attackerPicking(
         commandOptions: command.options,
         command: command.chosen,
         orders: command.orders,
+        roadHalt: command.roadHalt,
         roles: rolesOf(attackers, leaders, BattleRole.Attacks)
     }
 }
