@@ -19,7 +19,9 @@
      * or "On board" beneath a phone's card, where the longer label has no room on one line (contract:
      * Hover, Phone layout). A
      * refused row stays pressable, to show the line why, and sends nothing. `lead` stands before the
-     * label; `face` takes the label's place on a card or writ, whose corner holds the magnifier.
+     * label; where the art stands for part of it (a tile for its name), `shown` is the text beside
+     * it and the label stays the row's accessible name. `face` takes the label's place on a card or
+     * writ, whose corner holds the magnifier.
      */
     let {
         choice,
@@ -102,6 +104,7 @@
                 ? 'bg-feudum-primary border-feudum-accent'
                 : 'bg-feudum-control border-feudum-frame'}
                 {refused ? 'opacity-50' : 'hover:bg-feudum-control-hover'}"
+            aria-label={choice.shown === undefined ? undefined : choice.label}
             aria-pressed={choice.picked}
             aria-disabled={refused}
             onpointerenter={point}
@@ -111,7 +114,7 @@
             onclick={press}
         >
             {#if lead}{@render lead()}{/if}
-            <span class={lead ? 'beside-art' : ''}>{choice.label}</span>
+            <span class={lead ? 'beside-art' : ''}>{choice.shown ?? choice.label}</span>
             {#if choice.note}
                 <span
                     class={choice.note.kind === 'cost' || choice.note.kind === 'threat'

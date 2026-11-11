@@ -225,7 +225,7 @@ export class CommitAttackDraft extends DeciderDraft<CommitAttackValues> {
             })),
             ...(needs.length > 0 && regionTiles.length !== needs.length
                 ? {
-                      covers: coverChoices(regionTiles, cover, needs, (after) => {
+                      covers: coverChoices(context.state, regionTiles, cover, needs, (after) => {
                           this.push('cover', after)
                       })
                   }

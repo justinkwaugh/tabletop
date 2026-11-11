@@ -305,13 +305,21 @@ describe('R-4.4 the at-will row, as drawn', () => {
         await pressRow(rowNamed(session.actionPanel, 'Tiles 2'))
         const tiles = session.atWillPanel?.tiles ?? []
         expect(tiles).toHaveLength(2)
-        const block = rowsOf(session.actionPanel, `tile:${tiles[0].tileId}`)
+        const { tileId } = tiles[0]
+        const block = rowsOf(session.actionPanel, `tile:${tileId}`)
+        // R-4.3 The tile's art stands where its name stood as text; the name stays the row's name.
         const heading = session.actionPanel.blocks.find(
-            (one) => one.kind === 'rows' && one.name === `tile:${tiles[0].tileId}`
+            (one) => one.kind === 'rows' && one.name === `tile:${tileId}`
         )
-        expect(heading).toMatchObject({ heading: tileName(tiles[0].tileId) })
+        expect(heading).not.toHaveProperty('heading')
         const tile = block[0]
         assertExists(tile, 'The tile is listed')
+        expect(tile.choice).toMatchObject({ label: `Spend ${tileName(tileId)}`, shown: 'Spend' })
+        expect(tile.art).toMatchObject({
+            kind: 'tile',
+            name: tileName(tileId),
+            landscape: session.gameState.tileLandscapes[tileId]
+        })
         await pressRow(tile)
         const goods = rowsOf(session.actionPanel, 'goods')
         expect(goods.map(({ art }) => art?.kind)).toContain('good')

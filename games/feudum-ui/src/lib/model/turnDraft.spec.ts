@@ -472,6 +472,18 @@ describe('S48 R-4.4-H1 a payment short of a good: the tile cover', () => {
         expect(host?.sent.size).toBe(0)
         expect(session.turnPanel?.primary).toEqual({ label: 'Cover with a tile', enabled: false })
 
+        // R-4.3 Each held tile shows its art, turned to its landscape; its name stays the row's name.
+        expect(
+            row(session.turn.flow?.rows, new RegExp(`^${tileName(held[0])} tile`))
+        ).toMatchObject({
+            label: `${tileName(held[0])} tile: food`,
+            shown: 'for food',
+            art: {
+                kind: 'tile',
+                name: tileName(held[0]),
+                landscape: session.gameState.tileLandscapes[held[0]]
+            }
+        })
         await pressRow(session, new RegExp(`^${tileName(held[0])} tile`))
         expect(session.turnPanel?.primary?.enabled).toBe(true)
         expect(host?.sent.size).toBe(0)

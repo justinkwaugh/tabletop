@@ -38,6 +38,7 @@ import {
 } from './deciderDraft.svelte.js'
 import { withLoneChoice } from './stagedDraft.svelte.js'
 import { coverNeeds, coverSpends, loneCover } from './tileCover.js'
+import { tileArt, tileName } from './tileName.js'
 import type { TurnPrimary } from './turnDraft.svelte.js'
 import { mandateChoiceLabel, writName } from './writLabels.js'
 
@@ -388,6 +389,7 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
             ...(needs.length > 0 && regionTiles.length !== needs.length
                 ? {
                       covers: coverChoices(
+                          context.state,
                           regionTiles,
                           this.value('cover') ?? [],
                           needs,
@@ -407,11 +409,14 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
         const chosen = this.value('good')
         const { haversack } = context.state.supply
         return {
+            // R-4.3.3 Each row is its tile, drawn, reading "Spend"; its name stays the row's name.
             tiles: offers.map(({ tileId }) => ({
                 tileId,
-                ...draftChoice('Spend', tile === tileId, () => {
+                ...draftChoice(`Spend ${tileName(tileId)}`, tile === tileId, () => {
                     this.toggle('tile', tileId)
-                })
+                }),
+                art: tileArt(context.state, tileId),
+                shown: 'Spend'
             })),
             ...(offer
                 ? {

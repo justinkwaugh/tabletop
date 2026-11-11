@@ -16,13 +16,14 @@ import type { DawnSheetView } from './roundEnd.js'
 import { seatPaint, type SeatPaint } from './seatPaint.js'
 import type { FeudumGameSession } from './session.svelte.js'
 import type { OrderRow } from './sharedRows.js'
-import { tileName } from './tileName.js'
+import type { TileArt } from './tileName.js'
 import type { TurnPrimary } from './turnDraft.svelte.js'
 import { writName } from './writLabels.js'
 
 export type RowArt =
     | { readonly kind: 'good'; readonly good: Good }
     | { readonly kind: 'pawn'; readonly character?: Character; readonly paint: SeatPaint }
+    | TileArt
 
 export interface ActionRow {
     readonly choice: PanelChoice
@@ -211,7 +212,11 @@ function rows(name: string, entries: readonly ActionRow[], heading?: string): Ac
         : []
 }
 
-function draftRow(session: PanelSession, choice: DraftChoice, art?: RowArt): ActionRow {
+function draftRow(
+    session: PanelSession,
+    choice: DraftChoice,
+    art: RowArt | undefined = choice.art
+): ActionRow {
     return {
         choice,
         press: () => session.pressDraftChoice(choice),
@@ -219,12 +224,12 @@ function draftRow(session: PanelSession, choice: DraftChoice, art?: RowArt): Act
     }
 }
 
-/** A turn row's piece is the seat's own, in its paint. */
+/** A turn row's piece: a tile as it is, a pawn the seat's own, in its paint. */
 function turnRow(session: PanelSession, choice: PanelChoice): ActionRow {
-    const art: RowArt | undefined = choice.art && {
-        ...choice.art,
-        paint: paintOf(session, session.myPlayerId ?? '')
-    }
+    const art: RowArt | undefined =
+        choice.art?.kind === 'pawn'
+            ? { ...choice.art, paint: paintOf(session, session.myPlayerId ?? '') }
+            : choice.art
     return { choice, press: () => session.pressTurnChoice(choice), ...(art ? { art } : {}) }
 }
 
@@ -370,9 +375,9 @@ function atWillBlocks(session: PanelSession): ActionBlock[] {
                   } satisfies ActionBlock
               ]
             : []),
-        // R-4.3.3 Every row reads "Spend": its heading says which tile.
+        // R-4.3.3 Every row is its tile, drawn, and reads "Spend".
         ...(panel.tiles ?? []).flatMap((tile) =>
-            rows(`tile:${tile.tileId}`, [draftRow(session, tile)], tileName(tile.tileId))
+            rows(`tile:${tile.tileId}`, [draftRow(session, tile)])
         ),
         ...rows(
             'goods',

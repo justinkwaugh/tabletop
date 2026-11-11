@@ -196,6 +196,17 @@ describe('R-4.4.1 The keep', () => {
         await press(session, session.keepWritsPanel?.writs[0])
         const covers = session.keepWritsPanel?.covers
         expect(covers).toHaveLength(2)
+        // R-4.3 A held tile shows its art, turned to its landscape; its name stays the row's name.
+        const [first] = session.gameState.getPlayerState(table.seat).regionTiles
+        expect(covers?.[0]).toMatchObject({
+            label: `${tileName(first)} tile: iron`,
+            shown: 'for iron',
+            art: {
+                kind: 'tile',
+                name: tileName(first),
+                landscape: session.gameState.tileLandscapes[first]
+            }
+        })
         expect(session.keepWritsPanel?.shovels?.enabled).toBe(false)
         await press(session, covers?.[1])
         expect(session.keepWritsPanel?.shovels?.enabled).toBe(true)
@@ -1205,6 +1216,12 @@ describe('R-4.10 Nourish', () => {
         const { session } = table
         expect(feeding(session)).toEqual(['food', 'unfed', 'unfed'])
         const food = session.nourishPanel?.covers?.find(({ label }) => label.endsWith('food'))
+        const [tileId] = session.gameState.getPlayerState(table.seat).regionTiles
+        expect(food).toMatchObject({
+            label: `${tileName(tileId)} tile → food`,
+            shown: 'for food',
+            art: { kind: 'tile', name: tileName(tileId) }
+        })
         await press(session, food)
         expect(feeding(session)).toEqual(['food', 'food', 'unfed'])
         expect(session.nourishPanel?.primary.label).toBe('Feed: 2 food')

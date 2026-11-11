@@ -362,6 +362,11 @@ test('S48 R-4.4-H1 a Migrate short of food, with a tile: the primary covers; the
     await settled(page)
     await expect(primary(page)).toHaveText('Cover with a tile')
     await expect(panel(page).locator('[data-row*=" tile: "]')).toContainText('food')
+    // R-4.3 The tile shows its art; its name stays the button's name.
+    const cover = panel(page).locator('[data-row*=" tile: "] button').first()
+    await expect(cover).toHaveAccessibleName(/^[A-Z][a-z]+ I{1,3}V? tile: food$/)
+    await expect(cover.locator('svg[role="img"]')).toBeVisible()
+    await expect(cover.locator('span.beside-art')).toHaveText('for food')
     await shot(page, 'migrate-cover')
 })
 

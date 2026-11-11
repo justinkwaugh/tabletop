@@ -15,7 +15,7 @@ import type { TurnContext } from './cardModes.js'
 import { DeciderDraft, draftChoice, playUnless, type DraftChoice } from './deciderDraft.svelte.js'
 import { withLoneChoice } from './stagedDraft.svelte.js'
 import type { TurnPrimary } from './turnDraft.svelte.js'
-import { tileName } from './tileName.js'
+import { tileArt, tileName } from './tileName.js'
 
 export interface Feeding {
     readonly wineFed: readonly PawnNumber[]
@@ -184,16 +184,20 @@ export class NourishDraft extends DeciderDraft<NourishValues> {
             const spent = cover.find((spend) => spend.tileId === tileId)
             const row = (spend: WildTileSpend, name: string, none: boolean) => {
                 const picked = spent?.good === spend.good
-                return draftChoice(
-                    `${tileName(tileId)} tile → ${name}`,
-                    picked,
-                    () => {
-                        this.pressCover(spend)
-                    },
-                    !picked && (none || (!spent && !offer.wildTileNeeded))
-                        ? `The haversack can't bring ${name} for this.`
-                        : undefined
-                )
+                return {
+                    ...draftChoice(
+                        `${tileName(tileId)} tile → ${name}`,
+                        picked,
+                        () => {
+                            this.pressCover(spend)
+                        },
+                        !picked && (none || (!spent && !offer.wildTileNeeded))
+                            ? `The haversack can't bring ${name} for this.`
+                            : undefined
+                    ),
+                    art: tileArt(state, tileId),
+                    shown: `for ${name}`
+                }
             }
             return [
                 row(food, 'food', haversack.food === 0),

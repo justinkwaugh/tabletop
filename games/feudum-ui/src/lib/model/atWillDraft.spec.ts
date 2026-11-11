@@ -33,6 +33,7 @@ import type { ActionBlock } from './actionPanel.js'
 import type { DraftChoice } from './deciderDraft.svelte.js'
 import type { FeudumGameSession } from './session.svelte.js'
 import { StagedDraft } from './stagedDraft.svelte.js'
+import { tileName } from './tileName.js'
 
 let host: FeudumHost | undefined
 
@@ -450,7 +451,9 @@ describe('R-4.3.3 SpendRegionTile', () => {
         expect(chipLabels(session)).toEqual(['Tiles 2'])
         await open(session, 'tiles')
         const tiles = session.atWillPanel?.tiles
-        expect(tiles?.[0].label).toBe('Spend')
+        const [first] = tiles ?? []
+        assertExists(first, 'R-4.3.3 A held tile is offered')
+        expect(first).toMatchObject({ label: `Spend ${tileName(first.tileId)}`, shown: 'Spend' })
         await press(session, tiles?.[0])
         const goods = session.atWillPanel?.goods
         const haversack = session.gameState.supply.haversack
