@@ -53,7 +53,7 @@ function holdWrit(table: Table, playerId: string) {
 }
 
 describe('SelectingHands', () => {
-    it('R-3.1-H1, D17 only the next finaliser is active, in turn order', () => {
+    it('R-3.1-H1 only the next finaliser is active, in turn order', () => {
         const table = tableAtHandSelection()
         table.order.forEach((playerId, index) => {
             expect(table.state.machineState).toBe(MachineState.SelectingHands)
@@ -78,7 +78,7 @@ describe('SelectingHands', () => {
         expect(table.state.flow.selection?.finalised).toEqual([])
     })
 
-    it('R-4.4-H1, D17 the at-will window is the next finaliser’s alone; R-4.4-H5 a discard is any seat’s', () => {
+    it('R-4.4-H1, R-3.1-H1 the at-will window is the next finaliser’s alone; R-4.4-H5 a discard is any seat’s', () => {
         const table = tableAtHandSelection()
         const [first, second] = table.order
         holdWrit(table, first)
@@ -215,7 +215,7 @@ function ruleOutpost(table: Table, playerId: string) {
     })
 }
 
-describe('R-3.2-H2, D5 AdvanceTurn', () => {
+describe('R-3.2-H2 AdvanceTurn', () => {
     it('R-3.2-H2 a card with nothing left ends the turn by itself, as a System Action', () => {
         const table = tableAtPlayingCards(() => ({ cards: ['move', 'tax'] }))
         const [first, second] = table.order

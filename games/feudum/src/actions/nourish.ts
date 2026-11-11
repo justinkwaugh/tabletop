@@ -143,7 +143,7 @@ function tileCouldFeed(
 }
 
 /**
- * D11 Whether this seat has anything to decide: food or wine, a wild tile while short, or which pawn
+ * R-4.10-H4 Whether this seat has anything to decide: food or wine, a wild tile while short, or which pawn
  * goes unfed. A seat with nothing to decide is fed by the game.
  */
 export function nourishHasChoice(state: HydratedFeudumGameState, playerId: string): boolean {
@@ -190,7 +190,7 @@ export function preselectedFeeding(
     return { wineFed: afterFood.slice(0, barrel), unfed: afterFood.slice(barrel) }
 }
 
-/** R-4.10, D11, R-4.3.3 What the asked seat decides, with these tiles already named. Read-only. */
+/** R-4.10, R-4.10-H4, R-4.3.3 What the asked seat decides, with these tiles already named. Read-only. */
 export function nourishOffer(
     state: HydratedFeudumGameState,
     playerId: string,
@@ -277,7 +277,7 @@ export class HydratedNourish extends HydratableAction<typeof Nourish> implements
         super(data, NourishValidator)
     }
 
-    /** R-4.10, D11 Everything is public: never a barrier. Then the next seat is asked. */
+    /** R-4.10, R-4.10-H4 Everything is public: never a barrier. Then the next seat is asked. */
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {
         const reason = reasonNourishRefused(state, this.playerId, this)
         if (reason) {

@@ -57,7 +57,7 @@ export class HydratedBeginDawn extends HydratableAction<typeof BeginDawn> implem
     }
 
     /**
-     * R-4.12, R-4.11-H1 The marker moves, then in order: scores, disloyalty, the fill. D12 The serfs
+     * R-4.12, R-4.11-H1 The marker moves, then in order: scores, disloyalty, the fill. R-4.12.3 The serfs
      * with something to collect are named in turn order. Everything is public: never a barrier.
      */
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {

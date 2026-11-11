@@ -682,7 +682,7 @@ describe('S61 History View', () => {
     })
 })
 
-describe('S53 R-4.10, D11 "fed by the game", on the real session', () => {
+describe('S53 R-4.10, R-4.10-H4 "fed by the game", on the real session', () => {
     it('S53 the row reads the NourishPawns Action: the seats it fed, not the seat it asks, nor one with no pawn', async () => {
         const table = hold(await atPlayingCards(['tax'], { otherCards: [] }))
         const { host: game, seat, other } = table

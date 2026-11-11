@@ -404,7 +404,7 @@ describe('R-4.3.4, R-4.12.3 CollectLandscapes', () => {
         expect(action.revealsInfo).toBeFalsy()
     })
 
-    it('R-4.12.3 may leave all, and D12 the next serf is asked', () => {
+    it('R-4.12.3 may leave all, and the next serf is asked', () => {
         const { table, playerId, rulerId, spaceIds } = asked(['orchard'])
 
         table.send(playerId, { ...Collect, spaceIds: [] })
@@ -415,7 +415,7 @@ describe('R-4.3.4, R-4.12.3 CollectLandscapes', () => {
         expect(table.offered(playerId)).toEqual([])
     })
 
-    it('D12 no serf is asked once all have answered', () => {
+    it('R-4.12.3 no serf is asked once all have answered', () => {
         const { table, playerId, rulerId } = asked(['orchard'])
         table.send(playerId, { ...Collect, spaceIds: [] })
         table.send(rulerId, { ...Collect, spaceIds: [] })

@@ -308,7 +308,7 @@ describe('R-4.10, R-4.12.3 the order row', () => {
         expect(ben).not.toContain('✓')
     })
 
-    it('S53 D11 the seat the game fed says so, and only that seat', () => {
+    it('S53 R-4.10-H4 the seat the game fed says so, and only that seat', () => {
         const [ana, ben] = partsOf(row, 'data-order-seat')
         expect(ana).toContain('fed by the game')
         expect(ben).not.toContain('fed by the game')

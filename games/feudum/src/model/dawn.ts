@@ -139,7 +139,7 @@ export function fillLandscapes(state: HydratedFeudumGameState): LandscapeFilled[
     })
 }
 
-/** R-4.12.3, D12 The serfs now holding a filled landscape, in turn order. */
+/** R-4.12.3 The serfs now holding a filled landscape, in turn order. */
 export function serfsWithFilledLandscapes(state: HydratedFeudumGameState): string[] {
     return state.turnManager.turnOrder.filter(
         (playerId) => tendedLandscapes(state, playerId).length > 0

@@ -164,7 +164,7 @@ describe('R-4.9-H1 after a Starve the People', () => {
     })
 })
 
-describe('R-4.9.2, R-4.9-H2, D16 disloyalty at a dawn', () => {
+describe('R-4.9.2, R-4.9-H2 disloyalty at a dawn', () => {
     /** R-4.8 A seat ruling a feudum is a vassal; this one holds no rank to score. */
     function ruleFeudum(state: HydratedFeudumGameState, playerId: string) {
         setPawns(state, playerId, [])

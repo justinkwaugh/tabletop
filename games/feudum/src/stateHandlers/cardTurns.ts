@@ -46,7 +46,7 @@ const StatesAfterAdvance: Readonly<Record<AdvanceTurnMetadata['outcome'], Machin
     'last-card': MachineState.Nourishing
 }
 
-/** The outcome decides. After the last card the game feeds every seat without a choice (R-4.10, D11). */
+/** The outcome decides. After the last card the game feeds every seat without a choice (R-4.10, R-4.10-H4). */
 export function stateAfterAdvance(
     { metadata }: HydratedAdvanceTurn,
     context: MachineContext<HydratedFeudumGameState>

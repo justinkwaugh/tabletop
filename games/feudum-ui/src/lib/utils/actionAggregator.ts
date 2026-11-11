@@ -117,7 +117,7 @@ function leftUnfedPawns(action: GameAction): boolean {
     )
 }
 
-/** R-4.10, D11 The game's own feeding, when it fed no seat: on its own line it says nobody needed feeding. */
+/** R-4.10, R-4.10-H4 The game's own feeding, when it fed no seat: on its own line it says nobody needed feeding. */
 function gameFedNobody(action: GameAction): boolean {
     return isNourishPawns(action) && (action.metadata?.fed.length ?? 0) === 0
 }

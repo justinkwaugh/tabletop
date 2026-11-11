@@ -11,7 +11,7 @@ import { atWillOffers, isAtWillAction, type AtWillAction } from './atWill.js'
 export type NourishingAction = AtWillAction | HydratedNourish | HydratedNourishPawns
 
 /**
- * R-4.10, D11 `NourishPawns` feeds every seat without a choice and names the rest in
+ * R-4.10, R-4.10-H4 `NourishPawns` feeds every seat without a choice and names the rest in
  * `flow.nourish.pending`. One is asked at a time and may act at will (R-4.4-H1); `Nourish` passes the
  * question on. With nobody left, the progress die (R-4.11.1).
  */

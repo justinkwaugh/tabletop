@@ -147,7 +147,7 @@ describe('Machine states', () => {
     })
 })
 
-describe('R-3.14-H1, D1 the asked states hold the turn and resume it', () => {
+describe('R-3.14-H1 the asked states hold the turn and resume it', () => {
     it('R-3.14-H1 AwaitingDefence asks the defender alone, then CommittingAttack the attacker', () => {
         const combat = tableAtCombat()
         const { table, attackerId, defenderId } = combat
@@ -295,7 +295,7 @@ describe('R-4.8-H5 CommittingAttack is skipped when the attacker has nothing to 
     })
 })
 
-describe('R-3.2, D13 follow-ups run in order', () => {
+describe('R-3.2 follow-ups run in order', () => {
     /** The turn player's card leaves a reeve, a voyage step onto a draw, and a military offer. */
     function afterCard(): { table: Table; playerId: string } {
         const table = tableAtPlayingCards()
@@ -323,7 +323,7 @@ describe('R-3.2, D13 follow-ups run in order', () => {
         const [voyage] = table.send(playerId, Disc)
         expect(voyage).toMatchObject({ metadata: { disc: 'voyage', space: 2 } })
 
-        // D13 The voyage draw's keep comes ahead of the rest.
+        // R-3.2 The voyage draw's keep comes ahead of the rest.
         expect(table.state.machineState).toBe(MachineState.KeepingWrits)
         expectAsked(table, playerId, [ActionType.KeepWrits])
         expect(table.state.flow.turn?.followUps).toEqual([
@@ -440,7 +440,7 @@ const RoundCascade = [
     ActionType.StartRound
 ]
 
-describe('R-4.10, D11 NourishPawns', () => {
+describe('R-4.10, R-4.10-H4 NourishPawns', () => {
     /** Food for all; food or wine; nothing at all; which pawn goes unfed. */
     function fourLarders() {
         return tableAtRoundEnd(4, (state, [fed, wineOrFood, starved, oneShort]) => {
@@ -453,7 +453,7 @@ describe('R-4.10, D11 NourishPawns', () => {
         })
     }
 
-    it('D11 feeds every seat without a choice, and asks the others in turn order', () => {
+    it('R-4.10-H4 feeds every seat without a choice, and asks the others in turn order', () => {
         const table = fourLarders()
         const [fed, wineOrFood, starved, oneShort] = table.order
 
@@ -478,7 +478,7 @@ describe('R-4.10, D11 NourishPawns', () => {
         expect(table.offered(wineOrFood)).toContain(ActionType.Nourish)
     })
 
-    it('D11, R-4.11.1 the last seat asked sets off the rest of the round', () => {
+    it('R-4.10-H4, R-4.11.1 the last seat asked sets off the rest of the round', () => {
         const table = fourLarders()
         const [, wineOrFood, , oneShort] = table.order
         playOutCards(table)
@@ -496,7 +496,7 @@ describe('R-4.10, D11 NourishPawns', () => {
         expect(table.state.flow.nourish).toBeUndefined()
     })
 
-    it('D11 with no choice and only wine, the game feeds wine', () => {
+    it('R-4.10-H4 with no choice and only wine, the game feeds wine', () => {
         const table = tableAtRoundEnd(2, (state, [first]) => {
             setFood(state, first, 0)
             giveBarrel(state, first)

@@ -79,7 +79,7 @@ export const CombatRecord = Type.Object({
     conquered: Type.Optional(ConqueredPiece)
 })
 
-/** R-3.14-H1, D1 Whether Conquer asks: an unplayed card, and no Defend played this round. */
+/** R-3.14-H1 Whether Conquer asks: an unplayed card, and no Defend played this round. */
 export function defenderAsked(state: HydratedFeudumGameState, defenderId: string): boolean {
     const { handCount, played } = state.getPlayerState(defenderId)
     return handCount > 0 && !played.some((card) => card.kind === 'defend')

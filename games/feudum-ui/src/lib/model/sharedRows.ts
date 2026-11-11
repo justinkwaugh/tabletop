@@ -10,7 +10,7 @@ export interface OrderRowEntry {
     /** Not asked, or already answered. */
     readonly done: boolean
     readonly next: boolean
-    /** R-4.10, D11 It had no choice, so the game fed it. */
+    /** R-4.10, R-4.10-H4 It had no choice, so the game fed it. */
     readonly fedByGame?: boolean
 }
 
@@ -36,7 +36,7 @@ function entriesOf(
     }))
 }
 
-/** R-4.10, R-4.12.3 Who has answered, who is next. D11 `fedByGame` names the seats it fed itself. */
+/** R-4.10, R-4.12.3 Who has answered, who is next. R-4.10-H4 `fedByGame` names the seats it fed itself. */
 export function orderRowOf(
     state: HydratedFeudumGameState,
     fedByGame: readonly string[]

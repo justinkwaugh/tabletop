@@ -245,7 +245,7 @@ describe('R-4.12.1 the dawn sheet', () => {
     })
 })
 
-describe('R-4.12.3, D12 the landscapes', () => {
+describe('R-4.12.3 the landscapes', () => {
     it('R-4.3.4, R-4.12.3 every landscape gains 3, tended or not', () => {
         const spaces: SpaceId[] = []
         const { table, processed } = playToDawn(3, (state, [ruler, serf]) => {
@@ -310,7 +310,7 @@ describe('R-4.12.3, D12 the landscapes', () => {
         ])
     })
 
-    it('R-4.12.3, D12 serfs collect in turn order, one at a time; then the dawn goes on', () => {
+    it('R-4.12.3 serfs collect in turn order, one at a time; then the dawn goes on', () => {
         const spaces: SpaceId[] = []
         const { table, order } = playToDawn(2, (state, [first, second]) => {
             spaces.push(placeLandscape(state, { rulerId: first, serfId: second }))

@@ -170,7 +170,7 @@ export class HydratedCollectLandscapes
         super(data, CollectLandscapesValidator)
     }
 
-    /** R-4.3.4, R-4.12.3, D12 Public resources: never a barrier. Then the next serf is asked. */
+    /** R-4.3.4, R-4.12.3 Public resources: never a barrier. Then the next serf is asked. */
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {
         const reason = reasonCollectLandscapesRefused(state, this.playerId, this)
         if (reason) {
