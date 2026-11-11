@@ -327,7 +327,7 @@ Built from each Action's input and `metadata` only (`docs/DESIGN.md`, Actions). 
     - `Improve`, `TendLandscape`: the step, the disc and feudum guild, the tile taken and points, or the fallback tile; the landscape and whether collected.
     - `Explore`, `KeepWrits`: "drew 3, kept 1, 2 under the deck"; the actor's own log names them. Shovels & Swords.
     - `Harvest`, `ChooseFavours`: the goods drawn, by kind, and the favours.
-    - `Tax`: shillings and the Reinforcements marker.
+    - `Tax`: shillings, and the Reinforcements marker or "declined Reinforcements".
     - `Conquer`, `AnswerAttack`, `CommitAttack`: the target, "Ben flipped Defend" or "Ben let it stand", saltpeter and weapons, the strengths, the result, points and markers returned.
     - `StarveThePeople`, `AnswerStarve`: the marker, Royal Immunity or not, chicken beads returned.
     - `GuildAction`, `Feast`: the guild and function, items moved with their places, completions, points, the payment split, reeves, rank changes, the writ count drawn, a drawn bead's value, a flipped seal's value, spilt goods.
