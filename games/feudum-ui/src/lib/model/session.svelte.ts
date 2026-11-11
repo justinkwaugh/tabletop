@@ -1,7 +1,8 @@
 import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
 import { FlightAnimator } from '$lib/animators/flightAnimator.svelte.js'
 import { HistoryLog } from '$lib/model/historyLog.svelte.js'
-import { ActionSource, GameStorage, type GameAction } from '@tabletop/common'
+import { isDecisionPress, turnSeatAt } from '$lib/utils/decisionPress.js'
+import { GameStorage, type GameAction } from '@tabletop/common'
 import { GameSession, type PresentedTransition } from '@tabletop/frontend-components'
 import {
     ActionCards,
@@ -911,12 +912,18 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         })
     }
 
-    /** R-X.1 What the previous seat just did, for the waiting view; no line while looking back. */
+    /**
+     * R-X.1 What the previous seat just did, for the waiting view; no line while looking back. A writ
+     * another seat discards at any time is not it (R-4.4-H5).
+     */
     previousSeatLine: string | undefined = $derived.by(() => {
         if (this.isViewingHistory) {
             return undefined
         }
-        const last = this.actions.findLast(({ source }) => source === ActionSource.User)
+        const turns = this.gameState.turnManager.series
+        const last = this.actions.findLast((action) =>
+            isDecisionPress(action, turnSeatAt(turns, action))
+        )
         return last && this.actionLine(last)
     })
 
@@ -939,7 +946,9 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
 
     /** R-4.11, R-4.12 The roll's line and the dawn sheet, on the Actions the state has played. */
     roundEnd: RoundEndView | undefined = $derived.by(() =>
-        this.isViewingHistory ? undefined : roundEndOf(this.actions)
+        this.isViewingHistory
+            ? undefined
+            : roundEndOf(this.actions, this.gameState.turnManager.series)
     )
 
     /** R-6.2, R-6.3 The summary replaces the action area; History keeps its description. */

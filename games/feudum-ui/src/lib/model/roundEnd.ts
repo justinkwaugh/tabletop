@@ -1,8 +1,7 @@
-import { ActionSource, type GameAction } from '@tabletop/common'
+import type { GameAction, Turn } from '@tabletop/common'
 import {
     ActionType,
     isBeginDawn,
-    isDiscardWrit,
     isReplenishGuilds,
     isReplenishMap,
     isRollProgressDie,
@@ -11,6 +10,7 @@ import {
     type ReplenishGuilds,
     type ReplenishMap
 } from '@tabletop/feudum'
+import { isDecisionPress, turnSeatAt } from '$lib/utils/decisionPress.js'
 import { spaceLabel } from './cardFlows.js'
 import { EpochNames, tileName } from './tileName.js'
 
@@ -67,14 +67,16 @@ function removedLine(tileId: Parameters<typeof tileName>[0]): string {
 
 /**
  * The actions since the last press that opened a decision. A collection belongs to the dawn, and a
- * writ discarded at any time (R-4.4-H5) moves no decision on, so neither closes the sheet.
+ * writ discarded at any time off the turn (R-4.4-H5) moves no decision on, so neither closes the sheet.
  */
-function sinceLastDecision(actions: readonly GameAction[]): readonly GameAction[] {
+function sinceLastDecision(
+    actions: readonly GameAction[],
+    turns: readonly Turn[]
+): readonly GameAction[] {
     const last = actions.findLastIndex(
         (action) =>
-            action.source === ActionSource.User &&
-            action.type !== ActionType.CollectLandscapes &&
-            !isDiscardWrit(action)
+            isDecisionPress(action, turnSeatAt(turns, action)) &&
+            action.type !== ActionType.CollectLandscapes
     )
     return actions.slice(last + 1)
 }
@@ -85,8 +87,11 @@ function sinceLastDecision(actions: readonly GameAction[]): readonly GameAction[
  * machine ever shows one. It stands from the roll until the first press of the next decision, the
  * same for every seat.
  */
-export function roundEndOf(actions: readonly GameAction[]): RoundEndView | undefined {
-    const recent = sinceLastDecision(actions)
+export function roundEndOf(
+    actions: readonly GameAction[],
+    turns: readonly Turn[]
+): RoundEndView | undefined {
+    const recent = sinceLastDecision(actions, turns)
     const roll = recent.find((action) => isRollProgressDie(action))
     const dawn = recent.find((action) => isBeginDawn(action))
     const lines = [

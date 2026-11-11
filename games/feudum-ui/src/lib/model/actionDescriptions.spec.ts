@@ -9,6 +9,7 @@ import {
 import {
     ActionType,
     DiscardAnyTime,
+    MachineState,
     RoyalWrits,
     type AdvanceTurn,
     type AnswerAttack,
@@ -50,7 +51,8 @@ import {
     type StarveThePeople,
     type StartRound,
     type Tax,
-    type TendLandscape
+    type TendLandscape,
+    type WritId
 } from '@tabletop/feudum'
 import {
     perspectivesOf,
@@ -65,9 +67,10 @@ import { describeAction, type ActionLineView } from '$lib/model/actionDescriptio
 import actionDescriptionSource from '$lib/model/actionDescription.ts?raw'
 import { linesOf, primaryNamed } from '$lib/testing/actionPanelView.js'
 import { askedToDefend, askedToStarve, type AskTable } from '$lib/testing/askTable.js'
-import { holdWrit } from '$lib/testing/followUpTable.js'
+import { holdWrit, seatedAtCards } from '$lib/testing/followUpTable.js'
 import { playOutRound } from '$lib/testing/roundEndTable.js'
 import { FeudumHost, settled } from '$lib/testing/sessionHarness.js'
+import type { FeudumGameSession } from '$lib/model/session.svelte.js'
 import { atPlayingCards, giveSeal } from '$lib/testing/turnTable.js'
 
 const Names: Readonly<Record<string, string>> = { p1: 'Ana', p2: 'Ben', p3: 'Cy' }
@@ -1528,6 +1531,24 @@ describe('R-4.4.3 A real sealed charter, from each seat', () => {
     })
 })
 
+/** R-4.4-H5 Writs their holders may discard at any time. */
+const AnyTimeWrits: readonly WritId[] = ['writ.mandate.5', 'writ.mandate.7']
+
+/** R-4.4.4 Four writs: one over the limit. */
+const OverLimit: readonly WritId[] = [
+    'writ.mandate.5',
+    'writ.mandate.2',
+    'writ.mandate.4',
+    'writ.mandate.7'
+]
+
+async function settledAll(...sessions: readonly FeudumGameSession[]) {
+    for (const session of sessions) {
+        await settled(session)
+    }
+    flushSync()
+}
+
 describe('R-X.1 The waiting view ends with what the previous seat just did', () => {
     const hosts: FeudumHost[] = []
     afterEach(() => {
@@ -1579,6 +1600,70 @@ describe('R-X.1 The waiting view ends with what the previous seat just did', () 
         expect(third.actions.at(-1)?.source).toBe(ActionSource.System)
         expect(linesOf(third.actionPanel, 'previous')).toEqual([
             `${third.getPlayerName(seat)} forfeited Move`
+        ])
+    })
+
+    it('R-4.4-H5 a writ another seat discards at any time does not take its place', async () => {
+        const table = await askedToDefend(['defend', 'tax'], (state, seat) => {
+            // Each seat but the attacker holds a writ it may discard at any time.
+            state.turnManager.turnOrder
+                .filter((playerId) => playerId !== seat)
+                .forEach((playerId, at) => holdWrit(state, playerId, AnyTimeWrits[at]))
+        })
+        const { session, third, asked, host } = table
+        hosts.push(host)
+        assertExists(third.myPlayerId, 'A third seat')
+        await settledAll(session, third, asked)
+        const attack = linesOf(session.actionPanel, 'previous')
+        expect(attack.join()).toMatch(/^You attacked /)
+        const seen = linesOf(third.actionPanel, 'previous')
+
+        const writId = third.gameState.getPlayerState(third.myPlayerId).writs?.[0]
+        assertExists(writId, 'The third seat holds a writ')
+        await host.send(third.myPlayerId, {
+            type: ActionType.DiscardWrit,
+            writId,
+            ...DiscardAnyTime
+        })
+        await settledAll(session, third, asked)
+
+        expect(session.actions.at(-1)).toMatchObject({ type: ActionType.DiscardWrit })
+        expect(session.gameState.machineState).toBe(MachineState.AwaitingDefence)
+        expect(linesOf(session.actionPanel, 'previous')).toEqual(attack)
+        expect(linesOf(third.actionPanel, 'previous')).toEqual(seen)
+    })
+
+    it('R-4.4-H9 the turn player discarding down to the writ limit is what it just did', async () => {
+        const table = await seatedAtCards(['tax', 'move'], (state, { seat }) => {
+            for (const writId of OverLimit) {
+                holdWrit(state, seat, writId)
+            }
+        })
+        const { session, seat, host } = table
+        hosts.push(host)
+        session.pressTurnCard('tax')
+        flushSync()
+        await session.forfeitTurnCard()
+        await settled(session)
+        expect(session.gameState.machineState).toBe(MachineState.DiscardingWrits)
+
+        await host.send(seat, {
+            type: ActionType.DiscardWrit,
+            writId: OverLimit[0],
+            ...DiscardAnyTime
+        })
+        await settled(session)
+        const watcherId = host.order.find(
+            (id) => id !== seat && !session.gameState.activePlayerIds.includes(id)
+        )
+        assertExists(watcherId, 'A seat neither discarding nor asked')
+        const watcher = await host.openSeat(watcherId)
+        await settled(watcher)
+        flushSync()
+
+        expect(watcher.gameState.flow.turn?.playerId).not.toBe(seat)
+        expect(linesOf(watcher.actionPanel, 'previous')).toEqual([
+            `${watcher.getPlayerName(seat)} discarded a writ under the deck`
         ])
     })
 
