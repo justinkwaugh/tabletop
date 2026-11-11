@@ -115,8 +115,8 @@ The site sets no other cookies. Google may set its own on pages that load its si
 | Accounts                                    | Indefinitely. **There is no account deletion**: `UserStatus.Deleted` is never set                                                      |
 | Games, actions, chat                        | Indefinitely. The owner can delete a game before it finishes; admins can delete any game. Deleting a game removes its chat and history |
 | Stalled games                               | Ended as Abandoned after 30 days without a move; not deleted                                                                           |
-| Sessions                                    | 180 days. Expired records are only rejected, never swept                                                                               |
-| Tokens                                      | Deleted when used. Expired unused tokens are never swept (invitations included)                                                        |
+| Sessions                                    | 180 days. Deleted on sign-out; an expired record is deleted by a Firestore TTL policy on `expiresAt`, usually within a day             |
+| Tokens                                      | Deleted when used; an expired one is deleted by a Firestore TTL policy on `expiration`, usually within a day (invitations included)    |
 | Push subscriptions                          | Until unsubscribed or reported gone                                                                                                    |
 | Site statistics                             | Indefinitely (hashed)                                                                                                                  |
 | Redis                                       | `user-<id>` and game keys have no expiry (evicted under memory pressure); histories 24 h; states and stats 7 days                      |
