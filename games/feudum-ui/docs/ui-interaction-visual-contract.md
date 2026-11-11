@@ -113,7 +113,7 @@ A press that completes an undoable Action sends at once. A step whose Action wil
 The turn player's panel shows the hand as faces in one line. Above it, one line: "Epoch II · Round 4 · your 2nd card of 4". At the hand line's right end, the at-will row. Other seats see the turn player's hand as backs.
 
 - **Stage 1, the card.** A press picks a card. The card lifts and a **tray** opens right after it in the hand line, pointing at it, named "‹Card›: what the card does". Everything the card asks stands in the tray, in this order:
-    - the card's name as its heading, and the stage's line ("Pick a place you rule…") when the card asks for one;
+    - the card's name as its heading, and the stage's line ("Pick a place you rule…") when the card asks for one. A pick that lights places with chips always has one, saying once what the chips show: Migrate's "Each lit space shows what the pawn costs.", Harvest's "Each lit farm shows the goods it holds.", Conquer's "Each lit place shows your attack against its defence.";
     - its regular action ("Improve");
     - its special ability (R-3.4): "Godspeed" as a toggle on an additive card, or a separate button on an either/or card, its printed cost drawn as goods art after the name (a wood cube and "1"; the accessible name stays "Tend Landscape · 1 wood"). A mode the seat cannot pay is dimmed with its reason beneath its name ("You hold no wood.") before any press;
     - the stage's rows and the primary button;

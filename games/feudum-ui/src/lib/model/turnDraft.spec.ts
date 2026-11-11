@@ -398,6 +398,9 @@ describe('R-3.6 Migrate', () => {
         expect(notes).toEqual([
             { kind: 'cost', label: '1 food', art: [{ kind: 'good', good: 'food', count: 1 }] }
         ])
+        expect(session.turn.flow?.line).toBe(
+            'Pick a space to enter. Each lit space shows what the pawn costs.'
+        )
 
         const spaceId = session.turn.flow?.picks[0].target.replace('space:', '')
         await pressTarget(session, target)
@@ -894,6 +897,10 @@ describe('R-3.11 Harvest', () => {
         const { session, spaceId } = turn
         pickCard(session, 'harvest')
         expect(chipLabels(session, spaceTarget(spaceId))[0]).toMatch(/^\d+ goods$/)
+        // The tray says once what the chips show.
+        expect(session.turn.flow?.line).toBe(
+            'Pick a farm to harvest. Each lit farm shows the goods it holds.'
+        )
         await pressTarget(session, spaceTarget(spaceId))
         const favours = row(session.turn.flow?.popup?.choices, /^Favours: \d+ here, \d+ to you$/)
         expect(favours.note).toEqual({ kind: 'cost', label: 'your 2 beads turn to seals' })
@@ -978,6 +985,9 @@ describe('R-3.13 Conquer and Starve', () => {
         pickCard(session, 'conquer')
         expect(chipLabels(session, target)[0]).toMatch(/^\d+ vs \d+$/)
         expect(chipOf(session.boardOffer, target)?.tone).toBe('rose')
+        expect(session.turn.flow?.line).toBe(
+            'Pick a place to conquer. Each lit place shows your attack against its defence.'
+        )
         await pressTarget(session, target)
         expect(host?.sent.size).toBe(0)
         expect(session.turn.flow?.tally?.find(({ source }) => source === 'total')).toBeDefined()
