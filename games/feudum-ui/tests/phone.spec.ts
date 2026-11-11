@@ -824,6 +824,47 @@ test.describe('a 390 px phone', () => {
         await shot(page, 'phone-390-show-on-board')
     })
 
+    test('R-3.14.1 the defender’s two answers each read on one line and stay in sight together', async ({
+        page
+    }) => {
+        await openFixture(page, 'conquer-asked-defend')
+        await settled(page)
+        const answers = [
+            "Flip Defend · +1 defence · +1 vp · can't be undone",
+            "Let it stand · can't be undone"
+        ]
+        const edge = await panel(page).evaluate((element) => element.getBoundingClientRect().right)
+        const area = await rect(cap(page))
+        const boxes = []
+        for (const name of answers) {
+            const button = panel(page).getByRole('button', { name, exact: true })
+            await expect(button).toBeVisible()
+            const lines = await button.evaluate((element) => {
+                const range = document.createRange()
+                range.selectNodeContents(element)
+                return new Set(
+                    [...range.getClientRects()]
+                        .filter(({ width }) => width > 0)
+                        .map(({ top }) => Math.round(top))
+                ).size
+            })
+            expect(lines).toBe(1)
+            await expectTarget(button)
+            const box = await rect(button)
+            expect(box.x + box.width).toBeLessThanOrEqual(edge + 0.5)
+            expect(box.y).toBeGreaterThanOrEqual(area.y)
+            expect(box.y + box.height).toBeLessThanOrEqual(area.y + area.height + 1)
+            boxes.push(box)
+        }
+        const [flip, stand] = boxes
+        const apart =
+            flip!.y + flip!.height <= stand!.y ||
+            stand!.y + stand!.height <= flip!.y ||
+            flip!.x + flip!.width <= stand!.x
+        expect(apart).toBe(true)
+        await expectNoSidewaysScroll(page)
+    })
+
     test('R-4.12 the dawn sheet and the send beside it stay within the panel’s width', async ({
         page
     }) => {
