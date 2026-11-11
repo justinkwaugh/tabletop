@@ -40,6 +40,7 @@ import { LandscapesStageOrder, type LandscapesValues } from './landscapesDraft.s
 import { NourishStageOrder, type NourishValues } from './nourishDraft.svelte.js'
 import type { FeudumGameSession } from './session.svelte.js'
 import { StagedDraft } from './stagedDraft.svelte.js'
+import { tileName } from './tileName.js'
 import { orderRowOf } from './sharedRows.js'
 import { WritLimitStageOrder, type WritLimitValues } from './writLimitDraft.svelte.js'
 
@@ -171,14 +172,14 @@ describe('R-4.4.1 The keep', () => {
         expect(session.keepWritsPanel).toBeUndefined()
     })
 
-    it('R-4.4-H1 with no iron, a lone tile is named by the button as an auto stage', async () => {
+    it('R-4.4-H1 with no iron, a lone tile is named by the button, by region and epoch, as an auto stage', async () => {
         let tileId = ''
         const { session } = await explored((state, seat) => {
             tileId = giveTile(state, seat)
         })
         await press(session, session.keepWritsPanel?.writs[0])
         expect(session.keepWritsPanel?.shovels).toEqual({
-            label: `Keep, then Shovels & Swords · tile ${tileId} for iron · draw 2 more · can't be undone`,
+            label: `Keep, then Shovels & Swords · ${tileName(tileId)} tile for iron · draw 2 more · can't be undone`,
             enabled: true
         })
         expect(session.keepWrits.entry('cover')?.source).toBe('auto')
@@ -906,7 +907,7 @@ describe('R-3.14.2 AnswerStarve', () => {
         expect(without.watcher.watchingPanel).toEqual(line)
     })
 
-    it('R-3.14-H3 no food and one tile: an auto stage names the tile and waits for the press', async () => {
+    it('R-3.14-H3 no food and one tile: an auto stage names the tile by region and epoch and waits for the press', async () => {
         let tileId = ''
         const { answerer } = await askedToAnswerStarve(['defend', 'tax'], (state, other) => {
             holdFood(state, other, 0)
@@ -914,7 +915,7 @@ describe('R-3.14.2 AnswerStarve', () => {
         })
         expect(answerer.answerStarve.entry('cover')?.source).toBe('auto')
         expect(answerer.answerStarvePanel?.immunity?.label).toBe(
-            `Royal Immunity · tile ${tileId} for food · can't be undone`
+            `Royal Immunity · ${tileName(tileId)} tile for food · can't be undone`
         )
     })
 
