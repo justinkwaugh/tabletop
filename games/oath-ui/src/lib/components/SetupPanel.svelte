@@ -55,11 +55,6 @@
                     />
                 {/each}
             </div>
-            {#if !splitWhole}
-                <p class="text-xs text-oath-danger">
-                    {gameSession.setup.siteFavorPlaced} of {gameState.favorSupply} placed.
-                </p>
-            {/if}
         </div>
     {/if}
     {#if choosing}

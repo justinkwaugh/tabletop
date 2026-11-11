@@ -99,6 +99,7 @@ import { gamblingHallUsed } from './gamblingHallTable.js'
 import { wrestlersDefends } from './wrestlersTable.js'
 import { landWardenSecondAdviser, landWardenVisionKept } from './landWardenTable.js'
 import { landWardenStackTable, plainStackTable } from './questionStackTable.js'
+import { riotsTieFacedownTable, riotsTieSearchTable } from './riotsTieTables.js'
 import { searchFullSiteTable } from './searchFullSiteTable.js'
 import { useOnEveryCardTable } from './useOnEveryCardTables.js'
 import { zoomPagingSearchTable } from './zoomPagingTables.js'
@@ -377,6 +378,8 @@ export type TableName =
     | 'questionStackUnderTop'
     | 'questionStackOlderGame'
     | 'questionStackPlain'
+    | 'riotsTieSearch'
+    | 'riotsTieFacedown'
     | 'greatSlumPowers'
     | 'fullSiteSearch'
     | 'facedownDreamThief'
@@ -5973,6 +5976,10 @@ const TABLES: Record<TableName, () => PlayedTable | Promise<PlayedTable>> = {
     questionStackUnderTop: () => landWardenStackTable(),
     questionStackOlderGame: () => landWardenStackTable(OathRevision.EngineFixes27),
     questionStackPlain: plainStackTable,
+    // Riots, with the People's Favor on its Mob side and Discord and Hearth tied at sites: Dana's Search draws it,
+    // or Dana holds it facedown.
+    riotsTieSearch: riotsTieSearchTable,
+    riotsTieFacedown: riotsTieFacedownTable,
     // R-7.1.1 — Dana at the full Great Slum with Homesteaders, Longbows and the Horned Mask: a tall Use a power step.
     greatSlumPowers,
     // R-5.1.4.II, R-11.10 — Dana searched at the full Great Slum with a full adviser row: Wrestlers, Twin Brother

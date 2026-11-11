@@ -2535,7 +2535,8 @@ test.describe('scenario 67: a power’s picks as chips and pieces', () => {
         await expect(grid(page)).not.toContainText('placed.')
 
         await favorOn(page, 1, 'Salt Flats').click()
-        await expect(grid(page).getByText('3 of 4 placed.')).toBeVisible()
+        await expect(favorOn(page, 2, 'Salt Flats')).toHaveAttribute('aria-pressed', 'false')
+        await expect(grid(page)).not.toContainText('placed.')
         await expect(favorOn(page, 3, 'Mine')).toBeEnabled()
         await favorOn(page, 3, 'Mine').click()
         await expect(favorOn(page, 3, 'Mine')).toHaveAttribute('aria-pressed', 'true')
@@ -5907,9 +5908,9 @@ test('setup: a short split keeps the Chancellor at the top Cradle site and holds
     await expect(page.getByText('Keep one.', { exact: true })).toBeVisible()
 
     await favorOn(page, 1, 'Salt Flats').click()
-    const count = grid(page).getByText('3 of 4 placed.')
-    await expect(count).toBeVisible()
-    await expect(count).toHaveClass(/text-oath-danger/)
+    await expect(favorOn(page, 2, 'Salt Flats')).toHaveAttribute('aria-pressed', 'false')
+    // No count while the favor is being placed: "Place all 4 favor." says what is left, once a card is kept.
+    await expect(grid(page)).not.toContainText('placed.')
     await expect(page.getByRole('list', { name: 'Start sites' })).toHaveCount(0)
     await expect(grid(page)).not.toContainText('Tap the site where your pawn starts')
     await expect(grid(page)).not.toContainText('Pick a start site')
@@ -5918,12 +5919,12 @@ test('setup: a short split keeps the Chancellor at the top Cradle site and holds
     await grid(page).locator('button:not(.magnifier):not([aria-label^="place "])').first().click()
     await expect(favorOn(page, 2, 'Salt Flats')).toBeVisible()
     await expect(grid(page)).toContainText('Place all 4')
-    await expect(count).toBeVisible()
+    await expect(grid(page)).not.toContainText('placed.')
     await expect(grid(page)).not.toContainText('Tap to discard')
     expect((await call(page, 'tableFacts')).siteOf[seatId]).toBeUndefined()
 
     await favorOn(page, 2, 'Salt Flats').click()
-    await expect(count).toHaveCount(0)
+    await expect(grid(page)).not.toContainText('Place all 4')
     await expect(favorOn(page, 2, 'Salt Flats')).toHaveCount(0)
     await expect(
         page.getByText('Tap to discard; the last goes on top.', { exact: true })
@@ -6757,7 +6758,7 @@ test('scenario 23: the Conspiracy takes from a player’s chip; "Play" shows wit
     const rhys = grid(page).getByRole('button', { name: /^rhys$/i })
     await expect(grid(page).getByText('From:', { exact: true })).toBeVisible()
     await expect(rhys).toHaveAttribute('aria-pressed', 'false')
-    await expect(play).toBeVisible()
+    await expect(play).toBeEnabled()
     await expect(grid(page).locator('.text-oath-danger')).toHaveCount(0)
 
     await rhys.click()
