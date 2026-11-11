@@ -8499,15 +8499,17 @@ test.describe('power questions', () => {
         await expect(answer(page, 'Adviser, facedown')).toBeVisible()
     })
 
-    test('Pilgrimage: "Tap to discard; the last goes on top."; "Discard" once the order is fixed', async ({
+    test('Pilgrimage: "Tap to discard, bottom first."; "Discard" once the order is fixed', async ({
         page
     }) => {
         await openTable(page, 'askPilgrimage')
-        await expect(line(page)).toHaveText('Tap to discard; the last goes on top.')
+        await expect(line(page)).toHaveText('Tap to discard, bottom first.')
         await expect(answer(page, 'Discard')).toHaveCount(0)
         await expect(stepBacks(page)).toHaveCount(0)
         await grid(page).getByRole('button', { name: 'Alchemist', exact: true }).click()
         await grid(page).getByRole('button', { name: 'Assassin', exact: true }).click()
+        await expect(grid(page).getByText('on top', { exact: true })).toHaveCount(1)
+        await expect(grid(page).getByText('under top', { exact: true })).toHaveCount(0)
         await expect(answer(page, 'Discard')).toBeVisible()
         await answer(page, 'Discard').click()
         await expect.poll(() => asked(page)).toBe(false)

@@ -20,10 +20,12 @@ function ordinal(index: number): string {
     return `${index + 1}${['st', 'nd', 'rd'][index] ?? 'th'}`
 }
 
+/** `underTop`: cards already lie on the pile above where these go (Land Warden, R-7.3.3). */
 export function discardPositionLabel(
     cardId: string,
     tapped: readonly string[],
-    others: readonly string[]
+    others: readonly string[],
+    underTop = false
 ): string {
     const order = discardOrderOf(tapped, others)
     const index = order.indexOf(cardId)
@@ -32,6 +34,6 @@ export function discardPositionLabel(
         return index === 0 ? 'bottom' : ordinal(index)
     }
     if (order.length === 1) return 'discarded'
-    if (index === order.length - 1) return 'on top'
+    if (index === order.length - 1) return underTop ? 'under top' : 'on top'
     return index === 0 ? 'bottom' : ordinal(index)
 }

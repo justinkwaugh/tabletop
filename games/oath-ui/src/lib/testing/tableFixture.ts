@@ -98,6 +98,7 @@ import { shroudedWoodState } from './shroudedWoodTable.js'
 import { gamblingHallUsed } from './gamblingHallTable.js'
 import { wrestlersDefends } from './wrestlersTable.js'
 import { landWardenSecondAdviser, landWardenVisionKept } from './landWardenTable.js'
+import { landWardenStackTable, plainStackTable } from './questionStackTable.js'
 import { searchFullSiteTable } from './searchFullSiteTable.js'
 import { useOnEveryCardTable } from './useOnEveryCardTables.js'
 import { zoomPagingSearchTable } from './zoomPagingTables.js'
@@ -373,6 +374,9 @@ export type TableName =
     | 'wrestlersOnePlace'
     | 'landWardenSecondAdviser'
     | 'landWardenVisionKept'
+    | 'questionStackUnderTop'
+    | 'questionStackOlderGame'
+    | 'questionStackPlain'
     | 'greatSlumPowers'
     | 'fullSiteSearch'
     | 'facedownDreamThief'
@@ -5964,6 +5968,11 @@ const TABLES: Record<TableName, () => PlayedTable | Promise<PlayedTable>> = {
     landWardenSecondAdviser,
     // R-5.1.4.III — Dana searched with Land Warden at the full Great Slum: Alchemist, then the Vision of Conquest.
     landWardenVisionKept,
+    // Land Warden, R-7.3.3 — Dazzle kept asks the order of Scouts and the Inn; Longbows second already put Tents on
+    // their pile. In a revision 32 game the answer goes on top; with no Land Warden, the same Search.
+    questionStackUnderTop: () => landWardenStackTable(),
+    questionStackOlderGame: () => landWardenStackTable(OathRevision.EngineFixes27),
+    questionStackPlain: plainStackTable,
     // R-7.1.1 — Dana at the full Great Slum with Homesteaders, Longbows and the Horned Mask: a tall Use a power step.
     greatSlumPowers,
     // R-5.1.4.II, R-11.10 — Dana searched at the full Great Slum with a full adviser row: Wrestlers, Twin Brother
