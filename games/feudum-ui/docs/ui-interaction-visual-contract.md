@@ -218,7 +218,7 @@ The game-end summary replaces the action area: one column per seat with what it 
 
 ### Watching (waiting view)
 
-The waiting view always says who decides and what, then the live state of a shared step, then what the previous seat just did, from the Action's input and `metadata`. Its rows: the finalise row, the combat tally (attack and defence; who answers is the waiting line's to say), the nourish row, the landscapes row and the dawn sheet. They are the same rows the deciding seat sees above its panel. A seat's own draft of its hand stays in the action area while it waits in `SelectingHands`; the waiting line sits above it.
+The waiting view always says who decides and what, then the live state of a shared step, then what the previous seat just did, from the Action's input and `metadata`; a writ another seat than the turn's discards at any time (R-4.4-H5) is not that, while the turn player's own discard, down to the writ limit or not, is. Its rows: the finalise row, the combat tally (attack and defence; who answers is the waiting line's to say), the nourish row, the landscapes row and the dawn sheet. They are the same rows the deciding seat sees above its panel. A seat's own draft of its hand stays in the action area while it waits in `SelectingHands`; the waiting line sits above it.
 
 ### Hidden information, as others see it
 
