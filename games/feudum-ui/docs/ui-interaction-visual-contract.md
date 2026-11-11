@@ -324,7 +324,7 @@ Built from each Action's input and `metadata` only (`docs/DESIGN.md`, Actions). 
     - `Migrate`: the character and space, or "off"; Distant Kin.
     - `Move`: each piece's path with its ways ("monk Forest 2 → Island 1 by ferry (2s) → Island 2 by road"), vessels boarded, placed or left, Godspeed, the pilfer and where it came from, and the rank change when a pilfered target gives a waiting seat its marker.
     - `Influence`: markers placed and each space's new ruler, serf or subject; Money is Influence.
-    - `Improve`, `TendLandscape`: the step, the disc and feudum guild, the tile taken and points, or the fallback tile; the landscape and whether collected.
+    - `Improve`, `TendLandscape`: the step, the disc and feudum guild, the tile taken and points, or the fallback tile, or why none was taken ("Forest tile not yet legal, none taken"; "no tile left" only when the region's stack is empty, R-4.3.2); the landscape and whether collected.
     - `Explore`, `KeepWrits`: "drew 3, kept 1, 2 under the deck"; the actor's own log names them. Shovels & Swords.
     - `Harvest`, `ChooseFavours`: the goods drawn, by kind, and the favours.
     - `Tax`: shillings, and the Reinforcements marker or "declined Reinforcements".
