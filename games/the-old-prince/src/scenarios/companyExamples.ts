@@ -64,7 +64,6 @@ export function createTheOldPrinceCompanyExample(
             state.companies.push({
                 id: companyId,
                 kind: 'major',
-                shareCount: 10,
                 started: false,
                 funded: false,
                 floated: false,

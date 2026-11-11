@@ -3,11 +3,13 @@ import {
     privateOwner,
     controllingOwner,
     sameOwner,
-    type TrackRules
+    type TrackRules,
+    laidTileFace
 } from '@tabletop/18xx'
 import { TheOldPrinceMap } from './map.js'
 import { TheOldPrinceTileSet } from './tiles.js'
 import { TheOldPrincePhases } from './trains.js'
+import { TheOldPrincePrivateCatalog } from './privates.js'
 export const TheOldPrinceTrackRules: TrackRules = {
     map: TheOldPrinceMap,
     tileSet: TheOldPrinceTileSet,
@@ -16,7 +18,11 @@ export const TheOldPrinceTrackRules: TrackRules = {
     allowance(state, color) {
         const lays = state.trackStep?.lays ?? []
         if (!lays.length) return { cost: 0 }
-        if (lays.length === 1 && lays[0].color === 'yellow' && color === 'yellow')
+        if (
+            lays.length === 1 &&
+            laidTileFace(state, TheOldPrinceTrackRules, lays[0]).color === 'yellow' &&
+            color === 'yellow'
+        )
             return { cost: 20 }
         return { reason: 'TOP permits two yellow lays or one upgrade' }
     },
@@ -25,9 +31,8 @@ export const TheOldPrinceTrackRules: TrackRules = {
     homeLocations: (companyId) =>
         TheOldPrinceMap.reservedLocationIds(companyId === 'ML' ? 'C' : companyId),
     consentPlayerId(state, request) {
-        const bridge = state.companies.find((company) => company.id === 'VR')
-        if (request.locationId !== 'N18' || !bridge || bridge.closed) return undefined
-        return controllingOwner(state, 'VR')?.playerId
+        const bridge = TheOldPrincePrivateCatalog.blockedBy(state, request.locationId)
+        return bridge ? controllingOwner(state, bridge.id)?.playerId : undefined
     },
     restriction(state, request) {
         const controller = controllingOwner(state, request.companyId)

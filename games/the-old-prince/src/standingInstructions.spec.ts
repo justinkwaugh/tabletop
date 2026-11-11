@@ -6,7 +6,8 @@ import {
     isStopStockInstruction,
     privateOwner,
     sharesOwned,
-    type EighteenXXState
+    type EighteenXXState,
+    type SetPrivatePowerRequest
 } from '@tabletop/18xx'
 import { exampleGame } from '@tabletop/18xx/scenarios'
 import { finishTurn, setInstruction } from '@tabletop/18xx/testing'
@@ -21,6 +22,24 @@ function explore({ game, engine }: Example, source: EighteenXXState) {
     const start = engine.runtime.exploration.createFromCanonicalState(history.prepareState(source))
     start.explorationState = history.checkpoint(source, start, [], game, 'canonical')
     return { history, start }
+}
+
+function undoInExploration(
+    { game, engine }: Example,
+    history: ReturnType<typeof explore>['history'],
+    current: EighteenXXState,
+    undone: readonly GameAction[]
+) {
+    const undo = history.undoThrough(current, undone)
+    let state = undo.state
+    for (const original of undo.redo) {
+        const action = structuredClone(original)
+        action.index = state.actionCount
+        delete action.undoPatch
+        delete action.forwardPatch
+        state = engine.executeCanonicalAction({ game, state, action }).updatedState
+    }
+    return state
 }
 
 function passTurns({ game, engine }: Example, from: EighteenXXState, playerIds: string[]) {
@@ -140,4 +159,97 @@ it('keeps standing instructions out when undo reaches back before the exploratio
     const explored = passTurns(example, rebuilt, ['alex', 'blair'])
     expect(explored.automaticPasses).toEqual([])
     expect(explored.state.activePlayerIds).toEqual(['casey'])
+})
+
+it('does not redo a live standing instruction when undo reaches back before it', () => {
+    const example = exampleGame(TheOldPrinceScenarios, 'trading')
+    const { game, engine, state } = example
+    const recorded: GameAction[] = []
+    let live = state
+    for (const action of [
+        finishTurn(game.id, 'alex'),
+        setInstruction(game.id, 'casey', { kind: 'pass' }),
+        finishTurn(game.id, 'blair')
+    ]) {
+        const result = engine.executeCanonicalAction({ game, state: live, action })
+        recorded.push(...result.processedActions)
+        live = result.updatedState
+    }
+    const { history, start } = explore(example, live)
+    const rebuilt = undoInExploration(example, history, start, recorded)
+    expect(rebuilt.stockRound.instructions).toBeUndefined()
+    const explored = passTurns(example, rebuilt, ['alex', 'blair'])
+    expect(explored.automaticPasses).toEqual([])
+    expect(explored.state.activePlayerIds).toEqual(['casey'])
+})
+
+function playExploration({ game, engine }: Example, start: EighteenXXState, actions: GameAction[]) {
+    const recorded: GameAction[] = []
+    let state = start
+    for (const action of actions) {
+        const result = engine.executeCanonicalAction({ game, state, action })
+        recorded.push(...result.processedActions)
+        state = result.updatedState
+    }
+    state.explorationState = start.explorationState
+    return { state, recorded }
+}
+
+it('redoes a standing instruction declared inside the exploration', () => {
+    const example = exampleGame(TheOldPrinceScenarios, 'trading')
+    const { game } = example
+    const { history, start } = explore(example, example.state)
+    const explored = playExploration(example, start, [
+        finishTurn(game.id, 'alex'),
+        setInstruction(game.id, 'casey', { kind: 'pass' }),
+        finishTurn(game.id, 'blair')
+    ])
+    const rebuilt = undoInExploration(example, history, explored.state, explored.recorded)
+    expect(rebuilt.stockRound.instructions).toHaveLength(1)
+    const passed = passTurns(example, rebuilt, ['alex', 'blair'])
+    expect(passed.automaticPasses.map((action) => action.playerId)).toEqual(['casey'])
+})
+
+it('redoes an explored standing instruction when undo reaches back before the exploration', () => {
+    const example = exampleGame(TheOldPrinceScenarios, 'trading')
+    const { game, engine, state } = example
+    const live = engine.executeCanonicalAction({
+        game,
+        state,
+        action: finishTurn(game.id, 'alex')
+    })
+    const { history, start } = explore(example, live.updatedState)
+    const explored = playExploration(example, start, [
+        setInstruction(game.id, 'casey', { kind: 'pass' }),
+        finishTurn(game.id, 'blair')
+    ])
+    const rebuilt = undoInExploration(example, history, explored.state, [
+        ...live.processedActions,
+        ...explored.recorded
+    ])
+    expect(rebuilt.actionCount).toBe(state.actionCount + 1)
+    expect(rebuilt.stockRound.instructions).toHaveLength(1)
+    const passed = passTurns(example, rebuilt, ['alex', 'blair'])
+    expect(passed.automaticPasses.map((action) => action.playerId)).toEqual(['casey'])
+})
+
+it('keeps other live out-of-turn declarations when undo reaches back before the exploration', () => {
+    const { engine, game } = exampleGame(TheOldPrinceScenarios, 'trading')
+    assertExists(engine.runtime.exploration?.keepsSourceDeclaration)
+    const request: SetPrivatePowerRequest = {
+        id: 'request-alex',
+        gameId: game.id,
+        source: ActionSource.User,
+        type: 'SetPrivatePowerRequest',
+        playerId: 'alex',
+        outOfTurn: true,
+        supersedable: true,
+        requested: true
+    }
+    expect(engine.runtime.exploration.keepsSourceDeclaration(request)).toBe(true)
+    expect(
+        engine.runtime.exploration.keepsSourceDeclaration(
+            setInstruction(game.id, 'alex', { kind: 'pass' })
+        )
+    ).toBe(false)
 })

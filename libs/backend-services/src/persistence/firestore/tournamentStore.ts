@@ -1,40 +1,42 @@
-import {
-    FieldPath,
-    Firestore,
-    Transaction,
-    type DocumentData,
-    type DocumentReference
-} from '@google-cloud/firestore'
+import { FieldPath, Firestore, Transaction, type DocumentData } from '@google-cloud/firestore'
 import {
     assert,
     assertExists,
     Game,
-    GameState,
     GameStatus,
     GameResult,
-    validateGameResult,
     type CorrectTournamentResultRequest,
     Role,
     Tournament,
     TournamentSchedule,
+    selfRegistrationKinds,
     UserStatus,
     type User,
     type TournamentListQuery,
     TournamentList,
     TournamentGameReference,
-    type TournamentGameLink
+    type TournamentGameLink,
+    tournamentAccountIds,
+    tournamentEntrantIndex,
+    ranksByAveragePlace,
+    tournamentFinishingPlacesConsistent,
+    tournamentFinishingWinners,
+    tournamentGameFinishingPlaces,
+    tournamentTableReference,
+    type TiebreakRule,
+    type TournamentFinishingPlaces
 } from '@tabletop/common'
+import { requestForKey } from './cacheRequests.js'
 import * as Value from 'typebox/value'
 import * as Type from 'typebox'
 import { nanoid } from 'nanoid'
 import { RedisCacheService, type CacheWriteLocks } from '../../cache/cacheService.js'
-import type { FinalScoreResolver, TournamentStore } from '../stores/tournamentStore.js'
+import type { TournamentStore } from '../stores/tournamentStore.js'
 import {
     StoredTournamentSchedule,
     storeTournamentSchedule,
     loadTournamentSchedule
 } from '../model/storedTournamentSchedule.js'
-import { StoredState } from '../model/storedState.js'
 import { TournamentError } from '../../competitions/tournamentError.js'
 import { updateTournamentRegistration } from '../../competitions/tournamentRegistration.js'
 import {
@@ -47,6 +49,7 @@ import { reserveTournamentTables } from '../../competitions/tournamentDispatch.j
 
 import { tournamentGameId } from '../../games/tournamentGames.js'
 import { TournamentCacheKeys } from './tournamentCacheKeys.js'
+import { authorizeCompetitionAccount } from './competitionAuthorization.js'
 
 const ScoringGame = Type.Pick(Game, [
     'typeId',
@@ -62,7 +65,9 @@ const TournamentLinkGame = Type.Pick(Game, [
     'result',
     'players',
     'winningPlayerIds',
-    'status'
+    'finalScores',
+    'status',
+    'progress'
 ])
 
 const CachedTournamentPage = Type.Object({ generation: Type.String(), page: TournamentList })
@@ -78,21 +83,26 @@ export class FirestoreTournamentStore implements TournamentStore {
         this.cacheKeys = new TournamentCacheKeys(cachePrefix)
     }
 
-    async create(tournament: Tournament, user: User): Promise<Tournament> {
+    async create(tournament: Tournament, user: User | undefined): Promise<Tournament> {
         return this.cache.lockWhileWriting([this.cacheKeys.key('event', tournament.id)], (locks) =>
             this.firestore.runTransaction(async (transaction) => {
-                await this.authorize(transaction, user, true)
+                if (user) await this.authorize(transaction, user, true)
                 const ref = this.document(tournament.id)
                 const existing = this.parse((await transaction.get(ref)).data())
                 if (existing) {
                     Value.Assert(Tournament, existing)
-                    if (existing.organizerId !== user.id)
+                    if (existing.organizerId !== tournament.organizerId)
                         throw new TournamentError('Tournament ID is already in use')
                     if (
                         existing.name !== tournament.name ||
                         existing.description !== tournament.description ||
                         !Value.Equal(existing.rules, tournament.rules) ||
-                        !Value.Equal(existing.format, tournament.format)
+                        !Value.Equal(existing.format, tournament.format) ||
+                        !Value.Equal(existing.league, tournament.league) ||
+                        !Value.Equal(
+                            existing.entrants.map((entrant) => entrant.userId),
+                            tournament.entrants.map((entrant) => entrant.userId)
+                        )
                     )
                         throw new TournamentError(
                             'Tournament ID is already in use with different settings'
@@ -112,41 +122,97 @@ export class FirestoreTournamentStore implements TournamentStore {
         )
     }
 
+    async readMany(ids: string[]): Promise<(Tournament | undefined)[]> {
+        if (!ids.length) return []
+        const idsByKey = new Map(ids.map((id) => [this.cacheKeys.key('event', id), id]))
+        return this.cache.cachingGetMulti<Tournament>([...idsByKey.keys()], async (keys) => {
+            const snapshots = await this.firestore.getAll(
+                ...keys.map((key) => this.document(requestForKey(idsByKey, key)))
+            )
+            return snapshots.map((snapshot) => this.parse(snapshot.data()))
+        })
+    }
+
     async readGameLinks(id: string): Promise<TournamentGameLink[]> {
-        const links = await this.cache.cachingGet<TournamentGameLink[]>(
-            this.cacheKeys.key('games', id),
-            async () => {
-                const snapshot = await this.firestore
-                    .collection('games')
-                    .where('tournament.tournamentId', '==', id)
-                    .select('tournament', 'result', 'players', 'winningPlayerIds', 'status')
-                    .get()
-                return snapshot.docs.map((document) => {
-                    const data = document.data()
-                    Value.Assert(TournamentLinkGame, data)
-                    const reference = data.tournament
-                    Value.Assert(TournamentGameReference, reference)
-                    return {
-                        gameId: document.id,
-                        stageId: reference.stageId,
-                        tableId: reference.tableId,
-                        ...(data.result
-                            ? {
-                                  result: data.result,
-                                  winningUserIds: data.players
-                                      .filter((player) => data.winningPlayerIds.includes(player.id))
-                                      .map((player) => {
-                                          assertExists(player.userId)
-                                          return player.userId
-                                      })
-                              }
-                            : {})
+        const [links] = await this.readGameLinksMany([id])
+        return links
+    }
+
+    async readGameLinksMany(ids: string[]): Promise<TournamentGameLink[][]> {
+        if (!ids.length) return []
+        const idsByKey = new Map(ids.map((id) => [this.cacheKeys.key('games', id), id]))
+        const links = await this.cache.cachingGetMulti<TournamentGameLink[]>(
+            [...idsByKey.keys()],
+            async (keys) => {
+                const missing = keys.map((key) => requestForKey(idsByKey, key))
+                const found = new Map<string, TournamentGameLink[]>(missing.map((id) => [id, []]))
+                const chunks = Array.from({ length: Math.ceil(missing.length / 30) }, (_, index) =>
+                    missing.slice(index * 30, index * 30 + 30)
+                )
+                const snapshots = await Promise.all(
+                    chunks.map((chunk) =>
+                        this.firestore
+                            .collection('games')
+                            .where('tournament.tournamentId', 'in', chunk)
+                            .select(
+                                'tournament',
+                                'result',
+                                'players',
+                                'winningPlayerIds',
+                                'finalScores',
+                                'status',
+                                'progress'
+                            )
+                            .get()
+                    )
+                )
+                for (const snapshot of snapshots) {
+                    for (const document of snapshot.docs) {
+                        const data = document.data()
+                        Value.Assert(TournamentLinkGame, data)
+                        const reference = data.tournament
+                        Value.Assert(TournamentGameReference, reference)
+                        found.get(reference.tournamentId)?.push({
+                            gameId: document.id,
+                            stageId: reference.stageId,
+                            tableId: reference.tableId,
+                            ...(reference.attempt ? { attempt: reference.attempt } : {}),
+                            userIds: data.players.flatMap((player) =>
+                                player.userId ? [player.userId] : []
+                            ),
+                            ...(data.result
+                                ? {
+                                      result: data.result,
+                                      winningUserIds: data.players
+                                          .filter((player) =>
+                                              data.winningPlayerIds.includes(player.id)
+                                          )
+                                          .map((player) => {
+                                              assertExists(player.userId)
+                                              return player.userId
+                                          }),
+                                      ...(data.finalScores
+                                          ? {
+                                                finishingPlaces: tournamentGameFinishingPlaces(
+                                                    data,
+                                                    data.finalScores
+                                                )
+                                            }
+                                          : {})
+                                  }
+                                : data.progress
+                                  ? { progress: data.progress }
+                                  : {})
+                        })
                     }
-                })
+                }
+                return missing.map((id) => this.latestAttempts(found.get(id) ?? []))
             }
         )
-        assertExists(links, 'Tournament game links could not be loaded')
-        return links
+        return links.map((value) => {
+            assertExists(value, 'Tournament game links could not be loaded')
+            return value
+        })
     }
 
     async list(user: User, query: TournamentListQuery): Promise<TournamentList> {
@@ -176,6 +242,9 @@ export class FirestoreTournamentStore implements TournamentStore {
                 : query.scope === 'inProgress'
                   ? collection.where('status', 'in', ['locked', 'inProgress'])
                   : collection.where('status', '==', query.scope)
+        // League groups have assigned rosters and are listed only to their entrants.
+        if (query.scope === 'inProgress' || query.scope === 'finished')
+            request = request.where('rules.registration.kind', 'in', [...selfRegistrationKinds])
         if (query.titleId) request = request.where('rules.titleId', '==', query.titleId)
         request = request.orderBy(FieldPath.documentId())
         if (query.after) request = request.startAfter(query.after)
@@ -213,18 +282,40 @@ export class FirestoreTournamentStore implements TournamentStore {
     }
 
     async readSchedule(tournamentId: string, stageId: string): Promise<TournamentSchedule> {
-        const stored = await this.cache.cachingGet<StoredTournamentSchedule>(
-            this.cacheKeys.key('schedule', tournamentId, stageId),
-            async () => {
-                const data = (
-                    await this.document(tournamentId).collection('schedules').doc(stageId).get()
-                ).data()
-                Value.Assert(StoredTournamentSchedule, data)
-                return data
+        const [schedule] = await this.readSchedules([{ tournamentId, stageId }])
+        return schedule
+    }
+
+    async readSchedules(
+        references: { tournamentId: string; stageId: string }[]
+    ): Promise<TournamentSchedule[]> {
+        if (!references.length) return []
+        const referencesByKey = new Map(
+            references.map((reference) => [
+                this.cacheKeys.key('schedule', reference.tournamentId, reference.stageId),
+                reference
+            ])
+        )
+        const stored = await this.cache.cachingGetMulti<StoredTournamentSchedule>(
+            [...referencesByKey.keys()],
+            async (keys) => {
+                const snapshots = await this.firestore.getAll(
+                    ...keys.map((key) => {
+                        const { tournamentId, stageId } = requestForKey(referencesByKey, key)
+                        return this.document(tournamentId).collection('schedules').doc(stageId)
+                    })
+                )
+                return snapshots.map((snapshot) => {
+                    const data = snapshot.data()
+                    Value.Assert(StoredTournamentSchedule, data)
+                    return data
+                })
             }
         )
-        assertExists(stored, 'Committed tournament schedule is missing')
-        return loadTournamentSchedule(stored)
+        return stored.map((value) => {
+            assertExists(value, 'Committed tournament schedule is missing')
+            return loadTournamentSchedule(value)
+        })
     }
 
     async commitSchedule(
@@ -314,60 +405,70 @@ export class FirestoreTournamentStore implements TournamentStore {
                 const stage = tournament.stages[0]
                 if (!stage?.dispatch?.finished.includes(request.tableId) || !stage.standings)
                     throw new TournamentError('This table has no accepted result')
-                const gameId = tournamentGameId({
-                    tournamentId: id,
-                    stageId: stage.id,
-                    tableId: request.tableId
-                })
-                const gameRef = this.firestore.collection('games').doc(gameId)
-                const game = (await transaction.get(gameRef)).data()
-                const state = await this.readState(transaction, gameRef, gameId)
+                const gameId = tournamentGameId(
+                    tournament,
+                    tournamentTableReference(id, stage, request.tableId)
+                )
+                const game = (
+                    await transaction.get(this.firestore.collection('games').doc(gameId))
+                ).data()
                 Value.Assert(ScoringGame, game)
-                validateGameResult(state)
-                if (game.status !== GameStatus.Finished || state.result === GameResult.Abandoned)
+                if (
+                    game.status !== GameStatus.Finished ||
+                    !game.result ||
+                    game.result === GameResult.Abandoned
+                )
                     throw new TournamentError('Only normally finished games can be corrected')
                 assertExists(game.tournament, 'Game has no tournament')
                 assert(game.tournament.scheduleId === stage.scheduleId, 'Game schedule changed')
                 const reason = request.reason.trim()
+                const seated = request.winningUserIds.map((userId) =>
+                    this.seatedAccount(tournament, game, userId)
+                )
+                const winningUserIds = seated.filter((userId) => userId !== undefined)
                 if (
                     !reason ||
-                    !request.winningUserIds.length ||
-                    new Set(request.winningUserIds).size !== request.winningUserIds.length ||
-                    !request.winningUserIds.every((id) =>
-                        game.players.some((player) => player.userId === id)
-                    )
+                    !winningUserIds.length ||
+                    winningUserIds.length !== seated.length ||
+                    new Set(winningUserIds).size !== winningUserIds.length
                 )
                     throw new TournamentError(
                         'Specify distinct players from this table and a reason'
                     )
+                const placement = ranksByAveragePlace(tournament.rules)
+                const finishingPlaces = placement
+                    ? this.correctedPlaces(tournament, game, request, winningUserIds)
+                    : undefined
+                if (!placement && request.finishingPlaces)
+                    throw new TournamentError('This tournament scores wins only')
                 const prior = stage.corrections?.findLast(
                     (correction) => correction.tableId === request.tableId
                 )
                 applyTournamentGameScore(
                     tournament,
                     stage.standings,
-                    prior
-                        ? withTournamentCredit(game, prior.winningUserIds)
-                        : {
-                              ...game,
-                              result: state.result,
-                              winningPlayerIds: state.winningPlayerIds
-                          },
-                    -1
+                    prior ? withTournamentCredit(game, prior.winningUserIds) : game,
+                    {
+                        direction: -1,
+                        correctedPlaces: placement
+                            ? (prior?.finishingPlaces ?? this.gamePlaces(game))
+                            : undefined
+                    }
                 )
                 applyTournamentGameScore(
                     tournament,
                     stage.standings,
-                    withTournamentCredit(game, request.winningUserIds)
+                    withTournamentCredit(game, winningUserIds),
+                    { correctedPlaces: finishingPlaces }
                 )
                 stage.corrections ??= []
                 stage.corrections.push({
                     tableId: request.tableId,
-                    winningUserIds: request.winningUserIds,
+                    winningUserIds,
+                    ...(finishingPlaces ? { finishingPlaces } : {}),
                     administratorId: user.id,
                     reason,
-                    createdAt: now,
-                    gameActionCount: state.actionCount
+                    createdAt: now
                 })
                 tournament.revision++
                 tournament.updatedAt = now
@@ -383,7 +484,7 @@ export class FirestoreTournamentStore implements TournamentStore {
         revision: number,
         user: User,
         now: number,
-        finalScores: FinalScoreResolver
+        tiebreakRule: TiebreakRule | undefined
     ): Promise<Tournament> {
         return this.cache.lockWhileWriting([this.cacheKeys.key('event', id)], (locks) =>
             this.firestore.runTransaction(async (transaction) => {
@@ -420,6 +521,9 @@ export class FirestoreTournamentStore implements TournamentStore {
                             'tournament'
                         )
                 )
+                // A running event adopts its title's rule here; a finished one keeps its placements.
+                if (tiebreakRule && tournament.status !== 'finished')
+                    tournament.rules.tiebreakRule = tiebreakRule
                 const standings = createTournamentStandings(tournament)
                 const finished: string[] = []
                 for (const document of games.docs) {
@@ -430,7 +534,8 @@ export class FirestoreTournamentStore implements TournamentStore {
                     if (
                         game.status !== GameStatus.Finished ||
                         !game.result ||
-                        game.result === GameResult.Abandoned
+                        game.result === GameResult.Abandoned ||
+                        stage.dispatch.voided?.includes(game.tournament.tableId)
                     )
                         continue
                     const correction = stage.corrections?.findLast(
@@ -440,11 +545,10 @@ export class FirestoreTournamentStore implements TournamentStore {
                         tournament,
                         standings,
                         correction ? withTournamentCredit(game, correction.winningUserIds) : game,
-                        1,
-                        game.finalScores ??
-                            (await finalScores(game.typeId, () =>
-                                this.readState(transaction, document.ref, document.id)
-                            ))
+                        {
+                            finalScores: game.finalScores,
+                            correctedPlaces: correction?.finishingPlaces
+                        }
                     )
                     finished.push(game.tournament.tableId)
                 }
@@ -465,6 +569,52 @@ export class FirestoreTournamentStore implements TournamentStore {
         )
     }
 
+    // A player may be named by any account of their place; the one seated at the Game counts.
+    private seatedAccount(
+        tournament: Tournament,
+        game: Type.Static<typeof ScoringGame>,
+        userId: string
+    ): string | undefined {
+        const place = tournamentEntrantIndex(tournament, userId)
+        return game.players.find(
+            (player) =>
+                place >= 0 &&
+                player.userId !== undefined &&
+                tournamentEntrantIndex(tournament, player.userId) === place
+        )?.userId
+    }
+
+    private correctedPlaces(
+        tournament: Tournament,
+        game: Type.Static<typeof ScoringGame>,
+        request: CorrectTournamentResultRequest,
+        winningUserIds: string[]
+    ): TournamentFinishingPlaces {
+        const places: TournamentFinishingPlaces = {}
+        for (const [userId, place] of Object.entries(request.finishingPlaces ?? {})) {
+            const seated = this.seatedAccount(tournament, game, userId)
+            if (seated === undefined || places[seated] !== undefined)
+                throw new TournamentError('Place every player at this table once')
+            places[seated] = place
+        }
+        const winners = tournamentFinishingWinners(places)
+        if (
+            Object.keys(places).length !== game.players.length ||
+            !tournamentFinishingPlacesConsistent(places) ||
+            winners.length !== winningUserIds.length ||
+            winningUserIds.some((userId) => !winners.includes(userId))
+        )
+            throw new TournamentError(
+                'Place every player at this table once, with the winners first'
+            )
+        return places
+    }
+
+    private gamePlaces(game: Type.Static<typeof ScoringGame>): TournamentFinishingPlaces {
+        assertExists(game.finalScores, 'A placement game records final scores')
+        return tournamentGameFinishingPlaces(game, game.finalScores)
+    }
+
     async administratorIds(): Promise<string[]> {
         const accounts = await this.firestore
             .collection('users')
@@ -473,6 +623,17 @@ export class FirestoreTournamentStore implements TournamentStore {
         return accounts.docs
             .filter((account) => account.data().status === UserStatus.Active)
             .map((account) => account.id)
+    }
+
+    // A restarted Table has a Game per attempt; only the latest one is the Table's Game.
+    private latestAttempts(links: TournamentGameLink[]): TournamentGameLink[] {
+        const latest = new Map<string, TournamentGameLink>()
+        for (const link of links) {
+            const key = JSON.stringify([link.stageId, link.tableId])
+            const current = latest.get(key)
+            if (!current || (link.attempt ?? 1) > (current.attempt ?? 1)) latest.set(key, link)
+        }
+        return [...latest.values()]
     }
 
     private async protectLists(
@@ -488,20 +649,8 @@ export class FirestoreTournamentStore implements TournamentStore {
         return this.firestore.collection('tournaments').doc(id)
     }
 
-    private async readState(
-        transaction: Transaction,
-        gameRef: DocumentReference,
-        gameId: string
-    ): Promise<GameState> {
-        const stored = (await transaction.get(gameRef.collection('states').doc(gameId))).data()
-        Value.Assert(StoredState, stored)
-        const state: unknown = JSON.parse(stored.data)
-        Value.Assert(GameState, state)
-        return state
-    }
-
     private serialize(tournament: Tournament) {
-        return { ...tournament, entrantIds: tournament.entrants.map((entrant) => entrant.userId) }
+        return { ...tournament, entrantIds: tournamentAccountIds(tournament) }
     }
 
     private parse(data: DocumentData | undefined): Tournament | undefined {
@@ -512,16 +661,6 @@ export class FirestoreTournamentStore implements TournamentStore {
     }
 
     private async authorize(transaction: Transaction, user: User, administrative: boolean) {
-        const account = (
-            await transaction.get(this.firestore.collection('users').doc(user.id))
-        ).data()
-        if (account?.status !== UserStatus.Active)
-            throw new TournamentError('An active account is required', 403)
-        if (
-            administrative &&
-            (!Array.isArray(account.roles) || !account.roles.includes(Role.Admin))
-        ) {
-            throw new TournamentError('Administrator access is required', 403)
-        }
+        await authorizeCompetitionAccount(this.firestore, transaction, user, administrative)
     }
 }

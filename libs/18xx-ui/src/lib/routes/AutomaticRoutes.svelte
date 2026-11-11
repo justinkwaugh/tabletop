@@ -17,8 +17,11 @@
     const money = $derived(session.presentation.money)
     let error = $state<string>()
     let attempt = $state(0)
-    const result = $derived(session.routes.solved?.result)
-    const trains = $derived(session.routes.editor.trains)
+    const routes = $derived(session.routes)
+    const result = $derived(routes.shown)
+    const trains = $derived(routes.editor.trains)
+    const drawn = $derived(routes.editor.draft !== undefined)
+    const chosenTrain = $derived(trains.find((train) => train.id === routes.editor.trainId))
     type RouteSolve = {
         gameState: typeof session.gameState
         companyId: string | undefined
@@ -101,14 +104,34 @@
             {trains}
             {trainColors}
             {onFocusRoute}
+            onChooseTrain={routes.editable ? (trainId) => routes.selectTrain(trainId) : undefined}
+            onClearTrain={routes.editor.draft?.routes.some(
+                (route) => route.trainId === routes.editor.trainId
+            )
+                ? () => routes.clearTrain()
+                : undefined}
+            chosenTrainId={routes.editor.trainId}
             trainName={(id) => session.trainDepot.trainDefinition(id).name}
         />
-        <button
-            class="run"
-            disabled={!session.routes.canRun}
-            onclick={() => session.routes.runSolved()}>Run trains</button
-        >
-        {#if !session.routes.solved?.exhaustive}<small
+        <span class="buttons">
+            {#if drawn}<button
+                    title="Run the best routes found"
+                    disabled={!routes.canRun}
+                    onclick={() => routes.useBestRun()}>Auto</button
+                >{/if}
+            <button class="run" disabled={!routes.submission} onclick={() => routes.run()}
+                >Run trains</button
+            >
+        </span>
+        {#if routes.drawnReason}<p class="note" role="alert">{routes.drawnReason}</p>
+        {:else if chosenTrain}<small
+                >Tap stops on the map to change the {session.trainDepot.trainDefinition(
+                    chosenTrain.definitionId
+                ).name} train’s route.</small
+            >
+        {:else if routes.editable && !drawn}<small>Tap a train to draw its route.</small>
+        {/if}
+        {#if !drawn && !routes.solved?.exhaustive}<small
                 >Best routes found within the search time.</small
             >{/if}
     {/if}
@@ -131,6 +154,10 @@
         font: inherit;
         cursor: pointer;
     }
+    .buttons {
+        display: flex;
+        gap: 8px;
+    }
     .run {
         color: #fff;
         background: var(--rail-solid, #443e35);
@@ -147,9 +174,13 @@
     p {
         margin: 0;
     }
-    small {
+    small,
+    .note {
         flex-basis: 100%;
         text-align: center;
         color: var(--rail-muted, #817565);
+    }
+    .note {
+        color: inherit;
     }
 </style>

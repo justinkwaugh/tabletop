@@ -13,7 +13,11 @@ import { IMPERIAL_WARBANDS } from '../model/warbandCounts.js'
 import { ResolveWake } from './resolveWake.js'
 import { Muster } from './muster.js'
 import { ResolveOathkeeper } from './resolveOathkeeper.js'
-import { HydratedTransferOathkeeper, TransferOathkeeper, isTransferOathkeeper } from './transferOathkeeper.js'
+import {
+    HydratedTransferOathkeeper,
+    TransferOathkeeper,
+    isTransferOathkeeper
+} from './transferOathkeeper.js'
 import { CURRENT_OATH_REVISION, OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 
 const ORDER = 'denizen.order.wrestlers'
@@ -41,7 +45,10 @@ function seats(extra: OathPlayerState[] = []): OathPlayerState[] {
     ]
 }
 
-function supremacyTable(oathRevision: number | undefined, extra: OathPlayerState[] = []): OathProjectedState {
+function supremacyTable(
+    oathRevision: number | undefined,
+    extra: OathPlayerState[] = []
+): OathProjectedState {
     const players = seats(extra)
     const state = testState(players, {
         denizensBySite: { c1: [ORDER], c2: [] },
@@ -64,7 +71,11 @@ function supremacyTable(oathRevision: number | undefined, extra: OathPlayerState
 
 function awake(state: OathProjectedState, playerIds: string[]) {
     const game = testGame(playerIds)
-    const result = engine.runNext(buildAction(ResolveWake, { playerId: 'p1', favorSteps: [] }), state, game)
+    const result = engine.runNext(
+        buildAction(ResolveWake, { playerId: 'p1', favorSteps: [] }),
+        state,
+        game
+    )
     return { game, state: result.updatedState }
 }
 
@@ -75,7 +86,14 @@ function musterAfter(
 ) {
     const { game, state: awakeState } = awake(state, playerIds)
     awakeState.warbandsBySite = warbandsBySite
-    return { game, result: engine.runNext(buildAction(Muster, { playerId: 'p1', cardId: ORDER }), awakeState, game) }
+    return {
+        game,
+        result: engine.runNext(
+            buildAction(Muster, { playerId: 'p1', cardId: ORDER }),
+            awakeState,
+            game
+        )
+    }
 }
 
 function transfersIn(actions: readonly GameAction[]) {
@@ -98,7 +116,10 @@ describe('R-2.11-H1 — the title changing hands is its own System Action from t
         const table = supremacyTable(OathRevision.TurnFlow)
         const { result } = musterAfter(table, ['p1', 'p2'], { c2: { p2: 1 } })
 
-        expect(result.processedActions.map((action) => action.type)).toEqual([ActionType.Muster, ActionType.TransferOathkeeper])
+        expect(result.processedActions.map((action) => action.type)).toEqual([
+            ActionType.Muster,
+            ActionType.TransferOathkeeper
+        ])
         const [transfer] = transfersIn(result.processedActions)
         expect(transfer.source).toBe(ActionSource.System)
         expect(transfer.fromPlayerId).toBe('p1')
@@ -126,7 +147,9 @@ describe('R-2.11-H1 — the title changing hands is its own System Action from t
     })
 
     it('records nothing when the title stays put', () => {
-        const { result } = musterAfter(supremacyTable(OathRevision.TurnFlow), ['p1', 'p2'], { c1: { [IMPERIAL_WARBANDS]: 1 } })
+        const { result } = musterAfter(supremacyTable(OathRevision.TurnFlow), ['p1', 'p2'], {
+            c1: { [IMPERIAL_WARBANDS]: 1 }
+        })
 
         expect(transfersIn(result.processedActions)).toHaveLength(0)
         expect(result.updatedState.oathkeeperPlayerId).toBe('p1')
@@ -141,13 +164,20 @@ describe('R-2.11-H1 — the title changing hands is its own System Action from t
             warbandsInPersonalBank: { p3: 4 }
         })
         const table = supremacyTable(OathRevision.TurnFlow, [third])
-        const { game, result } = musterAfter(table, ['p1', 'p2', 'p3'], { c2: { p2: 1 }, p1: { p3: 1 } })
+        const { game, result } = musterAfter(table, ['p1', 'p2', 'p3'], {
+            c2: { p2: 1 },
+            p1: { p3: 1 }
+        })
 
         expect(transfersIn(result.processedActions)).toHaveLength(0)
         expect(result.updatedState.machineState).toBe(MachineState.OathkeeperChoice)
         expect(result.updatedState.oathkeeperPlayerId).toBe('p1')
 
-        const chosen = engine.runNext(buildAction(ResolveOathkeeper, { playerId: 'p1', chosenPlayerId: 'p3' }), result.updatedState, game)
+        const chosen = engine.runNext(
+            buildAction(ResolveOathkeeper, { playerId: 'p1', chosenPlayerId: 'p3' }),
+            result.updatedState,
+            game
+        )
         expect(transfersIn(chosen.processedActions)).toHaveLength(0)
         expect(chosen.updatedState.oathkeeperPlayerId).toBe('p3')
         expect(chosen.updatedState.machineState).toBe(MachineState.ActPhase)
@@ -164,21 +194,37 @@ describe('R-2.11-H1 — the title changing hands is its own System Action from t
 
 describe('applying a recorded transfer', () => {
     function transfer(fields: Partial<TransferOathkeeper>) {
-        return new HydratedTransferOathkeeper(buildAction(TransferOathkeeper, { source: ActionSource.System, ...fields }))
+        return new HydratedTransferOathkeeper(
+            buildAction(TransferOathkeeper, { source: ActionSource.System, ...fields })
+        )
     }
 
     it('refuses a move from a seat that does not hold the title', () => {
-        const state = testState(seats(), { oathkeeperPlayerId: 'p1', oathRevision: OathRevision.TurnFlow })
-        expect(() => transfer({ fromPlayerId: 'p2', toPlayerId: 'p1' }).apply(state, machineContext(state))).toThrow(/held by p1, not p2/)
+        const state = testState(seats(), {
+            oathkeeperPlayerId: 'p1',
+            oathRevision: OathRevision.TurnFlow
+        })
+        expect(() =>
+            transfer({ fromPlayerId: 'p2', toPlayerId: 'p1' }).apply(state, machineContext(state))
+        ).toThrow(/held by p1, not p2/)
     })
 
     it('refuses a move to the seat already holding it', () => {
-        const state = testState(seats(), { oathkeeperPlayerId: 'p1', oathRevision: OathRevision.TurnFlow })
-        expect(() => transfer({ fromPlayerId: 'p1', toPlayerId: 'p1' }).apply(state, machineContext(state))).toThrow(/would not move/)
+        const state = testState(seats(), {
+            oathkeeperPlayerId: 'p1',
+            oathRevision: OathRevision.TurnFlow
+        })
+        expect(() =>
+            transfer({ fromPlayerId: 'p1', toPlayerId: 'p1' }).apply(state, machineContext(state))
+        ).toThrow(/would not move/)
     })
 
     it('turns the title to its Oathkeeper side for the new holder (R-2.11.c)', () => {
-        const state = testState(seats(), { oathkeeperPlayerId: 'p1', oathkeeperIsUsurper: true, oathRevision: OathRevision.TurnFlow })
+        const state = testState(seats(), {
+            oathkeeperPlayerId: 'p1',
+            oathkeeperIsUsurper: true,
+            oathRevision: OathRevision.TurnFlow
+        })
         transfer({ fromPlayerId: 'p1', toPlayerId: 'p2' }).apply(state, machineContext(state))
         expect(state.oathkeeperPlayerId).toBe('p2')
         expect(state.oathkeeperIsUsurper).toBe(false)

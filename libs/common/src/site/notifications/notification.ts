@@ -5,7 +5,8 @@ export enum NotificationCategory {
     Game = 'game',
     User = 'user',
     System = 'system',
-    Tournament = 'tournament'
+    Tournament = 'tournament',
+    League = 'league'
 }
 
 export type Notification = Type.Static<typeof Notification>

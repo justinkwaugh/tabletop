@@ -7,7 +7,8 @@ import {
     type Owner,
     type TileFace,
     type TrackLayDetails,
-    type TrackRules
+    type TrackRules,
+    laidTileFace
 } from '@tabletop/18xx'
 import { EighteenSeventeenMap } from './map.js'
 import { CityTilePrivates } from './privates.js'
@@ -90,7 +91,10 @@ export const EighteenSeventeenTrackRules: TrackRules = {
         const [first, second] = layCosts(state)
         if (!lays.length) return { cost: first }
         if (lays.length > 1) return { reason: '1817 permits two lays a turn' }
-        if (isUpgrade(lays[0].color) && isUpgrade(color))
+        if (
+            isUpgrade(laidTileFace(state, EighteenSeventeenTrackRules, lays[0]).color) &&
+            isUpgrade(color)
+        )
             return { reason: '1817 permits one upgrade a turn' }
         return { cost: second }
     },

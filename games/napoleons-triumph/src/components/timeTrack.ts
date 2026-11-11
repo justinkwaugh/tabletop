@@ -49,11 +49,16 @@ export function frenchArrivalRound(scenario: Scenario, commanderId: string): num
     return index < 0 ? 0 : index
 }
 
-export function roundLabel(definition: RoundDefinition, withDay = false): string {
-    const day = withDay ? `${definition.day} December · ` : ''
+/** The hour on the time track, with the minutes or without. */
+export function hourLabel(definition: RoundDefinition, { minutes = true } = {}): string {
     if (definition.night || definition.hour === undefined) {
-        return `${day}Night`
+        return 'Night'
     }
     const hour = definition.hour > 12 ? definition.hour - 12 : definition.hour
-    return `${day}${hour}:00${definition.hour >= 12 ? 'PM' : 'AM'}`
+    return `${hour}${minutes ? ':00' : ''}${definition.hour >= 12 ? 'PM' : 'AM'}`
+}
+
+export function roundLabel(definition: RoundDefinition, withDay = false): string {
+    const day = withDay ? `${definition.day} December · ` : ''
+    return `${day}${hourLabel(definition)}`
 }

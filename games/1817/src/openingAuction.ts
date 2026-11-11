@@ -8,6 +8,7 @@ import {
     type InitialPosition,
     type Opening,
     type OpeningSetup,
+    startingCashByPlayerCount,
     type SelectionAuctionRules,
     type SelectionAuctionState
 } from '@tabletop/18xx'
@@ -35,6 +36,9 @@ export const EighteenSeventeenStartingCash: Readonly<Record<number, number>> = {
     11: 115,
     12: 105
 }
+export const eighteenSeventeenStartingCash = startingCashByPlayerCount(
+    EighteenSeventeenStartingCash
+)
 export const EighteenSeventeenSeedMoney = 200
 
 // The bank subsidises privates sold below face value from its seed money; once that is spent,
@@ -140,7 +144,7 @@ export function createEighteenSeventeenOpening({
         players.length >= 3 && players.length <= 12,
         '1817 supports three through twelve players'
     )
-    const capital = EighteenSeventeenStartingCash[players.length]
+    const capital = eighteenSeventeenStartingCash({ playerCount: players.length, config })
     const volatility = options.volatility ? volatilityOpening(prng) : undefined
     const position: InitialPosition = {
         ...createEighteenSeventeenPosition(

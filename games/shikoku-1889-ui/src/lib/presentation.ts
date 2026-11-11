@@ -1,15 +1,16 @@
+import { Shikoku1889TitleRules } from '@tabletop/shikoku-1889'
 import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
 import { Shikoku1889CompanyNames } from './companyPresentation.js'
 import { Shikoku1889PhaseChart } from './phaseChart.js'
 import { Shikoku1889TrainColors } from './trainPresentation.js'
 
 export const Shikoku1889Presentation: TitlePresentation = {
-    money: moneyFormat('¥'),
-    trainShortLabels: { D: 'D' },
+    money: moneyFormat(Shikoku1889TitleRules.currencySymbol),
     phaseChart: Shikoku1889PhaseChart,
     trainColors: Shikoku1889TrainColors,
     phaseColors: Shikoku1889TrainColors,
     marketPoolId: 'open-market',
+    ipoPoolId: 'initial-offering',
     companyNames: Shikoku1889CompanyNames,
     privatePurchaseHeading: 'Available privates',
     privateTilePrompts: { MF: 'Place the port tile', ER: 'Place a tile in Ohzu' },

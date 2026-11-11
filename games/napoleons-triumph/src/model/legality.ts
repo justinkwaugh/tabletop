@@ -6,6 +6,10 @@ export function legal(condition: unknown, reason: string): asserts condition {
     }
 }
 
+export function distinct(values: readonly unknown[]): boolean {
+    return new Set(values).size === values.length
+}
+
 export function whyIllegal(check: () => void): string | undefined {
     try {
         check()

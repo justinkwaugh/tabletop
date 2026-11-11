@@ -1,15 +1,16 @@
 import {
     AuctionFields,
     composeEighteenXXState,
+    ConsentingRedemptionState,
     defineEighteenXXState,
-    OwnershipExemptionFields,
     PendingParFields,
     PrivatePowerFields,
+    ProtectingPriceState,
     RailwayFields,
     RailwayMachineStates,
+    railwayStateValidation,
     StockTurnPurchaseFields,
     validatePendingPar,
-    validateRailwayState,
     validateWaterfallAuction,
     WaterfallAuctionMachineStates,
     type EighteenXXStateHandler,
@@ -17,12 +18,7 @@ import {
 } from '@tabletop/18xx'
 import { assert } from '@tabletop/common'
 import type * as Type from 'typebox'
-import {
-    ConsentingRedemptionState,
-    EighteenThirtyTwoTitleFields,
-    MergingState,
-    ProtectingPriceState
-} from './titleState.js'
+import { EighteenThirtyTwoTitleFields, MergingState } from './titleState.js'
 
 export const EighteenThirtyTwoState = composeEighteenXXState(
     {
@@ -31,7 +27,6 @@ export const EighteenThirtyTwoState = composeEighteenXXState(
         ...PendingParFields,
         ...StockTurnPurchaseFields,
         ...AuctionFields,
-        ...OwnershipExemptionFields,
         ...EighteenThirtyTwoTitleFields
     },
     [
@@ -46,7 +41,8 @@ export type EighteenThirtyTwoState = Type.Static<typeof EighteenThirtyTwoState>
 export type HydratedEighteenThirtyTwoState = HydratedEighteenXXState<typeof EighteenThirtyTwoState>
 export type EighteenThirtyTwoStateHandler = EighteenXXStateHandler<HydratedEighteenThirtyTwoState>
 export const EighteenThirtyTwoStateDefinition = defineEighteenXXState(EighteenThirtyTwoState, [
-    validateRailwayState,
+    // A sale's price protection waits on presidents mid-turn, after the company's run.
+    railwayStateValidation({ operatingInterruptions: [ProtectingPriceState] }),
     validateWaterfallAuction,
     validatePendingPar
 ])

@@ -2,13 +2,16 @@ import { describe, expect, it } from 'vitest'
 import {
     ActionSource,
     GameEngine,
+    GameProgress,
     GameResult,
     PlayerStatus,
+    reportGameProgress,
     assert,
     assertExists,
     validateGameResult,
     type GameAction
 } from '@tabletop/common'
+import * as Value from 'typebox/value'
 import { BOARD_GRID } from '../components/boardGrid.js'
 import { marketCost } from '../model/marketRules.js'
 import type { HydratedMagnaGreciaGameState, MagnaGreciaProjectedState } from '../model/gameState.js'
@@ -116,15 +119,21 @@ function botAction(
     return act({ ...base, type: ActionType.EndTurn })
 }
 
-function playToEnd(count: number, gameLength: GameLength): MagnaGreciaProjectedState {
+function playToEnd(
+    count: number,
+    gameLength: GameLength,
+    onState: (state: MagnaGreciaProjectedState) => void = () => {}
+): MagnaGreciaProjectedState {
     const game = createGame(count, gameLength)
     let state = engine.startGame(game, { masterSeed }).initialState
+    onState(state)
     for (let step = 0; state.result === undefined; step++) {
         assert(step < 5000, 'Playthrough did not finish')
         const [playerId] = state.activePlayerIds
         assertExists(playerId, `No active player in ${state.machineState}`)
         const action = botAction(MagnaGreciaRuntime.hydrator.hydrateState(state), playerId, step)
         state = engine.executeCanonicalAction({ game, state, action }).updatedState
+        onState(state)
     }
     return state
 }
@@ -150,5 +159,21 @@ describe.each([2, 3, 4])('a %i player game', (count) => {
         expect(finished.winningPlayerIds.every((playerId) => scores[playerId] === best)).toBe(true)
         const again = playToEnd(count, gameLength)
         expect({ ...again, id: finished.id }).toEqual(finished)
+    })
+
+    it('reports Game Progress that rises through the rounds to a final last round', () => {
+        const reports: GameProgress[] = []
+        playToEnd(count, GameLength.Short, (state) => {
+            const progress = reportGameProgress(MagnaGreciaRuntime, state)
+            assertExists(progress, 'Magna Grecia reports Game Progress')
+            expect(Value.Check(GameProgress, progress)).toBe(true)
+            reports.push(progress)
+        })
+        expect(reports[0]).toEqual({ fraction: 0, label: 'Round 1 of 8' })
+        for (const [index, report] of reports.entries())
+            expect(report.fraction).toBeGreaterThanOrEqual(reports[index - 1]?.fraction ?? 0)
+        expect(reports.map((report) => report.label)).toContain('Round 7 of 8')
+        expect(reports.at(-1)).toMatchObject({ label: 'Last round', final: true })
+        expect(reports.at(-1)?.fraction).toBeGreaterThan(0.9)
     })
 })

@@ -21,23 +21,9 @@
 
 <style>
     button {
-        position: relative;
-        border: 0;
         padding: 4px 14px;
-        border-radius: 999px;
-        background: transparent;
-        color: var(--rail-muted, #7f8e9e);
-        font: inherit;
         font-size: 12px;
         line-height: 16px;
-        cursor: pointer;
-    }
-    button:hover {
-        color: var(--rail-text, #e3e9ef);
-    }
-    button[aria-pressed='true'] {
-        color: #ffffff;
-        font-weight: 600;
     }
     button:focus-visible {
         outline: 2px solid var(--rail-focus, #9e7752);

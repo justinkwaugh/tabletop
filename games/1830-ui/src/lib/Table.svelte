@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { createRouteWorker } from './routeWorker.js'
     import { privatePowerUsed } from '@tabletop/18xx'
     import type { GameSession } from '@tabletop/frontend-components'
     import type { EighteenThirtyState, HydratedEighteenThirtyState } from '@tabletop/1830'
@@ -6,13 +7,9 @@
         CompanyPar,
         GameTable,
         OperatingActions,
-        WaterfallAuctionBidding,
         WaterfallAuctionLots,
         requireEighteenXXSession
     } from '@tabletop/18xx-ui'
-    function createRouteWorker() {
-        return new Worker(new URL('./autorouter.worker.js', import.meta.url), { type: 'module' })
-    }
     let {
         gameSession
     }: { gameSession: GameSession<EighteenThirtyState, HydratedEighteenThirtyState> } = $props()
@@ -41,16 +38,12 @@
     }
 </script>
 
-<GameTable {session} {privateOperationDescription}>
+<GameTable {session} {privateOperationDescription} {createRouteWorker}>
     {#snippet actions(_focusLocation, focusRoute)}
         {#if session.gameState.pendingPar}
             <CompanyPar {session} />
         {:else if session.waterfall.model && !session.waterfall.model.auction.completed}
-            {#if session.waterfall.model.auction.bidding}
-                <WaterfallAuctionBidding {session} />
-            {:else}
-                <WaterfallAuctionLots {session} />
-            {/if}
+            <WaterfallAuctionLots {session} />
         {:else}
             <OperatingActions
                 {privateOperationDescription}

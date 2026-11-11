@@ -22,9 +22,7 @@ const CHANCELLOR = 'chancellor'
 const CITIZEN = 'citizen'
 
 beforeAll(() => {
-    registerCards([
-        { id: 'relic.crown', name: 'Crown', kind: CardKind.Relic, defenseDice: 2 }
-    ])
+    registerCards([{ id: 'relic.crown', name: 'Crown', kind: CardKind.Relic, defenseDice: 2 }])
 })
 
 function table(overrides: Record<string, unknown> = {}) {
@@ -122,9 +120,9 @@ describe('Campaign step 1 (R-5.5.1)', () => {
 
     it('offers the bandits only when no player rules your site (R-5.5.1)', () => {
         const state = table()
-        expect(() =>
-            campaign({ defender: { kind: 'bandits' } }).apply(state)
-        ).toThrow(/a player rules your site/)
+        expect(() => campaign({ defender: { kind: 'bandits' } }).apply(state)).toThrow(
+            /a player rules your site/
+        )
     })
 
     it('accepts the bandits at a site nobody rules', () => {
@@ -149,7 +147,7 @@ describe('Campaign-scoped Imperial status (R-5.5.1.a)', () => {
                 playerId: CITIZEN,
                 defender: { kind: 'player', playerId: CHANCELLOR },
                 targets: [{ kind: CampaignTargetKind.PawnAndFavor }],
-                attackDice: 1,
+                attackDice: 1
             })
         ).apply(state)
 
@@ -166,7 +164,7 @@ describe('Campaign-scoped Imperial status (R-5.5.1.a)', () => {
                 playerId: CHANCELLOR,
                 defender: { kind: 'player', playerId: CITIZEN },
                 targets: [{ kind: CampaignTargetKind.PawnAndFavor }],
-                attackDice: 1,
+                attackDice: 1
             })
         ).apply(state)
 
@@ -211,7 +209,7 @@ describe('Campaign-scoped Imperial status (R-5.5.1.a)', () => {
                 playerId: CITIZEN,
                 defender: { kind: 'player', playerId: 'citizen2' },
                 targets: [{ kind: CampaignTargetKind.PawnAndFavor }],
-                attackDice: 1,
+                attackDice: 1
             })
         ).apply(state)
 
@@ -259,7 +257,7 @@ describe('Allies (R-5.5.2.a)', () => {
         return state
     }
 
-    it('asks a Citizen at the attacker\'s site whether to join, and holds the Campaign until they answer', () => {
+    it("asks a Citizen at the attacker's site whether to join, and holds the Campaign until they answer", () => {
         const state = chancellorDefendsWithCitizenAt('c1')
         expect(state.campaign).toBeUndefined()
         expect(state.pendingCampaign?.toAsk).toEqual([CITIZEN])
@@ -287,7 +285,9 @@ describe('Allies (R-5.5.2.a)', () => {
 
     it('only the asked Citizen answers', () => {
         const state = chancellorDefendsWithCitizenAt('c1')
-        expect(() => answerConsent(state, CHANCELLOR, true)).toThrow(/made to citizen, not to chancellor/)
+        expect(() => answerConsent(state, CHANCELLOR, true)).toThrow(
+            /made to citizen, not to chancellor/
+        )
     })
 
     it('a Citizen who declines stays out, and the Campaign musters without them', () => {
@@ -300,7 +300,7 @@ describe('Allies (R-5.5.2.a)', () => {
         expect(declined.metadata?.battle).toBeDefined()
     })
 
-    it('a Citizen who asks to join waits on the defender\'s permission, and a refusal keeps them out (R-X.1)', () => {
+    it("a Citizen who asks to join waits on the defender's permission, and a refusal keeps them out (R-X.1)", () => {
         const state = chancellorDefendsWithCitizenAt('c1')
         answerConsent(state, CITIZEN, true)
         expect(state.campaign).toBeUndefined()
@@ -312,14 +312,14 @@ describe('Allies (R-5.5.2.a)', () => {
         expect(state.campaign?.allyPlayerIds).not.toContain(CITIZEN)
     })
 
-    it('admits the Citizen with the defender\'s permission', () => {
+    it("admits the Citizen with the defender's permission", () => {
         const state = chancellorDefendsWithCitizenAt('c1')
         answerConsent(state, CITIZEN, true)
         answerConsent(state, CHANCELLOR, true)
         expect(state.campaign?.allyPlayerIds).toContain(CITIZEN)
     })
 
-    it('asks nobody whose pawn is at neither the attacker\'s site nor a target', () => {
+    it("asks nobody whose pawn is at neither the attacker's site nor a target", () => {
         const state = chancellorDefendsWithCitizenAt('h2')
         expect(state.pendingConsent).toBeUndefined()
         expect(state.campaign?.allyPlayerIds).not.toContain(CITIZEN)
@@ -354,11 +354,9 @@ describe('Allies (R-5.5.2.a)', () => {
 })
 
 describe('the attack pool (R-5.5.2)', () => {
-    it('is capped by the warbands on the attacker\'s board, not the dice supply', () => {
+    it("is capped by the warbands on the attacker's board, not the dice supply", () => {
         const state = table()
-        expect(() => campaign({ attackDice: 6 }).apply(state)).toThrow(
-            /at most 5 attack dice/
-        )
+        expect(() => campaign({ attackDice: 6 }).apply(state)).toThrow(/at most 5 attack dice/)
     })
 
     it('allows exactly as many dice as board warbands', () => {
@@ -379,9 +377,11 @@ describe('the attack pool (R-5.5.2)', () => {
             playerId: ATTACKER,
             defender: { kind: 'player', playerId: DEFENDER },
             targets: [siteTarget('c1')],
-            attackDice: 3,
+            attackDice: 3
         })
-        expect(() => new HydratedCampaign({ ...valid, attackDice: -1 })).toThrow(/at least 0|must be >= 0/)
+        expect(() => new HydratedCampaign({ ...valid, attackDice: -1 })).toThrow(
+            /at least 0|must be >= 0/
+        )
     })
 })
 
@@ -445,7 +445,7 @@ describe('the defense total (R-5.5.4)', () => {
     })
 })
 
-describe('the bandits\' battle plans (R-5.5.3-H1)', () => {
+describe("the bandits' battle plans (R-5.5.3-H1)", () => {
     it('records the note of a plan the bandits use (Bear Traps)', () => {
         // Nobody rules h3, so the bandits do, and its faceup Bear Traps is theirs.
         const state = table({ denizensBySite: { h3: ['denizen.order.bear-traps'] } })
@@ -467,7 +467,7 @@ describe('the bandits\' battle plans (R-5.5.3-H1)', () => {
 })
 
 describe('skulls (R-5.5.5)', () => {
-    it('kills one warband in the attacker\'s force per skull, immediately, and records how many', () => {
+    it("kills one warband in the attacker's force per skull, immediately, and records how many", () => {
         const seed = seedRollingSkulls(1)
         const state = table({ prng: { seed, invocations: 0 } })
         const action = campaign({ attackDice: 5 })
@@ -508,7 +508,7 @@ describe('skulls (R-5.5.5)', () => {
                     playerId: CITIZEN,
                     defender: { kind: 'player', playerId: DEFENDER },
                     targets: [siteTarget('c1')],
-                    attackDice: 5,
+                    attackDice: 5
                 })
             ).apply(state)
         })
@@ -561,7 +561,9 @@ describe('legality (canDoCampaign)', () => {
     it('treats a pawn off the map as a broken invariant, not a refusal (R-1.23.1)', () => {
         const state = table()
         state.getPlayerState(ATTACKER).siteId = undefined
-        expect(() => HydratedCampaign.canDoCampaign(state, ATTACKER)).toThrow(`${ATTACKER}'s pawn must be at a site`)
+        expect(() => HydratedCampaign.canDoCampaign(state, ATTACKER)).toThrow(
+            `${ATTACKER}'s pawn must be at a site`
+        )
     })
 
     it('is not offered mid-Campaign', () => {
@@ -571,7 +573,9 @@ describe('legality (canDoCampaign)', () => {
     })
 
     it('lists the defenders that can be chosen (R-5.5.1)', () => {
-        expect(HydratedCampaign.legalDefenders(table(), ATTACKER)).toEqual([{ kind: 'player', playerId: DEFENDER }])
+        expect(HydratedCampaign.legalDefenders(table(), ATTACKER)).toEqual([
+            { kind: 'player', playerId: DEFENDER }
+        ])
     })
 
     it('lists the bandits when no player rules your site', () => {
@@ -590,7 +594,9 @@ describe('the machine', () => {
         handler.enter(context)
 
         expect(state.activePlayerIds).toEqual([ATTACKER])
-        expect(handler.validActionsForPlayer(ATTACKER, context)).toEqual([ActionType.CampaignSacrifice])
+        expect(handler.validActionsForPlayer(ATTACKER, context)).toEqual([
+            ActionType.CampaignSacrifice
+        ])
         expect(handler.validActionsForPlayer(DEFENDER, context)).toEqual([])
     })
 })
@@ -604,7 +610,7 @@ function seedRollingSkulls(atLeast: number): number {
                 playerId: ATTACKER,
                 defender: { kind: 'player', playerId: DEFENDER },
                 targets: [siteTarget('c1')],
-                attackDice: 5,
+                attackDice: 5
             })
         )
         probe.apply(state)

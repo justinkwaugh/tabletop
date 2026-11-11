@@ -1,4 +1,7 @@
+import { EighteenNinetyFourMarket } from '@tabletop/1894'
+import { EighteenNinetyFourMapView } from '@tabletop/1894-ui/playground'
 import { Presentation1846 } from '../../../../games/1846-ui/src/lib/presentation.js'
+import { EighteenSeventeenPresentation } from '../../../../games/1817-ui/src/lib/presentation.js'
 import { MapView1846 } from '../../../../games/1846-ui/src/lib/mapView.js'
 import { Market1846 } from '../../../../games/1846/src/stock.js'
 import { describe, expect, it } from 'vitest'
@@ -7,16 +10,15 @@ import { rotateTileEdge, type RailwayMap } from '@tabletop/18xx'
 import { MapExamples } from './maps.js'
 import { calculateHexGeometry, HexOrientation } from '@tabletop/common'
 import { EighteenThirtyMarket } from '@tabletop/1830'
-import { EighteenThirtyMapView } from '@tabletop/1830-ui'
+import { EighteenThirtyMapView } from '@tabletop/1830-ui/playground'
 import { EighteenSeventeenMarket } from '@tabletop/1817'
-import { EighteenSeventeenMapView } from '@tabletop/1817-ui'
+import { EighteenSeventeenMapView } from '@tabletop/1817-ui/playground'
 import { EighteenThirtyTwoMarket } from '@tabletop/1832'
 import { EighteenThirtyTwoMapView } from '@tabletop/1832-ui/playground'
 import {
-    MarketCellHeight,
-    MarketCellWidth,
     MarketScenePadding,
-    MarketZoneBannerHeight
+    MarketZoneBannerHeight,
+    marketGeometry
 } from '../../../../libs/18xx-ui/src/lib/stock/marketTokenLayout.js'
 
 type MapScene = ReturnType<typeof createMapDrawing>
@@ -154,12 +156,19 @@ describe.each([
     {
         name: '1817',
         view: EighteenSeventeenMapView,
-        market: EighteenSeventeenMarket
+        market: EighteenSeventeenMarket,
+        cell: EighteenSeventeenPresentation.marketCell,
+        zones: EighteenSeventeenPresentation.marketZones
     },
     {
         name: '1832',
         view: EighteenThirtyTwoMapView,
         market: EighteenThirtyTwoMarket
+    },
+    {
+        name: '1894',
+        view: EighteenNinetyFourMapView,
+        market: EighteenNinetyFourMarket
     }
 ])('$name board', ({ view, market, cell, zones }) => {
     it('keeps every drawn market cell and the depot clear of every hex', () => {
@@ -181,23 +190,20 @@ describe.each([
                     y > hex.y + 62
             )
         const cells = market.spaces.map((space) => space.id.split(':').map(Number))
-        const columns = Math.max(...cells.map(([, column]) => column)) + 1
-        const rows = Math.max(...cells.map(([row]) => row)) + 1
-        const cellWidth = cell?.width ?? MarketCellWidth
-        const cellHeight = cell?.height ?? MarketCellHeight
         const banner = zones?.some((zone) => zone.banner) ? MarketZoneBannerHeight : 0
-        const width = 2 * MarketScenePadding + columns * cellWidth
-        const height = 2 * MarketScenePadding + banner + rows * cellHeight
+        const geometry = marketGeometry(market, cell, zones)
+        const width = 2 * MarketScenePadding + geometry.width
+        const height = 2 * MarketScenePadding + banner + geometry.height
         const area = areas!.market!
         const scale = Math.min(area.width / width, area.height / height)
         const left = area.x + (area.width - width * scale) / 2
         for (const [row, column] of cells)
             expect(
                 clear(
-                    left + (MarketScenePadding + column * cellWidth) * scale,
-                    area.y + (MarketScenePadding + banner + row * cellHeight) * scale,
-                    cellWidth * scale,
-                    cellHeight * scale
+                    left + (MarketScenePadding + geometry.columnLefts[column]) * scale,
+                    area.y + (MarketScenePadding + banner + row * geometry.cell.height) * scale,
+                    geometry.cell.width * scale,
+                    geometry.cell.height * scale
                 )
             ).toBe(true)
         const depot = areas!.depot!

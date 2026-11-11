@@ -1,5 +1,6 @@
 import { range } from '@tabletop/common'
 import {
+    boardToMoveInFrom,
     boardWarbandOwnerOf,
     countOf,
     reasonTransferInvalid,
@@ -9,17 +10,85 @@ import {
     type ExchangeTerms,
     type ExchangeTransfer,
     type HydratedOathGameState,
+    type SiteTransfer,
     type WarbandOwner
 } from '@tabletop/oath'
 import { offerableAdviserRows, type AdviserRowOffer } from './questionChoices.js'
 
-export type ExchangeSide = keyof ExchangeTerms
+/** The two sides that hand something over; the terms' `promises` are written, not handed over. */
+export type ExchangeSide = Exclude<keyof ExchangeTerms, 'promises'>
 
-/** The editor's picks: the terms, and the sites picked whose count of warbands is not picked yet. */
-export type ExchangePicks = { terms: ExchangeTerms; uncountedSiteIds: string[] }
+/** R-7.6.3-H1 — each side's promise as its box holds it, before the trim the terms carry it with. */
+export type PromiseDrafts = Partial<Record<ExchangeSide, string>>
+
+/**
+ * The editor's picks: the terms, the sites picked whose count of warbands is not picked yet, and
+ * the Tribunal's promises as typed.
+ */
+export type ExchangePicks = {
+    terms: ExchangeTerms
+    uncountedSiteIds: string[]
+    promiseDrafts?: PromiseDrafts
+}
 
 export function noExchangePicks(): ExchangePicks {
     return { terms: {}, uncountedSiteIds: [] }
+}
+
+/** R-7.6.3-H1 — a side's promise as its box holds it. */
+export function promiseDraftOf(picks: ExchangePicks, side: ExchangeSide): string {
+    return picks.promiseDrafts?.[side] ?? ''
+}
+
+/**
+ * R-7.6.3-H1 — a side's promise typed: the box keeps the text as typed, and the terms carry each
+ * promise trimmed, as the engine's rule reads it. A side empty after the trim promises nothing, and
+ * the terms hold a `promises` object only with a promise in it. A box erased to empty keeps no
+ * draft, so the picks read exactly as if it was never typed in. The drafts keep one order of
+ * sides, regardless of which box was typed in first, so two picks with the same text in each box
+ * read the same.
+ */
+export function withPromise(picks: ExchangePicks, side: ExchangeSide, text: string): ExchangePicks {
+    const typed: PromiseDrafts = { ...picks.promiseDrafts, [side]: text }
+    const promiseDrafts: PromiseDrafts = {
+        ...(typed.fromProposer ? { fromProposer: typed.fromProposer } : {}),
+        ...(typed.fromCounterparty ? { fromCounterparty: typed.fromCounterparty } : {})
+    }
+    const fromProposer = promiseDrafts.fromProposer?.trim()
+    const fromCounterparty = promiseDrafts.fromCounterparty?.trim()
+    const terms: ExchangeTerms = { ...picks.terms }
+    delete terms.promises
+    if (fromProposer || fromCounterparty) {
+        terms.promises = {
+            ...(fromProposer ? { fromProposer } : {}),
+            ...(fromCounterparty ? { fromCounterparty } : {})
+        }
+    }
+    const next: ExchangePicks = { ...picks, terms, promiseDrafts }
+    if (Object.keys(promiseDrafts).length === 0) delete next.promiseDrafts
+    return next
+}
+
+/**
+ * R-7.6.3-H1 — the one side whose promise `after` changes from `before`, when that promise (as typed
+ * and as the terms carry it) is all that differs.
+ */
+export function promiseEdited(
+    before: ExchangePicks,
+    after: ExchangePicks
+): ExchangeSide | undefined {
+    const sides: ExchangeSide[] = ['fromProposer', 'fromCounterparty']
+    return sides.find(
+        (side) =>
+            promiseDraftOf(before, side) !== promiseDraftOf(after, side) &&
+            JSON.stringify(withPromise(before, side, promiseDraftOf(after, side))) ===
+                JSON.stringify(after)
+    )
+}
+
+/** R-7.6.3-H1 — a promise's length as the engine's rule counts it: UTF-16 units of the sent text. */
+export function promiseLength(terms: ExchangeTerms, side: ExchangeSide): number {
+    return terms.promises?.[side]?.length ?? 0
 }
 
 /** A count picked from the pieces themselves: one per unit held, the first `addable` reachable. */
@@ -46,53 +115,87 @@ export function addableCount(held: number, allowed: (count: number) => boolean):
 
 /**
  * R-10.8 — "new ruler moves warbands from board": the warbands the receiver's board holds most
- * of, which the engine moves in, and how many of them there are.
+ * of, which the engine moves in, and how many of them there are, once the sites the receiver
+ * gives (`givenSites`) have sent theirs home (from revision 11, as the engine counts it).
  */
 export function warbandsToMoveIn(
     state: HydratedOathGameState,
-    receiverId: string
+    receiverId: string,
+    givenSites: readonly SiteTransfer[] = []
 ): { owner: WarbandOwner | undefined; held: number } {
-    const owner = boardWarbandOwnerOf(state, receiverId)
-    const board = state.getPlayerState(receiverId).warbandsOnBoard
+    const owner = boardWarbandOwnerOf(state, receiverId, givenSites)
+    const board = boardToMoveInFrom(state, receiverId, givenSites)
     return { owner, held: owner ? countOf(board, owner) : 0 }
 }
 
 /**
  * R-10.8 — the counts of warbands the receiver may move into `siteId` alongside the other sites
- * already counted in `transfer`, which share one board.
+ * already counted in `transfer`, which share one board; `inReturn` is what the receiver gives.
  */
 export function siteCounts(
     state: HydratedOathGameState,
     giverId: string,
     receiverId: string,
     transfer: ExchangeTransfer,
-    siteId: string
+    siteId: string,
+    inReturn: ExchangeTransfer = {}
 ): number[] {
-    return range(0, warbandsToMoveIn(state, receiverId).held + 1).filter(
+    const held = warbandsToMoveIn(state, receiverId, inReturn.sites).held
+    return range(0, held + 1).filter(
         (warbands) =>
             reasonTransferInvalid(
                 state,
                 giverId,
                 receiverId,
-                withSiteWarbands(transfer, siteId, warbands)
+                withSiteWarbands(transfer, siteId, warbands),
+                inReturn
             ) === undefined
     )
 }
 
 /**
- * R-10.8 — what `giverId` may promise `receiverId` under a card's `allows`: a row the engine
- * would refuse alone is not offered, so a stored game keeps its own revision's rules.
+ * Deed Writer, R-10.8 — whether `siteId` could go to `receiverId` once they hand over a site of
+ * their own, whose warbands come home to their board before they move in (from revision 11): the
+ * engine accepts it with some site of the receiver's given back, and accepts that site given for
+ * it. Two empty boards can swap sites this way, each waiting for the other.
+ */
+function waitsForSiteBack(
+    state: HydratedOathGameState,
+    giverId: string,
+    receiverId: string,
+    siteId: string,
+    inReturn: ExchangeTransfer
+): boolean {
+    const given = new Set((inReturn.sites ?? []).map((site) => site.siteId))
+    return sitesRuledBy(state, receiverId).some(
+        (backId) =>
+            !given.has(backId) &&
+            siteCounts(state, giverId, receiverId, {}, siteId, {
+                ...inReturn,
+                ...withSiteWarbands(inReturn, backId, 0)
+            }).length > 0 &&
+            siteCounts(state, receiverId, giverId, {}, backId, withSiteWarbands({}, siteId, 0))
+                .length > 0
+    )
+}
+
+/**
+ * R-10.8 — what `giverId` may promise `receiverId` under a card's `allows`, given what comes back
+ * (`inReturn`): a row the engine would refuse alone is not offered, so a stored game keeps its own
+ * revision's rules. A site the engine accepts only once the receiver hands over a site of their
+ * own is offered with no counts: it waits, picked without a count, until that site is picked.
  */
 export function exchangeOffers(
     state: HydratedOathGameState,
     giverId: string,
     receiverId: string,
     allows: ExchangeAllowance,
-    viewerId: string | undefined
+    viewerId: string | undefined,
+    inReturn: ExchangeTransfer = {}
 ): ExchangeOffers {
     const giver = state.getPlayerState(giverId)
     const allowed = (transfer: ExchangeTransfer) =>
-        reasonTransferInvalid(state, giverId, receiverId, transfer) === undefined
+        reasonTransferInvalid(state, giverId, receiverId, transfer, inReturn) === undefined
     const favor = usableFavor(state, giverId)
     return {
         favor: { held: favor, addable: addableCount(favor, (n) => allowed({ favor: n })) },
@@ -106,9 +209,13 @@ export function exchangeOffers(
                   .map((siteId) => ({
                       siteId,
                       cardId: state.siteCardAt(siteId),
-                      counts: siteCounts(state, giverId, receiverId, {}, siteId)
+                      counts: siteCounts(state, giverId, receiverId, {}, siteId, inReturn)
                   }))
-                  .filter((site) => site.counts.length > 0)
+                  .filter(
+                      (site) =>
+                          site.counts.length > 0 ||
+                          waitsForSiteBack(state, giverId, receiverId, site.siteId, inReturn)
+                  )
             : [],
         advisers: allows.advisers
             ? offerableAdviserRows(state, giverId, viewerId).filter((adviser) =>
@@ -122,6 +229,28 @@ export function transferOf(terms: ExchangeTerms, side: ExchangeSide): ExchangeTr
     return terms[side] ?? {}
 }
 
+/**
+ * R-10.8 — what `side` gives back, as the other side's rows judge it: its transfer, with the
+ * sites `giverId` picked but has not counted yet. A site's count never changes the board its old
+ * ruler moves in from (their warbands come home whatever comes in), so it is given back at 0
+ * until counted.
+ */
+export function inReturnOf(
+    state: HydratedOathGameState,
+    picks: ExchangePicks,
+    side: ExchangeSide,
+    giverId: string
+): ExchangeTransfer {
+    const transfer = transferOf(picks.terms, side)
+    const ruled = new Set(sitesRuledBy(state, giverId))
+    const uncounted = picks.uncountedSiteIds.filter((siteId) => ruled.has(siteId))
+    if (uncounted.length === 0) return transfer
+    return {
+        ...transfer,
+        sites: [...(transfer.sites ?? []), ...uncounted.map((siteId) => ({ siteId, warbands: 0 }))]
+    }
+}
+
 export function withTransfer(
     terms: ExchangeTerms,
     side: ExchangeSide,
@@ -130,8 +259,12 @@ export function withTransfer(
     return { ...terms, [side]: { ...transferOf(terms, side), ...patch } }
 }
 
-/** Whether the terms move anything at all, from either side. */
+/**
+ * Whether the terms move anything at all, from either side, or promise anything: at the Tribunal a
+ * promise alone is an exchange (R-7.6.3-H1).
+ */
 function namesAnything(terms: ExchangeTerms): boolean {
+    if (terms.promises !== undefined) return true
     return [terms.fromProposer, terms.fromCounterparty].some(
         (transfer) =>
             transfer !== undefined &&
@@ -143,9 +276,14 @@ function namesAnything(terms: ExchangeTerms): boolean {
     )
 }
 
-/** "Use" and "Propose" wait for terms that move something, every picked site counted. */
+/** "Use" and "Propose" wait for terms that move or promise something, every picked site counted. */
 export function exchangeComplete(picks: ExchangePicks): boolean {
     return namesAnything(picks.terms) && picks.uncountedSiteIds.length === 0
+}
+
+/** Anything picked in the terms: something they move, or a site still waiting for its count. */
+export function exchangePicked(picks: ExchangePicks): boolean {
+    return namesAnything(picks.terms) || picks.uncountedSiteIds.length > 0
 }
 
 export function toggled<T>(list: readonly T[] | undefined, item: T, on: boolean): T[] {
@@ -210,6 +348,7 @@ function withSiteEntry(
 ): ExchangePicks {
     const transfer = transferOf(picks.terms, side)
     return {
+        ...picks,
         terms: withTransfer(picks.terms, side, withSiteWarbands(transfer, siteId, warbands)),
         uncountedSiteIds: toggled(picks.uncountedSiteIds, siteId, uncounted)
     }
@@ -234,4 +373,89 @@ export function tappedSiteCount(
 ): number | undefined {
     if (tapped !== picked) return tapped
     return counts.includes(0) ? 0 : undefined
+}
+
+/**
+ * R-10.8 — each side offers what the engine accepts with what the other side gives back, so a
+ * change to one side drops from the other every site (counted or not) and adviser its offers no
+ * longer list: no row would show such a pick to take it back. A site still listed whose count its
+ * row no longer offers keeps its pick and loses its count, so the player picks again and the terms
+ * wait for it. A change can alter what the first side offers in turn, so it repeats until both
+ * sides stand.
+ */
+export function withOfferedPicks(
+    state: HydratedOathGameState,
+    proposerId: string,
+    counterpartyId: string,
+    allows: ExchangeAllowance,
+    viewerId: string | undefined,
+    picks: ExchangePicks
+): ExchangePicks {
+    const sides = [
+        {
+            side: 'fromProposer',
+            giver: proposerId,
+            receiver: counterpartyId,
+            back: 'fromCounterparty'
+        },
+        {
+            side: 'fromCounterparty',
+            giver: counterpartyId,
+            receiver: proposerId,
+            back: 'fromProposer'
+        }
+    ] as const
+    // Each pass drops a pick or clears a count and never adds one, so it ends.
+    let kept = picks
+    let dropped = true
+    while (dropped) {
+        dropped = false
+        for (const { side, giver, receiver, back } of sides) {
+            const inReturn = inReturnOf(state, kept, back, receiver)
+            const offers = exchangeOffers(state, giver, receiver, allows, viewerId, inReturn)
+            const offeredSites = new Set(offers.sites.map((site) => site.siteId))
+            const offeredRows = new Set(offers.advisers.map((adviser) => adviser.row))
+            // An uncounted site is not in the terms yet; the giver's rule names its side.
+            const ruled = new Set(sitesRuledBy(state, giver))
+            const transfer = transferOf(kept.terms, side)
+            const listed = (transfer.sites ?? []).filter((site) => offeredSites.has(site.siteId))
+            // Each count is read as its row reads it, beside the other sites counted with it.
+            const stale = listed.filter(
+                (site) =>
+                    !siteCounts(
+                        state,
+                        giver,
+                        receiver,
+                        { sites: listed },
+                        site.siteId,
+                        inReturn
+                    ).includes(site.warbands)
+            )
+            const sites = listed.filter((site) => !stale.includes(site))
+            const patch: Partial<ExchangeTransfer> = {}
+            if (sites.length !== (transfer.sites?.length ?? 0)) patch.sites = sites
+            if (transfer.adviserRows?.some((row) => !offeredRows.has(row)))
+                patch.adviserRows = transfer.adviserRows.filter((row) => offeredRows.has(row))
+            const uncountedSiteIds = [
+                ...kept.uncountedSiteIds.filter(
+                    (siteId) => !ruled.has(siteId) || offeredSites.has(siteId)
+                ),
+                ...stale.map((site) => site.siteId)
+            ]
+            const unchanged =
+                Object.keys(patch).length === 0 &&
+                uncountedSiteIds.length === kept.uncountedSiteIds.length
+            if (unchanged) continue
+            dropped = true
+            kept = {
+                terms:
+                    Object.keys(patch).length === 0
+                        ? kept.terms
+                        : withTransfer(kept.terms, side, patch),
+                uncountedSiteIds
+            }
+        }
+    }
+    // R-7.6.3-H1 — a promise moves nothing, so it stands as typed whatever the rows drop.
+    return { ...kept, promiseDrafts: picks.promiseDrafts }
 }

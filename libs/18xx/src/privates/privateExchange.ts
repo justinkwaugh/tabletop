@@ -1,3 +1,5 @@
+import { stateWith } from '../game/stateWith.js'
+import { companyShareCount } from '../company/companyCharters.js'
 import { isOperatingStep } from '../operating/operatingSteps.js'
 import { allPlayersPassed } from '../stock/stockRoundRules.js'
 import * as Type from 'typebox'
@@ -74,18 +76,18 @@ export function evaluatePrivateExchange(
         return { reason: 'This share is unavailable.' }
     const target = getCompany(state, certificate.companyId)
     if (target.closed) return { reason: 'The railway is closed.' }
-    assertExists(target.shareCount, 'Exchange shares require a share count')
+    const shareCount = companyShareCount(state, stockRules.charters, target.id)
+    assertExists(shareCount, 'Exchange shares require a share count')
     if (
         terms.ownershipLimit === 'ordinary' &&
         (sharesOwned(state, target.id, owner) + certificate.shares) * 100 >
-            stockRules.ownershipLimit(state, target.id, owner) * target.shareCount
+            stockRules.ownershipLimit(state, target.id, owner) * shareCount
     )
         return { reason: 'The exchange exceeds the ownership limit.' }
-    const projected: StockState = {
-        ...state,
+    const projected: StockState = stateWith(state, {
         ...copyFinances(state),
         ownershipLimitExemptions: structuredClone(state.ownershipLimitExemptions)
-    }
+    })
     const presidency = applyPrivateShareExchange(
         projected,
         company.id,
@@ -155,7 +157,8 @@ export function applyPrivateShareExchange(
     )
     const { owner } = exchangeCertificate(state, surrendered.id, received.id)
     closePrivate(state, privateCompanyId)
-    if (exemptOwnershipLimit) grantOwnershipLimitExemption(state, received.companyId, owner)
+    if (exemptOwnershipLimit)
+        grantOwnershipLimitExemption(state, rules.charters, received.companyId, owner)
     if (!getCompany(state, received.companyId).president) return undefined
     const presidency = evaluatePresidency(
         state,

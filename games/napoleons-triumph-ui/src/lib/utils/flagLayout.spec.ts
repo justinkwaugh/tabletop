@@ -1,8 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import { APPROACH_GEOMETRY } from '$lib/map/boardGeometry.js'
-import { attackMarkerSamples } from './attackMarker.js'
+import { THREAT_ARROW, attackMarkerSamples, type ArrowOnApproach } from './attackMarker.js'
 import { BoardView, viewRotation } from './boardView.js'
-import { FlagSide, arrowsToKeepClear, placeFlags } from './flagLayout.js'
+import { boundsOfPoints } from './boundingBox.js'
+import {
+    BANNER_HEIGHT,
+    FlagSide,
+    STAFF_HEIGHT,
+    arrowsToKeepClear,
+    bannerWidth,
+    flagOutlines,
+    placeFlags,
+    type FlagMark
+} from './flagLayout.js'
 
 const NORTH = { rotation: viewRotation(BoardView.North), scale: 1 }
 
@@ -43,6 +53,30 @@ describe('which way a flag flies', () => {
     })
 })
 
+describe('the printed marks a flag keeps clear of', () => {
+    const foot = { x: 500, y: 500 }
+    const flag = { key: 'corps', feetByPreference: [foot], width: 150 }
+    const bannerY = foot.y - STAFF_HEIGHT + BANNER_HEIGHT / 2
+    const markAt = (x: number) => [-6, 0, 6].map((dx) => ({ x: x + dx, y: bannerY }))
+
+    it('turns a flag away from a printed mark', () => {
+        expect(placeFlags([flag], [], NORTH, [], [markAt(580)]).corps.side).toBe(FlagSide.Left)
+    })
+
+    it('counts each mark once, however much of it the banner covers', () => {
+        const wholeMarkOnTheRight = markAt(580)
+        const twoMarkCentresOnTheLeft = [[{ x: 430, y: bannerY }], [{ x: 400, y: bannerY }]]
+        const placed = placeFlags(
+            [flag],
+            [],
+            NORTH,
+            [],
+            [wholeMarkOnTheRight, ...twoMarkCentresOnTheLeft]
+        )
+        expect(placed.corps.side).toBe(FlagSide.Right)
+    })
+})
+
 describe('where a flag stands', () => {
     const near = { x: 500, y: 500 }
     const far = { x: 604, y: 500 }
@@ -73,12 +107,14 @@ describe('where a flag stands', () => {
 })
 
 describe('the arrows flags keep clear of', () => {
-    const [first, second] = Object.keys(APPROACH_GEOMETRY).map(Number)
+    const [first, second] = Object.keys(APPROACH_GEOMETRY)
+        .map(Number)
+        .map((approach) => ({ approach, drawing: THREAT_ARROW, slide: 0 }))
 
-    function farthestFrom(approach: number, zoom: number): number {
-        const { centre } = APPROACH_GEOMETRY[approach]
+    function farthestFrom(arrow: ArrowOnApproach, zoom: number): number {
+        const { centre } = APPROACH_GEOMETRY[arrow.approach]
         return Math.max(
-            ...arrowsToKeepClear([approach], zoom).map((point) =>
+            ...arrowsToKeepClear([arrow], zoom).map((point) =>
                 Math.hypot(point.x - centre.x, point.y - centre.y)
             )
         )
@@ -95,5 +131,38 @@ describe('the arrows flags keep clear of', () => {
 
     it('reach farther as the board is zoomed out, because the arrows keep a readable size', () => {
         expect(farthestFrom(first, 0.25)).toBeGreaterThan(farthestFrom(first, 0.5))
+    })
+})
+
+describe('the outline of a standing flag', () => {
+    const flag: FlagMark = {
+        key: 'davout',
+        at: { x: 100, y: 200 },
+        side: FlagSide.Right,
+        name: 'Davout',
+        colors: { block: '#2a4f8a', shade: '#1d3760', ink: '#ffffff' },
+        count: 3,
+        hasCommanded: false
+    }
+
+    it('has its banner above the foot, flying to its side, at the flag scale', () => {
+        const [banner, staff] = flagOutlines(flag, { ...NORTH, scale: 2 })
+        expect(boundsOfPoints(banner)).toEqual({
+            x: 100,
+            y: 200 - STAFF_HEIGHT * 2,
+            width: bannerWidth('Davout') * 2,
+            height: BANNER_HEIGHT * 2
+        })
+        expect(boundsOfPoints(staff).y + boundsOfPoints(staff).height).toBe(200)
+        const left = boundsOfPoints(flagOutlines({ ...flag, side: FlagSide.Left }, NORTH)[0])
+        expect(left.x + left.width).toBe(100)
+    })
+
+    it('turns with the board, the banner still above the foot on screen', () => {
+        const turned = { rotation: viewRotation(BoardView.Allied), scale: 1 }
+        const [banner] = flagOutlines(flag, turned)
+        const bounds = boundsOfPoints(banner)
+        expect(bounds.width).toBeCloseTo(BANNER_HEIGHT)
+        expect(bounds.height).toBeCloseTo(bannerWidth('Davout'))
     })
 })

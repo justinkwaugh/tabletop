@@ -1,7 +1,6 @@
 <script lang="ts">
     import { capitalised, type Phrase, type PhrasePart } from '$lib/utils/actionDescription.js'
     import { PolypFaces } from '$lib/images/art.generated.js'
-    import { BiteMask } from '$lib/utils/bite.js'
     import LarvaCube from './table/LarvaCube.svelte'
     import AlgaCylinder from './table/AlgaCylinder.svelte'
     import ParrotfishIcon from './ParrotfishIcon.svelte'
@@ -20,44 +19,69 @@
         if (index === phrase.parts.length - 1) shown = shown.replace(/\.$/, '')
         return capitalise && index === 0 ? capitalised(shown) : shown
     }
+
+    const isPolyp = (part: PhrasePart) =>
+        typeof part !== 'string' &&
+        'icon' in part &&
+        (part.icon === 'polyp' || part.icon === 'unseen-polyp')
+
+    // Consecutive polyps form one run, so a line never breaks between them.
+    const runs = $derived(
+        phrase.parts.reduce<{ parts: { part: PhrasePart; index: number }[]; polyps: boolean }[]>(
+            (grouped, part, index) => {
+                const last = grouped.at(-1)
+                if (last && last.polyps && isPolyp(part)) {
+                    last.parts.push({ part, index })
+                } else {
+                    grouped.push({ parts: [{ part, index }], polyps: isPolyp(part) })
+                }
+                return grouped
+            },
+            []
+        )
+    )
 </script>
 
 <span class="sr-only">{capitalise ? capitalised(phrase.text) : phrase.text}</span>
-<span class="line" aria-hidden="true">
-    {#each phrase.parts as part, index (index)}
-        {#if typeof part === 'string' || !('icon' in part)}
-            {words(part, index)}
-        {:else if part.icon === 'polyp'}
-            <span class="icon polyp" class:consumed={part.consumed} title={part.label}>
-                <img
-                    src={PolypFaces[part.color][0].url}
-                    style:mask-image={part.consumed ? BiteMask : undefined}
-                    alt=""
-                    width="20"
-                    height="20"
-                />
-                {#if part.count > 1}<span class="times">×{part.count}</span>{/if}
-            </span>
-        {:else if part.icon === 'unseen-polyp'}
-            <span class="icon unseen" title="a polyp, unseen">?</span>
-        {:else if part.icon === 'cube'}
-            <span class="icon" title={part.label}>
-                {#each { length: Math.min(part.count, 2) } as _, cubeIndex (cubeIndex)}
-                    <svg width="16" height="18" viewBox="-8 -9 16 18">
-                        <LarvaCube center={{ x: 0, y: 0 }} size={15} color={part.color} />
-                    </svg>
-                {/each}
-            </span>
-        {:else if part.icon === 'cylinder'}
-            <span class="icon" title={part.label}>
-                <svg width="16" height="20" viewBox="-8 -10 16 20">
-                    <AlgaCylinder center={{ x: 0, y: 0 }} size={14} color={part.alga} />
+{#snippet piece(part: PhrasePart, index: number)}
+    {#if typeof part === 'string' || !('icon' in part)}
+        {words(part, index)}
+    {:else if part.icon === 'polyp'}
+        <span class="icon polyp" class:reef-bitten={part.consumed} title={part.label}>
+            <img src={PolypFaces[part.color][0].url} alt="" width="20" height="20" />
+            {#if part.count > 1}<span class="times">×{part.count}</span>{/if}
+        </span>
+    {:else if part.icon === 'unseen-polyp'}
+        <span class="icon unseen" title="a polyp, unseen">?</span>
+    {:else if part.icon === 'cube'}
+        <span class="icon" title={part.label}>
+            {#each { length: Math.min(part.count, 2) } as _, cubeIndex (cubeIndex)}
+                <svg width="16" height="18" viewBox="-8 -9 16 18">
+                    <LarvaCube center={{ x: 0, y: 0 }} size={15} color={part.color} />
                 </svg>
+            {/each}
+        </span>
+    {:else if part.icon === 'cylinder'}
+        <span class="icon" title={part.label}>
+            <svg width="16" height="20" viewBox="-8 -10 16 20">
+                <AlgaCylinder center={{ x: 0, y: 0 }} size={14} color={part.alga} />
+            </svg>
+        </span>
+    {:else if part.icon === 'parrotfish'}
+        <span class="icon" title={part.label}>
+            <ParrotfishIcon paint={fishPaint} />
+        </span>
+    {/if}
+{/snippet}
+
+<span class="line" aria-hidden="true">
+    {#each runs as run (run.parts[0].index)}
+        {#if run.polyps}
+            <span class="polyps">
+                {#each run.parts as { part, index } (index)}{@render piece(part, index)}{/each}
             </span>
-        {:else if part.icon === 'parrotfish'}
-            <span class="icon" title={part.label}>
-                <ParrotfishIcon paint={fishPaint} />
-            </span>
+        {:else}
+            {#each run.parts as { part, index } (index)}{@render piece(part, index)}{/each}
         {/if}
     {/each}
 </span>
@@ -65,6 +89,17 @@
 <style>
     .line {
         white-space: normal;
+    }
+
+    .polyps {
+        display: inline-flex;
+        gap: 3px;
+        white-space: nowrap;
+        vertical-align: -4px;
+    }
+
+    .polyps .icon {
+        vertical-align: baseline;
     }
 
     .icon {
@@ -82,15 +117,6 @@
     .polyp img {
         border-radius: 3px;
         box-shadow: 0 0 0 1px rgb(0 0 0 / 0.35);
-    }
-
-    /* The image's ring is cut away with the bite; this one follows the bite's edge. */
-    .polyp.consumed {
-        filter: drop-shadow(0 0 0.6px rgb(0 0 0 / 0.8));
-    }
-
-    .polyp.consumed img {
-        mask-composite: intersect;
     }
 
     .times {

@@ -8,6 +8,9 @@ import {
     LayPrivateTileOutOfTurn,
     OfferPurchase,
     PlacePrivateMarker,
+    PlacePrivateToken,
+    sameStationPosition,
+    type StationPosition,
     RespondToPurchaseOffer,
     RespondToTrackConsent,
     cashOwnedBy,
@@ -32,6 +35,12 @@ export type PrivateTileOption = {
     details: TrackLayDetails
 }
 export type PrivateTrainOption = { privateCompanyId: string; details: TrainPurchaseDetails }
+export type PrivateTokenOption = {
+    privateCompanyId: string
+    playerId: string
+    companyId: string
+    position: StationPosition
+}
 export type PrivateMarkerOption = {
     privateCompanyId: string
     playerId: string
@@ -100,6 +109,14 @@ export class CompanyDecisionsModule {
     companyPurchasesAvailable = $derived.by(() =>
         this.availablePurchaseOptions.some((option) => option.request.asset.kind !== 'train')
     )
+    ownCompanyPurchasesAvailable = $derived.by(() =>
+        this.availablePurchaseOptions.some(
+            ({ request }) =>
+                request.asset.kind !== 'train' &&
+                request.seller.kind === 'player' &&
+                request.seller.playerId === this.session.playerId
+        )
+    )
     players = $derived.by(() => {
         if (!this.canResolve) return []
         const { state, rules } = this.session
@@ -159,6 +176,24 @@ export class CompanyDecisionsModule {
                 })
         )
     })
+    privateTokenOptions = $derived.by((): PrivateTokenOption[] => {
+        const { state, rules } = this.session
+        if (pendingCompanyDecision(state)) return []
+        return this.players.flatMap((playerId) =>
+            state.companies
+                .filter((company) => company.kind === 'private' && !company.closed)
+                .flatMap((company) => {
+                    const terms = rules.privatePowerRules.tokenTerms?.(state, company.id, playerId)
+                    if (!terms) return []
+                    return terms.positions.map((position) => ({
+                        privateCompanyId: company.id,
+                        playerId,
+                        companyId: terms.companyId,
+                        position
+                    }))
+                })
+        )
+    })
     privateTrainOptions = $derived.by((): PrivateTrainOption[] => {
         const { state, rules, playerId } = this.session
         if (!this.canResolve || !playerId || pendingCompanyDecision(state)) return []
@@ -203,13 +238,13 @@ export class CompanyDecisionsModule {
             'Purchasing is unavailable'
         )
         let price = request.price
-        if (request.asset.kind === 'private') {
+        if (request.asset.kind !== 'train') {
             const range = this.session.rules.transferRules.priceRange(
                 this.session.state,
                 request.companyId,
                 request.asset
             )
-            assertExists(range, 'Private purchase requires a price range')
+            assertExists(range, 'A private or company purchase requires a price range')
             const cash = cashOwnedBy(this.session.state, {
                 kind: 'company',
                 companyId: request.companyId
@@ -358,6 +393,22 @@ export class CompanyDecisionsModule {
         const action = this.session.createPlayerAction(PlacePrivateMarker, {
             privateCompanyId: option.privateCompanyId,
             locationId: option.locationId
+        })
+        action.playerId = option.playerId
+        await this.session.applyAction(action)
+    }
+    async placePrivateToken(option: PrivateTokenOption) {
+        assert(
+            this.privateTokenOptions.some(
+                (listed) =>
+                    listed.privateCompanyId === option.privateCompanyId &&
+                    sameStationPosition(listed.position, option.position)
+            ),
+            'This private cannot place a station there now'
+        )
+        const action = this.session.createPlayerAction(PlacePrivateToken, {
+            privateCompanyId: option.privateCompanyId,
+            position: option.position
         })
         action.playerId = option.playerId
         await this.session.applyAction(action)

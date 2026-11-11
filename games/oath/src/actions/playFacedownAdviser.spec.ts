@@ -39,7 +39,11 @@ function play(
     )
 }
 
-function ready(advisers: { cardId: string; faceUp: boolean }[], overrides = {}, stateOverrides = {}) {
+function ready(
+    advisers: { cardId: string; faceUp: boolean }[],
+    overrides = {},
+    stateOverrides = {}
+) {
     return testState([testPlayer({ siteId: 'c1', advisers, ...overrides })], stateOverrides)
 }
 
@@ -164,21 +168,46 @@ describe('Play or Discard a Facedown Adviser (R-6.1)', () => {
 
     it("R-5.1.4.I — the People's Favor's holder plays to a full site in their region after first discarding a card there", () => {
         const HEARTH_AT_C2 = 'denizen.hearth.wayside-inn'
-        const full = Array.from({ length: FIXTURE_SITE_CAPACITY - 1 }, (_, i) => `denizen.order.filler-${i}`)
+        const full = Array.from(
+            { length: FIXTURE_SITE_CAPACITY - 1 },
+            (_, i) => `denizen.order.filler-${i}`
+        )
         const holding = (holder: string) =>
-            ready([{ cardId: HEARTH, faceUp: false }], {}, {
-                denizensBySite: { c1: [], c2: [HEARTH_AT_C2, ...full], p1: [] },
-                banners: {
-                    [Banner.PeoplesFavor]: { value: 1, mobSide: false, holderPlayerId: holder },
-                    [Banner.DarkestSecret]: { value: 1 }
+            ready(
+                [{ cardId: HEARTH, faceUp: false }],
+                {},
+                {
+                    denizensBySite: { c1: [], c2: [HEARTH_AT_C2, ...full], p1: [] },
+                    banners: {
+                        [Banner.PeoplesFavor]: { value: 1, mobSide: false, holderPlayerId: holder },
+                        [Banner.DarkestSecret]: { value: 1 }
+                    }
                 }
-            })
+            )
         const toC2 = { toSiteId: 'c2', discardFirstCardId: HEARTH_AT_C2 }
 
         const state = holding('p1')
-        expect(HydratedPlayFacedownAdviser.reasonCannotPlay(state, 'p1', { cardId: HEARTH, play: SearchPlay.Site, toSiteId: 'c2' })).toMatch(/at its capacity/)
-        expect(HydratedPlayFacedownAdviser.reasonCannotPlay(state, 'p1', { cardId: HEARTH, play: SearchPlay.Site, toSiteId: 'p1' })).toMatch(/only be played to your own site/)
-        expect(HydratedPlayFacedownAdviser.reasonCannotPlay(holding('p2'), 'p1', { cardId: HEARTH, play: SearchPlay.Site, ...toC2 })).toMatch(/only be played to your own site/)
+        expect(
+            HydratedPlayFacedownAdviser.reasonCannotPlay(state, 'p1', {
+                cardId: HEARTH,
+                play: SearchPlay.Site,
+                toSiteId: 'c2'
+            })
+        ).toMatch(/at its capacity/)
+        expect(
+            HydratedPlayFacedownAdviser.reasonCannotPlay(state, 'p1', {
+                cardId: HEARTH,
+                play: SearchPlay.Site,
+                toSiteId: 'p1'
+            })
+        ).toMatch(/only be played to your own site/)
+        expect(
+            HydratedPlayFacedownAdviser.reasonCannotPlay(holding('p2'), 'p1', {
+                cardId: HEARTH,
+                play: SearchPlay.Site,
+                ...toC2
+            })
+        ).toMatch(/only be played to your own site/)
 
         play('p1', HEARTH, SearchPlay.Site, toC2).apply(state)
         expect(state.denizensBySite['c2']).toContain(HEARTH)

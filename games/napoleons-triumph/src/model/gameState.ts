@@ -27,12 +27,14 @@ import {
     isHeavyCavalry,
     opposingSide,
     reducedFace,
+    sameFace,
     type Face
 } from '../components/pieces.js'
 import { Scenario, roundDefinition, type RoundDefinition } from '../components/timeTrack.js'
 import {
     Attack,
     MoralePenaltyKind,
+    RevealedRide,
     RoadMarch,
     type LossEntry,
     type MoralePenalty
@@ -48,6 +50,7 @@ import {
     type ProjectedUnit
 } from './pieces.js'
 import { HydratedNapoleonsTriumphPlayerState, NapoleonsTriumphPlayerState } from './playerState.js'
+import { withArmyDisplays } from './armyDisplay.js'
 
 export type TurnLimits = Type.Static<typeof TurnLimits>
 export const TurnLimits = Type.Object({
@@ -77,10 +80,12 @@ export const NapoleonsTriumphGameState = Type.Object({
     units: Type.Array(Unit),
     commanders: Type.Array(Commander),
     frenchReinforcementsEntered: Type.Boolean(),
-    artilleryFire: Type.Record(Type.String(), Type.Integer()),
+    /** Games begun before the bar was kept per army recorded artillery fire here, for both armies. */
+    artilleryFire: Type.Optional(Type.Record(Type.String(), Type.Integer())),
     limits: TurnLimits,
     attack: Type.Optional(Attack),
     roadMarch: Type.Optional(RoadMarch),
+    revealedRide: Type.Optional(RevealedRide),
     auction: Type.Optional(SimpleAuction),
     victory: Type.Optional(Type.Enum(VictoryKind))
 })
@@ -120,14 +125,16 @@ export class HydratedNapoleonsTriumphGameState
     declare units: ProjectedUnit[]
     declare commanders: Commander[]
     declare frenchReinforcementsEntered: boolean
-    declare artilleryFire: Record<string, number>
+    declare artilleryFire?: Record<string, number>
     declare limits: TurnLimits
     declare attack?: NapoleonsTriumphProjectedState['attack']
     declare roadMarch?: RoadMarch
+    declare revealedRide?: RevealedRide
     declare auction?: HydratedSimpleAuction
     declare victory?: VictoryKind
 
-    constructor(data: NapoleonsTriumphProjectedState) {
+    constructor(input: NapoleonsTriumphProjectedState) {
+        const data = withArmyDisplays(input)
         super(data, NapoleonsTriumphProjectedStateValidator)
         this.players = data.players.map((player) => new HydratedNapoleonsTriumphPlayerState(player))
         this.rounds = new HydratedRoundManager(data.rounds)
@@ -136,6 +143,10 @@ export class HydratedNapoleonsTriumphGameState
 
     get map(): BattleMap {
         return AUSTERLITZ
+    }
+
+    get roundInProgress(): boolean {
+        return this.rounds.currentRound !== undefined
     }
 
     get round(): number {
@@ -253,8 +264,8 @@ export class HydratedNapoleonsTriumphGameState
     }
 
     /** Enemy corps of two or more units in a locale (rule 10, road movement). */
-    hasLargeCorps(locale: LocaleId, playerId: string): boolean {
-        return this.commandersIn(locale, playerId).some(
+    largeCorpsCommander(locale: LocaleId, playerId: string): Commander | undefined {
+        return this.commandersIn(locale, playerId).find(
             (commander) => this.corpsUnits(commander.id).length >= 2
         )
     }
@@ -280,9 +291,8 @@ export class HydratedNapoleonsTriumphGameState
         }
     }
 
-    /** Rule 13: morale lost this way never falls below one, so it cannot break the army. */
     private wearDown(player: HydratedNapoleonsTriumphPlayerState, points: number): number {
-        const lost = Math.min(points, player.morale - 1)
+        const lost = player.wearDownLoss(points)
         player.morale -= lost
         player.moraleLost += lost
         return lost
@@ -319,12 +329,28 @@ export class HydratedNapoleonsTriumphGameState
         const before = faceOf(unit)
         const taken = Math.min(steps, before.strength)
         const after = reducedFace(before, taken)
+        this.updateArmyDisplay(unit.playerId, before, after)
         if (after) {
             this.setFace(unit, after)
         } else {
             this.eliminate(unit)
         }
         return { unitId: unit.id, steps: taken, eliminated: !after, face: before }
+    }
+
+    private updateArmyDisplay(playerId: string, before: Face, after: Face | undefined) {
+        const display = this.getPlayerState(playerId).armyDisplay
+        assertExists(display, `The army display of ${playerId} is not set`)
+        const index = display.findIndex((face) => sameFace(face, before))
+        assert(
+            index >= 0,
+            `The army display of ${playerId} has no unit like the one that took a loss`
+        )
+        if (after) {
+            display.splice(index, 1, { ...after })
+        } else {
+            display.splice(index, 1)
+        }
     }
 
     eliminate(unit: ProjectedUnit) {

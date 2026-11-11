@@ -13,12 +13,14 @@ import {
 import {
     StageKind,
     emptyBattleSelections,
+    nameAttackers,
+    setAttackCommand,
     setAttackRide,
     type BattleSelections
 } from './battleSelection.js'
 import { battleStageOf } from './battleStage.js'
 import { RideChoice } from './moveCommands.js'
-import { TargetKind, moveTargets } from './targets.js'
+import { TargetKind, moveTargets, threatsOn } from './targets.js'
 
 const NEAR = 53
 const TAKEN = 63
@@ -84,6 +86,60 @@ describe('following up a retreat with cavalry', () => {
     })
 })
 
+describe('riding in by road after a retreat, under the command chosen', () => {
+    const trooper = (id: string): PiecePlacement => ({
+        id,
+        side: Side.French,
+        face: cavalry(2),
+        locale: NEAR,
+        commanderId: 'murat'
+    })
+
+    function detachedAfterRetreat(): TestGame {
+        const game = new TestGame()
+        game.deployBoth()
+        game.act(ActionType.EndTurn, game.playerOf(Side.Allied))
+        arrangeBattlefield(game, [
+            trooper('F-c1'),
+            trooper('F-c2'),
+            { id: 'A-screen', side: Side.Allied, face: cavalry(1), locale: TAKEN }
+        ])
+        game.act(ActionType.ThreatenAttack, game.playerOf(Side.French), {
+            approach: game.hydrated.map.approachBetween(NEAR, TAKEN).id,
+            plan: { kind: CommandKind.Detach, commanderId: 'murat', unitIds: ['F-c1'] }
+        })
+        game.act(ActionType.Retreat, game.playerOf(Side.Allied), {
+            losses: {},
+            destinations: { 'A-screen': 72 },
+            kept: {}
+        })
+        return game
+    }
+
+    it('offers no ride under a Detach Move, which cannot go by road, but names the commands that can', () => {
+        const stage = stageOf(detachedAfterRetreat())
+        expect(stage).toMatchObject({
+            kind: StageKind.Occupation,
+            attackers: ['F-c1'],
+            command: CommandKind.Detach,
+            mayMoveIn: true,
+            roadCommands: [CommandKind.Unit, CommandKind.Corps]
+        })
+        expect(stage).not.toHaveProperty('roadOrders', expect.anything())
+    })
+
+    it('rides in by the command chosen, never another', () => {
+        const game = detachedAfterRetreat()
+        const corps = {
+            ...emptyBattleSelections(),
+            attackers: setAttackCommand(emptyBattleSelections().attackers, CommandKind.Corps)
+        }
+        expect(stageOf(game, corps)).toHaveProperty('roadOrders', [
+            { kind: CommandKind.Corps, commanderId: 'murat', unitIds: ['F-c1'], road: [] }
+        ])
+    })
+})
+
 describe('the command a road attack is made by', () => {
     const WEST = 52
     const rider = (id: string) => ({
@@ -94,15 +150,22 @@ describe('the command a road attack is made by', () => {
         commanderId: 'murat'
     })
 
-    function feinting(plan: { kind: CommandKind; unitIds: string[] }) {
+    const line: PiecePlacement = {
+        id: 'A-line',
+        side: Side.Allied,
+        face: infantry(2),
+        locale: TAKEN,
+        commanderId: 'bagration'
+    }
+
+    function feinting(
+        plan: { kind: CommandKind; unitIds: string[] },
+        defenders: PiecePlacement[] = [line]
+    ) {
         const game = new TestGame()
         game.deployBoth()
         game.act(ActionType.EndTurn, game.playerOf(Side.Allied))
-        arrangeBattlefield(game, [
-            rider('F-c1'),
-            rider('F-c2'),
-            { id: 'A-line', side: Side.Allied, face: infantry(2), locale: TAKEN }
-        ])
+        arrangeBattlefield(game, [rider('F-c1'), rider('F-c2'), ...defenders])
         game.act(ActionType.ThreatenAttack, game.playerOf(Side.French), {
             approach: game.hydrated.map.approachBetween(NEAR, TAKEN).id,
             plan
@@ -131,6 +194,24 @@ describe('the command a road attack is made by', () => {
             { kind: CommandKind.Corps, commanderId: 'murat', unitIds: ['F-c1'], road: [NEAR] }
         ])
     })
+
+    it('names where the whole corps would halt, beside an enemy corps of two or more', () => {
+        const plan = { kind: CommandKind.Corps, unitIds: ['F-c1', 'F-c2'] }
+        const stage = feinting(plan, [line, { ...line, id: 'A-line-2' }])
+        expect(stage).toMatchObject({
+            kind: StageKind.Feint,
+            attackers: ['F-c1', 'F-c2'],
+            commandOptions: [],
+            roadHalt: { locale: NEAR, enemyCommanderId: 'bagration' }
+        })
+    })
+
+    it('names no halt beside an enemy corps of one unit, which does not stop the corps', () => {
+        const plan = { kind: CommandKind.Corps, unitIds: ['F-c1', 'F-c2'] }
+        const stage = feinting(plan)
+        expect(stage).toMatchObject({ commandOptions: [CommandKind.Corps] })
+        expect(stage).toHaveProperty('roadHalt', undefined)
+    })
 })
 
 describe('cavalry riding on', () => {
@@ -155,21 +236,27 @@ describe('cavalry riding on', () => {
         ).toBe(true)
     })
 
-    it('may threaten the next locale on its road and carries out the threat at no command', () => {
+    it('may threaten the next locale on its road, aimed at from that locale, and carries out the threat at no command', () => {
         const game = ridden([
             { id: 'A-line', side: Side.Allied, face: infantry(2), locale: BEYOND }
         ])
         const french = game.playerOf(Side.French)
         const facing = game.hydrated.map.approachBetween(TAKEN, BEYOND).id
-        const threats = moveTargets(game.hydrated, french, ridingOn).filter(
-            (target) => target.kind === TargetKind.Attack
-        )
-        expect(threats.map((target) => target.position)).toEqual(
+        expect(
+            moveTargets(game.hydrated, french, ridingOn).some(
+                (target) => target.kind === TargetKind.Attack
+            )
+        ).toBe(false)
+        expect(threatsOn(game.hydrated, french, BEYOND).map((target) => target.position)).toEqual(
             expect.arrayContaining([{ locale: TAKEN, approach: facing }])
         )
-        game.act(ActionType.ThreatenAttack, french, { approach: facing, plan: rider })
+        game.act(ActionType.ThreatenAttack, french, { approach: facing })
         defendWith(game, game.playerOf(Side.Allied), ['A-line'])
-        expect(stageOf(game)).toMatchObject({
+        const named = {
+            ...emptyBattleSelections(),
+            attackers: nameAttackers(emptyBattleSelections().attackers, ['F-cav'])
+        }
+        expect(stageOf(game, named)).toMatchObject({
             kind: StageKind.Feint,
             attackers: ['F-cav'],
             orders: [{ ...ridingOn, road: [] }],
@@ -219,7 +306,6 @@ describe('cavalry reinforcements riding on in their turn of entry', () => {
                 .filter((target) => target.kind === TargetKind.Reserve)
                 .map((target) => target.position.locale)
         expect(reached(anew).length).toBeGreaterThan(reached(riding).length)
-        expect(anew.some((target) => target.kind === TargetKind.Attack)).toBe(true)
     })
 
     it('follows up a retreat riding on unless a new command was meant, and may be switched', () => {

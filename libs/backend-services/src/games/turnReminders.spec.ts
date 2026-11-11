@@ -6,10 +6,12 @@ import {
     FIRST_TURN_REMINDER_INDEX,
     nextTurnReminderIndex,
     TURN_REMINDER_DELAYS,
+    turnReminderDelaySeconds,
     turnReminderIndex,
     TurnReminderTask
 } from './turnReminders.js'
 import type { TaskService } from '../tasks/taskService.js'
+import { weekReminderHours, type User } from '@tabletop/common'
 
 const HOUR = 60 * 60
 
@@ -45,16 +47,17 @@ describe('turn reminders', () => {
         expect(TURN_REMINDER_DELAYS[DEFERRED_TURN_REMINDER_INDEX]).toBe(4 * HOUR)
     })
 
-    it('queues the reminder after its delay with the delay alongside its index', async () => {
+    it('queues the reminder when it is due with its scheduled delay alongside its index', async () => {
         const createPushTask = vi.fn<TaskService['createPushTask']>(async () => {})
         await enqueueTurnReminder(
             { createPushTask },
-            { userId: 'user', gameId: 'game', notificationId: 'notification', reminderIndex: 3 }
+            { userId: 'user', gameId: 'game', notificationId: 'notification', reminderIndex: 3 },
+            10 * HOUR
         )
         expect(createPushTask).toHaveBeenCalledExactlyOnceWith({
             queue: 'turn-notification',
             path: '/notification/sendTurnNotification',
-            inSeconds: 8 * HOUR,
+            inSeconds: 10 * HOUR,
             payload: {
                 userId: 'user',
                 gameId: 'game',
@@ -84,5 +87,43 @@ describe('turn reminders', () => {
 
     it('prefers the reminder index over the delay', () => {
         expect(turnReminderIndex(task({ reminderIndex: 5, delay: 12 * HOUR }))).toBe(5)
+    })
+})
+
+describe('turn reminders in reminder hours', () => {
+    const reminderHours = weekReminderHours([18, 19, 20, 21])
+    const recipient: Pick<User, 'timeZone' | 'preferences'> = {
+        timeZone: 'America/Chicago',
+        preferences: {
+            preventWebNotificationPrompt: false,
+            preferredColorsEnabled: false,
+            preferredColors: [],
+            reminderHours
+        }
+    }
+    const fridayMorning = new Date('2026-10-16T12:00:00.000Z')
+    const fridayEvening = new Date('2026-10-16T23:00:00.000Z')
+    const secondsUntil = (time: Date) => (time.getTime() - fridayMorning.getTime()) / 1000
+
+    it('sends the first two reminders at their usual delay', () => {
+        expect(turnReminderDelaySeconds(0, fridayMorning, recipient)).toBe(60)
+        expect(turnReminderDelaySeconds(1, fridayMorning, recipient)).toBe(HOUR)
+    })
+
+    it('waits for a reminder hour from the four hour reminder on', () => {
+        expect(
+            turnReminderDelaySeconds(DEFERRED_TURN_REMINDER_INDEX, fridayMorning, recipient)
+        ).toBe(secondsUntil(fridayEvening))
+        expect(turnReminderDelaySeconds(3, fridayMorning, recipient)).toBe(
+            secondsUntil(fridayEvening)
+        )
+        expect(turnReminderDelaySeconds(4, fridayMorning, recipient)).toBe(12 * HOUR)
+    })
+
+    it('keeps the usual delay without reminder hours or a time zone', () => {
+        expect(turnReminderDelaySeconds(4, fridayMorning, {})).toBe(12 * HOUR)
+        expect(
+            turnReminderDelaySeconds(4, fridayMorning, { preferences: recipient.preferences })
+        ).toBe(12 * HOUR)
     })
 })

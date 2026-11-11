@@ -1,3 +1,4 @@
+import { Shikoku1889Charters } from './charters.js'
 import { Shikoku1889Market } from './stockMarket.js'
 import { Shikoku1889StockRoundRules } from './roundRules.js'
 import { assertExists } from '@tabletop/common'
@@ -10,6 +11,7 @@ import {
 
 export const Shikoku1889ShareTrading = ipoMarketTrading({
     market: Shikoku1889Market,
+    charters: Shikoku1889Charters,
     ipoPoolId: 'initial-offering',
     marketPoolId: 'open-market',
     marketLimit: 50
@@ -29,6 +31,7 @@ export const Shikoku1889StockRules: StockRules = {
     },
     ...marketZoneHoldingLimits({
         market: Shikoku1889Market,
+        charters: Shikoku1889Charters,
         certificateFreeColors: ['yellow', 'orange'],
         ownershipFreeColors: ['orange'],
         ownershipPercent: 60

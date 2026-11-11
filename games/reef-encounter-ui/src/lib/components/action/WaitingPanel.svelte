@@ -1,31 +1,64 @@
 <script lang="ts">
     import { PlayerName } from '@tabletop/frontend-components'
-    import Phrases from '$lib/components/Phrases.svelte'
-    import { describeActions } from '$lib/utils/actionDescription.js'
+    import PhraseLine from '$lib/components/PhraseLine.svelte'
     import { boardName } from '$lib/utils/reefSquare.js'
     import { previousTurn } from '$lib/utils/historyEntries.js'
+    import { turnSummary } from '$lib/utils/turnRecap.js'
     import { waitingActivity } from '$lib/utils/statusText.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     const gameSession = getGameSession()
-    const state = $derived(gameSession.gameState)
-    const lastTurn = $derived(previousTurn(gameSession.actions, state.activePlayerIds))
-    const phrases = $derived(
+    const game = $derived(gameSession.gameState)
+    const lastTurn = $derived(previousTurn(gameSession.actions, game.activePlayerIds))
+    const summary = $derived(
         lastTurn
-            ? describeActions(
+            ? turnSummary(
                   lastTurn.actions,
                   lastTurn.playerId === gameSession.myPlayer?.id ? 'your' : 'their',
-                  gameSession.possessiveName,
                   (boardId) => boardName(gameSession.gameState.reefs, boardId)
               )
-            : []
+            : undefined
     )
 </script>
 
-{#each state.activePlayerIds as playerId (playerId)}
-    {@const activity = waitingActivity(state.machineState, playerId === gameSession.myPlayer?.id)}
-    {#if activity}
-        <p class="prompt"><PlayerName {playerId} /> {activity}</p>
-    {/if}
-{/each}
-<Phrases {phrases} />
+{#if game.activePlayerIds.length > 1}
+    <!-- Everyone feeds their parrotfish at once. -->
+    <p class="prompt">
+        {#each game.activePlayerIds as playerId, index (playerId)}
+            {#if index > 0}{index === game.activePlayerIds.length - 1
+                    ? ' and '
+                    : ', '}{/if}<PlayerName {playerId} />
+        {/each}
+        are feeding their parrotfish.
+    </p>
+{:else}
+    {#each game.activePlayerIds as playerId (playerId)}
+        {@const activity = waitingActivity(
+            game.machineState,
+            playerId === gameSession.myPlayer?.id
+        )}
+        {#if activity}
+            <p class="prompt"><PlayerName {playerId} /> {activity}</p>
+        {/if}
+    {/each}
+{/if}
+{#if summary}
+    <p class="detail summary">
+        {#if lastTurn?.playerId}
+            <PlayerName playerId={lastTurn.playerId} />
+            <PhraseLine phrase={{ ...summary, playerId: lastTurn.playerId }} />
+        {/if}
+    </p>
+{/if}
+
+<style>
+    /* At most two lines; the History tab holds the rest. */
+    .summary {
+        display: -webkit-box;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        line-height: 1.55;
+    }
+</style>

@@ -1,0 +1,4 @@
+#!/bin/sh
+# Formats staged files with prettier. Skip once with git commit --no-verify.
+command -v node >/dev/null 2>&1 || exit 0
+exec node "$(git rev-parse --show-toplevel)/tools/scripts/format-staged.mjs"

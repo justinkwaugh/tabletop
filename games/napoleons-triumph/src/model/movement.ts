@@ -17,8 +17,15 @@ import {
     resolveOrder,
     type ResolvedOrder
 } from './orders.js'
-import { faceOf, inReserve, samePosition, type Position, type ProjectedUnit } from './pieces.js'
-import { legal } from './legality.js'
+import {
+    faceOf,
+    inReserve,
+    samePosition,
+    type Commander,
+    type Position,
+    type ProjectedUnit
+} from './pieces.js'
+import { isLegal, legal } from './legality.js'
 
 export function allCavalry(units: readonly ProjectedUnit[]): boolean {
     return units.every((unit) => faceOf(unit).type === UnitType.Cavalry)
@@ -91,16 +98,45 @@ function roadTaken(
     return state.map.traceRoad(roadOrigin(resolved), [...(resolved.march?.path ?? []), ...entered])
 }
 
+export interface RoadHalt {
+    locale: LocaleId
+    enemyCommanderId: string
+}
+
 /** A corps of two or more units halts on entering a locale next to an enemy corps of two or more (rule 10). */
-function mustHalt(
+function haltingCorps(
     state: HydratedNapoleonsTriumphGameState,
     playerId: string,
     locale: LocaleId
-): boolean {
+): Commander | undefined {
     const enemyId = state.opponentOf(playerId).playerId
     return state.map
         .adjacentLocales(locale)
-        .some((adjacent) => state.hasLargeCorps(adjacent, enemyId))
+        .map((adjacent) => state.largeCorpsCommander(adjacent, enemyId))
+        .find((commander) => commander !== undefined)
+}
+
+/** Rule 10: the first locale along a path where a corps of two or more units must halt, when the corps can march that far. */
+export function corpsHaltAlong(
+    state: HydratedNapoleonsTriumphGameState,
+    playerId: string,
+    order: MoveOrder,
+    path: readonly LocaleId[]
+): RoadHalt | undefined {
+    const corps = resolveOrder(state, playerId, order)
+    if (!isLargeCorps(corps)) {
+        return undefined
+    }
+    for (const [index, locale] of path.entries()) {
+        const enemy = haltingCorps(state, playerId, locale)
+        if (enemy) {
+            const reached = path.slice(0, index + 1)
+            return isLegal(() => traceRoadMove(state, corps, reached))
+                ? { locale, enemyCommanderId: enemy.id }
+                : undefined
+        }
+    }
+    return undefined
 }
 
 export function traceRoadMove(
@@ -151,7 +187,7 @@ export function traceRoadMove(
             `Units already moved into the reserve of locale ${locale} this turn`
         )
         legal(
-            stopsHere || !mustHalt(state, playerId, locale),
+            stopsHere || haltingCorps(state, playerId, locale) === undefined,
             `A corps must halt in locale ${locale}, next to an enemy corps`
         )
     })
@@ -199,7 +235,7 @@ export function settleRoadMarch(
     }
     const path = march ? [...march.path, ...entered] : [...entered]
     const arrivals = roadTaken(state, resolved, entered)
-    const halted = isLargeCorps(resolved) && mustHalt(state, playerId, to.locale)
+    const halted = isLargeCorps(resolved) && haltingCorps(state, playerId, to.locale) !== undefined
     const stopped = halted || path.length >= reach(arrivals)
     const mayStillBlock = state.map
         .approachesOnRoad(arrivals)

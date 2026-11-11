@@ -5,23 +5,27 @@ export interface CreatePushTaskOptions<T> {
     payload: T
     path: string
     inSeconds?: number
+    uniqueName?: string
+}
+
+export type VerificationEmailTask = { userId: string; token: string }
+export type EmailChangeVerificationTask = VerificationEmailTask & { email: string }
+
+export type AccountChangeNotice = {
+    email: string
+    changeType: AccountChangeType
+    timestamp: Date
+    username?: string
 }
 
 export interface TaskService {
     createPushTask<T>(options: CreatePushTaskOptions<T>): Promise<void>
 
-    sendVerificationEmail({ userId, token }: { userId: string; token: string }): Promise<void>
+    sendVerificationEmail(task: VerificationEmailTask): Promise<void>
+    sendEmailChangeVerificationEmail(task: EmailChangeVerificationTask): Promise<void>
     sendPasswordResetEmail({ userId, token }: { userId: string; token: string }): Promise<void>
     sendAuthVerificationEmail({ userId, token }: { userId: string; token: string }): Promise<void>
-    sendAccountChangeNotificationEmail({
-        email,
-        changeType,
-        timestamp
-    }: {
-        email: string
-        changeType: AccountChangeType
-        timestamp: Date
-    }): Promise<void>
+    sendAccountChangeNotificationEmail(notice: AccountChangeNotice): Promise<void>
 
     sendGameInvitationEmail({
         userId,

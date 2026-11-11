@@ -14,6 +14,7 @@ enum GameServiceError {
     PrivateGameNotFull = 'PrivateGameNotFullError',
     OwnerNotPlaying = 'OwnerNotPlayingError',
     UnlistedGameNotPublic = 'UnlistedGameNotPublicError',
+    GameNameNotAllowed = 'GameNameNotAllowedError',
     InvalidPlayerUser = 'InvalidPlayerUserError',
     InvalidPlayerId = 'InvalidPlayerIdError',
     UserIsNotAllowedPlayer = 'UserIsNotAllowedPlayerError',
@@ -22,6 +23,7 @@ enum GameServiceError {
     DuplicatePlayer = 'DuplicatePlayerError',
     UnauthorizedAccess = 'UnauthorizedAccessError',
     DisallowedUndo = 'DisallowedUndoError',
+    DisallowedPlayerVote = 'DisallowedPlayerVoteError',
     DisallowedAction = 'DisallowedActionError',
     RacedAction = 'RacedActionError'
 }
@@ -166,6 +168,17 @@ export class UnlistedGameNotPublicError extends BaseError {
     }
 }
 
+export class GameNameNotAllowedError extends BaseError {
+    readonly statusCode = 400
+
+    constructor() {
+        super({
+            name: GameServiceError.GameNameNotAllowed,
+            message: 'That name is not allowed for a public game. Please choose a different one.'
+        })
+    }
+}
+
 export class InvalidPlayerUserError extends BaseError {
     constructor({ user }: { user: User }) {
         super({
@@ -250,6 +263,16 @@ export class DisallowedUndoError extends BaseError {
             name: GameServiceError.DisallowedUndo,
             message: `Action ${actionId} cannot be undone in game ${gameId} because ${reason}`,
             metadata: { gameId: gameId, actionId: actionId, reason: reason }
+        })
+    }
+}
+
+export class DisallowedPlayerVoteError extends BaseError {
+    constructor({ gameId, reason }: { gameId: string; reason: string }) {
+        super({
+            name: GameServiceError.DisallowedPlayerVote,
+            message: `Player vote not allowed in game ${gameId} because ${reason}`,
+            metadata: { gameId, reason }
         })
     }
 }

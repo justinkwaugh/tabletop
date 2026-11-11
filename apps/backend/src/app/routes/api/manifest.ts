@@ -15,7 +15,7 @@ export default async function (fastify: FastifyInstance) {
         let manifest: SiteManifest
 
         try {
-            manifest = await fastify.libraryService.getManifest()
+            manifest = await fastify.libraryService.getServedManifest()
         } catch (error) {
             console.warn('Manifest unavailable', error)
             return reply.code(503).send({ status: 'error', message: 'Manifest unavailable' })

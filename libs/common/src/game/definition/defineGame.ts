@@ -39,13 +39,15 @@ function configureRuntime<T extends GameState, U extends HydratedGameState<T>>(
         configuration,
         initializer: {
             supportsStartingPositions: initializer.supportsStartingPositions,
+            supportsContinuation: initializer.supportsContinuation,
             initializeGame: (game, definition) =>
                 initializer.initializeGame(normalizeGame(game, configuration), definition),
-            initializeGameState: (game, state, assignment) =>
+            initializeGameState: (game, state, assignment, continuation) =>
                 initializer.initializeGameState(
                     normalizeGame(game, configuration),
                     state,
-                    assignment
+                    assignment,
+                    continuation
                 )
         },
         exploration: configureExploration(runtime.exploration, configuration),
@@ -59,8 +61,13 @@ function configureExploration<T extends GameState>(
 ): GameExploration<T> | undefined {
     if (exploration === undefined) return undefined
     const populate = exploration.createFromProjectedState
+    const keepsSourceDeclaration = exploration.keepsSourceDeclaration
     return {
         createFromCanonicalState: (state) => exploration.createFromCanonicalState(state),
+        keepsSourceDeclaration:
+            keepsSourceDeclaration === undefined
+                ? undefined
+                : (action) => keepsSourceDeclaration.call(exploration, action),
         createFromProjectedState:
             populate === undefined
                 ? undefined

@@ -47,16 +47,16 @@
     let stripWidth = $state(0)
     let selectionsWidth = $state(0)
     let turnActionWidth = $state(0)
-    let labelWidth = $state(0)
+    let labelsWidth = $state(0)
     let preferredPadding = $state(22)
+    // The room left beside the labels is shared evenly, keeping a gap between neighbours.
     const pillPadding = $derived(
         Math.max(
-            0,
+            4,
             Math.min(
                 preferredPadding,
-                ((stripWidth - turnActionWidth - 8 - 4) / Math.max(1, selections.length) -
-                    labelWidth) /
-                    2
+                (stripWidth - turnActionWidth - 8 - 4 - labelsWidth) /
+                    (2 * Math.max(1, selections.length))
             )
         )
     )
@@ -64,7 +64,10 @@
     function measureLabels(element: HTMLElement) {
         const labels = [...element.querySelectorAll('button span')]
         const measure = () => {
-            labelWidth = Math.max(0, ...labels.map((label) => label.getBoundingClientRect().width))
+            labelsWidth = labels.reduce(
+                (total, label) => total + label.getBoundingClientRect().width,
+                0
+            )
             preferredPadding = parseFloat(
                 getComputedStyle(element).getPropertyValue('--preferred-padding')
             )

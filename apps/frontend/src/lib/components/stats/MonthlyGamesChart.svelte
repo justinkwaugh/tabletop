@@ -1,6 +1,10 @@
 <script lang="ts">
     import { countOf, monthName, type MonthIndex, type MonthlyGames } from '$lib/utils/gameStats'
     import { monthlyChart } from '$lib/utils/monthlyChart'
+    import ChartDataTable from './ChartDataTable.svelte'
+    import ChartHoverSlots from './ChartHoverSlots.svelte'
+    import ChartKey from './ChartKey.svelte'
+    import ChartTooltip from './ChartTooltip.svelte'
 
     let { monthlyGames, months }: { monthlyGames: MonthlyGames[]; months: MonthIndex[] } = $props()
 
@@ -40,49 +44,41 @@
                         {column.label}
                     </text>
                 {/if}
-                <rect
-                    class="slot"
-                    role="presentation"
-                    x={column.slotX}
-                    y="0"
-                    width={chart.slotWidth}
-                    height={chart.plotBottom}
-                    onpointerenter={() => (hoveredMonth = column.month)}
-                ></rect>
             {/each}
+            <ChartHoverSlots
+                slotXs={chart.columns.map((column) => column.slotX)}
+                width={chart.slotWidth}
+                height={chart.plotBottom}
+                onhover={(index) => (hoveredMonth = chart.columns[index].month)}
+            />
         </svg>
         {#if hovered}
-            <div
-                class="tooltip"
-                class:trailing={hovered.centerX > width / 2}
-                style:left={`${hovered.centerX}px`}
-                style:top={`${hovered.topY - 6}px`}
+            <ChartTooltip
+                x={hovered.centerX}
+                y={hovered.topY}
+                trailing={hovered.centerX > width / 2}
             >
                 {monthName(hovered.month, 'long')}: {hovered.games} finished, {hovered.wonOrTied} won
                 or tied
-            </div>
+            </ChartTooltip>
         {/if}
     {/if}
 </div>
-<ul class="key" aria-hidden="true">
-    <li><span class="swatch won-or-tied"></span>Won or tied</li>
-    <li><span class="swatch lost"></span>Lost</li>
-</ul>
-<table class="sr-only">
-    <caption>Games finished per month</caption>
-    <thead>
-        <tr><th>Month</th><th>Finished</th><th>Won or tied</th></tr>
-    </thead>
-    <tbody>
-        {#each monthlyGames as entry (entry.month)}
-            <tr>
-                <td>{monthName(entry.month, 'long')}</td>
-                <td>{countOf(entry.games, 'game')}</td>
-                <td>{entry.wonOrTied}</td>
-            </tr>
-        {/each}
-    </tbody>
-</table>
+<ChartKey
+    entries={[
+        { label: 'Won or tied', color: 'var(--stats-mark)' },
+        { label: 'Lost', color: 'var(--color-gray-600)' }
+    ]}
+/>
+<ChartDataTable
+    caption="Games finished per month"
+    headers={['Month', 'Finished', 'Won or tied']}
+    rows={monthlyGames.map((entry) => [
+        monthName(entry.month, 'long'),
+        countOf(entry.games, 'game'),
+        String(entry.wonOrTied)
+    ])}
+/>
 
 <style>
     .chart {
@@ -108,42 +104,5 @@
     }
     path.lost {
         fill: var(--color-gray-600);
-    }
-    .slot {
-        fill: transparent;
-    }
-    .tooltip {
-        position: absolute;
-        pointer-events: none;
-        transform: translate(-12px, -100%);
-        background: var(--color-gray-100);
-        color: var(--color-gray-900);
-        border-radius: 6px;
-        padding: 6px 9px;
-        font-size: 12px;
-        white-space: nowrap;
-    }
-    .tooltip.trailing {
-        transform: translate(calc(-100% + 12px), -100%);
-    }
-    .key {
-        display: flex;
-        gap: 18px;
-        margin-top: 10px;
-        color: var(--color-gray-400);
-        font-size: 12px;
-    }
-    .swatch {
-        display: inline-block;
-        width: 10px;
-        height: 10px;
-        border-radius: 2px;
-        margin-right: 6px;
-    }
-    .swatch.won-or-tied {
-        background: var(--stats-mark);
-    }
-    .swatch.lost {
-        background: var(--color-gray-600);
     }
 </style>

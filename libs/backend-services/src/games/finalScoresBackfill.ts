@@ -1,3 +1,4 @@
+import { lookupTitle, type TitleLookup } from './titleLookup.js'
 import {
     assertExists,
     GameResult,
@@ -10,12 +11,14 @@ import { nanoid } from 'nanoid'
 import { Type, type Static } from 'typebox'
 import type { GameStore } from '../persistence/stores/gameStore.js'
 import type { TaskService } from '../tasks/taskService.js'
+import { countOutcome, enqueueMaintenancePage, reportMaintenance } from './maintenanceRun.js'
 
 const PAGE_SIZE = 25
 
 export enum FinalScoresBackfillOutcome {
     AlreadyScored = 'alreadyScored',
     Abandoned = 'abandoned',
+    Called = 'called',
     NoScoring = 'noScoring',
     Unreadable = 'unreadable',
     WinnerMismatch = 'winnerMismatch',
@@ -38,7 +41,7 @@ export type FinalScoresBackfillTask = Static<typeof FinalScoresBackfillTask>
 type BackfillDependencies = {
     store: Pick<GameStore, 'findFinishedGames' | 'readStateFromStorage' | 'recordFinalScores'>
     tasks: Pick<TaskService, 'createPushTask'>
-    titles: Record<string, GameDefinition>
+    titles: TitleLookup<GameDefinition>
 }
 
 type ScoredGame = { outcome: FinalScoresBackfillOutcome; finalScores?: Record<string, number> }
@@ -60,7 +63,7 @@ export async function runFinalScoresBackfillPage(
     const counts = { ...task.counts }
     for (const game of games) {
         const scored = await backfillGame(dependencies, game, task.write)
-        counts[scored.outcome] = (counts[scored.outcome] ?? 0) + 1
+        countOutcome(counts, scored.outcome)
         if (scored.outcome !== FinalScoresBackfillOutcome.AlreadyScored)
             report(task, 'game', {
                 gameId: game.id,
@@ -94,11 +97,7 @@ async function enqueueFinalScoresBackfill(
     tasks: Pick<TaskService, 'createPushTask'>,
     payload: FinalScoresBackfillTask
 ): Promise<void> {
-    await tasks.createPushTask({
-        queue: 'maintenance',
-        path: '/games/finalScoresBackfill',
-        payload
-    })
+    await enqueueMaintenancePage(tasks, '/games/finalScoresBackfill', payload)
 }
 
 async function backfillGame(
@@ -109,7 +108,8 @@ async function backfillGame(
     if (listed.finalScores) return { outcome: FinalScoresBackfillOutcome.AlreadyScored }
     if (listed.result === GameResult.Abandoned)
         return { outcome: FinalScoresBackfillOutcome.Abandoned }
-    const scoring = titles[listed.typeId]?.runtime.scoring
+    if (listed.call) return { outcome: FinalScoresBackfillOutcome.Called }
+    const scoring = lookupTitle(titles, listed.typeId)?.runtime.scoring
     if (!scoring) return { outcome: FinalScoresBackfillOutcome.NoScoring }
 
     const state = await store.readStateFromStorage(listed.id)
@@ -148,8 +148,6 @@ function completeFinalScores(
     }
 }
 
-function report(task: FinalScoresBackfillTask, event: string, detail: object): void {
-    console.log(
-        `Final scores backfill ${JSON.stringify({ runId: task.runId, write: task.write, event, ...detail })}`
-    )
+function report(task: FinalScoresBackfillTask, event: 'game' | 'complete', detail: object): void {
+    reportMaintenance('Final scores backfill', task, event, detail)
 }

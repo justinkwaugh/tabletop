@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { corporationShareCount } from '@tabletop/1817'
     import { getCompany, openShorts } from '@tabletop/18xx'
     import { CompanyActionCard, CompanyActionPanel } from '@tabletop/18xx-ui'
     import type { EighteenSeventeenSession } from './session.svelte.js'
@@ -15,7 +16,10 @@
             {companyId}
             value={money(price)}
             facts={[
-                { label: 'Size', value: String(company.shareCount) },
+                {
+                    label: 'Size',
+                    value: String(corporationShareCount(session.gameState, companyId))
+                },
                 {
                     label: 'Shorts',
                     value: String(openShorts(session.gameState, companyId).length)

@@ -10,6 +10,7 @@ import type { HydratedNapoleonsTriumphGameState } from '../model/gameState.js'
 import { legal } from '../model/legality.js'
 import { executeRetreat } from '../model/retreat.js'
 import { LossEntry, MoralePenalty } from '../model/attack.js'
+import { EndedAttack } from './attackEnd.js'
 
 export type RetreatMetadata = Type.Static<typeof RetreatMetadata>
 export const RetreatMetadata = Type.Object({
@@ -17,7 +18,8 @@ export const RetreatMetadata = Type.Object({
     penalties: Type.Optional(Type.Array(MoralePenalty)),
     fromLocale: Type.Integer(),
     beforeCombat: Type.Boolean(),
-    demoralized: Type.Boolean()
+    demoralized: Type.Boolean(),
+    endedAttack: Type.Optional(EndedAttack)
 })
 
 export type Retreat = Type.Static<typeof Retreat>

@@ -101,8 +101,7 @@
             session.stations.preview?.position.locationId}
         selection={session.map.selection}
         tokens={session.map.displayedTokens}
-        reservations={session.track.displayedStations?.stationReservations ??
-            session.stations.displayState.stationReservations}
+        reservations={session.map.displayedReservations}
         appearance={MapStyleAppearances[session.map.style]}
         onselect={(selection) => session.map.select(selection)}
     />

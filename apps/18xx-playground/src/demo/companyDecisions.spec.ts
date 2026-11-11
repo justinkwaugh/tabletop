@@ -79,7 +79,7 @@ it.each(Titles)(
                 offered.updatedState,
                 state.activePlayerIds[0]
             )
-        ).toEqual([])
+        ).toEqual(['SetRunInstruction'])
         expect(() =>
             engine.executeCanonicalAction({
                 game,
@@ -264,11 +264,7 @@ function buyEhime() {
 }
 it('1889 gives Ehime’s seller a single optional extra tile lay and resumes the buyer', () => {
     const { game, engine, state, bought } = buyEhime()
-    expect(bought.privateTrackLay).toEqual({
-        companyId: 'IR',
-        privateCompanyId: 'ER',
-        playerId: 'alex'
-    })
+    expect(bought.privateTrackLay).toEqual({ privateCompanyId: 'ER', playerId: 'alex' })
     expect(privateOwner(bought, 'ER')).toEqual({ kind: 'company', companyId: 'IR' })
     expect(bought.activePlayerIds).toEqual(['alex'])
     const hydrated = Shikoku.runtime.hydrator.hydrateState(bought)
@@ -767,7 +763,9 @@ it.each([true, false])(
         }).updatedState
         expect(pending.privatePowerWindow).toEqual({ companyId: 'AR', passedPlayerIds: [] })
         expect(pending.activePlayerIds).toEqual(['casey'])
-        expect(engine.getValidActionTypesForPlayer(game, pending, 'blair')).toEqual([])
+        expect(engine.getValidActionTypesForPlayer(game, pending, 'blair')).toEqual([
+            'SetRunInstruction'
+        ])
         expect(Shikoku.runtime.hydrator.hydrateState(pending).dehydrate()).toEqual(pending)
         const choice = use
             ? portLay(pending, 'LayPrivateTile')
@@ -868,7 +866,10 @@ it('Hunslet resolves compulsory discards before returning to construction', () =
         machineState: 'LayingTrack',
         companyId: 'ML'
     })
-    expect(engine.getValidActionTypesForPlayer(game, bought, 'alex')).toEqual(['DiscardTrain'])
+    expect(engine.getValidActionTypesForPlayer(game, bought, 'alex')).toEqual([
+        'DiscardTrain',
+        'SetRunInstruction'
+    ])
     const discarded = engine.executeCanonicalAction({
         game,
         state: bought,

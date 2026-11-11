@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { BOARD_HEIGHT, BOARD_WIDTH } from '$lib/definitions/boardSize.js'
     import Area from '$lib/components/Area.svelte'
     import CompanyZoneMarker from '$lib/components/CompanyZoneMarker.svelte'
     import { boardAreaPathById } from '$lib/definitions/boardGeometry.js'
@@ -50,6 +51,8 @@
     } from '$lib/components/boardActionAreas/startCompany.js'
     import StartCompanyDeedSelectionOverlay from '$lib/components/boardActionAreas/StartCompanyDeedSelectionOverlay.svelte'
     import { DEED_CARD_POSITIONS } from '$lib/definitions/deedCardPositions.js'
+    import type { ProductionZoneMarkerEntry } from '$lib/model/productionZoneMarkers.svelte.js'
+    import { getProductionZoneMarkersContext } from '$lib/model/productionZoneMarkersContext.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte'
     import { deedPositionLookupKeys } from '$lib/utils/deeds.js'
     import {
@@ -65,8 +68,7 @@
     } from '@tabletop/indonesia'
 
     const gameSession = getGameSession()
-    const BOARD_WIDTH = 2646
-    const BOARD_HEIGHT = 1280
+    const productionZoneMarkers = getProductionZoneMarkersContext()
     const PRODUCTION_HOVER_SPOTLIGHT_MASK_ID = 'production-company-hover-spotlight-mask'
     const EXPANSION_SELECTION_SPOTLIGHT_MASK_ID = 'expansion-selection-spotlight-mask'
     const CITY_PLACEMENT_SPOTLIGHT_MASK_ID = 'city-placement-spotlight-mask'
@@ -75,23 +77,6 @@
     const DELIVERY_ZONE_HOVER_OUTLINE_MASK_ID = 'delivery-zone-hover-outline-mask'
     const SEA_HIGHLIGHT_FILL = '#93c5fd'
     const SEA_HIGHLIGHT_FILL_OPACITY = 0.38
-
-    type MarkerGood = 'spice' | 'siapsaji' | 'oil' | 'rice' | 'rubber'
-    type MarkerDirection = 'north' | 'east' | 'south' | 'west'
-    type HoveredProductionZoneMarker = {
-        key: string
-        companyId: string
-        zoneAreaIds: readonly string[]
-        x: number
-        y: number
-        targetX: number
-        targetY: number
-        ownerColor: string
-        goodType: MarkerGood
-        goodsCount: number
-        hatchPatternId: string | null
-        direction: MarkerDirection
-    }
 
     function areaHasShips(area: Record<string, unknown>): area is Record<string, unknown> & {
         ships: string[]
@@ -106,10 +91,7 @@
     })
     let hoveredDeliveryZoneKey: string | null = $derived.by(() => {
         gameSession.updatingVisibleState
-        if (
-            !deliverySelectionEnabled ||
-            gameSession.deliverySelectionStage !== 'cultivated'
-        ) {
+        if (!deliverySelectionEnabled || gameSession.deliverySelectionStage !== 'cultivated') {
             return null
         }
         return null
@@ -228,8 +210,8 @@
             return []
         }
 
-        return Array.from(gameSession.gameState.validExpansionAreaIds(operatingCompanyId)).filter((areaId) =>
-            HydratedExpand.canExpand(gameSession.gameState, myPlayerId, areaId)
+        return Array.from(gameSession.gameState.validExpansionAreaIds(operatingCompanyId)).filter(
+            (areaId) => HydratedExpand.canExpand(gameSession.gameState, myPlayerId, areaId)
         )
     })
 
@@ -251,7 +233,9 @@
         return Array.from(gameSession.gameState.validExpansionAreaIds(operatingCompanyId))
     })
 
-    const deliverySelectionEnabled: boolean = $derived.by(() => gameSession.deliverySelectionEnabled)
+    const deliverySelectionEnabled: boolean = $derived.by(
+        () => gameSession.deliverySelectionEnabled
+    )
 
     const deliverySelectableZones: DeliverySelectableZone[] = $derived.by(() => {
         const operatingCompany = gameSession.gameState.companies.find(
@@ -317,16 +301,15 @@
                 gameSession.validActionTypes.includes(ActionType.GrowCity),
             growCityValidAreaIds,
             canPlaceCity:
-                gameSession.isNewEra &&
-                gameSession.validActionTypes.includes(ActionType.PlaceCity),
+                gameSession.isNewEra && gameSession.validActionTypes.includes(ActionType.PlaceCity),
             placeCityValidAreaIds,
             shippingExpandValidAreaIds,
             productionExpandValidAreaIds,
             deliverySelectionEnabled,
             deliverySelectionStage: gameSession.deliverySelectionStage,
             deliverySelectableAreaIds,
-            deliveryAvailableCityAreaIds: gameSession.deliveryAvailableCityAreaIds.filter((areaId) =>
-                boardAreaPathById(areaId)
+            deliveryAvailableCityAreaIds: gameSession.deliveryAvailableCityAreaIds.filter(
+                (areaId) => boardAreaPathById(areaId)
             ),
             selectedStartCompanyDeedType: selectedStartCompanyDeed?.type ?? null,
             startCompanyValidAreaIds,
@@ -461,8 +444,8 @@
 
     const hoveredRoutePreviewDimmedLandAreaIds: readonly string[] = $derived.by(() => {
         return (
-            gameSession.activeRoutePreviewVisualState?.dimmedLandAreaIds.filter((areaId) =>
-                !!boardAreaPathById(areaId)
+            gameSession.activeRoutePreviewVisualState?.dimmedLandAreaIds.filter(
+                (areaId) => !!boardAreaPathById(areaId)
             ) ?? []
         )
     })
@@ -500,7 +483,9 @@
             return []
         }
 
-        const deed = gameSession.gameState.availableDeeds.find((entry) => entry.id === previewDeedId)
+        const deed = gameSession.gameState.availableDeeds.find(
+            (entry) => entry.id === previewDeedId
+        )
         if (!deed) {
             return []
         }
@@ -528,7 +513,9 @@
             return []
         }
 
-        const deed = gameSession.gameState.availableDeeds.find((entry) => entry.id === previewDeedId)
+        const deed = gameSession.gameState.availableDeeds.find(
+            (entry) => entry.id === previewDeedId
+        )
         if (!deed || deed.type !== CompanyType.Production) {
             return []
         }
@@ -556,7 +543,9 @@
             return null
         }
 
-        const deed = gameSession.gameState.availableDeeds.find((entry) => entry.id === previewDeedId)
+        const deed = gameSession.gameState.availableDeeds.find(
+            (entry) => entry.id === previewDeedId
+        )
         if (!deed) {
             return null
         }
@@ -578,9 +567,9 @@
         }
     })
 
-    const activeBoardSpotlightVisualState: ActiveBoardSpotlightVisualState<HoveredProductionZoneMarker> =
+    const activeBoardSpotlightVisualState: ActiveBoardSpotlightVisualState<ProductionZoneMarkerEntry> =
         $derived.by(() => {
-            return deriveBoardSpotlightState<HoveredProductionZoneMarker>({
+            return deriveBoardSpotlightState<ProductionZoneMarkerEntry>({
                 previewIntent: gameSession.activeBoardPreviewIntent,
                 cityReferenceCardOverlayAreaIds: hoveredCityReferenceCardOverlayAreaIds,
                 cityReferenceCardMaskRect: hoveredCityReferenceCardMaskRect,
@@ -708,35 +697,26 @@
         return gameSession.activeBoardSpotlightProductionCompanyIds
     })
 
-    const hoveredProductionZoneMarkers: HoveredProductionZoneMarker[] = $derived.by(() => {
-        if (hoveredProductionCompanyIds.length === 0 || typeof window === 'undefined') {
-            return []
-        }
-        const markerEntries = (
-            window as Window & {
-                __indonesiaProductionZoneMarkerEntries?: HoveredProductionZoneMarker[]
-            }
-        ).__indonesiaProductionZoneMarkerEntries
-        if (!Array.isArray(markerEntries) || markerEntries.length === 0) {
+    const hoveredProductionZoneMarkers: ProductionZoneMarkerEntry[] = $derived.by(() => {
+        if (hoveredProductionCompanyIds.length === 0) {
             return []
         }
         const hoveredProductionCompanyIdSet = new Set(hoveredProductionCompanyIds)
-        return markerEntries.filter((marker) => hoveredProductionCompanyIdSet.has(marker.companyId))
+        return productionZoneMarkers.entries.filter((marker) =>
+            hoveredProductionCompanyIdSet.has(marker.companyId)
+        )
     })
 
-    const deliverySelectableZoneMarkers: readonly DeliverySelectableZoneMarker[] = $derived.by(() => {
-        const markerEntries = (
-            window as Window & {
-                __indonesiaProductionZoneMarkerEntries?: HoveredProductionZoneMarker[]
-            }
-        ).__indonesiaProductionZoneMarkerEntries
-        return deriveDeliverySelectableZoneMarkers({
-            activeAreaInteractionAction: activeAreaInteraction?.action ?? null,
-            deliverySelectableZones,
-            markerEntries: Array.isArray(markerEntries) ? markerEntries : [],
-            operatingCompanyId: gameSession.gameState.operatingCompanyId ?? null
-        })
-    })
+    const deliverySelectableZoneMarkers: readonly DeliverySelectableZoneMarker[] = $derived.by(
+        () => {
+            return deriveDeliverySelectableZoneMarkers({
+                activeAreaInteractionAction: activeAreaInteraction?.action ?? null,
+                deliverySelectableZones,
+                markerEntries: productionZoneMarkers.entries,
+                operatingCompanyId: gameSession.gameState.operatingCompanyId ?? null
+            })
+        }
+    )
 
     function selectDeliveryCultivatedZone(
         zone: DeliverySelectableZone,
@@ -744,8 +724,9 @@
             source?: 'auto' | 'manual'
         }
     ): void {
-        const selectedAreaId = [...zone.remainingAreaIds]
-            .sort((left, right) => left.localeCompare(right, undefined, { numeric: true }))[0]
+        const selectedAreaId = [...zone.remainingAreaIds].sort((left, right) =>
+            left.localeCompare(right, undefined, { numeric: true })
+        )[0]
         if (!selectedAreaId) {
             return
         }
@@ -833,7 +814,9 @@
             }
 
             if (activeAreaInteraction.action === 'grow-city') {
-                const city = gameSession.gameState.board.cities.find((entry) => entry.area === areaId)
+                const city = gameSession.gameState.board.cities.find(
+                    (entry) => entry.area === areaId
+                )
                 if (!city) {
                     return
                 }
@@ -871,19 +854,21 @@
     }
 </script>
 
-{#if activeAreaInteraction ||
-    startCompanySelectionEnabled ||
-    shouldRenderBoardSpotlightMask ||
-    shouldRenderExpansionSelectionSpotlightMask ||
-    shouldRenderCityPlacementSpotlightMask ||
-    hasHoveredRoutePreview}
+{#if activeAreaInteraction || startCompanySelectionEnabled || shouldRenderBoardSpotlightMask || shouldRenderExpansionSelectionSpotlightMask || shouldRenderCityPlacementSpotlightMask || hasHoveredRoutePreview}
     <g class="select-none" aria-label="Board action areas layer">
         {#if shouldRenderBoardSpotlightMask}
             <defs>
                 <mask id={PRODUCTION_HOVER_SPOTLIGHT_MASK_ID} maskUnits="userSpaceOnUse">
-                    <rect x="0" y="0" width={BOARD_WIDTH} height={BOARD_HEIGHT} fill="#ffffff"></rect>
+                    <rect x="0" y="0" width={BOARD_WIDTH} height={BOARD_HEIGHT} fill="#ffffff"
+                    ></rect>
                     {#each activeBoardSpotlightVisualState.exemptAreaIds as areaId (areaId)}
-                        <Area areaId={areaId} fill="#000000" stroke="none" fillOpacity="1" pointer-events="none" />
+                        <Area
+                            {areaId}
+                            fill="#000000"
+                            stroke="none"
+                            fillOpacity="1"
+                            pointer-events="none"
+                        />
                     {/each}
                     {#if activeBoardSpotlightVisualState.deedCardMaskRect}
                         <rect
@@ -895,19 +880,20 @@
                             ry={activeBoardSpotlightVisualState.deedCardMaskRect.ry}
                             fill="#000000"
                             pointer-events="none"
-                        />
+                        ></rect>
                     {/if}
                     {#if activeBoardSpotlightVisualState.cityReferenceCardMaskRect}
                         <rect
                             x={activeBoardSpotlightVisualState.cityReferenceCardMaskRect.x}
                             y={activeBoardSpotlightVisualState.cityReferenceCardMaskRect.y}
                             width={activeBoardSpotlightVisualState.cityReferenceCardMaskRect.width}
-                            height={activeBoardSpotlightVisualState.cityReferenceCardMaskRect.height}
+                            height={activeBoardSpotlightVisualState.cityReferenceCardMaskRect
+                                .height}
                             rx={activeBoardSpotlightVisualState.cityReferenceCardMaskRect.rx}
                             ry={activeBoardSpotlightVisualState.cityReferenceCardMaskRect.ry}
                             fill="#000000"
                             pointer-events="none"
-                        />
+                        ></rect>
                     {/if}
                 </mask>
             </defs>
@@ -921,11 +907,11 @@
                 fill-opacity="0.34"
                 mask={`url(#${PRODUCTION_HOVER_SPOTLIGHT_MASK_ID})`}
                 pointer-events="none"
-            />
+            ></rect>
 
             {#each activeBoardSpotlightVisualState.outlinedLandAreaIds as areaId (areaId)}
                 <Area
-                    areaId={areaId}
+                    {areaId}
                     fill="none"
                     stroke="#fff8d7"
                     fillOpacity="0"
@@ -936,7 +922,7 @@
                     pointer-events="none"
                 />
                 <Area
-                    areaId={areaId}
+                    {areaId}
                     fill="none"
                     stroke="#1f2937"
                     fillOpacity="0"
@@ -967,9 +953,16 @@
         {#if shouldRenderExpansionSelectionSpotlightMask}
             <defs>
                 <mask id={EXPANSION_SELECTION_SPOTLIGHT_MASK_ID} maskUnits="userSpaceOnUse">
-                    <rect x="0" y="0" width={BOARD_WIDTH} height={BOARD_HEIGHT} fill="#ffffff"></rect>
+                    <rect x="0" y="0" width={BOARD_WIDTH} height={BOARD_HEIGHT} fill="#ffffff"
+                    ></rect>
                     {#each interactiveValidAreaIds as areaId (areaId)}
-                        <Area areaId={areaId} fill="#000000" stroke="none" fillOpacity="1" pointer-events="none" />
+                        <Area
+                            {areaId}
+                            fill="#000000"
+                            stroke="none"
+                            fillOpacity="1"
+                            pointer-events="none"
+                        />
                     {/each}
                 </mask>
             </defs>
@@ -983,15 +976,22 @@
                 fill-opacity="0.34"
                 mask={`url(#${EXPANSION_SELECTION_SPOTLIGHT_MASK_ID})`}
                 pointer-events="none"
-            />
+            ></rect>
         {/if}
 
         {#if shouldRenderCityPlacementSpotlightMask}
             <defs>
                 <mask id={CITY_PLACEMENT_SPOTLIGHT_MASK_ID} maskUnits="userSpaceOnUse">
-                    <rect x="0" y="0" width={BOARD_WIDTH} height={BOARD_HEIGHT} fill="#ffffff"></rect>
+                    <rect x="0" y="0" width={BOARD_WIDTH} height={BOARD_HEIGHT} fill="#ffffff"
+                    ></rect>
                     {#each interactiveValidAreaIds as areaId (areaId)}
-                        <Area areaId={areaId} fill="#000000" stroke="none" fillOpacity="1" pointer-events="none" />
+                        <Area
+                            {areaId}
+                            fill="#000000"
+                            stroke="none"
+                            fillOpacity="1"
+                            pointer-events="none"
+                        />
                     {/each}
                 </mask>
             </defs>
@@ -1005,13 +1005,13 @@
                 fill-opacity="0.34"
                 mask={`url(#${CITY_PLACEMENT_SPOTLIGHT_MASK_ID})`}
                 pointer-events="none"
-            />
+            ></rect>
         {/if}
 
         {#if hasHoveredRoutePreview && !hasHoveredCityReferenceCardSpotlight}
             {#each hoveredRoutePreviewDimmedLandAreaIds as areaId (areaId)}
                 <Area
-                    areaId={areaId}
+                    {areaId}
                     fill="#000000"
                     stroke="none"
                     fillOpacity="0.42"
@@ -1021,14 +1021,11 @@
         {/if}
 
         {#if activeAreaInteraction}
-            {#if !hasHoveredCityReferenceCardSpotlight &&
-                activeAreaInteraction.action === 'expand' &&
-                !hasHoveredRoutePreview &&
-                !hasVisibleCompanySpotlightPreview}
+            {#if !hasHoveredCityReferenceCardSpotlight && activeAreaInteraction.action === 'expand' && !hasHoveredRoutePreview && !hasVisibleCompanySpotlightPreview}
                 {#each interactiveValidAreaIds as areaId (areaId)}
                     {#if activeAreaInteraction.maskedAreaType !== IndonesiaAreaType.Sea}
                         <Area
-                            areaId={areaId}
+                            {areaId}
                             fill="none"
                             stroke="#fff8d7"
                             fillOpacity="0"
@@ -1039,7 +1036,7 @@
                             pointer-events="none"
                         />
                         <Area
-                            areaId={areaId}
+                            {areaId}
                             fill="none"
                             stroke="#1f2937"
                             fillOpacity="0"
@@ -1056,7 +1053,7 @@
             {#if seaHighlightState.source === 'board-preview'}
                 {#each seaHighlightState.areaIds as areaId (areaId)}
                     <Area
-                        areaId={areaId}
+                        {areaId}
                         fill={SEA_HIGHLIGHT_FILL}
                         stroke="none"
                         fillOpacity={SEA_HIGHLIGHT_FILL_OPACITY}
@@ -1065,14 +1062,10 @@
                 {/each}
             {/if}
 
-            {#if !hasHoveredCityReferenceCardSpotlight &&
-                activeAreaInteraction.action === 'place-city' &&
-                !hasHoveredRoutePreview &&
-                !hasVisibleCompanySpotlightPreview &&
-                !hasHoveredCityReferenceCardSpotlight}
+            {#if !hasHoveredCityReferenceCardSpotlight && activeAreaInteraction.action === 'place-city' && !hasHoveredRoutePreview && !hasVisibleCompanySpotlightPreview && !hasHoveredCityReferenceCardSpotlight}
                 {#each interactiveValidAreaIds as areaId (areaId)}
                     <Area
-                        areaId={areaId}
+                        {areaId}
                         fill="none"
                         stroke="#fff8d7"
                         fillOpacity="0"
@@ -1083,7 +1076,7 @@
                         pointer-events="none"
                     />
                     <Area
-                        areaId={areaId}
+                        {areaId}
                         fill="none"
                         stroke="#1f2937"
                         fillOpacity="0"
@@ -1096,15 +1089,10 @@
                 {/each}
             {/if}
 
-            {#if !hasHoveredCityReferenceCardSpotlight &&
-                !hasHoveredRoutePreview &&
-                !hasVisibleCompanySpotlightPreview &&
-                activeAreaInteraction.action !== 'select-delivery-cultivated' &&
-                activeAreaInteraction.action !== 'expand' &&
-                activeAreaInteraction.action !== 'place-city'}
+            {#if !hasHoveredCityReferenceCardSpotlight && !hasHoveredRoutePreview && !hasVisibleCompanySpotlightPreview && activeAreaInteraction.action !== 'select-delivery-cultivated' && activeAreaInteraction.action !== 'expand' && activeAreaInteraction.action !== 'place-city'}
                 {#each maskedAreaIds as areaId (areaId)}
                     <Area
-                        areaId={areaId}
+                        {areaId}
                         fill="#000000"
                         stroke="none"
                         fillOpacity="0.5"
@@ -1115,7 +1103,7 @@
 
             {#each interactiveValidAreaIds as areaId (areaId)}
                 <Area
-                    areaId={areaId}
+                    {areaId}
                     fill="#ffffff"
                     stroke="none"
                     fillOpacity="0.001"
@@ -1153,10 +1141,16 @@
                 <defs>
                     {#each deliverySelectableZones as zone (zone.key)}
                         <mask id={deliveryZoneOutlineMaskId(zone.key)} maskUnits="userSpaceOnUse">
-                            <rect x="0" y="0" width={BOARD_WIDTH} height={BOARD_HEIGHT} fill="#000000"></rect>
+                            <rect
+                                x="0"
+                                y="0"
+                                width={BOARD_WIDTH}
+                                height={BOARD_HEIGHT}
+                                fill="#000000"
+                            ></rect>
                             {#each zone.allAreaIds as areaId (areaId)}
                                 <Area
-                                    areaId={areaId}
+                                    {areaId}
                                     fill="none"
                                     stroke="#ffffff"
                                     fillOpacity="0"
@@ -1167,15 +1161,30 @@
                                 />
                             {/each}
                             {#each zone.allAreaIds as areaId (areaId)}
-                                <Area areaId={areaId} fill="#000000" stroke="none" fillOpacity="1" pointer-events="none" />
+                                <Area
+                                    {areaId}
+                                    fill="#000000"
+                                    stroke="none"
+                                    fillOpacity="1"
+                                    pointer-events="none"
+                                />
                             {/each}
                         </mask>
 
-                        <mask id={deliveryZoneInnerOutlineMaskId(zone.key)} maskUnits="userSpaceOnUse">
-                            <rect x="0" y="0" width={BOARD_WIDTH} height={BOARD_HEIGHT} fill="#000000"></rect>
+                        <mask
+                            id={deliveryZoneInnerOutlineMaskId(zone.key)}
+                            maskUnits="userSpaceOnUse"
+                        >
+                            <rect
+                                x="0"
+                                y="0"
+                                width={BOARD_WIDTH}
+                                height={BOARD_HEIGHT}
+                                fill="#000000"
+                            ></rect>
                             {#each zone.allAreaIds as areaId (areaId)}
                                 <Area
-                                    areaId={areaId}
+                                    {areaId}
                                     fill="none"
                                     stroke="#ffffff"
                                     fillOpacity="0"
@@ -1186,15 +1195,30 @@
                                 />
                             {/each}
                             {#each zone.allAreaIds as areaId (areaId)}
-                                <Area areaId={areaId} fill="#000000" stroke="none" fillOpacity="1" pointer-events="none" />
+                                <Area
+                                    {areaId}
+                                    fill="#000000"
+                                    stroke="none"
+                                    fillOpacity="1"
+                                    pointer-events="none"
+                                />
                             {/each}
                         </mask>
 
-                        <mask id={deliveryZoneHoverOutlineMaskId(zone.key)} maskUnits="userSpaceOnUse">
-                            <rect x="0" y="0" width={BOARD_WIDTH} height={BOARD_HEIGHT} fill="#000000"></rect>
+                        <mask
+                            id={deliveryZoneHoverOutlineMaskId(zone.key)}
+                            maskUnits="userSpaceOnUse"
+                        >
+                            <rect
+                                x="0"
+                                y="0"
+                                width={BOARD_WIDTH}
+                                height={BOARD_HEIGHT}
+                                fill="#000000"
+                            ></rect>
                             {#each zone.allAreaIds as areaId (areaId)}
                                 <Area
-                                    areaId={areaId}
+                                    {areaId}
                                     fill="none"
                                     stroke="#ffffff"
                                     fillOpacity="0"
@@ -1205,26 +1229,28 @@
                                 />
                             {/each}
                             {#each zone.allAreaIds as areaId (areaId)}
-                                <Area areaId={areaId} fill="#000000" stroke="none" fillOpacity="1" pointer-events="none" />
+                                <Area
+                                    {areaId}
+                                    fill="#000000"
+                                    stroke="none"
+                                    fillOpacity="1"
+                                    pointer-events="none"
+                                />
                             {/each}
                         </mask>
                     {/each}
                 </defs>
-            {:else}
-                {#if !hasHoveredCityReferenceCardSpotlight &&
-                    activeAreaInteraction.action !== 'select-delivery-city' &&
-                    !hasHoveredRoutePreview}
-                    {#each hoveredInteractiveAreaIds as areaId (areaId)}
-                        <Area
-                            areaId={areaId}
-                            fill="none"
-                            stroke={activeAreaInteraction.outlineColor}
-                            fillOpacity="0"
-                            strokeWidth="4"
-                            pointer-events="none"
-                        />
-                    {/each}
-                {/if}
+            {:else if !hasHoveredCityReferenceCardSpotlight && activeAreaInteraction.action !== 'select-delivery-city' && !hasHoveredRoutePreview}
+                {#each hoveredInteractiveAreaIds as areaId (areaId)}
+                    <Area
+                        {areaId}
+                        fill="none"
+                        stroke={activeAreaInteraction.outlineColor}
+                        fillOpacity="0"
+                        strokeWidth="4"
+                        pointer-events="none"
+                    />
+                {/each}
             {/if}
 
             {#if activeAreaInteraction.action === 'select-delivery-cultivated'}
@@ -1246,7 +1272,7 @@
                         onclick={() => {
                             handleDeliveryZoneMarkerClick(marker.zoneKey)
                         }}
-                    />
+                    ></circle>
                 {/each}
             {/if}
         {/if}

@@ -1,11 +1,13 @@
+import { assertExists } from '@tabletop/common'
 import type { RevenueCenter } from '../routes/route.js'
 import type { RailwayMapState } from '../map/mapState.js'
 import type { TileEndpoint, TileFace, TileNode } from '../tiles/tile.js'
-import { rotateTileEdge, rotateTileFace, sameTileEndpoint } from '../tiles/topology.js'
+import { rotateTileFace } from '../tiles/topology.js'
+import { reachRoutes } from './routeReach.js'
 
 export class ConnectedTrack {
     private readonly blocked = new Map<string, Set<string>>()
-    private readonly reached = new Map<string, TileEndpoint[]>()
+    private readonly reached = new Map<string, Set<string>>()
     private readonly paths = new Map<string, Set<string>>()
     constructor(
         mapState: RailwayMapState,
@@ -24,79 +26,32 @@ export class ConnectedTrack {
                 ] as const
             })
         )
-        const pending: { locationId: string; endpoint: TileEndpoint; exiting: boolean }[] =
-            origins.map(({ locationId, nodeId }) => ({
-                locationId,
-                endpoint: { kind: 'node', nodeId } satisfies TileEndpoint,
-                exiting: false
-            }))
-        const entered = new Map<string, TileEndpoint[]>()
-        const exited = new Map<string, TileEndpoint[]>()
-        while (pending.length) {
-            const { locationId, endpoint, exiting } = pending.shift()!
-            const visited = exiting ? exited : entered
-            const visitedEnds = visited.get(locationId) ?? []
-            if (visitedEnds.some((end) => sameTileEndpoint(end, endpoint))) continue
-            visitedEnds.push(endpoint)
-            visited.set(locationId, visitedEnds)
-            const ends = this.reached.get(locationId) ?? []
-            if (!ends.some((end) => sameTileEndpoint(end, endpoint))) ends.push(endpoint)
-            this.reached.set(locationId, ends)
-            const face = faces.get(locationId)!
-            if (endpoint.kind === 'node') {
-                const node = face.nodes.find((node) => node.id === endpoint.nodeId)!
-                if (blocked(locationId, node)) {
-                    const blocked = this.blocked.get(locationId) ?? new Set<string>()
-                    blocked.add(node.id)
-                    this.blocked.set(locationId, blocked)
-                    continue
-                }
-            }
-            const paths = this.paths.get(locationId) ?? new Set<string>()
-            if (!exiting) {
-                for (const path of face.paths) {
-                    if (!path.endpoints.some((end) => sameTileEndpoint(end, endpoint))) continue
-                    paths.add(path.id)
-                    for (const end of path.endpoints) {
-                        if (sameTileEndpoint(end, endpoint)) continue
-                        pending.push({ locationId, endpoint: end, exiting: end.kind === 'edge' })
-                    }
-                }
-            }
-            this.paths.set(locationId, paths)
-            if (!exiting || endpoint.kind !== 'edge') continue
-            const neighbor = mapState.map.neighbor(locationId, endpoint.edge)
-            if (!neighbor) continue
-            const opposite = rotateTileEdge(endpoint.edge, 3)
-            if (
-                mapState.map
-                    .location(locationId)
-                    .borders?.some(
-                        (border) => border.edge === endpoint.edge && border.kind === 'impassable'
-                    ) ||
-                neighbor.borders?.some(
-                    (border) => border.edge === opposite && border.kind === 'impassable'
-                )
-            )
-                continue
-            const other: TileEndpoint = { kind: 'edge', edge: opposite }
-            if (
-                faces
-                    .get(neighbor.id)!
-                    .paths.some((path) =>
-                        path.endpoints.some((end) => sameTileEndpoint(end, other))
-                    )
-            )
-                pending.push({ locationId: neighbor.id, endpoint: other, exiting: false })
+        const face = (locationId: string) => {
+            const face = faces.get(locationId)
+            assertExists(face, `Unknown map location: ${locationId}`)
+            return face
         }
+        reachRoutes(mapState.map, face, origins, blocked, {
+            reached: (locationId, endpoint) => add(this.reached, locationId, endpointKey(endpoint)),
+            used: (locationId, pathId) => add(this.paths, locationId, pathId),
+            blocked: (locationId, node) => add(this.blocked, locationId, node.id)
+        })
     }
     isBlocked(locationId: string, nodeId: string): boolean {
         return this.blocked.get(locationId)?.has(nodeId) ?? false
     }
     reaches(locationId: string, endpoint: TileEndpoint): boolean {
-        return this.reached.get(locationId)?.some((end) => sameTileEndpoint(end, endpoint)) ?? false
+        return this.reached.get(locationId)?.has(endpointKey(endpoint)) ?? false
     }
     usesPath(locationId: string, pathId: string): boolean {
         return this.paths.get(locationId)?.has(pathId) ?? false
     }
+}
+
+function add(sets: Map<string, Set<string>>, locationId: string, value: string): void {
+    sets.set(locationId, (sets.get(locationId) ?? new Set<string>()).add(value))
+}
+
+function endpointKey(endpoint: TileEndpoint): string {
+    return endpoint.kind === 'edge' ? `edge ${endpoint.edge}` : `node ${endpoint.nodeId}`
 }

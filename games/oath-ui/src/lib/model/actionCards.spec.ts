@@ -1,9 +1,31 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
-import { ActionType, CardKind, HydratedMuster, HydratedSearch, HydratedTravel, MachineState, PowerChoiceKind, PowerTiming, Suit, cardIdsOfKind, legalChoices, powersWithTiming } from '@tabletop/oath'
+import {
+    ActionType,
+    CardKind,
+    HydratedMuster,
+    HydratedSearch,
+    HydratedTravel,
+    MachineState,
+    PowerChoiceKind,
+    PowerTiming,
+    Suit,
+    cardIdsOfKind,
+    legalChoices,
+    powersWithTiming
+} from '@tabletop/oath'
 import { openTurn, testPlayer, testState } from '@tabletop/oath/testing'
 import { allowsSeveral } from './powerChoices.js'
-import { ACTION_CARD_CONSEQUENCES, actionCards, actionMenu, actionMenuRows, answerCostText, cardCostLine, cardsMakingPossible, soleDeclarations, type ActionCard } from './actionCards.js'
+import {
+    ACTION_CARD_CONSEQUENCES,
+    actionCards,
+    actionMenu,
+    actionMenuRows,
+    answerCostText,
+    cardsMakingPossible,
+    soleDeclarations,
+    type ActionCard
+} from './actionCards.js'
 
 const MUSHROOMS = 'denizen.beast.mushrooms'
 const TENTS = 'denizen.nomad.tents'
@@ -20,7 +42,17 @@ type Table = Parameters<typeof testState>[1]
 
 function table(me: Partial<Seat>, state: Table = {}) {
     const s = testState(
-        [testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', favor: 0, secrets: 0, supply: 0, ...me })],
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: 'c1',
+                favor: 0,
+                secrets: 0,
+                supply: 0,
+                ...me
+            })
+        ],
         {
             machineState: MachineState.ActPhase,
             denizensBySite: { c1: [], c2: [], p1: [], h1: [] },
@@ -33,9 +65,10 @@ function table(me: Partial<Seat>, state: Table = {}) {
 }
 
 const advisers = (...cardIds: string[]) => cardIds.map((cardId) => ({ cardId, faceUp: true }))
-const listed = (s: ReturnType<typeof table>) => actionCards(s, 'me').map((card) => [card.cardId, card.action, card.kind])
+const listed = (s: ReturnType<typeof table>) =>
+    actionCards(s, 'me').map((card) => [card.cardId, card.action, card.kind])
 
-describe('R-7.4 — the cards that change an action, as the powers list them', () => {
+describe('R-7.4 — the cards that change an action, each wearing a "Use"', () => {
     it('Mushrooms makes a Search possible at 1 Supply, where a Search paid with Supply is refused', () => {
         const s = table({ supply: 1, secrets: 1 }, { denizensBySite: { c1: [MUSHROOMS] } })
         expect(HydratedSearch.canDoSearch(s, 'me')).toBe(false)
@@ -57,10 +90,17 @@ describe('R-7.4 — the cards that change an action, as the powers list them', (
         const s = table({ supply: 0, favor: 2, advisers: advisers(TENTS, SPECIAL_ENVOY) })
         expect(HydratedTravel.canDoTravel(s, 'me')).toBe(false)
         expect(actionCards(s, 'me')).toEqual([
-            expect.objectContaining({ cardId: TENTS, action: ActionType.Travel, kind: 'makesPossible' }),
-            expect.objectContaining({ cardId: SPECIAL_ENVOY, action: ActionType.Travel, kind: 'makesPossible', consequence: 'ends your Act Phase' })
+            expect.objectContaining({
+                cardId: TENTS,
+                action: ActionType.Travel,
+                kind: 'makesPossible'
+            }),
+            expect.objectContaining({
+                cardId: SPECIAL_ENVOY,
+                action: ActionType.Travel,
+                kind: 'makesPossible'
+            })
         ])
-        expect(actionCards(s, 'me')[0].consequence).toBeUndefined()
     })
 
     it('Errand Boy makes a Search possible when the pawn’s pile is empty and the world deck is out of reach', () => {
@@ -74,23 +114,34 @@ describe('R-7.4 — the cards that change an action, as the powers list them', (
     it('Pressgangs makes a Muster possible on a card that already holds a token', () => {
         const s = table(
             { supply: 1, favor: 1, advisers: advisers(PRESSGANGS) },
-            { denizensBySite: { c1: [WAYSIDE_INN] }, cardTokens: { [WAYSIDE_INN]: { favor: 1, secrets: 0 } } }
+            {
+                denizensBySite: { c1: [WAYSIDE_INN] },
+                cardTokens: { [WAYSIDE_INN]: { favor: 1, secrets: 0 } }
+            }
         )
         expect(HydratedMuster.canDoMuster(s, 'me')).toBe(false)
         expect(listed(s)).toEqual([[PRESSGANGS, ActionType.Muster, 'makesPossible']])
     })
 
     it('leaves out a card the engine applies by itself (Initiation Rite, R-7.4.1)', () => {
-        const s = table({ supply: 1, secrets: 2, advisers: advisers(INITIATION_RITE) }, { denizensBySite: { c1: [WAYSIDE_INN] } })
+        const s = table(
+            { supply: 1, secrets: 2, advisers: advisers(INITIATION_RITE) },
+            { denizensBySite: { c1: [WAYSIDE_INN] } }
+        )
         expect(HydratedMuster.canDoMuster(s, 'me')).toBe(true)
         expect(listed(s)).toEqual([])
     })
 
-    it('leaves out a card that only adds something after the action, though its condition narrows where it fits', () => {
-        const hospitality = table({ supply: 3, advisers: advisers(HOSPITALITY) }, { denizensBySite: { c1: [WAYSIDE_INN], c2: [TENTS] } })
+    it('lists a card that only adds something after the action as changing it, where some row is sent with it', () => {
+        const hospitality = table(
+            { supply: 3, advisers: advisers(HOSPITALITY) },
+            { denizensBySite: { c1: [WAYSIDE_INN], c2: [TENTS] } }
+        )
         const [power] = powersWithTiming(HOSPITALITY, PowerTiming.Modifier)
         const declared = soleDeclarations(hospitality, 'me', power).filter((use) =>
-            (use.choices ?? []).some((c) => c.kind === PowerChoiceKind.FavorBank && c.suit === Suit.Nomad)
+            (use.choices ?? []).some(
+                (c) => c.kind === PowerChoiceKind.FavorBank && c.suit === Suit.Nomad
+            )
         )
         expect(declared).toHaveLength(1)
         // R-7.4 — it fits some destinations only; the others are listed and sent without it.
@@ -98,12 +149,14 @@ describe('R-7.4 — the cards that change an action, as the powers list them', (
         const fitted = menu.filter((row) => row.modifiers.length > 0)
         expect(fitted.length).toBeGreaterThan(0)
         expect(fitted.length).toBeLessThan(menu.length)
-        expect(menu.map((row) => row.key)).toEqual(actionMenuRows(hospitality, 'me', ActionType.Travel, []))
-        expect(listed(hospitality)).toEqual([])
+        expect(menu.map((row) => row.key)).toEqual(
+            actionMenuRows(hospitality, 'me', ActionType.Travel, [])
+        )
+        expect(listed(hospitality)).toEqual([[HOSPITALITY, ActionType.Travel, 'changes']])
 
         const huntingParty = table({ supply: 3, advisers: advisers(HUNTING_PARTY) })
         expect(actionMenuRows(huntingParty, 'me', ActionType.Search, []).length).toBe(2)
-        expect(listed(huntingParty)).toEqual([])
+        expect(listed(huntingParty)).toEqual([[HUNTING_PARTY, ActionType.Search, 'changes']])
     })
 
     it('R-10.2 — lists nothing while a free action is due, when only it is offered', () => {
@@ -114,17 +167,25 @@ describe('R-7.4 — the cards that change an action, as the powers list them', (
     })
 
     it('lists nothing outside the Act Phase', () => {
-        const s = table({ supply: 1, secrets: 1 }, { denizensBySite: { c1: [MUSHROOMS] }, machineState: MachineState.RestPhase })
+        const s = table(
+            { supply: 1, secrets: 1 },
+            { denizensBySite: { c1: [MUSHROOMS] }, machineState: MachineState.RestPhase }
+        )
         expect(actionCards(s, 'me')).toEqual([])
     })
 })
 
 describe('R-7.4 — a card declared alone, at each choice its text opens', () => {
     it('is one declaration for a card with no choice, and one per region for a card that names a pile', () => {
-        const s = table({ supply: 2, secrets: 1, favor: 1, advisers: advisers(ERRAND_BOY) }, { denizensBySite: { c1: [MUSHROOMS] } })
+        const s = table(
+            { supply: 2, secrets: 1, favor: 1, advisers: advisers(ERRAND_BOY) },
+            { denizensBySite: { c1: [MUSHROOMS] } }
+        )
         const [mushrooms] = powersWithTiming(MUSHROOMS, PowerTiming.Modifier)
         const [errandBoy] = powersWithTiming(ERRAND_BOY, PowerTiming.Modifier)
-        expect(soleDeclarations(s, 'me', mushrooms)).toEqual([{ cardId: MUSHROOMS, powerIndex: mushrooms.powerIndex }])
+        expect(soleDeclarations(s, 'me', mushrooms)).toEqual([
+            { cardId: MUSHROOMS, powerIndex: mushrooms.powerIndex }
+        ])
         expect(soleDeclarations(s, 'me', errandBoy).map((use) => use.choices)).toHaveLength(2)
     })
 })
@@ -134,7 +195,9 @@ describe('R-7.4 — the choices a modifier card opens', () => {
         const s = table({ supply: 7, favor: 5, secrets: 5 })
         const cards = [...cardIdsOfKind(CardKind.Denizen), ...cardIdsOfKind(CardKind.Relic)]
         const several = cards.flatMap((cardId) =>
-            powersWithTiming(cardId, PowerTiming.Modifier).filter((power) => legalChoices(s, 'me', power).some(allowsSeveral)).map(() => cardId)
+            powersWithTiming(cardId, PowerTiming.Modifier)
+                .filter((power) => legalChoices(s, 'me', power).some(allowsSeveral))
+                .map(() => cardId)
         )
         expect(several).toEqual([])
     })
@@ -151,7 +214,11 @@ describe('what a card brings, said before it is used', () => {
 })
 
 describe('the words of a card’s row and of the grey tile', () => {
-    const card = (cardId: string, action: ActionCard['action'], kind: ActionCard['kind']): ActionCard => ({ cardId, powerIndex: 0, action, kind })
+    const card = (
+        cardId: string,
+        action: ActionCard['action'],
+        kind: ActionCard['kind']
+    ): ActionCard => ({ cardId, powerIndex: 0, action, kind })
 
     it('finds every card that makes the tapped action possible, and none that only changes it', () => {
         const cards = [
@@ -164,18 +231,15 @@ describe('the words of a card’s row and of the grey tile', () => {
         expect(cardsMakingPossible(cards, ActionType.Muster)).toEqual([])
     })
 
-    it('says what using the card costs, or that it is free (R-7.1.2)', () => {
-        const none = { placeFavor: 0, burnFavor: 0, placeSecret: 0, burnSecret: 0 }
-        expect(cardCostLine(none)).toBe('free')
-        expect(cardCostLine({ ...none, placeSecret: 1 })).toBe('put 1 secret on it')
-        expect(cardCostLine({ ...none, placeFavor: 2, burnSecret: 2 })).toBe('put 2 favor on it, burn 2 secrets')
-    })
-
     it('a question’s yes shows what the card costs as counts, nothing when free', () => {
         const none = { placeFavor: 0, burnFavor: 0, placeSecret: 0, burnSecret: 0 }
         expect(answerCostText(none)).toBeUndefined()
         expect(answerCostText({ ...none, placeSecret: 1 })).toBe('1 secret')
-        expect(answerCostText({ ...none, placeFavor: 1, placeSecret: 1 })).toBe('1 favor + 1 secret')
-        expect(answerCostText({ ...none, burnFavor: 1, placeFavor: 1, burnSecret: 2 })).toBe('2 favor + 2 secrets')
+        expect(answerCostText({ ...none, placeFavor: 1, placeSecret: 1 })).toBe(
+            '1 favor + 1 secret'
+        )
+        expect(answerCostText({ ...none, burnFavor: 1, placeFavor: 1, burnSecret: 2 })).toBe(
+            '2 favor + 2 secrets'
+        )
     })
 })

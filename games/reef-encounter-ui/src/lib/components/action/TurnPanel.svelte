@@ -1,6 +1,6 @@
 <script lang="ts">
     import { squareName } from '$lib/utils/reefSquare.js'
-    import { withArticle } from '$lib/utils/actionDescription.js'
+    import { BagSearchLabel, withArticle } from '$lib/utils/actionDescription.js'
     import ChoiceButton from './ChoiceButton.svelte'
     import LarvaCube from '$lib/components/table/LarvaCube.svelte'
     import Shrimp from '$lib/components/table/Shrimp.svelte'
@@ -26,6 +26,7 @@
             ? ['take a larva space on the open sea to end your turn']
             : [])
     ])
+    const cubesSearchingBag = $derived(gameSession.cubesForPolypsFromBag)
     const supplyLeft = $derived.by(() => {
         if (!placing || !me) return 0
         return Math.min(me.getSupplyPolyps()[placing.color], placing.supplyPolypsLeft)
@@ -59,7 +60,7 @@
     {#if gameSession.lockingLastTile !== undefined}
         <p class="warning">
             Locking tile {gameSession.lockingLastTile}, the last unlocked one, ends the game:
-            everyone else gets one final turn.
+            everyone else may eat a final coral.
         </p>
     {/if}
 {:else if gameSession.cylinderPayment}
@@ -188,11 +189,13 @@
             items={gameSession.cubesForPolyps}
             key={(color) => color}
             label={(color) =>
-                `Exchange ${withArticle(color)} larva cube for ${withArticle(color)} polyp`}
+                `Exchange ${withArticle(color)} larva cube for ${withArticle(color)} polyp${cubesSearchingBag.includes(color) ? BagSearchLabel : ''}`}
             onselect={(color) => gameSession.exchangeLarvaCube(color)}
         >
             {#snippet icon(color)}
                 {@render cube(color)}
+                {#if cubesSearchingBag.includes(color)}<span class="bag-flag reef-display">!</span
+                    >{/if}
             {/snippet}
             {#snippet result(color)}
                 <span class="arrow">→</span>
@@ -203,6 +206,36 @@
     </div>
     {#if onBoard.length > 0}
         <p class="detail">Or {onBoard.join(', or ')}.</p>
+    {/if}
+    {#if placing}
+        {#if gameSession.placementSearchesBag}
+            <p class="warning icon-line">
+                <span class="sr-only"
+                    >Placing on a square marked ! searches the bag for a bonus {placing.color} polyp:
+                    no Undo.</span
+                >
+                <span class="icon-line" aria-hidden="true">
+                    Placing on <span class="bag-flag reef-display">!</span> searches the bag: no Undo.
+                </span>
+            </p>
+        {/if}
+    {:else if cubesSearchingBag.length > 0}
+        <p class="warning icon-line">
+            <span class="sr-only"
+                >Exchanging {cubesSearchingBag.join(' or ')} larva cubes searches the bag for the polyp:
+                no Undo.</span
+            >
+            <span class="icon-line" aria-hidden="true">
+                <span class="chips"
+                    >{#each cubesSearchingBag as color (color)}{@render cube(color)}{/each}</span
+                >
+                <span class="arrow">→</span>{#if cubesSearchingBag.length === 1}<PolypChip
+                        color={cubesSearchingBag[0]}
+                        count={1}
+                    />{:else}<span class="any-polyp"></span>{/if}
+                exchange searches the bag: no Undo.
+            </span>
+        </p>
     {/if}
 {/if}
 
@@ -243,6 +276,38 @@
 
     .none {
         opacity: 0.45;
+    }
+
+    .icon-line {
+        display: inline-flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px;
+    }
+
+    p.icon-line {
+        display: flex;
+    }
+
+    .chips {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+    }
+
+    .bag-flag {
+        display: inline-grid;
+        place-items: center;
+        flex: none;
+        width: 15px;
+        height: 15px;
+        margin-left: -2px;
+        border-radius: 50%;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--reef-flag-ink);
+        background: var(--reef-flag);
+        box-shadow: 0 0 0 1px rgb(0 0 0 / 0.35);
     }
 
     .any-polyp {

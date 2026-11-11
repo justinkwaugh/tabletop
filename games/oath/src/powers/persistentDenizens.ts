@@ -1,8 +1,7 @@
 import { bannerHolder } from '../util/oathkeeper.js'
-import { spendFavor, usableFavor } from '../util/favor.js'
+import { askRestFromHomeBanks, payOwedFavor } from '../util/homeBankPayment.js'
 import { Banner, Suit } from '../model/oathEnums.js'
 import { BattlePlanSide, PowerTiming, powerIndexOf } from '../data/cardPowers.js'
-import { suitOf } from '../data/cardRegistry.js'
 import type { CampaignParties } from '../util/campaign.js'
 import { targetedSiteIds } from '../util/campaignSite.js'
 import { ruledFaceupCardIds, rulesCard } from '../util/access.js'
@@ -22,9 +21,29 @@ import {
     hasFaceupAdviserOfSuit,
     pawnSiteId
 } from './vocabulary.js'
-import { defendingPlayerIds, partySideOf } from '../util/battlePlans.js'
+import { BANDITS_PLAN_USER, defendingPlayerIds, partySideOf, sideOf } from '../util/battlePlans.js'
 import { cannotRecoverForbids } from '../util/seize.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
+import type { HydratedOathGameState } from '../model/gameState.js'
+import { killBoardWarbandsInCampaign } from '../util/campaignRoll.js'
+import { countedWarbands } from '../util/warbands.js'
+
+/**
+ * Hospital — from revision 13 (R-X.4) a kill made while a Campaign is open goes through its kill path.
+ * The one pawn a Campaign moves is the banished defender's (R-5.5.7.III).
+ */
+function killOnTravellersBoard(
+    state: HydratedOathGameState,
+    travellerId: string,
+    count: number
+): { killed: number; held: boolean } {
+    const campaign = state.campaign
+    if (campaign && isAtLeastOathRevision(state, OathRevision.EngineFixes9)) {
+        const side = sideOf(campaign, travellerId)
+        return killBoardWarbandsInCampaign(state, campaign, side, travellerId, count)
+    }
+    return { killed: killWarbandsOnBoard(state, travellerId, count).killed, held: false }
+}
 
 /** "Against you" */
 function againstOwner(
@@ -43,11 +62,11 @@ function againstOwner(
 const FOREST_COUNCIL = 'denizen.beast.forest-council'
 registerPersistent(FOREST_COUNCIL, powerIndexOf(FOREST_COUNCIL, PowerTiming.Persistent), {
     forbidsTrade: (ctx, actorId, cardId) =>
-        enemyOfOwners(ctx, actorId) && suitOf(cardId) === Suit.Beast
+        enemyOfOwners(ctx, actorId) && ctx.state.suitInPlay(cardId) === Suit.Beast
             ? 'Forest Council: enemies of its ruler cannot trade with beast cards'
             : undefined,
     forbidsMuster: (ctx, actorId, cardId) =>
-        enemyOfOwners(ctx, actorId) && suitOf(cardId) === Suit.Beast
+        enemyOfOwners(ctx, actorId) && ctx.state.suitInPlay(cardId) === Suit.Beast
             ? 'Forest Council: enemies of its ruler cannot muster from beast cards'
             : undefined
 })
@@ -113,8 +132,8 @@ function lostTongue(
     holderId: string | undefined
 ): string | undefined {
     if (!holderId || !ctx.ownerIds.includes(holderId) || actorId === holderId) return undefined
-    const rulesNomad = ruledFaceupCardIds(ctx.state, actorId).some(
-        (id) => suitOf(id) === Suit.Nomad
+    const rulesNomad = ruledFaceupCardIds(ctx.state, actorId, ctx.scope).some(
+        (id) => ctx.state.suitInPlay(id) === Suit.Nomad
     )
     return rulesNomad
         ? undefined
@@ -145,8 +164,8 @@ registerPersistent(
     {
         forbidsCampaign: (ctx, actorId) =>
             ctx.ownerIds.includes(actorId) ? 'Vow of Peace: you cannot campaign' : undefined,
-        forbidsSacrifice: (ctx, _attackerId, defenderId) =>
-            defenderId && ctx.ownerIds.includes(defenderId)
+        forbidsSacrifice: (ctx, _attackerId, defendingIds) =>
+            defendingIds.some((playerId) => ctx.ownerIds.includes(playerId))
                 ? 'Vow of Peace: attackers cannot sacrifice against its holder'
                 : undefined
     }
@@ -205,6 +224,14 @@ registerPersistent(MARSH_SPIRIT, powerIndexOf(MARSH_SPIRIT, PowerTiming.Persiste
             : undefined
 })
 
+/**
+ * R-10.7 — the bandits are every player's enemy (Tome Guardians' Q&A: "the bandits consider all
+ * players enemies"), with no player to look up.
+ */
+function planUserIsEnemyOf(ctx: PersistentContext, owner: string, userId: string): boolean {
+    return userId === BANDITS_PLAN_USER || areEnemies(ctx.state, owner, userId, ctx.scope)
+}
+
 // "Enemies cannot use beast or nomad battle plans against you."
 registerPersistent(
     'denizen.discord.beast-tamer',
@@ -212,8 +239,8 @@ registerPersistent(
     {
         forbidsBattlePlan: (ctx, userId, power, parties, side) => {
             const owner = againstOwner(ctx, userId, parties, side)
-            if (!owner || !areEnemies(ctx.state, owner, userId)) return undefined
-            const suit = suitOf(power.cardId)
+            if (!owner || !planUserIsEnemyOf(ctx, owner, userId)) return undefined
+            const suit = ctx.state.suitInPlay(power.cardId)
             return suit === Suit.Beast || suit === Suit.Nomad
                 ? `Beast Tamer: ${owner}'s enemies cannot use beast or nomad battle plans against them`
                 : undefined
@@ -229,7 +256,7 @@ registerPersistent(
         forbidsBattlePlan: (ctx, userId, power, parties, side) => {
             const owner = againstOwner(ctx, userId, parties, side)
             if (!owner) return undefined
-            const suit = suitOf(power.cardId)
+            const suit = ctx.state.suitInPlay(power.cardId)
             const matches = suit !== undefined && hasFaceupAdviserOfSuit(ctx.state, owner, suit)
             return matches
                 ? `True Names: ${owner}'s enemy cannot use a ${suit} battle plan against them`
@@ -298,8 +325,11 @@ registerPersistent(
         afterTravel: (ctx, actorId, from) => {
             if (!from || !enemyOfOwners(ctx, actorId)) return undefined
             if (!ownersRuleSite(ctx, from)) return undefined
-            const { killed } = killWarbandsOnBoard(ctx.state, actorId, 1)
-            return killed ? `Grasping Vines: killed a warband on ${actorId}'s board` : undefined
+            const { killed, held } = killOnTravellersBoard(ctx.state, actorId, 1)
+            if (!killed) return undefined
+            return held
+                ? `Grasping Vines: a warband on ${actorId}'s board goes to Hospital's site`
+                : `Grasping Vines: killed a warband on ${actorId}'s board`
         }
     }
 )
@@ -308,9 +338,13 @@ registerPersistent(
 const BOILING_LAKE = 'denizen.discord.boiling-lake'
 registerPersistent(BOILING_LAKE, powerIndexOf(BOILING_LAKE, PowerTiming.Persistent), {
     afterTravel: (ctx, actorId, _from, to) => {
-        if (to !== ctx.siteId || rulesCard(ctx.state, actorId, BOILING_LAKE)) return undefined
-        const { killed } = killWarbandsOnBoard(ctx.state, actorId, 2)
-        return killed ? `Boiling Lake: killed ${killed} warbands on ${actorId}'s board` : undefined
+        if (to !== ctx.siteId || rulesCard(ctx.state, actorId, BOILING_LAKE, ctx.scope))
+            return undefined
+        const { killed, held } = killOnTravellersBoard(ctx.state, actorId, 2)
+        if (!killed) return undefined
+        return held
+            ? `Boiling Lake: ${countedWarbands(killed)} on ${actorId}'s board ${killed === 1 ? 'goes' : 'go'} to Hospital's site`
+            : `Boiling Lake: killed ${killed} warbands on ${actorId}'s board`
     }
 })
 
@@ -338,7 +372,7 @@ registerPersistent(
     powerIndexOf('denizen.hearth.saddle-makers', PowerTiming.Persistent),
     {
         afterCardPlayed: (ctx, actorId, cardId) => {
-            const suit = suitOf(cardId)
+            const suit = ctx.state.suitInPlay(cardId)
             if (suit !== Suit.Nomad && suit !== Suit.Order) return undefined
             const notes: string[] = []
             for (const owner of ctx.ownerIds) {
@@ -379,18 +413,21 @@ registerEffect(DISSENT, powerIndexOf(DISSENT, PowerTiming.WhenPlayed), {
     resolve: (ctx) => {
         const holder = bannerHolder(ctx.state, Banner.PeoplesFavor)
         let placed = 0
+        const unpaid = new Map<string, number>()
         for (const p of ctx.state.players) {
             if (p.playerId === holder) continue
             const suits = new Set(
                 ruledFaceupCardIds(ctx.state, p.playerId)
-                    .map((id) => suitOf(id))
+                    .map((id) => ctx.state.suitInPlay(id))
                     .filter((s) => s !== undefined)
             )
-            const pay = Math.min(suits.size, usableFavor(ctx.state, p.playerId))
-            spendFavor(ctx.state, p.playerId, pay)
+            const pay = payOwedFavor(ctx.state, p.playerId, suits.size)
             placed += pay
+            unpaid.set(p.playerId, suits.size - pay)
         }
         ctx.state.addTokensOn(DISSENT, { favor: placed })
+        // Vow of Kinship — the rest from its bank only as its holder chooses (R-10.10-H1).
+        askRestFromHomeBanks(ctx.state, ctx.playerId, DISSENT, unpaid)
         return { summary: `Dissent: ${placed} favor placed on it, one per suit each player rules` }
     }
 })

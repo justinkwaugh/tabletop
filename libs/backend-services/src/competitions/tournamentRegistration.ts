@@ -4,6 +4,7 @@ import { nanoid } from 'nanoid'
 export function updateTournamentRegistration(tournament: Tournament, now: number): boolean {
     if (tournament.status !== 'open') return false
     const policy = tournament.rules.registration
+    if (policy.kind === 'assigned') return false
     if (policy.kind === 'whenFull') {
         if (tournament.entrants.length < policy.capacity) {
             delete tournament.schedulingError

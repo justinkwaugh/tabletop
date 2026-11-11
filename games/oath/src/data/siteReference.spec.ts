@@ -4,7 +4,12 @@ import { siteReference } from './siteReference.js'
 import { ALL_SITE_IDS, HOMELAND_SITE_BY_SUIT, siteRecord } from './sites.js'
 
 const TOKEN = /\[([^\]]*)\]/g
-const KNOWN = new Set(['favor', 'secret', 'attackDie', ...Object.values(Suit).map((suit) => `suit:${suit}`)])
+const KNOWN = new Set([
+    'favor',
+    'secret',
+    'attackDie',
+    ...Object.values(Suit).map((suit) => `suit:${suit}`)
+])
 
 describe('R-11 — every site says what it does', () => {
     it('has one sentence for each of the 23 sites', () => {
@@ -18,7 +23,8 @@ describe('R-11 — every site says what it does', () => {
 
     it('uses only the symbols the UI draws', () => {
         for (const id of ALL_SITE_IDS) {
-            for (const [, token] of (siteReference(id) ?? '').matchAll(TOKEN)) expect(KNOWN, `${id}: [${token}]`).toContain(token)
+            for (const [, token] of (siteReference(id) ?? '').matchAll(TOKEN))
+                expect(KNOWN, `${id}: [${token}]`).toContain(token)
         }
     })
 

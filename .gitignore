@@ -69,3 +69,5 @@ tmp/
 
 # local credentials such as the deploy service account key (see tools/deploy/README.md)
 .secrets/
+
+__pycache__/

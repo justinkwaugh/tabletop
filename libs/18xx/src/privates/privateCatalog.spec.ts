@@ -59,11 +59,10 @@ function state(phaseId: string, owners: Record<string, Owner>, closed: string[] 
         cash: [],
         certificatePools: [],
         companies: [
-            { id: 'R', kind: 'major', shareCount: 10 },
+            { id: 'R', kind: 'major' },
             ...Object.keys(owners).map((id) => ({
                 id,
                 kind: 'private',
-                privateRevenue: catalog.definition(id).revenue,
                 ...(closed.includes(id) ? { closed: true } : {})
             }))
         ],
@@ -109,6 +108,15 @@ describe('a private catalog', () => {
         expect(catalog.blockedBy(state('early', { B: player }), 'C4')).toBeUndefined()
         expect(catalog.blockedBy(state('early', { H: company }), 'N18')?.id).toBe('H')
         expect(catalog.blockedBy(state('early', { H: company }, ['H']), 'N18')).toBeUndefined()
+    })
+
+    it('judges a private blocking only while it is in the game, open, and its block holds', () => {
+        expect(catalog.blocking(state('early', { B: player }), 'B')).toBe(true)
+        expect(catalog.blocking(state('early', { B: company }), 'B')).toBe(false)
+        expect(catalog.blocking(state('early', { B: player }, ['B']), 'B')).toBe(false)
+        expect(catalog.blocking(state('early', {}), 'B')).toBe(false)
+        expect(catalog.blocking(state('early', { A: player }), 'A')).toBe(false)
+        expect(catalog.blocking(state('early', { H: company }), 'H')).toBe(true)
     })
 
     it('bounds a sale at half, rounded up, to double face value unless the private says otherwise', () => {

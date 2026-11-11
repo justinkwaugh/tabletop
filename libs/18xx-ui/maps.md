@@ -52,6 +52,11 @@ placements. Unknown terrain-kind IDs render as text rather than receiving an
 unrelated terrain symbol. Covered initial terrain disappears from the drawing but
 remains inspectable; face-owned upgrade costs belong to the current tile.
 
+Marker symbols and tokens placed during play search the hex for clear space: wholly
+inside the hex and clear of stations, every drawn revenue, labels, names, terrain costs
+and other marks, then of track. Where nothing has a margin, a mark takes the roomiest spot
+that only touches its neighbours; a token keeps its size, and covers track before anything else. The [visual contract](ui-interaction-visual-contract.md) lists the placements.
+
 See the [family model/design review](../18xx/maps.md) for supported variation,
 intentional limits, and rule evidence, and the
 [visual contract](ui-interaction-visual-contract.md#map-inspection-and-navigation)

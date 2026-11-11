@@ -93,21 +93,20 @@ describe('an untouched set-up', () => {
         expect(setup.fixedBatteryId).toBeUndefined()
     })
 
-    it('starts with a battery already on the Santon, in reserve and as a detachment, when the Santon rule is in use', () => {
+    it('leaves the fixed battery to be placed when the Santon rule is in use', () => {
+        const { setup } = frenchToSetUp({ santon: true })
+        expect(setup.detached).toEqual([])
+        expect(setup.fixedBatteryId).toBeUndefined()
+    })
+
+    it('takes a fixed battery on the Santon in reserve, as a detachment, when the Santon rule is in use', () => {
         const { state, playerId, setup } = frenchToSetUp({ santon: true })
         const [battery] = unitIdsOf(state, playerId, UnitType.Artillery)
+        const posted = withFixedBatteryPosted(setup, battery, { locale: SANTON_LOCALE })
 
-        expect(setup.fixedBatteryId).toBe(battery)
-        expect(setup.detached).toEqual([{ unitId: battery, position: { locale: SANTON_LOCALE } }])
-        expect(setup.corps.every((corps) => corps.unitIds.length === 0)).toBe(true)
-        expect(fits(state, playerId, setup)).toBe(true)
-        expect(detachmentsUsed(state, playerId, setup)).toBe(1)
-        expect(
-            unassignedStacks(state, playerId, setup).reduce(
-                (sum, stack) => sum + stack.unitIds.length,
-                0
-            )
-        ).toBe(state.unitsOf(playerId).length - 1)
+        expect(fits(state, playerId, posted)).toBe(true)
+        expect(detachmentsUsed(state, playerId, posted)).toBe(1)
+        expect(postStances(state, posted, battery)).toEqual([])
     })
 
     it('holds every Allied corps off the map on 1 December until two are chosen', () => {
@@ -375,7 +374,7 @@ describe('units set up on their own', () => {
         const home = setupLocaleOf(state.map, 'murat').id
         const approaches = state.map.passableApproachesOf(home)
         const inReserve = withUnitDetached(setup, unitId, { locale: home })
-        expect(postStances(state.map, inReserve, unitId).map((target) => target.kind)).toEqual(
+        expect(postStances(state, inReserve, unitId).map((target) => target.kind)).toEqual(
             approaches.map(() => TargetKind.Approach)
         )
 
@@ -384,7 +383,7 @@ describe('units set up on their own', () => {
             approach: approaches[0].id
         })
         expect(blocking.detached).toHaveLength(1)
-        expect(postStances(state.map, blocking, unitId).map((target) => target.kind)).toEqual([
+        expect(postStances(state, blocking, unitId).map((target) => target.kind)).toEqual([
             TargetKind.Reserve,
             ...approaches.slice(1).map(() => TargetKind.Approach)
         ])
@@ -509,7 +508,7 @@ describe('the fixed battery', () => {
             approach: approach.id
         })
         expect(
-            postStances(state.map, blocking, battery).every(
+            postStances(state, blocking, battery).every(
                 (target) => target.kind === TargetKind.Approach
             )
         ).toBe(true)

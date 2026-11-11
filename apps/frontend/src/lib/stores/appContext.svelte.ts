@@ -3,7 +3,8 @@ import {
     PUBLIC_API_HOST,
     PUBLIC_SSE_HOST,
     PUBLIC_ENABLE_ABLY_REALTIME,
-    PUBLIC_GAME_UI_BASE_URL
+    PUBLIC_GAME_UI_BASE_URL,
+    PUBLIC_REALTIME_RELAY_HOST
 } from '$env/static/public'
 import { AuthorizationService } from '$lib/services/authorizationService.svelte'
 import { NotificationService } from '$lib/services/notificationService.svelte'
@@ -15,8 +16,16 @@ import { FRONTEND_VERSION } from '$lib/version'
 import { AblyConnection } from '$lib/network/ablyConnection.svelte'
 import { ChatService } from '$lib/services/chatService.svelte'
 import { SseConnection } from '$lib/network/sseConnection.svelte.js'
-const api = new TabletopApi(PUBLIC_API_HOST, PUBLIC_SSE_HOST, FRONTEND_VERSION, () =>
-    authorizationService.clearSessionUser()
+import { RelayConnection } from '$lib/network/relayConnection'
+import { closedWhileHidden, type RealtimeConnection } from '$lib/network/realtimeConnection'
+import { UserPreferencesEditor } from '$lib/services/userPreferencesEditor.svelte'
+import { toast } from 'svelte-sonner'
+const api = new TabletopApi(
+    PUBLIC_API_HOST,
+    PUBLIC_SSE_HOST,
+    FRONTEND_VERSION,
+    () => authorizationService.clearSessionUser(),
+    (): boolean => authorizationService.getSessionUser() !== undefined
 )
 console.log('Initialized API with frontend version:', FRONTEND_VERSION)
 const manifestService = new ManifestService(api)
@@ -31,26 +40,37 @@ const authorizationService = new AuthorizationService(
 )
 
 const visibilityService = new VisibilityService()
-let realtimeConnection
+let realtimeConnection: RealtimeConnection
 
-if (PUBLIC_ENABLE_ABLY_REALTIME) {
-    realtimeConnection = new AblyConnection(api)
+if (PUBLIC_REALTIME_RELAY_HOST) {
+    realtimeConnection = new RelayConnection(api, PUBLIC_REALTIME_RELAY_HOST)
+} else if (PUBLIC_ENABLE_ABLY_REALTIME) {
+    realtimeConnection = closedWhileHidden(new AblyConnection(api))
 } else {
-    realtimeConnection = new SseConnection({ api })
+    realtimeConnection = closedWhileHidden(new SseConnection({ api }))
 }
 const notificationService = new NotificationService(
     realtimeConnection,
     visibilityService,
     authorizationService,
-    api
+    api,
+    !!PUBLIC_REALTIME_RELAY_HOST
 )
 const chatService = new ChatService(authorizationService, notificationService, api)
 const gameService = new GameService(libraryService, authorizationService, notificationService, api)
+const userPreferencesEditor = new UserPreferencesEditor(
+    () => authorizationService.getSessionUser(),
+    api,
+    (user) => authorizationService.setSessionUser(user),
+    () => toast.error('Could not save your preferences. Please try again.')
+)
 
 const appContext: AppContext & {
     catalogService: CatalogService
     authorizationService: AuthorizationService
+    notificationService: NotificationService
     gameService: GameService
+    userPreferencesEditor: UserPreferencesEditor
 } = {
     catalogService: new CatalogService(api),
     manifestService,
@@ -60,6 +80,7 @@ const appContext: AppContext & {
     gameService,
     chatService: chatService,
     visibilityService,
+    userPreferencesEditor,
     api
 }
 

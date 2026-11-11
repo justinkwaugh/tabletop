@@ -1,15 +1,22 @@
 import {
     Phases1846,
-    CorporateFinanceValidator,
     TrainDepot1846,
-    inReceivership,
     MarketZoneColors1846,
     ownsTunnelBlasting,
     TunnelBlastingDiscount,
+    TitleRules1846,
     type EighteenFortySixProjectedState
 } from '@tabletop/1846'
-import { createPhaseChart, moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
-import type { GameAction } from '@tabletop/common'
+import {
+    constructionOperatingSteps,
+    createPhaseChart,
+    moneyFormat,
+    NoParCompanyPricePresentation,
+    type TitlePresentation
+} from '@tabletop/18xx-ui'
+import { CompanyNames1846 } from './companyPresentation.js'
+import { mapPlacement1846 } from './history.js'
+import { revenueTokenArt } from './revenueTokens.js'
 import BoomtownToken from './images/tokens/boomtown.svg'
 import MailToken from './images/tokens/mail.svg'
 import MeatPackingToken from './images/tokens/meat-packing.svg'
@@ -17,20 +24,14 @@ const StraightTilePair = [
     { definitionId: '18xx:9', rotation: 1 },
     { definitionId: '18xx:9', rotation: 1 }
 ] as const
-function financeSummary(actions: readonly GameAction[]) {
-    const start = actions.findLastIndex(
-        (action) => action.type === 'StartOperatingTurn' || action.type === 'StartReceiverTurn'
-    )
-    const transactions = actions
-        .slice(start + 1)
-        .filter((action) => CorporateFinanceValidator.Check(action))
-    if (!transactions.length) return undefined
-    const shares = transactions.reduce((total, action) => total + action.shares, 0)
-    return `${transactions[0].operation === 'issue' ? 'Issued' : 'Redeemed'} ${shares}`
-}
 export const Presentation1846: TitlePresentation<EighteenFortySixProjectedState> = {
-    money: moneyFormat('$'),
+    money: moneyFormat(TitleRules1846.currencySymbol),
+    companyNames: CompanyNames1846,
+    // Shares sell at the current price; there is no par value (GMT rules, p. 19).
+    companyPricePresentation: NoParCompanyPricePresentation,
     marketPoolId: 'open-market',
+    historyMapPlacement: mapPlacement1846,
+    markerArtFor: revenueTokenArt,
     privateTokens: {
         SC: { tileSymbol: 'port' },
         MAIL: { imageUrl: MailToken },
@@ -93,43 +94,7 @@ export const Presentation1846: TitlePresentation<EighteenFortySixProjectedState>
             'Two players: 5 / 5 / 3 / 4 depot certificates. Buying the last new final train ends after the next full operating set.'
         ]
     }),
-    operatingSteps: [
-        {
-            label: 'Build',
-            states: ['LayingTrack'],
-            actions: [
-                'LayTile',
-                'PlaceStation',
-                'BuildPrivateTrack',
-                'PlaceCWIStation',
-                'FinishTrack',
-                'FinishStations',
-                'CorporateFinance'
-            ],
-            status: (_state, actions, summaries) =>
-                [financeSummary(actions), summaries.track, summaries.station]
-                    .filter(Boolean)
-                    .join(' · ') || undefined
-        },
-        {
-            label: 'Run',
-            states: ['RunningTrains', 'RunningReceiver', 'RustingTrains'],
-            actions: ['RunTrains'],
-            status: (_state, _actions, summaries) => summaries.run
-        },
-        {
-            label: 'Payout',
-            states: ['DistributingEarnings'],
-            actions: ['DistributeEarnings', 'SettleIndependent', 'SettleReceiver'],
-            status: (_state, _actions, summaries) => summaries.payout
-        },
-        {
-            label: 'Trains',
-            states: ['BuyingTrains', 'FundingTrain', 'DiscardingTrains'],
-            actions: ['BuyTrain', 'EmergencyBuyTrain', 'BuyReceiverTrain'],
-            status: (_state, _actions, summaries) => summaries.trains
-        }
-    ],
+    operatingSteps: constructionOperatingSteps(TitleRules1846, { payout: ['SettleIndependent'] }),
     includedCompanyIds: ['MS', 'BIG4'],
     includedPortfolioCompanyIds: ['MS', 'BIG4'],
     openingRound: {
@@ -137,7 +102,5 @@ export const Presentation1846: TitlePresentation<EighteenFortySixProjectedState>
         abbreviation: 'Draft',
         inProgress: (state) =>
             ['Drafting', 'RevealingDraft', 'BuyingOpeningCompanies'].includes(state.machineState)
-    },
-    companyFacts: (state, id) =>
-        inReceivership(state, id) ? [{ label: 'Control', value: 'Receivership' }] : []
+    }
 }

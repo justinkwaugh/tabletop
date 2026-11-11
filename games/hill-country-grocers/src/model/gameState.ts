@@ -5,12 +5,12 @@ import {
     GameState,
     HydratableGameState,
     HydratedTurnManager,
+    PassableBidding,
     PrngState,
     assertExists,
     type AxialCoordinates,
     type RandomState
 } from '@tabletop/common'
-import { PassableBidding } from '@tabletop/18xx'
 import { MachineState } from '../definition/states.js'
 import {
     COMPANIES,

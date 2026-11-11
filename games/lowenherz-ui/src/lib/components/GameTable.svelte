@@ -126,7 +126,9 @@
                 <!-- Real layout, not an overlay: it pushes the board down. One slot for both,
                      reserving a card row for the whole of my politics turn, so the board moves
                      once when the decks appear and once when the taken card is away. -->
-                <ReservedHeight minHeight={lowenherzSession.isMyPoliticsCardTurn ? CARD_ROW_HEIGHT : 0}>
+                <ReservedHeight
+                    minHeight={lowenherzSession.isMyPoliticsCardTurn ? CARD_ROW_HEIGHT : 0}
+                >
                     <PoliticsDeckChooser />
                     <PoliticsPileReveal />
                 </ReservedHeight>

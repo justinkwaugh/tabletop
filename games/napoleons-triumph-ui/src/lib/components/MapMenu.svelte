@@ -73,7 +73,7 @@
             type="button"
             class="nt-map-chip"
             aria-pressed={gameSession.movementTrailsShown}
-            onclick={() => (gameSession.movementTrailsShown = !gameSession.movementTrailsShown)}
+            onclick={() => gameSession.setMovementTrailsShown(!gameSession.movementTrailsShown)}
             >Moves this turn</button
         >
         <button
@@ -89,6 +89,26 @@
             aria-pressed={gameSession.approachSymbolsShown}
             onclick={() => (gameSession.approachSymbolsShown = !gameSession.approachSymbolsShown)}
             >Approach symbols</button
+        >
+        <button
+            type="button"
+            class="nt-map-chip"
+            aria-pressed={gameSession.capacitiesShown}
+            onclick={() => gameSession.setCapacitiesShown(!gameSession.capacitiesShown)}
+            >Locale capacities</button
+        >
+        <button
+            type="button"
+            class="nt-map-chip"
+            aria-pressed={gameSession.localeNumbersShown}
+            onclick={() => (gameSession.localeNumbersShown = !gameSession.localeNumbersShown)}
+            >Locale numbers</button
+        >
+        <button
+            type="button"
+            class="nt-map-chip"
+            aria-pressed={gameSession.unitsHidden}
+            onclick={() => (gameSession.unitsHidden = !gameSession.unitsHidden)}>Hide units</button
         >
     </div>
 </div>

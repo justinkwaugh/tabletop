@@ -1,21 +1,20 @@
 import { assertExists } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
+import type { HeldAttackRoll } from '../actions/answerQuestion.js'
 import type { PileDeposit } from '../model/hidden.js'
-import {
-    type CampaignState,
-    type HeldForHospital,
-    type LossSource,
-    type RolledAttackFace,
-    type RolledDefenseFace,
-    type WarbandGroup,
-    type WarbandLocation
+import type {
+    CampaignKillPath,
+    CampaignRollRecord,
+    CampaignState,
+    HeldForHospital,
+    KillRedirect,
+    LossSource,
+    RolledAttackFace,
+    RolledDefenseFace,
+    WarbandGroup,
+    WarbandLocation
 } from '../model/campaign.js'
-import {
-    attackFromFaces,
-    defenseShieldsFromFaces,
-    rollAttackDice,
-    rollDefenseDice
-} from '../data/dice.js'
+import { attackFromFaces, defenseFromFaces, rollAttackDice, rollDefenseDice } from '../data/dice.js'
 import { askQuestion } from './questions.js'
 import { PowerQuestionKind, RerolledRollKind } from '../model/question.js'
 import { offerReroll } from './reroll.js'
@@ -29,6 +28,7 @@ import {
 import { attackingSiteOf } from './campaignSite.js'
 import {
     addWarbandsToSite,
+    boardGroupToKill,
     forceTotal,
     killWarbands,
     removeWarbandsFrom,
@@ -44,6 +44,7 @@ import { BattlePlanSide } from '../data/cardPowers.js'
 import { countOf } from './warbands.js'
 import type { WarbandCounts, WarbandOwner } from '../model/warbandCounts.js'
 import { OathRevision, isAtLeastOathRevision } from './revision.js'
+import { cannotPlaceWarbandsAtSites } from './continuous.js'
 
 /** R-5.5.4, R-5.5.5 — rolled from the protected stream inside an action's `apply`. */
 
@@ -58,6 +59,18 @@ export function partiesOf(state: HydratedOathGameState, campaign: CampaignState)
         forceSiteIds: campaign.forceSiteIds,
         asIfSiteId: campaign.asIfSiteId
     }
+}
+
+/**
+ * R-X.3, R-5.5.5.b-H1 — whether the Campaign step just taken reveals information: the dice it
+ * rolled, or the roll a later step will make. A Campaign a plan decided ("you're victorious now")
+ * rolls no dice, so once no defending plans are left to wait on, the step that settled it reveals
+ * nothing and stays undoable. Before revision 17 every such step revealed (R-X.4).
+ */
+export function campaignStepRevealsInfo(state: HydratedOathGameState): boolean {
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes13)) return true
+    const campaign = state.campaign
+    return campaign?.decidedVictor === undefined || campaign.pendingDefenderPlans !== undefined
 }
 
 export function rollCampaign(
@@ -83,16 +96,50 @@ export function rollCampaign(
         campaign.swords = 0
         return []
     }
-    const prng = state.getProtectedPrng()
-    applyDefenseRoll(campaign, rollDefenseDice(prng, campaign.defensePool))
+    applyDefenseRoll(campaign, rollDefenseDice(state.getProtectedPrng(), campaign.defensePool))
+    // Mounted Patrol — the pool as it will be rolled, so an attack held for a reroll counts its dice.
+    if (rules.halveAttackPool) {
+        campaign.attackPool = Math.floor(campaign.attackPool / 2)
+    }
+    // Before revision 14 both rolls are made, then both sides are asked.
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes10)) {
+        return rollAttack(state, campaign, skullLossOrder, ['attack', 'defense'])
+    }
+    // R-5.5.4-H1 — Step 4's reroll is settled before Step 5's roll.
+    if (askRerolls(state, campaign, ['defense'])) {
+        campaign.pendingAttackRoll = { order: [...(skullLossOrder ?? [])] }
+        return []
+    }
+    return rollAttack(state, campaign, skullLossOrder, ['attack'])
+}
 
+/** R-5.5.4-H1 — the attack held for the defender's reroll is rolled; what it rolled, when it was held. */
+export function rollHeldAttack(state: HydratedOathGameState): HeldAttackRoll | undefined {
+    const campaign = state.campaign
+    if (!campaign?.pendingAttackRoll) return undefined
+    const { order } = campaign.pendingAttackRoll
+    campaign.pendingAttackRoll = undefined
+    const killed = rollAttack(state, campaign, order, ['attack'])
+    return {
+        attackerPlayerId: campaign.attackerPlayerId,
+        swords: campaign.swords,
+        defense: campaign.defense,
+        skullsKilled: forceTotal(killed)
+    }
+}
+
+/** R-5.5.5 — the attack roll, then the rerolls asked after it; the skulls kill once those are settled. */
+function rollAttack(
+    state: HydratedOathGameState,
+    campaign: CampaignState,
+    skullLossOrder: readonly LossSource[] | undefined,
+    rerolledSides: ReadonlyArray<'attack' | 'defense'>
+): WarbandGroup[] {
     // R-5.5.5 — the skulls kill before the sacrifice, which is a separate action.
-    // Mounted Patrol
-    if (rules.halveAttackPool) campaign.attackPool = Math.floor(campaign.attackPool / 2)
+    const prng = state.getProtectedPrng()
     const skulls = applyAttackRoll(campaign, rollAttackDice(prng, campaign.attackPool))
     // Jinx — the skulls' kills wait on the answer, since a reroll replaces the roll.
-    const jinxed = askRerolls(state, campaign)
-    if (jinxed) {
+    if (askRerolls(state, campaign, rerolledSides)) {
         campaign.pendingSkullKills = { skulls, order: [...(skullLossOrder ?? [])] }
         return []
     }
@@ -101,19 +148,28 @@ export function rollCampaign(
 
 /** R-5.5.4 */
 export function applyDefenseRoll(campaign: CampaignState, defenseRoll: RolledDefenseFace[]): void {
-    const rules = campaign.rollRules
     campaign.defenseRoll = defenseRoll
-    // Rain Boots, War Tortoise — an ignored face stays on record as rolled.
-    const countedDefense = defenseRoll.map((face) =>
-        (rules.ignoreSingleShields && face.shields === 1 && !face.doubling) ||
-        (rules.ignoreTwoShieldFaces && face.shields === 2)
-            ? { shields: 0, doubling: false }
-            : face
-    )
     campaign.defense =
-        defenseShieldsFromFaces(countedDefense) +
+        countedDefense(campaign, defenseRoll).shields +
         forceTotal(campaign.defendingForce) +
         campaign.defendingBandits
+}
+
+/** R-5.5.4 — the roll as it counts: Rain Boots, War Tortoise. */
+function countedDefense(
+    campaign: CampaignState,
+    defenseRoll: readonly RolledDefenseFace[]
+): { shields: number; doublings: number } {
+    const rules = campaign.rollRules
+    // Rain Boots, War Tortoise — an ignored face stays on record as rolled.
+    return defenseFromFaces(
+        defenseRoll.map((face) =>
+            (rules.ignoreSingleShields && face.shields === 1 && !face.doubling) ||
+            (rules.ignoreTwoShieldFaces && face.shields === 2)
+                ? { shields: 0, doubling: false }
+                : face
+        )
+    )
 }
 
 /** R-5.5.5 — the roll as it counts: Rusting Ray, War Tortoise, Lancers. */
@@ -142,14 +198,41 @@ export function applyAttackRoll(campaign: CampaignState, attackRoll: RolledAttac
     return skulls
 }
 
-/** Jinx */
-function askRerolls(state: HydratedOathGameState, campaign: CampaignState): boolean {
-    const rollers: Array<{ playerId: string | undefined; side: 'attack' | 'defense' }> = [
-        { playerId: campaign.attackerPlayerId, side: 'attack' },
-        { playerId: campaign.defenderPlayerId, side: 'defense' }
-    ]
+/**
+ * R-5.5.4, R-5.5.5 — from revision 25, what the closing step records of the roll: the faces as last
+ * rolled, after any reroll, and the counts the battle was decided on. A Campaign a plan decided rolled
+ * nothing, so there is nothing to record.
+ */
+export function campaignRollRecord(
+    state: HydratedOathGameState,
+    campaign: CampaignState
+): CampaignRollRecord | undefined {
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes21)) return undefined
+    if (campaign.decidedVictor) return undefined
+    const { skulls } = countedAttack(campaign, campaign.attackRoll)
+    const { shields, doublings } = countedDefense(campaign, campaign.defenseRoll)
+    return {
+        attackFaces: campaign.attackRoll.map((face) => ({ ...face })),
+        defenseFaces: campaign.defenseRoll.map((face) => ({ ...face })),
+        swords: campaign.swords,
+        skulls,
+        shields,
+        doubled: doublings > 0,
+        defendingForce: campaign.defendingForce.map((group) => ({ ...group, at: { ...group.at } })),
+        defendingBandits: campaign.defendingBandits,
+        defense: campaign.defense
+    }
+}
+
+/** Jinx — "after you roll": the attacker rolls the attack, the defender the defense (R-5.5.4). */
+function askRerolls(
+    state: HydratedOathGameState,
+    campaign: CampaignState,
+    sides: ReadonlyArray<'attack' | 'defense'>
+): boolean {
     let asked = false
-    for (const { playerId, side } of rollers) {
+    for (const side of sides) {
+        const playerId = side === 'attack' ? campaign.attackerPlayerId : campaign.defenderPlayerId
         if (!playerId) continue
         const roll = { kind: RerolledRollKind.Campaign as const, side }
         if (offerReroll(state, campaign.attackerPlayerId, playerId, roll)) asked = true
@@ -157,14 +240,17 @@ function askRerolls(state: HydratedOathGameState, campaign: CampaignState): bool
     return asked
 }
 
-/** Jinx */
-export function settleSkullKills(state: HydratedOathGameState): void {
+/**
+ * Jinx — the skulls held for the answers kill: how many warbands they took, or undefined when no kills
+ * were held.
+ */
+export function settleSkullKills(state: HydratedOathGameState): number | undefined {
     const campaign = state.campaign
-    if (!campaign?.pendingSkullKills) return
+    if (!campaign?.pendingSkullKills) return undefined
     const { order } = campaign.pendingSkullKills
     const { skulls } = countedAttack(campaign, campaign.attackRoll)
     campaign.pendingSkullKills = undefined
-    killOrHoldForSkulls(state, campaign, skulls, order)
+    return forceTotal(killOrHoldForSkulls(state, campaign, skulls, order))
 }
 
 /** R-5.5.5 — Outriders ignores them; from revision 7 the attacker picks where they kill when that is a choice. */
@@ -332,42 +418,106 @@ export function killFromAttackingForce(
     return killed
 }
 
-/** R-10.13, unless Hospital places them on its site; `side` is the force the warbands belong to. */
+/**
+ * R-10.28-H2 — whose warbands they are, for Hospital: a board's player, and at a site the player whose
+ * force holds it (the attacker's force sites, the defender's targets), whatever their colour. Before
+ * revision 13 (R-X.4) a site's warbands were their bank's holder's, the Chancellor for the Empire's.
+ */
+function forceHolderOf(
+    state: HydratedOathGameState,
+    kills: CampaignKillPath,
+    side: BattlePlanSide,
+    at: WarbandLocation,
+    owner: WarbandOwner
+): string | undefined {
+    if (at.kind === 'board') return at.playerId
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes9)) {
+        return state.warbandBankHolderOf(owner)
+    }
+    return side === BattlePlanSide.Attacker ? kills.attackerPlayerId : kills.defenderPlayerId
+}
+
+/** R-10.28 — the Hospital in force, if any, that holds `side`'s warbands killed from `at`. */
+function hospitalRedirectOf(
+    state: HydratedOathGameState,
+    kills: CampaignKillPath,
+    side: BattlePlanSide,
+    at: WarbandLocation,
+    owner: WarbandOwner
+): KillRedirect | undefined {
+    const playerId = forceHolderOf(state, kills, side, at, owner)
+    return kills.killRedirects.find((r) => r.playerId === playerId)
+}
+
+/**
+ * R-5.5.6, R-10.28-H2 — whose Hospital, if anyone's, would hold `side`'s warbands killed from `group`:
+ * from revision 13 two groups of one force can differ here, which makes a loss pick matter.
+ */
+export function hospitalHolderOf(
+    state: HydratedOathGameState,
+    kills: CampaignKillPath,
+    side: BattlePlanSide,
+    group: LossSource
+): string | undefined {
+    return hospitalRedirectOf(state, kills, side, group.at, group.owner)?.playerId
+}
+
+/**
+ * R-10.13, unless Hospital places them on its site; `side` is the force the warbands belong to. True
+ * when Hospital holds them.
+ */
 export function killOrRedirect(
     state: HydratedOathGameState,
-    campaign: CampaignState,
+    kills: CampaignKillPath,
     side: BattlePlanSide,
     at: WarbandLocation,
     owner: WarbandOwner,
     count: number
-): void {
-    if (count <= 0) return
-    const playerId = at.kind === 'board' ? at.playerId : state.warbandBankHolderOf(owner)
-    const redirect = campaign.killRedirects.find((r) => r.playerId === playerId)
+): boolean {
+    if (count <= 0) return false
+    const redirect = hospitalRedirectOf(state, kills, side, at, owner)
     if (redirect) {
         // Hospital's Q&A — set aside now, placed when the Campaign ends if its ruler still rules it.
         removeWarbandsFrom(state, at, owner, count)
-        campaign.heldForHospital = [
-            ...(campaign.heldForHospital ?? []),
-            { playerId, siteId: redirect.siteId, owner, count }
+        kills.heldForHospital = [
+            ...(kills.heldForHospital ?? []),
+            { playerId: redirect.playerId, siteId: redirect.siteId, owner, count }
         ]
-        return
+        return true
     }
     removeWarbandsFrom(state, at, owner, count)
     killWarbands(state, owner, count)
-    countKilled(state, campaign, side, count)
+    countKilled(state, kills, side, count)
+    return false
+}
+
+/**
+ * Hospital, R-10.13 — up to `count` of `playerId`'s warbands on their board, their own first, killed
+ * through the Campaign's kill path so a redirect in force sees them (revision 13).
+ */
+export function killBoardWarbandsInCampaign(
+    state: HydratedOathGameState,
+    kills: CampaignKillPath,
+    side: BattlePlanSide,
+    playerId: string,
+    count: number
+): { killed: number; held: boolean } {
+    const group = boardGroupToKill(state, playerId, count)
+    if (!group) return { killed: 0, held: false }
+    const held = killOrRedirect(state, kills, side, group.at, group.owner, group.count)
+    return { killed: group.count, held }
 }
 
 /** Cursed Cauldron, R-10.22 — warbands of `side`'s force killed are enemy warbands killed for the other side. */
 export function countKilled(
     state: HydratedOathGameState,
-    campaign: CampaignState,
+    kills: CampaignKillPath,
     side: BattlePlanSide,
     count: number
 ): void {
     if (count <= 0 || !isAtLeastOathRevision(state, OathRevision.CardFixes1)) return
-    const tally = campaign.enemyWarbandsKilled ?? { attacker: 0, defender: 0 }
-    campaign.enemyWarbandsKilled =
+    const tally = kills.enemyWarbandsKilled ?? { attacker: 0, defender: 0 }
+    kills.enemyWarbandsKilled =
         side === BattlePlanSide.Attacker
             ? { ...tally, defender: tally.defender + count }
             : { ...tally, attacker: tally.attacker + count }
@@ -393,13 +543,22 @@ export function enemyWarbandsKilledFor(
     return killed + heldToDie
 }
 
-/** Hospital — "if you still rule it", judged in the Campaign's scope (R-5.5.1.a), for the tally and the end alike. */
+/**
+ * Hospital — "if you still rule it", judged in the Campaign's scope (R-5.5.1.a), for the tally and the
+ * end alike. From revision 32 its user must also be able to place them: Ring of Devotion's holder
+ * cannot place warbands at sites (R-9.2), so theirs are killed after all, as at a site they lost
+ * (R-5.5.3-H5). The Ring is read as Hospital would place them, so a Ring taken during the Campaign
+ * counts.
+ */
 function hospitalKeeps(
     state: HydratedOathGameState,
     campaign: CampaignState
 ): (held: HeldForHospital) => boolean {
     const scope = battleScopeOf(state, partiesOf(state, campaign))
-    return (held) => rulesSite(state, held.playerId, held.siteId, scope)
+    const ringBars = isAtLeastOathRevision(state, OathRevision.EngineFixes27)
+    return (held) =>
+        rulesSite(state, held.playerId, held.siteId, scope) &&
+        !(ringBars && cannotPlaceWarbandsAtSites(state, held.playerId))
 }
 
 /** R-5.5.3-H1 — the bandits' compelled plans have no user, and the bandits always defend. */
@@ -492,15 +651,24 @@ function banditsSpareEndDiscards(
     return { spared, instead }
 }
 
+/** R-5.5.8, R-9.4 — the Campaign's end: what Hospital placed, and the discards. */
+export interface CampaignEnd {
+    pileDeposits: PileDeposit[]
+    /** Hospital — the warbands placed on its site, one entry per Hospital and owner. */
+    hospitalPlaced: HeldForHospital[]
+}
+
 /** R-5.5.8, R-9.4 — each plan is discarded from its own region. */
-export function endCampaign(state: HydratedOathGameState): PileDeposit[] {
+export function endCampaign(state: HydratedOathGameState): CampaignEnd {
     const campaign = state.campaign
     assertExists(campaign, 'only a Campaign in progress can end')
-    // Hospital — "if you still rule it"; otherwise the warbands are killed after all (R-10.13).
+    // Hospital — "if you still rule it" and may place them; otherwise they are killed after all (R-10.13).
     const keeps = hospitalKeeps(state, campaign)
+    const hospitalPlaced: HeldForHospital[] = []
     for (const held of campaign.heldForHospital ?? []) {
         if (keeps(held)) {
             addWarbandsToSite(state, held.siteId, held.owner, held.count)
+            recordPlaced(hospitalPlaced, held)
         } else {
             killWarbands(state, held.owner, held.count)
         }
@@ -515,7 +683,19 @@ export function endCampaign(state: HydratedOathGameState): PileDeposit[] {
         ...bandits.instead
     ]
     // Law Glossary "Discard" — the attacker orders the cards leaving for one pile.
-    const deposits = discardFromPlayInChosenOrder(state, campaign.attackerPlayerId, going)
+    const pileDeposits = discardFromPlayInChosenOrder(state, campaign.attackerPlayerId, going)
     state.campaign = undefined
-    return deposits
+    return { pileDeposits, hospitalPlaced }
+}
+
+/** Hospital — the kills it held one by one, placed together: one entry per Hospital and owner. */
+function recordPlaced(placed: HeldForHospital[], held: HeldForHospital): void {
+    const same = placed.find(
+        (entry) =>
+            entry.playerId === held.playerId &&
+            entry.siteId === held.siteId &&
+            entry.owner === held.owner
+    )
+    if (same) same.count += held.count
+    else placed.push({ ...held })
 }

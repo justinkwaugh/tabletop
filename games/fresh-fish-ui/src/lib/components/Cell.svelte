@@ -9,6 +9,7 @@
         isDiskCell
     } from '@tabletop/fresh-fish'
     import { GRASS_DARK, GRASS_LIGHT, MARKET_LOT } from '$lib/utils/pieceColors.js'
+    import { CELL_SIZE, landCornerRadii } from '$lib/utils/landShape.js'
     import roadImg from '$lib/images/tile-road.png'
     import Disk from '$lib/components/Disk.svelte'
     import WoodMarket from '$lib/components/WoodMarket.svelte'
@@ -22,23 +23,8 @@
 
     let { cell, coords }: { cell: Cell; coords: OffsetTupleCoordinates } = $props()
 
-    const CORNER_RADIUS = 12
     let cornerClip = $derived.by(() => {
-        if (cell.type === CellType.OffBoard) return undefined
-        const cells = gameSession.gameState.board.cells
-        const [x, y] = coords
-        const isOffBoard = (cx: number, cy: number) => {
-            const neighbour = cells[cy]?.[cx]
-            return !neighbour || neighbour.type === CellType.OffBoard
-        }
-        const radiusToward = (dx: number, dy: number) =>
-            isOffBoard(x + dx, y) && isOffBoard(x, y + dy) ? CORNER_RADIUS : 0
-        const [tl, tr, br, bl] = [
-            radiusToward(-1, -1),
-            radiusToward(1, -1),
-            radiusToward(1, 1),
-            radiusToward(-1, 1)
-        ]
+        const [tl, tr, br, bl] = landCornerRadii(gameSession.gameState.board.cells, coords)
         if (!tl && !tr && !br && !bl) return undefined
         // A negative inset keeps the half-pixel bleed that hides seams between squares.
         return `inset(-1px round ${tl}px ${tr}px ${br}px ${bl}px)`
@@ -112,11 +98,17 @@
     })
 
     let highlighted = $derived(
-        gameSession.highlightedCoords !== undefined &&
-            gameSession.highlightedCoords[0] === coords[0] &&
-            gameSession.highlightedCoords[1] === coords[1]
+        gameSession.boardHighlightCoords !== undefined &&
+            gameSession.boardHighlightCoords[0] === coords[0] &&
+            gameSession.boardHighlightCoords[1] === coords[1]
     )
-    let showBorder = $state(false)
+    // Touch has no hover, and iOS may never report the finger leaving after a tap.
+    let hovered = $state(false)
+    let previewing = $derived(hovered && interactable)
+
+    function handlePointerHover(event: PointerEvent, over: boolean) {
+        if (event.pointerType !== 'touch') hovered = over
+    }
 
     let mayExpropriate = $derived(
         (isDiskCell(cell) &&
@@ -128,14 +120,12 @@
     )
 
     function handleMouseOver() {
-        showBorder = interactable
         if (mayExpropriate) {
             gameSession.previewExpropriation(coords)
         }
     }
 
     function handleMouseLeave() {
-        showBorder = false
         if (mayExpropriate) {
             gameSession.clearExpropriationPreview()
         }
@@ -164,12 +154,11 @@
             return
         }
 
-        showBorder = false
         await gameSession.applyAction(action)
     }
 
     let myColor = $derived(gameSession.colors.getPlayerUiColor(gameSession.myPlayer?.id))
-    let available = $derived(interacting && interactable && !showBorder)
+    let available = $derived(interacting && interactable && !previewing)
 
     // Note that tabindex has to be used or interactable is not evaluated... why?
 </script>
@@ -186,10 +175,12 @@
     onkeypress={async () => handleClick()}
     onmouseover={() => handleMouseOver()}
     onmouseleave={() => handleMouseLeave()}
-    class="cell relative isolate w-[100px] h-[100px] min-w-[100px] min-h-[100px] flex justify-center items-center
+    onpointerenter={(event) => handlePointerHover(event, true)}
+    onpointerleave={(event) => handlePointerHover(event, false)}
+    class="cell relative isolate flex justify-center items-center
         {interactable && interacting ? 'cursor-pointer' : ''}
         {disabled ? 'dimmed' : ''}"
-    style="--cell-bg: {backgroundImage}"
+    style="--cell-bg: {backgroundImage}; --cell-size: {CELL_SIZE}px"
     style:clip-path={cornerClip}
 >
     {#if gameSession.isExpropriationPreviewed(coords)}
@@ -200,7 +191,7 @@
         <!-- Absolute, so a disc fading out never shares the row with the piece replacing it. -->
         <div
             class="absolute inset-0 flex justify-center items-center"
-            in:fadeScale={{ baseScale: 0.1, duration: 100 }}
+            in:fadeScale={{ baseScale: 0.1, duration: gameSession.newDiscsGrowIn ? 100 : 0 }}
             out:fadeScale={{ baseScale: 0.1, duration: 50 }}
         >
             {@render disk(gameSession.colors.getPlayerUiColor(cell.playerId))}
@@ -216,7 +207,7 @@
         <WoodMarket />
     {/if}
 
-    {#if showBorder}
+    {#if previewing}
         <div class="absolute inset-0 z-10 flex justify-center items-center pointer-events-none">
             {#if gameSession.chosenAction === ActionType.PlaceDisk}
                 {@render disk(myColor, true)}
@@ -244,6 +235,12 @@
 </div>
 
 <style>
+    .cell {
+        width: var(--cell-size);
+        height: var(--cell-size);
+        min-width: var(--cell-size);
+        min-height: var(--cell-size);
+    }
     /* The ground bleeds half a pixel past the square, so scaled boards show no seams between
        neighbouring squares. */
     .cell::before {

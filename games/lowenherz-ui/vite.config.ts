@@ -6,11 +6,6 @@ import { VitestConfig } from '@tabletop/vitest-config'
 export default defineProject(
     mergeConfig(VitestConfig, {
         plugins: [sveltekit(), devtoolsJson()],
-        build: {
-            commonjsOptions: {
-                include: [/node_modules/]
-            }
-        },
         server: {
             host: true,
             port: 5173,

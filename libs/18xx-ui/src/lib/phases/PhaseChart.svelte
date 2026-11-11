@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { MoneyFormat } from '../presentation/money.js'
+    import { clickedBackdrop } from '../presentation/modalDialog.js'
     import { onMount } from 'svelte'
     import PhaseChartContent from './PhaseChartContent.svelte'
     import type { PhaseChartData, PhaseChartDepotState } from './phaseChart.js'
@@ -34,15 +35,7 @@
         return () => dialog.close()
     })
     function closeOutside(event: MouseEvent) {
-        if (event.target !== dialog) return
-        const bounds = dialog.getBoundingClientRect()
-        if (
-            event.clientX < bounds.left ||
-            event.clientX > bounds.right ||
-            event.clientY < bounds.top ||
-            event.clientY > bounds.bottom
-        )
-            dialog.close()
+        if (clickedBackdrop(dialog, event)) dialog.close()
     }
 </script>
 

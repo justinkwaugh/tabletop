@@ -1,7 +1,10 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import {
+    AUSTERLITZ,
     NapoleonsTriumphGameStateValidator,
-    type NapoleonsTriumphGameState
+    SANTON_LOCALE,
+    type NapoleonsTriumphGameState,
+    type Position
 } from '@tabletop/napoleons-triumph'
 
 const GAME_NAME = 'Austerlitz'
@@ -104,15 +107,16 @@ export async function fillCorps(page: Page, army: Army) {
     }
 }
 
-/** With the Santon in use the fixed battery holds the Santon from the start; otherwise it blocks an approach of Lannes's locale. */
-export async function placeFixedBattery(page: Page) {
+/** The fixed battery blocks an approach of Lannes's locale, or with the Santon in use may hold the Santon from reserve. */
+export async function placeFixedBattery(page: Page, { onTheSanton = false } = {}) {
     await openSeat(page, 'fixed-battery')
-    const onTheSanton = await seat(page, 'fixed-battery').locator('.nt-unit-tile').count()
-    if (onTheSanton === 0) {
-        await takeFromPool(page, ARTILLERY)
-        await tap(page, `svg [data-locale="${FIXED_BATTERY_LOCALE}"]`)
-        await tap(page, `svg [data-approach="${FIXED_BATTERY_APPROACH}"]`)
+    await takeFromPool(page, ARTILLERY)
+    if (onTheSanton) {
+        await tap(page, `svg [data-locale="${SANTON_LOCALE}"]`)
+        return
     }
+    await tap(page, `svg [data-locale="${FIXED_BATTERY_LOCALE}"]`)
+    await tap(page, `svg [data-approach="${FIXED_BATTERY_APPROACH}"]`)
 }
 
 export async function deployAllies(page: Page) {
@@ -161,15 +165,38 @@ export async function openMapMenu(page: Page) {
     }
 }
 
+export const ST_HILAIRE_LOCALE = 93
+export const LOCALE_94 = 94
+
 // Pieces are labelled for picking up only while the session takes choices, so Playwright waits out an action or Undo still settling.
-/** Taps the threat arrow and, as a Guard unit standing there could announce a Guard Attack, declares the threat without one. */
-export async function threatenWithoutTheGuard(page: Page) {
-    await tap(page, 'svg [aria-label="Threaten an attack across this approach"]')
+/** Aims at the locale attacked and taps the threat arrow across the approach into it from `from`. */
+export async function threaten(page: Page, from: number, into: number) {
+    await page.locator('[aria-label="Select these pieces"]').first().waitFor()
+    await tap(page, `[data-aim-locale="${into}"]`)
+    await tap(page, `svg [data-threat="${AUSTERLITZ.approachBetween(from, into).id}"]`)
+}
+
+/** Threatens and, as a Guard unit standing there could announce a Guard Attack, declares the threat without one. */
+export async function threatenWithoutTheGuard(page: Page, from: number, into: number) {
+    await threaten(page, from, into)
     await page.getByRole('button', { name: 'Threaten an attack without the Guard' }).click()
 }
 
 export async function pickUp(page: Page, commander: string) {
     await tap(page, `[data-commander="${commander}"][aria-label="Select these pieces"]`)
+}
+
+export function moveCorps(
+    state: NapoleonsTriumphGameState,
+    commanderId: string,
+    position: Position
+) {
+    for (const unit of state.units.filter((entry) => entry.commanderId === commanderId)) {
+        unit.position = { ...position }
+    }
+    for (const commander of state.commanders.filter((entry) => entry.id === commanderId)) {
+        commander.position = { ...position }
+    }
 }
 
 // Workaround: a position that takes many turns to reach is written into the dev harness's own copy of the game, which is then opened again.

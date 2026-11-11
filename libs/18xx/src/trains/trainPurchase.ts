@@ -1,8 +1,16 @@
 import type { MapStateData } from '../map/mapState.js'
+import type { AccessRightState } from '../rights/accessRights.js'
+import { actsFor } from '../finance/receivership.js'
 import * as Type from 'typebox'
 import { assert } from '@tabletop/common'
-import { cashOwnedBy, controllingOwner, getCompany } from '../finance/finance.js'
-import { trainsOwnedBy, trainCanBeTraded, type Train, type TrainPurchaseState } from './train.js'
+import { cashOwnedBy, getCompany } from '../finance/finance.js'
+import {
+    trainsOwnedBy,
+    trainCanBeTraded,
+    type Train,
+    type TrainDestination,
+    type TrainPurchaseState
+} from './train.js'
 import type { TrainDepot } from './trainDepot.js'
 import type { DeparturePayment, TrainDeparture } from './trainDepartures.js'
 export interface TrainRules {
@@ -13,13 +21,27 @@ export interface TrainRules {
         definitionId: string,
         train: Train
     ): number | undefined
-    requiresTrain(state: TrainPurchaseState & MapStateData, companyId: string): boolean
+    requiresTrain(
+        state: TrainPurchaseState & MapStateData & AccessRightState,
+        companyId: string
+    ): boolean
     availableDefinitions(state: TrainPurchaseState): string[]
     phaseAfterPurchase(state: TrainPurchaseState, definitionId: string): string
     trainLimit(state: TrainPurchaseState, companyId: string): number
     countsForLimit?(state: TrainPurchaseState, train: Train): boolean
+    /**
+     * Why the company may not take on a train of this definition beyond ``trainLimit``, as limits
+     * for each kind of train do (1862); judged before any depot or intercompany purchase.
+     */
+    limitReason?(
+        state: TrainPurchaseState,
+        companyId: string,
+        definitionId: string
+    ): string | undefined
     marketDefinitions?(state: TrainPurchaseState, train: Train): readonly string[]
     purchaseLimit(state: TrainPurchaseState, companyId: string): number | 'unlimited'
+    /** Where a train given in exchange goes: the open market unless the title removes it. */
+    exchangedTrainDestination?: TrainDestination
     /** The open privates that close when the company acquires a train by any purchase. */
     privatesClosedByPurchase?(state: TrainPurchaseState, companyId: string): readonly string[]
     /** Records the title's consequences of trains departing, returning what the bank pays. */
@@ -59,11 +81,11 @@ export class TrainPurchase {
         private readonly state: TrainPurchaseState,
         private readonly rules: TrainRules
     ) {}
-    canAct(playerId: string, companyId: string): boolean {
+    canAct(playerId: string | undefined, companyId: string): boolean {
         return (
             this.state.trainPurchaseStep?.companyId === companyId &&
             !getCompany(this.state, companyId).closed &&
-            controllingOwner(this.state, companyId)?.playerId === playerId
+            actsFor(this.state, playerId, companyId)
         )
     }
     offers(): {
@@ -169,6 +191,8 @@ export class TrainPurchase {
             limit
         )
             return { reason: 'The company is at its train limit.' }
+        const limitReason = this.rules.limitReason?.(this.state, companyId, definitionId)
+        if (limitReason) return { reason: limitReason }
         const purchaseLimit = this.rules.purchaseLimit(this.state, companyId)
         assert(
             purchaseLimit === 'unlimited' ||

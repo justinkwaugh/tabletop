@@ -86,9 +86,7 @@ test('loaded panels clear tall buildings and roof labels follow state-only jumps
     await page.setViewportSize({ width: 1280, height: 900 })
     await expect.poll(panelHeight).toBe(5.7)
 
-    const originalState = await page.evaluate(() =>
-        window.estatesSession.gameState.dehydrate()
-    )
+    const originalState = await page.evaluate(() => window.estatesSession.gameState.dehydrate())
     for (const value of [1, 6, 1]) {
         await page.evaluate(
             async ({ value, pieceType, machineState }) => {

@@ -154,3 +154,17 @@ export function isStronger(
         return face.stronger === attacker && face.weaker === defender
     })
 }
+
+// Puts a polyp on a square, taking off and returning any polyp it attacks.
+export function putPolyp(
+    reef: Reef,
+    coords: OffsetCoordinates,
+    color: CoralColor
+): Polyp | undefined {
+    const occupant = polypAt(reef, coords)
+    if (occupant) {
+        reef.polyps = reef.polyps.filter((polyp) => polyp !== occupant)
+    }
+    reef.polyps.push({ coords: structuredClone(coords), color })
+    return occupant
+}

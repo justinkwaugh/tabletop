@@ -4,8 +4,21 @@ import { afterTitleTakenPersistent } from './persistent.js'
 import { MachineState } from '../definition/states.js'
 import { PlayerStatus } from '../model/oathEnums.js'
 import { playersMeetingOathkeeperGoal } from './oathkeeper.js'
+import { OathRevision, isAtLeastOathRevision } from './revision.js'
 
-/** R-2.11-H1 — after every action's `apply()`, so the title moves mid-Campaign. */
+/**
+ * R-2.11-H1 — the title is judged after each Law action, and a Campaign's Steps 1–8 (R-5.5) are
+ * one: `state.campaign` is set from its declaration until R-5.5.8 ends it, before any "after …
+ * campaign" power. A title moment is judged even then: an answer that made a binding exchange or
+ * landed a Relic Thief take, whichever question it answered (an answer that only postpones the
+ * take, as a roll waiting on Jinx, is none). In a game created before revision 12 (R-X.4) every
+ * step is judged, so the title can change hands mid-Campaign.
+ */
+export function isTitleBoundary(state: HydratedOathGameState, titleMoment: boolean): boolean {
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes8)) return true
+    if (state.campaign === undefined) return true
+    return titleMoment
+}
 
 export type TitleEvaluation =
     | { kind: 'unchanged' }
@@ -63,7 +76,7 @@ export function moveTitle(state: HydratedOathGameState, move: TitleMove) {
     }
 }
 
-/** R-2.11-H1, R-X.1 — R-2.11.b's choice is its own action; `commitMove` applies or records a move. */
+/** R-2.11-H1, R-X.1 — at a title boundary; R-2.11.b's choice is its own action; `commitMove` applies or records a move. */
 export function applyForcedTitleChanges(
     state: HydratedOathGameState,
     resumeMachineState: MachineState,

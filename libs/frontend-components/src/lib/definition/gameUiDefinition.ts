@@ -1,6 +1,7 @@
 import type { GameSession } from '$lib/model/gameSession.svelte'
 import type { BridgedContext } from '$lib/services/bridges/bridgedContext.svelte.js'
 import type { NotificationService } from '$lib/services/notificationService.js'
+import { GameClientCapability } from '@tabletop/common'
 import type {
     Color,
     Game,
@@ -11,7 +12,7 @@ import type {
     HydratedGameState,
     Visibility
 } from '@tabletop/common'
-import { type Component } from 'svelte'
+import type { Component } from 'svelte'
 import type { GameColorizer } from './gameColorizer'
 import type { ChatService } from '$lib/services/chatService'
 import type { GameService } from '$lib/services/gameService.js'
@@ -58,8 +59,14 @@ export interface GameSessionConstructor<T extends GameState, U extends HydratedG
     }): GameSession<T, U>
 }
 
+export function gameClientCapabilities(): GameClientCapability[] {
+    return [GameClientCapability.CalledGames]
+}
+
+// Optional because the Site Frontend also loads UI Artifacts published before capabilities existed.
 export type GameUIInfo = GameInfo & {
     thumbnailUrl: string
+    clientCapabilities?: GameClientCapability[]
 }
 
 export interface GameUIRuntime<

@@ -13,7 +13,7 @@ import { ActionType } from './actions.js'
 import { MachineState } from './states.js'
 import { SantiagoGameStateValidator, type SantiagoProjectedState } from '../model/gameState.js'
 import { calculateScores } from '../util/scoring.js'
-import { nextAction } from './tests/autoplay.js'
+import { nextAction } from '../testing/autoplay.js'
 
 const engine = new GameEngine(SantiagoRuntime)
 

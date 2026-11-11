@@ -1,7 +1,11 @@
 import type { Point } from '@tabletop/common'
 import { coveredBy, type BlockFootprint } from './blockShape.js'
+import { grownOutline, strokeOutline } from './convexOutline.js'
 
 export const ARROW_HEAD_LENGTH = 30
+export const ARROW_HEAD_HALF_WIDTH = 17
+export const ARROW_SHAFT_WIDTH = 11
+export const ARROW_CASING = 3
 const SHORTEST_ARROW = 64
 const CLEARANCE = 8
 const SCAN_STEP = 3
@@ -98,6 +102,28 @@ export function drawnArrow(line: readonly Point[]): DrawnArrow | undefined {
         angle: (Math.atan2(tip.y - previous.y, tip.x - previous.x) * 180) / Math.PI,
         scale
     }
+}
+
+/** The drawn arrow's shaft, piece by piece, and its head, each with its casing. */
+export function drawnArrowOutlines(arrow: DrawnArrow): Point[][] {
+    const halfShaft = (ARROW_SHAFT_WIDTH / 2 + ARROW_CASING) * arrow.scale
+    const radians = (arrow.angle * Math.PI) / 180
+    const back = { x: -Math.cos(radians), y: -Math.sin(radians) }
+    const side = { x: -back.y, y: back.x }
+    const length = ARROW_HEAD_LENGTH * arrow.scale
+    const half = ARROW_HEAD_HALF_WIDTH * arrow.scale
+    const base = { x: arrow.tip.x + back.x * length, y: arrow.tip.y + back.y * length }
+    const head = [
+        arrow.tip,
+        { x: base.x + side.x * half, y: base.y + side.y * half },
+        { x: base.x - side.x * half, y: base.y - side.y * half }
+    ]
+    return [
+        ...arrow.shaft
+            .slice(1)
+            .map((to, index) => strokeOutline(arrow.shaft[index], to, halfShaft)),
+        grownOutline(head, ARROW_CASING * arrow.scale)
+    ]
 }
 
 export function lineSamples(line: readonly Point[]): Point[] {

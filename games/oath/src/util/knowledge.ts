@@ -1,4 +1,4 @@
-import { assertExists } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 import type { HydratedOathGameState } from '../model/gameState.js'
 import type {
     HandPositions,
@@ -11,8 +11,10 @@ import { PowerQuestionKind } from '../model/question.js'
 import type { HiddenReveal } from '../model/hidden.js'
 import { isVision, kindOf } from '../data/cardRegistry.js'
 import { CONSPIRACY_ID } from '../data/visions.js'
+import { isAtLeastOathRevision, OathRevision } from './revision.js'
 import {
     discardOnto,
+    discardUnder,
     drawFirstVision,
     drawFromDiscard,
     drawFromDiscardBottom,
@@ -21,6 +23,7 @@ import {
     mergeDiscardPiles,
     putUnderWorldDeck,
     returnRelicToBottom,
+    swapWithDispossessed,
     type WorldDeckDraw
 } from '../model/vault.js'
 
@@ -227,6 +230,11 @@ export function discardWitnesses(state: HydratedOathGameState): DiscardWitnesses
             byCard.set(cardId, [player.playerId])
         for (const entry of player.handSeen)
             if (typeof entry === 'string') alsoKnows(handSetsByCard, entry, 'everyone')
+        // Truthful Harp — the table saw the whole hand drawn, so it knows each card wherever the Search sends
+        // it. From revision 29 (R-X.4); before it the table knew only the Search's discards and its kept card
+        // (`commitHiddenOutputs`), not a drawn card its own When Played power discarded.
+        if (player.handShown && isAtLeastOathRevision(state, OathRevision.EngineFixes25))
+            for (const cardId of player.knownHand()) alsoKnows(handSetsByCard, cardId, 'everyone')
         for (const other of state.players) {
             if (other.playerId === player.playerId) continue
             for (const entry of knownHandsOf(other)[player.playerId] ?? [])
@@ -463,24 +471,42 @@ function remember(
     }
 }
 
-/** R-10.5 — cards on top keep every known position; cards underneath lift them. */
+/**
+ * R-10.5 — cards on top keep every known position; cards underneath lift them. Land Warden — cards put under the
+ * top `beneath` lift those alone (R-7.3.3).
+ */
 export function putOnDiscardPile(
     state: HydratedOathGameState,
     region: Region,
     cardIds: string[],
     bottom: boolean,
-    deposit: Deposit
+    deposit: Deposit,
+    beneath = 0
 ): void {
     const vault = state.requireVault()
     const size = vault.discardPiles[region].length
-    discardOnto(vault, region, cardIds, bottom)
+    assert(beneath <= size, `${beneath} cards are not on the ${region} discard pile to go under`)
+    // From the bottom, where the first of these lies when they go on top or under the top `beneath`.
+    const from = size - beneath
+    if (beneath > 0) discardUnder(vault, region, cardIds, beneath)
+    else discardOnto(vault, region, cardIds, bottom)
     if (bottom)
         for (const record of pileRecords(state, region))
             if (record.get().length > 0) record.set([...unknown(cardIds.length), ...record.get()])
+    if (beneath > 0)
+        for (const record of pileRecords(state, region)) {
+            const known = record.get()
+            if (known.length > from)
+                record.set([
+                    ...known.slice(0, from),
+                    ...unknown(cardIds.length),
+                    ...known.slice(from)
+                ])
+        }
     remember(
         (witness) => pileRecordOf(state, region, witness),
         cardIds,
-        (index) => (bottom ? cardIds.length - 1 - index : size + index),
+        (index) => (bottom ? cardIds.length - 1 - index : from + index),
         deposit
     )
 }
@@ -501,6 +527,66 @@ export function putUnderWorldDeckKnown(
         (index) => cardIds.length - 1 - index,
         deposit
     )
+}
+
+/**
+ * Great Spire — the hand after its drawn `swapped` cards traded places with `incoming`. The table saw
+ * cards go facedown to the Dispossessed, not which, so no one else knows what the hand still holds;
+ * with Truthful Harp the draw was shown, so the table knows the drawn cards still held, never a card
+ * that came in (its Q&A).
+ */
+export function swapIntoHand(
+    state: HydratedOathGameState,
+    playerId: string,
+    swapped: readonly string[],
+    incoming: readonly string[],
+    drawShown: boolean
+): void {
+    const player = state.getPlayerState(playerId)
+    const hand = player.knownHand()
+    player.setHand(
+        hand.map((cardId) => {
+            const at = swapped.indexOf(cardId)
+            return at < 0 ? cardId : incoming[at]
+        })
+    )
+    forgetHand(state, playerId)
+    if (drawShown) player.handSeen = hand.filter((cardId) => !swapped.includes(cardId))
+}
+
+/**
+ * Fallen Spire — the top denizens of the pile, Visions skipped, up to `count` and as many as the
+ * Dispossessed holds, each swapped in place with a random card from it (R-10.25). Nobody sees a front:
+ * what anyone knew at those places is gone, and the table sees the backs that lie there now (R-9.4).
+ * Returns how many swapped.
+ */
+export function swapDiscardPileWithDispossessed(
+    state: HydratedOathGameState,
+    region: Region,
+    count: number
+): number {
+    const vault = state.requireVault()
+    const pile = vault.discardPiles[region]
+    const places = pile
+        .flatMap((cardId, at) => (isVision(cardId) ? [] : [at]))
+        .slice(0, Math.min(count, vault.dispossessed.length))
+    const incoming = swapWithDispossessed(
+        vault,
+        places.map((at) => pile[at]),
+        state.getProtectedPrng().random
+    )
+    for (const [k, at] of places.entries()) pile[at] = incoming[k]
+    for (const record of pileRecords(state, region)) {
+        let known = record.get()
+        for (const [k, at] of places.entries()) {
+            const fromBottom = pile.length - 1 - at
+            if (record.witness === EVERYONE)
+                known = placed(known, fromBottom, { back: backOfCard(incoming[k]) })
+            else if (fromBottom < known.length) known = placed(known, fromBottom, null)
+        }
+        record.set(trimTop(known))
+    }
+    return places.length
 }
 
 /** Convoys — `from` goes on top of `to`. */
@@ -546,6 +632,19 @@ export function drawRelicDeck(
 export function knownDraw(reveal: HiddenReveal | undefined): { seenBy?: string[] } {
     const seenBy = reveal?.kind === 'relics' ? reveal.seenBy?.[0] : undefined
     return seenBy !== undefined && seenBy.length > 0 ? { seenBy } : {}
+}
+
+/** R-X.3(c) — every player but `holderId` already knew the relic a question drew (its `seenBy`). */
+export function relicKnownToOthers(
+    state: HydratedOathGameState,
+    seenBy: readonly Witness[] | undefined,
+    holderId: string
+): boolean {
+    if (seenBy === undefined) return false
+    if (seenBy.includes(EVERYONE)) return true
+    return state.players.every(
+        (player) => player.playerId === holderId || seenBy.includes(player.playerId)
+    )
 }
 
 /** A relic a site flip drew onto `slotId`: whoever knew it knows it there, without a peek (R-6.3). */
@@ -602,4 +701,64 @@ function leaveSlots(state: HydratedOathGameState, relicCardId: string): void {
 function hasPeekedAt(player: HydratedOathPlayerState, relicCardId: string): boolean {
     assertExists(player.peekedRelics, 'This operation requires known peeks')
     return Object.values(player.peekedRelics).includes(relicCardId)
+}
+
+/** R-8.3.5, R-8.6.1 — relic slots renamed as their sites move: every record follows the relic. */
+export function renameRelicSlots(
+    state: HydratedOathGameState,
+    renames: ReadonlyMap<string, string>
+): void {
+    const rename = (slotId: string) => renames.get(slotId) ?? slotId
+    const renamed = (slots: Record<string, string>) =>
+        Object.fromEntries(Object.entries(slots).map(([slotId, id]) => [rename(slotId), id]))
+    const vault = state.requireVault()
+    vault.relicFacedown = renamed(vault.relicFacedown)
+    state.seenRelics = renamed(state.seenRelics)
+    for (const player of state.players) {
+        player.peekedRelicSlotIds = player.peekedRelicSlotIds.map(rename)
+        assertExists(player.peekedRelics, 'This operation requires known peeks')
+        player.peekedRelics = renamed(player.peekedRelics)
+    }
+}
+
+/** R-8.3.2, R-8.6 — relic slots that are gone: no record keeps them. */
+export function forgetRelicSlots(state: HydratedOathGameState, slotIds: readonly string[]): void {
+    const gone = new Set(slotIds)
+    const kept = (slots: Record<string, string>) =>
+        Object.fromEntries(Object.entries(slots).filter(([slotId]) => !gone.has(slotId)))
+    state.seenRelics = kept(state.seenRelics)
+    for (const player of state.players) {
+        player.peekedRelicSlotIds = player.peekedRelicSlotIds.filter((id) => !gone.has(id))
+        assertExists(player.peekedRelics, 'This operation requires known peeks')
+        player.peekedRelics = kept(player.peekedRelics)
+    }
+}
+
+/** R-8.3.2 — every facedown site went back to the site deck, so no peek at one still holds. */
+export function forgetSitePeeks(state: HydratedOathGameState): void {
+    for (const player of state.players) {
+        player.peekedSiteSlotIds = []
+        player.peekedSites = {}
+    }
+}
+
+/** R-8.6.1 — the relic deck was shuffled: no one knows its bottom. */
+export function forgetRelicDeckOrder(state: HydratedOathGameState): void {
+    state.seenRelicDeckBottom = []
+    for (const player of state.players) player.knownRelicDeckBottom = []
+}
+
+/** R-8.5 — the discard piles were shuffled together: no one knows a place in them. */
+export function forgetDiscardPiles(state: HydratedOathGameState): void {
+    state.seenDiscardPiles = noKnownDiscardPiles()
+    for (const player of state.players) player.knownDiscardPiles = noKnownDiscardPiles()
+}
+
+/** R-8.8 — the world deck was rebuilt and shuffled: no one knows a place in it. */
+export function forgetWorldDeckOrder(state: HydratedOathGameState): void {
+    state.seenWorldDeckBottom = []
+    for (const player of state.players) {
+        player.knownWorldDeckTop = []
+        player.knownWorldDeckBottom = []
+    }
 }

@@ -1,46 +1,55 @@
 import {
-    CoalTokens,
-    EighteenThirtyTwoSystems,
+    CoalAccess,
     isCompleteMergerPhase,
     isStartMergerPhase,
     EighteenThirtyTwoSoftLedge,
-    miamiFirstRun,
-    type EighteenThirtyTwoState
+    type EighteenThirtyTwoState,
+    EighteenThirtyTwoTitleRules
 } from '@tabletop/1832'
 import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
 import { EighteenThirtyTwoCompanyNames } from './companyPresentation.js'
 import { EighteenThirtyTwoPhaseChart, eighteenThirtyTwoPhaseChart } from './phaseChart.js'
 import { EighteenThirtyTwoTrainColors } from './trainPresentation.js'
+import { eighteenThirtyTwoMapPlacement } from './history.js'
+import CottonToken from './images/tokens/cotton.svg'
+import PortToken from './images/tokens/port.svg'
+import UnknownToken from './images/tokens/unknown.svg'
 
 // A System names its letter and the two companies it was formed from (§11.6).
-function systemFacts(state: EighteenThirtyTwoState, companyId: string) {
-    const system = EighteenThirtyTwoSystems.find((entry) => entry.id === companyId)
-    const components = state.systems[companyId]
-    if (!system || !components) return []
-    const names = components.map((id) => EighteenThirtyTwoCompanyNames[id]?.initials ?? id)
-    return [{ label: `System ${system.letter}`, value: names.join(' & ') }]
-}
-
 export const EighteenThirtyTwoPresentation: TitlePresentation<EighteenThirtyTwoState> = {
-    money: moneyFormat('$'),
+    money: moneyFormat(EighteenThirtyTwoTitleRules.currencySymbol),
     phaseChart: EighteenThirtyTwoPhaseChart,
     phaseChartFor: eighteenThirtyTwoPhaseChart,
     trainColors: EighteenThirtyTwoTrainColors,
     phaseColors: EighteenThirtyTwoTrainColors,
     marketPoolId: 'open-market',
+    ipoPoolId: 'initial-offering',
     companyNames: EighteenThirtyTwoCompanyNames,
+    // Redemption and reissue price from par after the initial offering sells out (§5.11).
+    companyPricePresentation: { showPar: true, parWithoutIpoShares: true, label: 'Value' },
     privatePurchaseHeading: 'Available privates',
-    privateTokens: { P7: { companyId: 'CG' } },
-    gameFacts: (state) => [
-        { label: 'WVCF tokens left', value: String(CoalTokens - state.coalRights.length) },
-        ...(miamiFirstRun(state) ? [{ label: 'Miami', value: '$0 on its first run' }] : [])
-    ],
-    companyFacts: (state, companyId) => [
-        ...systemFacts(state, companyId),
-        ...(state.coalRights.includes(companyId)
-            ? [{ label: 'Coal fields', value: 'WVCF token' }]
-            : [])
-    ],
+    historyMapPlacement: eighteenThirtyTwoMapPlacement,
+    privateTokens: {
+        P2: { imageUrl: CottonToken },
+        P3: { imageUrl: PortToken },
+        P4: { imageUrl: UnknownToken },
+        P7: { companyId: 'CG' }
+    },
+    gameFacts: (state) => [{ label: 'Coal', value: String(CoalAccess.remaining(state)) }],
+    companyMarks: (state, companyId) =>
+        state.coalRights.includes(companyId)
+            ? [
+                  {
+                      label: 'Coal',
+                      description:
+                          'West Virginia Coal Fields rights: its trains may run to the coal fields.'
+                  }
+              ]
+            : [],
+    companyOrigin: (state, companyId) => {
+        const components = state.systems[companyId]
+        return components ? { text: 'System of', companyIds: components } : undefined
+    },
     titleRounds: [
         {
             name: 'Merger phase',

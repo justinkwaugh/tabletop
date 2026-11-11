@@ -1,4 +1,4 @@
-import { titleNames } from '@tabletop/18xx'
+import { titleNames, isTreasuryPoolId } from '@tabletop/18xx'
 import { TheOldPrinceBranches } from './branches.js'
 import { TheOldPrinceCompanies } from './companies.js'
 import { TheOldPrincePrivates } from './privates.js'
@@ -17,5 +17,5 @@ export const TheOldPrinceNames = titleNames(
         ['PEIR', 'Prince Edward Island Railway'],
         ...TheOldPrincePrivates.map((company) => [company.id, company.name])
     ]),
-    (poolId) => (poolId.startsWith('treasury:') ? 'Treasury shares' : PoolNames[poolId])
+    (poolId) => (isTreasuryPoolId(poolId) ? 'Treasury shares' : PoolNames[poolId])
 )

@@ -1,15 +1,18 @@
 import { pawnSiteId } from './pawn.js'
 import { gainFavorFromBank } from './favor.js'
 import { HydratedOathGameState } from '../model/gameState.js'
-import { sitePowerCategory, siteRecord } from '../data/sites.js'
-import { suitOf } from '../data/cardRegistry.js'
+import { sitePowerCategory, siteRecord, type HomelandReward } from '../data/sites.js'
+import type { Suit } from '../model/oathEnums.js'
 import { rulesSite } from './rule.js'
 import { gainedWarbandsWords, gainWarbandsToBoard } from './force.js'
 import { afterRelicsTakenPersistent } from './persistent.js'
 import { takeRelic, clearSiteRelicSlot } from './relics.js'
-import { homelandLedgerKey } from './discard.js'
+import { homelandLedgerKey, siteDiscardLedgerKey } from './discard.js'
 import type { HiddenReveal } from '../model/hidden.js'
-import { siteLockedFor } from './locked.js'
+import type { FavorTake } from '../powers/registry.js'
+import { isLockedFor, siteLockedFor } from './locked.js'
+import { reasonModifierInUse } from './modifiers.js'
+import { OathRevision, isAtLeastOathRevision } from './revision.js'
 
 /** R-11 — a site's power is its card's, so a facedown slot has none. */
 
@@ -18,6 +21,37 @@ export function categoryAt(
     slotId: string | undefined
 ): string | undefined {
     return sitePowerCategory(state.siteCardAt(slotId))
+}
+
+/**
+ * R-11.10 — the denizens a power may discard first at `siteId` before it moves a card there: those at a faceup Great
+ * Slum, never one locked for the power's user (R-7.2.2), nor a modifier in use (R-7.4.3), which Great Herd's When
+ * Played power can reach: Welcoming Party while the Search uses it, or Wild Cry an R-6.1 play declares, passed as
+ * `declared` because the play's check runs before the play records it. Homesteaders, Resettle, Roving Terror and the
+ * swaps (the Horned Mask, Great Herd) offer these.
+ *
+ * `movedBy` is the card whose power moves the card there. From revision 33 (R-X.4) it is never the card discarded
+ * first (R-11.10-H2): Homesteaders and Resettle at the Great Slum pass themselves. Roving Terror and the swaps leave
+ * out their own card themselves.
+ */
+export function greatSlumDenizensToDiscardFirst(
+    state: HydratedOathGameState,
+    playerId: string,
+    siteId: string,
+    declared: readonly string[] = [],
+    movedBy?: string
+): string[] {
+    if (!state.isSiteFaceup(siteId) || categoryAt(state, siteId) !== 'greatSlum') return []
+    const ownCardStays =
+        movedBy !== undefined && isAtLeastOathRevision(state, OathRevision.EngineFixes28)
+    return state
+        .denizensAt(siteId)
+        .filter(
+            (id) =>
+                !(ownCardStays && id === movedBy) &&
+                !isLockedFor(state, playerId, id) &&
+                reasonModifierInUse(state, id, declared) === undefined
+        )
 }
 
 /** R-11.4 — one delta per site, folded separately for R-5.5.3's underflow. */
@@ -41,80 +75,111 @@ export function riverMusterBonus(state: HydratedOathGameState, playerId: string)
     return rulesSite(state, playerId, siteId) ? 1 : 0
 }
 
-/** R-11.2 — read by the resolver, so the relic's identity rides the action as `reveal`; `siteId` is the site played to. */
+/**
+ * R-11.2 — read by the resolver, so the relic's identity rides the action as `reveal`; `siteId` is the site played to.
+ * It judges the Homeland as the play's payout does (`homelandPowerFor`), so a relic leaves the vault only for a player
+ * who takes it: from revision 16 (R-X.4) with the cards the play discards first, whose ledger entries `playCard` writes
+ * before the payout. Before revision 16, without them.
+ */
 export function homelandRelicSlot(
     state: HydratedOathGameState,
     playerId: string,
     cardId: string,
-    siteId: string
+    siteId: string,
+    discardFirstCardIds: readonly string[] = []
 ): string | undefined {
-    const card = state.siteCardAt(siteId)
-    const record = card ? siteRecord(card) : undefined
-    const suit = suitOf(cardId)
-    if (
-        !record?.homeland ||
-        record.homeland.reward !== 'relic' ||
-        !suit ||
-        record.homeland.suit !== suit
-    )
-        return undefined
-    if (
-        state
-            .getPlayerState(playerId)
-            .homelandUsedThisTurn.includes(homelandLedgerKey(siteId, suit))
-    )
-        return undefined
+    const firstKeys = isAtLeastOathRevision(state, OathRevision.EngineFixes12)
+        ? discardFirstCardIds.flatMap((id) => siteDiscardLedgerKey(state, id) ?? [])
+        : []
+    const homeland = homelandPowerFor(state, playerId, siteId, cardId, firstKeys)
+    if (homeland?.reward !== 'relic' || homeland.barred) return undefined
     // Ancient Bloodline — a relic at a site its holder rules is locked for their enemies.
     if (siteLockedFor(state, playerId, siteId)) return undefined
     return state.relicSlotsAt(siteId)[0]?.slotId
 }
 
+/** R-11.2 — a site's Homeland power, met by a card of its suit played there. */
+export interface HomelandPower {
+    name: string
+    suit: Suit
+    reward: HomelandReward
+    amount: number
+    /** "you have not discarded a card here of this suit during this turn". */
+    barred: boolean
+}
+
+/**
+ * R-11.2 — the Homeland power a card played to this site meets, if any. `discardedFirst` holds the ledger keys
+ * (`homelandLedgerKey`) of the discards the play makes before the card lands, which a plan of the play reads
+ * before they are written to the player's ledger.
+ */
+export function homelandPowerFor(
+    state: HydratedOathGameState,
+    playerId: string,
+    siteId: string,
+    cardId: string,
+    discardedFirst: readonly string[] = []
+): HomelandPower | undefined {
+    const card = state.siteCardAt(siteId)
+    const record = card ? siteRecord(card) : undefined
+    const suit = state.suitInPlay(cardId)
+    if (!record?.homeland || !suit || record.homeland.suit !== suit) return undefined
+    const key = homelandLedgerKey(siteId, suit)
+    const barred =
+        state.getPlayerState(playerId).homelandUsedThisTurn.includes(key) ||
+        discardedFirst.includes(key)
+    return { ...record.homeland, name: record.name, suit, barred }
+}
+
+/** R-11.2 — the Homeland's reward for a card played to its site. A favor reward's take is added to `favorTaken`. */
 export function homelandPayout(
     state: HydratedOathGameState,
     playerId: string,
     siteId: string,
     cardId: string,
-    reveal?: HiddenReveal
+    reveal?: HiddenReveal,
+    favorTaken?: FavorTake[]
 ): string | undefined {
-    const card = state.siteCardAt(siteId)
-    const record = card ? siteRecord(card) : undefined
-    const suit = suitOf(cardId)
-    if (!record?.homeland || !suit || record.homeland.suit !== suit) return undefined
+    const homeland = homelandPowerFor(state, playerId, siteId, cardId)
+    if (!homeland) return undefined
+    const { name, suit } = homeland
 
     const player = state.getPlayerState(playerId)
-    if (player.homelandUsedThisTurn.includes(homelandLedgerKey(siteId, suit))) {
-        return `${record.name}: no Homeland gain — a ${suit} card was discarded here this turn (R-11.2)`
+    if (homeland.barred) {
+        return `${name}: no Homeland gain — a ${suit} card was discarded here this turn (R-11.2)`
     }
 
-    switch (record.homeland.reward) {
+    switch (homeland.reward) {
         case 'favor': {
             const gained = gainFavorFromBank(state, playerId, suit, 1)
-            return `${record.name} (Homeland): gained ${gained} ${suit} favor`
+            favorTaken?.push({ suit, gained })
+            return `${name} (Homeland): gained ${gained} ${suit} favor`
         }
         case 'secret': {
             player.secrets += 1
-            return `${record.name} (Homeland): gained a secret`
+            return `${name} (Homeland): gained a secret`
         }
         case 'warbands': {
-            const gained = gainWarbandsToBoard(state, playerId, record.homeland.amount)
+            const gained = gainWarbandsToBoard(state, playerId, homeland.amount)
             const words = gainedWarbandsWords(state, playerId, gained) ?? `${gained} warbands`
-            return `${record.name} (Homeland): gained ${words}`
+            return `${name} (Homeland): gained ${words}`
         }
         case 'relic': {
-            // The resolver's reveal; absent on the client's optimistic run, which is discarded.
+            // The resolver's reveal; absent on the client's optimistic run, which is discarded, and for Land
+            // Warden's second card, whose play draws no hidden card (docs/known-deviations.md).
             const slot = state.relicSlotsAt(siteId)[0]
-            if (!slot) return `${record.name} (Homeland): no relic here to take`
+            if (!slot) return `${name} (Homeland): no relic here to take`
             if (siteLockedFor(state, playerId, siteId)) {
-                return `${record.name} (Homeland): the relic here is locked (Ancient Bloodline)`
+                return `${name} (Homeland): the relic here is locked (Ancient Bloodline)`
             }
             const relicCardId = reveal?.kind === 'relic' ? reveal.relicCardId : undefined
             if (!relicCardId)
-                return `${record.name} (Homeland): the relic's identity is not yet known`
+                return `${name} (Homeland): no relic was drawn for this play, so none was taken`
             clearSiteRelicSlot(state, siteId, slot.slotId)
             takeRelic(state, player.playerId, relicCardId)
             // R-11.2-H1 — taken as a Recover takes it, so "after a player takes relics" powers fire.
             const notes = afterRelicsTakenPersistent(state, playerId, [relicCardId])
-            return `${record.name} (Homeland): took ${relicCardId}${notes.length ? ` (${notes.join('; ')})` : ''}`
+            return `${name} (Homeland): took ${relicCardId}${notes.length ? ` (${notes.join('; ')})` : ''}`
         }
     }
 }

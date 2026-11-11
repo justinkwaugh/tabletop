@@ -1,19 +1,18 @@
+import type { LocalSelection } from './localSelections.js'
+
 export type StagedSelectionSource = 'auto' | 'manual'
 
 export type StagedSelectionEntry<TValue> = {
     value: TValue
     source: StagedSelectionSource
+    previous?: StagedSelectionEntry<TValue>
 }
 
-type StageKey<TValueByStage extends Record<string, unknown>> = Extract<
-    keyof TValueByStage,
-    string
->
+type StageKey<TValueByStage extends Record<string, unknown>> = Extract<keyof TValueByStage, string>
 
-export type StagedSelectionState<TValueByStage extends Record<string, unknown>> =
-    Partial<{
-        [TCurrentStage in StageKey<TValueByStage>]: StagedSelectionEntry<TValueByStage[TCurrentStage]>
-    }>
+export type StagedSelectionState<TValueByStage extends Record<string, unknown>> = Partial<{
+    [TCurrentStage in StageKey<TValueByStage>]: StagedSelectionEntry<TValueByStage[TCurrentStage]>
+}>
 
 function stageIndex<TValueByStage extends Record<string, unknown>>(
     stageOrder: readonly StageKey<TValueByStage>[],
@@ -47,6 +46,27 @@ export function setStagedSelectionValue<
         delete nextState[laterStage]
     }
 
+    return nextState
+}
+
+/**
+ * Sets a stage as one manual press that Undo takes back alone: popping the stage restores the
+ * value this press replaced instead of clearing the stage. Clears every later stage, as setting does.
+ */
+export function pushStagedSelectionValue<
+    TValueByStage extends Record<string, unknown>,
+    TCurrentStage extends StageKey<TValueByStage>
+>(
+    currentState: StagedSelectionState<TValueByStage>,
+    stageOrder: readonly StageKey<TValueByStage>[],
+    stage: TCurrentStage,
+    value: TValueByStage[TCurrentStage]
+): StagedSelectionState<TValueByStage> {
+    const previous = getStagedSelectionEntry(currentState, stage)
+    const nextState = setStagedSelectionValue(currentState, stageOrder, stage, value, 'manual')
+    if (previous) {
+        nextState[stage] = { value, source: 'manual', previous }
+    }
     return nextState
 }
 
@@ -92,9 +112,7 @@ export function getStagedSelectionValue<
     return getStagedSelectionEntry(state, stage)?.value
 }
 
-export function getHighestManualStagedSelectionStage<
-    TValueByStage extends Record<string, unknown>
->(
+export function getHighestManualStagedSelectionStage<TValueByStage extends Record<string, unknown>>(
     state: StagedSelectionState<TValueByStage>,
     stageOrder: readonly StageKey<TValueByStage>[]
 ): StageKey<TValueByStage> | undefined {
@@ -108,18 +126,17 @@ export function getHighestManualStagedSelectionStage<
     return undefined
 }
 
-export function hasManualStagedSelection<
-    TValueByStage extends Record<string, unknown>
->(
+export function hasManualStagedSelection<TValueByStage extends Record<string, unknown>>(
     state: StagedSelectionState<TValueByStage>,
     stageOrder: readonly StageKey<TValueByStage>[]
 ): boolean {
     return getHighestManualStagedSelectionStage(state, stageOrder) !== undefined
 }
 
-export function popHighestManualStagedSelection<
-    TValueByStage extends Record<string, unknown>
->(state: StagedSelectionState<TValueByStage>, stageOrder: readonly StageKey<TValueByStage>[]): {
+export function popHighestManualStagedSelection<TValueByStage extends Record<string, unknown>>(
+    state: StagedSelectionState<TValueByStage>,
+    stageOrder: readonly StageKey<TValueByStage>[]
+): {
     nextState: StagedSelectionState<TValueByStage>
     poppedStage?: StageKey<TValueByStage>
 } {
@@ -128,8 +145,31 @@ export function popHighestManualStagedSelection<
         return { nextState: state }
     }
 
+    const nextState = clearStagedSelectionAtOrAfter(state, stageOrder, poppedStage)
+    const previous = getStagedSelectionEntry(state, poppedStage)?.previous
+    if (previous) {
+        nextState[poppedStage] = previous
+    }
+    return { nextState, poppedStage }
+}
+
+/**
+ * A staged selection as a session's contextual Undo sees it: Undo pops its highest manual stage
+ * and reports nothing to pop, so the session can undo the last action instead.
+ */
+export function undoableStagedSelection<TValueByStage extends Record<string, unknown>>(
+    stageOrder: readonly StageKey<TValueByStage>[],
+    read: () => StagedSelectionState<TValueByStage>,
+    write: (state: StagedSelectionState<TValueByStage>) => void
+): LocalSelection {
     return {
-        nextState: clearStagedSelectionAtOrAfter(state, stageOrder, poppedStage),
-        poppedStage
+        hasManual: () => hasManualStagedSelection(read(), stageOrder),
+        undo: () => {
+            const { nextState, poppedStage } = popHighestManualStagedSelection(read(), stageOrder)
+            if (!poppedStage) return false
+            write(nextState)
+            return true
+        },
+        clear: () => write({})
     }
 }

@@ -95,8 +95,9 @@ export class TrackModule {
                     : []
             )
     )
+    // A private power lays only at its own locations, which may need no connection at all.
     reachableLocationIds = $derived.by(() =>
-        this.showChoices
+        this.showChoices && !this.privateActions.trackPowerSelection
             ? this.mapView()
                   .map.definition.locations.filter((location) =>
                       this.construction.canReach(location.id)
@@ -204,16 +205,7 @@ export class TrackModule {
     }
     rotatePreview() {
         assert(this.canBuild && this.preview, 'Choose a track tile to rotate')
-        const preview = this.preview
-        const index = this.placements.findIndex(
-            (choice) =>
-                choice.rotation === preview.rotation &&
-                JSON.stringify(choice.nodeMapping) === JSON.stringify(preview.nodeMapping)
-        )
-        const next = [
-            ...this.placements.slice(index + 1),
-            ...this.placements.slice(0, index + 1)
-        ].find((choice) => choice.rotation !== preview.rotation)
+        const next = this.nextLayout(this.preview)
         if (next) this.selectPlacement(next)
     }
     selectPlacement(request: TrackRequest) {
@@ -281,6 +273,15 @@ export class TrackModule {
                 { companyId, locationId, definitionId, rotation, nodeMapping, expectedCost: cost }
             )
         )
+    }
+    private nextLayout(preview: TrackRequest): TrackRequest | undefined {
+        const index = this.placements.findIndex(
+            (choice) =>
+                choice.rotation === preview.rotation &&
+                JSON.stringify(choice.nodeMapping) === JSON.stringify(preview.nodeMapping)
+        )
+        const next = this.placements[(index + 1) % this.placements.length]
+        return next === this.placements[index] ? undefined : next
     }
     private chooseTile(
         definitionId: string,

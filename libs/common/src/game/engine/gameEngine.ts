@@ -5,9 +5,14 @@ import {
     type StartingPositionAssignment
 } from '../model/startingPositionAssignment.js'
 import { getGameVisibility } from '../visibility/gameVisibility.js'
+import {
+    assertContinuationAllowed,
+    GameContinuationError,
+    type GameContinuation
+} from './gameContinuation.js'
 import { deriveGameSeeds, generateMasterSeed, normalizeMasterSeed } from '../../util/gameSeeds.js'
 import jsonpatch from 'fast-json-patch'
-import { GameAction, type HydratedAction, Patch } from './gameAction.js'
+import { GameAction, type HydratedAction, Patch, withoutActionPatches } from './gameAction.js'
 import { createPatch } from './statePatch.js'
 import {
     isOutOfTurnActionType,
@@ -21,14 +26,17 @@ import {
     type UninitializedGameState
 } from '../model/gameState.js'
 import { MachineContext } from './machineContext.js'
-import { type MachineStateHandler } from './machineStateHandler.js'
-import { type GameRuntime } from '../definition/gameDefinition.js'
+import type { MachineStateHandler } from './machineStateHandler.js'
+import type { GameRuntime } from '../definition/gameDefinition.js'
+import { reportGameProgress } from '../definition/gameProgression.js'
 import { undoRecordedAction } from './recordedHistory.js'
 import { nanoid } from 'nanoid'
 import { generateSeed } from '../../util/prng.js'
 import { assert, assertExists } from '../../util/assertions.js'
 import type { Perspective } from '../visibility/valueProjector.js'
 import { isRedactedAction, UnavailableProjectedActionError } from '../visibility/actionProjector.js'
+import { applyCallGame, CALL_GAME_ACTION_TYPE } from './callGame.js'
+import { calculateActionChecksum } from '../../util/checksum.js'
 
 export type ActionResult<T extends GameState = GameState> = {
     processedActions: GameAction[]
@@ -50,12 +58,30 @@ export type ActionCascadeResult<T extends GameState = GameState> = ActionResult<
     actionCascade: CanonicalActionCascade<T>
 }
 
-export interface GameStartOptions extends GameCreationOptions {
+export interface GameStartOptions<T extends GameState = GameState> extends Omit<
+    GameCreationOptions,
+    'continueFromGameId'
+> {
     startingPositions?: StartingPositionAssignment
+    continuation?: GameContinuation<T>
 }
 
 export interface ActionAvailabilityOptions {
     readonly perspective?: Perspective
+}
+
+export type ActionInput<T extends GameState = GameState> = {
+    action: GameAction
+    state: T
+    game: Game
+    perspective?: Perspective
+}
+
+type PendingActionCheck<U extends HydratedGameState> = {
+    hydratedState: U
+    machineContext: MachineContext<U>
+    perspective: Perspective | undefined
+    game: Game
 }
 
 interface RuntimeExecution<T extends GameState> extends ActionResult<T> {
@@ -118,13 +144,25 @@ export class GameEngine<
 
     startGame(
         game: Game,
-        options: GameStartOptions | string = {}
+        options: GameStartOptions<T> | string = {}
     ): { startedGame: Game; initialState: T } {
         game = normalizeGame(game, this.runtime.configuration)
-        const { masterSeed, startingPositions: assignment } =
-            typeof options === 'string' ? { masterSeed: options } : options
+        const {
+            masterSeed,
+            startingPositions: assignment,
+            continuation
+        }: GameStartOptions<T> = typeof options === 'string' ? { masterSeed: options } : options
         if (game.startedAt !== null && game.startedAt !== undefined) {
             throw Error('Game is already started')
+        }
+        let validContinuation: GameContinuation<T> | undefined
+        if (game.continuedFromGameId !== undefined || continuation !== undefined) {
+            assertExists(
+                game.continuedFromGameId,
+                'Only a continued game has a previous game state'
+            )
+            assertExists(continuation, 'A continued game starts from its previous game state')
+            validContinuation = this.validateContinuation(game.continuedFromGameId, continuation)
         }
 
         const initializer = this.runtime.initializer
@@ -151,7 +189,8 @@ export class GameEngine<
         const initialState = initializer.initializeGameState(
             seededGame,
             uninitializedState,
-            assignment
+            assignment,
+            validContinuation
         )
 
         const machineContext = new MachineContext({
@@ -164,7 +203,41 @@ export class GameEngine<
 
         const state = initialState.dehydrate()
         this.validateCanonicalState(state)
+        startedGame.progress = reportGameProgress(this.runtime, state)
         return { startedGame, initialState: state }
+    }
+
+    validateContinuation(
+        sourceGameId: string,
+        continuation: GameContinuation<T>
+    ): GameContinuation<T> {
+        assertContinuationAllowed(
+            this.runtime.initializer.supportsContinuation === true,
+            'This Game Title does not support continuation'
+        )
+        const previousState = this.canonicalContinuationState(continuation.previousState)
+        assertContinuationAllowed(
+            previousState.result !== undefined && previousState.canContinue === true,
+            'The game being continued is not ready to continue'
+        )
+        assertContinuationAllowed(
+            previousState.gameId === sourceGameId,
+            'Continuation source does not match'
+        )
+        return { previousState, previousPlayers: structuredClone(continuation.previousPlayers) }
+    }
+
+    private canonicalContinuationState(state: Readonly<T>): T {
+        try {
+            const canonical = this.runtime.hydrator.hydrateState(structuredClone(state)).dehydrate()
+            this.validateCanonicalState(canonical)
+            return canonical
+        } catch (error) {
+            throw new GameContinuationError(
+                'This version of the game can no longer continue from the finished game',
+                error instanceof Error ? error : undefined
+            )
+        }
     }
 
     getValidActionTypesForPlayer(
@@ -176,8 +249,9 @@ export class GameEngine<
         game = normalizeGame(game, this.runtime.configuration)
         const perspective = options.perspective
         if (
-            perspective !== undefined &&
-            (perspective.kind !== 'player' || perspective.playerId !== playerId)
+            state.result !== undefined ||
+            (perspective !== undefined &&
+                (perspective.kind !== 'player' || perspective.playerId !== playerId))
         ) {
             return []
         }
@@ -196,13 +270,14 @@ export class GameEngine<
             : types.filter((type) => isOutOfTurnActionType(this.runtime.apiActions, type))
     }
 
-    executeAction(input: {
-        action: GameAction
-        state: T
-        game: Game
-        perspective?: Perspective
-    }): ActionCascadeResult<T> {
+    executeAction(input: ActionInput<T>): ActionCascadeResult<T> {
         return this.executeUnprocessedAction(input, false)
+    }
+
+    execute({ perspective, ...input }: ActionInput<T>): ActionCascadeResult<T> {
+        return perspective === undefined
+            ? this.executeCanonicalAction(input)
+            : this.executeAction({ ...input, perspective })
     }
 
     private executeUnprocessedAction(
@@ -266,7 +341,7 @@ export class GameEngine<
         game: Game
     }): ActionResult<T> {
         const execution = this.executeThroughRuntime({
-            action: this.cloneWithoutActionPatches(action),
+            action: withoutActionPatches(action),
             state,
             game,
             processGeneratedActions: false
@@ -277,6 +352,41 @@ export class GameEngine<
             updatedState: execution.updatedState,
             indexOffset: execution.indexOffset
         }
+    }
+
+    accepts({ action, state, game, perspective }: ActionInput<T>): boolean {
+        game = normalizeGame(game, this.runtime.configuration)
+        if (
+            isRedactedAction(action) ||
+            action.type === CALL_GAME_ACTION_TYPE ||
+            this.markerRejection(action)
+        )
+            return false
+        const hydratedState = this.runtime.hydrator.hydrateState(structuredClone(state))
+        const machineContext = new MachineContext({
+            action,
+            gameConfig: game.config,
+            gameState: this.guardStateForPerspective(hydratedState, perspective, game)
+        })
+        const check = { hydratedState, machineContext, perspective, game }
+        return (
+            !this.pendingActionRejection(action, check) &&
+            !this.invalidActionRejection(
+                this.runtime.hydrator.hydrateAction(structuredClone(action)),
+                check
+            )
+        )
+    }
+
+    /**
+     * Re-applies a standing declaration after Undo reversed a suffix containing it (ADR 0007). It is
+     * dropped where the restored position rejects it, and where it would act at once, since its
+     * acting is a turn of its own.
+     */
+    reapplyDeclaration(input: ActionInput<T>): ActionCascadeResult<T> | undefined {
+        if (!this.accepts(input)) return undefined
+        const result = this.execute(input)
+        return result.processedActions.length === 1 ? result : undefined
     }
 
     undoProcessedAction({ action, state }: { action: GameAction; state: T }): T {
@@ -304,6 +414,9 @@ export class GameEngine<
         }
 
         if (canonical) this.validateCanonicalState(state)
+        assert(state.result === undefined, 'A Game State with a result accepts no further Actions')
+        if (action.type === CALL_GAME_ACTION_TYPE)
+            return this.executeCallGame(action, state, canonical)
 
         const processedActions: GameAction[] = []
         const transitions: CanonicalActionTransition<T>[] = []
@@ -318,14 +431,8 @@ export class GameEngine<
             gameState: runtimeState
         })
 
-        assert(
-            !action.outOfTurn || isOutOfTurnActionType(this.runtime.apiActions, action.type),
-            `Action of type ${action.type} is not an out-of-turn Action`
-        )
-        assert(
-            !action.sequenced || isSequencedActionType(this.runtime.apiActions, action.type),
-            `Action of type ${action.type} is not a sequenced out-of-turn Action`
-        )
+        const markerRejection = this.markerRejection(action)
+        if (markerRejection) throw markerRejection
 
         const indexOffset =
             action.index !== undefined && action.index !== hydratedState.actionCount
@@ -345,11 +452,9 @@ export class GameEngine<
             const currentAction = machineContext.nextPendingAction()
             assertExists(currentAction, 'Action to process was unexpectedly null')
 
-            assert(
-                this.isPlayerAllowed(currentAction, hydratedState),
-                `Player ${currentAction.playerId} is not an active player`
-            )
-            this.assertActionAvailableToPerspective(currentAction, perspective, game)
+            const check = { hydratedState, machineContext, perspective, game }
+            const rejection = this.pendingActionRejection(currentAction, check)
+            if (rejection) throw rejection
 
             const hydratedAction = this.runtime.hydrator.hydrateAction(
                 structuredClone(currentAction)
@@ -358,11 +463,9 @@ export class GameEngine<
                 hydratedAction.createdAt = new Date()
             }
 
+            const invalid = this.invalidActionRejection(hydratedAction, check)
+            if (invalid) throw invalid
             const stateHandler = this.getStateHandler(hydratedState)
-            assert(
-                stateHandler.isValidAction(hydratedAction, machineContext),
-                `Action of type ${hydratedAction.type} is not valid in state ${hydratedState.machineState}`
-            )
 
             hydratedAction.apply(runtimeState, machineContext)
 
@@ -405,6 +508,28 @@ export class GameEngine<
         }
     }
 
+    private executeCallGame(action: GameAction, state: T, canonical: boolean): RuntimeExecution<T> {
+        assert(
+            action.index === undefined || action.index === state.actionCount,
+            `Action index is not valid, expected ${state.actionCount}, got ${action.index}`
+        )
+        const recorded = structuredClone(action)
+        recorded.index = state.actionCount
+        recorded.createdAt ??= new Date()
+        const updatedState = applyCallGame(state, recorded)
+        updatedState.actionCount = state.actionCount + 1
+        updatedState.actionChecksum = calculateActionChecksum(state.actionChecksum, [recorded])
+        if (canonical) this.validateCanonicalState(updatedState)
+        recorded.undoPatch = createPatch(updatedState, state)
+        return {
+            processedActions: [recorded],
+            updatedState,
+            indexOffset: 0,
+            before: state,
+            transitions: [{ action: recorded, after: updatedState }]
+        }
+    }
+
     private guardStateForPerspective(
         state: U,
         perspective: Perspective | undefined,
@@ -416,33 +541,53 @@ export class GameEngine<
             : state
     }
 
-    private assertActionAvailableToPerspective(
+    private markerRejection(action: GameAction): Error | undefined {
+        if (action.outOfTurn && !isOutOfTurnActionType(this.runtime.apiActions, action.type))
+            return new Error(`Action of type ${action.type} is not an out-of-turn Action`)
+        if (action.sequenced && !isSequencedActionType(this.runtime.apiActions, action.type))
+            return new Error(`Action of type ${action.type} is not a sequenced out-of-turn Action`)
+        return undefined
+    }
+
+    private pendingActionRejection(
+        action: GameAction,
+        { hydratedState, perspective, game }: PendingActionCheck<U>
+    ): Error | undefined {
+        if (hydratedState.result !== undefined)
+            return new Error('A Game State with a result accepts no further Actions')
+        if (!this.isPlayerAllowed(action, hydratedState))
+            return new Error(`Player ${action.playerId} is not an active player`)
+        if (!this.isAvailableToPerspective(action, perspective, game))
+            return new UnavailableProjectedActionError(action.type)
+        return undefined
+    }
+
+    private invalidActionRejection(
+        hydratedAction: HydratedAction,
+        { hydratedState, machineContext }: PendingActionCheck<U>
+    ): Error | undefined {
+        return this.getStateHandler(hydratedState).isValidAction(hydratedAction, machineContext)
+            ? undefined
+            : new Error(
+                  `Action of type ${hydratedAction.type} is not valid in state ${hydratedState.machineState}`
+              )
+    }
+
+    private isAvailableToPerspective(
         action: GameAction,
         perspective: Perspective | undefined,
         game: Game
-    ): void {
+    ): boolean {
         const visibility = getGameVisibility(game, this.runtime)
-        if (perspective === undefined || visibility === undefined) {
-            return
-        }
-
+        if (perspective === undefined || visibility === undefined) return true
         const projected = visibility.actions.project(action, perspective, { config: game.config })
-        if (isRedactedAction(projected)) {
-            throw new UnavailableProjectedActionError(action.type)
-        }
+        return !isRedactedAction(projected)
     }
 
     private sanitizeUnprocessedAction(action: GameAction): GameAction {
-        const sanitizedAction = this.cloneWithoutActionPatches(action)
+        const sanitizedAction = withoutActionPatches(action)
         Reflect.deleteProperty(sanitizedAction, 'metadata')
         return sanitizedAction
-    }
-
-    private cloneWithoutActionPatches(action: GameAction): GameAction {
-        const actionWithoutPatches = structuredClone(action)
-        delete actionWithoutPatches.undoPatch
-        delete actionWithoutPatches.forwardPatch
-        return actionWithoutPatches
     }
 
     private applyStatePatch(state: T, patch: Patch): T {

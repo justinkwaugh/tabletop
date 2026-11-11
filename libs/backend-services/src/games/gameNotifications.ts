@@ -1,5 +1,5 @@
 import {
-    ActionSource,
+    isCascadedSystemAction,
     GameNotificationAddProjectedActionsData,
     GameNotificationReplaceProjectedActionsData,
     GameNotificationAction,
@@ -26,6 +26,8 @@ import {
     createActionResultsRepresentationForPerspective,
     createUndoResultsRepresentationForPerspective
 } from './gameRepresentation.js'
+import { gameTopic, userTopic } from '../notifications/topics.js'
+import type { ProjectedHistoryCache } from './projectedHistoryCache.js'
 
 type NotificationSender = Pick<NotificationService, 'sendNotification'>
 
@@ -48,7 +50,8 @@ export async function publishActionResults({
     priorState,
     runtime,
     visibility: registeredVisibility,
-    notificationService
+    notificationService,
+    projectedHistory
 }: {
     game: Game
     result: ActionCascadeResult
@@ -57,17 +60,18 @@ export async function publishActionResults({
     runtime?: GameRuntime
     visibility?: Visibility.GameVisibility<GameState>
     notificationService: NotificationSender
+    projectedHistory?: { cache: ProjectedHistoryCache; logicVersion: string }
 }): Promise<void> {
     const visibility = Visibility.getGameVisibility(game, { visibility: registeredVisibility })
     if (game.hotseat || visibility === undefined) {
         await publish({
             data: {
                 game: omitGameState(game),
-                actions: storedActions.filter((action) => action.source === ActionSource.User)
+                actions: storedActions.filter((action) => !isCascadedSystemAction(action))
             },
             action: GameNotificationAction.AddActions,
             notificationService,
-            topics: [`game-${game.id}`]
+            topics: [gameTopic(game.id)]
         })
         return
     }
@@ -96,6 +100,10 @@ export async function publishActionResults({
             notificationService,
             topics: [topic]
         })
+        await projectedHistory?.cache.append(
+            { gameId: game.id, perspective, logicVersion: projectedHistory.logicVersion },
+            representation.actions
+        )
     }
 
     await publishForGamePerspectives({ game, publishForPerspective })
@@ -133,14 +141,14 @@ export async function publishUndoResults({
                     startIndex: actionReplay.startIndex,
                     actionIds: actionReplay.actions.map((action) => action.id),
                     userActionIds: actionReplay.actions
-                        .filter((action) => action.source === ActionSource.User)
+                        .filter((action) => !isCascadedSystemAction(action))
                         .map((action) => action.id)
                 },
                 checksum: currentState.actionChecksum
             },
             action: GameNotificationAction.UndoAction,
             notificationService,
-            topics: [`game-${game.id}`]
+            topics: [gameTopic(game.id)]
         })
         return
     }
@@ -207,14 +215,14 @@ async function publishForGamePerspectives({
     game: Game
     publishForPerspective: (perspective: Visibility.Perspective, topic: string) => Promise<void>
 }): Promise<void> {
-    await publishForPerspective({ kind: 'spectator' }, `game-${game.id}`)
+    await publishForPerspective({ kind: 'spectator' }, gameTopic(game.id))
     for (const player of game.players) {
         if (player.userId === undefined) {
             continue
         }
         await publishForPerspective(
             { kind: 'player', playerId: player.id },
-            `user-${player.userId}`
+            userTopic(player.userId)
         )
     }
 }

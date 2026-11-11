@@ -37,13 +37,37 @@ function table(oathRevision: number, sides: Sides) {
     const adv = (ids: string[] = []) => ids.map((cardId) => ({ cardId, faceUp: true }))
     const s = testState(
         withChancellor([
-            testPlayer({ playerId: 'att', color: Color.Red, siteId: 'c1', supply: 6, favor: 4, secrets: 3, warbandsOnBoard: { att: 4 }, warbandsInPersonalBank: { att: 6 }, advisers: adv(sides.attackerAdvisers) }),
-            testPlayer({ playerId: 'def', color: Color.Blue, siteId: 'c1', supply: 4, favor: 3, secrets: 2, warbandsOnBoard: { def: sides.defenderBoard }, warbandsInPersonalBank: { def: 5 }, advisers: adv(sides.defenderAdvisers) })
+            testPlayer({
+                playerId: 'att',
+                color: Color.Red,
+                siteId: 'c1',
+                supply: 6,
+                favor: 4,
+                secrets: 3,
+                warbandsOnBoard: { att: 4 },
+                warbandsInPersonalBank: { att: 6 },
+                advisers: adv(sides.attackerAdvisers)
+            }),
+            testPlayer({
+                playerId: 'def',
+                color: Color.Blue,
+                siteId: 'c1',
+                supply: 4,
+                favor: 3,
+                secrets: 2,
+                warbandsOnBoard: { def: sides.defenderBoard },
+                warbandsInPersonalBank: { def: 5 },
+                advisers: adv(sides.defenderAdvisers)
+            })
         ]),
         {
             oathRevision,
             denizensBySite: { c1: [CAPTAINS], c2: [], p1: [], h1: [] },
-            warbandsBySite: { c1: { att: 1, def: 2 }, c2: { att: 2, def: sides.defenderAtC2 }, p1: { def: 3 } }
+            warbandsBySite: {
+                c1: { att: 1, def: 2 },
+                c2: { att: 2, def: sides.defenderAtC2 },
+                p1: { def: 3 }
+            }
         }
     )
     openTurn(s, 'att')
@@ -51,7 +75,12 @@ function table(oathRevision: number, sides: Sides) {
 }
 
 const useCaptains = () =>
-    buildAction(UseActionPower, { playerId: 'att', cardId: CAPTAINS, powerIndex: powerIndexOf(CAPTAINS, PowerTiming.Action), choices: [site('c2')] })
+    buildAction(UseActionPower, {
+        playerId: 'att',
+        cardId: CAPTAINS,
+        powerIndex: powerIndexOf(CAPTAINS, PowerTiming.Action),
+        choices: [site('c2')]
+    })
 
 /** Captains: the next Campaign acts from c2, so the attacking force is 6. */
 function captainsTable(oathRevision: number, sides: Sides) {
@@ -98,27 +127,90 @@ describe('R-10.9 — a battle plan counts the whole attacking force (revision 5)
     it('Vow of Union: the warbands at every site the attacker rules are in the force Encirclement counts', () => {
         const s = testState(
             [
-                testPlayer({ playerId: 'att', color: Color.Red, siteId: 'c1', supply: 6, favor: 4, warbandsOnBoard: { att: 2 }, advisers: [{ cardId: VOW_OF_UNION, faceUp: true }, { cardId: ENCIRCLEMENT, faceUp: true }] }),
-                testPlayer({ playerId: 'def', color: Color.Blue, siteId: 'p1', favor: 3, warbandsOnBoard: { def: 3 } })
+                testPlayer({
+                    playerId: 'att',
+                    color: Color.Red,
+                    siteId: 'c1',
+                    supply: 6,
+                    favor: 4,
+                    warbandsOnBoard: { att: 2 },
+                    advisers: [
+                        { cardId: VOW_OF_UNION, faceUp: true },
+                        { cardId: ENCIRCLEMENT, faceUp: true }
+                    ]
+                }),
+                testPlayer({
+                    playerId: 'def',
+                    color: Color.Blue,
+                    siteId: 'p1',
+                    favor: 3,
+                    warbandsOnBoard: { def: 3 }
+                })
             ],
-            { oathRevision: atRevision, denizensBySite: { c1: [], c2: [], p1: [], h1: [] }, warbandsBySite: { c1: { def: 3 }, c2: { att: 2 }, h1: { att: 1 } } }
+            {
+                oathRevision: atRevision,
+                denizensBySite: { c1: [], c2: [], p1: [], h1: [] },
+                warbandsBySite: { c1: { def: 3 }, c2: { att: 2 }, h1: { att: 1 } }
+            }
         )
         openTurn(s, 'att')
-        new HydratedCampaign(buildAction(Campaign, { playerId: 'att', defender: { kind: 'player', playerId: 'def' }, targets: [{ kind: CampaignTargetKind.Site, siteId: 'c1' }], attackDice: 3, plans: [battlePlanUse(ENCIRCLEMENT)] })).apply(s)
+        new HydratedCampaign(
+            buildAction(Campaign, {
+                playerId: 'att',
+                defender: { kind: 'player', playerId: 'def' },
+                targets: [{ kind: CampaignTargetKind.Site, siteId: 'c1' }],
+                attackDice: 3,
+                plans: [battlePlanUse(ENCIRCLEMENT)]
+            })
+        ).apply(s)
         expect(ongoingCampaign(s).attackPool).toBe(5)
     })
 
     it("an Imperial ally's board is in the defending force a defender's Encirclement counts", () => {
         const s = testState(
             [
-                testPlayer({ playerId: 'att', color: Color.Red, status: PlayerStatus.Exile, siteId: 'h1', supply: 5, favor: 3, warbandsOnBoard: { att: 7 } }),
-                testPlayer({ playerId: 'chan', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', favor: 4, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 }, advisers: [{ cardId: ENCIRCLEMENT, faceUp: true }] }),
-                testPlayer({ playerId: 'cit', color: Color.Blue, status: PlayerStatus.Citizen, siteId: 'h1', favor: 1, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 } })
+                testPlayer({
+                    playerId: 'att',
+                    color: Color.Red,
+                    status: PlayerStatus.Exile,
+                    siteId: 'h1',
+                    supply: 5,
+                    favor: 3,
+                    warbandsOnBoard: { att: 7 }
+                }),
+                testPlayer({
+                    playerId: 'chan',
+                    color: Color.Purple,
+                    status: PlayerStatus.Chancellor,
+                    siteId: 'h1',
+                    favor: 4,
+                    warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 },
+                    advisers: [{ cardId: ENCIRCLEMENT, faceUp: true }]
+                }),
+                testPlayer({
+                    playerId: 'cit',
+                    color: Color.Blue,
+                    status: PlayerStatus.Citizen,
+                    siteId: 'h1',
+                    favor: 1,
+                    warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 }
+                })
             ],
-            { oathRevision: atRevision, chancellorPlayerId: 'chan', warbandsBySite: { h1: { [IMPERIAL_WARBANDS]: 3 } } }
+            {
+                oathRevision: atRevision,
+                chancellorPlayerId: 'chan',
+                warbandsBySite: { h1: { [IMPERIAL_WARBANDS]: 3 } }
+            }
         )
         openTurn(s, 'att')
-        new HydratedCampaign(buildAction(Campaign, { playerId: 'att', defender: { kind: 'player', playerId: 'chan' }, targets: [{ kind: CampaignTargetKind.Site, siteId: 'h1' }], attackDice: 3 })).apply(s)
+        new HydratedCampaign(
+            buildAction(Campaign, {
+                playerId: 'att',
+                defender: { kind: 'player', playerId: 'chan' },
+                targets: [{ kind: CampaignTargetKind.Site, siteId: 'h1' }],
+                attackDice: 3
+            })
+        ).apply(s)
         joinDefence(s, 'cit', 'chan')
         // 3 at h1, the Chancellor's 3 and the Citizen's 2: 8 against 7.
         defend([battlePlanUse(ENCIRCLEMENT)], 'chan').apply(s)
@@ -145,35 +237,62 @@ describe("R-5.5.1 — the attacker's plans judge the defending force from the si
     it('the roll counts the same defending force the plans judged', () => {
         const s = captainsTable(atRevision, { ...boardAway, attackerAdvisers: [ZEALOTS] })
         campaignFromC2([ZEALOTS]).apply(s)
-        expect(ongoingCampaign(s).defendingForce).toEqual([{ at: { kind: 'site', siteId: 'c2' }, owner: 'def', count: 3 }])
+        expect(ongoingCampaign(s).defendingForce).toEqual([
+            { at: { kind: 'site', siteId: 'c2' }, owner: 'def', count: 3 }
+        ])
     })
 })
 
 describe('R-X.4 — a game created before revision 5 counts the board alone, judged from the pawn', () => {
     it('Encirclement and Zealots as they were: 4 against 5 adds nothing, and Zealots applies', () => {
-        const encircled = captainsTable(before, { defenderAtC2: 5, defenderBoard: 0, attackerAdvisers: [ENCIRCLEMENT] })
+        const encircled = captainsTable(before, {
+            defenderAtC2: 5,
+            defenderBoard: 0,
+            attackerAdvisers: [ENCIRCLEMENT]
+        })
         campaignFromC2([ENCIRCLEMENT]).apply(encircled)
         expect(ongoingCampaign(encircled).attackPool).toBe(3)
-        const zealous = captainsTable(before, { defenderAtC2: 3, defenderBoard: 4, attackerAdvisers: [ZEALOTS] })
+        const zealous = captainsTable(before, {
+            defenderAtC2: 3,
+            defenderBoard: 4,
+            attackerAdvisers: [ZEALOTS]
+        })
         campaignFromC2([ZEALOTS]).apply(zealous)
         expect(ongoingCampaign(zealous).rollRules.zealots).toBe(true)
     })
 
     it("a defender's Encirclement against the attacker's board alone", () => {
-        const s = captainsTable(before, { defenderAtC2: 5, defenderBoard: 0, defenderAdvisers: [ENCIRCLEMENT] })
+        const s = captainsTable(before, {
+            defenderAtC2: 5,
+            defenderBoard: 0,
+            defenderAdvisers: [ENCIRCLEMENT]
+        })
         campaignFromC2([]).apply(s)
         defend([battlePlanUse(ENCIRCLEMENT)], 'def').apply(s)
         expect(ongoingCampaign(s).attackPool).toBe(1)
     })
 
     function recordAndReplay(oathRevision: number) {
-        const initial = table(oathRevision, { defenderAtC2: 3, defenderBoard: 4, attackerAdvisers: [ZEALOTS] }).dehydrate()
+        const initial = table(oathRevision, {
+            defenderAtC2: 3,
+            defenderBoard: 4,
+            attackerAdvisers: [ZEALOTS]
+        }).dehydrate()
         const game = testGame(['att', 'def', 'chancellor'])
         const captains = engine.runNext(useCaptains(), structuredClone(initial), game)
-        const recorded = engine.runNext(fromC2([ZEALOTS]), structuredClone(captains.updatedState), game)
+        const recorded = engine.runNext(
+            fromC2([ZEALOTS]),
+            structuredClone(captains.updatedState),
+            game
+        )
         let replayed = structuredClone(initial)
         for (const action of [...captains.processedActions, ...recorded.processedActions]) {
-            replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+            replayed = engine.run(
+                structuredClone(action),
+                replayed,
+                game,
+                RunMode.Single
+            ).updatedState
         }
         expect(replayed).toEqual(recorded.updatedState)
         return recorded.updatedState.campaign

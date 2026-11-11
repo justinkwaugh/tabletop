@@ -1,4 +1,4 @@
-import { type HydratedAction, type MachineContext } from '@tabletop/common'
+import type { HydratedAction, MachineContext } from '@tabletop/common'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { canAttachAUnit } from '../model/attach.js'
@@ -22,7 +22,7 @@ export class CommandingStateHandler extends StepStateHandler {
 
     override enter(context: MachineContext<HydratedNapoleonsTriumphGameState>) {
         const state = context.gameState
-        if (state.rounds.currentRound === undefined) {
+        if (!state.roundInProgress) {
             beginRound(state)
         }
         super.enter(context)
@@ -37,7 +37,7 @@ export class CommandingStateHandler extends StepStateHandler {
             return playMachineState(state)
         }
         if (finishTurn(state)) {
-            return MachineState.Commanding
+            return state.revealedRide ? MachineState.RideRevealed : MachineState.Commanding
         }
         declareVictory(state, marginalVictor(state), VictoryKind.Marginal)
         action.revealsInfo = true

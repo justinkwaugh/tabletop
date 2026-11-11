@@ -1,16 +1,10 @@
 import type { GameAction } from '@tabletop/common'
 import type { AnimationContext } from '@tabletop/frontend-components'
-import {
-    isPlaceCompanyDeeds,
-    type HydratedIndonesiaGameState
-} from '@tabletop/indonesia'
+import { isPlaceCompanyDeeds, type HydratedIndonesiaGameState } from '@tabletop/indonesia'
 import { gsap } from 'gsap'
 import { tick, untrack } from 'svelte'
 import type { IndonesiaGameSession } from '$lib/model/session.svelte.js'
-import {
-    availableDeedCardEntriesForState,
-    type DeedCardEntry
-} from '$lib/utils/deedCardEntries.js'
+import { availableDeedCardEntriesForState, type DeedCardEntry } from '$lib/utils/deedCardEntries.js'
 
 type DeedPlacementAnimatorCallbacks = {
     showAnimatedDeedCards: (args: {

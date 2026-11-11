@@ -1,7 +1,7 @@
 import type { GameAction, GameState, HydratedGameState } from '@tabletop/common'
 import type { GameSession } from '@tabletop/frontend-components'
 
-type BaseSession = GameSession<GameState, HydratedGameState>
+export type BaseSession = GameSession<GameState, HydratedGameState>
 
 export interface ModuleSession<State, Rules> {
     readonly state: State
@@ -21,4 +21,5 @@ export interface ModuleSession<State, Rules> {
     withSupersededAction(action: GameAction): GameAction
     createPlayerAction: BaseSession['createPlayerAction']
     applyAction: BaseSession['applyAction']
+    applyPreparedAction: BaseSession['applyPreparedAction']
 }

@@ -1,8 +1,8 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     type GameAction,
@@ -17,7 +17,7 @@ import { TrackRequest, TrackConstruction, type TrackRules } from './trackConstru
 import { applyTrackLay } from './layTile.js'
 export const RequestTrackConsent = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         ...TrackRequest.properties,
         type: Type.Literal('RequestTrackConsent'),
         expectedCost: Type.Integer({ minimum: 0 })
@@ -68,7 +68,7 @@ export class HydratedRequestTrackConsent
 }
 export const RespondToTrackConsent = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('RespondToTrackConsent'),
         requestId: Type.String(),
         accept: Type.Boolean(),

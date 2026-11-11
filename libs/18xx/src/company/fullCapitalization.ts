@@ -1,10 +1,12 @@
 import { presidentCertificate } from '../finance/finance.js'
 import type { StockMarketChart } from '../stock/stockMarket.js'
+import type { CompanyCharters } from './companyCharters.js'
 import { fullCapitalizationPayments, sharesStillToFloat } from './companyFlotation.js'
 import type { CompanyRules } from './companyRules.js'
 
 export function fullCapitalizationCompanyRules(options: {
     market: StockMarketChart
+    charters: CompanyCharters
     ipoPoolId: string
     parSpaceColor: string
     floatPercent: number
@@ -12,6 +14,7 @@ export function fullCapitalizationCompanyRules(options: {
     const sharesToFloat: NonNullable<CompanyRules['sharesToFloat']> = (state, companyId) =>
         sharesStillToFloat(
             state,
+            options.charters,
             companyId,
             options.floatPercent,
             (certificate) => certificate.poolId === options.ipoPoolId
@@ -37,6 +40,11 @@ export function fullCapitalizationCompanyRules(options: {
         },
         sharesToFloat,
         flotationPayments: (state, companyId) =>
-            fullCapitalizationPayments(state, companyId, sharesToFloat(state, companyId))
+            fullCapitalizationPayments(
+                state,
+                options.charters,
+                companyId,
+                sharesToFloat(state, companyId)
+            )
     }
 }

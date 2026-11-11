@@ -1,6 +1,7 @@
 import * as Type from 'typebox'
 import { LossEntry, MoralePenalty, ResultTerm } from '../model/attack.js'
 import type { CombatOutcome } from '../model/attackResolution.js'
+import { EndedAttack } from './attackEnd.js'
 
 export type CombatMetadata = Type.Static<typeof CombatMetadata>
 export const CombatMetadata = Type.Object({
@@ -13,7 +14,8 @@ export const CombatMetadata = Type.Object({
     attackerWon: Type.Optional(Type.Boolean()),
     loserId: Type.Optional(Type.String()),
     moraleLost: Type.Optional(Type.Integer()),
-    demoralizedId: Type.Optional(Type.String())
+    demoralizedId: Type.Optional(Type.String()),
+    endedAttack: Type.Optional(EndedAttack)
 })
 
 export function combatMetadata(

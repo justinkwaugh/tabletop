@@ -7,11 +7,20 @@ import {
 import { HydratedFreshFishGameState } from '../model/gameState'
 
 // Terminal state
-export class EndOfGameStateHandler implements MachineStateHandler<HydratedAction, HydratedFreshFishGameState> {
-    isValidAction(_action: HydratedAction, _context: MachineContext<HydratedFreshFishGameState>): boolean {
+export class EndOfGameStateHandler implements MachineStateHandler<
+    HydratedAction,
+    HydratedFreshFishGameState
+> {
+    isValidAction(
+        _action: HydratedAction,
+        _context: MachineContext<HydratedFreshFishGameState>
+    ): boolean {
         return false
     }
-    validActionsForPlayer(_playerId: string, _context: MachineContext<HydratedFreshFishGameState>): string[] {
+    validActionsForPlayer(
+        _playerId: string,
+        _context: MachineContext<HydratedFreshFishGameState>
+    ): string[] {
         return []
     }
     enter(context: MachineContext<HydratedFreshFishGameState>): void {

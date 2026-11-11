@@ -1,8 +1,8 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     assertExists,
@@ -64,7 +64,7 @@ function pendingFor(
 
 export const PlacePrivateStation = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('PlacePrivateStation'),
         privateCompanyId: Type.String(),
         position: StationPosition,
@@ -123,7 +123,7 @@ export class HydratedPlacePrivateStation
 
 export const DeclinePrivateStation = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('DeclinePrivateStation'),
         privateCompanyId: Type.String()
     },

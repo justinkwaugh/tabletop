@@ -1,12 +1,13 @@
 <script lang="ts">
     import {
-        getCompany,
+        companyShareCount,
         certificatesOwnedBy,
         certificatesInPool,
         sameOwner,
         type Cash,
         type Certificate,
         type Owner,
+        type CompanyCharters,
         type FinancialState,
         standardCertificateWeight,
         type TitleNames
@@ -16,6 +17,7 @@
     let {
         gameState,
         names,
+        charters,
         owner,
         name,
         cash,
@@ -27,6 +29,7 @@
     }: {
         gameState: FinancialState
         names: TitleNames
+        charters: CompanyCharters
         owner: Owner
         name: string
         cash?: Cash['amount']
@@ -53,7 +56,7 @@
     ])
     function interest(certificate: Certificate): string {
         if (certificate.kind === 'private') return 'Private'
-        const shareCount = getCompany(gameState, certificate.companyId).shareCount
+        const shareCount = companyShareCount(gameState, charters, certificate.companyId)
         if (certificate.kind === 'short')
             return `Short ${certificate.shares} ${certificate.shares === 1 ? 'share' : 'shares'}`
         const percentage =

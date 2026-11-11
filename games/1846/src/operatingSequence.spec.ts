@@ -7,12 +7,18 @@ import {
     controllingOwner,
     finiteCashOwnedBy,
     nextOperatingCompany,
-    placeStockMarker
+    placeStockMarker,
+    currentPrivateRevenue,
+    playerNetWorth,
+    recordedRoundEnd
 } from '@tabletop/18xx'
-import { stockGame } from './testSupport.js'
+import { Charters1846 } from './charters.js'
+import { EndingRules1846 } from './ending.js'
+import { stockGame } from '../test/testSupport.js'
 import { RouteRules1846 } from './routes.js'
 import { trainBuyingChoices1846 } from './trains.js'
-import { corporateFinanceChoices } from './corporateFinance.js'
+import { corporateFinanceChoices } from '@tabletop/18xx'
+import { CorporateFinanceRules1846 } from './corporateFinance.js'
 
 function twoMajors() {
     const table = stockGame()
@@ -55,10 +61,48 @@ function operate(table: ReturnType<typeof stockGame>, companyId: string, buy = f
     }
     return table.act('FinishOperatingTurn', { companyId })
 }
+function nyCentralWithTreasury(table: ReturnType<typeof stockGame>, amount: number) {
+    for (const company of table.state.companies)
+        if (company.kind === 'private') company.closed = true
+    for (const certificate of table.state.certificates)
+        if (certificate.companyId === 'NYC' && certificate.owner.kind === 'company') {
+            certificate.owner = { kind: 'bank' }
+            certificate.poolId = 'open-market'
+        }
+    const treasury = table.state.cash.find(
+        (balance) => balance.owner.kind === 'company' && balance.owner.companyId === 'NYC'
+    )
+    assertExists(treasury)
+    treasury.amount = amount
+}
 describe('1846 stock and operating sequence', () => {
+    it('finishes construction by itself when finishing is all the corporation can do', () => {
+        const table = twoMajors()
+        nyCentralWithTreasury(table, 0)
+        const result = operate(table, 'IC', true)
+        expect(
+            result.processedActions.some(
+                (action) =>
+                    action.type === 'FinishTrack' &&
+                    action.source === ActionSource.System &&
+                    'companyId' in action &&
+                    action.companyId === 'NYC'
+            )
+        ).toBe(true)
+        expect(table.state.trackStep?.companyId === 'NYC' && !table.state.trackStep.completed).toBe(
+            false
+        )
+    })
+    it('keeps construction open while the corporation can still make an offer', () => {
+        const table = twoMajors()
+        nyCentralWithTreasury(table, 5)
+        operate(table, 'IC', true)
+        expect(table.state.machineState).toBe('LayingTrack')
+        expect(table.state.trackStep).toEqual({ companyId: 'NYC', lays: [], completed: false })
+    })
     it("clears a corporation's issue or redeem direction when the next turn starts", () => {
         const table = twoMajors()
-        const issue = corporateFinanceChoices(table.hydrated).find(
+        const issue = corporateFinanceChoices(table.hydrated, CorporateFinanceRules1846).find(
             (choice) => choice.operation === 'issue'
         )
         assertExists(issue)
@@ -68,7 +112,9 @@ describe('1846 stock and operating sequence', () => {
         expect(nextOperatingCompany(table.state)).toBe('NYC')
         expect(table.state.financeStep).toBeUndefined()
         expect(
-            corporateFinanceChoices(table.hydrated).some((choice) => choice.operation === 'issue')
+            corporateFinanceChoices(table.hydrated, CorporateFinanceRules1846).some(
+                (choice) => choice.operation === 'issue'
+            )
         ).toBe(true)
     })
     it('hands off each corporation, resets the second round, and starts the next stock round', () => {
@@ -170,7 +216,11 @@ describe('1846 stock and operating sequence', () => {
                                 certificate.owner.playerId === playerId
                         )
                 )
-                .reduce((sum, company) => sum + (company.privateRevenue ?? 0), 0)
+                .reduce(
+                    (sum, company) =>
+                        sum + currentPrivateRevenue(table.state, Charters1846, company.id),
+                    0
+                )
             expect(finiteCashOwnedBy(table.state, { kind: 'player', playerId })).toBe(
                 before[index] + income
             )
@@ -200,6 +250,8 @@ describe('1846 stock and operating sequence', () => {
         expect(table.state.operatingSet?.completedCompanyIds).toContain('IC')
         expect(nextOperatingCompany(table.state)).toBe('NYC')
         expect(table.state.machineState).toBe('LayingTrack')
+        // The round goes on, so the closure does not end it.
+        expect(result.processedActions.map(recordedRoundEnd).filter(Boolean)).toEqual([])
     })
     it('removes a train when its railroad closes in OR2 and restores it on Undo', () => {
         const table = stockGame()
@@ -241,6 +293,15 @@ describe('1846 stock and operating sequence', () => {
         expect(
             result.processedActions.find((action) => action.type === 'CloseCorporation')?.metadata
         ).toMatchObject({ removedTrainIds: [train.id] })
+        // Closing as the round's last company ends the operating round.
+        expect(
+            recordedRoundEnd(
+                result.processedActions.find((action) => action.type === 'CloseCorporation')!
+            )
+        ).toEqual({
+            round: 'operating',
+            playerNetWorth: playerNetWorth(table.hydrated, EndingRules1846)
+        })
         let replay = before
         for (const action of result.processedActions)
             replay = table.engine.applyProcessedAction({ game: table.game, state: replay, action })

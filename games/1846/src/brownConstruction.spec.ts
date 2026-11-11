@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
 import { TrackConstruction, RailwayMapState, finiteCashOwnedBy } from '@tabletop/18xx'
-import { constructionGame, layTrack, installTile, relocateStation } from './testSupport.js'
+import { constructionGame, layTrack, installTile, relocateStation } from '../test/testSupport.js'
 import { EighteenFortySixTileSet } from './tiles.js'
 import { EighteenFortySixMap } from './map.js'
 import { TrackRules1846 } from './track.js'
@@ -75,10 +75,16 @@ describe('1846 brown construction', () => {
             assertExists(yellow)
             layTrack(table, yellow)
             if (!upgradeFirst) upgrade()
-            expect(table.state.trackStep?.lays.map((lay) => lay.color).sort()).toEqual([
-                'brown',
-                'yellow'
-            ])
+            const board = new RailwayMapState(
+                EighteenFortySixMap,
+                EighteenFortySixTileSet,
+                table.state.tileInventory
+            )
+            expect(
+                table.state.trackStep?.lays
+                    .map((lay) => board.tile(lay.locationId).face.color)
+                    .sort()
+            ).toEqual(['brown', 'yellow'])
             expect(choices(table, 'D14')).toEqual([])
         }
     )

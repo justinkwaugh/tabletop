@@ -1,6 +1,10 @@
+<script lang="ts">
+    import { centredTextShift } from '../presentation/textBaseline.js'
+</script>
+
 <span class="president-badge" role="img" aria-label="President" title="President">
     <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
-        <text x="7" y="7" dy="0.35em" text-anchor="middle">P</text>
+        <text x="7" y="7" dy={centredTextShift(9)} font-size="9" text-anchor="middle">P</text>
     </svg>
 </span>
 

@@ -30,6 +30,9 @@ export const getFrontendPackagePath = (repoRoot: string) =>
 export const getBackendPackagePath = (repoRoot: string) =>
     path.join(repoRoot, 'apps', 'backend', 'package.json')
 
+export const getRealtimePackagePath = (repoRoot: string) =>
+    path.join(repoRoot, 'apps', 'realtime', 'package.json')
+
 export const getGamePackagePaths = (repoRoot: string, packageId: string) => ({
     logic: path.join(repoRoot, 'games', packageId, 'package.json'),
     ui: path.join(repoRoot, 'games', `${packageId}-ui`, 'package.json')
@@ -53,6 +56,14 @@ const parseSemver = (version: string) => {
         minor: Number(match[2]),
         patch: Number(match[3])
     }
+}
+
+export const isVersionAtLeast = (version: string, minimum: string) => {
+    const actual = parseSemver(version)
+    const required = parseSemver(minimum)
+    if (actual.major !== required.major) return actual.major > required.major
+    if (actual.minor !== required.minor) return actual.minor > required.minor
+    return actual.patch >= required.patch
 }
 
 export const bumpVersion = (version: string, bump: BumpType) => {
@@ -136,3 +147,5 @@ export const uiReleaseTag = (packageId: string, version: string) => `${packageId
 export const frontendReleaseTag = (version: string) => `frontend-v${version}`
 
 export const backendReleaseTag = (version: string) => `backend-v${version}`
+
+export const realtimeReleaseTag = (version: string) => `realtime-v${version}`

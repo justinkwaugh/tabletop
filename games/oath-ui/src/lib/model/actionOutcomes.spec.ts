@@ -22,7 +22,11 @@ import {
 import { describeAction } from './actionDescription.js'
 import { slotLabel } from './names.js'
 
-const nameOf = { player: (playerId: string) => ({ me: 'Alice', other: 'Bob' })[playerId] ?? playerId, site: slotLabel, seats: ['me', 'other'] }
+const nameOf = {
+    player: (playerId: string) => ({ me: 'Alice', other: 'Bob' })[playerId] ?? playerId,
+    site: slotLabel,
+    seats: ['me', 'other']
+}
 
 const powerUse = buildAction(UseActionPower, {
     playerId: 'me',
@@ -103,7 +107,12 @@ describe('actorOnlyCards — what the notice and the history row picture for the
         keptCardId: 'denizen.nomad.tents',
         discardOrder: ['denizen.order.messenger'],
         play: SearchPlay.Adviser,
-        metadata: { discardedCardIds: ['denizen.order.messenger'], discardedCount: 1, discardPileRegion: Region.Cradle, favorGained: 0 }
+        metadata: {
+            discardedCardIds: ['denizen.order.messenger'],
+            discardedCount: 1,
+            discardPileRegion: Region.Cradle,
+            favorGained: 0
+        }
     })
 
     it('pictures a peek, then the pile deposit, each card once', () => {
@@ -112,7 +121,10 @@ describe('actorOnlyCards — what the notice and the history row picture for the
 
     it('pictures the relic sent to the bottom, the cards stacked, and a Search’s discards', () => {
         expect(actorOnlyCards(keepOrBottom, 'me')).toEqual(['relic.map'])
-        expect(actorOnlyCards(stacked, 'me')).toEqual(['denizen.order.messenger', 'denizen.nomad.tents'])
+        expect(actorOnlyCards(stacked, 'me')).toEqual([
+            'denizen.order.messenger',
+            'denizen.nomad.tents'
+        ])
         expect(actorOnlyCards(searched, 'me')).toEqual(['denizen.order.messenger'])
     })
 
@@ -125,7 +137,10 @@ describe('actorOnlyCards — what the notice and the history row picture for the
     })
 
     it('the notice reads only the viewer’s latest action', () => {
-        expect(latestActorOnlyCards([powerUse], 'me')).toEqual(['relic.map', 'denizen.order.messenger'])
+        expect(latestActorOnlyCards([powerUse], 'me')).toEqual([
+            'relic.map',
+            'denizen.order.messenger'
+        ])
         expect(latestActorOnlyCards([powerUse, endPhase], 'me')).toEqual([])
     })
 })
@@ -142,12 +157,12 @@ describe('pile deposits and merges', () => {
     it('the history names the region to everyone and the cards to the actor alone', () => {
         const toActor = describeAction(powerUse, nameOf, 'me')
         const toOther = describeAction(powerUse, nameOf, 'other')
-        expect(toActor).toContain('Messenger went to the cradle discard pile')
+        expect(toActor).toContain('Messenger went to the Cradle discard pile')
         expect(toActor).toContain('you saw')
-        expect(toOther).toContain('cards went to the cradle discard pile')
+        expect(toOther).toContain('cards went to the Cradle discard pile')
         expect(toOther).not.toContain('Messenger')
         expect(toOther).not.toContain('you saw')
-        expect(toOther).toContain('the provinces discard pile went onto the hinterland pile')
+        expect(toOther).toContain('the Provinces discard pile went onto the Hinterland pile')
     })
 
     it('an answer that stacks cards on a pile (Pilgrimage) names them to its actor alone', () => {
@@ -155,7 +170,9 @@ describe('pile deposits and merges', () => {
             { region: Region.Cradle, cardIds: ['denizen.order.messenger', 'denizen.nomad.tents'] }
         ])
         expect(describeAction(stacked, nameOf, 'me')).toContain('Messenger')
-        expect(describeAction(stacked, nameOf, 'other')).toContain('cards went to the cradle discard pile')
+        expect(describeAction(stacked, nameOf, 'other')).toContain(
+            'cards went to the Cradle discard pile'
+        )
         expect(describeAction(stacked, nameOf, 'other')).not.toContain('Messenger')
     })
 

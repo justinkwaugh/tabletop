@@ -1,0 +1,549 @@
+{
+ "game": {
+  "id": "scenario-guns-resting-on-a-crowded-front",
+  "isPublic": false,
+  "status": "started",
+  "typeId": "napoleons-triumph",
+  "deleted": false,
+  "name": "Guns resting on a crowded front",
+  "ownerId": "owner",
+  "players": [
+   {
+    "id": "p0",
+    "name": "Player 1",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "p1",
+    "name": "Player 2",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "config": {},
+  "hotseat": false,
+  "winningPlayerIds": [],
+  "seed": 3367980177,
+  "activePlayerIds": [
+   "p1"
+  ],
+  "createdAt": "2026-10-16T17:48:21.100Z",
+  "storage": "remote",
+  "category": "standard",
+  "startedAt": "2026-10-16T17:48:21.100Z",
+  "protectedInformation": true
+ },
+ "state": {
+  "systemVersion": 3,
+  "id": "5Jv3GP1fXaD_xItFq4jvn",
+  "gameId": "scenario-guns-resting-on-a-crowded-front",
+  "seed": 3367980177,
+  "prng": {
+   "seed": 3367980177,
+   "invocations": 1
+  },
+  "protectedPrng": {
+   "algorithm": "chacha20-v1",
+   "seed": "033aacbe6212a2c9bee0cb5c71682e564dd13d1188be676e6f5a533a83f821c3",
+   "invocations": 388
+  },
+  "masterSeed": "0123456789abcdef0123456789abcdef",
+  "activePlayerIds": [
+   "p1"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 0,
+  "actionChecksum": 0,
+  "players": [
+   {
+    "playerId": "p0",
+    "color": "red",
+    "morale": 27,
+    "moraleLost": 0,
+    "corpsCommandsUsed": 0,
+    "independentCommandsUsed": 0,
+    "heavyCavalryCommitted": false,
+    "guardCommitted": false,
+    "guardAttackForfeited": false,
+    "artilleryFire": {
+     "244": 1,
+     "252": 1
+    },
+    "side": "Allied",
+    "armyDisplay": [
+     {
+      "type": "Artillery",
+      "strength": 1
+     },
+     {
+      "type": "Infantry",
+      "strength": 3
+     },
+     {
+      "type": "Infantry",
+      "strength": 2
+     },
+     {
+      "type": "Artillery",
+      "strength": 1
+     },
+     {
+      "type": "Infantry",
+      "strength": 3
+     },
+     {
+      "type": "Infantry",
+      "strength": 2
+     },
+     {
+      "type": "Infantry",
+      "strength": 3
+     },
+     {
+      "type": "Infantry",
+      "strength": 2
+     },
+     {
+      "type": "Infantry",
+      "strength": 2
+     },
+     {
+      "type": "Infantry",
+      "strength": 3
+     },
+     {
+      "type": "Infantry",
+      "strength": 2
+     }
+    ]
+   },
+   {
+    "playerId": "p1",
+    "color": "blue",
+    "morale": 23,
+    "moraleLost": 0,
+    "corpsCommandsUsed": 0,
+    "independentCommandsUsed": 0,
+    "heavyCavalryCommitted": false,
+    "guardCommitted": false,
+    "guardAttackForfeited": false,
+    "artilleryFire": {
+     "245": 2,
+     "253": 1,
+     "286": 1
+    },
+    "side": "French",
+    "armyDisplay": [
+     {
+      "type": "Artillery",
+      "strength": 1
+     },
+     {
+      "type": "Artillery",
+      "strength": 1
+     },
+     {
+      "type": "Artillery",
+      "strength": 1
+     },
+     {
+      "type": "Infantry",
+      "strength": 3
+     },
+     {
+      "type": "Artillery",
+      "strength": 1
+     },
+     {
+      "type": "Infantry",
+      "strength": 3
+     },
+     {
+      "type": "Infantry",
+      "strength": 2
+     },
+     {
+      "type": "Infantry",
+      "strength": 3
+     }
+    ]
+   }
+  ],
+  "machineState": "Commanding",
+  "turnManager": {
+   "series": [
+    {
+     "type": "turn",
+     "playerId": "p1",
+     "start": 0
+    }
+   ],
+   "turnOrder": [
+    "p0",
+    "p1"
+   ],
+   "turnCounts": {
+    "p0": 3,
+    "p1": 2
+   }
+  },
+  "rounds": {
+   "series": [
+    {
+     "type": "round",
+     "start": 0,
+     "number": 3
+    }
+   ]
+  },
+  "scenario": "December2",
+  "santon": false,
+  "units": [
+   {
+    "id": "F01",
+    "playerId": "p1",
+    "face": {
+     "type": "Artillery",
+     "strength": 1
+    },
+    "position": {
+     "locale": 83,
+     "approach": 253
+    }
+   },
+   {
+    "id": "F02",
+    "playerId": "p1",
+    "face": {
+     "type": "Artillery",
+     "strength": 1
+    },
+    "position": {
+     "locale": 83,
+     "approach": 253
+    }
+   },
+   {
+    "id": "F03",
+    "playerId": "p1",
+    "face": {
+     "type": "Artillery",
+     "strength": 1
+    },
+    "position": {
+     "locale": 83,
+     "approach": 245
+    }
+   },
+   {
+    "id": "F04",
+    "playerId": "p1",
+    "face": {
+     "type": "Infantry",
+     "strength": 3
+    },
+    "commanderId": "st-hilaire",
+    "position": {
+     "locale": 83,
+     "approach": 286
+    }
+   },
+   {
+    "id": "F05",
+    "playerId": "p1",
+    "face": {
+     "type": "Artillery",
+     "strength": 1
+    },
+    "commanderId": "st-hilaire",
+    "position": {
+     "locale": 83,
+     "approach": 286
+    }
+   },
+   {
+    "id": "F06",
+    "playerId": "p1",
+    "face": {
+     "type": "Infantry",
+     "strength": 3
+    },
+    "commanderId": "vandamme",
+    "position": {
+     "locale": 83
+    }
+   },
+   {
+    "id": "F07",
+    "playerId": "p1",
+    "face": {
+     "type": "Infantry",
+     "strength": 2
+    },
+    "commanderId": "vandamme",
+    "position": {
+     "locale": 83
+    }
+   },
+   {
+    "id": "F08",
+    "playerId": "p1",
+    "face": {
+     "type": "Infantry",
+     "strength": 3
+    },
+    "commanderId": "legrand",
+    "position": {
+     "locale": 83,
+     "approach": 288
+    }
+   },
+   {
+    "id": "A01",
+    "playerId": "p0",
+    "face": {
+     "type": "Artillery",
+     "strength": 1
+    },
+    "position": {
+     "locale": 74,
+     "approach": 252
+    }
+   },
+   {
+    "id": "A02",
+    "playerId": "p0",
+    "face": {
+     "type": "Infantry",
+     "strength": 3
+    },
+    "commanderId": "miloradovich",
+    "position": {
+     "locale": 74
+    }
+   },
+   {
+    "id": "A03",
+    "playerId": "p0",
+    "face": {
+     "type": "Infantry",
+     "strength": 2
+    },
+    "commanderId": "miloradovich",
+    "position": {
+     "locale": 74
+    }
+   },
+   {
+    "id": "A04",
+    "playerId": "p0",
+    "face": {
+     "type": "Artillery",
+     "strength": 1
+    },
+    "position": {
+     "locale": 72,
+     "approach": 244
+    }
+   },
+   {
+    "id": "A05",
+    "playerId": "p0",
+    "face": {
+     "type": "Infantry",
+     "strength": 3
+    },
+    "commanderId": "kollowrath",
+    "position": {
+     "locale": 72
+    }
+   },
+   {
+    "id": "A06",
+    "playerId": "p0",
+    "face": {
+     "type": "Infantry",
+     "strength": 2
+    },
+    "commanderId": "kollowrath",
+    "position": {
+     "locale": 72
+    }
+   },
+   {
+    "id": "A07",
+    "playerId": "p0",
+    "face": {
+     "type": "Infantry",
+     "strength": 3
+    },
+    "commanderId": "prebyshevsky",
+    "position": {
+     "locale": 94
+    }
+   },
+   {
+    "id": "A08",
+    "playerId": "p0",
+    "face": {
+     "type": "Infantry",
+     "strength": 2
+    },
+    "commanderId": "prebyshevsky",
+    "position": {
+     "locale": 94
+    }
+   },
+   {
+    "id": "A09",
+    "playerId": "p0",
+    "face": {
+     "type": "Infantry",
+     "strength": 2
+    },
+    "commanderId": "prebyshevsky",
+    "position": {
+     "locale": 94
+    }
+   },
+   {
+    "id": "A10",
+    "playerId": "p0",
+    "face": {
+     "type": "Infantry",
+     "strength": 3
+    },
+    "commanderId": "langeron",
+    "position": {
+     "locale": 95
+    }
+   },
+   {
+    "id": "A11",
+    "playerId": "p0",
+    "face": {
+     "type": "Infantry",
+     "strength": 2
+    },
+    "commanderId": "langeron",
+    "position": {
+     "locale": 95
+    }
+   }
+  ],
+  "commanders": [
+   {
+    "id": "bernadotte",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "bessieres",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "davout",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "lannes",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "legrand",
+    "playerId": "p1",
+    "position": {
+     "locale": 83,
+     "approach": 288
+    }
+   },
+   {
+    "id": "murat",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "st-hilaire",
+    "playerId": "p1",
+    "position": {
+     "locale": 83,
+     "approach": 286
+    }
+   },
+   {
+    "id": "vandamme",
+    "playerId": "p1",
+    "position": {
+     "locale": 83
+    }
+   },
+   {
+    "id": "bagration",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "constantine",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "dokhturov",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "kienmayer",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "kollowrath",
+    "playerId": "p0",
+    "position": {
+     "locale": 72
+    }
+   },
+   {
+    "id": "langeron",
+    "playerId": "p0",
+    "position": {
+     "locale": 95
+    }
+   },
+   {
+    "id": "liechtenstein",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "miloradovich",
+    "playerId": "p0",
+    "position": {
+     "locale": 74
+    }
+   },
+   {
+    "id": "prebyshevsky",
+    "playerId": "p0",
+    "position": {
+     "locale": 94
+    }
+   }
+  ],
+  "frenchReinforcementsEntered": false,
+  "limits": {
+   "closedApproaches": [],
+   "bombardedApproaches": [
+    245
+   ],
+   "stormedLocales": [],
+   "marchedLocales": []
+  }
+ },
+ "actions": []
+}

@@ -5,8 +5,7 @@
         MARK_PAPER,
         MARK_WIDTH,
         TAG_HEIGHT,
-        approachSymbolScale,
-        tagCentre
+        approachSymbolScale
     } from '$lib/utils/approachSymbols.js'
     import PrintedMark from './PrintedMark.svelte'
 
@@ -17,8 +16,11 @@
 
 <g class="pointer-events-none">
     {#each gameSession.approachSymbolTags as tag (tag.key)}
-        {@const centre = tagCentre(tag, scale)}
-        <g transform="translate({centre.x} {centre.y}) rotate({tag.angle}) scale({scale})">
+        <g
+            transform="translate({tag.centre.x} {tag.centre.y}) rotate({tag.angle}) scale({scale})"
+            data-symbol-tag={tag.key}
+            data-slid={tag.slid ? '' : undefined}
+        >
             <rect
                 x={-tag.width / 2}
                 y={-TAG_HEIGHT / 2}

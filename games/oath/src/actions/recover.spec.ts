@@ -35,9 +35,7 @@ registerCards([
 ])
 
 function recover(playerId: string, fields: Partial<Recover>) {
-    return new HydratedRecover(
-        buildAction(Recover, { playerId, ...fields })
-    )
+    return new HydratedRecover(buildAction(Recover, { playerId, ...fields }))
 }
 
 function relicTarget(slotId: string) {

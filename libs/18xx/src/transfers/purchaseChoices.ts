@@ -33,7 +33,7 @@ export function purchaseChoices(
             .map((company) => ({ kind: 'private', privateCompanyId: company.id }) as const)
     ]
     return assets.flatMap((asset) => {
-        const seller = assetOwner(state, asset)
+        const seller = assetOwner(state, rules.charters, asset)
         const range = rules.priceRange(state, companyId, asset)
         if (!seller || !range) return []
         const request = { companyId, asset, seller, price: range.minimum }

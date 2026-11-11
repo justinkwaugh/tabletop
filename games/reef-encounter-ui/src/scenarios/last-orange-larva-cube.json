@@ -31,15 +31,15 @@
   "activePlayerIds": [
    "p1"
   ],
-  "createdAt": "2026-10-15T01:24:01.682Z",
+  "createdAt": "2026-10-16T19:06:20.556Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-10-15T01:24:01.682Z",
+  "startedAt": "2026-10-16T19:06:20.557Z",
   "protectedInformation": true
  },
  "state": {
   "systemVersion": 3,
-  "id": "TojrmGNzBkxnsP9cLje7e",
+  "id": "dyMRMJdliA2byco3dXPtw",
   "gameId": "scenario-last-orange-larva-cube",
   "seed": 3367980177,
   "prng": {
@@ -370,6 +370,7 @@
   },
   "bonusPolypsInBag": false,
   "colorsMissingFromBag": [],
+  "bonusSpacesRefillAtTurnEnd": true,
   "advanced": false,
   "algaSupply": {
    "blue": 5,

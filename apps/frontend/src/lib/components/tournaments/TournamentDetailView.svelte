@@ -1,18 +1,38 @@
 <script lang="ts">
+    import { listenForCompetitionChanges } from '$lib/services/competitionUpdates'
+    import { LatestRequest } from '$lib/utils/latestRequest'
     import { onMount } from 'svelte'
-    import { Role, type TournamentDetail } from '@tabletop/common'
-    import { getAppContext } from '$lib/stores/appContext.svelte'
-    import { listenForTournamentChanges } from '$lib/services/tournamentUpdates'
     import {
-        tournamentFormatText,
+        placementScoringDescription,
+        ranksByAveragePlace,
+        tournamentTiebreakDescription,
+        Role,
+        tournamentAccountIds,
+        tournamentCapacity,
+        tournamentEntrantAccount,
+        tournamentInPlay,
+        type TournamentDetail,
+        type TournamentEntrant
+    } from '@tabletop/common'
+    import { getAppContext } from '$lib/stores/appContext.svelte'
+    import {
+        tournamentLeagueHref,
+        tournamentRosterText,
+        tournamentTag,
+        tournamentTagTitle,
         tournamentRegistrationText,
         tournamentRegistrationOpen,
         tournamentStatusText,
-        tournamentStatusColor
+        tournamentStatusColor,
+        tournamentAveragePlaceText,
+        tournamentScoringText,
+        tournamentTiebreakTexts
     } from '$lib/utils/tournamentPresentation'
+    import { accountName } from '$lib/utils/accountName'
     import TournamentScheduleView from './TournamentScheduleView.svelte'
     import TournamentForm from './TournamentForm.svelte'
     import TournamentResultCorrection from './TournamentResultCorrection.svelte'
+    import TournamentReplacePlayer from './TournamentReplacePlayer.svelte'
     import TournamentGameOptions from './TournamentGameOptions.svelte'
 
     let { id }: { id: string } = $props()
@@ -37,46 +57,55 @@
               )
             : (tournament?.entrants ?? [])
     )
-    let winners = $derived(
-        tournament?.status === 'finished'
-            ? (detail?.standings?.filter((row) => row.rank === 1) ?? [])
-            : []
-    )
+    let winners = $derived(detail?.standings?.filter((row) => row.champion) ?? [])
     let showTiebreak = $derived(
         detail?.standings?.some((row) => row.tiebreak !== undefined) ?? false
     )
+    let tiebreakDescription = $derived(tournamentTiebreakDescription(detail?.standings ?? []))
+    let tiebreakTexts = $derived(tournamentTiebreakTexts(detail?.standings ?? []))
+    let ranksByPlace = $derived(tournament ? ranksByAveragePlace(tournament.rules) : false)
     let scheduleFirst = $derived(Boolean(tournament?.stages[0]?.scheduleId))
     let title = $derived(
         tournament ? libraryService.titlesById[tournament.rules.titleId] : undefined
     )
     let joined = $derived(
-        detail?.tournament.entrants.some((entrant) => entrant.userId === user?.id)
+        !!detail && !!user && tournamentAccountIds(detail.tournament).includes(user.id)
     )
     let registrationOpen = $derived(
         tournament ? tournamentRegistrationOpen(tournament, now) : false
     )
     let full = $derived(
         tournament
-            ? tournament.entrants.length >= (tournament.rules.registration.capacity ?? 256)
+            ? tournament.entrants.length >=
+                  (tournamentCapacity(tournament.rules.registration) ?? 256)
             : false
     )
     let correcting = $state(false)
+    let replacing = $state(false)
     let editingDraft = $state(false)
     let loadError = $state('')
     let actionError = $state('')
     let busy = $state(false)
-    let request = 0
+    const requests = new LatestRequest()
+
+    function username(userId: string) {
+        return accountName(detail?.usernames ?? {}, userId)
+    }
+    // The account playing a place: a Substitute's once they have replaced the Entrant.
+    function playing(entrant: TournamentEntrant) {
+        return standingByUser.get(entrant.userId)?.playedBy ?? tournamentEntrantAccount(entrant)
+    }
 
     async function refresh() {
-        const current = ++request
+        const current = requests.begin()
         try {
             const value = await api.getTournament(id)
-            if (current === request) {
+            if (current()) {
                 detail = value
                 loadError = ''
             }
         } catch (failure) {
-            if (current === request)
+            if (current())
                 loadError = failure instanceof Error ? failure.message : 'Could not load tournament'
         }
     }
@@ -113,11 +142,13 @@
         const clock = setInterval(() => {
             now = Date.now()
         }, 1000)
-        const unsubscribe = listenForTournamentChanges(notificationService, refresh, id)
+        const unsubscribe = listenForCompetitionChanges(notificationService, refresh, {
+            tournament: (tournamentId) => tournamentId === id
+        })
         void refresh()
         return () => {
             clearInterval(clock)
-            request++
+            requests.cancel()
             unsubscribe()
         }
     })
@@ -130,7 +161,8 @@
 >
     <a
         class="text-xs text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
-        href="/tournaments">← Tournaments</a
+        href={tournament?.league ? tournamentLeagueHref(tournament.league) : '/tournaments'}
+        >← {tournament?.league ? tournament.league.leagueName : 'Tournaments'}</a
     >
     {#each [loadError, actionError].filter(Boolean) as message, i (i)}
         <p role="alert" class="mt-3 text-sm text-red-600 dark:text-red-300">{message}</p>
@@ -152,16 +184,22 @@
                         <h1
                             class="font-tournament break-words text-2xl font-semibold leading-tight sm:text-3xl"
                         >
-                            {tournament.name}
+                            {#if tournament.league}<a
+                                    class="hover:text-blue-700 dark:hover:text-blue-300"
+                                    href={tournamentLeagueHref(tournament.league)}
+                                    >{tournament.league.leagueName}</a
+                                >
+                                · Season {tournament.league.seasonId} · Group {tournament.league
+                                    .groupId}{:else}{tournament.name}{/if}
                         </h1>
                         <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
                             <p class="text-xs text-gray-500 dark:text-gray-400">
                                 {title?.info.metadata.name ?? tournament.rules.titleId}
                             </p>
                             <span
-                                title={tournamentFormatText(tournament.format)}
+                                title={tournamentTagTitle(tournament)}
                                 class="rounded bg-gray-100 px-1.5 py-0.5 text-[0.6rem] leading-none text-gray-500 dark:bg-gray-700/60 dark:text-gray-400"
-                                >{tournament.format.kind === 'mini' ? 'Mini' : 'Multi-stage'}</span
+                                >{tournamentTag(tournament)}</span
                             >
                         </div>
                         <p
@@ -245,6 +283,14 @@
                                         >
                                     {/if}
                                 {/if}
+                                {#if tournament.stages[0]?.scheduleId && tournamentInPlay(tournament.status)}
+                                    <button
+                                        class="w-full rounded px-2 py-1.5 text-left text-xs hover:bg-gray-100 dark:hover:bg-gray-700"
+                                        disabled={busy}
+                                        onclick={() => (replacing = !replacing)}
+                                        >Replace a player</button
+                                    >
+                                {/if}
                                 {#if showStandings}
                                     <button
                                         class="w-full rounded px-2 py-1.5 text-left text-xs hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -258,7 +304,7 @@
                                         onclick={rebuildStandings}>Rebuild standings</button
                                     >
                                 {/if}
-                                {#if tournament.status !== 'inProgress' && tournament.status !== 'finished'}
+                                {#if !tournament.league && tournament.status !== 'inProgress' && tournament.status !== 'finished'}
                                     <button
                                         class="w-full rounded px-2 py-1.5 text-left text-xs text-red-600 hover:bg-red-50 disabled:opacity-50 dark:text-red-300 dark:hover:bg-red-950/30"
                                         disabled={busy}
@@ -286,7 +332,7 @@
                             class={winner.userId === user?.id
                                 ? 'text-orange-700 dark:text-orange-300'
                                 : 'text-blue-700 dark:text-blue-300'}
-                            >{detail.usernames[winner.userId] ?? 'Unavailable account'}</span
+                            >{username(winner.userId)}</span
                         >
                     {/each}
                 </p>
@@ -305,6 +351,15 @@
                 {/if}
             </p>
         </header>
+        {#if isAdmin && replacing && tournamentInPlay(tournament.status)}
+            <TournamentReplacePlayer
+                {detail}
+                onchanged={() => {
+                    replacing = false
+                    void refresh()
+                }}
+            />
+        {/if}
         {#if isAdmin && correcting && showStandings}
             <TournamentResultCorrection {detail} onchanged={() => void refresh()} />
         {/if}
@@ -348,9 +403,7 @@
                 <div class="mb-2 flex items-baseline justify-between gap-3">
                     <h2 id="entrants-heading" class="font-tournament text-lg font-semibold">
                         Players <span class="ml-1 text-gray-500"
-                            >{tournament.entrants.length}{tournament.rules.registration.capacity
-                                ? ` / ${tournament.rules.registration.capacity}`
-                                : ''}</span
+                            >{tournamentRosterText(tournament)}</span
                         >
                     </h2>
                     {#if tournament.status === 'open' && !detail.tournament.entrants.length}<span
@@ -366,12 +419,18 @@
                                 <th class="pb-2 font-normal">Name</th>
                                 {#if showStandings}
                                     <th class="w-16 pb-2 text-right font-normal">Wins</th>
-                                    <th class="w-20 pb-2 text-right font-normal">Score</th>
+                                    {#if ranksByPlace}
+                                        <th
+                                            class="w-20 pb-2 text-right font-normal"
+                                            title={placementScoringDescription}>Avg place</th
+                                        >
+                                    {:else}
+                                        <th class="w-20 pb-2 text-right font-normal">Score</th>
+                                    {/if}
                                     {#if showTiebreak}
                                         <th
                                             class="w-24 pb-2 text-right font-normal"
-                                            title="Sum of final scores from each game"
-                                            >Tiebreak</th
+                                            title={tiebreakDescription}>Tiebreak</th
                                         >
                                     {/if}
                                 {:else if joined && registrationOpen}
@@ -382,30 +441,47 @@
                         <tbody class="divide-y divide-gray-200/60 dark:divide-gray-700/40">
                             {#each entrants as entrant (entrant.userId)}
                                 {@const standing = standingByUser.get(entrant.userId)}
-                                <tr>
+                                {@const account = playing(entrant)}
+                                <tr
+                                    class={standing?.withdrawn
+                                        ? 'text-gray-400 dark:text-gray-500'
+                                        : ''}
+                                >
                                     <td class="py-2.5 pr-3">
                                         <div class="flex min-w-0 items-center gap-2">
                                             {#if standing}<span
                                                     class="w-4 shrink-0 text-xs tabular-nums text-gray-500"
-                                                    >{standing.rank}</span
+                                                    >{standing.withdrawn
+                                                        ? '–'
+                                                        : standing.rank}</span
                                                 >{/if}
                                             <span
-                                                class="truncate {entrant.userId === user?.id
+                                                class="truncate {account === user?.id
                                                     ? 'text-orange-700 dark:text-orange-300'
                                                     : ''}"
-                                                title={detail.usernames[entrant.userId] ??
-                                                    'Unavailable account'}
+                                                title={username(account)}
                                             >
-                                                {detail.usernames[entrant.userId] ??
-                                                    'Unavailable account'}
+                                                {username(account)}
                                             </span>
+                                            {#if account !== entrant.userId}<span
+                                                    class="shrink-0 truncate text-xs text-gray-500"
+                                                    title="Substitute for {username(
+                                                        entrant.userId
+                                                    )}">for {username(entrant.userId)}</span
+                                                >{/if}
+                                            {#if standing?.withdrawn}<span
+                                                    class="shrink-0 rounded border border-gray-300 px-1 text-[10px] dark:border-gray-600"
+                                                    >Withdrawn</span
+                                                >{/if}
                                             {#if winners.some((winner) => winner.userId === entrant.userId)}<span
                                                     class="shrink-0 text-amber-600 dark:text-amber-400"
                                                     aria-label="Tournament winner"
                                                     title="Tournament winner">★</span
                                                 >{/if}
                                         </div>
-                                        {#if standing}<p class="mt-1 text-[11px] text-gray-500">
+                                        {#if standing && !standing.withdrawn}<p
+                                                class="mt-1 text-[11px] text-gray-500"
+                                            >
                                                 {standing.completed} finished · {standing.active} active
                                                 · {standing.remaining - standing.active} waiting
                                             </p>{/if}
@@ -415,20 +491,30 @@
                                             class="py-2.5 text-right tabular-nums text-gray-400"
                                             aria-label="Wins">{standing?.wins ?? '—'}</td
                                         >
-                                        <td
-                                            class="py-2.5 text-right tabular-nums text-gray-400"
-                                            aria-label="Score"
-                                            >{standing?.score.toLocaleString(undefined, {
-                                                maximumFractionDigits: 3
-                                            }) ?? '—'}</td
-                                        >
+                                        {#if ranksByPlace}
+                                            <td
+                                                class="py-2.5 text-right tabular-nums text-gray-400"
+                                                aria-label="Average place"
+                                                >{standing
+                                                    ? tournamentAveragePlaceText(standing)
+                                                    : '—'}</td
+                                            >
+                                        {:else}
+                                            <td
+                                                class="py-2.5 text-right tabular-nums text-gray-400"
+                                                aria-label="Score"
+                                                >{standing?.score.toLocaleString(undefined, {
+                                                    maximumFractionDigits: 3
+                                                }) ?? '—'}</td
+                                            >
+                                        {/if}
                                         {#if showTiebreak}
                                             <td
                                                 class="py-2.5 text-right tabular-nums text-gray-400"
                                                 aria-label="Tiebreak"
-                                                >{standing?.tiebreak?.toLocaleString(undefined, {
-                                                    maximumFractionDigits: 3
-                                                }) ?? '—'}</td
+                                                >{(standing &&
+                                                    tiebreakTexts.get(standing.userId)) ??
+                                                    '—'}</td
                                             >
                                         {/if}
                                     {:else if joined && registrationOpen}
@@ -494,7 +580,7 @@
                 >
                     <h2 id="scoring-heading" class="mb-1 text-sm font-medium">Scoring</h2>
                     <p class="text-xs leading-relaxed text-gray-500 dark:text-gray-400">
-                        A win earns 1 point; joint winners split it.
+                        {tournamentScoringText(tournament.rules)}
                     </p>
                 </section>
             </aside>

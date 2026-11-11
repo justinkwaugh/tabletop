@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { ActionSource } from '@tabletop/common'
+import { isPassFinalTurn } from '../actions/passFinalTurn.js'
 import { isEndGame } from '../actions/endGame.js'
 import { isEatCoral } from '../actions/eatCoral.js'
 import { isPlayAlgaCylinder } from '../actions/playAlgaCylinder.js'
@@ -51,6 +53,13 @@ function pass(session: TestSession) {
     return session.act(session.currentPlayerId(), ActionType.PassFinalTurn)
 }
 
+// The players whose final turns the game passed for them, in order.
+function autoPassed(session: TestSession) {
+    return session.actions
+        .filter((action) => isPassFinalTurn(action) && action.source === ActionSource.System)
+        .map((action) => action.playerId)
+}
+
 function eat(session: TestSession) {
     return session.act(session.currentPlayerId(), ActionType.EatCoral, {
         boardId: 3,
@@ -63,7 +72,7 @@ function endedWithReveal(session: TestSession) {
 }
 
 describe('locking the last coral tile', () => {
-    it('ends the turn at once and gives every other player a final turn', () => {
+    it('ends the turn at once; players with nothing to score pass automatically', () => {
         const session = startOnBoardThree([], [], 3)
         const [first, second, third] = session.state.turnManager.turnOrder
         lastTileLeft(session)
@@ -73,13 +82,9 @@ describe('locking the last coral tile', () => {
 
         expect(isPlayAlgaCylinder(lock) && lock.metadata?.startsFinalTurns).toBe(true)
         expect(session.hydrated().lastFinalTurnPlayerId()).toBe(third)
-        expect(session.state.machineState).toBe(MachineState.FinalTurns)
         expect(session.state.endReason).toBe(GameEndReason.AllTilesLocked)
         expect(session.state.endingPlayerId).toBe(first)
-        expect(session.currentPlayerId()).toBe(second)
-        pass(session)
-        expect(session.currentPlayerId()).toBe(third)
-        pass(session)
+        expect(autoPassed(session)).toEqual([second, third])
 
         expect(session.state.machineState).toBe(MachineState.EndOfGame)
         expect(session.state.result).toBeDefined()
@@ -92,8 +97,6 @@ describe('the end of the game', () => {
         const session = startOnBoardThree([], [], 3)
         lastTileLeft(session)
         lockLastTile(session)
-        pass(session)
-        pass(session)
 
         const ended = session.actions.find((action) => isEndGame(action))
         expect(isEndGame(ended) && ended.metadata?.setupParrotfishPolyps).toEqual(
@@ -122,9 +125,9 @@ describe('eating the fourth shrimp', () => {
         const eaten = eat(session).find((action) => isEatCoral(action))
 
         expect(isEatCoral(eaten) && eaten.metadata?.startsFinalTurns).toBe(true)
-        expect(session.state.machineState).toBe(MachineState.FinalTurns)
         expect(session.state.endReason).toBe(GameEndReason.FourShrimpsEaten)
-        expect(session.currentPlayerId()).toBe(second)
+        expect(autoPassed(session)).toEqual([second])
+        expect(session.state.machineState).toBe(MachineState.EndOfGame)
     })
 })
 
@@ -171,6 +174,42 @@ describe('final turns', () => {
         expect(session.state.polypBag.remaining).toBe(bag + 6)
         const eater = session.state.players.find((player) => player.playerId === second)
         expect(eater?.knownParrotfishPolyps?.[CoralColor.White]).toBe(1)
+    })
+
+    it('asks a player whose shrimp guards a coral that would score', () => {
+        const session = startFinalTurns()
+        const [, second] = session.state.turnManager.turnOrder
+
+        expect(session.state.machineState).toBe(MachineState.FinalTurns)
+        expect(session.currentPlayerId()).toBe(second)
+        expect(autoPassed(session)).toEqual([])
+        expect(() => pass(session)).not.toThrow()
+    })
+
+    it('passes for a player whose shrimp guards only a coral of five', () => {
+        const session = startOnBoardThree(coral(5))
+        const [, second] = session.state.turnManager.turnOrder
+        session.edit((draft) => {
+            draft.shrimps = [{ playerId: second, boardId: 3, coords: at(6, 0) }]
+        })
+        lastTileLeft(session)
+        lockLastTile(session)
+
+        expect(autoPassed(session)).toEqual([second])
+        expect(session.state.machineState).toBe(MachineState.EndOfGame)
+    })
+
+    it('passes for a coral of six in the Advanced game, which returns six', () => {
+        const session = startOnBoardThree(coral(6))
+        const [, second] = session.state.turnManager.turnOrder
+        session.edit((draft) => {
+            draft.advanced = true
+            draft.shrimps = [{ playerId: second, boardId: 3, coords: at(6, 0) }]
+        })
+        lastTileLeft(session)
+        lockLastTile(session)
+
+        expect(autoPassed(session)).toEqual([second])
     })
 
     it('allows nothing but eating or passing', () => {

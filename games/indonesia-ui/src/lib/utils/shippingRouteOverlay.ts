@@ -1,3 +1,4 @@
+import { BOARD_HEIGHT, BOARD_WIDTH } from '$lib/definitions/boardSize.js'
 import type { Point } from '@tabletop/common'
 import { ALL_BOARD_AREAS, boardAreaPathById } from '$lib/definitions/boardGeometry.js'
 import { SEA_SHIP_MARKER_POSITIONS } from '$lib/definitions/seaShipMarkerPositions.js'
@@ -60,8 +61,6 @@ type RoutingContext = {
 }
 
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg'
-const BOARD_WIDTH = 2646
-const BOARD_HEIGHT = 1280
 const DEFAULT_LAND_INFLATION_PIXELS = 15
 const DEFAULT_SEA_INSET_PIXELS = 0
 const LAND_INFLATION_RETRY_STEPS = [15, 12, 9, 6, 3, 0] as const
@@ -627,7 +626,8 @@ function isWaterCell(cell: GridCell, routingContext: RoutingContext): boolean {
     }
 
     const point = cellToPoint(cell)
-    const blocked = pointIsBlocked(point, routingContext) || pointViolatesSeaInset(point, routingContext)
+    const blocked =
+        pointIsBlocked(point, routingContext) || pointViolatesSeaInset(point, routingContext)
 
     blockedCellStates[cellKey] = blocked ? CELL_STATE_BLOCKED : CELL_STATE_WATER
     return !blocked
@@ -997,7 +997,10 @@ function routeThroughWaterWithAdaptiveLandInflation(
             continue
         }
 
-        const retryContext = routingContextWithLandInflation(baseRoutingContext, landInflationPixels)
+        const retryContext = routingContextWithLandInflation(
+            baseRoutingContext,
+            landInflationPixels
+        )
         const attempt = routeThroughWater(start, end, retryContext)
         if (!attempt) {
             continue
@@ -1034,7 +1037,8 @@ function routeThroughWaterWithAdaptiveLandInflation(
     const absoluteGain = baseCandidate.length - bestCandidate.length
     const relativeGain = absoluteGain / Math.max(1, baseCandidate.length)
     const shouldSwitch =
-        absoluteGain >= RETRY_SWITCH_MIN_ABSOLUTE_GAIN || relativeGain >= RETRY_SWITCH_MIN_RELATIVE_GAIN
+        absoluteGain >= RETRY_SWITCH_MIN_ABSOLUTE_GAIN ||
+        relativeGain >= RETRY_SWITCH_MIN_RELATIVE_GAIN
 
     return shouldSwitch ? bestCandidate.path : baseCandidate.path
 }
@@ -1058,7 +1062,10 @@ function firstWaterPointAlongLineWithAdaptiveLandInflation(
             continue
         }
 
-        const retryContext = routingContextWithLandInflation(baseRoutingContext, landInflationPixels)
+        const retryContext = routingContextWithLandInflation(
+            baseRoutingContext,
+            landInflationPixels
+        )
         const retryPoint = firstWaterPointAlongLine(landPoint, towardPoint, retryContext)
         if (!retryPoint) {
             continue
@@ -1206,7 +1213,9 @@ function pointsToSvgPath(
 
     const shipWaypointPoints = options?.shipWaypointPoints ?? []
     const routingContext = options?.routingContext
-    const pathCommands: string[] = [`M ${formatCoordinate(points[0].x)} ${formatCoordinate(points[0].y)}`]
+    const pathCommands: string[] = [
+        `M ${formatCoordinate(points[0].x)} ${formatCoordinate(points[0].y)}`
+    ]
     let currentPoint = points[0]
 
     for (let index = 1; index < points.length - 1; index += 1) {
@@ -1228,7 +1237,8 @@ function pointsToSvgPath(
         const isShipWaypoint = pointEqualsAny(corner, shipWaypointPoints)
         const shouldUseShipCenterPass =
             isShipWaypoint &&
-            cornerAngleDegrees(visibleIncomingPoint, corner, next) <= SHIP_WAYPOINT_CENTER_PASS_MAX_DEGREES
+            cornerAngleDegrees(visibleIncomingPoint, corner, next) <=
+                SHIP_WAYPOINT_CENTER_PASS_MAX_DEGREES
         const cornerRadius = Math.min(
             CURVE_CORNER_MAX_RADIUS,
             incomingLength * CURVE_CORNER_RATIO,
@@ -1264,10 +1274,12 @@ function pointsToSvgPath(
                     : null
             const overallDirection = normalizeVector(next.x - previous.x, next.y - previous.y)
             let centerTangent =
-                interiorBisector !== null
-                    ? perpendicularLeft(interiorBisector)
-                    : overallDirection
-            if (centerTangent && overallDirection && dotProduct(centerTangent, overallDirection) < 0) {
+                interiorBisector !== null ? perpendicularLeft(interiorBisector) : overallDirection
+            if (
+                centerTangent &&
+                overallDirection &&
+                dotProduct(centerTangent, overallDirection) < 0
+            ) {
                 centerTangent = {
                     x: -centerTangent.x,
                     y: -centerTangent.y
@@ -1337,7 +1349,9 @@ function pointsToSvgPath(
         const exitPoint = pointToward(corner, next, cornerRadius)
 
         if (!pointsAreNear(currentPoint, entryPoint)) {
-            pathCommands.push(`L ${formatCoordinate(entryPoint.x)} ${formatCoordinate(entryPoint.y)}`)
+            pathCommands.push(
+                `L ${formatCoordinate(entryPoint.x)} ${formatCoordinate(entryPoint.y)}`
+            )
         }
 
         pathCommands.push(
@@ -1440,7 +1454,7 @@ function buildStraightFallbackPath(input: DeliveryShippingRoutePathInput): strin
     for (const [seaAreaIndex, seaAreaId] of input.seaAreaIds.entries()) {
         const seaPoint =
             seaAreaIndex === 0
-                ? resolveFirstSeaWaypoint(input) ?? resolveSeaWaypointForArea(input, seaAreaId)
+                ? (resolveFirstSeaWaypoint(input) ?? resolveSeaWaypointForArea(input, seaAreaId))
                 : resolveSeaWaypointForArea(input, seaAreaId)
         if (!seaPoint) {
             return null
@@ -1456,7 +1470,7 @@ function buildStraightFallbackPath(input: DeliveryShippingRoutePathInput): strin
     const seaWaypoints = input.seaAreaIds
         .map((seaAreaId, seaAreaIndex) =>
             seaAreaIndex === 0
-                ? resolveFirstSeaWaypoint(input) ?? resolveSeaWaypointForArea(input, seaAreaId)
+                ? (resolveFirstSeaWaypoint(input) ?? resolveSeaWaypointForArea(input, seaAreaId))
                 : resolveSeaWaypointForArea(input, seaAreaId)
         )
         .filter((point): point is Point => point !== null)
@@ -1475,18 +1489,9 @@ function buildStraightFallbackPath(input: DeliveryShippingRoutePathInput): strin
     })
 }
 
-export function buildDeliveryShippingRoutePath(input: DeliveryShippingRoutePathInput): string | null {
-    const timingStart =
-        typeof performance !== 'undefined' && typeof performance.now === 'function'
-            ? performance.now()
-            : Date.now()
-    const timingLabel = [
-        input.cultivatedAreaId,
-        ...input.seaAreaIds,
-        input.cityAreaId
-    ].join(' -> ')
-
-    try {
+export function buildDeliveryShippingRoutePath(
+    input: DeliveryShippingRoutePathInput
+): string | null {
     if (input.seaAreaIds.length === 0) {
         return null
     }
@@ -1579,13 +1584,4 @@ export function buildDeliveryShippingRoutePath(input: DeliveryShippingRoutePathI
         shipWaypointPoints: seaWaypoints,
         routingContext: smoothingRoutingContext
     })
-    } finally {
-        const timingEnd =
-            typeof performance !== 'undefined' && typeof performance.now === 'function'
-                ? performance.now()
-                : Date.now()
-        console.debug(
-            `[shipping-route] ${timingLabel}: ${(timingEnd - timingStart).toFixed(1)}ms`
-        )
-    }
 }

@@ -257,14 +257,35 @@ describe('R-1.16 — the Chancellor places favor the bank cannot cover', () => {
 
     it('asks the Chancellor for the split, all of the bank, no site above its print', () => {
         const state = short()
-        expect(reasonCannotSetupChoice(state, 'chancellor', choice)).toMatch(/Chancellor chooses how to place it/)
-        expect(reasonCannotSetupChoice(state, 'chancellor', { ...choice, siteFavor: [{ siteCardId: FARM, favor: 3 }] })).toMatch(/between 0 and 2/)
-        expect(reasonCannotSetupChoice(state, 'chancellor', { ...choice, siteFavor: [{ siteCardId: FARM, favor: 1 }, { siteCardId: PLAINS, favor: 1 }] })).toMatch(/all 3 favor/)
+        expect(reasonCannotSetupChoice(state, 'chancellor', choice)).toMatch(
+            /Chancellor chooses how to place it/
+        )
+        expect(
+            reasonCannotSetupChoice(state, 'chancellor', {
+                ...choice,
+                siteFavor: [{ siteCardId: FARM, favor: 3 }]
+            })
+        ).toMatch(/between 0 and 2/)
+        expect(
+            reasonCannotSetupChoice(state, 'chancellor', {
+                ...choice,
+                siteFavor: [
+                    { siteCardId: FARM, favor: 1 },
+                    { siteCardId: PLAINS, favor: 1 }
+                ]
+            })
+        ).toMatch(/all 3 favor/)
     })
 
     it('places the split and clears the wait', () => {
         const state = short()
-        applySetupChoice(state, 'chancellor', { ...choice, siteFavor: [{ siteCardId: FARM, favor: 1 }, { siteCardId: PLAINS, favor: 2 }] })
+        applySetupChoice(state, 'chancellor', {
+            ...choice,
+            siteFavor: [
+                { siteCardId: FARM, favor: 1 },
+                { siteCardId: PLAINS, favor: 2 }
+            ]
+        })
         expect(state.tokensOn(FARM).favor).toBe(1)
         expect(state.tokensOn(PLAINS).favor).toBe(2)
         expect(state.favorSupply).toBe(0)
@@ -272,6 +293,8 @@ describe('R-1.16 — the Chancellor places favor the bank cannot cover', () => {
     })
 
     it('an Exile never splits, and nobody splits a bank that covers every site', () => {
-        expect(reasonCannotSetupChoice(board(), 'chancellor', { ...choice, siteFavor: [] })).toMatch(/only the Chancellor/)
+        expect(
+            reasonCannotSetupChoice(board(), 'chancellor', { ...choice, siteFavor: [] })
+        ).toMatch(/only the Chancellor/)
     })
 })

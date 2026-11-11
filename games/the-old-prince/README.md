@@ -20,7 +20,6 @@ and the [client autorouter design](../../research/18xx/autorouter-design.md).
 The title's Logic and UI packages participate in artifact staging; this is not a
 claim that they have been published or accepted for production.
 
-
 ## Rule evidence
 
 - Supplied prototype rulebook: `TOP71_RULES_PROTOTYPE.pdf`, 25 pages, available

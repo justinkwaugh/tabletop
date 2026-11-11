@@ -1,8 +1,17 @@
 <script lang="ts">
     import { onMount } from 'svelte'
     import { getAppContext } from '$lib/stores/appContext.svelte'
+    import { accountName } from '$lib/utils/accountName'
+    import GameProgressBar from '../GameProgressBar.svelte'
 
-    import { generateSeed, type TournamentDetail, type TournamentSchedule } from '@tabletop/common'
+    import {
+        generateSeed,
+        GameResult,
+        tournamentSeatAccounts,
+        type TournamentDetail,
+        type TournamentSchedule,
+        type TournamentTable
+    } from '@tabletop/common'
 
     const { api, authorizationService } = getAppContext()
     let user = $derived(authorizationService.getSessionUser())
@@ -24,15 +33,15 @@
     let busy = $state(false)
     let error = $state('')
     let page = $state(0)
-    let names = $derived(
-        new Map(
-            detail.tournament.entrants.map((entrant) => [
-                entrant.userId,
-                detail.usernames[entrant.userId] ?? 'Unavailable account'
-            ])
+    const name = (userId: string) => accountName(detail.usernames, userId)
+    function seats(table: TournamentTable): string[] {
+        return (
+            gamesByTable.get(table.id)?.userIds ??
+            tournamentSeatAccounts(detail.tournament, table.entrantIds)
         )
-    )
+    }
     let visibleTables = $derived(schedule?.tables.slice(page * 20, (page + 1) * 20) ?? [])
+    let hasProgress = $derived((detail.games ?? []).some((game) => game.progress))
     let gamesByTable = $derived(
         new Map(
             (detail.games ?? [])
@@ -129,29 +138,36 @@
                         {#each Array.from({ length: schedule.tableSize }, (_, index) => index + 1) as position (position)}<th
                                 class="px-3 py-2 font-normal whitespace-nowrap">Seat {position}</th
                             >{/each}
+                        {#if hasProgress}<th class="px-3 py-2 font-normal">Progress</th>{/if}
                         <th class="w-0 p-0"><span class="sr-only">Game</span></th>
                     </tr></thead
                 >
                 <tbody
                     >{#each visibleTables as table, index (table.id)}
-                        {@const isMine = table.entrantIds.some((id) => id === user?.id)}
+                        {@const seated = seats(table)}
+                        {@const isMine = seated.some((id) => id === user?.id)}
                         {@const game = gamesByTable.get(table.id)}
+                        {@const voided =
+                            game?.result === GameResult.Abandoned ||
+                            detail.tournament.stages[0]?.dispatch?.voided?.includes(table.id)}
                         {@const finished = detail.tournament.stages[0]?.dispatch?.finished.includes(
                             table.id
                         )}
                         {@const href = game ? `/game/${game.gameId}` : undefined}
                         {@const dispatch = detail.tournament.stages[0]?.dispatch}
-                        {@const waiting = detail.tournament.paused
-                            ? 'Scheduling paused'
-                            : dispatch?.reserved.includes(table.id)
-                              ? 'Starting this game'
-                              : table.entrantIds.some((id) => !detail.usernames[id])
-                                ? 'Waiting for active accounts'
-                                : detail.tournament.nextTaskAt !== undefined || !dispatch
-                                  ? 'Waiting to be scheduled'
-                                  : 'Waiting for player capacity'}
+                        {@const waiting = voided
+                            ? "Void: this game doesn't count"
+                            : detail.tournament.paused
+                              ? 'Scheduling paused'
+                              : dispatch?.reserved.includes(table.id)
+                                ? 'Starting this game'
+                                : seated.some((id) => !detail.usernames[id])
+                                  ? 'Waiting for active accounts'
+                                  : detail.tournament.nextTaskAt !== undefined || !dispatch
+                                    ? 'Waiting to be scheduled'
+                                    : 'Waiting for player capacity'}
                         <tr
-                            title={game ? undefined : waiting}
+                            title={game && !voided ? undefined : waiting}
                             class="group border-t border-gray-200/60 dark:border-gray-700/50 {game
                                 ? 'game-row'
                                 : ''} {isMine ? 'own-game' : ''} {isMine
@@ -171,14 +187,18 @@
                                     >{:else}<span class="block px-3 py-2"
                                         >{page * 20 + index + 1}</span
                                     >{/if}
+                                {#if voided}<span
+                                        class="block px-3 pb-1.5 -mt-1.5 text-[10px] text-gray-500"
+                                        >Void</span
+                                    >{/if}
                             </td>
-                            {#each table.entrantIds as entrant, entrantIndex (entrantIndex)}
+                            {#each seated as entrant, entrantIndex (entrantIndex)}
                                 {#snippet playerName()}
                                     <span
                                         class="truncate {entrant === user?.id
                                             ? 'text-orange-700 dark:text-orange-300'
                                             : ''}"
-                                        title={names.get(entrant)}>{names.get(entrant)}</span
+                                        title={name(entrant)}>{name(entrant)}</span
                                     >
                                     {#if game?.winningUserIds?.includes(entrant)}<span
                                             class="text-amber-600 dark:text-amber-400"
@@ -197,6 +217,13 @@
                                             >{@render playerName()}</span
                                         >{/if}
                                 </td>{/each}
+                            {#if hasProgress}<td class="px-3 py-2">
+                                    {#if game?.progress}<GameProgressBar
+                                            progress={game.progress}
+                                            class="w-44"
+                                            labelClass="w-20 shrink-0"
+                                        />{/if}
+                                </td>{/if}
                             <td class="sticky right-0 z-20 w-0 p-0">
                                 {#if game}<a
                                         class="game-action absolute inset-y-px right-px flex items-center gap-1 px-3 font-medium whitespace-nowrap opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 {isMine

@@ -81,6 +81,8 @@ The **turn header** and **action area** need the most attention. Both sit in the
 
 Touch screens have no hover. Anything revealed on hover, such as previews or highlights, also needs a tap path, as `games/marracash-ui` does with `usesTouch`. On the board, full screen matters most on phones; when fitting the whole board would make its targets too small to tap, `coverBelowScale` rests it at a cover fit that fills the view and pans to the rest.
 
+Phones are also the tightest memory and paint budget. Draw the board by the [phone rendering](phone-rendering.md) rules and measure it in WebKit at 3x.
+
 ## Player panels
 
 The players tab shows one panel per player (`PlayersPanel` rendering a `PlayerState` per player). Its baseline is a card: a header filled with the player's color holding their name, then the information players check about that seat.

@@ -1,0 +1,685 @@
+{
+ "game": {
+  "id": "scenario-train-offer",
+  "isPublic": false,
+  "status": "waitingForPlayers",
+  "typeId": "1832",
+  "deleted": false,
+  "name": "Train offer",
+  "ownerId": "user",
+  "players": [
+   {
+    "id": "alex",
+    "name": "alex",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "blair",
+    "name": "blair",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "casey",
+    "name": "casey",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "config": {
+   "examplePosition": "phases"
+  },
+  "hotseat": true,
+  "winningPlayerIds": [],
+  "seed": 5,
+  "activePlayerIds": [
+   "alex"
+  ],
+  "createdAt": "2026-10-22T20:38:54.420Z",
+  "storage": "local",
+  "category": "standard"
+ },
+ "state": {
+  "systemVersion": 3,
+  "id": "Ev43Y3QbtZkgrWsnpdgeG",
+  "gameId": "scenario-train-offer",
+  "seed": 5,
+  "prng": {
+   "seed": 5,
+   "invocations": 0
+  },
+  "protectedPrng": {
+   "seed": 791922638,
+   "invocations": 0
+  },
+  "activePlayerIds": [
+   "alex"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 1,
+  "actionChecksum": 510322884,
+  "players": [
+   {
+    "playerId": "alex",
+    "color": "blue"
+   },
+   {
+    "playerId": "blair",
+    "color": "red"
+   },
+   {
+    "playerId": "casey",
+    "color": "green"
+   }
+  ],
+  "phaseEvents": [],
+  "usedPrivatePowerIds": [],
+  "machineState": "BuyingTrains",
+  "stockRound": {
+   "number": 2,
+   "completed": true,
+   "passedPlayerIds": [],
+   "turn": {
+    "acted": false,
+    "bought": false,
+    "soldBeforeBuying": false,
+    "companiesSold": []
+   },
+   "sales": [],
+   "companyPurchases": []
+  },
+  "turnManager": {
+   "series": [
+    {
+     "type": "turn",
+     "playerId": "blair",
+     "start": 0
+    }
+   ],
+   "turnOrder": [
+    "alex",
+    "blair",
+    "casey"
+   ],
+   "turnCounts": {
+    "alex": 0,
+    "blair": 0,
+    "casey": 0
+   }
+  },
+  "bank": {},
+  "companies": [
+   {
+    "id": "ACL",
+    "kind": "major",
+    "parPrice": 90,
+    "started": true,
+    "funded": true,
+    "operated": true,
+    "floated": true,
+    "president": {
+     "kind": "player",
+     "playerId": "alex"
+    }
+   },
+   {
+    "id": "CG",
+    "kind": "major",
+    "parPrice": 100,
+    "started": true,
+    "funded": true,
+    "operated": true,
+    "floated": true,
+    "president": {
+     "kind": "player",
+     "playerId": "blair"
+    }
+   },
+   {
+    "id": "P2",
+    "kind": "private"
+   },
+   {
+    "id": "P5",
+    "kind": "private"
+   }
+  ],
+  "certificatePools": [
+   {
+    "id": "initial-offering",
+    "owner": {
+     "kind": "bank"
+    }
+   },
+   {
+    "id": "open-market",
+    "owner": {
+     "kind": "bank"
+    }
+   }
+  ],
+  "cash": [
+   {
+    "owner": {
+     "kind": "player",
+     "playerId": "alex"
+    },
+    "amount": 600
+   },
+   {
+    "owner": {
+     "kind": "player",
+     "playerId": "blair"
+    },
+    "amount": 450
+   },
+   {
+    "owner": {
+     "kind": "player",
+     "playerId": "casey"
+    },
+    "amount": 700
+   },
+   {
+    "owner": {
+     "kind": "bank"
+    },
+    "amount": 9050
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "ACL"
+    },
+    "amount": 600
+   },
+   {
+    "owner": {
+     "kind": "company",
+     "companyId": "CG"
+    },
+    "amount": 1400
+   }
+  ],
+  "certificates": [
+   {
+    "id": "ACL:president",
+    "companyId": "ACL",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "player",
+     "playerId": "alex"
+    }
+   },
+   {
+    "id": "ACL:share:1",
+    "companyId": "ACL",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "alex"
+    }
+   },
+   {
+    "id": "ACL:share:2",
+    "companyId": "ACL",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "blair"
+    }
+   },
+   {
+    "id": "ACL:share:3",
+    "companyId": "ACL",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "casey"
+    }
+   },
+   {
+    "id": "ACL:share:4",
+    "companyId": "ACL",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "open-market"
+   },
+   {
+    "id": "ACL:share:5",
+    "companyId": "ACL",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "ACL:share:6",
+    "companyId": "ACL",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "ACL:share:7",
+    "companyId": "ACL",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "ACL:share:8",
+    "companyId": "ACL",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CG:president",
+    "companyId": "CG",
+    "kind": "share",
+    "shares": 2,
+    "president": true,
+    "owner": {
+     "kind": "player",
+     "playerId": "blair"
+    }
+   },
+   {
+    "id": "CG:share:1",
+    "companyId": "CG",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "blair"
+    }
+   },
+   {
+    "id": "CG:share:2",
+    "companyId": "CG",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "alex"
+    }
+   },
+   {
+    "id": "CG:share:3",
+    "companyId": "CG",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "alex"
+    }
+   },
+   {
+    "id": "CG:share:4",
+    "companyId": "CG",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "player",
+     "playerId": "alex"
+    }
+   },
+   {
+    "id": "CG:share:5",
+    "companyId": "CG",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CG:share:6",
+    "companyId": "CG",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CG:share:7",
+    "companyId": "CG",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "CG:share:8",
+    "companyId": "CG",
+    "kind": "share",
+    "shares": 1,
+    "owner": {
+     "kind": "bank"
+    },
+    "poolId": "initial-offering"
+   },
+   {
+    "id": "P2:charter",
+    "companyId": "P2",
+    "kind": "private",
+    "owner": {
+     "kind": "player",
+     "playerId": "casey"
+    }
+   },
+   {
+    "id": "P5:charter",
+    "companyId": "P5",
+    "kind": "private",
+    "owner": {
+     "kind": "company",
+     "companyId": "CG"
+    }
+   }
+  ],
+  "trainInventory": {
+   "trains": [
+    {
+     "id": "1832/3/8",
+     "definitionId": "3",
+     "status": "owned",
+     "owner": {
+      "kind": "company",
+      "companyId": "CG"
+     }
+    },
+    {
+     "id": "1832/3/9",
+     "definitionId": "3",
+     "status": "owned",
+     "owner": {
+      "kind": "company",
+      "companyId": "ACL"
+     }
+    },
+    {
+     "id": "1832/4/14",
+     "definitionId": "4",
+     "status": "owned",
+     "owner": {
+      "kind": "company",
+      "companyId": "CG"
+     }
+    },
+    {
+     "id": "1832/4/15",
+     "definitionId": "4",
+     "status": "owned",
+     "owner": {
+      "kind": "company",
+      "companyId": "ACL"
+     }
+    },
+    {
+     "id": "1832/4/16",
+     "definitionId": "4",
+     "status": "owned",
+     "owner": {
+      "kind": "company",
+      "companyId": "ACL"
+     }
+    },
+    {
+     "id": "1832/5/18",
+     "definitionId": "5",
+     "status": "depot"
+    },
+    {
+     "id": "1832/5/19",
+     "definitionId": "5",
+     "status": "depot"
+    },
+    {
+     "id": "1832/5/20",
+     "definitionId": "5",
+     "status": "depot"
+    },
+    {
+     "id": "1832/6/21",
+     "definitionId": "6",
+     "status": "depot"
+    },
+    {
+     "id": "1832/6/22",
+     "definitionId": "6",
+     "status": "depot"
+    },
+    {
+     "id": "1832/6/23",
+     "definitionId": "6",
+     "status": "depot"
+    },
+    {
+     "id": "1832/8/24",
+     "definitionId": "8",
+     "status": "depot"
+    },
+    {
+     "id": "1832/8/25",
+     "definitionId": "8",
+     "status": "depot"
+    },
+    {
+     "id": "1832/8/26",
+     "definitionId": "8",
+     "status": "depot"
+    },
+    {
+     "id": "1832/10/27",
+     "definitionId": "10",
+     "status": "depot"
+    },
+    {
+     "id": "1832/10/28",
+     "definitionId": "10",
+     "status": "depot"
+    }
+   ],
+   "nextTrainNumber": 29
+  },
+  "phaseId": "4",
+  "stations": [
+   {
+    "id": "ACL:home",
+    "companyId": "ACL",
+    "status": "placed",
+    "position": {
+     "locationId": "T29",
+     "nodeId": "city",
+     "slot": 0
+    }
+   },
+   {
+    "id": "CG:home",
+    "companyId": "CG",
+    "status": "placed",
+    "position": {
+     "locationId": "U28",
+     "nodeId": "city",
+     "slot": 0
+    }
+   },
+   {
+    "id": "ACL:station:1",
+    "companyId": "ACL",
+    "status": "available"
+   },
+   {
+    "id": "ACL:station:2",
+    "companyId": "ACL",
+    "status": "available"
+   },
+   {
+    "id": "CG:station:1",
+    "companyId": "CG",
+    "status": "available"
+   },
+   {
+    "id": "CG:station:2",
+    "companyId": "CG",
+    "status": "available"
+   }
+  ],
+  "stationReservations": [],
+  "tileInventory": {
+   "placements": {},
+   "retiredPieceIds": []
+  },
+  "stockMarket": {
+   "stacks": [
+    {
+     "spaceId": "1:6",
+     "companyIds": [
+      "ACL"
+     ]
+    },
+    {
+     "spaceId": "0:6",
+     "companyIds": [
+      "CG"
+     ]
+    }
+   ]
+  },
+  "variants": {},
+  "systems": {},
+  "takeoverBuyerIds": [],
+  "coalRights": [],
+  "revenueTokens": [],
+  "companyStarts": {},
+  "operatingSet": {
+   "number": 1,
+   "roundNumber": 1,
+   "roundCount": 2,
+   "companyOrder": [
+    "CG",
+    "ACL"
+   ],
+   "completedCompanyIds": [],
+   "privateIncomePaid": true,
+   "completed": false
+  },
+  "trainPurchaseStep": {
+   "companyId": "CG",
+   "purchasedTrainIds": []
+  },
+  "purchaseOffer": {
+   "id": "train-offer-0",
+   "buyer": {
+    "kind": "company",
+    "companyId": "CG"
+   },
+   "asset": {
+    "kind": "train",
+    "trainId": "1832/4/15"
+   },
+   "seller": {
+    "kind": "company",
+    "companyId": "ACL"
+   },
+   "price": 300,
+   "buyerPlayerId": "blair",
+   "sellerPlayerId": "alex"
+  }
+ },
+ "actions": [
+  {
+   "id": "train-offer-0",
+   "gameId": "scenario-train-offer",
+   "source": "user",
+   "playerId": "blair",
+   "type": "OfferPurchase",
+   "companyId": "CG",
+   "asset": {
+    "kind": "train",
+    "trainId": "1832/4/15"
+   },
+   "seller": {
+    "kind": "company",
+    "companyId": "ACL"
+   },
+   "price": 300,
+   "createdAt": "2026-10-22T20:38:54.424Z",
+   "metadata": {
+    "companyChanges": {
+     "presidents": [],
+     "closedCompanyIds": []
+    },
+    "offer": {
+     "id": "train-offer-0",
+     "buyer": {
+      "kind": "company",
+      "companyId": "CG"
+     },
+     "asset": {
+      "kind": "train",
+      "trainId": "1832/4/15"
+     },
+     "seller": {
+      "kind": "company",
+      "companyId": "ACL"
+     },
+     "price": 300,
+     "buyerPlayerId": "blair",
+     "sellerPlayerId": "alex"
+    },
+    "accepted": false,
+    "trainDefinitionId": "4"
+   },
+   "index": 0,
+   "undoPatch": [
+    {
+     "op": "replace",
+     "path": "/activePlayerIds/0",
+     "value": "blair"
+    },
+    {
+     "op": "replace",
+     "path": "/actionCount",
+     "value": 0
+    },
+    {
+     "op": "replace",
+     "path": "/actionChecksum",
+     "value": 0
+    },
+    {
+     "op": "remove",
+     "path": "/purchaseOffer"
+    }
+   ]
+  }
+ ]
+}

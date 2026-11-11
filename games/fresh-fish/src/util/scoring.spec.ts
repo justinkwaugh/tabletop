@@ -1,7 +1,6 @@
 import { Cell, CellType } from '../components/cells.js'
 import { describe, expect, it } from 'vitest'
 import { HydratedGameBoard } from '../components/gameBoard.js'
-import { logBoard } from './stateLogger.js'
 import { GoodsType } from '../definition/goodsType.js'
 import { generateTestState } from './testHelper.js'
 import { Scorer } from './scoring.js'
@@ -48,7 +47,6 @@ describe('Fresh Fish Scoring Tests', () => {
 
         state.board = board
 
-        logBoard(board)
         const scorer = new Scorer(state)
 
         const scores = scorer.calculateScores()
@@ -97,7 +95,6 @@ describe('Fresh Fish Scoring Tests', () => {
 
         state.board = board
 
-        logBoard(board)
         const scorer = new Scorer(state)
 
         const scores = scorer.calculateScores()

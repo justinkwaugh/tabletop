@@ -11,6 +11,7 @@
     import LetPeekPicker from '$lib/components/LetPeekPicker.svelte'
     import ReliquaryPlacard from '$lib/components/ReliquaryPlacard.svelte'
     import TokenBadge from '$lib/components/TokenBadge.svelte'
+    import UseBadge from '$lib/components/UseBadge.svelte'
     import { avatarImage, boardGround, titleImage } from '$lib/images/boardImages.js'
     import {
         bannerImage,
@@ -26,10 +27,12 @@
     import { bannerName, bannerTokenKind, cardName } from '$lib/model/names.js'
     import { inspectImage } from '$lib/model/inspectImage.svelte.js'
     import { goalCardPreview } from '$lib/model/seatPreviews.js'
-    import { seatAdvisers } from '$lib/model/seatAdvisers.js'
+    import { adviserLabel, seatAdvisers } from '$lib/model/seatAdvisers.js'
+    import { seatPreviewGroup } from '$lib/model/previewGroups.js'
     import { handBacks } from '$lib/model/cardBacks.js'
     import { seatFacts } from '$lib/model/seatFacts.js'
     import { seatGoals, type SeatGoal } from '$lib/model/seatGoals.js'
+    import { dealCount } from '$lib/model/tribunalDeals.js'
 
     // R-9.4 — a facedown adviser is a back to others and a dimmed front to its owner; a hand is its backs.
     let gameSession = getGameSession()
@@ -42,6 +45,8 @@
     let status = $derived(playerState.status)
     let color = $derived(gameSession.colors.getPlayerColor(player.id))
     let seatColor = $derived(gameSession.colors.getPlayerUiColor(player.id))
+    // R-7.6.3-H1 — the seat's open Tribunal deals, public once agreed: the mark beside the name pill.
+    let deals = $derived(gameSession.dealsOf(player.id).length)
     let ground = $derived(boardGround(status, color))
 
     let facts = $derived(seatFacts(gameState, player.id))
@@ -63,6 +68,11 @@
 
     let hasHoldings = $derived(playerState.relicIds.length > 0 || facts.banners.length > 0)
 
+    // R-6.2, R-7.4 — in this seat's own Act Phase, a card it can use now wears "Use".
+    let badged = $derived(isMe ? gameSession.useCards : [])
+    // Rule 4 — an enlarged adviser or relic pages through this seat's cards.
+    const seatGroup = () => seatPreviewGroup(playerState, gameSession.myPlayer?.id)
+
     // R-6.5 — Move warbands offers its site -> board move in the panel; the counter wears the ring.
     let toBoard = $derived(
         isMe &&
@@ -74,6 +84,7 @@
 
 <article
     class="seat text-left text-white"
+    data-seat={player.id}
     class:seat--turn={isTurn}
     style="--ground:{ground}; --seat:{seatColor};"
 >
@@ -84,8 +95,30 @@
             class="pill"
             aria-label="Open {player.name}'s seat{isMe ? ' (you)' : ''}"
             onclick={() => gameSession.seatDetail.toggle(player.id)}
-            >{player.name}{isMe ? ' · you' : ''}</button
+            ><span class="name">{player.name}</span>{#if isMe}<span class="you">{' · you'}</span
+                >{/if}</button
         >
+        {#if deals > 0}
+            <!-- A scroll and the count, amber beside the pill; the deals are in the seat detail. -->
+            <span
+                class="inline-flex shrink-0 items-center gap-[3px] rounded-full border border-oath-accent
+                       bg-oath-accent-soft py-px pr-[7px] pl-1 text-[11px] font-bold text-oath-accent"
+                data-deal-mark
+                ><svg
+                    class="h-[13px] w-[13px]"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                    ><path d="M7 4h11v13a3 3 0 0 1-3 3H6"></path><path
+                        d="M7 4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2"
+                    ></path><path d="M10 9h5M10 13h5"></path></svg
+                >{dealCount(deals)}</span
+            >
+        {/if}
         <img class="avatar" src={avatarImage(status, color)} alt="" />
     </header>
 
@@ -183,24 +216,31 @@
                         !playable}
                     class:thumb--pickable={playable}
                 >
-                    {#if playable && cardId}
-                        <!-- R-6.1 — offered in the panel; here it wears the ring and enlarges. -->
-                        <CardImage {cardId} width={50} label={cardName(cardId)} inspect />
-                    {:else if cardId}
-                        <CardImage
-                            {cardId}
-                            width={50}
-                            label={cardName(cardId) +
-                                (adviser.faceUp
-                                    ? ''
-                                    : adviser.shownToMe
-                                      ? ' — facedown; shown to you'
-                                      : ' — facedown; only you see it')}
-                            inspect
-                        />
-                    {:else}
-                        <CardImage back={adviser.back} width={50} label="A facedown adviser" />
-                    {/if}
+                    <span class="thumb__card">
+                        {#if playable && cardId}
+                            <!-- R-6.1 — offered in the panel; here it wears the ring and enlarges. -->
+                            <CardImage
+                                {cardId}
+                                width={50}
+                                label={cardName(cardId)}
+                                inspect
+                                group={seatGroup}
+                            />
+                        {:else if cardId}
+                            <CardImage
+                                {cardId}
+                                width={50}
+                                label={adviserLabel(adviser, cardName(cardId))}
+                                inspect
+                                group={seatGroup}
+                            />
+                        {:else}
+                            <CardImage back={adviser.back} width={50} label="A facedown adviser" />
+                        {/if}
+                        {#if adviser.faceUp && cardId && badged.includes(cardId)}
+                            <UseBadge {cardId} />
+                        {/if}
+                    </span>
                     <figcaption>{adviser.faceUp ? '' : 'facedown'}</figcaption>
                 </figure>
             {/each}
@@ -244,8 +284,17 @@
         <div class="row row--held">
             {#each playerState.relicIds as relicId (relicId)}
                 <figure class="thumb thumb--relic">
-                    <CardImage cardId={relicId} width={52} label={cardName(relicId)} inspect />
+                    <CardImage
+                        cardId={relicId}
+                        width={52}
+                        label={cardName(relicId)}
+                        inspect
+                        group={seatGroup}
+                    />
                     <span class="on-card"><CardWarbands cardId={relicId} size={12} /></span>
+                    {#if badged.includes(relicId)}
+                        <UseBadge cardId={relicId} />
+                    {/if}
                 </figure>
             {/each}
             {#each facts.banners as banner (banner)}
@@ -329,13 +378,15 @@
         height: 54px;
         padding: 0 8px 0 10px;
     }
-    /* The pill ellipsises before anything overflows; the title word yields first. */
+    /* The title word never draws narrower than 72 px (an Exile word is 75 px whole); past that
+       the name gives way. The word takes the room the pill, a deal mark and the avatar leave, up to
+       40%, so a mark beside a short name shrinks the word before it cuts the name. */
     .word {
         height: 32px;
         width: auto;
         max-width: 40%;
-        min-width: 0;
-        flex: 0 1 auto;
+        min-width: 72px;
+        flex: 1 1 0;
         object-fit: contain;
         object-position: left;
     }
@@ -346,10 +397,10 @@
         color: inherit;
         margin-left: auto;
         flex: 0 1 auto;
+        display: inline-flex;
+        align-items: baseline;
         min-width: 0;
         overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
         background: var(--seat);
         font-weight: 700;
         letter-spacing: 0.06em;
@@ -358,6 +409,17 @@
         padding: 4px 8px 3px;
         border-radius: 6px;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    }
+    /* The name is cut with "…"; "· you" is never cut. */
+    .pill .name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .pill .you {
+        flex: none;
+        white-space: pre;
     }
     .avatar {
         width: 42px;
@@ -450,7 +512,9 @@
         padding: 8px 8px 6px;
         background: rgba(0, 0, 0, 0.22);
     }
+    /* Relics, then banners, wrap onto further lines inside the card at full size. */
     .row--held {
+        flex-wrap: wrap;
         border-top: 1px solid rgba(255, 255, 255, 0.12);
         gap: 6px;
     }
@@ -543,6 +607,10 @@
         margin: 0;
         flex: none;
     }
+    .thumb__card {
+        position: relative;
+        display: block;
+    }
     .thumb figcaption {
         height: 12px;
         margin-top: 3px;
@@ -552,7 +620,10 @@
         text-align: center;
         color: #fde68a;
     }
+    /* Starts below the 44 px tap area of a Use badge on an adviser above, so that tap stays the
+       badge's. */
     .let-peek {
+        margin-top: 7px;
         padding: 0 8px 6px;
     }
 

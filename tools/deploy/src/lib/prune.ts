@@ -3,7 +3,7 @@ import { promisify } from 'node:util'
 import { withCloudSdkPythonEnv } from './cloudSdkPython.js'
 import { runCommand } from './commands.js'
 import { findGameEntry } from './gamePublish.js'
-import { type PublishContext } from './publishCore.js'
+import type { PublishContext } from './publishCore.js'
 import { fetchBucketManifest, frontendHistory, gameHistory } from './remoteManifest.js'
 import type { SiteManifest } from './types.js'
 

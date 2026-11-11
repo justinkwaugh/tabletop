@@ -1,3 +1,4 @@
+import { EighteenSeventeenCharters } from './charters.js'
 import { EighteenXXTransferTiming, assetOwner, type TransferRules } from '@tabletop/18xx'
 import { isLiquidated } from './liquidation.js'
 
@@ -5,8 +6,9 @@ import { isLiquidated } from './liquidation.js'
 // companies only at formation.
 export const EighteenSeventeenTransferRules: TransferRules = {
     ...EighteenXXTransferTiming,
+    charters: EighteenSeventeenCharters,
     canPurchase(state, companyId, asset) {
-        const owner = assetOwner(state, asset)
+        const owner = assetOwner(state, EighteenSeventeenCharters, asset)
         return (
             EighteenXXTransferTiming.canPurchase(state, companyId, asset) &&
             !(owner?.kind === 'company' && isLiquidated(state.stockMarket, owner.companyId))

@@ -1,30 +1,40 @@
 import { ExternalAuthService, User } from '@tabletop/common'
 import { StoredUser } from '../model/storedUser'
 import { UpdateValidator } from './validator'
+import { TransactionParticipant } from './transaction'
+
+export type PasswordUpdateOptions = {
+    validate?: (existing: StoredUser) => void
+    participant?: TransactionParticipant
+}
 
 export interface UserStore {
     findByUsername(username: string): Promise<User | undefined>
     findByEmail(email: string): Promise<User | undefined>
     findByExternalId(externalId: string, service: ExternalAuthService): Promise<User | undefined>
     findById(id: string): Promise<User | undefined>
+    findByIds(ids: string[]): Promise<(User | undefined)[]>
     findByUsernameAndPassword(username: string, password: string): Promise<User | undefined>
     findAllUsernames(): Promise<string[]>
+    findActiveUsernames(): Promise<string[]>
 
     createUser(user: User, password?: string): Promise<User>
-    updatePassword(userId: string, password: string): Promise<void>
+    updatePassword(userId: string, password: string, options?: PasswordUpdateOptions): Promise<User>
 
     updateUser({
         userId,
         fields,
         password,
         currentPassword,
-        validator
+        validator,
+        participant
     }: {
         userId: string
         fields: Partial<User>
         password?: string
         currentPassword?: string
         validator?: UpdateValidator<StoredUser>
+        participant?: TransactionParticipant
     }): Promise<[User, string[], User]>
 
     addExternalId({

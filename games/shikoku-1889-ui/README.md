@@ -6,14 +6,14 @@ from `@tabletop/18xx-ui`, and the existing Game Client support.
 
 The public `UiDefinition` uses the title's canonical runtime and shared `GameTable`:
 player/company panels, action selection, map, market, tiles, spreadsheet and history.
+The catalog cover is the published box lid.
 The [18xx Playground](../../apps/18xx-playground/README.md) hosts it at `/table`, with local persistence and selectable game
 positions, including real opening setup. TOP additionally has a finished-game
 fixture for replay and history work.
 
-The table and `EighteenXXSession` remain development scaffolding; shared tile
-and map rendering are intended lasting components. The packages participate in
-artifact staging, but staging alone does not establish production readiness.
-See [complete-game verification](../../research/18xx/complete-game-verification.md),
+The map, companies, shares, privates and trains use the shared generic presentation.
+The extracted publisher artwork in `src/lib/images/published/` is kept for a later
+published-art presentation like TOP's and is not yet imported. See [complete-game verification](../../research/18xx/complete-game-verification.md),
 the [shared UI contract](../../libs/18xx-ui/ui-interaction-visual-contract.md),
 and the [title visual contract](docs/ui-interaction-visual-contract.md).
 

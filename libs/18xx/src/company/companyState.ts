@@ -1,13 +1,8 @@
 import { assertExists } from '@tabletop/common'
 import * as Type from 'typebox'
-import {
-    getCompany,
-    Owner,
-    sameOwner,
-    sharesOwned,
-    type FinancialState
-} from '../finance/finance.js'
+import { Owner, sameOwner, sharesOwned, type FinancialState } from '../finance/finance.js'
 import { StationFields } from '../map/station.js'
+import { companyShareCount, type CompanyCharters } from './companyCharters.js'
 import type { StockState } from '../stock/stockState.js'
 
 export const CompanyTranche = Type.Object(
@@ -48,24 +43,33 @@ export type CompanyState = StockCompanyState &
     Type.Static<Type.TObject<typeof CompanyFields>> & { tranches?: CompanyTranche[] }
 export type FormationState = StockState & CompanyState
 
-export function availableCompanyTranche(
+export type NextCompanyTranche = {
+    tranche: CompanyTranche
+    waitingCompanyIds: string[]
+}
+
+export function nextCompanyTranche(
     tranches: readonly CompanyTranche[],
     completed: (companyId: string) => boolean
-): CompanyTranche | undefined {
+): NextCompanyTranche | undefined {
+    const waitingCompanyIds: string[] = []
     for (const tranche of tranches) {
-        if (tranche.companyIds.length < tranche.capacity) return tranche
-        if (!tranche.companyIds.every(completed)) return undefined
+        if (tranche.companyIds.length < tranche.capacity) return { tranche, waitingCompanyIds }
+        waitingCompanyIds.push(...tranche.companyIds.filter((companyId) => !completed(companyId)))
     }
     return undefined
 }
 
 export function grantOwnershipLimitExemption(
     state: StockCompanyState,
+    charters: CompanyCharters,
     companyId: string,
     owner: Owner
 ): void {
-    const company = getCompany(state, companyId)
-    assertExists(company.shareCount, 'Ownership exemptions require shares')
+    assertExists(
+        companyShareCount(state, charters, companyId),
+        'Ownership exemptions require shares'
+    )
     const maximumShares = sharesOwned(state, companyId, owner)
     assertExists(state.ownershipLimitExemptions, 'Ownership exemptions require their title state')
     const existing = state.ownershipLimitExemptions.find(

@@ -1,6 +1,11 @@
 import { expect, it, vi } from 'vitest'
 import { ActionSource } from '@tabletop/common'
-import { Definition as Top, TheOldPrinceTrackRules } from '@tabletop/the-old-prince'
+import {
+    Definition as Top,
+    TheOldPrinceTileSet,
+    TheOldPrinceTrackRules
+} from '@tabletop/the-old-prince'
+import { laidTiles } from '@tabletop/18xx/testing'
 import { Definition as Shikoku, Shikoku1889TrackRules } from '@tabletop/shikoku-1889'
 import {
     TrackConstruction,
@@ -406,7 +411,11 @@ it('rejects unaffordable additional track before network usefulness checks', () 
     )
     if (!cash || !state.trackStep) throw new Error('Expected company construction state')
     cash.amount = 0
-    state.trackStep.lays.push({ locationId: 'V12', color: 'yellow', cost: 0 })
+    state.trackStep.lays.push(
+        ...laidTiles(state.tileInventory, TheOldPrinceTileSet, [
+            { locationId: 'V12', color: 'yellow' }
+        ])
+    )
     const useful = vi.fn(TheOldPrinceTrackRules.useful)
     const evaluation = new TrackConstruction(state, { ...TheOldPrinceTrackRules, useful }).evaluate(
         request

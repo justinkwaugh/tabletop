@@ -1,7 +1,9 @@
+import { stateWith } from '../game/stateWith.js'
 import type { RevenueCenter } from '../routes/route.js'
+import { actsFor } from '../finance/receivership.js'
 import * as Type from 'typebox'
 import { assert } from '@tabletop/common'
-import { cashOwnedBy, controllingOwner, getCompany } from '../finance/finance.js'
+import { cashOwnedBy, getCompany } from '../finance/finance.js'
 import type { CompanyState } from '../company/companyState.js'
 import { RailwayMapState, type MapStateData } from '../map/mapState.js'
 import { StationPosition, type StationReservation, type StationState } from '../map/station.js'
@@ -9,6 +11,8 @@ import type { RailwayMap } from '../map/map.js'
 import type { TileSet } from '../tiles/inventory.js'
 import { TrackNetwork } from '../construction/trackNetwork.js'
 import type { OperatingSet } from '../operating/operatingSet.js'
+import type { GameEnding } from '../ending/gameEnding.js'
+import type { AccessRightState } from '../rights/accessRights.js'
 
 export const StationStep = Type.Object(
     {
@@ -19,7 +23,12 @@ export const StationStep = Type.Object(
     { additionalProperties: false }
 )
 export type StationStep = Type.Static<typeof StationStep>
-export type StationPlacementState = CompanyState & MapStateData & { stationStep?: StationStep }
+export type StationPlacementState = CompanyState &
+    MapStateData & {
+        stationStep?: StationStep
+        operatingSet?: OperatingSet
+        gameEnding?: GameEnding
+    } & AccessRightState
 export const StationRequest = Type.Object(
     {
         companyId: Type.String(),
@@ -77,13 +86,13 @@ export class StationPlacement {
     ) {
         this.mapState = new RailwayMapState(rules.map, rules.tileSet, state.tileInventory)
     }
-    canAct(playerId: string, companyId: string): boolean {
+    canAct(playerId: string | undefined, companyId: string): boolean {
         const step = this.state.stationStep
         return (
             step?.companyId === companyId &&
             !step.completed &&
             !getCompany(this.state, companyId).closed &&
-            controllingOwner(this.state, companyId)?.playerId === playerId
+            actsFor(this.state, playerId, companyId)
         )
     }
     choices(stationId: string): StationPlacementDetails[] {
@@ -120,7 +129,11 @@ export class StationPlacement {
             return { reason: 'This city slot is occupied, reserved, or unavailable.' }
         const network = new TrackNetwork(
             this.mapState,
-            this.state,
+            stateWith(this.state, {
+                stationAccess: this.state.stationAccess?.filter(
+                    (access) => access.placesStations !== false
+                )
+            }),
             companyId,
             undefined,
             undefined,
@@ -151,6 +164,9 @@ export class StationPlacement {
                     station.status === 'placed' &&
                     station.companyId === companyId &&
                     station.position.locationId === locationId
+            ) ||
+            (this.state.stationAccess ?? []).some(
+                (access) => access.companyId === companyId && access.locationId === locationId
             )
         )
             return []
@@ -167,11 +183,7 @@ export class StationPlacement {
                         reservation.locationId === locationId &&
                         reservation.nodeId === nodeId &&
                         reservation.companyId !== companyId &&
-                        !occupied.some(
-                            (station) =>
-                                station.companyId === reservation.companyId ||
-                                station.id === this.rules.reservationOccupant?.(reservation)
-                        )
+                        !reservationFulfilled(this.state, reservation, this.rules)
                 )
                 .map((reservation) => reservation.companyId)
         ).size
@@ -181,14 +193,56 @@ export class StationPlacement {
                     (station) => station.status === 'placed' && station.position.slot === slot
                 )
         )
-        return free.length > reserved ? free : []
+        if (free.length <= reserved) return []
+        return this.hexClaims(companyId, locationId) < this.hexSpaces(companyId, locationId)
+            ? free
+            : []
+    }
+    /**
+     * Claims on any city of a hex that a placement must leave room for: other companies'
+     * unanswered hex reservations, and stations set aside there for their owners to place again.
+     */
+    private hexClaims(companyId: string, locationId: string): number {
+        const reservations = (this.state.hexReservations ?? []).filter(
+            (reservation) =>
+                reservation.locationId === locationId &&
+                reservation.companyId !== companyId &&
+                !hexReservationFulfilled(this.state, reservation)
+        ).length
+        const displaced = this.state.stations.filter(
+            (station) => station.status === 'displaced' && station.locationId === locationId
+        ).length
+        return reservations + displaced
+    }
+    /** The free station spaces of a hex, less those its cities reserve for other companies. */
+    private hexSpaces(companyId: string, locationId: string): number {
+        return this.mapState.tile(locationId).face.nodes.reduce((total, node) => {
+            if (node.kind !== 'city') return total
+            const placed = this.state.stations.filter(
+                (station) =>
+                    station.status === 'placed' &&
+                    station.position.locationId === locationId &&
+                    station.position.nodeId === node.id
+            ).length
+            const reserved = new Set(
+                this.state.stationReservations
+                    .filter(
+                        (reservation) =>
+                            reservation.locationId === locationId &&
+                            reservation.nodeId === node.id &&
+                            reservation.companyId !== companyId &&
+                            !reservationFulfilled(this.state, reservation, this.rules)
+                    )
+                    .map((reservation) => reservation.companyId)
+            ).size
+            return total + Math.max(0, node.stationSlots - placed - reserved)
+        }, 0)
     }
     homePlacements(): StationPlacementDetails[] {
-        const planned = {
-            ...this.state,
+        const planned = stateWith(this.state, {
             stations: [...this.state.stations],
             stationReservations: [...this.state.stationReservations]
-        }
+        })
         const placements: StationPlacementDetails[] = []
         for (const home of this.rules.pendingHomes(this.state)) {
             const station = planned.stations.find((station) => station.id === home.stationId)
@@ -212,6 +266,38 @@ export class StationPlacement {
         return placements
     }
 }
+/**
+ * Whether a station placed in a reservation's city already answers it: its company's, or the
+ * station the rules name as occupying it.
+ */
+export function reservationFulfilled(
+    state: StationState,
+    reservation: StationReservation,
+    rules: Pick<StationRules, 'reservationOccupant'>
+): boolean {
+    return state.stations.some(
+        (station) =>
+            station.status === 'placed' &&
+            station.position.locationId === reservation.locationId &&
+            station.position.nodeId === reservation.nodeId &&
+            (station.companyId === reservation.companyId ||
+                station.id === rules.reservationOccupant?.(reservation))
+    )
+}
+
+/** Whether the company holding a hex reservation has a station on the hex. */
+export function hexReservationFulfilled(
+    state: StationState,
+    reservation: { companyId: string; locationId: string }
+): boolean {
+    return state.stations.some(
+        (station) =>
+            station.status === 'placed' &&
+            station.companyId === reservation.companyId &&
+            station.position.locationId === reservation.locationId
+    )
+}
+
 // A placed home fulfils its company's reservations on the home hexes.
 export function releaseHomeReservations(
     state: StationState,
@@ -222,6 +308,11 @@ export function releaseHomeReservations(
         (reservation) =>
             reservation.companyId !== companyId || !locationIds.includes(reservation.locationId)
     )
+    if (state.hexReservations)
+        state.hexReservations = state.hexReservations.filter(
+            (reservation) =>
+                reservation.companyId !== companyId || !locationIds.includes(reservation.locationId)
+        )
 }
 export function applyStationPlacement(state: StationState, details: StationPlacementDetails): void {
     const station = state.stations.find((station) => station.id === details.stationId)
@@ -247,6 +338,14 @@ export function applyStationPlacement(state: StationState, details: StationPlace
                 reservation.nodeId === details.position.nodeId
             )
     )
+    if (state.hexReservations)
+        state.hexReservations = state.hexReservations.filter(
+            (reservation) =>
+                !(
+                    reservation.companyId === details.companyId &&
+                    reservation.locationId === details.position.locationId
+                )
+        )
 }
 
 export function validateStationStep(state: {

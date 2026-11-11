@@ -54,7 +54,9 @@ describe('assembleBoard', () => {
     })
 
     it('preserves the total terrain composition of all 6 tiles regardless of shuffle/rotation', () => {
-        const allTileSquares = BoardTiles.flatMap((tile) => tile.squares.flat()).map((type) => ({ type }))
+        const allTileSquares = BoardTiles.flatMap((tile) => tile.squares.flat()).map((type) => ({
+            type
+        }))
         const expected = countTypes([allTileSquares])
 
         const board = assembleBoard(new Prng({ seed: 42, invocations: 0 }))
@@ -79,7 +81,14 @@ describe('assembleBoard', () => {
         const board = assembleBoard(new Prng({ seed: 3, invocations: 0 }))
 
         expect(board.tileLayout).toHaveLength(6)
-        expect(board.tileLayout!.map((t) => t.tileId).sort()).toEqual(['A', 'B', 'C', 'D', 'E', 'F'])
+        expect(board.tileLayout!.map((t) => t.tileId).sort()).toEqual([
+            'A',
+            'B',
+            'C',
+            'D',
+            'E',
+            'F'
+        ])
 
         const positions = board.tileLayout!.map((t) => `${t.tileCol},${t.tileRow}`).sort()
         expect(positions).toEqual(['0,0', '0,1', '1,0', '1,1', '2,0', '2,1'])

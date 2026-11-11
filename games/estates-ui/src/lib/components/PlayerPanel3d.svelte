@@ -17,9 +17,8 @@
     let { ref = $bindable(), ...others }: Props<typeof Group> = $props()
     let players = $derived.by(() => {
         const turnOrder = gameSession.gameState.turnManager.turnOrder
-        return turnOrder.map(
-            (playerId) =>
-                gameSession.gameState.players.find((player) => player.playerId === playerId)!
+        return turnOrder.map((playerId) =>
+            gameSession.gameState.players.find((player) => player.playerId === playerId)!
         )
     })
 

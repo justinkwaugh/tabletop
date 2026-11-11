@@ -1,17 +1,7 @@
-import { getAppContext } from '$lib/stores/appContext.svelte'
 import type { PageLoad } from './$types.js'
 
+// The link's challenge is only checked when the new password is submitted: checking it earlier
+// would need a separate, unauthenticated validity oracle.
 export const load: PageLoad = async ({ params }) => {
-    const token = params.token
-    try {
-        const authUser = await getAppContext().api.loginToken(token)
-        getAppContext().authorizationService.setSessionUser(authUser)
-    } catch {
-        return { token, verified: false }
-    }
-
-    return {
-        token,
-        verified: true
-    }
+    return { challenge: params.token }
 }

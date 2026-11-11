@@ -41,6 +41,12 @@ The logic package exports a `GameDefinition`:
 - `info` provides the stable game id, metadata, and an optional configurator.
 - `runtime` provides the initializer, hydrator, player-color mapping, canonical state validator, API action schemas, machine-state handlers, an optional state logger, and optional exploration state preparation.
 
+In `info.metadata`, `bggId` identifies the implemented title/edition on BoardGameGeek when it has one unambiguous entry. `hasScores` declares whether the game has numeric scores: set it to `false` for win/loss-only games even when `runtime.scoring` produces synthetic 1/0 values. Both fields are optional for compatibility with older Catalog Entries. Updated metadata reaches the Site Frontend through each title's UI definition and catalog in its UI Artifact, so titles need UI-only Publication to adopt it.
+
+BG Stats exports use these fields and the Hosted Game's stored `finalScores`; called games retain their declared winners without exporting intermediate scores. Hotseat games are excluded from BG Stats export. Older entries still support win/loss export without scores or a BGG ID. Every export sends `noPoints`, `highestWins`, `winner` and `startPlayer`, which BG Stats for Android requires; `startPlayer` is always false because Hosted Games don't record a reliable start player. Duration is omitted because elapsed hosted time includes gaps between turns. Every export names `BoardTogether` as its `location`. An export with scores also sends each player's `rank`: declared winners are first and the rest follow by score, sharing a rank when tied because stored scores don't record tiebreaks. The [BG Stats import contract](https://www.bgstatsapp.com/support/push-plays-to-bg-stats-from-other-apps-or-websites/) defines the external payload.
+
+A title may add `runtime.progression`, whose `progress(state)` returns its [Game Progress](game-progress.md): a rough `fraction` of the game played, a short `label` in the title's own terms (`Round 3 of 8`, `Phase 5 · Bank $3,420`) and `final` once the game's end has begun. The host calls it with host state when a game starts and after every Action and Undo, and stores the result on the Game record that game cards, Tournament tables and League progress read. It must report only public information. If it throws or returns an invalid report, the host logs the error and leaves progress unset; the move still succeeds. Adopting it needs only a logic release. 18xx titles get it from `createEighteenXXRuntime`.
+
 The UI package exports a `GameUiDefinition`. Its info adds the thumbnail, and its lazy runtime provides the Game UI component, session class, colorizer, optional player-color palette, and the complete game runtime.
 
 Every action type that may cross the serialized boundary must be registered in the API action schema and hydrator. Every machine-state value must have a handler.
@@ -126,6 +132,20 @@ Terminal states expose no further actions. Handlers orchestrate the state machin
 
 `GameState` contains the complete replay-relevant model. `PlayerState` contains player-specific game facts. Initialization, dehydration, and hydration must round-trip without losing behavior or changing serialized meaning.
 
+### State shape
+
+Stored games keep their State, so its shape outlives the code that introduced it and changing it costs a migration. State holds the facts play produces:
+
+- **Rule data lives in code.** Fixed definitions the rules supply, such as charts, card and tile definitions, map geometry, costs, and schedules, are code constants keyed by stable ID. State holds only what play changes: where a card is, who owns a tile, which space a marker occupies. A setup outcome is a fact, such as a shuffled deck's order or a randomly chosen board. A State object carrying a definition's printed fields holds rule data: an 18xx stock market's spaces belong to the title's chart, and State keeps only the marker stacks on them.
+- **Game objects are referenced by stable ID.** A relationship from one part of State to another, or from an Action to State, names the object's stable ID: a card, tile, company, or space, never its array index, list position, or copied fields. [Player relationships](#player-relationships) apply the same rule to Players.
+- **State is the current position.** What an Action did belongs in its input and `metadata` ([Actions](#actions)), and earlier positions come from History Navigation or `RecordedHistory`. A growing record of past values is history. State may keep a latest value for display, such as an 18xx company's `lastRunRevenue`, and the least past fact a rule still consults, such as which players have passed this round, dropped once no rule needs it. The shared turn, round, and phase managers' `series` are an exception: they record action-index boundaries for history grouping ([Turns, rounds, and phases](#turns-rounds-and-phases)).
+
+Three cases pass these rules:
+
+- **A record's own kind.** A field naming what kind of object a record is, such as an 18xx company's `kind` (private, minor or major), says which of the record's other fields apply, so it stays even where the kind is printed.
+- **A field stored games still hold.** When a released title stops writing a field, its schema keeps the field optional, typed `never` so no code reads it, until the stored games that hold it have finished. Old States and their undo patches then load without a migration.
+- **A recorded decision.** A shape that a family's State-shape note records as decided or deferred, with its reason, is reported as a recommendation until that note is revisited. For 18xx the note is `research/18xx/state-shape-backlog.md`.
+
 ### Player relationships
 
 Every Game State or Action relationship to a Player must use that Player's stable ID. Name the field for the relationship it represents, such as `playerId`, `actingPlayerId`, or `winnerPlayerId`. Do not identify or resolve a Player through color, display name, seat, turn-order position, array index, or another Player attribute.
@@ -156,7 +176,7 @@ Trace the affected contract end to end:
 
 1. Serialized schema and raw type.
 2. Hydrated class and nested hydration.
-3. Initializer, hydrator, and definition registration.
+3. Initializer, hydrator, and definition registration. A title whose play carries into a next game follows [Game continuation](game-continuation.md).
 4. Action/API contract and metadata.
 5. Machine-state availability, entry, and transition behavior.
 6. Session methods and UI consumers.
@@ -171,6 +191,7 @@ Verify the parts affected by the change:
 - Every machine state is mapped to a handler.
 - Every serialized action is present in the API schema and hydrator.
 - Initialization, dehydration, and hydration preserve the game model.
+- New or changed State follows the [State shape](#state-shape) rules.
 - Player relationships remain correct when player attributes or presentation colors change.
 - Actions validate, apply, and emit metadata correctly.
 - State entry, transitions, and system-action cascades follow the rules.

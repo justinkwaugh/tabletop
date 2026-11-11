@@ -1,4 +1,4 @@
-import { Role, User, UserStatus } from '@tabletop/common'
+import { canHoldAuthenticatedSession, Role, User, UserStatus } from '@tabletop/common'
 import { goto, invalidateAll } from '$app/navigation'
 import { redirect } from '@sveltejs/kit'
 import { AuthorizationCategory, type TabletopApi } from '@tabletop/frontend-components'
@@ -8,6 +8,8 @@ import {
     takeLoginContinuation
 } from '$lib/utils/loginContinuation'
 import { readStoredValue, removeStoredValue, writeStoredValue } from '$lib/utils/storedValue'
+import { browserTimeZone } from '$lib/utils/timeZones'
+import { reauthentication } from '$lib/stores/reauthentication.svelte'
 
 /**
  *
@@ -124,19 +126,22 @@ export class AuthorizationService {
     }
 
     public setSessionUser(user: User) {
+        if (this.sessionUser?.id !== user.id) reauthentication.cancel()
         this.sessionUser = user
         writeStoredValue(AuthorizationService.storageKey, user)
         this.onSessionUserSet()
     }
 
     public clearSessionUser() {
+        reauthentication.cancel()
         this.sessionUser = undefined
         removeStoredValue(AuthorizationService.storageKey)
         this.onSessionUserCleared()
     }
 
     public async onLogin(user: User) {
-        this.setSessionUser(user)
+        reauthentication.cancel()
+        this.adoptSessionUser(user)
 
         if (user.status === UserStatus.Incomplete) {
             await goto('/onboarding')
@@ -145,37 +150,65 @@ export class AuthorizationService {
         await goto(takeLoginContinuation() ?? '/library')
     }
 
+    public async logout() {
+        // Forget the user before the session ends so a request it refuses never reads as an expiry
+        this.forgetSessionUser()
+        await this.api.logout()
+        await goto('/')
+    }
+
     public async onLogout() {
+        this.forgetSessionUser()
+        await goto('/')
+    }
+
+    private forgetSessionUser() {
         clearLoginContinuation()
         this.clearSessionUser()
-        await goto('/')
     }
 
     private async loadSessionUser() {
         const sessionUser = await this.fetchSessionUser()
         if (sessionUser) {
-            this.setSessionUser(sessionUser)
+            this.adoptSessionUser(sessionUser)
         }
     }
 
     private async verifyStoredSessionUser(storedUser: User): Promise<boolean> {
         const sessionUser = await this.fetchSessionUser()
         if (sessionUser) {
-            this.setSessionUser(sessionUser)
+            this.adoptSessionUser(sessionUser)
         } else {
             this.clearSessionUser()
         }
         return sessionUser?.id !== storedUser.id || sessionUser.status !== storedUser.status
     }
 
+    private adoptSessionUser(user: User) {
+        this.setSessionUser(user)
+        void this.fillMissingTimeZone(user)
+    }
+
+    private async fillMissingTimeZone(user: User) {
+        if (user.timeZone) {
+            return
+        }
+        try {
+            const updatedUser = await this.api.updateUserTimeZone(browserTimeZone(), {
+                onlyIfUnset: true
+            })
+            if (this.sessionUser?.id === updatedUser.id) {
+                this.setSessionUser(updatedUser)
+            }
+        } catch (error) {
+            console.error('Could not save the browser time zone', error)
+        }
+    }
+
     private async fetchSessionUser(): Promise<User | undefined> {
         try {
             const sessionUser = await this.api.getSelf()
-            if (
-                sessionUser &&
-                sessionUser.status !== UserStatus.Deleted &&
-                sessionUser.status !== UserStatus.Inactive
-            ) {
+            if (sessionUser && canHoldAuthenticatedSession(sessionUser)) {
                 return sessionUser
             }
         } catch {

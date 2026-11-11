@@ -5,6 +5,8 @@
     import PasswordInput from '$lib/components/PasswordInput.svelte'
     import AuthLink from '$lib/components/AuthLink.svelte'
     import { focusFirstInput } from '$lib/utils/focusFirstInput'
+    import { isAlreadyExists, isUsernameNotAllowed } from '$lib/utils/accountErrors'
+    import { emailAddress, minLengthMessage } from '$lib/utils/accountFormValidation'
 
     let { onsignin }: { onsignin?: () => void } = $props()
     const { authorizationService, api } = getAppContext()
@@ -17,9 +19,9 @@
     let email = $state('')
 
     const createUserSchema = z.object({
-        username: z.string().trim().min(1),
-        password: z.string().trim().min(12),
-        email: z.string().trim().email()
+        username: z.string().trim().min(1, minLengthMessage(1)),
+        password: z.string().trim().min(12, minLengthMessage(12)),
+        email: z.string().trim().pipe(emailAddress())
     })
 
     async function submit(event: SubmitEvent) {
@@ -29,7 +31,7 @@
         errors = {}
         const result = createUserSchema.safeParse({ username, password, email })
         if (!result.success) {
-            errors = result.error.flatten().fieldErrors
+            errors = z.flattenError(result.error).fieldErrors
             return
         }
         submitting = true
@@ -37,7 +39,9 @@
             const newUser = await api.createUser(result.data)
             await authorizationService.onLogin(newUser)
         } catch (error) {
-            if (error instanceof Error && error.name === 'AlreadyExistsError') {
+            if (isUsernameNotAllowed(error)) {
+                errors.username = [error.message]
+            } else if (isAlreadyExists(error)) {
                 if (error.message.includes('username')) {
                     errors.username = ['Username already exists']
                 } else if (error.message.includes('email')) {

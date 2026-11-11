@@ -5,7 +5,7 @@ import { TileType } from '../components/tiles.js'
 import { HydratedDrawTile, isDrawTile } from '../actions/drawTile.js'
 import { HydratedPlaceDisk, isPlaceDisk } from '../actions/placeDisk.js'
 import { StartAuction } from '../actions/startAuction.js'
-import { FreshFishGameConfig } from '../definition/gameConfig.js'
+import { forceThreeDisks } from '../definition/gameConfig.js'
 import { ActionType } from '../definition/actions.js'
 import { HydratedPass, isPass, Pass } from '../actions/pass.js'
 
@@ -15,9 +15,10 @@ type StartOfTurnAction = HydratedPlaceDisk | HydratedDrawTile | HydratedPass
 //                 StartOfTurn(DrawTile) -> MarketTileDrawn (when market tile drawn)
 //                 StartOfTurn(DrawTile) -> StallTileDrawn (when stall tile is drawn)
 //                 StartOfTurn(Pass) -> StartOfTurn (no possible moves)
-export class StartOfTurnStateHandler
-    implements MachineStateHandler<StartOfTurnAction, HydratedFreshFishGameState>
-{
+export class StartOfTurnStateHandler implements MachineStateHandler<
+    StartOfTurnAction,
+    HydratedFreshFishGameState
+> {
     isValidAction(
         action: HydratedAction,
         context: MachineContext<HydratedFreshFishGameState>
@@ -108,7 +109,6 @@ export class StartOfTurnStateHandler
         context: MachineContext<HydratedFreshFishGameState>
     ): boolean {
         const gameState = context.gameState
-        const gameConfig = context.gameConfig as FreshFishGameConfig
 
         if (
             actionType === ActionType.PlaceDisk &&
@@ -121,7 +121,7 @@ export class StartOfTurnStateHandler
         if (
             actionType === ActionType.DrawTile &&
             gameState.getPlayerState(playerId).hasDiskOnBoard() &&
-            (gameConfig.forceThreeDisks === false || gameState.turnManager.turnCount(playerId) >= 3)
+            (!forceThreeDisks(context.gameConfig) || gameState.turnManager.turnCount(playerId) >= 3)
         ) {
             return true
         }

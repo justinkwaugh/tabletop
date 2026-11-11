@@ -101,6 +101,55 @@ describe('taking an open-sea space', () => {
     })
 })
 
+describe('refilling the bonus spaces at turn end', () => {
+    it('fills each empty bonus space from the bag within the refill reveal', () => {
+        const session = startPlaying()
+        emptyBagBut(session, [CoralColor.Pink, CoralColor.White, ...Array(5).fill(CoralColor.Grey)])
+        session.edit((draft) => {
+            draft.bonusPolyps = { ...coralCounts(1), [CoralColor.Pink]: 0, [CoralColor.White]: 0 }
+        })
+
+        const [, refill] = session.takeOpenSeaSpace(session.currentPlayerId(), CoralColor.Grey)
+
+        assert(isRefillOpenSea(refill), 'The take is followed by a refill')
+        expect(refill.revealsInfo).toBe(true)
+        expect(refill.metadata?.bonusRefills).toEqual([
+            { color: CoralColor.Pink, found: true },
+            { color: CoralColor.White, found: true }
+        ])
+        expect(session.state.bonusPolyps).toEqual(coralCounts(1))
+    })
+
+    it('leaves a space empty, and the colour ruled out, when the bag has none', () => {
+        const session = startPlaying()
+        emptyBagBut(session, Array(6).fill(CoralColor.Grey))
+        session.edit((draft) => {
+            draft.bonusPolyps = { ...coralCounts(1), [CoralColor.Pink]: 0 }
+        })
+
+        const [, refill] = session.takeOpenSeaSpace(session.currentPlayerId(), CoralColor.Grey)
+
+        assert(isRefillOpenSea(refill), 'The take is followed by a refill')
+        expect(refill.metadata?.bonusRefills).toEqual([{ color: CoralColor.Pink, found: false }])
+        expect(session.state.bonusPolyps[CoralColor.Pink]).toBe(0)
+        expect(session.state.colorsMissingFromBag).toEqual([CoralColor.Pink])
+    })
+
+    it('does not happen in games begun before the rule', () => {
+        const session = startPlaying()
+        session.edit((draft) => {
+            delete draft.bonusSpacesRefillAtTurnEnd
+            draft.bonusPolyps = { ...coralCounts(1), [CoralColor.Pink]: 0 }
+        })
+
+        const [, refill] = session.takeOpenSeaSpace(session.currentPlayerId(), CoralColor.Grey)
+
+        assert(isRefillOpenSea(refill), 'The take is followed by a refill')
+        expect(refill.metadata?.bonusRefills).toBeUndefined()
+        expect(session.state.bonusPolyps[CoralColor.Pink]).toBe(0)
+    })
+})
+
 describe('running the bag dry', () => {
     it('puts the bonus polyps into the bag when it runs out', () => {
         const session = startPlaying()

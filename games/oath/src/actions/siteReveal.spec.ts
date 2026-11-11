@@ -17,22 +17,29 @@ const MASTER_SEED = '0123456789abcdef0123456789abcdef'
 
 function ready() {
     // Pinned to the random deck because the seeded deal depends on the deck variant.
-    const game = testGame(['p1', 'p2'], { seed: 3, config: { setupVariant: SetupVariant.Randomized } })
+    const game = testGame(['p1', 'p2'], {
+        seed: 3,
+        config: { setupVariant: SetupVariant.Randomized }
+    })
     const { initialState } = engine.startGame(game, { masterSeed: MASTER_SEED })
     let current = initialState
 
     for (const playerId of current.turnManager.turnOrder) {
         const hydrated = new HydratedOathGameState(current)
         const hand = hydrated.getPlayerState(playerId).knownHand()
-        current = engine.runNext(buildAction(SetupChoice, {
-            playerId,
-            siteId:
-                playerId === current.chancellorPlayerId
-                    ? TOP_CRADLE_SLOT
-                    : hydrated.faceupSiteIds()[1],
-            adviserCardId: hand[0],
-            discardOrder: hand.slice(1)
-        }), current, game).updatedState
+        current = engine.runNext(
+            buildAction(SetupChoice, {
+                playerId,
+                siteId:
+                    playerId === current.chancellorPlayerId
+                        ? TOP_CRADLE_SLOT
+                        : hydrated.faceupSiteIds()[1],
+                adviserCardId: hand[0],
+                discardOrder: hand.slice(1)
+            }),
+            current,
+            game
+        ).updatedState
     }
 
     // R-4.1 — this deal leaves the Wake nothing to decide, so it resolves itself.
@@ -56,7 +63,11 @@ describe('R-5.6.2 — travelling onto a facedown site reveals it', () => {
         const destination = facedownDestination(state)
         expect(vault.siteFacedown[destination]).toBeDefined()
 
-        const { updatedState, processedActions } = engine.runNext(buildAction(Travel, { playerId, siteId: destination }), state, game)
+        const { updatedState, processedActions } = engine.runNext(
+            buildAction(Travel, { playerId, siteId: destination }),
+            state,
+            game
+        )
 
         const after = new HydratedOathGameState(updatedState)
         expect(after.isSiteFaceup(destination)).toBe(true)
@@ -74,7 +85,11 @@ describe('R-5.6.2 — travelling onto a facedown site reveals it', () => {
         assertExists(siteCardId, 'the destination is facedown, so the vault holds its card')
         const expected = siteRevealPrompt(siteCardId)?.relics ?? 0
 
-        const { updatedState, processedActions } = engine.runNext(buildAction(Travel, { playerId, siteId: destination }), state, game)
+        const { updatedState, processedActions } = engine.runNext(
+            buildAction(Travel, { playerId, siteId: destination }),
+            state,
+            game
+        )
 
         const after = new HydratedOathGameState(updatedState)
         const slots = after.relicSlotsAt(destination)
@@ -95,12 +110,20 @@ describe('R-5.6.2 — travelling onto a facedown site reveals it', () => {
         const drawn = slots.map((slot) => vaultOf(updatedState).relicFacedown[slot.slotId])
         const perspectives: Visibility.Perspective[] = [
             { kind: 'spectator' },
-            ...state.turnManager.turnOrder.map((id): Visibility.Perspective => ({ kind: 'player', playerId: id }))
+            ...state.turnManager.turnOrder.map((id): Visibility.Perspective => ({
+                kind: 'player',
+                playerId: id
+            }))
         ]
         for (const perspective of perspectives) {
-            const serialized = JSON.stringify(OathVisibility.actions.project(processedActions[0], perspective))
+            const serialized = JSON.stringify(
+                OathVisibility.actions.project(processedActions[0], perspective)
+            )
             for (const cardId of drawn) {
-                expect(serialized, `${cardId} leaked onto the action served to ${JSON.stringify(perspective)}`).not.toContain(cardId)
+                expect(
+                    serialized,
+                    `${cardId} leaked onto the action served to ${JSON.stringify(perspective)}`
+                ).not.toContain(cardId)
             }
         }
     })
@@ -128,7 +151,11 @@ describe('R-5.6.2 — travelling onto a facedown site reveals it', () => {
         const expected = PROMPTING_SITES[cardId]
         const bankBefore = state.favorSupply
 
-        const { updatedState } = engine.runNext(buildAction(Travel, { playerId, siteId: destination }), state, game)
+        const { updatedState } = engine.runNext(
+            buildAction(Travel, { playerId, siteId: destination }),
+            state,
+            game
+        )
 
         const after = new HydratedOathGameState(updatedState)
         expect(after.tokensOn(cardId)).toEqual(expected)
@@ -144,7 +171,11 @@ describe('R-5.6.2 — travelling onto a facedown site reveals it', () => {
             .find((id) => id !== hydrated.getPlayerState(playerId).siteId)
         assertExists(faceup, 'the deal leaves a faceup site the pawn is not on')
 
-        const { processedActions } = engine.runNext(buildAction(Travel, { playerId, siteId: faceup }), state, game)
+        const { processedActions } = engine.runNext(
+            buildAction(Travel, { playerId, siteId: faceup }),
+            state,
+            game
+        )
         expect(processedActions[0].revealsInfo).toBe(false)
     })
 
@@ -154,7 +185,11 @@ describe('R-5.6.2 — travelling onto a facedown site reveals it', () => {
         const destination = facedownDestination(state)
 
         const before = structuredClone(state)
-        const { updatedState, processedActions } = engine.runNext(buildAction(Travel, { playerId, siteId: destination }), state, game)
+        const { updatedState, processedActions } = engine.runNext(
+            buildAction(Travel, { playerId, siteId: destination }),
+            state,
+            game
+        )
 
         const replayed = engine.run(
             structuredClone(processedActions[0]),

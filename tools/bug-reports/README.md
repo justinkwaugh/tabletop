@@ -37,7 +37,10 @@ Email goes from `noreply@boardtogether.games` through Resend, rendered from the
 
 - a Resend key from `RESEND_API_KEY`, else `.secrets/resend-api-key`, found like the bot token;
   a send-only key is enough;
-- the workspace installed and `@tabletop/email` built, for the template;
+- the workspace installed and `@tabletop/email` built, for the template, which a new worktree
+  lacks until
+  `pnpm install --frozen-lockfile --filter @tabletop/bug-reports... && pnpm --filter @tabletop/email... build`;
+  `check` reports whether the template loads;
 - `tools/investigate` set up, which reads the address from the user record.
 
 The wording of each milestone lives in `src/milestones.mjs`.
@@ -55,6 +58,6 @@ game, hidden information included.
 - **Forum permissions** (on the forum, Edit Channel, Permissions; forums call threads _posts_):
   View Channel, Read Message History, Send Messages in Posts and Manage Posts. Without Manage
   Posts the bot may retag and close only the reports it opened, and lock none.
-- **Tags**: `open`, `investigating`, `reproduced`, `fixed`, `wont fix` and `not a bug` are
-  status tags, one per post. Discord closes a post after a week without activity, so the status
+- **Tags**: `open`, `investigating`, `reproduced`, `fixed`, `wont fix`, `not a bug` and
+  `suggestion` are status tags, one per post. Discord closes a post after a week without activity, so the status
   tag, not the closed state, says whether a report is resolved.

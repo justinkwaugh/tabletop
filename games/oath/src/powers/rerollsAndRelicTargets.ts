@@ -1,19 +1,19 @@
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
-import { suitOf } from '../data/cardRegistry.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { askQuestion } from '../util/questions.js'
 import { registerBattlePlan, registerEffect, registerPersistent } from './registry.js'
 import { siteHasCardOfSuit, regionOfPawn } from './vocabulary.js'
-import { nextActionIndex } from '../util/freeActions.js'
+import { grantFreeTravel } from '../util/freeActions.js'
 import { reasonCannotTravelByPower } from '../util/powerTravel.js'
 import { canPayPowerMoveToll } from '../util/powerMoveTolls.js'
 import { seeDiscardPile } from '../util/knowledge.js'
+import { askWoodPickForPower, woodChooserForPower } from '../util/shroudedWood.js'
 
 // "You may target facedown relics at targeted sites, adding 1 [defenseDie] per relic.
 //  You may put any relics you take on the bottom of the relic deck." Attacker.
 const RELIC_HUNTER = 'denizen.order.relic-hunter'
 registerBattlePlan(RELIC_HUNTER, powerIndexOf(RELIC_HUNTER, PowerTiming.BattlePlan), {
-    hooks: { targetsSiteRelics: true }
+    hooks: { targetsSiteRelics: true, bottomsTakenRelics: true }
 })
 
 // "Action: Reveal the top card of your discard pile. Travel to a site with a card of this suit.
@@ -32,11 +32,10 @@ registerEffect(BRASS_HORSE, powerIndexOf(BRASS_HORSE, PowerTiming.Action), {
         count: 1
     }),
     resolve: (ctx) => {
-        const me = ctx.state.getPlayerState(ctx.playerId)
         const top = ctx.reveal?.kind === 'peek' ? ctx.reveal.cardIds[0] : undefined
         // "Reveal" — the whole table sees the top card.
         if (top) seeDiscardPile(ctx.state, 'everyone', regionOfPawn(ctx.state, ctx.playerId), [top])
-        const suit = top ? suitOf(top) : undefined
+        const suit = top ? ctx.state.suitInPlay(top) : undefined
         // Its Q&A — the Travel rules bind; a site that cannot be travelled to is "unable".
         const sites = suit
             ? ctx.state
@@ -49,6 +48,19 @@ registerEffect(BRASS_HORSE, powerIndexOf(BRASS_HORSE, PowerTiming.Action), {
                           canPayPowerMoveToll(ctx.state, ctx.playerId, siteId)
                   )
             : []
+        // R-11.7-H1 — from a Shrouded Wood an enemy rules, its ruler picks among the Horse's sites (its Q&A).
+        const chooser = sites.length > 0 ? woodChooserForPower(ctx.state, ctx.playerId) : undefined
+        if (chooser !== undefined) {
+            askWoodPickForPower(ctx.state, ctx.playerId, chooser, ctx.playerId, {
+                powerCardId: BRASS_HORSE,
+                userPlayerId: ctx.playerId,
+                siteIds: sites
+            })
+            return {
+                summary: `Brass Horse: revealed ${top} (${suit}); the Shrouded Wood's ruler chooses among the sites with a ${suit} card`,
+                peeked: top ? [top] : []
+            }
+        }
         if (sites.length > 0) {
             askQuestion(ctx.state, ctx.playerId, {
                 kind: PowerQuestionKind.TravelFreeTo,
@@ -62,7 +74,7 @@ registerEffect(BRASS_HORSE, powerIndexOf(BRASS_HORSE, PowerTiming.Action), {
             }
         }
         // "If unable, travel as normal" — the next Travel, for no Supply.
-        me.freeTravelAtAction = nextActionIndex(ctx.state)
+        grantFreeTravel(ctx.state, ctx.playerId, BRASS_HORSE)
         return {
             summary: `Brass Horse: revealed ${top ?? 'nothing'}; no site holds that suit, so the next Travel costs no Supply`,
             peeked: top ? [top] : []

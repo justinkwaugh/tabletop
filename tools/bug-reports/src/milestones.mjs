@@ -24,7 +24,9 @@ const STAGES = {
         subject: 'We found the bug you reported',
         heading: 'Found it!',
         lead: "Good news: we can make the bug you hit happen on our end too, so we know what's going on and a fix is on the way.",
-        closing: 'Thanks for bearing with us!'
+        closing: 'Thanks for bearing with us!',
+        // The forum hears what was reproduced, written for its readers rather than the reporter.
+        finding: 'saying what was reproduced'
     },
     fixed: {
         ...BUG_REPORT,
@@ -55,9 +57,21 @@ const STAGES = {
         heading: "Here's what's going on",
         needs: 'note',
         review: true,
+        // The forum hears why the game works this way, for players who wonder the same.
+        finding: 'saying why the game works this way',
         lead: 'Thanks for telling us about this. We can see why it seemed off, so we took a close look.',
         closing:
             "If something still doesn't seem right, send us another report from the game and we'll happily take another look."
+    },
+    // The player asked for something new or different rather than reporting a fault.
+    suggestion: {
+        eyebrow: 'Your suggestion',
+        footer: 'You sent us this suggestion on BoardTogether.',
+        label: 'Suggestion',
+        subject: 'Thanks for your suggestion',
+        heading: 'Thanks for the idea!',
+        lead: "This one isn't a bug but an idea for making BoardTogether better, so we've added it to the list of suggestions we're considering.",
+        closing: 'Keep them coming!'
     }
 }
 
@@ -72,6 +86,18 @@ export function checkStageInputs(status, { note, version, approved }) {
     if (stage?.review && !approved) {
         throw new Error(
             `${status} disagrees with the reporter, so the user reads it first: run with --dry-run, show the user the message, then rerun with --approved`
+        )
+    }
+}
+
+export function checkForumInputs(status, { finding }) {
+    const stage = STAGES[status]
+    if (stage?.finding && !finding) {
+        throw new Error(`${status} needs --finding ${stage.finding}, for the forum`)
+    }
+    if (finding && !stage?.finding) {
+        throw new Error(
+            `--finding is for reproduced and not a bug, so it does not go with ${status}`
         )
     }
 }
@@ -103,13 +129,18 @@ export function reporterMessage(status, report, note, postUrl) {
         message.heading,
         [message.lead, note, message.closing].filter(Boolean).join(' '),
         `You wrote: "${message.quote}"`,
-        `Your game (${message.game}): ${message.gameUrl}`,
+        // A hotseat game lives only in the reporter's browser, so its report has no link.
+        message.gameUrl
+            ? `Your game (${message.game}): ${message.gameUrl}`
+            : `Your game: ${message.game}`,
         `Your report on our Discord: ${postUrl} (not on the BoardTogether server yet? Join here: ${DISCORD_INVITE})`
     ].join('\n\n')
     return { ...message, text }
 }
 
-// The post is public, so its record names the status alone; the note is for the reporter.
-export function forumStatusLine(status, version) {
-    return `**${STAGES[status].label}${version ? ` in ${version}` : ''}.**`
+// The post is public, so its record names the status, and for a reproduced bug or not a bug
+// the finding; the note is for the reporter.
+export function forumRecord(status, { version, finding } = {}) {
+    const line = `**${STAGES[status].label}${version ? ` in ${version}` : ''}.**`
+    return finding ? `${line}\n\n${finding.trim()}` : line
 }

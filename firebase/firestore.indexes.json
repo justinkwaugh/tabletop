@@ -29,6 +29,38 @@
             ]
         },
         {
+            "collectionGroup": "tournaments",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "rules.registration.kind",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "tournaments",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "rules.registration.kind",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "rules.titleId",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
             "collectionGroup": "games",
             "queryScope": "COLLECTION",
             "fields": [
@@ -49,9 +81,104 @@
                     "order": "DESCENDING"
                 }
             ]
+        },
+        {
+            "collectionGroup": "games",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "typeId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "isPublic",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "finishedAt",
+                    "order": "DESCENDING"
+                },
+                {
+                    "fieldPath": "__name__",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "games",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "series",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "isPublic",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "finishedAt",
+                    "order": "DESCENDING"
+                },
+                {
+                    "fieldPath": "__name__",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "games",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "lastActionAt",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "startedAt",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "games",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "lastActionAt",
+                    "order": "ASCENDING"
+                }
+            ]
         }
     ],
     "fieldOverrides": [
+        {
+            "collectionGroup": "actionChunks",
+            "fieldPath": "actionsData",
+            "indexes": []
+        },
+        {
+            "collectionGroup": "actionChunks",
+            "fieldPath": "actionsZstd",
+            "indexes": []
+        },
+        {
+            "collectionGroup": "states",
+            "fieldPath": "*",
+            "indexes": []
+        },
         {
             "collectionGroup": "tournaments",
             "fieldPath": "entrants",
@@ -70,6 +197,16 @@
         {
             "collectionGroup": "schedules",
             "fieldPath": "*",
+            "indexes": []
+        },
+        {
+            "collectionGroup": "siteStatsMonths",
+            "fieldPath": "days",
+            "indexes": []
+        },
+        {
+            "collectionGroup": "siteStatsMonths",
+            "fieldPath": "activeUsers",
             "indexes": []
         }
     ]

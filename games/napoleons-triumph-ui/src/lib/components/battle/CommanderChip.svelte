@@ -8,6 +8,7 @@
         label,
         marker,
         chosen = false,
+        dimmed = false,
         onclick
     }: {
         commanderId: string
@@ -17,6 +18,7 @@
         /** A word under the flag, as under a unit: what the commander does. */
         marker?: string
         chosen?: boolean
+        dimmed?: boolean
         onclick?: () => void
     } = $props()
 
@@ -27,6 +29,7 @@
     type="button"
     class="nt-commander-chip"
     class:nt-commander-chip-chosen={chosen}
+    class:nt-commander-chip-dimmed={dimmed}
     disabled={!onclick}
     aria-pressed={chosen}
     aria-label={label}
@@ -83,6 +86,10 @@
     .nt-commander-chip-chosen,
     .nt-commander-chip-chosen:not(:disabled):hover {
         border-color: var(--nt-ink);
+    }
+
+    .nt-commander-chip-dimmed {
+        opacity: 0.5;
     }
 
     .nt-commander-chip-staff {

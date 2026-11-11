@@ -3,7 +3,9 @@ import type { StartCompanyAnimator } from '$lib/animators/startCompanyAnimator.j
 
 const START_COMPANY_ANIMATOR_CONTEXT = Symbol('indonesia-start-company-animator')
 
-export function setStartCompanyAnimatorContext(animator: StartCompanyAnimator): StartCompanyAnimator {
+export function setStartCompanyAnimatorContext(
+    animator: StartCompanyAnimator
+): StartCompanyAnimator {
     setContext(START_COMPANY_ANIMATOR_CONTEXT, animator)
     return animator
 }

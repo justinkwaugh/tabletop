@@ -8,7 +8,10 @@ import {
     sharesOwned,
     type Owner,
     type StockState,
-    type ValuationRules
+    type ValuationRules,
+    companyShareCount,
+    currentPrivateRevenue,
+    type CompanyCharters
 } from '@tabletop/18xx'
 import { assert } from '@tabletop/common'
 
@@ -16,8 +19,12 @@ export function ownerPortfolio(
     state: StockState,
     owner: Owner,
     rules: ValuationRules,
+    charters: CompanyCharters,
     /** Lists minor companies among the owner's privates rather than their share holdings. */
-    minorsAsPrivates = false
+    minorsAsPrivates = false,
+    /** What a private pays a round, where the title's state decides it. */
+    income: (privateId: string) => number = (privateId) =>
+        currentPrivateRevenue(state, charters, privateId)
 ) {
     const cash = cashOwnedBy(state, owner)
     assert(typeof cash === 'number', 'Portfolio requires finite cash')
@@ -35,7 +42,7 @@ export function ownerPortfolio(
             const company = getCompany(state, id)
             const shares = sharesOwned(state, id, owner)
             const total =
-                company.shareCount ??
+                companyShareCount(state, charters, id) ??
                 state.certificates.reduce(
                     (sum, item) =>
                         sum + (item.kind === 'share' && item.companyId === id ? item.shares : 0),
@@ -54,7 +61,7 @@ export function ownerPortfolio(
             const company = getCompany(state, item.companyId)
             return {
                 company,
-                income: company.closed ? 0 : (company.privateRevenue ?? 0),
+                income: income(company.id),
                 value: certificateValue(state, item, rules)
             }
         })

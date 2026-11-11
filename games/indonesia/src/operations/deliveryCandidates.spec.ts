@@ -491,24 +491,20 @@ describe('deliveryCandidates', () => {
         const candidates = listAtomicDeliveryCandidatesForPlayer(state, productionOwnerId)
         const safeCandidates = listSafeAtomicDeliveryCandidatesForPlayer(state, productionOwnerId)
 
-        const routeKey = (candidate: { shippingCompanyId: string; cityId: string; seaAreaIds: string[] }) =>
-            `${candidate.shippingCompanyId}|${candidate.cityId}|${candidate.seaAreaIds.join('>')}`
+        const routeKey = (candidate: {
+            shippingCompanyId: string
+            cityId: string
+            seaAreaIds: string[]
+        }) => `${candidate.shippingCompanyId}|${candidate.cityId}|${candidate.seaAreaIds.join('>')}`
 
         const allRouteKeys = new Set(candidates.map(routeKey))
         const safeRouteKeys = new Set(safeCandidates.map(routeKey))
 
         expect(allRouteKeys).toEqual(
-            new Set([
-                'ship-a|city-main|S14',
-                'ship-a|city-remote|S14>S06',
-                'ship-b|city-main|S14'
-            ])
+            new Set(['ship-a|city-main|S14', 'ship-a|city-remote|S14>S06', 'ship-b|city-main|S14'])
         )
         expect(safeRouteKeys).toEqual(
-            new Set([
-                'ship-a|city-remote|S14>S06',
-                'ship-b|city-main|S14'
-            ])
+            new Set(['ship-a|city-remote|S14>S06', 'ship-b|city-main|S14'])
         )
         expect(safeCandidates).toHaveLength(6)
         expect(new Set(safeCandidates.map((candidate) => candidate.cultivatedAreaId))).toEqual(
@@ -533,7 +529,9 @@ describe('deliveryCandidates', () => {
             cityId: 'city-remote'
         }
 
-        expect(isValidAtomicDeliveryChoiceForPlayer(state, productionOwnerId, unsafeChoice)).toBe(true)
+        expect(isValidAtomicDeliveryChoiceForPlayer(state, productionOwnerId, unsafeChoice)).toBe(
+            true
+        )
         expect(isSafeAtomicDeliveryChoiceForPlayer(state, productionOwnerId, unsafeChoice)).toBe(
             false
         )

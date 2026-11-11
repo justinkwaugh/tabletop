@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ActionSource, type GameAction } from '@tabletop/common'
+import { ActionSource, createCallGameAction, type GameAction } from '@tabletop/common'
 import { ActionType, CompanyType, PassReason } from '@tabletop/indonesia'
 import { aggregateActions, isAggregatedIndonesiaAction } from './actionAggregator.js'
 
@@ -63,7 +63,12 @@ function proposeMergerAction(
     } as unknown as GameAction
 }
 
-function placeMergerBidAction(id: string, playerId: string, amount: number, index?: number): GameAction {
+function placeMergerBidAction(
+    id: string,
+    playerId: string,
+    amount: number,
+    index?: number
+): GameAction {
     return {
         id,
         gameId: 'g1',
@@ -201,10 +206,7 @@ describe('aggregateActions', () => {
     })
 
     it('starts a new aggregate when player changes', () => {
-        const actions = [
-            expandAction('a1', 'p1', 'A01'),
-            expandAction('a2', 'p2', 'A02')
-        ]
+        const actions = [expandAction('a1', 'p1', 'A01'), expandAction('a2', 'p2', 'A02')]
 
         const aggregated = Array.from(aggregateActions(actions))
 
@@ -467,5 +469,28 @@ describe('aggregateActions', () => {
             aggregatedType: ActionType.ChooseOperatingCompany,
             count: 0
         })
+    })
+
+    it('keeps a called game out of the open group', () => {
+        const callGame = createCallGameAction({
+            gameId: 'g1',
+            ballot: {
+                initiatorPlayerId: 'p1',
+                approvingPlayerIds: ['p1', 'p2'],
+                decliningPlayerIds: []
+            },
+            players: ['p1', 'p2', 'p3']
+        })
+        const aggregated = Array.from(
+            aggregateActions([
+                expandAction('e1', 'p1', 'A01'),
+                expandAction('e2', 'p1', 'A02'),
+                callGame
+            ])
+        )
+
+        expect(aggregated).toHaveLength(2)
+        expect(isAggregatedIndonesiaAction(aggregated[0])).toBe(true)
+        expect(aggregated[1]).toBe(callGame)
     })
 })

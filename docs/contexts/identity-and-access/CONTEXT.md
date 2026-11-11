@@ -15,8 +15,14 @@ The permanent identity of a User Account. It is never reused, including after de
 The Account ID and Username published for an Active Account. Private Account details and non-Active Accounts are not discoverable.
 
 **Username**:
-The case-insensitively unique login name and public handle of a User Account. It is nonempty after trimming, preserves chosen display casing, and excludes control characters.
+The case-insensitively unique login name and public handle of a User Account. It is nonempty after trimming, preserves chosen display casing, and excludes control characters. A person choosing a Username cannot choose an Offensive Username.
 _Avoid_: Display name, login ID
+
+**Offensive Username**:
+A Username containing a slur or offensive language, by the word list in `libs/backend-services/src/moderation/offensiveLanguage.ts`. The check runs only when a person sets or changes the letters of their Username, so an existing Account is not locked out by a later change to the list, and an Administrator's rename is not subject to it: renaming is how a false match gets resolved.
+
+**Administrative Rename**:
+An Administrator's change to another Account's Username. Because the old name may be why it is being changed, it also rewrites the Player name in every Game the Account has a seat in, and because the Username is the login name, it emails the Account the new one.
 
 **Account Completion**:
 The requirements for normal platform use: a Username and Verified Email Address. A Password Credential is optional when another Authentication Method exists.
@@ -28,7 +34,7 @@ The private email associated with a User Account. Comparison and uniqueness are 
 An Email Address whose control has been established through an Email Verification Challenge or a trusted provider assertion.
 
 **Pending Email Address**:
-A reserved replacement awaiting verification while the existing Verified Email Address remains active. Verification atomically promotes it and releases the previous address.
+A proposed replacement awaiting verification while the existing Verified Email Address remains active and the Account retains its status. Verification atomically promotes an available address and releases the previous one; an unverified proposal reserves neither an address nor an Authentication Method.
 
 ## Account Status
 
@@ -42,11 +48,15 @@ A User Account that has not satisfied Account Completion. It may authenticate on
 A complete User Account permitted normal platform use. Only Active Accounts publish a Public User Profile.
 
 **Inactive**:
-A retained User Account disabled by an Administrator. It cannot establish or continue an Authenticated Session and may prove identity only for support.
+A retained User Account disabled by an Administrator through a Ban. It cannot establish or continue an Authenticated Session and may prove identity only for support.
 
 **Deleted**:
 The terminal, anonymized tombstone of a removed User Account. It cannot authenticate or become another status.
 _Avoid_: Soft-deleted, archived
+
+**Ban**:
+The Administrator operation making an Incomplete or Active Account Inactive, advancing its Session Generation in the same commit so that lifting the Ban revives no earlier session. It keeps the Account's Username, Email Address and External Identities reserved, closes its Realtime Connections, stops its Attention Notices, and releases it from Games: see Banned Player in the Game Lifecycle context. An Administrator cannot Ban their own Account or another Administrator. Lifting a Ban restores Active or Incomplete, by Account Completion.
+_Avoid_: Suspension, deactivation
 
 ## Authentication
 
@@ -58,37 +68,59 @@ A secret used to authenticate a User Account. Leading and trailing whitespace is
 _Avoid_: Password record
 
 **External Identity**:
-A stable, provider-qualified identity linked to exactly one User Account. An Account may link at most one identity from each provider.
+A stable, provider-qualified identity linked to exactly one User Account. An Account may link at most one identity from each provider. Linking requires Recent Authentication and completes only a Provider Authorization Attempt the linking session began.
 _Avoid_: Social account, provider email
 
 **Trusted External Provider**:
 A provider whose verified-email assertion is accepted as proof of email control for Account linking. Google and Discord are currently trusted; additional providers require an explicit trust decision.
 
 **Set Password**:
-The operation that establishes a new Password Credential, replacing any existing one.
+The operation that establishes a new Password Credential, replacing any existing one, authorized by Recent Authentication or a Set Password Challenge. It advances the Account's Session Generation in the same commit, which terminates every earlier Authenticated Session of the Account.
 _Avoid_: Password Recovery
 
 **Authentication Challenge**:
-A purpose-bound, single-use proof with a fifteen-minute lifetime. Issuing a replacement invalidates earlier challenges for the same Account and purpose.
+A purpose-bound, single-use proof with a fifteen-minute lifetime, consumed in the same commit as the operation it authorizes. Issuing a replacement invalidates earlier challenges for the same Account and purpose. A challenge never establishes an Authenticated Session.
 _Avoid_: Authentication token, verification token
 
 **Email Verification Challenge**:
 An Authentication Challenge proving control of its exact target Email Address.
 
-**Set Password Challenge**:
-An Authentication Challenge authorizing Set Password for an Incomplete or Active Account without establishing an Authenticated Session. It changes neither Account Status nor email verification.
+**Email Change Challenge**:
+An Authentication Challenge proving control of a Pending Email Address, bound to the Account, its current Verified Email Address and Session Generation. Consuming it promotes the verified replacement and ends earlier Authenticated Sessions without making the Account Incomplete.
 
-**Sensitive Change Challenge**:
-An Authentication Challenge authorizing its specified sensitive Account operation.
+**Set Password Challenge**:
+An Authentication Challenge, bound to the Email Address it was sent to, authorizing Set Password for an Incomplete or Active Account without establishing an Authenticated Session. It changes neither Account Status nor email verification; the person signs in afterwards through an Authentication Method.
 
 **Authenticated Session**:
-Ongoing authorization associated with a User Account, with a thirty-day absolute lifetime and no sliding extension from ordinary activity. An Account may have multiple concurrent sessions.
+Ongoing authorization associated with a User Account, recorded server-side under an unguessable Session ID that the session cookie carries. It has a 180-day absolute lifetime and no sliding extension from ordinary activity, and it ends early through Logout, Logout All, Set Password, a verified Email Address change, or a Ban. A cookie without a live record authorizes nothing. An Account may have multiple concurrent sessions.
+_Avoid_: Login cookie, stateless session
+
+**Session ID**:
+The unguessable identifier of one Authenticated Session. It is the only authorization the session cookie carries and is never derived from Account data. It is a bearer secret: logs and error reports carry its Secret Reference instead, and the cache service keeps its cache key, which embeds the Session ID, out of its diagnostics.
+
+**Secret Reference**:
+A one-way digest of a bearer value with enough entropy to defeat enumeration: a Session ID, an Authorization State or a data token. It is stable for the same value and useless for presenting it, and application logs and error reports name such a value only through it. The secrets and codes of Authentication Challenges, passwords, provider credentials and any other supplied secret are redacted outright, never digested, because a digest of a short code is an offline verifier for it.
+_Avoid_: Masked token, session hash
+
+**Session Generation**:
+A counter on the User Account that every Authenticated Session records when it is established. A session authorizes only while its recorded generation equals the Account's. A Password Credential or Verified Email Address change, or a Ban, advances the generation in the same commit, so no earlier session survives it, including one established concurrently.
 
 **Recent Authentication**:
-Successful proof through an Authentication Method within the previous fifteen minutes for one Authenticated Session. Ordinary activity does not refresh it.
+Successful proof through an Authentication Method within the previous fifteen minutes for one Authenticated Session, required to change an Email Address or Password Credential or link an External Identity. Ordinary activity and renewing a session after a Password Credential change do not refresh that proof.
+
+**Reauthentication**:
+Proof through an Authentication Method of the Account that already holds the current Authenticated Session, which refreshes that session's Recent Authentication. It establishes no session, extends no lifetime, and cannot switch the session to another Account: a Password Credential must be the Account's own and an External Identity must already be linked to it.
+_Avoid_: Re-login, step-up
+
+**Provider Authorization Attempt**:
+One pass through an external provider's authorization flow, begun on this platform for a stated purpose: sign-in, linking, or Reauthentication. Its Authorization State is an unpredictable value with a ten-minute lifetime, bound to the provider, the purpose and the registered return address, and held by whoever began the attempt: the Authenticated Session for linking and Reauthentication, the browser's session cookie for sign-in. Each holder keeps at most one attempt, so beginning another replaces it. A provider callback is accepted only with the state of the live attempt its own holder keeps. An attempt held by an Authenticated Session is consumed exactly once; an attempt held by a sign-in cookie is cleared from that browser when its callback completes, and the provider's single-use authorization code is what limits a copy of the cookie taken earlier.
+_Avoid_: OAuth state parameter, CSRF token
+
+**Logout**:
+Termination of the current Authenticated Session. Any Account holding a session may log out; a copied cookie for that session stops authorizing at the same moment.
 
 **Logout All**:
-Termination of every Authenticated Session belonging to a User Account.
+Termination of every Authenticated Session belonging to a User Account, including the one requesting it.
 
 ## Authorization
 

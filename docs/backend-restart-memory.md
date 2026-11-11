@@ -1,5 +1,8 @@
 # Backend restart memory
 
+Since ADR 0011 a logic publication is activated inside the running worker and no process is
+replaced for it; this document records the earlier restart and handoff paths.
+
 Before the supervised handoff, the backend's manifest-triggered restart rebuilt
 Fastify inside the existing Node process. The production incident on 2026-09-24 killed that process for exceeding
 its 512 MiB container limit immediately after a manifest mismatch. Local probes
@@ -38,26 +41,26 @@ validation, change schemas, or change generated JavaScript.
 The Old Prince's 63 eagerly compiled validators have identical source lengths
 and SHA-256 hashes before and after this change. Its actual logic bundle's steady
 retained heap per additional artifact URL fell from **8.65 to 5.91 MiB (32%)** on
-Node 22.23.3, matching production's Node major version, and from **6.62 to 3.86 MiB
-(42%)** on Node 24.21.0. The patch is independent of title rules and applies to every title
+Node 22.23.3 and from **6.62 to 3.86 MiB (42%)** on Node 24.21.0, production's Node
+major version. The patch is independent of title rules and applies to every title
 using this TypeBox version. Keep the patch version-pinned and recheck behavior and
 memory when upgrading TypeBox. The pruned backend Docker build context includes
 the patch before dependency installation.
 
-Reproduce the bundle measurement from the repository root with Node 22:
+Reproduce the bundle measurement from the repository root with Node 24:
 
 ```sh
 pnpm --filter @tabletop/the-old-prince run bundle
 node --expose-gc tools/deploy/scripts/measure-game-memory.mjs \
-  games/the-old-prince/bundle/index.js --max-retained-mib=7
+  games/the-old-prince/bundle/index.js --max-retained-mib=5
 ```
 
 The benchmark copies the self-contained artifact to six distinct module URLs,
 imports them without keeping caller references, and forces GC between samples.
 It excludes the first three imports from the per-version calculation to reduce
 warmup effects. It reports raw heap, external, array-buffer and RSS measurements.
-The optional 7 MiB threshold fails on the old artifact and passes on the patched
-one under Node 22. Use 5 MiB for the equivalent Node 24 check; absolute heap
+The optional 5 MiB threshold fails on the old artifact and passes on the patched
+one under Node 24. Use 7 MiB for the equivalent Node 22 check; absolute heap
 measurements are engine-version-dependent.
 RSS includes allocator reservations and must not be treated as retained heap.
 
@@ -69,13 +72,30 @@ Fastify application runs in `worker.ts`, a child process listening on an ephemer
 loopback port. Production backend ingress remains HTTP/2; tasks and local ingress
 remain HTTP/1. Both stream requests to the child over HTTP/1, preserving request
 bodies, authorization, cookies, status codes and streaming responses. The parent
-sets the forwarded client address; the child trusts only its loopback proxy.
+appends its peer to the forwarded address chain; the child trusts only its loopback proxy and,
+on Cloud Run, the ingress behind it ([client address](./client-address.md)).
 
-Each child resolves the frontend version once at startup. It serves that build and
-reports it in `X-Tabletop-Version`, so the header changes only when a replacement
-serving the new build takes over, and clients are never told to refresh into a build
-the backend does not yet serve. The deploy tool reads that header as the served
-frontend version and waits for it after a frontend publication.
+Firebase Hosting serves the site files, so a frontend publication needs no
+replacement: only a logic change in the manifest triggers one. `X-Tabletop-Version`
+reports the manifest's frontend version on every response, and the deploy tool
+publishes the manifest only after Hosting serves the new build, so the files and the
+header switch seconds apart. The backend service serves only `/api` and `/games` (the tasks
+service serves `/tasks`); it has no copy of the site, so Hosting releases that send every path to the backend no longer
+work, and a frontend rollback goes through `rollback --frontend`. The deploy tool reads
+`X-Tabletop-Version` as the served frontend version.
+
+Game versions follow the same rule through the served manifest, which since ADR 0011 is the
+latest manifest with the titles the worker has activated: its games trail the bucket manifest
+only while an activation is in progress, and a UI-only release reaches clients as soon as the
+worker has taken the new publication record. The rest of it, the frontend version included,
+follows the bucket manifest without waiting for an activation, since a frontend-only release
+starts none; before that, a running worker kept the frontend version it started with, and pages
+on the new build took the older header for a rollback and reloaded in a loop.
+`/api/v1/manifest`, `/api/v1/catalog`, `X-TABLETOP-GAME-UI-VERSION`,
+`X-Tabletop-Version` and the game names and thumbnails in Discord notifications
+all come from the served manifest, so clients never load a UI whose logic the backend
+does not run yet, and the deploy tool's wait on `/api/v1/manifest` ends only when
+the new logic is serving.
 
 Startup work that does not depend on the manifest stays out of the child. The
 supervisor derives the session key from `SESSION_SECRET` and `SESSION_SALT` once per
@@ -131,10 +151,16 @@ is disconnected.
 
 Cloud Run request-based CPU allocation can throttle replacement work while the
 instance has no active requests. This is not a new Cloud Run instance startup and
-does not get startup CPU boost. Background replacement/retry timing requires
-instance-based CPU allocation if it must progress predictably while idle. With
-request-based allocation, traffic supplies CPU and the old backend keeps serving
-during replacement. No Cloud Run resource or billing setting is changed here.
+does not get startup CPU boost. On 2026-10-15 a backend replacement took 90 s and a
+tasks replacement 4 min 17 s, against 33 s for a fresh instance. The admin manifest
+invalidate call a release makes therefore stays open until the replacement it
+triggered ends: the supervisor tells the old child it is superseded before
+draining it, or tells the serving child its replacement failed
+(`ReplacementRequest`). That supplies CPU to the one backend instance the call
+reaches. Other backend instances, the tasks service and retries after a failure
+still progress only with traffic; predictable timing for them would need
+instance-based CPU allocation. No Cloud Run resource or billing setting is
+changed here.
 
 A game-only worker would require moving all version-owned imports, including
 schemas and route registration, into its isolate. The complete-backend child

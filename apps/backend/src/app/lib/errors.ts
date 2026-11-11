@@ -1,7 +1,8 @@
 import { BaseError } from '@tabletop/common'
 
 enum BackendError {
-    GameVersionMismatch = 'GameVersionMismatch'
+    GameVersionMismatch = 'GameVersionMismatch',
+    InvalidAction = 'InvalidAction'
 }
 
 export class GameVersionMismatchError extends BaseError {
@@ -16,6 +17,16 @@ export class GameVersionMismatchError extends BaseError {
             name: BackendError.GameVersionMismatch,
             message: `The game logic requested does not match the server version`,
             metadata: { requestedVersion, serverVersion }
+        })
+    }
+}
+
+export class InvalidActionError extends BaseError {
+    constructor({ actionType, problem }: { actionType: string; problem: string }) {
+        super({
+            name: BackendError.InvalidAction,
+            message: `Invalid ${actionType} action: ${problem}`,
+            metadata: { actionType }
         })
     }
 }

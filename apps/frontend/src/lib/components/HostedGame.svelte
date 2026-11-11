@@ -13,6 +13,8 @@
 
     import { onMount, untrack } from 'svelte'
     import type { GameState, HydratedGameState } from '@tabletop/common'
+    import { getAppContext as getSiteContext } from '$lib/stores/appContext.svelte'
+    import PlayerVoteStrip from './PlayerVoteStrip.svelte'
 
     let props: { gameSession: GameSession<GameState, HydratedGameState> } = $props()
     const gameSession = untrack(() => props.gameSession)
@@ -26,6 +28,7 @@
         gameService.currentGameSession = gameSession
 
         if (!gameSession.game.hotseat) {
+            getSiteContext().gameService.rememberGame(gameSession.game)
             setTimeout(() => {
                 notificationService.showPrompt()
             }, 2000)
@@ -49,8 +52,11 @@
             <ExplorationPanel />
         {:else if $gameHotseat}
             <HotseatPanel />
-        {:else if authorizationService.actAsAdmin}
-            <AdminPanel />
+        {:else}
+            {#if authorizationService.actAsAdmin}
+                <AdminPanel />
+            {/if}
+            <PlayerVoteStrip {gameSession} />
         {/if}
     </div>
     <GameUI {gameSession} />

@@ -25,9 +25,7 @@ describe('EndOfGameStateHandler', () => {
             offerType: 'money',
             bidType: 'containers',
             bidAmount: 1,
-            bidContainers: [
-                { color: ContainerColor.Blue, price: 1, source: 'factory' }
-            ]
+            bidContainers: [{ color: ContainerColor.Blue, price: 1, source: 'factory' }]
         }
 
         const handler = new EndOfGameStateHandler()

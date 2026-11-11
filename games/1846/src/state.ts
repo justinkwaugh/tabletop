@@ -1,9 +1,6 @@
-import { BankruptcyFields } from './bankruptcy.js'
-import { EmergencyFundingFields } from './emergencyFunding.js'
 import { AcquisitionFields } from './acquisitions.js'
 import { RevenueMarkerFields } from './revenueMarkers.js'
 import { SteamboatFields } from './steamboat.js'
-import { FinanceStep } from './corporateFinance.js'
 import { EighteenFortySixMap } from './map.js'
 import { EighteenFortySixTileSet } from './tiles.js'
 import { TrainDepot1846 } from './trains.js'
@@ -12,6 +9,9 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Visibility } from '@tabletop/common'
 import {
+    CashCrisisFields,
+    FundingFields,
+    validateTrainFunding,
     composeEighteenXXState,
     defineEighteenXXState,
     type HydratedEighteenXXState,
@@ -21,9 +21,11 @@ import {
     PrivatePowerFields,
     CompanyAcquisitionOfferFields,
     FinanceFields,
+    CorporateFinanceFields,
     EarningsFields,
     MapFields,
     RouteFields,
+    RunInstructionFields,
     OperatingSet,
     TrackStep,
     StationStep,
@@ -55,6 +57,7 @@ export const Purchase = Type.Object(
     { ...Selection.properties, playerId: Id },
     { additionalProperties: false }
 )
+export type Purchase = Type.Static<typeof Purchase>
 const Participant = Type.Object(
     {
         playerId: Id,
@@ -86,7 +89,7 @@ const PublicDistribution = Type.Union([
     Type.Object(
         {
             kind: Type.Literal('public'),
-            stage: Type.Union([Type.Literal('operating'), Type.Literal('complete')])
+            stage: Type.Literal('operating')
         },
         { additionalProperties: false }
     )
@@ -96,21 +99,22 @@ export const EighteenFortySixState = composeEighteenXXState(
         ...FinanceFields,
         ...EndingFields,
         gameEnding: Type.Optional(GameEnding),
-        ...BankruptcyFields,
+        bankruptPlayerIds: CashCrisisFields.bankruptPlayerIds,
         ...PhaseFields,
         ...AcquisitionFields,
-        ...EmergencyFundingFields,
+        ...FundingFields,
         ...RevenueMarkerFields,
         ...PrivatePowerFields,
         ...CompanyAcquisitionOfferFields,
         ...EarningsFields,
         ...MapFields,
         ...RouteFields,
+        ...RunInstructionFields,
         ...SteamboatFields,
         operatingSet: Type.Optional(OperatingSet),
         trackStep: Type.Optional(TrackStep),
         stationStep: Type.Optional(StationStep),
-        financeStep: Type.Optional(FinanceStep),
+        ...CorporateFinanceFields,
         ...StockCompanyFields,
         stockMarket: StockMarket,
         stockRound: StockRound,
@@ -120,17 +124,16 @@ export const EighteenFortySixState = composeEighteenXXState(
         trainInventory: TrainInventory,
         trainPurchaseStep: Type.Optional(TrainPurchaseStep),
         removedCorporationIds: Type.Array(Id, { uniqueItems: true }),
-        draft: Type.Union([HiddenDistribution, PublicDistribution]),
-        purchases: Type.Array(Purchase)
+        draft: Type.Optional(Type.Union([HiddenDistribution, PublicDistribution])),
+        purchases: Type.Optional(Type.Array(Purchase))
     },
     [
         'Drafting',
         'RevealingDraft',
         'BuyingOpeningCompanies',
         'StockRound',
-        'PreparingOperatingSet',
-        'StartingOperatingRound',
-        'StartingOperatingTurn',
+        'StartingOperatingSet',
+        'OperatingSet',
         'LayingTrack',
         'AssigningSteamboat',
         'RunningTrains',
@@ -139,16 +142,10 @@ export const EighteenFortySixState = composeEighteenXXState(
         'ClosingOperatingCorporation',
         'BuyingTrains',
         'FundingTrain',
-        'RunningReceiver',
-        'SettlingReceiver',
-        'BuyingReceiverTrain',
-        'FinishingReceiverTurn',
         'GameOver',
-        'ClosingFundingCorporation',
         'AdvancingPhase',
         'DiscardingTrains',
-        'RustingTrains',
-        'OperatingSet'
+        'RustingTrains'
     ]
 )
 export type EighteenFortySixState = Type.Static<typeof EighteenFortySixState>
@@ -172,6 +169,7 @@ function validate1846State(state: HydratedEighteenFortySixState, components: Tit
     validateRouteStep(state)
     validatePhaseChange(state)
     validateTrainPurchaseStep(state)
+    validateTrainFunding(state)
     validateRailwayComponents(state, components)
 }
 

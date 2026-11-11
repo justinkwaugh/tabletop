@@ -1,5 +1,5 @@
 import { TileColors } from './tilePresentation.js'
-import type { TileDrawingStyle } from './tileDrawing.js'
+import { LabelFontSize, type TileDrawingStyle } from './tileDrawing.js'
 
 export type TileAppearance = {
     name: string
@@ -58,6 +58,12 @@ export type TileAppearance = {
     /** Map hex outline; defaults to a slate hairline. */
     mapOutline?: { color: string; width: number }
 }
+
+/** Label type where an appearance sets none. */
+export const DefaultLabelFont: NonNullable<TileAppearance['labelFont']> = Object.freeze({
+    size: LabelFontSize,
+    weight: 850
+})
 
 export const ClassicTileAppearance: TileAppearance = Object.freeze({
     name: 'Classic',

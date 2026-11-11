@@ -23,7 +23,8 @@
         slots?: { top: ActionCardSlot; middle: ActionCardSlot; bottom: ActionCardSlot }
     } = $props()
 
-    const numeralStyle = "font-family:'DejaVu Serif', 'Liberation Serif', Georgia, 'Times New Roman', serif"
+    const numeralStyle =
+        "font-family:'DejaVu Serif', 'Liberation Serif', Georgia, 'Times New Roman', serif"
 
     // Optically centres a player's initial inside its pill. Flexbox centres the LINE BOX,
     // not the glyph, and IM Fell English's line box is badly lopsided: 0.905em of ascent
@@ -89,7 +90,12 @@
     {/if}
 {/snippet}
 
-{#snippet band(slot: ActionCardSlot | undefined, bg: string, content: Snippet, roundedClass: string)}
+{#snippet band(
+    slot: ActionCardSlot | undefined,
+    bg: string,
+    content: Snippet,
+    roundedClass: string
+)}
     {@const interactive = Boolean(slot?.clickable && slot?.onClick)}
     <button
         type="button"
@@ -109,9 +115,17 @@
     {#if count === 1}
         <img src={iconWallOne} alt="1 border" class="h-full max-w-full object-contain" />
     {:else if count === 2}
-        <img src={iconWallTwo} alt="2 borders" class="h-full max-w-full object-contain scale-[1.15]" />
+        <img
+            src={iconWallTwo}
+            alt="2 borders"
+            class="h-full max-w-full object-contain scale-[1.15]"
+        />
     {:else}
-        <img src={iconWallThree} alt="3 borders" class="h-full max-w-full object-contain scale-[1.3]" />
+        <img
+            src={iconWallThree}
+            alt="3 borders"
+            class="h-full max-w-full object-contain scale-[1.3]"
+        />
     {/if}
 {/snippet}
 
@@ -119,7 +133,11 @@
     {#if bandData.kind === 'border'}
         {@render wallIcon(bandData.count)}
     {:else if bandData.count === 2}
-        <img src={iconKnightDouble} alt="knight" class="h-full max-w-full object-contain scale-110" />
+        <img
+            src={iconKnightDouble}
+            alt="knight"
+            class="h-full max-w-full object-contain scale-110"
+        />
     {:else}
         <img src={iconKnight} alt="knight" class="h-full max-w-full object-contain" />
     {/if}
@@ -129,9 +147,17 @@
     {#if card.type === 'standard'}
         {#if card.top.kind === 'income'}
             {@render numeral(card.top.value)}
-            <img src={iconMoneybag} alt="income" class="h-full max-w-full object-contain translate-x-[10%]" />
+            <img
+                src={iconMoneybag}
+                alt="income"
+                class="h-full max-w-full object-contain translate-x-[10%]"
+            />
         {:else}
-            <img src={iconCrownScepter} alt="politics" class="h-full max-w-full object-contain scale-[1.15]" />
+            <img
+                src={iconCrownScepter}
+                alt="politics"
+                class="h-full max-w-full object-contain scale-[1.15]"
+            />
         {/if}
     {/if}
 {/snippet}
@@ -151,11 +177,17 @@
 <!-- Not overflow-hidden - the right-edge picker circles are meant to spill half
      outside the card. The rounded outer silhouette instead comes from rounding the
      top/bottom bands' own corners (see the roundedClass args below). -->
-<div class="@container aspect-[546/840] w-full rounded-md border border-black/20 shadow-md bg-white">
+<div
+    class="@container aspect-[546/840] w-full rounded-md border border-black/20 shadow-md bg-white"
+>
     {#if card.type === 'mining'}
         <img src={silverMine} alt="Silver Mine" class="w-full h-full object-cover rounded-md" />
     {:else if card.type === 'kingIsDead'}
-        <img src={kingIsDead} alt="The King is Dead" class="w-full h-full object-cover rounded-md" />
+        <img
+            src={kingIsDead}
+            alt="The King is Dead"
+            class="w-full h-full object-cover rounded-md"
+        />
     {:else}
         <div class="flex flex-col w-full h-full min-w-0">
             {@render band(slots?.top, '#BFCFAE', topContent, 'rounded-t-md')}

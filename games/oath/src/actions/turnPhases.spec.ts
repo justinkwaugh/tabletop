@@ -106,9 +106,7 @@ describe('ResolveWake — R-4.1', () => {
         )
         seized.banners[Banner.PeoplesFavor].mobSide = true
         expect(requiredFavorSteps(seized, CHANCELLOR)).toBe(0)
-        expect(
-            HydratedResolveWake.reasonCannotResolveWake(seized, CHANCELLOR, [])
-        ).toBeUndefined()
+        expect(HydratedResolveWake.reasonCannotResolveWake(seized, CHANCELLOR, [])).toBeUndefined()
 
         const oneAble = table(
             { banners: testBanners({ [Banner.PeoplesFavor]: CHANCELLOR }, 2) },
@@ -116,9 +114,9 @@ describe('ResolveWake — R-4.1', () => {
         )
         oneAble.banners[Banner.PeoplesFavor].mobSide = true
         expect(requiredFavorSteps(oneAble, CHANCELLOR)).toBe(1)
-        expect(
-            HydratedResolveWake.reasonCannotResolveWake(oneAble, CHANCELLOR, [])
-        ).toMatch(/still able/)
+        expect(HydratedResolveWake.reasonCannotResolveWake(oneAble, CHANCELLOR, [])).toMatch(
+            /still able/
+        )
 
         wakeAction({
             playerId: CHANCELLOR,
@@ -211,9 +209,7 @@ describe('EndActPhase — R-4.2', () => {
         const before = JSON.stringify(state.dehydrate())
 
         expect(HydratedEndActPhase.canDoEndActPhase(state, CHANCELLOR)).toBe(true)
-        new HydratedEndActPhase(
-            buildAction(EndActPhase, { playerId: CHANCELLOR })
-        ).apply(state)
+        new HydratedEndActPhase(buildAction(EndActPhase, { playerId: CHANCELLOR })).apply(state)
 
         expect(JSON.stringify(state.dehydrate())).toBe(before)
     })
@@ -226,9 +222,7 @@ describe('EndActPhase — R-4.2', () => {
 
 describe('CompleteRest — R-4.3.5 and the round boundary (R-4)', () => {
     function restAction(playerId: string) {
-        return new HydratedCompleteRest(
-            buildAction(CompleteRest, { playerId })
-        )
+        return new HydratedCompleteRest(buildAction(CompleteRest, { playerId }))
     }
 
     it('closes the round only for the last player in turn order (R-4)', () => {

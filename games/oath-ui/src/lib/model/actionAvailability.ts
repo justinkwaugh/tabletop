@@ -6,6 +6,7 @@ import {
     cannotGainFavorFromTrade,
     HydratedCampaign,
     HydratedMuster,
+    HydratedPlayFacedownAdviser,
     HydratedRecover,
     HydratedSearch,
     HydratedTrade,
@@ -15,14 +16,16 @@ import {
     freeActionTypesNow,
     reasonFreeActionComesFirst,
     usableFavor,
-    shroudedWoodChooser,
+    woodChooserForTravel,
     tollPayableWoodSites,
     isFreeTravelNow,
     woodPick,
     woodTravelPaysAtPick,
-    type HydratedOathGameState
+    type HydratedOathGameState,
+    type ModifierUse
 } from '@tabletop/oath'
 import type { MajorAction, MajorEntry } from './actionCatalogue.js'
+import { cardName, listed } from './names.js'
 
 // The engine's own sentence wherever a representative choice exists, else that the list is empty.
 export function reasonActionUnavailable(
@@ -36,8 +39,12 @@ export function reasonActionUnavailable(
 
     switch (type) {
         case ActionType.Travel: {
-            // R-11.7 — leaving an enemy's Shrouded Wood names no site.
-            if (shroudedWoodChooser(gameState, playerId) !== undefined) {
+            // R-11.7 — leaving an enemy's Shrouded Wood names no site. The tile opens as the engine's
+            // does, when some card the traveller can use leaves a pick they can pay for, or Portal
+            // from its own site makes it an ordinary Travel (R-11.7-H2, R-11.7-H4); closed, it says
+            // why with no card in use.
+            if (woodChooserForTravel(gameState, playerId, []) !== undefined) {
+                if (HydratedTravel.canDoTravel(gameState, playerId)) return undefined
                 return HydratedTravel.reasonCannotLeaveShroudedWood(gameState, playerId, {})
             }
             if (HydratedTravel.legalDestinations(gameState, playerId).length > 0) return undefined
@@ -141,6 +148,21 @@ export function gridRefusal(
     return knownCause(gameState, playerId, type) ?? { cause: 'engine', reason }
 }
 
+/**
+ * R-11.7 — why the Travel out of an enemy's Shrouded Wood cannot be sent with these cards in use:
+ * with none, in the grid's words (the cheapest pick); with cards, in the engine's own sentence.
+ */
+export function woodTravelRefusal(
+    gameState: HydratedOathGameState,
+    playerId: string,
+    modifiers: readonly ModifierUse[]
+): GridRefusal | undefined {
+    const reason = HydratedTravel.reasonCannotLeaveShroudedWood(gameState, playerId, { modifiers })
+    if (reason === undefined) return undefined
+    const known = modifiers.length === 0 ? woodCause(gameState, playerId) : undefined
+    return known ?? { cause: 'engine', reason }
+}
+
 function knownCause(
     gameState: HydratedOathGameState,
     playerId: string,
@@ -151,8 +173,8 @@ function knownCause(
     }
     switch (type) {
         case ActionType.Travel:
-            // R-11.7 — leaving an enemy's Shrouded Wood, the ruler picks: the cheapest pick is the price.
-            if (shroudedWoodChooser(gameState, playerId) !== undefined) {
+            // R-11.7 — leaving an enemy's Shrouded Wood, closed with no card that helps: the cheapest pick.
+            if (woodChooserForTravel(gameState, playerId, []) !== undefined) {
                 return woodCause(gameState, playerId)
             }
             return sharedCause(gameState, playerId, travelCandidates(gameState, playerId))
@@ -241,7 +263,7 @@ function woodCause(gameState: HydratedOathGameState, playerId: string): KnownRef
     if (sites.length === 0) return { cause: 'favor', has: usableFavor(gameState, playerId) }
     const free = isFreeTravelNow(gameState, playerId)
     const needs = Math.min(
-        ...sites.map((siteId) => woodPick(gameState, playerId, siteId, free).cost)
+        ...sites.map((siteId) => woodPick(gameState, playerId, siteId, { free }).cost)
     )
     return player.supply < needs ? { cause: 'supply', needs, has: player.supply } : undefined
 }
@@ -384,4 +406,19 @@ export function freeActionDueLine(
     const due = freeActionTypesNow(gameState, playerId)
     if (due.length === 0) return undefined
     return `Free ${freeActionNames(due)} next.`
+}
+
+/**
+ * R-6.1, R-7.1.4 — the muted line where the Adviser chip would stand, while tolls alone keep every
+ * facedown adviser from being played or discarded. None while a free action is due: that hides the
+ * chip too, and the line above the grid says so.
+ */
+export function facedownTollLine(
+    gameState: HydratedOathGameState,
+    playerId: string
+): string | undefined {
+    if (freeActionTypesNow(gameState, playerId).length > 0) return undefined
+    const tolls = HydratedPlayFacedownAdviser.tollsAloneBarPlay(gameState, playerId)
+    if (tolls.length === 0) return undefined
+    return `Needs ${tolls.length} favor for ${listed(tolls.map((toll) => cardName(toll.cardId)))}`
 }

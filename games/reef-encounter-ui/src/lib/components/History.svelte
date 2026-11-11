@@ -1,7 +1,7 @@
 <script lang="ts">
     import { tick } from 'svelte'
-    import type { GameAction } from '@tabletop/common'
-    import { createTimeAgo, PlayerName } from '@tabletop/frontend-components'
+    import { isCallGameAction, type GameAction } from '@tabletop/common'
+    import { CalledGameDescription, createTimeAgo, PlayerName } from '@tabletop/frontend-components'
     import {
         finalTurnEntries,
         historyEntries,
@@ -97,7 +97,7 @@
                             <PlayerName
                                 playerId={entry.playerId}
                                 fontFamily="'Reef Fredoka', 'Trebuchet MS', sans-serif"
-                                additionalClasses="plaque reef-display"
+                                additionalClasses="reef-plaque reef-display"
                             />
                             {#if lastAt}<time class="when">{timeAgo.format(lastAt)}</time>{/if}
                         </div>
@@ -120,6 +120,9 @@
                     </header>
                 {/if}
                 <ul>
+                    {#if isCallGameAction(entry.actions[0])}
+                        <li><CalledGameDescription action={entry.actions[0]} /></li>
+                    {/if}
                     {#each describeActions( entry.actions, entry.playerId === gameSession.myPlayer?.id ? 'your' : 'their', gameSession.possessiveName, (boardId) => boardName(gameSession.gameState.reefs, boardId) ) as phrase, index (index)}
                         <li><PhraseLine {phrase} capitalise /></li>
                     {/each}
@@ -138,7 +141,6 @@
         padding: 2px 2px 8px;
     }
 
-    /* One sheet of glass for the whole log, its entries split by hairlines. */
     .log {
         position: relative;
         padding: 2px 0;
@@ -188,15 +190,10 @@
         border-radius: 8px;
     }
 
-    /* A small copy of the player panels' name plaque. */
-    .jumps :global(.plaque) {
+    .jumps :global(.reef-plaque) {
         padding: 0 10px 1px;
-        border-radius: 999px;
         font-size: 13px;
         line-height: 20px;
-        box-shadow:
-            inset 0 6px 6px -5px rgb(255 255 255 / 0.4),
-            0 0 0 1.5px color-mix(in srgb, var(--player) 45%, #082520);
     }
 
     .jumps:hover,
@@ -261,6 +258,8 @@
     }
 
     .empty {
+        margin: 0;
+        padding: 8px 12px;
         color: var(--reef-muted);
         font-size: 14px;
     }

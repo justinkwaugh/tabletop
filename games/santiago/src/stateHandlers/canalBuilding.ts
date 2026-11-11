@@ -20,9 +20,10 @@ type CanalBuildingAction = HydratedProposeCanal | HydratedOverseerDecision | Hyd
 //   -1 = fresh entry from PlantingPhase (not yet set up)
 //   0..n-1 = proposal phase; player at that index is proposing
 //   n = overseer decision phase
-export class CanalBuildingStateHandler
-    implements MachineStateHandler<CanalBuildingAction, HydratedSantiagoGameState>
-{
+export class CanalBuildingStateHandler implements MachineStateHandler<
+    CanalBuildingAction,
+    HydratedSantiagoGameState
+> {
     isValidAction(
         action: HydratedAction,
         context: MachineContext<HydratedSantiagoGameState>

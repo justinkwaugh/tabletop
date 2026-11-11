@@ -2,12 +2,19 @@ import { assertExists } from '@tabletop/common'
 import type { ApproachId } from '../components/battleMap.js'
 import { isGuard } from '../components/pieces.js'
 import { DefenseAwaits, type ThreatOrder } from './attack.js'
-import { canThreaten, mayAttackInPlace } from './attackOrders.js'
-import { currentAttack, attackLocale, defenseLocale } from './attackState.js'
+import { canThreaten, mayAttackInPlace, rideOnAttackOrder } from './attackOrders.js'
+import { currentAttack, attackLocale, defenseLocale, defensePosition } from './attackState.js'
 import type { HydratedNapoleonsTriumphGameState } from './gameState.js'
 import { validateDefenseLeaders } from './leaders.js'
-import { faceOf, samePosition, type ProjectedUnit } from './pieces.js'
-import { legal } from './legality.js'
+import { endRoadMarch } from './movement.js'
+import {
+    corpsCommanderIds,
+    faceOf,
+    samePosition,
+    type Commander,
+    type ProjectedUnit
+} from './pieces.js'
+import { distinct, legal } from './legality.js'
 import { hasUsableCommand } from './orders.js'
 
 /** Rule 11, step 1. */
@@ -63,6 +70,9 @@ export function threatenAttack(
             plan.unitIds.every((id) => state.findUnit(id)?.playerId === attackerId),
         'An attack is planned with the attacker’s own units'
     )
+    if (!rideOnAttackOrder(state, { attackerId, attackApproach }, state.riders())) {
+        endRoadMarch(state)
+    }
     state.attack = {
         attackerId,
         defenderId,
@@ -95,10 +105,7 @@ export function eligibleReserveDefenders(
     return state
         .reserveUnits(defenseLocale(state, attack), attack.defenderId)
         .filter(
-            (unit) =>
-                !unit.retreatedAfterCombat &&
-                (unit.defendedApproach === undefined ||
-                    unit.defendedApproach === attack.defenseApproach)
+            (unit) => !unit.retreatedAfterCombat && mayDefendAgainst(unit, attack.defenseApproach)
         )
 }
 
@@ -109,14 +116,40 @@ export function forcedDefense(state: HydratedNapoleonsTriumphGameState): string[
     return blockers.length > 0 ? blockers.map((unit) => unit.id) : undefined
 }
 
+/** Rule 11, step 2: pieces blocking the defense approach must all be named, commanders among them. */
+export function forcedDefendingCommanders(state: HydratedNapoleonsTriumphGameState): string[] {
+    const attack = currentAttack(state)
+    return state
+        .commandersAt(defensePosition(state, attack), attack.defenderId)
+        .map((commander) => commander.id)
+}
+
+function reserveCommanders(state: HydratedNapoleonsTriumphGameState): Commander[] {
+    const attack = currentAttack(state)
+    return state.commandersAt({ locale: defenseLocale(state, attack) }, attack.defenderId)
+}
+
+/** Rule 11, step 2: pieces named against a different approach earlier in the turn cannot be named. */
+export function eligibleReserveCommanders(state: HydratedNapoleonsTriumphGameState): Commander[] {
+    const attack = currentAttack(state)
+    return reserveCommanders(state).filter((commander) =>
+        mayDefendAgainst(commander, attack.defenseApproach)
+    )
+}
+
+export function mayDefendAgainst(piece: ProjectedUnit | Commander, approach: ApproachId): boolean {
+    return piece.defendedApproach === undefined || piece.defendedApproach === approach
+}
+
 /** Rule 11, step 2: the defending pieces. Their leading units are named later, in step 4. */
 export function declareDefense(
     state: HydratedNapoleonsTriumphGameState,
-    unitIds: readonly string[]
+    unitIds: readonly string[],
+    commanderIds?: readonly string[]
 ) {
     const attack = currentAttack(state)
     legal(unitIds.length > 0, 'A defense names at least one unit')
-    legal(new Set(unitIds).size === unitIds.length, 'A defending unit is named once')
+    legal(distinct(unitIds), 'A defending unit is named once')
     const units = unitIds.map((id) => state.unit(id))
     const forced = forcedDefense(state)
     if (forced) {
@@ -136,15 +169,59 @@ export function declareDefense(
         )
     }
     attack.defendingUnitIds = [...unitIds]
-    attack.defendingCommanderIds = [
-        ...new Set(units.flatMap((unit) => (unit.commanderId ? [unit.commanderId] : [])))
-    ]
     attack.defendersBlocking = forced !== undefined
     // Rule 15: a Guard Attack cannot be called off, so it goes straight to the defence's leading units.
     attack.awaits = attack.guardAttack ? DefenseAwaits.Leaders : DefenseAwaits.Feint
     for (const unit of units) {
         unit.defendedApproach = attack.defenseApproach
     }
+    // Records from before commanders were named replay as they were played: every named unit's commander, unmarked.
+    if (commanderIds === undefined) {
+        attack.defendingCommanderIds = corpsCommanderIds(units)
+        return
+    }
+    legal(distinct(commanderIds), 'A defending commander is named once')
+    const commanders = forced
+        ? checkBlockingCommanders(state, commanderIds)
+        : checkReserveCommanders(state, units, commanderIds)
+    attack.defendingCommanderIds = [...commanderIds]
+    for (const commander of commanders) {
+        commander.defendedApproach = attack.defenseApproach
+    }
+}
+
+function checkBlockingCommanders(
+    state: HydratedNapoleonsTriumphGameState,
+    commanderIds: readonly string[]
+): Commander[] {
+    const forced = forcedDefendingCommanders(state)
+    legal(
+        forced.length === commanderIds.length && forced.every((id) => commanderIds.includes(id)),
+        'Every piece blocking the defense approach defends, and no other'
+    )
+    return commanderIds.map((id) => state.commander(id))
+}
+
+function checkReserveCommanders(
+    state: HydratedNapoleonsTriumphGameState,
+    units: readonly ProjectedUnit[],
+    commanderIds: readonly string[]
+): Commander[] {
+    const attack = currentAttack(state)
+    const inReserve = reserveCommanders(state)
+    const commanders = commanderIds.map((id) => state.commander(id))
+    for (const commander of commanders) {
+        legal(inReserve.includes(commander), 'Defending commanders stand in the defense reserve')
+        legal(
+            mayDefendAgainst(commander, attack.defenseApproach),
+            'A commander named against a different approach this turn cannot defend again'
+        )
+        legal(
+            units.some((unit) => unit.commanderId === commander.id),
+            'A commander defends only with a unit of his corps'
+        )
+    }
+    return commanders
 }
 
 /** Rule 11, step 3, when the attack is not called off: it is now the defender's to name the leading units. */
@@ -167,7 +244,7 @@ export function checkDefenseLeaders(
         leaderIds.every((id) => attack.defendingUnitIds.includes(id)),
         'Leading units are defending pieces'
     )
-    legal(new Set(leaderIds).size === leaderIds.length, 'A leading unit is named once')
+    legal(distinct(leaderIds), 'A leading unit is named once')
     validateDefenseLeaders(
         state,
         leaderIds.map((id) => state.unit(id)),

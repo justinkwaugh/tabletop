@@ -1,8 +1,11 @@
 import type { Point } from '@tabletop/common'
+import { cornersOf, squareAround } from './orientedBox.js'
 
 /** How far from the sign's centre the arrow's centre line reaches. */
 export const WAY_SIGN_REACH = 27
 export const WAY_SIGN_SHAFT_WIDTH = 12
+/** The light edge round the sign's arrow, and how far its tap area reaches beyond the arrow. */
+export const WAY_SIGN_EDGE = 3
 const HEAD_LENGTH = 21
 const HEAD_HALF_WIDTH = 15
 const SHAFT_INTO_HEAD = 6
@@ -62,4 +65,9 @@ export function waySignArrow(
         tip: along(onwards, arm),
         angle: (Math.atan2(onwards.y, onwards.x) * 180) / Math.PI
     }
+}
+
+/** All the sign can cover: the circle of its tap area, which holds the arrow and its edge. */
+export function waySignOutline(at: Point, scale: number): Point[] {
+    return cornersOf(squareAround(at, (WAY_SIGN_REACH + WAY_SIGN_EDGE) * scale))
 }

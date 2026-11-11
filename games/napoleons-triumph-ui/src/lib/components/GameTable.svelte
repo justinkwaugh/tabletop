@@ -32,14 +32,14 @@
     import MapMenu from '$lib/components/MapMenu.svelte'
     import MoveReplay from '$lib/components/MoveReplay.svelte'
     import { LOCALE_GEOMETRY } from '$lib/map/boardGeometry.js'
-    import { battleLocalesOf } from '$lib/model/battleStage.js'
     import { blockCorners } from '$lib/utils/blockShape.js'
     import {
         boundsOf,
+        centredInBand,
         focusWhereSeen,
         viewFor,
-        type BoardView,
-        type Focus
+        type Focus,
+        type SeenBand
     } from '$lib/utils/boardView.js'
     import { boardPicture, boardPictureName, picturedLayers } from '$lib/utils/boardPicture.js'
     import boardArt from '$lib/images/board.webp'
@@ -62,7 +62,6 @@
     setGameSession(session)
 
     let wrapper: ScalingWrapper | undefined = $state()
-    let restoreView: ReturnType<ScalingWrapper['captureView']> | undefined
     let boardHost: HTMLElement | undefined = $state()
     let table: HTMLElement | undefined = $state()
     let ordersDrawerHeight = $state(0)
@@ -106,7 +105,6 @@
             : undefined
     })
 
-    const BATTLE_FOCUS = { maxScale: 1.15, padding: 36 }
     const SELECTION_FOCUS_BELOW_ZOOM = 0.3
     const SELECTION_FOCUS = { maxScale: 0.62, padding: 24 }
 
@@ -114,42 +112,17 @@
         return locales.flatMap((locale) => LOCALE_GEOMETRY[locale]?.outline ?? [])
     }
 
-    const LOCATE_FOCUS = { maxScale: 0.85, padding: 28 }
-
-    function showOnMap(locale: number) {
-        if (!wrapper) return
-        restoreView = undefined
-        const surroundings = [locale, ...session.gameState.map.adjacentLocales(locale)]
-        wrapper.focusRect(boundsOf(outlines(surroundings), session.boardRotation), {
-            animate: true,
-            ...LOCATE_FOCUS
-        })
+    function scrollBoardIntoView() {
         boardHost?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
     }
 
+    async function bringLocatedOnScreen(locale: number) {
+        await tick()
+        scrollBoardIntoView()
+        panIfOutOfView(boardHost?.querySelector(`[data-located-locale="${locale}"]`), locale, true)
+    }
+
     const UNCOVERED_PADDING = 60
-
-    // A view can only be gone back to if it was taken before the battle and the board has not been
-    // turned since. Where there is none, the battle ends on the whole board.
-    // Workaround: the wrapper drops a fit it is still animating when the map area changes size, as
-    // it does when the battle panel closes, so this one is cut to.
-    function returnToTheWholeBoard() {
-        restoreView = () => wrapper?.fitToContent()
-    }
-
-    function showBattle(locales: number[], animate: boolean) {
-        if (!wrapper) return
-        if (locales.length === 0) {
-            restoreView?.({ animate })
-            restoreView = undefined
-            return
-        }
-        restoreView ??= wrapper.captureView()
-        wrapper.focusRect(boundsOf(outlines(locales), session.boardRotation), {
-            animate,
-            ...BATTLE_FOCUS
-        })
-    }
 
     function showWholeFieldPick(group: PieceGroup, animate: boolean) {
         const locales = [
@@ -229,21 +202,44 @@
         }
     }
 
+    // The orders sheet hangs over the top of the board, and on a phone the board can run below the fold.
+    function seenBand(host: DOMRect): SeenBand {
+        const sheet =
+            boardCovered > 0
+                ? table?.querySelector('.nt-orders-sheet')?.getBoundingClientRect()
+                : undefined
+        const top = Math.max(host.top, sheet?.bottom ?? host.top, 0)
+        const bottom = Math.min(host.bottom, window.innerHeight)
+        return { height: host.height, top: top - host.top, bottom: bottom - host.top }
+    }
+
+    function panIfOutOfView(shape: Element | null | undefined, locale: number, animate: boolean) {
+        if (!shape || !boardHost) return
+        const at = shape.getBoundingClientRect()
+        const host = boardHost.getBoundingClientRect()
+        const band = seenBand(host)
+        const inView =
+            at.left >= host.left &&
+            at.right <= host.right &&
+            at.top >= host.top + band.top &&
+            at.bottom <= host.top + band.bottom
+        if (!inView) {
+            const rect = boundsOf(outlines([locale]), session.boardRotation)
+            wrapper?.focusRect(centredInBand(rect, band, session.zoom), {
+                animate,
+                maxScale: session.zoom,
+                padding: UNCOVERED_PADDING
+            })
+        }
+    }
+
     function panToOpenCorpsIfOutOfView(animate: boolean) {
         const open = session.setupLocales.find((entry) => entry.open)
         const shape =
             open &&
             boardHost?.querySelector(`[data-setup-locale="${CSS.escape(open.commanderId)}"]`)
-        if (!open || !shape || !boardHost) return
-        const at = shape.getBoundingClientRect()
-        const view = boardHost.getBoundingClientRect()
-        const inView =
-            at.left >= view.left &&
-            at.right <= view.right &&
-            at.top >= view.top &&
-            at.bottom <= view.bottom
-        if (!inView) {
-            panAtThisZoom(outlines([open.locale]), animate)
+        if (open) {
+            panIfOutOfView(shape, open.locale, animate)
         }
     }
 
@@ -310,27 +306,13 @@
         }
     }
 
-    async function turnBoardTo(view: BoardView) {
-        session.boardView = view
-        await tick()
-        if (session.battleLocales.length > 0) {
-            returnToTheWholeBoard()
-            showBattle(session.battleLocales, false)
-        }
-    }
-
-    // A committed action animates the view to and from a battle; Undo, history steps and restores cut to it.
+    // A committed action animates the view to the pieces picked up for a road march; Undo, history steps and restores cut to it.
     const followGame: GameStateChangeListener<HydratedNapoleonsTriumphGameState> = async ({
         from,
         to,
         action,
         animationContext
     }) => {
-        const before = from ? battleLocalesOf(from) : []
-        const after = battleLocalesOf(to)
-        if (before.join() !== after.join()) {
-            animationContext.afterAnimations(() => showBattle(after, action !== undefined))
-        }
         if (to.roadMarch && !from?.roadMarch) {
             animationContext.afterAnimations(() => void showPickedUp(action !== undefined))
         }
@@ -361,19 +343,17 @@
         if (window.innerWidth > window.innerHeight) {
             session.boardView = viewFor(session.mySide)
         }
-        if (session.battleLocales.length > 0) {
-            returnToTheWholeBoard()
-        }
-        showBattle(session.battleLocales, false)
         void showSetup()
         session.addGameStateChangeListener(followGame)
         const stopListening = session.onPickUp(() => void showPickedUp(true))
         const stopFollowingSeats = session.onSeatOpened(() => void showOpenSeat(true))
+        const stopLocating = session.onLocaleLocated((locale) => void bringLocatedOnScreen(locale))
         const stopReadingZoom = session.readZoomFrom(() => wrapper?.viewScale())
         return () => {
             session.removeGameStateChangeListener(followGame)
             stopListening()
             stopFollowingSeats()
+            stopLocating()
             stopReadingZoom()
         }
     })
@@ -421,7 +401,7 @@
                     inactiveTabClass="text-[#2b2620] py-1 px-2 rounded-lg border-2 border-transparent hover:border-[#2b2620]"
                 >
                     {#snippet playersPanel()}
-                        <ArmiesPanel onlocate={showOnMap} />
+                        <ArmiesPanel />
                     {/snippet}
                     {#snippet history()}
                         <History />
@@ -448,8 +428,15 @@
                         <div class="nt-turn-body">
                             {#if session.isViewingHistory}
                                 <ActionPanel bind:ordersDrawerHeight />
-                            {:else if session.attack}
+                            {:else if session.attack || session.showsConcludedBattle}
                                 <BattlePanel />
+                                {#if session.gameState.result}
+                                    <div class="nt-after-battle">
+                                        <ActionPanel bind:ordersDrawerHeight />
+                                    </div>
+                                {/if}
+                            {:else if session.gameState.result}
+                                <ActionPanel bind:ordersDrawerHeight />
                             {:else if session.isAuction}
                                 <AuctionPanel />
                             {:else if session.isDeploying}
@@ -474,12 +461,11 @@
                             renderAtViewScale
                             insetTop={boardCovered}
                             coverBelowScale={0.4}
-                            onManualViewChange={() => (restoreView = undefined)}
                         >
                             <Board />
                             {#snippet overlay()}
                                 <MapMenu
-                                    onview={turnBoardTo}
+                                    onview={(view) => (session.boardView = view)}
                                     onsavepicture={savePicture}
                                     {savingPicture}
                                 />
@@ -543,7 +529,7 @@
         flex-direction: column;
         min-height: 0;
         overflow-y: auto;
-        overscroll-behavior: none;
+        overscroll-behavior-y: none;
     }
 
     .nt-board-host {
@@ -567,6 +553,12 @@
         touch-action: manipulation;
     }
 
+    .nt-after-battle {
+        margin-top: 8px;
+        padding-top: 6px;
+        border-top: 1px solid color-mix(in srgb, var(--nt-ink) 25%, transparent);
+    }
+
     .nt-turn-body {
         --nt-body-inline: 16px;
         padding: 0 var(--nt-body-inline) 11px;
@@ -580,15 +572,15 @@
     }
 
     .nt-table :global(.nt-plain-button) {
-        border: 1px solid var(--nt-ink);
+        border: 1px solid var(--nt-button-edge, var(--nt-ink));
         border-radius: 3px;
         padding: 0.15rem 0.65rem;
-        color: var(--nt-ink);
-        background: transparent;
+        color: var(--nt-button-ink, var(--nt-ink));
+        background: var(--nt-button-ground, transparent);
     }
 
     .nt-table :global(.nt-plain-button:hover:not(:disabled):not([aria-pressed='true'])) {
-        background: var(--nt-hover);
+        background: var(--nt-button-hover, var(--nt-hover));
     }
 
     .nt-table :global(.nt-plain-button[aria-pressed='true']) {

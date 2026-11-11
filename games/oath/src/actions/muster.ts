@@ -25,6 +25,7 @@ import {
     type ActiveModifier
 } from '../util/modifiers.js'
 import { pawnSiteId } from '../util/pawn.js'
+import { reasonRuinCannotBeUsed } from '../data/edifices.js'
 import {
     favorPayment,
     modifierPayment,
@@ -198,7 +199,9 @@ export class HydratedMuster extends HydratableAction<typeof Muster> implements M
             return {
                 cost,
                 active,
-                reason: `${cardId} is not a denizen at your site`
+                reason: state.isRuined(cardId)
+                    ? reasonRuinCannotBeUsed(cardId, 'Muster')
+                    : `${cardId} is not a denizen at your site`
             }
         }
         // R-7.1.2.a — Pressgangs lifts it.

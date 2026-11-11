@@ -2,6 +2,7 @@ import { assert, assertExists } from '@tabletop/common'
 import { UnitType, sameFace } from '../components/pieces.js'
 import {
     DecisionKind,
+    type LossDecision,
     type LossEntry,
     type MoralePenalty,
     type PendingDecision,
@@ -18,7 +19,7 @@ import {
 } from './combat.js'
 import { VictoryKind, type HydratedNapoleonsTriumphGameState } from './gameState.js'
 import { validateCounterAttackers } from './leaders.js'
-import { legal } from './legality.js'
+import { distinct, legal } from './legality.js'
 import { faceOf, type Commander, type ProjectedUnit } from './pieces.js'
 import { declareVictory } from './victory.js'
 
@@ -117,7 +118,7 @@ export function counterAttack(
     const attack = currentAttack(state)
     assertExists(attack.initialResult, 'The attack has not been declared')
     const candidates = counterAttackCandidates(state)
-    legal(new Set(unitIds).size === unitIds.length, 'A counter-attacking unit is named once')
+    legal(distinct(unitIds), 'A counter-attacking unit is named once')
     const units = unitIds.map((id) => state.unit(id))
     legal(
         units.every((unit) => candidates.includes(unit)),
@@ -292,8 +293,23 @@ export function resolveCombat(
     return { ...concludeCombat(state, cost), finalResult: final, attackerWon }
 }
 
-function isLossDecision(decision: PendingDecision): boolean {
+export function isLossDecision(decision: PendingDecision): decision is LossDecision {
     return decision.kind === DecisionKind.OddLoss || decision.kind === DecisionKind.ExcessLosses
+}
+
+/** Rule 11, step 9: an odd step is placed by the enemy of the side that owes it. */
+export function lossOwnerOf(
+    attack: Pick<AttackState, 'attackerId' | 'defenderId'>,
+    decision: LossDecision
+): string {
+    if (decision.kind === DecisionKind.ExcessLosses) {
+        return decision.playerId
+    }
+    return decision.playerId === attack.attackerId ? attack.defenderId : attack.attackerId
+}
+
+export function stepsOwed(decision: LossDecision): number {
+    return decision.kind === DecisionKind.OddLoss ? 1 : decision.amount
 }
 
 export function concludeAttack(
@@ -402,7 +418,11 @@ function repulse(state: HydratedNapoleonsTriumphGameState, attack: AttackState) 
 function completeAttack(state: HydratedNapoleonsTriumphGameState): boolean {
     const attack = currentAttack(state)
     if (attack.artilleryLed) {
-        state.artilleryFire[String(attack.attackApproach)] = state.round
+        const attacker = state.getPlayerState(attack.attackerId)
+        attacker.artilleryFire = {
+            ...attacker.artilleryFire,
+            [String(attack.attackApproach)]: state.round
+        }
         if (!state.limits.bombardedApproaches.includes(attack.attackApproach)) {
             state.limits.bombardedApproaches.push(attack.attackApproach)
         }

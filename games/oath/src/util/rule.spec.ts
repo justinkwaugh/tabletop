@@ -187,9 +187,11 @@ describe('enemies (R-10.7)', () => {
         expect(areEnemies(state, EXILE, EXILE)).toBe(false)
     })
 
-    it('a Citizen suspended for one Campaign is the Empire\'s enemy in it (R-5.5.1.a)', () => {
+    it("a Citizen suspended for one Campaign is the Empire's enemy in it (R-5.5.1.a)", () => {
         const state = table()
-        expect(areEnemies(state, CHANCELLOR, CITIZEN, { nonImperialPlayerIds: [CITIZEN] })).toBe(true)
+        expect(areEnemies(state, CHANCELLOR, CITIZEN, { nonImperialPlayerIds: [CITIZEN] })).toBe(
+            true
+        )
     })
 })
 
@@ -204,7 +206,10 @@ describe('Imperial sites (R-6.6.3)', () => {
 
 describe('the Bandit Crown at the rule seam (R-7.6.5)', () => {
     const CROWN = 'relic.bandit-crown'
-    function crowned(holderId: string, warbandsBySite: Record<string, Record<string, number>> = {}) {
+    function crowned(
+        holderId: string,
+        warbandsBySite: Record<string, Record<string, number>> = {}
+    ) {
         const state = table(warbandsBySite)
         state.getPlayerState(holderId).relicIds = [CROWN]
         return state
@@ -227,7 +232,7 @@ describe('the Bandit Crown at the rule seam (R-7.6.5)', () => {
         expect(banditsServe(state, EXILE, 'not-a-site')).toBe(false)
     })
 
-    it('reads enemies through the Campaign\'s scope', () => {
+    it("reads enemies through the Campaign's scope", () => {
         const state = crowned(CITIZEN, { c1: { [IMPERIAL_WARBANDS]: 1 } })
         expect(banditsServe(state, CITIZEN, 'c1')).toBe(true)
         expect(banditsServe(state, CITIZEN, 'c1', { nonImperialPlayerIds: [CITIZEN] })).toBe(false)
@@ -248,7 +253,7 @@ describe('the Bandit Crown at the rule seam (R-7.6.5)', () => {
     })
 })
 
-describe('the Bandit Crown for an Imperial holder: the bandits are the Empire\'s warbands (R-7.6.5, R-6.6.3)', () => {
+describe("the Bandit Crown for an Imperial holder: the bandits are the Empire's warbands (R-7.6.5, R-6.6.3)", () => {
     const CROWN = 'relic.bandit-crown'
     const IMPERIAL = [CHANCELLOR, CITIZEN]
     function crowned(
@@ -318,7 +323,7 @@ describe('the Bandit Crown for an Imperial holder: the bandits are the Empire\'s
         expect(warbandsFreeToLeave(exiles, CHANCELLOR, 'c2', IMPERIAL_WARBANDS)).toBe(0)
     })
 
-    it('R-X.4 — before the revision the empty sites were the holder\'s alone, and not Imperial', () => {
+    it("R-X.4 — before the revision the empty sites were the holder's alone, and not Imperial", () => {
         for (const holderId of IMPERIAL) {
             const state = crowned(before, holderId, { c2: { [IMPERIAL_WARBANDS]: 1 } })
             expect(rulersOfSite(state, 'p1'), holderId).toEqual([holderId])
@@ -365,7 +370,7 @@ describe('R-10.21 — bandit rule honours the faceup qualifier', () => {
             const reason = HydratedCampaign.reasonCannotCampaign(state, 'attacker', {
                 defender: { kind: 'bandits' },
                 targets: [site('c1'), site(bogus)],
-                attackDice: 2,
+                attackDice: 2
             })
             expect(reason, bogus).toBeDefined()
         }
@@ -373,7 +378,7 @@ describe('R-10.21 — bandit rule honours the faceup qualifier', () => {
             HydratedCampaign.reasonCannotCampaign(state, 'attacker', {
                 defender: { kind: 'bandits' },
                 targets: [site('c1')],
-                attackDice: 2,
+                attackDice: 2
             })
         ).toBeUndefined()
     })

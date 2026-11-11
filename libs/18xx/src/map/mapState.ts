@@ -4,7 +4,8 @@ import type { RailwayMap } from './map.js'
 import type { StationState } from './station.js'
 import { TileInventory, type TilePlacement, type TileSet } from '../tiles/inventory.js'
 import type { TileEdge, TileFace, TileRotation } from '../tiles/tile.js'
-import { rotateTileEdge, rotateTileFace, tilePathsAtEndpoint } from '../tiles/topology.js'
+import { rotateTileFace, tilePathsAtEndpoint } from '../tiles/topology.js'
+import { withTrackStops } from '../tiles/trackStops.js'
 
 export const MapFields = { tileInventory: TileInventory }
 export type MapStateData = StationState & LocationMarkerState & { tileInventory: TileInventory }
@@ -37,7 +38,7 @@ export class RailwayMapState {
                 const definition = definitions.get(placement.definitionId)
                 assertExists(definition, 'Placed map tile requires a definition')
                 this.tiles.set(location.id, {
-                    face: definition.face,
+                    face: withTrackStops(definition.face, placement.trackStops, placement.rotation),
                     rotation: placement.rotation,
                     placement
                 })
@@ -61,20 +62,9 @@ export class RailwayMapState {
         )
         const connections: MapTrackConnection[] = []
         for (const edge of edges) {
-            const neighbor = this.map.neighbor(locationId, edge)
-            if (!neighbor) continue
-            const neighborEdge = rotateTileEdge(edge, 3)
-            if (
-                this.map
-                    .location(locationId)
-                    .borders?.some(
-                        (border) => border.edge === edge && border.kind === 'impassable'
-                    ) ||
-                neighbor.borders?.some(
-                    (border) => border.edge === neighborEdge && border.kind === 'impassable'
-                )
-            )
-                continue
+            const crossing = this.map.across(locationId, edge)
+            if (!crossing) continue
+            const { location: neighbor, edge: neighborEdge } = crossing
             const adjacent = this.tile(neighbor.id)
             if (
                 tilePathsAtEndpoint(rotateTileFace(adjacent.face, adjacent.rotation), {
@@ -86,13 +76,13 @@ export class RailwayMapState {
         }
         return connections
     }
-    validateStations(state: StationState): void {
+    validateStations(state: StationState, sharesFullCities = false): void {
         for (const station of state.stations) {
             if (station.status !== 'placed') continue
             const { locationId, nodeId, slot } = station.position
             const node = this.tile(locationId).face.nodes.find((node) => node.id === nodeId)
             assert(
-                node?.kind === 'city' && slot < node.stationSlots,
+                node?.kind === 'city' && slot < node.stationSlots + (sharesFullCities ? 1 : 0),
                 'Station requires an existing city slot'
             )
         }

@@ -1,24 +1,23 @@
 <script lang="ts">
+    import CertificateCount from '../stock/CertificateCount.svelte'
     import { cashText, optionalMoney } from '../presentation/money.js'
-    import { marketColors } from '../stock/marketColors.js'
+    import { marketSpaceColor, marketZone } from '../stock/marketColors.js'
     import { assertExists } from '@tabletop/common'
+    import { chainSidewaysScroll } from '@tabletop/frontend-components'
     import { cashOwnedBy, getCompany, sharesOwned, sameOwner, type Owner } from '@tabletop/18xx'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import { companyOwnership } from '../finance/companyOwnership.js'
     import { playerPurchaseContribution } from '../stock/purchaseContribution.js'
-    import type { CertificatePool } from '@tabletop/18xx'
+    import {
+        distinctOwners,
+        marketSourcesFirst,
+        shareSourceName
+    } from '../stock/purchaseSources.js'
     import SlidingToggle from './SlidingToggle.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
-    import StandingInstruction from '../stock/StandingInstruction.svelte'
     import PrivatePurchaseOffers from '../stock/PrivatePurchaseOffers.svelte'
     import CompanyAuctionOpening from '../stock/CompanyAuctionOpening.svelte'
-    let {
-        session,
-        poolName
-    }: {
-        session: EighteenXXSessionView
-        poolName?: (pool: CertificatePool) => string
-    } = $props()
+    let { session }: { session: EighteenXXSessionView } = $props()
     const money = $derived(session.presentation.money)
     const disabled = $derived(
         session.busy ||
@@ -27,30 +26,8 @@
             !session.myPlayer ||
             !session.gameState.activePlayerIds.includes(session.myPlayer.id)
     )
-    const purchases = $derived.by(() => {
-        const seen = new Set<string>()
-        return session.stock.purchaseChoices.filter((choice) => {
-            if (!choice.result.details || choice.certificate.kind !== 'share') return false
-            const key = JSON.stringify([
-                choice.request.buyer,
-                choice.certificate.companyId,
-                choice.certificate.poolId,
-                choice.certificate.number,
-                choice.certificate.shares,
-                choice.certificate.president,
-                choice.result.details.price
-            ])
-            if (seen.has(key)) return false
-            seen.add(key)
-            return true
-        })
-    })
-    function distinctBuyers(owners: readonly Owner[]): Owner[] {
-        return owners.filter(
-            (owner, index) => owners.findIndex((candidate) => sameOwner(candidate, owner)) === index
-        )
-    }
-    const buyers = $derived(distinctBuyers(purchases.map((choice) => choice.request.buyer)))
+    const purchases = $derived(session.stock.availablePurchases)
+    const buyers = $derived(distinctOwners(purchases.map((choice) => choice.request.buyer)))
     const buyerPurchases = $derived(
         purchases.filter((choice) =>
             session.stock.menuBuyer
@@ -69,7 +46,7 @@
             choice.prices.some((price) => price.result.details)
         )
     )
-    const startBuyers = $derived(distinctBuyers(starts.map((choice) => choice.request.buyer)))
+    const startBuyers = $derived(distinctOwners(starts.map((choice) => choice.request.buyer)))
     const buyerStarts = $derived(
         starts.filter((choice) =>
             session.stock.menuBuyer
@@ -99,7 +76,20 @@
 {/snippet}
 <section class="stock-trading centered-panel" aria-label="Stock trading">
     <div class="stock-controls">
-        {#if session.stock.mustSell}<p class="notice">Sell down to the stock limits.</p>{/if}
+        {#if session.stock.mustSell}
+            {@const certs = session.myPlayer
+                ? session.playerCertificates(session.myPlayer.id)
+                : undefined}
+            <p class="limit-warning" role="alert">
+                {#if certs && certs.count > certs.limit}Sell down to the certificate limits.
+                    <CertificateCount count={certs.count} limit={certs.limit} />{:else}Sell down to
+                    the ownership limit.{/if}
+            </p>
+        {/if}
+        {#if menu === 'buy' && session.stock.furtherPurchaseCompanyId}<p class="notice">
+                You may buy another {session.companyName(session.stock.furtherPurchaseCompanyId)}
+                share this turn.
+            </p>{/if}
         {#if menu}
             <div class="heading available-shares">
                 <span
@@ -140,15 +130,19 @@
                 class="choices"
                 class:buy-choices={menu === 'buy'}
                 class:exchange-list={menu === 'exchange'}
+                {@attach chainSidewaysScroll}
             >
                 {#if menu === 'buy'}
                     {#each purchaseCompanies as company (company.id)}
                         {@const ownership = companyOwnership(session.gameState, company.id)}
-                        {@const options = buyerPurchases.filter(
-                            (choice) => choice.certificate.companyId === company.id
+                        {@const options = marketSourcesFirst(
+                            buyerPurchases.filter(
+                                (choice) => choice.certificate.companyId === company.id
+                            ),
+                            session.presentation.marketPoolId
                         )}
                         {@const prices = [
-                            ...new Set(options.map((choice) => choice.result.details?.price))
+                            ...new Set(options.map((choice) => choice.details.price))
                         ]}
                         {@const toFloat = company.floated
                             ? undefined
@@ -157,15 +151,11 @@
                             session.stock.menuBuyer?.kind === 'company'
                                 ? [
                                       ...new Set(
-                                          options.flatMap((choice) =>
-                                              choice.result.details
-                                                  ? [
-                                                        playerPurchaseContribution(
-                                                            choice.result.details,
-                                                            session.myPlayer?.id
-                                                        )
-                                                    ]
-                                                  : []
+                                          options.map((choice) =>
+                                              playerPurchaseContribution(
+                                                  choice.details,
+                                                  session.myPlayer?.id
+                                              )
                                           )
                                       )
                                   ]
@@ -188,57 +178,40 @@
                                 {/if}
                                 <div class="share-sources">
                                     {#each options as choice (choice.certificate.id)}
-                                        {#if choice.certificate.kind === 'share'}
-                                            {@const pool = session.gameState.certificatePools.find(
-                                                (pool) => pool.id === choice.certificate.poolId
-                                            )}
-                                            {@const source = pool
-                                                ? (
-                                                      poolName?.(pool) ?? session.poolName(pool.id)
-                                                  ).replace('Treasury shares', 'Treasury')
-                                                : sameOwner(choice.certificate.owner, {
-                                                        kind: 'company',
-                                                        companyId: company.id
-                                                    })
-                                                  ? 'Treasury'
-                                                  : session.ownerName(choice.certificate.owner)}
-                                            {@const count = ownership.find(
-                                                (entry) =>
-                                                    entry.poolId === choice.certificate.poolId &&
-                                                    sameOwner(entry.owner, choice.certificate.owner)
-                                            )?.shares}
-                                            <button
-                                                class="share-source"
-                                                {disabled}
-                                                aria-label={`Buy ${session.companyName(company.id)} from ${source} for ${optionalMoney(money, choice.result.details?.price)}`}
-                                                data-purchase-certificate={choice.certificate.id}
-                                                onclick={() => {
-                                                    session.stock.selectPurchase(choice.request)
-                                                    void session.stock.confirmPurchase()
-                                                }}
-                                            >
-                                                <span class="source-label"
-                                                    >{source}
-                                                    {#if choice.certificate.number !== undefined}<small
-                                                            >Share #{choice.certificate
-                                                                .number}</small
-                                                        >{/if}
-                                                    {#if choice.certificate.president || choice.certificate.shares !== 1}<small
-                                                            >{choice.certificate.shares} shares{choice
-                                                                .certificate.president
-                                                                ? ' · President'
-                                                                : ''}</small
-                                                        >{/if}
-                                                </span>
-                                                <span class="share-count">{count}</span>
-                                                {#if prices.length > 1}<small
-                                                        >{optionalMoney(
-                                                            money,
-                                                            choice.result.details?.price
-                                                        )}</small
+                                        {@const source = shareSourceName(
+                                            choice.certificate,
+                                            session
+                                        )}
+                                        {@const count = ownership.find(
+                                            (entry) =>
+                                                entry.poolId === choice.certificate.poolId &&
+                                                sameOwner(entry.owner, choice.certificate.owner)
+                                        )?.shares}
+                                        <button
+                                            class="share-source"
+                                            {disabled}
+                                            aria-label={`Buy ${session.companyName(company.id)} from ${source} for ${money(choice.details.price)}`}
+                                            data-purchase-certificate={choice.certificate.id}
+                                            onclick={() =>
+                                                void session.stock.buyAndReopenMenu(choice.request)}
+                                        >
+                                            <span class="source-label"
+                                                >{source}
+                                                {#if choice.certificate.number !== undefined}<small
+                                                        >Share #{choice.certificate.number}</small
                                                     >{/if}
-                                            </button>
-                                        {/if}
+                                                {#if choice.certificate.president || choice.certificate.shares !== 1}<small
+                                                        >{choice.certificate.shares} shares{choice
+                                                            .certificate.president
+                                                            ? ' · President'
+                                                            : ''}</small
+                                                    >{/if}
+                                            </span>
+                                            <span class="share-count">{count}</span>
+                                            {#if prices.length > 1}<small
+                                                    >{money(choice.details.price)}</small
+                                                >{/if}
+                                        </button>
                                     {/each}
                                 </div>
                             </div>
@@ -268,21 +241,38 @@
                                 </button>
                             {/each}
                         </div>
-                        {#if session.stock.selectedStartCompany}
+                        {#if session.stock.selectedStartCompany && session.stock.awaitingStartHome}
+                            <p class="start-home">
+                                Choose a highlighted city on the map for {session.companyName(
+                                    session.stock.selectedStartCompany.companyId
+                                )}’s home.
+                            </p>
+                        {:else if session.stock.selectedStartCompany}
                             {@const sharesToFloat = session.sharesToFloat(
                                 session.stock.selectedStartCompany.companyId
                             )}
+                            {@const home = session.stock.selectedStartHomeChoice}
+                            {#if home}
+                                <p class="start-home">
+                                    Home: {session.placeName(home.locationId)}, {money(home.cost)} from
+                                    its treasury
+                                </p>
+                            {/if}
                             <div class="choices par-choices">
                                 {#each session.stock.selectedStartPrices as price (price.marketSpaceId)}
                                     {#if price.result.details}
                                         {@const space = session.stockMarketChart.space(
                                             price.marketSpaceId
                                         )}
+                                        {@const zone = marketZone(
+                                            session.presentation.marketZones,
+                                            space.color
+                                        )}
                                         <button
                                             class="par-choice"
+                                            class:recessed={zone?.fill?.kind === 'recessed'}
                                             {disabled}
-                                            style:background={marketColors[space.color] ??
-                                                space.color}
+                                            style:background={marketSpaceColor(space.color, zone)}
                                             data-start-price={price.result.details.parPrice}
                                             onclick={() => {
                                                 session.stock.selectStartPrice(price.marketSpaceId)
@@ -338,8 +328,7 @@
                                                 choice,
                                                 'A single owned share requires an available sale'
                                             )
-                                            session.stock.selectSale(choice.request)
-                                            void session.stock.confirmSale()
+                                            void session.stock.sellAndReopenMenu(choice.request)
                                         }
                                     }}
                                 >
@@ -384,10 +373,8 @@
                                                     sale.companyId === choice.sale.companyId &&
                                                     sale.shares === choice.sale.shares
                                             )}
-                                        onclick={() => {
-                                            session.stock.selectSale(choice.request)
-                                            void session.stock.confirmSale()
-                                        }}
+                                        onclick={() =>
+                                            void session.stock.sellAndReopenMenu(choice.request)}
                                     >
                                         <span class="share-count">{choice.sale.shares}</span>
                                         <small
@@ -450,7 +437,6 @@
         </aside>
     {/if}
 </section>
-<StandingInstruction {session} />
 
 <style>
     section {
@@ -742,6 +728,10 @@
     .par-choice .float-cost {
         font-weight: 700;
     }
+    button.par-choice.recessed,
+    .par-choice.recessed small {
+        color: var(--rail-text, #39352f);
+    }
     button.par-choice:hover:not(:disabled) {
         filter: brightness(0.95);
     }
@@ -817,6 +807,18 @@
     }
     .owner-toggle button:hover:not(:disabled) {
         color: var(--rail-text, #443c34);
+    }
+    .limit-warning {
+        margin: 0 auto 10px;
+        padding: 6px 14px;
+        width: fit-content;
+        border: 1px solid var(--rail-negative, #b33a32);
+        border-radius: 6px;
+        background: color-mix(in srgb, var(--rail-negative, #b33a32) 14%, transparent);
+        color: var(--rail-text, #443c34);
+        font-size: 13px;
+        font-weight: 600;
+        text-align: center;
     }
     .notice {
         text-align: center;

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { gameCount } from '$lib/utils/libraryTitles'
     import { onMount } from 'svelte'
     import { GameCategory, type Game } from '@tabletop/common'
     import { changesFinishedGames, listenForGameListChanges } from '$lib/services/gameListUpdates'
@@ -91,8 +92,7 @@
         {/if}
         {#if exhausted && visible.length && finished.length <= visibleLimit}
             <p class="end">
-                All {finished.length}
-                {finished.length === 1 ? 'game' : 'games'} shown
+                All {gameCount(finished.length)} shown
             </p>
         {/if}
     </div>

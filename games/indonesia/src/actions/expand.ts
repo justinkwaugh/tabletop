@@ -1,6 +1,12 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { assert, assertExists, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
+import {
+    assert,
+    assertExists,
+    GameAction,
+    HydratableAction,
+    MachineContext
+} from '@tabletop/common'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
@@ -55,7 +61,9 @@ export class HydratedExpand extends HydratableAction<typeof Expand> implements E
         const operatingCompanyId = state.operatingCompanyId
         assertExists(operatingCompanyId, 'Operating company id should be set for Expand action')
 
-        const operatingCompany = state.companies.find((company) => company.id === operatingCompanyId)
+        const operatingCompany = state.companies.find(
+            (company) => company.id === operatingCompanyId
+        )
         assertExists(operatingCompany, `Operating company ${operatingCompanyId} should exist`)
 
         if (isShippingCompany(operatingCompany)) {
@@ -123,7 +131,11 @@ export class HydratedExpand extends HydratableAction<typeof Expand> implements E
         return HydratedExpand.canExpand(state, this.playerId, this.areaId)
     }
 
-    static canExpand(state: HydratedIndonesiaGameState, playerId: string, areaId?: string): boolean {
+    static canExpand(
+        state: HydratedIndonesiaGameState,
+        playerId: string,
+        areaId?: string
+    ): boolean {
         if (
             state.machineState !== MachineState.ShippingOperations &&
             state.machineState !== MachineState.ProductionOperations

@@ -27,7 +27,7 @@ import {
     validNeutralTilePlacements,
     validSpringPlacements
 } from '@tabletop/santiago'
-import { type GameAction } from '@tabletop/common'
+import type { GameAction } from '@tabletop/common'
 import { TileDealAnimator } from '$lib/animators/tileDealAnimator.svelte.js'
 import { ActionBarAnimator } from '$lib/animators/actionBarAnimator.svelte.js'
 import { CanalBuildAnimator } from '$lib/animators/canalBuildAnimator.svelte.js'
@@ -43,6 +43,7 @@ import {
     canRevealTiles,
     isNeutralPlacementTurn,
     isOverseerDecisionPhase,
+    isPlantTurn,
     isSpringPlacementTurn,
     projectedOverseerId,
     rejectPenalty,
@@ -52,6 +53,7 @@ import {
     type Viewer
 } from '$lib/model/turnRules.js'
 import { BirdDirector } from '$lib/birds/birdDirector.js'
+import { roundScoresFromHistory, type PlayerRoundScores } from '$lib/model/scoreHistory.js'
 
 export class SantiagoGameSession extends GameSession<
     SantiagoProjectedState,
@@ -175,6 +177,17 @@ export class SantiagoGameSession extends GameSession<
         return this.bidValue > 0 && this.takenBids.includes(this.bidValue)
     }
 
+    scoreHistory: PlayerRoundScores[] | undefined = $derived.by(() => {
+        const actions = this.actions
+        if (
+            this.gameState.machineState !== MachineState.EndOfGame ||
+            !this.hasCompleteHistory ||
+            actions.length !== this.gameState.actionCount
+        )
+            return undefined
+        return roundScoresFromHistory(this.gameState.dehydrate(), actions)
+    })
+
     // Who holds, or is already certain to hold, the canal overseer role; shown as an "Overseer" tag.
     // See projectedOverseerId in turnRules for why mid-bidding only a bid of 0 settles it.
     get projectedOverseerId(): string | undefined {
@@ -229,8 +242,7 @@ export class SantiagoGameSession extends GameSession<
             this.selectedTileIndex >= 0 ? state.revealedTiles[this.selectedTileIndex] : undefined
         const myId = this.myPlayer?.id
         if (!tile || !myId) return new Map()
-        if (state.machineState !== MachineState.PlantingPhase) return new Map()
-        if (state.plantersOrder[state.planterIndex] !== myId) return new Map()
+        if (!isPlantTurn(state, myId)) return new Map()
 
         const connected = connectedSpringIntersections(state.board)
         const result = new Map<string, boolean>()

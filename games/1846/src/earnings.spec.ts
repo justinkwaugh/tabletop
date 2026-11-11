@@ -9,7 +9,7 @@ import {
     type EarningsChoice
 } from '@tabletop/18xx'
 import { EarningsRules1846 } from './earnings.js'
-import { stockGame } from './testSupport.js'
+import { stockGame } from '../test/testSupport.js'
 
 function constructionGame() {
     const table = stockGame()

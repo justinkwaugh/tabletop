@@ -284,6 +284,26 @@ describe('extra growth', () => {
         expect(session.state.turn.placing?.color).toBe(CoralColor.White)
     })
 
+    it('tells the UI which placements would search the bag', () => {
+        const session = startOnBoardThree([])
+        session.edit((draft) => {
+            draft.polypBag = { items: [CoralColor.White], remaining: 1 }
+        })
+        const boardId = session.state.reefs[0].boardId
+        expect(session.hydrated().placementSearchesBag(boardId, at(2, 2), CoralColor.White)).toBe(
+            false
+        )
+
+        session.edit((draft) => {
+            draft.bonusPolyps[CoralColor.White] = 0
+        })
+        const state = session.hydrated()
+        expect(state.placementSearchesBag(boardId, at(2, 2), CoralColor.White)).toBe(true)
+        expect(state.placementSearchesBag(boardId, at(0, 0), CoralColor.White)).toBe(false)
+        expect(state.exchangeSearchesBag(CoralColor.White)).toBe(true)
+        expect(state.exchangeSearchesBag(CoralColor.Pink)).toBe(false)
+    })
+
     it('does not grow when the search finds none of that colour', () => {
         const session = startOnBoardThree([])
         giveSupplyPolyps(session, CoralColor.White, 1)

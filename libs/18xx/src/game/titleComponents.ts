@@ -10,6 +10,7 @@ export type TitleComponents = {
     tileSet: TileSet
     depot: TrainDepot
     market: StockMarketChart
+    sharesFullCities?: true
 }
 export type TitleComponentRules = Pick<
     EighteenXXTitleRules,
@@ -28,5 +29,11 @@ export function titleComponents(rules: TitleComponentRules): TitleComponents {
         'Track, station and route rules must share one tile set'
     )
     assert(rules.routeRules.depot === depot, 'Route and train rules must share one depot')
-    return { map, tileSet, depot, market: rules.stockRules.market }
+    return {
+        map,
+        tileSet,
+        depot,
+        market: rules.stockRules.market,
+        ...(rules.trackRules.sharesFullCities ? { sharesFullCities: true } : {})
+    }
 }

@@ -17,7 +17,7 @@ import {
 } from '../testing/harness.js'
 import { CommandKind, type MoveOrder } from './attack.js'
 import { FeintEnd } from './attackDeclaration.js'
-import type { Deployment } from './setup.js'
+import { setupLocaleOf, type Deployment } from './setup.js'
 
 const NEIGHBOURS = [41, 42, 64]
 const BELOW = 64
@@ -92,20 +92,29 @@ describe('setting up the fixed battery on the Santon (rules 6 and 18)', () => {
         expect(fixed.shown).toEqual(artillery())
     })
 
-    it('must stand on the Santon when the Santon rule is in use', () => {
+    it('may set up elsewhere, on an approach as usual, when the Santon rule is in use', () => {
         const game = new TestGame(santonRule)
         game.deploy(Side.Allied)
-        expect(() =>
-            game.deploy(Side.French, (deployment) => {
-                const named = deployment.fixedBattery
-                assertExists(named, 'The suggested deployment names a fixed battery')
-                deployment.detachments = []
-                deployment.fixedBattery = {
-                    unitId: named.unitId,
-                    approach: game.hydrated.map.passableApproachesOf(64)[0].id
-                }
-            })
-        ).toThrow('With the Santon in use the fixed battery sets up on the Santon')
+        const elsewhere = (approachIndex?: number) => (deployment: Deployment) => {
+            const named = deployment.fixedBattery
+            assertExists(named, 'The suggested deployment names a fixed battery')
+            const home = deployment.corps.find((corps) => corps.unitIds.includes(named.unitId))
+            assertExists(home, 'The battery is assigned to a corps')
+            const locale = setupLocaleOf(game.hydrated.map, home.commanderId).id
+            deployment.detachments = []
+            deployment.fixedBattery =
+                approachIndex === undefined
+                    ? { unitId: named.unitId }
+                    : {
+                          unitId: named.unitId,
+                          approach: game.hydrated.map.passableApproachesOf(locale)[approachIndex].id
+                      }
+        }
+        expect(() => game.deploy(Side.French, elsewhere())).toThrow(/blocks an approach/)
+        game.deploy(Side.French, elsewhere(0))
+        const fixed = fixedBatteryOf(game)
+        expect(fixed.position?.locale).not.toBe(SANTON_LOCALE)
+        expect(fixed.position?.approach).toBeDefined()
     })
 
     it('puts it on an approach, as anywhere else, when the rule is not in use', () => {
@@ -116,6 +125,41 @@ describe('setting up the fixed battery on the Santon (rules 6 and 18)', () => {
         expect(fixedBatteryOf(game).position).toEqual({
             locale: SANTON_LOCALE,
             approach: approach(SANTON_LOCALE, BELOW)
+        })
+    })
+})
+
+describe('the Santon with the fixed battery set up elsewhere (rule 18)', () => {
+    function footOnTheSanton(withTheBattery: boolean): TestGame {
+        const foot: PiecePlacement = {
+            id: 'F-foot',
+            side: Side.French,
+            face: infantry(2),
+            locale: SANTON_LOCALE
+        }
+        const fixed: PiecePlacement = withTheBattery
+            ? battery
+            : { ...battery, locale: ANOTHER_SIDE, facing: SANTON_LOCALE }
+        return fixBattery(alliedTurn([foot, fixed, allied('A-lead', infantry(3))], santonRule))
+    }
+
+    function climb(game: TestGame): unknown {
+        return assault(game, {
+            attacker: Side.Allied,
+            from: BELOW,
+            into: SANTON_LOCALE,
+            defenders: ['F-foot'],
+            defenseLeaders: ['F-foot'],
+            orders: [unitMove('A-lead')],
+            leaders: ['A-lead']
+        })
+    }
+
+    it('gives French infantry in its reserve no slope, as in any other reserve', () => {
+        expect(climb(footOnTheSanton(true))).toMatchObject({ initialResult: 0 })
+        expect(climb(footOnTheSanton(false))).toMatchObject({
+            initialResult: 1,
+            attackerWon: true
         })
     })
 })

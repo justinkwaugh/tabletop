@@ -21,7 +21,8 @@ dehydration. Queries have no serialized caches.
 
 `Owner` identifies a player, company, or the bank. Players remain Common Players
 and Player States, referenced by stable Player IDs. Companies have title-defined
-kinds, using `major`, `minor`, and `private` for the agreed categories. Share
+kinds, using `major`, `minor`, and `private` for the agreed categories; the kind says
+which other fields a company record has, so it stays in State. Share
 structure and operating capabilities are independent of the category. The bank is
 separate from companies; Union Bank is a private.
 
@@ -36,9 +37,12 @@ an owner nor pool membership. They do not appear in portfolios or contribute to
 share ownership or certificate-limit counts.
 
 A share certificate records a positive number of `shares`, whether it is a
-president's certificate, and an optional identifying number. A company's optional
-`shareCount` supplies the basis for fixed percentages: two shares in a ten-share
-major represent 20%. A private certificate represents ownership of one private;
+president's certificate, and an optional identifying number. A company's share
+count supplies the basis for fixed percentages: two shares in a ten-share major
+represent 20%. Each title supplies its printed share counts and private revenues as
+`CompanyCharters` on its stock, operating and transfer rules; a company records
+`shareCount` or `privateRevenue` only where play changes it (1817's sizes, a private's
+changed income), and `companyShareCount` and `currentPrivateRevenue` read either. A private certificate represents ownership of one private;
 there is at most one outstanding ownership certificate for each private.
 A certificate's contribution to the certificate limit is not stored: stock rules
 supply it through `certificateWeight`, starting from `standardCertificateWeight`
@@ -125,15 +129,15 @@ sections and `data/title-traits.json`, with linked primary definitions checked f
 the distinctions below. The research supplies facts and counterexamples only;
 implementation is independently designed around this repository's Common modules.
 
-| Variation | Design consequence |
-| --- | --- |
-| 1841 corporate ownership/control; TOP Union Bank | Separate owners from resolved human authority; do not aggregate personal and corporate assets. |
-| 18MEX unequal 5%/10%/20% denominations | Explicit integer units and issuer basis, not one certificate = one share. |
-| 1856 CGR half-certificate ordinary shares | Certificate limit contribution separate from unit quantity and certificate count. |
-| 1817 and related shorting titles | Positive certificates do not describe the whole economy; short liabilities need a future explicit position model. No universal 100% outstanding-positive-interest check is imposed. |
-| 1856 escrow and differing capital-release events | Cash ownership does not establish permission to spend; restricted funds and release rules are deferred. |
-| TOP numbered PEIR shares | Keep share identity and number, derive entitlement and tie resolution in the title. |
-| Titles without certificate limits; market/private exemptions | Zero/fractional effective counts supported, calculation policy stays title-owned. |
+| Variation                                                    | Design consequence                                                                                                                                                                  |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1841 corporate ownership/control; TOP Union Bank             | Separate owners from resolved human authority; do not aggregate personal and corporate assets.                                                                                      |
+| 18MEX unequal 5%/10%/20% denominations                       | Explicit integer units and issuer basis, not one certificate = one share.                                                                                                           |
+| 1856 CGR half-certificate ordinary shares                    | Certificate limit contribution separate from unit quantity and certificate count.                                                                                                   |
+| 1817 and related shorting titles                             | Positive certificates do not describe the whole economy; short liabilities need a future explicit position model. No universal 100% outstanding-positive-interest check is imposed. |
+| 1856 escrow and differing capital-release events             | Cash ownership does not establish permission to spend; restricted funds and release rules are deferred.                                                                             |
+| TOP numbered PEIR shares                                     | Keep share identity and number, derive entitlement and tie resolution in the title.                                                                                                 |
+| Titles without certificate limits; market/private exemptions | Zero/fractional effective counts supported, calculation policy stays title-owned.                                                                                                   |
 
 Primary checks: [18MEX denominations](https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_18_mex/entities.rb),
 [1856 national shares](https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1856/game.rb),
@@ -205,7 +209,6 @@ Undo and processed replay reproduce cash, certificates, round facts, and turn st
 Desktop/mobile browser checks exercise manual selection, Back, confirmation,
 purchase history, reload, Undo, and title switching.
 
-
 ## Share sales and stock markets
 
 `StockMarket` records distinct spaces and ordered stacks of company markers.
@@ -228,7 +231,6 @@ preview can include multiple companies.
 
 See the [slice 3 design and research review](../../research/18xx/stock-trading-slice-design.md)
 for the full-catalog survey, interface choices, verification, and remaining scope.
-
 
 ## Company formation and flotation
 

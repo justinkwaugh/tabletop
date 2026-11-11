@@ -3,15 +3,14 @@ import {
     ALLIED_ADVANCE_GUARD_CORPS,
     MAX_CORPS_UNITS,
     MAX_FRENCH_DETACHMENTS,
-    SANTON_LOCALE,
     STARTING_ARMIES,
     Scenario,
     Side,
-    UnitType,
     commanderDefinition,
     commandersOf,
     deployArmy,
     faceOf,
+    fixedBatterySetsUpInReserve,
     hasUnitOtherThanLineInfantry,
     isLegal,
     sameFace,
@@ -56,23 +55,11 @@ export function choosesAdvanceGuard(state: HydratedNapoleonsTriumphGameState, si
     return side === Side.Allied && state.scenario === Scenario.December1
 }
 
-/** The French batteries are all alike, so which of them holds the Santon is no choice of the player's. */
-function batteryForTheSanton(state: HydratedNapoleonsTriumphGameState, playerId: string): string {
-    const [battery] = state
-        .unitsOf(playerId)
-        .filter((unit) => faceOf(unit).type === UnitType.Artillery)
-        .map((unit) => unit.id)
-        .toSorted()
-    assertExists(battery, 'The French army has artillery')
-    return battery
-}
-
-/** Table ruling: with the Santon rule in use the fixed battery stands on the Santon, in reserve, so the French set-up starts with it there. */
 export function emptySetup(state: HydratedNapoleonsTriumphGameState, playerId: string): ArmySetup {
     const side = state.sideOf(playerId)
     const heldBack = choosesAdvanceGuard(state, side)
     const commanderIds = commandersOf(side).map((commander) => commander.id)
-    const untouched: ArmySetup = {
+    return {
         corps: leftToRightFromOwnLines(state.map, side, commanderIds).map((commanderId) => ({
             commanderId,
             unitIds: [],
@@ -80,11 +67,6 @@ export function emptySetup(state: HydratedNapoleonsTriumphGameState, playerId: s
         })),
         detached: []
     }
-    return side === Side.French && state.santon
-        ? withFixedBatteryPosted(untouched, batteryForTheSanton(state, playerId), {
-              locale: SANTON_LOCALE
-          })
-        : untouched
 }
 
 export function corpsOf(setup: ArmySetup, commanderId: string): CorpsSetup {
@@ -99,6 +81,15 @@ export function seatedInACorps(setup: ArmySetup, unitId: string): boolean {
 
 export function fixedBatteryPost(setup: ArmySetup): Detachment | undefined {
     return setup.detached.find((entry) => entry.unitId === setup.fixedBatteryId)
+}
+
+/** Rule 18: with the Santon rule in use, a fixed battery set up on the Santon stands there in reserve and blocks no approach. */
+export function batteryHoldsTheSanton(
+    state: HydratedNapoleonsTriumphGameState,
+    setup: ArmySetup
+): boolean {
+    const battery = fixedBatteryPost(setup)
+    return battery !== undefined && fixedBatterySetsUpInReserve(state, battery.position.locale)
 }
 
 export function detachedOtherThanTheBattery(setup: ArmySetup): Detachment[] {
@@ -198,7 +189,7 @@ function creditChoices(
     { unitId, position }: Detachment
 ): Credit[] {
     const map = state.map
-    const isBattery = setup.fixedBatteryId === unitId && !state.santon
+    const isBattery = setup.fixedBatteryId === unitId
     return setup.corps
         .filter((corps) => !corps.offMap)
         .flatMap((corps) => {
@@ -645,7 +636,7 @@ export function detachedPosts(
     )
 }
 
-/** Rule 6, step 9: the locales the fixed battery may stand in, which have to give it an approach to block. With the Santon rule in use it stands on the Santon from the start and is never placed. */
+/** Rule 6, step 9: the locales the fixed battery may stand in, which have to give it an approach to block. With the Santon rule in use that includes the Santon, where it stays in reserve (rule 18). */
 export function fixedBatteryPosts(
     state: HydratedNapoleonsTriumphGameState,
     playerId: string,
@@ -658,12 +649,19 @@ export function fixedBatteryPosts(
 }
 
 /** Rule 6, steps 8 and 9: a unit standing on its own may turn to any approach of its locale; the fixed battery has to block one, any other unit may also stand back in reserve. */
-export function postStances(map: BattleMap, setup: ArmySetup, unitId: string): SetupTarget[] {
+export function postStances(
+    state: HydratedNapoleonsTriumphGameState,
+    setup: ArmySetup,
+    unitId: string
+): SetupTarget[] {
     const post = setup.detached.find((entry) => entry.unitId === unitId)
     assertExists(post, `${unitId} does not stand on its own`)
     const { locale, approach } = post.position
+    if (setup.fixedBatteryId === unitId && batteryHoldsTheSanton(state, setup)) {
+        return []
+    }
     return stancesIn(
-        map,
+        state.map,
         locale,
         approach,
         approach !== undefined && setup.fixedBatteryId !== unitId
@@ -740,7 +738,11 @@ export function setupProblem(
 ): string | undefined {
     // Rule 6, step 9: the engine reads a fixed battery given no approach as standing with its corps, which passes when the corps blocks one. Here the battery was put in the locale on its own, so its approach is still to be chosen.
     const battery = fixedBatteryPost(setup)
-    if (battery && battery.position.approach === undefined && !state.santon) {
+    if (
+        battery &&
+        battery.position.approach === undefined &&
+        !batteryHoldsTheSanton(state, setup)
+    ) {
         return 'The fixed battery blocks an approach'
     }
     const deployment = deploymentOf(state, playerId, setup)

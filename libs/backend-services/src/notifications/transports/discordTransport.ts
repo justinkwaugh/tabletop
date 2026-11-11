@@ -125,7 +125,7 @@ export class DiscordTransport implements NotificationTransport {
 
     private async catalogEntry(typeId: string): Promise<GameCatalogEntry | undefined> {
         try {
-            const manifest = await this.libraryService.getManifest()
+            const manifest = await this.libraryService.getServedManifest()
             const catalog = await this.catalogService.getCatalog(manifest)
             return catalog.find((entry) => entry.id === typeId)
         } catch (error) {

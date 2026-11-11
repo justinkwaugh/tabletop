@@ -18,7 +18,7 @@ export const PlaceBuilding = Type.Evaluate(
             playerId: Type.String(),
             position: Type.Number(),
             buildingType: Type.Enum(BuildingType),
-            metadata: Type.Optional(PlaceBuildingMetadata),
+            metadata: Type.Optional(PlaceBuildingMetadata)
         })
     ])
 )

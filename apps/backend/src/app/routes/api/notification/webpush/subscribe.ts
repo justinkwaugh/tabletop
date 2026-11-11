@@ -1,6 +1,10 @@
 import { FastifyInstance } from 'fastify'
 import { Type, type Static } from 'typebox'
-import { WebPushSubscriptionClientData, WebPushTransport } from '@tabletop/backend-services'
+import {
+    userTopic,
+    WebPushSubscriptionClientData,
+    WebPushTransport
+} from '@tabletop/backend-services'
 
 type SubscribeWebPush = Static<typeof SubscribeWebPush>
 const SubscribeWebPush = Type.Object(
@@ -29,7 +33,7 @@ export default async function (fastify: FastifyInstance) {
                 WebPushTransport.webPushSubscriptionFromClientData(subscription)
 
             await fastify.notificationService.registerNotificationSubscription({
-                topic: `user-${request.user.id}`,
+                topic: userTopic(request.user.id),
                 subscription: webPushSubscription
             })
 

@@ -4,7 +4,7 @@ import { isImperialPlayer, ownWarbandOwner, sitesRuledBy } from './rule.js'
 import { holdsGrandScepter } from './imperial.js'
 import { countOf } from './warbands.js'
 
-// Side-effect free: R-2.11-H1 re-evaluates them after every action.
+// Side-effect free: R-2.11-H1 judges them at each title boundary.
 
 /** R-3.2 — three Visions drawn from the world deck; a discard-pile draw does not count (R-2.7.1). */
 export const VISIONS_DRAWN_GATE = 3

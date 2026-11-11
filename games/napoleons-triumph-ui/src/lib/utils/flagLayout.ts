@@ -2,11 +2,12 @@ import type { BoundingBox, Point } from '@tabletop/common'
 import { commanderDefinition } from '@tabletop/napoleons-triumph'
 import { APPROACH_GEOMETRY } from '$lib/map/boardGeometry.js'
 import type { ArmyColors } from './armyColors.js'
-import { attackMarkerSamples, attackMarkerScale } from './attackMarker.js'
+import { attackMarkerSamples, attackMarkerScale, type ArrowOnApproach } from './attackMarker.js'
 import { screenAxes } from './boardView.js'
 import { boxHolds } from './boundingBox.js'
 import { blockSamples, type BlockFootprint } from './blockShape.js'
 import type { GroupSprite, PieceGroup } from './pieceLayout.js'
+import { textWidth, type GlyphAdvances } from './textWidth.js'
 
 export const STAFF_HEIGHT = 30
 export const BANNER_HEIGHT = 18
@@ -39,36 +40,30 @@ export function flagScale(zoom: number): number {
     return Math.min(3.2, Math.max(1, 0.62 / zoom))
 }
 
-// Workaround: no text can be measured where the banner's width is needed, so these are the advances of 13px italic Libre Baskerville as the browser reports them.
-const GLYPH_ADVANCES: Record<number, string> = {
-    3: '.',
-    4: 'fijl ',
-    5: 'stI',
-    6: 'cerè',
-    7: 'abghkopqyzJ',
-    8: 'dnuvxS',
-    9: 'CFLPYZ',
-    10: 'ABERTVX',
-    11: 'mwDGKNOQU',
-    12: 'H',
-    13: 'M',
-    14: 'W'
+// These are the advances of 13px italic Libre Baskerville.
+const NAME_ADVANCES: GlyphAdvances = {
+    listed: {
+        3: '.',
+        4: 'fijl ',
+        5: 'stI',
+        6: 'cerè',
+        7: 'abghkopqyzJ',
+        8: 'dnuvxS',
+        9: 'CFLPYZ',
+        10: 'ABERTVX',
+        11: 'mwDGKNOQU',
+        12: 'H',
+        13: 'M',
+        14: 'W'
+    },
+    unlisted: 8
 }
-const UNLISTED_GLYPH_ADVANCE = 8
 export const NAME_INSET = 11
 const NAME_GAP = 9
 const COUNT_ROOM = 16
 
-function textWidth(text: string): number {
-    const advances = Object.entries(GLYPH_ADVANCES)
-    return [...text].reduce((width, glyph) => {
-        const listed = advances.find(([, glyphs]) => glyphs.includes(glyph))
-        return width + (listed ? Number(listed[0]) : UNLISTED_GLYPH_ADVANCE)
-    }, 0)
-}
-
 export function bannerWidth(name: string): number {
-    return NAME_INSET + textWidth(name) + NAME_GAP + COUNT_ROOM
+    return NAME_INSET + textWidth(name, NAME_ADVANCES) + NAME_GAP + COUNT_ROOM
 }
 
 function steps(from: number, to: number): number[] {
@@ -95,7 +90,8 @@ export function placeFlags(
     flags: StandingFlag[],
     blocks: BlockFootprint[],
     view: FlagView,
-    keepClear: Point[] = []
+    keepClear: Point[] = [],
+    printedMarks: Point[][] = []
 ): Record<string, FlagPlacement> {
     const { right, down } = screenAxes(view.rotation)
     const onScreen = (point: Point): Point => ({
@@ -104,6 +100,7 @@ export function placeFlags(
     })
     const taken = blocks.flatMap(blockSamples).map(onScreen)
     const prized = keepClear.map(onScreen)
+    const marks = printedMarks.map((mark) => mark.map(onScreen))
     const placements: Record<string, FlagPlacement> = {}
     for (const flag of flags) {
         const reach = flag.width * view.scale
@@ -120,7 +117,8 @@ export function placeFlags(
             const footprint = [bannerOf(placement), staffOf(onScreen(placement.foot), view.scale)]
             const under = (points: Point[]) =>
                 points.filter((point) => footprint.some((part) => boxHolds(part, point))).length
-            return under(taken) + under(prized) * KEEP_CLEAR_WEIGHT
+            const marksUnder = marks.filter((mark) => under(mark) > 0).length
+            return under(taken) + (under(prized) + marksUnder) * KEEP_CLEAR_WEIGHT
         }
         const choices = flag.feetByPreference.flatMap((foot) =>
             [FlagSide.Right, FlagSide.Left].map((side) => ({ foot, side }))
@@ -144,15 +142,36 @@ export interface FlagMark {
     hasCommanded: boolean
 }
 
+/** The banner and the staff of a flag as it stands on the board. */
+export function flagOutlines(flag: FlagMark, view: FlagView): Point[][] {
+    const { right, down } = screenAxes(view.rotation)
+    const onBoard = (across: number, up: number): Point => ({
+        x: flag.at.x + right.x * across + down.x * up,
+        y: flag.at.y + right.y * across + down.y * up
+    })
+    const reach = bannerWidth(flag.name) * view.scale * (flag.side === FlagSide.Left ? -1 : 1)
+    const top = -STAFF_HEIGHT * view.scale
+    const bottom = top + BANNER_HEIGHT * view.scale
+    return [
+        [onBoard(0, top), onBoard(reach, top), onBoard(reach, bottom), onBoard(0, bottom)],
+        [
+            onBoard(-STAFF_HALF_WIDTH, top),
+            onBoard(STAFF_HALF_WIDTH, top),
+            onBoard(STAFF_HALF_WIDTH, 0),
+            onBoard(-STAFF_HALF_WIDTH, 0)
+        ]
+    ]
+}
+
 export interface FlagBearer {
     colors: ArmyColors
     hasCommanded: boolean
 }
 
-export function arrowsToKeepClear(approachIds: readonly number[], zoom: number): Point[] {
+export function arrowsToKeepClear(arrows: readonly ArrowOnApproach[], zoom: number): Point[] {
     const scale = attackMarkerScale(zoom)
-    return approachIds.flatMap((approach) =>
-        attackMarkerSamples(APPROACH_GEOMETRY[approach], scale)
+    return arrows.flatMap(({ approach, slide }) =>
+        attackMarkerSamples(APPROACH_GEOMETRY[approach], scale, slide)
     )
 }
 
@@ -168,7 +187,8 @@ export function flagMarks(
     view: FlagView,
     keepClear: Point[],
     bearerOf: (group: PieceGroup) => FlagBearer,
-    planted: readonly PlantedFlag[] = []
+    planted: readonly PlantedFlag[] = [],
+    printedMarks: Point[][] = []
 ): FlagMark[] {
     const carried = sprites.flatMap((sprite) => {
         const { commander, units, key } = sprite.group
@@ -204,7 +224,8 @@ export function flagMarks(
         })),
         sprites.flatMap((sprite) => sprite.blocks),
         view,
-        keepClear
+        keepClear,
+        printedMarks
     )
     return standing.map(({ feetByPreference: _feet, ...flag }) => ({
         ...flag,

@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { LatestRequest } from '$lib/utils/latestRequest'
     import type { Game } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import DashboardGameList from '$lib/components/DashboardGameList.svelte'
@@ -14,26 +15,26 @@
     let games = $state<Game[]>([])
     let busy = $state(false)
     let error = $state('')
-    let request = 0
+    const requests = new LatestRequest()
 
     async function load(selectedTitleId: string) {
         titleId = selectedTitleId
-        const current = ++request
+        const current = requests.begin()
         games = []
         if (!selectedTitleId) return
         busy = true
         error = ''
         try {
             const results = await api.getActiveGamesForTitle(selectedTitleId)
-            if (current !== request) return
+            if (!current()) return
             games = results.toSorted(
                 (a, b) => (b.lastActionAt?.getTime() ?? 0) - (a.lastActionAt?.getTime() ?? 0)
             )
         } catch (failure) {
-            if (current === request)
+            if (current())
                 error = failure instanceof Error ? failure.message : 'Could not load games'
         } finally {
-            if (current === request) busy = false
+            if (current()) busy = false
         }
     }
 

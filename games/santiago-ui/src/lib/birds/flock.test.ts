@@ -16,7 +16,11 @@ const DT = 1 / 60
 
 function withinCells(point: Point, cells: BoundingBox[]): boolean {
     return cells.some(
-        (c) => point.x >= c.x && point.x <= c.x + c.width && point.y >= c.y && point.y <= c.y + c.height
+        (c) =>
+            point.x >= c.x &&
+            point.x <= c.x + c.width &&
+            point.y >= c.y &&
+            point.y <= c.y + c.height
     )
 }
 
@@ -46,7 +50,10 @@ describe('bird flock', () => {
             const landed = flock.birds.filter((bird) => bird.mode === 'landed')
             for (const a of landed) {
                 for (const b of landed) {
-                    if (a !== b) expect(Math.hypot(a.pos.x - b.pos.x, a.pos.y - b.pos.y)).toBeGreaterThanOrEqual(6)
+                    if (a !== b)
+                        expect(
+                            Math.hypot(a.pos.x - b.pos.x, a.pos.y - b.pos.y)
+                        ).toBeGreaterThanOrEqual(6)
                 }
             }
         })
@@ -59,9 +66,12 @@ describe('bird flock', () => {
         let elapsed = 0
         run(flock, 45, () => {
             elapsed += DT
-            const departing = flock.birds.filter((bird) => bird.mode !== 'arriving' && bird.mode !== 'landed')
+            const departing = flock.birds.filter(
+                (bird) => bird.mode !== 'arriving' && bird.mode !== 'landed'
+            )
             if (firstDeparture === undefined && departing.length > 0) firstDeparture = elapsed
-            if (allDeparting === undefined && departing.length === flock.birds.length) allDeparting = elapsed
+            if (allDeparting === undefined && departing.length === flock.birds.length)
+                allDeparting = elapsed
         })
         expect(firstDeparture).toBeDefined()
         expect(allDeparting).toBeDefined()
@@ -115,7 +125,11 @@ describe('bird flock', () => {
                 relocated = true
                 leavingWhenRelocated = flock.leaving
             }
-            if (flock.birds.some((bird) => bird.mode === 'landed' && withinCells(bird.pos, [nearby]))) {
+            if (
+                flock.birds.some(
+                    (bird) => bird.mode === 'landed' && withinCells(bird.pos, [nearby])
+                )
+            ) {
                 settledNearby = true
             }
         })

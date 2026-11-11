@@ -19,7 +19,8 @@ import {
     type EighteenXXState,
     type Owner,
     type FloatCompany,
-    type StockRules
+    type StockRules,
+    privateIncomePayments
 } from '@tabletop/18xx'
 import {
     Definition as Top,
@@ -28,7 +29,8 @@ import {
     availableTheOldPrinceTranche,
     peirShares,
     TheOldPrinceTrainDepot,
-    TheOldPrinceMarket
+    TheOldPrinceMarket,
+    TheOldPrinceCharters
 } from '@tabletop/the-old-prince'
 import {
     Definition as Shikoku,
@@ -374,7 +376,12 @@ it('closes PEIR and removes its cash and trains on its final exchange', () => {
     expect(peirShares(result.updatedState)).toHaveLength(0)
     expect(getCompany(result.updatedState, 'PEIR')).toMatchObject({ closed: true })
     expect(getCompany(result.updatedState, 'PEIR').president).toBeUndefined()
-    expect(getCompany(result.updatedState, 'KM')).toMatchObject({ closed: true, privateRevenue: 0 })
+    expect(getCompany(result.updatedState, 'KM').closed).toBe(true)
+    expect(
+        privateIncomePayments(result.updatedState, { charters: TheOldPrinceCharters }).filter(
+            (payment) => payment.to.kind === 'company' && payment.to.companyId === 'PEIR'
+        )
+    ).toEqual([])
     expect(cashOwnedBy(result.updatedState, { kind: 'company', companyId: 'PEIR' })).toBe(0)
     expect(
         result.updatedState.certificates.find((certificate) => certificate.id === 'KM:charter')

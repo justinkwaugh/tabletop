@@ -1,3 +1,4 @@
+import { DiscardMergedTrain } from '@tabletop/18xx'
 import type { EighteenSeventeenState, HydratedEighteenSeventeenState } from '@tabletop/1817'
 import {
     AcquireCompany,
@@ -17,9 +18,9 @@ import {
     minimumBid,
     openingBid,
     bidCeiling,
+    bidRejection,
     BuyConvertedShare,
     ConvertCompany,
-    DiscardMergedTrain,
     EighteenSeventeenTitleRules,
     FinishConversionLoans,
     MergeCompanies,
@@ -43,10 +44,10 @@ import {
     SellConvertedShares,
     convertedShareSales
 } from '@tabletop/1817'
-import { assert } from '@tabletop/common'
-import { PassableBidding } from '@tabletop/18xx'
+import { assert, PassableBidding } from '@tabletop/common'
 import { createEighteenXXSessionClass } from '@tabletop/18xx-ui'
 import { EighteenSeventeenMapView } from './mapView.js'
+import { createRouteWorker } from './routeWorker.js'
 import { EighteenSeventeenPresentation } from './presentation.js'
 
 const BaseSession: ReturnType<
@@ -57,7 +58,8 @@ const BaseSession: ReturnType<
 > = createEighteenXXSessionClass(
     EighteenSeventeenTitleRules,
     EighteenSeventeenMapView,
-    EighteenSeventeenPresentation
+    EighteenSeventeenPresentation,
+    createRouteWorker
 )
 
 /** The stock-round panels 1817 adds beside Buy and Sell. */
@@ -67,7 +69,7 @@ export class EighteenSeventeenSession extends BaseSession {
     readonly stockPanels = this.titleStockPanels<StockPanel>([
         {
             id: 'company',
-            label: 'Act for a company',
+            label: 'Company action',
             available: () => this.corporateActions.length > 0,
             held: () => !!this.gameState.stockRound.turn.corporateAction
         },
@@ -179,7 +181,8 @@ export class EighteenSeventeenSession extends BaseSession {
                     ? bidCeiling(state, sale, playerId)
                     : undefined,
             /** The bidder's companies that could pay this amount. */
-            payers: (amount: number) => (playerId ? buyersFor(state, playerId, sale, amount) : [])
+            payers: (amount: number) => (playerId ? buyersFor(state, playerId, sale, amount) : []),
+            allows: (amount: number) => !!playerId && !bidRejection(state, sale, playerId, amount)
         }
     })
     acquirerChoice = $derived(

@@ -200,7 +200,6 @@ Decisions made while implementing, beyond the design above:
   replayed (slice 5).
 - The divider lines between the two hexes of Canada and of the Gulf, and the
   single revenue label per group, are drawn with the offboard groups (slice 5).
-- The brown-zone IPO option is offered but not yet enforced (slice 3).
 
 ## Acceptance examples
 
@@ -260,11 +259,13 @@ hexes keep stations and reservations in the right city.
   requests, until the president chooses. A placed home, automatic or chosen,
   releases the company's other home reservations. Titles without the hook get no
   new action or state, so TOP's and 1889's runtime contracts are unchanged.
-- **Cities without track keep their order.** Track is what distinguishes the
-  cities of a hex, so when no city on the old face has any, an upgrade maps the
-  first city to the first, and so on; the rotation of the new tile then decides
-  which way each faces. The reference's tile lay does the same. No current TOP or
-  1889 hex has several cities without track.
+- **Cities without track may become any city of the new tile.** Track is what
+  distinguishes the cities of a hex, so when no city on the old face has any, an
+  upgrade may map each to any city of the new tile, and the company laying it
+  chooses where a station already there goes. The reference's tile lay lifts such
+  tokens and has the company place them. Tapping the previewed hex steps through
+  every layout: each rotation, and in it each city a station may take. No current
+  TOP or 1889 hex has several cities without track.
 - **Identical construction choices are offered once.** Mappings that leave every
   station and reservation where an alternative would are the same placement; the
   track step keeps the first. This removes duplicate options for two-town hexes
@@ -282,8 +283,8 @@ hexes keep stations and reservations in the right city.
   city, the other is released, and the turn begins.
 - If Buffalo already has #59 when Erie first operates, the map highlights it and
   Erie's president clicks a city; the home is placed there.
-- Upgrading Buffalo to #59 keeps Erie's station in its city, and each rotation
-  of an empty two-city or two-town hex is offered once.
+- Upgrading Buffalo to #59 offers each rotation with Erie's station in either
+  city, and each rotation of an empty two-city or two-town hex is offered once.
 - Upgrading New York to #54 keeps NYNH's reservation on the city joined to its
   original track.
 

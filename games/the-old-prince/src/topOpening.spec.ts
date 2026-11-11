@@ -165,9 +165,18 @@ it('pays player privates repeatedly until a forced purchase is affordable, exclu
     const price = run.model.price(run.model.auction.bidding!.lotId)
     for (const account of run.state.cash) if (account.owner.kind === 'player') account.amount = 0
     const result = run.act('PassAuction')
-    expect(result.processedActions.filter((a) => a.type === 'ResolveAuction')).toHaveLength(
-        Math.ceil(price / 5) + 1
-    )
+    const resolutions = result.processedActions.filter((a) => a.type === 'ResolveAuction')
+    expect(resolutions).toHaveLength(Math.ceil(price / 5) + 1)
+    expect(resolutions[0].metadata).toEqual({
+        kind: 'income',
+        payments: [
+            {
+                from: { kind: 'bank' },
+                to: { kind: 'player', playerId: earner },
+                amount: 5
+            }
+        ]
+    })
     expect(run.model.auction.awards.at(-1)?.playerId).toBe(earner)
     expect(cashOwnedBy(run.state, { kind: 'company', companyId: 'PEIR' })).toBe(200)
 })
@@ -178,6 +187,7 @@ it('preserves an unaffordable zero-income position and can undo the entire conse
     const before = structuredClone(run.state)
     const result = run.act('PassAuction')
     expect(run.model.auction.stalled).toBe(true)
+    expect(result.processedActions.at(-1)?.metadata).toEqual({ kind: 'income', payments: [] })
     expect(run.state.activePlayerIds).toEqual([])
     for (const player of run.state.players)
         expect(

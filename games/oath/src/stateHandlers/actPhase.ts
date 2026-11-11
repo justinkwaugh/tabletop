@@ -21,6 +21,11 @@ import { HydratedMoveWarbands, isMoveWarbands } from '../actions/moveWarbands.js
 import { HydratedOfferCitizenship, isOfferCitizenship } from '../actions/offerCitizenship.js'
 import { HydratedExileCitizen, isExileCitizen } from '../actions/exileCitizen.js'
 import { HydratedSelfExile, isSelfExile } from '../actions/selfExile.js'
+import { HydratedClaimDealKept, isClaimDealKept } from '../actions/claimDealKept.js'
+import {
+    HydratedLeaveDealUnconfirmed,
+    isLeaveDealUnconfirmed
+} from '../actions/leaveDealUnconfirmed.js'
 import { phaseAfterActPhaseAction, stateAfterCampaignDeclared } from './handlerSupport.js'
 
 type ActionAvailability = (state: HydratedOathGameState, playerId: string) => boolean
@@ -46,6 +51,9 @@ export class ActPhaseStateHandler implements MachineStateHandler<
         [ActionType.OfferCitizenship, HydratedOfferCitizenship.canDoOfferCitizenship],
         [ActionType.ExileCitizen, HydratedExileCitizen.canDoExileCitizen],
         [ActionType.SelfExile, HydratedSelfExile.canDoSelfExile],
+        // R-7.6.3-H1 — offered only to a party to an open Tribunal deal.
+        [ActionType.ClaimDealKept, HydratedClaimDealKept.canDoClaimDealKept],
+        [ActionType.LeaveDealUnconfirmed, HydratedLeaveDealUnconfirmed.canDoLeaveDealUnconfirmed],
         [ActionType.ForgoFreeAction, HydratedForgoFreeAction.canDoForgoFreeAction],
         // R-4.2 allows zero actions, so ending the phase is always offered.
         [ActionType.EndActPhase, HydratedEndActPhase.canDoEndActPhase]
@@ -134,7 +142,10 @@ export class ActPhaseStateHandler implements MachineStateHandler<
             isRecover(action) ||
             isPeek(action) ||
             isMoveWarbands(action) ||
-            isExileCitizen(action)
+            isExileCitizen(action) ||
+            // R-7.6.3-H1 — a claim's question comes next, and the turn resumes after it.
+            isClaimDealKept(action) ||
+            isLeaveDealUnconfirmed(action)
         ) {
             return MachineState.ActPhase
         }

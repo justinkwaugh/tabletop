@@ -44,3 +44,7 @@ export class HydratedBridgesGameBoard
         )
     }
 }
+
+export function bridgeCount(board: BridgesGameBoard): number {
+    return board.villages.reduce((sum, village) => sum + village.neighbors.length, 0) / 2
+}

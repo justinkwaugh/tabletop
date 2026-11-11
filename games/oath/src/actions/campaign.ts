@@ -12,6 +12,7 @@ import { ActionType } from '../definition/actions.js'
 import { PlayerStatus } from '../model/oathEnums.js'
 import {
     CampaignTarget,
+    type CampaignKillPath,
     type CampaignState,
     CampaignTargetKind,
     LossSource,
@@ -27,11 +28,14 @@ import {
     collectDefensePool,
     declaredParties,
     defendersOpenTo,
+    poolsAfterTargets,
     reasonCannotChooseDefender,
     reasonCannotDeclareTargets,
     scopeOf,
+    sitesAddingDefenseDice,
     suspendedImperialsFor,
-    type CampaignParties
+    type CampaignParties,
+    type DicePools
 } from '../util/campaign.js'
 import { attackDiceFromSites } from '../util/sitePowers.js'
 import { isImperialPlayer } from '../util/rule.js'
@@ -53,7 +57,11 @@ import {
     defendingPlayerIds,
     plansTargetSiteRelics
 } from '../util/battlePlans.js'
-import { reasonLossOrderOutsideForce, rollCampaign } from '../util/campaignRoll.js'
+import {
+    campaignStepRevealsInfo,
+    reasonLossOrderOutsideForce,
+    rollCampaign
+} from '../util/campaignRoll.js'
 import {
     attackingSiteOf,
     forceSitesOf,
@@ -64,7 +72,26 @@ import { pawnSiteId } from '../util/pawn.js'
 import { flipSecretFacedown, reasonSitesForbidTargets } from '../util/siteTravel.js'
 import { secretPayment } from '../util/actionPayment.js'
 import { isAtLeastOathRevision, OathRevision } from '../util/revision.js'
-import { campaignAsIfSiteNow } from '../util/freeActions.js'
+import {
+    campaignAsIfSiteNow,
+    clearFreeCampaign,
+    freeCampaignNowGrantedBy,
+    recordsFreeActionGrants
+} from '../util/freeActions.js'
+
+/**
+ * R-11.4-H1 — the pools the attacker's plans meet: as Step 2 leaves them. R-X.4: a game created
+ * before revision 13 added the site dice after the plans, and its plans' checks read the pools as zero.
+ */
+function stepTwoPoolsFor(
+    state: HydratedOathGameState,
+    parties: CampaignParties,
+    attackDice: number
+): DicePools | undefined {
+    return isAtLeastOathRevision(state, OathRevision.EngineFixes9)
+        ? poolsAfterTargets(state, parties, attackDice)
+        : undefined
+}
 
 /** R-5.5.3, R-7.5.1 — the attacker's plans against the sides as they stand; Relic Hunter must be among them to target a facedown relic. */
 export function reasonAttackerPlansInvalid(
@@ -72,18 +99,15 @@ export function reasonAttackerPlansInvalid(
     playerId: string,
     parties: CampaignParties,
     targets: readonly CampaignTarget[],
+    attackDice: number,
     plans: readonly BattlePlanUse[] | undefined,
     /** The Hidden Place — the secret flipped with the declaration is not there to pay a plan. */
     flipSecret = false
 ): string | undefined {
-    const resolved = resolveBattlePlans(
-        state,
-        playerId,
-        BattlePlanSide.Attacker,
-        plans,
-        parties,
-        flipSecret ? secretPayment(1) : undefined
-    )
+    const resolved = resolveBattlePlans(state, playerId, BattlePlanSide.Attacker, plans, parties, {
+        spentFirst: flipSecret ? secretPayment(1) : undefined,
+        pools: stepTwoPoolsFor(state, parties, attackDice)
+    })
     if (resolved.reason) return resolved.reason
     if (
         targets.some((t) => t.kind === CampaignTargetKind.SiteRelic) &&
@@ -123,14 +147,23 @@ export const CampaignBattleMetadata = Type.Object({
         Type.Array(Type.Object({ siteId: Type.String(), attack: Type.Number() }))
     ),
     planNotes: Type.Optional(Type.Array(Type.String())),
-    awaitingDefender: Type.Optional(Type.Boolean())
+    /** Sprawling Rampart — the targeted sites it added a defense die to; absent when it added none. */
+    defenseBonusSites: Type.Optional(Type.Array(Type.String())),
+    awaitingDefender: Type.Optional(Type.Boolean()),
+    /** R-5.5.4-H1 — the attack dice held for the defender's reroll, as they will be rolled. */
+    heldAttackDice: Type.Optional(Type.Number())
 })
 
 export type CampaignMetadata = Type.Static<typeof CampaignMetadata>
 export const CampaignMetadata = Type.Object({
     supplySpent: Type.Number(),
-    /** Second Wind out of turn (revision 7) — the card whose free Campaign this was. */
+    /**
+     * The card whose free Campaign this was: Second Wind out of turn (revision 7); from revision 27 any grant
+     * (Knights Errant, Hunting Party, Second Wind, Captains, Wild Allies).
+     */
     freeActionOf: Type.Optional(Type.String()),
+    /** From revision 27 — the Campaign is a Sneak Attack, out of turn and for no Supply. */
+    sneakAttack: Type.Optional(Type.Literal(true)),
     /** R-5.5.2.a — Citizens are asked whether to join the defence before anything is mustered. */
     awaitingAllies: Type.Optional(Type.Boolean()),
     battle: Type.Optional(CampaignBattleMetadata)
@@ -199,18 +232,28 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
         // R-5.5.1 — or nothing, right after a Knights Errant Muster / Hunting
         // Party Search, or as a Sneak Attack.
         const supplyCost = HydratedCampaign.supplyCostFor(state, this.playerId)
+        const sneakAttack = sneakAttackOfferedTo(state, this.playerId) !== undefined
         // Second Wind out of turn (revision 7) — the Campaign is the holder's answer to "Campaign now?".
-        const freeActionOf = freeActionOutOfTurnOfferedTo(
+        const outOfTurnOf = freeActionOutOfTurnOfferedTo(
             state,
             this.playerId,
             ActionType.Campaign
         )?.cardId
-        if (sneakAttackOfferedTo(state, this.playerId)) holdTurnForSneakAttack(state, this.playerId)
-        if (freeActionOf) {
+        // As `supplyCostFor` judges it: a Sneak Attack is free for its own sake.
+        const freeActionOf =
+            outOfTurnOf ??
+            (sneakAttack ? undefined : freeCampaignNowGrantedBy(state, this.playerId))
+        const recorded = {
+            supplySpent: supplyCost,
+            freeActionOf,
+            ...(sneakAttack && recordsFreeActionGrants(state) ? { sneakAttack: true as const } : {})
+        }
+        if (sneakAttack) holdTurnForSneakAttack(state, this.playerId)
+        if (outOfTurnOf) {
             holdTurnForFreeActionOutOfTurn(state, this.playerId, ActionType.Campaign)
         }
         attacker.spendSupply(supplyCost)
-        delete attacker.freeCampaignAtAction
+        clearFreeCampaign(state, this.playerId)
         // Wild Allies, Captains — acting from elsewhere, with the warbands there
         // in the force; Vow of Union — the warbands at every site you rule.
         const asIfSiteId = campaignAsIfSiteNow(state, this.playerId)
@@ -230,21 +273,20 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
             allyPlayerIds: [...parties.allyPlayerIds]
         }
 
-        // R-X.3 — the PRNG moves now, or at the roll this has committed to.
-        this.revealsInfo = true
-
         if (toAsk.length > 0) {
             state.pendingCampaign = { declaration, toAsk }
             HydratedCampaign.askToJoinDefence(state)
-            this.metadata = { supplySpent: supplyCost, freeActionOf, awaitingAllies: true }
+            // R-X.3 — the roll this has committed to, once the Citizens have answered.
+            this.revealsInfo = true
+            this.metadata = { ...recorded, awaitingAllies: true }
             return
         }
 
-        this.metadata = {
-            supplySpent: supplyCost,
-            freeActionOf,
-            battle: HydratedCampaign.muster(state, declaration)
-        }
+        const battle = HydratedCampaign.muster(state, declaration)
+        // R-X.3 — the PRNG moves now, or at the roll this has committed to; R-5.5.5.b-H1 — unless
+        // a plan decided the Campaign.
+        this.revealsInfo = campaignStepRevealsInfo(state)
+        this.metadata = { ...recorded, battle }
     }
 
     /** R-5.5.2.a — the sides as declared, with the Citizens who joined. */
@@ -288,41 +330,62 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
         const attackerPlayerId = declaration.attackerPlayerId
         const parties = HydratedCampaign.partiesOfDeclaration(state, declaration)
 
-        let pools = {
+        // R-5.5.2, R-11.4-H1 — a targeted Plains or Mountain changes the attack pool when the targets
+        // are declared, before any battle plan.
+        const stepTwo = stepTwoPoolsFor(state, parties, declaration.attackDice)
+        let pools = stepTwo ?? {
             attackPool: declaration.attackDice,
             defensePool: collectDefensePool(state, parties)
         }
 
-        // R-5.5.3, R-5.5.3-H1 — the attacker's plans first, then the bandits' compelled ones.
+        // R-5.5.3, R-5.5.3-H1 — Step 3: the attacker's plans first, then the bandits' compelled ones.
         const resolved = resolveBattlePlans(
             state,
             attackerPlayerId,
             BattlePlanSide.Attacker,
             declaration.plans,
-            parties
+            parties,
+            { pools: stepTwo }
         )
         assert(
             resolved.reason === undefined,
             `the declared battle plans were checked against every possible ally: ${resolved.reason}`
         )
-        const attackerPlans = applyBattlePlans(state, attackerPlayerId, resolved.active, pools, {
-            parties,
-            side: BattlePlanSide.Attacker
-        })
+        const kills: CampaignKillPath = {
+            attackerPlayerId,
+            defenderPlayerId: parties.defenderPlayerId,
+            killRedirects: []
+        }
+        const attackerPlans = applyBattlePlans(
+            state,
+            attackerPlayerId,
+            resolved.active,
+            pools,
+            { parties, side: BattlePlanSide.Attacker },
+            kills
+        )
         pools = attackerPlans.pools
         // Specialist — "your enemy cannot use battle plans", the bandits included.
         const bandits =
             declaration.defenderPlayerId === undefined && !attackerPlans.locksEnemyPlans
-                ? applyBattlePlans(state, undefined, banditBattlePlans(state), pools, {
-                      parties,
-                      side: BattlePlanSide.Defender
-                  })
+                ? applyBattlePlans(
+                      state,
+                      undefined,
+                      banditBattlePlans(state, parties),
+                      pools,
+                      { parties, side: BattlePlanSide.Defender },
+                      kills
+                  )
                 : undefined
         if (bandits) pools = bandits.pools
 
         const siteDice = attackDiceFromSites(state, sitesWithTargets(state, parties))
-        for (const delta of siteDice) {
-            pools = applyDiceDelta(pools, { attack: delta.attack })
+        const defenseBonusSites = sitesAddingDefenseDice(state, parties)
+        // R-X.4 — a game created before revision 13 adds the site dice after the plans.
+        if (!stepTwo) {
+            for (const delta of siteDice) {
+                pools = applyDiceDelta(pools, { attack: delta.attack })
+            }
         }
 
         const plansUsed = [...attackerPlans.used, ...(bandits?.used ?? [])]
@@ -364,7 +427,9 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
             decidedVictor: attackerPlans.decidesVictor ? 'attacker' : undefined,
             ignoreDefeatKills:
                 attackerPlans.ignoreDefeatKills || bandits?.ignoreDefeatKills || undefined,
-            killRedirects: attackerPlans.killRedirects
+            killRedirects: kills.killRedirects,
+            heldForHospital: kills.heldForHospital,
+            enemyWarbandsKilled: kills.enemyWarbandsKilled
         }
         state.campaign = campaign
 
@@ -394,7 +459,9 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
             plansUsed: campaign.plansUsed.length > 0 ? campaign.plansUsed : undefined,
             siteDice: siteDice.length > 0 ? siteDice : undefined,
             planNotes: planNotes.length > 0 ? planNotes : undefined,
-            awaitingDefender: awaitingDefender || undefined
+            defenseBonusSites: defenseBonusSites.length > 0 ? defenseBonusSites : undefined,
+            awaitingDefender: awaitingDefender || undefined,
+            heldAttackDice: campaign.pendingAttackRoll ? campaign.attackPool : undefined
         }
     }
 
@@ -479,6 +546,7 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
             }
             // Relic Hunter — its target is declared now and the plan once they have answered.
             const hunter = plansTargetSiteRelics(
+                state,
                 usableBattlePlans(state, playerId, BattlePlanSide.Attacker, parties)
             )
             return choice.targets.some((t) => t.kind === CampaignTargetKind.SiteRelic) && !hunter
@@ -490,6 +558,7 @@ export class HydratedCampaign extends HydratableAction<typeof Campaign> implemen
             playerId,
             parties,
             choice.targets,
+            choice.attackDice,
             choice.plans,
             choice.flipSecret === true
         )

@@ -1,18 +1,22 @@
 import {
-    ActionSource,
     assertExists,
     type HydratedAction,
     type HydratedGameState,
     type MachineContext,
     type MachineStateHandler
 } from '@tabletop/common'
-import { HydratedBuyTrain } from '../trains/buyTrain.js'
+import { BuyTrain, HydratedBuyTrain } from '../trains/buyTrain.js'
 import { TrainPurchase, type TrainRules } from '../trains/trainPurchase.js'
 import type { StockRules } from '../stock/stockRules.js'
-import { EmergencyTrainFunding, type FundingState, type TrainFundingRules } from './trainFunding.js'
-import { HydratedIssueTreasuryShares } from './issueTreasuryShares.js'
+import {
+    EmergencyTrainFunding,
+    type FundingChoice,
+    type FundingState,
+    type TrainFundingRules
+} from './trainFunding.js'
+import { HydratedIssueTreasuryShares, IssueTreasuryShares } from './issueTreasuryShares.js'
 import { HydratedSellFundingShares } from './sellFundingShares.js'
-import { HydratedContributeTrainFunds } from './contributeTrainFunds.js'
+import { ContributeTrainFunds, HydratedContributeTrainFunds } from './contributeTrainFunds.js'
 import { HydratedDeclareBankruptcy, DeclareBankruptcy } from './declareBankruptcy.js'
 import { controllingOwner } from '../finance/finance.js'
 import { privateExchangeOffers } from '../privates/privateExchange.js'
@@ -39,7 +43,7 @@ export class FundingTrainHandler<
         const next = new EmergencyTrainFunding(state, this.rules, this.stocks, this.trains).next()
         return (
             action instanceof HydratedBuyTrain &&
-            action.source === ActionSource.User &&
+            action.playerId !== undefined &&
             action.playerId === state.trainFunding?.playerId &&
             state.activePlayerIds.includes(action.playerId) &&
             next.kind === 'buy' &&
@@ -78,25 +82,69 @@ export class FundingTrainHandler<
         state.trainFunding.playerId = president.playerId
         state.trainFunding.contributors = this.rules.contributors(state, companyId)
         state.activePlayerIds = [state.trainFunding.playerId]
-        if (
-            new EmergencyTrainFunding(state, this.rules, this.stocks, this.trains).next().kind ===
-                'bankrupt' &&
-            !state.players.some(
-                (player) =>
-                    (this.outOfTurnExchanges || state.activePlayerIds.includes(player.playerId)) &&
-                    privateExchangeOffers(state, player.playerId, this.privates, this.stocks).length
-            )
-        )
+        // Only a sale is the player's to choose; every other step follows from the decision
+        // before it, so the engine takes it and one Undo reverses the whole decision.
+        const next = new EmergencyTrainFunding(state, this.rules, this.stocks, this.trains).next()
+        const settling = settlingFundingAction(next)
+        if (settling)
+            context.addSystemAction(settling.schema, {
+                ...settling.data,
+                playerId: state.trainFunding.playerId
+            })
+        else if (next.kind === 'bankrupt' && !this.exchangeMayAvertBankruptcy(state))
             context.addSystemAction(DeclareBankruptcy, {})
+    }
+    private exchangeMayAvertBankruptcy(state: State): boolean {
+        return state.players.some(
+            (player) =>
+                (this.outOfTurnExchanges || state.activePlayerIds.includes(player.playerId)) &&
+                privateExchangeOffers(state, player.playerId, this.privates, this.stocks).length
+        )
     }
     onAction(action: HydratedAction, context: MachineContext<State>): string {
         const state = context.gameState
-        if (action.type === 'DeclareBankruptcy') return 'Bankrupt'
+        if (action instanceof HydratedDeclareBankruptcy)
+            return action.metadata?.continuation ?? 'Bankrupt'
         if (action instanceof HydratedBuyTrain) {
             delete state.trainFunding
             if (state.phaseChange) state.phaseChange.continuation.machineState = 'BuyingTrains'
             return state.phaseChange ? 'AdvancingPhase' : 'BuyingTrains'
         }
         return 'FundingTrain'
+    }
+}
+
+/** The Action taking a funding step that has nothing left to decide; none for a sale or bankruptcy. */
+export function settlingFundingAction(choice: FundingChoice):
+    | { schema: typeof IssueTreasuryShares; data: Pick<IssueTreasuryShares, 'expectedProceeds'> }
+    | { schema: typeof ContributeTrainFunds; data: Pick<ContributeTrainFunds, 'owner' | 'amount'> }
+    | {
+          schema: typeof BuyTrain
+          data: Pick<BuyTrain, 'companyId' | 'trainId' | 'definitionId' | 'expectedPrice'>
+      }
+    | undefined {
+    switch (choice.kind) {
+        case 'issue':
+            return {
+                schema: IssueTreasuryShares,
+                data: { expectedProceeds: choice.details.proceeds }
+            }
+        case 'contribute':
+            return {
+                schema: ContributeTrainFunds,
+                data: { owner: choice.owner, amount: choice.amount }
+            }
+        case 'buy':
+            return {
+                schema: BuyTrain,
+                data: {
+                    companyId: choice.purchase.companyId,
+                    trainId: choice.purchase.trainId,
+                    definitionId: choice.purchase.definitionId,
+                    expectedPrice: choice.purchase.price
+                }
+            }
+        default:
+            return undefined
     }
 }

@@ -116,7 +116,8 @@ export class TrainDepot {
                 entry.variantDefinitionIds?.includes(definitionId)
         )
     }
-    createInventory(depotId = this.definition.id): TrainInventory {
+    createInventory(variantId?: string): TrainInventory {
+        const depotId = variantId ?? this.definition.id
         let nextTrainNumber = 1
         const trains = this.supplyEntries(depotId).flatMap((entry): Train[] =>
             entry.count === 'unlimited'
@@ -127,10 +128,10 @@ export class TrainDepot {
                       status: 'depot'
                   }))
         )
-        return { depotId, trains, nextTrainNumber }
+        return { ...(variantId ? { depotId: variantId } : {}), trains, nextTrainNumber }
     }
     remaining(inventory: TrainInventory, definitionId: string): number | 'unlimited' {
-        const entry = this.supplyEntry(definitionId, inventory.depotId)
+        const entry = this.supplyEntry(definitionId, this.supplyId(inventory))
         assertExists(entry, 'Train is not supplied by this depot')
         return entry.count === 'unlimited'
             ? 'unlimited'
@@ -144,7 +145,7 @@ export class TrainDepot {
         )?.definitionId
     }
     nextTrain(inventory: TrainInventory, definitionId: string): Train | undefined {
-        const entry = this.supplyEntry(definitionId, inventory.depotId)
+        const entry = this.supplyEntry(definitionId, this.supplyId(inventory))
         if (!entry) return undefined
         const train =
             entry.count === 'unlimited'
@@ -152,7 +153,7 @@ export class TrainDepot {
                       id: this.trainId(
                           entry.definitionId,
                           inventory.nextTrainNumber,
-                          inventory.depotId
+                          this.supplyId(inventory)
                       ),
                       definitionId: entry.definitionId,
                       status: 'depot' as const
@@ -197,7 +198,7 @@ export class TrainDepot {
             new Set(inventory.trains.map((train) => train.id)).size === inventory.trains.length,
             'Duplicate train identity'
         )
-        const initial = this.createInventory(inventory.depotId)
+        const initial = this.createInventory(this.variantId(inventory))
         assert(
             inventory.nextTrainNumber >= initial.nextTrainNumber,
             'Invalid train identity cursor'
@@ -230,7 +231,7 @@ export class TrainDepot {
         inventory: TrainInventory,
         initial: TrainInventory
     ) {
-        const entry = this.supplyEntry(train.definitionId, inventory.depotId)
+        const entry = this.supplyEntry(train.definitionId, this.supplyId(inventory))
         assertExists(entry, 'Train has no supply entry')
         assert(
             train.status !== 'depot' || train.definitionId === entry.definitionId,
@@ -252,11 +253,19 @@ export class TrainDepot {
                 Number.isInteger(number) &&
                     number >= initial.nextTrainNumber &&
                     number < inventory.nextTrainNumber &&
-                    train.id === this.trainId(entry.definitionId, number, inventory.depotId) &&
+                    train.id ===
+                        this.trainId(entry.definitionId, number, this.supplyId(inventory)) &&
                     train.status !== 'depot',
                 'Invalid unlimited train identity'
             )
         }
+    }
+    private supplyId(inventory: TrainInventory): string {
+        return inventory.depotId ?? this.definition.id
+    }
+    // Stored games recorded the depot's own id before only a chosen variant was recorded.
+    private variantId(inventory: TrainInventory): string | undefined {
+        return inventory.depotId === this.definition.id ? undefined : inventory.depotId
     }
     private trainId(definitionId: string, number: number, depotId = this.definition.id): string {
         return `${depotId}/${definitionId}/${number}`

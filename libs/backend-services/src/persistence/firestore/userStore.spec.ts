@@ -42,6 +42,32 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             }
         })
 
+        it('finds several users in one call, in request order, with missing users undefined', async () => {
+            const username = `batched-${userId.slice(-8)}`
+            await users.createUser({
+                id: userId,
+                status: UserStatus.Active,
+                username,
+                roles: [Role.User],
+                externalIds: []
+            })
+            try {
+                const missing = `${userId}-missing`
+                const first = await users.findByIds([missing, userId])
+                expect(first.map((user) => user?.username)).toEqual([undefined, username])
+                const cached = await users.findByIds([userId, missing])
+                expect(cached.map((user) => user?.username)).toEqual([username, undefined])
+                const repeated = await users.findByIds([userId, missing, userId])
+                expect(repeated.map((user) => user?.username)).toEqual([
+                    username,
+                    undefined,
+                    username
+                ])
+            } finally {
+                await db.doc(`userUsernames/${username}`).delete()
+            }
+        })
+
         it('persists and returns updated roles', async () => {
             await users.createUser({
                 id: userId,
@@ -74,6 +100,81 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             })
 
             expect(updatedFields).not.toContain('roles')
+        })
+
+        it('stamps activatedAt the first time the account becomes active', async () => {
+            const username = `activated-${userId.slice(-8)}`
+            const email = `${userId}@example.com`
+            const changedEmail = `${userId}-changed@example.com`
+            await users.createUser({
+                id: userId,
+                status: UserStatus.Incomplete,
+                username,
+                email,
+                emailVerified: false,
+                roles: [Role.User],
+                externalIds: []
+            })
+            try {
+                const [activated] = await users.updateUser({
+                    userId,
+                    fields: { emailVerified: true }
+                })
+                expect(activated.status).toBe(UserStatus.Active)
+                expect(activated.activatedAt).toBeInstanceOf(Date)
+                const activatedAt = activated.activatedAt
+
+                const [changed] = await users.updateUser({
+                    userId,
+                    fields: { email: changedEmail }
+                })
+                expect(changed.status).toBe(UserStatus.Incomplete)
+                const [reactivated] = await users.updateUser({
+                    userId,
+                    fields: { emailVerified: true }
+                })
+                expect(reactivated.status).toBe(UserStatus.Active)
+                expect(reactivated.activatedAt).toEqual(activatedAt)
+                expect((await users.findById(userId))?.activatedAt).toEqual(activatedAt)
+            } finally {
+                await db.doc(`userUsernames/${username}`).delete()
+                await db.doc(`userEmails/${email}`).delete()
+                await db.doc(`userEmails/${changedEmail}`).delete()
+            }
+        })
+
+        it('stamps an account active before activatedAt existed with its creation time', async () => {
+            const username = `legacy-${userId.slice(-8)}`
+            const email = `${userId}@example.com`
+            const changedEmail = `${userId}-changed@example.com`
+            const created = await users.createUser({
+                id: userId,
+                status: UserStatus.Active,
+                username,
+                email,
+                emailVerified: true,
+                roles: [Role.User],
+                externalIds: []
+            })
+            expect(created.activatedAt).toBeUndefined()
+            try {
+                const [changed] = await users.updateUser({
+                    userId,
+                    fields: { email: changedEmail }
+                })
+                expect(changed.status).toBe(UserStatus.Incomplete)
+                expect(changed.activatedAt).toEqual(created.createdAt)
+                const [reactivated] = await users.updateUser({
+                    userId,
+                    fields: { emailVerified: true }
+                })
+                expect(reactivated.activatedAt).toEqual(created.createdAt)
+                expect((await users.findById(userId))?.activatedAt).toEqual(created.createdAt)
+            } finally {
+                await db.doc(`userUsernames/${username}`).delete()
+                await db.doc(`userEmails/${email}`).delete()
+                await db.doc(`userEmails/${changedEmail}`).delete()
+            }
         })
     }
 )

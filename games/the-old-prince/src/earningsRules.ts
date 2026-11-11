@@ -1,7 +1,9 @@
+import { TheOldPrinceCharters } from './charters.js'
 import { TheOldPrinceMarket } from './stockMarket.js'
 import { assertExists } from '@tabletop/common'
 import {
     dividendEntitlements,
+    companyShareCount,
     getCompany,
     trainsOwnedBy,
     type DistributionState,
@@ -14,7 +16,7 @@ export const TheOldPrinceEarningsRules: EarningsRules = {
         companyId === 'PEIR' ? ['pay', 'half-pay', 'withhold'] : ['pay', 'withhold'],
     shareCount(state, companyId) {
         if (companyId === 'PEIR') return peirShares(state).length
-        const count = getCompany(state, companyId).shareCount
+        const count = companyShareCount(state, TheOldPrinceCharters, companyId)
         assertExists(count, 'Dividends require a share count')
         return count
     },

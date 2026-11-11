@@ -1,7 +1,8 @@
 <script lang="ts">
     import type { HTMLAttributes } from 'svelte/elements'
 
-    let { previous = false, ...rest }: { previous?: boolean } & HTMLAttributes<HTMLSpanElement> = $props()
+    let { previous = false, ...rest }: { previous?: boolean } & HTMLAttributes<HTMLSpanElement> =
+        $props()
 </script>
 
 <!-- One shape wherever the overseer is tagged. The fixed line height keeps it no taller than a

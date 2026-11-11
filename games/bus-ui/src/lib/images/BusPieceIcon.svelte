@@ -79,5 +79,4 @@
     ></path>
 
     <path d="M10 3 H50 Q57 3 57 10 V10 H3 V10 Q3 3 10 3 Z" fill={topColor} opacity="0.72"></path>
-
 </svg>

@@ -14,7 +14,7 @@
 </p>
 {#if gameSession.eatingStartsFinalTurns}
     <p class="warning">
-        Your parrotfish's fourth shrimp: eating ends the game, and everyone else gets one final
-        turn.
+        Your parrotfish's fourth shrimp: eating ends the game, and everyone else may eat a final
+        coral.
     </p>
 {/if}

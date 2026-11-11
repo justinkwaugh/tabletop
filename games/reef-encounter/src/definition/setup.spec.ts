@@ -2,6 +2,8 @@ import { assert, Visibility } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { CoralColor, CoralColors, totalCount } from '../components/colors.js'
 import {
+    isParrotfishFed,
+    ParrotfishFeedingGroupId,
     ReefEncounterGameStateValidator,
     type ReefEncounterProjectedState
 } from '../model/gameState.js'
@@ -41,14 +43,60 @@ function startSession(config: Partial<ReefEncounterGameConfig> = {}) {
 }
 
 describe('feeding the parrotfish at setup', () => {
-    it('goes round the table in turn order', () => {
+    it('lets everyone feed at once, in any order', () => {
         const session = startSession()
         const [first, second, third] = session.state.turnManager.turnOrder
+        expect(session.state.activePlayerIds).toEqual([first, second, third])
 
+        session.feedParrotfish(third, dealtColorOf(session, third))
+        expect(session.state.activePlayerIds).toEqual([first, second])
         session.feedParrotfish(first, dealtColorOf(session, first))
         expect(session.state.activePlayerIds).toEqual([second])
         session.feedParrotfish(second, dealtColorOf(session, second))
-        expect(session.state.activePlayerIds).toEqual([third])
+
+        expect(session.state.machineState).toBe(MachineState.ChoosingLarvaCubes)
+        expect(session.state.activePlayerIds).toEqual([first])
+    })
+
+    it('accepts a feed submitted before another player’s was recorded', () => {
+        const session = startSession()
+        const [first, second] = session.state.turnManager.turnOrder
+        session.feedParrotfish(first, dealtColorOf(session, first))
+
+        session.act(second, ActionType.FeedParrotfish, {
+            color: dealtColorOf(session, second),
+            index: 0,
+            simultaneousGroupId: ParrotfishFeedingGroupId
+        })
+
+        expect(session.state.activePlayerIds).not.toContain(second)
+    })
+
+    it('shows who has fed, but not what', () => {
+        const session = startSession()
+        const [first, second] = session.state.turnManager.turnOrder
+        session.feedParrotfish(second, dealtColorOf(session, second))
+
+        const asFirst = project(session, asPlayer(first))
+        expect(isParrotfishFed(asFirst, first)).toBe(false)
+        expect(isParrotfishFed(asFirst, second)).toBe(true)
+    })
+
+    it('goes on in turn order in a game begun before feeding was simultaneous', () => {
+        const session = startSession()
+        const [first, second, third] = session.state.turnManager.turnOrder
+        session.edit((draft) => {
+            draft.turnManager.series = [{ type: 'turn', playerId: first, start: 0 }]
+            draft.activePlayerIds = [first]
+        })
+        expect(isParrotfishFed(session.state, second)).toBe(false)
+
+        expect(() => session.feedParrotfish(second, dealtColorOf(session, second))).toThrow()
+        session.feedParrotfish(first, dealtColorOf(session, first))
+        expect(session.state.activePlayerIds).toEqual([second])
+        expect(isParrotfishFed(session.state, first)).toBe(true)
+        expect(isParrotfishFed(session.state, third)).toBe(false)
+        session.feedParrotfish(second, dealtColorOf(session, second))
         session.feedParrotfish(third, dealtColorOf(session, third))
 
         expect(session.state.machineState).toBe(MachineState.ChoosingLarvaCubes)
@@ -79,11 +127,12 @@ describe('feeding the parrotfish at setup', () => {
         expect(() => session.feedParrotfish(first, missing)).toThrow()
     })
 
-    it('accepts only the active player', () => {
+    it('accepts one feed from each player', () => {
         const session = startSession()
-        const [, second] = session.state.turnManager.turnOrder
+        const first = session.currentPlayerId()
+        session.feedParrotfish(first, dealtColorOf(session, first))
 
-        expect(() => session.feedParrotfish(second, dealtColorOf(session, second))).toThrow()
+        expect(() => session.feedParrotfish(first, dealtColorOf(session, first))).toThrow()
     })
 })
 

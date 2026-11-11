@@ -2,6 +2,7 @@ import * as Type from 'typebox'
 import { assertExists } from '../util/assertions.js'
 import { findPlayerForUserId, GameCategory, type Game } from '../game/model/game.js'
 import { GameResult } from '../game/model/gameResult.js'
+import { MILLISECONDS_PER_DAY } from './siteStats.js'
 
 export enum GameOutcome {
     Won = 'won',
@@ -100,7 +101,6 @@ type CountedGameFacts = CountedGame & {
 
 const RECENT_OUTCOMES = 20
 const LISTED_OPPONENTS = 6
-const MILLISECONDS_PER_DAY = 86_400_000
 
 export function gameOutcome(game: Pick<Game, 'winningPlayerIds'>, playerId: string): GameOutcome {
     if (!game.winningPlayerIds.includes(playerId)) return GameOutcome.Lost
@@ -136,9 +136,14 @@ export function summarizeUserGames(
     }
 }
 
+export function isCountedGame(game: Pick<Game, 'hotseat' | 'parentId' | 'category'>): boolean {
+    return (
+        !game.hotseat && game.parentId === undefined && game.category !== GameCategory.Exploration
+    )
+}
+
 function countedGameFacts(game: GameStatsSource, userId: string): CountedGameFacts | undefined {
-    if (game.hotseat || game.parentId !== undefined) return undefined
-    if (game.category === GameCategory.Exploration) return undefined
+    if (!isCountedGame(game)) return undefined
     const player = findPlayerForUserId(game, userId)
     if (!player) return undefined
     assertExists(game.result, 'Finished games require a result')

@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
+    import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import { flip } from 'svelte/animate'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 

@@ -1,6 +1,21 @@
 import { assert, assertExists } from '@tabletop/common'
-import { RailwayMapState, TrackNetwork, type EighteenXXState, type TileFace } from '@tabletop/18xx'
-import { createMapDrawing, isMapSelectionValid, type MapSelection } from '../maps/mapDrawing.js'
+import {
+    RailwayMapState,
+    TrackNetwork,
+    companyAuctionHomeReservation,
+    liftedPrivateBlocks,
+    type CompanyAuctionState,
+    type EighteenXXState,
+    type PrivateRules,
+    type StationState,
+    type TileFace
+} from '@tabletop/18xx'
+import {
+    createMapDrawing,
+    isMapSelectionValid,
+    overfullCityKeys,
+    type MapSelection
+} from '../maps/mapDrawing.js'
 import { stationMapTokens, type MapViewDefinition } from '../maps/stationPresentation.js'
 import type { ModuleSession } from './moduleSession.js'
 import {
@@ -18,14 +33,15 @@ import type { CompanyAuctionModule } from './companyAuctionModule.svelte.js'
 type MapState = Parameters<typeof stationMapTokens>[0] &
     Pick<
         EighteenXXState,
-        'companies' | 'stations' | 'tileInventory' | 'stationStep' | 'trackStep'
-    > & {
+        'companies' | 'certificates' | 'stations' | 'tileInventory' | 'stationStep' | 'trackStep'
+    > &
+    Pick<CompanyAuctionState, 'companyAuction'> & {
         locationMarkers?: readonly Pick<
             import('@tabletop/18xx').LocationMarker,
             'kind' | 'locationId'
         >[]
     }
-export type MapSession = ModuleSession<MapState, unknown>
+export type MapSession = ModuleSession<MapState, { privateRules: Pick<PrivateRules, 'blocking'> }>
 export const MapStyles = ['classic', 'muted', 'maker', 'custom'] as const
 /** The tile style games draw in until a player picks another. */
 export const DefaultMapStyle: MapStyle = 'custom'
@@ -56,6 +72,7 @@ type Stations = Pick<
     | 'selection'
     | 'preview'
     | 'displayState'
+    | 'openReservations'
     | 'canPlace'
     | 'locationIds'
     | 'choices'
@@ -65,14 +82,12 @@ type Stations = Pick<
     | 'homeLocationIds'
     | 'chooseHome'
     | 'privateStationPositions'
-    | 'privateStationLocationIds'
     | 'placePrivateStation'
 >
-type CompanyAuction = Pick<CompanyAuctionModule, 'homeLocationIds' | 'homePositions' | 'chooseHome'>
-type Routes = Pick<
-    RoutesModule<RoutesSession['state']>,
-    'canRun' | 'editor' | 'appendPath' | 'selectStart'
->
+/** A module offering home cities on the map: a company auction's opening, a company's start. */
+export type HomeOffer = Pick<CompanyAuctionModule, 'homePositions' | 'chooseHome' | 'chosenHome'>
+type CityOffer = { locationIds: readonly string[]; select(selection: MapSelection): void }
+type Routes = Pick<RoutesModule<RoutesSession['state']>, 'tap'>
 
 export class MapModule {
     showTrackAccess = $state(true)
@@ -85,27 +100,99 @@ export class MapModule {
         private readonly track: Track,
         private readonly stations: Stations,
         private readonly routes: Routes,
-        private readonly companyAuction: CompanyAuction,
+        private readonly homeOffers: readonly HomeOffer[],
         private readonly displayState: () => MapState = () => session.state
     ) {}
 
-    scene = $derived.by(() => this.draw(this.displayState().tileInventory))
-    tokens = $derived.by(() => stationMapTokens(this.displayState(), this.view().stations))
-    tileCounts = $derived.by(() => this.view().tileSet.counts(this.session.state.tileInventory))
-    displayedScene = $derived.by(() => {
-        const preview = this.track.displayedPreview
-        return preview && !this.track.tileInFlight
-            ? this.draw(this.track.construction.inventoryAfter(preview))
-            : this.scene
+    /**
+     * The cities offered for a choice, the first that offers any taking precedence: a home
+     * before the company's turn, a home as a company opens or starts, a private's token.
+     */
+    private cityOffers = $derived.by((): CityOffer[] => {
+        const stations = this.stations
+        const homeChoice = stations.homeLocationIds.length ? stations.homeChoice : undefined
+        return [
+            cityOffer(
+                homeChoice?.positions ?? [],
+                (position) => void stations.chooseHome(position)
+            ),
+            ...this.homeOffers.map((offer) =>
+                cityOffer(offer.homePositions, (position) => offer.chooseHome(position))
+            ),
+            cityOffer(
+                stations.privateStationPositions,
+                (position) => void stations.placePrivateStation(position)
+            )
+        ]
     })
+    private cityOffer = $derived(this.cityOffers.find((offer) => offer.locationIds.length))
+    offeredCityLocationIds = $derived(this.cityOffer?.locationIds ?? [])
+
+    // Held apart so a display state that only moves tokens doesn't redraw the board.
+    private tileInventory = $derived.by(() => this.displayState().tileInventory)
+    private locationMarkers = $derived.by(() => this.displayState().locationMarkers)
+    private overfullCityKey = $derived.by(() =>
+        overfullCityKeys(
+            this.displayState().stations,
+            new RailwayMapState(
+                this.view().map,
+                this.view().tileSet,
+                this.displayState().tileInventory
+            )
+        ).join('|')
+    )
+    private overfullCities = $derived(this.overfullCityKey ? this.overfullCityKey.split('|') : [])
+    private companies = $derived.by(() => this.displayState().companies)
+    private certificates = $derived.by(() => this.displayState().certificates)
+    private liftedPrivateBlocks = $derived.by(() =>
+        liftedPrivateBlocks(this.view().map.markedPrivateIds, this.session.rules.privateRules, {
+            companies: this.companies,
+            certificates: this.certificates
+        })
+    )
+    scene = $derived.by(() => this.draw(this.tileInventory))
+    tokens = $derived.by(() =>
+        stationMapTokens(this.displayState(), this.view().stations, this.view().sharedStations)
+    )
+    tileCounts = $derived.by(() => this.view().tileSet.counts(this.session.state.tileInventory))
+    private landedLay = $derived.by(() =>
+        this.track.tileInFlight ? undefined : this.track.displayedPreview
+    )
+    private landedLayStations = $derived.by(() =>
+        this.track.tileInFlight ? undefined : this.track.displayedStations
+    )
+    private previewTileInventory = $derived.by(() =>
+        this.landedLay ? this.track.construction.inventoryAfter(this.landedLay) : undefined
+    )
+    displayedTileInventory = $derived.by(() => this.previewTileInventory ?? this.tileInventory)
+    displayedStationState = $derived.by(
+        (): StationState => this.landedLayStations ?? this.stations.displayState
+    )
+    displayedScene = $derived.by(() =>
+        this.previewTileInventory ? this.draw(this.previewTileInventory) : this.scene
+    )
     displayedTokens = $derived.by(() => {
-        const preview = this.track.displayedStations
-        if (preview && !this.track.tileInFlight)
-            return stationMapTokens(preview, this.view().stations)
+        if (this.landedLayStations)
+            return stationMapTokens(
+                this.landedLayStations,
+                this.view().stations,
+                this.view().sharedStations
+            )
         return this.stations.preview
-            ? stationMapTokens(this.stations.displayState, this.view().stations)
+            ? stationMapTokens(
+                  this.stations.displayState,
+                  this.view().stations,
+                  this.view().sharedStations
+              )
             : this.tokens
     })
+    displayedReservations = $derived.by(() => [
+        ...this.stations.openReservations(this.displayedStationState),
+        ...[
+            companyAuctionHomeReservation(this.displayState()),
+            ...this.homeOffers.map((offer) => offer.chosenHome)
+        ].filter((reservation) => reservation !== undefined)
+    ])
     style = $derived.by((): MapStyle =>
         this.session.playerId
             ? (this.styles[this.session.playerId] ?? DefaultMapStyle)
@@ -213,51 +300,14 @@ export class MapModule {
             }
             return
         }
-        const editor = this.routes.editor
-        if (
-            this.routes.canRun &&
-            editor.trainId &&
-            selection.kind === 'path' &&
-            editor.extensions.some(
-                (path) =>
-                    path.locationId === selection.locationId && path.pathId === selection.pathId
-            )
-        )
-            this.routes.appendPath(selection)
-        else if (
-            this.routes.canRun &&
-            editor.trainId &&
-            !editor.start &&
-            (selection.kind === 'node' || selection.kind === 'slot') &&
-            editor.centers.some(
-                (center) =>
-                    center.locationId === selection.locationId && center.nodeId === selection.nodeId
-            )
-        )
-            this.routes.selectStart({ locationId: selection.locationId, nodeId: selection.nodeId })
-        else if (this.stations.homeLocationIds.includes(selection.locationId))
-            this.chooseHome(selection)
-        else if (this.companyAuction.homeLocationIds.includes(selection.locationId))
-            this.chooseAuctionHome(selection)
-        else if (this.stations.privateStationLocationIds.includes(selection.locationId))
-            this.placePrivateStation(selection)
+        if (this.routes.tap(selection)) return
+        if (this.cityOffer?.locationIds.includes(selection.locationId))
+            this.cityOffer.select(selection)
         else if (this.stations.canPlace && this.stations.locationIds.includes(selection.locationId))
             this.placeStation(selection)
         else if (allowInspection) this.inspect(selection)
     }
 
-    private chooseHome(selection: MapSelection) {
-        const position = offeredCity(this.stations.homeChoice?.positions ?? [], selection)
-        if (position) void this.stations.chooseHome(position)
-    }
-    private chooseAuctionHome(selection: MapSelection) {
-        const position = offeredCity(this.companyAuction.homePositions, selection)
-        if (position) this.companyAuction.chooseHome(position)
-    }
-    private placePrivateStation(selection: MapSelection) {
-        const position = offeredCity(this.stations.privateStationPositions, selection)
-        if (position) void this.stations.placePrivateStation(position)
-    }
     private placeStation(selection: MapSelection) {
         const location = this.scene.locations.find(
             (entry) => entry.location.id === selection.locationId
@@ -280,9 +330,28 @@ export class MapModule {
         const view = this.view()
         return createMapDrawing(
             view.map,
-            { tileSet: view.tileSet, inventory, markers: this.displayState().locationMarkers },
+            {
+                tileSet: view.tileSet,
+                inventory,
+                markers: this.locationMarkers,
+                liftedPrivateBlocks: this.liftedPrivateBlocks,
+                overfullCities: this.overfullCities
+            },
             view
         )
+    }
+}
+
+function cityOffer<Position extends { locationId: string; nodeId: string }>(
+    positions: readonly Position[],
+    choose: (position: Position) => void
+): CityOffer {
+    return {
+        locationIds: [...new Set(positions.map((position) => position.locationId))],
+        select(selection) {
+            const position = offeredCity(positions, selection)
+            if (position) choose(position)
+        }
     }
 }
 

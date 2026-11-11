@@ -2,6 +2,7 @@ import { ActionSource, assert, type GameAction } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
+import { OathRevision, isAtLeastOathRevision } from './revision.js'
 
 export const SECOND_WIND_ID = 'denizen.discord.second-wind'
 
@@ -16,6 +17,70 @@ export function campaignAsIfSiteNow(
 ): string | undefined {
     const asIf = state.getPlayerState(playerId).campaignAsIf
     return asIf && asIf.atAction === state.actionCount ? asIf.siteId : undefined
+}
+
+/**
+ * R-X.4 — from revision 27 a grant names the card that made it, so its free action records that card; before
+ * it, none is named and the free action records none, as games created then were recorded.
+ */
+export function recordsFreeActionGrants(state: HydratedOathGameState): boolean {
+    return isAtLeastOathRevision(state, OathRevision.EngineFixes23)
+}
+
+/** Second Wind, Brass Horse — the next action may be a Travel that spends no Supply. */
+export function grantFreeTravel(
+    state: HydratedOathGameState,
+    playerId: string,
+    cardId: string
+): void {
+    const player = state.getPlayerState(playerId)
+    player.freeTravelAtAction = nextActionIndex(state)
+    if (recordsFreeActionGrants(state)) player.freeTravelGrantedBy = cardId
+}
+
+/** Knights Errant, Hunting Party, Second Wind, Captains, Wild Allies — the next action may be a Campaign that spends no Supply. */
+export function grantFreeCampaign(
+    state: HydratedOathGameState,
+    playerId: string,
+    cardId: string
+): void {
+    const player = state.getPlayerState(playerId)
+    player.freeCampaignAtAction = nextActionIndex(state)
+    if (recordsFreeActionGrants(state)) player.freeCampaignGrantedBy = cardId
+}
+
+/** The card whose grant makes a Travel taken now free, when the grant names one. */
+export function freeTravelNowGrantedBy(
+    state: HydratedOathGameState,
+    playerId: string
+): string | undefined {
+    const player = state.getPlayerState(playerId)
+    return player.freeTravelAtAction === state.actionCount ? player.freeTravelGrantedBy : undefined
+}
+
+/** The card whose grant makes a Campaign taken now free, when the grant names one. */
+export function freeCampaignNowGrantedBy(
+    state: HydratedOathGameState,
+    playerId: string
+): string | undefined {
+    const player = state.getPlayerState(playerId)
+    return player.freeCampaignAtAction === state.actionCount
+        ? player.freeCampaignGrantedBy
+        : undefined
+}
+
+/** The free Travel is spent or given up, and the card that granted it with it. */
+export function clearFreeTravel(state: HydratedOathGameState, playerId: string): void {
+    const player = state.getPlayerState(playerId)
+    delete player.freeTravelAtAction
+    delete player.freeTravelGrantedBy
+}
+
+/** The free Campaign is spent or given up, and the card that granted it with it. */
+export function clearFreeCampaign(state: HydratedOathGameState, playerId: string): void {
+    const player = state.getPlayerState(playerId)
+    delete player.freeCampaignAtAction
+    delete player.freeCampaignGrantedBy
 }
 
 export function carryFreeActions(
@@ -52,9 +117,8 @@ export function hasFreeActionAhead(state: HydratedOathGameState, playerId: strin
 }
 
 export function forfeitFreeActions(state: HydratedOathGameState, playerId: string): void {
-    const player = state.getPlayerState(playerId)
-    delete player.freeTravelAtAction
-    delete player.freeCampaignAtAction
+    clearFreeTravel(state, playerId)
+    clearFreeCampaign(state, playerId)
 }
 
 export function freeActionTypesNow(state: HydratedOathGameState, playerId: string): ActionType[] {
@@ -98,10 +162,10 @@ export function forgoFreeActionNext(
     const next = nextActionIndex(state)
     if (action === ActionType.Travel) {
         assert(player.freeTravelAtAction === next, `${playerId} has no free Travel due next`)
-        delete player.freeTravelAtAction
+        clearFreeTravel(state, playerId)
     } else {
         assert(player.freeCampaignAtAction === next, `${playerId} has no free Campaign due next`)
-        delete player.freeCampaignAtAction
+        clearFreeCampaign(state, playerId)
     }
 }
 
@@ -112,13 +176,13 @@ export function forgoFreeActionNow(
 ): ActionType.Travel | ActionType.Campaign {
     const player = state.getPlayerState(playerId)
     if (player.freeTravelAtAction === state.actionCount) {
-        delete player.freeTravelAtAction
+        clearFreeTravel(state, playerId)
         if (player.freeCampaignAtAction === state.actionCount) {
             player.freeCampaignAtAction = nextActionIndex(state)
         }
         return ActionType.Travel
     }
     assert(player.freeCampaignAtAction === state.actionCount, `${playerId} has no free action due`)
-    delete player.freeCampaignAtAction
+    clearFreeCampaign(state, playerId)
     return ActionType.Campaign
 }

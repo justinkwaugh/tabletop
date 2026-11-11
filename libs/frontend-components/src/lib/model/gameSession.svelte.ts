@@ -9,12 +9,18 @@ import {
     unnamedDuplicateReason,
     isSupersedableActionType,
     isOutOfTurnActionType,
-    isOutOfTurnDeclaration,
+    isStandingDeclaration,
+    latestPlayerUndoTarget,
+    gameCallOf,
+    isCallGameAction,
+    isCascadedSystemAction,
+    type GameCall,
     Game,
     GameAction,
     GameEngine,
     type Player,
     GameState,
+    type ActionInput,
     type HydratedGameState,
     PlayerAction,
     GameStorage,
@@ -47,6 +53,8 @@ import {
     type TransitionListener
 } from './transitionPresenter.js'
 import { GameUndo } from './gameUndo.js'
+import { LocalSelections } from './localSelections.js'
+import { viewedHistoryPosition, type ViewedHistoryPosition } from './viewedHistoryPosition.js'
 import { GameNotifications } from './gameNotifications.js'
 import { GameRepresentations, HostViewUnsupportedError } from './gameRepresentations.svelte.js'
 import {
@@ -74,6 +82,8 @@ export type GameStateChangeListener<U extends HydratedGameState> = TransitionLis
     AnimationContext
 >
 
+export type ActionTarget<T extends GameState> = Omit<ActionInput<T>, 'action'>
+
 type PlayerStateOf<U extends HydratedGameState> = U['players'][number]
 
 export class GameSession<T extends GameState, U extends HydratedGameState<T> & T> {
@@ -96,9 +106,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     processingActions = $state(false)
     updatingVisibleState = $state(false)
     private loadingGameRepresentation = $state(false)
+    private preparingAction = $state(false)
 
     busy = $derived.by(() => {
-        const actions = this.processingActions
+        const actions = this.processingActions || this.preparingAction
         const state = this.updatingVisibleState
         const representation = this.loadingGameRepresentation
 
@@ -107,6 +118,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
 
     private historyBusy = $derived(
         this.processingActions ||
+            this.preparingAction ||
             this.updatingVisibleState ||
             this.loadingGameRepresentation ||
             this.applyingSynchronization
@@ -184,19 +196,18 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     // Only updated after game state change listeners complete
     gameState: U
 
-    // Exposed directly for the UI
-    // Should these be hydrated?
-    actions: GameAction[] = $derived.by(() => {
-        return this.currentVisibleContext.actions
-    })
+    // The actions that led to gameState, published with it
+    actions: GameAction[]
 
-    // Expose the current action and index for the relevant context
     currentAction = $derived.by(() => {
         return this.actions.at(-1)
     })
 
+    // How the game was called, when the state on screen is the call's result
+    gameCall: GameCall | undefined = $derived.by(() => gameCallOf(this.currentAction))
+
     currentActionIndex = $derived.by(() => {
-        return this.currentVisibleContext.state.actionCount - 1
+        return this.gameState.actionCount - 1
     })
 
     // Switches between the contexts to show in the UI
@@ -219,6 +230,30 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         }
     })
 
+    protected get actionTarget(): ActionTarget<T> {
+        const context = this.currentModifiableContext
+        const { game, state } = context
+        return { game, state, perspective: this.projectedExecutionPerspective(context) }
+    }
+
+    viewedHistoryPosition: ViewedHistoryPosition | undefined = $derived.by(() => {
+        if (!this.history.inHistory || !this.myPlayer) {
+            return undefined
+        }
+        return viewedHistoryPosition({
+            actionIndex: this.currentVisibleContext.state.actionCount,
+            liveActionCount: this.gameContext.state.actionCount,
+            liveActions: this.gameContext.actions,
+            playerId: this.myPlayer.id
+        })
+    })
+
+    protected readonly localSelections = new LocalSelections()
+
+    get hasLocalSelection(): boolean {
+        return this.localSelections.hasManual()
+    }
+
     undoableAction: GameAction | undefined = $derived.by(() => {
         const superUserAccess =
             (this.isActingAdmin || this.isExploring) && !this.isViewingAsNonActivePlayer
@@ -236,64 +271,37 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             return undefined
         }
 
-        let currentSimultaneousGroup: string | undefined
-        let undoableUserAction: GameAction | undefined
-        for (let i = this.actions.length - 1; i >= 0; i--) {
-            const action = this.actions[i]
-            if (action.undoPatch === undefined) break
-            const undoLimit =
-                this.currentModifiableContext.state.explorationState?.checkpoint?.undoLimit
-            if (undoLimit !== undefined && i < undoLimit) break
-
-            // Cannot undo beyond revealed info
-            if (!superUserAccess && action.revealsInfo) {
-                break
-            }
-
-            if (action.source !== ActionSource.User || isOutOfTurnDeclaration(action)) {
-                continue
-            }
-
-            if (superUserAccess || localHotseatAccess) {
-                undoableUserAction = action
-                break
-            }
-
-            // Must have player if not admin {
-            if (!this.myPlayer) {
-                break
-            }
-
-            // Other player actions can be skipped if we find a simultaneous group
-            // as long as we don't leave it and enter another
-            if (action.playerId !== this.myPlayer.id) {
-                if (
-                    !action.simultaneousGroupId ||
-                    (currentSimultaneousGroup &&
-                        action.simultaneousGroupId !== currentSimultaneousGroup)
-                ) {
-                    break
-                } else {
-                    currentSimultaneousGroup = action.simultaneousGroupId
-                }
-            }
-
-            // Our actions are what we are looking for, but if we are in a simultaneous group
-            // it has to be part of that group
-            if (action.playerId === this.myPlayer.id) {
-                if (
-                    !currentSimultaneousGroup ||
-                    action.simultaneousGroupId === currentSimultaneousGroup
-                ) {
-                    // Found one
-                    undoableUserAction = action
-                }
-                break
-            }
+        if (superUserAccess || localHotseatAccess) {
+            const actions = this.undoableActions({ stopAtReveal: !superUserAccess })
+            return actions.findLast(
+                (action, position) =>
+                    action.source === ActionSource.User && !isStandingDeclaration(actions, position)
+            )
         }
 
-        return undoableUserAction
+        const player = this.myPlayer
+        return player
+            ? latestPlayerUndoTarget(this.undoableActions({ stopAtReveal: false }), player.id)
+            : undefined
     })
+
+    private undoableActions({ stopAtReveal }: { stopAtReveal: boolean }): GameAction[] {
+        const undoLimit =
+            this.currentModifiableContext.state.explorationState?.checkpoint?.undoLimit
+        let start = this.actions.length
+        while (start > 0) {
+            const action = this.actions[start - 1]
+            if (
+                action.undoPatch === undefined ||
+                (undoLimit !== undefined && start - 1 < undoLimit) ||
+                (stopAtReveal && (action.revealsInfo || isCallGameAction(action)))
+            ) {
+                break
+            }
+            start--
+        }
+        return this.actions.slice(start)
+    }
 
     // A new object each time Admin mode turns on, so an explicit acting-player choice only lasts
     // for the Admin activation it was made in.
@@ -667,7 +675,11 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         this.presenter = new TransitionPresenter<T, U, AnimationContext>({
             source: () => this.currentVisibleContext,
             output: {
-                publish: (state, transition) => this.publishState(state, transition),
+                publish: (state, transition, actions) =>
+                    this.publishState(state, transition, actions),
+                publishActions: (actions) => {
+                    this.actions = actions
+                },
                 setPending: (pending) => this.setPendingPresentation(pending)
             },
             createAnimationContext: () => new AnimationContext(),
@@ -725,6 +737,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         this.colors = new GameColors(this.authorizationBridge, this.gameContext)
 
         this.gameState = $state.raw(this.runtime.hydrator.hydrateState(state))
+        this.actions = $state.raw([...this.gameContext.actions])
         this.bridge = new GameSessionBridge(this)
 
         if (!game.hotseat) {
@@ -859,10 +872,12 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         return this.presenter.incoming
     }
 
-    private publishState(state: U, transition: PresentedTransition) {
+    private publishState(state: U, transition: PresentedTransition, actions: GameAction[]) {
+        if (!this.keepsLocalSelections(transition)) this.localSelections.clear()
         this.beforeNewState(transition)
         this.reconcilePlayerPerspective(state)
         this.gameState = state
+        this.actions = actions
     }
 
     private setPendingPresentation(pending: boolean) {
@@ -879,6 +894,10 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             case 'silent-swap':
                 return 'silent'
         }
+    }
+
+    protected keepsLocalSelections(_transition: PresentedTransition): boolean {
+        return false
     }
 
     beforeNewState(_transition: PresentedTransition) {}
@@ -935,7 +954,9 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         if (this.disposed || !pending.isCurrent()) return
         if (!this.gameContext.hydrateHistory(pending.context)) {
             void this.checkSync(true)
+            return
         }
+        this.presenter.historyLoaded()
     }
 
     async retrySynchronization(): Promise<void> {
@@ -1021,7 +1042,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     withSupersededAction(action: GameAction): GameAction {
         const context = this.currentModifiableContext
         if (!isSupersedableActionType(this.runtime.apiActions, action.type)) return action
-        const standing = findStandingAction(context.actions, action)
+        const standing = findStandingAction(this.runtime.apiActions, context.actions, action)
         if (!standing) return action
         const named = { ...action, supersedesActionId: standing.id }
         const outcome = replaceSupersededAction({
@@ -1060,10 +1081,41 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
         context.applyActionResults(new GameActionResults(outcome.redone, outcome.state))
     }
 
+    protected prepareAction(action: GameAction): GameAction | Promise<GameAction> {
+        return action
+    }
+
+    private preparedAction(
+        prepare: () => GameAction | undefined | Promise<GameAction | undefined>
+    ): GameAction | undefined | Promise<GameAction | undefined> {
+        const built = prepare()
+        if (built instanceof Promise)
+            return built.then((action) => action && this.prepareAction(action))
+        return built && this.prepareAction(built)
+    }
+
     async applyAction(action: GameAction) {
+        await this.applyPreparedAction(() => action)
+    }
+
+    /** Builds the Action while the session is busy, so nothing else applies before it does. */
+    async applyPreparedAction(
+        prepare: () => GameAction | undefined | Promise<GameAction | undefined>
+    ) {
         if (!this.isPlayable || this.busy) {
             return
         }
+        let prepared = this.preparedAction(prepare)
+        if (prepared instanceof Promise) {
+            this.preparingAction = true
+            try {
+                prepared = await prepared
+            } finally {
+                this.preparingAction = false
+            }
+        }
+        if (!prepared) return
+        let action = prepared
 
         const relevantContext = this.currentModifiableContext
         const isRepresentationCurrent = this.representations.captureValidity()
@@ -1247,6 +1299,12 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     async undo() {
+        if (this.isViewingHistory) return
+        if (this.localSelections.undo()) return
+        await this.undoCommittedAction()
+    }
+
+    async undoCommittedAction() {
         if (!this.isPlayable || this.isViewingHistory || !this.undoableAction || this.busy) {
             return
         }
@@ -1337,7 +1395,7 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
     }
 
     public shouldAutoStepAction(action: GameAction, _next?: GameAction) {
-        return action.source === ActionSource.System
+        return isCascadedSystemAction(action)
     }
 
     willUndo(_action: GameAction) {}

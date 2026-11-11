@@ -84,6 +84,7 @@ function offersCharterPetition(family: CharterHandler): CharterHandler {
 const CharterRules: EighteenXXTitleRules<typeof CharterState, HydratedCharterState> = {
     ...Shikoku1889TitleRules,
     state: CharterStateDefinition,
+    canonicalState: undefined,
     createOpening: (setup) => ({
         position: Shikoku1889TitleRules.createOpening(setup).position,
         begin: beginWaterfallAuction(Shikoku1889AuctionRules, setup.startingPositions),
@@ -299,6 +300,16 @@ it('requires selected mechanism state and rules to agree', () => {
             }
         })
     ).toThrow('loanStep state and rules must be selected together')
+    const { runInstructions: _dropped, ...withoutRunInstructions } = state.schema.properties
+    expect(() =>
+        createEighteenXXRuntime({
+            ...Shikoku1889TitleRules,
+            state: {
+                ...state,
+                schema: Type.Object(withoutRunInstructions, { additionalProperties: false })
+            }
+        })
+    ).toThrow('Run instructions need their state field')
     expect(() => createEighteenXXRuntime({ ...CharterRules, titleStateHandlers: {} })).toThrow(
         'CharterRound has no state handler'
     )

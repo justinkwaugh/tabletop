@@ -27,12 +27,11 @@ export function createEighteenThirtyTwoFinanceExample(
     const playerCash = players.map((_, index) => PlayerCash[index])
     const treasuries = 1200
     return {
-        bank: { unlimitedAfterExhaustion: true },
+        bank: {},
         companies: [
             {
                 id: EighteenThirtyTwoMajors.ACL.id,
                 kind: 'major',
-                shareCount: 10,
                 parPrice: 90,
                 started: true,
                 funded: true,
@@ -43,7 +42,6 @@ export function createEighteenThirtyTwoFinanceExample(
             {
                 id: EighteenThirtyTwoMajors.CG.id,
                 kind: 'major',
-                shareCount: 10,
                 parPrice: 100,
                 started: true,
                 funded: true,
@@ -54,8 +52,7 @@ export function createEighteenThirtyTwoFinanceExample(
             ...EighteenThirtyTwoPrivates.filter((company) => ['P2', 'P5'].includes(company.id)).map(
                 (company) => ({
                     id: company.id,
-                    kind: 'private',
-                    privateRevenue: company.revenue
+                    kind: 'private'
                 })
             )
         ],

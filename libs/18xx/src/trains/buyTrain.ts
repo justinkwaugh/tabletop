@@ -1,10 +1,12 @@
+import { EighteenXXOperatingAction } from '../actions/eighteenXXPlayerAction.js'
 import { CompanyChanges, CompanyChangeRecorder } from '../company/companyChanges.js'
+import { actionMayOperate, inReceivership } from '../finance/receivership.js'
+import { completesFundedPurchase, type FundingState } from '../funding/trainFunding.js'
 import { preparePhaseChange, type PhaseState } from '../phases/phaseChange.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     type GameAction,
@@ -27,7 +29,7 @@ import {
 } from './trainDepartures.js'
 export const BuyTrain = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXOperatingAction.properties,
         ...TrainPurchaseRequest.properties,
         type: Type.Literal('BuyTrain'),
         expectedPrice: Type.Integer({ minimum: 0 }),
@@ -54,7 +56,7 @@ export function isBuyTrain(action: GameAction): action is BuyTrain {
 }
 export class HydratedBuyTrain extends HydratableAction<typeof BuyTrain> implements BuyTrain {
     declare type: 'BuyTrain'
-    declare playerId: string
+    declare playerId?: string
     declare companyId: string
     declare trainId: string
     declare definitionId: string
@@ -66,11 +68,19 @@ export class HydratedBuyTrain extends HydratableAction<typeof BuyTrain> implemen
         super(data instanceof HydratedBuyTrain ? data.dehydrate() : data, Validator)
         this.#rules = rules
     }
-    apply(state: HydratedGameState & TrainPurchaseState & PhaseState): void {
+    apply(
+        state: HydratedGameState &
+            TrainPurchaseState &
+            PhaseState &
+            Pick<FundingState, 'trainFunding'>
+    ): void {
         const purchase = new TrainPurchase(state, this.#rules)
         assert(
-            this.source === ActionSource.User &&
-                state.activePlayerIds.includes(this.playerId) &&
+            (this.source === ActionSource.User ||
+                (this.source === ActionSource.System &&
+                    (inReceivership(state, this.companyId) ||
+                        completesFundedPurchase(state, this.companyId)))) &&
+                actionMayOperate(state, this, this.companyId) &&
                 purchase.canAct(this.playerId, this.companyId),
             'Only the operating company’s controlling owner may buy trains'
         )
@@ -100,7 +110,11 @@ export function applyTrainPurchase(
         }
     ])
     if (details.exchangeTrainId)
-        releaseTrains(state.trainInventory, [details.exchangeTrainId], 'market')
+        releaseTrains(
+            state.trainInventory,
+            [details.exchangeTrainId],
+            rules.exchangedTrainDestination ?? 'market'
+        )
     const toPhaseId = rules.phaseAfterPurchase(state, details.definitionId)
     const payments = settleTrainDepartures(state, rules, [
         { trainId: details.trainId, definitionId: details.definitionId, cause: 'purchase' }
@@ -109,8 +123,11 @@ export function applyTrainPurchase(
         kind: 'company',
         companyId: details.companyId
     })
-    if (state.trainPurchaseStep?.companyId === details.companyId)
+    if (state.trainPurchaseStep?.companyId === details.companyId) {
         state.trainPurchaseStep.purchasedTrainIds.push(details.trainId)
+        if (details.exchangeTrainId)
+            (state.trainPurchaseStep.exchangedTrainIds ??= []).push(details.exchangeTrainId)
+    }
     closePrivatesOnTrainPurchase(state, rules, details.companyId)
     preparePhaseChange(state, details.trainId, details.definitionId, toPhaseId, {
         machineState: state.machineState,

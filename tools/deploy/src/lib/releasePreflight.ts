@@ -1,6 +1,12 @@
 import { BACKEND_PACKAGE, fetchBackendServingVersion } from './backendPublish.js'
 import { fetchFrontendServingVersion, FRONTEND_PACKAGE } from './frontendPublish.js'
+import { checkHostingMatchesManifest, type HostingCheck } from './hostingPublish.js'
 import { fetchServingVersions, findGameEntry, gameReleaseTag } from './gamePublish.js'
+import {
+    fetchRealtimeServingVersion,
+    REALTIME_PACKAGE,
+    resolveRealtimeTarget
+} from './realtimePublish.js'
 import {
     changedFilesSince,
     commitsSince,
@@ -17,8 +23,10 @@ import {
     getBackendPackagePath,
     getFrontendPackagePath,
     getGamePackagePaths,
+    getRealtimePackagePath,
     readGamePackageVersions,
-    readPackageVersion
+    readPackageVersion,
+    realtimeReleaseTag
 } from './versions.js'
 import { workspaceSourceDirs } from './workspace.js'
 
@@ -64,6 +72,7 @@ export type GamePreflightReport = PreflightBase & {
 
 export type FrontendPreflightReport = PreflightBase & {
     frontend: ArtifactPreflight
+    hosting: HostingCheck
     releaseNeeded: 'frontend' | 'none'
 }
 
@@ -72,7 +81,13 @@ export type BackendPreflightReport = PreflightBase & {
     releaseNeeded: 'backend' | 'none'
 }
 
-export type PreflightReport = GamePreflightReport | FrontendPreflightReport | BackendPreflightReport
+export type RealtimePreflightReport = PreflightBase & {
+    realtime: ArtifactPreflight
+    releaseNeeded: 'realtime' | 'none'
+}
+
+export type PreflightReport =
+    GamePreflightReport | FrontendPreflightReport | BackendPreflightReport | RealtimePreflightReport
 
 const resolveBaseline = async (
     repoRoot: string,
@@ -219,6 +234,7 @@ export const runFrontendPreflight = async (
         target: 'frontend',
         artifacts: [frontend],
         frontend,
+        hosting: await checkHostingMatchesManifest(context),
         releaseNeeded: frontend.changed ? 'frontend' : 'none'
     }
 }
@@ -245,6 +261,33 @@ export const runBackendPreflight = async (
         artifacts: [backend],
         backend,
         releaseNeeded: backend.changed ? 'backend' : 'none'
+    }
+}
+
+export const runRealtimePreflight = async (
+    context: PublishContext
+): Promise<RealtimePreflightReport> => {
+    const target = resolveRealtimeTarget(context.deployConfig)
+    const packageJsonPath = getRealtimePackagePath(context.repoRoot)
+    const localVersion = await readPackageVersion(packageJsonPath)
+    const serving = await fetchRealtimeServingVersion(context)
+    const source = `relay stats on ${target.instance}`
+    const realtime = await artifactPreflight(context.repoRoot, {
+        kind: 'realtime',
+        packageName: REALTIME_PACKAGE,
+        packageJsonPath,
+        tag: realtimeReleaseTag(localVersion),
+        localVersion,
+        servingVersion: servingVersion(serving, 'realtime'),
+        excludePackages: []
+    })
+    return {
+        target: 'realtime',
+        workingTreeClean: await isWorkingTreeClean(context.repoRoot),
+        serving: 'error' in serving ? { source, error: serving.error } : { source },
+        artifacts: [realtime],
+        realtime,
+        releaseNeeded: realtime.changed ? 'realtime' : 'none'
     }
 }
 
@@ -282,6 +325,15 @@ const formatArtifact = (artifact: ArtifactPreflight): string[] => {
     return lines
 }
 
+const describeHosting = (hosting: HostingCheck) => {
+    if (!hosting.enabled) return 'not enabled (frontend releases need hosting.channel)'
+    if ('error' in hosting) return `${hosting.channel} could not be checked: ${hosting.error}`
+    const state = hosting.matches
+        ? `serves the manifest's frontend ${hosting.version}`
+        : `DOES NOT serve the manifest's frontend ${hosting.version}; run sync-hosting`
+    return `${hosting.channel} (${hosting.url}) ${state}`
+}
+
 export const formatPreflightReport = (report: PreflightReport): string => {
     const servingLine = report.serving
         ? report.serving.error
@@ -293,6 +345,7 @@ export const formatPreflightReport = (report: PreflightReport): string => {
         `working tree clean: ${report.workingTreeClean ? 'yes' : 'no'}`,
         `serving manifest:   ${servingLine}`,
         ...report.artifacts.flatMap(formatArtifact),
+        ...('hosting' in report ? [`hosting:            ${describeHosting(report.hosting)}`] : []),
         `release needed:     ${report.releaseNeeded}`
     ].join('\n')
 }

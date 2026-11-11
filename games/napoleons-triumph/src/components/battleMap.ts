@@ -285,6 +285,9 @@ export class BattleMap {
     }
 
     traceRoad(start: RoadOrigin, path: LocaleId[]): RoadArrival[] {
+        if (path.length > MAIN_ROAD_REACH) {
+            return []
+        }
         let arrivals: RoadArrival[]
         let remaining = path
         if ('entryId' in start) {

@@ -96,6 +96,7 @@ export class ReefEncounterGameInitializer
             bonusPolyps,
             bonusPolypsInBag: false,
             colorsMissingFromBag: [],
+            bonusSpacesRefillAtTurnEnd: true,
             advanced: game.config?.advanced === true,
             algaSupply: algaCounts(AlgaCylindersPerColor),
             polypBag

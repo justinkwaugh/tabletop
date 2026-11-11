@@ -4,7 +4,9 @@ import {
     tournamentStatusText,
     tournamentRegistrationOpen,
     tournamentRegistrationText,
-    tournamentStatusColor
+    tournamentStatusColor,
+    tournamentAveragePlaceText,
+    tournamentTiebreakTexts
 } from './tournamentPresentation'
 
 const locked: Tournament = {
@@ -110,4 +112,30 @@ it('keeps the paused label when a failed start is paused by an administrator', (
     expect(tournamentStatusText({ ...locked, paused: true, schedulingError: 'Setup failed' })).toBe(
         'Scheduling paused'
     )
+})
+
+describe('tournamentTiebreakTexts', () => {
+    it('shows a total, a combined value or a dash for no value', () => {
+        const texts = tournamentTiebreakTexts([
+            { userId: 'a', completed: 4, tiebreak: -10 },
+            { userId: 'b', completed: 4, tiebreak: -10, pointsBehind: 7 },
+            { userId: 'c', completed: 0 }
+        ])
+        expect([...texts.values()]).toEqual(['-10', '-1.775', '—'])
+    })
+
+    it('shows a share of the winner as a percentage', () => {
+        const texts = tournamentTiebreakTexts([
+            { userId: 'a', completed: 4, tiebreak: 24000, shareOfWinner: 34972 }
+        ])
+        expect(texts.get('a')).toBe('87.43%')
+    })
+})
+
+describe('tournamentAveragePlaceText', () => {
+    it('shows two decimals, or a dash before any game', () => {
+        expect(tournamentAveragePlaceText({ completed: 4, placeTotal: 9 })).toBe('2.25')
+        expect(tournamentAveragePlaceText({ completed: 3, placeTotal: 7 })).toBe('2.33')
+        expect(tournamentAveragePlaceText({ completed: 0, placeTotal: 0 })).toBe('—')
+    })
 })

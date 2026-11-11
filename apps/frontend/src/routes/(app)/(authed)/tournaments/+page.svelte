@@ -1,14 +1,19 @@
 <script lang="ts">
+    import { nextTabIndex } from '$lib/utils/tabNavigation'
+    import { everyCompetition, listenForCompetitionChanges } from '$lib/services/competitionUpdates'
+    import { LatestRequest } from '$lib/utils/latestRequest'
+    import CompetitionHeading from '$lib/components/CompetitionHeading.svelte'
     import { onMount } from 'svelte'
     import { goto } from '$app/navigation'
     import TournamentForm from '$lib/components/tournaments/TournamentForm.svelte'
     import { Hr, Dropdown, DropdownGroup, DropdownItem, Modal } from 'flowbite-svelte'
     import { Role, type Tournament, type TournamentListQuery } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
-    import { listenForTournamentChanges } from '$lib/services/tournamentUpdates'
     import { gameCardOptions } from '$lib/utils/gameOptions'
     import {
-        tournamentFormatText,
+        tournamentRosterText,
+        tournamentTag,
+        tournamentTagTitle,
         tournamentSummaryText,
         tournamentStatusText,
         tournamentStatusColor
@@ -47,7 +52,7 @@
     let pageStart: string | undefined
     let busy = $state(true)
     let error = $state('')
-    let request = 0
+    const requests = new LatestRequest()
     let now = $state(Date.now())
     let emptyText = $derived(
         titleId
@@ -64,7 +69,7 @@
     )
 
     async function refresh(after = pageStart) {
-        const current = ++request
+        const current = requests.begin()
         if (after !== pageStart) {
             tournaments = []
             cursor = undefined
@@ -74,22 +79,22 @@
         error = ''
         try {
             let result = await api.listTournaments({ scope, after, titleId: titleId || undefined })
-            if (current !== request) return
+            if (!current()) return
             if (chooseInitialScope) {
                 chooseInitialScope = false
                 if (!result.tournaments.length) {
                     scope = 'open'
                     result = await api.listTournaments({ scope, titleId: titleId || undefined })
-                    if (current !== request) return
+                    if (!current()) return
                 }
             }
             tournaments = result.tournaments
             cursor = result.nextCursor
         } catch (failure) {
-            if (current === request)
+            if (current())
                 error = failure instanceof Error ? failure.message : 'Could not load tournaments'
         } finally {
-            if (current === request) busy = false
+            if (current()) busy = false
         }
     }
 
@@ -109,12 +114,8 @@
     }
 
     function moveTab(event: KeyboardEvent, index: number) {
-        let next: number
-        if (event.key === 'ArrowRight') next = (index + 1) % tabs.length
-        else if (event.key === 'ArrowLeft') next = (index + tabs.length - 1) % tabs.length
-        else if (event.key === 'Home') next = 0
-        else if (event.key === 'End') next = tabs.length - 1
-        else return
+        const next = nextTabIndex(event.key, index, tabs.length)
+        if (next === undefined) return
         event.preventDefault()
         selectTab(tabs[next].scope)
         document.getElementById(`tournament-tab-${scope}`)?.focus()
@@ -124,11 +125,13 @@
         const clock = setInterval(() => {
             now = Date.now()
         }, 1000)
-        const unsubscribe = listenForTournamentChanges(notificationService, () => refresh())
+        const unsubscribe = listenForCompetitionChanges(notificationService, () => refresh(), {
+            tournament: everyCompetition
+        })
         void refresh()
         return () => {
             clearInterval(clock)
-            request++
+            requests.cancel()
             unsubscribe()
         }
     })
@@ -137,7 +140,7 @@
 <svelte:head><title>Tournaments · Tabletop</title></svelte:head>
 <main class="collection-page pb-10 text-gray-900 dark:text-gray-100">
     <header class="collection-header flex items-center gap-3">
-        <h1 class="collection-heading">Tournaments</h1>
+        <CompetitionHeading current="tournaments" />
         {#if isAdmin}
             <button
                 onclick={() => (creating = true)}
@@ -277,9 +280,7 @@
                             ></span>{tournamentStatusText(tournament, now)}</span
                         >
                         <span class="text-gray-500 dark:text-gray-400"
-                            >{tournament.entrants.length}{tournament.rules.registration.capacity
-                                ? ` / ${tournament.rules.registration.capacity}`
-                                : ''} joined</span
+                            >{tournamentRosterText(tournament)} joined</span
                         >
                     </div>
                     <div class="flex items-center gap-3">
@@ -306,10 +307,10 @@
                                     {libraryService.getNameForTitle(tournament.rules.titleId)}
                                 </p>
                                 <span
-                                    title={tournamentFormatText(tournament.format)}
+                                    title={tournamentTagTitle(tournament)}
                                     class="shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-[0.6rem] leading-none text-gray-500 dark:bg-gray-700/60 dark:text-gray-400"
                                 >
-                                    {tournament.format.kind === 'mini' ? 'Mini' : 'Multi-stage'}
+                                    {tournamentTag(tournament)}
                                 </span>
                             </div>
                         </div>

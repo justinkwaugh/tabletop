@@ -1,7 +1,6 @@
 import {
     ActionType,
     HydratedMuster,
-    suitOf,
     type HydratedOathGameState,
     type ModifierUse,
     type Suit
@@ -38,7 +37,8 @@ export function musterRows(
     if (siteId === undefined) return []
     const available = HydratedMuster.available(state, playerId)
     return state.denizensAt(siteId).flatMap((cardId): MusterRow[] => {
-        const suit = suitOf(cardId)
+        // R-2.9 — a ruin shows no suit, so it is never listed.
+        const suit = state.suitInPlay(cardId)
         if (!suit) return []
         const modifiers = musterModifiers(state, playerId, cardId, declared)
         const plan = HydratedMuster.plan(state, playerId, cardId, modifiers)

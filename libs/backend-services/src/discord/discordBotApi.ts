@@ -3,7 +3,7 @@ const API_ENDPOINT = 'https://discord.com/api/v10'
 export type DiscordFile = {
     filename: string
     contentType: string
-    content: string
+    content: string | Uint8Array<ArrayBuffer>
 }
 
 export class DiscordBotApi {

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { ActionType, isEndAuction } from '@tabletop/fresh-fish'
+    import { ActionType } from '@tabletop/fresh-fish'
     import WoodStall from '$lib/components/WoodStall.svelte'
     import WoodMarket from '$lib/components/WoodMarket.svelte'
     import TiltedTile from '$lib/components/TiltedTile.svelte'
@@ -57,11 +57,11 @@
 
     let previewSize = $derived(windowHeight && windowHeight > 700 ? 84 : 56)
 
-    let wonFor = $derived.by(() => {
-        if (gameSession.chosenAction !== ActionType.PlaceStall) return undefined
-        const auction = gameSession.actions.findLast((action) => isEndAuction(action))
-        return auction && isEndAuction(auction) ? auction.highBid : undefined
-    })
+    let wonFor = $derived(
+        gameSession.chosenAction === ActionType.PlaceStall
+            ? gameSession.gameState.currentAuction?.highBid
+            : undefined
+    )
 
     let myColor = $derived(gameSession.colors.getPlayerUiColor(gameSession.myPlayer?.id))
 
@@ -92,7 +92,7 @@
     class="mb-2 flex flex-row justify-center items-center gap-6 rounded-md px-5 py-2.5 bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100"
 >
     {#if gameSession.chosenAction === ActionType.PlaceBid || gameSession.chosenAction === ActionType.PlaceStall}
-        <div class="relative">
+        <div class="relative shrink-0">
             <TiltedTile>
                 <WoodStall
                     size={previewSize}

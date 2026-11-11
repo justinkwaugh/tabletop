@@ -19,9 +19,10 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST)('manifest caching against Re
         games: []
     }
     const fallback: SiteManifest = { frontend: { version: '0.0.0' }, games: [] }
+    const game = { gameId: 'oath', packageId: 'oath', logicVersion: '1.0.0', uiVersion: '1.0.0' }
     const after: SiteManifest = {
-        ...before,
-        frontend: { ...before.frontend, version: '2.0.0' }
+        frontend: { ...before.frontend, version: '2.0.0' },
+        games: [game]
     }
 
     beforeEach(async () => {
@@ -55,6 +56,24 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST)('manifest caching against Re
             })
         })
     }
+
+    it('refreshes Redis from the authoritative source when the mounted manifest is stale', async () => {
+        let published = before
+        const service = new LibraryService(live.cache, {
+            manifestPath,
+            cacheKey,
+            readManifest: async () => published
+        })
+        await service.getTitlesMap()
+        await expectCached(before)
+
+        published = { ...before, frontend: { version: '2.0.0' } }
+        await service.invalidateManifestCache()
+        await service.refreshAndActivate()
+
+        expect(await service.getServedManifest()).toEqual(published)
+        await expectCached(published)
+    })
 
     it.each([false, true])(
         'revokes a delayed fill when invalidated (new manifest cached: %s)',
@@ -110,8 +129,6 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST)('manifest caching against Re
         const service = new LibraryService(live.cache, { manifestPath, cacheKey })
         await service.refreshManifest()
         await expectCached(before)
-        const changes: string[] = []
-        service.onManifestMismatch(({ next }) => changes.push(next.frontend.version))
         const readStarted = Promise.withResolvers<void>()
         const releaseRead = Promise.withResolvers<void>()
         const cacheGet = live.cache.cacheGet.bind(live.cache)
@@ -136,7 +153,6 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST)('manifest caching against Re
 
         await expectCached(after)
         expect((await live.cache.get<SiteManifest>(cacheKey)).value).toEqual(after)
-        expect.soft(changes).toEqual(['2.0.0'])
         expect((await service.getManifest()).frontend.version).toBe('2.0.0')
     })
 

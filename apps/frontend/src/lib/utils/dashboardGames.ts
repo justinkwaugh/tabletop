@@ -33,7 +33,8 @@ export function nextTurnGame(
     currentGameId: string,
     userId?: string
 ): Game | undefined {
-    const candidates = otherTurnGames(games, currentGameId, userId)
-        .toSorted((a, b) => a.id.localeCompare(b.id))
+    const candidates = otherTurnGames(games, currentGameId, userId).toSorted((a, b) =>
+        a.id.localeCompare(b.id)
+    )
     return candidates.find((game) => game.id.localeCompare(currentGameId) > 0) ?? candidates[0]
 }

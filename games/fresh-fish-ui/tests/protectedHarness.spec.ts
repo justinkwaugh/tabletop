@@ -1,19 +1,10 @@
 import { expect, test } from '@playwright/test'
+import { openProtectedGame } from './protectedGame.js'
 
 test('Fresh Fish renders and discovers legal moves in the protected harness', async ({ page }) => {
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
-    await page.goto('/')
-    const playerId = await page.evaluate(async () => {
-        const fixture = await import(
-            new URL('/src/lib/stores/tests/exploration.fixture.ts', location.href).href
-        )
-        return fixture.saveProtectedHarnessGame()
-    })
-    await page.reload()
-    await page.getByRole('button', { name: 'Games', exact: true }).click()
-    await page.getByText('Protected Fresh Fish', { exact: true }).click()
-    await expect(page.getByText('Please place a disc', { exact: true })).toBeVisible()
+    const playerId = await openProtectedGame(page)
     await page.getByRole('button', { name: 'Options' }).click()
     await page.getByText('Protected mode', { exact: true }).click()
     await page.getByRole('button', { name: 'Options' }).click()

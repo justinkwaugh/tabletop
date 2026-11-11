@@ -1,6 +1,10 @@
 import { gsap } from 'gsap'
 import { tick } from 'svelte'
-import { isSameSegment, type CanalSegment, type HydratedSantiagoGameState } from '@tabletop/santiago'
+import {
+    isSameSegment,
+    type CanalSegment,
+    type HydratedSantiagoGameState
+} from '@tabletop/santiago'
 import {
     CANAL_HALF_THICKNESS,
     segmentEnds,
@@ -74,24 +78,35 @@ export class CanalBuildAnimator extends StateAnimator {
         if (nodes.length === 0) return
         gsap.set(nodes, { opacity: 0 })
         const timeline = action ? animationContext.finalTimeline : animationContext.actionTimeline
-        timeline.to(nodes, { opacity: 1, duration: action ? OFFER_FADE : FALLBACK_DURATION, ease: 'power1.out' }, 0)
+        timeline.to(
+            nodes,
+            { opacity: 1, duration: action ? OFFER_FADE : FALLBACK_DURATION, ease: 'power1.out' },
+            0
+        )
         this.faded.push(...nodes)
     }
 
     private async revealBuiltCanal({ to, from, action, animationContext }: StateChange) {
         if (!from) return
-        const built = to.board.canals.find((seg) => !from.board.canals.some((old) => isSameSegment(old, seg)))
+        const built = to.board.canals.find(
+            (seg) => !from.board.canals.some((old) => isSameSegment(old, seg))
+        )
         if (!built) return
 
-        const offeredAfter = new Set(this.gameSession.visibleSegmentsIn(this.gameSession.incomingGameState).map(segmentKey))
+        const offeredAfter = new Set(
+            this.gameSession.visibleSegmentsIn(this.gameSession.incomingGameState).map(segmentKey)
+        )
         this.canals = to.board.canals
         this.revealingKey = segmentKey(built)
         await tick()
 
         const timeline = animationContext.actionTimeline
         const fade = action ? FADE : FALLBACK_DURATION
-        const withdrawn = [...this.surveyNodes].filter(([key]) => !offeredAfter.has(key)).map(([, node]) => node)
-        if (withdrawn.length > 0) timeline.to(withdrawn, { opacity: 0, duration: fade, ease: 'power1.out' }, 0)
+        const withdrawn = [...this.surveyNodes]
+            .filter(([key]) => !offeredAfter.has(key))
+            .map(([, node]) => node)
+        if (withdrawn.length > 0)
+            timeline.to(withdrawn, { opacity: 0, duration: fade, ease: 'power1.out' }, 0)
         this.faded.push(...withdrawn)
 
         const rect = this.revealRect
@@ -100,12 +115,19 @@ export class CanalBuildAnimator extends StateAnimator {
         gsap.set(rect, { attr: start })
         timeline.to(
             rect,
-            { attr: end, duration: action ? FLOW : FALLBACK_DURATION, ease: action ? 'power1.inOut' : 'none' },
+            {
+                attr: end,
+                duration: action ? FLOW : FALLBACK_DURATION,
+                ease: action ? 'power1.inOut' : 'none'
+            },
             action ? FLOW_START : 0
         )
     }
 
-    private revealBoxes(seg: CanalSegment, from: HydratedSantiagoGameState): { start: RevealBox; end: RevealBox } {
+    private revealBoxes(
+        seg: CanalSegment,
+        from: HydratedSantiagoGameState
+    ): { start: RevealBox; end: RevealBox } {
         const { x1, y1, x2, y2 } = segmentEnds(seg)
         const fromFarEnd = waterEntersAtFarEnd(seg, from.board)
 

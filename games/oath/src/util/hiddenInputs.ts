@@ -3,6 +3,7 @@ import type { HydratedOathGameState } from '../model/gameState.js'
 import {
     exchangeWithDispossessed,
     peekDiscard,
+    swapWithDispossessed,
     topBackType,
     type OathVault
 } from '../model/vault.js'
@@ -14,6 +15,7 @@ import {
     putUnderWorldDeckKnown,
     rememberRelicAt,
     sendRelicToBottom,
+    swapDiscardPileWithDispossessed,
     type Deposit,
     type DiscardWitnesses,
     type Witness
@@ -41,8 +43,10 @@ import { CampaignTargetKind, type CampaignState } from '../model/campaign.js'
 import { placeRevealTokensForSite } from './setup.js'
 import type { PowerChoice } from './powerChoice.js'
 import { homelandRelicSlot } from './sitePowers.js'
+import { discardFirstCardIdsOf } from './cardPlay.js'
 import { pawnSiteId } from './pawn.js'
 import { grandScepterHolderId } from './imperial.js'
+import { isAtLeastOathRevision, OathRevision } from './revision.js'
 
 type HiddenOutputAction =
     | UseActionPower
@@ -97,7 +101,8 @@ export function peekRelicInVault(state: HydratedOathGameState, slotId: string): 
 
 /**
  * R-6.4-H1 — the Grand Scepter's holder may peek at any Reliquary relic at will, so they know
- * every one; a new holder learns them all, and a former holder keeps what they saw.
+ * every one; a new holder learns them all (from revision 12, once the card's lock lets them use
+ * it), and a former holder keeps what they saw.
  */
 export function teachReliquaryToScepterHolder(state: HydratedOathGameState): boolean {
     const holderId = grandScepterHolderId(state)
@@ -134,6 +139,15 @@ export function revealForPower(
     return request ? fulfil(request, state, playerId) : undefined
 }
 
+/** Great Spire — the drawn denizens named go to the Dispossessed, and as many random cards come out of it. */
+export function revealForSearchSwap(
+    state: HydratedOathGameState,
+    playerId: string,
+    cardIds: readonly string[]
+): HiddenReveal {
+    return fulfil({ kind: 'dispossessedSwap', cardIds: [...cardIds] }, state, playerId)
+}
+
 /** R-7.3.3 — a card played faceup reads the vault for its When Played power; R-11.2-H1, a Homeland's relic. */
 export function revealForPlay(
     state: HydratedOathGameState,
@@ -161,7 +175,8 @@ export function revealForPlay(
                   state,
                   action.playerId,
                   cardId,
-                  action.toSiteId ?? pawnSiteId(state, action.playerId)
+                  action.toSiteId ?? pawnSiteId(state, action.playerId),
+                  discardFirstCardIdsOf(action)
               )
             : undefined
     return slotId ? { kind: 'relic', relicCardId: takeRelicFromVault(state, slotId) } : undefined
@@ -223,16 +238,29 @@ export function commitHiddenOutputs(
             depositOnPiles(state, action.metadata?.pileDeposits, deposit)
             return
         case ActionType.CampaignResolveVictory:
+            // Relic Hunter — a relic taken from the defender's board was public; one from a site was not.
             for (const id of action.metadata?.relicsToDeckBottom ?? [])
-                sendRelicToBottom(state, id, [action.playerId])
+                sendRelicToBottom(
+                    state,
+                    id,
+                    action.bottomRelicIds?.includes(id) ? 'everyone' : [action.playerId]
+                )
             depositOnPiles(state, action.metadata?.pileDeposits, deposit)
             return
         case ActionType.SearchResolve:
             if (!action.metadata) return
             {
-                // Truthful Harp — the table saw the cards drawn, so it knows which went down, not their order.
+                // Truthful Harp — the table saw the cards drawn, so it knows which went down, not their order,
+                // and the kept card is shown. From revision 29 (R-X.4) the discards' witnesses are the hand's own
+                // (`discardWitnesses`: never a card Great Spire swapped in); before it, every card discarded.
                 const harp = action.metadata.revealedKeptCardId
-                const shown = new Set(harp === undefined ? [] : [...action.discardOrder, harp])
+                const shown = new Set(
+                    harp === undefined
+                        ? []
+                        : isAtLeastOathRevision(state, OathRevision.EngineFixes25)
+                          ? [harp]
+                          : [...action.discardOrder, harp]
+                )
                 const discards: Deposit = {
                     ...deposit,
                     setWitnessesOf: (cardId) => [
@@ -240,9 +268,35 @@ export function commitHiddenOutputs(
                         ...(shown.has(cardId) ? ['everyone'] : [])
                     ]
                 }
-                depositPlayDiscards(state, action.metadata, discards)
+                const metadata = action.metadata
+                const second = metadata.secondDiscards
+                if (second === undefined) {
+                    depositPlayDiscards(state, metadata, discards)
+                    commitPowerOutcome(state, action.playerId, metadata, deposit)
+                    return
+                }
+                // Land Warden — from revision 33 the second card's own discards go down after the kept card's
+                // power's, and before its own power's, as the play put them there (R-7.3.3).
+                const split = metadata.discardedCardIds.length - second.count
+                const piles = metadata.pileDeposits ?? []
+                depositPlayDiscards(
+                    state,
+                    { ...metadata, discardedCardIds: metadata.discardedCardIds.slice(0, split) },
+                    discards
+                )
+                commitPowerOutcome(
+                    state,
+                    action.playerId,
+                    { ...metadata, pileDeposits: piles.slice(0, second.afterPileDeposits) },
+                    deposit
+                )
+                depositPlayDiscards(
+                    state,
+                    { ...metadata, discardedCardIds: metadata.discardedCardIds.slice(split) },
+                    discards
+                )
+                depositOnPiles(state, piles.slice(second.afterPileDeposits), deposit)
             }
-            commitPowerOutcome(state, action.playerId, action.metadata, deposit)
             return
         case ActionType.PlayFacedownAdviser:
             if (!action.metadata) return
@@ -321,6 +375,7 @@ interface PlayDiscards {
     discardedCardIds: string[]
     discardToBottom?: boolean
     discardToWorldDeck?: boolean
+    discardBeneath?: number
 }
 
 function depositPlayDiscards(state: HydratedOathGameState, play: PlayDiscards, deposit: Deposit) {
@@ -332,26 +387,35 @@ function depositPlayDiscards(state: HydratedOathGameState, play: PlayDiscards, d
             play.discardPileRegion,
             play.discardedCardIds,
             play.discardToBottom === true,
-            deposit
+            deposit,
+            play.discardBeneath
         )
 }
 
 interface RecordedDiscard {
     discardPileRegion?: Region
     discardedCardIds?: string[]
+    discardToBottom?: boolean
+    discardToWorldDeck?: boolean
+    discardBeneath?: number
 }
 
+/** A record's discards, where it says they went: False Prophet's may go where Bracken or Cracked Horn sent them. */
 function discardRecorded(
     state: HydratedOathGameState,
     recorded: RecordedDiscard | undefined,
     deposit: Deposit
 ) {
     if (recorded?.discardPileRegion && recorded.discardedCardIds)
-        putOnDiscardPile(
+        depositPlayDiscards(
             state,
-            recorded.discardPileRegion,
-            recorded.discardedCardIds,
-            false,
+            {
+                discardPileRegion: recorded.discardPileRegion,
+                discardedCardIds: recorded.discardedCardIds,
+                discardToBottom: recorded.discardToBottom,
+                discardToWorldDeck: recorded.discardToWorldDeck,
+                discardBeneath: recorded.discardBeneath
+            },
             deposit
         )
 }
@@ -386,7 +450,14 @@ function depositOnPiles(
     deposit: Deposit
 ) {
     for (const pile of deposits ?? [])
-        putOnDiscardPile(state, pile.region, pile.cardIds, pile.bottom === true, deposit)
+        putOnDiscardPile(
+            state,
+            pile.region,
+            pile.cardIds,
+            pile.bottom === true,
+            deposit,
+            pile.beneath
+        )
 }
 
 /** R-9.4 */
@@ -440,6 +511,20 @@ function fulfil(
                     request.cardIds,
                     state.getProtectedPrng().random
                 )
+            }
+        case 'dispossessedSwap':
+            return {
+                kind: 'peek',
+                cardIds: swapWithDispossessed(
+                    vault,
+                    request.cardIds,
+                    state.getProtectedPrng().random
+                )
+            }
+        case 'discardPileSwap':
+            return {
+                kind: 'swapped',
+                count: swapDiscardPileWithDispossessed(state, request.region, request.count)
             }
     }
 }

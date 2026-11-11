@@ -1,3 +1,4 @@
+import { EighteenSeventeenCharters } from './charters.js'
 import { EighteenSeventeenMarket } from './stockMarket.js'
 import type { EighteenSeventeenState } from './state.js'
 import { EighteenSeventeenPhases, EighteenSeventeenTrainDepot } from './trains.js'
@@ -6,7 +7,6 @@ import { isLiquidated } from './liquidation.js'
 import { eighteenSeventeenOptions } from './state.js'
 import {
     certificatesInPool,
-    getCompany,
     privateOwningCompany,
     sharesOwned,
     trainsOwnedBy,
@@ -15,7 +15,8 @@ import {
     floatedCompaniesInMarketOrder,
     playerOrderAfterLastTurn,
     type StockRoundRules,
-    type OperatingRules
+    type OperatingRules,
+    currentPrivateRevenue
 } from '@tabletop/18xx'
 
 export const EighteenSeventeenStockRoundRules: StockRoundRules = {
@@ -53,12 +54,12 @@ function playerHoldings(state: StockState, companyId: string): number {
     )
 }
 export const MarketPoolId = 'market'
-export const treasuryPoolId = (companyId: string) => `treasury:${companyId}`
 
 // A mail private pays its company as each operating round starts, if the company has a train.
 const MailIncome: Readonly<Record<string, number>> = { MINM: 10, MAIL: 15, MAJM: 20 }
 
 export const EighteenSeventeenOperatingRules: OperatingRules = {
+    charters: EighteenSeventeenCharters,
     roundCount: (state) => EighteenSeventeenPhases.phase(state.phaseId).operatingRounds,
     companyOrder: (state) =>
         floatedCompaniesInMarketOrder(EighteenSeventeenMarket, state).filter(
@@ -73,7 +74,8 @@ export const EighteenSeventeenOperatingRules: OperatingRules = {
     },
     privateIncome(state, privateId) {
         const mail = MailIncome[privateId]
-        if (mail === undefined) return getCompany(state, privateId).privateRevenue ?? 0
+        if (mail === undefined)
+            return currentPrivateRevenue(state, EighteenSeventeenCharters, privateId)
         const companyId = privateOwningCompany(state, privateId)
         return companyId && trainsOwnedBy(state, { kind: 'company', companyId }).length ? mail : 0
     }

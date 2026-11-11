@@ -19,9 +19,7 @@ export const SelectSeizedContainer = Type.Evaluate(
 
 export const SelectSeizedContainerValidator = Compile(SelectSeizedContainer)
 
-export function isSelectSeizedContainer(
-    action: GameAction
-): action is SelectSeizedContainer {
+export function isSelectSeizedContainer(action: GameAction): action is SelectSeizedContainer {
     return action.type === ActionType.SelectSeizedContainer
 }
 

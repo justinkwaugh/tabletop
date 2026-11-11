@@ -12,27 +12,46 @@ vi.mock('@tabletop/backend-services', async () => {
         await import('../../../../../libs/backend-services/src/pubsub/redisPubSubService.js')
     const { RedisCacheService } =
         await import('../../../../../libs/backend-services/src/cache/cacheService.js')
+    const { RedisRateLimitCounter } =
+        await import('../../../../../libs/backend-services/src/cache/rateLimitCounter.js')
     class Empty {}
     return {
         ...Object.fromEntries(
             [
+                'AccountModeration',
                 'CatalogService',
+                'CharityTallyRefresher',
+                'CharityTallyService',
                 'ChatService',
                 'CloudTasksTaskService',
                 'DiscordService',
+                'DiscordOAuthClient',
+                'FirestoreCharityTallyStore',
                 'FirestoreChatStore',
                 'FirestoreGameStore',
+                'FirestoreLeagueStore',
                 'FirestoreNotificationStore',
                 'FirestorePreferenceStore',
+                'FirestoreSessionStore',
+                'FirestoreSiteStatsStore',
                 'FirestoreTokenStore',
                 'FirestoreTournamentStore',
                 'FirestoreUserStore',
                 'GameService',
+                'ActivityCache',
+                'TitleLibrary',
+                'LeagueService',
                 'NullPubSubService',
                 'PreferenceService',
+                'ProjectedHistoryCache',
                 'PubSubTransport',
+                'RedisPublisher',
+                'SessionService',
+                'SiteStatsService',
+                'StalledGames',
                 'TokenService',
                 'TournamentService',
+                'TournamentStallAlerts',
                 'UserService',
                 'DiscordTransport'
             ].map((name) => [name, Empty])
@@ -43,6 +62,9 @@ vi.mock('@tabletop/backend-services', async () => {
         RedisService,
         RedisPubSubService,
         RedisCacheService,
+        RedisRateLimitCounter,
+        TitleActivityScope: {},
+        SeriesActivityScope: {},
         LOCAL_WORKSPACE_ROOT: process.cwd(),
         STATIC_ROOT: process.cwd(),
         createLocalManifest: vi.fn(),
@@ -90,6 +112,7 @@ test.each([true, false])(
         vi.stubEnv('REDIS_HOST', '127.0.0.1')
         vi.stubEnv('REDIS_PORT', String(address.port))
         vi.stubEnv('K_SERVICE', 'backend')
+        vi.stubEnv('SITE_MANIFEST_GCS_URI', 'gs://test-static/config/site-manifest.json')
         vi.stubEnv('ABLY_API_KEY', useAbly ? 'local-test' : '')
         const { RedisService, RedisPubSubService } = await import('@tabletop/backend-services')
         const pools: ReturnType<RedisServiceType['client']['createPool']>[] = []

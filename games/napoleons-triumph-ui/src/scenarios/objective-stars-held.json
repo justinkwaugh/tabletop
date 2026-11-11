@@ -1,0 +1,319 @@
+{
+ "game": {
+  "id": "scenario-objective-stars-held",
+  "isPublic": false,
+  "status": "started",
+  "typeId": "napoleons-triumph",
+  "deleted": false,
+  "name": "Objective stars held",
+  "ownerId": "owner",
+  "players": [
+   {
+    "id": "p0",
+    "name": "Player 1",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "p1",
+    "name": "Player 2",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "config": {},
+  "hotseat": false,
+  "winningPlayerIds": [],
+  "seed": 3367980177,
+  "activePlayerIds": [
+   "p1"
+  ],
+  "createdAt": "2026-10-19T15:11:08.099Z",
+  "storage": "remote",
+  "category": "standard",
+  "startedAt": "2026-10-19T15:11:08.099Z",
+  "protectedInformation": true
+ },
+ "state": {
+  "systemVersion": 3,
+  "id": "R9Ufb_D57uWwHhfuOUdjL",
+  "gameId": "scenario-objective-stars-held",
+  "seed": 3367980177,
+  "prng": {
+   "seed": 3367980177,
+   "invocations": 1
+  },
+  "protectedPrng": {
+   "algorithm": "chacha20-v1",
+   "seed": "033aacbe6212a2c9bee0cb5c71682e564dd13d1188be676e6f5a533a83f821c3",
+   "invocations": 512
+  },
+  "masterSeed": "0123456789abcdef0123456789abcdef",
+  "activePlayerIds": [
+   "p1"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 0,
+  "actionChecksum": 0,
+  "players": [
+   {
+    "playerId": "p0",
+    "color": "red",
+    "morale": 27,
+    "moraleLost": 0,
+    "corpsCommandsUsed": 0,
+    "independentCommandsUsed": 0,
+    "heavyCavalryCommitted": false,
+    "guardCommitted": false,
+    "guardAttackForfeited": false,
+    "artilleryFire": {},
+    "side": "Allied",
+    "armyDisplay": [
+     {
+      "type": "Infantry",
+      "strength": 3
+     },
+     {
+      "type": "Infantry",
+      "strength": 2
+     }
+    ]
+   },
+   {
+    "playerId": "p1",
+    "color": "blue",
+    "morale": 23,
+    "moraleLost": 0,
+    "corpsCommandsUsed": 0,
+    "independentCommandsUsed": 0,
+    "heavyCavalryCommitted": false,
+    "guardCommitted": false,
+    "guardAttackForfeited": false,
+    "artilleryFire": {},
+    "side": "French",
+    "armyDisplay": [
+     {
+      "type": "Infantry",
+      "strength": 3
+     },
+     {
+      "type": "Infantry",
+      "strength": 2
+     },
+     {
+      "type": "Cavalry",
+      "strength": 3
+     },
+     {
+      "type": "Cavalry",
+      "strength": 2
+     }
+    ]
+   }
+  ],
+  "machineState": "Commanding",
+  "turnManager": {
+   "series": [
+    {
+     "type": "turn",
+     "playerId": "p1",
+     "start": 0
+    }
+   ],
+   "turnOrder": [
+    "p0",
+    "p1"
+   ],
+   "turnCounts": {
+    "p0": 4,
+    "p1": 3
+   }
+  },
+  "rounds": {
+   "series": [
+    {
+     "type": "round",
+     "start": 0,
+     "number": 4
+    }
+   ]
+  },
+  "scenario": "December2",
+  "santon": false,
+  "units": [
+   {
+    "id": "F01",
+    "playerId": "p1",
+    "face": {
+     "type": "Infantry",
+     "strength": 3
+    },
+    "commanderId": "lannes",
+    "position": {
+     "locale": 126
+    }
+   },
+   {
+    "id": "F02",
+    "playerId": "p1",
+    "face": {
+     "type": "Infantry",
+     "strength": 2
+    },
+    "commanderId": "lannes",
+    "position": {
+     "locale": 126
+    }
+   },
+   {
+    "id": "F03",
+    "playerId": "p1",
+    "face": {
+     "type": "Cavalry",
+     "strength": 3
+    },
+    "commanderId": "murat",
+    "position": {
+     "locale": 128
+    }
+   },
+   {
+    "id": "F04",
+    "playerId": "p1",
+    "face": {
+     "type": "Cavalry",
+     "strength": 2
+    },
+    "commanderId": "murat",
+    "position": {
+     "locale": 128
+    }
+   },
+   {
+    "id": "A01",
+    "playerId": "p0",
+    "face": {
+     "type": "Infantry",
+     "strength": 3
+    },
+    "commanderId": "bagration",
+    "position": {
+     "locale": 62
+    }
+   },
+   {
+    "id": "A02",
+    "playerId": "p0",
+    "face": {
+     "type": "Infantry",
+     "strength": 2
+    },
+    "commanderId": "bagration",
+    "position": {
+     "locale": 62
+    }
+   }
+  ],
+  "commanders": [
+   {
+    "id": "bernadotte",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "bessieres",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "davout",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "lannes",
+    "playerId": "p1",
+    "position": {
+     "locale": 126
+    }
+   },
+   {
+    "id": "legrand",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "murat",
+    "playerId": "p1",
+    "position": {
+     "locale": 128
+    }
+   },
+   {
+    "id": "st-hilaire",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "vandamme",
+    "playerId": "p1",
+    "eliminated": true
+   },
+   {
+    "id": "bagration",
+    "playerId": "p0",
+    "position": {
+     "locale": 62
+    }
+   },
+   {
+    "id": "constantine",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "dokhturov",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "kienmayer",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "kollowrath",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "langeron",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "liechtenstein",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "miloradovich",
+    "playerId": "p0",
+    "eliminated": true
+   },
+   {
+    "id": "prebyshevsky",
+    "playerId": "p0",
+    "eliminated": true
+   }
+  ],
+  "frenchReinforcementsEntered": false,
+  "limits": {
+   "closedApproaches": [],
+   "bombardedApproaches": [],
+   "stormedLocales": [],
+   "marchedLocales": []
+  }
+ },
+ "actions": []
+}

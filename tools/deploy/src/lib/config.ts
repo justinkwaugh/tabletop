@@ -1,11 +1,24 @@
 import { isObject } from './json.js'
 import fs from 'node:fs/promises'
-import { DeployConfig } from './types.js'
+import { DeployConfig, UnsupportedBackendAdminSetting } from './types.js'
+
+const isConfigured = (value: unknown): boolean => typeof value === 'string' && value.length > 0
+
+const unsupportedBackendAdminSettings = (
+    configured: boolean,
+    setting: UnsupportedBackendAdminSetting,
+    inherited: UnsupportedBackendAdminSetting[] = []
+): UnsupportedBackendAdminSetting[] | undefined => {
+    const settings = configured ? [setting, ...inherited] : inherited
+    return settings.length > 0 ? settings : undefined
+}
 
 const coerceDeployConfig = (config: unknown): DeployConfig => {
     if (!isObject(config)) return {}
     const backend = config.backend
     const backendAdmin = config.backendAdmin
+    const hosting = config.hosting
+    const realtime = config.realtime
     return {
         gcsBucket: typeof config.gcsBucket === 'string' ? config.gcsBucket : undefined,
         gcloudCredentialFile:
@@ -30,12 +43,25 @@ const coerceDeployConfig = (config: unknown): DeployConfig => {
         backendAdmin: isObject(backendAdmin)
             ? {
                   url: typeof backendAdmin.url === 'string' ? backendAdmin.url : undefined,
-                  token: typeof backendAdmin.token === 'string' ? backendAdmin.token : undefined,
                   username:
                       typeof backendAdmin.username === 'string' ? backendAdmin.username : undefined,
                   password:
                       typeof backendAdmin.password === 'string' ? backendAdmin.password : undefined,
-                  cookie: typeof backendAdmin.cookie === 'string' ? backendAdmin.cookie : undefined
+                  cookie: typeof backendAdmin.cookie === 'string' ? backendAdmin.cookie : undefined,
+                  unsupportedSettings: unsupportedBackendAdminSettings(
+                      isConfigured(backendAdmin.token),
+                      'backendAdmin.token'
+                  )
+              }
+            : undefined,
+        hosting: isObject(hosting)
+            ? { channel: typeof hosting.channel === 'string' ? hosting.channel : undefined }
+            : undefined,
+        realtime: isObject(realtime)
+            ? {
+                  instance: typeof realtime.instance === 'string' ? realtime.instance : undefined,
+                  zone: typeof realtime.zone === 'string' ? realtime.zone : undefined,
+                  healthUrl: typeof realtime.healthUrl === 'string' ? realtime.healthUrl : undefined
               }
             : undefined
     }
@@ -64,10 +90,14 @@ export const mergeEnvConfig = (config: DeployConfig): DeployConfig => {
     }
     const backendAdmin = {
         url: process.env.TABLETOP_BACKEND_ADMIN_URL ?? config.backendAdmin?.url,
-        token: process.env.TABLETOP_BACKEND_ADMIN_TOKEN ?? config.backendAdmin?.token,
         username: process.env.TABLETOP_BACKEND_ADMIN_USER ?? config.backendAdmin?.username,
         password: process.env.TABLETOP_BACKEND_ADMIN_PASSWORD ?? config.backendAdmin?.password,
-        cookie: process.env.TABLETOP_BACKEND_ADMIN_COOKIE ?? config.backendAdmin?.cookie
+        cookie: process.env.TABLETOP_BACKEND_ADMIN_COOKIE ?? config.backendAdmin?.cookie,
+        unsupportedSettings: unsupportedBackendAdminSettings(
+            isConfigured(process.env.TABLETOP_BACKEND_ADMIN_TOKEN),
+            'TABLETOP_BACKEND_ADMIN_TOKEN',
+            config.backendAdmin?.unsupportedSettings
+        )
     }
 
     return {
@@ -80,6 +110,7 @@ export const mergeEnvConfig = (config: DeployConfig): DeployConfig => {
             process.env.TABLETOP_MANIFEST_URL ??
             config.backendManifestUrl,
         backend,
-        backendAdmin
+        backendAdmin,
+        hosting: { channel: process.env.TABLETOP_HOSTING_CHANNEL ?? config.hosting?.channel }
     }
 }

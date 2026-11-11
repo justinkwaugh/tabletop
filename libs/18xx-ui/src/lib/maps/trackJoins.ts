@@ -1,5 +1,5 @@
 import { assertExists } from '@tabletop/common'
-import type { MapDrawing } from './mapDrawing.js'
+import { nearlySamePoint, type MapDrawing } from './mapDrawing.js'
 
 export function mapTrackJoins(scene: MapDrawing) {
     const endpoints = scene.locations.flatMap((entry) =>
@@ -27,7 +27,7 @@ export function mapTrackJoins(scene: MapDrawing) {
             (other, otherIndex) =>
                 otherIndex < index &&
                 other.locationId !== point.locationId &&
-                Math.hypot(point.x - other.x, point.y - other.y) < 0.01
+                nearlySamePoint(point, other)
         )
     )
 }

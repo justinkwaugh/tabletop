@@ -53,7 +53,10 @@ export class ChatService {
 
     constructor(
         private readonly authorizationService: Pick<AuthorizationService, 'getSessionUser'>,
-        private readonly notificationService: Pick<NotificationService, 'addListener' | 'isUserChannelReady'>,
+        private readonly notificationService: Pick<
+            NotificationService,
+            'addListener' | 'isUserChannelReady'
+        >,
         private readonly api: TabletopApi
     ) {
         notificationService.addListener(this.NotificationListener)
@@ -222,14 +225,21 @@ export class ChatService {
     }
 
     private NotificationListener = async (event: NotificationEvent) => {
-        if (isDiscontinuityEvent(event) && event.channel === NotificationChannel.User) {
+        if (
+            isDiscontinuityEvent(event) &&
+            (event.channel === NotificationChannel.User ||
+                event.channel === NotificationChannel.GameInstance)
+        ) {
             await this.reloadGameChat()
             return
         }
 
         if (isDataEvent(event)) {
             const notification = event.notification
-            if (!this.isGameChatNotification(notification) || notification.data.game.id !== this.currentGameId) {
+            if (
+                !this.isGameChatNotification(notification) ||
+                notification.data.game.id !== this.currentGameId
+            ) {
                 return
             }
 

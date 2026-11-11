@@ -20,8 +20,8 @@
         const playersAndStatesById = new Map(
             playersAndStates.map((item) => [item.playerState.playerId, item])
         )
-        return gameSession.gameState.turnManager.turnOrder.map(
-            (playerId) => playersAndStatesById.get(playerId)!
+        return gameSession.gameState.turnManager.turnOrder.map((playerId) =>
+            playersAndStatesById.get(playerId)!
         ) as PlayerAndState[]
     })
     function getPlayerForState(playerState: EstatesProjectedPlayerState) {

@@ -1,19 +1,17 @@
 import { fork, type ChildProcess } from 'node:child_process'
 
+export type TitleLoadMessage = { titleLoad: 'started' | 'finished' }
+
 export class BackendChild {
     readonly exited: Promise<void>
     readonly ready: Promise<number>
     private readonly child: ChildProcess
     private exitObserved = false
     private requests = 0
+    private titleLoadStartedAt?: number
     private readonly idleWaiters = new Set<() => void>()
 
-    constructor(
-        entry: URL,
-        startupTimeoutMs: number,
-        onReload: () => void,
-        env: NodeJS.ProcessEnv = {}
-    ) {
+    constructor(entry: URL, startupTimeoutMs: number, env: NodeJS.ProcessEnv = {}) {
         this.child = fork(entry, [], {
             stdio: ['inherit', 'inherit', 'inherit', 'ipc'],
             env: { ...process.env, ...env }
@@ -27,6 +25,11 @@ export class BackendChild {
             this.child.once('error', () => {
                 if (!this.child.pid) exited()
             })
+        })
+        this.child.on('message', (message: unknown) => {
+            if (!this.isTitleLoadMessage(message)) return
+            this.titleLoadStartedAt =
+                message.titleLoad === 'started' ? performance.now() : undefined
         })
         this.ready = new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
@@ -42,9 +45,7 @@ export class BackendChild {
                 fail(new Error(`Backend exited: code=${code}, signal=${signal}`))
             })
             this.child.on('message', (message: unknown) => {
-                if (message === 'reload') {
-                    onReload()
-                } else if (
+                if (
                     typeof message === 'object' &&
                     message !== null &&
                     'port' in message &&
@@ -58,6 +59,21 @@ export class BackendChild {
                 }
             })
         })
+    }
+
+    titleLoadElapsedMs(): number | undefined {
+        return this.titleLoadStartedAt === undefined
+            ? undefined
+            : performance.now() - this.titleLoadStartedAt
+    }
+
+    private isTitleLoadMessage(message: unknown): message is TitleLoadMessage {
+        return (
+            typeof message === 'object' &&
+            message !== null &&
+            'titleLoad' in message &&
+            (message.titleLoad === 'started' || message.titleLoad === 'finished')
+        )
     }
 
     retain(): () => void {

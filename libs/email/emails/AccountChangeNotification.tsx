@@ -1,17 +1,14 @@
 import { Section, Text } from '@react-email/components'
 import type { CSSProperties } from 'react'
+import { AccountChangeType } from '@tabletop/common'
 import { DarkCardEmail, darkStyles } from '../components/darkCard.js'
+
+export { AccountChangeType } from '@tabletop/common'
 
 interface AccountChangeNotificationProps {
     changeType: string
     timestamp: Date
-}
-
-// I don't want to redefine this here, but I wasn't sure of a good place to put it
-export enum AccountChangeType {
-    Email = 'email',
-    Password = 'password',
-    PasswordReset = 'passwordReset',
+    username?: string
 }
 
 const styles = {
@@ -33,11 +30,32 @@ const formatTimestamp = (timestamp: Date): string =>
 export const AccountChangeNotification = ({
     timestamp,
     changeType,
+    username,
 }: AccountChangeNotificationProps) => {
     const when = formatTimestamp(timestamp)
+    if (changeType === AccountChangeType.Username) {
+        return (
+            <DarkCardEmail
+                preview={`Your username is now ${username}`}
+                heading="Your username was changed"
+                subline="An administrator changed your username. Use the new one to sign in."
+                footer="If you have questions about this change, please contact us."
+            >
+                <Section style={styles.panel}>
+                    <Text style={styles.panelValue}>{username}</Text>
+                    <Text style={styles.panelDetail}>{when}</Text>
+                </Section>
+            </DarkCardEmail>
+        )
+    }
     let change = ''
     let detailText = ''
     switch (changeType) {
+        case AccountChangeType.EmailChangeRequested:
+            change =
+                'A request was made to change your email address; your current address remains active until the new address is verified'
+            detailText = 'Email address change requested'
+            break
         case AccountChangeType.PasswordReset:
             change = 'A request was made to reset the password for your account'
             detailText = 'Password reset requested'

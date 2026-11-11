@@ -2,4 +2,6 @@ import { startingPositionTests } from '../../../libs/18xx/test/startingPositions
 import { Definition } from './definition/gameDefinition.js'
 import { EighteenThirtyScenarios } from './scenarios/index.js'
 
-startingPositionTests(Definition, EighteenThirtyScenarios, [2, 3, 4, 5, 6])
+startingPositionTests(Definition, EighteenThirtyScenarios, [2, 3, 4, 5, 6], {
+    setupConfigs: [{}, { extraSixTrain: true }, { multipleBrownFromIpo: true }]
+})

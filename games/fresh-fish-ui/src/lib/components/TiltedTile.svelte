@@ -10,6 +10,7 @@
 
 <style>
     .tile {
+        flex-shrink: 0;
         border-radius: 8px;
         overflow: hidden;
         transform: rotate(-4deg);

@@ -1,8 +1,14 @@
 import * as Type from 'typebox'
-import { assert, assertExists, SimpleAuction, type GameState } from '@tabletop/common'
+import {
+    assert,
+    assertExists,
+    PassableBidding,
+    SimpleAuction,
+    isValidBidStep,
+    type GameState
+} from '@tabletop/common'
 import { finiteCashOwnedBy, type FinancialState } from '../finance/finance.js'
 import { AuctionAward, type AuctionLot } from './waterfallAuction.js'
-import { PassableBidding, validBidStep } from './passableBidding.js'
 
 export const SelectionAuction = Type.Object(
     {
@@ -214,7 +220,7 @@ export class SelectionAuctionModel {
     }
     private affords(playerId: string, lotId: string, amount: number): boolean {
         return (
-            validBidStep(amount, this.minimumBid(lotId), this.rules.increment) &&
+            isValidBidStep(amount, this.minimumBid(lotId), this.rules.increment) &&
             amount <= this.cash(playerId)
         )
     }

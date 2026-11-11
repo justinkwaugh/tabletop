@@ -1,7 +1,10 @@
 <script lang="ts">
-    import { ADMIN_ASSIGNABLE_ROLES, Role, type User } from '@tabletop/common'
+    import { LatestRequest } from '$lib/utils/latestRequest'
+    import { ADMIN_ASSIGNABLE_ROLES, Role, UserStatus, type User } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
+    import AdminUserBan from './AdminUserBan.svelte'
     import AdminUserRoles from './AdminUserRoles.svelte'
+    import AdminUserUsername from './AdminUserUsername.svelte'
 
     const { api } = getAppContext()
     const roleLabels: Record<Role, string> = {
@@ -11,6 +14,12 @@
         [Role.BetaTester]: 'Beta tester',
         [Role.AlphaTester]: 'Alpha tester'
     }
+    const statusLabels: Record<UserStatus, string> = {
+        [UserStatus.Active]: 'active',
+        [UserStatus.Incomplete]: 'incomplete',
+        [UserStatus.Inactive]: 'banned',
+        [UserStatus.Deleted]: 'deleted'
+    }
 
     let query = $state('')
     let users = $state<User[]>([])
@@ -18,24 +27,24 @@
     let busy = $state(false)
     let searched = $state(false)
     let error = $state('')
-    let request = 0
+    const requests = new LatestRequest()
 
     async function search(event: SubmitEvent) {
         event.preventDefault()
-        const current = ++request
+        const current = requests.begin()
         busy = true
         error = ''
         try {
             const results = await api.searchUsers(query)
-            if (current !== request) return
+            if (!current()) return
             users = results
             searched = true
             selected = results.find((user) => user.id === selected?.id)
         } catch (failure) {
-            if (current === request)
+            if (current())
                 error = failure instanceof Error ? failure.message : 'Could not search users'
         } finally {
-            if (current === request) busy = false
+            if (current()) busy = false
         }
     }
 
@@ -83,7 +92,7 @@
                         >
                             <span class="font-medium">{user.username ?? user.id}</span>
                             <span class="text-xs text-gray-500 dark:text-gray-400">
-                                {user.email ?? 'No email'} · {user.status} ·
+                                {user.email ?? 'No email'} · {statusLabels[user.status]} ·
                                 {user.roles.map((role) => roleLabels[role]).join(', ')}
                             </span>
                         </button>
@@ -93,11 +102,15 @@
         {/if}
     </div>
     {#if selected}
-        <AdminUserRoles
-            user={selected}
-            assignableRoles={ADMIN_ASSIGNABLE_ROLES}
-            {roleLabels}
-            onsaved={replaceUser}
-        />
+        <div class="flex flex-col gap-5">
+            <AdminUserUsername user={selected} onsaved={replaceUser} />
+            <AdminUserRoles
+                user={selected}
+                assignableRoles={ADMIN_ASSIGNABLE_ROLES}
+                {roleLabels}
+                onsaved={replaceUser}
+            />
+            <AdminUserBan user={selected} onsaved={replaceUser} />
+        </div>
     {/if}
 </div>

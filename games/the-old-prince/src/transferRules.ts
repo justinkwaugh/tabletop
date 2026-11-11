@@ -1,8 +1,10 @@
+import { TheOldPrinceCharters } from './charters.js'
 import { EighteenXXTransferTiming, privateOwner, type TransferRules } from '@tabletop/18xx'
 import { TheOldPrincePhases } from './trains.js'
 import { TheOldPrincePrivateCatalog } from './privates.js'
 export const TheOldPrinceTransferRules: TransferRules = {
     ...EighteenXXTransferTiming,
+    charters: TheOldPrinceCharters,
     priceRange(state, companyId, asset) {
         if (asset.kind === 'train') return { minimum: 1 }
         if (asset.kind !== 'private') return undefined

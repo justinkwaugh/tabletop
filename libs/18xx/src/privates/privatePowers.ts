@@ -1,3 +1,4 @@
+import { stateWith } from '../game/stateWith.js'
 import {
     TrackConstruction,
     type TrackEvaluation,
@@ -7,6 +8,7 @@ import {
     type TrackRules
 } from '../construction/trackConstruction.js'
 import type { Owner } from '../finance/finance.js'
+import type { StationPosition } from '../map/station.js'
 import type { CompanyDecisionState } from './companyDecision.js'
 import { privatePowerUsed } from './companyDecision.js'
 export interface PrivateTrackTerms {
@@ -18,7 +20,19 @@ export interface PrivateTrackTerms {
     countsAsOrdinaryLay?: true
     // Several lays: the title's terms, not the family, decide when the power is used up.
     reusable?: true
+    /**
+     * The open places are laid together: the power starts only when each has a lay, and once
+     * one is laid the rest must follow before the player does anything else.
+     */
+    together?: true
     terrainDiscount?: number
+    /** What the lay itself costs, beyond its terrain, such as a construction company's charge. */
+    layFee?: number
+    /**
+     * Records a lay beside the ordinary lays in the turn's track step, for a title whose
+     * restrictions read the turn's tiles, as 1894 forbids upgrading a tile laid that round.
+     */
+    recordsLay?: true
     free?: true
     restriction?(request: TrackRequest): string | undefined
     relabels?: true
@@ -50,6 +64,20 @@ export interface PrivatePowerRules {
         privateCompanyId: string,
         playerId: string
     ): PrivateMarkerTerms | undefined
+    /**
+     * Where a private lets its owning company place its next station free, apart from the
+     * turn's station placement; the family records the power used once a token is placed.
+     */
+    tokenTerms?(
+        state: CompanyDecisionState,
+        privateCompanyId: string,
+        playerId: string
+    ): PrivateTokenTerms | undefined
+}
+
+export interface PrivateTokenTerms {
+    companyId: string
+    positions: readonly StationPosition[]
 }
 
 export interface PrivateMarkerTerms {
@@ -67,10 +95,12 @@ export function privateTrackConstruction(
             : { companyId: terms.companyId, lays: [], completed: false }
     const discount = terms.terrainDiscount ?? 0
     return new TrackConstruction(
-        { ...state, trackStep },
+        stateWith(state, { trackStep }),
         {
             ...rules,
-            allowance: terms.countsAsOrdinaryLay ? rules.allowance : () => ({ cost: 0 }),
+            allowance: terms.countsAsOrdinaryLay
+                ? rules.allowance
+                : () => ({ cost: terms.layFee ?? 0 }),
             restriction: (_state, request) =>
                 terms.locationIds.includes(request.locationId) &&
                 terms.definitionIds.includes(request.definitionId)
@@ -107,5 +137,21 @@ export function evaluatePrivateTrack(
         privatePowerUsed(state, privateCompanyId)
     )
         return { reason: 'This private tile lay is unavailable.' }
-    return privateTrackConstruction(state, terms, track).evaluate(request)
+    const construction = privateTrackConstruction(state, terms, track)
+    if (!togetherLaysOpen(state, terms, construction))
+        return { reason: 'These tiles are laid together, and one of them has no lay.' }
+    return construction.evaluate(request)
+}
+
+/** Whether a power laid together may start: each of its open places has a lay. */
+export function togetherLaysOpen(
+    state: Pick<CompanyDecisionState, 'privateTrackLay'>,
+    terms: PrivateTrackTerms,
+    construction: TrackConstruction
+): boolean {
+    return (
+        !terms.together ||
+        !!state.privateTrackLay?.required ||
+        terms.locationIds.every((locationId) => construction.choices(locationId).length > 0)
+    )
 }

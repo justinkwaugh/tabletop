@@ -1,4 +1,5 @@
 <script lang="ts">
+    import PlaceText from './PlaceText.svelte'
     import type { Attachment } from 'svelte/attachments'
     import {
         MAX_CORPS_UNITS,
@@ -102,7 +103,7 @@
 
     function batteryGuidance(seat: FixedBatterySeat): string {
         if (seat.holdsTheSanton) {
-            return 'With the Santon in use the fixed battery holds the Santon.'
+            return 'The fixed battery holds the Santon from reserve. Tap the battery to take it back.'
         }
         if (seat.position?.approach !== undefined) {
             return 'The fixed battery is placed. Tap another approach of its locale to turn it, or the battery to take it back.'
@@ -110,9 +111,10 @@
         if (seat.position) {
             return 'Now tap the approach the fixed battery blocks.'
         }
+        const onTheSanton = game.santon ? ' On the Santon it stays in reserve.' : ''
         return heldStack
-            ? 'Now tap the locale the fixed battery stands in.'
-            : 'Tap an artillery unit to make it the fixed battery: it blocks an approach and never moves again.'
+            ? `Now tap the locale the fixed battery stands in.${onTheSanton}`
+            : `Tap an artillery unit to make it the fixed battery: it blocks an approach and never moves again.${onTheSanton}`
     }
 
     const guidance = $derived.by(() => {
@@ -174,7 +176,24 @@
 
 {#if table && playerId}
     <div class="nt-setup" style:--nt-army={gameSession.armyColors(playerId).block}>
-        <div class="nt-setup-prompt">{guidance}</div>
+        <div class="nt-setup-prompt"><PlaceText text={guidance} /></div>
+        {#if gameSession.setupPresetChoices.length > 0}
+            <label class="nt-setup-presets">
+                <span>Start from a published set-up</span>
+                <select
+                    value=""
+                    onchange={(event) => {
+                        gameSession.startFromPreset(event.currentTarget.value)
+                        event.currentTarget.value = ''
+                    }}
+                >
+                    <option value="" disabled>Choose one…</option>
+                    {#each gameSession.setupPresetChoices as preset (preset.id)}
+                        <option value={preset.id}>{preset.name}</option>
+                    {/each}
+                </select>
+            </label>
+        {/if}
         <div class="nt-setup-pool" aria-label="Units to assign">
             {#each table.stacks as stack (faceName(stack.face))}
                 {@const name = faceName(stack.face)}
@@ -267,12 +286,8 @@
                                 {playerId}
                                 face={game.unit(unitId).face}
                                 scale={SLOT_SCALE}
-                                label={battery.holdsTheSanton
-                                    ? 'The fixed battery on the Santon'
-                                    : 'Take this unit back'}
-                                onclick={battery.holdsTheSanton
-                                    ? undefined
-                                    : () => gameSession.returnToPool(unitId)}
+                                label="Take this unit back"
+                                onclick={() => gameSession.returnToPool(unitId)}
                             />
                         {:else}
                             {@render emptySlots(1, 1)}
@@ -455,6 +470,24 @@
 
     .nt-setup-slot-needed {
         background-color: color-mix(in srgb, var(--nt-army) 30%, transparent);
+    }
+
+    .nt-setup-presets {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px 8px;
+    }
+
+    .nt-setup-presets select {
+        width: auto;
+        max-width: 100%;
+        border: 1px solid var(--nt-ink);
+        border-radius: 3px;
+        padding: 0.1rem 1.8rem 0.1rem 0.5rem;
+        background-color: transparent;
+        color: var(--nt-ink);
+        font: inherit;
     }
 
     .nt-setup-footer {

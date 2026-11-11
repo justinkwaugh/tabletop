@@ -17,7 +17,12 @@ import {
     withStatus,
     withTags
 } from '../src/lib.mjs'
-import { checkStageInputs, forumStatusLine, reporterMessage } from '../src/milestones.mjs'
+import {
+    checkForumInputs,
+    checkStageInputs,
+    forumRecord,
+    reporterMessage
+} from '../src/milestones.mjs'
 
 const tags = keyedTags([
     { id: '7', name: 'investigating' },
@@ -26,6 +31,7 @@ const tags = keyedTags([
     { id: '3', name: 'fixed' },
     { id: '4', name: 'wont fix' },
     { id: '8', name: 'Not a Bug' },
+    { id: '9', name: 'suggestion' },
     { id: '5', name: 'UI' },
     { id: '6', name: 'logic' }
 ])
@@ -51,9 +57,11 @@ test('withTags adds without duplicates and removes', () => {
 test('postStatus and matchesStatus treat open, investigating, reproduced and untagged posts as unresolved', () => {
     assert.equal(postStatus(['5', '8'], tags), 'not a bug')
     assert.equal(postStatus(['5'], tags), undefined)
+    assert.equal(postStatus(['9'], tags), 'suggestion')
     assert.equal(matchesStatus('investigating', 'unresolved'), true)
     assert.equal(matchesStatus(undefined, 'unresolved'), true)
     assert.equal(matchesStatus('fixed', 'unresolved'), false)
+    assert.equal(matchesStatus('suggestion', 'unresolved'), false)
     assert.equal(matchesStatus('fixed', 'all'), true)
     assert.equal(matchesStatus('wont fix', "won't-fix"), true)
 })
@@ -167,6 +175,18 @@ test('reporterMessage puts the heading, the opening, the note, the quote and the
     )
 })
 
+test('reporterMessage names a hotseat game without a link, since it lives in the browser', () => {
+    const { gameUrl, text } = reporterMessage(
+        'investigating',
+        { ...report, gameUrl: undefined },
+        undefined,
+        'https://discord.com/channels/1/2'
+    )
+    assert.equal(gameUrl, undefined)
+    assert.match(text, /\n\nYour game: Sol: Last Days of a Star · Sol Sweet Sol\n\n/)
+    assert.doesNotMatch(text, /undefined/)
+})
+
 test('reporterMessage calls a not-a-bug report a report', () => {
     const message = reporterMessage('not a bug', report, 'Tip', 'https://discord.com/channels/1/2')
     assert.equal(message.eyebrow, 'Your report')
@@ -185,7 +205,31 @@ test('checkStageInputs holds not a bug until the user has approved it', () => {
     assert.doesNotThrow(() => checkStageInputs('not a bug', { note: 'Tip', approved: true }))
 })
 
-test('forumStatusLine names the status alone, with the version for a fix', () => {
-    assert.equal(forumStatusLine('fixed', 'Sol UI 6.4.2'), '**Fixed in Sol UI 6.4.2.**')
-    assert.equal(forumStatusLine('not a bug'), '**Not a bug.**')
+test('reporterMessage thanks a suggestion as a suggestion', () => {
+    const message = reporterMessage('suggestion', report, undefined, '')
+    assert.equal(message.eyebrow, 'Your suggestion')
+    assert.equal(message.heading, 'Thanks for the idea!')
+    assert.doesNotThrow(() => checkStageInputs('suggestion', {}))
+})
+
+test('checkForumInputs asks reproduced and not a bug for a finding and keeps it off the rest', () => {
+    assert.throws(() => checkForumInputs('reproduced', {}), /--finding saying what was reproduced/)
+    assert.doesNotThrow(() => checkForumInputs('reproduced', { finding: 'Undo leaves the ferry' }))
+    assert.throws(() => checkForumInputs('not a bug', {}), /--finding saying why/)
+    assert.doesNotThrow(() => checkForumInputs('not a bug', { finding: 'Trains rust in phase 4' }))
+    assert.throws(() => checkForumInputs('fixed', { finding: 'x' }), /does not go with fixed/)
+    assert.doesNotThrow(() => checkForumInputs('fixed', {}))
+})
+
+test('forumRecord names the status, with the version for a fix and any finding', () => {
+    assert.equal(forumRecord('fixed', { version: 'Sol UI 6.4.2' }), '**Fixed in Sol UI 6.4.2.**')
+    assert.equal(
+        forumRecord('not a bug', { finding: 'Trains rust when phase 4 begins.' }),
+        '**Not a bug.**\n\nTrains rust when phase 4 begins.'
+    )
+    assert.equal(forumRecord('suggestion'), '**Suggestion.**')
+    assert.equal(
+        forumRecord('reproduced', { finding: ' Undo after a ferry move leaves the ferry. ' }),
+        '**Reproduced.**\n\nUndo after a ferry move leaves the ferry.'
+    )
 })

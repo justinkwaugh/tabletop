@@ -1,4 +1,5 @@
 import type { Point } from '@tabletop/common'
+import { cornersOf, squareAround } from './orientedBox.js'
 
 const NUMBER_SIZE = 26
 const CLEAR_OF_THE_SHAFT = 11
@@ -19,4 +20,9 @@ export function numberOfTrail(trail: { middle: Point; aside: Point }, scale: num
         },
         size
     }
+}
+
+/** Room for a number of up to two digits with its light edge. */
+export function trailNumberOutline(number: TrailNumber): Point[] {
+    return cornersOf(squareAround(number.at, number.size * 0.7))
 }

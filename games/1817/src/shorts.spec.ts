@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { assertExists } from '@tabletop/common'
 import {
     cashOwnedBy,
+    createStandingStockInstruction,
     getCompany,
     issueShareCertificates,
     openShort,
@@ -10,6 +11,7 @@ import {
     retireCertificates,
     sharesOwned,
     stockCertificateCount,
+    stockPositionChange,
     type EighteenXXState
 } from '@tabletop/18xx'
 import { playExample } from '@tabletop/18xx/scenarios'
@@ -45,6 +47,34 @@ function caseysTurn(prepare: (state: EighteenXXState) => void = () => {}) {
     expect(play.state.activePlayerIds).toEqual(['casey'])
     return play
 }
+
+describe('a standing instruction watching a presidency', () => {
+    const blair = { kind: 'player' as const, playerId: 'blair' }
+
+    // Blair presides over a 10-share BA as casey, with two shares, passes alex's one.
+    function afterRivalGains(blairsShares: number) {
+        const { state } = caseysTurn()
+        getCompany(state, 'BA').shareCount = 10
+        const issued = blairsShares - sharesOwned(state, 'BA', blair)
+        issueShareCertificates(state, 'BA', issued, { owner: blair })
+        const standing = createStandingStockInstruction(
+            state,
+            blair.playerId,
+            { kind: 'pass' },
+            EighteenSeventeenStockRules
+        )
+        issueShareCertificates(state, 'BA', 2, { owner: casey })
+        return stockPositionChange(state, standing, EighteenSeventeenStockRules)
+    }
+
+    it('stops at half of a company, as a short can issue a rival past it', () => {
+        expect(afterRivalGains(5)).toEqual({ code: 'presidency-threatened', companyId: 'BA' })
+    })
+
+    it('carries on with a majority, as the ownership limit holds a rival to a tie', () => {
+        expect(afterRivalGains(6)).toBeUndefined()
+    })
+})
 
 describe('opening a short', () => {
     it('pays the price, adds a market share and blocks buying the company back that round', () => {
@@ -168,6 +198,9 @@ describe('dividends on shorts', () => {
             continuation: 'BuyingTrains'
         })
         play.act('GoBankrupt', {}, 'casey')
+        expect(
+            play.processed.find((action) => action.type === 'GoBankrupt')?.metadata
+        ).not.toHaveProperty('presidedCompanyId')
         expect(play.state.activePlayerIds).toEqual(['alex'])
         play.act('GoBankrupt', {}, 'alex')
         expect(play.state.machineState).toBe('GameOver')

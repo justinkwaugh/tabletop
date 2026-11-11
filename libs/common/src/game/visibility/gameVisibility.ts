@@ -1,6 +1,7 @@
 import jsonpatch from 'fast-json-patch'
-import { ActionSource, type GameAction } from '../engine/gameAction.js'
+import { ActionSource, type GameAction, withoutActionPatches } from '../engine/gameAction.js'
 import { createPatch } from '../engine/statePatch.js'
+import { isCallGameAction } from '../engine/callGame.js'
 import type {
     ActionCascadeResult,
     ActionResult,
@@ -82,24 +83,25 @@ export function projectActionCascade<State extends GameState, ProjectedState ext
     options: ActionCascadeProjectionOptions<State, ProjectedState>
 ): VisibleActionCascade {
     const context = projectionContext(options)
-    const before = options.visibility.state.project(
-        actionCascade.before,
-        options.perspective,
-        context
+    return projectCascade(actionCascade, options, context, (state) =>
+        options.visibility.state.project(state, options.perspective, context)
     )
+}
+
+function projectCascade<State extends GameState, ProjectedState extends GameState>(
+    actionCascade: CanonicalActionCascade<State>,
+    options: ActionCascadeProjectionOptions<State, ProjectedState>,
+    context: ProjectionContext | undefined,
+    projectState: (state: State) => ProjectedState
+): VisibleActionCascade {
+    const before = projectState(actionCascade.before)
     const transitions: CanonicalActionTransition<ProjectedState>[] = []
     let previous = before
     for (const transition of actionCascade.transitions) {
-        const after = options.visibility.state.project(
-            transition.after,
-            options.perspective,
-            context
-        )
-        const action = options.visibility.actions.project(
-            transition.action,
-            options.perspective,
-            context
-        )
+        const after = projectState(transition.after)
+        const action = isCallGameAction(transition.action)
+            ? withoutActionPatches(transition.action)
+            : options.visibility.actions.project(transition.action, options.perspective, context)
         action.forwardPatch = createPatch(previous, after)
         action.undoPatch = createPatch(after, previous)
         transitions.push({ action, after })
@@ -137,12 +139,18 @@ export function projectActionHistory<State extends GameState, ProjectedState ext
         expectedIndex += 1
     }
 
-    const currentState = options.visibility.state.project(
-        options.currentState,
-        options.perspective,
-        projectionContext(options)
-    )
+    const context = projectionContext(options)
+    const projectedStates = new WeakMap<State, ProjectedState>()
+    const projectStateOnce = (state: State) => {
+        let projected = projectedStates.get(state)
+        if (projected === undefined) {
+            projected = options.visibility.state.project(state, options.perspective, context)
+            projectedStates.set(state, projected)
+        }
+        return projected
+    }
     let before = structuredClone(options.currentState)
+    const currentState = projectStateOnce(before)
     const projectedCascades: (readonly GameAction[])[] = []
     let end = orderedActions.length
 
@@ -162,9 +170,11 @@ export function projectActionHistory<State extends GameState, ProjectedState ext
                 )
             }
             projectedCascades.push(
-                projectActionCascade(
+                projectCascade(
                     { before, transitions: reversedTransitions.toReversed() },
-                    options
+                    options,
+                    context,
+                    projectStateOnce
                 ).actions
             )
         } catch {

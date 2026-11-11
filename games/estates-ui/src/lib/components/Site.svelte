@@ -61,7 +61,7 @@
     let roofObject: Object3D | undefined
 
     let canSelectBarrier = $derived.by(() => {
-        if (!gameSession.isMyTurn) {
+        if (!gameSession.canTakeTurn) {
             return false
         }
         if (
@@ -260,7 +260,7 @@
     let dims = $derived(site.cubes.length === 0 ? 1.6 : 1)
 
     let canPreview = $derived.by(() => {
-        if (!gameSession.isMyTurn || !gameSession.isPlayable) {
+        if (!gameSession.canTakeTurn || !gameSession.isPlayable) {
             return false
         }
         if (gameSession.gameState.machineState !== MachineState.PlacingPiece) {

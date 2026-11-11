@@ -1,3 +1,6 @@
+import { stateWith } from '../game/stateWith.js'
+import { soldThisStockRound } from './stockRound.js'
+import { companyShareCount } from '../company/companyCharters.js'
 import * as Type from 'typebox'
 import { openShorts, retireCertificates } from './shorts.js'
 import { furtherShareAllowed } from './turnPurchases.js'
@@ -37,6 +40,7 @@ export const SharePurchaseDetails = Type.Object(
         shares: Type.Integer({ minimum: 1 }),
         buyer: Owner,
         seller: Owner,
+        poolId: Type.Optional(Type.String()),
         price: Type.Integer({ minimum: 1 }),
         payments: Type.Array(CashPayment),
         presidency: Type.Optional(PresidencyChange),
@@ -48,27 +52,23 @@ export const SharePurchaseDetails = Type.Object(
 export type SharePurchaseDetails = Type.Static<typeof SharePurchaseDetails>
 export type SharePurchaseResult =
     { details: SharePurchaseDetails; reason?: never } | { details?: never; reason: string }
-export type ShareBuyResult =
-    | { details: SharePurchaseDetails; poolId?: string; reason?: never }
-    | { details?: never; reason: string }
 export type SharePurchaseTerms = { price: number; recipient: Owner; payers: Owner[] }
 export function evaluateSharePurchase(
     state: StockState,
     request: PurchaseRequest,
     rules: StockRules
-): ShareBuyResult {
+): SharePurchaseResult {
     const certificate = state.certificates.find((item) => item.id === request.certificateId)
     if (!certificate || certificate.kind !== 'share')
         return { reason: 'This is not an available share certificate.' }
     if (state.stockRound.turn.bought && !furtherShareAllowed(state, certificate, rules))
         return { reason: 'Only one purchase is allowed this turn.' }
-    const result = evaluateShareAcquisition(
+    return evaluateShareAcquisition(
         state,
         request,
         rules,
         rules.purchaseTerms(state, certificate, request.buyer)
     )
-    return result.details && certificate.poolId ? { ...result, poolId: certificate.poolId } : result
 }
 
 export function evaluateShareAcquisition(
@@ -86,11 +86,7 @@ export function evaluateShareAcquisition(
         return { reason: 'This player cannot buy for that owner.' }
     const transfer = evaluateShareTransfer(state, request, rules, terms)
     const companyId = transfer.details?.companyId
-    if (
-        state.stockRound.sales.some(
-            (sale) => sameOwner(sale.owner, buyer) && sale.companyId === companyId
-        )
-    )
+    if (companyId && soldThisStockRound(state.stockRound, buyer, companyId))
         return { reason: 'The buyer sold shares in this company this stock round.' }
     return transfer
 }
@@ -109,7 +105,10 @@ export function evaluateShareTransfer(
         return { reason: 'The buyer already owns this certificate.' }
     if (typeof terms === 'string') return { reason: terms }
     const company = getCompany(state, certificate.companyId)
-    assertExists(company.shareCount, 'Priced shares require a share count')
+    assertExists(
+        companyShareCount(state, rules.charters, company.id),
+        'Priced shares require a share count'
+    )
     // A share that closes the buyer's short leaves their holdings and certificates unchanged.
     const coveredShort = openShorts(state, company.id, buyer)[0]
     if (
@@ -137,7 +136,7 @@ export function evaluateShareTransfer(
         remaining -= amount
     }
     if (remaining > 0) return { reason: 'The buyer cannot afford this purchase.' }
-    const projected = { ...state, ...copyFinances(state) }
+    const projected = stateWith(state, copyFinances(state))
     const purchased = projected.certificates.find((item) => item.id === certificateId)
     assert(purchased, 'Missing purchased certificate')
     purchased.owner = buyer
@@ -168,6 +167,7 @@ export function evaluateShareTransfer(
             shares: certificate.shares,
             buyer,
             seller: certificate.owner,
+            ...(certificate.poolId ? { poolId: certificate.poolId } : {}),
             price: terms.price,
             payments,
             ...(presidency.change ? { presidency: presidency.change } : {}),

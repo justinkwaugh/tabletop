@@ -3,7 +3,6 @@ import { Compile } from 'typebox/compile'
 import {
     ActionSource,
     HydratableAction,
-    PlayerAction,
     assert,
     assertExists,
     type GameAction
@@ -22,7 +21,9 @@ import {
     recordPrivatePowerUse,
     rotateTileFace,
     type CompanyDecisionState,
-    type PrivateTrackTerms
+    type PrivateTrackTerms,
+    stateWith,
+    EighteenXXPlayerAction
 } from '@tabletop/18xx'
 import { AcquisitionSteps } from './acquisitions.js'
 import { EighteenFortySixMap, PrivateTrackBlocks } from './map.js'
@@ -38,6 +39,7 @@ export const ConstructionPrivateId = Type.Union([
     Type.Literal('LM')
 ])
 export type ConstructionPrivateId = Type.Static<typeof ConstructionPrivateId>
+export const ConstructionPrivateIds: readonly ConstructionPrivateId[] = ['MC', 'O&I', 'LSL', 'LM']
 const Locations: Readonly<Record<ConstructionPrivateId, readonly string[]>> = {
     MC: PrivateTrackBlocks.MC,
     'O&I': PrivateTrackBlocks['O&I'],
@@ -70,7 +72,7 @@ export function constructionPrivateIds(
     state: PrivateConstructionState,
     playerId: string
 ): ConstructionPrivateId[] {
-    return (['MC', 'O&I', 'LSL', 'LM'] as const).filter(
+    return ConstructionPrivateIds.filter(
         (id) => new PrivateConstruction(state, playerId, id).choices([]).length > 0
     )
 }
@@ -118,11 +120,10 @@ export class PrivateConstruction {
             return { reason: 'Choose one or two permitted tile lays.' }
         if (this.privateId === 'LM' && this.miamiConnected(this.state))
             return { reason: 'Cincinnati and Dayton are already connected.' }
-        const planned = {
-            ...this.state,
+        const planned = stateWith(this.state, {
             cash: structuredClone(this.state.cash),
             bank: { ...this.state.bank }
-        }
+        })
         const lays: TrackLayDetails[] = []
         for (const request of requests) {
             if (
@@ -222,7 +223,7 @@ export class PrivateConstruction {
 
 export const BuildPrivateTrack = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('BuildPrivateTrack'),
         privateCompanyId: ConstructionPrivateId,
         lays: Type.Array(TrackRequest, { minItems: 1, maxItems: 2 }),

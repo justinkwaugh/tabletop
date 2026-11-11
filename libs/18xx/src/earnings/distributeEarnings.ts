@@ -1,17 +1,18 @@
+import { EighteenXXOperatingAction } from '../actions/eighteenXXPlayerAction.js'
 import { OperatingRoundIdentity } from '../operating/operatingRoundSnapshot.js'
+import { actionMayOperate, type ReceivershipRules } from '../finance/receivership.js'
 import type { MapStateData } from '../map/mapState.js'
 import { PrivateEffect, type PrivateRules } from '../privates/privateRules.js'
 import { applyPrivateEffects } from '../privates/privateLifecycle.js'
 import type { StockRules } from '../stock/stockRules.js'
-import { turnOrderFrom } from '../stock/presidency.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     assertExists,
+    turnOrderFrom,
     type GameAction,
     type HydratedGameState
 } from '@tabletop/common'
@@ -19,6 +20,7 @@ import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
 import { controllingOwner, getCompany } from '../finance/finance.js'
 import { chargePlayers, type CashCrisisState, type Debt } from '../funding/cashCrisis.js'
 import { placeStockMarker } from '../stock/stockMarket.js'
+import { isInstructedPayout, type RunInstructionState } from '../routes/instructedRuns.js'
 import {
     EarningsChoice,
     EarningsDetails,
@@ -28,7 +30,7 @@ import {
 } from './earningsDistribution.js'
 export const DistributeEarnings = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXOperatingAction.properties,
         type: Type.Literal('DistributeEarnings'),
         companyId: Type.String(),
         choice: EarningsChoice,
@@ -59,7 +61,7 @@ export class HydratedDistributeEarnings
     implements DistributeEarnings
 {
     declare type: 'DistributeEarnings'
-    declare playerId: string
+    declare playerId?: string
     declare companyId: string
     declare choice: EarningsChoice
     declare metadata?: DistributeEarnings['metadata']
@@ -67,26 +69,36 @@ export class HydratedDistributeEarnings
     readonly #privateRules: Pick<PrivateRules, 'operationEffects'>
     readonly #stockRules: StockRules
     readonly #nextState: string
+    readonly #receivership?: ReceivershipRules
     constructor(
         data: DistributeEarnings,
         rules: EarningsRules,
         privateRules: Pick<PrivateRules, 'operationEffects'>,
         stockRules: StockRules,
-        nextState: string
+        nextState: string,
+        receivership?: ReceivershipRules
     ) {
         super(data instanceof HydratedDistributeEarnings ? data.dehydrate() : data, Validator)
         this.#rules = rules
         this.#privateRules = privateRules
         this.#stockRules = stockRules
         this.#nextState = nextState
+        this.#receivership = receivership
     }
-    apply(state: HydratedGameState & DistributionState & CashCrisisState & MapStateData): void {
-        const distribution = new EarningsDistribution(state, this.#rules)
+    apply(
+        state: HydratedGameState &
+            DistributionState &
+            CashCrisisState &
+            MapStateData &
+            RunInstructionState
+    ): void {
+        const distribution = new EarningsDistribution(state, this.#rules, this.#receivership)
         assert(
             (this.source === ActionSource.User ||
                 (this.source === ActionSource.System &&
-                    distribution.automaticChoice(this.companyId) === this.choice)) &&
-                state.activePlayerIds.includes(this.playerId) &&
+                    (distribution.automaticChoice(this.companyId) === this.choice ||
+                        isInstructedPayout(state, this)))) &&
+                actionMayOperate(state, this, this.companyId) &&
                 distribution.canAct(this.playerId, this.companyId),
             'Only the operating company’s controlling owner may distribute earnings'
         )
@@ -135,6 +147,15 @@ export function applyEarningsDistribution(
     state: DistributionState,
     details: Type.Static<typeof EarningsDetails>
 ): void {
+    // A top-up leaves the treasury for the bank, which pays the whole dividend.
+    if (details.topUp)
+        settleCashPayments(state, [
+            {
+                from: { kind: 'company', companyId: details.companyId },
+                to: { kind: 'bank' },
+                amount: details.topUp
+            }
+        ])
     settleCashPayments(state, details.payments)
     if (details.marketMove)
         placeStockMarker(state.stockMarket, details.companyId, details.marketMove.toMarketSpaceId)

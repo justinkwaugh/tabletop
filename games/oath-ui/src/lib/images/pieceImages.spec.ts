@@ -26,9 +26,17 @@ describe('warband figure coverage', () => {
 
     it('every warband figure carries its file’s pixel size', () => {
         for (const color of OathColors) {
-            const svg = readFileSync(new URL(`./pieces/warband.${color}.svg`, import.meta.url), 'utf8')
-            const size = (attribute: string) => Number(svg.match(new RegExp(`<svg[^>]* ${attribute}="([0-9.]+)"`))?.[1])
-            expect(warbandFigure(color)).toEqual({ src: warbandImage(color), width: size('width'), height: size('height') })
+            const svg = readFileSync(
+                new URL(`./pieces/warband.${color}.svg`, import.meta.url),
+                'utf8'
+            )
+            const size = (attribute: string) =>
+                Number(svg.match(new RegExp(`<svg[^>]* ${attribute}="([0-9.]+)"`))?.[1])
+            expect(warbandFigure(color)).toEqual({
+                src: warbandImage(color),
+                width: size('width'),
+                height: size('height')
+            })
         }
     })
 
@@ -49,14 +57,19 @@ describe('warband figure coverage', () => {
 
     it('R-7.6.5 — one bandit figure takes each seat colour, and only a seat colour', () => {
         const figures = OathColors.map((color) => decodeURIComponent(banditWarbandImage(color)))
-        expect(new Set([decodeURIComponent(banditWarbandImage()), ...figures]).size).toBe(OathColors.length + 1)
+        expect(new Set([decodeURIComponent(banditWarbandImage()), ...figures]).size).toBe(
+            OathColors.length + 1
+        )
         const detail = (figure: string) => figure.slice(figure.lastIndexOf('<path'))
         expect(new Set(figures.map(detail)).size).toBe(1)
         expect(() => banditWarbandImage(Color.Green)).toThrow()
     })
 
     it('R-7.6.5, R-6.6.3 — the bandits serving an Imperial holder take the body of the Empire’s purple warband', () => {
-        const purpleWarband = readFileSync(new URL('./pieces/warband.purple.svg', import.meta.url), 'utf8')
+        const purpleWarband = readFileSync(
+            new URL('./pieces/warband.purple.svg', import.meta.url),
+            'utf8'
+        )
         const imperial = decodeURIComponent(imperialBanditWarbandImage())
         const body = imperial.match(/<path fill="(#[0-9a-f]{6})"/)?.[1]
         expect(body).toBe('#943c80')
@@ -74,9 +87,9 @@ describe('warband figure coverage', () => {
             banditWarbandImage(Color.Blue)
         )
         for (const holderId of ['ann', 'dana']) {
-            expect(siteBanditsImage({ banditsHolderId: holderId, banditsImperial: true }, colorOf)).toBe(
-                imperialBanditWarbandImage()
-            )
+            expect(
+                siteBanditsImage({ banditsHolderId: holderId, banditsImperial: true }, colorOf)
+            ).toBe(imperialBanditWarbandImage())
         }
     })
 

@@ -51,6 +51,22 @@ The frontend follows the same model with `release-frontend (--major | --minor | 
 `apps/frontend/package.json`, tags `frontend-v<version>`, and the deploy uploads the build to
 `frontend/<version>` in the bucket before publishing the manifest.
 
+Firebase Hosting serves the site files, so a frontend deploy, `rollback --frontend` and
+`switch --frontend` need `hosting.channel` in the deploy config (or `TABLETOP_HOSTING_CHANNEL`;
+production uses `"hosting": { "channel": "live" }`) and a backend later than 1.43.0, and refuse
+to start without them (1.36.0 to 1.43.0 report a new frontend version only after a restart). They back up the manifest, copy `frontend/<version>` from the bucket to a
+Hosting staging channel, `frontend-<version>` (expiring after a day), copy that release to the
+configured channel, check the channel serves the build, and only then publish the manifest and
+invalidate the backend cache. The backend reports the manifest's frontend version on its next
+request, so the site files and the reported version switch seconds apart; Hosting goes first
+because a client whose code is newer than the reported version reloads. A failure after the
+copy prints which versions Hosting and the manifest name and how to recover. Routing and
+headers come from `apps/frontend/firebase.json`, whose `hosting.site` names the site; the
+project is `backend.project`. `sync-hosting` puts the manifest's current frontend version on
+the channel and invalidates the backend cache without changing the manifest, for going live and
+for recovering from a failed switch, and `preflight --frontend` reports whether the channel
+serves the manifest's version. The deploy service account needs `roles/firebasehosting.admin`.
+
 The backend follows the same model with `release-backend (--major | --minor | --patch)
 [--no-deploy] [--no-traffic] [--service=backend|tasks]` and `deploy-backend`. The release bumps
 `apps/backend/package.json` and tags `backend-v<version>`. The deploy builds the backend,
@@ -67,6 +83,23 @@ without serving it, `promote-backend` shifts both services to their latest revis
 `rollback-backend` restores the earlier ready revision of both services;
 `rollback-backend <revision> --service=backend|tasks` selects a particular service revision. No Docker is needed
 locally. The image tag is immutable: a version already in Artifact Registry is refused.
+
+The realtime relay follows the same model with `release-realtime (--major | --minor | --patch)
+[--no-deploy]` and `deploy-realtime`. The release bumps `apps/realtime/package.json` and tags
+`realtime-v<version>`. The deploy builds a static linux/amd64 binary with the version stamped in
+(Go must be on `PATH`), copies it with `apps/realtime/deploy` to the VM named by `realtime` in
+the deploy config over IAP, and runs `install-release.sh` there: it keeps the running binary as
+`realtime.previous`, reruns `setup-vm.sh` so the VM's Caddyfile, unit and scripts match the
+repository, restarts the relay, and waits for its local stats to report the new version with
+Redis connected. A relay that does not come up within 30 seconds is replaced by the previous
+binary and the deploy fails. The deploy then checks that `realtime.healthUrl` answers 200, and
+the serving lines come from the relay's stats over SSH. `rollback-realtime` swaps the previous
+binary back in; running it again swaps back. `preflight --realtime` counts `apps/realtime`. A
+restart closes every stream, and clients reconnect within their 0–5 second jitter and resync.
+The deploy service account needs `roles/iap.tunnelResourceAccessor`, `roles/compute.osAdminLogin`
+on the instance, `roles/iam.serviceAccountUser` on the VM's service account, and
+`compute.projects.get` and `compute.instances.get`; SSH runs as that account, named through
+`CLOUDSDK_CORE_ACCOUNT` from the key file.
 
 ### History, rollback, and switch
 
@@ -132,9 +165,13 @@ partial operation and requires inspecting the reported traffic state.
 Backend deployments configure HTTP startup, readiness and liveness probes on
 port 8081 at `/__health/ready`, separately from the HTTP/2 ingress. The endpoint
 requires the public listener and an answering child. Session affinity is disabled
-because it bypasses failed readiness checks. Startup allows 240 seconds, readiness
-fails after one unsuccessful two-second check, and liveness allows roughly two
-minutes for child recovery. The public `/__health/ready` endpoint also exposes the
+because it bypasses failed readiness checks. Startup allows 240 seconds and liveness
+roughly two minutes for child recovery. Readiness fails after three unsuccessful checks,
+every 5 seconds on the backend, so a stall shorter than about 15 seconds does not start
+another instance; tasks runs one instance and is checked every 30 seconds. Each health
+check that waits more than a second for the child logs `worker_stall` with how long it
+waited, which is the signal to watch for worker stalls. A child that announced it is
+loading game logic is vouched for for up to 30 seconds. The public `/__health/ready` endpoint also exposes the
 child check for direct revision verification. These checks require the supervised
 backend image; selecting an existing older revision retains that revision's own
 probe settings.
@@ -166,14 +203,15 @@ release-game --game=<id> [--logic] (--major | --minor | --patch) [--no-deploy]
                              Bump versions, commit, tag, push, then deploy
 deploy-game --game=<id> [--logic]
                              Build and deploy a tagged HEAD, publish the manifest, invalidate cache
-build-ui <gameId>            Build a game UI bundle (rollup)
+build-ui <gameId>            Build a game UI bundle (rolldown)
 deploy-ui <gameId>           deploy-game for the UI only, with the same guards
-build-logic <gameId>         Build a game logic bundle (rollup)
+build-logic <gameId>         Build a game logic bundle (rolldown)
 deploy-logic <gameId>        Build + bundle game logic and deploy to GCS, with the same guards
 release-frontend (--major | --minor | --patch) [--no-deploy]
                              Bump the frontend version, commit, tag, push, then deploy
 build-frontend               Build the frontend
 deploy-frontend              Build and deploy a tagged frontend HEAD, with the same guards
+sync-hosting                 Put the manifest's frontend version on the Hosting channel
 release-backend (--major | --minor | --patch) [--no-deploy] [--no-traffic] [--service=backend|tasks]
                              Bump the backend version, commit, tag, push, then deploy
 build-backend                Build the backend
@@ -182,6 +220,43 @@ deploy-backend [--no-traffic] [--service=backend|tasks]
 promote-backend [--service=backend|tasks]
                              Shift traffic to the latest revision after a --no-traffic deploy
 rollback-backend [revision] [--service=backend|tasks]  Restore an earlier ready revision
+migrate-logic-artifacts [--game=<id>] [--apply]  Add index.cjs beside published logic that lacks it
+```
+
+## Title logic activation
+
+A logic build emits `index.cjs`, the bundle as a collectible CommonJS factory, beside the ESM
+bundle. The backend activates a new logic selection inside its running worker and compiles the
+title's request validators with TypeBox on first use: the invalidation request holds the connection
+open until the instance it reaches has activated and answers `activation: "complete"`; every other
+instance activates during its next request, which waits for the load. No process is replaced and
+no UI republish is needed for a logic change. See
+[ADR 0011](../../docs/adr/0011-game-logic-runs-as-collectible-factories.md).
+
+Production reads the mutable manifest through the authenticated Cloud Storage API when Redis
+needs filling. Game artifacts still come from the mounted bucket. Reading the manifest through
+the mount can return cached metadata after an upload and refill Redis with an older publication.
+Local development continues to read its staged manifest file.
+
+The activation response includes a `publication` signature identifying the served frontend and
+every selected game package, logic version, and UI version. The deploy tool compares it with the
+manifest it uploaded and fails if the backend reports a different selection or cannot confirm
+one. Publication history and game ordering do not affect the signature.
+
+Roll out this activation protocol by releasing the backend before using the updated deploy tool
+to publish games or the frontend. Backend deployment supplies `SITE_MANIFEST_GCS_URI` from
+`gcsBucket`; both runtime services require it and use their application credentials to read that
+object. Their service accounts need object-read access to the bucket, as they do for the mount.
+Cloud Storage read failures fail activation instead of falling back to the mounted manifest.
+
+Artifacts published before the build emitted the factory are imported the old way and stay
+resident until the worker restarts. `migrate-logic-artifacts` lists each title's current logic
+version that lacks it and, with `--apply`, builds it from the published ESM bundle and uploads it
+beside it. Rollback targets are left alone; a release republishes them with the factory anyway:
+
+```
+tabletop-deploy migrate-logic-artifacts            # plan only
+tabletop-deploy migrate-logic-artifacts --apply    # build and upload the missing factories
 ```
 
 ## Configuration
@@ -218,7 +293,7 @@ is selected. Do not roll out the new frontend before the initial catalog publica
 Subsequent game publications update discovery through the normal manifest publication and cache
 invalidation flow; no Site Frontend deployment is needed. Browser caching can delay visibility by
 up to 60 seconds. For local artifacts already staged before this change, generate just the missing
-JSON with `node config/config-rollup/write-game-catalog.mjs <staged-ui-version-directory>`.
+JSON with `node config/config-rolldown/write-game-catalog.mjs <staged-ui-version-directory>`.
 
 ### Deployment settings
 
@@ -240,6 +315,11 @@ Create `tools/deploy/deploy.config.json` (see `tools/deploy/deploy.config.exampl
         "region": "us-central1",
         "project": "your-gcp-project",
         "deployCommand": []
+    },
+    "realtime": {
+        "instance": "realtime",
+        "zone": "us-central1-a",
+        "healthUrl": "https://events.example.com/health"
     }
 }
 ```
@@ -294,10 +374,10 @@ Environment overrides:
 - `TABLETOP_GCS_BUCKET`
 - `TABLETOP_GCLOUD_CREDENTIAL_FILE`
 - `TABLETOP_BACKEND_MANIFEST_URL` (or `TABLETOP_MANIFEST_URL`)
+- `TABLETOP_HOSTING_CHANNEL`
 - `TABLETOP_BACKEND_ADMIN_URL`
 - `TABLETOP_BACKEND_ADMIN_USER`
 - `TABLETOP_BACKEND_ADMIN_PASSWORD`
-- `TABLETOP_BACKEND_ADMIN_TOKEN`
 - `TABLETOP_BACKEND_ADMIN_COOKIE`
 - `TABLETOP_BACKEND_IMAGE`
 - `TABLETOP_BACKEND_SERVICE`
@@ -310,7 +390,8 @@ Environment overrides:
 Notes:
 
 - `backend.image` is required for backend deploys; the release version becomes its tag.
-- `backendAdmin` is required to invalidate the manifest cache after deploys; provide a cookie, token, or username/password.
+- `backendAdmin` is required to invalidate the manifest cache after deploys; provide `username` and `password` for an Administrator Account, or an existing session `cookie`. The tool signs in with `POST /api/v1/auth/login` and sends the session cookie to the invalidate URL. A publish refuses to start without usable credentials, so a missing credential is found before anything is uploaded. `migrate-logic-artifacts` only reads and uploads bucket objects and never invalidates, so it needs `gcsBucket` alone.
+- `backendAdmin.token` and `TABLETOP_BACKEND_ADMIN_TOKEN` are no longer supported: the backend's challenge-token login was removed (security audit S06, PR #221) because emailed challenges are now single-use and bound to one operation. A config that carries only a token is refused with a migration message; a leftover token beside supported credentials is ignored and reported, never sent. To migrate, put the Administrator's `username` and `password` in `deploy.config.json` (or the environment overrides above) and delete the token.
 - When `CLOUDSDK_PYTHON` is unset, deploy commands automatically pick the first supported local Python (`python3.12`, `python3.11`, `python3.10`, then `python3`) and use it for `gcloud`/`gsutil`.
 
 ## Notes

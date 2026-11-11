@@ -1,20 +1,28 @@
 <script lang="ts">
-    import { availableTheOldPrinceTranche } from '@tabletop/the-old-prince'
+    import {
+        availableTheOldPrinceTranche,
+        nextTheOldPrinceTranche,
+        theOldPrinceCompanyRole,
+        TheOldPrinceRoles
+    } from '@tabletop/the-old-prince'
     import { CompanyToken } from '@tabletop/18xx-ui'
     import type { TheOldPrinceSession } from './session.svelte.js'
     let {
         session,
         slotSize = 22,
-        layout
+        layout,
+        showInitial = false
     }: {
         session: TheOldPrinceSession
         slotSize?: number
         layout: 'row' | 'stacked'
+        showInitial?: boolean
     } = $props()
+    const nextTranche = $derived(nextTheOldPrinceTranche(session.gameState))
     const availableTranche = $derived(availableTheOldPrinceTranche(session.gameState))
 </script>
 
-{#each session.gameState.tranches.filter((tranche) => tranche.id !== 'initial') as tranche (tranche.id)}
+{#each session.gameState.tranches.filter((tranche) => showInitial || tranche.id !== 'initial') as tranche (tranche.id)}
     {@const closed =
         tranche.companyIds.length < tranche.capacity && tranche.id !== availableTranche?.id}
     <div
@@ -28,23 +36,44 @@
     >
         <div class="slots">
             {#each Array.from({ length: tranche.capacity }, (_, index) => tranche.companyIds[index]) as companyId, i (i)}
-                <span class="tranche-slot" class:empty={!companyId}>
-                    {#if companyId}<CompanyToken
-                            appearance={session.mapView.stations[companyId]}
-                            size={slotSize}
-                        />
-                    {:else if closed}<svg
-                            width={slotSize / 2}
-                            height={slotSize / 2}
-                            viewBox="0 0 16 16"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="1.5"
-                            aria-hidden="true"
-                            ><rect x="3" y="7" width="10" height="7" rx="1.5"></rect><path
-                                d="M5 7V5a3 3 0 0 1 6 0v2"
-                            ></path></svg
-                        >{/if}
+                {@const role = companyId && theOldPrinceCompanyRole(session.gameState, companyId)}
+                {@const holdsBackNextTranche =
+                    !!companyId && !!nextTranche?.waitingCompanyIds.includes(companyId)}
+                <span class="slot-column">
+                    <span class="tranche-slot" class:empty={!companyId}>
+                        {#if companyId}<CompanyToken
+                                appearance={session.mapView.stations[companyId]}
+                                size={slotSize}
+                            />{#if holdsBackNextTranche}<span
+                                    class="key"
+                                    role="img"
+                                    aria-label={`${nextTranche?.tranche.name} waits for this company`}
+                                    ><svg
+                                        viewBox="0 0 16 16"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="1.7"
+                                        stroke-linecap="round"
+                                        aria-hidden="true"
+                                        ><circle cx="5" cy="8" r="2.6"></circle><path
+                                            d="M7.6 8H14M12 8v2.4M14 8v1.8"
+                                        ></path></svg
+                                    ></span
+                                >{/if}
+                        {:else if closed}<svg
+                                width={slotSize / 2}
+                                height={slotSize / 2}
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                                aria-hidden="true"
+                                ><rect x="3" y="7" width="10" height="7" rx="1.5"></rect><path
+                                    d="M5 7V5a3 3 0 0 1 6 0v2"
+                                ></path></svg
+                            >{/if}
+                    </span>
+                    {#if role}<span class="role">{TheOldPrinceRoles[role].shortName}</span>{/if}
                 </span>
             {/each}
         </div>
@@ -93,7 +122,39 @@
     .row.closed .tranche-slot.empty {
         opacity: 0.55;
     }
+    .slot-column {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: calc(var(--slot-size) / 12);
+    }
+    .role {
+        color: var(--rail-muted, #887969);
+        font-size: calc(var(--slot-size) / 4);
+        font-weight: 650;
+        letter-spacing: 0.06em;
+        line-height: 1;
+        text-transform: uppercase;
+    }
+    .key {
+        position: absolute;
+        top: calc(var(--slot-size) / -9);
+        right: calc(var(--slot-size) / -7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: calc(var(--slot-size) * 0.45);
+        height: calc(var(--slot-size) * 0.45);
+        border-radius: 50%;
+        background: var(--rail-text, #4b4239);
+        color: var(--rail-surface, #faf7f2);
+    }
+    .key svg {
+        width: 70%;
+        height: 70%;
+    }
     .tranche-slot {
+        position: relative;
         display: flex;
         align-items: center;
         justify-content: center;

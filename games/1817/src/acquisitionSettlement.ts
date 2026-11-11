@@ -1,6 +1,7 @@
 import { EighteenSeventeenMarket } from './stockMarket.js'
 import type { EighteenSeventeenState } from './state.js'
 import * as Type from 'typebox'
+import { turnOrderFrom } from '@tabletop/common'
 import {
     AssetTransfer,
     CashPayment,
@@ -21,7 +22,6 @@ import {
     shareholderPayout,
     takeLoan,
     transferCompanyAssets,
-    turnOrderFrom,
     trainsOwnedBy,
     releaseTrains
 } from '@tabletop/18xx'

@@ -44,7 +44,6 @@ export class IncreaseBusesStateHandler implements MachineStateHandler<
     }
 
     enter(context: MachineContext<HydratedBusGameState>) {
-        console.log('Entering Increase Buses state')
         const activePlayerId = context.gameState.busAction
         assert(activePlayerId, 'No active player for increase buses')
 
@@ -52,13 +51,11 @@ export class IncreaseBusesStateHandler implements MachineStateHandler<
         context.gameState.activePlayerIds = [activePlayerId]
 
         if (!HydratedAddBus.canAddBus(context.gameState, activePlayerId)) {
-            console.log('Player cannot add bus, automatically passing')
             context.addSystemAction(Pass, {
                 playerId: activePlayerId,
                 reason: PassReason.CannotAddBus
             })
         } else {
-            console.log('Adding bus for player', activePlayerId)
             context.addSystemAction(AddBus, {
                 playerId: activePlayerId
             })

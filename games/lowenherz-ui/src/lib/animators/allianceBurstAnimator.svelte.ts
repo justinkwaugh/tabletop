@@ -91,7 +91,12 @@ export class AllianceBurstAnimator extends StateAnimator {
         for (const heart of this.hearts) {
             const core = this.cores.get(heart.id)
             if (core) {
-                gsap.set(core, { scale: 1, opacity: 1, rotation: 0, transformOrigin: 'center center' })
+                gsap.set(core, {
+                    scale: 1,
+                    opacity: 1,
+                    rotation: 0,
+                    transformOrigin: 'center center'
+                })
                 timeline.to(
                     core,
                     { scale: 1.55, rotation: -6, duration: CORE_PEAK * scale, ease: 'power2.out' },
@@ -99,7 +104,13 @@ export class AllianceBurstAnimator extends StateAnimator {
                 )
                 timeline.to(
                     core,
-                    { scale: 0.35, rotation: 8, opacity: 0, duration: CORE_FADE * scale, ease: 'power1.in' },
+                    {
+                        scale: 0.35,
+                        rotation: 8,
+                        opacity: 0,
+                        duration: CORE_FADE * scale,
+                        ease: 'power1.in'
+                    },
                     CORE_PEAK * scale
                 )
             }
@@ -111,7 +122,13 @@ export class AllianceBurstAnimator extends StateAnimator {
                 // Explicit x/y along the angle. The keyframes rotated the shard and then threw it
                 // along its own -Y axis, which gsap cannot express: it composes translate before
                 // rotate, so a y tween would move every shard the same way.
-                gsap.set(shard, { x: 0, y: 0, scale: 0.85, opacity: 0.95, rotation: BURST_SHARD_ANGLES[i] })
+                gsap.set(shard, {
+                    x: 0,
+                    y: 0,
+                    scale: 0.85,
+                    opacity: 0.95,
+                    rotation: BURST_SHARD_ANGLES[i]
+                })
                 timeline.to(
                     shard,
                     {

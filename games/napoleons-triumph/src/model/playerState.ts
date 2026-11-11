@@ -1,7 +1,7 @@
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { Color, Hydratable, PlayerState } from '@tabletop/common'
-import { Side } from '../components/pieces.js'
+import { Face, Side } from '../components/pieces.js'
 
 export type NapoleonsTriumphPlayerState = Type.Static<typeof NapoleonsTriumphPlayerState>
 export const NapoleonsTriumphPlayerState = Type.Evaluate(
@@ -16,7 +16,11 @@ export const NapoleonsTriumphPlayerState = Type.Evaluate(
             independentCommandsUsed: Type.Integer({ minimum: 0 }),
             heavyCavalryCommitted: Type.Boolean(),
             guardCommitted: Type.Boolean(),
-            guardAttackForfeited: Type.Boolean()
+            guardAttackForfeited: Type.Boolean(),
+            /** Rule 6, step 5: the army's units face-up on its display. Losses are public, so both players see it. */
+            armyDisplay: Type.Optional(Type.Array(Face)),
+            /** Rule 11, step 5: by attack approach, the last round this army's artillery led an attack from it. Absent in games begun before the bar was kept per army. */
+            artilleryFire: Type.Optional(Type.Record(Type.String(), Type.Integer()))
         })
     ])
 )
@@ -37,8 +41,15 @@ export class HydratedNapoleonsTriumphPlayerState
     declare heavyCavalryCommitted: boolean
     declare guardCommitted: boolean
     declare guardAttackForfeited: boolean
+    declare armyDisplay?: Face[]
+    declare artilleryFire?: Record<string, number>
 
     constructor(data: NapoleonsTriumphPlayerState) {
         super(data, NapoleonsTriumphPlayerStateValidator)
+    }
+
+    /** Rule 13: morale worn down never falls below one, so it cannot break the army. */
+    wearDownLoss(points: number): number {
+        return Math.min(points, this.morale - 1)
     }
 }

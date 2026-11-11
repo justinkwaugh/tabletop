@@ -6,10 +6,7 @@
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let gameSession = getGameSession() as BridgesGameSession
-    let windowHeight: number | null | undefined = $state()
 </script>
-
-<svelte:window bind:innerHeight={windowHeight} />
 
 {#if gameSession.currentAction}
     <div
@@ -20,7 +17,9 @@
                 {#if gameSession.currentAction.playerId}
                     <PlayerName playerId={gameSession.currentAction.playerId} />
                 {/if}
-                {getDescriptionForAction(gameSession.currentAction)}
+                {getDescriptionForAction(gameSession.currentAction, (playerId) =>
+                    gameSession.getPlayerName(playerId)
+                )}
             </h1>
         </div>
 

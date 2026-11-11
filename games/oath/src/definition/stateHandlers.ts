@@ -1,8 +1,4 @@
-import {
-    type HydratedAction,
-    type MachineContext,
-    type MachineStateHandler
-} from '@tabletop/common'
+import type { HydratedAction, MachineContext, MachineStateHandler } from '@tabletop/common'
 import { MachineState, toMachineState } from './states.js'
 import { SetupStateHandler } from '../stateHandlers/setup.js'
 import { WakePhaseStateHandler } from '../stateHandlers/wakePhase.js'
@@ -20,14 +16,17 @@ import { OathkeeperChoiceStateHandler } from '../stateHandlers/oathkeeperChoice.
 import { ConsentRequestStateHandler } from '../stateHandlers/consentRequest.js'
 import { PowerQuestionStateHandler } from '../stateHandlers/powerQuestion.js'
 import { EndOfGameStateHandler } from '../stateHandlers/endOfGame.js'
+import { ChronicleStateHandler } from '../stateHandlers/chronicle.js'
 import { EndOfRoundStateHandler } from '../stateHandlers/endOfRound.js'
 import type { HydratedOathGameState } from '../model/gameState.js'
-import { applyForcedTitleChanges } from '../util/title.js'
+import { applyForcedTitleChanges, isTitleBoundary } from '../util/title.js'
 import { settleQueue } from '../util/questionAnswers.js'
 import { carryFreeActions } from '../util/freeActions.js'
 import { teachReliquaryToScepterHolder } from '../util/hiddenInputs.js'
+import { canUseGrandScepter, grandScepterHolderId } from '../util/imperial.js'
 import { HydratedLetPeek, isLetPeek } from '../actions/letPeek.js'
 import { TransferOathkeeper, isTransferOathkeeper } from '../actions/transferOathkeeper.js'
+import { isAnswerQuestion } from '../actions/answerQuestion.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 import { ActionType } from './actions.js'
 
@@ -47,7 +46,7 @@ function wrapOnAction(
     }
 }
 
-/** R-2.11-H1 — the Oathkeeper title is re-evaluated after every action. */
+/** R-2.11-H1 — the Oathkeeper title is judged after each Law action and each title moment. */
 function withContinuousTitle(handler: OathStateHandler): OathStateHandler {
     return {
         isValidAction: (action, context) =>
@@ -61,6 +60,8 @@ function withContinuousTitle(handler: OathStateHandler): OathStateHandler {
                 ? toMachineState(gameState.machineState)
                 : handler.onAction(action, context)
             if (gameState.winningPlayerIds.length > 0) return next
+            const titleMoment = isAnswerQuestion(action) && action.metadata?.titleMoment === true
+            if (!isTitleBoundary(gameState, titleMoment)) return next
 
             settleTitle(context, toMachineState(next))
 
@@ -89,7 +90,8 @@ function withPowerQuestions(handler: OathStateHandler): OathStateHandler {
         const next = handler.onAction(action, context)
         const gameState = context.gameState
         if (!gameState.pendingQuestions || next === MachineState.PowerQuestion) return next
-        if (settleQueue(gameState)) {
+        const answered = isAnswerQuestion(action) ? action.metadata : undefined
+        if (settleQueue(gameState, action, answered)) {
             gameState.pendingQuestions = undefined
             return next
         }
@@ -106,13 +108,25 @@ function withFreeActionsCarried(handler: OathStateHandler): OathStateHandler {
     })
 }
 
-/** R-6.4-H1 — a Grand Scepter changing hands teaches its new holder the Reliquary (R-X.3). */
+/**
+ * R-6.4-H1 — a Grand Scepter changing hands teaches its new holder the Reliquary (R-X.3). From
+ * revision 12 (R-X.4) a holder who took it learns it once the card's lock lifts ("You cannot use
+ * this if you took it on this turn"); one it was given to, or granted at setup, learns it at once.
+ */
 function withReliquaryKnownToScepterHolder(handler: OathStateHandler): OathStateHandler {
     return wrapOnAction(handler, (action, context) => {
         const next = handler.onAction(action, context)
-        if (teachReliquaryToScepterHolder(context.gameState)) action.revealsInfo = true
+        const gameState = context.gameState
+        if (!mayKnowReliquary(gameState)) return next
+        if (teachReliquaryToScepterHolder(gameState)) action.revealsInfo = true
         return next
     })
+}
+
+function mayKnowReliquary(state: HydratedOathGameState): boolean {
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes8)) return true
+    const holderId = grandScepterHolderId(state)
+    return holderId === undefined || canUseGrandScepter(state, holderId)
 }
 
 /** R-9.4, R-6.6.1 — letting another peek is allowed in every state and moves no state. */
@@ -154,7 +168,10 @@ export const OathStateHandlers = everyStateCarryingFreeActions({
     [MachineState.WakePhase]: withContinuousTitle(new WakePhaseStateHandler()),
     [MachineState.ActPhase]: withContinuousTitle(withPowerQuestions(new ActPhaseStateHandler())),
     [MachineState.RestPhase]: withContinuousTitle(new RestPhaseStateHandler()),
-    [MachineState.EndOfRound]: withContinuousTitle(new EndOfRoundStateHandler()),
+    // Wrapped: Squalid District's ruler may raise or lower the end die once it is rolled.
+    [MachineState.EndOfRound]: withContinuousTitle(
+        withPowerQuestions(new EndOfRoundStateHandler())
+    ),
     [MachineState.Searching]: withContinuousTitle(withPowerQuestions(new SearchingStateHandler())),
     [MachineState.CampaignPlans]: withContinuousTitle(
         withPowerQuestions(new CampaignPlansStateHandler())
@@ -181,5 +198,7 @@ export const OathStateHandlers = everyStateCarryingFreeActions({
     [MachineState.PowerQuestion]: withContinuousTitle(
         withPowerQuestions(new PowerQuestionStateHandler())
     ),
+    // Not wrapped: the game is won, so no title, question or turn step runs while it is written.
+    [MachineState.Chronicle]: new ChronicleStateHandler(),
     [MachineState.EndOfGame]: new EndOfGameStateHandler()
 })

@@ -19,10 +19,7 @@ import {
     MAX_LOANS,
     SHIP_CAPACITY
 } from '../definition/constants.js'
-import {
-    ContainerPlayerState,
-    HydratedContainerPlayerState
-} from './playerState.js'
+import { ContainerPlayerState, HydratedContainerPlayerState } from './playerState.js'
 import {
     ForeignIslandAuction,
     HydratedForeignIslandAuction
@@ -510,10 +507,13 @@ export class HydratedContainerGameState
         if (!bank || amount <= 0) {
             return
         }
-        for (let index = 0; index < amount; index += 1) {
-            const broker = bank.brokers[index % bank.brokers.length]
-            broker.money += 1
-        }
+        // Rounding up keeps the coin count of the one-coin-at-a-time deal that stored games replay.
+        const coins = Math.ceil(amount)
+        const share = Math.floor(coins / bank.brokers.length)
+        const remainder = coins % bank.brokers.length
+        bank.brokers.forEach((broker, index) => {
+            broker.money += share + (index < remainder ? 1 : 0)
+        })
     }
 
     depositContainersToInvestmentBank(containers: ContainerColor[]): void {

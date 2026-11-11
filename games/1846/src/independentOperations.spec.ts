@@ -8,7 +8,7 @@ import {
     type TrainRoute,
     type RoutePath
 } from '@tabletop/18xx'
-import { stockGame } from './testSupport.js'
+import { stockGame } from '../test/testSupport.js'
 import { TrackRules1846 } from './track.js'
 import { RouteRules1846 } from './routes.js'
 import { steamboatOwner } from './steamboat.js'

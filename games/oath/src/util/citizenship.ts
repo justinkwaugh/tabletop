@@ -20,6 +20,9 @@ import { regionOfPawn } from '../powers/vocabulary.js'
 import { MAX_SUPPLY } from './rest.js'
 import { holdsTheTurn } from './turn.js'
 import { OathRevision, isAtLeastOathRevision } from './revision.js'
+import { cannotPlaceWarbandsAtSites } from './continuous.js'
+import { PowerChoiceKind } from '../model/powerChoice.js'
+import type { EffectContext } from '../powers/registry.js'
 
 export interface ConversionResult {
     replaced: WarbandGroup[]
@@ -34,17 +37,54 @@ export interface ConversionResult {
     discardPileRegion?: Region
     /** R-6.6.2 */
     flippedUsurperToOathkeeper: boolean
+    /** R-6.6.2-H1 — Ring of Devotion: the new Citizen's warbands at sites, removed and not replaced. */
+    removedFromSitesCount?: number
 }
 
-/** R-6.6.2 — board first, then map order: the order an Imperial shortage takes them. */
+/**
+ * R-6.6.2-H1 — from revision 32 an accepting Exile who holds Ring of Devotion cannot place the
+ * purple warbands at sites (R-9.2), so their warbands there are removed, not replaced.
+ */
+function ringBarsSiteReplacement(state: HydratedOathGameState, playerId: string): boolean {
+    return (
+        isAtLeastOathRevision(state, OathRevision.EngineFixes27) &&
+        cannotPlaceWarbandsAtSites(state, playerId)
+    )
+}
+
+/**
+ * R-6.6.2 — the warbands replaced, board first, then map order: the order an Imperial shortage takes
+ * them. Only the board's for a Ring of Devotion holder (R-6.6.2-H1).
+ */
 export function citizenshipReplacementGroups(
     state: HydratedOathGameState,
     playerId: string
 ): WarbandGroup[] {
-    return [
-        ...boardWarbandGroups(state, playerId).filter((group) => group.owner !== IMPERIAL_WARBANDS),
-        ...warbandGroupsAtSites(state, state.allSiteIds(), [playerId])
-    ]
+    const board = boardWarbandGroups(state, playerId).filter(
+        (group) => group.owner !== IMPERIAL_WARBANDS
+    )
+    return ringBarsSiteReplacement(state, playerId)
+        ? board
+        : [...board, ...warbandGroupsAtSites(state, state.allSiteIds(), [playerId])]
+}
+
+/** R-6.6.2-H1 — a Ring of Devotion holder's warbands at sites, removed and not replaced. */
+function citizenshipRemovedFromSites(
+    state: HydratedOathGameState,
+    playerId: string
+): WarbandGroup[] {
+    return ringBarsSiteReplacement(state, playerId)
+        ? warbandGroupsAtSites(state, state.allSiteIds(), [playerId])
+        : []
+}
+
+/** A card's Citizenship summary: how many became Imperial, and those the Ring removed (R-6.6.2-H1). */
+export function becameImperialWords(conversion: ConversionResult): string {
+    const removed = conversion.removedFromSitesCount ?? 0
+    return (
+        `${conversion.replacedCount} warbands became Imperial` +
+        (removed > 0 ? `; ${removed} on the map removed, Ring of Devotion` : '')
+    )
 }
 
 // R-X.1 — `replacementChoice` names which warbands become Imperial when the Empire's are short.
@@ -58,6 +98,7 @@ export function becomeCitizen(
     player.status = PlayerStatus.Citizen
 
     const all = citizenshipReplacementGroups(state, playerId)
+    const removedFromSites = citizenshipRemovedFromSites(state, playerId)
     const available = warbandsInBankFor(state, IMPERIAL_WARBANDS)
     const wanted = forceTotal(all)
     const chosen = available >= wanted ? all : (replacementChoice ?? takeFromGroups(all, available))
@@ -66,6 +107,9 @@ export function becomeCitizen(
     const replacedCount = forceTotal(replaced)
     // R-6.6.2 — "chooses which warbands to remove and which to replace": the rest leave play.
     removeUnreplaced(state, all, replaced)
+    // R-6.6.2-H1 — none replaced, so removed as R-6.6.2 removes the leftovers.
+    removeUnreplaced(state, removedFromSites, [])
+    const removedFromSitesCount = forceTotal(removedFromSites)
 
     let discardedVisionId: string | undefined
     let discardPileRegion: Region | undefined
@@ -84,7 +128,7 @@ export function becomeCitizen(
         state.oathkeeperIsUsurper = false
     }
 
-    // R-1.10 — unconditional; only the marker moves, so the turn's spent-Supply ledger stands.
+    // R-1.10 — unconditional.
     player.supply = MAX_SUPPLY
 
     return {
@@ -93,7 +137,8 @@ export function becomeCitizen(
         unreplacedCount: wanted - replacedCount,
         discardedVisionId,
         discardPileRegion,
-        flippedUsurperToOathkeeper
+        flippedUsurperToOathkeeper,
+        ...(removedFromSitesCount > 0 ? { removedFromSitesCount } : {})
     }
 }
 
@@ -115,7 +160,7 @@ export function becomeExile(state: HydratedOathGameState, playerId: string): Con
     const unreplacedReturned = isAtLeastOathRevision(state, OathRevision.EngineFixes2)
     if (unreplacedReturned) removeUnreplaced(state, groups, replaced)
 
-    // R-1.10 — only the marker moves; the Supply already spent this turn stays spent.
+    // R-1.10 — unconditional.
     player.supply = MAX_SUPPLY
 
     return {
@@ -185,6 +230,16 @@ export function exileRefusal(state: HydratedOathGameState, playerId: string): st
     return state.getPlayerState(playerId).status === PlayerStatus.Exile
         ? undefined
         : 'only an Exile can become a Citizen'
+}
+
+/**
+ * R-7.3.3-H3 — a When Played "you may become a Citizen": the status it leaves, `ctx.state` unchanged. A Citizen on
+ * its yes; with no yes the status is as it was.
+ */
+export function citizenOnYes(ctx: Pick<EffectContext, 'choices'>): PlayerStatus | undefined {
+    return ctx.choices.some((choice) => choice.kind === PowerChoiceKind.Yes)
+        ? PlayerStatus.Citizen
+        : undefined
 }
 
 export function becomeCitizenByPower(

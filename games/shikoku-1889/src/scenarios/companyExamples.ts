@@ -36,7 +36,6 @@ export function createShikoku1889CompanyExample(
         state.companies.push({
             id: Shikoku1889Majors.SR.id,
             kind: 'major',
-            shareCount: 10,
             started: false,
             funded: false,
             floated: false,

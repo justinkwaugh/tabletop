@@ -1,7 +1,10 @@
 import { assert, assertExists } from '@tabletop/common'
 import { isCultivatedArea, isSeaArea } from '../components/area.js'
 import { isProductionCompany, isShippingCompany } from '../components/company.js'
-import { DEFAULT_DELIVERY_TIE_BREAK_POLICY, SHIPPING_FEE_PER_SHIP_USE } from '../definition/operationsEconomy.js'
+import {
+    DEFAULT_DELIVERY_TIE_BREAK_POLICY,
+    SHIPPING_FEE_PER_SHIP_USE
+} from '../definition/operationsEconomy.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import {
     IndonesiaAreaType,
@@ -22,10 +25,7 @@ function sortNodeIds(nodeIds: readonly IndonesiaNodeId[]): IndonesiaNodeId[] {
     return [...nodeIds].sort((a, b) => a.localeCompare(b))
 }
 
-function canonicalSeaLaneEdge(
-    seaAreaIdA: IndonesiaNodeId,
-    seaAreaIdB: IndonesiaNodeId
-): SeaLane {
+function canonicalSeaLaneEdge(seaAreaIdA: IndonesiaNodeId, seaAreaIdB: IndonesiaNodeId): SeaLane {
     if (seaAreaIdA.localeCompare(seaAreaIdB) <= 0) {
         return {
             fromSeaAreaId: seaAreaIdA,
@@ -67,7 +67,10 @@ function buildProductionZoneSupplies(
 
         while (queue.length > 0) {
             const currentAreaId = queue.shift()
-            assertExists(currentAreaId, 'Queue area id should exist while building production zones')
+            assertExists(
+                currentAreaId,
+                'Queue area id should exist while building production zones'
+            )
             zoneAreaIds.push(currentAreaId)
 
             const currentNode = state.board.graph.nodeById(currentAreaId)
@@ -191,20 +194,20 @@ function buildShippingCompanyNetworks(state: HydratedIndonesiaGameState): Shippi
 
         const ownerHullLevel = state.getPlayerState(shippingCompany.owner).research.hull
         const capacityPerShip = 1 + ownerHullLevel
-        const seaAreaCapacities: SeaAreaCapacity[] = sortNodeIds([...shipCountBySeaAreaId.keys()]).map(
-            (seaAreaId) => {
-                const shipCount = shipCountBySeaAreaId.get(seaAreaId)
-                assertExists(
-                    shipCount,
-                    `Ship count should exist for sea area ${seaAreaId} when building capacities`
-                )
+        const seaAreaCapacities: SeaAreaCapacity[] = sortNodeIds([
+            ...shipCountBySeaAreaId.keys()
+        ]).map((seaAreaId) => {
+            const shipCount = shipCountBySeaAreaId.get(seaAreaId)
+            assertExists(
+                shipCount,
+                `Ship count should exist for sea area ${seaAreaId} when building capacities`
+            )
 
-                return {
-                    seaAreaId,
-                    capacity: shipCount * capacityPerShip
-                }
+            return {
+                seaAreaId,
+                capacity: shipCount * capacityPerShip
             }
-        )
+        })
 
         const companySeaAreaIdSet = new Set(shipCountBySeaAreaId.keys())
         const seaLaneByKey = new Map<string, SeaLane>()

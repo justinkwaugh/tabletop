@@ -3,7 +3,7 @@
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import { getLoginModal } from '$lib/stores/loginModal'
     import { clearLoginContinuation, saveLoginContinuation } from '$lib/utils/loginContinuation'
-    import { gamePlayPath, publicGameInvitationPath } from '$lib/utils/publicGameInvitation'
+    import { gamePlayPath, publicGameInvitationPath } from '$lib/utils/gameLinks'
     import { gameCardOptions } from '$lib/utils/gameOptions'
     import { gameCardAppearance } from '$lib/utils/gameCardAppearance'
     import { playerSortValue, playerStatusDisplay } from '$lib/utils/player'
@@ -84,9 +84,7 @@
 <main class="mx-auto flex max-w-lg flex-col items-center gap-4 px-4 py-10">
     <Card size="md" class={`w-full p-4 sm:p-6 gap-4 ${gameCardAppearance}`}>
         {#if game}
-            <p class="text-sm font-medium text-blue-700 dark:text-blue-300">
-                Game invitation
-            </p>
+            <p class="text-sm font-medium text-blue-700 dark:text-blue-300">Game invitation</p>
             <div class="flex items-center gap-4">
                 {#if title}
                     <img

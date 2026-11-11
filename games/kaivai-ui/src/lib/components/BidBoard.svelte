@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
+    import type { KaivaiGameSession } from '$lib/model/KaivaiGameSession.svelte'
     import bidding from '$lib/images/bidding.png'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
     let gameSession = getGameSession() as KaivaiGameSession

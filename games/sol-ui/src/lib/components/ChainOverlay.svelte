@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { Point } from '@tabletop/common'
     import { offsetFromCenter, translateFromCenter } from '$lib/utils/boardGeometry.js'
     import { HydratedChain } from '@tabletop/sol'

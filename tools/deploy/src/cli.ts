@@ -19,18 +19,22 @@ import {
 } from './lib/backendPublish.js'
 import { listBackendHistory, switchBackend } from './lib/backendHistory.js'
 import { deployFrontend, releaseFrontend } from './lib/frontendPublish.js'
+import { syncHostingToManifest } from './lib/hostingPublish.js'
 import { deployGame, deployGameArtifacts, releaseGame } from './lib/gamePublish.js'
+import { migrateLogicArtifacts } from './lib/logicArtifacts.js'
 import { listHistory, rollback, switchFrontend, switchGame } from './lib/publicationHistory.js'
 import { DEFAULT_GRACE_DAYS, prune, pruneAfterDeploy, type PruneScope } from './lib/prune.js'
-import { type PublishContext } from './lib/publishCore.js'
+import type { PublishContext } from './lib/publishCore.js'
+import { deployRealtime, releaseRealtime, rollbackRealtime } from './lib/realtimePublish.js'
 import { getCataloguePath, getDeployConfigPath, getRepoRoot } from './lib/paths.js'
 import {
     formatPreflightReport,
     runBackendPreflight,
     runFrontendPreflight,
-    runGamePreflight
+    runGamePreflight,
+    runRealtimePreflight
 } from './lib/releasePreflight.js'
-import { type BumpType } from './lib/versions.js'
+import type { BumpType } from './lib/versions.js'
 
 const repoRoot = getRepoRoot()
 const cataloguePath = getCataloguePath(repoRoot)
@@ -55,7 +59,7 @@ Commands:
                                uploaded in the last ${DEFAULT_GRACE_DAYS} days. Prints the plan only unless
                                --apply. Game and frontend deploys prune their own target
                                afterwards unless --no-prune.
-  preflight (--game=<id> | --frontend | --backend) [--json]
+  preflight (--game=<id> | --frontend | --backend | --realtime) [--json]
                                Report the serving and local versions, the last release
                                baseline per artifact, and which files and commits changed
                                since it, ending with whether a release is needed. Read-only.
@@ -70,14 +74,21 @@ Commands:
                                invalidate the backend cache. Requires a clean tree, a release
                                tag on HEAD for each artifact, and an unpublished version.
                                Running with --game and no command is the same as deploy-game.
-  build-ui <gameId>            Build a game UI bundle (rollup)
+  build-ui <gameId>            Build a game UI bundle (rolldown)
   deploy-ui <gameId>           deploy-game for the UI only, with the same guards
-  build-logic <gameId>         Build a game logic bundle (rollup)
+  build-logic <gameId>         Build a game logic bundle (rolldown)
   deploy-logic <gameId>        Build + bundle game logic and deploy to GCS, with the same guards
+  migrate-logic-artifacts [--game=<id>] [--apply]
+                               Add the collectible factory (index.cjs) beside each title's
+                               current logic artifact if it was published without one. Prints
+                               the plan only unless --apply.
   release-frontend (--major | --minor | --patch) [--no-deploy] [--no-prune]
                                Bump the frontend package version, sync the manifest, commit,
                                tag frontend-v<version>, push, then deploy (unless --no-deploy).
   build-frontend               Build the frontend
+  sync-hosting                 Put the manifest's frontend version on the Firebase Hosting channel
+                               (hosting.channel): stage it from the bucket, copy it to the channel,
+                               and check the channel serves it. For going live and for recovery.
   deploy-frontend [--no-prune]  Build and deploy the frontend at HEAD, publish the manifest, and
                                invalidate the backend cache. Same guards as deploy-game.
   release-backend (--major | --minor | --patch) [--no-deploy] [--no-traffic] [--service=backend|tasks]
@@ -92,12 +103,23 @@ Commands:
                                Shift traffic to the latest revision of the backend and tasks
                                services (after a --no-traffic deploy)
   rollback-backend [revision] [--service=backend|tasks]  Restore prior revision or select one
+  release-realtime (--major | --minor | --patch) [--no-deploy]
+                               Bump the realtime relay version, commit, tag realtime-v<version>,
+                               push, then deploy (unless --no-deploy).
+  deploy-realtime              Build the relay at HEAD for linux/amd64 with its version stamped
+                               in, copy it and apps/realtime/deploy to the VM over IAP, install
+                               them with setup-vm.sh keeping the previous binary, restart, and
+                               check the relay reports the version with Redis connected and the
+                               public health URL answers 200. A relay that does not come up is
+                               replaced by the previous binary. Same guards as deploy-game.
+  rollback-realtime            Swap the previous relay binary back in and restart it
 
 Release tags:
   <packageId>-v<version>       Logic artifact
   <packageId>-ui-v<version>    UI artifact
   frontend-v<version>          Site frontend
   backend-v<version>           Backend image (also the image tag)
+  realtime-v<version>          Realtime relay binary
 
 Environment:
   TABLETOP_GCS_BUCKET           GCS bucket name
@@ -106,11 +128,12 @@ Environment:
   TABLETOP_BACKEND_REGION       Cloud Run region
   GCLOUD_PROJECT                GCP project
   TABLETOP_BACKEND_MANIFEST_URL Backend /manifest URL
+  TABLETOP_HOSTING_CHANNEL      Firebase Hosting channel the frontend is published to (live);
+                                unset leaves the site files to the backend
   TABLETOP_BACKEND_ADMIN_URL    Backend admin invalidate URL
   TABLETOP_BACKEND_ADMIN_USER   Backend admin username
   TABLETOP_BACKEND_ADMIN_PASSWORD Backend admin password
-  TABLETOP_BACKEND_ADMIN_TOKEN  Backend admin auth token
-  TABLETOP_BACKEND_ADMIN_COOKIE Backend admin session cookie
+  TABLETOP_BACKEND_ADMIN_COOKIE Backend admin session cookie (instead of username/password)
   CLOUDSDK_PYTHON               Python runtime for Cloud SDK commands
   TABLETOP_GCS_ACCESS_TOKEN     Access token used for GCS placeholder creation
 `
@@ -176,6 +199,7 @@ const main = async () => {
             game: { type: 'string' },
             frontend: { type: 'boolean' },
             backend: { type: 'boolean' },
+            realtime: { type: 'boolean' },
             logic: { type: 'boolean' },
             major: { type: 'boolean' },
             minor: { type: 'boolean' },
@@ -283,21 +307,31 @@ const main = async () => {
         return
     }
 
+    if (command === 'migrate-logic-artifacts') {
+        await migrateLogicArtifacts(context, { apply: values.apply === true, game: values.game })
+        return
+    }
+
     if (command === 'preflight') {
         const targets = [
             values.game !== undefined,
             values.frontend === true,
-            values.backend === true
+            values.backend === true,
+            values.realtime === true
         ].filter(Boolean).length
         if (targets !== 1) {
-            throw new Error('preflight takes exactly one of --game=<id>, --frontend, or --backend')
+            throw new Error(
+                'preflight takes exactly one of --game=<id>, --frontend, --backend, or --realtime'
+            )
         }
         const report =
             values.frontend === true
                 ? await runFrontendPreflight(context)
                 : values.backend === true
                   ? await runBackendPreflight(context)
-                  : await runGamePreflight(context, requireGame(command, values.game))
+                  : values.realtime === true
+                    ? await runRealtimePreflight(context)
+                    : await runGamePreflight(context, requireGame(command, values.game))
         console.log(values.json ? JSON.stringify(report, null, 2) : formatPreflightReport(report))
         return
     }
@@ -362,6 +396,25 @@ const main = async () => {
         return
     }
 
+    if (command === 'release-realtime') {
+        await releaseRealtime(context, {
+            bump: resolveBumpType(command, values),
+            deploy: deployByDefault
+        })
+        return
+    }
+
+    if (command === 'deploy-realtime') {
+        rejectBumpFlags(command, values, 'release-realtime')
+        await deployRealtime(context)
+        return
+    }
+
+    if (command === 'rollback-realtime') {
+        await rollbackRealtime(context)
+        return
+    }
+
     if (command === 'build-ui') {
         const gameId = requirePositionalGame(command, positionals[1])
         const spec = buildGameUiCommand(repoRoot, gameId)
@@ -387,6 +440,11 @@ const main = async () => {
         const gameId = requirePositionalGame(command, positionals[1])
         await deployGameArtifacts(context, gameId, ['logic'])
         await pruneAfter({ game: gameId })
+        return
+    }
+
+    if (command === 'sync-hosting') {
+        await syncHostingToManifest(context)
         return
     }
 

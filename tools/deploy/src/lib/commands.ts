@@ -12,10 +12,12 @@ export type CommandSpec = {
     cwd: string
     logPath: string
     requiresDeploy?: boolean
+    env?: Record<string, string>
 }
 
 type RunCommandOptions = {
     onOutput?: (chunk: string) => void
+    onStdout?: (chunk: string) => void
     onSpawn?: (child: ChildProcess) => void
 }
 
@@ -32,7 +34,10 @@ const ensureDir = (dirPath: string) => {
 export const runCommand = (spec: CommandSpec, options?: RunCommandOptions): Promise<void> => {
     ensureDir(path.dirname(spec.logPath))
     const logStream = fs.createWriteStream(spec.logPath, { flags: 'w' })
-    const env = isCloudSdkCommand(spec.command) ? withCloudSdkPythonEnv(process.env) : process.env
+    const baseEnv = isCloudSdkCommand(spec.command)
+        ? withCloudSdkPythonEnv(process.env)
+        : process.env
+    const env = { ...baseEnv, ...spec.env }
 
     return new Promise((resolve, reject) => {
         const child = spawn(spec.command, spec.args, {
@@ -45,6 +50,7 @@ export const runCommand = (spec: CommandSpec, options?: RunCommandOptions): Prom
         child.stdout.on('data', (chunk: Buffer) => {
             logStream.write(chunk)
             options?.onOutput?.(chunk.toString())
+            options?.onStdout?.(chunk.toString())
         })
         child.stderr.on('data', (chunk: Buffer) => {
             logStream.write(chunk)
@@ -534,26 +540,90 @@ export const deployGameLogicCommand = (
     }
 }
 
+export const frontendArtifactUrl = (config: DeployConfig, version: string) => {
+    if (!config.gcsBucket) {
+        throw new Error('Missing gcsBucket (set TABLETOP_GCS_BUCKET or deploy config)')
+    }
+    return `gs://${config.gcsBucket}/frontend/${version}`
+}
+
 export const deployFrontendCommand = (
     repoRoot: string,
     version: string,
     config: DeployConfig
-): CommandSpec => {
-    if (!config.gcsBucket) {
-        throw new Error('Missing gcsBucket (set TABLETOP_GCS_BUCKET or deploy config)')
-    }
-    const sourceDir = path.join(repoRoot, 'apps', 'frontend', 'build')
-    const destination = `gs://${config.gcsBucket}/frontend/${version}`
+): CommandSpec => ({
+    label: 'deploy-frontend',
+    command: 'gcloud',
+    args: [
+        'storage',
+        'rsync',
+        '--recursive',
+        path.join(repoRoot, 'apps', 'frontend', 'build'),
+        frontendArtifactUrl(config, version)
+    ],
+    cwd: repoRoot,
+    logPath: '/tmp/frontend-deploy.log',
+    requiresDeploy: true
+})
 
-    return {
-        label: 'deploy-frontend',
-        command: 'gcloud',
-        args: ['storage', 'rsync', '--recursive', sourceDir, destination],
-        cwd: repoRoot,
-        logPath: '/tmp/frontend-deploy.log',
-        requiresDeploy: true
-    }
+export const downloadFrontendCommand = (
+    repoRoot: string,
+    version: string,
+    config: DeployConfig,
+    destinationDir: string
+): CommandSpec => ({
+    label: 'download-frontend',
+    command: 'gcloud',
+    args: [
+        'storage',
+        'cp',
+        '--recursive',
+        `${frontendArtifactUrl(config, version)}/*`,
+        destinationDir
+    ],
+    cwd: repoRoot,
+    logPath: '/tmp/frontend-download.log'
+})
+
+export type FirebaseTarget = {
+    project: string
+    configPath: string
 }
+
+// firebase-tools authenticates through Application Default Credentials, so it gets the same
+// service account key the gcloud commands use.
+const firebaseCredentialEnv = (): Record<string, string> => {
+    const credentialFile =
+        process.env.CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE ??
+        process.env.GOOGLE_APPLICATION_CREDENTIALS
+    return credentialFile ? { GOOGLE_APPLICATION_CREDENTIALS: credentialFile } : {}
+}
+
+export const firebaseCommand = (
+    repoRoot: string,
+    label: string,
+    target: FirebaseTarget,
+    args: string[]
+): CommandSpec => ({
+    label,
+    command: 'pnpm',
+    args: [
+        '--dir',
+        path.join(repoRoot, 'tools', 'deploy'),
+        'exec',
+        'firebase',
+        ...args,
+        '--config',
+        target.configPath,
+        '--project',
+        target.project,
+        '--non-interactive'
+    ],
+    cwd: repoRoot,
+    logPath: `/tmp/${label}.log`,
+    requiresDeploy: true,
+    env: firebaseCredentialEnv()
+})
 
 export const manifestObjectUrl = (config: DeployConfig) => {
     if (!config.gcsBucket) {
@@ -610,13 +680,22 @@ const envVarArgs = (envVars?: Record<string, string>) =>
           ]
         : []
 
-const backendHealthProbeArgs = [
+const healthCheck = 'httpGet.path=/__health/ready,httpGet.port=8081,timeoutSeconds=2'
+
+// Cloud Run answers an unready backend by starting another instance, a 20-30 s cold start for
+// whoever is routed to it, so readiness waits out stalls of about 15 s; the supervisor logs each
+// stall a probe meets as `worker_stall`. Tasks runs one instance, so readiness cannot redirect its
+// traffic, and every probe bills 100 ms on an otherwise idle instance.
+const readinessPeriodSeconds = (config: DeployConfig, service: string | undefined) =>
+    service === (config.backend?.tasksService ?? 'tasks') ? 30 : 5
+
+const backendHealthProbeArgs = (config: DeployConfig, service: string | undefined) => [
     '--startup-probe',
-    'httpGet.path=/__health/ready,httpGet.port=8081,periodSeconds=2,timeoutSeconds=2,failureThreshold=120',
+    `${healthCheck},periodSeconds=2,failureThreshold=120`,
     '--readiness-probe',
-    'httpGet.path=/__health/ready,httpGet.port=8081,periodSeconds=2,timeoutSeconds=2,failureThreshold=1,successThreshold=1',
+    `${healthCheck},periodSeconds=${readinessPeriodSeconds(config, service)},failureThreshold=3,successThreshold=1`,
     '--liveness-probe',
-    'httpGet.path=/__health/ready,httpGet.port=8081,periodSeconds=10,timeoutSeconds=2,failureThreshold=12',
+    `${healthCheck},periodSeconds=10,failureThreshold=12`,
     '--no-session-affinity'
 ]
 
@@ -631,7 +710,15 @@ export const deployBackendCommand = (
         const command = backend.deployCommand[0]
         const args = backend.deployCommand.slice(1)
         const serviceOverride = options?.service
-        if (command === 'gcloud') args.push(...backendHealthProbeArgs)
+        const environmentArgs = envVarArgs(options?.envVars)
+        if (command === 'gcloud') {
+            args.push(
+                ...backendHealthProbeArgs(config, serviceOverride ?? backend.service),
+                ...environmentArgs
+            )
+        } else if (environmentArgs.length > 0) {
+            throw new Error('Environment overrides require gcloud deploy command')
+        }
 
         if (
             !allowTraffic &&
@@ -683,7 +770,7 @@ export const deployBackendCommand = (
             '--project',
             backend.project,
             '--quiet',
-            ...backendHealthProbeArgs,
+            ...backendHealthProbeArgs(config, service),
             ...envVarArgs(options?.envVars),
             ...(options?.revisionSuffix ? ['--revision-suffix', options.revisionSuffix] : [])
         ]
@@ -712,7 +799,7 @@ export const deployBackendCommand = (
         backend.region,
         '--project',
         backend.project,
-        ...backendHealthProbeArgs
+        ...backendHealthProbeArgs(config, service)
     ]
 
     if (!allowTraffic) {

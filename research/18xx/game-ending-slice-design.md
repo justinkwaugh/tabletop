@@ -48,9 +48,9 @@ and required discards continue after a diesel trigger; the trigger does not end 
 The terminal `GameOver` handler exposes no Actions. Common's result and winner
 fields are populated with stable player IDs; all tied leaders are retained.
 
-Bank exhaustion belongs to shared payment settlement. Banks explicitly configured
-with `unlimitedAfterExhaustion` pay in full at or below zero and retain a durable
-`broken` flag. TOP's already-unlimited Bank does not trigger this transition.
+Bank exhaustion belongs to shared payment settlement. A limited Bank pays in full at
+or below zero and retains a durable `broken` flag (until 2026-10-19 each title opted
+in through a stored `unlimitedAfterExhaustion`; every limited bank did). TOP's already-unlimited Bank does not trigger this transition.
 Other finite balances still reject overdrafts. Validation remains atomic across
 a payment batch, including the bank transition. Later deposits cannot reverse it.
 

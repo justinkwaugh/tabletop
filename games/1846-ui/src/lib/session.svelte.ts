@@ -2,43 +2,29 @@ import {
     type EighteenFortySixProjectedState,
     type HydratedEighteenFortySixState,
     BuyOpeningCompany,
+    isBlank,
     PassOpeningPurchase,
     openingPurchaseChoices,
     unboughtOpeningCompanies,
     priceFor,
     canPassOpeningPurchase,
-    DeclareBankruptcy,
-    bankruptcyShortfall,
-    BuyReceiverShare,
-    receiverShareChoices,
-    type ReceiverShare,
-    EmergencyBuyTrain,
-    StartEmergencyFunding,
-    SellEmergencyShares,
-    emergencyFundingStart,
-    emergencyFundingChoices,
-    emergencyShareSaleChoices,
-    emergencyTrainChoices,
-    type EmergencyPurchase,
     PrivateConstruction,
     TrackRules1846,
     BuildPrivateTrack,
     chicagoPrivateStation,
     PlaceCWIStation,
-    draftCompany,
+    ConstructionPrivateIds,
     type ConstructionPrivateId,
     AssignRevenueMarker,
     revenueMarkerChoices,
     type RevenuePrivateId,
-    CorporateFinance,
-    corporateFinanceChoices,
-    type FinanceChoice,
     AssignSteamboat,
     PortSymbols,
     type SteamboatAssignment,
     ChooseDraftCard,
     PassFinalCompany,
-    choicesFor
+    choicesFor,
+    TitleRules1846
 } from '@tabletop/1846'
 import { assertExists } from '@tabletop/common'
 import {
@@ -50,17 +36,28 @@ import {
 import {
     isOfferPurchase,
     isRespondToPurchaseOffer,
-    nextOperatingCompany,
     stationsAfterLay,
     type OfferPurchase,
     type RespondToPurchaseOffer,
-    type ShareSaleDetails,
     type TrackRequest
 } from '@tabletop/18xx'
 import { mapState1846 } from './mapState.js'
+import { createRouteWorker } from './routeWorker.js'
+import { undoableStagedSelection, type PresentedTransition } from '@tabletop/frontend-components'
+import {
+    PrivateLayStageOrder,
+    SteamboatStageOrder,
+    chooseSteamboatCompany,
+    stagePrivateLay,
+    stagedPrivateLays,
+    type PrivateLaySelection,
+    type PrivateLayValues,
+    type SteamboatSelection,
+    type SteamboatSelectionValues
+} from './stagedSelection.js'
 import { MapView1846 } from './mapView.js'
-import { SessionRules1846 } from './sessionRules.js'
 import { Presentation1846 } from './presentation.js'
+import { DraftPacketGate } from './draftPacketGate.svelte.js'
 
 const PrivateTrackPrompts: Readonly<Record<ConstructionPrivateId, string>> = {
     MC: 'Lay up to two connected yellow tiles for free',
@@ -68,7 +65,6 @@ const PrivateTrackPrompts: Readonly<Record<ConstructionPrivateId, string>> = {
     LSL: 'Upgrade Cleveland or Toledo to green for free',
     LM: 'Lay or upgrade tiles to connect Cincinnati and Dayton'
 }
-const ConstructionPrivateIds = Object.keys(PrivateTrackPrompts) as ConstructionPrivateId[]
 function isConstructionPrivateId(id: string): id is ConstructionPrivateId {
     return id in PrivateTrackPrompts
 }
@@ -81,38 +77,17 @@ const BaseSession: ReturnType<
 > = createEighteenXXSessionClass<
     typeof EighteenFortySixProjectedState,
     HydratedEighteenFortySixState
->(SessionRules1846, MapView1846, Presentation1846)
-type ConstructionMode = 'track' | 'stations' | 'finance'
+>(TitleRules1846, MapView1846, Presentation1846, createRouteWorker)
 export class EighteenFortySixSession extends BaseSession {
-    private readonly constructionModeScope = $derived(
-        [
-            this.gameState.machineState,
-            nextOperatingCompany(this.gameState),
-            this.myPlayer?.id,
-            this.isViewingHistory
-        ].join(':')
-    )
-    private manualConstructionMode = $derived.by((): ConstructionMode | undefined => {
-        void this.constructionModeScope
-        return undefined
-    })
-    constructionMode = $derived.by((): ConstructionMode => {
-        if (this.privateDraft) return 'track'
-        const manual = this.manualConstructionMode
-        if (manual && this.constructionModeAvailable(manual)) return manual
-        if (this.validActionTypes.includes('LayTile')) return 'track'
-        if (this.validActionTypes.includes('PlaceStation')) return 'stations'
-        return this.gameState.machineState === 'LayingTrack' && this.financeChoices.length
-            ? 'finance'
-            : 'stations'
-    })
-    // The railroad chosen for the Steamboat before its port is picked on the map; a new state
-    // clears it.
-    steamboatCompanyId = $derived.by((): string | undefined => {
+    private steamboatSelection = $derived.by((): SteamboatSelection => {
         void this.gameState.machineState
         void this.gameState.actionCount
-        return undefined
+        return {}
     })
+    readonly steamboatCompanyId = $derived(this.steamboatSelection.company?.value)
+    chooseSteamboatCompany(companyId: string) {
+        this.steamboatSelection = chooseSteamboatCompany(this.steamboatSelection, companyId)
+    }
     readonly choosingSteamboat = $derived(
         this.gameState.machineState === 'AssigningSteamboat' &&
             !!this.myPlayer &&
@@ -136,71 +111,35 @@ export class EighteenFortySixSession extends BaseSession {
     }
     constructor(options: ConstructorParameters<typeof BaseSession>[0]) {
         super(options)
-        this.localSelections.register({
-            hasManual: () => !!this.steamboatCompanyId,
-            undo: () => {
-                if (!this.steamboatCompanyId) return false
-                this.steamboatCompanyId = undefined
-                return true
-            },
-            clear: () => {
-                this.steamboatCompanyId = undefined
-            }
-        })
-    }
-    protected override get trackBuildingActive() {
-        return this.constructionMode === 'track' && !this.decisions.selection
-    }
-    protected override get stationPlacementActive() {
-        return (
-            this.gameState.machineState === 'LayingTrack' &&
-            this.constructionMode === 'stations' &&
-            !this.privateActions.selection &&
-            !this.decisions.selection
+        this.localSelections.register(
+            undoableStagedSelection<SteamboatSelectionValues>(
+                SteamboatStageOrder,
+                () => this.steamboatSelection,
+                (selection) => (this.steamboatSelection = selection)
+            )
         )
     }
     protected override get sharedActionsBlocked() {
         return !!this.gameState.pendingRevenueMarker
     }
-    private constructionModeAvailable(mode: ConstructionMode): boolean {
-        if (mode === 'finance') return this.financeChoices.length > 0
-        return this.validActionTypes.includes(mode === 'track' ? 'LayTile' : 'PlaceStation')
-    }
-    chooseConstructionMode(mode: ConstructionMode | undefined) {
-        this.track.stages.clear()
-        this.stations.stages.clear()
-        this.manualConstructionMode = mode
-    }
-
-    protected override get operatingStepCompletion() {
-        if (this.validActionTypes.includes('FinishTrack'))
-            return { lastTarget: 1, finish: () => this.finishConstruction() }
-        return undefined
-    }
-
-    async finishConstruction() {
-        await this.track.finish()
-    }
-
-    // Lays staged for a private construction power until its combined action is submitted. They
-    // name their power, which may have been chosen automatically; a new state or any change to
-    // the private action choices clears them.
-    private stagedPrivateLays = $derived.by(
-        (): { privateCompanyId: ConstructionPrivateId; lays: TrackRequest[] } | undefined => {
-            void [
-                this.gameState,
-                this.privateActions.stages.state,
-                this.myPlayer?.id,
-                this.isViewingHistory,
-                this.updatingVisibleState
-            ]
-            return undefined
-        }
-    )
+    private privateLaySelection = $derived.by((): PrivateLaySelection => {
+        void [
+            this.gameState,
+            this.privateActions.stages.state,
+            this.myPlayer?.id,
+            this.isViewingHistory,
+            this.updatingVisibleState
+        ]
+        return {}
+    })
     private stagedLaysFor(privateCompanyId: ConstructionPrivateId): TrackRequest[] {
-        const staged = this.stagedPrivateLays
-        return staged?.privateCompanyId === privateCompanyId ? staged.lays : []
+        return stagedPrivateLays(this.privateLaySelection, privateCompanyId)
     }
+    private readonly privateLayUndo = undoableStagedSelection<PrivateLayValues>(
+        PrivateLayStageOrder,
+        () => this.privateLaySelection,
+        (selection) => (this.privateLaySelection = selection)
+    )
     privateDraft = $derived.by(() => {
         const power = this.privateActions.titlePower
         return power?.kind === 'track' && isConstructionPrivateId(power.privateCompanyId)
@@ -257,7 +196,7 @@ export class EighteenFortySixSession extends BaseSession {
                     kind: 'track',
                     privateCompanyId,
                     playerId,
-                    label: draftCompany(privateCompanyId).name,
+                    label: this.companyName(privateCompanyId),
                     prompt: lays.length
                         ? 'Lay a second tile connected to the first'
                         : PrivateTrackPrompts[privateCompanyId],
@@ -279,30 +218,36 @@ export class EighteenFortySixSession extends BaseSession {
                                 placement: details.placement,
                                 returnPrevious: true
                             }),
-                        stationsAfter: (details) => stationsAfterLay(inventory, details)
+                        stationsAfter: (details) =>
+                            stationsAfterLay(inventory, details, TrackRules1846)
                     },
                     commit: async (details) => {
                         const { companyId, locationId, definitionId, rotation, nodeMapping } =
                             details
-                        const next = [
-                            ...lays,
-                            { companyId, locationId, definitionId, rotation, nodeMapping }
-                        ]
+                        const request = {
+                            companyId,
+                            locationId,
+                            definitionId,
+                            rotation,
+                            nodeMapping
+                        }
+                        const next = [...lays, request]
                         if (
                             next.length >= plan.maximumLays ||
                             (!plan.choices(next).length && plan.evaluate(next).lays)
                         )
                             await submit(next)
-                        else this.stagedPrivateLays = { privateCompanyId, lays: next }
+                        else
+                            this.privateLaySelection = stagePrivateLay(
+                                this.privateLaySelection,
+                                privateCompanyId,
+                                request
+                            )
                     },
                     ...(lays.length && plan.evaluate(lays).lays
                         ? { finish: { label: 'done', run: () => submit(lays) } }
                         : {}),
-                    undo: () => {
-                        if (!lays.length) return false
-                        this.stagedPrivateLays = { privateCompanyId, lays: lays.slice(0, -1) }
-                        return true
-                    }
+                    undo: () => this.privateLayUndo.undo()
                 }
             ]
         })
@@ -317,7 +262,7 @@ export class EighteenFortySixSession extends BaseSession {
                 kind: 'confirm',
                 privateCompanyId: 'C&WI',
                 playerId,
-                label: draftCompany('C&WI').name,
+                label: this.companyName('C&WI'),
                 prompt: 'Place your reserved token in Chicago?',
                 confirmLabel: 'yes',
                 // The token can only go in the C&WI's own city, shown as it will be placed.
@@ -338,7 +283,7 @@ export class EighteenFortySixSession extends BaseSession {
         const choices = revenueMarkerChoices(this.gameState, playerId)
         return [...new Set(choices.map((choice) => choice.privateCompanyId))].map(
             (privateCompanyId) => {
-                const name = draftCompany(privateCompanyId).name
+                const name = this.companyName(privateCompanyId)
                 const placed = this.gameState.revenueMarkers.some(
                     (marker) => marker.privateCompanyId === privateCompanyId
                 )
@@ -423,70 +368,23 @@ export class EighteenFortySixSession extends BaseSession {
             })
         )
     }
-    readonly bankruptcyShortfall = $derived(bankruptcyShortfall(this.gameState))
-    readonly receiverShares = $derived(
-        this.myPlayer ? receiverShareChoices(this.gameState, this.myPlayer.id) : []
-    )
-    async buyReceiverShare(choice: ReceiverShare): Promise<void> {
-        await this.applyAction(
-            this.createPlayerAction(BuyReceiverShare, {
-                companyId: choice.companyId,
-                expectedPrice: choice.price
-            })
-        )
-    }
-    async declareBankruptcy(): Promise<void> {
-        assertExists(this.gameState.emergencyFunding, 'Bankruptcy requires emergency funding')
-        await this.applyAction(
-            this.createPlayerAction(DeclareBankruptcy, {
-                companyId: this.gameState.emergencyFunding.companyId
-            })
-        )
-    }
-    readonly fundingStart = $derived(emergencyFundingStart(this.gameState))
-    readonly fundingChoices = $derived(emergencyFundingChoices(this.gameState))
-    readonly emergencySales = $derived(emergencyShareSaleChoices(this.gameState))
-    async startEmergencyFunding(): Promise<void> {
-        assertExists(this.fundingStart, 'Emergency funding requires a shortfall')
-        await this.applyAction(
-            this.createPlayerAction(StartEmergencyFunding, {
-                companyId: this.fundingStart.companyId
-            })
-        )
-    }
-    async sellEmergencyShares(choice: ShareSaleDetails): Promise<void> {
-        const sale = choice.sales[0]
-        await this.applyAction(
-            this.createPlayerAction(SellEmergencyShares, {
-                companyId: sale.companyId,
-                shares: sale.shares,
-                expectedProceeds: choice.proceeds
-            })
-        )
-    }
-    readonly emergencyTrainChoices = $derived(emergencyTrainChoices(this.gameState))
-    async emergencyBuyTrain(choice: EmergencyPurchase): Promise<void> {
-        await this.applyAction(this.createPlayerAction(EmergencyBuyTrain, choice))
-    }
-    readonly financeChoices = $derived(corporateFinanceChoices(this.gameState))
-    readonly financeLabel = $derived.by(() => {
-        const operations = new Set(this.financeChoices.map((choice) => choice.operation))
-        if (operations.size > 1) return 'Issue / redeem'
-        return operations.has('issue') ? 'Issue shares' : 'Redeem shares'
+    readonly packetGate = new DraftPacketGate({
+        ordinaryHotseatPlay: () => this.ordinaryHotseatPlay,
+        seatTurnKey: () =>
+            `${this.gameState.id}:${this.gameState.actionCount}:${this.myPlayer?.id}`,
+        publishing: () => this.updatingVisibleState
     })
-    readonly financePrompt = $derived(
-        this.financeLabel === 'Issue / redeem' ? 'Issue or redeem shares' : this.financeLabel
-    )
-    async corporateFinance(choice: FinanceChoice): Promise<void> {
-        await this.applyAction(this.createPlayerAction(CorporateFinance, choice))
+    protected override get draftedCompanies() {
+        const draft = this.gameState.draft
+        const playerId = this.myPlayer?.id
+        if (draft?.kind !== 'hidden' || !playerId || !this.packetGate.visible) return []
+        const selections =
+            draft.participants.find((participant) => participant.playerId === playerId)
+                ?.selections ?? []
+        return selections
+            .filter((selection) => !isBlank(selection.cardId))
+            .map((selection) => ({ companyId: selection.cardId, price: selection.price }))
     }
-    private openedPacketKey = $state<string>()
-    private readonly packetKey = $derived(
-        `${this.gameState.id}:${this.gameState.actionCount}:${this.myPlayer?.id}`
-    )
-    readonly packetVisible = $derived(
-        !this.updatingVisibleState && this.openedPacketKey === this.packetKey
-    )
     readonly draftChoices = $derived(
         this.myPlayer ? choicesFor(this.gameState, this.myPlayer.id) : []
     )
@@ -494,7 +392,7 @@ export class EighteenFortySixSession extends BaseSession {
         this.myPlayer ? openingPurchaseChoices(this.gameState, this.myPlayer.id) : []
     )
     readonly openingCompanies = $derived(
-        this.gameState.draft.kind === 'public' && this.gameState.draft.stage === 'buying'
+        this.gameState.draft?.kind === 'public' && this.gameState.draft.stage === 'buying'
             ? unboughtOpeningCompanies(this.gameState).map((companyId) => ({
                   companyId,
                   expectedPrice: priceFor(this.gameState, companyId)
@@ -517,14 +415,8 @@ export class EighteenFortySixSession extends BaseSession {
             this.createPlayerAction(AssignSteamboat, assignment ? { assignment } : {})
         )
     }
-    revealPacket(): void {
-        this.openedPacketKey = this.packetKey
-    }
-    hidePacket(): void {
-        this.openedPacketKey = undefined
-    }
     async choose(cardId: string): Promise<void> {
-        this.hidePacket()
+        this.packetGate.hide()
         await this.applyAction(this.createPlayerAction(ChooseDraftCard, { cardId }))
     }
     async buyOpeningCompany(choice: (typeof this.openingChoices)[number]): Promise<void> {
@@ -534,11 +426,11 @@ export class EighteenFortySixSession extends BaseSession {
         await this.applyAction(this.createPlayerAction(PassOpeningPurchase))
     }
     async passFinalCompany(): Promise<void> {
-        this.hidePacket()
+        this.packetGate.hide()
         await this.applyAction(this.createPlayerAction(PassFinalCompany))
     }
-    override beforeNewState(): void {
-        super.beforeNewState()
-        this.hidePacket()
+    override beforeNewState(transition: PresentedTransition): void {
+        super.beforeNewState(transition)
+        this.packetGate.hide()
     }
 }

@@ -31,15 +31,15 @@
   "activePlayerIds": [
    "p1"
   ],
-  "createdAt": "2026-10-15T03:05:09.660Z",
+  "createdAt": "2026-10-16T19:06:20.685Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-10-15T03:05:09.660Z",
+  "startedAt": "2026-10-16T19:06:20.685Z",
   "protectedInformation": true
  },
  "state": {
   "systemVersion": 3,
-  "id": "bj68PE3VW5mnf3c10tzgI",
+  "id": "4vuq_qlEpWHNZ5kYqZ-UZ",
   "gameId": "scenario-both-polyp-sources",
   "seed": 3367980177,
   "prng": {
@@ -370,6 +370,7 @@
   },
   "bonusPolypsInBag": false,
   "colorsMissingFromBag": [],
+  "bonusSpacesRefillAtTurnEnd": true,
   "advanced": false,
   "algaSupply": {
    "blue": 5,

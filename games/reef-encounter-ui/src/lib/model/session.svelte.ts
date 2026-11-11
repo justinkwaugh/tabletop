@@ -12,9 +12,11 @@ import {
     ChooseLarvaCubes,
     CoralColors,
     FeedParrotfish,
+    feedsInTurnOrder,
     IntroduceShrimp,
     MachineState,
     MoveShrimp,
+    ParrotfishFeedingGroupId,
     PassFinalTurn,
     PlacePolyp,
     polypAt,
@@ -55,7 +57,12 @@ export type CylinderTargets = { openSea: boolean; tileIds: number[] }
 
 export type LarvaCubeChoice = { color: CoralColor; polypsToPlace: number }
 
-export type PlacementTarget = { boardId: ReefBoardId; coords: OffsetCoordinates; attack: boolean }
+export type PlacementTarget = {
+    boardId: ReefBoardId
+    coords: OffsetCoordinates
+    attack: boolean
+    searchesBag: boolean
+}
 
 export class ReefEncounterGameSession extends GameSession<
     ReefEncounterProjectedState,
@@ -93,7 +100,12 @@ export class ReefEncounterGameSession extends GameSession<
 
     private selection: ReefSelection = $state({})
     readonly hasManualSelection = $derived(hasManualReefSelection(this.selection))
-    private readonly canAct = $derived(this.isPlayable && !this.isViewingHistory && this.isMyTurn)
+    private readonly canAct = $derived(
+        this.isPlayable &&
+            !this.isViewingHistory &&
+            this.isMyTurn &&
+            this.gameState.result === undefined
+    )
     readonly canUndo = $derived(
         this.isPlayable &&
             !this.isViewingHistory &&
@@ -160,7 +172,8 @@ export class ReefEncounterGameSession extends GameSession<
 
     readonly placementTargets: PlacementTarget[] = $derived.by(() => {
         const source = this.placementSources[0]
-        if (!source || this.turnChoiceOpen) return []
+        const color = this.placing?.color
+        if (!source || !color || this.turnChoiceOpen) return []
         const me = this.myPlayerId()
         return this.gameState.reefs.flatMap((reef) =>
             ReefBoards[reef.boardId].rock
@@ -170,10 +183,15 @@ export class ReefEncounterGameSession extends GameSession<
                 .map((coords) => ({
                     boardId: reef.boardId,
                     coords,
-                    attack: polypAt(reef, coords) !== undefined
+                    attack: polypAt(reef, coords) !== undefined,
+                    searchesBag: this.gameState.placementSearchesBag(reef.boardId, coords, color)
                 }))
         )
     })
+
+    readonly placementSearchesBag = $derived(
+        this.placementTargets.some((target) => target.searchesBag)
+    )
 
     readonly shrimpProtectedPolyps: ReefSquare[] = $derived.by(() => {
         const placing = this.placing
@@ -249,6 +267,10 @@ export class ReefEncounterGameSession extends GameSession<
         const me = this.myPlayerId()
         return CoralColors.filter((color) => this.gameState.canExchangeLarvaCube(me, color))
     })
+
+    readonly cubesForPolypsFromBag: CoralColor[] = $derived(
+        this.cubesForPolyps.filter((color) => this.gameState.exchangeSearchesBag(color))
+    )
 
     readonly cylinderPayments: CoralColor[] = $derived.by(() => {
         if (!this.canTake(ActionType.PlayAlgaCylinder) || this.shrimpIntent) return []
@@ -332,7 +354,14 @@ export class ReefEncounterGameSession extends GameSession<
     }
 
     async feedParrotfish(color: CoralColor) {
-        await this.applyAction(this.createPlayerAction(FeedParrotfish, { color }))
+        await this.applyAction(
+            this.createPlayerAction(
+                FeedParrotfish,
+                feedsInTurnOrder(this.gameState)
+                    ? { color }
+                    : { color, simultaneousGroupId: ParrotfishFeedingGroupId }
+            )
+        )
     }
 
     async chooseLarvaCube(color: CoralColor) {

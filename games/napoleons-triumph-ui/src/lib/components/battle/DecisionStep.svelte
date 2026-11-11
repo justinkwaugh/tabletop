@@ -9,12 +9,15 @@
     } from '$lib/model/battleStage.js'
     import { lossMark } from '$lib/model/roleMark.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { advancePrompt } from '$lib/utils/advancePrompt.js'
+    import { advancePrompt, notNamedToDefend } from '$lib/utils/advancePrompt.js'
     import UnitTile from '$lib/components/UnitTile.svelte'
     import Force from './Force.svelte'
     import CommanderChip from './CommanderChip.svelte'
 
-    let { stage }: { stage: OddLossStage | ExcessLossStage | RegroupStage | AdvanceStage } =
+    let {
+        stage,
+        folded = false
+    }: { stage: OddLossStage | ExcessLossStage | RegroupStage | AdvanceStage; folded?: boolean } =
         $props()
 
     const gameSession = getGameSession()
@@ -24,9 +27,15 @@
 
 {#if stage.kind === StageKind.OddLoss}
     <div class="nt-battle-prompt">
-        The loss is odd. Choose which enemy leading unit takes the extra step.
+        {#if folded}
+            The loss is odd. Tap the enemy {stage.takers} unit on the map that takes the extra step.
+        {:else}
+            The loss is odd. Choose which enemy {stage.takers} unit takes the extra step.
+        {/if}
     </div>
-    <Force units={stage.units} onpick={pick} />
+    {#if !folded}
+        <Force units={stage.units} onpick={pick} />
+    {/if}
 {:else if stage.kind === StageKind.ExcessLosses}
     <div class="nt-battle-prompt">
         Your other units in the fight must lose {stage.amount} step{stage.amount === 1 ? '' : 's'}.
@@ -95,10 +104,12 @@
                 playerId={stage.units[0].playerId}
                 label={commander.mustGo
                     ? `${name} goes forward with his last unit`
-                    : `Send ${name} forward with them`}
+                    : commander.named
+                      ? `Send ${name} forward with them`
+                      : notNamedToDefend(commander.commanderId)}
                 marker={commander.goes ? 'advances' : 'stays'}
                 chosen={commander.goes}
-                onclick={commander.mustGo
+                onclick={commander.mustGo || !commander.named
                     ? undefined
                     : () =>
                           gameSession.sendCommanderForward(commander.commanderId, !commander.goes)}

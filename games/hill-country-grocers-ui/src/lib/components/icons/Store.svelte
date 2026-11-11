@@ -6,8 +6,14 @@
         fill,
         tint,
         ghost = false
-    }: { x: number; y: number; size?: number; fill: string; tint: string; ghost?: boolean } =
-        $props()
+    }: {
+        x: number
+        y: number
+        size?: number
+        fill: string
+        tint: string
+        ghost?: boolean
+    } = $props()
 
     const half = $derived(size / 2)
     const corner = $derived(size * 0.12)
@@ -22,15 +28,9 @@
 </script>
 
 <g transform="translate({x} {y})" class:ghost>
-    <rect
-        x={-half + 0.8}
-        y={-half + 1.4}
-        width={size}
-        height={size}
-        rx={corner}
-        class="shadow"
-    />
-    <rect x={-half} y={-half} width={size} height={size} rx={corner} {fill} class="body" />
+    <rect x={-half + 0.8} y={-half + 1.4} width={size} height={size} rx={corner} class="shadow"
+    ></rect>
+    <rect x={-half} y={-half} width={size} height={size} rx={corner} {fill} class="body"></rect>
     <rect
         x={-half + size * 0.12}
         y={-half + size * 0.06}
@@ -38,8 +38,8 @@
         height={size * 0.14}
         rx={size * 0.05}
         fill={tint}
-    />
-    <rect x={-half} y={awningTop} width={size} height={awningBottom - awningTop} fill={tint} />
+    ></rect>
+    <rect x={-half} y={awningTop} width={size} height={awningBottom - awningTop} fill={tint}></rect>
     {#each scallops as scallop (scallop.index)}
         <rect
             x={scallop.x - size / 16}
@@ -48,8 +48,8 @@
             height={awningBottom - awningTop}
             {fill}
             opacity="0.85"
-        />
-        <circle cx={scallop.x} cy={awningBottom} r={size / 8} fill={tint} />
+        ></rect>
+        <circle cx={scallop.x} cy={awningBottom} r={size / 8} fill={tint}></circle>
     {/each}
     <rect
         x={-half + size * 0.12}
@@ -58,12 +58,12 @@
         height={size * 0.26}
         rx={size * 0.04}
         class="window"
-    />
+    ></rect>
     <path
         d="M {half - size * 0.36} {half} V {half - size * 0.3} a {size * 0.12} {size *
             0.12} 0 0 1 {size * 0.24} 0 V {half} Z"
         class="door"
-    />
+    ></path>
 </g>
 
 <style>

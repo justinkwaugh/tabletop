@@ -2,7 +2,15 @@
 export const MESSAGE_LIMIT = 2000
 
 // A post carries one status tag at a time; any other tag (UI, logic) labels the area and is kept.
-export const STATUS_TAGS = ['open', 'investigating', 'reproduced', 'fixed', 'wont fix', 'not a bug']
+export const STATUS_TAGS = [
+    'open',
+    'investigating',
+    'reproduced',
+    'fixed',
+    'wont fix',
+    'not a bug',
+    'suggestion'
+]
 export const STATUS_LIST = STATUS_TAGS.join(', ')
 
 // A post a player opened by hand may have no status tag yet, and still needs an answer.

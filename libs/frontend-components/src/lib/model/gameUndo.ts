@@ -7,7 +7,7 @@ import {
     type GameAction,
     type GameState,
     type HydratedGameState,
-    type Visibility
+    Visibility
 } from '@tabletop/common'
 import { GameActionResults } from './gameActionResults.svelte.js'
 import type { GameContext } from './gameContext.svelte.js'
@@ -17,34 +17,22 @@ export class GameUndo<T extends GameState, U extends HydratedGameState<T> & T> {
 
     preview(target: GameAction, perspective?: Visibility.Perspective): GameContext<T, U> {
         const result = this.context.clone()
-        const history = new ExplorationHistory(result.engine)
-        const redoActions: GameAction[] = []
-        let state = result.state
+        const undone: GameAction[] = []
         let action: GameAction
         do {
             const last = result.popAction()
             assertExists(last, 'Undo target is not in Action History')
             action = last
-            if (
-                (isOutOfTurnDeclaration(action) && action.id !== target.id) ||
-                (action.playerId &&
-                    action.playerId !== target.playerId &&
-                    target.simultaneousGroupId !== undefined &&
-                    action.simultaneousGroupId === target.simultaneousGroupId)
-            ) {
-                redoActions.unshift(action)
-            }
-            state = history.undo(state, action, this.context.state.explorationState)
+            undone.unshift(action)
         } while (action.id !== target.id)
 
-        state = history.afterUndo(
-            this.context.state,
-            state,
-            this.context.actions.slice(state.actionCount - this.context.historyStartIndex)
+        const { state, redo } = new ExplorationHistory(result.engine).undoThrough(
+            result.state,
+            undone
         )
         if (perspective === undefined) result.engine.validateCanonicalState(state)
         result.updateGameState(state)
-        for (const action of redoActions) this.redo(result, action, perspective)
+        for (const action of redo) this.redo(result, action, perspective)
         result.runtime.hydrator.hydrateState(result.state)
         result.verifyFullChecksum()
         return result
@@ -59,7 +47,8 @@ export class GameUndo<T extends GameState, U extends HydratedGameState<T> & T> {
         action.index = context.nextActionIndex
         delete action.undoPatch
         const state = context.state
-        if (perspective !== undefined && action.forwardPatch !== undefined) {
+        const declaration = isOutOfTurnDeclaration(action) && !Visibility.isRedactedAction(action)
+        if (perspective !== undefined && action.forwardPatch !== undefined && !declaration) {
             const updatedState = context.engine.applyProcessedAction({
                 action,
                 state,
@@ -73,11 +62,11 @@ export class GameUndo<T extends GameState, U extends HydratedGameState<T> & T> {
             return
         }
         delete action.forwardPatch
-        const args = { action, state, game: context.game }
-        const result =
-            perspective === undefined
-                ? context.engine.executeCanonicalAction(args)
-                : context.engine.executeAction({ ...args, perspective })
+        const target = { action, state, game: context.game, perspective }
+        const result = declaration
+            ? context.engine.reapplyDeclaration(target)
+            : context.engine.execute(target)
+        if (!result) return
         context.applyActionResults(
             new GameActionResults(result.processedActions, result.updatedState)
         )

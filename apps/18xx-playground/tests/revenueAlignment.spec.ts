@@ -6,7 +6,9 @@ for (const engine of ['chromium', 'webkit']) {
         const target = safari ? await safari.newPage() : page
         try {
             await target.goto(`${baseURL}/table`)
-            const labels = target.locator('[data-revenue-for] text')
+            const labels = target
+                .getByRole('tabpanel', { name: 'Board', exact: true })
+                .locator('[data-revenue-for] text')
             await labels.first().waitFor()
             const centers = await labels.evaluateAll((elements) =>
                 elements.map((element) => {

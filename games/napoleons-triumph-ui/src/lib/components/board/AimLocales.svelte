@@ -8,7 +8,6 @@
         event.stopPropagation()
         gameSession.aimAt(locale)
     }
-
 </script>
 
 {#each gameSession.aimableLocales as locale (locale)}

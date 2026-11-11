@@ -1,23 +1,23 @@
 <script lang="ts">
-import { animateStartedShipMarker } from '$lib/animators/startCompanyAnimator.js'
-import {
-    animateMergedShipMarker,
-    attachShipMergerAnimator,
-    ShipMergerAnimator
-} from '$lib/animators/shipMergerAnimator.js'
-import ShipMarker from '$lib/components/ShipMarker.svelte'
-import { getStartCompanyAnimatorContext } from '$lib/model/startCompanyAnimatorContext.svelte.js'
-import { getGameSession } from '$lib/model/sessionContext.svelte'
-import {
-    expandedShipMarkerEntryForAction,
-    startedShipMarkerEntryForAction
-} from '$lib/utils/startedCompanyEntries.js'
-import { shadeHexColor } from '$lib/utils/color.js'
-import { shipSlotKey } from '$lib/utils/shipSlotKey.js'
-import { shippingStyleByCompanyId, type ShippingStyle } from '$lib/utils/shippingStyles.js'
-import { markerPointsForSeaAreaShipList } from '$lib/utils/shipMarkers.js'
-import { Color } from '@tabletop/common'
-import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
+    import { animateStartedShipMarker } from '$lib/animators/startCompanyAnimator.js'
+    import {
+        animateMergedShipMarker,
+        attachShipMergerAnimator,
+        ShipMergerAnimator
+    } from '$lib/animators/shipMergerAnimator.js'
+    import ShipMarker from '$lib/components/ShipMarker.svelte'
+    import { getStartCompanyAnimatorContext } from '$lib/model/startCompanyAnimatorContext.svelte.js'
+    import { getGameSession } from '$lib/model/sessionContext.svelte'
+    import {
+        expandedShipMarkerEntryForAction,
+        startedShipMarkerEntryForAction
+    } from '$lib/utils/startedCompanyEntries.js'
+    import { shadeHexColor } from '$lib/utils/color.js'
+    import { shipSlotKey } from '$lib/utils/shipSlotKey.js'
+    import { shippingStyleByCompanyId, type ShippingStyle } from '$lib/utils/shippingStyles.js'
+    import { markerPointsForSeaAreaShipList } from '$lib/utils/shipMarkers.js'
+    import { Color } from '@tabletop/common'
+    import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
 
     type ShipMarkerEntry = {
         key: string
@@ -50,7 +50,9 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
 
     const activeShipVisualState = $derived(gameSession.activeShipVisualState)
 
-    const styleByShippingCompanyId = $derived.by(() => shippingStyleByCompanyId(gameSession.gameState))
+    const styleByShippingCompanyId = $derived.by(() =>
+        shippingStyleByCompanyId(gameSession.gameState)
+    )
 
     const shipMarkers: ShipMarkerEntry[] = $derived.by(() => {
         const markers: ShipMarkerEntry[] = []
@@ -77,7 +79,8 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
                 const ownerPlayerColor = gameSession.colors.getPlayerColor(company.owner)
                 let remainingCapacity: number | undefined
                 if (company.type === CompanyType.Shipping && isIndonesiaNodeId(area.id)) {
-                    const ownerHullLevel = gameSession.gameState.getPlayerState(company.owner).research.hull
+                    const ownerHullLevel = gameSession.gameState.getPlayerState(company.owner)
+                        .research.hull
                     const capacityPerShip = 1 + ownerHullLevel
                     const usedCapacity = gameSession.gameState.operatingCompanyShipUseCount(
                         company.id,
@@ -114,7 +117,7 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
                                     ownerColor,
                                     SHIP_MARKER_HULL_STROKE_DARKNESS_SHIFT_BLUE
                                 )
-                            : 'none'
+                              : 'none'
                 })
             }
         }
@@ -155,27 +158,27 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
     })
 
     const startedShipMarkers = $derived.by(() => {
-        return gameSession.visibleStartedCompanyAnimationEntries
-            .flatMap((entry) =>
-                startedShipMarkerEntryForAction({
-                    gameState: gameSession.gameState,
-                    action: entry.action,
-                    ownerColorForPlayerId: (playerId) => gameSession.colors.getPlayerUiColor(playerId),
-                    ownerPlayerColorForPlayerId: (playerId) => gameSession.colors.getPlayerColor(playerId)
-                })
-            )
+        return gameSession.visibleStartedCompanyAnimationEntries.flatMap((entry) =>
+            startedShipMarkerEntryForAction({
+                gameState: gameSession.gameState,
+                action: entry.action,
+                ownerColorForPlayerId: (playerId) => gameSession.colors.getPlayerUiColor(playerId),
+                ownerPlayerColorForPlayerId: (playerId) =>
+                    gameSession.colors.getPlayerColor(playerId)
+            })
+        )
     })
 
     const expandedShipMarkers = $derived.by(() => {
-        return gameSession.visibleExpandAnimationEntries
-            .flatMap((entry) =>
-                expandedShipMarkerEntryForAction({
-                    gameState: gameSession.gameState,
-                    action: entry.action,
-                    ownerColorForPlayerId: (playerId) => gameSession.colors.getPlayerUiColor(playerId),
-                    ownerPlayerColorForPlayerId: (playerId) => gameSession.colors.getPlayerColor(playerId)
-                })
-            )
+        return gameSession.visibleExpandAnimationEntries.flatMap((entry) =>
+            expandedShipMarkerEntryForAction({
+                gameState: gameSession.gameState,
+                action: entry.action,
+                ownerColorForPlayerId: (playerId) => gameSession.colors.getPlayerUiColor(playerId),
+                ownerPlayerColorForPlayerId: (playerId) =>
+                    gameSession.colors.getPlayerColor(playerId)
+            })
+        )
     })
 
     const mergedShipMarkers = $derived.by(() => gameSession.visibleShippingMergeAnimationEntries)
@@ -197,7 +200,6 @@ import { CompanyType, isIndonesiaNodeId } from '@tabletop/indonesia'
     const visibleEmphasizedShipMarkers: ShipMarkerEntry[] = $derived.by(() =>
         emphasizedShipMarkers.filter((ship) => !suppressedBaseShipKeySet.has(ship.key))
     )
-
 </script>
 
 <g

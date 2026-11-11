@@ -1,7 +1,7 @@
-import { EighteenFortySixMap, EighteenFortySixTileSet } from '@tabletop/1846'
+import { EighteenFortySixMap, EighteenFortySixTileSet, TitleRules1846 } from '@tabletop/1846'
 import { Scenarios1846, ScenarioPositions1846 } from '@tabletop/1846/scenarios'
 import { UiDefinition as FortySixUi } from '@tabletop/1846-ui'
-import { MapView1846, TileLayouts1846, SessionRules1846 } from '@tabletop/1846-ui/playground'
+import { MapView1846, TileLayouts1846 } from '@tabletop/1846-ui/playground'
 import { assertExists } from '@tabletop/common'
 import {
     TheOldPrinceMap,
@@ -22,14 +22,16 @@ import { UiDefinition as Shikoku1889Ui } from '@tabletop/shikoku-1889-ui'
 import { Shikoku1889MapView } from '@tabletop/shikoku-1889-ui/playground'
 import { EighteenThirtyMap, EighteenThirtyTileSet, EighteenThirtyTitleRules } from '@tabletop/1830'
 import { EighteenThirtyScenarios } from '@tabletop/1830/scenarios'
-import { UiDefinition as EighteenThirtyUi, EighteenThirtyMapView } from '@tabletop/1830-ui'
+import { UiDefinition as EighteenThirtyUi } from '@tabletop/1830-ui'
+import { EighteenThirtyMapView } from '@tabletop/1830-ui/playground'
 import {
     EighteenSeventeenMap,
     EighteenSeventeenTileSet,
     EighteenSeventeenTitleRules
 } from '@tabletop/1817'
 import { EighteenSeventeenScenarios } from '@tabletop/1817/scenarios'
-import { UiDefinition as EighteenSeventeenUi, EighteenSeventeenMapView } from '@tabletop/1817-ui'
+import { UiDefinition as EighteenSeventeenUi } from '@tabletop/1817-ui'
+import { EighteenSeventeenMapView } from '@tabletop/1817-ui/playground'
 import {
     EighteenThirtyTwoMap,
     EighteenThirtyTwoTileSet,
@@ -41,6 +43,17 @@ import {
     EighteenThirtyTwoMapView,
     EighteenThirtyTwoTileLayouts
 } from '@tabletop/1832-ui/playground'
+import {
+    EighteenNinetyFourMap,
+    EighteenNinetyFourTileSet,
+    EighteenNinetyFourTitleRules
+} from '@tabletop/1894'
+import { EighteenNinetyFourScenarios } from '@tabletop/1894/scenarios'
+import { UiDefinition as EighteenNinetyFourUi } from '@tabletop/1894-ui'
+import {
+    EighteenNinetyFourMapView,
+    EighteenNinetyFourTileLayouts
+} from '@tabletop/1894-ui/playground'
 import type { EighteenXXTitleRules, RailwayMap, TileRotation, TileSet } from '@tabletop/18xx'
 import type { ScenarioDefinition, ScenarioPosition } from '@tabletop/18xx/scenarios'
 import type { Component } from 'svelte'
@@ -59,7 +72,7 @@ export type PlaygroundTitle = {
     /** Short label used by the harness selectors. */
     key: string
     name: string
-    rules: Pick<EighteenXXTitleRules, 'trackRules' | 'endingRules' | 'stockRules'>
+    rules: Pick<EighteenXXTitleRules, 'trackRules' | 'endingRules' | 'stockRules' | 'startingCash'>
     scenarios: ScenarioDefinition
     host: Component<ScenarioHostProps>
     map: RailwayMap
@@ -147,7 +160,7 @@ export const PlaygroundTitles: readonly PlaygroundTitle[] = [
         key: '1846',
         name: '1846',
         scenarioVersion: 32,
-        rules: SessionRules1846,
+        rules: TitleRules1846,
         scenarios: Scenarios1846,
         host: scenarioHost(FortySixUi, Scenarios1846),
         map: EighteenFortySixMap,
@@ -175,6 +188,21 @@ export const PlaygroundTitles: readonly PlaygroundTitle[] = [
         tileSets: { '1832': EighteenThirtyTwoTileSet },
         positions: [],
         finishedGame: () => import('./demo/fixtures/1832-finished.json')
+    },
+    {
+        key: '1894',
+        name: '1894',
+        rules: EighteenNinetyFourTitleRules,
+        scenarios: EighteenNinetyFourScenarios,
+        host: scenarioHost(EighteenNinetyFourUi, EighteenNinetyFourScenarios),
+        map: EighteenNinetyFourMap,
+        mapLayouts: EighteenNinetyFourMapView.layouts,
+        mapView: EighteenNinetyFourMapView,
+        tileLayouts: EighteenNinetyFourTileLayouts,
+        mapExample: { locationId: 'E16', definitionId: '18xx:57', rotation: 0, label: 'Belge' },
+        tileSets: { '1894': EighteenNinetyFourTileSet },
+        positions: [],
+        playerCounts: [3, 4]
     }
 ]
 

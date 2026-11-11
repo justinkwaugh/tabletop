@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import type { GameAction } from '@tabletop/common'
+import { assertExists, type GameAction } from '@tabletop/common'
 import {
     ActionType,
     CommandKind,
+    DecisionKind,
     MoralePenaltyKind,
     ResultTermKind,
     Side,
@@ -16,14 +17,17 @@ import {
     arrangeBattlefield,
     artillery,
     cavalry,
-    infantry
+    infantry,
+    oddLossOnTheAttackers
 } from '@tabletop/napoleons-triumph/testing'
 import {
     anyLoss,
     lossSummary,
     lossesOfAttack,
     owedByAttacker,
-    owedByDefender
+    owedByDefender,
+    stepLines,
+    type SideLosses
 } from './attackLosses.js'
 import { recordedAccounts } from './resultAccount.js'
 
@@ -55,7 +59,7 @@ function threatened() {
 describe('what an attack has cost each side', () => {
     it('is nothing while it is only threatened', () => {
         const { actions, attack } = threatened()
-        const losses = lossesOfAttack(actions, attack())
+        const losses = lossesOfAttack(actions, attack(), [])
         expect(anyLoss(losses)).toBe(false)
         expect(lossSummary(losses.attacker)).toBe('no loss')
     })
@@ -71,7 +75,7 @@ describe('what an attack has cost each side', () => {
         })
         const fought = attack()
         act(ActionType.CounterAttack, allied, { unitIds: ['A-cav'] })
-        const losses = lossesOfAttack(actions, fought)
+        const losses = lossesOfAttack(actions, fought, [])
 
         expect(losses.attacker).toMatchObject({ playerId: french, steps: 2, paidForSteps: 2 })
         expect(losses.attacker.taken).toEqual([
@@ -118,16 +122,82 @@ describe('what an attack has cost each side', () => {
                 kept: {}
             })
         ]
-        const losses = lossesOfAttack(actions, {
-            attackerId: french,
-            defenderId: allied,
-            attackingUnitIds: []
+        const losses = lossesOfAttack(
+            actions,
+            {
+                attackerId: french,
+                defenderId: allied,
+                attackingUnitIds: []
+            },
+            []
+        )
+        expect(losses.defender).toMatchObject({
+            steps: owed,
+            retreatSteps: owed,
+            paidForSteps: owed,
+            morale: owed
         })
-        expect(losses.defender).toMatchObject({ steps: owed, paidForSteps: owed, morale: owed })
+        expect(stepLines([], losses.defender)).toEqual([
+            { text: 'Steps lost retreating', steps: owed }
+        ])
         expect(losses.defender.taken).toEqual([
             { unitId: 'A-inf', face: infantry(3), steps: owed, eliminated: false }
         ])
         expect(losses.attacker).toMatchObject({ steps: 0, morale: 0 })
+    })
+})
+
+describe('the steps an attack still owes while a player chooses where they fall', () => {
+    it('counts the odd step the defender places on one of two leading units of different strength', () => {
+        const game = oddLossOnTheAttackers()
+        const attack = game.hydrated.attack
+        assertExists(attack, 'The attack waits on the odd loss')
+        expect(attack.pending).toEqual([
+            {
+                kind: DecisionKind.OddLoss,
+                playerId: game.playerOf(Side.Allied),
+                unitIds: ['F01', 'F02']
+            }
+        ])
+
+        const losses = lossesOfAttack(game.played, attack, attack.pending)
+        expect(losses.attacker).toMatchObject({ steps: 0, owed: 1 })
+        expect(lossSummary(losses.attacker)).toBe('1 step owed')
+        expect(losses.defender.owed).toBe(0)
+    })
+
+    it('counts the steps a player still has to place on their other units', () => {
+        const losses = lossesOfAttack(
+            [],
+            { attackerId: 'french', defenderId: 'allied', attackingUnitIds: ['F-inf'] },
+            [
+                {
+                    kind: DecisionKind.ExcessLosses,
+                    playerId: 'allied',
+                    amount: 2,
+                    unitIds: ['A-inf', 'A-cav']
+                }
+            ]
+        )
+        expect(losses.defender.owed).toBe(2)
+        expect(losses.attacker.owed).toBe(0)
+        expect(anyLoss(losses)).toBe(true)
+        expect(lossSummary(losses.defender)).toBe('2 steps owed')
+    })
+
+    it('names steps lost, steps owed and morale together', () => {
+        expect(
+            lossSummary({
+                playerId: 'french',
+                steps: 2,
+                owed: 1,
+                morale: 3,
+                taken: [],
+                retreatSteps: 0,
+                paidForSteps: 2,
+                penalties: []
+            })
+        ).toBe('2 steps, 1 step owed and 3 morale')
     })
 })
 
@@ -170,5 +240,37 @@ describe('the steps a result makes each side owe (rule 11, steps 9 and 10)', () 
     it('add a step for each unit that counter-attacks', () => {
         const terms = account([infantry(3)], [infantry(2)])
         expect(sum(owedByDefender(terms, 0, 2))).toBe(sum(owedByDefender(terms, 0, 0)) + 2)
+    })
+})
+
+describe('the step lines of the losses sheet', () => {
+    const side = (steps: number, retreatSteps: number, owed = 0): SideLosses => ({
+        playerId: 'french',
+        steps,
+        owed,
+        morale: steps,
+        taken: [],
+        retreatSteps,
+        paidForSteps: steps,
+        penalties: []
+    })
+    const owedForResult = [
+        { text: 'A step for each unit leading the attack', steps: 2 },
+        { text: 'A step for each point the final result is above zero', steps: 1 }
+    ]
+    const sum = (lines: { steps: number }[]) => lines.reduce((total, line) => total + line.steps, 0)
+
+    it('add up to the steps lost when a lone leader cannot take them all and the defence then retreats', () => {
+        const lines = stepLines(owedForResult, side(5, 3))
+        expect(lines.slice(2)).toEqual([
+            { text: 'Less steps with no unit left in the fight to take them', steps: -1 },
+            { text: 'Steps lost retreating', steps: 3 }
+        ])
+        expect(sum(lines)).toBe(5)
+    })
+
+    it('are the result’s lines alone when the fight took every step it owed', () => {
+        expect(stepLines(owedForResult, side(3, 0))).toEqual(owedForResult)
+        expect(stepLines(owedForResult, side(1, 0, 2))).toEqual(owedForResult)
     })
 })

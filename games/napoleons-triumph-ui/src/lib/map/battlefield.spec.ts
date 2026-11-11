@@ -23,7 +23,7 @@ describe('the battlefield on the printed board', () => {
         const onTheTracks = commandDiscs(game.hydrated)
         expect(onTheTracks).toHaveLength(2)
         for (const disc of onTheTracks) {
-            expect(onBattlefield(disc)).toBe(false)
+            expect(onBattlefield(disc.at)).toBe(false)
         }
         expect(onBattlefield({ x: BOARD_WIDTH - 200, y: BOARD_HEIGHT - 100 })).toBe(false)
     })

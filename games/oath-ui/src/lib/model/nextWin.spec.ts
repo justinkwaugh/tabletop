@@ -19,7 +19,12 @@ function table(options: {
     const state = testState(
         [
             testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', ...options.me }),
-            testPlayer({ playerId: 'ann', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'p1' }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'p1'
+            }),
             testPlayer({ playerId: 'bo', color: Color.Yellow, siteId: 'h1', ...options.bo })
         ],
         {
@@ -46,15 +51,27 @@ describe('the next win', () => {
             round: 5,
             threshold: 6
         })
-        expect(nextWin(table({ holder: 'ann', round: 6 }))).toMatchObject({ when: 'endDie', round: 6, threshold: 5 })
+        expect(nextWin(table({ holder: 'ann', round: 6 }))).toMatchObject({
+            when: 'endDie',
+            round: 6,
+            threshold: 5
+        })
     })
 
     it('R-3.3.1 — a Citizen meeting the Successor goal takes the Empire’s win', () => {
         const state = table({
             holder: 'ann',
-            bo: { status: PlayerStatus.Citizen, relicIds: ['relic.cup'], warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 0, bo: 14 } }
+            bo: {
+                status: PlayerStatus.Citizen,
+                relicIds: ['relic.cup'],
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 0, bo: 14 }
+            }
         })
-        expect(nextWin(state)).toMatchObject({ when: 'endDie', playerId: 'bo', kind: WinKind.Successor })
+        expect(nextWin(state)).toMatchObject({
+            when: 'endDie',
+            playerId: 'bo',
+            kind: WinKind.Successor
+        })
     })
 
     it('R-3.1 — an Usurper later in the round wins at their Wake, before the round ends', () => {
@@ -71,10 +88,25 @@ describe('the next win', () => {
     })
 
     it('R-4.1.2 — a Wake still being resolved counts: the Usurper on the clock wins at this one', () => {
-        const state = table({ holder: 'me', usurper: true, round: 6, machineState: MachineState.WakePhase })
+        const state = table({
+            holder: 'me',
+            usurper: true,
+            round: 6,
+            machineState: MachineState.WakePhase
+        })
         expect(nextWin(state)).toEqual({ when: 'wake', playerId: 'me', kind: WinKind.Usurper })
-        const chancellorsWake = table({ holder: 'me', usurper: true, round: 6, current: 'ann', machineState: MachineState.WakePhase })
-        expect(nextWin(chancellorsWake)).toEqual({ when: 'wake', playerId: 'me', kind: WinKind.Usurper })
+        const chancellorsWake = table({
+            holder: 'me',
+            usurper: true,
+            round: 6,
+            current: 'ann',
+            machineState: MachineState.WakePhase
+        })
+        expect(nextWin(chancellorsWake)).toEqual({
+            when: 'wake',
+            playerId: 'me',
+            kind: WinKind.Usurper
+        })
     })
 
     it('R-3.2 — an Exile meeting their Vision alone, three Visions drawn, wins at their next Wake', () => {
@@ -100,7 +132,10 @@ describe('the next win', () => {
     })
 
     it('R-4.1.3 — an Exile holding the Oathkeeper side turns Usurper at their next Wake and wins at the one after', () => {
-        expect(nextWin(table({ holder: 'bo', round: 2 }))).toEqual({ when: 'wakeAfterNext', playerId: 'bo' })
+        expect(nextWin(table({ holder: 'bo', round: 2 }))).toEqual({
+            when: 'wakeAfterNext',
+            playerId: 'bo'
+        })
     })
 
     it('R-3.4.2 — when round 8 ends first, the Exile who turned Usurper wins then', () => {
@@ -121,22 +156,30 @@ describe('the next win', () => {
 
 describe('the next win, in words', () => {
     it('names the end die’s odds for the round, in the viewer’s person', () => {
-        const next = { when: 'endDie', playerId: 'ann', kind: WinKind.StableRegime, round: 5, threshold: 6 } as const
-        expect(nextWinPhrase(next, false)).toBe('wins as the Oathkeeper if the end die ends the game after round 5 (on a 6)')
+        const next = {
+            when: 'endDie',
+            playerId: 'ann',
+            kind: WinKind.StableRegime,
+            round: 5,
+            threshold: 6
+        } as const
+        expect(nextWinPhrase(next, false)).toBe(
+            'wins as the Oathkeeper if the end die ends the game after round 5 (on a 6)'
+        )
         expect(nextWinPhrase({ ...next, round: 7, threshold: 3 }, true)).toBe(
             'win as the Oathkeeper if the end die ends the game after round 7 (on a 3 or more)'
         )
     })
 
     it('a Wake win, the Usurper’s two Wakes and round 8', () => {
-        expect(nextWinPhrase({ when: 'wake', playerId: 'bo', kind: WinKind.Visionary }, false)).toBe(
-            'wins with their Vision at their next Wake'
-        )
+        expect(
+            nextWinPhrase({ when: 'wake', playerId: 'bo', kind: WinKind.Visionary }, false)
+        ).toBe('wins with their Vision at their next Wake')
         expect(nextWinPhrase({ when: 'wakeAfterNext', playerId: 'me' }, true)).toBe(
             'become the Usurper at your next Wake and win at the one after'
         )
-        expect(nextWinPhrase({ when: 'finalRound', playerId: 'bo', kind: WinKind.Successor }, false)).toBe(
-            'wins as the Successor when round 8 ends'
-        )
+        expect(
+            nextWinPhrase({ when: 'finalRound', playerId: 'bo', kind: WinKind.Successor }, false)
+        ).toBe('wins as the Successor when round 8 ends')
     })
 })

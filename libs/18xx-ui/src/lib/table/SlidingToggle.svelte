@@ -57,6 +57,23 @@
         border-radius: 999px;
         background: var(--rail-surface, #222c37);
     }
+    /* Zero specificity, so each toggle's own sizing and colours take precedence. */
+    :where(.sliding-toggle) > :global(button) {
+        position: relative;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: var(--rail-muted, #7f8e9e);
+        font: inherit;
+        cursor: pointer;
+    }
+    :where(.sliding-toggle) > :global(button:hover:not(:disabled)) {
+        color: var(--rail-text, #e3e9ef);
+    }
+    :where(.sliding-toggle) > :global(button[aria-pressed='true']) {
+        color: #ffffff;
+        font-weight: 600;
+    }
     .thumb {
         position: absolute;
         top: 2px;

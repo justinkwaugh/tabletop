@@ -21,6 +21,7 @@ import {
     sharesOwned,
     transferCompanyAssets,
     trainsOwnedBy,
+    treasuryPoolId,
     type AssetTransfer,
     type CashPayment,
     type Owner,
@@ -34,7 +35,7 @@ import { corporationShareCount } from './corporations.js'
 import { closingZone, inClosingZone } from './marketZones.js'
 import type { ClosingZone } from './state.js'
 import { isLiquidated } from './liquidation.js'
-import { MarketPoolId, treasuryPoolId } from './roundRules.js'
+import { MarketPoolId } from './roundRules.js'
 import { StationPrice } from './stockRules.js'
 import { EighteenSeventeenTrainRules } from './trains.js'
 import { StationSubsidyId, companyHolding } from './privateHolders.js'
@@ -155,7 +156,7 @@ export function mergerPrice(
 ): number {
     const a = EighteenSeventeenMarket.companySpace(state.stockMarket, companyId).price
     const b = EighteenSeventeenMarket.companySpace(state.stockMarket, targetId).price
-    const value = getCompany(state, companyId).shareCount === 2 ? a + b : Math.floor((a + b) / 2)
+    const value = corporationShareCount(state, companyId) === 2 ? a + b : Math.floor((a + b) / 2)
     return mergerSpace(value).price
 }
 
@@ -214,23 +215,23 @@ export function mergeReason(
     targetId: string,
     convertedIds: readonly string[]
 ): string | undefined {
-    const company = getCompany(state, companyId)
     const target = getCompany(state, targetId)
     if (targetId === companyId || !target.floated || target.kind === 'private')
         return 'Choose another floated company.'
     if (convertedIds.includes(targetId)) return 'This company has already converted this round.'
     if (inClosingZone(state.stockMarket, targetId) || isLiquidated(state.stockMarket, targetId))
         return 'Companies in the acquisition or liquidation zone cannot merge.'
-    if (target.shareCount !== company.shareCount || !canConvert(state, companyId))
+    const size = corporationShareCount(state, companyId)
+    if (corporationShareCount(state, targetId) !== size || !canConvert(state, companyId))
         return 'Only two 2-share or two 5-share companies can merge.'
     // Enough for the merged company's president's certificate.
-    if (company.shareCount === 5 && largestCombinedPercent(state, companyId, targetId) < 40)
+    if (size === 5 && largestCombinedPercent(state, companyId, targetId) < 40)
         return 'Some player must hold 40% of the two companies together.'
     const president = controllingOwner(state, companyId)
     const targetPresident = controllingOwner(state, targetId)
     assertExists(president, 'A merging company has a president')
     if (
-        company.shareCount === 2 &&
+        size === 2 &&
         !sameOwner(president, targetPresident ?? president) &&
         finiteCashOwnedBy(state, president) < mergerPrice(state, companyId, targetId)
     )
@@ -265,7 +266,7 @@ export function mergeCompanies(
     targetId: string
 ): MergerRecord {
     const price = mergerPrice(state, companyId, targetId)
-    const size = getCompany(state, companyId).shareCount
+    const size = corporationShareCount(state, companyId)
     const president = controllingOwner(state, companyId)
     const targetPresident = controllingOwner(state, targetId)
     assertExists(president, 'A merging company has a president')

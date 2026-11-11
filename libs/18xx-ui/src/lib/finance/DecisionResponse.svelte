@@ -6,7 +6,8 @@
         disabled,
         onAccept,
         onDecline,
-        acceptLabel = 'Accept'
+        acceptLabel = 'Accept',
+        declineLabel = 'Decline'
     }: {
         label: string
         children: Snippet
@@ -14,6 +15,7 @@
         onAccept: () => void
         onDecline: () => void
         acceptLabel?: string
+        declineLabel?: string
     } = $props()
 </script>
 
@@ -21,7 +23,7 @@
     <div class="summary">{@render children()}</div>
     <div class="controls">
         <button class="action-button" {disabled} onclick={onAccept}>{acceptLabel}</button>
-        <button class="action-button" {disabled} onclick={onDecline}>Decline</button>
+        <button class="action-button" {disabled} onclick={onDecline}>{declineLabel}</button>
     </div>
 </div>
 
@@ -37,6 +39,7 @@
         align-items: center;
         justify-content: center;
         gap: 8px;
+        text-align: center;
     }
     .controls {
         margin-top: 8px;

@@ -3,13 +3,11 @@ import {
     assertExists,
     GameEngine,
     GameResult,
-    PlayerStatus,
     validateGameResult,
-    type Game,
-    type GameConfig
+    type Game
 } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
-import { Definition } from './definition.js'
+import { createTestGame } from '../util/testGame.js'
 import { LowenherzRuntime } from './runtime.js'
 import { MachineState } from './states.js'
 import { ActionType } from './actions.js'
@@ -25,24 +23,6 @@ import { awardHillPowerPoints } from '../util/hillPowerPoints.js'
 const engine = new GameEngine(LowenherzRuntime)
 const masterSeed = '0123456789abcdef0123456789abcdef'
 
-function createGame(count: number, config: GameConfig) {
-    return LowenherzRuntime.initializer.initializeGame(
-        {
-            id: 'lowenherz-competition',
-            typeId: Definition.info.id,
-            ownerId: 'owner',
-            config,
-            players: Array.from({ length: count }, (_, index) => ({
-                id: `p${index}`,
-                name: `Player ${index}`,
-                isHuman: true,
-                status: PlayerStatus.Joined
-            }))
-        },
-        Definition
-    )
-}
-
 describe.each([2, 3, 4])('Lowenherz tournaments with %i players', (count) => {
     describe.each([true, false])('playerPlacedCastles %s', (playerPlacedCastles) => {
         const openingState =
@@ -51,7 +31,7 @@ describe.each([2, 3, 4])('Lowenherz tournaments with %i players', (count) => {
                 : MachineState.StartOfTurn
 
         it('seats players in the assigned order from the first turn', () => {
-            const game = createGame(count, { playerPlacedCastles })
+            const game = createTestGame(count, { playerPlacedCastles })
             const playerIds = game.players.map((player) => player.id)
             for (let offset = 0; offset < count; offset++) {
                 const order = [...playerIds.slice(offset), ...playerIds.slice(0, offset)]
@@ -71,7 +51,7 @@ describe.each([2, 3, 4])('Lowenherz tournaments with %i players', (count) => {
         })
 
         it('keeps the seeded board, colors, and decks independent of the assigned order', () => {
-            const game = createGame(count, { playerPlacedCastles })
+            const game = createTestGame(count, { playerPlacedCastles })
             const uninitialized = engine.generateUninitializedState(game, masterSeed)
             const normal = LowenherzRuntime.initializer
                 .initializeGameState(game, structuredClone(uninitialized))
@@ -149,7 +129,7 @@ function completeCastleSetup(game: Game, initialState: LowenherzProjectedState) 
 }
 
 function finishGame(count: number, standings: Record<string, FinalStanding>) {
-    const game = createGame(count, { playerPlacedCastles: false })
+    const game = createTestGame(count, { playerPlacedCastles: false })
     const { initialState, startedGame } = engine.startGame(game, {
         masterSeed,
         startingPositions: { playerIds: game.players.map((player) => player.id).reverse() }

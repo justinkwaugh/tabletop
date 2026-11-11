@@ -1,40 +1,37 @@
 <script lang="ts">
-    import { historyStates } from './historyStates.js'
+    import { historyBankBreaks, historyStates } from './historyStates.js'
     import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
     import { controllingOwner } from '@tabletop/18xx'
     import { historyCompanyChanges } from './historyCompanyChanges.js'
     import { historyCash } from './historyCash.js'
-    import { historyOperatingOrder } from './historyOperatingOrder.js'
+    import { entryOrderChanges, historyOperatingOrder } from './historyOperatingOrder.js'
     import { historyRounds } from './historyRounds.js'
     import { auctionLotName } from './auctionHistory.js'
-    import type { CompanyNameVariants } from './companyPresentation.js'
-    import { historyGroups } from './historyGroups.js'
-    import { historyDescription, type TitleActionDescription } from './historyDescription.js'
+    import { historyGroups, operatingPlayerOf } from './historyGroups.js'
+    import { describeAutomaticStep } from './historyAutomaticStep.js'
+    import {
+        companyLabels,
+        historyDescription,
+        type TitleActionDescription
+    } from './historyDescription.js'
     import HistoryGroup from './HistoryGroup.svelte'
     import OperatingOrderHistory from './OperatingOrderHistory.svelte'
     import RoundHistory from './RoundHistory.svelte'
     import AuctionHistoryCard from './AuctionHistoryCard.svelte'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
+    import type { Snippet } from 'svelte'
     let {
         session,
         onPreviewMap,
-        phaseColors,
-        phaseTileColors,
-        tileColors,
-        tileColorNames,
         trainColors,
         describeAction,
-        companyNames
+        setup
     }: {
         onPreviewMap: (action: GameAction) => void
         session: EighteenXXSessionView
         trainColors: Readonly<Record<string, string>>
-        phaseColors: Readonly<Record<string, string>>
-        phaseTileColors: Readonly<Record<string, readonly string[]>>
-        tileColors?: Readonly<Record<string, string>>
-        tileColorNames?: Readonly<Record<string, string>>
-        companyNames?: Readonly<Record<string, CompanyNameVariants>>
         describeAction?: TitleActionDescription
+        setup?: Snippet
     } = $props()
     const money = $derived(session.presentation.money)
     const jumpDisabled = $derived(
@@ -44,18 +41,22 @@
         if (!jumpDisabled) void session.history.goToActionIndex(index, { exact: true })
     }
     const newestFirst = $derived(session.preferences.values.historyOrder === 'newestFirst')
-    const context = $derived(session.history.visibleContext)
-    const gameState = $derived(context.state)
-    const states = $derived(historyStates(context.actions, gameState))
-    const orderChanges = $derived(historyOperatingOrder(context.actions, states))
+    const actions = $derived(session.actions)
+    // Stored form: the history is replayed from a copy, which the hydrated state's functions prevent.
+    const gameState = $derived(session.gameState.dehydrate())
+    const states = $derived(historyStates(actions, gameState, session.endingRules))
+    const orderChanges = $derived(historyOperatingOrder(actions, states))
     const cash = $derived(historyCash(states))
-    const companyChanges = $derived(historyCompanyChanges(context.actions))
+    const entryOrders = $derived(entryOrderChanges(actions, orderChanges))
+    const bankBreaks = $derived(historyBankBreaks(states))
+    const companyChanges = $derived(historyCompanyChanges(actions))
+    const titleNames = $derived({ companyName, place: session.placeName })
     // A system action the title describes is one of its own events, unless it is routine.
     const rounds = $derived(
-        historyRounds(context.actions, gameState, states, orderChanges, cash, {
+        historyRounds(actions, gameState, states, orderChanges, cash, {
             isEvent: (action) => {
                 if (action.source !== ActionSource.System) return false
-                const description = describeAction?.(action, companyName, () =>
+                const description = describeAction?.(action, titleNames, () =>
                     describeShared(action)
                 )
                 return !!description && !description.routine
@@ -67,11 +68,17 @@
     function returnToCurrent() {
         if (!jumpDisabled) void session.history.goToEnd()
     }
-    function fullCompanyName(id: string) {
-        return session.companyName(id)
-    }
+    const labels = $derived(
+        companyLabels(
+            gameState.companies,
+            (id) => session.companyInitials(id),
+            (id) => session.companyName(id)
+        )
+    )
     function companyName(id: string) {
-        return companyNames?.[id]?.history ?? fullCompanyName(id)
+        return gameState.companies.find((company) => company.id === id)?.kind === 'private'
+            ? session.companyName(id)
+            : session.companyInitials(id)
     }
     function describeShared(action: GameAction) {
         return historyDescription(
@@ -82,13 +89,19 @@
             (id) => session.getPlayerName(id),
             companyChanges.get(action.id),
             session.presentation.money,
-            (id) => auctionLotName(id, gameState, session.auctionLotsFor(gameState), companyName)
+            (id) => auctionLotName(id, gameState, session.auctionLotsFor(gameState), companyName),
+            (id) => session.names.routeBonus(id),
+            session.placeName,
+            (id) => session.poolName(id)
         )
     }
     function describe(action: GameAction) {
         const shared = () => describeShared(action)
-        const description = describeAction?.(action, companyName, shared) ?? shared()
-        return orderChanges.has(action.id) ? { ...description, important: true } : description
+        const description = describeAutomaticStep(
+            action,
+            describeAction?.(action, titleNames, shared) ?? shared()
+        )
+        return entryOrders.has(action.id) ? { ...description, important: true } : description
     }
 
     function lot(lotId: string) {
@@ -104,9 +117,10 @@
     onJump={jumpToHistory}
     {jumpDisabled}
     {rounds}
-    {phaseColors}
+    phaseColors={session.presentation.phaseColors}
     {newestFirst}
-    historyComplete={context.hasCompleteHistory}
+    {setup}
+    historyComplete={session.hasCompleteHistory}
     onOrderChange={(first) =>
         session.preferences.set({ historyOrder: first ? 'newestFirst' : 'newestLast' }, 'family')}
 >
@@ -114,17 +128,24 @@
         <OperatingOrderHistory {order} stations={session.mapView.stations} {companyName} />
     {/snippet}
     {#snippet children(round)}
-        {@const groups = historyGroups(round.entries, round.label.startsWith('OR '))}
+        {@const groups = historyGroups(
+            round.entries,
+            round.label.startsWith('OR '),
+            (action) => !!describe(action).consequence
+        )}
         <ol aria-label={`${round.label} actions`}>
             {#each newestFirst ? groups : groups.toReversed() as entry (entry.id)}
                 {#if entry.kind === 'auction'}
+                    {@const offered = lot(entry.offer.lotId)}
                     <li class="auction">
                         <AuctionHistoryCard
                             {money}
                             card={entry}
-                            lot={lot(entry.offer.lotId)}
+                            lot={offered}
+                            lotName={session.lotName(offered)}
                             playerName={(id) => session.getPlayerName(id)}
                             playerColor={(id) => session.colors.getPlayerBgColorValue(id)}
+                            {describe}
                         />
                     </li>
                 {:else}
@@ -140,25 +161,31 @@
                             onJump={jumpToHistory}
                             {jumpDisabled}
                             {onPreviewMap}
+                            previewsMap={(action) => session.previewsHistoryMap(action)}
                             previewActionId={session.historicalMap?.actionId}
                             appearance={entry.companyId
                                 ? session.mapView.stations[entry.companyId]
                                 : undefined}
                             playerName={(id) => session.getPlayerName(id)}
                             playerColor={(id) => session.colors.getPlayerBgColorValue(id)}
-                            currentController={(id) => controllingOwner(gameState, id)?.playerId}
-                            {phaseColors}
-                            {phaseTileColors}
-                            {tileColors}
-                            {tileColorNames}
+                            operatingPlayerId={entry.kind === 'operation'
+                                ? operatingPlayerOf(
+                                      entry,
+                                      actions,
+                                      (id) => controllingOwner(gameState, id)?.playerId
+                                  )
+                                : entry.playerId}
+                            phasePalette={session.phaseChangePalette}
                             {trainColors}
                             shareCards={(action) => session.shareCards(action)}
                             trainName={(id) => session.trainDepot.trainDefinition(id).name}
-                            {orderChanges}
+                            orderChanges={entryOrders}
                             {cash}
+                            {bankBreaks}
                             stations={session.mapView.stations}
                             {describe}
-                            {companyName}
+                            companyName={(id) => session.companyName(id)}
+                            companyLabels={labels}
                         />
                     </li>
                 {/if}

@@ -22,12 +22,16 @@
     import CityDemandMarker from '$lib/components/CityDemandMarker.svelte'
     import CompanyZoneMarker from '$lib/components/CompanyZoneMarker.svelte'
     import CompanyDeed, { deedCardKindFor } from '$lib/components/CompanyDeed.svelte'
-    import { DEED_CARD_POSITIONS, DEED_CARD_POSITIONS_STORAGE_KEY } from '$lib/definitions/deedCardPositions.js'
+    import {
+        DEED_CARD_POSITIONS,
+        DEED_CARD_POSITIONS_STORAGE_KEY
+    } from '$lib/definitions/deedCardPositions.js'
     import {
         deedTextLayoutForKeys,
         type CompanyDeedTextLayout
     } from '$lib/definitions/deedTextLayout.js'
     import { LAND_MARKER_POSITIONS } from '$lib/definitions/landMarkerPositions.js'
+    import { MARKER_GOOD_BY_GOOD, type MarkerGood } from '$lib/definitions/productionMarkers.js'
     import {
         PRODUCTION_ZONE_MARKER_OFFSETS,
         PRODUCTION_ZONE_MARKER_OFFSETS_STORAGE_KEY
@@ -157,10 +161,9 @@
 
     type RegionLabel = { regionId: string } & Point
 
-    type ProductionMarkerType = 'spice' | 'siapsaji' | 'oil' | 'rice' | 'rubber'
     type ProductionMarkerPlacement = {
         areaId: string
-        markerType: ProductionMarkerType | 'bead'
+        markerType: MarkerGood | 'bead'
         beadTone?: BeadTone
     } & Point
 
@@ -195,7 +198,7 @@
         targetX: number
         targetY: number
         ownerColor: string
-        goodType: ProductionMarkerType
+        goodType: MarkerGood
         goodsCount: number
         hatchPatternId: string | null
         direction: CompanyMarkerDirection
@@ -283,7 +286,7 @@
     const DEBUG_COMPANY_MARKER_RADIAL_STEP_DISTANCE = 18
     const DEBUG_COMPANY_MARKER_LATERAL_SPREAD_DISTANCE = 62
     const DEBUG_COMPANY_MARKER_EDGE_PADDING = 68
-    const DEBUG_COMPANY_MARKER_COLOR_BY_GOOD: Record<ProductionMarkerType, string> = {
+    const DEBUG_COMPANY_MARKER_COLOR_BY_GOOD: Record<MarkerGood, string> = {
         rice: '#8eb15d',
         spice: '#b57949',
         rubber: '#6a4b3d',
@@ -333,13 +336,7 @@
     const COMPANIES_RUBBER_CARD_B02_Y = B02_MARKER_POSITION.y + 110
     const COMPANIES_SPICE_CARD_C09_X = C09_MARKER_POSITION.x + 10
     const COMPANIES_SPICE_CARD_C09_Y = C09_MARKER_POSITION.y + 160
-    const PRODUCTION_MARKER_TYPES: ProductionMarkerType[] = [
-        'spice',
-        'siapsaji',
-        'oil',
-        'rice',
-        'rubber'
-    ]
+    const PRODUCTION_MARKER_TYPES: MarkerGood[] = ['spice', 'siapsaji', 'oil', 'rice', 'rubber']
     const CITY_DEMAND_TUNE_GOOD_ORDER = [
         Good.Rice,
         Good.Spice,
@@ -438,22 +435,6 @@
         return `hsl(${hue} 62% 54%)`
     }
 
-    function markerGoodForGood(good: Good): ProductionMarkerType {
-        if (good === Good.Rice) {
-            return 'rice'
-        }
-        if (good === Good.Spice) {
-            return 'spice'
-        }
-        if (good === Good.Rubber) {
-            return 'rubber'
-        }
-        if (good === Good.Oil) {
-            return 'oil'
-        }
-        return 'siapsaji'
-    }
-
     function companyMarkerDirectionTowardTarget(
         markerX: number,
         markerY: number,
@@ -471,7 +452,11 @@
                   ? 'south'
                   : 'north'
 
-        if (DEBUG_COMPANY_MARKER_ENABLE_NS_DIRECTIONS || cardinalDirection === 'east' || cardinalDirection === 'west') {
+        if (
+            DEBUG_COMPANY_MARKER_ENABLE_NS_DIRECTIONS ||
+            cardinalDirection === 'east' ||
+            cardinalDirection === 'west'
+        ) {
             return cardinalDirection
         }
 
@@ -1259,14 +1244,16 @@
         LAND_DEBUG_MAP_AREAS.filter((area) => COASTAL_LAND_AREA_IDS.has(area.id))
     )
 
-    const RESEARCH_TRACK_CELLS_BY_ROW: Record<ResearchRow, (typeof RESEARCH_TRACK_CELLS)[number][]> =
-        {
-            bid: RESEARCH_TRACK_CELLS.filter((cell) => cell.row === 'bid'),
-            slots: RESEARCH_TRACK_CELLS.filter((cell) => cell.row === 'slots'),
-            mergers: RESEARCH_TRACK_CELLS.filter((cell) => cell.row === 'mergers'),
-            expansion: RESEARCH_TRACK_CELLS.filter((cell) => cell.row === 'expansion'),
-            hull: RESEARCH_TRACK_CELLS.filter((cell) => cell.row === 'hull')
-        }
+    const RESEARCH_TRACK_CELLS_BY_ROW: Record<
+        ResearchRow,
+        (typeof RESEARCH_TRACK_CELLS)[number][]
+    > = {
+        bid: RESEARCH_TRACK_CELLS.filter((cell) => cell.row === 'bid'),
+        slots: RESEARCH_TRACK_CELLS.filter((cell) => cell.row === 'slots'),
+        mergers: RESEARCH_TRACK_CELLS.filter((cell) => cell.row === 'mergers'),
+        expansion: RESEARCH_TRACK_CELLS.filter((cell) => cell.row === 'expansion'),
+        hull: RESEARCH_TRACK_CELLS.filter((cell) => cell.row === 'hull')
+    }
 
     const DEBUG_RESEARCH_PLAYER_COLORS: string[] = $derived.by(() => {
         const playerIds = gameSession.gameState.turnManager.turnOrder
@@ -1500,7 +1487,7 @@
                     DEBUG_COMPANY_MARKER_EDGE_PADDING,
                     DEBUG_COMPANY_MARKER_BOARD_HEIGHT - DEBUG_COMPANY_MARKER_EDGE_PADDING
                 )
-                const markerGood = markerGoodForGood(deed.good)
+                const markerGood = MARKER_GOOD_BY_GOOD[deed.good]
 
                 markers.push({
                     key: `${regionId}|${deed.id}`,
@@ -1524,16 +1511,17 @@
         return markers.sort((left, right) => left.key.localeCompare(right.key))
     })
 
-    const SELECTED_PRODUCTION_ZONE_MARKER_ENTRY: DebugProductionDeedMarkerEntry | null = $derived.by(() => {
-        if (!selectedProductionZoneMarkerDeedId) {
-            return null
-        }
-        return (
-            DEBUG_PRODUCTION_DEED_MARKERS.find(
-                (entry) => entry.deedId === selectedProductionZoneMarkerDeedId
-            ) ?? null
-        )
-    })
+    const SELECTED_PRODUCTION_ZONE_MARKER_ENTRY: DebugProductionDeedMarkerEntry | null =
+        $derived.by(() => {
+            if (!selectedProductionZoneMarkerDeedId) {
+                return null
+            }
+            return (
+                DEBUG_PRODUCTION_DEED_MARKERS.find(
+                    (entry) => entry.deedId === selectedProductionZoneMarkerDeedId
+                ) ?? null
+            )
+        })
 
     function getDeedCardPosition(positionKey: string): Point | null {
         return getDeedCardPositionByKeys([positionKey])
@@ -2025,7 +2013,7 @@
         return LAND_DEBUG_AREAS_BY_ID.get(markerSelectedAreaId) ?? null
     })
 
-    const PRODUCTION_MARKER_BY_AREA: Map<string, ProductionMarkerType> = $derived.by(() => {
+    const PRODUCTION_MARKER_BY_AREA: Map<string, MarkerGood> = $derived.by(() => {
         const regionIds = [
             ...new Set(
                 LAND_DEBUG_MAP_AREAS.map((area) => area.region).filter(
@@ -2034,7 +2022,7 @@
             )
         ].sort((left, right) => left.localeCompare(right))
 
-        const markerByRegion = new Map<string, ProductionMarkerType>()
+        const markerByRegion = new Map<string, MarkerGood>()
         for (const [regionIndex, regionId] of regionIds.entries()) {
             markerByRegion.set(
                 regionId,
@@ -2042,7 +2030,7 @@
             )
         }
 
-        const markerByArea = new Map<string, ProductionMarkerType>()
+        const markerByArea = new Map<string, MarkerGood>()
         for (const [areaIndex, area] of LAND_DEBUG_MAP_AREAS.entries()) {
             if (area.region) {
                 markerByArea.set(area.id, markerByRegion.get(area.region) ?? 'spice')
@@ -2126,8 +2114,10 @@
             const jitterSeed = hashStringToSeed(city.id)
             const jitter = ((jitterSeed % 5) - 2) * (CITY_DEMAND_TUNE_TAG_MAX_OFFSET / 2)
             const tunedPosition = CITY_DEMAND_MARKER_POSITIONS_BY_REGION[regionId]
-            const markerX = tunedPosition?.x ?? targetX + ux * CITY_DEMAND_TUNE_TAG_DISTANCE + tangentX * jitter
-            const markerY = tunedPosition?.y ?? targetY + uy * CITY_DEMAND_TUNE_TAG_DISTANCE + tangentY * jitter
+            const markerX =
+                tunedPosition?.x ?? targetX + ux * CITY_DEMAND_TUNE_TAG_DISTANCE + tangentX * jitter
+            const markerY =
+                tunedPosition?.y ?? targetY + uy * CITY_DEMAND_TUNE_TAG_DISTANCE + tangentY * jitter
             const demands = CITY_DEMAND_TUNE_GOOD_ORDER.map((good) => ({ good, count: 3 }))
 
             markers.push({
@@ -2147,10 +2137,7 @@
     })
 
     const CITY_DEMAND_TUNE_MARKERS: CityDemandTuneMarker[] = $derived.by(() => {
-        if (
-            colorMode !== 'citydemand' &&
-            !(colorMode === 'layout' && layoutShowCityDemand)
-        ) {
+        if (colorMode !== 'citydemand' && !(colorMode === 'layout' && layoutShowCityDemand)) {
             return []
         }
 
@@ -2169,8 +2156,9 @@
             return null
         }
         return (
-            CITY_DEMAND_TUNE_MARKERS.find((marker) => marker.regionId === cityDemandSelectedRegionId) ??
-            null
+            CITY_DEMAND_TUNE_MARKERS.find(
+                (marker) => marker.regionId === cityDemandSelectedRegionId
+            ) ?? null
         )
     })
 
@@ -2191,7 +2179,9 @@
 
     const CITY_DEMAND_MARKER_FULL_EXPORT_TEXT: string = $derived.by(() => {
         const lines = CITY_DEMAND_TUNE_MARKERS.slice()
-            .sort((left, right) => left.regionId.localeCompare(right.regionId, undefined, { numeric: true }))
+            .sort((left, right) =>
+                left.regionId.localeCompare(right.regionId, undefined, { numeric: true })
+            )
             .map(
                 (marker) =>
                     `    '${marker.regionId}': { x: ${marker.x.toFixed(1)}, y: ${marker.y.toFixed(1)} },`
@@ -2651,14 +2641,20 @@
             <div class="marker-tune-title">Deed Card Placement</div>
             <div class="marker-tune-row marker-tune-buttons">
                 <span>Era:</span>
-                <button type="button" class:active={deedEra === Era.A} onclick={() => selectDeedEra(Era.A)}
-                    >A</button
+                <button
+                    type="button"
+                    class:active={deedEra === Era.A}
+                    onclick={() => selectDeedEra(Era.A)}>A</button
                 >
-                <button type="button" class:active={deedEra === Era.B} onclick={() => selectDeedEra(Era.B)}
-                    >B</button
+                <button
+                    type="button"
+                    class:active={deedEra === Era.B}
+                    onclick={() => selectDeedEra(Era.B)}>B</button
                 >
-                <button type="button" class:active={deedEra === Era.C} onclick={() => selectDeedEra(Era.C)}
-                    >C</button
+                <button
+                    type="button"
+                    class:active={deedEra === Era.C}
+                    onclick={() => selectDeedEra(Era.C)}>C</button
                 >
             </div>
             <div class="marker-tune-row">
@@ -2682,7 +2678,8 @@
                 </div>
             {/if}
             <div class="marker-tune-row marker-tune-buttons">
-                <button type="button" onclick={clearSelectedDeedCardOverride}>Clear Selected</button>
+                <button type="button" onclick={clearSelectedDeedCardOverride}>Clear Selected</button
+                >
                 <button type="button" onclick={clearAllDeedCardOverrides}>Clear All</button>
             </div>
             <div class="marker-tune-row marker-tune-buttons">
@@ -2692,7 +2689,10 @@
                 >
                     Copy Overrides
                 </button>
-                <button type="button" onclick={() => copyToClipboard(DEED_CARD_FULL_EXPORT_TEXT, 'deed')}>
+                <button
+                    type="button"
+                    onclick={() => copyToClipboard(DEED_CARD_FULL_EXPORT_TEXT, 'deed')}
+                >
                     Copy Full
                 </button>
             </div>
@@ -2718,16 +2718,14 @@
                 <strong>{selectedProductionZoneMarkerDeedId ?? 'None'}</strong>
             </div>
             {#if SELECTED_PRODUCTION_ZONE_MARKER_ENTRY}
-                {@const selectedEffectiveOffsetX =
-                    roundToTenth(
-                        SELECTED_PRODUCTION_ZONE_MARKER_ENTRY.x -
-                            SELECTED_PRODUCTION_ZONE_MARKER_ENTRY.baseX
-                    )}
-                {@const selectedEffectiveOffsetY =
-                    roundToTenth(
-                        SELECTED_PRODUCTION_ZONE_MARKER_ENTRY.y -
-                            SELECTED_PRODUCTION_ZONE_MARKER_ENTRY.baseY
-                    )}
+                {@const selectedEffectiveOffsetX = roundToTenth(
+                    SELECTED_PRODUCTION_ZONE_MARKER_ENTRY.x -
+                        SELECTED_PRODUCTION_ZONE_MARKER_ENTRY.baseX
+                )}
+                {@const selectedEffectiveOffsetY = roundToTenth(
+                    SELECTED_PRODUCTION_ZONE_MARKER_ENTRY.y -
+                        SELECTED_PRODUCTION_ZONE_MARKER_ENTRY.baseY
+                )}
                 <div class="marker-tune-row">
                     <span>Region:</span>
                     <strong>{SELECTED_PRODUCTION_ZONE_MARKER_ENTRY.regionId}</strong>
@@ -2832,7 +2830,8 @@
                 </button>
                 <button
                     type="button"
-                    onclick={() => copyToClipboard(CITY_DEMAND_MARKER_FULL_EXPORT_TEXT, 'citydemand')}
+                    onclick={() =>
+                        copyToClipboard(CITY_DEMAND_MARKER_FULL_EXPORT_TEXT, 'citydemand')}
                 >
                     Copy Full
                 </button>
@@ -2868,13 +2867,25 @@
         <div class="marker-tune-panel layout-composite-panel">
             <div class="marker-tune-title">Composite Layout</div>
             <div class="marker-tune-row marker-tune-buttons">
-                <button type="button" class:active={layoutShowShips} onclick={() => (layoutShowShips = !layoutShowShips)}>
+                <button
+                    type="button"
+                    class:active={layoutShowShips}
+                    onclick={() => (layoutShowShips = !layoutShowShips)}
+                >
                     Ships
                 </button>
-                <button type="button" class:active={layoutShowDeeds} onclick={() => (layoutShowDeeds = !layoutShowDeeds)}>
+                <button
+                    type="button"
+                    class:active={layoutShowDeeds}
+                    onclick={() => (layoutShowDeeds = !layoutShowDeeds)}
+                >
                     Deeds
                 </button>
-                <button type="button" class:active={layoutShowTags} onclick={() => (layoutShowTags = !layoutShowTags)}>
+                <button
+                    type="button"
+                    class:active={layoutShowTags}
+                    onclick={() => (layoutShowTags = !layoutShowTags)}
+                >
                     Tags
                 </button>
                 <button
@@ -3178,7 +3189,12 @@
                     height={58}
                     text="Jawa Tengah"
                 />
-                <CompanyDeed type="ship" x={COMPANIES_SHIP_CARD_A10_X} y={COMPANIES_SHIP_CARD_A10_Y} height={58} />
+                <CompanyDeed
+                    type="ship"
+                    x={COMPANIES_SHIP_CARD_A10_X}
+                    y={COMPANIES_SHIP_CARD_A10_Y}
+                    height={58}
+                />
                 <CompanyDeed type="rice" x={45} y={250} height={58} text="Areh" />
             {/if}
             {#if colorMode === 'companymarkers'}
@@ -3203,7 +3219,7 @@
                         stroke-linecap="round"
                         opacity="0.75"
                         pointer-events="none"
-                    />
+                    ></path>
                     <circle
                         cx={marker.targetX}
                         cy={marker.targetY}
@@ -3218,12 +3234,19 @@
                         cx={marker.x}
                         cy={marker.y}
                         r={marker.deedId === selectedProductionZoneMarkerDeedId ? 8 : 6.5}
-                        fill={marker.deedId === selectedProductionZoneMarkerDeedId ? '#fef3c7' : '#ffffff'}
+                        fill={marker.deedId === selectedProductionZoneMarkerDeedId
+                            ? '#fef3c7'
+                            : '#ffffff'}
                         fill-opacity="0.38"
-                        stroke={marker.deedId === selectedProductionZoneMarkerDeedId ? '#b45309' : '#1f2937'}
-                        stroke-width={marker.deedId === selectedProductionZoneMarkerDeedId ? 2.2 : 1.5}
+                        stroke={marker.deedId === selectedProductionZoneMarkerDeedId
+                            ? '#b45309'
+                            : '#1f2937'}
+                        stroke-width={marker.deedId === selectedProductionZoneMarkerDeedId
+                            ? 2.2
+                            : 1.5}
                         pointer-events="all"
-                        onpointerdown={(event) => startProductionZoneMarkerDrag(marker.deedId, event)}
+                        onpointerdown={(event) =>
+                            startProductionZoneMarkerDrag(marker.deedId, event)}
                     ></circle>
                     <text
                         x={marker.x}
@@ -3272,12 +3295,19 @@
                             cx={marker.x}
                             cy={marker.y}
                             r={marker.regionId === cityDemandSelectedRegionId ? 8 : 6.5}
-                            fill={marker.regionId === cityDemandSelectedRegionId ? '#fef3c7' : '#ffffff'}
+                            fill={marker.regionId === cityDemandSelectedRegionId
+                                ? '#fef3c7'
+                                : '#ffffff'}
                             fill-opacity="0.36"
-                            stroke={marker.regionId === cityDemandSelectedRegionId ? '#b45309' : '#1f2937'}
-                            stroke-width={marker.regionId === cityDemandSelectedRegionId ? 2.2 : 1.5}
+                            stroke={marker.regionId === cityDemandSelectedRegionId
+                                ? '#b45309'
+                                : '#1f2937'}
+                            stroke-width={marker.regionId === cityDemandSelectedRegionId
+                                ? 2.2
+                                : 1.5}
                             pointer-events="all"
-                            onpointerdown={(event) => startCityDemandMarkerDrag(marker.regionId, event)}
+                            onpointerdown={(event) =>
+                                startCityDemandMarkerDrag(marker.regionId, event)}
                         ></circle>
                         <text
                             x={marker.targetX}
@@ -3298,7 +3328,7 @@
                 {/each}
             {/if}
             {#if colorMode === 'deeds' || colorMode === 'ships' || (colorMode === 'layout' && layoutShowDeeds)}
-                {#each (colorMode === 'deeds' ? DEED_TUNE_ENTRIES : ALL_DEED_TUNE_ENTRIES) as deed (deed.positionKey)}
+                {#each colorMode === 'deeds' ? DEED_TUNE_ENTRIES : ALL_DEED_TUNE_ENTRIES as deed (deed.positionKey)}
                     <CompanyDeed
                         type={deed.cardKind}
                         x={deed.x}
@@ -3315,7 +3345,9 @@
                             r={deed.positionKey === selectedDeedCardKey ? 8 : 6.5}
                             fill={deed.positionKey === selectedDeedCardKey ? '#fef3c7' : '#ffffff'}
                             fill-opacity="0.35"
-                            stroke={deed.positionKey === selectedDeedCardKey ? '#b45309' : '#1f2937'}
+                            stroke={deed.positionKey === selectedDeedCardKey
+                                ? '#b45309'
+                                : '#1f2937'}
                             stroke-width={deed.positionKey === selectedDeedCardKey ? 2.2 : 1.5}
                             pointer-events="all"
                             onpointerdown={(event) => startDeedCardDrag(deed.positionKey, event)}
@@ -3324,7 +3356,7 @@
                 {/each}
             {/if}
             {#if colorMode === 'ships' || (colorMode === 'layout' && layoutShowShips)}
-                {#each (colorMode === 'ships' ? SHIP_TUNE_MARKERS : LAYOUT_SHIP_MARKERS) as shipMarker (shipMarker.id)}
+                {#each colorMode === 'ships' ? SHIP_TUNE_MARKERS : LAYOUT_SHIP_MARKERS as shipMarker (shipMarker.id)}
                     <ShipMarker
                         x={shipMarker.x}
                         y={shipMarker.y}

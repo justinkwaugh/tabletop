@@ -4,6 +4,7 @@ import {
     PlayerStatus,
     assertExists,
     type Game,
+    type GameAction,
     type GameConfig
 } from '@tabletop/common'
 import { AUSTERLITZ } from '../components/austerlitz.js'
@@ -20,6 +21,7 @@ import {
     type NapoleonsTriumphProjectedState
 } from '../model/gameState.js'
 import type { Deployment } from '../model/setup.js'
+import { facesOfArmy } from '../model/armyDisplay.js'
 import { suggestedDeployment } from './suggestedDeployment.js'
 
 const MASTER_SEED = '0123456789abcdef0123456789abcdef'
@@ -55,6 +57,16 @@ export class TestGame {
         return new HydratedNapoleonsTriumphGameState(structuredClone(this.state))
     }
 
+    /** The position as the player of that side is shown it. */
+    seenBy(side: Side): HydratedNapoleonsTriumphGameState {
+        const viewer = { kind: 'player' as const, playerId: this.playerOf(side) }
+        return new HydratedNapoleonsTriumphGameState(
+            NapoleonsTriumphRuntime.visibility.state.project(this.canonical, viewer, {
+                config: this.game.config
+            })
+        )
+    }
+
     get canonical(): NapoleonsTriumphGameState {
         if (!NapoleonsTriumphGameStateValidator.Check(this.state)) {
             throw new Error('Expected complete canonical state')
@@ -73,17 +85,21 @@ export class TestGame {
     }
 
     act(type: ActionType, playerId: string, payload: Record<string, unknown> = {}) {
+        return this.play({
+            id: `action-${this.actionNumber++}`,
+            gameId: this.game.id,
+            source: ActionSource.User,
+            playerId,
+            type,
+            ...payload
+        })
+    }
+
+    protected play(action: GameAction): GameAction[] {
         const result = this.engine.executeCanonicalAction({
             game: this.game,
             state: this.state,
-            action: {
-                id: `action-${this.actionNumber++}`,
-                gameId: this.game.id,
-                source: ActionSource.User,
-                playerId,
-                type,
-                ...payload
-            }
+            action
         })
         this.state = result.updatedState
         return result.processedActions
@@ -140,6 +156,9 @@ export function arrangeBattlefield(game: TestGame, placements: readonly PiecePla
             commanderId: placement.commanderId,
             position: positionOf(placement)
         }))
+        for (const player of state.players) {
+            player.armyDisplay = facesOfArmy(state.units, player.playerId)
+        }
         for (const commander of state.commanders) {
             const lead = placements.find((placement) => placement.commanderId === commander.id)
             commander.position = lead ? positionOf(lead) : undefined
@@ -174,6 +193,9 @@ export function frenchTurn(
 
 export function passTurns(game: TestGame, turns: number) {
     for (let turn = 0; turn < turns; turn++) {
+        if (game.state.machineState === MachineState.RideRevealed) {
+            game.act(ActionType.AcknowledgeReveal, game.activePlayerId)
+        }
         game.act(ActionType.EndTurn, game.activePlayerId)
     }
 }

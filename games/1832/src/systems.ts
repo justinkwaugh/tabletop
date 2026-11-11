@@ -12,7 +12,6 @@ import {
     removeCertificates
 } from '@tabletop/18xx'
 import type { EighteenThirtyTwoState } from './state.js'
-import { refreshOwnershipExcess } from './ownershipExcess.js'
 import { isLowerArea, EighteenThirtyTwoMarket } from './stockMarket.js'
 import { Absorption, absorbCompany, discardSharedHome } from './absorption.js'
 
@@ -46,18 +45,6 @@ export function systemOf(
     return Object.keys(state.systems).find((systemId) =>
         state.systems[systemId].includes(companyId)
     )
-}
-
-/** The company now holding a railroad's assets: itself, or what it merged into (§11.6, §11.7). */
-export function successorOf(state: Pick<EighteenThirtyTwoState, 'mergers'>, companyId: string) {
-    let current = companyId
-    for (;;) {
-        const merger = state.mergers.find(
-            (entry) => entry.survivorId !== current && entry.companyIds.includes(current)
-        )
-        if (!merger) return current
-        current = merger.survivorId
-    }
 }
 
 export function nextSystemId(state: Pick<EighteenThirtyTwoState, 'systems'>): string | undefined {
@@ -102,17 +89,12 @@ function nearestPrice(prices: readonly number[], target: number): number {
     )
 }
 
-function spaceAt(row: number, column: number) {
-    return EighteenThirtyTwoMarket.spaces.find(
-        (space) => space.row === row && space.column === column
-    )
-}
-
 /**
- * The System's market space: the average of the two prices, rounded to a value in the row of
- * the leftmost component (the lower when they share a column) with a tie upward, then down and
- * right along that price's diagonal to the soft or hard ledge (§11.6.3). **Ruling:** a row
- * without the rounded price takes its own nearest value.
+ * The System's market space: the average of the two prices, rounded to the nearest value on the
+ * market with a tie upward, then down and right along that price's diagonal to the soft or hard
+ * ledge (§11.6.3). **Ruling:** the System never crosses the soft ledge from the leftmost
+ * component's side (the lower component's when they share a column), even when that row's box at
+ * the price lies past it. Every price above $0 runs along one diagonal.
  */
 export function systemMarketSpace(
     market: StockMarket,
@@ -125,19 +107,15 @@ export function systemMarketSpace(
         first.column < second.column || (first.column === second.column && first.row > second.row)
             ? first
             : second
-    const row = EighteenThirtyTwoMarket.spaces.filter((entry) => entry.row === leftmost.row)
     const price = nearestPrice(
-        row.map((entry) => entry.price),
+        EighteenThirtyTwoMarket.spaces.map((entry) => entry.price),
         (first.price + second.price) / 2
     )
-    let space = row.find((entry) => entry.price === price)
-    assertExists(space, 'The row holds its own price')
-    for (;;) {
-        const next = spaceAt(space.row + 1, space.column + 1)
-        if (!next || next.price !== price || isLowerArea(next) !== isLowerArea(space)) break
-        space = next
-    }
-    return space
+    const diagonal = EighteenThirtyTwoMarket.spaces
+        .filter((entry) => entry.price === price)
+        .sort((a, b) => a.row - b.row)
+    const onLeftmostSide = diagonal.filter((entry) => isLowerArea(entry) === isLowerArea(leftmost))
+    return onLeftmostSide.at(-1) ?? diagonal[diagonal.length - 1]
 }
 
 export const SystemFormation = Type.Object(
@@ -210,7 +188,6 @@ export function formSystem(
     state.companies.push({
         id: systemId,
         kind: 'major',
-        shareCount: SystemShareCount,
         parPrice,
         started: true,
         funded: true,
@@ -276,8 +253,6 @@ export function formSystem(
         true
     )
     if (presidency.change) applyPresidencyChange(state, presidency.change)
-    for (const player of state.players)
-        refreshOwnershipExcess(state, systemId, { kind: 'player', playerId: player.playerId })
 
     return {
         systemId,

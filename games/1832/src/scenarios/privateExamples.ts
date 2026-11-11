@@ -1,6 +1,5 @@
 import { assert, type PlayerState } from '@tabletop/common'
 import type { CompanyState } from '@tabletop/18xx'
-import { EighteenThirtyTwoPrivates } from '../index.js'
 
 export function prepareEighteenThirtyTwoPrivates(
     state: CompanyState,
@@ -13,10 +12,7 @@ export function prepareEighteenThirtyTwoPrivates(
         ['P1', 1],
         ['P3', 2]
     ] as const) {
-        const definition = EighteenThirtyTwoPrivates.find((item) => item.id === id)
-        assert(definition, 'Missing private definition')
-        const { revenue } = definition
-        state.companies.push({ id, kind: 'private', privateRevenue: revenue })
+        state.companies.push({ id, kind: 'private' })
         state.certificates.push({
             id: `${id}:charter`,
             companyId: id,

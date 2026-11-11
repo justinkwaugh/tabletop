@@ -1,6 +1,35 @@
 import { expect, test } from '@playwright/test'
 
-for (const title of ['TOP', '1889']) {
+// Selling one share moves the company down onto a space another company already holds.
+const Markets: Readonly<
+    Record<
+        string,
+        { companyId: string; residentId: string; initialSpace: string; destination: string }
+    >
+> = {
+    TOP: { companyId: 'ML', residentId: 'So', initialSpace: '1:1', destination: '2:1' },
+    '1889': { companyId: 'IR', residentId: 'AR', initialSpace: '0:3', destination: '1:3' }
+}
+
+test('1832 holds a sale’s market move until the protection decision', async ({ page }) => {
+    await page.goto('/table')
+    await page.getByLabel('Game', { exact: true }).selectOption('1832')
+    await page.getByLabel('Position', { exact: true }).selectOption('trading')
+    const token = page.locator('[data-market-company="CG"]')
+    await expect(token).toHaveAttribute('data-market-token-space', '0:6')
+    await page
+        .getByRole('navigation', { name: 'Stock actions' })
+        .getByRole('button', { name: 'Sell', exact: true })
+        .click()
+    await page.locator('[data-sale-company="CG"]').first().click()
+    await page.locator('[data-sale-shares="1"]').first().click()
+    await expect(page.getByRole('complementary', { name: 'Sales summary' })).toBeVisible()
+    await expect(token).toHaveAttribute('data-market-token-space', '0:6')
+})
+
+for (const [title, { companyId, residentId, initialSpace, destination }] of Object.entries(
+    Markets
+)) {
     test(`${title} market animates sales, stack order, history and Undo`, async ({ page }) => {
         const errors: string[] = []
         page.on('pageerror', (error) => errors.push(error.message))
@@ -8,11 +37,6 @@ for (const title of ['TOP', '1889']) {
         await page.goto('/table')
         await page.getByLabel('Game', { exact: true }).selectOption(title)
         await page.getByLabel('Position', { exact: true }).selectOption('trading')
-        await page.getByRole('tab', { name: 'Market', exact: true }).click()
-        const companyId = title === 'TOP' ? 'ML' : 'IR'
-        const residentId = title === 'TOP' ? 'So' : 'AR'
-        const initialSpace = title === 'TOP' ? '1:1' : '0:3'
-        const destination = title === 'TOP' ? '2:1' : '1:3'
         const token = page.locator(`[data-market-company="${companyId}"]`)
         const resident = page.locator(`[data-market-company="${residentId}"]`)
         const undo = page.getByRole('button', { name: 'Undo', exact: true })
@@ -22,7 +46,6 @@ for (const title of ['TOP', '1889']) {
             .getByRole('button', { name: 'Sell', exact: true })
             .click()
         await page.locator(`[data-sale-company="${companyId}"]`).first().click()
-        await page.getByRole('tab', { name: 'Market', exact: true }).click()
         await token.evaluate((element) => {
             const values = new Set<string>()
             const until = performance.now() + 1200
@@ -73,7 +96,6 @@ for (const title of ['TOP', '1889']) {
         await page.reload()
         await page.getByLabel('Game', { exact: true }).selectOption(title)
         await page.getByLabel('Position', { exact: true }).selectOption('trading')
-        await page.getByRole('tab', { name: 'Market', exact: true }).click()
         await expect(token).toHaveAttribute('data-market-token-space', initialSpace)
         expect(errors).toEqual([])
     })

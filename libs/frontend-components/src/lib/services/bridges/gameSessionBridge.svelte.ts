@@ -1,6 +1,7 @@
 import type { Game, GameState, HydratedGameState, Player } from '@tabletop/common'
 import type { Readable } from 'svelte/store'
 import type { GameSession } from '$lib/model/gameSession.svelte.js'
+import type { ViewedHistoryPosition } from '$lib/model/viewedHistoryPosition.js'
 import { RuneBackedStore } from '$lib/utils/runeBackedStore.svelte.js'
 
 export type GameSessionBridgeColors = {
@@ -62,6 +63,9 @@ export class GameSessionBridge<T extends GameState, U extends HydratedGameState<
     readonly colors: RuneBackedStore<GameSessionBridgeColors>
     // Optional because the Site Frontend can host an older independently published UI Artifact.
     readonly privilegedGameView?: PrivilegedGameViewBridge<T, U>
+    readonly viewedHistoryPosition?: RuneBackedStore<ViewedHistoryPosition | undefined>
+    readonly showHistoryBeforeAction?: (actionIndex: number) => Promise<void>
+    readonly showLiveGame?: () => void
 
     constructor(private session: GameSession<T, U>) {
         this.isExploring = new RuneBackedStore(() => this.session.isExploring)
@@ -80,6 +84,10 @@ export class GameSessionBridge<T extends GameState, U extends HydratedGameState<
         this.gameState = new RuneBackedStore(() => this.session.gameState)
         this.colors = new RuneBackedStore(() => this.buildColorsSnapshot())
         this.privilegedGameView = new PrivilegedGameViewBridge(this.session)
+        this.viewedHistoryPosition = new RuneBackedStore(() => this.session.viewedHistoryPosition)
+        this.showHistoryBeforeAction = (actionIndex) =>
+            this.session.history.goToActionIndex(actionIndex - 1, { exact: true })
+        this.showLiveGame = () => this.session.history.goToEnd()
     }
 
     connect() {
@@ -95,6 +103,7 @@ export class GameSessionBridge<T extends GameState, U extends HydratedGameState<
         this.gameState.connect()
         this.colors.connect()
         this.privilegedGameView?.connect()
+        this.viewedHistoryPosition?.connect()
     }
 
     // The frontend shell and game UI artifacts deploy independently, so this remains the

@@ -1,9 +1,8 @@
 import * as Type from 'typebox'
+import { actsFor, inReceivership, type ReceivershipRules } from '../finance/receivership.js'
 import { assert } from '@tabletop/common'
 import {
     Owner,
-    cashOwnedBy,
-    controllingOwner,
     getCompany,
     sameOwner,
     signedShares,
@@ -16,7 +15,9 @@ import type { TrainRunningState } from '../routes/route.js'
 export const EarningsChoice = Type.Union([
     Type.Literal('pay'),
     Type.Literal('withhold'),
-    Type.Literal('half-pay')
+    Type.Literal('half-pay'),
+    /** Pay out the revenue with a top-up from the treasury, as 1862's George Hudson allows. */
+    Type.Literal('top-up')
 ])
 export type EarningsChoice = Type.Static<typeof EarningsChoice>
 export const EarningsDetails = Type.Object(
@@ -30,7 +31,9 @@ export const EarningsDetails = Type.Object(
         bankAdjustment: Type.Integer(),
         payments: Type.Array(CashPayment),
         charges: Type.Optional(Type.Array(CashPayment)),
-        marketMove: Type.Optional(StockMarketMove)
+        marketMove: Type.Optional(StockMarketMove),
+        /** What the treasury added to the revenue paid out. */
+        topUp: Type.Optional(Type.Integer({ minimum: 1 }))
     },
     { additionalProperties: false }
 )
@@ -68,6 +71,11 @@ export interface EarningsRules {
         distribution: DistributionSummary
     ): { move?: StockMarketMove; bonusPerShare: number }
     afterDistribution?(state: DistributionState, companyId: string): void
+    /**
+     * What the company's treasury may add to its revenue to pay it all out, offered as the
+     * ``top-up`` choice; undefined or zero offers none (1862 §7.8.6).
+     */
+    treasuryTopUp?(state: DistributionState, companyId: string, revenue: number): number | undefined
 }
 export function dividendEntitlements(
     state: FinancialState,
@@ -89,22 +97,34 @@ export function dividendEntitlements(
 export class EarningsDistribution {
     constructor(
         private readonly state: DistributionState,
-        readonly rules: EarningsRules
+        readonly rules: EarningsRules,
+        private readonly receivership?: ReceivershipRules
     ) {}
+    /** The choices open to the company: the title's, or a receiver's one. */
+    choices(companyId: string): EarningsChoice[] {
+        const choices = this.rules.choices(this.state, companyId)
+        if (!this.receivership || !inReceivership(this.state, companyId)) return choices
+        const choice = this.receivership.earningsChoice(this.state, companyId)
+        assert(choices.includes(choice), 'A receiver takes one of its earnings choices')
+        return [choice]
+    }
+    /** The choice that needs no decision: a receiver's, or withholding nothing. */
     automaticChoice(companyId: string): EarningsChoice | undefined {
+        const choices = this.choices(companyId)
+        if (this.receivership && inReceivership(this.state, companyId)) return choices[0]
         return this.state.routeStep?.result?.revenue === 0 &&
             this.state.routeStep.result.routes.length === 0 &&
-            this.rules.choices(this.state, companyId).includes('withhold')
+            choices.includes('withhold')
             ? 'withhold'
             : undefined
     }
-    canAct(playerId: string, companyId: string): boolean {
+    canAct(playerId: string | undefined, companyId: string): boolean {
         return (
             this.state.routeStep?.companyId === companyId &&
             !!this.state.routeStep.result &&
             !this.state.earningsDistribution &&
             !getCompany(this.state, companyId).closed &&
-            controllingOwner(this.state, companyId)?.playerId === playerId
+            actsFor(this.state, playerId, companyId)
         )
     }
     evaluate(
@@ -119,9 +139,15 @@ export class EarningsDistribution {
             getCompany(this.state, companyId).closed
         )
             return { reason: 'This company is not distributing earnings.' }
-        if (!this.rules.choices(this.state, companyId).includes(choice))
+        if (!this.choices(companyId).includes(choice))
             return { reason: 'This distribution choice is not available.' }
-        const revenue = result.revenue,
+        const topUp =
+            choice === 'top-up'
+                ? (this.rules.treasuryTopUp?.(this.state, companyId, result.revenue) ?? 0)
+                : 0
+        if (choice === 'top-up' && !topUp)
+            return { reason: 'The treasury cannot top up this revenue.' }
+        const revenue = result.revenue + topUp,
             retained = this.rules.retainedRevenue(this.state, companyId, choice, revenue)
         const count = this.rules.shareCount(this.state, companyId)
         assert(count > 0 && Number.isInteger(count), 'Dividends require a positive share count')
@@ -159,28 +185,20 @@ export class EarningsDistribution {
                     amount: -amount
                 })
         }
-        const total = payments.reduce((sum, payment) => sum + payment.amount, 0),
-            bank = cashOwnedBy(this.state, { kind: 'bank' })
-        if (
-            bank !== 'unlimited' &&
-            !this.state.bank.unlimitedAfterExhaustion &&
-            (bank === undefined || bank < total)
-        )
-            return {
-                reason: 'The Bank cannot fund this payment.'
-            }
+        const total = payments.reduce((sum, payment) => sum + payment.amount, 0)
         return {
             details: {
                 companyId,
                 choice,
-                revenue,
+                revenue: result.revenue,
                 retained,
                 dividendPerShare,
                 bonusPerShare: effect.bonusPerShare,
                 bankAdjustment: total - revenue,
                 payments,
                 ...(charges.length ? { charges } : {}),
-                ...(effect.move ? { marketMove: effect.move } : {})
+                ...(effect.move ? { marketMove: effect.move } : {}),
+                ...(topUp ? { topUp } : {})
             }
         }
     }
@@ -207,12 +225,14 @@ export function validateEarningsDistribution(
         machineState: string
         routeStep?: { result?: { companyId: string; revenue: number } }
         trainPurchaseStep?: { companyId: string }
-    }
+    },
+    operatingInterruptions: readonly string[] = []
 ): void {
     const earnings = state.earningsDistribution
     if (!earnings) return
     assert(
-        AfterEarningsStates.includes(state.machineState) &&
+        (AfterEarningsStates.includes(state.machineState) ||
+            operatingInterruptions.includes(state.machineState)) &&
             earnings.companyId === state.routeStep?.result?.companyId &&
             earnings.revenue === state.routeStep.result.revenue &&
             (!state.trainPurchaseStep || state.trainPurchaseStep.companyId === earnings.companyId),

@@ -82,7 +82,9 @@ describe('auction awards', () => {
         })
         expect(game.valid(owner)).toEqual(['ParCompany'])
         for (const player of game.state.players.filter((player) => player.playerId !== owner))
-            expect(game.valid(player.playerId)).toEqual([])
+            expect(
+                game.valid(player.playerId).filter((type) => type !== 'SetRunInstruction')
+            ).toEqual([])
         expect(() => game.act('ParCompany', { companyId: 'BO', marketSpaceId: '0:0' })).toThrow()
 
         const before = cash(game.state, { kind: 'player', playerId: owner })
@@ -268,16 +270,18 @@ describe('Delaware & Hudson', () => {
     it('lays 57 on F16 as the ordinary lay, then places a free station that is the turn’s', () => {
         const { game, president, before } = scranton()
         expect(cash(game.state, prr)).toBe(before - 120)
-        expect(game.state.trackStep?.lays).toEqual([
-            { locationId: 'F16', color: 'yellow', cost: 120 }
-        ])
+        expect(game.state.trackStep?.lays).toEqual([{ locationId: 'F16', definitionId: '18xx:57' }])
         expect(game.state.privateStation).toEqual({
             privateCompanyId: 'DH',
             companyId: 'PRR',
             playerId: president,
             locationId: 'F16'
         })
-        expect(game.valid(president)).toEqual(['PlacePrivateStation', 'DeclinePrivateStation'])
+        expect(game.valid(president)).toEqual([
+            'PlacePrivateStation',
+            'DeclinePrivateStation',
+            'SetRunInstruction'
+        ])
         game.act('PlacePrivateStation', {
             privateCompanyId: 'DH',
             position: { locationId: 'F16', nodeId: 'city', slot: 0 }
@@ -312,7 +316,7 @@ describe('Delaware & Hudson', () => {
             ...game.state,
             trackStep: {
                 companyId: 'PRR',
-                lays: [{ locationId: 'H14', color: 'yellow', cost: 0 }],
+                lays: [{ locationId: 'H14' }],
                 completed: false
             }
         }

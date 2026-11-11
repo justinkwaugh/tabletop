@@ -1,10 +1,12 @@
 import { assertExists } from '@tabletop/common'
 import { getCompany } from '../finance/finance.js'
+import { companyShareCount, type CompanyCharters } from '../company/companyCharters.js'
 import type { StockMarketChart } from '../stock/stockMarket.js'
 import { dividendEntitlements, type EarningsRules } from './earningsDistribution.js'
 
 export function payOrWithholdEarningsRules(
     market: StockMarketChart,
+    charters: CompanyCharters,
     pools: {
         unpaidPoolIds: readonly string[]
         companyPoolIds: readonly string[]
@@ -13,7 +15,7 @@ export function payOrWithholdEarningsRules(
     return {
         choices: () => ['pay', 'withhold'],
         shareCount(state, companyId) {
-            const count = getCompany(state, companyId).shareCount
+            const count = companyShareCount(state, charters, companyId)
             assertExists(count, 'Dividends require a share count')
             return count
         },

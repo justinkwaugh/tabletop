@@ -5,15 +5,18 @@ import {
     finiteCashOwnedBy,
     getCompany,
     privateOwner,
+    recordedRoundEnd,
+    roundEnd,
     trainsOwnedBy
 } from '@tabletop/18xx'
-import { openingGame, installTile } from './testSupport.js'
+import { openingGame, installTile } from '../test/testSupport.js'
 import { TrackRules1846 } from './track.js'
 import { openingPurchaseChoices, unboughtOpeningCompanies } from './publicDistribution.js'
 import { DraftCompanies } from './catalog.js'
 import { Runtime } from './definition/gameDefinition.js'
 import { hydrateEighteenFortySixState, type EighteenFortySixProjectedState } from './state.js'
 import { TrainDepot1846 } from './trains.js'
+import { EndingRules1846 } from './ending.js'
 
 type Table = ReturnType<typeof openingGame>
 function buy(table: Table, companyId: string) {
@@ -225,6 +228,10 @@ describe('1846 two-player opening', () => {
             })
             expect(table.state.stockRound.number).toBe(1)
         }
+        // MS settles as each opening operating round's last company.
+        expect(
+            table.actions.map(recordedRoundEnd).filter((end) => end?.round === 'operating')
+        ).toHaveLength(4)
         expect(trainsOwnedBy(table.state, { kind: 'company', companyId: 'BIG4' })).toEqual([])
         replayAndUndo(table, before, table.actions)
     })
@@ -246,19 +253,32 @@ describe('1846 two-player opening', () => {
                 expect(table.state.operatingSet).toBeUndefined()
             }
             expect(table.state.machineState).toBe('StockRound')
-            expect(table.state.draft).toEqual({ kind: 'public', stage: 'complete' })
-            expect(table.state.purchases.at(-1)).toMatchObject({
-                cardId: last,
-                price: company.debt
-            })
+            expect(table.state.draft).toBeUndefined()
+            expect(table.state.purchases).toBeUndefined()
             expect(table.actions.at(-1)).toMatchObject({
                 metadata: { purchase: { cardId: last, price: company.debt } }
             })
+            // Only the action that ends the opening records its end.
+            expect(table.actions.map(recordedRoundEnd).slice(0, -1).filter(Boolean)).toEqual([])
+            expect(recordedRoundEnd(table.actions.at(-1)!)).toEqual(
+                roundEnd(table.hydrated, EndingRules1846, 'opening')
+            )
             expect(table.state.result).toBeUndefined()
             expect(table.state.activePlayerIds).toEqual([table.state.players[0].playerId])
             replayAndUndo(table, before, table.actions)
         }
     )
+
+    it('records every player’s wealth when the last opening company is bought', () => {
+        const table = openingGame()
+        while (unboughtOpeningCompanies(table.hydrated).length)
+            buy(table, unboughtOpeningCompanies(table.hydrated)[0])
+        expect(table.state.machineState).toBe('StockRound')
+        expect(table.actions.map(recordedRoundEnd).slice(0, -1).filter(Boolean)).toEqual([])
+        expect(recordedRoundEnd(table.actions.at(-1)!)).toEqual(
+            roundEnd(table.hydrated, EndingRules1846, 'opening')
+        )
+    })
 
     it('keeps all offered companies and purchases public to both players and spectators', () => {
         const table = openingGame()

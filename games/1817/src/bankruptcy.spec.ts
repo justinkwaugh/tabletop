@@ -118,6 +118,13 @@ describe('crisis sales', () => {
 })
 
 describe('bankruptcy', () => {
+    it('records the company a bankrupt player presided over in its operation', () => {
+        const play = pleDefaults()
+        play.act('GoBankrupt')
+        expect(
+            play.processed.find((action) => action.type === 'GoBankrupt')?.metadata
+        ).toMatchObject({ presidedCompanyId: 'PLE' })
+    })
     it('takes the player’s shares and cash, liquidates their companies and removes them', () => {
         const play = pleDefaults()
         play.act('GoBankrupt')
@@ -173,7 +180,7 @@ describe('a bankrupt president’s companies', () => {
         expect(EighteenSeventeenMarket.order(state.stockMarket).indexOf('BA')).toBeLessThan(
             EighteenSeventeenMarket.order(state.stockMarket).indexOf('PLE')
         )
-        const record = EighteenSeventeenCashCrisisRules.bankrupt(state, 'blair')
+        const record = EighteenSeventeenCashCrisisRules.elimination.eliminate(state, 'blair')
         expect(record.liquidatedCompanyIds).toEqual(['BA', 'PLE'])
         expect(getCompany(state, 'BA').president).toBeUndefined()
         expect(state.turnManager.turnOrder).toEqual(['alex', 'blair', 'casey'])

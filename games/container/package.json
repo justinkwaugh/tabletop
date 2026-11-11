@@ -15,17 +15,14 @@
     },
     "dependencies": {
         "@tabletop/common": "workspace:*",
-        "es-iterator-helpers": "^1.2.1",
         "typebox": "^1.0.53"
     },
     "devDependencies": {
-        "@babel/core": "^7.25.2",
-        "@babel/preset-env": "^7.25.3",
         "@tabletop/eslint-config": "workspace:*",
         "@tabletop/vitest-config": "workspace:*",
         "@typescript/native-preview": "7.0.0-dev.20260707.2",
         "rimraf": "^6.1.0",
         "typescript": "5.9.3",
-        "vitest": "^4.0.12"
+        "vitest": "^5.0.5"
     }
 }

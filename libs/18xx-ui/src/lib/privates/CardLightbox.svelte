@@ -1,66 +1,39 @@
 <script lang="ts">
+    import Lightbox from '../presentation/Lightbox.svelte'
+    import PublishedCardPlate from './PublishedCardPlate.svelte'
+    import type { PublishedCardPlate as Plate } from '../session/eighteenXXSession.svelte.js'
+
     let {
         imageUrl,
         name,
+        plate,
         onclose
     }: {
         imageUrl: string
         name: string
+        plate?: Plate
         onclose: () => void
     } = $props()
-    function showModal(node: HTMLDialogElement) {
-        node.showModal()
-    }
 </script>
 
-<!-- Published card art centred over a full-screen mask; the size follows the viewport. -->
-<dialog
-    class="card-lightbox"
-    aria-label={name}
-    data-card-image
-    use:showModal
-    {onclose}
-    onclick={onclose}
->
-    <img src={imageUrl} alt={name} />
-</dialog>
+<Lightbox label={name} {onclose}>
+    <div data-card-image>
+        <img class="card-image" src={imageUrl} alt={name} />
+        {#if plate}<PublishedCardPlate {plate} />{/if}
+    </div>
+</Lightbox>
 
 <style>
-    .card-lightbox {
-        margin: auto;
-        padding: 0;
-        border: 0;
-        background: transparent;
-        max-width: none;
-        max-height: none;
-        overflow: visible;
+    [data-card-image] {
+        width: fit-content;
     }
-    .card-lightbox::backdrop {
-        background: rgb(0 0 0 / 0.62);
-    }
-    .card-lightbox img {
+    .card-image {
         display: block;
-        /* Portrait cards (about 3:5): fill the shorter viewport dimension with a margin. */
-        width: min(92vw, calc((100dvh - 48px) * 0.6));
-        max-height: calc(100dvh - 48px);
+        width: auto;
         height: auto;
+        max-width: 92vw;
+        max-height: min(100dvh - 48px, 560px);
         border-radius: 14px;
         box-shadow: 0 18px 48px rgb(0 0 0 / 0.5);
-        animation: rise 140ms ease-out;
-    }
-    @keyframes rise {
-        from {
-            transform: translateY(6px);
-            opacity: 0;
-        }
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
-    }
-    @media (prefers-reduced-motion: reduce) {
-        .card-lightbox img {
-            animation: none;
-        }
     }
 </style>

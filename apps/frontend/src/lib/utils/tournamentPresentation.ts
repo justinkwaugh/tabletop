@@ -1,8 +1,59 @@
-import type { Tournament } from '@tabletop/common'
+import {
+    formatTournamentAveragePlace,
+    formatTournamentTiebreaks,
+    ranksByAveragePlace,
+    tournamentCapacity,
+    type Tournament,
+    type TournamentRules,
+    type TournamentScore,
+    type TournamentStanding
+} from '@tabletop/common'
 import { startCountdownText } from './startCountdown'
+
+export function tournamentTiebreakTexts(
+    rows: Pick<
+        TournamentStanding,
+        'userId' | 'completed' | 'tiebreak' | 'pointsBehind' | 'shareOfWinner'
+    >[]
+): Map<string, string> {
+    const texts = formatTournamentTiebreaks(rows)
+    return new Map(rows.map((row, index) => [row.userId, texts[index] ?? '—']))
+}
+
+export function tournamentScoringText(rules: Pick<TournamentRules, 'scoring'>): string {
+    return ranksByAveragePlace(rules)
+        ? 'Ranked by average place. Ties go to whoever finished ahead more often at shared tables, then the tiebreak.'
+        : 'A win earns 1 point; joint winners split it.'
+}
+
+export function tournamentAveragePlaceText(
+    row: Pick<TournamentScore, 'completed' | 'placeTotal'>
+): string {
+    return formatTournamentAveragePlace(row) ?? '—'
+}
 
 export function tournamentFormatText(format: Tournament['format']): string {
     return format.kind === 'mini' ? 'Mini tournament' : 'Multi-stage tournament'
+}
+
+export function tournamentRosterText(tournament: Pick<Tournament, 'entrants' | 'rules'>): string {
+    const capacity = tournamentCapacity(tournament.rules.registration)
+    return capacity
+        ? `${tournament.entrants.length} / ${capacity}`
+        : String(tournament.entrants.length)
+}
+
+export function tournamentTag(tournament: Pick<Tournament, 'format' | 'league'>): string {
+    if (tournament.league) return 'League'
+    return tournament.format.kind === 'mini' ? 'Mini' : 'Multi-stage'
+}
+
+export function tournamentTagTitle(tournament: Pick<Tournament, 'format' | 'league'>): string {
+    return tournament.league ? 'League group' : tournamentFormatText(tournament.format)
+}
+
+export function tournamentLeagueHref(league: NonNullable<Tournament['league']>): string {
+    return `/leagues/${encodeURIComponent(league.leagueId)}?season=${league.seasonId}`
 }
 
 export function tournamentRegistrationOpen(tournament: Tournament, now = Date.now()): boolean {
@@ -17,6 +68,7 @@ export function tournamentRegistrationOpen(tournament: Tournament, now = Date.no
 export function tournamentRegistrationText(tournament: Tournament, now = Date.now()): string {
     if (tournament.startsAt !== undefined) return 'Registration closes when the tournament starts.'
     const policy = tournament.rules.registration
+    if (policy.kind === 'assigned') return 'Players are assigned by the league.'
     return policy.kind === 'whenFull'
         ? `Starts when ${policy.capacity} players have joined`
         : `Registration ${now < policy.closesAt ? 'closes' : 'closed'} ${new Date(

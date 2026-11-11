@@ -23,7 +23,7 @@ This service handles everything related to creating and running games. It commun
 **Notifications**
 
 This service manages the sending and listening for realtime notifications on various topics for the application itself as well as pushed notifications to users for various purposes (game invites, turn notifications). It can support various transports
-for both types of notifications. By default it utilizes the PubSub service (described below) for the realtime application notifications, exposed via an SSE endpoint, but also supports [Ably](https://ably.com) for realtime web notifications. Currently Web Push and Discord transports are provided for user notifications. It may ultimately manage the sending of email notifications as well in the future, but does not currently.
+for both types of notifications. By default it utilizes the PubSub service (described below) for the realtime application notifications, exposed via an SSE endpoint, but also supports [Ably](https://ably.com) for realtime web notifications. A self-hosted realtime relay in Go (`apps/realtime`, see [docs/realtime-relay.md](docs/realtime-relay.md)) is replacing both for realtime web notifications. Currently Web Push and Discord transports are provided for user notifications. It may ultimately manage the sending of email notifications as well in the future, but does not currently.
 
 **Persistence**
 
@@ -60,7 +60,7 @@ This service provides management of users of the website, such as creating, read
 
 ## Frontend
 
-The frontend is the visible website. It uses Svelte/SvelteKit as it's primary framework. It primarily provides the administrative features of the website such as user creation / login / game management. The website is a single page app (SPA) hosted statically in GCS and served by the backend, but served in a separate process when run locally. There is no technical reason it could not be its own full SvelteKit app with server side rending and so forth. The choice was made to make it an SPA because I did not want to dedicate instances to the frontend (the backend API itself will always be separate) and due to the nature of the site it lends itself to being an SPA.
+The frontend is the visible website. It uses Svelte/SvelteKit as it's primary framework. It primarily provides the administrative features of the website such as user creation / login / game management. The website is a single page app (SPA) served by Firebase Hosting, which sends `/api`, `/games` and `/tasks` to the backend; each release is also kept in GCS for rollbacks. It is served in a separate process when run locally. There is no technical reason it could not be its own full SvelteKit app with server side rending and so forth. The choice was made to make it an SPA because I did not want to dedicate instances to the frontend (the backend API itself will always be separate) and due to the nature of the site it lends itself to being an SPA.
 
 ## Games
 

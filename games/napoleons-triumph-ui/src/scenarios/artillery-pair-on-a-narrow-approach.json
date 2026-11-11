@@ -28,15 +28,15 @@
   "activePlayerIds": [
    "p1"
   ],
-  "createdAt": "2026-10-14T15:31:39.402Z",
+  "createdAt": "2026-10-16T17:48:21.061Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-10-14T15:31:39.402Z",
+  "startedAt": "2026-10-16T17:48:21.061Z",
   "protectedInformation": true
  },
  "state": {
   "systemVersion": 3,
-  "id": "ZDyLlLSyhxWcW_3empDi5",
+  "id": "4ZeyZx9JIV-hn6m9kHgQq",
   "gameId": "scenario-artillery-pair-on-a-narrow-approach",
   "seed": 3367980177,
   "prng": {
@@ -66,7 +66,22 @@
     "heavyCavalryCommitted": false,
     "guardCommitted": false,
     "guardAttackForfeited": false,
-    "side": "Allied"
+    "artilleryFire": {},
+    "side": "Allied",
+    "armyDisplay": [
+     {
+      "type": "Infantry",
+      "strength": 3
+     },
+     {
+      "type": "Infantry",
+      "strength": 2
+     },
+     {
+      "type": "Infantry",
+      "strength": 2
+     }
+    ]
    },
    {
     "playerId": "p1",
@@ -78,7 +93,18 @@
     "heavyCavalryCommitted": false,
     "guardCommitted": false,
     "guardAttackForfeited": false,
-    "side": "French"
+    "artilleryFire": {},
+    "side": "French",
+    "armyDisplay": [
+     {
+      "type": "Artillery",
+      "strength": 1
+     },
+     {
+      "type": "Artillery",
+      "strength": 1
+     }
+    ]
    }
   ],
   "machineState": "Commanding",
@@ -262,7 +288,6 @@
    }
   ],
   "frenchReinforcementsEntered": false,
-  "artilleryFire": {},
   "limits": {
    "closedApproaches": [],
    "bombardedApproaches": [],

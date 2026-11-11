@@ -1,5 +1,5 @@
 import type { GameConfig, PlayerState, Prng, StartingPositionAssignment } from '@tabletop/common'
-import { assert } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 import type * as Type from 'typebox'
 import type { OfferPileAuction } from '../auctions/offerPileAuction.js'
 import type { SelectionAuctionRules } from '../auctions/selectionAuction.js'
@@ -21,6 +21,18 @@ export type OpeningSetup = {
     config: GameConfig
     startingPositions?: StartingPositionAssignment
 }
+/** What a title's starting cash can depend on, which the table also knows. */
+export type StartingCashSetup = { playerCount: number; config: GameConfig }
+/** The starting cash rule of a title whose cash depends only on the player count. */
+export function startingCashByPlayerCount(
+    cash: Readonly<Record<number, number>>
+): (setup: StartingCashSetup) => number {
+    return ({ playerCount }) => {
+        const amount = cash[playerCount]
+        assertExists(amount, `No starting cash for ${playerCount} players`)
+        return amount
+    }
+}
 export type InitialPosition = CompanyState &
     MapStateData &
     TrainState & { stockMarket: StockMarket }
@@ -40,7 +52,12 @@ export type Opening<
     ? { titleState?: InitialTitleState<Schema> }
     : { titleState: InitialTitleState<Schema> })
 
-function beginWith(state: HydratedEighteenXXState, machineState: string, playerId: string): void {
+/** Starts play in a machine state with its first player, as an opening's `begin` does. */
+export function beginOpening(
+    state: HydratedEighteenXXState,
+    machineState: string,
+    playerId: string
+): void {
     state.turnManager.newFirstPlayer(playerId)
     state.turnManager.series = [{ type: 'turn', playerId, start: 0 }]
     state.activePlayerIds = [playerId]
@@ -76,7 +93,7 @@ export function beginWaterfallAuction(
             awards: [],
             completed: false
         }
-        beginWith(state, 'WaterfallAuction', firstPlayerId)
+        beginOpening(state, 'WaterfallAuction', firstPlayerId)
     }
 }
 
@@ -99,7 +116,7 @@ export function beginSelectionAuction(
             closedLotIds: [],
             completed: false
         }
-        beginWith(state, 'SelectionAuction', firstPlayerId)
+        beginOpening(state, 'SelectionAuction', firstPlayerId)
     }
 }
 
@@ -110,6 +127,6 @@ export function beginOfferPileAuction(auction: OfferPileAuction): Opening['begin
             'The first auctioneer must be a player'
         )
         state.offerAuction = auction
-        beginWith(state, 'OfferingLot', auction.auctioneerId)
+        beginOpening(state, 'OfferingLot', auction.auctioneerId)
     }
 }

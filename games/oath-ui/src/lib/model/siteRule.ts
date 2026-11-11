@@ -1,4 +1,5 @@
 import {
+    banditsPerSite,
     banditsRuleSite,
     banditsServe,
     isImperialSite,
@@ -57,15 +58,19 @@ export type SitePieces = {
     pawns: HydratedOathPlayerState[]
     rule: SiteRule
     bandits: boolean
+    // R-2.8.3 — how many bandits stand there: the engine's count, 0 where none do.
+    banditCount: number
 }
 
 // Only one player's warbands are allowed per site; every owner is kept so a broken invariant shows.
 export function sitePieces(state: HydratedOathGameState, slotId: string): SitePieces {
     const rule = siteRuleOf(state, slotId)
+    const bandits = rule.banditsRule || rule.banditsHolderId !== undefined
     return {
         warbands: warbandEntries(warbandsAt(state, slotId)).filter(([, count]) => count > 0),
         pawns: state.players.filter((player) => player.siteId === slotId),
         rule,
-        bandits: rule.banditsRule || rule.banditsHolderId !== undefined
+        bandits,
+        banditCount: bandits ? banditsPerSite(state) : 0
     }
 }
