@@ -398,6 +398,7 @@ export type TableName =
     | 'edificeAncientForge'
     | 'greatSpireMenu'
     | 'greatSpireMenuEmpty'
+    | 'greatSpireMenuEmptyOlderGame'
     | 'greatSpireSwap'
     | 'greatSpireSwapVision'
     | 'fallenSpire'
@@ -6011,6 +6012,7 @@ const TABLES: Record<TableName, () => PlayedTable | Promise<PlayedTable>> = {
     edificeAncientForge: () => edificeMapTable('ancient'),
     greatSpireMenu: () => greatSpireMenuTable(),
     greatSpireMenuEmpty: () => greatSpireMenuTable(true),
+    greatSpireMenuEmptyOlderGame: () => greatSpireMenuTable(true, OathRevision.EngineFixes28),
     greatSpireSwap: () => greatSpireSwapTable(),
     greatSpireSwapVision: () => greatSpireSwapTable(true),
     fallenSpire: () => fallenSpireTable(),
