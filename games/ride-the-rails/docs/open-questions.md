@@ -29,6 +29,7 @@ Questions marked _(map)_ need the map boards before they can be settled; the res
     - _Readings:_ (a) one per city, supply unlimited (Paris Travels never runs out); (b) supply capped at 52.
     - _Sources:_ B "one Passenger on each city"; the box has 52; FD adds a passenger to Paris each round.
     - _Recommendation:_ (a). Check each map's city count against 52 once transcribed; if a map has more than 52 cities, ask again.
+    - _USA:_ the board has 51 cities and the box 52 passengers, so one per city leaves one spare: settled for the USA map. The supply question returns with France (Paris Travels).
 
 ## Turn structure
 

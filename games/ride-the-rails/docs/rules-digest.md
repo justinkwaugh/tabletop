@@ -4,15 +4,15 @@ The rules as the code cites them: `R-<section>` names a section below. Built fro
 
 ## Sources
 
-| Source    | What it is                                                    | Date or edition              | Supplied as                                                                                                                                           |
-| --------- | ------------------------------------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| rulebook  | _Ride the Rails_ rules of play (USA map), Capstone Games      | 2020, 2 pages                | publisher PDF                                                                                                                                         |
-| rulebook  | _Ride the Rails: Australia & Canada_ rules of play            | 2021, 1 page                 | publisher PDF                                                                                                                                         |
-| rulebook  | _Ride the Rails: France & Germany_ rules of play              | 2020, 1 page (plus box back) | publisher PDF                                                                                                                                         |
-| FAQ       | none found                                                    |                              |                                                                                                                                                       |
-| errata    | none found                                                    |                              |                                                                                                                                                       |
-| card text | none: the game has no cards                                   |                              |                                                                                                                                                       |
-| maps      | the five map boards (USA, Australia, Canada, France, Germany) |                              | **not yet supplied**: hexes, terrain, cities, start colours and bonus cities are printed only on the boards (FD's components list is the board alone) |
+| Source    | What it is                                                                   | Date or edition              | Supplied as                                                                          |
+| --------- | ---------------------------------------------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------ |
+| rulebook  | _Ride the Rails_ rules of play (USA map), Capstone Games                     | 2020, 2 pages                | publisher PDF                                                                        |
+| rulebook  | _Ride the Rails: Australia & Canada_ rules of play                           | 2021, 1 page                 | publisher PDF                                                                        |
+| rulebook  | _Ride the Rails: France & Germany_ rules of play                             | 2020, 1 page (plus box back) | publisher PDF                                                                        |
+| FAQ       | none found                                                                   |                              |                                                                                      |
+| errata    | none found                                                                   |                              |                                                                                      |
+| card text | none: the game has no cards                                                  |                              |                                                                                      |
+| maps      | the USA map board, transcribed in `components.md`; the four expansion boards |                              | image of the printed USA board; the expansion boards are not yet supplied (deferred) |
 
 Where sources conflict, the later official one wins and the conflict is listed in `open-questions.md`. Each expansion map uses the base rules except where its section in R-8 says otherwise (AC, FD: "uses the base game rules, except where listed below").
 
