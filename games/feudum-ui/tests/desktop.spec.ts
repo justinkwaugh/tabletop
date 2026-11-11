@@ -85,6 +85,26 @@ async function rect(target: Locator) {
 test.describe('a 1440 px desk', () => {
     test.use({ viewport: { width: 1440, height: 900 } })
 
+    test('R-1.4.8 the starting-goods choice shows all five goods in the panel, in sight', async ({
+        page
+    }) => {
+        await openFixture(page, 'setup-goods')
+        const rows = panel(page).locator('[data-rows="goods"] [data-row]')
+        await expect(rows).toHaveCount(5)
+        const view = page.viewportSize()!
+        const area = await rect(panel(page))
+        for (const row of await rows.all()) {
+            await expect(row).toBeVisible()
+            const box = await rect(row)
+            expect(box.x).toBeGreaterThanOrEqual(Math.max(0, area.x) - 0.5)
+            expect(box.x + box.width).toBeLessThanOrEqual(
+                Math.min(view.width, area.x + area.width) + 0.5
+            )
+            expect(box.y).toBeGreaterThanOrEqual(Math.max(0, area.y) - 0.5)
+            expect(box.y + box.height).toBeLessThanOrEqual(view.height)
+        }
+    })
+
     test('R-6.2 a sealed charter’s score reads as vp beneath its face', async ({ page }) => {
         await openFixture(page, 'game-end')
         const charter = panel(page).locator('[data-game-end-charter]')

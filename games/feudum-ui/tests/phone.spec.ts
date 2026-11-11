@@ -783,6 +783,26 @@ test.describe('held upright', () => {
 test.describe('a 390 px phone', () => {
     test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
 
+    test('R-1.4.8 the starting-goods choice shows all five goods in the panel, in sight', async ({
+        page
+    }) => {
+        await openFixture(page, 'setup-goods')
+        const rows = panel(page).locator('[data-rows="goods"] [data-row]')
+        await expect(rows).toHaveCount(5)
+        const view = page.viewportSize()!
+        const area = await rect(panel(page))
+        for (const row of await rows.all()) {
+            await expect(row).toBeVisible()
+            const box = await rect(row)
+            expect(box.x).toBeGreaterThanOrEqual(Math.max(0, area.x) - 0.5)
+            expect(box.x + box.width).toBeLessThanOrEqual(
+                Math.min(view.width, area.x + area.width) + 0.5
+            )
+            expect(box.y).toBeGreaterThanOrEqual(Math.max(0, area.y) - 0.5)
+            expect(box.y + box.height).toBeLessThanOrEqual(view.height)
+        }
+    })
+
     test('R-3.2 each card’s preview reads on one line, named "Show on board" for its card', async ({
         page
     }) => {
