@@ -457,8 +457,10 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
             replays: forfeitOnly ? [] : replays,
             modes: forfeitOnly
                 ? []
-                : modes.map(({ action, label, refusal }): PanelChoice => ({
+                : modes.map(({ action, label, shown, cost, refusal }): PanelChoice => ({
                       label,
+                      ...(shown ? { shown } : {}),
+                      ...(cost ? { cost } : {}),
                       picked: mode === action,
                       ...(refusal
                           ? { refusal }

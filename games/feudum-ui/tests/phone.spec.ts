@@ -737,6 +737,26 @@ test.describe('held upright', () => {
         await expect(page.locator('[data-bright]')).toHaveCount(0)
     })
 
+    test('S10a R-3.2 a picked card’s tray takes the line under the hand, Forfeit last', async ({
+        page
+    }) => {
+        await createGame(page)
+        await playToCards(page)
+        await settled(page)
+        const cells = panel(page).locator('[data-cards="hand"] [data-row]:has(button.face)')
+        await cells.first().locator('button.face').click()
+        await settled(page)
+        const tray = panel(page).locator('[data-card-tray]')
+        await expect(tray).toBeVisible()
+        const box = await rect(tray)
+        for (const cell of await cells.all()) {
+            const face = await rect(cell.locator('button.face'))
+            expect(box.y).toBeGreaterThanOrEqual(face.y + face.height)
+        }
+        await expect(tray.getByRole('button').last()).toHaveText('Forfeit')
+        await expectNoSidewaysScroll(page)
+    })
+
     test('R-3.2 the hand in card play: every pick, magnifier and preview is 44 px', async ({
         page
     }) => {

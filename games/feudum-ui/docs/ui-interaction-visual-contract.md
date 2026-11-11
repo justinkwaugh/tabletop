@@ -109,13 +109,16 @@ A press that completes an undoable Action sends at once. A step whose Action wil
 
 ### Playing a card (`PlayingCards`)
 
-The turn player's panel shows the hand as faces in one row. Above it, one line: "Epoch II · Round 4 · your 2nd card of 4". Below it, the at-will row. Other seats see the turn player's hand as backs.
+The turn player's panel shows the hand as faces in one line. Above it, one line: "Epoch II · Round 4 · your 2nd card of 4". At the hand line's right end, the at-will row. Other seats see the turn player's hand as backs.
 
-- **Stage 1, the card.** A press picks a card. The panel then shows the card's modes as buttons:
-    - its regular action ("Move");
-    - its special ability, when the seat meets its need (R-3.4): "Godspeed" as a toggle on an additive card, or a separate button on an either/or card ("Tend Landscape · 1 wood");
-    - "Forfeit", which plays the card without its action (R-3.2);
-    - "Play two cards this turn" as a toggle, while the pouch holds an unused sulfur (R-3.3). With it on, the turn continues with a second card after the first and its follow-ups.
+- **Stage 1, the card.** A press picks a card. The card lifts and a **tray** opens right after it in the hand line, pointing at it, named "‹Card›: what the card does". Everything the card asks stands in the tray, in this order:
+    - the card's name as its heading, and the stage's line ("Pick a place you rule…") when the card asks for one;
+    - its regular action ("Improve");
+    - its special ability (R-3.4): "Godspeed" as a toggle on an additive card, or a separate button on an either/or card, its printed cost drawn as goods art after the name (a wood cube and "1"; the accessible name stays "Tend Landscape · 1 wood"). A mode the seat cannot pay is dimmed with its reason beneath its name ("You hold no wood.") before any press;
+    - the stage's rows and the primary button;
+    - "Play two cards this turn" as a toggle, while the pouch holds an unused sulfur (R-3.3). With it on, the turn continues with a second card after the first and its follow-ups;
+    - "Forfeit", last and quieter (no fill, muted text), which plays the card without its action (R-3.2).
+- A card whose action is one undoable press puts its send in the tray: Defend's tray holds "Play Defend · +1 vp", then Forfeit.
 - A card the engine refuses in every mode except Forfeit shows only Forfeit. A lone Conquer shows only Forfeit (R-3.13-H1).
 - **Reinforcements is asked** (R-3.12-H1): with a Knight pawn on the board and a marker to come, Tax shows two rows, "Collect Reinforcements · +1 marker" and "Decline Reinforcements". The button reads "Tax · +4s", dimmed until a row is picked, then says the answer: "Tax · +4s · Reinforcements +1 marker". The engine reads no choice from the UI that the seat did not make (R-X.1).
 - Undo steps back through the stages one press at a time, then to no card picked.
@@ -196,7 +199,7 @@ The asked seat is the only active seat; its turn header reads "Your turn" and th
 
 ### At-will actions
 
-Available to the turn player in `PlayingCards` while no card is picked, to the next finaliser in `SelectingHands`, to the asked seat in `Nourishing`, and in `DiscardingWrits` (R-4.4-H1). The **at-will row** sits under the hand: chips "Writs 2", "Tiles 1", "Vessels 1", "Immunity 1", each shown only when it has something to do. A chip press opens its list in the panel; Undo closes it.
+Available to the turn player in `PlayingCards` while no card is picked, to the next finaliser in `SelectingHands`, to the asked seat in `Nourishing`, and in `DiscardingWrits` (R-4.4-H1). The **at-will row** stands at the hand line's right end in card play, and under the hand elsewhere: chips "Writs 2", "Tiles 1", "Vessels 1", "Immunity 1", each shown only when it has something to do. A chip press opens its list in the panel; Undo closes it.
 
 - **`PlayMandate`** (R-4.4.2). Each held mandate is a face with its alternatives as buttons, dimmed with a reason when not affordable; mandates 6 and 8 offer the reward of each guild where the seat has 3★, and mandate 6's Alchemist reward offers one button per vessel ("Alchemist → submersible"), each dimmed while the general supply has none (R-4.4-H4). A press sends, or stages with "can't be undone" when it draws goods or flips a bead.
 - **`DiscardWrit`** (R-4.4.4, R-4.4-H5, R-4.4-H8). Each writ has "Discard"; a press sends. It goes under face down: others read "Ana discarded a writ under the deck". A writ may be discarded at any time, so a seat holding one has the Writs chip whenever no card is picked, outside these windows too: off its turn the row sits under the waiting line. In a hotseat game each other seat holding a writ has a chip "Ben's writs" under the panel; its press opens that seat's writs, each with "Discard", sent as that seat.
@@ -390,7 +393,7 @@ Target: 375 × 812, held upright. Budget, top to bottom:
 - **Tracks sheet.** The tracks lie scattered round the printed board, and framing them all leaves them too small to read on a phone. The Tracks chip instead opens a bottom sheet, up to 80 % of the dynamic viewport, that redraws them at full size in one column: epoch and round, the region tile stacks and chart, the progress die, the krud barrels, the voyage track, military service and the score track. The sheet is for looking: it offers no target, and a pick that lights a track (a voyage disc, a service disc) frames that track on the board instead.
 - **Pick framing.** When a map pick opens on a phone, the board frames the lit targets (up to 2.5×). A guild pick frames the guild column holding lit areas, the West first when both do. This is the one place a choice moves the focus. A hand pan clears it.
 - **The bench** is a bottom sheet up to 80 % of the dynamic viewport: from-guild above, to-guild below, the result line and the primary button in the sheet's footer while it is open (one place at a time). The areas narrow from the column's width until both stand whole between the title and the footer, so every row of a market or a Knight panel is in sight without scrolling (checked at 390 × 844). A map pick from the bench (a tame, a farm) collapses the sheet to its header.
-- **The hand.** In hand selection the eleven cards stand in two rows (six, five) at the column's width, each with a magnifier; the pouch row and the finalise button share one line under them. The finalise order shares the prompt's line, each seat by its colour, which the seat strip names. In card play the hand is one row of up to five; each card's preview path stands beneath it on one line and reads "On board", where "Show on board" has no room, its accessible name staying "Show on board: <card>" (checked at 390 px). A magnifier enlarges a card to the screen width less 32 px.
+- **The hand.** In hand selection the eleven cards stand in two rows (six, five) at the column's width, each with a magnifier; the pouch row and the finalise button share one line under them. The finalise order shares the prompt's line, each seat by its colour, which the seat strip names. In card play the hand is one row of up to five; a picked card's tray takes the line under the hand, its arrow pointing up at the card, its rows wrapping inside the column's width. Each card's preview path stands beneath it on one line and reads "On board", where "Show on board" has no room, its accessible name staying "Show on board: <card>" (checked at 390 px). A magnifier enlarges a card to the screen width less 32 px.
 - **Guild dice.** The six dice of a guild or character choice stand in one row at 50 px, with no caption; the badge stays, and each die's "On board" preview stands beneath it at its width (checked at 375 px). A popup of dice keeps its 3 × 2 grid at 50 px.
 - **Sends.** Two sends side by side (the defender's answers, the starve answers, a keep beside a keep with Shovels & Swords) stand in one pinned group. Each takes its own width and the line's spare room, so two short ones share a line and a long one takes a line of its own, its words on one line.
 - **Move on a phone.** The allowance and "Stop moving" share the panel's one line; steps, the trail and way popups are on the framed map.
@@ -427,6 +430,7 @@ Each gives the start, the input, the result, the result after Undo or exit, and 
 **Card play**
 
 - **S10. Card modes.** Pick Influence with a Merchant on a space ruled by a lone opponent marker: the space lights with "Money is Influence · 1s" in rose; the primary reads "Influence". Press the space: the primary names it. Undo: the space, then the card. Auto.
+- **S10a. The card's tray.** Pick Move: a tray opens right of the card on its line (under the hand on a phone), named "Move: what the card does"; its last button is Forfeit, drawn quieter. With an Improve whose Tend Landscape the seat cannot pay, the special shows its wood cube and "1", dimmed, with "You hold no wood." beneath. Defend's tray holds "Play Defend · +1 vp", then Forfeit. With no card picked the Writs and Tiles chips stand at the hand line's end. Auto.
 - **S11. Forfeit only.** A seat whose last card is Conquer: the card shows only "Forfeit". Its press sends; the seat panel marks it "forfeited". Auto.
 - **S12. Two cards.** With sulfur in the pouch, pick Tax and turn on "Play two cards this turn": Tax sends; the panel reads "Your second card" and shows the hand. The pouch is marked spent. Auto.
 - **S13. `Migrate` onto the board.** Pick Migrate, press a supply pawn: legal spaces light with the food cube and "1"; with an Alchemist pawn on the board and Distant Kin on, every starting space lights with "Distant Kin". Press a space, then the Monk die in the popup's 3 × 2 grid: sent; the pawn flies in with its monk face; guild status updates. Undo is offered and reverses it. Auto.

@@ -127,7 +127,7 @@ test('S5 R-3.1 a dimmed pouch good gives its reason on the press', async ({ page
     await shot(page, 'pouch-refused')
 })
 
-test('S9 S10 S12 R-3.3 the hand is a row of faces; a Move shows its rows, a Forfeit and the toggle', async ({
+test('S9 S10 S10a S12 R-3.3 the hand is a row of faces; a Move shows its rows, a Forfeit and the toggle', async ({
     page
 }) => {
     await createGame(page)
@@ -150,6 +150,16 @@ test('S9 S10 S12 R-3.3 the hand is a row of faces; a Move shows its rows, a Forf
     await expect(panel(page).getByRole('button', { name: 'Forfeit', exact: true })).toBeVisible()
     await expect(panel(page).locator('[data-flow-line]')).toBeVisible()
     await expect(move.locator('button').first()).toHaveAttribute('aria-pressed', 'true')
+
+    // R-3.2 The modes stand in a tray right of the picked card, on its line, Forfeit last.
+    const tray = panel(page).locator('[data-card-tray="Move"]')
+    await expect(tray).toBeVisible()
+    const face = await move.locator('button.face').boundingBox()
+    const box = await tray.boundingBox()
+    expect(face && box).toBeTruthy()
+    expect(box!.x).toBeGreaterThanOrEqual(face!.x + face!.width)
+    expect(box!.y).toBeLessThan(face!.y + face!.height)
+    await expect(tray.getByRole('button').last()).toHaveText('Forfeit')
     await shot(page, 'move-picked')
 })
 

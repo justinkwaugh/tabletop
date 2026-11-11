@@ -42,6 +42,8 @@
         choice={row.choice}
         {pointer}
         lead={row.art ? lead : undefined}
+        quiet={row.quiet}
+        explained={row.explained}
         onPress={() => void row.press()}
     />
 {/if}

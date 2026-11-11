@@ -478,11 +478,75 @@ describe('Playing a card', () => {
         expect(rowsOf(view())).toEqual([])
         await pressCard(view(), 'move')
         expect(cardRows(view()).find(({ kind }) => kind === 'move')?.picked).toBe(true)
-        expect(rowLabels(view(), 'card')).toEqual(['Play two cards this turn', 'Forfeit'])
+        expect(rowLabels(view(), 'second')).toEqual(['Play two cards this turn'])
+        expect(rowLabels(view(), 'card')).toEqual(['Forfeit'])
         // Move's own lines stand under the hand, and the hand stays.
         expect(linesOf(view(), 'turn')[0]).toMatch(/^Epoch I/)
         expect(linesOf(view(), 'flow')[0]).toMatch(/^Moves left: \d+ of \d+$/)
         expect(cardRows(view())).toHaveLength(3)
+    })
+
+    it('R-3.2 a picked card opens its tray: its line, modes, toggle and send, then Forfeit, last and quiet', async () => {
+        const { session } = await atCards(['tax', 'move', 'guild'], undefined, {
+            pouchGood: 'sulfur'
+        })
+        const view = () => session.actionPanel
+        const standing = () => view().blocks.filter(({ stands }) => stands === 'tray')
+        expect(standing()).toEqual([])
+        await pressCard(view(), 'move')
+        const blocks = view().blocks
+        const hand = blocks.findIndex(({ kind }) => kind === 'cards')
+        const after = blocks.slice(hand + 1)
+        expect(after.length).toBeGreaterThan(0)
+        expect(after.every(({ stands }) => stands === 'tray')).toBe(true)
+        expect(after[0]).toMatchObject({ kind: 'line', role: 'flow' })
+        expect(after.at(-1)).toMatchObject({ kind: 'rows', name: 'card' })
+        const [forfeit] = rowsOf(view(), 'card')
+        expect(forfeit.choice.label).toBe('Forfeit')
+        expect(forfeit.quiet).toBe(true)
+        const names = after.map((block) => (block.kind === 'rows' ? block.name : block.kind))
+        expect(names.indexOf('second')).toBeLessThan(names.indexOf('card'))
+    })
+
+    it('S24 R-3.14.1 a one-press card puts its send in the tray, Forfeit after it', async () => {
+        const { session } = await atCards(['defend', 'tax'])
+        await pressCard(session.actionPanel, 'defend')
+        const tray = session.actionPanel.blocks.filter(({ stands }) => stands === 'tray')
+        expect(tray.map(({ kind }) => kind)).toEqual(['primary', 'rows'])
+        expect(tray[0]).toMatchObject({ label: 'Play Defend · +1 vp' })
+    })
+
+    it('R-3.4 a special shows its printed cost as goods art, its name beside it, and its reason when refused', async () => {
+        const { session } = await atCards(['improve', 'tax'], (state, { seat, other }) => {
+            placeMarker(state, seat, emptySpace(state, 'town'))
+            giveSeal(state, seat)
+            const serf = emptySpace(state, 'outpost')
+            placeMarker(state, other, serf)
+            placeMarker(state, seat, serf)
+            giveGood(state, seat, 'wood')
+            giveTile(state, seat)
+        })
+        await pressCard(session.actionPanel, 'improve')
+        const modes = rowsOf(session.actionPanel, 'modes')
+        expect(modes.map(({ choice }) => choice.label)).toEqual([
+            'Improve',
+            'Tend Landscape · 1 wood'
+        ])
+        expect(modes[1].choice).toMatchObject({
+            shown: 'Tend Landscape',
+            cost: { kind: 'good', good: 'wood', count: 1 }
+        })
+        expect(modes.every(({ explained }) => explained)).toBe(true)
+    })
+
+    it('R-4.3-H3 with no card picked, the at-will chips stand at the end of the hand line', async () => {
+        const { session } = await atCards(['improve', 'tax'], (state, { seat }) => {
+            giveTile(state, seat)
+        })
+        const chips = session.actionPanel.blocks.find(
+            (block) => block.kind === 'rows' && block.name === 'at-will'
+        )
+        expect(chips).toMatchObject({ stands: 'hand-end' })
     })
 
     it('S10 R-3.8.3 the primary reads "Influence", then names the space', async () => {

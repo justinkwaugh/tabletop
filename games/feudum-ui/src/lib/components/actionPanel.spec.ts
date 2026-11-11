@@ -305,9 +305,83 @@ describe('R-3.1 Departure 6 the cards as faces', () => {
         expect(markup).not.toContain('data-preview="Move"')
     })
 
-    it('the eleven of a draft stand in rows of six; the hand in one row', () => {
+    it('the eleven of a draft stand in rows of six; the hand in one line', () => {
         expect(cards('draft')).toContain('grid-template-columns: repeat(6, minmax(0, 88px))')
-        expect(cards('hand')).toContain('grid-template-columns: repeat(2, minmax(0, 72px))')
+        expect(cards('hand')).toContain('data-hand-line')
+        expect(cards('hand')).not.toContain('grid-template-columns')
+    })
+})
+
+describe('R-3.2 the picked card’s tray', () => {
+    const hand: ActionBlock = {
+        kind: 'cards',
+        tone: 'hand',
+        paint,
+        rows: [
+            { kind: 'tax', label: 'Tax', number: 7, picked: false, press: nothing },
+            { kind: 'improve', label: 'Improve', number: 4, picked: true, press: nothing },
+            { kind: 'move', label: 'Move', number: 2, picked: false, press: nothing }
+        ]
+    }
+    const tray = markupOf(
+        hand,
+        { kind: 'line', role: 'flow', text: 'Pick a place you rule.', stands: 'tray' },
+        {
+            kind: 'rows',
+            name: 'modes',
+            stands: 'tray',
+            rows: [
+                { ...aRow('Improve', { picked: true }), explained: true },
+                {
+                    ...aRow('Tend Landscape · 1 wood', {
+                        shown: 'Tend Landscape',
+                        cost: { kind: 'good', good: 'wood', count: 1 },
+                        refusal: 'You hold no wood.'
+                    }),
+                    explained: true
+                }
+            ]
+        },
+        { kind: 'primary', label: 'Improve', enabled: true, send: nothing, stands: 'tray' },
+        { kind: 'rows', name: 'card', stands: 'tray', rows: [{ ...aRow('Forfeit'), quiet: true }] }
+    )
+    const at = (text: string) => tray.indexOf(text)
+
+    it('stands right after the picked card, before the next, under the card’s name', () => {
+        expect(at('data-card-tray')).toBeGreaterThan(at('data-row="Improve" data-picked'))
+        expect(at('data-card-tray')).toBeGreaterThan(at('data-row="Tax"'))
+        expect(at('data-card-tray')).toBeLessThan(at('data-row="Move"'))
+        expect(tray).toContain('aria-label="Improve: what the card does"')
+    })
+
+    it('holds the line, the modes, the send, then Forfeit last and quiet', () => {
+        const order = ['Pick a place you rule.', 'data-rows="modes"', 'data-primary', 'Forfeit']
+        const places = order.map(at)
+        expect(places.every((place) => place > at('data-card-tray'))).toBe(true)
+        expect([...places].sort((a, b) => a - b)).toEqual(places)
+        expect(places.at(-1)).toBeLessThan(at('data-row="Move"'))
+        expect(tray).toMatch(/data-row="Forfeit"[^]*?data-quiet/)
+    })
+
+    it('R-3.4 a special shows its cost as goods art and, refused, its reason beneath', () => {
+        const special = tray.slice(at('data-row="Tend Landscape · 1 wood"'))
+        expect(special).toContain('aria-label="Tend Landscape · 1 wood"')
+        expect(special).toContain('aria-label="wood"')
+        const cost = special.slice(special.indexOf('data-cost'), special.indexOf('data-reason'))
+        // The drawn wood (its title), then its count.
+        expect(cost.replace(/<!--.*?-->|<[^>]+>/gs, '')).toMatch(/wood\s*1\b/)
+        expect(special).toContain('data-reason')
+        expect(special).toContain('You hold no wood.')
+    })
+
+    it('the at-will chips stand at the end of the hand line, after every card', () => {
+        const chips = markupOf(hand, {
+            ...rowsBlock('at-will', [aRow('Tiles 1')]),
+            stands: 'hand-end'
+        })
+        expect(chips.indexOf('data-hand-end')).toBeGreaterThan(chips.indexOf('data-row="Move"'))
+        expect(chips.indexOf('data-row="Tiles 1"')).toBeGreaterThan(chips.indexOf('data-hand-end'))
+        expect(chips).not.toContain('data-card-tray')
     })
 })
 
