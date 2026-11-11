@@ -85,6 +85,23 @@ async function rect(target: Locator) {
 test.describe('a 1440 px desk', () => {
     test.use({ viewport: { width: 1440, height: 900 } })
 
+    test('S10a R-3.2 a picked card’s modes and Forfeit share one row in its tray', async ({
+        page
+    }) => {
+        await openFixture(page, 'cards-improve-town')
+        await page
+            .locator('[data-action-panel] [data-cards="hand"] button.face[aria-label="Improve"]')
+            .click()
+        const tray = page.locator('[data-card-tray="Improve"]')
+        await expect(tray.locator('[data-reason]')).toBeVisible()
+        const boxes = await Promise.all((await tray.getByRole('button').all()).map(rect))
+        const band = boxes.reduce((tall, box) => (box.height > tall.height ? box : tall))
+        for (const box of boxes) {
+            expect(box.y).toBeLessThan(band.y + band.height)
+            expect(box.y + box.height).toBeGreaterThan(band.y)
+        }
+    })
+
     test('Contract, Symbol key: a Key button beside the zoom controls opens the vocabulary', async ({
         page
     }) => {
