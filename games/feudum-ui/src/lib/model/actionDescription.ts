@@ -1134,12 +1134,18 @@ function plainLine(action: GameAction, words: Words): string | undefined {
     }
     if (isExplore(action)) {
         const { metadata, playerId } = action
-        return sentence(
-            metadata
-                ? `${words.who(playerId)} ${drawLine(playerId, metadata.drawnCount, metadata.keep, () => metadata.drawnWritIds, words)}`
-                : `${words.who(playerId)} explored`,
-            playedAs(action)
-        )
+        // R-4.4-H2 An empty deck gives nothing to draw.
+        const drew =
+            metadata &&
+            (drawLine(
+                playerId,
+                metadata.drawnCount,
+                metadata.keep,
+                () => metadata.drawnWritIds,
+                words
+            ) ??
+                'explored: the deck had no writ')
+        return sentence(`${words.who(playerId)} ${drew ?? 'explored'}`, playedAs(action))
     }
     if (isDiscardWrit(action)) {
         // R-4.4.4 A discard goes under face down: named to its discarder alone.

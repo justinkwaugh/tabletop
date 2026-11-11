@@ -974,6 +974,18 @@ describe('R-X.2, R-4.4.1, R-4.4.3 A line reads the Action as this seat received 
         ).toBe('You finalised · pouch sulfur · Move')
     })
 
+    it('R-3.10.1, R-4.4-H2 An Explore of an empty deck says it drew nothing', () => {
+        const explore = sample<Explore>({
+            ...Base,
+            type: ActionType.Explore,
+            revealsInfo: true,
+            metadata: { drawnCount: 0, keep: 0, drawnWritIds: [] }
+        })
+        expect(line(recordFor(explore, Spectator, table), undefined)).toBe(
+            'Ana explored: the deck had no writ'
+        )
+    })
+
     it('R-3.12.2, R-3.12-H1 A Tax that declined Reinforcements says so', () => {
         const tax = sample<Tax>({
             ...Base,
