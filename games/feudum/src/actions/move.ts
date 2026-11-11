@@ -421,7 +421,10 @@ function reasonPilferRefused(
     return reasonSulfurToBarrelRefused(state, playerId, pilfer.resource)
 }
 
-/** R-3.7.4, R-4.3.4, R-4.10.2 The resource reaches the seat; a target as one of its markers. */
+/**
+ * R-3.7.4, R-3.7-H2, R-4.3.4, R-4.10.2 The resource reaches the seat; a target as one of its
+ * markers.
+ */
 function takePilfer(
     state: HydratedFeudumGameState,
     playerId: string,
@@ -679,6 +682,7 @@ export class HydratedMove extends HydratableAction<typeof Move> implements Move 
             throw Error(metadata)
         }
         playCard(state, playerId, 'move', godspeed ? 'special' : 'regular', this)
+        // R-3.7-H3 A Move with no step and no Godspeed is a legal play, not a successful move.
         if (metadata.steps.length > 0 || metadata.godspeed) {
             const player = state.getPlayerState(playerId)
             player.successfulMoves += 1

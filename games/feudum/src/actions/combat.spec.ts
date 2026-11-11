@@ -130,7 +130,7 @@ describe('R-4.8.2, R-4.4-H1 CommitAttack', () => {
         expect(() => commit(combat, { saltpeter: 1 })).toThrow("You can't pay for that.")
     })
 
-    it('R-4.4-H1 a wild tile covers a saltpeter the seat lacks', () => {
+    it('R-4.4-H1, R-4.8-H6 a wild tile covers a saltpeter the seat lacks', () => {
         const combat = tableAtCombat()
         const { table, attackerId } = combat
         let tileId = ''

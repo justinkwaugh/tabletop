@@ -366,7 +366,7 @@ describe('DiscardWrit', () => {
         ).toThrow('not valid')
     })
 
-    it('R-4.4.4 puts the writ under the deck face down, costing no turn and no barrier', () => {
+    it('R-4.4.4, R-4.4-H8 puts the writ under the deck face down, costing no turn and no barrier', () => {
         const { table, playerId, held } = holding(2)
         const deck = writDeckCount(table.hydrated())
         const slot = table.hydrated().writDeck.nextBottom

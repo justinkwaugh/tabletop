@@ -79,7 +79,7 @@ export function reasonSecondCardRefused(player: HydratedFeudumPlayerState): stri
 
 /**
  * R-3.15.1, R-3.15.2, R-3.15-H2 A played card: by Repeat if it shows x2, by Déjà Vu if it shows
- * none; never one with the crossed x2.
+ * none; never one with the crossed x2. R-3.15-H1 A card forfeited earlier in the round was played.
  */
 export function reasonRepeatRefused(
     player: HydratedFeudumPlayerState,

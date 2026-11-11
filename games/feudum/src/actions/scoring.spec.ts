@@ -148,7 +148,7 @@ describe('R-6.2 shillings', () => {
     })
 })
 
-describe('R-4.4.3 at game end each held seal goes on a held charter', () => {
+describe('R-4.4.3, R-4.4-H6 at game end each held seal goes on a held charter', () => {
     it('R-4.4.3 one seal goes on the best charter held, which scores; the other stays hidden', () => {
         const { table, metadata, order, action } = scoreFrom((state, [holder]) => {
             holdWrit(state, holder, Barrel)

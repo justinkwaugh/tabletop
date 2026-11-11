@@ -418,7 +418,7 @@ describe('R-4.4.4, R-3.2-H2 the writ limit (S52)', () => {
         expect(table.asked).not.toBe(playerId)
     })
 
-    it('R-4.4.4 a seat off its turn over the limit is asked before play goes on; the turn stays', () => {
+    it('R-4.4.4, R-4.4-H9 a seat off its turn over the limit is asked before play goes on; the turn stays', () => {
         const table = tableAtPlayingCards(() => ({ cards: ['move', 'tax'] }))
         const [first, second] = table.order
         holdWrits(table, second)

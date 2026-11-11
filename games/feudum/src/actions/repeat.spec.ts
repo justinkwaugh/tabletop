@@ -35,7 +35,7 @@ function afterPlaying(...kinds: ActionCardKind[]): { table: Table; playerId: str
 }
 
 describe('asRepeat', () => {
-    it('R-3.15.1 replays a played x2 card: Repeat leaves the hand and records the replay', () => {
+    it('R-3.15.1, R-3.15-H1 replays a played x2 card, forfeited earlier: Repeat leaves the hand and records the replay', () => {
         const { table, playerId } = afterPlaying('move')
         const state = table.hydrated()
         const before = state.getPlayerState(playerId)
