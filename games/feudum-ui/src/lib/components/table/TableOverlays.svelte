@@ -4,10 +4,9 @@
     import { seatPaint } from '$lib/model/seatPaint.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import BoardPopup from './BoardPopup.svelte'
-    import EnlargedFaceView from './EnlargedFaceView.svelte'
+    import EnlargedLayer from './EnlargedLayer.svelte'
     import FlightLayer from './FlightLayer.svelte'
     import OpenSeatLayer from './OpenSeatLayer.svelte'
-    import Scrim from './Scrim.svelte'
     import StackViewLayer from './StackViewLayer.svelte'
     import TracksSheet from './TracksSheet.svelte'
 
@@ -70,10 +69,10 @@
     <TracksSheet onClose={() => layers.closeSeatOrStack()} />
 {/if}
 {#if layers.enlarged}
-    <Scrim label="the enlarged piece" layer="enlarged" onClose={() => layers.closeEnlarged()}>
-        <div class="pointer-events-none" data-enlarged={layers.enlarged.kind}>
-            <EnlargedFaceView face={layers.enlarged} width={enlargedWidth} />
-        </div>
-    </Scrim>
+    <EnlargedLayer
+        face={layers.enlarged}
+        width={enlargedWidth}
+        onClose={() => layers.closeEnlarged()}
+    />
 {/if}
 <FlightLayer animator={gameSession.flightAnimator} {paintOf} />
