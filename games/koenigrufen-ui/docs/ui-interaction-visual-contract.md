@@ -10,6 +10,11 @@
 - **Middle:** the side seats sit just below the top seat. The trick centres on the room between them and the hand and grows into it, up to 1.5 times while it would reach the side seats and up to 1.8 times once it is below them. The talon in the middle grows to at most 1.1 times, and sits low enough to clear the side seats.
 - **Zoom controls:** top right, clear of the hand (bottom left on wider screens).
 
+### The table on larger screens
+
+- **Trigger:** the viewport is wider than 640px.
+- **Fit:** the 1200×860 table fits the room under the action area inside a margin (12px above, 16px at the sides and below) and grows past its natural size up to 1.5 times, so a large monitor shows it bigger without it reaching the edges (at 2560×1277 it is about 1365×978). Zooming in stops at 1.5 times too.
+
 ### Short names
 
 - Cards are written as rank then suit (K♠, 10♥, Q♦); trumps as their pack prints them (21, or XXI with Industrie und Glück), the Sküs by name. A called king is K♠, or "4th K" for the fourth king. The header reads "Hand 1/12".
@@ -53,6 +58,7 @@
 - **Touch:** without hover, the first tap on a bid shows it (pane or unfold) and a second tap bids; only then does the wide pane say "Tap again to bid." A tap's own enter and focus events never count as a preview.
 - **Phones:** below 640px every choice button in the action area (**Bid ▾**, **Mein Spiel**, **Pass**) is smaller.
 - **Highest bid:** while bidding goes on, every player sees a "Highest bid:" line under the action panel naming the holder, the bid with its value ("Besserrufer Uhu (5)") and a one-line summary of what it takes. It is absent until someone bids.
+- **Called King in the talon:** the declarer sees **Give up** beside the two halves, with a line pricing both ways: giving up pays the game to each player, plus the named bird for a Besserrufer ("pay 5 to each player (game and Uhu)"); playing alone wins or loses the game from each, the bird still announced. The hand summary then lists the bird as announced and lost.
 
 ### Announcing
 
@@ -73,7 +79,7 @@
 
 ### The talon on the table
 
-- **Dealt:** face down in the middle of the table (where the trick will be) until the contract has used it.
+- **Dealt:** face down in the middle of the table (where the trick will be) until the contract has used it, as two piles of three side by side, the halves it turns up into. A face-down talon waiting in the upper left is split the same way.
 - **Turned up:** a contract that exposes it (Rufer, Besserrufer, Dreier, Farbendreier) turns it up in the middle as two halves side by side, larger than in the corner.
 - **Choosing:** on the declarer's turn both halves get a gold outline and are each one click or tap target.
 - **Before play:** the talon goes where it belongs, and nothing of it stays in the middle:
@@ -150,7 +156,7 @@
 
 ### Talon view
 
-- **Meaning:** the talon as the table shows it: a face-down stack, two halves in the middle, a waiting half in the corner, or gone; and whether it is in the middle or the corner (`utils/talonView.ts`).
+- **Meaning:** the talon as the table shows it: face down (two piles of three), two halves in the middle, a waiting half in the corner, or gone; and whether it is in the middle or the corner (`utils/talonView.ts`).
 - **Source:** derived from the displayed game state; the talon animator overrides it with the view a transition ends on, so the halves can turn over and waiting cards glide in their new place, and the next state supersedes it. Automated in `talonView.spec.ts`.
 
 ### Card style
@@ -170,7 +176,7 @@ Each scenario is checked manually by a Playwright walk through the dev harness, 
 
 1. **Playing:** on your turn in play, only legal cards are outlined, and a click plays the card. A followed suit leaves off-suit cards dimmed.
 2. **Laying away:** choose three cards, then choose one again; it drops out and the count falls. Undo removes the latest card without undoing any game action. **Lay away** is enabled only at the full count. Staged-selection behaviour is automated in `stagedSelection.spec.ts`.
-3. **Talon:** it lies face down in the middle during the auction; both halves are outlined in the middle for the choice. After taking one in Rufer, the other half waits face up in the upper left; in Dreier it flies to the first opponent after the declarer; in Solodreier the talon flies there unseen; in Piccolo it glides to the upper left.
+3. **Talon:** it lies face down in the middle during the auction, as two piles of three; both halves are outlined in the middle for the choice. After taking one in Rufer, the other half waits face up in the upper left; in Dreier it flies to the first opponent after the declarer; in Solodreier the talon flies there unseen; in Piccolo it glides to the upper left.
 4. **Trick just won:** after the fourth card, the four cards stay bright with a blue edge on the winner's and a caption, for one second, then slide to the winner's pile; the seat's count and pile update. The trick diff is automated in `trickMotion.spec.ts`.
 5. **Card style:** turning on red 10–7 or Industrie und Glück changes the hand, trick, talon and history names together, and the Players-tab toggle shows the setting. The card gallery at `/cards` in the dev app shows every card in every style.
 6. **Two-click and drag play:** one click raises a legal card; a second plays it. Undo drops a pick. A drag released anywhere above the player's name, even at the table's edge, plays the card; a drag released within the hand plays nothing and leaves no pick.

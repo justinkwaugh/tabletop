@@ -49,8 +49,11 @@
             </div>
         {:else if view.kind === 'stack'}
             <div class="stack" {@attach gameSession.cardPlaces.talonStack()}>
+                <!-- Two piles of three, as the halves it turns up into. -->
                 {#each { length: 6 }, index (index)}
-                    <div class="back" style:--i={index}><CardBack /></div>
+                    <div class="back" style:--pile={Math.floor(index / 3)} style:--i={index % 3}>
+                        <CardBack />
+                    </div>
                 {/each}
             </div>
         {/if}
@@ -68,10 +71,12 @@
 
     .corner {
         --card-w: 56px;
+        --pile-gap: 10px;
     }
 
     .middle {
         --card-w: 86px;
+        --pile-gap: 18px;
     }
 
     .label {
@@ -115,14 +120,15 @@
     }
 
     .stack {
+        --pile-w: calc(var(--card-w) + 10px);
         position: relative;
-        width: calc(var(--card-w) + 25px);
+        width: calc(2 * var(--pile-w) + var(--pile-gap));
         height: calc(var(--card-w) * 1.8);
     }
 
     .back {
         position: absolute;
-        left: calc(var(--i) * 5px);
+        left: calc(var(--pile) * (var(--pile-w) + var(--pile-gap)) + var(--i) * 5px);
         top: 0;
     }
 </style>

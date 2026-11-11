@@ -4,7 +4,12 @@
     import { calledKingName, describeAction } from '$lib/utils/actionDescription.js'
     import { announcementsSummary } from '$lib/utils/announcementText.js'
     import AnnouncementChoices from './AnnouncementChoices.svelte'
-    import { bidHeading, contractSummary, meinSpielSummary } from '$lib/utils/contractText.js'
+    import {
+        bidHeading,
+        contractSummary,
+        kingInTalonPrompt,
+        meinSpielSummary
+    } from '$lib/utils/contractText.js'
     import ContractMenu from './ContractMenu.svelte'
 
     const gameSession = getGameSession()
@@ -130,11 +135,7 @@
             </div>
         {:else if state.machineState === MachineState.ChoosingTalonHalf}
             {#if gameSession.canGiveUp}
-                <p>
-                    The called King is in the talon. Give up and pay {gameSession.gameValue} to each player,
-                    or take a half and play alone against all three for {gameSession.gameValue}
-                    from each. Kontra is not allowed.
-                </p>
+                <p>{kingInTalonPrompt(state.declared())}</p>
                 <div class="choices">
                     <button type="button" class="choice" onclick={() => gameSession.giveUp()}
                         >Give up</button

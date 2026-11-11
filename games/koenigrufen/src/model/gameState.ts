@@ -22,6 +22,7 @@ import {
     announceableBonuses,
     applyAnnouncement,
     Birds,
+    Bonuses,
     doubleTargets,
     doublesOn,
     gameDoubles,
@@ -752,7 +753,9 @@ export class HydratedKoenigrufenGameState
         const definition = this.contractDefinition()
         const declarerId = this.declarerId()
         const defenders = this.seats().filter((playerId) => playerId !== declarerId)
-        const scoreChanges = scoreGivenUp(definition, declarerId, defenders)
+        const bonuses = this.givenUpBird()
+        const lost = bonuses.reduce((sum, bonus) => sum - bonus.points, 0)
+        const scoreChanges = scoreGivenUp(definition.loss + lost, declarerId, defenders)
         this.applyScoreChanges(scoreChanges)
         return {
             contract: definition.contract,
@@ -760,10 +763,31 @@ export class HydratedKoenigrufenGameState
             declarerPoints: 0,
             made: false,
             givenUp: true,
+            ...(bonuses.length > 0 ? { bonuses } : {}),
             scoreChanges,
             talon: this.talonHalves?.flat() ?? [],
             discards: []
         }
+    }
+
+    // The user's ruling (the Spieleversum convention): a Besserrufer given up also pays the bird
+    // named with the bid, in full, as announced and lost. Only that bird: the talon is settled
+    // before any other announcement, so nothing else was said and no Kontra was possible.
+    private givenUpBird(): BonusResult[] {
+        const bird = this.declared().bird
+        if (bird === undefined) {
+            return []
+        }
+        return [
+            {
+                bonus: bird,
+                side: Side.Declarer,
+                announced: true,
+                doubles: 0,
+                made: false,
+                points: -Bonuses[bird].announced
+            }
+        ]
     }
 
     private applyScoreChanges(scoreChanges: Record<string, number>) {

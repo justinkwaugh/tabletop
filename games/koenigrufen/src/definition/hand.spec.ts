@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { Suit } from '../components/cards.js'
 import { Contract } from '../components/contracts.js'
+import { Bonus, Side } from '../model/announcements.js'
 import { FourthKing } from '../model/kingCall.js'
 import { TricksPerHand } from '../model/tricks.js'
 import {
@@ -200,6 +201,31 @@ describe('the called king in the talon', () => {
             scoreChanges: { [p0]: -3, [p1]: 1, [p2]: 1, [p3]: 1 }
         })
         expect(result?.talon).toContain('clubs-K')
+        expect(session.state.machineState).toBe(MachineState.Bidding)
+    })
+
+    it('has a Besserrufer who gives up pay the named bird in full as well', () => {
+        const session = startTestGame()
+        const { p0, p1, p2, p3 } = kingInTalon(session)
+        declareByMeinSpiel(session, Contract.Besserrufer, Bonus.Uhu)
+        session.act(p0, ActionType.CallKing, { king: Suit.Clubs })
+        session.act(p0, ActionType.GiveUp)
+        const result = lastHandResult(session)
+        expect(result).toMatchObject({
+            contract: Contract.Besserrufer,
+            givenUp: true,
+            bonuses: [
+                {
+                    bonus: Bonus.Uhu,
+                    side: Side.Declarer,
+                    announced: true,
+                    doubles: 0,
+                    made: false,
+                    points: -4
+                }
+            ],
+            scoreChanges: { [p0]: -15, [p1]: 5, [p2]: 5, [p3]: 5 }
+        })
         expect(session.state.machineState).toBe(MachineState.Bidding)
     })
 

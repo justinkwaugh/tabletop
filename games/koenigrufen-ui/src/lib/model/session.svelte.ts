@@ -128,10 +128,6 @@ export class KoenigrufenGameSession extends GameSession<
     readonly canChooseTalonHalf = $derived(this.canTake(ActionType.ChooseTalonHalf))
     readonly canGiveUp = $derived(this.canTake(ActionType.GiveUp))
     // The game's value, which declarer pays each opponent on giving up or wins from each alone.
-    readonly gameValue: number = $derived(
-        this.gameState.contract ? this.gameState.contractDefinition().win : 0
-    )
-
     readonly isLayingAway = $derived(this.canTake(ActionType.LayAway))
     readonly layAwayCount: number = $derived(
         this.isLayingAway ? this.gameState.contractDefinition().talonCards : 0

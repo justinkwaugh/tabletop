@@ -9,7 +9,7 @@ export const KoenigrufenInfo: GameInfo = {
         name: 'Königrufen',
         designer: 'Traditional',
         description:
-            'The classic Austrian Tarock game for four. Bid for the right to name the contract, call a king to find a secret partner, and take at least 36 of the 70 card points with the 54-card Tarock pack.',
+            'The classic Austrian Tarock game for four. Bid for the right to name a contract, call a king to find a secret partner, and meet your goals to win points. Best played live: every trick needs a card from each player, so asynchronous games move quite slowly.',
         year: '19th century',
         minPlayers: PlayerCount,
         maxPlayers: PlayerCount,

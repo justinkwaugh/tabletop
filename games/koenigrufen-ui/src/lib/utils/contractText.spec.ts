@@ -5,6 +5,7 @@ import {
     contractRequirement,
     contractSummary,
     contractValue,
+    kingInTalonPrompt,
     meinSpielSummary
 } from './contractText.js'
 
@@ -48,7 +49,16 @@ describe('contract text', () => {
 
     it('says which bird a Besserrufer bid announces and what it adds', () => {
         expect(contractSummary({ contract: Contract.Besserrufer, bird: Bonus.Kakadu })).toBe(
-            '2v2 - Goal: 36+ - Call for King partner. Take 3 talon cards; Kontra gets the other 3. The Kakadu is announced with the bid (game 1 + bird 6): Win the third-last trick with trump III. If the called King is in the talon, declarer gives up (paying each player) or plays alone (no Kontra).'
+            '2v2 - Goal: 36+ - Call for King partner. Take 3 talon cards; Kontra gets the other 3. The Kakadu is announced with the bid (game 1 + bird 6): Win the third-last trick with trump III. If the called King is in the talon, declarer gives up (paying each player the game and the bird) or plays alone (no Kontra).'
+        )
+    })
+
+    it('prices giving up with the called King in the talon, a Besserrufer bird included', () => {
+        expect(kingInTalonPrompt({ contract: Contract.Rufer })).toBe(
+            'The called King is in the talon. Give up and pay 1 to each player, or take a half and play alone against all three for 1 from each. Kontra is not allowed.'
+        )
+        expect(kingInTalonPrompt({ contract: Contract.Besserrufer, bird: Bonus.Uhu })).toBe(
+            'The called King is in the talon. Give up and pay 5 to each player (game and Uhu), or take a half and play alone against all three for 1 from each, the Uhu still announced. Kontra is not allowed.'
         )
     })
 

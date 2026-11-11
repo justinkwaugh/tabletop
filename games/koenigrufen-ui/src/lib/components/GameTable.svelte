@@ -42,6 +42,8 @@
     let roomHeight = $state(0)
     // On phones the hand spans the table's foot, so the zoom controls go to the free top right.
     const narrow = new MediaQuery('max-width: 640px')
+    // A large screen fits the table up to this much bigger than its natural size, inside a margin.
+    const MaxFitScale = 1.5
 </script>
 
 <div class="koenigrufen-table" aria-busy={gameSession.busy}>
@@ -77,9 +79,13 @@
                 <ScalingWrapper
                     justify="center"
                     controls={narrow.current ? 'top-right' : 'bottom-left'}
+                    maxScale={MaxFitScale}
+                    maxFitScale={MaxFitScale}
                     expandable
                 >
-                    <Board room={{ width: roomWidth, height: roomHeight }} />
+                    <div class:margin={!narrow.current}>
+                        <Board room={{ width: roomWidth, height: roomHeight }} />
+                    </div>
                 </ScalingWrapper>
             </div>
         {/snippet}
@@ -87,6 +93,10 @@
 </div>
 
 <style>
+    .margin {
+        padding: 12px 16px 16px;
+    }
+
     .koenigrufen-table {
         min-height: 100%;
         background: radial-gradient(ellipse at top, #24402e, #101c14 70%);

@@ -20,7 +20,8 @@ const KingInTalonNote =
 const ContractNotes: Partial<Record<Contract, string>> = {
     [Contract.Rufer]: KingInTalonNote,
     [Contract.Solorufer]: '(If the called King is in the talon, declarer gets that half.)',
-    [Contract.Besserrufer]: KingInTalonNote,
+    [Contract.Besserrufer]:
+        'If the called King is in the talon, declarer gives up (paying each player the game and the bird) or plays alone (no Kontra).',
     [Contract.Farbensolo]: 'No bonuses except Valat.',
     [Contract.Trischaken]:
         'Forehand leads. Beat the highest card if you can; Pagat only as your last trump. The last trick’s winner takes the talon. The 2 highest pay 1 each to the 2 lowest; 36+ pays 2 to each player; anyone without a trick is paid 2 by each.'
@@ -130,6 +131,17 @@ export function contractSummary(choice: BidChoice): string {
         ContractNotes[contract]
     ])
     return [`${traits.join(' - ')}.`, ...notes].join(' ')
+}
+
+// Declarer's choice when the called King lies in the talon. Giving up a Besserrufer also pays the
+// bird named with the bid (the user's ruling); played alone, that bird stays announced.
+export function kingInTalonPrompt(choice: BidChoice): string {
+    const game = contractDefinition(choice.contract).win
+    if (choice.bird === undefined) {
+        return `The called King is in the talon. Give up and pay ${game} to each player, or take a half and play alone against all three for ${game} from each. Kontra is not allowed.`
+    }
+    const bird = bonusName(choice.bird)
+    return `The called King is in the talon. Give up and pay ${bidValue(choice)} to each player (game and ${bird}), or take a half and play alone against all three for ${game} from each, the ${bird} still announced. Kontra is not allowed.`
 }
 
 export function meinSpielSummary(): string {

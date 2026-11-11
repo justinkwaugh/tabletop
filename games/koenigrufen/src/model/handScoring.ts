@@ -91,17 +91,18 @@ export function settleAmounts(
     return scoreChanges
 }
 
-// Declarer pays the game's value to each defender without playing.
+// Declarer pays `value` (the game, and any bird named with the bid) to each defender without
+// playing.
 export function scoreGivenUp(
-    definition: ContractDefinition,
+    value: number,
     declarerId: string,
     defenders: readonly string[]
 ): Record<string, number> {
     const scoreChanges: Record<string, number> = {
-        [declarerId]: -definition.loss * defenders.length
+        [declarerId]: -value * defenders.length
     }
     for (const playerId of defenders) {
-        scoreChanges[playerId] = definition.loss
+        scoreChanges[playerId] = value
     }
     return scoreChanges
 }

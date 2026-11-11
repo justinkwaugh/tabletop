@@ -44,7 +44,7 @@ describe('scoring a point game', () => {
     })
 
     it('has a declarer who gives up pay the game to each defender', () => {
-        expect(scoreGivenUp(contractDefinition(Contract.Rufer), 'a', ['b', 'c', 'd'])).toEqual({
+        expect(scoreGivenUp(1, 'a', ['b', 'c', 'd'])).toEqual({
             a: -3,
             b: 1,
             c: 1,
