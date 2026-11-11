@@ -79,6 +79,14 @@
     }
 </script>
 
+{#snippet stone(cx: number, cy: number, r: number, quality: Quality, title?: string)}
+    <g class="stone {quality === Quality.Bio ? 'bio' : 'norm'}">
+        <circle cx={cx + 1} cy={cy + 1.5} {r} class="shadow" />
+        <circle {cx} {cy} {r} class="face" />
+        {#if title}<title>{title}</title>{/if}
+    </g>
+{/snippet}
+
 <svg
     class="market"
     {width}
@@ -147,21 +155,20 @@
         {#each marketsOf(variety) as market (market.id)}
             {@const state = gameSession.gameState.market(market.id)}
             {#each MARKET_TRACKS as column (column)}
-                <circle
-                    cx={stoneX(column, market.quality, variety)}
-                    cy={rowY(markerRow(board, state, column)) + rowHeight / 2}
-                    r={Math.min(rowHeight * 0.36, 11)}
-                    class="stone {market.quality === Quality.Bio ? 'bio' : 'norm'}"
-                >
-                    <title>{stoneTitle(market.id)}</title>
-                </circle>
+                {@render stone(
+                    stoneX(column, market.quality, variety),
+                    rowY(markerRow(board, state, column)) + rowHeight / 2,
+                    Math.min(rowHeight * 0.36, 11),
+                    market.quality,
+                    stoneTitle(market.id)
+                )}
             {/each}
         {/each}
     {/each}
     <g class="key" transform="translate({MARGIN}, {keyTop})">
-        <circle cx="10" cy={KEY_ROW / 2} r="9" class="stone norm" />
+        {@render stone(10, KEY_ROW / 2, 9, Quality.Norm)}
         <text x="26" y={KEY_ROW / 2 + 5} class="key-text">Norm</text>
-        <circle cx="10" cy={KEY_ROW * 1.5} r="9" class="stone bio" />
+        {@render stone(10, KEY_ROW * 1.5, 9, Quality.Bio)}
         <text x="26" y={KEY_ROW * 1.5 + 5} class="key-text">Bio</text>
         {#each ['Demand moves (rows)', 'Price moves (steps)'] as label, row (label)}
             <rect
@@ -257,17 +264,20 @@
         font-size: 8px;
     }
 
-    .stone {
-        stroke-width: 1.5;
-        filter: drop-shadow(1px 1.5px 1px rgba(0, 0, 0, 0.45));
+    .shadow {
+        fill: rgba(0, 0, 0, 0.35);
     }
 
-    .stone.norm {
+    .face {
+        stroke-width: 1.5;
+    }
+
+    .norm .face {
         fill: #3b2a20;
         stroke: #120b06;
     }
 
-    .stone.bio {
+    .bio .face {
         fill: #f1e6c8;
         stroke: #7a6a48;
     }
