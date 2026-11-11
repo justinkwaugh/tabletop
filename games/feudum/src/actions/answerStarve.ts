@@ -56,12 +56,19 @@ export function reasonAnswerStarveRefused(
     if (state.flow.starve?.targetPlayerId !== playerId) {
         return 'No Starve the People on you is waiting.'
     }
+    // R-4.4-H1 Off its turn a seat spends a tile only where a payment would fall short.
     if (!royalImmunity) {
-        return undefined
+        return wildTiles.length > 0 ? 'Letting it stand spends no wild tile.' : undefined
     }
     const notInHand = reasonNotInHandRefused(state.getPlayerState(playerId), 'defend')
     if (notInHand) {
         return notInHand
+    }
+    if (
+        wildTiles.length > goodsShort(state, playerId, ImmunityFood).food ||
+        wildTiles.some(({ good, sulfurToBarrel }) => good !== 'food' || sulfurToBarrel)
+    ) {
+        return 'A wild tile may cover only the food Royal Immunity is short of.'
     }
     if (!canPayGoods(state, playerId, ImmunityFood, wildTiles)) {
         return 'Royal Immunity needs a food.'
