@@ -83,7 +83,7 @@ Money is a single total per player, kept on a track; going past $100 moves a sec
 
 ### R-2.5 End of round (B p2; FD p1)
 
-1. **Turn order.** Players are reordered by money, lowest first; the richest plays last. Ties: the rulebook says to "swap player positions" (open question).
+1. **Turn order.** Players are reordered by money, lowest first; the richest plays last. Ties: the rulebook says to "swap player positions" (R-2.5-H1).
 2. **Round marker** advances.
 3. **New railroad.** After rounds 1, 2, 3 and 4, the next railroad in R-1.4 becomes available.
 4. **France only — Paris Travels:** if Paris has no passenger, one is placed there (FD).
@@ -142,7 +142,7 @@ A city showing a railroad's colour is a legal start for it; Yellow is the one ex
 
 1. **Red and Blue** (round 1): start in one of the six multi-coloured East Coast cities, and not in the same city as each other.
 2. **Orange** (round 2): any of the six East Coast cities, or Chicago.
-3. **Yellow** (round 3): Chicago and/or one of the three westernmost occupied cities. The westernmost city chosen must hold exactly one locomotive before Yellow builds there; Chicago may hold any number. Which cities are westernmost is fixed at the moment the first Yellow locomotive would be placed. (Several readings: open questions.)
+3. **Yellow** (round 3): Chicago and/or one of the three westernmost occupied cities. The westernmost city chosen must hold exactly one locomotive before Yellow builds there; Chicago may hold any number. Which cities are westernmost is fixed at the moment the first Yellow locomotive would be placed. (Rulings: R-4.2.3-H1, R-4.2.3-H2.)
 4. **Purple** (round 4): one of the four Purple & Black western cities. Germany changes this (R-8.5).
 5. **Black** (round 5): any city that does not already hold two locomotives, or Chicago.
 
