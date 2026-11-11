@@ -2,7 +2,7 @@
 
 The inventory the data files transcribe. Ids are permanent: game state stores ids only, and an id once published is never reused or renamed.
 
-The map tables (hexes, cities, start colours, bonus cities, blocked hexsides) are gaps until the boards are supplied: no rulebook draws the maps (`rules-digest.md`, Sources).
+The map tables are transcribed from the printed boards, since no rulebook draws the maps (`rules-digest.md`, Sources). The USA map is done; the expansion maps are deferred.
 
 ## Id scheme
 
@@ -11,7 +11,7 @@ The map tables (hexes, cities, start colours, bonus cities, blocked hexsides) ar
 - `railroad.<colour>`: `railroad.red`
 - `map.<map>`: `map.usa`
 - `city.<map>.<name>`: `city.usa.chicago`, `city.de.berlin`
-- `hex.<map>.<col>-<row>`: coordinates fixed when the map is transcribed (offset scheme chosen in the spec)
+- `hex.<map>.<row>-<dcol>`: row from the top, doubled column (see Map: USA, Coordinates)
 - `hexside.<map>.<hex>.<edge>`: impassable hexsides
 - `bonus.<map>.<name>`: `bonus.usa.transcontinental`
 
@@ -90,23 +90,119 @@ The counting chart and its trackers are bookkeeping: the game computes link coun
 
 ## Map: USA
 
-Gap until the board is supplied. Tables owed: hexes (id, terrain: plain or mountain), cities (id, printed name, hex, start colours, capacity, passenger at setup), the six East Coast cities, the four Purple & Black West Coast cities, Chicago, the four $5 cities.
+Transcribed from an image of the printed board, twice independently, and reconciled hex by hex. 386 hexes in 19 rows: 286 plain, 49 mountain, 51 cities. No impassable hexsides.
+
+**Coordinates.** Hexes are pointy-topped in horizontal rows, alternate rows offset by half a hex. `row` counts down from 0 (Seattle's row). `dcol` is the doubled column: horizontal position in half-hex widths, Seattle at 4; in every row, dcol has the same parity as row. Neighbours of (r, d): (r, d±2), (r±1, d±1). A hex's id is `hex.usa.<row>-<dcol>`, for example `hex.usa.5-43` for Chicago.
+
+### Cities (51)
+
+| Id                        | Printed name      | Hex   | Start colours            | Capacity | Bonus                                       | Passenger at setup | Digest section |
+| ------------------------- | ----------------- | ----- | ------------------------ | -------- | ------------------------------------------- | ------------------ | -------------- |
+| `city.usa.seattle`        | Seattle           | 0-4   | Purple, Black            | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.spokane`        | Spokane           | 0-10  | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.billings`       | Billings          | 0-22  | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.fargo`          | Fargo             | 0-32  | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.butte`          | Butte             | 1-17  | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.bismarck`       | Bismarck          | 1-27  | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.green-bay`      | Green Bay         | 1-43  | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.portland-or`    | Portland (Oregon) | 2-4   | Purple, Black            | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.minneapolis`    | Minneapolis       | 2-36  | —                        | 2        | $5 first build-in (`bonus.usa.five-dollar`) | 1                  | R-4.1, R-4.2   |
+| `city.usa.portland-me`    | Portland (Maine)  | 2-64  | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.rapid-city`     | Rapid City        | 3-25  | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.milwaukee`      | Milwaukee         | 3-41  | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.boise`          | Boise             | 4-10  | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.pocatello`      | Pocatello         | 4-16  | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.detroit`        | Detroit           | 4-48  | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.buffalo`        | Buffalo           | 4-52  | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.albany`         | Albany            | 4-58  | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.boston`         | Boston            | 4-62  | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.cheyenne`       | Cheyenne          | 5-23  | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.omaha`          | Omaha             | 5-31  | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.des-moines`     | Des Moines        | 5-37  | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.chicago`        | Chicago           | 5-43  | Orange, Yellow, Black    | no limit | $2 each placement (`bonus.usa.chicago`)     | 1                  | R-4.1, R-4.2   |
+| `city.usa.salt-lake-city` | Salt Lake City    | 6-16  | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.new-york`       | New York          | 6-60  | Blue, Red, Orange, Black | 1        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.reno`           | Reno              | 7-7   | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.pittsburgh`     | Pittsburgh        | 7-51  | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.philadelphia`   | Philadelphia      | 7-57  | Blue, Red, Orange, Black | 1        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.denver`         | Denver            | 8-22  | —                        | 2        | $5 first build-in (`bonus.usa.five-dollar`) | 1                  | R-4.1, R-4.2   |
+| `city.usa.kansas-city`    | Kansas City       | 8-32  | —                        | 2        | $5 first build-in (`bonus.usa.five-dollar`) | 1                  | R-4.1, R-4.2   |
+| `city.usa.saint-louis`    | Saint Louis       | 8-38  | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.cincinnati`     | Cincinnati        | 8-46  | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.san-francisco`  | San Francisco     | 9-5   | Purple, Black            | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.baltimore`      | Baltimore         | 9-55  | Blue, Red, Orange, Black | 1        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.las-vegas`      | Las Vegas         | 10-14 | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.oklahoma-city`  | Oklahoma City     | 10-30 | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.nashville`      | Nashville         | 10-42 | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.santa-fe`       | Santa Fe          | 11-21 | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.little-rock`    | Little Rock       | 11-37 | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.washington`     | Washington        | 11-55 | Blue, Red, Orange, Black | 1        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.los-angeles`    | Los Angeles       | 12-10 | Purple, Black            | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.atlanta`        | Atlanta           | 12-46 | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.charleston`     | Charleston        | 12-52 | Blue, Red, Orange, Black | 1        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.phoenix`        | Phoenix           | 13-17 | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.dallas`         | Dallas            | 13-31 | —                        | 2        | $5 first build-in (`bonus.usa.five-dollar`) | 1                  | R-4.1, R-4.2   |
+| `city.usa.el-paso`        | El Paso           | 14-24 | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.jacksonville`   | Jacksonville      | 14-50 | Blue, Red, Orange, Black | 1        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.houston`        | Houston           | 15-35 | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.new-orleans`    | New Orleans       | 15-41 | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.tampa`          | Tampa             | 16-48 | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.corpus-christi` | Corpus Christi    | 17-31 | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+| `city.usa.miami`          | Miami             | 18-50 | —                        | 2        | —                                           | 1                  | R-4.1, R-4.2   |
+
+Groups the rules name:
+
+- **East Coast cities (6)**, Blue, Red, Orange and Black, capacity 1, at most two per railroad (R-4.1.4): New York, Philadelphia, Baltimore, Washington, Charleston, Jacksonville. The Transcontinental's eastern end (R-4.3.3).
+- **Purple & Black West Coast cities (4)** (R-4.2.4): Seattle, Portland (Oregon), San Francisco, Los Angeles. The Transcontinental's western end.
+- **Chicago**, Orange, Yellow and Black, no limit, $2 (R-4.1.4, R-4.2, R-4.3.1).
+- **$5 cities (4)** (R-4.3.2): Minneapolis, Denver, Kansas City, Dallas.
+- The names at 11-55 (Washington) and 12-52 (Charleston) are hard to read on the image; both transcriptions read them the same way.
+
+### Terrain
+
+Every non-city hex, by row, as dcol values. Cities are listed above.
+
+| Row | Plain                                                              | Mountain             |
+| --- | ------------------------------------------------------------------ | -------------------- |
+| 0   | 8 12 16 18 20 24 26 28 30 34 36 38 64                              | 6 14                 |
+| 1   | 3 7 9 11 19 21 23 25 29 31 33 35 37 39 41 63                       | 5 13 15              |
+| 2   | 8 10 18 20 22 24 26 28 30 32 34 38 40 42 46 58 60 62               | 6 12 14 16           |
+| 3   | 3 7 9 11 13 21 23 27 29 31 33 35 37 39 45 47 57 61                 | 5 15 17 19 59        |
+| 4   | 4 8 12 14 20 22 24 26 28 30 32 34 36 38 40 42 46 54 56 60          | 6 18                 |
+| 5   | 3 7 9 11 13 15 17 19 21 25 27 29 33 35 39 41 45 47 53 55 59 61 63  | 5 57                 |
+| 6   | 4 8 10 12 14 18 22 24 26 28 30 32 34 36 38 40 42 44 46 48 50 52 58 | 6 20 54 56           |
+| 7   | 3 9 11 13 15 17 23 25 27 29 31 33 35 37 39 41 43 45 47 49 55       | 5 19 21 53           |
+| 8   | 4 10 12 14 16 24 26 28 30 34 36 40 42 44 48 50 54 56               | 6 8 18 20 52         |
+| 9   | 7 11 13 15 23 25 27 29 31 33 37 39 41 43 45 47 53                  | 9 17 19 21 35 49 51  |
+| 10  | 6 8 12 16 22 24 26 28 32 38 40 44 46 52 54 56                      | 10 18 20 34 36 48 50 |
+| 11  | 7 9 13 15 19 23 25 27 29 31 33 35 39 41 43 45 47 51 53             | 11 17 49             |
+| 12  | 12 14 18 20 22 24 26 28 30 32 34 36 38 40 42 44 48 50              | 16                   |
+| 13  | 11 13 15 19 21 23 25 27 29 33 35 37 39 41 43 45 47 49 51           | —                    |
+| 14  | 18 20 22 26 28 30 32 34 36 38 40 42 44 46 48                       | —                    |
+| 15  | 25 27 29 31 33 47 49                                               | —                    |
+| 16  | 30 32 50                                                           | —                    |
+| 17  | 49 51                                                              | —                    |
+| 18  | —                                                                  | —                    |
+
+### Board reminders
+
+The round track shows, for each round, the railroads available and where each may start: in round III and later, Yellow's icon pairs a Chicago hex with a blank hex marked with a west arrow (R-4.2.3). The reminder panel restates R-3.1 (+1 share), R-3.2 (8 / 5 / 4 by player count, mountain −1) and R-4.1 (East Coast ×1, Chicago no limit, other hexes ×2, one locomotive per railroad in a hex).
 
 ## Map: Australia
 
-Gap until the board is supplied. Tables owed: hexes (plain, mountain, Alps, long-distance), cities with start colours, Perth and Brisbane, the railroad introduction order and start cities (R-1.4).
+Deferred with the expansion maps (not in the first release). Gap until the board is supplied. Tables owed: hexes (plain, mountain, Alps, long-distance), cities with start colours, Perth and Brisbane, the railroad introduction order and start cities (R-1.4).
 
 ## Map: Canada
 
-Gap until the board is supplied. Tables owed: hexes, cities with start colours, Toronto, the three Intercolonial cities, impassable hexsides, the railroad introduction order and start cities (R-1.4).
+Deferred with the expansion maps (not in the first release). Gap until the board is supplied. Tables owed: hexes, cities with start colours, Toronto, the three Intercolonial cities, impassable hexsides, the railroad introduction order and start cities (R-1.4).
 
 ## Map: France
 
-Gap until the board is supplied. Tables owed: hexes (plain, mountain), cities with start colours, the four Red/Blue/Black cities, Paris and its six entry hexes, the four impassable estuaries.
+Deferred with the expansion maps (not in the first release). Gap until the board is supplied. Tables owed: hexes (plain, mountain), cities with start colours, the four Red/Blue/Black cities, Paris and its six entry hexes, the four impassable estuaries.
 
 ## Map: Germany
 
-Gap until the board is supplied. Tables owed: hexes (plain, mountain), cities with start colours, Berlin's two hexes, the Purple & Black cities, the five Greater Germany cities.
+Deferred with the expansion maps (not in the first release). Gap until the board is supplied. Tables owed: hexes (plain, mountain), cities with start colours, Berlin's two hexes, the Purple & Black cities, the five Greater Germany cities.
 
 ## Totals
 
