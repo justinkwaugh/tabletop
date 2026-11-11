@@ -1,4 +1,5 @@
 <script lang="ts">
+    import type { Snippet } from 'svelte'
     import type { Attachment } from 'svelte/attachments'
     import type { Color } from '@tabletop/common'
     import type { HydratedFeudumGameState } from '@tabletop/feudum'
@@ -28,7 +29,8 @@
         paintOf,
         colourPaintOf,
         pointer,
-        onPress
+        onPress,
+        picker
     }: {
         bench: BenchOffer
         /** On a phone: a bottom sheet, its footer in view, and collapsed to a header over the board's foot. */
@@ -41,6 +43,8 @@
         colourPaintOf: (colour: Color) => SeatPaint
         pointer: RowPointer
         onPress: (choice: PanelChoice) => void
+        /** Contract, The trade picker: on a phone's sheet, in place of the areas and the footer. */
+        picker?: Snippet
     } = $props()
 
     const TrayToken = 28
@@ -116,6 +120,13 @@
         {@attach overTheBoard(false)}
     >
         {bench.collapsed}
+    </div>
+{:else if picker && sheet}
+    <div
+        class="bench-sheet picker-sheet fixed z-40 overflow-auto bg-feudum-surface-raised p-2 text-feudum-text"
+        data-bench-sheet="trade"
+    >
+        {@render picker()}
     </div>
 {:else}
     <div

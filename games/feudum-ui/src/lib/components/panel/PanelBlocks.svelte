@@ -11,6 +11,7 @@
     import OrderRow from './OrderRow.svelte'
     import PrimaryButton from './PrimaryButton.svelte'
     import RowChoice from './RowChoice.svelte'
+    import TradePickerLayer from '$lib/components/bench/TradePickerLayer.svelte'
     import WritBacks from './WritBacks.svelte'
     import WritChoice from './WritChoice.svelte'
     import WritOffers from './WritOffers.svelte'
@@ -146,6 +147,11 @@
                 <RowChoice {row} {pointer} />
             {/each}
         </div>
+    {:else if block.kind === 'trade-picker'}
+        <!-- Contract, The trade picker: a phone's stands in the bench's sheet instead. -->
+        {#if !layout.phone}
+            <TradePickerLayer {block} />
+        {/if}
     {:else if block.kind === 'tally'}
         <CombatTally lines={block.lines} note={block.note} />
     {:else if block.kind === 'primary' && list[index - 1]?.kind !== 'primary'}
@@ -187,6 +193,7 @@
             </div>
             {#if tray.length > 0 && at === trayAfter(block.rows)}
                 <div
+                    class:holds-picker={tray.some(({ kind }) => kind === 'trade-picker')}
                     class="tray flex flex-wrap items-center gap-2 rounded-lg border border-feudum-frame bg-feudum-surface-raised px-3 py-2 max-sm:gap-1 max-sm:px-2"
                     role="group"
                     aria-label="{row.label}: what the card does"
@@ -244,6 +251,11 @@
         position: relative;
         flex: 0 1 36rem;
         min-width: 14rem;
+    }
+
+    /* Contract, The trade picker: the board and its cards take the line's room. */
+    .tray.holds-picker {
+        flex: 1 1 44rem;
     }
 
     .tray::before {
