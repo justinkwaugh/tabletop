@@ -64,7 +64,9 @@
                 {/if}
             </span>
             {#if crest.noMarker}
-                <span class="no-marker" data-no-marker>no marker</span>
+                <span class="no-place" data-no-marker>no marker</span>
+            {:else if crest.outranked}
+                <span class="no-place" data-outranked>outranked</span>
             {/if}
         </div>
     {/each}
@@ -103,7 +105,7 @@
         font-weight: 700;
     }
 
-    .no-marker {
+    .no-place {
         font-size: 0.7em;
         line-height: 1;
         font-style: italic;

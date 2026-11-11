@@ -62,7 +62,7 @@ The panel's look is the game's signature (`docs/game-ui-layout.md`): a **sealed 
 - **Supply:** goods by kind, shillings, influence markers in supply, free discs (of 3, R-1.1), vessels by type, collected region tiles (each a small face), beads with their values, concealed seals as crowned red discs with a count.
 - **Writs:** the writ count as backs; once final scoring seals them, sealed charters as backs with a wax seal (R-4.4.3). The owner sees unsealed writs' faces, and sealed charters' faces dimmed with "sealed". A note "you know 2 under the deck" shows the owner's deck knowledge.
 - **Wine barrel:** 0–3 sulfur.
-- **Guild standing:** six crests in ring order (Farmer, Merchant, Alchemist, Knight, Noble, Monk), each with the seat's stars (primary + secondary), its rank badge (M, J, A) when on the track, and a reeve dot. A crest with stars but no marker shows "no marker" (R-4.5.2).
+- **Guild standing:** six crests in ring order (Farmer, Merchant, Alchemist, Knight, Noble, Monk), each with the seat's stars (primary + secondary), its rank badge (M, J, A) when on the track, and a reeve dot. A crest with stars but no marker in supply shows "no marker" (R-4.5.2); one whose seat holds markers but is outranked off a full track shows "outranked" (R-4.5.3, R-1.4.9).
 - **Service and voyage:** military discs covered (of 3), "vassal" when the seat rules a feudum, the voyage space.
 
 Rules for the panel:
