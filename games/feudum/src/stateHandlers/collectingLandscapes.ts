@@ -8,7 +8,7 @@ import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { stateAfterLandscapes } from './replenishing.js'
 
-/** R-4.3.4, R-4.12.3, D12 One serf asked at a time, from `flow.landscapes.pending`. */
+/** R-4.3.4, R-4.12.3 One serf asked at a time, from `flow.landscapes.pending`. */
 export class CollectingLandscapesStateHandler implements MachineStateHandler<
     HydratedCollectLandscapes,
     HydratedFeudumGameState

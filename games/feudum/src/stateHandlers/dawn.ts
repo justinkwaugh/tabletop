@@ -28,7 +28,7 @@ export class DawnStateHandler implements MachineStateHandler<
         context.gameState.activePlayerIds = []
     }
 
-    /** R-4.12.3, D12 Serfs with a filled landscape are asked; with none, the dawn goes on. */
+    /** R-4.12.3 Serfs with a filled landscape are asked; with none, the dawn goes on. */
     onAction(
         _action: HydratedBeginDawn,
         context: MachineContext<HydratedFeudumGameState>

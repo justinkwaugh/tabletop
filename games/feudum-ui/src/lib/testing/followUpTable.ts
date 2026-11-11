@@ -103,7 +103,7 @@ export async function atDisc(
     return { ...turn, session: await turn.host.openSeat(turn.seat) }
 }
 
-/** R-4.10, D11 The seat is the one nourishing asks; `arrange` sets what it feeds, and with what. */
+/** R-4.10, R-4.10-H4 The seat is the one nourishing asks; `arrange` sets what it feeds, and with what. */
 export async function atNourishing(arrange: Arrange): Promise<SeatTable> {
     const turn = await atPlayingCards(['move', 'tax', 'guild'])
     turn.host.edit((state) => {

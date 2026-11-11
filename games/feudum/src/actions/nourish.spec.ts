@@ -314,8 +314,8 @@ describe('R-4.3.3 Nourish with wild tiles', () => {
     })
 })
 
-describe('R-4.10, D11 who is asked', () => {
-    it('D11 asks in turn order, one seat at a time, and offers only the asked seat', () => {
+describe('R-4.10, R-4.10-H4 who is asked', () => {
+    it('R-4.10-H4 asks in turn order, one seat at a time, and offers only the asked seat', () => {
         const { table, playerId } = asking({ pawns: ['farmer'], food: 1 })
         const next = table.order.find((seat) => seat !== playerId) ?? ''
 
@@ -356,14 +356,14 @@ describe('R-4.10, D11 who is asked', () => {
         { what: 'food or wine', larder: { pawns: ['farmer'], food: 1, barrel: 1 }, choice: true },
         { what: 'which goes unfed', larder: { pawns: ['farmer', 'monk'], food: 1 }, choice: true }
     ] satisfies { what: string; larder: Larder; choice: boolean }[])(
-        'D11 $what: real choice is $choice',
+        'R-4.10-H4 $what: real choice is $choice',
         ({ larder, choice }) => {
             const { table, playerId } = asking(larder)
             expect(nourishHasChoice(table.hydrated(), playerId)).toBe(choice)
         }
     )
 
-    it('D11 a wild tile is a choice only while short', () => {
+    it('R-4.10-H4 a wild tile is a choice only while short', () => {
         const edit = (state: HydratedFeudumGameState, seat: string) => {
             giveTile(state, seat)
         }

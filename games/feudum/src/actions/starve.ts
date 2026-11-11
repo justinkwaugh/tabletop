@@ -49,7 +49,7 @@ function immunityInReach(state: HydratedFeudumGameState, playerId: string): bool
     return canCoverWithWildTiles(state, playerId, ImmunityFood) && state.supply.sealPileCount > 0
 }
 
-/** R-3.14-H1, D1 Whether a Starve asks: public state cannot rule out Royal Immunity. */
+/** R-3.14-H1 Whether a Starve asks: public state cannot rule out Royal Immunity. */
 export function starveAsks(state: HydratedFeudumGameState, playerId: string): boolean {
     return defenderAsked(state, playerId) && immunityInReach(state, playerId)
 }

@@ -3,8 +3,8 @@
     import type { OrderRow } from '$lib/model/sharedRows.js'
 
     /**
-     * R-4.10, R-4.12.3 The seats in turn order: a tick on each done, a mark on the next, and D11 the
-     * seats the game fed. The one drawing of the nourish and landscapes rows (contract: Render ownership).
+     * R-4.10, R-4.12.3 The seats in turn order: a tick on each done, a mark on the next, and the
+     * seats the game fed (R-4.10-H4). The one drawing of the nourish and landscapes rows (contract: Render ownership).
      */
     let {
         step,

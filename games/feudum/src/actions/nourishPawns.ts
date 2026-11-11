@@ -18,7 +18,7 @@ import { holdsImmunitySealToReclaim } from './reclaimImmunitySeal.js'
 
 export type NourishPawnsMetadata = Type.Static<typeof NourishPawnsMetadata>
 export const NourishPawnsMetadata = Type.Object({
-    /** D11 Each seat the game fed, in turn order; a seat with nothing to feed isn't named. */
+    /** R-4.10-H4 Each seat the game fed, in turn order; a seat with nothing to feed isn't named. */
     fed: Type.Array(
         Type.Object({
             playerId: Type.String(),
@@ -66,7 +66,7 @@ function mayActAtWill(state: HydratedFeudumGameState, playerId: string): boolean
 }
 
 /**
- * R-4.10, D11, R-4.10-H4 A seat with pawns to feed waits to be asked when it has a feeding choice
+ * R-4.10, R-4.10-H4 A seat with pawns to feed waits to be asked when it has a feeding choice
  * or may act at will first; the game feeds every other.
  */
 export function nourishWaits(state: HydratedFeudumGameState, playerId: string): boolean {
@@ -89,7 +89,7 @@ export class HydratedNourishPawns
     }
 
     /**
-     * R-4.10, D11, R-4.10-H4 Seats in turn order: one with a real choice or an at-will play waits to
+     * R-4.10, R-4.10-H4 Seats in turn order: one with a real choice or an at-will play waits to
      * be asked, and the game feeds every other. Everything is public: never a barrier.
      */
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {

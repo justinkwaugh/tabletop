@@ -118,7 +118,7 @@ describe('R-3.13.2 StarveThePeople that does not ask', () => {
 })
 
 describe('R-3.13.2, R-3.14-H1 StarveThePeople that asks', () => {
-    it('R-3.14-H1 puts the owner alone on the clock, a barrier, with nothing moved (D1)', () => {
+    it('R-3.14-H1 puts the owner alone on the clock, a barrier, with nothing moved', () => {
         const combat = tableAtStarve()
         const { table, attackerId, defenderId } = combat
         setUp(table, (state) => giveFood(state, defenderId))
