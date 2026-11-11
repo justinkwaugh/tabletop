@@ -103,10 +103,10 @@ function seen(session: FeudumGameSession, order: readonly string[]) {
     })
 }
 
-/** R-3.14-H1 The asked seat's hand is the one difference: the hand's size is the same. */
 /** R-4.4-H5 A writ its holder may discard at any time. */
 const AnyTimeWrit: WritId = 'writ.mandate.1'
 
+/** R-3.14-H1 The asked seat's hand is the one difference: the hand's size is the same. */
 const Held = ['defend', 'tax'] as const
 const NotHeld = ['tax', 'guild'] as const
 
