@@ -6,6 +6,7 @@
     import TokenPair from '$lib/components/TokenPair.svelte'
     import { cardName, cardNameInPlay } from '$lib/model/names.js'
     import { siteRowCards } from '$lib/model/siteRow.js'
+    import { mapPreviewGroup } from '$lib/model/previewGroups.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import {
         CARD_STRIP_RECTS,
@@ -20,10 +21,14 @@
 
     let selectableCardIds = $derived(gameSession.selectableCards)
     let selectableRelicSlotIds = $derived(gameSession.selectableRelicSlots)
-    let badged = $derived(gameSession.powerBadgeCards)
+    let badged = $derived(gameSession.useCards)
     // R-8.3.1 — a tap on a ringed card points it; the panel shows what would stand there.
     let build = $derived(gameSession.chronicleBuild)
     let buildRinged = $derived(build.ringed)
+    // Rule 4 — an enlarged denizen pages through the map's, leaving out a ringed card, which a
+    // press points rather than enlarges.
+    const mapGroup = () =>
+        mapPreviewGroup(gameState).filter((card) => !buildRinged.includes(card.cardId))
 
     type Space =
         | { kind: 'denizen'; cardId?: string; pickable: boolean }
@@ -117,6 +122,7 @@
                     ? () => build.point(denizenCardId)
                     : undefined}
                 useBadge={badged.includes(denizenCardId)}
+                group={mapGroup}
             />
             {#if tokens.favor > 0 || tokens.secrets > 0}
                 <!-- R-7.1.2 — favor and secrets on the card, which R-7.1.2.a's occupancy reads. -->

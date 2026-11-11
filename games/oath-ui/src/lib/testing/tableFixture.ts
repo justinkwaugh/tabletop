@@ -46,6 +46,8 @@ import {
     SetupChoice,
     Suit,
     TOP_CRADLE_SLOT,
+    Trade,
+    TradeOption,
     Travel,
     UseActionPower,
     PowerChoiceKind,
@@ -96,6 +98,10 @@ import { shroudedWoodState } from './shroudedWoodTable.js'
 import { gamblingHallUsed } from './gamblingHallTable.js'
 import { wrestlersDefends } from './wrestlersTable.js'
 import { landWardenSecondAdviser, landWardenVisionKept } from './landWardenTable.js'
+import { searchFullSiteTable } from './searchFullSiteTable.js'
+import { useOnEveryCardTable } from './useOnEveryCardTables.js'
+import { zoomPagingSearchTable } from './zoomPagingTables.js'
+import { greatSlumPowers } from './greatSlumPowersTable.js'
 import { fullSiteSearch } from './fullSiteSearchTable.js'
 import { facedownPickerTable } from './facedownPickerTables.js'
 import { RELIC_HUNTER, campaignSteps } from './campaignStepsTable.js'
@@ -245,6 +251,14 @@ export type TableName =
     | 'searchConspiracy'
     | 'searchConspiracyNoTake'
     | 'searchPlayTo'
+    | 'searchFullSite'
+    | 'searchFullSiteRoom'
+    | 'useOnEveryCard'
+    | 'useOnEveryCardScepter'
+    | 'useOnEveryCardPair'
+    | 'useOnEveryCardBusy'
+    | 'zoomPaging'
+    | 'zoomPagingSearch'
     | 'flipConspiracy'
     | 'flipConspiracyNoTake'
     | 'campaignTwoDefenders'
@@ -276,6 +290,7 @@ export type TableName =
     | 'usePower'
     | ModifierScene
     | FacedownScene
+    | FacedownTollScene
     | 'greatHerdFlip'
     | 'showOne'
     | 'exileCitizens'
@@ -340,7 +355,12 @@ export type TableName =
     | 'witchsBargain'
     | 'witchsBargainSilenced'
     | 'witchsBargainOneOther'
+    | 'witchsBargainOlder'
+    | 'witchsBargainOlderOneFavor'
+    | 'witchsBargainOlderCostOnly'
+    | 'witchsBargainOlderSilencedOneFavor'
     | 'witchsBargainSteps'
+    | 'witchsBargainStepsShort'
     | 'drumAsked'
     | 'drumAskedCitizen'
     | 'drumAfterToll'
@@ -353,14 +373,18 @@ export type TableName =
     | 'wrestlersOnePlace'
     | 'landWardenSecondAdviser'
     | 'landWardenVisionKept'
+    | 'greatSlumPowers'
     | 'fullSiteSearch'
     | 'facedownDreamThief'
+    | 'facedownDreamThiefSecond'
     | 'facedownInquisitor'
     | 'facedownIvoryEye'
     | 'warningSignals'
     | 'warningSignalsNothingToMove'
     | 'useBadge'
     | 'useBadgeNothingToPick'
+    | 'useBadgeWrappedHeld'
+    | 'useBadgeOverHeld'
     | 'useBadgeTribunal'
     | PickerScene
     | PowerSitesScene
@@ -2588,11 +2612,16 @@ function usePowerTable(): PlayedTable {
 }
 
 /**
- * Witch's Bargain in Dana's advisers, in a game created at revision 7: Dana (5 favor, 3 secrets),
- * Rhys (4, 2) and Ann (1, 1) all stand at the top Cradle site, or Ann at the next one, leaving Rhys
- * the only player there. With Vow of Silence too, Dana cannot give anyone secrets.
+ * Witch's Bargain in Dana's advisers, in a game created at revision 7 (or `revision`): Dana
+ * (5 favor, 3 secrets, or `favor` and `secrets`), Rhys (4, 2) and Ann (1, 1) all stand at the top
+ * Cradle site, or Ann at the next one, leaving Rhys the only player there. With Vow of Silence
+ * too, Dana cannot give anyone secrets.
  */
-function witchsBargainTable(silenced: boolean, annAway: boolean): PlayedTable {
+function witchsBargainTable(
+    silenced: boolean,
+    annAway: boolean,
+    dana: { favor?: number; secrets?: number; revision?: OathRevision } = {}
+): PlayedTable {
     const [home, next] = mapSlotsFor(Region.Cradle)
     const state = testState(
         [
@@ -2601,8 +2630,8 @@ function witchsBargainTable(silenced: boolean, annAway: boolean): PlayedTable {
                 color: Color.Purple,
                 status: PlayerStatus.Chancellor,
                 siteId: home,
-                favor: 5,
-                secrets: 3,
+                favor: dana.favor ?? 5,
+                secrets: dana.secrets ?? 3,
                 advisers: [
                     { cardId: 'denizen.arcane.witchs-bargain', faceUp: true },
                     ...(silenced ? [{ cardId: 'denizen.arcane.vow-of-silence', faceUp: true }] : [])
@@ -2631,7 +2660,7 @@ function witchsBargainTable(silenced: boolean, annAway: boolean): PlayedTable {
             map: allMapSlots(),
             siteCards: fixtureSitesOnTheBoard(),
             denizensBySite: { [home]: [] },
-            oathRevision: OathRevision.EngineFixes3
+            oathRevision: dana.revision ?? OathRevision.EngineFixes3
         }
     )
     openTurn(state, 'dana')
@@ -2642,9 +2671,11 @@ function witchsBargainTable(silenced: boolean, annAway: boolean): PlayedTable {
 /**
  * Witch's Bargain from revision 32, its exchanges steps in order: Dana (Exile) holds it, 2 secrets
  * (1 to give after the cost) and no favor; Rhys (Exile) 2 favor and 1 secret; Ann, the Chancellor,
- * 1 favor and 1 secret. All three pawns are at the top Cradle site.
+ * 1 favor and 1 secret. All three pawns are at the top Cradle site. `short`: from revision 33, each
+ * step taking as many as the other player holds, Dana holds 2 favor, Rhys 1 favor and no secret,
+ * Ann nothing.
  */
-function witchsBargainStepsTable(): PlayedTable {
+function witchsBargainStepsTable(short: boolean): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
     const state = testState(
         [
@@ -2653,7 +2684,7 @@ function witchsBargainStepsTable(): PlayedTable {
                 color: Color.Red,
                 status: PlayerStatus.Exile,
                 siteId: home,
-                favor: 0,
+                favor: short ? 2 : 0,
                 secrets: 2,
                 advisers: [{ cardId: 'denizen.arcane.witchs-bargain', faceUp: true }]
             }),
@@ -2662,16 +2693,16 @@ function witchsBargainStepsTable(): PlayedTable {
                 color: Color.Blue,
                 status: PlayerStatus.Exile,
                 siteId: home,
-                favor: 2,
-                secrets: 1
+                favor: short ? 1 : 2,
+                secrets: short ? 0 : 1
             }),
             testPlayer({
                 playerId: 'ann',
                 color: Color.Purple,
                 status: PlayerStatus.Chancellor,
                 siteId: home,
-                favor: 1,
-                secrets: 1
+                favor: short ? 0 : 1,
+                secrets: short ? 0 : 1
             })
         ],
         {
@@ -2680,7 +2711,7 @@ function witchsBargainStepsTable(): PlayedTable {
             map: allMapSlots(),
             siteCards: fixtureSitesOnTheBoard(),
             denizensBySite: { [home]: [] },
-            oathRevision: OathRevision.EngineFixes27
+            oathRevision: short ? OathRevision.EngineFixes28 : OathRevision.EngineFixes27
         }
     )
     openTurn(state, 'dana')
@@ -3589,9 +3620,15 @@ function modifierTable(scene: ModifierScene): PlayedTable {
  * R-6.2 — the "Use" badge: the Trade menu's table (Oracle at the seat's site, 2 secrets to pay
  * for it), with Alchemist in place of Master of Disguise and the Ivory Eye held. With
  * `facedown` Ann, the Chancellor, holds a facedown adviser for the Ivory Eye to peek at;
- * without, nothing is facedown and the Ivory Eye has nothing to pick.
+ * without, nothing is facedown and the Ivory Eye has nothing to pick. With `held` 'wrapped' the
+ * seat also holds the Circlet of Command and both banners, so its held row runs onto a second
+ * line below the Ivory Eye; with 'underAdviser' Alchemist stands first among the advisers and the
+ * seat holds the Circlet of Command, the Cup of Plenty and the People's Favor, the third under it.
  */
-function useBadgeTable(facedown: boolean): PlayedTable {
+function useBadgeTable(
+    facedown: boolean,
+    held: 'relic' | 'wrapped' | 'underAdviser' = 'relic'
+): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
     const state = testState(
         [
@@ -3603,12 +3640,24 @@ function useBadgeTable(facedown: boolean): PlayedTable {
                 favor: 3,
                 secrets: 2,
                 warbandsOnBoard: { me: 3 },
-                relicIds: ['relic.ivory-eye'],
-                advisers: [
-                    faceup('denizen.beast.birdsong'),
-                    faceup('denizen.hearth.awaited-return'),
-                    faceup('denizen.arcane.alchemist')
-                ]
+                relicIds:
+                    held === 'wrapped'
+                        ? ['relic.ivory-eye', 'relic.circlet-of-command']
+                        : held === 'underAdviser'
+                          ? ['relic.circlet-of-command', 'relic.cup-of-plenty']
+                          : ['relic.ivory-eye'],
+                advisers:
+                    held === 'underAdviser'
+                        ? [
+                              faceup('denizen.arcane.alchemist'),
+                              faceup('denizen.beast.birdsong'),
+                              faceup('denizen.hearth.awaited-return')
+                          ]
+                        : [
+                              faceup('denizen.beast.birdsong'),
+                              faceup('denizen.hearth.awaited-return'),
+                              faceup('denizen.arcane.alchemist')
+                          ]
             }),
             testPlayer({
                 playerId: 'ann',
@@ -3631,6 +3680,16 @@ function useBadgeTable(facedown: boolean): PlayedTable {
                 ],
                 [mapSlotId(Region.Provinces, 0)]: ['denizen.beast.wolves']
             },
+            ...(held === 'wrapped'
+                ? {
+                      banners: testBanners({
+                          [Banner.PeoplesFavor]: 'me',
+                          [Banner.DarkestSecret]: 'me'
+                      })
+                  }
+                : held === 'underAdviser'
+                  ? { banners: testBanners({ [Banner.PeoplesFavor]: 'me' }) }
+                  : {}),
             discardPileCounts: { cradle: 2, provinces: 0, hinterland: 0 },
             vault: testVaultWithDiscards({
                 [Region.Cradle]: ['denizen.hearth.book-binders', 'denizen.order.council-seat']
@@ -4179,6 +4238,94 @@ function conspiracyNoTakeTable(machineState: MachineState, me: Partial<Seat>): P
 
 /** R-6.1, R-7.4 — the scenes for the Search cards a facedown adviser's play may use. */
 type FacedownScene = 'facedownCards' | 'facedownFullSite' | 'facedownNewGrowth'
+
+/** R-6.1, R-7.1.4 — the scenes for Forced Labor's toll on a facedown adviser's play. */
+type FacedownTollScene =
+    | 'facedownToll'
+    | 'facedownTollPaid'
+    | 'facedownTollCitizen'
+    | 'facedownTollFreeTravel'
+    | 'facedownTollTraded'
+
+/**
+ * R-6.1, R-7.1.4 — Mara's Act Phase at the Plains, which Rhys, the Chancellor, rules with Forced
+ * Labor there. Mara is an Exile with 0 favor, 1 secret and Supply 4, holding the Vision of Conquest
+ * facedown and Animal Playmates faceup, so the toll bars every facedown play. Dana is an Exile at
+ * the Steppe. `facedownTollPaid`: Mara holds 1 favor. `facedownTollCitizen`: Mara is a Citizen,
+ * no enemy of the ruler. `facedownTollFreeTravel`: a free Travel is due first. `facedownTollTraded`:
+ * Mara has traded with Forced Labor for favor.
+ */
+function facedownTollTable(scene: FacedownTollScene): PlayedTable {
+    const plains = mapSlotsFor(Region.Provinces)[1]
+    const steppe = mapSlotsFor(Region.Hinterland)[0]
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'mara',
+                color: Color.Red,
+                status: scene === 'facedownTollCitizen' ? PlayerStatus.Citizen : PlayerStatus.Exile,
+                siteId: plains,
+                supply: 4,
+                favor: scene === 'facedownTollPaid' ? 1 : 0,
+                secrets: 1,
+                advisers: [
+                    { cardId: 'vision.conquest', faceUp: false },
+                    { cardId: 'denizen.beast.animal-playmates', faceUp: true }
+                ],
+                warbandsInPersonalBank: { mara: 14 }
+            }),
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotsFor(Region.Provinces)[0],
+                favor: 3,
+                secrets: 1,
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 12 }
+            }),
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Blue,
+                status: PlayerStatus.Exile,
+                siteId: steppe,
+                favor: 2,
+                secrets: 2,
+                warbandsInPersonalBank: { dana: 14 }
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            oathRevision: CURRENT_OATH_REVISION,
+            chancellorPlayerId: 'rhys',
+            map: allMapSlots(),
+            siteCards: {
+                ...fixtureSitesOnTheBoard(),
+                [plains]: 'site.plains',
+                [steppe]: 'site.steppe'
+            },
+            denizensBySite: { [plains]: [FORCED_LABOR] },
+            warbandsBySite: { [plains]: { [IMPERIAL_WARBANDS]: 2 } }
+        }
+    )
+    if (scene === 'facedownTollFreeTravel') {
+        state.getPlayerState('mara').freeTravelAtAction = state.actionCount
+    }
+    openTurn(state, 'mara')
+    state.activePlayerIds = ['mara']
+    const names = { mara: 'Mara', rhys: 'Rhys', dana: 'Dana' }
+    const table = { ...tableOf(state), names }
+    if (scene !== 'facedownTollTraded') return table
+    const traded = played(table, [
+        createAction(Trade, {
+            ...envelope(table),
+            playerId: 'mara',
+            cardId: FORCED_LABOR,
+            option: TradeOption.ForFavor,
+            modifiers: []
+        })
+    ])
+    return { ...traded, names }
+}
 
 /**
  * R-6.1, R-7.4 — the seat's one facedown adviser, War Tortoise (a beast card), with Wild Cry and
@@ -5586,7 +5733,18 @@ const TABLES: Record<TableName, () => PlayedTable | Promise<PlayedTable>> = {
     witchsBargain: () => witchsBargainTable(false, false),
     witchsBargainSilenced: () => witchsBargainTable(true, false),
     witchsBargainOneOther: () => witchsBargainTable(false, true),
-    witchsBargainSteps: witchsBargainStepsTable,
+    // Revision 31, the last before the steps in order: Dana as above, with 1 favor, with only the
+    // secret the cost places, or with Vow of Silence and 1 favor.
+    witchsBargainOlder: () =>
+        witchsBargainTable(false, false, { revision: OathRevision.EngineFixes26 }),
+    witchsBargainOlderOneFavor: () =>
+        witchsBargainTable(false, false, { favor: 1, revision: OathRevision.EngineFixes26 }),
+    witchsBargainOlderCostOnly: () =>
+        witchsBargainTable(false, false, { secrets: 1, revision: OathRevision.EngineFixes26 }),
+    witchsBargainOlderSilencedOneFavor: () =>
+        witchsBargainTable(true, false, { favor: 1, revision: OathRevision.EngineFixes26 }),
+    witchsBargainSteps: () => witchsBargainStepsTable(false),
+    witchsBargainStepsShort: () => witchsBargainStepsTable(true),
     modifierTravel: () => modifierTable('modifierTravel'),
     modifierMuster: () => modifierTable('modifierMuster'),
     modifierTrade: () => modifierTable('modifierTrade'),
@@ -5594,6 +5752,11 @@ const TABLES: Record<TableName, () => PlayedTable | Promise<PlayedTable>> = {
     facedownCards: () => facedownTable('facedownCards'),
     facedownFullSite: () => facedownTable('facedownFullSite'),
     facedownNewGrowth: () => facedownTable('facedownNewGrowth'),
+    facedownToll: () => facedownTollTable('facedownToll'),
+    facedownTollPaid: () => facedownTollTable('facedownTollPaid'),
+    facedownTollCitizen: () => facedownTollTable('facedownTollCitizen'),
+    facedownTollFreeTravel: () => facedownTollTable('facedownTollFreeTravel'),
+    facedownTollTraded: () => facedownTollTable('facedownTollTraded'),
     greatHerdFlip: greatHerdFlipTable,
     modifierPair: () => modifierTable('modifierPair'),
     smallFriendsSites: () => tradeSitesTable('smallFriendsSites'),
@@ -5701,6 +5864,15 @@ const TABLES: Record<TableName, () => PlayedTable | Promise<PlayedTable>> = {
     searchConspiracy: searchConspiracyTable,
     searchConspiracyNoTake: searchConspiracyNoTakeTable,
     searchPlayTo: searchPlayToTable,
+    // R-5.1.4.I, Crop Rotation — Dana searched with Crop Rotation at the full Plains, holding the People's Favor.
+    searchFullSite: () => searchFullSiteTable(),
+    searchFullSiteRoom: () => searchFullSiteTable(true),
+    useOnEveryCard: () => useOnEveryCardTable('envoy'),
+    useOnEveryCardScepter: () => useOnEveryCardTable('scepter'),
+    useOnEveryCardPair: () => useOnEveryCardTable('pair'),
+    useOnEveryCardBusy: () => useOnEveryCardTable('busy'),
+    zoomPaging: () => useOnEveryCardTable('paging'),
+    zoomPagingSearch: () => zoomPagingSearchTable(),
     flipConspiracy: flipConspiracyTable,
     flipConspiracyNoTake: flipConspiracyNoTakeTable,
     campaignTwoDefenders: () => campaignTable(false),
@@ -5791,17 +5963,23 @@ const TABLES: Record<TableName, () => PlayedTable | Promise<PlayedTable>> = {
     landWardenSecondAdviser,
     // R-5.1.4.III — Dana searched with Land Warden at the full Great Slum: Alchemist, then the Vision of Conquest.
     landWardenVisionKept,
+    // R-7.1.1 — Dana at the full Great Slum with Homesteaders, Longbows and the Horned Mask: a tall Use a power step.
+    greatSlumPowers,
     // R-5.1.4.II, R-11.10 — Dana searched at the full Great Slum with a full adviser row: Wrestlers, Twin Brother
     // and the Relic Breaker drawn.
     fullSiteSearch: () => fullSiteSearch(),
-    // R-9.4 — Dana's facedown adviser picks: Dream Thief, Inquisitor (all at the Plains), the Ivory Eye.
+    // R-9.4 — Dana's facedown adviser picks: Dream Thief (first, or second among the advisers),
+    // Inquisitor (all at the Plains), the Ivory Eye.
     facedownDreamThief: () => facedownPickerTable('dreamThief'),
+    facedownDreamThiefSecond: () => facedownPickerTable('dreamThief', 1),
     facedownInquisitor: () => facedownPickerTable('inquisitor'),
     facedownIvoryEye: () => facedownPickerTable('ivoryEye'),
     warningSignals: () => warningSignalsTable(),
     warningSignalsNothingToMove: () => warningSignalsTable(true),
     useBadge: () => useBadgeTable(true),
     useBadgeNothingToPick: () => useBadgeTable(false),
+    useBadgeWrappedHeld: () => useBadgeTable(true, 'wrapped'),
+    useBadgeOverHeld: () => useBadgeTable(false, 'underAdviser'),
     useBadgeTribunal: useBadgeTribunalTable,
     pickerWhistle: () => powerPickerTable('pickerWhistle'),
     pickerTerror: () => powerPickerTable('pickerTerror'),

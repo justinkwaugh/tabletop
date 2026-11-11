@@ -157,12 +157,12 @@ describe('pile deposits and merges', () => {
     it('the history names the region to everyone and the cards to the actor alone', () => {
         const toActor = describeAction(powerUse, nameOf, 'me')
         const toOther = describeAction(powerUse, nameOf, 'other')
-        expect(toActor).toContain('Messenger went to the cradle discard pile')
+        expect(toActor).toContain('Messenger went to the Cradle discard pile')
         expect(toActor).toContain('you saw')
-        expect(toOther).toContain('cards went to the cradle discard pile')
+        expect(toOther).toContain('cards went to the Cradle discard pile')
         expect(toOther).not.toContain('Messenger')
         expect(toOther).not.toContain('you saw')
-        expect(toOther).toContain('the provinces discard pile went onto the hinterland pile')
+        expect(toOther).toContain('the Provinces discard pile went onto the Hinterland pile')
     })
 
     it('an answer that stacks cards on a pile (Pilgrimage) names them to its actor alone', () => {
@@ -171,7 +171,7 @@ describe('pile deposits and merges', () => {
         ])
         expect(describeAction(stacked, nameOf, 'me')).toContain('Messenger')
         expect(describeAction(stacked, nameOf, 'other')).toContain(
-            'cards went to the cradle discard pile'
+            'cards went to the Cradle discard pile'
         )
         expect(describeAction(stacked, nameOf, 'other')).not.toContain('Messenger')
     })

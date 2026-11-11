@@ -6,8 +6,8 @@ import { Banner, SearchPlay, CardKind, PlayerStatus, Region, Suit } from '../mod
 import { ConspiracyPlay, type ConspiracyTake } from '../model/conspiracy.js'
 import { isLockedFor, siteLockedFor } from './locked.js'
 import { assertExists } from '@tabletop/common'
-import { HydratedOathGameState } from '../model/gameState.js'
-import { HiddenReveal } from '../model/hidden.js'
+import { discardRegionFor, HydratedOathGameState } from '../model/gameState.js'
+import { HiddenReveal, type PileDeposit } from '../model/hidden.js'
 import type { WarbandCounts } from '../model/warbandCounts.js'
 import { PowerOutcome } from '../model/powerOutcome.js'
 import { cardDefinition, CONSPIRACY_ID, kindOf } from '../data/cardRegistry.js'
@@ -16,6 +16,7 @@ import {
     detachFromPlay,
     discardCards,
     noteSiteDiscard,
+    regionCardLeavesFrom,
     siteDiscardLedgerKey,
     tokensReturnedBy,
     type DiscardTarget
@@ -31,7 +32,7 @@ import {
     type PlayMapChanges
 } from '../powers/registry.js'
 import { pawnSiteId } from './pawn.js'
-import { denizensAfterPlay } from '../powers/vocabulary.js'
+import { denizensAfterPlay, playerStatusOverlay } from '../powers/vocabulary.js'
 import { isFaceupPlay, powerOutcomeOf } from './powerDoorway.js'
 import { PowerChoice, reasonChoicesInvalid } from './powerChoice.js'
 import {
@@ -453,6 +454,8 @@ export interface CardPlayResult {
     /** R-9.3 — each favor the play took before its power, the site's and a Homeland's, as its banks gave it. */
     favorTaken: readonly FavorTake[]
     discarded: string[]
+    /** Law Glossary "Discard" (revision 33) — cards discarded first that went to another pile than `discarded`. */
+    discardedElsewhere: PileDeposit[]
     /** R-7.3.3 */
     whenPlayed?: string
     /** R-7.1.4 (Saddle Makers) */
@@ -471,6 +474,8 @@ export interface BegunCardPlay {
     secretsGained: number
     favorTaken: readonly FavorTake[]
     discarded: string[]
+    /** Law Glossary "Discard" (revision 33) — cards discarded first that went to another pile than `discarded`. */
+    discardedElsewhere: PileDeposit[]
     sitePower?: string
     /** Saddle Makers' Q&A — paid once the card is played, before its power (undefined before revision 4). */
     triggeredFirst?: string[]
@@ -508,6 +513,21 @@ export function beginCardPlay(
         discardCards(state, playerId, [id], region, options.discardTarget)
         discarded.push(id)
     }
+    // Law Glossary "Discard" — "if discarding cards in a different region from your pawn, discard based on the
+    // region of the card instead": from revision 33, a card discarded first goes by its own site's region (before
+    // it, by the pawn's). One that goes to another pile than the play's discards is recorded apart.
+    const discardedElsewhere: PileDeposit[] = []
+    const playPile = options.discardTarget?.region ?? discardRegionFor(region)
+    const discardFirst = (id: string, from: Region) => {
+        const [deposit] = discardCards(state, playerId, [id], from, options.discardTarget)
+        if (deposit === undefined || deposit.region === playPile) {
+            discarded.push(id)
+            return
+        }
+        const pile = discardedElsewhere.find((d) => d.region === deposit.region)
+        if (pile) pile.cardIds.push(id)
+        else discardedElsewhere.push(deposit)
+    }
     let favorGained = 0
     let secretsGained = 0
     // R-9.3 — as the banks gave it when this card was played: Land Warden's second card is played after the kept
@@ -524,9 +544,13 @@ export function beginCardPlay(
             // R-5.1.4.I the People's Favor, R-11.10 the Great Slum, Crop Rotation — the denizens discarded first,
             // one per power that gives one, in the order named.
             for (const first of cardsDiscardedFirst(state, play, options)) {
+                // Read before the card leaves its site.
+                const from = isAtLeastOathRevision(state, OathRevision.EngineFixes28)
+                    ? regionCardLeavesFrom(state, first)
+                    : region
                 noteSiteDiscard(state, playerId, first)
                 detachFromPlay(state, first)
-                discard(first)
+                discardFirst(first, from)
             }
             state.denizensBySite[siteId] = [...state.denizensAt(siteId), cardId]
 
@@ -589,6 +613,7 @@ export function beginCardPlay(
         secretsGained,
         favorTaken,
         discarded,
+        discardedElsewhere,
         sitePower,
         triggeredFirst,
         mapChanges
@@ -657,6 +682,7 @@ export function finishCardPlay(
         secretsGained: begun.secretsGained,
         favorTaken: begun.favorTaken,
         discarded: begun.discarded,
+        discardedElsewhere: begun.discardedElsewhere,
         whenPlayed,
         sitePower: begun.sitePower,
         triggered: triggered.length > 0 ? triggered : undefined,
@@ -990,6 +1016,24 @@ function reasonDiscardFirstListInvalid(
     return new Set(list).size === list.length ? undefined : 'a card is discarded first once'
 }
 
+/**
+ * R-5.1.4.II, R-7.6.4 — only a card played as an adviser discards one to make room, so from revision 33 an adviser
+ * named for any other play (to a site, the Revealed Vision space, the Conspiracy's, or a discard) is refused: the
+ * kept card's, Land Warden's second card's, a facedown adviser's (R-6.1) and False Prophet's alike. Before it
+ * (R-X.4) such a play was accepted and the adviser stayed. An empty list names none.
+ */
+function reasonAdviserDiscardNotForAdviserPlay(
+    state: HydratedOathGameState,
+    play: SearchPlay,
+    options: CardPlayOptions
+): string | undefined {
+    if (play === SearchPlay.Adviser || (options.discardedAdviserCardIds?.length ?? 0) === 0)
+        return undefined
+    return isAtLeastOathRevision(state, OathRevision.EngineFixes28)
+        ? 'an adviser is discarded only for a card played as an adviser'
+        : undefined
+}
+
 /** R-11.10 the Great Slum, R-5.1.4.I the People's Favor, Crop Rotation — a card discarded before a site play. */
 function reasonDiscardFirstInvalid(
     state: HydratedOathGameState,
@@ -1030,6 +1074,29 @@ export function reasonSiteFull(
         : undefined
 }
 
+/**
+ * R-7.3.3-H3 — the persistent powers a site or adviser play is judged on. Land Warden's second card is played after
+ * the kept card's power, so from revision 33 it is judged on the state that play leaves, as one played second to the
+ * Revealed Vision space is: the cards in play and the rulers the warbands give (`persistentsInPlay`), and the status
+ * the kept card's When Played power gives, which says whose enemy the player is (R-10.12). Before revision 33
+ * (R-X.4), and for every other play, on the state as it is.
+ */
+function persistentsAfterEarlierPlay(
+    state: HydratedOathGameState,
+    playerId: string,
+    options: CardPlayOptions
+): { state: HydratedOathGameState; mapChanges?: PlayMapChanges } {
+    const earlier = options.earlierMapChanges
+    if (!earlier || !isAtLeastOathRevision(state, OathRevision.EngineFixes28)) return { state }
+    return {
+        state:
+            earlier.status !== undefined
+                ? playerStatusOverlay(state, playerId, earlier.status)
+                : state,
+        mapChanges: earlier
+    }
+}
+
 export function reasonCannotPlaceCard(
     state: HydratedOathGameState,
     playerId: string,
@@ -1044,6 +1111,8 @@ export function reasonCannotPlaceCard(
     const definition = cardDefinition(cardId)
     const listInvalid = reasonDiscardFirstListInvalid(state, options)
     if (listInvalid) return listInvalid
+    const adviserDiscardInvalid = reasonAdviserDiscardNotForAdviserPlay(state, play, options)
+    if (adviserDiscardInvalid) return adviserDiscardInvalid
 
     switch (play) {
         case SearchPlay.Site: {
@@ -1055,7 +1124,13 @@ export function reasonCannotPlaceCard(
                 return `${cardId} can only be played to your advisers`
             }
             // R-7.1.4 — Ruined Temple: enemies of its ruler cannot play beast cards faceup.
-            const barred = reasonPersistentForbidsFaceupPlay(state, playerId, cardId)
+            const inPlay = persistentsAfterEarlierPlay(state, playerId, options)
+            const barred = reasonPersistentForbidsFaceupPlay(
+                inPlay.state,
+                playerId,
+                cardId,
+                inPlay.mapChanges
+            )
             if (barred) return barred
             const target = options.toSiteId ?? here
             // R-5.1.4.I — the People's Favor's holder may play to any site in their region;
@@ -1143,6 +1218,7 @@ export function reasonCannotPlaceCard(
         }
 
         case SearchPlay.Adviser: {
+            const inPlay = persistentsAfterEarlierPlay(state, playerId, options)
             if (options.faceUp) {
                 if (kind !== CardKind.Denizen) {
                     return 'only denizens can be faceup advisers'
@@ -1152,13 +1228,22 @@ export function reasonCannotPlaceCard(
                     return `${cardId} can only be played to a site`
                 }
                 // R-7.1.4 — Ruined Temple: enemies of its ruler cannot play beast cards faceup.
-                const barred = reasonPersistentForbidsFaceupPlay(state, playerId, cardId)
+                const barred = reasonPersistentForbidsFaceupPlay(
+                    inPlay.state,
+                    playerId,
+                    cardId,
+                    inPlay.mapChanges
+                )
                 if (barred) return barred
             } else if (kind !== CardKind.Denizen && kind !== CardKind.Vision) {
                 return 'only denizens and Visions can be advisers'
             } else {
                 // R-7.1.4 — Gossip: enemies of its ruler cannot play facedown advisers.
-                const gagged = reasonPersistentForbidsFacedownAdviser(state, playerId)
+                const gagged = reasonPersistentForbidsFacedownAdviser(
+                    inPlay.state,
+                    playerId,
+                    inPlay.mapChanges
+                )
                 if (gagged) return gagged
             }
 

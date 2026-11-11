@@ -96,22 +96,22 @@ function searchRow(
 describe('the History of a site play names a missing or short favor (R-9.3)', () => {
     it('an empty bank: "gaining no favor: the Beast bank was empty"', () => {
         expect(searchRow(table({ [Suit.Hearth]: 3 }), WOLVES)).toBe(
-            'kept Wolves and played it to their own site, gaining no favor: the Beast bank was empty; 1 card went to the provinces discard pile'
+            'kept Wolves and played it to their own site, gaining no favor: the Beast bank was empty; 1 card went to the Provinces discard pile'
         )
     })
 
     it('short: at Fertile Valley with 1 Hearth favor, "gaining 1 favor: the Hearth bank ran out"', () => {
         expect(searchRow(table({ [Suit.Hearth]: 1 }, 'site.fertile-valley'), INN)).toBe(
-            'kept Wayside Inn and played it to their own site, gaining 1 favor: the Hearth bank ran out; gained 0 hearth favor (Fertile Valley, Homeland); 1 card went to the provinces discard pile'
+            'kept Wayside Inn and played it to their own site, gaining 1 favor: the Hearth bank ran out; gained 0 hearth favor (Fertile Valley, Homeland); 1 card went to the Provinces discard pile'
         )
     })
 
     it("a full gain keeps today's words", () => {
         expect(searchRow(table({ [Suit.Beast]: 2 }), WOLVES)).toBe(
-            'kept Wolves and played it to their own site, gaining 1 favor; 1 card went to the provinces discard pile'
+            'kept Wolves and played it to their own site, gaining 1 favor; 1 card went to the Provinces discard pile'
         )
         expect(searchRow(table({ [Suit.Hearth]: 3 }, 'site.fertile-valley'), INN)).toBe(
-            'kept Wayside Inn and played it to their own site, gaining 1 favor; gained 1 hearth favor (Fertile Valley, Homeland); 1 card went to the provinces discard pile'
+            'kept Wayside Inn and played it to their own site, gaining 1 favor; gained 1 hearth favor (Fertile Valley, Homeland); 1 card went to the Provinces discard pile'
         )
     })
 
@@ -137,7 +137,7 @@ describe('the History of a site play names a missing or short favor (R-9.3)', ()
             metadata
         })
         expect(describeAction(record, names)).toBe(
-            'kept Wolves and played it to their own site; 1 card went to the provinces discard pile'
+            'kept Wolves and played it to their own site; 1 card went to the Provinces discard pile'
         )
     })
 

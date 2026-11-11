@@ -1059,9 +1059,9 @@ describe('the History words: each row as the record says it, older records too',
             expect(
                 power(
                     'denizen.hearth.tavern-songs',
-                    'Tavern Songs: peeked at the top 1 cards of the cradle discard pile'
+                    'Tavern Songs: peeked at the top 1 cards of the Cradle discard pile'
                 )
-            ).toBe('used Tavern Songs: peeked at the top 1 card of the cradle discard pile')
+            ).toBe('used Tavern Songs: peeked at the top 1 card of the Cradle discard pile')
             expect(
                 power('relic.whistle', 'Whistle: p2 travelled to slot.cradle.0, gaining 1 secrets')
             ).toBe(
@@ -1227,5 +1227,71 @@ describe('R-7.4 — what each card in use did, after the gain it changed', () =>
                 }
             })
         ).toBe('traveled to Great Slum, spending 2 Supply; gained 1 warband (Dragonskin Drum)')
+    })
+})
+
+describe('a region in an engine summary reads as the board prints it, in games recorded before it did', () => {
+    const used = (cardId: string, summary: string, viewerId?: string) =>
+        row(
+            { type: ActionType.UseActionPower, cardId, powerIndex: 0, metadata: { summary } },
+            viewerId
+        )
+    const stacked = (summary: string) =>
+        row({
+            type: ActionType.AnswerQuestion,
+            answer: { kind: PowerQuestionKind.OrderDrawnCards, order: [1, 0] },
+            metadata: {
+                cardId: 'denizen.nomad.pilgrimage',
+                kind: PowerQuestionKind.OrderDrawnCards,
+                summary,
+                resumeMachineState: MachineState.ActPhase,
+                last: true
+            }
+        })
+
+    it('"the <region> discard pile": Tavern Songs and Scryer, for every seat', () => {
+        for (const viewerId of [undefined, 'p1', 'p2']) {
+            expect(
+                used(
+                    TAVERN_SONGS,
+                    'Tavern Songs: peeked at the top 3 cards of the cradle discard pile',
+                    viewerId
+                )
+            ).toBe('used Tavern Songs: peeked at the top 3 cards of the Cradle discard pile')
+        }
+        expect(
+            used(
+                'denizen.discord.scryer',
+                'Scryer: peeked at the hinterland discard pile (2 cards)'
+            )
+        ).toBe(
+            'used Scryer, placing a secret on it: peeked at the Hinterland discard pile (2 cards)'
+        )
+    })
+
+    it('"on the <region> discard pile": the cards Pilgrimage stacked', () => {
+        expect(stacked('stacked 2 cards on the provinces discard pile')).toBe(
+            'Pilgrimage: stacked 2 cards on the Provinces discard pile'
+        )
+    })
+
+    it('Convoys names both regions: the pile it took and the pile it went onto', () => {
+        expect(
+            used(
+                'denizen.nomad.convoys',
+                'Convoys: moved the hinterland discard pile (3 cards) onto the cradle pile'
+            )
+        ).toBe(
+            'used Convoys, placing a favor on it: moved the Hinterland discard pile (3 cards) onto the Cradle pile'
+        )
+    })
+
+    it('a summary that already names the region, and other prose, stay as they are', () => {
+        expect(
+            used(TAVERN_SONGS, 'Tavern Songs: peeked at the top 3 cards of the Cradle discard pile')
+        ).toBe('used Tavern Songs: peeked at the top 3 cards of the Cradle discard pile')
+        expect(stacked('stacked 2 cards on the cradled discard pile beside the cradle')).toBe(
+            'Pilgrimage: stacked 2 cards on the cradled discard pile beside the cradle'
+        )
     })
 })

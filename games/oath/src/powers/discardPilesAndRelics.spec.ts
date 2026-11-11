@@ -482,7 +482,7 @@ describe('discard piles', () => {
                     SearchSource.Discard,
                     errand(Region.Hinterland)
                 )
-            ).toBe('the hinterland discard pile is empty')
+            ).toBe('the Hinterland discard pile is empty')
             expect(
                 HydratedSearch.drawCount(s, 'ruler', errand(Region.Provinces), SearchSource.Discard)
             ).toBe(0)
@@ -621,6 +621,21 @@ describe('discard piles', () => {
         expect(() =>
             serverUse(board({ c1: [CONVOYS] }), vaultFor(), CONVOYS, [region(Region.Cradle)])
         ).toThrow()
+    })
+
+    it('Tavern Songs, Scryer and Convoys name each region as the board prints it', () => {
+        const s = board({ c1: [SONGS, SCRYER] })
+        const vault = vaultFor()
+        expect(serverUse(s, vault, SONGS).metadata?.summary).toBe(
+            'Tavern Songs: peeked at the top 3 cards of the Cradle discard pile'
+        )
+        expect(serverUse(s, vault, SCRYER, [region(Region.Provinces)]).metadata?.summary).toBe(
+            'Scryer: peeked at the Provinces discard pile (2 cards)'
+        )
+        const t = board({ c1: [CONVOYS] })
+        expect(
+            serverUse(t, vaultFor(), CONVOYS, [region(Region.Hinterland)]).metadata?.summary
+        ).toBe('Convoys: moved the Hinterland discard pile (0 cards) onto the Cradle pile')
     })
 
     it('Oracle — the next Vision in the deck comes to hand, and the machine holds as for a Search', () => {
