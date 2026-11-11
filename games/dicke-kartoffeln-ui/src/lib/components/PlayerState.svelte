@@ -85,12 +85,12 @@
         <div class="compost">
             <span class="label">compost</span>
             <span title="Compost pile 1: worms taken this year"
-                >① <b>{playerState.freshCompost}</b>{#if timed}<small>
+                ><span class="pile">1</span> <b>{playerState.freshCompost}</b>{#if timed}<small>
                         {pileNote(CompostPileId.Fresh)}</small
                     >{/if}</span
             >
             <span title="Compost pile 2: worms ready to spread in round 10"
-                >② <b>{playerState.ripeCompost}</b>{#if timed}<small>
+                ><span class="pile">2</span> <b>{playerState.ripeCompost}</b>{#if timed}<small>
                         {pileNote(CompostPileId.Ripe)}</small
                     >{/if}</span
             >
@@ -100,7 +100,7 @@
                 >farm</button
             >
             <button type="button" onclick={() => gameSession.showSheet(playerState.playerId)}
-                >yield sheet</button
+                >yields</button
             >
             {#if deciding}<span class="status">deciding…</span>{:else if sealed}<span class="status"
                     >plan sealed</span
@@ -228,7 +228,20 @@
     .compost small {
         margin-left: 3px;
         color: #6e5a3e;
-        font-size: 12px;
+        font-size: 13px;
+    }
+
+    .pile {
+        display: inline-flex;
+        width: 20px;
+        height: 20px;
+        align-items: center;
+        justify-content: center;
+        border: 1.5px solid #4a2c16;
+        border-radius: 999px;
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1;
     }
 
     .links {
@@ -238,14 +251,24 @@
     }
 
     .links button {
+        min-width: 64px;
         border: 1.5px solid #6e3b1c;
-        border-radius: 999px;
-        padding: 0 10px;
-        color: #6e3b1c;
+        border-radius: 6px;
+        background: #efe3c4;
+        padding: 1px 10px;
+        color: #4a2c16;
         font-size: 14px;
+        font-weight: 700;
+        white-space: nowrap;
+        box-shadow: 0 1.5px 0 #6e3b1c;
     }
 
     .links button:hover {
-        background: rgba(110, 59, 28, 0.12);
+        background: #e4d3a8;
+    }
+
+    .links button:active {
+        box-shadow: none;
+        transform: translateY(1.5px);
     }
 </style>

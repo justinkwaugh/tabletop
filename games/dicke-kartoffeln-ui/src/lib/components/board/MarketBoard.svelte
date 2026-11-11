@@ -14,6 +14,7 @@
     import { demandText, marketName } from '$lib/utils/format.js'
     import {
         MARKET_TRACKS,
+        PRICE_CHANGES,
         markerRow,
         markerSpaceId,
         trackSpaces,
@@ -33,10 +34,18 @@
     const HEAD_HEIGHT = 58
     const MARGIN = 14
     const GAP = 18
+    const KEY_HEIGHT = 78
+    const KEY_ROW = 22
+    const KEY_LABEL_WIDTH = 190
+    const KEY_VALUE_WIDTH = 58
+    const KEY_TABLE_X = 116
     const tableWidth = $derived((width - 2 * MARGIN - 2 * GAP) / 3)
     const demandWidth = $derived(tableWidth * 0.58)
-    const rowHeight = $derived((height - TITLE_HEIGHT - HEAD_HEIGHT - MARGIN) / demand.length)
+    const rowHeight = $derived(
+        (height - TITLE_HEIGHT - HEAD_HEIGHT - MARGIN - KEY_HEIGHT) / demand.length
+    )
     const top = TITLE_HEIGHT + HEAD_HEIGHT
+    const keyTop = $derived(height - MARGIN - KEY_HEIGHT + 10)
 
     function tableX(variety: Variety): number {
         return MARGIN + VARIETIES.indexOf(variety) * (tableWidth + GAP)
@@ -149,6 +158,35 @@
             {/each}
         {/each}
     {/each}
+    <g class="key" transform="translate({MARGIN}, {keyTop})">
+        <circle cx="10" cy={KEY_ROW / 2} r="9" class="stone norm" />
+        <text x="26" y={KEY_ROW / 2 + 5} class="key-text">Norm</text>
+        <circle cx="10" cy={KEY_ROW * 1.5} r="9" class="stone bio" />
+        <text x="26" y={KEY_ROW * 1.5 + 5} class="key-text">Bio</text>
+        {#each ['Demand moves (rows)', 'Price moves (steps)'] as label, row (label)}
+            <rect
+                x={KEY_TABLE_X}
+                y={row * KEY_ROW}
+                width={KEY_LABEL_WIDTH}
+                height={KEY_ROW}
+                class="cell"
+            />
+            <text x={KEY_TABLE_X + 6} y={row * KEY_ROW + 15} class="key-text">{label}</text>
+            {#each PRICE_CHANGES as change, index (change.rowsMoved)}
+                {@const x = KEY_TABLE_X + KEY_LABEL_WIDTH + index * KEY_VALUE_WIDTH}
+                <rect {x} y={row * KEY_ROW} width={KEY_VALUE_WIDTH} height={KEY_ROW} class="cell" />
+                <text
+                    x={x + KEY_VALUE_WIDTH / 2}
+                    y={row * KEY_ROW + 16}
+                    class="number"
+                    text-anchor="middle">{row === 0 ? change.rowsMoved : change.priceSteps}</text
+                >
+            {/each}
+        {/each}
+        <text x={KEY_TABLE_X} y={KEY_ROW * 2 + 18} class="key-text"
+            >More sacks offered than demanded: the price falls. Fewer: it rises.</text
+        >
+    </g>
 </svg>
 
 <style>
@@ -205,6 +243,12 @@
         font-family: 'Arial Narrow', Arial, sans-serif;
         font-size: 15px;
         font-weight: 700;
+    }
+
+    .key-text {
+        fill: #6e3b1c;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
     }
 
     .note {
