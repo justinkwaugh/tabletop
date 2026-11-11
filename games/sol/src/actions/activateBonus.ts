@@ -120,7 +120,6 @@ export class HydratedActivateBonus
             return false
         }
         const activation = state.getActivationForPlayer(turnPlayerId)
-        // Between stations, as after a Synchronize first-station bonus, there is no bonus to take.
         if (!activation?.currentStationId) {
             return false
         }
@@ -130,9 +129,6 @@ export class HydratedActivateBonus
         }
 
         const station = state.getActivatingStation(turnPlayerId)
-        if (!station) {
-            return false
-        }
 
         if (state.activeEffect === EffectType.Pulse) {
             const assetsAfterActivation = HydratedActivate.calculateAssetsAfterActivation({
@@ -216,11 +212,11 @@ export class HydratedActivateBonus
         activateBonus: ActivateBonus
     ): boolean {
         const activation = state.getActivationForTurnPlayer()
-        if (!activation) {
+        if (!activation?.currentStationId) {
             return false
         }
 
-        if (activation?.currentStationCoords?.row === Ring.Outer) {
+        if (activation.currentStationCoords?.row === Ring.Outer) {
             return false
         }
 
