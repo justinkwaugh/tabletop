@@ -1086,6 +1086,17 @@ function endRoundLine(action: GameAction, words: Words): string | undefined {
 }
 
 /** R-6.2, R-4.4.3 Each sealed charter is revealed here, in the record itself, to everyone. */
+/**
+ * R-6.3 "Tie: most sulfur in the wine barrel; still tied, shared." The barrel broke the tie only
+ * when it left fewer winners than were tied on vp.
+ */
+function barrelLine(named: string, tied: number, winners: number): string {
+    if (winners >= tied) {
+        return `tie on vp and on barrel sulfur: ${named}`
+    }
+    return `tie broken by barrel sulfur: ${named}${winners > 1 ? ', still tied' : ''}`
+}
+
 function scoreLine(action: GameAction, words: Words): string | undefined {
     if (!isScoreGame(action)) {
         return undefined
@@ -1110,7 +1121,7 @@ function scoreLine(action: GameAction, words: Words): string | undefined {
     )
     return sentence(
         `Final scores: ${rows.join('; ')}`,
-        tie ? `tie broken by barrel sulfur: ${listed(tie)}` : undefined,
+        tie ? barrelLine(listed(tie), tie.length, metadata.winners.length) : undefined,
         metadata.winners.length > 0
             ? `won by ${listed(metadata.winners.map((id) => words.who(id)))}`
             : undefined
