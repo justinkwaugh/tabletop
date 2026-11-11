@@ -10,37 +10,52 @@ Colours are CSS custom properties in `src/app.css` of the UI package, scoped to 
 
 Two meanings are fixed across titles: **amber says "yours to act on"** (`--rtr-accent`) and **rose says "costs or threatens"** (`--rtr-cost`). Neither is ever a seat colour or a railroad colour.
 
-| Token                   | Meaning                                                          | Light       | Dark        |
-| ----------------------- | ---------------------------------------------------------------- | ----------- | ----------- |
-| `--rtr-table`           | The table behind the board                                       | `#DCD3BE`   | `#1E2328`   |
-| `--rtr-sea`             | The board's ground around the land                               | `#B9CDD6`   | `#22343D`   |
-| `--rtr-plain`           | A plain hex                                                      | `#EFE6CF`   | `#3A3A33`   |
-| `--rtr-mountain`        | A mountain hex's fill                                            | `#C9B593`   | `#57503F`   |
-| `--rtr-mountain-ink`    | The mountain glyph's peaks                                       | `#7A6648`   | `#9C8B6C`   |
-| `--rtr-hex-edge`        | Hex edges and the coast outline                                  | `#CDBF9F`   | `#4A4638`   |
-| `--rtr-station`         | A city's station disc                                            | `#FFFFFF`   | `#E8E2D2`   |
-| `--rtr-station-ink`     | The station glyph, capacity marks, city names on the station     | `#2B2B2B`   | `#1B1B1B`   |
-| `--rtr-panel`           | Panels, popups, the margin's boxes                               | `#F6F1E4`   | `#2A2F35`   |
-| `--rtr-panel-raised`    | A raised chip or button on a panel                               | `#FFFDF7`   | `#343A41`   |
-| `--rtr-line`            | Rules and panel borders                                          | `#BDB29A`   | `#4B525A`   |
-| `--rtr-ink`             | Text on the table, panels and map                                | `#2A2A2A`   | `#ECE7DC`   |
-| `--rtr-ink-muted`       | Secondary text, disabled buttons                                 | `#6B6458`   | `#A8A193`   |
-| `--rtr-accent`          | Yours to act on: lit and picked rings, the acting seat's outline | `#D18E0F`   | `#F2B33D`   |
-| `--rtr-accent-fill`     | The soft fill inside a lit hex                                   | `#E8A31733` | `#F2B33D33` |
-| `--rtr-cost`            | Costs or threatens: the mountain "−1" mark                       | `#C8506A`   | `#E36F88`   |
-| `--rtr-halo`            | The dark halo under every ring, pip, mark and route line         | `#1B1B1B`   | `#0D0D0D`   |
-| `--rtr-scrim`           | The dimming scrim over the map                                   | `#1B1B1B73` | `#00000099` |
-| `--rtr-coin`            | Money: coins, the Chicago "$2"                                   | `#D7B44A`   | `#E2C25E`   |
-| `--rtr-five`            | The $5 cities' banner and mark                                   | `#3F8F4F`   | `#5DB26C`   |
-| `--rtr-gold`            | The Transcontinental: its ends, mark and claim                   | `#B9851F`   | `#D9A43A`   |
-| `--rtr-railroad-red`    | Red railroad                                                     | `#C8372D`   | `#D9473C`   |
-| `--rtr-railroad-blue`   | Blue railroad                                                    | `#2F6DB5`   | `#4A86CF`   |
-| `--rtr-railroad-orange` | Orange railroad                                                  | `#E5892A`   | `#EE9A3E`   |
-| `--rtr-railroad-yellow` | Yellow railroad                                                  | `#EBCB3C`   | `#F0D555`   |
-| `--rtr-railroad-purple` | Purple railroad                                                  | `#7E4FA3`   | `#9668BC`   |
-| `--rtr-railroad-black`  | Black railroad                                                   | `#24262B`   | `#24262B`   |
+| Token                   | Meaning                                                                               | Light       | Dark        |
+| ----------------------- | ------------------------------------------------------------------------------------- | ----------- | ----------- |
+| `--rtr-table`           | The table behind the board                                                            | `#DCD3BE`   | `#1E2328`   |
+| `--rtr-sea`             | The board's ground around the land                                                    | `#B9CDD6`   | `#22343D`   |
+| `--rtr-plain`           | A plain hex                                                                           | `#EFE6CF`   | `#3A3A33`   |
+| `--rtr-mountain`        | A mountain hex's fill                                                                 | `#C9B593`   | `#57503F`   |
+| `--rtr-mountain-ink`    | The mountain glyph's peaks                                                            | `#7A6648`   | `#9C8B6C`   |
+| `--rtr-hex-edge`        | Hex edges and the coast outline                                                       | `#CDBF9F`   | `#4A4638`   |
+| `--rtr-station`         | A city's station disc                                                                 | `#FFFFFF`   | `#E8E2D2`   |
+| `--rtr-station-ink`     | The station glyph, capacity marks, city names on the station                          | `#2B2B2B`   | `#1B1B1B`   |
+| `--rtr-panel`           | Panels, popups, the margin's boxes                                                    | `#F6F1E4`   | `#2A2F35`   |
+| `--rtr-panel-raised`    | A raised chip or button on a panel                                                    | `#FFFDF7`   | `#343A41`   |
+| `--rtr-line`            | Rules and panel borders                                                               | `#BDB29A`   | `#4B525A`   |
+| `--rtr-ink`             | Text on the table, panels and map                                                     | `#2A2A2A`   | `#ECE7DC`   |
+| `--rtr-ink-muted`       | Secondary text, disabled buttons                                                      | `#6B6458`   | `#A8A193`   |
+| `--rtr-accent`          | Yours to act on: lit and picked rings, the acting seat's outline                      | `#D18E0F`   | `#F2B33D`   |
+| `--rtr-accent-fill`     | The soft fill inside a lit hex                                                        | `#E8A31733` | `#F2B33D33` |
+| `--rtr-accent-start`    | The fainter ring on a city lit for a start only                                       | `#D18E0F80` | `#F2B33D80` |
+| `--rtr-cost`            | Costs or threatens: the mountain "−1" mark                                            | `#C8506A`   | `#E36F88`   |
+| `--rtr-halo`            | The dark halo under every ring, pip, mark and route line, the last journey's included | `#1B1B1B`   | `#0D0D0D`   |
+| `--rtr-scrim`           | The dimming scrim over the map                                                        | `#1B1B1B73` | `#00000099` |
+| `--rtr-coin`            | Money: coins, the Chicago "$2"                                                        | `#D7B44A`   | `#E2C25E`   |
+| `--rtr-five`            | The $5 cities' banner and mark                                                        | `#3F8F4F`   | `#5DB26C`   |
+| `--rtr-gold`            | The Transcontinental: its ends, mark, claim and claimed line                          | `#B9851F`   | `#D9A43A`   |
+| `--rtr-railroad-red`    | Red railroad                                                                          | `#C8372D`   | `#D9473C`   |
+| `--rtr-railroad-blue`   | Blue railroad                                                                         | `#2F6DB5`   | `#4A86CF`   |
+| `--rtr-railroad-orange` | Orange railroad                                                                       | `#E5892A`   | `#EE9A3E`   |
+| `--rtr-railroad-yellow` | Yellow railroad                                                                       | `#EBCB3C`   | `#F0D555`   |
+| `--rtr-railroad-purple` | Purple railroad                                                                       | `#7E4FA3`   | `#9668BC`   |
+| `--rtr-railroad-black`  | Black railroad                                                                        | `#24262B`   | `#24262B`   |
 
-The railroad colours are rule colours: they name the railroads in the rules (R-1.1) and appear only on railroad things (locomotives, pips, route links, strip entries, share rows). Seat colours come from the session.
+The railroad colours are rule colours: they name the railroads in the rules (R-1.1) and appear only on railroad things (locomotives, pips, route links, strip entries, share rows).
+
+### Seat colours
+
+Seats take their colours from a set of their own, kept apart from the six railroad colours (Red, Blue, Orange, Yellow, Purple, Black) and from the amber pick colour, so a seat's bar, chip or marker is never read as a railroad or as "yours to act on". The game offers seats only these colours, and `gameSession.colors` assigns them; there are five, one per seat at the most (R-1.2). Each is one value in both themes: initials and edges take their ink by contrast (Seat colours and colour blindness).
+
+| Seat colour | Value     | Nearest fixed colour (CIE76 ΔE) | Initials ink, contrast | Contrast notes                                                                                |
+| ----------- | --------- | ------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------- |
+| Teal        | `#15736E` | Black, 39                       | white, 5.7:1           | 4.6:1 on a light plain hex; on the dark board it takes a light edge (2.0:1)                   |
+| Pink        | `#F2A0D6` | Purple (dark theme), 33         | dark, 8.8:1            | Light on a light plain hex (1.6:1), so a dark edge there; 5.9:1 on the dark board             |
+| White       | `#F4F4F0` | Blue (dark theme), 61           | dark, 15.6:1           | Barely shows on a light plain hex (1.1:1): always a dark edge there; 10.4:1 on the dark board |
+| Brown       | `#6E4126` | Black, 37                       | white, 8.6:1           | 6.9:1 on a light plain hex; on the dark board it takes a light edge (1.3:1)                   |
+| Grey        | `#8C939B` | Blue (dark theme), 39           | dark, 5.5:1            | 2.5:1 on a light plain hex and 3.7:1 on the dark board, so an edge in both                    |
+
+"Nearest fixed colour" is the closest of the six railroad colours and amber, in either theme; the closest pair inside the set is Teal and Grey (ΔE 31). Contrast is WCAG contrast against the plain hex (`--rtr-plain`); the panel colours give much the same figures.
 
 ## Fonts
 
@@ -53,38 +68,41 @@ The file is `src/lib/fonts/BigShouldersDisplay-Bold.woff2`, declared under the t
 
 ## Board
 
-**Geometry from data.** One `utils/boardGeometry.ts` with a spec turns the logic package's map data into board units. Hexes are pointy-topped with size `s` (centre to corner): a hex's centre is `x = dcol × (√3 s / 2)`, `y = row × 1.5 s` (`components.md`, Coordinates), plus a margin. Each city also has a label anchor (above, below, left or right of its station) in a small table in the same file, chosen so no two labels overlap at the fitted desktop scale; the spec checks every city has one. Nothing is measured from a picture.
+**Geometry from data.** One `utils/boardGeometry.ts` with a spec turns the logic package's map data into board units. Hexes are pointy-topped with size `s` (centre to corner): a hex's centre is `x = dcol × (√3 s / 2)`, `y = row × 1.5 s` (`components.md`, Coordinates), plus the margin. Each city also has a label anchor (above, below, left or right of its station) in a small table in the same file, chosen so no two labels overlap at the fitted desktop scale; the spec checks every city has one. Nothing is measured from a picture.
+
+**Extents from data.** The board's extents are the bounding box of the hex set in the logic package's map data, plus a fixed margin on every side, one constant in `utils/boardGeometry.ts` measured in hex sizes. Nothing else widens the board. The margin gives the outermost city labels, rings, pips and marks room at the map's edge, and gives popups an anchor that stays on the board; on desktop the margin panels sit in it, at the map's empty lower corners. The extents are the same at every width; on phones the margin panels move above the board and the margin keeps only its edge room.
 
 **The coast** is the outer boundary of the hex set, computed once from the geometry and drawn as one path over the sea ground. No state borders, rivers or lakes are drawn: the map data has none and no rule uses them.
 
-**Margin.** On desktop the board's empty lower corners hold the margin (UI contract, The table): the lower left (the Pacific, below row 12) the round track and the turn order track; the lower right (the Atlantic, below row 13) the railroad strip and the Transcontinental claim. The geometry spec checks that no margin box covers a hex.
+**Margin.** On desktop the margin panels sit in the board's fixed margin, at the map's empty lower corners (UI contract, The table): the lower left (the Pacific, below row 12) the round track and the turn order track; the lower right (the Atlantic, below row 13) the railroad strip and the Transcontinental claim's medallion. The geometry spec checks that no margin box covers a hex.
 
-**Layers**, back to front, as the contract's render ownership sets them: ground and coast; hexes (plain, mountain with its glyph); cities (station, name, capacity mark, start-colour pips, bonus banner, Transcontinental end); passengers; track and this turn's bars; the last journey line; the scrim; the staged route; rings, pips and marks; the flight layer; hit targets. All in one SVG.
+**Layers**, back to front, as the contract's render ownership sets them: ground and coast; hexes (plain, mountain with its glyph); cities (station, name, capacity mark, start-colour pips, bonus banner, Transcontinental end); passengers; track and this turn's bars; the claimed Transcontinental line, then the last journey line over its halo; the scrim; the staged route; rings, pips and marks; the flight layer; hit targets. All in one SVG.
 
 **Hit targets** are transparent hex polygons carrying the hex id, one per hex, in the top layer.
 
 ## Pieces and tokens
 
-| Element                | Drawn how                                                                                                                                                       | Defs or shape module                                    | Colour source                                                          |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------- |
-| Locomotive             | A side-view steam locomotive: boiler, cab, chimney, cow-catcher, two wheels; the railroad's monogram (R, B, O, Y, P, K) on the cab; a dark edge, light on Black | `LocomotiveDefs.svelte`, `utils/locomotiveShape.ts`     | `--rtr-railroad-*`; monogram ink by contrast                           |
-| Locomotive slots       | Two per ordinary hex side by side; one, central, on an East Coast city; Chicago up to six in two rows around its station                                        | `utils/trackLayout.ts` (with a spec for every capacity) | —                                                                      |
-| Passenger              | A small standing figure (head disc, body) at the station's upper right                                                                                          | `PassengerDefs.svelte`, `utils/passengerShape.ts`       | `--rtr-ink` with a `--rtr-station` edge                                |
-| Station                | A disc with a station-roof glyph                                                                                                                                | `CityDefs.svelte`                                       | `--rtr-station`, `--rtr-station-ink`                                   |
-| Capacity mark          | "×1" or "∞" badge on the station's edge                                                                                                                         | `CityDefs.svelte`                                       | `--rtr-station-ink`                                                    |
-| Start-colour pips      | One dot per start colour around the station (four on an East Coast city, two on a West Coast city, three on Chicago)                                            | `CityDefs.svelte`                                       | `--rtr-railroad-*`                                                     |
-| $5 banner              | A green pennant with "$5", greyed once the bonus is gone                                                                                                        | `CityDefs.svelte`                                       | `--rtr-five`                                                           |
-| Chicago $2             | A coin with "$2" beside the station                                                                                                                             | `CoinDefs.svelte`                                       | `--rtr-coin`                                                           |
-| Transcontinental end   | A small gold rail tie under the station of each West and East Coast city                                                                                        | `CityDefs.svelte`                                       | `--rtr-gold`                                                           |
-| Transcontinental claim | A gold medallion in the margin with the claimant's seat marker and the amount                                                                                   | `CoinDefs.svelte`                                       | `--rtr-gold`, seat colour                                              |
-| Mountain               | Two peaks, drawn once and placed with `<use>`                                                                                                                   | `TerrainDefs.svelte`                                    | `--rtr-mountain-ink`                                                   |
-| Seat marker            | A disc with the seat's initials (two letters where two seats share one), on the turn order track                                                                | `MarkerDefs.svelte`                                     | `gameSession.colors`; ink and edge by contrast                         |
-| Round marker           | A punched-ticket shape on the round track                                                                                                                       | `MarkerDefs.svelte`                                     | `--rtr-ink`, `--rtr-panel`                                             |
-| Coin chip              | A coin with an amount, for bonuses, dividends and fares in flight and in text                                                                                   | `CoinDefs.svelte`                                       | `--rtr-coin`                                                           |
-| This turn's bar        | A thin bar under a locomotive placed this building turn                                                                                                         | inline                                                  | seat colour                                                            |
-| Route line             | A polyline through hex centres, each link in its railroad's colour, over a wider halo; station dots at the cities visited                                       | `utils/routePath.ts`                                    | `--rtr-railroad-*`, `--rtr-halo`                                       |
-| Rings, pips, marks     | Lit and picked rings, railroad pips (hollow for a start), gain and cost marks, each over the halo, sized by `viewScale()`                                       | `PickDefs.svelte`                                       | `--rtr-accent`, `--rtr-cost`, `--rtr-five`, `--rtr-coin`, `--rtr-gold` |
-| Scrim                  | One even-odd path with holes at the lit hexes                                                                                                                   | inline                                                  | `--rtr-scrim`                                                          |
+| Element                | Drawn how                                                                                                                                                                                                   | Defs or shape module                                    | Colour source                                                                                |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Locomotive             | A side-view steam locomotive: boiler, cab, chimney, cow-catcher, two wheels; the railroad's monogram (R, B, O, Y, P, K) on the cab; a dark edge, light on Black                                             | `LocomotiveDefs.svelte`, `utils/locomotiveShape.ts`     | `--rtr-railroad-*`; monogram ink by contrast                                                 |
+| Locomotive slots       | Two per ordinary hex side by side; one, central, on an East Coast city; Chicago up to six in two rows around its station                                                                                    | `utils/trackLayout.ts` (with a spec for every capacity) | —                                                                                            |
+| Passenger              | A small standing figure (head disc, body) at the station's upper right                                                                                                                                      | `PassengerDefs.svelte`, `utils/passengerShape.ts`       | `--rtr-ink` with a `--rtr-station` edge                                                      |
+| Station                | A disc with a station-roof glyph                                                                                                                                                                            | `CityDefs.svelte`                                       | `--rtr-station`, `--rtr-station-ink`                                                         |
+| Capacity mark          | "×1" or "∞" badge on the station's edge                                                                                                                                                                     | `CityDefs.svelte`                                       | `--rtr-station-ink`                                                                          |
+| Start-colour pips      | One dot per start colour around the station (four on an East Coast city, two on a West Coast city, three on Chicago)                                                                                        | `CityDefs.svelte`                                       | `--rtr-railroad-*`                                                                           |
+| $5 banner              | A green pennant with "$5", greyed once the bonus is gone                                                                                                                                                    | `CityDefs.svelte`                                       | `--rtr-five`                                                                                 |
+| Chicago $2             | A coin with "$2" beside the station                                                                                                                                                                         | `CoinDefs.svelte`                                       | `--rtr-coin`                                                                                 |
+| Transcontinental end   | A small gold rail tie under the station of each West and East Coast city                                                                                                                                    | `CityDefs.svelte`                                       | `--rtr-gold`                                                                                 |
+| Transcontinental claim | A gold medallion in the margin with the claimant's seat marker and the amount                                                                                                                               | `CoinDefs.svelte`                                       | `--rtr-gold`, seat colour                                                                    |
+| Transcontinental line  | A thin gold polyline through the hex centres of the claimed line, drawn from the claim to the end of the game, beside the medallion                                                                         | `utils/routePath.ts`                                    | `--rtr-gold`                                                                                 |
+| Mountain               | Two peaks, drawn once and placed with `<use>`                                                                                                                                                               | `TerrainDefs.svelte`                                    | `--rtr-mountain-ink`                                                                         |
+| Seat marker            | A disc with the seat's initials (two letters where two seats share one), on the turn order track; the initials are drawn only from a set zoom level up, and below it the disc's colour alone names the seat | `MarkerDefs.svelte`                                     | `gameSession.colors`; ink and edge by contrast                                               |
+| Round marker           | A punched-ticket shape on the round track                                                                                                                                                                   | `MarkerDefs.svelte`                                     | `--rtr-ink`, `--rtr-panel`                                                                   |
+| Coin chip              | A coin with an amount, for bonuses, dividends and fares in flight and in text                                                                                                                               | `CoinDefs.svelte`                                       | `--rtr-coin`                                                                                 |
+| This turn's bar        | A thin bar under a locomotive placed this building turn                                                                                                                                                     | inline                                                  | seat colour                                                                                  |
+| Route line             | A polyline through hex centres, each link in its railroad's colour, over a wider halo; station dots at the cities visited. The last journey is the same line, thinner, on the same halo                     | `utils/routePath.ts`                                    | `--rtr-railroad-*`, `--rtr-halo`                                                             |
+| Rings, pips, marks     | Lit, start-only (fainter) and picked rings, railroad pips (hollow for a start), gain and cost marks, each over the halo, sized by `viewScale()`                                                             | `PickDefs.svelte`                                       | `--rtr-accent`, `--rtr-accent-start`, `--rtr-cost`, `--rtr-five`, `--rtr-coin`, `--rtr-gold` |
+| Scrim                  | One even-odd path with holes at the lit hexes                                                                                                                                                               | inline                                                  | `--rtr-scrim`                                                                                |
 
 Shadows are offset shapes, never filters (`docs/phone-rendering.md`). There are no textures, so no rasters.
 
@@ -101,11 +119,12 @@ One vocabulary for the map, the panel and the log (token text, as Oath's `TokenT
 
 ## Seat colours and colour blindness
 
-- **One source.** Every seat-coloured element reads `gameSession.colors`; no seat colour is written in the title. The platform's colour-blind setting reaches every seat element.
+- **One source.** Every seat-coloured element reads `gameSession.colors`, whose values come from the seat set (Palette, Seat colours); no seat colour is written anywhere else in the title. The platform's colour-blind setting reaches every seat element.
+- **Colour alone, zoomed out.** Below the zoom level where seat initials are drawn, colour is all that tells seats apart, which is why the set keeps its members well apart from one another as well as from the railroads and amber.
 - **Railroads never rely on colour alone.** Every locomotive and pip carries its monogram, the railroad strip and share buttons carry its name, and the hex detail lists railroads by name. Red against Orange and Blue against Purple are the pairs at risk; the monograms settle them.
 - **Seats and railroads never share a shape.** Seats are discs, bars, chips and card headers; railroads are locomotives, pips and route links.
 - **Ink by contrast.** A monogram or initials on a fill is dark or white, chosen from the fill's luminance so contrast is at least 4.5:1; Black's locomotive has a light edge on dark ground.
-- **Checks.** `ink.spec.ts` checks the monogram contrast on every railroad fill in both themes; `palette.spec.ts` checks that no two railroad colours are closer than a set colour difference.
+- **Checks.** `ink.spec.ts` checks the monogram contrast on every railroad fill in both themes; `palette.spec.ts` checks that no two railroad colours are closer than a set colour difference, and that every seat colour keeps that difference from each railroad colour, from amber and from the other seat colours.
 
 ## Cover
 
@@ -119,8 +138,8 @@ The catalog title image is `src/lib/images/cover.webp`, read by `info.thumbnailU
 
 ## Specs that guard it
 
-- `palette.spec.ts`: every colour is a declared token; railroad colours stay apart.
-- `boardGeometry.spec.ts`: every hex and city in the logic's map data has a position and a label anchor, no position names a hex the data lacks, and no margin box covers a hex.
+- `palette.spec.ts`: every colour is a declared token; railroad colours stay apart; seat colours stay apart from them, from amber and from each other.
+- `boardGeometry.spec.ts`: every hex and city in the logic's map data has a position and a label anchor, no position names a hex the data lacks, the extents are the data's bounding box plus the fixed margin, and every margin box lies inside the board and covers no hex.
 - `trackLayout.spec.ts`: every capacity has slots for its locomotives.
 - `ink.spec.ts`: monogram and initials contrast.
 - Readiness gates 1 and 2 pass on the first run.

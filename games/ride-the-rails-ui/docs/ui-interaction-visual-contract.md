@@ -17,13 +17,13 @@ The choices a player would notice are gathered in [Design choices](#design-choic
 
 ### What is on it
 
-| Region                                                                                                             | Holds                                                                                                                                                                                                                                                                                                                                                             |
-| ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Turn header**                                                                                                    | Whose turn (`Your turn`, `‹Name›'s turn`, `History`, `End of game`); the round and phase ("Round 3 · Build"); Undo at the right end (`docs/game-ui-layout.md`)                                                                                                                                                                                                    |
-| **Action area**                                                                                                    | The action panel, the waiting view, the history description or the game-end summary (below)                                                                                                                                                                                                                                                                       |
-| **Map** (the board)                                                                                                | The USA map's 386 hexes drawn from data: plain and mountain hexes, 51 cities with their names, capacity marks (×1 on the six East Coast cities, ∞ on Chicago), start colours, the $5 banners and Chicago's $2; the West Coast and East Coast cities marked as the Transcontinental's ends; passengers; track (locomotives); the Transcontinental claim once taken |
-| **Margin** (desktop: inside the board, in the map's empty lower corners; phone: see [Phone layout](#phone-layout)) | Round track I–VI with each round's new railroad (R-1.4); the railroad strip: one entry per railroad with its supply left, its track count and its shareholders; the turn order track with each seat's marker and money                                                                                                                                            |
-| **Sidebar**                                                                                                        | History controls; tabs for the seat cards, the history and chat                                                                                                                                                                                                                                                                                                   |
+| Region                                                                                                                            | Holds                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| --------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Turn header**                                                                                                                   | Whose turn (`Your turn`, `‹Name›'s turn`, `History`, `End of game`); the round and phase ("Round 3 · Build"); Undo at the right end (`docs/game-ui-layout.md`)                                                                                                                                                                                                                                                                                              |
+| **Action area**                                                                                                                   | The action panel, the waiting view, the history description or the game-end summary (below)                                                                                                                                                                                                                                                                                                                                                                 |
+| **Map** (the board)                                                                                                               | The USA map's 386 hexes drawn from data: plain and mountain hexes, 51 cities with their names, capacity marks (×1 on the six East Coast cities, ∞ on Chicago), start colours, the $5 banners and Chicago's $2; the West Coast and East Coast cities marked as the Transcontinental's ends; passengers; track (locomotives); once the Transcontinental is claimed, its line, kept for the rest of the game as a thin gold line beside the margin's medallion |
+| **Margin** (desktop: inside the board's fixed margin, at the map's empty lower corners; phone: see [Phone layout](#phone-layout)) | Round track I–VI with each round's new railroad (R-1.4); the railroad strip: one entry per railroad with its supply left, its track count and its shareholders; the turn order track with each seat's marker and money                                                                                                                                                                                                                                      |
+| **Sidebar**                                                                                                                       | History controls; tabs for the seat cards, the history and chat                                                                                                                                                                                                                                                                                                                                                                                             |
 
 ### Images and data
 
@@ -38,6 +38,7 @@ The players tab shows one card per seat, in turn order. Its motif is a **station
 ### Pick conventions
 
 - **Lit** (amber ring over a soft amber fill, on a dark halo): a hex or city the deciding seat may press now. While a map pick is open, a scrim dims the rest of the map; lit hexes show through holes in it. Panel-only steps never dim the map.
+- **Lit for a start only** (a fainter amber ring, no fill, on the same halo): a city where every placement it offers is a railroad's start. While Black is unstarted, its start (R-4.2.5-H1) lights almost every city, so start-only cities are drawn quieter than hexes that extend a railroad's network, and the extensions stand out. A hex that offers both a start and an extension takes the full ring. Both are equally pressable.
 - **Picked** (heavier amber ring): a staged hex or city. Pressing it again unpicks it.
 - **Railroad pips.** A lit hex shows one small pip per railroad that may go there or link there, in the railroad's colour with its monogram; a start is a hollow pip. The pips are the only words-free statement of "which railroad"; the hex carries no name while lit.
 - **Gain and cost marks**, one wordless mark each at the hex's lower right, over the halo: a coin "$2" (Chicago), a green coin "$5" (a $5 city still to be had, when some railroad's placement there earns it), a gold coin "$12" or "$8" (some placement there completes the Transcontinental, with the price it would pay), and a rose "−1" (a mountain while no mountain has been used this turn: the limit would drop). Several marks stack outward. Marks come from the logic package's rule helpers, so a mark and what the engine pays never disagree.
@@ -45,7 +46,7 @@ The players tab shows one card per seat, in turn order. Its motif is a **station
 
 ### Look: hex detail
 
-**Trigger:** a press on a hex or city that is not lit, at any time, in Live or History View. **Shows:** a popup beside the hex with its name (or terrain), capacity, the locomotives in it by railroad, the start colours it shows, its bonus and whether it is still to be had, and whether a passenger waits there. **Unaffected:** the scrim, the lit set, any staged pick. **Ends:** the next press anywhere, Escape, the close control, or a new Game State that moves the board.
+**Trigger:** a press on a hex or city that is not lit, at any time, in Live or History View. **Shows:** a popup beside the hex (during a map pick, the side panel instead; see Coexistence and precedence) with its name (or terrain), capacity, the locomotives in it by railroad, the start colours it shows, its bonus and whether it is still to be had, and whether a passenger waits there. **Unaffected:** the scrim, the lit set, any staged pick. **Ends:** the next press anywhere, Escape, the close control, or a new Game State that moves the board.
 
 ### Look: railroad spotlight
 
@@ -57,7 +58,7 @@ The panel prompt reads "Take a share". Below it, one button per railroad in rail
 
 ### Build: place a locomotive (`Building`, the deciding seat)
 
-- **Lit:** every hex where some railroad the seat holds may be placed now (the placement test, rules R-3.2 and R-4.1 to R-4.2), with its railroad pips and marks. Starts light only the start cities each railroad's rule allows (R-4.2); Yellow's western start lights the fixed westernmost set's cities that hold exactly one locomotive (R-4.2.3-H1, -H2).
+- **Lit:** every hex where some railroad the seat holds may be placed now (the placement test, rules R-3.2 and R-4.1 to R-4.2), with its railroad pips and marks. Starts light only the start cities each railroad's rule allows (R-4.2); Yellow's western start lights the fixed westernmost set's cities that hold exactly one locomotive (R-4.2.3-H1, -H2). While Black is unstarted, nearly every city is lit for its start; those that offer only a start take the fainter start ring (Pick conventions).
 - **Press a lit hex with one possible railroad:** sends `PlaceLocomotive` at once. The locomotive lands, any bonus is paid, and the lit set refreshes.
 - **Press a lit hex with two or more:** the hex becomes picked and a popup beside it shows one chip per possible railroad: its locomotive, supply left, and the bonus that railroad's placement pays (a Black start in a $5 city pays nothing, R-4.3.2-H1). Choosing a chip sends `PlaceLocomotive`. Undo, or pressing the picked hex again, closes the popup.
 - **Panel:** the prompt "Place locomotives", then "2 of 5 placed", and after a mountain "Mountain used: limit 4" (R-3.2.4). One button: Done building, which reads Build nothing before the first placement (R-3.2.1 "may"). When nothing more is legal the turn ends by itself (`FinishBuilding`), and the panel goes to the next view.
@@ -76,14 +77,14 @@ A journey is a staged selection of two stages: the start, then the links (a stac
 
 ### Last journey
 
-After a journey, its route stays drawn for every viewer, thinner and without the halo, until the next action is made. In History View it shows the displayed action's journey. It never takes presses.
+After a journey, its route stays drawn for every viewer, thinner than a staged route but over the same dark halo, so it reads in every railroad colour (Yellow on plain hexes included), until the next action is made. In History View it shows the displayed action's journey. It never takes presses.
 
 ### Watching (waiting view)
 
 For a seat that is not deciding:
 
 - **Take a share:** "‹Name› is taking a share", the seats still to take in phase 1's reverse order, and the last share taken ("Ben took Blue").
-- **Build:** "‹Name› is building · 2 of 5 placed", and the railroads they may build. Their placements appear live with this turn's bars.
+- **Build:** "‹Name› is building · 2 of 5 placed", and the railroads they may build: only those with a legal placement now, so a railroad they hold with nowhere left to go is not listed. Their placements appear live with this turn's bars.
 - **Ride:** "‹Name› is choosing a journey". After each journey, its line: "Ben: Seattle → Chicago, 6 links, fare $7; you +$3".
 - Every waiting view ends with a line of seat chips in turn order with each seat's money, since money decides turn order (R-2.5.1).
 
@@ -100,17 +101,18 @@ The action area shows the history description for the displayed step. Nothing is
 
 One semantic derivation, the **board offer** (Shared visual state), decides the lit set, the scrim, the marks and the popups. Map layers draw its result.
 
-| Overlap                                       | Rule                                                                                                                                             |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| A map pick (build or journey) and hex detail  | Coexist. A press on an unlit hex shows its detail and changes no stage; a press on a lit hex picks and closes any detail.                        |
-| A map pick and railroad spotlight             | Coexist. The pick's scrim and lit set win; the spotlight only outlines its railroad's track.                                                     |
-| Railroad spotlight and hex detail             | Coexist.                                                                                                                                         |
-| The railroad popup and Undo                   | Undo closes the popup first (it is the latest manual stage).                                                                                     |
-| The staged route and the last-journey line    | Impossible: the last-journey line belongs to the previous action and is hidden while a draft holds a start.                                      |
-| A staged pick and History View                | History View wins: entering it hides every pick, scrim and popup; leaving it shows the live offer again, rebuilt from the live state.            |
-| A staged pick and another seat's action       | Impossible in this title: only the deciding seat acts, and every action is sequential.                                                           |
-| A staged pick and a new Game State            | The new state clears every staged selection (default `keepsLocalSelections`), so a build popup or route never outlives the state it was made on. |
-| Focus views, zoom, full screen and any intent | Coexist: they change only the view. A staged pick survives them.                                                                                 |
+| Overlap                                       | Rule                                                                                                                                                 |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A map pick (build or journey) and hex detail  | Coexist. A press on an unlit hex shows its detail and changes no stage; a press on a lit hex picks and closes any detail.                            |
+| The railroad popup and hex detail             | Coexist apart: during a pick the hex detail opens in the side panel, and the railroad popup stays beside its hex, so the two never cover each other. |
+| A map pick and railroad spotlight             | Coexist. The pick's scrim and lit set win; the spotlight only outlines its railroad's track.                                                         |
+| Railroad spotlight and hex detail             | Coexist.                                                                                                                                             |
+| The railroad popup and Undo                   | Undo closes the popup first (it is the latest manual stage).                                                                                         |
+| The staged route and the last-journey line    | Impossible: the last-journey line belongs to the previous action and is hidden while a draft holds a start.                                          |
+| A staged pick and History View                | History View wins: entering it hides every pick, scrim and popup; leaving it shows the live offer again, rebuilt from the live state.                |
+| A staged pick and another seat's action       | Impossible in this title: only the deciding seat acts, and every action is sequential.                                                               |
+| A staged pick and a new Game State            | The new state clears every staged selection (default `keepsLocalSelections`), so a build popup or route never outlives the state it was made on.     |
+| Focus views, zoom, full screen and any intent | Coexist: they change only the view. A staged pick survives them.                                                                                     |
 
 ## Shared visual state
 
@@ -120,7 +122,7 @@ The session owns these. Components read them and call its methods.
 - **Journey draft** (`start`, then stacked `links`). Producer: presses on lit cities, link popups, Best route. Consumers: the map's route line, the lit set, the panel's route and payments, the seat cards' pending "+$N" chips. Lifetime: Ride (sends), Undo pops, a new Game State clears. Validity: only in `Riding`, for the deciding seat; a draft is re-checked against the displayed state and reads as empty if any link no longer holds. History View: hidden.
 - **Journey preview** (derived, never stored): links per railroad, the fare, each seat's payment, from the draft and the shares. Consumers: the panel, the seat cards' pending chips, the map's link count. It uses the logic package's payment helper, so the preview equals what `RideJourney` pays.
 - **Board offer** (derived, never stored): from the displayed state, the valid actions for this seat and the stages. Effects allowed: lit set, pips, marks, scrim holes, which popup is open. Consumers: every map layer. History View and other seats: empty.
-- **Hex detail** (`hexId`): producer, a press on an unlit hex; consumer, the detail popup. Cleared by the next press, Escape, close, or a Game State that changes that hex. Kept across History View navigation when the hex exists in both states.
+- **Hex detail** (`hexId`): producer, a press on an unlit hex; consumer, the detail popup beside the hex, or the side panel during a map pick. Cleared by the next press, Escape, close, or a Game State that changes that hex. Kept across History View navigation when the hex exists in both states.
 - **Railroad spotlight** (`railroadId`): producer, the railroad strip and seat cards; consumers, the track layer and the scrim. Cleared by a second press or pointer leave (hover only). Survives Game States and history navigation.
 - **Animation transients**: a travelling locomotive, a travelling passenger, a coin chip. Producer: the state-change animators. Consumers: the flight layer only. Scoped to the action being animated; cleared on its timeline's end or teardown.
 
@@ -129,17 +131,17 @@ The session owns these. Components read them and call its methods.
 The board is **one SVG** (`docs/phone-rendering.md`, One board surface). Back to front:
 
 1. Ground and map: plain and mountain hexes, coast outline.
-2. Cities: station discs, names, capacity marks, start-colour pips, bonus banners, the Transcontinental ends and its claim.
+2. Cities: station discs, names, capacity marks, start-colour pips, bonus banners, the Transcontinental ends.
 3. Passengers.
 4. Track: locomotives, this turn's bars.
-5. Last journey line.
+5. The claimed Transcontinental line (thin gold, from the claim to the game's end), then the last journey line over its halo.
 6. **Scrim**: one path, the map's outline with holes at the lit hexes (even-odd fill). It is a plain translucent fill, not an opacity or filter effect. With a spotlight and no pick it covers track only, and the spotlit railroad's locomotives are drawn again above it.
 7. Staged route line and station dots.
 8. Rings, pips and marks (the board offer).
 9. Flight layer: travelling locomotives, passengers and coins.
 10. Hit targets: transparent hex shapes carrying hex ids, the only map elements that take presses.
 
-Popups (the railroad chips, hex detail) are HTML in the `Floater` against a reference point at the hex, outside the SVG, so their text stays crisp at any zoom (`docs/phone-rendering.md`, HTML text under zoom). The focus chooser sits in the `ScalingWrapper`'s `overlay` snippet. Rings, pips, marks and city names are sized by `viewScale()` so they stay readable at any zoom. No SVG or CSS filters, masks or endless animations on the board.
+Popups (the railroad chips, and hex detail outside a map pick) are HTML in the `Floater` against a reference point at the hex, outside the SVG, so their text stays crisp at any zoom (`docs/phone-rendering.md`, HTML text under zoom). The focus chooser sits in the `ScalingWrapper`'s `overlay` snippet. During a map pick the hex detail renders in the side panel instead, so it never covers the railroad popup. Rings, pips, marks and city names are sized by `viewScale()` so they stay readable at any zoom. Seat initials on markers (the turn order track, the Transcontinental medallion) are drawn only from a set zoom level up; below it, the seat's colour alone identifies the seat. No SVG or CSS filters, masks or endless animations on the board.
 
 ## Game log and history
 
@@ -157,7 +159,7 @@ The game-session state-change animators and the shared `AnimationContext` own al
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
 | Share            | A locomotive lifts from its railroad's strip entry and flies to the seat's turn-order marker; the strip's supply count and the seat card's share count tick                                                                                                                               | B (transient flyer), D (counts) |
 | Placement        | A locomotive flies from its railroad's strip entry to the hex and settles into its slot; a start lands with a small bounce. Bonus coins rise from the hex and fly to the seat's marker; money ticks                                                                                       | B, D                            |
-| Transcontinental | After its placement lands, the line's hexes outline one after another (at most 900 ms), then a gold coin flies to the seat                                                                                                                                                                | B                               |
+| Transcontinental | After its placement lands, the line's hexes outline one after another (at most 900 ms) and settle as the thin gold line, then a gold coin flies to the seat                                                                                                                               | B                               |
 | Journey          | The start passenger travels the route through hex centres at about 120 ms per hex, the whole capped at 2.4 s; each city passed pulses its station ring once; at the end it fades. Then every dividend coin and the fare fly from the end city to the seats' markers together; money ticks | B, D                            |
 | End of round     | After the last journey's motion, on the same timeline: the turn-order markers slide to the new order; the round marker steps; the new railroad's strip entry goes from dim to full                                                                                                        | A                               |
 
@@ -173,7 +175,7 @@ At 375 × 812 and below `sm`:
 - **Header:** one compact line: whose turn, "R3 · Build", Undo.
 - **Action area:** the prompt on one line; buttons wrap. The journey panel collapses to "3 links · fare $4 · you +$6" with a toggle that opens the per-seat chips. Take a share's six buttons wrap to two rows of three.
 - **Railroad strip:** the board's margin would pan out of sight, so on phones the round badge and the six railroad entries (colour, monogram, supply left, dim until available) form one row above the board, outside the scaling. It is the spotlight control on phones. The turn order and money move to the waiting view's seat line and the seat cards.
-- **Board:** fitting the whole map would make a hex about 11 px wide. It rests at a cover fit (`coverBelowScale`) that fills the view's height, about 33 px a hex, and pans sideways. The focus chooser (Whole map, West, Middle, East) sits in the overlay, shown whenever a hex is under 28 px on screen; it is the same control in full screen. Full screen keeps play going by rendering the action area in the wrapper's toolbar while modal.
+- **Board:** its extents are the same as on desktop, the map data plus the fixed margin (`art-plan.md`, Board); on phones the margin holds only edge labels, rings and marks, since the margin panels move above the board. Fitting the whole map would make a hex about 11 px wide. It rests at a cover fit (`coverBelowScale`) that fills the view's height, about 33 px a hex, and pans sideways. The focus chooser (Whole map, West, Middle, East) sits in the overlay, shown whenever a hex is under 28 px on screen; it is the same control in full screen. Full screen keeps play going by rendering the action area in the wrapper's toolbar while modal. Zoomed out to the whole map, seat markers lose their initials and are told apart by colour.
 - **Popups** clamp inside the viewport and flip above the hex when there is no room below.
 - **Touch:** every hover effect has a press. Lit hit targets are the whole hex.
 
@@ -204,10 +206,10 @@ Each gives the start, the input, the result, the result after Undo or exit, and 
 5. **Two railroads possible.** A seat holding Red and Blue presses a hex both may enter: the hex is picked, a popup shows Red and Blue chips. Undo closes the popup and places nothing; a second Undo undoes the previous placement. Choosing Blue places Blue. Auto.
 6. **Mountain limit.** 4 seats (limit 5), 4 placed, no mountain yet: no mountain hex is lit and plain hexes are. With a mountain placed earlier this turn, the panel reads "Mountain used: limit 4", and the fourth placement ends the turn by itself (`FinishBuilding`). Auto.
 7. **Bonus marks and pay.** A lit Chicago shows "$2"; placing there adds $2 and a coin flies. A lit, empty Denver shows "$5" for an adjacent railroad; a Black start in an empty $5 city shows no "$5" chip in its popup and pays nothing. Auto.
-8. **Transcontinental.** With a Purple line from Seattle meeting Red in Chicago and Red reaching New York but for one hex: that hex shows "$12"; placing there pays $12 once, the claim appears on the board, and no hex shows the mark again. With the meeting in a non-city hex the mark reads "$8". Auto.
-9. **Yellow's starts.** Round 3: Chicago and the westernmost occupied cities holding exactly one locomotive light with hollow Yellow pips. After a Yellow start in Chicago, the western start still lights the set fixed at that placement, even after other railroads build further west. Auto.
+8. **Transcontinental.** With a Purple line from Seattle meeting Red in Chicago and Red reaching New York but for one hex: that hex shows "$12"; placing there pays $12 once, the medallion appears in the margin, the line stays drawn in thin gold beside it for the rest of the game, and no hex shows the mark again. With the meeting in a non-city hex the mark reads "$8". Auto.
+9. **Yellow's starts.** Round 3: Chicago and the westernmost occupied cities holding exactly one locomotive light with hollow Yellow pips. After a Yellow start in Chicago, the western start still lights the set fixed at that placement, even after other railroads build further west. Round 5, a seat holding Black and Red with Black unstarted: nearly every city is lit; cities offering only a Black start take the fainter start ring, and hexes extending Red take the full ring. Auto.
 10. **Build nothing.** A seat presses Build nothing with 0 placed: the next seat's turn starts. Undo before they act restores the turn. Auto.
-11. **This turn's bars.** Another seat watches a building turn: each new locomotive has the builder's bar; when the turn ends the bars clear. Manual.
+11. **This turn's bars.** Another seat watches a building turn: each new locomotive has the builder's bar; the waiting view lists only the railroads with a legal placement now, and a railroad that runs out of places drops from the list; when the turn ends the bars clear. Manual.
 
 **Ride the Rails**
 
@@ -216,7 +218,7 @@ Each gives the start, the input, the result, the result after Undo or exit, and 
 14. **No loop.** A city already on the route, or reachable only through a used hex, is never lit. Auto.
 15. **Best route.** Press Best route: the route fills with the best-paying journey; Undo pops its last link, not the whole route; Ride sends the shown route and the money paid equals the preview. Auto.
 16. **Pass.** No passenger city has a link: Pass is the only button, nothing is lit. Auto.
-17. **Last journey.** After a seat rides, every viewer sees its route drawn thinly until the next action; the waiting view names it. Manual.
+17. **Last journey.** After a seat rides, every viewer sees its route drawn thinly over its halo until the next action, Yellow links included on plain hexes; the waiting view names it. Manual.
 
 **Round and game end**
 
@@ -225,7 +227,7 @@ Each gives the start, the input, the result, the result after Undo or exit, and 
 
 **Looking, history and phones**
 
-20. **Hex detail during a pick.** During a building pick, press an unlit hex: its detail opens and no stage changes; the next press on a lit hex places and closes the detail. Auto.
+20. **Hex detail during a pick.** During a building pick, press an unlit hex: its detail opens in the side panel and no stage changes; with a railroad popup open, the popup stays beside its hex while the detail shows in the side panel. The next press on a lit hex places and closes the detail. Auto.
 21. **Spotlight.** Hover Blue in the strip with no pick: other track dims under the scrim. Open a build pick: the pick's scrim shows and Blue's track is outlined. Manual.
 22. **History View.** With a build popup open, step back in history: popup, scrim and lit hexes vanish; the history description shows; return to Live View: the live offer is lit, the popup gone. Manual.
 23. **Rapid interruption.** Press Undo while a placement's locomotive is in flight: the motion ends at once and the board shows the undone state. Replay a building turn from the log: placements land in order, then history returns. Manual.
