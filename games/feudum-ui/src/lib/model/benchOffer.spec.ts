@@ -613,6 +613,16 @@ describe('R-4.6 per guild and function', () => {
         expect(offer.result?.line).toMatch(/can't be undone$/)
     })
 
+    it('R-4.6.5, R-4.6-H5 Noble push with one seal on the scrolls: the line states 1 flip, not 2', async () => {
+        const turn = await table((state, { seat }) => {
+            setMaster(state, seat, 'noble')
+            setScrolls(state, [R1C1])
+        })
+        const offer = offerOf(turn, 'noble', 'push', { picks: [{ kind: 'scroll', spaceId: R1C1 }] })
+        expect(offer.line).toBe('Flip 1 seal')
+        expect(offer.primary).toEqual({ label: "Flip 1 seal · can't be undone", enabled: true })
+    })
+
     it('R-4.6.4 Monk pull: one seal, "Flip it"', async () => {
         const turn = await table((state, { seat, other }) => {
             setJourneyman(state, seat, 'monk', other)
