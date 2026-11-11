@@ -505,7 +505,7 @@ const SulfurCharter: WritId = 'writ.charter.sulfur-barrel'
 
 /**
  * R-6.1, R-6.3 Epoch IV with a stack empty, so the round's end is the V dawn and the game's. The
- * first seat seals the sulfur charter; the scores before it are lifted so the first two seats tie on
+ * first seat holds the sulfur charter and a seal, so R-4.4.3 seals it at the end; the scores before it are lifted so the first two seats tie on
  * vp, the first with the fuller barrel.
  */
 async function gameEnding(lift: readonly number[]) {
@@ -524,7 +524,6 @@ async function gameEnding(lift: readonly number[]) {
             state.getPlayerState(playerId).score += lift[index] ?? 0
         })
     })
-    await host.send(ana, { type: ActionType.SealCharter, writId: SulfurCharter })
     await forfeitRound(host)
     await feedWithFood(host)
     return host
@@ -1219,7 +1218,7 @@ export const Fixtures = {
             return { host, seat }
         }
     },
-    'writs-seal-charter': {
+    'writs-charter-held': {
         build: async () => {
             const { host, seat } = await exploring(['influence', 'explore', 'guild', 'tax'])
             await host.send(seat, { type: ActionType.Explore, revealsInfo: true })

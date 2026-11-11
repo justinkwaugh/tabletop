@@ -3,7 +3,6 @@ import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
 import {
     ActionType,
     MachineState,
-    moveConcealedSeal,
     placeMarker,
     playMandateOffers,
     type HydratedFeudumGameState
@@ -280,33 +279,14 @@ describe('R-4.4.2 PlayMandate', () => {
     })
 })
 
-describe('R-4.4.3 SealCharter and R-4.4.4 DiscardWrit', () => {
-    it('S51 "Seal · 1 seal" sends; dimmed without a seal', async () => {
-        const table = await atWill((state, seat) => {
+describe('R-4.4.3 no seal during play, and R-4.4.4 DiscardWrit', () => {
+    it('S51 R-4.4.3 a charter held with a seal offers only "Discard": it is sealed at game end', async () => {
+        const { session } = await atWill((state, seat) => {
             holdWrit(state, seat, Charter)
             giveSeal(state, seat)
         })
-        const { session } = table
         await open(session, 'writs')
-        const seal = writChoices(session, Charter).find(({ label }) => label === 'Seal · 1 seal')
-        await press(session, seal)
-        await settled(session)
-        expect(lastAction(table)).toMatchObject({ type: ActionType.SealCharter, writId: Charter })
-    })
-
-    it('S51 without a seal the row is dimmed with its reason', async () => {
-        const { session, seat } = await atWill((state, playerId) => {
-            holdWrit(state, playerId, Charter)
-            const player = state.getPlayerState(playerId)
-            while (player.sealCount > 0) {
-                moveConcealedSeal(state, { kind: 'held', playerId }, { kind: 'pile' })
-            }
-        })
-        expect(session.gameState.getPlayerState(seat).sealCount).toBe(0)
-        await open(session, 'writs')
-        const seal = writChoices(session, Charter).find(({ label }) => label === 'Seal · 1 seal')
-        expect(seal?.refusal).toBeDefined()
-        expect(seal?.press).toBeUndefined()
+        expect(writChoices(session, Charter).map(({ label }) => label)).toEqual(['Discard'])
     })
 
     it('R-4.4.4 "Discard" sends', async () => {

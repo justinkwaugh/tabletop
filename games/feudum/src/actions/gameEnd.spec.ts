@@ -7,9 +7,9 @@ import { ActionType } from '../definition/actions.js'
 import { FeudumRuntime } from '../definition/runtime.js'
 import { MachineState } from '../definition/states.js'
 import { removeTopTile } from '../model/regionStacks.js'
-import { holdSealedCharter } from '../testing/atWill.js'
+import { giveSeal } from '../testing/improving.js'
 import { meetCharter } from '../testing/charters.js'
-import { buildFeudum } from '../testing/combat.js'
+import { buildFeudum, holdWrit } from '../testing/combat.js'
 import { placeLandscape, playToDawn } from '../testing/dawn.js'
 import { rowOf, scoredIn } from '../testing/gameEnd.js'
 import { recordedText } from '../testing/guilds.js'
@@ -226,12 +226,13 @@ describe('R-6.3 the end of the game', () => {
     })
 })
 
-describe('R-6.2 sealed charters stay sealed until ScoreGame', () => {
+describe('R-4.4.3, R-6.2 a charter is sealed and named at ScoreGame alone', () => {
     const charterId: CharterId = 'writ.charter.monster-defeat'
 
     it('R-X.2 the reveal is the barrier and no earlier Action names the charter', () => {
         const { processed, order } = playToDawn(5, (state, [holder]) => {
-            holdSealedCharter(state, holder, charterId)
+            holdWrit(state, holder, charterId)
+            giveSeal(state, holder)
             meetCharter(state, holder, charterId)
         })
 

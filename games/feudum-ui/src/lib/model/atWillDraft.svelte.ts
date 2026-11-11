@@ -12,8 +12,6 @@ import {
     ReclaimImmunitySeal,
     reclaimImmunitySealOffers,
     reasonPlayMandateRefused,
-    SealCharter,
-    sealCharterOffers,
     SpendRegionTile,
     spendRegionTileOffers,
     type Good,
@@ -63,7 +61,6 @@ export type AtWillValues = {
     mandate: MandatePick
     /** R-4.4-H1 Stacked: each tile brings the next good owed. */
     cover: readonly TileId[]
-    charter: WritId
     discard: WritId
     tile: TileId
     good: { readonly good: Good; readonly sulfurToBarrel?: true }
@@ -76,7 +73,6 @@ export const AtWillStageOrder: readonly (keyof AtWillValues)[] = [
     'list',
     'mandate',
     'cover',
-    'charter',
     'discard',
     'tile',
     'good',
@@ -133,10 +129,6 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
     /** Refused rows stay, dimmed with their line: `offered` names only what can be done. */
     private mandateOffers({ state, playerId }: AtWillContext) {
         return playMandateOffers(state, playerId)
-    }
-
-    private charterOffers({ state, playerId }: AtWillContext) {
-        return sealCharterOffers(state, playerId)
     }
 
     /** R-4.4.4 While the limit asks for a discard, its own panel is where it is pressed. */
@@ -228,10 +220,6 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
     )
 
     private writPlay(context: AtWillContext): FlowPlay | undefined {
-        const charter = this.value('charter')
-        if (charter) {
-            return { build: (maker) => maker.createPlayerAction(SealCharter, { writId: charter }) }
-        }
         const discard = this.value('discard')
         if (discard) {
             return { build: (maker) => maker.createPlayerAction(DiscardWrit, { writId: discard }) }
@@ -289,7 +277,7 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
     }
 
     /** Contract, Pick conventions: pressing a pick again unpicks it. */
-    private toggle<TStage extends 'list' | 'charter' | 'discard' | 'tile' | 'vessel'>(
+    private toggle<TStage extends 'list' | 'discard' | 'tile' | 'vessel'>(
         stage: TStage,
         value: AtWillValues[TStage]
     ) {
@@ -309,11 +297,6 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
     }
 
     /** R-4.4.2 Which writ is pressed ends whichever else was picked on the list. */
-    private pressCharter(writId: WritId) {
-        this.clearFrom('mandate')
-        this.toggle('charter', writId)
-    }
-
     private pressDiscard(writId: WritId) {
         this.clearFrom('mandate')
         this.toggle('discard', writId)
@@ -323,9 +306,6 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
         const open = this.value('list')
         const writs = new Set<WritId>([
             ...this.mandateOffers(context)
-                .filter(({ refused }) => !refused)
-                .map(({ writId }) => writId),
-            ...this.charterOffers(context)
                 .filter(({ refused }) => !refused)
                 .map(({ writId }) => writId),
             ...this.discardOffers(context)
@@ -357,15 +337,8 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
 
     private writRows(context: AtWillContext): readonly WritRow[] {
         const mandates = this.mandateOffers(context)
-        const charters = this.charterOffers(context)
         const discards = this.discardOffers(context)
-        const ids = [
-            ...new Set<WritId>([
-                ...mandates.map(({ writId }) => writId),
-                ...charters.map(({ writId }) => writId),
-                ...discards
-            ])
-        ]
+        const ids = [...new Set<WritId>([...mandates.map(({ writId }) => writId), ...discards])]
         const picked = this.value('mandate')
         return ids.map((writId) => ({
             writId,
@@ -386,18 +359,6 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
                                         : {}),
                                     ...(offer.vessel ? { vessel: offer.vessel } : {})
                                 })
-                            },
-                            offer.refused
-                        )
-                    ),
-                ...charters
-                    .filter((offer) => offer.writId === writId)
-                    .map((offer) =>
-                        draftChoice(
-                            'Seal · 1 seal',
-                            this.value('charter') === writId,
-                            () => {
-                                this.pressCharter(writId)
                             },
                             offer.refused
                         )

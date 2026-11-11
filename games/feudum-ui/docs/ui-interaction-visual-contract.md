@@ -58,7 +58,7 @@ The panel's look is the game's signature (`docs/game-ui-layout.md`): a **sealed 
 - **Cards:** the eleven action cards as small faces in a fixed order (R-3.5). Played cards stand face up in play order, each marked with how it was used (regular, special, forfeited, replayed, Déjà Vu, flipped as Defend). For other seats the unplayed hand is a stack of card backs with its count; the set-aside cards are not shown, since which they are is hidden. The owner sees the hand's faces, and the set-aside cards dimmed.
 - **Pouch:** the pouch good once finalised (saltpeter "extra action" or sulfur "sequential", marked spent once used); before it is finalised, "choosing" for others and the drafted good for the owner.
 - **Supply:** goods by kind, shillings, influence markers in supply, free discs (of 3, R-1.1), vessels by type, collected region tiles (each a small face), beads with their values, concealed seals as crowned red discs with a count.
-- **Writs:** the writ count as backs; sealed charters as backs with a wax seal. The owner sees unsealed writs' faces, and sealed charters' faces dimmed with "sealed". A note "you know 2 under the deck" shows the owner's deck knowledge.
+- **Writs:** the writ count as backs; once final scoring seals them, sealed charters as backs with a wax seal (R-4.4.3). The owner sees unsealed writs' faces, and sealed charters' faces dimmed with "sealed". A note "you know 2 under the deck" shows the owner's deck knowledge.
 - **Wine barrel:** 0–3 sulfur.
 - **Guild standing:** six crests in ring order (Farmer, Merchant, Alchemist, Knight, Noble, Monk), each with the seat's stars (primary + secondary), its rank badge (M, J, A) when on the track, and a reeve dot. A crest with stars but no marker shows "no marker" (R-4.5.2).
 - **Service and voyage:** military discs covered (of 3), "vassal" when the seat rules a feudum, the voyage space.
@@ -195,7 +195,6 @@ The asked seat is the only active seat; its turn header reads "Your turn" and th
 Available to the turn player in `PlayingCards` while no card is picked, to the next finaliser in `SelectingHands`, to the asked seat in `Nourishing`, and in `DiscardingWrits` (R-4.4-H1). The **at-will row** sits under the hand: chips "Writs 2", "Tiles 1", "Vessels 1", "Immunity 1", each shown only when it has something to do. A chip press opens its list in the panel; Undo closes it.
 
 - **`PlayMandate`** (R-4.4.2). Each held mandate is a face with its alternatives as buttons, dimmed with a reason when not affordable; mandates 6 and 8 offer the reward of each guild where the seat has 3★, and mandate 6's Alchemist reward offers one button per vessel ("Alchemist → submersible"), each dimmed while the general supply has none (R-4.4-H4). A press sends, or stages with "can't be undone" when it draws goods or flips a bead.
-- **`SealCharter`** (R-4.4.3). Each held charter has "Seal · 1 seal"; dimmed without a seal. A press sends.
 - **`DiscardWrit`** (R-4.4.4, R-4.4-H8). Each writ has "Discard"; a press sends. It goes under face down: others read "Ana discarded a writ under the deck".
 - **`SpendRegionTile`** (R-4.3.3). Each collected tile has "Spend"; a press opens the five goods with the haversack's counts; a good press sends. Sulfur also offers "Into the barrel" while the barrel has room (R-4.10-H1). A press naming a card whose payment takes no tile (`Improve`, `TendLandscape`, Déjà Vu, Feast) is short until a tile is spent here first, so the dimmed reason says so (R-4.3-H3).
 - **`PlaceVessel`** (R-4.2.2), own turn only. A vessel press lights the seat's pawns that stand on no vessel; a pawn press sends.
@@ -331,7 +330,7 @@ Built from each Action's input and `metadata` only (`docs/DESIGN.md`, Actions). 
     - `StarveThePeople`, `AnswerStarve`: the marker, Royal Immunity or not, chicken beads returned.
     - `GuildAction`, `Feast`: the guild and function, items moved with their places, completions, points, the payment split, reeves, rank changes, the writ count drawn, a drawn bead's value, a flipped seal's value, spilt goods.
     - `PlaceDisc`: reeve, service or voyage, and where.
-    - `PlayMandate`, `DiscardWrit`, `SealCharter`, `SpendRegionTile`, `PlaceVessel`, `ReclaimImmunitySeal`: the writ named (a sealed charter or a discard is named in the owner's log only), the good, the vessel.
+    - `PlayMandate`, `DiscardWrit`, `SpendRegionTile`, `PlaceVessel`, `ReclaimImmunitySeal`: the writ named (a discard is named in the owner's log only), the good, the vessel.
     - `Nourish` and `NourishPawns`: food and wine per seat; pawns unfed and returned.
     - `RollProgressDie`: every face in order and the tile removed.
     - `BeginDawn`, `ReplenishMap`, `ReplenishGuilds`, `CollectLandscapes`: the dawn sheet's rows; goods placed; beads flipped.
@@ -474,7 +473,7 @@ Each gives the start, the input, the result, the result after Undo or exit, and 
 **At-will, writ limit, round end**
 
 - **S50. At-will row.** With no card picked: chips show only where something can be done. Open Writs: mandate 5 shows "A: 1 food → 3s". Press A: sent; the writ shows face up to all, then goes under; the margin's "seen" note counts it. Picking a card hides the row. Auto.
-- **S51. Seal a charter.** "Seal · 1 seal": sent; others see a sealed back and the count; the owner sees the face dimmed "sealed". Auto.
+- **S51. Charters at game end.** A charter held with a seal offers only "Discard" during play (R-4.4.3). At the end, final scoring puts the seal on it, the best-paying charter first, and the summary shows it face up with its score (R-4.4-H6). Auto.
 - **S52. Writ limit.** End a card holding 4 writs: `DiscardingWrits` opens; discard one: its back flies under the deck, the same for every seat; the turn passes. Playing a mandate from the row instead also brings it to 3. Auto.
 - **S53. Nourish choice.** Three pawns, one food, one barrel sulfur: the preselection feeds food, wine and leaves the third "Unfed" in rose; the seat picks which pawn that is. Send: food flies to the haversack, the sulfur sits on the wine-fed pawn, the unfed pawn flies home. A seat with no choice is "fed by the game". Auto.
 - **S54. Progress roll and dawn.** The die tumbles, settles on Desert; its tile I is removed, showing a tile II. When four tile II tops show, the epoch sky glows on II, and the dawn sheet shows each seat's ranks, landscapes, active regions and disloyalty (rose). Score discs slide. Auto (with a fixed die) and Manual for the motion.
@@ -558,7 +557,7 @@ Each scenario is marked automated (with its spec) or checked (with date and widt
 - S48: automated (`turnDraft.spec.ts`, `guildDraft.spec.ts`; browser `tests/bench.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosGuilds.spec.ts`
 - S49: automated (browser at desktop and phone by named fixture, `tests/scenariosGuilds.spec.ts`)
 - S50: automated (`followUpPanels.spec.ts`, `atWillDraft.spec.ts`; browser `tests/followUpPanels.spec.ts`; the writ shown to all then going under `flightLayer.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosRoundEnd.spec.ts`
-- S51: automated (`followUpPanels.spec.ts`, `atWillDraft.spec.ts`; browser `tests/followUpPanels.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosRoundEnd.spec.ts`
+- S51: automated (`followUpPanels.spec.ts`, `atWillDraft.spec.ts`, `waitingView.spec.ts`; browser `tests/followUpPanels.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosRoundEnd.spec.ts`
 - S52: automated (`followUpPanels.spec.ts`; browser `tests/followUpPanels.spec.ts`; the back going under `flightLayer.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosRoundEnd.spec.ts`
 - S53: automated (`followUpPanels.spec.ts`, `followUpDrafts.spec.ts`, `waitingView.spec.ts`; browser `tests/followUpPanels.spec.ts`; the flights `flightLayer.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosRoundEnd.spec.ts`
 - S54: partly automated (`waitingView.spec.ts`, `components/actionPanel.spec.ts`; browser `tests/followUpPanels.spec.ts`; the die's tumble, the epoch glow, the score discs' slide `boardAnimators.spec.ts`, browser `tests/boardAnimators.spec.ts`); browser at desktop and phone by named fixture, `tests/scenariosRoundEnd.spec.ts`; open: Manual for the motion, for a person at desktop and phone width to watch the die tumble and settle, the tile I leave, the epoch sky glow and the score discs slide, and judge that each reads in turn

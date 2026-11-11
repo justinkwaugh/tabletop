@@ -33,24 +33,13 @@ scenario('S50 R-4.4.2 At-will row', 'writs-at-will', async (table) => {
     await expect(seen(table)).toHaveText('seen: Mandate 5')
 })
 
-scenario('S51 R-4.4.3 Seal a charter', 'writs-seal-charter', async (table) => {
+scenario('S51 R-4.4.3 No charter is sealed during play', 'writs-charter-held', async (table) => {
     await openWrits(table)
-    await table.press(table.row('Seal · 1 seal'))
+    await expect(table.row('Seal · 1 seal')).toHaveCount(0)
     const own = await table.seatPanel('p1')
     const face = own.locator('[data-writ-face="writ.charter.central-kingdom"]')
-    await expect(face).toHaveAttribute('data-writ-sealed', '')
-    await expect(face).toContainText('sealed')
-    await expect(face.locator('svg').first()).toHaveAttribute('opacity', '0.6')
-    await table.closeSeatPanel()
-
-    await table.showSeat('p2')
-    const other = await table.seatPanel('p1')
-    await expect(other.locator('[data-writ-back="sealed"]')).toHaveCount(1)
-    await expect(other.locator('[data-writ-face]')).toHaveCount(0)
-    await expect(other.locator('[data-seat-section="writs"]')).toHaveAttribute(
-        'data-writ-count',
-        '1'
-    )
+    await expect(face).toBeVisible()
+    await expect(face).not.toHaveAttribute('data-writ-sealed', '')
     await table.closeSeatPanel()
 })
 

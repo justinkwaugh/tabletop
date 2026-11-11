@@ -37,7 +37,6 @@ import {
     isReplenishMap,
     isRollProgressDie,
     isScoreGame,
-    isSealCharter,
     isSpendRegionTile,
     isStarveThePeople,
     isStartRound,
@@ -904,16 +903,6 @@ function mandateLine(action: GameAction, words: Words): string | undefined {
     )
 }
 
-function sealLine(action: GameAction, words: Words): string | undefined {
-    if (!isSealCharter(action)) {
-        return undefined
-    }
-    const who = words.who(action.playerId)
-    return words.seesWrits(action.playerId) && action.writId
-        ? `${who} sealed ${writName(action.writId)} as a charter`
-        : `${who} sealed a charter`
-}
-
 function leftLine(returned: readonly { readonly left: PawnLeft }[]): Clause {
     return returned.length > 0
         ? `unfed: ${listed(
@@ -1199,7 +1188,6 @@ const Writers: readonly ((action: GameAction, words: Words) => string | undefine
     feastLine,
     discLine,
     mandateLine,
-    sealLine,
     nourishLine,
     nourishPawnsLine,
     collectLine,

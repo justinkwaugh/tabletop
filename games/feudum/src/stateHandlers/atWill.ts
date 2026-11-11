@@ -20,11 +20,6 @@ import {
     type HydratedReclaimImmunitySeal
 } from '../actions/reclaimImmunitySeal.js'
 import {
-    isSealCharter,
-    sealCharterOffers,
-    type HydratedSealCharter
-} from '../actions/sealCharter.js'
-import {
     isSpendRegionTile,
     spendRegionTileOffers,
     type HydratedSpendRegionTile
@@ -35,7 +30,6 @@ import type { HydratedFeudumGameState } from '../model/gameState.js'
 /** R-4.4-H1, R-4.4-H5, R-3.14-H2 What a seat may send in any at-will window. */
 export type AtWillAction =
     | HydratedPlayMandate
-    | HydratedSealCharter
     | HydratedSpendRegionTile
     | HydratedPlaceVessel
     | HydratedDiscardWrit
@@ -45,7 +39,6 @@ export type AtWillAction =
 export function isAtWillAction(action: HydratedAction): action is AtWillAction {
     return (
         isPlayMandate(action) ||
-        isSealCharter(action) ||
         isSpendRegionTile(action) ||
         isPlaceVessel(action) ||
         isDiscardWrit(action) ||
@@ -64,10 +57,6 @@ export function atWillOffers(state: HydratedFeudumGameState, playerId: string): 
         ...open(
             playMandateOffers(state, playerId).some((offer) => !offer.refused),
             ActionType.PlayMandate
-        ),
-        ...open(
-            sealCharterOffers(state, playerId).some((offer) => !offer.refused),
-            ActionType.SealCharter
         ),
         ...open(spendRegionTileOffers(state, playerId).length > 0, ActionType.SpendRegionTile),
         ...open(placeVesselOffers(state, playerId).length > 0, ActionType.PlaceVessel),

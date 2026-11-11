@@ -400,7 +400,6 @@ describe('corpus playthrough: the charters', () => {
             giveSeal(state, seat)
             meetCharter(state, seat, writId)
         })
-        fires(table, () => table.send(playerId, { type: ActionType.SealCharter, writId }))
 
         const row = rowOf(playToTheEnd(table), playerId)
 

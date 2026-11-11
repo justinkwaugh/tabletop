@@ -14,7 +14,6 @@ import {
     Charter,
     FarmerMandate,
     giveTile,
-    holdSealedCharter,
     KnightMandate,
     ShillingMandate,
     tableInWindow,
@@ -29,7 +28,6 @@ import { tableAtPlayingCards, type Table } from '../testing/table.js'
 import { discardWritOffers, reasonDiscardWritRefused } from './discardWrit.js'
 import { keepWritsOffer, reasonKeepWritsRefused } from './keepWrits.js'
 import { playMandateOffers, reasonPlayMandateRefused } from './playMandate.js'
-import { reasonSealCharterRefused, sealCharterOffers } from './sealCharter.js'
 
 const OUTPOST: SpaceId = 'space.forest.1'
 const FEUDUM: SpaceId = 'space.forest.3'
@@ -311,19 +309,6 @@ describe('DiscardWrit', () => {
         ).toThrow(NOT_HELD)
     })
 
-    it('R-4.4-H5 is refused for a sealed charter: only an unsealed writ is discarded', () => {
-        const { table, playerId, held } = holding(1)
-        table.moveTo((state) => {
-            const player = state.getPlayerState(playerId)
-            player.requireWrits().length = 0
-            player.writCount = 0
-            player.requireSealedCharters().push(held[0])
-            player.sealedCharterCount = 1
-            return MachineState.PlayingCards
-        })
-        expect(reasonDiscardWritRefused(table.hydrated(), playerId, held[0])).toBe(NOT_HELD)
-    })
-
     it('R-4.4.4 puts the writ under the deck face down, costing no turn and no barrier', () => {
         const { table, playerId, held } = holding(2)
         const deck = writDeckCount(table.hydrated())
@@ -361,33 +346,6 @@ describe('DiscardWrit', () => {
         expect(
             actionProjector.project(action, { kind: 'player', playerId }, { config: {} })
         ).toMatchObject({ writId: held[0] })
-    })
-})
-
-describe('R-4.4-H5 the writ count holds sealed charters', () => {
-    it('R-4.4.4 a discard leaves them counted', () => {
-        const { table, playerId } = tableInWindow('before a card', (state, seat) => {
-            holdSealedCharter(state, seat, Charter)
-            holdWrit(state, seat, ShillingMandate)
-        })
-        table.send(playerId, { type: ActionType.DiscardWrit, writId: ShillingMandate })
-        expect(table.seat(playerId).writCount).toBe(1)
-        expect(table.seat(playerId).sealedCharterCount).toBe(1)
-    })
-
-    it('R-4.4.1 so does a keep', () => {
-        const { table, playerId } = afterDraw()
-        table.moveTo((state) => {
-            holdSealedCharter(state, playerId, Charter)
-            return MachineState.KeepingWrits
-        })
-        const { writDraw } = table.hydrated().flow
-        table.send(playerId, {
-            type: ActionType.KeepWrits,
-            keep: (writDraw?.drawn ?? []).slice(0, writDraw?.keep)
-        })
-        const seat = table.seat(playerId)
-        expect(seat.writCount).toBe(seat.requireWrits().length + 1)
     })
 })
 
@@ -731,73 +689,23 @@ describe('PlayMandate', () => {
     })
 })
 
-describe('SealCharter', () => {
-    const holdingCharter = (
-        edit: (state: HydratedFeudumGameState, seat: string) => void = giveSeal
-    ) =>
-        tableInWindow('before a card', (state, seat) => {
+describe('R-4.4.3 charters are sealed at game end only', () => {
+    it('R-4.4.3 a seat holding a charter and a seal is offered no sealing, and one sent is refused', () => {
+        const { table, playerId } = tableInWindow('before a card', (state, seat) => {
             holdWrit(state, seat, Charter)
-            edit(state, seat)
+            giveSeal(state, seat)
         })
-
-    it('R-4.4.3 a held seal goes on a held charter; count public, charter owner-known', () => {
-        const { table, playerId } = holdingCharter()
         const { sealCount, writCount } = table.seat(playerId)
 
-        const [action] = table.send(playerId, { type: ActionType.SealCharter, writId: Charter })
-
-        const state = table.hydrated()
-        const seat = state.getPlayerState(playerId)
-        expect(seat.requireWrits()).toEqual([])
-        expect(seat.requireSealedCharters()).toEqual([Charter])
-        expect(seat.sealedCharterCount).toBe(1)
-        expect(seat.sealCount).toBe(sealCount - 1)
-        expect(seat.writCount).toBe(writCount)
-        expect(action.revealsInfo).toBeFalsy()
-        expect(state.machineState).toBe(MachineState.PlayingCards)
-        expect(table.asked).toBe(playerId)
-        expect(conservationBreaks(canonicalOf(state))).toEqual([])
-
-        const projected = actionProjector.project(action, spectator, { config: {} })
-        expect(projected).not.toHaveProperty('writId')
-        expect(
-            actionProjector.project(action, { kind: 'player', playerId }, { config: {} })
-        ).toMatchObject({ writId: Charter })
-    })
-
-    it('R-4.4.3 refuses out of a window, a writ not held, a mandate, no seal', () => {
-        const { table, playerId } = holdingCharter((state, seat) => {
-            holdWrit(state, seat, ShillingMandate)
-        })
-        const state = table.hydrated()
-        const other = table.order.find((seat) => seat !== playerId) ?? ''
-        expect(reasonSealCharterRefused(state, other, Charter)).toBe("It isn't your turn.")
-        expect(reasonSealCharterRefused(state, playerId, 'writ.charter.sulfur-barrel')).toBe(
-            NOT_HELD
-        )
-        expect(reasonSealCharterRefused(state, playerId, ShillingMandate)).toBe(
-            'Only a charter takes a seal.'
-        )
-        expect(reasonSealCharterRefused(state, playerId, Charter)).toBe('You hold no seal.')
+        expect(table.offered(playerId)).not.toContain('SealCharter')
         expect(() =>
-            table.send(playerId, { type: ActionType.SealCharter, writId: Charter })
-        ).toThrow('You hold no seal.')
-    })
+            table.send(playerId, { type: 'SealCharter' as ActionType, writId: Charter })
+        ).toThrow()
 
-    it('S51 a charter with no seal is offered dimmed, and the action not offered', () => {
-        const { table, playerId } = holdingCharter(() => {})
-        expect(sealCharterOffers(table.hydrated(), playerId)).toEqual([
-            { writId: Charter, refused: 'You hold no seal.' }
-        ])
-        expect(table.offered(playerId)).not.toContain(ActionType.SealCharter)
-    })
-
-    it('R-4.4.3 offers only charters', () => {
-        const { table, playerId } = holdingCharter((state, seat) => {
-            giveSeal(state, seat)
-            holdWrit(state, seat, ShillingMandate)
-        })
-        expect(sealCharterOffers(table.hydrated(), playerId)).toEqual([{ writId: Charter }])
-        expect(table.offered(playerId)).toContain(ActionType.SealCharter)
+        const seat = table.hydrated().getPlayerState(playerId)
+        expect(seat.requireWrits()).toEqual([Charter])
+        expect(seat.requireSealedCharters()).toEqual([])
+        expect(seat.sealCount).toBe(sealCount)
+        expect(seat.writCount).toBe(writCount)
     })
 })

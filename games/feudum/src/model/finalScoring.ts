@@ -2,8 +2,10 @@ import * as Type from 'typebox'
 import { LocationKinds, type LocationKind } from '../data/discs.js'
 import { LargeEmpireSetSize, LargeEmpireVp, ShillingsPerVp } from '../data/finalScoring.js'
 import { EpicVoyageTrack } from '../data/tracks.js'
+import type { WritId } from '../data/writs.js'
 import { writRegistry } from '../writs/writRegistry.js'
 import type { HydratedFeudumGameState } from './gameState.js'
+import { moveConcealedSeal } from './seals.js'
 import { ComponentCount, WritIdSchema } from './stateSchemas.js'
 
 /** R-6.2 One seat's row of the final sheet. */
@@ -116,9 +118,32 @@ function scoreFinalRow(state: HydratedFeudumGameState, playerId: string): FinalS
     return { playerId, voyage, largeEmpire, shillings, charters, total, score: player.score }
 }
 
-/** R-6.2 Every seat's row, in turn order. */
+/**
+ * R-4.4.3, R-4.4-H6 At the end of the game each held seal goes, unseen, on one held charter, the
+ * best-paying first. A seal held scores nothing else, so this is the seat's best placement and
+ * nothing is left to ask.
+ */
+function sealCharters(state: HydratedFeudumGameState, playerId: string): void {
+    const player = state.getPlayerState(playerId)
+    const writs = player.requireWrits()
+    const charters = writs
+        .map((writId) => ({ writId, vp: writRegistry.charterScore(writId, state, playerId) }))
+        .filter((charter): charter is { writId: WritId; vp: number } => charter.vp !== undefined)
+        .sort((first, second) => second.vp - first.vp)
+    for (const { writId } of charters.slice(0, player.sealCount)) {
+        writs.splice(writs.indexOf(writId), 1)
+        player.requireSealedCharters().push(writId)
+        moveConcealedSeal(state, { kind: 'held', playerId }, { kind: 'charter', playerId })
+    }
+}
+
+/** R-4.4.3 Every seat seals its charters, then R-6.2 every seat's row, in turn order. */
 export function scoreFinal(state: HydratedFeudumGameState): FinalSheetRow[] {
-    return state.turnManager.turnOrder.map((playerId) => scoreFinalRow(state, playerId))
+    const { turnOrder } = state.turnManager
+    for (const playerId of turnOrder) {
+        sealCharters(state, playerId)
+    }
+    return turnOrder.map((playerId) => scoreFinalRow(state, playerId))
 }
 
 /**

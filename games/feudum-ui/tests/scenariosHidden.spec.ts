@@ -33,7 +33,7 @@ async function enlargedBy(table: ScenarioTable, target: string, panelOf: string)
 
 scenario(
     "S57 R-3.1, R-4.4.4, R-5.1 Others' hands and writs",
-    'writs-seal-charter',
+    'writs-charter-held',
     async (table) => {
         // The owner's own panel names the kept charter and the one card left in hand.
         const own = await table.seatPanel('p1')
@@ -85,7 +85,7 @@ scenario(
  * host's browser takes is stood in for here: the session is told it views as host and is handed the
  * game's whole state, as a hosted game's server hands it.
  */
-scenario('S57 R-5.1 In Host View the faces show', 'writs-seal-charter', async (table) => {
+scenario('S57 R-5.1 In Host View the faces show', 'writs-charter-held', async (table) => {
     await table.showSeat('p2')
     await table.page.evaluate(() => {
         const session = window.feudumSession

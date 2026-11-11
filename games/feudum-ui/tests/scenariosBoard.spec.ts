@@ -41,7 +41,7 @@ async function openStack(table: ScenarioTable) {
     await expect(stackLayer(table)).toBeVisible()
 }
 
-scenario('S59 R-3.1, R-4.4.4, R-1.2.4 Enlarge', 'writs-seal-charter', async (table) => {
+scenario('S59 R-3.1, R-4.4.4, R-1.2.4 Enlarge', 'writs-charter-held', async (table) => {
     const before = await untouched(table)
 
     const theirs = await table.seatPanel('p2')

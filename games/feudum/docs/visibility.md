@@ -21,7 +21,7 @@ The haversack is not concealed (R-5.4-H1). Every good outside it is public (R-5.
 Owner-known fields sit on the player row (`Visibility.Policy.Owner`) or on an object that carries its own public `playerId`.
 
 - **Hand** (R-3.1, R-5.1): `hand`, the chosen action cards not yet played, is owner-known; `handCount` is public. The set-aside cards are not stored: they are a player's eleven less the hand and the cards played. Cards played this round are public with how each was used.
-- **Royal Writs** (R-4.4.4): `writs` (unsealed) and `sealedCharters` are owner-known; `writCount` and `sealedCharterCount` are public. A sealed charter stays hidden until final scoring (R-4.4.3).
+- **Royal Writs** (R-4.4.4): `writs` (unsealed) and `sealedCharters` are owner-known; `writCount` and `sealedCharterCount` are public. Charters are sealed at final scoring, which reveals them (R-4.4.3, R-4.4-H6).
 - **A writ draw** (R-3.10, R-4.6.4, R-3.7.5): the writs drawn wait on the pending draw, which names its `playerId`, owner-known; the table sees how many were drawn and how many are to be kept.
 - **Deck knowledge** (R-4.4.1, R-4.4.4): `deckKnowledge` keeps, owner-known, the writs a player put under the deck unseen (a draw's unkept writs and its discards) and the slot each took. A slot is in the deck while it is at or above `top`, so knowledge needs no rewriting on a draw; an entry is dropped when its writ is drawn. `publicDeckWrits` does the same for writs the table saw go under.
 - **Region tile stacks** (R-1.4-H2): the landscape of every tile still in a stack is hidden from everyone until the tile is taken or the progress die removes it (R-4.11-H2); the stacks' counts and each top tile's epoch are public, and the landscapes are in the vault.
@@ -42,7 +42,6 @@ Draws, shuffles, the die and random picks are engine output. An Action that read
 | `KeepWrits`                                                                                                                      | `keep`, `metadata.returned` with their slots | the count kept and the count put under the deck                     |
 | `DiscardWrit`                                                                                                                    | `writId`                                     | the slot it took under the deck: a discard goes face down (R-4.4.4) |
 | `PlayMandate`, `CommitAttack`                                                                                                    | none                                         | every field: a played writ is shown                                 |
-| `SealCharter`                                                                                                                    | `writId`                                     | that a charter was sealed                                           |
 | Card plays from the hand                                                                                                         | none                                         | every field: a played card is shown                                 |
 | `ScoreGame`                                                                                                                      | none                                         | every sealed charter, revealed with its score                       |
 
@@ -63,7 +62,7 @@ A barrier by outcome:
 - `PlaceDisc` that moves the voyage disc onto space 2, 4 or 6 (a writ draw);
 - `PlayMandate` whose reward in fact draws goods from the haversack or flips a seal to a bead; one the supply can't pay in that way reveals nothing.
 
-Not a barrier: setup choices, `StartRound`, `AdvanceTurn`, `NourishPawns`, `BeginDawn`, `EndRound`, card plays that draw nothing, `ForfeitCard`, `PlayDefend`, `CommitAttack` (combat is decided by public strengths once the defence is known), `KeepWrits` with no further draw, `ChooseFavours` (the goods were drawn by `Harvest`), `PlaceDisc` otherwise, `DiscardWrit`, `SealCharter`, `SpendRegionTile`, `PlaceVessel`, `ReclaimImmunitySeal`, `Nourish`, `CollectLandscapes`, and a seal drawn unseen from the pile onto a scroll space. Playing a card or a writ from a hidden hand shows it to the table but tells its player nothing new, so it is not a barrier.
+Not a barrier: setup choices, `StartRound`, `AdvanceTurn`, `NourishPawns`, `BeginDawn`, `EndRound`, card plays that draw nothing, `ForfeitCard`, `PlayDefend`, `CommitAttack` (combat is decided by public strengths once the defence is known), `KeepWrits` with no further draw, `ChooseFavours` (the goods were drawn by `Harvest`), `PlaceDisc` otherwise, `DiscardWrit`, `SpendRegionTile`, `PlaceVessel`, `ReclaimImmunitySeal`, `Nourish`, `CollectLandscapes`, and a seal drawn unseen from the pile onto a scroll space. Playing a card or a writ from a hidden hand shows it to the table but tells its player nothing new, so it is not a barrier.
 
 ## Exploration
 

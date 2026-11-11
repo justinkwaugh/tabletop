@@ -281,7 +281,7 @@ describe('R-4.4 the at-will row, as drawn', () => {
         expect(rowLabels(session.actionPanel, 'at-will')).toEqual(['Writs 1'])
     })
 
-    it('S51 "Seal · 1 seal" drawn under the charter; a press sends', async () => {
+    it('S51 R-4.4.3 a charter held with a seal is drawn with "Discard" alone, no seal', async () => {
         const table = hold(
             await atWill((state, { seat }) => {
                 giveSeal(state, seat)
@@ -291,11 +291,7 @@ describe('R-4.4 the at-will row, as drawn', () => {
         const { session } = table
         await pressRow(rowNamed(session.actionPanel, 'Writs 1'))
         const offer = blockOf(session.actionPanel, 'writ-offers')?.offers[0]
-        const seal = offer?.rows.find(({ choice }) => choice.label === 'Seal · 1 seal')
-        assertExists(seal, 'A charter offers its seal')
-        await pressRow(seal)
-        await settled(session)
-        expect(lastByUser(table)).toMatchObject({ type: ActionType.SealCharter })
+        expect(offer?.rows.map(({ choice }) => choice.label)).toEqual(['Discard'])
     })
 
     it('R-4.3.3 Tiles: a tile row opens the goods with art; a good press sends', async () => {

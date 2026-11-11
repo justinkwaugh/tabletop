@@ -13,7 +13,6 @@ import {
     Charter,
     Charters,
     giveTile,
-    holdSealedCharter,
     ShillingMandate,
     tableInWindow,
     VesselMandate,
@@ -42,7 +41,6 @@ import { canonicalOf } from '../testing/state.js'
 import { tableAtPlayingCards } from '../testing/table.js'
 import { reasonPlaceVesselRefused, placeVesselOffers } from './placeVessel.js'
 import { reasonDiscardWritRefused } from './discardWrit.js'
-import { reasonSealCharterRefused } from './sealCharter.js'
 import { reasonSpendRegionTileRefused, spendRegionTileOffers } from './spendRegionTile.js'
 import { keepWritsOffer } from './keepWrits.js'
 
@@ -80,7 +78,6 @@ function equip(state: HydratedFeudumGameState, playerId: string): void {
 
 const EveryWindowAction = [
     ActionType.PlayMandate,
-    ActionType.SealCharter,
     ActionType.SpendRegionTile,
     ActionType.DiscardWrit,
     ActionType.ReclaimImmunitySeal
@@ -127,7 +124,6 @@ describe('R-4.4-H1 the at-will windows', () => {
         const [tileId] = table.seat(playerId).regionTiles
         const moves: (Record<string, unknown> & { type: ActionType })[] = [
             { type: ActionType.SpendRegionTile, tileId, good: 'iron' },
-            { type: ActionType.SealCharter, writId: Charter },
             { type: ActionType.ReclaimImmunitySeal, spaceId: Battlefield, role: 'serf' },
             { type: ActionType.PlayMandate, writId: ShillingMandate, alternative: 0 },
             { type: ActionType.DiscardWrit, writId: VesselMandate }
@@ -200,53 +196,8 @@ describe('R-4.4-H1 the at-will windows', () => {
     })
 })
 
-describe('R-4.4.4, R-4.4-H6 the writ limit', () => {
-    it('R-4.4.4 counts sealed charters', () => {
-        const { table, playerId } = tableInWindow('before a card', (state, seat) => {
-            holdSealedCharter(state, seat, Charters[0])
-            holdSealedCharter(state, seat, Charters[1])
-            holdWrit(state, seat, ShillingMandate)
-        })
-        expect(writsOverLimit(table.hydrated(), playerId)).toBe(false)
-        table.moveTo((state) => {
-            holdWrit(state, playerId, VesselMandate)
-            return MachineState.PlayingCards
-        })
-        expect(table.seat(playerId).writCount).toBe(4)
-        expect(writsOverLimit(table.hydrated(), playerId)).toBe(true)
-    })
-
-    it('R-4.4-H6 a seat over the limit always holds a writ to discard: the fourth seal is refused', () => {
-        const { table, playerId } = tableInWindow('writ limit', (state, seat) => {
-            holdSealedCharter(state, seat, Charters[0])
-            holdSealedCharter(state, seat, Charters[1])
-            holdSealedCharter(state, seat, Charters[2])
-            holdWrit(state, seat, Charters[3])
-            giveSeal(state, seat)
-        })
-        expect(reasonSealCharterRefused(table.hydrated(), playerId, Charters[3])).toBe(
-            "You can't hold more than 3 sealed charters."
-        )
-        expect(table.offered(playerId)).not.toContain(ActionType.SealCharter)
-        expect(table.offered(playerId)).toContain(ActionType.DiscardWrit)
-        expect(() =>
-            table.send(playerId, { type: ActionType.SealCharter, writId: Charters[3] })
-        ).toThrow("You can't hold more than 3 sealed charters.")
-
-        const turnPlayer = table.hydrated().flow.turn?.playerId
-        table.send(playerId, { type: ActionType.DiscardWrit, writId: Charters[3] })
-
-        const state = table.hydrated()
-        const seat = state.getPlayerState(playerId)
-        expect(seat.writCount).toBe(3)
-        expect(seat.sealedCharterCount).toBe(3)
-        expect(seat.requireSealedCharters()).toHaveLength(3)
-        expect(writsOverLimit(state, playerId)).toBe(false)
-        expect(state.machineState).toBe(MachineState.PlayingCards)
-        expect(state.flow.turn?.playerId).not.toBe(turnPlayer)
-    })
-
-    it('R-4.4.4 stays until 3, sealing and spending not counting; a mandate counts', () => {
+describe('R-4.4.4 the writ limit', () => {
+    it('R-4.4.4 stays until 3, spending not counting; a mandate counts', () => {
         const { table, playerId } = tableInWindow('writ limit', (state, seat) => {
             holdWrit(state, seat, Charters[0])
             holdWrit(state, seat, Charters[1])
@@ -256,8 +207,6 @@ describe('R-4.4.4, R-4.4-H6 the writ limit', () => {
             giveSeal(state, seat)
             giveGood(state, seat, 'food')
         })
-        table.send(playerId, { type: ActionType.SealCharter, writId: Charters[0] })
-        expect(table.hydrated().machineState).toBe(MachineState.DiscardingWrits)
         table.send(playerId, { type: ActionType.DiscardWrit, writId: Charters[1] })
         expect(table.hydrated().machineState).toBe(MachineState.DiscardingWrits)
         expect(table.asked).toBe(playerId)

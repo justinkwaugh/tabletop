@@ -716,7 +716,7 @@ const WritBack: FlightFace = { kind: 'writ', faceShown: false }
  * by `writFaceShown` and only if the Action as this seat received it names it; R-4.4.2, R-5.3 a writ
  * played or used as a weapon is public, shows over the table and goes under the deck. R-4.4.4 A
  * discarded writ goes under face down: its back flies from the seat to the deck, the same at every seat.
- * R-4.4-H6 A sealed charter is sealed unseen: no flight says which writ, or that one moved.
+ * R-4.4.3, R-4.4-H6 A charter is sealed unseen at game end: no flight says which writ, or that one moved.
  */
 function flyWrits(plan: FlightBuilder, change: FlightChange, at: number): number {
     const { from, to, action, viewerId } = change

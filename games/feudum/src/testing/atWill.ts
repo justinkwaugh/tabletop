@@ -44,7 +44,7 @@ export function giveTile(state: HydratedFeudumGameState, playerId: string): Tile
     return collectTopTile(state, playerId, region).tile.id
 }
 
-/** R-4.4.3 The seat holds this charter already sealed, a pile seal on it. */
+/** R-4.4.3 The seat holds this charter sealed, a pile seal on it, as final scoring leaves it. */
 export function holdSealedCharter(
     state: HydratedFeudumGameState,
     playerId: string,
