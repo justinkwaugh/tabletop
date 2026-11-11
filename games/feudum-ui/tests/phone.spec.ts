@@ -1046,3 +1046,28 @@ test.describe('held sideways', () => {
         }
     })
 })
+
+test.describe('a touch tablet', () => {
+    test.use({ viewport: { width: 1024, height: 768 }, hasTouch: true, isMobile: true })
+
+    test('S68 R-3.1 off the phone layout, a card magnifier under a finger is still 44 px', async ({
+        page
+    }) => {
+        await createGame(page)
+        await playToHands(page)
+        await settled(page)
+        await expect(page.locator('[data-phone]')).toHaveCount(0)
+        const first = panel(page).locator('[data-cards] [data-row]').first()
+        await first.scrollIntoViewIfNeeded()
+        const pick = first.locator('button.face')
+        const magnifier = first.locator('[data-enlarge]')
+        const glass = await rect(magnifier)
+        expect(glass.height).toBeGreaterThanOrEqual(Target)
+        expect(glass.width).toBeGreaterThanOrEqual(Target)
+
+        await magnifier.tap()
+        await settled(page)
+        await expect(page.locator('[data-enlarged]')).toBeVisible()
+        await expect(pick).toHaveAttribute('aria-pressed', 'false')
+    })
+})
