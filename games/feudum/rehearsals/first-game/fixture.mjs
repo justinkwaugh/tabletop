@@ -11,14 +11,14 @@ export default {
         protectedInformation: true,
         players: [
             {
-                id: 'TW-IHZh-ZkbJ_T2VOwL2r',
+                id: 'xVxV1Xn5UQq54-oz_yKWU',
                 name: 'Aldric',
                 userId: 'rehearsal-player-0',
                 isHuman: true,
                 status: 'joined'
             },
             {
-                id: '8BUHFpPWXGjHLJB2JlLmu',
+                id: '1xR9m1pAy_W5irFjMM2pw',
                 name: 'Brielle',
                 userId: 'rehearsal-player-1',
                 isHuman: true,
@@ -27,7 +27,7 @@ export default {
         ]
     },
     comparisonNotes: [
-        'Exported from a local hotseat game played to its end through the site: 164 user Actions and 163 system Actions. The State and History are the canonical ones the browser stored for a Local game, not a projection.',
+        'Exported from a local hotseat game played to its end through the site: 123 user Actions and 128 system Actions. The State and History are the canonical ones the browser stored for a Local game, not a projection.',
         'Seat names and account ids are replaced with invented ones; Feudum State holds neither, so no comparison is affected.'
     ],
     assertProtectedView(state) {

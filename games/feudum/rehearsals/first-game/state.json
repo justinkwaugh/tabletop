@@ -1,151 +1,40 @@
 {
   "systemVersion": 3,
-  "id": "ZCwSHt5gaY8xO3UQCusnm",
-  "gameId": "IXSXFyss6SiEXKB9v9MXV",
-  "seed": 3347202031,
+  "id": "A94JXoY-VhKny13eIBpyh",
+  "gameId": "SBUMXi7ON4LGthE9biAAc",
+  "seed": 4207615340,
   "prng": {
-    "seed": 3347202031,
-    "invocations": 5710
+    "seed": 4207615340,
+    "invocations": 4485
   },
   "protectedPrng": {
     "algorithm": "chacha20-v1",
-    "seed": "ef59d691887ec9d2f66d0093f7d27831a6a3e73cb24da5bff88cff949b13d3e3",
-    "invocations": 139
+    "seed": "d1a5bb47e08b9a186a4076bc6401b860ef8cb618df4e39c4733c3dc016200279",
+    "invocations": 145
   },
-  "masterSeed": "dabaafeecf4b7a5080e65b2fced1cebd",
+  "masterSeed": "1c718efd9e6d2154f2e4ade45ee780ed",
   "activePlayerIds": [],
   "winningPlayerIds": [
-    "TW-IHZh-ZkbJ_T2VOwL2r"
+    "1xR9m1pAy_W5irFjMM2pw"
   ],
-  "actionCount": 327,
-  "actionChecksum": 383320134,
+  "actionCount": 251,
+  "actionChecksum": 940885794,
   "result": "Win",
   "players": [
     {
-      "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
+      "playerId": "1xR9m1pAy_W5irFjMM2pw",
       "color": "purple",
-      "score": 40,
-      "shillings": 16,
+      "score": 55,
+      "shillings": 14,
       "goods": {
-        "saltpeter": 2,
-        "sulfur": 1,
+        "saltpeter": 1,
+        "sulfur": 9,
         "iron": 0,
         "wood": 0,
         "food": 0
       },
       "barrel": 0,
-      "influenceSupply": 3,
-      "vessels": {
-        "ship": 1,
-        "submersible": 0,
-        "flying-machine": 0
-      },
-      "pawns": [
-        {
-          "n": 1
-        },
-        {
-          "n": 2
-        },
-        {
-          "n": 3
-        }
-      ],
-      "regionTiles": [
-        "tile.desert.iv"
-      ],
-      "beads": [],
-      "sealCount": 0,
-      "writCount": 3,
-      "writs": [
-        "writ.mandate.8",
-        "writ.charter.southern-kingdom",
-        "writ.mandate.7"
-      ],
-      "sealedCharterCount": 0,
-      "sealedCharters": [],
-      "deckKnowledge": [
-        {
-          "slot": 26,
-          "writId": "writ.mandate.4"
-        },
-        {
-          "slot": 27,
-          "writId": "writ.charter.monster-defeat"
-        },
-        {
-          "slot": 28,
-          "writId": "writ.charter.northern-kingdom"
-        },
-        {
-          "slot": 29,
-          "writId": "writ.mandate.6"
-        },
-        {
-          "slot": 30,
-          "writId": "writ.charter.eastern-kingdom"
-        },
-        {
-          "slot": 31,
-          "writId": "writ.charter.isolated-kingdom"
-        },
-        {
-          "slot": 32,
-          "writId": "writ.mandate.1"
-        },
-        {
-          "slot": 33,
-          "writId": "writ.charter.sulfur-barrel"
-        },
-        {
-          "slot": 34,
-          "writId": "writ.mandate.2"
-        },
-        {
-          "slot": 35,
-          "writId": "writ.mandate.5"
-        }
-      ],
-      "handCount": 0,
-      "hand": [],
-      "played": [
-        {
-          "kind": "improve",
-          "use": "regular"
-        },
-        {
-          "kind": "tax",
-          "use": "regular"
-        },
-        {
-          "kind": "explore",
-          "use": "forfeited"
-        },
-        {
-          "kind": "repeat",
-          "use": "forfeited"
-        }
-      ],
-      "sequentialUsed": false,
-      "repeatUsed": false,
-      "guildsUsed": [],
-      "successfulMoves": 0,
-      "defeatedMonster": false
-    },
-    {
-      "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-      "color": "green",
-      "score": 35,
-      "shillings": 19,
-      "goods": {
-        "saltpeter": 0,
-        "sulfur": 0,
-        "iron": 0,
-        "wood": 0,
-        "food": 0
-      },
-      "barrel": 0,
-      "influenceSupply": 7,
+      "influenceSupply": 4,
       "vessels": {
         "ship": 0,
         "submersible": 1,
@@ -162,26 +51,23 @@
           "n": 3
         }
       ],
-      "regionTiles": [
-        "tile.sea.i"
-      ],
+      "regionTiles": [],
       "beads": [],
       "sealCount": 0,
-      "writCount": 3,
-      "writs": [
-        "writ.mandate.3",
-        "writ.charter.western-kingdom"
-      ],
-      "sealedCharterCount": 1,
-      "sealedCharters": [
-        "writ.charter.central-kingdom"
-      ],
+      "writCount": 0,
+      "writs": [],
+      "sealedCharterCount": 0,
+      "sealedCharters": [],
       "deckKnowledge": [],
       "handCount": 0,
       "hand": [],
       "played": [
         {
-          "kind": "guild",
+          "kind": "tax",
+          "use": "regular"
+        },
+        {
+          "kind": "defend",
           "use": "regular"
         },
         {
@@ -189,19 +75,92 @@
           "use": "forfeited"
         },
         {
-          "kind": "improve",
-          "use": "forfeited"
-        },
-        {
-          "kind": "repeat",
+          "kind": "guild",
           "use": "forfeited"
         }
       ],
       "sequentialUsed": false,
       "repeatUsed": false,
-      "guildsUsed": [
-        "knight"
+      "guildsUsed": [],
+      "successfulMoves": 0,
+      "defeatedMonster": false
+    },
+    {
+      "playerId": "xVxV1Xn5UQq54-oz_yKWU",
+      "color": "red",
+      "score": 45,
+      "shillings": 18,
+      "goods": {
+        "saltpeter": 0,
+        "sulfur": 3,
+        "iron": 0,
+        "wood": 0,
+        "food": 0
+      },
+      "barrel": 0,
+      "influenceSupply": 7,
+      "vessels": {
+        "ship": 0,
+        "submersible": 0,
+        "flying-machine": 0
+      },
+      "pawns": [
+        {
+          "n": 1
+        },
+        {
+          "n": 2
+        },
+        {
+          "n": 3
+        }
       ],
+      "regionTiles": [
+        "tile.desert.ii"
+      ],
+      "beads": [
+        "seal.15"
+      ],
+      "sealCount": 0,
+      "writCount": 1,
+      "writs": [
+        "writ.charter.southern-kingdom"
+      ],
+      "sealedCharterCount": 0,
+      "sealedCharters": [],
+      "deckKnowledge": [
+        {
+          "slot": 16,
+          "writId": "writ.mandate.3"
+        },
+        {
+          "slot": 17,
+          "writId": "writ.charter.eastern-kingdom"
+        }
+      ],
+      "handCount": 0,
+      "hand": [],
+      "played": [
+        {
+          "kind": "tax",
+          "use": "regular"
+        },
+        {
+          "kind": "defend",
+          "use": "regular"
+        },
+        {
+          "kind": "repeat",
+          "use": "forfeited"
+        },
+        {
+          "kind": "move",
+          "use": "forfeited"
+        }
+      ],
+      "sequentialUsed": false,
+      "repeatUsed": false,
+      "guildsUsed": [],
       "successfulMoves": 0,
       "defeatedMonster": false
     }
@@ -211,654 +170,516 @@
     "series": [
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
         "start": 0,
         "end": 1
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
         "start": 1,
         "end": 2
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
         "start": 2,
         "end": 3
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
         "start": 3,
         "end": 4
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
         "start": 7,
         "end": 9
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
         "start": 8,
         "end": 11
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
         "start": 10,
         "end": 15
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
         "start": 14,
         "end": 17
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
         "start": 16,
         "end": 19
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
         "start": 18,
         "end": 21
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
         "start": 20,
         "end": 23
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
         "start": 22,
         "end": 25
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
         "start": 32,
         "end": 34
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
         "start": 33,
         "end": 36
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
         "start": 35,
         "end": 40
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
         "start": 39,
         "end": 42
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
         "start": 41,
-        "end": 45
+        "end": 46
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 44,
-        "end": 47
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
+        "start": 45,
+        "end": 48
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 46,
-        "end": 49
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
+        "start": 47,
+        "end": 50
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 48,
-        "end": 51
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
+        "start": 49,
+        "end": 52
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 58,
-        "end": 61
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
+        "start": 59,
+        "end": 63
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 60,
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
+        "start": 62,
         "end": 65
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
         "start": 64,
         "end": 67
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
         "start": 66,
-        "end": 69
-      },
-      {
-        "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 68,
         "end": 71
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
         "start": 70,
         "end": 73
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
         "start": 72,
         "end": 75
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 82,
-        "end": 85
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
+        "start": 74,
+        "end": 77
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 84,
-        "end": 87
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
+        "start": 76,
+        "end": 79
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 86,
-        "end": 89
-      },
-      {
-        "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
         "start": 88,
-        "end": 91
+        "end": 90
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 90,
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
+        "start": 89,
+        "end": 92
+      },
+      {
+        "type": "turn",
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
+        "start": 91,
         "end": 94
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
         "start": 93,
-        "end": 96
+        "end": 97
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 95,
-        "end": 98
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
+        "start": 96,
+        "end": 99
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 97,
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
+        "start": 98,
         "end": 101
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 110,
-        "end": 112
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
+        "start": 100,
+        "end": 103
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 111,
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
+        "start": 102,
+        "end": 105
+      },
+      {
+        "type": "turn",
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
+        "start": 112,
         "end": 114
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
         "start": 113,
-        "end": 116
+        "end": 117
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 115,
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
+        "start": 116,
         "end": 119
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
         "start": 118,
+        "end": 121
+      },
+      {
+        "type": "turn",
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
+        "start": 120,
         "end": 123
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
         "start": 122,
         "end": 125
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
         "start": 124,
         "end": 127
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
         "start": 126,
         "end": 129
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 135,
-        "end": 137
-      },
-      {
-        "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 136,
-        "end": 140
-      },
-      {
-        "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
         "start": 139,
-        "end": 142
+        "end": 141
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 141,
-        "end": 144
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
+        "start": 140,
+        "end": 143
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 143,
-        "end": 146
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
+        "start": 142,
+        "end": 145
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 145,
-        "end": 148
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
+        "start": 144,
+        "end": 147
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 147,
-        "end": 150
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
+        "start": 146,
+        "end": 149
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 149,
-        "end": 152
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
+        "start": 148,
+        "end": 151
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 158,
-        "end": 162
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
+        "start": 150,
+        "end": 153
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
+        "start": 152,
+        "end": 155
+      },
+      {
+        "type": "turn",
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
         "start": 161,
-        "end": 164
+        "end": 163
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 163,
-        "end": 166
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
+        "start": 162,
+        "end": 165
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 165,
-        "end": 168
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
+        "start": 164,
+        "end": 167
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 167,
-        "end": 170
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
+        "start": 166,
+        "end": 169
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 169,
-        "end": 172
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
+        "start": 168,
+        "end": 171
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 171,
-        "end": 174
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
+        "start": 170,
+        "end": 173
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 173,
-        "end": 176
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
+        "start": 172,
+        "end": 175
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 185,
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
+        "start": 174,
+        "end": 177
+      },
+      {
+        "type": "turn",
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
+        "start": 183,
+        "end": 185
+      },
+      {
+        "type": "turn",
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
+        "start": 184,
         "end": 187
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
         "start": 186,
+        "end": 189
+      },
+      {
+        "type": "turn",
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
+        "start": 188,
         "end": 191
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
         "start": 190,
         "end": 193
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
         "start": 192,
         "end": 195
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
         "start": 194,
         "end": 197
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
         "start": 196,
         "end": 199
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 198,
-        "end": 201
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
+        "start": 205,
+        "end": 207
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 200,
-        "end": 203
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
+        "start": 206,
+        "end": 209
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 209,
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
+        "start": 208,
+        "end": 211
+      },
+      {
+        "type": "turn",
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
+        "start": 210,
         "end": 213
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
         "start": 212,
         "end": 215
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
         "start": 214,
         "end": 217
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
         "start": 216,
         "end": 219
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
         "start": 218,
         "end": 221
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 220,
-        "end": 223
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
+        "start": 230,
+        "end": 232
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 222,
-        "end": 225
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
+        "start": 231,
+        "end": 234
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 224,
-        "end": 227
-      },
-      {
-        "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
         "start": 233,
-        "end": 235
+        "end": 236
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 234,
-        "end": 239
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
+        "start": 235,
+        "end": 238
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 238,
-        "end": 241
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
+        "start": 237,
+        "end": 240
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 240,
-        "end": 243
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
+        "start": 239,
+        "end": 242
       },
       {
         "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 242,
-        "end": 245
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
+        "start": 241,
+        "end": 244
       },
       {
         "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 244,
-        "end": 247
-      },
-      {
-        "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 246,
-        "end": 249
-      },
-      {
-        "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 248,
-        "end": 251
-      },
-      {
-        "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 257,
-        "end": 261
-      },
-      {
-        "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 260,
-        "end": 263
-      },
-      {
-        "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 262,
-        "end": 265
-      },
-      {
-        "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 264,
-        "end": 267
-      },
-      {
-        "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 266,
-        "end": 269
-      },
-      {
-        "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 268,
-        "end": 271
-      },
-      {
-        "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 270,
-        "end": 273
-      },
-      {
-        "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 272,
-        "end": 275
-      },
-      {
-        "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 283,
-        "end": 285
-      },
-      {
-        "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 284,
-        "end": 289
-      },
-      {
-        "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 288,
-        "end": 291
-      },
-      {
-        "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 290,
-        "end": 293
-      },
-      {
-        "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 292,
-        "end": 295
-      },
-      {
-        "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 294,
-        "end": 297
-      },
-      {
-        "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 296,
-        "end": 299
-      },
-      {
-        "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 298,
-        "end": 301
-      },
-      {
-        "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 307,
-        "end": 309
-      },
-      {
-        "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 308,
-        "end": 311
-      },
-      {
-        "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 310,
-        "end": 313
-      },
-      {
-        "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 312,
-        "end": 315
-      },
-      {
-        "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 314,
-        "end": 317
-      },
-      {
-        "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 316,
-        "end": 319
-      },
-      {
-        "type": "turn",
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "start": 318,
-        "end": 321
-      },
-      {
-        "type": "turn",
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-        "start": 320,
-        "end": 323
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
+        "start": 243,
+        "end": 246
       }
     ],
     "turnOrder": [
-      "TW-IHZh-ZkbJ_T2VOwL2r",
-      "8BUHFpPWXGjHLJB2JlLmu"
+      "xVxV1Xn5UQq54-oz_yKWU",
+      "1xR9m1pAy_W5irFjMM2pw"
     ],
     "turnCounts": {
-      "TW-IHZh-ZkbJ_T2VOwL2r": 54,
-      "8BUHFpPWXGjHLJB2JlLmu": 53
+      "xVxV1Xn5UQq54-oz_yKWU": 42,
+      "1xR9m1pAy_W5irFjMM2pw": 42
     }
   },
   "roundManager": {
@@ -873,72 +694,54 @@
         "type": "round",
         "start": 29,
         "number": 2,
-        "end": 55
+        "end": 56
       },
       {
         "type": "round",
-        "start": 55,
+        "start": 56,
         "number": 3,
-        "end": 79
+        "end": 85
       },
       {
         "type": "round",
-        "start": 79,
+        "start": 85,
         "number": 4,
-        "end": 107
+        "end": 109
       },
       {
         "type": "round",
-        "start": 107,
+        "start": 109,
         "number": 5,
-        "end": 132
+        "end": 136
       },
       {
         "type": "round",
-        "start": 132,
+        "start": 136,
         "number": 6,
-        "end": 155
+        "end": 158
       },
       {
         "type": "round",
-        "start": 155,
+        "start": 158,
         "number": 7,
-        "end": 182
+        "end": 180
       },
       {
         "type": "round",
-        "start": 182,
+        "start": 180,
         "number": 8,
-        "end": 206
+        "end": 202
       },
       {
         "type": "round",
-        "start": 206,
+        "start": 202,
         "number": 9,
-        "end": 230
+        "end": 227
       },
       {
         "type": "round",
-        "start": 230,
-        "number": 10,
-        "end": 254
-      },
-      {
-        "type": "round",
-        "start": 254,
-        "number": 11,
-        "end": 280
-      },
-      {
-        "type": "round",
-        "start": 280,
-        "number": 12,
-        "end": 304
-      },
-      {
-        "type": "round",
-        "start": 304,
-        "number": 13
+        "start": 227,
+        "number": 10
       }
     ]
   },
@@ -984,83 +787,83 @@
         "type": "phase",
         "start": 31,
         "name": "Cards",
-        "end": 52
+        "end": 53
       },
       {
         "type": "phase",
-        "start": 51,
+        "start": 52,
         "name": "Nourish",
-        "end": 54
+        "end": 55
       },
       {
         "type": "phase",
-        "start": 53,
+        "start": 54,
         "name": "Progress",
-        "end": 56
+        "end": 57
       },
       {
         "type": "phase",
-        "start": 55,
+        "start": 56,
         "name": "HandSelection",
-        "end": 58
+        "end": 59
       },
       {
         "type": "phase",
-        "start": 57,
+        "start": 58,
         "name": "Cards",
-        "end": 76
-      },
-      {
-        "type": "phase",
-        "start": 75,
-        "name": "Nourish",
-        "end": 78
-      },
-      {
-        "type": "phase",
-        "start": 77,
-        "name": "Progress",
         "end": 80
       },
       {
         "type": "phase",
         "start": 79,
-        "name": "HandSelection",
+        "name": "Nourish",
         "end": 82
       },
       {
         "type": "phase",
         "start": 81,
-        "name": "Cards",
-        "end": 102
-      },
-      {
-        "type": "phase",
-        "start": 101,
-        "name": "Nourish",
-        "end": 104
-      },
-      {
-        "type": "phase",
-        "start": 103,
         "name": "Progress",
-        "end": 105
+        "end": 83
       },
       {
         "type": "phase",
-        "start": 104,
+        "start": 82,
         "name": "Dawn",
+        "end": 86
+      },
+      {
+        "type": "phase",
+        "start": 85,
+        "name": "HandSelection",
+        "end": 88
+      },
+      {
+        "type": "phase",
+        "start": 87,
+        "name": "Cards",
+        "end": 106
+      },
+      {
+        "type": "phase",
+        "start": 105,
+        "name": "Nourish",
         "end": 108
       },
       {
         "type": "phase",
         "start": 107,
-        "name": "HandSelection",
+        "name": "Progress",
         "end": 110
       },
       {
         "type": "phase",
         "start": 109,
+        "name": "HandSelection",
+        "end": 112
+      },
+      {
+        "type": "phase",
+        "start": 111,
         "name": "Cards",
         "end": 130
       },
@@ -1068,227 +871,155 @@
         "type": "phase",
         "start": 129,
         "name": "Nourish",
-        "end": 131
+        "end": 132
       },
       {
         "type": "phase",
-        "start": 130,
+        "start": 131,
         "name": "Progress",
         "end": 133
       },
       {
         "type": "phase",
         "start": 132,
+        "name": "Dawn",
+        "end": 137
+      },
+      {
+        "type": "phase",
+        "start": 136,
         "name": "HandSelection",
-        "end": 135
+        "end": 139
       },
       {
         "type": "phase",
-        "start": 134,
+        "start": 138,
         "name": "Cards",
-        "end": 153
-      },
-      {
-        "type": "phase",
-        "start": 152,
-        "name": "Nourish",
-        "end": 154
-      },
-      {
-        "type": "phase",
-        "start": 153,
-        "name": "Progress",
         "end": 156
       },
       {
         "type": "phase",
         "start": 155,
-        "name": "HandSelection",
-        "end": 158
-      },
-      {
-        "type": "phase",
-        "start": 157,
-        "name": "Cards",
-        "end": 177
-      },
-      {
-        "type": "phase",
-        "start": 176,
         "name": "Nourish",
+        "end": 157
+      },
+      {
+        "type": "phase",
+        "start": 156,
+        "name": "Progress",
+        "end": 159
+      },
+      {
+        "type": "phase",
+        "start": 158,
+        "name": "HandSelection",
+        "end": 161
+      },
+      {
+        "type": "phase",
+        "start": 160,
+        "name": "Cards",
         "end": 178
       },
       {
         "type": "phase",
         "start": 177,
-        "name": "Progress",
+        "name": "Nourish",
         "end": 179
       },
       {
         "type": "phase",
         "start": 178,
-        "name": "Dawn",
+        "name": "Progress",
+        "end": 181
+      },
+      {
+        "type": "phase",
+        "start": 180,
+        "name": "HandSelection",
         "end": 183
       },
       {
         "type": "phase",
         "start": 182,
-        "name": "HandSelection",
-        "end": 185
-      },
-      {
-        "type": "phase",
-        "start": 184,
         "name": "Cards",
-        "end": 204
+        "end": 200
       },
       {
         "type": "phase",
-        "start": 203,
+        "start": 199,
         "name": "Nourish",
+        "end": 201
+      },
+      {
+        "type": "phase",
+        "start": 200,
+        "name": "Progress",
+        "end": 203
+      },
+      {
+        "type": "phase",
+        "start": 202,
+        "name": "HandSelection",
         "end": 205
       },
       {
         "type": "phase",
         "start": 204,
-        "name": "Progress",
-        "end": 207
-      },
-      {
-        "type": "phase",
-        "start": 206,
-        "name": "HandSelection",
-        "end": 209
-      },
-      {
-        "type": "phase",
-        "start": 208,
         "name": "Cards",
+        "end": 222
+      },
+      {
+        "type": "phase",
+        "start": 221,
+        "name": "Nourish",
+        "end": 223
+      },
+      {
+        "type": "phase",
+        "start": 222,
+        "name": "Progress",
+        "end": 224
+      },
+      {
+        "type": "phase",
+        "start": 223,
+        "name": "Dawn",
         "end": 228
       },
       {
         "type": "phase",
         "start": 227,
-        "name": "Nourish",
-        "end": 229
-      },
-      {
-        "type": "phase",
-        "start": 228,
-        "name": "Progress",
-        "end": 231
-      },
-      {
-        "type": "phase",
-        "start": 230,
         "name": "HandSelection",
-        "end": 233
+        "end": 230
       },
       {
         "type": "phase",
-        "start": 232,
+        "start": 229,
         "name": "Cards",
-        "end": 252
+        "end": 247
       },
       {
         "type": "phase",
-        "start": 251,
+        "start": 246,
         "name": "Nourish",
-        "end": 253
+        "end": 248
       },
       {
         "type": "phase",
-        "start": 252,
+        "start": 247,
         "name": "Progress",
-        "end": 255
+        "end": 249
       },
       {
         "type": "phase",
-        "start": 254,
-        "name": "HandSelection",
-        "end": 257
-      },
-      {
-        "type": "phase",
-        "start": 256,
-        "name": "Cards",
-        "end": 276
-      },
-      {
-        "type": "phase",
-        "start": 275,
-        "name": "Nourish",
-        "end": 277
-      },
-      {
-        "type": "phase",
-        "start": 276,
-        "name": "Progress",
-        "end": 278
-      },
-      {
-        "type": "phase",
-        "start": 277,
+        "start": 248,
         "name": "Dawn",
-        "end": 281
+        "end": 251
       },
       {
         "type": "phase",
-        "start": 280,
-        "name": "HandSelection",
-        "end": 283
-      },
-      {
-        "type": "phase",
-        "start": 282,
-        "name": "Cards",
-        "end": 302
-      },
-      {
-        "type": "phase",
-        "start": 301,
-        "name": "Nourish",
-        "end": 303
-      },
-      {
-        "type": "phase",
-        "start": 302,
-        "name": "Progress",
-        "end": 305
-      },
-      {
-        "type": "phase",
-        "start": 304,
-        "name": "HandSelection",
-        "end": 307
-      },
-      {
-        "type": "phase",
-        "start": 306,
-        "name": "Cards",
-        "end": 324
-      },
-      {
-        "type": "phase",
-        "start": 323,
-        "name": "Nourish",
-        "end": 325
-      },
-      {
-        "type": "phase",
-        "start": 324,
-        "name": "Progress",
-        "end": 326
-      },
-      {
-        "type": "phase",
-        "start": 325,
-        "name": "Dawn",
-        "end": 327
-      },
-      {
-        "type": "phase",
-        "start": 326,
+        "start": 250,
         "name": "FinalScoring"
       }
     ]
@@ -1298,8 +1029,46 @@
   "spaces": {
     "space.sea.1": {
       "location": {
+        "kind": "town",
+        "discId": "disc.start.13",
+        "face": "a"
+      },
+      "goods": {
+        "saltpeter": 0,
+        "sulfur": 0,
+        "iron": 0,
+        "wood": 1,
+        "food": 0
+      },
+      "vessels": {
+        "ship": 0,
+        "submersible": 0,
+        "flying-machine": 0
+      }
+    },
+    "space.sea.2": {
+      "location": {
+        "kind": "farm",
+        "discId": "disc.start.11",
+        "face": "a"
+      },
+      "goods": {
+        "saltpeter": 0,
+        "sulfur": 1,
+        "iron": 1,
+        "wood": 0,
+        "food": 0
+      },
+      "vessels": {
+        "ship": 0,
+        "submersible": 0,
+        "flying-machine": 0
+      }
+    },
+    "space.sea.3": {
+      "location": {
         "kind": "outpost",
-        "discId": "disc.start.18",
+        "discId": "disc.start.15",
         "face": "a"
       },
       "goods": {
@@ -1315,10 +1084,29 @@
         "flying-machine": 0
       }
     },
-    "space.sea.2": {
+    "space.island.1": {
       "location": {
         "kind": "farm",
-        "discId": "disc.start.7",
+        "discId": "disc.start.10",
+        "face": "a"
+      },
+      "goods": {
+        "saltpeter": 0,
+        "sulfur": 1,
+        "iron": 0,
+        "wood": 0,
+        "food": 0
+      },
+      "vessels": {
+        "ship": 0,
+        "submersible": 0,
+        "flying-machine": 0
+      }
+    },
+    "space.island.2": {
+      "location": {
+        "kind": "outpost",
+        "discId": "disc.start.21",
         "face": "a"
       },
       "goods": {
@@ -1326,7 +1114,7 @@
         "sulfur": 0,
         "iron": 1,
         "wood": 0,
-        "food": 1
+        "food": 0
       },
       "vessels": {
         "ship": 0,
@@ -1334,29 +1122,10 @@
         "flying-machine": 0
       }
     },
-    "space.sea.3": {
+    "space.island.3": {
       "location": {
-        "kind": "town",
-        "discId": "disc.start.14",
-        "face": "a"
-      },
-      "goods": {
-        "saltpeter": 0,
-        "sulfur": 0,
-        "iron": 0,
-        "wood": 0,
-        "food": 1
-      },
-      "vessels": {
-        "ship": 0,
-        "submersible": 0,
-        "flying-machine": 0
-      }
-    },
-    "space.island.1": {
-      "location": {
-        "kind": "outpost",
-        "discId": "disc.start.16",
+        "kind": "farm",
+        "discId": "disc.start.8",
         "face": "a"
       },
       "goods": {
@@ -1372,56 +1141,18 @@
         "flying-machine": 0
       }
     },
-    "space.island.2": {
-      "location": {
-        "kind": "outpost",
-        "discId": "disc.start.15",
-        "face": "a"
-      },
-      "goods": {
-        "saltpeter": 0,
-        "sulfur": 0,
-        "iron": 0,
-        "wood": 0,
-        "food": 1
-      },
-      "vessels": {
-        "ship": 0,
-        "submersible": 0,
-        "flying-machine": 0
-      }
-    },
-    "space.island.3": {
-      "location": {
-        "kind": "farm",
-        "discId": "disc.start.9",
-        "face": "a"
-      },
-      "goods": {
-        "saltpeter": 0,
-        "sulfur": 0,
-        "iron": 0,
-        "wood": 0,
-        "food": 1
-      },
-      "vessels": {
-        "ship": 0,
-        "submersible": 0,
-        "flying-machine": 0
-      }
-    },
     "space.island.4": {
       "location": {
-        "kind": "town",
-        "discId": "disc.start.12",
+        "kind": "outpost",
+        "discId": "disc.start.20",
         "face": "a"
       },
       "goods": {
-        "saltpeter": 0,
+        "saltpeter": 1,
         "sulfur": 0,
         "iron": 0,
         "wood": 0,
-        "food": 1
+        "food": 0
       },
       "vessels": {
         "ship": 0,
@@ -1431,14 +1162,14 @@
     },
     "space.forest.1": {
       "location": {
-        "kind": "town",
-        "discId": "disc.start.13",
+        "kind": "outpost",
+        "discId": "disc.start.22",
         "face": "a"
       },
       "goods": {
         "saltpeter": 0,
-        "sulfur": 1,
-        "iron": 0,
+        "sulfur": 0,
+        "iron": 1,
         "wood": 1,
         "food": 0
       },
@@ -1465,35 +1196,35 @@
         "ship": 0,
         "submersible": 0,
         "flying-machine": 0
-      },
-      "ruler": {
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "subject": false
       }
     },
     "space.forest.3": {
       "location": {
         "kind": "town",
-        "discId": "disc.start.4",
-        "face": "a"
+        "discId": "disc.double.1",
+        "face": "b"
       },
       "goods": {
         "saltpeter": 0,
         "sulfur": 0,
         "iron": 0,
-        "wood": 0,
-        "food": 2
+        "wood": 1,
+        "food": 0
       },
       "vessels": {
         "ship": 0,
         "submersible": 0,
         "flying-machine": 0
+      },
+      "ruler": {
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
+        "subject": false
       }
     },
     "space.desert.1": {
       "location": {
         "kind": "farm",
-        "discId": "disc.double.1",
+        "discId": "disc.start.9",
         "face": "a"
       },
       "goods": {
@@ -1507,23 +1238,19 @@
         "ship": 0,
         "submersible": 0,
         "flying-machine": 0
-      },
-      "ruler": {
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
-        "subject": true
       }
     },
     "space.desert.2": {
       "location": {
-        "kind": "farm",
-        "discId": "disc.start.10",
+        "kind": "outpost",
+        "discId": "disc.start.16",
         "face": "a"
       },
       "goods": {
         "saltpeter": 0,
-        "sulfur": 1,
-        "iron": 0,
-        "wood": 1,
+        "sulfur": 0,
+        "iron": 2,
+        "wood": 0,
         "food": 0
       },
       "vessels": {
@@ -1548,20 +1275,24 @@
       "vessels": {
         "ship": 0,
         "submersible": 0,
-        "flying-machine": 0
+        "flying-machine": 1
       },
       "ruler": {
-        "playerId": "8BUHFpPWXGjHLJB2JlLmu",
+        "playerId": "xVxV1Xn5UQq54-oz_yKWU",
         "subject": true
       },
       "serf": {
-        "playerId": "TW-IHZh-ZkbJ_T2VOwL2r"
+        "playerId": "1xR9m1pAy_W5irFjMM2pw"
+      },
+      "landscape": {
+        "tileId": "tile.forest.ii",
+        "amount": 0
       }
     },
     "space.desert.4": {
       "location": {
-        "kind": "outpost",
-        "discId": "disc.start.6",
+        "kind": "town",
+        "discId": "disc.start.4",
         "face": "a"
       },
       "goods": {
@@ -1575,12 +1306,16 @@
         "ship": 0,
         "submersible": 0,
         "flying-machine": 0
+      },
+      "ruler": {
+        "playerId": "1xR9m1pAy_W5irFjMM2pw",
+        "subject": false
       }
     },
     "space.desert.5": {
       "location": {
         "kind": "outpost",
-        "discId": "disc.start.21",
+        "discId": "disc.start.17",
         "face": "a"
       },
       "goods": {
@@ -1598,15 +1333,15 @@
     },
     "space.badlands.1": {
       "location": {
-        "kind": "farm",
-        "discId": "disc.start.1",
+        "kind": "outpost",
+        "discId": "disc.start.5",
         "face": "a"
       },
       "goods": {
-        "saltpeter": 1,
-        "sulfur": 0,
+        "saltpeter": 0,
+        "sulfur": 1,
         "iron": 0,
-        "wood": 0,
+        "wood": 1,
         "food": 0
       },
       "vessels": {
@@ -1617,8 +1352,8 @@
     },
     "space.badlands.2": {
       "location": {
-        "kind": "farm",
-        "discId": "disc.start.8",
+        "kind": "outpost",
+        "discId": "disc.start.18",
         "face": "a"
       },
       "goods": {
@@ -1656,7 +1391,7 @@
     "space.badlands.4": {
       "location": {
         "kind": "farm",
-        "discId": "disc.start.2",
+        "discId": "disc.start.1",
         "face": "a"
       },
       "goods": {
@@ -1674,15 +1409,15 @@
     },
     "space.badlands.5": {
       "location": {
-        "kind": "outpost",
-        "discId": "disc.start.22",
+        "kind": "farm",
+        "discId": "disc.start.7",
         "face": "a"
       },
       "goods": {
         "saltpeter": 0,
-        "sulfur": 0,
+        "sulfur": 1,
         "iron": 0,
-        "wood": 1,
+        "wood": 0,
         "food": 1
       },
       "vessels": {
@@ -1693,16 +1428,16 @@
     },
     "space.mountain.1": {
       "location": {
-        "kind": "farm",
-        "discId": "disc.start.11",
+        "kind": "town",
+        "discId": "disc.start.12",
         "face": "a"
       },
       "goods": {
         "saltpeter": 1,
         "sulfur": 0,
-        "iron": 1,
+        "iron": 0,
         "wood": 0,
-        "food": 0
+        "food": 1
       },
       "vessels": {
         "ship": 0,
@@ -1712,16 +1447,16 @@
     },
     "space.mountain.2": {
       "location": {
-        "kind": "outpost",
-        "discId": "disc.start.17",
+        "kind": "town",
+        "discId": "disc.start.14",
         "face": "a"
       },
       "goods": {
         "saltpeter": 0,
         "sulfur": 0,
-        "iron": 0,
+        "iron": 1,
         "wood": 0,
-        "food": 2
+        "food": 1
       },
       "vessels": {
         "ship": 0,
@@ -1745,19 +1480,19 @@
     },
     "farmer": {
       "barn": {
-        "saltpeter": 3,
-        "sulfur": 2,
-        "iron": 2,
-        "wood": 0,
-        "food": 3
+        "saltpeter": 1,
+        "sulfur": 0,
+        "iron": 3,
+        "wood": 4,
+        "food": 2
       },
       "chickens": {
-        "guild.farmer.chicken.1": "seal.16",
+        "guild.farmer.chicken.1": "seal.8",
         "guild.farmer.chicken.2": null,
         "guild.farmer.chicken.3": null,
         "guild.farmer.chicken.4": null
       },
-      "purse": 1
+      "purse": 2
     },
     "merchant": {
       "market": {
@@ -1792,11 +1527,11 @@
         "guild.alchemist.cart.iron-2": true,
         "guild.alchemist.cart.iron-3": true,
         "guild.alchemist.cart.food-1": true,
-        "guild.alchemist.cart.food-2": false,
-        "guild.alchemist.cart.food-3": false,
+        "guild.alchemist.cart.food-2": true,
+        "guild.alchemist.cart.food-3": true,
         "guild.alchemist.cart.sulfur-1": true,
-        "guild.alchemist.cart.sulfur-2": false,
-        "guild.alchemist.cart.sulfur-3": false,
+        "guild.alchemist.cart.sulfur-2": true,
+        "guild.alchemist.cart.sulfur-3": true,
         "guild.alchemist.cart.saltpeter-1": true,
         "guild.alchemist.cart.saltpeter-2": true,
         "guild.alchemist.cart.saltpeter-3": true
@@ -1809,20 +1544,20 @@
       "rows": [
         {
           "colour": "purple",
-          "playerId": "TW-IHZh-ZkbJ_T2VOwL2r",
+          "playerId": "1xR9m1pAy_W5irFjMM2pw",
           "markers": 2
-        },
-        {
-          "colour": "green",
-          "playerId": "8BUHFpPWXGjHLJB2JlLmu",
-          "markers": 0
         },
         {
           "colour": "red",
-          "markers": 2
+          "playerId": "xVxV1Xn5UQq54-oz_yKWU",
+          "markers": 0
         },
         {
           "colour": "blue",
+          "markers": 2
+        },
+        {
+          "colour": "yellow",
           "markers": 2
         }
       ],
@@ -1843,87 +1578,84 @@
     },
     "monk": {
       "rosary": [
-        "seal.8",
-        "seal.14",
-        "seal.4",
-        "seal.9"
+        "seal.11",
+        "seal.13",
+        "seal.7"
       ],
       "coffer": 3
     }
   },
   "regionStacks": {
     "sea": [
+      "tile.sea.iii",
       "tile.sea.iv"
     ],
-    "island": [
-      "tile.island.iii",
-      "tile.island.iv"
-    ],
+    "island": [],
     "forest": [
+      "tile.forest.iii",
       "tile.forest.iv"
     ],
-    "desert": [],
+    "desert": [
+      "tile.desert.iv"
+    ],
     "badlands": [
       "tile.badlands.ii",
       "tile.badlands.iii",
       "tile.badlands.iv"
     ],
     "mountain": [
+      "tile.mountain.ii",
       "tile.mountain.iii",
       "tile.mountain.iv"
     ]
   },
   "tilesOutOfGame": [
-    "tile.mountain.i",
+    "tile.forest.i",
+    "tile.island.i",
     "tile.desert.i",
     "tile.badlands.i",
-    "tile.forest.i",
-    "tile.desert.ii",
-    "tile.island.i",
+    "tile.sea.i",
     "tile.island.ii",
-    "tile.mountain.ii",
     "tile.sea.ii",
-    "tile.forest.ii",
-    "tile.forest.iii",
-    "tile.sea.iii",
-    "tile.desert.iii"
+    "tile.island.iii",
+    "tile.mountain.i",
+    "tile.desert.iii",
+    "tile.island.iv"
   ],
   "tileLandscapes": {
-    "tile.mountain.i": "sulfur-mine",
+    "tile.forest.i": "orchard",
+    "tile.island.i": "sulfur-mine",
     "tile.desert.i": "silver-mine",
-    "tile.badlands.i": "orchard",
-    "tile.forest.i": "archery-butt",
-    "tile.desert.ii": "silver-mine",
-    "tile.island.i": "orchard",
+    "tile.badlands.i": "archery-butt",
+    "tile.desert.ii": "sulfur-mine",
     "tile.sea.i": "silver-mine",
+    "tile.forest.ii": "sulfur-mine",
     "tile.island.ii": "archery-butt",
-    "tile.mountain.ii": "sulfur-mine",
-    "tile.sea.ii": "sulfur-mine",
-    "tile.forest.ii": "orchard",
-    "tile.forest.iii": "archery-butt",
-    "tile.sea.iii": "orchard",
+    "tile.sea.ii": "archery-butt",
+    "tile.island.iii": "silver-mine",
+    "tile.mountain.i": "orchard",
     "tile.desert.iii": "silver-mine",
-    "tile.desert.iv": "archery-butt"
+    "tile.island.iv": "sulfur-mine"
   },
   "supply": {
     "haversack": {
-      "saltpeter": 16,
-      "sulfur": 20,
-      "iron": 19,
-      "wood": 20,
-      "food": 31
+      "saltpeter": 19,
+      "sulfur": 7,
+      "iron": 14,
+      "wood": 15,
+      "food": 37
     },
-    "shillings": 39,
+    "shillings": 41,
     "influence": {
       "purple": 11,
-      "green": 11,
-      "red": 18,
-      "blue": 18
+      "red": 11,
+      "blue": 18,
+      "yellow": 18
     },
     "vessels": {
-      "ship": 2,
+      "ship": 3,
       "submersible": 2,
-      "flying-machine": 2
+      "flying-machine": 1
     },
     "targets": 12,
     "discs": [
@@ -1947,103 +1679,128 @@
       "disc.feudum.noble-2",
       "disc.feudum.monk-1",
       "disc.feudum.monk-2",
-      "disc.start.5",
-      "disc.start.20"
+      "disc.start.6",
+      "disc.start.2"
     ],
-    "sealPileCount": 7
+    "sealPileCount": 8
   },
   "writDeck": {
-    "top": 26,
-    "nextBottom": 36
+    "top": 4,
+    "nextBottom": 19
   },
-  "publicDeckWrits": [],
+  "publicDeckWrits": [
+    {
+      "slot": 18,
+      "writId": "writ.mandate.2"
+    }
+  ],
   "voyageTrack": {
-    "8BUHFpPWXGjHLJB2JlLmu": 1,
-    "TW-IHZh-ZkbJ_T2VOwL2r": 1
+    "1xR9m1pAy_W5irFjMM2pw": 1
   },
   "militaryService": {
-    "TW-IHZh-ZkbJ_T2VOwL2r": 0,
-    "8BUHFpPWXGjHLJB2JlLmu": 0
+    "1xR9m1pAy_W5irFjMM2pw": 1,
+    "xVxV1Xn5UQq54-oz_yKWU": 0
   },
   "vault": {
     "writDeck": [
       {
-        "slot": 26,
+        "slot": 4,
         "writId": "writ.mandate.4"
       },
       {
-        "slot": 27,
-        "writId": "writ.charter.monster-defeat"
+        "slot": 5,
+        "writId": "writ.charter.western-kingdom"
       },
       {
-        "slot": 28,
-        "writId": "writ.charter.northern-kingdom"
+        "slot": 6,
+        "writId": "writ.mandate.5"
       },
       {
-        "slot": 29,
-        "writId": "writ.mandate.6"
+        "slot": 7,
+        "writId": "writ.mandate.7"
       },
       {
-        "slot": 30,
-        "writId": "writ.charter.eastern-kingdom"
-      },
-      {
-        "slot": 31,
-        "writId": "writ.charter.isolated-kingdom"
-      },
-      {
-        "slot": 32,
-        "writId": "writ.mandate.1"
-      },
-      {
-        "slot": 33,
+        "slot": 8,
         "writId": "writ.charter.sulfur-barrel"
       },
       {
-        "slot": 34,
-        "writId": "writ.mandate.2"
+        "slot": 9,
+        "writId": "writ.mandate.8"
       },
       {
-        "slot": 35,
-        "writId": "writ.mandate.5"
+        "slot": 10,
+        "writId": "writ.charter.monster-defeat"
+      },
+      {
+        "slot": 11,
+        "writId": "writ.charter.isolated-kingdom"
+      },
+      {
+        "slot": 12,
+        "writId": "writ.charter.central-kingdom"
+      },
+      {
+        "slot": 13,
+        "writId": "writ.charter.northern-kingdom"
+      },
+      {
+        "slot": 14,
+        "writId": "writ.mandate.1"
+      },
+      {
+        "slot": 15,
+        "writId": "writ.mandate.6"
+      },
+      {
+        "slot": 16,
+        "writId": "writ.mandate.3"
+      },
+      {
+        "slot": 17,
+        "writId": "writ.charter.eastern-kingdom"
+      },
+      {
+        "slot": 18,
+        "writId": "writ.mandate.2"
       }
     ],
     "sealPile": [
-      "seal.6",
-      "seal.5",
-      "seal.12",
-      "seal.10",
+      "seal.4",
+      "seal.9",
+      "seal.1",
+      "seal.3",
       "seal.2",
-      "seal.11",
-      "seal.3"
+      "seal.17",
+      "seal.6",
+      "seal.14"
     ],
     "scrollSeals": {
-      "guild.noble.scroll.r1c1": "seal.7",
-      "guild.noble.scroll.r1c3": "seal.17",
-      "guild.noble.scroll.r2c2": "seal.13",
-      "guild.noble.scroll.r3c1": "seal.1"
+      "guild.noble.scroll.r1c1": "seal.5",
+      "guild.noble.scroll.r1c3": "seal.12",
+      "guild.noble.scroll.r2c2": "seal.10",
+      "guild.noble.scroll.r3c1": "seal.16"
     },
     "heldSeals": {
-      "TW-IHZh-ZkbJ_T2VOwL2r": [],
-      "8BUHFpPWXGjHLJB2JlLmu": []
+      "1xR9m1pAy_W5irFjMM2pw": [],
+      "xVxV1Xn5UQq54-oz_yKWU": []
     },
     "charterSeals": {
-      "TW-IHZh-ZkbJ_T2VOwL2r": [],
-      "8BUHFpPWXGjHLJB2JlLmu": [
-        "seal.15"
-      ]
+      "1xR9m1pAy_W5irFjMM2pw": [],
+      "xVxV1Xn5UQq54-oz_yKWU": []
     },
     "immunitySeals": {},
     "tileLandscapes": {
-      "tile.sea.iv": "orchard",
-      "tile.island.iii": "sulfur-mine",
-      "tile.island.iv": "silver-mine",
-      "tile.forest.iv": "sulfur-mine",
-      "tile.badlands.ii": "archery-butt",
-      "tile.badlands.iii": "silver-mine",
+      "tile.sea.iii": "sulfur-mine",
+      "tile.sea.iv": "sulfur-mine",
+      "tile.forest.iii": "orchard",
+      "tile.forest.iv": "archery-butt",
+      "tile.desert.iv": "orchard",
+      "tile.badlands.ii": "orchard",
+      "tile.badlands.iii": "orchard",
       "tile.badlands.iv": "archery-butt",
-      "tile.mountain.iii": "orchard",
-      "tile.mountain.iv": "sulfur-mine"
+      "tile.mountain.ii": "silver-mine",
+      "tile.mountain.iii": "archery-butt",
+      "tile.mountain.iv": "silver-mine"
     }
   },
   "flow": {}
