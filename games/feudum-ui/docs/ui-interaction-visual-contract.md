@@ -339,7 +339,7 @@ Built from each Action's input and `metadata` only (`docs/DESIGN.md`, Actions). 
     - `EndRound`: pouch goods paid and the start player passed, folded into the round's last entry.
     - `ScoreGame`: the summary's rows.
 - **Rank changes** are named on the Action that caused them ("Ana became Merchant master; Ben dropped to journeyman").
-- **Grouping:** one entry per hand selection (a line per finaliser); one entry per turn, growing as its card, a declared second card, follow-ups, asks and at-will Actions arrive; one entry for nourishing; one for the progress roll; one per dawn. Bookkeeping System Actions (`StartRound`, `AdvanceTurn`) are skipped.
+- **Grouping:** one entry per hand selection (a line per finaliser); one entry per turn, growing as its card, a declared second card, follow-ups, asks and at-will Actions arrive, while a writ another seat than the turn's discards at any time (R-4.4-H5) is its own entry, between turns or in the middle of one, and the turn's entry goes on growing after it; one entry for nourishing; one for the progress roll; one per dawn. Bookkeeping System Actions (`StartRound`, `AdvanceTurn`) are skipped.
 - **Interstitials:** epoch (from the epoch field) and round (from the round manager).
 - **Jump** on a round, a turn and a dawn: a round shows the table as it began, a turn and a dawn as they ended. **Replay** on entries that move things on the board, over the entry's whole span: turns with Migrate, Move, Influence, Improve, Tend, Harvest, Conquer, Starve, a guild function or a feast; the progress roll; nourishing with unfed pawns; dawns.
 

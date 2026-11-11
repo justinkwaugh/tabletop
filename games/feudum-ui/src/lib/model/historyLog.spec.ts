@@ -3,6 +3,7 @@ import { flushSync } from 'svelte'
 import { assertExists } from '@tabletop/common'
 import {
     ActionType,
+    DiscardAnyTime,
     HydratedFeudumGameState,
     MachineState,
     placeMarker,
@@ -17,7 +18,7 @@ import {
 import { askedToDefend, type AskTable } from '$lib/testing/askTable.js'
 import { primaryNamed } from '$lib/testing/actionPanelView.js'
 import { playOutRound, type RoundEndTable } from '$lib/testing/roundEndTable.js'
-import { seatedAtCards } from '$lib/testing/followUpTable.js'
+import { holdWrit, seatedAtCards } from '$lib/testing/followUpTable.js'
 import { settled, type FeudumHost } from '$lib/testing/sessionHarness.js'
 import { addPawn, buildFeudum, emptySpace, giveGood, returnGoods } from '$lib/testing/turnTable.js'
 import type { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
@@ -116,6 +117,53 @@ function watchSteps(
 }
 
 const hold = { holdMs: 0 }
+
+describe('R-4.4-H5 A writ discarded at any time in the log', () => {
+    it("R-4.4-H5 a third seat's discard while the defender is asked is its own entry, not the attack's", async () => {
+        const table = hosted(
+            await askedToDefend(['defend', 'tax'], (state, seat) => {
+                state.turnManager.turnOrder
+                    .filter((playerId) => playerId !== seat)
+                    .forEach((playerId, at) =>
+                        holdWrit(
+                            state,
+                            playerId,
+                            (['writ.mandate.5', 'writ.mandate.7'] as const)[at]
+                        )
+                    )
+            })
+        )
+        const { host, asked, session, seat, third } = table
+        const thirdId = third.myPlayerId
+        assertExists(thirdId, 'A third seat')
+        const writId = third.gameState.getPlayerState(thirdId).writs?.[0]
+        assertExists(writId, 'The third seat holds a writ')
+
+        await host.send(thirdId, { type: ActionType.DiscardWrit, writId, ...DiscardAnyTime })
+        await settled(asked)
+        flushSync()
+        expect(asked.gameState.machineState).toBe(MachineState.AwaitingDefence)
+        await primaryNamed(asked.actionPanel, /^Let it stand/).send()
+        for (const watcher of [asked, session, third]) {
+            await settled(watcher)
+        }
+        flushSync()
+
+        const groups = session.historyLog.entries.filter(isHistoryGroup)
+        const turn = groups.find(({ actions }) =>
+            actions.some(({ type }) => type === ActionType.Conquer)
+        )
+        expect(turn?.kind).toBe('turn')
+        expect(turn?.playerId).toBe(seat)
+        expect(turn?.actions.filter(({ playerId }) => playerId === thirdId)).toEqual([])
+        expect(turn?.actions.map(({ type }) => type)).toContain(ActionType.AnswerAttack)
+        const discard = groups.find(({ actions }) =>
+            actions.some(({ type }) => type === ActionType.DiscardWrit)
+        )
+        expect(discard?.kind).toBe('single')
+        expect(discard?.actions.map(({ playerId }) => playerId)).toEqual([thirdId])
+    })
+})
 
 describe('R-2.2 Jump', () => {
     it('R-2.2 A round shows the table as it began: on StartRound, no hand finalised', async () => {
