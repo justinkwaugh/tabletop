@@ -22,6 +22,7 @@ import {
     rotateTileEdge,
     rotateTileFace,
     RailwayMapState,
+    type RevenueCenter,
     type RoutePath,
     type StationPosition,
     type StationReservation,
@@ -62,6 +63,10 @@ export type MapRoute = {
     extension?: readonly RoutePath[]
     /** The printed bonus arrows paying the route, outlined in its colour. */
     bonusArrowIds?: readonly string[]
+    /** The route being drawn: shown over the others, which fade. */
+    chosen?: true
+    /** Where a route that has no track yet starts, marked in its colour. */
+    start?: RevenueCenter
 }
 
 /** Every piece of track a route draws: its own and its extension's. */
@@ -70,21 +75,49 @@ export function mapRouteTrack(route: MapRoute): readonly RoutePath[] {
 }
 export function routeLocationIds(
     routes: readonly MapRoute[],
-    { map, joinedEdges = {} }: Pick<MapViewDefinition, 'map' | 'joinedEdges'>
+    {
+        map,
+        joinedEdges = {},
+        splitHexes = {}
+    }: Pick<MapViewDefinition, 'map' | 'joinedEdges' | 'splitHexes'>
 ): string[] {
-    const ids = new Set(
-        routes.flatMap((route) => mapRouteTrack(route).map((path) => path.locationId))
+    const sideOf = (locationId: string, edges: readonly TileEdge[]): readonly TileEdge[] => {
+        const side = splitHexes[locationId]
+        if (!side) return TileEdges
+        return TileEdges.filter((edge) =>
+            edges.some((reached) => side.includes(reached) === side.includes(edge))
+        )
+    }
+    const pending = routes.flatMap((route) =>
+        mapRouteTrack(route).map(({ locationId, pathId }) => {
+            if (!splitHexes[locationId]) return { locationId, edges: TileEdges }
+            const path = map
+                .location(locationId)
+                .preprintedTile.paths.find((candidate) => candidate.id === pathId)
+            assertExists(path, `A split hex's route runs on its printed track: ${pathId}`)
+            const edges = path.endpoints.flatMap((endpoint) =>
+                endpoint.kind === 'edge' ? [endpoint.edge] : []
+            )
+            return { locationId, edges: sideOf(locationId, edges) }
+        })
     )
-    const pending = [...ids]
-    for (let id = pending.pop(); id !== undefined; id = pending.pop())
-        for (const edge of joinedEdges[id] ?? []) {
-            const neighborId = map.neighbor(id, edge)?.id
-            if (neighborId && !ids.has(neighborId)) {
-                ids.add(neighborId)
-                pending.push(neighborId)
-            }
+    const reached = new Map<string, Set<TileEdge>>()
+    for (let next = pending.pop(); next !== undefined; next = pending.pop()) {
+        const { locationId, edges } = next
+        const known = reached.get(locationId) ?? new Set<TileEdge>()
+        reached.set(locationId, known)
+        const fresh = edges.filter((edge) => !known.has(edge))
+        fresh.forEach((edge) => known.add(edge))
+        for (const edge of fresh.filter((edge) => joinedEdges[locationId]?.includes(edge))) {
+            const neighborId = map.neighbor(locationId, edge)?.id
+            if (neighborId)
+                pending.push({
+                    locationId: neighborId,
+                    edges: sideOf(neighborId, [rotateTileEdge(edge, 3)])
+                })
         }
-    return [...ids]
+    }
+    return [...reached.keys()]
 }
 /**
  * A presentation-only relocation of an untiled hex, for boards whose print rearranges cells.
@@ -372,6 +405,7 @@ export function createMapDrawing(
         printedLines = {},
         placements = {},
         joinedEdges = {},
+        splitHexes = {},
         locationMarkerNames = {},
         hideLocationNames,
         labelsReplaceNames,
@@ -403,6 +437,7 @@ export function createMapDrawing(
         | 'printedLines'
         | 'placements'
         | 'joinedEdges'
+        | 'splitHexes'
         | 'locationMarkerNames'
         | 'hideLocationNames'
         | 'labelsReplaceNames'
@@ -742,9 +777,10 @@ export function createMapDrawing(
                     ]
                 )
             ],
-            divisions: TileEdges.filter((edge) => !joined.includes(edge) && divides(edge)).map(
-                segment
-            )
+            divisions: [
+                ...TileEdges.filter((edge) => !joined.includes(edge) && divides(edge)).map(segment),
+                ...splitLine(splitHexes[location.id], segment)
+            ]
         }
     })
     const vertices = locations.flatMap(
@@ -1565,6 +1601,33 @@ function arcAroundCity({
     const rotation =
         fixedTurn ?? turns.reduce((best, turn) => (crossings(turn) < crossings(best) ? turn : best))
     return { text: name, center, radius, rotation, span, below }
+}
+
+/** The line between a split hex's two sides, from corner to corner where the sides meet. */
+function splitLine(
+    side: readonly TileEdge[] | undefined,
+    segment: (edge: TileEdge) => HexSegment
+): HexSegment[] {
+    if (!side) return []
+    const corners = TileEdges.flatMap((edge) => {
+        const next = rotateTileEdge(edge, 1)
+        if (side.includes(edge) === side.includes(next)) return []
+        const { start, end } = segment(edge)
+        const shared = segment(next)
+        return [
+            [start, end].find((point) =>
+                [shared.start, shared.end].some((other) => nearlySamePoint(point, other))
+            )
+        ]
+    })
+    const [start, end] = corners
+    assert(corners.length === 2 && start && end, 'A split hex has two contiguous sides')
+    return [{ start, end }]
+}
+
+/** Whether two drawn points coincide, allowing for rounding in their geometry. */
+export function nearlySamePoint(first: Point, second: Point): boolean {
+    return Math.hypot(first.x - second.x, first.y - second.y) < 0.01
 }
 
 function isOffboard(location: MapLocation | undefined): boolean {

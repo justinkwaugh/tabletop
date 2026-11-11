@@ -830,5 +830,19 @@ export const PendingQuestions = Type.Object({
             cardId: Type.String(),
             siteId: Type.String()
         })
+    ),
+    /**
+     * Land Warden — from revision 33 (R-X.4): the second card has been played while questions of the kept card's
+     * power are open. What those answers discard goes under what the second card put on that pile (R-7.3.3).
+     */
+    underSecondPlay: Type.Optional(
+        Type.Object({
+            /** How many questions at the front of the queue are the kept card's. */
+            questions: Type.Number(),
+            /** The Gathering kept: the proposals `followUp` builds are the kept card's too. */
+            followUp: Type.Optional(Type.Boolean()),
+            /** How many cards each pile holds above where those answers' discards go. */
+            onTop: Type.Record(Type.Enum(Region), Type.Optional(Type.Number()))
+        })
     )
 })

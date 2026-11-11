@@ -32,6 +32,7 @@
     import ActorOnlyNotice from '$lib/components/ActorOnlyNotice.svelte'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
+    import { cardNameInPlay } from '$lib/model/names.js'
     import {
         MINOR_TARGETED_ACTIONS,
         MODIFIABLE_ACTIONS,
@@ -52,6 +53,8 @@
     const layout = new PhoneLayout()
     let travelOnMap = $derived(chosen === ActionType.Travel && gameSession.travelRows.length > 0)
     let travelWaysOpen = $derived(travelOnMap ? gameSession.travelWaysOpen : undefined)
+    // A card's "Use" opened Use a power on that card: the bar names the card.
+    let powerCard = $derived(gameSession.actionPowers.card)
 
     // R-5.5.5 to R-5.5.7 — the attacker's steps after the roll, and the defending side's losses.
     const BATTLE_STEPS: ReadonlySet<string> = new Set([
@@ -73,7 +76,11 @@
     {:else}
         <div class="mb-2 rounded bg-oath-accent-soft px-2 py-1.5">
             <span class="text-sm"
-                >{travelOnMap ? TRAVEL_ON_THE_MAP_PROMPT : actionName(action)}</span
+                >{travelOnMap
+                    ? TRAVEL_ON_THE_MAP_PROMPT
+                    : action === ActionType.UseActionPower && powerCard
+                      ? cardNameInPlay(gameState, powerCard)
+                      : actionName(action)}</span
             >
         </div>
     {/if}

@@ -5,6 +5,7 @@ import type { StationState } from './station.js'
 import { TileInventory, type TilePlacement, type TileSet } from '../tiles/inventory.js'
 import type { TileEdge, TileFace, TileRotation } from '../tiles/tile.js'
 import { rotateTileFace, tilePathsAtEndpoint } from '../tiles/topology.js'
+import { withTrackStops } from '../tiles/trackStops.js'
 
 export const MapFields = { tileInventory: TileInventory }
 export type MapStateData = StationState & LocationMarkerState & { tileInventory: TileInventory }
@@ -37,7 +38,7 @@ export class RailwayMapState {
                 const definition = definitions.get(placement.definitionId)
                 assertExists(definition, 'Placed map tile requires a definition')
                 this.tiles.set(location.id, {
-                    face: definition.face,
+                    face: withTrackStops(definition.face, placement.trackStops, placement.rotation),
                     rotation: placement.rotation,
                     placement
                 })

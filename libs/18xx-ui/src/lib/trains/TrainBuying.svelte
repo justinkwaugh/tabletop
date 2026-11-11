@@ -8,14 +8,18 @@
     import PhaseChanges from '../phases/PhaseChanges.svelte'
     import SlidingToggle from '../table/SlidingToggle.svelte'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
+    import type { Snippet } from 'svelte'
     let {
         session,
         trainColors,
-        showUndo = true
+        showUndo = true,
+        purchasedTrain
     }: {
         trainColors: Readonly<Record<string, string>>
         showUndo?: boolean
         session: EighteenXXSessionView
+        /** What a title adds beside a train bought this turn, by train id; each train then has a row. */
+        purchasedTrain?: Snippet<[string]>
     } = $props()
     const money = $derived(session.presentation.money)
     const step = $derived(session.gameState.trainPurchaseStep)
@@ -201,20 +205,26 @@
                 {/if}
             {:else}<CompanyTrainBuying {session} {trainColors} />{/if}
             {#if session.trainBuying.currentPurchases.length}
-                <div class="purchased" aria-label="Trains purchased this OR">
+                <div
+                    class="purchased"
+                    class:rows={!!purchasedTrain}
+                    aria-label="Trains purchased this OR"
+                >
                     <span>Purchased</span>
                     {#each session.trainBuying.currentPurchases as purchase (purchase.trainId)}
                         <span class="purchased-train">
-                            <TrainBadge
-                                name={session.trainDepot.trainDefinition(purchase.definitionId)
-                                    .name}
-                                color={trainColors[purchase.definitionId]}
-                            />{#if purchase.sellerCompanyId}<span
-                                    >{' '}from {session.ownerName({
-                                        kind: 'company',
-                                        companyId: purchase.sellerCompanyId
-                                    })}</span
-                                >{/if}
+                            <span class="bought"
+                                ><TrainBadge
+                                    name={session.trainDepot.trainDefinition(purchase.definitionId)
+                                        .name}
+                                    color={trainColors[purchase.definitionId]}
+                                />{#if purchase.sellerCompanyId}<span
+                                        >{' '}from {session.ownerName({
+                                            kind: 'company',
+                                            companyId: purchase.sellerCompanyId
+                                        })}</span
+                                    >{/if}</span
+                            >{@render purchasedTrain?.(purchase.trainId)}
                         </span>
                     {/each}
                 </div>
@@ -327,6 +337,31 @@
         display: inline-flex;
         align-items: center;
         gap: 8px;
+    }
+    .bought {
+        display: contents;
+    }
+    /* A title's additions line up in columns: the train, then what the title adds beside it. */
+    .purchased.rows {
+        display: grid;
+        grid-template-columns: repeat(3, auto);
+        gap: 6px 10px;
+    }
+    .rows > :first-child {
+        grid-column: 1 / -1;
+        text-align: center;
+    }
+    .rows .purchased-train {
+        display: grid;
+        grid-template-columns: subgrid;
+        grid-column: 1 / -1;
+        justify-items: start;
+    }
+    .rows .bought {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        justify-self: end;
     }
     header button:hover:not(:disabled) {
         background: var(--rail-surface-raised, #e5d9c8);

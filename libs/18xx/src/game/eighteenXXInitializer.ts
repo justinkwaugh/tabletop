@@ -53,7 +53,8 @@ export class EighteenXXInitializer<
         Color.Yellow,
         Color.Purple,
         Color.Orange,
-        Color.Pink
+        Color.Pink,
+        Color.Brown
     ]
     readonly supportsStartingPositions = true
     constructor(protected readonly rules: EighteenXXInitializerRules<Schema, State>) {

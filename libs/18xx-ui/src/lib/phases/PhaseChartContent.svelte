@@ -135,29 +135,38 @@
                     ></thead
                 >
                 <tbody>
-                    {#each rosterRows as { train, remainingRowSpan, rustRowSpan } (train.id)}
+                    {#each rosterRows as { faces, remainingRowSpan, rustRowSpan } (faces[0].id)}
+                        {@const train = faces[0]}
                         {@const remaining = depotState.depot.remaining(
                             depotState.inventory,
                             train.id
                         )}
                         {@const inMarket = certificateRemaining(openMarket, train.id)}
                         {@const current =
-                            depotState.availableDefinitionIds.includes(train.id) && remaining !== 0}
+                            remaining !== 0 &&
+                            faces.some((face) =>
+                                depotState.availableDefinitionIds.includes(face.id)
+                            )}
                         <tr
                             class:current
                             aria-current={current ? 'step' : undefined}
                             class:exhausted={remaining === 0 && inMarket === 0}
                         >
                             <th scope="row"
-                                ><TrainBadge name={train.name} color={trainColors[train.id]} /></th
+                                ><span class="badges"
+                                    >{#each faces as face (face.id)}<TrainBadge
+                                            name={face.name}
+                                            color={trainColors[face.id]}
+                                        />{/each}</span
+                                ></th
                             >
                             <td class="money">{money(train.price)}</td>
                             {#if remainingRowSpan}
                                 <td
                                     class="number"
                                     rowspan={remainingRowSpan}
-                                    title={remainingRowSpan > 1
-                                        ? 'Shared certificates: choose either face'
+                                    title={remainingRowSpan > 1 || faces.length > 1
+                                        ? 'Shared certificates: choose one face'
                                         : undefined}
                                     >{remaining === 'unlimited' ? '∞' : remaining}</td
                                 >
@@ -173,7 +182,8 @@
                                 <td class="number" rowspan={rustRowSpan}
                                     >{#if train.rustTrainIds.length}<span class="badges"
                                             >{#each train.rustTrainIds as trainId (trainId)}<TrainBadge
-                                                    name={trainId}
+                                                    name={depotState.depot.trainDefinition(trainId)
+                                                        .name}
                                                     color={trainColors[trainId]}
                                                 />{/each}{#if train.rustNote}<span class="rust-mark"
                                                     >*</span

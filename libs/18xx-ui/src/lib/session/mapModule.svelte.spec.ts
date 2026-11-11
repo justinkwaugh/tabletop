@@ -81,13 +81,7 @@ function table(
         },
         () => false
     )
-    const routes = new RoutesModule(
-        session,
-        (selection) => {
-            map.inspect(selection)
-        },
-        () => map.networkRoutes
-    )
+    const routes = new RoutesModule(session, () => map.networkRoutes)
     const map: MapModule = new MapModule(session, () => view, track, stations, routes, homeOffers)
     return { map, track }
 }
@@ -216,11 +210,7 @@ describe('MapModule', () => {
             { selectPrivateTile: () => {}, confirm: async () => {} },
             () => {}
         )
-        const routes = new RoutesModule(
-            session,
-            () => {},
-            () => []
-        )
+        const routes = new RoutesModule(session, () => [])
         const map = new MapModule(session, () => view, track, stations, routes, [noAuctionHomes])
         expect(stations.homeLocationIds).toEqual([TestTrackHomeLocationId])
         map.select({ kind: 'slot', ...home, slot: 0 })
@@ -323,11 +313,7 @@ describe('MapModule', () => {
             { selectPrivateTile: () => {}, confirm: async () => {} },
             () => {}
         )
-        const routes = new RoutesModule(
-            session,
-            () => {},
-            () => []
-        )
+        const routes = new RoutesModule(session, () => [])
         const map = new MapModule(session, () => view, track, stations, routes, [noAuctionHomes])
         expect(stations.privateStationLocationIds).toEqual([TestTrackHomeLocationId])
         map.select({ kind: 'hex', locationId: TestTrackHomeLocationId })

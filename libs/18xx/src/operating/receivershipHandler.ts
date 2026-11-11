@@ -120,7 +120,11 @@ export class ReceivershipHandler<S extends State> implements MachineStateHandler
         this.handler.enter(context)
         const companyId = this.receiver(context.gameState)
         const automatic = companyId ? this.automatic(context.gameState, companyId) : undefined
-        if (automatic) context.addSystemAction(automatic.schema, automatic.fields)
+        // A step that finishes itself, as a station step with nothing to place does, needs no
+        // second finish from the receiver.
+        const type = automatic?.schema.properties.type.const
+        if (automatic && !context.getPendingActions().some((action) => action.type === type))
+            context.addSystemAction(automatic.schema, automatic.fields)
     }
     onAction(action: HydratedAction, context: MachineContext<S>): string {
         return this.handler.onAction(action, context)

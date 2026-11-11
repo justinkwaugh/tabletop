@@ -44,6 +44,7 @@
                         name={session.trainDepot.trainDefinition(train.definitionId).name}
                         color={session.presentation.trainColors[train.definitionId]}
                         obsolete={isObsoleteTrain(train)}
+                        tokens={session.presentation.trainTokens?.(session.gameState, train)}
                     />{:else}None{/each}</span
             >
         </div>

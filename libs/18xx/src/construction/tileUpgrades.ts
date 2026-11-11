@@ -1,6 +1,7 @@
 import type { MapLocation } from '../map/map.js'
 import type { TileDefinition } from '../tiles/tile.js'
 import { rotateTileFace, TileEdges } from '../tiles/topology.js'
+import { carriedTrackStops, withTrackStops } from '../tiles/trackStops.js'
 import type { TrackRules } from './trackConstruction.js'
 import {
     keepsExits,
@@ -13,7 +14,7 @@ import {
 } from './tileReplacement.js'
 
 export type TileUpgradeRules = TileReplacementRules &
-    Pick<TrackRules, 'map' | 'tileSet' | 'mostExits' | 'relabels'>
+    Pick<TrackRules, 'map' | 'tileSet' | 'mostExits' | 'relabels' | 'carriesTrackStops'>
 
 /**
  * Which tiles of the set may replace which on some hex of the map, by the colour, stop, label
@@ -89,7 +90,10 @@ export class TileUpgrades {
         let keeps = this.keepsTrack.get(key)
         if (keeps === undefined) {
             keeps = TileEdges.some((rotation) => {
-                const rotated = rotateTileFace(after.face, rotation)
+                const turned = rotateTileFace(after.face, rotation)
+                const rotated = this.rules.carriesTrackStops
+                    ? withTrackStops(turned, carriedTrackStops(before.face, turned))
+                    : turned
                 return (
                     replacementMappings(before.face, rotated).length > 0 ||
                     (reconfigures && keepsExits(before.face, rotated))

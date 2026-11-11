@@ -2,6 +2,7 @@
     import { edificeName, type CardKind } from '@tabletop/oath'
     import { cardBack, cardImageInPlay, cardSideImage } from '$lib/images/cardImages.js'
     import { cardAspect } from '$lib/images/cardShape.js'
+    import type { PreviewGroup } from '$lib/model/cardPreview.svelte.js'
     import { inspectImage } from '$lib/model/inspectImage.svelte.js'
     import { cardNameInPlay } from '$lib/model/names.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -13,6 +14,7 @@
         label,
         inspect = false,
         intact = false,
+        group,
         class: className = ''
     }: {
         cardId?: string
@@ -23,6 +25,8 @@
         inspect?: boolean
         /** R-8.3.1 — an edifice's intact side, whichever side is up: what a build or repair makes. */
         intact?: boolean
+        /** Rule 4 — the cards the enlarged card pages through. */
+        group?: PreviewGroup
         class?: string
     } = $props()
 
@@ -56,7 +60,7 @@
         alt={name}
         class="rounded-[4px] shadow-md object-cover {className}"
         style="width:{width}px; height:{height}px;"
-        use:inspectImage={{ preview, enabled: inspectable }}
+        use:inspectImage={{ preview, enabled: inspectable, group }}
     />
 {:else}
     <div

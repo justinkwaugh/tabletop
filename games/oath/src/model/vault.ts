@@ -126,6 +126,16 @@ export function discardOnto(vault: OathVault, region: Region, cardIds: string[],
     }
 }
 
+/** Land Warden — under the top `beneath` cards of the pile, the last of `cardIds` nearest them. */
+export function discardUnder(
+    vault: OathVault,
+    region: Region,
+    cardIds: readonly string[],
+    beneath: number
+) {
+    vault.discardPiles[region].splice(beneath, 0, ...cardIds.toReversed())
+}
+
 /** Mushrooms */
 export function drawFromDiscardBottom(vault: OathVault, region: Region, count: number): string[] {
     const pile = vault.discardPiles[region]

@@ -22,7 +22,7 @@
     import { recordedFinalScores } from '$lib/utils/gameScores'
     import { gameCardOptions } from '$lib/utils/gameOptions'
     import { gameCardAppearance } from '$lib/utils/gameCardAppearance'
-    import { playerSortValue, playerStatusDisplay } from '$lib/utils/player'
+    import { activePlayerText, playerSortValue, playerStatusDisplay } from '$lib/utils/player'
     import { hasPendingGameInvitation } from '$lib/utils/gameInvitation'
     import { gameShareLink } from '$lib/utils/gameLinks'
     import { startCountdownText } from '$lib/utils/startCountdown'
@@ -284,18 +284,6 @@
         return game.winningPlayerIds?.includes(playerId)
     }
 
-    function activePlayerText() {
-        if (isMyTurn) {
-            return 'You'
-        }
-        const activePlayerIds = game.activePlayerIds ?? []
-        if (activePlayerIds.length === 1) {
-            return game.players.find((p) => p.id === activePlayerIds[0])?.name
-        } else {
-            return `Multiple players`
-        }
-    }
-
     function gameResultText() {
         switch (game.result) {
             case GameResult.Win:
@@ -495,7 +483,7 @@
                                     Active Player
                                 </div>
                                 <div class="text-xs text-orange-400">
-                                    {activePlayerText()}
+                                    {activePlayerText(game, sessionUser?.id)}
                                 </div>
                             </div>
                         {:else if game.status === GameStatus.Finished}

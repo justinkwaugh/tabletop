@@ -1,4 +1,4 @@
-import { assertExists } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 import type { HydratedOathGameState } from '../model/gameState.js'
 import type {
     HandPositions,
@@ -14,6 +14,7 @@ import { CONSPIRACY_ID } from '../data/visions.js'
 import { isAtLeastOathRevision, OathRevision } from './revision.js'
 import {
     discardOnto,
+    discardUnder,
     drawFirstVision,
     drawFromDiscard,
     drawFromDiscardBottom,
@@ -470,24 +471,42 @@ function remember(
     }
 }
 
-/** R-10.5 — cards on top keep every known position; cards underneath lift them. */
+/**
+ * R-10.5 — cards on top keep every known position; cards underneath lift them. Land Warden — cards put under the
+ * top `beneath` lift those alone (R-7.3.3).
+ */
 export function putOnDiscardPile(
     state: HydratedOathGameState,
     region: Region,
     cardIds: string[],
     bottom: boolean,
-    deposit: Deposit
+    deposit: Deposit,
+    beneath = 0
 ): void {
     const vault = state.requireVault()
     const size = vault.discardPiles[region].length
-    discardOnto(vault, region, cardIds, bottom)
+    assert(beneath <= size, `${beneath} cards are not on the ${region} discard pile to go under`)
+    // From the bottom, where the first of these lies when they go on top or under the top `beneath`.
+    const from = size - beneath
+    if (beneath > 0) discardUnder(vault, region, cardIds, beneath)
+    else discardOnto(vault, region, cardIds, bottom)
     if (bottom)
         for (const record of pileRecords(state, region))
             if (record.get().length > 0) record.set([...unknown(cardIds.length), ...record.get()])
+    if (beneath > 0)
+        for (const record of pileRecords(state, region)) {
+            const known = record.get()
+            if (known.length > from)
+                record.set([
+                    ...known.slice(0, from),
+                    ...unknown(cardIds.length),
+                    ...known.slice(from)
+                ])
+        }
     remember(
         (witness) => pileRecordOf(state, region, witness),
         cardIds,
-        (index) => (bottom ? cardIds.length - 1 - index : size + index),
+        (index) => (bottom ? cardIds.length - 1 - index : from + index),
         deposit
     )
 }

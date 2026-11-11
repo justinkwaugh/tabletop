@@ -16,7 +16,12 @@ import type { RevenueStageColors } from '../colors/revenueStageColors.js'
 export type LocationMarkerArt = Readonly<Record<string, Readonly<Record<string, MapMarkerArt>>>>
 
 /** Offboard names print in the tile label face, which ships with the app, at their own size. */
-export type OffboardNameStyle = { fontSize: number; color: string }
+export type OffboardNameStyle = {
+    fontSize: number
+    color: string
+    /** Extra space between words, in ems, where the label face's narrow space runs them together. */
+    wordSpacing?: number
+}
 
 /** Tiles drawn side by side in place of a round token, at the token's height. */
 export type TokenTiles = {
@@ -34,7 +39,12 @@ export type StationAppearance = {
 }
 /** A symbol row's centre, or each symbol's own centre. */
 export type SymbolPosition = Point | readonly Point[]
-export type BoardAreas = { market?: BoundingBox; depot?: BoundingBox }
+export type BoardAreas = {
+    market?: BoundingBox
+    depot?: BoundingBox
+    /** Where the title's own board panel stands, such as 1862's charter board. */
+    panel?: BoundingBox
+}
 
 export type MapViewDefinition = {
     boardArtwork?: BoardArtwork
@@ -132,6 +142,11 @@ export type MapViewDefinition = {
      */
     publishedPlacements?: Readonly<Record<string, MapPlacement>>
     joinedEdges?: Readonly<Record<string, readonly TileEdge[]>>
+    /**
+     * Hexes printed as two areas, by location id: the edges on one area's side. A line divides
+     * that side from the rest, and joined edges join only the side they leave by.
+     */
+    splitHexes?: Readonly<Record<string, readonly TileEdge[]>>
     /** Measurements of the tile style in use, which space cities and place annotations. */
     drawingStyle?: TileDrawingStyle
     /**

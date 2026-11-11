@@ -99,7 +99,12 @@ export class Autorouter {
             Number.isFinite(timeLimitMs) && timeLimitMs > 0,
             'Routing time limit must be positive'
         )
+        assert(!rules.routeAllowed, 'Native route shapes must be declared as policy')
         const requiredEnds = rules.requiredRouteEnds?.(state, companyId)
+        assert(
+            !(rules.fleet && requiredEnds),
+            'Fleet policy cannot combine with required-route enumeration'
+        )
         if (requiredEnds)
             return this.solveRequired(state, rules, companyId, requiredEnds, timeLimitMs)
         const started = performance.now()
@@ -126,7 +131,8 @@ export class Autorouter {
         const checked = evaluation.evaluate(companyId, encoded.decode(solution))
         assertExists(checked.result, checked.reason ?? 'Solver returned an invalid operation')
         assert(
-            checked.result.revenue === solution.revenue,
+            checked.result.revenue === solution.revenue &&
+                (checked.result.subsidy ?? 0) === solution.subsidy,
             'Solver and game disagree on route revenue'
         )
         return {

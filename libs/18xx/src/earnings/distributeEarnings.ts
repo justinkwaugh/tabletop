@@ -147,6 +147,15 @@ export function applyEarningsDistribution(
     state: DistributionState,
     details: Type.Static<typeof EarningsDetails>
 ): void {
+    // A top-up leaves the treasury for the bank, which pays the whole dividend.
+    if (details.topUp)
+        settleCashPayments(state, [
+            {
+                from: { kind: 'company', companyId: details.companyId },
+                to: { kind: 'bank' },
+                amount: details.topUp
+            }
+        ])
     settleCashPayments(state, details.payments)
     if (details.marketMove)
         placeStockMarker(state.stockMarket, details.companyId, details.marketMove.toMarketSpaceId)

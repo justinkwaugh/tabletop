@@ -48,6 +48,15 @@ export function gameCardOptions(
     return configuredGameOptions(visibleConfig, definitions)
 }
 
+export function gameOptionsSummary(
+    config: GameConfig,
+    definition: GameConfigOptions | GameConfigurator
+): string {
+    return gameCardOptions(config, definition)
+        .map((option) => `${option.name}: ${option.value}`)
+        .join(' · ')
+}
+
 function resolveConfiguration(
     config: GameConfig,
     definition: GameConfigOptions | GameConfigurator

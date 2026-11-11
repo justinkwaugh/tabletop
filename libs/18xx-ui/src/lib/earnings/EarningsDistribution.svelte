@@ -9,7 +9,8 @@
     const names: Record<EarningsChoice, string> = {
         pay: 'Pay',
         withhold: 'Withhold',
-        'half-pay': 'Half-pay'
+        'half-pay': 'Half-pay',
+        'top-up': 'Top up and pay'
     }
 </script>
 

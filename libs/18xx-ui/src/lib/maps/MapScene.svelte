@@ -863,6 +863,7 @@
                         font-weight={style || curved ? 700 : 650}
                         font-family={style ? appearance.labelFont?.family : undefined}
                         letter-spacing={curved ? 0.15 : undefined}
+                        word-spacing={style?.wordSpacing ? style.wordSpacing * size : undefined}
                         >{#each lines as line, index (index)}<tspan
                                 x="0"
                                 y={entry.nameBaseline.y + index * (style ? size * 1.2 : 6)}

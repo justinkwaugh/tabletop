@@ -10,3 +10,6 @@ export const TitleActivity = Type.Object({
     recentlyFinished: Type.Array(Game)
 })
 export type TitleActivity = Type.Static<typeof TitleActivity>
+
+// Clients match on this name, so it stays as first named when only titles were listed.
+export const ACTIVITY_UNAVAILABLE = 'TitleActivityUnavailable'

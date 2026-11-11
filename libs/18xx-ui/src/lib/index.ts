@@ -13,7 +13,11 @@ export {
     type TileLayout
 } from './tiles/tileDrawing.js'
 export { TileColors } from './tiles/tilePresentation.js'
-export { StandardTileLayouts, towardTileEdge } from './tiles/standardTileLayouts.js'
+export {
+    StandardTileLayouts,
+    placedTileLayout,
+    towardTileEdge
+} from './tiles/standardTileLayouts.js'
 export * from './maps/mapDrawing.js'
 export * from './maps/printedLinePath.js'
 export * from './maps/companyMark.js'
@@ -88,6 +92,7 @@ export { trainCount, type AwaitedDecision } from './table/awaitedDecision.js'
 export type {
     CompanyColumn,
     CompanyMark,
+    TrainTokens,
     MarketLedge,
     MarketZone,
     MarketZoneBanner,
@@ -141,6 +146,7 @@ export { default as CompanyOrder } from './table/CompanyOrder.svelte'
 export { default as CompanyDetails } from './table/CompanyDetails.svelte'
 
 export { default as TrainBadge } from './trains/TrainBadge.svelte'
+export { default as TrainTokenPips } from './trains/TrainTokenPips.svelte'
 
 export { default as AuctionOffers } from './auctions/AuctionOffers.svelte'
 
@@ -175,11 +181,17 @@ export {
 export * from './stock/marketAnimationSource.js'
 
 export { marketColors, marketSpaceColor, marketZone } from './stock/marketColors.js'
-export { MarketTokenSize } from './stock/marketTokenLayout.js'
+export {
+    MarketScenePadding,
+    MarketTokenSize,
+    MarketZoneBannerHeight,
+    marketGeometry
+} from './stock/marketTokenLayout.js'
 
 export { default as BoardInset } from './maps/BoardInset.svelte'
 
 export { RoutesModule, type RoutesSession } from './session/routesModule.svelte.js'
+export { RouteEditor } from './session/routeEditor.svelte.js'
 export { TitleStockPanels, type TitleStockPanel } from './session/titleStockPanels.svelte.js'
 export { StopRightsActions } from './session/stopRightsActions.svelte.js'
 export { default as TitlePrompt } from './table/TitlePrompt.svelte'

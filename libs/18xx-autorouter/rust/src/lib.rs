@@ -2,8 +2,12 @@ use serde::{Deserialize, Serialize};
 use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
+mod fleet;
+
 #[derive(Deserialize)]
 pub struct Problem {
+    #[serde(default)]
+    fleet: Option<fleet::Policy>,
     version: u32,
     stops: Vec<Stop>,
     arcs: Vec<Arc>,
@@ -45,6 +49,10 @@ struct Arc {
 
 #[derive(Deserialize, PartialEq)]
 struct Train {
+    #[serde(default)]
+    allowed_stops: Vec<bool>,
+    #[serde(default)]
+    fleet: Option<fleet::TrainPolicy>,
     id: String,
     distance: u32,
     counts_crossings: bool,
@@ -476,6 +484,9 @@ impl Candidates {
     }
 
     fn dedup(&mut self, network: Network<'_>) {
+        if network.problem.fleet.is_some() {
+            return;
+        }
         self.dedup_by_hash(network, |candidate| candidate.resource_hash);
     }
 
@@ -534,6 +545,7 @@ struct CandidateView<'a> {
 #[derive(Serialize)]
 pub struct Solution {
     revenue: i32,
+    subsidy: i32,
     routes: Vec<Route>,
     exhaustive: bool,
     path_exhaustive: bool,
@@ -585,7 +597,7 @@ fn milliseconds() -> f64 {
 
 fn validate(problem: &Problem) -> Result<(), String> {
     let n = problem.stops.len();
-    if problem.version != 6
+    if problem.version != 7
         || !problem.budget_ms.is_finite()
         || problem.budget_ms <= 0.0
         || problem.memory_budget_bytes == 0
@@ -632,7 +644,8 @@ fn validate(problem: &Problem) -> Result<(), String> {
         }
     }
     for train in &problem.trains {
-        if train.visit_costs.len() != n
+        if (!train.allowed_stops.is_empty() && train.allowed_stops.len() != n)
+            || train.visit_costs.len() != n
             || train.paying_stop_limit == Some(0)
             || train.connection_bonuses.iter().any(|bonus| {
                 bonus.from.len() != n
@@ -666,7 +679,7 @@ fn validate(problem: &Problem) -> Result<(), String> {
     if problem.longest_route_bonus_per_stop < 0 || problem.hex_bonuses.iter().any(|&b| b < 0) {
         return Err("Negative hex bonus".into());
     }
-    Ok(())
+    fleet::validate(problem)
 }
 
 struct Compiler<'a> {
@@ -850,7 +863,9 @@ impl Search<'_> {
             return;
         }
         let stop = &self.problem.stops[node];
-        if cost > self.train.distance || self.train.major_limit.is_some_and(|limit| majors > limit)
+        if self.train.allowed_stops.get(node) == Some(&false)
+            || cost > self.train.distance
+            || self.train.major_limit.is_some_and(|limit| majors > limit)
         {
             return;
         }
@@ -968,6 +983,18 @@ impl Search<'_> {
         first_bonus: i32,
         last_bonus: i32,
     ) {
+        if !fleet::allowed_shape(
+            Network {
+                problem: self.problem,
+                connections: self.connections,
+                adjacency: self.adjacency,
+                departures: self.departures,
+            },
+            &self.walking,
+            start,
+        ) {
+            return;
+        }
         self.count += 1;
         let visits = self.walking.len() + 1;
         if !self.train.scores_payments() {
@@ -1893,7 +1920,7 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
         .map(|train_id| same_profile(problem, train_id))
         .collect();
     let mut profiles_left = previous_profile.iter().filter(|p| p.is_none()).count();
-    let streaming = problem.trains.len() == 2 && profiles_left == 2;
+    let streaming = problem.fleet.is_none() && problem.trains.len() == 2 && profiles_left == 2;
     let mut train_order: Vec<_> = (0..problem.trains.len()).collect();
     if streaming {
         train_order.sort_by_key(|&id| {
@@ -1902,7 +1929,7 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
         });
     }
     let mut streamed_result = None;
-    let fleet = problem.trains.len() > 1;
+    let fleet = problem.trains.len() > 1 || problem.fleet.is_some();
     let deadline = started + problem.budget_ms;
     let path_deadline = if fleet && !streaming {
         started + problem.budget_ms * 0.75
@@ -1914,7 +1941,10 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
     } else {
         problem.memory_budget_bytes / 4
     };
-    let selection_bytes_per_candidate = if streaming {
+    // A fleet's selection accounts for its own memory, from what the candidates leave.
+    let selection_bytes_per_candidate = if problem.fleet.is_some() {
+        0
+    } else if streaming {
         if problem.longest_route_bonus_per_stop == 0 {
             0
         } else {
@@ -1995,6 +2025,31 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
         candidates[train_id] = Rc::new(search.candidates);
     }
     let path_finished = milliseconds();
+    if problem.fleet.is_some() {
+        let (revenue, subsidy, routes, combination_exhaustive, limited, visits, counts) =
+            fleet::solve(
+                network,
+                &candidates,
+                deadline,
+                row_budget + candidate_budget,
+            );
+        memory_limited |= limited;
+        return Ok(Solution {
+            revenue,
+            subsidy,
+            routes,
+            exhaustive: path_exhaustive && combination_exhaustive && !memory_limited,
+            path_exhaustive,
+            combination_exhaustive,
+            candidates: counts,
+            memory_limited,
+            expansions: expansions + visits,
+            connections: connections.len(),
+            compile_ms,
+            path_ms: path_finished - started - compile_ms,
+            combination_ms: milliseconds() - path_finished,
+        });
+    }
     let (mut revenue, mut routes, mut combination_exhaustive) =
         streamed_result.unwrap_or_else(|| {
             let mut selection = Selection::new(&candidates, network, deadline, row_budget);
@@ -2086,6 +2141,7 @@ pub fn solve(problem: &Problem) -> Result<Solution, String> {
     }
     Ok(Solution {
         revenue,
+        subsidy: 0,
         routes,
         exhaustive: path_exhaustive && combination_exhaustive,
         path_exhaustive,
@@ -2271,7 +2327,9 @@ impl<'a> Network<'a> {
 fn same_profile(problem: &Problem, train_id: usize) -> Option<usize> {
     let train = &problem.trains[train_id];
     problem.trains[..train_id].iter().position(|other| {
-        other.distance == train.distance
+        other.fleet == train.fleet
+            && other.allowed_stops == train.allowed_stops
+            && other.distance == train.distance
             && other.visit_costs == train.visit_costs
             && other.counts_crossings == train.counts_crossings
             && other.requires_city == train.requires_city
@@ -2320,7 +2378,7 @@ mod tests {
         fn new() -> Self {
             Self {
                 problem: serde_json::from_value(serde_json::json!({
-                    "version": 6, "stops": [], "arcs": [], "trains": [],
+                    "version": 7, "stops": [], "arcs": [], "trains": [],
                     "resource_count": 130, "junction_count": 0, "group_count": 0,
                     "hex_bonuses": [], "budget_ms": 30000, "memory_budget_bytes": 65536,
                 }))

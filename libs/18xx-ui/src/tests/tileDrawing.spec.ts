@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calculateHexGeometry, HexOrientation } from '@tabletop/common'
+import { assertExists, calculateHexGeometry, HexOrientation } from '@tabletop/common'
 import {
     StandardTileCatalog,
     createCityTileFace,
@@ -320,4 +320,68 @@ describe('offboard track', () => {
         )
         expect(city.paths.every((path) => !path.spike)).toBe(true)
     })
+})
+
+it('swings a four-space city’s lower spaces out into an upside-down V, open at the bottom', () => {
+    const face = createCityTileFace('red', [], 0, 4)
+    const square = createTileDrawing(face).nodes[0].slots
+    const spread = createTileDrawing(face, HexOrientation.Flat, 0, { slotSpreads: { city: 35 } })
+        .nodes[0]
+    const [upperLeft, upperRight, lowerRight, lowerLeft] = spread.slots
+    expect([upperLeft, upperRight]).toEqual(square.slice(0, 2))
+    const side = Math.hypot(square[3].x - square[0].x, square[3].y - square[0].y)
+    for (const [upper, lower] of [
+        [upperLeft, lowerLeft],
+        [upperRight, lowerRight]
+    ])
+        expect(Math.hypot(lower.x - upper.x, lower.y - upper.y)).toBeCloseTo(side)
+    expect(lowerLeft.x).toBeLessThan(upperLeft.x)
+    expect(lowerRight.x).toBeGreaterThan(upperRight.x)
+    expect(lowerLeft.y).toBeGreaterThan(upperLeft.y)
+    expect(spread.openBand).toBe(true)
+    expect(createTileDrawing(face).nodes[0].openBand).toBeUndefined()
+})
+
+it('moves a town on through track off a crossing, along its own line', () => {
+    const face: TileFace = {
+        color: 'green',
+        labels: [],
+        nodes: [{ id: 'stop', kind: 'town', revenue: { kind: 'fixed', amount: 20 } }],
+        paths: [
+            {
+                id: 'in',
+                endpoints: [
+                    { kind: 'edge', edge: 0 },
+                    { kind: 'node', nodeId: 'stop' }
+                ]
+            },
+            {
+                id: 'out',
+                endpoints: [
+                    { kind: 'node', nodeId: 'stop' },
+                    { kind: 'edge', edge: 3 }
+                ]
+            },
+            {
+                id: 'across',
+                endpoints: [
+                    { kind: 'edge', edge: 1 },
+                    { kind: 'edge', edge: 4 }
+                ]
+            }
+        ]
+    }
+    const drawing = createTileDrawing(face)
+    const town = drawing.nodes.find((node) => node.node.id === 'stop')
+    const across = drawing.paths.find((path) => path.id === 'across')
+    assertExists(town)
+    assertExists(across)
+    expect(Math.abs(town.center.x)).toBeLessThan(0.01)
+    const nearest = Math.min(
+        ...Array.from({ length: 65 }, (_, index) => {
+            const point = tilePathPoint(across, index / 64)
+            return Math.hypot(point.x - town.center.x, point.y - town.center.y)
+        })
+    )
+    expect(nearest).toBeGreaterThanOrEqual(17.5)
 })

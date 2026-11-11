@@ -16,7 +16,7 @@
     "DeclinePrivateTile": "9d347b9c716993c5f027fe1e6acdc8e0f4d65d71d9a74d391e40d06e1f6115dd",
     "DeclineProtection": "f39f6cbf9856138b739a82cc8e92042b30c6513f635c0d500f86ab1d32cb8a7a",
     "DiscardTrain": "5d1a970100fabffbe644562b9d090a757dc8600817bcace18db3ee3e5537bf13",
-    "DistributeEarnings": "6749609e82de407753d6d563448dc04d5b91de8bb5b425b868ee4c3572907480",
+    "DistributeEarnings": "c51f3cf0a4ececf77a22318d21b0312a9ee6fc5a4c6c765dba32d99494ea8c42",
     "EndGame": "238dcf7a19fbab27e738c27d9ebf77b8e048aefc539a5514fe186ac32889e49e",
     "ExchangePrivate": "76b79fb406c20ba82571b7229e89be58c907d89279e82a4ca1f2dd5f2dca21ab",
     "FinishOperatingTurn": "b653940dd0621cbe3c462eac1732da050c2e6425ff1bdbfbc4dc01b07fe1a4de",
@@ -25,9 +25,9 @@
     "FinishTrack": "7ae429d56b33034c6bf55f6167db28e6f2e6ae33a15a0c42e0ef422bd316443e",
     "FloatCompany": "fe40eddcc820c104eac6d3cb5441d5c814542f3e3cbf6dc503dfd14beaec0634",
     "FundTrain": "e7c9d823dbfac75958205395e0042a381fdd600d3251714a052b40306b30dd7b",
-    "IssueTreasuryShares": "279bff01f9fccd7d55c16a13b95aad4074974d1b87ae8bfd3052380b36af1786",
-    "LayPrivateTile": "de25ff1e8aeadca222bc399a5e17e4a4759418618361981d7f6d6f86acde6b21",
-    "LayTile": "8de0ad15e8365fd604f94438d94ce76c823ce0d5637f79f9ae77b1d751d5fd5f",
+    "IssueTreasuryShares": "a581a7ab3ea225a2d51e4546ae6f5c086d244c6ab91792308f4b47ab7fed3876",
+    "LayPrivateTile": "2c1c2e82a092785252309a959bcd99df6a4e43e3b03266802cf62f577400193a",
+    "LayTile": "868b093634c99f842201af6a9ac020db319a6de25618de0d6cc7f94fff136e60",
     "OfferPrivatePurchase": "73661953f8b783241a5e276a91dabd9a085d3ca23d1e075a6108c55657f5aeef",
     "OfferPurchase": "f7caacc23e89f905a0e2ce7d92d19ebe53eccb67a00217c020476a772abc61ec",
     "PassAuction": "8f80db14291be75adbc7a2ac100d007b389a0f925a9bdca6308769d9b093ec87",
@@ -42,13 +42,13 @@
     "ReserveBid": "33f9b477a99277d658ca91a7568b99e0ac319b1251ff8a0c7575c0eaf3b81ea1",
     "ResolveAuction": "9c8f176314018029b7c625d56a546a68de6645aa264ff9a89e554ad3eb358b87",
     "RespondToPurchaseOffer": "3750e29e4505cbce5f65efe310687f638d05f3123780dd6a0779679ea7657e00",
-    "RespondToTrackConsent": "61bc3d23824f13246e4b924e82e3c9c552ef8efe19a1668becdd1a31dfd41f7b",
-    "RunTrains": "2c2acc1e37f0747f108f4cde5ded277fea110974d0ac82261fa3847e80171daa",
+    "RespondToTrackConsent": "aad7dd92e162c66f272958e6d20de3b4b51150b9709018be7ddbb78b166aaf4f",
+    "RunTrains": "ba69db079932ff9830df4e05552ae24defcae82417a21fc3ddfde12591e2060d",
     "RustTrains": "04877126159679eab415b42c62724c9a3f1ce24f2765a37d077ab2f791101d64",
-    "ScheduleGameEnd": "9fe8533e7967cbf7186df25d65592a7571e9caa1e561d18674ab008e1a503ab2",
-    "SellFundingShares": "72facb9a9d838d543e5e1f61184ab4f3ca8fb3a377763d8ea20c893ca4387509",
-    "SellShares": "12ad7d2f39119fad1870bd79cb358bc94720b7d0175f3996ad8116ad42429eb6",
-    "SetRunInstruction": "946c1b1b93fbd52d503152557b345c324e364bf3d407284b36298dc558757cf1",
+    "ScheduleGameEnd": "e4825e0e9fcb4f41e8368dc5343102515f864a1fe94401efcf8f8104bb2f3ea6",
+    "SellFundingShares": "a19afe593f613b955720889fb576ec502d4e63c7d41603dc9c9b44cd56f4b310",
+    "SellShares": "d12d2caac4f4112b11aaa4b3a30398d39272daa267f9a864978658e84c2b305c",
+    "SetRunInstruction": "fd1f8f2b6b809029041c58ad6c42d126cfcdb578826a4c82c6c7aaf1b69b524a",
     "SetRunInstructionStops": "f01dcdba5d0007e117089cba572ff07cbe68c2f5ee65a2ff95c34a2f9968689a",
     "SetStockInstruction": "f9e0135eb86ac336732583b340948e7cab9329226323428ec0d39aca77037ae5",
     "SetStockInstructionStops": "724aa6a19020cdd568fefb89be3f6a307970bbd79977565045d21485eec2a1df",
@@ -706,6 +706,10 @@
               {
                 "const": "half-pay",
                 "type": "string"
+              },
+              {
+                "const": "top-up",
+                "type": "string"
               }
             ]
           },
@@ -874,6 +878,10 @@
           },
           "revenue": {
             "minimum": 0,
+            "type": "integer"
+          },
+          "topUp": {
+            "minimum": 1,
             "type": "integer"
           }
         },
@@ -1249,6 +1257,10 @@
       "gameEnding": {
         "additionalProperties": false,
         "properties": {
+          "finalOperatingRound": {
+            "minimum": 1,
+            "type": "integer"
+          },
           "finalOperatingRounds": {
             "minimum": 1,
             "type": "integer"
@@ -2513,6 +2525,10 @@
                   "type": "object"
                 },
                 "type": "array"
+              },
+              "subsidy": {
+                "minimum": 1,
+                "type": "integer"
               }
             },
             "required": [
@@ -2568,6 +2584,10 @@
                 },
                 {
                   "const": "half-pay",
+                  "type": "string"
+                },
+                {
+                  "const": "top-up",
                   "type": "string"
                 }
               ]
@@ -3444,6 +3464,30 @@
             "type": "array",
             "uniqueItems": true
           },
+          "purchases": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "companyId": {
+                  "type": "string"
+                },
+                "playerId": {
+                  "type": "string"
+                },
+                "shares": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "companyId",
+                "playerId",
+                "shares"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
           "sales": {
             "items": {
               "additionalProperties": false,
@@ -3752,6 +3796,87 @@
                         "type": "number"
                       }
                     ]
+                  },
+                  "trackStops": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "edges": {
+                          "additionalItems": false,
+                          "items": [
+                            {
+                              "anyOf": [
+                                {
+                                  "const": 0,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 1,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 2,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 3,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 4,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 5,
+                                  "type": "number"
+                                }
+                              ]
+                            },
+                            {
+                              "anyOf": [
+                                {
+                                  "const": 0,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 1,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 2,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 3,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 4,
+                                  "type": "number"
+                                },
+                                {
+                                  "const": 5,
+                                  "type": "number"
+                                }
+                              ]
+                            }
+                          ],
+                          "minItems": 2,
+                          "type": "array"
+                        },
+                        "revenue": {
+                          "minimum": 0,
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "edges",
+                        "revenue"
+                      ],
+                      "type": "object"
+                    },
+                    "minItems": 1,
+                    "type": "array"
                   }
                 },
                 "required": [

@@ -49,6 +49,11 @@ export type TileLayout = {
      * id, such as to level a two-space city under a row of revenues.
      */
     slotRowTurns?: Readonly<Record<string, number>>
+    /**
+     * Degrees to swing a four-space city's lower spaces out from under its upper ones, by node id,
+     * opening the square into an upside-down V toward the two hexes below.
+     */
+    slotSpreads?: Readonly<Record<string, number>>
     hideRevenue?: true | readonly string[]
     /** Lays staged revenue boxes out in a column or a row rather than whichever fits best. */
     revenueStack?: 'column' | 'row'
@@ -87,6 +92,8 @@ export type TileDrawnNode = {
     node: TileNode
     center: Point
     slots: readonly Point[]
+    /** Spaces opened into an upside-down V, whose band leaves its bottom side open. */
+    openBand?: true
     revenuePosition: Point
     revenueCells: readonly RevenueCell[]
     revenueHidden: boolean
@@ -149,14 +156,17 @@ export function createTileDrawing(
         ((rotation * 60 + (orientation === HexOrientation.Pointy ? 30 : 0)) * Math.PI) / 180
     // Four slots form a square, which a hex turn would tilt, so it stays upright, filled from
     // the top left.
-    const citySlots = (node: Extract<TileNode, { kind: 'city' }>, center: Point) =>
-        stationPositions(
+    const citySlots = (node: Extract<TileNode, { kind: 'city' }>, center: Point) => {
+        const slots = stationPositions(
             node.stationSlots,
             center,
             (node.stationSlots === 4 ? -Math.PI / 4 : angle) +
                 ((layout.slotRowTurns?.[node.id] ?? 0) * Math.PI) / 180,
             citySlotRadius
         )
+        const spread = layout.slotSpreads?.[node.id]
+        return spread === undefined || slots.length !== 4 ? slots : spreadSquare(slots, spread)
+    }
     const centers = new Map<string, Point>()
     const automaticTownPaths = new Map<string, readonly TilePath[]>()
     for (const node of face.nodes) {
@@ -200,15 +210,57 @@ export function createTileDrawing(
         return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
     }
 
-    const townPaths = new Map<string, TileDrawnPath>()
-    for (const [nodeId, incident] of automaticTownPaths) {
+    function plainPath(path: TilePath, start: Point, end: Point): TileDrawnPath {
+        const hint = layout.pathControls?.[path.id]
+        if (!hint && path.endpoints.every((endpoint) => endpoint.kind === 'edge'))
+            return createEdgeTilePath(path.id, start, end)
+        const handleLength = Math.hypot(end.x - start.x, end.y - start.y) * 0.45
+        const controls: readonly [Point, Point] = hint
+            ? [orientPoint(hint[0], angle), orientPoint(hint[1], angle)]
+            : [
+                  path.endpoints[0].kind === 'edge' ? inwardControl(start, handleLength) : start,
+                  path.endpoints[1].kind === 'edge' ? inwardControl(end, handleLength) : end
+              ]
+        return createCubicTilePath(path.id, start, end, controls)
+    }
+    const townLine = (incident: readonly TilePath[]) => {
         const edges = incident.map((path) =>
             path.endpoints.find((endpoint) => endpoint.kind === 'edge')
         )
-        const a = endpointPosition(edges[0]!)
-        const b = endpointPosition(edges[1]!)
-        const curve = createEdgeTilePath(nodeId, a, b)
-        const middle = tilePathPoint(curve, layout.townTrackPositions?.[nodeId] ?? 0.5)
+        assertExists(edges[0], 'A town on through track reaches a hex side')
+        assertExists(edges[1], 'A town on through track reaches a hex side')
+        const a = endpointPosition(edges[0])
+        const b = endpointPosition(edges[1])
+        return { a, b, curve: createEdgeTilePath('line', a, b) }
+    }
+    const otherTrack = (nodeId: string): TileDrawnPath[] => [
+        ...[...automaticTownPaths]
+            .filter(([other]) => other !== nodeId)
+            .map(([, incident]) => townLine(incident).curve),
+        ...face.paths.flatMap((path) => {
+            if ([...automaticTownPaths.values()].some((incident) => incident.includes(path)))
+                return []
+            const known = path.endpoints.every(
+                (endpoint) => endpoint.kind === 'edge' || centers.has(endpoint.nodeId)
+            )
+            return known
+                ? [
+                      plainPath(
+                          path,
+                          endpointPosition(path.endpoints[0]),
+                          endpointPosition(path.endpoints[1])
+                      )
+                  ]
+                : []
+        })
+    ]
+    const townPaths = new Map<string, TileDrawnPath>()
+    for (const [nodeId, incident] of automaticTownPaths) {
+        const { a, b, curve } = townLine(incident)
+        const middle = tilePathPoint(
+            curve,
+            layout.townTrackPositions?.[nodeId] ?? clearPosition(curve, otherTrack(nodeId))
+        )
         centers.set(nodeId, middle)
         incident.forEach((path, index) => {
             const edge = index === 0 ? a : b
@@ -247,22 +299,15 @@ export function createTileDrawing(
             : { ...drawn, spike: { base, tip } }
     }
     const paths = face.paths.map((path): TileDrawnPath => {
-        const start = endpointPosition(path.endpoints[0])
-        const end = endpointPosition(path.endpoints[1])
-        const hint = layout.pathControls?.[path.id]
         const townPath = townPaths.get(path.id)
         if (townPath) return townPath
-        if (!hint && path.endpoints.every((endpoint) => endpoint.kind === 'edge')) {
-            return createEdgeTilePath(path.id, start, end)
-        }
-        const handleLength = Math.hypot(end.x - start.x, end.y - start.y) * 0.45
-        const controls: readonly [Point, Point] = hint
-            ? [orientPoint(hint[0], angle), orientPoint(hint[1], angle)]
-            : [
-                  path.endpoints[0].kind === 'edge' ? inwardControl(start, handleLength) : start,
-                  path.endpoints[1].kind === 'edge' ? inwardControl(end, handleLength) : end
-              ]
-        return withOffboardSpike(path, createCubicTilePath(path.id, start, end, controls))
+        const start = endpointPosition(path.endpoints[0])
+        const end = endpointPosition(path.endpoints[1])
+        const drawn = plainPath(path, start, end)
+        return path.endpoints.every((endpoint) => endpoint.kind === 'edge') &&
+            !layout.pathControls?.[path.id]
+            ? drawn
+            : withOffboardSpike(path, drawn)
     })
 
     const stationSlots = face.nodes.flatMap((node) => {
@@ -350,6 +395,9 @@ export function createTileDrawing(
             node,
             center,
             slots: node.kind === 'city' ? citySlots(node, center) : [],
+            ...(node.kind === 'city' && layout.slotSpreads?.[node.id] !== undefined
+                ? { openBand: true as const }
+                : {}),
             revenuePosition,
             revenueCells,
             revenueHidden,
@@ -474,6 +522,58 @@ function stationPositions(
             rotation + (count === 2 ? index * Math.PI : (index * Math.PI * 2) / count - Math.PI / 2)
         return { x: center.x + Math.cos(angle) * radius, y: center.y + Math.sin(angle) * radius }
     })
+}
+
+/** A square of spaces, upper left first and clockwise, with its lower two swung outward. */
+function spreadSquare(
+    [upperLeft, upperRight, lowerRight, lowerLeft]: readonly Point[],
+    degrees: number
+): Point[] {
+    const turn = (degrees * Math.PI) / 180
+    const swing = (upper: Point, lower: Point, side: number) => {
+        const length = Math.hypot(lower.x - upper.x, lower.y - upper.y)
+        return {
+            x: upper.x + side * Math.sin(turn) * length,
+            y: upper.y + Math.cos(turn) * length
+        }
+    }
+    return [
+        upperLeft,
+        upperRight,
+        swing(upperRight, lowerRight, 1),
+        swing(upperLeft, lowerLeft, -1)
+    ]
+}
+
+/** Other track this near a town's middle runs through its marker, so the town moves along its line. */
+const TownTrackOverlap = 12
+/** How far a moved town keeps from other track, about its marker's length. */
+const TownTrackClearance = 18
+
+/**
+ * Where along its line a town stands: the middle unless other track runs through it there, else
+ * the nearest point to the middle that clears other track, or failing that the clearest point.
+ */
+function clearPosition(line: TileDrawnPath, others: readonly TileDrawnPath[]): number {
+    if (!others.length) return 0.5
+    const samples = others.flatMap((other) =>
+        Array.from({ length: 33 }, (_, index) => tilePathPoint(other, index / 32))
+    )
+    const clearance = (t: number) => {
+        const point = tilePathPoint(line, t)
+        return Math.min(
+            ...samples.map((sample) => Math.hypot(sample.x - point.x, sample.y - point.y))
+        )
+    }
+    if (clearance(0.5) >= TownTrackOverlap) return 0.5
+    const candidates = Array.from(
+        { length: 36 },
+        (_, step) => 0.5 + (step % 2 ? 1 : -1) * Math.ceil(step / 2) * 0.02
+    )
+    return (
+        candidates.find((t) => clearance(t) >= TownTrackClearance) ??
+        candidates.reduce((best, t) => (clearance(t) > clearance(best) ? t : best))
+    )
 }
 
 function townMarkerAngle(center: Point, paths: readonly TileDrawnPath[]): number {

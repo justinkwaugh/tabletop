@@ -4,6 +4,7 @@
     import CertificateCount from '../stock/CertificateCount.svelte'
     import { cashText, optionalMoney } from '../presentation/money.js'
     import './playerTint.css'
+    import '../stock/tradePopover.css'
     import {
         companySharePrice,
         DefaultCompanyPricePresentation,
@@ -242,15 +243,13 @@
         )
         assertExists(choice, 'Choose an available share purchase')
         shareConfirmation?.hidePopover()
-        session.stock.selectPurchase(choice.request)
-        void session.stock.confirmPurchase()
+        void session.stock.buyAndReopenMenu(choice.request)
     }
     function confirmSale(shares: number) {
         const choice = pendingSaleChoices.find((option) => option.sale.shares === shares)
         assertExists(choice, 'Choose an available share sale')
         shareConfirmation?.hidePopover()
-        session.stock.selectSale(choice.request)
-        void session.stock.confirmSale()
+        void session.stock.sellAndReopenMenu(choice.request)
     }
     const portfolioOwners = $derived(
         portfolioCompanyIds.map((ownerId) => ({
@@ -481,13 +480,20 @@
                 cash: { value: (row) => (typeof row.cash === 'number' ? row.cash : undefined) },
                 lastRun: { value: (row) => row.company.lastRunRevenue },
                 ...Object.fromEntries(
-                    titleColumns.map((column) => [
-                        `column:${column.id}`,
-                        {
-                            value: (row: CompanyRow) =>
-                                column.value(session.gameState, row.company.id)
-                        }
-                    ])
+                    titleColumns.flatMap((column) => {
+                        const { value } = column
+                        return value
+                            ? [
+                                  [
+                                      `column:${column.id}`,
+                                      {
+                                          value: (row: CompanyRow) =>
+                                              value(session.gameState, row.company.id)
+                                      }
+                                  ]
+                              ]
+                            : []
+                    })
                 )
             }
         }
@@ -599,6 +605,14 @@
     >
 {/snippet}
 
+{#snippet titleHeader(scope: 'col' | 'row', column: (typeof titleColumns)[number])}
+    {#if column.value}{@render companySortHeader(
+            scope,
+            column.label,
+            `column:${column.id}`
+        )}{:else}<th {scope} class:company-stat-start={scope === 'col'}>{column.label}</th>{/if}
+{/snippet}
+
 {#snippet playerSortHeader(scope: 'col' | 'row', key: OwnerStatistic, statStart = false)}
     {@const direction = spreadsheetSortDirection(playerSort, key)}
     <th {scope} class:stat-start={statStart} aria-sort={direction}
@@ -647,6 +661,19 @@
     {:else}<span class="last-run-revenue">{money(company.lastRunRevenue)}</span>{/if}
 {/snippet}
 
+{#snippet titleCell(column: (typeof titleColumns)[number], companyId: string)}
+    {#if column.marks}<span
+            class="title-marks"
+            role="group"
+            aria-label={column.text(session.gameState, companyId)}
+            >{#each column.marks(session.gameState, companyId) as mark (mark.label)}{#if mark.imageUrl}<img
+                        src={mark.imageUrl}
+                        alt=""
+                        title={mark.description}
+                    />{:else}<span title={mark.description}>{mark.label}</span>{/if}{/each}</span
+        >{:else}{column.text(session.gameState, companyId)}{/if}
+{/snippet}
+
 {#snippet companyTrains(companyId: string)}
     <span class="company-trains">
         {#each trainsOwnedBy(session.gameState, { kind: 'company', companyId }) as train (train.id)}
@@ -654,6 +681,7 @@
                 name={session.trainDepot.trainDefinition(train.definitionId).name}
                 color={trainColors[train.definitionId]}
                 obsolete={isObsoleteTrain(train)}
+                tokens={session.presentation.trainTokens?.(session.gameState, train)}
             />
         {:else}<span class="empty">—</span>{/each}
     </span>
@@ -872,10 +900,9 @@
                                     <th scope="col">Trains</th>
                                     <th scope="col">Tokens</th>
                                     {@render companySortHeader('col', 'Last run', 'lastRun')}
-                                    {#each titleColumns as column (column.id)}{@render companySortHeader(
+                                    {#each titleColumns as column (column.id)}{@render titleHeader(
                                             'col',
-                                            column.label,
-                                            `column:${column.id}`
+                                            column
                                         )}{/each}
                                 {:else}
                                     {#each rows as row (row.company.id)}
@@ -943,10 +970,7 @@
                                         >
                                         {#each titleColumns as column (column.id)}<td
                                                 class="company-stat-start bright-cell"
-                                                >{column.text(
-                                                    session.gameState,
-                                                    row.company.id
-                                                )}</td
+                                                >{@render titleCell(column, row.company.id)}</td
                                             >{/each}
                                     </tr>
                                 {/each}
@@ -1114,19 +1138,12 @@
                                 </tr>
                                 {#each titleColumns as column (column.id)}
                                     <tr class="company-stat-start financial-row">
-                                        {@render companySortHeader(
-                                            'row',
-                                            column.label,
-                                            `column:${column.id}`
-                                        )}
+                                        {@render titleHeader('row', column)}
                                         {#each rows as row (row.company.id)}<td
                                                 class:operating-column={row.company.id ===
                                                     operatingCompanyId}
                                                 class="bright-cell"
-                                                >{column.text(
-                                                    session.gameState,
-                                                    row.company.id
-                                                )}</td
+                                                >{@render titleCell(column, row.company.id)}</td
                                             >{/each}
                                         {#each ownerStatisticKeys as _, index (index)}<td
                                                 class:stat-start={index === 0}
@@ -1148,7 +1165,7 @@
         {/if}
     </div>
     <div
-        class="share-confirmation"
+        class="share-confirmation trade-popover"
         popover="auto"
         role="dialog"
         aria-label="Confirm share trade"
@@ -1251,17 +1268,7 @@
 
 <style>
     .share-confirmation {
-        position: fixed;
-        inset: auto;
         transform: translateX(-50%);
-        margin: 0;
-        padding: 10px 12px;
-        border: 1px solid var(--rail-border, #c7b8a6);
-        border-radius: 8px;
-        background: var(--rail-surface, #fffdf8);
-        color: var(--rail-text, #514536);
-        box-shadow: 0 6px 18px #0005;
-        font-size: 13px;
     }
     .trade-question,
     .trade-answer {
@@ -1295,8 +1302,8 @@
     }
     .trade-answer .confirm-trade,
     .sale-options button {
-        border-color: #236147;
-        background: #287452;
+        border-color: var(--trade-buy-border);
+        background: var(--trade-buy);
         color: #fff;
         font-weight: 700;
     }
@@ -1575,6 +1582,16 @@
         justify-content: center;
         flex-wrap: wrap;
         gap: 3px;
+    }
+    .title-marks {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 3px;
+    }
+    .title-marks img {
+        width: 16px;
+        height: 16px;
     }
     .share-value {
         position: relative;

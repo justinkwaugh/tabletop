@@ -4,21 +4,27 @@ import { createClient, TimeoutError, type RedisClientType } from 'redis'
 import { assertExists, GameResult, GameStatus, PlayerStatus, type Game } from '@tabletop/common'
 import {
     RECENTLY_FINISHED_LIMIT,
-    TitleActivityCache,
-    TitleActivityUnavailableError,
-    type TitleActivitySource
-} from './titleActivityCache.js'
+    ActivityCache,
+    SeriesActivityScope,
+    TitleActivityScope,
+    ActivityUnavailableError,
+    type ActivitySource
+} from './activityCache.js'
 import { GameCacheKeys } from '../persistence/firestore/gameCacheKeys.js'
 import { RedisProxy } from '../cache/tests/redisProxy.js'
 import { RedisService } from '../redis/redisService.js'
 
 const MINUTE = 60_000
 
-class FakeSource implements TitleActivitySource {
+class FakeSource implements ActivitySource {
     games: Game[] = []
     queries = 0
     candidatesRead = 0
     hold: Promise<void> | undefined
+
+    async findOpenCandidates(): Promise<Game[]> {
+        return []
+    }
 
     async findInProgressCandidates(titleId: string): Promise<Game[]> {
         return this.read(
@@ -58,7 +64,7 @@ class FakeSource implements TitleActivitySource {
 
 describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST)('title activity cache', () => {
     let client: RedisClientType
-    let cache: TitleActivityCache
+    let cache: ActivityCache
     let source: FakeSource
     let titleId: string
     let key: string
@@ -126,7 +132,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST)('title activity cache', () =
             socket: { host: process.env.CACHE_TEST_REDIS_HOST, reconnectStrategy: false }
         })
         await client.connect()
-        cache = new TitleActivityCache(client)
+        cache = new ActivityCache(client, TitleActivityScope)
         source = new FakeSource()
     })
 
@@ -326,7 +332,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST)('title activity cache', () =
         source.games = [game('g'), finished('f', 1)]
         let release = () => {}
         source.hold = new Promise((resolve) => (release = resolve))
-        const otherInstance = new TitleActivityCache(client)
+        const otherInstance = new ActivityCache(client, TitleActivityScope)
 
         const reads = [
             cache.read(titleId, source),
@@ -394,12 +400,12 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST)('title activity cache', () =
         const offline: RedisClientType = createClient({
             socket: { host: process.env.CACHE_TEST_REDIS_HOST, reconnectStrategy: false }
         })
-        const unavailable = new TitleActivityCache(offline)
+        const unavailable = new ActivityCache(offline, TitleActivityScope)
         vi.spyOn(console, 'warn').mockImplementation(() => {})
         vi.spyOn(console, 'error').mockImplementation(() => {})
 
         await expect(unavailable.read(titleId, source)).rejects.toBeInstanceOf(
-            TitleActivityUnavailableError
+            ActivityUnavailableError
         )
         await expect(unavailable.applyChange(undefined, game('g'))).resolves.toBeUndefined()
         expect(source.queries).toBe(0)
@@ -415,7 +421,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST)('title activity cache', () =
                 () => undefined,
                 (rejection: unknown) => rejection
             )
-            expect(error).toBeInstanceOf(TitleActivityUnavailableError)
+            expect(error).toBeInstanceOf(ActivityUnavailableError)
             return error instanceof Error ? error.cause : undefined
         }
 
@@ -439,7 +445,9 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST)('title activity cache', () =
         })
 
         it('reports unavailable at once while reconnecting, drops changes, and serves again after', async () => {
-            const reader = new TitleActivityCache(flaky, { commandTimeoutMs: 10_000 })
+            const reader = new ActivityCache(flaky, TitleActivityScope, {
+                commandTimeoutMs: 10_000
+            })
             source.games = [game('g')]
             expect((await names(reader)).inProgress).toEqual(['g'])
 
@@ -447,7 +455,7 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST)('title activity cache', () =
             await vi.waitFor(() => expect(flaky.isReady).toBe(false))
             const started = Date.now()
             await expect(reader.read(titleId, source)).rejects.toBeInstanceOf(
-                TitleActivityUnavailableError
+                ActivityUnavailableError
             )
             await reader.applyChange(undefined, game('while-offline'))
             expect(Date.now() - started).toBeLessThan(1000)
@@ -462,7 +470,9 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST)('title activity cache', () =
         }, 20_000)
 
         it('drops a command a disconnect queued after the readiness check', async () => {
-            const reader = new TitleActivityCache(flaky, { commandTimeoutMs: timeoutMs })
+            const reader = new ActivityCache(flaky, TitleActivityScope, {
+                commandTimeoutMs: timeoutMs
+            })
             await names(reader)
             await proxy.cut()
             await vi.waitFor(() => expect(flaky.isReady).toBe(false))
@@ -480,7 +490,9 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST)('title activity cache', () =
         }, 20_000)
 
         it('bounds a command Redis never answers, then recovers', async () => {
-            const reader = new TitleActivityCache(flaky, { commandTimeoutMs: timeoutMs })
+            const reader = new ActivityCache(flaky, TitleActivityScope, {
+                commandTimeoutMs: timeoutMs
+            })
             source.games = [game('g')]
             await names(reader)
 
@@ -499,7 +511,9 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST)('title activity cache', () =
         })
 
         it('reports a stalled rebuild without waiting for its cleanup', async () => {
-            const reader = new TitleActivityCache(flaky, { commandTimeoutMs: timeoutMs })
+            const reader = new ActivityCache(flaky, TitleActivityScope, {
+                commandTimeoutMs: timeoutMs
+            })
             source.games = [game('g')]
             let release = () => {}
             source.hold = new Promise((resolve) => (release = resolve))
@@ -516,5 +530,137 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST)('title activity cache', () =
             expect((await names(reader)).inProgress).toEqual(['g'])
             expect(source.queries).toBe(2)
         })
+    })
+})
+
+describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST)('series activity cache', () => {
+    let client: RedisClientType
+    let cache: ActivityCache
+    let seriesId: string
+    let stored: Game[]
+    const base = Date.parse('2026-10-01T00:00:00Z')
+
+    const source: ActivitySource = {
+        findOpenCandidates: async (id) =>
+            listed(id).filter((game) => game.status === GameStatus.WaitingForPlayers),
+        findInProgressCandidates: async (id) =>
+            listed(id).filter((game) => game.status === GameStatus.Started),
+        findFinishedCandidates: async (id, after, limit) => {
+            const finished = listed(id)
+                .filter((game) => game.status === GameStatus.Finished)
+                .sort((a, b) => (b.finishedAt?.getTime() ?? 0) - (a.finishedAt?.getTime() ?? 0))
+            const start = after ? finished.findIndex((game) => game.id === after.id) + 1 : 0
+            return structuredClone(finished.slice(start, start + limit))
+        }
+    }
+
+    function listed(id: string) {
+        return structuredClone(stored.filter((game) => game.series === id && game.isPublic))
+    }
+
+    function game(id: string, typeId: string, fields: Partial<Game> = {}): Game {
+        return {
+            id: `${seriesId}-${id}`,
+            typeId,
+            series: seriesId,
+            name: id,
+            status: GameStatus.Started,
+            isPublic: true,
+            deleted: false,
+            ownerId: 'owner',
+            hotseat: false,
+            config: {},
+            players: [
+                {
+                    id: 'p1',
+                    userId: 'owner',
+                    name: 'Owner',
+                    isHuman: true,
+                    status: PlayerStatus.Joined
+                }
+            ],
+            createdAt: new Date(base),
+            startedAt: new Date(base),
+            updatedAt: new Date(base),
+            winningPlayerIds: [],
+            ...fields
+        }
+    }
+
+    function at(minutes: number) {
+        return new Date(base + minutes * MINUTE)
+    }
+
+    async function names() {
+        const activity = await cache.read(seriesId, source)
+        return {
+            open: activity.open.map((entry) => entry.name),
+            inProgress: activity.inProgress.map((entry) => entry.name),
+            recentlyFinished: activity.recentlyFinished.map((entry) => entry.name)
+        }
+    }
+
+    beforeEach(async () => {
+        seriesId = `series-activity-test-${randomUUID()}`
+        stored = []
+        client = createClient({
+            socket: { host: process.env.CACHE_TEST_REDIS_HOST, reconnectStrategy: false }
+        })
+        await client.connect()
+        cache = new ActivityCache(client, SeriesActivityScope)
+    })
+
+    afterEach(async () => {
+        await client.del(GameCacheKeys.seriesActivity(seriesId))
+        await client.quit()
+    })
+
+    it('lists the open, in progress and finished games of every title in the series', async () => {
+        stored = [
+            game('open-a', 'a', { status: GameStatus.WaitingForPlayers, createdAt: at(1) }),
+            game('open-b', 'b', { status: GameStatus.WaitingForPlayers, createdAt: at(5) }),
+            game('playing-a', 'a', { lastActionAt: at(3) }),
+            game('playing-b', 'b', { lastActionAt: at(9) }),
+            game('done-b', 'b', {
+                status: GameStatus.Finished,
+                result: GameResult.Win,
+                finishedAt: at(2)
+            }),
+            game('unlisted', 'a', { unlisted: true }),
+            game('private', 'b', { isPublic: false })
+        ]
+        expect(await names()).toEqual({
+            open: ['open-b', 'open-a'],
+            inProgress: ['playing-b', 'playing-a'],
+            recentlyFinished: ['done-b']
+        })
+    })
+
+    it('moves a game through the lists as it starts and finishes', async () => {
+        await names()
+        const waiting = game('table', 'a', { status: GameStatus.WaitingForPlayers })
+        await cache.applyChange(undefined, waiting)
+        expect((await names()).open).toEqual(['table'])
+        const started = { ...waiting, status: GameStatus.Started, updatedAt: at(1) }
+        await cache.applyChange(waiting, started)
+        expect(await names()).toEqual({ open: [], inProgress: ['table'], recentlyFinished: [] })
+        const done = {
+            ...started,
+            status: GameStatus.Finished,
+            result: GameResult.Win,
+            finishedAt: at(2),
+            updatedAt: at(2)
+        }
+        await cache.applyChange(started, done)
+        expect(await names()).toEqual({ open: [], inProgress: [], recentlyFinished: ['table'] })
+    })
+
+    it('adds a game once it is labelled with the series', async () => {
+        await names()
+        const unlabelled = game('older', 'a', { series: undefined })
+        await cache.applyChange(undefined, unlabelled)
+        expect((await names()).inProgress).toEqual([])
+        await cache.applyChange(unlabelled, { ...unlabelled, series: seriesId, updatedAt: at(1) })
+        expect((await names()).inProgress).toEqual(['older'])
     })
 })

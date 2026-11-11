@@ -15,7 +15,9 @@ import type { TrainRunningState } from '../routes/route.js'
 export const EarningsChoice = Type.Union([
     Type.Literal('pay'),
     Type.Literal('withhold'),
-    Type.Literal('half-pay')
+    Type.Literal('half-pay'),
+    /** Pay out the revenue with a top-up from the treasury, as 1862's George Hudson allows. */
+    Type.Literal('top-up')
 ])
 export type EarningsChoice = Type.Static<typeof EarningsChoice>
 export const EarningsDetails = Type.Object(
@@ -29,7 +31,9 @@ export const EarningsDetails = Type.Object(
         bankAdjustment: Type.Integer(),
         payments: Type.Array(CashPayment),
         charges: Type.Optional(Type.Array(CashPayment)),
-        marketMove: Type.Optional(StockMarketMove)
+        marketMove: Type.Optional(StockMarketMove),
+        /** What the treasury added to the revenue paid out. */
+        topUp: Type.Optional(Type.Integer({ minimum: 1 }))
     },
     { additionalProperties: false }
 )
@@ -67,6 +71,11 @@ export interface EarningsRules {
         distribution: DistributionSummary
     ): { move?: StockMarketMove; bonusPerShare: number }
     afterDistribution?(state: DistributionState, companyId: string): void
+    /**
+     * What the company's treasury may add to its revenue to pay it all out, offered as the
+     * ``top-up`` choice; undefined or zero offers none (1862 §7.8.6).
+     */
+    treasuryTopUp?(state: DistributionState, companyId: string, revenue: number): number | undefined
 }
 export function dividendEntitlements(
     state: FinancialState,
@@ -132,7 +141,13 @@ export class EarningsDistribution {
             return { reason: 'This company is not distributing earnings.' }
         if (!this.choices(companyId).includes(choice))
             return { reason: 'This distribution choice is not available.' }
-        const revenue = result.revenue,
+        const topUp =
+            choice === 'top-up'
+                ? (this.rules.treasuryTopUp?.(this.state, companyId, result.revenue) ?? 0)
+                : 0
+        if (choice === 'top-up' && !topUp)
+            return { reason: 'The treasury cannot top up this revenue.' }
+        const revenue = result.revenue + topUp,
             retained = this.rules.retainedRevenue(this.state, companyId, choice, revenue)
         const count = this.rules.shareCount(this.state, companyId)
         assert(count > 0 && Number.isInteger(count), 'Dividends require a positive share count')
@@ -175,14 +190,15 @@ export class EarningsDistribution {
             details: {
                 companyId,
                 choice,
-                revenue,
+                revenue: result.revenue,
                 retained,
                 dividendPerShare,
                 bonusPerShare: effect.bonusPerShare,
                 bankAdjustment: total - revenue,
                 payments,
                 ...(charges.length ? { charges } : {}),
-                ...(effect.move ? { marketMove: effect.move } : {})
+                ...(effect.move ? { marketMove: effect.move } : {}),
+                ...(topUp ? { topUp } : {})
             }
         }
     }

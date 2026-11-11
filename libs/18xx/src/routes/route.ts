@@ -57,7 +57,13 @@ export const RouteResult = Type.Object(
 )
 export type RouteResult = Type.Static<typeof RouteResult>
 export const OperatingResult = Type.Object(
-    { companyId: Id, routes: Type.Array(RouteResult), revenue: Type.Integer({ minimum: 0 }) },
+    {
+        companyId: Id,
+        routes: Type.Array(RouteResult),
+        revenue: Type.Integer({ minimum: 0 }),
+        /** What the bank paid the treasury for the run beside its revenue, such as a subsidy. */
+        subsidy: Type.Optional(Type.Integer({ minimum: 1 }))
+    },
     { additionalProperties: false }
 )
 export type OperatingResult = Type.Static<typeof OperatingResult>
