@@ -734,18 +734,23 @@ describe('Explore, Harvest, Tax, Repeat, Defend', () => {
         expect(lastByUser(turn)).toMatchObject({ type: ActionType.ChooseFavours, favours: null })
     })
 
-    it('S22 R-3.12 the button says Reinforcements; one press sends; Undo is offered', async () => {
+    it('S22 R-3.12-H1 Reinforcements is asked in rows; the button says the answer; Undo is offered', async () => {
         const turn = await atCards(['tax', 'guild'], (state, { seat }) => {
             state.getPlayerState(seat).pawns[0].character = 'knight'
             ruleTown(state, seat)
         })
         const { session } = turn
         await pressCard(session.actionPanel, 'tax')
+        expect(rowLabels(session.actionPanel, 'flow')).toEqual([
+            'Collect Reinforcements · +1 marker',
+            'Decline Reinforcements'
+        ])
+        await pressRow(rowNamed(session.actionPanel, 'Collect Reinforcements · +1 marker'))
         expect(primaryLabels(session.actionPanel)[0]).toMatch(
             /^Tax · \+\d+s · Reinforcements \+1 marker$/
         )
         await sendNamed(session, /^Tax/)
-        expect(lastByUser(turn)).toMatchObject({ type: ActionType.Tax })
+        expect(lastByUser(turn)).toMatchObject({ type: ActionType.Tax, collect: true })
         expect(session.undoableAction).toBeDefined()
     })
 

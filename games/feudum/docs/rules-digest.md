@@ -211,7 +211,7 @@ Card symbols: x2 (may be replayed by Repeat); crossed x2 (never replayed); not-l
 ### R-3.12 Tax
 
 1. If you rule a town: take 2 shillings + 1 per other town or feudum ruled. (RB p. 13)
-2. **Reinforcements:** with a Knight pawn on the board, also take 1 of your influence markers from the general supply, or from your Knight Guild row if the supply has none of your colour. (RB p. 13; D 2020-11-27; D 2018-08-27)
+2. **Reinforcements:** with a Knight pawn on the board, you may also take 1 of your influence markers from the general supply, or from your Knight Guild row if the supply has none of your colour. (RB p. 13; D 2020-11-27; D 2018-08-27)
 
 ### R-3.13 Conquer
 

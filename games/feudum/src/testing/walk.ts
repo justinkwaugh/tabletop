@@ -24,7 +24,7 @@ import { moveOffers, type MoveStep, type Pilfer, type PilferOffer } from '../act
 import { nourishOffer } from '../actions/nourish.js'
 import { isPlaceDisc, reasonPlaceDiscRefused } from '../actions/placeDisc.js'
 import { starveOffers } from '../actions/starveThePeople.js'
-import { reasonTaxRefused } from '../actions/tax.js'
+import { reasonTaxRefused, reinforcementsOffered } from '../actions/tax.js'
 import { tendLandscapeOffers } from '../actions/tendLandscape.js'
 import { Spaces, type SpaceId } from '../data/board.js'
 import { ActionCards, type ActionCardKind } from '../data/cards.js'
@@ -298,9 +298,10 @@ export function cardMove(
             return move && { ...move, asRepeat: 'repeat' }
         }
         case 'tax': {
-            return reasonTaxRefused(state, playerId, {})
+            const collect = reinforcementsOffered(state, playerId) ? { collect: true } : {}
+            return reasonTaxRefused(state, playerId, collect)
                 ? undefined
-                : { type: ActionType.Tax, playerId }
+                : { type: ActionType.Tax, playerId, ...collect }
         }
         case 'defend': {
             return { type: ActionType.PlayDefend, playerId }

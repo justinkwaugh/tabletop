@@ -468,7 +468,7 @@ export const CardCases: readonly CardCase[] = [
             ruleFirst(state, seat, 'town')
             standAs(state, seat, 1, 'knight')
         },
-        move: () => ({ type: ActionType.Tax }),
+        move: () => ({ type: ActionType.Tax, collect: true }),
         fired: (after, before, seat) => {
             const player = after.getPlayerState(seat)
             const held = before.getPlayerState(seat)

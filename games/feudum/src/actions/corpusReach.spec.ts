@@ -69,7 +69,7 @@ import { keepWritsOffer } from './keepWrits.js'
 import { migrateOffers } from './migrate.js'
 import { moveOffers } from './move.js'
 import { starveOffers } from './starveThePeople.js'
-import { taxPreview } from './tax.js'
+import { reinforcementsOffered, taxPreview } from './tax.js'
 import { tendLandscapeOffers } from './tendLandscape.js'
 
 const Windows: readonly WindowName[] = [
@@ -673,13 +673,16 @@ describe('corpus reach: the cards', () => {
             expect(keepWritsOffer(held.table.hydrated(), held.seat)?.shovelsAndSwords).toBeDefined()
         })
 
-        it('R-3.12-H1 Reinforcements comes with a Knight pawn and not without', () => {
+        it('R-3.12-H1 Reinforcements is asked with a Knight pawn and not without', () => {
             const row = caseNamed('Tax with Reinforcements')
             const held = tableHolding(['tax', 'guild', 'move'])
             const { table, seat } = held
             arrange(row, held)
             expect(cardPlayOffers(table.hydrated(), seat).cards[0].special).toBe(true)
-            expect(taxPreview(table.hydrated(), seat).reinforcements).toBeDefined()
+            expect(reinforcementsOffered(table.hydrated(), seat)).toBe(true)
+            expect(
+                taxPreview(table.hydrated(), seat, { collect: true }).reinforcements
+            ).toBeDefined()
 
             setUp(table, (state) => {
                 standAs(state, seat, 1, 'farmer')
@@ -687,7 +690,7 @@ describe('corpus reach: the cards', () => {
             })
 
             expect(cardPlayOffers(table.hydrated(), seat).cards[0].special).toBe(false)
-            expect(taxPreview(table.hydrated(), seat).reinforcements).toBeUndefined()
+            expect(reinforcementsOffered(table.hydrated(), seat)).toBe(false)
         })
 
         it('R-3.15.2 Déjà Vu wants a saltpeter; Repeat still replays an x2 card without one', () => {

@@ -9,6 +9,7 @@ import {
     CardPlayFields,
     playCard,
     reasonCardPlayRefused,
+    reasonSpecialRefused,
     specialOffered,
     type CardPlayInput,
     type RepeatMode
@@ -37,6 +38,8 @@ export const Tax = Type.Evaluate(
         Type.Object({
             type: Type.Literal(ActionType.Tax),
             playerId: Type.String(),
+            /** R-3.12.2, R-3.12-H1 Whether to collect Reinforcements; asked only when a marker can come. */
+            collect: Type.Optional(Type.Boolean()),
             metadata: Type.Optional(TaxMetadata)
         })
     ])
@@ -60,15 +63,59 @@ export function taxShillings(state: HydratedFeudumGameState, playerId: string): 
     return TaxBaseShillings + others.length - 1
 }
 
-/** R-3.12.1 */
+/** What a Tax press says beside the card. */
+export type TaxInput = CardPlayInput & Pick<Tax, 'collect'>
+
+/** R-3.12.2 Where the seat's marker would come from: the general supply, else its own Knight row. */
+function reinforcementSource(
+    state: HydratedFeudumGameState,
+    playerId: string
+): TaxMetadata['reinforcements'] {
+    const player = state.getPlayerState(playerId)
+    if ((state.supply.influence[player.color] ?? 0) > 0) {
+        return 'general-supply'
+    }
+    const row = state.guilds.knight.rows.find((candidate) => candidate.playerId === playerId)
+    return row && row.markers > 0 ? 'knight-row' : undefined
+}
+
+/**
+ * R-3.12.2, R-3.12-H1 The seat may collect Reinforcements: it has a Knight pawn on the board and a
+ * marker can come. Only then is it asked.
+ */
+export function reinforcementsOffered(state: HydratedFeudumGameState, playerId: string): boolean {
+    return (
+        specialOffered(state, playerId, 'tax') && reinforcementSource(state, playerId) !== undefined
+    )
+}
+
+function reasonCollectRefused(
+    state: HydratedFeudumGameState,
+    playerId: string,
+    collect: boolean | undefined
+): string | undefined {
+    if (reinforcementsOffered(state, playerId)) {
+        return collect === undefined ? 'Collect Reinforcements or decline it.' : undefined
+    }
+    if (!collect) {
+        return undefined
+    }
+    return (
+        reasonSpecialRefused(state, playerId, 'tax') ??
+        'No influence marker of yours is left to collect.'
+    )
+}
+
+/** R-3.12.1, R-3.12-H1 */
 export function reasonTaxRefused(
     state: HydratedFeudumGameState,
     playerId: string,
-    input: CardPlayInput
+    input: TaxInput
 ): string | undefined {
     return (
         reasonCardPlayRefused(state, playerId, 'tax', input) ??
-        (ruledKinds(state, playerId).includes('town') ? undefined : 'You rule no town.')
+        (ruledKinds(state, playerId).includes('town') ? undefined : 'You rule no town.') ??
+        reasonCollectRefused(state, playerId, input.collect)
     )
 }
 
@@ -78,26 +125,28 @@ function takeReinforcement(
     playerId: string
 ): TaxMetadata['reinforcements'] {
     const player = state.getPlayerState(playerId)
-    if ((state.supply.influence[player.color] ?? 0) > 0) {
+    const source = reinforcementSource(state, playerId)
+    if (source === 'general-supply') {
         state.supply.influence[player.color] -= 1
-        player.influenceSupply += 1
-        return 'general-supply'
     }
     const row = state.guilds.knight.rows.find((candidate) => candidate.playerId === playerId)
-    if (row && row.markers > 0) {
+    if (source === 'knight-row' && row) {
         row.markers -= 1
-        player.influenceSupply += 1
-        return 'knight-row'
     }
-    return undefined
+    if (source) {
+        player.influenceSupply += 1
+    }
+    return source
 }
 
-/** R-3.12, R-X.1 Reinforcements costs nothing and asks nothing, so it applies by itself. */
-function resolveTax(state: HydratedFeudumGameState, playerId: string): TaxMetadata {
+/** R-3.12, R-3.12-H1 The shillings, and the marker only when the seat collects it. */
+function resolveTax(
+    state: HydratedFeudumGameState,
+    playerId: string,
+    collect: boolean
+): TaxMetadata {
     const shillings = payShillingsFromSupply(state, playerId, taxShillings(state, playerId))
-    const reinforcements = specialOffered(state, playerId, 'tax')
-        ? takeReinforcement(state, playerId)
-        : undefined
+    const reinforcements = collect ? takeReinforcement(state, playerId) : undefined
     return {
         shillings,
         ...(reinforcements ? { reinforcements } : {}),
@@ -106,13 +155,18 @@ function resolveTax(state: HydratedFeudumGameState, playerId: string): TaxMetada
 }
 
 /** R-3.12 What the press would give, by the real rule on a copy (S22). */
-export function taxPreview(state: HydratedFeudumGameState, playerId: string): TaxMetadata {
-    return resolveTax(new HydratedFeudumGameState(state.dehydrate()), playerId)
+export function taxPreview(
+    state: HydratedFeudumGameState,
+    playerId: string,
+    { collect }: Pick<Tax, 'collect'>
+): TaxMetadata {
+    return resolveTax(new HydratedFeudumGameState(state.dehydrate()), playerId, collect === true)
 }
 
 export class HydratedTax extends HydratableAction<typeof Tax> implements Tax {
     declare type: ActionType.Tax
     declare playerId: string
+    declare collect?: boolean
     declare metadata?: TaxMetadata
     declare asRepeat?: RepeatMode
     declare secondCard?: true
@@ -121,14 +175,14 @@ export class HydratedTax extends HydratableAction<typeof Tax> implements Tax {
         super(data, TaxValidator)
     }
 
-    /** R-3.12, R-X.1 */
+    /** R-3.12, R-3.12-H1 */
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {
         const reason = reasonTaxRefused(state, this.playerId, this)
         if (reason) {
             throw Error(reason)
         }
-        const special = specialOffered(state, this.playerId, 'tax')
-        playCard(state, this.playerId, 'tax', special ? 'special' : 'regular', this)
-        this.metadata = resolveTax(state, this.playerId)
+        const collect = this.collect === true
+        playCard(state, this.playerId, 'tax', collect ? 'special' : 'regular', this)
+        this.metadata = resolveTax(state, this.playerId, collect)
     }
 }

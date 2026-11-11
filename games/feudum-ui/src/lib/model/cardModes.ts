@@ -19,6 +19,7 @@ import {
     reasonPlayDefendRefused,
     reasonSpecialRefused,
     reasonTaxRefused,
+    reinforcementsOffered,
     specialOffered,
     specialShortOfGood,
     StartingSpaceIds,
@@ -191,9 +192,18 @@ function reasonFeastModeRefused(
         : `${reasonSpecialRefused(state, playerId, 'guild')} ${SpendFirst}`
 }
 
+/** R-3.12.1, R-3.12-H1 The shillings; Reinforcements is asked once the card is picked. */
 function taxLabel({ state, playerId }: TurnContext): string {
-    const { shillings, reinforcements } = taxPreview(state, playerId)
-    return `Tax · +${shillings}s${reinforcements ? ' · Reinforcements +1 marker' : ''}`
+    return `Tax · +${taxPreview(state, playerId, { collect: false }).shillings}s`
+}
+
+/** R-3.12-H1 Either answer to Reinforcements opens the mode; its flow asks which. */
+function reasonTaxModeRefused(
+    { state, playerId }: TurnContext,
+    input: CardPlayInput
+): string | undefined {
+    const answered = reinforcementsOffered(state, playerId) ? { ...input, collect: false } : input
+    return reasonTaxRefused(state, playerId, answered)
 }
 
 type ModeRow = (context: TurnContext, input: CardPlayInput) => CardMode | undefined
@@ -259,11 +269,7 @@ const CardModes: Readonly<Record<ActionCardKind, readonly ModeRow[]>> = {
     ],
     tax: [
         (context, input) =>
-            mode(
-                ActionType.Tax,
-                taxLabel(context),
-                reasonTaxRefused(context.state, context.playerId, input)
-            )
+            mode(ActionType.Tax, taxLabel(context), reasonTaxModeRefused(context, input))
     ],
     conquer: [
         Regular(ActionType.Conquer, 'conquer', (context, input) =>
