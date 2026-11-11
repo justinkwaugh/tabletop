@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import { assertExists } from '@tabletop/common'
 import type { GuildId } from '../data/components.js'
 import type { SpaceId } from '../data/board.js'
+import type { TileId } from '../data/regionTiles.js'
 import { Mandates } from '../data/writs.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
@@ -14,7 +16,7 @@ import { playOutCards } from '../testing/roundEnd.js'
 import { canonicalOf } from '../testing/state.js'
 import { tableAtPlayingCards } from '../testing/table.js'
 import { isNourishPawns } from './nourishPawns.js'
-import { nourishHasChoice, nourishOffer, nourishPreview } from './nourish.js'
+import { nourishHasChoice, nourishOffer, nourishPreview, type NourishInput } from './nourish.js'
 
 /** R-1.4.4 Moves the seat's food to or from the haversack, keeping totals. */
 function setFood(state: HydratedFeudumGameState, playerId: string, food: number): void {
@@ -517,5 +519,70 @@ describe('R-4.5-H1 nourishing re-ranks once, from the new totals, when it ends',
         expect(rankOf(after.guilds.tracks.knight, order[0])).toBe('master')
         expect(rankOf(after.guilds.tracks.knight, order[1])).toBe('journeyman')
         expect(conservationBreaks(canonicalOf(after))).toEqual([])
+    })
+
+    it('R-4.5-H1, S53 an asked seat that is not the last: its preview and its Nourish promise no rank change', () => {
+        const { table, order } = tiedKnights((state, [first, second]) => {
+            holdWrit(state, first, 'writ.mandate.5')
+            holdWrit(state, second, 'writ.mandate.7')
+        })
+        playOutCards(table)
+        expect(table.state.flow.nourish?.pending).toEqual([order[0], order[1]])
+
+        const choice: NourishInput = { wineFed: [], unfed: [1] }
+        expect(nourishPreview(table.hydrated(), order[0], choice)).toEqual({
+            food: 0,
+            wine: 0,
+            unfed: 1
+        })
+        const [first] = table.send(order[0], { ...Nourish, ...choice })
+
+        expect(first).not.toHaveProperty('metadata.rankChanges')
+        expect(rankOf(table.hydrated().guilds.tracks.knight, order[0])).toBe('master')
+        const [last] = table.send(order[1], { ...Nourish, ...choice })
+        expect(last).toMatchObject({ metadata: { rankChanges: [] } })
+        expect(rankOf(table.hydrated().guilds.tracks.knight, order[0])).toBe('master')
+    })
+})
+
+/** R-4.10.1 The haversack holds no food: the third seat holds it all and has no pawn to feed. */
+function emptyLarder(edit: (state: HydratedFeudumGameState, order: readonly string[]) => void) {
+    const table = tableAtPlayingCards(undefined, 3)
+    const order: string[] = []
+    table.moveTo((state) => {
+        order.push(...state.turnManager.turnOrder)
+        edit(state, order)
+        const third = order[2]
+        setPawns(state, third, [])
+        setFood(state, third, state.getPlayerState(third).goods.food + state.supply.haversack.food)
+        return MachineState.PlayingCards
+    })
+    expect(table.hydrated().supply.haversack.food).toBe(0)
+    return { table, order }
+}
+
+describe('R-4.10.1, R-4.10-H4 nourishing in turn order', () => {
+    it('R-4.3.3 food an earlier seat pays into the haversack can feed a later seat by its tile', () => {
+        let tileId: TileId | undefined
+        const { table, order } = emptyLarder((state, [first, second]) => {
+            setPawns(state, first, ['farmer'])
+            setFood(state, first, 1)
+            setBarrel(state, first, 0)
+            holdWrit(state, first, 'writ.mandate.5')
+            setPawns(state, second, ['farmer'])
+            setFood(state, second, 0)
+            setBarrel(state, second, 0)
+            tileId = giveTile(state, second)
+        })
+        assertExists(tileId, 'The second seat holds a tile')
+        playOutCards(table)
+        expect(table.state.flow.nourish?.pending).toEqual([order[0], order[1]])
+
+        table.send(order[0], Nourish)
+        expect(table.hydrated().supply.haversack.food).toBe(1)
+        const [fed] = table.send(order[1], { ...Nourish, wildTiles: [{ tileId, good: 'food' }] })
+
+        expect(fed).toMatchObject({ metadata: { foodFed: [1], returned: [] } })
+        expect(conservationBreaks(canonicalOf(table.hydrated()))).toEqual([])
     })
 })
