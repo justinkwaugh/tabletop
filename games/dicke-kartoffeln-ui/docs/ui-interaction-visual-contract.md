@@ -12,7 +12,7 @@
 - **The year track.** The action area shows the round in play and as many following rounds as fit its width comfortably (up to a whole year), running on into next year (set off by a divider) while one follows. Narrow screens drop the round names and show only the next few.
 - **Player aid.** The "?" beside Undo opens the English edition's Annual Review sheet as text over the board, two equal pages side by side. On narrow screens it covers the turn header and action area as well as the board, and reads as one scrolling page: smaller type, no indents, the yields and price tables at the text's width, and the close button staying in view. In full screen it opens inside the full-screen view.
 - **The close of the year.** Rounds 9 to 12 resolve on their own. A farmer's first decision after a year ends waits behind a table of every farmer's results for those rounds; the arrows reveal one round at a time with its rule, the track follows the round shown, and "Start year N" (or "skip") opens the plan. In History View each of rounds 9, 10, 11 and 12 is its own history step, and the action area shows the table up to the round reached.
-- **Compost piles.** Each pile on the large farm shows the year whose round 10 its worms can be spread in, or "scores at end" past the last year.
+- **Compost piles.** Each pile on the large farm shows the year whose round 10 its worms can be spread in, or "scores at end" past the last year. Each player sign lists its compost worms the same way, by that year ("Year 2: 3" with a worm), the two piles added together when they share a year and "At end" past the last year.
 - **Other farms.** While another farmer's farm is large, its caption offers "show my farm".
 
 ## Coexistence and precedence
