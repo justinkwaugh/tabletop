@@ -2,13 +2,17 @@
     import type { EnlargedFace } from '$lib/model/tableLayers.svelte.js'
     import EnlargedFaceView from './EnlargedFaceView.svelte'
     import Scrim from './Scrim.svelte'
+    import { setTableLayers } from './tableLayersContext.js'
 
     /**
      * Contract, Card preview: the enlarged piece over everything. A press on the piece closes it, as
-     * a press beside it or Escape does; no close button stands over it.
+     * a press beside it or Escape does; no close button stands over it. What it holds is drawn
+     * plain, so a bead on an enlarged guild area is part of the one press.
      */
     let { face, width, onClose }: { face: EnlargedFace; width: number; onClose: () => void } =
         $props()
+
+    setTableLayers(undefined)
 </script>
 
 <Scrim label="the enlarged piece" layer="enlarged" {onClose} closeButton={false}>

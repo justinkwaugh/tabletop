@@ -248,7 +248,7 @@ const suppliedHere = existsSync(suppliedFolder)
 
 /**
  * The long side, in CSS px, at which each supplied picture is drawn largest: an enlarged card,
- * writ, tile or bead at 420 px wide; a guild on the bench; the board at its scale cap of 1; a seat
+ * writ, tile or bead at 420 px wide; an enlarged guild area at 640 px; the board at its scale cap of 1; a seat
  * panel at its reading scale. The art plan's table gives each.
  */
 const LargestRender: readonly [prefix: string, px: number][] = [
@@ -260,7 +260,7 @@ const LargestRender: readonly [prefix: string, px: number][] = [
     ['seal', 420],
     ['board.ring', 2500],
     ['board.map', 1598],
-    ['board.guild.', 440],
+    ['board.guild.', 640],
     ['cover', 340],
     ['good.', 47],
     ['shilling.', 47],

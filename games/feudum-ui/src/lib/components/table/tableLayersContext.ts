@@ -3,7 +3,8 @@ import type { TableLayers } from '$lib/model/tableLayers.svelte.js'
 
 const Key = Symbol('feudum-table-layers')
 
-export function setTableLayers(layers: TableLayers): void {
+/** `undefined` inside the enlarged view, so what it draws stays plain. */
+export function setTableLayers(layers: TableLayers | undefined): void {
     setContext(Key, layers)
 }
 

@@ -20,6 +20,8 @@
     const layers = gameSession.layers
 
     const EnlargedWidth = 420
+    /** An enlarged guild area: its picture's width, read at a glance (R-1.3). */
+    const EnlargedGuildWidth = 640
     const PhoneMargin = 32
     /** Contract, Seat strip: a seat's sheet stands up to this much of the dynamic viewport. */
     const SeatSheetShare = 85
@@ -33,7 +35,12 @@
     }
 
     let innerWidth = $state(EnlargedWidth + PhoneMargin)
-    let enlargedWidth = $derived(Math.min(EnlargedWidth, innerWidth - PhoneMargin))
+    let enlargedWidth = $derived(
+        Math.min(
+            layers.enlarged?.kind === 'guild' ? EnlargedGuildWidth : EnlargedWidth,
+            innerWidth - PhoneMargin
+        )
+    )
     let popup = $derived(gameSession.boardPopup)
     let bench = $derived(gameSession.guildPanel?.bench)
     let covered = $derived(
