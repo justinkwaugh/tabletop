@@ -1,6 +1,12 @@
 import { Color } from '@tabletop/common'
 import * as Type from 'typebox'
-import { GoodCounts, GoodSchema, SealIdSchema, VesselTypeSchema } from '../model/stateSchemas.js'
+import {
+    ChickenSpaceIdSchema,
+    GoodCounts,
+    GoodSchema,
+    SealIdSchema,
+    VesselTypeSchema
+} from '../model/stateSchemas.js'
 
 /** R-4.6.1 Which of a function's two counts scored. */
 export type CompletionCount = Type.Static<typeof CompletionCount>
@@ -24,7 +30,7 @@ const FarmerPullDetails = Type.Object({
     high: SealIdSchema,
     low: SealIdSchema,
     bead: SealIdSchema,
-    chicken: Type.Integer({ minimum: 0 }),
+    chicken: ChickenSpaceIdSchema,
     chickenSum: Type.Integer({ minimum: 0 })
 })
 
@@ -157,7 +163,7 @@ const MonkPushDetails = Type.Object({
     high: SealIdSchema,
     low: SealIdSchema,
     bead: SealIdSchema,
-    chicken: Type.Integer({ minimum: 0 }),
+    chicken: ChickenSpaceIdSchema,
     chickenSum: Type.Integer({ minimum: 0 })
 })
 

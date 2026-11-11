@@ -1,6 +1,6 @@
 import { assert, assertExists, shuffle } from '@tabletop/common'
 import type { SpaceId } from '../data/board.js'
-import type { ScrollSpaceId } from '../data/guilds.js'
+import type { ChickenSpaceId, ScrollSpaceId } from '../data/guilds.js'
 import type { SealId } from '../data/seals.js'
 import type { HydratedFeudumGameState } from './gameState.js'
 
@@ -23,7 +23,9 @@ export type BeadReturn = Extract<ConcealedSealPlace, { kind: 'held' | 'pile' }>
 
 /** R-3.11.1, R-4.6.5, R-1.3 Where a seal lies bead side up, in public state. */
 export type BeadPlace =
-    { kind: 'player'; playerId: string } | { kind: 'rosary' } | { kind: 'chicken'; index: number }
+    | { kind: 'player'; playerId: string }
+    | { kind: 'rosary' }
+    | { kind: 'chicken'; space: ChickenSpaceId }
 
 /** R-3.14.2 The vault's key for a Royal Immunity seal. */
 export function immunityKey(spaceId: SpaceId, role: ImmunityRole): string {
@@ -204,10 +206,10 @@ function placeBead(state: HydratedFeudumGameState, to: BeadPlace, sealId: SealId
         }
         case 'chicken': {
             assert(
-                state.guilds.farmer.chickens[to.index] === null,
-                `Chicken ${to.index} is not empty`
+                state.guilds.farmer.chickens[to.space] === null,
+                `Chicken ${to.space} is not empty`
             )
-            state.guilds.farmer.chickens[to.index] = sealId
+            state.guilds.farmer.chickens[to.space] = sealId
             return
         }
     }
@@ -217,8 +219,8 @@ function placeBead(state: HydratedFeudumGameState, to: BeadPlace, sealId: SealId
 function takeBead(state: HydratedFeudumGameState, from: BeadPlace, sealId: SealId) {
     if (from.kind === 'chicken') {
         const { chickens } = state.guilds.farmer
-        assert(chickens[from.index] === sealId, `${sealId} is not on chicken ${from.index}`)
-        chickens[from.index] = null
+        assert(chickens[from.space] === sealId, `${sealId} is not on chicken ${from.space}`)
+        chickens[from.space] = null
         return
     }
     const beads =

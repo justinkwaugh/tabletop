@@ -1,6 +1,8 @@
 import { assertExists } from '@tabletop/common'
+import { ChickenSpaces, type ChickenSpaceId } from '../data/guilds.js'
 import { Seals, type BeadValue, type SealId } from '../data/seals.js'
 import type { HydratedFeudumGameState } from './gameState.js'
+import { chickenBeads } from './guildsState.js'
 import { moveBead } from './seals.js'
 
 /** R-1.1 The value on a seal's bead side. */
@@ -12,10 +14,7 @@ export function beadValue(sealId: SealId): BeadValue {
 
 /** R-4.6.3, R-4.6.4 The sum of the beads on the chickens. */
 export function chickenBeadSum(state: HydratedFeudumGameState): number {
-    return state.guilds.farmer.chickens.reduce(
-        (sum, bead) => sum + (bead === null ? 0 : beadValue(bead)),
-        0
-    )
+    return chickenBeads(state.guilds.farmer).reduce((sum, bead) => sum + beadValue(bead), 0)
 }
 
 /** R-4.6.5 The sum of the beads on the rosary. */
@@ -30,7 +29,7 @@ export function rosaryBeadSum(state: HydratedFeudumGameState): number {
 export function unseenBeadValues(state: HydratedFeudumGameState): BeadValue[] {
     const shown = new Set<SealId>([
         ...state.guilds.monk.rosary,
-        ...state.guilds.farmer.chickens.filter((bead) => bead !== null),
+        ...chickenBeads(state.guilds.farmer),
         ...state.players.flatMap((player) => player.beads)
     ])
     return Seals.filter((seal) => !shown.has(seal.id))
@@ -91,14 +90,14 @@ export function reasonBeadToChickenClosed(state: HydratedFeudumGameState): strin
     return emptyChicken(state) === undefined ? 'No chicken is empty.' : undefined
 }
 
-/** R-4.6.4 The first empty chicken. */
-export function emptyChicken(state: HydratedFeudumGameState): number | undefined {
-    const index = state.guilds.farmer.chickens.indexOf(null)
-    return index < 0 ? undefined : index
+/** R-4.6.4 The first empty chicken, in space order. */
+export function emptyChicken(state: HydratedFeudumGameState): ChickenSpaceId | undefined {
+    const { chickens } = state.guilds.farmer
+    return ChickenSpaces.find(({ id }) => chickens[id] === null)?.id
 }
 
 export interface BeadToChicken extends HiddenBeadDraw {
-    readonly chicken: number
+    readonly chicken: ChickenSpaceId
     readonly chickenSum: number
 }
 
@@ -107,6 +106,6 @@ export function drawBeadToChicken(state: HydratedFeudumGameState): BeadToChicken
     const chicken = emptyChicken(state)
     assertExists(chicken, 'R-4.6.4 A chicken is empty')
     const draw = hiddenBeadDraw(state)
-    moveBead(state, draw.bead, { kind: 'rosary' }, { kind: 'chicken', index: chicken })
+    moveBead(state, draw.bead, { kind: 'rosary' }, { kind: 'chicken', space: chicken })
     return { ...draw, chicken, chickenSum: chickenBeadSum(state) }
 }

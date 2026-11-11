@@ -74,7 +74,7 @@ describe('GuildAction: R-4.6.4 the Farmer pull', () => {
         const [action] = table.send(playerId, FarmerPull)
         expect(action.revealsInfo).toBe(true)
         const state = table.hydrated()
-        const [bead] = state.guilds.farmer.chickens
+        const bead = state.guilds.farmer.chickens['guild.farmer.chicken.1']
         expect(bead).not.toBeNull()
         expect(state.guilds.monk.rosary.length).toBe(2)
         expect(rosary).toContain(bead)
@@ -89,7 +89,7 @@ describe('GuildAction: R-4.6.4 the Farmer pull', () => {
                     high: rosary[2],
                     low: rosary[0],
                     bead,
-                    chicken: 0,
+                    chicken: 'guild.farmer.chicken.1',
                     chickenSum: chickenBeadSum(state)
                 }
             }

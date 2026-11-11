@@ -13,6 +13,7 @@ import type { HydratedFeudumGameState } from './gameState.js'
 import { goodsTotal } from './market.js'
 import { flipSeal, moveConcealedSeal } from './seals.js'
 import {
+    ChickenSpaceIdSchema,
     ComponentCount,
     GoodSchema,
     ScrollSpaceIdSchema,
@@ -38,7 +39,7 @@ export const GuildRefill = Type.Object({
     scrolls: Type.Array(ScrollSpaceIdSchema),
     /** R-5-H1 A flip names the bead; the seals on the scrolls stay concealed. */
     rosary: Type.Array(SealIdSchema),
-    chickens: Type.Array(Type.Object({ chicken: ComponentCount, bead: SealIdSchema })),
+    chickens: Type.Array(Type.Object({ space: ChickenSpaceIdSchema, bead: SealIdSchema })),
     barn: Type.Array(GoodSchema)
 })
 
@@ -135,16 +136,11 @@ function refillRosary(state: HydratedFeudumGameState): GuildRefill['rosary'] {
 /** R-4.12-H2, R-1.4-H3 Only the setup chicken, and only if nothing covers it. */
 function refillChickens(state: HydratedFeudumGameState): GuildRefill['chickens'] {
     const { chickens } = state.guilds.farmer
-    return ChickenSpaces.flatMap((space, chicken) => {
-        if (!space.setupBead || chickens[chicken] !== null || state.supply.sealPileCount === 0) {
+    return ChickenSpaces.flatMap(({ id: space, setupBead }) => {
+        if (!setupBead || chickens[space] !== null || state.supply.sealPileCount === 0) {
             return []
         }
-        return [
-            {
-                chicken,
-                bead: flipSeal(state, { kind: 'pile' }, { kind: 'chicken', index: chicken })
-            }
-        ]
+        return [{ space, bead: flipSeal(state, { kind: 'pile' }, { kind: 'chicken', space }) }]
     })
 }
 

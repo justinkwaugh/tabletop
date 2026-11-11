@@ -1,6 +1,7 @@
 import { assert, assertExists } from '@tabletop/common'
 import * as Type from 'typebox'
 import type { SpaceId } from '../data/board.js'
+import { ChickenSpaces } from '../data/guilds.js'
 import type { SealId } from '../data/seals.js'
 import type { StarveRole } from '../model/flow.js'
 import { queueFollowUp } from '../model/followUps.js'
@@ -56,12 +57,13 @@ export function starveAsks(state: HydratedFeudumGameState, playerId: string): bo
 /** R-3.13.2 Every chicken bead flips back into the vault, into the pile, which reshuffles. */
 function chickenBeadsToPile(state: HydratedFeudumGameState): SealId[] {
     const beads: SealId[] = []
-    state.guilds.farmer.chickens.forEach((bead, index) => {
+    for (const { id: space } of ChickenSpaces) {
+        const bead = state.guilds.farmer.chickens[space]
         if (bead !== null) {
-            beadToSeal(state, bead, { kind: 'chicken', index }, { kind: 'pile' })
+            beadToSeal(state, bead, { kind: 'chicken', space }, { kind: 'pile' })
             beads.push(bead)
         }
-    })
+    }
     return beads
 }
 

@@ -316,13 +316,14 @@ describe('GuildAction: R-4.6.5 the Monk push', () => {
             const [action] = table.send(playerId, { ...Push, params: {} })
 
             const state = table.hydrated()
-            const placed = state.guilds.farmer.chickens[chickens.length]
+            const space = `guild.farmer.chicken.${chickens.length + 1}` as const
+            const placed = state.guilds.farmer.chickens[space]
             expect(placed).not.toBeNull()
             expect(before).toContain(placed)
             expect(state.guilds.monk.rosary).toHaveLength(before.length - 1)
             expect(action).toMatchObject({
                 revealsInfo: true,
-                metadata: { details: { kind: 'monk-push', chicken: chickens.length, bead: placed } }
+                metadata: { details: { kind: 'monk-push', chicken: space, bead: placed } }
             })
             expect(state.getPlayerState(playerId).score).toBe(score + vp)
             expect(action).toMatchObject({

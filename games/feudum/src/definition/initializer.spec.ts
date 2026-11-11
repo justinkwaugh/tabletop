@@ -17,6 +17,7 @@ import { SealBeadCounts, Seals, type SealId } from '../data/seals.js'
 import { RoyalWrits } from '../data/writs.js'
 import { FeudumCanonicalStateValidator } from '../model/canonicalValidator.js'
 import { HydratedFeudumGameState, type FeudumGameState } from '../model/gameState.js'
+import { chickenBeads } from '../model/guildsState.js'
 import { canonicalOf, testGame } from '../testing/state.js'
 import { FeudumColors } from './colors.js'
 import { FeudumGameInitializer } from './initializer.js'
@@ -250,7 +251,7 @@ describe.each(PlayerCounts)('R-1.4 setup at %i players', (numPlayers) => {
             [...GuildSetupSpaces.noble.scrollSpaces].toSorted()
         )
         expect(guilds.monk.rosary).toHaveLength(4)
-        expect(chickens.filter((chicken) => chicken !== null)).toHaveLength(1)
+        expect(Object.values(chickens).filter((chicken) => chicken !== null)).toHaveLength(1)
         expect(vault.sealPile).toHaveLength(8)
         expect(supply.sealPileCount).toBe(8)
         for (const held of [
@@ -403,7 +404,7 @@ describe('R-1.4 the real components', () => {
             const { guilds, vault } = start(4, masterSeed)
             const everySeal = [
                 ...guilds.monk.rosary,
-                ...guilds.farmer.chickens.flatMap((chicken) => (chicken === null ? [] : [chicken])),
+                ...chickenBeads(guilds.farmer),
                 ...Object.values(vault.scrollSeals),
                 ...vault.sealPile
             ]
@@ -413,12 +414,15 @@ describe('R-1.4 the real components', () => {
         }
     })
 
-    it('R-1.4-H3 provisional: the setup bead lies on the first chicken of 4', () => {
+    it('R-1.4-H3 provisional: the chickens are known by their space ids, the setup bead on the first of 4', () => {
         const { chickens } = start().guilds.farmer
         const { spaces, setupBeadSpace } = ProvisionalGuilds.chickenSpaces.placeholder
-        expect(chickens).toHaveLength(spaces)
-        ChickenSpaces.forEach((space, index) => {
-            expect(chickens[index] !== null, space.id).toBe(space.id === setupBeadSpace)
-        })
+        expect(Object.keys(chickens).toSorted()).toEqual(
+            ChickenSpaces.map(({ id }) => id).toSorted()
+        )
+        expect(ChickenSpaces).toHaveLength(spaces)
+        for (const space of ChickenSpaces) {
+            expect(chickens[space.id] !== null, space.id).toBe(space.id === setupBeadSpace)
+        }
     })
 })

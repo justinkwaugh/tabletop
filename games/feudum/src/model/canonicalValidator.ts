@@ -14,6 +14,7 @@ import {
 } from '../data/regionTiles.js'
 import { Seals } from '../data/seals.js'
 import { FeudumGameState, FeudumGameStateValidator } from './gameState.js'
+import { chickenBeads } from './guildsState.js'
 
 export type ConservedComponent =
     'goods' | 'shillings' | 'markers' | 'vessels' | 'targets' | 'seals' | 'discs' | 'tiles'
@@ -171,7 +172,7 @@ function sealsBreaks(state: FeudumGameState): ConservationBreak[] {
                 ...Object.values(vault.charterSeals).flat(),
                 ...Object.values(vault.immunitySeals),
                 ...players.flatMap((player) => player.beads),
-                ...guilds.farmer.chickens.flatMap((chicken) => (chicken === null ? [] : [chicken])),
+                ...chickenBeads(guilds.farmer),
                 ...guilds.monk.rosary
             ]
         ),

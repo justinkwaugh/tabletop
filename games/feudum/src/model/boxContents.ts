@@ -80,7 +80,14 @@ function emptyGuilds(): GuildsState {
             noble: {},
             monk: {}
         },
-        farmer: { barn: goodCounts(), chickens: ChickenSpaces.map(() => null), purse: 0 },
+        farmer: {
+            barn: goodCounts(),
+            chickens: recordFrom(
+                ChickenSpaces.map((space) => space.id),
+                () => null
+            ),
+            purse: 0
+        },
         merchant: {
             market: recordFrom(
                 MarketSpaces.map((space) => space.id),

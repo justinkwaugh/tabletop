@@ -19,6 +19,7 @@ import { Seals, type SealId } from '../data/seals.js'
 import { Charters, RoyalWrits, type WritId } from '../data/writs.js'
 import { FeudumCanonicalStateValidator } from '../model/canonicalValidator.js'
 import { HydratedFeudumGameState, type FeudumProjectedState } from '../model/gameState.js'
+import { chickenBeads } from '../model/guildsState.js'
 import { immunityKey } from '../model/seals.js'
 import type { FeudumVault } from '../model/vault.js'
 
@@ -129,7 +130,7 @@ function dealSeals(state: FeudumProjectedState, random: RandomFunction): Conceal
     const { farmer, monk, noble } = state.guilds
     const shown = new Set<string>([
         ...state.players.flatMap((player) => player.beads),
-        ...farmer.chickens.flatMap((chicken) => (chicken === null ? [] : [chicken])),
+        ...chickenBeads(farmer),
         ...monk.rosary
     ])
     const pile = shuffled(

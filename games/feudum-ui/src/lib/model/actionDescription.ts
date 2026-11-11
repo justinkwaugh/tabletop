@@ -1,7 +1,9 @@
-import type { GameAction } from '@tabletop/common'
+import { assertExists, type GameAction } from '@tabletop/common'
 import {
     ActionCards,
     beadValue,
+    ChickenSpaces,
+    type ChickenSpaceId,
     GuildById,
     isAdvanceTurn,
     isAnswerAttack,
@@ -90,6 +92,13 @@ const Separator = ' · '
 
 function sentence(...clauses: readonly Clause[]): string {
     return clauses.filter((clause) => clause).join(Separator)
+}
+
+/** R-1.3 A chicken by its space's number. */
+function chickenNumber(space: ChickenSpaceId): number {
+    const chicken = ChickenSpaces.find(({ id }) => id === space)
+    assertExists(chicken, `R-1.3 There is a chicken ${space}`)
+    return chicken.space
 }
 
 function plural(count: number, one: string, many = `${one}s`): string {
@@ -707,7 +716,7 @@ function detailsLine(
             )
         case 'farmer-pull':
         case 'monk-push':
-            return `drew ${bead(details.bead)} for chicken ${details.chicken}, now ${details.chickenSum}`
+            return `drew ${bead(details.bead)} for chicken ${chickenNumber(details.chicken)}, now ${details.chickenSum}`
         case 'farmer-push':
             return sentence(
                 `filled ${listed(details.spaces.map(marketSpaceName))} on the market`,

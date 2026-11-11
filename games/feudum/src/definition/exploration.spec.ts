@@ -15,6 +15,7 @@ import { Seals } from '../data/seals.js'
 import { Charters, RoyalWrits, type WritId } from '../data/writs.js'
 import { FeudumCanonicalStateValidator } from '../model/canonicalValidator.js'
 import type { FeudumGameState, FeudumProjectedState } from '../model/gameState.js'
+import { chickenBeads } from '../model/guildsState.js'
 import { placeMarker } from '../model/locationControl.js'
 import { flipSeal, immunityKey, moveConcealedSeal } from '../model/seals.js'
 import { drawWrits, putWritsUnderInView, putWritsUnderUnseen } from '../model/writDeck.js'
@@ -108,7 +109,7 @@ function everySeal(state: FeudumGameState): string[] {
     return [
         ...concealedSeals(state.vault),
         ...state.players.flatMap((player) => player.beads),
-        ...farmer.chickens.flatMap((chicken) => (chicken === null ? [] : [chicken])),
+        ...chickenBeads(farmer),
         ...monk.rosary
     ]
 }

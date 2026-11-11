@@ -1,4 +1,6 @@
+import { assertExists } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
+import { ChickenSpaces, type ChickenSpaceId } from '../data/guilds.js'
 import type { SealId } from '../data/seals.js'
 import { canonicalOf, initialState } from '../testing/state.js'
 import { conservationBreaks } from './canonicalValidator.js'
@@ -23,8 +25,10 @@ function expectConsistent(state: HydratedFeudumGameState) {
     expect(breaks.filter((broken) => broken.component === 'seals')).toEqual([])
 }
 
-function emptyChicken(state: HydratedFeudumGameState): number {
-    return state.guilds.farmer.chickens.indexOf(null)
+function emptyChicken(state: HydratedFeudumGameState): ChickenSpaceId {
+    const space = ChickenSpaces.find(({ id }) => state.guilds.farmer.chickens[id] === null)
+    assertExists(space, 'A chicken is empty')
+    return space.id
 }
 
 /** The first seal of the pile, before it moves. */
@@ -222,13 +226,13 @@ describe('a flip', () => {
     it('R-1.4.5 moves the pile top onto an empty chicken, and no other', () => {
         const state = initialState()
         const top = pileTop(state)
-        const index = emptyChicken(state)
+        const space = emptyChicken(state)
 
-        expect(flipSeal(state, { kind: 'pile' }, { kind: 'chicken', index })).toBe(top)
+        expect(flipSeal(state, { kind: 'pile' }, { kind: 'chicken', space })).toBe(top)
 
-        expect(state.guilds.farmer.chickens[index]).toBe(top)
+        expect(state.guilds.farmer.chickens[space]).toBe(top)
         expectConsistent(state)
-        expect(() => flipSeal(state, { kind: 'pile' }, { kind: 'chicken', index })).toThrow()
+        expect(() => flipSeal(state, { kind: 'pile' }, { kind: 'chicken', space })).toThrow()
     })
 })
 
@@ -257,7 +261,7 @@ describe('a bead going back', () => {
             beadToSeal(
                 state,
                 concealed,
-                { kind: 'chicken', index: emptyChicken(state) },
+                { kind: 'chicken', space: emptyChicken(state) },
                 { kind: 'pile' }
             )
         ).toThrow()
@@ -266,12 +270,12 @@ describe('a bead going back', () => {
     it('R-3.13.2 a chicken bead returns to the pile and empties the chicken', () => {
         const state = stateWithProtectedStream()
         const count = state.supply.sealPileCount
-        const index = emptyChicken(state)
-        const bead = flipSeal(state, { kind: 'pile' }, { kind: 'chicken', index })
+        const space = emptyChicken(state)
+        const bead = flipSeal(state, { kind: 'pile' }, { kind: 'chicken', space })
 
-        beadToSeal(state, bead, { kind: 'chicken', index }, { kind: 'pile' })
+        beadToSeal(state, bead, { kind: 'chicken', space }, { kind: 'pile' })
 
-        expect(state.guilds.farmer.chickens[index]).toBeNull()
+        expect(state.guilds.farmer.chickens[space]).toBeNull()
         expect(state.requireVault().sealPile).toContain(bead)
         expect(state.supply.sealPileCount).toBe(count)
         expectConsistent(state)

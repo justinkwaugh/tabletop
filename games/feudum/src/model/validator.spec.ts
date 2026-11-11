@@ -292,7 +292,7 @@ describe('R-5-H1 seals, 17 in all', () => {
         state.vault.charterSeals[seat].push(next())
         state.vault.immunitySeals['space.sea.1.serf'] = next()
         state.players[0].beads.push(next())
-        state.guilds.farmer.chickens[1] = next()
+        state.guilds.farmer.chickens['guild.farmer.chicken.2'] = next()
         state.guilds.monk.rosary.push(next())
         expectConserved(state)
     })
