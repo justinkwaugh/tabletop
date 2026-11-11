@@ -5,6 +5,7 @@ import { GuildById, GuildIds, HydratedFeudumGameState, RoyalWrits } from '@table
 import GuildAreas from '$lib/components/guilds/GuildAreas.svelte'
 import { PlainChrome, type BoardChrome } from '$lib/model/boardChrome.js'
 import { guildTarget } from '$lib/model/boardOffer.js'
+import { RulesNotes } from '$lib/model/rulesText.js'
 import type { EnlargedFace } from '$lib/model/tableLayers.svelte.js'
 import EnlargedOnTable from '$lib/testing/EnlargedOnTable.svelte'
 import GuildAreasOnTable from '$lib/testing/GuildAreasOnTable.svelte'
@@ -44,6 +45,33 @@ describe('Card preview (contract: Card preview)', () => {
             expect(markup).toContain('data-backdrop')
         }
     )
+})
+
+describe('The rules beside the enlarged piece (contract: Card preview)', () => {
+    const note = (markup: string) =>
+        /<aside[^>]*data-rules-note[^>]*>([\s\S]*?)<\/aside>/.exec(markup)?.[1]
+
+    it('R-3.5 a face-up card reads its action and its special ability beside it, outside the close press', () => {
+        const markup = layer(Faces[0])
+        const beside = note(markup) ?? ''
+        expect(beside).toContain('Conquer')
+        expect(beside).toContain('Starve the People')
+        for (const { text } of RulesNotes['card.action.conquer']?.lines ?? []) {
+            expect(beside).toContain(text)
+        }
+        const close = /<button[^>]*data-close[^>]*>[\s\S]*?<\/button>/.exec(markup)?.[0] ?? ''
+        expect(close).not.toContain('data-rules-note')
+    })
+
+    it('R-4.4 a face-up writ reads its note', () => {
+        expect(note(layer(Faces[2]))).toContain(RulesNotes[RoyalWrits[0].id]?.title)
+    })
+
+    it('R-4.4.4, R-5.1 a back, a tile and a bead stand alone', () => {
+        for (const face of [Faces[1], Faces[3], Faces[4]]) {
+            expect(layer(face)).not.toContain('data-rules-note')
+        }
+    })
 })
 
 describe('Guild areas enlarge (contract: Card preview)', () => {
@@ -96,5 +124,6 @@ describe('Guild areas enlarge (contract: Card preview)', () => {
         expect(markup).toMatch(/<svg[^>]*\bwidth="640"/)
         expect(markup).not.toContain('data-enlarge=')
         expect(markup.match(/<button/g)).toHaveLength(2)
+        expect(markup).toContain('Pull (journeyman)')
     })
 })

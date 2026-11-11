@@ -126,6 +126,13 @@ test('S59 R-1.3 a press on a guild area on the board enlarges it with its state;
     await expect(enlarged(page).locator('[data-guild="merchant"]')).toBeVisible()
     const box = await enlarged(page).boundingBox()
     expect(box?.width).toBeCloseTo(640, 0)
+    // R-4.6 Its functions read beside it, and reading them closes nothing.
+    const note = page.locator('[data-rules-note]')
+    await expect(note).toContainText('Trade (anyone)')
+    const beside = await note.boundingBox()
+    expect(beside?.x).toBeGreaterThanOrEqual((box?.x ?? 0) + (box?.width ?? 0))
+    await note.click()
+    await expect(enlarged(page)).toBeVisible()
     await shot(page, 'enlarged-guild')
     await enlarged(page).click()
     await expect(enlarged(page)).toHaveCount(0)
