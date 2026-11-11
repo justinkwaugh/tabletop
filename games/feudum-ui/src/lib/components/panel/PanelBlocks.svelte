@@ -120,7 +120,7 @@
         {:else if block.kind === 'tally'}
             <CombatTally lines={block.lines} note={block.note} />
         {:else if block.kind === 'primary'}
-            <div class="pinned ml-auto max-sm:min-w-0 max-sm:flex-1">
+            <div class="pinned ml-auto max-sm:min-w-0 max-sm:flex-[1_1_8rem]">
                 <PrimaryButton {block} />
             </div>
         {/if}

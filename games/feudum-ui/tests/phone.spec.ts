@@ -8,7 +8,7 @@ import {
     settled,
     shot
 } from './helpers.js'
-import { openFixture } from './scenarioTable.js'
+import { openFixture, ScenarioTable } from './scenarioTable.js'
 
 /**
  * A phone on the real table: where things stand and what a press does, at 375 x 812 and held
@@ -822,6 +822,44 @@ test.describe('a 390 px phone', () => {
         }
         await expectNoSidewaysScroll(page)
         await shot(page, 'phone-390-show-on-board')
+    })
+
+    test('R-4.12 the dawn sheet and the send beside it stay within the panel’s width', async ({
+        page
+    }) => {
+        await openFixture(page, 'dawn-roll')
+        const table = new ScenarioTable(page, true)
+        await table.another('p3', { type: 'ForfeitCard', kind: 'migrate' })
+        const sheet = panel(page).locator('[data-dawn-sheet]')
+        await expect(sheet.locator('[data-dawn-row]')).toHaveCount(3)
+        const edge = await panel(page).evaluate((element) => element.getBoundingClientRect().right)
+        const over = await panel(page)
+            .locator('button, [data-dawn-row], [data-dawn-note], [data-primary]')
+            .evaluateAll(
+                (elements, right) =>
+                    elements
+                        .filter((element) => element.getBoundingClientRect().right > right + 0.5)
+                        .map((element) => (element as HTMLElement).innerText.slice(0, 30)),
+                edge
+            )
+        expect(over).toEqual([])
+        const { scrollWidth, clientWidth } = await sheet.evaluate((element) => ({
+            scrollWidth: element.scrollWidth,
+            clientWidth: element.clientWidth
+        }))
+        expect(scrollWidth).toBeLessThanOrEqual(clientWidth)
+        await expectTarget(panel(page).locator('[data-primary]'))
+        await expectNoSidewaysScroll(page)
+
+        // The cap scrolls to the sheet's last line, clear of the send that stays in sight.
+        await cap(page).evaluate((element) => element.scrollTo(0, element.scrollHeight))
+        const area = await rect(cap(page))
+        const send = await rect(panel(page).locator('[data-primary]'))
+        for (const last of [sheet.locator('[data-dawn-row]').last(), sheet.locator('p').last()]) {
+            const box = await rect(last)
+            expect(box.y + box.height).toBeLessThanOrEqual(area.y + area.height + 1)
+            expect(box.y >= send.y + send.height || box.y + box.height <= send.y).toBe(true)
+        }
     })
 
     test('R-6.2 the game end shows every seat whole inside the action area', async ({ page }) => {
