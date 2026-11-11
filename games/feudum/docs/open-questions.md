@@ -9,6 +9,13 @@ Every place the digest is silent, ambiguous or self-contradictory, and every pla
     - _Sources:_ what the rulebook, FAQ and designer each say.
     - _Recommendation:_ the reading to take and why, or "provisional" when only the publisher can settle it.
 
+## Open
+
+- **Q30 Asking a seat with no pawn to feed** (R-4.10.1, R-4.4): should a seat with no pawn to feed, but able to act at will (an unsealed writ, a region tile while the haversack holds a good, or a Royal Immunity seal to reclaim), be asked during nourishing, extending R-4.4-H1's "during nourishing" to it?
+    - _Readings:_ (a) not asked: nourishing waits only on seats with pawns to feed (R-4.10-H4), so a seat with none has no at-will window in it; (b) asked as a seat with pawns is, so it may play a mandate, spend a tile or reclaim a seal before nourishing ends.
+    - _Sources:_ the rulebook lets mandates and wild tiles be used at any time, and says nothing of nourishing for a seat with no pawn on the board.
+    - _Recommendation:_ (b), as R-4.4-H1's "during nourishing" reads; it needs its own press for the seat to say it is done, and R-4.10-H4 reworded. Until the designer rules, the engine follows (a).
+
 ## Settled
 
 Q1–Q25 (setup, turn structure, actions, guilds, combat, information, game end, map) were answered on 2026-11-01 by accepting every recommendation; each is now a ruling in `rulings.md`, citing its question number.
