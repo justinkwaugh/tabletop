@@ -603,10 +603,10 @@ const Lines: Readonly<
                         playerId: 'p1',
                         wineFed: [2],
                         foodFed: [1],
-                        returned: [],
-                        rankChanges: []
+                        returned: []
                     }
-                ]
+                ],
+                rankChanges: []
             }
         }),
         actor: 'Pawns ate: You 1 food, 1 wine',
@@ -1256,6 +1256,27 @@ describe('R-4.5.4 A rank change is named on the Action that caused it', () => {
                     pilfer: { spaceId: 'space.forest.2', marker: true },
                     ...MerchantRanks
                 }
+            })
+        },
+        {
+            name: 'NourishPawns, when nourishing ends there (R-4.5-H1)',
+            action: sample<NourishPawns>({
+                ...System,
+                type: ActionType.NourishPawns,
+                metadata: {
+                    fed: [{ playerId: 'p1', wineFed: [], foodFed: [], returned: [] }],
+                    ...MerchantRanks
+                }
+            })
+        },
+        {
+            name: 'Nourish, the one that ends nourishing (R-4.5-H1)',
+            action: sample<Nourish>({
+                ...Base,
+                type: ActionType.Nourish,
+                wineFed: [],
+                unfed: [],
+                metadata: { foodFed: [], returned: [], ...MerchantRanks }
             })
         }
     ]

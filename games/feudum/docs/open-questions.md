@@ -18,6 +18,7 @@ Q26–Q29 (region tile stacks, vessel routes, values printed nowhere, mandate 6'
 Answers since revised to follow the rulebook:
 
 - Q24: a reeve scores on every push and every pull, as the rulebook's Reeves box reads, not only when it reaches a threshold (R-4.7-H1).
+- Q18: nourishing is one change of status (R-4.10.1), so ranks are recomputed once, on the Action that ends it, from the new totals, not seat by seat as each is fed (R-4.5-H1).
 - Q29: mandate 6's Alchemist reward is any vessel, as the rulebook's writ summary reads, not only the ship its icon shows (R-4.4-H4).
 
 Three design rulings were revised the same way: Reinforcements is collected or declined, not automatic (R-3.12-H1); an abandoned vessel is boarded only on a later turn (R-4.2-H2); charters are sealed only at game end (R-4.4-H6).

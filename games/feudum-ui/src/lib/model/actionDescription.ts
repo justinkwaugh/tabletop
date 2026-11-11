@@ -955,15 +955,15 @@ function nourishPawnsLine(action: GameAction, words: Words): string | undefined 
     if (fed.length === 0) {
         return 'No pawn needed feeding'
     }
-    return `Pawns ate: ${fed
-        .map(({ playerId, wineFed, foodFed, returned, rankChanges }) =>
+    const ate = fed
+        .map(({ playerId, wineFed, foodFed, returned }) =>
             sentence(
                 `${words.who(playerId)} ${foodFed.length} food, ${wineFed.length} wine`,
-                leftLine(returned),
-                ranksLine(rankChanges, words)
+                leftLine(returned)
             )
         )
-        .join('; ')}`
+        .join('; ')
+    return sentence(`Pawns ate: ${ate}`, ranksLine(action.metadata?.rankChanges, words))
 }
 
 function collectLine(action: GameAction, words: Words): string | undefined {

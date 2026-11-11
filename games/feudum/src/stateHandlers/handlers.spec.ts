@@ -575,7 +575,7 @@ describe('R-4.10, D11 NourishPawns', () => {
         expect(table.offered(charter)).not.toContain(ActionType.PlayMandate)
     })
 
-    it('R-4.5.2 status recomputes as an unfed pawn goes home', () => {
+    it('R-4.5.2, R-4.5-H1 status recomputes as an unfed pawn goes home, once nourishing ends', () => {
         const table = tableAtRoundEnd(2, (state, [first]) => {
             setFood(state, first, 0)
             setMaster(state, first, 'monk')
@@ -586,7 +586,8 @@ describe('R-4.10, D11 NourishPawns', () => {
 
         expect(processed[2]).toMatchObject({
             metadata: {
-                fed: [{ playerId: first, rankChanges: [{ guildId: 'monk', playerId: first }] }, {}]
+                fed: [{ playerId: first }, {}],
+                rankChanges: [{ guildId: 'monk', playerId: first }]
             }
         })
         expect(table.hydrated().guilds.tracks.monk.master?.playerId).not.toBe(first)

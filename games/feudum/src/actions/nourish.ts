@@ -5,21 +5,30 @@ import type { SpaceId } from '../data/board.js'
 import type { GuildId } from '../data/components.js'
 import { ActionType } from '../definition/actions.js'
 import { atWillWindow } from '../model/atWill.js'
-import { HydratedFeudumGameState } from '../model/gameState.js'
+import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { RankChange } from '../model/guildStatus.js'
 import { canSpendWildTiles, payGoods, WildTileSpend } from '../model/payments.js'
 import { PawnNumberSchema } from '../model/stateSchemas.js'
 import { barrelRoom } from '../model/supply.js'
 import { leaveBoard, PawnLeft, type PawnNumber } from './migrate.js'
 
-export type NourishMetadata = Type.Static<typeof NourishMetadata>
-export const NourishMetadata = Type.Object({
+/** R-4.10.1 How one seat's pawns were fed. */
+export type FedPawns = Type.Static<typeof FedPawns>
+export const FedPawns = Type.Object({
     /** R-4.10.1 The pawns the rest of the food fed; the input names the others. */
     foodFed: Type.Array(PawnNumberSchema),
     /** R-4.10.1 Each unfed pawn, where it stood and what it was. */
-    returned: Type.Array(Type.Object({ n: PawnNumberSchema, left: PawnLeft })),
-    /** R-4.5.2 A pawn leaving moves its stars. */
-    rankChanges: Type.Array(RankChange)
+    returned: Type.Array(Type.Object({ n: PawnNumberSchema, left: PawnLeft }))
+})
+
+export type NourishMetadata = Type.Static<typeof NourishMetadata>
+export const NourishMetadata = Type.Object({
+    ...FedPawns.properties,
+    /**
+     * R-4.5-H1, R-4.5.2 On the Nourish that ends nourishing, the ranks every seat's unfed pawns
+     * moved, from the new totals at once.
+     */
+    rankChanges: Type.Optional(Type.Array(RankChange))
 })
 
 export type Nourish = Type.Static<typeof Nourish>
@@ -207,12 +216,15 @@ export function nourishOffer(
     }
 }
 
-/** R-4.10.1 Tiles first, then food to the haversack, sulfur on the pawns, the unfed home. */
+/**
+ * R-4.10.1 Tiles first, then food to the haversack, sulfur on the pawns, the unfed home. Ranks wait
+ * for the end of nourishing (R-4.5-H1).
+ */
 export function feedPawns(
     state: HydratedFeudumGameState,
     playerId: string,
     { wineFed, unfed, wildTiles = [] }: NourishInput
-): NourishMetadata {
+): FedPawns {
     const needing = pawnsToFeed(state, playerId)
     const foodFed = needing
         .map((pawn) => pawn.n)
@@ -225,15 +237,13 @@ export function feedPawns(
         pawn.wine = 'fed'
     }
     const returned = unfed.map((n) => ({ n, left: leaveBoard(state, playerId, n) }))
-    return { foodFed, returned, rankChanges: state.recomputeRanks(playerId) }
+    return { foodFed, returned }
 }
 
 export interface NourishPreview {
     readonly food: number
     readonly wine: number
     readonly unfed: number
-    /** R-4.5.2 Only once the input is legal. */
-    readonly rankChanges: readonly RankChange[]
     readonly refused?: string
 }
 
@@ -252,15 +262,7 @@ export function nourishPreview(
         unfed: input.unfed.length
     }
     const refused = reasonNourishRefused(state, playerId, input)
-    if (refused) {
-        return { ...counts, rankChanges: [], refused }
-    }
-    const { rankChanges } = feedPawns(
-        new HydratedFeudumGameState(state.dehydrate()),
-        playerId,
-        input
-    )
-    return { ...counts, rankChanges }
+    return refused ? { ...counts, refused } : counts
 }
 
 export class HydratedNourish extends HydratableAction<typeof Nourish> implements Nourish {
@@ -281,13 +283,16 @@ export class HydratedNourish extends HydratableAction<typeof Nourish> implements
         if (reason) {
             throw Error(reason)
         }
-        this.metadata = feedPawns(state, this.playerId, this)
+        const fed = feedPawns(state, this.playerId, this)
 
         const { nourish } = state.flow
         assertExists(nourish, 'R-4.10 The seats are being asked')
         nourish.pending.shift()
         if (nourish.pending.length === 0) {
             state.flow.nourish = undefined
+            this.metadata = { ...fed, rankChanges: state.recomputeRanks() }
+        } else {
+            this.metadata = fed
         }
     }
 }

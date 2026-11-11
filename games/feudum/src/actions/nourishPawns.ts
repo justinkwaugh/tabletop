@@ -5,11 +5,12 @@ import { Goods } from '../data/components.js'
 import { ActionType } from '../definition/actions.js'
 import { beginPhase, PhaseName } from '../definition/phases.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { RankChange } from '../model/guildStatus.js'
 import { PawnNumberSchema } from '../model/stateSchemas.js'
 import {
     feedPawns,
     nourishHasChoice,
-    NourishMetadata,
+    FedPawns,
     pawnsToFeed,
     preselectedFeeding
 } from './nourish.js'
@@ -22,9 +23,14 @@ export const NourishPawnsMetadata = Type.Object({
         Type.Object({
             playerId: Type.String(),
             wineFed: Type.Array(PawnNumberSchema),
-            ...NourishMetadata.properties
+            ...FedPawns.properties
         })
-    )
+    ),
+    /**
+     * R-4.5-H1, R-4.5.2 When no seat is asked, nourishing ends here: the ranks the unfed pawns moved,
+     * from the new totals at once.
+     */
+    rankChanges: Type.Optional(Type.Array(RankChange))
 })
 
 export type NourishPawns = Type.Static<typeof NourishPawns>
@@ -102,7 +108,12 @@ export class HydratedNourishPawns
                 })
             }
         }
-        state.flow.nourish = pending.length > 0 ? { pending } : undefined
-        this.metadata = { fed }
+        if (pending.length > 0) {
+            state.flow.nourish = { pending }
+            this.metadata = { fed }
+        } else {
+            state.flow.nourish = undefined
+            this.metadata = { fed, rankChanges: state.recomputeRanks() }
+        }
     }
 }
