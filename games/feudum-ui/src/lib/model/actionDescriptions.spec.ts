@@ -974,6 +974,18 @@ describe('R-X.2, R-4.4.1, R-4.4.3 A line reads the Action as this seat received 
         ).toBe('You finalised · pouch sulfur · Move')
     })
 
+    it('R-3.12.2, R-3.12-H1 A Tax that declined Reinforcements says so', () => {
+        const tax = sample<Tax>({
+            ...Base,
+            type: ActionType.Tax,
+            collect: false,
+            metadata: { shillings: 3, ...NoRanks }
+        })
+        expect(line(recordFor(tax, Spectator, table), undefined)).toBe(
+            'Ana taxed 3s · declined Reinforcements'
+        )
+    })
+
     it('R-4.6-H2 A hidden-bead draw names the drawn bead alone, to all; R-5-H1 a concealed seal never', () => {
         const pull = sample<GuildAction>({
             ...Base,

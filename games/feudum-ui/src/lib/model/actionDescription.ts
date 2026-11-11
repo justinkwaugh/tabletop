@@ -531,7 +531,9 @@ function taxLine(action: GameAction, words: Words): string | undefined {
             ? 'Reinforcements marker from the Knight row'
             : metadata?.reinforcements === 'general-supply'
               ? 'Reinforcements marker from the general supply'
-              : undefined
+              : action.collect === false
+                ? 'declined Reinforcements'
+                : undefined
     return sentence(
         `${words.who(action.playerId)} taxed${metadata ? ` ${metadata.shillings}s` : ''}`,
         from,
