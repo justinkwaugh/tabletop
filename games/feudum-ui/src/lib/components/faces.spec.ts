@@ -1,9 +1,11 @@
 // @vitest-environment node
 import { render } from 'svelte/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { Color } from '@tabletop/common'
 import { ActionCardKinds, LandscapeKinds, RoyalWrits } from '@tabletop/feudum'
+import { cardAsset, cardBackAsset, printedCardAsset } from '$lib/art/assetMap.js'
 import { handFaceShown, sealFaceShown, writFaceShown } from '$lib/model/perspective.js'
-import { faceTier } from '$lib/utils/cardShape.js'
+import { faceTier, shortName } from '$lib/utils/cardShape.js'
 import { everyAssetSupplied } from '$lib/testing/fakeArt.js'
 import ActionCardFace from './pieces/ActionCardFace.svelte'
 import BoardMotionLayer from './map/BoardMotionLayer.svelte'
@@ -184,6 +186,76 @@ describe('tiers', () => {
         expect(at(120)).toContain('allowance')
         expect(at(120)).not.toContain('Godspeed')
         expect(at(240)).toContain('Godspeed')
+    })
+})
+
+/** A seat whose displayed colour is the publisher's red, so its cards are the printed red cards. */
+const redPaint = { ...paint, printed: Color.Red as const }
+
+function cardAt(props: Record<string, unknown>) {
+    return render(ActionCardFace, {
+        props: {
+            faceShown: true,
+            kind: 'influence',
+            paint: redPaint,
+            number: 4,
+            width: 200,
+            ...props
+        }
+    }).body
+}
+
+describe('printed action cards (R-3.1)', () => {
+    beforeEach(() => {
+        folder.files = everyAssetSupplied()
+    })
+
+    it.each(ActionCardKinds)('%s in a printed colour is the whole printed card', (kind) => {
+        const face = cardAt({ kind })
+        expect(face).toContain(`href="/art/${printedCardAsset(kind, Color.Red)}.webp"`)
+        expect(face).not.toContain(`href="/art/${cardAsset(kind)}.webp"`)
+        expect(face).toMatch(/aria-label="[^"]+ card, A"/)
+    })
+
+    it('R-3.1 a printed back is the same for all eleven kinds, names none, and is its colour’s', () => {
+        const backs = ActionCardKinds.map((kind) => bodyOf(cardAt({ faceShown: false, kind })))
+        expect(new Set(backs).size).toBe(1)
+        for (const kind of ActionCardKinds) {
+            expect(backs[0].toLowerCase()).not.toContain(kind)
+        }
+        expect(backs[0]).toContain(`href="/art/${cardBackAsset(Color.Red)}.webp"`)
+        expect(backs[0]).not.toContain('card.action')
+        const blue = cardAt({ faceShown: false, paint: { ...paint, printed: Color.Blue } })
+        expect(blue).toContain(`href="/art/${cardBackAsset(Color.Blue)}.webp"`)
+    })
+
+    it('a paint in no printed colour keeps the band round the art window, and the drawn back', () => {
+        const face = cardAt({ paint })
+        expect(face).toContain(`href="/art/${cardAsset('influence')}.webp"`)
+        expect(face).not.toMatch(/card\.action\.influence\.(red|blue|yellow|green|purple)/)
+        expect(face).toContain(`fill="${paint.fill}"`)
+        expect(cardAt({ faceShown: false, paint })).not.toContain('<image')
+    })
+
+    it('a printed colour whose cards are not in the folder keeps the band and the drawn back', () => {
+        folder.files = Object.fromEntries(
+            Object.entries(everyAssetSupplied()).filter(([path]) => !path.includes('.red.'))
+        )
+        const face = cardAt({})
+        expect(face).toContain(`href="/art/${cardAsset('influence')}.webp"`)
+        expect(face).toContain(`fill="${paint.fill}"`)
+        expect(cardAt({ faceShown: false })).not.toContain('<image')
+    })
+
+    it('Contract, sizes: compact and standard repeat the name where the print names the card', () => {
+        expect(cardAt({ width: 50 })).toContain(`>${shortName('Influence')}<`)
+        expect(cardAt({ width: 120 })).toContain('>Influence<')
+        expect(cardAt({ width: 240 })).not.toContain('>Influence<')
+        for (const width of [50, 120, 240]) {
+            const face = cardAt({ width })
+            expect(face).toContain('>4<')
+            expect(face).not.toContain('allowance')
+        }
     })
 })
 
