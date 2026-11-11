@@ -23,7 +23,6 @@ import {
 } from '../guilds/registry.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { rankOf } from '../model/guildStatus.js'
-import { isPinned } from '../model/media.js'
 import { GuildIdSchema, SpaceIdSchema } from '../model/stateSchemas.js'
 import { returnGoodToHaversack } from '../model/supply.js'
 import {
@@ -123,19 +122,18 @@ function guildsOfPieces(
     ]
 }
 
-/** R-3.16.3, R-4.2.4 A pawn stands here free to act: a monster never feasts, a pinned pawn can't. */
+/**
+ * R-3.16.3, R-4.2.4, R-4.2-H1 A pawn of the seat's stands here: a monster never feasts, and a pin
+ * stops only steps, so a pinned pawn may.
+ */
 function reasonPawnRefused(
     state: HydratedFeudumGameState,
     playerId: string,
     spaceId: SpaceId
 ): string | undefined {
-    const pawns = state.getPlayerState(playerId).pawns.filter((pawn) => pawn.spaceId === spaceId)
-    if (pawns.length === 0) {
-        return 'You have no pawn there.'
-    }
-    return pawns.every((pawn) => isPinned(state, playerId, pawn.n))
-        ? 'A monster pins your pawn there.'
-        : undefined
+    return state.getPlayerState(playerId).pawns.some((pawn) => pawn.spaceId === spaceId)
+        ? undefined
+        : 'You have no pawn there.'
 }
 
 /** R-3.16.3 Never for the seat's own pieces; the opponent's piece relates to the guild. */
