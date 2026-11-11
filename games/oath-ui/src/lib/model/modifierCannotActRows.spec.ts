@@ -38,9 +38,9 @@ import type { OathGameSession } from './session.svelte.js'
 
 // From revision 33 the engine refuses a declared Search modifier that cannot act on a play "as if you searched":
 // Great Spire (it changes a Search's draw), New Growth and Crop Rotation (they act on a play to a site), Welcoming
-// Party (it acts when a denizen is played). The rows of Oracle's use and of False Prophet's question already hid
-// them, so nothing a player sees changes: each row listed is accepted, and each card hidden is now refused, on the
-// table and on the player's own projected view alike.
+// Party (it acts when a denizen is played) and Wild Cry (it acts when a beast card is played). The rows of Oracle's
+// use and of False Prophet's question already hid them, so nothing a player sees changes: each row listed is
+// accepted, and each card hidden is now refused, on the table and on the player's own projected view alike.
 
 afterEach(() => {
     disposeSessions()
@@ -54,6 +54,7 @@ const SPIRE = 'edifice.arcane.great-spire'
 const WELCOMING_PARTY = 'denizen.hearth.welcoming-party'
 const NEW_GROWTH = 'denizen.beast.new-growth'
 const CROP_ROTATION = 'denizen.hearth.crop-rotation'
+const WILD_CRY = 'denizen.beast.wild-cry'
 const FORCED_LABOR = 'denizen.order.forced-labor'
 const INN = 'denizen.hearth.wayside-inn'
 const FILLER = 'denizen.order.wrestlers'
@@ -79,8 +80,20 @@ const views = (table: PlayedTable, seat: Visibility.Perspective): [string, Playe
 
 // --- Oracle's use ---
 
-/** Dana on turn at c1 with Oracle and Great Spire there, the Cracked Horn, and three Search cards faceup. */
-function oracleTable(revision: OathRevision): PlayedTable {
+/**
+ * Dana's faceup Search cards, by table: three advisers are the limit, so Wild Cry sits at a table of its own. Each is
+ * hidden from Oracle's row, as is Great Spire.
+ */
+const ORACLE_SEATS: { label: string; advisers: string[] }[] = [
+    {
+        label: 'Welcoming Party, New Growth and Crop Rotation',
+        advisers: [WELCOMING_PARTY, NEW_GROWTH, CROP_ROTATION]
+    },
+    { label: 'Wild Cry', advisers: [WILD_CRY] }
+]
+
+/** Dana on turn at c1 with Oracle and Great Spire there, the Cracked Horn, and the Search cards faceup. */
+function oracleTable(revision: OathRevision, advisers: string[]): PlayedTable {
     const s = testState(
         [
             testPlayer({
@@ -91,10 +104,7 @@ function oracleTable(revision: OathRevision): PlayedTable {
                 secrets: 3,
                 supply: 6,
                 relicIds: [HORN],
-                advisers: [WELCOMING_PARTY, NEW_GROWTH, CROP_ROTATION].map((cardId) => ({
-                    cardId,
-                    faceUp: true
-                }))
+                advisers: advisers.map((cardId) => ({ cardId, faceUp: true }))
             }),
             testPlayer({ playerId: 'rhys', color: Color.Blue, siteId: 'c2', favor: 2 })
         ],
@@ -136,39 +146,52 @@ const oracleReason = (state: HydratedOathGameState, cardId: string) =>
         [use(cardId)]
     )
 
-const HIDDEN_ON_ORACLE = [SPIRE, WELCOMING_PARTY, NEW_GROWTH, CROP_ROTATION]
-
 describe("Oracle's row at revision 33: the same rows, and each card it hides is refused", () => {
-    for (const [name, table] of views(oracleTable(FIXED), dana)) {
-        it(`on ${name}: only the Cracked Horn is listed, and the engine accepts it`, async () => {
-            const session = await oracleRows(table)
-            expect(oracleListed(session)).toEqual([HORN])
-            expect(oracleReason(session.gameState, HORN)).toBeUndefined()
-        })
+    for (const { label, advisers } of ORACLE_SEATS) {
+        for (const [name, table] of views(oracleTable(FIXED, advisers), dana)) {
+            it(`on ${name}, with ${label}: only the Cracked Horn is listed, and the engine accepts it`, async () => {
+                const session = await oracleRows(table)
+                expect(oracleListed(session)).toEqual([HORN])
+                expect(oracleReason(session.gameState, HORN)).toBeUndefined()
+            })
 
-        it(`on ${name}: Great Spire, Welcoming Party, New Growth and Crop Rotation are refused`, async () => {
-            const session = await oracleRows(table)
-            for (const cardId of HIDDEN_ON_ORACLE)
-                expect(oracleReason(session.gameState, cardId), cardId).toBeDefined()
+            it(`on ${name}: Great Spire and ${label} are refused`, async () => {
+                const session = await oracleRows(table)
+                for (const cardId of [SPIRE, ...advisers])
+                    expect(oracleReason(session.gameState, cardId), cardId).toBeDefined()
+            })
+        }
+
+        it(`before revision 33, with ${label}: the row is the same, and the engine accepts each card alone`, async () => {
+            const session = await oracleRows(oracleTable(BEFORE, advisers))
+            expect(oracleListed(session)).toEqual([HORN])
+            for (const cardId of [SPIRE, ...advisers])
+                expect(oracleReason(session.gameState, cardId), cardId).toBeUndefined()
         })
     }
-
-    it('before revision 33 the row is the same, and the engine accepts each card alone', async () => {
-        const session = await oracleRows(oracleTable(BEFORE))
-        expect(oracleListed(session)).toEqual([HORN])
-        for (const cardId of HIDDEN_ON_ORACLE)
-            expect(oracleReason(session.gameState, cardId), cardId).toBeUndefined()
-    })
 })
 
 // --- False Prophet's question ---
 
 /**
- * Dana's Search reveals the Vision of Conquest, so their Vision of Faith, with Rhys's warband on it, is discarded and
- * Rhys is asked. Rhys holds the Cracked Horn and has False Prophet, Welcoming Party and New Growth faceup; at the
- * River (c2), which Ann, the Chancellor, rules, are Forced Labor and Great Spire.
+ * Rhys's faceup advisers beside False Prophet, by table: always three, the limit, so the facedown adviser play is not
+ * offered. The Wrestlers have no Search power. The Search cards are hidden from the question's rows, as is Great Spire.
  */
-function prophetTable(revision: OathRevision): PlayedTable {
+const PROPHET_SEATS: { label: string; advisers: string[]; hidden: string[] }[] = [
+    {
+        label: 'Welcoming Party and New Growth',
+        advisers: [WELCOMING_PARTY, NEW_GROWTH],
+        hidden: [WELCOMING_PARTY, NEW_GROWTH]
+    },
+    { label: 'Wild Cry', advisers: [WILD_CRY, FILLER], hidden: [WILD_CRY] }
+]
+
+/**
+ * Dana's Search reveals the Vision of Conquest, so their Vision of Faith, with Rhys's warband on it, is discarded and
+ * Rhys is asked. Rhys holds the Cracked Horn and has False Prophet and two other advisers faceup; at the River (c2),
+ * which Ann, the Chancellor, rules, are Forced Labor and Great Spire.
+ */
+function prophetTable(revision: OathRevision, advisers: string[]): PlayedTable {
     const s = testState(
         [
             testPlayer({
@@ -189,7 +212,7 @@ function prophetTable(revision: OathRevision): PlayedTable {
                 secrets: 2,
                 supply: 5,
                 relicIds: [HORN],
-                advisers: [FALSE_PROPHET, WELCOMING_PARTY, NEW_GROWTH].map((cardId) => ({
+                advisers: [FALSE_PROPHET, ...advisers].map((cardId) => ({
                     cardId,
                     faceUp: true
                 })),
@@ -253,34 +276,43 @@ const prophetReason = (state: HydratedOathGameState, play: SearchPlay, cardId: s
 
 // Rhys's three faceup advisers are at the limit, so the facedown adviser play is not offered.
 const OFFERED_PLAYS = [SearchPlay.RevealedVision, SearchPlay.Discard]
-const HIDDEN_ON_PROPHET = [SPIRE, WELCOMING_PARTY, NEW_GROWTH]
 
 describe("False Prophet's question at revision 33: the same rows and plays, and each card it hides is refused", () => {
-    for (const [name, table] of views(prophetTable(FIXED), rhys)) {
-        it(`on ${name}: only the Cracked Horn is listed, the same plays are offered, and the engine accepts the Horn`, async () => {
-            const session = await askedRhys(table)
-            expect(session.question.question?.kind).toBe(PowerQuestionKind.PlayOrDiscardVision)
-            expect(prophetListed(session)).toEqual([HORN])
-            expect(session.question.visionPlays).toEqual(OFFERED_PLAYS)
-            expect(prophetReason(session.gameState, SearchPlay.Discard, HORN)).toBeUndefined()
-        })
+    for (const { label, advisers, hidden } of PROPHET_SEATS) {
+        for (const [name, table] of views(prophetTable(FIXED, advisers), rhys)) {
+            it(`on ${name}, with ${label}: only the Cracked Horn is listed, the same plays are offered, and the engine accepts the Horn`, async () => {
+                const session = await askedRhys(table)
+                expect(session.question.question?.kind).toBe(PowerQuestionKind.PlayOrDiscardVision)
+                expect(prophetListed(session)).toEqual([HORN])
+                expect(session.question.visionPlays).toEqual(OFFERED_PLAYS)
+                expect(prophetReason(session.gameState, SearchPlay.Discard, HORN)).toBeUndefined()
+            })
 
-        it(`on ${name}: Great Spire, Welcoming Party and New Growth are refused on each play offered`, async () => {
-            const session = await askedRhys(table)
-            for (const play of OFFERED_PLAYS)
-                for (const cardId of HIDDEN_ON_PROPHET)
-                    expect(
-                        prophetReason(session.gameState, play, cardId),
-                        `${cardId} on ${play}`
-                    ).toBeDefined()
-        })
+            it(`on ${name}: Great Spire and ${label} are refused on each play offered`, async () => {
+                const session = await askedRhys(table)
+                for (const play of OFFERED_PLAYS)
+                    for (const cardId of [SPIRE, ...hidden])
+                        expect(
+                            prophetReason(session.gameState, play, cardId),
+                            `${cardId} on ${play}`
+                        ).toBeDefined()
+            })
+        }
     }
 
     it('before revision 33 the rows and plays are the same', async () => {
-        const session = await askedRhys(prophetTable(BEFORE))
+        const session = await askedRhys(prophetTable(BEFORE, PROPHET_SEATS[0]!.advisers))
         expect(prophetListed(session)).toEqual([HORN])
         expect(session.question.visionPlays).toEqual(OFFERED_PLAYS)
         expect(prophetReason(session.gameState, SearchPlay.Discard, SPIRE)).toBeUndefined()
         expect(prophetReason(session.gameState, SearchPlay.Discard, NEW_GROWTH)).toBeUndefined()
+    })
+
+    it('before revision 33, with Wild Cry: the rows and plays are the same, and the engine accepts Wild Cry on each play', async () => {
+        const session = await askedRhys(prophetTable(BEFORE, PROPHET_SEATS[1]!.advisers))
+        expect(prophetListed(session)).toEqual([HORN])
+        expect(session.question.visionPlays).toEqual(OFFERED_PLAYS)
+        for (const play of OFFERED_PLAYS)
+            expect(prophetReason(session.gameState, play, WILD_CRY), play).toBeUndefined()
     })
 })
