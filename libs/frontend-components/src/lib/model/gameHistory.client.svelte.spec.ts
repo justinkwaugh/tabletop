@@ -14,14 +14,16 @@ function historyOfTwoPlays() {
     context.applyAction(firstPlay)
     context.applyAction(createAction(PlaySchema, { gameId: game.id, playerId: 'p2', cardId: 'r2' }))
     const seen: (number | undefined)[] = []
-    const viewed: { history?: { viewedActionCount: number | undefined } } = {}
+    const replayingSeen: boolean[] = []
+    const viewed: { history?: { viewedActionCount: number | undefined; replaying: boolean } } = {}
     const history = new GameHistory(context, {
         waitForTransitionSettled: async () => {
             seen.push(viewed.history?.viewedActionCount)
+            replayingSeen.push(viewed.history?.replaying ?? false)
         }
     })
     viewed.history = history
-    return { history, seen }
+    return { history, seen, replayingSeen }
 }
 
 describe('GameHistory viewed position', () => {
@@ -48,5 +50,16 @@ describe('GameHistory viewed position', () => {
         expect(seen.length).toBeGreaterThan(0)
         expect(seen.every((count) => count === 1)).toBe(true)
         expect(history.viewedActionCount).toBe(1)
+    })
+
+    it('says a replay is playing only while it plays', async () => {
+        const { history, replayingSeen } = historyOfTwoPlays()
+        expect(history.replaying).toBe(false)
+        await history.goToActionIndex(0, { exact: true })
+        await settleTimers()
+        await history.replayRange(1, 1, { holdMs: 0 })
+        expect(replayingSeen.length).toBeGreaterThan(0)
+        expect(replayingSeen.every(Boolean)).toBe(true)
+        expect(history.replaying).toBe(false)
     })
 })

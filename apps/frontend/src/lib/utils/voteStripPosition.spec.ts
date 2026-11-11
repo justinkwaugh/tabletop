@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { voteStripPosition } from './voteStripPosition'
+import { offersUndoRequest, shownProposal, voteStripPosition } from './voteStripPosition'
 
 const viewed = {
     actionIndex: 3,
@@ -75,5 +75,32 @@ describe('voteStripPosition', () => {
             beyondUndoReach: true,
             startsWithUserAction: true
         })
+    })
+})
+
+describe('offersUndoRequest', () => {
+    it('offers a request beyond the player’s Undo where a user action starts', () => {
+        expect(offersUndoRequest(viewed)).toBe(true)
+        expect(offersUndoRequest({ ...viewed, beyondUndoReach: false })).toBe(false)
+        expect(offersUndoRequest({ ...viewed, startsWithUserAction: false })).toBe(false)
+    })
+
+    it('offers none while a replay plays', () => {
+        expect(offersUndoRequest({ ...viewed, replaying: true })).toBe(false)
+        expect(offersUndoRequest({ ...viewed, replaying: false })).toBe(true)
+    })
+})
+
+describe('shownProposal', () => {
+    const proposal = { actionIndex: 3, kind: 'ownUndo' as const }
+
+    it('shows a proposal at the position it was made for', () => {
+        expect(shownProposal(proposal, viewed)).toBe(proposal)
+        expect(shownProposal(proposal, { ...viewed, actionIndex: 4 })).toBeUndefined()
+        expect(shownProposal(proposal, undefined)).toBeUndefined()
+    })
+
+    it('holds a proposal back while a replay plays', () => {
+        expect(shownProposal(proposal, { ...viewed, replaying: true })).toBeUndefined()
     })
 })

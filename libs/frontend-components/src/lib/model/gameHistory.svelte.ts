@@ -62,6 +62,8 @@ export class GameHistory<T extends GameState, U extends HydratedGameState<T> & T
 
     private replayReturn: ReplayReturn | undefined = $state(undefined)
 
+    replaying: boolean = $derived(this.replayReturn !== undefined)
+
     // A replay's frames pass by on their own, so the Player stays where the replay returns to.
     viewedActionCount: number | undefined = $derived.by(() => {
         if (this.replayReturn) {

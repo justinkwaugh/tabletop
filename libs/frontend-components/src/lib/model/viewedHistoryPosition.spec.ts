@@ -16,7 +16,13 @@ function history(...moves: [playerId: string | undefined, source?: ActionSource]
 describe('viewedHistoryPosition', () => {
     const liveActions = history(['a'], [undefined, ActionSource.System], ['b'], ['a'])
     const at = (actionIndex: number, playerId: string) =>
-        viewedHistoryPosition({ actionIndex, liveActionCount: 4, liveActions, playerId })
+        viewedHistoryPosition({
+            actionIndex,
+            liveActionCount: 4,
+            liveActions,
+            playerId,
+            replaying: false
+        })
 
     it('reports how many actions the live game has', () => {
         expect(at(2, 'a').liveActionCount).toBe(4)
@@ -34,5 +40,18 @@ describe('viewedHistoryPosition', () => {
     it('says whether the position starts with a user action', () => {
         expect(at(2, 'a').startsWithUserAction).toBe(true)
         expect(at(1, 'a').startsWithUserAction).toBe(false)
+    })
+
+    it('says whether a replay is playing', () => {
+        expect(at(2, 'a').replaying).toBe(false)
+        expect(
+            viewedHistoryPosition({
+                actionIndex: 2,
+                liveActionCount: 4,
+                liveActions,
+                playerId: 'a',
+                replaying: true
+            }).replaying
+        ).toBe(true)
     })
 })

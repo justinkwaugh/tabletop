@@ -25,3 +25,16 @@ export function voteStripPosition({
         startsWithUserAction: true
     }
 }
+
+export function offersUndoRequest(position: ViewedHistoryPosition): boolean {
+    return position.beyondUndoReach && position.startsWithUserAction && position.replaying !== true
+}
+
+// A replay's frames are not a place to ask from; the proposal returns with the position.
+export function shownProposal<P extends { actionIndex: number }>(
+    proposal: P | undefined,
+    position: ViewedHistoryPosition | undefined
+): P | undefined {
+    if (!position || position.replaying) return undefined
+    return proposal?.actionIndex === position.actionIndex ? proposal : undefined
+}

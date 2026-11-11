@@ -26,7 +26,11 @@
         voteErrorMessage,
         voteTally
     } from '$lib/utils/playerVoteText'
-    import { voteStripPosition } from '$lib/utils/voteStripPosition'
+    import {
+        offersUndoRequest,
+        shownProposal,
+        voteStripPosition
+    } from '$lib/utils/voteStripPosition'
 
     type Proposal =
         | { actionIndex: number; kind: 'confirm'; preview: UndoVotePreview }
@@ -68,9 +72,7 @@
     )
 
     let proposal: Proposal | undefined = $state()
-    const shownProposal = $derived(
-        proposal?.actionIndex === position?.actionIndex ? proposal : undefined
-    )
+    const shown = $derived(shownProposal(proposal, position))
 
     let voteSummary: UndoVotePreview | undefined = $state()
     const summaryTarget = $derived(
@@ -230,7 +232,7 @@
     </div>
 {:else if position}
     <div class="vote-strip">
-        {#if shownProposal?.kind === 'ownUndo'}
+        {#if shown?.kind === 'ownUndo'}
             <span class="line text-white">You can undo this yourself with Undo.</span>
             <Button
                 size="xs"
@@ -238,8 +240,8 @@
                 class={buttonClass}
                 onclick={() => (proposal = undefined)}>OK</Button
             >
-        {:else if shownProposal?.kind === 'confirm'}
-            {@const preview = shownProposal.preview}
+        {:else if shown?.kind === 'confirm'}
+            {@const preview = shown.preview}
             <span class="line">
                 <span class="font-medium text-white">Ask everyone to undo to here?</span>
                 <span class="text-gray-400">{undoneSummary(preview)}</span>
@@ -263,7 +265,7 @@
         {:else}
             {@const target = position}
             <span class="line"><ViewingHistoryLine /></span>
-            {#if canVote && target.beyondUndoReach && target.startsWithUserAction}
+            {#if canVote && offersUndoRequest(target)}
                 <Button
                     size="xs"
                     color="blue"

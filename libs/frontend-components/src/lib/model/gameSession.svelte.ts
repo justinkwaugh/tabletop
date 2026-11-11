@@ -245,7 +245,8 @@ export class GameSession<T extends GameState, U extends HydratedGameState<T> & T
             actionIndex: viewedActionCount,
             liveActionCount: this.gameContext.state.actionCount,
             liveActions: this.gameContext.actions,
-            playerId: this.myPlayer.id
+            playerId: this.myPlayer.id,
+            replaying: this.history.replaying
         })
     })
 
