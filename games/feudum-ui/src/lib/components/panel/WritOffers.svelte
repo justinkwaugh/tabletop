@@ -20,6 +20,8 @@
             class="flex flex-col gap-1"
             style:width="{FaceWidth * 1.6}px"
             data-writ-offer={offer.writId}
+            role="group"
+            aria-label={offer.name}
         >
             <div class="relative" style:width="{FaceWidth}px">
                 <WritFace faceShown writId={offer.writId} width={FaceWidth} />
