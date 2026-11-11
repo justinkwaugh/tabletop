@@ -14,6 +14,7 @@ import {
     type Epoch,
     type TriggeredEpoch
 } from '@tabletop/feudum'
+import { isOffTurnDiscard } from './decisionPress.js'
 
 /** What a group of Actions is, for the log: `single` stands alone and grows by nothing. */
 export type HistoryGroupKind = 'single' | 'hands' | 'turn' | 'nourishing' | 'progress' | 'dawn'
@@ -174,7 +175,7 @@ function formed({ kind, actions, firstIndex, lastIndex }: Forming): HistoryGroup
  * `AdvanceTurn` and `StartRound` are bookkeeping and only mark where entries end: an `AdvanceTurn`
  * that leaves the turn with its seat ends nothing. `EndRound` joins whatever entry the round ended on.
  * Any seat may discard at any time, so a discard never makes a turn its seat's: one by another seat
- * than the turn's stands alone.
+ * than the turn's stands alone, between turns or in the middle of one.
  */
 export function aggregateHistory(
     actions: readonly GameAction[],
@@ -234,14 +235,10 @@ export function aggregateHistory(
             })
             continue
         }
-        if (
-            isDiscardWrit(action) &&
-            !open &&
-            !selecting &&
-            turnSeat &&
-            action.playerId !== turnSeat
-        ) {
-            // R-4.4-H5 Any seat may discard at any time: another seat's discard is not its turn.
+        const seat = open?.kind === 'turn' ? open.actions[0].playerId : turnSeat
+        if (!selecting && seat !== undefined && isOffTurnDiscard(action, seat)) {
+            // R-4.4-H5 Any seat may discard at any time: another seat's discard is not its turn, nor
+            // part of the turn it falls in, which goes on growing after it.
             slots.push({
                 kind: 'single',
                 actions: [action],

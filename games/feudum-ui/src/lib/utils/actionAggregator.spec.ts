@@ -328,6 +328,43 @@ describe('R-3.2 One entry per turn, growing', () => {
         expect(groupsOf(entries).at(-1)?.playerId).toBe(P1)
     })
 
+    it('R-4.4-H5 Another seat`s discard in the middle of a turn stands alone, and the turn goes on growing', () => {
+        const entries = aggregateHistory(
+            [
+                ...start,
+                act(10, ActionType.Conquer, P1),
+                act(11, ActionType.DiscardWrit, P3),
+                act(12, ActionType.AnswerAttack, P2)
+            ],
+            Table
+        )
+
+        expect(spans(entries)).toEqual(['hands 7-9', 'turn 10-12', 'single 11-11'])
+        const turn = groupsOf(entries)[1]
+        expect(turn.playerId).toBe(P1)
+        expect(typesIn(turn)).toEqual([ActionType.Conquer, ActionType.AnswerAttack])
+    })
+
+    it('R-4.4-H5 The same in a later turn of the round', () => {
+        const entries = aggregateHistory(
+            [
+                ...start,
+                act(10, ActionType.Move, P1),
+                act(11, ActionType.AdvanceTurn, undefined, {
+                    outcome: 'next-seat',
+                    turnPlayerId: P2
+                }),
+                act(12, ActionType.Conquer, P2),
+                act(13, ActionType.DiscardWrit, P1),
+                act(14, ActionType.AnswerAttack, P3)
+            ],
+            Table
+        )
+
+        expect(spans(entries)).toEqual(['hands 7-9', 'turn 10-10', 'turn 12-14', 'single 13-13'])
+        expect(typesIn(groupsOf(entries)[2])).toEqual([ActionType.Conquer, ActionType.AnswerAttack])
+    })
+
     it('Only a turn names a seat', () => {
         expect(onlyGroup(selection(6)).playerId).toBeUndefined()
     })
