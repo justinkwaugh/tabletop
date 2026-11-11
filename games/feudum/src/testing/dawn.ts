@@ -1,5 +1,7 @@
 import { assertExists, type GameAction } from '@tabletop/common'
+import { nourishOffer } from '../actions/nourish.js'
 import type { SpaceId } from '../data/board.js'
+import { ActionType } from '../definition/actions.js'
 import { RegionIds, type LandscapeKind, type TileId } from '../data/regionTiles.js'
 import { MachineState } from '../definition/states.js'
 import type { TriggeredEpoch } from '../model/flow.js'
@@ -25,7 +27,7 @@ export interface DawnTable {
     readonly table: Table
     /** The turn order the dawn saw; the next round can change the table's. */
     readonly order: readonly string[]
-    /** What the last card set off: the roll, the dawn, as far as it runs. */
+    /** What the last card set off, and each feeding nourishing waited on: the roll, the dawn, as far as it runs. */
     readonly processed: GameAction[]
 }
 
@@ -47,7 +49,14 @@ export function playToDawn(
         state.epoch = from
         return MachineState.PlayingCards
     })
-    return { table, order, processed: playOutCards(table) }
+    const processed = playOutCards(table)
+    while (table.state.machineState === MachineState.Nourishing) {
+        const playerId = table.asked
+        const offer = nourishOffer(table.hydrated(), playerId)
+        assertExists(offer, 'R-4.4-H1 The seat nourishing waits on decides its feeding')
+        processed.push(...table.send(playerId, { type: ActionType.Nourish, ...offer.preselected }))
+    }
+    return { table, order, processed }
 }
 
 export interface LandscapePlacing {

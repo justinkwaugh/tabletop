@@ -711,4 +711,24 @@ describe('S53 R-4.10, D11 "fed by the game", on the real session', () => {
         expect(of(seat)?.fedByGame).toBeUndefined()
         expect(of(third)?.fedByGame).toBeUndefined()
     })
+
+    it('R-4.10-H4, R-4.4-H1 a seat with no feeding choice but a writ is asked: its feeding whole, and the at-will row', async () => {
+        const table = hold(await atPlayingCards(['tax'], { otherCards: [] }))
+        const { host: game, seat, other } = table
+        game.edit((state) => {
+            threePawns(state, seat)
+            holdFood(state, seat, 3)
+            holdWrit(state, seat, 'writ.mandate.5')
+        })
+        const asked = await game.openSeat(seat)
+        await game.send(seat, { type: ActionType.ForfeitCard, kind: 'tax' })
+        await settled(asked)
+        expect(asked.gameState.machineState).toBe(MachineState.Nourishing)
+        expect(asked.gameState.activePlayerIds).toEqual([seat])
+        expect(asked.nourishPanel?.primary.label).toBe('Feed: 3 food')
+        expect(asked.atWillPanel?.chips.map(({ list }) => list)).toContain('writs')
+        const row = asked.orderRow?.entries
+        expect(row?.find((entry) => entry.playerId === seat)).toMatchObject({ next: true })
+        expect(row?.find((entry) => entry.playerId === other)?.fedByGame).toBe(true)
+    })
 })
