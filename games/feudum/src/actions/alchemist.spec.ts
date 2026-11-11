@@ -65,7 +65,7 @@ describe('R-1.3 the carts and piles', () => {
 })
 
 describe('GuildAction: R-4.6.4 the Alchemist pull', () => {
-    it('R-4.6.4 two market goods into the carts; no cart completed, nothing scores and no barrier', () => {
+    it('R-4.6.4, R-4.7-H1 two market goods into the carts; no cart completed, no points, no barrier, a reeve offered', () => {
         const { table, playerId } = journeymanTable({ iron: 3, food: 1 }, {})
         const score = table.seat(playerId).score
         const haversack = table.hydrated().supply.haversack
@@ -81,12 +81,13 @@ describe('GuildAction: R-4.6.4 the Alchemist pull', () => {
             metadata: {
                 completions: 0,
                 points: 0,
+                reeveOffered: true,
                 drawnWritIds: [],
                 details: { kind: 'alchemist-pull', completed: [] }
             }
         })
         expect(action.revealsInfo).toBeFalsy()
-        expect(table.state.machineState).toBe(MachineState.PlayingCards)
+        expect(table.state.machineState).toBe(MachineState.PlacingDisc)
     })
 
     it('R-4.6.4 a cart or pile completed: 3 vp, 2 writs drawn, 1 kept, a barrier, however many', () => {

@@ -84,6 +84,7 @@ describe('GuildAction: R-4.6.4 the Noble pull', () => {
             metadata: {
                 completions: 0,
                 points: 0,
+                reeveOffered: true,
                 drawnWritIds: [],
                 details: {
                     kind: 'noble-pull',
@@ -99,7 +100,7 @@ describe('GuildAction: R-4.6.4 the Noble pull', () => {
         expect(recordedText(action)).not.toContain('seal.')
         expect(action.revealsInfo).toBeFalsy()
         expect(conservationBreaks(canonicalOf(table.hydrated()))).toEqual([])
-        expect(table.state.machineState).toBe(MachineState.PlayingCards)
+        expect(table.state.machineState).toBe(MachineState.PlacingDisc)
     })
 
     it('R-4.6.4 a row or column reaches the threshold once: 3 vp and the writ draw, a barrier', () => {

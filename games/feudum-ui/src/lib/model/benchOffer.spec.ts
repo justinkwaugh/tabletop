@@ -330,6 +330,20 @@ describe('R-4.6.1, R-4.7 the result line comes from the preview', () => {
         expect(result?.reeve).toBe('+1 vp reeve')
     })
 
+    it('R-4.7-H1 a push below a threshold still says its reeve points', async () => {
+        const turn = await table((state, { seat, other }) => {
+            setJourneyman(state, other, 'farmer', seat)
+            setBarn(state, { iron: 1 })
+            const { master } = state.guilds.tracks.farmer
+            if (master) {
+                master.reeve = true
+            }
+        })
+        const { result } = offerOf(turn, 'farmer', 'push', { picks: goods('iron') })
+        expect(result?.line).toBe('0 vp')
+        expect(result?.reeve).toBe('+1 vp reeve')
+    })
+
     it('R-4.6-H2 a draw of two beads gives both ends', async () => {
         const turn = await table((state, { seat, other }) => {
             setJourneyman(state, seat, 'farmer', other)

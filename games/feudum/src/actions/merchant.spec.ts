@@ -77,7 +77,7 @@ function nearlyFull(state: HydratedFeudumGameState, barn: GoodAmounts): void {
 }
 
 describe('GuildAction: R-4.6.4 the Merchant pull', () => {
-    it('R-4.6.4 moves barn goods into their bins, left to right; below the threshold, nothing scores', () => {
+    it('R-4.6.4, R-4.7-H1 moves barn goods into their bins, left to right; below the threshold, no points and a reeve offered', () => {
         const { table, playerId } = journeymanTable((state) => {
             setMarket(state, { iron: 1 })
             setBarn(state, { iron: 2, wood: 1 })
@@ -99,7 +99,7 @@ describe('GuildAction: R-4.6.4 the Merchant pull', () => {
             metadata: {
                 completions: 0,
                 points: 0,
-                reeveOffered: false,
+                reeveOffered: true,
                 drawnWritIds: [],
                 details: {
                     kind: 'merchant-pull',
@@ -114,7 +114,7 @@ describe('GuildAction: R-4.6.4 the Merchant pull', () => {
             }
         })
         expect(action.revealsInfo).toBeFalsy()
-        expect(table.state.machineState).toBe(MachineState.PlayingCards)
+        expect(table.state.machineState).toBe(MachineState.PlacingDisc)
     })
 
     it('R-4.6.4 a completed row reaches the threshold: 3 vp, 2 writs drawn, 1 kept, a barrier', () => {
@@ -321,7 +321,7 @@ describe('GuildAction: R-4.6.5 the Merchant push', () => {
         expect(action).toMatchObject({ metadata: { completions: done, points: vp } })
     })
 
-    it('R-4.6.1 a cart already full is no completion, and takes nothing', () => {
+    it('R-4.6.1, R-4.7-H1 a cart already full is no completion, and takes nothing; a reeve is offered', () => {
         const { table, playerId } = masterTable(
             { wood: 4, iron: 1 },
             { wood: 3, iron: 0, food: 3, sulfur: 3, saltpeter: 3 }
@@ -331,9 +331,9 @@ describe('GuildAction: R-4.6.5 the Merchant push', () => {
         )
         const [action] = table.send(playerId, { ...Push, params: { goods: ['iron'] } })
         expect(action).toMatchObject({
-            metadata: { completions: 0, points: 0, reeveOffered: false, details: { completed: [] } }
+            metadata: { completions: 0, points: 0, reeveOffered: true, details: { completed: [] } }
         })
-        expect(table.state.machineState).toBe(MachineState.PlayingCards)
+        expect(table.state.machineState).toBe(MachineState.PlacingDisc)
     })
 
     it('R-4.7 a scoring push offers a reeve', () => {

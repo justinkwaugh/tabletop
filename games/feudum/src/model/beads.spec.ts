@@ -83,7 +83,7 @@ describe('GuildAction: R-4.6.4 the Farmer pull', () => {
                 completions: 0,
                 points: 0,
                 reevePoints: 0,
-                reeveOffered: false,
+                reeveOffered: true,
                 details: {
                     kind: 'farmer-pull',
                     high: rosary[2],
@@ -96,7 +96,7 @@ describe('GuildAction: R-4.6.4 the Farmer pull', () => {
         })
     })
 
-    it('R-4.6.4 below the threshold it scores nothing and draws no writ', () => {
+    it('R-4.6.4, R-4.7-H1 below the threshold it scores no points and draws no writ, and offers a reeve', () => {
         const { table, playerId } = tableAtGuild((state, seat, rest) => {
             setJourneyman(state, seat, 'farmer', rest[0])
             setBeads(state, { rosary: [2, 2], chickens: [2] })
@@ -105,9 +105,11 @@ describe('GuildAction: R-4.6.4 the Farmer pull', () => {
         const [action] = table.send(playerId, FarmerPull)
         expect(chickenBeadSum(table.hydrated())).toBe(4)
         expect(table.seat(playerId).score).toBe(score)
-        expect(action).toMatchObject({ metadata: { completions: 0, points: 0 } })
+        expect(action).toMatchObject({
+            metadata: { completions: 0, points: 0, reeveOffered: true }
+        })
         expect(table.hydrated().flow.writDraw).toBeUndefined()
-        expect(table.state.machineState).toBe(MachineState.PlayingCards)
+        expect(table.state.machineState).toBe(MachineState.PlacingDisc)
     })
 
     it('R-4.6.4 reaching 5 scores 3 vp and draws 2 writs to keep 1, a barrier', () => {

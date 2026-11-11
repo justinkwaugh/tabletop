@@ -276,13 +276,15 @@ scenario(
         const sent = await table.page.evaluate(() => window.feudumFixture.host.actions.length)
         await table.press(send)
         await expect(dialog.locator('[data-bench]')).toHaveCount(0)
-        // The seat's Action reaches the server; the game then carries on past the Guild.
+        // R-4.7-H1 The seat's Action reaches the server, and its pull offers a reeve.
         const by = await table.page.evaluate(
             (from) => window.feudumFixture.host.actions[from]?.playerId ?? 'none',
             sent
         )
         expect(by).toBe(await table.page.evaluate(() => window.feudumFixture.seat))
-        expect(await table.activeSeats()).not.toContain('p2')
+        await expect(dialog.locator('[data-action-panel]')).toContainText(
+            'Place a reeve in the Merchant Guild?'
+        )
         await expect(dialog).toHaveCount(1)
     }
 )

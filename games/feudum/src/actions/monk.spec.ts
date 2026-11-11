@@ -194,7 +194,7 @@ describe('GuildAction: R-4.6.4 the Monk pull', () => {
         expect(conservationBreaks(canonicalOf(table.hydrated()))).toEqual([])
     })
 
-    it('R-4.6.4, R-X.2 below 11 nothing scores, and the flip is still a barrier', () => {
+    it('R-4.6.4, R-X.2 below 11 no points score, and the flip is still a barrier', () => {
         const { table, playerId } = pullTable([4, 4], 2)
         const score = table.seat(playerId).score
         const [action] = table.send(playerId, { ...Pull, params: { scrollSpaces: [R1C1] } })
@@ -205,7 +205,7 @@ describe('GuildAction: R-4.6.4 the Monk pull', () => {
                 details: { rosaryTotal: 10 },
                 completions: 0,
                 points: 0,
-                reeveOffered: false,
+                reeveOffered: true,
                 drawnWritIds: []
             }
         })
@@ -336,14 +336,14 @@ describe('GuildAction: R-4.6.5 the Monk push', () => {
         }
     )
 
-    it('R-4.6.5, R-X.2 a push reaching nothing is still a barrier, with no reeve offered', () => {
+    it('R-4.6.5, R-X.2, R-4.7-H1 a push reaching nothing is still a barrier, and a reeve is offered', () => {
         const { table, playerId } = pushTable([2, 2], [])
         const [action] = table.send(playerId, { ...Push, params: {} })
         expect(action).toMatchObject({
             revealsInfo: true,
-            metadata: { completions: 0, points: 0, reeveOffered: false }
+            metadata: { completions: 0, points: 0, reeveOffered: true }
         })
-        expect(table.hydrated().machineState).toBe(MachineState.PlayingCards)
+        expect(table.hydrated().machineState).toBe(MachineState.PlacingDisc)
     })
 
     it('R-4.7 a push that scores offers the reeve', () => {
