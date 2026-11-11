@@ -11,3 +11,6 @@ vite.config.ts.timestamp-*
 
 # Publisher art: local until the commit that adds its permission entry
 /src/lib/art/supplied/
+
+# The cover script's publisher sources: the box front and the rulebook cover
+/src/lib/art/cover-source/
