@@ -1,5 +1,6 @@
 <script lang="ts">
     import BenchLayer from '$lib/components/bench/BenchLayer.svelte'
+    import { MeasuredWidth } from '$lib/model/measuredWidth.svelte.js'
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
     import { seatPaint } from '$lib/model/seatPaint.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -34,11 +35,16 @@
         return seatPaint(gameSession.colors, playerId, initial)
     }
 
-    let innerWidth = $state(EnlargedWidth + PhoneMargin)
+    /**
+     * The screen's width as the layers stand on it. The window's `innerWidth` is the phone's layout
+     * viewport, which a page wider than the screen widens and which narrows again with no resize
+     * event when the page fits once more; a fixed strip across the screen is measured as it stands.
+     */
+    const screen = new MeasuredWidth()
     let enlargedWidth = $derived(
         Math.min(
             layers.enlarged?.kind === 'guild' ? EnlargedGuildWidth : EnlargedWidth,
-            innerWidth - PhoneMargin
+            (screen.width ?? EnlargedWidth + PhoneMargin) - PhoneMargin
         )
     )
     let popup = $derived(gameSession.boardPopup)
@@ -51,7 +57,11 @@
     )
 </script>
 
-<svelte:window bind:innerWidth />
+<div
+    class="pointer-events-none invisible fixed inset-x-0 top-0 h-0"
+    aria-hidden="true"
+    {@attach screen.attach}
+></div>
 
 <!-- Nothing here is pressed while the table catches up with what it shows. -->
 <div class="contents" data-motion-gate inert={gameSession.updatingVisibleState}>
