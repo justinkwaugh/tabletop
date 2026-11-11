@@ -21,7 +21,8 @@
      * refused row stays pressable, to show the line why, and sends nothing. `lead` stands before the
      * label; where the art stands for part of it (a tile for its name), `shown` is the text beside
      * it and the label stays the row's accessible name. `face` takes the label's place on a card or
-     * writ, whose corner holds the magnifier.
+     * writ, whose corner holds the magnifier. `piece` is a piece that is itself the press, a guild's
+     * die: no button chrome, the label its accessible name and tooltip, its preview beneath it.
      */
     let {
         choice,
@@ -29,7 +30,8 @@
         pointer,
         lead,
         face,
-        corner
+        corner,
+        piece
     }: {
         choice: PanelChoice
         onPress: (choice: PanelChoice) => void
@@ -37,6 +39,7 @@
         lead?: Snippet
         face?: Snippet
         corner?: Snippet
+        piece?: Snippet
     } = $props()
 
     const owner = {}
@@ -70,7 +73,7 @@
 </script>
 
 <span
-    class="relative inline-flex items-stretch gap-1 {face ? 'min-w-0 flex-col' : ''}"
+    class="relative inline-flex items-stretch gap-1 {face || piece ? 'min-w-0 flex-col' : ''}"
     data-row={choice.label}
     data-picked={choice.picked ? '' : undefined}
 >
@@ -96,6 +99,22 @@
             </button>
             {#if corner}{@render corner()}{/if}
         </span>
+    {:else if piece}
+        <button
+            type="button"
+            class="inline-flex justify-center rounded-lg p-1 {refused ? 'opacity-50' : ''}"
+            aria-label={choice.label}
+            title={choice.label}
+            aria-pressed={choice.picked}
+            aria-disabled={refused}
+            onpointerenter={point}
+            onpointerleave={leave}
+            onfocus={point}
+            onblur={leave}
+            onclick={press}
+        >
+            {@render piece()}
+        </button>
     {:else}
         <button
             type="button"
@@ -129,7 +148,7 @@
         <button
             type="button"
             class="touch-preview rounded-lg px-2 bg-feudum-control text-xs leading-tight text-feudum-text
-                {face ? 'on-face' : ''}"
+                {face ? 'on-face' : ''} {piece ? 'beneath' : ''}"
             aria-label="Show on board: {choice.label}"
             aria-pressed={previewing}
             data-preview={choice.label}
@@ -166,6 +185,20 @@
 
     .label-narrow {
         display: none;
+    }
+
+    /* A die has no room beside it: its preview stands beneath, with the short label. */
+    .touch-preview.beneath {
+        padding: 0;
+        white-space: nowrap;
+    }
+
+    .touch-preview.beneath .label-wide {
+        display: none;
+    }
+
+    .touch-preview.beneath .label-narrow {
+        display: inline;
     }
 
     @media (hover: none) {

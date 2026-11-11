@@ -418,7 +418,7 @@ describe('the real session: S2 and S3, the starting pawn (R-1.4.9, R-4.5)', () =
         await session.pressStartingCharacter('knight')
         flushSync()
         expect(table.sent.get(seat)).toBeUndefined()
-        expect(session.startingPawnPanel?.characters.find((c) => c.picked)?.rankChip).toBe('master')
+        expect(session.startingPawnPanel?.characters.find((c) => c.picked)?.rank).toBe('master')
 
         await session.pressStartingSpace(DESERT_3)
         await session.waitForVisibleTransitionSettled()
@@ -501,10 +501,10 @@ describe('the real session: S2 and S3, the starting pawn (R-1.4.9, R-4.5)', () =
         for (let placed = 0; placed < 4; placed += 1) {
             const seat = table.setupSeat
             const session = await table.openSeat(seat)
-            const chip = session.startingPawnPanel?.characters.find(
+            const rank = session.startingPawnPanel?.characters.find(
                 ({ character }) => character === 'knight'
-            )?.rankChip
-            expect(chip).toBe(['master', 'journeyman', 'apprentice', 'no rank'][placed])
+            )?.rank
+            expect(rank).toBe(['master', 'journeyman', 'apprentice', undefined][placed])
             await table.send(seat, {
                 type: ActionType.PlaceStartingPawn,
                 character: 'knight',
@@ -514,8 +514,8 @@ describe('the real session: S2 and S3, the starting pawn (R-1.4.9, R-4.5)', () =
         const session = await table.openSeat(table.setupSeat)
         expect(
             session.startingPawnPanel?.characters.find(({ character }) => character === 'knight')
-                ?.rankChip
-        ).toBe('no rank')
+                ?.rank
+        ).toBeUndefined()
     })
 
     it('another seat has no press', async () => {

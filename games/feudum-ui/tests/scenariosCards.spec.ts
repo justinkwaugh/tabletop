@@ -71,6 +71,7 @@ scenario('S13 R-3.6 Migrate onto the board', 'cards-migrate', async (table) => {
     const pawns = table.panel().locator('[data-rows="flow"] [data-row^="Pawn"]')
     await table.press(pawns.first().locator('button').first())
     expect(await table.litChips()).toEqual({ [Forest2]: '1 food' })
+    await expect(table.pick(Forest2).locator('[data-chip] [aria-label="food"]')).toHaveCount(1)
 
     await table.press(table.row('Distant Kin'))
     expect(await table.litChips()).toEqual(
@@ -79,7 +80,8 @@ scenario('S13 R-3.6 Migrate onto the board', 'cards-migrate', async (table) => {
     await table.pressPick(Desert3)
     await expect(table.popup()).toBeVisible()
     expect(await table.piecesNamed('rank:guild.monk')).toEqual([])
-    const flights = await table.flightsOf(() => table.press(table.popupRow('Monk')))
+    await expect(table.popup().locator('[data-popup-dice] [data-die]')).toHaveCount(6)
+    const flights = await table.flightsOf(() => table.press(table.popupRowStarting('Monk, ')))
     expect(flights).toContain("pawns: Ana's monk pawn")
     expect(await table.piecesNamed('rank:guild.monk')).toEqual(['rank:guild.monk.track.master'])
     await expect(table.undo()).toBeVisible()

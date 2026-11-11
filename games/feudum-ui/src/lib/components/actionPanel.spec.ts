@@ -144,6 +144,59 @@ describe('R-X.3 the rows of the panel', () => {
         expect(markup).toMatch(/text-feudum-accent" data-note="role"/)
     })
 
+    it('R-4.5 a guild choice is its die: the badge gives the rank, the caption the guild, the label the name', () => {
+        const markup = markupOf(
+            rowsBlock('characters', [
+                {
+                    choice: { label: 'Farmer, journeyman', picked: true },
+                    press: nothing,
+                    art: { kind: 'die', guild: 'farmer', rank: 'journeyman' }
+                }
+            ])
+        )
+        expect(markup).toContain('aria-label="Farmer, journeyman"')
+        expect(markup).toContain('title="Farmer, journeyman"')
+        expect(markup).toContain('data-die="farmer"')
+        expect(textOf(markup, 'data-badge')).toBe('J')
+        expect(textOf(markup, 'data-die-caption')).toBe('Farmer')
+        expect(markup).toContain('aria-pressed="true"')
+        // The rank stays in the name only: no rank words, no pawn in the press.
+        expect(markup.replace(/"[^"]*"/g, '')).not.toContain('journeyman')
+        expect(markup).not.toContain('data-pawn')
+    })
+
+    it.each([
+        ['master', 'M'],
+        ['apprentice', 'A'],
+        ['none', '–']
+    ] as const)('R-4.5 a die badged %s reads %s', (rank, badge) => {
+        const markup = markupOf(
+            rowsBlock('characters', [
+                {
+                    choice: { label: 'Knight', picked: false },
+                    press: nothing,
+                    art: { kind: 'die', guild: 'knight', rank }
+                }
+            ])
+        )
+        expect(textOf(markup, 'data-badge')).toBe(badge)
+        expect(/class="badge[^"]*\bnone\b/.test(markup)).toBe(rank === 'none')
+    })
+
+    it('a guild that gives no rank of its own has a die without a badge', () => {
+        const markup = markupOf(
+            rowsBlock('guilds', [
+                {
+                    choice: { label: 'Monk', picked: false },
+                    press: nothing,
+                    art: { kind: 'die', guild: 'monk' }
+                }
+            ])
+        )
+        expect(markup).toContain('data-die="monk"')
+        expect(markup).not.toContain('data-badge')
+    })
+
     it('a block carries its heading, and a picked row says so', () => {
         const markup = markupOf(rowsBlock('pouch', [aRow('Iron', { picked: true })], 'Pouch'))
         expect(markup).toContain('data-rows="pouch"')

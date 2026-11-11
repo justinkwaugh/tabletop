@@ -2,6 +2,7 @@ import {
     ActionType,
     MachineState,
     StartingSpaceIds,
+    type Good,
     type GuildId,
     type HydratedFeudumGameState,
     type MonsterId,
@@ -107,7 +108,10 @@ export type ChipTone = 'rose' | 'amber'
 
 export interface ChipNote {
     readonly kind: ChipKind
+    /** The chip's words, and its accessible name when it is drawn as goods. */
     readonly label: string
+    /** Drawn as these goods, each with its count, in place of the words. */
+    readonly goods?: readonly { readonly good: Good; readonly count: number }[]
 }
 
 export interface BoardChip extends ChipNote {

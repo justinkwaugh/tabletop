@@ -55,14 +55,15 @@ test('S1 R-1.4.8 the goods are rows with their tokens, and the sulfur asks besid
     await expect(panel(page).locator('[data-rows="goods"] [data-row]')).toHaveCount(5)
 })
 
-test('S2 R-1.4.9 the characters stand as cubes, their rows light the spaces on hover', async ({
+test('S2 R-1.4.9 the characters stand as guild dice, their rows light the spaces on hover', async ({
     page
 }) => {
     await createGame(page)
     await playToPawn(page)
     const characters = panel(page).locator('[data-rows="characters"] [data-row]')
     await expect(characters).toHaveCount(6)
-    await expect(characters.first().locator('svg[role="img"]')).toBeVisible()
+    await expect(characters.first().locator('[data-die] svg')).toBeVisible()
+    await expect(characters.first().locator('[data-badge]')).toBeVisible()
     await characters.first().locator('button').first().hover()
     await expect.poll(() => bright(page).count()).toBeGreaterThan(0)
     await shot(page, 'characters-hover')

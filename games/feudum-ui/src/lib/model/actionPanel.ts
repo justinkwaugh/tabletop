@@ -13,6 +13,7 @@ import type { PanelChoice, TallyLine } from './cardFlows.js'
 import type { DraftChoice } from './deciderDraft.svelte.js'
 import type { GameEndSummaryView } from './gameEnd.js'
 import type { DawnSheetView } from './roundEnd.js'
+import { rankedDie, type DieArt } from './guildDie.js'
 import { seatPaint, type SeatPaint } from './seatPaint.js'
 import type { FeudumGameSession } from './session.svelte.js'
 import type { OrderRow } from './sharedRows.js'
@@ -24,6 +25,7 @@ export type RowArt =
     | { readonly kind: 'good'; readonly good: Good }
     | { readonly kind: 'pawn'; readonly character?: Character; readonly paint: SeatPaint }
     | TileArt
+    | DieArt
 
 export interface ActionRow {
     readonly choice: PanelChoice
@@ -274,21 +276,18 @@ function pawnBlocks(
     if (panel.asksCharacter) {
         return [line('flow', 'Choose who stands here')]
     }
-    const paint = paintOf(session, panel.deciderId)
     return [
         line('flow', 'Press a starting space, or a character'),
         ...rows(
             'characters',
-            panel.characters.map(({ character, rankChip, picked }) => ({
-                choice: {
-                    label: titled(character),
-                    note: { kind: 'role', label: rankChip },
-                    picked,
-                    lights: () => StartingSpaceIds.map(spaceTarget)
-                },
-                press: () => session.pressStartingCharacter(character),
-                art: { kind: 'pawn', character, paint }
-            }))
+            panel.characters.map(({ character, rank, picked }) => {
+                const { label, art } = rankedDie(character, rank)
+                return {
+                    choice: { label, picked, lights: () => StartingSpaceIds.map(spaceTarget) },
+                    press: () => session.pressStartingCharacter(character),
+                    art
+                }
+            })
         )
     ]
 }

@@ -395,19 +395,31 @@ describe('R-3.6 Migrate', () => {
         await session.pressTurnChoice(pawnRow)
         flushSync()
         const [{ target, notes }] = session.turn.flow?.picks ?? []
-        expect(notes).toEqual([{ kind: 'cost', label: '1 food' }])
+        expect(notes).toEqual([
+            { kind: 'cost', label: '1 food', goods: [{ good: 'food', count: 1 }] }
+        ])
 
         const spaceId = session.turn.flow?.picks[0].target.replace('space:', '')
         await pressTarget(session, target)
         const choices = session.turn.flow?.popup?.choices ?? []
-        expect(choices.map(({ label }) => label)).toContain('Monk')
-        expect(row(choices, 'Monk').note?.kind).toBe('role')
+        expect(choices.map(({ art }) => art?.kind === 'die' && art.guild)).toEqual([
+            'farmer',
+            'merchant',
+            'alchemist',
+            'knight',
+            'noble',
+            'monk'
+        ])
+        const monk = row(choices, /^Monk, /)
+        expect(monk.art).toMatchObject({ kind: 'die', guild: 'monk' })
+        expect(monk.label).toMatch(/^Monk, (master|journeyman|apprentice|no rank)$/)
+        expect(monk.note).toBeUndefined()
 
         // The popup holds the board: a press outside does nothing.
         await pressTarget(session, target)
         expect(session.turn.value('space')).toBeDefined()
 
-        await pressPopup(session, 'Monk')
+        await pressPopup(session, /^Monk, /)
         expect(sentBy(turn)).toMatchObject({
             type: ActionType.Migrate,
             onto: { character: 'monk', spaceId }
@@ -434,7 +446,7 @@ describe('R-3.6 Migrate', () => {
         expect(picks.every(({ notes }) => notes?.[0].label === 'Distant Kin')).toBe(true)
 
         await pressTarget(session, picks[0].target)
-        await pressPopup(session, 'Farmer')
+        await pressPopup(session, /^Farmer, /)
         expect(sentBy(turn)).toMatchObject({ type: ActionType.Migrate, distantKin: true })
     })
 
@@ -461,7 +473,7 @@ describe('S48 R-4.4-H1 a payment short of a good: the tile cover', () => {
             await session.pressTurnChoice(firstRow(session))
             flushSync()
             await pressTarget(session, firstPick(session))
-            await pressPopup(session, 'Monk')
+            await pressPopup(session, /^Monk, /)
         }
         return { ...turn, held }
     }
@@ -563,6 +575,11 @@ describe('R-3.9 Improve', () => {
 
         await pressTarget(session, target)
         expect(session.turn.flow?.popup?.anchor).toBe(target)
+        // A feudum's guild gives no rank of its own: its die carries no badge.
+        expect(row(session.turn.flow?.popup?.choices, 'Monk').art).toEqual({
+            kind: 'die',
+            guild: 'monk'
+        })
         await pressPopup(session, 'Monk')
         expect(host?.sent.size).toBe(0)
         expect(session.turnPanel?.primary).toEqual({
