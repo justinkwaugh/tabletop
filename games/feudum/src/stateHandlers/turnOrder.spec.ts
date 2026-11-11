@@ -5,8 +5,10 @@ import type { ActionCardKind } from '../data/cards.js'
 import { ActionType } from '../definition/actions.js'
 import { PhaseName } from '../definition/phases.js'
 import { MachineState } from '../definition/states.js'
+import { atWillWindow } from '../model/atWill.js'
 import { queueFollowUp } from '../model/followUps.js'
 import {
+    AnyTime,
     FarmerMandate,
     KnightMandate,
     ShillingMandate,
@@ -31,7 +33,6 @@ const AtWillTypes: string[] = [
     ActionType.PlayMandate,
     ActionType.SpendRegionTile,
     ActionType.PlaceVessel,
-    ActionType.DiscardWrit,
     ActionType.ReclaimImmunitySeal
 ]
 
@@ -77,14 +78,16 @@ describe('SelectingHands', () => {
         expect(table.state.flow.selection?.finalised).toEqual([])
     })
 
-    it('R-4.4-H1, D17 the at-will actions are the next finaliser’s alone', () => {
+    it('R-4.4-H1, D17 the at-will window is the next finaliser’s alone; R-4.4-H5 a discard is any seat’s', () => {
         const table = tableAtHandSelection()
         const [first, second] = table.order
         holdWrit(table, first)
         holdWrit(table, second)
 
+        expect(atWillWindow(table.hydrated(), first)).toBe('hand-selection')
+        expect(atWillWindow(table.hydrated(), second)).toBeUndefined()
         expect(table.offered(first)).toContain(ActionType.DiscardWrit)
-        expect(table.offered(second)).toEqual([])
+        expect(table.offered(second)).toEqual([ActionType.DiscardWrit])
     })
 
     it('R-4.4-H1 the turn passes on with the finaliser, at-will actions with it', () => {
@@ -96,16 +99,17 @@ describe('SelectingHands', () => {
         finalise(table, first)
 
         expect(table.offered(first).filter((type) => AtWillTypes.includes(type))).toEqual([])
-        expect(table.offered(second)).toContain(ActionType.DiscardWrit)
+        expect(atWillWindow(table.hydrated(), first)).toBeUndefined()
+        expect(atWillWindow(table.hydrated(), second)).toBe('hand-selection')
     })
 
-    it('R-4.4-H1 an at-will action leaves the seat selecting', () => {
+    it('R-4.4-H5 a discard leaves the seat selecting', () => {
         const table = tableAtHandSelection()
         const [first] = table.order
         holdWrit(table, first)
         const writId = table.seat(first).writs?.[0]
 
-        table.send(first, { type: ActionType.DiscardWrit, writId })
+        table.send(first, { type: ActionType.DiscardWrit, writId, ...AnyTime })
 
         expect(table.state.machineState).toBe(MachineState.SelectingHands)
         expect(table.state.flow.selection).toEqual({ playerId: first, finalised: [] })
@@ -364,7 +368,8 @@ describe('R-4.4.4, R-3.2-H2 the writ limit (S52)', () => {
 
         const processed = table.send(playerId, {
             type: ActionType.DiscardWrit,
-            writId: VesselMandate
+            writId: VesselMandate,
+            ...AnyTime
         })
 
         expect(processed.map((action) => action.type)).toEqual([
@@ -404,11 +409,11 @@ describe('R-4.4.4, R-3.2-H2 the writ limit (S52)', () => {
         })
         forfeit(table, playerId, 'move')
 
-        table.send(playerId, { type: ActionType.DiscardWrit, writId: Weapon })
+        table.send(playerId, { type: ActionType.DiscardWrit, writId: Weapon, ...AnyTime })
         expect(table.state.machineState).toBe(MachineState.DiscardingWrits)
         expect(table.asked).toBe(playerId)
 
-        table.send(playerId, { type: ActionType.DiscardWrit, writId: VesselMandate })
+        table.send(playerId, { type: ActionType.DiscardWrit, writId: VesselMandate, ...AnyTime })
         expect(table.state.machineState).toBe(MachineState.PlayingCards)
         expect(table.asked).not.toBe(playerId)
     })
@@ -488,7 +493,8 @@ describe('R-3.2 the last card goes to Nourishing', () => {
 
         const processed = table.send(second, {
             type: ActionType.DiscardWrit,
-            writId: VesselMandate
+            writId: VesselMandate,
+            ...AnyTime
         })
         expect(typesOf(processed)).toContain(ActionType.NourishPawns)
     })

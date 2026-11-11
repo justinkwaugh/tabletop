@@ -1,6 +1,7 @@
 import type { StagedSelectionState } from '@tabletop/frontend-components'
 import {
     ActionType,
+    DiscardAnyTime,
     DiscardWrit,
     discardWritOffers,
     goodsShort,
@@ -131,10 +132,12 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
         return playMandateOffers(state, playerId)
     }
 
-    /** R-4.4.4 While the limit asks for a discard, its own panel is where it is pressed. */
+    /** R-4.4.4 While the limit asks this seat for a discard, its own panel is where it is pressed. */
     private discardOffers({ state, playerId, offered }: AtWillContext): readonly WritId[] {
-        return offered.includes(ActionType.DiscardWrit) &&
-            state.machineState !== MachineState.DiscardingWrits
+        const asked =
+            state.machineState === MachineState.DiscardingWrits &&
+            state.activePlayerIds.includes(playerId)
+        return offered.includes(ActionType.DiscardWrit) && !asked
             ? discardWritOffers(state, playerId)
             : []
     }
@@ -222,7 +225,10 @@ export class AtWillDraft extends DeciderDraft<AtWillValues, AtWillContext> {
     private writPlay(context: AtWillContext): FlowPlay | undefined {
         const discard = this.value('discard')
         if (discard) {
-            return { build: (maker) => maker.createPlayerAction(DiscardWrit, { writId: discard }) }
+            return {
+                build: (maker) =>
+                    maker.createPlayerAction(DiscardWrit, { writId: discard, ...DiscardAnyTime })
+            }
         }
         return this.mandatePlay(context)
     }

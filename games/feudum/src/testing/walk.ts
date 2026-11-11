@@ -13,7 +13,7 @@ import { collectLandscapesOffer } from '../actions/collectLandscapes.js'
 import { attackerMayAdd } from '../actions/combat.js'
 import { commitAttackOffer } from '../actions/commitAttack.js'
 import { conquerOffers } from '../actions/conquer.js'
-import { discardWritOffers } from '../actions/discardWrit.js'
+import { DiscardAnyTime, discardWritOffers } from '../actions/discardWrit.js'
 import { exploreOffer } from '../actions/explore.js'
 import { harvestOffers } from '../actions/harvest.js'
 import { improveOffers, type ImproveOffer } from '../actions/improve.js'
@@ -500,6 +500,7 @@ function moveOf(state: HydratedFeudumGameState, playerId: string, progress: Prog
             return {
                 type: ActionType.DiscardWrit,
                 playerId,
+                ...DiscardAnyTime,
                 writId: discardWritOffers(state, playerId)[0]
             }
         }

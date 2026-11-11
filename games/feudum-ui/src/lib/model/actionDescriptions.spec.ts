@@ -8,6 +8,7 @@ import {
 } from '@tabletop/common'
 import {
     ActionType,
+    DiscardAnyTime,
     RoyalWrits,
     type AdvanceTurn,
     type AnswerAttack,
@@ -345,6 +346,7 @@ const Lines: Readonly<
             ...Base,
             type: ActionType.DiscardWrit,
             writId: 'writ.mandate.7',
+            ...DiscardAnyTime,
             metadata: { slot: 2 }
         }),
         actor: 'You discarded Mandate 7 under the deck',

@@ -1,5 +1,6 @@
 import type { StagedSelectionState } from '@tabletop/frontend-components'
 import {
+    DiscardAnyTime,
     DiscardWrit,
     discardWritOffers,
     reasonDiscardWritRefused,
@@ -50,7 +51,7 @@ export class WritLimitDraft extends DeciderDraft<WritLimitValues> {
         return context && writId
             ? playUnless(
                   reasonDiscardWritRefused(context.state, context.playerId, writId),
-                  (maker) => maker.createPlayerAction(DiscardWrit, { writId })
+                  (maker) => maker.createPlayerAction(DiscardWrit, { writId, ...DiscardAnyTime })
               )
             : undefined
     })

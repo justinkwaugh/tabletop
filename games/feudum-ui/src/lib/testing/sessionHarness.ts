@@ -61,6 +61,7 @@ const HARNESS_DEFINITION: GameUiDefinition<GameState, HydratedGameState> = {
 
 const HARNESS_USER = 'harness-user'
 const SpectatorSeat = 'spectator'
+const HotseatScreen = 'hotseat'
 const MASTER_SEED = '0123456789abcdef0123456789abcdef'
 const engine = new GameEngine(FeudumRuntime)
 
@@ -96,6 +97,8 @@ export class FeudumHost {
     readonly game: Game
     state: FeudumGameState
     actions: GameAction[] = []
+    /** What a hotseat screen last saved, as a browser's store keeps it. */
+    savedLocally: Parameters<HarnessAppContext['gameService']['saveGameLocally']>[0] | undefined
     /** The Actions a session handed to the server, by seat. */
     readonly sent = new Map<string, GameAction[]>()
     /** How many times a fixture arranged the table by hand rather than by play. */
@@ -219,6 +222,51 @@ export class FeudumHost {
         })
         this.seats.set(playerId, { playerId, session, appContext, bridgedContext })
         session.listenToGame()
+        await settled(session)
+        return session
+    }
+
+    /**
+     * One screen playing every seat, as the site plays a hotseat game: it holds the complete state and
+     * sends each Action itself. The developer harness's own seat switching is not in play.
+     */
+    async openHotseat(): Promise<FeudumGameSession> {
+        this.closeSeat(HotseatScreen)
+        const appContext = createHarnessAppContext(HARNESS_DEFINITION)
+        Object.defineProperty(appContext.gameService, 'developerHarness', { value: false })
+        // The browser's own store: a spec has none, so the screen's save is kept here.
+        appContext.gameService.saveGameLocally = async (saved) => {
+            this.savedLocally = saved
+        }
+        const bridgedContext = new BridgedContext({
+            authorizationService: appContext.authorizationService,
+            gameService: appContext.gameService,
+            chatService: appContext.chatService,
+            gameId: this.game.id
+        })
+        const { state: _state, ...game } = structuredClone(this.game)
+        const session = new FeudumGameSession({
+            gameService: appContext.gameService,
+            bridgedContext,
+            notificationService: appContext.notificationService,
+            chatService: appContext.chatService,
+            api: appContext.api,
+            runtime: FeudumUiRuntime,
+            game: {
+                ...game,
+                activePlayerIds: [...this.state.activePlayerIds],
+                hotseat: true,
+                storage: GameStorage.Local
+            },
+            state: structuredClone(this.state),
+            actions: structuredClone(this.actions)
+        })
+        this.seats.set(HotseatScreen, {
+            playerId: HotseatScreen,
+            session,
+            appContext,
+            bridgedContext
+        })
         await settled(session)
         return session
     }
