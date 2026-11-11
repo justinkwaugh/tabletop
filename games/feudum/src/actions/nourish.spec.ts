@@ -1,9 +1,19 @@
 import { describe, expect, it } from 'vitest'
 import type { GuildId } from '../data/components.js'
+import type { SpaceId } from '../data/board.js'
+import { Mandates } from '../data/writs.js'
 import { ActionType } from '../definition/actions.js'
+import { MachineState } from '../definition/states.js'
+import { conservationBreaks } from '../model/canonicalValidator.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { rankOf } from '../model/guildStatus.js'
 import { giveTile, tableInWindow } from '../testing/atWill.js'
+import { buildFeudum, holdWrit } from '../testing/combat.js'
 import { setMaster, setPawns, StandingSpace } from '../testing/guilds.js'
+import { playOutCards } from '../testing/roundEnd.js'
+import { canonicalOf } from '../testing/state.js'
+import { tableAtPlayingCards } from '../testing/table.js'
+import { isNourishPawns } from './nourishPawns.js'
 import { nourishHasChoice, nourishOffer, nourishPreview } from './nourish.js'
 
 /** R-1.4.4 Moves the seat's food to or from the haversack, keeping totals. */
@@ -128,15 +138,27 @@ describe('R-4.10.1 Nourish', () => {
         expect(action).toMatchObject({ metadata: { returned: [{ left: { vessel: 'ship' } }] } })
     })
 
-    it('R-4.5.2 status recomputes as the unfed pawns leave', () => {
+    it('R-4.5.2, R-4.5-H1 status recomputes as the unfed pawns leave, on the Nourish that ends nourishing', () => {
         const { table, playerId } = asking({
             edit: (state, seat) => setMaster(state, seat, 'monk')
         })
 
         const [action] = table.send(playerId, { ...Nourish, unfed: [1, 2, 3] })
 
-        expect(action).toMatchObject({
-            metadata: { rankChanges: [{ guildId: 'monk', playerId }] }
+        expect(action).not.toHaveProperty('metadata.rankChanges')
+        expect(table.hydrated().guilds.tracks.monk.master?.playerId).toBe(playerId)
+        let last = action
+        while (table.state.flow.nourish) {
+            const next = table.asked
+            const offer = nourishOffer(table.hydrated(), next)
+            ;[last] = table.send(next, { type: ActionType.Nourish, ...offer?.preselected })
+        }
+        expect(last).toMatchObject({
+            metadata: {
+                rankChanges: expect.arrayContaining([
+                    expect.objectContaining({ guildId: 'monk', playerId })
+                ])
+            }
         })
         expect(table.hydrated().guilds.tracks.monk.master?.playerId).not.toBe(playerId)
     })
@@ -398,5 +420,72 @@ describe('S53 Nourish offers and previews', () => {
             refused: 'You must feed every pawn you have food or wine for.'
         })
         expect(JSON.stringify(state.dehydrate())).toBe(before)
+    })
+})
+
+/** R-4.5.3 Two knights of equal stars: the first seat holds master, the second journeyman on the tie. */
+function tiedKnights(edit: (state: HydratedFeudumGameState, order: readonly string[]) => void) {
+    const table = tableAtPlayingCards(undefined, 3)
+    const feuda = [
+        { spaceId: 'space.desert.4', discId: 'disc.feudum.knight-1' },
+        { spaceId: 'space.desert.5', discId: 'disc.feudum.knight-2' }
+    ] as const satisfies readonly { spaceId: SpaceId; discId: string }[]
+    const order: string[] = []
+    table.moveTo((state) => {
+        order.push(...state.turnManager.turnOrder)
+        order.slice(0, 2).forEach((playerId, index) => {
+            setPawns(state, playerId, ['knight'])
+            const { spaceId, discId } = feuda[index]
+            buildFeudum(state, playerId, spaceId, discId, 'knight')
+            state.recomputeRanks(playerId)
+            setFood(state, playerId, 0)
+            setBarrel(state, playerId, 0)
+        })
+        edit(state, order)
+        return MachineState.PlayingCards
+    })
+    const knights = table.hydrated().guilds.tracks.knight
+    expect(rankOf(knights, order[0])).toBe('master')
+    expect(rankOf(knights, order[1])).toBe('journeyman')
+    return { table, order }
+}
+
+describe('R-4.5-H1 nourishing re-ranks once, from the new totals, when it ends', () => {
+    it('R-4.5-H1, R-4.5.3 two knights starved by the game: a tie at 3 stars, the master keeps it', () => {
+        const { table, order } = tiedKnights(() => undefined)
+
+        const processed = playOutCards(table)
+
+        const after = table.hydrated()
+        expect(after.statusStars(order[0], 'knight')).toBe(3)
+        expect(after.statusStars(order[1], 'knight')).toBe(3)
+        expect(rankOf(after.guilds.tracks.knight, order[0])).toBe('master')
+        expect(rankOf(after.guilds.tracks.knight, order[1])).toBe('journeyman')
+        const nourished = processed.find(isNourishPawns)
+        expect(nourished?.metadata?.rankChanges).toEqual([])
+        expect(conservationBreaks(canonicalOf(after))).toEqual([])
+    })
+
+    it('R-4.5-H1, R-4.10-H4 a seat fed by the game, then one asked: ranked once, on the Nourish that ends it', () => {
+        const { table, order } = tiedKnights((state, [, second]) => {
+            holdWrit(state, second, Mandates[0].id)
+        })
+
+        const processed = playOutCards(table)
+        const nourished = processed.find(isNourishPawns)
+        const fed = nourished?.metadata?.fed.map(({ playerId }) => playerId)
+        expect(fed).toContain(order[0])
+        expect(fed).not.toContain(order[1])
+        expect(nourished?.metadata?.rankChanges).toBeUndefined()
+        expect(rankOf(table.hydrated().guilds.tracks.knight, order[0])).toBe('master')
+
+        const [answer] = table.send(order[1], { ...Nourish, unfed: [1] })
+
+        expect(answer).toMatchObject({ type: ActionType.Nourish, metadata: { rankChanges: [] } })
+        const after = table.hydrated()
+        expect(after.statusStars(order[1], 'knight')).toBe(3)
+        expect(rankOf(after.guilds.tracks.knight, order[0])).toBe('master')
+        expect(rankOf(after.guilds.tracks.knight, order[1])).toBe('journeyman')
+        expect(conservationBreaks(canonicalOf(after))).toEqual([])
     })
 })
