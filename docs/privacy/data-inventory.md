@@ -74,11 +74,10 @@ Developers read the forum through `tools/bug-reports`, which can look up a repor
 | Discord                                                                                                         | Discord IDs for OAuth and DMs; bug-report posts; tournament stall DMs to admins naming players                                           | Discord                                                             |
 | Google Identity Services                                                                                        | Its script loads on the sign-in, profile and re-authentication pages                                                                     | Google                                                              |
 | Web push services                                                                                               | Endpoints and encrypted payloads                                                                                                         | The vendor's                                                        |
-| GitHub Pages (`drag-drop-touch-js.github.io`)                                                                   | A third-party script loaded whenever the Preferences panel renders, so IP addresses go to GitHub                                         | GitHub                                                              |
 | BG Stats (`app.bgstatsapp.com`)                                                                                 | Opt-in; only when the user clicks. The URL carries every player's name, `user:<id>`, score and rank                                      | BG Stats                                                            |
 | Tiltify, api.frankfurter.dev                                                                                    | No personal data; the server reads campaign totals and exchange rates                                                                    | —                                                                   |
 
-There is no analytics, error-reporting service, tracking pixel, advertising, or font CDN.
+There is no analytics, error-reporting service, tracking pixel, advertising, font CDN, or other third-party script beyond Google's sign-in.
 
 ## Browser storage
 
