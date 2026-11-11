@@ -173,6 +173,35 @@ async function openFunction(page: Page, scene: string, guild: string, fn: RegExp
     await settled(page)
 }
 
+/**
+ * Contract, The trade picker on a phone: a short bottom sheet, the board upright at its left and
+ * compact rows beside it, every choice in view with no scroll, so more of the map shows.
+ */
+async function expectPickerSheet(page: Page, scene: string, guild: string) {
+    await openFunction(page, scene, guild, /^\s*Trade/)
+    const sheet = page.locator('[data-bench-sheet="trade"]')
+    await expect(sheet.locator('[data-trade-picker]')).toBeVisible()
+    const view = page.viewportSize()!
+    const box = await rect(sheet)
+    expect(box.height).toBeLessThanOrEqual(view.height * 0.4)
+    const { down, across } = await sheet.evaluate((element) => ({
+        down: element.scrollHeight - element.clientHeight,
+        across: element.scrollWidth - element.clientWidth
+    }))
+    expect(down).toBeLessThanOrEqual(0)
+    expect(across).toBeLessThanOrEqual(0)
+    const board = await rect(sheet.locator('[data-upright-guild]'))
+    expect(Math.abs(board.height - 210)).toBeLessThanOrEqual(2)
+    expect(board.height).toBeGreaterThan(board.width)
+    for (const card of await sheet.locator('[data-trade-card], [data-trade-other]').all()) {
+        const at = await rect(card)
+        expect(at.y).toBeGreaterThanOrEqual(box.y - 0.5)
+        expect(at.y + at.height).toBeLessThanOrEqual(box.y + box.height + 0.5)
+        expect(at.x + at.width).toBeLessThanOrEqual(view.width)
+    }
+    await expectNoSidewaysScroll(page)
+}
+
 /** A hand across the board. */
 async function handPan(page: Page, dx: number, dy: number) {
     const view = await rect(boardView(page))
@@ -389,9 +418,25 @@ test.describe('held upright', () => {
         await expect(footer.locator('[data-primary]')).toContainText(/Move 1\b/)
     })
 
+    test('S74 R-4.6.2 the trade picker’s sheet fits, its choices in view with no scroll', async ({
+        page
+    }) => {
+        await expectPickerSheet(page, 'alchemistTrade', 'alchemist')
+        await shot(page, 'phone-trade-picker')
+        await expectPickerSheet(page, 'merchantTrade', 'merchant')
+        const sheet = page.locator('[data-bench-sheet="trade"]')
+        await sheet.locator('[data-trade-card="good:iron"] button').tap()
+        await settled(page)
+        await expect(sheet.locator('[data-basket-pick]')).toHaveCount(1)
+        await expect(sheet.locator('[data-bench-send] [data-primary]')).toHaveText(
+            /^Buy 1 good · \d+s$/
+        )
+        await expectTarget(sheet.locator('[data-bench-send] [data-primary]'))
+    })
+
     test('S68 R-4.6 a tame from the bench collapses the sheet to its header', async ({ page }) => {
         await openFunction(page, 'knightTrade', 'knight', /^\s*Trade/)
-        await page.locator('[data-bench-button="row:seat"] button').first().tap()
+        await page.locator('[data-trade-buy="row:seat"] button').first().tap()
         await settled(page)
         await popup(page)
             .locator('button')
@@ -810,6 +855,14 @@ test.describe('held upright', () => {
 
 test.describe('a 390 px phone', () => {
     test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
+
+    test('S74 R-4.6.2 the trade picker’s sheet fits, its choices in view with no scroll', async ({
+        page
+    }) => {
+        await expectPickerSheet(page, 'alchemistTrade', 'alchemist')
+        await shot(page, 'phone-390-trade-picker')
+        await expectPickerSheet(page, 'merchantTrade', 'merchant')
+    })
 
     test('Contract, Symbol key: the key opens over the board, inside the screen', async ({
         page

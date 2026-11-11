@@ -203,6 +203,21 @@ export const BenchScenes = {
             giveTile(state, seat)
         }
     },
+    feastShortTrade: {
+        guild: 'knight',
+        fn: 'trade',
+        arrange: (state, { seat, other }) => {
+            setPawns(state, seat, ['knight'])
+            setMaster(state, other, 'merchant')
+            setMarket(state, { wood: 2 })
+            state.getPlayerState(seat).barrel = 0
+            giveTile(state, seat)
+            const markers = [0, 0, 0, 0]
+            markers[seatRowIndex(state, seat)] = 2
+            setRowMarkers(state, markers)
+            setShillings(state, seat, 9)
+        }
+    },
     migrateShort: {
         cards: ['migrate', 'tax'],
         arrange: (state, { seat }) => {

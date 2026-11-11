@@ -127,8 +127,11 @@ scenario(
 
 scenario('S44 R-4.6.3, R-4.2.4 Knight trade and tame', 'guild-knight-trade', async (table) => {
     await openFunction(table, 'knight', 'Trade')
-    const take = table.page.locator('[data-bench-button="row:seat"] button')
-    await expect(take).toContainText('3s: take 4 markers')
+    const take = table.page.locator('[data-trade-buy="row:seat"] button')
+    await expect(take).toHaveText('Buy · 3s')
+    await expect(table.page.locator('[data-trade-card="row:seat"]')).toHaveAccessibleName(
+        "Your row's markers: 3s → 4 markers"
+    )
     await table.press(take)
     await table.press(table.popupRowStarting('Tame the behemoth'))
     await expect(bench(table)).toHaveCount(0)
