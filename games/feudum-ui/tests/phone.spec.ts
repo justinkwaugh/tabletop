@@ -863,6 +863,22 @@ test.describe('a 390 px phone', () => {
         await expectNoSidewaysScroll(page)
     })
 
+    test('S68 R-4.6.5 each Knight row press reaches 44 px across, over its printed row', async ({
+        page
+    }) => {
+        await openFunction(page, 'knightPush', 'knight', /^\s*Push/)
+        const presses = page.locator('[data-bench-place^="row:"] button.face')
+        expect(await presses.count()).toBeGreaterThan(1)
+        for (const press of await presses.all()) {
+            await expectTarget(press)
+            const box = await rect(press)
+            const row = await rect(press.locator('.ring'))
+            expect(box.x).toBeLessThanOrEqual(row.x + 0.5)
+            expect(box.x + box.width).toBeGreaterThanOrEqual(row.x + row.width - 0.5)
+        }
+        await expectNoSidewaysScroll(page)
+    })
+
     test('R-3.14.1 the defender’s two answers each read on one line and stay in sight together', async ({
         page
     }) => {
