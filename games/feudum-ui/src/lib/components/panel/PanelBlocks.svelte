@@ -242,7 +242,7 @@
     /* R-3.2 The tray stands right of the picked card and points at it. */
     .tray {
         position: relative;
-        flex: 0 1 30rem;
+        flex: 0 1 36rem;
         min-width: 14rem;
     }
 
