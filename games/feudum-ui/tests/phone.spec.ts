@@ -779,6 +779,51 @@ test.describe('held upright', () => {
     }
 })
 
+test.describe('a 390 px phone', () => {
+    test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
+
+    test('R-3.2 each card’s preview reads on one line, named "Show on board" for its card', async ({
+        page
+    }) => {
+        await createGame(page)
+        await playToCards(page)
+        await settled(page)
+        const cells = panel(page).locator('[data-cards] [data-row]')
+        expect(await cells.count()).toBeGreaterThan(0)
+        for (const cell of await cells.all()) {
+            const preview = cell.locator('[data-preview]')
+            await expect(preview).toBeVisible()
+            const label = await preview.getAttribute('data-preview')
+            await expect(
+                panel(page).getByRole('button', { name: `Show on board: ${label}`, exact: true })
+            ).toHaveCount(1)
+            const { text, lines, overflow } = await preview.evaluate((element) => {
+                const range = document.createRange()
+                range.selectNodeContents(element)
+                const tops = new Set(
+                    [...range.getClientRects()]
+                        .filter(({ width }) => width > 0)
+                        .map(({ top }) => Math.round(top))
+                )
+                return {
+                    text: (element as HTMLElement).innerText.trim(),
+                    lines: tops.size,
+                    overflow: element.scrollWidth - element.clientWidth
+                }
+            })
+            expect(text).toBe('On board')
+            expect(lines).toBe(1)
+            expect(overflow).toBeLessThanOrEqual(0)
+            const box = await rect(preview)
+            const face = await rect(cell.locator('button.face'))
+            expect(box.x).toBeGreaterThanOrEqual(face.x - 1)
+            expect(box.x + box.width).toBeLessThanOrEqual(face.x + face.width + 1)
+        }
+        await expectNoSidewaysScroll(page)
+        await shot(page, 'phone-390-show-on-board')
+    })
+})
+
 test.describe('held sideways', () => {
     test.use({ viewport: Sideways, hasTouch: true, isMobile: true })
 
