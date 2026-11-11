@@ -335,7 +335,7 @@ Built from each Action's input and `metadata` only (`docs/DESIGN.md`, Actions). 
     - `PlayMandate`, `DiscardWrit`, `SpendRegionTile`, `PlaceVessel`, `ReclaimImmunitySeal`: the writ named (a discard is named in the owner's log only), the good, the vessel.
     - `Nourish` and `NourishPawns`: food and wine per seat; pawns unfed and returned; the rank changes once, on the one that ends nourishing (R-4.5-H1).
     - `RollProgressDie`: every face in order and the tile removed.
-    - `BeginDawn`, `ReplenishMap`, `ReplenishGuilds`, `CollectLandscapes`: the dawn sheet's rows; goods placed; beads flipped.
+    - `BeginDawn`, `ReplenishMap`, `ReplenishGuilds`, `CollectLandscapes`: the dawn sheet's rows, each total signed as it falls (+5 vp, -6 vp); goods placed; beads flipped.
     - `EndRound`: pouch goods paid and the start player passed, folded into the round's last entry.
     - `ScoreGame`: the summary's rows.
 - **Rank changes** are named on the Action that caused them ("Ana became Merchant master; Ben dropped to journeyman").

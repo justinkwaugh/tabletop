@@ -1011,7 +1011,7 @@ function dawnLine(action: GameAction, words: Words): string | undefined {
     const rows = metadata.sheet.map(
         ({ playerId, ranks, landscapes, activeRegions, disloyaltyVp, total }) => {
             const rankVp = ranks.reduce((sum, { vp }) => sum + vp, 0)
-            return `${words.who(playerId)} +${total} vp (ranks ${rankVp}, landscapes ${landscapes.vp}, regions ${activeRegions.vp}, disloyalty ${disloyaltyVp})`
+            return `${words.who(playerId)} ${total >= 0 ? '+' : ''}${total} vp (ranks ${rankVp}, landscapes ${landscapes.vp}, regions ${activeRegions.vp}, disloyalty ${disloyaltyVp})`
         }
     )
     return sentence(
