@@ -57,8 +57,9 @@ scenario('S52 R-4.4.4 Writ limit: a discard', 'writs-limit', async (table) => {
     await overTheLimit(table)
     await table.press(table.panel().locator('[data-writs] button').first())
     const flights = await table.flightsOf(() => table.press(table.primary()))
-    expect(flights.filter((flight) => flight.startsWith('writs: Mandate'))).toHaveLength(1)
-    await expect(seen(table)).toHaveCount(1)
+    // R-4.4-H8 A discard goes under face down: a back flies, and the table sees no face.
+    expect(flights.filter((flight) => flight.startsWith('writs:'))).toEqual(['writs: Writ back'])
+    await expect(seen(table)).toHaveCount(0)
     expect(await table.activeSeats()).not.toContain('p1')
 })
 
