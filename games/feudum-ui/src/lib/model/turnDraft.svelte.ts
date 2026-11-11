@@ -6,6 +6,7 @@ import {
 import {
     ActionType,
     atWillOffers,
+    discardWritOffers,
     cardOf,
     cardPlayOffers,
     dejaVuShortKinds,
@@ -130,8 +131,12 @@ export class TurnDraft extends StagedDraft<TurnDraftValues> implements TurnPress
             stored,
             TurnStageOrder,
             'card',
-            // R-4.4-H1 A staged card hides the at-will row: it stays a press while the row can act.
-            atWillOffers(state, playerId).length > 0 ? [] : offers.cards.map(({ kind }) => kind)
+            // R-4.4-H1 A staged card hides the at-will row: it stays a press while the row can act,
+            // and R-4.4-H5 a held writ can always be discarded there.
+            atWillOffers(state, playerId).length > 0 ||
+                discardWritOffers(state, playerId).length > 0
+                ? []
+                : offers.cards.map(({ kind }) => kind)
         )
         if (stageValue(stages, 'card') === 'repeat') {
             stages = withLoneChoice<TurnDraftValues, 'replay'>(

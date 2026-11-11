@@ -161,6 +161,15 @@ describe('R-4.4-H1 The at-will row', () => {
         expect(chipLabels(table.session)).toEqual(['Writs 1'])
     })
 
+    it('R-4.4-H5 a writ that can only be discarded keeps a lone card a press too', async () => {
+        const table = await seatedAtCards(['tax'], (state, { seat }) => {
+            holdWrit(state, seat, Charter)
+        })
+        host = table.host
+        expect(table.session.turn.card).toBeUndefined()
+        expect(chipLabels(table.session)).toEqual(['Writs 1'])
+    })
+
     it('Undo closes the list, and undoes no action', async () => {
         const table = await atWill((state, seat) => {
             holdFood(state, seat, 1)
