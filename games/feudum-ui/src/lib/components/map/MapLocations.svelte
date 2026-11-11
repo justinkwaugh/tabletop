@@ -4,6 +4,7 @@
     import LocationDisc from '$lib/components/pieces/LocationDisc.svelte'
     import { PlainChrome, dimmedUnlessAny, type BoardChrome } from '$lib/model/boardChrome.js'
     import { feudumTarget, spaceTarget } from '$lib/model/boardOffer.js'
+    import { spaceLabel } from '$lib/model/cardFlows.js'
     import { DiscFrame, spaceGeometry } from '$lib/utils/boardGeometry.js'
     import BoardPiece from './BoardPiece.svelte'
     import PickChrome from './PickChrome.svelte'
@@ -53,7 +54,7 @@
             {chrome}
             at={geometry.centre}
             width={RingFrame}
-            label={space.letters.join('') || space.id}
+            label={spaceLabel(space.id)}
         />
     {/each}
 {/each}
