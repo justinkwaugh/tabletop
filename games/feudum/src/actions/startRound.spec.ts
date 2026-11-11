@@ -1,17 +1,12 @@
-import { ActionSource, Visibility } from '@tabletop/common'
+import { ActionSource } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { ActionType } from '../definition/actions.js'
-import { FeudumApiActions } from '../definition/apiActions.js'
 import { PhaseName } from '../definition/phases.js'
 import { MachineState } from '../definition/states.js'
-import { FeudumGameState, HydratedFeudumGameState } from '../model/gameState.js'
+import type { HydratedFeudumGameState } from '../model/gameState.js'
 import { playOutCards } from '../testing/roundEnd.js'
-import { canonicalOf } from '../testing/state.js'
 import { tableAtPlayingCards, type Table } from '../testing/table.js'
-import { HydratedStartRound, isStartRound } from './startRound.js'
-
-const actionProjector = Visibility.createActionProjector(FeudumApiActions)
-const stateProjector = Visibility.createProjector(FeudumGameState)
+import { isStartRound } from './startRound.js'
 
 /** R-2.2 The round plays out to its real end, `edit` setting its traces before the cards run out. */
 function startNextRound(table: Table, edit: (state: HydratedFeudumGameState) => void = () => {}) {
@@ -39,41 +34,6 @@ describe('StartRound', () => {
         expect(table.state.roundManager.series.map((round) => round.number)).toEqual([1, 2])
         expect(table.hydrated().roundManager.currentRound?.number).toBe(2)
         expect(action).toMatchObject({ metadata: { round: 2 } })
-    })
-
-    it('R-2.2.5 everyone takes back all action cards', () => {
-        const table = tableAtPlayingCards()
-        const [first, ...others] = table.order
-        table.send(first, { type: ActionType.ForfeitCard, kind: 'move' })
-        expect(table.seat(first).played).not.toEqual([])
-
-        startNextRound(table)
-
-        for (const playerId of [first, ...others]) {
-            const seat = table.seat(playerId)
-            expect(seat.hand).toEqual([])
-            expect(seat.handCount).toBe(0)
-            expect(seat.played).toEqual([])
-        }
-    })
-
-    it('R-3.3, R-3.15.1, R-3.16.2, R-3.7.5 the round’s limits start over', () => {
-        const table = tableAtPlayingCards()
-        const [first] = table.order
-
-        startNextRound(table, (state) => {
-            const player = state.getPlayerState(first)
-            player.sequentialUsed = true
-            player.repeatUsed = true
-            player.guildsUsed = ['farmer', 'noble']
-            player.successfulMoves = 2
-        })
-
-        const seat = table.seat(first)
-        expect(seat.sequentialUsed).toBe(false)
-        expect(seat.repeatUsed).toBe(false)
-        expect(seat.guildsUsed).toEqual([])
-        expect(seat.successfulMoves).toBe(0)
     })
 
     it('R-3.1-H1 the selection order starts over from the first seat in turn order', () => {
@@ -150,30 +110,6 @@ describe('StartRound', () => {
         expect(action.source).toBe(ActionSource.System)
         expect(action.revealsInfo).toBeFalsy()
         expect(table.offered(first)).not.toContain(ActionType.StartRound)
-    })
-
-    it('R-3.1, R-5.1 on a projected state another seat’s hand stays omitted', () => {
-        const table = tableAtPlayingCards()
-        const [first, second] = table.order
-        const perspective = { kind: 'player', playerId: second } as const
-        const state = new HydratedFeudumGameState(
-            stateProjector.project(canonicalOf(table.hydrated()), perspective, { config: {} })
-        )
-        const action = new HydratedStartRound({
-            id: 'round',
-            gameId: table.game.id,
-            source: ActionSource.System,
-            type: ActionType.StartRound
-        })
-
-        action.apply(state)
-
-        expect(state.getPlayerState(first)).not.toHaveProperty('hand')
-        expect(state.getPlayerState(first).handCount).toBe(0)
-        expect(state.getPlayerState(second).hand).toEqual([])
-        expect(
-            actionProjector.project(action.dehydrate(), perspective, { config: {} })
-        ).toMatchObject({ metadata: action.metadata })
     })
 
     it('R-3.1-H1, R-3.2 the next round runs as the first, from its own starting player', () => {

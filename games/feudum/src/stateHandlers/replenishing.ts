@@ -1,5 +1,4 @@
 import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
-import { EndRound } from '../actions/endRound.js'
 import {
     isReplenishGuilds,
     ReplenishGuilds,
@@ -10,6 +9,7 @@ import type { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import { sunrayOf } from '../model/dawn.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { stateAtRoundEnd } from './endOfRound.js'
 
 type ReplenishAction = HydratedReplenishMap | HydratedReplenishGuilds
 
@@ -21,8 +21,7 @@ export function stateAfterLandscapes(
         context.addSystemAction(ReplenishMap)
         return MachineState.Replenishing
     }
-    context.addSystemAction(EndRound)
-    return MachineState.EndOfRound
+    return stateAtRoundEnd(context)
 }
 
 /** R-4.12.4, R-4.12.5 The map, then at III the guilds. The engine's alone. */
@@ -57,7 +56,6 @@ export class ReplenishingStateHandler implements MachineStateHandler<
             context.addSystemAction(ReplenishGuilds)
             return MachineState.Replenishing
         }
-        context.addSystemAction(EndRound)
-        return MachineState.EndOfRound
+        return stateAtRoundEnd(context)
     }
 }

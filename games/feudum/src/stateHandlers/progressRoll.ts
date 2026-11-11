@@ -1,10 +1,10 @@
 import { type HydratedAction, type MachineStateHandler, MachineContext } from '@tabletop/common'
 import { BeginDawn } from '../actions/beginDawn.js'
-import { EndRound } from '../actions/endRound.js'
 import { isRollProgressDie, type HydratedRollProgressDie } from '../actions/rollProgressDie.js'
 import type { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import type { HydratedFeudumGameState } from '../model/gameState.js'
+import { stateAtRoundEnd } from './endOfRound.js'
 
 /** R-4.11 Step 3 of the round, and the check for step 4. The engine's alone. */
 export class ProgressRollStateHandler implements MachineStateHandler<
@@ -38,7 +38,6 @@ export class ProgressRollStateHandler implements MachineStateHandler<
             context.addSystemAction(BeginDawn)
             return MachineState.Dawn
         }
-        context.addSystemAction(EndRound)
-        return MachineState.EndOfRound
+        return stateAtRoundEnd(context)
     }
 }

@@ -20,7 +20,7 @@ import { isEndRound } from './endRound.js'
 import { isNourishPawns } from './nourishPawns.js'
 import { isRollProgressDie } from './rollProgressDie.js'
 
-const TheEnd = [ActionType.EndRound, ActionType.ScoreGame]
+const TheEnd = [ActionType.ScoreGame]
 
 function metOnStacksAtEpochIV() {
     const table = tableAtPlayingCards(() => ({ cards: ['move'] }), 3)
@@ -99,7 +99,7 @@ describe('R-6.1, R-6.1-H1 once the condition for V is met', () => {
         const roll = processed.find((action) => isRollProgressDie(action))
         expect(roll?.metadata?.epochTriggered).toBe(LastEpoch)
         expect(roll?.revealsInfo).toBe(true)
-        expect(typesOf(processed).slice(-3)).toEqual([ActionType.BeginDawn, ...TheEnd])
+        expect(typesOf(processed).slice(-2)).toEqual([ActionType.BeginDawn, ...TheEnd])
         expect(table.state.machineState).toBe(MachineState.EndOfGame)
     })
 })
@@ -158,9 +158,9 @@ describe('R-6.1, R-4.12 the V dawn', () => {
         expect(table.state.machineState).toBe(MachineState.EndOfGame)
     })
 
-    it('R-6.1-H2 the round still ends first: the marker passes and pouch goods are paid', () => {
+    it('R-6.1-H2 final scoring replaces the round’s end: the marker, pouch goods and cards stay', () => {
         const table = tableAtPlayingCards(() => ({ cards: ['move'], pouchGood: 'saltpeter' }), 3)
-        const [first, second] = table.order
+        const [first] = table.order
         table.moveTo((state) => {
             showOnStacks(state, ['V', 4, 4, 4, 4, 4])
             state.epoch = 4
@@ -169,12 +169,12 @@ describe('R-6.1, R-4.12 the V dawn', () => {
 
         const processed = playOutCards(table)
 
-        const endRound = processed.find((action) => isEndRound(action))
-        expect(endRound?.metadata?.startingPlayerId).toBe(second)
-        expect(endRound?.metadata?.pouchesPaid).toContainEqual({
-            playerId: first,
-            good: 'saltpeter'
-        })
+        expect(processed.some((action) => isEndRound(action))).toBe(false)
+        expect(typesOf(processed).at(-1)).toBe(ActionType.ScoreGame)
+        expect(table.state.machineState).toBe(MachineState.EndOfGame)
+        expect(table.hydrated().startingPlayerId).toBe(first)
+        expect(table.seat(first).pouch).toBe('saltpeter')
+        expect(table.seat(first).played).not.toEqual([])
     })
 })
 

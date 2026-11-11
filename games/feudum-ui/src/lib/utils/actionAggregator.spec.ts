@@ -905,8 +905,8 @@ describe('R-5-H1 Whole games, from every seat and a spectator', () => {
                 'nourishing 109-110',
                 'progress 111-111',
                 'dawn 112-114',
-                'dawn 359-360',
-                'single 361-361'
+                'dawn 359-359',
+                'single 360-360'
             ])
         )
         expect(entries.find(({ id }) => id === 'round-2')).toMatchObject({ jumpIndex: 37 })

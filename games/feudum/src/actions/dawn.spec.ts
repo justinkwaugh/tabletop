@@ -128,7 +128,7 @@ describe('R-4.12 the dawn follows the roll', () => {
         expect(table.state.machineState).toBe(MachineState.SelectingHands)
     })
 
-    it('R-4.12 at V the dawn scores and fills, and replenishes neither map nor guilds', () => {
+    it('R-4.12, R-6.1-H2 at V the dawn scores and fills, replenishes neither map nor guilds, and the game is scored', () => {
         const { processed, order } = playToDawn(5, (state, [ruler]) => {
             placeLandscape(state, { rulerId: ruler })
         })
@@ -137,7 +137,7 @@ describe('R-4.12 the dawn follows the roll', () => {
         expect(types).toContain(ActionType.BeginDawn)
         expect(types).not.toContain(ActionType.ReplenishMap)
         expect(types).not.toContain(ActionType.ReplenishGuilds)
-        expect(types.at(types.indexOf(ActionType.BeginDawn) + 1)).toBe(ActionType.EndRound)
+        expect(types.at(types.indexOf(ActionType.BeginDawn) + 1)).toBe(ActionType.ScoreGame)
         expect(dawnOf(processed).fills).toHaveLength(1)
         expect(rowOf(processed, order[0]).activeRegions.vp).toBe(1)
     })
@@ -342,7 +342,7 @@ describe('R-4.12.3, D12 the landscapes', () => {
         expect(table.state.machineState).toBe(MachineState.SelectingHands)
     })
 
-    it('R-4.12 at V the last collection ends the round, with no replenishing', () => {
+    it('R-4.12, R-6.1-H2 at V the last collection brings final scoring, with no replenishing', () => {
         let tended: SpaceId | undefined
         const { table, order } = playToDawn(5, (state, [ruler, serf]) => {
             tended = placeLandscape(state, { rulerId: ruler, serfId: serf })
@@ -354,10 +354,7 @@ describe('R-4.12.3, D12 the landscapes', () => {
             spaceIds: [tended]
         })
 
-        expect(typesOf(after).slice(0, 2)).toEqual([
-            ActionType.CollectLandscapes,
-            ActionType.EndRound
-        ])
+        expect(typesOf(after)).toEqual([ActionType.CollectLandscapes, ActionType.ScoreGame])
     })
 })
 

@@ -36,6 +36,20 @@ export function isEndRound(action?: GameAction): action is EndRound {
     return action?.type === ActionType.EndRound
 }
 
+/** R-2.2.5, R-3.3, R-3.15.1, R-3.16.2, R-3.7.5 All 11 cards back, and the round's limits end. */
+function returnCards(player: HydratedFeudumPlayerState): void {
+    // Another seat's hand stays omitted from a projected state; its count is public.
+    if (player.hand) {
+        player.hand = []
+    }
+    player.handCount = 0
+    player.played = []
+    player.sequentialUsed = false
+    player.repeatUsed = false
+    player.guildsUsed = []
+    player.successfulMoves = 0
+}
+
 /** R-3.3 Paid to the haversack whether or not the bonus was used. */
 function payPouch(
     state: HydratedFeudumGameState,
@@ -74,8 +88,9 @@ export class HydratedEndRound extends HydratableAction<typeof EndRound> implemen
         super(data, EndRoundValidator)
     }
 
-    /** R-2.2.5, R-3.3, R-4.10.2 The cards go back in `StartRound`. Everything is public. */
+    /** R-2.2.5, R-3.3, R-4.10.2 The marker passes, the cards go back, pouches are paid. Public. */
     apply(state: HydratedFeudumGameState, _context?: MachineContext) {
+        state.players.forEach(returnCards)
         const pouchesPaid = state.players.flatMap((player) => payPouch(state, player))
         const sobered = state.players.flatMap((player) => soberPawns(state, player))
         state.roundManager.endRound(state.actionCount)
