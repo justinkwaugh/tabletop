@@ -3,15 +3,16 @@
 // table's own font, so the cover has nothing of its own to keep in step. The page and its title
 // band come from `src/lib/utils/coverPage.ts`. With `--art`, the image stands behind the title band
 // in place of the drawn scene; with `--titled` as well, the image prints its own title and is the
-// whole cover, placed by the page's crop rule (`coverPlacement`). `--titled` alone takes the box
+// whole cover, placed by the page's crop rule (`coverPlacement`), around the box front's printed
+// title when the image is the box front. `--titled` alone takes the box
 // front from `src/lib/art/cover-source/`, or the rulebook's cover while no box front is there.
 // With an image, the cover goes to the supplied art folder; without one, to `src/lib/images/`.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { extname, join } from 'node:path'
+import { basename, extname, join } from 'node:path'
 import { parseArgs } from 'node:util'
 import { fileURLToPath } from 'node:url'
 import { chromium } from '@playwright/test'
-import { CoverSize, coverSvg } from '../src/lib/utils/coverPage.ts'
+import { BoxFrontTitle, CoverSize, coverSvg } from '../src/lib/utils/coverPage.ts'
 import {
     CrownPath,
     GuildIconPaths,
@@ -140,7 +141,13 @@ let scene = { kind: 'drawn', markup: drawnScene() }
 if (art) {
     const href = artHref(art)
     scene = values.titled
-        ? { kind: 'art', href, titled: true, size: await sizeOf(href) }
+        ? {
+              kind: 'art',
+              href,
+              titled: true,
+              size: await sizeOf(href),
+              title: basename(art, extname(art)) === 'box-front' ? BoxFrontTitle : undefined
+          }
         : { kind: 'art', href, titled: false }
     console.log(`from ${art}`)
 }

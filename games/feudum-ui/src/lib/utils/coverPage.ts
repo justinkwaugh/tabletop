@@ -23,26 +23,60 @@ export interface CoverPlacement {
     readonly height: number
 }
 
+/** Where a cover's printed title runs across it, as fractions of the source's width. */
+export interface PrintedTitle {
+    readonly left: number
+    readonly right: number
+}
+
 /**
- * The crop rule for a cover that prints its own title, such as the box front: the image is scaled
- * to the cover's full width, so a title printed across it is never cut at the sides, and centred
- * top to bottom. A source taller than 4:5 loses equal strips above and below; a wider one stands
- * whole between two bands of the page's ground.
+ * The box front's printed title, FEUDUM in its scrolled frame, measured on the 2400 × 1618 source:
+ * from the foot of the F to the tail of the M.
  */
-export function coverPlacement(source: ImageSize): CoverPlacement {
-    const height = (source.height * Width) / source.width
-    return { x: 0, y: (Height - height) / 2, width: Width, height }
+export const BoxFrontTitle: PrintedTitle = { left: 495 / 2400, right: 1890 / 2400 }
+
+/** The clear space the crop keeps on either side of a printed title, in the cover's units. */
+export const TitleMargin = 16
+
+/**
+ * The crop rule for a cover that prints its own title. Without the title's place, the image is
+ * scaled to the cover's full width, so a title printed across it is never cut at the sides, and
+ * centred top to bottom: a source taller than 4:5 loses equal strips above and below, and a wider
+ * one stands whole between two bands of the page's ground.
+ *
+ * With the title's place, a wide source such as the box front shows as much of its scene as the
+ * title allows: it fills the cover's height when the title then fits between the margins, and
+ * otherwise the title and its margins fill the width, with bands of ground above and below. The
+ * title is centred across the cover unless that would show past the image's edge.
+ */
+export function coverPlacement(source: ImageSize, title?: PrintedTitle): CoverPlacement {
+    const fullWidth = Width / source.width
+    const scale = title
+        ? Math.max(
+              fullWidth,
+              Math.min(
+                  Height / source.height,
+                  (Width - 2 * TitleMargin) / ((title.right - title.left) * source.width)
+              )
+          )
+        : fullWidth
+    const width = source.width * scale
+    const height = source.height * scale
+    const centre = title ? ((title.left + title.right) / 2) * width : width / 2
+    const x = Math.min(0, Math.max(Width - width, Width / 2 - centre))
+    return { x, y: (Height - height) / 2, width, height }
 }
 
 /**
  * What stands on the cover: the drawn scene's markup, or a supplied image. A supplied image that
- * prints its own title (`titled`) is the whole cover, placed by `coverPlacement`; one without a
+ * prints its own title (`titled`) is the whole cover, placed by `coverPlacement` around that title
+ * when its place is known; one without a
  * title fills the page behind the drawn title band, as the drawn scene does.
  */
 export type CoverScene =
     | { kind: 'drawn'; markup: string }
     | { kind: 'art'; href: string; titled: false }
-    | { kind: 'art'; href: string; titled: true; size: ImageSize }
+    | { kind: 'art'; href: string; titled: true; size: ImageSize; title?: PrintedTitle }
 
 function titleBand(token: Token) {
     return `
@@ -68,7 +102,7 @@ function ground(scene: CoverScene, token: Token): string {
     if (!scene.titled) {
         return `<image href="${scene.href}" width="${Width}" height="${Height}" preserveAspectRatio="xMidYMid slice" />`
     }
-    const { x, y, width, height } = coverPlacement(scene.size)
+    const { x, y, width, height } = coverPlacement(scene.size, scene.title)
     const page =
         y > 0 ? `<rect width="${Width}" height="${Height}" fill="${token('surface')}" />` : ''
     return `${page}<image href="${scene.href}" x="${x}" y="${y}" width="${width}" height="${height}" preserveAspectRatio="none" />`
