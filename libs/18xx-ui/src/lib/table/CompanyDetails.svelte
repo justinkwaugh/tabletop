@@ -164,16 +164,32 @@
     })
     const shownTradeOpening = $derived(tradeLabel ? tradeOpening : undefined)
     let card = $state<HTMLElement>()
-    function openTrades(pointerY: number) {
+    // The popover closes itself on the press, before the click, so the press records whether it
+    // was open for the click to close it rather than open it again.
+    let pressedWhileOpen = false
+    function notePress() {
+        pressedWhileOpen = !!shownTradeOpening
+    }
+    function toggleTrades(pointerY: number) {
+        const closing = pressedWhileOpen
+        pressedWhileOpen = false
+        if (closing) {
+            tradeOpening = undefined
+            return
+        }
         assertExists(card, 'A company card opens its trades')
         openings += 1
         tradeOpening = { number: openings, anchor: card.getBoundingClientRect(), pointerY }
     }
-    function openTradesFromCard(event: MouseEvent) {
-        if (!tradeLabel) return
-        if (event.target instanceof Element && event.target.closest('button, a, input, select'))
+    function toggleTradesFromCard(event: MouseEvent) {
+        if (
+            !tradeLabel ||
+            (event.target instanceof Element && event.target.closest('button, a, input, select'))
+        ) {
+            pressedWhileOpen = false
             return
-        openTrades(event.clientY)
+        }
+        toggleTrades(event.clientY)
     }
 </script>
 
@@ -189,7 +205,8 @@
     class:tradable={!!tradeLabel}
     class:trading={!!shownTradeOpening}
     aria-label={`${session.companyName(company.id)} details`}
-    onclick={openTradesFromCard}
+    onpointerdown={notePress}
+    onclick={toggleTradesFromCard}
 >
     <header>
         <div class="identity">
@@ -316,7 +333,7 @@
                             aria-label={`Trade ${session.companyName(company.id)} shares`}
                             onclick={(event) => {
                                 const bounds = event.currentTarget.getBoundingClientRect()
-                                openTrades(bounds.y + bounds.height / 2)
+                                toggleTrades(bounds.y + bounds.height / 2)
                             }}>{tradeLabel}</button
                         >{/if}
                 </span>

@@ -96,3 +96,27 @@ test('a spreadsheet sale still reopens the Sell menu, unlike a card sale', async
         .click()
     await expect(page.getByText('Available Sales')).toBeVisible()
 })
+
+test('clicking the card again closes its trades', async ({ page }) => {
+    await openCompanies(page, 'TOP')
+    const heading = page
+        .getByRole('article', { name: 'Charlottetown details' })
+        .getByRole('heading', { name: 'Charlottetown' })
+    const trades = page.getByRole('dialog', { name: 'Trade Charlottetown shares' })
+    const opener = page.getByRole('button', { name: 'Trade Charlottetown shares' })
+
+    await heading.click()
+    await expect(trades).toBeVisible()
+    await heading.click()
+    await expect(trades).toHaveCount(0)
+    await page.waitForTimeout(300)
+    await expect(trades).toHaveCount(0)
+
+    await opener.click()
+    await expect(trades).toBeVisible()
+    await opener.click()
+    await expect(trades).toHaveCount(0)
+
+    await heading.click()
+    await expect(trades).toBeVisible()
+})
