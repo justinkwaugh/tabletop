@@ -115,16 +115,24 @@ describe.each([2, 3, 4, 5])('Feudum tournaments with %i players', (count) => {
         }
     })
 
-    it('R-1.4.7, R-X.2 assigning the order the seed draws plays the same game to the end', () => {
-        const drawn = assigned(unassigned.turnManager.turnOrder)
-        const seated = engine.startGame(game, { masterSeed: MasterSeed, startingPositions: drawn })
-        expect(withoutRowId(seated.initialState)).toEqual(withoutRowId(unassigned))
+    // It plays two whole games, which take seconds each, as the scripted games in completeGame do.
+    it(
+        'R-1.4.7, R-X.2 assigning the order the seed draws plays the same game to the end',
+        { timeout: 60_000 },
+        () => {
+            const drawn = assigned(unassigned.turnManager.turnOrder)
+            const seated = engine.startGame(game, {
+                masterSeed: MasterSeed,
+                startingPositions: drawn
+            })
+            expect(withoutRowId(seated.initialState)).toEqual(withoutRowId(unassigned))
 
-        const plain = walkGame(MasterSeed, count)
-        const replayed = walkGame(MasterSeed, count, undefined, drawn)
-        expect(replayed.steps).toHaveLength(plain.steps.length)
-        expect(withoutRowId(replayed.final)).toEqual(withoutRowId(plain.final))
-    })
+            const plain = walkGame(MasterSeed, count)
+            const replayed = walkGame(MasterSeed, count, undefined, drawn)
+            expect(replayed.steps).toHaveLength(plain.steps.length)
+            expect(withoutRowId(replayed.final)).toEqual(withoutRowId(plain.final))
+        }
+    )
 
     it('R-1.4.7 every assigned setup still projects and hydrates for every seat', () => {
         for (const { order, walk } of walks) {
