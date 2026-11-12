@@ -32,6 +32,8 @@
     const finalPayoffNext = $derived(gameSession.shownState.isFinalPayoffNext())
     const dividend = $derived(gameSession.shownState.nextDividend(playerId))
     const projected = $derived(gameSession.shownState.projectedFinalCash(playerId))
+    // After the final payoff every share and cube has paid, so nothing more is due.
+    const ended = $derived(gameSession.shownState.result !== undefined)
 </script>
 
 <div class="ticket" class:acting style:--player={color}>
@@ -44,17 +46,21 @@
     {#each lines as line (line.railroad.id)}
         <div
             class="line"
-            title="{line.railroad.shortName}: ${line.each} a share at the next {finalPayoffNext
-                ? 'final payout'
-                : 'dividend'}{line.controls ? ' · controls the railroad' : ''}"
+            title={ended
+                ? `${line.railroad.shortName}${line.controls ? ' · controlled the railroad' : ''}`
+                : `${line.railroad.shortName}: $${line.each} a share at the next ${
+                      finalPayoffNext ? 'final payout' : 'dividend'
+                  }${line.controls ? ' · controls the railroad' : ''}`}
         >
             <span class="certs">
                 {#each Array.from({ length: line.shares }, (_, index) => index) as share (share)}
                     <ShareCertificate railroadId={line.railroad.id} />
                 {/each}
             </span>
-            <span class="leader"></span>
-            <span class="amount">+${line.amount}</span>
+            {#if !ended}
+                <span class="leader"></span>
+                <span class="amount">+${line.amount}</span>
+            {/if}
         </div>
     {:else}
         {#if playerState.leaveTownCubes === 0}
@@ -71,22 +77,28 @@
                 {/each}
                 <span class="cube-label">Leave Town</span>
             </span>
-            <span class="leader"></span>
-            <span class="amount">+${gameSession.shownState.leaveTownPayout(playerId)}</span>
+            {#if !ended}
+                <span class="leader"></span>
+                <span class="amount">+${gameSession.shownState.leaveTownPayout(playerId)}</span>
+            {/if}
         </div>
     {/if}
-    <div
-        class="total"
-        title="What this player's shares would pay if {finalPayoffNext
-            ? 'the final payoff'
-            : 'dividends'} were paid now"
-    >
-        <span>{finalPayoffNext ? 'Next Final Payout' : 'Next Dividend'}</span>
-        <span class="total-amount">+${dividend}</span>
-    </div>
-    <div class="fine-print" title="Cash plus every share's final payoff if the game ended now">
-        Score if game ended now ${projected}
-    </div>
+    {#if ended}
+        <div class="fine-print" title="Cash after the final payoff">Final score ${projected}</div>
+    {:else}
+        <div
+            class="total"
+            title="What this player's shares would pay if {finalPayoffNext
+                ? 'the final payoff'
+                : 'dividends'} were paid now"
+        >
+            <span>{finalPayoffNext ? 'Next Final Payout' : 'Next Dividend'}</span>
+            <span class="total-amount">+${dividend}</span>
+        </div>
+        <div class="fine-print" title="Cash plus every share's final payoff if the game ended now">
+            Score if game ended now ${projected}
+        </div>
+    {/if}
 </div>
 
 <style>

@@ -7,6 +7,7 @@ import {
     MapId,
     RailroadId,
     sarMap,
+    type BuildConnection,
     type BuildTrack,
     type FoundSpecialConnection,
     type LeaveTown,
@@ -128,6 +129,24 @@ describe('player sentences', () => {
             ' and the ',
             { railroadId: RailroadId.SP },
             ' · special dividend per share: Katy $2, SoPac $1'
+        ])
+    })
+
+    it('records the cost a connection was built for, doubled for an isolated metro railroad', () => {
+        const build: BuildConnection = {
+            id: 'a5',
+            gameId: 'g',
+            source: ActionSource.User,
+            playerId: 'p1',
+            type: ActionType.BuildConnection,
+            railroadId: RailroadId.ZASM,
+            connectionId: 'bechuanaland',
+            metadata: { cost: 60, perShare: 2, payouts: [] }
+        }
+        expect(describeAction(sarMap(MapId.Veld), build)).toEqual([
+            'connected the ',
+            { railroadId: RailroadId.ZASM },
+            ' to Bechuanaland for $60 · special dividend $2 a share'
         ])
     })
 

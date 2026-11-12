@@ -16,11 +16,18 @@
             const owner = gameSession.gameState.connections.find(
                 (built) => built.connectionId === connection.id
             )?.railroadId
+            const builder = gameSession.selectedRailroad
+            const target = gameSession.connectionTargets.includes(connection.id)
             return {
                 ...connection,
                 from: map.settlement(connection.settlementId),
                 style: owner ? RAILROAD_STYLE[owner] : undefined,
-                target: gameSession.connectionTargets.includes(connection.id),
+                target,
+                // What the selected railroad would pay, which may differ from the printed price.
+                cost:
+                    target && builder
+                        ? gameSession.gameState.connectionPrice(builder, connection)
+                        : connection.price,
                 label: connectionLabel(connection, boardWidth)
             }
         })
@@ -72,7 +79,7 @@
             x={connection.label.x}
             y={connection.label.y + 16}
             text-anchor={connection.label.anchor}
-            class="terms">cost ${connection.price} · value ${connection.value}</text
+            class="terms">cost ${connection.cost} · value ${connection.value}</text
         >
         <text
             x={connection.label.x}
@@ -85,7 +92,7 @@
                 class="target"
                 role="button"
                 tabindex="0"
-                aria-label="Build the {connection.name} connection for ${connection.price}"
+                aria-label="Build the {connection.name} connection for ${connection.cost}"
                 onclick={() => gameSession.buildConnection(connection.id)}
                 onkeydown={(event) => onKey(event, connection.id)}
             >

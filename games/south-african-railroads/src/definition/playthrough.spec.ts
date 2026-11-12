@@ -25,7 +25,11 @@ function playToEnd(count: number, mapId: MapId): SarGameState {
         assert(step < 5000, 'Playthrough did not finish')
         const [playerId] = state.activePlayerIds
         assertExists(playerId, `No active player in ${state.machineState}`)
-        const action = botAction(SarRuntime.hydrator.hydrateState(state), playerId, step)
+        const hydrated = SarRuntime.hydrator.hydrateState(state)
+        if (!hydrated.map.definition.leaveTown) {
+            expect(hydrated.leaveTownOptions(playerId)).toEqual([])
+        }
+        const action = botAction(hydrated, playerId, step)
         state = engine.executeCanonicalAction({ game, state, action }).updatedState
     }
     return state
@@ -49,6 +53,13 @@ describe.each(
         const scores = SarRuntime.scoring.finalScores(finished)
         const best = Math.max(...Object.values(scores))
         expect(finished.winningPlayerIds.every((playerId) => scores[playerId] === best)).toBe(true)
+        if (!sarMap(mapId).definition.leaveTown) {
+            expect(finished.players.every((player) => player.leaveTownCubes === 0)).toBe(true)
+        }
+        const hydrated = SarRuntime.hydrator.hydrateState(finished)
+        for (const player of finished.players) {
+            expect(hydrated.projectedFinalCash(player.playerId)).toBe(scores[player.playerId])
+        }
         const again = playToEnd(count, mapId)
         expect({ ...again, id: finished.id }).toEqual(finished)
     })

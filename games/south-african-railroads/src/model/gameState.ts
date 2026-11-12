@@ -565,9 +565,14 @@ export class HydratedSarGameState
     }
 
     // Cash if the game ended now: the final payout for every share and Leave Town cube held.
+    // Once it has ended, the final payoff is already in cash.
     projectedFinalCash(playerId: string): number {
+        const cash = this.getPlayerState(playerId).cash
+        if (this.result) {
+            return cash
+        }
         return (
-            this.getPlayerState(playerId).cash +
+            cash +
             this.leaveTownPayout(playerId) +
             this.holdings(playerId).reduce(
                 (sum, holding) =>

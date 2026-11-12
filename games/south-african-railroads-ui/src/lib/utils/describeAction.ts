@@ -208,10 +208,11 @@ export function describeAction(map: SarMap, action: GameAction): Description {
     if (isBuildConnection(action)) {
         const connection = map.externalConnection(action.connectionId)
         const perShare = action.metadata?.perShare ?? 0
+        const cost = action.metadata?.cost ?? connection.price
         return [
             `connected the `,
             { railroadId: action.railroadId },
-            ` to ${connection.name} for $${connection.price} · special dividend $${perShare} a share`
+            ` to ${connection.name} for $${cost} · special dividend $${perShare} a share`
         ]
     }
     if (isDelegateBuild(action)) {
