@@ -134,6 +134,23 @@
                         </button>
                     {/each}
                 </div>
+            {:else if plan.choice.kind === 'bankrupt' && session.trainFunding.insolvencyChoices.length}
+                {@const insolvency = session.presentation.insolvency}
+                {#if insolvency}<p>{insolvency.explanation}</p>{/if}
+                <div class="choices insolvency-choices">
+                    {#each session.trainFunding.insolvencyChoices as choice (choice)}
+                        {@const words = insolvency?.choices[choice]}
+                        <button
+                            class="action-button"
+                            {disabled}
+                            data-insolvency-choice={choice}
+                            onclick={() => session.trainFunding.declareInsolvency(choice)}
+                        >
+                            <strong>{words?.label ?? choice}</strong>
+                            {#if words}<small>{words.description}</small>{/if}
+                        </button>
+                    {/each}
+                </div>
             {:else if plan.choice.kind === 'bankrupt'}
                 <div class="choices">
                     <button
@@ -271,5 +288,12 @@
     th:nth-last-child(-n + 2),
     td:nth-last-child(-n + 2) {
         text-align: right;
+    }
+    .insolvency-choices button {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+        text-align: left;
     }
 </style>

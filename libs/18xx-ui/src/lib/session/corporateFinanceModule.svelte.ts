@@ -60,7 +60,13 @@ export class CorporateFinanceModule {
         if (!rules || !companyId) return undefined
         const { state } = this.session
         const shares = (operation: FinanceChoice['operation']) =>
-            rules.certificates(state, companyId, operation).length
+            rules
+                .certificates(state, companyId, operation)
+                .reduce(
+                    (total, certificate) =>
+                        total + (certificate.kind === 'share' ? certificate.shares : 0),
+                    0
+                )
         return {
             companyId,
             cash: finiteCashOwnedBy(state, { kind: 'company', companyId }),

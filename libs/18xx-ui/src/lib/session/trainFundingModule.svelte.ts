@@ -4,6 +4,7 @@ import {
     EmergencyTrainFunding,
     FundTrain,
     SellFundingShares,
+    insolvencyChoices,
     settlingFundingAction,
     isContributeTrainFunds,
     isIssueTreasuryShares,
@@ -56,6 +57,12 @@ export class TrainFundingModule {
     choice = $derived.by(() =>
         this.session.state.machineState === 'FundingTrain' ? this.model?.next() : undefined
     )
+    /** What the president of a failing company chooses as it closes, where the title asks. */
+    insolvencyChoices = $derived.by((): readonly string[] => {
+        const rules = this.session.rules.trainFundingRules
+        const choice = this.choice
+        return rules && choice ? insolvencyChoices(this.session.state, rules, choice) : []
+    })
     canFund = $derived.by(
         () => this.session.interactive && this.session.validActionTypes.includes('FundTrain')
     )
@@ -117,6 +124,16 @@ export class TrainFundingModule {
      * Takes the funding's next step: begins it, or makes the sale or declaration it waits for.
      * Each press records one Action, so one Undo reverses it.
      */
+    /** Declares the company insolvent with the president's choice. */
+    async declareInsolvency(choice: string) {
+        assert(
+            this.canResolve && this.insolvencyChoices.includes(choice),
+            'Choose an offered way out'
+        )
+        await this.session.applyAction(
+            this.session.createPlayerAction(DeclareBankruptcy, { choice })
+        )
+    }
     async resolve(sale?: ShareSaleDetails) {
         if (!this.session.state.trainFunding) {
             assert(!sale, 'Begin funding before choosing a sale')

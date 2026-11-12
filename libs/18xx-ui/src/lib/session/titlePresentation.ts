@@ -158,6 +158,14 @@ export type TitlePresentation<State extends GameState = EighteenXXState> = {
     minorsAsPrivates?: true
     operatingSteps?: readonly TitleOperatingStep<State>[]
     corporateFinance?: CorporateFinanceTerms
+    /**
+     * The words for an insolvent company's end, where train funding closes it rather than
+     * bankrupting its president: an explanation and a button label for each choice offered.
+     */
+    insolvency?: {
+        explanation: string
+        choices: Readonly<Record<string, { label: string; description: string }>>
+    }
     openingRound?: Pick<TitleRound<State>, 'name' | 'abbreviation' | 'inProgress'>
     titleRounds?: readonly TitleRound<State>[]
     /** Facts of the title's own for the game information, such as money left to subsidise. */
