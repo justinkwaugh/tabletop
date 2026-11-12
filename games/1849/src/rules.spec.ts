@@ -9,8 +9,13 @@ import {
     treasuryPoolId
 } from '@tabletop/18xx'
 import { kit, type Table } from '../test/kit.js'
-import { TokenFees1849, lastCertificateId } from './companies.js'
-import { MessinaLocationId } from './map.js'
+import {
+    GaribaldiHomeLocationIds,
+    GaribaldiId,
+    TokenFees1849,
+    lastCertificateId
+} from './companies.js'
+import { Map1849, MessinaLocationId } from './map.js'
 import {
     CorporateFinanceRules1849,
     EarningsRules1849,
@@ -18,7 +23,13 @@ import {
     PhaseRules1849,
     closeCorporation1849
 } from './operating.js'
-import { CompanyRules1849, StockRules1849, nextCorporation1849 } from './stock.js'
+import {
+    CompanyRules1849,
+    StockRules1849,
+    nextCorporation1849,
+    reviewGaribaldi1849,
+    startOrder1849
+} from './stock.js'
 import { Market1849 } from './stockMarket.js'
 import { messinaLocked, terrainCost1849 } from './track.js'
 
@@ -92,6 +103,90 @@ describe('starting corporations (§9.4)', () => {
     it('refuses a third further certificate', () => {
         const game = stockRound()
         expect(() => startNext(game, 68, 3)).toThrow()
+    })
+})
+
+describe('the Garibaldi without room (§9.4.1)', () => {
+    /** A first stock round in which the Garibaldi did not come with the RSA. */
+    function unstartedGaribaldi(): Table {
+        for (let seed = 1; seed < 40; seed++) {
+            const game = kit.table(4, seed)
+            if (game.state.corporationOrder[0] === GaribaldiId) continue
+            kit.buyAllPrivates(game)
+            return game
+        }
+        throw new Error('No seed leaves the Garibaldi unstarted')
+    }
+
+    /** Fills every space in the Garibaldi's cities with other corporations' stations. */
+    function fillGaribaldiCities(game: Table) {
+        const state = game.hydrated
+        const others = state.corporationOrder.filter((id) => id !== GaribaldiId)
+        const freed: string[] = []
+        for (const locationId of GaribaldiHomeLocationIds) {
+            const city = Map1849.location(locationId).preprintedTile.nodes.find(
+                (node) => node.kind === 'city'
+            )
+            if (!city || city.kind !== 'city') throw new Error(`No city at ${locationId}`)
+            for (let slot = 0; slot < city.stationSlots; slot++) {
+                const companyId = others[freed.length % others.length]
+                const station = state.stations.find(
+                    (entry) => entry.companyId === companyId && entry.status === 'available'
+                )
+                if (!station) throw new Error(`No station for ${companyId}`)
+                state.stations = state.stations.map((entry) =>
+                    entry.id === station.id
+                        ? {
+                              id: entry.id,
+                              companyId,
+                              status: 'placed',
+                              position: { locationId, nodeId: city.id, slot }
+                          }
+                        : entry
+                )
+                freed.push(station.id)
+            }
+        }
+        return { state, stationIds: freed }
+    }
+
+    it('is passed over and shown last at once, set aside as a stock round begins', () => {
+        const game = unstartedGaribaldi()
+        const { state } = fillGaribaldiCities(game)
+        expect(startOrder1849(state).at(-1)).toBe(GaribaldiId)
+        expect(nextCorporation1849(state)).not.toBe(GaribaldiId)
+        reviewGaribaldi1849(state)
+        expect(state.garibaldiAside).toBe(true)
+        expect(state.corporationOrder.at(-1)).toBe(GaribaldiId)
+    })
+
+    it('comes back only when a stock round begins with room in one of its cities', () => {
+        const game = unstartedGaribaldi()
+        const { state, stationIds } = fillGaribaldiCities(game)
+        reviewGaribaldi1849(state)
+        // Room opens during the round: the Garibaldi waits for the next.
+        state.stations = state.stations.map((entry) =>
+            entry.id === stationIds[0]
+                ? { id: entry.id, companyId: entry.companyId, status: 'available' }
+                : entry
+        )
+        expect(nextCorporation1849(state)).not.toBe(GaribaldiId)
+        reviewGaribaldi1849(state)
+        expect(state.garibaldiAside).toBeUndefined()
+        expect(state.corporationOrder.at(-1)).toBe(GaribaldiId)
+        // With every other corporation started, the Garibaldi is next.
+        for (const company of state.companies)
+            if (company.id !== GaribaldiId) company.started = true
+        expect(nextCorporation1849(state)).toBe(GaribaldiId)
+    })
+
+    it('stays behind a corporation that closes while it is set aside (§11)', () => {
+        const game = unstartedGaribaldi()
+        const companyId = startNext(game, 68)
+        const { state } = fillGaribaldiCities(game)
+        reviewGaribaldi1849(state)
+        closeCorporation1849(state, companyId)
+        expect(state.corporationOrder.slice(-2)).toEqual([companyId, GaribaldiId])
     })
 })
 

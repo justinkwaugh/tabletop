@@ -13,9 +13,14 @@ export const TitleFields1849 = {
     ),
     /**
      * The order corporations become available in (§2.2): dealt at setup, the Garibaldi moved to
-     * the end when passed over for want of a home (§9.4.1), closed corporations last (§11).
+     * the end when set aside for want of a home (§9.4.1), closed corporations last (§11).
      */
     corporationOrder: Type.Array(Id, { uniqueItems: true }),
+    /**
+     * The Garibaldi is set aside: none of its cities had room as a stock round began, so it may
+     * not start until one began with room (§9.4.1).
+     */
+    garibaldiAside: Type.Optional(Type.Literal(true)),
     /** The corporation left out of a five-corporation game (§2.2). */
     removedCorporationId: Type.Optional(Id),
     /** Closed corporations and the stock round from which each may start again (§11). */

@@ -1324,6 +1324,10 @@
       "gameId": {
         "type": "string"
       },
+      "garibaldiAside": {
+        "const": true,
+        "type": "boolean"
+      },
       "hexReservations": {
         "items": {
           "additionalProperties": false,

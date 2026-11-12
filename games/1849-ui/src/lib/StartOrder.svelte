@@ -8,32 +8,30 @@
     const entries = $derived(startOrder(session.gameState))
     const TokenSize = 34
 
-    function standingLabel(standing: StartStanding): string {
+    /** What shows under a corporation's token, and what its description says of it. */
+    function standingWords(standing: StartStanding): { label: string; description: string } {
         switch (standing.kind) {
             case 'started':
-                return 'Started'
+                return { label: 'Started', description: 'started' }
             case 'next':
-                return 'Next'
+                return { label: 'Next', description: 'the next to start' }
             case 'closed':
-                return `From SR ${standing.stockRound}`
+                return {
+                    label: `From SR ${standing.stockRound}`,
+                    description: `closed, may start again from stock round ${standing.stockRound}`
+                }
             case 'no-home':
-                return 'No home'
+                return {
+                    label: 'No home',
+                    description: 'set aside until one of its cities has room'
+                }
+            case 'returning':
+                return {
+                    label: `From SR ${standing.stockRound}`,
+                    description: `set aside, may start from stock round ${standing.stockRound} now one of its cities has room`
+                }
             case 'waiting':
-                return ''
-        }
-    }
-    function standingDescription(standing: StartStanding): string {
-        switch (standing.kind) {
-            case 'started':
-                return 'started'
-            case 'next':
-                return 'the next to start'
-            case 'closed':
-                return `closed, may start again from stock round ${standing.stockRound}`
-            case 'no-home':
-                return 'passed over until one of its cities has room'
-            case 'waiting':
-                return 'waiting its turn'
+                return { label: '', description: 'waiting its turn' }
         }
     }
 </script>
@@ -43,7 +41,8 @@
     <ol>
         {#each entries as { companyId, name, homeLocationIds, standing }, index (companyId)}
             {@const homes = homeLocationIds.map((id) => session.placeName(id)).join(', ')}
-            {@const description = `${index + 1}. ${name}, ${standingDescription(standing)}; home ${homes}`}
+            {@const words = standingWords(standing)}
+            {@const description = `${index + 1}. ${name}, ${words.description}; home ${homes}`}
             <li class={standing.kind}>
                 <span class="place">{index + 1}</span>
                 <button
@@ -56,7 +55,7 @@
                         size={TokenSize}
                     /></button
                 >
-                <span class="standing">{standingLabel(standing)}</span>
+                <span class="standing">{words.label}</span>
             </li>
         {/each}
     </ol>

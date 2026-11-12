@@ -53,7 +53,13 @@ import { Names1849 } from './names.js'
 import { PrivateCatalog1849, RealeSocietaPrivateId } from './privates.js'
 import { RouteRules1849 } from './routes.js'
 import { requireState1849, type HydratedState1849 } from './state.js'
-import { MarketPoolId1849, StockRules1849, marketInForce1849 } from './stock.js'
+import {
+    MarketPoolId1849,
+    StockRules1849,
+    garibaldiWaiting1849,
+    marketInForce1849,
+    startOrder1849
+} from './stock.js'
 import { ClosedSpaceId1849, EndGameSpaceId1849, Market1849 } from './stockMarket.js'
 import { TileSet1849 } from './tiles.js'
 import { EarthquakePhaseId, Phases1849, ReverseTrainId, TrainDepot1849 } from './trains.js'
@@ -168,7 +174,14 @@ export function closeCorporation1849(
         (reservation) => reservation.companyId === companyId
     )
     state.stationReservations = [...state.stationReservations, ...restoredReservations]
-    state.corporationOrder = [...state.corporationOrder.filter((id) => id !== companyId), companyId]
+    // It goes last, though ahead of a Garibaldi set aside for want of a home (§9.4.1).
+    const order = startOrder1849(state).filter((id) => id !== companyId)
+    const behind = order.at(-1) === GaribaldiId && garibaldiWaiting1849(state) ? 1 : 0
+    state.corporationOrder = [
+        ...order.slice(0, order.length - behind),
+        companyId,
+        ...order.slice(order.length - behind)
+    ]
     state.restarts = [
         ...state.restarts.filter((entry) => entry.companyId !== companyId),
         { companyId, stockRound: state.stockRound.number + 1 }

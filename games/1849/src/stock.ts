@@ -1,11 +1,13 @@
 import { assertExists } from '@tabletop/common'
 import {
     getCompany,
+    isStartStockRound,
     placeReservedHome,
     settleCashPayments,
     treasuryShareCompanyRules,
     treasuryShareStockRules,
     type CompanyRules,
+    type EighteenXXStateHandler,
     type FormationState,
     type MapStateData,
     type StockRules,
@@ -104,18 +106,80 @@ export const StockRules1849: StockRules = {
 
 /**
  * The next corporation a player may start: the first unstarted one in order that is not waiting
- * out the round it closed in, passing over the Garibaldi while none of its cities has room
- * (§9.4, §9.4.1, §11).
+ * out the round it closed in, passing over a Garibaldi set aside or without room (§9.4, §9.4.1,
+ * §11).
  */
 export function nextCorporation1849(state: FormationState & MapStateData): string | undefined {
     const title = requireState1849(state)
-    return title.corporationOrder.find((companyId) => {
-        const company = getCompany(state, companyId)
-        if (company.started) return false
+    return startOrder1849(state).find((companyId) => {
+        if (getCompany(state, companyId).started) return false
         const restart = title.restarts.find((entry) => entry.companyId === companyId)
         if (restart && state.stockRound.number < restart.stockRound) return false
-        return companyId !== GaribaldiId || garibaldiHomes(state, 0).length > 0
+        return companyId !== GaribaldiId || (!title.garibaldiAside && garibaldiHasRoom(state))
     })
+}
+
+/**
+ * The order corporations start in, with an unstarted Garibaldi that has lost its room already
+ * last, as it will be set aside when the next stock round begins (§9.4.1).
+ */
+export function startOrder1849(state: FormationState & MapStateData): readonly string[] {
+    const title = requireState1849(state)
+    const order = title.corporationOrder
+    return order.includes(GaribaldiId) &&
+        !title.garibaldiAside &&
+        !getCompany(state, GaribaldiId).started &&
+        !garibaldiHasRoom(state)
+        ? [...order.filter((companyId) => companyId !== GaribaldiId), GaribaldiId]
+        : order
+}
+
+function garibaldiHasRoom(state: FormationState & MapStateData): boolean {
+    return garibaldiHomes(state, 0).length > 0
+}
+
+/** Whether an unstarted Garibaldi is set aside, or has lost its room and will be (§9.4.1). */
+export function garibaldiWaiting1849(state: FormationState & MapStateData): boolean {
+    const title = requireState1849(state)
+    return (
+        title.corporationOrder.includes(GaribaldiId) &&
+        !getCompany(state, GaribaldiId).started &&
+        (!!title.garibaldiAside || !garibaldiHasRoom(state))
+    )
+}
+
+/**
+ * As a stock round begins, an unstarted Garibaldi with no room in any of its cities is set aside
+ * last in order, and one set aside comes back once a stock round begins with room: room that
+ * opens during a round waits for the next (§9.4.1).
+ */
+export function reviewGaribaldi1849(state: FormationState & MapStateData): void {
+    const title = requireState1849(state)
+    if (!title.corporationOrder.includes(GaribaldiId) || getCompany(state, GaribaldiId).started) {
+        delete title.garibaldiAside
+        return
+    }
+    if (garibaldiHasRoom(state)) {
+        delete title.garibaldiAside
+        return
+    }
+    title.corporationOrder = startOrder1849(state).slice()
+    title.garibaldiAside = true
+}
+
+/** Reviews the Garibaldi as each stock round begins, after an operating set (§9.4.1). */
+export function reviewsGaribaldi1849(handler: EighteenXXStateHandler): EighteenXXStateHandler {
+    return {
+        isValidAction: (action, context) => handler.isValidAction(action, context),
+        validActionsForPlayer: (playerId, context) =>
+            handler.validActionsForPlayer(playerId, context),
+        enter: (context) => handler.enter(context),
+        onAction(action, context) {
+            const next = handler.onAction(action, context)
+            if (isStartStockRound(action)) reviewGaribaldi1849(context.gameState)
+            return next
+        }
+    }
 }
 
 const SharedCompanyRules = treasuryShareCompanyRules(
@@ -190,18 +254,6 @@ export const CompanyRules1849: CompanyRules = {
         payTokenFee(state, companyId)
         const [home] = Homes1849[companyId]
         placeReservedHome(state, companyId, home)
-    },
-    // A corporation started past a Garibaldi with no room leaves it last in order (§9.4.1).
-    onStart(state, details) {
-        const title = requireState1849(state)
-        const index = title.corporationOrder.indexOf(details.companyId)
-        const passed = title.corporationOrder
-            .slice(0, index)
-            .filter((companyId) => !getCompany(state, companyId).started)
-        title.corporationOrder = [
-            ...title.corporationOrder.filter((companyId) => !passed.includes(companyId)),
-            ...passed
-        ]
     },
     parAfterAward: true,
     // The Reale Società d'Affari's corporation starts at L. 68 or L. 100 (§8.1).
