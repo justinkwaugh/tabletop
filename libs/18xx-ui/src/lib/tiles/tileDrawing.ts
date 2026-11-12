@@ -69,9 +69,9 @@ export type TileLayout = {
      * its track: in a station space by node and slot, or at a point before the tile's rotation.
      */
     printedTokens?: readonly TilePrintedToken[]
-    /** Prints staged values' phase captions after them, as on a board's east edge. */
     /** Prints a staged location's captions above its values, in a row. */
     revenueCaptionsAbove?: boolean
+    /** Prints staged values' phase captions after them, as on a board's east edge. */
     revenueCaptionsAfter?: boolean
     /** How far an offboard spike runs from its edge toward its stop, as a share of the way. */
     spikeReach?: number

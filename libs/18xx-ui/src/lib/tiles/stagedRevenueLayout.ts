@@ -69,7 +69,6 @@ export function stagedRevenueLayout(
     // Which side of the value the caption takes: -1 before it, 1 after it, 0 above it.
     const above = captioned && captionAbove
     const side = above ? 0 : captionAfter ? 1 : -1
-    // The height a caption above a value adds to the row.
     const captionRise = above ? CaptionAboveHeight : 0
     const captionWidth = captioned
         ? Math.max(

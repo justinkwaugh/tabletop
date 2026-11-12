@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { FinancialState } from '@tabletop/18xx'
-import { holdsMultiShareCertificate } from './multiShareCertificates.js'
+import { holdsMultiShareCertificate, multiShareMark } from './multiShareCertificates.js'
 
 const certificates: FinancialState['certificates'] = [
     {
@@ -41,5 +41,23 @@ describe('holdsMultiShareCertificate', () => {
         expect(holdsMultiShareCertificate(state, 'A', { kind: 'player', playerId: 'p2' })).toBe(
             false
         )
+    })
+})
+
+describe('multiShareMark', () => {
+    const presentation = {
+        multiShareCertificate: { label: 'L', name: 'Last certificate', description: 'two shares' }
+    }
+    it('gives the title’s mark where the owner holds the certificate, else none', () => {
+        const state = { certificates }
+        expect(multiShareMark(presentation, state, 'A', { kind: 'bank' }, 'open-market')).toEqual({
+            label: 'L',
+            name: 'Last certificate',
+            title: 'Last certificate: two shares'
+        })
+        expect(
+            multiShareMark(presentation, state, 'A', { kind: 'player', playerId: 'p2' })
+        ).toBeUndefined()
+        expect(multiShareMark({}, state, 'A', { kind: 'bank' }, 'open-market')).toBeUndefined()
     })
 })

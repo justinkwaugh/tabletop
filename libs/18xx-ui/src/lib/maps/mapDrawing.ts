@@ -699,7 +699,8 @@ export function createMapDrawing(
             placement && terrainShown && location.terrain
                 ? clearTerrainSpot(
                       hexSpace(drawing, hexVertices, [
-                          // The spaces as drawn, which tokens fill.
+                          // Marks keep clear of a smaller disc, but the cost must clear the
+                          // tokens that fill each space as drawn.
                           ...drawing.nodes.flatMap(({ node, center, slots, slotRadius }) =>
                               node.kind !== 'city'
                                   ? []
@@ -1086,11 +1087,12 @@ const disc = (point: Point, radius: number): Obstacle => ({
     halfHeight: 0,
     radius
 })
-function clearance(point: Point, obstacle: Obstacle): number {
+/** How far a point, or a box of these half sizes about it, stands clear of the obstacle. */
+function clearance(point: Point, obstacle: Obstacle, halfWidth = 0, halfHeight = 0): number {
     return (
         Math.hypot(
-            Math.max(Math.abs(point.x - obstacle.x) - obstacle.halfWidth, 0),
-            Math.max(Math.abs(point.y - obstacle.y) - obstacle.halfHeight, 0)
+            Math.max(Math.abs(point.x - obstacle.x) - obstacle.halfWidth - halfWidth, 0),
+            Math.max(Math.abs(point.y - obstacle.y) - obstacle.halfHeight - halfHeight, 0)
         ) - obstacle.radius
     )
 }
@@ -1501,15 +1503,16 @@ function clearTerrainSpot(
     costPrefix: string
 ): { row: Point; costBelow: boolean } {
     const widths = terrainRowWidths(terrain.kinds.length, `${costPrefix}${terrain.cost}`)
-    // Each shape as a box about the row's line: a row, or the cost under the symbols.
-    const shape = (halfWidth: number, foot: number) => ({
+    // The row's line is where the symbols stand; each layout's box reaches unevenly about it.
+    const shape = (halfWidth: number, foot: number, costBelow: boolean) => ({
         halfWidth,
         halfHeight: (TerrainTop + foot) / 2,
-        drop: (foot - TerrainTop) / 2
+        drop: (foot - TerrainTop) / 2,
+        costBelow
     })
     const shapes = [
-        shape((widths.icons + widths.cost) / 2, TerrainFoot),
-        shape(Math.max(widths.icons, widths.cost) / 2, 4 + TerrainCostDrop)
+        shape((widths.icons + widths.cost) / 2, TerrainFoot, false),
+        shape(Math.max(widths.icons, widths.cost) / 2, 4 + TerrainCostDrop, true)
     ]
     const obstacles = [...space.obstacles, ...space.track]
     const fits = (
@@ -1528,28 +1531,14 @@ function clearTerrainSpot(
                     return insideHex(corner, space.vertices) && space.inset(corner) >= 1.5
                 })
             ) &&
-            obstacles.every(
-                (obstacle) =>
-                    Math.hypot(
-                        Math.max(
-                            Math.abs(centre.x - obstacle.x) - obstacle.halfWidth - halfWidth,
-                            0
-                        ),
-                        Math.max(
-                            Math.abs(centre.y - obstacle.y) - obstacle.halfHeight - halfHeight,
-                            0
-                        )
-                    ) -
-                        obstacle.radius >=
-                    gap
-            )
+            obstacles.every((obstacle) => clearance(centre, obstacle, halfWidth, halfHeight) >= gap)
         )
     }
-    // Nearest the foot first, a row before a stack at the same spot; touching only if none is clear.
+    // A crowded tile may have no clear spot at all, so a touching one beats covering a mark.
     for (const gap of LaidTerrainGaps)
         for (const line of laidTerrainLines())
-            for (const [index, candidate] of shapes.entries())
-                if (fits(line, candidate, gap)) return { row: line, costBelow: index === 1 }
+            for (const candidate of shapes)
+                if (fits(line, candidate, gap)) return { row: line, costBelow: candidate.costBelow }
     return { row: LaidTerrainHome, costBelow: false }
 }
 

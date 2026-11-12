@@ -21,7 +21,7 @@
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import PresidentName from '../finance/PresidentName.svelte'
     import CertificateBadge from '../finance/CertificateBadge.svelte'
-    import { holdsMultiShareCertificate } from '../finance/multiShareCertificates.js'
+    import { multiShareMark } from '../finance/multiShareCertificates.js'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
 
     let {
@@ -169,7 +169,6 @@
         })
     }
     const percent = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 })
-    const multiShareMark = $derived(session.presentation.multiShareCertificate)
 </script>
 
 <div class="players" aria-label="Players">
@@ -348,6 +347,12 @@
                         >
                             {#each player.ownership.toSorted((a, b) => Number(!!numberedShareNames[a.company.id]) - Number(!!numberedShareNames[b.company.id])) as entry (entry.company.id)}
                                 {@const numbered = numberedShares(player.owner, entry.company.id)}
+                                {@const mark = multiShareMark(
+                                    session.presentation,
+                                    session.gameState,
+                                    entry.company.id,
+                                    player.owner
+                                )}
                                 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
                                 <!-- A pointer shortcut: keyboard users open the card from the holding's buttons, whose clicks bubble here. -->
                                 <div
@@ -376,14 +381,13 @@
                                                 >{session.companyInitials(entry.company.id)}</button
                                             >
                                             {#if entry.president}<span
-                                                    class="compact-president"
+                                                    class="compact-mark"
                                                     aria-label="President">P</span
                                                 >{/if}
-                                            {#if multiShareMark && holdsMultiShareCertificate(session.gameState, entry.company.id, player.owner)}<span
-                                                    class="compact-president"
-                                                    title={`${multiShareMark.name}: ${multiShareMark.description}`}
-                                                    aria-label={multiShareMark.name}
-                                                    >{multiShareMark.label}</span
+                                            {#if mark}<span
+                                                    class="compact-mark"
+                                                    title={mark.title}
+                                                    aria-label={mark.name}>{mark.label}</span
                                                 >{/if}
                                         </span>
                                         <span class="holding-amount"
@@ -411,6 +415,12 @@
                     {:else if player.ownership.length}
                         <table class="ownership" aria-label={`${player.name} company ownership`}>
                             {#each player.ownership.toSorted((a, b) => Number(!!numberedShareNames[a.company.id]) - Number(!!numberedShareNames[b.company.id])) as entry (entry.company.id)}
+                                {@const mark = multiShareMark(
+                                    session.presentation,
+                                    session.gameState,
+                                    entry.company.id,
+                                    player.owner
+                                )}
                                 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
                                 <!-- A pointer shortcut: keyboard users open the card from the holding's buttons, whose clicks bubble here. -->
                                 <tbody
@@ -444,9 +454,9 @@
                                                 ><PresidentName
                                                     name={session.companyName(entry.company.id)}
                                                     president={entry.president}
-                                                />{#if multiShareMark && holdsMultiShareCertificate(session.gameState, entry.company.id, player.owner)}<CertificateBadge
-                                                        label={multiShareMark.label}
-                                                        title={`${multiShareMark.name}: ${multiShareMark.description}`}
+                                                />{#if mark}<CertificateBadge
+                                                        label={mark.label}
+                                                        title={mark.title}
                                                     />{/if}</button
                                             ></th
                                         >
@@ -600,10 +610,10 @@
         gap: 1px;
     }
     .compact-company-label > button,
-    .compact-president {
+    .compact-mark {
         text-box: trim-both cap alphabetic;
     }
-    .compact-president {
+    .compact-mark {
         color: var(--rail-muted, #a79888);
         font-size: 9px;
         font-weight: 700;

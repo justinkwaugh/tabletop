@@ -1,6 +1,6 @@
 <script lang="ts">
     import { holdsReceiverPresidentCertificate } from '../finance/companyOwnership.js'
-    import { holdsMultiShareCertificate } from '../finance/multiShareCertificates.js'
+    import { multiShareMark, type MultiShareMark } from '../finance/multiShareCertificates.js'
     import { chainSidewaysScroll } from '@tabletop/frontend-components'
     import CertificateCount from '../stock/CertificateCount.svelte'
     import { cashText, optionalMoney } from '../presentation/money.js'
@@ -189,32 +189,20 @@
     const portfolioColumnLabels = $derived(
         new Map(portfolioCompanyIds.map((id) => [`company:${id}`, session.companyInitials(id)]))
     )
-    const multiShareMark = $derived(session.presentation.multiShareCertificate)
-    /** Whether the column's owner holds the company's marked certificate of several shares. */
-    function holdsMarkedCertificate(companyId: string, ownerId: string): boolean {
-        if (!multiShareMark) return false
-        const state = session.gameState
-        if (ownerId.startsWith('player:'))
-            return holdsMultiShareCertificate(state, companyId, {
-                kind: 'player',
-                playerId: ownerId.slice('player:'.length)
-            })
-        if (ownerId.startsWith('company:'))
-            return holdsMultiShareCertificate(state, companyId, {
-                kind: 'company',
-                companyId: ownerId.slice('company:'.length)
-            })
-        if (ownerId === 'treasury')
-            return holdsMultiShareCertificate(state, companyId, { kind: 'company', companyId })
-        const poolId = new Map([
-            ['market', marketPoolId],
-            ['ipo', ipoPoolId],
-            ['exchange', exchangePoolId]
-        ]).get(ownerId)
-        return (
-            poolId !== undefined &&
-            holdsMultiShareCertificate(state, companyId, { kind: 'bank' }, poolId)
-        )
+    /** Where a column's certificates are held: its owner, and for the bank, the pool. */
+    type CertificateHolder = { owner: Owner; poolId?: string }
+    /** The title's mark where the column's owner holds a certificate of several shares. */
+    function markedCertificate(companyId: string, ownerId: string): MultiShareMark | undefined {
+        const holder = owners.find((owner) => owner.id === ownerId)?.holder(companyId)
+        return holder
+            ? multiShareMark(
+                  session.presentation,
+                  session.gameState,
+                  companyId,
+                  holder.owner,
+                  holder.poolId
+              )
+            : undefined
     }
     // A pool's shorts, such as the market's, count against its shares.
     function poolShares(poolId: string, companyId: string): number {
@@ -288,7 +276,8 @@
                 sharesOwned(session.gameState, companyId, {
                     kind: 'company',
                     companyId: ownerId
-                })
+                }),
+            holder: (): CertificateHolder => ({ owner: { kind: 'company', companyId: ownerId } })
         }))
     )
     const seatOrder = $derived(
@@ -384,7 +373,8 @@
                 {
                     id: `player:${playerId}`,
                     name: session.getPlayerName(playerId),
-                    count: (companyId: string) => session.playerShares(companyId, playerId)
+                    count: (companyId: string) => session.playerShares(companyId, playerId),
+                    holder: (): CertificateHolder => ({ owner: { kind: 'player', playerId } })
                 },
                 ...portfolioOwners.filter((owner) => owner.controllerId === playerId)
             ]),
@@ -395,7 +385,11 @@
                           id: 'ipo',
                           name: 'IPO',
                           count: (companyId: string) => poolShares(ipoPoolId, companyId),
-                          sells: inPool(ipoPoolId)
+                          sells: inPool(ipoPoolId),
+                          holder: (): CertificateHolder => ({
+                              owner: { kind: 'bank' },
+                              poolId: ipoPoolId
+                          })
                       }
                   ]
                 : []),
@@ -403,7 +397,11 @@
                 id: 'market',
                 name: 'Market',
                 count: (companyId: string) => poolShares(marketPoolId, companyId),
-                sells: inPool(marketPoolId)
+                sells: inPool(marketPoolId),
+                holder: (): CertificateHolder => ({
+                    owner: { kind: 'bank' },
+                    poolId: marketPoolId
+                })
             },
             {
                 id: 'treasury',
@@ -412,14 +410,21 @@
                     sharesOwned(session.gameState, companyId, { kind: 'company', companyId }),
                 sells: (certificate: PurchaseCertificate) =>
                     certificate.owner.kind === 'company' &&
-                    certificate.owner.companyId === certificate.companyId
+                    certificate.owner.companyId === certificate.companyId,
+                holder: (companyId: string): CertificateHolder => ({
+                    owner: { kind: 'company', companyId }
+                })
             },
             ...(exchangePoolId
                 ? [
                       {
                           id: 'exchange',
                           name: 'Exchange',
-                          count: (companyId: string) => poolShares(exchangePoolId, companyId)
+                          count: (companyId: string) => poolShares(exchangePoolId, companyId),
+                          holder: (): CertificateHolder => ({
+                              owner: { kind: 'bank' },
+                              poolId: exchangePoolId
+                          })
                       }
                   ]
                 : [])
@@ -728,7 +733,7 @@
     numbers: readonly number[] = []
 )}
     {@const purchase = shares > 0 ? purchaseForCell(companyId, ownerId) : undefined}
-    {@const marked = shares > 0 && holdsMarkedCertificate(companyId, ownerId)}
+    {@const marked = shares > 0 ? markedCertificate(companyId, ownerId) : undefined}
     {@const saleChoices = shares > 0 ? saleChoicesForCell(companyId, ownerId) : []}
     <td
         class:operating-column={operating}
@@ -773,16 +778,14 @@
     >
 {/snippet}
 
-{#snippet shareValue(text: string, president: boolean, marked = false)}
-    {@const mark = marked ? multiShareMark : undefined}
+{#snippet shareValue(text: string, president: boolean, mark?: MultiShareMark)}
     <span class="share-value" class:president
         >{text}{#if president || mark}<span
                 class="badge"
                 aria-label={[president ? 'President' : '', mark?.name ?? '']
                     .filter(Boolean)
                     .join(', ')}
-                title={mark ? `${mark.name}: ${mark.description}` : undefined}
-                >{president ? 'P' : ''}{mark?.label ?? ''}</span
+                title={mark?.title}>{president ? 'P' : ''}{mark?.label ?? ''}</span
             >{/if}</span
     >
 {/snippet}
@@ -791,7 +794,7 @@
     text: string,
     president: boolean,
     numbers: readonly number[],
-    marked = false
+    marked?: MultiShareMark
 )}
     {#if numbers.length}
         {@const label = ` (${numbers.join(',')})`}

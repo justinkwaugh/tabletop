@@ -53,6 +53,30 @@ track layouts and counts only, checked against the rulebook.
   carried on `DeclareBankruptcy`, and the company's turn ends.
 - **Player wealth items.** 1849's loans are the first player-level item beyond cash and
   certificates; `ValuationRules.playerItems` sees the other items so a title can floor a total.
+- **Marking a certificate of several shares** (`TitlePresentation.multiShareCertificate`).
+  Ordinary certificates of more than one share appear across the researched catalogue (1826,
+  1835, 1844, 1854, 1858, 18GB, 18CZ, 1849 and others); 1849 prints one, its last certificate,
+  and players must see who holds it because it sells and issues only after the singles (§9.3,
+  §9.6). Shared: whether an owner, or a bank pool, holds one (`holdsMultiShareCertificate`) and
+  the mark it shows (`multiShareMark`) on the company card, players panel and spreadsheet. Title:
+  the letter, name and description. Not done: telling apart several multi-share sizes in one
+  company (1835's Prussian 20% shares and 10% shares), which would need a mark per size.
+- **Terrain icons by kind** (`MapViewDefinition.terrainIcons`). The catalogue's hex terrain is
+  mostly `mountain` (617 hexes), `water` and `river`, then `hill` (115) and a few others; titles
+  with several land costs print bigger mountains for bigger costs. Shared: the icon set (one,
+  two and three peaks; water and lake as before). Title: which kind prints which. Every other
+  title keeps the two-peak mountain.
+- **Captions above a staged value row** (`TileLayout.revenueCaptionsAbove`). Staged values
+  usually stack with captions before or after them (`revenueCaptionsAfter` for an east edge);
+  1849's Terranova has track on five sides and room only below its two-space city, so its values
+  run in a row with the phase captions above. Shared: the row with its captions and the space it
+  keeps clear. Title: which hex uses it.
+- **Terrain costs on laid tiles** (`MapViewDefinition.terrainKeptOnTiles`, `terrainCostsBelow`).
+  Most titles pay terrain once and the cost leaves with the first tile; 1849 puts the token back
+  and charges it on every upgrade (§10.3.1). Shared: each laid tile finds its own clear space
+  nearest the hex's foot, as a row or with the cost under its symbols, clear of the tile's
+  spaces, values, label and track (touching only where nothing is clear). Title: whether costs
+  stay, and which printed hexes stack the cost (K9, whose track runs through its centre).
 
 ## Further family changes found by whole-game play
 
@@ -67,7 +91,8 @@ track layouts and counts only, checked against the rulebook.
   1849); bank-held pools, as in 1862, are unchanged.
 - `PrivatePowerRules.afterMarker`: what follows a private's map marker (CNM records its port and
   closes).
-- Terrain icons for `hill` and `rough` beside `mountain`.
+- `MapViewDefinition.terrainIcons`: which icon each terrain kind prints (one, two or three peaks);
+  every title keeps the two-peak mountain unless it chooses.
 - `MapViewDefinition.terrainKeptOnTiles`: a hex's terrain cost stays drawn on the tiles laid over
   it (§10.3.1 puts the token back), in each tile's own clear space nearest the hex's foot, as a
   row or with the cost under its symbols. `terrainCostsBelow` stacks a printed hex's cost the
@@ -84,9 +109,11 @@ track layouts and counts only, checked against the rulebook.
 4. **A Garibaldi from the Reale Società d'Affari** chooses its home as it first operates, among
    its cities with room, rather than at once in the initial stock round (§8.1 says the buyer
    places the home token). Its token fee is paid as it floats.
-5. **A Garibaldi passed over** for want of a home goes last in order only once a corporation
-   after it starts; it becomes available again as soon as a city has room, not only from the next
-   stock round (§9.4.1).
+5. **A Garibaldi passed over** for want of a home (§9.4.1), as the research engine plays it (confirmed
+   by the owner, 2026-11-12): it shows last as soon as its last city fills, and is set aside last
+   in order as the next stock round begins; it may start again only from a stock round that
+   begins with room in one of its cities, so room that opens during a stock round waits for the
+   next. A corporation that closes while it is set aside goes ahead of it.
 6. **A Garibaldi that itself buys the first 12H** and loses its only station closes when it next
    acts in its train step (its price goes to the Closed box), not mid-purchase.
 7. **Presidency exchange with the last certificate** (§9.5): the new president always gives the
@@ -112,8 +139,6 @@ track layouts and counts only, checked against the rulebook.
 
 - Variants (§14): acquiring station tokens, bonds, Electric Dreams.
 - The physical board view (no board artwork); the boardless map is the only presentation.
-- The start order panel stands on the board only (the family's board panel); the paned layout
-  shows the order through each corporation's state alone.
 
 ## Verification
 
