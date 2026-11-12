@@ -99,7 +99,7 @@ test("takes back a defender's announcement choice before any action", async ({ p
     await page.locator('.header .undo').click()
     await expect(confirm).toHaveText('Pass')
     await area
-        .locator('button', { hasText: /^Announce/ })
+        .locator('button', { hasText: /^Choose/ })
         .first()
         .click()
     await expect(

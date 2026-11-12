@@ -18,7 +18,11 @@
     {#if gameSession.announcementSections.length > 0}
         <!-- A new menu for each turn, so it opens as the turn starts. -->
         {#key gameSession.actions.length}
-            <TableMenu label="Announce" title="Announce or double" openAtOnce>
+            <TableMenu
+                label={chosen.length > 0 ? 'Change' : 'Choose'}
+                title="Announce or double"
+                openAtOnce
+            >
                 {#snippet table({ wide, close })}
                     <AnnouncementTable
                         {wide}
