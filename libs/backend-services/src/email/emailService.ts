@@ -12,6 +12,7 @@ import {
 } from '@tabletop/common'
 
 export { AccountChangeType } from '@tabletop/common'
+import type { ContentReportEmail } from '../moderation/contentReports.js'
 
 export type LeagueSignUpEmail = LeagueSignUpProps & { url: string; toEmail: string }
 
@@ -41,6 +42,7 @@ export interface EmailService {
         url: string
         toEmail: string
     }): Promise<void>
+    sendContentReportEmail(report: ContentReportEmail): Promise<void>
     sendPlayerRemovedEmail(email: {
         playerName: string
         game: Game

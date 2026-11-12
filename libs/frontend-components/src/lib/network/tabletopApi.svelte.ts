@@ -13,6 +13,7 @@ import {
     assertExists,
     Bookmark,
     type BugReportRequest,
+    type ContentReportRequest,
     type UserCreateRequest,
     type UserUpdateRequest,
     CanonicalActionReplay,
@@ -817,6 +818,26 @@ export class TabletopApi {
             .json<void>()
     }
 
+    async reportContent(report: ContentReportRequest): Promise<void> {
+        await this.wretch
+            .post(report, '/game/report')
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .error(429, () => {
+                throw new APIError({
+                    name: 'RateLimited',
+                    message: 'Too many reports were sent recently. Try again in a few minutes.'
+                })
+            })
+            .error(503, () => {
+                throw new APIError({
+                    name: 'ReportingUnavailable',
+                    message: 'Reporting is not available on this site.'
+                })
+            })
+            .json<void>()
+    }
+
     async checkInvitation(token: string): Promise<Game> {
         const response = await this.wretch
             .get(`/invitation/token/${token}`)
@@ -1188,6 +1209,27 @@ export class TabletopApi {
 
     async deleteUser(userId: string): Promise<User> {
         return this.moderateUser(userId, 'delete', {})
+    }
+
+    async redactGameChatMessage(gameId: string, messageId: string): Promise<void> {
+        await this.wretch
+            .post(
+                {},
+                `/admin/games/${encodeURIComponent(gameId)}/chat/${encodeURIComponent(messageId)}/redact`
+            )
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<void>()
+    }
+
+    async renameGameAsAdministrator(gameId: string, name: string): Promise<Game> {
+        const response = await this.wretch
+            .post({ name }, `/admin/games/${encodeURIComponent(gameId)}/rename`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<GameResponse>()
+
+        return this.validateGame(response.payload.game)
     }
 
     private async moderateUser(userId: string, operation: string, body: object): Promise<User> {

@@ -25,6 +25,8 @@
     import AuthModal from '$lib/components/AuthModal.svelte'
     import BugReportModal from '$lib/components/BugReportModal.svelte'
     import CallGameModal from '$lib/components/CallGameModal.svelte'
+    import ReportContentModal from '$lib/components/ReportContentModal.svelte'
+    import { contentReport } from '$lib/stores/contentReport.svelte'
     import { callGameOffer } from '$lib/utils/callGameOffer'
     import { bgStatsPlayUrl } from '$lib/utils/bgStats'
     import { getAppContext as getSiteContext } from '$lib/stores/appContext.svelte'
@@ -65,7 +67,8 @@
         notificationService,
         visibilityService,
         libraryService,
-        manifestService
+        manifestService,
+        chatService
     } = getAppContext()
     let titlesById = $derived(libraryService.titlesById)
     let loading = $derived(libraryService.loading)
@@ -118,6 +121,11 @@
             titlesById[session.primaryGame.typeId]?.info.clientCapabilities ?? []
         )
     })
+    let reportGame = $derived.by(() => {
+        const session = gameService.currentGameSession
+        if (!sessionUser || !session || session.primaryGame.hotseat) return undefined
+        return siteGameService.cachedGame(session.primaryGame.id) ?? session.primaryGame
+    })
     let accountMenuOpen = $state(false)
     let showCallGame = $state(false)
     let showBugReport = $state(false)
@@ -138,6 +146,7 @@
     })
 
     afterNavigate(() => {
+        contentReport.close()
         showLoginModal = false
         showCallGame = false
         showBugReport = false
@@ -625,6 +634,14 @@
                                     <DropdownItem class="w-full text-left" href={bgStatsUrl}
                                         >Log to BG Stats</DropdownItem
                                     >
+                                {/if}
+                                {#if reportGame}
+                                    <DropdownItem
+                                        class="w-full text-left"
+                                        onclick={() => contentReport.open()}>Report…</DropdownItem
+                                    >
+                                {/if}
+                                {#if bgStatsUrl || reportGame}
                                     <DropdownDivider />
                                 {/if}
                                 <DropdownItem class="w-full text-left" onclick={gotoProfile}
@@ -741,6 +758,9 @@
 {/if}
 {#if bugReportSession}
     <BugReportModal bind:open={showBugReport} session={bugReportSession} />
+{/if}
+{#if reportGame}
+    <ReportContentModal game={reportGame} messages={chatService.currentGameChat?.messages ?? []} />
 {/if}
 {#if callOffer && gameService.currentGameSession}
     <CallGameModal

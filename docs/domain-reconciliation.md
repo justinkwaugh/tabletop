@@ -382,12 +382,12 @@ Unless stated otherwise, every open item below is documented but not implemented
 - **Evidence**: `apps/backend/src/app/routes/api/chat/message.ts:34`
 - **Invariant**: Message content is trimmed, nonempty, may contain interior whitespace and line breaks, and contains no more than 500 user-perceived Unicode characters. Invalid content is rejected rather than silently truncated.
 
-### Message redaction is absent
+### Message redaction
 
-- **Classification**: Planned moderation capability
-- **Observed**: Sent Messages have no edit, delete, redaction, or moderation operation. Their practical immutability is only the absence of mutation APIs.
-- **Evidence**: `libs/backend-services/src/persistence/stores/chatStore.ts`; `libs/backend-services/src/chat/chatService.ts`
-- **Invariant**: A sent Message is immutable to its author. An Administrator in Admin Mode may redact abusive visible content while retaining Message identity, author, timestamp, and position; the moderation action and Administrator are auditable.
+- **Classification**: Implemented
+- **Observed**: Authors still cannot edit or delete a sent Message. An Administrator redacts one from the admin moderation page, which a Content Report email links to. The store replaces the text with "Removed by a moderator", marks the Message `redacted`, keeps its ID, author, timestamp and position, and folds the redaction into the chat checksum so a client that missed it reconciles. The redaction is pushed to the Game's open clients, and a log line records the Administrator, the author and the original text. The admin page needs the Administrator role, not Admin Mode.
+- **Evidence**: `libs/backend-services/src/persistence/firestore/chatStore.ts` (`redactGameChatMessage`); `libs/backend-services/src/chat/chatService.ts`; `apps/backend/src/app/routes/api/admin/games/moderation.ts`
+- **Invariant**: A sent Message is immutable to its author. An Administrator may redact abusive visible content while retaining Message identity, author, timestamp, and position; the moderation action and Administrator are auditable.
 
 ### Conversation capacity uses an undifferentiated failure
 

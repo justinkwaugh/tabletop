@@ -20,6 +20,7 @@ vi.mock('@tabletop/backend-services', async () => {
             [
                 'AbandonedSignUps',
                 'AccountModeration',
+                'ContentReports',
                 'CatalogService',
                 'CharityTallyRefresher',
                 'CharityTallyService',

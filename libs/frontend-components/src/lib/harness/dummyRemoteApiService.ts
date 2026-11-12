@@ -1,5 +1,6 @@
 import type {
     BugReportRequest,
+    ContentReportRequest,
     AdminAssignableRole,
     Bookmark,
     GameCatalogEntry,
@@ -358,6 +359,10 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('reportBug')
     }
 
+    async reportContent(_report: ContentReportRequest): Promise<void> {
+        return this.fail('reportContent')
+    }
+
     async checkInvitation(_token: string): Promise<Game> {
         return this.fail('checkInvitation')
     }
@@ -484,6 +489,14 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async deleteUser(_userId: string): Promise<User> {
         return this.fail('deleteUser')
+    }
+
+    async redactGameChatMessage(_gameId: string, _messageId: string): Promise<void> {
+        return this.fail('redactGameChatMessage')
+    }
+
+    async renameGameAsAdministrator(_gameId: string, _name: string): Promise<Game> {
+        return this.fail('renameGameAsAdministrator')
     }
 
     async unbanUser(_userId: string): Promise<User> {

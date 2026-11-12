@@ -301,6 +301,44 @@ export class GameService {
         return createdGame
     }
 
+    // Takes a Game's name down at any status; the owner's own rename is limited to waiting Games.
+    async renameGameAsAdministrator({
+        gameId,
+        name,
+        administrator
+    }: {
+        gameId: string
+        name: string
+        administrator: User
+    }): Promise<Game> {
+        const trimmed = name.trim()
+        if (trimmed.length === 0) {
+            throw new GamePropertyIsRequiredError({ id: gameId, field: 'name' })
+        }
+        const game = await this.getGame({ gameId })
+        if (!game) {
+            throw new GameNotFoundError({ id: gameId })
+        }
+        const [updatedGame, updatedFields] = await this.gameStore.updateGame({
+            game,
+            fields: { name: trimmed }
+        })
+        if (!updatedFields.includes('name')) return updatedGame
+
+        // The moderation record an appeal is reviewed against.
+        console.log(
+            JSON.stringify({
+                event: 'game_renamed_by_administrator',
+                gameId,
+                administratorId: administrator.id,
+                originalName: game.name,
+                name: trimmed
+            })
+        )
+        await this.notifyGameAudience(GameNotificationAction.Update, { game: updatedGame })
+        return updatedGame
+    }
+
     // An Administrator is exempt so that a false match can be resolved.
     private assertGameNameAllowed(
         game: Pick<Game, 'name' | 'isPublic' | 'unlisted'>,

@@ -59,6 +59,7 @@ import {
     StalledGames,
     AccountModeration,
     AbandonedSignUps,
+    ContentReports,
     STATIC_ROOT,
     TaskService,
     TiltifyApi,
@@ -106,6 +107,7 @@ declare module 'fastify' {
         leagueService: LeagueService
         siteStatsService: SiteStatsService
         bugReportService: BugReportService | undefined
+        contentReports: ContentReports | undefined
         realtimeTokenIssuer: RealtimeTokenIssuer | undefined
         charityTallyService: CharityTallyService
         charityTallyRefresher: CharityTallyRefresher | undefined
@@ -120,6 +122,7 @@ const SITE_MANIFEST_PATH =
 const useAbly = !!process.env['ABLY_API_KEY']
 const useRealtimeRelay = !!process.env['REALTIME_SIGNING_KEY']
 const BUG_REPORT_CHANNEL_ID = process.env['DISCORD_BUG_REPORT_CHANNEL_ID']
+const MODERATION_EMAIL = process.env['MODERATION_EMAIL']
 const useCharityTally = !!process.env['TILTIFY_CLIENT_ID']
 
 type ServicesOptions = Pick<LibraryServiceOptions, 'whileLoadingTitle'>
@@ -348,6 +351,19 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
                   ),
                   charityTallyStore,
                   redisCacheService
+              )
+            : undefined
+    )
+    fastify.decorate(
+        'contentReports',
+        MODERATION_EMAIL
+            ? new ContentReports(
+                  gameService,
+                  chatService,
+                  userService,
+                  taskService,
+                  MODERATION_EMAIL,
+                  process.env['FRONTEND_HOST'] ?? ''
               )
             : undefined
     )

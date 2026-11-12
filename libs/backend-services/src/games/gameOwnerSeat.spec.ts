@@ -57,6 +57,7 @@ function fixture() {
         sendPasswordResetEmail: unused,
         sendAuthVerificationEmail: unused,
         sendAccountChangeNotificationEmail: unused,
+        sendContentReportEmail: unused,
         sendGameInvitationEmail: vi.fn(async () => {}),
         sendGameEndEmail: unused
     }

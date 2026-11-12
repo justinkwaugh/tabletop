@@ -253,6 +253,7 @@ function createService(source: ReturnType<typeof createSource>) {
         sendPasswordResetEmail: unused,
         sendAuthVerificationEmail: unused,
         sendAccountChangeNotificationEmail: unused,
+        sendContentReportEmail: unused,
         sendGameInvitationEmail: unused,
         sendGameEndEmail: unused
     }
