@@ -48,6 +48,10 @@ function machineState(page: Page) {
     return page.evaluate(() => window.ostbahnSession.gameState.machineState)
 }
 
+function actionCount(page: Page) {
+    return page.evaluate(() => window.ostbahnSession.gameState.actionCount)
+}
+
 function trackCount(page: Page) {
     return page.evaluate(() =>
         window.ostbahnSession.gameState.railroads.reduce(
@@ -73,11 +77,22 @@ test('auctions every opening share, then builds one track per press and takes it
             await page.getByRole('button', { name: 'Pass', exact: true }).click()
         }
     }
+    await expect.poll(() => machineState(page)).toBe('DeterminingOrder')
+    await page.getByRole('button', { name: 'Draw turn order' }).click()
     await expect.poll(() => machineState(page)).toBe('ChoosingAction')
     await expect(page.getByText('Turn order', { exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Undo' })).toHaveCount(0)
 
+    const buildTrack = page.getByRole('button', { name: 'Build track' })
+    for (;;) {
+        await expect(page.getByText('Choose your action.')).toBeVisible()
+        if (await buildTrack.isVisible()) break
+        const passed = await actionCount(page)
+        await page.getByRole('button', { name: 'Pass', exact: true }).click()
+        await expect.poll(() => actionCount(page)).toBeGreaterThan(passed)
+    }
     const before = await trackCount(page)
-    await page.getByRole('button', { name: 'Build track' }).click()
+    await buildTrack.click()
     const pills = page.locator('button.choice')
     if ((await pills.count()) > 0) {
         await pills.first().click()

@@ -18,6 +18,7 @@ import {
 } from '@tabletop/frontend-components'
 import {
     Definition,
+    DeterminePlayerOrder,
     MachineState,
     OstbahnRuntime,
     PassBid,
@@ -96,12 +97,12 @@ export function onTheClock(table: PlayedTable): string {
     return playerId
 }
 
-export function firstTurnTable(): PlayedTable {
+export function openingDrawTable(): PlayedTable {
     const { initialState } = engine.startGame(GAME, {
         masterSeed: '0123456789abcdef0123456789abcdef'
     })
     let table: PlayedTable = { state: initialState, actions: [] }
-    for (let step = 0; table.state.machineState !== MachineState.ChoosingAction; step++) {
+    for (let step = 0; table.state.machineState !== MachineState.DeterminingOrder; step++) {
         if (step >= 60) {
             throw Error('The opening auctions did not finish')
         }
@@ -114,6 +115,16 @@ export function firstTurnTable(): PlayedTable {
         ])
     }
     return table
+}
+
+export function firstTurnTable(): PlayedTable {
+    const table = openingDrawTable()
+    return played(table, [
+        createAction(DeterminePlayerOrder, {
+            ...envelope(table, onTheClock(table)),
+            revealsInfo: true
+        })
+    ])
 }
 
 export function withSharesForTurnPlayer(table: PlayedTable): PlayedTable {

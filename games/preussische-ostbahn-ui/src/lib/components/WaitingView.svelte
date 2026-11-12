@@ -20,6 +20,8 @@
             Waiting for <PlayerName playerId={activeId} /> to finish building
             <RailroadBadge railroadId={state.expansion.railroadId} /> track.
         </div>
+    {:else if activeId && state.machineState === MachineState.DeterminingOrder}
+        <div>Waiting for <PlayerName playerId={activeId} /> to draw the turn order.</div>
     {:else if activeId}
         <div>
             Waiting for <PlayerName playerId={activeId} /> to build, offer a share or pass.

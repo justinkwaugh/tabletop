@@ -14,7 +14,8 @@ import {
     type RandomState
 } from '@tabletop/common'
 import { MachineState } from '../definition/states.js'
-import { RAILROAD_IDS, RailroadId } from '../components/railroads.js'
+import { OPENING_AUCTION_ORDER, RAILROAD_IDS, RailroadId } from '../components/railroads.js'
+import { GameEndReason, gameEndReason } from './endCheck.js'
 import {
     FRESH_EXPANSION,
     buildChoices,
@@ -38,6 +39,15 @@ export const ShareAuction = Type.Object({
     railroadId: Type.Enum(RailroadId),
     bidding: SimpleAuction
 })
+
+export enum RoundEndKind {
+    GameOver = 'GameOver',
+    Draw = 'Draw'
+}
+
+export type RoundEnd =
+    | { kind: RoundEndKind.GameOver; endReason: GameEndReason }
+    | { kind: RoundEndKind.Draw; drawerId: string }
 
 export type ExpansionInProgress = Type.Static<typeof ExpansionInProgress>
 export const ExpansionInProgress = Type.Object({
@@ -131,7 +141,7 @@ export class HydratedOstbahnGameState
     }
 
     nextInitialRailroad(): RailroadId | undefined {
-        return RAILROAD_IDS.find((id) => this.railroad(id).owners.length === 0)
+        return OPENING_AUCTION_ORDER.find((id) => this.railroad(id).owners.length === 0)
     }
 
     bidding(): PassableBidding {
@@ -197,6 +207,26 @@ export class HydratedOstbahnGameState
             this.machineState === MachineState.Expanding &&
             this.turnSlots[this.slotIndex] === playerId
         )
+    }
+
+    roundEnd(): RoundEnd {
+        const endReason = gameEndReason(this.railroads)
+        return endReason
+            ? { kind: RoundEndKind.GameOver, endReason }
+            : { kind: RoundEndKind.Draw, drawerId: this.roundEnderId() }
+    }
+
+    private roundEnderId(): string {
+        if (this.rounds.currentRound) {
+            const lastSlotPlayerId = this.turnSlots.at(-1)
+            assertExists(lastSlotPlayerId, 'A round has turn slots')
+            return lastSlotPlayerId
+        }
+        const lastOpeningRailroadId = OPENING_AUCTION_ORDER.at(-1)
+        assertExists(lastOpeningRailroadId, 'The opening auctions sell some railroad')
+        const [lastOpeningBuyerId] = this.railroad(lastOpeningRailroadId).owners
+        assertExists(lastOpeningBuyerId, 'The opening auctions end with every railroad sold')
+        return lastOpeningBuyerId
     }
 
     incomeCup(): CupEntry[] {
