@@ -80,6 +80,7 @@ export type {
     TitleActionDescription,
     TitleHistoryNames
 } from './table/historyDescription.js'
+export type { TitleCallout } from './table/historyCallouts.js'
 export {
     companyClosedRow,
     companyClosureDetails,

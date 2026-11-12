@@ -84,6 +84,7 @@ import {
     type StockMarketChart
 } from '@tabletop/18xx'
 import type { HistoryCompanyChanges } from './historyCompanyChanges.js'
+import type { TitleCallout } from './historyCallouts.js'
 import { trainCount } from './awaitedDecision.js'
 import { counted } from '../presentation/count.js'
 import { assertExists, gameCallDescription, gameCallOf, type GameAction } from '@tabletop/common'
@@ -105,6 +106,8 @@ export type HistoryDescription = {
     milestone?: boolean
     /** A change to every player's certificate limit, called out below the row. */
     certificateLimit?: CertificateLimitChange
+    /** A title's own table-wide events, each called out below the row as the bank breaking is. */
+    callouts?: readonly TitleCallout[]
     /**
      * A system action that stays in the operation or turn it happened in, as a company closing
      * while another operates, rather than opening its own.

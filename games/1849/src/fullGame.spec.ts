@@ -1,4 +1,6 @@
+import { isAdvancePhase } from '@tabletop/18xx'
 import { describe, expect, it } from 'vitest'
+import { messinaEarthquakeOf } from './operating.js'
 import { playOut } from '../test/bot.js'
 import { kit } from '../test/kit.js'
 
@@ -21,5 +23,13 @@ describe('whole games', () => {
         playOut(game, 39)
         expect(game.state.machineState).toBe('GameOver')
         expect(game.state.gameEnding?.reason).toBe('No corporation can start')
+    }, 120_000)
+
+    it('records the Messina earthquake on the phase change to the first 12H only (§12)', () => {
+        const game = kit.table(4, 1)
+        playOut(game, 1)
+        const phaseChanges = game.actions.filter(isAdvancePhase)
+        const quakes = phaseChanges.filter((action) => messinaEarthquakeOf(action))
+        expect(quakes.map((action) => action.metadata?.event.toPhaseId)).toEqual(['12H'])
     }, 120_000)
 })

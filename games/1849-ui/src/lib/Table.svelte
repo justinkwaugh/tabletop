@@ -1,6 +1,7 @@
 <script lang="ts">
     import { createRouteWorker } from './routeWorker.js'
     import StartOrder from './StartOrder.svelte'
+    import { describe1849Action } from './history.js'
     import type { GameSession } from '@tabletop/frontend-components'
     import { PrivateRules1849, type HydratedState1849, type State1849 } from '@tabletop/1849'
     import { privateOwningCompany } from '@tabletop/18xx'
@@ -18,6 +19,7 @@
         privateOwningCompany(session.gameState, privateCompanyId)
             ? PrivateRules1849.description(session.gameState, privateCompanyId)
             : undefined
+    const historyDescription = describe1849Action(() => session.gameState.stations)
 </script>
 
 {#snippet startOrder(reveal: (locationId: string) => void)}<StartOrder
@@ -29,6 +31,7 @@
     {session}
     {privateOperationDescription}
     {createRouteWorker}
+    {historyDescription}
     boardPanel={{ label: 'Start order', content: startOrder }}
 >
     {#snippet actions(_focusLocation, focusRoute)}

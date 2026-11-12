@@ -1,4 +1,4 @@
-import { assertExists } from '@tabletop/common'
+import { assertExists, type GameAction } from '@tabletop/common'
 import {
     CompanyClosure,
     EighteenXXTransferTiming,
@@ -37,6 +37,7 @@ import {
     type InsolvencyRules,
     type OperatingRules,
     type OperatingState,
+    isAdvancePhase,
     type PhaseChangeState,
     type PhaseRules,
     type PrivateRules,
@@ -48,6 +49,7 @@ import {
     type ZeroPriceClosureRules
 } from '@tabletop/18xx'
 import * as Type from 'typebox'
+import { Compile } from 'typebox/compile'
 import { Charters1849, GaribaldiId, ShareCount1849 } from './companies.js'
 import { Map1849, MessinaLocationId } from './map.js'
 import { Names1849 } from './names.js'
@@ -305,6 +307,15 @@ export const Earthquake1849 = Type.Object(
     { additionalProperties: false }
 )
 export type Earthquake1849 = Type.Static<typeof Earthquake1849>
+const EarthquakeValidator = Compile(Earthquake1849)
+
+/** What the Messina earthquake did, as the phase change to the first 12H recorded it (§12). */
+export function messinaEarthquakeOf(action: GameAction): Earthquake1849 | undefined {
+    if (!isAdvancePhase(action) || action.metadata?.event.toPhaseId !== EarthquakePhaseId)
+        return undefined
+    const changes = action.metadata.changes
+    return EarthquakeValidator.Check(changes) ? changes : undefined
+}
 
 /**
  * The Messina earthquake at the first 12H: the tile on Messina goes, its tokens are lost for
