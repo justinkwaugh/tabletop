@@ -4,8 +4,8 @@ import { createGame, playToHands, settled } from './helpers.js'
 
 /**
  * The printed board under the pieces and the presses, where the folder holds it: each panel's print
- * fills its area exactly, at board and bench scale, and the bench's presses and the pieces they move
- * stand on the same printed spaces. With no files, the drawn board is proved by the other specs, and
+ * fills its area exactly, at board and bench scale, and the presses and rings beside the pieces they
+ * move stand on the same printed spaces, on the bench and on the trade picker's upright board. With no files, the drawn board is proved by the other specs, and
  * these skip.
  */
 
@@ -146,12 +146,12 @@ test('R-1.3 each printed panel fills its guild area, and the printed ring the wh
     expectSameBox(await boxOf(ring.locator('> image')), await boxOf(ring))
 })
 
-test('R-4.6.2 on the printed market, each good stands in the bin its press covers', async ({
+test('R-4.6.2 on the printed market in the trade picker, each good stands in the bin its ring marks', async ({
     page
 }) => {
     await openFunction(page, 'merchantTrade', 'merchant', /^\s*Trade/)
     test.skip(!(await printed(page)), 'no printed board in the folder')
-    const area = page.locator('[data-bench-area="merchant"]')
+    const area = page.locator('[data-upright-guild="merchant"]')
     const panel = await boxOf(panelImage(area, 'merchant').locator('> image'))
     let seen = 0
     for (const { id, good } of MarketSpaces) {
@@ -159,9 +159,9 @@ test('R-4.6.2 on the printed market, each good stands in the bin its press cover
         if ((await piece.count()) === 0) {
             continue
         }
-        const press = await boxOf(area.locator(`[data-bench-place="good:${good}"]`))
-        expect(inside(centre(press), panel)).toBe(true)
-        expect(inside(centre(await boxOf(piece.first())), press), id).toBe(true)
+        const ring = await boxOf(area.locator(`[data-bench-place="good:${good}"]`))
+        expect(inside(centre(ring), panel)).toBe(true)
+        expect(inside(centre(await boxOf(piece.first())), ring), id).toBe(true)
         seen++
     }
     expect(seen).toBeGreaterThan(0)
@@ -189,10 +189,12 @@ test('R-4.6.3 on the printed Knight panel, each row’s markers stand in its pre
     }
 })
 
-test('R-4.6.3 on the printed rosary, every bead lies on the panel', async ({ page }) => {
+test('R-4.6.3 on the printed rosary in the trade picker, every bead lies on the panel', async ({
+    page
+}) => {
     await openFunction(page, 'monkTrade', 'monk', /^\s*Trade/)
     test.skip(!(await printed(page)), 'no printed board in the folder')
-    const area = page.locator('[data-bench-area="monk"]')
+    const area = page.locator('[data-upright-guild="monk"]')
     const panel = await boxOf(panelImage(area, 'monk').locator('> image'))
     const beads = area.locator('[data-world^="bead:"]')
     expect(await beads.count()).toBeGreaterThan(0)
