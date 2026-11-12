@@ -59,12 +59,6 @@ export const PawnCube = {
     face: { x: 6, y: 3, size: 20 }
 } as const
 
-/** The drawn cover's figure, in a 32 x 44 box: a turned figure, hat to foot, with a medallion. */
-export const PawnBodyPath =
-    'M16 1 C20 1 22 3 22 6 L25 8 L7 8 L10 6 C10 3 12 1 16 1 Z M16 8 A5.5 5.5 0 0 1 21.5 13.5 C21.5 15 21 16 20 17 C25 19 27 24 27 30 L29 38 C29 41 26 43 16 43 C6 43 3 41 3 38 L5 30 C5 24 7 19 12 17 C11 16 10.5 15 10.5 13.5 A5.5 5.5 0 0 1 16 8 Z'
-export const PawnMedallion = { x: 16, y: 26, r: 7.5 }
-export const PawnBox = { width: 32, height: 44 }
-
 /** Vessels, in a 48 x 32 box: hull and the part that names its medium. */
 export const VesselPaths = {
     ship: {

@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest'
 import { BoxFrontTitle, CoverSize, TitleMargin, coverPlacement, coverSvg } from './coverPage.js'
 
 const token = (name: string) => `#${name.length.toString(16).padStart(6, '0')}`
-const scene = '<g id="drawn-scene"></g>'
 const href = 'data:image/png;base64,AAAA'
 
 /** The rulebook's cover page: its printed title lies between 55 % and 68 % down. */
@@ -18,15 +17,7 @@ const band = /<rect y="478"/
 const title = />Feudum</
 
 describe('the cover page', () => {
-    it('the drawn cover is the drawn scene under the title band', () => {
-        const svg = coverSvg({ kind: 'drawn', markup: scene }, token)
-        expect(svg).toContain(scene)
-        expect(svg).toMatch(band)
-        expect(svg).toMatch(title)
-        expect(svg).not.toContain('<image')
-    })
-
-    it('a supplied scene without a title stands behind the same band', () => {
+    it('a supplied scene without a title stands behind the title band', () => {
         const svg = coverSvg({ kind: 'art', href, titled: false }, token)
         expect(svg).toContain(`href="${href}"`)
         expect(svg).toMatch(band)

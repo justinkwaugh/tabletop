@@ -39,6 +39,7 @@ import {
     tileFrontAsset,
     vesselAsset
 } from '$lib/art/assetMap.js'
+import { UiDefinition } from '$lib/definitions/definition.js'
 import { everyAssetSupplied } from '$lib/testing/fakeArt.js'
 import GuildPanel from './guilds/GuildPanel.svelte'
 import MapGround from './map/MapGround.svelte'
@@ -218,15 +219,18 @@ function webpSize(file: Buffer): { width: number; height: number; format: string
 
 const suppliedCover = new URL('../art/supplied/cover.webp', import.meta.url)
 
-/**
- * The drawn cover is committed; the supplied one, the publisher's printed cover, is checked only
- * where the folder holds it.
- */
-describe.each([
-    { name: 'the drawn cover', file: new URL('../images/cover.webp', import.meta.url), here: true },
-    { name: 'the supplied cover', file: suppliedCover, here: existsSync(suppliedCover) }
-])('$name', ({ file, here }) => {
-    const cover = () => readFileSync(file)
+/** The catalog's one cover is the publisher's, checked where the folder holds it; none is drawn. */
+describe('the supplied cover', () => {
+    const here = existsSync(suppliedCover)
+    const cover = () => readFileSync(suppliedCover)
+
+    it('stands alone: no drawn cover is committed beside it', () => {
+        expect(existsSync(new URL('../images/cover.webp', import.meta.url))).toBe(false)
+    })
+
+    it.skipIf(!here)("is the catalog's cover", () => {
+        expect(UiDefinition.info.thumbnailUrl).toContain('supplied/cover.webp')
+    })
 
     it.skipIf(!here)('is 4:5 at twice the large card, so 150 and 340 px high never upscale', () => {
         const { width, height } = webpSize(cover())

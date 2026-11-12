@@ -1,25 +1,17 @@
-// Writes the catalog image: `node scripts/make-cover.mjs [--titled] [--art <image>] [--out <file>]`.
-// Colours come from app.css and the colorizer, forms from the shape module, and the title from the
-// table's own font, so the cover has nothing of its own to keep in step. The page and its title
-// band come from `src/lib/utils/coverPage.ts`. With `--art`, the image stands behind the title band
-// in place of the drawn scene; with `--titled` as well, the image prints its own title and is the
-// whole cover, placed by the page's crop rule (`coverPlacement`), around the box front's printed
-// title when the image is the box front. `--titled` alone takes the box
-// front from `src/lib/art/cover-source/`, or the rulebook's cover while no box front is there.
-// With an image, the cover goes to the supplied art folder; without one, to `src/lib/images/`.
+// Writes the catalog image: `node scripts/make-cover.mjs (--titled | --art <image>) [--out <file>]`.
+// The page and its title band come from `src/lib/utils/coverPage.ts`, colours from app.css and the
+// title from the table's own font. With `--art`, the image stands behind the title band; with
+// `--titled` as well, the image prints its own title and is the whole cover, placed by the page's
+// crop rule (`coverPlacement`), around the box front's printed title when the image is the box
+// front. `--titled` alone takes the box front from `src/lib/art/cover-source/`, or the rulebook's
+// cover while no box front is there. The cover goes to the supplied art folder; nothing is drawn
+// in place of an image.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, extname, join } from 'node:path'
 import { parseArgs } from 'node:util'
 import { fileURLToPath } from 'node:url'
 import { chromium } from '@playwright/test'
 import { BoxFrontTitle, CoverSize, coverSvg } from '../src/lib/utils/coverPage.ts'
-import {
-    CrownPath,
-    GuildIconPaths,
-    KeepPath,
-    PawnBodyPath,
-    PawnMedallion
-} from '../src/lib/utils/pieceShapes.ts'
 
 const Root = fileURLToPath(new URL('..', import.meta.url))
 const { width: Width, height: Height } = CoverSize
@@ -52,21 +44,19 @@ function coverSource() {
     )
 }
 
-const art = values.art ?? (values.titled ? coverSource() : undefined)
-const out =
-    values.out ?? join(Root, art ? 'src/lib/art/supplied/cover.webp' : 'src/lib/images/cover.webp')
+if (!values.art && !values.titled) {
+    throw new Error(
+        'Pass --titled for the box front, or --art <image>: no cover is drawn without one'
+    )
+}
+const art = values.art ?? coverSource()
+const out = values.out ?? join(Root, 'src/lib/art/supplied/cover.webp')
 
 const css = readFileSync(join(Root, 'src/app.css'), 'utf8')
 const tokens = new Map(
     [...css.matchAll(/^\s*--feudum-([a-z-]+):\s*(#[^;]+);/gm)].map((match) => [match[1], match[2]])
 )
 const token = (name) => tokens.get(name)
-
-// The five seats, from the colorizer's own table, so a change there changes the cover.
-const colorizer = readFileSync(join(Root, 'src/lib/definitions/colorizer.ts'), 'utf8')
-const uiColors = colorizer.slice(0, colorizer.indexOf('getBgColor'))
-const seat = (name) => new RegExp(`Color\\.${name}:\\s*return '(#[0-9a-f]+)'`).exec(uiColors)?.[1]
-const Seats = ['Red', 'Blue', 'Yellow', 'Green', 'Purple'].map(seat)
 
 function fontFace(family, file) {
     const path = join(Root, 'src/lib/fonts', file)
@@ -75,46 +65,6 @@ function fontFace(family, file) {
     }
     const data = readFileSync(path).toString('base64')
     return `@font-face { font-family: '${family}'; src: url(data:font/${file.split('.').pop()};base64,${data}); }`
-}
-
-function medallion(guild, x, y, r) {
-    const scale = (r * 1.5) / 24
-    const offset = (r * 1.5) / 2
-    return `
-        <circle cx="${x}" cy="${y}" r="${r}" fill="${token('parchment')}" stroke="${token('ink')}" stroke-width="2" />
-        <path d="${GuildIconPaths[guild]}" fill="${token('ink')}" fill-rule="evenodd"
-            transform="translate(${x - offset} ${y - offset}) scale(${scale})" />`
-}
-
-function pawn(fill, x, y, scale) {
-    return `<g transform="translate(${x} ${y}) scale(${scale})">
-        <path d="${PawnBodyPath}" fill="${fill}" stroke="${token('map-ink')}" stroke-width="1" />
-        <circle cx="${PawnMedallion.x}" cy="${PawnMedallion.y}" r="${PawnMedallion.r}" fill="${token('parchment')}" />
-    </g>`
-}
-
-function drawnScene() {
-    const guilds = Object.keys(GuildIconPaths)
-    const arc = guilds.map((guild, index) => {
-        const angle = Math.PI * (1.1 + (0.8 * index) / (guilds.length - 1))
-        return medallion(guild, Width / 2 + 215 * Math.cos(angle), 300 + 215 * Math.sin(angle), 34)
-    })
-    const pawns = Seats.map((fill, index) => pawn(fill, 66 + index * 90, 382, 1.65))
-    return `
-        <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="${token('sky-dusk')}" />
-            <stop offset="0.6" stop-color="${token('surface-raised')}" />
-            <stop offset="1" stop-color="${token('sky-dawn')}" />
-        </linearGradient></defs>
-        <rect width="${Width}" height="${Height}" fill="url(#sky)" />
-        <path d="M0 400 C120 300 420 300 ${Width} 400 L${Width} ${Height} L0 ${Height} Z" fill="${token('terrain-forest')}" />
-        <g transform="translate(${Width / 2 - 125} 145) scale(2.5)">
-            <path d="${KeepPath}" fill="${token('terrain-line')}" />
-        </g>
-        <path d="M${Width / 2 - 2} 90 L${Width / 2 + 2} 90 L${Width / 2 + 2} 225 L${Width / 2 - 2} 225 Z" fill="${token('terrain-line')}" />
-        <path d="${CrownPath}" transform="translate(${Width / 2 - 30} 44) scale(2.5)" fill="${token('accent')}" stroke="${token('map-ink')}" stroke-width="0.5" />
-        ${arc.join('')}
-        ${pawns.join('')}`
 }
 
 const ImageTypes = { '.png': 'image/png', '.webp': 'image/webp' }
@@ -137,20 +87,17 @@ async function sizeOf(href) {
     }, href)
 }
 
-let scene = { kind: 'drawn', markup: drawnScene() }
-if (art) {
-    const href = artHref(art)
-    scene = values.titled
-        ? {
-              kind: 'art',
-              href,
-              titled: true,
-              size: await sizeOf(href),
-              title: basename(art, extname(art)) === 'box-front' ? BoxFrontTitle : undefined
-          }
-        : { kind: 'art', href, titled: false }
-    console.log(`from ${art}`)
-}
+const href = artHref(art)
+const scene = values.titled
+    ? {
+          kind: 'art',
+          href,
+          titled: true,
+          size: await sizeOf(href),
+          title: basename(art, extname(art)) === 'box-front' ? BoxFrontTitle : undefined
+      }
+    : { kind: 'art', href, titled: false }
+console.log(`from ${art}`)
 
 const page = `<!doctype html><html><head><style>
     ${fontFace('MedievalSharp', 'MedievalSharp.ttf')}
