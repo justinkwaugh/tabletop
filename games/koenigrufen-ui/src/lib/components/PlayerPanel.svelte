@@ -143,9 +143,16 @@
         opacity: 0.6;
     }
 
-    .value {
-        font-size: 1.5rem;
+    /* Scores are written in by hand, as on a paper score sheet. */
+    .value,
+    .recent {
+        font-family: 'Koenigrufen Pen', 'Segoe Print', cursive;
         font-weight: 700;
+    }
+
+    .value {
+        font-size: 1.7rem;
+        line-height: 1;
     }
 
     .recent {
@@ -153,7 +160,8 @@
         margin: 0;
         padding: 0;
         list-style: none;
-        font-size: 0.8rem;
+        font-size: 1.1rem;
+        line-height: 1.1;
     }
 
     .recent li {
@@ -163,8 +171,9 @@
         text-align: right;
     }
 
+    /* The pen has one weight, so the latest hand stands out by size. */
     .recent li:last-child {
-        font-weight: 700;
+        font-size: 1.2em;
     }
 
     .up {
