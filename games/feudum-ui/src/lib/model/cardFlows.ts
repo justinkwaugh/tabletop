@@ -7,6 +7,7 @@ import {
     Explore,
     exploreOffer,
     goodsShort,
+    GuildById,
     harvestOffers,
     Harvest,
     Improve,
@@ -276,7 +277,7 @@ export function pawnPlace({
     readonly spaceId: SpaceId
     readonly vessel?: VesselType
 }): string {
-    const place = `${titled(character)} at ${spaceLabel(spaceId)}`
+    const place = `${GuildById[character].name} at ${spaceLabel(spaceId)}`
     return vessel ? `${place}, on ${VesselNames[vessel]}` : place
 }
 

@@ -1,6 +1,5 @@
 <script lang="ts">
     import { seatOrder } from '$lib/model/seatPanel.js'
-    import { seatPaint } from '$lib/model/seatPaint.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     /**
@@ -19,7 +18,7 @@
             return {
                 playerId,
                 name,
-                paint: seatPaint(gameSession.colors, playerId, name),
+                paint: gameSession.paintOf(playerId),
                 score: view.ribbon.score,
                 deciding: view.ribbon.deciding,
                 cards: view.cards.handCount,
