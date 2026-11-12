@@ -9,7 +9,7 @@ import GoodToken from './pieces/GoodToken.svelte'
 import PawnPiece from './pieces/PawnPiece.svelte'
 import SeatToken from './pieces/SeatToken.svelte'
 import TokenText from './pieces/TokenText.svelte'
-import { GuildIconPaths } from '$lib/utils/pieceShapes.js'
+import { GuildIconPaths, PawnCube } from '$lib/utils/pieceShapes.js'
 
 vi.mock('$lib/art/suppliedFiles.js', () => ({ suppliedFiles: {} }))
 vi.mock('$lib/art/cover.js', () => ({ suppliedCover: undefined }))
@@ -55,28 +55,45 @@ describe('with the asset folder empty', () => {
 })
 
 describe('pawns (R-4.5.1)', () => {
-    it('a pawn is its wooden cube in the seat paint, seen from a little above', () => {
+    it('a pawn is its wooden cube in the seat paint, seen in three-quarter view', () => {
         const pawn = render(PawnPiece, { props: { paint, character: 'knight' } }).body
         expect(pawn).toContain('data-pawn-cube')
-        expect(pawn).toMatch(/data-cube-top[^>]*fill="#336699"|fill="#336699"[^>]*data-cube-top/)
-        expect(pawn).toMatch(/data-cube-side[^>]*fill="#336699"|fill="#336699"[^>]*data-cube-side/)
+        for (const face of ['data-cube-front', 'data-cube-top', 'data-cube-side']) {
+            expect(pawn).toMatch(
+                new RegExp(`${face}[^>]*fill="#336699"|fill="#336699"[^>]*${face}`)
+            )
+        }
         expect(pawn).toContain('aria-label="Ana\'s knight pawn"')
         expect(pawn).toContain("<title>Ana's knight pawn</title>")
     })
 
-    it('its character is printed on the top face, pale with a dark outline, and no initial', () => {
+    it('the front face stands square-on, the top and the right side going back from it', () => {
+        const { front, top, side } = PawnCube
+        expect(top).toContain(`M${front.x} ${front.y} `)
+        expect(top).toContain(`L${front.x + front.width} ${front.y} `)
+        expect(side).toContain(`M${front.x + front.width} ${front.y} `)
+        expect(side).toContain(`L${front.x + front.width} ${front.y + front.height} `)
+    })
+
+    it('its character is printed on the front face, pale with a dark outline, and no initial', () => {
         const pawn = render(PawnPiece, { props: { paint, character: 'knight' } }).body
         const face = /<path[^>]*data-cube-face[^>]*>/.exec(pawn)?.[0] ?? ''
         expect(face).toContain(`d="${GuildIconPaths.knight}"`)
         expect(face).toContain('fill="var(--feudum-parchment)"')
         expect(face).toContain('stroke="var(--feudum-ink)"')
+        const { front, face: icon } = PawnCube
+        expect(icon.x).toBeGreaterThanOrEqual(front.x)
+        expect(icon.y).toBeGreaterThanOrEqual(front.y)
+        expect(icon.x + icon.size).toBeLessThanOrEqual(front.x + front.width)
+        expect(icon.y + icon.size).toBeLessThanOrEqual(front.y + front.height)
+        expect(face).toContain(`translate(${icon.x} ${icon.y})`)
         expect(pawn).not.toContain('>A<')
         expect(pawn).not.toContain('<text')
     })
 
-    it('a pawn in supply has no character yet, so its top face is bare (R-3.6)', () => {
+    it('a pawn in supply has no character yet, so its front face is bare (R-3.6)', () => {
         const pawn = render(PawnPiece, { props: { paint } }).body
-        expect(pawn).toContain('data-cube-top')
+        expect(pawn).toContain('data-cube-front')
         expect(pawn).not.toContain('data-cube-face')
     })
 

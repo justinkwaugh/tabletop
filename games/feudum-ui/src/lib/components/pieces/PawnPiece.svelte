@@ -5,9 +5,9 @@
 
     /**
      * R-4.5.1 A pawn takes a seat colour, so it is always drawn: the wooden cube in the seat's fill
-     * from the session (S71), seen a little from above, with its character printed pale on the top
-     * face with a dark outline, as on the printed cubes. R-4.8.2 A drunk pawn tilts and carries a
-     * sulfur drop. A pawn in supply has no character yet (R-3.6), so its top face is bare.
+     * from the session (S71), seen in three-quarter view, with its character printed pale on the
+     * front face with a dark outline, as on the printed cubes. R-4.8.2 A drunk pawn tilts and carries a
+     * sulfur drop. A pawn in supply has no character yet (R-3.6), so its front face is bare.
      */
     let {
         paint,
@@ -27,7 +27,7 @@
 
     /** Room round the cube for its tilt and its drop. */
     const Margin = 2
-    const { box, side, top, shine, corner, face } = PawnCube
+    const { box, front, top, side, outline, edges, face } = PawnCube
 
     let label = $derived(
         `${paint.owner} ${character ? `${character} ` : ''}pawn${drunk ? ', drunk' : ''}`
@@ -45,19 +45,19 @@
     data-pawn-cube
 >
     <title>{label}</title>
-    <g transform={drunk ? `rotate(9 ${box / 2} ${box})` : undefined}>
-        <rect {...side} rx={corner} fill={paint.fill} data-cube-side></rect>
-        <rect {...side} rx={corner} fill="var(--feudum-halo)" fill-opacity="0.32"></rect>
-        <rect
-            {...top}
-            rx={corner}
-            fill={paint.fill}
+    <g transform={drunk ? `rotate(9 ${box / 2} ${front.y + front.height})` : undefined}>
+        <path d={top} fill={paint.fill} data-cube-top></path>
+        <path d={top} fill="var(--feudum-text)" fill-opacity="0.2"></path>
+        <path d={side} fill={paint.fill} data-cube-side></path>
+        <path d={side} fill="var(--feudum-halo)" fill-opacity="0.36"></path>
+        <rect {...front} fill={paint.fill} data-cube-front></rect>
+        <path
+            d="{outline} {edges}"
+            fill="none"
             stroke={paint.edge}
             stroke-width="1"
-            data-cube-top
-        ></rect>
-        <rect {...shine} rx="2" fill="var(--feudum-text)" fill-opacity="0.18"></rect>
-        <rect {...side} rx={corner} fill="none" stroke={paint.edge} stroke-width="1"></rect>
+            stroke-linejoin="round"
+        ></path>
         {#if character}
             <path
                 d={GuildIconPaths[character]}
@@ -75,7 +75,7 @@
     {#if drunk}
         <path
             d={DropPath}
-            transform="translate(23 -2) scale(0.42)"
+            transform="translate(27 -3) scale(0.5)"
             fill="var(--feudum-good-sulfur)"
             stroke="var(--feudum-map-ink)"
             stroke-width="1.5"
