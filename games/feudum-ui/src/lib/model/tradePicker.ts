@@ -1,8 +1,10 @@
 import {
+    Goods,
     GuildById,
     knightTradeOffer,
     MerchantTradeGoods,
     nobleTradeOffer,
+    VesselTypes,
     type Good,
     type GuildId,
     type HydratedFeudumGameState,
@@ -82,6 +84,16 @@ function idOf(item: BenchItem): string {
     return item.id.slice(item.id.indexOf(':') + 1)
 }
 
+/** The good a bench id names after its `good:` prefix, if it names one. */
+function goodOf(id: string): Good | undefined {
+    return Goods.find((good) => `good:${good}` === id)
+}
+
+/** The vessel a bench id names after its `vessel:` prefix, if it names one. */
+function vesselOf(id: string): VesselType | undefined {
+    return VesselTypes.find((vessel) => `vessel:${vessel}` === id)
+}
+
 /** The press a card takes, named for the card, with no rose note: the card says the price. */
 function pressOf(item: BenchItem, label: string, shown?: string): BenchChoice | undefined {
     if (!item.press && item.refusal === undefined) {
@@ -102,8 +114,8 @@ function buy(item: BenchItem, gain: string): BenchChoice | undefined {
 
 function alchemistCards(bench: BenchOffer): readonly TradeCard[] {
     return bench.items.flatMap((item): TradeCard[] => {
-        const vessel = idOf(item) as VesselType
-        if (!item.id.startsWith('vessel:') || !(vessel in VesselWords)) {
+        const vessel = vesselOf(item.id)
+        if (!vessel) {
             return []
         }
         const gain = item.label.toLowerCase()
@@ -161,10 +173,10 @@ function boughtOf(bench: BenchOffer, item: BenchItem): number {
 
 function merchantCards(bench: BenchOffer): readonly TradeCard[] {
     return bench.items.flatMap((item): TradeCard[] => {
-        if (!item.id.startsWith('good:')) {
+        const good = goodOf(item.id)
+        if (!good) {
             return []
         }
-        const good = idOf(item) as Good
         const bought = boughtOf(bench, item)
         const label = costToGain(item.label, item.price, good)
         const press = pressOf(item, label)
@@ -234,8 +246,9 @@ function monkCards(bench: BenchOffer): readonly TradeCard[] {
 
 function basketOf(bench: BenchOffer, most: number): TradeBasket {
     const picks = bench.ghosts.flatMap((ghost): GhostPiece[] => {
-        if (ghost.item.startsWith('good:')) {
-            return [{ kind: 'good', good: ghost.item.slice('good:'.length) as Good }]
+        const good = goodOf(ghost.item)
+        if (good) {
+            return [{ kind: 'good', good }]
         }
         return ghost.item.startsWith('scroll:') ? [{ kind: 'seal' }] : []
     })
