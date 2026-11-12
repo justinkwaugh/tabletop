@@ -129,6 +129,10 @@ scenario('S53 R-4.10.1 Nourish, every pawn fed', 'nourish-fed', async (table) =>
     await expect(table.panel().locator('[data-nourish-pawn][data-unfed]')).toHaveCount(0)
     await expect(table.primary()).toHaveAccessibleName('Feed 3 pawns · 3 food')
     expect(Object.values(await table.litChips())).toEqual(['1 food', '1 food', '1 food'])
+    // The order row's status is read out at every width, the phone's dots too.
+    expect(await table.panel().locator('[data-order-seat="Ana"]').ariaSnapshot()).toMatch(
+        /Ana.*next/s
+    )
     if (table.phone) {
         // Contract, Phone layout: compact rows within the width, the order row as dots, the send as art.
         const width = table.page.viewportSize()?.width ?? 0
