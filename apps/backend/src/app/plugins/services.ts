@@ -122,6 +122,7 @@ const SITE_MANIFEST_PATH =
 const useAbly = !!process.env['ABLY_API_KEY']
 const useRealtimeRelay = !!process.env['REALTIME_SIGNING_KEY']
 const BUG_REPORT_CHANNEL_ID = process.env['DISCORD_BUG_REPORT_CHANNEL_ID']
+const BUG_REPORT_DATA_CHANNEL_ID = process.env['DISCORD_BUG_REPORT_DATA_CHANNEL_ID']
 const MODERATION_EMAIL = process.env['MODERATION_EMAIL']
 const useCharityTally = !!process.env['TILTIFY_CLIENT_ID']
 
@@ -369,9 +370,10 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
     )
     fastify.decorate(
         'bugReportService',
-        discordBotApi && BUG_REPORT_CHANNEL_ID
+        discordBotApi && BUG_REPORT_CHANNEL_ID && BUG_REPORT_DATA_CHANNEL_ID
             ? new BugReportService(gameService, userService, discordBotApi, {
                   forumChannelId: BUG_REPORT_CHANNEL_ID,
+                  dataChannelId: BUG_REPORT_DATA_CHANNEL_ID,
                   frontendHost: process.env['FRONTEND_HOST'] ?? ''
               })
             : undefined

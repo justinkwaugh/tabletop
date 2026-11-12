@@ -113,20 +113,57 @@ export function newestFirst(a, b) {
     return BigInt(a.id) < BigInt(b.id) ? 1 : -1
 }
 
+// The backend's reportIdLine (bugReportPost.ts) ends the public footer and starts the data
+// message with `report <id>`; posts from before the split have neither.
+const REPORT_ID = /report ([\w-]+)/
+
 export function reportFromMessage(message) {
     const embed = message.embeds?.[0]
     if (!embed) return undefined
+    const reportId = embed.footer?.text?.match(REPORT_ID)?.[1]
     return {
         game: embed.title,
         gameUrl: embed.url,
         description: embed.description,
         fields: Object.fromEntries((embed.fields ?? []).map((field) => [field.name, field.value])),
-        reportedAt: embed.timestamp
+        reportedAt: embed.timestamp,
+        ...(reportId ? { reportId } : {})
     }
 }
 
-// The backend's reporterLabel (bugReportPost.ts) writes `name` or `name (<@discordUserId>)`,
-// where name is the username, or the user id for an account without one.
+export function dataReportId(message) {
+    return message.content?.match(REPORT_ID)?.[1]
+}
+
+// Joined, the two halves read like a report from before the split, which is what notices expect.
+export function mergeReport(report, data) {
+    if (!data)
+        return { ...report, game: undefined, fields: { Game: report.game, ...report.fields } }
+    return {
+        ...report,
+        game: data.game,
+        gameUrl: data.gameUrl,
+        fields: { ...report.fields, ...data.fields }
+    }
+}
+
+// Fields of a report from before the split that belong in the data message.
+export const PRIVATE_FIELDS = [
+    'Game',
+    'Actions',
+    'Active players',
+    'Client',
+    'Scenario',
+    'Hotseat',
+    'Investigate'
+]
+
+export function publicViewing(value) {
+    return value?.startsWith('History') ? 'History' : value
+}
+
+// The backend's reporterLabel (bugReportPost.ts) writes `name` or `name (<@discordUserId>)`.
+// Posts from before the split may hold a user id as the name.
 export function reporterFromField(value) {
     const match = value?.match(/^(.*?)(?: \(<@(\d+)>\))?$/)
     if (!match?.[1]) return undefined

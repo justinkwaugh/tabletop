@@ -148,8 +148,9 @@
         {/if}
         <Helper class="flex justify-between gap-4">
             <span>
-                The game, the action you're viewing, and your browser details are included
-                automatically.
+                Your description, screenshots, username and Discord handle (if you've linked one),
+                and the game's title and status, are posted publicly in our Discord forum. A copy of
+                the game and your browser details come to us privately.
             </span>
             <span class="shrink-0">{description.length}/{BUG_REPORT_DESCRIPTION_MAX_LENGTH}</span>
         </Helper>

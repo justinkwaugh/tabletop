@@ -31,7 +31,7 @@ We don't sell your data, show advertising, or use analytics or tracking services
 
 - **Anyone signed in** can find your username by searching, and can see listed public games and their players in the lobby, league and tournament standings, and the moves, results and chat of any game whose link they have.
 - **Anyone with the link** to a public or unlisted game can see its name and its players' usernames without signing in.
-- **Bug reports** go wherever your deployment sends them. The software posts the description, screenshots, username, linked Discord account, browser details and a full copy of the game, including every player's name and account ID and hidden information. Say who can read them.
+- **Bug reports** go wherever your deployment sends them. The software posts the description, screenshots, username and Discord handle to a forum, and the browser details and a full copy of the game, including every player's name and account ID and hidden information, to a separate staff-only channel. Say who can read each.
 - **Reports** go to {{operator}} by email. The person reported is never told who reported them.
 - **{{operator}}**, as administrator, can see account details such as your email address when needed to run the site.
 
