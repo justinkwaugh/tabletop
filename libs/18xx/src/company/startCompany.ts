@@ -10,7 +10,7 @@ import {
     type HydratedGameState
 } from '@tabletop/common'
 import { Owner } from '../finance/finance.js'
-import { applySharePurchase } from '../stock/sharePurchase.js'
+import { applySharePurchase, applyShareTransfer } from '../stock/sharePurchase.js'
 import { recordTurnPurchase } from '../stock/turnPurchases.js'
 import {
     CompanyStartDetails,
@@ -38,6 +38,8 @@ export const StartCompany = Type.Object(
                 { additionalProperties: false }
             )
         ),
+        /** Ordinary certificates the president buys with the start, where the title allows. */
+        additionalCertificateIds: Type.Optional(Type.Array(Type.String(), { uniqueItems: true })),
         metadata: Type.Optional(CompanyStartDetails)
     },
     { additionalProperties: false }
@@ -61,6 +63,7 @@ export class HydratedStartCompany
     declare marketSpaceId: string
     declare expectedPrice: number
     declare home?: StartCompany['home']
+    declare additionalCertificateIds?: string[]
     declare metadata?: CompanyStartDetails
     readonly #stockRules: StockRules
     readonly #companyRules: CompanyRules
@@ -85,6 +88,8 @@ export class HydratedStartCompany
         recordStockAction(state, this.playerId, this.#stockRules.round)
         recordTurnPurchase(state, this.#stockRules, { kind: 'start', companyId: this.companyId })
         applySharePurchase(state, result.details)
+        for (const purchase of result.details.additionalPurchases ?? [])
+            applyShareTransfer(state, purchase)
         const { home, homeClaim } = result.details
         if (home) {
             if (homeClaim) claimStartHome(state, home, homeClaim)

@@ -12,6 +12,11 @@ export interface CompanyResetTerms {
     poolId?: string
     /** Whether the home station stays, unplaced, for the restart; it does unless false. */
     keepsHome?: boolean
+    /**
+     * Every station returns unplaced, even ones lost from the map, as a closed 1849 corporation
+     * regains a station the Messina earthquake destroyed (§11).
+     */
+    keepsAllStations?: true
 }
 
 /**
@@ -63,7 +68,7 @@ export function resetCompany(
     const keepsHome = terms.keepsHome ?? true
     state.stations = state.stations.map((station): Station => {
         if (station.companyId !== companyId) return station
-        return keepsHome && station.id === homeStationId(companyId)
+        return terms.keepsAllStations || (keepsHome && station.id === homeStationId(companyId))
             ? { id: station.id, companyId, status: 'available' }
             : { id: station.id, companyId, status: 'removed' }
     })

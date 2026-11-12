@@ -23,6 +23,7 @@ import { inReceivership, type ReceivershipRules } from '../finance/receivership.
 import {
     Bankruptcy,
     EmergencyTrainFunding,
+    insolvencyChoices,
     type FundingState,
     type TrainFundingRules
 } from './trainFunding.js'
@@ -31,6 +32,7 @@ export type DeclareBankruptcySchema<Changes extends Type.TSchema = NoTitleChange
     Omit<typeof GameAction.properties, 'type'> & {
         type: Type.TLiteral<'DeclareBankruptcy'>
         instructedRuns: Type.TOptional<typeof InstructedRunAttachments>
+        choice: Type.TOptional<Type.TString>
         metadata: Type.TOptional<
             Type.TObject<
                 typeof Bankruptcy.properties & {
@@ -56,6 +58,8 @@ export function declareBankruptcySchema<Changes extends Type.TSchema>(
             type: Type.Literal('DeclareBankruptcy'),
             // The president declares it, or the System does when no choice remains.
             instructedRuns: Type.Optional(InstructedRunAttachments),
+            /** The president's choice as their company fails, where the title offers one. */
+            choice: Type.Optional(Type.String()),
             metadata: Type.Optional(
                 Type.Object(
                     {
@@ -101,6 +105,7 @@ export class HydratedDeclareBankruptcy
     implements DeclareBankruptcy
 {
     declare type: 'DeclareBankruptcy'
+    declare choice?: string
     declare metadata?: DeclareBankruptcy['metadata']
     readonly #rules: TrainFundingRules
     readonly #stocks: StockRules
@@ -128,12 +133,17 @@ export class HydratedDeclareBankruptcy
     isValid(state: FundingState): boolean {
         const funding = new EmergencyTrainFunding(state, this.#rules, this.#stocks, this.#trains)
         if (state.machineState !== 'FundingTrain' || !state.trainFunding) return false
+        const next = funding.next()
+        const choices = insolvencyChoices(state, this.#rules, next)
+        const byPresident =
+            this.source === ActionSource.User &&
+            this.playerId !== undefined &&
+            funding.canAct(this.playerId)
         return (
-            (this.source === ActionSource.System ||
-                (this.source === ActionSource.User &&
-                    this.playerId !== undefined &&
-                    funding.canAct(this.playerId))) &&
-            funding.next().kind === 'bankrupt'
+            next.kind === 'bankrupt' &&
+            (choices.length
+                ? byPresident && this.choice !== undefined && choices.includes(this.choice)
+                : this.choice === undefined && (this.source === ActionSource.System || byPresident))
         )
     }
     apply(state: HydratedGameState & FundingState & OperatingTurnState): void {
@@ -149,7 +159,22 @@ export class HydratedDeclareBankruptcy
             playerId: state.trainFunding.playerId,
             shortfall: next.shortfall
         }
-        const { elimination } = this.#rules
+        const { elimination, insolvency } = this.#rules
+        if (insolvency) {
+            const companyId = bankruptcy.companyId
+            const changes = insolvency.fail(state, bankruptcy, this.choice)
+            delete state.trainFunding
+            state.activePlayerIds = []
+            abandonOperatingTurn(state, companyId)
+            const ended = operatingRoundEnd(state, this.#valuationRules)
+            this.metadata = {
+                ...bankruptcy,
+                changes,
+                continuation: BetweenCompaniesState,
+                ...(ended ? { roundEnd: ended } : {})
+            }
+            return
+        }
         if (!elimination) {
             state.bankruptcy = bankruptcy
             this.metadata = bankruptcy

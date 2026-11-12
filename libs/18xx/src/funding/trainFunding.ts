@@ -25,6 +25,7 @@ import { SaleBlockTerms } from '../stock/stockTurn.js'
 import type { RepeatSales, StockRules, ShareSaleTerms } from '../stock/stockRules.js'
 import type { CompanyDecisionState } from '../privates/companyDecision.js'
 import type { EliminationRules } from './elimination.js'
+import type { OperatingState } from '../operating/operatingSet.js'
 
 export const TrainFunding = Type.Object(
     {
@@ -87,6 +88,11 @@ export interface TrainFundingRules {
     permitsSale?(state: FundingState, details: ShareSaleDetails): boolean
     /** How a player whose funding is exhausted leaves the game; without it, bankruptcy ends it. */
     elimination?: EliminationRules
+    /**
+     * How a company whose funding is exhausted fails while its president plays on, as 1849's
+     * corporation closes (§10.7); it takes the place of bankruptcy and elimination.
+     */
+    insolvency?: InsolvencyRules
     saleTerms(
         state: FundingState,
         companyId: string,
@@ -102,6 +108,42 @@ export interface TrainFundingRules {
      */
     voluntaryFunding?(state: FundingState, companyId: string): boolean
 }
+/**
+ * A failing company's end, recorded in the bankruptcy Action under the title's own schema. The
+ * company's turn then ends. Where the title offers its president choices, such as 1849's bank
+ * loan or leaving the game, the president makes one in declaring the failure.
+ */
+export interface InsolvencyRules<Changes extends Type.TObject = Type.TObject> {
+    schema: Changes
+    choices(state: FundingState, bankruptcy: Bankruptcy): readonly string[]
+    fail(
+        state: FundingState & OperatingState,
+        bankruptcy: Bankruptcy,
+        choice: string | undefined
+    ): Type.Static<Changes>
+}
+
+/** The bankruptcy an exhausted funding would declare. */
+export function fundingBankruptcy(state: FundingState, shortfall: number): Bankruptcy {
+    assertExists(state.trainFunding, 'Bankruptcy requires active train funding')
+    return {
+        companyId: state.trainFunding.purchase.companyId,
+        playerId: state.trainFunding.playerId,
+        shortfall
+    }
+}
+
+/** The choices the president of an insolvent company has, if the funding is exhausted. */
+export function insolvencyChoices(
+    state: FundingState,
+    rules: TrainFundingRules,
+    choice: FundingChoice
+): readonly string[] {
+    return choice.kind === 'bankrupt' && rules.insolvency
+        ? rules.insolvency.choices(state, fundingBankruptcy(state, choice.shortfall))
+        : []
+}
+
 export type FundingChoice =
     | { kind: 'issue'; details: ShareSaleDetails }
     | { kind: 'contribute'; owner: Owner; amount: number }

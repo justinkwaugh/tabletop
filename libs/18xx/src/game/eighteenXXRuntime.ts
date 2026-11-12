@@ -218,8 +218,9 @@ export function createEighteenXXRuntime<
                   }
               }
             : handler
-    const allowsCorporateFinance = (handler: Handler): Handler =>
-        corporateFinanceRules
+    const financeTiming = corporateFinanceRules?.timing ?? 'before-running'
+    const allowsCorporateFinance = (handler: Handler, timing = 'before-running'): Handler =>
+        corporateFinanceRules && financeTiming === timing
             ? new CorporateFinanceHandler(handler, corporateFinanceRules)
             : handler
     const endsFinanceStep = (handler: Handler): Handler =>
@@ -239,7 +240,7 @@ export function createEighteenXXRuntime<
     const constructionActions = [
         ...(options.additionalConstructionActions ?? []),
         ...(options.stationsWithTrack ? ['PlaceStation'] : []),
-        ...(corporateFinanceRules ? ['CorporateFinance'] : [])
+        ...(corporateFinanceRules && financeTiming === 'before-running' ? ['CorporateFinance'] : [])
     ]
     const operatesReceivership = (step: OperatingStepState, handler: Handler): Handler =>
         receivershipRules
@@ -510,17 +511,20 @@ export function createEighteenXXRuntime<
                         'BuyingTrains',
                         decides(
                             'BuyingTrains',
-                            trainFundingRules
-                                ? new BuyingTrainsHandler(
-                                      options.trainRules,
-                                      trainFundingRules,
-                                      rules,
-                                      after('BuyingTrains')
-                                  )
-                                : new OrdinaryBuyingTrainsHandler(
-                                      options.trainRules,
-                                      after('BuyingTrains')
-                                  )
+                            allowsCorporateFinance(
+                                trainFundingRules
+                                    ? new BuyingTrainsHandler(
+                                          options.trainRules,
+                                          trainFundingRules,
+                                          rules,
+                                          after('BuyingTrains')
+                                      )
+                                    : new OrdinaryBuyingTrainsHandler(
+                                          options.trainRules,
+                                          after('BuyingTrains')
+                                      ),
+                                'after-trains'
+                            )
                         )
                     )
                 )
