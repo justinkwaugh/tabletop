@@ -31,7 +31,8 @@ export const TitleRules1849: EighteenXXTitleRules<typeof State1849, HydratedStat
     auctionRules: AuctionRules1849,
     createOpening: createOpening1849,
     startingCash: startingCash1849,
-    currencySymbol: 'L.',
+    // A no-break space keeps the lira sign on the line of its amount, as the rulebook writes it.
+    currencySymbol: 'L.\u00a0',
     stockRules: StockRules1849,
     companyRules: CompanyRules1849,
     operatingRules: OperatingRules1849,

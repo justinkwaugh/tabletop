@@ -77,6 +77,6 @@ export const MapView1849: MapViewDefinition = {
     revenueStageCaptions: { low: '4', middle: '8', high: '12' },
     locationMarkerNames: {
         'blocks-SCE': 'No track while a player owns the Società Corriere Etnee',
-        [PortMarkerKind]: `+${TitleRules1849.currencySymbol} ${PortBonus1849} port token`
+        [PortMarkerKind]: `+${TitleRules1849.currencySymbol}${PortBonus1849} port token`
     }
 }

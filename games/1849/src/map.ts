@@ -114,7 +114,7 @@ const locations = createLetterNumberLocationFactory({
     markers: Markers
 })
 
-// Rough L.40, hills L.80 and mountains L.160 (§10.3.1).
+// Rough L. 40, hills L. 80 and mountains L. 160 (§10.3.1).
 const TerrainKinds = { 40: 'rough', 80: 'hill', 160: 'mountain' } as const
 const terrain = (cost: keyof typeof TerrainKinds) => ({
     terrain: { cost, kinds: [TerrainKinds[cost]] }
