@@ -41,6 +41,8 @@ export const MapView1849: MapViewDefinition = {
         depot: { x: 1850, y: 470, width: 340, height: 160 }
     },
     stations: Stations,
+    // Rough, hills and mountains (L. 40, 80 and 160) as one, two and three peaks (§10.3.1).
+    terrainIcons: { rough: 'peak', hill: 'mountain', mountain: 'range' },
     layouts: { ...TileLayouts1849, ...PortLayouts },
     revenueStageColors: {
         low: [TrainColors1849['4H'], TrainColors1849['6H']],

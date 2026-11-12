@@ -1,7 +1,7 @@
 import type { StationAppearance } from './stationPresentation.js'
 import { svgDataUrl } from '../presentation/svgDataUrl.js'
 
-export type TerrainIconName = 'mountain' | 'hill' | 'rough'
+export type TerrainIconName = 'peak' | 'mountain' | 'range'
 
 export const MountainIcon = {
     path: 'M0 5 L6 -6 L10 0 L13 -4 L19 5 Z',
@@ -9,33 +9,38 @@ export const MountainIcon = {
     viewBox: '0 -6 19 11'
 }
 
-/** Rounded hills, lower than a mountain, as 1849's hill hexes print (§10.3.1). */
-export const HillIcon = {
-    path: 'M0 5 C1.5 -2 6 -4 9 -0.5 C11.5 -3.5 16.5 -2.5 19 5 Z',
-    fill: '#a8794a',
-    viewBox: '0 -6 19 11'
+/** A single peak, for the least of a title's mountain terrain. */
+export const PeakIcon = {
+    path: 'M3 5 L9.5 -5 L16 5 Z',
+    fill: MountainIcon.fill,
+    viewBox: MountainIcon.viewBox
 }
 
-/** Scattered rocks for rough ground, as 1849's rough hexes print (§10.3.1). */
-export const RoughIcon = {
-    path: 'M0.5 5 L3.5 0.5 L6.5 5 Z M6.5 5 L10 -2 L13.5 5 Z M13 5 L15.8 1.5 L18.5 5 Z',
-    fill: '#8f8160',
-    viewBox: '0 -6 19 11'
+/** Three peaks, the middle highest, for the greatest of a title's mountain terrain. */
+export const RangeIcon = {
+    path: 'M0 5 L4 -2 L6.5 1.5 L9.5 -6 L12.5 1.5 L15 -2 L19 5 Z',
+    fill: MountainIcon.fill,
+    viewBox: MountainIcon.viewBox
 }
 
 const TerrainIcons: Readonly<Record<TerrainIconName, typeof MountainIcon>> = {
+    peak: PeakIcon,
     mountain: MountainIcon,
-    hill: HillIcon,
-    rough: RoughIcon
+    range: RangeIcon
 }
 
-const TerrainIconsByKind: ReadonlyMap<string, typeof MountainIcon> = new Map(
-    Object.entries(TerrainIcons)
-)
+/** The icons terrain kinds draw where a map view names none: a mountain's two peaks. */
+export const DefaultTerrainIcons: Readonly<Record<string, TerrainIconName>> = {
+    mountain: 'mountain'
+}
 
-/** The icon drawn for a terrain kind, where the family has one. */
-export function terrainIcon(kind: string): typeof MountainIcon | undefined {
-    return TerrainIconsByKind.get(kind)
+/** The icon drawn for a terrain kind under the view's choice of icons, if it has one. */
+export function terrainIcon(
+    kind: string,
+    icons: Readonly<Record<string, TerrainIconName>>
+): typeof MountainIcon | undefined {
+    const name = new Map(Object.entries(icons)).get(kind)
+    return name ? TerrainIcons[name] : undefined
 }
 
 export function terrainIconAppearance(icon: TerrainIconName): StationAppearance {

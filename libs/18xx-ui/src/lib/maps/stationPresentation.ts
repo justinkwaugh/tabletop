@@ -1,3 +1,4 @@
+import type { TerrainIconName } from './terrainIcons.js'
 import type { MapBonusArrow } from './bonusArrows.js'
 import { assertExists, type BoundingBox, type HexOrientation, type Point } from '@tabletop/common'
 import type { StationState, RailwayMap, TileEdge, TileFace, TileSet } from '@tabletop/18xx'
@@ -82,6 +83,11 @@ export type MapViewDefinition = {
     revenueStack?: 'column' | 'row'
     /** Printed before terrain costs, such as ¥. */
     terrainCostPrefix?: string
+    /**
+     * The icon each terrain kind draws, as 1849 draws its three mountain sizes with one, two and
+     * three peaks; a mountain draws two peaks unless given.
+     */
+    terrainIcons?: Readonly<Record<string, TerrainIconName>>
     /** Baseline of a location's name, by location id; names otherwise print across the top. */
     namePositions?: Readonly<Record<string, Point>>
     /**

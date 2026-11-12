@@ -1,3 +1,4 @@
+import { DefaultTerrainIcons, type TerrainIconName } from './terrainIcons.js'
 import { bonusArrowBounds, drawBonusArrow, type DrawnBonusArrow } from './bonusArrows.js'
 import type {
     MapViewDefinition,
@@ -336,6 +337,8 @@ export type MapDrawing = {
     bounds: BoundingBox
     /** Printed before terrain costs, such as ¥. */
     terrainCostPrefix: string
+    /** The icon each terrain kind draws. */
+    terrainIcons: Readonly<Record<string, TerrainIconName>>
     /** Hexside border widths by kind, where the view sets one. */
     borderWidths: Readonly<Record<string, number>>
     printedReservations: NonNullable<MapViewDefinition['printedReservations']>
@@ -415,6 +418,7 @@ export function createMapDrawing(
         revenueStageCaptionColors,
         revenueStack,
         terrainCostPrefix = '',
+        terrainIcons = DefaultTerrainIcons,
         borderWidths = {},
         printedReservations = [],
         sharedStations = {},
@@ -447,6 +451,7 @@ export function createMapDrawing(
         | 'revenueStageCaptionColors'
         | 'revenueStack'
         | 'terrainCostPrefix'
+        | 'terrainIcons'
         | 'borderWidths'
         | 'printedReservations'
         | 'sharedStations'
@@ -798,6 +803,7 @@ export function createMapDrawing(
         locations,
         bonusArrows: drawnArrows,
         terrainCostPrefix,
+        terrainIcons,
         borderWidths,
         printedReservations,
         sharedStations,
