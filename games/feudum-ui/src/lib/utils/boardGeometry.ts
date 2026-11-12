@@ -60,8 +60,6 @@ export interface Point {
 
 export const BoardWidth = 2500
 export const BoardHeight = 953
-/** The deck, haversack and supply counts, below the board. */
-export const MarginHeight = 150
 
 /** The map in the board's centre, the sky and the strip of stacks and barrels included. */
 export const MapArea = { x: 452, y: 60, width: 1598, height: 833 } as const
@@ -1079,19 +1077,10 @@ export function barrelCentre(colour: Color): Point {
     return centre
 }
 
-/** The margin below the board: left to right along it, in board units. */
-export const MarginTop = BoardHeight
-export const MarginSlots = {
-    deck: { x: 90, y: 1028 },
-    haversack: { x: 690, y: 1028 },
-    seals: { x: 1120, y: 1028 },
-    vessels: { x: 1270, y: 1028 },
-    targets: { x: 1520, y: 1028 },
-    discs: { x: 1640, y: 1028 },
-    influence: { x: 1780, y: 1028 },
-    startPlayer: { x: 2340, y: 1028 }
-} as const
-export const MarginToken = 34
-export const HaversackStep = 70
-export const VesselCountStep = 72
-export const InfluenceStep = 90
+/**
+ * Contract, Supply: the general supply has no place on the board; it opens as a card from the Supply
+ * button over the board's lower-left corner. A piece that leaves or reaches the supply (the writ
+ * deck, the seal pile, the haversack) flies from or to this corner, inside the board.
+ */
+export const SupplyCorner: Point = { x: 60, y: BoardHeight - 60 }
+export const SupplyToken = 34

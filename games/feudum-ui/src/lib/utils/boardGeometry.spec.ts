@@ -37,6 +37,7 @@ import {
     BarrelCentres,
     BarrelSulfur,
     BoardHeight,
+    SupplyCorner,
     BoardWidth,
     CartCell,
     CofferBox,
@@ -52,13 +53,9 @@ import {
     GuildSizes,
     GuildSlots,
     GoodsShownSingly,
-    HaversackStep,
     InventionCell,
     KnightCell,
     KnightSectionHeaderY,
-    MarginHeight,
-    MarginSlots,
-    MarginTop,
     MarketCell,
     MonsterBox,
     PrintedColours,
@@ -74,7 +71,6 @@ import {
     TileChart,
     TileChartRows,
     TrackDiscSize,
-    VesselCountStep,
     VesselSpaceBox,
     VoyageSpaces,
     barnColumn,
@@ -551,23 +547,11 @@ describe('The tracks and margin: every space has a place (S72)', () => {
         }
     })
 
-    it('R-1.4.2 keeps the margin slots in the margin band, left to right', () => {
-        const slots = Object.values(MarginSlots)
-        slots.forEach((slot, index) => {
-            expect(slot.y).toBeGreaterThan(MarginTop)
-            expect(slot.y).toBeLessThan(MarginTop + MarginHeight)
-            expect(slot.x).toBeGreaterThan(0)
-            expect(slot.x).toBeLessThan(BoardWidth)
-            if (index > 0) {
-                expect(slot.x).toBeGreaterThan(slots[index - 1].x)
-            }
-        })
-        expect(MarginSlots.haversack.x + HaversackStep * (Goods.length - 1)).toBeLessThan(
-            MarginSlots.seals.x
-        )
-        expect(MarginSlots.vessels.x + VesselCountStep * (VesselTypes.length - 1)).toBeLessThan(
-            MarginSlots.targets.x
-        )
+    it("Contract, Supply: the general supply's flights end at the board's lower-left corner, inside the board", () => {
+        expect(SupplyCorner.x).toBeGreaterThan(0)
+        expect(SupplyCorner.x).toBeLessThan(BoardWidth / 10)
+        expect(SupplyCorner.y).toBeLessThan(BoardHeight)
+        expect(SupplyCorner.y).toBeGreaterThan(BoardHeight * 0.9)
     })
 })
 

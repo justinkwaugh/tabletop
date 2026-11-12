@@ -125,6 +125,55 @@ test.describe('a 1440 px desk', () => {
         await expect(key).toHaveCount(0)
     })
 
+    test('Contract, Supply: no strip under the board; a Supply button beside the Key opens the general supply', async ({
+        page
+    }) => {
+        await openFixture(page, 'cards-tile-gone-epoch-1')
+        await expect(page.locator('[data-margin-layer], [data-layer="margin"]')).toHaveCount(0)
+
+        // The board is its own height: the frame reaches the surface's foot and fills the view one way.
+        const surface = await rect(page.locator('[data-board-surface]'))
+        const frame = await rect(page.locator('[data-board-surface] > svg').first())
+        const view = await rect(page.locator('[data-board-view]'))
+        expect(Math.abs(frame.y + frame.height - (surface.y + surface.height))).toBeLessThan(1)
+        expect(Math.max(frame.width / view.width, frame.height / view.height)).toBeGreaterThan(0.97)
+
+        const key = await rect(page.locator('[data-symbol-key-toggle]'))
+        const toggle = page.getByRole('button', { name: 'Supply' })
+        const box = await rect(toggle)
+        expect(box.x).toBeGreaterThanOrEqual(key.x + key.width)
+        expect(Math.abs(box.y + box.height - (key.y + key.height))).toBeLessThan(2)
+
+        const card = page.getByRole('group', { name: 'General supply' })
+        await toggle.click()
+        await expect(card).toBeVisible()
+        await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+        for (const name of [
+            'Writ deck',
+            'Haversack',
+            "King's seals",
+            'Vessels',
+            'Influence markers',
+            'Start player'
+        ]) {
+            await expect(card.getByRole('group', { name })).toBeVisible()
+        }
+        await expect(card.locator('[data-general-count="haversack-iron"]')).toHaveText(/^[0-9]+$/)
+        const open = await rect(card)
+        expect(open.y).toBeGreaterThanOrEqual(view.y - 0.5)
+        expect(open.x + open.width).toBeLessThanOrEqual(view.x + view.width + 0.5)
+
+        await page.keyboard.press('Escape')
+        await expect(card).toHaveCount(0)
+        await toggle.click()
+        await card.click()
+        await expect(card).toHaveCount(0)
+        await toggle.click()
+        await page.mouse.click(view.x + view.width - 20, view.y + 20)
+        await expect(card).toHaveCount(0)
+        await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    })
+
     test('R-1.4.8 the starting-goods choice shows all five goods in the panel, in sight', async ({
         page
     }) => {

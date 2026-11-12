@@ -4,12 +4,11 @@
     import BoardMotionLayer from '$lib/components/map/BoardMotionLayer.svelte'
     import MapLayers from '$lib/components/map/MapLayers.svelte'
     import BoardFrame from '$lib/components/tracks/BoardFrame.svelte'
-    import BoardMargin from '$lib/components/tracks/BoardMargin.svelte'
     import TrackLayers from '$lib/components/tracks/TrackLayers.svelte'
     import { colourPaint, seatPaint } from '$lib/model/seatPaint.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { takesTradePicker } from '$lib/model/tradePicker.js'
-    import { BoardHeight, BoardWidth, MarginHeight } from '$lib/utils/boardGeometry.js'
+    import { BoardHeight, BoardWidth } from '$lib/utils/boardGeometry.js'
 
     let gameSession = getGameSession()
     let chrome = $derived(gameSession.boardChrome)
@@ -37,8 +36,8 @@
     use:gameSession.boardAnimator.attach
     pointer-events="none"
     width={BoardWidth}
-    height={BoardHeight + MarginHeight}
-    viewBox="0 0 {BoardWidth} {BoardHeight + MarginHeight}"
+    height={BoardHeight}
+    viewBox="0 0 {BoardWidth} {BoardHeight}"
 >
     <BoardFrame />
     <MapLayers state={gameSession.gameState} {paintOf} {chrome}>
@@ -55,15 +54,7 @@
         <GuildAreas state={gameSession.gameState} {paintOf} {colourPaintOf} {chrome} />
     </g>
     <g data-layer="tracks"><TrackLayers state={gameSession.gameState} {paintOf} {chrome} /></g>
-    <g data-layer="margin">
-        <BoardMargin
-            state={gameSession.gameState}
-            viewerId={gameSession.myPlayerId}
-            {paintOf}
-            {colourPaintOf}
-            {chrome}
-        />
-    </g>
+
     <g data-layer="motion">
         <BoardMotionLayer
             tokens={tokens.filter(({ layer }) => layer === 'over')}

@@ -1,8 +1,9 @@
 // @vitest-environment node
 import { render } from 'svelte/server'
 import { describe, expect, it, vi } from 'vitest'
-import { HydratedFeudumGameState, RoyalWrits } from '@tabletop/feudum'
+import { HydratedFeudumGameState } from '@tabletop/feudum'
 import { atPlayingCards } from '$lib/testing/turnTable.js'
+import { BoardHeight, BoardWidth } from '$lib/utils/boardGeometry.js'
 import Board from './Board.svelte'
 
 const session = vi.hoisted(() => {
@@ -30,7 +31,7 @@ async function boardOf() {
 }
 
 describe("Board stands the layers in the contract's order (R-1.2, S72)", () => {
-    it('R-1.2 draws the map, then the guild areas, the tracks and the margin', async () => {
+    it('R-1.2 draws the map, then the guild areas and the tracks, with no supply strip under them', async () => {
         const { html } = await boardOf()
         const order = [
             'ground',
@@ -40,7 +41,6 @@ describe("Board stands the layers in the contract's order (R-1.2, S72)", () => {
             'pieces',
             'guilds',
             'tracks',
-            'margin',
             'motion'
         ]
         const places = order.map((layer) => html.indexOf(`data-layer="${layer}"`))
@@ -55,12 +55,12 @@ describe("Board stands the layers in the contract's order (R-1.2, S72)", () => {
         expect(html.includes('#405060')).toBe(dummy)
     })
 
-    it('R-4.4.1 passes the viewer to the margin', async () => {
-        const { html: without } = await boardOf()
-        expect(without).not.toContain('data-margin="deck-known"')
-        const { gameState } = await boardOf()
-        const [viewer] = gameState.players
-        viewer.deckKnowledge = [{ slot: 0, writId: RoyalWrits[0].id }]
-        expect(render(Board).body).toContain('data-margin="deck-known"')
+    it('Contract, Supply: the board is its own height, with no strip under it', async () => {
+        const { html } = await boardOf()
+        expect(html).not.toContain('data-layer="margin"')
+        expect(html).not.toContain('data-margin')
+        const surface = html.match(/<svg[^>]*data-board-surface[^>]*>/)?.[0] ?? ''
+        expect(surface).toContain(`height="${BoardHeight}"`)
+        expect(surface).toContain(`viewBox="0 0 ${BoardWidth} ${BoardHeight}"`)
     })
 })

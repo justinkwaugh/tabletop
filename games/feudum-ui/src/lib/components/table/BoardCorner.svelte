@@ -1,35 +1,60 @@
 <script lang="ts">
     import { seatOrder } from '$lib/model/seatPanel.js'
-    import { seatPaint } from '$lib/model/seatPaint.js'
+    import { colourPaint, seatPaint } from '$lib/model/seatPaint.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import SupplyCard from './SupplyCard.svelte'
     import SymbolKeyCard from './SymbolKeyCard.svelte'
 
     /**
-     * Contract, Symbol key: a "Key" button beside the board's zoom controls opens the table's
-     * vocabulary over the board's corner; a second press or Escape closes it. Looking only: it
-     * offers no target and changes no offer.
+     * The board's lower-left corner, beside the zoom controls: two looking-only buttons, each opening
+     * its card over the corner. Neither offers a target or changes an offer; one card is open at a time.
+     *
+     * Contract, Symbol key: "Key" opens the table's vocabulary; a second press or Escape closes it.
+     * Contract, Supply: "Supply" opens the general supply's counts; Escape, or a press anywhere,
+     * on the card or off it, closes it.
      */
     const gameSession = getGameSession()
 
-    let open = $state(false)
+    let open: 'key' | 'supply' | undefined = $state()
+    let supplyToggle: HTMLButtonElement | undefined = $state()
 
     /** The viewer's own colour; a spectator's key borrows the first seat's. */
     let paint = $derived.by(() => {
         const playerId = gameSession.myPlayerId ?? seatOrder(gameSession.gameState)[0] ?? ''
-        return seatPaint(gameSession.colors, playerId, gameSession.getPlayerName(playerId))
+        return paintOf(playerId)
     })
+
+    function paintOf(playerId: string) {
+        return seatPaint(gameSession.colors, playerId, gameSession.getPlayerName(playerId))
+    }
+
+    function toggle(card: 'key' | 'supply') {
+        open = open === card ? undefined : card
+    }
 
     function closeOnEscape(event: KeyboardEvent) {
         if (open && event.key === 'Escape') {
-            open = false
+            open = undefined
         }
+    }
+
+    /** A press off the supply card closes it; its own button toggles it instead. */
+    function closeOnPress(event: PointerEvent) {
+        if (open === 'supply' && !supplyToggle?.contains(event.target as Node)) {
+            open = undefined
+        }
+    }
+
+    function openDeck() {
+        open = undefined
+        gameSession.boardChrome.openStack?.({ kind: 'deck' })
     }
 </script>
 
-<svelte:window onkeydown={closeOnEscape} />
+<svelte:window onkeydown={closeOnEscape} onpointerdown={closeOnPress} />
 
 <div class="layer">
-    {#if open}
+    {#if open === 'key'}
         <!-- The card scrolls by itself: a wheel over it never zooms the board beneath. -->
         <div
             class="card"
@@ -40,26 +65,59 @@
         >
             <SymbolKeyCard {paint} />
         </div>
+    {:else if open === 'supply'}
+        <!-- Looking only: a press on the card closes it, and never pans the board beneath. -->
+        <div
+            class="card"
+            id="feudum-supply"
+            role="presentation"
+            onwheel={(event) => event.stopPropagation()}
+            onpointerdown={(event) => event.stopPropagation()}
+            onclick={() => (open = undefined)}
+        >
+            <SupplyCard
+                state={gameSession.gameState}
+                viewerId={gameSession.myPlayerId}
+                {paintOf}
+                colourPaintOf={(colour) => colourPaint(gameSession.colors, colour)}
+                nameOf={(playerId) => gameSession.getPlayerName(playerId)}
+                {...gameSession.boardChrome.openStack ? { openDeck } : {}}
+            />
+        </div>
     {/if}
-    <button
-        type="button"
-        class="toggle"
-        aria-expanded={open}
-        aria-controls="feudum-symbol-key"
-        aria-label="Symbol key"
-        title="Symbol key"
-        data-symbol-key-toggle
-        onclick={() => (open = !open)}
-    >
-        Key
-    </button>
+    <div class="toggles">
+        <button
+            type="button"
+            class="toggle"
+            aria-expanded={open === 'key'}
+            aria-controls="feudum-symbol-key"
+            aria-label="Symbol key"
+            title="Symbol key"
+            data-symbol-key-toggle
+            onclick={() => toggle('key')}
+        >
+            Key
+        </button>
+        <button
+            type="button"
+            class="toggle"
+            bind:this={supplyToggle}
+            aria-expanded={open === 'supply'}
+            aria-controls="feudum-supply"
+            title="General supply"
+            data-supply-toggle
+            onclick={() => toggle('supply')}
+        >
+            Supply
+        </button>
+    </div>
 </div>
 
 <style>
-    /* Over the board's lower-left corner, the button beside the zoom controls, the card above it. */
+    /* Over the board's lower-left corner, the buttons beside the zoom controls, the card above them. */
     .layer {
         position: absolute;
-        inset: 0.5rem auto 0 0;
+        inset: 0.5rem 0 0 0;
         display: flex;
         flex-direction: column;
         justify-content: flex-end;
@@ -73,15 +131,21 @@
         display: flex;
         flex-direction: column;
         min-height: 0;
+        max-width: calc(100% - 0.5rem);
         margin-left: 0.25rem;
         pointer-events: auto;
+    }
+
+    .toggles {
+        display: flex;
+        gap: 0.25rem;
+        margin-left: 7.25rem;
     }
 
     .toggle {
         position: relative;
         height: 2.25rem;
         min-width: 2.75rem;
-        margin-left: 7.25rem;
         padding: 0 0.75rem;
         border: 2px solid var(--feudum-frame);
         border-radius: 0.5rem;

@@ -15,7 +15,7 @@
     import Board from '$lib/components/Board.svelte'
     import ActionArea from '$lib/components/table/ActionArea.svelte'
     import FocusChooser from '$lib/components/table/FocusChooser.svelte'
-    import SymbolKey from '$lib/components/table/SymbolKey.svelte'
+    import BoardCorner from '$lib/components/table/BoardCorner.svelte'
     import Header from '$lib/components/table/Header.svelte'
     import SeatStrip from '$lib/components/table/SeatStrip.svelte'
     import StatusStrip from '$lib/components/table/StatusStrip.svelte'
@@ -192,7 +192,7 @@
                                     />
                                 </div>
                             {/if}
-                            <SymbolKey />
+                            <BoardCorner />
                         {/snippet}
                         {#snippet toolbar()}
                             <!-- Full screen is a modal dialog: the panel and all that stands over the table come inside it. -->
