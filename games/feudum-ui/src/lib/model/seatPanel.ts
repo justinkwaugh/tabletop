@@ -45,9 +45,10 @@ export interface SeatPlayedCard extends SeatCardFace {
 }
 
 /**
- * R-3.1, R-3.2, R-5.1 For another seat `handBacks` counts the hand and no face is read. The seat's
- * own hand stands on the desk, so its panel says only how many (`handOnDesk`). Host View's look at
- * another seat shows the hand's faces; the set-aside cards are never on the panel.
+ * R-3.1, R-3.2, R-5.1 For another seat `handBacks` counts the hand and no face is read. While the
+ * seat's own desk shows its hand (its card-play turn), its panel says only how many (`handOnDesk`);
+ * otherwise the panel shows its faces. Host View's look at another seat shows the hand's faces; the
+ * set-aside cards are never on the panel.
  */
 export interface SeatCards {
     readonly played: readonly SeatPlayedCard[]
@@ -121,6 +122,8 @@ export interface SeatPanelInput {
     readonly nameOf: (playerId: string) => string
     /** R-3.3 The viewer's own draft of the pouch good, before it is finalised. */
     readonly draftedPouch?: PouchGood
+    /** R-3.1 The viewer's desk shows its hand now, so its own panel need not. */
+    readonly handOnDesk?: boolean
 }
 
 /** R-2.2.5 The seat order stays as the marker passes, so the panels keep their places. */
@@ -152,15 +155,21 @@ function handChosen(state: HydratedFeudumGameState, player: HydratedFeudumPlayer
         : player.handCount > 0 || player.played.length > 0
 }
 
-function cardsOf(player: HydratedFeudumPlayerState, look: 'own' | 'faces' | 'backs'): SeatCards {
+function cardsOf(
+    player: HydratedFeudumPlayerState,
+    look: 'own' | 'faces' | 'backs',
+    deskShowsHand: boolean
+): SeatCards {
     const played = player.played.map((card) => ({ ...faceOf(card.kind), mark: markOf(card) }))
     const { handCount } = player
+    const handOnDesk = look === 'own' && deskShowsHand
+    const facesShown = look === 'faces' || (look === 'own' && !handOnDesk)
     return {
         played,
-        handFaces: look === 'faces' ? (player.hand ?? []).map((kind) => faceOf(kind)) : [],
+        handFaces: facesShown ? (player.hand ?? []).map((kind) => faceOf(kind)) : [],
         handBacks: look === 'backs' ? handCount : 0,
         handCount,
-        handOnDesk: look === 'own'
+        handOnDesk
     }
 }
 
@@ -238,7 +247,8 @@ export function seatPanelOf({
     viewerId,
     hostView = false,
     nameOf,
-    draftedPouch
+    draftedPouch,
+    handOnDesk = false
 }: SeatPanelInput): SeatPanelView {
     const player = state.getPlayerState(playerId)
     const isOwner = viewerId === playerId
@@ -254,7 +264,8 @@ export function seatPanelOf({
         },
         cards: cardsOf(
             player,
-            handFaceShown(viewerId, playerId) ? 'own' : hostView ? 'faces' : 'backs'
+            handFaceShown(viewerId, playerId) ? 'own' : hostView ? 'faces' : 'backs',
+            handOnDesk
         ),
         pouch: pouchOf(state, player, isOwner ? draftedPouch : undefined),
         supply: supplyOf(state, player),

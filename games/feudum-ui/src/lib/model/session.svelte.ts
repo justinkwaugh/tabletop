@@ -779,7 +779,8 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
             viewerId: this.myPlayerId,
             hostView: this.isViewingHost,
             nameOf: (id) => this.getPlayerName(id),
-            draftedPouch: this.hand.hand.pouchGood
+            draftedPouch: this.hand.hand.pouchGood,
+            handOnDesk: this.turnPanel !== undefined
         })
     }
 

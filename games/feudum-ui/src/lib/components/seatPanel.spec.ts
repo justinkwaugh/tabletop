@@ -73,9 +73,10 @@ function viewOf(
     state: HydratedFeudumGameState,
     viewerId: string | undefined,
     playerId = Owner,
-    hostView = false
+    hostView = false,
+    handOnDesk = false
 ): SeatPanelView {
-    return seatPanelOf({ state, playerId, viewerId, hostView, nameOf })
+    return seatPanelOf({ state, playerId, viewerId, hostView, nameOf, handOnDesk })
 }
 
 function markupOf(view: SeatPanelView): string {
@@ -173,15 +174,15 @@ describe('Seat panel: others see no hidden thing (S57, S58)', () => {
 describe('Seat panel: the seat itself and Host View (S57)', () => {
     const state = fullTable()
 
-    it("R-3.1, R-5.1 The owner's panel says how many cards are in hand; the desk shows them", () => {
-        const { cards } = viewOf(state, Owner)
+    it("R-3.1, R-5.1 The owner's panel says how many cards are in hand while the desk shows them", () => {
+        const { cards } = viewOf(state, Owner, Owner, false, true)
         expect(cards).toMatchObject({
             handBacks: 0,
             handFaces: [],
             handCount: 2,
             handOnDesk: true
         })
-        const markup = markupOf(viewOf(state, Owner))
+        const markup = markupOf(viewOf(state, Owner, Owner, false, true))
         expect(markup).toContain('data-in-hand="2"')
         expect(markup).toContain('2 in hand')
         expect(markup).toContain(`data-seat-card="${Played}"`)
@@ -227,7 +228,7 @@ describe('Seat panel: the seat itself and Host View (S57)', () => {
     it("R-3.1 Before a hand is chosen the owner's panel holds no face, and others no backs", () => {
         const host = new FeudumHost(3)
         const fresh = new HydratedFeudumGameState(structuredClone(host.state))
-        expect(viewOf(fresh, Owner).cards).toMatchObject({ handFaces: [], handOnDesk: true })
+        expect(viewOf(fresh, Owner).cards).toMatchObject({ handFaces: [], handBacks: 0 })
         expect(viewOf(fresh, Other).cards).toMatchObject({ handBacks: 0, handFaces: [] })
     })
 })

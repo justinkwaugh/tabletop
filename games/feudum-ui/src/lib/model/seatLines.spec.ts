@@ -22,8 +22,15 @@ function table(edit: (state: HydratedFeudumGameState) => void = () => {}): Hydra
     return new HydratedFeudumGameState(structuredClone(host.state))
 }
 
-function linesOf(state: HydratedFeudumGameState, viewerId: string | undefined, hostView = false) {
-    return seatLinesOf(seatPanelOf({ state, playerId: Owner, viewerId, hostView, nameOf }))
+function linesOf(
+    state: HydratedFeudumGameState,
+    viewerId: string | undefined,
+    hostView = false,
+    handOnDesk = false
+) {
+    return seatLinesOf(
+        seatPanelOf({ state, playerId: Owner, viewerId, hostView, nameOf, handOnDesk })
+    )
 }
 
 const items = (line: readonly { item: string }[]) => line.map(({ item }) => item)
@@ -49,12 +56,21 @@ describe('Seat panel lines (contract: Seat panel)', () => {
         ])
     })
 
-    it('R-3.1 The seat itself reads "2 in hand", not its hand again: the desk shows the hand', () => {
-        const { cards } = linesOf(table(midGame), Owner)
+    it('R-3.1 The seat itself reads "2 in hand", not its hand again, while its desk shows the hand', () => {
+        const { cards } = linesOf(table(midGame), Owner, false, true)
         expect(items(cards)).toEqual(['in-hand', 'played', 'played'])
         expect(cards[0]).toEqual({ item: 'in-hand', count: 2 })
         expect(JSON.stringify(cards)).not.toContain('"tax"')
         expect(JSON.stringify(cards)).not.toContain('"conquer"')
+    })
+
+    it("R-3.1 Off its turn the desk shows no hand, so the seat's own panel shows its faces", () => {
+        const { cards } = linesOf(table(midGame), Owner)
+        expect(cards.slice(0, 2)).toEqual([
+            { item: 'face', card: expect.objectContaining({ kind: 'tax' }) },
+            { item: 'face', card: expect.objectContaining({ kind: 'conquer' }) }
+        ])
+        expect(items(cards)).toEqual(['face', 'face', 'played', 'played'])
     })
 
     it('S57 Host View of another seat shows the hand faces; the set-aside cards never stand on a line', () => {
