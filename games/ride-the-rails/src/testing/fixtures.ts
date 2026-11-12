@@ -100,6 +100,8 @@ export function buildState(recipe: StateRecipe = {}): HydratedRideTheRailsGameSt
     const currentPlayerId = recipe.currentPlayerId ?? firstPlayerId
     assertExists(currentPlayerId, 'A fixture needs players')
     assert(turnOrder.includes(currentPlayerId), `No player ${currentPlayerId}`)
+    // Replace the turn setup opened, so the recipe's player holds the only open turn.
+    state.turnManager.series = []
     state.turnManager.startTurn(currentPlayerId, state.actionCount)
     state.activePlayerIds = [currentPlayerId]
 

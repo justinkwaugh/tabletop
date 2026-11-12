@@ -1,9 +1,35 @@
+import { PlayerStatus, type Game } from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { USA_CITIES } from '../data/usaMap.js'
 import { CURRENT_RIDE_THE_RAILS_REVISION } from '../model/gameState.js'
-import { fixturePlayerIds, freshState } from '../testing/fixtures.js'
+import { engine, fixturePlayerIds, freshState, masterSeed } from '../testing/fixtures.js'
+import { Definition } from './definition.js'
 import { PhaseName } from './phases.js'
+import { RideTheRailsRuntime } from './runtime.js'
 import { MachineState } from './states.js'
+
+function gameFor(playerCount: number): Game {
+    return RideTheRailsRuntime.initializer.initializeGame(
+        {
+            id: 'ride-the-rails-setup',
+            typeId: Definition.info.id,
+            ownerId: 'owner',
+            seed: 11,
+            config: {},
+            players: Array.from({ length: playerCount }, (_, index) => ({
+                id: `seat${index + 1}`,
+                name: `Seat ${index + 1}`,
+                isHuman: true,
+                status: PlayerStatus.Joined
+            }))
+        },
+        Definition
+    )
+}
+
+function seedFor(index: number): string {
+    return index.toString(16).padStart(32, '0')
+}
 
 describe('initialization', () => {
     it('records the revision the game was created under (R-X.3)', () => {
@@ -48,5 +74,76 @@ describe('initialization', () => {
         const state = freshState(4)
         expect([...state.turnManager.turnOrder].sort()).toEqual(fixturePlayerIds(4))
         expect(state.players.map((player) => player.playerId)).toEqual(state.turnManager.turnOrder)
+    })
+})
+
+describe.each([3, 4, 5])('setup for %i players (R-1.2-H1, R-1.3)', (playerCount) => {
+    const state = freshState(playerCount)
+
+    it('seats every player', () => {
+        expect(state.players).toHaveLength(playerCount)
+        expect(state.turnManager.turnOrder).toHaveLength(playerCount)
+    })
+
+    it('puts 51 passengers on the map (R-1.3-H1)', () => {
+        expect(state.passengers).toHaveLength(51)
+    })
+
+    it('gives every player $0 (R-1.3.6)', () => {
+        expect(state.players.map((player) => player.money)).toEqual(
+            Array.from({ length: playerCount }, () => 0)
+        )
+    })
+
+    it('starts in round 1 (R-1.3.8)', () => {
+        expect(state.roundManager.currentRound?.number).toBe(1)
+    })
+
+    it('gives the first turn to the last player in turn order, as Take a Share runs in reverse (R-2.2)', () => {
+        const lastPlayerId = state.turnManager.turnOrder.at(-1)
+        expect(state.turnManager.series).toHaveLength(1)
+        expect(state.turnManager.currentTurn()?.playerId).toBe(lastPlayerId)
+        expect(state.activePlayerIds).toEqual([lastPlayerId])
+    })
+})
+
+describe('player count (R-1.2-H1)', () => {
+    it.each([2, 6])('refuses a game of %i players', (playerCount) => {
+        expect(() => engine.startGame(gameFor(playerCount), masterSeed)).toThrow(/3 to 5 players/)
+    })
+
+    it.each([3, 5])('accepts a game of %i players', (playerCount) => {
+        expect(() => engine.startGame(gameFor(playerCount), masterSeed)).not.toThrow()
+    })
+})
+
+describe('turn order (R-1.3.7, R-2.3)', () => {
+    it('is the same for the same master seed', () => {
+        // The state id is the platform's own, not drawn from the game's seed.
+        const { id: _first, ...first } = engine.startGame(gameFor(5), masterSeed).initialState
+        const { id: _second, ...second } = engine.startGame(gameFor(5), masterSeed).initialState
+        expect(second).toEqual(first)
+    })
+
+    it('is drawn from the state PRNG, so master seeds give different orders', () => {
+        const orders = new Set(
+            Array.from({ length: 12 }, (_, index) =>
+                engine
+                    .startGame(gameFor(5), seedFor(index + 1))
+                    .initialState.turnManager.turnOrder.join(',')
+            )
+        )
+        expect(orders.size).toBeGreaterThan(1)
+    })
+
+    it('follows an assigned starting order, and the last seat in it acts first (R-2.2)', () => {
+        const playerIds = ['seat3', 'seat1', 'seat4', 'seat2']
+        const { initialState } = engine.startGame(gameFor(4), {
+            masterSeed,
+            startingPositions: { playerIds }
+        })
+        expect(initialState.turnManager.turnOrder).toEqual(playerIds)
+        expect(initialState.players.map((player) => player.playerId)).toEqual(playerIds)
+        expect(initialState.activePlayerIds).toEqual(['seat2'])
     })
 })
