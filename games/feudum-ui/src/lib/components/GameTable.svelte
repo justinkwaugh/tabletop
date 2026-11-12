@@ -28,7 +28,8 @@
         CoverBelowScale,
         litAreasOf,
         pickFrameOf,
-        restScaleOf
+        restScaleOf,
+        ZoomRowBand
     } from '$lib/model/boardFocus.svelte.js'
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
     import { FeudumGameSession } from '$lib/model/session.svelte'
@@ -180,6 +181,8 @@
                         onManualViewChange={() => focus.handMoved()}
                     >
                         <Board />
+                        <!-- The zoom row's band: the board never rests under the zoom buttons, Key or Supply. -->
+                        <div class="block" style:height="{ZoomRowBand}px" data-zoom-row-band></div>
                         {#snippet overlay(viewport)}
                             {#if phone.phone}
                                 <div class="contents" {@attach measureView(viewport)}>

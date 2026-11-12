@@ -1,5 +1,13 @@
 import { expect, test, type Page } from '@playwright/test'
-import { createGame, playToCards, playToPawn, settled, shot } from './helpers.js'
+import {
+    createGame,
+    playToCards,
+    playToPawn,
+    scoreSpacesCovered,
+    settled,
+    shot,
+    zoomToLowerLeft
+} from './helpers.js'
 
 /** A real session in a browser: what the specs on the session cannot see. */
 
@@ -116,6 +124,31 @@ test('S59 a press on the enlarged piece closes it, as a press beside it does; no
 
     expect(await page.evaluate(() => JSON.stringify(window.feudumSession.gameState))).toBe(before)
 })
+
+for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 1440, height: 640 }
+]) {
+    test(`R-1.2.5 the zoom row, Key and Supply in it, covers no score-track space at ${viewport.width} x ${viewport.height}, at rest or zoomed to the corner`, async ({
+        page
+    }) => {
+        await page.setViewportSize(viewport)
+        await createGame(page)
+        await playToCards(page)
+        await settled(page)
+        expect(await scoreSpacesCovered(page)).toEqual([])
+        // Each step zooms in further: one press, three in all, then six.
+        for (const [more, total] of [
+            [1, 1],
+            [2, 3],
+            [3, 6]
+        ]) {
+            await zoomToLowerLeft(page, more)
+            expect(await scoreSpacesCovered(page), `zoomed in ${total}`).toEqual([])
+        }
+        await shot(page, `zoom-row-${viewport.height}`)
+    })
+}
 
 test('S59 R-1.3 a press on a guild area on the board enlarges it with its state; a press on it closes it', async ({
     page

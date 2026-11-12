@@ -2,16 +2,18 @@ import { GuildIds, HydratedFeudumGameState } from '@tabletop/feudum'
 import { flushSync } from 'svelte'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { FeudumHost } from '$lib/testing/sessionHarness.js'
-import { GuildAreas, MapArea } from '$lib/utils/boardGeometry.js'
+import { BoardHeight, GuildAreas, MapArea } from '$lib/utils/boardGeometry.js'
 import type { BoardOffer, BoardTarget } from './boardOffer.js'
 import {
     BoardFocus,
+    ChooserInset,
     litAreasOf,
     pickFrameOf,
     pickFrameScale,
     PickFrameZoom,
     rectOfArea,
     restScaleOf,
+    ZoomRowBand,
     type BoardFocusSetting,
     type BoardRect,
     type BoardView,
@@ -101,6 +103,12 @@ describe('R-1.2 what the chooser frames, and how far a pick may go', () => {
     it('a phone rests at a cover fit, and a roomy view contains', () => {
         expect(restScaleOf(329, 398)).toBeGreaterThan(329 / 2500)
         expect(restScaleOf(2500, 1103 + 36)).toBeCloseTo(1, 1)
+    })
+
+    it('R-1.2.5 the rest reckons the band under the board, which holds the zoom row at a cover fit', () => {
+        const rest = restScaleOf(343, 356 + ChooserInset)
+        expect(rest).toBeCloseTo(356 / (BoardHeight + ZoomRowBand), 5)
+        expect(ZoomRowBand * rest).toBeGreaterThanOrEqual(40)
     })
 })
 
