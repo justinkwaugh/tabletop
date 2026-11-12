@@ -318,7 +318,6 @@ describe('Taking a row', () => {
             board.place(pointAt(name), {
                 playerId,
                 kind,
-                paired,
                 discIds: paired ? [id++, id++] : [id++]
             })
         for (const name of ['E2', 'E3', 'E4', 'E5']) place(name, WHITE, PieceKind.Yinsh, false)

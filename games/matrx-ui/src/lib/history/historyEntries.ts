@@ -1,6 +1,5 @@
 import { assertExists, type AxialCoordinates, type GameAction } from '@tabletop/common'
 import {
-    discsIn,
     isExtraMove,
     isMovePotential,
     isPushPiece,
@@ -54,8 +53,8 @@ function takingOf(action: GameAction): Taking | undefined {
     return {
         from,
         to,
-        returned: own.reduce((sum, { unit }) => sum + discsIn(unit), 0),
-        captured: theirs.reduce((sum, { unit }) => sum + discsIn(unit), 0),
+        returned: own.reduce((sum, { unit }) => sum + unit.discIds.length, 0),
+        captured: theirs.reduce((sum, { unit }) => sum + unit.discIds.length, 0),
         capturedGipf: theirs.filter(({ unit }) => unit.kind === PieceKind.Gipf).length
     }
 }

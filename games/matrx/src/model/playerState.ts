@@ -1,11 +1,22 @@
 import { Color, Hydratable, PlayerState } from '@tabletop/common'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { discsIn, PieceKind, type PotentialKind } from './board.js'
+import { PAIR_SIZE, PieceKind, type PotentialKind } from './board.js'
 
 // Single potentials in reserve; any two of a kind make a stack (rule G6).
 export type Potentials = Type.Static<typeof Potentials>
 export const Potentials = Type.Object({
+    [PieceKind.Tamsk]: Type.Integer({ minimum: 0 }),
+    [PieceKind.Zertz]: Type.Integer({ minimum: 0 }),
+    [PieceKind.Dvonn]: Type.Integer({ minimum: 0 }),
+    [PieceKind.Yinsh]: Type.Integer({ minimum: 0 }),
+    [PieceKind.Punct]: Type.Integer({ minimum: 0 })
+})
+
+// The opponent's pieces a player has taken, as discs of each kind.
+export type Captured = Type.Static<typeof Captured>
+export const Captured = Type.Object({
+    [PieceKind.Gipf]: Type.Integer({ minimum: 0 }),
     [PieceKind.Tamsk]: Type.Integer({ minimum: 0 }),
     [PieceKind.Zertz]: Type.Integer({ minimum: 0 }),
     [PieceKind.Dvonn]: Type.Integer({ minimum: 0 }),
@@ -20,8 +31,7 @@ export const MatrxPlayerState = Type.Evaluate(
         Type.Object({
             gipfPieces: Type.Integer({ minimum: 0 }),
             potentials: Potentials,
-            // The opponent's pieces taken, one per disc, in the order they were taken.
-            captured: Type.Array(Type.Enum(PieceKind))
+            captured: Captured
         })
     ])
 )
@@ -36,13 +46,17 @@ export class HydratedMatrxPlayerState
     declare color: Color
     declare gipfPieces: number
     declare potentials: Potentials
-    declare captured: PieceKind[]
+    declare captured: Captured
 
     constructor(data: MatrxPlayerState) {
         super(data, MatrxPlayerStateValidator)
     }
 
+    capturedCount(): number {
+        return Object.values(this.captured).reduce((sum, count) => sum + count, 0)
+    }
+
     stacksOf(kind: PotentialKind): number {
-        return Math.floor(this.potentials[kind] / discsIn({ paired: true }))
+        return Math.floor(this.potentials[kind] / PAIR_SIZE)
     }
 }

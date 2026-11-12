@@ -13,13 +13,11 @@ let nextId = 0
 const pair = (playerId: string, kind: PieceKind, discIds = [nextId++, nextId++]): Unit => ({
     playerId,
     kind,
-    paired: true,
     discIds
 })
 const single = (playerId: string, kind: PieceKind, discIds = [nextId++]): Unit => ({
     playerId,
     kind,
-    paired: false,
     discIds
 })
 

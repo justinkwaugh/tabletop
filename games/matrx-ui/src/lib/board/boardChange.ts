@@ -1,7 +1,7 @@
 import { coordinatesToNumber, sameCoordinates, type AxialCoordinates } from '@tabletop/common'
 import {
     CENTRE,
-    discsIn,
+    isPair,
     HydratedMatrxBoard,
     PieceKind,
     type Entry,
@@ -12,7 +12,7 @@ export type BoardDisc = { playerId: string; kind: PieceKind; id?: number }
 
 export function discsOf(stack: readonly Unit[]): BoardDisc[] {
     return stack.flatMap((unit) =>
-        Array.from({ length: discsIn(unit) }, (_, index) => ({
+        Array.from({ length: unit.discIds.length }, (_, index) => ({
             playerId: unit.playerId,
             kind: unit.kind,
             id: unit.discIds[index]
@@ -82,7 +82,7 @@ function pushBetween(
             const board = new HydratedMatrxBoard(start.dehydrate())
             if (fromCentre) {
                 const top = board.topAt(CENTRE)
-                if (top?.kind !== PieceKind.Tamsk || !top.paired || unit.paired) continue
+                if (top?.kind !== PieceKind.Tamsk || !isPair(top) || isPair(unit)) continue
                 board.takeTopOfPair(CENTRE)
             }
             const shifted = board.shiftedBy(entry)
@@ -102,7 +102,7 @@ function moveBetween(
 ): MoveChange | undefined {
     const target = layout(end)
     for (const { coords, unit } of start.tops()) {
-        if (!unit.paired) continue
+        if (!isPair(unit)) continue
         for (const to of start.potentialTargets(coords)) {
             const board = new HydratedMatrxBoard(start.dehydrate())
             board.movePotential(coords, to)
@@ -144,7 +144,7 @@ function layout(board: HydratedMatrxBoard): string {
         .map(
             (stack) =>
                 `${coordinatesToNumber(stack.coords)}:${stack.units
-                    .map((unit) => `${unit.playerId}/${unit.kind}/${unit.paired}`)
+                    .map((unit) => `${unit.playerId}/${unit.kind}/${unit.discIds.length}`)
                     .join(',')}`
         )
         .toSorted()

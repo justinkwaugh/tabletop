@@ -61,7 +61,7 @@ export function execute(game: MatrxGame, state: MatrxGameState, action: GameActi
 function removals(game: MatrxGame, state: MatrxGameState, playerId: string): GameAction[] {
     const { board } = new HydratedMatrxGameState(state)
     return board.rowsOf(playerId).flatMap((row) => {
-        const pairs = row.reach.filter((coords) => board.topAt(coords)?.paired === true)
+        const pairs = board.pairsIn(row)
         return Array.from({ length: 2 ** pairs.length }, (_, mask) => ({
             ...actionBase(game, playerId),
             type: ActionType.RemoveRow,

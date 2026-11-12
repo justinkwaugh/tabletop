@@ -1,7 +1,7 @@
 <script lang="ts">
     import { PieceKind, type HydratedMatrxPlayerState } from '@tabletop/matrx'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { tallyStacks } from '$lib/board/tally.js'
+    import { capturedInOrder, tallyStacks } from '$lib/board/tally.js'
     import PieceTally from './PieceTally.svelte'
     import ReserveKinds from './ReserveKinds.svelte'
 
@@ -12,6 +12,14 @@
     const isActive = $derived(session.gameState.activePlayerIds.includes(playerState.playerId))
     const isWinner = $derived(session.gameState.winningPlayerIds.includes(playerState.playerId))
     const gipfLeft = $derived(session.gameState.gipfPiecesLeft(playerState.playerId))
+    // The actions that led to the shown state, which session.actions can run past.
+    const captured = $derived(
+        capturedInOrder(
+            playerState.playerId,
+            playerState.captured,
+            session.actions.slice(0, session.gameState.actionCount)
+        )
+    )
     const opponentColor = $derived(
         session.gameState.getPlayerState(session.gameState.opponentOf(playerState.playerId)).color
     )
@@ -41,9 +49,9 @@
             />
         </div>
         <div class="line">
-            <strong class="count">{playerState.captured.length}</strong>
+            <strong class="count">{playerState.capturedCount()}</strong>
             <span class="caption">captured</span>
-            <PieceTally color={opponentColor} stacks={tallyStacks(playerState.captured)} />
+            <PieceTally color={opponentColor} stacks={tallyStacks(captured)} />
         </div>
     </div>
 </div>

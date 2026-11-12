@@ -27,30 +27,30 @@
   },
   "hotseat": false,
   "winningPlayerIds": [],
-  "seed": 2069033149,
+  "seed": 1410031328,
   "activePlayerIds": [
    "player-1"
   ],
-  "createdAt": "2026-11-12T21:11:41.953Z",
+  "createdAt": "2026-11-12T22:28:00.483Z",
   "storage": "remote",
   "category": "standard",
-  "startedAt": "2026-11-12T21:11:41.953Z"
+  "startedAt": "2026-11-12T22:28:00.483Z"
  },
  "state": {
   "systemVersion": 3,
-  "id": "4HYizEaAVKtPDvG95MmSY",
+  "id": "VaM5pp_dZclH8UbLClbo-",
   "gameId": "scenario-take-a-row",
-  "seed": 2069033149,
+  "seed": 1410031328,
   "prng": {
-   "seed": 2069033149,
+   "seed": 1410031328,
    "invocations": 1
   },
   "protectedPrng": {
    "algorithm": "chacha20-v1",
-   "seed": "22c52ac39f33c90f3bfb46937af1b1ac7c544d4774016eb1f3638b37ec9cc6cb",
+   "seed": "9f4abb54f0bb71ceb159bbb8754b434b0bb09b6754ea8fc37ae765ce1dff85f6",
    "invocations": 0
   },
-  "masterSeed": "fac931091f6a02e589a35ed1c6de0f08",
+  "masterSeed": "62cd06d426669fc357a15cdbc8aea508",
   "activePlayerIds": [
    "player-1"
   ],
@@ -69,7 +69,14 @@
      "yinsh": 4,
      "punct": 5
     },
-    "captured": []
+    "captured": {
+     "gipf": 0,
+     "tamsk": 0,
+     "zertz": 0,
+     "dvonn": 0,
+     "yinsh": 0,
+     "punct": 0
+    }
    },
    {
     "playerId": "player-2",
@@ -82,7 +89,14 @@
      "yinsh": 5,
      "punct": 6
     },
-    "captured": []
+    "captured": {
+     "gipf": 0,
+     "tamsk": 0,
+     "zertz": 0,
+     "dvonn": 0,
+     "yinsh": 0,
+     "punct": 0
+    }
    }
   ],
   "machineState": "TakingTurn",
@@ -115,7 +129,6 @@
       {
        "playerId": "player-1",
        "kind": "gipf",
-       "paired": false,
        "discIds": [
         0
        ]
@@ -131,7 +144,6 @@
       {
        "playerId": "player-1",
        "kind": "gipf",
-       "paired": false,
        "discIds": [
         1
        ]
@@ -147,7 +159,6 @@
       {
        "playerId": "player-1",
        "kind": "gipf",
-       "paired": false,
        "discIds": [
         2
        ]
@@ -163,7 +174,6 @@
       {
        "playerId": "player-2",
        "kind": "gipf",
-       "paired": false,
        "discIds": [
         3
        ]
@@ -179,7 +189,6 @@
       {
        "playerId": "player-2",
        "kind": "gipf",
-       "paired": false,
        "discIds": [
         4
        ]
@@ -195,7 +204,6 @@
       {
        "playerId": "player-2",
        "kind": "gipf",
-       "paired": false,
        "discIds": [
         5
        ]
@@ -211,7 +219,6 @@
       {
        "playerId": "player-1",
        "kind": "yinsh",
-       "paired": true,
        "discIds": [
         6,
         7
@@ -228,7 +235,6 @@
       {
        "playerId": "player-1",
        "kind": "dvonn",
-       "paired": false,
        "discIds": [
         8
        ]
@@ -244,7 +250,6 @@
       {
        "playerId": "player-1",
        "kind": "punct",
-       "paired": false,
        "discIds": [
         9
        ]
@@ -260,7 +265,6 @@
       {
        "playerId": "player-2",
        "kind": "zertz",
-       "paired": true,
        "discIds": [
         10,
         11
@@ -277,7 +281,6 @@
       {
        "playerId": "player-2",
        "kind": "yinsh",
-       "paired": false,
        "discIds": [
         12
        ]

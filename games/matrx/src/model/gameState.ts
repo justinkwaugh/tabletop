@@ -17,7 +17,8 @@ import {
     MatrxBoard,
     PieceKind,
     POTENTIAL_KINDS,
-    discsIn,
+    discsBroughtIn,
+    isPair,
     type PlacedUnit,
     type Row,
     type Unit
@@ -116,7 +117,7 @@ export class HydratedMatrxGameState
         }
         return this.board
             .tops()
-            .filter(({ unit }) => unit.playerId === playerId && unit.paired)
+            .filter(({ unit }) => unit.playerId === playerId && isPair(unit))
             .flatMap(({ coords }) =>
                 this.board.potentialTargets(coords).map((to) => ({ from: coords, to }))
             )
@@ -128,19 +129,18 @@ export class HydratedMatrxGameState
 
     ownTamskOnCentre(playerId: string): boolean {
         const top = this.board.topAt(CENTRE)
-        return top?.kind === PieceKind.Tamsk && top.paired && top.playerId === playerId
+        return top?.kind === PieceKind.Tamsk && isPair(top) && top.playerId === playerId
     }
 
     pushPiece(playerId: string, entry: Entry, kind: PieceKind): string | undefined {
         const player = this.getPlayerState(playerId)
-        const paired = isPotentialKind(kind)
-        const count = discsIn({ paired })
+        const count = discsBroughtIn(kind)
         if (isPotentialKind(kind)) {
             player.potentials[kind] -= count
         } else {
             player.gipfPieces -= count
         }
-        return this.push(entry, { playerId, kind, paired, discIds: this.newDiscIds(count) })
+        return this.push(entry, { playerId, kind, discIds: this.newDiscIds(count) })
     }
 
     private newDiscIds(count: number): number[] {
@@ -169,7 +169,7 @@ export class HydratedMatrxGameState
     private push(entry: Entry, unit: Unit): string | undefined {
         const centre = this.board.push(entry, unit)
         const top = centre?.[centre.length - 1]
-        return top?.kind === PieceKind.Tamsk && top.paired ? top.playerId : undefined
+        return top?.kind === PieceKind.Tamsk && isPair(top) ? top.playerId : undefined
     }
 
     // Own pieces return to reserve; the opponent's are captured. Kept pairs stay.
@@ -179,9 +179,9 @@ export class HydratedMatrxGameState
         for (const coords of row.reach) {
             if (keep.some((kept) => sameCoordinates(kept, coords))) continue
             const unit = this.board.removeTop(coords)
-            const size = discsIn(unit)
+            const size = unit.discIds.length
             if (unit.playerId !== playerId) {
-                player.captured.push(...Array<PieceKind>(size).fill(unit.kind))
+                player.captured[unit.kind] += size
             } else if (isPotentialKind(unit.kind)) {
                 player.potentials[unit.kind] += size
             } else {

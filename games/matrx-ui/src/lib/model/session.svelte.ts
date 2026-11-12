@@ -14,9 +14,9 @@ import {
 import {
     ActionType,
     CENTRE,
-    discsIn,
+    discsBroughtIn,
+    PAIR_SIZE,
     ExtraMove,
-    isPotentialKind,
     isExtraMove,
     isMovePotential,
     isPushPiece,
@@ -145,7 +145,7 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
         const kind = this.chosenKind
         if (kind === undefined) return []
         const first = this.gameState.nextDiscId
-        return Array.from({ length: discsIn({ paired: isPotentialKind(kind) }) }, (_, index) => ({
+        return Array.from({ length: discsBroughtIn(kind) }, (_, index) => ({
             playerId,
             kind,
             id: first + index
@@ -177,10 +177,7 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
     )
 
     inReserve(playerId: string, kind: PotentialKind): number {
-        const staged =
-            playerId === this.myPlayer?.id && this.stagedKind === kind
-                ? discsIn({ paired: true })
-                : 0
+        const staged = playerId === this.myPlayer?.id && this.stagedKind === kind ? PAIR_SIZE : 0
         return this.gameState.getPlayerState(playerId).potentials[kind] - staged
     }
 

@@ -12,7 +12,14 @@ import {
     type MatrxGame
 } from './tests/playthrough.js'
 import { EndReason, HydratedMatrxGameState, type MatrxGameState } from '../model/gameState.js'
-import { discsIn, emptyBoard, PieceKind, POTENTIAL_KINDS, type Unit } from '../model/board.js'
+import {
+    emptyBoard,
+    isPair,
+    PAIR_SIZE,
+    PieceKind,
+    POTENTIAL_KINDS,
+    type Unit
+} from '../model/board.js'
 import { BoardShape } from '../model/boardShape.js'
 import { GEOMETRIES, pointAt } from '../model/geometry.js'
 import type { Potentials } from '../model/playerState.js'
@@ -97,7 +104,7 @@ function removeRow(
 }
 
 // A unit as the tests place it; withPieces numbers its discs.
-type Piece = Omit<Unit, 'discIds'>
+type Piece = Omit<Unit, 'discIds'> & { paired: boolean }
 
 const pair = (playerId: string, kind: PieceKind): Piece => ({ playerId, kind, paired: true })
 const single = (playerId: string, kind: PieceKind): Piece => ({ playerId, kind, paired: false })
@@ -133,9 +140,10 @@ function withPieces(
     for (const [point, stack] of pieces) {
         const coords = typeof point === 'string' ? at(point) : point
         if (!GEOMETRIES[next.board.shape].isSpot(coords)) throw Error(`${point} is not a spot`)
-        const units = stack.map((piece) => ({
-            ...piece,
-            discIds: Array.from({ length: discsIn(piece) }, () => next.nextDiscId++)
+        const units = stack.map(({ playerId, kind, paired }) => ({
+            playerId,
+            kind,
+            discIds: Array.from({ length: paired ? PAIR_SIZE : 1 }, () => next.nextDiscId++)
         }))
         next.board.stacks.push({ coords, units })
     }
@@ -151,7 +159,7 @@ const boardOf = (state: MatrxGameState) => new HydratedMatrxGameState(state).boa
 const stackAt = (state: MatrxGameState, name: string) =>
     boardOf(state)
         .stackAt(at(name))
-        .map(({ playerId, kind, paired }) => ({ playerId, kind, paired }))
+        .map((unit) => ({ playerId: unit.playerId, kind: unit.kind, paired: isPair(unit) }))
 
 describe('board', () => {
     it('MATRX: 40 spots and 25 dots, with column I three spots and column J four dots', () => {
@@ -427,7 +435,7 @@ describe('rows', () => {
         expect(state.players[0].potentials.tamsk).toBe(6)
         expect(state.players[0].potentials.yinsh).toBe(6 + 1)
         expect(state.players[0].potentials.dvonn).toBe(6 + 1)
-        expect(state.players[0].captured).toEqual([PieceKind.Punct])
+        expect(state.players[0].captured).toMatchObject({ punct: 1, gipf: 0, yinsh: 0 })
         expect(state.activePlayerIds).toEqual([B])
     })
 

@@ -33,13 +33,12 @@ export function isPotentialKind(kind: PieceKind): kind is PotentialKind {
     return kind !== PieceKind.Gipf
 }
 
-// A paired unit is an unused stack of two potentials of one kind and colour. Disc ids, bottom
-// first, fix which way round the table draws each disc.
+// A unit is a single piece, or an unused stack of two potentials of one kind and colour: one disc
+// id or two, bottom first. Each disc keeps its id from entering the board until it leaves.
 export type Unit = Type.Static<typeof Unit>
 export const Unit = Type.Object({
     playerId: Type.String(),
     kind: Type.Enum(PieceKind),
-    paired: Type.Boolean(),
     discIds: Type.Array(Type.Integer({ minimum: 0 }), { minItems: 1, maxItems: 2 })
 })
 
@@ -74,8 +73,16 @@ export function emptyBoard(shape: BoardShape): MatrxBoard {
     return { shape, stacks: [] }
 }
 
-export function discsIn(unit: Pick<Unit, 'paired'>): number {
-    return unit.paired ? 2 : 1
+// Rules G1 and G6: potentials come in, and go back to the reserve, in stacks of two.
+export const PAIR_SIZE = 2
+
+export function isPair(unit: Pick<Unit, 'discIds'>): boolean {
+    return unit.discIds.length === PAIR_SIZE
+}
+
+// Rule F1: a GIPF piece comes in as a single piece.
+export function discsBroughtIn(kind: PieceKind): number {
+    return isPotentialKind(kind) ? PAIR_SIZE : 1
 }
 
 export class HydratedMatrxBoard extends Hydratable<typeof MatrxBoard> implements MatrxBoard {
@@ -170,7 +177,7 @@ export class HydratedMatrxBoard extends Hydratable<typeof MatrxBoard> implements
 
     potentialTargets(from: AxialCoordinates): AxialCoordinates[] {
         const unit = this.topAt(from)
-        if (unit === undefined || !unit.paired) {
+        if (unit === undefined || !isPair(unit)) {
             return []
         }
         return DIRECTIONS.flatMap((direction) => this.landings(unit, from, direction))
@@ -210,14 +217,13 @@ export class HydratedMatrxBoard extends Hydratable<typeof MatrxBoard> implements
 
     takeTopOfPair(coords: AxialCoordinates): Unit {
         const unit = this.topAt(coords)
-        if (unit === undefined || !unit.paired) {
+        if (unit === undefined || !isPair(unit)) {
             throw Error('No pair to split')
         }
         const [bottom, top] = unit.discIds
         assertExists(top, 'A pair has two discs')
-        unit.paired = false
         unit.discIds = [bottom]
-        return { playerId: unit.playerId, kind: unit.kind, paired: false, discIds: [top] }
+        return { playerId: unit.playerId, kind: unit.kind, discIds: [top] }
     }
 
     rows(): Row[] {
@@ -271,7 +277,10 @@ export class HydratedMatrxBoard extends Hydratable<typeof MatrxBoard> implements
 
     // Rule E1: stacks of two in a row's reach may stay; every single piece goes.
     pairsIn(row: Row): AxialCoordinates[] {
-        return row.reach.filter((coords) => this.topAt(coords)?.paired === true)
+        return row.reach.filter((coords) => {
+            const top = this.topAt(coords)
+            return top !== undefined && isPair(top)
+        })
     }
 
     // Rule E1: what stays is stacks of two in the reach, and the row of four is broken.
