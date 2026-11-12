@@ -6,6 +6,7 @@ import type {
     HydratedFeudumGameState,
     LandscapeKind,
     RegionId,
+    SpaceId,
     TileEpoch,
     WritId
 } from '@tabletop/feudum'
@@ -67,6 +68,13 @@ export class TableLayers {
     /** A phone's Guilds sheet: the guild standings, for looking. */
     guildsOpen: boolean = $state(false)
 
+    /** A site's card: the one pressed open, else the one under a desk pointer. */
+    private sitePressed: SpaceId | undefined = $state(undefined)
+    private siteHovered: SpaceId | undefined = $state(undefined)
+    get site(): SpaceId | undefined {
+        return this.sitePressed ?? this.siteHovered
+    }
+
     /** Read through its owner, so it follows the owner's current props. */
     enlarged: EnlargedFace | undefined = $derived(this.enlargedBy?.read())
 
@@ -85,7 +93,22 @@ export class TableLayers {
         }
     }
 
+    /** A second press on the same site closes its card. */
+    openSite(spaceId: SpaceId): void {
+        this.sitePressed = this.sitePressed === spaceId ? undefined : spaceId
+    }
+
+    hoverSite(spaceId: SpaceId | undefined): void {
+        this.siteHovered = spaceId
+    }
+
+    closeSite(): void {
+        this.sitePressed = undefined
+        this.siteHovered = undefined
+    }
+
     openSeat(playerId: string): void {
+        this.closeSite()
         this.stackView = undefined
         this.tracksOpen = false
         this.guildsOpen = false
@@ -93,6 +116,7 @@ export class TableLayers {
     }
 
     openStack(view: StackViewOf): void {
+        this.closeSite()
         this.openSeatId = undefined
         this.tracksOpen = false
         this.guildsOpen = false
@@ -100,6 +124,7 @@ export class TableLayers {
     }
 
     openTracks(): void {
+        this.closeSite()
         this.openSeatId = undefined
         this.stackView = undefined
         this.guildsOpen = false
@@ -107,6 +132,7 @@ export class TableLayers {
     }
 
     openGuilds(): void {
+        this.closeSite()
         this.openSeatId = undefined
         this.stackView = undefined
         this.tracksOpen = false
@@ -131,6 +157,10 @@ export class TableLayers {
         }
         if (this.openSeatId !== undefined || this.stackView || this.tracksOpen || this.guildsOpen) {
             this.closeSeatOrStack()
+            return true
+        }
+        if (this.site) {
+            this.closeSite()
             return true
         }
         return false

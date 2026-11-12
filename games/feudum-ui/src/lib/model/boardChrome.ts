@@ -1,3 +1,4 @@
+import type { SpaceId } from '@tabletop/feudum'
 import type { Point } from '$lib/utils/boardGeometry.js'
 import {
     NoBoardOffer,
@@ -17,6 +18,9 @@ export interface BoardChrome {
     readonly press?: (target: BoardTarget) => void
     /** An unlit stack or deck enlarges to its stack view. */
     readonly openStack?: (view: StackViewOf) => void
+    /** An unlit disc opens its site card; a desk pointer over it shows the card while it stays. */
+    readonly openSite?: (spaceId: SpaceId) => void
+    readonly hoverSite?: (spaceId: SpaceId | undefined) => void
 }
 
 /** The board at rest: no offer, no presses. The layers' own specs and the bench read this. */
