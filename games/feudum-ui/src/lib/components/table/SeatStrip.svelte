@@ -6,7 +6,8 @@
     /**
      * A phone's seat strip, standing in for the Players tab: one chip per seat, read from the one
      * derivation of the seat, so it shows no more of a hand than the panel does: a count. A press
-     * opens that seat as a sheet.
+     * opens that seat as a sheet. The Guilds chip at its end opens the guild standings, which the
+     * Players tab heads.
      */
     const gameSession = getGameSession()
 
@@ -51,6 +52,15 @@
             </span>
         </button>
     {/each}
+    <button
+        type="button"
+        class="chip flex shrink-0 flex-col items-center justify-center rounded-md px-2 text-xs font-semibold leading-tight text-feudum-text"
+        aria-label="Open the guild standings"
+        data-guilds-chip
+        onclick={() => gameSession.layers.openGuilds()}
+    >
+        Guilds
+    </button>
 </div>
 
 <style>
