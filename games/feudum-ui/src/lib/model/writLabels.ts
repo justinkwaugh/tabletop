@@ -3,9 +3,13 @@ import {
     Mandates,
     RoyalWrits,
     type Good,
+    type HydratedFeudumGameState,
     type PlayMandateOffer,
     type WritId
 } from '@tabletop/feudum'
+
+/** The general supply's counts a label reads. */
+type SupplyCounts = Pick<HydratedFeudumGameState['supply'], 'vessels'>
 
 /** R-7 What a writ is called in a row: a mandate by its number, a charter by its wording. */
 export function writName(writId: WritId): string {
@@ -28,14 +32,21 @@ function counted(goods: readonly Good[]): string {
         .join(', ')
 }
 
-function rewardText(reward: PlayMandateOffer['reward']): string {
+/** Contract, Supply: a vessel reward says how many the general supply has left. */
+function leftOf(count: number): string {
+    return count > 0 ? `${count} left` : 'none left'
+}
+
+function rewardText(reward: PlayMandateOffer['reward'], supply?: SupplyCounts): string {
     switch (reward.kind) {
         case 'shillings':
             return `${reward.amount}s`
         case 'attack':
             return `+${reward.amount} attack`
-        case 'vessel':
-            return reward.vessel.replaceAll('-', ' ')
+        case 'vessel': {
+            const name = reward.vessel.replaceAll('-', ' ')
+            return supply ? `${name} · ${leftOf(supply.vessels[reward.vessel])}` : name
+        }
         case 'goods':
         case 'influence':
         case 'seal':
@@ -45,13 +56,11 @@ function rewardText(reward: PlayMandateOffer['reward']): string {
 }
 
 /** R-4.4.2 S50 "A: 1 food → 3s": the letter and what is turned in, or the guild, and the reward. */
-export function mandateChoiceLabel({
-    alternative,
-    turnedIn,
-    reward,
-    rewardGuild
-}: PlayMandateOffer): string {
-    const gain = rewardText(reward)
+export function mandateChoiceLabel(
+    { alternative, turnedIn, reward, rewardGuild }: PlayMandateOffer,
+    supply?: SupplyCounts
+): string {
+    const gain = rewardText(reward, supply)
     if (rewardGuild) {
         return `${GuildById[rewardGuild].name} → ${gain}`
     }

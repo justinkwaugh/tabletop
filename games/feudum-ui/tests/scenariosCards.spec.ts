@@ -214,7 +214,8 @@ scenario('S17 R-3.9.3 TendLandscape', 'cards-tend-landscape', async (table) => {
 
 scenario('S18 R-4.4.1 Explore and keep', 'cards-explore', async (table) => {
     await table.press(table.card('Explore'))
-    await expect(table.primary()).toHaveText("Explore: draw 3 writs · can't be undone")
+    // The draw is counted against what the deck holds.
+    await expect(table.primary()).toHaveText(/^Explore: draw 3 of \d+ writs · can't be undone$/)
     const flights = await table.flightsOf(() => table.press(table.primary()))
     expect(flights.filter((flight) => flight.startsWith('writs:'))).toHaveLength(3)
     expect(flights).not.toContain('writs: Writ back')
