@@ -123,46 +123,50 @@ scenario('S53 R-4.10.1 Nourish choice', 'nourish-choice', async (table) => {
     )
 })
 
-scenario('S53 R-4.10.1 Nourish, every pawn fed', 'nourish-fed', async (table) => {
-    const pawns = table.panel().locator('[data-nourish-pawn]')
-    await expect(pawns).toHaveCount(3)
-    await expect(table.panel().locator('[data-nourish-pawn][data-unfed]')).toHaveCount(0)
-    await expect(table.primary()).toHaveAccessibleName('Feed 3 pawns · 3 food')
-    expect(Object.values(await table.litChips())).toEqual(['1 food', '1 food', '1 food'])
-    // The order row's status is read out at every width, the phone's dots too.
-    expect(await table.panel().locator('[data-order-seat="Ana"]').ariaSnapshot()).toMatch(
-        /Ana.*next/s
-    )
-    if (table.phone) {
-        // Contract, Phone layout: compact rows within the width, the order row as dots, the send as art.
-        const width = table.page.viewportSize()?.width ?? 0
-        for (const box of await pawns.evaluateAll((all) =>
-            all.map((one) => one.getBoundingClientRect().right)
-        )) {
-            expect(box).toBeLessThanOrEqual(width)
-        }
-        await expect(table.panel().locator('[data-order-seat="Ana"] [data-phone-word]')).toHaveText(
-            'you'
+scenario(
+    'S53 R-4.10.1 Nourish, every pawn fed, and the order row reads out who is next',
+    'nourish-fed',
+    async (table) => {
+        const pawns = table.panel().locator('[data-nourish-pawn]')
+        await expect(pawns).toHaveCount(3)
+        await expect(table.panel().locator('[data-nourish-pawn][data-unfed]')).toHaveCount(0)
+        await expect(table.primary()).toHaveAccessibleName('Feed 3 pawns · 3 food')
+        expect(Object.values(await table.litChips())).toEqual(['1 food', '1 food', '1 food'])
+        // The order row's status is read out at every width, the phone's dots too.
+        expect(await table.panel().locator('[data-order-seat="Ana"]').ariaSnapshot()).toMatch(
+            /Ana.*next/s
         )
-        await expect(table.primary().locator('[data-send-phone]')).toHaveText(
-            /^Feed 3\s*·\s*food\s*3\s*$/
-        )
-        // No preview path beside each feed, and the send stays in sight in the action area's cap.
-        await expect(table.panel().locator('[data-nourish-rows] [data-preview]')).toHaveCount(6)
-        for (const preview of await table
-            .panel()
-            .locator('[data-nourish-rows] [data-preview]')
-            .all()) {
-            await expect(preview).toBeHidden()
+        if (table.phone) {
+            // Contract, Phone layout: compact rows within the width, the order row as dots, the send as art.
+            const width = table.page.viewportSize()?.width ?? 0
+            for (const box of await pawns.evaluateAll((all) =>
+                all.map((one) => one.getBoundingClientRect().right)
+            )) {
+                expect(box).toBeLessThanOrEqual(width)
+            }
+            await expect(
+                table.panel().locator('[data-order-seat="Ana"] [data-phone-word]')
+            ).toHaveText('you')
+            await expect(table.primary().locator('[data-send-phone]')).toHaveText(
+                /^Feed 3\s*·\s*food\s*3\s*$/
+            )
+            // No preview path beside each feed, and the send stays in sight in the action area's cap.
+            await expect(table.panel().locator('[data-nourish-rows] [data-preview]')).toHaveCount(6)
+            for (const preview of await table
+                .panel()
+                .locator('[data-nourish-rows] [data-preview]')
+                .all()) {
+                await expect(preview).toBeHidden()
+            }
+            await expect(table.primary()).toBeInViewport({ ratio: 1 })
+        } else {
+            await expect(table.panel().locator('[data-nourish-pays]')).toContainText('you keep')
+            await expect(table.primary()).toHaveText('Feed 3 pawns · 3 food')
         }
-        await expect(table.primary()).toBeInViewport({ ratio: 1 })
-    } else {
-        await expect(table.panel().locator('[data-nourish-pays]')).toContainText('you keep')
-        await expect(table.primary()).toHaveText('Feed 3 pawns · 3 food')
+        const flights = await table.flightsOf(() => table.press(table.primary()))
+        expect(flights).toEqual(expect.arrayContaining(['goods: food']))
     }
-    const flights = await table.flightsOf(() => table.press(table.primary()))
-    expect(flights).toEqual(expect.arrayContaining(['goods: food']))
-})
+)
 
 /** Every face the die shows from now until the table settles, in order. */
 async function dieFacesOf(table: ScenarioTable, press: () => Promise<void>): Promise<string[]> {
