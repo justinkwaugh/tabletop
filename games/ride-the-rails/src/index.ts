@@ -1,3 +1,5 @@
+export * from './data/hexes.js'
+export * from './data/usaMap.js'
 export * from './definition/actions.js'
 export * from './definition/definition.js'
 export * from './definition/info.js'
