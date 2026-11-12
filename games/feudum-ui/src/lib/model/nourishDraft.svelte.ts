@@ -9,7 +9,7 @@ import {
     type SpaceId,
     type WildTileSpend
 } from '@tabletop/feudum'
-import { pawnTarget, type BoardTarget, type StagePick } from './boardOffer.js'
+import { pawnTarget, type BoardTarget, type ChipNote, type StagePick } from './boardOffer.js'
 import { spaceLabel, type FlowPick, type FlowPlay } from './cardFlows.js'
 import type { TurnContext } from './cardModes.js'
 import { DeciderDraft, draftChoice, playUnless, type DraftChoice } from './deciderDraft.svelte.js'
@@ -36,19 +36,102 @@ export type Feed = 'food' | 'wine' | 'unfed'
 const FeedOrder: readonly Feed[] = ['food', 'wine', 'unfed']
 const FeedLabels: Readonly<Record<Feed, string>> = { food: 'Food', wine: 'Wine', unfed: 'Unfed' }
 
+/** Contract, Round end: each feed as its piece and its words, and what it means beneath them. */
+const FeedShown: Readonly<Record<Feed, string>> = { food: '1 food', wine: 'wine', unfed: 'unfed' }
+const FeedCaptions: Readonly<Record<Feed, string>> = {
+    food: 'to the haversack',
+    // R-4.10.2 Wine feeds this round and the next; next round the pawn's own strength is 0.
+    wine: 'feeds 2 rounds · 0 strength next round',
+    // R-4.10.1 The unfed pawn goes home; R-3.6-H1 its vessel stays on the space.
+    unfed: 'back to your supply · its vessel stays'
+}
+/** R-4.10.1 What a feed reads when there is none of it to give. */
+const FeedEmpty: Readonly<Record<'food' | 'wine', string>> = {
+    food: 'none left',
+    wine: 'barrel empty'
+}
+const FeedArt = { food: 'food', wine: 'sulfur' } as const
+
+/** R-4.10.1, R-4.10-H3 The rule for an unfed pawn, said once beside the rows. */
+export const UnfedRule =
+    'Every pawn must eat if you can feed it. A pawn left unfed goes back to your supply; its vessel stays on the space.'
+
+/** R-4.3.3 The tile line: shown only when food and wine fall short and a tile could cover it. */
+export const CoverLine = 'a tile can feed one'
+
+/**
+ * One feed for one pawn. `spent` is a feed every unit of which another pawn eats: a press still
+ * moves it here, and the pawn pressed into it last takes this one's feed (R-4.10.1).
+ */
+export interface NourishOption extends DraftChoice {
+    readonly feed: Feed
+    readonly caption: string
+    readonly spent: boolean
+    /** The good the feed pays, drawn: R-4.10.2 wine is a barrel's sulfur. */
+    readonly good?: 'food' | 'sulfur'
+}
+
 export interface NourishPawnRow {
     readonly n: PawnNumber
     readonly character: GuildId
     readonly spaceId: SpaceId
+    /** The pawn's character, as a name. */
+    readonly name: string
+    /** The space it stands on. */
+    readonly place: string
     readonly label: string
     readonly feed: Feed
-    readonly choices: readonly DraftChoice[]
+    readonly unfed: boolean
+    readonly choices: readonly NourishOption[]
+}
+
+/** What the feeding pays, and what the seat holds after it. */
+export interface NourishSummary {
+    readonly pays: { readonly food: number; readonly wine: number }
+    readonly keeps: { readonly food: number; readonly barrel: number }
+}
+
+/** The send's counts, which a phone draws as art. */
+export interface NourishSend {
+    readonly fed: number
+    readonly food: number
+    readonly wine: number
 }
 
 export interface NourishPanel {
     readonly pawns: readonly NourishPawnRow[]
     readonly covers?: readonly DraftChoice[]
+    readonly coverLine?: string
+    readonly summary: NourishSummary
+    readonly rule: string
+    readonly send: NourishSend
     readonly primary: TurnPrimary
+}
+
+function titled(word: string): string {
+    return `${word.charAt(0).toUpperCase()}${word.slice(1)}`
+}
+
+/**
+ * R-4.10.1 The send names how many pawns eat and with what, and any pawn left: "Feed 2 pawns · 2
+ * food", "Feed 1 · leave the merchant".
+ */
+function sendLabel({ fed, food, wine }: NourishSend, left: readonly GuildId[]): string {
+    if (left.length === 0) {
+        const paid = [...(food > 0 ? [`${food} food`] : []), ...(wine > 0 ? [`${wine} wine`] : [])]
+        return [`Feed ${fed} ${fed === 1 ? 'pawn' : 'pawns'}`, ...paid].join(' · ')
+    }
+    const leave = left.length === 1 ? `the ${left[0]}` : `${left.length} pawns`
+    return fed > 0 ? `Feed ${fed} · leave ${leave}` : `Leave ${leave}`
+}
+
+/** R-4.10.1 The paid good drawn on a fed pawn's chip on the map. */
+function payChip(feed: 'food' | 'wine'): ChipNote {
+    return {
+        kind: 'role',
+        label: `1 ${feed}`,
+        art: [{ kind: 'good', good: FeedArt[feed], count: 1 }]
+    }
 }
 
 function feedOf({ wineFed, unfed }: Feeding, n: PawnNumber): Feed {
@@ -216,39 +299,67 @@ export class NourishDraft extends DeciderDraft<NourishValues> {
             return undefined
         }
         const room = capacities(offer)
-        const parts = [
-            ...(preview.food > 0 ? [`${preview.food} food`] : []),
-            ...(preview.wine > 0 ? [`${preview.wine} wine`] : [])
-        ]
+        const feedOfPawn = (n: PawnNumber) => feedOf(feeding, n)
+        const eating = (feed: Feed) => offer.pawns.filter(({ n }) => feedOfPawn(n) === feed).length
         const hasCover = offer.wildTileNeeded || (this.value('cover') ?? []).length > 0
+        const send: NourishSend = {
+            fed: offer.pawns.length - preview.unfed,
+            food: preview.food,
+            wine: preview.wine
+        }
+        const left = offer.pawns.filter(({ n }) => feedOfPawn(n) === 'unfed')
+        // R-4.10-H3 Food and wine always stand; "Unfed" only when both fall short.
+        const shown = FeedOrder.filter((one) => one !== 'unfed' || room.unfed > 0)
         return {
             pawns: offer.pawns.map(({ n, character, spaceId }) => {
-                const feed = feedOf(feeding, n)
+                const feed = feedOfPawn(n)
                 return {
                     n,
                     character,
                     spaceId,
+                    name: titled(character),
+                    place: spaceLabel(spaceId),
                     label: `${character} at ${spaceLabel(spaceId)}`,
                     feed,
-                    choices: FeedOrder.filter((one) => room[one] > 0).map((one) => ({
-                        ...draftChoice(
-                            FeedLabels[one],
-                            feed === one,
-                            () => {
-                                this.pressFeed(n, one)
-                            },
-                            undefined,
-                            one === 'unfed'
-                                ? { kind: 'threat', label: 'returns to supply' }
-                                : undefined
-                        ),
-                        lights: () => [pawnTarget(context.playerId, n)]
-                    }))
+                    unfed: feed === 'unfed',
+                    choices: shown.map((one): NourishOption => {
+                        const empty = one !== 'unfed' && room[one] === 0
+                        const spent = feed !== one && !empty && eating(one) >= room[one]
+                        const refusal = one !== 'unfed' && empty ? FeedEmpty[one] : undefined
+                        return {
+                            ...draftChoice(
+                                FeedLabels[one],
+                                feed === one,
+                                () => {
+                                    this.pressFeed(n, one)
+                                },
+                                refusal
+                            ),
+                            ...(one === 'unfed' ? {} : { good: FeedArt[one] }),
+                            shown: FeedShown[one],
+                            feed: one,
+                            caption:
+                                one !== 'unfed' && (empty || spent)
+                                    ? FeedEmpty[one]
+                                    : FeedCaptions[one],
+                            spent,
+                            lights: () => [pawnTarget(context.playerId, n)]
+                        }
+                    })
                 }
             }),
-            ...(hasCover ? { covers: this.coverRows(context, offer) } : {}),
+            ...(hasCover ? { covers: this.coverRows(context, offer), coverLine: CoverLine } : {}),
+            summary: {
+                pays: { food: preview.food, wine: preview.wine },
+                keeps: { food: offer.food - preview.food, barrel: offer.barrel - preview.wine }
+            },
+            rule: UnfedRule,
+            send,
             primary: {
-                label: `Feed: ${parts.length > 0 ? parts.join(', ') : 'none'}`,
+                label: sendLabel(
+                    send,
+                    left.map(({ character }) => character)
+                ),
                 enabled: this.play !== undefined
             }
         }
@@ -269,9 +380,11 @@ export class NourishDraft extends DeciderDraft<NourishValues> {
             const next = feeds[(feeds.indexOf(feed) + 1) % feeds.length]
             return {
                 target: pawnTarget(context.playerId, n),
-                ...(feed === 'unfed'
-                    ? { notes: [{ kind: 'threat' as const, label: 'returns to supply' }] }
-                    : {}),
+                notes: [
+                    feed === 'unfed'
+                        ? { kind: 'threat' as const, label: 'returns to supply' }
+                        : payChip(feed)
+                ],
                 press: () => {
                     this.pressFeed(n, next)
                 }

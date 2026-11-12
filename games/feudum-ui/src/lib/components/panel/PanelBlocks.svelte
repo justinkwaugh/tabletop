@@ -8,6 +8,7 @@
     import FinaliseRow from './FinaliseRow.svelte'
     import GameEndSummary from './GameEndSummary.svelte'
     import GoodCounts from './GoodCounts.svelte'
+    import NourishPicker from './NourishPicker.svelte'
     import OrderRow from './OrderRow.svelte'
     import PrimaryButton from './PrimaryButton.svelte'
     import RowChoice from './RowChoice.svelte'
@@ -123,7 +124,7 @@
     {:else if block.kind === 'backs'}
         <WritBacks count={block.count} />
     {:else if block.kind === 'order-row'}
-        <OrderRow step={block.step} entries={block.entries} seats={block.seats} />
+        <OrderRow step={block.step} entries={block.entries} seats={block.seats} me={block.me} />
     {:else if block.kind === 'dawn-sheet'}
         <DawnSheet sheet={block.sheet} seats={block.seats} />
     {:else if block.kind === 'game-end'}
@@ -152,6 +153,8 @@
         {#if !layout.phone}
             <TradePickerLayer {block} />
         {/if}
+    {:else if block.kind === 'nourish-picker'}
+        <NourishPicker {block} {pointer} />
     {:else if block.kind === 'tally'}
         <CombatTally lines={block.lines} note={block.note} />
     {:else if block.kind === 'primary' && list[index - 1]?.kind !== 'primary'}

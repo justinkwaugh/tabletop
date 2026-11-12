@@ -154,10 +154,16 @@ test('S52 the writ limit: faces, the primary and the at-will row', async ({ page
     await shot(page, 'S52-writ-limit')
 })
 
-test('S53 nourish: the order row, the feeds, and a row brightens its pawn', async ({ page }) => {
+test('S53 nourish: the order row, the picker, and a feed brightens its pawn', async ({ page }) => {
     await openTable(page, `openNourishTable('seat')`)
     await expect(panel(page).locator('[data-order-row="nourish"]')).toBeVisible()
-    await expect(primary(page)).toContainText('Feed:')
+    // Contract, Round end: the summary stands beside the rows, and holds the send.
+    const rows = panel(page).locator('[data-nourish-rows]')
+    const summary = panel(page).locator('[data-nourish-summary]')
+    const [rowsBox, summaryBox] = [await rows.boundingBox(), await summary.boundingBox()]
+    expect(summaryBox && rowsBox && summaryBox.x >= rowsBox.x + rowsBox.width).toBe(true)
+    await expect(summary.locator('[data-primary]')).toHaveText(/^Feed 2 · leave the /)
+    await expect(panel(page).locator('[data-nourish-pawn] [data-pawn-cube]')).toHaveCount(3)
     await panel(page).getByRole('button', { name: 'Unfed' }).first().hover()
     await expect(lit(page).first()).toBeAttached()
     await shot(page, 'S53-nourish')

@@ -259,7 +259,7 @@ describe('Render ownership: each shared row reads the same for every seat', () =
         )
     })
 
-    it('S53 the nourish row: ticks and "fed by the game", the same above the panel and in waiting', async () => {
+    it('S53 the nourish row: ticks and "nothing to decide", the same above the panel and in waiting', async () => {
         const table = hold(
             await atNourishing((state, { seat }) => {
                 threePawns(state, seat)
@@ -277,7 +277,10 @@ describe('Render ownership: each shared row reads the same for every seat', () =
             done: false
         })
         expect(row?.entries.find(({ playerId }) => playerId === table.other)?.done).toBe(true)
-        expect(plain(blockOf(table.session.actionPanel, 'order-row'))).toEqual(plain(row))
+        // Only the viewer differs: a phone's row says "you" on its own seat.
+        const own = blockOf(table.session.actionPanel, 'order-row')
+        expect([own?.me, row?.me]).toEqual([table.seat, table.other])
+        expect(plain({ ...own, me: undefined })).toEqual(plain({ ...row, me: undefined }))
         const name = other.getPlayerName(table.seat)
         expect(linesOf(other.actionPanel, 'waiting')[0]).toContain(name)
         expect(other.actionPanel.blocks[0]).toMatchObject({ kind: 'line', role: 'waiting' })
@@ -289,7 +292,10 @@ describe('Render ownership: each shared row reads the same for every seat', () =
         await settled(other)
         const row = blockOf(other.actionPanel, 'order-row')
         expect(row?.step).toBe('landscapes')
-        expect(plain(blockOf(table.session.actionPanel, 'order-row'))).toEqual(plain(row))
+        // Only the viewer differs: a phone's row says "you" on its own seat.
+        const own = blockOf(table.session.actionPanel, 'order-row')
+        expect([own?.me, row?.me]).toEqual([table.seat, table.other])
+        expect(plain({ ...own, me: undefined })).toEqual(plain({ ...row, me: undefined }))
     })
 
     it('R-3.1 the finalise row: the same for the finaliser and those waiting', async () => {
