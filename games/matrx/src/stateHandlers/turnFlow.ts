@@ -36,25 +36,23 @@ export function continueResolving(state: HydratedMatrxGameState): MachineState {
         }
         state.resolvingPlayerIds.shift()
     }
-    const playerId = state.turnManager.currentTurn()?.playerId
-    assertExists(playerId, 'A turn is in progress')
-    return state.movedThisTurn ? endTurn(state, playerId) : beginTurn(state, playerId)
+    return endTurn(state)
 }
 
-function endTurn(state: HydratedMatrxGameState, playerId: string): MachineState {
+// Rows are only taken after the turn's regular move, so taking the last one ends the turn.
+function endTurn(state: HydratedMatrxGameState): MachineState {
     const { turnManager } = state
+    const playerId = turnManager.currentTurn()?.playerId
+    assertExists(playerId, 'A turn is in progress')
     turnManager.endTurn(state.actionCount)
     turnManager.startNextTurn(state.actionCount)
     state.movedThisTurn = false
     return beginTurn(state, state.opponentOf(playerId))
 }
 
-// Rules E7 and H1: a turn opens with the player's own rows, then an extra move the opponent gave.
+// Rule H1: a turn opens with an extra move the opponent gave. Both players' rows were taken
+// after the last move, so none stand when a turn begins.
 function beginTurn(state: HydratedMatrxGameState, playerId: string): MachineState {
-    if (state.board.rowsOf(playerId).length > 0) {
-        state.resolvingPlayerIds = [playerId]
-        return MachineState.ResolvingRows
-    }
     const owed = state.extraMoveOwedIds.includes(playerId)
     state.extraMoveOwedIds = state.extraMoveOwedIds.filter((owedId) => owedId !== playerId)
     if (owed && state.ownTamskOnCentre(playerId)) {

@@ -409,6 +409,24 @@ describe('rows', () => {
         expect(state.activePlayerIds).toEqual([B])
     })
 
+    it('a row of five stacks broken at one end leaves four, which must be taken again', () => {
+        const game = createGame()
+        let state = withPieces(start(game), [
+            ...KEEPERS,
+            ['E3', [pair(W, PieceKind.Yinsh)]],
+            ['E4', [pair(W, PieceKind.Yinsh)]],
+            ['E5', [pair(W, PieceKind.Zertz)]],
+            ['E6', [pair(W, PieceKind.Zertz)]]
+        ])
+        state = push(game, state, W, 'E1', 'E2', PieceKind.Yinsh)
+        state = removeRow(game, state, W, 'E2', 'E6', ['E2', 'E3', 'E4', 'E5'])
+        expect(state.machineState).toBe(MachineState.ResolvingRows)
+        expect(state.activePlayerIds).toEqual([W])
+        state = removeRow(game, state, W, 'E2', 'E5', ['E3', 'E4', 'E5'])
+        expect(stackAt(state, 'E2')).toEqual([])
+        expect(state.activePlayerIds).toEqual([B])
+    })
+
     it('removing a covering piece can uncover a new row, which must go too', () => {
         const game = createGame()
         let state = withPieces(start(game), [
@@ -516,6 +534,41 @@ describe('TAMSK', () => {
         expect(state.activePlayerIds).toEqual([W])
     })
 
+    it('an extra move the opponent gave is made only if the stack still stands on E5', () => {
+        const game = createGame()
+        const owed = (centre: Piece) => {
+            const state = withPieces(start(game), [...KEEPERS, ['E5', [centre]]])
+            state.extraMoveOwedIds = [B]
+            return push(game, state, W, 'A1', 'B2', PieceKind.Yinsh)
+        }
+        const kept = owed(pair(B, PieceKind.Tamsk))
+        expect(kept.machineState).toBe(MachineState.ExtraMove)
+        expect(kept.activePlayerIds).toEqual([B])
+        const lost = owed(single(B, PieceKind.Tamsk))
+        expect(lost.machineState).toBe(MachineState.TakingTurn)
+        expect(lost.activePlayerIds).toEqual([B])
+        expect(lost.extraMoveOwedIds).toEqual([])
+    })
+
+    it('rows an extra move before the regular move makes wait for the regular move', () => {
+        const game = createGame()
+        let state = withPieces(start(game), [
+            ...KEEPERS,
+            ['E5', [pair(B, PieceKind.Tamsk)]],
+            ['I2', [single(B, PieceKind.Yinsh)]],
+            ['G4', [single(B, PieceKind.Yinsh)]]
+        ])
+        state.extraMoveOwedIds = [B]
+        state = push(game, state, W, 'A1', 'B2', PieceKind.Yinsh)
+        state = extraMove(game, state, B, 'J1', 'I2')
+        expect(boardOf(state).rowsOf(B)).toHaveLength(1)
+        expect(state.machineState).toBe(MachineState.TakingTurn)
+        expect(state.activePlayerIds).toEqual([B])
+        state = push(game, state, B, 'E9', 'E8', PieceKind.Yinsh)
+        expect(state.machineState).toBe(MachineState.ResolvingRows)
+        expect(state.activePlayerIds).toEqual([B])
+    })
+
     it('an extra move that puts another own TAMSK stack on E5 earns another', () => {
         const game = createGame()
         let state = withPieces(start(game), [
@@ -547,6 +600,9 @@ describe('end of game', () => {
         const game = createGame()
         let state = withPieces(start(game), [
             ...KEEPERS.filter(([, [unit]]) => unit.playerId === W),
+            ['C3', [single(W, PieceKind.Dvonn)]],
+            ['C4', [single(W, PieceKind.Dvonn)]],
+            ['C5', [single(W, PieceKind.Dvonn)]],
             ['E3', [single(W, PieceKind.Yinsh)]],
             ['E4', [single(W, PieceKind.Yinsh)]],
             ['E5', [single(W, PieceKind.Yinsh)]],
@@ -554,6 +610,8 @@ describe('end of game', () => {
         ])
         state = push(game, state, W, 'E1', 'E2', PieceKind.Yinsh)
         state = removeRow(game, state, W, 'E2', 'E5', ['E2'])
+        // The game ends at once, with the other row still standing.
+        expect(boardOf(state).rowsOf(W)).toHaveLength(1)
         expect(state.machineState).toBe(MachineState.EndOfGame)
         expect(state.result).toBe(GameResult.Win)
         expect(state.winningPlayerIds).toEqual([W])
