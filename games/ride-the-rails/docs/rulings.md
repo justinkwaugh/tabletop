@@ -9,7 +9,7 @@ Rules version: the 2020 rulebook (USA map). Each ruling names the question in `o
 ### Components and setup (R-1)
 
 - **R-1.1-H1** (Q6), _provisional_: the 27 locomotives of each colour are a hard limit on shares and track together. Once every locomotive of a colour is on player boards and the map, no more shares of that railroad can be taken and no more of its track built; phase 1's "must take" means one of an available railroad that still has locomotives in the supply. Rejected: an unlimited supply. Spec: `supply.spec.ts` (the count), `takeShare.spec.ts` (a share from an empty supply), `placement.spec.ts` (track from an empty supply).
-- **R-1.2-H1** (Q2): the game takes 3 to 5 players, as printed. Rejected: an unofficial 2- or 6-player mode, for which the rules give no placement limits. Spec: `initializer.spec.ts`.
+- **R-1.2-H1** (Q2): the game takes 3 to 5 players, as printed. Rejected: an unofficial 2- or 6-player mode, for which the rules give no placement limits. Spec: `initializer.spec.ts`, `competition.spec.ts`.
 - **R-1.3-H1** (Q3): setup places one passenger on every city. The USA map has 51 cities and the box 52 passengers, so the supply never runs short. Spec: `initializer.spec.ts`.
 
 ### Turn structure (R-2)
@@ -40,7 +40,7 @@ Rules version: the 2020 rulebook (USA map). Each ruling names the question in `o
 
 ### Game end (R-6)
 
-- **R-6.2-H1** (Q25): players tied for the most money share the win. Rejected: a tie-break by turn order or shares held. Spec: `scoring.spec.ts`.
+- **R-6.2-H1** (Q25): players tied for the most money share the win. Rejected: a tie-break by turn order or shares held. Spec: `scoring.spec.ts`, `competition.spec.ts`.
 
 ### Maps (R-8)
 

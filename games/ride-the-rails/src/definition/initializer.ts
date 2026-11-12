@@ -50,6 +50,9 @@ export class RideTheRailsGameInitializer
 
         const prng = new Prng(state.prng)
         const players = this.initializePlayers(game, prng)
+        // R-1.3.7, R-2.3: the turn order is drawn at random. An assigned starting order replaces
+        // it after the draw, so position zero is first in turn order, later positions follow,
+        // and the seat colours and every other draw match an unassigned game with the same seed.
         const turnManager = HydratedTurnManager.generate(players, prng.random, assignment)
         const orderedPlayers = turnManager.turnOrder.map((playerId) => {
             const player = players.find((candidate) => candidate.playerId === playerId)
@@ -78,7 +81,8 @@ export class RideTheRailsGameInitializer
         })
 
         const hydrated = new HydratedRideTheRailsGameState(rideTheRailsGameState)
-        // R-2.2: Take a Share runs in reverse turn order, so the last player acts first.
+        // R-2.2: Take a Share runs in reverse turn order, so the last player acts first, with an
+        // assigned order too; position zero acts first in Build and Ride.
         const firstPlayerId = turnManager.turnOrder.at(-1)
         assertExists(firstPlayerId, 'A game needs players')
         hydrated.turnManager.startTurn(firstPlayerId, state.actionCount)
