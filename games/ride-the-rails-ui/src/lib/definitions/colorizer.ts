@@ -1,67 +1,46 @@
 import { Color } from '@tabletop/common'
 import { DefaultColorizer } from '@tabletop/frontend-components'
+import { RideTheRailsSeatPalette } from './seatPalette.js'
+
+const DARK_INK_COLORS = new Set([Color.Pink, Color.White, Color.Gray])
+
+const BG_CLASSES: Partial<Record<Color, string>> = {
+    [Color.Green]: 'bg-[#15736e]',
+    [Color.Pink]: 'bg-[#f2a0d6]',
+    [Color.White]: 'bg-[#f4f4f0]',
+    [Color.Brown]: 'bg-[#6e4126]',
+    [Color.Gray]: 'bg-[#8c939b]'
+}
+
+const BORDER_CLASSES: Partial<Record<Color, string>> = {
+    [Color.Green]: 'border-[#15736e]',
+    [Color.Pink]: 'border-[#f2a0d6]',
+    [Color.White]: 'border-[#f4f4f0]',
+    [Color.Brown]: 'border-[#6e4126]',
+    [Color.Gray]: 'border-[#8c939b]'
+}
 
 export class RideTheRailsGameColorizer extends DefaultColorizer {
-    override getUiColor(color?: string): string {
-        switch (color) {
-            case Color.Blue:
-                return '#539ad1'
-            case Color.Red:
-                return '#e55649'
-            case Color.Yellow:
-                return '#f3c244'
-            case Color.Green:
-                return '#63b878'
-            case Color.Purple:
-                return '#804796'
-            case Color.Gray:
-                return '#888888'
-            case Color.Black:
-                return '#444444'
-            default:
-                return '#555555'
-        }
+    override getUiColor(color?: Color): string {
+        return (color && RideTheRailsSeatPalette[color]?.fill) ?? super.getUiColor(color)
     }
 
-    override getBgColor(color?: string): string {
-        switch (color) {
-            case Color.Blue:
-                return 'bg-[#539ad1]'
-            case Color.Red:
-                return 'bg-[#e55649]'
-            case Color.Yellow:
-                return 'bg-[#f3c244]'
-            case Color.Green:
-                return 'bg-[#63b878]'
-            case Color.Purple:
-                return 'bg-[#804796]'
-            case Color.Gray:
-                return 'bg-[#aaaaaa]'
-            case Color.Black:
-                return 'bg-[#444444]'
-            default:
-                return 'bg-[#555555]'
-        }
+    override getBgColor(color?: Color): string {
+        return (color && BG_CLASSES[color]) ?? super.getBgColor(color)
     }
 
-    override getBorderColor(color?: string): string {
-        switch (color) {
-            case Color.Blue:
-                return 'border-[#539ad1]'
-            case Color.Red:
-                return 'border-[#e55649]'
-            case Color.Yellow:
-                return 'border-[#f3c244]'
-            case Color.Green:
-                return 'border-[#63b878]'
-            case Color.Purple:
-                return 'border-[#804796]'
-            case Color.Gray:
-                return 'border-[#888888]'
-            case Color.Black:
-                return 'border-[#444444]'
-            default:
-                return 'border-[#555555]'
+    override getBorderColor(color?: Color): string {
+        return (color && BORDER_CLASSES[color]) ?? super.getBorderColor(color)
+    }
+
+    override getTextColor(color?: Color, asPlayerColor: boolean = false): string {
+        if (asPlayerColor || !color) {
+            return super.getTextColor(color, asPlayerColor)
         }
+        return DARK_INK_COLORS.has(color) ? 'text-[#1b1b1b]' : 'text-white'
+    }
+
+    override getBorderContrastColor(color?: Color): string {
+        return color && DARK_INK_COLORS.has(color) ? 'border-[#1b1b1b]' : 'border-white'
     }
 }

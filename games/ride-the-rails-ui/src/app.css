@@ -27,6 +27,131 @@
     --color-secondary-900: #0c4a6e;
 }
 
+/* Ride the Rails' palette: the art plan's "Palette" section. Components name these, never a raw
+   colour. The scope plugin in postcss.config.js rewrites `:root` to the title root,
+   `[data-game-ui="ride-the-rails"]`. The site keeps `.dark` on its document, above the title root,
+   so the dark values apply to a root inside its scope. */
+:root {
+    --rtr-table: #dcd3be;
+    --rtr-sea: #b9cdd6;
+    --rtr-plain: #efe6cf;
+    --rtr-mountain: #c9b593;
+    --rtr-mountain-ink: #7a6648;
+    --rtr-hex-edge: #cdbf9f;
+    --rtr-station: #ffffff;
+    --rtr-station-ink: #2b2b2b;
+    --rtr-panel: #f6f1e4;
+    --rtr-panel-raised: #fffdf7;
+    --rtr-line: #bdb29a;
+    --rtr-ink: #2a2a2a;
+    --rtr-ink-muted: #6b6458;
+    --rtr-ink-light: #ffffff;
+    --rtr-accent: #d18e0f;
+    --rtr-accent-fill: #e8a31733;
+    --rtr-accent-start: #d18e0f80;
+    --rtr-cost: #c8506a;
+    --rtr-halo: #1b1b1b;
+    --rtr-scrim: #1b1b1b73;
+    --rtr-coin: #d7b44a;
+    --rtr-five: #3f8f4f;
+    --rtr-gold: #b9851f;
+    --rtr-railroad-red: #c8372d;
+    --rtr-railroad-blue: #2f6db5;
+    --rtr-railroad-orange: #e5892a;
+    --rtr-railroad-yellow: #ebcb3c;
+    --rtr-railroad-purple: #7e4fa3;
+    --rtr-railroad-black: #24262b;
+    --rtr-railroad-red-ink: var(--rtr-ink-light);
+    --rtr-railroad-blue-ink: var(--rtr-ink-light);
+    --rtr-railroad-orange-ink: var(--rtr-halo);
+    --rtr-railroad-yellow-ink: var(--rtr-halo);
+    --rtr-railroad-purple-ink: var(--rtr-ink-light);
+    --rtr-railroad-black-ink: var(--rtr-ink-light);
+}
+
+@scope (.dark) {
+    :root {
+        --rtr-table: #1e2328;
+        --rtr-sea: #22343d;
+        --rtr-plain: #3a3a33;
+        --rtr-mountain: #57503f;
+        --rtr-mountain-ink: #9c8b6c;
+        --rtr-hex-edge: #4a4638;
+        --rtr-station: #e8e2d2;
+        --rtr-station-ink: #1b1b1b;
+        --rtr-panel: #2a2f35;
+        --rtr-panel-raised: #343a41;
+        --rtr-line: #4b525a;
+        --rtr-ink: #ece7dc;
+        --rtr-ink-muted: #a8a193;
+        --rtr-ink-light: #ffffff;
+        --rtr-accent: #f2b33d;
+        --rtr-accent-fill: #f2b33d33;
+        --rtr-accent-start: #f2b33d80;
+        --rtr-cost: #e36f88;
+        --rtr-halo: #0d0d0d;
+        --rtr-scrim: #00000099;
+        --rtr-coin: #e2c25e;
+        --rtr-five: #5db26c;
+        --rtr-gold: #d9a43a;
+        --rtr-railroad-red: #d9473c;
+        --rtr-railroad-blue: #4a86cf;
+        --rtr-railroad-orange: #ee9a3e;
+        --rtr-railroad-yellow: #f0d555;
+        --rtr-railroad-purple: #9668bc;
+        --rtr-railroad-black: #24262b;
+        --rtr-railroad-red-ink: var(--rtr-halo);
+        --rtr-railroad-blue-ink: var(--rtr-halo);
+        --rtr-railroad-orange-ink: var(--rtr-halo);
+        --rtr-railroad-yellow-ink: var(--rtr-halo);
+        --rtr-railroad-purple-ink: var(--rtr-halo);
+        --rtr-railroad-black-ink: var(--rtr-ink-light);
+    }
+}
+
+@theme inline {
+    --color-rtr-table: var(--rtr-table);
+    --color-rtr-sea: var(--rtr-sea);
+    --color-rtr-plain: var(--rtr-plain);
+    --color-rtr-mountain: var(--rtr-mountain);
+    --color-rtr-mountain-ink: var(--rtr-mountain-ink);
+    --color-rtr-hex-edge: var(--rtr-hex-edge);
+    --color-rtr-station: var(--rtr-station);
+    --color-rtr-station-ink: var(--rtr-station-ink);
+    --color-rtr-panel: var(--rtr-panel);
+    --color-rtr-panel-raised: var(--rtr-panel-raised);
+    --color-rtr-line: var(--rtr-line);
+    --color-rtr-ink: var(--rtr-ink);
+    --color-rtr-ink-muted: var(--rtr-ink-muted);
+    --color-rtr-ink-light: var(--rtr-ink-light);
+    --color-rtr-accent: var(--rtr-accent);
+    --color-rtr-accent-fill: var(--rtr-accent-fill);
+    --color-rtr-accent-start: var(--rtr-accent-start);
+    --color-rtr-cost: var(--rtr-cost);
+    --color-rtr-halo: var(--rtr-halo);
+    --color-rtr-scrim: var(--rtr-scrim);
+    --color-rtr-coin: var(--rtr-coin);
+    --color-rtr-five: var(--rtr-five);
+    --color-rtr-gold: var(--rtr-gold);
+    --color-rtr-railroad-red: var(--rtr-railroad-red);
+    --color-rtr-railroad-blue: var(--rtr-railroad-blue);
+    --color-rtr-railroad-orange: var(--rtr-railroad-orange);
+    --color-rtr-railroad-yellow: var(--rtr-railroad-yellow);
+    --color-rtr-railroad-purple: var(--rtr-railroad-purple);
+    --color-rtr-railroad-black: var(--rtr-railroad-black);
+    --color-rtr-railroad-red-ink: var(--rtr-railroad-red-ink);
+    --color-rtr-railroad-blue-ink: var(--rtr-railroad-blue-ink);
+    --color-rtr-railroad-orange-ink: var(--rtr-railroad-orange-ink);
+    --color-rtr-railroad-yellow-ink: var(--rtr-railroad-yellow-ink);
+    --color-rtr-railroad-purple-ink: var(--rtr-railroad-purple-ink);
+    --color-rtr-railroad-black-ink: var(--rtr-railroad-black-ink);
+}
+
+.rtr-display {
+    font-family: 'Ride the Rails Display', 'Arial Narrow', sans-serif;
+    font-weight: 700;
+}
+
 @source "../node_modules/flowbite-svelte/dist";
 @source "../node_modules/flowbite-svelte-icons/dist";
 @source "../../../libs/frontend-components/src/**/*.{html,js,svelte,ts}";

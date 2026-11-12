@@ -4,6 +4,7 @@
         ScalingWrapper,
         DefaultSideContent,
         DefaultTableLayout,
+        CustomFont,
         GameSession
     } from '@tabletop/frontend-components'
     import type {
@@ -15,6 +16,8 @@
     import Board from '$lib/components/Board.svelte'
     import { RideTheRailsGameSession } from '$lib/model/session.svelte'
     import { setGameSession } from '$lib/model/sessionContext.svelte'
+    import { DisplayFontFamily } from '$lib/definitions/fonts.js'
+    import BigShouldersDisplayBold from '$lib/fonts/BigShouldersDisplay-Bold.woff2'
 
     let {
         gameSession
@@ -31,6 +34,13 @@
 
     setGameSession(untrack(() => ensureRideTheRailsGameSession(gameSession)))
 </script>
+
+<CustomFont
+    fontFamily={DisplayFontFamily}
+    url={BigShouldersDisplayBold}
+    format="woff2"
+    fontWeight="700"
+/>
 
 <div>
     <DefaultTableLayout>

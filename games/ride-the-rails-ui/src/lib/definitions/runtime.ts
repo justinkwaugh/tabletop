@@ -3,6 +3,7 @@ import type { HydratedRideTheRailsGameState, RideTheRailsGameState } from '@tabl
 import { RideTheRailsRuntime } from '@tabletop/ride-the-rails'
 import { mountDynamicComponent } from '@tabletop/frontend-components/utils/dynamicComponent'
 import { RideTheRailsGameColorizer } from './colorizer.js'
+import { RideTheRailsSeatPalette } from './seatPalette.js'
 import GameTable from '../components/GameTable.svelte'
 import { RideTheRailsGameSession } from '$lib/model/session.svelte.js'
 import '../../app.css'
@@ -18,5 +19,6 @@ export const RideTheRailsUiRuntime: GameUIRuntime<
         mount: mountDynamicComponent
     },
     sessionClass: RideTheRailsGameSession,
-    colorizer: new RideTheRailsGameColorizer()
+    colorizer: new RideTheRailsGameColorizer(),
+    playerColorPalette: RideTheRailsSeatPalette
 }

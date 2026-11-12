@@ -6,7 +6,7 @@ Every visual, its source, and the budget it must meet. What players see and pres
 
 ## Palette
 
-Colours are CSS custom properties in `src/app.css` of the UI package, scoped to `[data-game-ui="ride-the-rails"]`. Components use these tokens and never a raw colour; `palette.spec.ts` fails on a raw colour anywhere in the package.
+Colours are CSS custom properties in `src/app.css` of the UI package, scoped to `[data-game-ui="ride-the-rails"]`: the light values on the title root, the dark values on the same root inside `@scope (.dark)`, since the site keeps `.dark` on its document. Each token is also a Tailwind colour of the same name (`bg-rtr-panel`). Components use these tokens and never a raw colour; `palette.spec.ts` fails on a raw colour in any component.
 
 Two meanings are fixed across titles: **amber says "yours to act on"** (`--rtr-accent`) and **rose says "costs or threatens"** (`--rtr-cost`). Neither is ever a seat colour or a railroad colour.
 
@@ -25,6 +25,7 @@ Two meanings are fixed across titles: **amber says "yours to act on"** (`--rtr-a
 | `--rtr-line`            | Rules and panel borders                                                               | `#BDB29A`   | `#4B525A`   |
 | `--rtr-ink`             | Text on the table, panels and map                                                     | `#2A2A2A`   | `#ECE7DC`   |
 | `--rtr-ink-muted`       | Secondary text, disabled buttons                                                      | `#6B6458`   | `#A8A193`   |
+| `--rtr-ink-light`       | Monograms and initials on a dark fill                                                 | `#FFFFFF`   | `#FFFFFF`   |
 | `--rtr-accent`          | Yours to act on: lit and picked rings, the acting seat's outline                      | `#D18E0F`   | `#F2B33D`   |
 | `--rtr-accent-fill`     | The soft fill inside a lit hex                                                        | `#E8A31733` | `#F2B33D33` |
 | `--rtr-accent-start`    | The fainter ring on a city lit for a start only                                       | `#D18E0F80` | `#F2B33D80` |
@@ -41,11 +42,11 @@ Two meanings are fixed across titles: **amber says "yours to act on"** (`--rtr-a
 | `--rtr-railroad-purple` | Purple railroad                                                                       | `#7E4FA3`   | `#9668BC`   |
 | `--rtr-railroad-black`  | Black railroad                                                                        | `#24262B`   | `#24262B`   |
 
-The railroad colours are rule colours: they name the railroads in the rules (R-1.1) and appear only on railroad things (locomotives, pips, route links, strip entries, share rows).
+The railroad colours are rule colours: they name the railroads in the rules (R-1.1) and appear only on railroad things (locomotives, pips, route links, strip entries, share rows). Each has its monogram ink as a token too, `--rtr-railroad-<name>-ink`, set in each theme to `--rtr-ink-light` or `--rtr-halo`, whichever meets the contrast (Seat colours and colour blindness).
 
 ### Seat colours
 
-Seats take their colours from a set of their own, kept apart from the six railroad colours (Red, Blue, Orange, Yellow, Purple, Black) and from the amber pick colour, so a seat's bar, chip or marker is never read as a railroad or as "yours to act on". The game offers seats only these colours, and `gameSession.colors` assigns them; there are five, one per seat at the most (R-1.2). Each is one value in both themes: initials and edges take their ink by contrast (Seat colours and colour blindness).
+Seats take their colours from a set of their own, kept apart from the six railroad colours (Red, Blue, Orange, Yellow, Purple, Black) and from the amber pick colour, so a seat's bar, chip or marker is never read as a railroad or as "yours to act on". The game offers seats only these colours, and `gameSession.colors` assigns them; there are five, one per seat at the most (R-1.2). They are the platform colours Green (shown as Teal), Pink, White, Brown and Gray, given these values by `definitions/seatPalette.ts`, the runtime's `playerColorPalette`. Each is one value in both themes: initials and edges take their ink by contrast (Seat colours and colour blindness).
 
 | Seat colour | Value     | Nearest fixed colour (CIE76 ΔE) | Initials ink, contrast | Contrast notes                                                                                |
 | ----------- | --------- | ------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------- |
@@ -64,7 +65,7 @@ Seats take their colours from a set of their own, kept apart from the six railro
 | Big Shoulders Display, Bold 700, Latin subset, woff2 | The seat card's departure board (name, money figure, share counts), the round track's numerals, the title on the cover | `src/lib/fonts/BigShouldersDisplay-OFL.txt` (SIL Open Font License 1.1) |
 | The site's own text font, not shipped by the title   | Everything else: city names, panels, chips, popups, the log                                                            | none (the site's)                                                       |
 
-The file is `src/lib/fonts/BigShouldersDisplay-Bold.woff2`, declared under the title's own family name and loaded through `CustomFont`.
+The file is `src/lib/fonts/BigShouldersDisplay-Bold.woff2`, instanced at weight 700 from the family's variable font and subset to Latin. It is declared under the title's own family name, "Ride the Rails Display" (`definitions/fonts.ts`), and loaded through `CustomFont` in `GameTable`; the `rtr-display` class sets it.
 
 ## Board
 
@@ -123,12 +124,12 @@ One vocabulary for the map, the panel and the log (token text, as Oath's `TokenT
 - **Colour alone, zoomed out.** Below the zoom level where seat initials are drawn, colour is all that tells seats apart, which is why the set keeps its members well apart from one another as well as from the railroads and amber.
 - **Railroads never rely on colour alone.** Every locomotive and pip carries its monogram, the railroad strip and share buttons carry its name, and the hex detail lists railroads by name. Red against Orange and Blue against Purple are the pairs at risk; the monograms settle them.
 - **Seats and railroads never share a shape.** Seats are discs, bars, chips and card headers; railroads are locomotives, pips and route links.
-- **Ink by contrast.** A monogram or initials on a fill is dark or white, chosen from the fill's luminance so contrast is at least 4.5:1; Black's locomotive has a light edge on dark ground.
-- **Checks.** `ink.spec.ts` checks the monogram contrast on every railroad fill in both themes; `palette.spec.ts` checks that no two railroad colours are closer than a set colour difference, and that every seat colour keeps that difference from each railroad colour, from amber and from the other seat colours.
+- **Ink by contrast.** A monogram or initials on a fill is dark or white, chosen from the fill's luminance so contrast is at least 4.5:1; Black's locomotive has a light edge on dark ground. Monograms take `--rtr-railroad-<name>-ink`; in the dark theme Red, Blue and Purple reach 4.5:1 only with the darkest ink, `--rtr-halo`. Seat initials take the seat palette's `text`, white or `#1B1B1B`.
+- **Checks.** `ink.spec.ts` checks the monogram contrast on every railroad fill in both themes, and the initials contrast on every seat colour; `palette.spec.ts` checks that no two railroad colours are closer than a set colour difference (CIE76 ΔE 30), and that every seat colour keeps that difference from each railroad colour, from amber and from the other seat colours.
 
 ## Cover
 
-The catalog title image is `src/lib/images/cover.webp`, read by `info.thumbnailUrl`, shown at 150 px and 340 px high: 544 × 680 (4:5), lossy WebP, at most 120 KB. Composition: a band of hexes drawn from the map vocabulary crossing the image, a Red and a Blue locomotive meeting at a station, one passenger waiting, and "Ride the Rails" in Big Shoulders Display across the top third, readable at 150 px. It is rendered once from an SVG by `scripts/render-cover.mjs` in the UI package and committed with a README beside it stating how it was made.
+The catalog title image is `src/lib/images/cover.webp`, read by `info.thumbnailUrl`, shown at 150 px and 340 px high: 544 × 680 (4:5), lossy WebP, at most 120 KB. Composition: a band of hexes drawn from the map vocabulary crossing the image, a Red and a Blue locomotive meeting at a station, one passenger waiting, and "Ride the Rails" in Big Shoulders Display across the top third, readable at 150 px. It is rendered once from an SVG by `scripts/render-cover.mjs` in the UI package, in the palette's dark values, and committed with a README beside it stating how it was made.
 
 ## Supplied assets
 
@@ -138,7 +139,8 @@ The catalog title image is `src/lib/images/cover.webp`, read by `info.thumbnailU
 
 ## Specs that guard it
 
-- `palette.spec.ts`: every colour is a declared token; railroad colours stay apart; seat colours stay apart from them, from amber and from each other.
+- `palette.spec.ts`: every colour of the Palette is a declared token in both themes; no component names a raw colour; railroad colours stay apart; seat colours stay apart from them, from amber and from each other.
+- `images.spec.ts`: the title ships no image or font but the cover and the display font; the cover's size, encoding and weight; no base64 image; no SVG with a script, event attribute, `foreignObject` or external reference.
 - `boardGeometry.spec.ts`: every hex and city in the logic's map data has a position and a label anchor, no position names a hex the data lacks, the extents are the data's bounding box plus the fixed margin, and every margin box lies inside the board and covers no hex.
 - `trackLayout.spec.ts`: every capacity has slots for its locomotives.
 - `ink.spec.ts`: monogram and initials contrast.

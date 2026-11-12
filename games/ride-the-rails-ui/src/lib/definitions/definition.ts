@@ -4,7 +4,7 @@ import {
 } from '@tabletop/frontend-components/definition/gameUiDefinition'
 import { RideTheRailsInfo } from '@tabletop/ride-the-rails'
 import type { HydratedRideTheRailsGameState, RideTheRailsGameState } from '@tabletop/ride-the-rails'
-import coverImg from '$lib/images/cover.jpg'
+import coverImg from '$lib/images/cover.webp'
 
 export const UiDefinition: GameUiDefinition<RideTheRailsGameState, HydratedRideTheRailsGameState> =
     {
