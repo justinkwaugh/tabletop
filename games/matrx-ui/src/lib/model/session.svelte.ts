@@ -1,5 +1,6 @@
 import {
     GameSession,
+    undoableStagedSelection,
     type PresentedTransition,
     type TitlePreferences
 } from '@tabletop/frontend-components'
@@ -32,8 +33,8 @@ import {
     type Row
 } from '@tabletop/matrx'
 import {
-    hasManualMatrxSelection,
-    popMatrxSelection,
+    MatrxStageOrder,
+    pushMatrxKeep,
     setMatrxSelection,
     type MatrxSelection
 } from './stagedSelection.js'
@@ -41,12 +42,16 @@ import { viewOf, type BoardView } from '$lib/board/geometry.js'
 import { boardNotation, type BoardNotation } from '$lib/board/coordinates.js'
 import { discsOf, type BoardDisc } from '$lib/board/boardChange.js'
 
-export function includesCoords(list: readonly AxialCoordinates[], coords: AxialCoordinates) {
-    return list.some((candidate) => sameCoordinates(candidate, coords))
+// Lets the session stop the move the board animator is playing.
+export type MoveInterrupter = {
+    // Lands the move at once; the rest of its replay still plays.
+    interrupt(): void
+    // Lands it and drops the rest of its replay: another state is being shown.
+    abandon(): void
 }
 
-export function rowKey(row: Row): string {
-    return `${coordinatesToNumber(row.from)}|${coordinatesToNumber(row.to)}`
+export function includesCoords(list: readonly AxialCoordinates[], coords: AxialCoordinates) {
+    return list.some((candidate) => sameCoordinates(candidate, coords))
 }
 
 // The moves Undo walks back through one choice at a time: a push or extra move returns its piece
@@ -57,13 +62,36 @@ function isStepBack(action: GameAction): action is StepBack {
     return isPushPiece(action) || isExtraMove(action) || isMovePotential(action)
 }
 
+type SessionOptions = ConstructorParameters<
+    typeof GameSession<MatrxGameState, HydratedMatrxGameState>
+>[0]
+
 export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxGameState> {
     selection: MatrxSelection = $state({})
+    // Anyone but the selection's owner, as the harness's Non-active view can be after an Undo,
+    // sees none of it, and Undo passes it by.
+    private selectionOwner: string | undefined = $state()
+    private ownSelection: MatrxSelection = $derived(
+        this.selectionOwner !== undefined && this.selectionOwner === this.myPlayer?.id
+            ? this.selection
+            : {}
+    )
     // The kind you last chose to bring in, kept from turn to turn.
     preferredKind: PieceKind | undefined = $state()
-    // The move being undone, and the move history last stepped to.
     undoingMove: StepBack | undefined
     historyMove: StepBack | undefined
+    moveInterrupter: MoveInterrupter | undefined
+
+    constructor(options: SessionOptions) {
+        super(options)
+        this.localSelections.register(
+            undoableStagedSelection(
+                MatrxStageOrder,
+                () => this.ownSelection,
+                (selection) => (this.selection = selection)
+            )
+        )
+    }
 
     readonly preferences: TitlePreferences<typeof MatrxPreferences> =
         this.createPreferences(MatrxPreferenceDefinition)
@@ -83,7 +111,9 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
     // The board seen from the far side, half a turn round, to see behind tall stacks.
     turned: boolean = $derived(this.preferences.values.turned)
 
+    // A move's motion is laid out in the view it started in, so turning the board lands it.
     toggleTurned() {
+        this.moveInterrupter?.interrupt()
         this.preferences.set({ turned: !this.turned })
     }
 
@@ -142,7 +172,7 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
     })
 
     chosenDot: AxialCoordinates | undefined = $derived.by(() => {
-        const manual = this.selection.dot?.value
+        const manual = this.ownSelection.dot?.value
         return manual !== undefined && includesCoords(this.entryDots, manual) ? manual : undefined
     })
 
@@ -185,7 +215,7 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
     })
 
     chosenFrom: AxialCoordinates | undefined = $derived.by(() => {
-        const manual = this.selection.from?.value
+        const manual = this.ownSelection.from?.value
         return manual !== undefined && includesCoords(this.movable, manual) ? manual : undefined
     })
 
@@ -204,8 +234,8 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
     })
 
     chosenRow: Row | undefined = $derived.by(() => {
-        const manual = this.selection.row?.value
-        const found = this.rows.find((row) => rowKey(row) === manual)
+        const manual = this.ownSelection.row?.value
+        const found = this.rows.find((row) => this.rowKey(row) === manual)
         if (found) return found
         return this.rows.length === 1 ? this.rows[0] : undefined
     })
@@ -219,7 +249,7 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
 
     // Your own stacks stay and the opponent's go unless you mark them otherwise.
     keep: AxialCoordinates[] = $derived.by(() => {
-        const manual = this.selection.keep?.value
+        const manual = this.ownSelection.keep?.value
         if (manual === undefined) {
             const playerId = this.myPlayer?.id
             return this.rowPairs.filter(
@@ -241,24 +271,12 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
             this.chosenRow.run.some((coords) => includesCoords(this.removing, coords))
     )
 
+    private rowKey(row: Row): string {
+        return `${coordinatesToNumber(row.from)}|${coordinatesToNumber(row.to)}`
+    }
+
     private canAct(type: ActionType): boolean {
         return !this.isViewingHistory && this.isMyTurn && this.validActionTypes.includes(type)
-    }
-
-    hasManualSelection(): boolean {
-        return hasManualMatrxSelection(this.selection)
-    }
-
-    override async undo() {
-        if (this.hasManualSelection()) {
-            this.selection = popMatrxSelection(this.selection)
-            return
-        }
-        await super.undo()
-    }
-
-    resetAction() {
-        this.selection = {}
     }
 
     override willUndo(action: GameAction): void {
@@ -269,9 +287,32 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
         this.historyMove = action !== undefined && isStepBack(action) ? action : undefined
     }
 
+    get presentingState(): HydratedMatrxGameState | undefined {
+        return this.incomingGameState
+    }
+
+    // The move a step back to `to` takes back.
+    undoneMove(to: Pick<MatrxGameState, 'actionCount'>): StepBack | undefined {
+        const action = this.actions.find((candidate) => candidate.index === to.actionCount)
+        return action !== undefined && isStepBack(action) ? action : undefined
+    }
+
+    // None when the view passes to the other player as the Undo lands, as the harness's
+    // Non-active view does.
+    restagedMove(to: Pick<MatrxGameState, 'actionCount'>): StepBack | undefined {
+        const move = this.undoingMove
+        if (move === undefined || move.index !== to.actionCount) return undefined
+        return this.isViewingAsNonActivePlayer ? undefined : move
+    }
+
     override beforeNewState({ kind }: PresentedTransition): void {
-        const move = kind === 'undo' ? this.undoingMove : undefined
-        this.selection = move ? this.restaged(move) : {}
+        if (kind === 'view-switch') this.moveInterrupter?.abandon()
+        const incoming = this.presentingState
+        const move = kind === 'undo' && incoming ? this.restagedMove(incoming) : undefined
+        if (move) {
+            this.selection = this.restaged(move)
+            this.selectionOwner = move.playerId
+        }
         if (kind !== 'undo') this.undoingMove = undefined
     }
 
@@ -293,7 +334,7 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
         if (!includesCoords(this.entryDots, dot)) return
         const same = this.chosenDot !== undefined && sameCoordinates(this.chosenDot, dot)
         if (same && this.nextPotential()) return
-        this.selection = setMatrxSelection({}, 'dot', same ? undefined : dot)
+        this.select(setMatrxSelection({}, 'dot', same ? undefined : dot))
     }
 
     private nextPotential(): boolean {
@@ -308,13 +349,13 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
     chooseFrom(from: AxialCoordinates) {
         if (!includesCoords(this.movable, from)) return
         const same = this.chosenFrom !== undefined && sameCoordinates(this.chosenFrom, from)
-        this.selection = setMatrxSelection({}, 'from', same ? undefined : from)
+        this.select(setMatrxSelection({}, 'from', same ? undefined : from))
     }
 
     // Tapping where there is nothing to choose lets go of a chosen stack or dot.
     letGo() {
         if (this.chosenFrom === undefined && this.chosenDot === undefined) return
-        this.selection = setMatrxSelection(this.selection, 'from', undefined)
+        this.select(setMatrxSelection(this.ownSelection, 'from', undefined))
     }
 
     // A piece can belong to two crossing rows; choosing it again moves to the next one.
@@ -324,10 +365,8 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
         const current = this.chosenRow ? containing.findIndex((row) => row === this.chosenRow) : -1
         const next = containing[(current + 1) % containing.length]
         const keepGoing = current < 0 || containing.length > 1
-        this.selection = setMatrxSelection(
-            this.selection,
-            'row',
-            keepGoing ? rowKey(next) : undefined
+        this.select(
+            setMatrxSelection(this.ownSelection, 'row', keepGoing ? this.rowKey(next) : undefined)
         )
     }
 
@@ -336,7 +375,12 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
         const keys = this.keep.map((kept) => coordinatesToNumber(kept))
         const key = coordinatesToNumber(coords)
         const next = keys.includes(key) ? keys.filter((k) => k !== key) : [...keys, key]
-        this.selection = setMatrxSelection(this.selection, 'keep', next)
+        this.select(pushMatrxKeep(this.ownSelection, next))
+    }
+
+    private select(selection: MatrxSelection) {
+        this.selection = selection
+        this.selectionOwner = this.myPlayer?.id
     }
 
     async push(target: AxialCoordinates) {

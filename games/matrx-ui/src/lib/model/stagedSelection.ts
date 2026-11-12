@@ -1,8 +1,7 @@
 import type { AxialCoordinates } from '@tabletop/common'
 import {
     clearStagedSelectionAtOrAfter,
-    hasManualStagedSelection,
-    popHighestManualStagedSelection,
+    pushStagedSelectionValue,
     setStagedSelectionValue,
     type StagedSelectionState
 } from '@tabletop/frontend-components'
@@ -48,11 +47,12 @@ export function setMatrxSelection<TStage extends keyof MatrxSelectionValues>(
           )
 }
 
-export function hasManualMatrxSelection(selection: MatrxSelection): boolean {
-    return hasManualStagedSelection<MatrxSelectionValues>(selection, MatrxStageOrder)
-}
-
-export function popMatrxSelection(selection: MatrxSelection): MatrxSelection {
-    return popHighestManualStagedSelection<MatrxSelectionValues>(selection, MatrxStageOrder)
-        .nextState
+// A stacked stage, so Undo takes back one tap at a time.
+export function pushMatrxKeep(selection: MatrxSelection, keep: number[]): MatrxSelection {
+    return pushStagedSelectionValue<MatrxSelectionValues, 'keep'>(
+        selection,
+        MatrxStageOrder,
+        'keep',
+        keep
+    )
 }
