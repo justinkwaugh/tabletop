@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { TrickPlay } from '@tabletop/koenigrufen'
-import { trickMotion, type TrickTable, type WonTrick } from './trickMotion.js'
+import { directTrickStep, trickMotion, type TrickTable, type WonTrick } from './trickMotion.js'
 
 const play = (playerId: string, cardId: string) => ({ playerId, cardId })
 const won: WonTrick = {
@@ -48,5 +48,39 @@ describe('trick motion', () => {
         expect(trickMotion(table([], [won]), table(won.plays.slice(0, 3))).arriving).toEqual(
             won.plays.slice(0, 3)
         )
+    })
+})
+
+describe('a direct trick step', () => {
+    it('sends a card taken back from the trick to its hand', () => {
+        expect(directTrickStep(table(won.plays.slice(0, 2)), table(won.plays.slice(0, 1)))).toEqual(
+            {
+                arriving: [],
+                leaving: [{ play: won.plays[1] }]
+            }
+        )
+    })
+
+    it('brings a won trick taken back from its winner’s pile, and its last card to its hand', () => {
+        expect(directTrickStep(table([], [won]), table(won.plays.slice(0, 3)))).toEqual({
+            arriving: won.plays.slice(0, 3).map((play) => ({ play, pileOf: 'd' })),
+            leaving: [{ play: won.plays[3], pileOf: 'd' }]
+        })
+    })
+
+    it('brings in a card stepped forward from its hand', () => {
+        expect(directTrickStep(table(won.plays.slice(0, 1)), table(won.plays.slice(0, 2)))).toEqual(
+            {
+                arriving: [{ play: won.plays[1] }],
+                leaving: []
+            }
+        )
+    })
+
+    it('moves nothing when the step wins the trick', () => {
+        expect(directTrickStep(table(won.plays.slice(0, 3)), table([], [won]))).toEqual({
+            arriving: [],
+            leaving: []
+        })
     })
 })

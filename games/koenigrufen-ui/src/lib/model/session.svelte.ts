@@ -223,12 +223,6 @@ export class KoenigrufenGameSession extends GameSession<
 
     readonly cardPlaces = new CardPlaces()
 
-    readonly trickAnimator = new TrickAnimator(this.cardPlaces, {
-        present: (trick) => {
-            this.shownTrick = trick
-        }
-    })
-
     // Cards crossing the table (a deal, the talon going to the declarer, cards laid away), drawn
     // only while they fly.
     flyingCards: FlyingCard[] = $state([])
@@ -241,6 +235,12 @@ export class KoenigrufenGameSession extends GameSession<
             this.flyingCards = []
         },
         isViewer: (playerId) => this.myPlayer?.id === playerId
+    })
+
+    readonly trickAnimator = new TrickAnimator(this.cardPlaces, this.cardFlights, {
+        present: (trick) => {
+            this.shownTrick = trick
+        }
     })
 
     // The talon as the table shows it. The talon animator sets it to the talon a transition ends on,
