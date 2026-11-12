@@ -44,11 +44,13 @@ async function pressRow(page: Page, label: string) {
 test('the board fits the table beside the panel, and scales down with it', async ({ page }) => {
     await createGame(page)
     await settled(page)
+    // The board and the guild standings' rails beside it fill the table's width.
+    const row = await page.locator('[data-board-row]').boundingBox()
+    expect(row?.x).toBeGreaterThanOrEqual(330)
+    expect((row?.x ?? 0) + (row?.width ?? 0)).toBeLessThanOrEqual(1280)
+    expect(row?.width).toBeGreaterThan(900)
+    expect(row?.width).toBeLessThan(1000)
     const box = await board(page).boundingBox()
-    expect(box?.x).toBeGreaterThanOrEqual(330)
-    expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(1280)
-    expect(box?.width).toBeGreaterThan(900)
-    expect(box?.width).toBeLessThan(1000)
     // R-1.2 Whole: the aspect stands.
     // Contract, Supply: nothing under the board, so the surface is the board's own proportions.
     expect((box?.width ?? 0) / (box?.height ?? 1)).toBeCloseTo(2500 / 953, 1)

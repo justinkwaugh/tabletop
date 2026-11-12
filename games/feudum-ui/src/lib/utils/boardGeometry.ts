@@ -623,6 +623,32 @@ export const GuildAreas: Record<GuildId, Point> = {
     monk: { x: 2051, y: 616 }
 }
 
+/** R-1.2.3 Alchemist, Merchant and Farmer stand up the west edge; the others down the east. */
+export function westGuild(guild: GuildId): boolean {
+    return GuildAreas[guild].x < MapArea.x
+}
+
+/**
+ * Contract, Guild standings: on a desk each guild's rail stands in a column beside the board,
+ * level with its area. `scale` is board units to a screen pixel of the rail's own drawing.
+ */
+export const RailBeside = { width: 320, gap: 24, scale: 320 / 108 } as const
+/** On a phone it stands over the map's inner edge, inside its column's view. */
+export const RailOver = { width: 168, gap: 8, inset: 6, scale: 168 / 96 } as const
+
+/** Where a guild's rail stands over the map on a phone, level with its area. */
+export function railOverRect(guild: GuildId): GuildBoxRect {
+    const x = westGuild(guild)
+        ? MapArea.x + RailOver.gap
+        : MapArea.x + MapArea.width - RailOver.gap - RailOver.width
+    return {
+        x,
+        y: GuildAreas[guild].y + RailOver.inset,
+        width: RailOver.width,
+        height: GuildAreaHeight - 2 * RailOver.inset
+    }
+}
+
 /**
  * A guild area stands on its printed panel when the folder holds the panel's file, else on our own
  * drawing; the two place its parts apart. Asked at each call, so whoever draws or animates an area

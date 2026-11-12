@@ -180,7 +180,13 @@
                         expandable
                         onManualViewChange={() => focus.handMoved()}
                     >
-                        <Board />
+                        <Board
+                            rails={phone.phone
+                                ? focus.shown === 'west' || focus.shown === 'east'
+                                    ? focus.shown
+                                    : undefined
+                                : 'beside'}
+                        />
                         <!-- The zoom row's band: the board never rests under the zoom buttons, Key or Supply. -->
                         <div class="block" style:height="{ZoomRowBand}px" data-zoom-row-band></div>
                         {#snippet overlay(viewport)}

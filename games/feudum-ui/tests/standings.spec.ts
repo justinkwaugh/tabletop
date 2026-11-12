@@ -2,14 +2,16 @@ import { expect, test, type Locator } from '@playwright/test'
 import { openFixture, scenario, ScenarioTable } from './scenarioTable.js'
 
 /**
- * The contract's scenario S75 on the real table: the guild standings head the Players tab on a
- * desk, and on a phone the seat strip's Guilds chip opens them as a bottom sheet.
+ * The contract's scenario S75 on the real table: the guild standings stand on rails beside each
+ * guild's area on a desk; on a phone a guild view carries its rails, and the seat strip's Guilds
+ * chip opens the table as a bottom sheet.
  */
 
 /** Contract, Phone layout: the seat strip's height. */
 const StripHeight = 44
 
 const standingsIn = (scope: Locator) => scope.locator('[data-guild-standings]')
+const railsOf = (table: ScenarioTable) => table.page.locator('[data-guild-rails]')
 const guildsLayer = (table: ScenarioTable) => table.page.locator('[data-table-layer="guilds"]')
 
 async function rect(target: Locator) {
@@ -20,9 +22,9 @@ async function rect(target: Locator) {
     return box
 }
 
-/** The standings as a seat reads them: the Merchant's three places and its Others, the Farmer's. */
-async function expectStandings(standings: Locator) {
-    await expect(standings.locator('[data-standing-row]')).toHaveCount(6)
+/** The standings as a seat reads them: the Merchant's three places and its Others, the Farmer's master. */
+async function expectPlaces(standings: Locator, rows: number) {
+    await expect(standings.locator('[data-standing-row]')).toHaveCount(rows)
     const merchant = standings.locator('[data-standing-row="merchant"]')
     for (const name of [
         'Merchant master: Ana, 1 star',
@@ -41,10 +43,25 @@ async function expectStandings(standings: Locator) {
     await expect(
         standings.locator('[data-standing-row="farmer"] [data-standing-place="master"]')
     ).toHaveAccessibleName('Farmer master: Bram, 1 star')
+    await expect(standings.locator('[data-badge]')).toHaveCount(0)
+}
+
+/** The sheet's table: every place has a cell, the Farmer's empty journeyman named "vacant". */
+async function expectStandings(standings: Locator) {
+    await expectPlaces(standings, 6)
     await expect(
         standings.locator('[data-standing-row="farmer"] [data-standing-place="journeyman"]')
     ).toHaveAccessibleName('Farmer journeyman: vacant')
-    await expect(standings.locator('[data-badge]')).toHaveCount(0)
+}
+
+/** Each rail stands level with its guild's area, on the side the guild stands. */
+async function expectRailsLevel(table: ScenarioTable, guilds: readonly string[]) {
+    for (const guild of guilds) {
+        const rail = await rect(table.page.locator(`[data-guild-rail="${guild}"]`))
+        const area = await rect(table.page.locator(`[data-board-surface] [data-guild="${guild}"]`))
+        expect(rail.y).toBeGreaterThanOrEqual(area.y - 4)
+        expect(rail.y + rail.height).toBeLessThanOrEqual(area.y + area.height + 4)
+    }
 }
 
 /** Nothing on the page scrolls sideways, the sheet's body and table least of all. */
@@ -66,22 +83,48 @@ async function expectSheetFits(table: ScenarioTable) {
 }
 
 scenario(
-    'S75 R-4.5, R-4.7 Guild standings head the Players tab; a phone opens them from the Guilds chip',
+    'S75 R-4.5, R-4.7 Guild standings stand on rails beside each guild; a phone opens them from the Guilds chip',
     'standings-five-seats',
     async (table) => {
         if (!table.phone) {
             const column = table.page.locator('[data-seat-column]')
-            const first = column.locator(':scope > *').first()
-            await expect(first).toHaveAttribute('data-guild-standings', '')
-            await expect(first.getByRole('heading', { name: 'Guild standings' })).toBeVisible()
-            const standings = standingsIn(column)
-            await expectStandings(standings)
-            const head = await rect(standings)
-            const seat = await rect(column.locator('[data-seat-panel]').first())
-            expect(head.y + head.height).toBeLessThanOrEqual(seat.y)
+            await expect(column.locator('[data-guild-standings], [data-guild-rail]')).toHaveCount(0)
+            await expect(column.locator('[data-seat-panel]').first()).toBeVisible()
+            await expectPlaces(railsOf(table), 6)
+            const surface = await rect(table.page.locator('[data-board-surface]'))
+            const west = await rect(table.page.locator('[data-guild-rails="west"]'))
+            const east = await rect(table.page.locator('[data-guild-rails="east"]'))
+            expect(west.x + west.width).toBeLessThanOrEqual(surface.x)
+            expect(east.x).toBeGreaterThanOrEqual(surface.x + surface.width)
+            await expectRailsLevel(table, [
+                'alchemist',
+                'merchant',
+                'farmer',
+                'knight',
+                'noble',
+                'monk'
+            ])
+            // Only what exists: the Farmer's empty journeyman is not drawn.
+            await expect(
+                table.page.locator('[data-guild-rail="farmer"] [data-standing-place="journeyman"]')
+            ).toHaveCount(0)
+            await expect(
+                table.page.locator('[data-guild-rail="knight"] [data-no-master]')
+            ).toContainText('no master yet')
+            const merchant = table.page.locator('[data-guild-rail="merchant"]')
+            const said = merchant.locator('[data-standings-said]')
+            await table.press(merchant.locator('[data-standing-other="p5"]'))
+            await expect(said).toHaveText('Merchant, no place: Esme, 1 star, outranked')
             await expect(table.page.locator('[data-guilds-chip]')).toHaveCount(0)
             return
         }
+        await expect(railsOf(table)).toHaveCount(0)
+        await table.press(table.page.locator('[data-focus-chip="west"]'))
+        await expect(railsOf(table).locator('[data-guild-rail]')).toHaveCount(3)
+        await expect(table.page.locator('[data-guild-rail="merchant"]')).toBeInViewport()
+        await expectRailsLevel(table, ['alchemist', 'merchant', 'farmer'])
+        await table.press(table.page.locator('[data-focus-chip="map"]'))
+        await expect(railsOf(table)).toHaveCount(0)
         const chip = table.page.locator('[data-seat-strip] > *').last()
         await expect(chip).toHaveAttribute('data-guilds-chip', '')
         // As tall as a seat's chip: the strip's whole height under its top rule.
