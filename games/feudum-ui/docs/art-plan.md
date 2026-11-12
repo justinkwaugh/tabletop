@@ -266,6 +266,7 @@ Where this plan adds to `ui-interaction-visual-contract.md`:
 - **Action card size.** A viewBox of 250 x 380, so the art window keeps the printed proportion.
 - **One image per kind, or the printed card.** A supplied card's art window is the same for every seat, the band and back carrying the seat; while the seat shows a printed colour the whole printed card in that colour stands in for both.
 - **The upright guild.** The trade picker shows a guild's area turned a quarter clockwise, so its print, which lies on its side on the board, reads upright: 310 px tall on a desk, 210 px on a phone. It is the same `GuildArea` at another scale; rings in `accent` over the offered places say which the cards beside it sell, and take no press. Each card draws its offer with the pieces' own art (a vessel, a good, a marker in the row's colour, a seal), and the shilling token beside its price.
+- **The nourish picker.** Each pawn row draws the pawn's cube in its seat's colour (the same `PawnPiece` as the map) and each feed as its good's cube: food, and sulfur for wine. A rose row (`danger` border on `danger-soft`) is a pawn left unfed; a feed with nothing left is dimmed. The summary pays in the same cubes, and on a phone the send carries them in place of the words. The map's payment chips carry the good's cube beside "1 food" or "1 wine".
 - **Numeric positions.** `components.md` gives no numeric board coordinates, only region, letters and a placement note per space, so `boardGeometry.ts` is authored, not rescaled from a given table.
 
 ## Specs that guard it
