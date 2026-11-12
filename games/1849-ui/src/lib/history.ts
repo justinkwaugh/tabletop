@@ -1,6 +1,7 @@
 import {
     GaribaldiId,
     messinaEarthquakeOf,
+    StationTokenCount1849,
     TokenFees1849,
     type Earthquake1849,
     type State1849
@@ -71,7 +72,7 @@ export function describe1849Action(stations: () => State1849['stations']): Title
               : undefined
         if (fee === undefined) return undefined
         const row = shared()
-        const tokens = `${Presentation1849.money(fee)} for station tokens`
+        const tokens = `${Presentation1849.money(fee)} for its ${StationTokenCount1849} station tokens`
         return { ...row, detail: row.detail ? `${row.detail} · ${tokens}` : tokens }
     }
 }

@@ -32,7 +32,7 @@ export const Presentation1849: TitlePresentation<State1849> = {
         const fee = TokenFees1849[companyId]
         return fee === undefined || companyId === GaribaldiId
             ? []
-            : [`${StationTokenCount1849} station tokens: ${money(fee)} from its treasury`]
+            : [`${money(fee)} for its ${StationTokenCount1849} station tokens, from its treasury`]
     },
     privatePurchaseHeading: 'Available privates',
     privateTilePrompts: {

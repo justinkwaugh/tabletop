@@ -80,7 +80,7 @@ it('charges a corporation’s station tokens as it floats (§9.4)', () => {
     const fee = TokenFees1849[float.companyId]
     assert(fee !== undefined, 'Every corporation has a token fee')
     expect(description?.detail).toBe(
-        `L. 200 capital · ${Presentation1849.money(fee)} for station tokens`
+        `L. 200 capital · ${Presentation1849.money(fee)} for its 3 station tokens`
     )
 })
 
