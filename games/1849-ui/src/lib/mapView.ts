@@ -49,10 +49,13 @@ export const MapView1849: MapViewDefinition = {
         // Each grey city's three values stand in its clear side: west of Trapani and Marsala,
         // whose track leaves east and along the coast, and below Terranova's two spaces, its only
         // side without track, in a row with their phases above (§10.5.2).
-        C1: { revenuePositions: { city: { x: -23, y: 6 } } },
-        // Marsala's city stands a little east, so its name curves clear of its values.
+        // Trapani's and Marsala's cities stand a little east, so their values clear them.
+        C1: {
+            nodePositions: { city: { x: 12, y: 0 } },
+            revenuePositions: { city: { x: -22, y: 7 } }
+        },
         E1: {
-            nodePositions: { city: { x: 8, y: 0 } },
+            nodePositions: { city: { x: 12, y: 0 } },
             revenuePositions: { city: { x: -26, y: 0 } }
         },
         M9: { revenuePositions: { city: { x: 0, y: 30 } }, revenueCaptionsAbove: true }
