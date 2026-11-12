@@ -52,7 +52,7 @@ export const MapView1849: MapViewDefinition = {
         // Trapani's and Marsala's cities stand a little east, so their values clear them.
         C1: {
             nodePositions: { city: { x: 12, y: 0 } },
-            revenuePositions: { city: { x: -22, y: 7 } }
+            revenuePositions: { city: { x: -26, y: 0 } }
         },
         E1: {
             nodePositions: { city: { x: 12, y: 0 } },
