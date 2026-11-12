@@ -14,7 +14,9 @@ const openWrits = async (table: ScenarioTable) =>
     table.press(atWill(table).getByRole('button', { name: /^Writs \d/ }))
 
 scenario('S50 R-4.4.2 At-will row', 'writs-at-will', async (table) => {
-    await expect(atWill(table).getByRole('button')).toHaveText(['Writs 1'])
+    // The chip is drawn as a writ back and its count; its words are its accessible name.
+    await expect(atWill(table).getByRole('button')).toHaveCount(1)
+    await expect(atWill(table).getByRole('button')).toHaveAccessibleName('Writs 1')
     await table.press(table.card('Tax'))
     await expect(atWill(table)).toHaveCount(0)
     await table.press(table.undo())
