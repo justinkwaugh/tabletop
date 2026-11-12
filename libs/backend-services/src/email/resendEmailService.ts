@@ -4,6 +4,8 @@ import { Resend } from 'resend'
 import { SecretsService } from '../secrets/secretsService'
 import {
     AUTHENTICATION_CHALLENGE_LIFETIME_SECONDS,
+    CONTENT_REPORT_REASON_LABELS,
+    CONTENT_REPORT_TARGET_LABELS,
     Game,
     GameDefinition,
     TournamentDetail,
@@ -21,6 +23,11 @@ import {
     type LeagueSignUpEmail
 } from './emailService.js'
 import { NullEmailService } from './nullEmailService.js'
+import type { ContentReportEmail } from '../moderation/contentReports.js'
+
+function formatReportTime(time: Date): string {
+    return `${time.toISOString().slice(0, 16).replace('T', ' ')} UTC`
+}
 
 const CHALLENGE_LIFETIME_MINUTES = AUTHENTICATION_CHALLENGE_LIFETIME_SECONDS / 60
 
@@ -128,18 +135,35 @@ export class ResendEmailService implements EmailService {
         )
     }
 
+    async sendContentReportEmail(report: ContentReportEmail): Promise<void> {
+        const { render, templates } = await this.loadRendering()
+        const targetLabel = CONTENT_REPORT_TARGET_LABELS[report.targetKind]
+        const reasonLabel = CONTENT_REPORT_REASON_LABELS[report.reason]
+        const emailHTML = await render(
+            templates.ContentReport({
+                ...report,
+                targetLabel,
+                reasonLabel,
+                reportedAt: formatReportTime(new Date(report.reportedAt))
+            })
+        )
+        await this.send(report.toEmail, `Report: ${targetLabel}, ${reasonLabel}`, emailHTML)
+    }
+
     async sendPlayerRemovedEmail({
         playerName,
         game,
         definition,
         url,
-        toEmail
+        toEmail,
+        deletedAccount
     }: {
         playerName: string
         game: Game
         definition: GameDefinition
         url: string
         toEmail: string
+        deletedAccount: boolean
     }): Promise<void> {
         const { render, templates } = await this.loadRendering()
         const emailHTML = await render(
@@ -147,10 +171,14 @@ export class ResendEmailService implements EmailService {
                 playerName,
                 title: definition.info.metadata.name,
                 gameName: game.name,
-                url
+                url,
+                deletedAccount
             })
         )
-        await this.send(toEmail, `A player was removed from ${game.name}`, emailHTML)
+        const subject = deletedAccount
+            ? `A player left ${game.name}`
+            : `A player was removed from ${game.name}`
+        await this.send(toEmail, subject, emailHTML)
     }
 
     async sendGameEndEmail({

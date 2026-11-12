@@ -208,6 +208,44 @@
             "collectionGroup": "siteStatsMonths",
             "fieldPath": "activeUsers",
             "indexes": []
+        },
+        {
+            "collectionGroup": "sessions",
+            "fieldPath": "expiresAt",
+            "ttl": true,
+            "indexes": [
+                {
+                    "order": "ASCENDING",
+                    "queryScope": "COLLECTION"
+                },
+                {
+                    "order": "DESCENDING",
+                    "queryScope": "COLLECTION"
+                },
+                {
+                    "arrayConfig": "CONTAINS",
+                    "queryScope": "COLLECTION"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "tokens",
+            "fieldPath": "expiration",
+            "ttl": true,
+            "indexes": [
+                {
+                    "order": "ASCENDING",
+                    "queryScope": "COLLECTION"
+                },
+                {
+                    "order": "DESCENDING",
+                    "queryScope": "COLLECTION"
+                },
+                {
+                    "arrayConfig": "CONTAINS",
+                    "queryScope": "COLLECTION"
+                }
+            ]
         }
     ]
 }

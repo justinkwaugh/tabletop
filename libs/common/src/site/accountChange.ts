@@ -3,5 +3,6 @@ export enum AccountChangeType {
     EmailChangeRequested = 'emailChangeRequested',
     Password = 'password',
     PasswordReset = 'passwordReset',
-    Username = 'username'
+    Username = 'username',
+    AccountDeleted = 'accountDeleted'
 }

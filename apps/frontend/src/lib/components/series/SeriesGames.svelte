@@ -1,16 +1,20 @@
 <script lang="ts">
     import { onMount } from 'svelte'
-    import type { Game, GameCatalogEntry } from '@tabletop/common'
+    import { CheckOutline, PlusOutline } from 'flowbite-svelte-icons'
+    import { isListedOpenGame, type Game, type GameCatalogEntry } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import TitleSection from '$lib/components/TitleSection.svelte'
     import SeriesGameTable from './SeriesGameTable.svelte'
     import SeriesTitlePicker from './SeriesTitlePicker.svelte'
+    import CreateGameModal from '$lib/components/CreateGameModal.svelte'
     import type { LibrarySeries } from '$lib/utils/libraryTitles'
     import { activityLoadFailure } from '$lib/utils/activityLoad'
     import {
         filterSeriesGames,
+        gameMatchesFilter,
         seatChoices,
         titleGameCounts,
+        widenFilterToShow,
         type SeriesFilter
     } from '$lib/utils/seriesLobby'
 
@@ -29,9 +33,11 @@
         filter: SeriesFilter
         onfilter: (filter: SeriesFilter) => void
     } = $props()
-    const { gameService } = getAppContext()
+    const { gameService, libraryService } = getAppContext()
 
     let loadState = $state<LoadState>('loading')
+    let creating = $state(false)
+    let createdGame = $state<Game>()
     let inProgress = $state<Game[]>([])
     let finished = $state<Game[]>([])
 
@@ -54,6 +60,16 @@
     const visibleOpen = $derived(filterSeriesGames(open, filter))
     const visibleInProgress = $derived(filterSeriesGames(inProgress, filter))
     const visibleFinished = $derived(filterSeriesGames(finished, filter))
+    const creatableTitles = $derived(
+        titles
+            .map((entry) => libraryService.getTitle(entry.id))
+            .filter((title) => title !== undefined)
+    )
+    const createdNote = $derived.by(() => {
+        if (!createdGame) return undefined
+        if (!isListedOpenGame(createdGame)) return 'unlisted'
+        return visibleOpen.some((game) => game.id === createdGame?.id) ? 'listed' : undefined
+    })
     const paged = $derived(
         (filter.view === 'lobby' ? visibleInProgress : visibleFinished).slice(0, shown)
     )
@@ -77,6 +93,18 @@
         onfilter({ ...filter, ...next })
     }
 
+    function startGame() {
+        void libraryService.whenReady()
+        creating = true
+    }
+
+    function onCreated(game: Game) {
+        createdGame = game
+        if (isListedOpenGame(game) && !gameMatchesFilter(game, filter)) {
+            onfilter(widenFilterToShow(filter, game))
+        }
+    }
+
     onMount(() => {
         void load()
     })
@@ -89,25 +117,40 @@
         selected={filter.titleIds}
         onchange={(titleIds) => changeFilter({ titleIds })}
     />
-    {#if seatOptions.length > 1 || filter.seats !== undefined}
-        <div class="players" role="group" aria-label="Players">
-            <span class="players-label" aria-hidden="true">Players</span>
-            <div class="segments">
-                <button
-                    aria-pressed={filter.seats === undefined}
-                    onclick={() => changeFilter({ seats: undefined })}>Any</button
-                >
-                {#each seatOptions as seats (seats)}
+    <div class="filter-end">
+        {#if seatOptions.length > 1 || filter.seats !== undefined}
+            <div class="players" role="group" aria-label="Players">
+                <span class="players-label" aria-hidden="true">Players</span>
+                <div class="segments">
                     <button
-                        aria-pressed={filter.seats === seats}
-                        aria-label={`${seats} players`}
-                        onclick={() => changeFilter({ seats })}>{seats}</button
+                        aria-pressed={filter.seats === undefined}
+                        onclick={() => changeFilter({ seats: undefined })}>Any</button
                     >
-                {/each}
+                    {#each seatOptions as seats (seats)}
+                        <button
+                            aria-pressed={filter.seats === seats}
+                            aria-label={`${seats} players`}
+                            onclick={() => changeFilter({ seats })}>{seats}</button
+                        >
+                    {/each}
+                </div>
             </div>
-        </div>
-    {/if}
+        {/if}
+        {#if filter.view === 'lobby'}
+            <button class="start" onclick={startGame}
+                ><PlusOutline class="h-4 w-4" />Start a game</button
+            >
+        {/if}
+    </div>
 </div>
+
+<CreateGameModal
+    bind:open={creating}
+    titles={creatableTitles}
+    {counts}
+    initialTitleId={filter.titleIds.length === 1 ? filter.titleIds[0] : undefined}
+    oncreated={onCreated}
+/>
 
 {#snippet pager()}
     {#if pagedTotal > shown}
@@ -129,6 +172,19 @@
         <button onclick={load}>Try again</button>
     </div>
 {:else if filter.view === 'lobby'}
+    {#if createdGame && createdNote}
+        <p class="created" role="status">
+            <CheckOutline class="h-4 w-4 shrink-0" />
+            <span>
+                {#if createdNote === 'listed'}
+                    <b>{createdGame.name}</b> is open for players. It’s highlighted in Looking for players.
+                {:else}
+                    <b>{createdGame.name}</b> is created. You’ll find it in
+                    <a href="/dashboard">My Games</a>.
+                {/if}
+            </span>
+        </p>
+    {/if}
     <div class="sections">
         <TitleSection title="Looking for players" count={visibleOpen.length}>
             {#if visibleOpen.length > 0}
@@ -137,9 +193,13 @@
                     games={visibleOpen}
                     {titlesById}
                     label="Games looking for players"
+                    highlightId={createdGame?.id}
                 />
             {:else}
-                <p class="empty compact">No open tables match. Start a game from a title’s page.</p>
+                <div class="empty compact">
+                    <p>No open tables match.</p>
+                    <button onclick={startGame}>Start a game →</button>
+                </div>
             {/if}
         </TitleSection>
         <TitleSection title="In progress" count={visibleInProgress.length}>
@@ -180,11 +240,51 @@
         gap: 8px 10px;
         margin-bottom: 24px;
     }
+    .filter-end {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px 10px;
+        margin-left: auto;
+    }
     .players {
         display: flex;
         align-items: center;
         gap: 8px;
-        margin-left: auto;
+    }
+    .start {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 32px;
+        padding: 0 14px;
+        border-radius: 8px;
+        background: var(--color-blue-600);
+        color: white;
+        font-size: 13px;
+        font-weight: 500;
+    }
+    .start:hover {
+        background: var(--color-blue-700);
+    }
+    .created {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 24px;
+        padding: 12px 16px;
+        border: 1px solid var(--color-green-800);
+        border-radius: 10px;
+        background: #064e3b55;
+        color: var(--color-green-200);
+        font-size: 14px;
+    }
+    .created b {
+        font-weight: 600;
+    }
+    .created a {
+        text-decoration: underline;
     }
     .players-label {
         color: var(--color-gray-500);
@@ -211,6 +311,7 @@
         background: var(--color-gray-700);
         color: var(--color-gray-100);
     }
+    .start:focus-visible,
     .segments button:focus-visible,
     .more:focus-visible,
     .empty button:focus-visible {
@@ -258,8 +359,14 @@
         .filters {
             margin-bottom: 16px;
         }
-        .players {
+        .filter-end {
             margin-left: 0;
+            width: 100%;
+        }
+        .start {
+            width: 100%;
+            min-height: 40px;
+            font-size: 14px;
         }
         .sections {
             gap: 28px;

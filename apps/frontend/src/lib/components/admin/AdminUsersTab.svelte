@@ -3,6 +3,7 @@
     import { ADMIN_ASSIGNABLE_ROLES, Role, UserStatus, type User } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import AdminUserBan from './AdminUserBan.svelte'
+    import AdminUserDelete from './AdminUserDelete.svelte'
     import AdminUserRoles from './AdminUserRoles.svelte'
     import AdminUserUsername from './AdminUserUsername.svelte'
 
@@ -103,14 +104,17 @@
     </div>
     {#if selected}
         <div class="flex flex-col gap-5">
-            <AdminUserUsername user={selected} onsaved={replaceUser} />
-            <AdminUserRoles
-                user={selected}
-                assignableRoles={ADMIN_ASSIGNABLE_ROLES}
-                {roleLabels}
-                onsaved={replaceUser}
-            />
-            <AdminUserBan user={selected} onsaved={replaceUser} />
+            {#if selected.status !== UserStatus.Deleted}
+                <AdminUserUsername user={selected} onsaved={replaceUser} />
+                <AdminUserRoles
+                    user={selected}
+                    assignableRoles={ADMIN_ASSIGNABLE_ROLES}
+                    {roleLabels}
+                    onsaved={replaceUser}
+                />
+                <AdminUserBan user={selected} onsaved={replaceUser} />
+            {/if}
+            <AdminUserDelete user={selected} onsaved={replaceUser} />
         </div>
     {/if}
 </div>

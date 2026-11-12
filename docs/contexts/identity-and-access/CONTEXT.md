@@ -25,7 +25,10 @@ A Username containing a slur or offensive language, by the word list in `libs/ba
 An Administrator's change to another Account's Username. Because the old name may be why it is being changed, it also rewrites the Player name in every Game the Account has a seat in, and because the Username is the login name, it emails the Account the new one.
 
 **Account Completion**:
-The requirements for normal platform use: a Username and Verified Email Address. A Password Credential is optional when another Authentication Method exists.
+The requirements for normal platform use: a Username, a Verified Email Address, and an Age Confirmation. A Password Credential is optional when another Authentication Method exists. Accounts already Active when Age Confirmation was introduced are not asked for it.
+
+**Age Confirmation**:
+The person's own statement, given once when finishing an account, that they meet the site's minimum age of 13. The same tick accepts the Terms of Service. It records only when it was given, never a date of birth.
 
 **Email Address**:
 The private email associated with a User Account. Comparison and uniqueness are case-insensitive.
@@ -52,7 +55,14 @@ A retained User Account disabled by an Administrator through a Ban. It cannot es
 
 **Deleted**:
 The terminal, anonymized tombstone of a removed User Account. It cannot authenticate or become another status.
+
+**Account Deletion**:
+Turning a User Account into its Deleted tombstone: by its owner with Recent Authentication, or by an Administrator for another non-Administrator Account. Administrator Accounts cannot be deleted. It releases the Username, Email Address and External Identities for reuse, and every seat the Account held shows "Deleted player N", numbered within each Game. No Username may contain the word "deleted".
 _Avoid_: Soft-deleted, archived
+
+**Abandoned Sign-up**:
+An Incomplete Account never Active, 3 days after it was created. A daily sweep removes its record outright, with no tombstone, and releases its Username, Email Address, External Identities, sessions, challenges, preferences and subscriptions. An Account seated in any Game is kept. No email is sent, since the address was never verified.
+_Avoid_: Stale account, expired sign-up
 
 **Ban**:
 The Administrator operation making an Incomplete or Active Account Inactive, advancing its Session Generation in the same commit so that lifting the Ban revives no earlier session. It keeps the Account's Username, Email Address and External Identities reserved, closes its Realtime Connections, stops its Attention Notices, and releases it from Games: see Banned Player in the Game Lifecycle context. An Administrator cannot Ban their own Account or another Administrator. Lifting a Ban restores Active or Incomplete, by Account Completion.

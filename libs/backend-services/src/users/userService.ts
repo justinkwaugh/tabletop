@@ -12,7 +12,8 @@ import {
     User,
     UserPreferences,
     UserStatus,
-    withAssignedRoles
+    withAssignedRoles,
+    isReservedUsername
 } from '@tabletop/common'
 import { TaskService, type AccountChangeNotice } from '../tasks/taskService.js'
 import {
@@ -140,16 +141,20 @@ export class UserService {
         return this.userStore.findByUsernameAndPassword(username, password)
     }
 
-    async createUser(user: User, password: string): Promise<User> {
+    async createUser(
+        user: User,
+        password: string,
+        options: { confirmAge?: boolean } = {}
+    ): Promise<User> {
         const cleanPassword = password.trim()
         if (cleanPassword.length < 12) {
             throw new InvalidPasswordError()
         }
-        if (user.username && isOffensiveUsername(user.username)) {
+        if (user.username && this.isDisallowedUsername(user.username)) {
             throw new UsernameNotAllowedError()
         }
 
-        const createdUser = await this.userStore.createUser(user, cleanPassword)
+        const createdUser = await this.userStore.createUser(user, cleanPassword, options)
 
         if (createdUser.email && !createdUser.emailVerified) {
             await this.sendVerificationEmail(createdUser)
@@ -197,13 +202,15 @@ export class UserService {
     async updateUser(
         session: AuthenticatedSession,
         fields: Partial<User>,
-        password?: string
+        password?: string,
+        { confirmAge = false }: { confirmAge?: boolean } = {}
     ): Promise<User> {
         const userId = session.userId
         const [updatedUser, updatedFields, originalUser] = await this.userStore.updateUser({
             userId,
             fields,
             password,
+            confirmAge,
             validator: (existingUser, fieldsToUpdate) => {
                 const changesEmail = Boolean(
                     fieldsToUpdate.email && fieldsToUpdate.email !== existingUser.email
@@ -221,7 +228,7 @@ export class UserService {
                     fieldsToUpdate.username &&
                     fieldsToUpdate.username.toLowerCase() !==
                         existingUser.username?.toLowerCase() &&
-                    isOffensiveUsername(fieldsToUpdate.username)
+                    this.isDisallowedUsername(fieldsToUpdate.username)
                 ) {
                     throw new UsernameNotAllowedError()
                 }
@@ -250,8 +257,8 @@ export class UserService {
 
         if (updatedFields.includes('username')) {
             this.removeListedUsername(originalUser.username)
-            this.addListedUsernameIfActive(updatedUser)
         }
+        this.addListedUsernameIfActive(updatedUser)
 
         return updatedUser
     }
@@ -579,6 +586,7 @@ export class UserService {
             fields: { username },
             validator: (existingUser) => {
                 this.requireNotDeleted(existingUser)
+                if (isReservedUsername(username)) throw new UsernameNotAllowedError()
                 return UpdateValidationResult.Proceed
             }
         })
@@ -605,10 +613,7 @@ export class UserService {
             userId,
             fields: { status: UserStatus.Inactive },
             validator: (existingUser) => {
-                this.requireNotDeleted(existingUser)
-                if (existingUser.roles.includes(Role.Admin)) {
-                    throw new AccountModerationError('An administrator cannot be banned.')
-                }
+                this.requireModeratable(existingUser, 'banned')
                 return UpdateValidationResult.Proceed
             }
         })
@@ -628,6 +633,50 @@ export class UserService {
         })
         this.addListedUsernameIfActive(updatedUser)
         return updatedUser
+    }
+
+    async deleteOwnAccount(session: AuthenticatedSession): Promise<[User, User]> {
+        return this.deleteAccount(session.userId, (existing) => {
+            this.requireAuthenticatedSession(session, existing, {
+                requireRecentAuthentication: true
+            })
+            // At least one Administrator must remain, and none can remove another.
+            if (existing.roles.includes(Role.Admin)) {
+                throw new AccountModerationError("Administrator accounts can't be deleted.")
+            }
+        })
+    }
+
+    async deleteAccountAsAdministrator(
+        userId: string,
+        actingUserId: string
+    ): Promise<[User, User]> {
+        if (userId === actingUserId) {
+            throw new AccountModerationError('Delete your own account from your profile.')
+        }
+        return this.deleteAccount(userId, (existing) =>
+            this.requireModeratable(existing, 'deleted')
+        )
+    }
+
+    private async deleteAccount(
+        userId: string,
+        validate: (existing: User) => void
+    ): Promise<[User, User]> {
+        const [tombstone, original] = await this.userStore.deleteUser(userId, validate)
+        this.removeListedUsername(original.username)
+        return [tombstone, original]
+    }
+
+    private requireModeratable(user: User, action: 'banned' | 'deleted'): void {
+        this.requireNotDeleted(user)
+        if (user.roles.includes(Role.Admin)) {
+            throw new AccountModerationError(`An administrator cannot be ${action}.`)
+        }
+    }
+
+    private isDisallowedUsername(username: string): boolean {
+        return isOffensiveUsername(username) || isReservedUsername(username)
     }
 
     private requireNotDeleted(user: User): void {

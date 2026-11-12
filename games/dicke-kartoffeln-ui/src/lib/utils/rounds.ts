@@ -120,3 +120,26 @@ const BEFORE_SOWING_DECIDED: readonly MachineState[] = [
 export function sowingDecided(state: MachineState): boolean {
     return !BEFORE_SOWING_DECIDED.includes(state)
 }
+
+// A year past the last one means the worms only score at the end.
+export type CompostDue = { year: number | undefined; worms: number }
+
+export function compostByUseYear(
+    state: MachineState,
+    year: number,
+    lastYear: number,
+    piles: { fresh: number; ripe: number }
+): CompostDue[] {
+    const dues: CompostDue[] = []
+    for (const [pile, worms] of [
+        [CompostPileId.Ripe, piles.ripe],
+        [CompostPileId.Fresh, piles.fresh]
+    ] as const) {
+        const useYear = compostUseYear(state, year, pile)
+        const due = useYear > lastYear ? undefined : useYear
+        const same = dues.find((candidate) => candidate.year === due)
+        if (same) same.worms += worms
+        else dues.push({ year: due, worms })
+    }
+    return dues
+}

@@ -1,9 +1,11 @@
 <script lang="ts">
     import { Card, Label, Input, Button, Helper, Alert, P, Hr } from 'flowbite-svelte'
-    import { UserStatus, type User } from '@tabletop/common'
+    import { ABANDONED_SIGN_UP_DAYS, UserStatus, type UserUpdateRequest } from '@tabletop/common'
     import { getAppContext } from '@tabletop/frontend-components'
     import { challengeExpiryText } from '$lib/utils/challengeExpiry'
     import { isAlreadyExists, isUsernameNotAllowed } from '$lib/utils/accountErrors'
+    import AgeConfirmation from '$lib/components/AgeConfirmation.svelte'
+    import { ageConfirmationMessage } from '$lib/utils/accountFormValidation'
     import {
         reauthentication,
         requiresRecentAuthentication
@@ -15,21 +17,29 @@
     let errors: Record<string, string[]> = $state({})
     let username: string | undefined = $state(undefined)
     let email: string | undefined = $state(undefined)
+    let ageConfirmed = $state(false)
     let verificationToken: string | undefined = $state(undefined)
     let verificationError = $state(false)
     let newEmailSent = $state(false)
     let codeExpiresAt: Date | undefined = $state(undefined)
 
     let user = $derived(authorizationService.getSessionUser())
+    let neverActivated = $derived(Boolean(user && !user.activatedAt))
 
     async function updateUser(event: SubmitEvent) {
         event.preventDefault()
         username = username?.trim()
         email = email?.trim()
+        errors = {}
+        if (user && !user.ageConfirmedAt && !ageConfirmed) {
+            errors.ageConfirmed = [ageConfirmationMessage]
+            return
+        }
 
-        const payload = {
+        const payload: UserUpdateRequest = {
             username,
-            email
+            email,
+            ageConfirmed: ageConfirmed ? true : undefined
         }
         await reauthentication.run({
             description: email ? 'update your email address' : 'complete your profile',
@@ -37,7 +47,7 @@
         })
     }
 
-    async function saveProfile(payload: Pick<User, 'username' | 'email'>) {
+    async function saveProfile(payload: UserUpdateRequest) {
         try {
             let updatedUser = await api.updateUser(payload)
             authorizationService.setSessionUser(updatedUser)
@@ -102,6 +112,14 @@
     }
 </script>
 
+{#snippet signUpDeadline()}
+    {#if neverActivated}
+        <P class="text-sm mt-4 text-gray-500 dark:text-gray-400"
+            >Unfinished sign-ups are deleted after {ABANDONED_SIGN_UP_DAYS} days.</P
+        >
+    {/if}
+{/snippet}
+
 <div class="h-[calc(100dvh-70px)] flex flex-col items-center justify-center space-y-6">
     {#if user && user.email && !user.emailVerified}
         <Card class="p-4 sm:p-6">
@@ -149,6 +167,7 @@
                     ><Button type="submit">Submit</Button>
                 </div>
             </form>
+            {@render signUpDeadline()}
         </Card>
     {:else}
         <Card class="p-4 sm:p-6">
@@ -203,8 +222,12 @@
                         and notifications.
                     </Helper>
                 {/if}
+                {#if user && !user.ageConfirmedAt}
+                    <AgeConfirmation bind:checked={ageConfirmed} errors={errors.ageConfirmed} />
+                {/if}
                 <div class="flex justify-end"><Button type="submit" class="">Submit</Button></div>
             </form>
+            {@render signUpDeadline()}
         </Card>
     {/if}
 </div>

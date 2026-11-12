@@ -18,7 +18,9 @@ vi.mock('@tabletop/backend-services', async () => {
     return {
         ...Object.fromEntries(
             [
+                'AbandonedSignUps',
                 'AccountModeration',
+                'ContentReports',
                 'CatalogService',
                 'CharityTallyRefresher',
                 'CharityTallyService',

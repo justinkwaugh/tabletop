@@ -9,6 +9,7 @@ import {
 } from '@tabletop/common'
 import {
     filterSeriesGames,
+    gameMatchesFilter,
     hostName,
     lobbyEntry,
     parseSeriesFilter,
@@ -18,6 +19,7 @@ import {
     shortTitleName,
     takenSeats,
     titleGameCounts,
+    widenFilterToShow,
     winnerText
 } from './seriesLobby'
 
@@ -137,6 +139,16 @@ describe('series games', () => {
         expect(ids(filterSeriesGames(games, { view: 'lobby', titleIds: [], seats: 4 }))).toEqual([
             'b'
         ])
+    })
+
+    it('widens a filter that would hide a new game', () => {
+        const created = game('n', '1846', { players: [seat(0), seat(1), seat(2), seat(3)] })
+        const hiding = { view: 'lobby' as const, titleIds: ['1830'], seats: 3 }
+        expect(gameMatchesFilter(created, hiding)).toBe(false)
+        const widened = widenFilterToShow(hiding, created)
+        expect(widened).toEqual({ view: 'lobby', titleIds: ['1830', '1846'], seats: undefined })
+        expect(gameMatchesFilter(created, widened)).toBe(true)
+        expect(gameMatchesFilter(created, { view: 'lobby', titleIds: [], seats: 4 })).toBe(true)
     })
 
     it('offers the player counts the games have', () => {

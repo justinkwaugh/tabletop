@@ -3,6 +3,7 @@
     import LibraryLink from '$lib/components/project/LibraryLink.svelte'
     import ProjectPrinciples from '$lib/components/project/ProjectPrinciples.svelte'
     import Wordmark from '$lib/components/project/Wordmark.svelte'
+    import LegalLinks from '$lib/components/project/LegalLinks.svelte'
 </script>
 
 <svelte:head>
@@ -94,12 +95,20 @@
             </a>
         </section>
     </div>
+    <footer class="about-footer">
+        <LegalLinks />
+    </footer>
 </main>
 
 <style>
     .about-page {
         padding-bottom: 64px;
         color: var(--color-gray-200);
+    }
+    .about-footer {
+        margin-top: 40px;
+        padding-top: 16px;
+        border-top: 1px solid var(--color-gray-700);
     }
     .page-heading {
         display: flex;

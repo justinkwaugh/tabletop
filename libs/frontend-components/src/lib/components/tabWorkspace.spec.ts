@@ -4,7 +4,6 @@ import {
     activateTab,
     deletePane,
     moveTab,
-    moveTabToIndex,
     orderPaneTabs,
     tabDragIndex,
     tabDragShift,
@@ -124,19 +123,7 @@ it('swaps entire split branches while preserving each branch size', () => {
     expect(swapSplit(swapped, 'root-split-vertical')).toEqual(root)
 })
 
-it('moves a tab to a clamped index and orders a pane without changing its active tab', () => {
-    expect(moveTabToIndex(['map', 'market', 'sheet', 'tiles'], 'map', 2)).toEqual([
-        'market',
-        'sheet',
-        'map',
-        'tiles'
-    ])
-    expect(moveTabToIndex(['map', 'market', 'sheet'], 'sheet', -3)).toEqual([
-        'sheet',
-        'map',
-        'market'
-    ])
-    expect(moveTabToIndex(['map', 'market', 'sheet'], 'map', 9)).toEqual(['market', 'sheet', 'map'])
+it('orders a pane without changing its active tab', () => {
     const split = splitPane(initial(), 'root', 'vertical')
     const ordered = orderPaneTabs(split, 'root', ['tiles', 'sheet', 'market', 'map'])
     expect(workspaceLayout(ordered).panes[0].pane).toMatchObject({

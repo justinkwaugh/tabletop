@@ -44,7 +44,9 @@ to work, keep one and give each of the rest its own thread, so they run in paral
 
 Read the post with `show`, and save
 its files with `download`: the scenario `bug-report-<gameId>.json` and any screenshots. Look at
-every screenshot.
+every screenshot. The game's name and link, the IDs and the scenario come from the staff-only
+`#bug-report-data` channel, which `show` and `download` join to the post; never paste them into
+the public forum.
 
 Then sort it: a **suggestion** asks for something new or different (a feature, a convenience, a
 change to how the game looks or plays) rather than saying the game went wrong. A player who

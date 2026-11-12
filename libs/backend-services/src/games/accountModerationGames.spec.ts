@@ -30,6 +30,13 @@ const TOURNAMENT_SEAT = { tournamentId: 't', stageId: 's', scheduleId: 'r', tabl
 
 const banned = (id: string) => ({ ...syntheticUser(id), status: UserStatus.Inactive })
 
+const OPTED_OUT = {
+    preventWebNotificationPrompt: false,
+    preferredColorsEnabled: false,
+    preferredColors: [],
+    gameAndCompetitionEmails: false
+}
+
 describe('releaseBannedPlayer', () => {
     it('concedes a two-player game, naming the other player the winner', async () => {
         const host = createHost(['p1', 'p2'])
@@ -48,6 +55,30 @@ describe('releaseBannedPlayer', () => {
             declaredWinnerId: 'p2'
         })
         expect(host.state()).toMatchObject({ result: GameResult.Win, winningPlayerIds: ['p2'] })
+    })
+
+    it('sends the game-end email only to players who want game emails', async () => {
+        for (const wanted of [true, false]) {
+            const host = createHost(['p1', 'p2'])
+            await host.apply(host.step('s1', 'p1'))
+            host.seatedGames([structuredClone(host.game)])
+            const endEmails = vi.mocked(host.tasks.sendGameEndEmail).mockResolvedValue()
+            vi.spyOn(UserService.prototype, 'getUser').mockImplementation(async (id) => ({
+                ...syntheticUser(id),
+                email: `${id}@example.test`,
+                ...(wanted ? {} : { preferences: OPTED_OUT })
+            }))
+
+            await host.service.releaseBannedPlayer({
+                user: banned('p1'),
+                supportsCalls: async () => true
+            })
+
+            expect(host.game.status).toBe(GameStatus.Finished)
+            expect(endEmails.mock.calls.map(([task]) => task.toEmail)).toEqual(
+                wanted ? ['p1@example.test', 'p2@example.test'] : []
+            )
+        }
     })
 
     describe('a game with more players', () => {
@@ -98,6 +129,24 @@ describe('releaseBannedPlayer', () => {
             })
 
             expect(queued).not.toHaveBeenCalled()
+        })
+
+        it('skips players who turned off game and competition emails', async () => {
+            const { host, queued } = largerGameHost()
+            vi.spyOn(UserService.prototype, 'getUser').mockImplementation(async (id) =>
+                id === 'p2'
+                    ? { ...syntheticUser(id), email: 'p2@example.test', preferences: OPTED_OUT }
+                    : { ...syntheticUser(id), email: `${id}@example.test` }
+            )
+
+            await host.service.releaseBannedPlayer({
+                user: banned('p1'),
+                supportsCalls: async () => true
+            })
+
+            expect(queued.mock.calls.map(([task]) => task.payload)).toEqual([
+                expect.objectContaining({ toEmail: 'p3@example.test' })
+            ])
         })
 
         it('does not suggest calling a game whose title cannot be called', async () => {
@@ -286,6 +335,48 @@ describe('renamePlayerInGames', () => {
             { gameId: 'active', userId: 'p2', name: 'Robert' },
             { gameId: 'tournament', userId: 'p2', name: 'Robert' },
             { gameId: 'finished', userId: 'p2', name: 'Robert' }
+        ])
+    })
+})
+
+describe('anonymizePlayerInGames', () => {
+    it('renames the deleted seat in every game it holds, finished ones included', async () => {
+        const host = createHost()
+        const anonymize = vi
+            .spyOn(host.store, 'anonymizePlayer')
+            .mockImplementation(async ({ gameId }) => ({
+                ...structuredClone(host.game),
+                id: gameId
+            }))
+        const game = structuredClone(host.game)
+        const active = { ...game, id: 'active' }
+        const finished = { ...game, id: 'finished', status: GameStatus.Finished }
+        const done = {
+            ...game,
+            id: 'done',
+            players: game.players.map((player) =>
+                player.userId === 'p2' ? { ...player, name: 'Deleted player 1' } : player
+            )
+        }
+        vi.spyOn(host.store, 'findGamesForUser').mockImplementation(async (_user, category) => {
+            switch (category) {
+                case GameStatusCategory.Active:
+                    return [active, done]
+                case GameStatusCategory.Completed:
+                    return [finished]
+                default:
+                    return []
+            }
+        })
+
+        await host.service.anonymizePlayerInGames({
+            ...syntheticUser('p2'),
+            status: UserStatus.Deleted
+        })
+
+        expect(anonymize.mock.calls.map(([seat]) => seat)).toEqual([
+            { gameId: 'active', userId: 'p2' },
+            { gameId: 'finished', userId: 'p2' }
         ])
     })
 })

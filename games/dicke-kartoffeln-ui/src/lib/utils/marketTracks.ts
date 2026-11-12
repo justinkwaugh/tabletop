@@ -1,6 +1,7 @@
 import { assert } from '@tabletop/common'
 import {
     demandRows,
+    priceChangeForDemandShift,
     priceSpaces,
     type MarketBoardId,
     type MarketPosition
@@ -28,3 +29,12 @@ export function markerRow(
     assert(row >= 0, `No ${track} space ${spaceId} on the ${board} board`)
     return row
 }
+
+export type PriceChange = { rowsMoved: string; priceSteps: number }
+
+export const PRICE_CHANGES: readonly PriceChange[] = [
+    { rowsMoved: '0', priceSteps: priceChangeForDemandShift(0) },
+    { rowsMoved: '1', priceSteps: priceChangeForDemandShift(1) },
+    { rowsMoved: '2–3', priceSteps: priceChangeForDemandShift(2) },
+    { rowsMoved: '4+', priceSteps: priceChangeForDemandShift(4) }
+]

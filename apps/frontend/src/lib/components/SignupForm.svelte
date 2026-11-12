@@ -4,9 +4,14 @@
     import { getAppContext, trim } from '@tabletop/frontend-components'
     import PasswordInput from '$lib/components/PasswordInput.svelte'
     import AuthLink from '$lib/components/AuthLink.svelte'
+    import AgeConfirmation from '$lib/components/AgeConfirmation.svelte'
     import { focusFirstInput } from '$lib/utils/focusFirstInput'
     import { isAlreadyExists, isUsernameNotAllowed } from '$lib/utils/accountErrors'
-    import { emailAddress, minLengthMessage } from '$lib/utils/accountFormValidation'
+    import {
+        ageConfirmationMessage,
+        emailAddress,
+        minLengthMessage
+    } from '$lib/utils/accountFormValidation'
 
     let { onsignin }: { onsignin?: () => void } = $props()
     const { authorizationService, api } = getAppContext()
@@ -17,11 +22,13 @@
     let username = $state('')
     let password = $state('')
     let email = $state('')
+    let ageConfirmed = $state(false)
 
     const createUserSchema = z.object({
         username: z.string().trim().min(1, minLengthMessage(1)),
         password: z.string().trim().min(12, minLengthMessage(12)),
-        email: z.string().trim().pipe(emailAddress())
+        email: z.string().trim().pipe(emailAddress()),
+        ageConfirmed: z.literal(true, { error: ageConfirmationMessage })
     })
 
     async function submit(event: SubmitEvent) {
@@ -29,7 +36,7 @@
         if (submitting) return
         unexpectedError = false
         errors = {}
-        const result = createUserSchema.safeParse({ username, password, email })
+        const result = createUserSchema.safeParse({ username, password, email, ageConfirmed })
         if (!result.success) {
             errors = z.flattenError(result.error).fieldErrors
             return
@@ -120,6 +127,7 @@
             {/if}
         </Helper>
     </div>
+    <AgeConfirmation bind:checked={ageConfirmed} errors={errors.ageConfirmed} />
     <div class="flex items-center justify-between gap-4 mt-4">
         <p class="auth-secondary text-sm text-gray-600 dark:text-gray-300">
             Have an account? <AuthLink href="/login" onactivate={onsignin}>Sign in</AuthLink>

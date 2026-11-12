@@ -2,17 +2,11 @@
     import { MAX_WORMS, VARIETIES, yieldChartRow } from '@tabletop/dicke-kartoffeln'
     import type { Attachment } from 'svelte/attachments'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { PRICE_CHANGES } from '$lib/utils/marketTracks.js'
     import { compactTable } from '$lib/utils/tableLayout.svelte.js'
 
     const gameSession = getGameSession()
     const wormCounts = Array.from({ length: MAX_WORMS + 1 }, (_, worms) => worms)
-
-    const PRICE_CHANGES = [
-        ['0', '0'],
-        ['1', '1'],
-        ['2–3', '2'],
-        ['4 and more', '3']
-    ]
 
     const holdFocus: Attachment<HTMLElement> = (aid) => {
         const opener = document.activeElement
@@ -202,10 +196,10 @@
                     </div>
                     <table class="boxed prices">
                         <tbody>
-                            {#each PRICE_CHANGES as [difference, change] (difference)}
+                            {#each PRICE_CHANGES as { rowsMoved, priceSteps } (rowsMoved)}
                                 <tr>
-                                    <td>Difference = {difference}</td>
-                                    <td>Price change = {change}</td>
+                                    <td>Difference = {rowsMoved}</td>
+                                    <td>Price change = {priceSteps}</td>
                                 </tr>
                             {/each}
                         </tbody>

@@ -21,7 +21,7 @@
         {:else if gameSession.gameState.result}
             <div in:fade={{ duration: 200 }}>End of game</div>
         {:else}
-            <div class="line" in:fade={{ duration: 200 }}>
+            <div in:fade={{ duration: 200 }}>
                 <span class="year">Year {gameSession.year} of {gameSession.setup.years}</span>
                 {#if label}<span class="round">· {label.number} {label.name}</span>{/if}
                 <span class="who">
@@ -29,10 +29,9 @@
                         — Your turn
                     {:else if waitingFor.length > 0}
                         — waiting for
-                        {#each waitingFor as playerId, index (playerId)}
-                            {#if index > 0}<span>,</span>{/if}
-                            <PlayerName {playerId} />
-                        {/each}
+                        {#each waitingFor as playerId, index (playerId)}{index > 0
+                                ? ', '
+                                : ''}<PlayerName {playerId} />{/each}
                     {/if}
                 </span>
             </div>
@@ -62,16 +61,8 @@
         gap: 8px;
         padding: 0 12px;
         color: #3d2410;
-        font-family: 'Kartoffeln Letters', 'Comic Sans MS', cursive;
-        text-transform: uppercase;
-        font-size: 22px;
-    }
-
-    .line {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 6px;
+        font-family: 'Kartoffeln Typewriter', 'Courier New', monospace;
+        font-size: 20px;
     }
 
     .round {
@@ -79,10 +70,7 @@
     }
 
     .who {
-        display: inline-flex;
-        flex-wrap: wrap;
-        gap: 4px;
-        font-size: 18px;
+        font-size: 17px;
     }
 
     .undo {
@@ -122,11 +110,11 @@
     @media (max-width: 639px) {
         .header {
             min-height: 30px;
-            font-size: 15px;
+            font-size: 14px;
         }
 
         .who {
-            font-size: 14px;
+            font-size: 13px;
         }
 
         .undo {

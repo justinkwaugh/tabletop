@@ -86,7 +86,10 @@ import {
     tournamentTableReference,
     tournamentTableSettled,
     type TournamentTableHandover,
-    type TournamentSchedule
+    type TournamentSchedule,
+    receivesGameAndCompetitionEmail,
+    playersWithDeletedAccount,
+    playersWithRenamedSeat
 } from '@tabletop/common'
 import { TaskService } from '../tasks/taskService.js'
 import { TokenService, TokenType } from '../tokens/tokenService.js'
@@ -288,7 +291,7 @@ export class GameService {
             if (user.id === owner.id) {
                 continue
             }
-            await this.inviteUserToGame({ owner, game: newGame, user })
+            await this.emailGameInvitation({ owner, game: newGame, user })
             await this.notifyWasInvited(user, owner, createdGame)
         }
 
@@ -296,6 +299,44 @@ export class GameService {
         await this.notifyGameAudience(GameNotificationAction.Create, { game: createdGame })
 
         return createdGame
+    }
+
+    // Takes a Game's name down at any status; the owner's own rename is limited to waiting Games.
+    async renameGameAsAdministrator({
+        gameId,
+        name,
+        administrator
+    }: {
+        gameId: string
+        name: string
+        administrator: User
+    }): Promise<Game> {
+        const trimmed = name.trim()
+        if (trimmed.length === 0) {
+            throw new GamePropertyIsRequiredError({ id: gameId, field: 'name' })
+        }
+        const game = await this.getGame({ gameId })
+        if (!game) {
+            throw new GameNotFoundError({ id: gameId })
+        }
+        const [updatedGame, updatedFields] = await this.gameStore.updateGame({
+            game,
+            fields: { name: trimmed }
+        })
+        if (!updatedFields.includes('name')) return updatedGame
+
+        // The moderation record an appeal is reviewed against.
+        console.log(
+            JSON.stringify({
+                event: 'game_renamed_by_administrator',
+                gameId,
+                administratorId: administrator.id,
+                originalName: game.name,
+                name: trimmed
+            })
+        )
+        await this.notifyGameAudience(GameNotificationAction.Update, { game: updatedGame })
+        return updatedGame
     }
 
     // An Administrator is exempt so that a false match can be resolved.
@@ -442,6 +483,23 @@ export class GameService {
     async renamePlayerInGames(user: User): Promise<void> {
         const { username } = user
         assertExists(username, 'A renamed account has a username')
+        await this.rewriteSeatInGames(user, async (game) => {
+            if (!playersWithRenamedSeat(game.players, user.id, username)) return undefined
+            return this.gameStore.renamePlayer({ gameId: game.id, userId: user.id, name: username })
+        })
+    }
+
+    async anonymizePlayerInGames(user: User): Promise<void> {
+        await this.rewriteSeatInGames(user, async (game) => {
+            if (!playersWithDeletedAccount(game.players, user.id)) return undefined
+            return this.gameStore.anonymizePlayer({ gameId: game.id, userId: user.id })
+        })
+    }
+
+    private async rewriteSeatInGames(
+        user: User,
+        rewrite: (game: Game) => Promise<Game | undefined>
+    ): Promise<void> {
         const games = await Promise.all(
             [
                 GameStatusCategory.Active,
@@ -450,15 +508,12 @@ export class GameService {
             ].map((category) => this.gameStore.findGamesForUser(user, category))
         )
         await this.settleForEachGame(games.flat(), async (game) => {
-            const seat = findPlayerForUserId(game, user.id)
-            if (!seat || seat.name === username) return
-            const renamed = await this.gameStore.renamePlayer({
-                gameId: game.id,
-                userId: user.id,
-                name: username
-            })
-            if (getGameStatusesForCategory(GameStatusCategory.Active).includes(renamed.status)) {
-                await this.notifyGamePlayers(GameNotificationAction.Update, { game: renamed })
+            const updated = await rewrite(game)
+            if (
+                updated &&
+                getGameStatusesForCategory(GameStatusCategory.Active).includes(updated.status)
+            ) {
+                await this.notifyGamePlayers(GameNotificationAction.Update, { game: updated })
             }
         })
     }
@@ -555,7 +610,12 @@ export class GameService {
         for (const player of game.players) {
             if (!player.userId || player.userId === user.id) continue
             const recipient = await this.userService.getUser(player.userId)
-            if (!recipient?.email || !canHoldAuthenticatedSession(recipient)) continue
+            if (
+                !recipient ||
+                !canHoldAuthenticatedSession(recipient) ||
+                !receivesGameAndCompetitionEmail(recipient)
+            )
+                continue
             await this.taskService.createPushTask({
                 queue: 'game-end-email',
                 path: '/email/sendPlayerRemovedEmail',
@@ -1091,7 +1151,11 @@ export class GameService {
                         // This really should never happen, so lets not bother with an error
                         continue
                     }
-                    await this.inviteUserToGame({ owner: user, game: updatedGame, user: invitee })
+                    await this.emailGameInvitation({
+                        owner: user,
+                        game: updatedGame,
+                        user: invitee
+                    })
                     await this.notifyWasInvited(invitee, user, updatedGame)
                 }
             }
@@ -1205,7 +1269,7 @@ export class GameService {
         return updatedGame
     }
 
-    async inviteUserToGame({
+    async emailGameInvitation({
         owner,
         game,
         user
@@ -1218,6 +1282,8 @@ export class GameService {
         if (!user.email || user.status !== UserStatus.Active) {
             throw new InvalidPlayerUserError({ user })
         }
+
+        if (!receivesGameAndCompetitionEmail(user)) return
 
         const invitationData = { gameId: game.id, userId: user.id }
         //TODO fix expiration
@@ -2780,7 +2846,11 @@ export class GameService {
             // I'm not sure why we send the email through the task, when
             // it could just get it on the other end.
             const user = await this.userService.getUser(userId)
-            if (user && user.email && canHoldAuthenticatedSession(user)) {
+            if (
+                user &&
+                canHoldAuthenticatedSession(user) &&
+                receivesGameAndCompetitionEmail(user)
+            ) {
                 await this.taskService.sendGameEndEmail({
                     userId: user.id,
                     gameId: game.id,
