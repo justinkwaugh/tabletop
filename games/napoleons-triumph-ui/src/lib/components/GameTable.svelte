@@ -77,7 +77,7 @@
     let table: HTMLElement | undefined = $state()
     let ordersDrawerHeight = $state(0)
     const boardCovered = $derived(
-        session.isCommanding && session.selectedGroup ? ordersDrawerHeight : 0
+        session.showsOrders && session.selectedGroup ? ordersDrawerHeight : 0
     )
 
     const MAP_MENU_ROOM = 96

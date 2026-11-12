@@ -26,7 +26,8 @@ export enum TargetKind {
     Approach = 'Approach',
     Attack = 'Attack',
     Retreat = 'Retreat',
-    Way = 'Way'
+    Way = 'Way',
+    Stay = 'Stay'
 }
 
 type ReservePosition = Pick<Position, 'locale'>
@@ -61,6 +62,13 @@ export interface RetreatTarget {
     position: ReservePosition
 }
 
+/** Rule 10: cavalry at the end of its ride ends its move in the reserve it rode into. */
+export interface StayTarget {
+    key: string
+    kind: TargetKind.Stay
+    position: ReservePosition
+}
+
 /** A step of the way to a place already chosen, offered where its ways part. */
 export interface WayTarget {
     key: string
@@ -78,10 +86,11 @@ export interface WaySign {
 
 export type MarchTarget = ReserveTarget | ApproachTarget
 
-export type MoveTarget = MarchTarget | AttackTarget | RetreatTarget | WayTarget
+export type MoveTarget = MarchTarget | AttackTarget | RetreatTarget | WayTarget | StayTarget
 
 export enum TargetMark {
     Move = 'move',
+    Stay = 'stay',
     RoadMarch = 'road march',
     Way = 'way',
     Approach = 'approach',
@@ -90,6 +99,7 @@ export enum TargetMark {
 }
 
 const LEGEND_ORDER = [
+    TargetMark.Stay,
     TargetMark.Move,
     TargetMark.RoadMarch,
     TargetMark.Way,
@@ -110,6 +120,8 @@ export function markOf(target: MoveTarget): TargetMark {
             return TargetMark.Move
         case TargetKind.Way:
             return TargetMark.Way
+        case TargetKind.Stay:
+            return TargetMark.Stay
     }
 }
 
@@ -153,6 +165,11 @@ function keyOf(kind: TargetKind, position: Position): string {
 export function reserveTarget(locale: number, ways?: Way[]): ReserveTarget {
     const position = { locale }
     return { key: keyOf(TargetKind.Reserve, position), kind: TargetKind.Reserve, position, ways }
+}
+
+export function stayTarget(locale: number): StayTarget {
+    const position = { locale }
+    return { key: keyOf(TargetKind.Stay, position), kind: TargetKind.Stay, position }
 }
 
 export function approachTarget(position: ApproachPosition, ways?: Way[]): ApproachTarget {
