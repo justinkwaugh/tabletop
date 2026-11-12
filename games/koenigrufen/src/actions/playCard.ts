@@ -41,7 +41,12 @@ export class HydratedPlayCard extends HydratableAction<typeof PlayCard> implemen
     }
 
     apply(state: HydratedKoenigrufenGameState) {
+        const handsWereShown = state.handsShown === true
         const trickWinnerId = state.playCard(this.playerId, this.cardId)
         this.metadata = trickWinnerId === undefined ? {} : { trickWinnerId }
+        // Laying the ouvert hands open reveals every hand, so the lead cannot be taken back.
+        if (!handsWereShown && state.handsShown === true) {
+            this.revealsInfo = true
+        }
     }
 }

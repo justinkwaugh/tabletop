@@ -21,6 +21,11 @@
     const label = $derived(cardLabel(cardId, style))
     const art = $derived(cardArt(cardId, style))
     const widthShare = $derived(cardWidthShare(style))
+
+    // A card that cannot be chosen stays focusable, so the keyboard can still open it to look.
+    function activate() {
+        if (selectable) onclick?.()
+    }
 </script>
 
 <svelte:element
@@ -31,11 +36,11 @@
     class:chosen
     class:dimmed
     style:--width-share={widthShare}
-    disabled={onclick ? !selectable : undefined}
+    aria-disabled={onclick ? !selectable : undefined}
     role={onclick ? undefined : 'img'}
     aria-label={label}
     title={label}
-    {onclick}
+    onclick={onclick ? activate : undefined}
 >
     <img src={art} alt="" draggable="false" />
 </svelte:element>
@@ -57,7 +62,7 @@
         transition: transform 120ms ease;
     }
 
-    .card:disabled {
+    .card[aria-disabled='true'] {
         cursor: default;
     }
 

@@ -28,7 +28,7 @@
 
 ### Looking at a hand card
 
-- **Trigger:** the keyboard has moved focus to a card in the player's hand, or (without that) a card is picked to play. Keyboard focus opens any card, legal or not, at any time. Hovering with the mouse does not open a card or move the hand.
+- **Trigger:** the keyboard has moved focus to a card in the player's hand, or (without that) a card is picked to play. Keyboard focus opens any card, legal or not, at any time: a card that cannot be chosen is still focusable, marked `aria-disabled`, and activating it does nothing. Hovering with the mouse does not open a card or move the hand.
 - **Display:** when the hand overlaps, that card opens until 80% of its width shows, so its picture can be seen as well as its index, and every other overlapped card closes up evenly to make room, so the row keeps its width. A hand that already shows that much of each card does not move. The cards slide (0.12s); nothing else on the table changes.
 - **Pointer stability:** a card only ever gains width as it opens, and its neighbours give way on the far sides, so the card under the pointer stays under it: the first click or tap picks and opens the card, and a second on the same spot still lands on it and plays it.
 

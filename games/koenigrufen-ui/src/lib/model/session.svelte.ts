@@ -1,5 +1,6 @@
 import {
     GameSession,
+    undoableStagedSelection,
     type AnimationContext,
     type TitlePreferences
 } from '@tabletop/frontend-components'
@@ -42,19 +43,19 @@ import type { CardStyle } from '$lib/utils/cardStyle.js'
 import { scoreSheet, type ScoreSheet } from '$lib/utils/scoreSheet.js'
 import { bonusKey, doubleKey } from '$lib/utils/announcementText.js'
 import {
+    AnnouncementStageOrder,
     chosenAnnouncements,
     chosenToLayAway,
-    hasManualAnnouncementSelection,
-    hasManualLayAwaySelection,
-    hasManualPlaySelection,
+    LayAwayStageOrder,
     pickedToPlay,
     pickToPlay,
-    popAnnouncementSelection,
-    popLayAwaySelection,
-    popPlaySelection,
+    PlayStageOrder,
     toggleAnnouncement,
     toggleLayAway,
     type AnnouncementSelection,
+    type AnnouncementSelectionValues,
+    type LayAwaySelectionValues,
+    type PlaySelectionValues,
     type LayAwaySelection,
     type PlaySelection
 } from './stagedSelection.js'
@@ -68,6 +69,10 @@ function handSortKey(cardId: string): number {
         ? 100 + found.number
         : SuitSortOrder.indexOf(found.suit) * 10 + (10 - found.strength)
 }
+
+type SessionOptions = ConstructorParameters<
+    typeof GameSession<KoenigrufenProjectedState, HydratedKoenigrufenGameState>
+>[0]
 
 export class KoenigrufenGameSession extends GameSession<
     KoenigrufenProjectedState,
@@ -87,6 +92,33 @@ export class KoenigrufenGameSession extends GameSession<
     private layAwaySelection: LayAwaySelection = $state({})
     private playSelection: PlaySelection = $state({})
     private announcementSelection: AnnouncementSelection = $state({})
+
+    // Undo takes back a picked card, then the latest announcement choice, then the latest card
+    // chosen to lay away, before it undoes an action. Every new state clears them.
+    constructor(options: SessionOptions) {
+        super(options)
+        this.localSelections.register(
+            undoableStagedSelection<PlaySelectionValues>(
+                PlayStageOrder,
+                () => this.playSelection,
+                (selection) => (this.playSelection = selection)
+            )
+        )
+        this.localSelections.register(
+            undoableStagedSelection<AnnouncementSelectionValues>(
+                AnnouncementStageOrder,
+                () => this.announcementSelection,
+                (selection) => (this.announcementSelection = selection)
+            )
+        )
+        this.localSelections.register(
+            undoableStagedSelection<LayAwaySelectionValues>(
+                LayAwayStageOrder,
+                () => this.layAwaySelection,
+                (selection) => (this.layAwaySelection = selection)
+            )
+        )
+    }
 
     readonly machineState = $derived(this.gameState.machineState)
 
@@ -236,15 +268,10 @@ export class KoenigrufenGameSession extends GameSession<
             (this.machineState === MachineState.Bidding || this.gameState.result !== undefined)
     )
 
-    readonly hasManualSelection = $derived(
-        hasManualLayAwaySelection(this.layAwaySelection) ||
-            hasManualPlaySelection(this.playSelection)
-    )
-
     readonly canUndo = $derived(
         this.isPlayable &&
             !this.isViewingHistory &&
-            (this.hasManualSelection || Boolean(this.undoableAction))
+            (this.hasLocalSelection || Boolean(this.undoableAction))
     )
 
     canTake(type: ActionType): boolean {
@@ -264,22 +291,6 @@ export class KoenigrufenGameSession extends GameSession<
         this.preferences.set(change)
     }
 
-    override async undo() {
-        if (hasManualPlaySelection(this.playSelection)) {
-            this.playSelection = popPlaySelection(this.playSelection)
-            return
-        }
-        if (hasManualAnnouncementSelection(this.announcementSelection)) {
-            this.announcementSelection = popAnnouncementSelection(this.announcementSelection)
-            return
-        }
-        if (hasManualLayAwaySelection(this.layAwaySelection)) {
-            this.layAwaySelection = popLayAwaySelection(this.layAwaySelection)
-            return
-        }
-        await super.undo()
-    }
-
     override async onGameStateChange(change: {
         to: HydratedKoenigrufenGameState
         from?: HydratedKoenigrufenGameState
@@ -291,12 +302,6 @@ export class KoenigrufenGameSession extends GameSession<
             this.talonAnimator.onGameStateChange(change),
             this.dealAnimator.onGameStateChange(change)
         ])
-    }
-
-    override beforeNewState() {
-        this.layAwaySelection = {}
-        this.playSelection = {}
-        this.announcementSelection = {}
     }
 
     async sayMeinSpiel() {

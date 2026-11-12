@@ -1,24 +1,47 @@
 import { describe, expect, it } from 'vitest'
+import { undoableStagedSelection, type StagedSelectionState } from '@tabletop/frontend-components'
 import {
+    AnnouncementStageOrder,
     chosenAnnouncements,
     chosenToLayAway,
-    hasManualAnnouncementSelection,
-    hasManualLayAwaySelection,
-    hasManualPlaySelection,
+    LayAwayStageOrder,
     pickedToPlay,
     pickToPlay,
-    popAnnouncementSelection,
-    popLayAwaySelection,
-    popPlaySelection,
+    PlayStageOrder,
     toggleAnnouncement,
-    toggleLayAway
+    toggleLayAway,
+    type AnnouncementSelectionValues,
+    type LayAwaySelectionValues,
+    type PlaySelectionValues
 } from './stagedSelection.js'
+
+// Undo as the session does it: through the selection it registers.
+function undoable<T extends Record<string, unknown>>(
+    order: Parameters<typeof undoableStagedSelection<T>>[0],
+    start: StagedSelectionState<T>
+) {
+    let selection = start
+    const registered = undoableStagedSelection<T>(
+        order,
+        () => selection,
+        (next) => (selection = next)
+    )
+    return {
+        hasManual: () => registered.hasManual(),
+        undo: () => {
+            registered.undo()
+            return selection
+        }
+    }
+}
 
 describe('choosing cards to lay away', () => {
     it('adds each chosen card as the next stage', () => {
         const selection = toggleLayAway(toggleLayAway({}, 'hearts-Q'), 'clubs-10')
         expect(chosenToLayAway(selection)).toEqual(['hearts-Q', 'clubs-10'])
-        expect(hasManualLayAwaySelection(selection)).toBe(true)
+        expect(undoable<LayAwaySelectionValues>(LayAwayStageOrder, selection).hasManual()).toBe(
+            true
+        )
     })
 
     it('takes a chosen card back out when it is chosen again, keeping the others in order', () => {
@@ -31,10 +54,10 @@ describe('choosing cards to lay away', () => {
 
     it('pops only the latest card on Undo', () => {
         const selection = toggleLayAway(toggleLayAway({}, 'hearts-Q'), 'clubs-10')
-        expect(chosenToLayAway(popLayAwaySelection(selection))).toEqual(['hearts-Q'])
-        expect(hasManualLayAwaySelection(popLayAwaySelection(popLayAwaySelection(selection)))).toBe(
-            false
-        )
+        const choice = undoable<LayAwaySelectionValues>(LayAwayStageOrder, selection)
+        expect(chosenToLayAway(choice.undo())).toEqual(['hearts-Q'])
+        expect(chosenToLayAway(choice.undo())).toEqual([])
+        expect(choice.hasManual()).toBe(false)
     })
 
     it('refuses a seventh card', () => {
@@ -50,7 +73,7 @@ describe('picking a card to play', () => {
     it('holds the picked card as a manual stage', () => {
         const selection = pickToPlay('hearts-K')
         expect(pickedToPlay(selection)).toBe('hearts-K')
-        expect(hasManualPlaySelection(selection)).toBe(true)
+        expect(undoable<PlaySelectionValues>(PlayStageOrder, selection).hasManual()).toBe(true)
     })
 
     it('replaces the pick when another card is picked', () => {
@@ -58,9 +81,9 @@ describe('picking a card to play', () => {
     })
 
     it('drops the pick on Undo', () => {
-        const popped = popPlaySelection(pickToPlay('hearts-K'))
-        expect(pickedToPlay(popped)).toBeUndefined()
-        expect(hasManualPlaySelection(popped)).toBe(false)
+        const pick = undoable<PlaySelectionValues>(PlayStageOrder, pickToPlay('hearts-K'))
+        expect(pickedToPlay(pick.undo())).toBeUndefined()
+        expect(pick.hasManual()).toBe(false)
     })
 })
 
@@ -72,7 +95,11 @@ describe('choosing announcements', () => {
         expect(chosenAnnouncements(selection)).toEqual(['bonus:trull', 'game:', 'bonus:uhu'])
         selection = toggleAnnouncement(selection, 'bonus:trull')
         expect(chosenAnnouncements(selection)).toEqual(['game:', 'bonus:uhu'])
-        expect(chosenAnnouncements(popAnnouncementSelection(selection))).toEqual(['game:'])
-        expect(hasManualAnnouncementSelection({})).toBe(false)
+        const choice = undoable<AnnouncementSelectionValues>(AnnouncementStageOrder, selection)
+        expect(choice.hasManual()).toBe(true)
+        expect(chosenAnnouncements(choice.undo())).toEqual(['game:'])
+        expect(undoable<AnnouncementSelectionValues>(AnnouncementStageOrder, {}).hasManual()).toBe(
+            false
+        )
     })
 })

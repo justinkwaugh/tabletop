@@ -1,4 +1,9 @@
-import { assert, type Visibility } from '@tabletop/common'
+import {
+    assert,
+    playerUndoRestriction,
+    PlayerUndoRestriction,
+    type Visibility
+} from '@tabletop/common'
 import { describe, expect, it } from 'vitest'
 import { isEndHand } from '../actions/endHand.js'
 import { isPlayCard } from '../actions/playCard.js'
@@ -104,8 +109,16 @@ describe('ouvert games', () => {
         }
         expect(seen()).toBeUndefined()
         expect(session.activePlayerId()).toBe(p0)
+        expect(session.actions.filter(isPlayCard).some((action) => action.revealsInfo)).toBe(false)
         play(session)
         expect(seen()).toEqual(session.hand(p1))
+        // The lead saw every hand, so its player cannot undo it.
+        const lead = session.actions.findLast(isPlayCard)
+        assert(lead !== undefined, 'The lead was played')
+        expect(lead.revealsInfo).toBe(true)
+        expect(playerUndoRestriction([lead], lead, p0)).toBe(
+            PlayerUndoRestriction.RevealsInformation
+        )
         expect(
             project(session, { kind: 'spectator' }).players.every(
                 (player) => player.hand !== undefined

@@ -56,3 +56,47 @@ test('names a Rufer after Mein Spiel and shows the called King', async ({ page }
     await area.locator('button.choice', { hasText: /^K/ }).first().click()
     await expect(page.locator('.header .called')).toContainText('called K')
 })
+
+test('lets the keyboard reach a hand card that cannot be played', async ({ page }) => {
+    await createGame(page)
+    const card = page.locator('.hand .card').first()
+    await expect(card).toHaveAttribute('aria-disabled', 'true')
+    // The deal may still be landing and redrawing the hand.
+    await expect(async () => {
+        await card.focus()
+        await expect(card).toBeFocused({ timeout: 500 })
+    }).toPass()
+})
+
+test("takes back a defender's announcement choice before any action", async ({ page }) => {
+    await createGame(page)
+    const area = page.locator('.action-area')
+    await area.locator('button', { hasText: 'Mein Spiel' }).click()
+    for (let pass = 0; pass < 3; pass++) {
+        await area.locator('button', { hasText: /^Pass$/ }).click()
+    }
+    await page
+        .locator('.menu:popover-open .row', { hasText: /^\s*1\s*Rufer/ })
+        .locator('button')
+        .click()
+    await area.locator('button.choice', { hasText: /^K/ }).first().click()
+    await page.getByRole('button', { name: 'Take talon half 1' }).click()
+    for (let chosen = 0; chosen < 3; chosen++) {
+        await page.locator('.hand .card.selectable:not(.chosen)').first().click()
+    }
+    await area.locator('button', { hasText: 'Lay away' }).click()
+    // The declarer passes and the next player, a defender, chooses a bonus.
+    await area.locator('button.confirm', { hasText: 'Pass' }).click()
+    const bonuses = area.getByRole('group', { name: 'Bonuses to announce' })
+    const confirm = area.locator('button.confirm')
+    await expect(confirm).toHaveText('Pass')
+    const bonus = bonuses.locator('button').first()
+    await bonus.click()
+    await expect(bonus).toHaveAttribute('aria-pressed', 'true')
+    await expect(confirm).toHaveText('Announce')
+    // Undo takes back the choice, leaving the declarer's pass in place.
+    await page.locator('.header .undo').click()
+    await expect(bonus).toHaveAttribute('aria-pressed', 'false')
+    await expect(confirm).toHaveText('Pass')
+    await expect(page.locator('.action-area')).not.toContainText('Lay away')
+})

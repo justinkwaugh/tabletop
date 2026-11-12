@@ -1,7 +1,5 @@
 import {
     getStagedSelectionValue,
-    hasManualStagedSelection,
-    popHighestManualStagedSelection,
     setStagedSelectionValue,
     type StagedSelectionState
 } from '@tabletop/frontend-components'
@@ -65,21 +63,12 @@ export function toggleLayAway(selection: LayAwaySelection, cardId: string): LayA
     )
 }
 
-export function hasManualLayAwaySelection(selection: LayAwaySelection): boolean {
-    return hasManualStagedSelection<LayAwaySelectionValues>(selection, LayAwayStageOrder)
-}
-
-export function popLayAwaySelection(selection: LayAwaySelection): LayAwaySelection {
-    return popHighestManualStagedSelection<LayAwaySelectionValues>(selection, LayAwayStageOrder)
-        .nextState
-}
-
 // Playing a card takes two clicks: the first picks it, the second on the same card plays it.
 export type PlaySelectionValues = { card: string }
 
 export type PlaySelection = StagedSelectionState<PlaySelectionValues>
 
-const PlayStageOrder = ['card'] as const satisfies readonly (keyof PlaySelectionValues)[]
+export const PlayStageOrder = ['card'] as const satisfies readonly (keyof PlaySelectionValues)[]
 
 export function pickedToPlay(selection: PlaySelection): string | undefined {
     return getStagedSelectionValue<PlaySelectionValues, 'card'>(selection, 'card')
@@ -95,20 +84,12 @@ export function pickToPlay(cardId: string): PlaySelection {
     )
 }
 
-export function hasManualPlaySelection(selection: PlaySelection): boolean {
-    return hasManualStagedSelection<PlaySelectionValues>(selection, PlayStageOrder)
-}
-
-export function popPlaySelection(selection: PlaySelection): PlaySelection {
-    return popHighestManualStagedSelection<PlaySelectionValues>(selection, PlayStageOrder).nextState
-}
-
 // Each bonus or Kontra chosen in the announcements is its own stage, so Undo takes back the latest.
 export type AnnouncementSelectionValues = Record<string, string>
 
 export type AnnouncementSelection = StagedSelectionState<AnnouncementSelectionValues>
 
-const AnnouncementStageOrder: readonly string[] = Array.from(
+export const AnnouncementStageOrder: readonly string[] = Array.from(
     { length: 32 },
     (_, index) => `choice${index + 1}`
 )
@@ -137,15 +118,4 @@ export function toggleAnnouncement(
             ),
         {}
     )
-}
-
-export function hasManualAnnouncementSelection(selection: AnnouncementSelection): boolean {
-    return hasManualStagedSelection<AnnouncementSelectionValues>(selection, AnnouncementStageOrder)
-}
-
-export function popAnnouncementSelection(selection: AnnouncementSelection): AnnouncementSelection {
-    return popHighestManualStagedSelection<AnnouncementSelectionValues>(
-        selection,
-        AnnouncementStageOrder
-    ).nextState
 }
