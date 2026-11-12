@@ -1629,7 +1629,7 @@ mod tests {
                 revenues[stop] = amount;
             }
             serde_json::json!({
-                "id": "", "distance": 2, "counts_crossings": false, "requires_city": false,
+                "id": "", "distance": 2, "crossing_costs": [0, 0, 0], "requires_city": false,
                 "visit_costs": vec![1; stops], "revenues": revenues,
                 "first_bonus": vec![0; stops],
                 "fleet": {
@@ -1645,7 +1645,7 @@ mod tests {
         trains
             .extend((1..=lone).map(|route| train(&[(2 * route, 100), (2 * route + 1, 100)], None)));
         let problem: Problem = serde_json::from_value(serde_json::json!({
-            "version": 7, "junction_count": 0, "group_count": 0, "resource_count": lone + 1,
+            "version": 8, "junction_count": 0, "group_count": 0, "resource_count": lone + 1,
             "hex_bonuses": vec![0; lone + 1], "budget_ms": 1, "memory_budget_bytes": 1,
             "stops": (0..stops).map(|stop| serde_json::json!({
                 "token": true, "blocked": false, "endpoint": true, "allowed": true,
@@ -1677,6 +1677,7 @@ mod tests {
                 first_terminal: false,
                 last_terminal: false,
                 crossings: 0,
+                gauge: crate::Stretch::Standard,
             })
             .collect();
         let network = Network {

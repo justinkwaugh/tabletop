@@ -67,7 +67,8 @@ export function withTrackStops(
                 endpoints: [
                     { kind: 'edge', edge },
                     { kind: 'node', nodeId }
-                ]
+                ],
+                ...(path.gauge ? { gauge: path.gauge } : {})
             })
     }
     if (placed.size !== stops.length) throw new Error('A track stop needs plain track on its line')
