@@ -5,6 +5,7 @@ import {
     chooseCylinderAlga,
     chooseCylinderPayment,
     chooseFirstLarvaCube,
+    chooseOpenSeaSpace,
     choosePlacementSquare,
     chooseShrimp,
     hasManualReefSelection,
@@ -65,6 +66,15 @@ describe('Reef Encounter staged selection', () => {
         expect(once.cylinderPayment?.value).toBe(CoralColor.White)
         const twice = popReefSelection(once)
         expect(hasManualReefSelection(twice)).toBe(false)
+    })
+
+    it('holds a chosen larva space until Undo drops it, and another replaces it', () => {
+        const chosen = chooseOpenSeaSpace({}, CoralColor.Orange)
+        expect(chosen.openSeaSpace).toEqual({ value: CoralColor.Orange, source: 'manual' })
+        expect(chooseOpenSeaSpace(chosen, CoralColor.Grey).openSeaSpace?.value).toBe(
+            CoralColor.Grey
+        )
+        expect(hasManualReefSelection(popReefSelection(chosen))).toBe(false)
     })
 
     it('leaves nothing for Undo to pop once only auto selections remain', () => {

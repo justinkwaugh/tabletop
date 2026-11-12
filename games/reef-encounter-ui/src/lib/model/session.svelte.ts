@@ -35,6 +35,7 @@ import {
     chooseCylinderAlga,
     chooseCylinderPayment,
     chooseFirstLarvaCube,
+    chooseOpenSeaSpace,
     choosePlacementSquare,
     chooseShrimp,
     hasManualReefSelection,
@@ -204,7 +205,8 @@ export class ReefEncounterGameSession extends GameSession<
     })
 
     readonly takeableSpaces: CoralColor[] = $derived.by(() => {
-        if (!this.canTake(ActionType.TakeOpenSeaSpace) || this.turnChoiceOpen) return []
+        if (!this.canTake(ActionType.TakeOpenSeaSpace)) return []
+        if (this.turnChoiceOpen && this.chosenOpenSeaSpace === undefined) return []
         const me = this.myPlayerId()
         return CoralColors.filter((color) => this.gameState.canTakeOpenSeaSpace(me, color))
     })
@@ -216,12 +218,17 @@ export class ReefEncounterGameSession extends GameSession<
     readonly cylinderAlga: AlgaColor | undefined = $derived(this.selection.cylinderAlga?.value)
     readonly choosingCylinder = $derived(this.cylinderPayment !== undefined)
     readonly choosingCoralToEat = $derived(this.selection.eating?.value === true)
+    // Taking a larva space ends the turn and the refill reveals the bag, so it waits for Confirm.
+    readonly chosenOpenSeaSpace: CoralColor | undefined = $derived(
+        this.selection.openSeaSpace?.value
+    )
     // An open choice takes over the table (see the visual contract).
     readonly turnChoiceOpen = $derived(
         this.placementSquare !== undefined ||
             this.shrimpIntent !== undefined ||
             this.choosingCylinder ||
-            this.choosingCoralToEat
+            this.choosingCoralToEat ||
+            this.chosenOpenSeaSpace !== undefined
     )
     readonly canIntroduceShrimp = $derived(this.canTake(ActionType.IntroduceShrimp))
     readonly shrimpsOnBareRock: ReefSquare[] = $derived(
@@ -396,7 +403,17 @@ export class ReefEncounterGameSession extends GameSession<
         await this.applyPlacement(square, source)
     }
 
-    async takeOpenSeaSpace(larvaColor: CoralColor) {
+    chooseOpenSeaSpace(larvaColor: CoralColor) {
+        this.stage((selection) =>
+            selection.openSeaSpace?.value === larvaColor
+                ? popReefSelection(selection)
+                : chooseOpenSeaSpace(selection, larvaColor)
+        )
+    }
+
+    async confirmOpenSeaSpace() {
+        const larvaColor = this.chosenOpenSeaSpace
+        assertExists(larvaColor, 'Ending the turn needs a chosen larva space')
         await this.applyAction(this.createPlayerAction(TakeOpenSeaSpace, { larvaColor }))
     }
 
