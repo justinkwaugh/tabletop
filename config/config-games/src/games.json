@@ -142,5 +142,9 @@
     {
         "gameId": "koenigrufen",
         "packageId": "koenigrufen"
+    },
+    {
+        "gameId": "ride-the-rails",
+        "packageId": "ride-the-rails"
     }
 ]
