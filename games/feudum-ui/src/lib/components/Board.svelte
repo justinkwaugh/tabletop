@@ -1,11 +1,9 @@
 <script lang="ts">
-    import type { Color } from '@tabletop/common'
     import GuildAreas from '$lib/components/guilds/GuildAreas.svelte'
     import BoardMotionLayer from '$lib/components/map/BoardMotionLayer.svelte'
     import MapLayers from '$lib/components/map/MapLayers.svelte'
     import BoardFrame from '$lib/components/tracks/BoardFrame.svelte'
     import TrackLayers from '$lib/components/tracks/TrackLayers.svelte'
-    import { colourPaint, seatPaint } from '$lib/model/seatPaint.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { takesTradePicker } from '$lib/model/tradePicker.js'
     import { BoardHeight, BoardWidth } from '$lib/utils/boardGeometry.js'
@@ -19,15 +17,7 @@
         return gameSession.benchCovers && !(bench && takesTradePicker(bench))
     })
 
-    /** A seat's paint from the session's colourizer (S71), named by its seat in every piece's accessible name. */
-    function paintOf(playerId: string) {
-        return seatPaint(gameSession.colors, playerId, gameSession.getPlayerName(playerId))
-    }
-
-    /** R-1.4-H1 A colour no seat plays, from the same colourizer. */
-    function colourPaintOf(colour: Color) {
-        return colourPaint(gameSession.colors, colour)
-    }
+    const { paintOf, colourPaintOf } = gameSession
 </script>
 
 <svg

@@ -1,7 +1,5 @@
 <script lang="ts">
-    import type { Color } from '@tabletop/common'
     import type { ActionBlock } from '$lib/model/actionPanel.js'
-    import { colourPaint, seatPaint } from '$lib/model/seatPaint.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import TradePicker from './TradePicker.svelte'
 
@@ -13,13 +11,7 @@
 
     const gameSession = getGameSession()
 
-    function paintOf(playerId: string) {
-        return seatPaint(gameSession.colors, playerId, gameSession.getPlayerName(playerId))
-    }
-
-    function colourPaintOf(colour: Color) {
-        return colourPaint(gameSession.colors, colour)
-    }
+    const { paintOf, colourPaintOf } = gameSession
 </script>
 
 <TradePicker

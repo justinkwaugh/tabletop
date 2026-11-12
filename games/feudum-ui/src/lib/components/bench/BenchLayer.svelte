@@ -1,8 +1,6 @@
 <script lang="ts">
-    import type { Color } from '@tabletop/common'
     import type { BenchOffer } from '$lib/model/benchOffer.js'
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
-    import { colourPaint, seatPaint } from '$lib/model/seatPaint.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import Bench from './Bench.svelte'
     import TradePickerLayer from './TradePickerLayer.svelte'
@@ -25,13 +23,7 @@
         gameSession.actionPanel.blocks.find((block) => block.kind === 'trade-picker')
     )
 
-    function paintOf(playerId: string) {
-        return seatPaint(gameSession.colors, playerId, gameSession.getPlayerName(playerId))
-    }
-
-    function colourPaintOf(colour: Color) {
-        return colourPaint(gameSession.colors, colour)
-    }
+    const { paintOf, colourPaintOf } = gameSession
 </script>
 
 {#snippet sheetPicker()}

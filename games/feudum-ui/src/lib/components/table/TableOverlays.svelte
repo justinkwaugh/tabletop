@@ -2,7 +2,6 @@
     import BenchLayer from '$lib/components/bench/BenchLayer.svelte'
     import { MeasuredWidth } from '$lib/model/measuredWidth.svelte.js'
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
-    import { seatPaint } from '$lib/model/seatPaint.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import BoardPopup from './BoardPopup.svelte'
     import EnlargedLayer from './EnlargedLayer.svelte'
@@ -30,10 +29,7 @@
 
     const phone = new PhoneLayout()
 
-    /** A seat's paint from the session's colourizer (S71), as the board draws it. */
-    function paintOf(playerId: string) {
-        return seatPaint(gameSession.colors, playerId, gameSession.getPlayerName(playerId))
-    }
+    const { paintOf } = gameSession
 
     /**
      * The screen's width as the layers stand on it. The window's `innerWidth` is the phone's layout

@@ -1,10 +1,11 @@
 import { flushSync } from 'svelte'
-import { assertExists } from '@tabletop/common'
+import { assertExists, Color } from '@tabletop/common'
 import { GameSession } from '@tabletop/frontend-components'
 import { ActionType, MachineState, StartingSpaceIds, type Good } from '@tabletop/feudum'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FeudumHost } from '$lib/testing/sessionHarness.js'
 import { primaryLabel, sendsOnPress } from './confirmingSend.js'
+import { colourPaint, seatPaint } from './seatPaint.js'
 import { StagedDraft, withLoneChoice } from './stagedDraft.svelte.js'
 import {
     StartingGoodsDraft,
@@ -573,5 +574,18 @@ describe('components call session methods only', () => {
                 /\b(applyAction|createPlayerAction|createAction)\b/
             )
         }
+    })
+})
+
+describe('the real session: seat paint (S71, R-1.4-H1)', () => {
+    it("paints a seat and a colour no seat plays from the session's own colourizer", async () => {
+        const table = openTable(3)
+        const seat = table.state.players[0].playerId
+        const session = await table.openSeat(seat)
+        const { paintOf, colourPaintOf } = session
+
+        expect(paintOf(seat)).toEqual(seatPaint(session.colors, seat, session.getPlayerName(seat)))
+        expect(paintOf(seat).owner).toBe(`${session.getPlayerName(seat)}'s`)
+        expect(colourPaintOf(Color.Red)).toEqual(colourPaint(session.colors, Color.Red))
     })
 })

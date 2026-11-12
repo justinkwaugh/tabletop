@@ -6,7 +6,6 @@
     import WineBarrels from '$lib/components/tracks/WineBarrels.svelte'
     import SeatToken from '$lib/components/pieces/SeatToken.svelte'
     import { seatOrder } from '$lib/model/seatPanel.js'
-    import { seatPaint } from '$lib/model/seatPaint.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { EpochNumerals } from '$lib/model/turnDraft.svelte.js'
     import Scrim from './Scrim.svelte'
@@ -26,9 +25,7 @@
     let state = $derived(gameSession.gameState)
     let round = $derived(state.roundManager.currentRound?.number ?? 1)
 
-    function paintOf(playerId: string) {
-        return seatPaint(gameSession.colors, playerId, gameSession.getPlayerName(playerId))
-    }
+    const { paintOf } = gameSession
 
     let scores = $derived(
         seatOrder(state).map((playerId) => ({

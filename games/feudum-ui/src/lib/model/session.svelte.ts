@@ -2,7 +2,7 @@ import { BoardAnimator } from '$lib/animators/boardAnimator.svelte.js'
 import { FlightAnimator } from '$lib/animators/flightAnimator.svelte.js'
 import { HistoryLog } from '$lib/model/historyLog.svelte.js'
 import { isDecisionPress, turnSeatAt } from '$lib/utils/decisionPress.js'
-import { GameStorage, type GameAction } from '@tabletop/common'
+import { GameStorage, type Color, type GameAction } from '@tabletop/common'
 import { GameSession, type PresentedTransition } from '@tabletop/frontend-components'
 import {
     ActionCards,
@@ -59,6 +59,7 @@ import type { TurnContext } from './cardModes.js'
 import { TableLayers } from './tableLayers.svelte.js'
 import { TurnDraft, type TurnPanel } from './turnDraft.svelte.js'
 import { actionPanelOf, type ActionPanelView } from './actionPanel.js'
+import { colourPaint, seatPaint, type SeatPaint } from './seatPaint.js'
 import { seatPanelOf, type SeatPanelView } from './seatPanel.js'
 import { gameEndOf, type GameEndSummaryView } from './gameEnd.js'
 import { roundEndOf, type RoundEndView } from './roundEnd.js'
@@ -183,6 +184,12 @@ type SessionOptions = ConstructorParameters<
  */
 export class FeudumGameSession extends GameSession<FeudumProjectedState, HydratedFeudumGameState> {
     myPlayerId: string | undefined = $derived(this.myPlayer?.id)
+
+    /** S71 A seat's paint from the colourizer, named by its seat in every piece's accessible name. */
+    readonly paintOf = (playerId: string): SeatPaint =>
+        seatPaint(this.colors, playerId, this.getPlayerName(playerId))
+    /** R-1.4-H1 A colour no seat plays, from the same colourizer. */
+    readonly colourPaintOf = (colour: Color): SeatPaint => colourPaint(this.colors, colour)
 
     readonly boardAnimator = new BoardAnimator()
     readonly flightAnimator = new FlightAnimator()
