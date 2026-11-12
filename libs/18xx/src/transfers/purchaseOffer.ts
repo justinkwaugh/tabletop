@@ -1,6 +1,7 @@
 import * as Type from 'typebox'
 import { assert, assertExists } from '@tabletop/common'
 import {
+    totalCertificateShares,
     Owner,
     cashOwnedBy,
     finiteCashOwnedBy,
@@ -146,11 +147,7 @@ export function assetOwner(
         const owner = first.owner
         return shares.every(
             (certificate) => certificate.kind === 'share' && sameOwner(certificate.owner, owner)
-        ) &&
-            shares.reduce(
-                (sum, certificate) => sum + (certificate.kind === 'share' ? certificate.shares : 0),
-                0
-            ) === shareCount
+        ) && totalCertificateShares(shares) === shareCount
             ? owner
             : undefined
     }

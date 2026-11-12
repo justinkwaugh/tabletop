@@ -29,11 +29,13 @@ const TerrainIcons: Readonly<Record<TerrainIconName, typeof MountainIcon>> = {
     rough: RoughIcon
 }
 
+const TerrainIconsByKind: ReadonlyMap<string, typeof MountainIcon> = new Map(
+    Object.entries(TerrainIcons)
+)
+
 /** The icon drawn for a terrain kind, where the family has one. */
 export function terrainIcon(kind: string): typeof MountainIcon | undefined {
-    return kind === 'mountain' || kind === 'hill' || kind === 'rough'
-        ? TerrainIcons[kind]
-        : undefined
+    return TerrainIconsByKind.get(kind)
 }
 
 export function terrainIconAppearance(icon: TerrainIconName): StationAppearance {

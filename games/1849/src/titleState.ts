@@ -52,6 +52,20 @@ export const TitleFields1849 = {
     portBonus: Type.Optional(
         Type.Object({ companyId: Id, locationId: Id }, { additionalProperties: false })
     ),
+    /**
+     * The turn a corporation used the SMS, in place of its tile and token steps: it places no
+     * other station that turn (§7.1).
+     */
+    marittimaTurn: Type.Optional(
+        Type.Object(
+            {
+                companyId: Id,
+                operatingSet: Type.Integer({ minimum: 1 }),
+                operatingRound: Type.Integer({ minimum: 1 })
+            },
+            { additionalProperties: false }
+        )
+    ),
     /** Players who left the game after their corporation closed (§10.7). */
     bankruptPlayerIds: Type.Optional(Type.Array(Id, { minItems: 1, uniqueItems: true }))
 }

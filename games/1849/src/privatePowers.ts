@@ -55,10 +55,18 @@ export const PrivatePowerRules1849: PrivatePowerRules = {
         }
     },
     stationPrivateIds: [MarittimaPrivateId],
-    afterTrackLay: (_state, privateCompanyId) => ({
-        payments: [],
-        closedPrivateIds: privateCompanyId === MarittimaPrivateId ? [privateCompanyId] : []
-    }),
+    afterTrackLay(stateObject, privateCompanyId, details) {
+        if (privateCompanyId !== MarittimaPrivateId) return { payments: [], closedPrivateIds: [] }
+        const state = requireState1849(stateObject)
+        const set = state.operatingSet
+        if (set)
+            state.marittimaTurn = {
+                companyId: details.companyId,
+                operatingSet: set.number,
+                operatingRound: set.roundNumber
+            }
+        return { payments: [], closedPrivateIds: [privateCompanyId] }
+    },
     earlyTrainCompany: () => undefined,
     markerTerms(state, privateCompanyId, playerId) {
         if (privateCompanyId !== NavalePrivateId) return undefined

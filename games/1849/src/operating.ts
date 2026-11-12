@@ -3,6 +3,7 @@ import {
     EighteenXXTransferTiming,
     StationReservation,
     bankExhaustionAtSetEnd,
+    certificateShares,
     certificateWealthItem,
     closeShareCompany,
     dieselTrains,
@@ -19,6 +20,7 @@ import {
     requiresStationRoute,
     settleCashPayments,
     sharesOwned,
+    totalCertificateShares,
     trainsOwnedBy,
     treasuryPoolId,
     type Bankruptcy,
@@ -49,6 +51,7 @@ import { Charters1849, GaribaldiId, ShareCount1849 } from './companies.js'
 import { Map1849, MessinaLocationId } from './map.js'
 import { Names1849 } from './names.js'
 import { PrivateCatalog1849, RealeSocietaPrivateId } from './privates.js'
+import { RouteRules1849 } from './routes.js'
 import { requireState1849, type HydratedState1849 } from './state.js'
 import { MarketPoolId1849, StockRules1849, marketInForce1849 } from './stock.js'
 import { ClosedSpaceId1849, EndGameSpaceId1849, Market1849 } from './stockMarket.js'
@@ -106,8 +109,9 @@ function finishedAtTopPrice(state: EndingState): boolean {
 }
 
 // The game ends after a corporation reaching L. 377 finishes operating, after the set of
-// operating rounds in which the bank breaks, or with one player left (§13). Shares count at
-// market value, privates at face value, less L. 750 a loan to no lower than nothing (§13).
+// operating rounds in which the bank breaks, or with one player left (§13). Wealth is money and
+// corporation stock, shares at market value and privates at nothing, less L. 750 a loan to no
+// lower than nothing (§13).
 export const EndingRules1849: EndingRules = {
     trigger(state) {
         if (state.turnManager.turnOrder.length <= 1) return { reason: 'One player left' }
@@ -116,11 +120,10 @@ export const EndingRules1849: EndingRules = {
     },
     certificateItems(state, certificate) {
         const company = getCompany(state, certificate.companyId)
-        const value = company.closed
-            ? 0
-            : certificate.kind === 'share'
-              ? marketShareValue(Market1849, state, certificate)
-              : PrivateCatalog1849.faceValue(company.id)
+        const value =
+            company.closed || certificate.kind !== 'share'
+                ? 0
+                : marketShareValue(Market1849, state, certificate)
         return [certificateWealthItem(Names1849, certificate, value)]
     },
     playerItems(state, playerId, items) {
@@ -196,7 +199,10 @@ export const ZeroPriceClosure1849: ZeroPriceClosureRules<typeof CorporationClosu
     closure: { schema: CorporationClosure1849, close: closeCorporation1849 }
 }
 
-const RequiresStationRoute1849 = requiresStationRoute(Map1849, TileSet1849)
+// A run from a city to a port alone is no route (§10.5.1).
+const RequiresStationRoute1849 = requiresStationRoute(Map1849, TileSet1849, undefined, {
+    minimumCitiesAndTowns: RouteRules1849.minimumCitiesAndTowns
+})
 
 /** Whether the bank has a train to sell, new or in its pool. */
 function bankHasTrain(state: TrainPurchaseState): boolean {
@@ -424,9 +430,7 @@ export const TrainFundingRules1849: TrainFundingRules = {
 
 /** Single-share certificates first, the last certificate after them (§9.6). */
 function lastCertificateLast(certificates: readonly Certificate[]): Certificate[] {
-    const shares = (certificate: Certificate) =>
-        certificate.kind === 'share' ? certificate.shares : 0
-    return certificates.toSorted((a, b) => shares(a) - shares(b))
+    return certificates.toSorted((a, b) => certificateShares(a) - certificateShares(b))
 }
 
 function companyCertificatesIn(state: FinancialState, companyId: string, poolId: string) {
@@ -437,13 +441,6 @@ function companyCertificatesIn(state: FinancialState, companyId: string, poolId:
                 certificate.companyId === companyId &&
                 certificate.poolId === poolId
         )
-    )
-}
-
-function shareCountIn(certificates: readonly Certificate[]): number {
-    return certificates.reduce(
-        (total, certificate) => total + (certificate.kind === 'share' ? certificate.shares : 0),
-        0
     )
 }
 
@@ -479,19 +476,19 @@ export const CorporateFinanceRules1849: CorporateFinanceRules = {
         if (!trainsOwnedBy(state, treasury).length && RequiresTrain1849(state, companyId)) return []
         const price = Market1849.companySpace(state.stockMarket, companyId).price
         const pool = companyCertificatesIn(state, companyId, MarketPoolId1849)
-        const poolShares = shareCountIn(pool)
+        const poolShares = totalCertificateShares(pool)
         const issues: FinanceChoice[] = []
         if (!inFirstOperatingRound(state, companyId)) {
             const held = companyCertificatesIn(state, companyId, treasuryPoolId(companyId))
             let shares = 0
             for (const certificate of held) {
-                shares += certificate.kind === 'share' ? certificate.shares : 0
+                shares += certificateShares(certificate)
                 if (poolShares + shares > ShareCount1849 / 2) break
                 issues.push({ companyId, operation: 'issue', shares, amount: shares * price })
             }
         }
         const [redeemed] = pool
-        const redeemShares = redeemed?.kind === 'share' ? redeemed.shares : 0
+        const redeemShares = redeemed ? certificateShares(redeemed) : 0
         const redeem: FinanceChoice[] =
             redeemShares && finiteCashOwnedBy(state, treasury) >= redeemShares * price
                 ? [

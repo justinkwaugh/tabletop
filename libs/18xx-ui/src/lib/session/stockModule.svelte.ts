@@ -25,6 +25,7 @@ import {
     sameCenter,
     sameOwner,
     sharesOwned,
+    type CompanyStartDetails,
     type CompanyStartRequest,
     type EighteenXXState,
     type HomePosition,
@@ -249,6 +250,13 @@ export class StockModule implements LocalSelection {
             percent: Math.round(((president.shares + extra) * 100) / shareCount)
         }))
     })
+    /** What a start costs its president in all: the president's certificate and any further ones. */
+    startCost(details: CompanyStartDetails): number {
+        return (details.additionalPurchases ?? []).reduce(
+            (total, purchase) => total + purchase.price,
+            details.price
+        )
+    }
     /** The ordinary certificates chosen to buy with the president's. */
     selectedExtraStartCertificates = $derived.by(() => this.start.value('extraCertificates') ?? 0)
     /** The company's single-share certificates still with the bank or its treasury. */
@@ -267,21 +275,22 @@ export class StockModule implements LocalSelection {
     private extraStartCertificateIds(companyId: string): string[] {
         return this.startCertificateIds(companyId).slice(0, this.selectedExtraStartCertificates)
     }
-    private selectedStartRequest = $derived.by((): CompanyStartRequest | undefined => {
+    /** The chosen company's start at a price, with its home and further certificates as chosen. */
+    private startRequest(marketSpaceId: string): CompanyStartRequest | undefined {
         const company = this.selectedStartCompany
-        const marketSpaceId = this.start.value('marketSpaceId')
+        if (!company) return undefined
         const home = this.selectedStartHome
-        const additionalCertificateIds = company
-            ? this.extraStartCertificateIds(company.companyId)
-            : []
-        return company && marketSpaceId
-            ? {
-                  ...company,
-                  marketSpaceId,
-                  ...(home ? { home } : {}),
-                  ...(additionalCertificateIds.length ? { additionalCertificateIds } : {})
-              }
-            : undefined
+        const additionalCertificateIds = this.extraStartCertificateIds(company.companyId)
+        return {
+            ...company,
+            marketSpaceId,
+            ...(home ? { home } : {}),
+            ...(additionalCertificateIds.length ? { additionalCertificateIds } : {})
+        }
+    }
+    private selectedStartRequest = $derived.by((): CompanyStartRequest | undefined => {
+        const marketSpaceId = this.start.value('marketSpaceId')
+        return marketSpaceId ? this.startRequest(marketSpaceId) : undefined
     })
     selectedStartPrices = $derived.by(() => {
         const company = this.selectedStartCompany
@@ -292,25 +301,23 @@ export class StockModule implements LocalSelection {
                     choice.request.companyId === company.companyId &&
                     sameOwner(choice.request.buyer, company.buyer)
             )?.prices ?? []
-        const additionalCertificateIds = company
-            ? this.extraStartCertificateIds(company.companyId)
-            : []
-        if (!company || !additionalCertificateIds.length) return prices
-        const home = this.selectedStartHome
-        return prices.map(({ marketSpaceId }) => ({
-            marketSpaceId,
-            result: evaluateCompanyStart(
-                this.session.state,
-                {
-                    ...company,
-                    marketSpaceId,
-                    ...(home ? { home } : {}),
-                    additionalCertificateIds
-                },
-                this.session.rules.stockRules,
-                this.session.rules.companyRules
-            )
-        }))
+        if (!company || !this.extraStartCertificateIds(company.companyId).length) return prices
+        return prices.flatMap(({ marketSpaceId }) => {
+            const request = this.startRequest(marketSpaceId)
+            return request
+                ? [
+                      {
+                          marketSpaceId,
+                          result: evaluateCompanyStart(
+                              this.session.state,
+                              request,
+                              this.session.rules.stockRules,
+                              this.session.rules.companyRules
+                          )
+                      }
+                  ]
+                : []
+        })
     })
     selectedStartResult = $derived.by(() =>
         this.selectedStartRequest

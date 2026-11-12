@@ -242,7 +242,8 @@ export class ClosingOperatingCorporationHandler<S extends State> implements Mach
     onAction(action: HydratedAction, { gameState }: MachineContext<S>): string {
         assert(action instanceof HydratedCloseCorporation, 'Closure requires its system action')
         // Its president stays the turn's owner, as after any ended turn, should no company follow.
-        gameState.activePlayerIds = formerPresidentIds(action.metadata ?? {})
+        assertExists(action.metadata, 'A closure records what it closed')
+        gameState.activePlayerIds = formerPresidentIds(action.metadata)
         return 'OperatingSet'
     }
 }

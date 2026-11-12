@@ -90,13 +90,19 @@ track layouts and counts only, checked against the rulebook.
    certificates instead is not offered yet.
 8. **Issuing into the Closed box** closes the corporation at once, ending its turn.
 9. **The SMS** lays or upgrades a tile in a coastal city it need not reach, then may place a
-   station there; using it only to place a station without a tile is not offered.
+   station there, and that turn places no other station; using it only to place a station
+   without a tile is not offered.
 10. **The bank broken**: payouts beyond the bank follow the family's broken-bank handling.
 11. **No train left in the bank.** Once every train is sold and none is in the pool, a train-less
     corporation need not buy one (it may still buy from another corporation); the rules are
     silent and otherwise the game could not go on.
 12. **Messina to Calabria** counts three hex edges through the two grey halves A15 and B16 of the
     double hex (§10.5.1), as the research engine models it.
+13. **Privates in final wealth count nothing**, as §13 sums "money and corporation stock"; this
+    also shows in net worth during the game, and matters only if the game ends before the first
+    12H closes them.
+14. **A run from a home to a port alone** needs no train: the must-own-a-train check follows the
+    route rule of two cities, or a city and a town (§10.5.1, §10.6).
 
 ## Implemented later or not at all
 

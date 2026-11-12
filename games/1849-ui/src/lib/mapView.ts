@@ -1,4 +1,11 @@
-import { Map1849, PortLocationIds, TileSet1849 } from '@tabletop/1849'
+import {
+    Map1849,
+    PortBonus1849,
+    PortLocationIds,
+    PortMarkerKind,
+    TileSet1849,
+    TitleRules1849
+} from '@tabletop/1849'
 import { StandardTileLayouts, type MapViewDefinition, type TileLayout } from '@tabletop/18xx-ui'
 import AFGLogo from './images/logos/AFG.svg'
 import ATALogo from './images/logos/ATA.svg'
@@ -43,6 +50,6 @@ export const MapView1849: MapViewDefinition = {
     revenueStageCaptions: { low: '4–6', middle: '8–10', high: '12+' },
     locationMarkerNames: {
         'blocks-SCE': 'No track while a player owns the Società Corriere Etnee',
-        port: '+L. 20 port token'
+        [PortMarkerKind]: `+${TitleRules1849.currencySymbol} ${PortBonus1849} port token`
     }
 }

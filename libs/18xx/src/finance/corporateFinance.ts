@@ -15,6 +15,7 @@ import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import { defineAction, type ActionDefinition } from '../actions/actionDefinition.js'
 import { CashPayment, settleCashPayments } from './cashPayments.js'
 import {
+    certificateShares,
     certificatesInPool,
     controllingOwner,
     finiteCashOwnedBy,
@@ -312,7 +313,7 @@ function certificatesMakingShares(certificates: Certificate[], shares: number): 
     let remaining = shares
     for (const certificate of certificates) {
         if (remaining === 0) break
-        const held = certificate.kind === 'share' ? certificate.shares : 0
+        const held = certificateShares(certificate)
         if (held === 0 || held > remaining) continue
         chosen.push(certificate)
         remaining -= held
@@ -340,6 +341,8 @@ export function corporateFinanceActions(rules: CorporateFinanceRules): ActionDef
     ]
 }
 
+// The Actions that only acquire trains; an offer to buy, which may be for a private, is refused
+// by `acquiresTrain` when it names a train.
 const TrainAcquisitionTypes: readonly string[] = ['BuyTrain', 'FundTrain']
 
 /** Adds issuing and redeeming to an operating step that stays where it is afterwards. */

@@ -305,15 +305,7 @@
                                             >
                                             <small
                                                 >Cost {money(
-                                                    price.result.details.price +
-                                                        (
-                                                            price.result.details
-                                                                .additionalPurchases ?? []
-                                                        ).reduce(
-                                                            (total, purchase) =>
-                                                                total + purchase.price,
-                                                            0
-                                                        )
+                                                    session.stock.startCost(price.result.details)
                                                 )}</small
                                             >
                                             {#if sharesToFloat !== undefined}

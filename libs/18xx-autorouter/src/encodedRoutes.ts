@@ -12,6 +12,7 @@ import {
     type RoutePath,
     type RouteRules,
     type TrainRoute,
+    stretchWeight,
     type TrainDistance,
     type TrainRunningState,
     type TileEndpoint
@@ -455,11 +456,13 @@ export class EncodedRoutes {
         })
     }
 
-    // A dual stretch costs the lesser weight, as a train may run it on either gauge.
     private crossingCosts(distance: TrainDistance): [number, number, number] {
         if (distance.measure !== 'hex-edges') return [0, 0, 0]
-        const { standard, narrow } = distance.gaugeWeights ?? { standard: 1, narrow: 1 }
-        return [standard, narrow, Math.min(standard, narrow)]
+        return [
+            stretchWeight(distance, 'standard'),
+            stretchWeight(distance, 'narrow'),
+            stretchWeight(distance, 'either')
+        ]
     }
 
     private hexOf(locationId: string): number {

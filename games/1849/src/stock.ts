@@ -173,6 +173,11 @@ export const CompanyRules1849: CompanyRules = {
         const company = getCompany(state, companyId)
         if (title.royalFunding === companyId) delete title.royalFunding
         company.funded = true
+        // Its first operating round follows this stock round; it issues nothing in it (§10.8).
+        title.floats = [
+            ...title.floats.filter((entry) => entry.companyId !== companyId),
+            { companyId, stockRound: state.stockRound.number }
+        ]
         if (companyId === GaribaldiId) {
             // A Garibaldi started at a price pays its fee with its home; one from the Reale
             // Società d'Affari chooses its home as it first operates.

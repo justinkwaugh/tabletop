@@ -4,6 +4,7 @@ import {
     certificatesInPool,
     corporateFinanceChoices,
     finiteCashOwnedBy,
+    totalCertificateShares,
     type EighteenXXTitleRules,
     type FinanceChoice
 } from '@tabletop/18xx'
@@ -60,13 +61,7 @@ export class CorporateFinanceModule {
         if (!rules || !companyId) return undefined
         const { state } = this.session
         const shares = (operation: FinanceChoice['operation']) =>
-            rules
-                .certificates(state, companyId, operation)
-                .reduce(
-                    (total, certificate) =>
-                        total + (certificate.kind === 'share' ? certificate.shares : 0),
-                    0
-                )
+            totalCertificateShares(rules.certificates(state, companyId, operation))
         return {
             companyId,
             cash: finiteCashOwnedBy(state, { kind: 'company', companyId }),

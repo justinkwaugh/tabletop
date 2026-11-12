@@ -2,6 +2,7 @@ import * as Type from 'typebox'
 import { assert, assertExists } from '@tabletop/common'
 import {
     President,
+    certificateShares,
     certificatesOwnedBy,
     getCompany,
     sameOwner,
@@ -56,7 +57,7 @@ export function certificatesForShares(
             certificate.companyId === companyId
     )
     const ordinary = largestFirst
-        ? matching.toSorted((a, b) => sharesOf(b) - sharesOf(a))
+        ? matching.toSorted((a, b) => certificateShares(b) - certificateShares(a))
         : matching
     function choose(index: number, remaining: number): string[] | undefined {
         if (remaining === 0) return []
@@ -69,9 +70,6 @@ export function certificatesForShares(
         return undefined
     }
     return choose(0, shares)
-}
-function sharesOf(certificate: Portfolio[number]): number {
-    return certificate.kind === 'share' ? certificate.shares : 0
 }
 
 export function evaluatePresidency(

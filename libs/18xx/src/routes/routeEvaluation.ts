@@ -1,4 +1,4 @@
-import { trainsOwnedBy } from '../trains/train.js'
+import { stretchWeight, trainsOwnedBy } from '../trains/train.js'
 import { actsFor } from '../finance/receivership.js'
 import { hasStationRoute } from '../trains/trainRequirement.js'
 import { routeRevenue } from './routeRevenue.js'
@@ -153,16 +153,11 @@ type MeasuredTrace = {
  * counts as far as its gauge yet decides.
  */
 export function routeDistance(train: TrainDefinition, trace: MeasuredTrace): number {
-    const weights = train.distance.gaugeWeights
     if (train.distance.measure === 'hex-edges')
-        return weights
+        return train.distance.gaugeWeights
             ? trace.stretches.reduce(
                   (sum, { gauge, crossings }) =>
-                      sum +
-                      crossings *
-                          (gauge === 'either'
-                              ? Math.min(weights.standard, weights.narrow)
-                              : weights[gauge]),
+                      sum + crossings * stretchWeight(train.distance, gauge),
                   0
               )
             : trace.crossings
@@ -202,7 +197,13 @@ export class RouteEvaluation {
     cannotRun(companyId: string): boolean {
         return (
             !this.runnableTrains(companyId).length ||
-            !hasStationRoute(this.network.mapState, this.state, companyId)
+            !hasStationRoute(
+                this.network.mapState,
+                this.state,
+                companyId,
+                undefined,
+                (this.rules.minimumCitiesAndTowns ?? 0) >= 2
+            )
         )
     }
     canAct(playerId: string | undefined, companyId: string): boolean {

@@ -68,7 +68,11 @@ import {
 } from '../stock/claimPresidency.js'
 import { ReceivershipHandler } from '../operating/receivershipHandler.js'
 import { defineAction } from '../actions/actionDefinition.js'
-import { CorporateFinanceHandler, corporateFinanceActions } from '../finance/corporateFinance.js'
+import {
+    CorporateFinanceHandler,
+    corporateFinanceActions,
+    type CorporateFinanceTiming
+} from '../finance/corporateFinance.js'
 import { HydratedStartOperatingTurn } from '../operating/startOperatingTurn.js'
 import {
     ClosingOperatingCorporationHandler,
@@ -219,7 +223,10 @@ export function createEighteenXXRuntime<
               }
             : handler
     const financeTiming = corporateFinanceRules?.timing ?? 'before-running'
-    const allowsCorporateFinance = (handler: Handler, timing = 'before-running'): Handler =>
+    const allowsCorporateFinance = (
+        handler: Handler,
+        timing: CorporateFinanceTiming = 'before-running'
+    ): Handler =>
         corporateFinanceRules && financeTiming === timing
             ? new CorporateFinanceHandler(handler, corporateFinanceRules)
             : handler

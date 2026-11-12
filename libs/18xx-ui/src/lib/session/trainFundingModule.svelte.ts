@@ -120,10 +120,6 @@ export class TrainFundingModule {
             })
         )
     }
-    /**
-     * Takes the funding's next step: begins it, or makes the sale or declaration it waits for.
-     * Each press records one Action, so one Undo reverses it.
-     */
     /** Declares the company insolvent with the president's choice. */
     async declareInsolvency(choice: string) {
         assert(
@@ -134,6 +130,10 @@ export class TrainFundingModule {
             this.session.createPlayerAction(DeclareBankruptcy, { choice })
         )
     }
+    /**
+     * Takes the funding's next step: begins it, or makes the sale or declaration it waits for.
+     * Each press records one Action, so one Undo reverses it.
+     */
     async resolve(sale?: ShareSaleDetails) {
         if (!this.session.state.trainFunding) {
             assert(!sale, 'Begin funding before choosing a sale')

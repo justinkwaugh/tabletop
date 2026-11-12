@@ -1,4 +1,5 @@
 import * as Type from 'typebox'
+import type { RunningGauge, TrackGauge } from '@tabletop/18xx'
 
 export type SolverStop = {
     token: boolean
@@ -20,7 +21,8 @@ export type SolverArc = {
     hex: number
     terminal: boolean
     crossings: number
-    gauge: 'standard' | 'narrow' | 'dual'
+    /** The path's gauge on the wire: a running gauge, or dual. */
+    gauge: RunningGauge | TrackGauge
 }
 export type SolverTrain = {
     id: string

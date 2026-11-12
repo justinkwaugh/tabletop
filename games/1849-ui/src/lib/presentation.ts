@@ -1,4 +1,12 @@
-import { PortBonus1849, TitleRules1849, type State1849 } from '@tabletop/1849'
+import {
+    InsolvencyChoices1849,
+    LoanAmount1849,
+    LoanDeduction1849,
+    MarketPoolId1849,
+    PortBonus1849,
+    TitleRules1849,
+    type State1849
+} from '@tabletop/1849'
 import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
 import { CompanyNames1849 } from './companyPresentation.js'
 import { PhaseChart1849 } from './phaseChart.js'
@@ -11,8 +19,8 @@ export const Presentation1849: TitlePresentation<State1849> = {
     phaseChart: PhaseChart1849,
     trainColors: TrainColors1849,
     phaseColors: PhaseColors1849,
-    marketPoolId: 'open-market',
-    poolName: (poolId) => (poolId === 'open-market' ? 'Bank pool' : 'Treasury'),
+    marketPoolId: MarketPoolId1849,
+    poolName: (poolId) => (poolId === MarketPoolId1849 ? 'Bank pool' : 'Treasury'),
     companyNames: CompanyNames1849,
     privatePurchaseHeading: 'Available privates',
     privateTilePrompts: {
@@ -29,11 +37,11 @@ export const Presentation1849: TitlePresentation<State1849> = {
         explanation:
             'The corporation cannot buy a train and closes. Its president has no shares left.',
         choices: {
-            loan: {
-                label: `Take a ${money(500)} loan`,
-                description: `Play on with ${money(500)}; ${money(750)} comes off your final total.`
+            [InsolvencyChoices1849.loan]: {
+                label: `Take a ${money(LoanAmount1849)} loan`,
+                description: `Play on with ${money(LoanAmount1849)}; ${money(LoanDeduction1849)} comes off your final total.`
             },
-            leave: {
+            [InsolvencyChoices1849.leave]: {
                 label: 'Leave the game',
                 description: 'Finish with nothing.'
             }

@@ -1,6 +1,7 @@
 import * as Type from 'typebox'
 import { Owner, type FinancialState, sameOwner } from '../finance/finance.js'
 import { assert } from '@tabletop/common'
+import type { StretchGauge } from '../tiles/trackGauge.js'
 const Id = Type.String({ minLength: 1 })
 export const TrainDistance = Type.Object(
     {
@@ -30,6 +31,17 @@ export const TrainDistance = Type.Object(
     { additionalProperties: false }
 )
 export type TrainDistance = Type.Static<typeof TrainDistance>
+
+/**
+ * What each hex edge of a stretch of the gauge costs a hex train: its weight for that gauge, or
+ * for track dual from stop to stop the lesser, as the train may run it on either; one without
+ * weights.
+ */
+export function stretchWeight(distance: TrainDistance, gauge: StretchGauge): number {
+    const weights = distance.gaugeWeights
+    if (!weights) return 1
+    return gauge === 'either' ? Math.min(weights.standard, weights.narrow) : weights[gauge]
+}
 export const TrainDefinition = Type.Object(
     {
         id: Id,

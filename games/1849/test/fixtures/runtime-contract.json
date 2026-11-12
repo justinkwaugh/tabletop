@@ -1467,6 +1467,29 @@
           }
         ]
       },
+      "marittimaTurn": {
+        "additionalProperties": false,
+        "properties": {
+          "companyId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "operatingRound": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "operatingSet": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "companyId",
+          "operatingRound",
+          "operatingSet"
+        ],
+        "type": "object"
+      },
       "masterSeed": {
         "pattern": "^[0-9a-f]{32}$",
         "type": "string",

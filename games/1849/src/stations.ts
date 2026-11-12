@@ -33,12 +33,24 @@ function garibaldiHomeChoice(stateObject: OperatingStationState): HomeStationCho
     return positions.length ? { companyId: GaribaldiId, stationId, positions } : undefined
 }
 
+/** Whether the corporation used the SMS this turn. */
+function usedMarittima(stateObject: object, companyId: string): boolean {
+    const state = requireState1849(stateObject)
+    const turn = state.marittimaTurn
+    return (
+        turn?.companyId === companyId &&
+        turn.operatingSet === state.operatingSet?.number &&
+        turn.operatingRound === state.operatingSet.roundNumber
+    )
+}
+
 // Stations are paid for as a corporation starts (§9.4), and it places one a turn (§10.4).
 export const StationRules1849: StationRules = {
     map: Map1849,
     tileSet: TileSet1849,
     placementCost: () => 0,
-    placementLimit: () => 1,
+    // The SMS's lay takes the turn's token step too, its own station or none (§7.1).
+    placementLimit: (stateObject, companyId) => (usedMarittima(stateObject, companyId) ? 0 : 1),
     pendingHomes: () => [],
     homeChoice: garibaldiHomeChoice
 }
