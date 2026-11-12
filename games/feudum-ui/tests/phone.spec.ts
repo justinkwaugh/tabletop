@@ -226,6 +226,20 @@ const boardGuild = (page: Page, guild: string) => surface(page).locator(`[data-g
 test.describe('held upright', () => {
     test.use({ viewport: Upright, hasTouch: true, isMobile: true })
 
+    test('R-1.3 an enlarged guild area stands upright, as wide as the screen allows', async ({
+        page
+    }) => {
+        await createGame(page)
+        await playToCards(page)
+        // Framed or not, the area's own press enlarges it.
+        await surface(page).locator('[data-enlarge="Merchant guild"]').dispatchEvent('click')
+        await settled(page)
+        const box = await rect(page.locator('[data-enlarged]'))
+        expect(box.width).toBeCloseTo(Upright.width - 32, 0)
+        expect(box.height).toBeCloseTo(((Upright.width - 32) * 500) / 354, 0)
+        await expectNoSidewaysScroll(page)
+    })
+
     test('S67 R-1.2 the height budget, top to bottom, with the board at cover fit on the Map', async ({
         page
     }) => {

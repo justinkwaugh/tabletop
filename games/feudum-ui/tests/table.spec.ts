@@ -129,7 +129,21 @@ test('S59 R-1.3 a press on a guild area on the board enlarges it with its state;
     await expect(enlarged(page)).toHaveAttribute('data-enlarged', 'guild')
     await expect(enlarged(page).locator('[data-guild="merchant"]')).toBeVisible()
     const box = await enlarged(page).boundingBox()
-    expect(box?.width).toBeCloseTo(640, 0)
+    // Upright, as the trade picker shows it: the long side stands, 640 px.
+    expect(box?.height).toBeCloseTo(640, 0)
+    expect(box?.width).toBeCloseTo((640 * 354) / 500, 0)
+    // No piece inside answers the pointer, so no piece's name (its SVG title) rises over the art.
+    const hit = await page.evaluate(
+        ({ x, y }) => {
+            const under = document.elementFromPoint(x, y)
+            return {
+                svg: under?.closest('svg') !== null,
+                close: under?.closest('[data-enlarged]') !== null
+            }
+        },
+        { x: (box?.x ?? 0) + (box?.width ?? 0) / 2, y: (box?.y ?? 0) + (box?.height ?? 0) / 2 }
+    )
+    expect(hit).toEqual({ svg: false, close: true })
     // R-4.6 Its functions read beside it, and reading them closes nothing.
     const note = page.locator('[data-rules-note]')
     await expect(note).toContainText('Trade (anyone)')

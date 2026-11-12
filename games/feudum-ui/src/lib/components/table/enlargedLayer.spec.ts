@@ -126,4 +126,22 @@ describe('Guild areas enlarge (contract: Card preview)', () => {
         expect(markup.match(/<button/g)).toHaveLength(2)
         expect(markup).toContain('Pull (journeyman)')
     })
+
+    it('R-1.3 the enlarged guild area stands upright, as the trade picker shows it: its long side the size given', async () => {
+        const state = await stateAtCards()
+        const face: EnlargedFace = {
+            kind: 'guild',
+            guild: 'monk',
+            state,
+            paintOf,
+            colourPaintOf: paintOf
+        }
+        const markup = render(EnlargedOnTable, { props: { face, width: 640 } }).body
+        const upright = markup.match(/<div[^>]*data-enlarged-upright="monk"[^>]*>/)?.[0]
+        expect(upright).toContain('width: 453.12px')
+        expect(upright).toContain('height: 640px')
+        const turned = markup.match(/<div[^>]*data-enlarged-turned[^>]*>/)?.[0]
+        expect(turned).toContain('width: 640px')
+        expect(turned).toContain('height: 453.12px')
+    })
 })

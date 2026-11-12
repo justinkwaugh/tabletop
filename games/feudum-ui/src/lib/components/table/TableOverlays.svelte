@@ -3,6 +3,7 @@
     import { MeasuredWidth } from '$lib/model/measuredWidth.svelte.js'
     import { PhoneLayout } from '$lib/model/phoneLayout.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { GuildBox } from '$lib/utils/boardGeometry.js'
     import BoardPopup from './BoardPopup.svelte'
     import EnlargedLayer from './EnlargedLayer.svelte'
     import FlightLayer from './FlightLayer.svelte'
@@ -21,7 +22,7 @@
     const layers = gameSession.layers
 
     const EnlargedWidth = 420
-    /** An enlarged guild area: its picture's width, read at a glance (R-1.3). */
+    /** An enlarged guild area, upright: its picture's long side, read at a glance (R-1.3). */
     const EnlargedGuildWidth = 640
     const PhoneMargin = 32
     /** Contract, Seat strip: a seat's sheet stands up to this much of the dynamic viewport. */
@@ -40,11 +41,12 @@
      * report the loop.
      */
     const screen = new MeasuredWidth()
+    let across = $derived((screen.width ?? EnlargedWidth + PhoneMargin) - PhoneMargin)
+    /** A guild area stands upright, so its short side is the one the screen's width holds. */
     let enlargedWidth = $derived(
-        Math.min(
-            layers.enlarged?.kind === 'guild' ? EnlargedGuildWidth : EnlargedWidth,
-            (screen.width ?? EnlargedWidth + PhoneMargin) - PhoneMargin
-        )
+        layers.enlarged?.kind === 'guild'
+            ? Math.min(EnlargedGuildWidth, (across * GuildBox.width) / GuildBox.height)
+            : Math.min(EnlargedWidth, across)
     )
     let popup = $derived(gameSession.boardPopup)
     let bench = $derived(gameSession.guildPanel?.bench)
