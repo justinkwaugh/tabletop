@@ -221,24 +221,96 @@ export class StockModule implements LocalSelection {
         const home = this.selectedStartHome
         return home ? this.offeredStartHomes.find((entry) => sameCenter(entry, home)) : undefined
     })
+    /** The most ordinary certificates the chosen company's start may add to the president's. */
+    maxExtraStartCertificates = $derived.by(() => {
+        const company = this.selectedStartCompany
+        if (!company) return 0
+        const { state, rules } = this.session
+        return Math.min(
+            rules.companyRules.additionalStartCertificates?.(state, company.companyId) ?? 0,
+            this.startCertificateIds(company.companyId).length
+        )
+    })
+    /** Each holding the chosen company's start may buy, as a percentage of the company. */
+    startSizes = $derived.by((): { extra: number; percent: number }[] => {
+        const company = this.selectedStartCompany
+        if (!company) return []
+        const { state, rules } = this.session
+        const president = state.certificates.find(
+            (certificate) =>
+                certificate.kind === 'share' &&
+                certificate.president &&
+                certificate.companyId === company.companyId
+        )
+        const shareCount = companyShareCount(state, rules.stockRules.charters, company.companyId)
+        if (!president || president.kind !== 'share' || !shareCount) return []
+        return Array.from({ length: this.maxExtraStartCertificates + 1 }, (_, extra) => ({
+            extra,
+            percent: Math.round(((president.shares + extra) * 100) / shareCount)
+        }))
+    })
+    /** The ordinary certificates chosen to buy with the president's. */
+    selectedExtraStartCertificates = $derived.by(() => this.start.value('extraCertificates') ?? 0)
+    /** The company's single-share certificates still with the bank or its treasury. */
+    private startCertificateIds(companyId: string): string[] {
+        return this.session.state.certificates
+            .filter(
+                (certificate) =>
+                    certificate.kind === 'share' &&
+                    !certificate.president &&
+                    certificate.shares === 1 &&
+                    certificate.companyId === companyId &&
+                    certificate.owner.kind !== 'player'
+            )
+            .map((certificate) => certificate.id)
+    }
+    private extraStartCertificateIds(companyId: string): string[] {
+        return this.startCertificateIds(companyId).slice(0, this.selectedExtraStartCertificates)
+    }
     private selectedStartRequest = $derived.by((): CompanyStartRequest | undefined => {
         const company = this.selectedStartCompany
         const marketSpaceId = this.start.value('marketSpaceId')
         const home = this.selectedStartHome
+        const additionalCertificateIds = company
+            ? this.extraStartCertificateIds(company.companyId)
+            : []
         return company && marketSpaceId
-            ? { ...company, marketSpaceId, ...(home ? { home } : {}) }
+            ? {
+                  ...company,
+                  marketSpaceId,
+                  ...(home ? { home } : {}),
+                  ...(additionalCertificateIds.length ? { additionalCertificateIds } : {})
+              }
             : undefined
     })
     selectedStartPrices = $derived.by(() => {
         const company = this.selectedStartCompany
-        return (
+        const prices =
             this.startChoices.find(
                 (choice) =>
                     company &&
                     choice.request.companyId === company.companyId &&
                     sameOwner(choice.request.buyer, company.buyer)
             )?.prices ?? []
-        )
+        const additionalCertificateIds = company
+            ? this.extraStartCertificateIds(company.companyId)
+            : []
+        if (!company || !additionalCertificateIds.length) return prices
+        const home = this.selectedStartHome
+        return prices.map(({ marketSpaceId }) => ({
+            marketSpaceId,
+            result: evaluateCompanyStart(
+                this.session.state,
+                {
+                    ...company,
+                    marketSpaceId,
+                    ...(home ? { home } : {}),
+                    additionalCertificateIds
+                },
+                this.session.rules.stockRules,
+                this.session.rules.companyRules
+            )
+        }))
     })
     selectedStartResult = $derived.by(() =>
         this.selectedStartRequest
@@ -418,6 +490,15 @@ export class StockModule implements LocalSelection {
         )
         this.start.choose('home', { locationId: home.locationId, nodeId: home.nodeId })
     }
+    chooseExtraStartCertificates(count: number) {
+        this.assertAvailable(this.session.playerId)
+        assert(this.start.value('company'), 'Choose a company before its certificates')
+        assert(
+            count >= 0 && count <= this.maxExtraStartCertificates,
+            'The start cannot include this many certificates'
+        )
+        this.start.choose('extraCertificates', count)
+    }
     selectStartPrice(marketSpaceId: string) {
         this.assertAvailable(this.session.playerId)
         assert(this.start.value('company'), 'Choose a company before its starting price')
@@ -472,6 +553,13 @@ export class StockModule implements LocalSelection {
                               locationId: details.home.position.locationId,
                               nodeId: details.home.position.nodeId
                           }
+                      }
+                    : {}),
+                ...(details.additionalPurchases?.length
+                    ? {
+                          additionalCertificateIds: details.additionalPurchases.map(
+                              (purchase) => purchase.certificateId
+                          )
                       }
                     : {})
             })
