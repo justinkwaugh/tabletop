@@ -234,6 +234,10 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('logout')
     }
 
+    async deleteOwnAccount(): Promise<void> {
+        return this.fail('deleteOwnAccount')
+    }
+
     async logoutAll(): Promise<void> {
         return this.fail('logoutAll')
     }
@@ -476,6 +480,10 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async banUser(_userId: string): Promise<User> {
         return this.fail('banUser')
+    }
+
+    async deleteUser(_userId: string): Promise<User> {
+        return this.fail('deleteUser')
     }
 
     async unbanUser(_userId: string): Promise<User> {

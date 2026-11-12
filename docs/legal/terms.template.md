@@ -10,7 +10,7 @@ You must be {{minimumAge}} or older. You confirm your age when you sign up; we d
 
 ## Your account
 
-Keep your sign-in details to yourself. You're responsible for what's done with your account. Choose a username that isn't offensive. We filter offensive words in usernames and in names of publicly listed games, and we may rename either.
+Keep your sign-in details to yourself. You're responsible for what's done with your account. Choose a username that isn't offensive and doesn't contain the word "deleted", which is kept for deleted accounts. We filter offensive words in usernames and in names of publicly listed games, and we may rename either.
 
 ## Games are visible to anyone with the link
 
@@ -49,7 +49,7 @@ Cheating and abusing bugs aren't allowed either.
 
 ## Closing your account
 
-You can ask us to delete your account at any time (see the [Privacy Policy](/privacy)). We may close accounts that break these terms.
+You can delete your account at any time from your profile page (see the [Privacy Policy](/privacy)). We may close accounts that break these terms.
 
 ## Changes
 

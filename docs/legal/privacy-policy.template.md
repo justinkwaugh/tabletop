@@ -43,15 +43,16 @@ We don't sell your data, show advertising, or use analytics or tracking services
 
 ## How long we keep it
 
-| Data                  | Kept                                                       |
-| --------------------- | ---------------------------------------------------------- |
-| Account               | Until you delete your account                              |
-| Games and chat        | {{gameRetention}}                                          |
-| Sign-in sessions      | Each lasts 180 days; say how long expired records are kept |
-| Email codes and links | Valid 15 minutes; say how long unused ones are kept        |
-| Game invitations      | Valid 7 days; say how long they are kept                   |
-| Server logs           | {{logRetention}}                                           |
-| Backups               | {{backupRetention}}                                        |
+| Data                          | Kept                                                                                                                                                                                                                               |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Account                       | Until you delete your account                                                                                                                                                                                                      |
+| After you delete your account | Your username, email, password, linked accounts and settings are removed; a record of the account ID and its creation and deletion times is kept; moves and chat messages stay in their games under "Deleted player" with a number |
+| Games and chat                | {{gameRetention}}                                                                                                                                                                                                                  |
+| Sign-in sessions              | Each lasts 180 days; say how long expired records are kept                                                                                                                                                                         |
+| Email codes and links         | Valid 15 minutes; say how long unused ones are kept                                                                                                                                                                                |
+| Game invitations              | Valid 7 days; say how long they are kept                                                                                                                                                                                           |
+| Server logs                   | {{logRetention}}                                                                                                                                                                                                                   |
+| Backups                       | {{backupRetention}}                                                                                                                                                                                                                |
 
 ## Cookies and browser storage
 
@@ -67,7 +68,7 @@ You can ask us to:
 
 - give you a copy of your data, including in a portable format;
 - correct it;
-- delete your account;
+- delete your account (you can also do this yourself from your profile page);
 - restrict how we use it;
 - stop using it for anything we do on the basis of legitimate interests.
 

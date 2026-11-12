@@ -56,7 +56,9 @@ import {
     type TitleActivity,
     type SeriesActivity,
     summarizeUserGames,
-    sameGameProgress
+    sameGameProgress,
+    playersWithDeletedAccount,
+    playersWithRenamedSeat
 } from '@tabletop/common'
 import {
     AlreadyExistsError,
@@ -1445,8 +1447,12 @@ export class FirestoreGameStore implements GameStore, SiteStatsGameSource {
         name: string
     }): Promise<Game> {
         return this.rewriteSeats(gameId, (game) =>
-            game.players.map((player) => (player.userId === userId ? { ...player, name } : player))
+            playersWithRenamedSeat(game.players, userId, name)
         )
+    }
+
+    async anonymizePlayer({ gameId, userId }: { gameId: string; userId: string }): Promise<Game> {
+        return this.rewriteSeats(gameId, (game) => playersWithDeletedAccount(game.players, userId))
     }
 
     /** Seats a Substitute's account in place of any earlier account of their place. */

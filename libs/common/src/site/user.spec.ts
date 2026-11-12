@@ -4,6 +4,7 @@ import {
     canHoldAuthenticatedSession,
     Role,
     UserStatus,
+    isReservedUsername,
     receivesGameAndCompetitionEmail,
     wantsGameAndCompetitionEmails,
     withAssignedRoles
@@ -93,5 +94,15 @@ describe('game and competition emails', () => {
         expect(
             receivesGameAndCompetitionEmail({ email: 'a@example.test', preferences: optedOut })
         ).toBe(false)
+    })
+})
+
+describe('isReservedUsername', () => {
+    it('reserves any username containing the word deleted, however it is spaced', () => {
+        expect(isReservedUsername('Deleted player 3')).toBe(true)
+        expect(isReservedUsername('Deleted\u00a0 player 1')).toBe(true)
+        expect(isReservedUsername('the.dele ted_one')).toBe(true)
+        expect(isReservedUsername('Delete')).toBe(false)
+        expect(isReservedUsername('Alice')).toBe(false)
     })
 })

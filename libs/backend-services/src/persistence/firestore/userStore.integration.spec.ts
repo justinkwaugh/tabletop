@@ -166,6 +166,80 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(named.status).toBe(UserStatus.Active)
         })
 
+        it('deletes an Account down to a tombstone and releases what it reserved', async () => {
+            const account = await createAccount(UserStatus.Active, {
+                externalIds: [`google:${run}-deleted`]
+            })
+            await firestore
+                .collection('users')
+                .doc(account.id)
+                .collection('preferences')
+                .doc('family')
+                .set({ boardStyle: 'custom' })
+            await store.findById(account.id)
+
+            const [tombstone, original] = await store.deleteUser(account.id)
+            await store.deletePreferences(account.id)
+
+            expect(original.username).toBe(account.username)
+            expect(tombstone).toMatchObject({
+                id: account.id,
+                status: UserStatus.Deleted,
+                deleted: true,
+                roles: [],
+                externalIds: []
+            })
+            const stored = (await firestore.collection('users').doc(account.id).get()).data()
+            expect(stored).not.toHaveProperty('username')
+            expect(stored).not.toHaveProperty('email')
+            expect(stored).not.toHaveProperty('passwordHash')
+            expect(stored).not.toHaveProperty('ageConfirmedAt')
+            expect(await store.findById(account.id)).toMatchObject({ status: UserStatus.Deleted })
+            const preferences = await firestore
+                .collection('users')
+                .doc(account.id)
+                .collection('preferences')
+                .get()
+            expect(preferences.empty).toBe(true)
+            const linked = await firestore
+                .collection('userExternalIds')
+                .doc(`google:${run}-deleted`)
+                .get()
+            expect(linked.exists).toBe(false)
+
+            const reused = await store.createUser({
+                ...newAccount(UserStatus.Incomplete),
+                username: account.username,
+                email: account.email
+            })
+            expect(reused.username).toBe(account.username)
+        })
+
+        it('writes nothing more to a deleted Account', async () => {
+            const account = await createAccount(UserStatus.Active)
+            await store.deleteUser(account.id)
+
+            const [unchanged, updatedFields] = await store.updateUser({
+                userId: account.id,
+                fields: { timeZone: 'Europe/London', roles: [Role.User, Role.Admin] }
+            })
+
+            expect(updatedFields).toEqual([])
+            expect(unchanged).toMatchObject({ status: UserStatus.Deleted, roles: [] })
+            const stored = (await firestore.collection('users').doc(account.id).get()).data()
+            expect(stored).not.toHaveProperty('timeZone')
+        })
+
+        it('refuses a deletion its validator rejects without changing anything', async () => {
+            const account = await createAccount(UserStatus.Active)
+            await expect(
+                store.deleteUser(account.id, () => {
+                    throw new Error('Not allowed')
+                })
+            ).rejects.toThrow()
+            expect(await storedStatus(account.id)).toBe(UserStatus.Active)
+        })
+
         describe('Age Confirmation', () => {
             const BEFORE_INTRODUCTION = new Date('2026-11-01T00:00:00Z')
             const AFTER_INTRODUCTION = new Date('2026-12-01T00:00:00Z')

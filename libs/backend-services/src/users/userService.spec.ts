@@ -11,6 +11,7 @@ import {
 } from './errors.js'
 import { AccountChangeType } from '../email/emailService.js'
 import type { AuthenticatedSession } from '../sessions/authenticatedSession.js'
+import { RecentAuthenticationRequiredError } from '../sessions/recentAuthentication.js'
 import type { UserStore } from '../persistence/stores/userStore.js'
 import type { TaskService } from '../tasks/taskService.js'
 import { UpdateValidationResult } from '../persistence/stores/validator.js'
@@ -373,6 +374,27 @@ describe('account moderation', () => {
         })
     })
 
+    describe('reserved usernames', () => {
+        it('refuses a username that would pass for a deleted player', async () => {
+            const createUser = vi.fn<UserStore['createUser']>()
+            const store: UserStore = Object.create(null)
+            store.createUser = createUser
+            const service = new UserService(
+                store,
+                TokenService.prototype,
+                LocalTaskService.prototype
+            )
+
+            await expect(
+                service.createUser(
+                    { ...user, username: 'Deleted player 1' },
+                    'a long enough password'
+                )
+            ).rejects.toThrow(UsernameNotAllowedError)
+            expect(createUser).not.toHaveBeenCalled()
+        })
+    })
+
     describe('renameAccount', () => {
         function renameFixture(existing: User) {
             const notifications = vi.fn(async () => undefined)
@@ -445,6 +467,75 @@ describe('account moderation', () => {
             expect(updateUser).toHaveBeenCalledExactlyOnceWith(
                 expect.objectContaining({ fields: { status: UserStatus.Inactive } })
             )
+        })
+    })
+
+    describe('deleting an account', () => {
+        function deletionFixture(existing: User) {
+            const tombstone: User = {
+                id: existing.id,
+                status: UserStatus.Deleted,
+                roles: [],
+                externalIds: []
+            }
+            const deleteUser = vi.fn<UserStore['deleteUser']>(async (_userId, validate) => {
+                validate?.({ ...existing, createdAt: undefined, updatedAt: undefined })
+                return [tombstone, existing]
+            })
+            const store: UserStore = Object.create(null)
+            store.deleteUser = deleteUser
+            return {
+                service: new UserService(store, TokenService.prototype, LocalTaskService.prototype),
+                deleteUser
+            }
+        }
+        const recentSession: AuthenticatedSession = { ...session, authenticatedAt: new Date() }
+
+        it('lets the owner delete their account after a recent sign-in', async () => {
+            const { service } = deletionFixture({ ...user, username: 'Alice' })
+            const [tombstone] = await service.deleteOwnAccount(recentSession)
+            expect(tombstone.status).toBe(UserStatus.Deleted)
+        })
+
+        it('asks the owner to sign in again when their proof is old', async () => {
+            const { service } = deletionFixture(user)
+            await expect(
+                service.deleteOwnAccount({ ...session, authenticatedAt: new Date(0) })
+            ).rejects.toThrow(RecentAuthenticationRequiredError)
+        })
+
+        it('refuses an administrator deleting their own account from their profile', async () => {
+            const { service } = deletionFixture({ ...user, roles: [Role.User, Role.Admin] })
+            await expect(service.deleteOwnAccount(recentSession)).rejects.toThrow(
+                AccountModerationError
+            )
+        })
+
+        it('refuses an administrator deleting their own account from the admin tools', async () => {
+            const { service, deleteUser } = deletionFixture(user)
+            await expect(service.deleteAccountAsAdministrator('a', 'a')).rejects.toThrow(
+                AccountModerationError
+            )
+            expect(deleteUser).not.toHaveBeenCalled()
+        })
+
+        it('refuses deleting another administrator or an already deleted account', async () => {
+            const admin = deletionFixture({ ...user, roles: [Role.User, Role.Admin] })
+            await expect(admin.service.deleteAccountAsAdministrator('a', 'other')).rejects.toThrow(
+                AccountModerationError
+            )
+            const deleted = deletionFixture({ ...user, status: UserStatus.Deleted })
+            await expect(
+                deleted.service.deleteAccountAsAdministrator('a', 'other')
+            ).rejects.toThrow(AccountModerationError)
+        })
+
+        it('lets an administrator delete another account', async () => {
+            const { service } = deletionFixture(user)
+            await expect(service.deleteAccountAsAdministrator('a', 'other')).resolves.toEqual([
+                expect.objectContaining({ status: UserStatus.Deleted }),
+                user
+            ])
         })
     })
 

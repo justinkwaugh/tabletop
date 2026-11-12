@@ -87,7 +87,9 @@ import {
     tournamentTableSettled,
     type TournamentTableHandover,
     type TournamentSchedule,
-    receivesGameAndCompetitionEmail
+    receivesGameAndCompetitionEmail,
+    playersWithDeletedAccount,
+    playersWithRenamedSeat
 } from '@tabletop/common'
 import { TaskService } from '../tasks/taskService.js'
 import { TokenService, TokenType } from '../tokens/tokenService.js'
@@ -443,6 +445,23 @@ export class GameService {
     async renamePlayerInGames(user: User): Promise<void> {
         const { username } = user
         assertExists(username, 'A renamed account has a username')
+        await this.rewriteSeatInGames(user, async (game) => {
+            if (!playersWithRenamedSeat(game.players, user.id, username)) return undefined
+            return this.gameStore.renamePlayer({ gameId: game.id, userId: user.id, name: username })
+        })
+    }
+
+    async anonymizePlayerInGames(user: User): Promise<void> {
+        await this.rewriteSeatInGames(user, async (game) => {
+            if (!playersWithDeletedAccount(game.players, user.id)) return undefined
+            return this.gameStore.anonymizePlayer({ gameId: game.id, userId: user.id })
+        })
+    }
+
+    private async rewriteSeatInGames(
+        user: User,
+        rewrite: (game: Game) => Promise<Game | undefined>
+    ): Promise<void> {
         const games = await Promise.all(
             [
                 GameStatusCategory.Active,
@@ -451,15 +470,12 @@ export class GameService {
             ].map((category) => this.gameStore.findGamesForUser(user, category))
         )
         await this.settleForEachGame(games.flat(), async (game) => {
-            const seat = findPlayerForUserId(game, user.id)
-            if (!seat || seat.name === username) return
-            const renamed = await this.gameStore.renamePlayer({
-                gameId: game.id,
-                userId: user.id,
-                name: username
-            })
-            if (getGameStatusesForCategory(GameStatusCategory.Active).includes(renamed.status)) {
-                await this.notifyGamePlayers(GameNotificationAction.Update, { game: renamed })
+            const updated = await rewrite(game)
+            if (
+                updated &&
+                getGameStatusesForCategory(GameStatusCategory.Active).includes(updated.status)
+            ) {
+                await this.notifyGamePlayers(GameNotificationAction.Update, { game: updated })
             }
         })
     }

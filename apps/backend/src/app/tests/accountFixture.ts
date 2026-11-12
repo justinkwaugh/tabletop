@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify'
 import {
     accountStatusAfterCompletionCheck,
     normalizeEmailAddress,
+    deletedAccountRecord,
     nextSessionGeneration,
     type User
 } from '@tabletop/common'
@@ -119,6 +120,12 @@ export function memoryUserStore(initial: User, initialPassword?: string) {
             updatedFields.push('status')
         }
         return [current, updatedFields, original]
+    }
+    store.deleteUser = async (_userId, validate) => {
+        validate?.(stored())
+        const original = current
+        current = deletedAccountRecord(original, new Date())
+        return [current, original]
     }
     return {
         store,

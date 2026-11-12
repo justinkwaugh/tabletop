@@ -47,6 +47,7 @@ export interface EmailService {
         definition: GameDefinition
         url: string
         toEmail: string
+        deletedAccount: boolean
     }): Promise<void>
     sendGameEndEmail({
         winners,

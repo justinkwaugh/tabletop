@@ -273,7 +273,13 @@ export default fp(async (fastify: FastifyInstance, options: ServicesOptions) => 
             gameService,
             taskService,
             new RedisPublisher(redisService),
-            titleSupportsCalls
+            titleSupportsCalls,
+            {
+                sessions: sessionService,
+                tokens: tokenService,
+                preferences: userStore,
+                subscriptions: notificationStore
+            }
         )
     )
     fastify.decorate(

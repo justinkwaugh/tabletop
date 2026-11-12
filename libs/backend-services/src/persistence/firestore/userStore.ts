@@ -1,6 +1,7 @@
 import { isValidStorageId } from '../stores/storageId.js'
 import { Timed, measure } from '../../diagnostics/requestTimings.js'
 import {
+    deletedAccountRecord,
     accountStatusAfterCompletionCheck,
     BaseError,
     canHoldAuthenticatedSession,
@@ -409,6 +410,9 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
                         return [existingUser, [], existingUser]
                 }
             }
+            if (existingUser.status === UserStatus.Deleted) {
+                return [existingUser, [], existingUser]
+            }
 
             // If a current password was provided, check it
             if (
@@ -724,6 +728,55 @@ export class FirestoreUserStore implements UserStore, SiteStatsUserSource {
         delete user.passwordHash
         delete user.cleanUsername
         return user
+    }
+
+    async deleteUser(
+        userId: string,
+        validate?: (existing: StoredUser) => void
+    ): Promise<[User, User]> {
+        const transactionBody = async (
+            transaction: FirebaseFirestore.Transaction
+        ): Promise<[StoredUser, StoredUser]> => {
+            const existing = (await transaction.get(this.users.doc(userId))).data()
+            this.recordRead()
+            if (!existing) throw new NotFoundError({ type: 'User', id: userId })
+            validate?.(existing)
+
+            const now = new Date()
+            const tombstone: StoredUser = {
+                ...deletedAccountRecord(existing, now),
+                createdAt: existing.createdAt
+            }
+            if (existing.cleanUsername) {
+                transaction.delete(this.userUsernames.doc(existing.cleanUsername))
+            }
+            if (existing.email) transaction.delete(this.userEmails.doc(existing.email))
+            for (const externalId of existing.externalIds) {
+                transaction.delete(this.userExternalIds.doc(externalId))
+            }
+            transaction.set(this.users.doc(userId), tombstone)
+            return [tombstone, existing]
+        }
+
+        try {
+            const [tombstone, existing] = await this.cacheService.lockWhileWriting(
+                [this.makeUserCacheKey(userId)],
+                async () => this.users.firestore.runTransaction(transactionBody)
+            )
+            return [this.sanitize(tombstone), this.sanitize(existing)]
+        } catch (error) {
+            this.handleError(error, userId)
+        }
+    }
+
+    async deletePreferences(userId: string): Promise<void> {
+        try {
+            await this.users.firestore.recursiveDelete(
+                this.users.doc(userId).collection('preferences')
+            )
+        } catch (error) {
+            this.handleError(error, userId)
+        }
     }
 
     async hashPassword(password: string) {

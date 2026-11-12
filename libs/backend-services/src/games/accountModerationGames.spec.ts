@@ -339,6 +339,48 @@ describe('renamePlayerInGames', () => {
     })
 })
 
+describe('anonymizePlayerInGames', () => {
+    it('renames the deleted seat in every game it holds, finished ones included', async () => {
+        const host = createHost()
+        const anonymize = vi
+            .spyOn(host.store, 'anonymizePlayer')
+            .mockImplementation(async ({ gameId }) => ({
+                ...structuredClone(host.game),
+                id: gameId
+            }))
+        const game = structuredClone(host.game)
+        const active = { ...game, id: 'active' }
+        const finished = { ...game, id: 'finished', status: GameStatus.Finished }
+        const done = {
+            ...game,
+            id: 'done',
+            players: game.players.map((player) =>
+                player.userId === 'p2' ? { ...player, name: 'Deleted player 1' } : player
+            )
+        }
+        vi.spyOn(host.store, 'findGamesForUser').mockImplementation(async (_user, category) => {
+            switch (category) {
+                case GameStatusCategory.Active:
+                    return [active, done]
+                case GameStatusCategory.Completed:
+                    return [finished]
+                default:
+                    return []
+            }
+        })
+
+        await host.service.anonymizePlayerInGames({
+            ...syntheticUser('p2'),
+            status: UserStatus.Deleted
+        })
+
+        expect(anonymize.mock.calls.map(([seat]) => seat)).toEqual([
+            { gameId: 'active', userId: 'p2' },
+            { gameId: 'finished', userId: 'p2' }
+        ])
+    })
+})
+
 describe('notifications to a banned account', () => {
     it('sends it no user notifications', async () => {
         const host = createHost(['p1', 'p2', 'p3'])

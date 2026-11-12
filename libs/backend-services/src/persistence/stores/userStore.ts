@@ -49,4 +49,7 @@ export interface UserStore {
         service: ExternalAuthService
     }): Promise<User>
     removeExternalId(userId: string, externalId: string): Promise<User>
+
+    deleteUser(userId: string, validate?: (existing: StoredUser) => void): Promise<[User, User]>
+    deletePreferences(userId: string): Promise<void>
 }

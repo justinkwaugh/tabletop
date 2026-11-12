@@ -129,6 +129,32 @@ export const UserUpdateRequest = Type.Evaluate(
     )
 )
 
+// Deleted Accounts appear as "Deleted player N", so no live Account may pose as one.
+export function isReservedUsername(username: string): boolean {
+    return username
+        .toLowerCase()
+        .replace(/[^a-z]/g, '')
+        .includes('deleted')
+}
+
+export function deletedAccountRecord(
+    existing: Pick<User, 'id' | 'sessionGeneration' | 'createdAt' | 'activatedAt'>,
+    now: Date
+): User & Required<Pick<User, 'updatedAt' | 'deletedAt'>> {
+    return {
+        id: existing.id,
+        status: UserStatus.Deleted,
+        deleted: true,
+        deletedAt: now,
+        roles: [],
+        externalIds: [],
+        sessionGeneration: nextSessionGeneration(existing),
+        updatedAt: now,
+        ...(existing.createdAt ? { createdAt: existing.createdAt } : {}),
+        ...(existing.activatedAt ? { activatedAt: existing.activatedAt } : {})
+    }
+}
+
 export function sessionGenerationOf(user: Pick<User, 'sessionGeneration'>): number {
     return user.sessionGeneration ?? 0
 }

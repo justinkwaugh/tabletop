@@ -133,13 +133,15 @@ export class ResendEmailService implements EmailService {
         game,
         definition,
         url,
-        toEmail
+        toEmail,
+        deletedAccount
     }: {
         playerName: string
         game: Game
         definition: GameDefinition
         url: string
         toEmail: string
+        deletedAccount: boolean
     }): Promise<void> {
         const { render, templates } = await this.loadRendering()
         const emailHTML = await render(
@@ -147,10 +149,14 @@ export class ResendEmailService implements EmailService {
                 playerName,
                 title: definition.info.metadata.name,
                 gameName: game.name,
-                url
+                url,
+                deletedAccount
             })
         )
-        await this.send(toEmail, `A player was removed from ${game.name}`, emailHTML)
+        const subject = deletedAccount
+            ? `A player left ${game.name}`
+            : `A player was removed from ${game.name}`
+        await this.send(toEmail, subject, emailHTML)
     }
 
     async sendGameEndEmail({

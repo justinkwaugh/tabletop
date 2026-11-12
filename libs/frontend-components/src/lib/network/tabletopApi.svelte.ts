@@ -334,6 +334,15 @@ export class TabletopApi {
         await this.wretch.post(undefined, '/auth/logoutAll').unauthorized(this.on401).json()
     }
 
+    async deleteOwnAccount(): Promise<void> {
+        await this.wretch
+            .post(undefined, '/user/delete')
+            .unauthorized(this.on401)
+            .forbidden(this.handleError)
+            .badRequest(this.handleError)
+            .json()
+    }
+
     async searchUsernames(query: string): Promise<string[]> {
         const response = await this.wretch
             .post({ query: query.trim() }, `/user/usernameSearch`)
@@ -1175,6 +1184,10 @@ export class TabletopApi {
 
     async unbanUser(userId: string): Promise<User> {
         return this.moderateUser(userId, 'unban', {})
+    }
+
+    async deleteUser(userId: string): Promise<User> {
+        return this.moderateUser(userId, 'delete', {})
     }
 
     private async moderateUser(userId: string, operation: string, body: object): Promise<User> {

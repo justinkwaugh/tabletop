@@ -55,6 +55,9 @@ A retained User Account disabled by an Administrator through a Ban. It cannot es
 
 **Deleted**:
 The terminal, anonymized tombstone of a removed User Account. It cannot authenticate or become another status.
+
+**Account Deletion**:
+Turning a User Account into its Deleted tombstone: by its owner with Recent Authentication, or by an Administrator for another non-Administrator Account. Administrator Accounts cannot be deleted. It releases the Username, Email Address and External Identities for reuse, and every seat the Account held shows "Deleted player N", numbered within each Game. No Username may contain the word "deleted".
 _Avoid_: Soft-deleted, archived
 
 **Ban**:
