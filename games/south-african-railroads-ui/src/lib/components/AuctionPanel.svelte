@@ -140,8 +140,9 @@
         padding: 4px 8px 5px;
     }
 
+    /* The bidder on the clock is outlined in their own colour. */
     .seat.current {
-        border: 2px solid #c8961a;
+        border: 2px solid var(--player);
         border-left: 14px solid var(--player);
         background: #fdfdfb;
         box-shadow: 0 2px 6px rgba(16, 22, 30, 0.3);
