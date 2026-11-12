@@ -8,7 +8,8 @@
 
     // A stack of discs standing on its point, seen from the near side of the table. Each disc is
     // an image of its look, pre-rendered by scripts/render-looks.mjs, on its own node, centred on
-    // its base, so it can drop or lift off on its own.
+    // its base, so it can drop or lift off on its own. GSAP drops a disc's inner node and Svelte
+    // lifts its wrapper off, so the two never write the same transform.
     let {
         discs,
         radius,
@@ -28,19 +29,24 @@
 {#each drawing.bases as base, index (index)}
     {@const tone = discs[index].tone}
     <g transform="translate(0 {base})">
-        <g {@attach parts?.disc(index)} out:liftOffDisc={{ parts }}>
-            <image
-                href={lookUrl(discs[index])}
-                x={box.x}
-                y={box.y}
-                width={box.width}
-                height={box.height}
-            ></image>
-            {#if index < drawing.bases.length - 1}
-                <g {@attach parts?.crease(index)} out:liftOffCrease={{ parts }}>
-                    <path d={creaseOf(view, discs[index], radius)} class="crease {tone}"></path>
-                </g>
-            {/if}
+        <g out:liftOffDisc={{ parts }}>
+            <g {@attach parts?.disc(index)}>
+                <image
+                    href={lookUrl(discs[index])}
+                    x={box.x}
+                    y={box.y}
+                    width={box.width}
+                    height={box.height}
+                ></image>
+                {#if index < drawing.bases.length - 1}
+                    <g out:liftOffCrease={{ parts }}>
+                        <g {@attach parts?.crease(index)}>
+                            <path d={creaseOf(view, discs[index], radius)} class="crease {tone}"
+                            ></path>
+                        </g>
+                    </g>
+                {/if}
+            </g>
         </g>
     </g>
 {/each}
