@@ -17,7 +17,7 @@
             case 'closed':
                 return `From SR ${standing.stockRound}`
             case 'no-home':
-                return 'No home free'
+                return 'No home'
             case 'waiting':
                 return ''
         }
