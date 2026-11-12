@@ -47,16 +47,19 @@ export const GoodPaths = {
 } as const
 
 /**
- * A pawn as the wooden cube it is, in a 32 unit square seen a little from above: the top face, the
- * front side below it, and where its character is printed on top, in the guild icons' 24 unit box.
+ * A pawn as the wooden cube it is, in a 40 unit square seen in three-quarter view: the front face
+ * square-on, the top and the right side going back from it, and where its character is printed on
+ * the front, in the guild icons' 24 unit box.
  */
 export const PawnCube = {
-    box: 32,
-    side: { x: 1, y: 4, width: 30, height: 27 },
-    top: { x: 1, y: 1, width: 30, height: 24 },
-    shine: { x: 2.5, y: 2.2, width: 27, height: 5 },
-    corner: 3.5,
-    face: { x: 6, y: 3, size: 20 }
+    box: 40,
+    front: { x: 3, y: 13, width: 28, height: 25 },
+    top: 'M3 13 L10 4 L38 4 L31 13 Z',
+    side: 'M31 13 L38 4 L38 29 L31 38 Z',
+    /** The cube's silhouette, and the edges between its faces. */
+    outline: 'M3 13 L10 4 L38 4 L38 29 L31 38 L3 38 Z',
+    edges: 'M3 13 L31 13 L38 4 M31 13 L31 38',
+    face: { x: 7.5, y: 16, size: 19.2 }
 } as const
 
 /** Vessels, in a 48 x 32 box: hull and the part that names its medium. */
