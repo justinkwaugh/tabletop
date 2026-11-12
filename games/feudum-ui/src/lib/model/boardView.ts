@@ -30,6 +30,40 @@ export function scoreOnTrack(score: number): ScoreOnTrack {
     }
 }
 
+export interface SeatScore {
+    readonly playerId: string
+    readonly score: number
+}
+
+/** A seat's score disc, and its place among the discs on the same space, in turn order. */
+export interface ScoreDisc extends ScoreOnTrack {
+    readonly playerId: string
+    readonly score: number
+    readonly index: number
+    readonly count: number
+}
+
+/** R-1.2.5 Each seat's score, in turn order. */
+export function seatScores(state: HydratedFeudumGameState): readonly SeatScore[] {
+    const { turnOrder } = state.turnManager
+    const rank = (playerId: string) => {
+        const place = turnOrder.indexOf(playerId)
+        return place < 0 ? turnOrder.length : place
+    }
+    return [...state.players]
+        .sort((a, b) => rank(a.playerId) - rank(b.playerId))
+        .map(({ playerId, score }) => ({ playerId, score }))
+}
+
+/** R-1.2.5 Each seat's disc on the score track, fanned with the others on its space. */
+export function scoreDiscs(scores: readonly SeatScore[]): readonly ScoreDisc[] {
+    const placed = scores.map((seat) => ({ ...seat, ...scoreOnTrack(seat.score) }))
+    return placed.map((disc) => {
+        const sharing = placed.filter(({ space }) => space === disc.space)
+        return { ...disc, index: sharing.indexOf(disc), count: sharing.length }
+    })
+}
+
 /** A seat's disc on a track, and its place among the discs on the same space. */
 export interface TrackDisc {
     readonly playerId: string

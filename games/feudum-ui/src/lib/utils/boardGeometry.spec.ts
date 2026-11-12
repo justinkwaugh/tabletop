@@ -62,6 +62,7 @@ import {
     RankRadius,
     RosaryPlaces,
     ScoreBand,
+    ScoreDiscSize,
     ScoreSpaces,
     ScrollCell,
     ServiceSpaces,
@@ -560,17 +561,45 @@ describe('The tracks and margin: every space has a place (S72)', () => {
         })
     })
 
-    it('R-1.2.5 keeps five seats on a space apart and on the space', () => {
-        for (const { space, centre, width, height } of ScoreSpaces) {
-            const discs = [0, 1, 2, 3, 4].map((lane) => scoreDiscAt(space, lane))
-            expect(new Set(discs.map(({ x, y }) => `${x},${y}`)).size).toBe(5)
-            for (const disc of discs) {
-                expect(Math.abs(disc.x - centre.x)).toBeLessThanOrEqual(ScoreBand / 2)
-                expect(Math.abs(disc.y - centre.y)).toBeLessThanOrEqual(ScoreBand / 2)
-                expect(width).toBeGreaterThan(0)
-                expect(height).toBeGreaterThan(0)
+    it('R-1.2.5 a lone disc stands on its space, and discs sharing one fan along the track by half a disc', () => {
+        for (const { space, centre, side, corner } of ScoreSpaces) {
+            expect(scoreDiscAt(space)).toEqual(centre)
+            for (const count of [2, 3, 4, 5]) {
+                const discs = Array.from({ length: count }, (_, index) =>
+                    scoreDiscAt(space, index, count)
+                )
+                const upright = side === 'left' || side === 'right'
+                for (const [index, disc] of discs.entries()) {
+                    expect(upright ? disc.x : disc.y).toBeCloseTo(upright ? centre.x : centre.y)
+                    if (index > 0) {
+                        const step = Math.hypot(
+                            disc.x - discs[index - 1].x,
+                            disc.y - discs[index - 1].y
+                        )
+                        expect(step).toBeCloseTo(ScoreDiscSize / 2)
+                    }
+                    expect(disc.x - ScoreDiscSize / 2).toBeGreaterThanOrEqual(0)
+                    expect(disc.y - ScoreDiscSize / 2).toBeGreaterThanOrEqual(0)
+                    expect(disc.x + ScoreDiscSize / 2).toBeLessThanOrEqual(BoardWidth)
+                    expect(disc.y + ScoreDiscSize / 2).toBeLessThanOrEqual(BoardHeight)
+                }
+                if (corner) {
+                    expect(discs[0]).toEqual(centre)
+                } else {
+                    const middle = discs.reduce(
+                        (sum, { x, y }) => ({ x: sum.x + x / count, y: sum.y + y / count }),
+                        { x: 0, y: 0 }
+                    )
+                    expect(middle.x).toBeCloseTo(centre.x)
+                    expect(middle.y).toBeCloseTo(centre.y)
+                }
             }
         }
+    })
+
+    it('R-1.2.5 a disc fills the band', () => {
+        expect(ScoreDiscSize).toBeLessThanOrEqual(ScoreBand)
+        expect(ScoreDiscSize).toBeGreaterThanOrEqual(ScoreBand * 0.6)
     })
 
     it('R-3.7.5 places every epic voyage space inside the map, apart', () => {

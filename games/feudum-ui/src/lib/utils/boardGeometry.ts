@@ -917,8 +917,10 @@ export function barnColumn(good: Good): Point {
 
 /** The score ring's band round the board's edge. */
 export const ScoreBand = 60
-export const ScoreDiscSize = 20
-const ScoreLaneStep = 10
+/** A score disc is nearly the band's width, so it reads at desk size. */
+export const ScoreDiscSize = 40
+/** Discs sharing a space overlap by half along the track. */
+const ScoreFanStep = ScoreDiscSize / 2
 /** R-1.2.5 The spaces from each corner to the next: 0 bottom-left, 20, 75, 95 at the others. */
 const ScoreRun = [
     { side: 'left', spaces: 20 },
@@ -981,18 +983,30 @@ const InwardBySide: Record<ScoreSide, Point> = {
     bottom: { x: 0, y: -1 }
 }
 
-/** R-1.2.5 Seats keep a lane across the band, so discs on one space stay told apart. */
-export function scoreDiscAt(space: number, lane: number): Point {
-    const { centre, side } = ScoreSpaces[space]
-    const across = (lane - 2) * ScoreLaneStep
-    const inward = InwardBySide[side]
-    return { x: centre.x + inward.x * across, y: centre.y + inward.y * across }
+/** The way the track runs along each side, from 0 upwards. */
+const AlongBySide: Record<ScoreSide, Point> = {
+    left: { x: 0, y: -1 },
+    top: { x: 1, y: 0 },
+    right: { x: 0, y: 1 },
+    bottom: { x: -1, y: 0 }
 }
 
-/** Where a disc's "+150" chip stands, from the disc: towards the board, off the ring's other discs. */
+/**
+ * R-1.2.5 The index-th of count discs on one space: alone it stands on the space; sharing it
+ * fans along the track, centred on the space, overlapping the next by half. On a corner the fan
+ * runs from the corner along the track, so it stays on the board.
+ */
+export function scoreDiscAt(space: number, index = 0, count = 1): Point {
+    const { centre, side, corner } = ScoreSpaces[space]
+    const along = corner ? index * ScoreFanStep : fanOffset(index, count, ScoreFanStep)
+    const way = AlongBySide[side]
+    return { x: centre.x + way.x * along, y: centre.y + way.y * along }
+}
+
+/** Where a disc's "+150" chip stands, from the disc: towards the board, clear of the disc. */
 export function scoreChipOffset(space: number): Point {
     const inward = InwardBySide[ScoreSpaces[space].side]
-    return { x: inward.x * 32, y: inward.y * 18 }
+    return { x: inward.x * 46, y: inward.y * 34 }
 }
 
 /** Discs sharing a track space stand side by side, centred on it. */

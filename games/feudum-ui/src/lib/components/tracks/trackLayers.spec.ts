@@ -13,7 +13,7 @@ import {
 } from '@tabletop/feudum'
 import { everyAssetSupplied } from '$lib/testing/fakeArt.js'
 import { atPlayingCards } from '$lib/testing/turnTable.js'
-import { ScoreSpaces, barrelCentre, scoreDiscAt } from '$lib/utils/boardGeometry.js'
+import { ScoreDiscSize, ScoreSpaces, barrelCentre, scoreDiscAt } from '$lib/utils/boardGeometry.js'
 import TrackLayers from './TrackLayers.svelte'
 
 const folder = vi.hoisted(() => {
@@ -30,7 +30,7 @@ const paintOf = (playerId: string) => ({
     fill: `seat-${playerId}`,
     ink: 'var(--feudum-text)',
     edge: 'var(--feudum-map-ink)',
-    owner: "Ana's"
+    owner: `${playerId}'s`
 })
 async function table() {
     const { host } = await atPlayingCards(['explore'])
@@ -84,7 +84,7 @@ describe('the score ring (R-1.2.5, R-6)', () => {
         const disc = pieceMarkup(html, `score:${a.playerId}`)
         expect(disc).toContain('data-score-chip="+150"')
         expect(disc).toContain('>+150<')
-        const { x, y } = scoreDiscAt(13, 0)
+        const { x, y } = scoreDiscAt(13)
         expect(html).toContain(`transform="translate(${x} ${y})"`)
         expect(pieceMarkup(html, `score:${b.playerId}`)).not.toContain('data-score-chip')
     })
@@ -96,6 +96,45 @@ describe('the score ring (R-1.2.5, R-6)', () => {
         const disc = pieceMarkup(tracks(state), `score:${a.playerId}`)
         expect(disc).toContain('>-4<')
         expect(ScoreSpaces[ScoreTrack.lowest].space).toBe(ScoreTrack.lowest)
+    })
+
+    it('R-1.2.5 discs sharing a space fan along the track in turn order, each telling who is there', async () => {
+        const state = await table()
+        const [a, b, c] = state.players
+        a.score = 31
+        b.score = 31
+        c.score = 22
+        state.turnManager.turnOrder = [b.playerId, c.playerId, a.playerId]
+        const html = tracks(state)
+        const first = scoreDiscAt(31, 0, 2)
+        const second = scoreDiscAt(31, 1, 2)
+        const alone = scoreDiscAt(22)
+        expect(html).toContain(
+            `transform="translate(${first.x} ${first.y})" data-world="score:${b.playerId}"`
+        )
+        expect(html).toContain(
+            `transform="translate(${second.x} ${second.y})" data-world="score:${a.playerId}"`
+        )
+        expect(html).toContain(
+            `transform="translate(${alone.x} ${alone.y})" data-world="score:${c.playerId}"`
+        )
+        const shared = `Player discs: ${b.playerId}'s on 31, ${a.playerId}'s on 31`
+        expect(pieceMarkup(html, `score:${a.playerId}`)).toContain(`<title>${shared}</title>`)
+        expect(pieceMarkup(html, `score:${b.playerId}`)).toContain(`<title>${shared}</title>`)
+        expect(pieceMarkup(html, `score:${c.playerId}`)).toContain(
+            `<title>${c.playerId}'s player disc on 22</title>`
+        )
+        expect(html.indexOf(`data-world="score:${b.playerId}"`)).toBeLessThan(
+            html.indexOf(`data-world="score:${a.playerId}"`)
+        )
+    })
+
+    it('R-1.2.5 a disc is as wide as the band and drawn at that size', async () => {
+        const html = tracks(await table())
+        expect(ScoreDiscSize).toBe(40)
+        expect(html).toMatch(
+            /data-world="score:[^"]+"[^>]*>\s*<g[^>]*data-motion[^>]*>\s*<svg[^>]*width="40"/
+        )
     })
 
     it('R-1.2.5 paints the disc from the colourizer, on separate world and motion nodes', async () => {

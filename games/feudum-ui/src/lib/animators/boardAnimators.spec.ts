@@ -29,7 +29,7 @@ import { FeudumHost, settled } from '$lib/testing/sessionHarness.js'
 import { addPawn, atPlayingCards } from '$lib/testing/turnTable.js'
 import { spaceTarget } from '$lib/model/boardOffer.js'
 import type { FeudumGameSession } from '$lib/model/session.svelte.js'
-import { scoreOnTrack } from '$lib/model/boardView.js'
+import { scoreDiscs, seatScores, type SeatScore } from '$lib/model/boardView.js'
 import {
     GuildAreaWidth,
     GuildAreas,
@@ -1005,9 +1005,16 @@ describe('R-4.11.1 the die, the tile and R-4.12 the dawn', () => {
             sameTarget(target, { piece: `score:${row.playerId}` })
         )
         const score = dawn.from.getPlayerState(row.playerId).score
-        const lane = dawn.from.players.findIndex(({ playerId }) => playerId === row.playerId)
-        expect(disc[0].path?.at(-1)).toEqual(scoreDiscAt(scoreOnTrack(score + 5).space, lane))
-        expect(disc[1].path?.at(-1)).toEqual(scoreDiscAt(scoreOnTrack(score + 3).space, lane))
+        const restAt = (gained: number) =>
+            restOf(
+                seatScores(dawn.from).map((seat) =>
+                    seat.playerId === row.playerId ? { ...seat, score: gained } : seat
+                ),
+                row.playerId
+            )
+        expect(disc[0].path?.at(0)).toEqual(restOf(seatScores(dawn.from), row.playerId))
+        expect(disc[0].path?.at(-1)).toEqual(restAt(score + 5))
+        expect(disc[1].path?.at(-1)).toEqual(restAt(score + 3))
         expect(disc[1].at).toBeGreaterThanOrEqual(disc[0].at + disc[0].duration)
     })
 
@@ -1217,9 +1224,17 @@ describe('System Actions after one user Action, and the gate', () => {
     }, 30000)
 })
 
-function walkEnd({ from, to }: BoardChange, seat: string): Point {
-    const lane = from.players.findIndex(({ playerId }) => playerId === seat)
-    return scoreDiscAt(scoreOnTrack(to.getPlayerState(seat).score).space, lane)
+function walkEnd({ to }: BoardChange, seat: string): Point {
+    return restOf(seatScores(to), seat)
+}
+
+/** Where a seat's disc rests among these scores: fanned with any it shares a space with. */
+function restOf(scores: readonly SeatScore[], seat: string): Point {
+    const disc = scoreDiscs(scores).find(({ playerId }) => playerId === seat)
+    if (!disc) {
+        throw new Error('No such seat')
+    }
+    return scoreDiscAt(disc.space, disc.index, disc.count)
 }
 
 describe('R-1.2 history and interruption', () => {

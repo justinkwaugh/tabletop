@@ -4,7 +4,7 @@
     import BoardPiece from '$lib/components/map/BoardPiece.svelte'
     import CountChip from '$lib/components/map/CountChip.svelte'
     import SeatToken from '$lib/components/pieces/SeatToken.svelte'
-    import { scoreOnTrack } from '$lib/model/boardView.js'
+    import { scoreDiscs, seatScores, type ScoreDisc } from '$lib/model/boardView.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import {
         ScoreDiscSize,
@@ -15,7 +15,8 @@
 
     /**
      * R-1.2.5 The 0 to 149 track round the board's edge. R-6 A score is uncapped: past 149 the disc
-     * wraps and carries a "+150" chip. Each seat keeps a lane across the band.
+     * wraps and carries a "+150" chip. Discs sharing a space fan along the track in turn order, and
+     * each one's tooltip names every disc there.
      */
     let {
         state,
@@ -28,6 +29,16 @@
     const labelled = (space: number) => space % ScoreTrack.labelEvery === 0
     /** With the printed ring under the board, its cells and numbers are the print's; ours stay bare. */
     const printed = assetUrl(RingAsset) !== undefined
+
+    let discs = $derived(scoreDiscs(seatScores(state)))
+    const on = (disc: ScoreDisc) => `${paintOf(disc.playerId).owner} on ${disc.score}`
+    const labelOf = (disc: ScoreDisc) =>
+        disc.count > 1
+            ? `Player discs: ${discs
+                  .filter(({ space }) => space === disc.space)
+                  .map(on)
+                  .join(', ')}`
+            : `${paintOf(disc.playerId).owner} player disc on ${disc.score}`
 </script>
 
 <g data-score-ring style:font-family="var(--feudum-font-text)">
@@ -57,20 +68,20 @@
     {/each}
 </g>
 
-{#each state.players as player, lane (player.playerId)}
-    {@const onTrack = scoreOnTrack(player.score)}
-    {@const chip = scoreChipOffset(onTrack.space)}
-    <BoardPiece at={scoreDiscAt(onTrack.space, lane)} piece="score:{player.playerId}">
+{#each discs as disc (disc.playerId)}
+    {@const chip = scoreChipOffset(disc.space)}
+    <BoardPiece at={scoreDiscAt(disc.space, disc.index, disc.count)} piece="score:{disc.playerId}">
         <SeatToken
             kind="disc"
-            paint={paintOf(player.playerId)}
+            paint={paintOf(disc.playerId)}
             size={ScoreDiscSize}
             x={-ScoreDiscSize / 2}
             y={-ScoreDiscSize / 2}
+            label={labelOf(disc)}
         />
-        {#if onTrack.chip}
-            <g data-score-chip={onTrack.chip}>
-                <CountChip count={onTrack.chip} x={chip.x} y={chip.y} />
+        {#if disc.chip}
+            <g data-score-chip={disc.chip}>
+                <CountChip count={disc.chip} x={chip.x} y={chip.y} />
             </g>
         {/if}
     </BoardPiece>
