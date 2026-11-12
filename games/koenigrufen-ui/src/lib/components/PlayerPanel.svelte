@@ -10,7 +10,7 @@
     const fill = $derived(gameSession.colors.getPlayerBgColorValue(playerId))
     const ink = $derived(gameSession.colors.getPlayerTextColorValue(playerId))
     const lastChange = $derived(gameSession.lastHandResult?.scoreChanges[playerId])
-    const won = $derived(gameSession.tricksWonBy(playerId))
+    const won = $derived(gameSession.wonCardsOf(playerId))
 </script>
 
 <div class="panel">
@@ -29,9 +29,7 @@
             </div>
         {/if}
         <div class="cards">
-            {player.handCount}
-            {player.handCount === 1 ? 'card' : 'cards'} · {won}
-            {won === 1 ? 'trick' : 'tricks'}
+            {player.handCount} in hand · {won} won
         </div>
     </div>
 </div>

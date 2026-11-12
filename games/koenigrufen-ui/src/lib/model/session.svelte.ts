@@ -42,6 +42,7 @@ import { TrickAnimator } from '$lib/animators/trickAnimator.js'
 import { shownTrickOf, type ShownTrick } from '$lib/utils/trickMotion.js'
 import type { CardStyle } from '$lib/utils/cardStyle.js'
 import { scoreSheet, type ScoreSheet } from '$lib/utils/scoreSheet.js'
+import { wonCardCount } from '$lib/utils/wonCards.js'
 import { bonusKey, doubleKey } from '$lib/utils/announcementText.js'
 import {
     AnnouncementStageOrder,
@@ -291,8 +292,8 @@ export class KoenigrufenGameSession extends GameSession<
         return this.myPlayer.id
     }
 
-    tricksWonBy(playerId: string): number {
-        return this.gameState.tricks.filter((trick) => trick.winnerId === playerId).length
+    wonCardsOf(playerId: string): number {
+        return wonCardCount(this.gameState, playerId)
     }
 
     setCardStyle(change: Partial<CardStyle>) {

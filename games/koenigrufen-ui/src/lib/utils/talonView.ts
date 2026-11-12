@@ -1,15 +1,21 @@
-import {
-    Goal,
-    MachineState,
-    Partnership,
-    type HydratedKoenigrufenGameState
-} from '@tabletop/koenigrufen'
+import { Goal, MachineState, Partnership, type ContractDefinition } from '@tabletop/koenigrufen'
 
 export enum TalonPlace {
     // The middle of the table, from the deal until the contract has used the talon.
     Middle = 'middle',
     // The upper left, where talon cards that go to no team yet wait for the hand.
     Corner = 'corner'
+}
+
+// What the talon's place on the table depends on.
+export type TalonTable = {
+    readonly contract?: { readonly declarerId: string }
+    readonly machineState: MachineState
+    readonly talonHalves?: string[][]
+    readonly rejectedTalonHalf?: string[]
+    readonly turnManager: { readonly turnOrder: readonly string[] }
+    contractDefinition(): ContractDefinition
+    isCalledKingInTalon(): boolean
 }
 
 export type TalonView =
@@ -30,7 +36,7 @@ const MiddleStates: readonly MachineState[] = [
 
 // Whether talon cards the declarer does not take go straight to the defenders: when declarer plays
 // alone against three, whose side everyone knows. With a secret partner they wait instead.
-export function talonGoesToDefenders(state: HydratedKoenigrufenGameState): boolean {
+export function talonGoesToDefenders(state: TalonTable): boolean {
     if (!state.contract) {
         return false
     }
@@ -44,7 +50,7 @@ export function talonGoesToDefenders(state: HydratedKoenigrufenGameState): boole
 // The talon as the table shows it. It is dealt face down to the middle. A contract that uses it
 // turns it up there as two halves for the declarer to choose; then the declarer's cards go to the
 // declarer, the defenders' to the defenders, and any that go to no team yet wait in the corner.
-export function talonViewOf(state: HydratedKoenigrufenGameState): TalonView {
+export function talonViewOf(state: TalonTable): TalonView {
     const halves = state.talonHalves
     const rejected = state.rejectedTalonHalf
     if (halves) {
@@ -67,7 +73,7 @@ export function talonViewOf(state: HydratedKoenigrufenGameState): TalonView {
 }
 
 // The opponent who gathers the defenders' cards: the first after the declarer in turn order.
-export function defenderCollector(state: HydratedKoenigrufenGameState): string | undefined {
+export function defenderCollector(state: TalonTable): string | undefined {
     const declarerId = state.contract?.declarerId
     if (declarerId === undefined) {
         return undefined
