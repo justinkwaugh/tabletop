@@ -334,14 +334,14 @@ describe('Hand selection', () => {
             await pressCard(fresh.actionPanel, kind)
         }
         await pressRow(rowNamed(fresh.actionPanel, /^Saltpeter/))
-        await sendNamed(fresh, "Long live the king · can't be undone")
+        await sendNamed(fresh, 'Long live the king')
         await settled(session)
 
         const firstEntry = row()?.[0]
         expect(firstEntry).toMatchObject({ finalised: true, pouchGood: 'saltpeter', next: false })
         expect(row()?.[1].next).toBe(true)
         expect(cardRows(session.actionPanel).filter(({ picked }) => picked)).toHaveLength(4)
-        expect(primaryLabels(session.actionPanel)).toEqual(["Long live the king · can't be undone"])
+        expect(primaryLabels(session.actionPanel)).toEqual(['Long live the king'])
         expect(primaryNamed(session.actionPanel, /^Long/).enabled).toBe(true)
     })
 
@@ -357,7 +357,10 @@ describe('Hand selection', () => {
         }
         const count = () => linesOf(session.actionPanel, 'count')
         expect(count()).toEqual(['4 of 4'])
-        expect(blockOf(session.actionPanel, 'line')?.lead).toMatch(/^Round \d+ · choose your hand$/)
+        expect(blockOf(session.actionPanel, 'line')?.lead).toBe('Your hand')
+        expect(blockOf(session.actionPanel, 'finalise')?.lead).toMatch(
+            /^Round \d+ · choose your hand$/
+        )
         expect(primaryNamed(session.actionPanel, /^Long/).enabled).toBe(true)
         await pressRow(rowNamed(session.actionPanel, /^Saltpeter/))
         expect(count()).toEqual(['4 of 5'])
@@ -371,6 +374,82 @@ describe('Hand selection', () => {
         await session.undo()
         flushSync()
         expect(count()).toEqual(['5 of 5'])
+    })
+
+    it('R-3.1, R-3.1-H1 the finalise row says everyone chooses now and finalises in turn order', async () => {
+        const table = await atHands()
+        const drafting = await table.openSeat(table.order[1])
+        const watching = await table.openSpectator()
+        for (const session of [drafting, watching]) {
+            expect(blockOf(session.actionPanel, 'finalise')?.caption).toBe(
+                'everyone chooses now · finalise in turn order'
+            )
+        }
+    })
+
+    it('R-3.1 the plan: a press fills the next slot and numbers the card; the slot or the card takes it back', async () => {
+        const table = await atHands()
+        const [first] = table.order
+        table.edit((state) => {
+            giveGood(state, first, 'saltpeter')
+        })
+        const session = await table.openSeat(first)
+        const slots = () => blockOf(session.actionPanel, 'slots')
+        const filled = () => slots()?.slots.map(({ card }) => card?.kind)
+        const slotOf = (kind: string) =>
+            cardRows(session.actionPanel).find((row) => row.kind === kind)?.slot
+        expect(slots()?.slots.map(({ at }) => at)).toEqual([1, 2, 3, 4])
+        expect(slots()?.caption).toBe('your plan · play in any order')
+
+        await pressCard(session.actionPanel, 'tax')
+        await pressCard(session.actionPanel, 'move')
+        expect(filled()).toEqual(['tax', 'move', undefined, undefined])
+        expect([slotOf('tax'), slotOf('move'), slotOf('guild')]).toEqual([1, 2, undefined])
+
+        await pressRow(rowNamed(session.actionPanel, /^Saltpeter/))
+        expect(slots()?.slots.map(({ at }) => at)).toEqual([1, 2, 3, 4, 5])
+
+        await slots()?.slots[0]?.card?.press()
+        flushSync()
+        expect(filled()).toEqual(['move', undefined, undefined, undefined, undefined])
+        expect(slotOf('move')).toBe(1)
+
+        await pressCard(session.actionPanel, 'move')
+        expect(filled()?.every((kind) => kind === undefined)).toBe(true)
+    })
+
+    it('R-3.3 the pouch is three choices drawn with their goods, each with what it does', async () => {
+        const table = await atHands()
+        const session = await table.openSeat(table.order[0])
+        expect(
+            rowsOf(session.actionPanel, 'pouch').map(({ art, choice, caption }) => [
+                art?.kind === 'good' ? art.good : art?.kind,
+                choice.shown,
+                caption
+            ])
+        ).toEqual([
+            ['empty-pouch', 'No pouch', '4 cards'],
+            ['saltpeter', '+1 card', 'opens a fifth slot'],
+            ['sulfur', '2 in a row', 'once this round']
+        ])
+    })
+
+    it("R-X.2 the send's second line: it finalises and can't be undone", async () => {
+        const table = await atHands()
+        const session = await table.openSeat(table.order[0])
+        expect(primaryNamed(session.actionPanel, 'Long live the king').note).toBe(
+            "finalise · can't be undone"
+        )
+    })
+
+    it('R-3.1 the draft stands as one: the cards, and beside them the hand, the pouch and the send', async () => {
+        const table = await atHands()
+        const session = await table.openSeat(table.order[0])
+        const places = session.actionPanel.blocks.map(({ kind, stands }) => [kind, stands])
+        expect(places).toContainEqual(['cards', undefined])
+        for (const kind of ['finalise', 'slots', 'rows', 'primary'] as const) {
+            expect(places).toContainEqual([kind, 'draft'])
+        }
     })
 
     it('S6 R-3.3 a seat with sulfur only in its barrel: the row is dimmed, with the line, and has no effect', async () => {
@@ -421,7 +500,7 @@ describe('Hand selection', () => {
         for (const kind of FourCards) {
             await pressCard(session.actionPanel, kind)
         }
-        await sendNamed(session, "Long live the king · can't be undone")
+        await sendNamed(session, 'Long live the king')
         expect(lastByUser({ host: table })).toMatchObject({
             type: ActionType.FinaliseHand,
             revealsInfo: true
@@ -999,10 +1078,11 @@ interface Reveal {
 }
 
 /** The press on the primary this panel holds, its label carrying the warning. */
+/** What the send reads: its label, and its second line where it has one. */
 function primaryPress(session: FeudumGameSession, label: RegExp) {
     const primary = primaryNamed(session.actionPanel, label)
     return {
-        label: primary.label,
+        label: primary.note ? `${primary.label} · ${primary.note}` : primary.label,
         press: async () => {
             await primary.send()
             await settled(session)

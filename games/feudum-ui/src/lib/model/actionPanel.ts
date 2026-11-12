@@ -32,11 +32,15 @@ export type RowArt =
     | DieArt
     | DiscArt
     | DraftArt
+    /** R-3.3 No pouch: the pouch drawn empty. */
+    | { readonly kind: 'empty-pouch' }
 
 export interface ActionRow {
     readonly choice: PanelChoice
     readonly press: () => void | Promise<void>
     readonly art?: RowArt
+    /** R-3.3 A pouch choice: what it does, beneath its name. */
+    readonly caption?: string
     /** R-1.4.8 What this row asks beside itself: the sulfur's destination. */
     readonly popup?: readonly ActionRow[]
     /** R-3.2 Forfeit: a choice that stands last, drawn quieter than the modes before it. */
@@ -69,8 +73,16 @@ export interface CardRow {
     readonly label: string
     readonly number: number
     readonly picked: boolean
+    /** R-3.1 The slot of the plan a drafted card fills, from 1. */
+    readonly slot?: number
     readonly lights?: () => readonly BoardTarget[]
     readonly press: () => void | Promise<void>
+}
+
+/** R-3.1 One slot of the plan: its number, and the card in it, whose press takes it back. */
+export interface PlanSlot {
+    readonly at: number
+    readonly card?: CardRow
 }
 
 export interface WritRow {
@@ -105,14 +117,29 @@ export type LineRole =
 
 /**
  * Where a block stands when it is not in the panel's own run: in the tray beside the picked card
- * (R-3.2, its modes and send), or at the end of the hand's line (the at-will chips).
+ * (R-3.2, its modes and send), at the end of the hand's line (the at-will chips), or beside the
+ * eleven of a hand draft (R-3.1: the finalise row, the plan, the pouch and the send).
  */
-export type BlockPlace = 'tray' | 'hand-end'
+export type BlockPlace = 'tray' | 'hand-end' | 'draft'
 
 export type ActionBlock = PanelBlock & { readonly stands?: BlockPlace }
 
 type PanelBlock =
-    | { readonly kind: 'finalise'; readonly entries: readonly FinaliseEntry[] }
+    | {
+          readonly kind: 'finalise'
+          readonly entries: readonly FinaliseEntry[]
+          /** R-3.1-H1 "everyone chooses now · finalise in turn order" */
+          readonly caption: string
+          /** "Round 4 · choose your hand", while this seat drafts. */
+          readonly lead?: string
+      }
+    /** R-3.1 The plan: a slot per card the hand needs, filled in the order pressed. */
+    | {
+          readonly kind: 'slots'
+          readonly paint: SeatPaint
+          readonly slots: readonly PlanSlot[]
+          readonly caption: string
+      }
     | {
           readonly kind: 'line'
           readonly role: LineRole
@@ -190,6 +217,8 @@ type PanelBlock =
 interface PrimaryBlock {
     readonly kind: 'primary'
     readonly label: string
+    /** A second line under the label. */
+    readonly note?: string
     readonly enabled: boolean
     readonly send: () => void | Promise<void>
 }
@@ -266,8 +295,17 @@ function plainChoice(label: string, picked: boolean, refusal?: string): PanelCho
     return { label, picked, ...(refusal ? { refusal } : {}) }
 }
 
-function primaryBlock(primary: TurnPrimary, send: () => void | Promise<void>): PrimaryBlock {
-    return { kind: 'primary', label: primary.label, enabled: primary.enabled, send }
+function primaryBlock(
+    primary: TurnPrimary & { readonly note?: string },
+    send: () => void | Promise<void>
+): PrimaryBlock {
+    return {
+        kind: 'primary',
+        label: primary.label,
+        ...(primary.note ? { note: primary.note } : {}),
+        enabled: primary.enabled,
+        send
+    }
 }
 
 function line(role: LineRole, text: string, lead?: string): ActionBlock {
@@ -364,19 +402,24 @@ function pawnBlocks(
     ]
 }
 
+/** R-3.1-H1 Choosing is simultaneous; finalising goes in turn order. */
+const FinaliseCaption = 'everyone chooses now · finalise in turn order'
+
 function handBlocks(
     session: PanelSession,
     panel: NonNullable<PanelSession['handPanel']>
 ): ActionBlock[] {
+    const { drafting } = panel
     const finalise: ActionBlock = {
         kind: 'finalise',
         entries: panel.finaliseRow.map((entry) => ({
             ...entry,
             name: session.getPlayerName(entry.playerId),
             paint: paintOf(session, entry.playerId)
-        }))
+        })),
+        caption: FinaliseCaption,
+        ...(drafting ? { lead: drafting.line } : {})
     }
-    const { drafting } = panel
     if (!drafting) {
         const next = panel.finaliseRow.find((entry) => entry.next)
         return [
@@ -392,33 +435,43 @@ function handBlocks(
             ...atWillBlocks(session)
         ]
     }
-    const me = session.myPlayerId ?? ''
-    return [
+    const paint = paintOf(session, session.myPlayerId ?? '')
+    const cards = drafting.cards.map(({ kind, picked, slot }): CardRow => ({
+        kind,
+        ...cardFace(kind),
+        picked,
+        ...(slot ? { slot } : {}),
+        press: () => session.toggleHandCard(kind)
+    }))
+    const beside: ActionBlock[] = [
         finalise,
-        line('count', drafting.count, drafting.line),
+        line('count', drafting.count, 'Your hand'),
         {
-            kind: 'cards',
-            tone: 'draft',
-            paint: paintOf(session, me),
-            rows: drafting.cards.map(({ kind, picked }) => ({
-                kind,
-                ...cardFace(kind),
-                picked,
-                press: () => session.toggleHandCard(kind)
-            }))
+            kind: 'slots',
+            paint,
+            slots: drafting.slots.map((kind, at) => {
+                const card = cards.find((row) => row.kind === kind)
+                return { at: at + 1, ...(card ? { card } : {}) }
+            }),
+            caption: 'your plan · play in any order'
         },
         ...rows(
             'pouch',
-            drafting.pouch.map(({ good, label, picked, refusal }) => ({
-                choice: plainChoice(label, picked, refusal),
+            drafting.pouch.map(({ good, label, title, caption, picked, refusal }) => ({
+                choice: { ...plainChoice(label, picked, refusal), shown: title },
                 press: () => session.choosePouch(good),
-                ...(good ? { art: { kind: 'good', good } } : {})
+                art: good ? { kind: 'good', good } : { kind: 'empty-pouch' },
+                caption
             })),
             'Pouch'
         ),
         ...(drafting.conquerWarning ? [line('warning', drafting.conquerWarning)] : []),
         primaryBlock(drafting.primary, () => session.finaliseHand()),
         ...atWillBlocks(session)
+    ]
+    return [
+        { kind: 'cards', tone: 'draft', paint, rows: cards },
+        ...beside.map((block): ActionBlock => ({ ...block, stands: 'draft' }))
     ]
 }
 
@@ -887,14 +940,13 @@ function sharedBlocks(session: PanelSession): readonly ActionBlock[] {
     ]
 }
 
-/** R-4.11, R-4.12 What the round's end played, under whatever decision opened after it. */
+/** R-4.12 The dawn sheet, under whatever decision opened after it; R-4.11 the roll is the history's. */
 function roundEndBlocks(session: PanelSession): readonly ActionBlock[] {
     const { roundEnd } = session
     if (!roundEnd) {
         return []
     }
     return [
-        ...roundEnd.lines.map((text) => line('round', text)),
         ...(roundEnd.dawn
             ? [
                   {

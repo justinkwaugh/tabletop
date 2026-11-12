@@ -176,7 +176,8 @@ describe('the real session: what the hand draft survives (R-3.1; contract: Hand 
             next: false
         })
         expect(session.handPanel?.drafting?.primary).toEqual({
-            label: "Long live the king · can't be undone",
+            label: 'Long live the king',
+            note: "finalise · can't be undone",
             enabled: true
         })
     })
@@ -341,6 +342,94 @@ describe('the real session: the hand panel (R-3.1, R-3.3)', () => {
             'Saltpeter: 5 cards',
             'Sulfur: two cards back to back'
         ])
+    })
+
+    it('R-3.1 the plan: each press fills the next slot, the card shows its number, saltpeter opens a fifth', async () => {
+        const table = await atHandSelection()
+        const [first] = table.order
+        table.edit((state) => {
+            state.getPlayerState(first).goods.saltpeter = 1
+        })
+        const session = await table.openSeat(first)
+        const drafting = () => session.handPanel?.drafting
+        const slotOf = (kind: ActionCardKind) =>
+            drafting()?.cards.find((card) => card.kind === kind)?.slot
+
+        expect(drafting()?.slots).toEqual([undefined, undefined, undefined, undefined])
+        draftCards(session, ['tax', 'move'])
+        expect(drafting()?.slots).toEqual(['tax', 'move', undefined, undefined])
+        expect([slotOf('tax'), slotOf('move'), slotOf('guild')]).toEqual([1, 2, undefined])
+
+        session.choosePouch('saltpeter')
+        flushSync()
+        expect(drafting()?.slots).toHaveLength(5)
+
+        session.toggleHandCard('tax')
+        flushSync()
+        expect(drafting()?.slots).toEqual(['move', undefined, undefined, undefined, undefined])
+        expect(slotOf('move')).toBe(1)
+    })
+
+    it('R-3.1 more cards than slots stand in slots of their own, so each can be taken back', async () => {
+        const table = await atHandSelection()
+        const session = await table.openSeat(table.order[0])
+        draftCards(session, [...FourCards, FifthCard])
+        expect(session.handPanel?.drafting?.slots).toEqual([...FourCards, FifthCard])
+        expect(session.handPanel?.drafting?.count).toBe('5 of 4')
+    })
+
+    it('R-3.3 the pouch choices: a short name and what each does', async () => {
+        const table = await atHandSelection()
+        const session = await table.openSeat(table.order[0])
+        flushSync()
+        expect(
+            session.handPanel?.drafting?.pouch.map(({ title, caption }) => [title, caption])
+        ).toEqual([
+            ['No pouch', '4 cards'],
+            ['+1 card', 'opens a fifth slot'],
+            ['2 in a row', 'once this round']
+        ])
+    })
+
+    it("R-X.2 the send reads Long live the king, its second line that it finalises and can't be undone", async () => {
+        const table = await atHandSelection()
+        const session = await table.openSeat(table.order[0])
+        draftCards(session, FourCards)
+        expect(session.handPanel?.drafting?.primary).toEqual({
+            label: 'Long live the king',
+            note: "finalise · can't be undone",
+            enabled: true
+        })
+    })
+
+    it("R-3.1, R-5.1 a seat's picks reach no other seat, before its finalise or after", async () => {
+        const table = await atHandSelection()
+        const [first, second] = table.order
+        const mine = await table.openSeat(first)
+        const theirs = await table.openSeat(second)
+        draftCards(mine, FourCards)
+        await settled(theirs)
+        flushSync()
+
+        const unpicked = () => {
+            const drafting = theirs.handPanel?.drafting
+            expect(drafting?.cards.every(({ picked, slot }) => !picked && slot === undefined)).toBe(
+                true
+            )
+            expect(drafting?.slots.every((slot) => slot === undefined)).toBe(true)
+        }
+        unpicked()
+
+        await mine.finaliseHand()
+        await settled(theirs)
+        flushSync()
+        expect(theirs.gameState.getPlayerState(first).hand).toBeUndefined()
+        expect(theirs.handPanel?.finaliseRow.find(({ playerId }) => playerId === first)).toEqual({
+            playerId: first,
+            finalised: true,
+            next: false
+        })
+        unpicked()
     })
 
     it('S7: the Conquer warning warns and does not disable', async () => {

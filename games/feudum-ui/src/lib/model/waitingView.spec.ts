@@ -29,6 +29,7 @@ import {
     threePawns
 } from '$lib/testing/followUpTable.js'
 import { playOutRound, tendLandscape } from '$lib/testing/roundEndTable.js'
+import { describeAction } from './actionDescription.js'
 import { settled, type FeudumHost } from '$lib/testing/sessionHarness.js'
 import {
     atPlayingCards,
@@ -400,10 +401,10 @@ describe('S54 R-4.11, R-4.12 the progress line and the dawn sheet', () => {
                 total: source?.total
             })
         }
-        expect(linesOf(session.actionPanel, 'round')).toContain('Epoch II dawns')
+        expect(linesOf(session.actionPanel, 'round')).toEqual([])
     })
 
-    it('S54 the roll that takes a tile reads "Desert: tile II removed", to every seat', async () => {
+    it('S54 the roll that takes a tile is told in the history, not the panel, to every seat', async () => {
         // No epoch change: the tile removed is whichever the die names.
         const table = hold(await playOutRound(undefined))
         const { host, sessions } = table
@@ -412,10 +413,13 @@ describe('S54 R-4.11, R-4.12 the progress line and the dawn sheet', () => {
         const removed = isRollProgressDie(roll) ? roll.metadata?.removed : undefined
         assertExists(removed, 'R-4.11 With a stack showing, the fixed die takes a tile')
         const name = tileName(removed.tileId)
-        const [region, epoch] = name.split(' ')
-        const expected = `${region}: tile ${epoch} removed`
         for (const seat of sessions) {
-            expect(linesOf(seat.actionPanel, 'round')).toContain(expected)
+            expect(linesOf(seat.actionPanel, 'round')).toEqual([])
+            const told = describeAction(roll, {
+                viewerId: seat.myPlayerId,
+                nameOf: (playerId) => seat.getPlayerName(playerId)
+            })
+            expect(told).toContain(`${name} removed`)
         }
     })
 
