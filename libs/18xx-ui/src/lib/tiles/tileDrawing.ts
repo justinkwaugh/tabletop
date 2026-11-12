@@ -298,7 +298,7 @@ export function createTileDrawing(
             ? { ...drawn, pier: { base, tip } }
             : { ...drawn, spike: { base, tip } }
     }
-    const paths = face.paths.map((path): TileDrawnPath => {
+    const drawnPath = (path: TilePath): TileDrawnPath => {
         const townPath = townPaths.get(path.id)
         if (townPath) return townPath
         const start = endpointPosition(path.endpoints[0])
@@ -308,6 +308,10 @@ export function createTileDrawing(
             !layout.pathControls?.[path.id]
             ? drawn
             : withOffboardSpike(path, drawn)
+    }
+    const paths = face.paths.map((path): TileDrawnPath => {
+        const drawn = drawnPath(path)
+        return path.gauge ? { ...drawn, gauge: path.gauge } : drawn
     })
 
     const stationSlots = face.nodes.flatMap((node) => {

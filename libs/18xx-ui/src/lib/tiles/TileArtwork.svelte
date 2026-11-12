@@ -12,6 +12,8 @@
     import type { Snippet } from 'svelte'
     import { labelFontSize, TileRadius, type TileDrawing } from './tileDrawing.js'
     import { spikePoints } from './tileTrackGeometry.js'
+    import TrackStrokes from './TrackStrokes.svelte'
+    import { trackCasing, trackInk } from './trackGaugeStrokes.js'
     import {
         ClassicTileAppearance,
         DefaultLabelFont,
@@ -270,17 +272,15 @@
                     data-offboard-spike
                 ></polygon>
             {:else}
-                <path
+                <TrackStrokes
                     d={path.d}
-                    stroke={appearance.paper}
-                    stroke-width={appearance.trackWidth + appearance.trackBorderWidth}
-                ></path>
+                    strokes={[trackCasing(appearance, path.gauge, appearance.trackBorderWidth)]}
+                />
             {/if}
         {/each}
         {#each drawing.paths.filter((path) => !path.spike && !path.pier) as path (path.id)}
-            <g data-path-id={path.id}>
-                <path d={path.d} stroke={appearance.ink} stroke-width={appearance.trackWidth}
-                ></path>
+            <g data-path-id={path.id} data-track-gauge={path.gauge}>
+                <TrackStrokes d={path.d} strokes={trackInk(appearance, path.gauge)} />
             </g>
         {/each}
         {#each drawing.crossings as crossing, index (index)}
@@ -297,13 +297,18 @@
                     ></circle>
                 </clipPath>
                 <g clip-path={`url(#${clipId})`} data-track-crossing={over.id}>
-                    <path
+                    <TrackStrokes
                         d={over.d}
-                        stroke={appearance.paper}
-                        stroke-width={appearance.trackWidth + 2 * appearance.trackBorderWidth}
-                    ></path>
-                    <path d={over.d} stroke={appearance.ink} stroke-width={appearance.trackWidth}
-                    ></path>
+                        strokes={[
+                            trackCasing(
+                                appearance,
+                                over.gauge,
+                                2 * appearance.trackBorderWidth,
+                                true
+                            ),
+                            ...trackInk(appearance, over.gauge)
+                        ]}
+                    />
                 </g>
             {/if}
         {/each}
