@@ -308,10 +308,7 @@ describe('Render ownership: each shared row reads the same for every seat', () =
         const { host } = await atPlayingCards(['move', 'tax'])
         hosts.push(host)
         host.edit((state) => {
-            state.flow.selection = {
-                playerId: host.order[0],
-                finalised: []
-            }
+            state.flow.selection = { finalised: [] }
             state.machineState = MachineState.SelectingHands
             state.activePlayerIds = [host.order[0]]
         })

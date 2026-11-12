@@ -28,9 +28,9 @@
 
     function pouchWords(item: Extract<SeatHoldingsItem, { item: 'pouch' }>): string {
         const { pouch } = item
-        return pouch.status === 'drafted' || pouch.status === 'committed'
-            ? `pouch: ${pouch.good}, ${pouch.status}`
-            : `pouch: ${pouch.good}, ${pouch.note}${pouch.spent ? ', spent' : ''}`
+        return pouch.status === 'finalised'
+            ? `pouch: ${pouch.good}, ${pouch.note}${pouch.spent ? ', spent' : ''}`
+            : `pouch: ${pouch.good}, ${pouch.status}`
     }
 </script>
 
