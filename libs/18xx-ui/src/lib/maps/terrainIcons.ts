@@ -16,11 +16,14 @@ export const PeakIcon = {
     viewBox: MountainIcon.viewBox
 }
 
-/** Three peaks, the middle highest, for the greatest of a title's mountain terrain. */
+/**
+ * Three peaks, the middle highest, for the greatest of a title's mountain terrain: taller than the
+ * two-peak mountain, with shallow valleys, so it reads as more mass than it within the same width.
+ */
 export const RangeIcon = {
-    path: 'M0 5 L4 -2 L6.5 1.5 L9.5 -6 L12.5 1.5 L15 -2 L19 5 Z',
+    path: 'M0 5 L3.5 -3.5 L5.5 -1.5 L9.5 -9 L13.5 -1.5 L15.5 -3.5 L19 5 Z',
     fill: MountainIcon.fill,
-    viewBox: MountainIcon.viewBox
+    viewBox: '0 -9 19 14'
 }
 
 const TerrainIcons: Readonly<Record<TerrainIconName, typeof MountainIcon>> = {
