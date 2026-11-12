@@ -6,7 +6,7 @@
     import { gamePlayPath, publicGameInvitationPath } from '$lib/utils/gameLinks'
     import { gameCardOptions } from '$lib/utils/gameOptions'
     import { gameCardAppearance } from '$lib/utils/gameCardAppearance'
-    import { playerSortValue, playerStatusDisplay } from '$lib/utils/player'
+    import { playersHostFirst, playerStatusDisplay } from '$lib/utils/player'
     import { findPlayerForUserId, GameStatus, PlayerStatus, UserStatus } from '@tabletop/common'
     import { Alert, Button, Card } from 'flowbite-svelte'
     import { toast } from 'svelte-sonner'
@@ -30,8 +30,7 @@
     )
     let players = $derived.by(() => {
         if (!game) return []
-        const { players, ownerId } = game
-        return players.toSorted((a, b) => playerSortValue(a, ownerId) - playerSortValue(b, ownerId))
+        return playersHostFirst(game.players, game.ownerId)
     })
     let options = $derived(game ? gameCardOptions(game.config, game.configOptions) : [])
     let joining = $state(false)

@@ -22,7 +22,12 @@
     import { recordedFinalScores } from '$lib/utils/gameScores'
     import { gameCardOptions } from '$lib/utils/gameOptions'
     import { gameCardAppearance } from '$lib/utils/gameCardAppearance'
-    import { activePlayerText, playerSortValue, playerStatusDisplay } from '$lib/utils/player'
+    import {
+        activePlayerText,
+        playerHighlight,
+        playersHostFirst,
+        playerStatusDisplay
+    } from '$lib/utils/player'
     import { hasPendingGameInvitation } from '$lib/utils/gameInvitation'
     import { gameShareLink } from '$lib/utils/gameLinks'
     import { startCountdownText } from '$lib/utils/startCountdown'
@@ -34,6 +39,7 @@
     import GameProgressBar from './GameProgressBar.svelte'
     import { copyTextToClipboard, GameEditForm, getAppContext } from '@tabletop/frontend-components'
 
+    const HIGHLIGHT_CLASS = { active: 'text-orange-400', winner: 'text-blue-400', none: '' }
     const ending = { border: '!border-red-600', label: 'text-red-500', value: 'text-red-400' }
     const stallColors: Record<GameStallLevel, { border: string; label: string; value: string }> = {
         [GameStallLevel.None]: { border: '', label: '', value: '' },
@@ -77,11 +83,7 @@
     let sessionUser = $derived(authorizationService.getSessionUser())
     let shareLink = $derived(gameShareLink(game))
     let isOwnedByMe = $derived(sessionUser?.id === game.ownerId)
-    let sortedPlayers = $derived(
-        game.players.toSorted(
-            (a, b) => playerSortValue(a, game.ownerId) - playerSortValue(b, game.ownerId)
-        )
-    )
+    let sortedPlayers = $derived(playersHostFirst(game.players, game.ownerId))
 
     let myPlayer = $derived(sortedPlayers.find((player) => player.userId === sessionUser?.id))
     let isMine = $derived(myPlayer !== undefined)
@@ -274,14 +276,6 @@
         } finally {
             openingGame = false
         }
-    }
-
-    function isActive(playerId: string) {
-        return game.activePlayerIds?.includes(playerId)
-    }
-
-    function isWinner(playerId: string) {
-        return game.winningPlayerIds?.includes(playerId)
     }
 
     function gameResultText() {
@@ -613,11 +607,9 @@
                         {#each sortedPlayers as player (player.id)}
                             <div class="flex flex-row justify-between gap-3">
                                 <div
-                                    class={isActive(player.id)
-                                        ? 'text-orange-400'
-                                        : isWinner(player.id)
-                                          ? 'text-blue-400'
-                                          : ''}
+                                    class={HIGHLIGHT_CLASS[
+                                        playerHighlight(game, player.id) ?? 'none'
+                                    ]}
                                 >
                                     {player.name ?? ''}
                                 </div>

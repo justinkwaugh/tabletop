@@ -3,10 +3,18 @@ import {
     PlayerStatus,
     type Game,
     type GameCatalogEntry,
-    type GameMetadata
+    type GameMetadata,
+    type Player
 } from '@tabletop/common'
 import { hasPendingGameInvitation } from './gameInvitation'
 import { isUsersNonHotseatTurn } from './dashboardGames'
+import type { DisplayedGameOption } from './gameOptions'
+import {
+    playerHighlight,
+    playersHostFirst,
+    playerStatusDisplay,
+    type PlayerHighlight
+} from './player'
 
 export const SERIES_VIEWS = ['titles', 'lobby', 'finished'] as const
 export type SeriesView = (typeof SERIES_VIEWS)[number]
@@ -136,6 +144,39 @@ export function winnerText(game: Game): string {
     return winners.length > 0 ? winners.map((player) => player.name).join(', ') : 'No winner'
 }
 
-export function hostName(game: Game): string | undefined {
-    return game.players.find((player) => player.userId === game.ownerId)?.name
+export function optionsSummary(options: DisplayedGameOption[]): string {
+    if (options.length === 0) return ''
+    if (options.length > 1) return `${options.length} options`
+    const [option] = options
+    return option.enabledFlag ? option.name : `${option.name}: ${option.value}`
+}
+
+export type PanelPlayer = {
+    id: string
+    name: string
+    note: string
+    highlight?: PlayerHighlight
+}
+
+export function panelPlayers(
+    game: Game,
+    finalScores: Game['finalScores'] | undefined
+): PanelPlayer[] {
+    return playersHostFirst(game.players, game.ownerId).map((player) => ({
+        id: player.id,
+        name: player.name ?? '',
+        note: panelNote(game, player, finalScores),
+        highlight: playerHighlight(game, player.id)
+    }))
+}
+
+function panelNote(game: Game, player: Player, finalScores: Game['finalScores'] | undefined) {
+    if (game.status === GameStatus.Finished) {
+        if (!finalScores) return ''
+        return String(finalScores[player.id] ?? '—')
+    }
+    if (game.status === GameStatus.Started) {
+        return player.userId === game.ownerId ? 'host' : ''
+    }
+    return playerStatusDisplay(player, game.ownerId)
 }

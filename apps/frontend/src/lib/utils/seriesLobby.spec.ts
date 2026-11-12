@@ -10,8 +10,9 @@ import {
 import {
     filterSeriesGames,
     gameMatchesFilter,
-    hostName,
     lobbyEntry,
+    optionsSummary,
+    panelPlayers,
     parseSeriesFilter,
     pickerTitles,
     seatChoices,
@@ -195,8 +196,63 @@ describe('game summary', () => {
         )
         expect(winnerText(game('f', '1830'))).toBe('No winner')
     })
+})
 
-    it('names the host', () => {
-        expect(hostName(game('o', '1830'))).toBe('Player 0')
+describe('row options', () => {
+    const flag = (name: string) => ({ name, value: 'Yes', enabledFlag: true })
+    it('counts several options and names a single one', () => {
+        expect(optionsSummary([])).toBe('')
+        expect(optionsSummary([flag('Extra 6-train')])).toBe('Extra 6-train')
+        expect(optionsSummary([{ name: 'Map', value: 'East', enabledFlag: false }])).toBe(
+            'Map: East'
+        )
+        expect(optionsSummary([{ name: 'Mode', value: 'Yes', enabledFlag: false }])).toBe(
+            'Mode: Yes'
+        )
+        expect(optionsSummary([flag('Extra 6-train'), flag('No mergers')])).toBe('2 options')
+    })
+})
+
+describe('panel players', () => {
+    const waiting = game('w', '1830', {
+        status: GameStatus.WaitingForPlayers,
+        activePlayerIds: [],
+        players: [
+            seat(1),
+            seat(2, { status: PlayerStatus.Open, name: undefined, userId: undefined }),
+            seat(3, { status: PlayerStatus.Reserved }),
+            seat(0)
+        ]
+    })
+
+    it('lists the host first and gives each seat its status before the start', () => {
+        expect(panelPlayers(waiting, undefined).map(({ name, note }) => [name, note])).toEqual([
+            ['Player 0', 'host'],
+            ['Player 1', 'joined'],
+            ['Player 3', 'invited'],
+            ['', 'open']
+        ])
+    })
+
+    it('marks only the host, and the player to move, during play', () => {
+        expect(panelPlayers(game('s', '1830'), undefined)).toEqual([
+            { id: 'p0', name: 'Player 0', note: 'host', highlight: undefined },
+            { id: 'p1', name: 'Player 1', note: '', highlight: 'active' },
+            { id: 'p2', name: 'Player 2', note: '', highlight: undefined }
+        ])
+    })
+
+    it('shows recorded scores and the winner once finished', () => {
+        const finished = game('f', '1830', {
+            status: GameStatus.Finished,
+            activePlayerIds: [],
+            winningPlayerIds: ['p2']
+        })
+        expect(panelPlayers(finished, { p0: 40, p2: 70 })).toEqual([
+            { id: 'p0', name: 'Player 0', note: '40', highlight: undefined },
+            { id: 'p1', name: 'Player 1', note: '—', highlight: undefined },
+            { id: 'p2', name: 'Player 2', note: '70', highlight: 'winner' }
+        ])
+        expect(panelPlayers(finished, undefined).map(({ note }) => note)).toEqual(['', '', ''])
     })
 })

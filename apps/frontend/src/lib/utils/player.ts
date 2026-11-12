@@ -17,6 +17,21 @@ export function playerSortValue(player: Player, ownerId: string) {
     }
 }
 
+export function playersHostFirst<T extends Player>(players: T[], ownerId: string): T[] {
+    return players.toSorted((a, b) => playerSortValue(a, ownerId) - playerSortValue(b, ownerId))
+}
+
+export type PlayerHighlight = 'active' | 'winner'
+
+export function playerHighlight(
+    game: Pick<Game, 'activePlayerIds' | 'winningPlayerIds'>,
+    playerId: string
+): PlayerHighlight | undefined {
+    if (game.activePlayerIds?.includes(playerId)) return 'active'
+    if (game.winningPlayerIds?.includes(playerId)) return 'winner'
+    return undefined
+}
+
 export function playerStatusDisplay(player: Player, ownerId: string) {
     if (player.userId === ownerId) {
         return 'host'
