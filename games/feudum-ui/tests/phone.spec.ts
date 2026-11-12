@@ -906,6 +906,25 @@ test.describe('a 390 px phone', () => {
         await expect(key).toHaveCount(0)
     })
 
+    test('Contract, Supply: the general supply opens over the board, inside the screen, and a press closes it', async ({
+        page
+    }) => {
+        await openFixture(page, 'cards-tile-gone-epoch-1')
+        await expect(page.locator('[data-margin-layer]')).toHaveCount(0)
+        const toggle = page.getByRole('button', { name: 'Supply' })
+        await toggle.click()
+        const card = page.getByRole('group', { name: 'General supply' })
+        await expect(card).toBeVisible()
+        const box = await card.boundingBox()
+        const board = await page.locator('[data-board-view]').boundingBox()
+        const width = page.viewportSize()!.width
+        expect(box!.x).toBeGreaterThanOrEqual(0)
+        expect(box!.x + box!.width).toBeLessThanOrEqual(width)
+        expect(box!.y).toBeGreaterThanOrEqual(board!.y - 0.5)
+        await card.tap()
+        await expect(card).toHaveCount(0)
+    })
+
     test('S10a R-3.2 a picked card’s tray fits the action area: one line, then the modes and Forfeit', async ({
         page
     }) => {

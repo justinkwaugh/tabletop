@@ -4,22 +4,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
     EpicVoyageTrack,
     EpochTrack,
-    Goods,
     HydratedFeudumGameState,
     MilitaryServiceTrack,
     RegionIds,
     RegionTiles,
     RegionTileChart,
-    RoyalWrits,
-    ScoreTrack,
-    VesselTypes,
-    writDeckCount
+    ScoreTrack
 } from '@tabletop/feudum'
 import { everyAssetSupplied } from '$lib/testing/fakeArt.js'
-import { writName } from '$lib/model/writLabels.js'
 import { atPlayingCards } from '$lib/testing/turnTable.js'
-import { PrintedColours, ScoreSpaces, barrelCentre, scoreDiscAt } from '$lib/utils/boardGeometry.js'
-import BoardMargin from './BoardMargin.svelte'
+import { ScoreSpaces, barrelCentre, scoreDiscAt } from '$lib/utils/boardGeometry.js'
 import TrackLayers from './TrackLayers.svelte'
 
 const folder = vi.hoisted(() => {
@@ -38,13 +32,6 @@ const paintOf = (playerId: string) => ({
     edge: 'var(--feudum-map-ink)',
     owner: "Ana's"
 })
-const colourPaintOf = (colour: string) => ({
-    fill: `colour-${colour}`,
-    ink: 'var(--feudum-text)',
-    edge: 'var(--feudum-map-ink)',
-    owner: colour
-})
-
 async function table() {
     const { host } = await atPlayingCards(['explore'])
     return new HydratedFeudumGameState(structuredClone(host.state))
@@ -52,9 +39,6 @@ async function table() {
 
 const tracks = (state: HydratedFeudumGameState) =>
     render(TrackLayers, { props: { state, paintOf } }).body
-
-const margin = (state: HydratedFeudumGameState, viewerId?: string) =>
-    render(BoardMargin, { props: { state, paintOf, colourPaintOf, viewerId } }).body
 
 function pieceMarkup(html: string, piece: string) {
     const start = html.indexOf(`data-world="${piece}"`)
@@ -204,84 +188,5 @@ describe('what the print already holds (R-4.3, R-4.10, R-4.11)', () => {
         for (const { penalty } of MilitaryServiceTrack) {
             expect(html).toContain(`>${penalty}<`)
         }
-    })
-})
-
-describe('the margin (R-5.1, R-4.4, R-1.4.2)', () => {
-    it('R-5.1 counts the deck from state', async () => {
-        const state = await table()
-        expect(margin(state)).toContain(`data-deck="${writDeckCount(state)}"`)
-    })
-
-    it('R-4.4.2 notes the writs the table saw go under, and none when there are none', async () => {
-        const state = await table()
-        state.publicDeckWrits = []
-        expect(margin(state)).not.toContain('data-margin="deck-seen"')
-        const [{ id }] = RoyalWrits
-        state.publicDeckWrits = [{ slot: 0, writId: id }]
-        const html = margin(state)
-        expect(html).toContain('data-margin="deck-seen"')
-        expect(html).toContain('seen:')
-        expect(html).toContain(writName(id).split(' ')[0])
-    })
-
-    it('R-4.4.1 tells only the seat that knows what lies under the deck', async () => {
-        const state = await table()
-        const [a, b] = state.players
-        a.deckKnowledge = [{ slot: 1, writId: RoyalWrits[0].id }]
-        expect(margin(state, a.playerId)).toContain('data-margin="deck-known"')
-        expect(margin(state, b.playerId)).not.toContain('data-margin="deck-known"')
-        expect(margin(state)).not.toContain('data-margin="deck-known"')
-        expect(margin(state, a.playerId)).not.toContain(writName(RoyalWrits[0].id))
-    })
-
-    it('R-5.4-H1 counts the haversack by good', async () => {
-        const state = await table()
-        const html = margin(state)
-        for (const good of Goods) {
-            expect(html).toContain(
-                `data-margin="haversack-${good}">${state.supply.haversack[good]}<`
-            )
-        }
-    })
-
-    it('R-1.4.2 counts the binding supplies', async () => {
-        const state = await table()
-        const html = margin(state)
-        expect(html).toContain(`data-margin="seals">${state.supply.sealPileCount}<`)
-        expect(html).toContain(`data-margin="targets">${state.supply.targets}<`)
-        expect(html).toContain(`data-margin="discs">${state.supply.discs.length}<`)
-        for (const vessel of VesselTypes) {
-            expect(html).toContain(
-                `data-margin="vessels-${vessel}">${state.supply.vessels[vessel]}<`
-            )
-        }
-    })
-
-    it("R-1.4.2 counts influence by colour, a seat's from the colourizer, a dummy's by colour", async () => {
-        const state = await table()
-        const html = margin(state)
-        for (const colour of PrintedColours) {
-            const held = state.supply.influence[colour]
-            if (held !== undefined) {
-                expect(html).toContain(`data-margin="influence-${colour}">${held}<`)
-            } else {
-                expect(html).not.toContain(`data-margin="influence-${colour}"`)
-            }
-        }
-        for (const { playerId } of state.players) {
-            expect(html).toContain(`seat-${playerId}`)
-        }
-        const dummy = state.guilds.knight.rows.find(({ playerId }) => !playerId)
-        if (dummy) {
-            expect(html).toContain(`colour-${dummy.colour}`)
-        }
-    })
-
-    it("R-3.2 shows the start-player marker on the turn order's first seat", async () => {
-        const state = await table()
-        const html = margin(state)
-        expect(html).toContain(`data-start-player="${state.startingPlayerId}"`)
-        expect(pieceMarkup(html, 'start-player')).toContain(`seat-${state.startingPlayerId}`)
     })
 })

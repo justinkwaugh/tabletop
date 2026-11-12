@@ -42,7 +42,8 @@ test('the board fits the table beside the panel, and scales down with it', async
     expect(box?.width).toBeGreaterThan(900)
     expect(box?.width).toBeLessThan(1000)
     // R-1.2 Whole: the aspect stands.
-    expect((box?.width ?? 0) / (box?.height ?? 1)).toBeCloseTo(2500 / 1103, 1)
+    // Contract, Supply: nothing under the board, so the surface is the board's own proportions.
+    expect((box?.width ?? 0) / (box?.height ?? 1)).toBeCloseTo(2500 / 953, 1)
     const noPageScroll = await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth
     )
@@ -76,7 +77,10 @@ test('S59 a stack, a tile in it and a bead enlarge; Escape closes one layer at a
     await page.keyboard.press('Escape')
     await expect(stackLayer(page)).toHaveCount(0)
 
+    // Contract, Supply: the deck's stack view opens from the Supply card, which closes.
+    await page.locator('[data-supply-toggle]').click()
     await page.locator('[data-open-stack="deck"]').click()
+    await expect(page.locator('[data-supply-card]')).toHaveCount(0)
     await expect(stackLayer(page)).toBeVisible()
     await stackLayer(page)
         .locator('[data-backdrop]')

@@ -36,15 +36,14 @@ import { writFaceShown } from '$lib/model/perspective.js'
 import {
     GoodSize,
     GuildSizes,
-    HaversackStep,
     ImmunitySealSize,
     LandscapeSize,
-    MarginSlots,
-    MarginToken,
     MarkerSize,
     PawnSize,
     StackCentres,
     StackSize,
+    SupplyCorner,
+    SupplyToken,
     guildSlot,
     knightCell,
     rosaryBead,
@@ -167,19 +166,14 @@ const BeadSize = GuildSizes.bead * GuildScale
 const RosaryBeadSize = BeadSize
 const ScrollSealSize = ImmunitySealSize
 
-const Deck: FlightEnd = { kind: 'board', point: MarginSlots.deck, size: MarginToken }
-const SealPile: FlightEnd = { kind: 'board', point: MarginSlots.seals, size: MarginToken }
-/** R-1.1 The general supply: goods and coin alike leave and reach the margin's haversack. */
-const GeneralSupply: FlightEnd = { kind: 'board', point: MarginSlots.haversack, size: MarginToken }
+/** Contract, Supply: the deck, the seal pile and the haversack fly from and to the board's corner. */
+const Deck: FlightEnd = { kind: 'board', point: SupplyCorner, size: SupplyToken }
+const SealPile: FlightEnd = { kind: 'board', point: SupplyCorner, size: SupplyToken }
+/** R-1.1 The general supply: goods and coin alike leave and reach the haversack, at the corner. */
+const GeneralSupply: FlightEnd = { kind: 'board', point: SupplyCorner, size: SupplyToken }
 
-function haversackOf(good: Good): FlightEnd {
-    const { x, y } = MarginSlots.haversack
-    return {
-        kind: 'board',
-        point: { x: x + Goods.indexOf(good) * HaversackStep, y },
-        size: GoodSize
-    }
-}
+/** A good drawn at its own size, leaving or reaching the haversack. */
+const Haversack: FlightEnd = { kind: 'board', point: SupplyCorner, size: GoodSize }
 
 class FlightBuilder {
     readonly flights: Flight[] = []
@@ -226,7 +220,7 @@ function seatOf(playerId: string, part: SeatPart, hide = false): FlightEnd {
 function pawnPlace(state: HydratedFeudumGameState, key: string, spaceId: string): Point {
     const placed = placedPieces(state).get(key)?.point
     const space = Spaces.find(({ id }) => id === spaceId)
-    return placed ?? (space ? spaceGeometry(space.id).centre : MarginSlots.deck)
+    return placed ?? (space ? spaceGeometry(space.id).centre : SupplyCorner)
 }
 
 /** R-3.6 Pawns reach the map from a seat, turn their face as they land, and fly back home. */
@@ -510,8 +504,8 @@ function flyGoods(plan: FlightBuilder, change: FlightChange, at: number): number
         }
         const crossings = Math.max(sources.length, targets.length)
         for (let index = 0; index < crossings; index += 1) {
-            const source = sources[index] ?? haversackOf(good)
-            const target = targets[index] ?? haversackOf(good)
+            const source = sources[index] ?? Haversack
+            const target = targets[index] ?? Haversack
             ends = plan.add('goods', { kind: 'good', good }, source, [
                 { to: target, at: launch, duration: GoodFlight, arc: true }
             ])

@@ -37,14 +37,13 @@ import {
     GuildAreas,
     GuildBox,
     GuildSizes,
-    HaversackStep,
-    MarginSlots,
     MarkerSize,
     PawnSize,
     RoutePaths,
     ServiceFanStep,
     ServiceSpaces,
     StackCentres,
+    SupplyCorner,
     VoyageFanStep,
     VoyageSpaces,
     barnTokenAt,
@@ -731,12 +730,8 @@ const GoodHolders: readonly GoodHolder[] = [
     })),
     {
         count: (state, good) => state.supply.haversack[good],
-        place: (_, good) => ({
-            point: {
-                x: MarginSlots.haversack.x + Goods.indexOf(good) * HaversackStep,
-                y: MarginSlots.haversack.y
-            }
-        })
+        // Contract, Supply: the haversack is drawn in the Supply card; its goods cross at the corner.
+        place: () => ({ point: SupplyCorner })
     }
 ]
 

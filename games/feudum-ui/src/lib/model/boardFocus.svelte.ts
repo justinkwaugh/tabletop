@@ -13,7 +13,6 @@ import {
     GuildAreas,
     GuildAreaWidth,
     MapArea,
-    MarginHeight,
     ServiceSpaces,
     SpaceCentres,
     StackCentres,
@@ -85,7 +84,7 @@ export function rectOfArea(area: FramedArea): BoardRect {
 /** The scale the board rests at in a view this size, as the scaling wrapper reckons it. */
 export function restScaleOf(viewWidth: number, viewHeight: number): number {
     const across = viewWidth / BoardWidth
-    const down = Math.max(1, viewHeight - ChooserInset) / (BoardHeight + MarginHeight)
+    const down = Math.max(1, viewHeight - ChooserInset) / BoardHeight
     const contain = Math.min(across, down, 1)
     return contain >= CoverBelowScale ? contain : Math.min(Math.max(across, down), 1)
 }

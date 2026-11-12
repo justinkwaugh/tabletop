@@ -5,8 +5,16 @@ import { scenario, type ScenarioTable } from './scenarioTable.js'
 /** The contract's writ, round-end and game-end scenarios, on the real table at both widths. */
 
 const atWill = (table: ScenarioTable) => table.panel().locator('[data-rows="at-will"]')
-const seen = (table: ScenarioTable) =>
-    table.page.locator('[data-board-surface] [data-margin="deck-seen"]')
+/** The general supply's card, opened by the Supply button beside the zoom controls. */
+async function supply(table: ScenarioTable) {
+    const card = table.page.getByRole('group', { name: 'General supply' })
+    if ((await card.count()) === 0) {
+        await table.press(table.page.getByRole('button', { name: 'Supply' }))
+    }
+    return card
+}
+const closeSupply = (table: ScenarioTable) => table.page.keyboard.press('Escape')
+const seen = (table: ScenarioTable) => table.page.locator('[data-general="deck-seen"]')
 const MandateA = 'A: 1 food → 3s'
 
 /** R-4.4.2 The at-will row's Writs chip, by its count. */
@@ -24,15 +32,20 @@ scenario('S50 R-4.4.2 At-will row', 'writs-at-will', async (table) => {
     await expect(table.panel().locator('[data-writ-offer="writ.mandate.5"]')).toContainText(
         MandateA
     )
+    const deck = (await supply(table)).locator('[data-general-count="deck"]')
     await expect(seen(table)).toHaveCount(0)
-    const deck = table.page.locator('[data-board-surface] [data-margin="deck-count"]')
-    const before = Number((await deck.textContent())?.replace(/\D/g, ''))
+    const before = Number(await deck.textContent())
+    await closeSupply(table)
     const flights = await table.flightsOf(() => table.press(table.row(MandateA)))
     expect(flights).toEqual(expect.arrayContaining(['goods: food', 'writs: Mandate 5']))
+    await supply(table)
     await expect(seen(table)).toHaveText('seen: Mandate 5')
-    await expect(deck).toHaveText(`${before + 1} writs`)
+    await expect(deck).toHaveText(`${before + 1}`)
+    await closeSupply(table)
     await table.showSeat('p2')
+    await supply(table)
     await expect(seen(table)).toHaveText('seen: Mandate 5')
+    await closeSupply(table)
 })
 
 scenario('S51 R-4.4.3 No charter is sealed during play', 'writs-charter-held', async (table) => {
@@ -69,7 +82,9 @@ scenario('S52 R-4.4.4 Writ limit: a mandate from the row', 'writs-limit', async 
     await overTheLimit(table)
     await openWrits(table)
     await table.press(table.row(MandateA))
+    await supply(table)
     await expect(seen(table)).toHaveText('seen: Mandate 5')
+    await closeSupply(table)
     expect(await table.activeSeats()).not.toContain('p1')
 })
 
