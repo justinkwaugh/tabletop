@@ -54,10 +54,57 @@ track layouts and counts only, checked against the rulebook.
 - **Player wealth items.** 1849's loans are the first player-level item beyond cash and
   certificates; `ValuationRules.playerItems` sees the other items so a title can floor a total.
 
+## Further family changes found by whole-game play
+
+- `closeShareCompany(…, restart)` removes nothing from the round's operating order; 1849 removes a
+  restarted company itself unless it is the one operating (its turn then ends normally).
+- A company closing at zero on its own turn clears its train purchase step, and ends its turn only
+  if the turn is still open (an end-of-turn issue can take it to zero as it finishes).
+- After a closure ends a turn, the closed company's former president stays the turn's owner, as
+  after any finished turn; before, no one was active, and a closure by the round's last company
+  crashed the next decision window. This affects 1846, 1833NE, 1850 and 1870 only in that case.
+- `resetCompany` returns certificates to the named pool's owner (a company's own treasury in
+  1849); bank-held pools, as in 1862, are unchanged.
+- `PrivatePowerRules.afterMarker`: what follows a private's map marker (CNM records its port and
+  closes).
+- Terrain icons for `hill` and `rough` beside `mountain`.
+
 ## Rulings to confirm with the owner
 
-(Filled in as they arise.)
+1. **Privates and the certificate limit.** Rulebook §7.1/§9.1 say privates count; player aid 1.1
+   says they do not. Implemented as the rulebook.
+2. **L. 144 start value.** Rulebook §6/§9.4: from phase 6; player aid 1.1: from phase 8.
+   Implemented as the rulebook.
+3. **Tile manifest.** One each of #655 and #656 (green and brown M), as the rulebook's manifest
+   prints (72/72/24), where the research engine has two each.
+4. **A Garibaldi from the Reale Società d'Affari** chooses its home as it first operates, among
+   its cities with room, rather than at once in the initial stock round (§8.1 says the buyer
+   places the home token). Its token fee is paid as it floats.
+5. **A Garibaldi passed over** for want of a home goes last in order only once a corporation
+   after it starts; it becomes available again as soon as a city has room, not only from the next
+   stock round (§9.4.1).
+6. **A Garibaldi that itself buys the first 12H** and loses its only station closes when it next
+   acts in its train step (its price goes to the Closed box), not mid-purchase.
+7. **Presidency exchange with the last certificate** (§9.5): the new president always gives the
+   last certificate when they hold it; the outgoing president's option to take two single
+   certificates instead is not offered yet.
+8. **Issuing into the Closed box** closes the corporation at once, ending its turn.
+9. **The SMS** lays or upgrades a tile in a coastal city it need not reach, then may place a
+   station there; using it only to place a station without a tile is not offered.
+10. **The bank broken**: payouts beyond the bank follow the family's broken-bank handling.
 
 ## Implemented later or not at all
 
 - Variants (§14): acquiring station tokens, bonds, Electric Dreams.
+- Terrain costs are not drawn on laid tiles, though §10.3.1 puts the token back on the tile; the
+  tile picker shows each lay's cost.
+- The physical board view (no board artwork); the boardless map is the only presentation.
+
+## Verification
+
+- `games/1849/src/fullGame.spec.ts` plays whole seeded games to their end for three, four and five
+  players (`SWEEP=1` for 40 seeds); a 36-game sweep reached the end every time, through
+  closures, insolvencies with loans and players leaving, issues, the earthquake and phase 16.
+- `games/1849/src/rules.spec.ts` covers starts, the last certificate, price moves and the blue
+  zone, closure and restart, finance, the earthquake, terrain and loans.
+- Harness scenarios in `games/1849-ui/src/scenarios` (port 4211).
