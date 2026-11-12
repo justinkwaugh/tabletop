@@ -29,7 +29,11 @@
         {/if}
         <li class="entry" style:--seat={entry.color}>{entry.text}.</li>
     {/each}
-    <li class="deal">Hand 1</li>
+    {#if gameSession.hasCompleteHistory}
+        <li class="deal">Hand 1</li>
+    {:else}
+        <li class="deal loading">Reading earlier history…</li>
+    {/if}
 </ol>
 
 <style>

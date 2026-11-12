@@ -258,8 +258,15 @@ export class KoenigrufenGameSession extends GameSession<
         this.actions.findLast(isEndHand)?.metadata
     )
 
+    // Hands finished in the state on screen: every deal so far but the one being played.
+    readonly handsFinished: number = $derived(
+        this.gameState.result === undefined
+            ? this.gameState.dealNumber() - 1
+            : this.gameState.dealNumber()
+    )
+
     readonly scoreSheet: ScoreSheet = $derived(
-        scoreSheet(this.actions, this.gameState.turnManager.turnOrder)
+        scoreSheet(this.actions, this.gameState.players, this.handsFinished)
     )
 
     // The table is clear between hands while the next auction runs, and once the game is over.

@@ -26,14 +26,14 @@
     }
 
     function keepLatestInView(element: HTMLElement) {
-        void sheet.hands.length
+        void sheet.rows.length
         element.scrollTop = element.scrollHeight
     }
 </script>
 
 <section class="summary" aria-label="Hand summary">
     <header>
-        <h2>Hand {sheet.hands.length} · {definition.name}</h2>
+        <h2>Hand {gameSession.handsFinished} · {definition.name}</h2>
         {#if result.playerPoints === undefined}
             <span class="verdict" class:made={result.made}
                 >{result.givenUp ? 'Given up' : result.made ? 'Made' : 'Lost'}</span
@@ -134,9 +134,15 @@
                 </tr>
             </thead>
             <tbody>
-                {#each sheet.hands as hand, index (index)}
-                    <tr class:latest={index === sheet.hands.length - 1}>
-                        <td class="num">{index + 1}</td>
+                {#if !sheet.complete}
+                    <tr>
+                        <td class="num">…</td>
+                        <td class="loading" colspan={2 + columns.length}>Reading earlier hands…</td>
+                    </tr>
+                {/if}
+                {#each sheet.rows as { hand: number, result: hand }, index (number)}
+                    <tr class:latest={index === sheet.rows.length - 1}>
+                        <td class="num">{number}</td>
                         <td>
                             {Contracts[hand.contract].name}
                             {#if hand.playerPoints === undefined}
@@ -322,6 +328,11 @@
 
     .num {
         width: 2em;
+        opacity: 0.7;
+    }
+
+    .loading {
+        font-style: italic;
         opacity: 0.7;
     }
 

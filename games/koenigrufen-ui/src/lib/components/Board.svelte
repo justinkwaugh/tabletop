@@ -34,7 +34,7 @@
 
     // Closing the summary hides it until the next hand ends.
     let closedAfterHand: number | undefined = $state()
-    const handsPlayed = $derived(gameSession.scoreSheet.hands.length)
+    const handsPlayed = $derived(gameSession.handsFinished)
 </script>
 
 <div

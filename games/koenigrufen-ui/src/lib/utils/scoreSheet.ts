@@ -1,8 +1,15 @@
 import type { GameAction } from '@tabletop/common'
 import { isEndHand, PackPoints, type HandResult } from '@tabletop/koenigrufen'
 
+// One finished hand, numbered by its deal.
+export type ScoreSheetRow = { hand: number; result: HandResult }
+
 export type ScoreSheet = {
-    hands: HandResult[]
+    // The finished hands the history on hand records, oldest first. A game opens before its
+    // history loads, so the earliest may be missing; `complete` says whether any are.
+    rows: ScoreSheetRow[]
+    complete: boolean
+    // From State, so they are right whatever history has loaded.
     totals: Record<string, number>
 }
 
@@ -14,16 +21,17 @@ export function handResults(actions: readonly GameAction[]): HandResult[] {
 
 export function scoreSheet(
     actions: readonly GameAction[],
-    playerIds: readonly string[]
+    players: readonly { playerId: string; score: number }[],
+    handsFinished: number
 ): ScoreSheet {
-    const hands = handResults(actions)
-    const totals = Object.fromEntries(
-        playerIds.map((playerId) => [
-            playerId,
-            hands.reduce((sum, hand) => sum + (hand.scoreChanges[playerId] ?? 0), 0)
-        ])
-    )
-    return { hands, totals }
+    const recorded = handResults(actions)
+    const hands = recorded.slice(Math.max(0, recorded.length - handsFinished))
+    const first = handsFinished - hands.length + 1
+    return {
+        rows: hands.map((result, index) => ({ hand: first + index, result })),
+        complete: hands.length === handsFinished,
+        totals: Object.fromEntries(players.map((player) => [player.playerId, player.score]))
+    }
 }
 
 export function declarerSide(result: HandResult): string[] {
