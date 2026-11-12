@@ -2,7 +2,7 @@ import { GuildIds, HydratedFeudumGameState } from '@tabletop/feudum'
 import { flushSync } from 'svelte'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { FeudumHost } from '$lib/testing/sessionHarness.js'
-import { BoardHeight, GuildAreas, MapArea } from '$lib/utils/boardGeometry.js'
+import { BoardHeight, GuildAreas, MapArea, railOverRect } from '$lib/utils/boardGeometry.js'
 import type { BoardOffer, BoardTarget } from './boardOffer.js'
 import {
     BoardFocus,
@@ -97,6 +97,20 @@ describe('R-1.2 what the chooser frames, and how far a pick may go', () => {
         for (const guild of ['knight', 'noble', 'monk'] as const) {
             expect(inside(rectOfArea('east'), guild)).toBe(true)
             expect(inside(rectOfArea('west'), guild)).toBe(false)
+        }
+    })
+
+    it("each column's view holds its guilds' standing rails at the map's inner edge", () => {
+        const holds = (rect: BoardRect, inner: BoardRect) =>
+            inner.x >= rect.x &&
+            inner.y >= rect.y &&
+            inner.x + inner.width <= rect.x + rect.width &&
+            inner.y + inner.height <= rect.y + rect.height
+        for (const guild of ['alchemist', 'merchant', 'farmer'] as const) {
+            expect(holds(rectOfArea('west'), railOverRect(guild))).toBe(true)
+        }
+        for (const guild of ['knight', 'noble', 'monk'] as const) {
+            expect(holds(rectOfArea('east'), railOverRect(guild))).toBe(true)
         }
     })
 

@@ -2,7 +2,6 @@ import {
     EpicVoyageTrack,
     GuildIds,
     MilitaryServiceTrack,
-    type GuildId,
     type HydratedFeudumGameState
 } from '@tabletop/feudum'
 import {
@@ -17,6 +16,8 @@ import {
     SpaceCentres,
     StackCentres,
     VoyageSpaces,
+    railOverRect,
+    westGuild,
     type Point
 } from '$lib/utils/boardGeometry.js'
 import type { BoardOffer, BoardTarget } from './boardOffer.js'
@@ -60,8 +61,6 @@ const FramePadding = { x: 12, y: 12 }
 /** Room in board units round a target's centre, for the piece, its ring and its chip. */
 const TargetRoom = DiscFrame
 
-const WestGuilds: ReadonlySet<GuildId> = new Set(['alchemist', 'merchant', 'farmer'])
-
 const SpacePoints = new Map<string, Point>(Object.entries(SpaceCentres))
 const StackPoints = new Map<string, Point>(Object.entries(StackCentres))
 
@@ -73,13 +72,17 @@ function unionOf(points: readonly Point[], room: number): BoardRect {
     return { x: left, y: top, width: right - left, height: bottom - top }
 }
 
+/** A guild column with its standing rails at the map's inner edge (contract: Guild standings). */
 function columnOf(area: 'west' | 'east'): BoardRect {
-    const guilds = GuildIds.filter((guild) => WestGuilds.has(guild) === (area === 'west'))
+    const guilds = GuildIds.filter((guild) => westGuild(guild) === (area === 'west'))
     const corners = guilds.flatMap((guild) => {
         const { x, y } = GuildAreas[guild]
+        const rail = railOverRect(guild)
         return [
             { x, y },
-            { x: x + GuildAreaWidth, y: y + GuildAreaHeight }
+            { x: x + GuildAreaWidth, y: y + GuildAreaHeight },
+            { x: rail.x, y: rail.y },
+            { x: rail.x + rail.width, y: rail.y + rail.height }
         ]
     })
     return unionOf(corners, 0)
@@ -123,9 +126,7 @@ function placeOf(state: HydratedFeudumGameState, target: BoardTarget): Placed {
     switch (kind) {
         case 'guild': {
             return {
-                area: GuildIds.some((guild) => guild === id && WestGuilds.has(guild))
-                    ? 'west'
-                    : 'east'
+                area: GuildIds.some((guild) => guild === id && westGuild(guild)) ? 'west' : 'east'
             }
         }
         case 'voyage': {

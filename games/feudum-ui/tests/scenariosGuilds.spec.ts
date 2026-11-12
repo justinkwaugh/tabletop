@@ -254,14 +254,14 @@ async function scoringPush(table: ScenarioTable) {
     await expect(table.panel()).toContainText('Place a reeve in the Merchant Guild?')
 }
 
-/** The guild standings hold every seat's places, reeves too; a phone opens them from its chip. */
+/** The guild standings hold every seat's places, reeves too: on rails at a desk, a phone's chip opens them. */
 const reeveOf = async (table: ScenarioTable) => {
     if (table.phone) {
         await table.press(table.page.locator('[data-guilds-chip]'))
     }
     const scope = table.phone
         ? table.page.locator('[data-table-layer="guilds"]')
-        : table.page.locator('[data-seat-column]')
+        : table.page.locator('[data-guild-rails]')
     const reeves = await scope
         .locator('[data-standing-row="merchant"] [data-standing-holder="p1"][data-reeve]')
         .count()

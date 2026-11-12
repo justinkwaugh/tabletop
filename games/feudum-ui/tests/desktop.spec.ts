@@ -131,12 +131,13 @@ test.describe('a 1440 px desk', () => {
         await openFixture(page, 'cards-tile-gone-epoch-1')
         await expect(page.locator('[data-margin-layer], [data-layer="margin"]')).toHaveCount(0)
 
-        // The board is its own height: the frame reaches the surface's foot and fills the view one way.
+        // The board is its own height: the frame reaches the surface's foot, and the board with its rails fills the view one way.
         const surface = await rect(page.locator('[data-board-surface]'))
         const frame = await rect(page.locator('[data-board-surface] > svg').first())
+        const row = await rect(page.locator('[data-board-row]'))
         const view = await rect(page.locator('[data-board-view]'))
         expect(Math.abs(frame.y + frame.height - (surface.y + surface.height))).toBeLessThan(1)
-        expect(Math.max(frame.width / view.width, frame.height / view.height)).toBeGreaterThan(0.97)
+        expect(Math.max(row.width / view.width, row.height / view.height)).toBeGreaterThan(0.97)
 
         const key = await rect(page.locator('[data-symbol-key-toggle]'))
         const toggle = page.getByRole('button', { name: 'Supply' })
