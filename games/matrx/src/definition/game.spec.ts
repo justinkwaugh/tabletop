@@ -1,17 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import {
-    ActionSource,
-    defaultGameConfig,
-    GameEngine,
-    GameResult,
-    PlayerStatus,
-    type GameAction
-} from '@tabletop/common'
-import { Definition } from './definition.js'
-import { MatrxRuntime } from './runtime.js'
-import { MatrxInfo } from './info.js'
+import { GameResult } from '@tabletop/common'
 import { MachineState } from './states.js'
 import { ActionType } from './actions.js'
+import {
+    actionBase,
+    createGame,
+    engine,
+    execute,
+    playToEnd,
+    type MatrxGame
+} from './tests/playthrough.js'
 import { EndReason, HydratedMatrxGameState, type MatrxGameState } from '../model/gameState.js'
 import { emptyBoard, PieceKind, POTENTIAL_KINDS, type Unit } from '../model/board.js'
 import { BoardShape, GEOMETRIES, pointAt } from '../model/geometry.js'
@@ -21,43 +19,11 @@ import type { MovePotential } from '../actions/movePotential.js'
 import type { ExtraMove } from '../actions/extraMove.js'
 import type { RemoveRow } from '../actions/removeRow.js'
 
-const engine = new GameEngine(MatrxRuntime)
 const W = 'white'
 const B = 'black'
 
-function createGame(board: BoardShape = BoardShape.Matrx) {
-    return MatrxRuntime.initializer.initializeGame(
-        {
-            id: 'matrx-test',
-            typeId: 'matrx',
-            ownerId: 'owner',
-            seed: 5,
-            config: { ...defaultGameConfig(MatrxInfo.configurator?.options ?? []), board },
-            players: [W, B].map((id) => ({
-                id,
-                name: id,
-                isHuman: true,
-                status: PlayerStatus.Joined
-            }))
-        },
-        Definition
-    )
-}
-
-type MatrxGame = ReturnType<typeof createGame>
-
 function start(game: MatrxGame): MatrxGameState {
     return engine.startGame(game, { startingPositions: { playerIds: [W, B] } }).initialState
-}
-
-let counter = 0
-function base(game: MatrxGame, playerId: string) {
-    counter += 1
-    return { id: `a${counter}`, gameId: game.id, source: ActionSource.User, playerId }
-}
-
-function execute(game: MatrxGame, state: MatrxGameState, action: GameAction) {
-    return engine.executeCanonicalAction({ game, state, action }).updatedState
 }
 
 const at = pointAt
@@ -71,7 +37,7 @@ function push(
     kind: PieceKind
 ) {
     const action: PushPiece = {
-        ...base(game, playerId),
+        ...actionBase(game, playerId),
         type: ActionType.PushPiece,
         dot: at(dot),
         to: at(to),
@@ -82,7 +48,7 @@ function push(
 
 function move(game: MatrxGame, state: MatrxGameState, playerId: string, from: string, to: string) {
     const action: MovePotential = {
-        ...base(game, playerId),
+        ...actionBase(game, playerId),
         type: ActionType.MovePotential,
         from: at(from),
         to: at(to)
@@ -98,7 +64,7 @@ function extraMove(
     to: string
 ) {
     const action: ExtraMove = {
-        ...base(game, playerId),
+        ...actionBase(game, playerId),
         type: ActionType.ExtraMove,
         dot: at(dot),
         to: at(to)
@@ -107,7 +73,7 @@ function extraMove(
 }
 
 function skipExtraMove(game: MatrxGame, state: MatrxGameState, playerId: string) {
-    return execute(game, state, { ...base(game, playerId), type: ActionType.SkipExtraMove })
+    return execute(game, state, { ...actionBase(game, playerId), type: ActionType.SkipExtraMove })
 }
 
 function removeRow(
@@ -119,7 +85,7 @@ function removeRow(
     keep: string[] = []
 ) {
     const action: RemoveRow = {
-        ...base(game, playerId),
+        ...actionBase(game, playerId),
         type: ActionType.RemoveRow,
         from: at(from),
         to: at(to),
@@ -604,65 +570,6 @@ describe('end of game', () => {
     })
 })
 
-// Every way to remove each row: all singles go, any choice of pairs stays.
-function removals(game: MatrxGame, state: MatrxGameState, playerId: string): GameAction[] {
-    const board = boardOf(state)
-    return board.rowsOf(playerId).flatMap((row) => {
-        const pairs = row.reach.filter((coords) => board.topAt(coords)?.paired === true)
-        return Array.from({ length: 2 ** pairs.length }, (_, mask) => ({
-            ...base(game, playerId),
-            type: ActionType.RemoveRow,
-            from: row.from,
-            to: row.to,
-            keep: pairs.filter((_, index) => (mask >> index) & 1)
-        })).filter((action) => {
-            try {
-                execute(game, state, action)
-                return true
-            } catch {
-                return false
-            }
-        })
-    })
-}
-
-function legalActions(game: MatrxGame, state: MatrxGameState): GameAction[] {
-    const hydrated = new HydratedMatrxGameState(state)
-    const playerId = state.activePlayerIds[0]
-    const entries = hydrated.board.legalEntries()
-    switch (state.machineState) {
-        case MachineState.ResolvingRows:
-            return removals(game, state, playerId)
-        case MachineState.ExtraMove:
-            return [
-                { ...base(game, playerId), type: ActionType.SkipExtraMove },
-                ...entries.map((entry) => ({
-                    ...base(game, playerId),
-                    type: ActionType.ExtraMove,
-                    dot: entry.dot,
-                    to: entry.line[0]
-                }))
-            ]
-        default:
-            return [
-                ...entries.flatMap((entry) =>
-                    hydrated.pushableKinds(playerId).map((kind) => ({
-                        ...base(game, playerId),
-                        type: ActionType.PushPiece,
-                        dot: entry.dot,
-                        to: entry.line[0],
-                        kind
-                    }))
-                ),
-                ...hydrated.potentialMoves(playerId).map((potentialMove) => ({
-                    ...base(game, playerId),
-                    type: ActionType.MovePotential,
-                    ...potentialMove
-                }))
-            ]
-    }
-}
-
 describe('random playouts', () => {
     it.each(
         Object.values(BoardShape).flatMap((shape) =>
@@ -670,20 +577,7 @@ describe('random playouts', () => {
         )
     )('%s board, seed %i, plays to a single winner', (shape, seed) => {
         const game = createGame(shape)
-        let state = start(game)
-        let value = seed + 1
-        const choose = <T>(options: T[]): T => {
-            value = (value * 1103515245 + 12345) % 2147483648
-            return options[value % options.length]
-        }
-        let steps = 0
-        while (state.machineState !== MachineState.EndOfGame) {
-            const actions = legalActions(game, state)
-            expect(actions.length).toBeGreaterThan(0)
-            state = execute(game, state, choose(actions))
-            steps += 1
-            expect(steps).toBeLessThan(5000)
-        }
+        const state = playToEnd(game, start(game), seed)
         expect(state.winningPlayerIds).toHaveLength(1)
         expect(state.endReason).toBeDefined()
         const pieces = new HydratedMatrxGameState(state)
