@@ -112,16 +112,16 @@ export const SpaceCentres: Record<SpaceId, Point> = {
 /** Where a space's contents and pieces stand, from its centre. */
 const ContentOffsets = {
     pieceSlots: [
-        { x: -50, y: -24 },
-        { x: -22, y: -56 },
-        { x: 22, y: -56 },
-        { x: 50, y: -24 }
+        { x: -56, y: -56 },
+        { x: -19, y: -66 },
+        { x: 19, y: -66 },
+        { x: 56, y: -56 }
     ],
-    countChip: { x: 52, y: -60 },
-    ruler: { x: -13, y: -14 },
-    subject: { x: 13, y: -14 },
-    serf: { x: 0, y: 13 },
-    landscape: { x: -30, y: 62 },
+    countChip: { x: 0, y: -98 },
+    ruler: { x: -46, y: 26 },
+    subject: { x: -46, y: 54 },
+    serf: { x: -20, y: 66 },
+    landscape: { x: 56, y: 8 },
     goods: [
         { x: 8, y: 50 },
         { x: 31, y: 50 },
@@ -130,24 +130,51 @@ const ContentOffsets = {
         { x: 100, y: 50 }
     ],
     vessels: {
-        ship: { x: -62, y: 4 },
-        submersible: { x: 62, y: 4 },
-        'flying-machine': { x: 62, y: 24 }
+        ship: { x: -86, y: -8 },
+        submersible: { x: -86, y: 28 },
+        'flying-machine': { x: 98, y: -12 }
     },
-    letters: { x: -46, y: 26 }
+    letters: { x: 0, y: 48 }
 } as const
 
-/** A space against the map's edge keeps its contents on the map. */
-const EdgeFit: Partial<Record<SpaceId, { readonly mirror?: true; readonly shift: number }>> = {
-    'space.sea.2': { shift: 20 },
-    'space.mountain.2': { mirror: true, shift: -18 }
+/**
+ * A space against the map's edge keeps its contents on the map: mirrored, so what stands on one
+ * side stands on the other, shifted along the edge, and with its vessels set where there is room.
+ * Its markers keep to its disc.
+ */
+const EdgeFit: Partial<
+    Record<
+        SpaceId,
+        {
+            readonly mirror?: true
+            readonly shift?: number
+            readonly vessels?: Readonly<Record<VesselType, Point>>
+        }
+    >
+> = {
+    'space.sea.2': {
+        shift: 8,
+        vessels: {
+            ship: { x: 100, y: -10 },
+            submersible: { x: 100, y: 26 },
+            'flying-machine': { x: 100, y: 62 }
+        }
+    },
+    'space.mountain.2': {
+        mirror: true,
+        vessels: {
+            ship: { x: -102, y: -44 },
+            'flying-machine': { x: -102, y: -8 },
+            submersible: { x: -102, y: 28 }
+        }
+    }
 }
 
 export interface SpaceGeometry {
     readonly centre: Point
     readonly pieceSlots: readonly Point[]
     readonly countChip: Point
-    /** R-4.1.2 A ruler's marker, a subject beside it, a serf below. */
+    /** R-4.1.2 A ruler's marker below the disc on one side, a subject under it, a serf beside that. */
     readonly ruler: Point
     readonly subject: Point
     readonly serf: Point
@@ -161,23 +188,28 @@ export interface SpaceGeometry {
 function spaceGeometryOf(spaceId: SpaceId): SpaceGeometry {
     const centre = SpaceCentres[spaceId]
     const fit = EdgeFit[spaceId]
-    const place = ({ x, y }: Point): Point => ({
-        x: centre.x + (fit?.mirror ? -x : x) + (fit?.shift ?? 0),
+    const at = ({ x, y }: Point, shift = fit?.shift ?? 0): Point => ({
+        x: centre.x + x + shift,
         y: centre.y + y
     })
+    const place = ({ x, y }: Point, shift?: number): Point =>
+        at({ x: fit?.mirror ? -x : x, y }, shift)
+    const vessels = fit?.vessels
+    const vessel = (type: VesselType): Point =>
+        vessels ? at(vessels[type]) : place(ContentOffsets.vessels[type])
     return {
         centre,
-        pieceSlots: ContentOffsets.pieceSlots.map(place),
+        pieceSlots: ContentOffsets.pieceSlots.map((slot) => place(slot)),
         countChip: place(ContentOffsets.countChip),
-        ruler: { x: centre.x + ContentOffsets.ruler.x, y: centre.y + ContentOffsets.ruler.y },
-        subject: { x: centre.x + ContentOffsets.subject.x, y: centre.y + ContentOffsets.subject.y },
-        serf: { x: centre.x + ContentOffsets.serf.x, y: centre.y + ContentOffsets.serf.y },
+        ruler: place(ContentOffsets.ruler, 0),
+        subject: place(ContentOffsets.subject, 0),
+        serf: place(ContentOffsets.serf, 0),
         landscape: place(ContentOffsets.landscape),
-        goods: ContentOffsets.goods.map(place),
+        goods: ContentOffsets.goods.map((good) => place(good)),
         vessels: {
-            ship: place(ContentOffsets.vessels.ship),
-            submersible: place(ContentOffsets.vessels.submersible),
-            'flying-machine': place(ContentOffsets.vessels['flying-machine'])
+            ship: vessel('ship'),
+            submersible: vessel('submersible'),
+            'flying-machine': vessel('flying-machine')
         },
         letters: place(ContentOffsets.letters)
     }

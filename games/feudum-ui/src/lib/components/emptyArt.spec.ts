@@ -97,6 +97,21 @@ describe('pawns (R-4.5.1)', () => {
         expect(pawn).not.toContain('data-cube-face')
     })
 
+    it('a pawn carries a dark outline round its cube and a small shadow under it', () => {
+        const pawn = render(PawnPiece, { props: { paint, character: 'knight' } }).body
+        expect(pawn).toMatch(
+            new RegExp(
+                `d="${PawnCube.outline}"[^>]*stroke="var\\(--feudum-map-ink\\)"[^>]*data-piece-outline`
+            )
+        )
+        expect(pawn).toMatch(
+            /data-piece-shadow[^>]*transform="translate\(0 [1-9]|transform="translate\(0 [1-9][^>]*data-piece-shadow/
+        )
+        expect(pawn.indexOf('data-piece-shadow')).toBeLessThan(pawn.indexOf('data-piece-outline'))
+        expect(pawn.indexOf('data-piece-outline')).toBeLessThan(pawn.indexOf('data-cube-front'))
+        expect(pawn).not.toContain('filter')
+    })
+
     it('a drunk pawn tilts and carries a sulfur drop', () => {
         const pawn = render(PawnPiece, { props: { paint, character: 'knight', drunk: true } }).body
         expect(pawn).toContain('rotate(')

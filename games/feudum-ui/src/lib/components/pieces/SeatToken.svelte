@@ -9,7 +9,8 @@
      * face printed for its point. Otherwise it is drawn in the seat colour (S71). Neither carries a
      * letter: the seat is named in its accessible name and tooltip ("Ana's influence marker"), and
      * a player who needs more than colour turns on the platform's colour-blind palette, under which
-     * every piece is drawn in the colour that palette chose.
+     * every piece is drawn in the colour that palette chose. Printed or drawn, each piece has a dark
+     * outline and a small shadow, drawn as shapes so a phone renders them.
      */
     let {
         kind,
@@ -33,6 +34,9 @@
         reeve: { x: 4.5, y: 4.5, width: 15, height: 15 }
     } as const
 
+    const OutlineWidth = 4
+    const ShadowDrop = 2.5
+
     let label = $derived(`${paint.owner} ${Names[kind]}`)
     let printedUrl = $derived(
         paint.printed ? assetUrl(seatPieceAsset(kind, paint.printed)) : undefined
@@ -40,8 +44,40 @@
     let print = $derived(PrintBox[kind])
 </script>
 
-<svg {x} {y} width={size} height={size} viewBox="0 0 24 24" role="img" aria-label={label}>
+{#snippet silhouette(lift: Record<string, string | number | boolean>)}
+    {#if printedUrl && kind === 'marker'}
+        <polygon points="12,1 21.6,6.5 21.6,17.5 12,23 2.4,17.5 2.4,6.5" {...lift}></polygon>
+    {:else if kind === 'marker'}
+        <path d="M3 10 A9 5 0 0 1 21 10 L21 15 A9 5 0 0 1 3 15 Z" {...lift}></path>
+    {:else}
+        <circle cx="12" cy="12" r={kind === 'disc' ? 10.5 : 7.5} {...lift}></circle>
+    {/if}
+{/snippet}
+
+<svg
+    {x}
+    {y}
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    overflow="visible"
+    role="img"
+    aria-label={label}
+>
     <title>{label}</title>
+    {@render silhouette({
+        transform: `translate(0 ${ShadowDrop})`,
+        fill: 'var(--feudum-halo)',
+        'fill-opacity': 0.45,
+        'data-piece-shadow': true
+    })}
+    {@render silhouette({
+        fill: 'var(--feudum-map-ink)',
+        stroke: 'var(--feudum-map-ink)',
+        'stroke-width': OutlineWidth,
+        'stroke-linejoin': 'round',
+        'data-piece-outline': true
+    })}
     {#if printedUrl}
         <image
             href={printedUrl}
