@@ -43,6 +43,11 @@ import { shownTrickOf, type ShownTrick } from '$lib/utils/trickMotion.js'
 import type { CardStyle } from '$lib/utils/cardStyle.js'
 import { scoreSheet, type ScoreSheet } from '$lib/utils/scoreSheet.js'
 import { wonCardCount } from '$lib/utils/wonCards.js'
+import {
+    announcementSections,
+    chosenItems,
+    type AnnouncementSection
+} from '$lib/utils/announcementRows.js'
 import { panelFacts, type PanelFacts } from '$lib/utils/panelFacts.js'
 import { bonusKey, doubleKey } from '$lib/utils/announcementText.js'
 import {
@@ -207,6 +212,21 @@ export class KoenigrufenGameSession extends GameSession<
         )
     )
     readonly canConfirmAnnouncement: boolean = $derived(this.isAnnouncing)
+    readonly announcementSections: AnnouncementSection[] = $derived(
+        this.isAnnouncing
+            ? announcementSections(
+                  this.announceableBonuses,
+                  this.doubleTargets,
+                  this.gameState.knownAnnouncements(),
+                  this.gameState.contractDefinition(),
+                  { name: (id) => this.getPlayerName(id) },
+                  this.myPlayer?.id
+              )
+            : []
+    )
+    readonly chosenAnnouncementItems: string[] = $derived(
+        chosenItems(this.announcementSections, this.chosenAnnouncementKeys)
+    )
 
     // ----- Play -----
 

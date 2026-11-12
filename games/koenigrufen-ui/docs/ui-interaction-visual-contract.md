@@ -74,9 +74,11 @@
 ### Announcing
 
 - **Trigger:** it is the viewing player's turn in the announcements, after the talon is settled (every contract but Trischaken).
-- **Display:** one row of toggle buttons for the bonuses the player may announce for their side, each with its announced value in a gold badge (doubled in Solo contracts; Valat as the game times eight), and one row per word for the doubles on offer, labelled Kontra, Re or Sub, whose buttons name only what they raise ("Game", "Game with Anna", "Trull"; the full "Kontra declarer’s Trull" is their accessible name and tooltip). Chosen buttons are filled and outlined. The confirm button reads **Pass** while nothing is chosen and **Announce** once something is. A Besserrufer's bird, named with the bid, is already announced when the round opens.
-- **Bonus summary:** pointing at a bonus with a mouse, or focusing it from the keyboard, shows what it takes and its unannounced worth in a line below the choices, its height reserved so the choices do not jump. Without hover, a tap toggles the bonus and shows its summary. The line keeps the last bonus shown and is absent when no bonus can be announced.
-- **Phones:** below 640px the rows flow together into one wrapping line of smaller buttons, the labels inline, so the choices usually fit in three lines.
+- **Menu:** **Announce ▾** opens a table of the choices in the same menu as the bids (under the button row, stopping above the hand), already open as each announcement turn starts. A tap or click outside, **✕** or Escape closes it; **Announce ▾** opens it again with the ticks kept.
+- **Table:** a "Bonuses" section for the bonuses the player may announce for their side, with labelled columns: a tick box, the bonus, its announced value (gold; doubled in Solo contracts, Valat as the game times eight), its silent value (blank when it scores only announced), and on wide menus its goal. Then a section per double word on offer, Kontra, Re or Sub, each with a note on what it doubles, listing what it raises ("Game", "Game with Anna", "Trull") with its value now and doubled. A row toggles its tick; ticked rows are tinted gold. A Besserrufer's bird, named with the bid, is already announced when the round opens.
+- **Description:** on wide menus a pane beside the table describes the row pointed at with a mouse or focused from the keyboard ("Trull (2): Take Pagat, Mond and Sküs. Worth 1 unannounced."; "Kontra on the game: Doubles the game: worth 1 now, 2 after Kontra."). On narrow menus the row unfolds the same text in place. Without hover, a tap toggles the row and shows its description.
+- **Confirming:** the menu's foot holds **Pass**, or **Announce Trull · Kontra Game** once something is ticked. Outside the menu, the prompt line lists what is ticked ("Chosen: Trull") and the action panel's own button reads **Pass** or **Announce**.
+- **Phones:** the narrow menu keeps the tick, the name and both values on one line per row.
 - **Contract line:** during announcements every player sees a "Contract:" line under the action panel naming the declarer's contract with its value and the same one-line summary as the "Highest bid:" line, so bonuses and Kontras are weighed against it.
 - **Everyone:** what each player has said this hand is on their player panel ("Said Pagat · Kontra on the game"), not in the action area.
 - **Play:** a card that an announced bird of the player's side needs (Pagat, Uhu, Kakadu, Quapil) is not offered before its trick, unless nothing else may be played.
@@ -153,7 +155,7 @@
 
 - **Meaning:** the bonuses and doubles chosen so far for this announcement turn, one staged-selection stage per choice, all `manual`.
 - **Producer:** the session (`toggleAnnouncement`).
-- **Consumers:** the action panel (filled buttons, **Pass** or **Announce**).
+- **Consumers:** the announcement menu's tick boxes and foot button, and the action panel's "Chosen:" line and **Pass** or **Announce** button.
 - **Lifetime:** cleared whenever a new state is presented. Undo pops the latest choice before any action undo.
 - **Validity:** the session keeps only choices still on offer to the viewing player.
 
