@@ -18,7 +18,7 @@ import { atPlayingCards, addPawn, type TurnTable } from '$lib/testing/turnTable.
 import { everyAssetSupplied } from '$lib/testing/fakeArt.js'
 import WritFace from '$lib/components/pieces/WritFace.svelte'
 import { PlainChrome, type BoardChrome } from '$lib/model/boardChrome.js'
-import { pawnTarget, type BoardTarget } from '$lib/model/boardOffer.js'
+import { pawnTarget, spaceTarget, type BoardTarget } from '$lib/model/boardOffer.js'
 import { spaceLabel } from '$lib/model/cardFlows.js'
 import MapLayers from './MapLayers.svelte'
 
@@ -210,6 +210,27 @@ describe('what lies on a space', () => {
             }
         })
         expect(markup(host.state)).not.toContain(`data-goods-plate="${id}"`)
+    })
+
+    it('R-4.1 a disc with nothing lit on it opens its site card on a press, and a lit one does not', () => {
+        const { host } = table
+        const opened: SpaceId[] = []
+        const hovered: (SpaceId | undefined)[] = []
+        const [lit, plain] = [Spaces[0].id, Spaces[1].id]
+        const html = markup(host.state, {
+            ...PlainChrome,
+            offer: {
+                targets: new Map([[spaceTarget(lit), { role: 'lit' as const }]]),
+                dimsRest: true
+            },
+            press: () => {},
+            openSite: (id) => opened.push(id),
+            hoverSite: (id) => hovered.push(id)
+        })
+        expect(html).toContain(`data-open-site="${plain}"`)
+        expect(html).toContain(`aria-label="What is at ${spaceLabel(plain)}"`)
+        expect(html).not.toContain(`data-open-site="${lit}"`)
+        expect(markup(host.state)).not.toContain('data-open-site')
     })
 
     it('R-4.2.2 abandoned vessels lie on the space, with a count past one', () => {

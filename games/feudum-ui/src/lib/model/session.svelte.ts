@@ -425,6 +425,12 @@ export class FeudumGameSession extends GameSession<FeudumProjectedState, Hydrate
         },
         openStack: (view) => {
             this.layers.openStack(view)
+        },
+        openSite: (spaceId) => {
+            this.layers.openSite(spaceId)
+        },
+        hoverSite: (spaceId) => {
+            this.layers.hoverSite(spaceId)
         }
     })
 

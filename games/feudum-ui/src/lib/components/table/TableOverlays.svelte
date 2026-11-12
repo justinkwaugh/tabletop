@@ -9,6 +9,7 @@
     import FlightLayer from './FlightLayer.svelte'
     import GuildsSheet from './GuildsSheet.svelte'
     import OpenSeatLayer from './OpenSeatLayer.svelte'
+    import SiteCardLayer from './SiteCardLayer.svelte'
     import StackViewLayer from './StackViewLayer.svelte'
     import TracksSheet from './TracksSheet.svelte'
 
@@ -16,7 +17,7 @@
      * What stands over the table, drawn in one place only: after the layout, or inside the dialog in
      * full screen. What is open wins: an enlarged card over an open seat, stack view or the bench,
      * those over the table. A popup's draft waits under them, and a popover would stand over everything, so it
-     * is held back while one is open.
+     * is held back while one is open. A site card gives way to a popup and to every layer.
      */
     const gameSession = getGameSession()
     const layers = gameSession.layers
@@ -66,6 +67,8 @@
     {/if}
     {#if popup && !covered}
         <BoardPopup {popup} />
+    {:else if layers.site && !covered && !bench}
+        <SiteCardLayer spaceId={layers.site} onClose={() => layers.closeSite()} />
     {/if}
 </div>
 {#if layers.openSeatId !== undefined}
