@@ -25,7 +25,7 @@
 
 <g data-layer="ground" opacity={dimmedWithRest(chrome)}><MapGround /></g>
 <g data-layer="routes"><MapRoutes {chrome} /></g>
-<g data-layer="locations"><MapLocations {state} {chrome} /></g>
+<g data-layer="locations"><MapLocations {state} {paintOf} {chrome} /></g>
 {@render underContents?.()}
 <g data-layer="contents"><MapContents {state} {paintOf} {chrome} /></g>
 <g data-layer="pieces"><MapPieces {state} {paintOf} {chrome} /></g>
