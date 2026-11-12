@@ -6,8 +6,8 @@
     const gameSession = getGameSession()
     const animator = gameSession.trickAnimator
 
-    // Bottom is me; play goes to my right, so the next seat in turn order is on the right.
-    const Places = ['bottom', 'right', 'top', 'left'] as const
+    // Play goes round clockwise on screen, so the next seat in turn order is on my left.
+    const Places = ['bottom', 'left', 'top', 'right'] as const
     // The side places lean in; the trick animator turns a card into its lean as it lands.
     const Tilt = { bottom: 0, right: 8, top: 0, left: -8 } as const
 

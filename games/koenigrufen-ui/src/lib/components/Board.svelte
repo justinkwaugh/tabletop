@@ -51,10 +51,10 @@
         <Seat playerId={seats[2]} />
     </div>
     <div class="seat left">
-        <Seat playerId={seats[3]} openRows={narrow.current ? 2 : 1} />
+        <Seat playerId={seats[1]} openRows={narrow.current ? 2 : 1} />
     </div>
     <div class="seat right">
-        <Seat playerId={seats[1]} openRows={narrow.current ? 2 : 1} />
+        <Seat playerId={seats[3]} openRows={narrow.current ? 2 : 1} />
     </div>
     <div class="center"><TrickArea /></div>
     <div class="middle-talon"><Talon place={TalonPlace.Middle} /></div>

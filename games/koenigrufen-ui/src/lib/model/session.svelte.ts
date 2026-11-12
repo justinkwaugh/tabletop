@@ -135,7 +135,7 @@ export class KoenigrufenGameSession extends GameSession<
         return hand?.toSorted((a, b) => handSortKey(a) - handSortKey(b))
     }
 
-    // Seats from mine round the table in turn order, so the next to play sits on my right.
+    // Seats from mine round the table in turn order; the board draws them clockwise from my seat.
     readonly seatsFromMe: string[] = $derived.by(() => {
         const order = this.gameState.turnManager.turnOrder
         const start = Math.max(order.indexOf(this.myPlayer?.id ?? ''), 0)

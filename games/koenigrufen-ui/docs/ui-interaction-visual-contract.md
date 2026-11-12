@@ -2,6 +2,10 @@
 
 ## Visual intents
 
+### Seats
+
+- **Order:** I sit at the foot. The other seats follow turn order clockwise on screen: the next to play on my left, then the top seat, then my right. The rules' table runs anticlockwise, but play on screen goes clockwise (user's choice), and the trick's places follow the seats.
+
 ### The table on phones
 
 - **Trigger:** the viewport is 640px wide or less.
@@ -110,7 +114,7 @@
 
 - **A card played:** it flies from where it was held (my hand's slot, wherever a drag dropped it, an open hand's card, or the last card back of another seat) to its place in the trick, upright at first and turning into its place's lean as it lands (0.42s). The card leaves the hand as it sets off. The trick shows no winner until the card lands.
 - **A won trick leaving:** the fourth card's own play: the card lands (0.42s), the blue edge and caption fade in, the trick holds for one second, then its cards slide one after another to the winner's trick pile, shrinking to the pile's size without fading on the way (0.5s each), and vanish into it. The last trick of a hand goes the same way before the hand summary shows.
-- **The deal:** after the last hand's trick has gone, the new hand leaves the dealer's seat in packets of fanned backs, in Pagat's order: one to each player from the dealer's right, one to the talon, then one to each player again (about 1.4s). Packets land on the seats, in my hand at hand size, and on the talon; the state swap then shows the hands.
+- **The deal:** after the last hand's trick has gone, the new hand leaves the dealer's seat in packets of fanned backs, in Pagat's order: one to each player in turn order from the dealer, one to the talon, then one to each player again (about 1.4s). Packets land on the seats, in my hand at hand size, and on the talon; the state swap then shows the hands.
 - **The talon turning up:** the six cards slide out of the face-down stack in the middle to their places in the two halves, then each turns face up (narrowing to an edge and opening again), one after another (about 1s).
 - **The talon leaving the middle:** cards for the declarer fly into the declarer's hand (mine: growing to hand size; another declarer's: onto their seat's backs), the chosen half first; cards for the defenders fly to their gatherer's seat; cards that wait glide to the upper left, shrinking to its size. A face-down talon moves as backs.
 - **Laying away:** my laid-away cards fly from my hand to my name plate, shrinking and fading. Another declarer's seat lets that many backs rise and fade.
