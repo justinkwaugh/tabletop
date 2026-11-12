@@ -5,6 +5,8 @@ import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
 import {
+    EndDieAdjusted,
+    OpenDeal,
     PowerQuestionKind,
     QuestionAnswer,
     ShroudedWoodPick,
@@ -12,6 +14,7 @@ import {
     WarbandGain
 } from '../model/question.js'
 import { Region } from '../model/oathEnums.js'
+import { HospitalPlaced } from '../model/campaign.js'
 import { RelicToDeckBottom } from '../model/powerOutcome.js'
 import { PileDeposit } from '../model/hidden.js'
 import { PowerMoveToll } from '../model/powerMoveToll.js'
@@ -48,6 +51,18 @@ export const AnswerQuestionMetadata = Type.Object({
         Visibility.protect(Type.Array(Type.String()), { policy: Visibility.Policy.Actor })
     ),
     discardPileRegion: Type.Optional(Type.Enum(Region)),
+    /** Bracken — the discards went under that pile. */
+    discardToBottom: Type.Optional(Type.Boolean()),
+    /** Cracked Horn — the discards went under the world deck. */
+    discardToWorldDeck: Type.Optional(Type.Boolean()),
+    /** Land Warden — from revision 33: the discards went under this many cards of that pile. */
+    discardBeneath: Type.Optional(Type.Number()),
+    /** R-7.4 — False Prophet's play, from revision 32: the cards whose Search modifiers applied to it. */
+    modifiers: Type.Optional(Type.Array(Type.String())),
+    /** R-7.1.4 — False Prophet's play, from revision 32: each toll paid. */
+    tollsPaid: Type.Optional(Type.Array(Type.String())),
+    /** R-7.1.4 — False Prophet's play, from revision 32: the tolls it could not pay (the usual pile). */
+    tollsUnpaid: Type.Optional(Type.Array(Type.String())),
     pileDeposits: Type.Optional(Type.Array(PileDeposit, { maxItems: 8 })),
     // Skeleton Key
     relicTakenFromSlotId: Type.Optional(Type.String()),
@@ -59,12 +74,25 @@ export const AnswerQuestionMetadata = Type.Object({
     tollMove: Type.Optional(PowerMoveToll),
     /** R-5.5.8 — a banish's answer: its burn, the "if you're victorious" plans and the end. */
     triggered: Type.Optional(Type.Array(Type.String())),
+    /** Hospital — the warbands placed on its site when this answer ended the Campaign. */
+    hospitalPlaced: Type.Optional(HospitalPlaced),
     // Dragonskin Drum on a power's move
     warbandGain: Type.Optional(WarbandGain),
     /** R-2.11-H1 — a binding exchange, or the answer that landed a Relic Thief take. */
     titleMoment: Type.Optional(Type.Boolean()),
     /** R-5.5.4-H1 — the held attack, when this answer's settling rolled it. */
-    heldAttack: Type.Optional(HeldAttackRoll)
+    heldAttack: Type.Optional(HeldAttackRoll),
+    /**
+     * R-5.5.5 — Jinx: the attacker's warbands the skulls held for the answers killed, when this answer's
+     * settling killed them (read as a Campaign's battle record reads its own).
+     */
+    skullsKilled: Type.Optional(Type.Number()),
+    /** R-7.6.3-H1 — the Tribunal deal this accept opened, public with its promises. */
+    openedDeal: Type.Optional(OpenDeal),
+    /** R-7.6.3-H1 — the deal a claim asked about, as it stood when answered: kept closes it. */
+    answeredDeal: Type.Optional(OpenDeal),
+    /** Squalid District — the end die as rolled and as the answer left it, and what it decided. */
+    endDie: Type.Optional(EndDieAdjusted)
 })
 
 export type AnswerQuestion = Type.Static<typeof AnswerQuestion>
@@ -108,8 +136,10 @@ export class HydratedAnswerQuestion
         }
         const resume = resumeStateAfterQuestions(state)
         const outcome = applyAnswer(state, this.playerId, this.answer)
-        // R-X.3 — an answer that moves a card into the vault, or rolls, cannot be undone.
+        // R-X.3 — an answer that moves a card into the vault, rolls, or makes an offer's promises
+        // public in the deal it opens (R-7.6.3-H1) cannot be undone.
         this.revealsInfo =
+            outcome.openedDeal !== undefined ||
             outcome.relicToDeckBottom !== undefined ||
             outcome.relicTakenFromSlotId !== undefined ||
             outcome.rolled === true ||
@@ -126,14 +156,24 @@ export class HydratedAnswerQuestion
             relicToDeckBottom: outcome.relicToDeckBottom,
             discardedCardIds: outcome.discardedCardIds,
             discardPileRegion: outcome.discardPileRegion,
+            discardToBottom: outcome.discardToBottom,
+            discardToWorldDeck: outcome.discardToWorldDeck,
+            discardBeneath: outcome.discardBeneath,
+            modifiers: outcome.modifiers,
+            tollsPaid: outcome.tollsPaid,
+            tollsUnpaid: outcome.tollsUnpaid,
             pileDeposits: outcome.pileDeposits,
             relicTakenFromSlotId: outcome.relicTakenFromSlotId,
             woodPick: outcome.woodPick,
             woodStay: outcome.woodStay,
             tollMove: outcome.tollMove,
             triggered: outcome.triggered,
+            hospitalPlaced: outcome.hospitalPlaced,
             warbandGain: outcome.warbandGain,
-            titleMoment: outcome.titleMoment
+            titleMoment: outcome.titleMoment,
+            openedDeal: outcome.openedDeal,
+            answeredDeal: outcome.answeredDeal,
+            endDie: outcome.endDie
         }
         commitHiddenOutputs(this, state, witnesses)
     }

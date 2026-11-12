@@ -7,14 +7,19 @@ import {
     isRunTrains,
     nextOperatingCompany,
     type EighteenXXState,
+    type RouteResult,
     type TrainRoute
 } from '@tabletop/18xx'
 import { assertExists, type GameAction } from '@tabletop/common'
+import { recordedRunRoutes } from '../routes/routePresentation.js'
 import { companyFocusLocations } from './companyFocusLocations.js'
 
-function historyRunRoutes(state: EighteenXXState, action?: GameAction): readonly TrainRoute[] {
+function historyRunRoutes(
+    state: EighteenXXState,
+    action?: GameAction
+): readonly (TrainRoute | RouteResult)[] {
     if (!action) return []
-    if (isRunTrains(action)) return action.routes
+    if (isRunTrains(action)) return recordedRunRoutes(action)
     if (!isDistributeEarnings(action) || state.routeStep?.companyId !== action.companyId) return []
     assertExists(state.routeStep.result, 'Distributed earnings require the recorded train run')
     return state.routeStep.result.routes

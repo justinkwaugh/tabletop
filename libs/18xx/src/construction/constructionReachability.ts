@@ -1,6 +1,6 @@
 import { assertExists } from '@tabletop/common'
 import type { RailwayMapState } from '../map/mapState.js'
-import { cityIsBlocked, type StationState } from '../map/station.js'
+import { cityIsBlocked, companyStationCenters, type StationState } from '../map/station.js'
 import type { RevenueCenter } from '../routes/route.js'
 import type { TileEdge, TileEndpoint, TileFace, TileNode } from '../tiles/tile.js'
 import { rotateTileFace, sameTileEndpoint } from '../tiles/topology.js'
@@ -88,11 +88,7 @@ export class ConstructionReachability {
     }
 
     private origins(stations: StationState): RevenueCenter[] {
-        return stations.stations.flatMap((station) =>
-            station.status === 'placed' && station.companyId === this.companyId
-                ? [{ locationId: station.position.locationId, nodeId: station.position.nodeId }]
-                : []
-        )
+        return companyStationCenters(stations, this.companyId)
     }
 
     private blocked(stations: StationState) {

@@ -51,7 +51,13 @@ interface Scene {
 }
 
 /** Dana (an Exile) stands at the Shrouded Wood p1, which Rhys (an Exile) rules; Way Station is at p2. */
-function table({ revision = atRevision, supply = 4, favor = 3, p2Ruler = 'ann', tollRoads = false }: Scene = {}) {
+function table({
+    revision = atRevision,
+    supply = 4,
+    favor = 3,
+    p2Ruler = 'ann',
+    tollRoads = false
+}: Scene = {}) {
     // R-10.3 — the bandits rule a faceup site no warband holds.
     const p2Warbands = p2Ruler === 'bandits' ? {} : { [p2Ruler]: 2 }
     const s = testState(
@@ -66,13 +72,38 @@ function table({ revision = atRevision, supply = 4, favor = 3, p2Ruler = 'ann', 
                 warbandsOnBoard: { [DANA]: 3 },
                 advisers: [{ cardId: STORYTELLER, faceUp: false }]
             }),
-            testPlayer({ playerId: RHYS, color: Color.Red, status: PlayerStatus.Exile, siteId: 'h3', supply: 4, favor: 1, warbandsOnBoard: { [RHYS]: 3 } }),
-            testPlayer({ playerId: ANN, color: Color.Yellow, status: PlayerStatus.Exile, siteId: 'h2', supply: 4, favor: 1, warbandsOnBoard: { [ANN]: 3 } })
+            testPlayer({
+                playerId: RHYS,
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: 'h3',
+                supply: 4,
+                favor: 1,
+                warbandsOnBoard: { [RHYS]: 3 }
+            }),
+            testPlayer({
+                playerId: ANN,
+                color: Color.Yellow,
+                status: PlayerStatus.Exile,
+                siteId: 'h2',
+                supply: 4,
+                favor: 1,
+                warbandsOnBoard: { [ANN]: 3 }
+            })
         ]),
         {
             oathRevision: revision,
             siteCards: SITES,
-            denizensBySite: { c1: [], c2: [], p1: [], p2: tollRoads ? [WAY_STATION, TOLL_ROADS] : [WAY_STATION], p3: [], h1: [], h2: [], h3: [] },
+            denizensBySite: {
+                c1: [],
+                c2: [],
+                p1: [],
+                p2: tollRoads ? [WAY_STATION, TOLL_ROADS] : [WAY_STATION],
+                p3: [],
+                h1: [],
+                h2: [],
+                h3: []
+            },
             warbandsBySite: { p1: { [RHYS]: 1 }, p2: p2Warbands }
         }
     )
@@ -81,8 +112,12 @@ function table({ revision = atRevision, supply = 4, favor = 3, p2Ruler = 'ann', 
 }
 
 const pickAnswer: QuestionAnswer = { kind: PowerQuestionKind.ShroudedWoodDestination, siteId: 'p2' }
-const answer = (a: QuestionAnswer, playerId: string) => buildAction(AnswerQuestion, { playerId, answer: a })
-const give = (yes: boolean): QuestionAnswer => ({ kind: PowerQuestionKind.WayStationFavor, give: yes })
+const answer = (a: QuestionAnswer, playerId: string) =>
+    buildAction(AnswerQuestion, { playerId, answer: a })
+const give = (yes: boolean): QuestionAnswer => ({
+    kind: PowerQuestionKind.WayStationFavor,
+    give: yes
+})
 
 function leaveAndPick(s: HydratedOathGameState) {
     new HydratedTravel(buildAction(Travel, { playerId: DANA })).apply(s)
@@ -103,7 +138,13 @@ describe('R-11.7-H3 — Way Station at the Shrouded Wood’s pick', () => {
 
         const broke = table({ p2Ruler: 'dana', supply: 0 })
         expect(HydratedTravel.reasonCannotLeaveShroudedWood(broke, DANA, {})).toBeUndefined()
-        expect(payableWoodPicks(broke, DANA, { free: false }).map((p) => [p.siteId, p.cost, p.foldedBy])).toEqual([['p2', 0, [WAY_STATION]]])
+        expect(
+            payableWoodPicks(broke, DANA, { free: false }).map((p) => [
+                p.siteId,
+                p.cost,
+                p.foldedBy
+            ])
+        ).toEqual([['p2', 0, [WAY_STATION]]])
         leaveAndPick(broke)
         expect(dana(broke)).toMatchObject({ siteId: 'p2', supply: 0 })
     })
@@ -113,14 +154,27 @@ describe('R-11.7-H3 — Way Station at the Shrouded Wood’s pick', () => {
         const picked = leaveAndPick(s)
         expect(dana(s).siteId).toBe('p1')
         expect(queue(s)).toEqual([
-            expect.objectContaining({ kind: PowerQuestionKind.WayStationFavor, askedPlayerId: DANA, cardId: WAY_STATION, payeeId: ANN, siteId: 'p2', supplyCost: 2, chooserPlayerId: RHYS })
+            expect.objectContaining({
+                kind: PowerQuestionKind.WayStationFavor,
+                askedPlayerId: DANA,
+                cardId: WAY_STATION,
+                payeeId: ANN,
+                siteId: 'p2',
+                supplyCost: 2,
+                chooserPlayerId: RHYS
+            })
         ])
         expect(picked.metadata?.woodPick).toBeUndefined()
         const gave = new HydratedAnswerQuestion(answer(give(true), DANA))
         gave.apply(s)
         expect(dana(s)).toMatchObject({ siteId: 'p2', supply: 4, favor: 2 })
         expect(s.getPlayerState(ANN).favor).toBe(2)
-        expect(gave.metadata?.woodPick).toMatchObject({ siteId: 'p2', supplySpent: 0, chooserPlayerId: RHYS, notes: ['Way Station: paid ann 1 favor'] })
+        expect(gave.metadata?.woodPick).toMatchObject({
+            siteId: 'p2',
+            supplySpent: 0,
+            chooserPlayerId: RHYS,
+            notes: ['Way Station: paid ann 1 favor']
+        })
     })
 
     it('Pay spends the Wood’s 2 Supply and gives nothing', () => {
@@ -158,9 +212,20 @@ describe('R-11.7-H3 — Way Station at the Shrouded Wood’s pick', () => {
     it('with Toll Roads there too: the toll first, then Way Station, each a favor', () => {
         const s = table({ tollRoads: true })
         leaveAndPick(s)
-        expect(queue(s)).toEqual([expect.objectContaining({ kind: PowerQuestionKind.PayTravelToll, askedPlayerId: DANA })])
-        new HydratedAnswerQuestion(answer({ kind: PowerQuestionKind.PayTravelToll, pay: true }, DANA)).apply(s)
-        expect(queue(s)).toEqual([expect.objectContaining({ kind: PowerQuestionKind.WayStationFavor, askedPlayerId: DANA, payeeId: ANN, chooserPlayerId: RHYS })])
+        expect(queue(s)).toEqual([
+            expect.objectContaining({ kind: PowerQuestionKind.PayTravelToll, askedPlayerId: DANA })
+        ])
+        new HydratedAnswerQuestion(
+            answer({ kind: PowerQuestionKind.PayTravelToll, pay: true }, DANA)
+        ).apply(s)
+        expect(queue(s)).toEqual([
+            expect.objectContaining({
+                kind: PowerQuestionKind.WayStationFavor,
+                askedPlayerId: DANA,
+                payeeId: ANN,
+                chooserPlayerId: RHYS
+            })
+        ])
         new HydratedAnswerQuestion(answer(give(true), DANA)).apply(s)
         expect(dana(s)).toMatchObject({ siteId: 'p2', supply: 4, favor: 1 })
         expect(s.getPlayerState(ANN).favor).toBe(3)
@@ -169,20 +234,28 @@ describe('R-11.7-H3 — Way Station at the Shrouded Wood’s pick', () => {
     it('with Toll Roads there and 1 favor: the toll takes it, so the Supply is paid; with 1 Supply too, the site is not payable', () => {
         const s = table({ tollRoads: true, favor: 1 })
         leaveAndPick(s)
-        new HydratedAnswerQuestion(answer({ kind: PowerQuestionKind.PayTravelToll, pay: true }, DANA)).apply(s)
+        new HydratedAnswerQuestion(
+            answer({ kind: PowerQuestionKind.PayTravelToll, pay: true }, DANA)
+        ).apply(s)
         expect(queue(s)).toEqual([])
         expect(dana(s)).toMatchObject({ siteId: 'p2', supply: 2, favor: 0 })
 
         const poor = table({ tollRoads: true, favor: 1, supply: 1 })
-        expect(payableWoodPicks(poor, DANA, { free: false }).map((p) => p.siteId)).not.toContain('p2')
+        expect(payableWoodPicks(poor, DANA, { free: false }).map((p) => p.siteId)).not.toContain(
+            'p2'
+        )
     })
 
     it('the answer must be one Dana can make', () => {
         const s = table()
         leaveAndPick(s)
         dana(s).favor = 0
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, DANA, give(true))).toBe('giving takes 1 favor and you have 0')
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, RHYS, give(true))).toBe("the question is dana's to answer")
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, DANA, give(true))).toBe(
+            'giving takes 1 favor and you have 0'
+        )
+        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, RHYS, give(true))).toBe(
+            "the question is dana's to answer"
+        )
     })
 })
 
@@ -191,7 +264,13 @@ describe('R-X.4 — before revision 15 Way Station is ignored at the Wood’s pi
         const s = table({ revision: before, p2Ruler: 'dana' })
         leaveAndPick(s)
         expect(dana(s)).toMatchObject({ siteId: 'p2', supply: 2 })
-        expect(HydratedTravel.reasonCannotLeaveShroudedWood(table({ revision: before, p2Ruler: 'dana', supply: 0 }), DANA, {})).toMatch(/you can pay for no site/)
+        expect(
+            HydratedTravel.reasonCannotLeaveShroudedWood(
+                table({ revision: before, p2Ruler: 'dana', supply: 0 }),
+                DANA,
+                {}
+            )
+        ).toMatch(/you can pay for no site/)
     })
 
     it('an enemy’s Way Station asks nothing and takes the Supply', () => {
@@ -205,7 +284,11 @@ describe('R-X.4 — before revision 15 Way Station is ignored at the Wood’s pi
         for (const revision of [before, atRevision]) {
             const start = table({ revision }).dehydrate()
             const game = testGame([DANA, RHYS, ANN])
-            const left = engine.runNext(buildAction(Travel, { playerId: DANA }), structuredClone(start), game)
+            const left = engine.runNext(
+                buildAction(Travel, { playerId: DANA }),
+                structuredClone(start),
+                game
+            )
             const picked = engine.runNext(answer(pickAnswer, RHYS), left.updatedState, game)
             const steps = [...left.processedActions, ...picked.processedActions]
             let end = picked.updatedState
@@ -214,9 +297,18 @@ describe('R-X.4 — before revision 15 Way Station is ignored at the Wood’s pi
                 steps.push(...gave.processedActions)
                 end = gave.updatedState
             }
-            expect(end.players.find((p) => p.playerId === DANA)).toMatchObject({ siteId: 'p2', supply: revision === atRevision ? 4 : 2 })
+            expect(end.players.find((p) => p.playerId === DANA)).toMatchObject({
+                siteId: 'p2',
+                supply: revision === atRevision ? 4 : 2
+            })
             let replayed = structuredClone(start)
-            for (const action of steps) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+            for (const action of steps)
+                replayed = engine.run(
+                    structuredClone(action),
+                    replayed,
+                    game,
+                    RunMode.Single
+                ).updatedState
             expect(replayed).toEqual(end)
         }
     })
@@ -225,9 +317,17 @@ describe('R-X.4 — before revision 15 Way Station is ignored at the Wood’s pi
 describe('R-11.7-H3 on the seats’ own views', () => {
     const view = (playerId: string): Visibility.Perspective => ({ kind: 'player', playerId })
     const ownView = (s: HydratedOathGameState, playerId: string) =>
-        OathVisibility.state.guardForExecution(new HydratedOathGameState(served(s, view(playerId))), view(playerId))
+        OathVisibility.state.guardForExecution(
+            new HydratedOathGameState(served(s, view(playerId))),
+            view(playerId)
+        )
 
-    function sameOnOwnView<T>(s: HydratedOathGameState, playerId: string, check: (state: HydratedOathGameState) => T, expected: T) {
+    function sameOnOwnView<T>(
+        s: HydratedOathGameState,
+        playerId: string,
+        check: (state: HydratedOathGameState) => T,
+        expected: T
+    ) {
         const server = JSON.stringify(s.dehydrate())
         const seen = JSON.stringify(served(s, view(playerId)))
         expect(check(s)).toEqual(expected)
@@ -239,11 +339,26 @@ describe('R-11.7-H3 on the seats’ own views', () => {
     it('Rhys’s offered sites count Way Station’s favor; Dana’s answers are judged alike on their view', () => {
         // Dana holds a facedown adviser, so Rhys's view does not hold everything.
         const s = table({ supply: 1, favor: 1 })
-        sameOnOwnView(s, RHYS, (state) => payableWoodPicks(state, DANA, { free: false }).map((p) => p.siteId), ['p2'])
+        sameOnOwnView(
+            s,
+            RHYS,
+            (state) => payableWoodPicks(state, DANA, { free: false }).map((p) => p.siteId),
+            ['p2']
+        )
         sameOnOwnView(s, DANA, (state) => HydratedTravel.canDoTravel(state, DANA), true)
         const asked = table()
         leaveAndPick(asked)
-        sameOnOwnView(asked, DANA, (state) => HydratedAnswerQuestion.reasonCannotAnswer(state, DANA, give(true)), undefined)
-        sameOnOwnView(asked, DANA, (state) => HydratedAnswerQuestion.reasonCannotAnswer(state, DANA, give(false)), undefined)
+        sameOnOwnView(
+            asked,
+            DANA,
+            (state) => HydratedAnswerQuestion.reasonCannotAnswer(state, DANA, give(true)),
+            undefined
+        )
+        sameOnOwnView(
+            asked,
+            DANA,
+            (state) => HydratedAnswerQuestion.reasonCannotAnswer(state, DANA, give(false)),
+            undefined
+        )
     })
 })

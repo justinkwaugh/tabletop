@@ -7,13 +7,15 @@ import { commitHiddenOutputs, showTakenSiteRelics } from '../util/hiddenInputs.j
 import { tableWitnesses } from '../util/knowledge.js'
 import {
     banditPlanContext,
+    campaignRollRecord,
     hospitalHolderOf,
     killOrRedirect,
     partiesOf,
     usedPlanContext,
     killFromAttackingForce
 } from '../util/campaignRoll.js'
-import { concludeCampaign } from '../util/campaignEnd.js'
+import { concludeCampaign, hospitalPlacedRecord } from '../util/campaignEnd.js'
+import { survivorsTakingPlan } from '../util/battleOutcome.js'
 import { MachineState } from '../definition/states.js'
 import { isImperialPlayer } from '../util/rule.js'
 import { collectAttackingForce, scopeOf } from '../util/campaign.js'
@@ -26,7 +28,13 @@ import {
 } from '../util/battlePlans.js'
 import { BattlePlanSide } from '../data/cardPowers.js'
 import { ActionType } from '../definition/actions.js'
-import { WarbandGroup, type CampaignState } from '../model/campaign.js'
+import {
+    CampaignRollRecord,
+    HospitalPlaced,
+    WarbandGroup,
+    type CampaignState,
+    type HeldForHospital
+} from '../model/campaign.js'
 import {
     forceTotal,
     takeFromGroups,
@@ -59,7 +67,11 @@ export const CampaignSacrificeMetadata = Type.Object({
     /** Sneak Attack — where the interrupted turn resumes. */
     resumeMachineState: Type.Optional(Type.Enum(MachineState)),
     /** R-5.5.8, R-9.4 */
-    pileDeposits: Type.Optional(Type.Array(PileDeposit, { maxItems: 8 }))
+    pileDeposits: Type.Optional(Type.Array(PileDeposit, { maxItems: 8 })),
+    /** Hospital — a defeated attacker's warbands it placed on its site as the Campaign ended. */
+    hospitalPlaced: Type.Optional(HospitalPlaced),
+    /** R-5.5.4, R-5.5.5 — from revision 25, the dice as rolled and how the defense was made up. */
+    roll: Type.Optional(CampaignRollRecord)
 })
 
 export type CampaignSacrifice = Type.Static<typeof CampaignSacrifice>
@@ -111,6 +123,8 @@ export class HydratedCampaignSacrifice
 
         const campaign = state.campaign
         assertExists(campaign, 'A sacrifice requires a Campaign in progress')
+        // Taken before the sacrifice and the defeat change the board; the faces are final here.
+        const roll = campaignRollRecord(state, campaign)
 
         // R-5.5.5
         const sacrificedOwner = soleOwner(this.killSacrifice(state, campaign))
@@ -134,7 +148,8 @@ export class HydratedCampaignSacrifice
                 attackerVictorious,
                 sacrificed: this.sacrifice,
                 sacrificedOwner,
-                awaitingLossesOf: chooserId
+                awaitingLossesOf: chooserId,
+                ...(roll ? { roll } : {})
             }
             return
         }
@@ -150,7 +165,8 @@ export class HydratedCampaignSacrifice
             attackerVictorious,
             sacrificed: this.sacrifice,
             sacrificedOwner,
-            ...finished
+            ...finished,
+            ...(roll ? { roll } : {})
         }
 
         // R-X.3(b): a discard is replayed into the vault, which is never rolled back.
@@ -170,6 +186,7 @@ export class HydratedCampaignSacrifice
         planNotes?: string[]
         resumeMachineState?: MachineState
         pileDeposits?: PileDeposit[]
+        hospitalPlaced?: HeldForHospital[]
     } {
         const attackerVictorious = campaign.attackerVictorious === true
         const defeatedForce = attackerVictorious
@@ -202,7 +219,8 @@ export class HydratedCampaignSacrifice
             defeatKilled,
             planNotes: planNotes.length > 0 ? planNotes : undefined,
             resumeMachineState: conclusion?.resumeMachineState,
-            pileDeposits: pileDeposits.length > 0 ? pileDeposits : undefined
+            pileDeposits: pileDeposits.length > 0 ? pileDeposits : undefined,
+            hospitalPlaced: hospitalPlacedRecord(conclusion?.hospitalPlaced)
         }
     }
 
@@ -298,15 +316,10 @@ export class HydratedCampaignSacrifice
         victorSide: BattlePlanSide,
         survivors: readonly WarbandGroup[]
     ): string | undefined {
-        for (const playerId of playerIdsOnSide(campaign, victorSide)) {
-            for (const plan of plansUsedBy(state, campaign, playerId)) {
-                const take = plan.hooks.takesEnemySurvivors
-                if (take) {
-                    return take(usedPlanContext(state, campaign, playerId, plan), survivors)
-                }
-            }
-        }
-        return undefined
+        const taker = survivorsTakingPlan(state, campaign, victorSide)
+        const take = taker?.plan.hooks.takesEnemySurvivors
+        if (!taker || !take) return undefined
+        return take(usedPlanContext(state, campaign, taker.playerId, taker.plan), survivors)
     }
 
     static sacrificeNeeded(campaign: CampaignState): number {

@@ -1,5 +1,6 @@
 <script lang="ts">
     import DraftCard from './DraftCard.svelte'
+    import DraftLineup from './DraftLineup.svelte'
     import type { EighteenFortySixSession } from './session.svelte.js'
     let { session }: { session: EighteenFortySixSession } = $props()
     const draft = $derived(session.gameState.draft)
@@ -21,6 +22,7 @@
             is mandatory.
         </p>
     </header>
+    <DraftLineup {session} />
     <div class="draft-cards">
         {#each session.openingCompanies as choice (choice.companyId)}
             <DraftCard {session} cardId={choice.companyId} price={choice.expectedPrice}>

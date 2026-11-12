@@ -2,14 +2,10 @@ import * as Type from 'typebox'
 import { assertExists } from '@tabletop/common'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
+import { PowerTiming, type CardPower, powerKey } from '../data/cardPowers.js'
+import { powerInPlay, powersInPlay, reasonSideFaceDown } from './powersInPlay.js'
 import {
-    cardPowers,
-    PowerTiming,
-    powersWithTiming,
-    type CardPower,
-    powerKey
-} from '../data/cardPowers.js'
-import {
+    hasAccessAt,
     hasAccessToCard,
     isFacedownAdviserOf,
     poweredCardIds,
@@ -27,17 +23,26 @@ import type { WarbandOwner } from '../model/warbandCounts.js'
 
 // R-7.4.1, R-7.4.2, R-X.1 — one use per action; a costed modifier pays at declaration.
 
-/** Small Friends — "act as if your pawn is at any site with a beast card". */
+/**
+ * R-7.1.1-H2, Small Friends — "act as if your pawn is at any site with a beast card". Before
+ * revision 19 (R-X.4) holding the card reaches every such site, declared or not; from it, only
+ * the one site a declared Small Friends names (its Q&A: "Only the new site").
+ */
 export function reachableSitesFor(
     state: HydratedOathGameState,
     playerId: string,
-    action: ActionType
+    action: ActionType,
+    uses?: readonly ModifierUse[]
 ): string[] {
     if (action !== ActionType.Trade) return []
+    if (isAtLeastOathRevision(state, OathRevision.EngineFixes15)) {
+        const at = actsAsAtSite(state, playerId, action, uses)
+        return at === undefined ? [] : [at]
+    }
     const sites = new Set<string>()
     for (const cardId of cardsWithinReach(state, playerId)) {
         if (!hasAccessToCard(state, playerId, cardId)) continue
-        for (const power of powersWithTiming(cardId, PowerTiming.Modifier)) {
+        for (const power of powersInPlay(state, cardId, PowerTiming.Modifier)) {
             const hook = effectFor(power)?.modifier?.actsAsAtSites
             if (!hook) continue
             for (const siteId of hook({ state, playerId, power, choices: [] })) sites.add(siteId)
@@ -46,17 +51,95 @@ export function reachableSitesFor(
     return [...sites]
 }
 
-/** R-7.1.1 */
+/**
+ * Small Friends, from revision 19 (R-X.4) — the site a declared use names, where the Trade acts
+ * as if the pawn is. Its card must be one the player may use with these declarations: their own,
+ * or one lent by Master of Disguise. The site itself is judged where the use is resolved.
+ */
+export function actsAsAtSite(
+    state: HydratedOathGameState,
+    playerId: string,
+    action: ActionType,
+    uses: readonly ModifierUse[] | undefined
+): string | undefined {
+    return actingSite(state, playerId, action, uses)?.siteId
+}
+
+/**
+ * `actsAsAtSite`'s site and the card whose use names it. That card is used from where the pawn
+ * really stands: access to a modifier is judged when it is declared (R-7.4, R-7.4.1), so a Small
+ * Friends at the pawn's site may name another site. Only the other cards are judged as if the
+ * pawn were at the named site.
+ */
+function actingSite(
+    state: HydratedOathGameState,
+    playerId: string,
+    action: ActionType,
+    uses: readonly ModifierUse[] | undefined
+): { siteId: string; cardId: string } | undefined {
+    if (action !== ActionType.Trade) return undefined
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes15)) return undefined
+    const disguise = disguisedAs(action, uses)
+    for (const use of uses ?? []) {
+        const power = powerInPlay(state, use.cardId, use.powerIndex)
+        if (power?.timing !== PowerTiming.Modifier || power.modifiesAction !== action) continue
+        const hook = effectFor(power)?.modifier?.actsAsAtSites
+        if (!hook || !mayDeclare(state, playerId, use.cardId, disguise)) continue
+        const [siteId] = hook({ state, playerId, power, choices: use.choices ?? [] })
+        if (siteId !== undefined) return { siteId, cardId: use.cardId }
+    }
+    return undefined
+}
+
+/**
+ * R-7.1.1 — whether a declaration may name the card. Master of Disguise: the other player's
+ * faceup advisers stand in for the player's own other advisers.
+ */
+function mayDeclare(
+    state: HydratedOathGameState,
+    playerId: string,
+    cardId: string,
+    disguise: string | undefined
+): boolean {
+    if (disguise === undefined) return hasAccessToCard(state, playerId, cardId)
+    if (state.getPlayerState(disguise).faceupAdviserIds().includes(cardId)) return true
+    return !isOwnOtherAdviser(state, playerId, cardId) && hasAccessToCard(state, playerId, cardId)
+}
+
+/** Master of Disguise — "(You can't use your other advisers.)": every faceup adviser but itself. */
+function isOwnOtherAdviser(state: HydratedOathGameState, playerId: string, cardId: string) {
+    return cardId !== MASTER_OF_DISGUISE && state.getPlayerState(playerId).isFaceupAdviser(cardId)
+}
+
+/**
+ * R-7.1.1 — with Small Friends acting at a site (revision 19), that site's cards stand in for the
+ * pawn's own; what the player holds or rules stays in reach, and so does the card naming the
+ * site, reached from where the pawn stands. Master of Disguise — "act as if you had another
+ * player's advisers instead": the named player's faceup advisers stand in for the player's own
+ * other advisers (its Q&A: "you fully replace your advisers"), so the listing is what
+ * `resolveModifiers` accepts.
+ */
 function modifierCandidates(
     state: HydratedOathGameState,
     playerId: string,
-    action: ActionType
+    action: ActionType,
+    uses?: readonly ModifierUse[]
 ): string[] {
     const candidates = new Set<string>(poweredCardIds(state, playerId))
-    for (const siteId of reachableSitesFor(state, playerId, action)) {
+    for (const siteId of reachableSitesFor(state, playerId, action, uses)) {
         for (const id of state.denizensAt(siteId)) candidates.add(id)
     }
-    return [...candidates]
+    const acting = actingSite(state, playerId, action, uses)
+    const disguise = disguisedAs(action, uses)
+    const lent = disguise === undefined ? [] : state.getPlayerState(disguise).faceupAdviserIds()
+    const own = [...candidates].filter(
+        (cardId) =>
+            (acting === undefined ||
+                cardId === acting.cardId ||
+                hasAccessAt(state, playerId, cardId, acting.siteId)) &&
+            (disguise === undefined || !isOwnOtherAdviser(state, playerId, cardId))
+    )
+    return [...new Set([...own, ...lent])]
 }
 
 /** R-7.4 */
@@ -94,7 +177,7 @@ export function mandatoryModifiers(
 ): ActiveModifier[] {
     const found: ActiveModifier[] = []
     for (const cardId of modifierCandidates(state, playerId, action)) {
-        for (const power of powersWithTiming(cardId, PowerTiming.Modifier)) {
+        for (const power of powersInPlay(state, cardId, PowerTiming.Modifier)) {
             if (power.modifiesAction !== action) continue
             const effect = effectFor(power)
             if (!effect?.modifier || !effect.mandatory) continue
@@ -120,19 +203,26 @@ export function isFreeGain(power: CardPower): boolean {
     return effectFor(power)?.freeGain === true
 }
 
-/** A printed condition depends on the action's particulars, so it is checked at declaration. */
+/**
+ * A printed condition depends on the action's particulars, so it is checked at declaration.
+ * `uses`: the cards already declared, where they change what is in reach (Small Friends' site).
+ */
 export function usableModifiers(
     state: HydratedOathGameState,
     playerId: string,
-    action: ActionType
+    action: ActionType,
+    uses?: readonly ModifierUse[]
 ): CardPower[] {
     const found: CardPower[] = []
-    for (const cardId of modifierCandidates(state, playerId, action)) {
-        for (const power of powersWithTiming(cardId, PowerTiming.Modifier)) {
+    // Master of Disguise — a cost is paid as `resolveModifiers` judges it, under the lent Vow of Kinship.
+    const advisersOf = disguisedAs(action, uses)
+    for (const cardId of modifierCandidates(state, playerId, action, uses)) {
+        for (const power of powersInPlay(state, cardId, PowerTiming.Modifier)) {
             if (power.modifiesAction !== action) continue
             const effect = effectFor(power)
             if (!effect?.modifier || effect.mandatory) continue
-            if (reasonCannotPayPowerCost(state, playerId, power)) continue
+            if (effect.modifier.reasonUnusable?.({ state, playerId, power, choices: [] })) continue
+            if (reasonCannotPayPowerCost(state, playerId, power, undefined, advisersOf)) continue
             found.push(power)
         }
     }
@@ -177,6 +267,7 @@ export function resolveModifiers(
     const disguise = disguisedAs(action, uses)
     const disguisedAdvisers =
         disguise === undefined ? [] : state.getPlayerState(disguise).faceupAdviserIds()
+    const acting = actingSite(state, playerId, action, uses)
     for (const use of uses ?? []) {
         const key = powerKey(use.cardId, use.powerIndex)
         if (seen.has(key)) {
@@ -186,20 +277,21 @@ export function resolveModifiers(
             }
         }
         seen.add(key)
-        if (
-            disguise !== undefined &&
-            use.cardId !== MASTER_OF_DISGUISE &&
-            state.getPlayerState(playerId).isFaceupAdviser(use.cardId)
-        ) {
+        if (disguise !== undefined && isOwnOtherAdviser(state, playerId, use.cardId)) {
             return { reason: `Master of Disguise: you can't use your other advisers`, active }
         }
-        if (
-            !disguisedAdvisers.includes(use.cardId) &&
-            !hasAccessToCard(state, playerId, use.cardId) &&
-            !reachableSitesFor(state, playerId, action).includes(
-                siteHolding(state, use.cardId) ?? ''
-            )
-        ) {
+        // Small Friends from revision 19: its site stands in for the pawn's (Q&A: "Only the new site")
+        // for every card but the one naming it, which is used from where the pawn stands (R-7.4.1).
+        const inReach =
+            acting === undefined
+                ? hasAccessToCard(state, playerId, use.cardId) ||
+                  reachableSitesFor(state, playerId, action).includes(
+                      siteHolding(state, use.cardId) ?? ''
+                  )
+                : use.cardId === acting.cardId
+                  ? hasAccessToCard(state, playerId, use.cardId)
+                  : hasAccessAt(state, playerId, use.cardId, acting.siteId)
+        if (!disguisedAdvisers.includes(use.cardId) && !inReach) {
             return { reason: `you neither rule ${use.cardId} nor is your pawn at its site`, active }
         }
         if (isFacedownAdviserOf(state, playerId, use.cardId)) {
@@ -208,7 +300,9 @@ export function resolveModifiers(
                 active
             }
         }
-        const power = cardPowers(use.cardId)[use.powerIndex]
+        const faceDown = reasonSideFaceDown(state, use.cardId, use.powerIndex)
+        if (faceDown) return { reason: faceDown, active }
+        const power = powerInPlay(state, use.cardId, use.powerIndex)
         if (!power)
             return { reason: `${use.cardId} has no power at index ${use.powerIndex}`, active }
         if (power.timing !== PowerTiming.Modifier) {
@@ -234,7 +328,20 @@ export function resolveModifiers(
                 active
             }
         }
-        const unpayable = reasonCannotPayPowerCost(state, playerId, power)
+        const unusable = effect.modifier.reasonUnusable?.({
+            state,
+            playerId,
+            power,
+            choices: use.choices ?? []
+        })
+        if (unusable) return { reason: `${use.cardId}: ${unusable}`, active }
+        const unpayable = reasonCannotPayPowerCost(
+            state,
+            playerId,
+            power,
+            undefined,
+            particulars.advisersOf
+        )
         if (unpayable) return { reason: unpayable, active }
         const bankOnArrival =
             mode.destinationUnknown === true &&
@@ -254,6 +361,8 @@ export function resolveModifiers(
             const unmet = reasonModifierDoesNotApply(state, playerId, declared, particulars)
             if (unmet) return { reason: unmet, active }
         }
+        const disagrees = reasonAnswersDisagree(state, playerId, declared, active, particulars)
+        if (disagrees) return { reason: disagrees, active }
         active.push(declared)
     }
     if (mode.destinationUnknown) return { active }
@@ -264,6 +373,89 @@ export function resolveModifiers(
         active.push(m)
     }
     return { active }
+}
+
+function sameDiscardTarget(a: DiscardTarget, b: DiscardTarget): boolean {
+    return (
+        a.region === b.region &&
+        a.bottom === b.bottom &&
+        (a.worldDeck === true) === (b.worldDeck === true)
+    )
+}
+
+/**
+ * R-7.4-H2 — the question `m` and `other` each give one answer to, and answer differently: the pile a Search
+ * draws from (Errand Boy, Observatory) or where its discards go (Bracken, Cracked Horn).
+ */
+function questionAnsweredDifferently(
+    m: ActiveModifier,
+    other: ActiveModifier,
+    contextOf: (declared: ActiveModifier) => EffectContext
+): string | undefined {
+    const pile = m.hooks.drawRegion?.(contextOf(m))
+    const otherPile = other.hooks.drawRegion?.(contextOf(other))
+    if (pile !== undefined && otherPile !== undefined && pile !== otherPile) {
+        return 'the pile drawn from'
+    }
+    const to = m.hooks.discardTo?.(contextOf(m))
+    const otherTo = other.hooks.discardTo?.(contextOf(other))
+    if (to !== undefined && otherTo !== undefined && !sameDiscardTarget(to, otherTo)) {
+        return 'where the discards go'
+    }
+    return undefined
+}
+
+/**
+ * R-7.4-H2 — from revision 31, a modifier declared after one that answers the same question is refused unless
+ * their answers agree, so none is paid for while another's answer overrides it. Before it (R-X.4), both are
+ * accepted and the first declared applies.
+ */
+export function reasonAnswersDisagree(
+    state: HydratedOathGameState,
+    playerId: string,
+    m: ActiveModifier,
+    earlier: readonly ActiveModifier[],
+    particulars: Partial<EffectContext['particulars']> = {}
+): string | undefined {
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes26)) return undefined
+    const contextOf = (declared: ActiveModifier): EffectContext => ({
+        ...modifierContext(state, playerId, declared),
+        particulars
+    })
+    for (const other of earlier) {
+        const question = questionAnsweredDifferently(m, other, contextOf)
+        if (question) {
+            return `${m.power.cardId} and ${other.power.cardId} give different answers to ${question} (R-7.4-H2)`
+        }
+    }
+    return undefined
+}
+
+/**
+ * R-7.4-H2 — the same check on uses in the order given, for a menu that offers a card beside the cards in use
+ * before the action is judged.
+ */
+export function reasonUsesDisagree(
+    state: HydratedOathGameState,
+    playerId: string,
+    uses: readonly ModifierUse[]
+): string | undefined {
+    const earlier: ActiveModifier[] = []
+    for (const use of uses) {
+        const power = powerInPlay(state, use.cardId, use.powerIndex)
+        const hooks = power ? effectFor(power)?.modifier : undefined
+        if (!power || !hooks) continue
+        const declared: ActiveModifier = {
+            power,
+            hooks,
+            choices: use.choices ?? [],
+            mandatory: false
+        }
+        const reason = reasonAnswersDisagree(state, playerId, declared, earlier)
+        if (reason) return reason
+        earlier.push(declared)
+    }
+    return undefined
 }
 
 /** A declared modifier's printed condition, and its cross-check, for the action's particulars. */
@@ -286,8 +478,8 @@ export function carriedModifiers(
 ): ActiveModifier[] {
     const active: ActiveModifier[] = []
     for (const use of carried ?? []) {
-        const power = cardPowers(use.cardId)[use.powerIndex]
-        assertExists(power, `${use.cardId} prints no power ${use.powerIndex}`)
+        const power = powerInPlay(state, use.cardId, use.powerIndex)
+        assertExists(power, `${use.cardId} has no power ${use.powerIndex} in play`)
         const hooks = effectFor(power)?.modifier
         assertExists(hooks, `${use.cardId} power ${use.powerIndex} is not a modifier`)
         active.push({ power, hooks, choices: use.choices ?? [], mandatory: false })
@@ -295,12 +487,86 @@ export function carriedModifiers(
     return active
 }
 
+/**
+ * R-7.4.3 — "A modifier cannot be discarded during the major action it is modifying": the cards of the modifiers
+ * a Search uses, or an R-6.1 play "as if you searched", from revision 31. Before it (R-X.4), none.
+ */
+export function modifierCardsInUse(
+    state: HydratedOathGameState,
+    active: readonly ActiveModifier[]
+): string[] {
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes26)) return []
+    return [...new Set(active.map((m) => m.power.cardId))]
+}
+
+/** R-7.4.3 — the Search, or the R-6.1 play, under way records its modifiers in use until it ends. */
+export function beginModifiersInUse(
+    state: HydratedOathGameState,
+    active: readonly ActiveModifier[]
+): void {
+    const inUse = modifierCardsInUse(state, active)
+    if (inUse.length > 0) state.searchModifiersInUse = inUse
+}
+
+/**
+ * R-7.4.3 — the Search, or the R-6.1 play, ends with its play, or with the last of the questions the play asked
+ * (Twin Brother's swap and the discard after it), whose queue keeps its modifiers barred until it closes.
+ */
+export function endModifiersInUse(state: HydratedOathGameState): void {
+    const inUse = state.searchModifiersInUse
+    state.searchModifiersInUse = undefined
+    if (inUse && state.pendingQuestions) state.pendingQuestions.searchModifiersInUse = inUse
+}
+
+/**
+ * R-7.4.3 — whether `cardId` is a modifier in use: one the action under way recorded, until it and the questions it
+ * asks are done, or one of `declared`, the cards in use of an R-6.1 play judged before it records them.
+ */
+export function reasonModifierInUse(
+    state: HydratedOathGameState,
+    cardId: string,
+    declared: readonly string[] = []
+): string | undefined {
+    const inUse = state.searchModifiersInUse ?? state.pendingQuestions?.searchModifiersInUse ?? []
+    return inUse.includes(cardId) || declared.includes(cardId)
+        ? `${cardId} is a modifier in use and cannot be discarded during the action it modifies`
+        : undefined
+}
+
+/**
+ * R-7.4, R-5.1.4 — a Search, or a power's draw played "as if you searched" (Oracle), carries the modifiers that act
+ * after its draw to its play, which reads and clears them (`SearchResolve`).
+ */
+export function carryToSearchPlay(
+    state: HydratedOathGameState,
+    active: readonly ActiveModifier[]
+): void {
+    const carried = active
+        .filter(
+            (m) =>
+                m.hooks.after !== undefined ||
+                m.hooks.discardTo !== undefined ||
+                m.hooks.discardFirstAtSitePlay === true ||
+                m.hooks.sitePlayGainsSecret === true ||
+                m.hooks.playAnywhere !== undefined ||
+                m.hooks.secondPlay === true ||
+                m.hooks.revealsDraw === true ||
+                m.hooks.swapsWithDispossessed === true
+        )
+        .map((m) => ({
+            cardId: m.power.cardId,
+            powerIndex: m.power.powerIndex,
+            choices: m.choices.length > 0 ? [...m.choices] : undefined
+        }))
+    state.pendingSearchModifiers = carried.length > 0 ? carried : undefined
+}
+
 /** R-7.4, R-5.1.4 — the modifiers a Search carries to its play. */
 export function searchPlayModifiers(state: HydratedOathGameState): ActiveModifier[] {
     return carriedModifiers(state, state.pendingSearchModifiers)
 }
 
-/** Bracken, Cracked Horn */
+/** Bracken, Cracked Horn — the first with an answer, which from revision 31 is the only one (R-7.4-H2). */
 export function discardTargetOf(
     state: HydratedOathGameState,
     playerId: string,
@@ -311,14 +577,15 @@ export function discardTargetOf(
         .find((t) => t !== undefined)
 }
 
-/** R-7.1.2 */
+/** R-7.1.2 — `advisersOf`: whose Vow of Kinship a Trade's favor follows (`favorHomeBankOf`). */
 export function payModifierCosts(
     state: HydratedOathGameState,
     playerId: string,
-    active: readonly ActiveModifier[]
+    active: readonly ActiveModifier[],
+    advisersOf?: string
 ): void {
     for (const m of active) {
-        if (!m.mandatory) payPowerCost(state, playerId, m.power)
+        if (!m.mandatory) payPowerCost(state, playerId, m.power, advisersOf)
     }
 }
 
@@ -453,12 +720,20 @@ export function firstForbid(
     return undefined
 }
 
+/**
+ * R-7.3.3-H3 — from revision 31 a Search's modifiers resolve once its played card has made its gains, before that
+ * card's When Played power; before it (R-X.4), after the power and any second play.
+ */
+export function modifiersResolveBeforePower(state: HydratedOathGameState): boolean {
+    return isAtLeastOathRevision(state, OathRevision.EngineFixes26)
+}
+
 export function runAfter(
     state: HydratedOathGameState,
     playerId: string,
     active: readonly ActiveModifier[],
     particulars: Partial<EffectContext['particulars']> = {}
-): { notes: string[]; endsActPhase: boolean; warbandOwners: WarbandOwner[] } {
+): { notes: string[]; endsActPhase: boolean; warbandOwner: WarbandOwner | undefined } {
     const notes: string[] = []
     const warbandOwners: WarbandOwner[] = []
     let endsActPhase = false
@@ -469,7 +744,10 @@ export function runAfter(
         if (r.endsActPhase) endsActPhase = true
         if (r.warbandOwner !== undefined) warbandOwners.push(r.warbandOwner)
     }
-    return { notes, endsActPhase, warbandOwners }
+    // R-10.13 — whose warbands the hooks killed, for the History, when they were one owner's.
+    const owners = new Set(warbandOwners)
+    const warbandOwner = owners.size === 1 ? warbandOwners[0] : undefined
+    return { notes, endsActPhase, warbandOwner }
 }
 
 export function modifierSummary(active: readonly ActiveModifier[]): string[] {

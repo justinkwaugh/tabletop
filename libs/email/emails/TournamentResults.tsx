@@ -1,3 +1,4 @@
+import { tournamentTiebreakDescription } from '@tabletop/common'
 import { ButtonFallback, CardButton, DarkCardEmail, formatNames } from '../components/darkCard.js'
 import {
     ChampionPanel,
@@ -12,14 +13,23 @@ interface TournamentResultsProps {
     title: string
     winners: string[]
     standings: StandingsRow[]
+    tiebreakDescription: string
+    ranksByAveragePlace?: boolean
     url?: string
 }
+
+const finishText = (row: StandingsRow, ranksByAveragePlace: boolean): string =>
+    ranksByAveragePlace && row.averagePlace !== undefined
+        ? `an average place of ${row.averagePlace}`
+        : `${row.wins} ${row.wins === 1 ? 'win' : 'wins'}`
 
 export const TournamentResults = ({
     tournamentName,
     title,
     winners,
     standings,
+    tiebreakDescription,
+    ranksByAveragePlace = false,
     url = ``,
 }: TournamentResultsProps) => {
     const shared = winners.length > 1
@@ -45,9 +55,14 @@ export const TournamentResults = ({
                         ? shared
                             ? 'You share the top of the table. Congratulations!'
                             : 'That is you. Congratulations!'
-                        : `You finished ${ordinal(recipient.rank)} with ${recipient.wins} ${recipient.wins === 1 ? 'win' : 'wins'}.`)}
+                        : `You finished ${ordinal(recipient.rank)} with ${finishText(recipient, ranksByAveragePlace)}.`)}
             </ChampionPanel>
-            <StandingsTable label="Final standings" rows={standings} />
+            <StandingsTable
+                label="Final standings"
+                rows={standings}
+                tiebreakDescription={tiebreakDescription}
+                ranksByAveragePlace={ranksByAveragePlace}
+            />
             <CardButton href={url}>View the tournament</CardButton>
         </DarkCardEmail>
     )
@@ -58,11 +73,12 @@ TournamentResults.PreviewProps = {
     title: 'Fresh Fish',
     winners: ['Alice'],
     standings: [
-        { rank: 1, name: 'Alice', wins: 3, score: 2.5, tiebreak: 142, recipient: false },
-        { rank: 2, name: 'Bob', wins: 3, score: 2.5, tiebreak: 137, recipient: true },
-        { rank: 3, name: 'Carol', wins: 1, score: 1, tiebreak: 120, recipient: false },
-        { rank: 4, name: 'Dave', wins: 0, score: 0, tiebreak: 98, recipient: false },
+        { rank: 1, name: 'Alice', wins: 3, score: 2.5, tiebreak: '-0.99', recipient: false },
+        { rank: 2, name: 'Bob', wins: 3, score: 2.5, tiebreak: '-1.775', recipient: true },
+        { rank: 3, name: 'Carol', wins: 1, score: 1, tiebreak: '-4.265', recipient: false },
+        { rank: 4, name: 'Dave', wins: 0, score: 0, tiebreak: '-9.332', recipient: false },
     ],
+    tiebreakDescription: tournamentTiebreakDescription([{ pointsBehind: 0 }]),
     url: 'https://boardtogether.games/tournaments/fresh-fish-autumn-mini',
 } satisfies TournamentResultsProps
 

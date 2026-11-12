@@ -56,7 +56,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             socket: { host: process.env.CACHE_TEST_REDIS_HOST, reconnectStrategy: false }
         })
         const { cache, pool, guardPool } = cacheFixture(client)
-        const gameStore = new FirestoreGameStore(cache, db, prefix)
+        const gameStore = new FirestoreGameStore(cache, db, { tournamentCachePrefix: prefix })
         const tournamentStore = new FirestoreTournamentStore(cache, db, prefix)
         const leagueStore = new FirestoreLeagueStore(cache, db, `${prefix}-leagues`)
         const users: User[] = Array.from({ length: 24 }, (_, index) => ({
@@ -529,6 +529,74 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             const second = await leagues.get(id, undefined, users[0])
             expect(second.season?.number).toBe(2)
             expect(second.season?.heldPlaces.filter((place) => place.level === 0)).toHaveLength(7)
+        })
+
+        it('leaves a banned sign-up out of the groups when sign-up closes', async () => {
+            const id = `${prefix}-banned-entrant`
+            await leagues.create(id, draft, admin)
+            await leagues.publish(id, now + 1000, admin)
+            for (const user of users.slice(0, 24)) await leagues.signUp(id, user)
+            const bannedId = users[3].id
+            vi.mocked(userService.getUsers).mockImplementation(async (ids) =>
+                ids.map((userId) => {
+                    const account = [...users, admin].find((user) => user.id === userId)
+                    return account && userId === bannedId
+                        ? { ...account, status: UserStatus.Inactive }
+                        : account
+                })
+            )
+            now += 1000
+            try {
+                await leagues.runTask({ leagueId: id })
+                const { season } = await leagues.get(id, undefined, admin)
+                const seated = season?.groups?.flatMap((group) => group.entrantIds) ?? []
+                expect(seated).not.toContain(bannedId)
+                expect(seated).toContain(users[4].id)
+            } finally {
+                vi.mocked(userService.getUsers).mockImplementation(async (ids) =>
+                    ids.map((userId) => [...users, admin].find((user) => user.id === userId))
+                )
+            }
+        })
+
+        it('emails no league news to an entrant who turned game and competition emails off', async () => {
+            const id = `${prefix}-opted-out`
+            await leagues.create(id, draft, admin)
+            await leagues.publish(id, now + 1000, admin)
+            for (const user of users.slice(0, 24)) await leagues.signUp(id, user)
+            const optedOutId = users[3].id
+            vi.mocked(userService.getUsers).mockImplementation(async (ids) =>
+                ids.map((userId) => {
+                    const account = [...users, admin].find((user) => user.id === userId)
+                    return account && userId === optedOutId
+                        ? {
+                              ...account,
+                              preferences: {
+                                  preventWebNotificationPrompt: false,
+                                  preferredColorsEnabled: false,
+                                  preferredColors: [],
+                                  gameAndCompetitionEmails: false
+                              }
+                          }
+                        : account
+                })
+            )
+            enqueue.mockClear()
+            now += 1000
+            try {
+                await leagues.runTask({ leagueId: id })
+                const recipients = emails('seasonStart').map((task) =>
+                    task.payload && typeof task.payload === 'object' && 'userId' in task.payload
+                        ? task.payload.userId
+                        : undefined
+                )
+                expect(recipients).toContain(users[4].id)
+                expect(recipients).not.toContain(optedOutId)
+            } finally {
+                vi.mocked(userService.getUsers).mockImplementation(async (ids) =>
+                    ids.map((userId) => [...users, admin].find((user) => user.id === userId))
+                )
+            }
         })
 
         it('keeps sign-up open below two full Levels until an administrator moves the close', async () => {

@@ -9,7 +9,9 @@ export const TrainDistance = Type.Object(
             Type.Literal('revenue-centers'),
             Type.Literal('cities-and-offboards')
         ]),
-        maximum: Type.Union([Type.Integer({ minimum: 1 }), Type.Literal('unlimited')])
+        maximum: Type.Union([Type.Integer({ minimum: 1 }), Type.Literal('unlimited')]),
+        /** Towns a revenue-centre train may visit beyond its maximum, such as a 5+1's one. */
+        extraTowns: Type.Optional(Type.Integer({ minimum: 1 }))
     },
     { additionalProperties: false }
 )
@@ -51,7 +53,12 @@ export const TrainInventory = Type.Object(
 )
 export type TrainInventory = Type.Static<typeof TrainInventory>
 export const TrainPurchaseStep = Type.Object(
-    { companyId: Id, purchasedTrainIds: Type.Array(Id, { uniqueItems: true }) },
+    {
+        companyId: Id,
+        purchasedTrainIds: Type.Array(Id, { uniqueItems: true }),
+        /** Trains the company gave in exchange this turn, for titles that limit exchanges. */
+        exchangedTrainIds: Type.Optional(Type.Array(Id, { uniqueItems: true }))
+    },
     { additionalProperties: false }
 )
 export type TrainPurchaseStep = Type.Static<typeof TrainPurchaseStep>
@@ -67,6 +74,10 @@ export function trainsOwnedBy(state: TrainState, owner: Owner): Train[] {
     )
 }
 
+export function trainIdsOwnedBy(state: TrainState, owner: Owner): string[] {
+    return trainsOwnedBy(state, owner).map((train) => train.id)
+}
+
 export function isObsoleteTrain(train: Train): boolean {
     return train.status === 'owned' && train.rustsAfterOperation === true
 }
@@ -76,7 +87,8 @@ export function trainCanBeTraded(train: Train): boolean {
 }
 
 /** Where trains go when they leave a company: the bank's market, or out of play. */
-export type TrainDestination = 'market' | 'removed'
+export const TrainDestination = Type.Union([Type.Literal('market'), Type.Literal('removed')])
+export type TrainDestination = Type.Static<typeof TrainDestination>
 
 export function releaseTrains(
     inventory: TrainInventory,

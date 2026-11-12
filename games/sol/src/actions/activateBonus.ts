@@ -120,18 +120,15 @@ export class HydratedActivateBonus
             return false
         }
         const activation = state.getActivationForPlayer(turnPlayerId)
-        if (!activation) {
+        if (!activation?.currentStationId) {
             return false
         }
 
-        if (activation?.currentStationCoords?.row === Ring.Outer) {
+        if (activation.currentStationCoords?.row === Ring.Outer) {
             return false
         }
 
         const station = state.getActivatingStation(turnPlayerId)
-        if (!station) {
-            return false
-        }
 
         if (state.activeEffect === EffectType.Pulse) {
             const assetsAfterActivation = HydratedActivate.calculateAssetsAfterActivation({
@@ -215,11 +212,11 @@ export class HydratedActivateBonus
         activateBonus: ActivateBonus
     ): boolean {
         const activation = state.getActivationForTurnPlayer()
-        if (!activation) {
+        if (!activation?.currentStationId) {
             return false
         }
 
-        if (activation?.currentStationCoords?.row === Ring.Outer) {
+        if (activation.currentStationCoords?.row === Ring.Outer) {
             return false
         }
 

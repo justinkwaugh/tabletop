@@ -2,6 +2,12 @@
     import { onDestroy, onMount, untrack, type Snippet } from 'svelte'
     import type { RectangleDimensions } from '@tabletop/common'
     import { wheelDeltaUnit } from '../utils/wheelDelta.js'
+    import {
+        scrollAncestorsWithFinger,
+        scrollNearestAncestorWithFinger,
+        type ScrollAxis
+    } from '../utils/scrollChain.js'
+    import { fling, fingerVelocity, type Fling } from '../utils/touchFling.js'
 
     const DISCRETE_ZOOM_STEP = 0.15
     const OVERPAN_EASE_RELATIVE_ZOOM = 0.05
@@ -14,9 +20,6 @@
     const TRACKPAD_PINCH_ZOOM_SENSITIVITY = 0.006
     const PINCH_ZOOM_SENSITIVITY = 1
     const GESTURE_ZOOM_SENSITIVITY = 1.2
-    const TOUCH_INERTIA_DECAY_PER_FRAME = 0.92
-    const TOUCH_INERTIA_MIN_VELOCITY = 0.02
-    const TOUCH_INERTIA_MAX_VELOCITY = 2.5
 
     type FocusRect = {
         x: number
@@ -35,6 +38,8 @@
         animate?: boolean
     }
 
+    type RevealOptions = Omit<FocusOptions, 'maxScale'>
+
     type FocusTarget = {
         rect: FocusRect
         maxScale: number
@@ -47,8 +52,6 @@
         x: number
         y: number
     }
-
-    type Axis = 'x' | 'y'
 
     type PlacedView = {
         size: RectangleDimensions
@@ -115,7 +118,9 @@
          * Draw the content at the scale it is shown, not at its own size: once the view settles the
          * content is laid out again with CSS zoom at that scale, and only gestures and animations
          * stretch it by transform until then. Its bitmaps and SVG then cost what is on screen, and
-         * it stays sharp when zoomed in, at the price of a redraw after each zoom.
+         * it stays sharp when zoomed in, at the price of a redraw after each zoom. The zoom is
+         * published to the content as `--render-zoom` and its inverse as `--render-unzoom`, so a
+         * part that must not be laid out again, such as HTML text, can take it back off.
          */
         renderAtViewScale?: boolean
         expandable?: boolean
@@ -169,10 +174,12 @@
     let panLastTimestamp: number | null = null
     let panVelocityX = 0
     let panVelocityY = 0
-    let panInertiaFrame: number | undefined
+    let panFling: Fling | undefined
     let scrollVelocityX = 0
     let scrollVelocityY = 0
-    let scrollInertiaFrame: number | undefined
+    let scrollFling: Fling | undefined
+    // Reversing a drag that has scrolled the page keeps scrolling the page.
+    let handedOffAxes: Record<ScrollAxis, boolean> = { x: false, y: false }
     let gestureStartScale: number | null = null
     let mouseStartPoint: Point | null = null
     let mouseLastPoint: Point | null = null
@@ -183,8 +190,12 @@
 
     function handleMouseDown(event: MouseEvent) {
         suppressMouseClick = false
-        if (event.button !== 0 || (event.target instanceof Element &&
-            event.target.closest('input, textarea, select, [contenteditable="true"]'))) return
+        if (
+            event.button !== 0 ||
+            (event.target instanceof Element &&
+                event.target.closest('input, textarea, select, [contenteditable="true"]'))
+        )
+            return
         event.preventDefault()
         mouseStartPoint = mouseLastPoint = { x: event.clientX, y: event.clientY }
     }
@@ -195,8 +206,11 @@
             endMouseDrag()
             return
         }
-        if (!mouseDragging && Math.hypot(event.clientX - mouseStartPoint.x,
-            event.clientY - mouseStartPoint.y) < 5) return
+        if (
+            !mouseDragging &&
+            Math.hypot(event.clientX - mouseStartPoint.x, event.clientY - mouseStartPoint.y) < 5
+        )
+            return
         mouseDragging = true
         suppressMouseClick = true
         event.preventDefault()
@@ -204,9 +218,12 @@
         cancelPanInertia()
         cancelScrollInertia()
         clearActiveFocus()
-        const next = clampTranslation(currentScale,
+        const next = clampTranslation(
+            currentScale,
             currentTranslateX + event.clientX - mouseLastPoint.x,
-            currentTranslateY + event.clientY - mouseLastPoint.y, 'gesture')
+            currentTranslateY + event.clientY - mouseLastPoint.y,
+            'gesture'
+        )
         mouseLastPoint = { x: event.clientX, y: event.clientY }
         notifyManualViewChange(currentScale, next.translateX, next.translateY)
         applyView(currentScale, next.translateX, next.translateY)
@@ -248,11 +265,12 @@
         return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
     }
 
+    function normalizePadding(padding: FocusOptions['padding']) {
+        return typeof padding === 'number' ? { x: padding, y: padding } : padding
+    }
+
     function normalizeFocusTarget(rect: FocusRect, options: FocusOptions = {}): FocusTarget {
-        const padding =
-            typeof options.padding === 'number'
-                ? { x: options.padding, y: options.padding }
-                : options.padding
+        const padding = normalizePadding(options.padding)
 
         return {
             rect,
@@ -284,11 +302,15 @@
             return containScale
         }
 
-        return Math.min(Math.max(wrapperWidth / contentWidth, availableHeight() / contentHeight), fitCap())
+        return Math.min(
+            Math.max(wrapperWidth / contentWidth, availableHeight() / contentHeight),
+            fitCap()
+        )
     }
 
     function updateDiscreteLevels(lowestScale: number) {
-        zoomLevels = lowestScale === maxScale ? 0 : Math.floor((maxScale - lowestScale) / DISCRETE_ZOOM_STEP)
+        zoomLevels =
+            lowestScale === maxScale ? 0 : Math.floor((maxScale - lowestScale) / DISCRETE_ZOOM_STEP)
     }
 
     function clampScale(scale: number) {
@@ -316,13 +338,16 @@
         const scaledWidth = contentWidth * clampedScale
         const scaledHeight = contentHeight * clampedScale
         const defaultTranslateX = getOffsetX(scaledWidth)
-        const defaultTranslateY = insetTop + (isExpanded ? Math.max(0, (availableHeight() - scaledHeight) / 2) : 0)
-        const rangeX = scaledWidth > wrapperWidth
-            ? { min: wrapperWidth - scaledWidth, max: 0 }
-            : { min: defaultTranslateX, max: defaultTranslateX }
-        const rangeY = scaledHeight > availableHeight()
-            ? { min: wrapperHeight - scaledHeight, max: insetTop }
-            : { min: defaultTranslateY, max: defaultTranslateY }
+        const defaultTranslateY =
+            insetTop + (isExpanded ? Math.max(0, (availableHeight() - scaledHeight) / 2) : 0)
+        const rangeX =
+            scaledWidth > wrapperWidth
+                ? { min: wrapperWidth - scaledWidth, max: 0 }
+                : { min: defaultTranslateX, max: defaultTranslateX }
+        const rangeY =
+            scaledHeight > availableHeight()
+                ? { min: wrapperHeight - scaledHeight, max: insetTop }
+                : { min: defaultTranslateY, max: defaultTranslateY }
         const overpanFraction = getOverpanFraction(clampedScale)
 
         const gestureFraction = overpan === 'focus' ? overpanFraction : 0
@@ -330,24 +355,60 @@
             scale: clampedScale,
             x: {
                 range: rangeX,
-                overpanRange: getOverpanRange(rangeX, scaledWidth, 0, wrapperWidth, 0.5, overpanFraction),
-                gestureRange: getOverpanRange(rangeX, scaledWidth, 0, wrapperWidth, gestureOverpanReach, gestureFraction)
+                overpanRange: getOverpanRange(
+                    rangeX,
+                    scaledWidth,
+                    0,
+                    wrapperWidth,
+                    0.5,
+                    overpanFraction
+                ),
+                gestureRange: getOverpanRange(
+                    rangeX,
+                    scaledWidth,
+                    0,
+                    wrapperWidth,
+                    gestureOverpanReach,
+                    gestureFraction
+                )
             },
             y: {
                 range: rangeY,
-                overpanRange: getOverpanRange(rangeY, scaledHeight, insetTop, availableHeight(), 0.5, overpanFraction),
-                gestureRange: getOverpanRange(rangeY, scaledHeight, insetTop, availableHeight(), gestureOverpanReach, gestureFraction)
+                overpanRange: getOverpanRange(
+                    rangeY,
+                    scaledHeight,
+                    insetTop,
+                    availableHeight(),
+                    0.5,
+                    overpanFraction
+                ),
+                gestureRange: getOverpanRange(
+                    rangeY,
+                    scaledHeight,
+                    insetTop,
+                    availableHeight(),
+                    gestureOverpanReach,
+                    gestureFraction
+                )
             }
         }
     }
 
     function getOverpanFraction(scale: number) {
-        return overpan === 'none' ? 0 : clamp((scale / minScale - 1) / OVERPAN_EASE_RELATIVE_ZOOM, 0, 1)
+        return overpan === 'none'
+            ? 0
+            : clamp((scale / minScale - 1) / OVERPAN_EASE_RELATIVE_ZOOM, 0, 1)
     }
 
     // Overpan lets the content's edges come a reach of the view in from its own edges.
-    function getOverpanRange(range: PanRange, scaledSize: number, viewportStart: number, viewportSize: number,
-        reach: number, fraction: number): PanRange {
+    function getOverpanRange(
+        range: PanRange,
+        scaledSize: number,
+        viewportStart: number,
+        viewportSize: number,
+        reach: number,
+        fraction: number
+    ): PanRange {
         const near = viewportStart + reach * viewportSize
         const far = viewportStart + (1 - reach) * viewportSize
         return {
@@ -356,27 +417,57 @@
         }
     }
 
-    function mayOverpanFreely(axis: Axis, source: ViewChangeSource) {
-        return source === 'programmatic' || overpan === 'both' || overpan === axis ||
+    function mayOverpanFreely(axis: ScrollAxis, source: ViewChangeSource) {
+        return (
+            source === 'programmatic' ||
+            overpan === 'both' ||
+            overpan === axis ||
             (isExpanded && overpan !== 'none')
+        )
     }
 
-    function getPanRange(target: AxisMetrics, current: AxisMetrics, currentTranslate: number, free: boolean): PanRange {
+    function getPanRange(
+        target: AxisMetrics,
+        current: AxisMetrics,
+        currentTranslate: number,
+        free: boolean
+    ): PanRange {
         if (free) {
             return target.overpanRange
         }
 
         return {
-            min: Math.max(target.overpanRange.min, target.gestureRange.min - Math.max(0, current.gestureRange.min - currentTranslate)),
-            max: Math.min(target.overpanRange.max, target.gestureRange.max + Math.max(0, currentTranslate - current.gestureRange.max))
+            min: Math.max(
+                target.overpanRange.min,
+                target.gestureRange.min - Math.max(0, current.gestureRange.min - currentTranslate)
+            ),
+            max: Math.min(
+                target.overpanRange.max,
+                target.gestureRange.max + Math.max(0, currentTranslate - current.gestureRange.max)
+            )
         }
     }
 
-    function clampTranslation(scale: number, translateX: number, translateY: number, source: ViewChangeSource) {
+    function clampTranslation(
+        scale: number,
+        translateX: number,
+        translateY: number,
+        source: ViewChangeSource
+    ) {
         const metrics = getMetrics(scale)
         const current = getMetrics(currentScale)
-        const rangeX = getPanRange(metrics.x, current.x, currentTranslateX, mayOverpanFreely('x', source))
-        const rangeY = getPanRange(metrics.y, current.y, currentTranslateY, mayOverpanFreely('y', source))
+        const rangeX = getPanRange(
+            metrics.x,
+            current.x,
+            currentTranslateX,
+            mayOverpanFreely('x', source)
+        )
+        const rangeY = getPanRange(
+            metrics.y,
+            current.y,
+            currentTranslateY,
+            mayOverpanFreely('y', source)
+        )
 
         return {
             metrics,
@@ -386,9 +477,11 @@
     }
 
     function notifyManualViewChange(scale: number, translateX: number, translateY: number) {
-        if (Math.abs(scale - currentScale) > EPSILON ||
+        if (
+            Math.abs(scale - currentScale) > EPSILON ||
             Math.abs(translateX - currentTranslateX) > EPSILON ||
-            Math.abs(translateY - currentTranslateY) > EPSILON) {
+            Math.abs(translateY - currentTranslateY) > EPSILON
+        ) {
             onManualViewChange?.()
         }
     }
@@ -412,8 +505,8 @@
             mouseStartPoint !== null ||
             viewAnimationFrame !== undefined ||
             pinchAnimationFrame !== undefined ||
-            panInertiaFrame !== undefined ||
-            scrollInertiaFrame !== undefined ||
+            panFling?.running ||
+            scrollFling?.running ||
             performance.now() - lastWheelTimestamp < RENDER_SCALE_SETTLE_MS
         )
     }
@@ -439,12 +532,17 @@
         if (Math.abs(currentScale / renderScale - 1) < RENDER_SCALE_TOLERANCE) return
         renderScale = currentScale
         measuredContent.style.zoom = String(renderScale)
+        measuredContent.style.setProperty('--render-zoom', String(renderScale))
+        measuredContent.style.setProperty('--render-unzoom', String(1 / renderScale))
         renderView()
     }
 
     function applyView(scale: number, translateX: number, translateY: number, deferRender = false) {
-        const { metrics, translateX: clampedTranslateX, translateY: clampedTranslateY } =
-            clampTranslation(scale, translateX, translateY, 'programmatic')
+        const {
+            metrics,
+            translateX: clampedTranslateX,
+            translateY: clampedTranslateY
+        } = clampTranslation(scale, translateX, translateY, 'programmatic')
 
         currentScale = metrics.scale
         currentTranslateX = clampedTranslateX
@@ -464,63 +562,22 @@
         }
     }
 
-    const SCROLL_AXES = {
-        x: {
-            overflow: (style: CSSStyleDeclaration) => style.overflowX,
-            overflows: (element: HTMLElement) => element.scrollWidth > element.clientWidth,
-            position: 'scrollLeft',
-            windowPosition: () => window.scrollX,
-            windowScroll: (delta: number) => ({ left: delta })
-        },
-        y: {
-            overflow: (style: CSSStyleDeclaration) => style.overflowY,
-            overflows: (element: HTMLElement) => element.scrollHeight > element.clientHeight,
-            position: 'scrollTop',
-            windowPosition: () => window.scrollY,
-            windowScroll: (delta: number) => ({ top: delta })
-        }
-    } as const satisfies Record<Axis, unknown>
-
-    function findScrollableAncestor(element: HTMLElement | null, axis: Axis): HTMLElement | null {
-        const scrollAxis = SCROLL_AXES[axis]
-        let current = element?.parentElement ?? null
-        while (current) {
-            if (
-                /(auto|scroll|overlay)/.test(scrollAxis.overflow(getComputedStyle(current))) &&
-                scrollAxis.overflows(current)
-            ) {
-                return current
-            }
-            current = current.parentElement
-        }
-
-        return null
-    }
-
-    function scrollAncestorBy(deltaX: number, deltaY: number) {
+    function scrollAncestorBy(
+        deltaX: number,
+        deltaY: number,
+        scrollAlong = scrollAncestorsWithFinger
+    ) {
         if (isExpanded) return { movedX: 0, movedY: 0 }
         return {
-            movedX: scrollAncestorAlong('x', deltaX),
-            movedY: scrollAncestorAlong('y', deltaY)
+            movedX: scrollAlong(scroller, 'x', deltaX),
+            movedY: scrollAlong(scroller, 'y', deltaY)
         }
     }
 
-    function scrollAncestorAlong(axis: Axis, delta: number) {
-        if (Math.abs(delta) <= EPSILON) return 0
-        const scrollAxis = SCROLL_AXES[axis]
-        const scrollAncestor = findScrollableAncestor(scroller, axis)
-        if (scrollAncestor) {
-            const start = scrollAncestor[scrollAxis.position]
-            scrollAncestor[scrollAxis.position] -= delta
-            return scrollAncestor[scrollAxis.position] - start
-        }
-
-        const start = scrollAxis.windowPosition()
-        window.scrollBy(scrollAxis.windowScroll(-delta))
-        return scrollAxis.windowPosition() - start
-    }
-
-    function getViewportCenterContentPoint(centerX = wrapperWidth / 2, centerY = viewportCenterY()) {
+    function getViewportCenterContentPoint(
+        centerX = wrapperWidth / 2,
+        centerY = viewportCenterY()
+    ) {
         return {
             x: clamp((centerX - currentTranslateX) / currentScale, 0, contentWidth),
             y: clamp((centerY - currentTranslateY) / currentScale, 0, contentHeight)
@@ -599,123 +656,44 @@
     }
 
     function cancelPanInertia() {
-        if (panInertiaFrame) {
-            cancelAnimationFrame(panInertiaFrame)
-            panInertiaFrame = undefined
-        }
+        panFling?.stop()
     }
 
     function cancelScrollInertia() {
-        if (scrollInertiaFrame) {
-            cancelAnimationFrame(scrollInertiaFrame)
-            scrollInertiaFrame = undefined
-        }
+        scrollFling?.stop()
     }
 
-    function startPanInertia() {
+    function startPanInertia(stillMs: number) {
         cancelPanInertia()
-
-        if (
-            Math.abs(panVelocityX) < TOUCH_INERTIA_MIN_VELOCITY &&
-            Math.abs(panVelocityY) < TOUCH_INERTIA_MIN_VELOCITY
-        ) {
-            panVelocityX = 0
-            panVelocityY = 0
-            return
-        }
-
-        let lastTimestamp: number | null = null
-
-        const step = (timestamp: number) => {
-            if (lastTimestamp === null) {
-                lastTimestamp = timestamp
-                panInertiaFrame = requestAnimationFrame(step)
-                return
-            }
-
-            const deltaMs = Math.max(1, timestamp - lastTimestamp)
-            lastTimestamp = timestamp
-            const decay = Math.pow(TOUCH_INERTIA_DECAY_PER_FRAME, deltaMs / (1000 / 60))
+        panFling = fling({ x: panVelocityX, y: panVelocityY }, stillMs, (offset) => {
             const nextView = clampTranslation(
                 currentScale,
-                currentTranslateX + panVelocityX * deltaMs,
-                currentTranslateY + panVelocityY * deltaMs,
+                currentTranslateX + offset.x,
+                currentTranslateY + offset.y,
                 'gesture'
             )
-            const movedX = Math.abs(nextView.translateX - currentTranslateX) > EPSILON
-            const movedY = Math.abs(nextView.translateY - currentTranslateY) > EPSILON
-
-            if (movedX || movedY) {
+            const moved = {
+                x: nextView.translateX - currentTranslateX,
+                y: nextView.translateY - currentTranslateY
+            }
+            if (Math.abs(moved.x) > EPSILON || Math.abs(moved.y) > EPSILON) {
                 applyView(currentScale, nextView.translateX, nextView.translateY)
             }
-
-            panVelocityX = movedX ? panVelocityX * decay : 0
-            panVelocityY = movedY ? panVelocityY * decay : 0
-
-            if (
-                Math.abs(panVelocityX) < TOUCH_INERTIA_MIN_VELOCITY &&
-                Math.abs(panVelocityY) < TOUCH_INERTIA_MIN_VELOCITY
-            ) {
-                panVelocityX = 0
-                panVelocityY = 0
-                panInertiaFrame = undefined
-                return
-            }
-
-            panInertiaFrame = requestAnimationFrame(step)
-        }
-
-        panInertiaFrame = requestAnimationFrame(step)
+            return moved
+        })
     }
 
-    function startScrollInertia() {
+    function startScrollInertia(stillMs: number) {
         cancelScrollInertia()
-
-        if (
-            Math.abs(scrollVelocityX) < TOUCH_INERTIA_MIN_VELOCITY &&
-            Math.abs(scrollVelocityY) < TOUCH_INERTIA_MIN_VELOCITY
-        ) {
-            scrollVelocityX = 0
-            scrollVelocityY = 0
-            return
-        }
-
-        let lastTimestamp: number | null = null
-
-        const step = (timestamp: number) => {
-            if (lastTimestamp === null) {
-                lastTimestamp = timestamp
-                scrollInertiaFrame = requestAnimationFrame(step)
-                return
-            }
-
-            const deltaMs = Math.max(1, timestamp - lastTimestamp)
-            lastTimestamp = timestamp
-            const decay = Math.pow(TOUCH_INERTIA_DECAY_PER_FRAME, deltaMs / (1000 / 60))
-            const movement = scrollAncestorBy(
-                scrollVelocityX * deltaMs,
-                scrollVelocityY * deltaMs
-            )
-            const movedX = Math.abs(movement.movedX) > EPSILON
-            const movedY = Math.abs(movement.movedY) > EPSILON
-
-            scrollVelocityX = movedX ? scrollVelocityX * decay : 0
-            scrollVelocityY = movedY ? scrollVelocityY * decay : 0
-
-            if (
-                Math.abs(scrollVelocityX) < TOUCH_INERTIA_MIN_VELOCITY &&
-                Math.abs(scrollVelocityY) < TOUCH_INERTIA_MIN_VELOCITY
-            ) {
-                scrollVelocityX = 0
-                scrollVelocityY = 0
-                scrollInertiaFrame = undefined
-                return
-            }
-
-            scrollInertiaFrame = requestAnimationFrame(step)
-        }
-
-        scrollInertiaFrame = requestAnimationFrame(step)
+        scrollFling = fling(
+            { x: scrollVelocityX, y: scrollVelocityY },
+            stillMs,
+            (offset) => {
+                const movement = scrollAncestorBy(offset.x, offset.y)
+                return { x: movement.movedX, y: movement.movedY }
+            },
+            window
+        )
     }
 
     function animateViewTo(targetScale: number, targetLeft: number, targetTop: number) {
@@ -770,7 +748,13 @@
             ? getViewportCenterContentPoint()
             : { x: contentWidth / 2, y: contentHeight / 2 }
 
-        zoomToScaleKeepingContentPoint(centerPoint.x, centerPoint.y, targetScale, animate, deferRender)
+        zoomToScaleKeepingContentPoint(
+            centerPoint.x,
+            centerPoint.y,
+            targetScale,
+            animate,
+            deferRender
+        )
     }
 
     function zoomToScaleKeepingContentPoint(
@@ -870,7 +854,14 @@
     // Only entering or leaving full screen refits, so a phone's toolbar showing and hiding never drifts the zoom.
     function scaleKeepingShownArea(previousView: PlacedView, size: RectangleDimensions) {
         if (previousView.expanded === isExpanded) return currentScale
-        return currentScale * Math.min(1, size.width / previousView.size.width, size.height / previousView.size.height)
+        return (
+            currentScale *
+            Math.min(
+                1,
+                size.width / previousView.size.width,
+                size.height / previousView.size.height
+            )
+        )
     }
 
     function getDiscreteScaleStep() {
@@ -922,8 +913,11 @@
     }
 
     export function isVisible() {
-        return !!viewport && viewport.getBoundingClientRect().width > 0 &&
+        return (
+            !!viewport &&
+            viewport.getBoundingClientRect().width > 0 &&
             getComputedStyle(viewport).visibility === 'visible'
+        )
     }
 
     function handleFullscreenKey(event: KeyboardEvent) {
@@ -934,14 +928,22 @@
             return
         }
         if (
-            event.key.toLowerCase() !== 'f' || !expandable ||
-            event.ctrlKey || event.metaKey || event.altKey ||
-            !isVisible() || (allowFullscreenShortcut && !allowFullscreenShortcut())
-        ) return
+            event.key.toLowerCase() !== 'f' ||
+            !expandable ||
+            event.ctrlKey ||
+            event.metaKey ||
+            event.altKey ||
+            !isVisible() ||
+            (allowFullscreenShortcut && !allowFullscreenShortcut())
+        )
+            return
         const target = event.target
-        if (target instanceof HTMLElement && (
-            target.isContentEditable || target.closest('input, textarea, select, [role="textbox"]')
-        )) return
+        if (
+            target instanceof HTMLElement &&
+            (target.isContentEditable ||
+                target.closest('input, textarea, select, [role="textbox"]'))
+        )
+            return
         event.preventDefault()
         toggleExpanded()
     }
@@ -1000,14 +1002,7 @@
             'programmatic'
         )
 
-        if (options.animate) {
-            animateViewTo(targetView.scale, targetView.translateX, targetView.translateY)
-            return
-        }
-
-        cancelViewAnimation()
-        applyView(targetView.scale, targetView.translateX, targetView.translateY)
-        settleProgrammaticView()
+        showProgrammaticView(targetView, options.animate)
     }
 
     export function focusRect(rect: FocusRect, options: FocusOptions = {}) {
@@ -1018,16 +1013,60 @@
             return
         }
 
-        const targetView = getViewForFocusTarget(target)
+        showProgrammaticView(getViewForFocusTarget(target), target.animate)
+    }
 
-        if (target.animate) {
-            animateViewTo(targetView.scale, targetView.translateX, targetView.translateY)
+    export function revealRect(rect: FocusRect, options: RevealOptions = {}) {
+        clearActiveFocus()
+
+        if (!contentWidth || !contentHeight) {
+            return
+        }
+
+        const padding = normalizePadding(options.padding) ?? { x: 0, y: 0 }
+        const translateX = revealTranslation(
+            rect.x * currentScale + currentTranslateX,
+            rect.width * currentScale,
+            padding.x,
+            wrapperWidth - padding.x
+        )
+        const translateY = revealTranslation(
+            rect.y * currentScale + currentTranslateY,
+            rect.height * currentScale,
+            insetTop + padding.y,
+            wrapperHeight - padding.y
+        )
+        const { translateX: revealedX, translateY: revealedY } = clampTranslation(
+            currentScale,
+            currentTranslateX + translateX,
+            currentTranslateY + translateY,
+            'programmatic'
+        )
+        showProgrammaticView(
+            { scale: currentScale, translateX: revealedX, translateY: revealedY },
+            options.animate
+        )
+    }
+
+    function showProgrammaticView(
+        view: { scale: number; translateX: number; translateY: number },
+        animate = false
+    ) {
+        if (animate) {
+            animateViewTo(view.scale, view.translateX, view.translateY)
             return
         }
 
         cancelViewAnimation()
-        applyView(targetView.scale, targetView.translateX, targetView.translateY)
+        applyView(view.scale, view.translateX, view.translateY)
         settleProgrammaticView()
+    }
+
+    function revealTranslation(start: number, size: number, min: number, max: number) {
+        if (size > max - min) return (min + max) / 2 - (start + size / 2)
+        if (start < min) return min - start
+        if (start + size > max) return max - (start + size)
+        return 0
     }
 
     function getTouchDistance(touches: TouchList) {
@@ -1071,7 +1110,8 @@
             }
 
             const targetScale =
-                pinchStartScale * Math.pow(pinchDistance / pinchStartDistance, PINCH_ZOOM_SENSITIVITY)
+                pinchStartScale *
+                Math.pow(pinchDistance / pinchStartDistance, PINCH_ZOOM_SENSITIVITY)
             const rect = scroller.getBoundingClientRect()
             const viewportX = pinchLatestMidpoint.x - rect.left
             const viewportY = pinchLatestMidpoint.y - rect.top
@@ -1103,6 +1143,7 @@
             panVelocityY = 0
             scrollVelocityX = 0
             scrollVelocityY = 0
+            handedOffAxes = { x: false, y: false }
             const midpoint = getTouchMidpoint(event.touches)
             pinchDistance = getTouchDistance(event.touches)
             pinchStartDistance = pinchDistance
@@ -1126,6 +1167,7 @@
             panVelocityY = 0
             scrollVelocityX = 0
             scrollVelocityY = 0
+            handedOffAxes = { x: false, y: false }
         }
     }
 
@@ -1153,8 +1195,8 @@
         panLastTimestamp = event.timeStamp
         const nextView = clampTranslation(
             currentScale,
-            currentTranslateX + deltaX,
-            currentTranslateY + deltaY,
+            currentTranslateX + (handedOffAxes.x ? 0 : deltaX),
+            currentTranslateY + (handedOffAxes.y ? 0 : deltaY),
             'gesture'
         )
         const consumedPanDeltaX = nextView.translateX - currentTranslateX
@@ -1169,18 +1211,8 @@
             applyView(currentScale, nextView.translateX, nextView.translateY)
         }
 
-        const panVelocityCandidateX = clamp(
-            consumedPanDeltaX / deltaMs,
-            -TOUCH_INERTIA_MAX_VELOCITY,
-            TOUCH_INERTIA_MAX_VELOCITY
-        )
-        const panVelocityCandidateY = clamp(
-            consumedPanDeltaY / deltaMs,
-            -TOUCH_INERTIA_MAX_VELOCITY,
-            TOUCH_INERTIA_MAX_VELOCITY
-        )
-        panVelocityX = didPanX ? panVelocityX * 0.35 + panVelocityCandidateX * 0.65 : 0
-        panVelocityY = didPanY ? panVelocityY * 0.35 + panVelocityCandidateY * 0.65 : 0
+        panVelocityX = didPanX ? fingerVelocity(panVelocityX, consumedPanDeltaX, deltaMs) : 0
+        panVelocityY = didPanY ? fingerVelocity(panVelocityY, consumedPanDeltaY, deltaMs) : 0
 
         const residualScrollDeltaX = deltaX - consumedPanDeltaX
         const residualScrollDeltaY = deltaY - consumedPanDeltaY
@@ -1196,6 +1228,8 @@
         const movement = scrollAncestorBy(residualScrollDeltaX, residualScrollDeltaY)
         const didScrollX = Math.abs(movement.movedX) > EPSILON
         const didScrollY = Math.abs(movement.movedY) > EPSILON
+        if (didScrollX) handedOffAxes.x = true
+        if (didScrollY) handedOffAxes.y = true
 
         if (!didScrollX && !didScrollY) {
             scrollVelocityX = 0
@@ -1203,21 +1237,11 @@
             return
         }
 
-        const scrollVelocityCandidateX = clamp(
-            residualScrollDeltaX / deltaMs,
-            -TOUCH_INERTIA_MAX_VELOCITY,
-            TOUCH_INERTIA_MAX_VELOCITY
-        )
-        const scrollVelocityCandidateY = clamp(
-            residualScrollDeltaY / deltaMs,
-            -TOUCH_INERTIA_MAX_VELOCITY,
-            TOUCH_INERTIA_MAX_VELOCITY
-        )
         scrollVelocityX = didScrollX
-            ? scrollVelocityX * 0.35 + scrollVelocityCandidateX * 0.65
+            ? fingerVelocity(scrollVelocityX, residualScrollDeltaX, deltaMs)
             : 0
         scrollVelocityY = didScrollY
-            ? scrollVelocityY * 0.35 + scrollVelocityCandidateY * 0.65
+            ? fingerVelocity(scrollVelocityY, residualScrollDeltaY, deltaMs)
             : 0
     }
 
@@ -1244,13 +1268,15 @@
             return
         }
 
-        if (panLastClientPoint) {
-            startPanInertia()
-        } else {
-            panVelocityX = 0
-            panVelocityY = 0
-        }
-        startScrollInertia()
+        const stillMs = event.timeStamp - (panLastTimestamp ?? event.timeStamp)
+        if (panLastClientPoint) startPanInertia(stillMs)
+        startScrollInertia(stillMs)
+        panLastClientPoint = null
+        panLastTimestamp = null
+    }
+
+    function handleTouchCancel() {
+        clearPinchState()
         panLastClientPoint = null
         panLastTimestamp = null
     }
@@ -1269,22 +1295,27 @@
         if (!event.ctrlKey) {
             if (event.timeStamp - lastWheelTimestamp > 250) smoothWheelGesture = false
             lastWheelTimestamp = event.timeStamp
-            const smoothDelta = event.deltaMode === WheelEvent.DOM_DELTA_PIXEL &&
-                (event.deltaX !== 0 || Math.abs(event.deltaY) < 50 ||
+            const smoothDelta =
+                event.deltaMode === WheelEvent.DOM_DELTA_PIXEL &&
+                (event.deltaX !== 0 ||
+                    Math.abs(event.deltaY) < 50 ||
                     !Number.isInteger(event.deltaY))
             smoothWheelGesture ||= smoothDelta
             if (smoothWheelGesture) {
                 const deltaX = -event.deltaX * unit
                 const deltaY = -event.deltaY * unit
-                const next = clampTranslation(currentScale,
+                const next = clampTranslation(
+                    currentScale,
                     currentTranslateX + deltaX,
-                    currentTranslateY + deltaY, 'gesture')
+                    currentTranslateY + deltaY,
+                    'gesture'
+                )
                 const residualX = deltaX - (next.translateX - currentTranslateX)
                 const residualY = deltaY - (next.translateY - currentTranslateY)
                 notifyManualViewChange(currentScale, next.translateX, next.translateY)
                 applyView(currentScale, next.translateX, next.translateY, true)
                 if (Math.abs(residualX) > EPSILON || Math.abs(residualY) > EPSILON) {
-                    scrollAncestorBy(residualX, residualY)
+                    scrollAncestorBy(residualX, residualY, scrollNearestAncestorWithFinger)
                 }
                 return
             }
@@ -1296,8 +1327,13 @@
         const contentPoint = getContentPointForClientPoint(event.clientX, event.clientY)
         const rect = scroller.getBoundingClientRect()
         const targetView = getViewForContentPointAtViewportPoint(
-            contentPoint.x, contentPoint.y,
-            event.clientX - rect.left, event.clientY - rect.top, nextScale, 'gesture')
+            contentPoint.x,
+            contentPoint.y,
+            event.clientX - rect.left,
+            event.clientY - rect.top,
+            nextScale,
+            'gesture'
+        )
         notifyManualViewChange(targetView.scale, targetView.translateX, targetView.translateY)
         applyView(targetView.scale, targetView.translateX, targetView.translateY, true)
     }
@@ -1367,6 +1403,7 @@
         const touchStartListener = (event: TouchEvent) => handleTouchStart(event)
         const touchMoveListener = (event: TouchEvent) => handleTouchMove(event)
         const touchEndListener = (event: TouchEvent) => handleTouchEnd(event)
+        const touchCancelListener = () => handleTouchCancel()
         const gestureStartListener = (event: Event) => handleGestureStart(event)
         const gestureChangeListener = (event: Event) => handleGestureChange(event)
         const gestureEndListener = () => handleGestureEnd()
@@ -1380,7 +1417,7 @@
         scroller.addEventListener('touchstart', touchStartListener, { passive: false })
         scroller.addEventListener('touchmove', touchMoveListener, { passive: false })
         scroller.addEventListener('touchend', touchEndListener, { passive: false })
-        scroller.addEventListener('touchcancel', touchEndListener, { passive: false })
+        scroller.addEventListener('touchcancel', touchCancelListener, { passive: false })
         scroller.addEventListener('gesturestart', gestureStartListener, { passive: false })
         scroller.addEventListener('gesturechange', gestureChangeListener, { passive: false })
         scroller.addEventListener('gestureend', gestureEndListener)
@@ -1395,7 +1432,7 @@
             scroller?.removeEventListener('touchstart', touchStartListener)
             scroller?.removeEventListener('touchmove', touchMoveListener)
             scroller?.removeEventListener('touchend', touchEndListener)
-            scroller?.removeEventListener('touchcancel', touchEndListener)
+            scroller?.removeEventListener('touchcancel', touchCancelListener)
             scroller?.removeEventListener('gesturestart', gestureStartListener)
             scroller?.removeEventListener('gesturechange', gestureChangeListener)
             scroller?.removeEventListener('gestureend', gestureEndListener)
@@ -1409,7 +1446,10 @@
     bind:this={fullscreenLayer}
     role={isExpanded ? 'dialog' : 'presentation'}
     aria-label={isExpanded ? 'Full screen view' : undefined}
-    oncancel={(event) => { event.preventDefault(); collapse() }}
+    oncancel={(event) => {
+        event.preventDefault()
+        collapse()
+    }}
     onkeydown={(event) => {
         if (!isExpanded) return
         handleFullscreenKey(event)
@@ -1431,7 +1471,12 @@
         style={`${isExpanded ? 'width: 100%; padding: 8px;' : ''} height: calc(100% - ${toolbar ? toolbarHeight : 0}px); touch-action: none; user-select: none; cursor: ${mouseDragging ? 'grabbing' : 'grab'};`}
         onwheel={handleWheel}
     >
-        <div bind:this={viewport} bind:clientWidth={wrapperWidth} bind:clientHeight={wrapperHeight} class="relative w-full h-full">
+        <div
+            bind:this={viewport}
+            bind:clientWidth={wrapperWidth}
+            bind:clientHeight={wrapperHeight}
+            class="relative w-full h-full"
+        >
             <div
                 bind:this={content}
                 class="absolute top-0 left-0 box-border"
@@ -1530,7 +1575,9 @@
 </dialog>
 
 <style>
-    dialog { visibility: inherit; }
+    dialog {
+        visibility: inherit;
+    }
     .scaling-surface,
     .scaling-surface :global(*) {
         -webkit-user-select: none;

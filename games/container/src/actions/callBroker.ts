@@ -12,7 +12,9 @@ export const CallBroker = Type.Evaluate(
             type: Type.Literal(ActionType.CallBroker),
             playerId: Type.String(),
             brokerIndex: Type.Optional(Type.Number()),
-            offerType: Type.Optional(Type.Union([Type.Literal('money'), Type.Literal('containers')])),
+            offerType: Type.Optional(
+                Type.Union([Type.Literal('money'), Type.Literal('containers')])
+            ),
             bidAmount: Type.Optional(Type.Integer({ minimum: 1 })),
             factoryIndices: Type.Optional(Type.Array(Type.Number())),
             harborIndices: Type.Optional(Type.Array(Type.Number()))
@@ -64,7 +66,8 @@ export class HydratedCallBroker extends HydratableAction<typeof CallBroker> impl
             }
         } else {
             assert(
-                brokerIndex === existingPayment.brokerIndex && offerType === existingPayment.offerType,
+                brokerIndex === existingPayment.brokerIndex &&
+                    offerType === existingPayment.offerType,
                 'Cannot change broker offer when outbidding'
             )
         }
@@ -136,9 +139,7 @@ export class HydratedCallBroker extends HydratableAction<typeof CallBroker> impl
 
         const payment = bank.paymentCard
         if (!payment) {
-            return bank.brokers.some(
-                (broker) => broker.money > 0 || broker.containers.length > 0
-            )
+            return bank.brokers.some((broker) => broker.money > 0 || broker.containers.length > 0)
         }
 
         const player = state.getPlayerState(playerId)

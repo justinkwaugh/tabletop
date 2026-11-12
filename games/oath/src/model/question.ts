@@ -7,6 +7,10 @@ import { Region, SearchPlay, Suit } from './oathEnums.js'
 import { ConspiracyPlay } from './conspiracy.js'
 import { WarbandOwner } from './warbandCounts.js'
 import { PowerMoveKind } from './powerMoveToll.js'
+import { RolledDefenseFace } from './campaign.js'
+import { PowerUse } from './powerUse.js'
+import { ExchangePartyPolicy, ExchangeTerms, PromiseText } from './exchangeTerms.js'
+export * from './exchangeTerms.js'
 
 export const AskedPlayerPolicy = 'oath.askedPlayer'
 
@@ -79,7 +83,46 @@ function isRelicSeenBy(context: Visibility.PolicyContext<unknown>): boolean {
     )
 }
 
+function stringField(value: unknown, key: string): string | undefined {
+    if (typeof value !== 'object' || value === null) return undefined
+    const field: unknown = Reflect.get(value, key)
+    return typeof field === 'string' ? field : undefined
+}
+
+/**
+ * The two players of the exchange nearest the value along its path: an offer asked of a player (its
+ * proposer and the asked player), or a proposal naming `withPlayerId` (the other party being the
+ * record's player). Both ids stay public, so the walk reads them on any node it passes.
+ */
+function exchangeParties(root: unknown, path: readonly (string | number)[]): string[] {
+    let parties: string[] = []
+    let node: unknown = root
+    for (const segment of path) {
+        const proposer = stringField(node, 'proposerPlayerId')
+        const asked = stringField(node, 'askedPlayerId')
+        const withPlayer = stringField(node, 'withPlayerId')
+        if (proposer !== undefined && asked !== undefined) parties = [proposer, asked]
+        else if (withPlayer !== undefined) {
+            const actor = stringField(root, 'playerId')
+            parties = actor === undefined ? [withPlayer] : [actor, withPlayer]
+        }
+        if (typeof node !== 'object' || node === null) break
+        node = Reflect.get(node, segment)
+    }
+    return parties
+}
+
+/** R-7.6.3-H1 — an offer's promises are its two players' until it is accepted. */
+function isExchangeParty(context: Visibility.PolicyContext<unknown>): boolean {
+    const perspective = context.perspective
+    return (
+        perspective.kind === 'player' &&
+        exchangeParties(context.root, context.path).includes(perspective.playerId)
+    )
+}
+
 export const OathVisibilityPolicies = {
+    [ExchangePartyPolicy]: isExchangeParty,
     [HandShownPolicy]: isHandShown,
     [RelicSeenPolicy]: isRelicSeenBy,
     [AdviserShownPolicy]: isAdviserShownTo,
@@ -90,7 +133,10 @@ export const OathVisibilityPolicies = {
 /** Jinx — "after you roll … for any reason": the roll, and what waits on it. */
 export enum RerolledRollKind {
     Campaign = 'campaign',
+    /** Before revision 21: the bank named at the use waits with the roll. */
     GamblingHall = 'gamblingHall',
+    /** From revision 21: the faces and their total; the bank is asked once the roll stands (R-7.1.3-H2). */
+    GamblingHallDice = 'gamblingHallDice',
     RelicThief = 'relicThief'
 }
 
@@ -104,6 +150,11 @@ export const RerolledRoll = Type.Union([
         kind: Type.Literal(RerolledRollKind.GamblingHall),
         bank: Type.Enum(Suit),
         shields: Type.Number()
+    }),
+    Type.Object({
+        kind: Type.Literal(RerolledRollKind.GamblingHallDice),
+        shields: Type.Number(),
+        faces: Type.Array(RolledDefenseFace, { maxItems: 4 })
     }),
     Type.Object({
         kind: Type.Literal(RerolledRollKind.RelicThief),
@@ -187,42 +238,77 @@ export enum PowerQuestionKind {
      * bank; once the ruler's pick has landed the asked player, two or more banks match: they choose
      * the one they gain from (R-11.7-H2).
      */
-    HospitalityBank = 'hospitalityBank'
+    HospitalityBank = 'hospitalityBank',
+    /**
+     * Vow of Kinship (revision 18) — Plague Engines or Dissent has every player place favor, and the
+     * asked player's board did not hold all they owe: they may pay the rest from the bank that keeps
+     * their favor, or not, since its Q&A never forces that favor (R-10.10-H1).
+     */
+    PayFromHomeBank = 'payFromHomeBank',
+    /**
+     * Gambling Hall (revision 21) — the roll stands, after any Jinx reroll, and two or more banks
+     * hold favor: the roller chooses the one they take the total from (R-7.1.3-H2).
+     */
+    GamblingHallBank = 'gamblingHallBank',
+    /**
+     * The Tribunal (revision 28) — one party to an open deal says it was kept; the other confirms it,
+     * which closes it, or says it was not, which leaves it open (R-7.6.3-H1).
+     */
+    DealKept = 'dealKept',
+    /**
+     * Squalid District — the end die just rolled to end the game: its ruler raises or lowers it by
+     * one, or leaves it, before it is read (its Q&A: after the roll). Asked only when one step
+     * changes whether the game ends (`endDieStepMatters`).
+     */
+    AdjustEndDie = 'adjustEndDie'
 }
-
-/** Deed Writer — a site changing hands. */
-export type SiteTransfer = Type.Static<typeof SiteTransfer>
-export const SiteTransfer = Type.Object({
-    siteId: Type.String(),
-    /** "new ruler moves warbands from board" — how many the receiver moves in. */
-    warbands: Type.Number()
-})
-
-/** R-10.8, R-7.6.3-H1 — one side of a binding exchange. */
-export type ExchangeTransfer = Type.Static<typeof ExchangeTransfer>
-export const ExchangeTransfer = Type.Object({
-    favor: Type.Optional(Type.Number()),
-    secrets: Type.Optional(Type.Number()),
-    relicCardIds: Type.Optional(Type.Array(Type.String(), { maxItems: 16 })),
-    /** Deed Writer only. */
-    sites: Type.Optional(Type.Array(SiteTransfer, { maxItems: 8 })),
-    /** The Gathering only — rows of the giver's public adviser list, so a facedown card is never named (R-9.4). */
-    adviserRows: Type.Optional(
-        Type.Array(Type.Integer({ minimum: 0, maximum: 15 }), { maxItems: 8 })
-    )
-})
 
 /** R-7.6.3-H1, R-10.8 — what a card's exchange may carry. */
 export interface ExchangeAllowance {
     relics?: boolean
     sites?: boolean
     advisers?: boolean
+    /** The Tribunal — "binding promises of future actions", written and kept by the players. */
+    promises?: boolean
 }
 
-export type ExchangeTerms = Type.Static<typeof ExchangeTerms>
-export const ExchangeTerms = Type.Object({
-    fromProposer: Type.Optional(ExchangeTransfer),
-    fromCounterparty: Type.Optional(ExchangeTransfer)
+/**
+ * R-7.6.3-H1 — a player is party to at most this many open deals, on either side. Six players can
+ * then hold at most fifteen, so `MAX_OPEN_DEALS` is a storage limit no table reaches.
+ */
+export const MAX_OPEN_DEALS_PER_PLAYER = 5
+export const MAX_OPEN_DEALS = 16
+
+/**
+ * R-7.6.3-H1 — a Tribunal deal with a promise in it, open until it is closed. Public once agreed;
+ * the engine judges nothing about it.
+ */
+export type OpenDeal = Type.Static<typeof OpenDeal>
+export const OpenDeal = Type.Object({
+    id: Type.String(),
+    proposerPlayerId: Type.String(),
+    counterpartyPlayerId: Type.String(),
+    proposerPromise: Type.Optional(PromiseText),
+    counterpartyPromise: Type.Optional(PromiseText),
+    /** The round it was agreed in. */
+    round: Type.Number(),
+    /** The turn it was last claimed kept in: the round, and whose turn it was. */
+    lastClaimedTurn: Type.Optional(Type.Object({ round: Type.Number(), playerId: Type.String() }))
+})
+
+/** R-7.6.3-H1 — the deals still open when the game ended, listed on the ending action and dropped. */
+export const OpenDealsDropped = Type.Array(OpenDeal, { maxItems: MAX_OPEN_DEALS })
+
+/** R-3.3, Squalid District — the end die as rolled, as its ruler's answer left it, and what it decided. */
+export type EndDieAdjusted = Type.Static<typeof EndDieAdjusted>
+export const EndDieAdjusted = Type.Object({
+    rolled: Type.Number(),
+    roll: Type.Number(),
+    round: Type.Number(),
+    threshold: Type.Number(),
+    wonBy: Type.Optional(Type.String()),
+    /** R-7.6.3-H1 — the Tribunal deals still open when this roll ended the game, now dropped. */
+    openDealsDropped: Type.Optional(OpenDealsDropped)
 })
 
 /**
@@ -465,8 +551,11 @@ export const PowerQuestion = Type.Union([
         travel: Type.Optional(ShroudedWoodTravel),
         /** R-11.7-H1 — the power whose move the Shrouded Wood's ruler redirected. */
         power: Type.Optional(ShroudedWoodPower),
-        /** R-11.13-H1 — the secret the asked player chose to flip, flipped once the toll is paid. */
-        flipSecret: Type.Optional(Type.Boolean())
+        /**
+         * R-11.13-H1 — the secret the asked player chose to flip (`true`), or two (`2`, R-11.13-H2),
+         * flipped once the toll is paid.
+         */
+        flipSecret: Type.Optional(Type.Union([Type.Boolean(), Type.Literal(2)]))
     }),
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.FreeActionOutOfTurn),
@@ -490,7 +579,12 @@ export const PowerQuestion = Type.Union([
         powerCardId: Type.Optional(Type.String()),
         moverPlayerId: Type.String(),
         fromSiteId: Type.String(),
-        siteId: Type.String()
+        siteId: Type.String(),
+        /**
+         * R-11.13-H2 (revision 20) — two secrets, one for each site's power: from the Buried Giant
+         * past a Narrow Pass into The Hidden Place. Absent, one.
+         */
+        flips: Type.Optional(Type.Literal(2))
     }),
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.WayStationFavor),
@@ -522,6 +616,16 @@ export const PowerQuestion = Type.Union([
         endsActPhase: Type.Optional(Type.Literal(true))
     }),
     Type.Object({
+        kind: Type.Literal(PowerQuestionKind.PayFromHomeBank),
+        /** Plague Engines or Dissent. */
+        cardId: Type.String(),
+        askedPlayerId: Type.String(),
+        /** What their board left unpaid. */
+        owed: Type.Integer({ minimum: 1, maximum: 99 }),
+        /** Where the favor goes: this bank (Plague Engines), or, absent, onto the card (Dissent). */
+        toBank: Type.Optional(Type.Enum(Suit))
+    }),
+    Type.Object({
         kind: Type.Literal(PowerQuestionKind.DiscardAdvisers),
         /** The power that moved the advisers. */
         cardId: Type.String(),
@@ -536,11 +640,49 @@ export const PowerQuestion = Type.Union([
         receivedFacedownCardIds: Visibility.protect(Type.Array(Type.String(), { maxItems: 8 }), {
             policy: AskedPlayerPolicy
         })
+    }),
+    Type.Object({
+        kind: Type.Literal(PowerQuestionKind.GamblingHallBank),
+        /** Gambling Hall. */
+        cardId: Type.String(),
+        /** The roller. */
+        askedPlayerId: Type.String(),
+        /** The total, 2x faces multiplied (the card's Q&A). */
+        shields: Type.Integer({ minimum: 0, maximum: 64 }),
+        faces: Type.Array(RolledDefenseFace, { maxItems: 4 }),
+        /** The banks that held favor when the roll stood. */
+        banks: Type.Array(Type.Enum(Suit), { maxItems: 6 })
+    }),
+    Type.Object({
+        kind: Type.Literal(PowerQuestionKind.DealKept),
+        /** The Tribunal. */
+        cardId: Type.String(),
+        /** The other party to the deal. */
+        askedPlayerId: Type.String(),
+        claimantPlayerId: Type.String(),
+        /** The deal, public in `openDeals`, where its promises are read. */
+        dealId: Type.String()
+    }),
+    Type.Object({
+        kind: Type.Literal(PowerQuestionKind.AdjustEndDie),
+        /** Squalid District. */
+        cardId: Type.String(),
+        /** Its ruler, never a Citizen ("Citizens cannot use this power"). */
+        askedPlayerId: Type.String(),
+        /** R-3.3 — the end die as the Chancellor rolled it; the round and its threshold are the State's. */
+        roll: Type.Integer({ minimum: 1, maximum: 6 })
     })
 ])
 
 /** A question as the host and its asked player see it, every protected field present. */
 export const PowerQuestionValidator = Compile(PowerQuestion)
+
+/** R-10.13-H1 — so many of the Obsidian Cage's Imperial warbands to a player's board. */
+export type CagePlacement = Type.Static<typeof CagePlacement>
+export const CagePlacement = Type.Array(
+    Type.Object({ playerId: Type.String(), count: Type.Integer({ minimum: 1, maximum: 999 }) }),
+    { maxItems: 8 }
+)
 
 export type QuestionAnswer = Type.Static<typeof QuestionAnswer>
 export const QuestionAnswer = Type.Union([
@@ -561,7 +703,12 @@ export const QuestionAnswer = Type.Union([
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.BottomRelic),
         /** A relic held before the draw; absent, the drawn relic goes, unnamed. */
-        heldRelicCardId: Type.Optional(Type.String())
+        heldRelicCardId: Type.Optional(Type.String()),
+        /**
+         * R-10.13-H1 — the Obsidian Cage sent down: where its Imperial warbands go, when two or
+         * more Imperial boards may take them. Absent in every other answer.
+         */
+        cagePlacement: Type.Optional(CagePlacement)
     }),
     Type.Object({ kind: Type.Literal(PowerQuestionKind.RelicThiefRoll), roll: Type.Boolean() }),
     Type.Object({ kind: Type.Literal(PowerQuestionKind.TakeOrLeaveRelic), take: Type.Boolean() }),
@@ -580,13 +727,21 @@ export const QuestionAnswer = Type.Union([
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.TravelFreeTo),
         siteId: Type.String(),
-        /** R-11.13-H1 — a faceup secret flipped facedown, for a site that asks for one. */
-        flipSecret: Type.Optional(Type.Boolean())
+        /**
+         * R-11.13-H1 — a faceup secret flipped facedown (`true`), for a site that asks for one; two
+         * (`2`) where each site's power takes its own (R-11.13-H2).
+         */
+        flipSecret: Type.Optional(Type.Union([Type.Boolean(), Type.Literal(2)]))
     }),
     Type.Object({ kind: Type.Literal(PowerQuestionKind.RerollDice), reroll: Type.Boolean() }),
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.PlayOrDiscardVision),
         play: Type.Enum(SearchPlay),
+        /**
+         * R-6.1, R-7.4 — "as if you had searched": the Search modifiers declared on the play or discard, from
+         * revision 32 (R-X.4).
+         */
+        modifiers: Type.Optional(Type.Array(PowerUse, { maxItems: 8 })),
         /** R-5.1.4.II — the adviser discarded to make room for a Vision played facedown. */
         discardedAdviserCardId: Type.Optional(
             Visibility.protect(Type.String(), { policy: Visibility.Policy.Actor })
@@ -630,12 +785,26 @@ export const QuestionAnswer = Type.Union([
     Type.Object({ kind: Type.Literal(PowerQuestionKind.WayStationFavor), give: Type.Boolean() }),
     /** The bank Hospitality gains from: one of the question's `banks`. */
     Type.Object({ kind: Type.Literal(PowerQuestionKind.HospitalityBank), suit: Type.Enum(Suit) }),
+    /** How many favor to pay from the bank, 0 for none. */
+    Type.Object({
+        kind: Type.Literal(PowerQuestionKind.PayFromHomeBank),
+        favor: Type.Integer({ minimum: 0, maximum: 99 })
+    }),
     Type.Object({
         kind: Type.Literal(PowerQuestionKind.DiscardAdvisers),
         /** R-10.5 — in the order they go down, the last on top; a facedown one is named to its holder alone. */
         discardedAdviserCardIds: Visibility.protect(Type.Array(Type.String(), { maxItems: 8 }), {
             policy: Visibility.Policy.Actor
         })
+    }),
+    /** The bank Gambling Hall takes from: one of the question's `banks`. */
+    Type.Object({ kind: Type.Literal(PowerQuestionKind.GamblingHallBank), suit: Type.Enum(Suit) }),
+    /** "Not kept" leaves the deal open, for either party to claim on a later turn. */
+    Type.Object({ kind: Type.Literal(PowerQuestionKind.DealKept), kept: Type.Boolean() }),
+    /** One lower, one higher, or 0 to leave the roll as it is. */
+    Type.Object({
+        kind: Type.Literal(PowerQuestionKind.AdjustEndDie),
+        by: Type.Integer({ minimum: -1, maximum: 1 })
     })
 ])
 
@@ -649,12 +818,31 @@ export const PendingQuestions = Type.Object({
     queue: Type.Array(PowerQuestion, { maxItems: 64 }),
     askingPlayerId: Type.String(),
     resumeMachineState: Type.Enum(MachineState),
+    /**
+     * R-7.4.3 — the cards of the modifiers a Search, or an R-6.1 play, uses, while the questions of its play are
+     * open. From revision 31.
+     */
+    searchModifiersInUse: Type.Optional(Type.Array(Type.String(), { maxItems: 16 })),
     /** The Gathering — the second round is built once the first round's pawns have moved. */
     followUp: Type.Optional(
         Type.Object({
             kind: Type.Literal('gatheringFloor'),
             cardId: Type.String(),
             siteId: Type.String()
+        })
+    ),
+    /**
+     * Land Warden — from revision 33 (R-X.4): the second card has been played while questions of the kept card's
+     * power are open. What those answers discard goes under what the second card put on that pile (R-7.3.3).
+     */
+    underSecondPlay: Type.Optional(
+        Type.Object({
+            /** How many questions at the front of the queue are the kept card's. */
+            questions: Type.Number(),
+            /** The Gathering kept: the proposals `followUp` builds are the kept card's too. */
+            followUp: Type.Optional(Type.Boolean()),
+            /** How many cards each pile holds above where those answers' discards go. */
+            onTop: Type.Record(Type.Enum(Region), Type.Optional(Type.Number()))
         })
     )
 })

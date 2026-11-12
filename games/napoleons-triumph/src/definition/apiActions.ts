@@ -9,6 +9,7 @@ import { DeclareDefense } from '../actions/declareDefense.js'
 import { DeclareFeint } from '../actions/declareFeint.js'
 import { DeployArmy } from '../actions/deployArmy.js'
 import { LeadDefense } from '../actions/leadDefense.js'
+import { AcknowledgeReveal } from '../actions/acknowledgeReveal.js'
 import { EndTurn } from '../actions/endTurn.js'
 import { Move } from '../actions/move.js'
 import { Occupy } from '../actions/occupy.js'
@@ -38,5 +39,6 @@ export const NapoleonsTriumphApiActions = {
     [ActionType.Advance]: Advance,
     [ActionType.Retreat]: Retreat,
     [ActionType.Occupy]: Occupy,
-    [ActionType.EndTurn]: EndTurn
+    [ActionType.EndTurn]: EndTurn,
+    [ActionType.AcknowledgeReveal]: AcknowledgeReveal
 }

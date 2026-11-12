@@ -52,7 +52,6 @@
 
     const gameSession = getGameSession()
 
-
     // roundAdvanced marks the END of a round, so scanning backward from "now" always
     // hits it BEFORE anything else that happened earlier in the very round we're
     // trying to inspect (money bag payouts, a completed negotiation, duel bids, etc.)
@@ -66,16 +65,6 @@
     // win, negotiation, or duel - see resolutionHelpers/negotiationMove/dueling),
     // so a slot's own number matching its current length means nothing has
 
-
-
-
-
-
-
-
-
-
-
     // Mirrors the shared standing offer once one exists, so both negotiators see the
     // same live draft; before any offer exists, defaults to "I offer" for whichever
     // negotiator this session is, at a 1-ducat opening amount. Purely a local draft
@@ -87,14 +76,12 @@
     // negotiation began, and that action (being the nearest one) was always what
     // Undo targeted - hiding whatever the player actually wanted to undo back to.
 
-
-
     // What the negotiation panel actually renders - the live negotiation normally,
     // or the frozen snapshot during the brief hold after it just finished (see
     // above). Everything below reads this instead of gameState.negotiation directly.
-    const displayNegotiation = $derived(gameSession.gameState.negotiation ?? gameSession.frozenNegotiation)
-
-
+    const displayNegotiation = $derived(
+        gameSession.gameState.negotiation ?? gameSession.frozenNegotiation
+    )
 
     // The payer dropdown and the amount stepper edit a local draft only - nothing is
     // dispatched until the player commits by signing. Every stepper click used to submit a
@@ -106,9 +93,6 @@
     // that the other player doesn't watch the number move - they see the offer when it's
     // made.
 
-
-
-
     // Master switch for the bid-on-another-player's-behalf affordance, same pattern as
     // TestingControls' own constant - it only exists because hotseat resolves myPlayer
     // to a single duelist, so a solo tester otherwise can't finish a duel at all.
@@ -117,7 +101,6 @@
     // seat, which is not a shortcut through the flow but a way to decide someone else's
     // ducats for them. Everything behind it is intact - flip this back to true for
     // another solo pass.
-
 
     const board = $derived(gameSession.gameState.board)
     const regions = $derived(gameSession.gameState.regions)
@@ -236,18 +219,21 @@
     // which is right for every mid-game preview but wrong during those laps.
     const placementOwner = $derived(gameSession.placementOwner)
 
-
     const legalExpansionSquareSet = $derived(
         new Set(gameSession.legalNextExpansionSquares.map((s) => `${s.col},${s.row}`))
     )
-    const legalRenegadeEnemyRegionIds = $derived(new Set(gameSession.legalRenegadeEnemyRegions.map((r) => r.id)))
+    const legalRenegadeEnemyRegionIds = $derived(
+        new Set(gameSession.legalRenegadeEnemyRegions.map((r) => r.id))
+    )
     const legalRenegadeRemovableSquareSet = $derived(
         new Set(gameSession.legalRenegadeRemovableSquares.map((s) => `${s.col},${s.row}`))
     )
     const legalRenegadePlacementSquareSet = $derived(
         new Set(gameSession.legalRenegadePlacementSquares.map((s) => `${s.col},${s.row}`))
     )
-    const legalAllianceEnemyRegionIds = $derived(new Set(gameSession.legalAllianceEnemyRegions.map((r) => r.id)))
+    const legalAllianceEnemyRegionIds = $derived(
+        new Set(gameSession.legalAllianceEnemyRegions.map((r) => r.id))
+    )
     // These two are hoisted for the same reason as the sets above, and it matters more
     // here: both are plain class getters (unmemoized), and legalRenegadeOwnRegionIds walks
     // every square of every region of yours and runs a knight-connectivity BFS per
@@ -298,7 +284,6 @@
     // can also be unavailable on its own (an empty knight stock or nowhere legal to
     // place; no region of your own to expand), which just prunes the list.
     const availableKnightPlans = $derived(gameSession.availableKnightPlans)
-
 
     // Both now live on the session, which the board's click handling and the status panel's
     // wording both read. Kept under their old names here so the call sites below are unchanged.
@@ -353,9 +338,9 @@
 
     // Ratios against the original 44px cell, so proportions are preserved exactly.
     const px = (atCell44: number) => `${scaled(atCell44)}px`
-    const GLYPH_BOX = px(24)      // expansion arrow box
-    const PIECE_INSET = px(3)     // piece art inset within its square
-    const POPUP_FONT = px(14)     // was Tailwind's text-sm
+    const GLYPH_BOX = px(24) // expansion arrow box
+    const PIECE_INSET = px(3) // piece art inset within its square
+    const POPUP_FONT = px(14) // was Tailwind's text-sm
     const TILE_PX = TILE_SIZE * CELL_SIZE
     // +4 accounts for the squares grid's own border-2 (2px on each side) - explicit
     // pixel sizes (not "auto") so the rampart frame's middle track always matches the
@@ -478,11 +463,13 @@
     // cancelling it here keeps mouse clicks from focusing any board button while Tab focus,
     // and its ring, work exactly as before.
     function keepMouseFromFocusingButtons(event: MouseEvent) {
-        if (event.target instanceof Element && event.target.closest('button')) event.preventDefault()
+        if (event.target instanceof Element && event.target.closest('button'))
+            event.preventDefault()
     }
 
     function disarmUnlessPressingAllianceControl(event: PointerEvent) {
-        if (event.target instanceof Element && event.target.closest('[data-alliance-control]')) return
+        if (event.target instanceof Element && event.target.closest('[data-alliance-control]'))
+            return
         armedAllianceId = undefined
     }
 
@@ -491,10 +478,30 @@
     // all real towns that were long established by the 1100s, so a board reads as a
     // plausible stretch of the Empire rather than as invented fantasy names.
     const VILLAGE_NAMES = [
-        'Quedlinburg', 'Goslar', 'Bamberg', 'Speyer', 'Worms', 'Trier',
-        'Regensburg', 'Hildesheim', 'Soest', 'Naumburg', 'Fulda', 'Eisenach',
-        'Marburg', 'Nördlingen', 'Meissen', 'Erfurt', 'Passau', 'Konstanz',
-        'Rothenburg', 'Dinkelsbühl', 'Landshut', 'Görlitz', 'Wetzlar', 'Hameln'
+        'Quedlinburg',
+        'Goslar',
+        'Bamberg',
+        'Speyer',
+        'Worms',
+        'Trier',
+        'Regensburg',
+        'Hildesheim',
+        'Soest',
+        'Naumburg',
+        'Fulda',
+        'Eisenach',
+        'Marburg',
+        'Nördlingen',
+        'Meissen',
+        'Erfurt',
+        'Passau',
+        'Konstanz',
+        'Rothenburg',
+        'Dinkelsbühl',
+        'Landshut',
+        'Görlitz',
+        'Wetzlar',
+        'Hameln'
     ]
 
     // Every village on the board with the name it keeps for the whole game. Assigned in
@@ -505,7 +512,11 @@
         for (let row = 0; row < board.squares.length; row++) {
             for (let col = 0; col < board.squares[row].length; col++) {
                 if (board.squares[row][col].type === SquareType.Village) {
-                    found.push({ col, row, name: VILLAGE_NAMES[found.length % VILLAGE_NAMES.length] })
+                    found.push({
+                        col,
+                        row,
+                        name: VILLAGE_NAMES[found.length % VILLAGE_NAMES.length]
+                    })
                 }
             }
         }
@@ -525,7 +536,9 @@
     // always a real wall between it and whichever already-claimed square it borders.
     const expansionArrows = $derived.by(() => {
         if (!expandStageActive || !gameSession.selectedExpandRegionId) return []
-        const region = gameSession.gameState.regions.find((r) => r.id === gameSession.selectedExpandRegionId)
+        const region = gameSession.gameState.regions.find(
+            (r) => r.id === gameSession.selectedExpandRegionId
+        )
         if (!region) return []
 
         const claimed = new Set(region.squareKeys)
@@ -537,7 +550,9 @@
             direction: 'north' | 'south' | 'east' | 'west'
         }[] = []
         for (const candidate of gameSession.legalNextExpansionSquares) {
-            const neighbor = neighbors(candidate.col, candidate.row).find((n) => claimed.has(squareKey(n.col, n.row)))
+            const neighbor = neighbors(candidate.col, candidate.row).find((n) =>
+                claimed.has(squareKey(n.col, n.row))
+            )
             if (!neighbor) continue
             const wall = wallBetween(neighbor.col, neighbor.row, candidate.col, candidate.row)
             if (!wall) continue
@@ -566,7 +581,9 @@
     // region), so the picked space visually reads as already merged in.
     const expansionPreviewWalls = $derived.by(() => {
         if (!expandStageActive || gameSession.expansionSquares.length === 0) return []
-        const region = gameSession.gameState.regions.find((r) => r.id === gameSession.selectedExpandRegionId)
+        const region = gameSession.gameState.regions.find(
+            (r) => r.id === gameSession.selectedExpandRegionId
+        )
         if (!region) return []
 
         const claimed = new Set(region.squareKeys)
@@ -597,8 +614,11 @@
     // reads as already merged in, matching expansionPreviewWalls' own treatment of the
     // OTHER (still-exterior) edges.
     const expansionHiddenWallKeys = $derived.by(() => {
-        if (!expandStageActive || gameSession.expansionSquares.length === 0) return new Set<string>()
-        const region = gameSession.gameState.regions.find((r) => r.id === gameSession.selectedExpandRegionId)
+        if (!expandStageActive || gameSession.expansionSquares.length === 0)
+            return new Set<string>()
+        const region = gameSession.gameState.regions.find(
+            (r) => r.id === gameSession.selectedExpandRegionId
+        )
         if (!region) return new Set<string>()
 
         const claimed = new Set(region.squareKeys)
@@ -795,7 +815,10 @@
     }
 
     function isLegalRenegadeRemovableSquare(col: number, row: number): boolean {
-        return !gameSession.renegadeRemovedSquare && legalRenegadeRemovableSquareSet.has(`${col},${row}`)
+        return (
+            !gameSession.renegadeRemovedSquare &&
+            legalRenegadeRemovableSquareSet.has(`${col},${row}`)
+        )
     }
 
     function isRenegadeRemovedSquare(col: number, row: number): boolean {
@@ -835,7 +858,10 @@
         // reads as already part of the region, tinted the same as the rest of it -
         // rather than a separate "pending" ring - since the walls around it are drawn
         // the same way too (see expansionPreviewWalls).
-        if (expandStageActive && gameSession.expansionSquares.some((s) => s.col === col && s.row === row)) {
+        if (
+            expandStageActive &&
+            gameSession.expansionSquares.some((s) => s.col === col && s.row === row)
+        ) {
             const region = regions.find((r) => r.id === gameSession.selectedExpandRegionId)
             if (region?.owner) return gameSession.uiColorForOwner(region.owner)
         }
@@ -894,7 +920,9 @@
         // keyboard path.
         if (gameSession.canPlaceWall) {
             if (!event || event.detail === 0 || !boardElement) return
-            const edge = wallEdgeNear(boardPointFromEvent(boardElement, event.clientX, event.clientY))
+            const edge = wallEdgeNear(
+                boardPointFromEvent(boardElement, event.clientX, event.clientY)
+            )
             if (edge) await gameSession.placeWallBetween(edge.col1, edge.row1, edge.col2, edge.row2)
             return
         }
@@ -921,7 +949,9 @@
             if (!gameSession.selectedExpandRegionId) {
                 if (isSelectableExpandRegion(col, row)) {
                     const key = squareKey(col, row)
-                    const region = gameSession.expandableRegions.find((r) => r.squareKeys.includes(key))
+                    const region = gameSession.expandableRegions.find((r) =>
+                        r.squareKeys.includes(key)
+                    )
                     if (region) gameSession.selectRegionToExpand(region.id)
                 }
                 return
@@ -1023,96 +1053,109 @@
             onmousedown={keepMouseFromFocusingButtons}
             onpointerdown={disarmUnlessPressingAllianceControl}
         >
-        {#if tileLayout.length > 0}
-            <!-- The 6 physical board tiles, positioned and rotated exactly as this game
+            {#if tileLayout.length > 0}
+                <!-- The 6 physical board tiles, positioned and rotated exactly as this game
                  assembled them - sits behind the clickable square grid below. -->
-            <!-- Negative z-index (not a lower positive one) so this stays behind the
+                <!-- Negative z-index (not a lower positive one) so this stays behind the
                  grid below without needing to move the grid into the positioned
                  stacking layer itself - the grid must stay a plain static element so
                  the wall bars/click-targets (painted after it, unpositioned-relative
                  z-auto) keep rendering on top of it, exactly as before this change. -->
-            <div
-                class="absolute overflow-hidden pointer-events-none -z-10"
-                style="top:1px; left:1px; width:{board.squares[0].length * CELL_SIZE}px; height:{board.squares
-                    .length * CELL_SIZE}px;"
-            >
-                {#each tileLayout as tile (tile.tileCol + ',' + tile.tileRow)}
-                    <img
-                        src={tileImages[tile.tileId]}
-                        alt=""
-                        class="absolute"
-                        style="
+                <div
+                    class="absolute overflow-hidden pointer-events-none -z-10"
+                    style="top:1px; left:1px; width:{board.squares[0].length *
+                        CELL_SIZE}px; height:{board.squares.length * CELL_SIZE}px;"
+                >
+                    {#each tileLayout as tile (tile.tileCol + ',' + tile.tileRow)}
+                        <img
+                            src={tileImages[tile.tileId]}
+                            alt=""
+                            class="absolute"
+                            style="
                             left: {tile.tileCol * TILE_PX}px;
                             top: {tile.tileRow * TILE_PX}px;
                             width: {TILE_PX}px;
                             height: {TILE_PX}px;
                             transform: rotate({tile.rotation}deg);
                         "
-                    />
-                {/each}
-            </div>
-        {/if}
-        <div
-            class="grid border-2 border-black/60"
-            style="grid-template-columns: repeat({board.squares[0].length}, {CELL_SIZE}px);"
-        >
-            {#each board.squares as rowSquares, row (row)}
-                {#each rowSquares as square, col (col)}
-                    {@const tint = regionTint(col, row)}
-                    <button
-                        type="button"
-                        onclick={(event) => onSquareClick(col, row, event)}
-                        onmouseenter={() => (hoveredSquare = { col, row })}
-                        onmouseleave={() => {
-                            // Guarded so that moving between two squares cannot blank the
-                            // preview: leaving A clears only while A is still the hovered one, and
-                            // entering B has already overwritten it by then.
-                            if (hoveredSquare?.col === col && hoveredSquare?.row === row) {
-                                hoveredSquare = undefined
-                            }
-                        }}
-                        class="relative flex items-center justify-center border border-black/20 {isPendingCastleSquare(col, row) ? 'ring-4 ring-yellow-300 z-10' : ''} {isLegalKnightSquare(col, row) && PLACEMENT_HINT !== 'legal' ? 'ring-2 ring-yellow-100' : ''}"
-                        style="width:{CELL_SIZE}px; height:{CELL_SIZE}px; {tileLayout.length > 0 ? '' : `background-color:${terrainBg[square.type]};`}"
-                    >
-                        {#if tint}
-                            {@const pulsing =
-                                (expandStageActive && isSelectableExpandRegion(col, row)) ||
-                                isOwnSelectableRenegadeRegion(col, row) ||
-                                isOwnSelectableAllianceRegion(col, row) ||
-                                isSelectableRenegadeEnemyRegion(col, row) ||
-                                isSelectableAllianceEnemyRegion(col, row)}
-                            <!-- Same region tint as always, but pulsing (rather than a ring
+                        />
+                    {/each}
+                </div>
+            {/if}
+            <div
+                class="grid border-2 border-black/60"
+                style="grid-template-columns: repeat({board.squares[0].length}, {CELL_SIZE}px);"
+            >
+                {#each board.squares as rowSquares, row (row)}
+                    {#each rowSquares as square, col (col)}
+                        {@const tint = regionTint(col, row)}
+                        <button
+                            type="button"
+                            onclick={(event) => onSquareClick(col, row, event)}
+                            onmouseenter={() => (hoveredSquare = { col, row })}
+                            onmouseleave={() => {
+                                // Guarded so that moving between two squares cannot blank the
+                                // preview: leaving A clears only while A is still the hovered one, and
+                                // entering B has already overwritten it by then.
+                                if (hoveredSquare?.col === col && hoveredSquare?.row === row) {
+                                    hoveredSquare = undefined
+                                }
+                            }}
+                            class="relative flex items-center justify-center border border-black/20 {isPendingCastleSquare(
+                                col,
+                                row
+                            )
+                                ? 'ring-4 ring-yellow-300 z-10'
+                                : ''} {isLegalKnightSquare(col, row) && PLACEMENT_HINT !== 'legal'
+                                ? 'ring-2 ring-yellow-100'
+                                : ''}"
+                            style="width:{CELL_SIZE}px; height:{CELL_SIZE}px; {tileLayout.length > 0
+                                ? ''
+                                : `background-color:${terrainBg[square.type]};`}"
+                        >
+                            {#if tint}
+                                {@const pulsing =
+                                    (expandStageActive && isSelectableExpandRegion(col, row)) ||
+                                    isOwnSelectableRenegadeRegion(col, row) ||
+                                    isOwnSelectableAllianceRegion(col, row) ||
+                                    isSelectableRenegadeEnemyRegion(col, row) ||
+                                    isSelectableAllianceEnemyRegion(col, row)}
+                                <!-- Same region tint as always, but pulsing (rather than a ring
                                  around the square) while it's a region the player could
                                  currently pick - their own, to expand it or as the starting
                                  region for a Renegade/Alliance card, or a bordering enemy
                                  region to target with one. -->
-                            <span
-                                class="absolute inset-0 pointer-events-none {pulsing ? 'region-expand-pulse' : ''}"
-                                style="background-color:{tint}; {pulsing ? '' : 'opacity:0.385;'}"
-                            ></span>
-                        {/if}
-                        {#if isCastlePreviewSquare(col, row) && placementOwner}
-                            <!-- The castle that would go here, under the cursor. Static rather
+                                <span
+                                    class="absolute inset-0 pointer-events-none {pulsing
+                                        ? 'region-expand-pulse'
+                                        : ''}"
+                                    style="background-color:{tint}; {pulsing
+                                        ? ''
+                                        : 'opacity:0.385;'}"
+                                ></span>
+                            {/if}
+                            {#if isCastlePreviewSquare(col, row) && placementOwner}
+                                <!-- The castle that would go here, under the cursor. Static rather
                                  than pulsing: it is answering "this one?", and one square at a
                                  time needs no animation to be noticed. Own colour for the opening
                                  laps and the NEUTRAL colour for the closing ones, since those
                                  castles belong to the third prince. -->
-                            <div class="absolute inset-0 pointer-events-none opacity-60">
-                                {@render pieceIcon(castleFill, castleLines, placementOwner)}
-                            </div>
-                        {/if}
-                        {#if isKnightPreviewSquare(col, row) && legalHintOwner}
-                            <!-- The knight that would land here, same treatment as the castle. -->
-                            <div class="absolute inset-0 pointer-events-none opacity-60">
-                                {@render pieceIcon(knightFill, knightLines, legalHintOwner, -1)}
-                            </div>
-                        {/if}
-                        <!-- The dot is suppressed under either preview: the piece drawn there
+                                <div class="absolute inset-0 pointer-events-none opacity-60">
+                                    {@render pieceIcon(castleFill, castleLines, placementOwner)}
+                                </div>
+                            {/if}
+                            {#if isKnightPreviewSquare(col, row) && legalHintOwner}
+                                <!-- The knight that would land here, same treatment as the castle. -->
+                                <div class="absolute inset-0 pointer-events-none opacity-60">
+                                    {@render pieceIcon(knightFill, knightLines, legalHintOwner, -1)}
+                                </div>
+                            {/if}
+                            <!-- The dot is suppressed under either preview: the piece drawn there
                              already says the square will take one, and a dot beside it is the same
                              claim twice. -->
-                        {#if showsLegalHighlight(col, row) && !isCastlePreviewSquare(col, row) && !isKnightPreviewSquare(col, row) && legalHintOwner}
-                            {@const hintColor = gameSession.uiColorForOwner(legalHintOwner)}
-                            <!-- A filled disc, about a third of the square. r 1.85 of the
+                            {#if showsLegalHighlight(col, row) && !isCastlePreviewSquare(col, row) && !isKnightPreviewSquare(col, row) && legalHintOwner}
+                                {@const hintColor = gameSession.uiColorForOwner(legalHintOwner)}
+                                <!-- A filled disc, about a third of the square. r 1.85 of the
                                  ten-unit viewBox is a 3.7-unit diameter - the same outer edge the
                                  stroked ring had, so "filled in" means exactly that rather than
                                  also changing size.
@@ -1125,12 +1168,12 @@
                                  In the PLACING colour, so the closing laps mark the neutral
                                  prince's spots in the neutral colour rather than claiming them
                                  for whoever is placing. -->
-                            <svg
-                                viewBox="0 0 10 10"
-                                class="absolute inset-0 w-full h-full pointer-events-none"
-                                aria-hidden="true"
-                            >
-                                <!-- The same boost AND the same soft white glow pieceIcon puts on a
+                                <svg
+                                    viewBox="0 0 10 10"
+                                    class="absolute inset-0 w-full h-full pointer-events-none"
+                                    aria-hidden="true"
+                                >
+                                    <!-- The same boost AND the same soft white glow pieceIcon puts on a
                                      castle or a knight, so the dot is the colour of the piece it
                                      stands for
                                      rather than of the raw palette entry. getUiColor's yellow is
@@ -1144,36 +1187,36 @@
                                      read against light parchment AND dark green, and no single
                                      colour does both. An outline is terrain-independent, and it
                                      fixes all four colours at once instead of one per complaint. -->
-                                <circle
-                                    cx="5"
-                                    cy="5"
-                                    r="1.85"
-                                    fill={hintColor}
-                                    stroke="#000000"
-                                    stroke-opacity="0.55"
-                                    stroke-width="0.16"
-                                    opacity="0.7"
-                                    style="filter: saturate(1.5) brightness(1.15)
+                                    <circle
+                                        cx="5"
+                                        cy="5"
+                                        r="1.85"
+                                        fill={hintColor}
+                                        stroke="#000000"
+                                        stroke-opacity="0.55"
+                                        stroke-width="0.16"
+                                        opacity="0.7"
+                                        style="filter: saturate(1.5) brightness(1.15)
                                         drop-shadow(0 0 1.5px rgba(255, 255, 255, 0.9))
                                         drop-shadow(0 0 3px rgba(255, 255, 255, 0.8));"
-                                />
-                            </svg>
-
-                        {/if}
-                        {#if showsIllegalScrim(col, row)}
-                            <!-- Drawn after the region tint but before the pieces, so a piece
+                                    ></circle>
+                                </svg>
+                            {/if}
+                            {#if showsIllegalScrim(col, row)}
+                                <!-- Drawn after the region tint but before the pieces, so a piece
                                  standing on a dimmed square is dimmed WITH it rather than painted
                                  over. -->
-                            <span class="absolute inset-0 pointer-events-none bg-black/40"></span>
-                        {/if}
-                        {#if showsIllegalX(col, row)}
-                            <!-- Small, centred, and the only thing on the square: showsIllegalX
+                                <span class="absolute inset-0 pointer-events-none bg-black/40"
+                                ></span>
+                            {/if}
+                            {#if showsIllegalX(col, row)}
+                                <!-- Small, centred, and the only thing on the square: showsIllegalX
                                  has already excluded every square that holds a piece, so there is
                                  nothing here to obscure. -->
-                            <span
-                                class="absolute inset-0 pointer-events-none flex items-center justify-center"
-                            >
-                                <!-- The X spans ~90% of the square: the svg fills the cell and
+                                <span
+                                    class="absolute inset-0 pointer-events-none flex items-center justify-center"
+                                >
+                                    <!-- The X spans ~90% of the square: the svg fills the cell and
                                      the stroke runs corner to corner inset by half a unit of the
                                      ten-unit viewBox.
                                      
@@ -1182,52 +1225,86 @@
                                      because the width was tuned against a much smaller mark:
                                      keeping the old 1.9 here would have drawn a line over 8px
                                      thick, a red barrier rather than a red X. -->
-                                <svg viewBox="0 0 10 10" class="w-full h-full opacity-70" aria-hidden="true">
-                                    <path
-                                        d="M0.5 0.5 L9.5 9.5 M9.5 0.5 L0.5 9.5"
-                                        stroke="#b0201a"
-                                        stroke-width="0.6"
-                                        stroke-linecap="round"
-                                        fill="none"
-                                    />
-                                </svg>
-                            </span>
-                        {/if}
-                        {#if square.castleOwner}
-                            {@render pieceIcon(castleFill, castleLines, square.castleOwner)}
-                        {:else if square.knightOwner}
-                            {#if isRenegadeRemovedSquare(col, row)}
-                                <!-- The knight the player just clicked to remove - simply
+                                    <svg
+                                        viewBox="0 0 10 10"
+                                        class="w-full h-full opacity-70"
+                                        aria-hidden="true"
+                                    >
+                                        <path
+                                            d="M0.5 0.5 L9.5 9.5 M9.5 0.5 L0.5 9.5"
+                                            stroke="#b0201a"
+                                            stroke-width="0.6"
+                                            stroke-linecap="round"
+                                            fill="none"
+                                        ></path>
+                                    </svg>
+                                </span>
+                            {/if}
+                            {#if square.castleOwner}
+                                {@render pieceIcon(castleFill, castleLines, square.castleOwner)}
+                            {:else if square.knightOwner}
+                                {#if isRenegadeRemovedSquare(col, row)}
+                                    <!-- The knight the player just clicked to remove - simply
                                      vanishes from view, same as it always has, rather than
                                      staying rendered with some marker on top of it. It isn't
                                      actually gone from game state until the whole Renegade
                                      play is confirmed, but this square shouldn't look occupied
                                      in the meantime. -->
-                            {:else if isLegalRenegadeRemovableSquare(col, row)}
-                                <!-- The real knight already there, pulsing in place - rather than
+                                {:else if isLegalRenegadeRemovableSquare(col, row)}
+                                    <!-- The real knight already there, pulsing in place - rather than
                                      a ring around it - to show it's a legal removal target. -->
-                                <div class="absolute inset-0 ghost-knight-pulse pointer-events-none">
-                                    {@render pieceIcon(knightFill, knightLines, square.knightOwner, -1)}
-                                </div>
-                            {:else}
-                                {@render pieceIcon(knightFill, knightLines, square.knightOwner, -1)}
+                                    <div
+                                        class="absolute inset-0 ghost-knight-pulse pointer-events-none"
+                                    >
+                                        {@render pieceIcon(
+                                            knightFill,
+                                            knightLines,
+                                            square.knightOwner,
+                                            -1
+                                        )}
+                                    </div>
+                                {:else}
+                                    {@render pieceIcon(
+                                        knightFill,
+                                        knightLines,
+                                        square.knightOwner,
+                                        -1
+                                    )}
+                                {/if}
                             {/if}
-                        {/if}
-                    </button>
+                        </button>
+                    {/each}
                 {/each}
-            {/each}
-        </div>
+            </div>
 
-        <!-- Boundary walls: crenellated bars (see WallSegment) anchored at the
+            <!-- Boundary walls: crenellated bars (see WallSegment) anchored at the
              wall's starting corner - west edges run down from there, north edges run
              right, so two segments sharing a grid corner always anchor at the same
              pixel point and their end-squares overlap. -->
-        {#each displayedWalls as wall (wall.col + ',' + wall.row + ',' + wall.edge)}
-            {#if !expansionHiddenWallKeys.has(`${wall.col},${wall.row},${wall.edge}`)}
+            {#each displayedWalls as wall (wall.col + ',' + wall.row + ',' + wall.edge)}
+                {#if !expansionHiddenWallKeys.has(`${wall.col},${wall.row},${wall.edge}`)}
+                    {@const junctions = wallJunctionVisibility(wall)}
+                    <div
+                        class="absolute pointer-events-none"
+                        style="left: {wall.col * CELL_SIZE}px; top: {wall.row * CELL_SIZE}px;"
+                    >
+                        <WallSegment
+                            orientation={wall.edge === 'west' ? 'vertical' : 'horizontal'}
+                            hideStartJunction={junctions.hideStart}
+                            hideEndJunction={junctions.hideEnd}
+                        />
+                    </div>
+                {/if}
+            {/each}
+
+            <!-- Preview walls around a not-yet-confirmed expansion pick - same look as
+             real walls, just slightly transparent, since they aren't real yet. -->
+            {#each expansionPreviewWalls as wall (wall.col + ',' + wall.row + ',' + wall.edge + '-preview')}
                 {@const junctions = wallJunctionVisibility(wall)}
                 <div
                     class="absolute pointer-events-none"
-                    style="left: {wall.col * CELL_SIZE}px; top: {wall.row * CELL_SIZE}px;"
+                    style="left: {wall.col * CELL_SIZE}px; top: {wall.row *
+                        CELL_SIZE}px; opacity: 0.85;"
                 >
                     <WallSegment
                         orientation={wall.edge === 'west' ? 'vertical' : 'horizontal'}
@@ -1235,250 +1312,254 @@
                         hideEndJunction={junctions.hideEnd}
                     />
                 </div>
-            {/if}
-        {/each}
+            {/each}
 
-        <!-- Preview walls around a not-yet-confirmed expansion pick - same look as
-             real walls, just slightly transparent, since they aren't real yet. -->
-        {#each expansionPreviewWalls as wall (wall.col + ',' + wall.row + ',' + wall.edge + '-preview')}
-            {@const junctions = wallJunctionVisibility(wall)}
-            <div
-                class="absolute pointer-events-none"
-                style="left: {wall.col * CELL_SIZE}px; top: {wall.row * CELL_SIZE}px; opacity: 0.85;"
-            >
-                <WallSegment
-                    orientation={wall.edge === 'west' ? 'vertical' : 'horizontal'}
-                    hideStartJunction={junctions.hideStart}
-                    hideEndJunction={junctions.hideEnd}
-                />
-            </div>
-        {/each}
-
-        <!-- Alliance markers: two small hearts on every boundary wall between two allied
+            <!-- Alliance markers: two small hearts on every boundary wall between two allied
              regions - the only on-board sign an alliance exists. When I'm a participant who
              can afford the 10 ducats, the "Break alliance?" pill is offered near the border
              (see offeredAllianceId); the hearts themselves only arm it. -->
-        {#each visibleAllianceMarkers as marker (marker.id)}
-            <div class="contents" data-alliance-control onfocusout={disarmUnlessFocusStaysWithin}>
-                {#each marker.walls as wall, wallIndex (wall.col + ',' + wall.row + ',' + wall.edge + '-heart')}
-                    {@const span = heartSpan(wall)}
-                    {#if marker.cancellable}
-                        <!-- A heart's own idle animation is a heartbeat, which is exactly the
+            {#each visibleAllianceMarkers as marker (marker.id)}
+                <div
+                    class="contents"
+                    data-alliance-control
+                    onfocusout={disarmUnlessFocusStaysWithin}
+                >
+                    {#each marker.walls as wall, wallIndex (wall.col + ',' + wall.row + ',' + wall.edge + '-heart')}
+                        {@const span = heartSpan(wall)}
+                        {#if marker.cancellable}
+                            <!-- A heart's own idle animation is a heartbeat, which is exactly the
                              "alive, touchable" cue this needs - it beats only while cancelling
                              is actually open to this player, and sits dead still otherwise.
                              One Tab stop per alliance (its first wall); the other walls' hearts
                              stay clickable but are skipped, so Tab goes hearts, pill, next. -->
+                            <button
+                                type="button"
+                                aria-label={breakAllianceLabel(marker)}
+                                title={breakAllianceLabel(marker)}
+                                tabindex={wallIndex === 0 ? 0 : -1}
+                                class="absolute z-40 cursor-pointer alliance-heartbeat"
+                                style="left: {span.left}px; top: {span.top}px; width: {span.width}px; height: {span.height}px;"
+                                onfocus={() => (armedAllianceId = marker.id)}
+                                onclick={(e) => {
+                                    e.stopPropagation()
+                                    armedAllianceId = marker.id
+                                }}
+                            >
+                                {#each span.hearts as heart, index (index)}
+                                    <span
+                                        class="absolute"
+                                        style="left: {heart.left}px; top: {heart.top}px; width: {HEART_BOX}px; height: {HEART_BOX}px;"
+                                    >
+                                        <AllianceHeart />
+                                    </span>
+                                {/each}
+                            </button>
+                        {:else}
+                            <div
+                                class="absolute pointer-events-none z-40"
+                                style="left: {span.left}px; top: {span.top}px; width: {span.width}px; height: {span.height}px;"
+                            >
+                                {#each span.hearts as heart, index (index)}
+                                    <span
+                                        class="absolute"
+                                        style="left: {heart.left}px; top: {heart.top}px; width: {HEART_BOX}px; height: {HEART_BOX}px;"
+                                    >
+                                        <AllianceHeart />
+                                    </span>
+                                {/each}
+                            </div>
+                        {/if}
+                    {/each}
+
+                    {#if marker.cancellable && offeredAllianceId === marker.id}
+                        {@const anchor = breakAlliancePillAnchor(
+                            marker.walls,
+                            allianceBreakingDetail !== undefined
+                        )}
                         <button
                             type="button"
-                            aria-label={breakAllianceLabel(marker)}
                             title={breakAllianceLabel(marker)}
-                            tabindex={wallIndex === 0 ? 0 : -1}
-                            class="absolute z-40 cursor-pointer alliance-heartbeat"
-                            style="left: {span.left}px; top: {span.top}px; width: {span.width}px; height: {span.height}px;"
-                            onfocus={() => (armedAllianceId = marker.id)}
+                            class="absolute z-50 cursor-pointer break-alliance-pill {armedAllianceId ===
+                            marker.id
+                                ? 'break-alliance-pill-immediate'
+                                : ''}"
+                            style="left: {anchor.x}px; top: {anchor.y}px; --hover-intent: {BOARD_HOVER_INTENT_MS}ms;"
+                            onmouseenter={() => (pillHeldOpenFor = marker.id)}
+                            onmouseleave={() => (pillHeldOpenFor = undefined)}
                             onclick={(e) => {
                                 e.stopPropagation()
-                                armedAllianceId = marker.id
+                                armedAllianceId = undefined
+                                pillHeldOpenFor = undefined
+                                gameSession.cancelAlliance(marker.id)
                             }}
                         >
-                            {#each span.hearts as heart, index (index)}
-                                <span
-                                    class="absolute"
-                                    style="left: {heart.left}px; top: {heart.top}px; width: {HEART_BOX}px; height: {HEART_BOX}px;"
+                            Break alliance?
+                            {#if allianceBreakingDetail}
+                                <span class="block break-alliance-pill-detail"
+                                    >{allianceBreakingDetail}</span
                                 >
-                                    <AllianceHeart />
-                                </span>
-                            {/each}
+                            {/if}
                         </button>
-                    {:else}
-                        <div
-                            class="absolute pointer-events-none z-40"
-                            style="left: {span.left}px; top: {span.top}px; width: {span.width}px; height: {span.height}px;"
-                        >
-                            {#each span.hearts as heart, index (index)}
-                                <span
-                                    class="absolute"
-                                    style="left: {heart.left}px; top: {heart.top}px; width: {HEART_BOX}px; height: {HEART_BOX}px;"
-                                >
-                                    <AllianceHeart />
-                                </span>
-                            {/each}
-                        </div>
                     {/if}
-                {/each}
+                </div>
+            {/each}
 
-                {#if marker.cancellable && offeredAllianceId === marker.id}
-                    {@const anchor = breakAlliancePillAnchor(marker.walls, allianceBreakingDetail !== undefined)}
-                    <button
-                        type="button"
-                        title={breakAllianceLabel(marker)}
-                        class="absolute z-50 cursor-pointer break-alliance-pill {armedAllianceId === marker.id
-                            ? 'break-alliance-pill-immediate'
-                            : ''}"
-                        style="left: {anchor.x}px; top: {anchor.y}px; --hover-intent: {BOARD_HOVER_INTENT_MS}ms;"
-                        onmouseenter={() => (pillHeldOpenFor = marker.id)}
-                        onmouseleave={() => (pillHeldOpenFor = undefined)}
-                        onclick={(e) => {
-                            e.stopPropagation()
-                            armedAllianceId = undefined
-                            pillHeldOpenFor = undefined
-                            gameSession.cancelAlliance(marker.id)
-                        }}
-                    >
-                        Break alliance?
-                        {#if allianceBreakingDetail}
-                            <span class="block break-alliance-pill-detail">{allianceBreakingDetail}</span>
-                        {/if}
-                    </button>
-                {/if}
-            </div>
-        {/each}
-
-        <!-- Village names, in the overlay layer rather than inside each square button: a
+            <!-- Village names, in the overlay layer rather than inside each square button: a
              pill is wider than its square and has to be able to spill over its neighbours,
              which needs a shared stacking context to sit above them all. They're always
              rendered and merely transparent, so the opacity transition can play in BOTH
              directions - mounting them on hover would fade in but vanish on the way out. -->
-        {#each villages as village (village.col + ',' + village.row)}
-            <div
-                class="absolute pointer-events-none z-40 village-name {hoveringVillage
-                    ? 'village-name-shown'
-                    : ''}"
-                style="left: {village.col * CELL_SIZE + CELL_SIZE / 2}px; top: {village.row *
-                    CELL_SIZE +
-                    CELL_SIZE / 2}px; --hover-intent: {BOARD_HOVER_INTENT_MS}ms;"
-            >
-                {village.name}
-            </div>
-        {/each}
-
-        <!-- The alliance breaking: one burst per wall that carried a heart, so a long shared
-             border comes apart along its whole length rather than in one spot. -->
-        {#each allianceBurst.hearts as heart (heart.id)}
-            <div
-                class="absolute pointer-events-none z-50"
-                style="left: {heart.left}px; top: {heart.top}px; width: {HEART_BOX}px; height: {HEART_BOX}px;"
-            >
-                <span
-                    class="absolute inset-0"
-                    {@attach (el) => {
-                        allianceBurst.setCore(heart.id, el)
-                        return () => allianceBurst.setCore(heart.id, undefined)
-                    }}
+            {#each villages as village (village.col + ',' + village.row)}
+                <div
+                    class="absolute pointer-events-none z-40 village-name {hoveringVillage
+                        ? 'village-name-shown'
+                        : ''}"
+                    style="left: {village.col * CELL_SIZE + CELL_SIZE / 2}px; top: {village.row *
+                        CELL_SIZE +
+                        CELL_SIZE / 2}px; --hover-intent: {BOARD_HOVER_INTENT_MS}ms;"
                 >
-                    <AllianceHeart broken />
-                </span>
-                {#each BURST_SHARD_ANGLES as _angle, i (i)}
+                    {village.name}
+                </div>
+            {/each}
+
+            <!-- The alliance breaking: one burst per wall that carried a heart, so a long shared
+             border comes apart along its whole length rather than in one spot. -->
+            {#each allianceBurst.hearts as heart (heart.id)}
+                <div
+                    class="absolute pointer-events-none z-50"
+                    style="left: {heart.left}px; top: {heart.top}px; width: {HEART_BOX}px; height: {HEART_BOX}px;"
+                >
                     <span
-                        class="absolute inset-[20%]"
+                        class="absolute inset-0"
                         {@attach (el) => {
-                            allianceBurst.setShard(heart.id, i, el)
-                            return () => allianceBurst.setShard(heart.id, i, undefined)
+                            allianceBurst.setCore(heart.id, el)
+                            return () => allianceBurst.setCore(heart.id, undefined)
                         }}
                     >
-                        <AllianceHeart />
+                        <AllianceHeart broken />
                     </span>
-                {/each}
-            </div>
-        {/each}
+                    {#each BURST_SHARD_ANGLES as _angle, i (i)}
+                        <span
+                            class="absolute inset-[20%]"
+                            {@attach (el) => {
+                                allianceBurst.setShard(heart.id, i, el)
+                                return () => allianceBurst.setShard(heart.id, i, undefined)
+                            }}
+                        >
+                            <AllianceHeart />
+                        </span>
+                    {/each}
+                </div>
+            {/each}
 
-        <!-- The alliance forming: one heart per wall that will carry it, bouncing in ahead of
+            <!-- The alliance forming: one heart per wall that will carry it, bouncing in ahead of
              the real markers above (which don't exist until the state actually updates). -->
-        {#each allianceForm.hearts as heart (heart.id)}
-            <div
-                class="absolute pointer-events-none z-40"
-                style="left: {heart.left}px; top: {heart.top}px; width: {HEART_BOX}px; height: {HEART_BOX}px;"
-                {@attach (el) => {
-                    allianceForm.setNode(heart.id, el)
-                    return () => allianceForm.setNode(heart.id, undefined)
-                }}
-            >
-                <AllianceHeart />
-            </div>
-        {/each}
+            {#each allianceForm.hearts as heart (heart.id)}
+                <div
+                    class="absolute pointer-events-none z-40"
+                    style="left: {heart.left}px; top: {heart.top}px; width: {HEART_BOX}px; height: {HEART_BOX}px;"
+                    {@attach (el) => {
+                        allianceForm.setNode(heart.id, el)
+                        return () => allianceForm.setNode(heart.id, undefined)
+                    }}
+                >
+                    <AllianceHeart />
+                </div>
+            {/each}
 
-        <!-- A single pulsing preview of the wall that would actually be placed at
+            <!-- A single pulsing preview of the wall that would actually be placed at
              whichever legal spot is nearest the mouse - rather than glowing every
              legal spot at once. Shows nothing while the mouse isn't over the board
              (hoverPoint unset) or over a state with no legal walls at all. -->
-        {#if ghostWall}
-            {@const junctions = wallJunctionVisibility(ghostWall)}
-            <div
-                class="absolute pointer-events-none z-20 ghost-wall-pulse"
-                style="left: {ghostWall.col * CELL_SIZE}px; top: {ghostWall.row * CELL_SIZE}px;"
-            >
-                <WallSegment
-                    orientation={ghostWall.edge === 'west' ? 'vertical' : 'horizontal'}
-                    hideStartJunction={junctions.hideStart}
-                    hideEndJunction={junctions.hideEnd}
-                />
-            </div>
-        {/if}
+            {#if ghostWall}
+                {@const junctions = wallJunctionVisibility(ghostWall)}
+                <div
+                    class="absolute pointer-events-none z-20 ghost-wall-pulse"
+                    style="left: {ghostWall.col * CELL_SIZE}px; top: {ghostWall.row * CELL_SIZE}px;"
+                >
+                    <WallSegment
+                        orientation={ghostWall.edge === 'west' ? 'vertical' : 'horizontal'}
+                        hideStartJunction={junctions.hideStart}
+                        hideEndJunction={junctions.hideEnd}
+                    />
+                </div>
+            {/if}
 
-        <!-- One bouncing arrow per legal expansion direction, centered on the wall it
+            <!-- One bouncing arrow per legal expansion direction, centered on the wall it
              would cross, pointing toward the space it would claim - in the expanding
              player's own color. The rotation (to actually face the right direction)
              has to sit on this outer element, un-animated, since it varies per arrow -
              the bounce lives on the inner wrapper below, moving along the arrow's own
              "up" axis so it ends up bouncing the right way once rotated. -->
-        {#each expansionArrows as arrow (arrow.key)}
-            <div
-                class="absolute pointer-events-none z-[25]"
-                style="
+            {#each expansionArrows as arrow (arrow.key)}
+                <div
+                    class="absolute pointer-events-none z-[25]"
+                    style="
                     left: {(arrow.wall.edge === 'west'
-                    ? arrow.wall.col * CELL_SIZE
-                    : arrow.wall.col * CELL_SIZE + CELL_SIZE / 2) - scaled(12)}px;
+                        ? arrow.wall.col * CELL_SIZE
+                        : arrow.wall.col * CELL_SIZE + CELL_SIZE / 2) - scaled(12)}px;
                     top: {(arrow.wall.edge === 'west'
-                    ? arrow.wall.row * CELL_SIZE + CELL_SIZE / 2
-                    : arrow.wall.row * CELL_SIZE) - scaled(12)}px;
+                        ? arrow.wall.row * CELL_SIZE + CELL_SIZE / 2
+                        : arrow.wall.row * CELL_SIZE) - scaled(12)}px;
                     width: {GLYPH_BOX};
                     height: {GLYPH_BOX};
                     color: {myOwner ? gameSession.uiColorForOwner(myOwner) : '#ffffff'};
                     transform: rotate({ARROW_ROTATION[arrow.direction]}deg);
                 "
-            >
-                <div class="expansion-arrow-bounce">
-                    <svg viewBox="0 0 24 24" width={GLYPH_BOX} height={GLYPH_BOX} fill="currentColor">
-                        <path d="M12 3 L21 18 L3 18 Z" stroke="black" stroke-width="1" stroke-linejoin="round" />
-                    </svg>
+                >
+                    <div class="expansion-arrow-bounce">
+                        <svg
+                            viewBox="0 0 24 24"
+                            width={GLYPH_BOX}
+                            height={GLYPH_BOX}
+                            fill="currentColor"
+                        >
+                            <path
+                                d="M12 3 L21 18 L3 18 Z"
+                                stroke="black"
+                                stroke-width="1"
+                                stroke-linejoin="round"
+                            ></path>
+                        </svg>
+                    </div>
                 </div>
-            </div>
-        {/each}
+            {/each}
 
-        <!-- Focusable lines for legal wall placements, one per edge, so walls can be placed
+            <!-- Focusable lines for legal wall placements, one per edge, so walls can be placed
              from the keyboard. Invisible: the ghost wall above is the visual cue, and with the
              mouse a click anywhere on the board places whichever edge is ghosted (see
              onSquareClick). -->
-        {#each legalWallEdges as edge (edge.col1 + ',' + edge.row1 + '-' + edge.col2 + ',' + edge.row2)}
-            {@const sameRow = edge.row1 === edge.row2}
-            <button
-                type="button"
-                aria-label="Place wall"
-                class="absolute z-30 cursor-pointer"
-                style="
+            {#each legalWallEdges as edge (edge.col1 + ',' + edge.row1 + '-' + edge.col2 + ',' + edge.row2)}
+                {@const sameRow = edge.row1 === edge.row2}
+                <button
+                    type="button"
+                    aria-label="Place wall"
+                    class="absolute z-30 cursor-pointer"
+                    style="
                     left: {sameRow ? edge.col2 * CELL_SIZE - 8 : edge.col1 * CELL_SIZE}px;
                     top: {sameRow ? edge.row1 * CELL_SIZE : edge.row2 * CELL_SIZE - 8}px;
                     width: {sameRow ? 16 : CELL_SIZE}px;
                     height: {sameRow ? CELL_SIZE : 16}px;
                 "
-                onclick={() => gameSession.placeWallBetween(edge.col1, edge.row1, edge.col2, edge.row2)}
-            ></button>
-        {/each}
+                    onclick={() =>
+                        gameSession.placeWallBetween(edge.col1, edge.row1, edge.col2, edge.row2)}
+                ></button>
+            {/each}
 
-        <!-- Floating score-change popups - the animator owns their motion and their removal. -->
-        {#each scorePopups.popups as popup (popup.id)}
-            <div
-                {@attach (el) => {
-                    scorePopups.setNode(popup.id, el)
-                    return () => scorePopups.setNode(popup.id, undefined)
-                }}
-                class="absolute z-50 pointer-events-none rounded-full px-2 py-0.5 font-bold text-white shadow"
-                style="left:{popup.col * CELL_SIZE + CELL_SIZE / 2}px; top:{popup.row *
-                    CELL_SIZE}px; font-size: {POPUP_FONT}; background-color:{popup.color};"
-            >
-                {popup.text}
-            </div>
-        {/each}
+            <!-- Floating score-change popups - the animator owns their motion and their removal. -->
+            {#each scorePopups.popups as popup (popup.id)}
+                <div
+                    {@attach (el) => {
+                        scorePopups.setNode(popup.id, el)
+                        return () => scorePopups.setNode(popup.id, undefined)
+                    }}
+                    class="absolute z-50 pointer-events-none rounded-full px-2 py-0.5 font-bold text-white shadow"
+                    style="left:{popup.col * CELL_SIZE + CELL_SIZE / 2}px; top:{popup.row *
+                        CELL_SIZE}px; font-size: {POPUP_FONT}; background-color:{popup.color};"
+                >
+                    {popup.text}
+                </div>
+            {/each}
         </div>
         <div><RampartBorder side="right" /></div>
 
@@ -1530,7 +1611,6 @@
     .region-expand-pulse {
         animation: region-expand-pulse-frames 1.8s ease-in-out infinite;
     }
-
 
     @keyframes expansion-arrow-bounce-frames {
         0%,
@@ -1587,8 +1667,7 @@
     .village-name {
         transform: translate(-50%, -50%);
         white-space: nowrap;
-        padding: calc(var(--cell) * 0.0227) calc(var(--cell) * 0.1364)
-            calc(var(--cell) * 0.0455);
+        padding: calc(var(--cell) * 0.0227) calc(var(--cell) * 0.1364) calc(var(--cell) * 0.0455);
         border-radius: 9999px;
         font-size: calc(var(--cell) * 0.2727);
         line-height: 1.25;

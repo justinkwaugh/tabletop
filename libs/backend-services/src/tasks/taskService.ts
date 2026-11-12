@@ -1,4 +1,5 @@
 import { AccountChangeType } from '../email/emailService.js'
+import type { ContentReportEmail } from '../moderation/contentReports.js'
 
 export interface CreatePushTaskOptions<T> {
     queue: string
@@ -8,21 +9,25 @@ export interface CreatePushTaskOptions<T> {
     uniqueName?: string
 }
 
+export type VerificationEmailTask = { userId: string; token: string }
+export type EmailChangeVerificationTask = VerificationEmailTask & { email: string }
+
+export type AccountChangeNotice = {
+    email: string
+    changeType: AccountChangeType
+    timestamp: Date
+    username?: string
+}
+
 export interface TaskService {
     createPushTask<T>(options: CreatePushTaskOptions<T>): Promise<void>
 
-    sendVerificationEmail({ userId, token }: { userId: string; token: string }): Promise<void>
+    sendVerificationEmail(task: VerificationEmailTask): Promise<void>
+    sendEmailChangeVerificationEmail(task: EmailChangeVerificationTask): Promise<void>
     sendPasswordResetEmail({ userId, token }: { userId: string; token: string }): Promise<void>
     sendAuthVerificationEmail({ userId, token }: { userId: string; token: string }): Promise<void>
-    sendAccountChangeNotificationEmail({
-        email,
-        changeType,
-        timestamp
-    }: {
-        email: string
-        changeType: AccountChangeType
-        timestamp: Date
-    }): Promise<void>
+    sendAccountChangeNotificationEmail(notice: AccountChangeNotice): Promise<void>
+    sendContentReportEmail(report: ContentReportEmail): Promise<void>
 
     sendGameInvitationEmail({
         userId,

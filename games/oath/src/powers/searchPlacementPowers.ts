@@ -1,7 +1,7 @@
 import { assertExists } from '@tabletop/common'
 import { Suit } from '../model/oathEnums.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
-import { CONSPIRACY_ID, suitOf } from '../data/cardRegistry.js'
+import { CONSPIRACY_ID } from '../data/cardRegistry.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import {
@@ -24,6 +24,7 @@ import { battleScopeOf } from '../util/campaign.js'
 import { partiesOf } from '../util/campaignRoll.js'
 import { receiveFavor } from '../util/favor.js'
 import { areEnemies } from '../util/persistent.js'
+import { reasonPowerMovesToSitesBarred } from '../util/continuous.js'
 import {
     registerBattlePlan,
     registerEffect,
@@ -119,7 +120,7 @@ registerModifier(NEW_GROWTH, powerIndexOf(NEW_GROWTH, PowerTiming.Modifier), {
     hooks: {
         playAnywhere: (ctx) => {
             const suit = ctx.particulars?.playedCardId
-                ? suitOf(ctx.particulars.playedCardId)
+                ? ctx.state.suitInPlay(ctx.particulars.playedCardId)
                 : undefined
             return suit === Suit.Beast || suit === Suit.Hearth
         }
@@ -156,17 +157,22 @@ const ruledSiteGroups: ChoiceDomain = (state, playerId) => {
     )
 }
 const ruledSites: ChoiceDomain = (state, playerId) =>
-    sitesRuledBy(state, playerId, defendedCampaignScope(state)).map((siteId) => ({
-        kind: PowerChoiceKind.Site,
-        siteId
-    }))
+    reasonPowerMovesToSitesBarred(state, playerId)
+        ? []
+        : sitesRuledBy(state, playerId, defendedCampaignScope(state)).map((siteId) => ({
+              kind: PowerChoiceKind.Site,
+              siteId
+          }))
+/** Warbands on the board can only go to a site, so none is offered where no site can be reached. */
 const boardGroups: ChoiceDomain = (state, playerId) =>
-    warbandEntries(state.getPlayerState(playerId).warbandsOnBoard)
-        .filter(([, count]) => count > 0)
-        .map(([owner, count]) => ({
-            kind: PowerChoiceKind.Warbands,
-            group: { at: { kind: 'board' as const, playerId }, owner, count }
-        }))
+    reasonPowerMovesToSitesBarred(state, playerId)
+        ? []
+        : warbandEntries(state.getPlayerState(playerId).warbandsOnBoard)
+              .filter(([, count]) => count > 0)
+              .map(([owner, count]) => ({
+                  kind: PowerChoiceKind.Warbands,
+                  group: { at: { kind: 'board' as const, playerId }, owner, count }
+              }))
 /** The board first, as Messenger offers it. */
 const warningSignalsSources: ChoiceDomain = (state, playerId, power) => [
     ...boardGroups(state, playerId, power),
@@ -255,6 +261,11 @@ export function applyWarningSignals(
     const refused = (reason: string) => ({ reason, notes })
     for (const { group, to } of warningSignalsMoves(choices)) {
         const { at, owner, count } = group
+        const barred = to !== undefined ? reasonPowerMovesToSitesBarred(state, playerId) : undefined
+        if (barred) {
+            if (checked) return refused(barred)
+            continue
+        }
         if (checked && to !== undefined && !rulesSite(state, playerId, to, scope)) {
             return refused(`you do not rule ${to}`)
         }

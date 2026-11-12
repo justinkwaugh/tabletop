@@ -11,7 +11,7 @@ import {
 import { StateAnimator } from './stateAnimator.js'
 import type { SolGameSession } from '$lib/model/SolGameSession.svelte.js'
 import { gsap } from 'gsap'
-import { type GameAction } from '@tabletop/common'
+import type { GameAction } from '@tabletop/common'
 import { animate, fadeIn, fadeOut } from '$lib/utils/animations.js'
 import { tick } from 'svelte'
 import type { AnimationContext } from '@tabletop/frontend-components'

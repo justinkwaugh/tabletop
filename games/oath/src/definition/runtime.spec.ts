@@ -124,11 +124,7 @@ describe('replay determinism (what checksum verification and client rebuild rest
         const game = testGame(['p1', 'p2'])
         const initial = twoSeatActPhase('p1')
         const before = JSON.stringify(initial)
-        engine.run(
-            action(Travel, { playerId: 'p1', siteId: 'c2', index: 0 }),
-            initial,
-            game
-        )
+        engine.run(action(Travel, { playerId: 'p1', siteId: 'c2', index: 0 }), initial, game)
         expect(JSON.stringify(initial)).toBe(before)
     })
 })
@@ -136,7 +132,9 @@ describe('replay determinism (what checksum verification and client rebuild rest
 describe('R-1.1 — the faceup-site deal is counted on the saved public stream', () => {
     it('the next public draw does not repeat the entropy that dealt the sites', () => {
         const game = testGame(['p1', 'p2', 'p3'], { status: GameStatus.WaitingToStart })
-        const state = engine.startGame(game, { masterSeed: '0123456789abcdef0123456789abcdef' }).initialState
+        const state = engine.startGame(game, {
+            masterSeed: '0123456789abcdef0123456789abcdef'
+        }).initialState
         const dealt = Object.values(Region).map((region) => state.siteCards?.[state.map[region][0]])
         const replay = [...ALL_SITE_IDS]
         shuffle(replay, new Prng(structuredClone(state.prng)).random)

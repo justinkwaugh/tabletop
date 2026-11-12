@@ -4,14 +4,17 @@ import { persistentsInPlay, type ScopedParties } from './persistent.js'
 import { siteHolding } from './access.js'
 import { OathRevision, isAtLeastOathRevision } from './revision.js'
 
-/** R-7.2.2 — the printed lock, or one a persistent power imposes on this actor. */
+/**
+ * R-7.2.2 — the printed lock, or one a persistent power imposes on this actor. `siteId` is where the card is, or,
+ * for a card a play is about to put at a site, where it is played to.
+ */
 export function isLockedFor(
     state: HydratedOathGameState,
     actorId: string,
-    cardId: string
+    cardId: string,
+    siteId: string | undefined = siteHolding(state, cardId)
 ): boolean {
     if (cardDefinition(cardId)?.locked) return true
-    const siteId = siteHolding(state, cardId)
     return siteId !== undefined && siteLockedFor(state, actorId, siteId)
 }
 

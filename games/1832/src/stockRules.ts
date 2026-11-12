@@ -5,13 +5,18 @@ import {
     ipoMarketTrading,
     marketZoneHoldingLimits,
     playersAfterPresident,
+    type CertificateLimitChange,
     type StockRules
 } from '@tabletop/18xx'
 import { EighteenThirtyTwoStockRoundRules } from './roundRules.js'
-import { isClosingSpace, saleDescent, EighteenThirtyTwoMarket } from './stockMarket.js'
+import {
+    EighteenThirtyTwoLedgeMarket,
+    EighteenThirtyTwoMarket,
+    isClosingSpace
+} from './stockMarket.js'
 import { EighteenThirtyTwoMajors } from './majors.js'
 import { londonTradable } from './londonInvestment.js'
-import { OwnershipPercent, requiredSellDown, withHeldExcess } from './ownershipExcess.js'
+import { OwnershipPercent, withHeldExcess, withSellDown } from './ownershipExcess.js'
 import { holdsProtectableMove, recordProtectableSale, sellerLimitState } from './priceProtection.js'
 import { isReissuedShare, lockReissueProceeds } from './redemption.js'
 import { systemOf } from './systems.js'
@@ -27,21 +32,12 @@ const Trading = ipoMarketTrading({
 
 // Sales fall one space per share, stopping on the soft ledge when one space remains (§5.8.1).
 function withSoftLedge(saleTerms: StockRules['saleTerms']): StockRules['saleTerms'] {
+    const falling = EighteenThirtyTwoLedgeMarket.withSaleDescent(saleTerms)
     return (state, companyId, shares, seller) => {
-        const terms = saleTerms(state, companyId, shares, seller)
+        const terms = falling(state, companyId, shares, seller)
         if (typeof terms === 'string') return terms
-        const from = EighteenThirtyTwoMarket.companySpace(state.stockMarket, companyId)
-        if (isClosingSpace(from)) return 'This company is closing.'
-        return { ...terms, movement: saleDescent(from.id, shares) }
-    }
-}
-
-function withSellDown(saleTerms: StockRules['saleTerms']): StockRules['saleTerms'] {
-    return (state, companyId, shares, seller) => {
-        const terms = saleTerms(state, companyId, shares, seller)
-        if (typeof terms === 'string') return terms
-        return shares < requiredSellDown(state, companyId, seller)
-            ? 'Sell down to 60% of this company.'
+        return isClosingSpace(EighteenThirtyTwoMarket.companySpace(state.stockMarket, companyId))
+            ? 'This company is closing.'
             : terms
     }
 }
@@ -85,23 +81,34 @@ const CertificateLimits: Readonly<Record<number, readonly number[]>> = {
 
 const MajorIds: readonly string[] = Object.keys(EighteenThirtyTwoMajors)
 
+/** What Table 2 reads from the game: its railroads, their prices and the player count. */
+export type CertificateLimitState = Pick<
+    EighteenThirtyTwoState,
+    'companies' | 'stockMarket' | 'systems' | 'players'
+>
+
 /**
  * The Table 2 column: of the ten railroads, those still active or available, from ten down to
  * six or fewer. A System's two shells both count; a company bought in a takeover does not. A
  * company in the black area counts as closed, as a seller must assume no president protects it
- * (§5.3.5, §11.6, §11.7).
+ * (§5.3.5, §11.6, §11.7). With `closedOnly`, it counts until it has closed, so a closure's own
+ * record measures the change it makes.
  */
 export function certificateLimitColumn(
-    state: Pick<EighteenThirtyTwoState, 'companies' | 'stockMarket' | 'systems'>
+    state: Omit<CertificateLimitState, 'players'>,
+    closedOnly = false
 ): number {
     const open = (companyId: string) => {
         const company = getCompany(state, companyId)
         return (
             !company.closed &&
-            !(
-                company.started &&
-                isClosingSpace(EighteenThirtyTwoMarket.companySpace(state.stockMarket, companyId))
-            )
+            (closedOnly ||
+                !(
+                    company.started &&
+                    isClosingSpace(
+                        EighteenThirtyTwoMarket.companySpace(state.stockMarket, companyId)
+                    )
+                ))
         )
     }
     const remaining = state.companies.filter((company) => {
@@ -112,6 +119,29 @@ export function certificateLimitColumn(
     return Math.min(4, MajorIds.length - remaining)
 }
 
+/** Every player's Table 2 limit, before any seller's held sales (§5.3.5). */
+export function tableCertificateLimit(state: CertificateLimitState, closedOnly = false): number {
+    const limit =
+        CertificateLimits[state.players.length]?.[certificateLimitColumn(state, closedOnly)]
+    assertExists(limit, 'Unsupported 1832 player count')
+    return limit
+}
+
+/**
+ * Applies `change`, such as a closure or a takeover, and measures how it moved every player's
+ * limit. Companies awaiting closure still count, so each closure records its own step even when
+ * several prices reach the black area together.
+ */
+export function measuringCertificateLimit<Result>(
+    state: CertificateLimitState,
+    change: () => Result
+): { result: Result; certificateLimit?: CertificateLimitChange } {
+    const from = tableCertificateLimit(state, true)
+    const result = change()
+    const to = tableCertificateLimit(state, true)
+    return to === from ? { result } : { result, certificateLimit: { from, to } }
+}
+
 export const EighteenThirtyTwoStockRules: StockRules = {
     market: EighteenThirtyTwoMarket,
     round: EighteenThirtyTwoStockRoundRules,
@@ -120,16 +150,8 @@ export const EighteenThirtyTwoStockRules: StockRules = {
     purchaseTerms: EighteenThirtyTwoShareTrading.purchaseTerms,
     saleTerms: EighteenThirtyTwoShareTrading.stockSaleTerms,
     // A seller's limits read their held sales' prices as fallen (§5.3.5).
-    certificateLimit(state, owner) {
-        const limit =
-            CertificateLimits[state.players.length]?.[
-                certificateLimitColumn(
-                    sellerLimitState(requireEighteenThirtyTwoState(state), owner)
-                )
-            ]
-        assertExists(limit, 'Unsupported 1832 player count')
-        return limit
-    },
+    certificateLimit: (state, owner) =>
+        tableCertificateLimit(sellerLimitState(requireEighteenThirtyTwoState(state), owner)),
     ...HoldingLimits,
     certificateWeight: (state, certificate) =>
         HoldingLimits.certificateWeight(sellerLimitState(state, certificate.owner), certificate),

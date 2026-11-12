@@ -73,7 +73,8 @@ export class BuildingPlacementAnimator extends StateAnimator<
         const fromBySite = this.placedBuildingsBySite(from)
         const toBySite = this.placedBuildingsBySite(to)
 
-        const hasPlaceBuildingAction = !!action && isPlaceBuilding(action) && isSiteId(action.siteId)
+        const hasPlaceBuildingAction =
+            !!action && isPlaceBuilding(action) && isSiteId(action.siteId)
         const placementPopDuration = hasPlaceBuildingAction ? 0.18 : FALLBACK_POP_DURATION
         const placementSettleDuration = hasPlaceBuildingAction ? 0.14 : FALLBACK_SETTLE_DURATION
         const removalPopDuration = hasPlaceBuildingAction ? 0.12 : FALLBACK_REMOVAL_POP_DURATION

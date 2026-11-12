@@ -54,7 +54,7 @@
     let unHoverCubeTimer: ReturnType<typeof setTimeout> | undefined
 
     let canChoose = $derived(
-        gameSession.isMyTurn && gameSession.gameState.machineState === MachineState.StartOfTurn
+        gameSession.canTakeTurn && gameSession.gameState.machineState === MachineState.StartOfTurn
     )
 
     let placeableCubes = $derived(gameSession.gameState.placeableCubes())

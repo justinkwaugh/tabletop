@@ -19,8 +19,14 @@ import { isDiscardPiece } from '../actions/discardPiece.js'
 
 type PlacingPieceAction = HydratedPlaceCube
 
-export class PlacingPieceStateHandler implements MachineStateHandler<PlacingPieceAction, HydratedEstatesGameState> {
-    isValidAction(action: HydratedAction, _context: MachineContext<HydratedEstatesGameState>): action is PlacingPieceAction {
+export class PlacingPieceStateHandler implements MachineStateHandler<
+    PlacingPieceAction,
+    HydratedEstatesGameState
+> {
+    isValidAction(
+        action: HydratedAction,
+        _context: MachineContext<HydratedEstatesGameState>
+    ): action is PlacingPieceAction {
         if (!action.playerId) return false
         return (
             isPlaceCube(action) ||
@@ -32,7 +38,10 @@ export class PlacingPieceStateHandler implements MachineStateHandler<PlacingPiec
         )
     }
 
-    validActionsForPlayer(playerId: string, context: MachineContext<HydratedEstatesGameState>): ActionType[] {
+    validActionsForPlayer(
+        playerId: string,
+        context: MachineContext<HydratedEstatesGameState>
+    ): ActionType[] {
         const validActions: ActionType[] = []
         const gameState = context.gameState
 
@@ -75,7 +84,10 @@ export class PlacingPieceStateHandler implements MachineStateHandler<PlacingPiec
         gameState.activePlayerIds = [gameState.recipient]
     }
 
-    onAction(action: PlacingPieceAction, context: MachineContext<HydratedEstatesGameState>): MachineState {
+    onAction(
+        action: PlacingPieceAction,
+        context: MachineContext<HydratedEstatesGameState>
+    ): MachineState {
         const gameState = context.gameState
         if (
             !isPlaceCube(action) &&

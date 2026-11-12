@@ -9,32 +9,68 @@
     import PowerChoicePicker from '$lib/components/PowerChoicePicker.svelte'
     import ConspiracyTakePicker from '$lib/components/ConspiracyTakePicker.svelte'
     import ConspiracyNoTake from '$lib/components/ConspiracyNoTake.svelte'
+    import PlayToSites from '$lib/components/PlayToSites.svelte'
     import SiteGain from '$lib/components/SiteGain.svelte'
     import { ActionType, SearchPlay } from '@tabletop/oath'
     import { actionName } from '$lib/model/actionCatalogue.js'
-    import { siteName, cardName } from '$lib/model/names.js'
+    import { cardName } from '$lib/model/names.js'
+    import { drawnPreviewGroup } from '$lib/model/previewGroups.js'
     import { pickerWords } from '$lib/model/powerPickerWords.js'
     import { withSiteGain } from '$lib/model/siteGain.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
+    import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
 
     let gameSession = getGameSession()
-    let gameState = $derived(gameSession.gameState)
     let search = $derived(gameSession.search)
     let busy = $derived(gameSession.busy)
+    // Great Spire — Swap and No swap share the wider one's width.
+    const swapWidth = new ChoiceWidth()
+    // Land Warden — the second card's buttons share the widest one's width.
+    const secondWidth = new ChoiceWidth()
+    // Rule 4 — an enlarged drawn card pages through the cards drawn, in draw order.
+    const drawnGroup = () => drawnPreviewGroup(search.drawn)
+
+    const discardLine = (needed: number) =>
+        needed === 1 ? 'Discard 1 adviser.' : `Discard ${needed} advisers.`
 
     // One short line per step under the bar; the cards and rings show the rest.
     let step = $derived.by(() => {
+        if (search.swapping) return 'Great Spire: swap which?'
         if (!search.kept) return 'Keep one.'
         if (!search.placement) return 'How do you play it?'
-        if (search.needsDisplaced) {
-            const needed = search.room.needed
-            return needed === 1 ? 'Discard 1 adviser.' : `Discard ${needed} advisers.`
-        }
+        if (search.needsDisplaced) return discardLine(search.room.needed)
         if (search.needsConspiracy) return 'The Conspiracy: take a relic or banner?'
         if (search.needsWhenPlayed) return `${cardName(search.kept)}: choose.`
+        // Land Warden — the second card's adviser play, after the kept card's.
+        if (search.needsSecondDisplaced) return discardLine(search.secondRoom.needed)
         return 'Tap to discard; the last goes on top.'
     })
 </script>
+
+<!-- R-5.1.4.II — the advisers a play may discard at the limit; a red ring on each picked. -->
+{#snippet adviserPicker(cards: string[], picked: string[], choose: (cardId: string) => void)}
+    <div class="flex flex-wrap gap-2">
+        {#each cards as cardId (cardId)}
+            <div class="relative">
+                <button
+                    type="button"
+                    class="rounded-[5px] ring-1 hover:ring-oath-accent {picked.includes(cardId)
+                        ? 'ring-2 ring-oath-danger'
+                        : 'ring-oath-control-hover'}"
+                    disabled={busy}
+                    onclick={() => choose(cardId)}
+                >
+                    <CardImage
+                        {cardId}
+                        width={widthAtHeight(112, { cardId })}
+                        label={cardName(cardId)}
+                    />
+                </button>
+                <Magnifier preview={{ cardId, label: cardName(cardId) }} label={cardName(cardId)} />
+            </div>
+        {/each}
+    </div>
+{/snippet}
 
 <div>
     <!-- The staged actions' bar names the action over every step. -->
@@ -43,7 +79,63 @@
     </div>
     <p class="mb-2 text-sm font-semibold">{step}</p>
 
-    {#if !search.kept}
+    {#if search.swapping}
+        <!-- Great Spire: tap the drawn denizens to swap (gold ring), up to the Dispossessed's
+             count; a Vision stays in the row and cannot be picked. -->
+        {@const picked = search.swapPicked}
+        <div class="mb-2 flex flex-wrap gap-2">
+            {#each search.drawn as cardId (cardId)}
+                {@const on = picked.includes(cardId)}
+                {@const pickable = search.canSwap(cardId)}
+                <div class="relative" class:opacity-40={!pickable} data-swap-card={cardId}>
+                    <button
+                        type="button"
+                        class="rounded-[5px] {on
+                            ? 'ring-2 ring-oath-accent'
+                            : 'ring-1 ring-oath-control-hover'} {pickable
+                            ? 'hover:ring-oath-accent'
+                            : ''}"
+                        aria-pressed={on}
+                        disabled={busy || !pickable}
+                        onclick={() => search.tapSwap(cardId)}
+                    >
+                        <CardImage
+                            {cardId}
+                            width={widthAtHeight(112, { cardId })}
+                            label={cardName(cardId)}
+                        />
+                    </button>
+                    <Magnifier
+                        preview={{ cardId, label: cardName(cardId) }}
+                        label={cardName(cardId)}
+                        group={drawnGroup}
+                    />
+                </div>
+            {/each}
+        </div>
+        <div class="flex flex-wrap gap-2">
+            {#if picked.length > 0}
+                <button
+                    class="shrink-0 rounded bg-oath-primary text-oath-primary-text hover:bg-oath-primary-hover disabled:opacity-40
+                           border-[1.5px] border-oath-primary-border px-3 py-1.5 text-sm font-semibold max-sm:min-h-11"
+                    style:min-width="{swapWidth.widest}px"
+                    disabled={busy}
+                    onclick={() => search.swap()}
+                >
+                    <span class="inline-block w-max" {@attach swapWidth.measure}>Swap</span>
+                </button>
+            {/if}
+            <button
+                class="shrink-0 rounded bg-oath-control hover:bg-oath-control-hover disabled:opacity-40 px-3 py-1.5 text-sm
+                       max-sm:min-h-11"
+                style:min-width="{swapWidth.widest}px"
+                disabled={busy}
+                onclick={() => search.skipSwap()}
+            >
+                <span class="inline-block w-max" {@attach swapWidth.measure}>No swap</span>
+            </button>
+        </div>
+    {:else if !search.kept}
         <div class="flex flex-wrap gap-2">
             {#each search.drawn as cardId (cardId)}
                 <div class="relative">
@@ -62,28 +154,19 @@
                     <Magnifier
                         preview={{ cardId, label: cardName(cardId) }}
                         label={cardName(cardId)}
+                        group={drawnGroup}
                     />
                 </div>
             {/each}
         </div>
     {:else if !search.placement}
-        {#if search.otherSites.length > 0}
-            <label class="mb-2 flex items-center gap-2 text-xs">
-                <span class="text-oath-text-muted">Play to:</span>
-                <select
-                    disabled={busy}
-                    class="rounded bg-oath-surface-raised px-1 py-0.5 text-xs grow"
-                    value={search.toSite ?? ''}
-                    onchange={(e) => search.setToSite(e.currentTarget.value || undefined)}
-                >
-                    <option value="">your site</option>
-                    {#each search.otherSites as siteId (siteId)}
-                        <option value={siteId}>{siteName(gameState, siteId)}</option>
-                    {/each}
-                </select>
-            </label>
+        {#if gameSession.playTo}
+            <div class="mb-2">
+                <PlayToSites playTo={gameSession.playTo} />
+            </div>
         {/if}
-        {#if search.secondAllowed && search.drawn.length > 1}
+        <!-- Land Warden — shown only when a drawn card can be the second; no label over an empty row. -->
+        {#if search.secondAllowed && search.secondCandidates.length > 0}
             {@const second = search.second}
             <div class="mb-2 text-xs">
                 <span class="text-oath-text-muted">Also play:</span>
@@ -96,17 +179,21 @@
                 >
                     {#snippet under(choice)}
                         {#each search.secondPlays.filter((o) => o.cardId === choice.cardId) as option (option.key)}
+                            {@const on = second?.key === option.key}
                             <button
                                 type="button"
-                                class="rounded border px-1 text-[10px] {second?.key === option.key
+                                class="rounded border px-1 text-[10px] max-sm:min-h-11 {on
                                     ? 'border-oath-accent bg-oath-accent-soft'
                                     : 'border-oath-divider hover:border-oath-accent'}"
-                                aria-pressed={second?.key === option.key}
+                                style:min-width="{secondWidth.widest}px"
+                                aria-pressed={on}
                                 disabled={busy}
                                 onclick={() =>
                                     search.setSecondPlay(toggleSingle(second?.key, option.key))}
                             >
-                                {option.mode}
+                                <span class="inline-block w-max" {@attach secondWidth.measure}
+                                    >{option.mode}</span
+                                >
                             </button>
                         {/each}
                     {/snippet}
@@ -118,9 +205,8 @@
                 <span class="text-oath-text-muted">Discard first:</span>
                 <CardChoiceRow
                     choices={cardChoices(search.discardFirstOptions)}
-                    picked={search.discardFirst ? [search.discardFirst] : []}
-                    onpick={(cardId) =>
-                        search.setDiscardFirst(toggleSingle(search.discardFirst, cardId))}
+                    picked={search.discardFirsts}
+                    onpick={(cardId) => search.tapDiscardFirst(cardId)}
                     {busy}
                     height={80}
                 />
@@ -171,32 +257,9 @@
             </div>
         </div>
     {:else if search.needsDisplaced}
-        <div class="flex flex-wrap gap-2">
-            {#each search.displaceable as cardId (cardId)}
-                <div class="relative">
-                    <button
-                        type="button"
-                        class="rounded-[5px] ring-1 hover:ring-oath-accent {search.displaced.includes(
-                            cardId
-                        )
-                            ? 'ring-2 ring-oath-danger'
-                            : 'ring-oath-control-hover'}"
-                        disabled={busy}
-                        onclick={() => search.chooseDisplaced(cardId)}
-                    >
-                        <CardImage
-                            {cardId}
-                            width={widthAtHeight(112, { cardId })}
-                            label={cardName(cardId)}
-                        />
-                    </button>
-                    <Magnifier
-                        preview={{ cardId, label: cardName(cardId) }}
-                        label={cardName(cardId)}
-                    />
-                </div>
-            {/each}
-        </div>
+        {@render adviserPicker(search.displaceable, search.displaced, (cardId) =>
+            search.chooseDisplaced(cardId)
+        )}
     {:else if search.needsConspiracy}
         {@const reason = search.whenPlayedReason}
         {#if search.conspiracyTargets.length > 0}
@@ -247,6 +310,10 @@
                 Play
             </button>
         {/if}
+    {:else if search.needsSecondDisplaced}
+        {@render adviserPicker(search.secondDisplaceable, search.secondDisplaced, (cardId) =>
+            search.chooseSecondDisplaced(cardId)
+        )}
     {:else}
         <div class="flex flex-wrap gap-2">
             <DiscardOrderCards

@@ -1,7 +1,15 @@
 <script lang="ts">
     import { Card, Label, Input, Button, Helper, Alert, P, Hr } from 'flowbite-svelte'
-    import { UserStatus } from '@tabletop/common'
+    import { ABANDONED_SIGN_UP_DAYS, UserStatus, type UserUpdateRequest } from '@tabletop/common'
     import { getAppContext } from '@tabletop/frontend-components'
+    import { challengeExpiryText } from '$lib/utils/challengeExpiry'
+    import { isAlreadyExists, isUsernameNotAllowed } from '$lib/utils/accountErrors'
+    import AgeConfirmation from '$lib/components/AgeConfirmation.svelte'
+    import { ageConfirmationMessage } from '$lib/utils/accountFormValidation'
+    import {
+        reauthentication,
+        requiresRecentAuthentication
+    } from '$lib/stores/reauthentication.svelte'
 
     let { authorizationService, api } = getAppContext()
 
@@ -9,22 +17,37 @@
     let errors: Record<string, string[]> = $state({})
     let username: string | undefined = $state(undefined)
     let email: string | undefined = $state(undefined)
+    let ageConfirmed = $state(false)
     let verificationToken: string | undefined = $state(undefined)
     let verificationError = $state(false)
     let newEmailSent = $state(false)
+    let codeExpiresAt: Date | undefined = $state(undefined)
 
     let user = $derived(authorizationService.getSessionUser())
+    let neverActivated = $derived(Boolean(user && !user.activatedAt))
 
     async function updateUser(event: SubmitEvent) {
         event.preventDefault()
         username = username?.trim()
         email = email?.trim()
-
-        let payload = {
-            username,
-            email
+        errors = {}
+        if (user && !user.ageConfirmedAt && !ageConfirmed) {
+            errors.ageConfirmed = [ageConfirmationMessage]
+            return
         }
 
+        const payload: UserUpdateRequest = {
+            username,
+            email,
+            ageConfirmed: ageConfirmed ? true : undefined
+        }
+        await reauthentication.run({
+            description: email ? 'update your email address' : 'complete your profile',
+            retry: () => saveProfile(payload)
+        })
+    }
+
+    async function saveProfile(payload: UserUpdateRequest) {
         try {
             let updatedUser = await api.updateUser(payload)
             authorizationService.setSessionUser(updatedUser)
@@ -36,7 +59,10 @@
                 await authorizationService.onLogin(updatedUser)
             }
         } catch (e) {
-            if (e instanceof Error && e.name === 'AlreadyExistsError') {
+            if (requiresRecentAuthentication(e)) throw e
+            if (isUsernameNotAllowed(e)) {
+                errors.username = [e.message]
+            } else if (isAlreadyExists(e)) {
                 if (e.message.includes('username')) {
                     errors.username = ['Username already exists']
                 } else if (e.message.includes('email')) {
@@ -50,7 +76,7 @@
         }
     }
 
-    async function verifyToken(event: SubmitEvent) {
+    async function verifyEmail(event: SubmitEvent) {
         event.preventDefault()
         if (!verificationToken) {
             return
@@ -59,7 +85,7 @@
         verificationToken = verificationToken.trim()
 
         try {
-            let updatedUser = await api.verifyToken(verificationToken)
+            let updatedUser = await api.verifyEmail(verificationToken)
             verificationError = false
 
             authorizationService.setSessionUser(updatedUser)
@@ -76,7 +102,7 @@
 
     async function sendVerificationEmail() {
         verificationError = false
-        await api.sendVerificationEmail()
+        codeExpiresAt = await api.sendVerificationEmail()
         newEmailSent = true
     }
 
@@ -85,6 +111,14 @@
         input.value = input.value.trim()
     }
 </script>
+
+{#snippet signUpDeadline()}
+    {#if neverActivated}
+        <P class="text-sm mt-4 text-gray-500 dark:text-gray-400"
+            >Unfinished sign-ups are deleted after {ABANDONED_SIGN_UP_DAYS} days.</P
+        >
+    {/if}
+{/snippet}
 
 <div class="h-[calc(100dvh-70px)] flex flex-col items-center justify-center space-y-6">
     {#if user && user.email && !user.emailVerified}
@@ -103,14 +137,15 @@
             {#if verificationError}
                 <Alert class="dark:bg-red-200 dark:text-red-700 mb-4">
                     <span class="font-bold text-lg">Verification Failed</span><br />
-                    Please check to make sure you entered the correct token, and that the token was not
-                    created more than 30 minutes ago.
+                    Please check that you entered the most recent code and that it has not expired. A
+                    code works for 15 minutes.
                 </Alert>
             {/if}
             {#if newEmailSent}
                 <Alert class="dark:bg-green-200 dark:text-green-700 mb-4">
                     <span class="font-bold text-lg">Email Sent</span><br />
-                    Please check your email for a new verification token.
+                    Please check your email for a new verification code.
+                    {#if codeExpiresAt}{challengeExpiryText(codeExpiresAt)}{/if}
                 </Alert>
             {/if}
             <P class="dark:text-gray-300"
@@ -118,7 +153,7 @@
                     ><strong>{user.email}</strong></span
                 > with a verification token. Please enter the token below to verify your email address.</P
             >
-            <form class="flex flex-col space-y-6 mt-4" action="/" onsubmit={verifyToken}>
+            <form class="flex flex-col space-y-6 mt-4" action="/" onsubmit={verifyEmail}>
                 <Input
                     bind:value={verificationToken}
                     oninput={trim}
@@ -132,6 +167,7 @@
                     ><Button type="submit">Submit</Button>
                 </div>
             </form>
+            {@render signUpDeadline()}
         </Card>
     {:else}
         <Card class="p-4 sm:p-6">
@@ -186,8 +222,12 @@
                         and notifications.
                     </Helper>
                 {/if}
+                {#if user && !user.ageConfirmedAt}
+                    <AgeConfirmation bind:checked={ageConfirmed} errors={errors.ageConfirmed} />
+                {/if}
                 <div class="flex justify-end"><Button type="submit" class="">Submit</Button></div>
             </form>
+            {@render signUpDeadline()}
         </Card>
     {/if}
 </div>

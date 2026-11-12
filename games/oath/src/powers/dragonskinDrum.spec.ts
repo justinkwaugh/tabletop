@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
-import { testPlayer, testState, openTurn, campaignRecords, withChancellor } from '../testing/fixture.js'
+import {
+    testPlayer,
+    testState,
+    openTurn,
+    campaignRecords,
+    withChancellor
+} from '../testing/fixture.js'
 import { actionPowerUse, player, site, siteTarget } from '../testing/choices.js'
 import { answerQuestion } from '../testing/steps.js'
 import { buildAction } from '../testing/actions.js'
@@ -33,12 +39,46 @@ const before = OathRevision.UiBatch1
 type Over = Record<string, Record<string, unknown>>
 
 /** Rhys stands at c1 with the Whistle; Dana, who holds the Dragonskin Drum, stands at c2. Nobody's toll is in the way. */
-function table(over: Over = {}, state: Record<string, unknown> = {}, oathRevision: number = atRevision) {
+function table(
+    over: Over = {},
+    state: Record<string, unknown> = {},
+    oathRevision: number = atRevision
+) {
     const s = testState(
         withChancellor([
-            testPlayer({ playerId: 'rhys', color: Color.Red, siteId: 'c1', favor: 3, secrets: 3, supply: 6, relicIds: [WHISTLE], warbandsOnBoard: { rhys: 3 }, ...over['rhys'] }),
-            testPlayer({ playerId: 'dana', color: Color.Blue, siteId: 'c2', favor: 4, secrets: 1, supply: 6, relicIds: [DRUM], warbandsOnBoard: { dana: 2 }, ...over['dana'] }),
-            ...(over['chancellor'] ? [testPlayer({ playerId: 'chancellor', color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h3', ...over['chancellor'] })] : [])
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Red,
+                siteId: 'c1',
+                favor: 3,
+                secrets: 3,
+                supply: 6,
+                relicIds: [WHISTLE],
+                warbandsOnBoard: { rhys: 3 },
+                ...over['rhys']
+            }),
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Blue,
+                siteId: 'c2',
+                favor: 4,
+                secrets: 1,
+                supply: 6,
+                relicIds: [DRUM],
+                warbandsOnBoard: { dana: 2 },
+                ...over['dana']
+            }),
+            ...(over['chancellor']
+                ? [
+                      testPlayer({
+                          playerId: 'chancellor',
+                          color: Color.Purple,
+                          status: PlayerStatus.Chancellor,
+                          siteId: 'h3',
+                          ...over['chancellor']
+                      })
+                  ]
+                : [])
         ]),
         {
             oathRevision,
@@ -62,9 +102,10 @@ function drum(s: ReturnType<typeof table>, gain: boolean, playerId = 'dana') {
     return answerQuestion(s, playerId, { kind: PowerQuestionKind.DragonskinDrum, gain })
 }
 
-const whistle = (s: ReturnType<typeof table>) => actionPowerUse('rhys', WHISTLE, [player('dana')]).apply(s)
+const whistle = (s: ReturnType<typeof table>) =>
+    actionPowerUse('rhys', WHISTLE, [player('dana')]).apply(s)
 
-describe("Dragonskin Drum when a power moves its holder — asked after the move (its Q&A; R-X.4: revision 7)", () => {
+describe('Dragonskin Drum when a power moves its holder — asked after the move (its Q&A; R-X.4: revision 7)', () => {
     it('the Whistle: once the pawn arrives, its holder is asked "Gain 1 warband?"', () => {
         const s = table()
         whistle(s)
@@ -104,7 +145,12 @@ describe("Dragonskin Drum when a power moves its holder — asked after the move
     it('only the holder answers, and only while the question is open', () => {
         const s = table()
         whistle(s)
-        expect(HydratedAnswerQuestion.reasonCannotAnswer(s, 'rhys', { kind: PowerQuestionKind.DragonskinDrum, gain: true })).toBe("the question is dana's to answer")
+        expect(
+            HydratedAnswerQuestion.reasonCannotAnswer(s, 'rhys', {
+                kind: PowerQuestionKind.DragonskinDrum,
+                gain: true
+            })
+        ).toBe("the question is dana's to answer")
         drum(s, true)
         expect(() => drum(s, true)).toThrow(/no question is waiting/)
     })
@@ -129,41 +175,70 @@ describe("Dragonskin Drum when a power moves its holder — asked after the move
         const s = table({ rhys: { siteId: 'c2', advisers: [{ cardId: PALANQUIN, faceUp: true }] } })
         actionPowerUse('rhys', PALANQUIN, [player('dana'), site('p1')]).apply(s)
         expect(s.getPlayerState('dana').siteId).toBe('p1')
-        expect(asked(s)).toEqual({ kind: PowerQuestionKind.DragonskinDrum, cardId: DRUM, askedPlayerId: 'dana' })
+        expect(asked(s)).toEqual({
+            kind: PowerQuestionKind.DragonskinDrum,
+            cardId: DRUM,
+            askedPlayerId: 'dana'
+        })
     })
 
     it('a banish asks the banished holder, after the burn the spoils take', () => {
-        const s = table({ rhys: { siteId: 'c2' }, dana: { favor: 6 } }, {
-            campaign: {
-                attackerPlayerId: 'rhys',
-                defenderPlayerId: 'dana',
-                nonImperialPlayerIds: [],
-                allyPlayerIds: [],
-                targets: [siteTarget('c2'), { kind: CampaignTargetKind.PawnAndFavor }],
-                attackPool: 4,
-                defensePool: 1,
-                attackRoll: [],
-                defenseRoll: [],
-                defense: 2,
-                swords: 5,
-                defendingForce: [],
-                defendingBandits: 0,
-                ...campaignRecords(),
-                attackerVictorious: true
+        const s = table(
+            { rhys: { siteId: 'c2' }, dana: { favor: 6 } },
+            {
+                campaign: {
+                    attackerPlayerId: 'rhys',
+                    defenderPlayerId: 'dana',
+                    nonImperialPlayerIds: [],
+                    allyPlayerIds: [],
+                    targets: [siteTarget('c2'), { kind: CampaignTargetKind.PawnAndFavor }],
+                    attackPool: 4,
+                    defensePool: 1,
+                    attackRoll: [],
+                    defenseRoll: [],
+                    defense: 2,
+                    swords: 5,
+                    defendingForce: [],
+                    defendingBandits: 0,
+                    ...campaignRecords(),
+                    attackerVictorious: true
+                }
             }
-        })
-        new HydratedCampaignResolveVictory(buildAction(CampaignResolveVictory, { playerId: 'rhys', placements: [], banishToSiteId: 'p1', burnFavor: true })).apply(s)
+        )
+        new HydratedCampaignResolveVictory(
+            buildAction(CampaignResolveVictory, {
+                playerId: 'rhys',
+                placements: [],
+                banishToSiteId: 'p1',
+                burnFavor: true
+            })
+        ).apply(s)
         expect(s.getPlayerState('dana')).toMatchObject({ siteId: 'p1', favor: 3 })
-        expect(asked(s)).toEqual({ kind: PowerQuestionKind.DragonskinDrum, cardId: DRUM, askedPlayerId: 'dana' })
+        expect(asked(s)).toEqual({
+            kind: PowerQuestionKind.DragonskinDrum,
+            cardId: DRUM,
+            askedPlayerId: 'dana'
+        })
     })
 
     it("the Shrouded Wood ruler's pick, when a power carries the holder out, is asked after the pick", () => {
         const s = table(
             { rhys: { siteId: 'c2', advisers: [{ cardId: PALANQUIN, faceUp: true }] } },
-            { siteCards: { c1: 'site.plains', c2: 'site.shrouded-wood', p1: 'site.marshes', h1: 'site.mountain' }, warbandsBySite: { c1: { rhys: 2 }, c2: { rhys: 1 }, h1: { [IMPERIAL_WARBANDS]: 1 } } }
+            {
+                siteCards: {
+                    c1: 'site.plains',
+                    c2: 'site.shrouded-wood',
+                    p1: 'site.marshes',
+                    h1: 'site.mountain'
+                },
+                warbandsBySite: { c1: { rhys: 2 }, c2: { rhys: 1 }, h1: { [IMPERIAL_WARBANDS]: 1 } }
+            }
         )
         actionPowerUse('rhys', PALANQUIN, [player('dana'), site('p1')]).apply(s)
-        expect(asked(s)).toMatchObject({ kind: PowerQuestionKind.ShroudedWoodDestination, travelerPlayerId: 'dana' })
+        expect(asked(s)).toMatchObject({
+            kind: PowerQuestionKind.ShroudedWoodDestination,
+            travelerPlayerId: 'dana'
+        })
         answerQuestion(s, 'rhys', { kind: PowerQuestionKind.ShroudedWoodDestination, siteId: 'h1' })
         expect(s.getPlayerState('dana').siteId).toBe('h1')
         expect(s.pendingQuestions?.queue).toEqual([
@@ -201,7 +276,9 @@ describe('Dragonskin Drum with Toll Roads — the toll first, then the Drum, onl
     it('the toll is asked first; paid, the pawn arrives and the Drum is asked next', () => {
         const s = table({}, TOLL)
         whistle(s)
-        expect(s.pendingQuestions?.queue.map((q) => q.kind)).toEqual([PowerQuestionKind.PayTravelToll])
+        expect(s.pendingQuestions?.queue.map((q) => q.kind)).toEqual([
+            PowerQuestionKind.PayTravelToll
+        ])
         answerQuestion(s, 'dana', { kind: PowerQuestionKind.PayTravelToll, pay: true })
         expect(s.getPlayerState('dana')).toMatchObject({ siteId: 'c1', favor: 3, secrets: 2 })
         expect(s.pendingQuestions?.queue).toEqual([
@@ -234,15 +311,24 @@ describe("Dragonskin Drum for a Citizen — the Empire's warband, from the Chanc
             chancellor: { warbandsInPersonalBank: bank }
         })
 
-    it('Gain: a purple warband from the Chancellor\'s bank onto the Citizen\'s board', () => {
+    it("Gain: a purple warband from the Chancellor's bank onto the Citizen's board", () => {
         const s = citizen({ [IMPERIAL_WARBANDS]: 5 })
         whistle(s)
-        expect(asked(s)).toEqual({ kind: PowerQuestionKind.DragonskinDrum, cardId: DRUM, askedPlayerId: 'dana' })
+        expect(asked(s)).toEqual({
+            kind: PowerQuestionKind.DragonskinDrum,
+            cardId: DRUM,
+            askedPlayerId: 'dana'
+        })
         const answer = drum(s, true)
         expect(s.getPlayerState('dana').warbandsOnBoard).toEqual({ [IMPERIAL_WARBANDS]: 2 })
         expect(s.getPlayerState('dana').warbandsInPersonalBank).toEqual({ dana: 14 })
-        expect(s.getPlayerState('chancellor').warbandsInPersonalBank).toEqual({ [IMPERIAL_WARBANDS]: 4 })
-        expect(answer.metadata).toMatchObject({ summary: 'gained 1 Imperial warband', warbandGain: { owner: IMPERIAL_WARBANDS, count: 1 } })
+        expect(s.getPlayerState('chancellor').warbandsInPersonalBank).toEqual({
+            [IMPERIAL_WARBANDS]: 4
+        })
+        expect(answer.metadata).toMatchObject({
+            summary: 'gained 1 Imperial warband',
+            warbandGain: { owner: IMPERIAL_WARBANDS, count: 1 }
+        })
     })
 
     it("an empty Empire's bank: not asked, whatever the Citizen's own bank holds", () => {
@@ -257,7 +343,10 @@ describe('R-X.4 — before revision 7 a power move asks nothing of the Drum, and
     it('the Whistle pulls the holder, and no question follows', () => {
         const s = table({}, {}, before)
         whistle(s)
-        expect(s.getPlayerState('dana')).toMatchObject({ siteId: 'c1', warbandsOnBoard: { dana: 2 } })
+        expect(s.getPlayerState('dana')).toMatchObject({
+            siteId: 'c1',
+            warbandsOnBoard: { dana: 2 }
+        })
         expect(s.pendingQuestions).toBeUndefined()
     })
 
@@ -265,18 +354,42 @@ describe('R-X.4 — before revision 7 a power move asks nothing of the Drum, and
         for (const revision of [before, atRevision]) {
             const start = table({}, {}, revision).dehydrate()
             const game = testGame(['rhys', 'dana', 'chancellor'])
-            const used = engine.runNext(buildAction(UseActionPower, { playerId: 'rhys', cardId: WHISTLE, powerIndex: powerIndexOf(WHISTLE, PowerTiming.Action), choices: [player('dana')] }), structuredClone(start), game)
+            const used = engine.runNext(
+                buildAction(UseActionPower, {
+                    playerId: 'rhys',
+                    cardId: WHISTLE,
+                    powerIndex: powerIndexOf(WHISTLE, PowerTiming.Action),
+                    choices: [player('dana')]
+                }),
+                structuredClone(start),
+                game
+            )
             const actions = [...used.processedActions]
             let recorded = used.updatedState
             if (revision === atRevision) {
-                const answered = engine.runNext(buildAction(AnswerQuestion, { playerId: 'dana', answer: { kind: PowerQuestionKind.DragonskinDrum, gain: true } }), structuredClone(recorded), game)
+                const answered = engine.runNext(
+                    buildAction(AnswerQuestion, {
+                        playerId: 'dana',
+                        answer: { kind: PowerQuestionKind.DragonskinDrum, gain: true }
+                    }),
+                    structuredClone(recorded),
+                    game
+                )
                 actions.push(...answered.processedActions)
                 recorded = answered.updatedState
             }
-            expect(recorded.players.find((p) => p.playerId === 'dana')?.warbandsOnBoard).toEqual({ dana: revision === atRevision ? 3 : 2 })
+            expect(recorded.players.find((p) => p.playerId === 'dana')?.warbandsOnBoard).toEqual({
+                dana: revision === atRevision ? 3 : 2
+            })
 
             let replayed = structuredClone(start)
-            for (const action of actions) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+            for (const action of actions)
+                replayed = engine.run(
+                    structuredClone(action),
+                    replayed,
+                    game,
+                    RunMode.Single
+                ).updatedState
             expect(replayed).toEqual(recorded)
         }
     })

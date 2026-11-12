@@ -27,7 +27,6 @@ describe('title stock panels', () => {
         model.choose('short')
         expect(stock.openMenu).toBeUndefined()
         expect(model.open).toBe('short')
-        expect(model.count).toBe(2)
     })
 
     it('keeps a held panel open and lets Undo clear a choice', () => {
@@ -43,7 +42,6 @@ describe('title stock panels', () => {
         const { model } = panels({ company: false, short: false })
         model.choose('company')
         expect(model.open).toBeUndefined()
-        expect(model.count).toBe(0)
     })
 
     it('lists the available panels as stock menu entries', () => {

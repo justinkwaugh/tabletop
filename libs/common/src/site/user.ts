@@ -1,6 +1,7 @@
 import * as Type from 'typebox'
 import { DateType } from '../util/typebox.js'
 import { Color } from '../game/model/colors.js'
+import { MILLISECONDS_PER_DAY } from './siteStats.js'
 
 export enum Role {
     User = 'user',
@@ -21,6 +22,10 @@ export enum ExternalAuthService {
     Google = 'google',
     Apple = 'apple',
     Discord = 'discord'
+}
+
+export function externalIdentityProvider(externalId: string): string {
+    return externalId.split(':', 2)[0]
 }
 
 export const REMINDER_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const
@@ -59,8 +64,14 @@ export const UserPreferences = Type.Object({
     preferredColorsEnabled: Type.Boolean(),
     preferredColors: Type.Array(Type.Enum(Color)),
     colorBlindPalette: Type.Optional(Type.Boolean()),
-    reminderHours: Type.Optional(ReminderHours)
+    bgStatsEnabled: Type.Optional(Type.Boolean()),
+    reminderHours: Type.Optional(ReminderHours),
+    gameAndCompetitionEmails: Type.Optional(Type.Boolean())
 })
+
+export function wantsGameAndCompetitionEmails(preferences: UserPreferences | undefined): boolean {
+    return preferences?.gameAndCompetitionEmails !== false
+}
 
 export type User = Type.Static<typeof User>
 export const User = Type.Object({
@@ -78,8 +89,110 @@ export const User = Type.Object({
     externalIds: Type.Array(Type.String()),
     preferences: Type.Optional(UserPreferences),
     createdAt: Type.Optional(DateType()),
-    updatedAt: Type.Optional(DateType())
+    updatedAt: Type.Optional(DateType()),
+    // Accounts activated before this field existed lack it until their next update
+    activatedAt: Type.Optional(DateType()),
+    ageConfirmedAt: Type.Optional(DateType()),
+    sessionGeneration: Type.Optional(Type.Integer({ minimum: 0 }))
 })
+
+export function receivesGameAndCompetitionEmail<T extends Pick<User, 'email' | 'preferences'>>(
+    user: T
+): user is T & { email: string } {
+    return Boolean(user.email) && wantsGameAndCompetitionEmails(user.preferences)
+}
+
+export type UserCreateRequest = Type.Static<typeof UserCreateRequest>
+export const UserCreateRequest = Type.Evaluate(
+    Type.Intersect(
+        [
+            Type.Required(Type.Pick(User, ['username', 'email'])),
+            Type.Object({
+                password: Type.String(),
+                ageConfirmed: Type.Optional(Type.Literal(true))
+            })
+        ],
+        { additionalProperties: false }
+    )
+)
+
+export type UserUpdateRequest = Type.Static<typeof UserUpdateRequest>
+export const UserUpdateRequest = Type.Evaluate(
+    Type.Intersect(
+        [
+            Type.Pick(User, ['username', 'email']),
+            Type.Object({
+                password: Type.Optional(Type.String()),
+                ageConfirmed: Type.Optional(Type.Literal(true))
+            })
+        ],
+        { additionalProperties: false }
+    )
+)
+
+export const ABANDONED_SIGN_UP_DAYS = 3
+
+// A sign-up never finished within ABANDONED_SIGN_UP_DAYS is deleted. An Account that was ever Active
+// is not a sign-up, even if it is Incomplete again.
+export function isAbandonedSignUp(
+    user: Pick<User, 'status' | 'createdAt' | 'activatedAt'>,
+    now: Date
+): boolean {
+    return (
+        user.status === UserStatus.Incomplete &&
+        !user.activatedAt &&
+        user.createdAt instanceof Date &&
+        now.getTime() - user.createdAt.getTime() >= ABANDONED_SIGN_UP_DAYS * MILLISECONDS_PER_DAY
+    )
+}
+
+// Deleted Accounts appear as "Deleted player N", so no live Account may pose as one.
+export function isReservedUsername(username: string): boolean {
+    return username
+        .toLowerCase()
+        .replace(/[^a-z]/g, '')
+        .includes('deleted')
+}
+
+export function deletedAccountRecord(
+    existing: Pick<User, 'id' | 'sessionGeneration' | 'createdAt' | 'activatedAt'>,
+    now: Date
+): User & Required<Pick<User, 'updatedAt' | 'deletedAt'>> {
+    return {
+        id: existing.id,
+        status: UserStatus.Deleted,
+        deleted: true,
+        deletedAt: now,
+        roles: [],
+        externalIds: [],
+        sessionGeneration: nextSessionGeneration(existing),
+        updatedAt: now,
+        ...(existing.createdAt ? { createdAt: existing.createdAt } : {}),
+        ...(existing.activatedAt ? { activatedAt: existing.activatedAt } : {})
+    }
+}
+
+export function sessionGenerationOf(user: Pick<User, 'sessionGeneration'>): number {
+    return user.sessionGeneration ?? 0
+}
+
+export function nextSessionGeneration(user: Pick<User, 'sessionGeneration'>): number {
+    return sessionGenerationOf(user) + 1
+}
+
+export function canHoldAuthenticatedSession(user: Pick<User, 'status'>): boolean {
+    return user.status === UserStatus.Active || user.status === UserStatus.Incomplete
+}
+
+export function accountStatusAfterCompletionCheck(
+    status: UserStatus,
+    satisfiesCompletion: boolean
+): UserStatus {
+    if (status !== UserStatus.Incomplete && status !== UserStatus.Active) {
+        return status
+    }
+    return satisfiesCompletion ? UserStatus.Active : UserStatus.Incomplete
+}
 
 export const ADMIN_ASSIGNABLE_ROLES = [Role.AlphaTester, Role.BetaTester, Role.Developer] as const
 export type AdminAssignableRole = (typeof ADMIN_ASSIGNABLE_ROLES)[number]

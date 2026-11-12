@@ -12,5 +12,5 @@ export const UrbinoApiActions = {
     [ActionType.RepositionArchitect]: RepositionArchitect,
     [ActionType.PlaceBuilding]: PlaceBuilding,
     [ActionType.Pass]: Pass,
-    [ActionType.Concede]: Concede,
+    [ActionType.Concede]: Concede
 }

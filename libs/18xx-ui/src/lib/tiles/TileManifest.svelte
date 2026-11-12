@@ -3,7 +3,7 @@
     import type { TileDefinition, TileInventoryCount, TileUpgrades } from '@tabletop/18xx'
     import Tile from './Tile.svelte'
     import { ClassicTileAppearance, type TileAppearance } from './tileAppearance.js'
-    import { StandardTileLayouts } from './standardTileLayouts.js'
+    import { placedTileLayout } from './standardTileLayouts.js'
     import type { TileLayout } from './tileDrawing.js'
     import { compareTileSimplicity } from './tilePresentation.js'
     import { clickedBackdrop, showModal } from '../presentation/modalDialog.js'
@@ -113,7 +113,7 @@
             printedNumber={tile.printedNumber}
             {orientation}
             {appearance}
-            layout={layouts[tile.id] ?? StandardTileLayouts[tile.id]}
+            layout={placedTileLayout(layouts, tile.id)}
             size="100%"
         />
         <span class="caption"

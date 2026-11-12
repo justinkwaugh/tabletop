@@ -81,10 +81,10 @@
             rx={DISC_RADIUS + 1}
             ry={ry + 1}
             fill="rgba(0,0,0,0.5)"
-        />
+        ></ellipse>
         <g fill={HALO} stroke={HALO} stroke-width={HALO_WIDTH} stroke-linejoin="round">
-            <path d={body} />
-            <ellipse cx={disc.x} cy={disc.y} rx={DISC_RADIUS} {ry} />
+            <path d={body}></path>
+            <ellipse cx={disc.x} cy={disc.y} rx={DISC_RADIUS} {ry}></ellipse>
         </g>
         <g
             opacity={disc.ghost ? 0.85 : 1}
@@ -92,8 +92,8 @@
             stroke-width={disc.ghost ? 2.5 : 1.5}
             stroke-dasharray={disc.ghost ? '4 3' : undefined}
         >
-            <path d={body} fill={style.edge} />
-            <ellipse cx={disc.x} cy={disc.y} rx={DISC_RADIUS} {ry} fill={style.fill} />
+            <path d={body} fill={style.edge}></path>
+            <ellipse cx={disc.x} cy={disc.y} rx={DISC_RADIUS} {ry} fill={style.fill}></ellipse>
         </g>
     {/each}
     {#if hex.cube}
@@ -105,7 +105,7 @@
             stroke={HALO}
             stroke-width={HALO_WIDTH}
             stroke-linejoin="round"
-        />
+        ></path>
         <g
             opacity={hex.cube.ghost ? 0.85 : 1}
             stroke={hex.cube.ghost ? '#fff6c8' : style.edge}
@@ -113,10 +113,10 @@
             stroke-dasharray={hex.cube.ghost ? '4 3' : undefined}
             stroke-linejoin="round"
         >
-            <path d={faces.left} fill={style.edge} />
-            <path d={faces.right} fill={style.edge} />
-            <path d={faces.right} fill="rgba(0,0,0,0.25)" stroke="none" />
-            <path d={faces.top} fill={style.fill} />
+            <path d={faces.left} fill={style.edge}></path>
+            <path d={faces.right} fill={style.edge}></path>
+            <path d={faces.right} fill="rgba(0,0,0,0.25)" stroke="none"></path>
+            <path d={faces.top} fill={style.fill}></path>
         </g>
     {/if}
 {/each}

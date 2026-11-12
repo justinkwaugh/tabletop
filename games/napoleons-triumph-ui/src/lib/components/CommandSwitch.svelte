@@ -1,5 +1,6 @@
-<script lang="ts">
+<script lang="ts" generics="Choice extends CommandChoice">
     import { CommandKind } from '@tabletop/napoleons-triumph'
+    import { ATTACH, COMMAND_NAMES, type CommandChoice } from '$lib/model/moveCommands.js'
     import SlidingSwitch from './SlidingSwitch.svelte'
 
     let {
@@ -7,21 +8,31 @@
         chosen,
         onchoose
     }: {
-        options: readonly CommandKind[]
-        chosen?: CommandKind
-        onchoose: (kind: CommandKind) => void
+        options: readonly Choice[]
+        chosen?: Choice
+        onchoose: (choice: Choice) => void
     } = $props()
 
-    // Rule 9 names the commands that move pieces; they are listed in its order.
-    const COMMANDS = [
-        { value: CommandKind.Corps, name: 'Corps Move' },
-        { value: CommandKind.Detach, name: 'Detach Move' },
-        { value: CommandKind.Unit, name: 'Unit Move' }
-    ]
+    // Rule 9 names the commands that move pieces; they are listed in its order, then Attach, which moves nothing, when it is offered.
+    const COMMANDS = (
+        [CommandKind.Corps, CommandKind.Detach, CommandKind.Unit, ATTACH] as const
+    ).map((value) => ({ value, name: COMMAND_NAMES[value] }))
 
     const choices = $derived(
-        COMMANDS.map((command) => ({ ...command, unavailable: !options.includes(command.value) }))
+        COMMANDS.filter(
+            (command) => command.value !== ATTACH || options.some((option) => option === ATTACH)
+        ).map((command) => ({
+            ...command,
+            unavailable: !options.some((option) => option === command.value)
+        }))
     )
+
+    function choose(value: CommandChoice) {
+        const offered = options.find((option) => option === value)
+        if (offered !== undefined) {
+            onchoose(offered)
+        }
+    }
 </script>
 
-<SlidingSwitch label="Command" {choices} {chosen} {onchoose} />
+<SlidingSwitch label="Command" {choices} {chosen} onchoose={choose} />

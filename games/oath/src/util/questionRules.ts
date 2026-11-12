@@ -3,19 +3,22 @@ import { burnFavor } from './burn.js'
 import { gainFavorFromBank, giveFavor, spendFavor, usableFavor } from './favor.js'
 import { HydratedOathGameState, discardRegionFor } from '../model/gameState.js'
 import { SearchPlay } from '../model/oathEnums.js'
+import { regionName } from '../data/mapSlots.js'
 import {
     PowerQuestionKind,
     RerolledRollKind,
+    type RerolledRoll,
     type ShroudedWoodPick,
     type ShroudedWoodTravel
 } from '../model/question.js'
 import { offerReroll, settleRoll } from './reroll.js'
 import { CONSPIRACY_ID } from '../data/cardRegistry.js'
-import { cardPowers, type CardPower, type PowerUseKey } from '../data/cardPowers.js'
+import type { CardPower, PowerUseKey } from '../data/cardPowers.js'
+import { powerInPlay } from './powersInPlay.js'
 import { payPowerCost, reasonCannotPayPowerCost } from './powerCost.js'
 import { pawnSiteId, regionOfPawn } from './pawn.js'
 import type { SiteFlip } from './hiddenInputs.js'
-import { rollDefenseShields } from '../data/dice.js'
+import { defenseShieldsFromFaces, rollDefenseShields } from '../data/dice.js'
 import {
     playCard,
     playConspiracy,
@@ -36,6 +39,8 @@ import {
 } from './relics.js'
 import { askQuestion } from './questions.js'
 import type { QuestionRules } from './questionAnswers.js'
+import { settleEndDie } from './endDie.js'
+import { endDieThreshold } from './victory.js'
 import {
     discardAdvisersToMeetLimit,
     reasonAdviserLimitDiscardsInvalid,
@@ -44,12 +49,21 @@ import {
 import {
     GATHERING_ALLOWS,
     applyExchange,
+    openDealFrom,
     reasonExchangeInvalid,
     reasonTermsOutsideCard
 } from './exchange.js'
-import { GRAND_SCEPTER_ID } from '../data/relics.js'
+import { answerDealKept, reasonDealKeptInvalid } from './deals.js'
+import { GRAND_SCEPTER_ID, OBSIDIAN_CAGE_ID } from '../data/relics.js'
 import { returnWarbandsOnCardToBanks } from './force.js'
-import { powerTravelNeedsFlip, reasonCannotTravelByPower, travelByPower } from './powerTravel.js'
+import {
+    cagedGroupsToBoards,
+    cageReturnsToBoards,
+    cageWentBackSummary,
+    reasonCagePlacementInvalid,
+    returnCagedWarbands
+} from './obsidianCage.js'
+import { powerTravelFlipsNeeded, reasonCannotTravelByPower, travelByPower } from './powerTravel.js'
 import {
     gainOnArrival,
     reasonWoodPickRefused,
@@ -71,7 +85,8 @@ import {
     whistleUserOnArrival
 } from './powerMoveTolls.js'
 import { payToll } from './tolls.js'
-import { flipSecretFacedown, reasonFlipInvalid } from './siteTravel.js'
+import { payFromHomeBank, reasonCannotPayFromHomeBank } from './homeBankPayment.js'
+import { flipSecretFacedown, reasonFlipInvalid, secretsFlipped } from './siteTravel.js'
 import { gainFromDrum, reasonDrumBankEmpty } from './dragonskinDrum.js'
 import { PowerMoveKind, PowerMoveTollOutcome } from '../model/powerMoveToll.js'
 import { forgoFreeActionNow } from './freeActions.js'
@@ -80,8 +95,11 @@ import {
     endTravelOutOfTurn,
     holdTurnForSkippedFreeAction
 } from './sneakAttack.js'
+import { relicKnownToOthers } from './knowledge.js'
+import { OathRevision, isAtLeastOathRevision } from './revision.js'
 import { ActionType } from '../definition/actions.js'
 import { MachineState } from '../definition/states.js'
+import { playOrDiscardVision, reasonCannotPlayOrDiscardVision } from './falseProphet.js'
 
 /**
  * The Travel out of a Shrouded Wood has landed. Second Wind out of turn judges its free Campaign
@@ -217,12 +235,26 @@ function reasonCannotUsePowerToReroll(
     playerId: string,
     question: PowerUseKey
 ): string | undefined {
-    const power = cardPowers(question.cardId)[question.powerIndex]
+    const power = powerInPlay(state, question.cardId, question.powerIndex)
     return power ? reasonCannotPayPowerCost(state, playerId, power) : 'the power is not in play'
 }
 
+/** Jinx — "reroll all those dice once": the same dice, rolled again (the doubling faces multiply anew). */
+function rerollStanding(
+    state: HydratedOathGameState,
+    roll: Exclude<RerolledRoll, { kind: RerolledRollKind.Campaign }>
+): Exclude<RerolledRoll, { kind: RerolledRollKind.Campaign }> {
+    const prng = state.getProtectedPrng()
+    if (roll.kind === RerolledRollKind.GamblingHallDice) {
+        const faces = rollDefenseDice(prng, roll.faces.length)
+        return { ...roll, faces, shields: defenseShieldsFromFaces(faces) }
+    }
+    const dice = roll.kind === RerolledRollKind.GamblingHall ? 4 : roll.relicCardIds.length
+    return { ...roll, shields: rollDefenseShields(prng, dice) }
+}
+
 function powerForQuestion(state: HydratedOathGameState, question: PowerUseKey): CardPower {
-    const power = cardPowers(question.cardId)[question.powerIndex]
+    const power = powerInPlay(state, question.cardId, question.powerIndex)
     assertExists(power, `${question.cardId} power ${question.powerIndex} is not in play`)
     return power
 }
@@ -287,11 +319,15 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             if (!matched.answer.accept) return `refused ${proposerPlayerId}'s exchange`
             const applied = applyExchange(state, proposerPlayerId, playerId, terms)
             settleAdviserLimitsAfterExchange(state, proposerPlayerId, cardId, applied.advisersMoved)
+            // R-7.6.3-H1 — a promise accepted opens a public deal; the summary quotes none.
+            const openedDeal = openDealFrom(state, proposerPlayerId, playerId, terms)
+            if (openedDeal) state.openDeals = [...(state.openDeals ?? []), openedDeal]
             return {
                 summary: `accepted ${proposerPlayerId}'s exchange`,
                 disclosed: applied.disclosed,
                 // R-2.11-H1 — each binding exchange is its own moment for the title.
-                titleMoment: true
+                titleMoment: true,
+                openedDeal
             }
         }
     },
@@ -338,9 +374,15 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
     [PowerQuestionKind.KeepOrBottomRelic]: {
         reasonCannotAnswer: () => undefined,
         apply: (state, _playerId, matched, asked) => {
-            const { relicCardId } = matched.question
+            const { relicCardId, seenBy } = matched.question
             if (matched.answer.keep) {
-                return `took ${relicCardId}${takeNotes(takeRelics(state, asked.playerId, [relicCardId]))}`
+                const summary = `took ${relicCardId}${takeNotes(takeRelics(state, asked.playerId, [relicCardId]))}`
+                // R-X.3(c) — the kept relic is shown to the table: from revision 17 the keep
+                // reveals it, unless every other player knew it already.
+                const disclosed =
+                    isAtLeastOathRevision(state, OathRevision.EngineFixes13) &&
+                    !relicKnownToOthers(state, seenBy, asked.playerId)
+                return disclosed ? { summary, disclosed } : summary
             }
             return {
                 summary: 'put the relic on the bottom of the relic deck',
@@ -350,13 +392,16 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
     },
     [PowerQuestionKind.BottomRelic]: {
         reasonCannotAnswer: (state, playerId, matched) => {
-            const held = matched.answer.heldRelicCardId
-            if (held === undefined || heldRelicsToBottom(state, playerId).includes(held)) {
-                return undefined
+            const { heldRelicCardId: held, cagePlacement } = matched.answer
+            if (held !== undefined && !heldRelicsToBottom(state, playerId).includes(held)) {
+                return held === GRAND_SCEPTER_ID
+                    ? 'the Grand Scepter cannot go to the bottom'
+                    : `you do not hold ${held}`
             }
-            return held === GRAND_SCEPTER_ID
-                ? 'the Grand Scepter cannot go to the bottom'
-                : `you do not hold ${held}`
+            if (held === OBSIDIAN_CAGE_ID) return reasonCagePlacementInvalid(state, cagePlacement)
+            return cagePlacement === undefined
+                ? undefined
+                : 'only the Obsidian Cage sent down places warbands'
         },
         apply: (state, _playerId, matched, asked) => {
             const { relicCardId } = matched.question
@@ -370,11 +415,19 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             }
             const notes = takeRelics(state, asked.playerId, [relicCardId])
             releaseRelic(state, asked.playerId, held)
-            returnWarbandsOnCardToBanks(state, held)
-            return {
-                summary: `took ${relicCardId} and put ${held} on the bottom of the relic deck${takeNotes(notes)}`,
-                relicToDeckBottom: held
+            const summary = `took ${relicCardId} and put ${held} on the bottom of the relic deck${takeNotes(notes)}`
+            // R-10.13-H1 — from revision 17 (R-X.4) the Cage's warbands go back to boards, as its
+            // Action moves them (its Q&A); before it, as every card leaving play, to their banks.
+            if (held === OBSIDIAN_CAGE_ID && cageReturnsToBoards(state)) {
+                const groups = cagedGroupsToBoards(state, matched.answer.cagePlacement)
+                const wentBack = cageWentBackSummary(returnCagedWarbands(state, groups))
+                return {
+                    summary: wentBack ? `${summary}; ${wentBack}` : summary,
+                    relicToDeckBottom: held
+                }
             }
+            returnWarbandsOnCardToBanks(state, held)
+            return { summary, relicToDeckBottom: held }
         }
     },
     [PowerQuestionKind.TakeOrLeaveRelic]: {
@@ -568,26 +621,30 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             }
             const unable = reasonCannotTravelByPower(state, playerId, siteId)
             if (unable) return unable
-            // R-11.13-H1 — the user's own flip rides the answer, for a site that asks for one only.
-            const needsFlip = powerTravelNeedsFlip(state, playerId, siteId)
-            if (needsFlip && !matched.answer.flipSecret) {
-                return `travelling to ${siteId} takes a faceup secret flipped facedown`
+            // R-11.13-H1 — the user's own flip rides the answer, for a site that asks for one only;
+            // R-11.13-H2 — two where each site's power takes its own.
+            const needed = powerTravelFlipsNeeded(state, playerId, siteId)
+            const flips = secretsFlipped(matched.answer.flipSecret)
+            if (needed > 0 && flips !== needed) {
+                return needed === 1
+                    ? `travelling to ${siteId} takes a faceup secret flipped facedown`
+                    : `travelling to ${siteId} takes ${needed} faceup secrets flipped facedown`
             }
-            return reasonFlipInvalid(state, playerId, needsFlip, matched.answer.flipSecret === true)
+            return reasonFlipInvalid(state, playerId, needed, flips)
         },
         apply: (state, playerId, matched, _asked, askingPlayerId) => {
             const siteId = matched.answer.siteId
             // Toll Roads — Brass Horse's user travels, so they pay as they go.
             const toll = powerMoveToll(state, playerId, siteId)
             if (toll) payToll(state, playerId, toll)
-            const flipped = matched.answer.flipSecret === true
-            if (flipped) flipSecretFacedown(state, playerId)
+            const flips = secretsFlipped(matched.answer.flipSecret)
+            if (flips > 0) flipSecretFacedown(state, playerId, flips)
             const { notes } = travelByPower(state, playerId, siteId, {
                 playerId: askingPlayerId,
                 next: true
             })
             const after = notes.length ? ` (${notes.join('; ')})` : ''
-            const travelled = `${flipped ? 'flipped a secret facedown and travelled' : 'travelled'} to ${siteId} for no Supply`
+            const travelled = `${flips > 0 ? `flipped ${secretsWord(flips)} facedown and travelled` : 'travelled'} to ${siteId} for no Supply`
             if (!toll) return `${travelled}${after}`
             // The History's form for a toll inside a row: what was paid, then the card.
             const paid = toll.payeeId ? `paid ${toll.payeeId}` : 'burned'
@@ -599,23 +656,25 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             if (!matched.answer.reroll) return undefined
             return reasonCannotUsePowerToReroll(state, playerId, matched.question)
         },
-        apply: (state, playerId, matched) => {
+        apply: (state, playerId, matched, _asked, askingPlayerId) => {
             const { roll } = matched.question
             if (roll.kind !== RerolledRollKind.Campaign) {
-                // What the roll postponed (Gambling Hall's favor, Relic Thief's take) lands now;
-                // a take is a title moment (its Q&A: "at each moment that relics change hands").
+                // What the roll postponed (Gambling Hall's favor or bank, Relic Thief's take) lands
+                // now; a take is a title moment (its Q&A: "at each moment that relics change hands").
                 if (!matched.answer.reroll) {
-                    const kept = settleRoll(state, playerId, roll)
+                    const kept = settleRoll(state, askingPlayerId, playerId, roll)
                     return {
                         summary: `kept the roll; ${kept.summary}`,
                         titleMoment: kept.relicsTaken
                     }
                 }
                 payPowerCost(state, playerId, powerForQuestion(state, matched.question))
-                const dice =
-                    roll.kind === RerolledRollKind.GamblingHall ? 4 : roll.relicCardIds.length
-                const shields = rollDefenseShields(state.getProtectedPrng(), dice)
-                const rerolled = settleRoll(state, playerId, { ...roll, shields })
+                const rerolled = settleRoll(
+                    state,
+                    askingPlayerId,
+                    playerId,
+                    rerollStanding(state, roll)
+                )
                 return {
                     summary: `Jinx: rerolled — ${rerolled.summary}`,
                     rolled: true,
@@ -646,7 +705,7 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             if (!matched.answer.roll) return undefined
             return reasonCannotUsePowerToReroll(state, playerId, matched.question)
         },
-        apply: (state, playerId, matched) => {
+        apply: (state, playerId, matched, _asked, askingPlayerId) => {
             const { takerPlayerId, relicCardIds } = matched.question
             if (!matched.answer.roll) return 'let the relics go'
             payPowerCost(state, playerId, powerForQuestion(state, matched.question))
@@ -666,45 +725,20 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
                     rolled: true
                 }
             }
-            const settled = settleRoll(state, playerId, roll)
+            const settled = settleRoll(state, askingPlayerId, playerId, roll)
             return { summary: settled.summary, rolled: true, titleMoment: settled.relicsTaken }
         }
     },
     [PowerQuestionKind.PlayOrDiscardVision]: {
-        reasonCannotAnswer: (state, playerId, matched) => {
-            return reasonCannotPlayCard(
+        reasonCannotAnswer: (state, playerId, matched) =>
+            reasonCannotPlayOrDiscardVision(
                 state,
                 playerId,
                 matched.question.visionCardId,
-                matched.answer.play,
-                {
-                    faceUp: false,
-                    discardedAdviserCardIds: listOf(matched.answer.discardedAdviserCardId)
-                }
-            )
-        },
-        apply: (state, playerId, matched) => {
-            const { visionCardId } = matched.question
-            const { play, discardedAdviserCardId } = matched.answer
-            const region = regionOfPawn(state, playerId)
-            // R-5.1.4 — "as if you had searched": the same play a Search's kept card gets.
-            const played = playCard(state, playerId, visionCardId, play, region, {
-                faceUp: false,
-                // The Vision was revealed; played facedown, the table still knows it.
-                seen: true,
-                discardedAdviserCardIds: listOf(discardedAdviserCardId)
-            })
-            const summary =
-                play === SearchPlay.Discard
-                    ? `discarded ${visionCardId}`
-                    : `played ${visionCardId} (${play})`
-            if (played.discarded.length === 0) return summary
-            return {
-                summary,
-                discardedCardIds: played.discarded,
-                discardPileRegion: discardRegionFor(region)
-            }
-        }
+                matched.answer
+            ),
+        apply: (state, playerId, matched) =>
+            playOrDiscardVision(state, playerId, matched.question.visionCardId, matched.answer)
     },
     [PowerQuestionKind.DiscardInstead]: {
         reasonCannotAnswer: (state, playerId, matched) => {
@@ -820,7 +854,14 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
     },
     [PowerQuestionKind.FlipToTravel]: {
         reasonCannotAnswer: (state, playerId, matched) =>
-            matched.answer.flip ? reasonFlipInvalid(state, playerId, true, true) : undefined,
+            matched.answer.flip
+                ? reasonFlipInvalid(
+                      state,
+                      playerId,
+                      matched.question.flips ?? 1,
+                      matched.question.flips ?? 1
+                  )
+                : undefined,
         apply: (state, _playerId, matched, _asked, askingPlayerId) => {
             const { question } = matched
             // R-11.13-H1 — no flip, no travel: the pawn stays; a banish's burn, plans and end follow.
@@ -833,7 +874,7 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             const settled = settlePowerMoveFlip(state, question, askingPlayerId)
             if ('tollMove' in settled) {
                 // Toll Roads follows; the secret is flipped once the toll is paid.
-                const summary = `chose to flip a secret to travel to ${question.siteId}`
+                const summary = `chose to flip ${secretsWord(question.flips ?? 1)} to travel to ${question.siteId}`
                 return settled.tollMove.outcome === PowerMoveTollOutcome.Asked
                     ? summary
                     : { summary, tollMove: settled.tollMove, ...settleBanishedVictory(state) }
@@ -842,7 +883,7 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             const secret = secretsTaken ? `, taking ${secretsTaken} secret from the Whistle` : ''
             const after = notes.length ? ` (${notes.join('; ')})` : ''
             return {
-                summary: `flipped a secret facedown and travelled to ${question.siteId}${secret}${after}`,
+                summary: `flipped ${secretsWord(question.flips ?? 1)} facedown and travelled to ${question.siteId}${secret}${after}`,
                 disclosed: revealed ? true : undefined,
                 ...settleBanishedVictory(state)
             }
@@ -897,6 +938,26 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
             }
         }
     },
+    [PowerQuestionKind.GamblingHallBank]: {
+        reasonCannotAnswer: (_state, _playerId, matched) => {
+            const { banks } = matched.question
+            return banks.includes(matched.answer.suit)
+                ? undefined
+                : `the ${matched.answer.suit} bank had no favor when the roll stood: choose ${banks.join(' or ')}`
+        },
+        // R-7.1.3-H2, R-9.3 — the total, or what the chosen bank holds.
+        apply: (state, playerId, matched) => {
+            const { suit } = matched.answer
+            const gained = gainFavorFromBank(state, playerId, suit, matched.question.shields)
+            return `gained ${gained} favor from the ${suit} bank`
+        }
+    },
+    [PowerQuestionKind.PayFromHomeBank]: {
+        reasonCannotAnswer: (state, _playerId, matched) =>
+            reasonCannotPayFromHomeBank(state, matched.question, matched.answer.favor),
+        apply: (state, _playerId, matched) =>
+            payFromHomeBank(state, matched.question, matched.answer.favor)
+    },
     [PowerQuestionKind.DragonskinDrum]: {
         reasonCannotAnswer: (state, playerId, matched) =>
             matched.answer.gain ? reasonDrumBankEmpty(state, playerId) : undefined,
@@ -934,9 +995,50 @@ export const QUESTION_RULES: { [K in PowerQuestionKind]: QuestionRules<K> } = {
                 bottom: false
             })
             return {
-                summary: `stacked ${stacked.length} cards on the ${region} discard pile`,
+                summary: `stacked ${stacked.length} cards on the ${regionName(region)} discard pile`,
                 pileDeposits
             }
         }
+    },
+    [PowerQuestionKind.DealKept]: {
+        reasonCannotAnswer: (state, _playerId, matched) =>
+            reasonDealKeptInvalid(state, matched.question),
+        // R-7.6.3-H1 — the asked party's word closes the deal, or leaves it open.
+        apply: (state, _playerId, matched) =>
+            answerDealKept(state, matched.question, matched.answer.kept)
+    },
+    [PowerQuestionKind.AdjustEndDie]: {
+        reasonCannotAnswer: () => undefined,
+        // Squalid District — the roll read as the ruler left it: a 6 raised to 7 still ends the game
+        // (its Q&A), a 2 lowered to 1 in round seven ends nothing.
+        apply: (state, _playerId, matched) => {
+            const rolled = matched.question.roll
+            // The round the die was rolled for: it is still open while its ruler is asked.
+            const round = state.round
+            const threshold = endDieThreshold(round)
+            assertExists(threshold, `R-3.3 — round ${round} rolls the end die`)
+            const roll = rolled + matched.answer.by
+            const settled = settleEndDie(state, roll)
+            return {
+                summary: endDieAnswerWords(matched.answer.by, roll),
+                endDie: { rolled, roll, round, threshold, ...settled },
+                resumeMachineState:
+                    state.winningPlayerIds.length > 0
+                        ? MachineState.EndOfGame
+                        : MachineState.WakePhase
+            }
+        }
     }
+}
+
+/** Squalid District — "lowered the end die to 4", "raised …", "left the end die at 5". */
+function endDieAnswerWords(by: number, roll: number): string {
+    if (by < 0) return `lowered the end die to ${roll}`
+    if (by > 0) return `raised the end die to ${roll}`
+    return `left the end die at ${roll}`
+}
+
+/** R-11.13-H2 — the History names each flipped secret: "a secret", "2 secrets". */
+function secretsWord(flips: number): string {
+    return flips === 1 ? 'a secret' : `${flips} secrets`
 }

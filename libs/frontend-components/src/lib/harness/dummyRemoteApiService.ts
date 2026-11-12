@@ -1,10 +1,13 @@
-import type Ably from 'ably'
 import type {
     BugReportRequest,
+    ContentReportRequest,
     AdminAssignableRole,
     Bookmark,
     GameCatalogEntry,
+    CharityTally,
     GameHistoryPage,
+    TitleActivity,
+    SeriesActivity,
     UserGameStats,
     CanonicalActionReplay,
     Game,
@@ -16,6 +19,8 @@ import type {
     GameSyncStatus,
     ProcessedActionReplay,
     User,
+    UserCreateRequest,
+    UserUpdateRequest,
     UserPreferences,
     Visibility,
     Tournament,
@@ -28,7 +33,12 @@ import type {
     LeagueAllocationPreview,
     LeagueList,
     LeagueSeasonDetail,
-    LeagueState
+    LeagueState,
+    SensitiveChangeRequest,
+    PendingEmailChange,
+    SiteStatsNow,
+    SiteStatsReport,
+    UtcDayRange
 } from '@tabletop/common'
 import type {
     GameVersionProvider,
@@ -36,7 +46,12 @@ import type {
     RealtimeTokenOptions
 } from '$lib/network/tabletopApi.svelte.js'
 import type { Credentials } from '$lib/network/requestTypes.js'
-import type { GameChatMessageResponsePayload } from '$lib/network/responseTypes.js'
+import type {
+    AblyTokenRequest,
+    DiscordAuthorizationPurpose,
+    DiscordAuthorizationStart,
+    GameChatMessageResponsePayload
+} from '$lib/network/responseTypes.js'
 import type { VersionChange } from '$lib/network/versionChecker.js'
 import type { RemoteApiService } from '$lib/services/remoteApiService.js'
 
@@ -60,6 +75,10 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async getGameCatalog(): Promise<GameCatalogEntry[]> {
         return this.fail('getGameCatalog')
+    }
+
+    async getCharityTally(): Promise<CharityTally | undefined> {
+        return this.fail('getCharityTally')
     }
 
     async getMyGameHistory(): Promise<GameHistoryPage> {
@@ -186,31 +205,53 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('linkGoogle')
     }
 
-    async loginDiscord(_code: string): Promise<User> {
+    async beginDiscordAuthorization(
+        _purpose: DiscordAuthorizationPurpose
+    ): Promise<DiscordAuthorizationStart> {
+        return this.fail('beginDiscordAuthorization')
+    }
+
+    async loginDiscord(_code: string, _state: string): Promise<User> {
         return this.fail('loginDiscord')
     }
 
-    async linkDiscord(_code: string): Promise<User> {
+    async linkDiscord(_code: string, _state: string): Promise<User> {
         return this.fail('linkDiscord')
     }
 
-    async loginToken(_token: string): Promise<User> {
-        return this.fail('loginToken')
+    async reauthenticateDiscord(_code: string, _state: string): Promise<void> {
+        return this.fail('reauthenticateDiscord')
+    }
+
+    async reauthenticateWithPassword(_password: string): Promise<void> {
+        return this.fail('reauthenticateWithPassword')
+    }
+
+    async reauthenticateGoogle(_credential: string): Promise<void> {
+        return this.fail('reauthenticateGoogle')
     }
 
     async logout(): Promise<void> {
         return this.fail('logout')
     }
 
+    async deleteOwnAccount(): Promise<void> {
+        return this.fail('deleteOwnAccount')
+    }
+
+    async logoutAll(): Promise<void> {
+        return this.fail('logoutAll')
+    }
+
     async searchUsernames(_query: string): Promise<string[]> {
         return this.fail('searchUsernames')
     }
 
-    async createUser(_user: Partial<User>): Promise<User> {
+    async createUser(_request: UserCreateRequest): Promise<User> {
         return this.fail('createUser')
     }
 
-    async updateUser(_user: Partial<User>): Promise<User> {
+    async updateUser(_request: UserUpdateRequest): Promise<User> {
         return this.fail('updateUser')
     }
 
@@ -229,30 +270,46 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('unlinkExternalAccount')
     }
 
-    async updatePassword({
+    async setPassword({
         password: _password,
-        token: _token
+        challenge: _challenge
     }: {
         password: string
-        token: string
+        challenge: string
     }): Promise<void> {
-        return this.fail('updatePassword')
+        return this.fail('setPassword')
     }
 
-    async sendVerificationEmail(): Promise<void> {
+    async sendVerificationEmail(): Promise<Date> {
         return this.fail('sendVerificationEmail')
     }
 
-    async sendAuthVerificationEmail(): Promise<void> {
-        return this.fail('sendAuthVerificationEmail')
+    async sendSensitiveChangeChallenge(_request: SensitiveChangeRequest): Promise<Date> {
+        return this.fail('sendSensitiveChangeChallenge')
     }
 
-    async sendPasswordResetEmail(_email: string): Promise<void> {
+    async pendingEmailChange(): Promise<PendingEmailChange | undefined> {
+        return this.fail('pendingEmailChange')
+    }
+
+    async requestEmailChange(_email: string): Promise<PendingEmailChange> {
+        return this.fail('requestEmailChange')
+    }
+
+    async confirmEmailChange(_email: string, _code: string): Promise<User> {
+        return this.fail('confirmEmailChange')
+    }
+
+    async cancelEmailChange(): Promise<void> {
+        return this.fail('cancelEmailChange')
+    }
+
+    async sendPasswordResetEmail(_email: string): Promise<Date> {
         return this.fail('sendPasswordResetEmail')
     }
 
-    async verifyToken(_token: string): Promise<User> {
-        return this.fail('verifyToken')
+    async verifyEmail(_code: string): Promise<User> {
+        return this.fail('verifyEmail')
     }
 
     async hasActiveGames(): Promise<boolean> {
@@ -265,6 +322,14 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async getOpenGames(_titleId: string): Promise<Game[]> {
         return this.fail('getOpenGames')
+    }
+
+    async getTitleActivity(_titleId: string): Promise<TitleActivity> {
+        return this.fail('getTitleActivity')
+    }
+
+    async getSeriesActivity(_seriesId: string): Promise<SeriesActivity> {
+        return this.fail('getSeriesActivity')
     }
 
     async getGame(
@@ -292,6 +357,10 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async reportBug(_report: BugReportRequest): Promise<void> {
         return this.fail('reportBug')
+    }
+
+    async reportContent(_report: ContentReportRequest): Promise<void> {
+        return this.fail('reportContent')
     }
 
     async checkInvitation(_token: string): Promise<Game> {
@@ -336,6 +405,10 @@ export class DummyRemoteApiService implements RemoteApiService {
 
     async openUndoVote(_game: Game, _actionIndex: number, _targetActionId: string): Promise<Game> {
         return this.fail('openUndoVote')
+    }
+
+    async requestCall(_game: Game, _declaredWinnerId?: string): Promise<Game> {
+        return this.fail('requestCall')
     }
 
     async approveVote(_game: Game, _voteId: string): Promise<Game> {
@@ -386,7 +459,7 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('getRealtimeToken')
     }
 
-    async getAblyToken(): Promise<Ably.TokenRequest> {
+    async getAblyToken(_gameIds?: string[]): Promise<AblyTokenRequest> {
         return this.fail('getAblyToken')
     }
 
@@ -406,8 +479,44 @@ export class DummyRemoteApiService implements RemoteApiService {
         return this.fail('assignUserRoles')
     }
 
+    async renameUser(_userId: string, _username: string): Promise<User> {
+        return this.fail('renameUser')
+    }
+
+    async banUser(_userId: string): Promise<User> {
+        return this.fail('banUser')
+    }
+
+    async deleteUser(_userId: string): Promise<User> {
+        return this.fail('deleteUser')
+    }
+
+    async redactGameChatMessage(_gameId: string, _messageId: string): Promise<void> {
+        return this.fail('redactGameChatMessage')
+    }
+
+    async renameGameAsAdministrator(_gameId: string, _name: string): Promise<Game> {
+        return this.fail('renameGameAsAdministrator')
+    }
+
+    async unbanUser(_userId: string): Promise<User> {
+        return this.fail('unbanUser')
+    }
+
     async getActiveGamesForTitle(_titleId: string): Promise<Game[]> {
         return this.fail('getActiveGamesForTitle')
+    }
+
+    async getSiteStatsReport(_range: UtcDayRange): Promise<SiteStatsReport> {
+        return this.fail('getSiteStatsReport')
+    }
+
+    async getSiteStatsNow(): Promise<SiteStatsNow> {
+        return this.fail('getSiteStatsNow')
+    }
+
+    async startSiteStatsRollup(): Promise<string> {
+        return this.fail('startSiteStatsRollup')
     }
 
     async setGameState(_state: GameState): Promise<void> {

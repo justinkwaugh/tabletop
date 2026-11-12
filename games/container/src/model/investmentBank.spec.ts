@@ -126,10 +126,7 @@ describe('Investment Bank', () => {
         }
 
         const player = state.players[0]
-        bank.personalHarbors[player.playerId] = [
-            ContainerColor.Blue,
-            ContainerColor.Red
-        ]
+        bank.personalHarbors[player.playerId] = [ContainerColor.Blue, ContainerColor.Red]
         player.ship.location = { type: 'open_sea' }
 
         const action = new HydratedSailShip({

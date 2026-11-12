@@ -2,16 +2,20 @@ import { describe, expect, it } from 'vitest'
 import { Color } from '@tabletop/common'
 import { Campaign, HydratedCampaign } from './campaign.js'
 import { CampaignSacrifice, HydratedCampaignSacrifice } from './campaignSacrifice.js'
-import {
-    CampaignResolveVictory,
-    HydratedCampaignResolveVictory
-} from './campaignResolveVictory.js'
+import { CampaignResolveVictory, HydratedCampaignResolveVictory } from './campaignResolveVictory.js'
 import { HydratedOathGameState } from '../model/gameState.js'
 import { PlayerStatus } from '../model/oathEnums.js'
 import type { OathPlayerState } from '../model/playerState.js'
 import { IMPERIAL_WARBANDS, type WarbandCounts } from '../model/warbandCounts.js'
 import { CURRENT_OATH_REVISION, OathRevision } from '../util/revision.js'
-import { CRADLE, HINTERLAND, PROVINCES, openTurn, testPlayer, testState } from '../testing/fixture.js'
+import {
+    CRADLE,
+    HINTERLAND,
+    PROVINCES,
+    openTurn,
+    testPlayer,
+    testState
+} from '../testing/fixture.js'
 import { buildAction } from '../testing/actions.js'
 import { battlePlanUse, siteTarget } from '../testing/choices.js'
 import { ongoingCampaign } from '../testing/required.js'
@@ -61,24 +65,67 @@ const faceup = (cardIds: string[]) => cardIds.map((cardId) => ({ cardId, faceUp:
 function table(scene: Scene): HydratedOathGameState {
     return testState(
         [
-            testPlayer({ playerId: DANA, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', supply: 6, favor: 4, secrets: 3, warbandsOnBoard: { [DANA]: 6 }, warbandsInPersonalBank: { [DANA]: 4 }, ...scene.dana }),
-            testPlayer({ playerId: ANN, color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h3', supply: 6, favor: 4, secrets: 3, warbandsOnBoard: { [IMPERIAL_WARBANDS]: 6 }, warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 8 }, ...scene.ann })
+            testPlayer({
+                playerId: DANA,
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: 'c1',
+                supply: 6,
+                favor: 4,
+                secrets: 3,
+                warbandsOnBoard: { [DANA]: 6 },
+                warbandsInPersonalBank: { [DANA]: 4 },
+                ...scene.dana
+            }),
+            testPlayer({
+                playerId: ANN,
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'h3',
+                supply: 6,
+                favor: 4,
+                secrets: 3,
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 6 },
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 8 },
+                ...scene.ann
+            })
         ],
         {
             oathRevision: scene.revision,
-            denizensBySite: { c1: scene.atBanditSite ?? [], c2: [], p1: [], p2: [], h1: [], ...scene.denizens },
+            denizensBySite: {
+                c1: scene.atBanditSite ?? [],
+                c2: [],
+                p1: [],
+                p2: [],
+                h1: [],
+                ...scene.denizens
+            },
             warbandsBySite: { c2: { [IMPERIAL_WARBANDS]: 1 }, ...scene.warbands },
-            siteCards: { ...Object.fromEntries(FIXTURE_SITES.map((slotId) => [slotId, slotId])), ...scene.siteCards },
+            siteCards: {
+                ...Object.fromEntries(FIXTURE_SITES.map((slotId) => [slotId, slotId])),
+                ...scene.siteCards
+            },
             prng: { seed: 1, invocations: 0 }
         }
     )
 }
 
 /** The Campaign against the bandits at c1, with four attack dice unless said; the plans the bandits used. */
-function attackBandits(s: HydratedOathGameState, attackerId = DANA, plans: string[] = [], attackDice = 4): string[] {
+function attackBandits(
+    s: HydratedOathGameState,
+    attackerId = DANA,
+    plans: string[] = [],
+    attackDice = 4
+): string[] {
     openTurn(s, attackerId)
     const campaign = new HydratedCampaign(
-        buildAction(Campaign, { playerId: attackerId, defender: { kind: 'bandits' }, targets: [siteTarget('c1')], attackDice, plans: plans.map(battlePlanUse) })
+        buildAction(Campaign, {
+            playerId: attackerId,
+            defender: { kind: 'bandits' },
+            targets: [siteTarget('c1')],
+            attackDice,
+            plans: plans.map(battlePlanUse)
+        })
     )
     campaign.apply(s)
     return ongoingCampaign(s).plansUsedBy.bandits ?? []
@@ -88,12 +135,16 @@ const pools = (s: HydratedOathGameState) => {
     const campaign = ongoingCampaign(s)
     return { attack: campaign.attackPool, defense: campaign.defensePool }
 }
-const boardOf = (s: HydratedOathGameState, playerId: string) => s.getPlayerState(playerId).warbandsOnBoard[playerId] ?? 0
+const boardOf = (s: HydratedOathGameState, playerId: string) =>
+    s.getPlayerState(playerId).warbandsOnBoard[playerId] ?? 0
 
 describe("R-5.5.3-H4 — the bandits' compelled plans pass the bans a player's do (R-9.2)", () => {
     it('control: with no such card the bandits use Bear Traps and Storm Caller, at either revision', () => {
         for (const revision of [atRevision, before]) {
-            expect(attackBandits(table({ revision, atBanditSite: [BEAR_TRAPS, STORM_CALLER] })), `revision ${revision}`).toEqual([BEAR_TRAPS, STORM_CALLER])
+            expect(
+                attackBandits(table({ revision, atBanditSite: [BEAR_TRAPS, STORM_CALLER] })),
+                `revision ${revision}`
+            ).toEqual([BEAR_TRAPS, STORM_CALLER])
         }
     })
 
@@ -118,32 +169,60 @@ describe("R-5.5.3-H4 — the bandits' compelled plans pass the bans a player's d
     })
 
     it('control: True Names with no adviser of the plan’s suit leaves Bear Traps to the bandits', () => {
-        const s = table({ revision: atRevision, atBanditSite: [BEAR_TRAPS], dana: { advisers: faceup([TRUE_NAMES, HORSE_ARCHERS]) } })
+        const s = table({
+            revision: atRevision,
+            atBanditSite: [BEAR_TRAPS],
+            dana: { advisers: faceup([TRUE_NAMES, HORSE_ARCHERS]) }
+        })
         expect(attackBandits(s)).toEqual([BEAR_TRAPS])
     })
 
     it('Beast Tamer: the bandits do not use the nomad Storm Caller; before revision 14 they did', () => {
         const dana = { advisers: faceup([BEAST_TAMER]) }
-        expect(attackBandits(table({ revision: atRevision, atBanditSite: [STORM_CALLER], dana }))).toEqual([])
-        expect(attackBandits(table({ revision: before, atBanditSite: [STORM_CALLER], dana }))).toEqual([STORM_CALLER])
+        expect(
+            attackBandits(table({ revision: atRevision, atBanditSite: [STORM_CALLER], dana }))
+        ).toEqual([])
+        expect(
+            attackBandits(table({ revision: before, atBanditSite: [STORM_CALLER], dana }))
+        ).toEqual([STORM_CALLER])
     })
 
     it('Beast Tamer held by Ann, the Chancellor: the bandits are their enemy without a player to look up, and Storm Caller is not used', () => {
         const ann = { siteId: 'c1', advisers: faceup([BEAST_TAMER]) }
-        expect(attackBandits(table({ revision: atRevision, atBanditSite: [STORM_CALLER], ann }), ANN)).toEqual([])
-        expect(attackBandits(table({ revision: before, atBanditSite: [STORM_CALLER], ann }), ANN)).toEqual([STORM_CALLER])
+        expect(
+            attackBandits(table({ revision: atRevision, atBanditSite: [STORM_CALLER], ann }), ANN)
+        ).toEqual([])
+        expect(
+            attackBandits(table({ revision: before, atBanditSite: [STORM_CALLER], ann }), ANN)
+        ).toEqual([STORM_CALLER])
     })
 
     it("Code of Honor banned by True Names does not shut out the bandits' other plans; not banned, it stands alone", () => {
         const dana = { advisers: faceup([TRUE_NAMES, SCOUTS]) }
-        expect(attackBandits(table({ revision: atRevision, atBanditSite: [CODE_OF_HONOR, STORM_CALLER], dana }))).toEqual([STORM_CALLER])
-        expect(attackBandits(table({ revision: before, atBanditSite: [CODE_OF_HONOR, STORM_CALLER], dana }))).toEqual([CODE_OF_HONOR])
-        expect(attackBandits(table({ revision: atRevision, atBanditSite: [CODE_OF_HONOR, STORM_CALLER] }))).toEqual([CODE_OF_HONOR])
+        expect(
+            attackBandits(
+                table({ revision: atRevision, atBanditSite: [CODE_OF_HONOR, STORM_CALLER], dana })
+            )
+        ).toEqual([STORM_CALLER])
+        expect(
+            attackBandits(
+                table({ revision: before, atBanditSite: [CODE_OF_HONOR, STORM_CALLER], dana })
+            )
+        ).toEqual([CODE_OF_HONOR])
+        expect(
+            attackBandits(
+                table({ revision: atRevision, atBanditSite: [CODE_OF_HONOR, STORM_CALLER] })
+            )
+        ).toEqual([CODE_OF_HONOR])
     })
 
     it('control: Specialist leaves the bandits no plan, at either revision', () => {
         for (const revision of [atRevision, before]) {
-            const s = table({ revision, atBanditSite: [BEAR_TRAPS], dana: { advisers: faceup([SPECIALIST]) } })
+            const s = table({
+                revision,
+                atBanditSite: [BEAR_TRAPS],
+                dana: { advisers: faceup([SPECIALIST]) }
+            })
             expect(attackBandits(s, DANA, [SPECIALIST]), `revision ${revision}`).toEqual([])
             expect(ongoingCampaign(s).plansUsed).toEqual([SPECIALIST])
         }
@@ -162,12 +241,19 @@ describe("R-5.5.3-H4 — an enemy's added cost leaves the bandits' plan with a c
             expect(s.favorSupply).toBe(supply)
             expect(s.cardTokens[BEAR_TRAPS]).toBeUndefined()
 
-            expect(attackBandits(table({ revision: before, atBanditSite: [BEAR_TRAPS], dana }))).toEqual([BEAR_TRAPS])
+            expect(
+                attackBandits(table({ revision: before, atBanditSite: [BEAR_TRAPS], dana }))
+            ).toEqual([BEAR_TRAPS])
         })
     }
 
     it("Vow of Renewal: no favor of a dropped plan's added cost comes to its holder", () => {
-        const s = table({ revision: atRevision, atBanditSite: [BEAR_TRAPS], dana: { advisers: faceup([INSECT_SWARM]) }, ann: { advisers: faceup([VOW_OF_RENEWAL]) } })
+        const s = table({
+            revision: atRevision,
+            atBanditSite: [BEAR_TRAPS],
+            dana: { advisers: faceup([INSECT_SWARM]) },
+            ann: { advisers: faceup([VOW_OF_RENEWAL]) }
+        })
         expect(attackBandits(s)).toEqual([])
         expect(s.getPlayerState(ANN).favor).toBe(4)
     })
@@ -176,7 +262,12 @@ describe("R-5.5.3-H4 — an enemy's added cost leaves the bandits' plan with a c
 describe("the bandits' dropped plans beside the Campaign's other steps", () => {
     it("Hospital: Bear Traps banned by True Names kills nothing for Dana's Hospital to hold", () => {
         // No attack dice, so no skull kills for Hospital to hold either.
-        const scene = { atBanditSite: [BEAR_TRAPS], denizens: { p2: [HOSPITAL] }, warbands: { p2: { [DANA]: 2 } }, dana: { advisers: faceup([TRUE_NAMES, SCOUTS]) } }
+        const scene = {
+            atBanditSite: [BEAR_TRAPS],
+            denizens: { p2: [HOSPITAL] },
+            warbands: { p2: { [DANA]: 2 } },
+            dana: { advisers: faceup([TRUE_NAMES, SCOUTS]) }
+        }
         const s = table({ revision: atRevision, ...scene })
         expect(attackBandits(s, DANA, [HOSPITAL], 0)).toEqual([])
         expect(ongoingCampaign(s).heldForHospital).toBeUndefined()
@@ -187,8 +278,11 @@ describe("the bandits' dropped plans beside the Campaign's other steps", () => {
         expect(ongoingCampaign(recorded).heldForHospital?.map((held) => held.count)).toEqual([1])
     })
 
-    it("the site dice: a banned Longbows at the Mountain leaves the pools as Step 2 left them (R-11.4-H1)", () => {
-        const scene = { siteCards: { c1: 'site.mountain' }, dana: { advisers: faceup([TRUE_NAMES, SCOUTS]) } }
+    it('the site dice: a banned Longbows at the Mountain leaves the pools as Step 2 left them (R-11.4-H1)', () => {
+        const scene = {
+            siteCards: { c1: 'site.mountain' },
+            dana: { advisers: faceup([TRUE_NAMES, SCOUTS]) }
+        }
         const banned = table({ revision: atRevision, atBanditSite: [LONGBOWS], ...scene })
         expect(attackBandits(banned)).toEqual([])
         const none = table({ revision: atRevision, ...scene })
@@ -202,14 +296,29 @@ describe("the bandits' dropped plans beside the Campaign's other steps", () => {
 
     it('R-5.5.8: a dropped Storm Caller is not discarded at the end; one used is', () => {
         function concluded(revision: number) {
-            const s = table({ revision, atBanditSite: [STORM_CALLER], dana: { advisers: faceup([BEAST_TAMER]) } })
+            const s = table({
+                revision,
+                atBanditSite: [STORM_CALLER],
+                dana: { advisers: faceup([BEAST_TAMER]) }
+            })
             attackBandits(s)
             ongoingCampaign(s).swords = 9
             ongoingCampaign(s).defense = 0
             new HydratedCampaignSacrifice(
-                buildAction(CampaignSacrifice, { playerId: DANA, sacrifice: 0, defeatKills: HydratedCampaignSacrifice.attackerDefeatKills(s, 0) })
+                buildAction(CampaignSacrifice, {
+                    playerId: DANA,
+                    sacrifice: 0,
+                    defeatKills: HydratedCampaignSacrifice.attackerDefeatKills(s, 0)
+                })
             ).apply(s)
-            if (s.campaign) new HydratedCampaignResolveVictory(buildAction(CampaignResolveVictory, { playerId: DANA, placements: [], burnFavor: false })).apply(s)
+            if (s.campaign)
+                new HydratedCampaignResolveVictory(
+                    buildAction(CampaignResolveVictory, {
+                        playerId: DANA,
+                        placements: [],
+                        burnFavor: false
+                    })
+                ).apply(s)
             expect(s.campaign).toBeUndefined()
             return s
         }

@@ -2,6 +2,12 @@
     import { leagueLevelText } from '$lib/utils/leaguePresentation'
     import { accountName } from '$lib/utils/accountName'
     import {
+        tournamentAveragePlaceText,
+        tournamentTiebreakTexts
+    } from '$lib/utils/tournamentPresentation'
+    import {
+        placementScoringDescription,
+        tournamentTiebreakDescription,
         leagueLevelName,
         type LeagueGroupDetail,
         type LeagueGroupStanding
@@ -10,15 +16,20 @@
     let {
         group,
         gamesPerEntrant,
+        ranksByAveragePlace,
         usernames,
         userId
     }: {
         group: LeagueGroupDetail
         gamesPerEntrant: number
+        ranksByAveragePlace: boolean
         usernames: Record<string, string>
         userId?: string
     } = $props()
     let showTiebreak = $derived(group.standings.some((row) => row.tiebreak !== undefined))
+    let tiebreakDescription = $derived(tournamentTiebreakDescription(group.standings))
+    let tiebreakTexts = $derived(tournamentTiebreakTexts(group.standings))
+    const share = (games: number) => (group.totalGames ? (games / group.totalGames) * 100 : 0)
     const movementLabel = { promoted: 'Promoted', relegated: 'Relegated' }
 
     function gameStates(row: LeagueGroupStanding) {
@@ -60,7 +71,7 @@
     </div>
     <div class="mb-2 flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400">
         <div
-            class="h-1 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700"
+            class="flex h-1 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700"
             role="progressbar"
             aria-label={`Group ${group.groupId} games finished`}
             aria-valuemin={0}
@@ -68,10 +79,15 @@
             aria-valuenow={group.finishedGames}
         >
             <div
-                class="h-full rounded-full {group.finishedGames === group.totalGames
+                class="h-full {group.finishedGames === group.totalGames
                     ? 'bg-green-600'
                     : 'bg-blue-600'}"
-                style:width={`${group.totalGames ? (group.finishedGames / group.totalGames) * 100 : 0}%`}
+                style:width={`${share(group.finishedGames)}%`}
+            ></div>
+            <div
+                class="h-full bg-blue-300 dark:bg-blue-800"
+                title="In progress"
+                style:width={`${share(group.activeProgress ?? 0)}%`}
             ></div>
         </div>
         <span class="tabular-nums">{group.finishedGames} of {group.totalGames} games</span>
@@ -87,13 +103,15 @@
                     ><abbr class="no-underline" title="Wins">W</abbr></th
                 >
                 <th class="w-11 pb-1.5 text-right font-normal"
-                    ><abbr class="no-underline" title="Points">Pts</abbr></th
+                    >{#if ranksByAveragePlace}<abbr
+                            class="no-underline"
+                            title={`Average place. ${placementScoringDescription}`}>Avg</abbr
+                        >{:else}<abbr class="no-underline" title="Points">Pts</abbr>{/if}</th
                 >
                 <th class="w-12 pb-1.5 text-right font-normal">Games</th>
                 {#if showTiebreak}
-                    <th class="w-9 pb-1.5 text-right font-normal"
-                        ><abbr class="no-underline" title="Tiebreak: sum of final scores">TB</abbr
-                        ></th
+                    <th class="w-16 pb-1.5 text-right font-normal"
+                        ><abbr class="no-underline" title={tiebreakDescription}>TB</abbr></th
                     >
                 {/if}
             </tr>
@@ -142,7 +160,11 @@
                     </td>
                     <td class="py-1.5 text-right tabular-nums text-gray-400">{row.wins}</td>
                     <td class="py-1.5 text-right tabular-nums"
-                        >{Number.isInteger(row.score) ? row.score : row.score.toFixed(2)}</td
+                        >{ranksByAveragePlace
+                            ? tournamentAveragePlaceText(row)
+                            : Number.isInteger(row.score)
+                              ? row.score
+                              : row.score.toFixed(2)}</td
                     >
                     <td class="py-1.5 text-right" title={gamesTitle(row)}>
                         <span class="inline-flex gap-0.5" aria-label={gamesTitle(row)}>
@@ -166,7 +188,7 @@
                     </td>
                     {#if showTiebreak}
                         <td class="py-1.5 text-right tabular-nums text-gray-400"
-                            >{row.tiebreak ?? '—'}</td
+                            >{tiebreakTexts.get(row.userId)}</td
                         >
                     {/if}
                 </tr>

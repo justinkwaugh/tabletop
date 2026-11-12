@@ -53,9 +53,11 @@ function fixture() {
     const tasks: TaskService = {
         createPushTask: unused,
         sendVerificationEmail: unused,
+        sendEmailChangeVerificationEmail: unused,
         sendPasswordResetEmail: unused,
         sendAuthVerificationEmail: unused,
         sendAccountChangeNotificationEmail: unused,
+        sendContentReportEmail: unused,
         sendGameInvitationEmail: vi.fn(async () => {}),
         sendGameEndEmail: unused
     }
@@ -255,6 +257,29 @@ describe('games whose owner is not a player', () => {
     })
 })
 
+describe('invitation emails', () => {
+    it('emails an invitee unless they turned off game and competition emails', async () => {
+        const { service, tasks } = fixture()
+        const game = storedGame(regular, ['b', 'c', 'd'])
+        const optedOut = {
+            ...invitees[0],
+            preferences: {
+                preventWebNotificationPrompt: false,
+                preferredColorsEnabled: false,
+                preferredColors: [],
+                gameAndCompetitionEmails: false
+            }
+        }
+
+        await service.emailGameInvitation({ owner: regular, game, user: optedOut })
+        await service.emailGameInvitation({ owner: regular, game, user: invitees[1] })
+
+        expect(vi.mocked(tasks.sendGameInvitationEmail).mock.calls).toEqual([
+            [expect.objectContaining({ toEmail: invitees[1].email })]
+        ])
+    })
+})
+
 describe('owners joining their own public game', () => {
     it('seats the owner in an open seat without telling them they joined', async () => {
         const { service, store, notifications } = fixture()
@@ -321,25 +346,28 @@ describe('unlisted games', () => {
         existing.players = openSeats
         acceptUpdates(store, existing)
         await expect(
-            service.updateGame({ gameId: existing.id, fields: { isPublic: false }, user: developer })
+            service.updateGame({
+                gameId: existing.id,
+                fields: { isPublic: false },
+                user: developer
+            })
         ).rejects.toThrow('must be public')
     })
 
-    it('rejects one from a regular user', async () => {
+    it('lets a regular user create one', async () => {
         const { service, write } = fixture()
-        await expect(
-            service.createGame({
-                definition: SyntheticDefinition,
-                game: {
-                    ...inviteesOnly(),
-                    isPublic: true,
-                    unlisted: true,
-                    players: [seat(regular.id), ...openSeats.slice(1)]
-                },
-                owner: regular
-            })
-        ).rejects.toThrow('is not authorized')
-        expect(write).not.toHaveBeenCalled()
+        const created = await service.createGame({
+            definition: SyntheticDefinition,
+            game: {
+                ...inviteesOnly(),
+                isPublic: true,
+                unlisted: true,
+                players: [seat(regular.id), ...openSeats.slice(1)]
+            },
+            owner: regular
+        })
+        expect(write).toHaveBeenCalled()
+        expect(created).toMatchObject({ isPublic: true, unlisted: true })
     })
 
     it('rejects one that is not public', async () => {

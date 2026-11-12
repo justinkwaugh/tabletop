@@ -5,7 +5,11 @@ import {
     type TitlePrivatePower
 } from './privateActionsModule.svelte.js'
 import { singleChoice } from './stagedSelection.svelte.js'
-import type { CompanyDecision, PrivateTileOption } from './companyDecisionsModule.svelte.js'
+import type {
+    CompanyDecision,
+    PrivateTileOption,
+    PrivateTokenOption
+} from './companyDecisionsModule.svelte.js'
 import { testSession } from './moduleTestSession.js'
 
 const Alpha = { privateCompanyId: 'alpha', playerId: 'alex' }
@@ -17,7 +21,8 @@ function privateActions(
     availability = {},
     exchangeOptions: { playerId: string; privateCompanyId: string; certificateId: string }[] = [],
     titlePowers: TitlePrivatePower[] = [],
-    offered?: { privateCompanyId: string; playerId: string }
+    offered?: { privateCompanyId: string; playerId: string },
+    privateTokenOptions: PrivateTokenOption[] = []
 ) {
     let trackSelected = false
     let trackCleared = 0
@@ -28,7 +33,8 @@ function privateActions(
             { ...power, details: tileDetails }
         ]),
         privateTrainOptions: [],
-        privateMarkerOptions: []
+        privateMarkerOptions: [],
+        privateTokenOptions
     }
     const track = {
         undo: () => {
@@ -95,6 +101,14 @@ describe('PrivateActionsModule', () => {
         expect(decisions.choice.hasManual()).toBe(false)
     })
 
+    it("opens purchases on the player's own privates, as a manual choice Undo closes", () => {
+        const { module } = privateActions([])
+        module.openPurchases()
+        expect(module.purchaseSource).toBe('mine')
+        expect(module.undo()).toBe(true)
+        expect(module.purchaseSource).toBeUndefined()
+    })
+
     it('selects a lone power automatically once powers are opened, without making it undoable', () => {
         const { module } = privateActions([Alpha])
         expect(module.trackPowerSelection).toBeUndefined()
@@ -115,6 +129,20 @@ describe('PrivateActionsModule', () => {
         expect(() =>
             module.chooseTrackPower({ privateCompanyId: 'gamma', playerId: 'alex' })
         ).toThrow()
+    })
+
+    it('waits for a manual choice between a tile power and a station power', () => {
+        const { module } = privateActions([Alpha], {}, {}, [], [], undefined, [
+            {
+                ...Beta,
+                companyId: 'R',
+                position: { locationId: 'A12', nodeId: 'city', slot: 0 }
+            }
+        ])
+        module.choosePowers()
+        expect(module.trackPowerSelection).toBeUndefined()
+        module.chooseTrackPower(Alpha)
+        expect(module.trackPowerSelection).toEqual({ value: Alpha, source: 'manual' })
     })
 
     it('offers the power without opening a source while the state awaits a private tile lay', () => {
@@ -154,6 +182,26 @@ describe('PrivateActionsModule', () => {
         expect(module.trackPowerSelection).toBeUndefined()
     })
 
+    it('keeps apart two powers of one private', () => {
+        const place = (label: string): TitlePrivatePower => ({
+            privateCompanyId: 'gamma',
+            playerId: 'alex',
+            kind: 'location',
+            label,
+            prompt: `Place ${label}`,
+            locationIds: ['C3'],
+            choose: async () => {}
+        })
+        const open = place('Open')
+        const closed = place('Closed')
+        const { module } = privateActions([], {}, {}, [], [open, closed])
+        module.choosePowers()
+        module.chooseTitlePower(closed)
+        expect(module.titlePower).toBe(closed)
+        module.chooseTitlePower(open)
+        expect(module.titlePower).toBe(open)
+    })
+
     it('offers title powers, lists track ones with the tile powers, and never auto-selects past a map choice', () => {
         let staged = 1
         const titleTrack: TitlePrivatePower = {
@@ -191,7 +239,7 @@ describe('PrivateActionsModule', () => {
         expect(module.undo()).toBe(true)
         module.chooseTitlePower(titleTrack)
         expect(module.titlePower).toBe(titleTrack)
-        expect(module.trackPowerSelection?.value).toEqual(Beta)
+        expect(module.trackPowerSelection?.value).toEqual({ ...Beta, label: 'Beta' })
         // A staged lay steps back before the power itself.
         expect(module.undo()).toBe(true)
         expect(module.titlePower).toBe(titleTrack)

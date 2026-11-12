@@ -1,0 +1,4 @@
+# The solver's WebAssembly memory may never grow past 64 MiB: an allocation beyond it traps the
+# instance, which the Autorouter replaces, instead of growing a phone tab until it is killed.
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "link-arg=--max-memory=67108864"]

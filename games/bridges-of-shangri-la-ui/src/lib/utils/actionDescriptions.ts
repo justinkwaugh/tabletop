@@ -1,4 +1,4 @@
-import type { GameAction } from '@tabletop/common'
+import { gameCallDescription, gameCallOf, type GameAction } from '@tabletop/common'
 import {
     isPlaceMaster,
     isRecruitStudents,
@@ -7,7 +7,11 @@ import {
 } from '@tabletop/bridges-of-shangri-la'
 import { nameForMasterType } from './masterNames.js'
 
-export function getDescriptionForAction(action: GameAction) {
+export function getDescriptionForAction(action: GameAction, nameOf: (playerId: string) => string) {
+    const call = gameCallOf(action)
+    if (call) {
+        return gameCallDescription(call, nameOf)
+    }
     switch (true) {
         case isPlaceMaster(action):
             return `placed ${nameForMasterType(action.placement.masterType, true)} master`

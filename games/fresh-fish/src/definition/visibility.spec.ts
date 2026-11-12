@@ -97,9 +97,9 @@ describe('Fresh Fish visibility', () => {
         const another = initialize(secondSeed)
         expect(another.board).toEqual(first.board)
         expect(another.tileBag.items).not.toEqual(first.tileBag.items)
-        expect(
-            FreshFishVisibility.state.project(first, { kind: 'spectator' }).boardSeed
-        ).toBe(first.boardSeed)
+        expect(FreshFishVisibility.state.project(first, { kind: 'spectator' }).boardSeed).toBe(
+            first.boardSeed
+        )
         game.config.boardSeed = 0
         const zero = initialize(firstSeed)
         expect(zero.boardSeed).toBe(0)
@@ -205,9 +205,7 @@ describe('Fresh Fish visibility', () => {
         })
         expect(first.tileBag.items).not.toEqual(second.tileBag.items)
         expect(first.protectedPrng?.invocations).toBeGreaterThan(0)
-        expect(
-            FreshFishVisibility.state.project(first.dehydrate(), { kind: 'spectator' })
-        ).toEqual(
+        expect(FreshFishVisibility.state.project(first.dehydrate(), { kind: 'spectator' })).toEqual(
             FreshFishVisibility.state.project(second.dehydrate(), { kind: 'spectator' })
         )
         expect(first.finalStalls).toEqual(second.finalStalls)

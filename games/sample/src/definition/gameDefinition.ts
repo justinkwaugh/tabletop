@@ -9,8 +9,9 @@ import { SampleConfigurator } from './configurator.js'
 import { GAME_VERSION } from './version.js'
 
 // The export MUST be named Definition and be of type GameDefinition
-export const Definition: GameDefinition<SampleGameState, HydratedSampleGameState> =
-    <GameDefinition<SampleGameState, HydratedSampleGameState>>{
+export const Definition: GameDefinition<SampleGameState, HydratedSampleGameState> = <
+    GameDefinition<SampleGameState, HydratedSampleGameState>
+>{
     info: {
         id: 'sample',
         metadata: {

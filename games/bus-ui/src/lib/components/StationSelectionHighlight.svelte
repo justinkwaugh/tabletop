@@ -27,7 +27,9 @@
 
     const active = $derived(isSelected || hovered || keyboardFocused)
     const outerStroke = $derived(active ? '#ffffff' : '#333')
-    const outerStrokeWidth = $derived(active ? STATION_OUTER_BORDER_WIDTH + 0.75 : STATION_OUTER_BORDER_WIDTH)
+    const outerStrokeWidth = $derived(
+        active ? STATION_OUTER_BORDER_WIDTH + 0.75 : STATION_OUTER_BORDER_WIDTH
+    )
     const ringStroke = $derived(active ? '#fff27a' : '#f5ea6e')
     const haloOpacity = $derived(active ? 0.28 : 0.14)
     const focusOutlineOpacity = $derived(keyboardFocused ? 0.95 : 0)

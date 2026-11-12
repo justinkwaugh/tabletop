@@ -1,10 +1,9 @@
 import { HydratedOathGameState } from '../model/gameState.js'
 import type { PileDeposit } from '../model/hidden.js'
 import { PowerQuestionKind, PowerQuestionValidator, type QuestionOf } from '../model/question.js'
-import { adviserDiscardable } from './cardPlay.js'
+import { adviserDiscardable, reasonAdviserNotDiscardable } from './cardPlay.js'
 import { adviserExcess, shapesAdviserLimit } from './continuous.js'
 import { discardCards } from './discard.js'
-import { isLockedFor } from './locked.js'
 import { regionOfPawn } from './pawn.js'
 import { askQuestion, currentQuestion, turnOrderFrom } from './questions.js'
 import { isAtLeastOathRevision, OathRevision } from './revision.js'
@@ -92,7 +91,7 @@ const START: Position = { faceup: 0, facedown: 0 }
 
 /**
  * R-7.6.4 — the ways a player over their adviser limit may discard down to it, never a card just
- * received nor a locked one (R-7.2.2). A discard is a step when it lowers the excess, or when it is
+ * received, a locked one (R-7.2.2) nor a modifier the Search under way uses (R-7.4.3). A discard is a step when it lowers the excess, or when it is
  * a limiter (Family Wagon) whose going changes what counts. A step may go only while the excess is
  * above the lowest the discardable advisers can bring it to (none, unless locked or received ones
  * hold it up), and only if that lowest can still be reached after it. The question's count is the
@@ -115,7 +114,10 @@ class AdviserLimitPaths {
         const player = state.getPlayerState(playerId)
         this.faceup = player
             .faceupAdviserIds()
-            .filter((cardId) => !received.includes(cardId) && !isLockedFor(state, playerId, cardId))
+            .filter(
+                (cardId) =>
+                    !received.includes(cardId) && adviserDiscardable(state, playerId, cardId)
+            )
         // A facedown adviser just received stays (R-9.4: its holder knows which one it is).
         const facedownReceived = received.filter(
             (cardId) => player.knownAdviser(cardId)?.faceUp === false
@@ -277,9 +279,8 @@ export function reasonAdviserLimitDiscardsInvalid(
     for (const cardId of discarded) {
         if (received.includes(cardId)) return `${cardId} was just received, so it is not discarded`
         if (!player.knownAdviser(cardId)) return `${cardId} is not one of your advisers`
-        if (!adviserDiscardable(state, playerId, cardId)) {
-            return `${cardId} is locked and cannot be discarded`
-        }
+        const notDiscardable = reasonAdviserNotDiscardable(state, playerId, cardId)
+        if (notDiscardable) return notDiscardable
     }
     const paths = new AdviserLimitPaths(state, playerId, received)
     let at = START

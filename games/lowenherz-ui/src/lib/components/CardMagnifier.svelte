@@ -16,8 +16,9 @@
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { HOVER_INTENT_MS } from '$lib/model/hoverIntent.js'
     import PoliticsCard from './PoliticsCard.svelte'
+    import type { PoliticsCardSource } from '$lib/model/politicsCardPiles.js'
 
-    let { card }: { card: PoliticsCardModel } = $props()
+    let { card, deck }: { card: PoliticsCardModel; deck?: PoliticsCardSource } = $props()
 
     const gameSession = getGameSession()
 
@@ -42,10 +43,19 @@
         const maxHeight = window.innerHeight - 2 * VIEWPORT_MARGIN
         const width = Math.min(rect.width * GROWTH, maxWidth, maxHeight * CARD_ASPECT)
         const height = width / CARD_ASPECT
-        const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max)
+        const clamp = (value: number, min: number, max: number) =>
+            Math.min(Math.max(value, min), max)
         return {
-            centerX: clamp(rect.left + rect.width / 2, VIEWPORT_MARGIN + width / 2, window.innerWidth - VIEWPORT_MARGIN - width / 2),
-            centerY: clamp(rect.top + rect.height / 2, VIEWPORT_MARGIN + height / 2, window.innerHeight - VIEWPORT_MARGIN - height / 2),
+            centerX: clamp(
+                rect.left + rect.width / 2,
+                VIEWPORT_MARGIN + width / 2,
+                window.innerWidth - VIEWPORT_MARGIN - width / 2
+            ),
+            centerY: clamp(
+                rect.top + rect.height / 2,
+                VIEWPORT_MARGIN + height / 2,
+                window.innerHeight - VIEWPORT_MARGIN - height / 2
+            ),
             width
         }
     }
@@ -157,7 +167,7 @@
             }}
             class="drop-shadow-2xl"
         >
-            <PoliticsCard {card} />
+            <PoliticsCard {card} {deck} />
         </div>
     </div>
 {/if}

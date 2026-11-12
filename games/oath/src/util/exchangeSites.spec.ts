@@ -127,9 +127,12 @@ describe('Deed Writer from revision 11: old rulers go home first, then new ruler
                 fromProposer: { sites: [{ siteId: 'c2', warbands: 2 }] },
                 fromCounterparty: { favor: 1 }
             }
-            expect(reasonExchangeInvalid(s, 'ruler', 'other', { ...terms, fromProposer: { sites: [{ siteId: 'c2', warbands: 3 }] } })).toBe(
-                "other's board has fewer than 3 warbands to move to c2"
-            )
+            expect(
+                reasonExchangeInvalid(s, 'ruler', 'other', {
+                    ...terms,
+                    fromProposer: { sites: [{ siteId: 'c2', warbands: 3 }] }
+                })
+            ).toBe("other's board has fewer than 3 warbands to move to c2")
             proposeWithDeedWriter(s, terms)
             expect(warbandsAt(s, 'c2')).toMatchObject({ other: 2 })
             expect(s.getPlayerState('other').warbandsOnBoard['other'] ?? 0).toBe(0)
@@ -140,8 +143,13 @@ describe('Deed Writer from revision 11: old rulers go home first, then new ruler
     it('a Bandit Crown holder with an empty board may still take a site with no warbands (its Q&A)', () => {
         for (const revision of [OathRevision.EngineFixes7, OathRevision.EngineFixes6]) {
             const s = table({}, revision, {}, { other: { relicIds: [CROWN] } })
-            const terms: ExchangeTerms = { fromProposer: { sites: [{ siteId: 'c2', warbands: 0 }] } }
-            expect(reasonExchangeInvalid(s, 'ruler', 'other', terms), `revision ${revision}`).toBeUndefined()
+            const terms: ExchangeTerms = {
+                fromProposer: { sites: [{ siteId: 'c2', warbands: 0 }] }
+            }
+            expect(
+                reasonExchangeInvalid(s, 'ruler', 'other', terms),
+                `revision ${revision}`
+            ).toBeUndefined()
             proposeWithDeedWriter(s, terms)
             expect(totalWarbandsAt(s, 'c2')).toBe(0)
             expect(rulesSite(s, 'other', 'c2')).toBe(true)
@@ -149,7 +157,12 @@ describe('Deed Writer from revision 11: old rulers go home first, then new ruler
     })
 
     it('a Bandit Crown holder giving the site their warbands hold moves them into the other site', () => {
-        const s = table({}, OathRevision.EngineFixes7, { other: 3 }, { other: { relicIds: [CROWN] } })
+        const s = table(
+            {},
+            OathRevision.EngineFixes7,
+            { other: 3 },
+            { other: { relicIds: [CROWN] } }
+        )
         expect(reasonExchangeInvalid(s, 'ruler', 'other', swap(3))).toBeUndefined()
         proposeWithDeedWriter(s, swap(3))
         expect(warbandsAt(s, 'c2')).toMatchObject({ other: 3 })
@@ -172,21 +185,32 @@ describe('before revision 11 an exchange keeps the order it was recorded with', 
     // change which that is, and so what a recorded exchange placed.
     it('a Citizen receiving a site places what their board held before their own site came home', () => {
         const citizen = (revision: OathRevision) =>
-            table({ other: 2, [IMPERIAL_WARBANDS]: 1 }, revision, { [IMPERIAL_WARBANDS]: 3 }, {
-                other: { status: PlayerStatus.Citizen },
-                away: { status: PlayerStatus.Chancellor }
-            })
+            table(
+                { other: 2, [IMPERIAL_WARBANDS]: 1 },
+                revision,
+                { [IMPERIAL_WARBANDS]: 3 },
+                {
+                    other: { status: PlayerStatus.Citizen },
+                    away: { status: PlayerStatus.Chancellor }
+                }
+            )
         const before = citizen(OathRevision.EngineFixes6)
         proposeWithDeedWriter(before, swap(1))
         expect(warbandsAt(before, 'c2')).toMatchObject({ other: 1 })
         expect(warbandsAt(before, 'c2')[IMPERIAL_WARBANDS] ?? 0).toBe(0)
-        expect(before.getPlayerState('other').warbandsOnBoard).toMatchObject({ other: 1, [IMPERIAL_WARBANDS]: 4 })
+        expect(before.getPlayerState('other').warbandsOnBoard).toMatchObject({
+            other: 1,
+            [IMPERIAL_WARBANDS]: 4
+        })
 
         const after = citizen(OathRevision.EngineFixes7)
         proposeWithDeedWriter(after, swap(1))
         expect(warbandsAt(after, 'c2')).toMatchObject({ [IMPERIAL_WARBANDS]: 1 })
         expect(warbandsAt(after, 'c2')['other'] ?? 0).toBe(0)
-        expect(after.getPlayerState('other').warbandsOnBoard).toMatchObject({ other: 2, [IMPERIAL_WARBANDS]: 3 })
+        expect(after.getPlayerState('other').warbandsOnBoard).toMatchObject({
+            other: 2,
+            [IMPERIAL_WARBANDS]: 3
+        })
     })
 })
 
@@ -203,8 +227,12 @@ describe("safe on a player's view: the board a new ruler moves in from reads onl
                     )
                 }
                 const p1 = [{ siteId: 'p1', warbands: 1 }]
-                expect(boardToMoveInFrom(seen, 'other', p1)).toEqual(boardToMoveInFrom(s, 'other', p1))
-                expect(boardWarbandOwnerOf(seen, 'other', p1)).toBe(boardWarbandOwnerOf(s, 'other', p1))
+                expect(boardToMoveInFrom(seen, 'other', p1)).toEqual(
+                    boardToMoveInFrom(s, 'other', p1)
+                )
+                expect(boardWarbandOwnerOf(seen, 'other', p1)).toBe(
+                    boardWarbandOwnerOf(s, 'other', p1)
+                )
             }
         }
     })
@@ -212,7 +240,9 @@ describe("safe on a player's view: the board a new ruler moves in from reads onl
     it('from revision 11 the board counts the warbands the receiver’s own sites send home', () => {
         const p1 = [{ siteId: 'p1', warbands: 1 }]
         expect(boardToMoveInFrom(table({ other: 1 }), 'other', p1)).toEqual({ other: 4 })
-        expect(boardToMoveInFrom(table({ other: 1 }, OathRevision.EngineFixes6), 'other', p1)).toEqual({ other: 1 })
+        expect(
+            boardToMoveInFrom(table({ other: 1 }, OathRevision.EngineFixes6), 'other', p1)
+        ).toEqual({ other: 1 })
         expect(boardWarbandOwnerOf(table({}), 'other', p1)).toBe('other')
     })
 })

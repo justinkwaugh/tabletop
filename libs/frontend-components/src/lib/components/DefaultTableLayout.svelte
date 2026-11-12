@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { type Snippet } from 'svelte'
+    import type { Snippet } from 'svelte'
     import { scrollToRight } from '$lib/utils/scrollOnLoad.js'
     import DebugPanel from './DebugPanel.svelte'
     import HistoryControls from './HistoryControls.svelte'
@@ -29,7 +29,8 @@
     const tableHeightDesktopClass = 'sm:h-[calc(100dvh-var(--app-shell-height))]'
     const tableInnerHeightMobileClass =
         'max-sm:h-[calc(100dvh-8px-var(--table-top-padding)-44px-var(--app-shell-height))]'
-    const tableInnerHeightDesktopClass = 'sm:h-[calc(100dvh-8px-var(--table-top-padding)-var(--app-shell-height))]'
+    const tableInnerHeightDesktopClass =
+        'sm:h-[calc(100dvh-8px-var(--table-top-padding)-var(--app-shell-height))]'
 </script>
 
 <div
@@ -45,16 +46,21 @@
             {/if}
         </div>
         <div {@attach scrollToRight} class="table-scroller w-full overflow-auto">
-            <div class="p-2 w-full h-full flex flex-row justify-between items-start" style:padding-top={topPadding + 'px'} style:padding-inline={horizontalPadding + 'px'}>
+            <div
+                class="p-2 w-full h-full flex flex-row justify-between items-start"
+                style:padding-top={topPadding + 'px'}
+                style:padding-inline={horizontalPadding + 'px'}
+            >
                 {#if showSidebar}<div
-                    class="flex flex-col gap-2 shrink-0 grow-0 w-[320px] min-w-[320px] max-w-[90vw] {tableInnerHeightDesktopClass} {tableInnerHeightMobileClass}"
-                >
-                    {#if sideContent}
-                        {@render sideContent()}
-                    {/if}
-                </div>{/if}
+                        class="flex flex-col gap-2 shrink-0 grow-0 w-[320px] min-w-[320px] max-w-[90vw] {tableInnerHeightDesktopClass} {tableInnerHeightMobileClass}"
+                    >
+                        {#if sideContent}
+                            {@render sideContent()}
+                        {/if}
+                    </div>{/if}
                 <div
                     class:ms-2={showSidebar}
+                    class:beside-sidebar={showSidebar}
                     class="game-column shrink grow sm:min-w-[320px] min-w-[90vw] {tableInnerHeightDesktopClass} {tableInnerHeightMobileClass} flex flex-col overflow-auto"
                     style:--table-inline-padding={`${horizontalPadding}px`}
                 >
@@ -81,8 +87,9 @@
     .table-scroller {
         position: relative;
     }
+    /* Beside the sidebar the row scrolls sideways, and a scroller drops its end padding. */
     @media (width < 40rem) {
-        .game-column {
+        .game-column.beside-sidebar {
             padding-inline-end: var(--table-inline-padding);
         }
     }

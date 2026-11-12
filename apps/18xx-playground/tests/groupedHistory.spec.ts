@@ -62,11 +62,11 @@ test('compact stock rows and operating groups retain details and action navigati
             .filter({ hasText: 'MR floated' })
             .first()
     ).toBeVisible()
-    await expect(flotation.locator('.flotation-token svg')).toHaveCount(1)
+    await expect(flotation.locator('.lead-token svg')).toHaveCount(1)
     await expect(flotation.locator('small')).not.toBeEmpty()
     const flotationColumns = await flotation.evaluate((line) => {
-        const token = line.querySelector('.flotation-token')?.getBoundingClientRect()
-        const summary = line.querySelector('.flotation-token + span')?.getBoundingClientRect()
+        const token = line.querySelector('.lead-token')?.getBoundingClientRect()
+        const summary = line.querySelector('.lead-token + span')?.getBoundingClientRect()
         const detail = line.querySelector('small')?.getBoundingClientRect()
         return token && summary && detail
             ? { tokenRight: token.right, summaryLeft: summary.left, detailLeft: detail.left }

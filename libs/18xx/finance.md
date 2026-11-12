@@ -129,15 +129,15 @@ sections and `data/title-traits.json`, with linked primary definitions checked f
 the distinctions below. The research supplies facts and counterexamples only;
 implementation is independently designed around this repository's Common modules.
 
-| Variation | Design consequence |
-| --- | --- |
-| 1841 corporate ownership/control; TOP Union Bank | Separate owners from resolved human authority; do not aggregate personal and corporate assets. |
-| 18MEX unequal 5%/10%/20% denominations | Explicit integer units and issuer basis, not one certificate = one share. |
-| 1856 CGR half-certificate ordinary shares | Certificate limit contribution separate from unit quantity and certificate count. |
-| 1817 and related shorting titles | Positive certificates do not describe the whole economy; short liabilities need a future explicit position model. No universal 100% outstanding-positive-interest check is imposed. |
-| 1856 escrow and differing capital-release events | Cash ownership does not establish permission to spend; restricted funds and release rules are deferred. |
-| TOP numbered PEIR shares | Keep share identity and number, derive entitlement and tie resolution in the title. |
-| Titles without certificate limits; market/private exemptions | Zero/fractional effective counts supported, calculation policy stays title-owned. |
+| Variation                                                    | Design consequence                                                                                                                                                                  |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1841 corporate ownership/control; TOP Union Bank             | Separate owners from resolved human authority; do not aggregate personal and corporate assets.                                                                                      |
+| 18MEX unequal 5%/10%/20% denominations                       | Explicit integer units and issuer basis, not one certificate = one share.                                                                                                           |
+| 1856 CGR half-certificate ordinary shares                    | Certificate limit contribution separate from unit quantity and certificate count.                                                                                                   |
+| 1817 and related shorting titles                             | Positive certificates do not describe the whole economy; short liabilities need a future explicit position model. No universal 100% outstanding-positive-interest check is imposed. |
+| 1856 escrow and differing capital-release events             | Cash ownership does not establish permission to spend; restricted funds and release rules are deferred.                                                                             |
+| TOP numbered PEIR shares                                     | Keep share identity and number, derive entitlement and tie resolution in the title.                                                                                                 |
+| Titles without certificate limits; market/private exemptions | Zero/fractional effective counts supported, calculation policy stays title-owned.                                                                                                   |
 
 Primary checks: [18MEX denominations](https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_18_mex/entities.rb),
 [1856 national shares](https://github.com/tobymao/18xx/blob/715567bdc7e5cc68a68a286b21dc8edd1a125e50/lib/engine/game/g_1856/game.rb),
@@ -209,7 +209,6 @@ Undo and processed replay reproduce cash, certificates, round facts, and turn st
 Desktop/mobile browser checks exercise manual selection, Back, confirmation,
 purchase history, reload, Undo, and title switching.
 
-
 ## Share sales and stock markets
 
 `StockMarket` records distinct spaces and ordered stacks of company markers.
@@ -232,7 +231,6 @@ preview can include multiple companies.
 
 See the [slice 3 design and research review](../../research/18xx/stock-trading-slice-design.md)
 for the full-catalog survey, interface choices, verification, and remaining scope.
-
 
 ## Company formation and flotation
 

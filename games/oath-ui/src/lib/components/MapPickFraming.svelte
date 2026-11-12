@@ -8,8 +8,8 @@
     import { mapPickOpening, regionCounts, type MapFrame } from '$lib/model/travelOnTheMap.js'
 
     // A pick on the map on a phone (Travel, Setup's start site, the spoils' banish, a power's
-    // site, a Travel question's): the map is the menu, so the step frames it. Upright, one region
-    // at a time, opening on the region of the pawn the pick moves (or the first with a lit site),
+    // site, a Travel question's, where a site play goes): the map is the menu, so the step
+    // frames it. Upright, one region at a time, opening on the region of the pawn the pick moves (or the first with a lit site),
     // with a chip per region naming
     // its count; a chip reframes and chooses nothing. Setup's one legal site (the Chancellor's) is framed with no
     // chips. Sideways, the lit map at once, with no chips.
@@ -36,10 +36,10 @@
         const name = regionName(region)
         if (pick.kind === 'travel') return `${name}: ${count} to travel to`
         if (pick.kind === 'banish') return `${name}: ${count} to banish to`
-        if (pick.kind === 'power' || pick.kind === 'ruler') {
-            return `${name}: ${count} lit ${count === 1 ? 'site' : 'sites'}`
-        }
-        return `${name}: ${count} start ${count === 1 ? 'site' : 'sites'}`
+        if (pick.kind === 'start')
+            return `${name}: ${count} start ${count === 1 ? 'site' : 'sites'}`
+        // The powers' sites, the ruler's pick, a site play and the chronicle's build (R-8.3.1).
+        return `${name}: ${count} lit ${count === 1 ? 'site' : 'sites'}`
     }
 
     function opening(): MapFrame | undefined {

@@ -53,7 +53,8 @@ export class EighteenXXInitializer<
         Color.Yellow,
         Color.Purple,
         Color.Orange,
-        Color.Pink
+        Color.Pink,
+        Color.Brown
     ]
     readonly supportsStartingPositions = true
     constructor(protected readonly rules: EighteenXXInitializerRules<Schema, State>) {
@@ -125,6 +126,9 @@ export class EighteenXXInitializer<
                     phaseEvents: [],
                     ...('usedPrivatePowerIds' in this.rules.state.schema.properties
                         ? { usedPrivatePowerIds: [] }
+                        : {}),
+                    ...('accessRights' in this.rules.state.schema.properties
+                        ? { accessRights: [] }
                         : {}),
                     machineState: 'StockRound',
                     stockRound: createStockRound(parts.stockRoundNumber),

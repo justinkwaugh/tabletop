@@ -10,7 +10,6 @@ import {
     treasuryPool,
     type StockMarket,
     privateIncomePayments,
-    settleCashPayments,
     type InitialPosition,
     type MapStateData,
     type OfferPileAuctionRules,
@@ -66,12 +65,9 @@ export const TheOldPrinceAuctionRules: OfferPileAuctionRules = {
                 playerId: award.playerId
             }
     },
-    payIncome(state) {
-        settleCashPayments(
-            state,
-            privateIncomePayments(state, { charters: TheOldPrinceCharters }).filter(
-                (payment) => payment.to.kind === 'player'
-            )
+    incomePayments(state) {
+        return privateIncomePayments(state, { charters: TheOldPrinceCharters }).filter(
+            (payment) => payment.to.kind === 'player'
         )
     },
     firstStockOrder(state) {
@@ -245,6 +241,7 @@ export function createTheOldPrinceOpening({
     addTheOldPrinceBranches(position)
     return {
         position,
+        titleState: { unionBankDrawnCompanyId: remaining[0].companyId },
         begin: beginOfferPileAuction({
             piles: players.map((p, index) => ({
                 playerId: p.playerId,

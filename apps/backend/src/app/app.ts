@@ -1,21 +1,22 @@
 import { installTitleScope } from '../runtime/titleScope.js'
 import { installManifestRefresh } from '../runtime/manifestRefresh.js'
 import RequestTimingsPlugin from './plugins/requestTimings.js'
-import { STATIC_ROOT } from '@tabletop/backend-services'
+import {
+    SESSION_LIFETIME_SECONDS,
+    STATIC_ROOT,
+    type LibraryServiceOptions
+} from '@tabletop/backend-services'
 import { assertExists } from '@tabletop/common'
 import * as path from 'path'
-import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
+import { FastifyInstance, FastifyReply } from 'fastify'
 import AutoLoad from '@fastify/autoload'
 import SecureSession from '@fastify/secure-session'
 import Auth from '@fastify/auth'
-import FastifyFirebase from '@now-ims/fastify-firebase'
-import { deleteApp } from 'firebase-admin/app'
 import cors from '@fastify/cors'
 import FastifyFormbody from '@fastify/formbody'
 import fastifyPrintRoutes from 'fastify-print-routes'
 import fastifyStatic from '@fastify/static'
-import fastifyRateLimit from '@fastify/rate-limit'
-import { errorStatusCode } from './lib/errorStatusCode.js'
+import { replyStatusCode } from './lib/errorStatusCode.js'
 import { FastifySSEPlugin } from 'fastify-sse-v2'
 import AuthorizationPlugin from './plugins/authorization.js'
 import FirestorePlugin from './plugins/firestore.js'
@@ -23,6 +24,7 @@ import SensiblePlugin from './plugins/sensible.js'
 import ServicesPlugin from './plugins/services.js'
 import GamesPlugin from './plugins/games.js'
 import GameAssetRedirectPlugin from './plugins/gameAssetRedirect.js'
+import RateLimitPlugin from './plugins/rateLimit.js'
 import { routeAutoloadOptions } from './lib/routeAutoload.js'
 
 const __dirname = import.meta.dirname
@@ -36,12 +38,10 @@ const service: string = process.env['K_SERVICE'] ?? 'local'
 const FRONTEND_HOST = process.env['FRONTEND_HOST'] ?? ''
 const GCLOUD_PROJECT = process.env['GCLOUD_PROJECT'] ?? ''
 const FRONTEND_VERSION_OVERRIDE = process.env['FRONTEND_VERSION'] ?? null
-const SESSION_EXPIRY_SECONDS = 30 * 24 * 60 * 60
-let firebaseAppIndex = 0
 
 const SESSION_KEY = process.env['SESSION_KEY']
 
-export interface AppOptions {
+export interface AppOptions extends Pick<LibraryServiceOptions, 'whileLoadingTitle'> {
     prefix?: string
 }
 
@@ -63,32 +63,8 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         return newPayload
     })
 
-    await fastify.register(fastifyRateLimit, {
-        global: service !== 'local',
-        max: (request: FastifyRequest, key: string) => {
-            if (key.startsWith('user:')) {
-                return 500
-            }
-            return 100
-        },
-        cache: 10000, // default 5000
-        keyGenerator: (request: FastifyRequest) => {
-            if (request.session.userId) {
-                return `user:${request.session.userId}`
-            }
-            const clientIp = request.headers['fastly-client-ip'] || request.ip
-            console.log('client ip: ', clientIp)
-            return `ip:${clientIp}`
-        },
-        onExceeded: (request: FastifyRequest, key: string) => {
-            console.log('REQUEST LIMIT EXCEEDED to', request.url, 'for key', key)
-        }
-    })
-
     fastify.setErrorHandler(async function (error, req, rep) {
-        if (!rep.statusCode || rep.statusCode < 400) {
-            void rep.code(errorStatusCode(error))
-        }
+        void rep.code(replyStatusCode(error, rep.statusCode))
 
         if (rep.statusCode >= 500) {
             req.log.error({ err: error }, 'Request failed')
@@ -119,7 +95,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         origin: [FRONTEND_HOST],
         credentials: true,
         methods: ['GET', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-        exposedHeaders: ['X-Tabletop-Version', 'ETag']
+        exposedHeaders: ['X-Tabletop-Version', 'ETag', 'Retry-After']
     })
 
     assertExists(SESSION_KEY, 'The backend supervisor provides SESSION_KEY')
@@ -127,29 +103,17 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
         sessionName: 'session',
         cookieName: '__session',
         key: SESSION_KEY,
-        expiry: SESSION_EXPIRY_SECONDS,
+        expiry: SESSION_LIFETIME_SECONDS,
         cookie: {
             path: '/',
             httpOnly: true,
             secure: service === 'local' ? false : true,
             sameSite: service === 'local' ? false : true,
-            maxAge: SESSION_EXPIRY_SECONDS
+            maxAge: SESSION_LIFETIME_SECONDS
         }
     })
 
     await fastify.register(Auth)
-    const firebaseAppName = `tabletop-${process.pid}-${firebaseAppIndex++}`
-    await fastify.register(FastifyFirebase, <FastifyFirebase.FirebaseOptions>{
-        projectId: GCLOUD_PROJECT,
-        name: firebaseAppName
-    })
-    fastify.addHook('onClose', async () => {
-        try {
-            await deleteApp(fastify.firebase)
-        } catch (error) {
-            fastify.log.warn({ err: error }, `Failed to delete firebase app "${firebaseAppName}"`)
-        }
-    })
     await fastify.register(FastifySSEPlugin)
 
     // This loads support plugins
@@ -161,8 +125,9 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
 
     await fastify.register(AuthorizationPlugin)
     await fastify.register(SensiblePlugin)
-    await fastify.register(FirestorePlugin)
-    await fastify.register(ServicesPlugin)
+    await fastify.register(FirestorePlugin, { projectId: GCLOUD_PROJECT })
+    await fastify.register(ServicesPlugin, { whileLoadingTitle: opts.whileLoadingTitle })
+    await fastify.register(RateLimitPlugin, { service, counter: fastify.rateLimitCounter })
     installTitleScope(fastify)
 
     if (service !== 'local') installManifestRefresh(fastify, [API_PREFIX, TASKS_PREFIX])
@@ -257,7 +222,7 @@ export async function app(fastify: FastifyInstance, opts: AppOptions) {
             if (request.url.startsWith(API_PREFIX) || request.url.startsWith(TASKS_PREFIX)) {
                 await reply.code(404).send({ message: 'Not Found' })
             } else if (service === 'local') {
-                console.log('Serving index.html for unknown frontend path:', request.url)
+                request.log.info('Serving index.html for an unknown frontend path')
                 setNoCacheHeaders(reply)
                 await reply.sendFile('index.html', { cacheControl: false })
             } else {

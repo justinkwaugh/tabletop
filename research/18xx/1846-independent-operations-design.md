@@ -49,7 +49,6 @@ rejection, SC ownership and bonus attribution, exact $5 split of odd tens, no-ru
 settlement, MS→Big4→boundary, conservation, metadata, replay and undo. Retain
 construction/stock regressions, and exercise the prototype route controls.
 
-
 The existing RoutesModule session dependency and RouteBuilding prop are narrowed
 to the capabilities they actually consume, letting 1846 reuse both without adopting
 the full family session or unrelated state. This changes no host bridge messages,

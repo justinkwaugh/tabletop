@@ -99,7 +99,7 @@
             stroke-width="7.2"
             opacity="0.9"
             pointer-events="none"
-        />
+        ></rect>
         <rect
             x={deed.x - BOARD_DEED_CARD_WIDTH / 2}
             y={deed.y - BOARD_DEED_CARD_HEIGHT / 2}
@@ -112,7 +112,7 @@
             stroke-width="2.2"
             opacity="0.88"
             pointer-events="none"
-        />
+        ></rect>
     {/if}
     <rect
         x={deed.x - BOARD_DEED_CARD_WIDTH / 2}
@@ -136,5 +136,5 @@
         onclick={() => {
             handleDeedClick(deed.deedId)
         }}
-    />
+    ></rect>
 {/each}

@@ -52,9 +52,7 @@ describe('Muster (R-5.2)', () => {
     it('refuses a card that is not at the player’s site', () => {
         const state = ready()
         state.denizensBySite['p1'] = ['elsewhere']
-        expect(() => muster('p1', 'elsewhere').apply(state)).toThrow(
-            /not a denizen at your site/
-        )
+        expect(() => muster('p1', 'elsewhere').apply(state)).toThrow(/not a denizen at your site/)
     })
 
     it('refuses when the player has no favor to place', () => {
@@ -98,7 +96,7 @@ describe('Muster (R-5.2)', () => {
         expect(state.getPlayerState('citizen').warbandsOnBoard).toEqual({ [IMPERIAL_WARBANDS]: 2 })
     })
 
-    it('draws a Citizen\'s Imperial warbands out of the CHANCELLOR pool, which is shared', () => {
+    it("draws a Citizen's Imperial warbands out of the CHANCELLOR pool, which is shared", () => {
         const state = citizenAndChancellor()
         muster('citizen', 'card-a').apply(state)
 

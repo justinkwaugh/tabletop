@@ -8,15 +8,14 @@ import GTLogo from './images/logos/GT.svg'
 import ICLogo from './images/logos/IC.svg'
 import MSLogo from './images/logos/MS.svg'
 import Big4Logo from './images/logos/B4.svg'
-import BoomtownToken from './images/tokens/boomtown.svg'
 import {
     createMapDrawing,
     towardTileEdge,
     StandardTileLayouts,
     type TileLayout,
-    type MapMarkerArt,
     type MapViewDefinition
 } from '@tabletop/18xx-ui'
+import { revenueMarkerNames } from './revenueTokens.js'
 const ChicagoLayout: TileLayout = {
     nodePositions: {
         // Out near the edges so four full-size stations fit, with little track showing.
@@ -70,6 +69,13 @@ const mapLayouts: Readonly<Record<string, TileLayout>> = {
         revenuePositions: { offboard: { x: 24.2, y: -14 } },
         labelPosition: SouthCorner
     },
+    // Chicago Connections' track enters from the southeast, so its revenues keep to the open west.
+    C5: {
+        revenueStack: 'column',
+        revenueAlign: 'middle',
+        revenuePositions: { offboard: { x: -21, y: 12 } },
+        labelPosition: SouthCorner
+    },
     // Detroit's Z sits a little east of where it would fall.
     C15: { labelPosition: { x: 18, y: -27.8 } },
     // Buffalo and Pittsburgh print their revenues once, in the top of their two hexes.
@@ -90,36 +96,12 @@ export const BoardAreas = {
     },
     depot
 }
-// A revenue marker placed during play outlines its hex in the private's colour and badges the
-// hex's top corner with the owning company and the private's icon.
-const RevenueMarkerLooks: Readonly<
-    Record<string, { color: string; icon: { tileSymbol: 'port' | 'horns' } | { imageUrl: string } }>
-> = {
-    SC: { color: '#2f7fd0', icon: { tileSymbol: 'port' } },
-    MPC: { color: '#ffffff', icon: { tileSymbol: 'horns' } },
-    BT: { color: '#e3a72f', icon: { imageUrl: BoomtownToken } }
-}
-const placedRevenueMarkers: Readonly<Record<string, MapMarkerArt>> = Object.fromEntries(
-    [...Corporations.map((company) => company.id), 'MS', 'BIG4'].flatMap((companyId) =>
-        Object.entries(RevenueMarkerLooks).map(([privateId, look]) => [
-            `${companyId}:${privateId}`,
-            { placed: { ...look, companyId } }
-        ])
-    )
-)
 export const MapView1846: MapViewDefinition = {
     map: EighteenFortySixMap,
     tileSet: EighteenFortySixTileSet,
     boardAreas: BoardAreas,
     locationMarkerNames: {
-        ...Object.fromEntries(
-            [...Corporations.map((company) => company.id), 'MS', 'BIG4'].flatMap((companyId) =>
-                ['SC', 'MPC', 'BT'].map((privateId) => [
-                    `${companyId}:${privateId}`,
-                    `${companyId} ${privateId === 'SC' ? 'Steamboat' : privateId === 'MPC' ? 'Meat Packing' : 'Boomtown'}`
-                ])
-            )
-        ),
+        ...revenueMarkerNames([...Corporations.map((company) => company.id), 'MS', 'BIG4']),
         ...Object.fromEntries(
             Corporations.map((company) => [
                 `${company.id}:blocking`,
@@ -166,9 +148,10 @@ export const MapView1846: MapViewDefinition = {
     },
     markerArt: {
         IC: { centeredLabel: true },
+        MC: { localLine: true, above: true },
+        'O&I': { localLine: true, above: true },
         'east-west': { revenueBadge: true, arrows: true },
         ports: { revenueSymbol: 'port' },
-        'meat-packing': { revenueSymbol: 'horns' },
-        ...placedRevenueMarkers
+        'meat-packing': { revenueSymbol: 'horns' }
     }
 }

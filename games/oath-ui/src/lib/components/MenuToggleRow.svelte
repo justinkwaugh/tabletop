@@ -25,8 +25,11 @@
         detail?: string | Snippet
         /** Shown while on; a row with none says it is on by its ring alone. */
         tag?: string
-        /** `card`: a denizen's small card, 40 px tall; `relic`: a relic's, 40 px square. */
-        shape?: 'wide' | 'card' | 'relic' | 'piece'
+        /**
+         * `card`: a denizen's small card, 40 px tall; `relic`: a relic's, 40 px square; `site`: a
+         * site card large enough to read, 64 by 50 px.
+         */
+        shape?: 'wide' | 'card' | 'relic' | 'piece' | 'site'
         on: boolean
         disabled: boolean
         points?: MenuPointerTarget
@@ -45,7 +48,8 @@
         wide: 'h-8 w-11 rounded object-cover',
         card: 'h-10 w-[26px] rounded-[3px] object-cover',
         relic: 'h-10 w-10 rounded',
-        piece: 'h-8 w-8 object-contain'
+        piece: 'h-8 w-8 object-contain',
+        site: 'h-[50px] w-16 rounded object-cover'
     }
 </script>
 

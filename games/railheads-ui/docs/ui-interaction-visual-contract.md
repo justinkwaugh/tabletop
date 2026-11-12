@@ -10,7 +10,7 @@
 - **Stage track.** Hexes where the building company may lay its next disc or crossing cube get a dashed burgundy ring over a pale wash and a price tag. Clicking one adds a dashed ghost piece and refreshes the rings. The board, treasuries, revenues and payouts show the staged build as if it were laid; the action panel offers "Lay N pieces · $X", or "Lay no track". The company's treasury limits what stays ringed.
 - **Off the Rails.** Picking an Industry Site opens a two-button card beside it: industry +1 with revenue gain, or industry +2 with none. The site stays outlined until a choice is made.
 - **Open auctions.** Share auctions show a seat card per bidder in bidding order with a wide player-colour stripe and the latest bid. The current bidder's card lifts and shows "?"; a bidder who passed is faded under a PASSED stamp. The bid is typed or stepped by $1 within what the bidder may bid.
-- **Sealed bids.** In an industry auction every seat shows "…" until it has bid, then a check. A player sees their own submitted amount; others see only the check. When the last bid is in, the history shows every amount and the price.
+- **Sealed bids.** In an industry auction every seat shows "…" until it has bid, then a check. A player sees their own submitted amount; others see only the check. When the last bid is in, the history shows every amount, highest first, under the price.
 
 ## Coexistence and precedence
 

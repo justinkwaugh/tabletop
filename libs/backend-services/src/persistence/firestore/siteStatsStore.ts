@@ -23,16 +23,14 @@ export class FirestoreSiteStatsStore implements SiteStatsStore {
             new FieldPath('activeUsers', stats.day)
         ]
         try {
-            await this.months
-                .doc(month)
-                .set(
-                    {
-                        month,
-                        days: { [stats.day]: stats },
-                        activeUsers: { [stats.day]: activeUsers }
-                    },
-                    { mergeFields: ['month', ...dayFields] }
-                )
+            await this.months.doc(month).set(
+                {
+                    month,
+                    days: { [stats.day]: stats },
+                    activeUsers: { [stats.day]: activeUsers }
+                },
+                { mergeFields: ['month', ...dayFields] }
+            )
         } catch (error) {
             this.handleError(error, stats.day)
         }

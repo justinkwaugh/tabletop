@@ -3,6 +3,9 @@
     import { LatestRequest } from '$lib/utils/latestRequest'
     import { onMount } from 'svelte'
     import {
+        placementScoringDescription,
+        ranksByAveragePlace,
+        tournamentTiebreakDescription,
         Role,
         tournamentAccountIds,
         tournamentCapacity,
@@ -20,7 +23,10 @@
         tournamentRegistrationText,
         tournamentRegistrationOpen,
         tournamentStatusText,
-        tournamentStatusColor
+        tournamentStatusColor,
+        tournamentAveragePlaceText,
+        tournamentScoringText,
+        tournamentTiebreakTexts
     } from '$lib/utils/tournamentPresentation'
     import { accountName } from '$lib/utils/accountName'
     import TournamentScheduleView from './TournamentScheduleView.svelte'
@@ -55,6 +61,9 @@
     let showTiebreak = $derived(
         detail?.standings?.some((row) => row.tiebreak !== undefined) ?? false
     )
+    let tiebreakDescription = $derived(tournamentTiebreakDescription(detail?.standings ?? []))
+    let tiebreakTexts = $derived(tournamentTiebreakTexts(detail?.standings ?? []))
+    let ranksByPlace = $derived(tournament ? ranksByAveragePlace(tournament.rules) : false)
     let scheduleFirst = $derived(Boolean(tournament?.stages[0]?.scheduleId))
     let title = $derived(
         tournament ? libraryService.titlesById[tournament.rules.titleId] : undefined
@@ -410,11 +419,18 @@
                                 <th class="pb-2 font-normal">Name</th>
                                 {#if showStandings}
                                     <th class="w-16 pb-2 text-right font-normal">Wins</th>
-                                    <th class="w-20 pb-2 text-right font-normal">Score</th>
+                                    {#if ranksByPlace}
+                                        <th
+                                            class="w-20 pb-2 text-right font-normal"
+                                            title={placementScoringDescription}>Avg place</th
+                                        >
+                                    {:else}
+                                        <th class="w-20 pb-2 text-right font-normal">Score</th>
+                                    {/if}
                                     {#if showTiebreak}
                                         <th
                                             class="w-24 pb-2 text-right font-normal"
-                                            title="Sum of final scores from each game">Tiebreak</th
+                                            title={tiebreakDescription}>Tiebreak</th
                                         >
                                     {/if}
                                 {:else if joined && registrationOpen}
@@ -475,20 +491,30 @@
                                             class="py-2.5 text-right tabular-nums text-gray-400"
                                             aria-label="Wins">{standing?.wins ?? '—'}</td
                                         >
-                                        <td
-                                            class="py-2.5 text-right tabular-nums text-gray-400"
-                                            aria-label="Score"
-                                            >{standing?.score.toLocaleString(undefined, {
-                                                maximumFractionDigits: 3
-                                            }) ?? '—'}</td
-                                        >
+                                        {#if ranksByPlace}
+                                            <td
+                                                class="py-2.5 text-right tabular-nums text-gray-400"
+                                                aria-label="Average place"
+                                                >{standing
+                                                    ? tournamentAveragePlaceText(standing)
+                                                    : '—'}</td
+                                            >
+                                        {:else}
+                                            <td
+                                                class="py-2.5 text-right tabular-nums text-gray-400"
+                                                aria-label="Score"
+                                                >{standing?.score.toLocaleString(undefined, {
+                                                    maximumFractionDigits: 3
+                                                }) ?? '—'}</td
+                                            >
+                                        {/if}
                                         {#if showTiebreak}
                                             <td
                                                 class="py-2.5 text-right tabular-nums text-gray-400"
                                                 aria-label="Tiebreak"
-                                                >{standing?.tiebreak?.toLocaleString(undefined, {
-                                                    maximumFractionDigits: 3
-                                                }) ?? '—'}</td
+                                                >{(standing &&
+                                                    tiebreakTexts.get(standing.userId)) ??
+                                                    '—'}</td
                                             >
                                         {/if}
                                     {:else if joined && registrationOpen}
@@ -554,7 +580,7 @@
                 >
                     <h2 id="scoring-heading" class="mb-1 text-sm font-medium">Scoring</h2>
                     <p class="text-xs leading-relaxed text-gray-500 dark:text-gray-400">
-                        A win earns 1 point; joint winners split it.
+                        {tournamentScoringText(tournament.rules)}
                     </p>
                 </section>
             </aside>

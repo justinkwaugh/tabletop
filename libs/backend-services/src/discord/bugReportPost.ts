@@ -1,8 +1,10 @@
-import type { BugReportRequest, BugReportView, Game } from '@tabletop/common'
+import { Game, Player, type BugReportRequest, type BugReportView } from '@tabletop/common'
+import { Type } from 'typebox'
 import {
     ButtonStyle,
     ComponentType,
     type APIEmbedField,
+    type RESTPostAPIChannelMessageJSONBody,
     type RESTPostAPIGuildForumThreadsJSONBody
 } from 'discord-api-types/v10'
 import { siteUrl, truncate } from './discordFormatting.js'
@@ -15,16 +17,31 @@ export type BugReporter = {
 export type ScenarioAttachment =
     { attached: true; filename: string } | { attached: false; bytes: number }
 
+export type ReportedGame = Type.Static<typeof ReportedGame>
+export const ReportedGame = Type.Object({
+    ...Type.Pick(Game, ['id', 'typeId', 'name', 'status', 'activePlayerIds']).properties,
+    players: Type.Array(Type.Pick(Player, ['id', 'name']))
+})
+
 export type BugReportPostContext = {
-    frontendHost: string
+    reportId: string
     titleName: string
     reporter: BugReporter
-    liveActionCount: number | undefined
     appliedTagIds: string[]
     reportedAt: Date
-    scenario?: ScenarioAttachment
     attachedFilenames: string[]
     screenshotsLeftOut: number
+}
+
+export type BugReportDataContext = {
+    reportId: string
+    frontendHost: string
+    titleName: string
+    reporterUserId: string
+    liveActionCount: number | undefined
+    storedLocally: boolean
+    reportedAt: Date
+    scenario?: ScenarioAttachment
 }
 
 const SITE_NAME = 'BoardTogether'
@@ -38,39 +55,40 @@ const Limit = {
     FieldValue: 1024
 } as const
 
+export function reportIdLine(reportId: string): string {
+    return `report ${reportId}`
+}
+
+export function dataMessageContent(reportId: string, threadUrl?: string): string {
+    const opening = `Data for bug ${reportIdLine(reportId)}`
+    return threadUrl ? `${opening} · ${threadUrl}` : opening
+}
+
+// The public forum post: only what the reporter chose to say, and nothing that opens the game or
+// reveals other players. The rest goes to the staff-only data message.
 export function bugReportPost(
-    game: Game,
+    game: ReportedGame,
     report: BugReportRequest,
     context: BugReportPostContext
 ): RESTPostAPIGuildForumThreadsJSONBody {
-    const gameUrl = siteUrl(`/game/${game.id}`, context.frontendHost)
-
     return {
         name: truncate(`${context.titleName}: ${firstLine(report.description)}`, Limit.ThreadName),
         applied_tags: context.appliedTagIds,
         message: {
             embeds: [
                 {
-                    title: truncate(game.name, Limit.EmbedTitle),
-                    url: gameUrl,
+                    title: truncate(context.titleName, Limit.EmbedTitle),
                     description: report.description,
                     color: BUG_COLOR,
-                    fields: reportFields(game, report, context),
-                    footer: { text: SITE_NAME },
+                    fields: [
+                        { name: 'Reporter', value: reporterLabel(context.reporter), inline: true },
+                        { name: 'Status', value: game.status, inline: true },
+                        { name: 'Viewing', value: publicViewLabel(report.view), inline: true },
+                        { name: 'Versions', value: versionsLabel(report) },
+                        ...screenshotFields(context.screenshotsLeftOut)
+                    ],
+                    footer: { text: `${SITE_NAME} · ${reportIdLine(context.reportId)}` },
                     timestamp: context.reportedAt.toISOString()
-                }
-            ],
-            components: [
-                {
-                    type: ComponentType.ActionRow,
-                    components: [
-                        {
-                            type: ComponentType.Button,
-                            style: ButtonStyle.Link,
-                            label: 'Open game',
-                            url: gameUrl
-                        }
-                    ]
                 }
             ],
             attachments:
@@ -82,37 +100,85 @@ export function bugReportPost(
     }
 }
 
-function reportFields(
-    game: Game,
+export function bugReportDataMessage(
+    game: ReportedGame,
     report: BugReportRequest,
-    context: BugReportPostContext
-): APIEmbedField[] {
+    context: BugReportDataContext
+): RESTPostAPIChannelMessageJSONBody {
+    const gameUrl = context.storedLocally
+        ? undefined
+        : siteUrl(`/game/${game.id}`, context.frontendHost)
     const { liveActionCount } = context
-    return [
-        { name: 'Reporter', value: reporterLabel(context.reporter), inline: true },
-        { name: 'Game', value: context.titleName, inline: true },
-        { name: 'Status', value: game.status, inline: true },
-        { name: 'Actions', value: liveActionCount?.toString() ?? NOT_STARTED, inline: true },
-        { name: 'Viewing', value: viewLabel(report.view, liveActionCount), inline: true },
-        { name: 'Active players', value: activePlayerNames(game) },
-        { name: 'Versions', value: versionsLabel(report) },
-        {
-            name: 'Client',
-            value: truncate(
-                [
-                    report.client.userAgent,
-                    `${report.client.viewport}${report.client.installedApp ? ' · installed app' : ''}`
-                ].join('\n'),
-                Limit.FieldValue
-            )
-        },
-        ...scenarioFields(context.scenario),
-        ...screenshotFields(context.screenshotsLeftOut),
-        {
-            name: 'Investigate',
-            value: `\`node tools/investigate/src/cli.mjs game ${game.id}\``
-        }
-    ]
+    return {
+        content: dataMessageContent(context.reportId),
+        embeds: [
+            {
+                title: truncate(game.name, Limit.EmbedTitle),
+                url: gameUrl,
+                color: BUG_COLOR,
+                fields: [
+                    { name: 'Game', value: context.titleName, inline: true },
+                    { name: 'Reporter ID', value: context.reporterUserId, inline: true },
+                    {
+                        name: 'Actions',
+                        value: liveActionCount?.toString() ?? NOT_STARTED,
+                        inline: true
+                    },
+                    {
+                        name: 'Viewing',
+                        value: viewLabel(report.view, liveActionCount),
+                        inline: true
+                    },
+                    { name: 'Active players', value: activePlayerNames(game) },
+                    clientField(report),
+                    ...scenarioFields(context.scenario),
+                    context.storedLocally
+                        ? {
+                              name: 'Hotseat',
+                              value: "Kept only in the reporter's browser, so the scenario is the only copy"
+                          }
+                        : {
+                              name: 'Investigate',
+                              value: `\`node tools/investigate/src/cli.mjs game ${game.id}\``
+                          }
+                ],
+                timestamp: context.reportedAt.toISOString()
+            }
+        ],
+        components: gameUrl
+            ? [
+                  {
+                      type: ComponentType.ActionRow,
+                      components: [
+                          {
+                              type: ComponentType.Button,
+                              style: ButtonStyle.Link,
+                              label: 'Open game',
+                              url: gameUrl
+                          }
+                      ]
+                  }
+              ]
+            : undefined,
+        attachments:
+            context.scenario?.attached === true
+                ? [{ id: 0, filename: context.scenario.filename }]
+                : undefined,
+        allowed_mentions: { parse: [] }
+    }
+}
+
+function clientField(report: BugReportRequest): APIEmbedField {
+    return {
+        name: 'Client',
+        value: truncate(
+            [
+                report.client.userAgent,
+                `${report.client.viewport}${report.client.installedApp ? ' · installed app' : ''}`
+            ].join('\n'),
+            Limit.FieldValue
+        )
+    }
 }
 
 function scenarioFields(scenario: ScenarioAttachment | undefined): APIEmbedField[] {
@@ -137,6 +203,11 @@ function reporterLabel(reporter: BugReporter): string {
         : reporter.username
 }
 
+function publicViewLabel(view: BugReportView): string {
+    if (view.exploring) return 'Exploration'
+    return view.inHistory ? 'History' : 'Live'
+}
+
 function viewLabel(view: BugReportView, liveActionCount: number | undefined): string {
     if (view.exploring) {
         return 'Exploration'
@@ -147,7 +218,7 @@ function viewLabel(view: BugReportView, liveActionCount: number | undefined): st
     return 'Live'
 }
 
-function activePlayerNames(game: Game): string {
+function activePlayerNames(game: ReportedGame): string {
     const activeIds = game.activePlayerIds ?? []
     const names = game.players
         .filter((player) => activeIds.includes(player.id))

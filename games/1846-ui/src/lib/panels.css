@@ -5,13 +5,7 @@
     color: var(--rail-text, #514536);
     font-size: 13px;
 }
-.midwest-actions .midwest-content {
-    display: flex;
-    flex: 1 0 auto;
-    flex-direction: column;
-}
-.midwest-actions
-    :where(section.draft, section.steamboat, section.corporate-finance, section.receivership) {
+.midwest-actions :where(section.draft, section.steamboat) {
     padding: 8px 0;
 }
 .midwest-actions :where(.midwest-panel) :where(h2, h3) {
@@ -21,43 +15,6 @@
 }
 .midwest-actions :where(.midwest-panel) :where(p) {
     margin: 6px 0 10px;
-}
-.midwest-actions .choices {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    justify-content: center;
-}
-.midwest-actions .operating-mode {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 16px;
-}
-.midwest-actions .operating-mode .sliding-toggle {
-    background: var(--rail-surface-inset, #1b232d);
-    box-shadow: inset 0 0 0 1px var(--rail-border, #c7b8a6);
-}
-.midwest-actions .operating-mode button {
-    position: relative;
-    padding: 6px 18px;
-    border: 0;
-    border-radius: 999px;
-    background: transparent;
-    color: var(--rail-muted, #7f8e9e);
-    font-size: 13px;
-    line-height: 18px;
-}
-.midwest-actions .operating-mode button:hover:not(:disabled) {
-    background: transparent;
-    color: var(--rail-text, #e3e9ef);
-}
-.midwest-actions .operating-mode button[aria-pressed='true'] {
-    background: transparent;
-    color: #ffffff;
-    font-weight: 600;
-}
-.midwest-actions .operating-mode button:disabled {
-    opacity: 0.35;
 }
 .midwest-actions :where(.midwest-panel) :where(button) {
     font: inherit;

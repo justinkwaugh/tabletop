@@ -78,15 +78,14 @@ export class ReceivershipHandler<S extends State> implements MachineStateHandler
         return companyId && inReceivership(state, companyId) ? companyId : undefined
     }
     private automatic(state: S, companyId: string): Automatic | undefined {
-        const playerId = state.activePlayerIds[0]
         switch (this.step) {
             case 'LayingTrack':
                 return state.trackStep?.companyId === companyId && !state.trackStep.completed
-                    ? { schema: FinishTrack, fields: { companyId, playerId } }
+                    ? { schema: FinishTrack, fields: { companyId } }
                     : undefined
             case 'PlacingStation':
                 return state.stationStep?.companyId === companyId && !state.stationStep.completed
-                    ? { schema: FinishStations, fields: { companyId, playerId } }
+                    ? { schema: FinishStations, fields: { companyId } }
                     : undefined
             case 'RunningTrains':
                 return undefined
@@ -100,8 +99,8 @@ export class ReceivershipHandler<S extends State> implements MachineStateHandler
                     this.rules.trainRules
                 )
                 return purchase
-                    ? { schema: BuyTrain, fields: { ...purchase, playerId } }
-                    : { schema: FinishOperatingTurn, fields: { companyId, playerId } }
+                    ? { schema: BuyTrain, fields: purchase }
+                    : { schema: FinishOperatingTurn, fields: { companyId } }
             }
         }
     }
@@ -121,7 +120,11 @@ export class ReceivershipHandler<S extends State> implements MachineStateHandler
         this.handler.enter(context)
         const companyId = this.receiver(context.gameState)
         const automatic = companyId ? this.automatic(context.gameState, companyId) : undefined
-        if (automatic) context.addSystemAction(automatic.schema, automatic.fields)
+        // A step that finishes itself, as a station step with nothing to place does, needs no
+        // second finish from the receiver.
+        const type = automatic?.schema.properties.type.const
+        if (automatic && !context.getPendingActions().some((action) => action.type === type))
+            context.addSystemAction(automatic.schema, automatic.fields)
     }
     onAction(action: HydratedAction, context: MachineContext<S>): string {
         return this.handler.onAction(action, context)

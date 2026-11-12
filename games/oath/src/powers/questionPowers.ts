@@ -11,9 +11,11 @@ import {
 } from '../util/questions.js'
 import {
     DEED_WRITER_ALLOWS,
+    exchangeAllowanceAt,
     reasonExchangeInvalid,
     reasonTermsOutsideCard,
-    TINKERS_FAIR_ALLOWS
+    TINKERS_FAIR_ALLOWS,
+    TRIBUNAL_ALLOWS
 } from '../util/exchange.js'
 import { registerEffect, registerPersistent, type EffectDefinition, chosen } from './registry.js'
 import { otherPlayersAtYourSite, pawnSiteId, siteOfPlayedCard } from './vocabulary.js'
@@ -131,15 +133,19 @@ registerPersistent(BOOK_BINDERS, powerIndexOf(BOOK_BINDERS, PowerTiming.Persiste
     }
 })
 
-/** "Action: Negotiate a binding exchange of … with any player." */
-function negotiator(cardId: string, allows: ExchangeAllowance): EffectDefinition {
+/** "Action: Negotiate a binding exchange of … with any player." `name` begins its summary. */
+export function negotiator(
+    cardId: string,
+    allows: ExchangeAllowance,
+    name = cardId
+): EffectDefinition {
     return {
         choices: [one(PowerChoiceKind.Exchange, { what: 'a player and the terms', allows })],
         reasonCannotResolve: (ctx) => {
             const [ex] = chosen(ctx, PowerChoiceKind.Exchange)
             if (!ex) return undefined
             return (
-                reasonTermsOutsideCard(ex.terms, allows) ??
+                reasonTermsOutsideCard(ex.terms, exchangeAllowanceAt(ctx.state, allows)) ??
                 reasonExchangeInvalid(ctx.state, ctx.playerId, ex.withPlayerId, ex.terms)
             )
         },
@@ -154,15 +160,16 @@ function negotiator(cardId: string, allows: ExchangeAllowance): EffectDefinition
             })
             return {
                 summary: note
-                    ? `${cardId}: ${note}`
+                    ? `${name}: ${note}`
                     : `proposed a binding exchange to ${ex.withPlayerId}`
             }
         }
     }
 }
 
-// R-11.9 — The Tribunal: favor and secrets only; a promised future action binds no one in the engine (R-7.6.3-H1).
-registerEffect(TRIBUNAL_ID, 0, negotiator(TRIBUNAL_ID, {}))
+// R-11.9 — The Tribunal: favor and secrets, and from revision 28 a written promise for each side, which
+// the engine records and binds no one to (R-7.6.3-H1).
+registerEffect(TRIBUNAL_ID, 0, negotiator(TRIBUNAL_ID, TRIBUNAL_ALLOWS))
 
 // "Action: Negotiate a binding exchange of [favor], [secret], and relics with any player."
 const TINKERS_FAIR = 'denizen.hearth.tinkers-fair'

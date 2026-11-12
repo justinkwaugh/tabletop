@@ -33,7 +33,7 @@ export function generateBoard(
     numPlayers: number,
     random: RandomFunction
 ): { board: HydratedGameBoard; numMarketTiles: number } {
-    let boardData = { board: new HydratedGameBoard({ cells: [] }), numMarketTiles: 0 }
+    let boardData: { board: HydratedGameBoard; numMarketTiles: number }
 
     do {
         boardData = layoutBoard(numPlayers, random)

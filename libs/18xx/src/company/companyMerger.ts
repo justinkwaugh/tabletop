@@ -62,31 +62,43 @@ export function transferCompanyAssets(
 }
 
 export const StationTransfer = Type.Object(
-    { placedIds: Type.Array(Type.String()), unplacedIds: Type.Array(Type.String()) },
+    {
+        placedIds: Type.Array(Type.String()),
+        unplacedIds: Type.Array(Type.String()),
+        discardedIds: Type.Optional(Type.Array(Type.String()))
+    },
     { additionalProperties: false }
 )
 export type StationTransfer = Type.Static<typeof StationTransfer>
 
 /**
  * Gives the survivor a station piece for each of the absorbed company's. Placed stations keep
- * their places, except that where both have a station in the same city, the second piece
- * returns to the survivor's charter unplaced.
+ * their places. Where both have a station in the same city, the absorbed piece returns to the
+ * survivor's charter unplaced, or with ``duplicates: 'discard'`` it and the absorbed company's
+ * unplaced pieces are discarded.
  */
 export function moveCompanyStations(
     state: StationState,
     fromId: string,
-    toId: string
+    toId: string,
+    { duplicates = 'return' }: { duplicates?: 'return' | 'discard' } = {}
 ): StationTransfer {
     const placedIds: string[] = []
     const unplacedIds: string[] = []
+    const discardedIds: string[] = []
     const absorbed = state.stations.filter(
         (station) => station.companyId === fromId && station.status !== 'removed'
     )
     for (const station of absorbed) {
+        const placed = station.status === 'placed' && !sharesCity(state, toId, station)
+        if (!placed && duplicates === 'discard') {
+            discardedIds.push(station.id)
+            continue
+        }
         addCompanyStations(state, toId, 1)
         const added = state.stations.at(-1)
         assertExists(added, 'The survivor gains a station for each one absorbed')
-        if (station.status === 'placed' && !sharesCity(state, toId, station)) {
+        if (placed) {
             replaceStation(state, station.id, added.id)
             placedIds.push(added.id)
         } else unplacedIds.push(added.id)
@@ -96,7 +108,7 @@ export function moveCompanyStations(
             ? { id: station.id, companyId: fromId, status: 'removed' }
             : station
     )
-    return { placedIds, unplacedIds }
+    return { placedIds, unplacedIds, ...(discardedIds.length ? { discardedIds } : {}) }
 }
 
 function sharesCity(state: StationState, companyId: string, station: PlacedStation): boolean {

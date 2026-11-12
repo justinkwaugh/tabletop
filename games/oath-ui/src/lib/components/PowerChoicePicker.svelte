@@ -3,6 +3,7 @@
         FAVOR_BANK_ORDER,
         PlayerStatus,
         PowerChoiceKind,
+        exchangeAllowanceAt,
         exchangeAllowanceOf,
         type LegalChoice,
         type PowerChoice,
@@ -17,6 +18,7 @@
     import CountPicker from '$lib/components/CountPicker.svelte'
     import MenuToggleRow from '$lib/components/MenuToggleRow.svelte'
     import PileRows from '$lib/components/PileRows.svelte'
+    import PlaceChips from '$lib/components/PlaceChips.svelte'
     import { range } from '@tabletop/common'
     import SuitPicker from '$lib/components/SuitPicker.svelte'
     import TokenRow from '$lib/components/TokenRow.svelte'
@@ -24,12 +26,22 @@
     import ExchangeEditor from '$lib/components/ExchangeEditor.svelte'
     import BargainPicker from '$lib/components/BargainPicker.svelte'
     import PlayerChips from '$lib/components/PlayerChips.svelte'
+    import SiteChips from '$lib/components/SiteChips.svelte'
     import WarbandGroupRows from '$lib/components/WarbandGroupRows.svelte'
     import { avatarImage } from '$lib/images/boardImages.js'
     import { suitImage } from '$lib/images/suitImages.js'
     import { favorToken } from '$lib/images/tileImages.js'
-    import { noExchangePicks, type ExchangePicks } from '$lib/model/exchangeTerms.js'
+    import { denizenBackToken } from '$lib/images/cardImages.js'
+    import { noExchangePicks, tappedCount, type ExchangePicks } from '$lib/model/exchangeTerms.js'
     import { powerChoiceCards, type CardResolvers } from '$lib/model/cardChoice.js'
+    import {
+        adviserPairs,
+        facedownSeatRows,
+        pairAt,
+        pairPicked,
+        withPairTap,
+        type FacedownSeatRow
+    } from '$lib/model/facedownRows.js'
     import { adviserBack } from '$lib/model/cardBacks.js'
     import { ChoiceWidth } from '$lib/model/choiceWidth.svelte.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
@@ -48,6 +60,7 @@
         allowsSeveral,
         asked,
         bankRuns,
+        countedOptions,
         emptyPicks,
         exchangePartners,
         favorBankSuits,
@@ -59,6 +72,7 @@
         isOr,
         mayOf,
         NO_OPTION,
+        offersNothing,
         openCountCeiling,
         openRunBanks,
         optionIndexOf,
@@ -82,7 +96,6 @@
     let {
         choices,
         picks = $bindable(emptyPicks()),
-        tallOnPhone = false,
         tollAt = () => false,
         words = { tone: 'gold' },
         siteOnMap = () => undefined,
@@ -90,8 +103,6 @@
     }: {
         choices: LegalChoice[]
         picks?: PowerChoicePicks
-        /** Its list is 44 px tall on a phone, as Use a power draws its pick beside its buttons. */
-        tallOnPhone?: boolean
         tollAt?: (siteId: string) => boolean
         /** The power's own few words for its picks, and the ring its warbands take. */
         words?: PickerWords
@@ -111,6 +122,7 @@
     let countCeiling = $derived(openCountCeiling(gameSession.gameState, gameSession.myPlayer?.id))
     let grids = $derived(warbandGrids(choices))
     let runs = $derived(bankRuns(choices))
+    let pairs = $derived(adviserPairs(choices))
     const orWidth = new ChoiceWidth()
 
     function relicSlotLabel(slotId: string): string {
@@ -209,6 +221,28 @@
         )
     }
 
+    // R-9.4 — a facedown adviser choice as a row per holder: faced where the viewer's own view
+    // names the card (their own, or one shown to them), a back otherwise, whatever this client holds.
+    function adviserRows(legal: LegalChoice): FacedownSeatRow[] | undefined {
+        return facedownSeatRows(
+            legal.options,
+            (playerId) => gameSession.gameState.getPlayerState(playerId),
+            gameSession.myPlayer?.id,
+            resolve.facedownAdviserLabel
+        )
+    }
+
+    // Dream Thief's two picks in one area: a tap fills the first empty pick or lets a picked card go.
+    function tapAdviser(legal: LegalChoice, i: number, j: number) {
+        const pair = pairAt(pairs, i)
+        if (!pair) {
+            tapOption(legal, i, optionIndexOf(legal, i, picks), j)
+            return
+        }
+        const next = withPairTap(pair, choices, picks, j)
+        if (next !== picks) picks = next
+    }
+
     function setOption(legal: LegalChoice, i: number, pick: number) {
         picks = withOptionPick(picks, legal, i, pick)
     }
@@ -277,6 +311,33 @@
             {/each}
         </div>
     {/if}
+{/snippet}
+
+<!-- Facedown advisers, a row per holder under their chip; a pair's two picks share the area. -->
+{#snippet adviserSeatRows(legal: LegalChoice, i: number, rows: FacedownSeatRow[])}
+    {@const pair = pairAt(pairs, i)}
+    {@const pick = optionIndexOf(legal, i, picks)}
+    {@const picked = pair ? pairPicked(pair, choices, picks) : pick >= 0 ? [pick] : []}
+    <div class="text-oath-text-muted mb-1">
+        {pair && words.advisers ? words.advisers : `${legal.spec.what ?? legal.spec.kind}:`}
+    </div>
+    <div class="grid grid-cols-[max-content_auto] items-center gap-x-2 gap-y-1.5">
+        {#each rows as row (row.playerId)}
+            <div class="contents" data-seat-row={row.playerId}>
+                <span class="inline-flex justify-self-start text-sm" data-seat-chip>
+                    <PlayerName playerId={row.playerId} />
+                </span>
+                <CardChoiceRow
+                    choices={row.cards}
+                    picked={picked.map(String)}
+                    onpick={(key) => tapAdviser(legal, i, Number(key))}
+                    {busy}
+                    height={80}
+                    magnifyBacks={false}
+                />
+            </div>
+        {/each}
+    </div>
 {/snippet}
 
 <!-- A card's "or": two answers of one width, neither picked until a tap (or the one legal). -->
@@ -355,14 +416,16 @@
     {@const option = legal.options[pick]}
     {@const grid = gridAt(grids, i)}
     {@const run = runAt(runs, i)}
+    {@const pair = pairAt(pairs, i)}
     {@const onMap = words.site ? siteOnMap(i) : undefined}
     {@const shown =
         (!grid || grid.specs[0] === i) &&
         (!run || run.specs[0] === i) &&
+        (!pair || pair.specs[0] === i) &&
         asked(choices, i, picks) &&
-        !(isMay(legal) && legal.options.length === 0)}
-    <!-- A grid or a run draws every spec it answers once, at its first; a may's own pick shows
-         only while the may is on, and a may the card does not offer now is not drawn. -->
+        !offersNothing(choices, i)}
+    <!-- A grid, a run or a pair draws every spec it answers once, at its first; a may's own pick shows
+         only while the may is on; a choice it may skip with nothing offered is not drawn. -->
     {#if shown}
         <div class="mb-1 text-xs">
             {#if grid}
@@ -384,6 +447,18 @@
                     per={grid.step === 2 ? 2 : 1}
                     toward={grid.shared}
                     ownerWord={grid.namesOwners}
+                />
+            {:else if legal.spec.byPlace}
+                <!-- One warband from a place picked whole (Wrestlers' sacrifice): a button per place. -->
+                {@const places = legal.options.flatMap((o) =>
+                    o.kind === PowerChoiceKind.Warbands ? [o.group.at] : []
+                )}
+                <PlaceChips
+                    label={words.place ?? `${legal.spec.what ?? 'a place'}:`}
+                    {places}
+                    picked={pick === NO_OPTION ? undefined : pick}
+                    onpick={(j) => tapOption(legal, i, pick, j)}
+                    {busy}
                 />
             {:else if legal.spec.kind === PowerChoiceKind.Bargain}
                 <BargainPicker
@@ -413,6 +488,42 @@
                         <p class="text-oath-danger">no legal site right now</p>
                     {/if}
                 {/if}
+            {:else if words.siteButtons && legal.spec.kind === PowerChoiceKind.Site && !allowsSeveral(legal)}
+                <!-- A site picked under its card (Small Friends): its name on a button, as a player is their chip. -->
+                {@const sites = legal.options.flatMap((o) =>
+                    o.kind === PowerChoiceKind.Site ? [o.siteId] : []
+                )}
+                <!-- Never a label with no button: with no site to name, as on the lit map. -->
+                {#if sites.length > 0}
+                    <SiteChips
+                        label={`${legal.spec.what ?? 'a site'}:`}
+                        sites={sites.map((siteId) => ({
+                            siteId,
+                            name: siteName(gameSession.gameState, siteId)
+                        }))}
+                        picked={option?.kind === PowerChoiceKind.Site ? option.siteId : undefined}
+                        onpick={(siteId) => tapOption(legal, i, pick, sites.indexOf(siteId))}
+                        {busy}
+                    />
+                {:else if legal.spec.min > 0}
+                    <p class="text-oath-danger">no legal site right now</p>
+                {/if}
+            {:else if legal.spec.kind === PowerChoiceKind.Count && countedOptions(legal) && words.count}
+                <!-- Fallen Spire: the count tapped on card backs, none picked at first; backs past what
+                     the pile and the Dispossessed hold cannot be tapped. -->
+                {@const counts = countedOptions(legal) ?? []}
+                <div class="flex flex-wrap items-center gap-x-2 gap-y-1" data-count-backs>
+                    <span class="text-oath-text-muted">{words.count.label}</span>
+                    <TokenRow
+                        image={denizenBackToken()}
+                        held={words.count.backs}
+                        addable={Math.max(...counts)}
+                        picked={picks.count[i] ?? 0}
+                        label={(n) => `${words.count?.label ?? ''} ${n}`}
+                        ontap={(n) => setCount(i, tappedCount(picks.count[i] ?? 0, n))}
+                        {busy}
+                    />
+                </div>
             {:else if legal.spec.kind === PowerChoiceKind.Count}
                 <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span class="text-oath-text-muted">{legal.spec.what ?? 'how many'}:</span>
@@ -429,9 +540,7 @@
                 <PlayerChips
                     label="With:"
                     playerIds={partners}
-                    picked={option?.kind === PowerChoiceKind.Exchange
-                        ? [option.withPlayerId]
-                        : []}
+                    picked={option?.kind === PowerChoiceKind.Exchange ? [option.withPlayerId] : []}
                     onpick={(playerId, wasPicked) =>
                         setOption(legal, i, wasPicked ? NO_OPTION : partners.indexOf(playerId))}
                     {busy}
@@ -441,7 +550,10 @@
                         <ExchangeEditor
                             proposerId={gameSession.myPlayer.id}
                             counterpartyId={option.withPlayerId}
-                            allows={exchangeAllowanceOf(legal.spec)}
+                            allows={exchangeAllowanceAt(
+                                gameSession.gameState,
+                                exchangeAllowanceOf(legal.spec)
+                            )}
                             value={picks.terms[i] ?? noExchangePicks()}
                             onchange={(value) => setTerms(i, value)}
                         />
@@ -510,9 +622,14 @@
             {:else if isMay(legal)}
                 {@render mayRow(legal, i)}
             {:else}
+                <!-- A card, a relic, a facedown adviser or warbands at a site, as a card: every other
+                     kind a power asks has its picker above (powerPickerReach.spec.ts). -->
+                {@const rows = adviserRows(legal)}
                 {@const cards = powerChoiceCards(legal.options, resolve)}
                 {@const underMay = mayOf(choices, i) !== undefined}
-                {#if cards}
+                {#if rows}
+                    {@render adviserSeatRows(legal, i, rows)}
+                {:else if cards}
                     <div class="text-oath-text-muted">
                         {underMay && words.may?.take
                             ? words.may.take
@@ -525,30 +642,6 @@
                         {busy}
                         height={underMay ? 56 : 80}
                     />
-                {:else}
-                    <label class="flex items-center gap-2">
-                        <span class="text-oath-text-muted"
-                            >{legal.spec.what ?? legal.spec.kind}:</span
-                        >
-                        <select
-                            disabled={busy}
-                            class="rounded bg-oath-surface-raised px-1 py-0.5 text-xs w-fit max-w-full {tallOnPhone
-                                ? 'max-sm:min-h-11'
-                                : ''}"
-                            value={pick}
-                            onchange={(event) =>
-                                setOption(legal, i, Number(event.currentTarget.value))}
-                        >
-                            {#if legal.spec.min === 0}
-                                <option value={NO_OPTION}>none</option>
-                            {:else if pick === NO_OPTION}
-                                <option value={NO_OPTION} disabled></option>
-                            {/if}
-                            {#each legal.options as choice, j (j)}
-                                <option value={j}>{label(choice)}</option>
-                            {/each}
-                        </select>
-                    </label>
                 {/if}
             {/if}
             {#if !onMap && legal.options.length === 0 && legal.spec.min > 0}

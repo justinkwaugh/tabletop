@@ -2,10 +2,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import { assertExists, GameAction, HydratableAction, MachineContext } from '@tabletop/common'
 import { isProductionCompany, isShippingCompany } from '../components/company.js'
-import {
-    GOOD_REVENUE_BY_GOOD,
-    SHIPPING_FEE_PER_SHIP_USE
-} from '../definition/operationsEconomy.js'
+import { GOOD_REVENUE_BY_GOOD, SHIPPING_FEE_PER_SHIP_USE } from '../definition/operationsEconomy.js'
 import { Good } from '../definition/goods.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { ActionType } from '../definition/actions.js'
@@ -55,7 +52,10 @@ export function isDeliverGood(action?: GameAction): action is DeliverGood {
     return action?.type === ActionType.DeliverGood
 }
 
-export class HydratedDeliverGood extends HydratableAction<typeof DeliverGood> implements DeliverGood {
+export class HydratedDeliverGood
+    extends HydratableAction<typeof DeliverGood>
+    implements DeliverGood
+{
     declare type: ActionType.DeliverGood
     declare playerId?: string
     declare metadata?: DeliverGoodMetadata
@@ -79,7 +79,9 @@ export class HydratedDeliverGood extends HydratableAction<typeof DeliverGood> im
             'Operating company id should be set for DeliverGood action'
         )
 
-        const operatingCompany = state.companies.find((company) => company.id === operatingCompanyId)
+        const operatingCompany = state.companies.find(
+            (company) => company.id === operatingCompanyId
+        )
         assertExists(
             operatingCompany,
             `Operating company ${operatingCompanyId} should exist for DeliverGood action`
@@ -168,7 +170,9 @@ export class HydratedDeliverGood extends HydratableAction<typeof DeliverGood> im
             return false
         }
 
-        const operatingCompany = state.companies.find((company) => company.id === operatingCompanyId)
+        const operatingCompany = state.companies.find(
+            (company) => company.id === operatingCompanyId
+        )
         if (!operatingCompany) {
             return false
         }
@@ -210,7 +214,9 @@ export class HydratedDeliverGood extends HydratableAction<typeof DeliverGood> im
             return null
         }
 
-        const operatingCompany = state.companies.find((company) => company.id === operatingCompanyId)
+        const operatingCompany = state.companies.find(
+            (company) => company.id === operatingCompanyId
+        )
         if (!operatingCompany || !isProductionCompany(operatingCompany)) {
             return null
         }

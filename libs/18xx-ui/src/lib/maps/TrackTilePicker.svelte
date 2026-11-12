@@ -2,12 +2,13 @@
     import { tick, onDestroy } from 'svelte'
     import { fade } from 'svelte/transition'
     import { prefersReducedMotion } from 'svelte/motion'
-    import { StandardTileLayouts } from '../tiles/standardTileLayouts.js'
-    import type { Point } from '@tabletop/common'
+    import { placedTileLayout } from '../tiles/standardTileLayouts.js'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import Tile from '../tiles/Tile.svelte'
     import type { TileAppearance } from '../tiles/tileAppearance.js'
     import { tileChoiceArc } from './tileChoiceArc.js'
+    import { HexPickerFrame } from './hexPickerFrame.svelte.js'
+    import HexPickerControls from './HexPickerControls.svelte'
 
     let {
         session,
@@ -16,11 +17,12 @@
     }: { session: EighteenXXSessionView; viewport: HTMLDivElement; appearance?: TileAppearance } =
         $props()
     const money = $derived(session.presentation.money)
-    let center: Point = $state({ x: 0, y: 0 })
-    let width = $state(0)
-    let height = $state(0)
-    let tileSize = $state(80)
-    let hexHeight = $state(100)
+    const frame = new HexPickerFrame()
+    const center = $derived(frame.center)
+    const width = $derived(frame.width)
+    const height = $derived(frame.height)
+    const tileSize = $derived(frame.tileSize)
+    const hexHeight = $derived(frame.hexHeight)
     const locationId = $derived(session.track.selection.locationId?.value)
     let collapsing = $derived.by(() => {
         session.track.selection
@@ -30,58 +32,11 @@
     const layout = $derived(
         tileChoiceArc(center, width, height, session.track.tiles.length, tileSize, 1.4)
     )
-    const buttonSize = $derived(tileSize * 0.42)
-    const controls = $derived({
-        x: Math.max(buttonSize * 1.2, Math.min(width - buttonSize * 1.2, center.x)),
-        y: Math.max(buttonSize * 0.6, center.y - hexHeight / 2 - buttonSize * 0.65) + 1
-    })
 
-    function followHex(_anchor: HTMLElement, initialLocationId: string | undefined) {
-        let followedId = initialLocationId
-        let frame: number | undefined
-        function measure() {
-            frame = undefined
-            const hex = [...viewport.querySelectorAll('[data-map-location]')].find(
-                (element) => element.getAttribute('data-map-location') === followedId
-            )
-            if (!hex) return
-            const bounds = viewport.getBoundingClientRect()
-            const rect = hex.getBoundingClientRect()
-            const next = {
-                x: rect.x + rect.width / 2 - bounds.x,
-                y: rect.y + rect.height / 2 - bounds.y
-            }
-            if (center.x !== next.x || center.y !== next.y) center = next
-            width = bounds.width
-            height = bounds.height
-            hexHeight = rect.height
-            const svg = viewport.querySelector('svg.map-scene')
-            if (svg instanceof SVGSVGElement) {
-                // WebKit's getScreenCTM omits the CSS scale on the map wrapper.
-                tileSize = (106 * svg.getBoundingClientRect().width) / svg.viewBox.baseVal.width
-            }
-        }
-        function scheduleMeasure() {
-            if (frame === undefined) frame = requestAnimationFrame(measure)
-            releaseStuckEntrances()
-        }
-        const resized = new ResizeObserver(scheduleMeasure)
-        resized.observe(viewport)
-        const viewMoved = new MutationObserver(scheduleMeasure)
-        viewMoved.observe(viewport, { subtree: true, attributes: true, attributeFilter: ['style'] })
-        measure()
-        return {
-            update(locationId: string | undefined) {
-                followedId = locationId
-                measure()
-            },
-            destroy() {
-                resized.disconnect()
-                viewMoved.disconnect()
-                if (frame !== undefined) cancelAnimationFrame(frame)
-            }
-        }
-    }
+    const trackHex = frame.follow(
+        () => viewport,
+        () => releaseStuckEntrances()
+    )
     const elements = new Map<string, HTMLButtonElement>()
     const animations = new Set<Animation>()
     let motionVersion = 0
@@ -231,7 +186,7 @@
 
 <svelte:window onpointerdown={dismissChoices} />
 
-<span class="hex-anchor" hidden use:followHex={locationId}></span>
+<span class="hex-anchor" hidden use:trackHex={locationId}></span>
 {#if locationId && width && session.track.canBuild}
     <div
         class="picker"
@@ -266,8 +221,7 @@
                             printedNumber={tile.printedNumber}
                             {appearance}
                             {size}
-                            layout={session.mapView.layouts?.[tile.id] ??
-                                StandardTileLayouts[tile.id]}
+                            layout={placedTileLayout(session.mapView.layouts, tile.id)}
                             orientation={session.mapView.map.definition.orientation}
                             rotation={chosen
                                 ? session.track.preview?.rotation
@@ -291,34 +245,16 @@
                     {money(session.track.preview.cost)}
                 </div>
             {/if}
-            <div
-                class="controls"
-                transition:fade|global={{ duration: prefersReducedMotion.current ? 0 : 120 }}
-                style:left={`${controls.x}px`}
-                style:top={`${controls.y}px`}
-                style:font-size={`${buttonSize}px`}
-            >
-                <button
-                    class="cancel"
-                    aria-label="Cancel track lay"
-                    title="Cancel track lay"
-                    onclick={cancel}
-                >
-                    <svg viewBox="0 0 24 24" aria-hidden="true"
-                        ><path d="m7 7 10 10M17 7 7 17"></path></svg
-                    >
-                </button>
-                <button
-                    class="accept"
-                    aria-label="Accept track lay"
-                    title={`Accept track lay · ${money(session.track.preview.cost)}`}
-                    onclick={accept}
-                >
-                    <svg viewBox="0 0 24 24" aria-hidden="true"
-                        ><path d="m5 13 4 4L19 7"></path></svg
-                    >
-                </button>
-            </div>
+            <HexPickerControls
+                at={frame.controls}
+                size={frame.buttonSize}
+                cancel={{ label: 'Cancel track lay', onclick: cancel }}
+                accept={{
+                    label: 'Accept track lay',
+                    title: `Accept track lay · ${money(session.track.preview.cost)}`,
+                    onclick: accept
+                }}
+            />
         {/if}
     </div>
 {/if}
@@ -385,41 +321,5 @@
         white-space: nowrap;
         box-shadow: 0 2px 5px #0004;
         font-variant-numeric: tabular-nums;
-    }
-    .controls {
-        position: absolute;
-        display: flex;
-        gap: 0.18em;
-        transform: translate(-50%, -50%);
-    }
-    .controls button {
-        display: grid;
-        place-items: center;
-        width: 1em;
-        height: 1em;
-        padding: 0;
-        font: inherit;
-        border-radius: 50%;
-        border: 1px solid #fff9;
-        box-shadow: 0 2px 5px #0005;
-        color: white;
-    }
-    .cancel {
-        background: #b34242;
-    }
-    .accept {
-        background: #347752;
-    }
-    .controls button:hover {
-        filter: brightness(1.15);
-    }
-    svg {
-        width: 0.69em;
-        height: 0.69em;
-        fill: none;
-        stroke: currentColor;
-        stroke-width: 2.5;
-        stroke-linecap: round;
-        stroke-linejoin: round;
     }
 </style>

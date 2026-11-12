@@ -63,7 +63,12 @@ for (const id of LandGrantLocations)
 for (const [id, hexes] of Object.entries(PrivateTrackBlocks))
     for (const hex of hexes)
         markers[hex] = [
-            { id, label: id, description: `${id} reserves this hex while player-owned.` }
+            {
+                id,
+                label: id,
+                description: `${id} reserves this hex while player-owned.`,
+                privateCompanyId: id
+            }
         ]
 export const MeatPackingLocations = ['I1', 'D6']
 export const PortSymbols: Readonly<Record<string, number>> = { B8: 2, C5: 1, D14: 1, G19: 2, I1: 1 }

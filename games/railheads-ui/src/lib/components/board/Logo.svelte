@@ -29,10 +29,10 @@
 </script>
 
 <g transform="translate({origin.x} {origin.y})" role="img" aria-label="Railheads {style.title}">
-    <path d={RAIL} class="rail" />
+    <path d={RAIL} class="rail"></path>
     {#if style.flag === Flag.Germany}
         {#each GERMAN_STRIPES as color, index (color)}
-            <rect x="-16" y={8 + index * 8} width="32" height="8" fill={color} />
+            <rect x="-16" y={8 + index * 8} width="32" height="8" fill={color}></rect>
         {/each}
     {:else}
         {#each US_STRIPES as stripe (stripe)}
@@ -42,14 +42,14 @@
                 width="32"
                 height={24 / 7}
                 fill={stripe % 2 === 0 ? '#c8202a' : '#f4f0d8'}
-            />
+            ></rect>
         {/each}
-        <rect x="-16" y="8" width="14" height={(24 * 4) / 7} fill="#2c3f8a" />
+        <rect x="-16" y="8" width="14" height={(24 * 4) / 7} fill="#2c3f8a"></rect>
         {#each US_STARS as star, index (index)}
-            <circle cx={star.x + 0.5} cy={star.y} r="0.8" fill="#f4f0d8" />
+            <circle cx={star.x + 0.5} cy={star.y} r="0.8" fill="#f4f0d8"></circle>
         {/each}
     {/if}
-    <rect x="-16" y="8" width="32" height="24" class="flag-edge" />
+    <rect x="-16" y="8" width="32" height="24" class="flag-edge"></rect>
     <text y="91" textLength={NAME_WIDTH} lengthAdjust="spacingAndGlyphs" class="name edge"
         >Railheads</text
     >
@@ -58,15 +58,15 @@
     >
     <g class="track">
         {#each TIES as x (x)}
-            <rect {x} y={TRACK_Y} width="1.3" height={TRACK_HEIGHT} />
+            <rect {x} y={TRACK_Y} width="1.3" height={TRACK_HEIGHT}></rect>
         {/each}
-        <rect x={-NAME_WIDTH / 2} y={TRACK_Y + 1} width={NAME_WIDTH + 1} height="0.9" />
+        <rect x={-NAME_WIDTH / 2} y={TRACK_Y + 1} width={NAME_WIDTH + 1} height="0.9"></rect>
         <rect
             x={-NAME_WIDTH / 2}
             y={TRACK_Y + TRACK_HEIGHT - 1.7}
             width={NAME_WIDTH + 1}
             height="0.9"
-        />
+        ></rect>
     </g>
     <text y="124" class="edition" style:stroke={style.titleStroke}>{style.title}</text>
     <text y="143.2" class="designer">By Pontus Nilsson</text>

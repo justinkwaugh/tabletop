@@ -26,6 +26,25 @@
     } = $props()
 
     const chosenIndex = $derived(choices.findIndex((choice) => choice.value === chosen))
+
+    // Each choice is as wide as its name, so the thumb takes the measure of the chosen one.
+    const buttons: HTMLButtonElement[] = $state([])
+    let thumb: { left: number; width: number } | undefined = $state()
+
+    $effect(() => {
+        const button = buttons[chosenIndex]
+        if (!button) {
+            thumb = undefined
+            return
+        }
+        const measure = () => {
+            thumb = { left: button.offsetLeft, width: button.offsetWidth }
+        }
+        measure()
+        const observer = new ResizeObserver(measure)
+        observer.observe(button)
+        return () => observer.disconnect()
+    })
 </script>
 
 <div
@@ -35,11 +54,17 @@
     aria-label={label}
     style:--count={choices.length}
 >
-    {#if chosenIndex >= 0}
-        <span class="nt-switch-thumb" style:--index={chosenIndex} aria-hidden="true"></span>
+    {#if chosenIndex >= 0 && thumb}
+        <span
+            class="nt-switch-thumb"
+            style:--left="{thumb.left}px"
+            style:width="{thumb.width}px"
+            aria-hidden="true"
+        ></span>
     {/if}
-    {#each choices as choice (choice.value)}
+    {#each choices as choice, index (choice.value)}
         <button
+            bind:this={buttons[index]}
             type="button"
             aria-pressed={choice.value === chosen}
             disabled={choice.unavailable}
@@ -54,7 +79,7 @@
         --inset: 2px;
         position: relative;
         display: inline-grid;
-        grid-template-columns: repeat(var(--count), 1fr);
+        grid-template-columns: repeat(var(--count), auto);
         padding: var(--inset);
         border-radius: 4px;
         background: color-mix(in srgb, var(--nt-ink) 11%, transparent);
@@ -66,12 +91,13 @@
         position: absolute;
         top: var(--inset);
         bottom: var(--inset);
-        left: var(--inset);
-        width: calc((100% - 2 * var(--inset)) / var(--count));
+        left: 0;
         border-radius: 3px;
         background: var(--nt-ink);
-        transform: translateX(calc(var(--index) * 100%));
-        transition: transform 140ms ease-out;
+        transform: translateX(var(--left));
+        transition:
+            transform 140ms ease-out,
+            width 140ms ease-out;
     }
 
     button {

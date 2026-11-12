@@ -85,6 +85,10 @@ it('validates slots while allowing multiple future reservations in an occupied c
     if (state.stations[0].status !== 'placed') throw new Error('Expected placed station')
     state.stations[0].position.slot = 1
     expect(() => mapState.validateStations(state)).toThrow('existing city slot')
+    expect(() => mapState.validateStations(state, true)).not.toThrow()
+    state.stations[0].position.slot = 2
+    expect(() => mapState.validateStations(state, true)).toThrow('existing city slot')
+    state.stations[0].position.slot = 1
     state.stations = []
     state.stationReservations[0].nodeId = 'missing'
     expect(() => mapState.validateStations(state)).toThrow('existing city')

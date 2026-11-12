@@ -1,13 +1,16 @@
 import type { EighteenXXRuntimeSchema, TitleStateSchema } from '@tabletop/18xx'
-import { operatingStepIndex } from '../table/operatingStep.js'
+import { constructionOperatingSteps, operatingStepIndex } from '../table/operatingStep.js'
 import {
+    privateIncome,
     cashOwnedBy,
     EighteenXXPreferenceDefinition,
     getCompany,
     isPrivateExchangeAction,
     isPrivateTileLay,
+    liftedPrivateBlocks,
     priorityOrder,
     shareSaleValue,
+    sharesOwned,
     stockCertificateCount,
     titleComponents,
     TileUpgrades,
@@ -18,11 +21,16 @@ import {
     type EighteenXXTitleRules,
     type HydratedEighteenXXState,
     type Owner,
+    type PendingPurchaseOffer,
     type Portfolio,
+    type TileFace,
     type TileRotation
 } from '@tabletop/18xx'
 import type { GameAction } from '@tabletop/common'
 import { assert, assertExists, GameStorage } from '@tabletop/common'
+import type { QueuedRouteWorker } from '../routes/routeSolveQueue.js'
+import { InstructedRunSolver } from './instructedRunSolver.js'
+import { RunInstructionModule } from './runInstructionModule.svelte.js'
 import type { PresentedTransition, TitlePreferences } from '@tabletop/frontend-components'
 import { GameSession, type GameSessionView } from '@tabletop/frontend-components'
 import {
@@ -31,19 +39,35 @@ import {
     type HistoricalMap
 } from '../maps/historicalMap.js'
 import {
+    withPlayedMarkerArt,
     type MapViewDefinition,
     type StationAppearance,
     type TokenTiles
 } from '../maps/stationPresentation.js'
-import { createTileDrawing } from '../tiles/tileDrawing.js'
+import { createTileDrawing, type TileLayout } from '../tiles/tileDrawing.js'
+import { ownerPortfolio } from '../finance/ownerPortfolio.js'
+import {
+    draftedCertificates,
+    draftedCost,
+    withDraftedCompanies,
+    type DraftedCompany
+} from '../finance/draftedCompanies.js'
+import { placedTileLayout } from '../tiles/standardTileLayouts.js'
 import { terrainIconAppearance } from '../maps/terrainIcons.js'
 import { createMarketAnimationSource } from '../stock/marketAnimationSource.js'
 import { companySharePrice } from '../table/companyPresentation.js'
+import {
+    awaitedDecision,
+    purchaseOfferText,
+    type AwaitedDecision,
+    type AwaitedDecisionNames
+} from '../table/awaitedDecision.js'
 import { shouldContinueHistoryStep } from '../table/historyNavigation.js'
 import { operatingHistory } from '../table/operatingHistory.js'
 import { wealthHistory } from '../table/wealthHistory.js'
 import { shareCard, tradedCertificateIds, type ShareCard } from '../table/shareCards.js'
 import { tileDrawingStyle, type TileAppearance } from '../tiles/tileAppearance.js'
+import type { PhaseChangePalette } from '../table/historyPhaseChange.js'
 import { tileSymbolAppearance } from '../tiles/tileSymbols.js'
 import { CashCrisisModule } from './cashCrisisModule.svelte.js'
 import { CompanyAuctionModule } from './companyAuctionModule.svelte.js'
@@ -51,12 +75,13 @@ import { CompanyDecisionsModule } from './companyDecisionsModule.svelte.js'
 import { DiscardModule } from './discardModule.svelte.js'
 import { EarningsModule } from './earningsModule.svelte.js'
 import { LoanModule } from './loanModule.svelte.js'
-import { LocalSelections } from './localSelections.js'
+import { AccessRightsModule } from './accessRightsModule.svelte.js'
+import { StationReturnModule } from './stationReturnModule.svelte.js'
 import { TitleStockPanels, type TitleStockPanel } from './titleStockPanels.svelte.js'
 import { MapModule, MapStyleAppearances } from './mapModule.svelte.js'
 import type { ModuleSession } from './moduleSession.js'
 import { OfferAuctionModule } from './offerAuctionModule.svelte.js'
-import { OperatingTurnModule } from './operatingTurnModule.svelte.js'
+import { OperatingTurnModule, type OperatingStepCompletion } from './operatingTurnModule.svelte.js'
 import {
     PrivateActionsModule,
     type PrivateTrackPower,
@@ -64,15 +89,23 @@ import {
 } from './privateActionsModule.svelte.js'
 import { PrivatesModule } from './privatesModule.svelte.js'
 import { RoutesModule } from './routesModule.svelte.js'
+import { ProjectedRunModule } from './projectedRunModule.svelte.js'
 import { SelectionAuctionModule } from './selectionAuctionModule.svelte.js'
 import { StationsModule } from './stationsModule.svelte.js'
 import { StockInstructionModule } from './stockInstructionModule.svelte.js'
 import { StockModule } from './stockModule.svelte.js'
 import { TableNotices } from './tableNotices.svelte.js'
-import type { PrivateTokenPresentation, TitlePresentation } from './titlePresentation.js'
+import type {
+    PrivateTokenPresentation,
+    TitleOperatingStep,
+    TitlePresentation
+} from './titlePresentation.js'
 import { TrackModule } from './trackModule.svelte.js'
 import { TrainBuyingModule } from './trainBuyingModule.svelte.js'
 import { TrainFundingModule } from './trainFundingModule.svelte.js'
+import { CorporateFinanceModule } from './corporateFinanceModule.svelte.js'
+import { OperatingModeModule, type TitleOperatingMode } from './operatingModeModule.svelte.js'
+import { PresidencyClaimModule } from './presidencyClaimModule.svelte.js'
 import { WaterfallAuctionModule } from './waterfallAuctionModule.svelte.js'
 
 export type EighteenXXSessionRules<
@@ -112,6 +145,18 @@ export class EighteenXXSession<
             )
         )
     )
+    privateCardTokens: Readonly<Record<string, readonly StationAppearance[]>> = $derived.by(() => ({
+        ...Object.fromEntries(
+            Object.entries(this.privateCompanyTokens).map(([privateCompanyId, token]) => [
+                privateCompanyId,
+                [token]
+            ])
+        ),
+        ...this.titlePrivateCardTokens
+    }))
+    /** Cards whose header shows other tokens than the private's own, such as several companies. */
+    protected titlePrivateCardTokens: Readonly<Record<string, readonly StationAppearance[]>> =
+        $derived({})
     private privateTokenAppearance(
         privateCompanyId: string,
         token: PrivateTokenPresentation
@@ -146,7 +191,7 @@ export class EighteenXXSession<
                         definition.face,
                         orientation,
                         rotation,
-                        this.mapView.layouts?.[definitionId],
+                        placedTileLayout(this.mapView.layouts, definitionId),
                         tileDrawingStyle(this.tileAppearance)
                     )
                 }
@@ -154,13 +199,12 @@ export class EighteenXXSession<
         }
     }
     operatingIncomeHistory() {
-        return operatingHistory(this.history.visibleContext.actions)
+        return operatingHistory(this.actions)
     }
     playerWealthHistory() {
-        const { actions, state } = this.history.visibleContext
-        return wealthHistory(actions, state, {
+        return wealthHistory(this.actions, this.gameState, {
             startingCash: this.rules.startingCash({
-                playerCount: state.players.length,
+                playerCount: this.gameState.players.length,
                 config: this.game.config
             }),
             openingRound: this.presentation.openingRound,
@@ -171,9 +215,12 @@ export class EighteenXXSession<
     readonly preferences: TitlePreferences<typeof EighteenXXPreferences> = this.createPreferences(
         EighteenXXPreferenceDefinition
     )
-    protected readonly localSelections = new LocalSelections()
     private get localHotseat() {
         return !!this.game.hotseat && this.game.storage === GameStorage.Local
+    }
+    // The developer harness is excluded because it switches seats itself.
+    protected get ordinaryHotseatPlay() {
+        return this.localHotseat && !this.isDeveloperHarness
     }
     private readonly moduleSession: ModuleSession<
         HydratedEighteenXXState,
@@ -196,6 +243,7 @@ export class EighteenXXSession<
         },
         get selectionsVisible() {
             return (
+                session.gameState.result === undefined &&
                 !session.updatingVisibleState &&
                 !session.isViewingHistory &&
                 !session.sharedActionsBlocked
@@ -203,6 +251,7 @@ export class EighteenXXSession<
         },
         get interactive() {
             return (
+                session.gameState.result === undefined &&
                 !session.busy &&
                 !session.updatingVisibleState &&
                 !session.isViewingHistory &&
@@ -210,7 +259,7 @@ export class EighteenXXSession<
             )
         },
         get ordinaryHotseatPlay() {
-            return session.localHotseat && !session.isDeveloperHarness
+            return session.ordinaryHotseatPlay
         },
         get viewingAsNonActivePlayer() {
             return session.isViewingAsNonActivePlayer
@@ -232,7 +281,8 @@ export class EighteenXXSession<
         settled: () => session.waitForVisibleTransitionSettled(),
         withSupersededAction: (action) => session.withSupersededAction(action),
         createPlayerAction: (schema, data) => session.createPlayerAction(schema, data),
-        applyAction: (action) => session.applyAction(action)
+        applyAction: (action) => session.applyAction(action),
+        applyPreparedAction: (prepare) => session.applyPreparedAction(prepare)
     }))(this)
     readonly offers = new OfferAuctionModule(this.moduleSession)
     readonly waterfall = new WaterfallAuctionModule(this.moduleSession)
@@ -290,12 +340,40 @@ export class EighteenXXSession<
         () => this.requiresStationTokenChoice,
         () => this.stationPlacementActive
     )
+    readonly corporateFinance = new CorporateFinanceModule(
+        this.moduleSession,
+        () => this.presentation.corporateFinance
+    )
+    readonly operatingMode: OperatingModeModule = new OperatingModeModule(
+        this.moduleSession,
+        this.corporateFinance,
+        this.privateActions,
+        this.decisions,
+        {
+            clearSelections: () => {
+                this.track.stages.clear()
+                this.stations.stages.clear()
+            },
+            finishTrack: () => this.track.finish()
+        },
+        () => this.titleOperatingModes,
+        () =>
+            !!this.stationReturn.pending ||
+            !!this.moduleSession.state.privateStation ||
+            !!this.stations.homeChoice
+    )
     readonly routes = new RoutesModule(
         this.moduleSession,
-        (selection) => {
-            this.map.inspect(selection)
+        () => this.map.networkRoutes,
+        (companyId) => this.presentation.manualRoutes?.(this.gameState, companyId) ?? false
+    )
+    readonly stock = new StockModule(
+        this.moduleSession,
+        () => {
+            this.companyAuction.clearOpening()
+            this.onStockSelectionCancelled()
         },
-        () => this.map.networkRoutes
+        () => this.privates.exchangeOffers.length > 0
     )
     readonly map: MapModule = new MapModule(
         this.moduleSession,
@@ -303,9 +381,13 @@ export class EighteenXXSession<
         this.track,
         this.stations,
         this.routes,
-        this.companyAuction,
+        [this.companyAuction, this.stock],
         () => this.mapDisplayState
     )
+    readonly projectedRun = new ProjectedRunModule(this.moduleSession, this.map, () => {
+        const state: HydratedEighteenXXState = this.gameState
+        return state.dehydrate()
+    })
     readonly operating = new OperatingTurnModule(
         this.moduleSession,
         {
@@ -316,20 +398,25 @@ export class EighteenXXSession<
         },
         () => this.operatingStepCompletion,
         (state) => {
-            const steps = this.presentation.operatingSteps
+            const steps = this.operatingSteps
             if (!steps) return operatingStepIndex(state)
             const index = steps.findIndex((step) => step.states.includes(state))
             return index < 0 ? undefined : index
         }
     )
-    readonly stock = new StockModule(
-        this.moduleSession,
-        () => {
-            this.companyAuction.clearOpening()
-            this.onStockSelectionCancelled()
-        },
-        () => this.privates.exchangeOffers.length > 0,
-        () => this.additionalStockMenuCount
+    readonly presidencyClaims = new PresidencyClaimModule(this.moduleSession)
+    /** The family's panels beside Buy and Sell, such as taking over a company in receivership. */
+    readonly familyStockPanels: TitleStockPanels<FamilyStockPanel> = new TitleStockPanels(
+        this.stock,
+        [
+            {
+                id: 'receivership',
+                label: 'Receivership',
+                available: () =>
+                    this.gameState.machineState === 'StockRound' &&
+                    this.presidencyClaims.offers.length > 0
+            }
+        ]
     )
     #titleStockPanels?: TitleStockPanels<string>
     /** The title's panels beside Buy and Sell, registered for Undo and the stock menu. */
@@ -342,13 +429,39 @@ export class EighteenXXSession<
         this.#titleStockPanels = model
         return model
     }
-    get additionalStockMenuCount() {
-        return this.#titleStockPanels?.count ?? 0
-    }
     readonly instructions = new StockInstructionModule(this.moduleSession)
+    #instructedRuns: InstructedRunSolver<EighteenXXState<Schema>, State> | undefined
+    private get instructedRuns(): InstructedRunSolver<EighteenXXState<Schema>, State> | undefined {
+        if (!this.createRouteWorker) return undefined
+        const components = titleComponents(this.rules)
+        this.#instructedRuns ??= new InstructedRunSolver(
+            this.createRouteWorker,
+            this.runtime,
+            this.rules.routeRules,
+            (state) => this.rules.state.hydrate(state, components)
+        )
+        return this.#instructedRuns
+    }
+    // Starts off the main thread, so the first move after an Autorun is set doesn't wait for it.
+    private warmRouteSolver() {
+        if (this.myPlayer && this.gameState.runInstructions?.length) this.instructedRuns?.warm()
+    }
+    readonly runInstructions = new RunInstructionModule(
+        this.moduleSession,
+        () => {
+            const solver = this.instructedRuns
+            return solver ? (companyId) => solver.solveNow(this.gameState, companyId) : undefined
+        },
+        () => this.operatingOrder
+    )
+    protected override prepareAction(action: GameAction): GameAction | Promise<GameAction> {
+        return this.instructedRuns?.withRuns(action, this.actionTarget) ?? action
+    }
     readonly earnings = new EarningsModule(this.moduleSession)
     readonly discard = new DiscardModule(this.moduleSession)
     readonly loans = new LoanModule(this.moduleSession)
+    readonly accessRights = new AccessRightsModule(this.moduleSession)
+    readonly stationReturn = new StationReturnModule(this.moduleSession)
     readonly cashCrisis = new CashCrisisModule(this.moduleSession)
     /**
      * Whether this player is viewing the title's published artwork (board image and token art)
@@ -400,6 +513,20 @@ export class EighteenXXSession<
         const full = this.presentation.publishedCardImages?.[id]
         return (size === 'thumbnail' && this.presentation.publishedCardThumbnails?.[id]) || full
     }
+    /** The plate below a published card the presentation lists, when that presentation is on. */
+    publishedCardPlate(id: string | undefined): PublishedCardPlate | undefined {
+        if (
+            !id ||
+            !this.publishedCardImage(id) ||
+            !this.presentation.publishedCardPlates?.includes(id)
+        )
+            return undefined
+        const description = this.privates.companies.find(
+            (company) => company.id === id
+        )?.description
+        const text = /^\*\*(.+?)\*\*(?:\n\n|$)/s.exec(description ?? '')?.[1]
+        return text ? { tokens: this.privateCardTokens[id] ?? [], text } : undefined
+    }
     /** Tile rendering style for the current presentation, used by every tile drawn in the table. */
     readonly tileAppearance: TileAppearance = $derived.by(() => {
         const published = this.publishedArtwork
@@ -407,9 +534,29 @@ export class EighteenXXSession<
             : undefined
         return published ?? MapStyleAppearances[this.map.style]
     })
-    /** The map view for the current presentation: published token art replaces the generic set when selected. */
-    readonly mapView: MapViewDefinition = $derived.by(() => {
-        const base = this.mapViewDefinition
+    readonly phaseChangePalette: PhaseChangePalette = $derived.by(() => ({
+        phaseColors: this.presentation.phaseColors,
+        phaseTileColors: Object.fromEntries(
+            this.phases.phases.map((phase) => [phase.id, phase.tileColors])
+        ),
+        tileColors: this.tileAppearance.colors,
+        tileColorNames: this.tileAppearance.colorNames ?? {}
+    }))
+    // Held as text, so the map redraws when the art changes rather than on every action.
+    private playedMarkerArt = $derived.by(() =>
+        JSON.stringify(this.presentationDefinition.markerArtFor?.(this.gameState) ?? {})
+    )
+    private gameRevenueCaptions = $derived.by(() =>
+        JSON.stringify(
+            this.presentationDefinition.revenueStageCaptionsFor?.(this.gameState) ?? null
+        )
+    )
+    /** The map view before art that changes with play, which each historical map lays its own over. */
+    private presentedMapView: MapViewDefinition = $derived.by(() => {
+        const captions = JSON.parse(this.gameRevenueCaptions)
+        const base = captions
+            ? { ...this.mapViewDefinition, revenueStageCaptions: captions }
+            : this.mapViewDefinition
         const overrides = this.stationAppearanceOverrides
         const definition = overrides
             ? { ...base, stations: { ...base.stations, ...overrides } }
@@ -429,6 +576,10 @@ export class EighteenXXSession<
             placements: { ...definition.placements, ...definition.publishedPlacements }
         }
     })
+    /** The map view for the current presentation: published token art replaces the generic set when selected. */
+    readonly mapView: MapViewDefinition = $derived.by(() =>
+        withPlayedMarkerArt(this.presentedMapView, JSON.parse(this.playedMarkerArt))
+    )
     /** The title presentation for the current mode: published badge colours and market zones replace the generic ones when selected. */
     readonly presentation: TitlePresentation<EighteenXXState<Schema>> = $derived.by(() => {
         const definition = this.presentationDefinition
@@ -450,7 +601,8 @@ export class EighteenXXSession<
         options: SessionOptions<Schema, State>,
         private readonly rules: EighteenXXSessionRules<Schema, State>,
         private readonly mapViewDefinition: MapViewDefinition,
-        private readonly presentationDefinition: TitlePresentation<EighteenXXState<Schema>>
+        private readonly presentationDefinition: TitlePresentation<EighteenXXState<Schema>>,
+        private readonly createRouteWorker?: () => QueuedRouteWorker
     ) {
         super(options)
         const { map, tileSet } = titleComponents(rules)
@@ -459,22 +611,28 @@ export class EighteenXXSession<
             'The map view must present the title’s map and tile set'
         )
         this.historicalMaps = new HistoricalMaps(
-            () => this.mapView,
+            () => this.presentedMapView,
             (companyId) => this.companyName(companyId),
             (state) =>
                 this.projectMapState(this.rules.state.hydrate(state, titleComponents(this.rules))),
-            (state) => this.stations.openReservations(state)
+            (state) => this.stations.openReservations(state),
+            (action) => this.presentationDefinition.historyMapPlacement?.(action),
+            (state) => liftedPrivateBlocks(map.markedPrivateIds, this.rules.privateRules, state),
+            (state) =>
+                this.presentationDefinition.markerArtFor?.(
+                    this.rules.state.hydrate(state, titleComponents(this.rules))
+                ) ?? {}
         )
         this.registerLocalSelections()
-        this.addGameStateChangeListener(async ({ action }) => this.notices.observe(action))
+        this.addGameStateChangeListener(async ({ action }) => {
+            this.notices.observe(action)
+            this.warmRouteSolver()
+        })
+        this.warmRouteSolver()
     }
     private noticeText(action: GameAction): string | undefined {
-        if (isPrivateTileLay(action)) {
-            const location = this.mapView.map.definition.locations.find(
-                (item) => item.id === action.locationId
-            )
-            return `${this.getPlayerName(action.playerId)} used ${this.companyName(action.privateCompanyId)} at ${location?.name ?? action.locationId}`
-        }
+        if (isPrivateTileLay(action))
+            return `${this.getPlayerName(action.playerId)} used ${this.companyName(action.privateCompanyId)} at ${this.placeName(action.locationId)}`
         if (!isPrivateExchangeAction(action)) return undefined
         const company = this.privates.exchangeCompany(action.certificateId)
         const article = /^[AEIOU]/i.test(this.companyName(company.id)) ? 'an' : 'a'
@@ -493,27 +651,70 @@ export class EighteenXXSession<
             this.game.players.filter((player) => player.id === id)
         )
     }
-    protected get operatingStepCompletion() {
-        if (this.presentation.operatingSteps) return undefined
+    /** The operating turn's steps when a title or the family lays them out other than one per family step. */
+    get operatingSteps(): readonly TitleOperatingStep<EighteenXXState<Schema>>[] | undefined {
+        return this.presentation.operatingSteps ?? this.familyOperatingSteps
+    }
+    private readonly familyOperatingSteps = $derived.by(() =>
+        this.rules.stationsWithTrack
+            ? constructionOperatingSteps<EighteenXXState<Schema>>(this.rules)
+            : undefined
+    )
+    protected get operatingStepCompletion(): OperatingStepCompletion | undefined {
+        if (this.rules.stationsWithTrack) return this.operatingMode.completion
+        if (this.operatingSteps) return undefined
         return OperatingTurnModule.defaultCompletion(this.moduleSession, {
             finishTrack: () => this.track.finish(),
             finishStations: () => this.stations.finish()
         })
     }
     protected onStockSelectionCancelled() {
+        this.familyStockPanels.clear()
         this.#titleStockPanels?.clear()
     }
     protected get trackBuildingActive(): boolean {
-        return true
+        return this.operatingMode.trackActive
     }
     protected get stationPlacementActive(): boolean {
-        return this.gameState.machineState === 'PlacingStation'
+        return this.operatingMode.stationsActive
     }
     protected get sharedActionsBlocked(): boolean {
         return false
     }
     /** Private powers whose rules the title applies itself, offered under Use privates. */
     protected get titlePrivatePowers(): readonly TitlePrivatePower[] {
+        return []
+    }
+    awaitedDecision(state: State): AwaitedDecision | undefined {
+        return (
+            this.titleAwaitedDecision(state) ??
+            awaitedDecision(state, this.decisionNames(state), this.rules.trainRules)
+        )
+    }
+    purchaseOfferText(offer: PendingPurchaseOffer): string {
+        return purchaseOfferText(offer, this.decisionNames(this.gameState))
+    }
+    protected titleAwaitedDecision(_state: State): AwaitedDecision | undefined {
+        return undefined
+    }
+    private decisionNames(state: State): AwaitedDecisionNames {
+        return {
+            companyName: (companyId) => this.companyName(companyId),
+            ownerName: (owner) => this.ownerName(owner),
+            trainName: (trainId) => this.trainName(state, trainId),
+            money: this.presentation.money
+        }
+    }
+    private trainName(state: State, trainId: string) {
+        const train = state.trainInventory.trains.find((train) => train.id === trainId)
+        assertExists(train, `Train ${trainId} requires its inventory record`)
+        return this.trainDepot.trainDefinition(train.definitionId).name
+    }
+    /**
+     * A title's own optional actions in the operating turn, each an entry in the operating mode
+     * switch whose panel the table's `titleMode` snippet draws. List only those open now.
+     */
+    get titleOperatingModes(): readonly TitleOperatingMode[] {
         return []
     }
     /** A title's own placements in the station step, offered as buttons beside its stations. */
@@ -534,6 +735,19 @@ export class EighteenXXSession<
     }
     /** Hexes a title currently offers on the map and what choosing one does, such as a private's port. */
     get mapLocationChoice(): MapLocationChoice | undefined {
+        const returning = this.stationReturn.pending
+        if (returning)
+            return {
+                locationIds: [returning.locationId],
+                choose: (_locationId, nodeId) => {
+                    const city =
+                        nodeId ??
+                        (this.stationReturn.positions.length === 1
+                            ? this.stationReturn.positions[0].nodeId
+                            : undefined)
+                    if (city) void this.stationReturn.choose(city)
+                }
+            }
         const power = this.privateActions.titlePower
         if (!power || !this.decisions.canResolve) return undefined
         if (power.kind === 'location')
@@ -592,8 +806,46 @@ export class EighteenXXSession<
         assert(typeof cash === 'number', 'Player liquidity requires finite cash')
         const auction = this.waterfall.model
         const uncommittedCash =
-            auction && !auction.auction.completed ? auction.availableCash(playerId) : cash
+            (auction && !auction.auction.completed ? auction.availableCash(playerId) : cash) -
+            draftedCost(this.#draftedBy(playerId))
         return uncommittedCash + shareSaleValue(this.gameState, owner, this.rules.stockRules)
+    }
+    /** The companies this viewer has drafted but not yet paid for; a hidden draft's title supplies them. */
+    protected get draftedCompanies(): readonly DraftedCompany[] {
+        return []
+    }
+    #draftedBy(playerId: string): readonly DraftedCompany[] {
+        return playerId === this.myPlayer?.id ? this.draftedCompanies : []
+    }
+    drafterOf(companyId: string): string | undefined {
+        const playerId = this.myPlayer?.id
+        return playerId && this.draftedCompanies.some((company) => company.companyId === companyId)
+            ? playerId
+            : undefined
+    }
+    portfolio(owner: Owner, minorsAsPrivates = false) {
+        const portfolio = ownerPortfolio(
+            this.gameState,
+            owner,
+            this.valuationRules,
+            this.charters,
+            minorsAsPrivates,
+            (privateId) => this.privateIncome(privateId)
+        )
+        return withDraftedCompanies(
+            portfolio,
+            this.gameState,
+            owner.kind === 'player' ? this.#draftedBy(owner.playerId) : [],
+            this.valuationRules,
+            this.charters,
+            minorsAsPrivates
+        )
+    }
+    playerShares(companyId: string, playerId: string): number {
+        const owned = sharesOwned(this.gameState, companyId, { kind: 'player', playerId })
+        return this.drafterOf(companyId) === playerId
+            ? owned + sharesOwned(this.gameState, companyId, { kind: 'bank' })
+            : owned
     }
     companyRequiresTrain(companyId: string): boolean {
         return (
@@ -604,12 +856,6 @@ export class EighteenXXSession<
     get trainDepot() {
         return this.rules.trainRules.depot
     }
-    trainShortLabel(definitionId: string): string {
-        return (
-            this.presentation.trainShortLabels?.[definitionId] ??
-            this.trainDepot.trainDefinition(definitionId).name
-        )
-    }
     get phases() {
         return this.rules.phases
     }
@@ -619,6 +865,15 @@ export class EighteenXXSession<
     }
     get operatingRules() {
         return this.rules.operatingRules
+    }
+    get operatingSetUnderway(): boolean {
+        return this.gameState.stockRound.completed && !!this.gameState.operatingSet
+    }
+    get operatingOrder(): readonly string[] {
+        const state = this.gameState
+        return this.operatingSetUnderway && state.operatingSet
+            ? state.operatingSet.companyOrder
+            : this.operatingRules.companyOrder(state)
     }
     get valuationRules() {
         return this.rules.endingRules
@@ -632,6 +887,9 @@ export class EighteenXXSession<
     get passing() {
         return this.rules.stockRules.round.passing
     }
+    // The published state as stored, for replaying recorded history: a replay copies its state,
+    // and the hydrated state carries functions a copy cannot take.
+    private recordedState: EighteenXXState<Schema> = $derived(this.gameState.dehydrate())
     private readonly historicalMaps: HistoricalMaps<EighteenXXState<Schema>>
     // A new object whenever the visible state changes or starts/stops updating. A preview map is
     // only shown for the visible state it was opened on.
@@ -645,16 +903,18 @@ export class EighteenXXSession<
             ? this.historicalMapPreview.map
             : undefined
     )
+    previewsHistoryMap(action: GameAction) {
+        return this.historicalMaps.previews(action)
+    }
     previewHistoryMap(action: GameAction) {
         if (this.busy || this.updatingVisibleState) return
         if (this.historicalMap?.actionId === action.id) {
             this.historicalMapPreview = undefined
             return
         }
-        const context = this.history.visibleContext
         this.historicalMapPreview = {
             visibleState: this.visibleStateKey,
-            map: this.historicalMaps.preview(context.state, context.actions, action)
+            map: this.historicalMaps.preview(this.recordedState, this.actions, action)
         }
     }
     closeHistoricalMap() {
@@ -668,6 +928,17 @@ export class EighteenXXSession<
     }
     get charters() {
         return this.rules.stockRules.charters
+    }
+    /** What a private pays its owner each operating round now. */
+    privateIncome(privateId: string): number {
+        return privateIncome(
+            this.gameState,
+            {
+                charters: this.charters,
+                privateIncome: this.rules.operatingRules.privateIncome
+            },
+            privateId
+        )
     }
     companyName(companyId: string) {
         return this.companyNameVariants(companyId).short
@@ -683,6 +954,7 @@ export class EighteenXXSession<
         assertExists(names, `Company ${companyId} requires its names`)
         return names
     }
+    readonly placeName = (locationId: string): string => this.mapView.map.placeName(locationId)
     lotName(lot: Pick<AuctionLot, 'id' | 'name'>) {
         return this.presentation.companyNames[lot.id]?.short ?? lot.name
     }
@@ -690,7 +962,7 @@ export class EighteenXXSession<
         return this.presentation.companyNames[lot.id]?.initials ?? lot.id
     }
     poolName(poolId: string) {
-        return this.rules.names.pool(poolId)
+        return this.presentation.poolName?.(poolId) ?? this.rules.names.pool(poolId)
     }
     stockCompanyName(companyId: string) {
         return this.companyName(companyId)
@@ -712,8 +984,14 @@ export class EighteenXXSession<
         this.rules.stockRules.certificateWeight(this.gameState, certificate)
     playerCertificates(playerId: string) {
         const owner = { kind: 'player', playerId } as const
+        const drafted = this.#draftedBy(playerId).flatMap(({ companyId }) =>
+            draftedCertificates(this.gameState, companyId)
+        )
         return {
-            count: stockCertificateCount(this.gameState, owner, this.rules.stockRules),
+            count: drafted.reduce(
+                (sum, certificate) => sum + this.certificateWeight(certificate),
+                stockCertificateCount(this.gameState, owner, this.rules.stockRules)
+            ),
             limit: this.rules.stockRules.certificateLimit(this.gameState, owner)
         }
     }
@@ -725,22 +1003,17 @@ export class EighteenXXSession<
     // stays still for it; the published transition says which it was.
     restoredSilently = $state(true)
     override dispose() {
+        this.#instructedRuns?.destroy()
         this.notices.dispose()
         super.dispose()
     }
     override beforeNewState(transition: PresentedTransition) {
         this.restoredSilently = transition.intent === 'silent'
         this.map.clearInspection()
-        this.localSelections.clear()
     }
-    get hasLocalSelection(): boolean {
-        return this.localSelections.hasManual()
-    }
-    override async undo() {
-        if (this.busy || this.isViewingHistory) return
-        if (this.localSelections.undo()) return
+    override async undoCommittedAction() {
         this.stock.menu.clear()
-        await super.undo()
+        await super.undoCommittedAction()
     }
     private registerLocalSelections() {
         const { localSelections } = this
@@ -759,6 +1032,7 @@ export class EighteenXXSession<
         localSelections.register(this.stations.stages)
         localSelections.register(this.track.stages)
         localSelections.register(this.stock)
+        localSelections.register(this.familyStockPanels, 'first')
         localSelections.register(this.cashCrisis.bankruptcy)
     }
 }
@@ -768,11 +1042,12 @@ export function createEighteenXXSessionClass<
 >(
     rules: EighteenXXSessionRules<Schema, State>,
     mapView: MapViewDefinition,
-    presentation: TitlePresentation<EighteenXXState<Schema>>
+    presentation: TitlePresentation<EighteenXXState<Schema>>,
+    createRouteWorker?: () => QueuedRouteWorker
 ): new (options: SessionOptions<Schema, State>) => EighteenXXSession<Schema, State> {
     return class extends EighteenXXSession<Schema, State> {
         constructor(options: SessionOptions<Schema, State>) {
-            super(options, rules, mapView, presentation)
+            super(options, rules, mapView, presentation, createRouteWorker)
         }
     }
 }
@@ -783,12 +1058,41 @@ export function requireEighteenXXSession(
     return session
 }
 
+export type PublishedCardPlate = { tokens: readonly StationAppearance[]; text: string }
+
 export type CompanyShareStatus = 'unfloated' | 'soldOut'
+
+export type FamilyStockPanel = 'receivership'
 
 export type MapLocationChoice = {
     locationIds: readonly string[]
     /** Chooses a hex, with the city or town clicked within it when there was one. */
     choose(locationId: string, nodeId?: string): void
+    /** A further choice about the chosen hex, offered beside it. */
+    followUp?: MapLocationFollowUp
+}
+
+/** How an option looks as the chosen hex's tile, drawn as the map would draw it. */
+export type MapLocationFollowUpTile = {
+    face: TileFace
+    rotation: TileRotation
+    layout?: TileLayout
+}
+
+/** Which of a few things to do at a chosen hex, such as which line takes a station. */
+export type MapLocationFollowUp = {
+    locationId: string
+    /** Names the choice, as a question. */
+    label: string
+    options: readonly { id: string; label: string; tile?: MapLocationFollowUpTile }[]
+    /**
+     * Where every option is a tile: the option shown over the hex, which accepting takes. Options
+     * arc around the hex as tiles do when laying track, and tapping the hex moves to the next.
+     */
+    selected?: string
+    select?(id: string): void
+    choose(id: string): void
+    cancel(): void
 }
 
 export type EighteenXXSessionView = GameSessionView<EighteenXXState, HydratedEighteenXXState> &

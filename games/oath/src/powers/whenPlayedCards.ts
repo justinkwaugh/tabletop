@@ -1,19 +1,23 @@
 import { isLockedFor, ownCardLockedFor } from '../util/locked.js'
-import { assert } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 import { Suit } from '../model/oathEnums.js'
 import type { HydratedOathGameState } from '../model/gameState.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
-import { suitOf } from '../data/cardRegistry.js'
 import { gainSupply } from '../util/rest.js'
 import { cannotPlaceWarbandsAtSites } from '../util/continuous.js'
 import { one, optional, PowerChoiceKind, type ChoiceDomain } from '../util/powerChoice.js'
 import { registerEffect, chosen, type PlayMapChanges } from './registry.js'
-import { sitesRuledBy } from '../util/rule.js'
+import { sitesRuledBy, warbandsAt } from '../util/rule.js'
+import { adjustCount, countOf } from '../util/warbands.js'
+import type { WarbandCounts } from '../model/warbandCounts.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 import { persistentMatchingAdvisers } from '../util/persistent.js'
+import { siteHolding } from '../util/access.js'
+import { greatSlumDenizensToDiscardFirst } from '../util/sitePowers.js'
 import {
     burnSecretsFromDarkestSecret,
     denizensOnMap,
+    denizensToDiscardAtSites,
     discardDenizensAtSites,
     faceupSitesInYourRegion,
     favorObtainableFromPicks,
@@ -96,27 +100,41 @@ registerEffect(
     }
 )
 
-// "When played, discard all [suit:hearth] and [suit:order] cards at sites in your region."
-registerEffect(
-    'denizen.arcane.dazzle',
-    powerIndexOf('denizen.arcane.dazzle', PowerTiming.WhenPlayed),
-    {
+/**
+ * Dazzle, Threatening Roar — "discard all [suit] and [suit] cards at sites in your region": the cards it discards
+ * are the ones its play leaves there, so Land Warden's second card sees them gone.
+ */
+function registerRegionDiscard(cardId: string, suits: readonly [Suit, Suit]): void {
+    const matches = (state: HydratedOathGameState) => (id: string) =>
+        suits.some((suit) => state.suitInPlay(id) === suit)
+    registerEffect(cardId, powerIndexOf(cardId, PowerTiming.WhenPlayed), {
         choices: [],
+        mapLeaving: (ctx) =>
+            denizensToDiscardAtSites(
+                ctx.state,
+                ctx.playerId,
+                faceupSitesInYourRegion(ctx.state, ctx.playerId),
+                matches(ctx.state),
+                ctx.mapChanges
+            ),
         resolve: (ctx) => {
             const { discarded, pileDeposits } = discardDenizensAtSites(
                 ctx.state,
                 ctx.playerId,
                 faceupSitesInYourRegion(ctx.state, ctx.playerId),
-                (id) => suitOf(id) === Suit.Hearth || suitOf(id) === Suit.Order,
+                matches(ctx.state),
                 ctx.power.cardId
             )
             return {
-                summary: `discarded ${discarded.length} hearth and order cards in the region`,
+                summary: `discarded ${discarded.length} ${suits[0]} and ${suits[1]} cards in the region`,
                 pileDeposits
             }
         }
-    }
-)
+    })
+}
+
+// "When played, discard all [suit:hearth] and [suit:order] cards at sites in your region."
+registerRegionDiscard('denizen.arcane.dazzle', [Suit.Hearth, Suit.Order])
 
 // "When played, gain warbands equal to the total number of [suit:beast] cards
 // (including Animal Host) at any sites (regardless of rule)."
@@ -144,26 +162,7 @@ registerEffect(
 
 // "When played, discard all [suit:nomad] and [suit:beast] cards at sites in your
 // region." R-9.1, read literally: played to a site in your region it discards itself.
-registerEffect(
-    'denizen.beast.threatening-roar',
-    powerIndexOf('denizen.beast.threatening-roar', PowerTiming.WhenPlayed),
-    {
-        choices: [],
-        resolve: (ctx) => {
-            const { discarded, pileDeposits } = discardDenizensAtSites(
-                ctx.state,
-                ctx.playerId,
-                faceupSitesInYourRegion(ctx.state, ctx.playerId),
-                (id) => suitOf(id) === Suit.Nomad || suitOf(id) === Suit.Beast,
-                ctx.power.cardId
-            )
-            return {
-                summary: `discarded ${discarded.length} nomad and beast cards in the region`,
-                pileDeposits
-            }
-        }
-    }
-)
+registerRegionDiscard('denizen.beast.threatening-roar', [Suit.Nomad, Suit.Beast])
 
 // "When played, gain four warbands."
 registerEffect(
@@ -225,11 +224,51 @@ function herdLockedWherePlayed(
         : undefined
 }
 
+/**
+ * R-11.10, R-10.25 — the swap moves Great Herd to the site of the card it swaps with, and that card to the site Great
+ * Herd is played to: at a Great Slum either move reaches, a card there may be discarded first. Never the card
+ * swapped or Great Herd itself, nor a card the play takes off the map first (R-5.1.4.I); none when both stand at one
+ * site, as nothing moves. Read on the map before the play.
+ */
+const slumCardsTheSwapReaches: ChoiceDomain = (
+    state,
+    playerId,
+    _power,
+    earlier = [],
+    mapChanges
+) => {
+    const [target] = earlier.flatMap((choice) =>
+        choice.kind === PowerChoiceKind.Card ? [choice.cardId] : []
+    )
+    if (target === undefined || mapChanges?.siteId === undefined) return []
+    const from = siteHolding(state, target)
+    const to = mapChanges.siteId
+    if (from === undefined || from === to) return []
+    return [from, to]
+        .flatMap((siteId) =>
+            greatSlumDenizensToDiscardFirst(state, playerId, siteId, mapChanges.modifiersInUse)
+        )
+        .filter(
+            (cardId) =>
+                cardId !== target && cardId !== GREAT_HERD && !mapChanges.leaving.includes(cardId)
+        )
+        .map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
+}
+
 registerEffect(GREAT_HERD, powerIndexOf(GREAT_HERD, PowerTiming.WhenPlayed), {
     choices: [
         optional(PowerChoiceKind.Card, {
             what: 'a Nomad card at a site to swap with',
             domain: nomadCardsAtSites,
+            offered: (state, playerId, mapChanges) =>
+                herdLockedWherePlayed(state, playerId, mapChanges) === undefined
+        }),
+        // R-X.4 — from revision 32; a game before it swaps as it was recorded.
+        optional(PowerChoiceKind.Card, {
+            what: 'a denizen at the Great Slum to discard first',
+            readsEarlier: true,
+            fromRevision: OathRevision.EngineFixes27,
+            domain: slumCardsTheSwapReaches,
             offered: (state, playerId, mapChanges) =>
                 herdLockedWherePlayed(state, playerId, mapChanges) === undefined
         })
@@ -247,15 +286,34 @@ registerEffect(GREAT_HERD, powerIndexOf(GREAT_HERD, PowerTiming.WhenPlayed), {
             : undefined
     },
     resolve: (ctx) => {
-        const [target] = chosen(ctx, PowerChoiceKind.Card)
+        const [target, first] = chosen(ctx, PowerChoiceKind.Card)
         if (!target) return { summary: 'kept Great Herd where it was played' }
         // Where it now stands, its lock is exact; the check above refused the swap on the site it was played to.
         assert(
             !ownCardLockedFor(ctx.state, ctx.playerId, GREAT_HERD),
             'Great Herd is locked where it was played, so it cannot be swapped'
         )
-        swapPlayedCardWithSiteCard(ctx.state, ctx.playerId, GREAT_HERD, target.cardId)
-        return { summary: `swapped Great Herd with ${target.cardId}` }
+        const firstAt = first ? siteHolding(ctx.state, first.cardId) : undefined
+        if (first) assertExists(firstAt, `${first.cardId} is at the Great Slum the swap reaches`)
+        const { discarded, pileDeposits } =
+            first && firstAt
+                ? discardDenizensAtSites(
+                      ctx.state,
+                      ctx.playerId,
+                      [firstAt],
+                      (id) => id === first.cardId,
+                      GREAT_HERD
+                  )
+                : { discarded: [], pileDeposits: [] }
+        // R-10.25 — with the Nomad card at its own site, the two swap to the same place: nothing moves.
+        return swapPlayedCardWithSiteCard(ctx.state, ctx.playerId, GREAT_HERD, target.cardId)
+            ? {
+                  summary: `${discarded.length ? `discarded ${discarded[0]} first; ` : ''}swapped Great Herd with ${target.cardId}`,
+                  pileDeposits
+              }
+            : {
+                  summary: `kept Great Herd where it was played, at the same site as ${target.cardId}`
+              }
     }
 })
 
@@ -285,6 +343,28 @@ registerEffect(
             return {
                 summary: `gained ${words} and placed ${placed} across ${ruled.length} ruled sites`
             }
+        },
+        // R-7.3.3-H3 — the warbands `resolve` places, planned before the play.
+        warbandsAfter: (ctx) => {
+            const { state, playerId } = ctx
+            if (cannotPlaceWarbandsAtSites(state, playerId)) return {}
+            const ruled = sitesRuledBy(state, playerId)
+            const owner = warbandOwnerGainedByPower(state, playerId)
+            const bank = state.getPlayerState(
+                state.warbandBankHolderOf(owner)
+            ).warbandsInPersonalBank
+            let onBoard =
+                countOf(state.getPlayerState(playerId).warbandsOnBoard, owner) +
+                Math.min(ruled.length, countOf(bank, owner))
+            const after: Record<string, WarbandCounts> = {}
+            for (const siteId of ruled) {
+                if (onBoard === 0) break
+                const here = { ...warbandsAt(state, siteId) }
+                adjustCount(here, owner, 1)
+                after[siteId] = here
+                onBoard -= 1
+            }
+            return after
         }
     }
 )

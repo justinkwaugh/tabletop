@@ -13,7 +13,10 @@
         style="background-image: url({parchmentTexture}); background-repeat: repeat;"
     >
         <DeckArea />
-        <div class="grid" style="grid-template-columns: 20px 1fr 20px; grid-template-rows: 20px 1fr 20px;">
+        <div
+            class="grid"
+            style="grid-template-columns: 20px 1fr 20px; grid-template-rows: 20px 1fr 20px;"
+        >
             <RampartCorner />
             <div><RampartBorder side="top" /></div>
             <RampartCorner />

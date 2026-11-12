@@ -11,8 +11,8 @@
         "test": "node --test scripts/*.test.mjs"
     },
     "dependencies": {
-        "@google-cloud/firestore": "^7.9.0",
-        "@google-cloud/tasks": "^5.4.0",
-        "google-auth-library": "^9.15.1"
+        "@google-cloud/firestore": "^9.4.0",
+        "@google-cloud/tasks": "^7.3.1",
+        "google-auth-library": "^11.3.2"
     }
 }

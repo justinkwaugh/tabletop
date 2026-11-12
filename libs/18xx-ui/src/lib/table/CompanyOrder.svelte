@@ -4,6 +4,7 @@
     import { prefersReducedMotion } from 'svelte/motion'
     import type { Snippet } from 'svelte'
     import { assertExists } from '@tabletop/common'
+    import { chainSidewaysScroll } from '@tabletop/frontend-components'
     import {
         cashOwnedBy,
         trainsOwnedBy,
@@ -11,9 +12,11 @@
         type FinancialState,
         type TrainState,
         type StationState,
+        type Train,
         type TrainDepot,
         isObsoleteTrain
     } from '@tabletop/18xx'
+    import type { TrainTokens } from '../session/titlePresentation.js'
     import type { StationAppearance } from '../maps/stationPresentation.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
     import CompanyToken from '../tokens/CompanyToken.svelte'
@@ -26,6 +29,7 @@
         gameState,
         trainDepot,
         trainColors,
+        trainTokens,
         requiresTrain,
         appearances,
         currentCompanyId,
@@ -44,6 +48,7 @@
         gameState: Pick<FinancialState, 'cash'> & TrainState & StationState
         trainColors: Readonly<Record<string, string>>
         trainDepot: TrainDepot
+        trainTokens?: (train: Train) => TrainTokens | undefined
         requiresTrain: (companyId: string) => boolean
         appearances: Readonly<Record<string, StationAppearance>>
         currentCompanyId?: string
@@ -140,7 +145,8 @@
                     id: train.id,
                     color: trainColors[train.definitionId],
                     name: trainDepot.trainDefinition(train.definitionId).name,
-                    obsolete: isObsoleteTrain(train)
+                    obsolete: isObsoleteTrain(train),
+                    tokens: trainTokens?.(train)
                 })),
                 remainingTokens: gameState.stations.filter(
                     (station) => station.companyId === company.id && station.status === 'available'
@@ -156,7 +162,11 @@
             <CompanyOrderOverview {companies} {appearances} {firstVisible} {lastVisible} />
         </div>
     {/if}
-    <ol use:trackVisibleCompanies use:revealCurrentCompany={currentCompanyId}>
+    <ol
+        use:trackVisibleCompanies
+        use:revealCurrentCompany={currentCompanyId}
+        {@attach chainSidewaysScroll}
+    >
         {#each entries as { company, appearance, amount, trains, remainingTokens } (company.id)}
             {@const completed = completedCompanyIds.includes(company.id)}
             {@const detailed = showDetails || currentCompanyId === company.id}
@@ -207,6 +217,7 @@
                                         name={train.name}
                                         color={train.color}
                                         obsolete={train.obsolete}
+                                        tokens={train.tokens}
                                     />
                                 {:else}
                                     <span

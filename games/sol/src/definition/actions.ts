@@ -1,4 +1,3 @@
-
 export enum ActionType {
     ChooseMove = 'ChooseMove',
     ChooseConvert = 'ChooseConvert',

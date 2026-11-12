@@ -1,26 +1,31 @@
 import { assert } from '@tabletop/common'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
+import { regionName } from '../data/mapSlots.js'
 import { PowerQuestionKind } from '../model/question.js'
 import { discardCards, returnTokensFrom } from '../util/discard.js'
 import { isLockedFor } from '../util/locked.js'
 import { askQuestion } from '../util/questions.js'
-import { registerEffect, type EffectContext } from './registry.js'
-import { pawnSiteId, regionOfPawn } from './vocabulary.js'
+import { registerEffect, type EffectContext, type PlayMapChanges } from './registry.js'
+import { denizensAfterPlay, pawnSiteId, regionOfPawn } from './vocabulary.js'
 
 const PILGRIMAGE = 'denizen.nomad.pilgrimage'
 
-/** R-7.2.2-H1, R-9.2 — a locked card cannot be moved, and "cannot" beats the card's "all". */
-function denizensLeaving(ctx: EffectContext): string[] {
+/**
+ * R-7.2.2-H1, R-9.2 — a locked card cannot be moved, and "cannot" beats the card's "all". Given its play's
+ * `mapChanges`, on the map that play leaves.
+ */
+function denizensLeaving(ctx: EffectContext, mapChanges?: PlayMapChanges): string[] {
     const siteId = pawnSiteId(ctx.state, ctx.playerId)
-    return ctx.state
-        .denizensAt(siteId)
-        .filter((cardId) => !isLockedFor(ctx.state, ctx.playerId, cardId))
+    return denizensAfterPlay(ctx.state, siteId, mapChanges).filter(
+        (cardId) => !isLockedFor(ctx.state, ctx.playerId, cardId, siteId)
+    )
 }
 
 // "When Played, move all denizens at your site to the Dispossessed. Shuffle and draw denizens from
 //  the Dispossessed equal to the number you moved. Peek at them and put them on your region's discard pile."
 registerEffect(PILGRIMAGE, powerIndexOf(PILGRIMAGE, PowerTiming.WhenPlayed), {
     choices: [],
+    mapLeaving: (ctx) => denizensLeaving(ctx, ctx.mapChanges),
     hidden: (ctx) => {
         const cardIds = denizensLeaving(ctx)
         return cardIds.length > 0 ? { kind: 'dispossessedExchange', cardIds } : undefined
@@ -50,7 +55,7 @@ registerEffect(PILGRIMAGE, powerIndexOf(PILGRIMAGE, PowerTiming.WhenPlayed), {
         const moved = `Pilgrimage: moved ${leaving.join(', ')} from ${siteId} to the Dispossessed; drew ${drawn.length} from it, peeked`
         if (drawn.length === 1) {
             return {
-                summary: `${moved}, and put it on the ${region} discard pile`,
+                summary: `${moved}, and put it on the ${regionName(region)} discard pile`,
                 peeked: drawn,
                 pileDeposits: discardCards(ctx.state, ctx.playerId, drawn, region, {
                     region,
@@ -69,7 +74,7 @@ registerEffect(PILGRIMAGE, powerIndexOf(PILGRIMAGE, PowerTiming.WhenPlayed), {
             cardIds: drawn
         })
         return {
-            summary: `${moved}, and will stack them on the ${region} discard pile`,
+            summary: `${moved}, and will stack them on the ${regionName(region)} discard pile`,
             peeked: drawn
         }
     }

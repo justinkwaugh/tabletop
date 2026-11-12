@@ -11,12 +11,14 @@ import { nanoid } from 'nanoid'
 import { Type, type Static } from 'typebox'
 import type { GameStore } from '../persistence/stores/gameStore.js'
 import type { TaskService } from '../tasks/taskService.js'
+import { countOutcome, enqueueMaintenancePage, reportMaintenance } from './maintenanceRun.js'
 
 const PAGE_SIZE = 25
 
 export enum FinalScoresBackfillOutcome {
     AlreadyScored = 'alreadyScored',
     Abandoned = 'abandoned',
+    Called = 'called',
     NoScoring = 'noScoring',
     Unreadable = 'unreadable',
     WinnerMismatch = 'winnerMismatch',
@@ -61,7 +63,7 @@ export async function runFinalScoresBackfillPage(
     const counts = { ...task.counts }
     for (const game of games) {
         const scored = await backfillGame(dependencies, game, task.write)
-        counts[scored.outcome] = (counts[scored.outcome] ?? 0) + 1
+        countOutcome(counts, scored.outcome)
         if (scored.outcome !== FinalScoresBackfillOutcome.AlreadyScored)
             report(task, 'game', {
                 gameId: game.id,
@@ -95,11 +97,7 @@ async function enqueueFinalScoresBackfill(
     tasks: Pick<TaskService, 'createPushTask'>,
     payload: FinalScoresBackfillTask
 ): Promise<void> {
-    await tasks.createPushTask({
-        queue: 'maintenance',
-        path: '/games/finalScoresBackfill',
-        payload
-    })
+    await enqueueMaintenancePage(tasks, '/games/finalScoresBackfill', payload)
 }
 
 async function backfillGame(
@@ -110,6 +108,7 @@ async function backfillGame(
     if (listed.finalScores) return { outcome: FinalScoresBackfillOutcome.AlreadyScored }
     if (listed.result === GameResult.Abandoned)
         return { outcome: FinalScoresBackfillOutcome.Abandoned }
+    if (listed.call) return { outcome: FinalScoresBackfillOutcome.Called }
     const scoring = lookupTitle(titles, listed.typeId)?.runtime.scoring
     if (!scoring) return { outcome: FinalScoresBackfillOutcome.NoScoring }
 
@@ -149,8 +148,6 @@ function completeFinalScores(
     }
 }
 
-function report(task: FinalScoresBackfillTask, event: string, detail: object): void {
-    console.log(
-        `Final scores backfill ${JSON.stringify({ runId: task.runId, write: task.write, event, ...detail })}`
-    )
+function report(task: FinalScoresBackfillTask, event: 'game' | 'complete', detail: object): void {
+    reportMaintenance('Final scores backfill', task, event, detail)
 }

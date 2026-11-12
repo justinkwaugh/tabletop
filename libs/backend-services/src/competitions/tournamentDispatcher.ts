@@ -11,6 +11,7 @@ import { enqueueTournamentTask, type TournamentTask } from './tournamentTasks.js
 import { updateTournamentRegistration } from './tournamentRegistration.js'
 import { generateTournamentSchedule } from './tournamentScheduler.js'
 import { reserveTournamentTables } from './tournamentDispatch.js'
+import { TournamentEntrantUnavailableError } from '../games/tournamentGames.js'
 
 export class TournamentDispatcher {
     constructor(
@@ -116,11 +117,19 @@ export class TournamentDispatcher {
             }
             const claimed = tournament.stages.find((value) => value.id === stage.id)?.dispatch
             if (!claimed || tournament.paused || !tournamentInPlay(tournament.status)) return
-            for (const tableId of claimed.reserved)
-                await this.provision(tournament.id, stage.id, tableId)
+            let unavailableEntrant: TournamentEntrantUnavailableError | undefined
+            for (const tableId of claimed.reserved) {
+                try {
+                    await this.provision(tournament.id, stage.id, tableId)
+                } catch (error) {
+                    if (!(error instanceof TournamentEntrantUnavailableError)) throw error
+                    unavailableEntrant = error
+                }
+            }
             const latest = await this.store.read(tournament.id)
             assertExists(latest, 'Tournament disappeared')
             await this.notify(latest)
+            if (unavailableEntrant) throw unavailableEntrant
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Tournament dispatch failed'
             tournament = await this.store.update(tournament.id, undefined, false, (current) => {

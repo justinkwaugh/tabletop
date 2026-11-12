@@ -1,4 +1,4 @@
-import { FieldValue, Query, Transaction } from '@google-cloud/firestore'
+import { Query, Transaction } from '@google-cloud/firestore'
 import { createClient, type RedisClientType } from 'redis'
 import { randomUUID } from 'node:crypto'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi, type MockInstance } from 'vitest'
@@ -14,6 +14,7 @@ import {
     UserStatus,
     createGameFork,
     type GameState,
+    type HydratedGameState,
     type Tournament,
     type TournamentDraft,
     type User
@@ -63,6 +64,18 @@ const scoredDefinition = {
     }
 }
 
+const pointsBehindDefinition = {
+    ...scoredDefinition,
+    info: { ...definition.info, id: 'pointsBehind' },
+    runtime: {
+        ...scoredDefinition.runtime,
+        scoring: {
+            ...scoredDefinition.runtime.scoring,
+            tiebreakRule: 'pointsBehind' as const
+        }
+    }
+}
+
 describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_REDIS_HOST)(
     'Tournament provisioning with Firestore and Redis',
     { timeout: 15000 },
@@ -73,7 +86,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             socket: { host: process.env.CACHE_TEST_REDIS_HOST, reconnectStrategy: false }
         })
         const { cache, pool, guardPool } = cacheFixture(client)
-        const store = new FirestoreGameStore(cache, db, prefix)
+        const store = new FirestoreGameStore(cache, db, { tournamentCachePrefix: prefix })
         const tournaments = new FirestoreTournamentStore(cache, db, prefix)
         const users: User[] = Array.from({ length: 8 }, (_, index) => ({
             id: `${prefix}-user-${index}`,
@@ -102,13 +115,21 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             tasks,
             notifications,
             cache,
-            { synthetic: definition, scored: scoredDefinition }
+            {
+                synthetic: definition,
+                scored: scoredDefinition,
+                pointsBehind: pointsBehindDefinition
+            }
         )
         const enqueue = vi.fn<TaskService['createPushTask']>(async () => undefined)
         const service = new TournamentService(
             tournaments,
             userService,
-            { synthetic: definition, scored: scoredDefinition },
+            {
+                synthetic: definition,
+                scored: scoredDefinition,
+                pointsBehind: pointsBehindDefinition
+            },
             notifications,
             games,
             { createPushTask: enqueue }
@@ -139,7 +160,8 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             concurrency = tableSize,
             gamesPerEntrant = tableSize,
             titleId = 'synthetic',
-            shortGameIds = true
+            shortGameIds = true,
+            scoring: Tournament['rules']['scoring'] = 'splitWinsV1'
         ) {
             enqueue.mockReset()
             enqueue.mockResolvedValue(undefined)
@@ -180,7 +202,10 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                     tableSize,
                     gameConfig: {},
                     concurrency,
-                    scoring: 'splitWinsV1',
+                    scoring,
+                    ...(titleId === 'pointsBehind' && scoring === 'placementV1'
+                        ? { tiebreakRule: 'pointsBehind' as const }
+                        : {}),
                     registration: { kind: 'whenFull', capacity }
                 }
             }
@@ -468,6 +493,37 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(await tournaments.readGameLinks(tournament.id)).toEqual(links)
         })
 
+        it('shows each active game’s Game Progress as play moves on', async () => {
+            const { tournament } = await fixture()
+            await service.runTask({ tournamentId: tournament.id })
+            const [link] = await tournaments.readGameLinks(tournament.id)
+            expect(link.progress).toBeUndefined()
+            const game = await store.findGameById(link.gameId, true)
+            assertExists(game?.state)
+            const progress = { fraction: 0.25, label: 'Round 2 of 8' }
+            await store.addActionsToGame({
+                game,
+                state: game.state,
+                actions: [
+                    {
+                        id: 'move',
+                        gameId: game.id,
+                        source: ActionSource.System,
+                        type: 'move',
+                        index: 0
+                    }
+                ],
+                validator: async (_game, _existing, _next, _actions, gameUpdates) => {
+                    gameUpdates.progress = progress
+                    return UpdateValidationResult.Proceed
+                }
+            })
+            const links = await tournaments.readGameLinks(tournament.id)
+            expect(links.find((moved) => moved.gameId === link.gameId)?.progress).toEqual(progress)
+            const [group] = await service.groupResults([tournament.id])
+            expect(group.activeProgress).toBe(0.25)
+        })
+
         it('creates a league group locked with its assigned roster, starts it, and accepts retried creation', async () => {
             enqueue.mockReset()
             enqueue.mockResolvedValue(undefined)
@@ -637,7 +693,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(transactions).not.toHaveBeenCalled()
         })
 
-        it('breaks tied tournament scores by tiebreak total and emails final results once', async () => {
+        it('breaks tied tournament scores by tiebreak total and emails final results once to those who want them', async () => {
             const { tournament, schedule } = await fixture(3, 7, 3, 3, 'scored')
             await service.runTask({ tournamentId: tournament.id })
             const links = await tournaments.readGameLinks(tournament.id)
@@ -675,14 +731,28 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(before.standings.map((row) => row.rank)).toEqual([1, 2, 3, 4, 5, 6, 7])
             enqueue.mockClear()
             notify.mockClear()
-            await service.runTask({ tournamentId: tournament.id })
+            const optedOut = users[1]
+            users[1] = {
+                ...optedOut,
+                preferences: {
+                    preventWebNotificationPrompt: false,
+                    preferredColorsEnabled: false,
+                    preferredColors: [],
+                    gameAndCompetitionEmails: false
+                }
+            }
+            try {
+                await service.runTask({ tournamentId: tournament.id })
+            } finally {
+                users[1] = optedOut
+            }
             const emails = enqueue.mock.calls.map(([options]) => options)
-            expect(emails).toHaveLength(6)
+            expect(emails).toHaveLength(5)
             expect(emails.every((options) => options.path === '/tournaments/resultsEmail')).toBe(
                 true
             )
             expect(emails.map((options) => options.payload)).toEqual(
-                users.slice(1, 7).map((user) => ({
+                users.slice(2, 7).map((user) => ({
                     tournamentId: tournament.id,
                     userId: user.id,
                     toEmail: user.email
@@ -704,12 +774,87 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             assertExists(emailed)
             const stored = await store.findGameById(links[0].gameId)
             expect(stored?.finalScores).toEqual(recordedScores.get(links[0].gameId))
-            await db.doc(`games/${links[0].gameId}`).update({ finalScores: FieldValue.delete() })
             const rebuilt = await service.rebuildStandings(tournament.id, emailed.revision, admin)
             expect(rebuilt.stages[0].standings).toEqual(emailed.stages[0].standings)
             expect(rebuilt.resultsEmailedAt).toBe(emailed.resultsEmailedAt)
             expect(enqueue).not.toHaveBeenCalled()
             expect(schedule.tables).toHaveLength(7)
+        })
+
+        it('keeps a running event on totals until a rebuild moves every row to points behind', async () => {
+            const { tournament } = await fixture(3, 7, 3, 3, 'pointsBehind')
+            await service.runTask({ tournamentId: tournament.id })
+            const links = await tournaments.readGameLinks(tournament.id)
+            const scoresFor = async (gameId: string, values: number[]) => {
+                const game = await store.findGameById(gameId)
+                assertExists(game)
+                return Object.fromEntries(
+                    game.players.map((player, index) => [player.id, values[index]])
+                )
+            }
+            const finishScored = async (gameId: string) =>
+                finish(gameId, GameResult.Win, [0], await scoresFor(gameId, [4, -3, 1]))
+
+            await finishScored(links[0].gameId)
+            const before = await tournaments.read(tournament.id)
+            assertExists(before?.stages[0].standings)
+            expect(before.rules.tiebreakRule).toBeUndefined()
+            expect(before.stages[0].standings.some((row) => row.pointsBehind !== undefined)).toBe(
+                false
+            )
+            expect(before.stages[0].standings.some((row) => row.tiebreak !== undefined)).toBe(true)
+
+            const rebuilt = await service.rebuildStandings(tournament.id, before.revision, admin)
+            expect(rebuilt.rules.tiebreakRule).toBe('pointsBehind')
+            const played = rebuilt.stages[0].standings?.filter((row) => row.completed > 0)
+            expect(played?.map((row) => row.pointsBehind).sort()).toEqual([0, 3, 7])
+            expect(played?.every((row) => row.tiebreak !== undefined)).toBe(true)
+
+            for (const link of links.slice(1)) await finishScored(link.gameId)
+            const finished = await tournaments.read(tournament.id)
+            assertExists(finished?.stages[0].standings)
+            expect(finished.status).toBe('finished')
+            expect(
+                finished.stages[0].standings.every(
+                    (row) => row.pointsBehind !== undefined && row.tiebreak !== undefined
+                )
+            ).toBe(true)
+            const again = await service.rebuildStandings(tournament.id, finished.revision, admin)
+            expect(again.stages[0].standings).toEqual(finished.stages[0].standings)
+        })
+
+        it('keeps totals and placements when rebuilding an event that finished on them', async () => {
+            const { tournament } = await fixture(3, 7, 3, 3, 'pointsBehind')
+            await service.runTask({ tournamentId: tournament.id })
+            const links = await tournaments.readGameLinks(tournament.id)
+            for (const link of links) {
+                const game = await store.findGameById(link.gameId)
+                assertExists(game)
+                await finish(
+                    link.gameId,
+                    GameResult.Win,
+                    [0],
+                    Object.fromEntries(
+                        game.players.map((player, index) => [player.id, [4, -3, 1][index]])
+                    )
+                )
+            }
+            const finished = await service.get(tournament.id, admin)
+            expect(finished.tournament.status).toBe('finished')
+            const rebuilt = await service.rebuildStandings(
+                tournament.id,
+                finished.tournament.revision,
+                admin
+            )
+            expect(rebuilt.rules.tiebreakRule).toBeUndefined()
+            expect(rebuilt.stages[0].standings?.some((row) => row.pointsBehind !== undefined)).toBe(
+                false
+            )
+            expect(rebuilt.stages[0].standings).toEqual(finished.tournament.stages[0].standings)
+            const after = await service.get(tournament.id, admin)
+            expect(after.standings?.map((row) => [row.userId, row.rank])).toEqual(
+                finished.standings?.map((row) => [row.userId, row.rank])
+            )
         })
 
         it('audits credit corrections, preserves game history, and rebuilds the same standings', async () => {
@@ -758,8 +903,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             expect(corrected.stages[0].corrections).toEqual([
                 expect.objectContaining({
                     administratorId: admin.id,
-                    reason: request.reason,
-                    gameActionCount: originalGame.state?.actionCount
+                    reason: request.reason
                 })
             ])
             expect(await store.findGameById(links[0].gameId, true)).toEqual(originalGame)
@@ -791,6 +935,108 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
                 )
             ).toBe(true)
             expect(restored.stages[0].corrections).toHaveLength(2)
+        })
+
+        it('ranks by average place, corrects a whole finishing order and rebuilds the same standings', async () => {
+            const { tournament } = await fixture(3, 7, 3, 3, 'pointsBehind', true, 'placementV1')
+            await service.runTask({ tournamentId: tournament.id })
+            const links = await tournaments.readGameLinks(tournament.id)
+            const scoreOf = (userId: string) => users.findIndex((user) => user.id === userId) + 1
+            const orders = new Map<string, string[]>()
+            for (const link of links) {
+                const game = await store.findGameById(link.gameId)
+                assertExists(game)
+                const seated = game.players.map((player) => {
+                    assertExists(player.userId)
+                    return player.userId
+                })
+                const finalScores = Object.fromEntries(
+                    game.players.map((player, index) => [player.id, scoreOf(seated[index])])
+                )
+                const best = seated.indexOf(
+                    seated.reduce((a, b) => (scoreOf(a) > scoreOf(b) ? a : b))
+                )
+                await finish(link.gameId, GameResult.Win, [best], finalScores)
+                orders.set(
+                    link.tableId,
+                    [...seated].sort((a, b) => scoreOf(b) - scoreOf(a))
+                )
+            }
+            const placeTotals = (tableOrders: Map<string, string[]>) => {
+                const totals = new Map<string, number>()
+                for (const order of tableOrders.values())
+                    order.forEach((userId, index) =>
+                        totals.set(userId, (totals.get(userId) ?? 0) + index + 1)
+                    )
+                return totals
+            }
+            const finished = await service.get(tournament.id, admin)
+            assertExists(finished.standings)
+            expect(finished.tournament.status).toBe('finished')
+            expect(finished.standings.map((row) => row.placeTotal)).toEqual(
+                finished.standings.map((row) => placeTotals(orders).get(row.userId))
+            )
+            const averages = finished.standings.map((row) => (row.placeTotal ?? 0) / row.completed)
+            expect(averages).toEqual([...averages].sort((a, b) => a - b))
+            const firstTable = links[0].tableId
+            const firstOrder = orders.get(firstTable)
+            assertExists(firstOrder)
+            const placed = (order: string[]) =>
+                Object.fromEntries(order.map((userId, index) => [userId, index + 1]))
+            expect(
+                finished.games?.find((game) => game.tableId === firstTable)?.finishingPlaces
+            ).toEqual(placed(firstOrder))
+
+            const reversed = [...firstOrder].reverse()
+            const request = {
+                revision: finished.tournament.revision,
+                tableId: firstTable,
+                winningUserIds: [reversed[0]],
+                finishingPlaces: placed(reversed),
+                reason: 'Reversed result'
+            }
+            const { finishingPlaces: _omitted, ...withoutPlaces } = request
+            await expect(
+                service.correctResult(tournament.id, withoutPlaces, admin)
+            ).rejects.toThrow('Place every player')
+            await expect(
+                service.correctResult(
+                    tournament.id,
+                    { ...request, winningUserIds: [reversed[1]] },
+                    admin
+                )
+            ).rejects.toThrow('winners first')
+            await expect(
+                service.correctResult(
+                    tournament.id,
+                    {
+                        ...request,
+                        finishingPlaces: { ...request.finishingPlaces, [reversed[2]]: 2 }
+                    },
+                    admin
+                )
+            ).rejects.toThrow('Place every player')
+            await expect(
+                service.correctResult(
+                    tournament.id,
+                    { ...request, finishingPlaces: { ...request.finishingPlaces, [admin.id]: 4 } },
+                    admin
+                )
+            ).rejects.toThrow('Place every player')
+            const corrected = await service.correctResult(tournament.id, request, admin)
+            orders.set(firstTable, reversed)
+            const credited = await service.get(tournament.id, admin)
+            expect(credited.standings?.map((row) => row.placeTotal)).toEqual(
+                credited.standings?.map((row) => placeTotals(orders).get(row.userId))
+            )
+            expect(
+                credited.games?.find((game) => game.tableId === firstTable)?.finishingPlaces
+            ).toEqual(request.finishingPlaces)
+            expect(corrected.stages[0].corrections?.[0].finishingPlaces).toEqual(
+                request.finishingPlaces
+            )
+            const rebuilt = await service.rebuildStandings(tournament.id, corrected.revision, admin)
+            expect(rebuilt.stages[0].standings).toEqual(corrected.stages[0].standings)
         })
 
         it('keeps finding the long-id games of a tournament created before short ids', async () => {
@@ -959,6 +1205,25 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             await service.runTask({ tournamentId: tournament.id })
             expect((await tournaments.readGameLinks(tournament.id)).length).toBe(7)
             expect((await tournaments.read(tournament.id))?.schedulingError).toBeUndefined()
+        })
+
+        it('creates the other tables when a banned entrant cannot be seated, and reports the error', async () => {
+            const { tournament } = await fixture()
+            const bannedId = users[0].id
+            await db.doc(`users/${bannedId}`).update({ status: 'inactive' })
+            try {
+                await expect(service.runTask({ tournamentId: tournament.id })).rejects.toThrow(
+                    'active accounts'
+                )
+                const created = await tournaments.readGameLinks(tournament.id)
+                expect(created.length).toBeGreaterThan(0)
+                expect(created.length).toBeLessThan(7)
+                expect(created.flatMap((link) => link.userIds)).not.toContain(bannedId)
+                const stopped = await tournaments.read(tournament.id)
+                expect(stopped?.schedulingError).toContain('active accounts')
+            } finally {
+                await db.doc(`users/${bannedId}`).update({ status: UserStatus.Active })
+            }
         })
 
         it('retries the original countdown task after registration locked and a game was committed', async () => {
@@ -1671,7 +1936,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST || !process.env.CACHE_TEST_
             await expect(
                 games.updateGame({ gameId, fields: { tournament: undefined }, user: admin })
             ).rejects.toThrow('membership cannot be changed')
-            const fork = createGameFork({
+            const fork = createGameFork<GameState, HydratedGameState>({
                 game,
                 state: game.state,
                 actions: [],

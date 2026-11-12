@@ -140,7 +140,9 @@ export function pushAvailableQueueSpot(
         return
     }
 
-    const pointIndex = reversePhysicalRow ? points.length - 1 - nextSelectionIndex : nextSelectionIndex
+    const pointIndex = reversePhysicalRow
+        ? points.length - 1 - nextSelectionIndex
+        : nextSelectionIndex
     const point = points[pointIndex]
     if (!point) {
         return

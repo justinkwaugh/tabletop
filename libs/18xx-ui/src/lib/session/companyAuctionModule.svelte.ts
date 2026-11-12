@@ -6,10 +6,12 @@ import {
     FormCompany,
     canBeAuctioned,
     PassCompanyAuction,
+    stationReservation,
     type CompanyAuctionState,
     type CompanyFormationChoice,
     type EighteenXXTitleRules,
-    type HomePosition
+    type HomePosition,
+    type StationReservation
 } from '@tabletop/18xx'
 import type { ModuleSession } from './moduleSession.js'
 import { StagedSelection, singleChoice } from './stagedSelection.svelte.js'
@@ -59,6 +61,11 @@ export class CompanyAuctionModule {
     )
     selectedHome = $derived.by(() =>
         this.session.selectionsVisible ? this.opening.value('home') : undefined
+    )
+    chosenHome = $derived.by((): StationReservation | undefined =>
+        this.selectedCompanyId && this.selectedHome
+            ? stationReservation(this.selectedCompanyId, this.selectedHome)
+            : undefined
     )
     openingAmount = $derived.by(() => {
         const model = this.model

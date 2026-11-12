@@ -2761,14 +2761,6 @@
    "companyId": "UR"
   },
   {
-   "id": "recorded:146",
-   "gameId": "1817-20758",
-   "source": "user",
-   "playerId": "5472",
-   "type": "FinishTrack",
-   "companyId": "UR"
-  },
-  {
    "id": "recorded:147",
    "gameId": "1817-20758",
    "source": "user",
@@ -3958,14 +3950,6 @@
    "locationId": "G6"
   },
   {
-   "id": "recorded:254",
-   "gameId": "1817-20758",
-   "source": "user",
-   "playerId": "3576",
-   "type": "FinishTrack",
-   "companyId": "BESS"
-  },
-  {
    "id": "recorded:255",
    "gameId": "1817-20758",
    "source": "user",
@@ -4224,14 +4208,6 @@
     "city": "city"
    },
    "expectedCost": 0
-  },
-  {
-   "id": "recorded:269",
-   "gameId": "1817-20758",
-   "source": "user",
-   "playerId": "1230",
-   "type": "FinishTrack",
-   "companyId": "GT"
   },
   {
    "id": "recorded:270",

@@ -1,6 +1,6 @@
 <script lang="ts">
     import { assert } from '@tabletop/common'
-    import { tableHeaderState } from './tableHeaderState.js'
+    import { actingOperatingCompany } from '@tabletop/18xx'
     import { currentRoundHeading } from './roundHeading.js'
     import { isHistoryBookkeeping } from './historyNavigation.js'
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
@@ -9,6 +9,7 @@
         session,
         bordered = true,
         centered = false,
+        attention = false,
         artworkAvailable = false,
         publishedArtwork = false,
         onToggleArtwork
@@ -18,6 +19,7 @@
         onToggleArtwork?: () => void
         bordered?: boolean
         centered?: boolean
+        attention?: boolean
         session: EighteenXXSessionView
     } = $props()
     let compact = $state(false)
@@ -46,7 +48,7 @@
         for (const element of [header, phase, turn]) observer.observe(element)
         return { destroy: () => observer.disconnect() }
     }
-    const gameState = $derived(tableHeaderState(session))
+    const gameState = $derived(session.gameState)
     const titleRounds = $derived(session.presentation.titleRounds)
     const opening = $derived(
         session.presentation.openingRound?.inProgress(gameState)
@@ -61,16 +63,17 @@
         )
     )
     const companyId = $derived(
-        gameState.operatingSet?.companyOrder.find(
-            (id) => !gameState.operatingSet?.completedCompanyIds.includes(id)
-        )
+        actingOperatingCompany(gameState) ??
+            gameState.operatingSet?.companyOrder.find(
+                (id) => !gameState.operatingSet?.completedCompanyIds.includes(id)
+            )
     )
     const company = $derived(gameState.companies.find((company) => company.id === companyId))
     const turnPlayerIds = $derived.by(() => {
         if (!session.isViewingHistory) return gameState.activePlayerIds
-        const actorId = session.history.visibleContext.actions.findLast(
-            (action) => !isHistoryBookkeeping(action)
-        )?.playerId
+        const actorId = session.actions
+            .slice(0, gameState.actionCount)
+            .findLast((action) => !isHistoryBookkeeping(action))?.playerId
         return actorId ? [actorId] : gameState.activePlayerIds
     })
 </script>
@@ -92,6 +95,7 @@
     class:compact
     class:centered
     class:borderless={!bordered}
+    class:attention
 >
     <div class="phase">
         <strong>
@@ -180,8 +184,16 @@
     header.borderless {
         border-bottom: 0;
     }
+    header.attention {
+        --rail-text: var(--rail-surface-inset, #1b232d);
+        --rail-muted: var(--rail-surface-inset, #1b232d);
+        --rail-hover: #00000014;
+        border-bottom-color: var(--rail-focus, #b8cddd);
+        background: var(--rail-focus, #b8cddd);
+    }
     header:not(.centered) {
         width: 100%;
+        padding-left: 8px;
         flex-wrap: wrap;
         row-gap: 0;
     }

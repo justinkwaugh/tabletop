@@ -1,8 +1,8 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     type GameAction,
@@ -17,7 +17,7 @@ import {
 
 export const BidForLot = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('BidForLot'),
         lotId: Type.String(),
         amount: Type.Integer({ minimum: 1 })
@@ -53,6 +53,10 @@ export class HydratedBidForLot extends HydratableAction<typeof BidForLot> implem
     }
     apply(state: HydratedGameState & SelectionAuctionState): void {
         assert(this.isValid(state), 'Invalid BidForLot action')
-        requireActiveSelectionAuction(state, this.#rules).bid(this.playerId, this.lotId, this.amount)
+        requireActiveSelectionAuction(state, this.#rules).bid(
+            this.playerId,
+            this.lotId,
+            this.amount
+        )
     }
 }

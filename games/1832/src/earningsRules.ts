@@ -1,28 +1,17 @@
 import { EighteenThirtyTwoCharters } from './charters.js'
 import { EighteenThirtyTwoMarket } from './stockMarket.js'
-import { assertExists } from '@tabletop/common'
-import { companyShareCount, dividendEntitlements, type EarningsRules } from '@tabletop/18xx'
+import { marketDividendEntitlements, requiredShareCount, type EarningsRules } from '@tabletop/18xx'
 import { requireEighteenThirtyTwoState } from './state.js'
 import { SystemShareCount, isSystem } from './systems.js'
 
-const shareCount = (state: Parameters<EarningsRules['shareCount']>[0], companyId: string) => {
-    const count = companyShareCount(state, EighteenThirtyTwoCharters, companyId)
-    assertExists(count, 'Dividends require a share count')
-    return count
-}
+const shareCount: EarningsRules['shareCount'] = (state, companyId) =>
+    requiredShareCount(state, EighteenThirtyTwoCharters, companyId)
 
 export const EighteenThirtyTwoEarningsRules: EarningsRules = {
     choices: () => ['pay', 'half-pay', 'withhold'],
     shareCount,
     // Initial-offering and redeemed shares pay the company; open-market shares pay nobody (§9.1.1).
-    entitlements: (state, companyId) =>
-        dividendEntitlements(state, companyId, (certificate) =>
-            certificate.poolId === 'open-market'
-                ? undefined
-                : certificate.poolId === 'initial-offering'
-                  ? { kind: 'company', companyId }
-                  : certificate.owner
-        ),
+    entitlements: marketDividendEntitlements,
     // A half dividend rounds each share's payment up; the company keeps the rest (§9.1.2).
     retainedRevenue(state, companyId, choice, revenue) {
         if (choice === 'withhold') return revenue

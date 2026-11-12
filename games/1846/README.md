@@ -94,7 +94,8 @@ Run logic tests with `pnpm exec vitest run games/1846/src`.
 Use the harness's Protected mode to inspect Player, spectator, and Host views.
 For 3–5 players, ordinary hotseat conceals cards until explicitly opened, but retains canonical
 state locally. Each selection reveals the next packet and blocks player Undo;
-recorded history remains reversible. Projected Exploration is not yet supported.
+recorded history remains reversible. Exploring from a player's or spectator's view replays the
+draft at random, keeping every packet that player was dealt and where the cards they passed went.
 No existing title or saved-state compatibility reader is changed.
 
 See [the design note](../../research/18xx/1846-opening-design.md) for the family

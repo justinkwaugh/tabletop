@@ -31,6 +31,8 @@ export type ChatService = {
     sendGameChatMessage(gameChatMessage: GameChatMessage, gameId: string): Promise<void>
     setGameChatBookmark(lastReadTimestamp: Date): Promise<void>
     markLatestRead(): Promise<void>
+    // Absent from a Site Frontend without reporting; the chat shows no Report control then.
+    reportGameChatMessage?(message: GameChatMessage): void
     addListener(listener: ChatListener): void
     removeListener(listener: ChatListener): void
     clear(): void

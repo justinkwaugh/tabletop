@@ -68,8 +68,9 @@
                             <PrivateDescription
                                 {money}
                                 phaseColors={session.presentation.phaseColors}
-                                {token}
+                                tokens={lot.cardTokens}
                                 imageUrl={session.publishedCardImage(lot.id)}
+                                plate={session.publishedCardPlate(lot.id)}
                                 shortName={session.lotName(lot)}
                                 fullName={lot.name}
                                 description={info.description}

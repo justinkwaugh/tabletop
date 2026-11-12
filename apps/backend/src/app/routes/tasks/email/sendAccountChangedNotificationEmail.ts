@@ -9,7 +9,8 @@ const SendAccountChangedNotificationEmailRequest = Type.Object(
     {
         email: Type.String(),
         changeType: Type.Enum(AccountChangeType),
-        timestamp: Type.String()
+        timestamp: Type.String(),
+        username: Type.Optional(Type.String())
     },
     { additionalProperties: false }
 )
@@ -21,13 +22,14 @@ export default async function (fastify: FastifyInstance) {
             schema: { body: SendAccountChangedNotificationEmailRequest }
         },
         async function (request, reply) {
-            const { email, changeType, timestamp } = request.body
+            const { email, changeType, timestamp, username } = request.body
             const dateTimestamp = new Date(timestamp)
 
             await fastify.emailService.sendAccountChangedNotificationEmail(
                 changeType,
                 dateTimestamp,
-                email
+                email,
+                username
             )
             await reply.code(200).send()
         }

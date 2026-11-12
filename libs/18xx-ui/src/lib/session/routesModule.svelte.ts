@@ -2,17 +2,17 @@ import { assert, assertExists } from '@tabletop/common'
 import {
     RouteEvaluation,
     RunTrains,
+    trainRoutesOf,
     type EighteenXXState,
     type EighteenXXTitleRules,
     type OperatingResult,
-    type RevenueCenter,
-    type RoutePath
+    type TrainRoute
 } from '@tabletop/18xx'
-import { routeColor } from '../routes/routePresentation.js'
-import type { MapSelection } from '../maps/mapDrawing.js'
+import { trainRouteOverlays } from '../routes/routePresentation.js'
+import type { MapRoute, MapSelection } from '../maps/mapDrawing.js'
 import { RouteEditor } from './routeEditor.svelte.js'
 import type { ModuleSession } from './moduleSession.js'
-import type { LocalSelection } from './localSelections.js'
+import type { LocalSelection } from '@tabletop/frontend-components'
 
 type RoutesState = ConstructorParameters<typeof RouteEvaluation>[0] &
     Pick<EighteenXXState, 'machineState'>
@@ -27,19 +27,15 @@ export type RoutesSession<State extends RoutesState = RoutesState> = Pick<
     | 'createPlayerAction'
     | 'applyAction'
 >
-export type RouteOverlay = { id: string; color: string; segments: readonly RoutePath[] }
+export type RouteOverlay = MapRoute
 type SolvedRoutes<State> = { state: State; result: OperatingResult; exhaustive: boolean }
-
-function submittedRoutes(result: OperatingResult) {
-    return result.routes.map(({ trainId, start, paths }) => ({ trainId, start, paths }))
-}
 
 export class RoutesModule<State extends RoutesState> implements LocalSelection {
     #solved: SolvedRoutes<State> | undefined = $state.raw()
     constructor(
         private readonly session: RoutesSession<State>,
-        private readonly inspectMap: (selection: MapSelection) => void,
-        private readonly networkRoutes: () => readonly RouteOverlay[]
+        private readonly networkRoutes: () => readonly RouteOverlay[],
+        private readonly mayDrawRoutes: (companyId: string) => boolean = () => false
     ) {}
 
     editor = $derived.by(() => new RouteEditor(this.session.state, this.session.rules.routeRules))
@@ -64,20 +60,45 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
         }
         return this.#solved?.state === state ? this.#solved : undefined
     })
+    editable = $derived.by(() => {
+        const companyId = this.session.state.routeStep?.companyId
+        return this.canRun && !!this.solved && !!companyId && this.mayDrawRoutes(companyId)
+    })
+    shown = $derived.by(() => (this.editor.draft ? this.editor.result : this.solved?.result))
+    drawnReason = $derived.by(() => this.editor.evaluated?.reason)
+    submission = $derived.by((): TrainRoute[] | undefined => {
+        if (!this.canRun) return undefined
+        if (this.editor.draft) return this.editor.evaluated?.result ? this.editor.routes : undefined
+        return this.solved && trainRoutesOf(this.solved.result)
+    })
     overlays = $derived.by((): RouteOverlay[] => {
         if (this.session.publishing) return []
-        const routes = this.editorVisible
-            ? (this.solved?.result.routes ?? this.editor.routes)
-            : (this.session.state.routeStep?.result?.routes ?? [])
-        const overlays: RouteOverlay[] = routes.map((route, index) => ({
-            id: route.trainId,
-            color: routeColor(index),
-            segments: route.paths
+        const trainIds = this.editor.trains.map((train) => train.id)
+        if (!this.editorVisible) return this.recordedRunOverlays(trainIds)
+        const draft = this.editor.draft
+        if (!draft) return trainRouteOverlays(this.solved?.result.routes ?? [], trainIds)
+        const results = this.editor.result?.routes ?? []
+        return draft.routes.map((route) => ({
+            ...trainRouteOverlays(
+                [
+                    {
+                        ...route,
+                        paths: [...route.paths],
+                        bonuses: results.find((result) => result.trainId === route.trainId)?.bonuses
+                    }
+                ],
+                trainIds
+            )[0],
+            ...(route.paths.length ? {} : { start: route.start }),
+            ...(route.trainId === draft.trainId ? { chosen: true as const } : {})
         }))
-        if (this.editorVisible && this.editor.route)
-            overlays.push({ id: 'route-selection', color: '#d58400', segments: this.editor.paths })
-        return overlays
     })
+    /** The run already made; a train bought since can rust trains that ran it. */
+    private recordedRunOverlays(trainIds: readonly string[]): RouteOverlay[] {
+        const routes = this.session.state.routeStep?.result?.routes ?? []
+        const allTrainsStillRunnable = routes.every((route) => trainIds.includes(route.trainId))
+        return trainRouteOverlays(routes, allTrainsStillRunnable ? trainIds : undefined)
+    }
     displayed = $derived.by(() =>
         this.solved || this.session.state.routeStep?.result || this.overlays.length
             ? this.overlays
@@ -91,80 +112,47 @@ export class RoutesModule<State extends RoutesState> implements LocalSelection {
             companyId && result.companyId === companyId,
             'Automatic routes require the operating company'
         )
-        const checked = this.evaluate(state, companyId, submittedRoutes(result))
+        const checked = this.evaluate(state, companyId, trainRoutesOf(result))
         assertExists(checked.result, checked.reason ?? 'Invalid automatic routes')
         this.#solved = { state, result: checked.result, exhaustive }
     }
-    async runSolved() {
-        const result = this.solved?.result
-        assert(this.canRun && result, 'Wait for the train routes to be calculated')
-        await this.session.applyAction(
-            this.session.createPlayerAction(RunTrains, {
-                companyId: result.companyId,
-                routes: submittedRoutes(result)
-            })
-        )
-    }
     selectTrain(trainId: string) {
-        this.assertActive()
-        this.editor.selectTrain(trainId)
+        const solved = this.solved
+        assert(this.editable && solved, 'Routes cannot be drawn')
+        this.editor.selectTrain(trainId, trainRoutesOf(solved.result))
     }
-    selectStart(start: RevenueCenter) {
-        this.assertActive()
-        this.editor.selectStart(start)
-        this.inspectMap({ kind: 'node', ...start })
+    tap(selection: MapSelection): boolean {
+        return this.editable && this.editor.tap(selection)
     }
-    appendPath(path: RoutePath) {
-        this.assertActive()
-        this.editor.append(path)
-        this.inspectMap({ kind: 'path', ...path })
-    }
-    save() {
-        this.assertActive()
-        this.editor.save()
-    }
-    edit(trainId: string) {
-        this.assertActive()
-        this.editor.edit(trainId)
-    }
-    remove(trainId: string) {
-        this.assertActive()
-        this.editor.remove(trainId)
-    }
-    back() {
-        this.editor.back()
-    }
-    async confirm() {
-        const editor = this.editor
-        assert(
-            this.canRun && editor.companyId && !editor.trainId && editor.submission?.result,
-            'Finish the route selection before submitting'
-        )
+    async run() {
+        const companyId = this.session.state.routeStep?.companyId
+        const routes = this.submission
+        assert(companyId && routes, 'There is no legal run to submit')
         await this.session.applyAction(
-            this.session.createPlayerAction(RunTrains, {
-                companyId: editor.companyId,
-                routes: editor.routes
-            })
+            this.session.createPlayerAction(RunTrains, { companyId, routes })
         )
     }
 
+    clearTrain() {
+        assert(this.editable, 'Routes cannot be drawn')
+        this.editor.clearTrain()
+    }
+    /** Drops the drawn routes, so the best run found runs again. */
+    useBestRun() {
+        this.editor.clear()
+    }
     hasManual() {
-        return this.editor.hasSelection
+        return this.editor.hasManual()
     }
     undo() {
-        if (!this.editor.hasSelection) return false
-        this.editor.clear()
-        return true
+        return this.editor.undo()
     }
     clear() {
         this.#solved = undefined
         this.editor.clear()
     }
 
-    private assertActive() {
-        assert(this.canRun, 'Routes are not active')
-    }
-    private evaluate(state: State, companyId: string, routes: ReturnType<typeof submittedRoutes>) {
+    private evaluate(state: State, companyId: string, routes: TrainRoute[]) {
         return new RouteEvaluation(state, this.session.rules.routeRules).evaluate(companyId, routes)
     }
 }

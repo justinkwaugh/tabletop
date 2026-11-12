@@ -873,8 +873,7 @@ class ProjectedExecutionGuard {
             return raw
         }
         const prototype: unknown = Object.getPrototypeOf(value)
-        const isPlain =
-            Array.isArray(value) || prototype === Object.prototype || prototype === null
+        const isPlain = Array.isArray(value) || prototype === Object.prototype || prototype === null
         if (!isPlain) {
             return value
         }

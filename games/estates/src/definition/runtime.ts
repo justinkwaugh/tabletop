@@ -13,6 +13,7 @@ import { EstatesApiActions } from './apiActions.js'
 import { EstatesActionSchemas } from './actionSchemas.js'
 import { EstatesStateHandlers } from './stateHandlers.js'
 import { EstatesScoring } from './scoring.js'
+import { EstatesProgression } from './progression.js'
 
 export const EstatesRuntime = {
     randomnessVersion: 1,
@@ -25,6 +26,7 @@ export const EstatesRuntime = {
     playerColors: [],
     stateLogger: new DefaultStateLogger(),
     scoring: new EstatesScoring(),
+    progression: new EstatesProgression(),
     visibility: {
         state: Visibility.createProjector(EstatesGameState),
         actions: Visibility.createActionProjector(EstatesActionSchemas)

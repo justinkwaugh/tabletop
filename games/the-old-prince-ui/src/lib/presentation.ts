@@ -1,4 +1,8 @@
-import { moneyFormat, type TitlePresentation } from '@tabletop/18xx-ui'
+import {
+    moneyFormat,
+    NoParCompanyPricePresentation,
+    type TitlePresentation
+} from '@tabletop/18xx-ui'
 import MerchantsCard from './images/published/privates/merchants-and-co.webp'
 import MerchantsThumb from './images/published/privates/merchants-and-co-600.webp'
 import VernonRiverCard from './images/published/privates/vernon-river-bridge-company.webp'
@@ -99,7 +103,12 @@ import Peir6Card from './images/published/peirs/v2/peir-6-georgetown.webp'
 import Peir6Thumb from './images/published/peirs/v2/peir-6-georgetown-600.webp'
 import Peir7Card from './images/published/peirs/v2/peir-7-charlottetown.webp'
 import Peir7Thumb from './images/published/peirs/v2/peir-7-charlottetown-600.webp'
-import { TheOldPrinceCompanies, TheOldPrinceNames } from '@tabletop/the-old-prince'
+import { isTreasuryPoolId } from '@tabletop/18xx'
+import {
+    TheOldPrinceCompanies,
+    TheOldPrinceNames,
+    TheOldPrinceTitleRules
+} from '@tabletop/the-old-prince'
 import { TheOldPrinceCompanyNames } from './companyPresentation.js'
 import { TheOldPrincePhaseChart } from './phaseChart.js'
 import { TheOldPrinceMarketZones, TheOldPrincePublishedMarketZones } from './marketPresentation.js'
@@ -110,8 +119,7 @@ import {
 } from './trainPresentation.js'
 
 export const TheOldPrincePresentation: TitlePresentation = {
-    money: moneyFormat('$'),
-    trainShortLabels: { D: 'D' },
+    money: moneyFormat(TheOldPrinceTitleRules.currencySymbol),
     phaseChart: TheOldPrincePhaseChart,
     trainColors: TheOldPrinceTrainColors,
     phaseColors: TheOldPrinceTrainColors,
@@ -120,7 +128,7 @@ export const TheOldPrincePresentation: TitlePresentation = {
     hideMarketLegend: true,
     exchangePoolId: 'reserved',
     companyNames: TheOldPrinceCompanyNames,
-    companyPricePresentation: { showPar: false, label: 'Value' },
+    companyPricePresentation: NoParCompanyPricePresentation,
     numberedShareNames: {
         PEIR: Object.fromEntries(
             TheOldPrinceCompanies.map((company) => [company.number, company.name])
@@ -130,13 +138,16 @@ export const TheOldPrincePresentation: TitlePresentation = {
     mapFocusExcludedCompanyIds: ['PEIR'],
     portfolioCompanyIds: ['UB'],
     includedPortfolioCompanyIds: ['UB'],
-    poolName: (pool) =>
-        pool.id === 'reserved'
+    // The printed Union Bank card cannot name the railway drawn for it at setup.
+    publishedCardPlates: ['UB'],
+    poolName: (poolId) =>
+        poolId === 'reserved'
             ? 'Exchange'
-            : pool.owner.kind === 'company'
+            : isTreasuryPoolId(poolId)
               ? 'Treasury'
-              : TheOldPrinceNames.pool(pool.id),
+              : TheOldPrinceNames.pool(poolId),
     privatePurchaseLabel: 'Buy Hunslet',
+    privatePurchaseEmpty: 'You don’t own the Hunslet',
     // Second-variant share and president certificates for the seven charters and six branches.
     publishedShareImages: {
         C: { share: CharlottetownShare, president: CharlottetownPresident },

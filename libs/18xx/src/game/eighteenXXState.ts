@@ -27,8 +27,10 @@ import {
     validateFinances
 } from '../finance/finance.js'
 import { CashCrisisFields } from '../funding/cashCrisis.js'
+import { CorporateFinanceFields } from '../finance/corporateFinance.js'
 import { FundingFields, validateTrainFunding } from '../funding/trainFunding.js'
 import { LoanFields } from '../loans/loans.js'
+import { AccessRightFields } from '../rights/accessRights.js'
 import { LocationMarkerFields } from '../map/locationMarkers.js'
 import { MapFields, RailwayMapState } from '../map/mapState.js'
 import { validateStations } from '../map/station.js'
@@ -42,6 +44,7 @@ import {
     validateCompanyDecisions
 } from '../privates/companyDecision.js'
 import { RouteFields, validateRouteStep } from '../routes/route.js'
+import { RunInstructionFields } from '../routes/instructedRuns.js'
 import { StationStep, validateStationStep } from '../stations/stationPlacement.js'
 import { CompanyAuctionFields } from '../stock/companyAuction.js'
 import { StockMarket } from '../stock/stockMarket.js'
@@ -96,7 +99,8 @@ export const RailwayFields = {
     ...PhaseFields,
     ...EarningsFields,
     ...PurchaseOfferFields,
-    ...RouteFields
+    ...RouteFields,
+    ...RunInstructionFields
 }
 type RuntimeFields = Omit<typeof RailwayFields, 'companies' | 'certificates' | 'purchaseOffer'> &
     typeof FinanceFields &
@@ -110,6 +114,8 @@ type RuntimeFields = Omit<typeof RailwayFields, 'companies' | 'certificates' | '
     typeof LocationMarkerFields &
     typeof CompanyAuctionFields &
     typeof LoanFields &
+    typeof AccessRightFields &
+    typeof CorporateFinanceFields &
     typeof CashCrisisFields & {
         tranches: Type.TOptional<Type.TArray<typeof CompanyTranche>>
         ownershipLimitExemptions: Type.TOptional<Type.TArray<typeof OwnershipLimitExemption>>
@@ -212,9 +218,9 @@ export type StateValidation<State> = (state: State, components: TitleComponents)
 
 export const validateRailwayComponents: StateValidation<EighteenXXState> = (
     state,
-    { map, tileSet, depot, market }
+    { map, tileSet, depot, market, sharesFullCities }
 ) => {
-    new RailwayMapState(map, tileSet, state.tileInventory).validateStations(state)
+    new RailwayMapState(map, tileSet, state.tileInventory).validateStations(state, sharesFullCities)
     const companyIds = state.companies.map((company) => company.id)
     const playerIds = state.players.map((player) => player.playerId)
     depot.validateInventory(state.trainInventory, companyIds, playerIds)
@@ -223,20 +229,30 @@ export const validateRailwayComponents: StateValidation<EighteenXXState> = (
     validateFinances(state, playerIds)
 }
 
-export const validateRailwayState: StateValidation<EighteenXXState> = (state, components) => {
-    validateStockRound(state)
-    validateOperatingSet(state)
-    validateTrackStep(state)
-    validateStationStep(state)
-    validateTrainFunding(state)
-    validateFinalResults(state)
-    validateCompanyDecisions(state)
-    validateRouteStep(state)
-    validatePhaseChange(state)
-    validateEarningsDistribution(state)
-    validateTrainPurchaseStep(state)
-    validateRailwayComponents(state, components)
+/**
+ * The railway state checks. `operatingInterruptions` names a title's states that pause an
+ * operating turn after its run, such as another president's decision, keeping the turn's
+ * earnings until play resumes.
+ */
+export function railwayStateValidation({
+    operatingInterruptions = []
+}: { operatingInterruptions?: readonly string[] } = {}): StateValidation<EighteenXXState> {
+    return (state, components) => {
+        validateStockRound(state)
+        validateOperatingSet(state)
+        validateTrackStep(state)
+        validateStationStep(state)
+        validateTrainFunding(state)
+        validateFinalResults(state)
+        validateCompanyDecisions(state)
+        validateRouteStep(state)
+        validatePhaseChange(state)
+        validateEarningsDistribution(state, operatingInterruptions)
+        validateTrainPurchaseStep(state)
+        validateRailwayComponents(state, components)
+    }
 }
+export const validateRailwayState = railwayStateValidation()
 
 export function inKnownPhase<State extends HydratedEighteenXXState>(
     state: State,

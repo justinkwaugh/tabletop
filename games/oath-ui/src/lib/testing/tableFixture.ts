@@ -29,6 +29,7 @@ import {
     isLetPeek,
     MachineState,
     MoveWarbands,
+    OBSIDIAN_CAGE_ID,
     OathRevision,
     OfferCitizenship,
     OathType,
@@ -45,6 +46,8 @@ import {
     SetupChoice,
     Suit,
     TOP_CRADLE_SLOT,
+    Trade,
+    TradeOption,
     Travel,
     UseActionPower,
     PowerChoiceKind,
@@ -57,6 +60,8 @@ import {
     mapSlotsFor,
     reliquarySlotId,
     type CitizenshipTerms,
+    type ExchangeTerms,
+    type OpenDeal,
     type CitizenshipTransfer,
     type LetPeekSubject,
     type OathPlayerState,
@@ -90,6 +95,19 @@ import {
     type PlayedTable
 } from './sessionHarness.js'
 import { shroudedWoodState } from './shroudedWoodTable.js'
+import { gamblingHallUsed } from './gamblingHallTable.js'
+import { wrestlersDefends } from './wrestlersTable.js'
+import { landWardenSecondAdviser, landWardenVisionKept } from './landWardenTable.js'
+import { searchFullSiteTable } from './searchFullSiteTable.js'
+import { useOnEveryCardTable } from './useOnEveryCardTables.js'
+import { zoomPagingSearchTable } from './zoomPagingTables.js'
+import { greatSlumPowers } from './greatSlumPowersTable.js'
+import { fullSiteSearch } from './fullSiteSearchTable.js'
+import { facedownPickerTable } from './facedownPickerTables.js'
+import { RELIC_HUNTER, campaignSteps } from './campaignStepsTable.js'
+import { campaignLedgerTable } from './campaignLedgerTable.js'
+import { battleLossTable } from './battleLossTable.js'
+import { battleResultTable } from './battleResultTable.js'
 import {
     FOREST_PATHS,
     HOSPITALITY,
@@ -98,25 +116,75 @@ import {
     travelCard,
     woodCardsState,
     woodHospitalityState,
+    woodPortalBanksState,
     type WoodCardsScene
 } from './woodCardsTable.js'
 import { woodPickTable } from './woodPicksTable.js'
 import { heldAttackTable } from './heldAttackTable.js'
+import { kinshipDissentTable, kinshipPlagueTable, kinshipWakeTable } from './kinshipTables.js'
 import { RecordedStory } from './recordedStory.js'
+import { tribunalAnswerTable, tribunalDealsTable, tribunalOfferTable } from './tribunalTables.js'
+import { longSeatNameTable } from './longSeatNameTables.js'
+import {
+    banditRampartTable,
+    edificeMapTable,
+    fallenSpireTable,
+    festivalTable,
+    greatSpireMenuTable,
+    greatSpireSwapTable,
+    ruinedTempleTable,
+    squalidAskedTable
+} from './edificeTables.js'
+import {
+    gameOneAt,
+    gameThreeContinued,
+    gameThreeOpen,
+    gameThreeOpenSameNames,
+    gameTwoAt
+} from './chronicleTables.js'
+import {
+    rehearsalOpen,
+    rehearsalPinnedOpen,
+    rehearsalResult,
+    rehearsalSearch
+} from './rehearsalTables.js'
 
 export type TableName =
     | 'setup'
+    | 'smallFriendsSites'
+    | 'disguiseBorrowed'
     | 'shortBank'
     | 'searching'
     | 'prophets'
     | 'offTurn'
     | 'actPhase'
     | 'leavingBuriedGiant'
+    | 'buriedGiantHiddenPlace'
+    | 'buriedGiantHiddenPlaceRich'
+    | 'buriedGiantHiddenPlacePoor'
     | 'warbandMoveAsked'
     | 'staleWarbandMoveAsked'
     | 'joinDefenceAsked'
     | 'exileDefeated'
     | 'imperialDefeated'
+    | 'battleLossRows'
+    | 'battleLossHospital'
+    | 'battleLossHospitalPlaced'
+    | 'resultGap'
+    | 'resultZealots'
+    | 'resultShort'
+    | 'resultOutright'
+    | 'resultHospital'
+    | 'resultBandits'
+    | 'resultHearts'
+    | 'resultGapSpoils'
+    | 'resultCageSpoils'
+    | 'resultOutrightSpoils'
+    | 'resultHospitalSpoils'
+    | 'resultBanditsSpoils'
+    | 'resultEnvoySpoils'
+    | 'resultAllySpoils'
+    | 'resultAllyHospitalSpoils'
     | 'visionBacks'
     | 'restBanks'
     | 'restRefused'
@@ -126,12 +194,16 @@ export type TableName =
     | 'wakeMobReturn'
     | 'wakeSite'
     | 'wakeForced'
+    | 'kinshipWake'
+    | 'kinshipPlague'
+    | 'kinshipDissent'
     | 'endOfRound'
     | 'goalsRail'
     | 'goalsRailThePeople'
     | 'goalsRailProtection'
     | 'goalsRailDevotion'
     | 'trade'
+    | 'heldRow'
     | 'careless'
     | 'musterEmptyBank'
     | 'recover'
@@ -142,6 +214,17 @@ export type TableName =
     | 'advisers'
     | 'moves'
     | 'campaign'
+    | 'campaignSteps'
+    | 'campaignStepsNoPlans'
+    | 'campaignStepsSitesOnly'
+    | 'campaignStepsRelicHunter'
+    | 'campaignStepsOathkeeper'
+    | 'campaignStepsOathkeeperSevenWarbands'
+    | 'campaignLedger'
+    | 'campaignLedgerPicked'
+    | 'campaignLedgerLost'
+    | 'campaignLedgerHospital'
+    | 'campaignLedgerHospitalLost'
     | 'observatory'
     | 'cardOpensSearch'
     | 'cardChangesSearch'
@@ -167,6 +250,16 @@ export type TableName =
     | 'searchTollByRhys'
     | 'searchConspiracy'
     | 'searchConspiracyNoTake'
+    | 'searchPlayTo'
+    | 'searchFullSite'
+    | 'searchFullSiteRoom'
+    | 'useOnEveryCard'
+    | 'useOnEveryCardScepter'
+    | 'useOnEveryCardPair'
+    | 'useOnEveryCardBusy'
+    | 'zoomPaging'
+    | 'zoomPagingSearch'
+    | 'flipConspiracy'
     | 'flipConspiracyNoTake'
     | 'campaignTwoDefenders'
     | 'heldAttack'
@@ -183,6 +276,8 @@ export type TableName =
     | 'wonOutright'
     | 'spoils'
     | 'spoilsRelicHunter'
+    | 'spoilsRelicHunterDrum'
+    | 'spoilsRelicHunterCage'
     | QuestionTableName
     | 'warbandGiveAsked'
     | 'offerCitizenship'
@@ -195,6 +290,7 @@ export type TableName =
     | 'usePower'
     | ModifierScene
     | FacedownScene
+    | FacedownTollScene
     | 'greatHerdFlip'
     | 'showOne'
     | 'exileCitizens'
@@ -204,6 +300,23 @@ export type TableName =
     | 'usurperWins'
     | 'deedWriter'
     | ExchangeScene
+    | 'tribunalOffer'
+    | 'tribunalOfferFull'
+    | 'tribunalOfferBefore'
+    | 'tribunalAnswer'
+    | 'tribunalDeals'
+    | 'tribunalDealAsked'
+    | 'tribunalDealsEnded'
+    | 'tribunalAnswerLong'
+    | 'tribunalDealsLong'
+    | 'tribunalDealAskedLong'
+    | 'tribunalDealsEndedLong'
+    | 'longSeatLetters'
+    | 'longSeatSpaces'
+    | 'longSeatTypical'
+    | 'longSeatCitizen'
+    | 'longSeatOneWord'
+    | 'longSeatOneWordExile'
     | 'woodTraveller'
     | 'woodRuler'
     | 'woodRulerToll'
@@ -211,6 +324,7 @@ export type TableName =
     | 'woodCards'
     | 'woodCardsRuler'
     | 'woodCardsLow'
+    | 'woodPortalBanks'
     | 'woodStays'
     | 'woodHospitality'
     | 'woodHospitalityAsked'
@@ -227,6 +341,8 @@ export type TableName =
     | 'banditCrownExile'
     | 'banditCrownCampaign'
     | 'banditCrownFive'
+    | 'banditCrownChief'
+    | 'banditChief'
     | 'tollAsked'
     | 'oracleToll'
     | 'oracleNoFavor'
@@ -239,19 +355,75 @@ export type TableName =
     | 'witchsBargain'
     | 'witchsBargainSilenced'
     | 'witchsBargainOneOther'
+    | 'witchsBargainOlder'
+    | 'witchsBargainOlderOneFavor'
+    | 'witchsBargainOlderCostOnly'
+    | 'witchsBargainOlderSilencedOneFavor'
+    | 'witchsBargainSteps'
+    | 'witchsBargainStepsShort'
     | 'drumAsked'
     | 'drumAskedCitizen'
     | 'drumAfterToll'
     | 'drumAfterBrassHorse'
     | 'messenger'
     | 'messengerTwoOwners'
+    | 'gamblingHallAsked'
+    | 'gamblingHallJinx'
+    | 'wrestlersPick'
+    | 'wrestlersOnePlace'
+    | 'landWardenSecondAdviser'
+    | 'landWardenVisionKept'
+    | 'greatSlumPowers'
+    | 'fullSiteSearch'
+    | 'facedownDreamThief'
+    | 'facedownDreamThiefSecond'
+    | 'facedownInquisitor'
+    | 'facedownIvoryEye'
     | 'warningSignals'
+    | 'warningSignalsNothingToMove'
+    | 'useBadge'
+    | 'useBadgeNothingToPick'
+    | 'useBadgeWrappedHeld'
+    | 'useBadgeOverHeld'
+    | 'useBadgeTribunal'
     | PickerScene
     | PowerSitesScene
     | PickerTwoScene
     | 'historyAct'
     | 'historyCampaign'
+    | 'historySecondWind'
+    | 'historyFreeGranted'
     | 'historyDeals'
+    | 'edificeMap'
+    | 'edificeAncientForge'
+    | 'greatSpireMenu'
+    | 'greatSpireMenuEmpty'
+    | 'greatSpireSwap'
+    | 'greatSpireSwapVision'
+    | 'fallenSpire'
+    | 'fallenSpireShort'
+    | 'squalidAsked'
+    | 'festivalDistrict'
+    | 'banditRampartDefender'
+    | 'banditRampartBandits'
+    | 'ruinedTemple'
+    | 'forestTempleSearch'
+    | 'chronicleVow'
+    | 'chronicleOffer'
+    | 'chronicleAnswer'
+    | 'chronicleStory'
+    | 'chronicleResult'
+    | 'chronicleBuild'
+    | 'chronicleRepair'
+    | 'chronicleSuit'
+    | 'chronicleHeal'
+    | 'chronicleRecord'
+    | 'chronicleSameNames'
+    | 'chronicleOpen'
+    | 'rehearsalResult'
+    | 'rehearsalOpen'
+    | 'rehearsalSearch'
+    | 'rehearsalPinnedOpen'
 
 const PROPHET_ADVISERS = [
     'denizen.order.messenger',
@@ -336,7 +508,11 @@ const faceup = (cardId: string) => ({ cardId, faceUp: true })
 function questionTable(
     question: PowerQuestion,
     seats: { me?: Partial<Seat>; ann?: Partial<Seat> } = {},
-    board: { siteCards?: Record<string, string>; oathRevision?: number } = {}
+    board: {
+        siteCards?: Record<string, string>
+        oathRevision?: number
+        favorBank?: Record<Suit, number>
+    } = {}
 ): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
     const state = testState(
@@ -364,6 +540,7 @@ function questionTable(
             map: allMapSlots(),
             siteCards: { ...fixtureSitesOnTheBoard(), ...board.siteCards },
             oathRevision: board.oathRevision,
+            ...(board.favorBank ? { favorBank: board.favorBank } : {}),
             pendingQuestions: {
                 queue: [question],
                 askingPlayerId: 'ann',
@@ -373,6 +550,60 @@ function questionTable(
     )
     openTurn(state, 'ann')
     state.activePlayerIds = ['me']
+    state.vault = testVaultWithRelics({})
+    return tableOf(state)
+}
+
+/**
+ * R-10.13-H1 — Fae Merchant's question to Dana, an Exile, who drew the Cup of Plenty and holds the
+ * Obsidian Cage, 2 Imperial warbands in it from beating Ann's force, and Ring of Devotion. Ann is
+ * the Chancellor and Rhys a Citizen; with `bea`, Bea is a Citizen too: a third Imperial board.
+ */
+function faeMerchantCageTable(bea: boolean): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const seat = (playerId: string, color: Color, status: PlayerStatus) =>
+        testPlayer({ playerId, color, status, siteId: home, favor: 2 })
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Red,
+                siteId: home,
+                favor: 4,
+                secrets: 2,
+                relicIds: [OBSIDIAN_CAGE_ID, RING],
+                warbandsOnBoard: { dana: 3 }
+            }),
+            {
+                ...seat('ann', Color.Purple, PlayerStatus.Chancellor),
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 2 }
+            },
+            seat('rhys', Color.Blue, PlayerStatus.Citizen),
+            ...(bea ? [seat('bea', Color.Yellow, PlayerStatus.Citizen)] : [])
+        ],
+        {
+            machineState: MachineState.PowerQuestion,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            oathRevision: CURRENT_OATH_REVISION,
+            warbandsOnCards: { [OBSIDIAN_CAGE_ID]: { [IMPERIAL_WARBANDS]: 2 } },
+            pendingQuestions: {
+                queue: [
+                    {
+                        kind: PowerQuestionKind.BottomRelic,
+                        cardId: 'denizen.beast.fae-merchant',
+                        askedPlayerId: 'dana',
+                        relicCardId: CUP
+                    }
+                ],
+                askingPlayerId: 'dana',
+                resumeMachineState: MachineState.ActPhase
+            }
+        }
+    )
+    openTurn(state, 'dana')
+    state.activePlayerIds = ['dana']
     state.vault = testVaultWithRelics({})
     return tableOf(state)
 }
@@ -487,6 +718,8 @@ const QUESTION_TABLES = {
             },
             { me: { relicIds: [RING] } }
         ),
+    askFaeMerchantCage: () => faeMerchantCageTable(false),
+    askFaeMerchantCageThree: () => faeMerchantCageTable(true),
     askSkeletonKey: () =>
         questionTable({
             kind: PowerQuestionKind.TakeOrLeaveRelic,
@@ -591,6 +824,35 @@ const QUESTION_TABLES = {
             },
             {},
             { oathRevision: CURRENT_OATH_REVISION }
+        ),
+    // R-7.1.3-H2 — shield, two shields, blank and a doubling: (1 + 2) × 2 = 6, the Beast bank empty.
+    askGamblingHallBank: () =>
+        questionTable(
+            {
+                kind: PowerQuestionKind.GamblingHallBank,
+                cardId: 'denizen.discord.gambling-hall',
+                ...asked,
+                shields: 6,
+                faces: [
+                    { shields: 1, doubling: false },
+                    { shields: 2, doubling: false },
+                    { shields: 0, doubling: false },
+                    { shields: 0, doubling: true }
+                ],
+                banks: [Suit.Discord, Suit.Arcane, Suit.Order, Suit.Hearth, Suit.Nomad]
+            },
+            {},
+            {
+                oathRevision: CURRENT_OATH_REVISION,
+                favorBank: {
+                    [Suit.Discord]: 3,
+                    [Suit.Arcane]: 2,
+                    [Suit.Order]: 4,
+                    [Suit.Hearth]: 1,
+                    [Suit.Beast]: 0,
+                    [Suit.Nomad]: 3
+                }
+            }
         ),
     askSneakAttack: () =>
         questionTable({
@@ -1065,8 +1327,13 @@ function fixtureSitesOnTheBoard(): Record<string, string> {
     )
 }
 
-/** This seat's Act Phase at the top Cradle site, which holds no card; the other Cradle site holds one. */
-function actPhaseTable(): PlayedTable {
+const BANDIT_CHIEF = 'denizen.discord.bandit-chief'
+
+/**
+ * This seat's Act Phase at the top Cradle site, which holds no card; the other Cradle site holds one.
+ * With `banditChief`, Ann's faceup Bandit Chief puts 3 bandits on each empty site (R-2.8.3).
+ */
+function actPhaseTable(banditChief = false): PlayedTable {
     const [home, next] = mapSlotsFor(Region.Cradle)
     const state = testState(
         [
@@ -1076,7 +1343,10 @@ function actPhaseTable(): PlayedTable {
                 color: Color.Purple,
                 status: PlayerStatus.Chancellor,
                 siteId: mapSlotId(Region.Provinces, 0),
-                advisers: [{ cardId: 'denizen.arcane.tutor', faceUp: false }]
+                advisers: [
+                    { cardId: 'denizen.arcane.tutor', faceUp: false },
+                    ...(banditChief ? [{ cardId: BANDIT_CHIEF, faceUp: true }] : [])
+                ]
             })
         ],
         {
@@ -1115,6 +1385,21 @@ function leavingBuriedGiantTable(): PlayedTable {
     )
     openTurn(state, 'me')
     state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
+/**
+ * R-11.13-H2: the Buried Giant's table, with The Hidden Place in the middle Hinterland slot and two
+ * faceup secrets: from the Buried Giant one flip satisfies The Hidden Place at 4 Supply, and two
+ * make the Travel free. 3 Supply leaves only the free way; 5 offers both; 3 with one faceup secret
+ * (the other facedown) leaves The Hidden Place unlit.
+ */
+function buriedGiantHiddenPlaceTable(supply: number, secrets = 2): PlayedTable {
+    const table = leavingBuriedGiantTable()
+    const state = new HydratedOathGameState(table.state)
+    state.oathRevision = CURRENT_OATH_REVISION
+    state.siteCards[mapSlotId(Region.Hinterland, 1)] = 'site.the-hidden-place'
+    Object.assign(state.getPlayerState('me'), { supply, secrets, secretsFacedown: 2 - secrets })
     return tableOf(state)
 }
 
@@ -1162,9 +1447,9 @@ function majorEventsTable(): PlayedTable {
 }
 
 /**
- * Ann's turn opens after her last closed in round 4: Bea, an Exile, Searched the world deck and
+ * Ann's turn opens after their last closed in round 4: Bea, an Exile, Searched the world deck and
  * stopped on a Vision (R-5.1.2); in round 5 Dana, the Chancellor holding the Grand Scepter, offered
- * Bea Citizenship and she accepted (R-6.6.1); Rhys seized the People's Favor from Dana in a
+ * Bea Citizenship and Bea accepted (R-6.6.1); Rhys seized the People's Favor from Dana in a
  * Campaign (R-5.5.2, R-2.5.3) and with it the title (R-2.11). Long: the Favor then went back and
  * forth once more, more rows than a phone's board holds.
  */
@@ -1175,7 +1460,13 @@ function sinceLastTurnTable(long: boolean): PlayedTable {
     const hydrated = testState(
         [
             testPlayer({ playerId: 'ann', color: Color.Blue, siteId: slum, favor: 4, secrets: 2 }),
-            testPlayer({ playerId: 'bea', color: Color.Yellow, siteId: mountain, favor: 1, secrets: 1 }),
+            testPlayer({
+                playerId: 'bea',
+                color: Color.Yellow,
+                siteId: mountain,
+                favor: 1,
+                secrets: 1
+            }),
             testPlayer({
                 playerId: 'dana',
                 color: Color.Purple,
@@ -1217,7 +1508,8 @@ function sinceLastTurnTable(long: boolean): PlayedTable {
         table.machineState = MachineState.ActPhase
     }
     const peoplesFavor =
-        (holderPlayerId: string, value: number, mobSide: boolean) => (table: OathProjectedState) => {
+        (holderPlayerId: string, value: number, mobSide: boolean) =>
+        (table: OathProjectedState) => {
             table.banners[Banner.PeoplesFavor] = { holderPlayerId, value, mobSide }
         }
     const seize = (story: RecordedStory, playerId: string, from: string) =>
@@ -1382,6 +1674,21 @@ function tradeTable(): PlayedTable {
     return tradeSiteTable()
 }
 
+/** The seat holds four relics and both banners: more than one line of its card holds. */
+function heldRowTable(): PlayedTable {
+    return tradeSiteTable(
+        {
+            relicIds: [
+                'relic.oracular-pig',
+                'relic.circlet-of-command',
+                'relic.ring-of-devotion',
+                'relic.cup-of-plenty'
+            ]
+        },
+        { banners: testBanners({ [Banner.PeoplesFavor]: 'me', [Banner.DarkestSecret]: 'me' }) }
+    )
+}
+
 /** R-6.6.2.a: the seat is the Chancellor with Careless's Reliquary space uncovered, every bank holding favor. */
 function carelessTable(): PlayedTable {
     return tradeSiteTable(
@@ -1418,7 +1725,12 @@ function recoverSeenTable(): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
     const [first, second] = [`${home}.relic.0`, `${home}.relic.1`]
     return tradeSiteTable(
-        { favor: 6, secrets: 3, peekedRelicSlotIds: [second], peekedRelics: { [second]: 'relic.map' } },
+        {
+            favor: 6,
+            secrets: 3,
+            peekedRelicSlotIds: [second],
+            peekedRelics: { [second]: 'relic.map' }
+        },
         {
             siteCards: { ...fixtureSitesOnTheBoard(), [home]: 'site.ancient-city' },
             relicsBySite: { [home]: [{ slotId: first }, { slotId: second }] },
@@ -1877,7 +2189,7 @@ function sacrificeSplitTable(onBoard: number, atSite: number): PlayedTable {
  * R-5.5.7, Relic Hunter — the spoils of the same battle when 'att' took the top two Provinces
  * sites and the relic lying at the first (seen, as the targeted relics are), but not the pawn.
  */
-function spoilsRelicHunterTable(): PlayedTable {
+function spoilsRelicHunterState(): HydratedOathGameState {
     const state = battleState('spoils')
     const [first, second] = mapSlotsFor(Region.Provinces)
     const slotId = `${first}.relic.0`
@@ -1892,6 +2204,111 @@ function spoilsRelicHunterTable(): PlayedTable {
         { kind: CampaignTargetKind.Site, siteId: second },
         { kind: CampaignTargetKind.SiteRelic, slotId }
     ]
+    // A facedown relic is targeted only with Relic Hunter declared, so it is the attacker's plan.
+    campaign.plansUsedBy = { att: ['denizen.order.relic-hunter'] }
+    return state
+}
+
+function spoilsRelicHunterTable(): PlayedTable {
+    return tableOf(spoilsRelicHunterState())
+}
+
+/**
+ * Relic Hunter's "any relics you take" — the same spoils with 'def''s Dragonskin Drum taken too:
+ * their pawn is at the attacker's site, so the Drum could be targeted (R-5.5.2).
+ */
+function spoilsRelicHunterDrumTable(): PlayedTable {
+    const state = spoilsRelicHunterState()
+    state.getPlayerState('def').relicIds = ['relic.dragonskin-drum']
+    const campaign = state.campaign
+    assertExists(campaign, 'The battle is fought mid-Campaign')
+    campaign.targets = [
+        ...campaign.targets,
+        { kind: CampaignTargetKind.Relic, cardId: 'relic.dragonskin-drum' }
+    ]
+    return tableOf(state)
+}
+
+/**
+ * Relic Hunter's "any relics you take" with the Obsidian Cage (R-10.13-H1): Dana won against Bea
+ * at the Steppe, which Bea rules, taking it, the facedown Cup of Plenty there and Bea's Cage, which
+ * holds 2 Imperial warbands. Ann is the Chancellor and Rhys a Citizen, so the Cage sent down asks
+ * Dana which of their boards take them.
+ */
+function spoilsRelicHunterCageTable(): PlayedTable {
+    const site = mapSlotId(Region.Provinces, 0)
+    const slotId = `${site}.relic.0`
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Red,
+                siteId: site,
+                warbandsOnBoard: { dana: 4 },
+                warbandsInPersonalBank: { dana: 10 },
+                peekedRelics: { [slotId]: 'relic.cup-of-plenty' }
+            }),
+            testPlayer({
+                playerId: 'bea',
+                color: Color.Yellow,
+                siteId: site,
+                favor: 4,
+                warbandsOnBoard: { bea: 2 },
+                warbandsInPersonalBank: { bea: 10 },
+                relicIds: [OBSIDIAN_CAGE_ID]
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Hinterland, 0),
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 }
+            }),
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Blue,
+                status: PlayerStatus.Citizen,
+                siteId: mapSlotId(Region.Cradle, 0),
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 1 }
+            })
+        ],
+        {
+            machineState: MachineState.CampaignVictory,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            oathRevision: CURRENT_OATH_REVISION,
+            siteCards: { ...fixtureSitesOnTheBoard(), [site]: 'site.steppe' },
+            warbandsBySite: { [site]: { bea: 1 } },
+            warbandsOnCards: { [OBSIDIAN_CAGE_ID]: { [IMPERIAL_WARBANDS]: 2 } },
+            banners: testBanners({}),
+            relicsBySite: { [site]: [{ slotId }] },
+            vault: testVaultWithRelics({ [slotId]: 'relic.cup-of-plenty' }),
+            campaign: {
+                attackerPlayerId: 'dana',
+                defenderPlayerId: 'bea',
+                nonImperialPlayerIds: [],
+                allyPlayerIds: [],
+                targets: [
+                    { kind: CampaignTargetKind.Site, siteId: site },
+                    { kind: CampaignTargetKind.SiteRelic, slotId },
+                    { kind: CampaignTargetKind.Relic, cardId: OBSIDIAN_CAGE_ID }
+                ],
+                attackPool: 3,
+                defensePool: 4,
+                attackRoll: range(0, 3).map(() => ({ swords: 1, hollowSwords: 0, skulls: 0 })),
+                defenseRoll: [1, 1, 0, 0].map((shields) => ({ shields, doubling: false })),
+                defense: 2,
+                swords: 3,
+                defendingForce: [{ at: { kind: 'site', siteId: site }, owner: 'bea', count: 1 }],
+                defendingBandits: 0,
+                ...campaignRecords(),
+                plansUsedBy: { dana: ['denizen.order.relic-hunter'] },
+                attackerVictorious: true
+            }
+        }
+    )
+    openTurn(state, 'dana')
+    state.activePlayerIds = ['dana']
     return tableOf(state)
 }
 
@@ -2023,7 +2440,7 @@ function relicsTable(): PlayedTable {
     return tableOf(state)
 }
 
-/** R-7.1.4: Forced Labor at the seat's site, which the Chancellor rules, so a Search gives her 1 favor. */
+/** R-7.1.4: Forced Labor at the seat's site, which the Chancellor rules, so a Search gives them 1 favor. */
 function searchTollTable(): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
     const state = testState(
@@ -2195,11 +2612,16 @@ function usePowerTable(): PlayedTable {
 }
 
 /**
- * Witch's Bargain in Dana's advisers, in a game created at revision 7: Dana (5 favor, 3 secrets),
- * Rhys (4, 2) and Ann (1, 1) all stand at the top Cradle site, or Ann at the next one, leaving Rhys
- * the only player there. With Vow of Silence too, Dana cannot give anyone secrets.
+ * Witch's Bargain in Dana's advisers, in a game created at revision 7 (or `revision`): Dana
+ * (5 favor, 3 secrets, or `favor` and `secrets`), Rhys (4, 2) and Ann (1, 1) all stand at the top
+ * Cradle site, or Ann at the next one, leaving Rhys the only player there. With Vow of Silence
+ * too, Dana cannot give anyone secrets.
  */
-function witchsBargainTable(silenced: boolean, annAway: boolean): PlayedTable {
+function witchsBargainTable(
+    silenced: boolean,
+    annAway: boolean,
+    dana: { favor?: number; secrets?: number; revision?: OathRevision } = {}
+): PlayedTable {
     const [home, next] = mapSlotsFor(Region.Cradle)
     const state = testState(
         [
@@ -2208,8 +2630,8 @@ function witchsBargainTable(silenced: boolean, annAway: boolean): PlayedTable {
                 color: Color.Purple,
                 status: PlayerStatus.Chancellor,
                 siteId: home,
-                favor: 5,
-                secrets: 3,
+                favor: dana.favor ?? 5,
+                secrets: dana.secrets ?? 3,
                 advisers: [
                     { cardId: 'denizen.arcane.witchs-bargain', faceUp: true },
                     ...(silenced ? [{ cardId: 'denizen.arcane.vow-of-silence', faceUp: true }] : [])
@@ -2238,7 +2660,58 @@ function witchsBargainTable(silenced: boolean, annAway: boolean): PlayedTable {
             map: allMapSlots(),
             siteCards: fixtureSitesOnTheBoard(),
             denizensBySite: { [home]: [] },
-            oathRevision: OathRevision.EngineFixes3
+            oathRevision: dana.revision ?? OathRevision.EngineFixes3
+        }
+    )
+    openTurn(state, 'dana')
+    state.activePlayerIds = ['dana']
+    return tableOf(state)
+}
+
+/**
+ * Witch's Bargain from revision 32, its exchanges steps in order: Dana (Exile) holds it, 2 secrets
+ * (1 to give after the cost) and no favor; Rhys (Exile) 2 favor and 1 secret; Ann, the Chancellor,
+ * 1 favor and 1 secret. All three pawns are at the top Cradle site. `short`: from revision 33, each
+ * step taking as many as the other player holds, Dana holds 2 favor, Rhys 1 favor and no secret,
+ * Ann nothing.
+ */
+function witchsBargainStepsTable(short: boolean): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: home,
+                favor: short ? 2 : 0,
+                secrets: 2,
+                advisers: [{ cardId: 'denizen.arcane.witchs-bargain', faceUp: true }]
+            }),
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Blue,
+                status: PlayerStatus.Exile,
+                siteId: home,
+                favor: short ? 1 : 2,
+                secrets: short ? 0 : 1
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: home,
+                favor: short ? 0 : 1,
+                secrets: short ? 0 : 1
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: [] },
+            oathRevision: short ? OathRevision.EngineFixes28 : OathRevision.EngineFixes27
         }
     )
     openTurn(state, 'dana')
@@ -2327,10 +2800,10 @@ type ExchangeScene =
 const VOW_OF_SILENCE = 'denizen.arcane.vow-of-silence'
 
 /**
- * R-10.8 — Dana, the Chancellor, at Plains with Deed Writer or Tinker's Fair; he rules Plains and
+ * R-10.8 — Dana, the Chancellor, at Plains with Deed Writer or Tinker's Fair; they rule Plains and
  * Great Slum (Imperial warbands) and holds the Grand Scepter and the Cup of Plenty. Rhys, an
- * Exile, rules the Mountain and holds the Bandit Crown with 2 warbands on his board; Ann is a
- * Citizen. `exchangeDeedEmptyBoard`: Rhys holds no Crown and his board is empty.
+ * Exile, rules the Mountain and holds the Bandit Crown with 2 warbands on their board; Ann is a
+ * Citizen. `exchangeDeedEmptyBoard`: Rhys holds no Crown and their board is empty.
  * `exchangeDeedSwap`: the same, in a game at the current revision, where the Mountain's warband
  * comes home before Rhys moves in.
  * `exchangeTinkers`: Rhys holds Vow of Silence. `exchangeGathering`: The Gathering's round asks
@@ -2429,7 +2902,7 @@ function exchangeTable(scene: ExchangeScene): PlayedTable {
 
 /**
  * Messenger: Dana, the Chancellor, stands at the Ancient City (4 Imperial warbands) and rules
- * the Steppe (2) and the Marshes (1); his board is empty. Rhys, an Exile, is at the Mountain.
+ * the Steppe (2) and the Marshes (1); their board is empty. Rhys, an Exile, is at the Mountain.
  */
 function messengerTable(): PlayedTable {
     const [city, steppe] = mapSlotsFor(Region.Cradle)
@@ -2447,7 +2920,13 @@ function messengerTable(): PlayedTable {
                 warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 16 },
                 advisers: [faceup('denizen.order.messenger')]
             }),
-            testPlayer({ playerId: 'rhys', color: Color.Red, siteId: mountain, favor: 2, secrets: 1 })
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Red,
+                siteId: mountain,
+                favor: 2,
+                secrets: 1
+            })
         ],
         {
             machineState: MachineState.ActPhase,
@@ -2475,7 +2954,7 @@ function messengerTable(): PlayedTable {
 
 /**
  * A game from before revision 5, where a Citizen could hold their own warbands beside Imperial
- * ones: Ann, a Citizen with Messenger, has 2 of hers and 1 Imperial on her board, and 3 of each
+ * ones: Ann, a Citizen with Messenger, has 2 of their own and 1 Imperial on their board, and 3 of each
  * at the Steppe. Dana is the Chancellor.
  */
 function messengerTwoOwnersTable(): PlayedTable {
@@ -2519,10 +2998,11 @@ function messengerTwoOwnersTable(): PlayedTable {
 
 /**
  * Warning Signals: Rhys, an Exile, campaigns against the Ancient City, where Dana, the Chancellor,
- * holds 4 Imperial warbands; she also rules the Steppe (2) and the Marshes (1), her board is
- * empty, and she answers with battle plans, Warning Signals among her advisers.
+ * holds 4 Imperial warbands; they also rule the Steppe (2) and the Marshes (1), their board is
+ * empty, and they answer with battle plans, Warning Signals among their advisers. With
+ * `nothingToMove` the Ancient City holds 1 and Dana rules no other site: no warband can move.
  */
-function warningSignalsTable(): PlayedTable {
+function warningSignalsTable(nothingToMove = false): PlayedTable {
     const [city, steppe] = mapSlotsFor(Region.Cradle)
     const [mountain, marshes] = mapSlotsFor(Region.Provinces)
     const state = testState(
@@ -2559,11 +3039,13 @@ function warningSignalsTable(): PlayedTable {
                 [marshes]: 'site.marshes'
             },
             denizensBySite: { [city]: [], [steppe]: [], [mountain]: [], [marshes]: [] },
-            warbandsBySite: {
-                [city]: { [IMPERIAL_WARBANDS]: 4 },
-                [steppe]: { [IMPERIAL_WARBANDS]: 2 },
-                [marshes]: { [IMPERIAL_WARBANDS]: 1 }
-            },
+            warbandsBySite: nothingToMove
+                ? { [city]: { [IMPERIAL_WARBANDS]: 1 } }
+                : {
+                      [city]: { [IMPERIAL_WARBANDS]: 4 },
+                      [steppe]: { [IMPERIAL_WARBANDS]: 2 },
+                      [marshes]: { [IMPERIAL_WARBANDS]: 1 }
+                  },
             campaign: {
                 attackerPlayerId: 'rhys',
                 defenderPlayerId: 'dana',
@@ -2577,7 +3059,11 @@ function warningSignalsTable(): PlayedTable {
                 defense: 0,
                 swords: 0,
                 defendingForce: [
-                    { at: { kind: 'site', siteId: city }, owner: IMPERIAL_WARBANDS, count: 4 }
+                    {
+                        at: { kind: 'site', siteId: city },
+                        owner: IMPERIAL_WARBANDS,
+                        count: nothingToMove ? 1 : 4
+                    }
                 ],
                 defendingBandits: 0,
                 pendingDefenderPlans: { queue: ['dana'] },
@@ -2598,9 +3084,9 @@ type PickerScene = 'pickerWhistle' | 'pickerTerror' | 'pickerPact' | 'pickerCage
  *   still a list); Rhys stands at the Mountain and Ann, the Chancellor, at the Marshes, both at
  *   another site.
  * - `pickerTerror`: Dana, an Exile at the Mountain (Provinces), holds the Darkest Secret and Terror
- *   Spells. Rhys rules the Mountain with 3 and stands at the Marshes with 2 on his board; Dana has 2
- *   at the Marshes and 3 on her board; Ann's pawn is at the Ancient City (Cradle), 2 on her board.
- * - `pickerPact`: Dana, an Exile, holds Blood Pact with 5 warbands on her board.
+ *   Spells. Rhys rules the Mountain with 3 and stands at the Marshes with 2 on their board; Dana has 2
+ *   at the Marshes and 3 on their board; Ann's pawn is at the Ancient City (Cradle), 2 on their board.
+ * - `pickerPact`: Dana, an Exile, holds Blood Pact with 5 warbands on their board.
  * - `pickerCage`: Dana, the Chancellor, holds the Obsidian Cage, which holds 3 of Rhys's warbands
  *   and 2 Imperial; Ann is a Citizen, so the Imperial ones may go to Dana's board or Ann's.
  */
@@ -2717,7 +3203,7 @@ const SALAD_SITE_BANKS: Record<Suit, number> = {
  * The rest of the power pickers: discard piles, repeated banks, the "may" and the "or". Seats
  * Dana (purple), Rhys (red), Ann (blue) and Bea (yellow); Dana is the Chancellor.
  * - `pickerPiles`: Dana's turn at the Great Slum (Provinces), with Scryer, Errand Boy and Bracken
- *   faceup and Convoys at her site. Piles: Cradle 5, Provinces 3, Hinterland 8, a Vision on top.
+ *   faceup and Convoys at their site. Piles: Cradle 5, Provinces 3, Hinterland 8, a Vision on top.
  * - `pickerBanks`: Rhys's turn, an Exile with Alchemist and Memory of Nature and 3 secrets. The
  *   banks hold Discord 2, Arcane 2, Order 4, Hearth 3, Beast 1, Nomad 0; three Beast cards are
  *   at sites, so X is 3.
@@ -2865,7 +3351,11 @@ function pickerTwoTable(scene: PickerTwoScene): PlayedTable {
                 [wastes]: []
             },
             warbandsBySite: may
-                ? { [plains]: { [IMPERIAL_WARBANDS]: 2 }, [mountain]: { ann: 2 }, [wastes]: { ann: 3 } }
+                ? {
+                      [plains]: { [IMPERIAL_WARBANDS]: 2 },
+                      [mountain]: { ann: 2 },
+                      [wastes]: { ann: 3 }
+                  }
                 : {},
             favorBank:
                 scene === 'pickerSaladShort'
@@ -2885,7 +3375,9 @@ function pickerTwoTable(scene: PickerTwoScene): PlayedTable {
             },
             banners: testBanners(vault ? { [Banner.DarkestSecret]: 'rhys' } : {}),
             vault: testVaultWithRelics(
-                Object.fromEntries(RELIQUARY_RELICS.map((relic, index) => [reliquarySlotId(index), relic]))
+                Object.fromEntries(
+                    RELIQUARY_RELICS.map((relic, index) => [reliquarySlotId(index), relic])
+                )
             )
         }
     )
@@ -2895,25 +3387,35 @@ function pickerTwoTable(scene: PickerTwoScene): PlayedTable {
     return tableOf(state)
 }
 
-type PowerSitesScene = 'pickerSites' | 'pickerSitesOne' | 'pickerPalanquin'
+type PowerSitesScene =
+    | 'pickerSites'
+    | 'pickerSitesOne'
+    | 'pickerPalanquin'
+    | 'pickerSitesNoDefender'
+    | 'pickerCaptainsNoDefender'
 
 /**
- * A power's site picked on the lit map; Dana's turn, the Chancellor. She stands at the Drowned
- * City (Cradle), which Rhys rules with 2. She rules the Plains (Cradle) with 2, where Captains lies
+ * A power's site picked on the lit map; Dana's turn, the Chancellor. They stand at the Drowned
+ * City (Cradle), which Rhys rules with 2. They rule the Plains (Cradle) with 2, where Captains lies
  * and Rhys's pawn stands, and the Great Slum (Provinces) with 3, where Ann's pawn stands; the River
  * and the Mountain are empty; the Hinterland holds the Narrow Pass, the Wastes and a facedown site.
- * - `pickerSites`: Siege Engines is faceup in her advisers. Captains offers the Plains and the
+ * - `pickerSites`: Siege Engines is faceup in their advisers. Captains offers the Plains and the
  *   Great Slum, Siege Engines the Drowned City and the Plains; each costs 1 favor.
  * - `pickerSitesOne`: the same, after a use of Siege Engines: its favor is on it, so it is not
  *   listed and only Captains wants a site.
- * - `pickerPalanquin`: Palanquin in her advisers in place of Siege Engines, and Rhys and Ann stand
- *   with her at the Drowned City.
+ * - `pickerPalanquin`: Palanquin in their advisers in place of Siege Engines, and Rhys and Ann stand
+ *   with them at the Drowned City.
+ * - `pickerSitesNoDefender`: as `pickerSites` in a game made now, but Rhys and Ann stand at the
+ *   River, so no one defends a site they rule: Captains has nothing to pick and is not listed.
+ * - `pickerCaptainsNoDefender`: the same with no adviser: Captains is their one card power, and
+ *   with it left out there is no Use a power.
  */
 function powerSitesTable(scene: PowerSitesScene): PlayedTable {
     const [city, plains] = mapSlotsFor(Region.Cradle)
     const [slum, river, mountain] = mapSlotsFor(Region.Provinces)
     const [pass, wastes] = mapSlotsFor(Region.Hinterland)
     const palanquin = scene === 'pickerPalanquin'
+    const away = scene === 'pickerSitesNoDefender' || scene === 'pickerCaptainsNoDefender'
     const state = testState(
         [
             testPlayer({
@@ -2925,22 +3427,33 @@ function powerSitesTable(scene: PowerSitesScene): PlayedTable {
                 favor: 3,
                 secrets: 2,
                 warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 13 },
-                advisers: [faceup(palanquin ? 'denizen.order.palanquin' : 'denizen.order.siege-engines')]
+                advisers:
+                    scene === 'pickerCaptainsNoDefender'
+                        ? []
+                        : [
+                              faceup(
+                                  palanquin
+                                      ? 'denizen.order.palanquin'
+                                      : 'denizen.order.siege-engines'
+                              )
+                          ]
             }),
             testPlayer({
                 playerId: 'rhys',
                 color: Color.Red,
-                siteId: palanquin ? city : plains,
+                siteId: palanquin ? city : away ? river : plains,
                 warbandsInPersonalBank: { rhys: 8 }
             }),
             testPlayer({
                 playerId: 'ann',
                 color: Color.Blue,
-                siteId: palanquin ? city : slum,
+                siteId: palanquin ? city : away ? river : slum,
                 warbandsInPersonalBank: { ann: 9 }
             })
         ],
         {
+            // A game made now: Captains offers only a site with someone there to attack.
+            ...(away ? { oathRevision: CURRENT_OATH_REVISION } : {}),
             machineState: MachineState.ActPhase,
             chancellorPlayerId: 'dana',
             map: allMapSlots(),
@@ -3104,6 +3617,201 @@ function modifierTable(scene: ModifierScene): PlayedTable {
 }
 
 /**
+ * R-6.2 — the "Use" badge: the Trade menu's table (Oracle at the seat's site, 2 secrets to pay
+ * for it), with Alchemist in place of Master of Disguise and the Ivory Eye held. With
+ * `facedown` Ann, the Chancellor, holds a facedown adviser for the Ivory Eye to peek at;
+ * without, nothing is facedown and the Ivory Eye has nothing to pick. With `held` 'wrapped' the
+ * seat also holds the Circlet of Command and both banners, so its held row runs onto a second
+ * line below the Ivory Eye; with 'underAdviser' Alchemist stands first among the advisers and the
+ * seat holds the Circlet of Command, the Cup of Plenty and the People's Favor, the third under it.
+ */
+function useBadgeTable(
+    facedown: boolean,
+    held: 'relic' | 'wrapped' | 'underAdviser' = 'relic'
+): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: home,
+                supply: 3,
+                favor: 3,
+                secrets: 2,
+                warbandsOnBoard: { me: 3 },
+                relicIds:
+                    held === 'wrapped'
+                        ? ['relic.ivory-eye', 'relic.circlet-of-command']
+                        : held === 'underAdviser'
+                          ? ['relic.circlet-of-command', 'relic.cup-of-plenty']
+                          : ['relic.ivory-eye'],
+                advisers:
+                    held === 'underAdviser'
+                        ? [
+                              faceup('denizen.arcane.alchemist'),
+                              faceup('denizen.beast.birdsong'),
+                              faceup('denizen.hearth.awaited-return')
+                          ]
+                        : [
+                              faceup('denizen.beast.birdsong'),
+                              faceup('denizen.hearth.awaited-return'),
+                              faceup('denizen.arcane.alchemist')
+                          ]
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Hinterland, 0),
+                advisers: facedown ? [{ cardId: 'denizen.arcane.tutor', faceUp: false }] : []
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: {
+                [home]: [
+                    'denizen.order.toll-roads',
+                    'denizen.order.forced-labor',
+                    'denizen.nomad.oracle'
+                ],
+                [mapSlotId(Region.Provinces, 0)]: ['denizen.beast.wolves']
+            },
+            ...(held === 'wrapped'
+                ? {
+                      banners: testBanners({
+                          [Banner.PeoplesFavor]: 'me',
+                          [Banner.DarkestSecret]: 'me'
+                      })
+                  }
+                : held === 'underAdviser'
+                  ? { banners: testBanners({ [Banner.PeoplesFavor]: 'me' }) }
+                  : {}),
+            discardPileCounts: { cradle: 2, provinces: 0, hinterland: 0 },
+            vault: testVaultWithDiscards({
+                [Region.Cradle]: ['denizen.hearth.book-binders', 'denizen.order.council-seat']
+            })
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
+/**
+ * R-6.2, R-2.8.3 — a site card's own "Action:" power: the seat stands at The Tribunal, which holds
+ * no card, so Ann's faceup Bandit Chief puts 3 bandits there.
+ */
+function useBadgeTribunalTable(): PlayedTable {
+    const [home] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({ playerId: 'me', color: Color.Red, siteId: home, favor: 3, secrets: 1 }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0),
+                favor: 2,
+                advisers: [{ cardId: BANDIT_CHIEF, faceUp: true }]
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: { ...fixtureSitesOnTheBoard(), [home]: 'site.the-tribunal' },
+            denizensBySite: { [home]: [] }
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
+/**
+ * R-7.1.1-H2, R-7.4 — the Trade menu's cards for Small Friends' site and Master of Disguise's
+ * borrowed advisers, in a game of this revision. `smallFriendsSites`: the seat, an Exile, stands
+ * at the Great Slums (Toll Roads, Oracle, Map Library; the Inn at the other Cradle site) with
+ * Birdsong and Small Friends; Wolves are at the Plains and The Old Oak at the Mountain.
+ * `disguiseBorrowed`: the seat stands with Toll Roads, Rowdy Pub and Oracle, and holds Birdsong,
+ * Awaited Return and Master of Disguise; Ann, the Chancellor, holds Secret Signal and Marriage.
+ */
+function tradeSitesTable(scene: 'smallFriendsSites' | 'disguiseBorrowed'): PlayedTable {
+    const [home, other] = mapSlotsFor(Region.Cradle)
+    const plains = mapSlotId(Region.Provinces, 0)
+    const mountain = mapSlotId(Region.Hinterland, 0)
+    const adviser = (cardId: string, faceUp = true) => ({ cardId, faceUp })
+    const friends = scene === 'smallFriendsSites'
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Red,
+                siteId: home,
+                supply: 3,
+                favor: 3,
+                secrets: 2,
+                warbandsOnBoard: { dana: 3 },
+                advisers: friends
+                    ? [adviser('denizen.beast.birdsong'), adviser('denizen.beast.small-friends')]
+                    : [
+                          adviser('denizen.beast.birdsong'),
+                          adviser('denizen.hearth.awaited-return'),
+                          adviser('denizen.arcane.master-of-disguise')
+                      ]
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Hinterland, 1),
+                advisers: friends
+                    ? []
+                    : [adviser('denizen.arcane.secret-signal'), adviser('denizen.hearth.marriage')]
+            })
+        ],
+        {
+            oathRevision: CURRENT_OATH_REVISION,
+            machineState: MachineState.ActPhase,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: {
+                ...fixtureSitesOnTheBoard(),
+                [home]: 'site.great-slums',
+                [plains]: 'site.plains',
+                [mountain]: 'site.mountain'
+            },
+            denizensBySite: friends
+                ? {
+                      [home]: [
+                          'denizen.order.toll-roads',
+                          'denizen.nomad.oracle',
+                          'denizen.arcane.map-library'
+                      ],
+                      [other]: ['denizen.hearth.wayside-inn'],
+                      [plains]: ['denizen.beast.wolves'],
+                      [mountain]: ['denizen.beast.the-old-oak']
+                  }
+                : {
+                      [home]: [
+                          'denizen.order.toll-roads',
+                          'denizen.hearth.rowdy-pub',
+                          'denizen.nomad.oracle'
+                      ],
+                      [plains]: ['denizen.beast.wolves']
+                  }
+        }
+    )
+    openTurn(state, 'dana')
+    state.activePlayerIds = ['dana']
+    return tableOf(state)
+}
+
+/**
  * R-7.1.4 — Toll Roads stands at the first Provinces site, which the Empire rules: travelling there
  * gives the Chancellor (ann) a favor. The seat is at the top Cradle site with Supply to spare.
  */
@@ -3135,7 +3843,7 @@ function travelTollTable(): PlayedTable {
 }
 
 /**
- * Hospitality on Dana's Travel from the River: she holds Hospitality (nomad), War Tortoise (beast)
+ * Hospitality on Dana's Travel from the River: they hold Hospitality (nomad), War Tortoise (beast)
  * and Crop Rotation (hearth). The Plains hold Wolves (one bank, beast); the Wastes Oracle and
  * Birdsong (two banks, beast and nomad); the Drowned City Forced Labor (no match); the Great Slum,
  * which Rhys rules, Toll Roads and Rowdy Pub (hearth, whose bank is empty but in the `toll`
@@ -3156,8 +3864,22 @@ function hospitalityTable(scene: 'plain' | 'toll' | 'hiddenPlace'): PlayedTable 
     const twoBanks = ['denizen.nomad.oracle', 'denizen.beast.birdsong']
     const state = testState(
         [
-            testPlayer({ playerId: 'dana', color: Color.Purple, siteId: river, supply: 7, favor: 3, secrets: 1, advisers }),
-            testPlayer({ playerId: 'rhys', color: Color.Red, siteId: slum, favor: 3, warbandsOnBoard: { rhys: 3 } }),
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Purple,
+                siteId: river,
+                supply: 7,
+                favor: 3,
+                secrets: 1,
+                advisers
+            }),
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Red,
+                siteId: slum,
+                favor: 3,
+                warbandsOnBoard: { rhys: 3 }
+            }),
             testPlayer({
                 playerId: 'ann',
                 color: Color.Blue,
@@ -3439,7 +4161,7 @@ function freeTravelTable(): PlayedTable {
     return tableOf(state)
 }
 
-/** R-7.1.4: Rhys rules this seat's site with Forced Labor, so a Search gives him a favor. */
+/** R-7.1.4: Rhys rules this seat's site with Forced Labor, so a Search gives them a favor. */
 function searchTollByRhysTable(): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
     const state = testState(
@@ -3516,6 +4238,94 @@ function conspiracyNoTakeTable(machineState: MachineState, me: Partial<Seat>): P
 
 /** R-6.1, R-7.4 — the scenes for the Search cards a facedown adviser's play may use. */
 type FacedownScene = 'facedownCards' | 'facedownFullSite' | 'facedownNewGrowth'
+
+/** R-6.1, R-7.1.4 — the scenes for Forced Labor's toll on a facedown adviser's play. */
+type FacedownTollScene =
+    | 'facedownToll'
+    | 'facedownTollPaid'
+    | 'facedownTollCitizen'
+    | 'facedownTollFreeTravel'
+    | 'facedownTollTraded'
+
+/**
+ * R-6.1, R-7.1.4 — Mara's Act Phase at the Plains, which Rhys, the Chancellor, rules with Forced
+ * Labor there. Mara is an Exile with 0 favor, 1 secret and Supply 4, holding the Vision of Conquest
+ * facedown and Animal Playmates faceup, so the toll bars every facedown play. Dana is an Exile at
+ * the Steppe. `facedownTollPaid`: Mara holds 1 favor. `facedownTollCitizen`: Mara is a Citizen,
+ * no enemy of the ruler. `facedownTollFreeTravel`: a free Travel is due first. `facedownTollTraded`:
+ * Mara has traded with Forced Labor for favor.
+ */
+function facedownTollTable(scene: FacedownTollScene): PlayedTable {
+    const plains = mapSlotsFor(Region.Provinces)[1]
+    const steppe = mapSlotsFor(Region.Hinterland)[0]
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'mara',
+                color: Color.Red,
+                status: scene === 'facedownTollCitizen' ? PlayerStatus.Citizen : PlayerStatus.Exile,
+                siteId: plains,
+                supply: 4,
+                favor: scene === 'facedownTollPaid' ? 1 : 0,
+                secrets: 1,
+                advisers: [
+                    { cardId: 'vision.conquest', faceUp: false },
+                    { cardId: 'denizen.beast.animal-playmates', faceUp: true }
+                ],
+                warbandsInPersonalBank: { mara: 14 }
+            }),
+            testPlayer({
+                playerId: 'rhys',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotsFor(Region.Provinces)[0],
+                favor: 3,
+                secrets: 1,
+                warbandsInPersonalBank: { [IMPERIAL_WARBANDS]: 12 }
+            }),
+            testPlayer({
+                playerId: 'dana',
+                color: Color.Blue,
+                status: PlayerStatus.Exile,
+                siteId: steppe,
+                favor: 2,
+                secrets: 2,
+                warbandsInPersonalBank: { dana: 14 }
+            })
+        ],
+        {
+            machineState: MachineState.ActPhase,
+            oathRevision: CURRENT_OATH_REVISION,
+            chancellorPlayerId: 'rhys',
+            map: allMapSlots(),
+            siteCards: {
+                ...fixtureSitesOnTheBoard(),
+                [plains]: 'site.plains',
+                [steppe]: 'site.steppe'
+            },
+            denizensBySite: { [plains]: [FORCED_LABOR] },
+            warbandsBySite: { [plains]: { [IMPERIAL_WARBANDS]: 2 } }
+        }
+    )
+    if (scene === 'facedownTollFreeTravel') {
+        state.getPlayerState('mara').freeTravelAtAction = state.actionCount
+    }
+    openTurn(state, 'mara')
+    state.activePlayerIds = ['mara']
+    const names = { mara: 'Mara', rhys: 'Rhys', dana: 'Dana' }
+    const table = { ...tableOf(state), names }
+    if (scene !== 'facedownTollTraded') return table
+    const traded = played(table, [
+        createAction(Trade, {
+            ...envelope(table),
+            playerId: 'mara',
+            cardId: FORCED_LABOR,
+            option: TradeOption.ForFavor,
+            modifiers: []
+        })
+    ])
+    return { ...traded, names }
+}
 
 /**
  * R-6.1, R-7.4 — the seat's one facedown adviser, War Tortoise (a beast card), with Wild Cry and
@@ -3634,8 +4444,35 @@ function flipConspiracyNoTakeTable(): PlayedTable {
     })
 }
 
+/** R-5.1.4.IV — this seat's two Hearth advisers, matching Rhys's one. */
+const TAKE_MATCH = ['denizen.hearth.wayside-inn', 'denizen.hearth.awaited-return']
+
 /** R-5.1.4.IV: the Conspiracy drawn by a Search, with Rhys at this seat's site holding a relic. */
 function searchConspiracyTable(): PlayedTable {
+    return conspiracyTakeTable(MachineState.Searching, {
+        handIds: ['vision.conspiracy', 'denizen.arcane.tutor'],
+        advisers: TAKE_MATCH.map(faceup)
+    })
+}
+
+/** R-6.1, R-5.1.4.IV: the facedown Conspiracy turned faceup beside Rhys, holding a relic and a banner. */
+function flipConspiracyTable(): PlayedTable {
+    return conspiracyTakeTable(
+        MachineState.ActPhase,
+        { advisers: [...TAKE_MATCH.map(faceup), { cardId: 'vision.conspiracy', faceUp: false }] },
+        true
+    )
+}
+
+/**
+ * R-5.1.4.IV: the Conspiracy in this seat's play, with Rhys at its site holding a relic, and the
+ * People's Favor too when `rhysBanner`.
+ */
+function conspiracyTakeTable(
+    machineState: MachineState,
+    me: Partial<Seat>,
+    rhysBanner = false
+): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
     const state = testState(
         [
@@ -3644,10 +4481,7 @@ function searchConspiracyTable(): PlayedTable {
                 color: Color.Red,
                 siteId: home,
                 secrets: 2,
-                handIds: ['vision.conspiracy', 'denizen.arcane.tutor'],
-                advisers: ['denizen.hearth.wayside-inn', 'denizen.hearth.awaited-return'].map(
-                    (cardId) => ({ cardId, faceUp: true })
-                )
+                ...me
             }),
             testPlayer({
                 playerId: 'rhys',
@@ -3664,11 +4498,55 @@ function searchConspiracyTable(): PlayedTable {
             })
         ],
         {
+            machineState,
+            chancellorPlayerId: 'ann',
+            map: allMapSlots(),
+            siteCards: fixtureSitesOnTheBoard(),
+            denizensBySite: { [home]: [] },
+            banners: testBanners({ [Banner.PeoplesFavor]: rhysBanner ? 'rhys' : undefined })
+        }
+    )
+    openTurn(state, 'me')
+    state.activePlayerIds = ['me']
+    return tableOf(state)
+}
+
+/**
+ * R-5.1.4.I — a Search's kept card may go to another site: this seat holds the People's Favor at
+ * the top Cradle site, full with three cards, and the other Cradle site holds one. It drew Wolves
+ * and Tutor.
+ */
+function searchPlayToTable(): PlayedTable {
+    const [home, next] = mapSlotsFor(Region.Cradle)
+    const state = testState(
+        [
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: home,
+                handIds: ['denizen.beast.wolves', 'denizen.arcane.tutor']
+            }),
+            testPlayer({
+                playerId: 'ann',
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: mapSlotId(Region.Provinces, 0)
+            })
+        ],
+        {
             machineState: MachineState.Searching,
             chancellorPlayerId: 'ann',
             map: allMapSlots(),
             siteCards: fixtureSitesOnTheBoard(),
-            denizensBySite: { [home]: [] }
+            banners: testBanners({ [Banner.PeoplesFavor]: 'me' }),
+            denizensBySite: {
+                [home]: [
+                    'denizen.hearth.book-binders',
+                    'denizen.hearth.fabled-feast',
+                    'denizen.order.captains'
+                ],
+                [next]: ['denizen.nomad.elders']
+            }
         }
     )
     openTurn(state, 'me')
@@ -3688,7 +4566,7 @@ const RELIQUARY_KNOWN = { peekedRelicSlotIds: Object.keys(RELIQUARY), peekedReli
 /**
  * R-6.6.1 — the Grand Scepter's holder, holding both banners, in their Act Phase with every
  * Reliquary relic known to them (R-6.4-H1). `two`: Rhys and Ann are Exiles; `one`: Rhys alone;
- * `silenced`: both, Rhys with Vow of Silence, so he may give no secrets; `self`: the holder is the
+ * `silenced`: both, Rhys with Vow of Silence, so they may give no secrets; `self`: the holder is the
  * one Exile, Rhys a Citizen and Ann the Chancellor.
  */
 function offerCitizenshipTable(exiles: 'two' | 'one' | 'silenced' | 'self'): PlayedTable {
@@ -3747,7 +4625,7 @@ function offerCitizenshipTable(exiles: 'two' | 'one' | 'silenced' | 'self'): Pla
 
 /**
  * R-6 — the Grand Scepter's holder offered every minor the rules allow together: a facedown
- * adviser to play or show, Tents' power on Travel, a relic here not yet seen, warbands at a site he
+ * adviser to play or show, Tents' power on Travel, a relic here not yet seen, warbands at a site they
  * rules, Rhys an Exile and Ann a Citizen.
  */
 function everyMinorTable(): PlayedTable {
@@ -3908,7 +4786,7 @@ function exileCitizensTable(): PlayedTable {
     return tableOf(state)
 }
 
-/** R-6.8 — Rhys, a Citizen with one secret and two warbands on his board, may exile himself for 3 favor. */
+/** R-6.8 — Rhys, a Citizen with one secret and two warbands on their board, may exile themself for 3 favor. */
 function selfExileTable(): PlayedTable {
     const [home] = mapSlotsFor(Region.Cradle)
     const state = testState(
@@ -4030,14 +4908,15 @@ const BANDIT_CROWN = 'relic.bandit-crown'
 /** The empty Provinces site the Bandit Crown's tables enlarge, dealt the Great Slums. */
 const CROWN_SITE = mapSlotId(Region.Provinces, 1)
 
-type CrownScene = 'citizen' | 'chancellor' | 'exile' | 'campaign' | 'five'
+type CrownScene = 'citizen' | 'chancellor' | 'exile' | 'campaign' | 'five' | 'chief'
 
 /**
  * R-7.6.5 with R-6.6.3 — the Bandit Crown in a new game: Dana the Chancellor, Ann a Citizen,
  * Rhys an Exile and the Exile Bea on the clock. The Empire's warbands hold the top Provinces
  * site and Rhys's the top Cradle site; every other site is empty. 'campaign': Ann, holding the
- * Crown, has declared against Dana (R-5.5.1.a suspends her). 'five': Bea, Dov and Wes are
- * Citizens too, and Rhys is on the clock.
+ * Crown, has declared against Dana (R-5.5.1.a suspends Ann). 'five': Bea, Dov and Wes are
+ * Citizens too, and Rhys is on the clock. 'chief': as 'citizen', with Dana's faceup Bandit Chief
+ * putting 3 bandits on each empty site (R-2.8.3).
  */
 function banditCrownTable(scene: CrownScene): PlayedTable {
     const holderId = {
@@ -4045,7 +4924,8 @@ function banditCrownTable(scene: CrownScene): PlayedTable {
         chancellor: 'dana',
         exile: 'rhys',
         campaign: 'ann',
-        five: 'ann'
+        five: 'ann',
+        chief: 'ann'
     }[scene]
     const crown = (playerId: string) => (playerId === holderId ? [BANDIT_CROWN] : [])
     const citizen = (playerId: string, color: Color) =>
@@ -4066,7 +4946,8 @@ function banditCrownTable(scene: CrownScene): PlayedTable {
                 status: PlayerStatus.Chancellor,
                 siteId: plains,
                 relicIds: crown('dana'),
-                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 }
+                warbandsOnBoard: { [IMPERIAL_WARBANDS]: 3 },
+                advisers: scene === 'chief' ? [{ cardId: BANDIT_CHIEF, faceUp: true }] : []
             }),
             citizen('ann', Color.Blue),
             ...(scene === 'five'
@@ -4092,8 +4973,7 @@ function banditCrownTable(scene: CrownScene): PlayedTable {
         ],
         {
             oathRevision: CURRENT_OATH_REVISION,
-            machineState:
-                scene === 'campaign' ? MachineState.CampaignPlans : MachineState.ActPhase,
+            machineState: scene === 'campaign' ? MachineState.CampaignPlans : MachineState.ActPhase,
             chancellorPlayerId: 'dana',
             map: allMapSlots(),
             siteCards: { ...fixtureSitesOnTheBoard(), [CROWN_SITE]: 'site.great-slums' },
@@ -4223,8 +5103,8 @@ const SKULL_FACE = { swords: 2, hollowSwords: 0, skulls: 1 }
 const SWORD_FACE = { swords: 1, hollowSwords: 0, skulls: 0 }
 
 /**
- * R-5.5.5, revision 7 — dana (the Chancellor) campaigns against rhys, his force on his board and at
- * the sites it reaches (Captains: one; Vow of Union: two); the skulls rolled wait for his pick, or,
+ * R-5.5.5, revision 7 — dana (the Chancellor) campaigns against rhys, their force on their board and at
+ * the sites it reaches (Captains: one; Vow of Union: two); the skulls rolled wait for their pick, or,
  * at `sacrifice`, a battle that needs 3 sacrificed, so the defeat would be the default half.
  */
 function forceInPlacesTable(step: 'skulls' | 'sacrifice', sites: 1 | 2): PlayedTable {
@@ -4256,7 +5136,9 @@ function forceInPlacesTable(step: 'skulls' | 'sacrifice', sites: 1 | 2): PlayedT
         ],
         {
             machineState:
-                step === 'skulls' ? MachineState.CampaignSkullLosses : MachineState.CampaignSacrifice,
+                step === 'skulls'
+                    ? MachineState.CampaignSkullLosses
+                    : MachineState.CampaignSacrifice,
             chancellorPlayerId: 'dana',
             map: allMapSlots(),
             siteCards: fixtureSitesOnTheBoard(),
@@ -4278,7 +5160,9 @@ function forceInPlacesTable(step: 'skulls' | 'sacrifice', sites: 1 | 2): PlayedT
                 ],
                 defense: 7,
                 swords: step === 'skulls' ? skulls * 2 + 1 : 5,
-                defendingForce: [{ at: { kind: 'board', playerId: 'rhys' }, owner: 'rhys', count: 4 }],
+                defendingForce: [
+                    { at: { kind: 'board', playerId: 'rhys' }, owner: 'rhys', count: 4 }
+                ],
                 defendingBandits: 0,
                 pendingSkullLosses: step === 'skulls' ? { skulls } : undefined,
                 ...campaignRecords(),
@@ -4294,7 +5178,7 @@ function forceInPlacesTable(step: 'skulls' | 'sacrifice', sites: 1 | 2): PlayedT
 
 /**
  * Second Wind out of turn, revision 7 — ann won a Sneak Attack during rhys's turn with Second Wind,
- * and is asked "Travel now?" (then, at `campaign`, "Campaign now?" at dana's site, which he rules).
+ * and is asked "Travel now?" (then, at `campaign`, "Campaign now?" at dana's site, which they rule).
  */
 function freeActionAskedTable(action: ActionType.Travel | ActionType.Campaign): PlayedTable {
     const [tribunal] = mapSlotsFor(Region.Provinces)
@@ -4341,7 +5225,11 @@ function freeActionAskedTable(action: ActionType.Travel | ActionType.Campaign): 
                 askingPlayerId: 'rhys',
                 resumeMachineState: MachineState.ActPhase
             },
-            heldTurn: { queue: [], askingPlayerId: 'rhys', resumeMachineState: MachineState.ActPhase }
+            heldTurn: {
+                queue: [],
+                askingPlayerId: 'rhys',
+                resumeMachineState: MachineState.ActPhase
+            }
         }
     )
     state.oathRevision = OathRevision.EngineFixes3
@@ -4361,7 +5249,7 @@ type DrumScene = 'whistle' | 'citizen' | 'toll' | 'horse'
 /**
  * Dragonskin Drum on a power's move (revision 7): Dana holds the Drum at the River; Rhys, with the
  * Whistle, rules the Great Slum (with Toll Roads there in 'toll'); Ann is the Chancellor, and in
- * 'citizen' Dana is her Citizen. In 'horse' Dana has used Brass Horse and picks where to go.
+ * 'citizen' Dana is Ann's Citizen. In 'horse' Dana has used Brass Horse and picks where to go.
  */
 function drumState(scene: DrumScene) {
     const citizen = scene === 'citizen'
@@ -4452,8 +5340,11 @@ function drumTable(scene: DrumScene): PlayedTable {
     ])
 }
 
+// The top of the Cradle's discard pile: a Beast, and no site holds a Beast card.
+const BRASS_HORSE_REVEALED = 'denizen.beast.wolves'
+
 /** The History's rows for each scene, oldest first, as their records hold them. */
-type HistoryScene = 'act' | 'campaign' | 'deals'
+type HistoryScene = 'act' | 'campaign' | 'secondWind' | 'freeGranted' | 'deals'
 
 /**
  * The History's words, read from records alone: Ann (blue, on the clock) reads the rows of Dana
@@ -4495,6 +5386,7 @@ function historyWordsTable(scene: HistoryScene): PlayedTable {
     state.vault = testVaultWithRelics({})
     const table = tableOf(state)
     const battle = { attackPool: 6, defensePool: 4, defense: 4, swords: 5, skullsKilled: 0 }
+    const sneakBattle = { attackPool: 3, defensePool: 1, defense: 1, swords: 4, skullsKilled: 0 }
     const rows: Record<
         HistoryScene,
         ({ type: ActionType; playerId: string } & Record<string, unknown>)[]
@@ -4634,6 +5526,82 @@ function historyWordsTable(scene: HistoryScene): PlayedTable {
                 }
             }
         ],
+        // R-5.5.8 — Dana's Sneak Attack on Rhys, with Second Wind (marked a Sneak Attack, as from
+        // revision 27): the victory, the spoils that record the grant, then the free Travel.
+        secondWind: [
+            {
+                type: ActionType.Campaign,
+                playerId: 'dana',
+                defender: { kind: 'player', playerId: 'rhys' },
+                targets: [{ kind: CampaignTargetKind.PawnAndFavor }],
+                attackDice: 3,
+                plans: [
+                    {
+                        cardId: SECOND_WIND,
+                        powerIndex: powerIndexOf(SECOND_WIND, PowerTiming.BattlePlan)
+                    }
+                ],
+                metadata: {
+                    supplySpent: 0,
+                    sneakAttack: true,
+                    battle: { ...sneakBattle, defense: 0, swords: 0, awaitingDefender: true }
+                }
+            },
+            {
+                type: ActionType.CampaignDefend,
+                playerId: 'rhys',
+                plans: [],
+                metadata: { ...sneakBattle, plansUsed: [] }
+            },
+            {
+                type: ActionType.CampaignSacrifice,
+                playerId: 'dana',
+                sacrifice: 0,
+                metadata: { attack: 4, defense: 1, attackerVictorious: true, sacrificed: 0 }
+            },
+            {
+                type: ActionType.CampaignResolveVictory,
+                playerId: 'dana',
+                placements: [],
+                burnFavor: true,
+                metadata: {
+                    warbandsPlaced: 0,
+                    relicsTaken: [],
+                    bannersSeized: [],
+                    seizeBurned: 0,
+                    favorBurned: 2,
+                    defenderPlayerId: 'rhys',
+                    resumeMachineState: MachineState.ActPhase,
+                    triggered: ['Second Wind: the next Travel, and then a Campaign, cost no Supply']
+                }
+            },
+            {
+                type: ActionType.Travel,
+                playerId: 'dana',
+                siteId: mine,
+                metadata: { supplySpent: 0, supplyRemaining: 4, freeActionOf: SECOND_WIND }
+            }
+        ],
+        // R-10.2 — Dana uses the Brass Horse: the revealed suit is at no site, so the next Travel
+        // is free (revision 27 records the card), and the Travel names it.
+        freeGranted: [
+            {
+                type: ActionType.UseActionPower,
+                playerId: 'dana',
+                cardId: BRASS_HORSE,
+                powerIndex: powerIndexOf(BRASS_HORSE, PowerTiming.Action),
+                choices: [],
+                metadata: {
+                    summary: `Brass Horse: revealed ${BRASS_HORSE_REVEALED}; no site holds that suit, so the next Travel costs no Supply`
+                }
+            },
+            {
+                type: ActionType.Travel,
+                playerId: 'dana',
+                siteId: plains,
+                metadata: { supplySpent: 0, supplyRemaining: 6, freeActionOf: BRASS_HORSE }
+            }
+        ],
         deals: [
             {
                 type: ActionType.SetupChoice,
@@ -4734,7 +5702,7 @@ function historyWordsTable(scene: HistoryScene): PlayedTable {
     return { state: recordedState, actions }
 }
 
-const TABLES: Record<TableName, () => PlayedTable> = {
+const TABLES: Record<TableName, () => PlayedTable | Promise<PlayedTable>> = {
     drumAsked: () => drumTable('whistle'),
     drumAskedCitizen: () => drumTable('citizen'),
     drumAfterToll: () => drumTable('toll'),
@@ -4744,6 +5712,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     banditCrownExile: () => banditCrownTable('exile'),
     banditCrownCampaign: () => banditCrownTable('campaign'),
     banditCrownFive: () => banditCrownTable('five'),
+    banditCrownChief: () => banditCrownTable('chief'),
+    banditChief: () => actPhaseTable(true),
     campaignLossOrder: () => campaignTable(true, true),
     skullLosses: () => forceInPlacesTable('skulls', 1),
     skullLossesTwoSites: () => forceInPlacesTable('skulls', 2),
@@ -4763,6 +5733,18 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     witchsBargain: () => witchsBargainTable(false, false),
     witchsBargainSilenced: () => witchsBargainTable(true, false),
     witchsBargainOneOther: () => witchsBargainTable(false, true),
+    // Revision 31, the last before the steps in order: Dana as above, with 1 favor, with only the
+    // secret the cost places, or with Vow of Silence and 1 favor.
+    witchsBargainOlder: () =>
+        witchsBargainTable(false, false, { revision: OathRevision.EngineFixes26 }),
+    witchsBargainOlderOneFavor: () =>
+        witchsBargainTable(false, false, { favor: 1, revision: OathRevision.EngineFixes26 }),
+    witchsBargainOlderCostOnly: () =>
+        witchsBargainTable(false, false, { secrets: 1, revision: OathRevision.EngineFixes26 }),
+    witchsBargainOlderSilencedOneFavor: () =>
+        witchsBargainTable(true, false, { favor: 1, revision: OathRevision.EngineFixes26 }),
+    witchsBargainSteps: () => witchsBargainStepsTable(false),
+    witchsBargainStepsShort: () => witchsBargainStepsTable(true),
     modifierTravel: () => modifierTable('modifierTravel'),
     modifierMuster: () => modifierTable('modifierMuster'),
     modifierTrade: () => modifierTable('modifierTrade'),
@@ -4770,8 +5752,15 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     facedownCards: () => facedownTable('facedownCards'),
     facedownFullSite: () => facedownTable('facedownFullSite'),
     facedownNewGrowth: () => facedownTable('facedownNewGrowth'),
+    facedownToll: () => facedownTollTable('facedownToll'),
+    facedownTollPaid: () => facedownTollTable('facedownTollPaid'),
+    facedownTollCitizen: () => facedownTollTable('facedownTollCitizen'),
+    facedownTollFreeTravel: () => facedownTollTable('facedownTollFreeTravel'),
+    facedownTollTraded: () => facedownTollTable('facedownTollTraded'),
     greatHerdFlip: greatHerdFlipTable,
     modifierPair: () => modifierTable('modifierPair'),
+    smallFriendsSites: () => tradeSitesTable('smallFriendsSites'),
+    disguiseBorrowed: () => tradeSitesTable('disguiseBorrowed'),
     exileCitizens: exileCitizensTable,
     selfExile: selfExileTable,
     setup: setupTable,
@@ -4779,13 +5768,34 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     searching: searchingTable,
     prophets: prophetsTable,
     offTurn: offTurnTable,
-    actPhase: actPhaseTable,
+    actPhase: () => actPhaseTable(),
     leavingBuriedGiant: leavingBuriedGiantTable,
+    buriedGiantHiddenPlace: () => buriedGiantHiddenPlaceTable(3),
+    buriedGiantHiddenPlaceRich: () => buriedGiantHiddenPlaceTable(5),
+    buriedGiantHiddenPlacePoor: () => buriedGiantHiddenPlaceTable(3, 1),
     warbandMoveAsked: warbandMoveAskedTable,
     staleWarbandMoveAsked: staleWarbandMoveAskedTable,
     joinDefenceAsked: joinDefenceAskedTable,
     exileDefeated: () => defeatedTable('exile'),
     imperialDefeated: () => defeatedTable('imperial'),
+    battleLossRows: () => battleLossTable(),
+    battleLossHospital: () => battleLossTable({ hospital: true }),
+    battleLossHospitalPlaced: () => battleLossTable({ hospital: true, ended: true }),
+    resultGap: () => battleResultTable('gap'),
+    resultZealots: () => battleResultTable('zealots'),
+    resultShort: () => battleResultTable('short'),
+    resultOutright: () => battleResultTable('outright'),
+    resultHospital: () => battleResultTable('hospital'),
+    resultBandits: () => battleResultTable('bandits'),
+    resultHearts: () => battleResultTable('hearts'),
+    resultGapSpoils: () => battleResultTable('gapSpoils'),
+    resultCageSpoils: () => battleResultTable('cageSpoils'),
+    resultOutrightSpoils: () => battleResultTable('outrightSpoils'),
+    resultHospitalSpoils: () => battleResultTable('hospitalSpoils'),
+    resultBanditsSpoils: () => battleResultTable('banditsSpoils'),
+    resultEnvoySpoils: () => battleResultTable('envoySpoils'),
+    resultAllySpoils: () => battleResultTable('allySpoils'),
+    resultAllyHospitalSpoils: () => battleResultTable('allyHospitalSpoils'),
     visionBacks: visionBacksTable,
     restBanks: restBanksTable,
     restRefused: restRefusedTable,
@@ -4795,12 +5805,16 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     wakeMobReturn: () => wakeTable('mobReturn'),
     wakeSite: () => wakeTable('site'),
     wakeForced: () => wakeTable('forced'),
+    kinshipWake: kinshipWakeTable,
+    kinshipPlague: kinshipPlagueTable,
+    kinshipDissent: kinshipDissentTable,
     endOfRound: endOfRoundTable,
     goalsRail: () => goalsRailTable(),
     goalsRailThePeople: () => goalsRailTable(OathType.ThePeople),
     goalsRailProtection: () => goalsRailTable(OathType.Protection),
     goalsRailDevotion: () => goalsRailTable(OathType.Devotion),
     trade: tradeTable,
+    heldRow: heldRowTable,
     careless: carelessTable,
     musterEmptyBank: musterEmptyBankTable,
     recover: recoverTable,
@@ -4811,6 +5825,19 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     advisers: advisersTable,
     moves: movesTable,
     campaign: campaignTable,
+    campaignSteps: () => campaignSteps(),
+    campaignStepsNoPlans: () => campaignSteps({ advisers: [] }),
+    campaignStepsSitesOnly: () => campaignSteps({ relicIds: [], annAtRiver: true }),
+    campaignStepsRelicHunter: () =>
+        campaignSteps({ advisers: [RELIC_HUNTER], relicIds: [], relicAtRiver: true }),
+    campaignStepsOathkeeper: () => campaignSteps({ oathkeeper: true }),
+    campaignStepsOathkeeperSevenWarbands: () =>
+        campaignSteps({ oathkeeper: true, danaWarbands: 7 }),
+    campaignLedger: () => campaignLedgerTable(),
+    campaignLedgerPicked: () => campaignLedgerTable({ revision: 0 }),
+    campaignLedgerLost: () => campaignLedgerTable({ sacrifice: 0 }),
+    campaignLedgerHospital: () => campaignLedgerTable({ hospital: 'Rhys' }),
+    campaignLedgerHospitalLost: () => campaignLedgerTable({ sacrifice: 0, hospital: 'Dana' }),
     observatory: observatoryTable,
     cardOpensSearch: () => mushroomsTable(1),
     cardChangesSearch: () => mushroomsTable(2),
@@ -4836,6 +5863,17 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     searchTollByRhys: searchTollByRhysTable,
     searchConspiracy: searchConspiracyTable,
     searchConspiracyNoTake: searchConspiracyNoTakeTable,
+    searchPlayTo: searchPlayToTable,
+    // R-5.1.4.I, Crop Rotation — Dana searched with Crop Rotation at the full Plains, holding the People's Favor.
+    searchFullSite: () => searchFullSiteTable(),
+    searchFullSiteRoom: () => searchFullSiteTable(true),
+    useOnEveryCard: () => useOnEveryCardTable('envoy'),
+    useOnEveryCardScepter: () => useOnEveryCardTable('scepter'),
+    useOnEveryCardPair: () => useOnEveryCardTable('pair'),
+    useOnEveryCardBusy: () => useOnEveryCardTable('busy'),
+    zoomPaging: () => useOnEveryCardTable('paging'),
+    zoomPagingSearch: () => zoomPagingSearchTable(),
+    flipConspiracy: flipConspiracyTable,
     flipConspiracyNoTake: flipConspiracyNoTakeTable,
     campaignTwoDefenders: () => campaignTable(false),
     heldAttack: () => heldAttackTable(),
@@ -4860,6 +5898,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     wonOutright: () => battleTable('wonOutright'),
     spoils: () => battleTable('spoils'),
     spoilsRelicHunter: spoilsRelicHunterTable,
+    spoilsRelicHunterDrum: spoilsRelicHunterDrumTable,
+    spoilsRelicHunterCage: spoilsRelicHunterCageTable,
     ...QUESTION_TABLES,
     oathkeeperTie: oathkeeperTieTable,
     tavernSongs: tavernSongsTable,
@@ -4870,6 +5910,23 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     exchangeDeedSwap: () => exchangeTable('exchangeDeedSwap'),
     exchangeTinkers: () => exchangeTable('exchangeTinkers'),
     exchangeGathering: () => exchangeTable('exchangeGathering'),
+    tribunalOffer: () => tribunalOfferTable('offer'),
+    tribunalOfferFull: () => tribunalOfferTable('full'),
+    tribunalOfferBefore: () => tribunalOfferTable('before'),
+    tribunalAnswer: tribunalAnswerTable,
+    tribunalDeals: () => tribunalDealsTable('resolve'),
+    tribunalDealAsked: () => tribunalDealsTable('asked'),
+    tribunalDealsEnded: () => tribunalDealsTable('ended'),
+    tribunalAnswerLong: () => tribunalAnswerTable(true),
+    tribunalDealsLong: () => tribunalDealsTable('resolve', true),
+    tribunalDealAskedLong: () => tribunalDealsTable('asked', true),
+    tribunalDealsEndedLong: () => tribunalDealsTable('ended', true),
+    longSeatLetters: () => longSeatNameTable('letters'),
+    longSeatSpaces: () => longSeatNameTable('spaces'),
+    longSeatTypical: () => longSeatNameTable('typical'),
+    longSeatCitizen: () => longSeatNameTable('citizen'),
+    longSeatOneWord: () => longSeatNameTable('oneWord'),
+    longSeatOneWordExile: () => longSeatNameTable('oneWordExile'),
     woodTraveller: () => tableOf(shroudedWoodState(2, { onBoard: true })),
     woodRuler: woodRulerTable,
     woodRulerToll: woodRulerTollTable,
@@ -4877,6 +5934,7 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     woodCards: () => tableOf(woodCardsState()),
     woodCardsRuler: () => woodCardsRulerTable({}, [TENTS, FOREST_PATHS]),
     woodCardsLow: () => tableOf(woodCardsLowState()),
+    woodPortalBanks: () => tableOf(woodPortalBanksState()),
     woodStays: () =>
         woodCardsRulerTable({ supply: 1, favor: 1, advisers: [FOREST_PATHS] }, [FOREST_PATHS]),
     // R-11.7-H3 — Dana set out with no card; a pick of the Great Slum asks Way Station's question.
@@ -4895,7 +5953,34 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     oracleNoFavor: () => oracleTable(0),
     messenger: messengerTable,
     messengerTwoOwners: messengerTwoOwnersTable,
-    warningSignals: warningSignalsTable,
+    // R-7.1.3-H2 — Dana rolled 6 and is asked the bank; with Jinx, the reroll is asked first.
+    gamblingHallAsked: () => gamblingHallUsed(),
+    gamblingHallJinx: () => gamblingHallUsed({ jinx: true }),
+    // R-10.22 — Ann answers Dana's Campaign at the Plains with Wrestlers; Rhys is their Ally.
+    wrestlersPick: () => wrestlersDefends(),
+    wrestlersOnePlace: () => wrestlersDefends({ annBoard: 0, rhysBoard: 0 }),
+    // R-5.1.4.II — Dana searched with Land Warden at 3 of 3 advisers: the Inn, Longbows and Wrestlers drawn.
+    landWardenSecondAdviser,
+    // R-5.1.4.III — Dana searched with Land Warden at the full Great Slum: Alchemist, then the Vision of Conquest.
+    landWardenVisionKept,
+    // R-7.1.1 — Dana at the full Great Slum with Homesteaders, Longbows and the Horned Mask: a tall Use a power step.
+    greatSlumPowers,
+    // R-5.1.4.II, R-11.10 — Dana searched at the full Great Slum with a full adviser row: Wrestlers, Twin Brother
+    // and the Relic Breaker drawn.
+    fullSiteSearch: () => fullSiteSearch(),
+    // R-9.4 — Dana's facedown adviser picks: Dream Thief (first, or second among the advisers),
+    // Inquisitor (all at the Plains), the Ivory Eye.
+    facedownDreamThief: () => facedownPickerTable('dreamThief'),
+    facedownDreamThiefSecond: () => facedownPickerTable('dreamThief', 1),
+    facedownInquisitor: () => facedownPickerTable('inquisitor'),
+    facedownIvoryEye: () => facedownPickerTable('ivoryEye'),
+    warningSignals: () => warningSignalsTable(),
+    warningSignalsNothingToMove: () => warningSignalsTable(true),
+    useBadge: () => useBadgeTable(true),
+    useBadgeNothingToPick: () => useBadgeTable(false),
+    useBadgeWrappedHeld: () => useBadgeTable(true, 'wrapped'),
+    useBadgeOverHeld: () => useBadgeTable(false, 'underAdviser'),
+    useBadgeTribunal: useBadgeTribunalTable,
     pickerWhistle: () => powerPickerTable('pickerWhistle'),
     pickerTerror: () => powerPickerTable('pickerTerror'),
     pickerPact: () => powerPickerTable('pickerPact'),
@@ -4903,6 +5988,8 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     pickerSites: () => powerSitesTable('pickerSites'),
     pickerSitesOne: () => powerSitesTable('pickerSitesOne'),
     pickerPalanquin: () => powerSitesTable('pickerPalanquin'),
+    pickerSitesNoDefender: () => powerSitesTable('pickerSitesNoDefender'),
+    pickerCaptainsNoDefender: () => powerSitesTable('pickerCaptainsNoDefender'),
     pickerPiles: () => pickerTwoTable('pickerPiles'),
     pickerBanks: () => pickerTwoTable('pickerBanks'),
     pickerSalad: () => pickerTwoTable('pickerSalad'),
@@ -4917,7 +6004,39 @@ const TABLES: Record<TableName, () => PlayedTable> = {
     pickerFacedownBracken: () => pickerTwoTable('pickerFacedownBracken'),
     historyAct: () => historyWordsTable('act'),
     historyCampaign: () => historyWordsTable('campaign'),
-    historyDeals: () => historyWordsTable('deals')
+    historySecondWind: () => historyWordsTable('secondWind'),
+    historyFreeGranted: () => historyWordsTable('freeGranted'),
+    historyDeals: () => historyWordsTable('deals'),
+    edificeMap: () => edificeMapTable('broken'),
+    edificeAncientForge: () => edificeMapTable('ancient'),
+    greatSpireMenu: () => greatSpireMenuTable(),
+    greatSpireMenuEmpty: () => greatSpireMenuTable(true),
+    greatSpireSwap: () => greatSpireSwapTable(),
+    greatSpireSwapVision: () => greatSpireSwapTable(true),
+    fallenSpire: () => fallenSpireTable(),
+    fallenSpireShort: () => fallenSpireTable(2),
+    squalidAsked: () => squalidAskedTable(),
+    festivalDistrict: () => festivalTable(),
+    banditRampartDefender: () => banditRampartTable(true),
+    banditRampartBandits: () => banditRampartTable(false),
+    ruinedTemple: () => ruinedTempleTable(),
+    forestTempleSearch: () => ruinedTempleTable(true),
+    chronicleVow: () => gameOneAt('vow'),
+    chronicleOffer: () => gameOneAt('offer'),
+    chronicleAnswer: () => gameOneAt('answer'),
+    chronicleStory: () => gameOneAt('story'),
+    chronicleResult: () => gameOneAt('result'),
+    chronicleBuild: () => gameTwoAt('build'),
+    chronicleRepair: () => gameTwoAt('ruin'),
+    chronicleSuit: () => gameTwoAt('suit'),
+    chronicleHeal: () => gameTwoAt('heal'),
+    chronicleRecord: () => gameThreeOpen(),
+    chronicleSameNames: () => gameThreeOpenSameNames(),
+    chronicleOpen: () => gameThreeContinued(),
+    rehearsalResult,
+    rehearsalOpen,
+    rehearsalSearch,
+    rehearsalPinnedOpen
 }
 
 /** Every table a scenario can open. */
@@ -4946,7 +6065,7 @@ async function settled(): Promise<void> {
 export async function open(name: TableName): Promise<{ seatId: string | undefined }> {
     if (component) await unmount(component)
     disposeSessions()
-    session = await openSessionOn(TABLES[name]())
+    session = await openSessionOn(await TABLES[name]())
     const target = document.createElement('div')
     target.style.height = '100vh'
     document.body.replaceChildren(target)
@@ -5028,9 +6147,45 @@ export function openQuestionKind(): PowerQuestionKind | undefined {
     return current().gameState.pendingQuestions?.queue[0]?.kind
 }
 
+/** R-10.8, R-7.6.3-H1 — the terms of the exchange the open question offers, if it offers one. */
+export function offeredExchangeTerms(): ExchangeTerms | undefined {
+    const question = current().gameState.pendingQuestions?.queue[0]
+    return question?.kind === PowerQuestionKind.Exchange ? question.terms : undefined
+}
+
+/** R-7.6.3-H1 — the Tribunal's deals open on the table. */
+export function openDeals(): OpenDeal[] {
+    return current().gameState.openDeals ?? []
+}
+
+/** History Navigation: `steps` back from the state on screen, one at a time. */
+export async function stepHistoryBack(steps: number): Promise<void> {
+    const table = current()
+    for (let step = 0; step < steps; step++) {
+        await table.history.goToPreviousAction()
+        // The platform releases its stepping lock on the next tick.
+        await new Promise((resolve) => setTimeout(resolve))
+    }
+    await settled()
+}
+
+/** History Navigation back to the live game. */
+export async function leaveHistory(): Promise<void> {
+    current().history.goToEnd()
+    await settled()
+}
+
 export function viewOffTheClock(): string | undefined {
     const table = current()
     table.setViewingAsNonActivePlayer(true)
+    return table.myPlayer?.id
+}
+
+/** Hotseat — back to the seat on the clock after `viewOffTheClock`. */
+export async function viewOnTheClock(): Promise<string | undefined> {
+    const table = current()
+    table.setViewingAsNonActivePlayer(false)
+    await settled()
     return table.myPlayer?.id
 }
 
@@ -5114,6 +6269,8 @@ export function tableFacts(): {
     secretsOn: Record<string, number>
     discardPiles: Record<Region, number>
     darkestSecret: number
+    relicsOf: Record<string, string[]>
+    denizensAt: Record<string, string[]>
 } {
     const table = current()
     const state = table.gameState
@@ -5122,6 +6279,7 @@ export function tableFacts(): {
         machineState: state.machineState,
         siteOf: Object.fromEntries(state.players.map((player) => [player.playerId, player.siteId])),
         warbandsAt: state.warbandsBySite,
+        denizensAt: state.denizensBySite,
         boardOf: Object.fromEntries(
             state.players.map((player) => [player.playerId, player.warbandsOnBoard])
         ),
@@ -5136,7 +6294,10 @@ export function tableFacts(): {
             Object.entries(state.cardTokens).map(([cardId, tokens]) => [cardId, tokens.secrets])
         ),
         discardPiles: state.discardPileCounts,
-        darkestSecret: state.banners[Banner.DarkestSecret].value
+        darkestSecret: state.banners[Banner.DarkestSecret].value,
+        relicsOf: Object.fromEntries(
+            state.players.map((player) => [player.playerId, player.relicIds])
+        )
     }
 }
 
@@ -5156,7 +6317,9 @@ export function standing(): {
     const state = current().gameState
     const pending = state.pendingConsent
     return {
-        statusOf: Object.fromEntries(state.players.map((player) => [player.playerId, player.status])),
+        statusOf: Object.fromEntries(
+            state.players.map((player) => [player.playerId, player.status])
+        ),
         ...(pending
             ? { asked: { kind: pending.request.kind, askedPlayerId: pending.askedPlayerId } }
             : {})
@@ -5181,4 +6344,15 @@ export function defeatPicks(): { required: number; picked: number[]; blockedBeca
 
 export function cardTokens(cardId: string): { favor: number; secrets: number } {
     return current().gameState.tokensOn(cardId)
+}
+
+/** R-5.1.4.II — the open seat's advisers as it knows them, in order. */
+export function myAdvisers(): { cardId: string; faceUp: boolean }[] {
+    const table = current()
+    const seatId = table.myPlayer?.id
+    assertExists(seatId, 'A seat is open')
+    return table.gameState
+        .getPlayerState(seatId)
+        .knownAdvisers()
+        .map((adviser) => ({ cardId: adviser.cardId, faceUp: adviser.faceUp }))
 }

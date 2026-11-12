@@ -1,8 +1,10 @@
 import { expect, test, type Page } from '@playwright/test'
 import {
+    AUSTERLITZ,
     CommandKind,
     Side,
     UnitType,
+    standingGroupKey,
     type NapoleonsTriumphGameState
 } from '@tabletop/napoleons-triumph'
 import {
@@ -11,7 +13,8 @@ import {
     failOnPageErrors,
     leadDefence,
     rearrange,
-    tap
+    tap,
+    threaten
 } from './table.js'
 
 failOnPageErrors()
@@ -50,6 +53,27 @@ function cavalryRidesInBesideInfantry(state: NapoleonsTriumphGameState) {
     Object.assign(foot, { commanderId: undefined, position: { locale: 62 } })
     frenchPlayer(state).independentCommandsUsed = 1
     state.roadMarch = { kind: CommandKind.Unit, unitIds: [rider.id], start: 63, path: [62] }
+}
+
+/** A detached French cavalry unit has ridden two locales by local road, 84 to 73, and can ride no farther. */
+function cavalryReachesTheEndOfItsRide(state: NapoleonsTriumphGameState) {
+    const rider = unitOf(state, 'vandamme', UnitType.Cavalry)
+    Object.assign(rider, {
+        commanderId: undefined,
+        position: { locale: 73 },
+        movesThisTurn: 1,
+        enteredReserveThisTurn: true,
+        arrivedByRoad: { locale: 73, roads: [0] }
+    })
+    frenchPlayer(state).independentCommandsUsed = 1
+    state.roadMarch = {
+        kind: CommandKind.Unit,
+        unitIds: [rider.id],
+        start: 84,
+        path: [74, 73],
+        stopped: true
+    }
+    return rider
 }
 
 /** Bernadotte's cavalry has come on at 51, taken locale 38 by road and may ride on, in its turn of entry; an Allied unit holds 52. */
@@ -128,7 +152,7 @@ test('a unit standing beside cavalry that is riding on takes a command of its ow
 
     await leftOut.click()
     await tap(page, 'svg [aria-label^="Move to"]')
-    await expect(page.getByText('Choose a corps or unit on the map')).toBeVisible()
+    await expect(page.getByText(/^Choose a corps/)).toBeVisible()
 })
 
 test('reinforcement cavalry that is riding on takes its second command and presses an attack', async ({
@@ -152,9 +176,9 @@ test('reinforcement cavalry that is riding on takes its second command and press
     await expect(ridingOn).toHaveAttribute('aria-pressed', 'true')
 
     await newCommand.click()
-    await tap(page, 'svg [aria-label="Threaten an attack across this approach"]')
+    await threaten(page, 38, 52)
     await page.locator('button[aria-label="Choose this unit"]:not([disabled])').first().click()
-    await page.getByRole('button', { name: /^Defend/ }).click()
+    await page.getByRole('button', { name: 'Defend', exact: true }).click()
 
     await page.getByRole('button', { name: 'Call it a feint' }).click()
     await expect(newCommand).toHaveAttribute('aria-pressed', 'true')
@@ -168,4 +192,82 @@ test('reinforcement cavalry that is riding on takes its second command and press
     await expect(page.getByText('In reserve', { exact: true })).toBeVisible()
     await expect(rideSwitch).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Attack with no leading unit' })).toBeEnabled()
+})
+
+test('cavalry riding on stays in hand while a locale is aimed at, and the threat starts from the ride', async ({
+    page
+}) => {
+    await frenchTurnWith(page, reinforcementCavalryRidesIn)
+    const rideSwitch = page.getByRole('group', { name: RIDE_SWITCH })
+    await expect(page.getByRole('group', { name: 'Bernadotte’s corps, riding on' })).toBeVisible()
+    await expect(page.getByText('Tap an enemy locale to threaten an attack.')).toBeVisible()
+
+    await tap(page, '[data-aim-locale="52"]')
+    await expect(
+        page.getByText('The pieces you chose will join the attack where they can.')
+    ).toBeVisible()
+    await tap(page, `svg [data-threat="${AUSTERLITZ.approachBetween(38, 52).id}"]`)
+    await page.locator('button[aria-label="Choose this unit"]:not([disabled])').first().click()
+    await page.getByRole('button', { name: 'Defend', exact: true }).click()
+
+    await page.getByRole('button', { name: 'Call it a feint' }).click()
+    await expect(rideSwitch.getByRole('button', { name: 'Riding on' })).toHaveAttribute(
+        'aria-pressed',
+        'true'
+    )
+})
+
+test('cavalry at the end of its ride stays in reserve unless it is picked up to block an approach', async ({
+    page
+}) => {
+    let riderGroup = ''
+    await frenchTurnWith(page, (state) => {
+        riderGroup = standingGroupKey(cavalryReachesTheEndOfItsRide(state))
+    })
+    const atRidesEnd = page.getByRole('group', { name: 'Detached units, at the end of its ride' })
+    const blocks = page.locator('svg [aria-label="Block this approach"]')
+    const rider = `svg [data-group="${riderGroup}"] > g`
+
+    await expect(page.getByText(/^Choose a corps/)).toBeVisible()
+    await expect(
+        page.getByText('stays in reserve unless you tap it to block an approach its road crosses')
+    ).toBeVisible()
+    await expect(page.getByRole('group', { name: 'Detached units, riding on' })).toHaveCount(0)
+
+    await tap(page, rider)
+    await expect(atRidesEnd).toBeVisible()
+    await expect(page.getByText('may ride on', { exact: false })).toHaveCount(0)
+    await expect(blocks).not.toHaveCount(0)
+
+    await tap(page, rider)
+    await expect(atRidesEnd).toHaveCount(0)
+    await expect(page.getByText(/^Choose a corps/)).toBeVisible()
+})
+
+test('cavalry at the end of its ride is picked up again from a unit standing with it', async ({
+    page
+}) => {
+    let riderGroup = ''
+    await frenchTurnWith(page, (state) => {
+        Object.assign(unitOf(state, 'vandamme', UnitType.Infantry), {
+            commanderId: undefined,
+            position: { locale: 73 }
+        })
+        riderGroup = standingGroupKey(cavalryReachesTheEndOfItsRide(state))
+    })
+    const atRidesEnd = page.getByRole('group', { name: 'Detached units, at the end of its ride' })
+    const commanding = page.getByRole('group', { name: 'Detached units', exact: true })
+    const leftOut = page.locator('.nt-orders-units button[aria-pressed="false"]')
+
+    await tap(page, `svg [data-group="${riderGroup}"]`)
+    await expect(atRidesEnd).toBeVisible()
+
+    await leftOut.click()
+    await expect(commanding).toBeVisible()
+
+    await leftOut.click()
+    await expect(atRidesEnd).toBeVisible()
+
+    await page.locator('.nt-orders-units button[aria-pressed="true"]').click()
+    await expect(page.getByText(/^Choose a corps/)).toBeVisible()
 })

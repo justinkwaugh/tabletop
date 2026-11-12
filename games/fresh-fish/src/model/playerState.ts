@@ -2,7 +2,7 @@ import { Hydratable, OffsetTupleCoordinates, PlayerState } from '@tabletop/commo
 import { GoodsType } from '../definition/goodsType.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
-import { type ScoringInfo } from '../util/scoring.js'
+import type { ScoringInfo } from '../util/scoring.js'
 import { Color } from '@tabletop/common'
 
 export type PlayerStall = Type.Static<typeof PlayerStall>

@@ -138,9 +138,7 @@ describe('the sacrifice (R-5.5.5, R-5.5.5.c, R-9.5)', () => {
 
     it('kills the sacrificed warbands back to their own bank (R-10.13, R-10.22)', () => {
         const state = midBattle({ swords: 3, defense: 5 })
-        expectWarbandsConserved(state, () =>
-            sacrifice({ sacrifice: 3 }).apply(state)
-        )
+        expectWarbandsConserved(state, () => sacrifice({ sacrifice: 3 }).apply(state))
         expect(state.getPlayerState(ATTACKER).warbandsInPersonalBank[ATTACKER]).toBe(8 + 3)
     })
 
@@ -263,7 +261,9 @@ describe('resolving defeat (R-5.5.6)', () => {
     it('leaves warbands that were already on a board where they are', () => {
         const state = midBattle({ swords: 9, defense: 1 })
         sacrifice().apply(state)
-        lose(DEFENDER, [{ at: { kind: 'site', siteId: 'c1' }, owner: DEFENDER, count: 1 }]).apply(state)
+        lose(DEFENDER, [{ at: { kind: 'site', siteId: 'c1' }, owner: DEFENDER, count: 1 }]).apply(
+            state
+        )
 
         expect(state.getPlayerState(DEFENDER).warbandsOnBoard[DEFENDER]).toBe(2)
     })
@@ -272,9 +272,7 @@ describe('resolving defeat (R-5.5.6)', () => {
         const state = midBattle({
             swords: 9,
             defense: 1,
-            defendingForce: [
-                { at: { kind: 'site', siteId: 'c1' }, owner: DEFENDER, count: 1 }
-            ]
+            defendingForce: [{ at: { kind: 'site', siteId: 'c1' }, owner: DEFENDER, count: 1 }]
         })
         expectWarbandsConserved(state, () => sacrifice({ defeatKills: [] }).apply(state))
         expect(state.getPlayerState(DEFENDER).warbandsInPersonalBank[DEFENDER]).toBe(11)
@@ -284,9 +282,7 @@ describe('resolving defeat (R-5.5.6)', () => {
         const state = midBattle({
             swords: 9,
             defense: 1,
-            defendingForce: [
-                { at: { kind: 'site', siteId: 'c1' }, owner: DEFENDER, count: 2 }
-            ]
+            defendingForce: [{ at: { kind: 'site', siteId: 'c1' }, owner: DEFENDER, count: 2 }]
         })
         sacrifice().apply(state)
         expect(state.campaign?.pendingDefeatKills).toBeUndefined()
@@ -369,7 +365,11 @@ describe('R-5.5.6.a — the defending side is asked only when its losses can dif
         { at: { kind: 'site', siteId: 'c2' }, owner: DEFENDER, count: 2 }
     ]
 
-    function won(force: WarbandGroup[], campaign: Partial<CampaignState> = {}, createdBeforeRevisions = false) {
+    function won(
+        force: WarbandGroup[],
+        campaign: Partial<CampaignState> = {},
+        createdBeforeRevisions = false
+    ) {
         const state = midBattle({ swords: 9, defense: 1, defendingForce: force, ...campaign })
         state.oathRevision = createdBeforeRevisions ? undefined : OathRevision.TurnFlow
         state.warbandsBySite = { c1: { [DEFENDER]: 2 }, c2: { [DEFENDER]: 2 } }
@@ -388,10 +388,13 @@ describe('R-5.5.6.a — the defending side is asked only when its losses can dif
     })
 
     it('still asks when the force mixes owners: an Imperial defence with a Citizen’s own warbands', () => {
-        const state = won([
-            { at: { kind: 'site', siteId: 'c1' }, owner: IMPERIAL_WARBANDS, count: 2 },
-            { at: { kind: 'site', siteId: 'c2' }, owner: CITIZEN, count: 2 }
-        ], { defenderPlayerId: CITIZEN, allyPlayerIds: [CHANCELLOR] })
+        const state = won(
+            [
+                { at: { kind: 'site', siteId: 'c1' }, owner: IMPERIAL_WARBANDS, count: 2 },
+                { at: { kind: 'site', siteId: 'c2' }, owner: CITIZEN, count: 2 }
+            ],
+            { defenderPlayerId: CITIZEN, allyPlayerIds: [CHANCELLOR] }
+        )
         state.warbandsBySite = { c1: { [IMPERIAL_WARBANDS]: 2 }, c2: { [CITIZEN]: 2 } }
         sacrifice().apply(state)
         expect(state.campaign?.pendingDefeatKills).toEqual({ chooserPlayerId: CHANCELLOR })
@@ -405,12 +408,16 @@ describe('R-5.5.6.a — the defending side is asked only when its losses can dif
     })
 
     it('does not ask for Hospital alone: it sets the same warbands aside wherever they stood', () => {
-        const state = won(ACROSS_TWO_SITES, { killRedirects: [{ playerId: DEFENDER, siteId: 'c2' }] })
+        const state = won(ACROSS_TWO_SITES, {
+            killRedirects: [{ playerId: DEFENDER, siteId: 'c2' }]
+        })
         const action = sacrifice()
         action.apply(state)
         expect(state.campaign?.pendingDefeatKills).toBeUndefined()
         expect(action.metadata?.defeatKilled).toBe(2)
-        expect(state.campaign?.heldForHospital).toEqual([{ playerId: DEFENDER, siteId: 'c2', owner: DEFENDER, count: 2 }])
+        expect(state.campaign?.heldForHospital).toEqual([
+            { playerId: DEFENDER, siteId: 'c2', owner: DEFENDER, count: 2 }
+        ])
         expect(state.getPlayerState(DEFENDER).warbandsOnBoard[DEFENDER]).toBe(2)
     })
 
@@ -418,7 +425,9 @@ describe('R-5.5.6.a — the defending side is asked only when its losses can dif
         const state = won(ACROSS_TWO_SITES, {}, true)
         sacrifice().apply(state)
         expect(state.campaign?.pendingDefeatKills).toEqual({ chooserPlayerId: DEFENDER })
-        lose(DEFENDER, [{ at: { kind: 'site', siteId: 'c2' }, owner: DEFENDER, count: 2 }]).apply(state)
+        lose(DEFENDER, [{ at: { kind: 'site', siteId: 'c2' }, owner: DEFENDER, count: 2 }]).apply(
+            state
+        )
         expect(state.campaign?.pendingDefeatKills).toBeUndefined()
     })
 
@@ -472,9 +481,7 @@ describe('what happens next', () => {
     it('clears the campaign when the attacker is defeated -- there is no step 7', () => {
         const state = midBattle({ swords: 0, defense: 9 })
         sacrifice({
-            defeatKills: [
-                { at: { kind: 'board', playerId: ATTACKER }, owner: ATTACKER, count: 2 }
-            ]
+            defeatKills: [{ at: { kind: 'board', playerId: ATTACKER }, owner: ATTACKER, count: 2 }]
         }).apply(state)
         expect(state.campaign).toBeUndefined()
     })
@@ -487,9 +494,7 @@ describe('what happens next', () => {
 
     it('refuses a player who is not the attacker', () => {
         const state = midBattle({ swords: 9, defense: 1 })
-        expect(() => sacrifice({ playerId: DEFENDER }).apply(state)).toThrow(
-            /only the attacker/
-        )
+        expect(() => sacrifice({ playerId: DEFENDER }).apply(state)).toThrow(/only the attacker/)
     })
 
     it('refuses to resolve twice', () => {

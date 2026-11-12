@@ -23,10 +23,7 @@ export function isBuyMachine(action: GameAction): action is BuyMachine {
     return action.type === ActionType.BuyMachine
 }
 
-export class HydratedBuyMachine
-    extends HydratableAction<typeof BuyMachine>
-    implements BuyMachine
-{
+export class HydratedBuyMachine extends HydratableAction<typeof BuyMachine> implements BuyMachine {
     declare type: ActionType.BuyMachine
     declare playerId: string
     declare color: ContainerColor

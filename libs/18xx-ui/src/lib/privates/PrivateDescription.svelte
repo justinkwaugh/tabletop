@@ -5,6 +5,7 @@
     import PrivateCard from './PrivateCard.svelte'
     import CardLightbox from './CardLightbox.svelte'
     import type { StationAppearance } from '../maps/stationPresentation.js'
+    import type { PublishedCardPlate } from '../session/eighteenXXSession.svelte.js'
     import { Floater } from '@tabletop/frontend-components'
 
     let {
@@ -14,9 +15,10 @@
         description,
         value,
         income,
-        token,
+        tokens,
         phaseColors = {},
-        imageUrl
+        imageUrl,
+        plate
     }: {
         money: MoneyFormat
         shortName: string
@@ -24,9 +26,10 @@
         description: string
         value?: number
         income?: number
-        token?: StationAppearance
+        tokens?: readonly StationAppearance[]
         phaseColors?: Readonly<Record<string, string>>
         imageUrl?: string
+        plate?: PublishedCardPlate
     } = $props()
     const id = $props.id()
     let open = $state(false)
@@ -70,6 +73,7 @@
 {#if open && imageUrl}
     <CardLightbox
         {imageUrl}
+        {plate}
         name={fullName}
         onclose={() => {
             open = false
@@ -100,7 +104,7 @@
                 {description}
                 {value}
                 {income}
-                {token}
+                {tokens}
             />
         </div>
     </Floater>

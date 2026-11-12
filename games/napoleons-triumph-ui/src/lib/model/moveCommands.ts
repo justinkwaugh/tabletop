@@ -19,6 +19,19 @@ export enum RideChoice {
     NewCommand = 'NewCommand'
 }
 
+/** Rule 9: Attach is a Corps Command that moves nothing; it is chosen beside the moves. */
+export const ATTACH = 'attach'
+
+export type CommandChoice = CommandKind | typeof ATTACH
+
+/** The names on the command switch: rule 9's moves by the rulebook's names, then Attach. */
+export const COMMAND_NAMES: Record<CommandChoice, string> = {
+    [CommandKind.Corps]: 'Corps Move',
+    [CommandKind.Detach]: 'Detach Move',
+    [CommandKind.Unit]: 'Unit Move',
+    [ATTACH]: 'Attach'
+}
+
 export interface CommandedGroup {
     commander?: Commander
     units: readonly ProjectedUnit[]
@@ -73,8 +86,7 @@ export function moveCommandOptions(
     state: HydratedNapoleonsTriumphGameState,
     playerId: string,
     group: CommandedGroup,
-    pickedUnitIds: readonly string[],
-    wholeCorpsChosen: boolean
+    pickedUnitIds: readonly string[]
 ): CommandKind[] {
     if (pickedUnitIds.length === 0) {
         return []
@@ -89,7 +101,25 @@ export function moveCommandOptions(
     const detach =
         canCommand && !whole && commander.position !== undefined ? [CommandKind.Detach] : []
     const unit = single ? [CommandKind.Unit] : []
-    return wholeCorpsChosen ? [...corps, ...detach, ...unit] : [...unit, ...detach, ...corps]
+    // Corps first even for units picked out: a default that switched to a Detach Move left commanders behind unnoticed.
+    return [...corps, ...detach, ...unit]
+}
+
+const COMMANDER_STAYS: readonly CommandChoice[] = [CommandKind.Detach, CommandKind.Unit]
+
+/** The command chosen while the units in hand can take it; one that left the commander behind gives way to another that does, so he never moves unasked; else the first on offer. */
+export function resolveCommand(
+    chosen: CommandChoice | undefined,
+    choices: readonly CommandChoice[]
+): CommandChoice | undefined {
+    if (chosen !== undefined && choices.includes(chosen)) {
+        return chosen
+    }
+    const staysBehind =
+        chosen !== undefined && COMMANDER_STAYS.includes(chosen)
+            ? choices.find((choice) => COMMANDER_STAYS.includes(choice))
+            : undefined
+    return staysBehind ?? choices[0]
 }
 
 export function moveOrder(

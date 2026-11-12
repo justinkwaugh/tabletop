@@ -1,8 +1,8 @@
 import { regionOfPawn } from './pawn.js'
-import { assertExists } from '@tabletop/common'
+import { assert, assertExists } from '@tabletop/common'
 import { HydratedOathGameState, discardRegionFor } from '../model/gameState.js'
 import { Region, CardKind, type Suit } from '../model/oathEnums.js'
-import { isVision, suitOf } from '../data/cardRegistry.js'
+import { isVision } from '../data/cardRegistry.js'
 import type { PileDeposit } from '../model/hidden.js'
 import { siteHolding } from './access.js'
 
@@ -32,6 +32,12 @@ export function discardCards(
         return []
     }
 
+    const beneath = target?.bottom ? 0 : cardsAboveDiscards(state, targetRegion, cardIds.length)
+    assert(
+        beneath <= state.discardPileCounts[targetRegion],
+        `${beneath} cards are not on the ${targetRegion} discard pile to go under`
+    )
+
     for (const cardId of cardIds) {
         returnTokensFrom(state, actingPlayerId, cardId)
 
@@ -39,7 +45,7 @@ export function discardCards(
         state.discardPileCounts[targetRegion] += 1
 
         // R-9.4 — the top card's back is public, and denizen and Vision backs differ.
-        if (!target?.bottom || wasEmpty) {
+        if ((!target?.bottom && beneath === 0) || wasEmpty) {
             state.discardTopBackType = {
                 ...state.discardTopBackType,
                 [targetRegion]: backOf(cardId)
@@ -48,7 +54,31 @@ export function discardCards(
     }
 
     if (cardIds.length === 0) return []
-    return [{ region: targetRegion, cardIds: [...cardIds], bottom: target?.bottom || undefined }]
+    return [
+        {
+            region: targetRegion,
+            cardIds: [...cardIds],
+            bottom: target?.bottom || undefined,
+            beneath: beneath || undefined
+        }
+    ]
+}
+
+/**
+ * Land Warden — R-7.3.3: a question of the kept card's power discards under what the second card put on the pile. Any
+ * other question answered before the proposals of a kept Gathering adds to what those proposals' discards go under.
+ */
+function cardsAboveDiscards(
+    state: HydratedOathGameState,
+    targetRegion: Region,
+    count: number
+): number {
+    const mark = state.pendingQuestions?.underSecondPlay
+    if (!mark) return 0
+    const onTop = mark.onTop[targetRegion] ?? 0
+    if (mark.questions > 0) return onTop
+    mark.onTop[targetRegion] = onTop + count
+    return 0
 }
 
 function backOf(cardId: string): CardKind {
@@ -67,7 +97,7 @@ export function tokensReturnedBy(state: HydratedOathGameState, cardId: string): 
     const tokens = state.tokensOn(cardId)
     if (tokens.favor === 0) return { favor: 0, secrets: tokens.secrets }
     // R-5.2.1 and R-5.3.2 only put favor on suited cards.
-    const suit = suitOf(cardId)
+    const suit = state.suitInPlay(cardId)
     assertExists(suit, `${cardId} has no suit, so it cannot hold favor`)
     return { favor: tokens.favor, suit, secrets: tokens.secrets }
 }
@@ -100,7 +130,7 @@ export function siteDiscardLedgerKey(
     cardId: string
 ): string | undefined {
     const siteId = siteHolding(state, cardId)
-    const suit = suitOf(cardId)
+    const suit = state.suitInPlay(cardId)
     return siteId === undefined || !suit ? undefined : homelandLedgerKey(siteId, suit)
 }
 

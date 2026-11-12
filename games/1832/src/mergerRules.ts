@@ -14,7 +14,7 @@ import {
     type ShareSaleDetails,
     type StockState
 } from '@tabletop/18xx'
-import { coalFieldsOpen } from './coalAccess.js'
+import { CoalAccess } from './coalAccess.js'
 import type { EighteenThirtyTwoState } from './state.js'
 import { EighteenThirtyTwoShareTrading, EighteenThirtyTwoStockRules } from './stockRules.js'
 import { isClosingSpace, EighteenThirtyTwoMarket } from './stockMarket.js'
@@ -76,7 +76,8 @@ export function companiesConnect(state: EighteenThirtyTwoState, first: string, s
             undefined,
             undefined,
             (locationId, nodeId) =>
-                !coalFieldsOpen(state, from, { locationId, nodeId }) || offBoard(locationId, nodeId)
+                !CoalAccess.open(state, from, { locationId, nodeId }) ||
+                offBoard(locationId, nodeId)
         )
         return targets.some((target) =>
             network.reaches(target.position.locationId, {
@@ -131,13 +132,10 @@ export function takeoverPayments(
 const total = (payments: readonly CashPayment[]) =>
     payments.reduce((sum, payment) => sum + payment.amount, 0)
 
-function paidTo(payments: readonly CashPayment[], playerId: string) {
-    return total(payments.filter((payment) => sameOwner(payment.to, { kind: 'player', playerId })))
-}
-
 /**
- * What the buyer's treasury, its president's cash and their own shares' price leave to raise
- * by selling shares. **Ruling:** the president is paid for their own shares as they contribute.
+ * What the buyer's treasury and its president's cash leave to raise by selling shares (§11.7).
+ * **Ruling:** the buyer pays the president for their own shares of the target only once the
+ * takeover is funded, so that payment does not count toward their contribution.
  */
 export function takeoverShortfall(
     state: StockState,
@@ -145,13 +143,11 @@ export function takeoverShortfall(
     targetId: string,
     playerId: string
 ): number {
-    const payments = takeoverPayments(state, buyerId, targetId)
     return Math.max(
         0,
-        total(payments) -
+        total(takeoverPayments(state, buyerId, targetId)) -
             finiteCashOwnedBy(state, { kind: 'company', companyId: buyerId }) -
-            finiteCashOwnedBy(state, { kind: 'player', playerId }) -
-            paidTo(payments, playerId)
+            finiteCashOwnedBy(state, { kind: 'player', playerId })
     )
 }
 
@@ -219,7 +215,7 @@ export function takeoverSales(
                 other.sales[0].companyId === companyId && other.sales[0].shares === shares - 1
         )
         if (smaller && smaller.proceeds >= shortfall) return false
-        const projected = { ...state, ...copyStockState(state) }
+        const projected = copyStockState(state)
         applyShareSale(projected, sale)
         return fundable(projected, funding)
     })

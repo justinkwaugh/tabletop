@@ -1,8 +1,8 @@
+import { EighteenXXPlayerAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
     type GameAction,
@@ -57,6 +57,15 @@ export function validatePendingPar(state: AwardedParState): void {
     )
 }
 
+/** The par spaces open to the player owed a par for the company. */
+export function awardParSpaces(
+    state: FormationState,
+    rules: CompanyRules,
+    companyId: string
+): string[] {
+    return rules.awardParSpaces?.(state, companyId) ?? rules.startMarketSpaces(state, companyId)
+}
+
 export function parReason(
     state: ParState,
     rules: CompanyRules,
@@ -65,14 +74,14 @@ export function parReason(
     const pending = state.pendingPar
     if (pending?.playerId !== request.playerId || pending.companyId !== request.companyId)
         return 'This player has no par to set for this company.'
-    if (!rules.startMarketSpaces(state, request.companyId).includes(request.marketSpaceId))
+    if (!awardParSpaces(state, rules, request.companyId).includes(request.marketSpaceId))
         return 'Choose an available starting price.'
     return undefined
 }
 
 export const ParCompany = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('ParCompany'),
         companyId: Type.String(),
         marketSpaceId: Type.String()

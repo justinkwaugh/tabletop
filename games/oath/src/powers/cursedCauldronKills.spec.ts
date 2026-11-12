@@ -3,13 +3,24 @@ import { Color, type GameAction } from '@tabletop/common'
 import { HydratedOathGameState, type OathProjectedState } from '../model/gameState.js'
 import { Campaign } from '../actions/campaign.js'
 import { CampaignDefend, type HydratedCampaignDefend } from '../actions/campaignDefend.js'
-import { CampaignSacrifice, HydratedCampaignSacrifice, isCampaignSacrifice } from '../actions/campaignSacrifice.js'
+import {
+    CampaignSacrifice,
+    HydratedCampaignSacrifice,
+    isCampaignSacrifice
+} from '../actions/campaignSacrifice.js'
 import { PlayerStatus } from '../model/oathEnums.js'
 import { testPlayer, testState, openTurn, withChancellor } from '../testing/fixture.js'
 import { ongoingCampaign } from '../testing/required.js'
 import { buildAction } from '../testing/actions.js'
 import { battlePlanUse, siteTarget } from '../testing/choices.js'
-import { ATTACKER, DEFENDER, campaign, defend, finishCampaign, finishCampaignSteps } from '../testing/steps.js'
+import {
+    ATTACKER,
+    DEFENDER,
+    campaign,
+    defend,
+    finishCampaign,
+    finishCampaignSteps
+} from '../testing/steps.js'
 import { RunMode, engine } from '../testing/engine.js'
 import { testGame } from '../testing/game.js'
 import { OathRevision } from '../util/revision.js'
@@ -36,12 +47,27 @@ function table(
     const s = testState(
         withChancellor([
             testPlayer({
-                playerId: ATTACKER, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', supply: 6, favor: 4, secrets: 3,
-                warbandsOnBoard: { [ATTACKER]: 6 }, warbandsInPersonalBank: { [ATTACKER]: ATTACKER_BANK }, relicIds: relics.attacker ?? []
+                playerId: ATTACKER,
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: 'c1',
+                supply: 6,
+                favor: 4,
+                secrets: 3,
+                warbandsOnBoard: { [ATTACKER]: 6 },
+                warbandsInPersonalBank: { [ATTACKER]: ATTACKER_BANK },
+                relicIds: relics.attacker ?? []
             }),
             testPlayer({
-                playerId: DEFENDER, color: Color.Yellow, status: PlayerStatus.Exile, siteId: 'c1', favor: 4, secrets: 3,
-                warbandsOnBoard: { [DEFENDER]: 2 }, warbandsInPersonalBank: { [DEFENDER]: DEFENDER_BANK }, relicIds: relics.defender ?? []
+                playerId: DEFENDER,
+                color: Color.Yellow,
+                status: PlayerStatus.Exile,
+                siteId: 'c1',
+                favor: 4,
+                secrets: 3,
+                warbandsOnBoard: { [DEFENDER]: 2 },
+                warbandsInPersonalBank: { [DEFENDER]: DEFENDER_BANK },
+                relicIds: relics.defender ?? []
             })
         ]),
         {
@@ -77,7 +103,11 @@ function defendedWithCauldron(
 }
 
 /** The defender answers with `plans`; the attacker holds the Cauldron and wins. */
-function attackedWithCauldron(oathRevision: number, plans: string[], cards: { c1?: string[]; p1?: string[] }) {
+function attackedWithCauldron(
+    oathRevision: number,
+    plans: string[],
+    cards: { c1?: string[]; p1?: string[] }
+) {
     const s = table(oathRevision, 1, cards, { attacker: [CAULDRON] })
     campaign({ attackDice: 3, plans: [battlePlanUse(CAULDRON)] }).apply(s)
     if (plans.length > 0) defend(plans.map(battlePlanUse)).apply(s)
@@ -94,11 +124,17 @@ function cauldronNote(s: HydratedOathGameState): string | undefined {
     return victory?.metadata?.triggered?.find((note) => note.startsWith('Cursed Cauldron'))
 }
 
-const gainedNote = (n: number, user = ATTACKER) => `Cursed Cauldron: ${user} gained ${n} warbands, one per enemy warband killed`
+const gainedNote = (n: number, user = ATTACKER) =>
+    `Cursed Cauldron: ${user} gained ${n} warbands, one per enemy warband killed`
 
 describe('Cursed Cauldron counts every enemy warband killed in the Campaign (revision 4)', () => {
     it("the skulls' kills count, with the defeated attacker's half", () => {
-        const { s, defended } = defendedWithCauldron(atRevision, [CAULDRON], {}, (d) => (d.metadata?.skullsKilled ?? 0) > 0)
+        const { s, defended } = defendedWithCauldron(
+            atRevision,
+            [CAULDRON],
+            {},
+            (d) => (d.metadata?.skullsKilled ?? 0) > 0
+        )
         const skulls = defended.metadata?.skullsKilled ?? 0
         const sacrifice = finishCampaign(s)
         expect(sacrifice.metadata?.attackerVictorious).toBe(false)
@@ -110,8 +146,15 @@ describe('Cursed Cauldron counts every enemy warband killed in the Campaign (rev
     })
 
     it("Bear Traps' kill counts", () => {
-        const { s, defended } = defendedWithCauldron(atRevision, [BEAR_TRAPS, CAULDRON], { c1: [BEAR_TRAPS] }, (d) => d.metadata?.skullsKilled === 0)
-        expect(defended.metadata?.planNotes).toContain(`Bear Traps: killed a warband on ${ATTACKER}'s board`)
+        const { s, defended } = defendedWithCauldron(
+            atRevision,
+            [BEAR_TRAPS, CAULDRON],
+            { c1: [BEAR_TRAPS] },
+            (d) => d.metadata?.skullsKilled === 0
+        )
+        expect(defended.metadata?.planNotes).toContain(
+            `Bear Traps: killed a warband on ${ATTACKER}'s board`
+        )
         const sacrifice = finishCampaign(s)
         const defeatKilled = sacrifice.metadata?.defeatKilled ?? 0
         expect(bankOf(s, ATTACKER) - ATTACKER_BANK).toBe(1 + defeatKilled)
@@ -148,7 +191,12 @@ describe('Cursed Cauldron counts every enemy warband killed in the Campaign (rev
 
 describe('R-X.4 — before revision 4 Cursed Cauldron counts the defeat kills alone, as recorded', () => {
     it("Bear Traps' kill and the skulls' are left out, and no tally is kept", () => {
-        const { s } = defendedWithCauldron(before, [BEAR_TRAPS, CAULDRON], { c1: [BEAR_TRAPS] }, (d) => (d.metadata?.skullsKilled ?? 0) > 0)
+        const { s } = defendedWithCauldron(
+            before,
+            [BEAR_TRAPS, CAULDRON],
+            { c1: [BEAR_TRAPS] },
+            (d) => (d.metadata?.skullsKilled ?? 0) > 0
+        )
         expect(ongoingCampaign(s).enemyWarbandsKilled).toBeUndefined()
         const sacrifice = finishCampaign(s)
         const defeatKilled = sacrifice.metadata?.defeatKilled ?? 0
@@ -167,7 +215,12 @@ describe('R-X.4 — a Campaign with Bear Traps and the Cauldron replays as it wa
     const game = testGame([ATTACKER, DEFENDER, 'chancellor'])
 
     function record(oathRevision: number, seed: number) {
-        const start = table(oathRevision, seed, { c1: [BEAR_TRAPS] }, { defender: [CAULDRON] }).dehydrate()
+        const start = table(
+            oathRevision,
+            seed,
+            { c1: [BEAR_TRAPS] },
+            { defender: [CAULDRON] }
+        ).dehydrate()
         let state: OathProjectedState = structuredClone(start)
         const processed: GameAction[] = []
         const run = (action: GameAction) => {
@@ -175,11 +228,26 @@ describe('R-X.4 — a Campaign with Bear Traps and the Cauldron replays as it wa
             processed.push(...result.processedActions)
             state = result.updatedState
         }
-        run(buildAction(Campaign, { playerId: ATTACKER, defender: { kind: 'player', playerId: DEFENDER }, targets: [siteTarget('c1')], attackDice: 6 }))
-        run(buildAction(CampaignDefend, { playerId: DEFENDER, plans: [battlePlanUse(BEAR_TRAPS), battlePlanUse(CAULDRON)] }))
+        run(
+            buildAction(Campaign, {
+                playerId: ATTACKER,
+                defender: { kind: 'player', playerId: DEFENDER },
+                targets: [siteTarget('c1')],
+                attackDice: 6
+            })
+        )
+        run(
+            buildAction(CampaignDefend, {
+                playerId: DEFENDER,
+                plans: [battlePlanUse(BEAR_TRAPS), battlePlanUse(CAULDRON)]
+            })
+        )
         const rolled = state.campaign
         if (!rolled || rolled.swords > rolled.defense) return undefined
-        const defeatKills = HydratedCampaignSacrifice.attackerDefeatKills(new HydratedOathGameState(state), 0)
+        const defeatKills = HydratedCampaignSacrifice.attackerDefeatKills(
+            new HydratedOathGameState(state),
+            0
+        )
         run(buildAction(CampaignSacrifice, { playerId: ATTACKER, sacrifice: 0, defeatKills }))
         const defeatKilled = processed.find(isCampaignSacrifice)?.metadata?.defeatKilled ?? 0
         return { start, processed, recorded: state, defeatKilled }
@@ -195,7 +263,13 @@ describe('R-X.4 — a Campaign with Bear Traps and the Cauldron replays as it wa
 
     function replay(start: OathProjectedState, processed: readonly GameAction[]) {
         let replayed = structuredClone(start)
-        for (const action of processed) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+        for (const action of processed)
+            replayed = engine.run(
+                structuredClone(action),
+                replayed,
+                game,
+                RunMode.Single
+            ).updatedState
         return replayed
     }
 
@@ -215,7 +289,9 @@ describe('R-X.4 — a Campaign with Bear Traps and the Cauldron replays as it wa
         const old = recordedWhereDefenderWins(before)
         expect(DEFENDER_BANK - bankIn(old.recorded, DEFENDER)).toBe(old.defeatKilled)
         const now = recordedWhereDefenderWins(atRevision)
-        expect(DEFENDER_BANK - bankIn(now.recorded, DEFENDER)).toBe(bankIn(now.recorded, ATTACKER) - ATTACKER_BANK)
+        expect(DEFENDER_BANK - bankIn(now.recorded, DEFENDER)).toBe(
+            bankIn(now.recorded, ATTACKER) - ATTACKER_BANK
+        )
         expect(bankIn(now.recorded, ATTACKER) - ATTACKER_BANK).toBeGreaterThan(now.defeatKilled)
     })
 })

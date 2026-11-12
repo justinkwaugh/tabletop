@@ -12,6 +12,9 @@
                 "DISCORD_CLIENT_ID",
                 "DISCORD_BOT_TOKEN",
                 "DISCORD_BUG_REPORT_CHANNEL_ID",
+                "DISCORD_BUG_REPORT_DATA_CHANNEL_ID",
+                "MODERATION_EMAIL",
+                "TILTIFY_CLIENT_ID",
                 "FRONTEND_HOST",
                 "K_SERVICE",
                 "GOOGLE_CLIENT_ID",
@@ -52,6 +55,7 @@
                 "K_REVISION",
                 "LOCAL_GAME_HISTORY_DELAY_MS",
                 "REQUEST_TIMINGS_ENABLED",
+                "SITE_MANIFEST_GCS_URI",
                 "SITE_MANIFEST_PATH",
                 "VAPID_ADMIN_EMAIL"
             ]
@@ -73,6 +77,7 @@
                 "K_REVISION",
                 "LOCAL_GAME_HISTORY_DELAY_MS",
                 "REQUEST_TIMINGS_ENABLED",
+                "SITE_MANIFEST_GCS_URI",
                 "SITE_MANIFEST_PATH",
                 "VAPID_ADMIN_EMAIL"
             ]
@@ -97,7 +102,7 @@
         "bundle": {
             "dependsOn": ["^build"],
             "outputs": ["bundle/**/*"],
-            "env": ["ROLLUP_TERSER", "ROLLUP_TERSER_WORKERS"]
+            "env": ["ROLLDOWN_MINIFY"]
         },
         "stage-ui": {
             "dependsOn": ["bundle"],

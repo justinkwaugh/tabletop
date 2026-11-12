@@ -17,7 +17,7 @@ import {
 import { ConsentRequestKind } from '../model/consent.js'
 import { WarbandMove, WarbandMoveKind, type WarbandMoveOption } from '../model/warbandMove.js'
 import { MachineState } from '../definition/states.js'
-import { cannotPlaceWarbandsAtSites } from '../util/continuous.js'
+import { reasonCannotPlaceWarbandsAtSites } from '../util/continuous.js'
 import { countOf, describeWarbands } from '../util/warbands.js'
 import { pawnSiteId } from '../util/pawn.js'
 
@@ -183,11 +183,9 @@ export class HydratedMoveWarbands
         if (shape) return shape
 
         // R-7.1.4-H1 Ring of Devotion: "cannot place warbands at sites".
-        if (
-            choice.move.kind === WarbandMoveKind.BoardToSite &&
-            cannotPlaceWarbandsAtSites(state, playerId)
-        ) {
-            return 'you cannot place warbands at sites (Ring of Devotion)'
+        if (choice.move.kind === WarbandMoveKind.BoardToSite) {
+            const barred = reasonCannotPlaceWarbandsAtSites(state, playerId)
+            if (barred) return barred
         }
 
         const owned = HydratedMoveWarbands.movableOwnersFor(state, playerId, choice.move)
@@ -225,14 +223,14 @@ export class HydratedMoveWarbands
                 ])
         ]
 
+        // Offered only as `reasonCannotMove` accepts it, at the largest count. Every limit but the
+        // count holds for any count, so a move accepted at its largest is accepted below it too.
         const results: WarbandMoveOption[] = []
         for (const move of moves) {
-            if (HydratedMoveWarbands.reasonMoveShapeInvalid(state, playerId, move)) {
-                continue
-            }
             for (const owner of HydratedMoveWarbands.movableOwnersFor(state, playerId, move)) {
                 const max = HydratedMoveWarbands.maxMovable(state, playerId, move, owner)
-                if (max > 0) {
+                const choice = { move, owner, count: max }
+                if (max > 0 && !HydratedMoveWarbands.reasonCannotMove(state, playerId, choice)) {
                     results.push({ move, owner, max })
                 }
             }

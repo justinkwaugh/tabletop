@@ -49,11 +49,16 @@
 
     let hoveredPos = $state<number | null>(null)
 
-    const repositionPreview = $derived(hoveredPos === null ? undefined : session.repositionPreview(hoveredPos))
+    const repositionPreview = $derived(
+        hoveredPos === null ? undefined : session.repositionPreview(hoveredPos)
+    )
 
     const sightlines = $derived.by(() => {
         if (!session.showsSightlines) return []
-        return architectSightlines(gameState.board, repositionPreview?.architects ?? architectMoveAnimator.positions)
+        return architectSightlines(
+            gameState.board,
+            repositionPreview?.architects ?? architectMoveAnimator.positions
+        )
     })
 
     const hoveredDistrict = $derived(
@@ -77,12 +82,21 @@
         const square = gameState.board[pos]
         const architectAt = gameState.architects.indexOf(pos)
 
-        if (session.canPlaceArchitect && square === null && pos !== gameState.architects[0] && pos !== gameState.architects[1]) {
+        if (
+            session.canPlaceArchitect &&
+            square === null &&
+            pos !== gameState.architects[0] &&
+            pos !== gameState.architects[1]
+        ) {
             session.placeArchitect(pos)
             return
         }
 
-        if (session.canRepositionArchitect && architectAt >= 0 && session.architectsWithValidMoves.has(architectAt)) {
+        if (
+            session.canRepositionArchitect &&
+            architectAt >= 0 &&
+            session.architectsWithValidMoves.has(architectAt)
+        ) {
             session.selectArchitect(architectAt)
             return
         }
@@ -100,7 +114,8 @@
 </script>
 
 <svg
-    viewBox="{-SHADOW_ROOM} {-SHADOW_ROOM} {BOARD_PIXELS + 2 * SHADOW_ROOM} {BOARD_PIXELS + 2 * SHADOW_ROOM}"
+    viewBox="{-SHADOW_ROOM} {-SHADOW_ROOM} {BOARD_PIXELS + 2 * SHADOW_ROOM} {BOARD_PIXELS +
+        2 * SHADOW_ROOM}"
     width={(BOARD_PIXELS + 2 * SHADOW_ROOM) * BOARD_DISPLAY_SCALE}
     height={(BOARD_PIXELS + 2 * SHADOW_ROOM) * BOARD_DISPLAY_SCALE}
     class="select-none"
@@ -120,7 +135,7 @@
                 rx="4"
                 fill="#fff3c4"
                 opacity="0.55"
-            />
+            ></rect>
         {/each}
 
         {#each sightlines as line (`${line.from}-${line.to}`)}
@@ -136,7 +151,7 @@
                 stroke-dasharray="1 6"
                 stroke-linecap="round"
                 opacity="0.6"
-            />
+            ></line>
         {/each}
 
         {#each repositionPreview ? [] : [...validSquares] as pos (pos)}
@@ -149,7 +164,7 @@
                 stroke="#b8860b"
                 stroke-width="2.5"
                 opacity={session.selectedArchitectIndex === undefined ? 1 : 0.6}
-            />
+            ></circle>
         {/each}
 
         {#if repositionPreview}
@@ -166,10 +181,14 @@
                     stroke="#a87808"
                     stroke-width="2"
                     stroke-dasharray="5 4"
-                />
+                ></rect>
             {/each}
             <g opacity="0.55">
-                <Architect center={squareCenter(repositionPreview.position)} selected={false} selectable={false} />
+                <Architect
+                    center={squareCenter(repositionPreview.position)}
+                    selected={false}
+                    selectable={false}
+                />
             </g>
         {/if}
 
@@ -206,7 +225,10 @@
                             color={session.colors.getPlayerUiColor(building.playerId)}
                             buildingStyle={session.buildingStyle}
                             footprint={BUILDING_FOOTPRINT}
-                            shadow={{ offset: shadowOffset(BUILDING_HEIGHT[building.buildingType]), blurred: true }}
+                            shadow={{
+                                offset: shadowOffset(BUILDING_HEIGHT[building.buildingType]),
+                                blurred: true
+                            }}
                         />
                     </g>
                 </g>
@@ -233,7 +255,13 @@
         </g>
 
         {#each hoveredOutline as segment (`${segment.x1},${segment.y1},${segment.x2},${segment.y2}`)}
-            <line {...segment} stroke="#e0a91a" stroke-width="3.5" stroke-linecap="round" filter="url(#urbino-glow)" />
+            <line
+                {...segment}
+                stroke="#e0a91a"
+                stroke-width="3.5"
+                stroke-linecap="round"
+                filter="url(#urbino-glow)"
+            ></line>
         {/each}
     </g>
 

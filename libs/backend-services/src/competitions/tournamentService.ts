@@ -32,7 +32,11 @@ import {
     type SubstituteTournamentEntrantRequest,
     type TournamentEntrant,
     type TournamentStanding,
-    type WithdrawTournamentEntrantRequest
+    ranksByAveragePlace,
+    type TournamentTable,
+    type TournamentTitles,
+    type WithdrawTournamentEntrantRequest,
+    receivesGameAndCompetitionEmail
 } from '@tabletop/common'
 import { requireActiveAccount, requireAdministrator, touchRevision } from './competitionAccess.js'
 import * as Value from 'typebox/value'
@@ -45,7 +49,7 @@ import { sendCompetitionUpdate } from './competitionUpdates.js'
 
 import { TournamentDispatcher } from './tournamentDispatcher.js'
 import { updateTournamentRegistration } from './tournamentRegistration.js'
-import { compareTournamentScores } from './tournamentScoring.js'
+import { tournamentPlacings, type TournamentTableResult } from './tournamentScoring.js'
 import { entrantTableCounts } from './tournamentDispatch.js'
 import { enqueueTournamentResultsEmail, type TournamentTask } from './tournamentTasks.js'
 import { enqueueLeagueTask } from './leagueTasks.js'
@@ -58,13 +62,17 @@ import { GLOBAL_TOPIC, userTopic } from '../notifications/topics.js'
 const seatsAssignedStartingOrder = (title: Pick<GameDefinition, 'runtime'>) =>
     title.runtime.initializer.supportsStartingPositions === true
 
+const recordsFinalScores = (title: Pick<GameDefinition, 'runtime'>) =>
+    title.runtime.scoring !== undefined
+
 type EntrantScore = TournamentScore & Pick<TournamentStanding, 'userId' | 'playedBy' | 'withdrawn'>
 
 export interface GroupTournamentResults {
     tournament: Tournament
     standings: EntrantScore[]
-    tables: { id: string; entrantIds: string[]; winnerIds: string[] }[]
+    tables: TournamentTableResult[]
     activeTableIds: string[]
+    activeProgress: number
     voidedTableIds: string[]
 }
 
@@ -338,16 +346,18 @@ export class TournamentService {
         const activeCounts = entrantTableCounts(tables, stage?.dispatch?.active ?? [])
         const voidedCounts = entrantTableCounts(tables, stage?.dispatch?.voided ?? [])
         const gamesPerEntrant = tournament.format.stages[0]?.gamesPerEntrant ?? 0
-        const standings = this.rankStandings(tournament, this.standingsWithUsers(tournament)).map(
-            (row) => ({
-                ...row,
-                active: activeCounts.get(row.userId) ?? 0,
-                remaining: Math.max(
-                    0,
-                    gamesPerEntrant - row.completed - (voidedCounts.get(row.userId) ?? 0)
-                )
-            })
-        )
+        const standings = this.rankStandings(
+            tournament,
+            this.standingsWithUsers(tournament),
+            this.tableResults(tournament, tables, games)
+        ).map((row) => ({
+            ...row,
+            active: activeCounts.get(row.userId) ?? 0,
+            remaining: Math.max(
+                0,
+                gamesPerEntrant - row.completed - (voidedCounts.get(row.userId) ?? 0)
+            )
+        }))
         return { tournament, usernames, games, ...(stage?.standings ? { standings } : {}) }
     }
 
@@ -355,25 +365,65 @@ export class TournamentService {
      * Ranks places by points, withdrawn places last and unranked; the champion is the best place
      * no Substitute played.
      */
-    private rankStandings(tournament: Tournament, rows: EntrantScore[]) {
-        const ranked = rows
-            .filter((row) => !row.withdrawn)
-            .sort((a, b) => compareTournamentScores(a, b) || a.userId.localeCompare(b.userId))
+    private rankStandings(
+        tournament: Tournament,
+        rows: EntrantScore[],
+        tables: TournamentTableResult[]
+    ) {
+        const placings = tournamentPlacings(
+            rows.filter((row) => !row.withdrawn),
+            tables
+        ).map((group) => group.sort((a, b) => a.userId.localeCompare(b.userId)))
         const withdrawn = rows.filter((row) => row.withdrawn)
-        const best = ranked.find((row) => !row.playedBy)
+        const championGroup = placings.find((group) => group.some((row) => !row.playedBy))
+        let rank = 1
         return [
-            ...ranked.map((row) => ({
-                ...row,
-                rank: ranked.findIndex((other) => compareTournamentScores(other, row) === 0) + 1,
-                ...(tournament.status === 'finished' &&
-                best &&
-                !row.playedBy &&
-                compareTournamentScores(best, row) === 0
-                    ? { champion: true }
-                    : {})
-            })),
-            ...withdrawn.map((row) => ({ ...row, rank: ranked.length + 1 }))
+            ...placings.flatMap((group) => {
+                const ranked = group.map((row) => ({
+                    ...row,
+                    rank,
+                    ...(tournament.status === 'finished' && group === championGroup && !row.playedBy
+                        ? { champion: true as const }
+                        : {})
+                }))
+                rank += group.length
+                return ranked
+            }),
+            ...withdrawn.map((row) => ({ ...row, rank }))
         ]
+    }
+
+    // A void Table counts for nobody, even when its Game recorded a result.
+    private tableResults(
+        tournament: Tournament,
+        tables: Pick<TournamentTable, 'id' | 'entrantIds'>[],
+        games: TournamentGameLink[]
+    ): TournamentTableResult[] {
+        const gamesByTable = new Map(games.map((game) => [game.tableId, game]))
+        const voided = new Set(tournament.stages[0]?.dispatch?.voided ?? [])
+        const entrantId = (userId: string) => {
+            const entrant = tournament.entrants[tournamentEntrantIndex(tournament, userId)]
+            assertExists(entrant, `Player ${userId} has no place in the tournament`)
+            return entrant.userId
+        }
+        return tables.map((table) => {
+            const game = voided.has(table.id) ? undefined : gamesByTable.get(table.id)
+            return {
+                id: table.id,
+                entrantIds: table.entrantIds,
+                winnerIds: (game?.winningUserIds ?? []).map(entrantId),
+                ...(game?.finishingPlaces
+                    ? {
+                          finishingPlaces: Object.fromEntries(
+                              Object.entries(game.finishingPlaces).map(([userId, place]) => [
+                                  entrantId(userId),
+                                  place
+                              ])
+                          )
+                      }
+                    : {})
+            }
+        })
     }
 
     async withdrawEntrant(id: string, request: WithdrawTournamentEntrantRequest, user: User) {
@@ -507,26 +557,22 @@ export class TournamentService {
         const linksById = new Map(played.map((tournament, index) => [tournament.id, links[index]]))
         return tournaments.map((tournament) => {
             const stage = tournament.stages[0]
-            const games = new Map(
-                this.withCorrections(tournament, linksById.get(tournament.id) ?? []).map((game) => [
-                    game.tableId,
-                    game
-                ])
-            )
+            const activeTableIds = stage?.dispatch?.active ?? []
+            const games = this.withCorrections(tournament, linksById.get(tournament.id) ?? [])
+            const progressByTable = new Map(games.map((game) => [game.tableId, game.progress]))
             return {
                 tournament,
                 standings: this.standingsWithUsers(tournament),
-                tables: (schedulesById.get(tournament.id)?.tables ?? []).map((table) => ({
-                    id: table.id,
-                    entrantIds: table.entrantIds,
-                    winnerIds: (games.get(table.id)?.winningUserIds ?? []).map((userId) => {
-                        const place =
-                            tournament.entrants[tournamentEntrantIndex(tournament, userId)]
-                        assertExists(place, `Winner ${userId} has no place in the tournament`)
-                        return place.userId
-                    })
-                })),
-                activeTableIds: stage?.dispatch?.active ?? [],
+                tables: this.tableResults(
+                    tournament,
+                    schedulesById.get(tournament.id)?.tables ?? [],
+                    games
+                ),
+                activeTableIds,
+                activeProgress: activeTableIds.reduce(
+                    (total, tableId) => total + (progressByTable.get(tableId)?.fraction ?? 0),
+                    0
+                ),
                 voidedTableIds: stage?.dispatch?.voided ?? []
             }
         })
@@ -568,7 +614,15 @@ export class TournamentService {
         const corrections = tournament.stages[0]?.corrections
         return games.map((game) => {
             const correction = corrections?.findLast((value) => value.tableId === game.tableId)
-            return correction ? { ...game, winningUserIds: [...correction.winningUserIds] } : game
+            return correction
+                ? {
+                      ...game,
+                      winningUserIds: [...correction.winningUserIds],
+                      ...(correction.finishingPlaces
+                          ? { finishingPlaces: { ...correction.finishingPlaces } }
+                          : {})
+                  }
+                : game
         })
     }
 
@@ -582,15 +636,13 @@ export class TournamentService {
     async rebuildStandings(id: string, revision: number, user: User) {
         requireAdministrator(user)
         const before = await this.store.read(id)
+        const title = before && lookupTitle(this.titles, before.rules.titleId)
         let tournament = await this.store.rebuildStandings(
             id,
             revision,
             user,
             this.now(),
-            async (typeId, readState) => {
-                const scoring = lookupTitle(this.titles, typeId)?.runtime.scoring
-                return scoring ? scoring.finalScores(await readState()) : undefined
-            }
+            title?.runtime.scoring?.tiebreakRule
         )
         if (before?.status !== 'finished') tournament = await this.completed(tournament)
         await this.notify(tournament)
@@ -621,7 +673,8 @@ export class TournamentService {
                 .map((entrant) => tournamentEntrantAccount(entrant))
         )
         for (const account of accounts) {
-            if (account?.status !== UserStatus.Active || !account.email) continue
+            if (account?.status !== UserStatus.Active || !receivesGameAndCompetitionEmail(account))
+                continue
             await enqueueTournamentResultsEmail(this.tasks, {
                 tournamentId: current.id,
                 userId: account.id,
@@ -704,10 +757,16 @@ export class TournamentService {
         return tournament
     }
 
-    tournamentTitleIds(): string[] {
-        return Object.entries(lookupTitles(this.titles))
-            .filter(([, title]) => seatsAssignedStartingOrder(title))
-            .map(([titleId]) => titleId)
+    tournamentTitles(): TournamentTitles {
+        const titles = Object.entries(lookupTitles(this.titles)).filter(([, title]) =>
+            seatsAssignedStartingOrder(title)
+        )
+        return {
+            titleIds: titles.map(([titleId]) => titleId),
+            placementTitleIds: titles
+                .filter(([, title]) => recordsFinalScores(title))
+                .map(([titleId]) => titleId)
+        }
     }
 
     async list(user: User, query: TournamentListQuery) {
@@ -768,6 +827,11 @@ export class TournamentService {
         if (!title) throw new TournamentError('This game title is unavailable', 400)
         if (!seatsAssignedStartingOrder(title))
             throw new TournamentError('This game is not available for tournaments yet', 400)
+        if (ranksByAveragePlace(rules) && !recordsFinalScores(title))
+            throw new TournamentError('This game does not record the final scores places need', 400)
+        delete rules.tiebreakRule
+        const tiebreakRule = title.runtime.scoring?.tiebreakRule
+        if (tiebreakRule) rules.tiebreakRule = tiebreakRule
         rules.gameConfig = normalizeGameConfig({
             ...defaultGameConfig(title.info.configurator?.options ?? []),
             ...normalizeGameConfig(rules.gameConfig, title.info.configurator)

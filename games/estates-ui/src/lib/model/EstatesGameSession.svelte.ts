@@ -46,6 +46,8 @@ export class EstatesGameSession extends GameSession<
 
     shouldHideHud = $derived(this.touching)
 
+    canTakeTurn = $derived(this.isMyTurn && this.gameState.result === undefined)
+
     override get canExplore(): boolean {
         return !this.game.config?.hiddenMoney && !this.gameState.hiddenMoney && super.canExplore
     }
@@ -75,6 +77,10 @@ export class EstatesGameSession extends GameSession<
             default:
                 return Color.Black
         }
+    }
+
+    hasDarkCubeNumber(company: Company): boolean {
+        return this.getCompanyColor(company) === Color.Yellow
     }
 
     cancel() {}

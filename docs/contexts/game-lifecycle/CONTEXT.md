@@ -48,12 +48,19 @@ A Player accepted by its associated User.
 **Declined Player**:
 A Reserved Player whose associated User declined. In a Public Game the position returns to Open; in an Invite-Only Game the declined association remains until the Owner changes it.
 
+**Banned Player**:
+A Player whose User Account an Administrator has Banned. The Ban stops them holding others up: they concede a two-Player Game, their seat in a Game yet to start returns to Open, in an Invite-Only Game too, and any such Game they own is deleted. A Game with more Players goes on and stops on their turn, so the others are emailed that they can call it, and a Tournament Game stays with the tournament's withdrawal tools. Their finished Games keep their results.
+
 **Public Game**:
 A Game Instance with Open Players that eligible Users may claim. It is listed for public discovery unless it is an Unlisted Game.
 
 **Unlisted Game**:
-A Public Game absent from public discovery, whose Open Players any User holding its link may claim. An Administrator or Developer creates one to recruit Players for a Game Title of any catalog visibility.
+A Public Game absent from public discovery, whose Open Players any User holding its link may claim. Any User may create one, for a Game Title of any catalog visibility.
 _Avoid_: Hidden public game, private game
+
+**Offensive Game Name**:
+A name containing a slur or offensive language, by the word list in `libs/backend-services/src/moderation/offensiveLanguage.ts`, which a Public Game listed for public discovery may not take. Unlisted and Invite-Only Games are not checked. The check runs when a Player or owner creates or forks a Game Instance, or changes its name or Public setting, so a game already named is not caught by a later change to the list. An Administrator is exempt, which is how a false match gets resolved, and Tournament and League tables are named after their Administrator-created competitions, so they are not checked.
+_Avoid_: Bad name, banned name
 
 **Invite-Only Game**:
 A Game Instance absent from public discovery, with Players offered to specific Users. Invite-only governs discovery and participation, not confidentiality.
@@ -74,10 +81,14 @@ The pre-play state in which at least one configured Player is not Joined.
 The pre-play state in which every configured Player is Joined. Readiness is derived from Player participation.
 
 **Automatic Start**:
-A Public or Unlisted Game, or a game whose Game Owner is not a Player, starts one minute after it becomes Ready. The countdown is cancelled if the game first stops being Ready or stops qualifying, and restarts in full if it becomes Ready again. The Game Owner may start it sooner. Changing Game Configuration does not affect the countdown.
+A Game Instance starts one minute after it becomes Ready. The countdown is cancelled if the game first stops being Ready, and restarts in full if it becomes Ready again. The Game Owner may start it sooner. Changing Game Configuration does not affect the countdown.
 
 **In Progress**:
 The lifecycle state of a Game Instance after it starts and before its Game State contains a result.
+
+**Game Progress**:
+How far an In Progress Game has come, as its Game Title reports it from public information: a rough share of the game played, a short description in the title's own terms, and whether the game's end has begun. It is recorded with every change to Game State. A Game Title that does not report it leaves its games without one.
+_Avoid_: Completion, percent done
 
 **Finished**:
 The lifecycle state derived from a Game State containing a result. Authorized Undo may return a Finished Game to In Progress, except that Players cannot reopen a Finished Tournament Game.
@@ -116,15 +127,35 @@ An approved Undo that reverses the affected Processed Actions, reapplies eligibl
 A Game Owner has no elevated Undo authority. An administrator may bypass Player ownership and information-revelation restrictions, but still targets a User Action.
 
 **Player Vote**:
-A request by a Joined Player of a Hosted Game that every Player decide a lifecycle question together. It is recorded on the Game Instance, not in Game State. At most one is open at a time, and it stays open until it passes, fails, or the Player who asked withdraws it. Hotseat and Tournament Games have none.
+A request by a Joined Player of a Hosted Game that the Players decide a lifecycle question together. It is recorded on the Game Instance, not in Game State. At most one is open at a time, and it stays open until it passes, fails, or the Player who asked withdraws it. Hotseat and Tournament Games have none, and neither does a Called Game.
 
 **Undo Vote**:
 A Player Vote for an Authorized Undo that the asking Player's own Undo cannot reach, because it would cross an Action that revealed information or another Player's Action. It passes when every Player with an account agrees and fails when any Player declines. Play continues while it is open; Actions taken meanwhile are undone with the rest. It lifts the same restrictions an administrator may bypass.
 _Avoid_: Undo request vote, rollback vote
 
+**Call Request**:
+A Player Vote to end an In Progress Game before its rules end it, naming one winner or no winner. It passes when a strict majority of Players with an account agree and fails once that majority is out of reach. Play continues while it is open.
+_Avoid_: Forfeit vote, end-game vote
+
+**Concede**:
+A Player's ending of a two-Player Game in the other Player's favour. It is a Call Request that passes on the conceding Player's own agreement.
+_Avoid_: Resign, forfeit, surrender
+
+**Called Game**:
+A Finished Game ended by a Call Request or a Concede rather than by its rules. Its result is a Win for the declared winner, or Abandoned when none was named, and it carries no final scores. Players cannot undo it; an administrator can.
+_Avoid_: Forfeited game, aborted game
+
+**Stalled Game**:
+An In Progress Hosted Game that nobody has moved in for a week, counted from its start when nobody has moved at all. The dashboard shows it as at risk after a week and with its end date after two. After thirty days the host ends it as an Abandoned Called Game. Hotseat and Tournament Games never stall.
+_Avoid_: Inactive game, expired game, timed-out game
+
 **Fork**:
 A new Game Instance derived from a selected position in another Game Instance’s Canonical Action History. It has its own identity, Owner, history, and lifecycle while retaining the source Game Title and Game Configuration. A Fork of a Tournament Game does not inherit its Tournament participation.
 _Avoid_: Exploration
+
+**Continuation**:
+A new Game Instance whose initial Game State is built from the final Game State of a Finished Game, for Game Titles whose play carries over from one game to the next. Any Player of the Finished Game may start one when its Game State offers continuation. It is created like any other Game Instance: the source's Game Title is fixed, while its Players, Game Configuration and name start as the source's and can be changed. One Finished Game may have many Continuations. Its setup is captured when it is created, so later Undo or deletion of the source cannot change it.
+_Avoid_: Fork, resumed game, sequel
 
 ## Stats
 

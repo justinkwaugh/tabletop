@@ -774,10 +774,7 @@ describe('projected hosted Actions', () => {
         const started = createStartedGame()
         const playerPerspective = { kind: 'player', playerId: started.playerId } as const
         const spectatorPerspective = { kind: 'spectator' } as const
-        const projectedState = FreshFishVisibility.state.project(
-            started.state,
-            playerPerspective
-        )
+        const projectedState = FreshFishVisibility.state.project(started.state, playerPerspective)
         const appContext = createHarnessAppContext(HARNESS_DEFINITION)
         const bridgedContext = new BridgedContext({
             authorizationService: appContext.authorizationService,
@@ -873,10 +870,7 @@ describe('projected hosted Actions', () => {
         async (channel) => {
             const started = createStartedGame()
             const perspective = { kind: 'player', playerId: started.playerId } as const
-            const projectedState = FreshFishVisibility.state.project(
-                started.state,
-                perspective
-            )
+            const projectedState = FreshFishVisibility.state.project(started.state, perspective)
             const appContext = createHarnessAppContext(HARNESS_DEFINITION)
             const bridgedContext = new BridgedContext({
                 authorizationService: appContext.authorizationService,

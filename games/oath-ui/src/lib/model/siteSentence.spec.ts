@@ -25,12 +25,18 @@ describe('scenario 53 — a site sentence draws the symbols the card library pri
     })
 
     it('keeps a sentence with no symbols as words, the word "secret" included', () => {
-        expect(sentenceParts('flip one secret on your board facedown')).toEqual([text('flip one secret on your board facedown')])
+        expect(sentenceParts('flip one secret on your board facedown')).toEqual([
+            text('flip one secret on your board facedown')
+        ])
     })
 
     it('reads every site sentence the logic package holds', () => {
-        expect(sentenceParts(siteReference('site.mountain') ?? '')).toContainEqual({ kind: 'attackDie' })
-        expect(sentenceParts(siteReference('site.salt-flats') ?? '').filter((p) => p.kind !== 'text')).toEqual([{ kind: 'favor' }, { kind: 'secret' }])
+        expect(sentenceParts(siteReference('site.mountain') ?? '')).toContainEqual({
+            kind: 'attackDie'
+        })
+        expect(
+            sentenceParts(siteReference('site.salt-flats') ?? '').filter((p) => p.kind !== 'text')
+        ).toEqual([{ kind: 'favor' }, { kind: 'secret' }])
     })
 
     it('refuses a suit it does not know', () => {

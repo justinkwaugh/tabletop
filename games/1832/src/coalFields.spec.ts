@@ -7,7 +7,7 @@ import {
     EighteenThirtyTwoTileSet,
     EighteenThirtyTwoTrackRules,
     EighteenThirtyTwoTransferRules,
-    canBuyCoalRights
+    CoalRights
 } from './index.js'
 import { EighteenThirtyTwoScenarios } from './scenarios/index.js'
 
@@ -38,7 +38,7 @@ function coalFieldsPlay(coalFieldsOwner: 'ACL' | 'player') {
 describe('West Virginia Coal Fields', () => {
     it('sells a connected company a token for $80, half to the private’s owning company', () => {
         const play = coalFieldsPlay('ACL')
-        expect(canBuyCoalRights(play.state, 'blair')).toBe(true)
+        expect(CoalRights.canBuy(play.state, 'blair')).toBe(true)
         const coast = cashOwnedBy(play.state, { kind: 'company', companyId: 'ACL' })
         const central = cashOwnedBy(play.state, { kind: 'company', companyId: 'CG' })
         play.act('BuyCoalRights', { companyId: 'CG' })
@@ -66,7 +66,7 @@ describe('West Virginia Coal Fields', () => {
     })
 
     it('stays closed to every company while a player owns the private', () => {
-        expect(canBuyCoalRights(coalFieldsPlay('player').state, 'blair')).toBe(false)
+        expect(CoalRights.canBuy(coalFieldsPlay('player').state, 'blair')).toBe(false)
     })
 
     it('lets only token holders run there', () => {
@@ -133,7 +133,7 @@ describe('WVCF tokens and construction', () => {
                 completed: false
             }
         }
-        expect(canBuyCoalRights(upgraded, 'blair')).toBe(false)
+        expect(CoalRights.canBuy(upgraded, 'blair')).toBe(false)
     })
 
     it('let only holders reach track beyond the coal fields', () => {

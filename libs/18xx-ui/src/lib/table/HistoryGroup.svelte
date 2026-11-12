@@ -4,18 +4,16 @@
     import './historyCard.css'
     import HistoryHeaderJump from './HistoryHeaderJump.svelte'
     import './playerTint.css'
-    import { assertExists, type GameAction } from '@tabletop/common'
+    import type { GameAction } from '@tabletop/common'
+    import type { Snippet } from 'svelte'
     import { PlayerName } from '@tabletop/frontend-components'
     import {
-        isAdvancePhase,
         isStartOperatingRound,
         isSellFundingShares,
         sameOwner,
         isDistributeEarnings,
-        isFloatCompany,
-        isFinishOperatingTurn
+        isFloatCompany
     } from '@tabletop/18xx'
-    import { TileColors } from '../tiles/tilePresentation.js'
     import type { HistoryGroup } from './historyGroups.js'
     import { afterPlayerName, type HistoryDescription } from './historyDescription.js'
     import ShareCardStrip from './ShareCardStrip.svelte'
@@ -25,9 +23,12 @@
     import type { HistoryCash } from './historyCash.js'
     import type { HistoryOperatingOrder } from './historyOperatingOrder.js'
     import type { HistoryBankBreak } from './historyStates.js'
-    import { isMapHistoryAction } from '../maps/historicalMap.js'
+    import { pricedValue } from './lastAction.js'
     import TrainBadge from '../trains/TrainBadge.svelte'
+    import { historyPhaseChange, type PhaseChangePalette } from './historyPhaseChange.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
+    import HistoryCallout from './HistoryCallout.svelte'
+    import { bankBreakCallout, certificateLimitCallout } from './historyCallouts.js'
     let {
         money,
         group,
@@ -36,18 +37,16 @@
         onReturn,
         jumpDisabled = false,
         onPreviewMap,
+        previewsMap,
         previewActionId,
         appearance,
         playerName,
         playerColor,
-        currentController,
+        operatingPlayerId,
         describe,
         companyName,
         companyLabels,
-        phaseColors,
-        phaseTileColors,
-        tileColors = TileColors,
-        tileColorNames = {},
+        phasePalette,
         trainColors,
         trainName,
         orderChanges,
@@ -59,6 +58,7 @@
         money: MoneyFormat
         newestFirst?: boolean
         onPreviewMap: (action: GameAction) => void
+        previewsMap: (action: GameAction) => boolean
         previewActionId?: string
         cash: ReadonlyMap<string, HistoryCash>
         bankBreaks?: ReadonlyMap<string, HistoryBankBreak>
@@ -66,12 +66,7 @@
         stations: Readonly<Record<string, StationAppearance>>
         trainColors: Readonly<Record<string, string>>
         trainName: (id: string) => string
-        phaseColors: Readonly<Record<string, string>>
-        phaseTileColors: Readonly<Record<string, readonly string[]>>
-        /** Tile palette for phase changes that unlock a tile colour; follows the current tile appearance. */
-        tileColors?: Readonly<Record<string, string>>
-        /** Display names for tile colours, for titles that call a tier by another name. */
-        tileColorNames?: Readonly<Record<string, string>>
+        phasePalette: PhaseChangePalette
         /** Published certificate art for the shares an action traded; empty in the generic presentation. */
         shareCards?: (action: GameAction) => readonly ShareCard[]
         onJump: (index: number) => void
@@ -81,33 +76,11 @@
         appearance?: StationAppearance
         playerName: (id: string) => string
         playerColor: (id: string) => string
-        currentController: (companyId: string) => string | undefined
+        operatingPlayerId: string | undefined
         describe: (action: GameAction) => HistoryDescription
         companyName: (id: string) => string
         companyLabels: readonly string[]
     } = $props()
-    function phaseChange(action: GameAction) {
-        if (!isAdvancePhase(action)) return undefined
-        assertExists(action.metadata, 'Recorded phase change requires its event')
-        const { fromPhaseId, toPhaseId } = action.metadata.event
-        const previous = phaseColors[fromPhaseId]
-        const next = phaseColors[toPhaseId]
-        const previousTiles = phaseTileColors[fromPhaseId]
-        const nextTiles = phaseTileColors[toPhaseId]
-        assertExists(previousTiles, `Unknown tile phase: ${fromPhaseId}`)
-        assertExists(nextTiles, `Unknown tile phase: ${toPhaseId}`)
-        const unlocked = nextTiles.filter((color) => !previousTiles.includes(color))
-        if (previous === next && !unlocked.length) return undefined
-        const unlockedColor = unlocked.at(-1)
-        const color = unlockedColor ? tileColors[unlockedColor] : next
-        assertExists(color, `Unknown history phase color: ${toPhaseId}`)
-        return {
-            color,
-            label: unlocked.length
-                ? `${unlocked.map((color) => tileColorNames[color] ?? color).join(' and ')} tiles now available`
-                : undefined
-        }
-    }
     const startingCash = $derived(
         group.kind === 'operation' && group.companyId
             ? cash.get(group.actions[0].id)?.before.get(group.companyId)
@@ -118,16 +91,12 @@
             ? cash.get(group.actions.at(-1)!.id)?.after.get(group.companyId)
             : undefined
     )
-    const operatingPlayerId = $derived(
-        group.kind === 'operation'
-            ? (group.actions.findLast(isFinishOperatingTurn)?.playerId ??
-                  (group.companyId ? currentController(group.companyId) : undefined))
-            : group.playerId
-    )
+    const operatingCompanyId = $derived(group.kind === 'operation' ? group.companyId : undefined)
     const rows = $derived(
         group.actions.map((action) => {
             const description = describe(action)
             const stockPlayerId = isFloatCompany(action) ? undefined : action.playerId
+            const bankBreak = bankBreaks.get(action.id)
             const balance = cash.get(action.id)
             const delta =
                 startingCash !== undefined && group.companyId && balance
@@ -137,16 +106,31 @@
             return {
                 action,
                 ...description,
+                // A company's own operation already leads with its token.
+                companyToken:
+                    description.companyToken === operatingCompanyId
+                        ? undefined
+                        : description.companyToken,
+                milestoneColor:
+                    description.milestone && description.companyToken
+                        ? stations[description.companyToken]?.color
+                        : undefined,
                 stockPlayerId,
-                routine: delta || bankBreaks.has(action.id) ? false : description.routine,
-                phase: phaseChange(action),
+                callouts: [
+                    ...(description.certificateLimit
+                        ? [certificateLimitCallout(description.certificateLimit)]
+                        : []),
+                    ...(bankBreak ? [bankBreakCallout(bankBreak)] : [])
+                ],
+                routine: delta || bankBreak ? false : description.routine,
+                phase: historyPhaseChange(action, phasePalette),
                 order: orderChanges.get(action.id),
                 delta,
                 ledgerValue:
                     startingCash !== undefined &&
                     description.value &&
                     (!delta || isDistributeEarnings(action))
-                        ? description.value
+                        ? pricedValue(action, description)
                         : undefined
             }
         })
@@ -156,16 +140,20 @@
     )
 </script>
 
-{#snippet bankBroken(actionId: string)}
-    {@const bankBreak = bankBreaks.get(actionId)}
-    {#if bankBreak}<div class="bank-broken" role="note">
-            <strong>The bank is broken</strong>
-            {#if bankBreak.ending}<span
-                    >The game ends after {bankBreak.ending.lastRound
-                        ? `operating round ${bankBreak.ending.lastRound}`
-                        : 'the next set of operating rounds'}.</span
-                >{/if}
-        </div>{/if}
+<!-- The button stretches over its whole row, so the row is the click target. -->
+{#snippet mapLink(action: GameAction, text: string, summary: Snippet)}
+    {#if previewsMap(action)}<button
+            class="map-history-link"
+            aria-label={`Preview historical map: ${text}`}
+            aria-pressed={previewActionId === action.id}
+            onclick={() => onPreviewMap(action)}>{@render summary()}</button
+        >{:else}{@render summary()}{/if}
+{/snippet}
+
+{#snippet leadToken(companyId: string | undefined)}
+    {#if companyId && stations[companyId]}<span class="lead-token"
+            ><CompanyToken appearance={stations[companyId]} size={23} /></span
+        >{/if}
 {/snippet}
 
 <article
@@ -195,32 +183,33 @@
             <div class="stock-row">
                 <div
                     class="history-entry stock-action"
+                    class:previews-map={previewsMap(row.action)}
                     class:phase-change={!!row.phase}
-                    class:flotation={isFloatCompany(row.action)}
+                    class:led={!!row.companyToken}
                     style:--phase-color={row.phase?.color}
                     style:--phase-ink={row.phase
                         ? contrastingTextColor(row.phase.color)
                         : undefined}
                     class:routine={row.routine}
                 >
-                    {#if isFloatCompany(row.action)}<span class="flotation-token"
-                            ><CompanyToken
-                                appearance={stations[row.action.companyId]}
-                                size={23}
-                            /></span
-                        >{/if}
+                    {@render leadToken(row.companyToken)}
                     {#if row.stockPlayerId}<PlayerName
                             playerId={row.stockPlayerId}
                             backgroundOpacity={0.45}
                             additionalClasses="stock-player-name"
                         />{' '}{/if}
                     <span
-                        >{row.stockPlayerId
-                            ? afterPlayerName(row.text, companyLabels)
-                            : row.text}{#if row.phase}<span class="phase-colors"
-                                >{row.phase.label}</span
-                            >{/if}{#if row.value}{' '}for
-                            <span class="stock-value">{row.value}</span>{/if}</span
+                        >{#snippet stockSummary()}{row.stockPlayerId
+                                ? afterPlayerName(row.text, companyLabels)
+                                : row.text}{#if row.phase}<span class="phase-colors"
+                                    >{row.phase.label}</span
+                                >{/if}{#if row.value}{' '}for
+                                <span class="stock-value">{row.value}</span
+                                >{/if}{/snippet}{@render mapLink(
+                            row.action,
+                            row.text,
+                            stockSummary
+                        )}</span
                     >
                     {#if row.detail}<small>{row.detail}</small>{/if}
                     <ShareCardStrip cards={shareCards(row.action)} sign={shareSign(row.action)} />
@@ -229,9 +218,9 @@
                             {stations}
                             {companyName}
                         />{/if}
-                    {@render bankBroken(row.action.id)}
                 </div>
             </div>
+            {#each row.callouts as callout (callout.kind)}<HistoryCallout {callout} />{/each}
         {/each}
     {:else}
         {#if group.kind !== 'event'}<header
@@ -262,8 +251,8 @@
                                 />
                             {/if}
                         </span>
-                        {#if group.companyId}<span class="actor"
-                                >{playerName(operatingPlayerId ?? '')}</span
+                        {#if group.companyId && operatingPlayerId}<span class="actor"
+                                >{playerName(operatingPlayerId)}</span
                             >{/if}
                     </span>
                 </div>
@@ -281,14 +270,22 @@
                 {/if}
                 <div
                     class="history-entry"
+                    class:previews-map={previewsMap(row.action)}
                     class:phase-change={!!row.phase}
                     style:--phase-color={row.phase?.color}
                     style:--phase-ink={row.phase
                         ? contrastingTextColor(row.phase.color)
                         : undefined}
+                    class:milestone={row.milestone}
+                    style:--milestone-color={row.milestoneColor}
+                    style:--milestone-ink={row.milestoneColor
+                        ? contrastingTextColor(row.milestoneColor)
+                        : undefined}
                     class:important={row.important}
                     class:routine={row.routine}
+                    class:led={!!row.companyToken}
                 >
+                    {@render leadToken(row.companyToken)}
                     {#if !row.omitActor && row.action.playerId && row.action.playerId !== operatingPlayerId}<small
                             >{playerName(row.action.playerId)}</small
                         >{/if}
@@ -301,18 +298,15 @@
                                             name={trainName(id)}
                                             color={trainColors[id]}
                                         />{/each}</span
-                                >{/if}{/snippet}
-                        {#if isMapHistoryAction(row.action)}<button
-                                class="map-history-link"
-                                aria-label={`Preview historical map: ${row.text}`}
-                                aria-pressed={previewActionId === row.action.id}
-                                onclick={() => onPreviewMap(row.action)}
-                                >{@render actionSummary()}</button
-                            >{:else}{@render actionSummary()}{/if}{#if row.phase}<span
-                                class="phase-colors">{row.phase.label}</span
-                            >{/if}{#if row.ledgerValue}<span class="ledger-note"
-                                >{row.ledgerValue}</span
-                            >{/if}</span
+                                >{/if}{#if row.phase}<span class="phase-colors"
+                                    >{row.phase.label}</span
+                                >{/if}{#if row.ledgerValue}<span class="ledger-note"
+                                    >{row.ledgerValue}</span
+                                >{/if}{/snippet}{@render mapLink(
+                            row.action,
+                            row.text,
+                            actionSummary
+                        )}</span
                     ><strong class:debit={row.delta < 0} class:credit={row.delta > 0}
                         >{startingCash !== undefined
                             ? row.delta
@@ -327,8 +321,8 @@
                             {stations}
                             {companyName}
                         />{/if}
-                    {@render bankBroken(row.action.id)}
                 </div>
+                {#each row.callouts as callout (callout.kind)}<HistoryCallout {callout} />{/each}
             {/each}
             {#if !visible.length}<div class="history-entry routine">No further actions</div>{/if}
         </div>
@@ -359,18 +353,29 @@
         padding: 0.333em 0.5em;
         line-height: 1.333em;
     }
-    .stock-action.flotation {
+    .stock-action.led {
         display: grid;
         grid-template-columns: 1.917em minmax(0, 1fr);
         column-gap: 0.5em;
         align-items: center;
     }
-    .flotation-token {
+    .lead-token {
         grid-row: 1 / span 2;
         display: flex;
         align-items: center;
     }
-    .stock-action.flotation > small {
+    /* Everything after a lead token, child components included, keeps to the text's column. */
+    .stock-action.led > :global(:not(.lead-token)) {
+        grid-column: 2;
+    }
+    .events .history-entry.led {
+        grid-template-columns: 1.917em minmax(0, 1fr) auto;
+        align-items: center;
+    }
+    .events .history-entry.led > :global(:not(.lead-token, span, strong)) {
+        grid-column: 2 / -1;
+    }
+    .events .history-entry.led > span:not(.lead-token) {
         grid-column: 2;
     }
     .stock-value {
@@ -438,7 +443,7 @@
         padding: 0;
     }
     .heading > :global(svg),
-    .flotation-token :global(svg) {
+    .lead-token :global(svg) {
         flex: none;
         width: 1.917em;
         height: 1.917em;
@@ -497,12 +502,33 @@
         );
         color: var(--rail-text, #302c27);
     }
+    .history-entry.milestone {
+        --rail-text: var(--milestone-ink);
+        --rail-muted: var(--milestone-ink);
+        margin: 0.25em 0;
+        padding: 0.333em 0.5em;
+        border-radius: 3px;
+        background: var(--milestone-color);
+        color: var(--milestone-ink);
+    }
     .phase-colors {
         display: inline-block;
         margin-left: 0.7em;
         font-size: 0.833em;
         font-weight: 500;
         text-transform: none;
+    }
+    .previews-map {
+        position: relative;
+        border-radius: 4px;
+    }
+    .previews-map:has(.map-history-link:hover),
+    .previews-map:has(.map-history-link[aria-pressed='true']) {
+        background: var(--rail-hover, #ffffff66);
+    }
+    .previews-map:has(.map-history-link:focus-visible) {
+        outline: 2px solid #865320;
+        outline-offset: 2px;
     }
     .map-history-link {
         border: 0;
@@ -512,15 +538,15 @@
         font: inherit;
         text-align: left;
         cursor: pointer;
+    }
+    .map-history-link::after {
+        content: '';
+        position: absolute;
+        inset: 0;
         border-radius: 4px;
     }
-    .map-history-link:hover,
-    .map-history-link[aria-pressed='true'] {
-        background: var(--rail-hover, #ffffff66);
-    }
     .map-history-link:focus-visible {
-        outline: 2px solid #865320;
-        outline-offset: 2px;
+        outline: none;
     }
     .run-trains {
         --train-badge-font: 1em;
@@ -583,27 +609,5 @@
     }
     .important > span {
         font-weight: 600;
-    }
-    .bank-broken {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        text-align: left;
-        gap: 2px;
-        margin: 6px 0 2px;
-        padding: 6px 10px;
-        border-left: 4px solid var(--rail-negative, #b33a32);
-        border-radius: 3px;
-        background: color-mix(in srgb, var(--rail-negative, #b33a32) 16%, transparent);
-    }
-    .bank-broken strong {
-        color: var(--rail-negative, #b33a32);
-        font-size: 13px;
-        font-weight: 750;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-    }
-    .bank-broken span {
-        font-size: 12px;
     }
 </style>

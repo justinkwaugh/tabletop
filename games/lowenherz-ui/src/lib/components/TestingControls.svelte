@@ -28,45 +28,45 @@
 </script>
 
 {#if SHOW_TESTING_CONTROLS && gameSession.isDeveloperHarness}
-<div class="flex flex-col gap-1">
-    {#if !gameSession.setupComplete}
-        <button
-            type="button"
-            class="px-2 py-1 rounded border border-dashed border-black/40 text-black/70 text-xs hover:bg-black/10"
-            onclick={() => gameSession.autoPlaceAllCastles()}
-        >
-            Auto-place all castles (testing)
-        </button>
-    {:else}
-        <button
-            type="button"
-            class="px-2 py-1 rounded border border-dashed border-black/40 text-black/70 text-xs hover:bg-black/10"
-            onclick={() => gameSession.seedTestRegions()}
-        >
-            Seed regions for unclaimed castles (testing)
-        </button>
-    {/if}
+    <div class="flex flex-col gap-1">
+        {#if !gameSession.setupComplete}
+            <button
+                type="button"
+                class="px-2 py-1 rounded border border-dashed border-black/40 text-black/70 text-xs hover:bg-black/10"
+                onclick={() => gameSession.autoPlaceAllCastles()}
+            >
+                Auto-place all castles (testing)
+            </button>
+        {:else}
+            <button
+                type="button"
+                class="px-2 py-1 rounded border border-dashed border-black/40 text-black/70 text-xs hover:bg-black/10"
+                onclick={() => gameSession.seedTestRegions()}
+            >
+                Seed regions for unclaimed castles (testing)
+            </button>
+        {/if}
 
-    {#if canFastForwardToActionEffect}
-        <button
-            type="button"
-            class="px-2 py-1 rounded border border-dashed border-black/40 text-black/70 text-xs hover:bg-black/10"
-            onclick={() => gameSession.autoAdvanceToActionEffect()}
-        >
-            Fast-forward to wall/knight placement (testing)
-        </button>
-    {/if}
+        {#if canFastForwardToActionEffect}
+            <button
+                type="button"
+                class="px-2 py-1 rounded border border-dashed border-black/40 text-black/70 text-xs hover:bg-black/10"
+                onclick={() => gameSession.autoAdvanceToActionEffect()}
+            >
+                Fast-forward to wall/knight placement (testing)
+            </button>
+        {/if}
 
-    {#if gameSession.setupComplete}
-        <button
-            type="button"
-            class="px-2 py-1 rounded border border-dashed border-black/40 text-black/70 text-xs hover:bg-black/10"
-            onclick={() => gameSession.giveTestPoliticsCards()}
-        >
-            Give Renegade + Alliance cards (testing)
-        </button>
-    {/if}
-</div>
+        {#if gameSession.setupComplete}
+            <button
+                type="button"
+                class="px-2 py-1 rounded border border-dashed border-black/40 text-black/70 text-xs hover:bg-black/10"
+                onclick={() => gameSession.giveTestPoliticsCards()}
+            >
+                Give Renegade + Alliance cards (testing)
+            </button>
+        {/if}
+    </div>
 {/if}
 
 {#if SHOW_DEAL_POLITICS_CARDS && gameSession.isDeveloperHarness && gameSession.setupComplete}

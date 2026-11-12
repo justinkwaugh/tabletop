@@ -20,7 +20,8 @@
             session.privateActions.titlePower ?? session.privateActions.trackPowerSelection?.value
         return (
             chosen?.privateCompanyId === power.privateCompanyId &&
-            chosen.playerId === power.playerId
+            chosen.playerId === power.playerId &&
+            (!('label' in chosen) || !('label' in power) || chosen.label === power.label)
         )
     })
     function start() {
@@ -32,7 +33,9 @@
 <button
     class="power"
     data-description-exclude
-    aria-label={`Use ${session.companyName(power.privateCompanyId)}`}
+    aria-label={'label' in power
+        ? power.label
+        : `Use ${session.companyName(power.privateCompanyId)}`}
     aria-pressed={selected}
     disabled={session.busy}
     onclick={start}>{label}</button

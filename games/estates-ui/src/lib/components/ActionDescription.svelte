@@ -1,7 +1,7 @@
 <script lang="ts">
-import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
-    import { type GameAction, range } from '@tabletop/common'
-    import { PlayerName } from '@tabletop/frontend-components'
+    import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
+    import { isCallGameAction, type GameAction, range } from '@tabletop/common'
+    import { CalledGameDescription, PlayerName } from '@tabletop/frontend-components'
     import { getDescriptionForAction } from '$lib/utils/actionDescriptions.js'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
     import {
@@ -44,7 +44,9 @@ import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
 
 {#snippet cube(cube: Cube)}
     <span
-        class="inline-flex justify-center items-center text-[#EEEEEE] w-6 h-6 font-bold text-xl select-none rounded-sm {gameSession.colors.getBgColor(
+        class="inline-flex justify-center items-center {gameSession.hasDarkCubeNumber(cube.company)
+            ? 'text-[#222222]'
+            : 'text-[#EEEEEE]'} w-6 h-6 font-bold text-xl select-none rounded-sm {gameSession.colors.getBgColor(
             gameSession.getCompanyColor(cube.company)
         )}"
     >
@@ -121,6 +123,8 @@ import type { EstatesGameSession } from '$lib/model/EstatesGameSession.svelte'
         BarrierDirection.Lengthen
             ? 'lengthening'
             : 'shortening'} the row
+    {:else if isCallGameAction(action)}
+        <CalledGameDescription {action} />
     {:else}
         {getDescriptionForAction(action)}
     {/if}

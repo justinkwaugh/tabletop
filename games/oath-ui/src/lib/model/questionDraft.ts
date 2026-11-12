@@ -8,23 +8,37 @@ import {
     adviserLimitDiscardCount,
     adviserLimitDiscards,
     banksWithFavor,
+    falseProphetPlayAsSearched,
+    falseProphetTolls,
+    falseProphetTollsUnpaid,
+    favorHomeBankOf,
+    favorTakenFrom,
+    homeBankPayable,
+    cagePurpleChoiceBoards,
     cardPower,
+    countOf,
     currentQuestion,
     heldRelicsToBottom,
+    IMPERIAL_WARBANDS,
+    OBSIDIAN_CAGE_ID,
     payableWoodPicks,
     reasonWoodStayRefused,
     playersAt,
     powerMoveToll,
-    powerTravelNeedsFlip,
+    powerTravelFlipsNeeded,
+    travelFlipOf,
     shroudedWoodDestinations,
     usableFavor,
     warbandOwnerGainedByPower,
     woodTravelPaysAtPick,
     type ConspiracyPlay,
+    type ModifierUse,
+    type OpenDeal,
     PowerQuestionValidator,
     type PowerQuestion,
     type ProjectedPowerQuestion,
-    type QuestionAnswer
+    type QuestionAnswer,
+    type Toll
 } from '@tabletop/oath'
 import { answerCostText } from './actionCards.js'
 import type { TravelPick } from './actionOffers.js'
@@ -39,6 +53,8 @@ import {
     stackOrderAnswer
 } from './questionChoices.js'
 import { togglePick } from './cardChoice.js'
+import { AsIfSearchedRows, type DeclaredModifier } from './modifierRows.js'
+import { cageCeilingAt, cageCountsAfterTap, cagePlacementOf } from './cagePlacement.js'
 import { StagedFlow, type PanelDraft, type StagesCover } from './stagedFlow.svelte.js'
 import {
     conspiracyNoTake,
@@ -53,30 +69,38 @@ import type { OathGameSession } from './session.svelte.js'
 // Only the stages of the open question's kind are ever set.
 type QuestionValueByStage = {
     burn: number
+    homeBankPay: number
     floorWith: string
     floorTerms: ExchangePicks
     conspiracyPlay: ConspiracyStepPlay
     takeTarget: string
     takePrize: number
     conspiracyDiscard: string
+    visionModifiers: DeclaredModifier[]
     visionDiscard: string
     instead: string
     stackOrder: string[]
     adviserDiscards: string[]
+    cageStep: true
+    cageCounts: number[]
 }
 
 const QUESTION_STAGE_ORDER = [
     'burn',
+    'homeBankPay',
     'floorWith',
     'floorTerms',
     'conspiracyPlay',
     'takeTarget',
     'takePrize',
     'conspiracyDiscard',
+    'visionModifiers',
     'visionDiscard',
     'instead',
     'stackOrder',
-    'adviserDiscards'
+    'adviserDiscards',
+    'cageStep',
+    'cageCounts'
 ] as const
 const _questionStagesAreCovered: StagesCover<QuestionValueByStage, typeof QUESTION_STAGE_ORDER> =
     true
@@ -136,6 +160,22 @@ export class QuestionDraft implements PanelDraft {
     /** Revelation's count, from 1; none until the player picks one ("None" sends 0). */
     get burn(): number | undefined {
         return this.question ? this.flow.value('burn') : undefined
+    }
+
+    /** Vow of Kinship — the count to pay from its bank, from 1; none until picked ("None" sends 0). */
+    get homeBankPay(): number | undefined {
+        return this.question ? this.flow.value('homeBankPay') : undefined
+    }
+
+    /** Vow of Kinship — the bank the asked player pays from, and the most it can pay now. */
+    get homeBank(): { suit: Suit; payable: number } | undefined {
+        const question = this.mine
+        if (question?.kind !== PowerQuestionKind.PayFromHomeBank) return undefined
+        const state = this.session.gameState
+        const suit = favorHomeBankOf(state, question.askedPlayerId)
+        return suit === undefined
+            ? undefined
+            : { suit, payable: homeBankPayable(state, question.askedPlayerId, question.owed) }
     }
 
     get floorCandidates(): string[] {
@@ -261,8 +301,65 @@ export class QuestionDraft implements PanelDraft {
     get visionDiscards(): string[] {
         const playerId = this.playerId
         return this.question?.kind === PowerQuestionKind.PlayOrDiscardVision && playerId
-            ? advisersToDiscardForVision(this.session.gameState, playerId)
+            ? advisersToDiscardForVision(this.session.gameState, playerId, this.visionModifiers)
             : []
+    }
+
+    /**
+     * False Prophet, from revision 32 — "as if you had searched": the Search's "Cards" rows for the cards acting on
+     * the play or discard (the Cracked Horn, Bracken), judged by the answer itself: a card is listed if some play
+     * accepts it beside the cards in use. None while a toll cannot be paid, when only the plain discard is left.
+     */
+    get visionRows(): AsIfSearchedRows | undefined {
+        const playerId = this.playerId
+        const state = this.session.gameState
+        if (this.question?.kind !== PowerQuestionKind.PlayOrDiscardVision || !playerId)
+            return undefined
+        if (!falseProphetPlayAsSearched(state)) return undefined
+        if (falseProphetTollsUnpaid(state, playerId).length > 0) return undefined
+        const accepts = (uses: readonly ModifierUse[]) =>
+            VISION_PLAYS.some(
+                (play) =>
+                    HydratedAnswerQuestion.reasonCannotAnswer(
+                        state,
+                        playerId,
+                        playVisionAnswer(play, undefined, uses)
+                    ) === undefined
+            )
+        return new AsIfSearchedRows(
+            state,
+            playerId,
+            accepts,
+            this.flow.value('visionModifiers') ?? [],
+            (declared) => this.flow.set('visionModifiers', declared)
+        )
+    }
+
+    /** The cards in use on the Vision's play, as the answer sends them. */
+    private get visionModifiers(): ModifierUse[] {
+        return this.visionRows?.uses ?? []
+    }
+
+    /** The plays wait for each card in use to have its picks (Bracken's pile and side). */
+    get visionRowsComplete(): boolean {
+        return this.visionRows?.complete ?? true
+    }
+
+    /** R-7.1.4 — Forced Labor: the tolls the play or discard pays, whichever is picked. */
+    get visionTolls(): Toll[] {
+        const playerId = this.playerId
+        if (this.question?.kind !== PowerQuestionKind.PlayOrDiscardVision || !playerId) return []
+        const state = this.session.gameState
+        return falseProphetTollsUnpaid(state, playerId).length > 0
+            ? []
+            : falseProphetTolls(state, playerId)
+    }
+
+    /** The tolls the asked player cannot pay: the Vision then goes to the usual pile, with no choice left. */
+    get visionTollsUnpaid(): string[] {
+        const playerId = this.playerId
+        if (this.question?.kind !== PowerQuestionKind.PlayOrDiscardVision || !playerId) return []
+        return falseProphetTollsUnpaid(this.session.gameState, playerId)
     }
 
     get visionDiscard(): string | undefined {
@@ -352,7 +449,8 @@ export class QuestionDraft implements PanelDraft {
         if (!playerId) return []
         const kept: string[] = []
         for (const cardId of picks) {
-            if (!adviserLimitDiscards(this.session.gameState, playerId, kept).includes(cardId)) break
+            if (!adviserLimitDiscards(this.session.gameState, playerId, kept).includes(cardId))
+                break
             kept.push(cardId)
         }
         return kept
@@ -373,6 +471,13 @@ export class QuestionDraft implements PanelDraft {
         return this.reasonCannot(adviserDiscardsAnswer(picked))
     }
 
+    /** R-7.6.3-H1 — the deal a "kept?" question is about, public in the open deals. */
+    get claimedDeal(): OpenDeal | undefined {
+        const question = this.mine
+        if (question?.kind !== PowerQuestionKind.DealKept) return undefined
+        return this.session.gameState.openDeals?.find((deal) => deal.id === question.dealId)
+    }
+
     /** The yes answer has every pick it needs; until then it is not offered. */
     get acceptComplete(): boolean {
         const question = this.mine
@@ -380,6 +485,8 @@ export class QuestionDraft implements PanelDraft {
         switch (question.kind) {
             case PowerQuestionKind.BurnFavorForSecrets:
                 return this.burn !== undefined
+            case PowerQuestionKind.PayFromHomeBank:
+                return this.homeBankPay !== undefined
             case PowerQuestionKind.DiscardInstead:
                 return this.instead !== undefined
             case PowerQuestionKind.GatheringFloor:
@@ -452,6 +559,30 @@ export class QuestionDraft implements PanelDraft {
         await this.send({ kind: PowerQuestionKind.HospitalityBank, suit })
     }
 
+    /**
+     * R-7.1.3-H2 — Gambling Hall's banks once the roll stands, each with what it gives: the total,
+     * or what the bank holds if less (R-9.3).
+     */
+    get gamblingHallGains(): { suit: Suit; gain: number }[] {
+        const question = this.mine
+        if (question?.kind !== PowerQuestionKind.GamblingHallBank) return []
+        const banks = this.session.gameState.favorBank
+        return question.banks.map((suit) => ({
+            suit,
+            gain: favorTakenFrom(banks[suit], question.shields)
+        }))
+    }
+
+    /** R-7.1.3-H2 — one tap takes Gambling Hall's favor from that bank. */
+    /** Squalid District — lower the end die by one, raise it, or leave it (`by` −1, 1 or 0). */
+    async adjustEndDie(by: -1 | 0 | 1): Promise<void> {
+        await this.send({ kind: PowerQuestionKind.AdjustEndDie, by })
+    }
+
+    async takeGamblingHallFavor(suit: Suit): Promise<void> {
+        await this.send({ kind: PowerQuestionKind.GamblingHallBank, suit })
+    }
+
     /** Fae Merchant — the relics held before the draw that may go down; the Grand Scepter never does. */
     get heldRelicsToBottom(): string[] {
         const question = this.question
@@ -459,9 +590,72 @@ export class QuestionDraft implements PanelDraft {
         return heldRelicsToBottom(this.session.gameState, question.askedPlayerId)
     }
 
-    /** Absent, the drawn relic goes down. */
+    /**
+     * Absent, the drawn relic goes down. The Obsidian Cage holding the Empire's warbands, with two
+     * or more Imperial boards to take them, opens the step that places them instead (R-10.13-H1).
+     */
     async putOnBottom(heldRelicCardId?: string): Promise<void> {
+        if (
+            heldRelicCardId === OBSIDIAN_CAGE_ID &&
+            this.cageBoardsFor(heldRelicCardId).length > 0
+        ) {
+            this.flow.set('cageStep', true)
+            return
+        }
         await this.send({ kind: PowerQuestionKind.BottomRelic, heldRelicCardId })
+    }
+
+    /** R-10.13-H1 — the Imperial boards the engine lets the held Cage's Imperial warbands go to. */
+    private cageBoardsFor(heldRelicCardId: string): string[] {
+        return this.heldRelicsToBottom.includes(heldRelicCardId)
+            ? cagePurpleChoiceBoards(this.session.gameState)
+            : []
+    }
+
+    /** The second step's rows, one per Imperial board, once the Cage is picked; none before. */
+    get cageBoards(): string[] {
+        return this.flow.value('cageStep') ? this.cageBoardsFor(OBSIDIAN_CAGE_ID) : []
+    }
+
+    /** The Imperial warbands on the Cage, every one of which the step places. */
+    get cageWarbands(): number {
+        return countOf(this.session.gameState.warbandsOnCard(OBSIDIAN_CAGE_ID), IMPERIAL_WARBANDS)
+    }
+
+    /** Each row's count; none placed when the step opens. */
+    get cageCounts(): number[] {
+        const counts = this.flow.value('cageCounts')
+        return this.cageBoards.map((_, row) => counts?.[row] ?? 0)
+    }
+
+    cageCeilingAt(row: number): number {
+        return cageCeilingAt(this.cageCounts, row, this.cageWarbands)
+    }
+
+    /** A tap on a row's pieces; with two boards the other row takes the rest. */
+    setCageCount(row: number, count: number): void {
+        if (row < 0 || row >= this.cageBoards.length) return
+        this.flow.set(
+            'cageCounts',
+            cageCountsAfterTap(this.cageCounts, row, count, this.cageWarbands)
+        )
+    }
+
+    private get cageAnswer(): QuestionAnswer {
+        return {
+            kind: PowerQuestionKind.BottomRelic,
+            heldRelicCardId: OBSIDIAN_CAGE_ID,
+            cagePlacement: cagePlacementOf(this.cageBoards, this.cageCounts)
+        }
+    }
+
+    /** "Return them" waits until the engine takes the placement: every warband placed. */
+    get cageReturnReady(): boolean {
+        return this.cageBoards.length > 0 && this.reasonCannot(this.cageAnswer) === undefined
+    }
+
+    async returnCage(): Promise<void> {
+        if (this.cageReturnReady) await this.send(this.cageAnswer)
     }
 
     /** Toll Roads — Brass Horse's user pays at a toll site, so its button says so. */
@@ -491,19 +685,21 @@ export class QuestionDraft implements PanelDraft {
         )
     }
 
-    /** R-11.13-H1 — Brass Horse's user reaches The Hidden Place (or passes the Narrow Pass) only by flipping a secret. */
-    travelFlipAt(siteId: string): boolean {
+    /**
+     * R-11.13-H1 — Brass Horse's user reaches The Hidden Place (or passes the Narrow Pass) only by
+     * flipping a secret; from the Buried Giant past a Narrow Pass into The Hidden Place, two (R-11.13-H2).
+     */
+    travelFlipsAt(siteId: string): number {
         const question = this.question
-        return (
-            question?.kind === PowerQuestionKind.TravelFreeTo &&
-            powerTravelNeedsFlip(this.session.gameState, question.askedPlayerId, siteId)
-        )
+        if (question?.kind !== PowerQuestionKind.TravelFreeTo) return 0
+        return powerTravelFlipsNeeded(this.session.gameState, question.askedPlayerId, siteId)
     }
 
     async travelTo(siteId: string): Promise<void> {
+        const flips = this.travelFlipsAt(siteId)
         await this.send(
-            this.travelFlipAt(siteId)
-                ? { kind: PowerQuestionKind.TravelFreeTo, siteId, flipSecret: true }
+            flips > 0
+                ? { kind: PowerQuestionKind.TravelFreeTo, siteId, flipSecret: travelFlipOf(flips) }
                 : { kind: PowerQuestionKind.TravelFreeTo, siteId }
         )
     }
@@ -559,7 +755,7 @@ export class QuestionDraft implements PanelDraft {
                     cost: undefined,
                     foldedBy: [],
                     toll: this.travelTollAt(siteId),
-                    flip: this.travelFlipAt(siteId)
+                    flips: this.travelFlipsAt(siteId)
                 }))
             }
         }
@@ -576,7 +772,7 @@ export class QuestionDraft implements PanelDraft {
                         cost,
                         foldedBy,
                         toll: this.woodTollAt(siteId),
-                        flip: false
+                        flips: 0
                     }))
                 )
             }
@@ -592,7 +788,7 @@ export class QuestionDraft implements PanelDraft {
                 cost: undefined,
                 foldedBy: [],
                 toll: this.woodTollAt(siteId),
-                flip: false
+                flips: 0
             }))
         }
     }
@@ -671,7 +867,11 @@ export class QuestionDraft implements PanelDraft {
     }
 
     private visionAnswer(play: SearchPlay): QuestionAnswer {
-        return playVisionAnswer(play, play === SearchPlay.Adviser ? this.visionDiscard : undefined)
+        return playVisionAnswer(
+            play,
+            play === SearchPlay.Adviser ? this.visionDiscard : undefined,
+            this.visionModifiers
+        )
     }
 
     private answer(question: PowerQuestion, yes: boolean): QuestionAnswer {
@@ -682,10 +882,18 @@ export class QuestionDraft implements PanelDraft {
                 assertExists(favor, 'Burning needs the count picked')
                 return { kind: question.kind, favor }
             }
+            case PowerQuestionKind.PayFromHomeBank: {
+                if (!yes) return { kind: question.kind, favor: 0 }
+                const favor = this.homeBankPay
+                assertExists(favor, 'Paying needs the count picked')
+                return { kind: question.kind, favor }
+            }
             case PowerQuestionKind.PayOrLoseRelic:
                 return { kind: question.kind, pay: yes }
             case PowerQuestionKind.Exchange:
                 return { kind: question.kind, accept: yes }
+            case PowerQuestionKind.DealKept:
+                return { kind: question.kind, kept: yes }
             case PowerQuestionKind.JoinSite:
                 return { kind: question.kind, join: yes }
             case PowerQuestionKind.KeepOrBottomRelic:
@@ -746,6 +954,13 @@ export class QuestionDraft implements PanelDraft {
         if (this.question?.kind !== PowerQuestionKind.BurnFavorForSecrets) return
         if (favor < 1) this.flow.clearFrom('burn')
         else this.flow.set('burn', favor)
+    }
+
+    /** Vow of Kinship's count from its bank; 0 picks none again ("None" is the answer that sends 0). */
+    setHomeBankPay(favor: number): void {
+        if (this.question?.kind !== PowerQuestionKind.PayFromHomeBank) return
+        if (favor < 1) this.flow.clearFrom('homeBankPay')
+        else this.flow.set('homeBankPay', favor)
     }
 
     chooseFloorWith(playerId: string | undefined): void {

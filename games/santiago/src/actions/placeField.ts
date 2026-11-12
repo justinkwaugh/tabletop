@@ -24,10 +24,7 @@ export function isPlaceField(action: GameAction): action is PlaceField {
     return action.type === ActionType.PlaceField
 }
 
-export class HydratedPlaceField
-    extends HydratableAction<typeof PlaceField>
-    implements PlaceField
-{
+export class HydratedPlaceField extends HydratableAction<typeof PlaceField> implements PlaceField {
     declare type: ActionType.PlaceField
     declare tileIndex: number
     declare col: number
@@ -48,10 +45,9 @@ export class HydratedPlaceField
         }
 
         // Any player who bid 0 places one fewer farmer (minimum 0).
-        const player = state.players.find(p => p.playerId === this.playerId)
-        const farmerCount = player?.bid === 0
-            ? Math.max(0, tile.farmerCapacity - 1)
-            : tile.farmerCapacity
+        const player = state.players.find((p) => p.playerId === this.playerId)
+        const farmerCount =
+            player?.bid === 0 ? Math.max(0, tile.farmerCapacity - 1) : tile.farmerCapacity
 
         state.board.squares[this.col][this.row] = {
             type: SquareType.Field,

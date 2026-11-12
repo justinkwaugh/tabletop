@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { assert } from '@tabletop/common'
+import { companyCharters, createOrdinaryShareCertificates } from '@tabletop/18xx'
 import {
     TestCompanyId,
     TestPlayerId,
@@ -79,49 +80,22 @@ describe('StockModule', () => {
             expectedPrice: 10
         })
     })
-    it('opens a sole non-pass menu automatically without consuming Undo or committing an action', async () => {
+    it('leaves a sole menu closed until the player chooses it', async () => {
         const { session, applied } = trading(['FinishStockTurn'])
         const module = new StockModule(
             session,
             () => {},
             () => true
         )
-        expect(module.openMenu).toBe('exchange')
-        expect(module.hasManual()).toBe(false)
-        expect(module.undo()).toBe(false)
-        expect(applied).toEqual([])
-        module.clear()
-        expect(module.openMenu).toBe('exchange')
-        await module.finishTurn()
-        expect(applied.map((action) => action.type)).toEqual(['FinishStockTurn'])
-    })
-
-    it('counts title-specific options and respects manual choices', () => {
-        const { session } = trading()
-        const module = new StockModule(
-            session,
-            () => {},
-            () => true,
-            () => 1
-        )
+        expect(module.availableMenus.map((choice) => choice.menu)).toEqual(['exchange'])
         expect(module.openMenu).toBeUndefined()
         module.chooseMenu('exchange')
         expect(module.openMenu).toBe('exchange')
         expect(module.hasManual()).toBe(true)
         expect(module.undo()).toBe(true)
         expect(module.openMenu).toBeUndefined()
-    })
-
-    it('does not auto-open a menu when interaction or selections are unavailable', () => {
-        for (const availability of [{ interactive: false }, { selectionsVisible: false }]) {
-            const { session } = trading([], availability)
-            const module = new StockModule(
-                session,
-                () => {},
-                () => true
-            )
-            expect(module.openMenu).toBeUndefined()
-        }
+        await module.finishTurn()
+        expect(applied.map((action) => action.type)).toEqual(['FinishStockTurn'])
     })
 
     it('Undo steps back from the sale company to the menu, then closes the menu', () => {
@@ -195,6 +169,64 @@ describe('StockModule', () => {
         expect(module.undo()).toBe(true)
         expect(module.hasSelection).toBe(false)
         expect(() => module.selectStartPrice('0:1')).toThrow()
+    })
+
+    it('stages a chosen home between company and price, and Undo unwinds it', async () => {
+        const { session, applied } = trading(['StartCompany'])
+        const treasury = { kind: 'company', companyId: TestCompanyId } as const
+        session.state.cash.push({ owner: player, amount: 1000 }, { owner: treasury, amount: 0 })
+        session.state.certificates.push({
+            id: 'president',
+            companyId: TestCompanyId,
+            kind: 'share',
+            shares: 2,
+            president: true,
+            owner: treasury
+        })
+        const homes = [
+            { locationId: 'A1', nodeId: 'city', slot: 0, cost: 80 },
+            { locationId: 'B1', nodeId: 'city', slot: 0, cost: 120 }
+        ]
+        const rules = {
+            ...session.rules,
+            companyRules: {
+                ...minimalCompanyRules,
+                startMarketSpaces: () => ['0:1'],
+                startTerms: () => ({ price: 240, recipient: treasury, payers: [player] }),
+                startHomes: () => homes
+            }
+        }
+        const module = new StockModule({ ...session, rules }, () => {})
+        expect(module.homePositions).toEqual([])
+        module.selectCompanyStart(start)
+        expect(module.awaitingStartHome).toBe(true)
+        expect(module.homePositions).toEqual(homes)
+        expect(() => module.chooseHome({ locationId: 'C1', nodeId: 'city' })).toThrow()
+        expect(module.chosenHome).toBeUndefined()
+        module.chooseHome({ locationId: 'A1', nodeId: 'city' })
+        expect(module.chosenHome).toEqual({
+            companyId: TestCompanyId,
+            locationId: 'A1',
+            nodeId: 'city'
+        })
+        expect(module.awaitingStartHome).toBe(false)
+        expect(module.homePositions).toEqual([])
+        expect(module.selectedStartHomeChoice).toEqual(homes[0])
+        expect(module.undo()).toBe(true)
+        expect(module.chosenHome).toBeUndefined()
+        expect(module.awaitingStartHome).toBe(true)
+        module.chooseHome({ locationId: 'B1', nodeId: 'city' })
+        module.selectStartPrice('0:1')
+        expect(module.selectedStartResult?.reason).toBeUndefined()
+        expect(module.selectedStartResult?.details?.home).toMatchObject({
+            position: { locationId: 'B1', nodeId: 'city' },
+            cost: 120
+        })
+        await module.confirmStart()
+        expect(applied[0]).toMatchObject({
+            type: 'StartCompany',
+            home: { locationId: 'B1', nodeId: 'city' }
+        })
     })
 
     it('stages one company per sale and removes it by company', () => {
@@ -311,6 +343,25 @@ describe('StockModule', () => {
             expect(module.undo()).toBe(false)
         })
 
+        it('reopens Buy after a purchase made in the menu, but not after a direct one', async () => {
+            const reopening = buyingTwice(true)
+            const offered = reopening.module.purchaseChoices.find(
+                (choice) => choice.certificate.id === 'first'
+            )
+            assert(offered, 'The first treasury share is on offer')
+            await reopening.module.buyAndReopenMenu(offered.request)
+            expect(reopening.module.menu.value('action')).toEqual({ menu: 'buy', buyer: player })
+
+            const direct = buyingTwice(true)
+            const share = direct.module.purchaseChoices.find(
+                (choice) => choice.certificate.id === 'first'
+            )
+            assert(share, 'The first treasury share is on offer')
+            await direct.module.buy(share.request)
+            expect(direct.applied).toHaveLength(1)
+            expect(direct.module.menu.entry('action')).toBeUndefined()
+        })
+
         it('closes the menu when no further purchase is legal', async () => {
             const { module } = buyingTwice(false)
             await buyFirst(module)
@@ -324,6 +375,190 @@ describe('StockModule', () => {
             })
             await buyFirst(module)
             expect(module.menu.entry('action')).toBeUndefined()
+        })
+    })
+})
+
+describe('company trades', () => {
+    const bank = { kind: 'bank' } as const
+    const blair = { kind: 'player', playerId: 'blair' } as const
+    const unionBank = { kind: 'company', companyId: 'U' } as const
+
+    function holdings(valid: string[] = ['BuyShares', 'SellShares'], availability = {}) {
+        const harness = trading(valid, availability)
+        const { state } = harness.session
+        state.players.push({ playerId: 'blair', color: state.players[0].color })
+        state.companies[0] = {
+            ...state.companies[0],
+            started: true,
+            floated: true,
+            president: player
+        }
+        state.companies.push({ id: 'U', kind: 'major', started: true, floated: true })
+        state.certificatePools.push({ id: 'market', owner: bank }, { id: 'ipo', owner: bank })
+        state.certificates.push(
+            ...createOrdinaryShareCertificates(
+                TestCompanyId,
+                [
+                    { owner: player },
+                    { owner: player },
+                    { owner: blair },
+                    { owner: blair },
+                    { owner: bank, poolId: 'market' },
+                    { owner: bank, poolId: 'ipo' },
+                    { owner: bank, poolId: 'ipo' },
+                    { owner: bank, poolId: 'ipo' }
+                ],
+                player
+            )
+        )
+        state.cash.push(
+            { owner: player, amount: 1000 },
+            { owner: blair, amount: 0 },
+            { owner: unionBank, amount: 1000 }
+        )
+        const rules = {
+            ...harness.session.rules,
+            stockRules: {
+                ...minimalStockRules,
+                charters: companyCharters(() => ({
+                    shareCounts: { [TestCompanyId]: 10, U: 10 },
+                    privateRevenues: {}
+                })),
+                buyers: () => [player, unionBank],
+                purchaseTerms: (
+                    _state: unknown,
+                    certificate: { poolId?: string },
+                    buyer: unknown
+                ) => ({
+                    price: certificate.poolId === 'ipo' ? 100 : 90,
+                    recipient: bank,
+                    payers: [buyer === unionBank ? unionBank : player]
+                }),
+                saleTerms: () => ({
+                    payer: bank,
+                    price: 90,
+                    destinationPoolId: 'market',
+                    marketLimit: 50,
+                    maximumShares: 10,
+                    direction: 'down',
+                    movement: 1
+                }),
+                presidencyCandidates: () => [player, blair]
+            }
+        }
+        const module = new StockModule({ ...harness.session, rules }, () => {})
+        return { ...harness, module }
+    }
+
+    it('offers one purchase per pool and buyer', () => {
+        const { module } = holdings()
+        const { offers, buyers } = module.companyTrades(TestCompanyId)
+        expect(buyers).toEqual([player, unionBank])
+        expect(
+            offers.map((offer) => ({
+                poolId: offer.certificate.poolId,
+                shares: offer.certificate.shares,
+                purchases: offer.purchases.map((purchase) => [
+                    purchase.request.buyer,
+                    purchase.details.price
+                ])
+            }))
+        ).toEqual([
+            {
+                poolId: 'market',
+                shares: 1,
+                purchases: [
+                    [player, 90],
+                    [unionBank, 90]
+                ]
+            },
+            {
+                poolId: 'ipo',
+                shares: 1,
+                purchases: [
+                    [player, 100],
+                    [unionBank, 100]
+                ]
+            }
+        ])
+    })
+
+    it('offers a larger or numbered certificate in the same pool as its own purchase', () => {
+        const { module, session } = holdings()
+        const marketShare = {
+            companyId: TestCompanyId,
+            kind: 'share',
+            owner: bank,
+            poolId: 'market'
+        } as const
+        session.state.certificates.push(
+            { ...marketShare, id: 'double', shares: 2 },
+            { ...marketShare, id: 'numbered', shares: 1, number: 4 }
+        )
+        expect(
+            module
+                .companyTrades(TestCompanyId)
+                .offers.map(({ certificate }) => [
+                    certificate.poolId,
+                    certificate.shares,
+                    certificate.number
+                ])
+        ).toEqual([
+            ['market', 1, undefined],
+            ['ipo', 1, undefined],
+            ['market', 2, undefined],
+            ['market', 1, 4]
+        ])
+    })
+
+    it('offers each sale size for each seller', () => {
+        const { module } = holdings()
+        const { sales } = module.companyTrades(TestCompanyId)
+        expect(
+            sales.map((group) => ({
+                seller: group.seller,
+                sales: group.sales.map((sale) => [sale.shares, sale.proceeds])
+            }))
+        ).toEqual([
+            {
+                seller: player,
+                sales: [
+                    [1, 90],
+                    [2, 180],
+                    [3, 270],
+                    [4, 360]
+                ]
+            }
+        ])
+    })
+
+    it('offers nothing for another company or while the player cannot act', () => {
+        expect(holdings().module.companyTrades('U')).toEqual({
+            buyers: [],
+            offers: [],
+            sales: []
+        })
+        expect(
+            holdings(undefined, { interactive: false }).module.companyTrades(TestCompanyId)
+        ).toEqual({ buyers: [], offers: [], sales: [] })
+    })
+
+    it('buys and sells with one press each', async () => {
+        const { module, applied } = holdings()
+        const { offers, sales } = module.companyTrades(TestCompanyId)
+        await module.buy(offers[1].purchases[1].request)
+        expect(applied[0]).toMatchObject({
+            type: 'BuyShares',
+            buyer: unionBank,
+            expectedPrice: 100
+        })
+        await module.sell(sales[0].sales[1].request)
+        expect(applied[1]).toMatchObject({
+            type: 'SellShares',
+            seller: player,
+            sales: [{ companyId: TestCompanyId, shares: 2 }],
+            expectedProceeds: 180
         })
     })
 })

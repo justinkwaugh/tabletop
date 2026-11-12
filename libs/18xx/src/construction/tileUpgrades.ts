@@ -1,8 +1,10 @@
 import type { MapLocation } from '../map/map.js'
 import type { TileDefinition } from '../tiles/tile.js'
 import { rotateTileFace, TileEdges } from '../tiles/topology.js'
+import { carriedTrackStops, withTrackStops } from '../tiles/trackStops.js'
 import type { TrackRules } from './trackConstruction.js'
 import {
+    keepsExits,
     replacementMappings,
     replacesColorAndStops,
     requiredLabels,
@@ -12,7 +14,7 @@ import {
 } from './tileReplacement.js'
 
 export type TileUpgradeRules = TileReplacementRules &
-    Pick<TrackRules, 'map' | 'tileSet' | 'mostExits'>
+    Pick<TrackRules, 'map' | 'tileSet' | 'mostExits' | 'relabels' | 'carriesTrackStops'>
 
 /**
  * Which tiles of the set may replace which on some hex of the map, by the colour, stop, label
@@ -58,7 +60,7 @@ export class TileUpgrades {
             const after = tiles.filter(
                 (tile) =>
                     replacesColorAndStops(this.rules, location.id, before.face, tile.face) &&
-                    this.keepsTrackOf(before, tile)
+                    this.keepsTrackOf(location.id, before, tile)
             )
             for (const tile of this.mostExitsWhereRequired(before, after)) this.add(before, tile)
         }
@@ -69,22 +71,34 @@ export class TileUpgrades {
         const printed = location.preprintedTile
         return (
             colorOrder.indexOf(tile.face.color) > colorOrder.indexOf(printed.color) &&
-            sameLabels(
-                requiredLabels(location, tile.face.color, colorOrder, printed.labels),
-                tile.face.labels
-            )
+            // A title may relabel a hex's later tiles, as construction allows.
+            (!!this.rules.relabels?.(location.id, tile.id) ||
+                sameLabels(
+                    requiredLabels(location, tile.face.color, colorOrder, printed.labels),
+                    tile.face.labels
+                ))
         )
     }
 
-    private keepsTrackOf(before: TileDefinition, after: TileDefinition): boolean {
-        const key = `${before.id} ${after.id}`
+    private keepsTrackOf(
+        locationId: string,
+        before: TileDefinition,
+        after: TileDefinition
+    ): boolean {
+        const reconfigures = !!this.rules.reconfigures?.(locationId, before.face, after.face)
+        const key = `${before.id} ${after.id} ${reconfigures}`
         let keeps = this.keepsTrack.get(key)
         if (keeps === undefined) {
-            keeps = TileEdges.some(
-                (rotation) =>
-                    replacementMappings(before.face, rotateTileFace(after.face, rotation)).length >
-                    0
-            )
+            keeps = TileEdges.some((rotation) => {
+                const turned = rotateTileFace(after.face, rotation)
+                const rotated = this.rules.carriesTrackStops
+                    ? withTrackStops(turned, carriedTrackStops(before.face, turned))
+                    : turned
+                return (
+                    replacementMappings(before.face, rotated).length > 0 ||
+                    (reconfigures && keepsExits(before.face, rotated))
+                )
+            })
             this.keepsTrack.set(key, keeps)
         }
         return keeps

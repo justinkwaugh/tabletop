@@ -1,14 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import {
     GameEngine,
+    GameProgress,
     GameResult,
     type Game,
     type GameAction,
     assert,
     assertExists,
+    reportGameProgress,
     validateGameResult
 } from '@tabletop/common'
+import * as Value from 'typebox/value'
 import { isLayTrack } from '../actions/layTrack.js'
+import { edition as editionOf } from '../editions/editions.js'
 import { EditionId } from '../editions/types.js'
 import type { RailheadsProjectedState } from '../model/gameState.js'
 import { IndustryBoost } from '../model/track.js'
@@ -27,11 +31,16 @@ type Played = {
     final: RailheadsProjectedState
 }
 
-function playToEnd(count: number, config: Record<string, boolean | string> = {}): Played {
+function playToEnd(
+    count: number,
+    config: Record<string, boolean | string> = {},
+    onState: (state: RailheadsProjectedState) => void = () => {}
+): Played {
     const game = createGame(count, config)
     const initial = engine.startGame(game, { masterSeed }).initialState
     const history: GameAction[] = []
     let state = initial
+    onState(state)
     for (let step = 0; state.result === undefined; step++) {
         assert(step < 5000, 'Playthrough did not finish')
         const [playerId] = state.activePlayerIds
@@ -40,6 +49,7 @@ function playToEnd(count: number, config: Record<string, boolean | string> = {})
         const result = engine.executeCanonicalAction({ game, state, action })
         history.push(...result.processedActions)
         state = result.updatedState
+        onState(state)
     }
     return { game, initial, history, final: state }
 }
@@ -73,6 +83,27 @@ describe.each(TABLES)('a $count player game of $edition', ({ edition, count }) =
         expect(final.winningPlayerIds.every((playerId) => scores[playerId] === best)).toBe(true)
         const again = playToEnd(count, config).final
         expect({ ...again, id: final.id }).toEqual(final)
+    })
+
+    it('reports Game Progress through the opening auction and the rounds to a final last round', () => {
+        const { rounds, roundTimer } = editionOf(edition).definition
+        const reports: GameProgress[] = []
+        playToEnd(count, config, (state) => {
+            const progress = reportGameProgress(RailheadsRuntime, state)
+            assertExists(progress, 'Railheads reports Game Progress')
+            expect(Value.Check(GameProgress, progress)).toBe(true)
+            reports.push(progress)
+        })
+        expect(reports[0]).toEqual({ fraction: 0, label: 'Opening auction' })
+        for (const [index, report] of reports.entries())
+            expect(report.fraction).toBeGreaterThanOrEqual(reports[index - 1]?.fraction ?? 0)
+        const labels = reports.map((report) => report.label)
+        expect(labels).toContain(`Round 1 of ${rounds} · ${roundTimer[count]} left`)
+        expect(labels).toContain(`Round ${rounds - 1} of ${rounds} · 0 left`)
+        expect(reports.some((report) => report.final)).toBe(true)
+        for (const report of reports)
+            expect(report.final === true).toBe(report.label.startsWith('Last round · '))
+        expect(reports.at(-1)).toEqual({ fraction: 1, label: 'Last round · 0 left', final: true })
     })
 
     it('replays and undoes every processed action', () => {

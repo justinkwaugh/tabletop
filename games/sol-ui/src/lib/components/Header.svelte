@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import MoveArrows from '$lib/images/movearrows.svelte'
     import ConvertAtom from '$lib/images/convertatom.svelte'
     import ActivateBolt from '$lib/images/activatebolt.svelte'
@@ -42,6 +42,14 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
             >
                 <div>HISTORY</div>
             </div>
+        {:else if gameSession.isEndOfGame}
+            <div
+                in:fade={{ duration: 300, delay: 100 }}
+                out:fade={{ duration: 100 }}
+                class="inline-flex items-center gap-x-2"
+            >
+                <div>END OF GAME</div>
+            </div>
         {:else if !gameSession.isMyTurn}
             <div
                 in:fade={{ duration: 300, delay: 100 }}
@@ -56,14 +64,6 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
                         additionalClasses="tracking-widest pt-[2px]"
                     /> TURN
                 </div>
-            </div>
-        {:else if gameSession.isEndOfGame}
-            <div
-                in:fade={{ duration: 300, delay: 100 }}
-                out:fade={{ duration: 100 }}
-                class="inline-flex items-center gap-x-2"
-            >
-                <div>END OF GAME</div>
             </div>
         {:else if gameSession.isMoving}
             <div

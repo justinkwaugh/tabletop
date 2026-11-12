@@ -10,20 +10,20 @@ import { hasKnightActionOptions, knightActionOptions } from '../util/knightActio
 import { canCancelAnAlliance } from '../util/allianceCancellation.js'
 
 type PlacingKnightsAction =
-    | HydratedPlaceKnight
-    | HydratedExpandRegion
-    | HydratedPass
-    | HydratedCancelAlliance
+    HydratedPlaceKnight | HydratedExpandRegion | HydratedPass | HydratedCancelAlliance
 
-export class PlacingKnightsStateHandler
-    implements MachineStateHandler<PlacingKnightsAction, HydratedLowenherzGameState>
-{
+export class PlacingKnightsStateHandler implements MachineStateHandler<
+    PlacingKnightsAction,
+    HydratedLowenherzGameState
+> {
     isValidAction(
         action: HydratedAction,
         context: MachineContext<HydratedLowenherzGameState>
     ): action is PlacingKnightsAction {
-        if (action instanceof HydratedPlaceKnight) return action.isValidPlaceKnight(context.gameState)
-        if (action instanceof HydratedExpandRegion) return action.isValidExpandRegion(context.gameState)
+        if (action instanceof HydratedPlaceKnight)
+            return action.isValidPlaceKnight(context.gameState)
+        if (action instanceof HydratedExpandRegion)
+            return action.isValidExpandRegion(context.gameState)
         // A Pass is only meaningful if it's actually this player's turn to place a
         // knight - same "whose turn" gate PlaceKnight/ExpandRegion themselves check.
         if (action instanceof HydratedPass) {
@@ -68,7 +68,9 @@ export class PlacingKnightsStateHandler
 
     enter(context: MachineContext<HydratedLowenherzGameState>) {
         const gameState = context.gameState
-        gameState.activePlayerIds = gameState.knightPlacingPlayerId ? [gameState.knightPlacingPlayerId] : []
+        gameState.activePlayerIds = gameState.knightPlacingPlayerId
+            ? [gameState.knightPlacingPlayerId]
+            : []
     }
 
     onAction(
@@ -99,10 +101,7 @@ export class PlacingKnightsStateHandler
         // reflect it, and the phase ends only once nothing legal remains: a leftover
         // sword after an expansion keeps it alive for the knight that sword still owes
         // (and vice versa).
-        if (
-            action instanceof HydratedPass ||
-            !hasKnightActionOptions(gameState, action.playerId)
-        ) {
+        if (action instanceof HydratedPass || !hasKnightActionOptions(gameState, action.playerId)) {
             gameState.expandingRegionId = undefined
             gameState.expansionStrandings = undefined
             gameState.expansionUsed = undefined

@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import { privateOwner } from '@tabletop/18xx'
+    import PlaceText from '../places/PlaceText.svelte'
     let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSessionView } =
         $props()
     const selection = $derived(session.privates.exchangeSelection)
@@ -18,7 +19,7 @@
                     <p>
                         {owner ? session.ownerName(owner) : 'Unowned'} · Revenue {company.revenue}
                     </p>
-                    <p>{company.description}</p>
+                    <p><PlaceText text={company.description} /></p>
                     {#each session.privates.exchangeOptions.filter((offer) => offer.privateCompanyId === company.id) as offer (offer.certificateId)}
                         <button onclick={() => session.privates.selectExchange(offer)}
                             >Exchange for {offer.certificateId}</button

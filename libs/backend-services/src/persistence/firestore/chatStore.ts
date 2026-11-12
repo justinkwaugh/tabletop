@@ -9,9 +9,17 @@ import {
 } from '@google-cloud/firestore'
 
 import { AlreadyExistsError, NotFoundError, UnknownStorageError } from '../stores/errors.js'
-import { addToChecksum, BaseError, Bookmark, GameChat, GameChatMessage } from '@tabletop/common'
+import {
+    addToChecksum,
+    BaseError,
+    Bookmark,
+    GameChat,
+    GameChatMessage,
+    REDACTED_CHAT_MESSAGE_TEXT,
+    redactionChecksumValue
+} from '@tabletop/common'
 import { isFirestoreError } from './errors.js'
-import { ChatStore } from '../stores/chatStore.js'
+import { ChatStore, type RedactedChatMessage } from '../stores/chatStore.js'
 import { RedisCacheService } from '../../cache/cacheService.js'
 import { StoredGameChat } from '../model/storedGameChat.js'
 import { nanoid } from 'nanoid'
@@ -34,7 +42,6 @@ export class FirestoreChatStore implements ChatStore {
             return (await doc.get()).data()
         } catch (error) {
             this.handleError(error, gameId)
-            throw Error('unreachable')
         }
     }
 
@@ -70,7 +77,39 @@ export class FirestoreChatStore implements ChatStore {
         } catch (error) {
             console.log(error)
             this.handleError(error, gameId)
-            throw Error('unreachable')
+        }
+    }
+
+    async redactGameChatMessage(gameId: string, messageId: string): Promise<RedactedChatMessage> {
+        const chat = this.getGameChatDocument(gameId)
+        const transactionBody = async (transaction: Transaction): Promise<RedactedChatMessage> => {
+            const existingChat = (await transaction.get(chat)).data()
+            const message: GameChatMessage | undefined = existingChat?.messages.find(
+                (candidate) => candidate.id === messageId
+            )
+            if (!existingChat || !message) {
+                throw new NotFoundError({ type: 'GameChatMessage', id: messageId })
+            }
+            if (message.redacted) {
+                return { chat: existingChat, message, originalText: '', alreadyRedacted: true }
+            }
+            const originalText = message.text
+            message.text = REDACTED_CHAT_MESSAGE_TEXT
+            message.redacted = true
+            existingChat.checksum = addToChecksum(existingChat.checksum, [
+                redactionChecksumValue(messageId)
+            ])
+            transaction.set(chat, existingChat)
+            return { chat: existingChat, message, originalText, alreadyRedacted: false }
+        }
+
+        try {
+            return await this.cacheService.lockWhileWriting(
+                GameCacheKeys.chatWrite(gameId),
+                async () => chat.firestore.runTransaction(transactionBody)
+            )
+        } catch (error) {
+            this.handleError(error, gameId)
         }
     }
 
@@ -98,7 +137,6 @@ export class FirestoreChatStore implements ChatStore {
                 return bookmark
             } catch (error) {
                 this.handleError(error, gameId)
-                throw Error('unreachable')
             }
         }
 
@@ -126,7 +164,6 @@ export class FirestoreChatStore implements ChatStore {
         } catch (error) {
             console.log(error)
             this.handleError(error, gameId)
-            throw Error('unreachable')
         }
     }
 
@@ -143,7 +180,7 @@ export class FirestoreChatStore implements ChatStore {
         return gameChatBookmarks(this.firestore, gameId).withConverter(bookmarkConverter)
     }
 
-    private handleError(error: unknown, id: string) {
+    private handleError(error: unknown, id: string): never {
         console.log(error)
         if (error instanceof BaseError) {
             throw error

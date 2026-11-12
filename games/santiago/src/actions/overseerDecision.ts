@@ -26,7 +26,6 @@ export function isOverseerDecision(action: GameAction): action is OverseerDecisi
     return action.type === ActionType.OverseerDecision
 }
 
-
 export class HydratedOverseerDecision
     extends HydratableAction<typeof OverseerDecision>
     implements OverseerDecision

@@ -56,9 +56,8 @@ export default async function (fastify: FastifyInstance) {
             const responseEtag = `W/"${gameEtag}${includeActions ? ':full' : ':state-only'}"`
             const validator = request.headers['if-none-match']
             const validatorMatches = validator === responseEtag
-            const validatorStatus = validator === undefined
-                ? 'missing'
-                : validatorMatches ? 'matched' : 'mismatched'
+            const validatorStatus =
+                validator === undefined ? 'missing' : validatorMatches ? 'matched' : 'mismatched'
             countTiming(`game.load.validator.${validatorStatus}`)
             void reply.header('ETag', responseEtag)
             void reply.header('Cache-Control', 'private, no-cache')

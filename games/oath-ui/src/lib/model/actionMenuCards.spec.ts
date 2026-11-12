@@ -7,6 +7,7 @@ import {
     Suit,
     TradeOption,
     cardDefinitions,
+    hasEffect,
     isFreeGain,
     isMandatoryModifier,
     isMuster,
@@ -18,7 +19,7 @@ import {
 import { openTurn, testPlayer, testState } from '@tabletop/oath/testing'
 import { disposeSessions, openSessionOn, tableOf } from '$lib/testing/sessionHarness.js'
 import { shroudedWoodState } from '$lib/testing/shroudedWoodTable.js'
-import { ACTION_CARD_LINES, actionCardKey } from './actionCards.js'
+import { ACTION_CARD_LINES } from './actionCards.js'
 import type { OathGameSession } from './session.svelte.js'
 
 afterEach(() => {
@@ -50,10 +51,24 @@ const use = (cardId: string) => ({ cardId, powerIndex: powerIndexOf(cardId, Powe
 
 type Seat = Parameters<typeof testPlayer>[0]
 
-/** Dana at c1 with plenty to spend, her cards and the cards at her site as the case needs. */
-function table(me: Partial<Seat>, here: string[] = [], tokens: Record<string, { favor: number; secrets: number }> = {}) {
+/** Dana at c1 with plenty to spend, their cards and the cards at their site as the case needs. */
+function table(
+    me: Partial<Seat>,
+    here: string[] = [],
+    tokens: Record<string, { favor: number; secrets: number }> = {}
+) {
     const state = testState(
-        [testPlayer({ playerId: 'Dana', color: Color.Red, siteId: 'c1', supply: 5, favor: 5, secrets: 3, ...me })],
+        [
+            testPlayer({
+                playerId: 'Dana',
+                color: Color.Red,
+                siteId: 'c1',
+                supply: 5,
+                favor: 5,
+                secrets: 3,
+                ...me
+            })
+        ],
         {
             machineState: MachineState.ActPhase,
             denizensBySite: { c1: here, c2: [], p1: [], h1: [] },
@@ -84,14 +99,42 @@ describe('R-7.4 — each free gain starts in use, and a tap puts it down', () =>
     const cases: { card: string; action: ActionType; state: () => ReturnType<typeof table> }[] = [
         { card: DRUM, action: ActionType.Travel, state: () => table({ relicIds: [DRUM] }) },
         { card: ROWDY_PUB, action: ActionType.Muster, state: () => table({}, [ROWDY_PUB, INN]) },
-        { card: PLAYMATES, action: ActionType.Muster, state: () => table({ advisers: advisers(PLAYMATES) }, [WOLVES]) },
+        {
+            card: PLAYMATES,
+            action: ActionType.Muster,
+            state: () => table({ advisers: advisers(PLAYMATES) }, [WOLVES])
+        },
         { card: DOWNTRODDEN, action: ActionType.Muster, state: lowHearth },
-        { card: BIRDSONG, action: ActionType.Trade, state: () => table({ advisers: advisers(BIRDSONG) }, [WOLVES]) },
-        { card: CUP, action: ActionType.Trade, state: () => table({ relicIds: [CUP], advisers: advisers(WOLVES) }, [WOLVES]) },
-        { card: SECRET_SIGNAL, action: ActionType.Trade, state: () => table({ advisers: advisers(SECRET_SIGNAL) }, [WOLVES]) },
-        { card: OLD_OAK, action: ActionType.Trade, state: () => table({ advisers: advisers(WOLVES) }, [OLD_OAK]) },
-        { card: WILD_CRY, action: ActionType.Search, state: () => table({ advisers: advisers(WILD_CRY) }) },
-        { card: WELCOMING_PARTY, action: ActionType.Search, state: () => table({ advisers: advisers(WELCOMING_PARTY) }) }
+        {
+            card: BIRDSONG,
+            action: ActionType.Trade,
+            state: () => table({ advisers: advisers(BIRDSONG) }, [WOLVES])
+        },
+        {
+            card: CUP,
+            action: ActionType.Trade,
+            state: () => table({ relicIds: [CUP], advisers: advisers(WOLVES) }, [WOLVES])
+        },
+        {
+            card: SECRET_SIGNAL,
+            action: ActionType.Trade,
+            state: () => table({ advisers: advisers(SECRET_SIGNAL) }, [WOLVES])
+        },
+        {
+            card: OLD_OAK,
+            action: ActionType.Trade,
+            state: () => table({ advisers: advisers(WOLVES) }, [OLD_OAK])
+        },
+        {
+            card: WILD_CRY,
+            action: ActionType.Search,
+            state: () => table({ advisers: advisers(WILD_CRY) })
+        },
+        {
+            card: WELCOMING_PARTY,
+            action: ActionType.Search,
+            state: () => table({ advisers: advisers(WELCOMING_PARTY) })
+        }
     ]
 
     for (const { card, action, state } of cases) {
@@ -204,7 +247,9 @@ describe('R-7.4 — a card in use applies to the rows it fits; the other rows ar
     })
 
     it('Secret Signal fits the Trade for favor and not the one for secrets', async () => {
-        const { session, sent } = await sessionAt(table({ advisers: advisers(SECRET_SIGNAL) }, [WOLVES]))
+        const { session, sent } = await sessionAt(
+            table({ advisers: advisers(SECRET_SIGNAL) }, [WOLVES])
+        )
         session.chooseAction(ActionType.Trade)
         const [row] = session.tradeRows
         expect(row.choices.map((c) => [c.option, c.modifiers])).toEqual([
@@ -232,7 +277,8 @@ describe('R-7.4 — a card in use applies to the rows it fits; the other rows ar
         const travel = (await sessionAt(table({ advisers: advisers(TYRANT, TENTS) }))).session
         travel.chooseAction(ActionType.Travel)
         expect(listed(travel)).not.toContain(TYRANT)
-        const muster = (await sessionAt(table({ advisers: advisers(INITIATION_RITE) }, [INN]))).session
+        const muster = (await sessionAt(table({ advisers: advisers(INITIATION_RITE) }, [INN])))
+            .session
         muster.chooseAction(ActionType.Muster)
         expect(listed(muster)).toEqual([])
     })
@@ -267,7 +313,6 @@ describe('R-7.4 — an action only two cards together make possible is one entry
                 with: use(PRESSGANGS)
             }
         ])
-        expect(actionCardKey(session.actionCards[0])).toContain('+')
     })
 
     it('opens the Muster with both in use; neither can be put down; the Muster is sent with both', async () => {
@@ -288,35 +333,58 @@ describe('R-7.4 — an action only two cards together make possible is one entry
         expect(action.modifiers).toEqual([use(PLAYMATES), use(PRESSGANGS)])
     })
 
-    it('Undo from a pair returns to the powers', async () => {
+    it('Undo from a pair returns to the grid', async () => {
         const { session } = await sessionAt(m1())
         session.openActionWithCard(session.actionCards[0])
         await session.undo()
-        expect(session.selection.action).toBe(ActionType.UseActionPower)
+        expect(session.selection.action).toBeUndefined()
     })
 
     it('Birdsong + Small Friends make a Trade at 0 Supply with a beast card at another site', async () => {
         const state = testState(
-            [testPlayer({ playerId: 'Dana', color: Color.Red, siteId: 'c1', supply: 0, favor: 2, secrets: 1, advisers: advisers(BIRDSONG, SMALL_FRIENDS) })],
-            { machineState: MachineState.ActPhase, denizensBySite: { c1: [TOLL_ROADS], c2: [], p1: [WOLVES], h1: [] } }
+            [
+                testPlayer({
+                    playerId: 'Dana',
+                    color: Color.Red,
+                    siteId: 'c1',
+                    supply: 0,
+                    favor: 2,
+                    secrets: 1,
+                    advisers: advisers(BIRDSONG, SMALL_FRIENDS)
+                })
+            ],
+            {
+                machineState: MachineState.ActPhase,
+                denizensBySite: { c1: [TOLL_ROADS], c2: [], p1: [WOLVES], h1: [] }
+            }
         )
         openTurn(state, 'Dana')
         const { session } = await sessionAt(state)
         expect(session.actionCards).toEqual([
-            expect.objectContaining({ cardId: BIRDSONG, action: ActionType.Trade, kind: 'makesPossible', with: use(SMALL_FRIENDS) })
+            expect.objectContaining({
+                cardId: BIRDSONG,
+                action: ActionType.Trade,
+                kind: 'makesPossible',
+                with: use(SMALL_FRIENDS)
+            })
         ])
         session.openActionWithCard(session.actionCards[0])
         expect(session.tradeRows.map((row) => row.cardId)).toEqual([WOLVES])
     })
 
     it('pairs no card that alone makes the action possible (Tents, at 0 Supply)', async () => {
-        const { session } = await sessionAt(table({ supply: 0, favor: 2, advisers: advisers(TENTS, PRESSGANGS) }))
+        const { session } = await sessionAt(
+            table({ supply: 0, favor: 2, advisers: advisers(TENTS, PRESSGANGS) })
+        )
         expect(session.actionCards.filter((card) => card.with !== undefined)).toEqual([])
     })
 })
 
+/** The built ones: a printed modifier with no effect yet is never offered (R-7.4). */
 function allModifiers() {
-    return cardDefinitions().flatMap((card) => powersWithTiming(card.id, PowerTiming.Modifier))
+    return cardDefinitions()
+        .flatMap((card) => powersWithTiming(card.id, PowerTiming.Modifier))
+        .filter(hasEffect)
 }
 
 describe('R-7.4 — one line per card, read by the menu rows and Use a power alike', () => {

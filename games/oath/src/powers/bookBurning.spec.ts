@@ -22,11 +22,35 @@ const atRevision = OathRevision.EngineFixes2
 const before = OathRevision.CardFixes1
 
 /** The attacker, holding Book Burning, campaigns from c1 against the defender, whose pawn is there. */
-function table(oathRevision: number, seed: number, secrets: { secrets: number; secretsFacedown: number }) {
+function table(
+    oathRevision: number,
+    seed: number,
+    secrets: { secrets: number; secretsFacedown: number }
+) {
     const s = testState(
         withChancellor([
-            testPlayer({ playerId: ATTACKER, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', supply: 5, favor: 4, secrets: 1, warbandsOnBoard: { [ATTACKER]: 6 }, warbandsInPersonalBank: { [ATTACKER]: 6 }, advisers: [{ cardId: BOOK_BURNING, faceUp: true }] }),
-            testPlayer({ playerId: DEFENDER, color: Color.Yellow, status: PlayerStatus.Exile, siteId: 'c1', favor: 3, warbandsOnBoard: {}, warbandsInPersonalBank: { [DEFENDER]: 6 }, ...secrets })
+            testPlayer({
+                playerId: ATTACKER,
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: 'c1',
+                supply: 5,
+                favor: 4,
+                secrets: 1,
+                warbandsOnBoard: { [ATTACKER]: 6 },
+                warbandsInPersonalBank: { [ATTACKER]: 6 },
+                advisers: [{ cardId: BOOK_BURNING, faceUp: true }]
+            }),
+            testPlayer({
+                playerId: DEFENDER,
+                color: Color.Yellow,
+                status: PlayerStatus.Exile,
+                siteId: 'c1',
+                favor: 3,
+                warbandsOnBoard: {},
+                warbandsInPersonalBank: { [DEFENDER]: 6 },
+                ...secrets
+            })
         ]),
         {
             oathRevision,
@@ -40,7 +64,8 @@ function table(oathRevision: number, seed: number, secrets: { secrets: number; s
 }
 
 const targets = [siteTarget('c1'), { kind: CampaignTargetKind.PawnAndFavor as const }]
-const burningAttack = () => campaign({ plans: [battlePlanUse(BOOK_BURNING)], targets, attackDice: 6 })
+const burningAttack = () =>
+    campaign({ plans: [battlePlanUse(BOOK_BURNING)], targets, attackDice: 6 })
 
 const victorySeed = (() => {
     for (let seed = 1; seed < 80; seed++) {
@@ -57,7 +82,11 @@ function burned(oathRevision: number, secrets: { secrets: number; secretsFacedow
     const { sacrifice, victory } = finishCampaignSteps(s)
     expect(sacrifice.metadata?.attackerVictorious).toBe(true)
     const defender = s.getPlayerState(DEFENDER)
-    return { faceup: defender.secrets, facedown: defender.secretsFacedown, triggered: victory?.metadata?.triggered }
+    return {
+        faceup: defender.secrets,
+        facedown: defender.secretsFacedown,
+        triggered: victory?.metadata?.triggered
+    }
 }
 
 describe('Book Burning burns facedown secrets too, keeping one (R-7.1.2.a, revision 5)', () => {
@@ -68,30 +97,52 @@ describe('Book Burning burns facedown secrets too, keeping one (R-7.1.2.a, revis
     })
 
     it('with only facedown secrets, one facedown secret is kept', () => {
-        expect(burned(atRevision, { secrets: 0, secretsFacedown: 3 })).toMatchObject({ faceup: 0, facedown: 1 })
+        expect(burned(atRevision, { secrets: 0, secretsFacedown: 3 })).toMatchObject({
+            faceup: 0,
+            facedown: 1
+        })
     })
 
     it('with only faceup secrets, one faceup secret is kept', () => {
-        expect(burned(atRevision, { secrets: 3, secretsFacedown: 0 })).toMatchObject({ faceup: 1, facedown: 0 })
+        expect(burned(atRevision, { secrets: 3, secretsFacedown: 0 })).toMatchObject({
+            faceup: 1,
+            facedown: 0
+        })
     })
 
     it('a defender with no secrets loses none', () => {
-        expect(burned(atRevision, { secrets: 0, secretsFacedown: 0 })).toMatchObject({ faceup: 0, facedown: 0 })
+        expect(burned(atRevision, { secrets: 0, secretsFacedown: 0 })).toMatchObject({
+            faceup: 0,
+            facedown: 0
+        })
     })
 })
 
 describe('R-X.4 — before revision 5, Book Burning leaves facedown secrets', () => {
     it('every faceup secret burns and the facedown ones stay', () => {
-        expect(burned(before, { secrets: 2, secretsFacedown: 2 })).toMatchObject({ faceup: 0, facedown: 2 })
+        expect(burned(before, { secrets: 2, secretsFacedown: 2 })).toMatchObject({
+            faceup: 0,
+            facedown: 2
+        })
     })
 
     it('a Campaign recorded with Book Burning replays unchanged, the facedown secrets kept', () => {
         const game = testGame([ATTACKER, DEFENDER])
         const start = table(before, victorySeed, { secrets: 2, secretsFacedown: 2 }).dehydrate()
         const steps: GameAction[] = [
-            buildAction(Campaign, { playerId: ATTACKER, defender: { kind: 'player', playerId: DEFENDER }, targets, attackDice: 6, plans: [battlePlanUse(BOOK_BURNING)] }),
+            buildAction(Campaign, {
+                playerId: ATTACKER,
+                defender: { kind: 'player', playerId: DEFENDER },
+                targets,
+                attackDice: 6,
+                plans: [battlePlanUse(BOOK_BURNING)]
+            }),
             buildAction(CampaignSacrifice, { playerId: ATTACKER, sacrifice: 0, defeatKills: [] }),
-            buildAction(CampaignResolveVictory, { playerId: ATTACKER, placements: [], burnFavor: false })
+            buildAction(CampaignResolveVictory, {
+                playerId: ATTACKER,
+                placements: [],
+                burnFavor: false
+            })
         ]
         let recorded: OathProjectedState = structuredClone(start)
         const processed: GameAction[] = []
@@ -105,7 +156,13 @@ describe('R-X.4 — before revision 5, Book Burning leaves facedown secrets', ()
         expect(defender.secretsFacedown).toBe(2)
 
         let replayed = structuredClone(start)
-        for (const action of processed) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+        for (const action of processed)
+            replayed = engine.run(
+                structuredClone(action),
+                replayed,
+                game,
+                RunMode.Single
+            ).updatedState
         expect(replayed).toEqual(recorded)
     })
 })

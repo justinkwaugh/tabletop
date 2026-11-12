@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { EffectType } from '@tabletop/sol'
     import ConvertPicker from '$lib/components/pickers/ConvertPicker.svelte'
     import CardPicker from '$lib/components/pickers/CardPicker.svelte'

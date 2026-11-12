@@ -1,3 +1,4 @@
+import { tournamentTiebreakDescription } from '@tabletop/common'
 import { ButtonFallback, CardButton, DarkCardEmail } from '../components/darkCard.js'
 import {
     ChampionPanel,
@@ -17,6 +18,8 @@ export interface LeagueSeasonResultsProps {
     nextLevel: string
     champion?: string
     standings: StandingsRow[]
+    tiebreakDescription: string
+    ranksByAveragePlace?: boolean
     url?: string
 }
 
@@ -49,7 +52,16 @@ export const leagueSeasonResultsName = ({
     movement === 'seeded' ? 'Seeding season' : `Season ${seasonNumber}`
 
 export const LeagueSeasonResults = (props: LeagueSeasonResultsProps) => {
-    const { leagueName, title, groupName, champion, standings, url = `` } = props
+    const {
+        leagueName,
+        title,
+        groupName,
+        champion,
+        standings,
+        tiebreakDescription,
+        ranksByAveragePlace,
+        url = ``,
+    } = props
     const result = resultText(props)
     const season = leagueSeasonResultsName(props)
     return (
@@ -73,6 +85,8 @@ export const LeagueSeasonResults = (props: LeagueSeasonResultsProps) => {
             <StandingsTable
                 label={`Group ${groupName} final standings`}
                 rows={standings}
+                tiebreakDescription={tiebreakDescription}
+                ranksByAveragePlace={ranksByAveragePlace}
                 starWinner={false}
             />
             <CardButton href={url}>See the season results</CardButton>
@@ -90,11 +104,12 @@ LeagueSeasonResults.PreviewProps = {
     nextLevel: 'A',
     champion: 'Alice',
     standings: [
-        { rank: 1, name: 'Bob', wins: 3, score: 3, tiebreak: 140, recipient: true },
-        { rank: 2, name: 'Carol', wins: 2, score: 2, tiebreak: 131, recipient: false },
-        { rank: 3, name: 'Dave', wins: 1, score: 1, tiebreak: 122, recipient: false },
-        { rank: 4, name: 'Erin', wins: 1, score: 1, tiebreak: 101, recipient: false },
+        { rank: 1, name: 'Bob', wins: 3, score: 3, tiebreak: '-0.99', recipient: true },
+        { rank: 2, name: 'Carol', wins: 2, score: 2, tiebreak: '-1.775', recipient: false },
+        { rank: 3, name: 'Dave', wins: 1, score: 1, tiebreak: '-4.265', recipient: false },
+        { rank: 4, name: 'Erin', wins: 1, score: 1, tiebreak: '-5.553', recipient: false },
     ],
+    tiebreakDescription: tournamentTiebreakDescription([{ pointsBehind: 0 }]),
     url: 'https://boardtogether.games/leagues/fresh-fish-league?season=2',
 } satisfies LeagueSeasonResultsProps
 

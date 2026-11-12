@@ -6,7 +6,9 @@ import type { Attachment } from 'svelte/attachments'
 // every frame because ScalingWrapper's pan and zoom move the board by a CSS transform, with no
 // resize event or store to hook; it writes the DOM directly and only when the value changes, so
 // nothing reactive runs per frame.
-export function centerOverBoard(getBoardEl: () => HTMLElement | undefined): Attachment<HTMLElement> {
+export function centerOverBoard(
+    getBoardEl: () => HTMLElement | undefined
+): Attachment<HTMLElement> {
     return (bar) => {
         let frame = 0
         let written = ''

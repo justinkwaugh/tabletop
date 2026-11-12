@@ -44,7 +44,10 @@ const regionChip = (page: Page, region: string) =>
     regionChips(page).getByRole('button', { name: new RegExp(`^${region}:`) })
 
 async function framed(page: Page, slotId: string): Promise<boolean> {
-    const [card, view] = [await boxOf(page, siteCard(page, slotId)), await boxOf(page, page.locator('.scaling-surface'))]
+    const [card, view] = [
+        await boxOf(page, siteCard(page, slotId)),
+        await boxOf(page, page.locator('.scaling-surface'))
+    ]
     return (
         card.x >= view.x - 0.5 &&
         card.y >= view.y - 0.5 &&
@@ -65,7 +68,9 @@ const SLOTS = {
 }
 
 /** Every site but the Wood Dana stands at. */
-const ANY_SITE = Object.values(SLOTS).filter((slotId) => slotId !== SLOTS.wood).sort()
+const ANY_SITE = Object.values(SLOTS)
+    .filter((slotId) => slotId !== SLOTS.wood)
+    .sort()
 
 const SIZES = [
     { name: 'desktop at 1280', viewport: { width: 1280, height: 900 }, phone: false },
@@ -91,21 +96,39 @@ for (const { name, viewport, phone } of SIZES) {
 
         const scenes = [
             { table: 'woodPickWhistle', lit: ANY_SITE, provinces: 2, sendTo: SLOTS.greatSlum },
-            { table: 'woodPickHorse', lit: [SLOTS.river, SLOTS.mountain].sort(), provinces: 1, sendTo: SLOTS.river },
+            {
+                table: 'woodPickHorse',
+                lit: [SLOTS.river, SLOTS.mountain].sort(),
+                provinces: 1,
+                sendTo: SLOTS.river
+            },
             { table: 'woodPickPalanquin', lit: ANY_SITE, provinces: 2, sendTo: SLOTS.greatSlum },
             { table: 'woodPickBanish', lit: ANY_SITE, provinces: 2, sendTo: SLOTS.greatSlum }
         ] as const
         for (const { table, lit, provinces, sendTo } of scenes) {
-            test(`${table}: "Free." once, only its sites lit with no chip, opening on Dana’s region; one tap sends`, async ({ page }) => {
+            test(`${table}: "Free." once, only its sites lit with no chip, opening on Dana’s region; one tap sends`, async ({
+                page
+            }) => {
                 expect((await openTable(page, table)).seatId).toBe('Bea')
                 await expect(panel(page).getByText(FREE_LINE)).toBeVisible()
-                await expect(panel(page).getByRole('button', { name: /Drowned City|Plains|Great Slum|River|Mountain|Wastes/ })).toHaveCount(0)
+                await expect(
+                    panel(page).getByRole('button', {
+                        name: /Drowned City|Plains|Great Slum|River|Mountain|Wastes/
+                    })
+                ).toHaveCount(0)
                 expect(await litSlots(page)).toEqual(lit)
                 for (const slotId of lit) await expect(chipOf(page, slotId)).toHaveCount(0)
-                await expect(page.locator('.site.dimmed')).toHaveCount((await page.locator('.site').count()) - lit.length)
+                await expect(page.locator('.site.dimmed')).toHaveCount(
+                    (await page.locator('.site').count()) - lit.length
+                )
                 if (phone) {
-                    await expect(regionChip(page, 'Provinces')).toHaveAttribute('aria-pressed', 'true')
-                    await expect(regionChip(page, 'Provinces')).toHaveAccessibleName(`Provinces: ${provinces} lit ${provinces === 1 ? 'site' : 'sites'}`)
+                    await expect(regionChip(page, 'Provinces')).toHaveAttribute(
+                        'aria-pressed',
+                        'true'
+                    )
+                    await expect(regionChip(page, 'Provinces')).toHaveAccessibleName(
+                        `Provinces: ${provinces} lit ${provinces === 1 ? 'site' : 'sites'}`
+                    )
                     await expect.poll(() => framed(page, sendTo)).toBe(true)
                     const box = await boxOf(page, siteCard(page, sendTo))
                     expect(box.width).toBeGreaterThanOrEqual(44)
@@ -115,12 +138,16 @@ for (const { name, viewport, phone } of SIZES) {
                 }
 
                 await press(page, sendTo, phone)
-                await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.Dana).toBe(sendTo)
+                await expect
+                    .poll(async () => (await call(page, 'tableFacts')).siteOf.Dana)
+                    .toBe(sendTo)
                 await expect(page.locator('.board-card.offered')).toHaveCount(0)
             })
         }
 
-        test('after the Whistle used from another region, the map still opens on Dana’s region', async ({ page }) => {
+        test('after the Whistle used from another region, the map still opens on Dana’s region', async ({
+            page
+        }) => {
             await openTable(page, 'woodPickWhistleAway')
             await expect(panel(page).getByText(FREE_LINE)).toBeVisible()
             if (!phone) return
@@ -129,24 +156,41 @@ for (const { name, viewport, phone } of SIZES) {
             expect(await framed(page, SLOTS.mountain)).toBe(false)
         })
 
-        test('Toll Roads on a free pick: the toll site’s chip is "toll 1 [favor]", the others carry none', async ({ page }) => {
+        test('Toll Roads on a free pick: the toll site’s chip is "toll 1 [favor]", the others carry none', async ({
+            page
+        }) => {
             await openTable(page, 'woodPickWhistleToll')
             await expect(chipOf(page, SLOTS.greatSlum)).toHaveText(/^\s*toll 1\s*$/)
-            await expect(chipOf(page, SLOTS.greatSlum).getByRole('img', { name: 'favor' })).toHaveCount(1)
-            await expect(siteAt(page, SLOTS.greatSlum).getByRole('button', { name: 'Great Slum, toll 1 favor', exact: true })).toHaveCount(1)
+            await expect(
+                chipOf(page, SLOTS.greatSlum).getByRole('img', { name: 'favor' })
+            ).toHaveCount(1)
+            await expect(
+                siteAt(page, SLOTS.greatSlum).getByRole('button', {
+                    name: 'Great Slum, toll 1 favor',
+                    exact: true
+                })
+            ).toHaveCount(1)
             await expect(chipOf(page, SLOTS.river)).toHaveCount(0)
         })
 
-        test('a banish while the Campaign is under way: Bea’s tap banishes Dana and the victory goes on to its end', async ({ page }) => {
+        test('a banish while the Campaign is under way: Bea’s tap banishes Dana and the victory goes on to its end', async ({
+            page
+        }) => {
             await openTable(page, 'woodPickBanish')
             expect((await call(page, 'tableFacts')).campaignUnderway).toBe(true)
             if (phone) await expect.poll(() => framed(page, SLOTS.river)).toBe(true)
             await press(page, SLOTS.river, phone)
-            await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.Dana).toBe(SLOTS.river)
-            await expect.poll(async () => (await call(page, 'tableFacts')).campaignUnderway).toBe(false)
+            await expect
+                .poll(async () => (await call(page, 'tableFacts')).siteOf.Dana)
+                .toBe(SLOTS.river)
+            await expect
+                .poll(async () => (await call(page, 'tableFacts')).campaignUnderway)
+                .toBe(false)
         })
 
-        test('the Brass Horse’s own pick: the card and "Travel where? Free.", the Plains with no chip, The Hidden Place "+[secret]"; a tap flips and travels', async ({ page }) => {
+        test('the Brass Horse’s own pick: the card and "Travel where? Free.", the Plains with no chip, The Hidden Place "+[secret]"; a tap flips and travels', async ({
+            page
+        }) => {
             expect((await openTable(page, 'horseOwnPick')).seatId).toBe('Dana')
             await expect(panel(page).locator('.question-line')).toHaveText('Travel where? Free.')
             await expect(panel(page).getByRole('heading', { name: 'Brass Horse' })).toBeVisible()
@@ -154,22 +198,35 @@ for (const { name, viewport, phone } of SIZES) {
             expect(await litSlots(page)).toEqual([SLOTS.plains, SLOTS.hiddenPlace].sort())
             await expect(chipOf(page, SLOTS.plains)).toHaveCount(0)
             await expect(chipOf(page, SLOTS.hiddenPlace)).toHaveText(/^\s*\+\s*$/)
-            await expect(chipOf(page, SLOTS.hiddenPlace).getByRole('img', { name: 'secret' })).toHaveCount(1)
-            await expect(siteAt(page, SLOTS.hiddenPlace).getByRole('button', { name: 'The Hidden Place, flip 1 secret', exact: true })).toHaveCount(1)
+            await expect(
+                chipOf(page, SLOTS.hiddenPlace).getByRole('img', { name: 'secret' })
+            ).toHaveCount(1)
+            await expect(
+                siteAt(page, SLOTS.hiddenPlace).getByRole('button', {
+                    name: 'The Hidden Place, flip 1 secret',
+                    exact: true
+                })
+            ).toHaveCount(1)
             if (phone) {
                 // Dana's region, the Provinces, has nothing to pick: the map opens on the Cradle.
                 await expect(regionChip(page, 'Provinces')).toHaveCount(0)
                 await expect(regionChip(page, 'Cradle')).toHaveAttribute('aria-pressed', 'true')
-                await expect(regionChip(page, 'Cradle')).toHaveAccessibleName('Cradle: 1 to travel to')
+                await expect(regionChip(page, 'Cradle')).toHaveAccessibleName(
+                    'Cradle: 1 to travel to'
+                )
                 await regionChip(page, 'Hinterland').tap()
                 await expect.poll(() => framed(page, SLOTS.hiddenPlace)).toBe(true)
             }
             // The engine takes Dana there only with the flip (R-11.13-H1), so arriving shows it was sent.
             await press(page, SLOTS.hiddenPlace, phone)
-            await expect.poll(async () => (await call(page, 'tableFacts')).siteOf.Dana).toBe(SLOTS.hiddenPlace)
+            await expect
+                .poll(async () => (await call(page, 'tableFacts')).siteOf.Dana)
+                .toBe(SLOTS.hiddenPlace)
         })
 
-        test('"Dana stays" under the line, label-sized, with the sites only the cards pay for lit', async ({ page }) => {
+        test('"Dana stays" under the line, label-sized, with the sites only the cards pay for lit', async ({
+            page
+        }) => {
             await openTable(page, 'woodStays')
             const line = panel(page).getByText(/^Pick where\s*Dana\s*goes\.$/)
             const stays = panel(page).getByRole('button', { name: /^Dana\s*stays$/ })
@@ -183,20 +240,26 @@ for (const { name, viewport, phone } of SIZES) {
             }
         })
 
-        test('Way Station’s question comes after the tap, in place, to the traveller', async ({ page }) => {
+        test('Way Station’s question comes after the tap, in place, to the traveller', async ({
+            page
+        }) => {
             await openTable(page, 'woodWayStationPick')
             await expect(panel(page).getByText(/^Pick where\s*Dana\s*goes\.$/)).toBeVisible()
             if (phone) await expect.poll(() => framed(page, SLOTS.greatSlum)).toBe(true)
             await press(page, SLOTS.greatSlum, phone)
             await expect(panel(page).getByRole('heading', { name: 'Way Station' })).toBeVisible()
-            await expect(panel(page).locator('.question-line')).toHaveText(/^Spend no Supply by giving\s*Ann\s*1\s*\?$/)
+            await expect(panel(page).locator('.question-line')).toHaveText(
+                /^Spend no Supply by giving\s*Ann\s*1\s*\?$/
+            )
             const facts = await call(page, 'tableFacts')
             expect(facts.seatId).toBe('Dana')
             expect(facts.siteOf.Dana).toBe(SLOTS.wood)
             await expect(page.locator('.board-card.offered')).toHaveCount(0)
         })
 
-        test('the seat that is not asked sees "Waiting on" and no lit site, and a tap sends nothing', async ({ page }) => {
+        test('the seat that is not asked sees "Waiting on" and no lit site, and a tap sends nothing', async ({
+            page
+        }) => {
             await openTable(page, 'woodPickWhistle')
             const seat = await call(page, 'viewOffTheClock')
             expect(seat).toBeDefined()

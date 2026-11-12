@@ -1,8 +1,8 @@
-import {
-    type HydratedAction,
-    type HydratedGameState,
-    type MachineContext,
-    type MachineStateHandler
+import type {
+    HydratedAction,
+    HydratedGameState,
+    MachineContext,
+    MachineStateHandler
 } from '@tabletop/common'
 import { nextCompanyToFloat } from '../company/companyFlotation.js'
 import type { CompanyRules } from '../company/companyRules.js'
@@ -18,7 +18,7 @@ import {
     HydratedRespondToPurchaseOffer
 } from '../transfers/offerPurchase.js'
 import { purchaseOfferActions } from '../transfers/purchaseOffersHandler.js'
-import { type TransferRules } from '../transfers/purchaseOffer.js'
+import type { TransferRules } from '../transfers/purchaseOffer.js'
 import { HydratedBuyPrivateTrain, privateTrainPurchase } from './buyPrivateTrain.js'
 import {
     pendingCompanyDecision,
@@ -32,6 +32,7 @@ import {
     HydratedLayPrivateTileOutOfTurn
 } from './layPrivateTile.js'
 import { HydratedPlacePrivateMarker } from './placePrivateMarker.js'
+import { HydratedPlacePrivateToken } from './placePrivateToken.js'
 import { hasLegalPrivateTrackUse } from './privatePowerRequest.js'
 import type { PrivatePowerRules } from './privatePowers.js'
 import { HydratedDeclinePrivateStation, HydratedPlacePrivateStation } from './privateStation.js'
@@ -48,7 +49,8 @@ export function isCompanyDecisionAction(
     | HydratedPlacePrivateStation
     | HydratedDeclinePrivateStation
     | HydratedBuyPrivateTrain
-    | HydratedPlacePrivateMarker {
+    | HydratedPlacePrivateMarker
+    | HydratedPlacePrivateToken {
     return (
         action instanceof HydratedOfferPurchase ||
         action instanceof HydratedRespondToPurchaseOffer ||
@@ -60,7 +62,8 @@ export function isCompanyDecisionAction(
         action instanceof HydratedPlacePrivateStation ||
         action instanceof HydratedDeclinePrivateStation ||
         action instanceof HydratedBuyPrivateTrain ||
-        action instanceof HydratedPlacePrivateMarker
+        action instanceof HydratedPlacePrivateMarker ||
+        action instanceof HydratedPlacePrivateToken
     )
 }
 export class CompanyDecisionsHandler<
@@ -103,9 +106,11 @@ export class CompanyDecisionsHandler<
                 ? ['RespondToTrackConsent']
                 : []
         if (state.privateTrackLay)
-            return state.privateTrackLay.playerId === playerId
-                ? ['LayPrivateTile', 'DeclinePrivateTile']
-                : []
+            return state.privateTrackLay.playerId !== playerId
+                ? []
+                : state.privateTrackLay.required
+                  ? ['LayPrivateTile']
+                  : ['LayPrivateTile', 'DeclinePrivateTile']
         if (state.privateStation)
             return state.privateStation.playerId === playerId
                 ? ['PlacePrivateStation', 'DeclinePrivateStation']
@@ -132,13 +137,16 @@ export class CompanyDecisionsHandler<
         for (const company of state.companies.filter(
             (company) => company.kind === 'private' && !company.closed
         )) {
+            // Only a lay the private can make now, so a company out of lays finishes its track.
             if (
                 !privatePowerUsed(state, company.id) &&
-                this.powers.trackTerms(state, company.id, playerId)
+                hasLegalPrivateTrackUse(state, company.id, playerId, this.powers, this.track)
             )
                 actions.push('LayPrivateTile')
             if (this.powers.markerTerms?.(state, company.id, playerId)?.locationIds.length)
                 actions.push('PlacePrivateMarker')
+            if (this.powers.tokenTerms?.(state, company.id, playerId)?.positions.length)
+                actions.push('PlacePrivateToken')
             const buyer = this.powers.earlyTrainCompany(state, company.id, playerId)
             if (
                 buyer &&

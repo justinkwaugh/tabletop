@@ -14,7 +14,10 @@
     )
 
     function choiceFor(companyId: CompanyId): (() => void) | undefined {
-        if (gameSession.issuableCompanies.length > 1 && gameSession.issuableCompanies.includes(companyId)) {
+        if (
+            gameSession.issuableCompanies.length > 1 &&
+            gameSession.issuableCompanies.includes(companyId)
+        ) {
             return () => gameSession.selectIssueCompany(companyId)
         }
         if (buildChoices.includes(companyId)) {

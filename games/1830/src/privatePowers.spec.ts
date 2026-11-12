@@ -82,7 +82,9 @@ describe('auction awards', () => {
         })
         expect(game.valid(owner)).toEqual(['ParCompany'])
         for (const player of game.state.players.filter((player) => player.playerId !== owner))
-            expect(game.valid(player.playerId)).toEqual([])
+            expect(
+                game.valid(player.playerId).filter((type) => type !== 'SetRunInstruction')
+            ).toEqual([])
         expect(() => game.act('ParCompany', { companyId: 'BO', marketSpaceId: '0:0' })).toThrow()
 
         const before = cash(game.state, { kind: 'player', playerId: owner })
@@ -275,7 +277,11 @@ describe('Delaware & Hudson', () => {
             playerId: president,
             locationId: 'F16'
         })
-        expect(game.valid(president)).toEqual(['PlacePrivateStation', 'DeclinePrivateStation'])
+        expect(game.valid(president)).toEqual([
+            'PlacePrivateStation',
+            'DeclinePrivateStation',
+            'SetRunInstruction'
+        ])
         game.act('PlacePrivateStation', {
             privateCompanyId: 'DH',
             position: { locationId: 'F16', nodeId: 'city', slot: 0 }

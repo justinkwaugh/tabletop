@@ -146,3 +146,17 @@ export function woodHospitalityState(): HydratedOathGameState {
     }
     return state
 }
+
+/**
+ * Dana holds Hospitality (Nomad) and Council Seat (Order) at Bea's Wood, where the Portal is. The
+ * Great Slum holds Way Station (Nomad) and Forced Labor (Order): through the Portal it has a free
+ * way beside Way Station's favor way, and the Order and Nomad banks both match there.
+ */
+export function woodPortalBanksState(): HydratedOathGameState {
+    const state = woodCardsState({ advisers: [HOSPITALITY, COUNCIL_SEAT] })
+    state.denizensBySite = {
+        ...state.denizensBySite,
+        [GREAT_SLUM]: [WAY_STATION, 'denizen.order.forced-labor']
+    }
+    return state
+}

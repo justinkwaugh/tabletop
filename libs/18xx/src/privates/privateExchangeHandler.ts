@@ -9,7 +9,7 @@ import {
     type MachineStateHandler
 } from '@tabletop/common'
 import { controllingOwner } from '../finance/finance.js'
-import { nextOperatingCompany } from '../operating/operatingSet.js'
+import { actingOperatingCompany } from '../operating/operatingSet.js'
 import { FloatCompany, isFloatCompany } from '../company/floatCompany.js'
 import { nextCompanyToFloat } from '../company/companyFlotation.js'
 import type { CompanyRules } from '../company/companyRules.js'
@@ -89,7 +89,7 @@ export class PrivateExchangeHandler<
     private ordinaryActor(state: State, playerId: string): boolean {
         if (playerId === state.activePlayerIds[0]) return true
         const companyId =
-            state.machineState === 'StockRound' ? undefined : nextOperatingCompany(state)
+            state.machineState === 'StockRound' ? undefined : actingOperatingCompany(state)
         return (
             companyId !== undefined &&
             inReceivership(state, companyId) &&
@@ -99,7 +99,7 @@ export class PrivateExchangeHandler<
     enter(context: MachineContext<State>): void {
         const state = context.gameState
         const companyId =
-            state.machineState === 'StockRound' ? undefined : nextOperatingCompany(state)
+            state.machineState === 'StockRound' ? undefined : actingOperatingCompany(state)
         if (companyId && inReceivership(state, companyId)) {
             this.handler.enter(context)
             return

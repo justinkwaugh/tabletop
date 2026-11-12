@@ -1,5 +1,5 @@
 import { HydratedOathGameState } from '../model/gameState.js'
-import type { Banner, Region, Suit } from '../model/oathEnums.js'
+import type { Banner, PlayerStatus, Region, Suit } from '../model/oathEnums.js'
 import type { PersistentContext } from '../util/persistent.js'
 import type { BannerTake } from '../util/seize.js'
 import type { HiddenRequest, HiddenReveal, PileDeposit } from '../model/hidden.js'
@@ -11,8 +11,13 @@ import {
 } from '../data/cardPowers.js'
 import type { CampaignParties, DiceDelta, DicePools } from '../util/campaign.js'
 import type { ImperialScope } from '../util/rule.js'
-import type { CampaignKillPath, RollRules, WarbandGroup } from '../model/campaign.js'
-import type { WarbandOwner } from '../model/warbandCounts.js'
+import type {
+    CampaignKillPath,
+    CampaignTarget,
+    RollRules,
+    WarbandGroup
+} from '../model/campaign.js'
+import type { WarbandCounts, WarbandOwner } from '../model/warbandCounts.js'
 import type { PowerOutcome } from '../model/powerOutcome.js'
 import type { DiscardTarget } from '../util/discard.js'
 import type { TollOccasion } from '../util/tolls.js'
@@ -25,6 +30,8 @@ export interface ModifierParticulars {
     tradeOption?: string
     /** Master of Disguise — the player whose advisers a Trade acts with. */
     advisersOf?: string
+    /** Small Friends, from revision 19 (R-X.4) — the site a Trade acts as if the pawn is at. */
+    actsAsAt?: string
     /** `SearchSource`'s value. */
     drawFrom?: string
     playedCardId?: string
@@ -58,12 +65,30 @@ export interface EffectContext {
  * the check and the resolve count the same map.
  */
 export interface PlayMapChanges {
-    /** Taken off the map first: the card the People's Favor, the Great Slum or Crop Rotation discards (R-5.1.4.I, R-11.10). */
+    /**
+     * Taken off the map first: the card the People's Favor, the Great Slum or Crop Rotation discards (R-5.1.4.I,
+     * R-11.10), and from revision 26 what Land Warden's kept card's When Played power puts off it (R-X.4).
+     */
     leaving: readonly string[]
-    /** Put at a site: the played card, and Land Warden's kept card before the second card. */
+    /** Put at a site: the played card, and Land Warden's kept card before the second card unless its power took it off. */
     arriving: readonly string[]
     /** R-5.1.4.I — the site the card is played to: the pawn's, or the one the People's Favor or New Growth names. */
     siteId?: string
+    /**
+     * R-7.4.3 — the cards in use of an R-6.1 play, judged before the play records them (`CardPlayOptions`): a When
+     * Played choice never offers one to discard (Great Herd's card discarded first at the Great Slum).
+     */
+    modifiersInUse?: readonly string[]
+    /**
+     * R-7.3.3-H3 — Land Warden's kept card: the player's status once its When Played power has resolved, when the
+     * choices made change it (Bewitch's "become a Citizen"). The second card is played on that status.
+     */
+    status?: PlayerStatus
+    /**
+     * R-7.3.3-H3 — Land Warden's kept card: the warbands at the sites its When Played power changes, as it leaves
+     * them (Key to the City's, Bandit Chief's kills). The second card is played on the rule they give.
+     */
+    warbandsBySite?: Readonly<Record<string, WarbandCounts>>
     /**
      * R-7.3.3 — what the play gains before its When Played power, planned on the state before the play. Unlike the
      * map, these are not set-like: a check adds them to the state it reads, while the resolve's state holds them.
@@ -89,11 +114,16 @@ export interface PlayGains {
      */
     favorTaken: readonly FavorTake[]
     /**
-     * R-7.4 — the favor a carried modifier gains once a site play is made (Welcoming Party), from the banks this
-     * plan leaves. It is gained after the power, so it is not taken from `favorBank`; a modifier gains once per
-     * action (R-7.4.2), so Land Warden's second card plans none.
+     * R-7.4 — the favor a carried modifier gains once the play is made (Welcoming Party), from the banks this plan
+     * leaves. From revision 31 it is gained before the power (R-7.3.3-H3), on a faceup play of a denizen, and taken
+     * from `favorBank`; before it, on a site play, after the power, so not taken from it. A modifier gains once per
+     * action (R-7.4.2): from revision 31 Land Warden's second card plans it only when the kept card's play did not
+     * (`modifiersPaid`), and takes it before its own gains, as the modifiers resolve before the second play; before
+     * revision 31 the second card plans none.
      */
     favorAfter: number
+    /** R-7.3.3-H3, R-7.4.2 — from revision 31, the Search's modifiers have paid by this play: on it, or on the kept card's. */
+    modifiersPaid: boolean
 }
 
 /** R-9.3 — one favor a play takes from a bank, and how much the bank gave: 0 when it was empty. */
@@ -141,6 +171,11 @@ export interface OutcomeResult {
 export interface ModifierHooks {
     /** R-7.4.1 — a failing declared optional modifier is refused; a mandatory one is simply not applied. */
     condition?: (ctx: EffectContext) => string | undefined
+    /**
+     * R-7.4 — why the card cannot be declared now, whatever is picked (Small Friends with no site
+     * to name): the listing (`usableModifiers`) leaves it out and the declaration is refused.
+     */
+    reasonUnusable?: (ctx: EffectContext) => string | undefined
     /** R-5.1.1 to R-5.6.1 */
     supplyCost?: (base: number, ctx: EffectContext) => number
     /** R-7.6.2 — beats every `supplyCost`, whichever is declared first. */
@@ -161,6 +196,8 @@ export interface ModifierHooks {
     setsDrawCount?: number
     /** Truthful Harp — the kept card too. */
     revealsDraw?: boolean
+    /** Great Spire — once, after the draw: drawn denizens swap with random cards from the Dispossessed. */
+    swapsWithDispossessed?: boolean
     /** R-7.1.2.a */
     relaxOccupancy?: (ctx: EffectContext) => boolean
     /** R-6.6.2.a — a mandatory modifier's "you cannot …". */
@@ -187,6 +224,8 @@ export interface ModifierHooks {
     sitePlayGainsSecret?: boolean
     /** Welcoming Party — the bank its `after` gains 1 favor from once a denizen is played; read to plan it. */
     playFavorFrom?: Suit
+    /** Wild Cry — the suit a card played must have for its `after` to gain; a Vision has none (R-2.7). */
+    playedSuitGains?: Suit
     /** New Growth */
     playAnywhere?: (ctx: EffectContext) => boolean
     /** Land Warden — if at least one play is to a site. */
@@ -249,6 +288,8 @@ export interface BattlePlanHooks {
     killsEnemyForce?: boolean
     /** Relic Hunter */
     targetsSiteRelics?: boolean
+    /** Relic Hunter — "you may put any relics you take on the bottom of the relic deck". */
+    bottomsTakenRelics?: boolean
     /** Wild Mounts, R-5.5.8 — one of `insteadCardIds` is discarded instead. */
     sparesEndDiscards?: (
         ctx: PlayerPlanContext,
@@ -333,6 +374,12 @@ export interface PersistentHooks {
         parties: CampaignParties,
         targetDice: number
     ) => string | undefined
+    /** Hall of Debate — a Campaign's target only, not a Recover or the Conspiracy's take. */
+    forbidsCampaignTarget?: (
+        ctx: PersistentContext,
+        parties: CampaignParties,
+        target: CampaignTarget
+    ) => string | undefined
     /** Gleaming Armor, Insect Swarm */
     battlePlanExtraCost?: (
         ctx: PersistentContext,
@@ -342,6 +389,8 @@ export interface PersistentHooks {
     ) => Partial<PowerCost> | undefined
     /** Sealing Ward — beyond the relic's printed dice. */
     relicDefenseBonus?: (ctx: PersistentContext, holderId: string) => number | undefined
+    /** Sprawling Rampart — beyond R-2.8.3's one die for a targeted site. */
+    siteDefenseBonus?: (ctx: PersistentContext, siteId: string) => number | undefined
     /** Marriage */
     extraMatchingAdvisers?: (
         ctx: PersistentContext,
@@ -372,6 +421,18 @@ export interface PersistentHooks {
     locksSiteFor?: (ctx: PersistentContext, actorId: string, siteId: string) => boolean
     /** Circlet of Command — beyond R-5.5.2's two. */
     pawnDefenseBonus?: (ctx: PersistentContext, holderId: string) => number | undefined
+    /** Hall of Mockery — R-5.4.4's Recover of the People's Favor leaves it on its Mob side. */
+    recoverFlipsPeoplesFavorToMob?: boolean
+    /** Ruined Temple — a "cannot play … faceup" on the card played (R-5.1.4, R-6.1). */
+    forbidsFaceupPlay?: (
+        ctx: PersistentContext,
+        actorId: string,
+        cardId: string
+    ) => string | undefined
+    /** Forest Temple — R-8.3.2's site discard does not take this site. */
+    keepsSiteInChronicle?: (ctx: PersistentContext, siteId: string) => boolean
+    /** Squalid District — the player who may raise or lower the end die after it is rolled (R-3.3). */
+    endDieAdjuster?: (ctx: PersistentContext) => string | undefined
     /** Vow of Renewal */
     takesBurnedFavor?: (ctx: PersistentContext) => string | undefined
     /** Vow of Union */
@@ -422,7 +483,29 @@ export interface EffectDefinition {
     reasonCannotResolve?: (ctx: EffectContext) => string | undefined
     /** R-7.1.4 — the tolls its use owes, paid with its cost (Forced Labor on Oracle). */
     tollOccasion?: TollOccasion
+    /**
+     * R-6.1, R-7.4 — its draw is played or discarded "as if you searched" (Oracle), so from revision 31 its use
+     * declares the Search modifiers that act on that play (`UseActionPower.modifiers`).
+     */
+    playsAsIfSearched?: boolean
     resolve: (ctx: EffectContext) => EffectResult
+    /**
+     * R-5.1.4 — the denizens a When Played power that takes no choices puts off the map, on the map
+     * `ctx.mapChanges` says its play leaves, `ctx.state` unchanged: Land Warden's second card is judged on the map
+     * after the kept card's power.
+     */
+    mapLeaving?: (ctx: EffectContext) => string[]
+    /**
+     * R-7.3.3-H3 — the status a When Played power leaves its player in with `ctx.choices`, `ctx.state` unchanged;
+     * undefined when it leaves the status as it is. Land Warden's second card is played on it.
+     */
+    statusAfter?: (ctx: EffectContext) => PlayerStatus | undefined
+    /**
+     * R-7.3.3-H3 — the warbands at each site a When Played power changes, as it leaves them, on the map
+     * `ctx.mapChanges` says its play leaves, `ctx.state` unchanged. Land Warden's second card is played on the rule
+     * they give.
+     */
+    warbandsAfter?: (ctx: EffectContext) => Record<string, WarbandCounts>
     /** The state `ctx.choices` leave, `ctx.state` unchanged: what `sequential` choices read. */
     stateAfter?: (ctx: EffectContext) => HydratedOathGameState
     /** R-7.4 — never read by the doorway. */

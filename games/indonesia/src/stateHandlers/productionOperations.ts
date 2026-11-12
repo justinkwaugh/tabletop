@@ -10,15 +10,9 @@ import { ActionType } from '../definition/actions.js'
 import { DeliverGood, HydratedDeliverGood, isDeliverGood } from '../actions/deliverGood.js'
 import { HydratedExpand, isExpand } from '../actions/expand.js'
 import { HydratedPass, isPass, Pass, PassReason } from '../actions/pass.js'
-import {
-    HydratedRemoveCompanyDeed,
-    isRemoveCompanyDeed
-} from '../actions/removeCompanyDeed.js'
+import { HydratedRemoveCompanyDeed, isRemoveCompanyDeed } from '../actions/removeCompanyDeed.js'
 import { isProductionCompany } from '../components/company.js'
-import {
-    GOOD_REVENUE_BY_GOOD,
-    SHIPPING_FEE_PER_SHIP_USE
-} from '../definition/operationsEconomy.js'
+import { GOOD_REVENUE_BY_GOOD, SHIPPING_FEE_PER_SHIP_USE } from '../definition/operationsEconomy.js'
 import { HydratedIndonesiaGameState } from '../model/gameState.js'
 import { buildDeliveryProblem } from '../operations/deliveryProblemBuilder.js'
 import { buildResidualDeliveryProblem } from '../operations/deliveryCandidateContext.js'
@@ -28,14 +22,12 @@ import { isIndonesiaNodeId } from '../utils/indonesiaNodes.js'
 import { finishOperatingCompany } from './operationsFlow.js'
 
 type ProductionOperationsAction =
-    | HydratedDeliverGood
-    | HydratedExpand
-    | HydratedPass
-    | HydratedRemoveCompanyDeed
+    HydratedDeliverGood | HydratedExpand | HydratedPass | HydratedRemoveCompanyDeed
 
-export class ProductionOperationsStateHandler
-    implements MachineStateHandler<ProductionOperationsAction, HydratedIndonesiaGameState>
-{
+export class ProductionOperationsStateHandler implements MachineStateHandler<
+    ProductionOperationsAction,
+    HydratedIndonesiaGameState
+> {
     isValidAction(
         action: HydratedAction,
         _context: MachineContext<HydratedIndonesiaGameState>
@@ -141,7 +133,9 @@ export class ProductionOperationsStateHandler
             return
         }
 
-        const operatingCompany = state.companies.find((company) => company.id === operatingCompanyId)
+        const operatingCompany = state.companies.find(
+            (company) => company.id === operatingCompanyId
+        )
         assertExists(
             operatingCompany,
             `Operating company ${operatingCompanyId} should exist before entering ProductionOperations`
@@ -209,18 +203,20 @@ export class ProductionOperationsStateHandler
             return false
         }
 
-        return context.getPendingActions().some(
-            (pendingAction) =>
-                isDeliverGood(pendingAction) &&
-                pendingAction.playerId === ownerPlayerId &&
-                pendingAction.cultivatedAreaId === requiredCandidate.cultivatedAreaId &&
-                pendingAction.shippingCompanyId === requiredCandidate.shippingCompanyId &&
-                pendingAction.cityId === requiredCandidate.cityId &&
-                pendingAction.seaAreaIds.length === requiredCandidate.seaAreaIds.length &&
-                pendingAction.seaAreaIds.every(
-                    (seaAreaId, index) => seaAreaId === requiredCandidate.seaAreaIds[index]
-                )
-        )
+        return context
+            .getPendingActions()
+            .some(
+                (pendingAction) =>
+                    isDeliverGood(pendingAction) &&
+                    pendingAction.playerId === ownerPlayerId &&
+                    pendingAction.cultivatedAreaId === requiredCandidate.cultivatedAreaId &&
+                    pendingAction.shippingCompanyId === requiredCandidate.shippingCompanyId &&
+                    pendingAction.cityId === requiredCandidate.cityId &&
+                    pendingAction.seaAreaIds.length === requiredCandidate.seaAreaIds.length &&
+                    pendingAction.seaAreaIds.every(
+                        (seaAreaId, index) => seaAreaId === requiredCandidate.seaAreaIds[index]
+                    )
+            )
     }
 
     private queueNoValidOperationPassIfNeeded(
@@ -249,12 +245,14 @@ export class ProductionOperationsStateHandler
         context: MachineContext<HydratedIndonesiaGameState>,
         ownerPlayerId: string
     ): boolean {
-        return context.getPendingActions().some(
-            (pendingAction) =>
-                isPass(pendingAction) &&
-                pendingAction.playerId === ownerPlayerId &&
-                pendingAction.reason === PassReason.NoValidOperation
-        )
+        return context
+            .getPendingActions()
+            .some(
+                (pendingAction) =>
+                    isPass(pendingAction) &&
+                    pendingAction.playerId === ownerPlayerId &&
+                    pendingAction.reason === PassReason.NoValidOperation
+            )
     }
 
     private operatingCompanyOwnerId(state: HydratedIndonesiaGameState): string | undefined {
@@ -274,7 +272,8 @@ export class ProductionOperationsStateHandler
     ): DeliveryPlan {
         const actualRevenue = shippedGoodsCount * GOOD_REVENUE_BY_GOOD[existingPlan.good]
         const actualShipUses = this.actualShipUsesSoFar(state)
-        const actualShippingCost = actualShipUses.reduce((sum, shipUse) => sum + shipUse.uses, 0) *
+        const actualShippingCost =
+            actualShipUses.reduce((sum, shipUse) => sum + shipUse.uses, 0) *
             SHIPPING_FEE_PER_SHIP_USE
         const actualShippingPayments = this.actualShippingPaymentsSoFar(actualShipUses)
 
@@ -351,7 +350,10 @@ export class ProductionOperationsStateHandler
             .sort((left, right) => left.shippingCompanyId.localeCompare(right.shippingCompanyId))
     }
 
-    private mergeShipUses(actualShipUses: readonly ShipUse[], residualShipUses: readonly ShipUse[]): ShipUse[] {
+    private mergeShipUses(
+        actualShipUses: readonly ShipUse[],
+        residualShipUses: readonly ShipUse[]
+    ): ShipUse[] {
         const usesByKey = new Map<string, ShipUse>()
         for (const shipUse of [...actualShipUses, ...residualShipUses]) {
             const key = `${shipUse.shippingCompanyId}|${shipUse.seaAreaId}`

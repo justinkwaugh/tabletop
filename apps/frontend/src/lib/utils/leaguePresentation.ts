@@ -1,7 +1,9 @@
 import {
     leagueLevelName,
+    type LeagueListEntry,
     type LeagueMyPlace,
     type LeagueSeason,
+    type LeagueSeasonSummary,
     type LeagueShape
 } from '@tabletop/common'
 
@@ -78,4 +80,34 @@ export function leagueMyPlaceText(place: LeagueMyPlace): string {
         case 'inGroup':
             return `You're in Group ${place.groupId}`
     }
+}
+
+/** The status line of a league card: draft, no season yet, or the current season and its state. */
+export function leagueListStatusText(
+    { league, season }: LeagueListEntry,
+    now = Date.now()
+): string {
+    if (league.status === 'draft') return 'Draft'
+    if (!season) return leagueSeasonStatusText(undefined, now)
+    return `${leagueSeasonName(season)} · ${leagueSeasonStatusText(season, now)}`
+}
+
+export function leagueRosterText(
+    season: Pick<LeagueSeasonSummary, 'status' | 'players' | 'minimumPlayers'>
+): string {
+    if (season.status !== 'signUp') return `${season.players} players`
+    return season.players >= season.minimumPlayers
+        ? `${season.players} signed up`
+        : `${season.players} of ${season.minimumPlayers} needed`
+}
+
+/** Whether a league card counts down to the sign-up deadline; an undersubscribed season has none. */
+export function leagueShowsSignUpDeadline<
+    Season extends Pick<LeagueSeasonSummary, 'status' | 'undersubscribed'>
+>(season: Season | undefined): season is Season {
+    return season?.status === 'signUp' && !season.undersubscribed
+}
+
+export function sortLeaguesByName(leagues: LeagueListEntry[]): LeagueListEntry[] {
+    return leagues.sort((a, b) => a.league.name.localeCompare(b.league.name))
 }

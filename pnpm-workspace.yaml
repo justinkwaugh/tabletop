@@ -7,5 +7,10 @@ packages:
 onlyBuiltDependencies:
   - "camera-controls"
 
+# Every package targets the Node 24 runtime; type packages that accept any @types/node
+# otherwise pull in a second copy, and two copies of Node's modules break type checking.
+overrides:
+  "@types/node": "^24.3.1"
+
 patchedDependencies:
   typebox@1.0.79: patches/typebox@1.0.79.patch

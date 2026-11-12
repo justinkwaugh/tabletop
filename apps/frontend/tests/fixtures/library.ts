@@ -1,8 +1,10 @@
 import type { Page } from '@playwright/test'
 
+const titleCount = 13
+
 export async function mockLibrary(page: Page) {
     await page.route('**/api/v1/**', (route) => route.fulfill({ json: { payload: {} } }))
-    const games = Array.from({ length: 13 }, (_, index) => ({
+    const games = Array.from({ length: titleCount }, (_, index) => ({
         gameId: `landing-${index}`,
         packageId: `landing-${index}`,
         logicVersion: '1.0.0',
@@ -13,7 +15,11 @@ export async function mockLibrary(page: Page) {
         route.fulfill({ json: { payload: { frontend: { version: '18.0.0' }, games } } })
     )
     await page.route('**/api/v1/user/self', (route) => route.fulfill({ json: { payload: {} } }))
-    const definitions = games.map((_game, index) => {
+    await mockTitles(page)
+}
+
+export async function mockTitles(page: Page, seriesTitleCount = 0) {
+    const definitions = Array.from({ length: titleCount }, (_title, index) => {
         return {
             info: {
                 id: `landing-${index}`,
@@ -22,12 +28,23 @@ export async function mockLibrary(page: Page) {
                     name: `Game ${String(index + 1).padStart(2, '0')}`,
                     description: `A strategy game about building connections.\nMake every turn count.`,
                     designer: 'Example Designer',
+                    ...(index === 0 && {
+                        publisher: { name: 'Example Publisher', url: 'https://example.com/game-01' }
+                    }),
+                    ...(index === 1 && {
+                        publisher: {
+                            name: 'Example Shop',
+                            url: 'https://example.com/game-02',
+                            sellsGame: true
+                        }
+                    }),
                     year: '2005',
                     minPlayers: 2,
                     maxPlayers: 4,
                     defaultPlayerCount: 3,
                     version: '1.0.0',
-                    beta: index === 12
+                    beta: index === 12,
+                    series: index < seriesTitleCount ? '18xx' : undefined
                 }
             }
         }

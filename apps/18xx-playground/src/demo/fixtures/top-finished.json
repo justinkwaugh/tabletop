@@ -7354,29 +7354,6 @@
             "expectedPrice": 500
         },
         {
-            "id": "recorded:566",
-            "gameId": "top-finished",
-            "source": "user",
-            "type": "ContributeTrainFunds",
-            "playerId": "12729",
-            "owner": {
-                "kind": "player",
-                "playerId": "12729"
-            },
-            "amount": 90
-        },
-        {
-            "id": "recorded:567",
-            "gameId": "top-finished",
-            "source": "user",
-            "type": "BuyTrain",
-            "playerId": "12729",
-            "companyId": "C",
-            "trainId": "the-old-prince/7/27",
-            "definitionId": "7",
-            "expectedPrice": 500
-        },
-        {
             "id": "recorded:570",
             "gameId": "top-finished",
             "source": "user",
@@ -9057,29 +9034,6 @@
             "expectedPrice": 600
         },
         {
-            "id": "recorded:703",
-            "gameId": "top-finished",
-            "source": "user",
-            "type": "ContributeTrainFunds",
-            "playerId": "3574",
-            "owner": {
-                "kind": "player",
-                "playerId": "3574"
-            },
-            "amount": 100
-        },
-        {
-            "id": "recorded:704",
-            "gameId": "top-finished",
-            "source": "user",
-            "type": "BuyTrain",
-            "playerId": "3574",
-            "companyId": "Gt",
-            "trainId": "the-old-prince/D/30",
-            "definitionId": "D",
-            "expectedPrice": 600
-        },
-        {
             "id": "recorded:708",
             "gameId": "top-finished",
             "source": "user",
@@ -9107,29 +9061,6 @@
             "gameId": "top-finished",
             "source": "user",
             "type": "FundTrain",
-            "playerId": "12729",
-            "companyId": "MS",
-            "trainId": "the-old-prince/D/31",
-            "definitionId": "D",
-            "expectedPrice": 600
-        },
-        {
-            "id": "recorded:714",
-            "gameId": "top-finished",
-            "source": "user",
-            "type": "ContributeTrainFunds",
-            "playerId": "12729",
-            "owner": {
-                "kind": "player",
-                "playerId": "12729"
-            },
-            "amount": 275
-        },
-        {
-            "id": "recorded:715",
-            "gameId": "top-finished",
-            "source": "user",
-            "type": "BuyTrain",
             "playerId": "12729",
             "companyId": "MS",
             "trainId": "the-old-prince/D/31",
@@ -9180,14 +9111,6 @@
             "expectedPrice": 600
         },
         {
-            "id": "recorded:724",
-            "gameId": "top-finished",
-            "source": "user",
-            "type": "IssueTreasuryShares",
-            "playerId": "13748",
-            "expectedProceeds": 89
-        },
-        {
             "id": "recorded:726",
             "gameId": "top-finished",
             "source": "user",
@@ -9200,29 +9123,6 @@
             "companyId": "MR",
             "shares": 2,
             "expectedProceeds": 158
-        },
-        {
-            "id": "recorded:727",
-            "gameId": "top-finished",
-            "source": "user",
-            "type": "ContributeTrainFunds",
-            "playerId": "13748",
-            "owner": {
-                "kind": "player",
-                "playerId": "13748"
-            },
-            "amount": 400
-        },
-        {
-            "id": "recorded:728",
-            "gameId": "top-finished",
-            "source": "user",
-            "type": "BuyTrain",
-            "playerId": "13748",
-            "companyId": "S",
-            "trainId": "the-old-prince/D/32",
-            "definitionId": "D",
-            "expectedPrice": 600
         },
         {
             "id": "recorded:731",

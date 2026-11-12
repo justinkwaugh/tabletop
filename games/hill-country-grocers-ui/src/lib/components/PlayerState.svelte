@@ -23,8 +23,7 @@
 <div class="slip" class:acting>
     <div class="receipt" style:--player={color}>
         <div class="header">
-            <span class="name">{gameSession.getPlayerName(playerId)}</span
-            >
+            <span class="name">{gameSession.getPlayerName(playerId)}</span>
             <span class="cash" title="Personal money">CASH ${playerState.cash}</span>
         </div>
         <div class="double-rule"></div>
@@ -42,10 +41,7 @@
             <div class="none">No shares yet</div>
         {/each}
         <div class="tear"></div>
-        <div
-            class="total"
-            title="What this player's shares would pay if dividends were paid now"
-        >
+        <div class="total" title="What this player's shares would pay if dividends were paid now">
             <span>NEXT PAYOUT</span>
             <span class="amount">+${dividend}</span>
         </div>
@@ -102,7 +98,6 @@
         text-transform: uppercase;
     }
 
-
     .cash {
         flex: none;
         font-size: 16px;
@@ -133,7 +128,6 @@
         transform: translateY(4px);
     }
 
-
     .amount {
         min-width: 30px;
         font-size: 16px;
@@ -160,5 +154,4 @@
         margin-top: 1px;
         font-size: 16px;
     }
-
 </style>

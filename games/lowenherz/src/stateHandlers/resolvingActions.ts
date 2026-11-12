@@ -9,7 +9,11 @@ import { ActionType } from '../definition/actions.js'
 import { ActionCardType, slotKindForCard } from '../definition/actionCards.js'
 import { HydratedLowenherzGameState } from '../model/gameState.js'
 import { AdvanceResolution, HydratedAdvanceResolution } from '../actions/advanceResolution.js'
-import { advanceRound, distributeMoneyBag, routeAfterSlotResolved } from '../util/resolutionHelpers.js'
+import {
+    advanceRound,
+    distributeMoneyBag,
+    routeAfterSlotResolved
+} from '../util/resolutionHelpers.js'
 
 type ResolvingActionsAction = HydratedAdvanceResolution
 
@@ -21,9 +25,10 @@ const SLOT_RESOLUTION_ORDER = [1, 2, 3] as const
 // decides what happens next: auto-resolve a trivial slot and loop back here for the
 // next one, hand off to Negotiating/Dueling for a tied slot, or - once all 3 slots are
 // done - advance the round and return to StartOfTurn.
-export class ResolvingActionsStateHandler
-    implements MachineStateHandler<ResolvingActionsAction, HydratedLowenherzGameState>
-{
+export class ResolvingActionsStateHandler implements MachineStateHandler<
+    ResolvingActionsAction,
+    HydratedLowenherzGameState
+> {
     isValidAction(
         action: HydratedAction,
         _context: MachineContext<HydratedLowenherzGameState>
@@ -70,7 +75,8 @@ export class ResolvingActionsStateHandler
                 slot,
                 slotKind: slotKindForCard(card, slot),
                 moneyBagRecipientIds: choosers,
-                moneyBagAmountEach: choosers.length > 0 ? Math.floor(card.top.value / choosers.length) : 0
+                moneyBagAmountEach:
+                    choosers.length > 0 ? Math.floor(card.top.value / choosers.length) : 0
             }
             return routeAfterSlotResolved(gameState).nextState
         }
@@ -83,7 +89,9 @@ export class ResolvingActionsStateHandler
                 slotKind: slotKindForCard(card, slot),
                 slotResolved: true,
                 ...(choosers[0] ? { slotWinnerPlayerId: choosers[0] } : {}),
-                ...(routing.bandKind ? { bandKind: routing.bandKind, bandCount: routing.bandCount } : {}),
+                ...(routing.bandKind
+                    ? { bandKind: routing.bandKind, bandCount: routing.bandCount }
+                    : {}),
                 ...(routing.placementSkippedReason
                     ? { placementSkippedReason: routing.placementSkippedReason }
                     : {})

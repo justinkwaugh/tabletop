@@ -6,6 +6,8 @@ import {
     PowerQuestionValidator,
     type Answered,
     type AnswerOf,
+    type EndDieAdjusted,
+    type OpenDeal,
     type QuestionAnswer,
     type QuestionOf,
     type ShroudedWoodPick,
@@ -13,6 +15,7 @@ import {
     type WarbandGain
 } from '../model/question.js'
 import type { PileDeposit } from '../model/hidden.js'
+import type { HeldForHospital } from '../model/campaign.js'
 import type { PowerMoveToll } from '../model/powerMoveToll.js'
 import type { MachineState } from '../definition/states.js'
 import type { HydratedOathPlayerState } from '../model/playerState.js'
@@ -44,6 +47,18 @@ export interface AnswerOutcome {
     /** R-10.5 */
     discardedCardIds?: string[]
     discardPileRegion?: Region
+    /** Bracken — the discards went under that pile. */
+    discardToBottom?: boolean
+    /** Cracked Horn — the discards went under the world deck. */
+    discardToWorldDeck?: boolean
+    /** Land Warden — the discards went under this many cards of that pile, which the second card put there. */
+    discardBeneath?: number
+    /** R-7.4 — False Prophet's play: the cards whose Search modifiers applied to it. */
+    modifiers?: string[]
+    /** R-7.1.4 — False Prophet's play: each toll paid, as `payTolls` notes it. */
+    tollsPaid?: string[]
+    /** R-7.1.4 — False Prophet's play: the tolls it could not pay, so the Vision went to the usual pile. */
+    tollsUnpaid?: string[]
     /** R-10.5 */
     pileDeposits?: PileDeposit[]
     /** Skeleton Key */
@@ -58,6 +73,8 @@ export interface AnswerOutcome {
     tollMove?: PowerMoveToll
     /** R-5.5.8 — a waiting banish settled: its burn, the "if you're victorious" plans and the end. */
     triggered?: string[]
+    /** Hospital — the warbands placed on its site when a waiting banish ended the Campaign. */
+    hospitalPlaced?: HeldForHospital[]
     /** Where the turn resumes once a waiting banish has ended the Campaign. */
     resumeMachineState?: MachineState
     /** Dragonskin Drum on a power's move. */
@@ -68,6 +85,12 @@ export interface AnswerOutcome {
      * Jinx's answer when the roll waited on it).
      */
     titleMoment?: boolean
+    /** R-7.6.3-H1 — the deal an accepted Tribunal offer with a promise opened, public from here. */
+    openedDeal?: OpenDeal
+    /** R-7.6.3-H1 — the deal a claim asked about, as it stood when answered. */
+    answeredDeal?: OpenDeal
+    /** Squalid District — the end die as rolled and as the answer left it, and what it decided. */
+    endDie?: EndDieAdjusted
 }
 
 function rulesOf<K extends PowerQuestionKind>(kind: K): QuestionRules<K> {
@@ -113,7 +136,8 @@ function applyAnswerOf<K extends PowerQuestionKind>(
 /**
  * `settled`: the action being settled. When its answer empties the queue and so rolls the attack held
  * for the defender's reroll, it reveals information and cannot be undone (R-X.3), and the answer's
- * record (`answered`) keeps what the attack rolled for History.
+ * record (`answered`) keeps what the attack rolled for History, and the warbands the skulls held for
+ * Jinx killed once it settles them.
  */
 export function settleQueue(
     state: HydratedOathGameState,
@@ -130,10 +154,14 @@ export function settleQueue(
         if (answered) answered.heldAttack = heldAttack
     }
     // Jinx — the skulls' kills are held back until every reroll is answered.
-    if (pending.queue.length === 0 && !pending.followUp) settleSkullKills(state)
+    if (pending.queue.length === 0 && !pending.followUp) {
+        const skullsKilled = settleSkullKills(state)
+        if (answered && skullsKilled !== undefined) answered.skullsKilled = skullsKilled
+    }
     if (pending.queue.length === 0 && pending.followUp) {
         const { cardId, siteId } = pending.followUp
         pending.followUp = undefined
+        const mark = pending.underSecondPlay
         // R-7.6.3-H2 — each present player, in turn order, may propose one exchange.
         for (const playerId of gatheringTurnOrder(state, pending.askingPlayerId)) {
             if (state.getPlayerState(playerId).siteId !== siteId) continue
@@ -143,6 +171,11 @@ export function settleQueue(
                 askedPlayerId: playerId,
                 siteId
             })
+        }
+        // Land Warden — The Gathering kept: its proposals are the kept card's power, however late they are asked.
+        if (mark?.followUp) {
+            mark.questions = pending.queue.length
+            mark.followUp = undefined
         }
     }
     return pending.queue.length === 0
@@ -187,5 +220,20 @@ function applyAnswerInner(
         PowerQuestionValidator.Check(head),
         'Answering needs the question as its asked player or the host sees it'
     )
-    return applyAnswerOf(state, playerId, head.kind, head, answer, pending.askingPlayerId)
+    const mark = pending.underSecondPlay
+    if (!mark || mark.questions === 0)
+        return applyAnswerOf(state, playerId, head.kind, head, answer, pending.askingPlayerId)
+
+    // Land Warden — the first of the second card's questions, which still follow the kept card's when this is answered.
+    const firstOfSecond = pending.queue.at(mark.questions - 1)
+    const outcome = applyAnswerOf(state, playerId, head.kind, head, answer, pending.askingPlayerId)
+    // Whatever this answer raised before that question, at the front or at the back, is the kept card's too.
+    mark.questions = firstOfSecond ? pending.queue.indexOf(firstOfSecond) : pending.queue.length
+    assert(mark.questions >= 0, "The second card's question left the queue unanswered")
+    if (mark.questions === 0 && !mark.followUp) pending.underSecondPlay = undefined
+    if (typeof outcome === 'string') return outcome
+    const { discardPileRegion, discardToBottom, discardToWorldDeck } = outcome
+    return discardPileRegion && !discardToBottom && !discardToWorldDeck
+        ? { ...outcome, discardBeneath: mark.onTop[discardPileRegion] }
+        : outcome
 }

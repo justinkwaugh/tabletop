@@ -19,10 +19,7 @@ export class SampleGameInitializer
     implements GameInitializer<SampleGameState, HydratedSampleGameState>
 {
     // Initialize the game state based on things like the number of players and the game config
-    initializeGameState(
-        game: Game,
-        state: UninitializedGameState
-    ): HydratedSampleGameState {
+    initializeGameState(game: Game, state: UninitializedGameState): HydratedSampleGameState {
         // Initialize a pseudo random number generator for the state
         const prng = new Prng(state.prng)
         const players = this.initializePlayers(game, prng)

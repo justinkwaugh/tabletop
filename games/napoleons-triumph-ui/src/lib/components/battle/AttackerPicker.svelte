@@ -4,6 +4,7 @@
     import CommandSwitch from '$lib/components/CommandSwitch.svelte'
     import RideSwitch from '$lib/components/RideSwitch.svelte'
     import Force from './Force.svelte'
+    import { attackHaltNote } from '$lib/utils/roadHalts.js'
 
     let {
         stage,
@@ -11,12 +12,17 @@
     }: { stage: FeintStage | DeclarationStage | OccupationStage; folded?: boolean } = $props()
 
     const gameSession = getGameSession()
+
+    const haltLine = $derived(
+        stage.roadHalt ? attackHaltNote(gameSession.gameState.map, stage.roadHalt) : undefined
+    )
 </script>
 
 {#each stage.groups as group (group.label)}
     {#if !folded}
         <div class="nt-battle-faint">{group.label}</div>
         <Force
+            byCorps
             units={group.units}
             selected={stage.attackers}
             roles={stage.roles}
@@ -42,4 +48,7 @@
             onchoose={(command) => gameSession.chooseAttackCommand(command)}
         />
     </div>
+{/if}
+{#if haltLine}
+    <div class="nt-battle-prompt">{haltLine}</div>
 {/if}

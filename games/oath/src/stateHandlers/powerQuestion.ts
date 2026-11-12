@@ -13,6 +13,7 @@ import { HydratedTravel, isTravel } from '../actions/travel.js'
 import { currentQuestion } from '../util/questions.js'
 import { settleQueue } from '../util/questionAnswers.js'
 import { freeActionOutOfTurnOfferedTo, sneakAttackOfferedTo } from '../util/sneakAttack.js'
+import { stateAfterWin } from '../util/chronicle.js'
 import {
     isPlayerActionOfType,
     returnClockToTurnPlayer,
@@ -89,6 +90,10 @@ export class PowerQuestionStateHandler implements MachineStateHandler<
             // Jinx — the skulls' kills settled with the last answer may wait for the attacker's pick.
             if (action.metadata.resumeMachineState === MachineState.CampaignSacrifice) {
                 action.metadata.resumeMachineState = stateAfterCampaignRoll(gameState)
+            }
+            // Squalid District — an end die read as its ruler left it may have won the game.
+            if (action.metadata.resumeMachineState === MachineState.EndOfGame) {
+                action.metadata.resumeMachineState = stateAfterWin(gameState)
             }
             return action.metadata.resumeMachineState
         }

@@ -1,6 +1,6 @@
 import * as Type from 'typebox'
 import * as Value from 'typebox/value'
-import { assert, ConfigOptionType, type GameConfig, type GameConfigOptions } from '@tabletop/common'
+import { assert, type GameConfig, type GameConfigOptions } from '@tabletop/common'
 import { OathType, SetupVariant } from '../model/oathEnums.js'
 
 export type OathGameConfig = Type.Static<typeof OathGameConfig>
@@ -19,30 +19,9 @@ export const OATH_NAMES: Readonly<Record<OathType, string>> = {
     [OathType.Protection]: 'Oath of Protection'
 }
 
-export const OathGameConfigOptions: GameConfigOptions = [
-    {
-        id: 'setupVariant',
-        type: ConfigOptionType.List,
-        name: 'World Deck',
-        description: 'Random: nine denizens of each suit, drawn at random from all 198.',
-        default: SetupVariant.Randomized,
-        options: [{ name: 'Random', value: SetupVariant.Randomized }],
-        alwaysShow: true
-    },
-    {
-        id: 'oathType',
-        type: ConfigOptionType.List,
-        name: 'Oath',
-        description:
-            'The Oath the Chancellor has sworn, which decides how the Oathkeeper is chosen.',
-        default: OathType.Supremacy,
-        options: Object.values(OathType).map((oathType) => ({
-            name: OATH_NAMES[oathType],
-            value: oathType
-        })),
-        alwaysShow: true
-    }
-]
+// No game options: a first game is the Oath of Supremacy (R-1.13) on a random deck (R-1.21), and a
+// continued game plays the Oath its winner vowed (R-8.1). A stored config may still name either.
+export const OathGameConfigOptions: GameConfigOptions = []
 
 // The retired fixed 54-card deck: a stored setup still waiting to start begins with a random one.
 

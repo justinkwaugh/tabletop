@@ -21,15 +21,7 @@ describe('favor bank order (R-2.6.1, R-5.4.4, R-8.4)', () => {
     })
 
     it('R-8.4 — “the next clockwise suit” is the next bank, wrapping', () => {
-        expect(redistributeFavor(Suit.Discord, 3)).toEqual([
-            Suit.Discord,
-            Suit.Arcane,
-            Suit.Order
-        ])
-        expect(redistributeFavor(Suit.Nomad, 3)).toEqual([
-            Suit.Nomad,
-            Suit.Discord,
-            Suit.Arcane
-        ])
+        expect(redistributeFavor(Suit.Discord, 3)).toEqual([Suit.Discord, Suit.Arcane, Suit.Order])
+        expect(redistributeFavor(Suit.Nomad, 3)).toEqual([Suit.Nomad, Suit.Discord, Suit.Arcane])
     })
 })

@@ -8,11 +8,6 @@ export default defineProject(
         optimizeDeps: {
             exclude: ['@tabletop/frontend-components', '@tabletop/santiago']
         },
-        build: {
-            commonjsOptions: {
-                include: [/node_modules/]
-            }
-        },
         server: {
             host: true,
             port: 5174,

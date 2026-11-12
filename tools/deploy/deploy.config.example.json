@@ -1,24 +1,24 @@
 {
-  "gcsBucket": "your-gcs-bucket",
-  "gcloudCredentialFile": ".secrets/gcloud-deploy-key.json",
-  "investigateCredentialFile": ".secrets/gcloud-investigate-key.json",
-  "backendManifestUrl": "https://your-backend.example.com/api/v1/manifest",
-  "backendAdmin": {
-    "url": "https://your-backend.example.com/api/v1/admin/manifest/invalidate",
-    "username": "admin",
-    "password": "your-password"
-  },
-  "backend": {
-    "image": "us-central1-docker.pkg.dev/your-project/your-repo/backend",
-    "service": "your-cloud-run-service",
-    "tasksService": "your-cloud-run-tasks-service",
-    "region": "us-central1",
-    "project": "your-gcp-project",
-    "deployCommand": []
-  },
-  "realtime": {
-    "instance": "realtime",
-    "zone": "us-central1-a",
-    "healthUrl": "https://events.example.com/health"
-  }
+    "gcsBucket": "your-gcs-bucket",
+    "gcloudCredentialFile": ".secrets/gcloud-deploy-key.json",
+    "investigateCredentialFile": ".secrets/gcloud-investigate-key.json",
+    "backendManifestUrl": "https://your-backend.example.com/api/v1/manifest",
+    "backendAdmin": {
+        "url": "https://your-backend.example.com/api/v1/admin/manifest/invalidate",
+        "username": "admin",
+        "password": "your-password"
+    },
+    "backend": {
+        "image": "us-central1-docker.pkg.dev/your-project/your-repo/backend",
+        "service": "your-cloud-run-service",
+        "tasksService": "your-cloud-run-tasks-service",
+        "region": "us-central1",
+        "project": "your-gcp-project",
+        "deployCommand": []
+    },
+    "realtime": {
+        "instance": "realtime",
+        "zone": "us-central1-a",
+        "healthUrl": "https://events.example.com/health"
+    }
 }

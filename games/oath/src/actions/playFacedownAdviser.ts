@@ -11,9 +11,11 @@ import { Region } from '../model/oathEnums.js'
 import { ConspiracyPlay } from '../model/conspiracy.js'
 import { playShowsCard, SearchPlay } from './searchResolve.js'
 import {
+    beginCardPlay,
+    type CardPlayOptions,
     FavorShort,
     favorShortOf,
-    playCard,
+    finishCardPlay,
     playMapChanges,
     reasonCannotPlaceCard,
     reasonCannotPlayCard
@@ -21,12 +23,16 @@ import {
 import { commitHiddenOutputs, revealForPlay } from '../util/hiddenInputs.js'
 import { discardWitnesses } from '../util/knowledge.js'
 import { regionOfPawn } from '../powers/vocabulary.js'
-import { cardPowers } from '../data/cardPowers.js'
+import { powerInPlay } from '../util/powersInPlay.js'
 import { effectFor, type ModifierHooks, type PlayMapChanges } from '../powers/registry.js'
 import {
+    beginModifiersInUse,
     discardTargetOf,
+    endModifiersInUse,
+    modifierCardsInUse,
     ModifierUse,
     ModifierUses,
+    modifiersResolveBeforePower,
     payModifierCosts,
     resolveModifiers,
     runAfter,
@@ -38,11 +44,29 @@ import {
     secretPayment,
     tollPayment
 } from '../util/actionPayment.js'
-import { payTolls, reasonTollsUnpaid, type TollOccasion } from '../util/tolls.js'
+import {
+    payTolls,
+    reasonTollsUnpaid,
+    tollsFor,
+    type Toll,
+    type TollOccasion
+} from '../util/tolls.js'
 import { defaultTolls } from '../util/tollDefaults.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 
 const FACEDOWN_PLAY: TollOccasion = { kind: 'facedownPlay' }
+
+/**
+ * R-7.4 — the play "as if you searched" of a power's draw (Oracle), judged at the power's use: the draw is not
+ * yet made, so neither is the choice of play.
+ */
+export const PLAY_NOT_YET_KNOWN = 'notYetKnown'
+
+/** R-6.1 — what a play "as if you searched" shows: a facedown adviser, or a Vision (Oracle's, False Prophet's). */
+export enum AsIfSearchedCard {
+    FacedownAdviser = 'facedownAdviser',
+    Vision = 'vision'
+}
 
 export type PlayFacedownAdviserMetadata = Type.Static<typeof PlayFacedownAdviserMetadata>
 export const PlayFacedownAdviserMetadata = Type.Object({
@@ -100,6 +124,13 @@ export const PlayFacedownAdviser = Type.Evaluate(
             toSiteId: Type.Optional(Type.String()),
             /** R-5.1.4.I, R-11.10 — a denizen discarded before the site play. */
             discardFirstCardId: Type.Optional(Type.String()),
+            /**
+             * R-11.10, Crop Rotation, R-5.1.4.I — from revision 32, one card per power that gives one, in place of
+             * `discardFirstCardId`.
+             */
+            discardFirstCardIds: Type.Optional(
+                Type.Array(Type.String(), { minItems: 1, maxItems: 3 })
+            ),
             /** R-6.1 — "(Restrictions and modifiers apply.)": Search modifiers, declared with the play. */
             modifiers: ModifierUses,
             /** R-7.1.4 (Forced Labor) — "as if you searched". */
@@ -128,6 +159,7 @@ export class HydratedPlayFacedownAdviser
     declare discardedAdviserCardIds?: string[]
     declare toSiteId?: string
     declare discardFirstCardId?: string
+    declare discardFirstCardIds?: string[]
     declare modifiers?: ModifierUse[]
     declare tolls?: string[]
     declare metadata?: PlayFacedownAdviserMetadata
@@ -155,6 +187,8 @@ export class HydratedPlayFacedownAdviser
 
         // R-7.1.2, R-7.4 — paid at declaration.
         payModifierCosts(state, this.playerId, active)
+        // R-7.4.3 — "as if you searched": the play's modifiers cannot be discarded until it ends.
+        beginModifiersInUse(state, active)
         const tollNotes = payTolls(state, this.playerId, FACEDOWN_PLAY, this.tolls)
         const discardTarget = discardTargetOf(state, this.playerId, active)
 
@@ -162,7 +196,7 @@ export class HydratedPlayFacedownAdviser
         player.removeAdviser(this.cardId)
 
         // R-6.1: "as if you searched" (R-5.1.4), faceup.
-        const played = playCard(state, this.playerId, this.cardId, this.play, region, {
+        const options: CardPlayOptions = {
             faceUp: true,
             conspiracy: this.conspiracy,
             choices: this.choices,
@@ -170,15 +204,31 @@ export class HydratedPlayFacedownAdviser
             reveal,
             toSiteId: this.toSiteId,
             discardFirstCardId: this.discardFirstCardId,
+            discardFirstCardIds: this.discardFirstCardIds,
             carried: active,
             discardTarget
-        })
+        }
         const playedCardId = playShowsCard(this.play, true) ? this.cardId : undefined
-        const after = runAfter(state, this.playerId, active, { playedCardId, playedTo: this.play })
+        const runModifiers = () =>
+            runAfter(state, this.playerId, active, { playedCardId, playedTo: this.play })
+        const begun = beginCardPlay(state, this.playerId, this.cardId, this.play, region, options)
+        // R-7.3.3-H3 — before its When Played power; before revision 31 (R-X.4), after it.
+        const before = modifiersResolveBeforePower(state) ? runModifiers() : undefined
+        const played = finishCardPlay(state, this.playerId, this.cardId, this.play, begun, options)
+        const after = before ?? runModifiers()
         const short = favorShortOf(played.favorTaken)
 
         this.metadata = {
             ...played.outcome,
+            // Law Glossary "Discard" — a card discarded first went to its pile before the adviser's power resolved.
+            ...(played.discardedElsewhere.length > 0
+                ? {
+                      pileDeposits: [
+                          ...played.discardedElsewhere,
+                          ...(played.outcome.pileDeposits ?? [])
+                      ]
+                  }
+                : {}),
             reveal,
             discardedCardIds: played.discarded,
             discardPileRegion: discardTarget?.region ?? discardRegionFor(region),
@@ -203,6 +253,8 @@ export class HydratedPlayFacedownAdviser
             isIrreversible(this.metadata) ||
             reveal !== undefined
         commitHiddenOutputs(this, state, witnesses)
+
+        endModifiersInUse(state)
     }
 
     static reasonCannotPlay(
@@ -216,9 +268,20 @@ export class HydratedPlayFacedownAdviser
             discardedAdviserCardIds?: readonly string[]
             toSiteId?: string
             discardFirstCardId?: string
+            discardFirstCardIds?: readonly string[]
             modifiers?: readonly ModifierUse[]
             tolls?: readonly string[]
         }
+    ): string | undefined {
+        return HydratedPlayFacedownAdviser.reasonRefused(state, playerId, choice, true)
+    }
+
+    /** `judgeTolls` false: the play judged as if its tolls were paid (`tollsAloneBarPlay`). */
+    private static reasonRefused(
+        state: HydratedOathGameState,
+        playerId: string,
+        choice: Parameters<typeof HydratedPlayFacedownAdviser.reasonCannotPlay>[2],
+        judgeTolls: boolean
     ): string | undefined {
         const notFacedown = HydratedPlayFacedownAdviser.reasonNotFacedown(
             state,
@@ -234,7 +297,9 @@ export class HydratedPlayFacedownAdviser
         )
         if (reason) return reason
         // R-7.1.4 — Forced Labor's Q&A: a facedown play or discard pays its toll too.
-        const unpaid = reasonTollsUnpaid(state, playerId, FACEDOWN_PLAY, choice.tolls)
+        const unpaid = judgeTolls
+            ? reasonTollsUnpaid(state, playerId, FACEDOWN_PLAY, choice.tolls)
+            : undefined
         if (unpaid) return unpaid
         return (
             reasonCannotPlayCard(state, playerId, choice.cardId, choice.play, {
@@ -245,15 +310,31 @@ export class HydratedPlayFacedownAdviser
                 discardedAdviserCardIds: choice.discardedAdviserCardIds,
                 toSiteId: choice.toSiteId,
                 discardFirstCardId: choice.discardFirstCardId,
-                carried: active
+                discardFirstCardIds: choice.discardFirstCardIds,
+                carried: active,
+                modifiersInUse: modifierCardsInUse(state, active)
             }) ??
             reasonCannotPayInAll(state, playerId, [
                 modifierPayment(active),
                 // R-5.1.4.IV — the Conspiracy's take burns a secret.
                 secretPayment(choice.conspiracy ? 1 : 0),
-                tollPayment(choice.tolls)
+                tollPayment(judgeTolls ? choice.tolls : undefined)
             ])
         )
+    }
+
+    /**
+     * R-7.4.3 — the cards a play declaring `uses` puts in use, as its checks judge them before the play records them:
+     * the declared modifiers and the mandatory ones acting on the play, from revision 31; none before it (R-X.4).
+     */
+    static cardsInUse(
+        state: HydratedOathGameState,
+        playerId: string,
+        play: SearchPlay,
+        uses: readonly ModifierUse[] | undefined
+    ): string[] {
+        const { active } = HydratedPlayFacedownAdviser.playModifiers(state, playerId, play, uses)
+        return modifierCardsInUse(state, active)
     }
 
     /** R-6.1 — where the adviser may go, judged apart from its When Played choices. */
@@ -266,6 +347,7 @@ export class HydratedPlayFacedownAdviser
             discardedAdviserCardIds?: readonly string[]
             toSiteId?: string
             discardFirstCardId?: string
+            discardFirstCardIds?: readonly string[]
             modifiers?: readonly ModifierUse[]
         }
     ): string | undefined {
@@ -289,7 +371,9 @@ export class HydratedPlayFacedownAdviser
                 discardedAdviserCardIds: choice.discardedAdviserCardIds,
                 toSiteId: choice.toSiteId,
                 discardFirstCardId: choice.discardFirstCardId,
-                carried: active
+                discardFirstCardIds: choice.discardFirstCardIds,
+                carried: active,
+                modifiersInUse: modifierCardsInUse(state, active)
             })
         )
     }
@@ -307,6 +391,7 @@ export class HydratedPlayFacedownAdviser
             discardedAdviserCardIds?: readonly string[]
             toSiteId?: string
             discardFirstCardId?: string
+            discardFirstCardIds?: readonly string[]
             modifiers?: readonly ModifierUse[]
         }
     ): PlayMapChanges {
@@ -322,19 +407,27 @@ export class HydratedPlayFacedownAdviser
             discardedAdviserCardIds: choice.discardedAdviserCardIds,
             toSiteId: choice.toSiteId,
             discardFirstCardId: choice.discardFirstCardId,
-            carried: active
+            discardFirstCardIds: choice.discardFirstCardIds,
+            carried: active,
+            modifiersInUse: modifierCardsInUse(state, active)
         })
     }
 
     /**
      * R-6.1 — "as if you searched (5.1.4). (Restrictions and modifiers apply.)": the declared
      * Search modifiers and the holder's mandatory ones (R-7.4.1) that act on the play itself.
+     * `PLAY_NOT_YET_KNOWN`: a power's draw played "as if you searched" (Oracle), whose modifiers are
+     * declared at its use (R-7.4), before the draw and so before its play is picked; no card is a
+     * facedown adviser there, and of the mandatory ones only those acting on any play or discard apply.
+     * `card`: what the play shows, a facedown adviser (R-6.1) or a Vision (False Prophet's); Oracle's draw is a
+     * Vision.
      */
     static playModifiers(
         state: HydratedOathGameState,
         playerId: string,
-        play: SearchPlay,
-        uses: readonly ModifierUse[] | undefined
+        play: SearchPlay | typeof PLAY_NOT_YET_KNOWN,
+        uses: readonly ModifierUse[] | undefined,
+        card: AsIfSearchedCard = AsIfSearchedCard.FacedownAdviser
     ): { reason?: string; active: ActiveModifier[] } {
         // R-X.4 — a game created before this revision played a facedown adviser with no modifier.
         if (!isAtLeastOathRevision(state, OathRevision.CostsAndFacedownModifiers)) {
@@ -345,20 +438,31 @@ export class HydratedPlayFacedownAdviser
                   }
                 : { active: [] }
         }
+        const vision = play === PLAY_NOT_YET_KNOWN || card === AsIfSearchedCard.Vision
+        // R-7.4, R-X.4 — from revision 33 every declared modifier that cannot act on this play or draw is refused;
+        // before it, only one that changes the draw (and not Great Spire's swap).
+        const everyOne = isAtLeastOathRevision(state, OathRevision.EngineFixes28)
         for (const use of uses ?? []) {
-            const power = cardPowers(use.cardId)[use.powerIndex]
+            const power = powerInPlay(state, use.cardId, use.powerIndex)
             const hooks = power ? effectFor(power)?.modifier : undefined
-            if (hooks && HydratedPlayFacedownAdviser.changesTheDraw(hooks)) {
-                return {
-                    reason: `${use.cardId} changes a Search's draw, and this play draws nothing`,
-                    active: []
-                }
-            }
+            const reason = hooks
+                ? HydratedPlayFacedownAdviser.reasonCannotAct(use.cardId, hooks, play, {
+                      vision,
+                      everyOne
+                  })
+                : undefined
+            if (reason) return { reason, active: [] }
         }
-        const resolved = resolveModifiers(state, playerId, ActionType.Search, uses, {
-            facedownAdviserPlay: true,
-            playedTo: play
-        })
+        // Only a facedown adviser's play shows a facedown adviser (Welcoming Party); before revision 33, False
+        // Prophet's Vision was judged as one too.
+        const facedownAdviserPlay = card === AsIfSearchedCard.FacedownAdviser || !everyOne
+        const resolved = resolveModifiers(
+            state,
+            playerId,
+            ActionType.Search,
+            uses,
+            play === PLAY_NOT_YET_KNOWN ? {} : { facedownAdviserPlay, playedTo: play }
+        )
         if (resolved.reason) return resolved
         return {
             active: resolved.active.filter(
@@ -367,7 +471,49 @@ export class HydratedPlayFacedownAdviser
         }
     }
 
-    private static changesTheDraw(hooks: ModifierHooks): boolean {
+    /**
+     * R-7.4 — why a declared modifier cannot act on this play or draw, read from its hooks and the play: it changes
+     * a Search's draw, and this play draws nothing or draws by its power's own text; it acts only on a play to a site,
+     * and this play is not one; or it acts only when a denizen, or a card of a suit, is played, and the card played is
+     * a Vision. Before revision 33 (`everyOne` false), only the first, without Great Spire's swap.
+     */
+    private static reasonCannotAct(
+        cardId: string,
+        hooks: ModifierHooks,
+        play: SearchPlay | typeof PLAY_NOT_YET_KNOWN,
+        { vision, everyOne }: { vision: boolean; everyOne: boolean }
+    ): string | undefined {
+        if (HydratedPlayFacedownAdviser.changesTheDraw(hooks, everyOne)) {
+            return play === PLAY_NOT_YET_KNOWN
+                ? `${cardId} changes a Search's draw, and this power draws by its own text`
+                : `${cardId} changes a Search's draw, and this play draws nothing`
+        }
+        if (!everyOne) return undefined
+        if (
+            HydratedPlayFacedownAdviser.actsAtSite(hooks) &&
+            !HydratedPlayFacedownAdviser.actsOnPlay(hooks, play)
+        ) {
+            const why =
+                play === PLAY_NOT_YET_KNOWN
+                    ? 'the Vision this power draws is never played to a site'
+                    : vision
+                      ? 'this Vision is not played to a site'
+                      : 'this play is not to a site'
+            return `${cardId} acts on a play to a site, and ${why}`
+        }
+        // Welcoming Party's bank is read only once a denizen is played.
+        if (hooks.playFavorFrom !== undefined && vision) {
+            return `${cardId} acts when a denizen is played, and the card played is a Vision`
+        }
+        // Wild Cry gains only once a beast card is played; a Vision has no suit (R-2.7).
+        if (hooks.playedSuitGains !== undefined && vision) {
+            return `${cardId} acts when a ${hooks.playedSuitGains} card is played, and the card played is a Vision`
+        }
+        return undefined
+    }
+
+    /** `swapsDrawn`: Great Spire's swap of the denizens drawn counts, from revision 33. */
+    private static changesTheDraw(hooks: ModifierHooks, swapsDrawn: boolean): boolean {
         return (
             hooks.supplyCost !== undefined ||
             hooks.spendsNoSupply !== undefined ||
@@ -376,18 +522,27 @@ export class HydratedPlayFacedownAdviser
             hooks.drawRegion !== undefined ||
             hooks.drawsFromBottom === true ||
             hooks.revealsDraw === true ||
+            (swapsDrawn && hooks.swapsWithDispossessed === true) ||
             hooks.secondPlay === true ||
             hooks.forbids !== undefined
         )
     }
 
-    private static actsOnPlay(hooks: ModifierHooks, play: SearchPlay): boolean {
-        const atSite =
+    /** New Growth, Crop Rotation, the Book of Records. */
+    private static actsAtSite(hooks: ModifierHooks): boolean {
+        return (
             hooks.sitePlayGainsSecret === true ||
             hooks.playAnywhere !== undefined ||
             hooks.discardFirstAtSitePlay === true
+        )
+    }
+
+    private static actsOnPlay(
+        hooks: ModifierHooks,
+        play: SearchPlay | typeof PLAY_NOT_YET_KNOWN
+    ): boolean {
         return (
-            (atSite && play === SearchPlay.Site) ||
+            (HydratedPlayFacedownAdviser.actsAtSite(hooks) && play === SearchPlay.Site) ||
             hooks.discardTo !== undefined ||
             hooks.after !== undefined
         )
@@ -425,6 +580,30 @@ export class HydratedPlayFacedownAdviser
                         tolls: HydratedPlayFacedownAdviser.tolls(state, playerId)
                     }) === undefined
             )
+    }
+
+    /**
+     * R-6.1, R-7.1.4 — the tolls that alone keep the player from playing or discarding any facedown adviser: every
+     * one is refused with them listed and would be offered were they paid. Empty while a card is offered, when a card
+     * is refused for another cause, or when no toll is asked. It reads only the player's own facedown advisers, as
+     * `legalCards` does, and the tolls in play.
+     */
+    static tollsAloneBarPlay(state: HydratedOathGameState, playerId: string): Toll[] {
+        const cardIds = state.getPlayerState(playerId).facedownAdviserIds()
+        const tolls = HydratedPlayFacedownAdviser.tolls(state, playerId)
+        if (cardIds.length === 0 || tolls.length === 0) return []
+        const refused = (cardId: string, judgeTolls: boolean) =>
+            HydratedPlayFacedownAdviser.reasonRefused(
+                state,
+                playerId,
+                { cardId, play: SearchPlay.Discard, tolls },
+                judgeTolls
+            ) !== undefined
+        const barred = cardIds.every((cardId) => refused(cardId, true) && !refused(cardId, false))
+        if (!barred) return []
+        return tollsFor(state, playerId, FACEDOWN_PLAY).filter((toll) =>
+            tolls.includes(toll.cardId)
+        )
     }
 
     /** R-7.1.4 — never optional: without them the play is refused. */

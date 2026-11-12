@@ -8,7 +8,7 @@ import {
     guard,
     infantry
 } from '@tabletop/napoleons-triumph/testing'
-import { inReadingOrder } from './unitTypeOrder.js'
+import { inReadingOrder, seenFacesFirst } from './unitTypeOrder.js'
 
 const AS_DEALT: Face[] = [
     cavalry(2),
@@ -53,5 +53,30 @@ describe('the order a player reads their own units in', () => {
         const [hidden, ...rest] = corps()
         const partlyKnown = [{ ...hidden, face: undefined }, ...rest]
         expect(inReadingOrder(partlyKnown)).toEqual(partlyKnown)
+    })
+})
+
+describe('the order a player reads the units of a corps in', () => {
+    it('puts the faces seen first in reading order and leaves the hidden ones as given behind them', () => {
+        const units = corps().map((unit, index) => ({
+            ...unit,
+            face: undefined,
+            shown: [1, 3, 4].includes(index) ? unit.face : undefined
+        }))
+        const ordered = seenFacesFirst(units, (unit) => unit.shown)
+        expect(ordered.map((unit) => unit.id)).toEqual([
+            'unit-4',
+            'unit-3',
+            'unit-1',
+            'unit-0',
+            'unit-2',
+            'unit-5',
+            'unit-6'
+        ])
+    })
+
+    it('is the full reading order when every face is seen', () => {
+        const units = corps()
+        expect(seenFacesFirst(units, (unit) => unit.face)).toEqual(inReadingOrder(units))
     })
 })

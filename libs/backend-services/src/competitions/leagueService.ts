@@ -16,6 +16,10 @@ import {
     type LeagueSignUpPolicy,
     type LeagueHeldPlace,
     tournamentEntrantAccount,
+    formatTournamentTiebreaks,
+    ranksByAveragePlace,
+    formatTournamentAveragePlace,
+    tournamentTiebreakDescription,
     type LeagueFinalPlacement,
     type LeagueGroupStanding,
     type LeagueSeasonGroup,
@@ -26,7 +30,8 @@ import {
     type LeagueState,
     type TournamentDraft,
     type TournamentScore,
-    type User
+    type User,
+    receivesGameAndCompetitionEmail
 } from '@tabletop/common'
 import { requireActiveAccount, requireAdministrator, touchRevision } from './competitionAccess.js'
 import { derivedId } from './derivedId.js'
@@ -350,9 +355,34 @@ export class LeagueService {
         }
     }
 
+    private async unavailableEntrantIds(leagueId: string): Promise<Set<string>> {
+        const league = await this.store.read(leagueId)
+        const season =
+            league?.currentSeason === undefined
+                ? undefined
+                : await this.store.readSeason(leagueId, league.currentSeason)
+        if (season?.status !== 'signUp') return new Set()
+        const entrantIds = [
+            ...season.confirmedIds,
+            ...season.newEntrants.map((entrant) => entrant.userId)
+        ]
+        const accounts = await this.users.getUsers(entrantIds)
+        return new Set(
+            entrantIds.filter((_, index) => {
+                const account = accounts[index]
+                return account && account.status !== UserStatus.Active
+            })
+        )
+    }
+
     private async closeSignUp(leagueId: string): Promise<void> {
+        const unavailable = await this.unavailableEntrantIds(leagueId)
         const state = await this.write(leagueId, undefined, false, ({ season }) => {
             if (season?.status !== 'signUp' || this.now() < season.signUpClosesAt) return
+            season.confirmedIds = season.confirmedIds.filter((id) => !unavailable.has(id))
+            season.newEntrants = season.newEntrants.filter(
+                (entrant) => !unavailable.has(entrant.userId)
+            )
             const allocation = this.allocate(season)
             delete season.nextTaskAt
             if (!allocation) season.undersubscribed = true
@@ -546,12 +576,15 @@ export class LeagueService {
         })
     }
 
-    private scoreFields(row: Pick<TournamentScore, 'wins' | 'score' | 'completed' | 'tiebreak'>) {
+    private scoreFields(row: TournamentScore) {
         return {
             wins: row.wins,
             score: row.score,
             completed: row.completed,
-            ...(row.tiebreak !== undefined ? { tiebreak: row.tiebreak } : {})
+            ...(row.tiebreak !== undefined ? { tiebreak: row.tiebreak } : {}),
+            ...(row.pointsBehind !== undefined ? { pointsBehind: row.pointsBehind } : {}),
+            ...(row.shareOfWinner !== undefined ? { shareOfWinner: row.shareOfWinner } : {}),
+            ...(row.placeTotal !== undefined ? { placeTotal: row.placeTotal } : {})
         }
     }
 
@@ -602,6 +635,7 @@ export class LeagueService {
                     tournamentStatus: result.tournament.status,
                     finishedGames: result.tournament.stages[0]?.dispatch?.finished.length ?? 0,
                     activeGames: result.activeTableIds.length,
+                    activeProgress: result.activeProgress,
                     totalGames:
                         (group.entrantIds.length * season.rules.gamesPerEntrant) /
                             season.rules.tableSize -
@@ -773,6 +807,7 @@ export class LeagueService {
             : placements
                   .filter((value) => value.level === 0 && !value.substituteId)
                   .sort((a, b) => a.place - b.place)[0]
+        const tiebreaks = formatTournamentTiebreaks(group, 'en-US')
         const ids = [...group.map(account), ...(champion ? [champion.userId] : [])]
         const accounts = await this.users.getUsers(ids)
         const names = new Map(ids.map((id, index) => [id, this.displayName(accounts[index])]))
@@ -796,12 +831,15 @@ export class LeagueService {
                       nextLevel: leagueLevelName(placement.nextLevel)
                   }),
             ...(champion ? { champion: name(champion.userId) } : {}),
-            standings: group.map((value) => ({
+            tiebreakDescription: tournamentTiebreakDescription(group),
+            ...(ranksByAveragePlace(season.rules) ? { ranksByAveragePlace: true } : {}),
+            standings: group.map((value, index) => ({
                 rank: value.place,
                 name: name(account(value)),
                 wins: value.wins,
                 score: value.score,
-                ...(value.tiebreak !== undefined ? { tiebreak: value.tiebreak } : {}),
+                averagePlace: formatTournamentAveragePlace(value),
+                tiebreak: tiebreaks[index],
                 recipient: account(value) === userId
             }))
         }
@@ -923,7 +961,7 @@ export class LeagueService {
     ): Promise<void> {
         const accounts = await this.users.getUsers(userIds)
         for (const account of accounts)
-            if (account?.status === UserStatus.Active && account.email)
+            if (account?.status === UserStatus.Active && receivesGameAndCompetitionEmail(account))
                 await enqueueLeagueEmail(this.tasks, { ...email, userId: account.id })
     }
 

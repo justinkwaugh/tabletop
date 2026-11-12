@@ -5,14 +5,17 @@ import {
     privateOwner,
     type ConstructionState,
     rotateTileEdge,
-    rotateTileFace,
+    completedCrossingCost,
+    minimumLayCost,
+    unpaidTerrainCost,
+    yellowPlusOneAllowance,
     sameStopCounts,
-    type TrackRules,
-    laidTileFace
+    type TrackRules
 } from '@tabletop/18xx'
 import { EighteenFortySixMap, LandGrantLocations, PrivateTrackBlocks } from './map.js'
 import { EighteenFortySixTileSet } from './tiles.js'
 import { Phases1846 } from './trains.js'
+import { privateReservesTrack } from './privateRules.js'
 
 /** What the Tunnel Blasting Company takes off its owning corporation's mountain costs. */
 export const TunnelBlastingDiscount = 20
@@ -25,43 +28,25 @@ export function ownsTunnelBlasting(
     return owner?.kind === 'company' && owner.companyId === companyId
 }
 
+const TrackData1846 = { map: EighteenFortySixMap, tileSet: EighteenFortySixTileSet }
 export const TrackRules1846: TrackRules = {
     map: EighteenFortySixMap,
     tileSet: EighteenFortySixTileSet,
     colorOrder: ['white', 'yellow', 'green', 'brown', 'gray'],
     availableColors: (state) => Phases1846.phase(state.phaseId).tileColors,
-    allowance(state, color) {
-        const lays = state.trackStep?.lays ?? []
-        if (lays.length >= 2) return { reason: 'Two construction actions are allowed per turn.' }
-        if (
-            color !== 'yellow' &&
-            lays.some((lay) => laidTileFace(state, TrackRules1846, lay).color !== 'yellow')
-        )
-            return { reason: 'Only one ordinary upgrade is allowed per turn.' }
-        return { cost: 0 }
-    },
+    allowance: (state, color) => yellowPlusOneAllowance(TrackData1846)(state, color),
     preservesStops: sameStopCounts,
     useful: ({ newTrack, connectedCity }) => newTrack || connectedCity,
     homeLocations: (id) => EighteenFortySixMap.reservedLocationIds(id),
     restriction(state, request) {
         for (const [privateId, locations] of Object.entries(PrivateTrackBlocks))
-            if (
-                locations.includes(request.locationId) &&
-                state.companies.some((company) => company.id === privateId) &&
-                privateOwner(state, privateId)?.kind === 'player'
-            )
+            if (locations.includes(request.locationId) && privateReservesTrack(state, privateId))
                 return 'This hex is reserved by a player-owned private company.'
         return undefined
     },
     borderCost(state, request, edge, cost) {
-        if (!cost) return 0
         const neighbor = EighteenFortySixMap.neighbor(request.locationId, edge)
         assertExists(neighbor, 'Construction validates neighboring hexes before pricing borders')
-        const tile = new RailwayMapState(
-            EighteenFortySixMap,
-            EighteenFortySixTileSet,
-            state.tileInventory
-        ).tile(neighbor.id)
         const opposite = rotateTileEdge(edge, 3)
         const borders = [
             ...(EighteenFortySixMap.location(request.locationId).borders ?? []).filter(
@@ -74,11 +59,7 @@ export const TrackRules1846: TrackRules = {
             borders.some((border) => border.kind === 'mountain')
                 ? Math.max(0, cost - TunnelBlastingDiscount)
                 : cost
-        return rotateTileFace(tile.face, tile.rotation).paths.some((path) =>
-            path.endpoints.some((end) => end.kind === 'edge' && end.edge === opposite)
-        )
-            ? chargedCost
-            : 0
+        return completedCrossingCost(TrackData1846, state, request, edge, chargedCost)
     },
     afterLay(state, details) {
         if (
@@ -103,15 +84,13 @@ export const TrackRules1846: TrackRules = {
             LandGrantLocations.includes(request.locationId)
         )
             return cost
-        const terrain = previous.placement
-            ? 0
-            : (EighteenFortySixMap.location(request.locationId).terrain?.cost ?? 0)
+        const terrain = unpaidTerrainCost(TrackData1846, state, request.locationId)
         const mountainDiscount =
             !previous.placement &&
             ownsTunnelBlasting(state, request.companyId) &&
             EighteenFortySixMap.location(request.locationId).terrain?.kinds.includes('mountain')
                 ? Math.min(TunnelBlastingDiscount, terrain)
                 : 0
-        return cost + Math.max(0, 20 - terrain) - mountainDiscount
+        return minimumLayCost(TrackData1846, 20)(state, request, cost) - mountainDiscount
     }
 }

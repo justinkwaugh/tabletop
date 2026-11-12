@@ -13,7 +13,8 @@ const RAW_COLOUR_CLASS =
     /(?<![\w-])(?:[a-z-]+:)*(?:bg|text|border(?:-[trblxy])?|ring|outline|divide|from|via|to|fill|stroke|decoration|shadow)-(?:stone|amber|rose|gray|slate|zinc|neutral|sky)-\d{2,3}(?:\/\d+)?(?![\w-])/g
 const ARBITRARY_COLOUR_CLASS =
     /(?<![\w-])(?:[a-z-]+:)*(?:bg|text|border|ring|outline|fill|stroke)-\[(?:#|rgb|hsl|oklch)[^\]]*\]/g
-const TOKEN_CLASS = /(?<![\w-])(?:[a-z-]+:)*(?:bg|text|border|ring|outline)-(oath-[a-z-]+?)(?:\/\d+)?(?![\w-])/g
+const TOKEN_CLASS =
+    /(?<![\w-])(?:[a-z-]+:)*(?:bg|text|border|ring|outline)-(oath-[a-z-]+?)(?:\/\d+)?(?![\w-])/g
 
 const declaredTokens = new Set(
     [...appCss.matchAll(/^\s*--(oath-[a-z-]+):/gm)].map((match) => match[1])
@@ -55,11 +56,15 @@ describe('palette', () => {
     })
 
     it('every token variable a component styles with is declared', () => {
-        const unknown = Object.entries(components).flatMap(([path, source]) =>
-            [...source.matchAll(/var\(--(oath-[a-z-]+)\)/g)]
-                .filter((match) => !declaredTokens.has(match[1]))
+        const unknown = Object.entries(components).flatMap(([path, source]) => {
+            // A property the component registers itself with @property is declared there.
+            const registered = new Set(
+                [...source.matchAll(/@property\s+--(oath-[a-z-]+)/g)].map((match) => match[1])
+            )
+            return [...source.matchAll(/var\(--(oath-[a-z-]+)\)/g)]
+                .filter((match) => !declaredTokens.has(match[1]) && !registered.has(match[1]))
                 .map((match) => `${path}: ${match[0]}`)
-        )
+        })
         expect(unknown).toEqual([])
     })
 })

@@ -259,9 +259,11 @@ export class HydratedBoard extends Hydratable<typeof Board> implements Board {
             const importance = (cityId: string) => network.connectionCount(cityPlaceId(cityId))
             const best = this.cities
                 .filter((city) => connected.includes(cityPlaceId(city.id)))
-                .reduce<
-                    City | undefined
-                >((leader, city) => (!leader || importance(city.id) > importance(leader.id) ? city : leader), undefined)
+                .reduce<City | undefined>(
+                    (leader, city) =>
+                        !leader || importance(city.id) > importance(leader.id) ? city : leader,
+                    undefined
+                )
             if (!best) {
                 continue
             }

@@ -4,7 +4,7 @@ import { DarkCardEmail, darkPalette, darkStyles } from '../components/darkCard.j
 
 interface EmailVerificationProps {
     token?: string
-    url?: string
+    expiresInMinutes?: number
 }
 
 const styles = {
@@ -19,22 +19,29 @@ const styles = {
     },
 } satisfies Record<string, CSSProperties>
 
-export const EmailVerification = ({ token = '' }: EmailVerificationProps) => (
+export const EmailVerification = ({
+    token = '',
+    expiresInMinutes = 15,
+}: EmailVerificationProps) => (
     <DarkCardEmail
         preview={`Your email verification code is ${token}`}
         heading="Confirm your email address"
-        subline="Enter this code on the verification screen to finish signing in."
+        subline="Enter this code where you requested it to verify this email address."
         footer="If you did not request this, you can safely ignore this email."
     >
         <Section style={{ ...styles.panel, textAlign: 'center' }}>
             <Text style={styles.code}>{token}</Text>
-            <Text style={styles.panelDetail}>This code expires soon.</Text>
+            <Text style={styles.panelDetail}>
+                This code stops working {expiresInMinutes} minutes after it was requested, and only
+                the most recent code works.
+            </Text>
         </Section>
     </DarkCardEmail>
 )
 
 EmailVerification.PreviewProps = {
-    token: 'DJZ-TLX',
+    token: 'DJZTLX',
+    expiresInMinutes: 15,
 } satisfies EmailVerificationProps
 
 export default EmailVerification

@@ -1,4 +1,4 @@
-import type { GameAction } from '@tabletop/common'
+import { isCallGameAction, type GameAction } from '@tabletop/common'
 import {
     ActionType,
     isEatCoral,
@@ -35,7 +35,7 @@ export function movesPieces(entry: HistoryEntry): boolean {
 }
 
 // One entry per stretch of actions by one player, with the system actions they caused (such as
-// the open-sea refill) joining that player's entry. The game's end stands alone, and so does each
+// the open-sea refill) joining that player's entry. The game's end or call stands alone, as does each
 // parrotfish feed: everyone feeds at once, so the start player's can come just before their cubes.
 export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
     const entries: HistoryEntry[] = []
@@ -44,6 +44,7 @@ export function historyEntries(actions: readonly GameAction[]): HistoryEntry[] {
         const joinsCurrent =
             current !== undefined &&
             !isEndGame(action) &&
+            !isCallGameAction(action) &&
             !isFeedParrotfish(action) &&
             !current.actions.some(isFeedParrotfish) &&
             (action.playerId === undefined || action.playerId === current.playerId)

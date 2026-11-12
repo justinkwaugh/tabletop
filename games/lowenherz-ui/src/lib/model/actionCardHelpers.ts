@@ -34,7 +34,9 @@ export function decisionsForSlot(gameSession: LowenherzGameSession, slot: 1 | 2 
     // resolved slot keeps its markers for as long as its placement phase is still the current
     // machine state; only once the winner finishes (or the phase never opened - Money Bag, or a
     // winner capped/stocked/carded out with nothing to place) do the markers come down.
-    const isResolved = gameSession.gameState.resolvedSlots.some((resolved) => resolved.slot === slot)
+    const isResolved = gameSession.gameState.resolvedSlots.some(
+        (resolved) => resolved.slot === slot
+    )
     if (isResolved) {
         const stillPlacing =
             gameSession.isFreshestResolvedSlot(slot) &&

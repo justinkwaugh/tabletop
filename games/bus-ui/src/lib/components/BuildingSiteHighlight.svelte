@@ -31,7 +31,9 @@
 
     const active = $derived(isSelected || hovered || keyboardFocused)
     const outerStroke = $derived(active ? '#ffffff' : '#333')
-    const outerStrokeWidth = $derived(active ? BUILDING_SITE_HIGHLIGHT_OUTER_BORDER_WIDTH + 0.75 : 3)
+    const outerStrokeWidth = $derived(
+        active ? BUILDING_SITE_HIGHLIGHT_OUTER_BORDER_WIDTH + 0.75 : 3
+    )
     const fillStroke = $derived(active ? '#fff27a' : '#f5ea6e')
     const haloOpacity = $derived(active ? 0.28 : 0)
     const focusOutlineOpacity = $derived(keyboardFocused ? 0.95 : 0)

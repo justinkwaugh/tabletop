@@ -3,7 +3,7 @@
     import { trim } from '$lib/utils/trimInput'
     import { Dropdown, DropdownGroup, DropdownItem, Input, type InputProps } from 'flowbite-svelte'
     import { nanoid } from 'nanoid'
-    import { type Snippet } from 'svelte'
+    import type { Snippet } from 'svelte'
 
     let {
         id = nanoid(),

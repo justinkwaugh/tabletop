@@ -21,12 +21,12 @@ export interface ArmyObjectives {
 
 const TERMS: Record<Side, { unreinforced: string; reinforced: string }> = {
     [Side.French]: {
-        unreinforced: 'Any one wins',
+        unreinforced: 'Any one stops the Allies winning',
         reinforced: 'All three win if the Allies hold none'
     },
     [Side.Allied]: {
         unreinforced: 'One wins if the French hold none',
-        reinforced: 'One wins'
+        reinforced: 'One stops the French winning'
     }
 }
 

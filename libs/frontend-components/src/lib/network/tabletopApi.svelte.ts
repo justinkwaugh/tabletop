@@ -13,6 +13,9 @@ import {
     assertExists,
     Bookmark,
     type BugReportRequest,
+    type ContentReportRequest,
+    type UserCreateRequest,
+    type UserUpdateRequest,
     CanonicalActionReplay,
     ProcessedActionReplay,
     Game,
@@ -24,10 +27,16 @@ import {
     GameSyncStatus,
     GameValidator,
     GameHistoryPage,
+    TitleActivity,
+    SeriesActivity,
+    ACTIVITY_UNAVAILABLE,
     UserGameStats,
     SiteStatsNow,
+    CharityTally,
     SiteStatsReport,
     type UtcDayRange,
+    type SensitiveChangeRequest,
+    type PendingEmailChange,
     User,
     UserPreferences,
     Visibility,
@@ -55,6 +64,7 @@ import {
     UndoVotePreview
 } from '@tabletop/common'
 import type {
+    AblyTokenRequest,
     AblyTokenResponse,
     ApiResponse,
     ApplyActionResponse,
@@ -72,15 +82,21 @@ import type {
     UndoVotePreviewResponse,
     UsernameSearchResponse,
     UserResponse,
+    ChallengeIssuedResponse,
+    PendingEmailChangeResponse,
+    EmailChangeRequestedResponse,
+    DiscordAuthorizationPurpose,
+    DiscordAuthorizationStart,
+    DiscordAuthorizationStartResponse,
     UsersResponse
 } from './responseTypes.js'
 import { APIError } from './errors.js'
 import type { Credentials } from './requestTypes.js'
-import Ably from 'ably'
 import { checkVersion, resolveVersionChange, VersionChange } from './versionChecker.js'
 import { toast } from 'svelte-sonner'
 
 const DEFAULT_HOST = 'http://localhost:3000'
+const ACTIVITY_TIMEOUT_MS = 10_000
 
 export type GameLoadResult = {
     game?: Game
@@ -112,7 +128,8 @@ export class TabletopApi {
         host: string = DEFAULT_HOST,
         sseHost: string = DEFAULT_HOST,
         private readonly version?: string,
-        private readonly onUnauthorized?: () => void
+        private readonly onUnauthorized?: () => void,
+        private readonly isSignedIn?: () => boolean
     ) {
         this.host = host
         this.sseHost = sseHost
@@ -190,6 +207,16 @@ export class TabletopApi {
         return response.payload
     }
 
+    async getCharityTally(): Promise<CharityTally | undefined> {
+        const response = await this.wretch
+            .get('/pay-it-forward/tally')
+            .notFound(() => undefined)
+            .json<unknown>()
+        if (response === undefined) return undefined
+        Value.Assert(Type.Object({ payload: CharityTally }), response)
+        return response.payload
+    }
+
     async manifest<T = unknown>(): Promise<T> {
         const response = await this.wretch
             .get('/manifest')
@@ -213,6 +240,7 @@ export class TabletopApi {
     async login(credentials: Credentials) {
         const response = await this.wretch
             .post(credentials, '/auth/login')
+            .unauthorized(this.onSignInUnauthorized)
             .badRequest(this.handleError)
             .json<UserResponse>()
 
@@ -222,7 +250,7 @@ export class TabletopApi {
     async loginGoogle(credential: string) {
         const response = await this.wretch
             .post({ credential }, '/auth/google/login')
-            .unauthorized(this.on401)
+            .unauthorized(this.onSignInUnauthorized)
             .badRequest(this.handleError)
             .json<UserResponse>()
 
@@ -233,43 +261,87 @@ export class TabletopApi {
         const response = await this.wretch
             .post({ credential }, '/auth/google/link')
             .unauthorized(this.on401)
+            .forbidden(this.handleError)
             .badRequest(this.handleError)
             .json<UserResponse>()
 
         return response.payload.user as User
     }
 
-    async loginDiscord(code: string) {
+    async beginDiscordAuthorization(
+        purpose: DiscordAuthorizationPurpose
+    ): Promise<DiscordAuthorizationStart> {
         const response = await this.wretch
-            .post({ code }, '/auth/discord/login')
+            .post(undefined, `/auth/discord/begin/${purpose}`)
             .unauthorized(this.on401)
+            .forbidden(this.handleError)
             .badRequest(this.handleError)
-            .json<UserResponse>()
+            .json<DiscordAuthorizationStartResponse>()
 
-        return response.payload.user as User
+        return response.payload
     }
 
-    async linkDiscord(code: string) {
+    async loginDiscord(code: string, state: string): Promise<User> {
         const response = await this.wretch
-            .post({ code }, '/auth/discord/link')
-            .unauthorized(this.on401)
-            .badRequest(this.handleError)
-            .json<UserResponse>()
-
-        return response.payload.user as User
-    }
-
-    async loginToken(token: string) {
-        const response = await this.wretch
-            .post({ token }, '/auth/token/login')
+            .post({ code, state }, '/auth/discord/login')
+            .unauthorized(this.handleError)
             .badRequest(this.handleError)
             .json<UserResponse>()
 
         return response.payload.user
     }
 
+    async linkDiscord(code: string, state: string): Promise<User> {
+        const response = await this.wretch
+            .post({ code, state }, '/auth/discord/link')
+            .unauthorized(this.handleError)
+            .forbidden(this.handleError)
+            .badRequest(this.handleError)
+            .json<UserResponse>()
+
+        return response.payload.user
+    }
+
+    async reauthenticateDiscord(code: string, state: string): Promise<void> {
+        await this.wretch
+            .post({ code, state }, '/auth/discord/reauthenticate')
+            .unauthorized(this.handleError)
+            .badRequest(this.handleError)
+            .json()
+    }
+
+    async reauthenticateWithPassword(password: string): Promise<void> {
+        await this.wretch
+            .post({ password }, '/auth/reauthenticate')
+            .unauthorized(this.onPasswordReauthenticationUnauthorized)
+            .error(429, this.onReauthenticationRateLimit)
+            .badRequest(this.handleError)
+            .json()
+    }
+
+    async reauthenticateGoogle(credential: string): Promise<void> {
+        await this.wretch
+            .post({ credential }, '/auth/google/reauthenticate')
+            .unauthorized(this.handleError)
+            .badRequest(this.handleError)
+            .json()
+    }
+
     async logout() {
         await this.wretch.get('/auth/logout').json()
+    }
+
+    async logoutAll() {
+        await this.wretch.post(undefined, '/auth/logoutAll').unauthorized(this.on401).json()
+    }
+
+    async deleteOwnAccount(): Promise<void> {
+        await this.wretch
+            .post(undefined, '/user/delete')
+            .unauthorized(this.on401)
+            .forbidden(this.handleError)
+            .badRequest(this.handleError)
+            .json()
     }
 
     async searchUsernames(query: string): Promise<string[]> {
@@ -282,19 +354,20 @@ export class TabletopApi {
         return response.payload.usernames
     }
 
-    async createUser(user: Partial<User>): Promise<User> {
+    async createUser(request: UserCreateRequest): Promise<User> {
         const response = await this.wretch
-            .post(user, '/user/create')
+            .post(request, '/user/create')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<UserResponse>()
         return response.payload.user
     }
 
-    async updateUser(user: Partial<User>): Promise<User> {
+    async updateUser(request: UserUpdateRequest): Promise<User> {
         const response = await this.wretch
-            .post(user, '/user/update')
+            .post(request, '/user/update')
             .unauthorized(this.on401)
+            .forbidden(this.handleError)
             .badRequest(this.handleError)
             .json<UserResponse>()
 
@@ -309,6 +382,40 @@ export class TabletopApi {
             .json<UserResponse>()
 
         return response.payload.user
+    }
+
+    async pendingEmailChange(): Promise<PendingEmailChange | undefined> {
+        const response = await this.wretch
+            .get('/user/email/change')
+            .unauthorized(this.on401)
+            .json<PendingEmailChangeResponse>()
+        const pending = response.payload.pending
+        return pending ? { ...pending, expiresAt: new Date(pending.expiresAt) } : undefined
+    }
+
+    async requestEmailChange(email: string): Promise<PendingEmailChange> {
+        const response = await this.wretch
+            .post({ email }, '/user/email/change')
+            .unauthorized(this.on401)
+            .forbidden(this.handleError)
+            .badRequest(this.handleError)
+            .json<EmailChangeRequestedResponse>()
+        const pending = response.payload.pending
+        return { ...pending, expiresAt: new Date(pending.expiresAt) }
+    }
+
+    async confirmEmailChange(email: string, code: string): Promise<User> {
+        const response = await this.wretch
+            .post({ email, code }, '/user/email/change/confirm')
+            .unauthorized(this.on401)
+            .forbidden(this.handleError)
+            .badRequest(this.handleError)
+            .json<UserResponse>()
+        return response.payload.user
+    }
+
+    async cancelEmailChange(): Promise<void> {
+        await this.wretch.delete('/user/email/change').unauthorized(this.on401).json()
     }
 
     async updateUserTimeZone(
@@ -334,41 +441,49 @@ export class TabletopApi {
         return response.payload.user
     }
 
-    async updatePassword({ password, token }: { password: string; token: string }): Promise<void> {
+    // Authorized by the emailed Set Password Challenge alone: no session is held or established
+    async setPassword({
+        password,
+        challenge
+    }: {
+        password: string
+        challenge: string
+    }): Promise<void> {
         await this.wretch
-            .post({ password, token }, '/user/setPassword')
-            .unauthorized(this.on401)
+            .post({ password, challenge }, '/user/setPassword')
             .badRequest(this.handleError)
             .json<void>()
     }
 
-    async sendVerificationEmail(): Promise<void> {
-        await this.wretch
+    async sendVerificationEmail(): Promise<Date> {
+        const response = await this.wretch
             .post(undefined, '/user/resendEmailVerification')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
-            .json<void>()
+            .json<ChallengeIssuedResponse>()
+        return new Date(response.payload.expiresAt)
     }
 
-    async sendAuthVerificationEmail(): Promise<void> {
-        await this.wretch
-            .post(undefined, '/user/sendEmailAuthVerification')
-            .unauthorized(this.on401)
-            .badRequest(this.handleError)
-            .json<void>()
-    }
-
-    async sendPasswordResetEmail(email: string): Promise<void> {
-        await this.wretch
-            .post({ email }, '/user/email/sendPasswordReset')
-            .unauthorized(this.on401)
-            .badRequest(this.handleError)
-            .json<void>()
-    }
-
-    async verifyToken(token: string): Promise<User> {
+    async sendSensitiveChangeChallenge(request: SensitiveChangeRequest): Promise<Date> {
         const response = await this.wretch
-            .get(`/user/email/verify/${token}`)
+            .post(request, '/user/sendEmailAuthVerification')
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<ChallengeIssuedResponse>()
+        return new Date(response.payload.expiresAt)
+    }
+
+    async sendPasswordResetEmail(email: string): Promise<Date> {
+        const response = await this.wretch
+            .post({ email }, '/user/email/sendPasswordReset')
+            .badRequest(this.handleError)
+            .json<ChallengeIssuedResponse>()
+        return new Date(response.payload.expiresAt)
+    }
+
+    async verifyEmail(code: string): Promise<User> {
+        const response = await this.wretch
+            .post({ code }, '/user/email/verify')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<UserResponse>()
@@ -428,6 +543,56 @@ export class TabletopApi {
             .json<GamesResponse>()
 
         return response.payload.games.map((game) => this.validateGame(game))
+    }
+
+    getTitleActivity(titleId: string): Promise<TitleActivity> {
+        return this.requestActivity(
+            `/games/activity/${encodeURIComponent(titleId)}`,
+            TitleActivity,
+            'Games of this title are temporarily unavailable'
+        )
+    }
+
+    getSeriesActivity(seriesId: string): Promise<SeriesActivity> {
+        return this.requestActivity(
+            `/games/series-activity/${encodeURIComponent(seriesId)}`,
+            SeriesActivity,
+            'Games of this series are temporarily unavailable'
+        )
+    }
+
+    private async requestActivity<T extends TSchema>(
+        path: string,
+        schema: T,
+        unavailableMessage: string
+    ): Promise<Static<T>> {
+        const request = new AbortController()
+        const timeout = setTimeout(() => request.abort(), ACTIVITY_TIMEOUT_MS)
+        try {
+            const response = await this.wretch
+                .options({ signal: request.signal })
+                .get(path)
+                .unauthorized(this.on401)
+                .badRequest(this.handleError)
+                .error(503, this.handleError)
+                .json<unknown>()
+            Value.Assert(
+                Type.Object({ payload: Type.Object({ activity: Type.Unknown() }) }),
+                response
+            )
+            const activity = Value.Default(schema, Value.Convert(schema, response.payload.activity))
+            Value.Assert(schema, activity)
+            return activity
+        } catch (error) {
+            if (request.signal.aborted)
+                throw new APIError({
+                    name: ACTIVITY_UNAVAILABLE,
+                    message: unavailableMessage
+                })
+            throw error
+        } finally {
+            clearTimeout(timeout)
+        }
     }
 
     listTournaments(query: TournamentListQuery) {
@@ -644,6 +809,32 @@ export class TabletopApi {
             .post(report, '/game/reportBug')
             .unauthorized(this.on401)
             .badRequest(this.handleError)
+            .error(429, () => {
+                throw new APIError({
+                    name: 'RateLimited',
+                    message: 'Too many bug reports were sent recently'
+                })
+            })
+            .json<void>()
+    }
+
+    async reportContent(report: ContentReportRequest): Promise<void> {
+        await this.wretch
+            .post(report, '/game/report')
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .error(429, () => {
+                throw new APIError({
+                    name: 'RateLimited',
+                    message: 'Too many reports were sent recently. Try again in a few minutes.'
+                })
+            })
+            .error(503, () => {
+                throw new APIError({
+                    name: 'ReportingUnavailable',
+                    message: 'Reporting is not available on this site.'
+                })
+            })
             .json<void>()
     }
 
@@ -814,6 +1005,10 @@ export class TabletopApi {
         return this.postVote(game, 'undo/open', { actionIndex, targetActionId })
     }
 
+    async requestCall(game: Game, declaredWinnerId?: string): Promise<Game> {
+        return this.postVote(game, 'call', { declaredWinnerId })
+    }
+
     async approveVote(game: Game, voteId: string): Promise<Game> {
         return this.postVote(game, 'approve', { voteId })
     }
@@ -829,7 +1024,10 @@ export class TabletopApi {
     private async postVote(
         game: Game,
         route: VoteRoute,
-        body: { actionIndex: number; targetActionId: string } | { voteId: string }
+        body:
+            | { actionIndex: number; targetActionId: string }
+            | { declaredWinnerId?: string }
+            | { voteId: string }
     ): Promise<Game> {
         const response = await this.titleRequest(game.typeId)
             .post({ gameId: game.id, ...body }, `/game/${game.typeId}/vote/${route}`)
@@ -950,14 +1148,15 @@ export class TabletopApi {
         return response.payload.token
     }
 
-    async getAblyToken(): Promise<Ably.TokenRequest> {
+    async getAblyToken(gameIds: string[] = []): Promise<AblyTokenRequest> {
+        const params = new URLSearchParams(gameIds.map((gameId) => ['game', gameId]))
         const response = await this.wretch
-            .get('/auth/ably/token')
+            .get(`/auth/ably/token?${params}`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<AblyTokenResponse>()
 
-        return response.payload.token as Ably.TokenRequest
+        return response.payload.token
     }
 
     async subscribeToPushNotifications(subscription: PushSubscription) {
@@ -989,6 +1188,53 @@ export class TabletopApi {
     async assignUserRoles(userId: string, roles: AdminAssignableRole[]): Promise<User> {
         const response = await this.wretch
             .post({ roles }, `/admin/users/${encodeURIComponent(userId)}/roles`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<UserResponse>()
+
+        return response.payload.user
+    }
+
+    async renameUser(userId: string, username: string): Promise<User> {
+        return this.moderateUser(userId, 'username', { username })
+    }
+
+    async banUser(userId: string): Promise<User> {
+        return this.moderateUser(userId, 'ban', {})
+    }
+
+    async unbanUser(userId: string): Promise<User> {
+        return this.moderateUser(userId, 'unban', {})
+    }
+
+    async deleteUser(userId: string): Promise<User> {
+        return this.moderateUser(userId, 'delete', {})
+    }
+
+    async redactGameChatMessage(gameId: string, messageId: string): Promise<void> {
+        await this.wretch
+            .post(
+                {},
+                `/admin/games/${encodeURIComponent(gameId)}/chat/${encodeURIComponent(messageId)}/redact`
+            )
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<void>()
+    }
+
+    async renameGameAsAdministrator(gameId: string, name: string): Promise<Game> {
+        const response = await this.wretch
+            .post({ name }, `/admin/games/${encodeURIComponent(gameId)}/rename`)
+            .unauthorized(this.on401)
+            .badRequest(this.handleError)
+            .json<GameResponse>()
+
+        return this.validateGame(response.payload.game)
+    }
+
+    private async moderateUser(userId: string, operation: string, body: object): Promise<User> {
+        const response = await this.wretch
+            .post(body, `/admin/users/${encodeURIComponent(userId)}/${operation}`)
             .unauthorized(this.on401)
             .badRequest(this.handleError)
             .json<UserResponse>()
@@ -1139,7 +1385,35 @@ export class TabletopApi {
         }
     }
 
+    private onSignInUnauthorized = async (error: WretchError) => {
+        if (error.json?.error?.name === 'AccountUnavailableError') {
+            return this.handleError(error)
+        }
+        throw error
+    }
+
+    private onPasswordReauthenticationUnauthorized = async (error: WretchError) => {
+        if (error.json?.error?.name === 'ReauthenticationFailedError') {
+            return this.handleError(error)
+        }
+        return this.on401()
+    }
+
+    private onReauthenticationRateLimit = (error: WretchError) => {
+        const retryAfter = error.response?.headers.get('retry-after')
+        throw new APIError({
+            name: 'ReauthenticationRateLimitError',
+            message: retryAfter
+                ? `Too many confirmation attempts. Try again in ${retryAfter} seconds.`
+                : 'Too many confirmation attempts. Please wait before trying again.'
+        })
+    }
+
     private on401 = async () => {
+        // Signing out ends the session before the site stops the requests that need it
+        if (this.isSignedIn?.() === false) {
+            throw new APIError({ name: 'Unauthorized', message: 'No one is signed in' })
+        }
         this.onUnauthorized?.()
         toast.error('Your session has timed out.  Rerouting to login page.')
         window.location.reload()
@@ -1169,7 +1443,7 @@ export class TabletopApi {
     }
 }
 
-type VoteRoute = 'undo/open' | 'approve' | 'decline' | 'withdraw'
+type VoteRoute = 'undo/open' | 'call' | 'approve' | 'decline' | 'withdraw'
 
 export type TabletopApiPublic = Pick<TabletopApi, keyof TabletopApi>
 

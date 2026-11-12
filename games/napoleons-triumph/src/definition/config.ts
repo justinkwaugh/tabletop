@@ -50,7 +50,7 @@ export const NapoleonsTriumphGameConfigOptions: GameConfigOptions = [
         type: ConfigOptionType.Boolean,
         name: 'The Santon',
         description:
-            'The French fixed battery stands on the steep hill on their left, which gets its own rules for artillery',
+            'Use the optional Santon rules (Rule 18). The French still choose where their fixed battery sets up; if they put it on the Santon, it leads from reserve across any of its approaches',
         default: false
     }
 ]

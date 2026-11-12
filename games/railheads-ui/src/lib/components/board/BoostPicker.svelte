@@ -29,9 +29,9 @@
 </script>
 
 {#if center}
-    <polygon points={layout.hexPoints(center, layout.hexRadius - 5)} class="picked" />
+    <polygon points={layout.hexPoints(center, layout.hexRadius - 5)} class="picked"></polygon>
     <g transform="translate({center.x + layout.hexRadius + 6} {center.y - 30})">
-        <rect width={WIDTH} height="64" rx="8" class="card" />
+        <rect width={WIDTH} height="64" rx="8" class="card"></rect>
         {#each choices as choice, index (choice.boost)}
             <g
                 class="choice"
@@ -46,7 +46,7 @@
                     }
                 }}
             >
-                <rect width={WIDTH - 12} height="24" rx="12" />
+                <rect width={WIDTH - 12} height="24" rx="12"></rect>
                 <text x={(WIDTH - 12) / 2} y="16">{choice.label}</text>
             </g>
         {/each}

@@ -1,11 +1,7 @@
 <script lang="ts">
     import type { MoneyFormat } from '../presentation/money.js'
-    import {
-        type EarningsChoice,
-        type EarningsDetails,
-        type Owner,
-        type StockMarketChart
-    } from '@tabletop/18xx'
+    import { isTreasuryPayment, paymentsInDisplayOrder } from './earningsPayments.js'
+    import type { EarningsChoice, EarningsDetails, Owner, StockMarketChart } from '@tabletop/18xx'
     let {
         money,
         choice,
@@ -29,12 +25,6 @@
         onclick?: () => void
         disabled?: boolean
     } = $props()
-    function isTreasury(owner: Owner): boolean {
-        return owner.kind === 'company' && owner.companyId === companyId
-    }
-    function paymentOrder(owner: Owner): number {
-        return isTreasury(owner) ? 0 : owner.kind === 'player' ? 1 : 2
-    }
 </script>
 
 {#snippet content()}
@@ -62,9 +52,12 @@
         {#if details.bonusPerShare}<small>Includes {money(details.bonusPerShare)}/share bonus</small
             >{/if}
         {#if choice !== 'withhold'}<span class="payments">
-                {#each details.payments.toSorted((a, b) => paymentOrder(a.to) - paymentOrder(b.to)) as payment, i (i)}
+                {#each paymentsInDisplayOrder(details.payments, companyId) as payment, i (i)}
                     <span
-                        ><span>{isTreasury(payment.to) ? 'Treasury' : ownerName(payment.to)}</span
+                        ><span
+                            >{isTreasuryPayment(payment.to, companyId)
+                                ? 'Treasury'
+                                : ownerName(payment.to)}</span
                         ><b>{money(payment.amount)}</b></span
                     >
                 {/each}

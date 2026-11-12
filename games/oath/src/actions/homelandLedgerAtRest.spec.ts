@@ -36,15 +36,45 @@ const PAWN: CampaignTarget = { kind: CampaignTargetKind.PawnAndFavor }
 function board(revision: OathRevision) {
     return testState(
         withChancellor([
-            testPlayer({ playerId: DANA, color: Color.Red, siteId: 'c1', favor: 4, secrets: 2, supply: 6, warbandsOnBoard: { [DANA]: 6 } }),
-            testPlayer({ playerId: RHYS, color: Color.Blue, siteId: 'c1', favor: 3, secrets: 2, supply: 0, warbandsOnBoard: { [RHYS]: 4 }, advisers: [adviser(SNEAK_ATTACK)] }),
-            testPlayer({ playerId: ANN, color: Color.Yellow, siteId: 'p1', favor: 0, supply: 6, warbandsOnBoard: { [ANN]: 2 }, warbandsInPersonalBank: { [ANN]: 12 } })
+            testPlayer({
+                playerId: DANA,
+                color: Color.Red,
+                siteId: 'c1',
+                favor: 4,
+                secrets: 2,
+                supply: 6,
+                warbandsOnBoard: { [DANA]: 6 }
+            }),
+            testPlayer({
+                playerId: RHYS,
+                color: Color.Blue,
+                siteId: 'c1',
+                favor: 3,
+                secrets: 2,
+                supply: 0,
+                warbandsOnBoard: { [RHYS]: 4 },
+                advisers: [adviser(SNEAK_ATTACK)]
+            }),
+            testPlayer({
+                playerId: ANN,
+                color: Color.Yellow,
+                siteId: 'p1',
+                favor: 0,
+                supply: 6,
+                warbandsOnBoard: { [ANN]: 2 },
+                warbandsInPersonalBank: { [ANN]: 12 }
+            })
         ]),
         {
             oathRevision: revision,
             denizensBySite: { c1: [], c2: [LANCERS], p1: [] },
             warbandsBySite: { c2: { [RHYS]: 2 } },
-            siteCards: { c1: 'site.plains', c2: 'site.steppe', p1: 'site.mountain', p2: 'site.river' }
+            siteCards: {
+                c1: 'site.plains',
+                c2: 'site.steppe',
+                p1: 'site.mountain',
+                p2: 'site.river'
+            }
         }
     )
 }
@@ -58,21 +88,42 @@ class Table {
 
     constructor(s: HydratedOathGameState) {
         this.state = s.dehydrate()
-        this.state.turnManager = { series: [{ type: 'turn', playerId: DANA, start: 0 }], turnOrder: [DANA, RHYS, ANN], turnCounts: { [DANA]: 1, [RHYS]: 1, [ANN]: 1 } }
+        this.state.turnManager = {
+            series: [{ type: 'turn', playerId: DANA, start: 0 }],
+            turnOrder: [DANA, RHYS, ANN],
+            turnCounts: { [DANA]: 1, [RHYS]: 1, [ANN]: 1 }
+        }
         this.state.activePlayerIds = [DANA]
     }
 
     run(fields: { type: ActionType; playerId: string } & Record<string, unknown>) {
-        const action: GameAction = { id: `ledger-${(this.seq += 1)}`, gameId: 'game-1', source: ActionSource.User, index: this.state.actionCount, ...fields }
+        const action: GameAction = {
+            id: `ledger-${(this.seq += 1)}`,
+            gameId: 'game-1',
+            source: ActionSource.User,
+            index: this.state.actionCount,
+            ...fields
+        }
         this.state = engine.run(action, this.state, game).updatedState
         return this
     }
 
     /** No attack dice make a certain defeat (R-5.5.5.b). */
     campaignAndLose(playerId: string, defender: string, plans: string[] = []) {
-        this.run({ type: ActionType.Campaign, playerId, defender: { kind: 'player', playerId: defender }, targets: [PAWN], attackDice: 0, plans: plans.map(battlePlanUse) })
-        if (this.state.machineState === MachineState.CampaignPlans) this.run({ type: ActionType.CampaignDefend, playerId: defender, plans: [] })
-        const defeatKills = HydratedCampaignSacrifice.attackerDefeatKills(new HydratedOathGameState(this.state), 0)
+        this.run({
+            type: ActionType.Campaign,
+            playerId,
+            defender: { kind: 'player', playerId: defender },
+            targets: [PAWN],
+            attackDice: 0,
+            plans: plans.map(battlePlanUse)
+        })
+        if (this.state.machineState === MachineState.CampaignPlans)
+            this.run({ type: ActionType.CampaignDefend, playerId: defender, plans: [] })
+        const defeatKills = HydratedCampaignSacrifice.attackerDefeatKills(
+            new HydratedOathGameState(this.state),
+            0
+        )
         return this.run({ type: ActionType.CampaignSacrifice, playerId, sacrifice: 0, defeatKills })
     }
 }
@@ -92,7 +143,8 @@ function afterSneakAttack(revision: OathRevision) {
     return s
 }
 
-const rest = (s: HydratedOathGameState, playerId: string) => new HydratedCompleteRest(buildAction(CompleteRest, { playerId })).apply(s)
+const rest = (s: HydratedOathGameState, playerId: string) =>
+    new HydratedCompleteRest(buildAction(CompleteRest, { playerId })).apply(s)
 
 /** Rhys's own turn, at the Steppe, plays a Nomad card there. */
 function rhysPlaysToTheSteppe(s: HydratedOathGameState) {
@@ -108,7 +160,10 @@ describe('a Homeland ledger entry lasts the turn in play (R-11.2: "during this t
         const s = afterSneakAttack(OathRevision.EngineFixes12)
         rest(s, DANA)
         expect(s.getPlayerState(RHYS).homelandUsedThisTurn).toEqual([])
-        expect(rhysPlaysToTheSteppe(s)).toEqual({ sitePower: 'Steppe (Homeland): gained a secret', gained: 1 })
+        expect(rhysPlaysToTheSteppe(s)).toEqual({
+            sitePower: 'Steppe (Homeland): gained a secret',
+            gained: 1
+        })
     })
 
     it("the turn holder's own entry still bars their gain for the rest of their turn, and is cleared at their Rest", () => {
@@ -129,7 +184,9 @@ describe('a Homeland ledger entry lasts the turn in play (R-11.2: "during this t
         playCard(s, DANA, 'denizen.discord.salt-the-earth', SearchPlay.Site, Region.Cradle)
         expect(s.denizensAt('c2')).not.toContain(LANCERS)
         expect(s.getPlayerState(DANA).homelandUsedThisTurn).toEqual([STEPPE_NOMAD])
-        expect(playCard(s, DANA, STORM_CALLER, SearchPlay.Site, Region.Cradle).sitePower).toMatch(/^Steppe: no Homeland gain/)
+        expect(playCard(s, DANA, STORM_CALLER, SearchPlay.Site, Region.Cradle).sitePower).toMatch(
+            /^Steppe: no Homeland gain/
+        )
         rest(s, DANA)
         expect(s.getPlayerState(DANA).homelandUsedThisTurn).toEqual([])
     })

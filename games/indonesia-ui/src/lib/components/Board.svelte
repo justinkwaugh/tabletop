@@ -157,9 +157,9 @@
                 <BoardActionAreasLayer />
                 <BoardCitiesLayer demandViewMode={cityDemandViewMode} />
                 <BoardTurnOrderLayer
-                    selectedPlayerId={
-                        gameSession.researchSelectionEnabled ? gameSession.selectedResearchPlayerId : null
-                    }
+                    selectedPlayerId={gameSession.researchSelectionEnabled
+                        ? gameSession.selectedResearchPlayerId
+                        : null}
                     selectable={gameSession.researchSelectionEnabled}
                     onHoverPlayer={(playerId) => {
                         hoveredTurnOrderPlayerId = playerId
@@ -169,16 +169,20 @@
                     }}
                 />
                 <BoardResearchLayer
-                    selectedPlayerId={
-                        gameSession.researchSelectionEnabled ? gameSession.selectedResearchPlayerId : null
-                    }
+                    selectedPlayerId={gameSession.researchSelectionEnabled
+                        ? gameSession.selectedResearchPlayerId
+                        : null}
                     currentPlayerId={gameSession.currentResearchPlayerId}
                     hoveredPlayerId={hoveredTurnOrderPlayerId}
                 />
             {/if}
         </svg>
         {#if debugOverlayEnabled}
-            <BoardDebugOverlay width={BOARD_WIDTH} height={BOARD_HEIGHT} bind:active={debugOverlayActive} />
+            <BoardDebugOverlay
+                width={BOARD_WIDTH}
+                height={BOARD_HEIGHT}
+                bind:active={debugOverlayActive}
+            />
         {/if}
     </div>
     <AvailableDeedsRow />

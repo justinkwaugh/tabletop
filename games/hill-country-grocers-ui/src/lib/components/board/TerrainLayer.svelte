@@ -48,7 +48,6 @@
         }
     })
 
-
     const HILLS: ContourHill[] = [
         { x: 110, y: 120, rx: 170, ry: 95, seed: 0.4 },
         { x: 520, y: 60, rx: 240, ry: 85, seed: 1.7 },
@@ -91,8 +90,8 @@
 
 <defs>
     <radialGradient id="hcg-paper-age" cx="0.5" cy="0.45" r="0.75">
-        <stop offset="0.55" stop-color="#8a6a32" stop-opacity="0" />
-        <stop offset="1" stop-color="#8a6a32" stop-opacity="0.32" />
+        <stop offset="0.55" stop-color="#8a6a32" stop-opacity="0"></stop>
+        <stop offset="1" stop-color="#8a6a32" stop-opacity="0.32"></stop>
     </radialGradient>
     <!-- Pre-rendered noise (scripts/generate-images.mjs): live noise made WebKit's redraws too slow. -->
     <pattern
@@ -106,12 +105,12 @@
             width={PAPER_GRAIN_SIZE}
             height={PAPER_GRAIN_SIZE}
             preserveAspectRatio="none"
-        />
+        ></image>
     </pattern>
     <radialGradient id="hcg-tile-shade">
-        <stop offset="0" stop-color="#fffbe8" stop-opacity="0.22" />
-        <stop offset="0.7" stop-color="#fffbe8" stop-opacity="0" />
-        <stop offset="1" stop-color="#4a3a14" stop-opacity="0.18" />
+        <stop offset="0" stop-color="#fffbe8" stop-opacity="0.22"></stop>
+        <stop offset="0.7" stop-color="#fffbe8" stop-opacity="0"></stop>
+        <stop offset="1" stop-color="#4a3a14" stop-opacity="0.18"></stop>
     </radialGradient>
     <clipPath id="hcg-map-clip">
         <rect
@@ -120,33 +119,41 @@
             width={SHEET_RECT.width}
             height={SHEET_RECT.height}
             rx={SHEET_CORNER}
-        />
+        ></rect>
     </clipPath>
 </defs>
 
 <g clip-path="url(#hcg-map-clip)" aria-hidden="true">
-    <rect x={SHEET_RECT.x} y={SHEET_RECT.y} width={SHEET_RECT.width} height={SHEET_RECT.height} class="paper" />
+    <rect
+        x={SHEET_RECT.x}
+        y={SHEET_RECT.y}
+        width={SHEET_RECT.width}
+        height={SHEET_RECT.height}
+        class="paper"
+    ></rect>
     <rect
         x={SHEET_RECT.x}
         y={SHEET_RECT.y}
         width={SHEET_RECT.width}
         height={SHEET_RECT.height}
         fill="url(#hcg-paper-grain)"
-    />
+    ></rect>
     {#each meridians as x (x)}
-        <line x1={x} y1={SHEET_RECT.y} x2={x} y2={MAP_RECT.y + MAP_RECT.height} class="graticule" />
+        <line x1={x} y1={SHEET_RECT.y} x2={x} y2={MAP_RECT.y + MAP_RECT.height} class="graticule"
+        ></line>
     {/each}
     {#each parallels as y (y)}
-        <line x1={MAP_RECT.x} y1={y} x2={MAP_RECT.x + MAP_RECT.width} y2={y} class="graticule" />
+        <line x1={MAP_RECT.x} y1={y} x2={MAP_RECT.x + MAP_RECT.width} y2={y} class="graticule"
+        ></line>
     {/each}
     <g transform="translate({MAP_RECT.x} {MAP_RECT.y})">
         {#each HILLS as hill (hill.seed)}
             {#each CONTOUR_RINGS as ring, index (ring)}
-                <path d={contourPath(hill, ring)} class="contour" class:index={index === 0} />
+                <path d={contourPath(hill, ring)} class="contour" class:index={index === 0}></path>
             {/each}
         {/each}
         {#each COUNTY_LINES as line (line)}
-            <path d={line} class="county" />
+            <path d={line} class="county"></path>
         {/each}
     </g>
     <rect
@@ -155,22 +162,25 @@
         width={SHEET_RECT.width}
         height={SHEET_RECT.height}
         fill="url(#hcg-paper-age)"
-    />
+    ></rect>
 
     {#each tiles as tile (tile.key)}
         <polygon
             points={hexPoints(
-                { x: tile.center.x + TILE_SHADOW_OFFSET.x, y: tile.center.y + TILE_SHADOW_OFFSET.y },
+                {
+                    x: tile.center.x + TILE_SHADOW_OFFSET.x,
+                    y: tile.center.y + TILE_SHADOW_OFFSET.y
+                },
                 71
             )}
             class="tile-shadow"
-        />
+        ></polygon>
     {/each}
 
     {#each tiles as tile (tile.key)}
         <g transform="translate({tile.center.x} {tile.center.y})">
-            <polygon points={hexPoints({ x: 0, y: 0 }, 71)} fill={tile.fill} />
-            <polygon points={hexPoints({ x: 0, y: 0 }, 71)} fill="url(#hcg-tile-shade)" />
+            <polygon points={hexPoints({ x: 0, y: 0 }, 71)} fill={tile.fill}></polygon>
+            <polygon points={hexPoints({ x: 0, y: 0 }, 71)} fill="url(#hcg-tile-shade)"></polygon>
         </g>
     {/each}
 
@@ -179,53 +189,67 @@
             {#if tile.decoration === 'oaks'}
                 <g transform="scale({tile.flip} 1)">
                     {#each OAKS as oak (oak.x)}
-                        <ellipse {...groundShadow(oak)} class="oak-shadow" />
-                        <path d={trunkPath(oak)} class="trunk" />
+                        <ellipse {...groundShadow(oak)} class="oak-shadow"></ellipse>
+                        <path d={trunkPath(oak)} class="trunk"></path>
                         {#each CROWN_LAYERS_BOTTOM_UP as layer (layer)}
                             <g class={layer}>
                                 {#each crownLobes(oak) as lobe, index (index)}
-                                    <ellipse {...lobe} />
+                                    <ellipse {...lobe}></ellipse>
                                 {/each}
                             </g>
                         {/each}
                         {#each crownHighlights(oak) as highlight, index (index)}
-                            <ellipse {...highlight} class="canopy-light" />
+                            <ellipse {...highlight} class="canopy-light"></ellipse>
                         {/each}
                     {/each}
                 </g>
             {:else if tile.decoration === 'bluebonnets'}
                 <g transform="scale({tile.flip} 1)">
                     {#each [[-34, -34], [-28, -40], [-22, -33], [-16, -41], [-10, -35], [-4, -42], [2, -36], [8, -40]] as [bx, by] (`${bx},${by}`)}
-                        <line x1={bx} y1={by + 6} x2={bx} y2={by + 1} class="stem" />
-                        <ellipse cx={bx} cy={by} rx="2.4" ry="3.6" class="bloom" />
-                        <circle cx={bx} cy={by - 2.6} r="1.1" class="bloom-tip" />
+                        <line x1={bx} y1={by + 6} x2={bx} y2={by + 1} class="stem"></line>
+                        <ellipse cx={bx} cy={by} rx="2.4" ry="3.6" class="bloom"></ellipse>
+                        <circle cx={bx} cy={by - 2.6} r="1.1" class="bloom-tip"></circle>
                     {/each}
                 </g>
             {:else if tile.decoration === 'limestone'}
                 <g transform="scale({tile.flip} 1)">
-                    <ellipse cx="-22" cy="-36" rx="14" ry="7" class="rock" />
-                    <ellipse cx="-6" cy="-40" rx="9" ry="5" class="rock" />
-                    <ellipse cx="-24" cy="-38.5" rx="9" ry="3" class="rock-light" />
+                    <ellipse cx="-22" cy="-36" rx="14" ry="7" class="rock"></ellipse>
+                    <ellipse cx="-6" cy="-40" rx="9" ry="5" class="rock"></ellipse>
+                    <ellipse cx="-24" cy="-38.5" rx="9" ry="3" class="rock-light"></ellipse>
                 </g>
             {:else if tile.decoration === 'cactus'}
                 <g transform="scale({tile.flip} 1)">
-                    <ellipse cx="-24" cy="-34" rx="7" ry="10" class="cactus" />
-                    <ellipse cx="-16" cy="-44" rx="5.5" ry="7.5" class="cactus" transform="rotate(25 -16 -44)" />
-                    <ellipse cx="-31" cy="-44" rx="5" ry="7" class="cactus" transform="rotate(-25 -31 -44)" />
-                    <circle cx="-16" cy="-51" r="2" class="cactus-flower" />
+                    <ellipse cx="-24" cy="-34" rx="7" ry="10" class="cactus"></ellipse>
+                    <ellipse
+                        cx="-16"
+                        cy="-44"
+                        rx="5.5"
+                        ry="7.5"
+                        class="cactus"
+                        transform="rotate(25 -16 -44)"
+                    ></ellipse>
+                    <ellipse
+                        cx="-31"
+                        cy="-44"
+                        rx="5"
+                        ry="7"
+                        class="cactus"
+                        transform="rotate(-25 -31 -44)"
+                    ></ellipse>
+                    <circle cx="-16" cy="-51" r="2" class="cactus-flower"></circle>
                 </g>
             {/if}
             {#if tile.grass}
                 <g transform="translate({28 * tile.flip} 44)" class="grass">
-                    <path d="M -8 0 q 2 -8 4 -10 M -3 0 q 1 -9 0 -12 M 2 0 q 1 -7 5 -9 M 6 0 q 2 -6 6 -7" />
+                    <path
+                        d="M -8 0 q 2 -8 4 -10 M -3 0 q 1 -9 0 -12 M 2 0 q 1 -7 5 -9 M 6 0 q 2 -6 6 -7"
+                    ></path>
                 </g>
             {/if}
-            <polygon points={hexPoints({ x: 0, y: 0 }, 71)} class="tile-edge" />
+            <polygon points={hexPoints({ x: 0, y: 0 }, 71)} class="tile-edge"></polygon>
         </g>
     {/each}
-
 </g>
-
 
 <image
     href={hcgLogo}
@@ -234,7 +258,7 @@
     width={logo.width}
     height={logo.height}
     aria-label="Hill Country Grocers"
-/>
+></image>
 
 <rect
     x={SHEET_RECT.x}
@@ -243,7 +267,7 @@
     height={SHEET_RECT.height}
     rx={SHEET_CORNER}
     class="map-frame"
-/>
+></rect>
 
 <style>
     .paper {
@@ -356,18 +380,6 @@
         stroke-width: 1.4;
         stroke-linecap: round;
     }
-
-
-
-
-
-
-
-
-
-
-
-
 
     .map-frame {
         fill: none;

@@ -1,4 +1,5 @@
 import type { Point } from '@tabletop/common'
+import { BLOCK_SYMBOL_WIDTH, faceWidth } from './faceLayout.js'
 import { cornersOf } from './orientedBox.js'
 
 export const BLOCK_LENGTH = 104
@@ -41,6 +42,15 @@ export function blockOutline(block: BlockFootprint): Point[] {
     })
 }
 
+export function faceOutline(block: BlockFootprint, strength: number): Point[] {
+    return cornersOf({
+        centre: block.centre,
+        along: axesOf(block).along,
+        halfLength: faceWidth(strength, BLOCK_SYMBOL_WIDTH) / 2,
+        halfWidth: BLOCK_THICKNESS / 2
+    })
+}
+
 export function blockSamples(block: BlockFootprint): Point[] {
     const count = Math.ceil(BLOCK_LENGTH / SAMPLE_STEP)
     return Array.from(
@@ -65,11 +75,4 @@ export function coveredBy(
                 Math.abs(x * across.x + y * across.y) <= halfThickness
             )
         })
-}
-
-export function topmostAt<Block extends BlockFootprint>(
-    blocksInDrawingOrder: readonly Block[],
-    point: Point
-): Block | undefined {
-    return blocksInDrawingOrder.findLast((block) => coveredBy([block])(point))
 }

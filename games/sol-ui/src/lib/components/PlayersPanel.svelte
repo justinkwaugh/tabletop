@@ -2,7 +2,7 @@
     import type { Player } from '@tabletop/common'
     import type { HydratedSolPlayerState, SolPlayerState } from '@tabletop/sol'
     import PlayerState from '$lib/components/PlayerState.svelte'
-import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
+    import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
     import { getGameSession } from '$lib/model/gameSessionContext.svelte.js'
 
     let gameSession = getGameSession() as SolGameSession
@@ -20,8 +20,8 @@ import type { SolGameSession } from '$lib/model/SolGameSession.svelte'
         const playersAndStatesById = new Map(
             playersAndStates.map((item) => [item.playerState.playerId, item])
         )
-        const turnOrderSorted = gameSession.gameState.turnManager.turnOrder.map(
-            (playerId) => playersAndStatesById.get(playerId)!
+        const turnOrderSorted = gameSession.gameState.turnManager.turnOrder.map((playerId) =>
+            playersAndStatesById.get(playerId)!
         ) as PlayerAndState[]
 
         // if not hotseat, rotate until user player is at top

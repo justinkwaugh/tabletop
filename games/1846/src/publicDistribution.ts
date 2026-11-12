@@ -3,7 +3,6 @@ import { Compile } from 'typebox/compile'
 import {
     ActionSource,
     GameAction,
-    PlayerAction,
     HydratableAction,
     assert,
     assertExists,
@@ -15,7 +14,8 @@ import {
     defineAction,
     finiteCashOwnedBy,
     roundEnd,
-    type ValuationRules
+    type ValuationRules,
+    EighteenXXPlayerAction
 } from '@tabletop/18xx'
 import { Purchase, Selection, type HydratedEighteenFortySixState } from './state.js'
 import { draftCompany } from './catalog.js'
@@ -85,7 +85,7 @@ function finishOpeningPurchase(
 
 export const BuyOpeningCompany = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('BuyOpeningCompany'),
         source: Type.Literal(ActionSource.User),
         companyId: Type.String(),
@@ -141,7 +141,7 @@ export class BuyOpeningCompanyAction extends HydratableAction<typeof BuyOpeningC
 
 export const PassOpeningPurchase = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXPlayerAction.properties,
         type: Type.Literal('PassOpeningPurchase'),
         source: Type.Literal(ActionSource.User),
         metadata: Type.Optional(

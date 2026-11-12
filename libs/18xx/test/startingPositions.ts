@@ -131,6 +131,16 @@ export function startingPositionTests<
         })
     })
 
+    const { minPlayers, maxPlayers } = definition.info.metadata
+    it.each(Array.from({ length: maxPlayers - minPlayers + 1 }, (_, index) => minPlayers + index))(
+        'starts a %i-player game with a colour for each player',
+        (count) => {
+            const colors = start(count).players.map((player) => player.color)
+            expect(new Set(colors).size).toBe(count)
+            expect(colors.every(Boolean)).toBe(true)
+        }
+    )
+
     it('rejects an assignment that does not seat every player once', () => {
         const count = playerCounts[0]
         const playerIds = Array.from({ length: count }, (_, index) => `p${index}`)

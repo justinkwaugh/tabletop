@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 import { copyFile, mkdir, readFile, utimes } from 'node:fs/promises'
 import path from 'node:path'
 import { LibraryService } from './libraryService.js'
@@ -25,6 +25,26 @@ async function fixture() {
     return { ...fixture, options }
 }
 
+// A library whose activation of logic 1.1.0 waits until the gate opens.
+async function gatedLibrary(f: Awaited<ReturnType<typeof fixture>>) {
+    const gate = Promise.withResolvers<void>()
+    const library = new LibraryService(RedisCacheService.prototype, {
+        ...f.options,
+        prepare: async (generation) => {
+            if (generation.publication.logicVersion === '1.1.0') await gate.promise
+        }
+    })
+    await library.getTitlesMap()
+    return { library, gate }
+}
+
+const titleLoads = (log: MockInstance<typeof console.log>) =>
+    log.mock.calls
+        .map(([line]) =>
+            typeof line === 'string' && line.startsWith('{') ? JSON.parse(line) : undefined
+        )
+        .filter((entry) => entry?.event === 'title_logic_load')
+
 const version = (library: LibraryService, titleId: string) =>
     library.getGeneration(titleId)?.definition.info.metadata.version
 
@@ -49,14 +69,7 @@ describe('Collectible title generations', () => {
 
     it('keeps serving the loaded titles until a queued activation completes', async () => {
         const f = await fixture()
-        const gate = Promise.withResolvers<void>()
-        const library = new LibraryService(RedisCacheService.prototype, {
-            ...f.options,
-            prepare: async (generation) => {
-                if (generation.publication.logicVersion === '1.1.0') await gate.promise
-            }
-        })
-        await library.getTitlesMap()
+        const { library, gate } = await gatedLibrary(f)
         await f.publish(f.manifest('1.1.0'))
         const manifest = await library.refreshManifest()
         expect(manifest.games[0].logicVersion).toBe('1.1.0')
@@ -67,6 +80,26 @@ describe('Collectible title generations', () => {
         gate.resolve()
         await library.activation()
         expect(version(library, f.titleId)).toBe('1.1.0')
+        expect((await library.getServedManifest()).games[0].logicVersion).toBe('1.1.0')
+    })
+
+    it('serves a new frontend version at once, while the titles trail an activation', async () => {
+        const f = await fixture()
+        const { library, gate } = await gatedLibrary(f)
+        const frontendOnly = f.manifest('1.0.0')
+        frontendOnly.frontend.version = '2.0.0'
+        await f.publish(frontendOnly)
+        await library.refreshManifest()
+        expect((await library.getServedManifest()).frontend.version).toBe('2.0.0')
+        const both = f.manifest('1.1.0')
+        both.frontend.version = '3.0.0'
+        await f.publish(both)
+        await library.refreshManifest()
+        const served = await library.getServedManifest()
+        expect(served.frontend.version).toBe('3.0.0')
+        expect(served.games[0].logicVersion).toBe('1.0.0')
+        gate.resolve()
+        await library.activation()
         expect((await library.getServedManifest()).games[0].logicVersion).toBe('1.1.0')
     })
 
@@ -129,6 +162,63 @@ describe('Collectible title generations', () => {
         expect((await fromSources.getTitle(f.titleId))?.info.metadata.version).toBe('2.0.1')
         expect(warn).toHaveBeenCalledWith(expect.stringContaining('no collectible factory'))
         expect(await readFile(bundle, 'utf8')).toContain('2.0.0')
+    })
+
+    it('wraps the load of each changed title while the previous generation serves', async () => {
+        const f = await fixture()
+        const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+        const servingDuringLoads: (string | undefined)[] = []
+        const library = new LibraryService(RedisCacheService.prototype, {
+            ...f.options,
+            whileLoadingTitle: (load) => {
+                servingDuringLoads.push(version(library, f.titleId))
+                return load()
+            }
+        })
+        await library.getTitlesMap()
+        await f.publish(f.manifest('1.1.0'))
+        await library.refreshAndActivate()
+        const uiOnly = f.manifest('1.1.0')
+        uiOnly.games[0].uiVersion = '1.2.0'
+        await f.publish(uiOnly)
+        await library.refreshAndActivate()
+        expect((await library.getServedManifest()).games[0].uiVersion).toBe('1.2.0')
+        expect(servingDuringLoads).toEqual([undefined, '1.0.0'])
+        expect(titleLoads(log).at(-1)).toEqual({
+            severity: 'INFO',
+            event: 'title_logic_load',
+            message: `Title logic loaded: ${f.titleId} 1.1.0`,
+            outcome: 'loaded',
+            titleId: f.titleId,
+            logicVersion: '1.1.0',
+            locateMs: expect.any(Number),
+            readMs: expect.any(Number),
+            bytes: (
+                await readFile(path.join(f.directory, 'synthetic', 'logic', '1.1.0', 'index.cjs'))
+            ).byteLength,
+            evaluateMs: expect.any(Number)
+        })
+    })
+
+    it('logs the timings of a load that fails', async () => {
+        const f = await fixture()
+        const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+        vi.spyOn(console, 'error').mockImplementation(() => {})
+        vi.spyOn(console, 'warn').mockImplementation(() => {})
+        const library = new LibraryService(RedisCacheService.prototype, f.options)
+        await library.getTitlesMap()
+        await f.publish(f.manifest('9.9.9'))
+        await expect(library.refreshAndActivate()).rejects.toThrow()
+        expect(titleLoads(log).at(-1)).toEqual({
+            severity: 'WARNING',
+            event: 'title_logic_load',
+            message: `Title logic failed: ${f.titleId} 9.9.9`,
+            outcome: 'failed',
+            titleId: f.titleId,
+            logicVersion: '9.9.9',
+            locateMs: expect.any(Number),
+            importMs: expect.any(Number)
+        })
     })
 
     it('does not reconstruct unchanged title code for UI-only publications', async () => {

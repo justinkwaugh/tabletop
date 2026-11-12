@@ -21,21 +21,22 @@ ends are recorded where the rounds end rather than recovered from earlier states
   shared helper for both.
 - **Round ends.** `RoundEnd` (`round: opening | stock | operating | title`, `playerNetWorth`) is recorded in
   the `metadata.roundEnd` of the Action that ends the round:
-  - family: `ResolveAuction` and `ResolveSelectionAuction` when the opening auction completes,
-    and `CompleteStockRound` after its market moves;
-  - an operating round's last turn: `FinishOperatingTurn` keeps its existing snapshot
-    (`complete`); every other Action that ends a turn records `operatingRoundEnd` when the turn
-    was the round's last: `GoBankrupt` and `DeclareBankruptcy` when they abandon a turn, 1832's
-    `CloseCompany` on the company's own turn, 1846's `SettleIndependent`, and 1846's
-    `CloseCorporation` on its own turn, which now ends that turn itself;
-  - 1846: `RevealDraft`, and `BuyOpeningCompany` or `PassOpeningPurchase` when the last opening
-    company is bought;
-  - 1817: `EndMergerRound` and `EndAcquisitionRound`; 1832: `CompleteMergerPhase`.
+    - family: `ResolveAuction` and `ResolveSelectionAuction` when the opening auction completes,
+      and `CompleteStockRound` after its market moves;
+    - an operating round's last turn: `FinishOperatingTurn` keeps its existing snapshot
+      (`complete`); every other Action that ends a turn records `operatingRoundEnd` when the turn
+      was the round's last: `GoBankrupt` and `DeclareBankruptcy` when they abandon a turn, 1832's
+      `CloseCompany` on the company's own turn, 1846's `SettleIndependent`, and 1846's
+      `CloseCorporation` on its own turn, which now ends that turn itself;
+    - 1846: `RevealDraft`, and `BuyOpeningCompany` or `PassOpeningPurchase` when the last opening
+      company is bought;
+    - 1817: `EndMergerRound` and `EndAcquisitionRound`; 1832: `CompleteMergerPhase`.
 
-  `recordedRoundEnd` reads the record from any Action, so a new title's round needs only to
-  record it. The UI names a title round as History does: by the presentation round whose `ends`
-  matches the Action, numbered by the stock round when it follows one and by the operating round
-  it is held in otherwise (1832's last merger phase follows a 6-train purchase mid-round).
+    `recordedRoundEnd` reads the record from any Action, so a new title's round needs only to
+    record it. The UI names a title round as History does: by the presentation round whose `ends`
+    matches the Action, numbered by the stock round when it follows one and by the operating round
+    it is held in otherwise (1832's last merger phase follows a 6-train purchase mid-round).
+
 - **Opening operating rounds.** Operating rounds before the first stock round ends, as in 1846's
   two-player opening, belong to the opening and are not charted on their own.
 - **Start.** `EighteenXXTitleRules.startingCash({ playerCount, config })` is each player's cash

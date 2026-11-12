@@ -13,7 +13,9 @@ before(async () => {
     css = (await postcss([tailwind()]).process(await readFile(file, 'utf8'), { from: file })).css
     browser = await chromium.launch({ headless: true, args: ['--disable-gpu'] })
 })
-after(async () => { await browser?.close() })
+after(async () => {
+    await browser?.close()
+})
 
 for (const width of [1280, 390]) {
     for (const banner of [0, 48]) {
@@ -21,7 +23,9 @@ for (const width of [1280, 390]) {
             const page = await browser.newPage({ viewport: { width, height: 900 } })
             // Assemble legacy utilities so Tailwind's test-file scan cannot accidentally supply them.
             const desktop = ['sm', 'h-[calc(100dvh-16px-var(--app-shell-height))]'].join(':')
-            const mobile = ['max-sm', 'h-[calc(100dvh-16px-44px-var(--app-shell-height))]'].join(':')
+            const mobile = ['max-sm', 'h-[calc(100dvh-16px-44px-var(--app-shell-height))]'].join(
+                ':'
+            )
             try {
                 await page.setContent(`<style>${css}</style>
                     <div class="flex flex-col overflow-auto ${desktop} ${mobile}"
@@ -35,9 +39,13 @@ for (const width of [1280, 390]) {
                             </div>
                         </div>
                     </div>`)
-                const height = await page.locator('#board').evaluate((element) => element.getBoundingClientRect().height)
+                const height = await page
+                    .locator('#board')
+                    .evaluate((element) => element.getBoundingClientRect().height)
                 assert.equal(height, 900 - 16 - 60 - banner - 180 - (width < 640 ? 44 : 0))
-            } finally { await page.close() }
+            } finally {
+                await page.close()
+            }
         })
     }
 }

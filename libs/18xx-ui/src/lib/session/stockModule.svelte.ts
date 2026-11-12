@@ -1,6 +1,7 @@
 import { assert, assertExists, type GameAction } from '@tabletop/common'
 import {
     BuyShares,
+    awardParSpaces,
     FinishStockTurn,
     OfferPrivatePurchase,
     ParCompany,
@@ -21,30 +22,53 @@ import {
     privateSaleChoices,
     privateSaleOfferReason,
     suggestedPrivateSalePrice,
+    sameCenter,
     sameOwner,
     sharesOwned,
     type CompanyStartRequest,
     type EighteenXXState,
+    type HomePosition,
+    type StartHome,
     type EighteenXXTitleRules,
     type Owner,
     type PurchaseRequest,
     type SaleRequest,
+    type StationReservation,
     type ShareSale,
+    type ShareSaleDetails,
+    type ShareCertificate,
+    type SharePurchaseDetails,
     type ValuationRules,
-    companyShareCount
+    companyShareCount,
+    stationReservation
 } from '@tabletop/18xx'
 import {
     StockActionStageOrder,
     type StockAction,
     type StockActionStages
 } from '../stock/stockActionSelection.js'
+import { distinctOwners, sameCertificateOffer } from '../stock/purchaseSources.js'
 import { CompanyStartStageOrder, type CompanyStartStages } from './companyStartSelection.js'
-import type { LocalSelection } from './localSelections.js'
+import type { LocalSelection } from '@tabletop/frontend-components'
 import type { ModuleSession } from './moduleSession.js'
 import { StagedSelection, singleChoice } from './stagedSelection.svelte.js'
 
 export type StockTrade =
     { kind: 'purchase'; request: PurchaseRequest } | { kind: 'sale'; request: SaleRequest }
+
+export type AvailablePurchase = {
+    certificate: ShareCertificate
+    request: PurchaseRequest
+    details: SharePurchaseDetails
+}
+export type CompanyShareOffer = { certificate: ShareCertificate; purchases: AvailablePurchase[] }
+export type CompanyShareSale = { request: SaleRequest; shares: number; proceeds: number }
+export type CompanyShareSales = { seller: Owner; sales: CompanyShareSale[] }
+export type CompanyTrades = {
+    buyers: Owner[]
+    offers: CompanyShareOffer[]
+    sales: CompanyShareSales[]
+}
 
 type StockState = Parameters<typeof evaluateCompanyStart>[0] &
     Parameters<typeof evaluateSharePurchase>[0] &
@@ -68,8 +92,7 @@ export class StockModule implements LocalSelection {
     constructor(
         private readonly session: StockSession,
         private readonly onCancel: () => void,
-        private readonly exchangeAvailable: () => boolean = () => false,
-        private readonly additionalMenuCount: () => number = () => 0
+        private readonly exchangeAvailable: () => boolean = () => false
     ) {}
 
     private trading = $derived.by(
@@ -93,20 +116,9 @@ export class StockModule implements LocalSelection {
         if (this.privateChoices.length) choices.push({ menu: 'privates' })
         return choices
     })
-    private menuSelection = $derived.by(() => {
-        if (!this.trading) return undefined
-        const selected = this.menu.entry('action')
-        if (selected) return selected
-        if (
-            !this.session.interactive ||
-            !this.session.playerId ||
-            !this.session.state.activePlayerIds.includes(this.session.playerId) ||
-            this.additionalMenuCount() ||
-            this.availableMenus.length !== 1
-        )
-            return undefined
-        return { value: this.availableMenus[0], source: 'auto' as const }
-    })
+    private menuSelection = $derived.by(() =>
+        this.trading ? this.menu.entry('action') : undefined
+    )
     openMenu = $derived.by(() => this.menuSelection?.value.menu)
     menuBuyer = $derived.by(() => this.menuSelection?.value.buyer)
     selectedSaleCompany = $derived.by(() => this.menu.value('saleCompany'))
@@ -131,6 +143,25 @@ export class StockModule implements LocalSelection {
         () => this.trading && this.auctionsCompanies && this.unstartedCompanies().length > 0
     )
 
+    private startHomes(companyId: string, marketSpaceId: string): StartHome[] | undefined {
+        return this.session.rules.companyRules.startHomes?.(
+            this.session.state,
+            companyId,
+            marketSpaceId
+        )
+    }
+    /**
+     * The home a start at this price would use: the chosen one, or before a choice the cheapest,
+     * so a price is offered when some home makes it possible.
+     */
+    private startHome(companyId: string, marketSpaceId: string): HomePosition | undefined {
+        const homes = this.startHomes(companyId, marketSpaceId)
+        if (!homes) return undefined
+        const chosen = this.selectedStartHome
+        if (chosen && this.selectedStartCompany?.companyId === companyId) return chosen
+        const cheapest = homes.toSorted((a, b) => a.cost - b.cost)[0]
+        return cheapest ? { locationId: cheapest.locationId, nodeId: cheapest.nodeId } : undefined
+    }
     startChoices = $derived.by(() => {
         const { state, rules, playerId } = this.session
         if (!playerId || !this.trading || state.stockRound.turn.bought) return []
@@ -140,15 +171,18 @@ export class StockModule implements LocalSelection {
                     const request = { playerId, buyer, companyId: company.id }
                     const prices = rules.companyRules
                         .startMarketSpaces(state, company.id)
-                        .map((marketSpaceId) => ({
-                            marketSpaceId,
-                            result: evaluateCompanyStart(
-                                state,
-                                { ...request, marketSpaceId },
-                                rules.stockRules,
-                                rules.companyRules
-                            )
-                        }))
+                        .map((marketSpaceId) => {
+                            const home = this.startHome(company.id, marketSpaceId)
+                            return {
+                                marketSpaceId,
+                                result: evaluateCompanyStart(
+                                    state,
+                                    { ...request, marketSpaceId, ...(home ? { home } : {}) },
+                                    rules.stockRules,
+                                    rules.companyRules
+                                )
+                            }
+                        })
                     return { request, prices }
                 })
                 .filter((choice) => choice.prices.length > 0)
@@ -157,10 +191,43 @@ export class StockModule implements LocalSelection {
     selectedStartCompany = $derived.by(() =>
         this.session.selectionsVisible ? this.start.value('company') : undefined
     )
+    selectedStartHome = $derived.by(() =>
+        this.session.selectionsVisible ? this.start.value('home') : undefined
+    )
+    /** Every city offered for the chosen company's home, at any of its prices. */
+    private offeredStartHomes = $derived.by((): StartHome[] => {
+        const company = this.selectedStartCompany
+        if (!company || !this.trading) return []
+        const homes: StartHome[] = []
+        for (const marketSpaceId of this.session.rules.companyRules.startMarketSpaces(
+            this.session.state,
+            company.companyId
+        ))
+            for (const home of this.startHomes(company.companyId, marketSpaceId) ?? [])
+                if (!homes.some((entry) => sameCenter(entry, home))) homes.push(home)
+        return homes
+    })
+    /** The cities offered on the map for the chosen company's home, until one is chosen. */
+    homePositions = $derived.by(() => (this.selectedStartHome ? [] : this.offeredStartHomes))
+    /** Whether the chosen company still needs its home before its price. */
+    awaitingStartHome = $derived.by(() => this.homePositions.length > 0)
+    chosenHome = $derived.by((): StationReservation | undefined =>
+        this.selectedStartCompany && this.selectedStartHome
+            ? stationReservation(this.selectedStartCompany.companyId, this.selectedStartHome)
+            : undefined
+    )
+    /** The chosen home and what it costs its company. */
+    selectedStartHomeChoice = $derived.by(() => {
+        const home = this.selectedStartHome
+        return home ? this.offeredStartHomes.find((entry) => sameCenter(entry, home)) : undefined
+    })
     private selectedStartRequest = $derived.by((): CompanyStartRequest | undefined => {
         const company = this.selectedStartCompany
         const marketSpaceId = this.start.value('marketSpaceId')
-        return company && marketSpaceId ? { ...company, marketSpaceId } : undefined
+        const home = this.selectedStartHome
+        return company && marketSpaceId
+            ? { ...company, marketSpaceId, ...(home ? { home } : {}) }
+            : undefined
     })
     selectedStartPrices = $derived.by(() => {
         const company = this.selectedStartCompany
@@ -189,8 +256,9 @@ export class StockModule implements LocalSelection {
     )
     parSpaceIds = $derived.by(() =>
         this.session.state.pendingPar
-            ? this.session.rules.companyRules.startMarketSpaces(
+            ? awardParSpaces(
                   this.session.state,
+                  this.session.rules.companyRules,
                   this.session.state.pendingPar.companyId
               )
             : []
@@ -342,6 +410,14 @@ export class StockModule implements LocalSelection {
         this.start.clear()
         this.start.choose('company', request)
     }
+    chooseHome(home: HomePosition) {
+        this.assertAvailable(this.session.playerId)
+        assert(
+            this.homePositions.some((position) => sameCenter(position, home)),
+            'Choose an offered home city'
+        )
+        this.start.choose('home', { locationId: home.locationId, nodeId: home.nodeId })
+    }
     selectStartPrice(marketSpaceId: string) {
         this.assertAvailable(this.session.playerId)
         assert(this.start.value('company'), 'Choose a company before its starting price')
@@ -389,28 +465,123 @@ export class StockModule implements LocalSelection {
                 buyer: details.buyer,
                 companyId: details.companyId,
                 marketSpaceId: details.marketSpaceId,
-                expectedPrice: details.price
+                expectedPrice: details.price,
+                ...(details.home
+                    ? {
+                          home: {
+                              locationId: details.home.position.locationId,
+                              nodeId: details.home.position.nodeId
+                          }
+                      }
+                    : {})
             })
         )
+    }
+    /** One purchase per buyer of each distinct certificate offer and price. */
+    availablePurchases = $derived.by(() => {
+        const purchases: AvailablePurchase[] = []
+        for (const { certificate, request, result } of this.purchaseChoices) {
+            if (certificate.kind !== 'share' || !result.details) continue
+            const details = result.details
+            if (
+                !purchases.some(
+                    (purchase) =>
+                        sameOwner(purchase.request.buyer, request.buyer) &&
+                        sameCertificateOffer(purchase.certificate, certificate) &&
+                        purchase.details.price === details.price
+                )
+            )
+                purchases.push({ certificate, request, details })
+        }
+        return purchases
+    })
+    companyTrades(companyId: string): CompanyTrades {
+        if (!this.session.interactive) return { buyers: [], offers: [], sales: [] }
+        const offers = this.companyShareOffers(companyId)
+        return {
+            buyers: distinctOwners(
+                offers.flatMap((offer) => offer.purchases.map((purchase) => purchase.request.buyer))
+            ),
+            offers,
+            sales: this.companyShareSales(companyId)
+        }
+    }
+    private companyShareOffers(companyId: string): CompanyShareOffer[] {
+        const offers: CompanyShareOffer[] = []
+        for (const purchase of this.availablePurchases) {
+            if (purchase.certificate.companyId !== companyId) continue
+            const offer = offers.find((candidate) =>
+                sameCertificateOffer(candidate.certificate, purchase.certificate)
+            )
+            if (!offer) offers.push({ certificate: purchase.certificate, purchases: [purchase] })
+            else if (
+                !offer.purchases.some((offered) =>
+                    sameOwner(offered.request.buyer, purchase.request.buyer)
+                )
+            )
+                offer.purchases.push(purchase)
+        }
+        return offers
+    }
+    private companyShareSales(companyId: string): CompanyShareSales[] {
+        const groups: CompanyShareSales[] = []
+        for (const { sale, request, result } of this.saleChoices) {
+            if (sale.companyId !== companyId || !result.details) continue
+            const entry = { request, shares: sale.shares, proceeds: result.details.proceeds }
+            const group = groups.find((candidate) => sameOwner(candidate.seller, request.seller))
+            if (group) group.sales.push(entry)
+            else groups.push({ seller: request.seller, sales: [entry] })
+        }
+        return groups
+    }
+    /** Buys at once, leaving the stock menu as it is. */
+    async buy(request: PurchaseRequest) {
+        this.assertAvailable(request.playerId)
+        const details = evaluateSharePurchase(
+            this.session.state,
+            request,
+            this.session.rules.stockRules
+        ).details
+        assertExists(details, 'Purchase is unavailable')
+        await this.session.applyAction(this.purchaseAction(details))
+    }
+    /** Sells at once, leaving the stock menu as it is. */
+    async sell(request: SaleRequest) {
+        this.assertAvailable(request.playerId)
+        const details = evaluateShareSale(
+            this.session.state,
+            request,
+            this.session.rules.stockRules
+        ).details
+        assertExists(details, 'Sale is unavailable')
+        await this.session.applyAction(this.saleAction(details))
+    }
+    async buyAndReopenMenu(request: PurchaseRequest) {
+        this.selectPurchase(request)
+        await this.confirmPurchase()
+    }
+    async sellAndReopenMenu(request: SaleRequest) {
+        this.selectSale(request)
+        await this.confirmSale()
     }
     async confirmPurchase() {
         this.assertAvailable(this.session.playerId)
         const details = this.selectedPurchaseDetails
         assertExists(details, 'Select an available purchase')
-        await this.applyAndContinue(
-            this.session.createPlayerAction(BuyShares, {
-                buyer: details.buyer,
-                certificateId: details.certificateId,
-                expectedPrice: details.price
-            }),
-            () =>
-                this.purchaseChoices.some(
-                    (choice) =>
-                        choice.result.details && sameOwner(choice.request.buyer, details.buyer)
-                )
-                    ? { menu: 'buy', buyer: details.buyer }
-                    : undefined
+        await this.applyAndContinue(this.purchaseAction(details), () =>
+            this.purchaseChoices.some(
+                (choice) => choice.result.details && sameOwner(choice.request.buyer, details.buyer)
+            )
+                ? { menu: 'buy', buyer: details.buyer }
+                : undefined
         )
+    }
+    private purchaseAction(details: SharePurchaseDetails) {
+        return this.session.createPlayerAction(BuyShares, {
+            buyer: details.buyer,
+            certificateId: details.certificateId,
+            expectedPrice: details.price
+        })
     }
     furtherPurchaseCompanyId = $derived.by(() => {
         const { state, playerId } = this.session
@@ -425,21 +596,20 @@ export class StockModule implements LocalSelection {
         this.assertAvailable(this.session.playerId)
         const details = this.selectedSaleResult?.details
         assertExists(details, 'Select an available sale')
+        await this.applyAndContinue(this.saleAction(details), () =>
+            this.saleChoices.some((choice) => choice.result.details) ? { menu: 'sell' } : undefined
+        )
+    }
+    private saleAction(details: ShareSaleDetails) {
         const sales: ShareSale[] = details.sales.map(({ companyId, shares }) => ({
             companyId,
             shares
         }))
-        await this.applyAndContinue(
-            this.session.createPlayerAction(SellShares, {
-                seller: details.seller,
-                sales,
-                expectedProceeds: details.proceeds
-            }),
-            () =>
-                this.saleChoices.some((choice) => choice.result.details)
-                    ? { menu: 'sell' }
-                    : undefined
-        )
+        return this.session.createPlayerAction(SellShares, {
+            seller: details.seller,
+            sales,
+            expectedProceeds: details.proceeds
+        })
     }
     private async applyAndContinue(
         action: GameAction,

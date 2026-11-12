@@ -1,15 +1,18 @@
 <script lang="ts">
     import type { MoneyFormat } from '../presentation/money.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
-    import TrainBadge from '../trains/TrainBadge.svelte'
     import type { StationAppearance } from '../maps/stationPresentation.js'
+    import PlaceText from '../places/PlaceText.svelte'
+    import PhaseText from '../phases/PhaseText.svelte'
+    import { ArtworkLoad } from '../presentation/artworkLoad.svelte.js'
+    import '../presentation/artworkStandIn.css'
     let {
         money,
         name,
         description,
         value,
         income,
-        token,
+        tokens = [],
         phaseColors = {},
         purchaseRange,
         imageUrl
@@ -19,24 +22,43 @@
         description: string
         value?: number
         income?: number
-        token?: StationAppearance
+        tokens?: readonly StationAppearance[]
         phaseColors?: Readonly<Record<string, string>>
         purchaseRange?: { minimum: number; maximum?: number }
-        /** Published card artwork; when present it replaces the generated card. */
+        /** Published card artwork; once it has loaded it replaces the generated card. */
         imageUrl?: string
     } = $props()
+    const artwork = new ArtworkLoad(() => imageUrl)
     const paragraphs = $derived(description.split('\n\n'))
-    const phaseReference = /\b(?:phases?|at)\s$/i
 </script>
 
-<div class="private-card" class:image={!!imageUrl} data-card-image={imageUrl ? true : undefined}>
+{#snippet phaseText(text: string)}<PhaseText {text} {phaseColors} />{/snippet}
+
+<div
+    class="private-card"
+    class:image={artwork.shown}
+    class:artwork-stand-in={artwork.standingIn}
+    data-card-image={imageUrl ? true : undefined}
+>
     {#if imageUrl}
-        <img src={imageUrl} alt={name} />
-    {:else}
+        <img
+            src={imageUrl}
+            alt={name}
+            hidden={!artwork.shown}
+            onload={artwork.markLoaded}
+            {@attach artwork.markLoadedIfCached}
+        />
+    {/if}
+    {#if !artwork.shown}
         <header>
             <div class="heading">
                 <h3>{name}</h3>
-                {#if token}<CompanyToken appearance={token} size={28} />{/if}
+                {#if tokens.length}<span class="tokens"
+                        >{#each tokens as token, index (index)}<CompanyToken
+                                appearance={token}
+                                size={28}
+                            />{/each}</span
+                    >{/if}
             </div>
             {#if value !== undefined || income !== undefined || purchaseRange}
                 <div class="values">
@@ -67,13 +89,7 @@
                 <p>
                     {#if paragraph.startsWith('**') && paragraph.endsWith('**')}<strong
                             class="intro">{paragraph.slice(2, -2)}</strong
-                        >{:else}{@const parts =
-                            paragraph.split(
-                                /(\b\d+(?:H|\+)?)/g
-                            )}{#each parts as part, partIndex (partIndex)}{#if phaseColors[part] && phaseReference.test(parts[partIndex - 1] ?? '')}<TrainBadge
-                                    name={part}
-                                    color={phaseColors[part]}
-                                />{:else}{part}{/if}{/each}{/if}
+                        >{:else}<PlaceText text={paragraph} plain={phaseText} />{/if}
                 </p>
             {/each}
         {/if}
@@ -121,8 +137,10 @@
         justify-content: space-between;
         gap: 8px;
     }
-    .heading :global(svg) {
+    .tokens {
+        display: flex;
         flex-shrink: 0;
+        gap: 4px;
     }
     .value {
         margin-left: auto;

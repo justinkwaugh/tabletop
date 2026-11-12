@@ -28,16 +28,32 @@ const atRevision = OathRevision.CardFixes1
 const before = OathRevision.PlanCostsAndSearchPlays
 
 /** The attacker, with a hearth and a nomad adviser, campaigns against the bandits at c1; the Chancellor holds Vow of Renewal. */
-function table(oathRevision: number, banditCards: string[], seed = 1, attackerAdvisers = [INN, TENTS]) {
+function table(
+    oathRevision: number,
+    banditCards: string[],
+    seed = 1,
+    attackerAdvisers = [INN, TENTS]
+) {
     const s = testState(
         [
             testPlayer({
-                playerId: ATTACKER, color: Color.Red, status: PlayerStatus.Exile, siteId: 'c1', supply: 6, favor: 4, secrets: 3,
-                warbandsOnBoard: { [ATTACKER]: 4 }, warbandsInPersonalBank: { [ATTACKER]: 6 },
+                playerId: ATTACKER,
+                color: Color.Red,
+                status: PlayerStatus.Exile,
+                siteId: 'c1',
+                supply: 6,
+                favor: 4,
+                secrets: 3,
+                warbandsOnBoard: { [ATTACKER]: 4 },
+                warbandsInPersonalBank: { [ATTACKER]: 6 },
                 advisers: attackerAdvisers.map((cardId) => ({ cardId, faceUp: true }))
             }),
             testPlayer({
-                playerId: CHANCELLOR, color: Color.Purple, status: PlayerStatus.Chancellor, siteId: 'h1', favor: 2,
+                playerId: CHANCELLOR,
+                color: Color.Purple,
+                status: PlayerStatus.Chancellor,
+                siteId: 'h1',
+                favor: 2,
                 advisers: [{ cardId: RENEWAL, faceUp: true }]
             })
         ],
@@ -53,7 +69,11 @@ function table(oathRevision: number, banditCards: string[], seed = 1, attackerAd
 }
 
 function attackBandits(s: HydratedOathGameState, banditsWin: boolean) {
-    const action = campaign({ defender: { kind: 'bandits' }, targets: [siteTarget('c1')], attackDice: 1 })
+    const action = campaign({
+        defender: { kind: 'bandits' },
+        targets: [siteTarget('c1')],
+        attackDice: 1
+    })
     action.apply(s)
     // The roll as the test needs it.
     ongoingCampaign(s).swords = banditsWin ? 0 : 9
@@ -75,7 +95,12 @@ describe('R-10.3-H1 — favor a bank would pay the victorious bandits is burned 
             sacrifice = finishCampaign(s)
         })
         expect(sacrifice?.metadata?.attackerVictorious).toBe(false)
-        expect(banks(s)).toEqual({ ...was, [Suit.Order]: was[Suit.Order] - 2, [Suit.Hearth]: was[Suit.Hearth] - 1, [Suit.Nomad]: was[Suit.Nomad] - 1 })
+        expect(banks(s)).toEqual({
+            ...was,
+            [Suit.Order]: was[Suit.Order] - 2,
+            [Suit.Hearth]: was[Suit.Hearth] - 1,
+            [Suit.Nomad]: was[Suit.Nomad] - 1
+        })
         expect(s.favorSupply).toBe(supply + 4)
         expect(sacrifice?.metadata?.planNotes).toEqual([
             'Battle Honors: burned 2 favor from the order bank, the bandits being victorious',
@@ -96,7 +121,9 @@ describe('R-10.3-H1 — favor a bank would pay the victorious bandits is burned 
         attackBandits(s, true)
         const sacrifice = finishCampaign(s)
         expect(s.favorBank[Suit.Order]).toBe(0)
-        expect(sacrifice.metadata?.planNotes).toEqual(['Battle Honors: burned 1 favor from the order bank, the bandits being victorious'])
+        expect(sacrifice.metadata?.planNotes).toEqual([
+            'Battle Honors: burned 1 favor from the order bank, the bandits being victorious'
+        ])
     })
 
     it('defeated bandits burn nothing', () => {
@@ -116,11 +143,16 @@ describe('R-10.3-H1 — favor a bank would pay the victorious bandits is burned 
             attackBandits(s, true)
             const was = banks(s)
             const sacrifice = finishCampaign(s)
-            return { hearth: was[Suit.Hearth] - s.favorBank[Suit.Hearth], notes: sacrifice.metadata?.planNotes }
+            return {
+                hearth: was[Suit.Hearth] - s.favorBank[Suit.Hearth],
+                notes: sacrifice.metadata?.planNotes
+            }
         }
         expect(burned(OathRevision.EngineFixes2)).toEqual({
             hearth: 2,
-            notes: ["Military Parade: burned 3 favor from the banks matching the attacker's advisers, the bandits being victorious"]
+            notes: [
+                "Military Parade: burned 3 favor from the banks matching the attacker's advisers, the bandits being victorious"
+            ]
         })
         expect(burned(atRevision).hearth).toBe(1)
     })
@@ -133,12 +165,20 @@ describe('R-5.5.6 — defeated bandits resolve their "If you\'re defeated" plans
         expect(ongoingCampaign(s).plansUsedBy).toEqual({ bandits: [DOCTOR] })
         const { sacrifice, victory } = finishCampaignSteps(s)
         expect(sacrifice.metadata?.attackerVictorious).toBe(true)
-        expect(sacrifice.metadata?.planNotes).toEqual(['Traveling Doctor: discarded, the bandits being defeated'])
+        expect(sacrifice.metadata?.planNotes).toEqual([
+            'Traveling Doctor: discarded, the bandits being defeated'
+        ])
         expect(s.campaign).toBeUndefined()
         expect(s.denizensBySite.c1).toEqual([])
-        expect(s.discardPileCounts).toEqual({ [Region.Cradle]: 0, [Region.Provinces]: 1, [Region.Hinterland]: 0 })
+        expect(s.discardPileCounts).toEqual({
+            [Region.Cradle]: 0,
+            [Region.Provinces]: 1,
+            [Region.Hinterland]: 0
+        })
         expect(s.vault?.discardPiles[Region.Provinces][0]).toBe(DOCTOR)
-        expect(victory?.metadata?.pileDeposits).toEqual([{ region: Region.Provinces, cardIds: [DOCTOR] }])
+        expect(victory?.metadata?.pileDeposits).toEqual([
+            { region: Region.Provinces, cardIds: [DOCTOR] }
+        ])
     })
 
     it('its "kill no warbands in your force" changes nothing for them: the bandits cannot be killed, and no warband is spared or lost', () => {
@@ -148,8 +188,14 @@ describe('R-5.5.6 — defeated bandits resolve their "If you\'re defeated" plans
         const doctor = table(atRevision, [DOCTOR])
         attackBandits(doctor, false)
         const doctorSteps = finishCampaignSteps(doctor)
-        expect(doctorSteps.sacrifice.metadata?.defeatKilled).toBe(plainSteps.sacrifice.metadata?.defeatKilled)
-        const warbands = (s: HydratedOathGameState) => s.players.map(({ warbandsOnBoard, warbandsInPersonalBank }) => ({ warbandsOnBoard, warbandsInPersonalBank }))
+        expect(doctorSteps.sacrifice.metadata?.defeatKilled).toBe(
+            plainSteps.sacrifice.metadata?.defeatKilled
+        )
+        const warbands = (s: HydratedOathGameState) =>
+            s.players.map(({ warbandsOnBoard, warbandsInPersonalBank }) => ({
+                warbandsOnBoard,
+                warbandsInPersonalBank
+            }))
         expect(warbands(doctor)).toEqual(warbands(plain))
         expect(doctor.warbandsBySite).toEqual(plain.warbandsBySite)
         expect(doctor.favorBank).toEqual(plain.favorBank)
@@ -200,10 +246,20 @@ describe('R-X.4 — a Campaign the bandits win with Battle Honors and Military P
             processed.push(...result.processedActions)
             state = result.updatedState
         }
-        run(buildAction(Campaign, { playerId: ATTACKER, defender: { kind: 'bandits' }, targets: [siteTarget('c1')], attackDice: 1 }))
+        run(
+            buildAction(Campaign, {
+                playerId: ATTACKER,
+                defender: { kind: 'bandits' },
+                targets: [siteTarget('c1')],
+                attackDice: 1
+            })
+        )
         const rolled = state.campaign
         if (!rolled || rolled.swords > rolled.defense) return undefined
-        const defeatKills = HydratedCampaignSacrifice.attackerDefeatKills(new HydratedOathGameState(state), 0)
+        const defeatKills = HydratedCampaignSacrifice.attackerDefeatKills(
+            new HydratedOathGameState(state),
+            0
+        )
         run(buildAction(CampaignSacrifice, { playerId: ATTACKER, sacrifice: 0, defeatKills }))
         return { start, processed, recorded: state }
     }
@@ -218,7 +274,13 @@ describe('R-X.4 — a Campaign the bandits win with Battle Honors and Military P
 
     function replay(start: OathProjectedState, processed: readonly GameAction[]) {
         let replayed = structuredClone(start)
-        for (const action of processed) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+        for (const action of processed)
+            replayed = engine.run(
+                structuredClone(action),
+                replayed,
+                game,
+                RunMode.Single
+            ).updatedState
         return replayed
     }
 
@@ -255,12 +317,28 @@ describe('R-X.4 — a Campaign that defeats the bandits with Traveling Doctor re
             processed.push(...result.processedActions)
             state = result.updatedState
         }
-        run(buildAction(Campaign, { playerId: ATTACKER, defender: { kind: 'bandits' }, targets: [siteTarget('c1')], attackDice: 4 }))
+        run(
+            buildAction(Campaign, {
+                playerId: ATTACKER,
+                defender: { kind: 'bandits' },
+                targets: [siteTarget('c1')],
+                attackDice: 4
+            })
+        )
         const rolled = state.campaign
         if (!rolled || rolled.swords <= rolled.defense) return undefined
-        const defeatKills = HydratedCampaignSacrifice.attackerDefeatKills(new HydratedOathGameState(state), 0)
+        const defeatKills = HydratedCampaignSacrifice.attackerDefeatKills(
+            new HydratedOathGameState(state),
+            0
+        )
         run(buildAction(CampaignSacrifice, { playerId: ATTACKER, sacrifice: 0, defeatKills }))
-        run(buildAction(CampaignResolveVictory, { playerId: ATTACKER, placements: [], burnFavor: false }))
+        run(
+            buildAction(CampaignResolveVictory, {
+                playerId: ATTACKER,
+                placements: [],
+                burnFavor: false
+            })
+        )
         return { start, processed, recorded: state }
     }
 
@@ -274,7 +352,13 @@ describe('R-X.4 — a Campaign that defeats the bandits with Traveling Doctor re
 
     function replay(start: OathProjectedState, processed: readonly GameAction[]) {
         let replayed = structuredClone(start)
-        for (const action of processed) replayed = engine.run(structuredClone(action), replayed, game, RunMode.Single).updatedState
+        for (const action of processed)
+            replayed = engine.run(
+                structuredClone(action),
+                replayed,
+                game,
+                RunMode.Single
+            ).updatedState
         return replayed
     }
 

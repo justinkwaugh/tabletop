@@ -3,7 +3,7 @@
     import SundiverMask from '$lib/images/sundiverMask.svelte'
     import { translateFromCenter } from '$lib/utils/boardGeometry.js'
 
-    import { type Point } from '@tabletop/common'
+    import type { Point } from '@tabletop/common'
     import { attachAnimator } from '$lib/animators/stateAnimator.js'
     import type { CellSundiverAnimator } from '$lib/animators/cellSundiverAnimator.js'
     import type { SundiverAnimator } from '$lib/animators/sundiverAnimator.js'

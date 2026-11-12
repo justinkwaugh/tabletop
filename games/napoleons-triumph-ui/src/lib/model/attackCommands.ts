@@ -1,6 +1,7 @@
 import {
     CommandKind,
     UnitType,
+    corpsRoadAttackHalt,
     hasUsableCommand,
     inReserve,
     isLegal,
@@ -10,7 +11,8 @@ import {
     roadAttackOrders,
     type HydratedNapoleonsTriumphGameState,
     type MoveOrder,
-    type ProjectedUnit
+    type ProjectedUnit,
+    type RoadHalt
 } from '@tabletop/napoleons-triumph'
 import type { VisibleAttack } from './battleStage.js'
 import { RideChoice } from './moveCommands.js'
@@ -87,6 +89,7 @@ export interface AttackCommand {
     orders?: MoveOrder[]
     /** Present when the units named are cavalry riding on that could attack either way. */
     ride?: RideChoice
+    roadHalt?: RoadHalt
 }
 
 export interface RideWanted {
@@ -113,7 +116,8 @@ export function attackCommand(
         return {
             options: byRoad.map((candidate) => candidate.kind),
             chosen: order?.kind,
-            orders: order ? [order] : undefined
+            orders: order ? [order] : undefined,
+            roadHalt: corpsRoadAttackHalt(state, attack, picked)
         }
     }
     const standsTogether = picked.every(
@@ -144,19 +148,4 @@ export function attackCommand(
         orders: chosen === undefined ? undefined : inPlaceOrders(picked, chosen),
         ride: eitherWay ? RideChoice.NewCommand : undefined
     }
-}
-
-export function rideInOrders(
-    state: HydratedNapoleonsTriumphGameState,
-    attack: VisibleAttack,
-    pickedIds: readonly string[],
-    wanted?: CommandKind
-): MoveOrder[] | undefined {
-    const order = roadAttackOrder(
-        state,
-        attack,
-        pickedIds.map((id) => state.unit(id)),
-        wanted
-    )
-    return order ? [order] : undefined
 }

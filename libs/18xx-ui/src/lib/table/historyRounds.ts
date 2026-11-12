@@ -8,22 +8,24 @@ import {
     isFinishStockTurn,
     isFloatCompany,
     isEndGame,
+    isDeclareBankruptcy,
     isResolveAuction,
     isResolveSelectionAuction,
     isStartOperatingRound,
-    isSetStockInstruction,
-    isStopStockInstruction,
     isSetPrivatePowerRequest,
     isDropPrivatePowerRequest,
     isExportTrains,
     isPayInterest,
     type EighteenXXState,
+    isStockInstructionAction,
+    isRunInstructionAction,
     type AuctionAward
 } from '@tabletop/18xx'
 import { ActionSource, assertExists, type GameAction } from '@tabletop/common'
 import { historyOperatingOrder, type HistoryOperatingOrder } from './historyOperatingOrder.js'
 import { historyCash, changedCompanyCash, type HistoryCash } from './historyCash.js'
 import { auctionHistory, type ActionHistoryEntry } from './auctionHistory.js'
+import { isGameEndAction } from './historyNavigation.js'
 import type { TitleRound } from '../session/titlePresentation.js'
 import {
     AuctionHeading,
@@ -120,8 +122,8 @@ export function historyRounds(
         }
         const entry =
             (isStartOperatingRound(action) && !action.metadata?.payments.length) ||
-            isSetStockInstruction(action) ||
-            isStopStockInstruction(action) ||
+            isStockInstructionAction(action) ||
+            isRunInstructionAction(action) ||
             isSetPrivatePowerRequest(action) ||
             isDropPrivatePowerRequest(action)
                 ? undefined
@@ -138,7 +140,8 @@ export function historyRounds(
                       action.metadata?.marketMoves.some(
                           (move) => move.fromMarketSpaceId !== move.toMarketSpaceId
                       )) ||
-                  isEndGame(action) ||
+                  isGameEndAction(action) ||
+                  isDeclareBankruptcy(action) ||
                   isExportTrains(action) ||
                   isPayInterest(action) ||
                   !!title.isEvent?.(action) ||

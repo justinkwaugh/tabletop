@@ -3,6 +3,7 @@
     import type { EighteenXXSessionView } from '../session/eighteenXXSession.svelte.js'
     import CompanyToken from '../tokens/CompanyToken.svelte'
     import TrainBadge from '../trains/TrainBadge.svelte'
+    import { trainCount } from '../table/awaitedDecision.js'
     let { session, showUndo = true }: { showUndo?: boolean; session: EighteenXXSessionView } =
         $props()
     const gameState = $derived(session.gameState)
@@ -89,10 +90,7 @@
             <h2>
                 <CompanyToken appearance={session.mapView.stations[companyId]} size={24} />
                 <strong>{session.companyName(companyId)}</strong>
-                <span
-                    >discards {session.discard.excess}
-                    {session.discard.excess === 1 ? 'train' : 'trains'}</span
-                >
+                <span>discards {trainCount(session.discard.excess)}</span>
             </h2>
             <p class="note">
                 The train limit is now {limit}.

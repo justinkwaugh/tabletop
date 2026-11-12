@@ -1,19 +1,23 @@
+import { EighteenXXOperatingAction } from '../actions/eighteenXXPlayerAction.js'
 import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     ActionSource,
-    PlayerAction,
     HydratableAction,
     assert,
+    assertExists,
     type GameAction,
     type HydratedGameState
 } from '@tabletop/common'
 import { TrainRoute, OperatingResult, type TrainRunningState } from './route.js'
 import { RouteEvaluation, type RouteRules } from './routeEvaluation.js'
 import { getCompany } from '../finance/finance.js'
+import { settleCashPayments } from '../finance/cashPayments.js'
+import { actionMayOperate } from '../finance/receivership.js'
+import { isInstructedRun, type RunInstructionState } from './instructedRuns.js'
 export const RunTrains = Type.Object(
     {
-        ...PlayerAction.properties,
+        ...EighteenXXOperatingAction.properties,
         type: Type.Literal('RunTrains'),
         companyId: Type.String({ minLength: 1 }),
         routes: Type.Array(TrainRoute),
@@ -31,7 +35,7 @@ export function isRunTrains(action: GameAction): action is RunTrains {
 }
 export class HydratedRunTrains extends HydratableAction<typeof RunTrains> implements RunTrains {
     declare type: 'RunTrains'
-    declare playerId: string
+    declare playerId?: string
     declare companyId: string
     declare routes: TrainRoute[]
     declare metadata?: OperatingResult
@@ -40,21 +44,34 @@ export class HydratedRunTrains extends HydratableAction<typeof RunTrains> implem
         super(data instanceof HydratedRunTrains ? data.dehydrate() : data, Validator)
         this.#rules = rules
     }
-    apply(state: HydratedGameState & TrainRunningState): void {
+    apply(state: HydratedGameState & TrainRunningState & RunInstructionState): void {
         const running = new RouteEvaluation(state, this.#rules)
         assert(
             (this.source === ActionSource.User ||
                 (this.source === ActionSource.System &&
-                    this.routes.length === 0 &&
-                    running.cannotRun(this.companyId))) &&
-                state.activePlayerIds.includes(this.playerId) &&
+                    ((this.routes.length === 0 && running.cannotRun(this.companyId)) ||
+                        isInstructedRun(state, this)))) &&
+                actionMayOperate(state, this, this.companyId) &&
                 running.canAct(this.playerId, this.companyId),
             'Only the operating company’s controlling owner may run trains'
         )
         const evaluation = running.evaluate(this.companyId, this.routes)
         assert(evaluation.result, evaluation.reason ?? 'Invalid routes')
-        state.routeStep!.result = evaluation.result
-        getCompany(state, this.companyId).lastRunRevenue = evaluation.result.revenue
+        applyTrainRun(state, evaluation.result)
         this.metadata = evaluation.result
     }
+}
+/** Records a company's evaluated run, its treasury receiving any subsidy from the bank. */
+export function applyTrainRun(state: TrainRunningState, result: OperatingResult): void {
+    assertExists(state.routeStep, 'A run belongs to the running step')
+    state.routeStep.result = result
+    getCompany(state, result.companyId).lastRunRevenue = result.revenue
+    if (result.subsidy)
+        settleCashPayments(state, [
+            {
+                from: { kind: 'bank' },
+                to: { kind: 'company', companyId: result.companyId },
+                amount: result.subsidy
+            }
+        ])
 }

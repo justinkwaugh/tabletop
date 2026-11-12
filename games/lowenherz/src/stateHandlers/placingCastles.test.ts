@@ -74,8 +74,15 @@ function findLegalPlacement(state: HydratedLowenherzGameState, owner: PieceOwner
     for (let row = 0; row < BOARD_ROWS; row++) {
         for (let col = 0; col < BOARD_COLS; col++) {
             const square = state.board.squares[row][col]
-            if (square.type !== SquareType.Blank || square.castleOwner || square.knightOwner) continue
-            if (existing.some((e: { col: number; row: number }) => manhattanDistance(e.col, e.row, col, row) < 6)) continue
+            if (square.type !== SquareType.Blank || square.castleOwner || square.knightOwner)
+                continue
+            if (
+                existing.some(
+                    (e: { col: number; row: number }) =>
+                        manhattanDistance(e.col, e.row, col, row) < 6
+                )
+            )
+                continue
 
             for (const n of neighbors(col, row)) {
                 if (!isOnBoard(n.col, n.row)) continue
@@ -158,7 +165,9 @@ function runFullSetup(state: HydratedLowenherzGameState, totalPlacements: number
         const machineState = knightHandler.onAction(knightAction, context)
 
         const expectedDone = i === totalPlacements - 1
-        expect(machineState).toBe(expectedDone ? MachineState.StartOfTurn : MachineState.PlacingCastles)
+        expect(machineState).toBe(
+            expectedDone ? MachineState.StartOfTurn : MachineState.PlacingCastles
+        )
 
         // gameEngine.ts calls the next machine state's enter() after every action,
         // even when staying in the same state - re-check that here.

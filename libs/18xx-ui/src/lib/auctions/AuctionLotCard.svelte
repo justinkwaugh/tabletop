@@ -11,7 +11,7 @@
         price,
         income,
         description = '',
-        token
+        tokens
     }: {
         session: EighteenXXSessionView
         id: string
@@ -19,15 +19,28 @@
         price?: number
         income?: number
         description?: string
-        token?: StationAppearance
+        tokens?: readonly StationAppearance[]
     } = $props()
     const money = $derived(session.presentation.money)
     const imageUrl = $derived(session.publishedCardImage(id))
     const thumbnailUrl = $derived(session.publishedCardImage(id, 'thumbnail'))
+    const plate = $derived(session.publishedCardPlate(id))
     let lightbox = $state(false)
 </script>
 
 <!-- An auction lot as a card: the published image (click to enlarge) or the generated card. -->
+{#snippet card(cardImageUrl?: string)}
+    <PrivateCard
+        {money}
+        phaseColors={session.presentation.phaseColors}
+        {tokens}
+        {name}
+        description={cardImageUrl ? '' : description}
+        value={price}
+        {income}
+        imageUrl={cardImageUrl}
+    />
+{/snippet}
 {#if imageUrl}
     <button
         class="card-button"
@@ -36,27 +49,20 @@
             lightbox = true
         }}
     >
-        <PrivateCard {money} {name} description="" imageUrl={thumbnailUrl} />
+        {@render card(thumbnailUrl)}
     </button>
     {#if lightbox}
         <CardLightbox
             {imageUrl}
             {name}
+            {plate}
             onclose={() => {
                 lightbox = false
             }}
         />
     {/if}
 {:else}
-    <PrivateCard
-        {money}
-        phaseColors={session.presentation.phaseColors}
-        {token}
-        {name}
-        {description}
-        value={price}
-        {income}
-    />
+    {@render card()}
 {/if}
 
 <style>
@@ -73,8 +79,10 @@
         outline-offset: 3px;
     }
     /* Published card art takes its height from the host; the host sets --auction-card-height. */
-    .card-button :global(.private-card img) {
+    .card-button :global(.private-card.image img) {
         width: auto;
-        height: var(--auction-card-height, 180px);
+        height: auto;
+        max-width: 100%;
+        max-height: var(--auction-card-height, 180px);
     }
 </style>

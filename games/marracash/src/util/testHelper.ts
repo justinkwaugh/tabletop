@@ -51,7 +51,11 @@ export function startTestGame(count: number, config: Partial<MarracashGameConfig
     return createTestSession(game, initialState)
 }
 
-export function createTestSession(game: TestGame, initialState: MarracashProjectedState) {
+export function createTestSession(
+    game: TestGame,
+    initialState: MarracashProjectedState,
+    onState?: (state: MarracashProjectedState) => void
+) {
     const engine = new GameEngine(MarracashRuntime)
     let state = initialState
     let actionCount = 0
@@ -69,6 +73,7 @@ export function createTestSession(game: TestGame, initialState: MarracashProject
         const result = engine.executeCanonicalAction({ game, state, action })
         state = result.updatedState
         actions.push(...result.processedActions)
+        onState?.(state)
         return result.processedActions
     }
 

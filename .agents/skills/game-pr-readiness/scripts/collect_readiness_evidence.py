@@ -28,6 +28,39 @@ CATALOGUE_PATH = "config/config-games/src/games.json"
 LOCKFILE_PATH = "pnpm-lock.yaml"
 PLATFORM_PACKAGES = {"@tabletop/common", "@tabletop/frontend-components"}
 ACTION_PATCH_READ = re.compile(r"\b(?:undoPatch|forwardPatch)\b")
+GAME_CONTEXT_READ = re.compile(
+    r"\b(?:visibleContext|explorationContext|getCurrentExploration|createExplorationSource|capturePosition|"
+    r"incomingGameState|GameContext)\b|\bhistory\??\.(?:currentAction|actionIndex)\b"
+)
+
+# Production patterns whose hits in a shared family library count against every title shipping it.
+FAMILY_LIBRARY_PATTERNS = ("action_patch_read", "game_context_read")
+TAILWIND_FILTER_CLASS = (
+    r"(?<=[\s\"'`:])(?:drop-shadow|backdrop-blur|blur|brightness|contrast|saturate|grayscale|sepia|"
+    r"hue-rotate|invert)(?:-(?:\[[^\]]*\]|[\w./]+))?(?=[\s\"'`;])"
+)
+RENDER_HAZARDS = {
+    "svg_filter": re.compile(r"<filter\b|(?<![\w:-])filter=|filter\s*:\s*url\("),
+    "css_filter": re.compile(
+        r"filter\s*:\s*(?:drop-shadow|blur|brightness|contrast|saturate|grayscale|sepia|hue-rotate|invert|"
+        r"opacity|var)\(|style:(?:backdrop-)?filter\b|(?:\bclass\b|@apply)[^\n]*" + TAILWIND_FILTER_CLASS
+    ),
+    "turbulence": re.compile(r"feTurbulence"),
+    "mask_or_blend": re.compile(
+        r"<mask\b|(?<![\w:-])mask=|\bmask(?:-image)?\s*:\s*(?:url|linear-gradient|radial-gradient|conic-gradient|image)\(|"
+        r"mix-blend"
+    ),
+    "layer_promotion": re.compile(r"will-change|translateZ\(|translate3d\(|backface-visibility"),
+    "svg_image": re.compile(r"<image\b"),
+    "animated_dash": re.compile(r"stroke-dashoffset|strokeDashoffset"),
+    "listener_churn": re.compile(
+        r"(?:add|remove)EventListener\(\s*['\"`](?:touch\w+|wheel)['\"`]|\bon:?wheel\s*="
+    ),
+    "text_baseline": re.compile(r"dominant-baseline|dominantBaseline|alignment-baseline"),
+    "aspect_slice": re.compile(r"preserveAspectRatio[^\n]*\bslice\b"),
+    "render_at_view_scale": re.compile(r"\brenderAtViewScale\b"),
+}
+NESTED_SVG = re.compile(r"<svg\b(?=[^>]*\s(?:x|y)\s*=)[^>]*>")
 
 
 def git(*args: str, cwd: Path | None = None) -> str:
@@ -313,8 +346,11 @@ def schema_diff(merge_base: str, logic_root: Path, repo: Path) -> dict[str, list
 def css_encapsulation(ui_root: Path, sources: list[Path], repo: Path, static: bool) -> dict[str, Any]:
     config = ui_root / "postcss.config.js"
     config_text = config.read_text(encoding="utf-8") if config.is_file() else ""
-    prefix = re.search(r"data-game-ui=\"([^\"]+)\"", config_text)
-    scoped_file = re.search(r"endsWith\('([^']+)'\)", config_text)
+    additional = re.search(r"additionalStylesheets:\s*\[([^\]]*)\]", config_text)
+    scoped_files = [
+        "/src/lib/styles.css" if re.search(r"family18xx:\s*true", config_text) else "/src/app.css",
+        *re.findall(r"'([^']+)'", additional.group(1) if additional else ""),
+    ]
     imports: list[dict[str, Any]] = []
     for path in sources:
         if (
@@ -334,7 +370,7 @@ def css_encapsulation(ui_root: Path, sources: list[Path], repo: Path, static: bo
                 "path": path.relative_to(repo).as_posix(),
                 "line": number,
                 "stylesheet": resolved.resolve().relative_to(repo).as_posix() if resolved.resolve().is_relative_to(repo) else resolved_text,
-                "covered_by_scope_plugin": bool(scoped_file) and resolved_text.endswith(scoped_file.group(1)),
+                "covered_by_scope_plugin": any(resolved_text.endswith(scoped) for scoped in scoped_files),
             })
     bundle_index = ui_root / "bundle" / "index.js"
     if static:
@@ -351,8 +387,8 @@ def css_encapsulation(ui_root: Path, sources: list[Path], repo: Path, static: bo
     return {
         "site_tailwind_scans_title": site_css.is_file()
         and f"games/{ui_root.name}/" in site_css.read_text(encoding="utf-8"),
-        "scope_prefix": prefix.group(1) if prefix else None,
-        "scope_plugin_file": scoped_file.group(1) if scoped_file else None,
+        "scope_config_shared": "createGameUiPostcssConfig" in config_text and "data-game-ui" not in config_text,
+        "scope_plugin_files": scoped_files,
         "stylesheet_imports": imports,
         "bundle_built_at": bundle_index.stat().st_mtime if bundle_index.is_file() else None,
         "bundle_scan": bundle_scan,
@@ -540,6 +576,19 @@ def find_hits(files: list[Path], patterns: dict[str, re.Pattern[str]]) -> dict[s
             for name, pattern in patterns.items():
                 if pattern.search(line):
                     hits[name].append({"path": path.as_posix(), "line": number, "text": line.strip()})
+    return hits
+
+
+def render_hazards(files: list[Path], repo: Path) -> dict[str, list[dict[str, Any]]]:
+    hits = find_hits(files, RENDER_HAZARDS)
+    hits["nested_svg"] = []
+    for path in files:
+        if path.suffix.lower() != ".svelte":
+            continue
+        text = path.read_text(encoding="utf-8")
+        for match in NESTED_SVG.finditer(text):
+            line = text.count("\n", 0, match.start()) + 1
+            hits["nested_svg"].append({"path": path.as_posix(), "line": line, "text": " ".join(match.group(0).split())})
     return hits
 
 
@@ -1084,6 +1133,7 @@ def main() -> int:
             r"createElement\(['\"]style|adoptedStyleSheets|insertRule\("
         ),
         "action_patch_read": ACTION_PATCH_READ,
+        "game_context_read": GAME_CONTEXT_READ,
     }
     logic_patterns = {
         "nondeterminism": re.compile(
@@ -1135,7 +1185,9 @@ def main() -> int:
         "production_hits": find_hits(production_sources, production_patterns),
         "logic_hits": find_hits(logic_sources, logic_patterns),
         "family_libraries": [root.relative_to(repo).as_posix() for root in family_roots],
-        "family_library_hits": find_hits(family_sources, {"action_patch_read": ACTION_PATCH_READ}),
+        "family_library_hits": find_hits(
+            family_sources, {name: production_patterns[name] for name in FAMILY_LIBRARY_PATTERNS}
+        ),
         "versions": {
             "logic_package": package_version(logic_root),
             "ui_package": package_version(ui_root),
@@ -1145,6 +1197,16 @@ def main() -> int:
         "state_shape": state_shape(state_sources, ui_root, repo),
         "dev_harness": dev_harness(ui_root),
         "css_encapsulation": css_encapsulation(ui_root, production_sources, repo, args.static),
+        "render_hazards": render_hazards(
+            [path for path in production_sources if path.is_relative_to(ui_root)], repo
+        ),
+        "family_library_render_hazards": render_hazards(
+            [
+                path for path in family_sources
+                if not any(path.is_relative_to(root) for root in logic_family_roots)
+            ],
+            repo,
+        ),
         "competition_specs": sorted(
             path.relative_to(repo).as_posix()
             for path in logic_root.rglob("competition.*")

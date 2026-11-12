@@ -1,10 +1,10 @@
 import { isLockedFor, ownCardLockedFor } from '../util/locked.js'
-import { categoryAt } from '../util/sitePowers.js'
+import { categoryAt, greatSlumDenizensToDiscardFirst } from '../util/sitePowers.js'
 import { Banner, Suit } from '../model/oathEnums.js'
 import { OathRevision, isAtLeastOathRevision } from '../util/revision.js'
 import type { PileDeposit } from '../model/hidden.js'
 import { PowerTiming, powerIndexOf } from '../data/cardPowers.js'
-import { cardDefinition, suitOf } from '../data/cardRegistry.js'
+import { cardDefinition } from '../data/cardRegistry.js'
 import { one, optional, PowerChoiceKind, type ChoiceDomain } from '../util/powerChoice.js'
 import {
     registerContinuous,
@@ -24,10 +24,12 @@ import {
     takeFavorFromPlayer
 } from './vocabulary.js'
 import { siteHolding } from '../util/access.js'
-import { nextActionIndex } from '../util/freeActions.js'
+import { reasonSiteFull } from '../util/cardPlay.js'
+import { HydratedOathGameState } from '../model/gameState.js'
+import { grantFreeCampaign } from '../util/freeActions.js'
 import { playerChoicesAtYourSite } from './choiceDomains.js'
 import { reasonCannotTravelByPower, travelByPower } from '../util/powerTravel.js'
-import { askBeforePowerMove } from '../util/powerMoveTolls.js'
+import { askBeforePowerMove, powerMoveWaits } from '../util/powerMoveTolls.js'
 import { PowerMoveKind, PowerMoveTollOutcome } from '../model/powerMoveToll.js'
 import { shroudedWoodChooser } from '../util/siteTravel.js'
 import { askQuestion } from '../util/questions.js'
@@ -72,18 +74,22 @@ const ownFaceupDenizenAdvisers: ChoiceDomain = (state, playerId) =>
             (cardId) =>
                 !isLockedFor(state, playerId, cardId) &&
                 cardDefinition(cardId)?.placement !== 'adviser' &&
-                suitOf(cardId) !== undefined
+                state.suitInPlay(cardId) !== undefined
         )
         .map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
 
-// R-11.10 — the Great Slum lets a card here be discarded before one is moved here.
-const slumCardsAtYourSite: ChoiceDomain = (state, playerId) => {
+// R-11.10 — the Great Slum lets a card here be discarded before one is moved here. From revision 31 (R-X.4) a locked
+// card is not offered, so naming it is refused with the choices, before anything is paid; before, it is offered too.
+// From revision 33 Homesteaders itself is not offered either (R-11.10-H2).
+const slumCardsAtYourSite: ChoiceDomain = (state, playerId, power) => {
     const here = pawnSiteId(state, playerId)
-    if (categoryAt(state, here) !== 'greatSlum') return []
-    return state.denizensAt(here).map((cardId) => ({
-        kind: PowerChoiceKind.Card,
-        cardId
-    }))
+    let cards: string[]
+    if (isAtLeastOathRevision(state, OathRevision.EngineFixes26)) {
+        cards = greatSlumDenizensToDiscardFirst(state, playerId, here, [], power.cardId)
+    } else {
+        cards = categoryAt(state, here) === 'greatSlum' ? state.denizensAt(here) : []
+    }
+    return cards.map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
 }
 registerEffect(
     'denizen.hearth.homesteaders',
@@ -118,7 +124,8 @@ registerEffect(
                       ctx.power.cardId
                   )
                 : { discarded: [], pileDeposits: [] }
-            // R-7.2.2, R-7.1.3 — a locked card chosen to go first stays, so the site may still be full.
+            // R-7.2.2, R-7.1.3 — before revision 31 a locked card may be chosen to go first: it stays, so the site
+            // may still be full.
             if (!siteHasRoom(ctx.state, site))
                 return { summary: `${card.cardId} could not be moved`, pileDeposits }
             moveAdviserToSite(ctx.state, ctx.playerId, card.cardId, site)
@@ -132,26 +139,54 @@ registerEffect(
 
 // "Action: Discard a denizen card at any other site and move this card there." Cost: place 1 secret.
 const ROVING = 'denizen.beast.roving-terror'
+/**
+ * R-10.15, R-2.8.1 — the move is part of the power and follows the site's capacity: from revision 31 (R-X.4)
+ * the target's site needs a space once the target, and the Great Slum's card discarded first, are gone. A salted
+ * site that keeps a modifier in use has none (R-7.4.3-H1).
+ */
+function reasonNoRoomForRovingTerror(
+    state: HydratedOathGameState,
+    targetId: string,
+    firstId?: string
+): string | undefined {
+    if (!isAtLeastOathRevision(state, OathRevision.EngineFixes26)) return undefined
+    const to = siteHolding(state, targetId)
+    assertExists(to, `${targetId} is a denizen at another site`)
+    return reasonSiteFull(
+        state,
+        to,
+        { leaving: [targetId], arriving: [] },
+        firstId === undefined ? [] : [firstId]
+    )
+}
 const denizensAtOtherSites: ChoiceDomain = (state, playerId) => {
     const here = siteHolding(state, ROVING)
     // R-7.2.2 — from revision 16, it does not move itself out of a site where it is locked for its user.
     if (ownCardLockedFor(state, playerId, ROVING)) return []
     return Object.entries(state.denizensBySite)
         .filter(([siteId]) => siteId !== here && state.isSiteFaceup(siteId))
-        .flatMap(([, cards]) => cards)
-        .filter((id) => id !== ROVING && !isLockedFor(state, playerId, id))
+        .flatMap(([siteId, cards]) =>
+            cards.filter(
+                (id) =>
+                    id !== ROVING &&
+                    !isLockedFor(state, playerId, id) &&
+                    reasonNoRoomForRovingTerror(
+                        state,
+                        id,
+                        greatSlumDenizensToDiscardFirst(state, playerId, siteId).find(
+                            (first) => first !== id
+                        )
+                    ) === undefined
+            )
+        )
         .map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
 }
 // R-11.10 — a second discard at the destination, when it is the Great Slum.
 const slumCardsElsewhere: ChoiceDomain = (state, playerId) =>
     state
         .allSiteIds()
-        .filter((siteId) => state.isSiteFaceup(siteId) && categoryAt(state, siteId) === 'greatSlum')
-        .flatMap((siteId) =>
-            state
-                .denizensAt(siteId)
-                .filter((id) => id !== ROVING && !isLockedFor(state, playerId, id))
-        )
+        .flatMap((siteId) => greatSlumDenizensToDiscardFirst(state, playerId, siteId))
+        .filter((cardId) => cardId !== ROVING)
         .map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
 registerEffect(ROVING, powerIndexOf(ROVING, PowerTiming.Action), {
     choices: [
@@ -166,11 +201,14 @@ registerEffect(ROVING, powerIndexOf(ROVING, PowerTiming.Action), {
     ],
     reasonCannotResolve: (ctx) => {
         const [target, first] = chosen(ctx, PowerChoiceKind.Card)
-        if (!first) return undefined
-        return siteHolding(ctx.state, first.cardId) === siteHolding(ctx.state, target.cardId) &&
-            first.cardId !== target.cardId
-            ? undefined
-            : 'the Great Slum discard must be at the destination'
+        if (
+            first &&
+            (siteHolding(ctx.state, first.cardId) !== siteHolding(ctx.state, target.cardId) ||
+                first.cardId === target.cardId)
+        ) {
+            return 'the Great Slum discard must be at the destination'
+        }
+        return reasonNoRoomForRovingTerror(ctx.state, target.cardId, first?.cardId)
     },
     resolve: (ctx) => {
         const [target, first] = chosen(ctx, PowerChoiceKind.Card)
@@ -189,9 +227,13 @@ registerEffect(ROVING, powerIndexOf(ROVING, PowerTiming.Action), {
         }
         const to = siteHolding(ctx.state, target.cardId)
         assertExists(to, `${target.cardId} is a denizen at another site`)
+        // R-7.2.1 — Roving Terror can only be at a site: no swap puts it among a player's advisers (the Horned
+        // Mask refuses it), so its power is used only where it stands at a site.
         const from = siteHolding(ctx.state, ROVING)
-        // Horned Mask can swap Roving Terror into a player's advisers, and then it has no site to leave.
-        if (!from) return { summary: 'Roving Terror: nothing to move between', pileDeposits }
+        assertExists(
+            from,
+            'Roving Terror can only be at a site (R-7.2.1), so its power is used from one'
+        )
         const gone = discardDenizensAtSites(
             ctx.state,
             ctx.playerId,
@@ -244,7 +286,7 @@ const RIOTS = 'denizen.discord.riots'
 function riotSuits(ctx: EffectContext): { most: Suit[]; count: number } {
     const counts = new Map<Suit, number>()
     const tally = (id: string) => {
-        const suit = suitOf(id)
+        const suit = ctx.state.suitInPlay(id)
         if (suit) counts.set(suit, (counts.get(suit) ?? 0) + 1)
     }
     if (isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes6)) {
@@ -290,7 +332,9 @@ registerEffect(RIOTS, powerIndexOf(RIOTS, PowerTiming.WhenPlayed), {
         // From revision 10 the pick is judged on this count, as the check judges it: one that is not among
         // the most common suits is not followed.
         const named =
-            pick && (most.includes(pick.suit) || !isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes6))
+            pick &&
+            (most.includes(pick.suit) ||
+                !isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes6))
                 ? pick.suit
                 : undefined
         const suit = named ?? most[0]
@@ -299,7 +343,7 @@ registerEffect(RIOTS, powerIndexOf(RIOTS, PowerTiming.WhenPlayed), {
             ctx.state,
             ctx.playerId,
             ctx.state.faceupSiteIds(),
-            (id) => id !== RIOTS && suitOf(id) === suit,
+            (id) => id !== RIOTS && ctx.state.suitInPlay(id) === suit,
             ctx.power.cardId
         )
         return {
@@ -338,7 +382,8 @@ const othersFaceupNomadAdvisers: ChoiceDomain = (state, playerId) =>
                 .faceupAdviserIds()
                 .filter(
                     (cardId) =>
-                        suitOf(cardId) === Suit.Nomad && !isLockedFor(state, playerId, cardId)
+                        state.suitInPlay(cardId) === Suit.Nomad &&
+                        !isLockedFor(state, playerId, cardId)
                 )
                 .map((cardId) => ({ kind: PowerChoiceKind.Card, cardId }))
         )
@@ -370,45 +415,35 @@ registerEffect(TWIN, powerIndexOf(TWIN, PowerTiming.WhenPlayed), {
 })
 
 // "After mustering, you may campaign, spending no Supply."
-registerModifier(
-    'denizen.order.knights-errant',
-    powerIndexOf('denizen.order.knights-errant', PowerTiming.Modifier),
-    {
-        hooks: {
-            after: (ctx) => {
-                ctx.state.getPlayerState(ctx.playerId).freeCampaignAtAction = nextActionIndex(
-                    ctx.state
-                )
-                return {
-                    summary: 'Knights Errant: the next action may be a Campaign that spends no Supply'
-                }
+const KNIGHTS_ERRANT = 'denizen.order.knights-errant'
+registerModifier(KNIGHTS_ERRANT, powerIndexOf(KNIGHTS_ERRANT, PowerTiming.Modifier), {
+    hooks: {
+        after: (ctx) => {
+            grantFreeCampaign(ctx.state, ctx.playerId, KNIGHTS_ERRANT)
+            return {
+                summary: 'Knights Errant: the next action may be a Campaign that spends no Supply'
             }
         }
     }
-)
+})
 
 // "After searching the world deck, you may campaign, spending no Supply."
 // R-5.1.4 — "after searching" is the Search's resolve.
-registerModifier(
-    'denizen.order.hunting-party',
-    powerIndexOf('denizen.order.hunting-party', PowerTiming.Modifier),
-    {
-        hooks: {
-            condition: (ctx) =>
-                ctx.particulars?.drawFrom === 'worldDeck'
-                    ? undefined
-                    : 'you are not searching the world deck',
-            after: (ctx) => {
-                ctx.state.getPlayerState(ctx.playerId).freeCampaignAtAction = nextActionIndex(
-                    ctx.state
-                )
-                return {
-                    summary: 'Hunting Party: the next action may be a Campaign that spends no Supply'
-                }
+const HUNTING_PARTY = 'denizen.order.hunting-party'
+registerModifier(HUNTING_PARTY, powerIndexOf(HUNTING_PARTY, PowerTiming.Modifier), {
+    hooks: {
+        condition: (ctx) =>
+            ctx.particulars?.drawFrom === 'worldDeck'
+                ? undefined
+                : 'you are not searching the world deck',
+        after: (ctx) => {
+            grantFreeCampaign(ctx.state, ctx.playerId, HUNTING_PARTY)
+            return {
+                summary: 'Hunting Party: the next action may be a Campaign that spends no Supply'
             }
         }
     }
-)
+})
 
 const PALANQUIN = 'denizen.order.palanquin'
 
@@ -436,10 +471,18 @@ registerEffect(
             })
         ],
         hidden: (ctx) => {
+            const [target] = chosen(ctx, PowerChoiceKind.Player)
             const [site] = chosen(ctx, PowerChoiceKind.Site)
-            return site && !ctx.state.isSiteFaceup(site.siteId)
-                ? { kind: 'siteFlip', siteId: site.siteId }
-                : undefined
+            if (!site || ctx.state.isSiteFaceup(site.siteId)) return undefined
+            // R-11.13-H1 — from revision 31, a move that waits on the carried player's answer reveals
+            // the site on arrival (`travelByPower`), so a refusal reveals nothing. Out of a Shrouded
+            // Wood nothing waits: the user is put on the site at once.
+            const waits =
+                isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes26) &&
+                target !== undefined &&
+                shroudedWoodChooser(ctx.state, target.playerId) === undefined &&
+                powerMoveWaits(ctx.state, target.playerId, site.siteId)
+            return waits ? undefined : { kind: 'siteFlip', siteId: site.siteId }
         },
         // "A site that they can travel to" — every restriction but the price binds them.
         reasonCannotResolve: (ctx) => {
@@ -462,8 +505,14 @@ registerEffect(
                 movedPlayerId: target.playerId,
                 toSiteId: site.siteId
             }
+            // R-5.6.2 — from revision 31, a site the use revealed was judged as named, facedown, with
+            // nothing to ask (`hidden`), so the move goes ahead as a Travel there would: the revealed
+            // site's own question (The Hidden Place's flip) is not asked after the reveal.
+            const judgedFacedown =
+                ctx.reveal?.kind === 'site' &&
+                isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes26)
             const waits =
-                chooser === undefined
+                chooser === undefined && !judgedFacedown
                     ? askBeforePowerMove(ctx.state, move, ctx.playerId)
                     : undefined
             if (waits?.kind === 'flip') {

@@ -8,7 +8,7 @@ import {
     privateOwner,
     sameOwner
 } from '../finance/finance.js'
-import { settleCashPayments, type CashPayment } from '../finance/cashPayments.js'
+import { CashPayment, settleCashPayments } from '../finance/cashPayments.js'
 import { trainCanBeTraded } from '../trains/train.js'
 import { trainsCountingForLimit, type TrainRules } from '../trains/trainPurchase.js'
 import { closePrivatesOnTrainPurchase } from '../trains/buyTrain.js'
@@ -87,7 +87,9 @@ export type PendingPurchaseOffer = Type.Static<typeof PendingPurchaseOffer>
 export const PurchaseEffects = Type.Object(
     {
         assets: Type.Optional(AssetTransfer),
-        stations: Type.Optional(StationTransfer)
+        stations: Type.Optional(StationTransfer),
+        /** What the buyer paid beyond the price, such as a fee to the bank. */
+        charges: Type.Optional(Type.Array(CashPayment))
     },
     { additionalProperties: false }
 )
@@ -210,6 +212,11 @@ export function evaluatePurchaseOffer(
             trains.trainLimit(state, request.companyId)
         )
             return { reason: 'The buyer is at its train limit.' }
+        const { trainId } = request.asset
+        const train = state.trainInventory.trains.find((train) => train.id === trainId)
+        const limitReason =
+            train && trains.limitReason?.(state, request.companyId, train.definitionId)
+        if (limitReason) return { reason: limitReason }
     }
     return { buyerPlayerId, sellerPlayerId }
 }

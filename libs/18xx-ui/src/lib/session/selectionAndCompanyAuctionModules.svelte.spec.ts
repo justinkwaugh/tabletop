@@ -124,9 +124,16 @@ describe('CompanyAuctionModule', () => {
     it('undoes the opening stages one at a time, skipping the automatic bid', () => {
         const { module } = companyAuction(['AuctionCompany'])
         module.selectCompany(TestCompanyId)
+        expect(module.chosenHome).toBeUndefined()
         module.chooseHome({ locationId: 'A1', nodeId: 'city' })
+        expect(module.chosenHome).toEqual({
+            companyId: TestCompanyId,
+            locationId: 'A1',
+            nodeId: 'city'
+        })
         expect(module.undo()).toBe(true)
         expect(module.selectedHome).toBeUndefined()
+        expect(module.chosenHome).toBeUndefined()
         expect(module.selectedCompanyId).toBe(TestCompanyId)
         expect(module.undo()).toBe(true)
         expect(module.selectedCompanyId).toBeUndefined()

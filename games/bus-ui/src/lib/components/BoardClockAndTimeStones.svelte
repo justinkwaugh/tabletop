@@ -107,9 +107,9 @@
               opacity: number
           }
         | undefined = $derived.by(() => {
-              gameSession.gameState
-              return undefined
-          })
+        gameSession.gameState
+        return undefined
+    })
 
     const timeStoneSelectionAnimator = new TimeStoneSelectionAnimator(
         gameSession,

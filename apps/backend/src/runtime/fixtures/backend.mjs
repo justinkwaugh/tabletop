@@ -11,12 +11,20 @@ process.on('disconnect', () => process.exit(1))
 if (config.fail) process.exit(1)
 if (config.hang) await new Promise(() => {})
 await new Promise((resolve) => setTimeout(resolve, config.startupDelay ?? 0))
+const announce = (titleLoad) =>
+    new Promise((resolve) => process.send({ titleLoad }, undefined, undefined, resolve))
 const server = createServer(async (request, response) => {
     const url = new URL(request.url, 'http://localhost')
     if (url.pathname === '/crash') process.exit(1)
     if (url.pathname === '/delay') {
         record('request-started')
         await new Promise((resolve) => setTimeout(resolve, Number(url.searchParams.get('ms'))))
+    }
+    if (url.pathname === '/load-title') {
+        await announce('started')
+        const until = Date.now() + Number(url.searchParams.get('ms'))
+        while (Date.now() < until);
+        await announce('finished')
     }
     if (url.pathname === '/stream') {
         response.writeHead(200, { 'content-type': 'text/event-stream' })

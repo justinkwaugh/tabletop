@@ -102,6 +102,7 @@ function scenario(config: GameConfig = { legacyEnabled: true }) {
         },
         exploration: {
             createFromCanonicalState: (state) => state,
+            keepsSourceDeclaration: (action) => action.type !== 'advance',
             createFromProjectedState(input) {
                 observe('exploration', input.game.config)
                 return input.state
@@ -216,6 +217,7 @@ describe('normalized runtime configuration', () => {
         const populate = runtime.exploration?.createFromProjectedState
         assertExists(visibility)
         assertExists(populate)
+        expect(runtime.exploration?.keepsSourceDeclaration?.(action)).toBe(false)
         const perspective = { kind: 'spectator' } as const
         const populated = populate({ game, state, actions: [], perspective, random: () => 0.5 })
         const context = { config: game.config }
@@ -260,6 +262,39 @@ describe('normalized runtime configuration', () => {
         )
     })
 
+    it('keeps continuation support and passes the continuation through', () => {
+        const { game, state } = createNoteGame()
+        const continuation = { previousState: state, previousPlayers: game.players }
+        const received: unknown[] = []
+        const initializer = noteGameRuntime.initializer
+        const runtime: GameRuntime<NoteGameState, HydratedNoteGameState> = {
+            ...noteGameRuntime,
+            initializer: {
+                supportsStartingPositions: true,
+                supportsContinuation: true,
+                initializeGame: (game, definition) => initializer.initializeGame(game, definition),
+                initializeGameState(game, state, assignment, continuation) {
+                    received.push(game.config, assignment, continuation)
+                    return initializer.initializeGameState(game, state)
+                }
+            }
+        }
+        const configured = defineGame({
+            info: { ...noteGameInfo, configurator: new Configurator() },
+            runtime
+        }).runtime.initializer
+        expect(configured.supportsStartingPositions).toBe(true)
+        expect(configured.supportsContinuation).toBe(true)
+        const assignment = { kind: 'test' } as never
+        configured.initializeGameState(
+            { ...game, config: { legacyEnabled: true } },
+            state,
+            assignment,
+            continuation
+        )
+        expect(received).toEqual([{ enabled: true }, assignment, continuation])
+    })
+
     it('leaves older runtimes without a normalizer unchanged, including null values', () => {
         const { game, state } = createNoteGame()
         game.config = { retained: null }
@@ -279,7 +314,11 @@ describe('normalized runtime configuration', () => {
         expect(normalizeGame(game, configurator)).toBe(game)
 
         const replay = new GameEngine(noteGameRuntime)
-        expect(replay.getValidActionTypesForPlayer(game, state, 'p1')).toEqual(['step', 'note', 'tally'])
+        expect(replay.getValidActionTypesForPlayer(game, state, 'p1')).toEqual([
+            'step',
+            'note',
+            'tally'
+        ])
         expect(game.config).toEqual({ retained: null })
     })
 })

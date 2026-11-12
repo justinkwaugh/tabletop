@@ -82,7 +82,7 @@
         r={layout.hexRadius * DEMAND_DISC_RADIUS}
         class="demand-disc"
         fill={DEMAND_FILL}
-    />
+    ></circle>
 {/each}
 {#each [...hexes, ...water] as hex (hex.key)}
     <polygon
@@ -91,10 +91,11 @@
         stroke="#1d1d1b"
         stroke-width={outlineWidth}
         stroke-linejoin="round"
-    />
+    ></polygon>
 {/each}
 {#each water as hex (hex.key)}
-    <polygon points={layout.hexPoints(hex.center, layout.hexRadius - HEX_INSET)} fill={WATER_FILL} />
+    <polygon points={layout.hexPoints(hex.center, layout.hexRadius - HEX_INSET)} fill={WATER_FILL}
+    ></polygon>
 {/each}
 <!-- Fill the gap between neighbouring water hexes so each lake reads as one body. -->
 {#each seams as seam, index (index)}
@@ -105,7 +106,7 @@
         y2={seam.to.y}
         stroke={WATER_FILL}
         stroke-width={2 * INSET_GAP}
-    />
+    ></line>
 {/each}
 {#each lakes as lake, index (index)}
     <text
@@ -122,7 +123,7 @@
         stroke="#1d1d1b"
         stroke-width={edgeWidth}
         stroke-linejoin="round"
-    />
+    ></polygon>
     {#if hex.industry}
         <polygon
             points={layout.hexPoints(hex.center, layout.hexRadius - 5)}
@@ -130,7 +131,7 @@
             stroke={INDUSTRY_STYLE[hex.industry].ring}
             stroke-width={6 * scale}
             stroke-linejoin="round"
-        />
+        ></polygon>
         <g transform="translate({hex.center.x} {hex.center.y})">
             <IndustryMark industry={hex.industry} scale={0.9 * scale} />
         </g>
@@ -143,17 +144,18 @@
         x2={border.to.x}
         y2={border.to.y}
         class="border-edge"
-    />
+    ></line>
 {/each}
 {#each borders as border, index (index)}
-    <line x1={border.from.x} y1={border.from.y} x2={border.to.x} y2={border.to.y} class="border" />
+    <line x1={border.from.x} y1={border.from.y} x2={border.to.x} y2={border.to.y} class="border"
+    ></line>
 {/each}
 {#each edition.map.demandAreas as area (area.id)}
     <DemandArea {area} center={layout.hexCenter(area.hex)} radius={layout.hexRadius} />
 {/each}
 {#each hexes as hex (hex.key)}
     {#if hex.name}
-        <path id="arc-{hex.key}" d={arcPath(hex.center.x, hex.center.y)} fill="none" />
+        <path id="arc-{hex.key}" d={arcPath(hex.center.x, hex.center.y)} fill="none"></path>
         <text class="name" class:city={hex.kind === HexKind.City} font-size={nameSize(hex.name)}>
             <textPath href="#arc-{hex.key}" startOffset="50%">{hex.name}</textPath>
         </text>

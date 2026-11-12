@@ -8,7 +8,8 @@
 
     // Toll Roads — the moved player pays the toll (to the Chancellor for the Empire, burned for the
     // bandits) or refuses; who moved them, and where, is the History's. The answers are the
-    // question's own: one width, 44 px tall on a phone, Pay shown only while the engine allows it.
+    // question's own: one width, 44 px tall on a phone, Pay shown only while the engine allows it;
+    // Refuse says what refusing brings: the move does not happen, so the player stays.
     let { question }: { question: QuestionOf<PowerQuestionKind.PayTravelToll> } = $props()
 
     let gameSession = getGameSession()
@@ -22,5 +23,5 @@
 <QuestionForm cardId={question.cardId}>
     {#snippet line()}{#if payee}Pay <PlayerName playerId={payee} />{:else}Burn{/if}
         <FavorCost count={1} />?{#if toChancellor}{' '}(the Chancellor){/if}{/snippet}
-    <QuestionYesNo yes={payee ? 'Pay' : 'Burn'} no="Refuse" />
+    <QuestionYesNo yes={payee ? 'Pay' : 'Burn'} no="Refuse" noConsequence="you stay" />
 </QuestionForm>

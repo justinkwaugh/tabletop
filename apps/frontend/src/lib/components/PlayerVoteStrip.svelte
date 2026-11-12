@@ -7,6 +7,7 @@
     import {
         assertExists,
         playerVoteIneligibility,
+        PlayerVoteKind,
         votingPlayers,
         type GameState,
         type HydratedGameState,
@@ -18,7 +19,18 @@
     import { readable } from 'svelte/store'
     import { untrack } from 'svelte'
     import { getAppContext } from '$lib/stores/appContext.svelte'
-    import { undoneDetail, undoneSummary, voteErrorMessage } from '$lib/utils/playerVoteText'
+    import {
+        callWinnerDetail,
+        undoneDetail,
+        undoneSummary,
+        voteErrorMessage,
+        voteTally
+    } from '$lib/utils/playerVoteText'
+    import {
+        offersUndoRequest,
+        shownProposal,
+        voteStripPosition
+    } from '$lib/utils/voteStripPosition'
 
     type Proposal =
         | { actionIndex: number; kind: 'confirm'; preview: UndoVotePreview }
@@ -32,6 +44,7 @@
     const { gameService, authorizationService } = getAppContext()
     const { isViewingHistory, colors, gameState, showHistoryBeforeAction, showLiveGame } =
         gameSession.bridge
+    const reportsPosition = gameSession.bridge.viewedHistoryPosition !== undefined
     const viewedPosition = gameSession.bridge.viewedHistoryPosition ?? readable(undefined)
 
     const game = $derived(gameService.cachedGame(gameSession.game.id) ?? gameSession.game)
@@ -46,28 +59,26 @@
     const canVote = $derived(voter !== undefined && playerVoteIneligibility(game) === undefined)
     const voters = $derived(votingPlayers(game.players))
 
-    // Older UI Artifacts expose no Undo reach, so every position is offered and the host decides.
-    // They also lack showLiveGame, so the live action count below is never relied on.
+    // UI Artifacts without a reported position also lack showLiveGame, so their stand-in live
+    // action count is never relied on.
     const position: ViewedHistoryPosition | undefined = $derived(
-        $viewedPosition ??
-            ($isViewingHistory && $gameState
-                ? {
-                      actionIndex: $gameState.actionCount,
-                      liveActionCount: $gameState.actionCount,
-                      beyondUndoReach: true,
-                      startsWithUserAction: true
-                  }
-                : undefined)
+        voteStripPosition({
+            reportsPosition,
+            seated: voter !== undefined,
+            viewedPosition: $viewedPosition,
+            isViewingHistory: $isViewingHistory,
+            actionCount: $gameState?.actionCount
+        })
     )
 
     let proposal: Proposal | undefined = $state()
-    const shownProposal = $derived(
-        proposal?.actionIndex === position?.actionIndex ? proposal : undefined
-    )
+    const shown = $derived(shownProposal(proposal, position))
 
     let voteSummary: UndoVotePreview | undefined = $state()
     const summaryTarget = $derived(
-        vote && canVote ? { vote, lastActionAt: game.lastActionAt } : undefined
+        vote?.kind === PlayerVoteKind.Undo && canVote
+            ? { vote, lastActionAt: game.lastActionAt }
+            : undefined
     )
     $effect(() => {
         const target = summaryTarget
@@ -88,7 +99,9 @@
     $effect(() => {
         if (vote) {
             ownVoteTarget =
-                vote.initiatorPlayerId === voter?.id ? vote.targetActionIndex : undefined
+                vote.kind === PlayerVoteKind.Undo && vote.initiatorPlayerId === voter?.id
+                    ? vote.targetActionIndex
+                    : undefined
             return
         }
         if (!position) {
@@ -139,6 +152,7 @@
 
 {#if canVote && vote}
     {@const approvals = vote.approvingPlayerIds}
+    {@const declines = vote.kind === PlayerVoteKind.Call ? vote.decliningPlayerIds : []}
     <div class="vote-strip" role="status">
         <span class="line">
             <span>
@@ -147,32 +161,35 @@
                     style:background-color={$colors.getPlayerBgColorValue(vote.initiatorPlayerId)}
                     style:color={$colors.getPlayerTextColorValue(vote.initiatorPlayerId)}
                     >{playerName(vote.initiatorPlayerId)}</span
-                ><span class="font-medium text-white">is asking to undo to an earlier point</span
-                >{#if voteSummary}<span class="text-gray-400"
-                        >{` undoing ${undoneDetail(voteSummary)}`}</span
+                >{#if vote.kind === PlayerVoteKind.Undo}<span class="font-medium text-white"
+                        >is asking to undo to an earlier point</span
+                    >{#if voteSummary}<span class="text-gray-400"
+                            >{` undoing ${undoneDetail(voteSummary)}`}</span
+                        >{/if}{:else}<span class="font-medium text-white"
+                        >is asking to end the game</span
+                    ><span class="text-gray-400"
+                        >{` ${callWinnerDetail(vote.declaredWinnerId === undefined ? undefined : playerName(vote.declaredWinnerId))}`}</span
                     >{/if}
             </span>
         </span>
         <span class="line">
-            <span
-                class="inline-flex gap-1"
-                aria-label="{approvals.length} of {voters.length} agreed"
-            >
+            <span class="inline-flex gap-1" aria-label={voteTally(vote, game.players)}>
                 {#each voters as player (player.id)}
                     <span
                         class="h-2.5 w-2.5 rounded-full border-2"
-                        class:border-gray-500={!approvals.includes(player.id)}
+                        class:border-gray-500={!approvals.includes(player.id) &&
+                            !declines.includes(player.id)}
                         class:border-green-400={approvals.includes(player.id)}
                         class:bg-green-400={approvals.includes(player.id)}
+                        class:border-red-400={declines.includes(player.id)}
+                        class:bg-red-400={declines.includes(player.id)}
                     ></span>
                 {/each}
             </span>
-            <span class="text-xs text-gray-400 tabular-nums"
-                >{approvals.length} of {voters.length} agreed</span
-            >
+            <span class="text-xs text-gray-400 tabular-nums">{voteTally(vote, game.players)}</span>
         </span>
         <span class="buttons">
-            {#if showHistoryBeforeAction}
+            {#if showHistoryBeforeAction && vote.kind === PlayerVoteKind.Undo}
                 <Button
                     size="xs"
                     color="alternative"
@@ -191,7 +208,7 @@
                     onclick={() => run(() => gameService.withdrawVote(game, vote.id))}
                     >Withdraw</Button
                 >
-            {:else if voter && !approvals.includes(voter.id)}
+            {:else if voter && !approvals.includes(voter.id) && !declines.includes(voter.id)}
                 <Button
                     size="xs"
                     color="alternative"
@@ -215,7 +232,7 @@
     </div>
 {:else if position}
     <div class="vote-strip">
-        {#if shownProposal?.kind === 'ownUndo'}
+        {#if shown?.kind === 'ownUndo'}
             <span class="line text-white">You can undo this yourself with Undo.</span>
             <Button
                 size="xs"
@@ -223,8 +240,8 @@
                 class={buttonClass}
                 onclick={() => (proposal = undefined)}>OK</Button
             >
-        {:else if shownProposal?.kind === 'confirm'}
-            {@const preview = shownProposal.preview}
+        {:else if shown?.kind === 'confirm'}
+            {@const preview = shown.preview}
             <span class="line">
                 <span class="font-medium text-white">Ask everyone to undo to here?</span>
                 <span class="text-gray-400">{undoneSummary(preview)}</span>
@@ -248,7 +265,7 @@
         {:else}
             {@const target = position}
             <span class="line"><ViewingHistoryLine /></span>
-            {#if canVote && target.beyondUndoReach && target.startsWithUserAction}
+            {#if canVote && offersUndoRequest(target)}
                 <Button
                     size="xs"
                     color="blue"

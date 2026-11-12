@@ -8,9 +8,8 @@ import {
 import type { Suit } from '../model/oathEnums.js'
 import { FAVOR_BANK_ORDER } from '../data/favorBanks.js'
 import { PowerChoiceKind } from './powerChoice.js'
-import type { WarbandOwner } from '../model/warbandCounts.js'
 import { ActionType } from '../definition/actions.js'
-import { cardPowers } from '../data/cardPowers.js'
+import { powerInPlay } from './powersInPlay.js'
 import { choiceSpecsFor, effectFor, type EffectContext } from '../powers/registry.js'
 import { OathRevision, isAtLeastOathRevision } from './revision.js'
 import { pawnSiteId } from './pawn.js'
@@ -92,8 +91,12 @@ export interface WoodPick {
 }
 
 /** R-11.7-H2 — Hospitality: declared with no bank, its bank chosen once the pick has landed. */
-function choosesBankOnArrival(cardId: string, powerIndex: number): boolean {
-    const power = cardPowers(cardId)[powerIndex]
+function choosesBankOnArrival(
+    state: HydratedOathGameState,
+    cardId: string,
+    powerIndex: number
+): boolean {
+    const power = powerInPlay(state, cardId, powerIndex)
     return power !== undefined && effectFor(power)?.modifier?.bankChosenOnArrival === true
 }
 
@@ -109,9 +112,9 @@ export function resolveWoodDeclaration(
     uses: readonly ModifierUse[] | undefined
 ): { reason?: string; active: ActiveModifier[] } {
     for (const use of uses ?? []) {
-        const power = cardPowers(use.cardId)[use.powerIndex]
+        const power = powerInPlay(state, use.cardId, use.powerIndex)
         if (!power || choiceSpecsFor(power).length === 0) continue
-        if (!choosesBankOnArrival(use.cardId, use.powerIndex)) {
+        if (!choosesBankOnArrival(state, use.cardId, use.powerIndex)) {
             return {
                 reason: `${use.cardId}: what it chooses depends on the site, which the Shrouded Wood's ruler has not picked yet`,
                 active: []
@@ -184,7 +187,7 @@ function planWoodPick(
     stationFavor: number
 ): { pick: WoodPick; active: ActiveModifier[] } {
     const here = pawnSiteId(state, travelerId)
-    const base = siteTravelTerms(state, here, here, 0, false).cost
+    const base = siteTravelTerms(state, here, here, 0, 0).cost
     const particulars = { destinationSiteId: siteId }
     const declared = carriedModifiers(
         state,
@@ -430,7 +433,9 @@ function bankOnArrivalAt(
     siteId: string,
     travel: WoodTravel
 ): WoodBankOnArrival | undefined {
-    const use = (travel.modifiers ?? []).find((m) => choosesBankOnArrival(m.cardId, m.powerIndex))
+    const use = (travel.modifiers ?? []).find((m) =>
+        choosesBankOnArrival(state, m.cardId, m.powerIndex)
+    )
     if (!use || !woodTravelTakesCards(state)) return undefined
     const card = { cardId: use.cardId, powerIndex: use.powerIndex }
     const banks = banksOnArrival(state, travelerId, card, siteId)
@@ -441,11 +446,6 @@ function bankOnArrivalAt(
 export interface WoodBankOnArrival {
     card: WoodTravelCard
     banks: Suit[]
-}
-
-function soleWarbandOwner(owners: readonly WarbandOwner[]): WarbandOwner | undefined {
-    const distinct = new Set(owners)
-    return distinct.size === 1 ? owners[0] : undefined
 }
 
 /**
@@ -494,7 +494,7 @@ export function settleWoodPick(
             supplySpent: spent,
             supplyRemaining: traveler.supply,
             notes: notes.length > 0 ? notes : undefined,
-            warbandOwner: soleWarbandOwner(after.warbandOwners),
+            warbandOwner: after.warbandOwner,
             ...(settle.chooserPlayerId ? { chooserPlayerId: settle.chooserPlayerId } : {}),
             ...(pricedBy.length > 0 ? { pricedBy } : {})
         },
@@ -525,7 +525,7 @@ function declaresIgnoreOfOriginWood(
     uses: readonly ModifierUse[] | undefined
 ): boolean {
     return (uses ?? []).some((use) => {
-        const power = cardPowers(use.cardId)[use.powerIndex]
+        const power = powerInPlay(state, use.cardId, use.powerIndex)
         if (!power) return false
         const ignores = effectFor(power)?.modifier?.ignoresOriginShroudedWood
         const ctx = { state, playerId: travelerId, power, choices: use.choices ?? [] }

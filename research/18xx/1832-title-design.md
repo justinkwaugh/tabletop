@@ -268,6 +268,9 @@ Investment's share and closure.
 
 ## Slice 3 design: closure and price protection
 
+Price protection, redemption, the soft ledge and holdings above 60% now live in the family, lifted for
+1870; see [its note](1870-title-design.md). This section records why they took this shape.
+
 ### Shared changes
 
 - `closeShareCompany` (company/companyClosure.ts) closes a share company: treasury to the bank,
@@ -447,8 +450,8 @@ stay in 1832.
   shares of the components, their president's certificates included.
 - **Formation.** The initiator, or the first player clockwise from them with four shares of the
   two components, becomes president; another player holding more then takes over as usual. The
-  price is the average of the two, rounded to a market value with a tie upward, placed in the
-  leftmost component's row and moved down-right along its diagonal to the soft or hard ledge;
+  price is the average of the two, rounded to a market value with a tie upward, moved
+  down-right along its diagonal to the leftmost component's ledge, soft or hard (see Rulings);
   its par is that price, at most $275. The System takes both components' cash, trains,
   privates, WVCF rights (one returned if both had one), revenue tokens and stations (a second
   in one city returns to its charter); its unplaced stations cost $100. The components close
@@ -480,14 +483,19 @@ stay in 1832.
   that phase.
 - The System chosen is the first unused of A–E.
 - Sales to fund a takeover may be protected like other sales, once the takeover completes.
-- If the leftmost components share a column, the System starts from the lower one's row; a
-  row without the rounded average takes its own nearest value, a tie rounding up.
+- If the leftmost components share a column, the lower one is the leftmost component. The
+  average rounds to the nearest value on the whole market, a tie rounding up. The System never
+  crosses the soft ledge: "until it hits either the soft ledge or the hard ledge" takes the
+  price diagonal's last box on the leftmost component's side of the ledge, even when that
+  component's row has its box at the price past the ledge, or the diagonal's last box when that
+  side has none.
 - Yielding: the proposer chooses the merger type and whether to yield; the other president
   agrees or refuses. A refusal bars that pairing, type and yield for the rest of the phase.
-- A takeover's buyer's president is paid for their own shares as they contribute, funding only
-  the difference. Funding sales may not change the buyer's presidency, close the buyer, sell
-  more shares of a company than the shortfall needs, or leave the rest unraisable. Unsold
-  shares bought at par pay the bank.
+- A takeover's buyer's president contributes everything the buyer's treasury lacks before the
+  buyer pays anyone, their own shares of the target included; the payment for those shares
+  does not count toward the contribution (user's ruling, 2026-11-09). Funding sales may not
+  change the buyer's presidency, close the buyer, sell more shares of a company than the
+  shortfall needs, or leave the rest unraisable. Unsold shares bought at par pay the bank.
 - A System's half dividend, like a 10-share company's, leaves the company the revenue less
   each share's half rounded up; each holding is still paid its own rounding (§11.6.4).
 - A component's reissue carries over to its System, whose unsold shares then pay it.

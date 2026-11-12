@@ -1,6 +1,14 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { CardKind, cardIdsOfKind } from '@tabletop/oath'
-import { cardBack, cardBackKeys, cardImage, cardImageKeys } from './cardImages.js'
+import {
+    cardBack,
+    cardBackKeys,
+    cardImage,
+    cardImageInPlay,
+    cardImageKeys,
+    cardSideImage
+} from './cardImages.js'
 
 /** Every extracted card has art, and every image is named for a real card. */
 describe('card art coverage', () => {
@@ -16,10 +24,50 @@ describe('card art coverage', () => {
         expect(missing).toEqual([])
     })
 
+    it('R-2.9 — every edifice has a picture of each side, and the two differ', () => {
+        const edifices = cardIdsOfKind(CardKind.Edifice)
+        expect(edifices).toHaveLength(6)
+        for (const id of edifices) {
+            const intact = cardSideImage(id, false)
+            const ruined = cardSideImage(id, true)
+            expect(intact, id).toBeDefined()
+            expect(ruined, id).toBeDefined()
+            expect(ruined).not.toBe(intact)
+            expect(cardImage(id)).toBe(intact)
+        }
+    })
+
+    it('each edifice side ships as lossy WebP, the encoding new opaque art takes', () => {
+        for (const id of cardIdsOfKind(CardKind.Edifice)) {
+            const suit = id.split('.')[1]
+            for (const name of [id, `${id}.ruined`]) {
+                expect(cardImage(name), name).toMatch(/\.webp$/)
+                const file = readFileSync(new URL(`./cards/${suit}/${name}.webp`, import.meta.url))
+                expect(file.subarray(0, 4).toString('latin1'), name).toBe('RIFF')
+                expect(file.subarray(8, 12).toString('latin1'), name).toBe('WEBP')
+                // `VP8 ` is the lossy bitstream; `VP8L` would be lossless and `VP8X` would carry alpha.
+                expect(file.subarray(12, 16).toString('latin1'), name).toBe('VP8 ')
+            }
+        }
+    })
+
+    it('R-2.9 — a card in play is drawn by the side that is up', () => {
+        const forge = 'edifice.nomad.ancient-forge'
+        const ruined = { isRuined: (id: string) => id === forge }
+        expect(cardImageInPlay(ruined, forge)).toBe(cardSideImage(forge, true))
+        expect(cardImageInPlay({ isRuined: () => false }, forge)).toBe(cardSideImage(forge, false))
+        const oracle = 'denizen.nomad.oracle'
+        expect(cardImageInPlay(ruined, oracle)).toBe(cardImage(oracle))
+    })
+
     it('no image is orphaned — every file names a card that exists', () => {
         const known = new Set<string>()
         for (const kind of simpleKinds) {
             for (const id of cardIdsOfKind(kind)) known.add(id)
+        }
+        for (const id of cardIdsOfKind(CardKind.Edifice)) {
+            known.add(id)
+            known.add(`${id}.ruined`)
         }
         const orphans = cardImageKeys().filter((key) => !known.has(key))
         expect(orphans).toEqual([])

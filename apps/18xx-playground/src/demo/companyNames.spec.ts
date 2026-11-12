@@ -15,22 +15,23 @@ import { EighteenThirtyCompanyNames } from '../../../../games/1830-ui/src/lib/co
 import { EighteenSeventeenCompanyNames } from '../../../../games/1817-ui/src/lib/companyPresentation.js'
 import { EighteenThirtyTwoCompanyNames } from '../../../../games/1832-ui/src/lib/companyPresentation.js'
 
-const Titles: readonly [string, ScenarioDefinition, Readonly<Record<string, CompanyNameVariants>>][] =
-    [
-        ['TOP', TheOldPrinceScenarios, TheOldPrinceCompanyNames],
-        ['1889', Shikoku1889Scenarios, Shikoku1889CompanyNames],
-        ['1830', EighteenThirtyScenarios, EighteenThirtyCompanyNames],
-        ['1817', EighteenSeventeenScenarios, EighteenSeventeenCompanyNames],
-        ['1846', Scenarios1846, CompanyNames1846],
-        ['1832', EighteenThirtyTwoScenarios, EighteenThirtyTwoCompanyNames]
-    ]
+const Titles: readonly [
+    string,
+    ScenarioDefinition,
+    Readonly<Record<string, CompanyNameVariants>>
+][] = [
+    ['TOP', TheOldPrinceScenarios, TheOldPrinceCompanyNames],
+    ['1889', Shikoku1889Scenarios, Shikoku1889CompanyNames],
+    ['1830', EighteenThirtyScenarios, EighteenThirtyCompanyNames],
+    ['1817', EighteenSeventeenScenarios, EighteenSeventeenCompanyNames],
+    ['1846', Scenarios1846, CompanyNames1846],
+    ['1832', EighteenThirtyTwoScenarios, EighteenThirtyTwoCompanyNames]
+]
 
 describe('company names', () => {
     it.each(Titles)('name every company in %s', (_, scenarios, names) => {
         const { state } = playExample(scenarios, 'opening')
-        expect(state.companies.map((company) => company.id).filter((id) => !names[id])).toEqual(
-            []
-        )
+        expect(state.companies.map((company) => company.id).filter((id) => !names[id])).toEqual([])
     })
 
     it('drop a redundant ending unless one word would remain', () => {

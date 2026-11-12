@@ -12,6 +12,7 @@
     } from 'flowbite-svelte'
     import TournamentSelect from './TournamentSelect.svelte'
     import GameConfigFields from './GameConfigFields.svelte'
+    import CompetitionScoringField from './CompetitionScoringField.svelte'
     import { localDateTimeInputValue } from '$lib/utils/dateTimeInput'
     import { getAppContext } from '$lib/stores/appContext.svelte'
     import {
@@ -77,7 +78,8 @@
     const game = new CompetitionGameChoice(
         libraryService,
         initial?.rules.titleId,
-        initial?.rules.gameConfig
+        initial?.rules.gameConfig,
+        initial?.rules.scoring
     )
     let title = $derived(game.title)
     let config = $derived(game.config)
@@ -139,7 +141,7 @@
                     registration,
                     concurrency,
                     gameConfig: config,
-                    scoring: 'splitWinsV1'
+                    scoring: game.scoring
                 }
             }
             const saved = tournament
@@ -215,6 +217,9 @@
                     {/each}
                 </ButtonGroup>
             </div>
+        {/if}
+        {#if game.supportsPlacement}
+            <CompetitionScoringField {game} />
         {/if}
         {#if title?.info.configurator?.options.length}
             <Hr class="my-4" />

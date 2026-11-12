@@ -30,6 +30,11 @@ const KIND_OF_GOAL: Record<Goal, GoalKind> = {
     [Goal.DarkestSecret]: GoalKind.DarkestSecret
 }
 
+/** R-2.11 — the symbol an Oath is drawn with: its Oathkeeper goal's. */
+export function oathGoalKind(oathType: OathType): GoalKind {
+    return KIND_OF_GOAL[OATHKEEPER_GOALS[oathType]]
+}
+
 /** R-3.3.1 — the Successor goal is keyed to the sworn Oath. */
 export const SUCCESSOR_KINDS: Record<OathType, GoalKind> = {
     [OathType.Supremacy]: GoalKind.RelicsAndBanners,
@@ -114,7 +119,7 @@ function standingOf(
 
 export function goalBoard(state: HydratedOathGameState): GoalBoard {
     const seatIds = state.turnManager.turnOrder
-    const oathKind = KIND_OF_GOAL[OATHKEEPER_GOALS[state.oathType]]
+    const oathKind = oathGoalKind(state.oathType)
     const holderId = state.oathkeeperPlayerId
 
     const visions = seatIds.flatMap((playerId) =>

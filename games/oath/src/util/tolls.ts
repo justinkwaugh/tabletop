@@ -89,11 +89,13 @@ export function tollsFor(
     return tolls
 }
 
+/** `advisersOf`: whose Vow of Kinship a Trade's favor follows (`favorHomeBankOf`). */
 export function reasonTollsUnpaid(
     state: HydratedOathGameState,
     actorId: string,
     occasion: TollOccasion,
-    tolls: readonly string[] | undefined
+    tolls: readonly string[] | undefined,
+    advisersOf?: string
 ): string | undefined {
     const listed = new Set(tolls ?? [])
     const available = tollsFor(state, actorId, occasion)
@@ -105,18 +107,20 @@ export function reasonTollsUnpaid(
     for (const cardId of listed) {
         if (!available.some((t) => t.cardId === cardId)) return `${cardId} demands no toll here`
     }
-    const usable = usableFavor(state, actorId)
+    const usable = usableFavor(state, actorId, advisersOf)
     if (usable < listed.size) {
         return `the tolls take ${listed.size} favor and you have ${usable}`
     }
     return undefined
 }
 
+/** `advisersOf` as for `reasonTollsUnpaid`. */
 export function payTolls(
     state: HydratedOathGameState,
     actorId: string,
     occasion: TollOccasion,
-    tolls: readonly string[] | undefined
+    tolls: readonly string[] | undefined,
+    advisersOf?: string
 ): string[] {
     if (!tolls || tolls.length === 0) return []
     const available = tollsFor(state, actorId, occasion)
@@ -124,7 +128,7 @@ export function payTolls(
     for (const cardId of new Set(tolls)) {
         const toll = available.find((t) => t.cardId === cardId)
         assertExists(toll, `${cardId} demands a toll here, as reasonTollsUnpaid checked`)
-        payToll(state, actorId, toll)
+        payToll(state, actorId, toll, advisersOf)
         notes.push(
             toll.payeeId
                 ? `${cardId}: gave a favor to ${toll.payeeId}`
@@ -134,13 +138,18 @@ export function payTolls(
     return notes
 }
 
-/** R-10.4 — "Give it to Chancellor if Empire, burn it if bandits". */
-export function payToll(state: HydratedOathGameState, actorId: string, toll: Toll): void {
+/** R-10.4 — "Give it to Chancellor if Empire, burn it if bandits". `advisersOf` as for `reasonTollsUnpaid`. */
+export function payToll(
+    state: HydratedOathGameState,
+    actorId: string,
+    toll: Toll,
+    advisersOf?: string
+): void {
     if (toll.payeeId) {
-        giveFavor(state, actorId, toll.payeeId, 1)
+        giveFavor(state, actorId, toll.payeeId, 1, advisersOf)
         return
     }
-    spendFavor(state, actorId, 1)
+    spendFavor(state, actorId, 1, advisersOf)
     burnFavor(state, 1)
 }
 

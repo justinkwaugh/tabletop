@@ -18,6 +18,7 @@ import {
 } from '@tabletop/common'
 import { cacheFixture } from '../../cache/tests/cacheFixture.js'
 import { FirestoreGameStore } from './gameStore.js'
+import { ActivityCache, TitleActivityScope } from '../../games/activityCache.js'
 import { GameCacheKeys } from './gameCacheKeys.js'
 import { UpdateValidationResult } from '../stores/validator.js'
 import { GameService } from '../../games/gameService.js'
@@ -122,15 +123,12 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
         }
 
         it('caches history pages without database reads and preserves older pages on completion', async () => {
-            const records = Array.from(
-                { length: 28 },
-                (_, index): Game => ({
-                    ...game,
-                    id: `${prefix}-history-${index}`,
-                    status: GameStatus.Finished,
-                    finishedAt: new Date(1700000000000 - index * 1000)
-                })
-            )
+            const records = Array.from({ length: 28 }, (_, index): Game => ({
+                ...game,
+                id: `${prefix}-history-${index}`,
+                status: GameStatus.Finished,
+                finishedAt: new Date(1700000000000 - index * 1000)
+            }))
             try {
                 const batch = db.batch()
                 for (const record of records) batch.set(store.games.doc(record.id), record)
@@ -445,6 +443,67 @@ describe.skipIf(!process.env.CACHE_TEST_REDIS_HOST || !process.env.FIRESTORE_EMU
             expect(await store.findOpenGamesForTitle(game.typeId)).toEqual([])
             await client.del(key)
             expect(await store.findOpenGamesForTitle(game.typeId)).toEqual([])
+        })
+
+        it('shows a renamed player everywhere the game is read, cached pages included', async () => {
+            const finished: Game = {
+                ...game,
+                id: `${prefix}-renamed-finished`,
+                status: GameStatus.Finished,
+                finishedAt: new Date(1700000000000)
+            }
+            await store.games.doc(finished.id).set(finished)
+            await store.createGame(game)
+            const seatName = (found: Game | undefined) =>
+                found?.players.find((player) => player.userId === owner.id)?.name
+
+            await primeUser(owner, GameStatusCategory.Active)
+            await store.findGameById(game.id)
+            await store.findGameHistory(owner)
+
+            for (const gameId of [game.id, finished.id]) {
+                const renamed = await store.renamePlayer({
+                    gameId,
+                    userId: owner.id,
+                    name: 'Robert'
+                })
+                expect(seatName(renamed)).toBe('Robert')
+            }
+
+            expect(seatName(await store.findGameById(game.id))).toBe('Robert')
+            const active = await store.findGamesForUser(owner, GameStatusCategory.Active)
+            expect(seatName(active.find((found) => found.id === game.id))).toBe('Robert')
+            const history = await store.findGameHistory(owner)
+            expect(seatName(history.games.find((found) => found.id === finished.id))).toBe('Robert')
+            expect((await store.findGameById(game.id))?.players[1].name).toBe('')
+        })
+
+        it('shows a renamed player in the title activity lists', async () => {
+            const titleActivity = new ActivityCache(client, TitleActivityScope)
+            const listingStore = new FirestoreGameStore(live.cache, db, { titleActivity })
+            const finished: Game = {
+                ...game,
+                id: `${prefix}-listed-finished`,
+                isPublic: true,
+                status: GameStatus.Finished,
+                finishedAt: new Date(1700000000000)
+            }
+            await listingStore.games.doc(finished.id).set(finished)
+            const seatNameInList = async () => {
+                const activity = await listingStore.findTitleActivity(game.typeId)
+                return activity.recentlyFinished
+                    .find((found) => found.id === finished.id)
+                    ?.players.find((player) => player.userId === owner.id)?.name
+            }
+            expect(await seatNameInList()).toBe('Owner')
+
+            await listingStore.renamePlayer({
+                gameId: finished.id,
+                userId: owner.id,
+                name: 'Robert'
+            })
+
+            await vi.waitFor(async () => expect(await seatNameInList()).toBe('Robert'))
         })
 
         it('keeps a game when its deletion is refused inside the transaction', async () => {

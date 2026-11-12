@@ -11,6 +11,7 @@ import { RailheadsColors } from './colors.js'
 import { RailheadsGameExploration } from './exploration.js'
 import { RailheadsHydrator } from './hydrator.js'
 import { RailheadsGameInitializer } from './initializer.js'
+import { RailheadsProgression } from './progression.js'
 import { RailheadsScoring } from './scoring.js'
 import { RailheadsStateHandlers } from './stateHandlers.js'
 
@@ -24,6 +25,7 @@ export const RailheadsRuntime = {
     apiActions: RailheadsApiActions,
     playerColors: RailheadsColors,
     scoring: new RailheadsScoring(),
+    progression: new RailheadsProgression(),
     stateLogger: new DefaultStateLogger(),
     visibility: {
         state: Visibility.createProjector(RailheadsGameState),

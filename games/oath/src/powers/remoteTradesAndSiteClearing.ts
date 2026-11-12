@@ -10,7 +10,7 @@ import {
 } from '../util/powerChoice.js'
 import { askQuestion } from '../util/questions.js'
 import { knownDraw } from '../util/knowledge.js'
-import { SECOND_WIND_ID, nextActionIndex } from '../util/freeActions.js'
+import { SECOND_WIND_ID, grantFreeCampaign, grantFreeTravel } from '../util/freeActions.js'
 import {
     registerBattlePlan,
     registerEffect,
@@ -20,18 +20,25 @@ import {
 } from './registry.js'
 import { giveFavor, takeFavorFromPlayer, usableFavor } from '../util/favor.js'
 import {
+    denizensToDiscardAtSites,
     discardDenizensAtSites,
     faceupSitesInYourRegion,
     siteOfPlayedCard,
     faceupSitesWithCardOfSuit
 } from './vocabulary.js'
 import { bargainChoicesAtYourSite, playerChoicesAtYourSite } from './choiceDomains.js'
-import { SALT_THE_EARTH } from '../util/capacity.js'
+import { SALT_THE_EARTH, SALTED_SITE_CAPACITY } from '../util/capacity.js'
 import { reasonPersistentForbidsGivingSecrets } from '../util/persistent.js'
 import { siteHolding } from '../util/access.js'
 import { handedOver } from '../model/playerState.js'
 import { isAtLeastOathRevision, OathRevision } from '../util/revision.js'
-import { secretsToGiveAfterCost, WITCHS_BARGAIN, type BargainEntry } from '../util/witchsBargain.js'
+import {
+    BARGAIN_MAX_STEPS,
+    reasonCannotBargainInOrder,
+    secretsToGiveAfterCost,
+    WITCHS_BARGAIN,
+    type BargainEntry
+} from '../util/witchsBargain.js'
 
 // "After you're victorious, you may travel and then may campaign, spending no Supply for either." Attacker. Cost: burn 1 favor, place 1 secret.
 const SECOND_WIND = SECOND_WIND_ID
@@ -39,10 +46,9 @@ registerBattlePlan(SECOND_WIND, powerIndexOf(SECOND_WIND, PowerTiming.BattlePlan
     hooks: {
         onOutcome: (ctx, victorious) => {
             if (!victorious) return undefined
-            const me = ctx.state.getPlayerState(ctx.playerId)
             // A free Travel taken at that action moves the Campaign's along by one.
-            me.freeTravelAtAction = nextActionIndex(ctx.state)
-            me.freeCampaignAtAction = nextActionIndex(ctx.state)
+            grantFreeTravel(ctx.state, ctx.playerId, SECOND_WIND)
+            grantFreeCampaign(ctx.state, ctx.playerId, SECOND_WIND)
             return 'Second Wind: the next Travel, and then a Campaign, cost no Supply'
         }
     }
@@ -96,6 +102,9 @@ registerEffect(DREAM_THIEF, powerIndexOf(DREAM_THIEF, PowerTiming.Action), {
 // From revision 7 one use deals with several players at the site (its Q&A: "Can I affect multiple
 // players at my site with one use of this card power? A: Yes!"), one entry each, and the secret
 // the cost places cannot be given (R-7.1.2). Before it, one player and two counts (R-X.4).
+// From revision 32 each exchange uses what the user holds at that moment, so the entries are
+// steps in order and a player may come again after another (`reasonCannotBargainInOrder`).
+// From revision 33 each takes as many as the other player holds, down to 0 (Law 9.3, R-9.3-H1).
 const ONE_PLAYER_ONLY = { beforeRevision: OathRevision.EngineFixes3 }
 registerEffect(WITCHS_BARGAIN, powerIndexOf(WITCHS_BARGAIN, PowerTiming.Action), {
     choices: [
@@ -119,7 +128,17 @@ registerEffect(WITCHS_BARGAIN, powerIndexOf(WITCHS_BARGAIN, PowerTiming.Action),
             max: 5,
             what: 'a player at your site',
             domain: bargainChoicesAtYourSite,
-            fromRevision: OathRevision.EngineFixes3
+            fromRevision: OathRevision.EngineFixes3,
+            beforeRevision: OathRevision.EngineFixes27
+        },
+        {
+            kind: PowerChoiceKind.Bargain,
+            min: 1,
+            max: BARGAIN_MAX_STEPS,
+            inOrder: true,
+            what: 'a player at your site',
+            domain: bargainChoicesAtYourSite,
+            fromRevision: OathRevision.EngineFixes27
         }
     ],
     reasonCannotResolve: (ctx) =>
@@ -130,14 +149,18 @@ registerEffect(WITCHS_BARGAIN, powerIndexOf(WITCHS_BARGAIN, PowerTiming.Action),
         const entries = isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes3)
             ? chosen(ctx, PowerChoiceKind.Bargain)
             : [oneEntryOf(ctx)]
-        for (const entry of entries) bargainWith(ctx, entry)
+        const taken = entries.map((entry) => bargainWith(ctx, entry))
         return {
-            summary: `Witch's Bargain: ${entries
-                .map(
-                    (e) =>
-                        `with ${e.playerId}, gave ${e.secretsGiven} secrets for ${2 * e.secretsGiven} favor and ${2 * e.pairsGiven} favor for ${e.pairsGiven} secrets`
-                )
-                .join('; ')}`,
+            summary: `Witch's Bargain: ${
+                isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes27)
+                    ? stepsMade(entries, taken)
+                    : entries
+                          .map(
+                              (e) =>
+                                  `with ${e.playerId}, gave ${e.secretsGiven} secrets for ${2 * e.secretsGiven} favor and ${2 * e.pairsGiven} favor for ${e.pairsGiven} secrets`
+                          )
+                          .join('; ')
+            }`,
             targetPlayerId: entries[0].playerId
         }
     }
@@ -176,7 +199,11 @@ function reasonCannotBargainWithOne(ctx: EffectContext): string | undefined {
     return undefined
 }
 
-/** The totals are held together: the user's against what they hold after the cost, each player's against theirs. */
+/**
+ * Each entry names an exchange. From revision 32 the entries are steps made in order, each on what
+ * the steps before it leave; before it, the totals are held together: the user's against what they
+ * hold after the cost, each player's against theirs.
+ */
 function reasonCannotBargain(ctx: EffectContext): string | undefined {
     const entries = chosen(ctx, PowerChoiceKind.Bargain)
     const whole = (n: number) => Number.isInteger(n) && n >= 0
@@ -186,6 +213,8 @@ function reasonCannotBargain(ctx: EffectContext): string | undefined {
         return 'name at least one exchange'
     const idle = entries.find((e) => e.secretsGiven + e.pairsGiven === 0)
     if (idle) return `name at least one exchange with ${idle.playerId}`
+    if (isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes27))
+        return reasonCannotBargainInOrder(ctx.state, ctx.playerId, entries, ctx.power)
     const give = entries.reduce((n, e) => n + e.secretsGiven, 0)
     const pairs = entries.reduce((n, e) => n + e.pairsGiven, 0)
     const left = secretsToGiveAfterCost(ctx.state, ctx.playerId, ctx.power)
@@ -207,38 +236,108 @@ function reasonCannotBargain(ctx: EffectContext): string | undefined {
     return undefined
 }
 
-/** In the order named: the secrets given and their favor taken, then the favor given and their secrets taken. */
-function bargainWith(ctx: EffectContext, entry: BargainEntry): void {
+/**
+ * From revision 32, the exchanges made, in order: only those that were, each with what it took
+ * (from revision 33 as many as the other player held, R-9.3-H1; before it all that was named).
+ */
+function stepsMade(steps: readonly BargainEntry[], taken: readonly BargainTaken[]): string {
+    return steps
+        .flatMap((e, i) => [
+            ...(e.secretsGiven > 0
+                ? [`gave ${e.playerId} ${e.secretsGiven} secrets for ${taken[i].favor} favor`]
+                : []),
+            ...(e.pairsGiven > 0
+                ? [`gave ${e.playerId} ${2 * e.pairsGiven} favor for ${taken[i].secrets} secrets`]
+                : [])
+        ])
+        .join(', then ')
+}
+
+/** What one exchange took from the other player: favor for its secrets, secrets for its pairs. */
+interface BargainTaken {
+    favor: number
+    secrets: number
+}
+
+/**
+ * In the order named: the secrets given and their favor taken, then the favor given and their
+ * secrets taken. The favor comes off their board, as much as is there (`takeFavorFromPlayer`);
+ * from revision 33 so do their secrets (Law 9.3, R-9.3-H1). Before it the check refused an
+ * exchange that would take more than they held.
+ */
+function bargainWith(ctx: EffectContext, entry: BargainEntry): BargainTaken {
     const me = ctx.state.getPlayerState(ctx.playerId)
     const other = ctx.state.getPlayerState(entry.playerId)
     me.secrets -= entry.secretsGiven
     other.secrets += entry.secretsGiven
-    takeFavorFromPlayer(ctx.state, ctx.playerId, entry.playerId, 2 * entry.secretsGiven)
+    const favor = takeFavorFromPlayer(
+        ctx.state,
+        ctx.playerId,
+        entry.playerId,
+        2 * entry.secretsGiven
+    )
     giveFavor(ctx.state, ctx.playerId, entry.playerId, 2 * entry.pairsGiven)
-    other.secrets -= entry.pairsGiven
-    me.secrets += entry.pairsGiven
+    const secrets = isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes28)
+        ? Math.min(entry.pairsGiven, other.secrets)
+        : entry.pairsGiven
+    other.secrets -= secrets
+    me.secrets += secrets
+    return { favor, secrets }
 }
 
 // "While your pawn is at this site, you may trade with a card at any site in your region." Site card.
 const MAP_LIBRARY = 'denizen.arcane.map-library'
 registerModifier(MAP_LIBRARY, powerIndexOf(MAP_LIBRARY, PowerTiming.Modifier), {
     hooks: {
+        // Small Friends from revision 19: the pawn acts as if at its site (`actsAsAt`).
         condition: (ctx) => {
             const here = siteHolding(ctx.state, MAP_LIBRARY)
-            return here && ctx.state.getPlayerState(ctx.playerId).siteId === here
-                ? undefined
-                : 'your pawn is not at the Map Library'
+            const at = ctx.particulars?.actsAsAt ?? ctx.state.getPlayerState(ctx.playerId).siteId
+            return here && at === here ? undefined : 'your pawn is not at the Map Library'
         },
-        tradeSites: (ctx) => faceupSitesInYourRegion(ctx.state, ctx.playerId)
+        tradeSites: (ctx) => {
+            const at = ctx.particulars?.actsAsAt
+            if (at === undefined) return faceupSitesInYourRegion(ctx.state, ctx.playerId)
+            const region = ctx.state.regionOf(at)
+            return ctx.state
+                .faceupSiteIds()
+                .filter((siteId) => ctx.state.regionOf(siteId) === region)
+        }
     }
 })
 
 // "Act as if your pawn is at any site with a [suit:beast] card." Adviser.
 const SMALL_FRIENDS = 'denizen.beast.small-friends'
-const beastSites = (ctx: EffectContext) => faceupSitesWithCardOfSuit(ctx.state, Suit.Beast)
+// R-X.4 — before revision 19 every such site at once; from it, the one site its use names, and
+// only there (its Q&A: "Can I use Trade modifiers at the site my pawn is physically at, in
+// addition to the site I am acting as if I am at? Nope! Only the new site.").
+const actedAt = (ctx: EffectContext) =>
+    isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes15)
+        ? chosen(ctx, PowerChoiceKind.Site).map((choice) => choice.siteId)
+        : faceupSitesWithCardOfSuit(ctx.state, Suit.Beast)
 registerModifier(SMALL_FRIENDS, powerIndexOf(SMALL_FRIENDS, PowerTiming.Modifier), {
+    choices: [
+        one(PowerChoiceKind.Site, {
+            what: 'the site you act as if you are at',
+            domain: (state) =>
+                faceupSitesWithCardOfSuit(state, Suit.Beast).map((siteId) => ({
+                    kind: PowerChoiceKind.Site,
+                    siteId
+                })),
+            fromRevision: OathRevision.EngineFixes15
+        })
+    ],
     // "(You may use Trade modifiers there.)"
-    hooks: { tradeSites: beastSites, actsAsAtSites: beastSites }
+    hooks: {
+        tradeSites: actedAt,
+        actsAsAtSites: actedAt,
+        // From revision 19 its use names a site: with none to name, it is not usable.
+        reasonUnusable: (ctx) =>
+            isAtLeastOathRevision(ctx.state, OathRevision.EngineFixes15) &&
+            faceupSitesWithCardOfSuit(ctx.state, Suit.Beast).length === 0
+                ? 'no faceup site has a Beast card'
+                : undefined
+    }
 })
 
 // "When played, draw a relic. Take it or put it on the bottom of the relic deck." Adviser, locked.
@@ -274,6 +373,18 @@ registerModifier(CROP_ROTATION, powerIndexOf(CROP_ROTATION, PowerTiming.Modifier
 //  capacity. Discard all other denizens at this site. This site's capacity is now 1." Site, locked.
 registerEffect(SALT_THE_EARTH, powerIndexOf(SALT_THE_EARTH, PowerTiming.WhenPlayed), {
     choices: [],
+    // Before its play the card is at no site: the play names the one it goes to.
+    mapLeaving: (ctx) => {
+        const siteId = ctx.mapChanges?.siteId
+        assertExists(siteId, 'Salt the Earth is only played to a site')
+        return denizensToDiscardAtSites(
+            ctx.state,
+            ctx.playerId,
+            [siteId],
+            (id) => id !== SALT_THE_EARTH,
+            ctx.mapChanges
+        )
+    },
     resolve: (ctx) => {
         // "This site": where it was played, which the People's Favor or New Growth may make another site.
         const siteId = siteOfPlayedCard(ctx.state, ctx.playerId, SALT_THE_EARTH)
@@ -284,7 +395,10 @@ registerEffect(SALT_THE_EARTH, powerIndexOf(SALT_THE_EARTH, PowerTiming.WhenPlay
             (id) => id !== SALT_THE_EARTH,
             ctx.power.cardId
         )
-        ctx.state.siteCapacityOverrides = { ...ctx.state.siteCapacityOverrides, [siteId]: 1 }
+        ctx.state.siteCapacityOverrides = {
+            ...ctx.state.siteCapacityOverrides,
+            [siteId]: SALTED_SITE_CAPACITY
+        }
         return {
             summary: `Salt the Earth: discarded ${discarded.length} denizens at ${siteId}; its capacity is now 1`,
             pileDeposits

@@ -78,7 +78,9 @@ registerBattlePlan(ONE_SITE, 0, {
     hooks: {
         discardAtEnd: true,
         reasonCannotUse: (ctx) => {
-            const toSite = chosen(ctx, PowerChoiceKind.Warbands).some(({ group }) => group.at.kind === 'board')
+            const toSite = chosen(ctx, PowerChoiceKind.Warbands).some(
+                ({ group }) => group.at.kind === 'board'
+            )
             const [to] = chosen(ctx, PowerChoiceKind.Site)
             if (toSite && !to) return 'name the site you rule the board warbands go to'
             if (!toSite && to) return 'name the board warbands to move to that site'
@@ -94,7 +96,9 @@ registerBattlePlan(ONE_SITE, 0, {
                 if (!siteId) continue
                 const move = fromSite ? moveWarbandsSiteToBoard : moveWarbandsBoardToSite
                 const moved = move(ctx.state, ctx.playerId, group.owner, siteId, group.count)
-                notes.push(`${moved} ${fromSite ? `from ${siteId} to the board` : `from the board to ${siteId}`}`)
+                notes.push(
+                    `${moved} ${fromSite ? `from ${siteId} to the board` : `from the board to ${siteId}`}`
+                )
             }
             return `Warning Signals: ${ctx.playerId} moved ${notes.join('; ') || 'nothing'}`
         }
@@ -108,7 +112,15 @@ registerBattlePlan(ONE_SITE, 0, {
 function defending(board: Record<string, number> = { foe: 2 }): HydratedOathGameState {
     const s = testState(
         [
-            testPlayer({ playerId: 'me', color: Color.Red, siteId: 'c1', favor: 4, secrets: 3, supply: 6, warbandsOnBoard: { me: 3 } }),
+            testPlayer({
+                playerId: 'me',
+                color: Color.Red,
+                siteId: 'c1',
+                favor: 4,
+                secrets: 3,
+                supply: 6,
+                warbandsOnBoard: { me: 3 }
+            }),
             testPlayer({
                 playerId: 'foe',
                 color: Color.Blue,
@@ -124,7 +136,14 @@ function defending(board: Record<string, number> = { foe: 2 }): HydratedOathGame
         { warbandsBySite: { c1: { foe: 2 }, p1: { foe: 3 }, h1: { foe: 1 }, c2: { me: 2 } } }
     )
     openTurn(s, 'me')
-    new HydratedCampaign(buildAction(Campaign, { playerId: 'me', defender: { kind: 'player', playerId: 'foe' }, targets: [siteTarget('c1')], attackDice: 2 })).apply(s)
+    new HydratedCampaign(
+        buildAction(Campaign, {
+            playerId: 'me',
+            defender: { kind: 'player', playerId: 'foe' },
+            targets: [siteTarget('c1')],
+            attackDice: 2
+        })
+    ).apply(s)
     return s
 }
 
@@ -132,12 +151,18 @@ function plan(cardId: string, choices: PowerChoice[]) {
     return { cardId, powerIndex: powerIndexOf(cardId, PowerTiming.BattlePlan), choices }
 }
 
-function verdict(s: HydratedOathGameState, cardId: string, choices: PowerChoice[]): string | undefined {
+function verdict(
+    s: HydratedOathGameState,
+    cardId: string,
+    choices: PowerChoice[]
+): string | undefined {
     return HydratedCampaignDefend.reasonCannotDefend(s, 'foe', [plan(cardId, choices)])
 }
 
 function defend(s: HydratedOathGameState, cardId: string, choices: PowerChoice[]) {
-    const d = new HydratedCampaignDefend(buildAction(CampaignDefend, { playerId: 'foe', plans: [plan(cardId, choices)] }))
+    const d = new HydratedCampaignDefend(
+        buildAction(CampaignDefend, { playerId: 'foe', plans: [plan(cardId, choices)] })
+    )
     d.apply(s)
     return d
 }
@@ -155,13 +180,22 @@ describe('Warning Signals — moves like Messenger: each warbands, then the site
         expect(where(s).board['foe'] ?? 0).toBe(0)
         expect(s.warbandsBySite['p1']['foe']).toBe(1)
         expect(s.warbandsBySite['h1']['foe']).toBe(5)
-        expect(d.metadata?.planNotes?.[0]).toBe('Warning Signals: foe moved 2 from p1 to the board; 4 from the board to h1')
+        expect(d.metadata?.planNotes?.[0]).toBe(
+            'Warning Signals: foe moved 2 from p1 to the board; 4 from the board to h1'
+        )
         expect(s.campaign?.discardAtEnd).toContain(WARNING)
     })
 
     it('board warbands go to two different sites in one use, and a site sends straight to a site', () => {
         const s = defending()
-        const choices = [boardWarbands('foe', 'foe', 1), site('c1'), boardWarbands('foe', 'foe', 1), site('h1'), siteWarbands('p1', 'foe', 2), site('c1')]
+        const choices = [
+            boardWarbands('foe', 'foe', 1),
+            site('c1'),
+            boardWarbands('foe', 'foe', 1),
+            site('h1'),
+            siteWarbands('p1', 'foe', 2),
+            site('c1')
+        ]
         expect(verdict(s, WARNING, choices)).toBeUndefined()
         const d = defend(s, WARNING, choices)
         expect(where(s).board['foe'] ?? 0).toBe(0)
@@ -175,26 +209,46 @@ describe('Warning Signals — moves like Messenger: each warbands, then the site
 
     it('each move is offered on the state the moves before it leave', () => {
         const s = defending({})
-        expect(legalChoices(s, 'foe', warningPower())[0].options).toEqual([siteWarbands('c1', 'foe', 1), siteWarbands('p1', 'foe', 2)])
+        expect(legalChoices(s, 'foe', warningPower())[0].options).toEqual([
+            siteWarbands('c1', 'foe', 1),
+            siteWarbands('p1', 'foe', 2)
+        ])
         // After 2 leave p1 for the board, the board holds them and p1 has none free.
         const after = legalChoices(s, 'foe', warningPower(), [siteWarbands('p1', 'foe', 2)])
-        expect(after[2].options).toEqual([boardWarbands('foe', 'foe', 2), siteWarbands('c1', 'foe', 1)])
+        expect(after[2].options).toEqual([
+            boardWarbands('foe', 'foe', 2),
+            siteWarbands('c1', 'foe', 1)
+        ])
     })
 
     it('the last warband stays: a site with one is no source, and no more than the free ones leave', () => {
         const s = defending()
         const sources = legalChoices(s, 'foe', warningPower())[0].options
-        expect(sources).toEqual([boardWarbands('foe', 'foe', 2), siteWarbands('c1', 'foe', 1), siteWarbands('p1', 'foe', 2)])
+        expect(sources).toEqual([
+            boardWarbands('foe', 'foe', 2),
+            siteWarbands('c1', 'foe', 1),
+            siteWarbands('p1', 'foe', 2)
+        ])
         expect(verdict(s, WARNING, [siteWarbands('h1', 'foe', 1)])).toMatch(/not among the options/)
         expect(verdict(s, WARNING, [siteWarbands('p1', 'foe', 3)])).toMatch(/only 2 are there/)
         // Two moves off one site take no more than its free warbands between them.
-        expect(verdict(s, WARNING, [siteWarbands('p1', 'foe', 2), site('h1'), siteWarbands('p1', 'foe', 1)])).toBeDefined()
+        expect(
+            verdict(s, WARNING, [
+                siteWarbands('p1', 'foe', 2),
+                site('h1'),
+                siteWarbands('p1', 'foe', 1)
+            ])
+        ).toBeDefined()
     })
 
     it('board warbands need a site the defender rules to go to', () => {
         const s = defending()
-        expect(verdict(s, WARNING, [boardWarbands('foe', 'foe', 2)])).toMatch(/need a site you rule/)
-        expect(verdict(s, WARNING, [boardWarbands('foe', 'foe', 2), site('c2')])).toMatch(/not among the options/)
+        expect(verdict(s, WARNING, [boardWarbands('foe', 'foe', 2)])).toMatch(
+            /need a site you rule/
+        )
+        expect(verdict(s, WARNING, [boardWarbands('foe', 'foe', 2), site('c2')])).toMatch(
+            /not among the options/
+        )
     })
 
     it('offers 16 moves and no more', () => {
@@ -203,7 +257,8 @@ describe('Warning Signals — moves like Messenger: each warbands, then the site
         expect(specs.filter((spec) => spec.kind === PowerChoiceKind.Warbands)).toHaveLength(16)
         expect(specs.every((spec) => spec.sequential && spec.min === 0)).toBe(true)
         const s = defending({ foe: 16 })
-        const back = (n: number) => Array.from({ length: n }, () => [boardWarbands('foe', 'foe', 1), site('c1')]).flat()
+        const back = (n: number) =>
+            Array.from({ length: n }, () => [boardWarbands('foe', 'foe', 1), site('c1')]).flat()
         expect(verdict(s, WARNING, back(16))).toBeUndefined()
         expect(verdict(s, WARNING, back(17))).toMatch(/never asked for/)
         defend(s, WARNING, back(16))
@@ -213,7 +268,11 @@ describe('Warning Signals — moves like Messenger: each warbands, then the site
 
 describe('Warning Signals — a use recorded in the one-site form replays unchanged', () => {
     it('two owners on the board share the one site named after them', () => {
-        const choices = [boardWarbands('foe', 'foe', 1), boardWarbands('foe', IMPERIAL_WARBANDS, 1), site('c1')]
+        const choices = [
+            boardWarbands('foe', 'foe', 1),
+            boardWarbands('foe', IMPERIAL_WARBANDS, 1),
+            site('c1')
+        ]
         const now = defending({ foe: 2, [IMPERIAL_WARBANDS]: 1 })
         const then = defending({ foe: 2, [IMPERIAL_WARBANDS]: 1 })
         expect(verdict(then, ONE_SITE, choices)).toBeUndefined()

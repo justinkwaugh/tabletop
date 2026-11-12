@@ -29,6 +29,11 @@ import {
     isSetStockInstruction
 } from './setStockInstruction.js'
 import {
+    SetStockInstructionStops,
+    HydratedSetStockInstructionStops,
+    isSetStockInstructionStops
+} from './setStockInstructionStops.js'
+import {
     StopStockInstruction,
     HydratedStopStockInstruction,
     isStopStockInstruction
@@ -61,6 +66,11 @@ export function stockActions(
             SetStockInstruction,
             isSetStockInstruction,
             (action) => new HydratedSetStockInstruction(action, rules)
+        ),
+        defineAction(
+            SetStockInstructionStops,
+            isSetStockInstructionStops,
+            (action) => new HydratedSetStockInstructionStops(action)
         ),
         defineAction(
             StopStockInstruction,

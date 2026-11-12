@@ -2,7 +2,19 @@ import { nanoid } from 'nanoid'
 
 import { Resend } from 'resend'
 import { SecretsService } from '../secrets/secretsService'
-import { Game, GameDefinition, TournamentDetail, User } from '@tabletop/common'
+import {
+    AUTHENTICATION_CHALLENGE_LIFETIME_SECONDS,
+    CONTENT_REPORT_REASON_LABELS,
+    CONTENT_REPORT_TARGET_LABELS,
+    Game,
+    GameDefinition,
+    TournamentDetail,
+    formatTournamentTiebreaks,
+    ranksByAveragePlace,
+    formatTournamentAveragePlace,
+    tournamentTiebreakDescription,
+    User
+} from '@tabletop/common'
 import {
     AccountChangeType,
     EmailService,
@@ -11,6 +23,13 @@ import {
     type LeagueSignUpEmail
 } from './emailService.js'
 import { NullEmailService } from './nullEmailService.js'
+import type { ContentReportEmail } from '../moderation/contentReports.js'
+
+function formatReportTime(time: Date): string {
+    return `${time.toISOString().slice(0, 16).replace('T', ' ')} UTC`
+}
+
+const CHALLENGE_LIFETIME_MINUTES = AUTHENTICATION_CHALLENGE_LIFETIME_SECONDS / 60
 
 type EmailRendering = {
     render: (typeof import('@react-email/components'))['render']
@@ -33,11 +52,15 @@ export class ResendEmailService implements EmailService {
     }
 
     private async send(to: string, subject: string, html: string): Promise<void> {
+        const { templates } = await this.loadRendering()
         await this.resend.emails.send({
             from: 'noreply@boardtogether.games',
             to,
             subject,
             html,
+            // Sent rather than left for Resend to derive from the HTML, for clients that cannot
+            // show the HTML, such as old Eudora.
+            text: templates.emailPlainText(html),
             headers: {
                 'X-Entity-Ref-ID': nanoid()
             }
@@ -56,24 +79,29 @@ export class ResendEmailService implements EmailService {
 
     async sendVerificationEmail(token: string, toEmail: string): Promise<void> {
         const { render, templates } = await this.loadRendering()
-        const emailHTML = await render(templates.EmailVerification({ token }))
+        const emailHTML = await render(
+            templates.EmailVerification({ token, expiresInMinutes: CHALLENGE_LIFETIME_MINUTES })
+        )
         await this.send(toEmail, 'Verify your email address', emailHTML)
     }
 
     async sendPasswordResetEmail(token: string, url: string, toEmail: string): Promise<void> {
         const { render, templates } = await this.loadRendering()
-        const emailHTML = await render(templates.PasswordReset({ url }))
+        const emailHTML = await render(
+            templates.PasswordReset({ url, expiresInMinutes: CHALLENGE_LIFETIME_MINUTES })
+        )
         await this.send(toEmail, 'Reset your password', emailHTML)
     }
 
     async sendAccountChangedNotificationEmail(
         changeType: AccountChangeType,
         timestamp: Date,
-        toEmail: string
+        toEmail: string,
+        username?: string
     ): Promise<void> {
         const { render, templates } = await this.loadRendering()
         const emailHTML = await render(
-            templates.AccountChangeNotification({ changeType, timestamp })
+            templates.AccountChangeNotification({ changeType, timestamp, username })
         )
         await this.send(toEmail, 'Account change notification', emailHTML)
     }
@@ -107,6 +135,52 @@ export class ResendEmailService implements EmailService {
         )
     }
 
+    async sendContentReportEmail(report: ContentReportEmail): Promise<void> {
+        const { render, templates } = await this.loadRendering()
+        const targetLabel = CONTENT_REPORT_TARGET_LABELS[report.targetKind]
+        const reasonLabel = CONTENT_REPORT_REASON_LABELS[report.reason]
+        const emailHTML = await render(
+            templates.ContentReport({
+                ...report,
+                targetLabel,
+                reasonLabel,
+                reportedAt: formatReportTime(new Date(report.reportedAt))
+            })
+        )
+        await this.send(report.toEmail, `Report: ${targetLabel}, ${reasonLabel}`, emailHTML)
+    }
+
+    async sendPlayerRemovedEmail({
+        playerName,
+        game,
+        definition,
+        url,
+        toEmail,
+        deletedAccount
+    }: {
+        playerName: string
+        game: Game
+        definition: GameDefinition
+        url: string
+        toEmail: string
+        deletedAccount: boolean
+    }): Promise<void> {
+        const { render, templates } = await this.loadRendering()
+        const emailHTML = await render(
+            templates.PlayerRemoved({
+                playerName,
+                title: definition.info.metadata.name,
+                gameName: game.name,
+                url,
+                deletedAccount
+            })
+        )
+        const subject = deletedAccount
+            ? `A player left ${game.name}`
+            : `A player was removed from ${game.name}`
+        await this.send(toEmail, subject, emailHTML)
+    }
+
     async sendGameEndEmail({
         winners,
         game,
@@ -130,6 +204,7 @@ export class ResendEmailService implements EmailService {
             templates.GameEnd({
                 result: game.result,
                 winners: winners.map((w) => w.username || 'A Player'),
+                callKind: game.call?.kind,
                 gameName: game.name,
                 title: definition.info.metadata.name,
                 url
@@ -161,23 +236,26 @@ export class ResendEmailService implements EmailService {
             return
         }
         const name = (userId: string) => detail.usernames[userId] ?? 'A Player'
+        const ranked = standings.filter((row) => !row.withdrawn)
+        const tiebreaks = formatTournamentTiebreaks(ranked, 'en-US')
         const { render, templates } = await this.loadRendering()
         const emailHTML = await render(
             templates.TournamentResults({
                 tournamentName: detail.tournament.name,
                 title: definition.info.metadata.name,
                 winners: standings.filter((row) => row.champion).map((row) => name(row.userId)),
-                standings: standings
-                    .filter((row) => !row.withdrawn)
-                    .map((row) => ({
-                        rank: row.rank,
-                        name: name(row.playedBy ?? row.userId),
-                        wins: row.wins,
-                        score: row.score,
-                        ...(row.tiebreak !== undefined ? { tiebreak: row.tiebreak } : {}),
-                        recipient: (row.playedBy ?? row.userId) === recipientId,
-                        champion: row.champion === true
-                    })),
+                tiebreakDescription: tournamentTiebreakDescription(standings),
+                ranksByAveragePlace: ranksByAveragePlace(detail.tournament.rules),
+                standings: ranked.map((row, index) => ({
+                    rank: row.rank,
+                    name: name(row.playedBy ?? row.userId),
+                    wins: row.wins,
+                    score: row.score,
+                    averagePlace: formatTournamentAveragePlace(row),
+                    tiebreak: tiebreaks[index],
+                    recipient: (row.playedBy ?? row.userId) === recipientId,
+                    champion: row.champion === true
+                })),
                 url
             })
         )

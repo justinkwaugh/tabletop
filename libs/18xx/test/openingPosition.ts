@@ -43,10 +43,7 @@ export function openingPositionDigest(
     )
     return createHash('sha256')
         .update(
-            JSON.stringify(
-                seededPosition(startFromPublicSeed(runtime, game), recorded),
-                sortedKeys
-            )
+            JSON.stringify(seededPosition(startFromPublicSeed(runtime, game), recorded), sortedKeys)
         )
         .digest('hex')
         .slice(0, 16)

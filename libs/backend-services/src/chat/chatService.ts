@@ -15,7 +15,10 @@ import { GameNotFoundError, UserIsNotAllowedPlayerError } from '../games/errors.
 
 export class ChatService {
     constructor(
-        private readonly gameService: GameService,
+        private readonly gameService: Pick<
+            GameService,
+            'getGame' | 'findValidPlayerForUser' | 'notifyGameInstance'
+        >,
         private readonly chatStore: ChatStore
     ) {}
 
@@ -63,13 +66,52 @@ export class ChatService {
         return chat
     }
 
+    async redactGameChatMessage(
+        administrator: User,
+        gameId: string,
+        messageId: string
+    ): Promise<GameChatMessage> {
+        const game = await this.gameService.getGame({ gameId })
+        if (!game) {
+            throw new GameNotFoundError({ id: gameId })
+        }
+        const { chat, message, originalText, alreadyRedacted } =
+            await this.chatStore.redactGameChatMessage(gameId, messageId)
+        if (alreadyRedacted) return message
+
+        // The moderation record an appeal is reviewed against.
+        console.log(
+            JSON.stringify({
+                event: 'chat_message_redacted',
+                gameId,
+                messageId,
+                authorUserId: message.userId,
+                administratorId: administrator.id,
+                originalText
+            })
+        )
+        const notificationData: GameNotificationChatData = {
+            game,
+            message,
+            checksum: chat.checksum
+        }
+        await this.gameService
+            .notifyGameInstance(GameNotificationAction.Chat, notificationData)
+            .catch((error) => {
+                console.error('Failed to send chat redaction notification', error)
+            })
+        return message
+    }
+
     private attributeMessage(user: User, game: Game, message: GameChatMessage): GameChatMessage {
         const isAdmin = user.roles.includes(Role.Admin)
         if (message.playerId === undefined) {
             if (!isAdmin) {
                 throw new UserIsNotAllowedPlayerError({ user, gameId: game.id })
             }
-            return { ...message, admin: true }
+            const adminMessage: GameChatMessage = { ...message, admin: true }
+            delete adminMessage.redacted
+            return adminMessage
         }
 
         if (!isAdmin) {
@@ -80,6 +122,7 @@ export class ChatService {
         }
         const playerMessage = { ...message }
         delete playerMessage.admin
+        delete playerMessage.redacted
         return playerMessage
     }
 

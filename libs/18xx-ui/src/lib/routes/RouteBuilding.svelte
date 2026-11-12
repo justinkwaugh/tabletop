@@ -10,32 +10,30 @@
         recordedResult?: OperatingResult
         session: Pick<
             EighteenXXSessionView,
-            'undo' | 'busy' | 'isViewingHistory' | 'companyName'
+            'undo' | 'busy' | 'isViewingHistory' | 'companyName' | 'placeName'
         > & {
             gameState: Pick<EighteenXXSessionView['gameState'], 'routeStep' | 'companies'>
             presentation: Pick<EighteenXXSessionView['presentation'], 'money'>
             routes: Pick<
                 EighteenXXSessionView['routes'],
                 | 'editor'
-                | 'editorVisible'
-                | 'canRun'
+                | 'editable'
+                | 'shown'
+                | 'drawnReason'
+                | 'submission'
                 | 'selectTrain'
-                | 'selectStart'
-                | 'appendPath'
-                | 'save'
-                | 'edit'
-                | 'remove'
-                | 'back'
-                | 'confirm'
+                | 'run'
             >
         }
     } = $props()
     const money = $derived(session.presentation.money)
     function breakdown(route: RouteResult): string {
         return [
-            ...route.payments.map((payment) => `${payment.locationId}: ${money(payment.amount)}`),
+            ...route.payments.map(
+                (payment) => `${session.placeName(payment.locationId)}: ${money(payment.amount)}`
+            ),
             ...(route.bonuses ?? []).map(
-                (bonus) => `${bonus.locationId} bonus: ${money(bonus.amount)}`
+                (bonus) => `${session.placeName(bonus.locationId)} bonus: ${money(bonus.amount)}`
             )
         ].join(' + ')
     }
@@ -45,15 +43,7 @@
             ? { companyId: recordedResult.companyId, result: recordedResult }
             : session.gameState.routeStep
     )
-    const visible = $derived(session.routes.editorVisible)
-    const current = $derived(visible ? editor.route : undefined)
-    const preview = $derived(visible ? editor.preview : undefined)
-    const evaluation = $derived(visible ? editor.combinedPreview : undefined)
-    const previewResult = $derived(
-        evaluation?.result?.routes.find((route) => route.trainId === current?.trainId) ??
-            preview?.result
-    )
-    const results = $derived(step?.result?.routes ?? (visible ? editor.savedResults : []))
+    const result = $derived(step?.result ?? session.routes.shown)
 </script>
 
 {#if step}
@@ -66,79 +56,21 @@
                     onclick={() => session.undo()}
                     disabled={session.busy || session.isViewingHistory}>Undo</button
                 >{/if}
-            {#if step.result}<strong>Revenue: {money(step.result.revenue)}</strong>{/if}
+            {#if result}<strong>Revenue: {money(result.revenue)}</strong>{/if}
         </header>
-        {#if !step.result}
+        {#if !step.result && session.routes.editable}
             <div class="trains" aria-label="Route trains">
                 {#each editor.trains as train (train.id)}
                     <button
-                        disabled={!session.routes.canRun ||
-                            (visible && editor.routes.some((route) => route.trainId === train.id))}
                         onclick={() => session.routes.selectTrain(train.id)}
-                        aria-pressed={visible && editor.trainId === train.id}
-                        >Run {editor.rules.depot.trainDefinition(train.definitionId).name} ({train.id})</button
+                        aria-pressed={editor.trainId === train.id}
+                        >Draw {editor.rules.depot.trainDefinition(train.definitionId).name} ({train.id})</button
                     >
                 {/each}
             </div>
-            {#if visible && editor.trainId}
-                <div aria-label="Route selection" class="route-selection">
-                    <label
-                        >Starting revenue center
-                        <select
-                            aria-label="Starting revenue center"
-                            value={editor.start ? JSON.stringify(editor.start) : ''}
-                            disabled={!session.routes.canRun}
-                            onchange={(event) => {
-                                const center = editor.centers.find(
-                                    (center) => JSON.stringify(center) === event.currentTarget.value
-                                )
-                                if (center) session.routes.selectStart(center)
-                            }}
-                        >
-                            <option value="" disabled>Choose a center</option>
-                            {#each editor.centers as center, index (index)}<option
-                                    value={JSON.stringify(center)}
-                                    >{editor.rules.map.location(center.locationId).name ??
-                                        center.locationId} · {center.locationId}
-                                    {center.nodeId}</option
-                                >{/each}
-                        </select>
-                    </label>
-                    {#if editor.start}
-                        <p>
-                            Path: {editor.start.locationId}
-                            {editor.start.nodeId}{#each editor.paths as path, index (index)}
-                                → {path.locationId} {path.pathId}{/each}
-                        </p>
-                        <div class="extensions" aria-label="Next track">
-                            {#each editor.extensions as path (path.pathId)}<button
-                                    disabled={!session.routes.canRun}
-                                    onclick={() => session.routes.appendPath(path)}
-                                    >Add {path.locationId} {path.pathId}</button
-                                >{/each}
-                        </div>
-                    {/if}
-                    {#if preview?.reason}<p role="status">{preview.reason}</p>{/if}
-                    {#if previewResult}<p>
-                            Distance: {previewResult.distance} · Revenue: {money(
-                                previewResult.revenue
-                            )}
-                        </p>
-                        <p>
-                            {breakdown(previewResult)}
-                        </p>{/if}
-                    <button disabled={!session.routes.canRun} onclick={() => session.routes.back()}
-                        >Back</button
-                    >
-                    <button
-                        disabled={!session.routes.canRun || !preview?.result}
-                        onclick={() => session.routes.save()}>Save route</button
-                    >
-                </div>
-            {/if}
         {/if}
         <div aria-label="Route results">
-            {#each results as route (route.trainId)}<div
+            {#each result?.routes ?? [] as route (route.trainId)}<div
                     class="result"
                     data-route-train={route.trainId}
                 >
@@ -148,25 +80,13 @@
                         )}</strong
                     >
                     <span>{breakdown(route)}</span>
-                    {#if !step.result}<button
-                            disabled={!session.routes.canRun || Boolean(editor.trainId)}
-                            onclick={() => session.routes.edit(route.trainId)}>Edit route</button
-                        ><button
-                            disabled={!session.routes.canRun}
-                            onclick={() => session.routes.remove(route.trainId)}
-                            >Remove route</button
-                        >{/if}
                 </div>{/each}
         </div>
         {#if !step.result}
-            {#if evaluation?.reason}<p role="alert">{evaluation.reason}</p>{/if}
+            {#if session.routes.drawnReason}<p role="alert">{session.routes.drawnReason}</p>{/if}
             <footer>
-                <strong>Revenue: {money(evaluation?.result?.revenue ?? 0)}</strong>
-                <button
-                    disabled={!session.routes.canRun ||
-                        Boolean(editor.trainId) ||
-                        !editor.submission?.result}
-                    onclick={() => session.routes.confirm()}>Confirm routes</button
+                <button disabled={!session.routes.submission} onclick={() => session.routes.run()}
+                    >Run trains</button
                 >
             </footer>
         {/if}
@@ -182,7 +102,6 @@
     }
     header,
     .trains,
-    .extensions,
     .result,
     footer {
         display: flex;
@@ -195,8 +114,7 @@
         margin: 0 12px 0 0;
         font-size: 16px;
     }
-    button,
-    select {
+    button {
         font: inherit;
         padding: 7px 10px;
         border: 1px solid var(--rail-border, #b5c3ba);
@@ -212,16 +130,6 @@
     }
     button[aria-pressed='true'] {
         outline: 2px solid #d58400;
-    }
-    .route-selection {
-        padding: 12px;
-        border: 1px dashed #d58400;
-        margin: 12px 0;
-    }
-    label {
-        display: flex;
-        gap: 8px;
-        align-items: center;
     }
     p {
         margin: 10px 0;

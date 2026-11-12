@@ -10,7 +10,6 @@ import {
     GameAction,
     HydratableAction,
     PassableBidding,
-    PlayerAction,
     assert,
     assertExists,
     type HydratedAction,
@@ -29,7 +28,8 @@ import {
     SystemActionFirstHandler,
     RoundEnd,
     roundEnd,
-    type ValuationRules
+    type ValuationRules,
+    EighteenXXPlayerAction
 } from '@tabletop/18xx'
 import {
     acquisitionRoundCompanyIds,
@@ -276,7 +276,7 @@ export class HydratedEndAcquisitionRound
     }
 }
 
-const CompanyFields = { ...PlayerAction.properties, companyId: Type.String() }
+const CompanyFields = { ...EighteenXXPlayerAction.properties, companyId: Type.String() }
 
 const SkipFields = Type.Object({
     type: Type.Literal('SkipCompanySale'),

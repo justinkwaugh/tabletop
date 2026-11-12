@@ -22,8 +22,7 @@ import {
     start,
     setCompanyInReceivership,
     fundablePurchases,
-    fundTrain,
-    resolveFunding
+    fundTrain
 } from '../test/testSupport.js'
 import { TrainDepot1846, TrainRules1846, trainBuyingChoices1846 } from './trains.js'
 import { isAdvancePhase1846 } from './phases.js'
@@ -281,7 +280,6 @@ describe('1846 Phase IV trains and lifecycle', () => {
         assertExists(plan)
         expect(plan.price).toBe(800)
         fundTrain(table, '6')
-        resolveFunding(table)
         expect(table.state.phaseId).toBe('IV')
         discardTrain(table)
         const owned = trainsOwnedBy(table.state, { kind: 'company', companyId: 'IC' })

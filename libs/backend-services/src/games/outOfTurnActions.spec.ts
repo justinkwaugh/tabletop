@@ -86,6 +86,43 @@ describe('Out-of-turn Actions on the host', () => {
 
         await expect(host.undo('s1', 'p2')).rejects.toBeInstanceOf(DisallowedUndoError)
     })
+
+    it('drops a standing declaration the position restored by Undo no longer accepts', async () => {
+        const host = createHost()
+        await host.apply(host.step('s1', 'p1'))
+        await host.apply(host.note('n1', 'p3', 'needs board'))
+        expect(host.summary()).toEqual(['0:s1', '1:n1'])
+
+        await host.undo('s1', 'p1')
+        expect(host.summary()).toEqual([])
+        expect(Reflect.get(host.state(), 'notes')).toBeUndefined()
+    })
+
+    it('drops a standing declaration that would act at once in the position Undo restored', async () => {
+        const host = createHost()
+        await host.apply(host.step('s1', 'p1'))
+        await host.apply(host.note('n1', 'p3', 'acts on empty board'))
+        expect(host.summary()).toEqual(['0:s1', '1:n1'])
+
+        await host.undo('s1', 'p1')
+        expect(host.summary()).toEqual([])
+        expect(Reflect.get(host.state(), 'notes')).toBeUndefined()
+        expect(Reflect.get(host.state(), 'currentAuction')).toBeUndefined()
+    })
+
+    it('undoes a declaration that acted at once like any other Action', async () => {
+        const host = createHost()
+        await host.apply(host.step('s1', 'p1'))
+        await host.apply(host.note('n1', 'p2', 'acts now'))
+        expect(host.summary().slice(0, 2)).toEqual(['0:s1', '1:n1'])
+        expect(host.summary()).toHaveLength(3)
+        await expect(host.undo('s1', 'p1')).rejects.toBeInstanceOf(DisallowedUndoError)
+
+        await host.undo('n1', 'p2')
+        expect(host.summary()).toEqual(['0:s1'])
+        expect(Reflect.get(host.state(), 'notes')).toBeUndefined()
+        expect(Reflect.get(host.state(), 'currentAuction')).toBeUndefined()
+    })
 })
 
 describe('Sequenced Out-of-Turn Actions on the host', () => {

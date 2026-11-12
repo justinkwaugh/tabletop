@@ -35,11 +35,19 @@ export type NumberedShareNames = Readonly<Record<string, Readonly<Record<number,
 
 export type CompanyPricePresentation = {
     showPar: boolean
+    /** Keeps Par in the spreadsheet once the IPO sells out, where par still prices company actions. */
+    parWithoutIpoShares?: true
     label: string
 }
 
 export const DefaultCompanyPricePresentation: CompanyPricePresentation = {
     showPar: true,
+    label: 'Value'
+}
+
+/** For titles whose shares always sell at the current price, with no par value. */
+export const NoParCompanyPricePresentation: CompanyPricePresentation = {
+    showPar: false,
     label: 'Value'
 }
 

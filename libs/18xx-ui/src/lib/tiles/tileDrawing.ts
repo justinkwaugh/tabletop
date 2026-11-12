@@ -33,6 +33,7 @@ export type { TileDrawnPath } from './tileTrackGeometry.js'
 export const TileRadius = 50
 
 const OffboardSpikeReach = 0.6
+const PierReach = 0.6
 
 export type TileLayout = {
     annotationExclusions?: readonly Point[]
@@ -43,24 +44,66 @@ export type TileLayout = {
     revenuePositionsByRotation?: Partial<Record<TileRotation, Readonly<Record<string, Point>>>>
     revenuePositionsByOrientation?: Partial<Record<HexOrientation, Readonly<Record<string, Point>>>>
     labelPosition?: Point
+    /**
+     * Degrees clockwise to turn a city's row of station spaces off the tile's own axis, by node
+     * id, such as to level a two-space city under a row of revenues.
+     */
+    slotRowTurns?: Readonly<Record<string, number>>
+    /**
+     * Degrees to swing a four-space city's lower spaces out from under its upper ones, by node id,
+     * opening the square into an upside-down V toward the two hexes below.
+     */
+    slotSpreads?: Readonly<Record<string, number>>
     hideRevenue?: true | readonly string[]
     /** Lays staged revenue boxes out in a column or a row rather than whichever fits best. */
     revenueStack?: 'column' | 'row'
     /** Centres the revenue, with any badge beneath it on a map, on the hex's middle line. */
     revenueAlign?: 'middle'
+    /**
+     * How the print draws a connection to the board's edge, by path id: a spike, or a port's
+     * dashes from the edge to an anchor.
+     */
+    printedPaths?: Readonly<Record<string, 'spike' | 'pier'>>
+    /**
+     * Tokens the tile prints, such as a reservation in a city's space or a private's mark on
+     * its track: in a station space by node and slot, or at a point before the tile's rotation.
+     */
+    printedTokens?: readonly TilePrintedToken[]
+    /** Prints staged values' phase captions after them, as on a board's east edge. */
+    revenueCaptionsAfter?: boolean
+    /** How far an offboard spike runs from its edge toward its stop, as a share of the way. */
+    spikeReach?: number
+}
+
+export type TilePrintedToken = {
+    imageUrl: string
+    title: string
+} & ({ nodeId: string; slot: number } | { at: Point; radius: number })
+/** A printed token placed on the drawn tile, with a station space's size where it fills one. */
+export type TileDrawnToken = {
+    imageUrl: string
+    title: string
+    center: Point
+    radius: number
+    space: boolean
 }
 
 export type TileDrawnNode = {
     node: TileNode
     center: Point
     slots: readonly Point[]
+    /** Spaces opened into an upside-down V, whose band leaves its bottom side open. */
+    openBand?: true
     revenuePosition: Point
     revenueCells: readonly RevenueCell[]
     revenueHidden: boolean
     /** Station circle radius: the style's size, reduced so neighbouring cities on the tile stay apart. */
     slotRadius: number
     townAngle?: number
-    /** Radius of a town, or a city without station spaces, drawn as a dot: larger where three or more tracks meet. */
+    /**
+     * Radius of a node drawn as a dot: a town's is larger where three or more tracks meet, and a
+     * city without station spaces fills a station circle, since it is still a city.
+     */
     dotRadius: number
 }
 
@@ -71,8 +114,15 @@ export type TileDrawingStyle = {
     longLabelFontSize?: number
     /** Printed prefixes for revenue stages that are not phases, such as D for diesel. */
     revenueStageLabels?: Readonly<Record<string, string>>
+    /** Phases printed beside each revenue stage's value, such as I-II. */
+    revenueStageCaptions?: Readonly<Record<string, string>>
+    revenueStageCaptionColors?: Readonly<Record<string, string>>
+    /** How staged values line up where a location's layout does not say. */
+    revenueStack?: 'column' | 'row'
     /** Curves a lone one-station city's name over the top of the city. */
     cityNameArcs?: boolean
+    /** Draws every town as a dot, never a bar across its track. */
+    townDots?: boolean
 }
 
 export type TileDrawing = {
@@ -85,6 +135,7 @@ export type TileDrawing = {
     labelPosition: Point
     symbolPosition: Point
     upgradeCostPosition: Point
+    printedTokens: readonly TileDrawnToken[]
 }
 
 export function createTileDrawing(
@@ -103,6 +154,19 @@ export function createTileDrawing(
     )
     const angle =
         ((rotation * 60 + (orientation === HexOrientation.Pointy ? 30 : 0)) * Math.PI) / 180
+    // Four slots form a square, which a hex turn would tilt, so it stays upright, filled from
+    // the top left.
+    const citySlots = (node: Extract<TileNode, { kind: 'city' }>, center: Point) => {
+        const slots = stationPositions(
+            node.stationSlots,
+            center,
+            (node.stationSlots === 4 ? -Math.PI / 4 : angle) +
+                ((layout.slotRowTurns?.[node.id] ?? 0) * Math.PI) / 180,
+            citySlotRadius
+        )
+        const spread = layout.slotSpreads?.[node.id]
+        return spread === undefined || slots.length !== 4 ? slots : spreadSquare(slots, spread)
+    }
     const centers = new Map<string, Point>()
     const automaticTownPaths = new Map<string, readonly TilePath[]>()
     for (const node of face.nodes) {
@@ -146,15 +210,57 @@ export function createTileDrawing(
         return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
     }
 
-    const townPaths = new Map<string, TileDrawnPath>()
-    for (const [nodeId, incident] of automaticTownPaths) {
+    function plainPath(path: TilePath, start: Point, end: Point): TileDrawnPath {
+        const hint = layout.pathControls?.[path.id]
+        if (!hint && path.endpoints.every((endpoint) => endpoint.kind === 'edge'))
+            return createEdgeTilePath(path.id, start, end)
+        const handleLength = Math.hypot(end.x - start.x, end.y - start.y) * 0.45
+        const controls: readonly [Point, Point] = hint
+            ? [orientPoint(hint[0], angle), orientPoint(hint[1], angle)]
+            : [
+                  path.endpoints[0].kind === 'edge' ? inwardControl(start, handleLength) : start,
+                  path.endpoints[1].kind === 'edge' ? inwardControl(end, handleLength) : end
+              ]
+        return createCubicTilePath(path.id, start, end, controls)
+    }
+    const townLine = (incident: readonly TilePath[]) => {
         const edges = incident.map((path) =>
             path.endpoints.find((endpoint) => endpoint.kind === 'edge')
         )
-        const a = endpointPosition(edges[0]!)
-        const b = endpointPosition(edges[1]!)
-        const curve = createEdgeTilePath(nodeId, a, b)
-        const middle = tilePathPoint(curve, layout.townTrackPositions?.[nodeId] ?? 0.5)
+        assertExists(edges[0], 'A town on through track reaches a hex side')
+        assertExists(edges[1], 'A town on through track reaches a hex side')
+        const a = endpointPosition(edges[0])
+        const b = endpointPosition(edges[1])
+        return { a, b, curve: createEdgeTilePath('line', a, b) }
+    }
+    const otherTrack = (nodeId: string): TileDrawnPath[] => [
+        ...[...automaticTownPaths]
+            .filter(([other]) => other !== nodeId)
+            .map(([, incident]) => townLine(incident).curve),
+        ...face.paths.flatMap((path) => {
+            if ([...automaticTownPaths.values()].some((incident) => incident.includes(path)))
+                return []
+            const known = path.endpoints.every(
+                (endpoint) => endpoint.kind === 'edge' || centers.has(endpoint.nodeId)
+            )
+            return known
+                ? [
+                      plainPath(
+                          path,
+                          endpointPosition(path.endpoints[0]),
+                          endpointPosition(path.endpoints[1])
+                      )
+                  ]
+                : []
+        })
+    ]
+    const townPaths = new Map<string, TileDrawnPath>()
+    for (const [nodeId, incident] of automaticTownPaths) {
+        const { a, b, curve } = townLine(incident)
+        const middle = tilePathPoint(
+            curve,
+            layout.townTrackPositions?.[nodeId] ?? clearPosition(curve, otherTrack(nodeId))
+        )
         centers.set(nodeId, middle)
         incident.forEach((path, index) => {
             const edge = index === 0 ? a : b
@@ -179,38 +285,35 @@ export function createTileDrawing(
                     (endpoint) => endpoint.kind === 'node' && endpoint.nodeId === node.id
                 )
         )
-        if (!offboard) return drawn
+        const printed = layout.printedPaths?.[path.id]
+        if (!offboard && !printed) return drawn
         const [base, center] =
             path.endpoints[0].kind === 'edge' ? [drawn.start, drawn.end] : [drawn.end, drawn.start]
+        const reach = printed === 'pier' ? PierReach : (layout.spikeReach ?? OffboardSpikeReach)
         const tip = {
-            x: base.x + (center.x - base.x) * OffboardSpikeReach,
-            y: base.y + (center.y - base.y) * OffboardSpikeReach
+            x: base.x + (center.x - base.x) * reach,
+            y: base.y + (center.y - base.y) * reach
         }
-        return { ...drawn, spike: { base, tip } }
+        return printed === 'pier'
+            ? { ...drawn, pier: { base, tip } }
+            : { ...drawn, spike: { base, tip } }
     }
     const paths = face.paths.map((path): TileDrawnPath => {
-        const start = endpointPosition(path.endpoints[0])
-        const end = endpointPosition(path.endpoints[1])
-        const hint = layout.pathControls?.[path.id]
         const townPath = townPaths.get(path.id)
         if (townPath) return townPath
-        if (!hint && path.endpoints.every((endpoint) => endpoint.kind === 'edge')) {
-            return createEdgeTilePath(path.id, start, end)
-        }
-        const handleLength = Math.hypot(end.x - start.x, end.y - start.y) * 0.45
-        const controls: readonly [Point, Point] = hint
-            ? [orientPoint(hint[0], angle), orientPoint(hint[1], angle)]
-            : [
-                  path.endpoints[0].kind === 'edge' ? inwardControl(start, handleLength) : start,
-                  path.endpoints[1].kind === 'edge' ? inwardControl(end, handleLength) : end
-              ]
-        return withOffboardSpike(path, createCubicTilePath(path.id, start, end, controls))
+        const start = endpointPosition(path.endpoints[0])
+        const end = endpointPosition(path.endpoints[1])
+        const drawn = plainPath(path, start, end)
+        return path.endpoints.every((endpoint) => endpoint.kind === 'edge') &&
+            !layout.pathControls?.[path.id]
+            ? drawn
+            : withOffboardSpike(path, drawn)
     })
 
     const stationSlots = face.nodes.flatMap((node) => {
         const center = centers.get(node.id)
         return center && node.kind === 'city' && node.stationSlots > 0
-            ? stationPositions(node.stationSlots, center, angle, citySlotRadius)
+            ? citySlots(node, center)
             : []
     })
     const occupied: Point[] = [
@@ -219,7 +322,7 @@ export function createTileDrawing(
             const center = centers.get(node.id)
             assertExists(center, `Unknown tile node ${node.id}`)
             return node.kind === 'city' && node.stationSlots > 0
-                ? stationPositions(node.stationSlots, center, angle, citySlotRadius)
+                ? citySlots(node, center)
                 : [center]
         })
     ]
@@ -264,9 +367,14 @@ export function createTileDrawing(
                       geometry.vertices,
                       paths,
                       occupied,
-                      style.revenueStageLabels,
-                      layout.revenueStack,
-                      !!hint
+                      {
+                          stageLabels: style.revenueStageLabels,
+                          captions: style.revenueStageCaptions,
+                          captionColors: style.revenueStageCaptionColors,
+                          captionAfter: layout.revenueCaptionsAfter,
+                          stack: layout.revenueStack ?? style.revenueStack,
+                          fixed: !!hint
+                      }
                   )
         if (node.kind !== 'junction' && !revenueHidden)
             occupied.push(...(revenueCells.length ? revenueCells : [revenuePosition]))
@@ -277,17 +385,19 @@ export function createTileDrawing(
         ).length
         // A town on through track, or ending a single track, is a bar across that track.
         const townAngle =
-            node.kind === 'town' && (automaticTownPaths.has(node.id) || tracks === 1)
+            !style.townDots &&
+            node.kind === 'town' &&
+            (automaticTownPaths.has(node.id) || tracks === 1)
                 ? townMarkerAngle(center, paths)
                 : undefined
         const dotRadius = townAngle !== undefined ? 4.2 : tracks >= 3 ? 9 : 6.3
         return {
             node,
             center,
-            slots:
-                node.kind === 'city'
-                    ? stationPositions(node.stationSlots, center, angle, citySlotRadius)
-                    : [],
+            slots: node.kind === 'city' ? citySlots(node, center) : [],
+            ...(node.kind === 'city' && layout.slotSpreads?.[node.id] !== undefined
+                ? { openBand: true as const }
+                : {}),
             revenuePosition,
             revenueCells,
             revenueHidden,
@@ -306,7 +416,13 @@ export function createTileDrawing(
                 others.map((other) => Math.hypot(point.x - other.x, point.y - other.y))
             )
         )
-        return { ...drawn, slotRadius: Math.min(citySlotRadius, nearest / 2 - 0.75) }
+        const slotRadius = Math.min(citySlotRadius, nearest / 2 - 0.75)
+        return {
+            ...drawn,
+            slotRadius,
+            dotRadius:
+                drawn.node.kind === 'city' && !drawn.slots.length ? slotRadius : drawn.dotRadius
+        }
     })
     const labelPosition = layout.labelPosition
         ? orientPoint(layout.labelPosition, angle)
@@ -315,9 +431,11 @@ export function createTileDrawing(
               occupied,
               geometry.vertices,
               face.labels.join(' '),
-              face.labels.join(' ').length > 2
-                  ? (style.longLabelFontSize ?? style.labelFontSize ?? LabelFontSize)
-                  : (style.labelFontSize ?? LabelFontSize),
+              labelFontSize(
+                  face.labels.join(' '),
+                  style.labelFontSize ?? LabelFontSize,
+                  style.longLabelFontSize
+              ),
               markerRadius
           )
     if (face.labels.length) occupied.push(labelPosition)
@@ -346,7 +464,32 @@ export function createTileDrawing(
         nodes,
         labelPosition,
         symbolPosition,
-        upgradeCostPosition
+        upgradeCostPosition,
+        printedTokens: (layout.printedTokens ?? []).flatMap((token): TileDrawnToken[] => {
+            if ('at' in token)
+                return [
+                    {
+                        imageUrl: token.imageUrl,
+                        title: token.title,
+                        center: orientPoint(token.at, angle),
+                        radius: token.radius,
+                        space: false
+                    }
+                ]
+            const node = nodes.find((entry) => entry.node.id === token.nodeId)
+            const center = node?.slots[token.slot]
+            return node && center
+                ? [
+                      {
+                          imageUrl: token.imageUrl,
+                          title: token.title,
+                          center,
+                          radius: node.slotRadius,
+                          space: true
+                      }
+                  ]
+                : []
+        })
     }
 }
 
@@ -381,6 +524,58 @@ function stationPositions(
     })
 }
 
+/** A square of spaces, upper left first and clockwise, with its lower two swung outward. */
+function spreadSquare(
+    [upperLeft, upperRight, lowerRight, lowerLeft]: readonly Point[],
+    degrees: number
+): Point[] {
+    const turn = (degrees * Math.PI) / 180
+    const swing = (upper: Point, lower: Point, side: number) => {
+        const length = Math.hypot(lower.x - upper.x, lower.y - upper.y)
+        return {
+            x: upper.x + side * Math.sin(turn) * length,
+            y: upper.y + Math.cos(turn) * length
+        }
+    }
+    return [
+        upperLeft,
+        upperRight,
+        swing(upperRight, lowerRight, 1),
+        swing(upperLeft, lowerLeft, -1)
+    ]
+}
+
+/** Other track this near a town's middle runs through its marker, so the town moves along its line. */
+const TownTrackOverlap = 12
+/** How far a moved town keeps from other track, about its marker's length. */
+const TownTrackClearance = 18
+
+/**
+ * Where along its line a town stands: the middle unless other track runs through it there, else
+ * the nearest point to the middle that clears other track, or failing that the clearest point.
+ */
+function clearPosition(line: TileDrawnPath, others: readonly TileDrawnPath[]): number {
+    if (!others.length) return 0.5
+    const samples = others.flatMap((other) =>
+        Array.from({ length: 33 }, (_, index) => tilePathPoint(other, index / 32))
+    )
+    const clearance = (t: number) => {
+        const point = tilePathPoint(line, t)
+        return Math.min(
+            ...samples.map((sample) => Math.hypot(sample.x - point.x, sample.y - point.y))
+        )
+    }
+    if (clearance(0.5) >= TownTrackOverlap) return 0.5
+    const candidates = Array.from(
+        { length: 36 },
+        (_, step) => 0.5 + (step % 2 ? 1 : -1) * Math.ceil(step / 2) * 0.02
+    )
+    return (
+        candidates.find((t) => clearance(t) >= TownTrackClearance) ??
+        candidates.reduce((best, t) => (clearance(t) > clearance(best) ? t : best))
+    )
+}
+
 function townMarkerAngle(center: Point, paths: readonly TileDrawnPath[]): number {
     const path = paths.find((path) => path.start === center || path.end === center)
     if (!path) return 0
@@ -394,7 +589,7 @@ function townMarkerAngle(center: Point, paths: readonly TileDrawnPath[]): number
     return (Math.atan2(tangent.y - center.y, tangent.x - center.x) * 180) / Math.PI + 90
 }
 
-const LabelFontSize = 12
+export const LabelFontSize = 12
 const LabelOutline = 1.25
 const MarkerRadius = 10
 const LabelTrackClearance = 3.5
@@ -591,4 +786,9 @@ function annotationPosition(
     return (fitting.length ? fitting : candidates).reduce((best, point) =>
         clearance(point) > clearance(best) ? point : best
     )
+}
+
+/** The size a label is printed at: labels of three or more characters, such as Chi, use ``longSize``. */
+export function labelFontSize(text: string, size: number, longSize?: number): number {
+    return text.length > 2 ? (longSize ?? size) : size
 }

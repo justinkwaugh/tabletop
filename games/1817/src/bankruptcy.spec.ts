@@ -118,6 +118,13 @@ describe('crisis sales', () => {
 })
 
 describe('bankruptcy', () => {
+    it('records the company a bankrupt player presided over in its operation', () => {
+        const play = pleDefaults()
+        play.act('GoBankrupt')
+        expect(
+            play.processed.find((action) => action.type === 'GoBankrupt')?.metadata
+        ).toMatchObject({ presidedCompanyId: 'PLE' })
+    })
     it('takes the player’s shares and cash, liquidates their companies and removes them', () => {
         const play = pleDefaults()
         play.act('GoBankrupt')

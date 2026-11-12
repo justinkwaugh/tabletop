@@ -42,7 +42,9 @@ export const MapLocation = Type.Object(
                         kind: Type.Union([
                             Type.Literal('impassable'),
                             Type.Literal('water'),
-                            Type.Literal('mountain')
+                            Type.Literal('mountain'),
+                            /** A passable political border, such as a country's, drawn only. */
+                            Type.Literal('province')
                         ]),
                         cost: Type.Optional(Type.Integer({ minimum: 0 }))
                     },
@@ -51,7 +53,10 @@ export const MapLocation = Type.Object(
             )
         ),
         reservations: Type.Optional(Type.Array(CityReservation)),
-        /** Locations sharing a stop group count as one stop; a route may visit only one. */
+        /**
+         * Stops sharing a stop group count as one stop; a route may visit only one. A group is
+         * several locations, or the separate stops of one location.
+         */
         stopGroup: Type.Optional(Identifier),
         upgradeLabels: Type.Optional(
             Type.Array(
@@ -72,7 +77,8 @@ export const MapLocation = Type.Object(
                         label: Identifier,
                         description: Identifier,
                         /** How many times the marker's symbol is printed, such as two ports. */
-                        count: Type.Optional(Type.Integer({ minimum: 1 }))
+                        count: Type.Optional(Type.Integer({ minimum: 1 })),
+                        privateCompanyId: Type.Optional(Identifier)
                     },
                     { additionalProperties: false }
                 )
@@ -98,6 +104,7 @@ const MapValidator = Compile(RailwayMapDefinition)
 export class RailwayMap {
     readonly definition: RailwayMapDefinition
     readonly preprintedTiles: Readonly<Record<string, TileFace>>
+    readonly markedPrivateIds: readonly string[]
     private readonly locationsById: Map<string, MapLocation>
     private readonly grid: HexGrid<HexGridNode & { locationId: string }>
 
@@ -107,11 +114,15 @@ export class RailwayMap {
         deepFreeze(this.definition)
         this.locationsById = new Map()
         this.grid = new HexGrid({ hexDefinition: { orientation: value.orientation } })
-        const groups = this.definition.locations.flatMap((location) => location.stopGroup ?? [])
-        for (const group of groups)
+        const groups = this.definition.locations.flatMap((location) =>
+            location.stopGroup ? [location] : []
+        )
+        for (const location of groups)
             assert(
-                groups.filter((other) => other === group).length > 1,
-                `Stop group ${group} needs more than one location`
+                groups.filter((other) => other.stopGroup === location.stopGroup).length > 1 ||
+                    location.preprintedTile.nodes.filter((node) => node.kind !== 'junction')
+                        .length > 1,
+                `Stop group ${location.stopGroup} needs more than one stop`
             )
         for (const location of this.definition.locations) {
             assert(!this.locationsById.has(location.id), `Duplicate map location: ${location.id}`)
@@ -148,6 +159,13 @@ export class RailwayMap {
                 this.definition.locations.map((location) => [location.id, location.preprintedTile])
             )
         )
+        this.markedPrivateIds = Object.freeze([
+            ...new Set(
+                this.definition.locations.flatMap((location) =>
+                    (location.markers ?? []).flatMap((marker) => marker.privateCompanyId ?? [])
+                )
+            )
+        ])
     }
 
     reservedLocationIds(companyId: string): string[] {
@@ -169,6 +187,10 @@ export class RailwayMap {
         const location = this.locationsById.get(id)
         assertExists(location, `Unknown map location: ${id}`)
         return location
+    }
+
+    placeName(id: string): string {
+        return this.location(id).name ?? id
     }
 
     neighbor(id: string, edge: TileEdge): MapLocation | undefined {
@@ -216,8 +238,11 @@ export function createLetterNumberLocationFactory(options: {
     numberOffset: number
     fixedColors: readonly string[]
     names: Readonly<Record<string, string>>
-    /** A company id reserving every city of a location, or the company and one city node. */
-    homes: Readonly<Record<string, string | CityReservation>>
+    /**
+     * A company id reserving every city of a location, or companies each reserving one city
+     * node.
+     */
+    homes: Readonly<Record<string, string | CityReservation | readonly CityReservation[]>>
     markers: Readonly<Record<string, NonNullable<MapLocation['markers']>>>
 }) {
     return (
@@ -241,8 +266,12 @@ export function createLetterNumberLocationFactory(options: {
         }))
 }
 
-function homeReservations(home: string | CityReservation, tile: TileFace): CityReservation[] {
-    if (typeof home !== 'string') return [{ ...home }]
+function homeReservations(
+    home: string | CityReservation | readonly CityReservation[],
+    tile: TileFace
+): CityReservation[] {
+    if (typeof home !== 'string')
+        return 'companyId' in home ? [{ ...home }] : home.map((reservation) => ({ ...reservation }))
     const cities = tile.nodes.filter((node) => node.kind === 'city')
     assert(cities.length > 0, 'A home requires a city')
     return cities.map((node) => ({ companyId: home, nodeId: node.id }))

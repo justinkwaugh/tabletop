@@ -1,6 +1,7 @@
 <script lang="ts">
-    import { type AdminAssignableRole, type Role, type User } from '@tabletop/common'
+    import type { AdminAssignableRole, Role, User } from '@tabletop/common'
     import { getAppContext } from '$lib/stores/appContext.svelte'
+    import { AdminSubmission } from './adminSubmission.svelte'
 
     let {
         user,
@@ -18,8 +19,7 @@
 
     let assigned = $derived(assignableRoles.filter((role) => user.roles.includes(role)))
     let draft = $state<AdminAssignableRole[]>([])
-    let saving = $state(false)
-    let error = $state('')
+    const submission = new AdminSubmission('Could not update roles')
     let editingUserId = $state<string>()
 
     let selection = $derived(editingUserId === user.id ? draft : assigned)
@@ -32,19 +32,13 @@
         draft = checked ? [...selection, role] : selection.filter((other) => other !== role)
     }
 
-    async function save(event: SubmitEvent) {
+    function save(event: SubmitEvent) {
         event.preventDefault()
-        saving = true
-        error = ''
-        try {
+        void submission.run(async () => {
             const updated = await api.assignUserRoles(user.id, selection)
             editingUserId = undefined
             onsaved(updated)
-        } catch (failure) {
-            error = failure instanceof Error ? failure.message : 'Could not update roles'
-        } finally {
-            saving = false
-        }
+        })
     }
 </script>
 
@@ -71,10 +65,12 @@
             </label>
         {/each}
     </fieldset>
-    {#if error}<p role="alert" class="mt-3 text-sm text-red-600 dark:text-red-300">{error}</p>{/if}
+    {#if submission.error}<p role="alert" class="mt-3 text-sm text-red-600 dark:text-red-300">
+            {submission.error}
+        </p>{/if}
     <button
         type="submit"
-        disabled={saving || !changed}
+        disabled={submission.saving || !changed}
         class="mt-4 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
         >Save roles</button
     >

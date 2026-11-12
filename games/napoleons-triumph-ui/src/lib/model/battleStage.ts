@@ -11,8 +11,14 @@ import {
     counterAttackCandidates,
     declareDefense,
     declareFeint,
+    corpsCommanderIds,
+    currentAttack,
+    isNamedDefender,
+    mayDefendAgainst,
+    eligibleReserveCommanders,
     eligibleReserveDefenders,
     finalResultWith,
+    forcedDefendingCommanders,
     forcedDefense,
     initialAccountOf,
     initialResultOf,
@@ -20,24 +26,22 @@ import {
     nextDecision,
     occupyAfterRetreat,
     resolveAttackOrders,
+    roadAttackOrders,
     samePosition,
     validateCounterAttackers,
     whyIllegal,
     type Attack,
     type CommandKind,
+    type DeclareDefense,
     type HydratedNapoleonsTriumphGameState,
     type EndedAttack,
     type MoveOrder,
     type ThreatOrder,
     type ProjectedUnit,
-    type ResultTerm
+    type ResultTerm,
+    type RoadHalt
 } from '@tabletop/napoleons-triumph'
-import {
-    attackCommand,
-    attackerGroups,
-    rideInOrders,
-    type AttackerGroup
-} from './attackCommands.js'
+import { attackCommand, attackerGroups, type AttackerGroup } from './attackCommands.js'
 import {
     AttackWidth,
     StageKind,
@@ -46,6 +50,8 @@ import {
     counterSelection,
     defenceSelection,
     excessLossSelection,
+    leaveCommandersOut,
+    nameDefenders,
     leadSelection,
     nameAttackers,
     nameLeaders,
@@ -67,6 +73,7 @@ import { RideChoice } from './moveCommands.js'
 import { movableCommander, retreatPlan, strengthOf, type RetreatPlan } from './retreatPlan.js'
 import type { StagedSelection } from './stagedSelection.js'
 import { copyOf } from './stateCopy.js'
+import type { Identified } from './gameOrder.js'
 import { oddStepTakers } from './battleWaiting.js'
 
 export type VisibleAttack = Omit<Attack, 'defensePlan' | 'attackPlan'> & {
@@ -95,7 +102,30 @@ export interface DefenceStage extends Picking {
     forced: boolean
     candidates: ProjectedUnit[]
     defenders: string[]
+    commanders: DefendingCommander[]
     problem?: string
+    withAll?: DefenceDeclaration
+}
+
+export type DefenceDeclaration = Required<Pick<DeclareDefense, 'unitIds' | 'commanderIds'>>
+
+export enum CommanderStatus {
+    NoUnitPicked = 'NoUnitPicked',
+    Named = 'Named',
+    LeftOut = 'LeftOut',
+    /** Rule 11, step 2: blocking pieces all defend; a one-unit corps's commander is named with his unit, since leaving him out changes nothing. */
+    MustDefend = 'MustDefend',
+    /** Rule 11, step 2: named against a different approach earlier in the turn. */
+    NamedElsewhere = 'NamedElsewhere'
+}
+
+export interface DefendingCommander {
+    commanderId: string
+    status: CommanderStatus
+}
+
+export function isChoosable(status: CommanderStatus): boolean {
+    return status === CommanderStatus.Named || status === CommanderStatus.LeftOut
 }
 
 /** Rule 11, step 4: the attack has been pressed, and the defender names which of the defending pieces lead. */
@@ -123,6 +153,7 @@ interface AttackerPicking extends Picking {
     commandOptions: CommandKind[]
     command?: CommandKind
     orders?: MoveOrder[]
+    roadHalt?: RoadHalt
 }
 
 export interface FeintStage extends AttackerPicking {
@@ -152,7 +183,10 @@ export interface OccupationStage extends AttackerPicking {
     kind: StageKind.Occupation
     mayMoveIn: boolean
     byRoad: boolean
+    /** Riding in under the command chosen. */
     roadOrders?: MoveOrder[]
+    /** The commands the units named could ride in by, whichever is chosen. */
+    roadCommands: CommandKind[]
     gunsMayStay: boolean
 }
 
@@ -189,7 +223,13 @@ export interface AdvanceStage extends Picking {
     kind: StageKind.Advance
     units: ProjectedUnit[]
     advancing: string[]
-    commanders: { commanderId: string; goes: boolean; mustGo: boolean; unitsStaying: number }[]
+    commanders: {
+        commanderId: string
+        goes: boolean
+        mustGo: boolean
+        unitsStaying: number
+        named: boolean
+    }[]
 }
 
 export type BattleStage =
@@ -205,8 +245,8 @@ export type BattleStage =
     | RegroupStage
     | AdvanceStage
 
-function idsOf(units: readonly ProjectedUnit[]): string[] {
-    return units.map((unit) => unit.id)
+function idsOf(pieces: readonly Identified[]): string[] {
+    return pieces.map((piece) => piece.id)
 }
 
 function rolesOf(
@@ -234,18 +274,98 @@ function defenceStage(
     const candidateIds = idsOf(candidates)
     const named = defenceSelection.value(selections.defence, 'defenders') ?? []
     const defenders = blockers ?? named.filter((id) => candidateIds.includes(id))
+    const commanders = blockers
+        ? forcedDefendingCommanders(state).map((commanderId) => ({
+              commanderId,
+              status: CommanderStatus.MustDefend
+          }))
+        : reserveCommanders(state, candidates, defenders, selections)
     return {
         kind: StageKind.Defence,
         forced: blockers !== undefined,
         candidates,
         defenders,
+        commanders,
         problem:
             defenders.length === 0
                 ? undefined
-                : whyIllegal(() => declareDefense(copyOf(state), defenders)),
+                : whyIllegal(() =>
+                      declareDefense(copyOf(state), defenders, namedCommanderIds({ commanders }))
+                  ),
+        withAll: blockers ? undefined : defenceWithAll(state, candidates),
         pickableIds: blockers ? [] : candidateIds,
         roles: rolesOf(defenders, [], BattleRole.Defends)
     }
+}
+
+function defenceWithAll(
+    state: HydratedNapoleonsTriumphGameState,
+    candidates: readonly ProjectedUnit[]
+): DefenceDeclaration | undefined {
+    if (candidates.length < 2) {
+        return undefined
+    }
+    const eligibleCommanderIds = idsOf(eligibleReserveCommanders(state))
+    const declaration = {
+        unitIds: idsOf(candidates),
+        commanderIds: corpsCommanderIds(candidates).filter((commanderId) =>
+            eligibleCommanderIds.includes(commanderId)
+        )
+    }
+    return isLegal(() =>
+        declareDefense(copyOf(state), declaration.unitIds, declaration.commanderIds)
+    )
+        ? declaration
+        : undefined
+}
+
+function reserveCommanders(
+    state: HydratedNapoleonsTriumphGameState,
+    candidates: readonly ProjectedUnit[],
+    defenders: readonly string[],
+    selections: BattleSelections
+): DefendingCommander[] {
+    const attack = currentAttack(state)
+    const leftOut = defenceSelection.value(selections.defence, 'commandersLeftOut') ?? []
+    const picked = corpsCommanderIds(defenders.map((id) => state.unit(id)))
+    return corpsCommanderIds(candidates).map((commanderId) => ({
+        commanderId,
+        status: !mayDefendAgainst(state.commander(commanderId), attack.defenseApproach)
+            ? CommanderStatus.NamedElsewhere
+            : !picked.includes(commanderId)
+              ? CommanderStatus.NoUnitPicked
+              : state.corpsUnits(commanderId).length === 1
+                ? CommanderStatus.MustDefend
+                : leftOut.includes(commanderId)
+                  ? CommanderStatus.LeftOut
+                  : CommanderStatus.Named
+    }))
+}
+
+export function namedCommanderIds(stage: Pick<DefenceStage, 'commanders'>): string[] {
+    return stage.commanders
+        .filter(
+            (entry) =>
+                entry.status === CommanderStatus.Named ||
+                entry.status === CommanderStatus.MustDefend
+        )
+        .map((entry) => entry.commanderId)
+}
+
+export function nameDefendingCommander(
+    stage: DefenceStage,
+    selections: BattleSelections,
+    commanderId: string,
+    named: boolean
+): BattleSelections {
+    const leftOut = stage.commanders
+        .filter((entry) =>
+            entry.commanderId === commanderId
+                ? !named && isChoosable(entry.status)
+                : entry.status === CommanderStatus.LeftOut
+        )
+        .map((entry) => entry.commanderId)
+    return { ...selections, defence: leaveCommandersOut(selections.defence, leftOut) }
 }
 
 function defenceLeadersStage(
@@ -344,6 +464,7 @@ function attackerPicking(
         commandOptions: command.options,
         command: command.chosen,
         orders: command.orders,
+        roadHalt: command.roadHalt,
         roles: rolesOf(attackers, leaders, BattleRole.Attacks)
     }
 }
@@ -458,16 +579,25 @@ function occupationStage(
     const legalWith = (candidate: MoveOrder[] | undefined, gunsStay: boolean) =>
         candidate !== undefined &&
         isLegal(() => occupyAfterRetreat(copyOf(state), candidate, gunsStay))
-    const roadOrders = byRoad
-        ? undefined
-        : rideInOrders(state, attack, picking.attackers, picking.command)
+    const rideable = byRoad
+        ? []
+        : roadAttackOrders(
+              state,
+              attack,
+              picking.attackers.map((id) => state.unit(id))
+          ).filter(
+              (order) => picking.commandOptions.includes(order.kind) && legalWith([order], false)
+          )
+    // Only the command on the switch rides in; a Detach Move cannot go by road, so it has no ride.
+    const roadOrder = rideable.find((order) => order.kind === picking.command)
     return {
         ...picking,
         kind: StageKind.Occupation,
         roles: rolesOf(picking.attackers, [], BattleRole.Attacks),
         mayMoveIn: legalWith(orders, false),
         byRoad,
-        roadOrders: legalWith(roadOrders, false) ? roadOrders : undefined,
+        roadOrders: roadOrder ? [roadOrder] : undefined,
+        roadCommands: rideable.map((order) => order.kind),
         gunsMayStay: legalWith(orders, true)
     }
 }
@@ -529,11 +659,13 @@ function advanceStage(
                         !advancing.includes(unit.id)
                 ).length
             const mustGo = unitsStaying === 0
+            const named = state.attack !== undefined && isNamedDefender(state.attack, commander.id)
             return {
                 commanderId: commander.id,
                 unitsStaying,
                 mustGo,
-                goes: mustGo || sent.includes(commander.id)
+                goes: mustGo || (named && sent.includes(commander.id)),
+                named
             }
         })
     return {
@@ -663,19 +795,20 @@ function namedOrNone<
 }
 
 function pickDefender(
+    state: HydratedNapoleonsTriumphGameState,
     stage: DefenceStage,
     selections: BattleSelections,
     unitId: string
 ): BattleSelections {
-    return {
-        ...selections,
-        defence: namedOrNone(
-            defenceSelection,
-            selections.defence,
-            'defenders',
-            toggled(stage.defenders, unitId)
+    const defenders = toggled(stage.defenders, unitId)
+    const stillPicked = corpsCommanderIds(defenders.map((id) => state.unit(id)))
+    const leftOut = stage.commanders
+        .filter(
+            (entry) =>
+                entry.status === CommanderStatus.LeftOut && stillPicked.includes(entry.commanderId)
         )
-    }
+        .map((entry) => entry.commanderId)
+    return { ...selections, defence: nameDefenders(selections.defence, defenders, leftOut) }
 }
 
 function pickDefenceLeader(
@@ -751,7 +884,7 @@ export function pickUnit(
 ): BattleSelections {
     switch (stage.kind) {
         case StageKind.Defence:
-            return pickDefender(stage, selections, unitId)
+            return pickDefender(state, stage, selections, unitId)
         case StageKind.DefenceLeaders:
             return pickDefenceLeader(stage, selections, unitId)
         case StageKind.Retreat:
@@ -927,7 +1060,12 @@ export function sendCommander(
     goes: boolean
 ): BattleSelections {
     const sent = stage.commanders
-        .filter((entry) => !entry.mustGo && (entry.commanderId === commanderId ? goes : entry.goes))
+        .filter(
+            (entry) =>
+                !entry.mustGo &&
+                entry.named &&
+                (entry.commanderId === commanderId ? goes : entry.goes)
+        )
         .map((entry) => entry.commanderId)
     return { ...selections, advance: setCommandersGoing(selections.advance, sent) }
 }

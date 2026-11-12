@@ -13,6 +13,7 @@ import {
     type OpeningAuctionState,
     type OpeningAuctionRules
 } from './auctionProcedure.js'
+import { CashPayment } from '../finance/cashPayments.js'
 import { OfferAuction } from './offerPileAuction.js'
 import { startFirstStockRound } from './startFirstStockRound.js'
 import type { ValuationRules } from '../ending/finalWealth.js'
@@ -28,7 +29,11 @@ const Resolution = Type.Union([
         { additionalProperties: false }
     ),
     Type.Object(
-        { kind: Type.Union([Type.Literal('discount'), Type.Literal('income')]) },
+        { kind: Type.Literal('discount'), payments: Type.Optional(Type.Array(CashPayment)) },
+        { additionalProperties: false }
+    ),
+    Type.Object(
+        { kind: Type.Literal('income'), payments: Type.Optional(Type.Array(CashPayment)) },
         { additionalProperties: false }
     ),
     Type.Object(
@@ -89,7 +94,7 @@ export class HydratedResolveAuction
             if (model instanceof OfferAuction)
                 startFirstStockRound(state, model.rules.firstStockOrder(state))
             else {
-                state.turnManager.newFirstPlayer(model.auction.nextPlayerId)
+                state.turnManager.newFirstPlayer(model.firstStockPlayerId())
                 startFirstStockRound(state, state.turnManager.turnOrder)
             }
             this.metadata = {
