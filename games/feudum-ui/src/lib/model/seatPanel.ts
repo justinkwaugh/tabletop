@@ -3,19 +3,15 @@ import {
     ActionCards,
     ExtraActionHandSize,
     Goods,
-    GuildIds,
     MilitaryServiceTrack,
     PlayerDiscRoles,
     RegionTiles,
     VesselTypes,
     WineBarrelCapacity,
     beadValue,
-    rankOf,
     type ActionCardKind,
     type BeadValue,
     type Good,
-    type GuildId,
-    type GuildRank,
     type HydratedFeudumGameState,
     type HydratedFeudumPlayerState,
     type LandscapeKind,
@@ -48,20 +44,18 @@ export interface SeatPlayedCard extends SeatCardFace {
     readonly mark: string
 }
 
-export interface SeatUnplayedCard extends SeatCardFace {
-    readonly setAside: boolean
-}
-
 /**
- * R-3.1, R-3.2, R-5.1 For another seat `unplayed` is empty and `handBacks` counts the hand; for the
- * owner `unplayed` holds every card not played and `handBacks` is 0.
+ * R-3.1, R-3.2, R-5.1 For another seat `handBacks` counts the hand and no face is read. The seat's
+ * own hand stands on the desk, so its panel says only how many (`handOnDesk`). Host View's look at
+ * another seat shows the hand's faces; the set-aside cards are never on the panel.
  */
 export interface SeatCards {
     readonly played: readonly SeatPlayedCard[]
-    readonly unplayed: readonly SeatUnplayedCard[]
+    readonly handFaces: readonly SeatCardFace[]
     readonly handBacks: number
     /** R-3.1 How many cards the seat holds: public, for every seat alike. */
     readonly handCount: number
+    readonly handOnDesk: boolean
 }
 
 export type SeatPouch =
@@ -103,19 +97,6 @@ export interface SeatWrits {
     readonly deckNote?: string
 }
 
-export type RankBadge = 'M' | 'J' | 'A'
-
-export interface SeatGuildCrest {
-    readonly guild: GuildId
-    readonly stars: number
-    readonly rank?: RankBadge
-    readonly reeve: boolean
-    /** R-4.5.2 Stars, but no marker in supply to stand on the track. */
-    readonly noMarker: boolean
-    /** R-4.5.3, R-1.4.9 Stars and a marker in supply, but outranked: no place on the track. */
-    readonly outranked: boolean
-}
-
 export interface SeatPanelView {
     readonly playerId: string
     readonly ribbon: SeatRibbon
@@ -124,7 +105,8 @@ export interface SeatPanelView {
     readonly supply: SeatSupply
     readonly writs: SeatWrits
     readonly barrel: { readonly sulfur: number; readonly capacity: number }
-    readonly guilds: readonly SeatGuildCrest[]
+    /** R-1.1 Pawns off the board, in the seat's supply. */
+    readonly pawnsInSupply: number
     readonly service: { readonly covered: number; readonly of: number; readonly vassal: boolean }
     /** R-3.7.5 Absent: this seat's disc has not set out. */
     readonly voyage?: number
@@ -144,12 +126,6 @@ export interface SeatPanelInput {
 /** R-2.2.5 The seat order stays as the marker passes, so the panels keep their places. */
 export function seatOrder(state: HydratedFeudumGameState): readonly string[] {
     return state.players.map(({ playerId }) => playerId)
-}
-
-const RankBadges: Readonly<Record<GuildRank, RankBadge>> = {
-    master: 'M',
-    journeyman: 'J',
-    apprentice: 'A'
 }
 
 function printedNameOf(kind: ActionCardKind): string {
@@ -176,21 +152,16 @@ function handChosen(state: HydratedFeudumGameState, player: HydratedFeudumPlayer
         : player.handCount > 0 || player.played.length > 0
 }
 
-function cardsOf(
-    state: HydratedFeudumGameState,
-    player: HydratedFeudumPlayerState,
-    facesShown: boolean
-): SeatCards {
+function cardsOf(player: HydratedFeudumPlayerState, look: 'own' | 'faces' | 'backs'): SeatCards {
     const played = player.played.map((card) => ({ ...faceOf(card.kind), mark: markOf(card) }))
-    if (!facesShown) {
-        return { played, unplayed: [], handBacks: player.handCount, handCount: player.handCount }
+    const { handCount } = player
+    return {
+        played,
+        handFaces: look === 'faces' ? (player.hand ?? []).map((kind) => faceOf(kind)) : [],
+        handBacks: look === 'backs' ? handCount : 0,
+        handCount,
+        handOnDesk: look === 'own'
     }
-    const hand = player.hand ?? []
-    const chosen = handChosen(state, player)
-    const unplayed = ActionCardKinds.filter(
-        (kind) => !player.played.some((card) => card.kind === kind)
-    ).map((kind) => ({ ...faceOf(kind), setAside: chosen && !hand.includes(kind) }))
-    return { played, unplayed, handBacks: 0, handCount: player.handCount }
 }
 
 function pouchOf(
@@ -256,24 +227,6 @@ function writsOf(
     }
 }
 
-function crestsOf(state: HydratedFeudumGameState, playerId: string): readonly SeatGuildCrest[] {
-    return GuildIds.map((guild) => {
-        const track = state.guilds.tracks[guild]
-        const rank = rankOf(track, playerId)
-        const stars = state.statusStars(playerId, guild)
-        const placeless = stars > 0 && rank === undefined
-        const hasMarker = state.getPlayerState(playerId).influenceSupply > 0
-        return {
-            guild,
-            stars,
-            ...(rank ? { rank: RankBadges[rank] } : {}),
-            reeve: rank !== undefined && (track[rank]?.reeve ?? false),
-            noMarker: placeless && !hasMarker,
-            outranked: placeless && hasMarker
-        }
-    })
-}
-
 /**
  * Contract, Seat panel: one seat as one viewer sees it, for every view of that seat. Nothing hidden
  * is read unless this viewer may see it, whatever the state happens to hold, so what it returns for
@@ -299,12 +252,15 @@ export function seatPanelOf({
             startPlayer: state.startingPlayerId === playerId,
             deciding: state.activePlayerIds.includes(playerId)
         },
-        cards: cardsOf(state, player, hostView || handFaceShown(viewerId, playerId)),
+        cards: cardsOf(
+            player,
+            handFaceShown(viewerId, playerId) ? 'own' : hostView ? 'faces' : 'backs'
+        ),
         pouch: pouchOf(state, player, isOwner ? draftedPouch : undefined),
         supply: supplyOf(state, player),
         writs: writsOf(state, player, hostView || writFaceShown(viewerId, playerId), isOwner),
         barrel: { sulfur: player.barrel, capacity: WineBarrelCapacity },
-        guilds: crestsOf(state, playerId),
+        pawnsInSupply: player.pawns.filter(({ spaceId }) => spaceId === undefined).length,
         service: {
             covered: state.militaryService[playerId] ?? 0,
             of: MilitaryServiceTrack.length,

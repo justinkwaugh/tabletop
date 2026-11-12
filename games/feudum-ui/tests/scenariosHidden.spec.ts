@@ -35,7 +35,7 @@ scenario(
     "S57 R-3.1, R-4.4.4, R-5.1 Others' hands and writs",
     'writs-charter-held',
     async (table) => {
-        // The owner's own panel names the kept charter and the one card left in hand.
+        // The owner's own panel names the kept charter and counts the one card left in hand.
         const own = await table.seatPanel('p1')
         const face = own.locator(`[data-writ-face="${Charter}"]`)
         await expect(face).toBeVisible()
@@ -46,8 +46,9 @@ scenario(
                 )?.getAttribute('data-enlarge') ?? 'no name'
         )
         expect(writName).not.toBe('no name')
-        await expect(own.locator('[data-seat-card="tax"]:not([data-card-played])')).toHaveCount(1)
-        await expect(own.locator('[data-set-aside]')).toHaveCount(7)
+        await expect(own.locator('[data-in-hand]')).toHaveText('1 in hand')
+        await expect(own.locator('[data-seat-card]:not([data-card-played])')).toHaveCount(0)
+        await expect(own.locator('[data-set-aside]')).toHaveCount(0)
         await table.closeSeatPanel()
         expect(await logText(table)).toContain('kept')
 

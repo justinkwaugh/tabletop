@@ -48,17 +48,17 @@ describe('Seat panel on a session (S57, S58)', () => {
         expect(session.seatPanel(table.other).cards.handBacks).toBe(2)
     })
 
-    it('R-3.1, R-5.1 the owner reads their own hand, and the panel names who looks', async () => {
+    it("R-3.1, R-5.1 the owner's panel counts their hand, which their desk shows", async () => {
         const table = await atPlayingCards(['move', 'tax'], { otherCards: ['conquer', 'guild'] })
         host = table.host
         const session = await host.openSeat(table.seat)
-        const { unplayed, handBacks } = session.seatPanel(table.seat).cards
 
-        expect(handBacks).toBe(0)
-        expect(unplayed.filter(({ setAside }) => !setAside).map(({ kind }) => kind)).toEqual([
-            'move',
-            'tax'
-        ])
+        expect(session.seatPanel(table.seat).cards).toMatchObject({
+            handBacks: 0,
+            handFaces: [],
+            handCount: 2,
+            handOnDesk: true
+        })
     })
 
     it('Host View is the look that shows another seat, and still no note says "you"', async () => {
@@ -72,10 +72,7 @@ describe('Seat panel on a session (S57, S58)', () => {
         const { cards, writs } = session.seatPanel(table.other)
 
         expect(cards.handBacks).toBe(0)
-        expect(cards.unplayed.filter(({ setAside }) => !setAside).map(({ kind }) => kind)).toEqual([
-            'conquer',
-            'guild'
-        ])
+        expect(cards.handFaces.map(({ kind }) => kind)).toEqual(['conquer', 'guild'])
         expect(writs.deckNote).toBeUndefined()
     })
 

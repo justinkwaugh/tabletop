@@ -2,15 +2,16 @@
     import { CrownPath } from '$lib/utils/pieceShapes.js'
     import type { SeatPaint } from '$lib/model/seatPaint.js'
     import type { SeatPanelView } from '$lib/model/seatPanel.js'
+    import { pawnsNoteOf, seatLinesOf, serviceShieldOf } from '$lib/model/seatLines.js'
     import SeatCards from './SeatCards.svelte'
-    import SeatStanding from './SeatStanding.svelte'
+    import SeatHoldings from './SeatHoldings.svelte'
     import SeatSupply from './SeatSupply.svelte'
-    import SeatWrits from './SeatWrits.svelte'
 
     /**
      * Contract, Seat panel: a sealed charter roll, a parchment sheet hung from a wooden roller, the
      * seat colour its ribbon and wax seal. It draws one derivation of the seat and reads nothing
-     * else. `reading` is the same panel at the open seat's size.
+     * else: the ribbon, then three lines (cards; goods, shillings, seals; what the seat holds).
+     * Guild places are the standings'. `reading` is the same panel at the open seat's size.
      */
     let {
         view,
@@ -30,6 +31,8 @@
     const BaseFont = 13
 
     let scale = $derived(reading ? ReadingScale : 1)
+    let lines = $derived(seatLinesOf(view))
+    let shield = $derived(serviceShieldOf(view))
 </script>
 
 <article
@@ -68,28 +71,40 @@
                     <path d={CrownPath} fill="currentColor"></path>
                 </svg>
             {/if}
+            {#if shield}
+                <svg
+                    class="shrink-0"
+                    width={14 * scale}
+                    height={14 * scale}
+                    viewBox="0 0 24 24"
+                    role="img"
+                    aria-label={shield}
+                    data-service-shield={view.service.covered}
+                    data-vassal={view.service.vassal ? '' : undefined}
+                >
+                    <title>{shield}</title>
+                    <path
+                        d="M12 2 L20 5 V11 C20 16 16.5 20 12 22 C7.5 20 4 16 4 11 V5 Z"
+                        fill={view.service.vassal ? 'currentColor' : 'none'}
+                        stroke="currentColor"
+                        stroke-width="2"
+                    ></path>
+                </svg>
+            {/if}
             <span class="ml-auto shrink-0 font-bold" data-seat-score={view.ribbon.score}
                 >{view.ribbon.score} vp</span
             >
         </button>
-        <div class="body flex flex-col gap-[0.6em]">
-            <SeatCards cards={view.cards} {paint} {scale} />
-            <SeatSupply supply={view.supply} pouch={view.pouch} {paint} {scale} />
-            <SeatWrits writs={view.writs} {scale} />
-            <SeatStanding
-                guilds={view.guilds}
-                barrel={view.barrel}
-                service={view.service}
-                voyage={view.voyage}
-                {paint}
-                {scale}
-            />
+        <div class="body flex flex-col gap-[0.3em]" title={pawnsNoteOf(view)}>
+            <SeatCards items={lines.cards} {paint} {scale} />
+            <SeatSupply items={lines.supply} {scale} />
+            <SeatHoldings items={lines.holdings} {paint} {scale} />
         </div>
     </div>
     <svg
         class="wax"
-        width={30 * scale}
-        height={30 * scale}
+        width={20 * scale}
+        height={20 * scale}
         viewBox="0 0 24 24"
         role="img"
         aria-label="{paint.owner} wax seal"
@@ -105,19 +120,19 @@
     .roll {
         font-family: var(--feudum-font-text);
         line-height: 1.2;
-        padding: 0 0.5em 0.9em;
+        padding: 0 0.5em 0.5em;
     }
 
     .roller {
         position: relative;
-        height: 0.9em;
+        height: 0.7em;
         margin: 0 -0.5em;
         border-radius: 0.45em;
         background: linear-gradient(var(--feudum-wood-piece), var(--feudum-wood-dark));
     }
 
     .sheet {
-        padding-bottom: 1.1em;
+        padding-bottom: 0.8em;
         clip-path: polygon(
             0 0,
             100% 0,
@@ -133,7 +148,7 @@
     }
 
     .ribbon {
-        padding: 0.3em 0.6em;
+        padding: 0.2em 0.6em;
         cursor: pointer;
     }
 
@@ -174,12 +189,12 @@
     }
 
     .body {
-        padding: 0.55em 0.55em 0;
+        padding: 0.4em 2em 0 0.55em;
     }
 
     .wax {
         position: absolute;
-        right: 1.2em;
-        bottom: 0.1em;
+        right: 1em;
+        bottom: 0.2em;
     }
 </style>
