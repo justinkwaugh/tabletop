@@ -202,3 +202,49 @@ test('R-4.6.3 on the printed rosary in the trade picker, every bead lies on the 
         expect(inside(centre(await boxOf(beads.nth(index))), panel)).toBe(true)
     }
 })
+
+test('R-1.3 the printed map carries no seam: no one-pixel yellow column stands out from its neighbours', async ({
+    page
+}) => {
+    await openTable(page, 'guildPick')
+    const map = page.locator('[data-board-surface] svg[aria-label="The map"] > image')
+    test.skip((await map.count()) === 0, 'no printed map in the folder')
+    const href = await map.first().getAttribute('href')
+    expect(href).toBeTruthy()
+    // The columns where, in more than a fifth of the rows, the print is yellow and stands apart from
+    // the columns either side.
+    const seams = await page.evaluate(async (url) => {
+        const image = new Image()
+        image.src = url
+        await image.decode()
+        const canvas = document.createElement('canvas')
+        canvas.width = image.naturalWidth
+        canvas.height = image.naturalHeight
+        const context = canvas.getContext('2d', { willReadFrequently: true })
+        if (!context) {
+            throw new Error('no canvas')
+        }
+        context.drawImage(image, 0, 0)
+        const { data, width, height } = context.getImageData(0, 0, canvas.width, canvas.height)
+        const found: number[] = []
+        for (let x = 1; x < width - 1; x += 1) {
+            let apart = 0
+            for (let y = 0; y < height; y += 1) {
+                const at = (dx: number, channel: number) => data[(y * width + x + dx) * 4 + channel]
+                let differs = 0
+                for (let channel = 0; channel < 3; channel += 1) {
+                    differs += Math.abs(at(0, channel) - (at(-1, channel) + at(1, channel)) / 2)
+                }
+                const [r, g, b] = [at(0, 0), at(0, 1), at(0, 2)]
+                if (differs > 40 && r > 150 && g > 150 && b < r - 30) {
+                    apart += 1
+                }
+            }
+            if (apart / height > 0.2) {
+                found.push(x)
+            }
+        }
+        return found
+    }, href as string)
+    expect(seams).toEqual([])
+})
