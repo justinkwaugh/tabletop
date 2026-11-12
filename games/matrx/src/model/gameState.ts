@@ -43,7 +43,7 @@ export const MatrxGameState = Type.Evaluate(
             // their next turn.
             extraMoveOwedIds: Type.Array(Type.String()),
             // The id the next disc to enter the board takes.
-            nextDiscId: Type.Optional(Type.Integer({ minimum: 0 })),
+            nextDiscId: Type.Integer({ minimum: 0 }),
             endReason: Type.Optional(Type.Enum(EndReason))
         })
     ])
@@ -70,7 +70,7 @@ export class HydratedMatrxGameState
     declare winningPlayerIds: string[]
     declare board: HydratedMatrxBoard
     declare movedThisTurn: boolean
-    declare nextDiscId?: number
+    declare nextDiscId: number
     declare resolvingPlayerIds: string[]
     declare extraMoveOwedIds: string[]
     declare endReason?: EndReason
@@ -148,7 +148,7 @@ export class HydratedMatrxGameState
     }
 
     private newDiscIds(count: number): number[] {
-        const first = this.nextDiscId ?? 0
+        const first = this.nextDiscId
         this.nextDiscId = first + count
         return Array.from({ length: count }, (_, index) => first + index)
     }

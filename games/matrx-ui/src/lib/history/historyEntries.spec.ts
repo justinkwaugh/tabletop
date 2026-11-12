@@ -56,11 +56,11 @@ describe('history entries', () => {
             removed: [
                 {
                     coords: pointAt('E2'),
-                    unit: { playerId: 'w', kind: PieceKind.Zertz, paired: true }
+                    unit: { playerId: 'w', kind: PieceKind.Zertz, paired: true, discIds: [0, 1] }
                 },
                 {
                     coords: pointAt('E6'),
-                    unit: { playerId: 'b', kind: PieceKind.Gipf, paired: false }
+                    unit: { playerId: 'b', kind: PieceKind.Gipf, paired: false, discIds: [2] }
                 }
             ]
         }

@@ -10,7 +10,7 @@ export function discsOf(stack: readonly Unit[]): BoardDisc[] {
         Array.from({ length: unit.paired ? 2 : 1 }, (_, index) => ({
             playerId: unit.playerId,
             kind: unit.kind,
-            id: unit.discIds?.[index]
+            id: unit.discIds[index]
         }))
     )
 }
@@ -120,7 +120,7 @@ function moveBetween(
 function discsBetween(before: HydratedMatrxBoard, after: HydratedMatrxBoard): DiscsChange {
     const removed: DiscChange[] = []
     const added: DiscChange[] = []
-    for (const { coords } of before.spots) {
+    for (const coords of before.geometry.spots) {
         const was = discsOf(before.stackAt(coords))
         const now = discsOf(after.stackAt(coords))
         let same = 0
@@ -140,11 +140,10 @@ function discsBetween(before: HydratedMatrxBoard, after: HydratedMatrxBoard): Di
 }
 
 function layout(board: HydratedMatrxBoard): string {
-    return board.spots
-        .filter((spot) => spot.stack.length > 0)
+    return board.stacks
         .map(
-            (spot) =>
-                `${coordsKey(spot.coords)}:${spot.stack
+            (stack) =>
+                `${coordsKey(stack.coords)}:${stack.units
                     .map((unit) => `${unit.playerId}/${unit.kind}/${unit.paired}`)
                     .join(',')}`
         )

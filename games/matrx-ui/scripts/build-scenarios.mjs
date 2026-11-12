@@ -5,7 +5,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defaultGameConfig, GameEngine, PlayerStatus } from '@tabletop/common'
 import { startingPositionFile } from '@tabletop/common/testing'
-import { Definition, MatrxInfo, MatrxRuntime, pointAt } from '@tabletop/matrx'
+import { Definition, GEOMETRIES, MatrxInfo, MatrxRuntime, pointAt } from '@tabletop/matrx'
 
 const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'scenarios')
 const engine = new GameEngine(MatrxRuntime)
@@ -41,9 +41,8 @@ function position(stacks, { board = 'Matrx', reserves = {} } = {}) {
     })
     for (const [name, units] of Object.entries(stacks)) {
         const { q, r } = pointAt(name)
-        const spot = state.board.spots.find((s) => s.coords.q === q && s.coords.r === r)
-        if (spot === undefined) throw Error(`${name} is not a spot`)
-        spot.stack = units.split(' ').map((code) => {
+        if (!GEOMETRIES[board].isSpot({ q, r })) throw Error(`${name} is not a spot`)
+        const stack = units.split(' ').map((code) => {
             const letter = code[0]
             const playerId = letter === letter.toUpperCase() ? WHITE : BLACK
             const kind = KINDS[letter.toLowerCase()]
@@ -55,6 +54,7 @@ function position(stacks, { board = 'Matrx', reserves = {} } = {}) {
             const discIds = Array.from({ length: paired ? 2 : 1 }, () => state.nextDiscId++)
             return { playerId, kind, paired, discIds }
         })
+        state.board.stacks.push({ coords: { q, r }, units: stack })
     }
     for (const player of state.players) {
         Object.assign(player, reserves[player.playerId] ?? {})

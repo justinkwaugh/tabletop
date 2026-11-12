@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { GameResult } from '@tabletop/common'
+import { GameResult, sameCoordinates, type AxialCoordinates } from '@tabletop/common'
 import { MachineState } from './states.js'
 import { ActionType } from './actions.js'
 import {
@@ -11,7 +11,7 @@ import {
     type MatrxGame
 } from './tests/playthrough.js'
 import { EndReason, HydratedMatrxGameState, type MatrxGameState } from '../model/gameState.js'
-import { emptyBoard, PieceKind, POTENTIAL_KINDS, type Unit } from '../model/board.js'
+import { discsIn, emptyBoard, PieceKind, POTENTIAL_KINDS, type Unit } from '../model/board.js'
 import { BoardShape, GEOMETRIES, pointAt } from '../model/geometry.js'
 import type { Potentials } from '../model/playerState.js'
 import type { PushPiece } from '../actions/pushPiece.js'
@@ -94,9 +94,12 @@ function removeRow(
     return execute(game, state, action)
 }
 
-const pair = (playerId: string, kind: PieceKind): Unit => ({ playerId, kind, paired: true })
-const single = (playerId: string, kind: PieceKind): Unit => ({ playerId, kind, paired: false })
-const gipf = (playerId: string): Unit => single(playerId, PieceKind.Gipf)
+// A unit as the tests place it; withPieces numbers its discs.
+type Piece = Omit<Unit, 'discIds'>
+
+const pair = (playerId: string, kind: PieceKind): Piece => ({ playerId, kind, paired: true })
+const single = (playerId: string, kind: PieceKind): Piece => ({ playerId, kind, paired: false })
+const gipf = (playerId: string): Piece => single(playerId, PieceKind.Gipf)
 
 const potentials = (count: number): Potentials => ({
     tamsk: count,
@@ -109,7 +112,7 @@ const potentials = (count: number): Potentials => ({
 type Reserve = { gipfPieces?: number; potentials?: Potentials }
 
 // Every GIPF piece on the board, out of the way of the tests, so games go on.
-const KEEPERS: [string, Unit[]][] = [
+const KEEPERS: [string, Piece[]][] = [
     ['B2', [gipf(W)]],
     ['B3', [gipf(W)]],
     ['C2', [gipf(W)]],
@@ -120,18 +123,19 @@ const KEEPERS: [string, Unit[]][] = [
 
 function withPieces(
     state: MatrxGameState,
-    pieces: [string, Unit[]][],
+    pieces: [string | AxialCoordinates, Piece[]][],
     reserves: Record<string, Reserve> = {}
 ): MatrxGameState {
     const next = structuredClone(state)
     next.board = emptyBoard(next.board.shape)
-    for (const [name, stack] of pieces) {
-        const coords = at(name)
-        const spot = next.board.spots.find(
-            (candidate) => candidate.coords.q === coords.q && candidate.coords.r === coords.r
-        )
-        if (spot === undefined) throw Error(`${name} is not a spot`)
-        spot.stack = stack.map((unit) => ({ ...unit }))
+    for (const [point, stack] of pieces) {
+        const coords = typeof point === 'string' ? at(point) : point
+        if (!GEOMETRIES[next.board.shape].isSpot(coords)) throw Error(`${point} is not a spot`)
+        const units = stack.map((piece) => ({
+            ...piece,
+            discIds: Array.from({ length: discsIn(piece) }, () => next.nextDiscId++)
+        }))
+        next.board.stacks.push({ coords, units })
     }
     for (const player of next.players) {
         player.gipfPieces = reserves[player.playerId]?.gipfPieces ?? 0
@@ -199,25 +203,21 @@ describe('GIPF pieces', () => {
 
     it('a GIPF piece that cannot be pushed in lets a potential move instead', () => {
         const game = createGame()
-        const names = GEOMETRIES[BoardShape.Matrx].spots.map((coords) => coords)
-        const full = withPieces(start(game), [], { [W]: { gipfPieces: 1 } })
-        full.board.spots.forEach((spot, index) => {
-            spot.stack = [gipf(index % 2 === 0 ? W : B)]
-        })
-        const board = boardOf(full)
-        const dvonnAt = names.find((coords) =>
-            board.geometry.isSpot({ q: coords.q + 1, r: coords.r })
+        const geometry = GEOMETRIES[BoardShape.Matrx]
+        const dvonnAt = geometry.spots.find((coords) =>
+            geometry.isSpot({ q: coords.q + 1, r: coords.r })
         )
         if (dvonnAt === undefined) throw Error('no pair of spots')
         const targetAt = { q: dvonnAt.q + 1, r: dvonnAt.r }
-        for (const spot of full.board.spots) {
-            if (spot.coords.q === dvonnAt.q && spot.coords.r === dvonnAt.r) {
-                spot.stack = [pair(W, PieceKind.Dvonn)]
-            }
-            if (spot.coords.q === targetAt.q && spot.coords.r === targetAt.r) {
-                spot.stack = [single(B, PieceKind.Dvonn)]
-            }
-        }
+        const pieces: [AxialCoordinates, Piece[]][] = geometry.spots.map((coords, index) => [
+            coords,
+            sameCoordinates(coords, dvonnAt)
+                ? [pair(W, PieceKind.Dvonn)]
+                : sameCoordinates(coords, targetAt)
+                  ? [single(B, PieceKind.Dvonn)]
+                  : [gipf(index % 2 === 0 ? W : B)]
+        ])
+        const full = withPieces(start(game), pieces, { [W]: { gipfPieces: 1 } })
         const hydrated = new HydratedMatrxGameState(full)
         expect(hydrated.mustPlayGipf(W)).toBe(false)
         expect(hydrated.potentialMoves(W)).toEqual([{ from: dvonnAt, to: targetAt }])
@@ -263,7 +263,7 @@ describe('pushing', () => {
 
     it('refuses to push along a full line', () => {
         const game = createGame()
-        const full: [string, Unit[]][] = [2, 3, 4, 5, 6, 7, 8].map((n) => [
+        const full: [string, Piece[]][] = [2, 3, 4, 5, 6, 7, 8].map((n) => [
             `E${n}`,
             [pair(n % 2 === 0 ? W : B, PieceKind.Yinsh)]
         ])
@@ -460,7 +460,7 @@ describe('rows', () => {
 
 describe('TAMSK', () => {
     // Column E's push from E1 shifts E4 onto the centre E5.
-    const tamskBelowCentre: [string, Unit[]][] = [
+    const tamskBelowCentre: [string, Piece[]][] = [
         ['E2', [single(B, PieceKind.Yinsh)]],
         ['E3', [single(W, PieceKind.Yinsh)]],
         ['E4', [pair(W, PieceKind.Tamsk)]]

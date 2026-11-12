@@ -1,437 +1,229 @@
 {
-    "game": {
-        "id": "scenario-gipf-piece-out-of-reach",
-        "isPublic": false,
-        "status": "started",
-        "typeId": "matrx",
-        "deleted": false,
-        "name": "GIPF piece out of reach",
-        "ownerId": "owner",
-        "players": [
-            {
-                "id": "player-1",
-                "name": "White",
-                "isHuman": true,
-                "status": "joined"
-            },
-            {
-                "id": "player-2",
-                "name": "Black",
-                "isHuman": true,
-                "status": "joined"
-            }
-        ],
-        "config": {
-            "board": "Matrx",
-            "whitePlayer": "Random"
-        },
-        "hotseat": false,
-        "winningPlayerIds": [],
-        "seed": 375588763,
-        "activePlayerIds": ["player-1"],
-        "createdAt": "2026-10-31T01:55:04.507Z",
-        "storage": "remote",
-        "category": "standard",
-        "startedAt": "2026-10-31T01:55:04.508Z"
+ "game": {
+  "id": "scenario-gipf-piece-out-of-reach",
+  "isPublic": false,
+  "status": "started",
+  "typeId": "matrx",
+  "deleted": false,
+  "name": "GIPF piece out of reach",
+  "ownerId": "owner",
+  "players": [
+   {
+    "id": "player-1",
+    "name": "White",
+    "isHuman": true,
+    "status": "joined"
+   },
+   {
+    "id": "player-2",
+    "name": "Black",
+    "isHuman": true,
+    "status": "joined"
+   }
+  ],
+  "config": {
+   "board": "Matrx",
+   "whitePlayer": "Random"
+  },
+  "hotseat": false,
+  "winningPlayerIds": [],
+  "seed": 911325372,
+  "activePlayerIds": [
+   "player-1"
+  ],
+  "createdAt": "2026-11-12T21:11:41.956Z",
+  "storage": "remote",
+  "category": "standard",
+  "startedAt": "2026-11-12T21:11:41.956Z"
+ },
+ "state": {
+  "systemVersion": 3,
+  "id": "o75piQKOMi9mc2CdS8Ggl",
+  "gameId": "scenario-gipf-piece-out-of-reach",
+  "seed": 911325372,
+  "prng": {
+   "seed": 911325372,
+   "invocations": 1
+  },
+  "protectedPrng": {
+   "algorithm": "chacha20-v1",
+   "seed": "063efac08792e275c35e678a327399b0c1bdb99eaf1b527c65acaaac2aa4c976",
+   "invocations": 0
+  },
+  "masterSeed": "21bb093ef185423e8d2f76a684e68bde",
+  "activePlayerIds": [
+   "player-1"
+  ],
+  "winningPlayerIds": [],
+  "actionCount": 0,
+  "actionChecksum": 0,
+  "players": [
+   {
+    "playerId": "player-1",
+    "color": "white",
+    "gipfPieces": 0,
+    "potentials": {
+     "tamsk": 6,
+     "zertz": 6,
+     "dvonn": 6,
+     "yinsh": 3,
+     "punct": 6
     },
-    "state": {
-        "systemVersion": 3,
-        "id": "UOZhRhHSsIdO6LduRV361",
-        "gameId": "scenario-gipf-piece-out-of-reach",
-        "seed": 375588763,
-        "prng": {
-            "seed": 375588763,
-            "invocations": 1
-        },
-        "protectedPrng": {
-            "seed": 450993364,
-            "invocations": 0
-        },
-        "activePlayerIds": ["player-1"],
-        "winningPlayerIds": [],
-        "actionCount": 0,
-        "actionChecksum": 0,
-        "players": [
-            {
-                "playerId": "player-1",
-                "color": "white",
-                "gipfPieces": 0,
-                "potentials": {
-                    "tamsk": 6,
-                    "zertz": 6,
-                    "dvonn": 6,
-                    "yinsh": 3,
-                    "punct": 6
-                },
-                "captured": []
-            },
-            {
-                "playerId": "player-2",
-                "color": "black",
-                "gipfPieces": 0,
-                "potentials": {
-                    "tamsk": 6,
-                    "zertz": 6,
-                    "dvonn": 6,
-                    "yinsh": 6,
-                    "punct": 6
-                },
-                "captured": []
-            }
-        ],
-        "machineState": "TakingTurn",
-        "turnManager": {
-            "series": [
-                {
-                    "type": "turn",
-                    "playerId": "player-1",
-                    "start": 0
-                }
-            ],
-            "turnOrder": ["player-1", "player-2"],
-            "turnCounts": {
-                "player-1": 0,
-                "player-2": 0
-            }
-        },
-        "board": {
-            "shape": "Matrx",
-            "spots": [
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": 0
-                    },
-                    "stack": [
-                        {
-                            "playerId": "player-1",
-                            "kind": "yinsh",
-                            "paired": false,
-                            "discIds": [5]
-                        }
-                    ]
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": -1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": 0
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": 1
-                    },
-                    "stack": [
-                        {
-                            "playerId": "player-1",
-                            "kind": "yinsh",
-                            "paired": false,
-                            "discIds": [4]
-                        }
-                    ]
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": 1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": 0
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": -1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": -2
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": -2
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": -1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": 0
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": 1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": 2
-                    },
-                    "stack": [
-                        {
-                            "playerId": "player-1",
-                            "kind": "yinsh",
-                            "paired": false,
-                            "discIds": [3]
-                        }
-                    ]
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": 2
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": 2
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": 1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": 0
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": -1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": -2
-                    },
-                    "stack": [
-                        {
-                            "playerId": "player-2",
-                            "kind": "gipf",
-                            "paired": false,
-                            "discIds": [6]
-                        }
-                    ]
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": -3
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 3,
-                        "r": -3
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 3,
-                        "r": -2
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 3,
-                        "r": -1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 3,
-                        "r": 0
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 2,
-                        "r": 1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": 2
-                    },
-                    "stack": [
-                        {
-                            "playerId": "player-1",
-                            "kind": "gipf",
-                            "paired": false,
-                            "discIds": [2]
-                        }
-                    ]
-                },
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": 3
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": 3
-                    },
-                    "stack": [
-                        {
-                            "playerId": "player-1",
-                            "kind": "gipf",
-                            "paired": false,
-                            "discIds": [1]
-                        }
-                    ]
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": 3
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -3,
-                        "r": 3
-                    },
-                    "stack": [
-                        {
-                            "playerId": "player-1",
-                            "kind": "gipf",
-                            "paired": false,
-                            "discIds": [0]
-                        }
-                    ]
-                },
-                {
-                    "coords": {
-                        "q": -3,
-                        "r": 2
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -3,
-                        "r": 1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -3,
-                        "r": 0
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -2,
-                        "r": -1
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": -1,
-                        "r": -2
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 0,
-                        "r": -3
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 1,
-                        "r": -3
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 4,
-                        "r": -3
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 4,
-                        "r": -2
-                    },
-                    "stack": []
-                },
-                {
-                    "coords": {
-                        "q": 4,
-                        "r": -1
-                    },
-                    "stack": []
-                }
-            ]
-        },
-        "movedThisTurn": false,
-        "resolvingPlayerIds": [],
-        "extraMoveOwedIds": [],
-        "nextDiscId": 7
+    "captured": []
+   },
+   {
+    "playerId": "player-2",
+    "color": "black",
+    "gipfPieces": 0,
+    "potentials": {
+     "tamsk": 6,
+     "zertz": 6,
+     "dvonn": 6,
+     "yinsh": 6,
+     "punct": 6
     },
-    "actions": []
+    "captured": []
+   }
+  ],
+  "machineState": "TakingTurn",
+  "turnManager": {
+   "series": [
+    {
+     "type": "turn",
+     "playerId": "player-1",
+     "start": 0
+    }
+   ],
+   "turnOrder": [
+    "player-1",
+    "player-2"
+   ],
+   "turnCounts": {
+    "player-1": 0,
+    "player-2": 0
+   }
+  },
+  "board": {
+   "shape": "Matrx",
+   "stacks": [
+    {
+     "coords": {
+      "q": -3,
+      "r": 3
+     },
+     "units": [
+      {
+       "playerId": "player-1",
+       "kind": "gipf",
+       "paired": false,
+       "discIds": [
+        0
+       ]
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": -1,
+      "r": 3
+     },
+     "units": [
+      {
+       "playerId": "player-1",
+       "kind": "gipf",
+       "paired": false,
+       "discIds": [
+        1
+       ]
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": 1,
+      "r": 2
+     },
+     "units": [
+      {
+       "playerId": "player-1",
+       "kind": "gipf",
+       "paired": false,
+       "discIds": [
+        2
+       ]
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": 0,
+      "r": 2
+     },
+     "units": [
+      {
+       "playerId": "player-1",
+       "kind": "yinsh",
+       "paired": false,
+       "discIds": [
+        3
+       ]
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": 0,
+      "r": 1
+     },
+     "units": [
+      {
+       "playerId": "player-1",
+       "kind": "yinsh",
+       "paired": false,
+       "discIds": [
+        4
+       ]
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": 0,
+      "r": 0
+     },
+     "units": [
+      {
+       "playerId": "player-1",
+       "kind": "yinsh",
+       "paired": false,
+       "discIds": [
+        5
+       ]
+      }
+     ]
+    },
+    {
+     "coords": {
+      "q": 0,
+      "r": -2
+     },
+     "units": [
+      {
+       "playerId": "player-2",
+       "kind": "gipf",
+       "paired": false,
+       "discIds": [
+        6
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "movedThisTurn": false,
+  "resolvingPlayerIds": [],
+  "extraMoveOwedIds": [],
+  "nextDiscId": 7
+ },
+ "actions": []
 }

@@ -111,8 +111,8 @@ export class MatrxGameSession extends GameSession<MatrxGameState, HydratedMatrxG
         }
         const kind = this.chosenKind
         if (kind === undefined) return []
-        // As the logic numbers them, from 0 in a game from before ids.
-        const first = this.gameState.nextDiscId ?? 0
+        // As the logic numbers them.
+        const first = this.gameState.nextDiscId
         return Array.from({ length: kind === PieceKind.Gipf ? 1 : 2 }, (_, index) => ({
             playerId,
             kind,

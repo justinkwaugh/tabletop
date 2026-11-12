@@ -2,6 +2,7 @@ import * as Type from 'typebox'
 import { Compile } from 'typebox/compile'
 import {
     addAxial,
+    assertExists,
     AxialCoordinates,
     Hydratable,
     sameCoordinates,
@@ -13,7 +14,6 @@ import {
     CENTRE,
     DIRECTIONS,
     GEOMETRIES,
-    pointKey,
     type BoardGeometry,
     type Entry
 } from './geometry.js'
@@ -40,28 +40,28 @@ export function isPotentialKind(kind: PieceKind): kind is PotentialKind {
     return kind !== PieceKind.Gipf
 }
 
-// What sits on a spot, bottom to top. A paired unit is an unused stack of two potentials of one
-// kind and colour; every other unit is a single piece. Only the top unit is in play. Each disc has
-// an id, bottom first, given as it enters the board, by which the table turns it; units from
-// before ids have none.
+// A paired unit is an unused stack of two potentials of one kind and colour; every other unit is
+// a single piece. Each disc has an id, bottom first, given as it enters the board, by which the
+// table turns it.
 export type Unit = Type.Static<typeof Unit>
 export const Unit = Type.Object({
     playerId: Type.String(),
     kind: Type.Enum(PieceKind),
     paired: Type.Boolean(),
-    discIds: Type.Optional(Type.Array(Type.Integer({ minimum: 0 })))
+    discIds: Type.Array(Type.Integer({ minimum: 0 }), { minItems: 1, maxItems: 2 })
 })
 
-export type Spot = Type.Static<typeof Spot>
-export const Spot = Type.Object({
+// The units on an occupied spot, bottom to top; only the top one is in play.
+export type Stack = Type.Static<typeof Stack>
+export const Stack = Type.Object({
     coords: AxialCoordinates,
-    stack: Type.Array(Unit)
+    units: Type.Array(Unit, { minItems: 1 })
 })
 
 export type MatrxBoard = Type.Static<typeof MatrxBoard>
 export const MatrxBoard = Type.Object({
     shape: Type.Enum(BoardShape),
-    spots: Type.Array(Spot)
+    stacks: Type.Array(Stack)
 })
 
 // A row is four or more adjacent spots topped by one player's pieces in a line. Its reach runs on
@@ -80,15 +80,16 @@ export const ROW_LENGTH = 4
 const MatrxBoardValidator = Compile(MatrxBoard)
 
 export function emptyBoard(shape: BoardShape): MatrxBoard {
-    return {
-        shape,
-        spots: GEOMETRIES[shape].spots.map((coords) => ({ coords: { ...coords }, stack: [] }))
-    }
+    return { shape, stacks: [] }
+}
+
+export function discsIn(unit: Pick<Unit, 'paired'>): number {
+    return unit.paired ? 2 : 1
 }
 
 export class HydratedMatrxBoard extends Hydratable<typeof MatrxBoard> implements MatrxBoard {
     declare shape: BoardShape
-    declare spots: Spot[]
+    declare stacks: Stack[]
 
     constructor(data: MatrxBoard) {
         super(data, MatrxBoardValidator)
@@ -98,13 +99,12 @@ export class HydratedMatrxBoard extends Hydratable<typeof MatrxBoard> implements
         return GEOMETRIES[this.shape]
     }
 
-    private spotAt(coords: AxialCoordinates): Spot | undefined {
-        const key = pointKey(coords)
-        return this.spots.find((spot) => pointKey(spot.coords) === key)
+    private stackOf(coords: AxialCoordinates): Stack | undefined {
+        return this.stacks.find((stack) => sameCoordinates(stack.coords, coords))
     }
 
     stackAt(coords: AxialCoordinates): Unit[] {
-        return this.spotAt(coords)?.stack ?? []
+        return this.stackOf(coords)?.units ?? []
     }
 
     topAt(coords: AxialCoordinates): Unit | undefined {
@@ -116,28 +116,29 @@ export class HydratedMatrxBoard extends Hydratable<typeof MatrxBoard> implements
         return this.stackAt(coords).length === 0
     }
 
-    private requireSpot(coords: AxialCoordinates): Spot {
-        const spot = this.spotAt(coords)
-        if (spot === undefined) {
+    place(coords: AxialCoordinates, unit: Unit) {
+        if (!this.geometry.isSpot(coords)) {
             throw Error(`No spot at ${coords.q},${coords.r}`)
         }
-        return spot
-    }
-
-    place(coords: AxialCoordinates, unit: Unit) {
-        this.requireSpot(coords).stack.push({ ...unit })
+        const placed = { ...unit, discIds: [...unit.discIds] }
+        const stack = this.stackOf(coords)
+        if (stack === undefined) {
+            this.stacks.push({ coords: { ...coords }, units: [placed] })
+        } else {
+            stack.units.push(placed)
+        }
     }
 
     tops(): PlacedUnit[] {
-        return this.spots.flatMap((spot) => {
-            const unit = spot.stack[spot.stack.length - 1]
-            return unit === undefined ? [] : [{ coords: spot.coords, unit }]
-        })
+        return this.stacks.map((stack) => ({
+            coords: stack.coords,
+            unit: stack.units[stack.units.length - 1]
+        }))
     }
 
     gipfPiecesOf(playerId: string): number {
-        return this.spots
-            .flatMap((spot) => spot.stack)
+        return this.stacks
+            .flatMap((stack) => stack.units)
             .filter((unit) => unit.kind === PieceKind.Gipf && unit.playerId === playerId).length
     }
 
@@ -168,11 +169,11 @@ export class HydratedMatrxBoard extends Hydratable<typeof MatrxBoard> implements
             throw Error('The line is full')
         }
         for (let index = gap; index > 0; index--) {
-            this.requireSpot(entry.line[index]).stack = this.requireSpot(
-                entry.line[index - 1]
-            ).stack
+            const moving = this.stackOf(entry.line[index - 1])
+            assertExists(moving, 'Every spot before the gap holds a stack')
+            moving.coords = { ...entry.line[index] }
         }
-        this.requireSpot(entry.line[0]).stack = [{ ...unit }]
+        this.place(entry.line[0], unit)
         const centre = entry.line.findIndex((coords) => sameCoordinates(coords, CENTRE))
         return centre >= 0 && centre <= gap ? this.stackAt(CENTRE) : undefined
     }
@@ -223,15 +224,11 @@ export class HydratedMatrxBoard extends Hydratable<typeof MatrxBoard> implements
         if (unit === undefined || !unit.paired) {
             throw Error('No pair to split')
         }
+        const [bottom, top] = unit.discIds
+        assertExists(top, 'A pair has two discs')
         unit.paired = false
-        const [bottom, top] = unit.discIds ?? []
-        if (bottom !== undefined) unit.discIds = [bottom]
-        return {
-            playerId: unit.playerId,
-            kind: unit.kind,
-            paired: false,
-            ...(top === undefined ? {} : { discIds: [top] })
-        }
+        unit.discIds = [bottom]
+        return { playerId: unit.playerId, kind: unit.kind, paired: false, discIds: [top] }
     }
 
     rows(): Row[] {
@@ -296,9 +293,13 @@ export class HydratedMatrxBoard extends Hydratable<typeof MatrxBoard> implements
     }
 
     removeTop(coords: AxialCoordinates): Unit {
-        const unit = this.requireSpot(coords).stack.pop()
-        if (unit === undefined) {
+        const stack = this.stackOf(coords)
+        const unit = stack?.units.pop()
+        if (stack === undefined || unit === undefined) {
             throw Error(`No piece at ${coords.q},${coords.r}`)
+        }
+        if (stack.units.length === 0) {
+            this.stacks.splice(this.stacks.indexOf(stack), 1)
         }
         return unit
     }

@@ -9,8 +9,19 @@ import {
 } from '@tabletop/matrx'
 import { boardChange } from './boardChange.js'
 
-const pair = (playerId: string, kind: PieceKind): Unit => ({ playerId, kind, paired: true })
-const single = (playerId: string, kind: PieceKind): Unit => ({ playerId, kind, paired: false })
+let nextId = 0
+const pair = (playerId: string, kind: PieceKind, discIds = [nextId++, nextId++]): Unit => ({
+    playerId,
+    kind,
+    paired: true,
+    discIds
+})
+const single = (playerId: string, kind: PieceKind, discIds = [nextId++]): Unit => ({
+    playerId,
+    kind,
+    paired: false,
+    discIds
+})
 
 function board(stacks: Record<string, Unit[]>): HydratedMatrxBoard {
     const hydrated = new HydratedMatrxBoard(emptyBoard(BoardShape.Matrx))
@@ -30,11 +41,12 @@ describe('boardChange', () => {
     it('reads a push both ways, with the stacks it moved on', () => {
         const before = board({ E2: [single('b', PieceKind.Yinsh)], E3: [gipf('w')] })
         const after = new HydratedMatrxBoard(before.dehydrate())
-        after.push(entryFrom(after, 'E1', 'E2'), pair('w', PieceKind.Zertz))
+        const zertz = pair('w', PieceKind.Zertz)
+        after.push(entryFrom(after, 'E1', 'E2'), zertz)
         expect(boardChange(before, after)).toMatchObject({
             kind: 'push',
             shifted: 2,
-            unit: pair('w', PieceKind.Zertz),
+            unit: zertz,
             fromCentre: false,
             forward: true
         })
@@ -60,14 +72,17 @@ describe('boardChange', () => {
     })
 
     it("reads a potential's move both ways", () => {
-        const before = board({ D6: [pair('w', PieceKind.Dvonn)], G4: [pair('b', PieceKind.Dvonn)] })
+        const before = board({
+            D6: [pair('w', PieceKind.Dvonn, [1, 2])],
+            G4: [pair('b', PieceKind.Dvonn)]
+        })
         const after = new HydratedMatrxBoard(before.dehydrate())
         after.movePotential(pointAt('D6'), pointAt('G4'))
         expect(boardChange(before, after)).toEqual({
             kind: 'move',
             from: pointAt('D6'),
             to: pointAt('G4'),
-            disc: { playerId: 'w', kind: PieceKind.Dvonn },
+            disc: { playerId: 'w', kind: PieceKind.Dvonn, id: 2 },
             forward: true
         })
         expect(boardChange(after, before)).toMatchObject({
@@ -80,12 +95,12 @@ describe('boardChange', () => {
 
     it('lifts only the discs that leave a stack, and drops those that come back', () => {
         const before = board({
-            E5: [pair('w', PieceKind.Tamsk)],
-            E6: [pair('w', PieceKind.Dvonn), single('b', PieceKind.Dvonn)]
+            E5: [pair('w', PieceKind.Tamsk, [1, 2])],
+            E6: [pair('w', PieceKind.Dvonn, [3, 4]), single('b', PieceKind.Dvonn, [5])]
         })
         const after = board({
-            E5: [single('w', PieceKind.Tamsk)],
-            E6: [pair('w', PieceKind.Dvonn)]
+            E5: [single('w', PieceKind.Tamsk, [1])],
+            E6: [pair('w', PieceKind.Dvonn, [3, 4])]
         })
         const change = boardChange(before, after)
         expect(change).toEqual({
@@ -94,12 +109,12 @@ describe('boardChange', () => {
                 {
                     coords: pointAt('E5'),
                     from: 1,
-                    discs: [{ playerId: 'w', kind: PieceKind.Tamsk }]
+                    discs: [{ playerId: 'w', kind: PieceKind.Tamsk, id: 2 }]
                 },
                 {
                     coords: pointAt('E6'),
                     from: 2,
-                    discs: [{ playerId: 'b', kind: PieceKind.Dvonn }]
+                    discs: [{ playerId: 'b', kind: PieceKind.Dvonn, id: 5 }]
                 }
             ].toSorted((a, b) => a.coords.q - b.coords.q || b.coords.r - a.coords.r),
             added: []
