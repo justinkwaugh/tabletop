@@ -749,7 +749,7 @@ describe('R-3.7.1 pawns and monsters on a Move', () => {
         expect(hop?.path?.at(-1)).toEqual(spaceGeometry(scene.route.b).pieceSlots[0])
         expect(motions).toContainEqual(
             expect.objectContaining({
-                target: { piece: `good:${scene.route.b}:${good}:0` },
+                target: { piece: `good:${scene.route.b}:${good}` },
                 opacity: 0
             })
         )

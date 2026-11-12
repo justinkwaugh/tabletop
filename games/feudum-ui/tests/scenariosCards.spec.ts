@@ -288,7 +288,15 @@ scenario('S20 R-3.11 Harvest with favours', 'cards-harvest-beads', async (table)
     expect(flights.filter((flight) => flight === 'token: good')).toHaveLength(6)
     expect(flights.filter((flight) => /^goods: /.test(flight))).toHaveLength(3)
     expect(flights.filter((flight) => flight === 'seals: bead +2')).toHaveLength(2)
-    expect(await table.piecesNamed('good:space.desert.3:')).toHaveLength(6)
+    // One piece per kind on the plate, its badge counting more than one.
+    const left = await table.page
+        .locator('[data-world^="good:space.desert.3:"]')
+        .evaluateAll((pieces) =>
+            pieces.map((piece) =>
+                Number(piece.querySelector('[data-good-count] text')?.textContent ?? 1)
+            )
+        )
+    expect(left.reduce((sum, count) => sum + count, 0)).toBe(6)
     const panel = await table.seatPanel('p1')
     await expect(panel.locator('[data-supply-bead]')).toHaveCount(0)
     await expect(panel.locator('[data-seals]')).toHaveAttribute('data-seals', '2')

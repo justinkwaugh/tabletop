@@ -21,13 +21,23 @@ export interface GoodStack {
     readonly count?: number
 }
 
-/** R-1.1 One token per good up to four, then one token with a count. */
+/** R-1.1 In the barn, one token per good up to four, then one token with a count. */
 export function goodStacks(goods: Readonly<GoodCounts>): readonly GoodStack[] {
     return Goods.filter((good) => goods[good] > 0).map((good) =>
         goods[good] <= GoodsShownSingly
             ? { good, tokens: goods[good] }
             : { good, tokens: 1, count: goods[good] }
     )
+}
+
+export interface GoodKind {
+    readonly good: Good
+    readonly count: number
+}
+
+/** R-1.1 The goods on a space by kind, each with how many lie there. */
+export function goodKinds(goods: Readonly<GoodCounts>): readonly GoodKind[] {
+    return Goods.filter((good) => goods[good] > 0).map((good) => ({ good, count: goods[good] }))
 }
 
 export interface AbandonedVessels {

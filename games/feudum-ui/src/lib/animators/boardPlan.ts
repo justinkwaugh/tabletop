@@ -29,10 +29,16 @@ import {
     type VesselType
 } from '@tabletop/feudum'
 import { scoreOnTrack, serviceDiscs, voyageDiscs, type TrackDisc } from '$lib/model/boardView.js'
-import { goodStacks, pieceKey, piecesOn, slottedPieces, type MapPiece } from '$lib/model/mapView.js'
+import {
+    goodKinds,
+    goodStacks,
+    pieceKey,
+    piecesOn,
+    slottedPieces,
+    type MapPiece
+} from '$lib/model/mapView.js'
 import {
     EpochRays,
-    GoodStackStep,
     GuildAreaWidth,
     GuildAreas,
     GuildBox,
@@ -53,6 +59,7 @@ import {
     knightCell,
     knightRowLabel,
     monsterIconMarker,
+    plateSlot,
     reeveOffset,
     routePointAt,
     scoreDiscAt,
@@ -671,17 +678,14 @@ function spaceGoodPlace(
     spaceId: SpaceId,
     good: Good
 ): GoodPlace | undefined {
-    const stacks = goodStacks(state.spaces[spaceId].goods)
-    const column = stacks.findIndex((stack) => stack.good === good)
-    if (column < 0) {
+    const kinds = goodKinds(state.spaces[spaceId].goods)
+    const slot = kinds.findIndex((kind) => kind.good === good)
+    if (slot < 0) {
         return undefined
     }
-    const stack = stacks[column]
-    const top = stack.tokens - 1
-    const { x, y } = spaceGeometry(spaceId).goods[column]
     return {
-        point: { x, y: y + top * GoodStackStep },
-        ...(stack.count ? {} : { key: `good:${spaceId}:${good}:${top}` })
+        point: plateSlot(spaceGeometry(spaceId).plate, slot),
+        ...(kinds[slot].count === 1 ? { key: `good:${spaceId}:${good}` } : {})
     }
 }
 
@@ -705,7 +709,7 @@ const GoodHolders: readonly GoodHolder[] = [
         count: (state, good) => state.spaces[id].goods[good],
         place: (state, good) => {
             const shown = spaceGoodPlace(state, id, good)
-            return shown ?? { point: spaceGeometry(id).goods[0] }
+            return shown ?? { point: plateSlot(spaceGeometry(id).plate, 0) }
         }
     })),
     {
