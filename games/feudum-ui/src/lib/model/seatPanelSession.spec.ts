@@ -61,6 +61,23 @@ describe('Seat panel on a session (S57, S58)', () => {
         })
     })
 
+    it("R-3.1 off its turn a seat's desk holds no hand, so its own panel shows the faces", async () => {
+        const table = await atPlayingCards(['move', 'tax'], { otherCards: ['conquer', 'guild'] })
+        host = table.host
+        const session = await host.openSeat(table.other)
+
+        expect(session.turnPanel).toBeUndefined()
+        expect(session.seatPanel(table.other).cards).toMatchObject({
+            handBacks: 0,
+            handCount: 2,
+            handOnDesk: false
+        })
+        expect(session.seatPanel(table.other).cards.handFaces.map(({ kind }) => kind)).toEqual([
+            'conquer',
+            'guild'
+        ])
+    })
+
     it('Host View is the look that shows another seat, and still no note says "you"', async () => {
         const table = await atPlayingCards(['move', 'tax'], { otherCards: ['conquer', 'guild'] })
         host = table.host
