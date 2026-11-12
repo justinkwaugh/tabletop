@@ -12,7 +12,8 @@
      * stands on, and its feeds as art: food, or wine (R-4.10.2). An unfed pawn's row is rose with
      * what it loses (R-4.10.1). Beside the rows, the summary: what the feeding pays and what is
      * kept, the unfed rule once, R-4.3.3 a tile's rows when one could feed, and the send. A phone's
-     * rows are compact, and its send draws the counts as art.
+     * rows are compact, with no preview path (a press is undoable, and the map rings each fed pawn
+     * with its payment), its summary stays in sight under them, and its send draws the counts as art.
      */
     let {
         block,
@@ -115,26 +116,35 @@
     </div>
     <div
         class="flex min-w-0 flex-1 flex-col justify-between gap-2 rounded-lg border border-feudum-frame bg-feudum-surface-raised p-3
-            max-sm:border-0 max-sm:bg-transparent max-sm:p-0"
+            max-sm:border-0 max-sm:p-0"
         data-nourish-summary
     >
         {#if !layout.phone}
             <p class="flex flex-wrap items-center gap-1.5 text-feudum-text" data-nourish-pays>
                 <span class="font-semibold">Pays</span>
                 {#if block.summary.pays.food > 0}
-                    <GoodToken good="food" size={SummaryGood} />{block.summary.pays.food}
+                    <span class="inline-flex items-center gap-0.5"
+                        ><GoodToken good="food" size={SummaryGood} />{block.summary.pays.food}</span
+                    >
                 {/if}
                 {#if block.summary.pays.wine > 0}
-                    <GoodToken good="sulfur" size={SummaryGood} />{block.summary.pays.wine}
-                    <span class="text-xs text-feudum-text-muted">wine</span>
+                    <span class="inline-flex items-center gap-0.5"
+                        ><GoodToken good="sulfur" size={SummaryGood} />{block.summary.pays.wine}
+                        <span class="text-xs text-feudum-text-muted">wine</span></span
+                    >
                 {/if}
                 {#if block.summary.pays.food + block.summary.pays.wine === 0}
                     <span>nothing</span>
                 {/if}
                 <span class="text-xs text-feudum-text-muted">· you keep</span>
-                <GoodToken good="food" size={SummaryGood} />{block.summary.keeps.food}
+                <span class="inline-flex items-center gap-0.5"
+                    ><GoodToken good="food" size={SummaryGood} />{block.summary.keeps.food}</span
+                >
                 <span class="text-xs text-feudum-text-muted">· barrel</span>
-                <GoodToken good="sulfur" size={SummaryGood} />{block.summary.keeps.barrel}
+                <span class="inline-flex items-center gap-0.5"
+                    ><GoodToken good="sulfur" size={SummaryGood} />{block.summary.keeps
+                        .barrel}</span
+                >
             </p>
             <p class="text-xs text-feudum-text-muted" data-nourish-rule>{block.rule}</p>
         {/if}
@@ -172,3 +182,18 @@
         </div>
     </div>
 </div>
+
+<style>
+    /* Contract, Phone layout: compact rows, and the send in sight in the action area's cap. */
+    @media (width < 40rem), (max-height: 520px) and (orientation: landscape) {
+        [data-nourish-rows] :global(.touch-preview) {
+            display: none;
+        }
+
+        [data-nourish-summary] {
+            position: sticky;
+            bottom: 0;
+            background-color: var(--feudum-surface-raised);
+        }
+    }
+</style>
