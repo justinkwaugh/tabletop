@@ -64,6 +64,8 @@ export class TableLayers {
     stackView: StackViewOf | undefined = $state.raw(undefined)
     /** A phone's Tracks sheet: for looking, with no target in it. */
     tracksOpen: boolean = $state(false)
+    /** A phone's Guilds sheet: the guild standings, for looking. */
+    guildsOpen: boolean = $state(false)
 
     /** Read through its owner, so it follows the owner's current props. */
     enlarged: EnlargedFace | undefined = $derived(this.enlargedBy?.read())
@@ -86,25 +88,36 @@ export class TableLayers {
     openSeat(playerId: string): void {
         this.stackView = undefined
         this.tracksOpen = false
+        this.guildsOpen = false
         this.openSeatId = playerId
     }
 
     openStack(view: StackViewOf): void {
         this.openSeatId = undefined
         this.tracksOpen = false
+        this.guildsOpen = false
         this.stackView = view
     }
 
     openTracks(): void {
         this.openSeatId = undefined
         this.stackView = undefined
+        this.guildsOpen = false
         this.tracksOpen = true
+    }
+
+    openGuilds(): void {
+        this.openSeatId = undefined
+        this.stackView = undefined
+        this.tracksOpen = false
+        this.guildsOpen = true
     }
 
     closeSeatOrStack(): void {
         this.openSeatId = undefined
         this.stackView = undefined
         this.tracksOpen = false
+        this.guildsOpen = false
     }
 
     /**
@@ -116,7 +129,7 @@ export class TableLayers {
             this.closeEnlarged()
             return true
         }
-        if (this.openSeatId !== undefined || this.stackView || this.tracksOpen) {
+        if (this.openSeatId !== undefined || this.stackView || this.tracksOpen || this.guildsOpen) {
             this.closeSeatOrStack()
             return true
         }

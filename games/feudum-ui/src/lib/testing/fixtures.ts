@@ -1234,6 +1234,19 @@ export const Fixtures = {
     'reeve-offer': {
         build: () => atGuild(seats(guildSeat('merchant'), plain, plain))
     },
+    /** R-4.5.3 Five seats: four Merchants for its three places, so one stands outranked. */
+    'standings-five-seats': {
+        build: () =>
+            atGuild(
+                seats(
+                    guildSeat('merchant'),
+                    guildSeat('farmer'),
+                    guildSeat('merchant'),
+                    guildSeat('merchant'),
+                    guildSeat('merchant')
+                )
+            )
+    },
     'writs-at-will': {
         arranged:
             'R-4.4.2 Mandate 5 in hand: writs come from Explore, off a deck the seed orders, and this one is ninth from its top.',

@@ -7,6 +7,7 @@
     import BoardPopup from './BoardPopup.svelte'
     import EnlargedLayer from './EnlargedLayer.svelte'
     import FlightLayer from './FlightLayer.svelte'
+    import GuildsSheet from './GuildsSheet.svelte'
     import OpenSeatLayer from './OpenSeatLayer.svelte'
     import StackViewLayer from './StackViewLayer.svelte'
     import TracksSheet from './TracksSheet.svelte'
@@ -55,7 +56,8 @@
         layers.enlarged !== undefined ||
             layers.openSeatId !== undefined ||
             layers.stackView !== undefined ||
-            layers.tracksOpen
+            layers.tracksOpen ||
+            layers.guildsOpen
     )
 </script>
 
@@ -80,6 +82,9 @@
 {/if}
 {#if layers.tracksOpen}
     <TracksSheet onClose={() => layers.closeSeatOrStack()} />
+{/if}
+{#if layers.guildsOpen}
+    <GuildsSheet onClose={() => layers.closeSeatOrStack()} />
 {/if}
 {#if layers.enlarged}
     <div
