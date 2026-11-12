@@ -1,5 +1,6 @@
 <script lang="ts">
     import PlayerState from '$lib/components/PlayerState.svelte'
+    import SessionStandings from '$lib/components/standings/SessionStandings.svelte'
     import { seatOrder } from '$lib/model/seatPanel.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
@@ -9,6 +10,7 @@
 </script>
 
 <div class="space-y-2 grow-0 shrink-0" data-seat-column>
+    <SessionStandings />
     {#each seats as playerId (playerId)}
         <PlayerState {playerId} />
     {/each}
