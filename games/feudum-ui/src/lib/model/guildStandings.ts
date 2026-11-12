@@ -1,8 +1,8 @@
 import {
     GuildById,
     GuildIds,
-    GuildTrackSpaces,
     rankOf,
+    ranksInPlay,
     type GuildId,
     type GuildRank,
     type HydratedFeudumGameState
@@ -53,14 +53,6 @@ export interface GuildStandingsView {
     /** The places in play, from the top (R-4.5.3: an apprentice only at four or five seats). */
     readonly ranks: readonly GuildRank[]
     readonly rows: readonly StandingRow[]
-}
-
-const RanksFromTop: readonly GuildRank[] = ['master', 'journeyman', 'apprentice']
-
-function ranksInPlay(numPlayers: number): GuildRank[] {
-    return RanksFromTop.filter((rank) =>
-        GuildTrackSpaces.some((space) => space.rank === rank && space.minPlayers <= numPlayers)
-    )
 }
 
 function starsSaid(stars: number): string {

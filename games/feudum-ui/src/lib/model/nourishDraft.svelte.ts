@@ -1,5 +1,6 @@
 import type { StagedSelectionState } from '@tabletop/frontend-components'
 import {
+    GuildById,
     Nourish,
     nourishOffer,
     nourishPreview,
@@ -106,10 +107,6 @@ export interface NourishPanel {
     readonly rule: string
     readonly send: NourishSend
     readonly primary: TurnPrimary
-}
-
-function titled(word: string): string {
-    return `${word.charAt(0).toUpperCase()}${word.slice(1)}`
 }
 
 /**
@@ -317,7 +314,7 @@ export class NourishDraft extends DeciderDraft<NourishValues> {
                     n,
                     character,
                     spaceId,
-                    name: titled(character),
+                    name: GuildById[character].name,
                     place: spaceLabel(spaceId),
                     label: `${character} at ${spaceLabel(spaceId)}`,
                     feed,
