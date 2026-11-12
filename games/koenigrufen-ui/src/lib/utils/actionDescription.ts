@@ -1,4 +1,4 @@
-import type { GameAction } from '@tabletop/common'
+import { ActionSource, type GameAction } from '@tabletop/common'
 import {
     Contracts,
     DoubleNames,
@@ -129,4 +129,21 @@ export function describeAction(
         default:
             return undefined
     }
+}
+
+// The History Step that led to these actions' end: the latest User Action and the System Actions it
+// set off, each described in order. Before any User Action, the System Actions that set up the game.
+export function describeStep(
+    actions: readonly GameAction[],
+    names: Names,
+    style: CardStyle
+): string[] {
+    const start = Math.max(
+        0,
+        actions.findLastIndex((action) => action.source === ActionSource.User)
+    )
+    return actions.slice(start).flatMap((action) => {
+        const description = describeAction(action, names, style)
+        return description === undefined ? [] : [description]
+    })
 }

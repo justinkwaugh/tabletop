@@ -1,7 +1,7 @@
 import { ActionSource } from '@tabletop/common'
 import { ActionType, Bonus, Contract, FourthKing, Side, Suit } from '@tabletop/koenigrufen'
 import { describe, expect, it } from 'vitest'
-import { describeAction } from './actionDescription.js'
+import { describeAction, describeStep } from './actionDescription.js'
 import { StandardStyle } from './cardStyle.js'
 
 const names = { name: (playerId: string) => playerId.toUpperCase() }
@@ -125,5 +125,40 @@ describe('history descriptions', () => {
     it('does not name cards laid away face down', () => {
         const layAway = { ...base, type: ActionType.LayAway, metadata: { shown: ['trump-5'] } }
         expect(describeAction(layAway, names, StandardStyle)).toBe('P1 laid away cards, showing 5')
+    })
+})
+
+describe('the history step description', () => {
+    const system = { id: 's', gameId: 'g', source: ActionSource.System, playerId: undefined }
+
+    it('describes the latest User Action and every System Action it set off', () => {
+        const actions = [
+            { ...base, type: ActionType.Pass },
+            { ...base, playerId: 'p2', type: ActionType.ChooseContract, contract: Contract.Rufer },
+            {
+                ...system,
+                type: ActionType.RevealTalon,
+                metadata: {
+                    halves: [
+                        ['trump-1', 'trump-2', 'trump-3'],
+                        ['trump-4', 'trump-5', 'trump-6']
+                    ]
+                }
+            }
+        ]
+        expect(describeStep(actions, names, StandardStyle)).toEqual([
+            'P2 named Rufer',
+            'The talon was turned up: 1 2 3 | 4 5 6'
+        ])
+    })
+
+    it('describes the setup before anyone has acted', () => {
+        const deal = {
+            ...system,
+            type: ActionType.DealHand,
+            metadata: { dealerId: 'p4', deal: 1 }
+        }
+        expect(describeStep([deal], names, StandardStyle)).toEqual(['P4 dealt hand 1'])
+        expect(describeStep([], names, StandardStyle)).toEqual([])
     })
 })

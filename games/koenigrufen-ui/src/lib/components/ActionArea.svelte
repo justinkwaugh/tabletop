@@ -1,7 +1,7 @@
 <script lang="ts">
     import { MachineState } from '@tabletop/koenigrufen'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
-    import { calledKingName, describeAction } from '$lib/utils/actionDescription.js'
+    import { calledKingName, describeStep } from '$lib/utils/actionDescription.js'
     import { announcementsSummary } from '$lib/utils/announcementText.js'
     import AnnouncementChoices from './AnnouncementChoices.svelte'
     import {
@@ -35,18 +35,9 @@
             : Waiting[state.machineState]
     )
 
-    const lastAction = $derived(
-        gameSession.actions.findLast((action) =>
-            describeAction(action, names, gameSession.cardStyle)
-        )
-    )
-    const lastDescription = $derived(
-        lastAction ? describeAction(lastAction, names, gameSession.cardStyle) : undefined
-    )
-    const historyDescription = $derived(
-        gameSession.currentAction
-            ? describeAction(gameSession.currentAction, names, gameSession.cardStyle)
-            : undefined
+    // What led to the state on screen: in History View the step reached, otherwise the latest.
+    const stepDescription = $derived(
+        describeStep(gameSession.actions, names, gameSession.cardStyle)
     )
 
     const standingContract = $derived.by(() => {
@@ -77,7 +68,7 @@
 
 <div class="action-area">
     {#if gameSession.isViewingHistory}
-        <p>{historyDescription ?? 'The deal'}</p>
+        <p>{stepDescription.length > 0 ? stepDescription.join('. ') : 'The deal'}</p>
     {:else if state.result}
         <p class="headline">
             {state.winningPlayerIds
@@ -184,7 +175,8 @@
                 Waiting for {gameSession.getPlayerName(turnPlayerId)}
                 {waitingFor ?? ''}.
             {/if}
-            {#if lastDescription}<span class="last">{lastDescription}.</span>{/if}
+            {#if stepDescription.length > 0}<span class="last">{stepDescription.join('. ')}.</span
+                >{/if}
         </p>
     {/if}
     {#if standingContract && !gameSession.isViewingHistory}
