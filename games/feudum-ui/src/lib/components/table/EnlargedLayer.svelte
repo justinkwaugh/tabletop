@@ -10,7 +10,8 @@
      * a press beside it or Escape does; no close button stands over it. What it holds is drawn
      * plain, so a bead on an enlarged guild area is part of the one press. A face-up card, writ or
      * guild area reads its rules beside it, under it on a phone; the note is for reading, and a press
-     * on it closes nothing.
+     * on it closes nothing. Nothing inside the piece answers the pointer, so no part's own name
+     * rises over it as a tooltip: the whole piece is the close press.
      */
     let { face, width, onClose }: { face: EnlargedFace; width: number; onClose: () => void } =
         $props()
@@ -30,7 +31,9 @@
             data-enlarged={face.kind}
             onclick={onClose}
         >
-            <EnlargedFaceView {face} {width} />
+            <span class="art block" data-enlarged-art>
+                <EnlargedFaceView {face} {width} />
+            </span>
         </button>
         {#if note}
             <aside
@@ -52,3 +55,9 @@
         {/if}
     </div>
 </Scrim>
+
+<style>
+    .art :global(*) {
+        pointer-events: none;
+    }
+</style>
