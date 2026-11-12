@@ -64,6 +64,10 @@
         "packageId": "napoleons-triumph"
     },
     {
+        "gameId": "south-african-railroads",
+        "packageId": "south-african-railroads"
+    },
+    {
         "gameId": "reef-encounter",
         "packageId": "reef-encounter"
     },
