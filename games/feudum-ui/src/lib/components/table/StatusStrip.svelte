@@ -2,7 +2,6 @@
     import GoodToken from '$lib/components/pieces/GoodToken.svelte'
     import SeatToken from '$lib/components/pieces/SeatToken.svelte'
     import ShillingToken from '$lib/components/pieces/ShillingToken.svelte'
-    import { seatPaint } from '$lib/model/seatPaint.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import { EpochNumerals } from '$lib/model/turnDraft.svelte.js'
 
@@ -17,11 +16,7 @@
     let myId = $derived(gameSession.myPlayerId)
     let view = $derived(myId === undefined ? undefined : gameSession.seatPanel(myId))
     let round = $derived(gameSession.gameState.roundManager.currentRound?.number ?? 1)
-    let paint = $derived(
-        myId === undefined
-            ? undefined
-            : seatPaint(gameSession.colors, myId, gameSession.getPlayerName(myId))
-    )
+    let paint = $derived(myId === undefined ? undefined : gameSession.paintOf(myId))
 </script>
 
 <div

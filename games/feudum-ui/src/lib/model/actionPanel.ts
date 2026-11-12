@@ -17,7 +17,7 @@ import type { GameEndSummaryView } from './gameEnd.js'
 import type { DawnSheetView } from './roundEnd.js'
 import { rankedDie, type DieArt } from './guildDie.js'
 import type { Feed, NourishSend, NourishSummary } from './nourishDraft.svelte.js'
-import { seatPaint, type SeatPaint } from './seatPaint.js'
+import type { SeatPaint } from './seatPaint.js'
 import { takesTradePicker } from './tradePicker.js'
 import type { FeudumGameSession } from './session.svelte.js'
 import type { OrderRow } from './sharedRows.js'
@@ -230,6 +230,7 @@ export interface ActionPanelView {
 /** What the panel reads of a session; it restates no rule of its own. */
 export type PanelSession = Pick<
     FeudumGameSession,
+    | 'paintOf'
     | 'startingGoodsPanel'
     | 'startingPawnPanel'
     | 'handPanel'
@@ -253,7 +254,6 @@ export type PanelSession = Pick<
     | 'guildPanel'
     | 'watchingPanel'
     | 'previousSeatLine'
-    | 'colors'
     | 'myPlayerId'
     | 'getPlayerName'
     | 'pressStartingGood'
@@ -278,10 +278,6 @@ export type PanelSession = Pick<
 
 function titled(word: string): string {
     return `${word.charAt(0).toUpperCase()}${word.slice(1)}`
-}
-
-function paintOf(session: PanelSession, playerId: string): SeatPaint {
-    return seatPaint(session.colors, playerId, session.getPlayerName(playerId))
 }
 
 function cardFace(kind: ActionCardKind): { readonly number: number; readonly label: string } {
@@ -339,7 +335,7 @@ function draftRow(
 function turnRow(session: PanelSession, choice: PanelChoice): ActionRow {
     const art: RowArt | undefined =
         choice.art?.kind === 'pawn'
-            ? { ...choice.art, paint: paintOf(session, session.myPlayerId ?? '') }
+            ? { ...choice.art, paint: session.paintOf(session.myPlayerId ?? '') }
             : choice.art
     return { choice, press: () => session.pressTurnChoice(choice), ...(art ? { art } : {}) }
 }
@@ -415,7 +411,7 @@ function handBlocks(
         entries: panel.finaliseRow.map((entry) => ({
             ...entry,
             name: session.getPlayerName(entry.playerId),
-            paint: paintOf(session, entry.playerId)
+            paint: session.paintOf(entry.playerId)
         })),
         caption: FinaliseCaption,
         ...(drafting ? { lead: drafting.line } : {})
@@ -435,7 +431,7 @@ function handBlocks(
             ...atWillBlocks(session)
         ]
     }
-    const paint = paintOf(session, session.myPlayerId ?? '')
+    const paint = session.paintOf(session.myPlayerId ?? '')
     const cards = drafting.cards.map(({ kind, picked, slot }): CardRow => ({
         kind,
         ...cardFace(kind),
@@ -695,7 +691,7 @@ function nourishBlocks(
     session: PanelSession,
     panel: NonNullable<PanelSession['nourishPanel']>
 ): ActionBlock[] {
-    const paint = paintOf(session, session.myPlayerId ?? '')
+    const paint = session.paintOf(session.myPlayerId ?? '')
     return [
         line('flow', 'Feed your pawns'),
         {
@@ -825,7 +821,7 @@ function turnBlocks(session: PanelSession, turn: NonNullable<PanelSession['turnP
         {
             kind: 'cards',
             tone: 'hand',
-            paint: paintOf(session, me),
+            paint: session.paintOf(me),
             rows: turn.cards.map(({ kind, picked, lights }) => ({
                 kind,
                 ...cardFace(kind),
@@ -915,7 +911,7 @@ function previousSeatBlocks({ watchingPanel, previousSeatLine }: PanelSession): 
 function seatNames(session: PanelSession): SeatNames {
     return {
         nameOf: (playerId) => session.getPlayerName(playerId),
-        paintOf: (playerId) => paintOf(session, playerId)
+        paintOf: session.paintOf
     }
 }
 

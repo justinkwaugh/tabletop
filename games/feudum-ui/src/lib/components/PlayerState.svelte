@@ -1,7 +1,6 @@
 <script lang="ts">
     import SeatPanel from '$lib/components/seat/SeatPanel.svelte'
     import { getTableLayers } from '$lib/components/table/tableLayersContext.js'
-    import { seatPaint } from '$lib/model/seatPaint.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
 
     /**
@@ -15,7 +14,7 @@
 
     let view = $derived(gameSession.seatPanel(playerId))
     let name = $derived(gameSession.getPlayerName(playerId))
-    let paint = $derived(seatPaint(gameSession.colors, playerId, name))
+    let paint = $derived(gameSession.paintOf(playerId))
 
     function onRibbon() {
         if (reading) {
