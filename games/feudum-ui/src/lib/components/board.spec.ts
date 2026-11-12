@@ -1,7 +1,9 @@
 // @vitest-environment node
 import { render } from 'svelte/server'
 import { describe, expect, it, vi } from 'vitest'
+import type { Color } from '@tabletop/common'
 import { HydratedFeudumGameState } from '@tabletop/feudum'
+import { colourPaint, seatPaint } from '$lib/model/seatPaint.js'
 import { atPlayingCards } from '$lib/testing/turnTable.js'
 import { BoardHeight, BoardWidth } from '$lib/utils/boardGeometry.js'
 import Board from './Board.svelte'
@@ -17,15 +19,18 @@ vi.mock('$lib/model/sessionContext.svelte.js', () => ({
 async function boardOf() {
     const { host } = await atPlayingCards(['explore'])
     const gameState = new HydratedFeudumGameState(structuredClone(host.state))
+    const colors = {
+        getPlayerUiColor: () => '#102030',
+        getUiColor: () => '#405060'
+    }
     session.current = {
         gameState,
         boardAnimator: { tokens: [], attach: () => {} },
         myPlayerId: gameState.players[0].playerId,
         getPlayerName: (playerId: string) => playerId,
-        colors: {
-            getPlayerUiColor: () => '#102030',
-            getUiColor: () => '#405060'
-        }
+        colors,
+        paintOf: (playerId: string) => seatPaint(colors, playerId, playerId),
+        colourPaintOf: (colour: Color) => colourPaint(colors, colour)
     }
     return { gameState, html: render(Board).body }
 }

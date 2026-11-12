@@ -1,6 +1,5 @@
 <script lang="ts">
     import { guildStandingsOf } from '$lib/model/guildStandings.js'
-    import { seatPaint } from '$lib/model/seatPaint.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import GuildStandings from './GuildStandings.svelte'
 
@@ -12,9 +11,7 @@
         guildStandingsOf(gameSession.gameState, (playerId) => gameSession.getPlayerName(playerId))
     )
 
-    function paintOf(playerId: string) {
-        return seatPaint(gameSession.colors, playerId, gameSession.getPlayerName(playerId))
-    }
+    const { paintOf } = gameSession
 </script>
 
 <GuildStandings {view} {paintOf} {sheet} />

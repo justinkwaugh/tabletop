@@ -1,6 +1,5 @@
 <script lang="ts">
     import { seatOrder } from '$lib/model/seatPanel.js'
-    import { colourPaint, seatPaint } from '$lib/model/seatPaint.js'
     import { getGameSession } from '$lib/model/sessionContext.svelte.js'
     import SupplyCard from './SupplyCard.svelte'
     import SymbolKeyCard from './SymbolKeyCard.svelte'
@@ -24,9 +23,7 @@
         return paintOf(playerId)
     })
 
-    function paintOf(playerId: string) {
-        return seatPaint(gameSession.colors, playerId, gameSession.getPlayerName(playerId))
-    }
+    const { paintOf } = gameSession
 
     function toggle(card: 'key' | 'supply') {
         open = open === card ? undefined : card
@@ -79,7 +76,7 @@
                 state={gameSession.gameState}
                 viewerId={gameSession.myPlayerId}
                 {paintOf}
-                colourPaintOf={(colour) => colourPaint(gameSession.colors, colour)}
+                colourPaintOf={gameSession.colourPaintOf}
                 nameOf={(playerId) => gameSession.getPlayerName(playerId)}
                 {...gameSession.boardChrome.openStack ? { openDeck } : {}}
             />
