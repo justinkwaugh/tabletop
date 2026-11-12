@@ -451,12 +451,28 @@ test.describe('held upright', () => {
         await expectNoSidewaysScroll(page)
     })
 
-    test('S68 R-3.1 the eleven cards stand in two rows, with the pouch and the send on one line under them', async ({
+    test('S68 R-3.1 the hand is drafted in a bottom sheet over the board: the slots, the eleven in two rows, the pouch and the send', async ({
         page
     }) => {
         await createGame(page)
         await playToHands(page)
         await settled(page)
+        // The sheet stands over the board on the seat strip, and the whole draft is in sight.
+        await expect(cap(page)).toHaveAttribute('data-hand-sheet', '')
+        const sheet = await rect(cap(page))
+        const strip = await rect(page.locator('[data-seat-strip]'))
+        expect(Math.abs(sheet.y + sheet.height - strip.y)).toBeLessThan(2)
+        await expectTarget(page.locator('[data-seat-chip]').first())
+        expect(sheet.y).toBeGreaterThan((await rect(boardView(page))).y)
+        expect(
+            await cap(page).evaluate((element) => element.scrollHeight <= element.clientHeight + 1)
+        ).toBe(true)
+        const slots = panel(page).locator('[data-plan] [data-slot]')
+        await expect(slots).toHaveCount(4)
+        const firstSlot = await rect(slots.first())
+        expect(firstSlot.y + firstSlot.height).toBeLessThanOrEqual(
+            (await rect(panel(page).locator('[data-cards] [data-row]').first())).y
+        )
         const cells = panel(page).locator('[data-cards] [data-row]')
         await expect(cells).toHaveCount(11)
         const boxes = await Promise.all((await cells.all()).map((cell) => rect(cell)))
@@ -486,12 +502,17 @@ test.describe('held upright', () => {
             await expectTarget(button)
         }
 
-        // The cap bites here, and the send stays in sight while it does.
-        const column = await rect(stack(page))
-        expect((await rect(cap(page))).height).toBeLessThanOrEqual(0.36 * column.height + 1)
-        const area = await rect(cap(page))
-        expect(send.y + send.height).toBeLessThanOrEqual(area.y + area.height + 1)
+        expect(send.y + send.height).toBeLessThanOrEqual(sheet.y + sheet.height + 1)
+        expect(await panel(page).locator('[data-primary-note]').innerText()).toBe("can't be undone")
         await shot(page, 'phone-hand')
+
+        // The send takes from the sheet; at a shared screen the next seat drafts in it.
+        for (const index of [0, 1, 2, 3]) {
+            await cells.nth(index).locator('button').first().tap()
+        }
+        await panel(page).locator('[data-primary]').tap()
+        await settled(page)
+        await expect(panel(page).locator('[data-finalise-seat][data-finalised]')).toHaveCount(1)
     })
 
     test('S68 R-3.1 a card takes a pick and a magnifier, each 44 px, and the magnifier enlarges to the screen less 32', async ({
@@ -1106,16 +1127,19 @@ test.describe('a 390 px phone', () => {
 test.describe('held sideways', () => {
     test.use({ viewport: Sideways, hasTouch: true, isMobile: true })
 
-    test('S67 R-3.1 the action area caps at 40 %, and scrolls inside rather than past it', async ({
+    test('S67 R-3.1 the hand sheet caps at 85 % of the column, and scrolls inside rather than past it', async ({
         page
     }) => {
         await createGame(page)
         await playToHands(page)
         await settled(page)
         await expect(page.locator('.feudum-table')).toHaveAttribute('data-phone', 'sideways')
+        // The action area's 40 % gives way to the hand's sheet while the hand is drafted.
+        await expect(cap(page)).toHaveAttribute('data-hand-sheet', '')
         const column = await rect(stack(page))
         const action = await rect(cap(page))
-        expect(action.height).toBeLessThanOrEqual(0.4 * column.height + 1)
+        expect(action.height).toBeLessThanOrEqual(0.85 * column.height + 1)
+        expect(action.height).toBeGreaterThan(0.4 * column.height)
         const overflowed = await cap(page).evaluate(
             ({ scrollHeight, clientHeight }) => scrollHeight > clientHeight
         )

@@ -203,10 +203,13 @@ scenario(
         expect(rows.length).toBe(table.phone ? 2 : rows.length)
         expect(rows.length).toBeLessThanOrEqual(2)
         const lowest = Math.max(...boxes.map(({ y, height }) => y + height))
-        for (const line of [
-            table.panel().locator('[data-rows="pouch"]'),
-            table.panel().locator('[data-primary]')
-        ]) {
+        // A desk stands the pouch and the send beside the eleven; a phone's sheet, under them.
+        for (const line of table.phone
+            ? [
+                  table.panel().locator('[data-rows="pouch"]'),
+                  table.panel().locator('[data-primary]')
+              ]
+            : []) {
             expect((await rect(line)).y).toBeGreaterThanOrEqual(lowest - 1)
         }
         await expectNoSidewaysScroll(table)
