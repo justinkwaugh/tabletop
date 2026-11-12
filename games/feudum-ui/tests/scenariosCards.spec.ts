@@ -131,7 +131,7 @@ scenario('S15a R-3.9-H1 Improve a farm: which town disc', 'cards-improve-farm', 
     expect(chips).toEqual({ [farm]: 'farm to town · 1 iron' })
     await table.pressPick(farm)
     await expect(table.popup().locator('[data-popup-heading]')).toHaveText(
-        'Which town disc? Its back leaves the supply with it, so no later improvement can take that face.'
+        'Which town disc? Its back leaves the supply with it, and no other improvement can take that face while it stands.'
     )
     for (const back of ['farm', 'outpost']) {
         const choice = table.popupRow(`Town disc, back: ${back}`)
