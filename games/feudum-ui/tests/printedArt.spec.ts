@@ -117,10 +117,11 @@ test('S71 each printed seat piece stands centred where the drawn piece stood', a
         expect(print.width).toBeLessThanOrEqual(box.width + 0.5)
         expect(print.height).toBeLessThanOrEqual(box.height + 0.5)
         await expect(token.locator('text')).toHaveCount(0)
-        // A seat's piece names the seat; a dummy Knight row's names its colour (R-1.4-H1).
+        // A seat's piece names the seat; a dummy Knight row's names its colour (R-1.4-H1); discs
+        // sharing a score space each name every disc there.
         await expect(token).toHaveAttribute(
             'aria-label',
-            /^(.+'s|red|blue|yellow|green|purple) (influence marker|player disc|reeve)$/
+            /^((.+'s|red|blue|yellow|green|purple) (influence marker|player disc|reeve)|Player discs: .+)$/
         )
         const href = (await image.getAttribute('href')) ?? ''
         for (const kind of ['marker', 'disc'] as const) {

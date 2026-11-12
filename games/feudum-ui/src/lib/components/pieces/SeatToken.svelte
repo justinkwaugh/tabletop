@@ -17,13 +17,16 @@
         paint,
         size = 24,
         x,
-        y
+        y,
+        label: named
     }: {
         kind: SeatPieceKind
         paint: SeatPaint
         size?: number
         x?: number
         y?: number
+        /** Its accessible name and tooltip where the place says more than whose it is. */
+        label?: string
     } = $props()
 
     const Names = { marker: 'influence marker', disc: 'player disc', reeve: 'reeve' } as const
@@ -37,7 +40,7 @@
     const OutlineWidth = 4
     const ShadowDrop = 2.5
 
-    let label = $derived(`${paint.owner} ${Names[kind]}`)
+    let label = $derived(named ?? `${paint.owner} ${Names[kind]}`)
     let printedUrl = $derived(
         paint.printed ? assetUrl(seatPieceAsset(kind, paint.printed)) : undefined
     )

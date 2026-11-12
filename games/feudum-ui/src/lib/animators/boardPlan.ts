@@ -28,7 +28,15 @@ import {
     type TileId,
     type VesselType
 } from '@tabletop/feudum'
-import { scoreOnTrack, serviceDiscs, voyageDiscs, type TrackDisc } from '$lib/model/boardView.js'
+import {
+    scoreDiscs,
+    scoreOnTrack,
+    seatScores,
+    serviceDiscs,
+    voyageDiscs,
+    type SeatScore,
+    type TrackDisc
+} from '$lib/model/boardView.js'
 import {
     goodKinds,
     goodStacks,
@@ -841,16 +849,42 @@ function flyGoods(
 
 // Score
 
-function laneOf(state: HydratedFeudumGameState, playerId: string): number {
-    return state.players.findIndex((player) => player.playerId === playerId)
+/** R-1.2.5 A seat's disc among these scores, and where it rests, fanned with any on its space. */
+function scoreRest(scores: readonly SeatScore[], playerId: string) {
+    const disc = scoreDiscs(scores).find((seat) => seat.playerId === playerId)
+    if (!disc) {
+        throw new Error(`No score disc for ${playerId}`)
+    }
+    return { score: disc.score, at: scoreDiscAt(disc.space, disc.index, disc.count) }
 }
 
-/** R-1.2.5 The disc walks the ring, score by score, however far it goes. */
-function ringWalk(lane: number, from: number, to: number): readonly Point[] {
+function withScore(scores: readonly SeatScore[], playerId: string, score: number) {
+    return scores.map((seat) => (seat.playerId === playerId ? { playerId, score } : seat))
+}
+
+/**
+ * R-1.2.5 The disc walks the ring, score by score, however far it goes: from where it rests,
+ * along the middle of each space, to where it rests among the discs it joins.
+ */
+function ringWalk(
+    playerId: string,
+    before: readonly SeatScore[],
+    after: readonly SeatScore[]
+): readonly Point[] {
+    const start = scoreRest(before, playerId)
+    const end = scoreRest(after, playerId)
+    const from = start.score
+    const to = end.score
     const samples = Math.max(1, Math.min(Math.abs(to - from), ScoreSamples))
     return Array.from({ length: samples + 1 }, (_, index) => {
+        if (index === 0) {
+            return start.at
+        }
+        if (index === samples) {
+            return end.at
+        }
         const score = Math.round(from + ((to - from) * index) / samples)
-        return scoreDiscAt(scoreOnTrack(score).space, lane)
+        return scoreDiscAt(scoreOnTrack(score).space)
     })
 }
 
@@ -860,6 +894,8 @@ function ringSeconds(from: number, to: number): number {
 
 function slideScores(plan: PlanBuilder, { from, to }: BoardChange, at: number): number {
     let ends = at
+    const before = seatScores(from)
+    const after = seatScores(to)
     for (const player of from.players) {
         const score = to.getPlayerState(player.playerId).score
         if (score !== player.score) {
@@ -870,7 +906,7 @@ function slideScores(plan: PlanBuilder, { from, to }: BoardChange, at: number): 
                     { piece: `score:${player.playerId}` },
                     at,
                     ringSeconds(player.score, score),
-                    { path: ringWalk(laneOf(from, player.playerId), player.score, score) }
+                    { path: ringWalk(player.playerId, before, after) }
                 )
             )
         }
@@ -915,16 +951,20 @@ function playDawn(
     at: number
 ): number {
     let cursor = at
+    let scores = seatScores(from)
     for (const { playerId, disloyaltyVp, total } of sheet) {
         const score = from.getPlayerState(playerId).score
-        const lane = laneOf(from, playerId)
         const gained = score + total - disloyaltyVp
         const target = { piece: `score:${playerId}` }
+        const before = scores
+        scores = withScore(scores, playerId, gained)
         cursor = plan.move('dawn', target, cursor, DawnRowSeconds, {
-            path: ringWalk(lane, score, gained)
+            path: ringWalk(playerId, before, scores)
         })
         if (disloyaltyVp < 0) {
-            const back = ringWalk(lane, gained, score + total)
+            const reached = scores
+            scores = withScore(scores, playerId, score + total)
+            const back = ringWalk(playerId, reached, scores)
             const place = back[0]
             const chip = plan.token({ kind: 'chip', text: `${disloyaltyVp}`, rose: true }, place)
             plan.move('dawn', chip, cursor, DawnRowSeconds, {
