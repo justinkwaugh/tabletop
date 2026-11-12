@@ -36,8 +36,7 @@
         note: 'text-xs text-feudum-text-muted',
         waiting: 'text-sm text-feudum-text-muted',
         previous: 'text-xs text-feudum-text-muted',
-        refusal: 'text-xs text-feudum-text-muted',
-        round: 'text-sm font-semibold text-feudum-text'
+        refusal: 'text-xs text-feudum-text-muted'
     }
 
     function dataOf(role: LineRole) {
@@ -49,8 +48,7 @@
             note: { 'data-note-line': '' },
             waiting: { 'data-waiting': '' },
             previous: { 'data-previous-seat': '' },
-            refusal: { 'data-refusal-line': '' },
-            round: { 'data-round-line': '' }
+            refusal: { 'data-refusal-line': '' }
         }[role]
     }
 

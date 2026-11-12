@@ -44,6 +44,11 @@ import { tileName } from './tileName.js'
 import type { ActionPanelView } from './actionPanel.js'
 import type { FeudumGameSession } from './session.svelte.js'
 
+/** R-4.11 Any panel line that tells the roll: what the die took, or the epoch it brought on. */
+function rollLinesOf(view: Parameters<typeof linesOf>[0]): readonly string[] {
+    return linesOf(view).filter((text) => /removed|dawns/.test(text))
+}
+
 const hosts: FeudumHost[] = []
 
 function hold<T extends { host: FeudumHost }>(table: T): T {
@@ -401,7 +406,7 @@ describe('S54 R-4.11, R-4.12 the progress line and the dawn sheet', () => {
                 total: source?.total
             })
         }
-        expect(linesOf(session.actionPanel, 'round')).toEqual([])
+        expect(rollLinesOf(session.actionPanel)).toEqual([])
     })
 
     it('S54 the roll that takes a tile is told in the history, not the panel, to every seat', async () => {
@@ -414,7 +419,7 @@ describe('S54 R-4.11, R-4.12 the progress line and the dawn sheet', () => {
         assertExists(removed, 'R-4.11 With a stack showing, the fixed die takes a tile')
         const name = tileName(removed.tileId)
         for (const seat of sessions) {
-            expect(linesOf(seat.actionPanel, 'round')).toEqual([])
+            expect(rollLinesOf(seat.actionPanel)).toEqual([])
             const told = describeAction(roll, {
                 viewerId: seat.myPlayerId,
                 nameOf: (playerId) => seat.getPlayerName(playerId)
@@ -461,7 +466,7 @@ describe('S54 R-4.11, R-4.12 the progress line and the dawn sheet', () => {
         )
         const { session, sessions, host, other } = table
         expect(session.gameState.machineState).toBe(MachineState.CollectingLandscapes)
-        const lines = linesOf(session.actionPanel, 'round')
+        const lines = rollLinesOf(session.actionPanel)
         expect(dawnOf(session).epoch).toBe(2)
 
         await host.send(other, {
@@ -478,7 +483,7 @@ describe('S54 R-4.11, R-4.12 the progress line and the dawn sheet', () => {
         for (const seat of sessions) {
             expect(dawnOf(seat).epoch).toBe(2)
         }
-        expect(linesOf(session.actionPanel, 'round')).toEqual(lines)
+        expect(rollLinesOf(session.actionPanel)).toEqual(lines)
         sameForAll(sessions)
     })
 
@@ -510,7 +515,7 @@ describe('S54 R-4.11, R-4.12 the progress line and the dawn sheet', () => {
         )
         for (const seat of sessions) {
             expect(blockOf(seat.actionPanel, 'dawn-sheet')).toBeUndefined()
-            expect(linesOf(seat.actionPanel, 'round')).toEqual([])
+            expect(rollLinesOf(seat.actionPanel)).toEqual([])
         }
     })
 

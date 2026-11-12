@@ -113,7 +113,7 @@ export interface SeatNames {
 }
 
 export type LineRole =
-    'turn' | 'flow' | 'count' | 'warning' | 'note' | 'waiting' | 'previous' | 'refusal' | 'round'
+    'turn' | 'flow' | 'count' | 'warning' | 'note' | 'waiting' | 'previous' | 'refusal'
 
 /**
  * Where a block stands when it is not in the panel's own run: in the tray beside the picked card
@@ -946,17 +946,7 @@ function roundEndBlocks(session: PanelSession): readonly ActionBlock[] {
     if (!roundEnd) {
         return []
     }
-    return [
-        ...(roundEnd.dawn
-            ? [
-                  {
-                      kind: 'dawn-sheet',
-                      sheet: roundEnd.dawn,
-                      seats: seatNames(session)
-                  } satisfies ActionBlock
-              ]
-            : [])
-    ]
+    return [{ kind: 'dawn-sheet', sheet: roundEnd.dawn, seats: seatNames(session) }]
 }
 
 /**
