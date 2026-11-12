@@ -68,6 +68,10 @@ track layouts and counts only, checked against the rulebook.
 - `PrivatePowerRules.afterMarker`: what follows a private's map marker (CNM records its port and
   closes).
 - Terrain icons for `hill` and `rough` beside `mountain`.
+- `MapViewDefinition.terrainKeptOnTiles`: a hex's terrain cost stays drawn on the tiles laid over
+  it (§10.3.1 puts the token back), in each tile's own clear space nearest the hex's foot, as a
+  row or with the cost under its symbols. `terrainCostsBelow` stacks a printed hex's cost the
+  same way where its track leaves no room for a row (K9).
 
 ## Rulings to confirm with the owner
 
@@ -107,8 +111,6 @@ track layouts and counts only, checked against the rulebook.
 ## Implemented later or not at all
 
 - Variants (§14): acquiring station tokens, bonds, Electric Dreams.
-- Terrain costs are not drawn on laid tiles, though §10.3.1 puts the token back on the tile; the
-  tile picker shows each lay's cost.
 - The physical board view (no board artwork); the boardless map is the only presentation.
 
 ## Verification

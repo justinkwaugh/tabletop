@@ -120,6 +120,11 @@ export type MapViewDefinition = {
     terrainPositions?: Readonly<Record<string, Point>>
     /** Locations whose terrain cost stands under its symbols, where a row has no room beside track. */
     terrainCostsBelow?: readonly string[]
+    /**
+     * Whether a hex's terrain cost stays printed on the tiles laid over it, as where the cost is
+     * paid again on every upgrade; each tile shows it in its own clear space.
+     */
+    terrainKeptOnTiles?: boolean
     markerArt?: Readonly<Record<string, MapMarkerArt>>
     /** Art for one location's markers, by location id then marker id, over ``markerArt``. */
     locationMarkerArt?: LocationMarkerArt

@@ -11,6 +11,7 @@ import {
     type TileEdge
 } from '@tabletop/18xx'
 import { mapTrackJoins } from '../lib/maps/trackJoins.js'
+import { tilePathPoint } from '../lib/tiles/tileTrackGeometry.js'
 import {
     borderDash,
     createMapDrawing,
@@ -591,4 +592,86 @@ it('stands a listed location’s terrain cost under its symbols', () => {
     expect(listed.terrainCostBelow).toBe(true)
     expect(listed.terrainPosition).toEqual({ x: -22, y: -5 })
     expect(other.terrainCostBelow).toBeUndefined()
+})
+
+it('keeps a hex’s terrain cost on a laid tile only where the view asks, clear of its city', () => {
+    const tileSet = new TileSet(
+        { id: 'kept', entries: [{ id: 'kept/57', faceDefinitionIds: ['18xx:57'], count: 1 }] },
+        [StandardTileCatalog]
+    )
+    const map = new RailwayMap({
+        id: 'kept',
+        name: 'Kept',
+        orientation: HexOrientation.Flat,
+        locations: [
+            {
+                id: 'A1',
+                coordinates: { q: 0, r: 0 },
+                buildable: true,
+                preprintedTile: createCityTileFace('white', [], 0, 1),
+                terrain: { cost: 160, kinds: ['mountain'] }
+            }
+        ]
+    })
+    const inventory = tileSet.createInventory([
+        { locationId: 'A1', definitionId: '18xx:57', rotation: 0 }
+    ])
+    const laid = (terrainKeptOnTiles: boolean) =>
+        createMapDrawing(map, { tileSet, inventory }, { terrainKeptOnTiles }).locations[0]
+    expect(laid(false).terrainShown).toBe(false)
+    const kept = laid(true)
+    expect(kept.terrainShown).toBe(true)
+    // The row reaches 9 above its line and 5 below, the width of its peaks and cost.
+    const [city] = kept.drawing.nodes
+    const [slot] = city.slots
+    const row = kept.terrainPosition
+    const halfWidth = (19 + 3 * 6.5) / 2
+    const gap = Math.hypot(
+        Math.max(Math.abs(slot.x - row.x) - halfWidth, 0),
+        Math.max(slot.y < row.y ? row.y - 9 - slot.y : slot.y - row.y - 5, 0)
+    )
+    expect(gap).toBeGreaterThanOrEqual(city.slotRadius)
+})
+
+it('stands a kept terrain cost clear of a laid tile’s track', () => {
+    const tileSet = new TileSet(
+        { id: 'track', entries: [{ id: 'track/9', faceDefinitionIds: ['18xx:9'], count: 6 }] },
+        [StandardTileCatalog]
+    )
+    const map = new RailwayMap({
+        id: 'track',
+        name: 'Track',
+        orientation: HexOrientation.Flat,
+        locations: [
+            {
+                id: 'A1',
+                coordinates: { q: 0, r: 0 },
+                buildable: true,
+                preprintedTile: createTrackTileFace('white', []),
+                terrain: { cost: 160, kinds: ['mountain'] }
+            }
+        ]
+    })
+    for (const rotation of [0, 1, 2] as const) {
+        const inventory = tileSet.createInventory([
+            { locationId: 'A1', definitionId: '18xx:9', rotation }
+        ])
+        const [laid] = createMapDrawing(
+            map,
+            { tileSet, inventory },
+            { terrainKeptOnTiles: true }
+        ).locations
+        const row = laid.terrainPosition
+        const halfWidth = laid.terrainCostBelow ? 19 / 2 : (19 + 3 * 6.5) / 2
+        const foot = laid.terrainCostBelow ? 15 : 5
+        for (const path of laid.drawing.paths)
+            for (let t = 0; t <= 1; t += 0.05) {
+                const point = tilePathPoint(path, t)
+                const outside =
+                    Math.abs(point.x - row.x) > halfWidth ||
+                    point.y < row.y - 9 ||
+                    point.y > row.y + foot
+                expect(outside).toBe(true)
+            }
+    }
 })

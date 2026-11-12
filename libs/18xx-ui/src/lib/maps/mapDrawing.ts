@@ -263,6 +263,8 @@ export type MapDrawnLocation = {
     terrainPosition: Point
     /** Whether the terrain cost stands under its symbols rather than after them. */
     terrainCostBelow?: true
+    /** Whether the location's terrain cost is drawn: on the printed hex, or kept on a laid tile. */
+    terrainShown: boolean
     /** Height of a local line drawn ``above``: over the hex's stops and any name curved on them. */
     localLineAboveY?: number
     /** Where an ``onTile`` local line stands once a tile is laid, clear of that tile. */
@@ -435,6 +437,7 @@ export function createMapDrawing(
         sharedCityLayouts = {},
         terrainPositions = {},
         terrainCostsBelow = [],
+        terrainKeptOnTiles = false,
         bonusArrows = []
     }: Pick<
         MapViewDefinition,
@@ -469,6 +472,7 @@ export function createMapDrawing(
         | 'sharedCityLayouts'
         | 'terrainPositions'
         | 'terrainCostsBelow'
+        | 'terrainKeptOnTiles'
         | 'bonusArrows'
     > = {}
 ): MapDrawing {
@@ -684,13 +688,44 @@ export function createMapDrawing(
             revenueBadges(lifted, markers, markerArt),
             !placement && tileLayout.revenueAlign === 'middle'
         )
-        const terrainRow = terrainRowOf(drawing)
-        const terrainCostBelow = terrainCostsBelow.includes(location.id) || undefined
         const captions = revenueCaptions(drawing, leads)
         const hexVertices = geometry.vertices.map((point) => ({
             x: point.x - geometry.center.x,
             y: point.y - geometry.center.y
         }))
+        const terrainShown = !!location.terrain && (!placement || terrainKeptOnTiles)
+        // A laid tile keeps the cost in its own clear space, clear of its stops, values and label.
+        const laidTerrain =
+            placement && terrainShown && location.terrain
+                ? clearTerrainSpot(
+                      hexSpace(drawing, hexVertices, [
+                          // The spaces as drawn, which tokens fill.
+                          ...drawing.nodes.flatMap(({ node, center, slots, slotRadius }) =>
+                              node.kind !== 'city'
+                                  ? []
+                                  : slots.length
+                                    ? slots.map((slot) => disc(slot, slotRadius))
+                                    : [disc(center, slotRadius)]
+                          ),
+                          ...captions.map((caption) =>
+                              box(
+                                  caption,
+                                  (caption.caption.length * CaptionCharacterWidth) / 2,
+                                  CaptionFontSize / 2
+                              )
+                          ),
+                          ...(face.labels.length
+                              ? [box(drawing.labelPosition, face.labels.join(' ').length * 4.5, 7)]
+                              : [])
+                      ]),
+                      location.terrain,
+                      terrainCostPrefix
+                  )
+                : undefined
+        const terrainRow = laidTerrain?.row ?? terrainRowOf(drawing)
+        const terrainCostBelow =
+            (laidTerrain ? laidTerrain.costBelow : terrainCostsBelow.includes(location.id)) ||
+            undefined
         const divides = (edge: TileEdge) =>
             isOffboard(location) && isOffboard(map.neighbor(location.id, edge))
         return {
@@ -719,6 +754,7 @@ export function createMapDrawing(
             nameArcs,
             terrainPosition: terrainRow,
             ...(terrainCostBelow ? { terrainCostBelow } : {}),
+            terrainShown,
             localLineAboveY,
             ...(placement && markers.some((marker) => hasOnTileLine(markerArt[marker.id]))
                 ? { localLineOnTile: clearLocalLinePoint(hexSpace(drawing, hexVertices, [])) }
@@ -761,7 +797,7 @@ export function createMapDrawing(
                             : nameShown && location.name
                               ? [nameBox(nameRows, nameBaseline, nameScale)]
                               : []),
-                        ...(!placement && location.terrain
+                        ...(terrainShown && location.terrain
                             ? [
                                   terrainBox(
                                       location.terrain,
@@ -1449,6 +1485,82 @@ function clearLocalLinePoint(space: HexSpace): Point {
                 best = point
         }
     return best ?? OnTileTagHome
+}
+
+// A laid tile's terrain cost stands nearest the foot of the hex, in a row where one fits, else
+// with its cost under its symbols. Symbols reach 9 above the row's line and 5 below it; the cost
+// prints to 4 below it, or a drop lower when under them.
+const LaidTerrainHome = { x: 0, y: 30 }
+// Clear by these gaps where the tile has room, else only not overlapping.
+const LaidTerrainGaps = [2, 0]
+const TerrainTop = 9
+const TerrainFoot = 5
+function clearTerrainSpot(
+    space: HexSpace,
+    terrain: NonNullable<MapLocation['terrain']>,
+    costPrefix: string
+): { row: Point; costBelow: boolean } {
+    const widths = terrainRowWidths(terrain.kinds.length, `${costPrefix}${terrain.cost}`)
+    // Each shape as a box about the row's line: a row, or the cost under the symbols.
+    const shape = (halfWidth: number, foot: number) => ({
+        halfWidth,
+        halfHeight: (TerrainTop + foot) / 2,
+        drop: (foot - TerrainTop) / 2
+    })
+    const shapes = [
+        shape((widths.icons + widths.cost) / 2, TerrainFoot),
+        shape(Math.max(widths.icons, widths.cost) / 2, 4 + TerrainCostDrop)
+    ]
+    const obstacles = [...space.obstacles, ...space.track]
+    const fits = (
+        line: Point,
+        { halfWidth, halfHeight, drop }: (typeof shapes)[number],
+        gap: number
+    ) => {
+        const centre = { x: line.x, y: line.y + drop }
+        return (
+            [-1, 1].every((sideX) =>
+                [-1, 1].every((sideY) => {
+                    const corner = {
+                        x: centre.x + sideX * halfWidth,
+                        y: centre.y + sideY * halfHeight
+                    }
+                    return insideHex(corner, space.vertices) && space.inset(corner) >= 1.5
+                })
+            ) &&
+            obstacles.every(
+                (obstacle) =>
+                    Math.hypot(
+                        Math.max(
+                            Math.abs(centre.x - obstacle.x) - obstacle.halfWidth - halfWidth,
+                            0
+                        ),
+                        Math.max(
+                            Math.abs(centre.y - obstacle.y) - obstacle.halfHeight - halfHeight,
+                            0
+                        )
+                    ) -
+                        obstacle.radius >=
+                    gap
+            )
+        )
+    }
+    // Nearest the foot first, a row before a stack at the same spot; touching only if none is clear.
+    for (const gap of LaidTerrainGaps)
+        for (const line of laidTerrainLines())
+            for (const [index, candidate] of shapes.entries())
+                if (fits(line, candidate, gap)) return { row: line, costBelow: index === 1 }
+    return { row: LaidTerrainHome, costBelow: false }
+}
+
+// The row's line every two units across the hex, nearest the foot first; made on first use.
+let terrainLinesByNearness: readonly Point[] | undefined
+function laidTerrainLines(): readonly Point[] {
+    terrainLinesByNearness ??= Array.from({ length: 49 * 45 }, (_, index) => ({
+        x: (index % 49) * 2 - 48,
+        y: Math.floor(index / 49) * 2 - 44
+    })).sort((a, b) => distanceBetween(a, LaidTerrainHome) - distanceBetween(b, LaidTerrainHome))
+    return terrainLinesByNearness
 }
 
 function isClearPoint(space: HexSpace, point: Point, radius: number): boolean {

@@ -369,7 +369,7 @@
                         stroke={appearance.colors[entry.face.color]}
                         stroke-width="1.7"
                     >
-                        {#if !entry.placed && entry.location.terrain}
+                        {#if entry.terrainShown && entry.location.terrain}
                             {@const terrain = entry.location.terrain}
                             {@const cost = `${scene.terrainCostPrefix}${terrainCost(terrain)}`}
                             {@const widths = terrainRowWidths(terrain.kinds.length, cost)}
@@ -427,7 +427,7 @@
                             </g>
                             {#each (entry.location.markers ?? []).filter((marker) => {
                                 const art = entry.markerArt[marker.id]
-                                return !!art && 'terrainNote' in art
+                                return !entry.placed && !!art && 'terrainNote' in art
                             }) as marker (marker.id)}
                                 <text
                                     data-map-terrain-note={marker.id}

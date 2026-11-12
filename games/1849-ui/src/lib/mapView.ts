@@ -43,6 +43,8 @@ export const MapView1849: MapViewDefinition = {
     stations: Stations,
     // Rough, hills and mountains (L. 40, 80 and 160) as one, two and three peaks (§10.3.1).
     terrainIcons: { rough: 'peak', hill: 'mountain', mountain: 'range' },
+    // The terrain token goes back on each tile laid, its cost paid again on upgrade (§10.3.1).
+    terrainKeptOnTiles: true,
     // K9's printed track runs through its centre, so its cost stands under its peaks beside it.
     terrainPositions: { K9: { x: -22, y: -5 } },
     terrainCostsBelow: ['K9'],
