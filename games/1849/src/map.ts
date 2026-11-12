@@ -108,7 +108,7 @@ const locations = createLetterNumberLocationFactory({
     orientation: Orientation,
     numberOffset: NumberOffset,
     letters: 'rows',
-    fixedColors: ['gray', 'red', 'blue'],
+    fixedColors: ['gray', 'blue'],
     names: Names,
     homes: Homes,
     markers: Markers
@@ -190,7 +190,8 @@ export const Map1849 = new RailwayMap({
         ...locations('A5', port(0, 10)),
         ...locations('N8', port([4, Dual], 20)),
         ...locations('L14', port(2, 60)),
-        ...locations('C15', offboardFace('red', [[4, Dual]], staged(10, 30, 90))),
+        // Calabria is printed grey, as the grey cities whose three values it shares (§10.5.2).
+        ...locations('C15', offboardFace('gray', [[4, Dual]], staged(10, 30, 90))),
         ...locations('F12', trackFace('gray', [])),
         // The hex northeast of Messina counts as two (§10.5.1): its halves are A15 and B16, so
         // Messina to Calabria crosses three hex edges.
