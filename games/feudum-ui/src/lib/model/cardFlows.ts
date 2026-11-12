@@ -642,8 +642,9 @@ function improveFlow({ state, playerId, input, read }: FlowInput): FlowView {
 
 /**
  * R-3.9-H1, R-3.9-H2 The discs that differ in their back, each drawn with its back peeking behind
- * it: the back leaves the general supply with the disc, so a later improvement cannot take that
- * face, and the heading says why it matters. A farm or town is never reduced (R-3.13.1).
+ * it: the back leaves the general supply with the disc, and no other improvement can take that face
+ * until the disc is replaced and returns, so the heading says why it matters. A farm or town is never
+ * reduced (R-3.13.1).
  */
 function discPopup(
     anchor: BoardTarget,
@@ -653,7 +654,7 @@ function discPopup(
     const name = titled(to)
     return {
         anchor,
-        heading: `Which ${to} disc? Its back leaves the supply with it, so no later improvement can take that face.`,
+        heading: `Which ${to} disc? Its back leaves the supply with it, and no other improvement can take that face while it stands.`,
         choices: discs.map(({ discId, other }) => {
             const back = other ?? 'plain'
             return {
