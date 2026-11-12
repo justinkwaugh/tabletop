@@ -43,6 +43,7 @@ export const MapView1849: MapViewDefinition = {
         panel: { x: -40, y: 420, width: 340, height: 170 }
     },
     stations: Stations,
+    borderWidths: { impassable: 5 },
     // Rough, hills and mountains (L. 40, 80 and 160) as one, two and three peaks (§10.3.1).
     terrainIcons: { rough: 'peak', hill: 'mountain', mountain: 'range' },
     // The terrain token goes back on each tile laid, its cost paid again on upgrade (§10.3.1).
